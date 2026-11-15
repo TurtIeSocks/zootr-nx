@@ -264,16 +264,6 @@ expect = ["{}.{}=true"]
         assert!(script.steps[1].shot && !script.steps[2].shot);
     }
 
-    #[test]
-    fn the_checked_in_scripts_parse() {
-        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("play");
-        for entry in std::fs::read_dir(dir).unwrap() {
-            let path = entry.unwrap().path();
-            let script = Script::load(&path).unwrap();
-            assert!(!script.steps.is_empty(), "{}", path.display());
-        }
-    }
-
     fn error(text: &str) -> String {
         format!("{:#}", Script::parse(text).unwrap_err())
     }

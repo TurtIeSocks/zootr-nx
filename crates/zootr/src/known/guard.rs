@@ -7,9 +7,14 @@ use std::path::{Path, PathBuf};
 /// The prefixes the game's identifiers start with.
 const PREFIXES: [&str; 8] = ["Item", "TBox", "Obj", "Armor", "Npc", "Enemy", "Dm", "Beat"];
 
-/// What to scan, as `(folder, extension)` under the workspace root. To
-/// guard the logic rule files too, add `("crates/zootr/logic", "toml")`.
-const SCANNED: [(&str, &str); 2] = [("crates", "rs"), ("crates/zootr/logic", "toml")];
+/// What to scan, as `(folder, extension)` under the workspace root. The app's
+/// generated `bindings.ts` is scanned too and holds no names.
+const SCANNED: [(&str, &str); 4] = [
+    ("crates", "rs"),
+    ("crates/zootr/logic", "toml"),
+    ("app/src", "ts"),
+    ("app/src", "tsx"),
+];
 
 /// Files the guard skips: its own examples.
 const OWN_EXAMPLES: [&str; 1] = ["crates/zootr/src/known/guard.rs"];
@@ -114,8 +119,8 @@ fn no_game_name_is_written_as_text() {
     assert!(
         found.is_empty(),
         "game names written as text. Use a `known::*` const (`n!(0x…)`, hash \
-         from `zootr probe hash`) or a logic vocabulary word, or a made-up \
-         name like `Item_A` in a test:\n{}",
+         from `zootr probe hash`), a logic vocabulary word, a glyph in the \
+         app, or a made-up name like `Item_A` in a test:\n{}",
         found.join("\n")
     );
 }
