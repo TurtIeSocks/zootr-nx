@@ -176,6 +176,9 @@ pub struct Value {
     /// What it holds now, as the Live tab shows it. `None` without the
     /// game, or for a value it doesn't keep.
     pub live: Option<String>,
+    /// What a BoolExp works out, as infix: the game keeps no value for it,
+    /// so it's set through the values it reads.
+    pub expr: Option<String>,
 }
 
 /// What `name` is and what it holds in `game`, read from memory without
@@ -187,6 +190,7 @@ pub fn value(gd: &GameData, name: &str, game: Option<&Game>) -> Result<Value> {
         info,
         game: game.is_some(),
         live,
+        expr: gd.expr_of(live::hash(name)?)?,
     })
 }
 

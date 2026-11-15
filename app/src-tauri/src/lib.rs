@@ -776,6 +776,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             dev_panel::dev_warp,
             dev_panel::dev_age,
             dev_panel::dev_give,
+            dev_panel::dev_step,
             dev_panel::dev_value,
             dev_panel::dev_set,
             dev_panel::dev_switches,

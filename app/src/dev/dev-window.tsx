@@ -4,6 +4,7 @@ import { commands } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import { Give } from "@/dev/give";
 import { InfinitySwitches } from "@/dev/infinity-switches";
+import { QuestStep } from "@/dev/quest-step";
 import { DevSection } from "@/dev/section";
 import { SetValue } from "@/dev/set-value";
 import { Teleport } from "@/dev/teleport";
@@ -30,6 +31,7 @@ export function DevWindow() {
       <Age />
       <InfinitySwitches />
       <Give />
+      <QuestStep />
       <SetValue />
       <TestStarts />
     </div>

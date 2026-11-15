@@ -25,7 +25,13 @@ const QUEST: Info = {
 };
 
 /** A scan that found nothing. */
-const NONE: GameOptions = { places: [], spawns: [], items: [], names: [] };
+const NONE: GameOptions = {
+  places: [],
+  spawns: [],
+  items: [],
+  names: [],
+  quests: {},
+};
 
 /** Answers the option scan by hand instead, when set. */
 const scans: { answer?: () => Promise<GameOptions> } = {};

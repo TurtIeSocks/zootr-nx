@@ -26,6 +26,8 @@ pub(crate) struct GameOptions {
     items: Vec<String>,
     /// GameData names, sorted.
     names: Vec<String>,
+    /// Each quest and its steps, in order.
+    quests: BTreeMap<String, Vec<String>>,
 }
 
 /// Every arrival point, read from the dump once.
@@ -54,9 +56,8 @@ pub(crate) async fn game_options(app: AppHandle) -> Res<GameOptions> {
         let config = Config::load()?;
         let romfs = romfs(&config)?;
         let places = app.state::<Places>().get(&config)?;
-        let mut names: Vec<String> = (app.state::<Live>().gamedata(&config)?.names())
-            .map(Into::into)
-            .collect();
+        let gd = app.state::<Live>().gamedata(&config)?;
+        let mut names: Vec<String> = gd.names().map(Into::into).collect();
         names.sort_unstable();
         Ok(GameOptions {
             places: places.iter().map(ToString::to_string).collect(),
@@ -66,6 +67,7 @@ pub(crate) async fn game_options(app: AppHandle) -> Res<GameOptions> {
                 .map(|i| i.actor)
                 .collect(),
             names,
+            quests: zootr::steps::quests(&gd),
         })
     })
     .await
@@ -139,6 +141,20 @@ pub(crate) async fn dev_give(app: AppHandle, item: String, count: i32) -> Res<St
         Ok(format!(
             "gave {item} ×{count}, open the menu again to see it"
         ))
+    })
+    .await
+}
+
+/// Move quest `challenge` to `step` through the game's quest system, as
+/// its own scenes do. Writing its saved step leaves the quest where it was.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_step(app: AppHandle, challenge: String, step: String) -> Res<String> {
+    blocking(move || {
+        let gd = app.state::<Live>().gamedata(&Config::load()?)?;
+        zootr::steps::check(&gd, &challenge, &step)?;
+        dev_game()?.step(&challenge, &step)?;
+        Ok(format!("{challenge} moved to {step}"))
     })
     .await
 }

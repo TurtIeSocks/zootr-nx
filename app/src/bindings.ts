@@ -75,6 +75,11 @@ export const commands = {
 	devAge: () => typedError<string, string>(__TAURI_INVOKE("dev_age")),
 	devGive: (item: string, count: number) => typedError<string, string>(__TAURI_INVOKE("dev_give", { item, count })),
 	/**
+	 *  Move quest `challenge` to `step` through the game's quest system, as
+	 *  its own scenes do. Writing its saved step leaves the quest where it was.
+	 */
+	devStep: (challenge: string, step: string) => typedError<string, string>(__TAURI_INVOKE("dev_step", { challenge, step })),
+	/**
 	 *  What a GameData name is, the values it takes, its default and what the
 	 *  game holds now. Reads memory only, so it needs no hook.
 	 */
@@ -239,6 +244,11 @@ export type DevValue = {
 	 *  game, or for a value it doesn't keep.
 	 */
 	live: string | null,
+	/**
+	 *  What a BoolExp works out, as infix: the game keeps no value for it,
+	 *  so it's set through the values it reads.
+	 */
+	expr: string | null,
 };
 
 /**  The dungeon a row of the Dungeons section is for. */
@@ -267,6 +277,8 @@ export type GameOptions = {
 	items: string[],
 	/**  GameData names, sorted. */
 	names: string[],
+	/**  Each quest and its steps, in order. */
+	quests: { [key in string]: string[] },
 };
 
 /**

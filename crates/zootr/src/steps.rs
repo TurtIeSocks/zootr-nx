@@ -8,6 +8,8 @@
 //! branch at the head of the map change flow, which the hook starts with the
 //! step's names as arguments.
 
+use std::collections::BTreeMap;
+
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{BymlDoc, EventKind, Flowchart, Link, Params, Romfs, Value};
 use zootr_hook::{ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_NAME};
@@ -78,6 +80,14 @@ pub fn check(gd: &GameData, challenge: &str, step: &str) -> Result<()> {
         steps.join(", ")
     );
     Ok(())
+}
+
+/// Every quest `gd` knows a saved step for, with its steps in order. Needs
+/// [`learn`] first, which names the saved steps.
+pub fn quests(gd: &GameData) -> BTreeMap<String, Vec<String>> {
+    (gd.names())
+        .filter_map(|n| Some((n.strip_prefix(SAVED)?.to_owned(), gd.enum_values(n)?)))
+        .collect()
 }
 
 /// Teach `gd` every quest's saved step name, which its data keeps only as
@@ -218,6 +228,18 @@ mod tests {
         ] {
             assert!(parse(bad).is_err(), "{bad}");
         }
+    }
+
+    #[test]
+    fn every_learned_quest_is_listed_with_its_steps() {
+        let Some(romfs) = dev_dump() else { return };
+        let mut gd = GameData::load(&romfs).unwrap();
+        assert!(quests(&gd).is_empty(), "nothing learned yet");
+        learn(&romfs, &mut gd).unwrap();
+        let quests = quests(&gd);
+        let steps = &quests[&**flow::SAGE_OF_SPIRIT];
+        assert!(steps.iter().any(|s| s == "Step02"), "{steps:?}");
+        assert!(quests.contains_key(&**flow::GOTO_HYRULE_CASTLE));
     }
 
     #[test]
