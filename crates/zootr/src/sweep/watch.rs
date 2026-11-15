@@ -61,6 +61,14 @@ pub(super) fn got_other(changes: &[Change], wanted: &[String]) -> Option<String>
     (flag.map(|c| c.name.clone())).or(named.map(|n| format!("{MESSAGE} {n}")))
 }
 
+/// Whether `other`, what [`got_other`] found, is the get of an item that
+/// lands as one of `names`.
+pub(super) fn lands_as(other: &str, names: &[String]) -> bool {
+    let message = format!("{MESSAGE} ");
+    let item = (other.strip_prefix("IsGet.")).or_else(|| other.strip_prefix(&message));
+    item.is_some_and(|item| names.iter().any(|n| n == item))
+}
+
 /// The items whose `IsGet` tells `item` landed: itself, a chest item's
 /// field twin, which its get sets instead (a chest rupee sets
 /// the floor rupee's flag), and every level of its upgrade line, as the
@@ -230,6 +238,17 @@ mod tests {
             "false -> true",
         )];
         assert_eq!(got_other(&ours, &wanted), None);
+    }
+
+    #[test]
+    fn another_get_is_told_to_be_an_items_by_its_names() {
+        let names = twins(actor::T_BOX_RUPEE_RED);
+        let flag = format!("IsGet.{}", actor::OBJ_RUPEE_RED);
+        assert!(lands_as(&flag, &names));
+        let message = format!("{MESSAGE} {}", actor::T_BOX_RUPEE_RED);
+        assert!(lands_as(&message, &names));
+        assert!(!lands_as("IsGet.Item_A", &names));
+        assert!(!lands_as(actor::OBJ_RUPEE_RED, &names), "neither form");
     }
 
     #[test]
