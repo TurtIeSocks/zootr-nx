@@ -372,9 +372,7 @@ fn a_mod_with_plain_items_at_scrubs_generates() {
 
 #[test]
 fn a_plain_item_at_a_spot_with_an_attack_entry_takes_it_over_too() {
-    if crate::game::no_names() {
-        return;
-    }
+    needs_names!();
     let dm = SCRUBS
         .iter()
         .position(|s| s.talk == actor::ENEMY_SCRUB_BUSINESS_HEART_02)
@@ -508,9 +506,7 @@ fn a_shop_spot_gets_the_new_entry_and_consumables_skip_the_pouch_check() {
 
 #[test]
 fn an_unchanged_seed_edits_only_the_shop_spots() {
-    if crate::game::no_names() {
-        return;
-    }
+    needs_names!();
     let edited: Vec<_> = edits(&HashMap::new()).map(|(s, _)| s.branch).collect();
     assert_eq!(edited, [Branch::Shop; 10]);
     let fields = fields(&HashMap::new());
@@ -581,9 +577,7 @@ fn two_scrubs_selling_one_item_share_a_branch() {
 
 #[test]
 fn each_item_sold_gets_one_line() {
-    if crate::game::no_names() {
-        return;
-    }
+    needs_names!();
     let at = [
         (KOKIRI, "Item_L"),
         (LW_STICKS, "Item_L"),

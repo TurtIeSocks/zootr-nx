@@ -556,9 +556,7 @@ mod tests {
 
     #[test]
     fn the_nut_and_stick_presets_hand_over_the_small_bags_and_sit_with_the_starting_items() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let both = ["nut-bag".to_owned(), "stick-bag".to_owned()];
         assert_eq!(
             gives(&both).unwrap(),
@@ -585,9 +583,7 @@ mod tests {
 
     #[test]
     fn the_no_tutorials_preset_marks_every_guide_shown_and_closes_the_page_guides() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let edits = expand(&["no-tutorials".into()], &[]).unwrap();
         let has = |e: &str| edits.contains(&e.to_owned());
         assert_eq!(
@@ -645,9 +641,7 @@ mod tests {
 
     #[test]
     fn warp_kit_grants_ocarina_and_songs() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let edits = expand(&["warp-kit".into()], &[]).unwrap();
         assert_eq!(edits.len(), WARP_SONGS.len() + 1);
         assert!(edits.contains(&format!("IsGet.{}=true", item::OCARINA_FAIRY)));
@@ -677,9 +671,7 @@ mod tests {
 
     #[test]
     fn quest_presets_land_on_their_step() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let edits = |p: &str| expand(&[p.into()], &[]).unwrap();
         assert!(edits("door-of-time").contains(&"Step_DoorOfTime=Step06".into()));
         assert!(edits("trials-done").contains(&"Step_Defeat_Ganon=Step04".into()));

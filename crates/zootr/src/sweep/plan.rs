@@ -701,9 +701,7 @@ mod tests {
 
     #[test]
     fn a_water_temple_chest_is_planned_at_low_water_with_its_gate() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         assert_eq!(
             water(flag::WATER_TEMPLE),
             [format!("{}=0", field::WATER_TEMPLE_ROOM00_WATER_LEVEL)]
@@ -945,9 +943,7 @@ mod tests {
 
     #[test]
     fn a_step_is_read_from_its_expression() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let ruby = Some((flow::GET_STONE_OF_FIRE.to_string(), "Complete".into()));
         assert_eq!(step_of("Step_Get_StoneOfFire == Complete"), ruby);
         assert_eq!(step_of("Step_Meet_DekuTree > Step02"), None);

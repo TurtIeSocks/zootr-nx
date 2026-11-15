@@ -274,9 +274,7 @@ mod tests {
 
     #[test]
     fn the_host_files_are_where_its_name_puts_them() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let mut named = vec![model_path(HOST)];
         named.extend(KINDS.iter().map(|k| texture_path(HOST, k)));
         assert_eq!(named, FILES[..7]);
@@ -284,9 +282,7 @@ mod tests {
 
     #[test]
     fn every_song_has_a_medallion_named_as_long_as_the_host() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let songs: Vec<_> = sprites::songs().collect();
         assert_eq!(songs.len(), 12);
         for (_, song) in songs {

@@ -526,9 +526,7 @@ mod tests {
 
     #[test]
     fn areas_come_from_the_name() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         assert_eq!(area(scene::KOKIRI_0060), Some("kokiri"));
         assert_eq!(area(scene::INSIDE_JABU_JABU_0010), Some("jabu"));
         assert_eq!(area(scene::ZORA_0000), Some("zora"));

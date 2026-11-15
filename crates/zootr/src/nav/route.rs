@@ -355,9 +355,7 @@ mod tests {
 
     #[test]
     fn a_door_stays_a_waypoint_and_a_drop_too() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let door = Placement {
             name: actor::OBJ_KOKIRI_DOOR_A_02.to_string(),
             hash: Some(7),

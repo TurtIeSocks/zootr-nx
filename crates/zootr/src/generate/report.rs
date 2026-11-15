@@ -397,9 +397,7 @@ mod tests {
 
     #[test]
     fn spots_saved_before_names_get_readable_ids() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let json = &format!(
             r#"{{"hash":"1","area":"OpenField","holder":"{}","vanilla":"{}","item":"Item_A"}}"#,
             actor::OBJ_T_BOX_A_02,

@@ -145,9 +145,7 @@ mod tests {
 
     #[test]
     fn ids_read_as_words() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         assert_eq!(pretty(actor::T_BOX_RUPEE_BLUE), "Rupee Blue");
         assert_eq!(pretty(actor::OBJ_HEART_PIECE), "Heart Piece");
         assert_eq!(pretty(item::GLASS_TRUTH), "Glass Truth");

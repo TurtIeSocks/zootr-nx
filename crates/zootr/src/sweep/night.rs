@@ -628,9 +628,7 @@ mod tests {
 
     #[test]
     fn only_keeps_the_spots_whose_name_holder_or_item_holds_each_part() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let mut cow = open(flag::KAKARIKO_VILLAGE_CHILD);
         cow.spot.area_name = "Kakariko Village".into();
         cow.spot.chest_name = "Lon Lon Milk (Cow)".into();
@@ -685,9 +683,7 @@ mod tests {
 
     #[test]
     fn a_kind_of_holder_is_shown_once_one_of_its_spots_gave() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let row = |hash: u64, holder: &str, verdict: &str| {
             json!({"spot": {"hash": hash.to_string(), "holder": holder},
                 "swept": {"verdict": {"verdict": verdict}}})
@@ -807,9 +803,7 @@ mod tests {
 
     #[test]
     fn a_dungeon_spot_that_came_to_nothing_goes_again_as_the_other_age() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let again = other_age(&open(flag::SPIRIT_TEMPLE), &Verdict::Nothing, true);
         assert_eq!(again.map(|p| p.child), Some(Some(false)));
         let failed = Verdict::SetupFailed("x".into());

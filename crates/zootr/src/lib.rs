@@ -1,5 +1,16 @@
 //! Randomizer generator for Ocarina of Time on Switch 2.
 
+/// Returns from a test early without the dev dump, which is where tests
+/// read the game's names. See `game::no_names`.
+#[cfg(test)]
+macro_rules! needs_names {
+    () => {
+        if $crate::game::no_names() {
+            return;
+        }
+    };
+}
+
 mod ammo;
 pub mod around;
 mod arrivals;

@@ -872,9 +872,7 @@ mod tests {
 
     #[test]
     fn a_quest_preset_hands_over_its_items_from_its_own_subgroup() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let settings = Settings::from([("claim-check".into(), true.into())]);
         let game = NewGame::from_settings(&settings, &[]).unwrap();
         assert_eq!(game.give, [item::CLAIM_CHECK]);

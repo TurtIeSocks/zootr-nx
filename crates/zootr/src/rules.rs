@@ -568,9 +568,7 @@ mod tests {
 
     #[test]
     fn line_counts_follow_progressive_items() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let book = Book::load().unwrap();
         let on = ctx(true, &[]);
         let off = ctx(false, &[]);
@@ -590,9 +588,7 @@ mod tests {
 
     #[test]
     fn abilities_expand_with_era() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let book = Book::load().unwrap();
         let c = ctx(true, &[]);
         let hammer = book.resolve("explosives or hammer", &c).unwrap();
@@ -604,9 +600,7 @@ mod tests {
 
     #[test]
     fn a_beehive_falls_to_what_reaches_and_hurts_it() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         // Its DamageRates give the slingshot seed 0, and a bomb's blast
         // falls short of the overhang (Mac, 2026-11-15).
         let book = Book::load().unwrap();
@@ -618,9 +612,7 @@ mod tests {
 
     #[test]
     fn a_milk_is_a_bottle() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let book = Book::load().unwrap();
         let bottle = book.resolve("bottle", &ctx(true, &[])).unwrap();
         assert!(bottle.met(&have(&[item::BOTTLE_MILK]), Era::Child));
@@ -629,9 +621,7 @@ mod tests {
 
     #[test]
     fn settings_switch_rules() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let book = Book::load().unwrap();
         let chus: &[&str] = &[item::BOMBCHU_BUNDLE_SMALL];
         let off = book.resolve("bombchus", &ctx(true, &[])).unwrap();
@@ -648,9 +638,7 @@ mod tests {
 
     #[test]
     fn flags_and_unknown_words() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let book = Book::load().unwrap();
         let c = ctx(true, &[]);
         let flag = book.resolve("flag:Some_Flag", &c).unwrap();
@@ -702,9 +690,7 @@ mod tests {
 
     #[test]
     fn the_well_drains_with_zeldas_lullaby() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let book = Book::load().unwrap();
         let c = ctx(true, &[]);
         let lullaby: &[&str] = &[item::OCARINA_FAIRY, item::MELODY_ZELDA_LULLABY];
@@ -717,9 +703,7 @@ mod tests {
 
     #[test]
     fn sheik_in_the_crater_is_past_the_gap_and_the_heat() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let book = Book::load().unwrap();
         let c = ctx(true, &[]);
         let needs = book
@@ -736,9 +720,7 @@ mod tests {
 
     #[test]
     fn the_tunic_and_bag_givers_need_what_stops_or_thaws_them() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let book = Book::load().unwrap();
         let c = ctx(true, &[]);
         let gift = |giver: &str| {
@@ -764,9 +746,7 @@ mod tests {
 
     #[test]
     fn each_minigame_prize_needs_what_its_game_does() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let book = Book::load().unwrap();
         let c = ctx(true, &[]);
         let (bag, bow) = (item::BOMBCHU_BUNDLE_SMALL, item::RANGE_BOW);
@@ -815,9 +795,7 @@ mod tests {
 
     #[test]
     fn the_minigame_chests_need_the_lens_and_the_races_nothing() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let book = Book::load().unwrap();
         let c = ctx(true, &[]);
         let chest = |hash| book.need(&book.check(hash).unwrap().needs, &c).unwrap();
@@ -833,9 +811,7 @@ mod tests {
 
     #[test]
     fn the_new_givers_need_their_rules_and_nothing_less() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let book = Book::load().unwrap();
         let c = ctx(true, &[]);
         // Placed pickups have no giver, so these are by hash.
