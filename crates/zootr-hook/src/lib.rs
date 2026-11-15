@@ -15,6 +15,9 @@
 //! `chest_made` fills it, and `granted` recreates each closed chest's
 //! content as the level it now gives.
 //!
+//! A seed with the Bunny Hood setting takes the run's speed request too:
+//! `run_speed` makes it half again as fast while Link wears the hood.
+//!
 //! Dev builds hook Link's update too, to run the request the app leaves in
 //! the [`Mailbox`]: a teleport, an age switch, the time of day, a quest
 //! step, an item to give or an event to start. It also holds what the dev
@@ -38,7 +41,7 @@ pub use switches::SWITCHES;
 #[cfg(not(target_os = "none"))]
 pub use table::encode;
 pub use table::{
-    FREE_BOMBCHUS, HEADER, Header, Level, Levels, MAGIC, Offsets, Table, after_grant, pick,
+    BUNNY_HOOD, FREE_BOMBCHUS, HEADER, Header, Level, Levels, MAGIC, Offsets, Table, after_grant, pick,
     pick_with,
 };
 
@@ -55,4 +58,4 @@ pub const PANIC: u32 = 0x4e9_aff0;
 /// Where each function hook's resume slot sits in the hook, one word each
 /// in the order the hooks are listed, right after the entries. The patch
 /// writes a `b` past the hooked function's pacibsp into each.
-pub const RESUMES: u32 = 24;
+pub const RESUMES: u32 = 28;

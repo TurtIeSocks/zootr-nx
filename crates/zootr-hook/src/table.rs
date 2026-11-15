@@ -5,6 +5,8 @@ pub const MAGIC: &[u8; 4] = b"ZLT2";
 
 /// The header's flag for a seed whose bombchus need no bomb bag.
 pub const FREE_BOMBCHUS: u32 = 1;
+/// The header's flag for a seed where Link runs faster in the Bunny Hood.
+pub const BUNNY_HOOD: u32 = 2;
 pub const HEADER: usize = size_of::<Header>();
 
 /// The table's start, little endian like the game.
@@ -105,6 +107,8 @@ offsets! {
     /// controller, which holds it.
     move_to,
     controller_vtable,
+    /// Sets the speed and direction Player asks the controller for.
+    run_setter,
 }
 
 /// The table at `TABLE`. Each line is a level count, then each

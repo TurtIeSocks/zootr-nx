@@ -19,7 +19,7 @@ const SHT_RELA: u32 = 4;
 const SHT_REL: u32 = 9;
 const SHF_ALLOC: u64 = 2;
 /// The `b` instructions the patches branch to, one per hook.
-const ENTRIES: u64 = 6;
+const ENTRIES: u64 = 7;
 
 fn main() {
     let hook = Path::new(env!("CARGO_MANIFEST_DIR")).join("../zootr-hook");

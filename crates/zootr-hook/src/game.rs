@@ -5,6 +5,7 @@ use core::{arch::asm, arch::global_asm, slice};
 
 use crate::{CAVE, HEADER, Header, LIST, List, Offsets, Shared, TABLE, Table};
 
+mod bunny;
 mod chests;
 mod dev;
 mod refill;
@@ -20,9 +21,9 @@ const KEY: &[u8] = b"ContentName";
 /// Longer than any actor name, so a runaway string stops here.
 const MAX: usize = 128;
 
-// The call sites `bl` to content_name at +0 and drop_actor at +4. The
-// hooked functions `b` to +8, +12, +16 and +20 in place of their
-// pacibsp.
+// The call sites `bl` to content_name at +0, drop_actor at +4 and
+// run_speed at +24. The hooked functions `b` to +8, +12, +16 and +20 in
+// place of their pacibsp.
 // The opening node is in x20 at both content_name call sites.
 //
 // A function hook keeps every argument register and the link register,
@@ -65,6 +66,7 @@ global_asm!(
     "b chest_made_entry",
     "b granted_entry",
     "b link_update_entry",
+    "b run_speed",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
