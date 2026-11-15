@@ -5,4 +5,6 @@ pub mod judge;
 pub mod melody;
 pub mod night;
 pub mod plan;
+mod shop;
 pub mod spot;
+mod watch;

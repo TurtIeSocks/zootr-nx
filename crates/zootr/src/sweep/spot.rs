@@ -1,42 +1,39 @@
 //! Sweeping one spot: set it up, trigger it, see it through (with the
 //! judge when it doesn't resolve by itself), and give a verdict.
 
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
-use ounce_formats::{BymlDoc, Romfs};
+use ounce_formats::Romfs;
 use serde::Serialize;
 
 use super::judge::{Answer, Judge, Look, TURNS};
 use super::melody;
 use super::plan::{Halt, Planned, Trigger, preset};
+use super::watch::{MESSAGE, Watch, got_other, named, swapped};
 use crate::dev::{Dev, EVENT_PLAYING, NOT_TAKEN, Place, Request};
 use crate::gamedata::GameData;
 use crate::gerudo;
-use crate::inventory;
-use crate::known::{Name, field, flag};
+use crate::known::{Name, flag};
 use crate::live;
 use crate::nav::act::Used;
 use crate::nav::drive::Drive;
 use crate::nav::{self, Level};
 use crate::play::Input;
-use crate::progressive;
-use crate::savefile::Change;
 use crate::shops;
-use crate::standins;
 use crate::steps::SAVED;
 use crate::warp::Placement;
 
 /// How long the harness presses through an event by itself before the
 /// judge is asked.
-const ALONE: Duration = Duration::from_secs(12);
+pub(super) const ALONE: Duration = Duration::from_secs(12);
 /// Link's rupees, and what a spot that sells fills them to: past any
 /// wallet's size, which the game lets stand, so the dearest offering, 500,
 /// is met without a wallet upgrade.
-const RUPEES: (&Name, &str) = (flag::PLAYER_STATUS_CURRENT_RUPEE, "999");
+pub(super) const RUPEES: (&Name, &str) = (flag::PLAYER_STATUS_CURRENT_RUPEE, "999");
 /// How long an event may run on after the judge's turns before it counts
 /// as a stall.
 const FINISH: Duration = Duration::from_secs(90);
@@ -44,7 +41,7 @@ const FINISH: Duration = Duration::from_secs(90);
 const IDLE: Duration = Duration::from_secs(3);
 /// How long the game gets to calm down before a spot starts.
 const CALM: Duration = Duration::from_secs(15);
-const BEAT: Duration = Duration::from_millis(1000);
+pub(super) const BEAT: Duration = Duration::from_millis(1000);
 /// Between a song's notes: a lesson takes them at this pace.
 const NOTE: Duration = Duration::from_millis(600);
 /// How long an event takes to bring the ocarina out before it takes notes.
@@ -64,23 +61,6 @@ const LAP: Duration = Duration::from_secs(45);
 /// How often his passing is read: he crosses the spot in well under a
 /// second.
 const PASSING: Duration = Duration::from_millis(50);
-/// The shop cursor: the shelf spot browsing points at, -1 before it.
-const CURSOR: &Name = flag::SHOP_SELECT_ITEM_INDEX;
-/// What the shelf spot under the cursor sells, by actor name.
-const GOODS: &Name = flag::SHOP_SELECT_ITEM_NAME;
-/// The stick pushes that move the shop cursor.
-const MOVES: [&str; 4] = ["LRight", "LDown", "LLeft", "LUp"];
-/// The price of the goods under the shop cursor, a GameData Int with no
-/// name, set as the cursor moves onto them.
-const PRICE: u32 = 0xf0363f80;
-/// A push that moves the cursor one spot, and the wait for it to land.
-const NUDGE_MS: u64 = 120;
-const NUDGE: Duration = Duration::from_millis(500);
-/// Beats of A on the goods, through the price line and the get window,
-/// before the buy has had its chance. The Goron keeper says two more lines
-/// than the Kokiri one, a warning and a haggle, and 8 ran out before his
-/// get window (Mac, 2026-11-14). The loop ends as the get lands, so spare beats cost nothing.
-const BUY: usize = 16;
 /// How a spot went.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(tag = "verdict", content = "why", rename_all = "snake_case")]
@@ -139,131 +119,6 @@ pub struct Sweeper<'a, I, J> {
     pub places: &'a BTreeSet<Place>,
     /// Where this spot's shots go.
     pub dir: &'a Path,
-}
-
-/// The item's IsGet flags and stock, and the get-item message, to tell
-/// when it lands.
-struct Watch {
-    /// The names `item` lands as, [`owned_as`].
-    items: Vec<String>,
-    /// The `IsGet` flags, taken away before the spot so they can change.
-    flags: Vec<u32>,
-    stock: Option<u32>,
-    /// [`MESSAGE`], emptied before the spot.
-    message: u32,
-}
-
-/// The item a get-item window last named. A chest's rupee leaves its
-/// `IsGet` alone once Link has had one, so this is the sure sign.
-const MESSAGE: &Name = flag::UI_MESSAGE_TARGET_ACTOR_NAME;
-
-/// Whether `named` is the game's own stand-in for `item`: arrows come as a
-/// rupee until Link has a bow, and a new file has none.
-fn swapped(item: &str, named: &str) -> bool {
-    item.contains("ArrowBundle") && named.contains("Rupee")
-}
-
-/// The item `changes` say a get-item window named.
-fn named(changes: &[Change]) -> Option<String> {
-    let c = changes.iter().find(|c| c.name == MESSAGE)?;
-    let to = c.change.rsplit(" -> ").next()?.trim_matches('"');
-    (!to.is_empty()).then(|| to.to_owned())
-}
-
-/// A rupee lying on the floor, which Link can pick up beside any spot. A
-/// chest's rupee names its `TBox_` drop in the get window instead.
-const FLOOR_RUPEE: &str = "Obj_Rupee_";
-
-/// The first get outside `wanted` that `changes` show: an `IsGet` flag
-/// turned on, else the item a get window named. A flag turned off is a load
-/// or a reset, and a floor rupee a pickup beside the spot, never its get.
-fn got_other(changes: &[Change], wanted: &[String]) -> Option<String> {
-    let flag = changes.iter().find(|c| {
-        c.name
-            .strip_prefix("IsGet.")
-            .is_some_and(|item| !item.starts_with(FLOOR_RUPEE))
-            && !wanted.contains(&c.name)
-            && c.change.ends_with("-> true")
-    });
-    let named = named(changes).filter(|n| !n.starts_with(FLOOR_RUPEE));
-    (flag.map(|c| c.name.clone())).or(named.map(|n| format!("{MESSAGE} {n}")))
-}
-
-/// The items whose `IsGet` tells `item` landed: itself, a chest item's
-/// field twin, which its get sets instead (`TBox_Rupee_Red` sets
-/// `IsGet.Obj_Rupee_Red`), and every level of its upgrade line, as the
-/// hook gives the next level Link lacks (`Item_BombBag_Small` lands as
-/// `Item_BombBag_Medium` once he has a bag).
-fn twins(item: &str) -> Vec<String> {
-    let twin = item.strip_prefix("TBox_").map(|rest| format!("Obj_{rest}"));
-    let names = std::iter::once(item.to_owned()).chain(twin);
-    let names = names.chain(progressive::levels(item).into_iter().map(str::to_owned));
-    let mut out = Vec::new();
-    for name in names {
-        if !out.contains(&name) {
-            out.push(name);
-        }
-    }
-    out
-}
-
-/// The pouch row fields naming the gear a pickup is owned as.
-const GEAR: [&Name; 2] = [field::ADULT_EQUIPMENT, field::CHILD_EQUIPMENT];
-
-/// [`twins`], and the gear its pouch row says `item` is owned as:
-/// `Obj_Armor_Goron` sets `IsGet.Armor_Adult_Goron`.
-fn owned_as(romfs: &Romfs, item: &str) -> Result<Vec<String>> {
-    let mut out = twins(item);
-    let table = standins::POUCH_ACTOR_INFO;
-    let doc = BymlDoc::parse(&romfs.read(table)?).with_context(|| table.to_owned())?;
-    let Ok(row) = standins::row(&doc, item) else {
-        return Ok(out);
-    };
-    for path in GEAR
-        .iter()
-        .filter_map(|k| row.get(k.get())?.as_string().ok())
-    {
-        let file = path.rsplit('/').next().unwrap_or(path.as_str());
-        let actor = file.split('.').next().unwrap_or(file).to_owned();
-        if !out.contains(&actor) {
-            out.push(actor);
-        }
-    }
-    Ok(out)
-}
-
-impl Watch {
-    fn new(gd: &GameData, romfs: &Romfs, item: &str) -> Result<Self> {
-        let items = owned_as(romfs, item)?;
-        let flags = (items.iter())
-            .filter(|t| inventory::has_flag(gd, t))
-            .map(|t| live::hash(&format!("IsGet.{t}")))
-            .collect::<Result<_>>()?;
-        let stock = inventory::stock(gd, item)?;
-        let message = live::hash(MESSAGE)?;
-        Ok(Self {
-            items,
-            flags,
-            stock,
-            message,
-        })
-    }
-
-    fn hashes(&self) -> impl Iterator<Item = u32> + '_ {
-        let message = std::iter::once(self.message);
-        self.flags.iter().copied().chain(self.stock).chain(message)
-    }
-
-    fn names(&self, gd: &GameData) -> Vec<String> {
-        self.hashes().map(|h| gd.name(h)).collect()
-    }
-
-    fn read(&self, dev: &Dev, gd: &GameData) -> Result<Vec<String>> {
-        let game = dev.game();
-        (self.hashes())
-            .map(|h| live::read(game, gd, dev.global(), h))
-            .collect()
-    }
 }
 
 /// How many times a request refused for an event is asked again.
@@ -748,7 +603,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
     /// on for over a minute. Every [`ENCORE`] beats, play `song` instead: a
     /// lesson's "Play a note" prompt outlasts the judge's turns, and A is
     /// a note. Whether it still plays after.
-    fn finish(&mut self, button: &str, song: Option<&str>) -> Result<bool> {
+    pub(super) fn finish(&mut self, button: &str, song: Option<&str>) -> Result<bool> {
         let start = Instant::now();
         for beat in 1.. {
             if !self.dev.state()?.event {
@@ -766,144 +621,6 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         }
         Ok(false)
     }
-
-    /// Buy `item` off a shop shelf: A through the keeper's talk into
-    /// browsing ("I'd like to browse" is its first line), move the cursor
-    /// onto the goods, A through the price line and the get window, then B
-    /// out, which backs out of browsing, says goodbye and ends the talk.
-    /// The judge bought Hob's Token but left Link browsing, where A buys
-    /// again, a stall (2026-11-14). `None` for the judge to go on when
-    /// browsing never starts.
-    fn buy(
-        &mut self,
-        item: &str,
-        landed: &impl Fn(&Self) -> Result<bool>,
-        swept: &mut Swept,
-    ) -> Result<Option<Verdict>> {
-        let (game, global) = (self.dev.game(), self.dev.global());
-        live::set(game, global, live::hash(CURSOR)?, "-1")?;
-        let start = Instant::now();
-        while self.cursor()? < 0 {
-            if start.elapsed() > ALONE {
-                return Ok(None);
-            }
-            self.input.press("A")?;
-            sleep(BEAT);
-        }
-        if self.shelve(item, &mut swept.judge)? {
-            // Exactly the price: a buy that leaves more than the wallet
-            // holds is refused as a full bag, rupees the most often (Mac,
-            // 2026-11-14).
-            let price = live::read(self.dev.game(), self.gd, self.dev.global(), PRICE)?;
-            live::set(
-                self.dev.game(),
-                self.dev.global(),
-                live::hash(RUPEES.0)?,
-                &price,
-            )?;
-            for _ in 0..BUY {
-                self.input.press("A")?;
-                sleep(BEAT);
-                if landed(self)? {
-                    break;
-                }
-            }
-        }
-        Ok(Some(match self.finish("B", None)? {
-            true => Verdict::Stall,
-            false => Verdict::Nothing,
-        }))
-    }
-
-    /// Move the shop cursor onto goods that shelve as `item`, trying each
-    /// push from each shelf spot seen and reached until one does, and say
-    /// whether it
-    /// found them. Each spot's goods go to `seen`. The shelves aren't a
-    /// grid one push a spot: Kokiri's cursor went 0, 1, 4, 5 pushed right
-    /// (Mac, 2026-11-14), so where a push goes is learned, not assumed.
-    fn shelve(&mut self, item: &str, seen: &mut Vec<String>) -> Result<bool> {
-        let mut pushes = BTreeMap::new();
-        let mut spots = BTreeSet::new();
-        loop {
-            let at = self.cursor()?;
-            if spots.insert(at) {
-                let goods = self.goods()?;
-                seen.push(format!("shelf spot {at}: {goods}"));
-                if shelves_as(item, &goods) {
-                    return Ok(true);
-                }
-            }
-            let untried = (spots.iter())
-                .flat_map(|&spot| (0..MOVES.len()).map(move |m| (spot, m)))
-                .filter(|push| !pushes.contains_key(push))
-                .find_map(|(from, m)| Some((from, m, route(&pushes, at, from)?)));
-            let Some((from, m, path)) = untried else {
-                return Ok(false);
-            };
-            for step in path {
-                self.nudge(step)?;
-            }
-            if self.cursor()? != from {
-                return Ok(false);
-            }
-            self.nudge(m)?;
-            pushes.insert((from, m), self.cursor()?);
-        }
-    }
-
-    fn nudge(&mut self, m: usize) -> Result<()> {
-        self.input.stick(MOVES[m], NUDGE_MS)?;
-        sleep(NUDGE);
-        Ok(())
-    }
-
-    fn cursor(&self) -> Result<i64> {
-        let value = self.value(CURSOR)?;
-        value
-            .parse()
-            .with_context(|| format!("{CURSOR} reads {value}"))
-    }
-
-    fn goods(&self) -> Result<String> {
-        let value = self.value(GOODS)?;
-        Ok(value.trim_matches('"').trim_end_matches("\\0").to_owned())
-    }
-
-    fn value(&self, name: &str) -> Result<String> {
-        let hash = live::hash(name)?;
-        live::read(self.dev.game(), self.gd, self.dev.global(), hash)
-    }
-}
-
-/// Whether a shelf shows `item` as `goods`: a chest's rupee shelves as the
-/// rupee itself (`TBox_Rupee_Red` as `Obj_Rupee_Red`), so the name past
-/// its kind decides.
-fn shelves_as(item: &str, goods: &str) -> bool {
-    fn bare(name: &str) -> &str {
-        name.split_once('_').map_or(name, |(_, rest)| rest)
-    }
-    bare(item) == bare(goods)
-}
-
-/// The pushes that take the shop cursor from `from` to `to`, over the
-/// ones seen so far (`pushes` maps a spot and push to where it went).
-fn route(pushes: &BTreeMap<(i64, usize), i64>, from: i64, to: i64) -> Option<Vec<usize>> {
-    let mut paths = BTreeMap::from([(from, vec![])]);
-    let mut queue = VecDeque::from([from]);
-    while let Some(at) = queue.pop_front() {
-        if at == to {
-            return paths.remove(&to);
-        }
-        for (&(_, m), &next) in pushes.range((at, 0)..(at + 1, 0)) {
-            if !paths.contains_key(&next) {
-                let mut path = paths[&at].clone();
-                path.push(m);
-                paths.insert(next, path);
-                queue.push_back(next);
-            }
-        }
-    }
-    None
 }
 
 /// The stick pushes Link takes looking for a drop, the camera behind him:
@@ -951,26 +668,9 @@ fn pays(p: &Planned) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::{actor, flag, flow, item, scene};
+    use crate::known::{flag, flow, scene};
     use crate::sweep::plan::Steps;
     use crate::warp::Side;
-
-    #[test]
-    fn a_chest_rupee_shelves_as_the_rupee_and_a_token_as_itself() {
-        assert!(shelves_as(actor::T_BOX_RUPEE_RED, actor::OBJ_RUPEE_RED));
-        assert!(shelves_as(item::TOKEN_GOLD, item::TOKEN_GOLD));
-        assert!(!shelves_as(actor::T_BOX_RUPEE_RED, actor::OBJ_RUPEE_PURPLE));
-    }
-
-    #[test]
-    fn the_shop_cursor_is_routed_over_the_pushes_seen() {
-        // Kokiri's shelf on the Mac: right from 0 went to 1, from 1 to 4.
-        let pushes = BTreeMap::from([((0, 0), 1), ((1, 0), 4), ((4, 2), 1), ((1, 2), 0)]);
-        assert_eq!(route(&pushes, 0, 4), Some(vec![0, 0]));
-        assert_eq!(route(&pushes, 4, 0), Some(vec![2, 2]));
-        assert_eq!(route(&pushes, 4, 4), Some(vec![]));
-        assert_eq!(route(&pushes, 0, 6), None);
-    }
 
     #[test]
     fn verdicts_serialize_with_their_reason() {
@@ -990,144 +690,6 @@ mod tests {
             "the game didn't answer mem_read in 30s"
         )));
         assert!(!gone(&anyhow::anyhow!("an event is playing")));
-    }
-
-    #[test]
-    fn a_chest_item_is_watched_with_its_field_twin() {
-        assert_eq!(
-            twins(actor::T_BOX_RUPEE_RED),
-            [actor::T_BOX_RUPEE_RED, actor::OBJ_RUPEE_RED]
-        );
-        assert_eq!(twins("Item_Bow"), ["Item_Bow"]);
-    }
-
-    #[test]
-    fn an_upgrade_is_watched_at_every_level_of_its_line() {
-        let names = twins(item::RANGE_BOW);
-        assert_eq!(names[0], item::RANGE_BOW);
-        for n in [
-            actor::WEAPON_RANGE_BOW,
-            item::QUIVER_MEDIUM,
-            item::QUIVER_LARGE,
-        ] {
-            assert!(names.iter().any(|x| x == n), "{n} in {names:?}");
-        }
-        assert_eq!(
-            twins(item::SCALE_SILVER),
-            [item::SCALE_SILVER, item::SCALE_GOLD]
-        );
-    }
-
-    #[test]
-    fn a_gear_pickup_is_watched_as_the_gear_it_is_owned_as() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let names = owned_as(&romfs, actor::OBJ_ARMOR_GORON).unwrap();
-        assert_eq!(names, [actor::OBJ_ARMOR_GORON, actor::ARMOR_ADULT_GORON]);
-        assert_eq!(owned_as(&romfs, "Item_Bow").unwrap(), ["Item_Bow"]);
-    }
-
-    #[test]
-    fn a_get_message_names_its_item() {
-        let change = |name: &str, change: &str| Change {
-            hash: 0,
-            name: name.into(),
-            label: None,
-            kind: String::new(),
-            change: change.into(),
-        };
-        let got = [
-            change(&format!("IsGet.{}", actor::OBJ_RUPEE_RED), "false -> true"),
-            change(
-                MESSAGE,
-                &format!(
-                    r#""{}" -> "{}""#,
-                    actor::OBJ_HEART_CONTAINER,
-                    actor::T_BOX_RUPEE_BLUE
-                ),
-            ),
-        ];
-        assert_eq!(named(&got).as_deref(), Some(actor::T_BOX_RUPEE_BLUE.get()));
-        let cleared = [change(
-            MESSAGE,
-            &format!(r#""{}" -> """#, actor::T_BOX_RUPEE_BLUE),
-        )];
-        assert_eq!(named(&cleared), None);
-        assert_eq!(named(&got[..1]), None);
-    }
-
-    #[test]
-    fn only_a_flag_turned_on_is_another_get() {
-        let change = |name: &str, change: &str| Change {
-            hash: 0,
-            name: name.into(),
-            label: None,
-            kind: String::new(),
-            change: change.into(),
-        };
-        let wanted = [format!("IsGet.{}", item::HOVER_BOOT)];
-        let lost = [change(
-            &format!("IsGet.{}", actor::OBJ_HEART_CONTAINER),
-            "true -> false",
-        )];
-        assert_eq!(got_other(&lost, &wanted), None);
-        let got = [change("IsGet.Item_Bow", "false -> true")];
-        assert_eq!(got_other(&got, &wanted).as_deref(), Some("IsGet.Item_Bow"));
-        let ours = [change(
-            &format!("IsGet.{}", item::HOVER_BOOT),
-            "false -> true",
-        )];
-        assert_eq!(got_other(&ours, &wanted), None);
-    }
-
-    #[test]
-    fn a_rupee_off_the_floor_is_not_another_get() {
-        let change = |name: &str, change: &str| Change {
-            hash: 0,
-            name: name.into(),
-            label: None,
-            kind: String::new(),
-            change: change.into(),
-        };
-        let wanted = [format!("IsGet.{}", item::NUT_BAG_MEDIUM)];
-        let floor = [
-            change(
-                &format!("IsGet.{}", actor::OBJ_RUPEE_GREEN),
-                "false -> true",
-            ),
-            change(MESSAGE, &format!(r#""" -> "{}""#, actor::OBJ_RUPEE_GREEN)),
-        ];
-        assert_eq!(got_other(&floor, &wanted), None);
-        let chest = [
-            change(
-                &format!("IsGet.{}", actor::OBJ_RUPEE_GREEN),
-                "false -> true",
-            ),
-            change(MESSAGE, &format!(r#""" -> "{}""#, actor::T_BOX_RUPEE_GREEN)),
-        ];
-        let got = got_other(&chest, &wanted);
-        assert_eq!(
-            got.as_deref(),
-            Some(
-                format!(
-                    "{} {}",
-                    flag::UI_MESSAGE_TARGET_ACTOR_NAME,
-                    actor::T_BOX_RUPEE_GREEN
-                )
-                .as_str()
-            )
-        );
-    }
-
-    #[test]
-    fn arrows_without_a_bow_come_as_a_rupee() {
-        assert!(swapped(
-            actor::T_BOX_ARROW_BUNDLE_MEDIUM,
-            actor::T_BOX_RUPEE_RED
-        ));
-        assert!(!swapped(actor::T_BOX_ARROW_BUNDLE_MEDIUM, "Item_Bow"));
-        assert!(!swapped(actor::T_BOX_RUPEE_BLUE, actor::T_BOX_RUPEE_RED));
     }
 
     #[test]
