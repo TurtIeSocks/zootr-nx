@@ -37,7 +37,7 @@ pub(super) fn flows(
     if new_game.hints {
         hints::quiet(romfs, &mut rewrites)?;
     }
-    flags.push(starting::NAVI_GUIDE.into());
+    flags.push(starting::navi_guide());
     let mut give = new_game.give.clone();
     if new_game.open_door {
         flags.extend(door::open(romfs, &mut rewrites)?);

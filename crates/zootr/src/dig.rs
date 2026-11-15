@@ -1,6 +1,6 @@
 //! The prize in Dampe's dig. His flow only names the piece (#224 spawns
 //! `actor::OBJ_HEART_PIECE`), and his AI graph wakes the `HeartPiece` holder slot,
-//! `actor::OBJ_HEART_PIECE_DIGGING_HOLE`. That actor plays `Act_Dig`, the rise out
+//! `actor::OBJ_HEART_PIECE_DIGGING_HOLE`. That actor plays its dig animation, the rise out
 //! of the soil and the fall back, on its model's `Root` bones. A moved
 //! prize keeps the actor and lends it the prize's model, so the item rises
 //! the way the piece does.

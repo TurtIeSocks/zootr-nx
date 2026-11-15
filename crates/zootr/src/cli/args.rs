@@ -50,7 +50,7 @@ pub(super) enum Command {
     /// What an event does to the save: items, equipment, flags, scene
     /// changes, following sub-flows and transitions.
     Effects {
-        /// Event name, e.g. Get_StoneOfForest_GetSword.
+        /// Event name, as the game spells it.
         event: String,
     },
     /// Every cutscene: area, tier, what it changes, and what starts it.
@@ -63,7 +63,7 @@ pub(super) enum Command {
     Flags,
     /// What one GameData flag is: its expression or the flows that set it.
     Flag {
-        /// Flag name, e.g. Sequence_IsAlternative_ZoraDomainAdult.
+        /// Flag name, as the game spells it.
         name: String,
     },
     /// What logic reaches with every check holding its vanilla item, and
@@ -75,7 +75,7 @@ pub(super) enum Command {
     },
     /// Print an event flow, one line per entry point and event.
     Flow {
-        /// Flowchart name, e.g. Get_StoneOfForest.
+        /// Flowchart name, as the game spells it.
         name: String,
         /// A mod folder, like an installed seed's: print its rewrite of the
         /// flow when it has one.

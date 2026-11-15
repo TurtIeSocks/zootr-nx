@@ -39,8 +39,8 @@ pub struct Pose {
 }
 
 /// Each map that places `actor`, a name or a placement hash, with its first
-/// placement there. Maps are named by banc file: `KokiriForest_Child_Static`
-/// is `KokiriForest_Child`.
+/// placement there. Maps are named by banc file: a `_Static` file
+/// is the map without that suffix.
 pub fn placements(romfs: &Romfs, actor: &str) -> Result<BTreeMap<String, Pose>> {
     let hash = actor.parse::<u64>().ok();
     let found = first_where(romfs, |a| {

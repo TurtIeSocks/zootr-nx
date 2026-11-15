@@ -17,7 +17,7 @@ const NAME: &Name = field::ACTOR_NAME_REF;
 const ANIMATIONS: &Name = field::ANIMATION_RESOURCES;
 const ARCHIVE: &Name = field::MODEL_PROJECT_NAME;
 /// Every shelf stand-in's animations: the spin the goods play when
-/// selected, and the gold token's pose on the `Root` and `Skl_Root` every
+/// selected, and the gold token's pose on the root bones every
 /// item model has. The medallions have no animations and the songs none of
 /// their own, so on a shelf they stood still, and the bombs' `Pose_Shop`
 /// lifted Bolero well above its spot. The maintainer picked the token's

@@ -412,7 +412,7 @@ fn compared<'a>(expr: &'a str, op: &str) -> Option<(&'a str, &'a str)> {
 }
 
 /// The quest steps that open `expr`: for each quest it reads past a step,
-/// directly or through a BoolExp like `SageOfSpirit_IsAfter_Step09_01_Exp`,
+/// directly or through a BoolExp like the Spirit sage's "after step 9" one,
 /// the step after it. A boss's heart container appears once its quest is
 /// past the boss.
 fn quests(gd: &GameData, expr: &gates::Expr) -> Steps {
@@ -489,7 +489,7 @@ fn deleted(effect: &Effect) -> Option<String> {
 
 /// Chests whose own flow gives the item only once a note beside them is
 /// read, by holder, with the flag the note sets. Unread, the Hyrule Field
-/// note chest (`HrlField_Note_11_Treaurebox`) opens empty and Navi talks.
+/// note chest (the field's eleventh note chest) opens empty and Navi talks.
 /// It gives only to a child, and its child map is planned first.
 const NOTED: [(&Name, &Name); 1] = [(
     actor::OBJ_T_BOX_A_01_MEMO11,
@@ -665,7 +665,7 @@ mod tests {
             water.1,
             [(flow::SAGE_OF_WATER.to_string(), "Step08".to_owned())]
         );
-        // Through a BoolExp, `SageOfSpirit_IsAfter_Step09_01_Exp`.
+        // Through a BoolExp, the Spirit sage's "after step 9" one.
         let spirit = raised(4720088048159616469);
         assert_eq!(
             spirit.1,

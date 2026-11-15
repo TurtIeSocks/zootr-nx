@@ -14,7 +14,7 @@ use crate::world::Presence;
 /// Every shopkeeper's actor name has this, like a Goron shopkeeper's.
 const KEEPER: &str = "_Shop_";
 /// And starts with this: the Bombchu Shop's music emitter,
-/// `BGM_Shop_Market_Bombchu`, stands nearer its shelf than its keeper.
+/// the market Bombchu shop's background music, stands nearer its shelf than its keeper.
 const PERSON: &str = "Npc_";
 /// The anchor a keeper links where his customers stand.
 const CUSTOMER: &Name = field::DESTINATION_ANCHOR;
@@ -111,7 +111,7 @@ impl Planner<'_> {
     /// The Bools that make the Business Scrub placed as `hash` a seller,
     /// with every other scrub in `map`. Until its flag is set a scrub is an
     /// enemy, beaten in play by sending its nut back: its brain graph reads
-    /// `IsNPC_ScrubBusiness` for its own instance id. A neighbour left an
+    /// the scrub's NPC flag for its own instance id. A neighbour left an
     /// enemy shoots Link mid-talk, as in the Hyrule Field grotto of three.
     pub(super) fn sellers(&self, map: &str, hash: u64) -> Result<Ready> {
         let placed = warp::placements_in(self.romfs, map)?;

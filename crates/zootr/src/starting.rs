@@ -7,7 +7,7 @@ use ounce_formats::{Actor, EventKind, Flowchart, Params, Romfs, Value};
 
 use crate::flows::{self, ACTOR, GRANT, Rewrites, only};
 use crate::items;
-use crate::known::{Name, actor, field, flow, item, scene};
+use crate::known::{Name, actor, field, flag, flow, item, scene};
 use crate::steps;
 
 #[derive(Debug, PartialEq)]
@@ -92,7 +92,9 @@ pub(crate) const AUTOSAVE: (&Name, &Name) = (
 );
 /// Navi's tutorial on first entering the Deku Tree sets this, and the D-pad
 /// HUD and calling Navi stay off until it does.
-pub(crate) const NAVI_GUIDE: &str = "ActionGuide_IsEnd.Navi=true";
+pub(crate) fn navi_guide() -> String {
+    format!("{}.Navi=true", flag::ACTION_GUIDE_IS_END)
+}
 
 /// Each item's grants: its actor, then what comes with it, then `give`,
 /// none of those equipped.

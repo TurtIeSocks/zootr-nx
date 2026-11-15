@@ -157,6 +157,7 @@ pub const SCRUB_BUSINESS_SEED: &Name = &n!(0xc6987455a989fe5b);
 pub const SCRUB_BUSINESS_TEMP_ITEM_NAME_00: &Name = &n!(0xb37405fcff622a9f);
 pub const SEQUENCE_CURRENT_BANC: &Name = &n!(0x856d2c203bae93c4);
 pub const SEQUENCE_IS_CHILDHOOD: &Name = &n!(0x6fb5d4ae813ca0fb);
+pub const SEQUENCE_IS_LOADING_BANC: &Name = &n!(0x3e77b61a3f36983d);
 pub const SHADOW_NOCTURNE: &Name = &n!(0x11c3c5471c5efaab);
 pub const SHADOW_TEMPLE: &Name = &n!(0xe27391e204e5ef30);
 pub const SHOP_SELECT_ITEM_INDEX: &Name = &n!(0x65e7c0f362979c47);

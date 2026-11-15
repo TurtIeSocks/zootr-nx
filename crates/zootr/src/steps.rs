@@ -104,8 +104,7 @@ pub fn learn(romfs: &Romfs, gd: &mut GameData) -> Result<()> {
     Ok(())
 }
 
-/// The table of quests, a row each, its id the quest's file:
-/// `Work/Challenge/Get_StoneOfFire.game__challenge__Challenge.gyml`.
+/// The table of quests, a row each, its id the quest's file name under `Work/Challenge`.
 const CHALLENGES: &str = "Challenge";
 
 /// [`parse`] and [`check`] each of `lines`, in order.

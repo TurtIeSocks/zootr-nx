@@ -29,6 +29,13 @@ const NO_DUMP: [&str; 2] = [
     "crates/zootr/src/medallions.rs",
 ];
 
+/// Files the dump-backed guard skips, each with why. `ounce-formats` is below
+/// `zootr` and can't use `known`.
+const ALLOWED: [(&str, &str); 1] = [(
+    "crates/ounce-formats/src/murmur3.rs",
+    "hash test vectors: the murmur3 of two real flag names, checked against the game's own hashes",
+)];
+
 /// Whether `word`, what follows a prefix and its `_`, is a game name. Made-up
 /// fixtures (`Item_A`, `Dm_X_0000`) and bare prefixes (`Item_Melody_`, for a
 /// name that goes on) are not.
@@ -141,6 +148,9 @@ fn underscored_words(line: &str) -> Vec<&str> {
 fn catalog_offenders(root: &Path, in_dump: impl Fn(&str) -> bool) -> Vec<String> {
     let mut out = Vec::new();
     for (rel, text) in scanned_texts(root) {
+        if ALLOWED.iter().any(|(file, _)| rel == *file) {
+            continue;
+        }
         for (i, line) in text.lines().enumerate() {
             for name in underscored_words(line) {
                 let rest = name.split_once('_').map_or("", |(_, rest)| rest);
