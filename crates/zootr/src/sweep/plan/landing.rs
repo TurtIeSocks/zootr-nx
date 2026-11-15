@@ -71,6 +71,19 @@ fn flat(a: [f32; 3], b: [f32; 3]) -> f32 {
 /// it can, the sword then swinging at the holder with them behind him.
 /// The front when nothing stands near.
 pub(super) fn away_from(pose: &Pose, near: &[[f32; 3]]) -> Side {
+    most(pose, near, 1.0)
+}
+
+/// The side of the holder at `pose` whose landing lies furthest from every
+/// one of `far`, so Link faces the holder with them beyond it: a keeper's
+/// customers stand across the counter from his shelves.
+pub(super) fn across_from(pose: &Pose, far: &[[f32; 3]]) -> Side {
+    most(pose, far, -1.0)
+}
+
+/// The side whose landing lies, by `sign`, most toward the point of
+/// `near` it lies least toward.
+fn most(pose: &Pose, near: &[[f32; 3]], sign: f32) -> Side {
     let unit = |from: [f32; 3], to: [f32; 3]| {
         let n = flat(to, from).max(1e-3);
         [(to[0] - from[0]) / n, (to[2] - from[2]) / n]
@@ -82,7 +95,7 @@ pub(super) fn away_from(pose: &Pose, near: &[[f32; 3]]) -> Side {
         (near.iter())
             .map(|&n| {
                 let n = unit(pose.at, n);
-                link[0] * n[0] + link[1] * n[1]
+                sign * (link[0] * n[0] + link[1] * n[1])
             })
             .fold(f32::INFINITY, f32::min)
     };

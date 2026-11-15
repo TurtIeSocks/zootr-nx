@@ -131,14 +131,18 @@ fn placed_by_map(
     Ok(found)
 }
 
-/// The placements the placement `hash` in `map` links to.
-pub fn linked(romfs: &Romfs, map: &str, hash: u64) -> Result<Vec<u64>> {
+/// The placements the placement `hash` in `map` links to, by links of
+/// the name `named` if one is given.
+pub fn linked(romfs: &Romfs, map: &str, hash: u64, named: Option<&str>) -> Result<Vec<u64>> {
     for rel in banc_files(romfs)?.iter().filter(|rel| map_of(rel) == map) {
         let doc = load_banc(romfs, rel)?;
         let Some(actor) = actors(&doc.root)?.iter().find(|a| hash_of(a) == Some(hash)) else {
             continue;
         };
-        let dst = |link: &Byml| link.as_map().ok()?.get("Dst")?.as_int::<u64>().ok();
+        let dst = |link: &Byml| match named {
+            Some(want) if str_field(link, "Name") != Some(want) => None,
+            _ => link.as_map().ok()?.get("Dst")?.as_int::<u64>().ok(),
+        };
         let links = actor
             .as_map()?
             .get("Links")

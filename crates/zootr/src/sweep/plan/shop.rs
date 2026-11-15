@@ -3,12 +3,13 @@
 
 use anyhow::Result;
 
+use super::landing::across_from;
 use super::{Planner, Ready, Steps, Trigger, step_of};
 use crate::generate::Spot;
-use crate::known::{Name, field, flag};
+use crate::known::{Name, actor, field, flag};
 use crate::nav::graph::dist;
 use crate::scrubs;
-use crate::warp::{self, Pose, Side};
+use crate::warp::{self, Pose};
 use crate::world::Presence;
 
 /// Every shopkeeper's actor name has this, like a Goron shopkeeper's.
@@ -24,10 +25,21 @@ const CUSTOMER: &Name = field::DESTINATION_ANCHOR;
 const COUNTER: f32 = 2.5;
 /// How far, flat, a keeper stands from the shelves behind them.
 const KEEPER_REACH: f32 = 5.0;
+/// The links a keeper names each slot he sells by.
+const FOR_SALE: &str = "ForSale";
 /// Set when Link has said the Hyrule Field scrub's password. Its flow asks
 /// only once a field note is read, then quizzes him, and with this set it
 /// goes straight to the sale. No other scrub's flow reads it.
 const PASSWORD: &Name = flag::ENEMY_SCRUB_BUSINESS_SECRET_SUCCESS;
+/// The Market Potion Shop's keeper, and the Bools that end the bottle
+/// tutorial he starts as Link comes near. Until both are set his talk is
+/// about the bug, never the shop (live, 2026-11-15). The tutorial's own
+/// check is a gift, planned elsewhere.
+const POTION_KEEPER: &Name = actor::NPC_HYLIA_020_SHOP_CHILD;
+const TUTORIAL_DONE: [&Name; 2] = [
+    flag::MARKET_ITEM_BOTTLE_TUTORIAL_EVENT_STARTED,
+    flag::MARKET_ITEM_BOTTLE_TUTORIAL_EVENT_CLEARED,
+];
 
 impl Planner<'_> {
     /// A shop slot: talk to the keeper behind its shelf, and the judge
@@ -36,10 +48,10 @@ impl Planner<'_> {
     /// alternative map, not the shelves'.
     pub(super) fn shop(&mut self, spot: &Spot) -> Result<(Trigger, Option<bool>)> {
         let maps = self.maps(&spot.area)?;
-        let shelf = maps
-            .iter()
-            .find_map(|(map, poses)| Some((warp::era(map), poses.get(&spot.hash)?.at)));
-        let Some((era, shelf)) = shelf else {
+        let shelf = maps.iter().find_map(|(map, poses)| {
+            Some((warp::era(map), poses.get(&spot.hash)?.at, poses.clone()))
+        });
+        let Some((era, shelf, slots)) = shelf else {
             let why = format!("shelf not found in {}", spot.area);
             return Ok((Trigger::Skip(why), None));
         };
@@ -52,25 +64,36 @@ impl Planner<'_> {
             let placed = warp::placements_in(self.romfs, &map)?;
             let shop = (placed.into_iter())
                 .filter(|p| p.name.starts_with(PERSON) && p.name.contains(KEEPER));
-            keepers.extend(shop.map(|p| (map.clone(), p.hash, p.pose, p.presence)));
+            keepers.extend(shop.map(|p| (map.clone(), p.name, p.hash, p.pose, p.presence)));
         }
         let flat = |pose: &Pose| (pose.at[0] - shelf[0]).hypot(pose.at[2] - shelf[2]);
         let near = keepers
             .into_iter()
-            .filter(|(_, _, pose, _)| flat(pose) < KEEPER_REACH);
-        let Some((map, hash, pose, presence)) =
-            near.min_by(|a, b| flat(&a.2).total_cmp(&flat(&b.2)))
+            .filter(|(_, _, _, pose, _)| flat(pose) < KEEPER_REACH);
+        let Some((map, name, hash, pose, presence)) =
+            near.min_by(|a, b| flat(&a.3).total_cmp(&flat(&b.3)))
         else {
             let why = format!("no shopkeeper by the shelf in {}", spot.area);
             return Ok((Trigger::Skip(why), None));
         };
-        let (steps, ready) = self.bring(presence.as_ref())?;
-        let customer = match hash {
-            Some(hash) => self.customer(&map, hash, pose.at)?,
-            None => None,
+        let (steps, mut ready) = self.bring(presence.as_ref())?;
+        if name == **POTION_KEEPER {
+            ready.extend(TUTORIAL_DONE.map(|f| f.to_string()));
+        }
+        let (customer, sold) = match hash {
+            Some(hash) => (
+                self.customer(&map, hash, pose.at)?,
+                warp::linked(self.romfs, &map, hash, Some(FOR_SALE))?,
+            ),
+            None => (None, vec![]),
         };
         let trigger = Trigger::Talk {
-            at: customer.unwrap_or_else(|| warp::landing(&pose, Side::Front)),
+            at: customer.unwrap_or_else(|| {
+                let shelves: Vec<[f32; 3]> = (sold.iter())
+                    .filter_map(|h| Some(slots.get(h)?.at))
+                    .collect();
+                warp::landing(&pose, across_from(&pose, &shelves))
+            }),
             counter: customer.is_some(),
             map,
             face: pose.at,
@@ -86,7 +109,7 @@ impl Planner<'_> {
     /// Where a customer of the keeper placed as `hash` stands: the
     /// [`CUSTOMER`] his placement links within [`COUNTER`] of him at `at`.
     pub(super) fn customer(&self, map: &str, hash: u64, at: [f32; 3]) -> Result<Option<[f32; 3]>> {
-        let links = warp::linked(self.romfs, map, hash)?;
+        let links = warp::linked(self.romfs, map, hash, None)?;
         let placed = warp::placements_in(self.romfs, map)?;
         Ok((placed.into_iter())
             .filter(|p| p.name == CUSTOMER && p.hash.is_some_and(|h| links.contains(&h)))
@@ -249,5 +272,43 @@ mod tests {
             (at[0] - -17.1).abs() < 0.1 && (at[2] - -20.2).abs() < 0.1,
             "{at:?}"
         );
+    }
+
+    #[test]
+    fn a_market_keeper_is_talked_to_across_the_counter() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let slots = shops::slots(&romfs).unwrap();
+        let spots: Vec<Spot> = ["Market Bazaar", "Market Potion Shop"]
+            .into_iter()
+            .map(|shop| {
+                let slot = slots.iter().find(|s| s.shop == shop).unwrap();
+                Spot {
+                    hash: slot.hash(),
+                    area: slot.area.clone(),
+                    holder: format!("{shop} 1"),
+                    ..Default::default()
+                }
+            })
+            .collect();
+        let planned = plan(&romfs, &spots).unwrap();
+        for (p, potion) in planned.iter().zip([false, true]) {
+            let Trigger::Talk {
+                at, face, ready, ..
+            } = &p.trigger
+            else {
+                panic!("{:?}", p.trigger);
+            };
+            // Both keepers stand at x 23 with their shelves behind them, so
+            // a customer stands at a lower x (live, 2026-11-15).
+            assert!(
+                at[0] < face[0] - 0.5,
+                "{}: {at:?} by {face:?}",
+                p.spot.holder
+            );
+            let tutorial = TUTORIAL_DONE.iter().all(|f| ready.contains(&f.to_string()));
+            assert_eq!(tutorial, potion, "{}: {ready:?}", p.spot.holder);
+        }
     }
 }
