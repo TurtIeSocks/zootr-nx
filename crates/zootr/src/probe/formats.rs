@@ -226,8 +226,8 @@ mod tests {
 
     #[test]
     fn names_are_four_or_more_name_bytes() {
-        let data = b"\0\x01Rotate_Shop\0ab\0Item_Common\xff";
-        assert_eq!(strings(data), ["Item_Common", field::ROTATE_SHOP]);
+        let data = b"\0\x01Rotate_Shop\0ab\0Item_C\xff";
+        assert_eq!(strings(data), ["Item_C", field::ROTATE_SHOP]);
     }
 
     #[test]

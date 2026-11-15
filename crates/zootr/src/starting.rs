@@ -311,8 +311,8 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let err = grant(&romfs, &mut Rewrites::new(), &[], &["Item_Nope".into()]).unwrap_err();
-        assert!(err.to_string().contains("Item_Nope"), "{err}");
+        let err = grant(&romfs, &mut Rewrites::new(), &[], &["Item_A".into()]).unwrap_err();
+        assert!(err.to_string().contains("Item_A"), "{err}");
         let mut rewrites = Rewrites::new();
         grant(&romfs, &mut rewrites, &[], &[item::GLASS_TRUTH.to_string()]).unwrap();
         assert!(rewrites.contains_key(&flows::rel(OPENING)));

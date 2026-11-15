@@ -19,7 +19,7 @@ use crate::standins::{self, ANIMATION, COMPONENTS, MODEL, Tables};
 use paint::Colour;
 
 /// The medallion every song's is copied from. Its name and a song's,
-/// `Item_Medal_SongNN`, are as long, so no offset in a copy moves.
+/// a song medal's, are as long, so no offset in a copy moves.
 const HOST: &Name = item::MEDAL_FOREST;
 /// The host's own textures, each its own file, by suffix.
 const KINDS: [&str; 6] = ["Alb", "Emc", "Nrm", "AO", "Mtl", "Rgh"];
@@ -81,7 +81,7 @@ fn texture_path(name: &str, kind: &str) -> String {
 pub(crate) fn medallion(item: &str) -> Option<String> {
     sprites::songs()
         .find(|(_, song)| *song == item)
-        .map(|(icon, _)| format!("Item_Medal_Song{icon}"))
+        .map(|(icon, _)| format!("{}Song{icon}", HOST.stem()))
 }
 
 /// A song's model info path and contents naming its medallion, or `None`
@@ -286,7 +286,7 @@ mod tests {
         for (_, song) in songs {
             assert_eq!(medallion(song).unwrap().len(), HOST.len(), "{song}");
         }
-        assert_eq!(medallion("Item_Bow"), None);
+        assert_eq!(medallion("Item_A"), None);
     }
 
     /// The mean difference per channel between two RGBA8 images.

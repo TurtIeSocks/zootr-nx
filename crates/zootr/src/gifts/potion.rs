@@ -47,7 +47,7 @@ mod tests {
 
     use super::super::{GIFTS, give_all};
     use super::*;
-    use crate::known::flag;
+    use crate::known::{flag, item};
 
     fn next(flow: &Flowchart, i: usize) -> Option<u16> {
         match &flow.events[i].kind {
@@ -70,14 +70,14 @@ mod tests {
             rewrites.get(&flows::rel(FLOW)).cloned()
         };
         assert!(give(gift.item).is_none());
-        let flow = Flowchart::parse(&give("Item_Nut").unwrap())
+        let flow = Flowchart::parse(&give(item::DEKU_NUT).unwrap())
             .unwrap()
             .unwrap();
         // The dealt gift's call is the plain one, so find it by its item.
         let gives: Vec<usize> = (0..flow.events.len())
             .filter(|&i| match &flow.events[i].kind {
                 EventKind::SubFlow { params, .. } => {
-                    param(params, flag::ACTOR_NAME) == Some("Item_Nut")
+                    param(params, flag::ACTOR_NAME) == Some(&**item::DEKU_NUT)
                 }
                 _ => false,
             })

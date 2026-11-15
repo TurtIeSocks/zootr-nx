@@ -10,7 +10,7 @@ use ounce_formats::{Byml, Romfs};
 
 use crate::checks::{GYAML, actors, banc_files, flat, hash_of, load_banc, str_field, vec3};
 use crate::generate::Spot;
-use crate::known::{Name, field};
+use crate::known::{Name, actor, field};
 
 /// House models and the house each one is, in OoTR's words.
 const HOUSES: [(&str, &str); 1] = [("Land_Kokiri_House_Inside_E", "Mido's House")];
@@ -108,7 +108,7 @@ impl Area {
             let rot_y = vec3(actor, "Rotate").map_or(0.0, |r| r[1]);
             self.houses.push(House { name, pos, rot_y });
         }
-        if gyaml.starts_with("Obj_TBox")
+        if gyaml.starts_with(actor::OBJ_T_BOX_A_01.trim_end_matches("_A_01"))
             && let Some(hash) = hash_of(actor)
         {
             let room = actor

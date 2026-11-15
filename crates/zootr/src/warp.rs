@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::checks::{GYAML, actors, banc_files, hash_of, load_banc, str_field, vec3};
 use crate::config::TestSetup;
 use crate::dev::{ADULT, CHILD, Dev, Place};
-use crate::known::{Name, field, flow};
+use crate::known::{Name, actor, field, flow};
 use crate::live::Memory;
 use crate::world::{Presence, presence_of};
 
@@ -251,13 +251,15 @@ pub fn landing_at(pose: &Pose, side: Side, ahead: f32) -> [f32; 3] {
 /// textbook way: the big chest. On the other machine's sweep, 10 of the 11
 /// big chests that opened stood Link there, at every turn, small chests
 /// never.
-const MIRRORED: [&str; 1] = ["TBox_A_02"];
+fn mirrored() -> &'static str {
+    actor::OBJ_T_BOX_A_02.trim_start_matches("Obj_")
+}
 
 /// `pose` as `actor` faces by it: turned the other way round for a
-/// [`MIRRORED`] model.
+/// [`mirrored`] model.
 pub fn facing(actor: &str, pose: &Pose) -> Pose {
     let [x, y, z] = pose.rotate;
-    match MIRRORED.iter().any(|m| actor.contains(m)) {
+    match actor.contains(mirrored()) {
         true => Pose {
             at: pose.at,
             rotate: [x, -y, z],
@@ -466,8 +468,8 @@ mod tests {
                 .contains(&format!("Maps that place it: {}", flag::HYRULE_CASTLE)),
             "{err}"
         );
-        let none = placements(&romfs, "Npc_Nobody").unwrap();
-        let err = placed(&none, flag::HYRULE_CASTLE, "Npc_Nobody").unwrap_err();
+        let none = placements(&romfs, "Npc_N").unwrap();
+        let err = placed(&none, flag::HYRULE_CASTLE, "Npc_N").unwrap_err();
         assert!(err.to_string().contains("isn't placed in any map"), "{err}");
     }
 }

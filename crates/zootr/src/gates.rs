@@ -41,7 +41,7 @@ const EVENT_TRIGGER: &Name = field::EVENT_REQUEST_TRIGGER;
 /// One thing a gate reads.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Atom {
-    /// A placed actor's output, like `Enemy_Stinger` `Dead`.
+    /// A placed actor's output, like a Stinger's `Dead`.
     Actor {
         name: String,
         output: String,
@@ -889,7 +889,7 @@ mod tests {
     #[test]
     fn a_flag_the_graphs_set_reads_as_its_setter() {
         let hit = actor(actor::OBJ_SWITCH_HIT_A_05, field::ON_STATE);
-        let latch = Expr::SetFlag("TBox_On".into(), vec![hit.clone()]);
+        let latch = Expr::SetFlag("Thing_On".into(), vec![hit.clone()]);
         assert_eq!(
             rule(&Expr::Or(vec![hit, latch])).unwrap(),
             format!("switch:{}", actor::OBJ_SWITCH_HIT_A_05)

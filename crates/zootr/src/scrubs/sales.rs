@@ -303,8 +303,9 @@ fn spots_sell(flow: &mut Flowchart, spots: &[&(&Scrub, &str)]) -> Result<()> {
 /// and no sold flag after.
 fn entry(flow: &mut Flowchart) -> Result<()> {
     ensure!(
-        flow.entry_points.iter().all(|e| e.name != ENTRY),
-        "{FLOW} already has {ENTRY}"
+        flow.entry_points.iter().all(|e| e.name != *ENTRY),
+        "{FLOW} already has {}",
+        *ENTRY
     );
     let root = *calls(flow, ROOT)
         .first()
@@ -312,7 +313,7 @@ fn entry(flow: &mut Flowchart) -> Result<()> {
     let call = last(flow, root);
     let main = Some(flow.push(call));
     flow.entry_points.push(EntryPoint {
-        name: ENTRY.into(),
+        name: ENTRY.clone(),
         main,
         vars: vec![],
     });

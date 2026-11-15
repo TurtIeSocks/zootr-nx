@@ -578,7 +578,7 @@ mod tests {
             assert!(component(&table, part).is_some(), "no {part}");
         }
         // Each drop's body is lowered till its lowest point meets its
-        // model's base, a centred Item_Hookshot's further than a boomerang's.
+        // model's base, a centred Hookshot's further than a boomerang's.
         let body = |name: &str| -> (String, f32) {
             let sarc = built(name);
             let physics = component(&param(&sarc, &actor_path(name)), PHYSICS).unwrap();

@@ -514,7 +514,7 @@ mod tests {
 
     #[test]
     fn an_item_is_walked_over_and_its_event_counts() {
-        let item = placed("Item_Rupee_Green", 9, [10.0, 0.0, 2.0]);
+        let item = placed("Item_G", 9, [10.0, 0.0, 2.0]);
         let (used, eyes) = touched(&item, |e| {
             e.0.borrow_mut().after_push = Some(Box::new(|w| {
                 w.event |= (w.at[0] - 10.0).abs() < 0.5;
@@ -612,7 +612,7 @@ mod tests {
             [11.0, 2.0]
         ));
         // On an item.
-        let item = placed("Item_Rupee_Green", 3, at);
+        let item = placed("Item_G", 3, at);
         assert!(near(
             stand(&graph, &item, act(&item), [0.0; 3]),
             [10.0, 2.0]

@@ -43,7 +43,7 @@ pub(super) fn named(changes: &[Change]) -> Option<String> {
 }
 
 /// A rupee lying on the floor, which Link can pick up beside any spot. A
-/// chest's rupee names its `TBox_` drop in the get window instead.
+/// chest's rupee names its chest drop in the get window instead.
 pub(super) const FLOOR_RUPEE: &str = "Obj_Rupee_";
 
 /// The first get outside `wanted` that `changes` show: an `IsGet` flag
@@ -62,10 +62,10 @@ pub(super) fn got_other(changes: &[Change], wanted: &[String]) -> Option<String>
 }
 
 /// The items whose `IsGet` tells `item` landed: itself, a chest item's
-/// field twin, which its get sets instead (`TBox_Rupee_Red` sets
-/// `IsGet.Obj_Rupee_Red`), and every level of its upgrade line, as the
-/// hook gives the next level Link lacks (`Item_BombBag_Small` lands as
-/// `Item_BombBag_Medium` once he has a bag).
+/// field twin, which its get sets instead (a chest rupee sets
+/// the floor rupee's flag), and every level of its upgrade line, as the
+/// hook gives the next level Link lacks (a small bag lands as
+/// the medium one once he has a bag).
 pub(super) fn twins(item: &str) -> Vec<String> {
     let twin = item.strip_prefix("TBox_").map(|rest| format!("Obj_{rest}"));
     let names = std::iter::once(item.to_owned()).chain(twin);
@@ -83,7 +83,7 @@ pub(super) fn twins(item: &str) -> Vec<String> {
 pub(super) const GEAR: [&Name; 2] = [field::ADULT_EQUIPMENT, field::CHILD_EQUIPMENT];
 
 /// [`twins`], and the gear its pouch row says `item` is owned as:
-/// `Obj_Armor_Goron` sets `IsGet.Armor_Adult_Goron`.
+/// a pickup's actor and its gear's flag can differ.
 pub(super) fn owned_as(romfs: &Romfs, item: &str) -> Result<Vec<String>> {
     let mut out = twins(item);
     let table = standins::POUCH_ACTOR_INFO;
@@ -149,7 +149,7 @@ mod tests {
             twins(actor::T_BOX_RUPEE_RED),
             [actor::T_BOX_RUPEE_RED, actor::OBJ_RUPEE_RED]
         );
-        assert_eq!(twins("Item_Bow"), ["Item_Bow"]);
+        assert_eq!(twins("Item_A"), ["Item_A"]);
     }
 
     #[test]
@@ -176,7 +176,7 @@ mod tests {
         };
         let names = owned_as(&romfs, actor::OBJ_ARMOR_GORON).unwrap();
         assert_eq!(names, [actor::OBJ_ARMOR_GORON, actor::ARMOR_ADULT_GORON]);
-        assert_eq!(owned_as(&romfs, "Item_Bow").unwrap(), ["Item_Bow"]);
+        assert_eq!(owned_as(&romfs, "Item_A").unwrap(), ["Item_A"]);
     }
 
     #[test]
@@ -223,8 +223,8 @@ mod tests {
             "true -> false",
         )];
         assert_eq!(got_other(&lost, &wanted), None);
-        let got = [change("IsGet.Item_Bow", "false -> true")];
-        assert_eq!(got_other(&got, &wanted).as_deref(), Some("IsGet.Item_Bow"));
+        let got = [change("IsGet.Item_A", "false -> true")];
+        assert_eq!(got_other(&got, &wanted).as_deref(), Some("IsGet.Item_A"));
         let ours = [change(
             &format!("IsGet.{}", item::HOVER_BOOT),
             "false -> true",
@@ -277,7 +277,7 @@ mod tests {
             actor::T_BOX_ARROW_BUNDLE_MEDIUM,
             actor::T_BOX_RUPEE_RED
         ));
-        assert!(!swapped(actor::T_BOX_ARROW_BUNDLE_MEDIUM, "Item_Bow"));
+        assert!(!swapped(actor::T_BOX_ARROW_BUNDLE_MEDIUM, "Item_A"));
         assert!(!swapped(actor::T_BOX_RUPEE_BLUE, actor::T_BOX_RUPEE_RED));
     }
 }

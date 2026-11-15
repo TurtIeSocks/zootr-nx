@@ -93,7 +93,7 @@ pub(super) enum Command {
         /// Placement hash of the actor (from `census`).
         #[arg(long)]
         hash: u64,
-        /// Actor to drop instead, e.g. Item_Hookshot.
+        /// Actor to drop instead, by its full name.
         #[arg(long)]
         item: String,
         #[command(flatten)]
@@ -120,7 +120,7 @@ pub(super) enum Command {
     },
     /// Chaos chest shuffle (M2): no logic, so a seed may be unbeatable.
     Shuffle(Shuffle),
-    /// Give Link an item in the running game, e.g. `Item_Hookshot`, with
+    /// Give Link an item in the running game, by its actor name, with
     /// the game's own grant, run by our hook on Link's next update. Needs a
     /// seed installed with `dev_panel` on in the config. The menu shows it
     /// the next time it opens. PC build on macOS only.
@@ -165,7 +165,7 @@ pub(super) enum Command {
         mix: Option<String>,
         /// Only the spots whose name, holder or seed item holds this, like
         /// `Cow`, for a run that tries one fix. Commas join parts that
-        /// must all match: `Obj_Pot,Item_Melody` is a pot holding a song.
+        /// must all match: `Pot,Melody` is a pot holding a song.
         #[arg(long)]
         only: Option<String>,
         /// Which shape the vision model's API speaks.
@@ -265,7 +265,7 @@ pub(super) enum DevCommand {
     Teleport {
         place: String,
         /// Then warp beside this placed actor of the map, e.g.
-        /// `Npc_Hylia_Zelda_Child`.
+        /// the one `probe actors` lists.
         #[arg(long, value_name = "ACTOR")]
         near: Option<String>,
         /// Which side of the actor to land on.
@@ -367,8 +367,8 @@ pub(super) enum DevCommand {
     /// Move a quest to one of its steps, as the game's own flows do, e.g.
     /// `SageOfSpirit Step02`.
     Step { challenge: String, step: String },
-    /// Play an event with Link as its starter, e.g.
-    /// `Dm_FairyFountain_Frore`.
+    /// Play an event with Link as its starter, by
+    /// its full name.
     Play { event: String },
     /// Apply a saved test setup: its values, items, quest steps and hour,
     /// then the teleport.
@@ -387,8 +387,8 @@ pub(super) struct Shuffle {
     #[arg(long, value_name = "HASH=ITEM", value_parser = placement)]
     place: Vec<(u64, String)>,
     /// Set one placement field by hand for a test, e.g.
-    /// `HASH.Gyaml=Obj_Shield_Hylian` or
-    /// `HASH.Dynamic.Drop__DropActor=Item_Hookshot`, or `+=` to raise a
+    /// `HASH.Gyaml=ACTOR` or
+    /// `HASH.Dynamic.Drop__DropActor=ITEM`, or `+=` to raise a
     /// number: `HASH.Translate.1+=0.2` lifts it 0.2. Repeatable.
     #[arg(long, value_name = "HASH.PATH=VALUE", value_parser = field)]
     field: Vec<String>,
@@ -451,7 +451,7 @@ pub(super) enum SaveCommand {
         #[arg(long)]
         grep: Option<String>,
     },
-    /// Set scalar values, e.g. `IsGet.Item_Hookshot=true`. Close the game
+    /// Set scalar values, e.g. `IsGet.ITEM=true`. Close the game
     /// first. The old file is kept next to it as a timestamped backup.
     Set {
         slot: String,
@@ -471,7 +471,7 @@ pub(super) struct NewGame {
     #[arg(long = "preset", value_parser = presets::parser())]
     presets: Vec<String>,
     /// A new game's starting value for one flag, e.g.
-    /// `IsGet.Item_Hookshot=true`. Repeatable.
+    /// `IsGet.ITEM=true`. Repeatable.
     #[arg(long = "default", value_name = "NAME=VALUE")]
     edits: Vec<String>,
     /// Play the opening movie and Navi's wake-up cutscene. Skipped by

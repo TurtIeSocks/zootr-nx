@@ -16,7 +16,7 @@ const ARCHIVES: (&str, &str) = ("Mals", ".Product.110.sarc.zs");
 /// New lines for one message file, each a copy of a vanilla line that
 /// names an item, naming another instead.
 pub struct Lines<'a> {
-    /// The message file, as `EventFlowMsg/Enemy_Event`.
+    /// The message file, as `EventFlowMsg/NAME`.
     pub file: &'a str,
     /// The vanilla line's label, and the item it names.
     pub like: (&'a str, &'a str),
@@ -270,7 +270,7 @@ mod tests {
             file: &format!("{}/PouchContent", field::ACTOR_MSG),
             new: vec![
                 (
-                    "Item_Melody_FireBolero_ShopCaption".into(),
+                    format!("{}_ShopCaption", item::MELODY_FIRE_BOLERO),
                     sources(item::MELODY_FIRE_BOLERO, &["Caption", field::GET_CAPTION]),
                 ),
                 (
@@ -292,8 +292,8 @@ mod tests {
         let line = |m: &Msbt, label: &str| m.get(label).unwrap().unwrap();
         // A song has no menu caption: the next source stands in.
         assert_eq!(
-            line(&new, "Item_Melody_FireBolero_ShopCaption"),
-            line(&old, "Item_Melody_FireBolero_GetCaption")
+            line(&new, &format!("{}_ShopCaption", item::MELODY_FIRE_BOLERO)),
+            line(&old, &format!("{}_GetCaption", item::MELODY_FIRE_BOLERO))
         );
         assert_eq!(
             line(&new, actor::OBJ_HEART_SHOP_CAPTION),

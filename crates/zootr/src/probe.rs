@@ -108,7 +108,7 @@ pub enum Probe {
     Ainb {
         /// Romfs path, like `Logic/Market_Common_f252.logic.module.ainb`,
         /// or a graph inside an actor pack as `probe grep` names it, like
-        /// `Pack/Actor/Enemy_Scrub_Business.pack.zs/AI/Enemy_Scrub_Business.brain.root.ainb`.
+        /// `Pack/Actor/NAME.pack.zs/AI/NAME.brain.root.ainb`.
         path: String,
     },
     /// Each check the shuffle deals: hash, era, area, name, vanilla item,

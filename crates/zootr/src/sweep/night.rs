@@ -427,8 +427,8 @@ struct Known {
     missed: HashMap<u64, Vec<Side>>,
 }
 
-/// What kind of holder `holder` is, its number off: `Obj_Pot_A_03` is an
-/// `Obj_Pot_A`, `Kokiri Shop 2` a `Kokiri Shop`.
+/// What kind of holder `holder` is, its number off: `Pot_A_03` is a
+/// `Pot_A`, `Kokiri Shop 2` a `Kokiri Shop`.
 fn holder_kind(holder: &str) -> &str {
     holder.trim_end_matches(|c: char| c.is_ascii_digit() || c == '_' || c == ' ')
 }
@@ -632,9 +632,9 @@ mod tests {
         let mut pot = open(map::KOKIRI_FOREST_CHILD);
         pot.spot.holder = actor::OBJ_POT_A_01.to_string();
         assert!(picked(&cow, "Cow") && picked(&cow, "Kakariko"));
-        assert!(picked(&pot, "Obj_Pot") && !picked(&pot, "Cow"));
+        assert!(picked(&pot, "Pot") && !picked(&pot, "Cow"));
         pot.spot.item = item::MELODY_SUN_SONG.to_string();
-        assert!(picked(&pot, "Obj_Pot,Item_Melody") && !picked(&pot, "Obj_Pot,Item_Bow"));
+        assert!(picked(&pot, "Pot,Melody") && !picked(&pot, "Pot,Bow"));
     }
 
     #[test]

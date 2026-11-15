@@ -184,15 +184,15 @@ mod tests {
 
     #[test]
     fn a_rename_that_changes_the_length_is_refused() {
-        assert!(rename(b"Item_A", "Item_A", "Item_AB").is_err());
+        assert!(rename(b"Item_A", "Item_A", "Item_A_B").is_err());
     }
 
     #[test]
     fn a_lone_name_splits_at_the_lowest_set_bit_of_its_last_byte() {
         // 't' is 0b0111_0100 and '3' is 0b0011_0011, as in a real model.
-        let forest = rename(&file(&["Item_Forest"]), "Forest", "Forest").unwrap();
+        let forest = rename(&file(&["Tree_Forest"]), "Forest", "Forest").unwrap();
         assert_eq!(nodes(&forest), [(-1, 1, 0), (2, 0, 1)]);
-        let song = rename(&file(&["Item_Forest"]), "Forest", "Song03").unwrap();
+        let song = rename(&file(&["Tree_Forest"]), "Forest", "Song03").unwrap();
         assert_eq!(nodes(&song), [(-1, 1, 0), (0, 0, 1)]);
     }
 

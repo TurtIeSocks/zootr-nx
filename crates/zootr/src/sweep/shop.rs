@@ -141,7 +141,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
 }
 
 /// Whether a shelf shows `item` as `goods`: a chest's rupee shelves as the
-/// rupee itself (`TBox_Rupee_Red` as `Obj_Rupee_Red`), so the name past
+/// rupee itself (`actor::T_BOX_RUPEE_RED` as `actor::OBJ_RUPEE_RED`), so the name past
 /// its kind decides.
 pub(super) fn shelves_as(item: &str, goods: &str) -> bool {
     fn bare(name: &str) -> &str {

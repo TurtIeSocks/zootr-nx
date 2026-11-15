@@ -11,7 +11,7 @@ use crate::scrubs;
 use crate::warp::{self, Pose, Side};
 use crate::world::Presence;
 
-/// Every shopkeeper's actor name has this, like `Npc_Goron_011_Shop_Adult`.
+/// Every shopkeeper's actor name has this, like a Goron shopkeeper's.
 const KEEPER: &str = "_Shop_";
 /// And starts with this: the Bombchu Shop's music emitter,
 /// `BGM_Shop_Market_Bombchu`, stands nearer its shelf than its keeper.

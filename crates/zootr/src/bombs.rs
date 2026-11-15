@@ -10,7 +10,15 @@ use ounce_formats::{Byml, BymlDoc, ModBuilder, murmur3};
 
 use crate::known::{Name, actor, field, item};
 
-const PARAM: &str = "Component/LiftableParam/Item_Bomb.game__component__LiftableParam.bgyml";
+/// The bomb's liftable param, by its path in the pack.
+fn param() -> String {
+    format!(
+        "Component/{}/{}.game__component__{}.bgyml",
+        field::LIFTABLE_PARAM,
+        item::BOMB,
+        field::LIFTABLE_PARAM
+    )
+}
 const GRADE: &Name = field::LIFT_GRADE;
 /// Every pack carrying a copy of the param. Each gets the edit, so it holds
 /// whichever pack loads first.
@@ -37,7 +45,7 @@ fn freed(param: &[u8]) -> Result<Vec<u8>> {
 
 /// Write every pack with the freed param.
 pub fn write(builder: &mut ModBuilder) -> Result<()> {
-    builder.edit_param(&PACKS.map(|p| &**p), PARAM, freed)
+    builder.edit_param(&PACKS.map(|p| &**p), &param(), freed)
 }
 
 #[cfg(test)]
@@ -49,7 +57,9 @@ mod tests {
 
     fn fruit() -> String {
         format!(
-            "Component/{}/Obj_BombFlower_Fruit.game__component__LiftableParam.bgyml",
+            "Component/{}/{}_Fruit.game__component__{}.bgyml",
+            field::LIFTABLE_PARAM,
+            actor::OBJ_BOMB_FLOWER_A_01.trim_end_matches("_A_01"),
             field::LIFTABLE_PARAM
         )
     }
@@ -70,7 +80,7 @@ mod tests {
         };
         let pack = |name| ActorPack::load(&romfs, name).unwrap();
         assert_eq!(
-            own_grade(pack(PACKS[0]).raw(PARAM).unwrap()),
+            own_grade(pack(PACKS[0]).raw(&param()).unwrap()),
             Some(grade("Low"))
         );
         assert_eq!(
@@ -93,7 +103,7 @@ mod tests {
             let data = romfs.dicts().decompress(&pack_file(pack), &raw).unwrap();
             let sarc = Sarc::new(data).unwrap();
             assert_eq!(
-                own_grade(sarc.get_data(PARAM).unwrap()),
+                own_grade(sarc.get_data(&param()).unwrap()),
                 Some(grade("None")),
                 "{pack}"
             );
@@ -109,6 +119,6 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        assert_eq!(crate::game::packs_holding(&romfs, PARAM), PACKS);
+        assert_eq!(crate::game::packs_holding(&romfs, &param()), PACKS);
     }
 }

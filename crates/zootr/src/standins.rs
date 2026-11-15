@@ -31,9 +31,9 @@ pub(crate) const NO_RESPAWN: &str =
     "?Component/ActorGameDataSetting/NoRespawn.game__component__ActorGameDataSetting.bgyml";
 pub(crate) const POUCH_ACTOR: &Name = field::POUCH_ACTOR;
 pub(crate) const PRICE: &Name = field::PRICE_PARAM;
-/// On in every `Item_` pouch content and off in every field drop's
-/// (`Obj_Arrow_Fire`). A pickup stand-in with it on opened its get window
-/// and gave nothing. Off, the Fire Arrow and Item_Hookshot reached the
+/// On in every item's pouch content and off in every field drop's
+/// (`actor::OBJ_ARROW_FIRE`). A pickup stand-in with it on opened its get window
+/// and gave nothing. Off, the Fire Arrow and Hookshot reached the
 /// pouch (Mac, 2026-11-15). A shop grants by name, and keeps the item's.
 pub(crate) const COUNT_CHECK: &Name = field::IS_COUNT_CHECK_ON_FIRST_GET;
 pub(crate) const BUYING: &Name = field::BUYING_PRICE;
@@ -290,7 +290,7 @@ impl StandIn<'_> {
 
     /// Its body, lowered so the item's model rests its base on the floor:
     /// the template's body sits under its own model, and a token's,
-    /// medallion's or Item_Hookshot's model is centred on its origin, so on the
+    /// medallion's or Hookshot's model is centred on its origin, so on the
     /// template's body they lay half in the floor (maintainer, 2026-11-14).
     fn lift<'a>(
         &'a self,

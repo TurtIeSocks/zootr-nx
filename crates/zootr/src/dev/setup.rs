@@ -283,7 +283,7 @@ mod tests {
         );
         let err = plan_give(&gd, item::MELODY_SUN_SONG, 2).unwrap_err();
         assert!(err.to_string().contains("no count"), "{err}");
-        let err = plan_give(&gd, "Item_Nothing", 1).unwrap_err();
+        let err = plan_give(&gd, "Item_A", 1).unwrap_err();
         assert!(err.to_string().contains("isn't an item"), "{err}");
     }
 
@@ -313,7 +313,7 @@ mod tests {
                 format!("{}=Step02", flow::GOTO_HYRULE_CASTLE),
             ],
             hour: Some(21),
-            near: Some("Npc_Gerudo_Guard".into()),
+            near: Some("Npc_G".into()),
             ..Default::default()
         }
     }
@@ -345,7 +345,7 @@ mod tests {
                 Job::Step(flow::GOTO_HYRULE_CASTLE.to_string(), "Step02".into())
             ]
         );
-        assert_eq!(jobs[7], Job::Near("Npc_Gerudo_Guard".into(), SPOT));
+        assert_eq!(jobs[7], Job::Near("Npc_G".into(), SPOT));
         assert!(
             plan(&TestSetup::default(), None, |_, _| Ok(()))
                 .unwrap()
@@ -385,6 +385,6 @@ mod tests {
         };
         assert!(bad(hour).contains("0 to 23"));
         let lost = plan(&full(), None, |_, _| Ok(())).unwrap_err().to_string();
-        assert!(lost.contains("no spot beside Npc_Gerudo_Guard"), "{lost}");
+        assert!(lost.contains("no spot beside Npc_G"), "{lost}");
     }
 }

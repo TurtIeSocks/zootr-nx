@@ -3,6 +3,8 @@
 //! The spots and what they sell live in `spots`, the placement fields and
 //! seller lines a seed writes in `placements`, and the edits to the shared
 //! flow in `events` and `sales`.
+use std::sync::LazyLock;
+
 use crate::known::{Name, actor, field, flag, flow, scene};
 
 pub const FLOW: &Name = flow::ENEMY_SCRUB_BUSINESS_COMMON;
@@ -10,7 +12,7 @@ pub const HOLDER: &str = "Business Scrub";
 /// The placed actor every Business Scrub check is.
 pub const ACTOR: &Name = actor::ENEMY_SCRUB_BUSINESS;
 /// The entry a repeat spot's talk runs once it's a check.
-const ENTRY: &str = "Enemy_Scrub_Business_Check";
+static ENTRY: LazyLock<String> = LazyLock::new(|| format!("{ACTOR}_Check"));
 /// Copies the placement's items into `TEMP`, then dispatches on it.
 const ROOT: &Name = flow::SIMPLE_SHOP_ROOT_ENEMY_SCRUB_BUSINESS_POUCH;
 const SECRET: &str = "Secret";
@@ -60,7 +62,8 @@ const NAME: &Name = flag::ACTOR_NAME;
 const ATTACKED: &Name = field::ATTACKED_EVENT_NAME;
 const SELLER: &Name = flow::SELLER_MESSAGE_ID;
 /// The message file holding the seller lines.
-const TEXT: &str = "EventFlowMsg/Enemy_Event";
+static TEXT: LazyLock<String> =
+    LazyLock::new(|| format!("{}/{}", field::EVENT_FLOW_MSG, field::ENEMY_EVENT));
 /// The vanilla line naming the heart piece and its price, which each new
 /// line copies.
 const PRICED: &Name = actor::ENEMY_SCRUB_BUSINESS_HEART_01;

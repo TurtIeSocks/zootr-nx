@@ -25,8 +25,14 @@ static OUT_OF_SCOPE: LazyLock<[(&str, &str); 10]> = LazyLock::new(|| {
         (flow::MINIGAME_HORSEBACK_ARCHERY, "archery"),
         ("MiniGame_", "minigame"),
         ("Minigame_", "minigame"),
-        ("Npc_SkullKid", "minigame"),
-        ("Npc_Hylia_Dampe", "the dig"),
+        (
+            actor::NPC_SKULL_KID_CHILD.trim_end_matches("_Child"),
+            "minigame",
+        ),
+        (
+            actor::NPC_HYLIA_DAMPE_001.trim_end_matches("_001"),
+            "the dig",
+        ),
         (flow::GATHERING_TOKEN_GOLD, "token reward"),
         ("SubEvent_", "quest chain"),
         ("Dm_", "cutscene"),

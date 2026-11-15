@@ -47,7 +47,7 @@ impl Let {
 
 /// Chests M2 may touch. The rest stay vanilla until logic can place them.
 fn shuffleable(c: &ItemCheck, open: Let) -> bool {
-    // Not the Treasure Chest Game's Obj_HrlCity_Shop_TBox chests, but its prize.
+    // Not the Treasure Chest Game's shop chests, but its prize.
     (c.holder.starts_with("Obj_TBox_") || gifts::is_gift(c))
         // Keys moved around can soft-lock, since logic doesn't count them.
         // Keys Link starts with aren't moved: their chests bring a rupee.

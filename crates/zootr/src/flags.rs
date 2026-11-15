@@ -16,7 +16,7 @@ use crate::world::presence_of;
 const SETTER: &str = "EventTriggerSetGameData";
 const ACTORS: (&str, &str) = ("Pack/Actor", ".pack.zs");
 
-/// romfs path of an actor's pack, e.g. `Pack/Actor/Item_Hookshot.pack.zs`.
+/// romfs path of an actor's pack, e.g. `Pack/Actor/NAME.pack.zs`.
 pub fn actor_pack(actor: &str) -> String {
     format!("{}/{actor}{}", ACTORS.0, ACTORS.1)
 }

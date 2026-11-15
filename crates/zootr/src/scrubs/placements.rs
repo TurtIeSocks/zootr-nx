@@ -6,14 +6,14 @@ use std::collections::{BTreeSet, HashMap};
 use anyhow::Result;
 
 use super::spots::{Branch, Scrub, edits, plain};
-use super::{ATTACKED, ENTRY, HEART, ITEM, LIKE, NEUTRAL, PRICED, TALK, TEXT};
+use super::{ACTOR, ATTACKED, ENTRY, HEART, ITEM, LIKE, NEUTRAL, PRICED, TALK, TEXT};
 use crate::checks::Drop;
 use crate::rsdb::Events;
 use crate::text::Lines;
 
 /// The entry point `s` runs when talked to, while it sells `item` plain.
 pub(super) fn sells(s: &Scrub, item: &str) -> String {
-    format!("Enemy_Scrub_Business_Sells_{}_{item}", s.hash())
+    format!("{ACTOR}_Sells_{}_{item}", s.hash())
 }
 
 /// The event `s` runs when talked to while it sells `item`, which runs the
@@ -22,19 +22,19 @@ fn talk(s: &Scrub, item: &str) -> Option<String> {
     match (plain(item), s.branch) {
         (_, Branch::Secret) => None,
         (true, _) => Some(sells(s, item)),
-        (_, Branch::Shop) => Some(ENTRY.to_owned()),
+        (_, Branch::Shop) => Some(ENTRY.clone()),
         _ => None,
     }
 }
 
 /// The label of the line selling `item`.
 fn line(item: &str) -> String {
-    format!("Enemy_Scrub_Business_Check_{item}")
+    format!("{ACTOR}_Check_{item}")
 }
 
 /// The `SellerMessageId` of a sale of `item`.
 pub(super) fn seller(item: &str) -> String {
-    format!("{TEXT}:{}", line(item))
+    format!("{}:{}", *TEXT, line(item))
 }
 
 /// The seller lines the edited scrubs need, one per item.
@@ -46,7 +46,7 @@ pub fn lines(drops: &HashMap<u64, Drop>) -> Lines<'_> {
         }
     }
     Lines {
-        file: TEXT,
+        file: &TEXT,
         like: (PRICED, HEART),
         fallback: NEUTRAL,
         new,

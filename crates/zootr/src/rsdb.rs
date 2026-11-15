@@ -30,8 +30,8 @@ pub fn path(table: &str) -> String {
 pub type Runs = (String, Option<String>);
 
 /// Every event the game can start by name, and what it runs: the game's
-/// own lookup. `Dm_FireTemple_0022`, the jailed Goron's escape, has no flow
-/// of its own and runs `Dm_FireTemple_0020` from `EntryPoint8`.
+/// own lookup. `scene::FIRE_TEMPLE_0022`, the jailed Goron's escape, has no flow
+/// of its own and runs `scene::FIRE_TEMPLE_0020` from `EntryPoint8`.
 pub fn events(romfs: &Romfs) -> Result<BTreeMap<String, Runs>> {
     let doc = BymlDoc::parse(&romfs.read(&path(EVENTS))?)?;
     let field = |r: &Byml, key: &str| -> Option<String> {
@@ -162,6 +162,6 @@ mod tests {
             tags.of(actor::WEAPON_SWORD_BIGGORON),
             Some(vec![field::BIGGORON_SWORD.get()])
         );
-        assert_eq!(tags.of("Obj_Rando_000"), None);
+        assert_eq!(tags.of("Obj_R_000"), None);
     }
 }

@@ -81,7 +81,7 @@ impl Flows {
     /// Where an event name points, tried in order:
     /// - its `EventSetting` row, the game's own lookup, when the flow and
     ///   entry it names exist;
-    /// - a whole flow (`Dm_Kokiri_0063`), meaning every entry point;
+    /// - a whole flow (`scene::KOKIRI_0063`), meaning every entry point;
     /// - an entry point with the full name in any flow
     ///   (`SageOfShdawo_GetHoverBoots` in `SageOfShadow`);
     /// - flow plus entry (`Get_StoneOfForest_GetSword`).

@@ -406,7 +406,7 @@ fn a_plain_item_at_a_shop_spot_keeps_the_spot_s_stock_and_runs_its_own_entry() {
     let call = next(&after, main).unwrap();
     assert_eq!(next(&after, call), None);
     // The other repeat spots still run theirs.
-    assert!(entry_of(&after, ENTRY).main.is_some());
+    assert!(entry_of(&after, &ENTRY).main.is_some());
     let (_, sale) = sale(&after, STONE);
     let EventKind::SubFlow { entry_point, .. } = &after.events[sale as usize].kind else {
         panic!("{STONE} doesn't sell")
@@ -481,7 +481,7 @@ fn every_plain_item_has_the_flag_the_sale_asks_for() {
     }
     for item in [
         item::HAMMER,
-        "Item_Lens",
+        "Item_L",
         actor::WEAPON_SHIELD_DEKU,
         actor::OBJ_HEART_PIECE,
     ] {
@@ -499,7 +499,7 @@ fn a_shop_spot_gets_the_new_entry_and_consumables_skip_the_pouch_check() {
         (format!("{} Int([25])", item::DIN_FIRE), true)
     );
     assert!(!branch(&after, RED).unwrap().1);
-    let entry = reachable(&after, ENTRY).unwrap();
+    let entry = reachable(&after, &ENTRY).unwrap();
     assert!(entry.contains(&head(&after)));
 }
 
@@ -509,7 +509,7 @@ fn an_unchanged_seed_edits_only_the_shop_spots() {
     assert_eq!(edited, [Branch::Shop; 10]);
     let fields = fields(&HashMap::new());
     let hf = SCRUBS[HF_BOMBS].hash();
-    assert!(fields.contains(&format!("{hf}.Dynamic.{TALK}={ENTRY}")));
+    assert!(fields.contains(&format!("{hf}.Dynamic.{TALK}={}", *ENTRY)));
     assert!(fields.contains(&format!("{hf}.Dynamic.{ITEM}={RED}")));
     assert!(
         !fields
@@ -566,25 +566,28 @@ fn hyrule_fields_heart_scrub_changes_only_its_sale_and_what_it_shows() {
 
 #[test]
 fn two_scrubs_selling_one_item_share_a_branch() {
-    let Some((_, after)) = written(&[(KOKIRI, "Item_Lens"), (LW_STICKS, "Item_Lens")]) else {
+    let Some((_, after)) = written(&[(KOKIRI, "Item_L"), (LW_STICKS, "Item_L")]) else {
         return;
     };
-    let compares = with(&after, COMPARE, "Value", "Item_Lens");
+    let compares = with(&after, COMPARE, "Value", "Item_L");
     assert_eq!(compares.len(), 1);
 }
 
 #[test]
 fn each_item_sold_gets_one_line() {
     let at = [
-        (KOKIRI, "Item_Lens"),
-        (LW_STICKS, "Item_Lens"),
+        (KOKIRI, "Item_L"),
+        (LW_STICKS, "Item_L"),
         (HF_HEART, item::HAMMER),
     ];
     let drops = drops(&at);
     let lines = lines(&drops);
     let items: Vec<&str> = lines.new.iter().map(|(_, i)| *i).collect();
-    assert_eq!(items, ["Item_Lens", item::HAMMER, RED]);
-    assert_eq!(format!("{TEXT}:{}", lines.new[1].0), seller(item::HAMMER));
+    assert_eq!(items, ["Item_L", item::HAMMER, RED]);
+    assert_eq!(
+        format!("{}:{}", *TEXT, lines.new[1].0),
+        seller(item::HAMMER)
+    );
     assert!(
         super::lines(&HashMap::new())
             .new
@@ -629,7 +632,7 @@ fn every_talk_a_scrub_runs_has_its_event_rows() {
         .filter_map(|f| f.split_once(&format!(".Dynamic.{TALK}=")))
         .map(|(_, t)| t.to_owned())
         .collect();
-    assert!(talks.contains(&ENTRY.to_owned()), "{talks:?}");
+    assert!(talks.contains(&ENTRY.clone()), "{talks:?}");
     assert!(talks.iter().any(|t| t.contains("_Sells_")), "{talks:?}");
     let mut tables = crate::rsdb::Events::load(&romfs).unwrap();
     crate::scrubs::events(&drops, &mut tables).unwrap();
