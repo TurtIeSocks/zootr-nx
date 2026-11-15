@@ -195,13 +195,15 @@ place = "goron-city-adult"
 era = "adult"
 needs = "explosives"
 
-# King Zora, thawed with blue fire.
+# King Zora, thawed with blue fire. Once Morpha falls the domain thaws on
+# its own, the King sends Link to the shop, and the shopkeeper hands over
+# the gift instead.
 [[check]]
 hash = 1482054428421877865
 name = "King Zora"
 place = "zora-domain-adult"
 era = "adult"
-needs = "blue-fire"
+needs = "blue-fire or beat:morpha"
 
 # The rolling Goron as a child, stopped with a bomb.
 [[check]]
