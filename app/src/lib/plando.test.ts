@@ -33,18 +33,18 @@ test("labels repeat with a number so each picks one row", () => {
     "Lost Woods: Target",
   ]);
   expect(checks.get("Kokiri Forest: Mido's House (2)")?.hash).toBe("2");
-  const items = itemLabels([{ actor: "Item_Hookshot", name: "Hookshot" }]);
-  expect(items.get("Hookshot")?.actor).toBe("Item_Hookshot");
+  const items = itemLabels([{ actor: "Item_A", name: "Hookshot" }]);
+  expect(items.get("Hookshot")?.actor).toBe("Item_A");
 });
 
 test("the draft matches a saved plando whatever its key order", () => {
   const c = full({
-    place: { 2: "Item_Bomb", 1: "Item_Hookshot" },
-    plandos: { B: { 1: "Item_Hookshot", 2: "Item_Bomb" }, A: {} },
+    place: { 2: "Item_B", 1: "Item_A" },
+    plandos: { B: { 1: "Item_A", 2: "Item_B" }, A: {} },
   });
   expect(savedAs(c)).toBe("B");
   expect(unsaved(c)).toBe(false);
-  const edited = { ...c, place: { 1: "Item_Hookshot" } };
+  const edited = { ...c, place: { 1: "Item_A" } };
   expect(savedAs(edited)).toBeNull();
   expect(unsaved(edited)).toBe(true);
   const empty = { ...c, place: {} };
@@ -57,18 +57,18 @@ test("pins land in the draft, then save, load, drop and clear", () => {
   const apply = (change: (c: FullConfig) => Partial<FullConfig>) => {
     c = { ...c, ...change(c) };
   };
-  apply(place("7", "Item_Hookshot"));
-  apply(place("8", "Item_Bomb"));
+  apply(place("7", "Item_A"));
+  apply(place("8", "Item_B"));
   apply(unplace("8"));
-  expect(c.place).toEqual({ 7: "Item_Hookshot" });
+  expect(c.place).toEqual({ 7: "Item_A" });
   apply(saveAs("A"));
-  expect(c.plandos).toEqual({ A: { 7: "Item_Hookshot" } });
+  expect(c.plandos).toEqual({ A: { 7: "Item_A" } });
   apply(clear());
   expect(c.place).toEqual({});
-  expect(c.plandos.A).toEqual({ 7: "Item_Hookshot" });
+  expect(c.plandos.A).toEqual({ 7: "Item_A" });
   apply(load("A"));
-  expect(c.place).toEqual({ 7: "Item_Hookshot" });
+  expect(c.place).toEqual({ 7: "Item_A" });
   apply(remove("A"));
   expect(c.plandos).toEqual({});
-  expect(c.place).toEqual({ 7: "Item_Hookshot" });
+  expect(c.place).toEqual({ 7: "Item_A" });
 });

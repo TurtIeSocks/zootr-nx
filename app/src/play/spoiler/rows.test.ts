@@ -60,11 +60,11 @@ test("a rule links each item it names to the soonest check holding it", () => {
 
   const parts = rule(at(spots, 0), spots);
   expect(parts).toEqual([
-    { item: "Item_Range_SlingShot", name: "Fairy Slingshot", giver: spots[2] },
+    { item: "Item_C", name: "Fairy Slingshot", giver: spots[2] },
     { text: " and " },
-    { item: "Item_Hammer", name: "Megaton Hammer", giver: spots[5] },
+    { item: "Item_D", name: "Megaton Hammer", giver: spots[5] },
     { text: " or " },
-    { item: "Item_BombBag_Small", name: "Bomb Bag", giver: spots[0] },
+    { item: "Item_B", name: "Bomb Bag", giver: spots[0] },
   ]);
   expect(ruleText(parts)).toBe(
     "Fairy Slingshot and Megaton Hammer or Bomb Bag",
@@ -73,7 +73,7 @@ test("a rule links each item it names to the soonest check holding it", () => {
 
 test("an item Link starts with reads (start) in place of its check", () => {
   const spots = seed().spots;
-  const start = [{ item: "Item_Hammer", name: "Megaton Hammer", count: 1 }];
+  const start = [{ item: "Item_D", name: "Megaton Hammer", count: 1 }];
   expect(ruleText(rule(at(spots, 0), spots, start))).toBe(
     "Fairy Slingshot and Megaton Hammer (start) or Bomb Bag",
   );
@@ -84,13 +84,13 @@ test("an item no check holds keeps a readable id", () => {
   const parts = rule(
     {
       ...at(spots, 0),
-      need: "Item_Gauntlet_Goron and adult",
-      need_items: ["Item_Gauntlet_Goron"],
+      need: "Item_I and adult",
+      need_items: ["Item_I"],
     },
     spots,
   );
   expect(parts).toEqual([
-    { item: "Item_Gauntlet_Goron", name: "Gauntlet Goron" },
+    { item: "Item_I", name: "I" },
     { text: " and adult" },
   ]);
 });
@@ -128,11 +128,11 @@ test("a spot needs the checks giving its rule's items, never itself", () => {
 
 test("a spot needs an item Link starts with by its id", () => {
   const spots = seed().spots;
-  const start = [{ item: "Item_Hammer", name: "Megaton Hammer", count: 1 }];
+  const start = [{ item: "Item_D", name: "Megaton Hammer", count: 1 }];
   expect(needed(at(spots, 0), spots, start)).toEqual(
     new Map([
       ["3", "all"],
-      ["Item_Hammer", "any"],
+      ["Item_D", "any"],
     ]),
   );
 });
@@ -141,8 +141,8 @@ test("a spot needs nothing for an item no check holds or a plain rule", () => {
   const spots = seed().spots;
   const goron = {
     ...at(spots, 0),
-    need: "Item_Gauntlet_Goron and adult",
-    need_items: ["Item_Gauntlet_Goron"],
+    need: "Item_I and adult",
+    need_items: ["Item_I"],
   };
   expect(needed(goron, spots).size).toBe(0);
   expect(needed(at(spots, 5), spots).size).toBe(0);
@@ -159,9 +159,9 @@ test("brackets, and, or and words that aren't items decide needed or one option"
   const spots = seed().spots;
   const kinds = (need: string, items: string[]) =>
     Object.fromEntries(needed(ruled(need, items), spots));
-  const slingshot = "Item_Range_SlingShot";
-  const bow = "Item_Range_Bow";
-  const hammer = "Item_Hammer";
+  const slingshot = "Item_C";
+  const bow = "Item_F";
+  const hammer = "Item_D";
   expect(
     kinds(`(${slingshot} or ${bow}) and ${hammer}`, [slingshot, bow, hammer]),
   ).toEqual({ "3": "any", "4": "any", "6": "all" });
@@ -172,24 +172,22 @@ test("brackets, and, or and words that aren't items decide needed or one option"
     ]),
   ).toEqual({ "3": "any", "6": "any" });
   // Nothing gives the gauntlets, so the slingshot is the only way.
-  expect(
-    kinds(`${slingshot} or Item_Gauntlet_Goron`, [
-      slingshot,
-      "Item_Gauntlet_Goron",
-    ]),
-  ).toEqual({ "3": "all" });
+  expect(kinds(`${slingshot} or Item_I`, [slingshot, "Item_I"])).toEqual({
+    "3": "all",
+  });
 });
 
 test("a rule that can't pass or won't parse needs everything it names", () => {
   const spots = seed().spots;
-  const items = ["Item_Range_SlingShot", "Item_Hammer", "Item_Gauntlet_Goron"];
+  const items = ["Item_C", "Item_D", "Item_I"];
   const kinds = (need: string) =>
     Object.fromEntries(needed(ruled(need, items), spots));
   // Nothing gives the gauntlets, so this rule never passes.
-  expect(
-    kinds("(Item_Range_SlingShot or Item_Hammer) and Item_Gauntlet_Goron"),
-  ).toEqual({ "3": "all", "6": "all" });
-  expect(kinds("(Item_Range_SlingShot or Item_Hammer")).toEqual({
+  expect(kinds("(Item_C or Item_D) and Item_I")).toEqual({
+    "3": "all",
+    "6": "all",
+  });
+  expect(kinds("(Item_C or Item_D")).toEqual({
     "3": "all",
     "6": "all",
   });

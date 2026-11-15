@@ -80,7 +80,7 @@ export function NearField() {
         <NameField
           id="test-near"
           label="Near"
-          placeholder="Npc_Hylia_Zelda_Child"
+          placeholder="an actor's name"
           names={actors.status === "ok" ? actors.data : []}
           value={form.near}
           onChange={(near) => set({ near })}
@@ -149,7 +149,7 @@ export function ItemsField() {
           id="test-item"
           label="Items"
           placeholder={
-            options.status === "ok" ? "Item_GlassTruth" : "Reading the game…"
+            options.status === "ok" ? "an item's name" : "Reading the game…"
           }
           names={listed(options, "items")}
           value={item}

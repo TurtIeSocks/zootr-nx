@@ -39,8 +39,8 @@ vi.mock("@/bindings", () => ({
         : {
             places: [],
             spawns: ["Graveyard_Child/ShadowNocturne"],
-            items: ["Item_GlassTruth", "Item_Bomb"],
-            names: ["IsGet.Item_Bomb", "Step_SageOfSpirit"],
+            items: ["Item_A", "Item_B"],
+            names: ["IsGet.Item_B", "Step_SageOfSpirit"],
           },
     }),
     devValue: async (name: string) => ({
@@ -59,9 +59,9 @@ vi.mock("@/bindings", () => ({
         live: null,
       },
     }),
-    devActors: async () => ({ status: "ok", data: { Npc_Poe: 1 } }),
+    devActors: async () => ({ status: "ok", data: { Npc_A: 1 } }),
     shuffleCommand: () =>
-      Promise.resolve({ status: "ok", data: "zootr shuffle --give Item_Bomb" }),
+      Promise.resolve({ status: "ok", data: "zootr shuffle --give Item_B" }),
     setConfig: (c: FullConfig) => setConfig(c),
   },
 }));
@@ -93,16 +93,16 @@ const add = (label: string, noun: string, line: string) => {
 test("saves a spawn, known items, flags and goals as the test setup", async () => {
   const onChange = show();
   await waitFor(() =>
-    expect(screen.getByPlaceholderText("Item_GlassTruth")).toBeTruthy(),
+    expect(screen.getByPlaceholderText("an item's name")).toBeTruthy(),
   );
   expect(button("Save").disabled).toBe(true);
   type("Spawn", "Graveyard_Child/ShadowNocturne");
-  type("Near", " Npc_Poe ");
+  type("Near", " Npc_A ");
   fireEvent.click(button("Back"));
-  type("Items", "Item_Nope");
+  type("Items", "Item_C");
   expect(screen.getByText("Not a pouch item")).toBeTruthy();
   expect(button("Add item").disabled).toBe(true);
-  type("Items", "Item_GlassTruth");
+  type("Items", "Item_A");
   fireEvent.click(button("Add item"));
   add("New-game flags", "flag", "A=1");
   add("New-game flags", "flag", " B=2 ");
@@ -115,10 +115,10 @@ test("saves a spawn, known items, flags and goals as the test setup", async () =
     ...full({}),
     test: {
       spawn: "Graveyard_Child/ShadowNocturne",
-      give: ["Item_GlassTruth"],
+      give: ["Item_A"],
       defaults: ["A=1", "B=2"],
       progress: ["SageOfSpirit=Step02", "Goto_HyruleCastle=Step02"],
-      near: "Npc_Poe",
+      near: "Npc_A",
       side: "back",
       hour: null,
       goals: ["C=true"],
@@ -146,7 +146,7 @@ test("quest steps alone make a setup that clears and saves", async () => {
 test("a known quest offers its steps, starting at a new game's", async () => {
   show();
   await waitFor(() =>
-    expect(screen.getByPlaceholderText("Item_GlassTruth")).toBeTruthy(),
+    expect(screen.getByPlaceholderText("an item's name")).toBeTruthy(),
   );
   type("Quest steps", "SageOfSpirit");
   const select = () => screen.getByLabelText("Quest steps value");
@@ -163,15 +163,15 @@ test("a known quest offers its steps, starting at a new game's", async () => {
 test("near suggests the spawn map's actors", async () => {
   show();
   type("Spawn", "Graveyard_Child/ShadowNocturne");
-  type("Near", "Poe");
+  type("Near", "c_A");
   const list = await screen.findByLabelText("Near suggestions");
-  expect(list.textContent).toBe("Npc_Poe");
+  expect(list.textContent).toBe("Npc_A");
 });
 
 test("warns on an unknown spawn", async () => {
   show();
   await waitFor(() =>
-    expect(screen.getByPlaceholderText("Item_GlassTruth")).toBeTruthy(),
+    expect(screen.getByPlaceholderText("an item's name")).toBeTruthy(),
   );
   type("Spawn", "Nowhere/AtAll");
   expect(screen.getByText(/never sends Link there/)).toBeTruthy();
@@ -179,11 +179,11 @@ test("warns on an unknown spawn", async () => {
 
 test("clear empties a stored setup and removing an item drops it", async () => {
   const config = full({
-    test: { spawn: null, give: ["Item_Bomb", "Item_GlassTruth"], defaults: [] },
+    test: { spawn: null, give: ["Item_B", "Item_A"], defaults: [] },
   });
   const onChange = show(config);
-  fireEvent.click(button("Remove Item_Bomb"));
-  expect(screen.queryByText("Item_Bomb")).toBeNull();
+  fireEvent.click(button("Remove Item_B"));
+  expect(screen.queryByText("Item_B")).toBeNull();
   fireEvent.click(button("Clear"));
   expect(onChange).toHaveBeenCalledWith({
     ...config,
@@ -194,7 +194,7 @@ test("clear empties a stored setup and removing an item drops it", async () => {
 test("saves a setup by name, switches to one and deletes one", async () => {
   const well = fullTest({
     spawn: "BottomOfTheWell/Well_KakarikoSide",
-    give: ["Item_GlassTruth"],
+    give: ["Item_A"],
   });
   const config = full({ saved_tests: { Well: well } });
   const onChange = show(config);
@@ -227,13 +227,13 @@ test("saves a setup by name, switches to one and deletes one", async () => {
 test("copies the shuffle command once the setup is saved", async () => {
   const writeText = vi.fn(() => Promise.resolve());
   Object.assign(navigator, { clipboard: { writeText } });
-  show(full({ test: { give: ["Item_Bomb"] } }));
+  show(full({ test: { give: ["Item_B"] } }));
   type("Spawn", "Graveyard_Child/ShadowNocturne");
   expect(button("Copy as CLI").disabled).toBe(true);
   type("Spawn", "");
   fireEvent.click(button("Copy as CLI"));
   await waitFor(() => expect(button("Copied")).toBeTruthy());
-  expect(writeText).toHaveBeenCalledWith("zootr shuffle --give Item_Bomb");
+  expect(writeText).toHaveBeenCalledWith("zootr shuffle --give Item_B");
 });
 
 test("a slow option scan for a game no longer set is dropped", async () => {
@@ -243,9 +243,9 @@ test("a slow option scan for a game no longer set is dropped", async () => {
   await waitFor(() => expect(answers).toHaveLength(1));
   act(() => useConfig.setPath("config.game", "/dumps/new"));
   await waitFor(() => expect(answers).toHaveLength(2));
-  await act(async () => answers[1]?.({ ...NONE, items: ["Item_New"] }));
-  await act(async () => answers[0]?.({ ...NONE, items: ["Item_Old"] }));
+  await act(async () => answers[1]?.({ ...NONE, items: ["Item_D"] }));
+  await act(async () => answers[0]?.({ ...NONE, items: ["Item_E"] }));
   type("Items", "Item_");
   const items = screen.getByLabelText("Items suggestions");
-  expect(items.textContent).toBe("Item_New");
+  expect(items.textContent).toBe("Item_D");
 });

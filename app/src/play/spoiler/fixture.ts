@@ -10,7 +10,7 @@ export const spot = (
 ): Spot => ({
   hash,
   area,
-  holder: "Obj_TBox_A_01",
+  holder: "Obj_A",
   vanilla: "Item_A",
   item: item[0],
   area_name: area,
@@ -24,43 +24,31 @@ export const spot = (
  * the Hero through the slingshot and the bomb bag. */
 export const seed = (): Spoiler => ({
   spots: [
-    spot("1", "Dodongo's Cavern", "Map", ["Item_BombBag_Small", "Bomb Bag"], {
+    spot("1", "Dodongo's Cavern", "Map", ["Item_B", "Bomb Bag"], {
       round: 2,
       hero: true,
-      need: "Item_Range_SlingShot and Item_Hammer|Item_BombBag_Small",
-      need_items: ["Item_BombBag_Small", "Item_Hammer", "Item_Range_SlingShot"],
+      need: "Item_C and Item_D|Item_B",
+      need_items: ["Item_B", "Item_D", "Item_C"],
     }),
-    spot(
-      "2",
-      "Hyrule Castle",
-      "Courtyard",
-      ["Item_Melody_ZeldaLullaby", "Zelda's Lullaby"],
-      {
-        round: 3,
-        hero: true,
-        need: "always",
-      },
-    ),
-    spot(
-      "3",
-      "Kokiri Forest",
-      "Mido's House",
-      ["Item_Range_SlingShot", "Fairy Slingshot"],
-      {
-        round: 1,
-        hero: true,
-        need: "always",
-      },
-    ),
-    spot("4", "Kokiri Forest", "Grotto", ["Item_Range_Bow", "Fairy Bow"], {
+    spot("2", "Hyrule Castle", "Courtyard", ["Item_E", "Zelda's Lullaby"], {
+      round: 3,
+      hero: true,
+      need: "always",
+    }),
+    spot("3", "Kokiri Forest", "Mido's House", ["Item_C", "Fairy Slingshot"], {
+      round: 1,
+      hero: true,
+      need: "always",
+    }),
+    spot("4", "Kokiri Forest", "Grotto", ["Item_F", "Fairy Bow"], {
       round: 1,
       need: "always",
     }),
-    spot("5", "Lost Woods", "Stump", ["Item_Rupee_Green", "Green Rupee"], {
-      need: "Item_Hammer",
-      need_items: ["Item_Hammer"],
+    spot("5", "Lost Woods", "Stump", ["Item_G", "Green Rupee"], {
+      need: "Item_D",
+      need_items: ["Item_D"],
     }),
-    spot("6", "Lost Woods", "Bridge", ["Item_Hammer", "Megaton Hammer"], {
+    spot("6", "Lost Woods", "Bridge", ["Item_D", "Megaton Hammer"], {
       round: 4,
       need: "adult",
     }),
@@ -68,7 +56,7 @@ export const seed = (): Spoiler => ({
   events: [{ round: 2, name: "Beat King Dodongo" }],
   unprovable: ["Spirit Temple: Upper Chest"],
   start: {
-    items: [{ item: "Item_Ocarina_Fairy", name: "Fairy Ocarina", count: 1 }],
+    items: [{ item: "Item_H", name: "Fairy Ocarina", count: 1 }],
     settings: ["Open Forest"],
   },
 });
