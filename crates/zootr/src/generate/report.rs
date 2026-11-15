@@ -368,8 +368,8 @@ mod tests {
             spots: vec![Spot {
                 round: Some(3),
                 hero: true,
-                need: "Item_Bow or child".into(),
-                need_items: vec!["Item_Bow".into()],
+                need: "Item_A or child".into(),
+                need_items: vec!["Item_A".into()],
                 ..report().spots[0].clone()
             }],
             events: vec![RoundEvent {
@@ -398,13 +398,13 @@ mod tests {
     #[test]
     fn spots_saved_before_names_get_readable_ids() {
         let json = &format!(
-            r#"{{"hash":"1","area":"OpenField","holder":"{}","vanilla":"{}","item":"Item_Bow"}}"#,
+            r#"{{"hash":"1","area":"OpenField","holder":"{}","vanilla":"{}","item":"Item_A"}}"#,
             actor::OBJ_T_BOX_A_02,
             actor::T_BOX_RUPEE_BLUE
         );
         let mut spot: Spot = serde_json::from_str(json).unwrap();
         spot.fill_names();
         let names = [spot.area_name, spot.chest_name, spot.item_name];
-        assert_eq!(names, ["Open Field", "Rupee Blue (big)", "Bow"]);
+        assert_eq!(names, ["Open Field", "Rupee Blue (big)", "A"]);
     }
 }

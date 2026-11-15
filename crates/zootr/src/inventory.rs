@@ -772,7 +772,7 @@ mod tests {
         assert_eq!(stock(&gd, item::BOOMERANG).unwrap(), Some(0xa1d7_6d31));
         assert_eq!(stock(&gd, item::MELODY_SUN_SONG).unwrap(), None);
         assert!(has_flag(&gd, item::MELODY_SUN_SONG));
-        assert!(!has_flag(&gd, "Item_Nothing"));
+        assert!(!has_flag(&gd, "Item_A"));
     }
 
     #[test]

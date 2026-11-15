@@ -20,7 +20,7 @@ const SONGS: [(&Name, &str); 12] = [
     (item::MELODY_LIGHT_PRELUDE, "X A X A Y X"),
 ];
 
-/// The notes of the song `item` teaches, as in `Item_Melody_FireBolero`.
+/// The notes of the song `item` teaches, as in `item::MELODY_FIRE_BOLERO`.
 pub fn notes(item: &str) -> Option<impl Iterator<Item = &'static str>> {
     let (_, notes) = SONGS.iter().find(|(name, _)| *name == item)?;
     Some(notes.split(' '))
@@ -35,7 +35,7 @@ mod tests {
     fn a_song_item_names_its_notes() {
         let nocturne: Vec<_> = notes(item::MELODY_SHADOW_NOCTURNE).unwrap().collect();
         assert_eq!(nocturne, ["Y", "A", "A", "L", "Y", "A", "R"]);
-        assert!(notes("Item_Bow").is_none());
+        assert!(notes("Item_A").is_none());
         for song in crate::logic::WARP_SONGS {
             assert!(
                 notes(&format!("{}{song}", item::MELODY_FIRE_BOLERO.stem())).is_some(),

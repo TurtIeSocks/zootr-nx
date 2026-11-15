@@ -51,7 +51,7 @@ const fn kind(segment: &'static str, word: &'static str, act: Option<Act>) -> Ki
     Kind { segment, word, act }
 }
 
-/// In the order they're tried: `Enemy_Scrub_Business` is a scrub before it
+/// In the order they're tried: a scrub's actor is a scrub before it
 /// is an enemy.
 const KINDS: [Kind; 16] = [
     kind("Door", "door", Some(Act::Through { stand: 1.0 })),
@@ -143,12 +143,12 @@ mod tests {
         for (name, word) in cases {
             assert_eq!(super::word(name), Some(word), "{name}");
         }
-        assert_eq!(super::word("Obj_Mystery_A"), None);
+        assert_eq!(super::word("Obj_M"), None);
     }
 
     #[test]
     fn an_unknown_name_shows_raw_when_he_can_see_it() {
-        assert_eq!(label("Obj_Mystery_A").as_deref(), Some("Obj_Mystery_A"));
+        assert_eq!(label("Obj_M").as_deref(), Some("Obj_M"));
         assert_eq!(label(actor::OBJ_T_BOX_A_01).as_deref(), Some("chest"));
         assert_eq!(
             label(actor::LAND_KOKIRI_CLIFF_E_05).as_deref(),
@@ -187,7 +187,7 @@ mod tests {
             act(actor::OBJ_KOKIRI_DOOR_A_02),
             Some(Act::Through { stand: 1.0 })
         );
-        assert_eq!(act("Item_Rupee_Green"), Some(Act::Over));
+        assert_eq!(act("Item_G"), Some(Act::Over));
         assert_eq!(act("Tree_Kokiri_A"), None);
     }
 }

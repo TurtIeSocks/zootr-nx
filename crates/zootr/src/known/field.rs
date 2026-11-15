@@ -89,6 +89,7 @@ pub const DROP_DROP_ACTOR_SUBSTITUTE: &Name = &n!(0x3b7fab9d1b82e99d);
 pub const DUNGEON_ROOM_CENTER_ANCHOR: &Name = &n!(0x9ec4060266aedf2e);
 pub const ENABLE_STOCK: &Name = &n!(0xba71ede1f0050d78);
 pub const END_DIALOG_OPTION: &Name = &n!(0x3b821f876b12c56f);
+pub const ENEMY_EVENT: &Name = &n!(0x800d38b0053d42f4);
 pub const ENTRANCE_POS: &Name = &n!(0x5f02292fc20e9023);
 pub const ENTRY_POINT_NAME: &Name = &n!(0x6eca8548eb0b1580);
 pub const ENUM_ARRAY: &Name = &n!(0xc8583bc3672cb73d);

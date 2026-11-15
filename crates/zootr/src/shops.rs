@@ -446,11 +446,14 @@ mod tests {
         let copies = captions(&romfs, &slots, 1, &drops).unwrap();
         assert_eq!(copies.file, format!("{}/PouchContent", field::ACTOR_MSG));
         let (_, sources) = (copies.new.iter())
-            .find(|(label, _)| label == "Item_Hookshot_ShopCaption")
+            .find(|(label, _)| *label == format!("{}_ShopCaption", item::HOOKSHOT))
             .unwrap();
         assert_eq!(
             sources,
-            &["Item_Hookshot_GetCaption", "Item_Hookshot_Caption"]
+            &[
+                format!("{}_GetCaption", item::HOOKSHOT),
+                format!("{}_Caption", item::HOOKSHOT)
+            ]
         );
         let labels = copies.new.iter().map(|(l, _)| l);
         assert!(labels.clone().all(|l| l.ends_with("_ShopCaption")));
@@ -475,7 +478,7 @@ mod tests {
         let placed = |s: &Slot| (s.number == 1) as usize * s.placements.len();
         let placed: usize = slots.iter().map(placed).sum();
         assert!(fields.contains(&format!("{}.Gyaml={name}", goron.hash())));
-        // Item_Hookshot reaches 0.15 below its origin, the bomb bundle it
+        // The Hookshot reaches 0.15 below its origin, the bomb bundle it
         // replaces sits on its base: it rises by the difference.
         let raised = format!("{}.Translate.1+=", goron.hash());
         let rise: f32 = (fields.iter())

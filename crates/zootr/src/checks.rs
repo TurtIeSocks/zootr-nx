@@ -41,9 +41,9 @@ pub struct ItemCheck {
     pub area: String,
     /// Placement hash, stable across the child and adult copies of a map.
     pub hash: u64,
-    /// The placed actor, e.g. `Obj_TBox_A_02`, or a gift's giver.
+    /// The placed actor, e.g. a chest's actor, or a gift's giver.
     pub holder: String,
-    /// The item it adds to the pool, e.g. `Item_Sword_Kokiri`: its drop, or
+    /// The item it adds to the pool, e.g. the Kokiri Sword's actor: its drop, or
     /// its substitute when it checks for something else, as the Gerudo
     /// Training Ground's arrow chests do with a Red Rupee stand-in.
     pub item: String,
@@ -404,7 +404,7 @@ mod tests {
                 &**actor::OBJ_T_BOX_A_02_NO_BAKE,
                 &**actor::OBJ_T_BOX_A_03,
                 // Not a word of the dump's name tables.
-                "Obj_Pot",
+                "Thing_A",
             ]
             .into_iter()
             .map(|g| Byml::from_iter([(GYAML, g.into())]))
@@ -417,7 +417,7 @@ mod tests {
                 actor::OBJ_T_BOX_A_01,
                 actor::OBJ_T_BOX_A_01_NO_BAKE,
                 actor::OBJ_T_BOX_A_03,
-                "Obj_Pot"
+                "Thing_A"
             ]
         );
     }

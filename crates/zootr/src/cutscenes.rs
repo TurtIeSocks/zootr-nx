@@ -131,9 +131,9 @@ const POSED: [&Name; 1] = [scene::TIME_TEMPLE_0000];
 const INTRO_GUARDS: [&Name; 2] = [arrivals::ENTRANCE, map::LOCATION_AREA];
 
 /// Skipped cutscenes whose played flag gates a map trigger that starts a flow
-/// doing more than play them: `Dm_HrlField_0010` is the end of the field's
+/// doing more than play them: `scene::HRL_FIELD_0010` is the end of the field's
 /// `Goto_HyruleCastle_Kaepora_00`, which clears the field's first-visit sky,
-/// and `Dm_TimeTemple_0020` the end of `DoorOfTime_DiscoverySword`, which
+/// and `scene::TIME_TEMPLE_0020` the end of `DoorOfTime_DiscoverySword`, which
 /// finds the Master Sword. A new game that sets their flag stops the trigger,
 /// and that whole flow with it. So each transition to one sets the flag
 /// instead, where the cutscene would have ended.
@@ -161,7 +161,7 @@ const ZELDA_AREA: &str = "castle";
 /// grant goes right after it, see `gifts`, then comes `IMPA_BANC`. The
 /// escort's transition becomes its flag too, so the quest steps after it run.
 pub(crate) const IMPA: [&Name; 2] = [scene::MELODY_GET_ZELDA, scene::HRL_FIELD_0020];
-/// The area setting that skips `IMPA`: the one `Dm_MelodyGet_Zelda` is in.
+/// The area setting that skips `IMPA`: the one `scene::MELODY_GET_ZELDA` is in.
 const IMPA_AREA: &str = "songs";
 const IMPA_SCENE: &Name = IMPA[0];
 /// The banc change her talk ends on, by the boot event it names.
@@ -532,7 +532,7 @@ mod tests {
         assert_eq!(area(scene::ZORA_FOUNTAIN_0010), Some("zora"));
         assert_eq!(area(scene::GERUDO_VALLEY_0000), Some("gerudo"));
         assert_eq!(area(scene::SY_OCARINA), None);
-        assert_eq!(area("Dm_Kokirix_0000"), None);
+        assert_eq!(area("Dm_X_0000"), None);
         let mut ids: Vec<_> = AREAS.iter().map(|a| a.0).collect();
         ids.sort();
         ids.dedup();

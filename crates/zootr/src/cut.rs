@@ -290,7 +290,7 @@ pub(crate) fn plan(
         None => flow.entry_points.iter().map(|e| e.main).collect(),
     };
     // An entry point picks one scene from a flow several share, like the
-    // Fire Temple Gorons' rescues in `Dm_FireTemple_0020`: its other entry
+    // Fire Temple Gorons' rescues in `scene::FIRE_TEMPLE_0020`: its other entry
     // points are the others' scenes, not variants.
     let main = main.filter(|_| entry.is_none());
     let reach: BTreeSet<u16> = starts

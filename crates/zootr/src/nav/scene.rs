@@ -334,7 +334,7 @@ mod tests {
         let placed = [
             placed(actor::OBJ_T_BOX_A_01, 10, [-1.0, 0.0, 5.0]),
             placed(actor::OBJ_KOKIRI_DOOR_A_02, 11, [-1.5, -0.2, 0.0]),
-            placed("Obj_Mystery_A", 12, [0.0, 0.0, -1.5]),
+            placed("Obj_M", 12, [0.0, 0.0, -1.5]),
             placed(actor::LAND_KOKIRI_FIELD_PROP_A_01, 13, [1.0, 0.0, 1.0]),
         ];
         let s = scene("Test", &room(), &placed, [0.0; 3], 0.0, 6.0);
@@ -344,7 +344,7 @@ mod tests {
         assert!((chest.distance - 5.1).abs() < 0.05);
         // Inside the room, in plain sight.
         assert!(!entry(&s, 3, "door").behind_wall);
-        assert_eq!(entry(&s, 6, "Obj_Mystery_A").hash, Some(12));
+        assert_eq!(entry(&s, 6, "Obj_M").hash, Some(12));
         // Scenery that isn't something he sees isn't listed.
         assert!(s.entries.iter().all(|e| e.hash != Some(13)));
     }
@@ -366,13 +366,13 @@ mod tests {
     #[test]
     fn the_nearest_known_thing_shows_for_an_hour() {
         let placed = [
-            placed("Obj_Mystery_A", 1, [0.0, 0.0, 1.0]),
+            placed("Obj_M", 1, [0.0, 0.0, 1.0]),
             placed(actor::OBJ_T_BOX_A_01, 2, [0.0, 0.0, 1.5]),
         ];
         let s = scene("Test", &room(), &placed, [0.0; 3], 0.0, 4.0);
         let at_12: Vec<_> = s.entries.iter().filter(|e| e.hour == 12).collect();
         assert!(at_12.iter().any(|e| e.what == "chest"), "{s}");
-        assert!(at_12.iter().all(|e| e.what != "Obj_Mystery_A"), "{s}");
+        assert!(at_12.iter().all(|e| e.what != "Obj_M"), "{s}");
     }
 
     #[test]

@@ -110,7 +110,10 @@ pub struct Planned {
 }
 
 // Not a word of the dump's name tables: only the start of chests' names.
-const CHEST: &str = "Obj_TBox";
+/// A chest actor's name before its model and number.
+fn chest() -> &'static str {
+    actor::OBJ_T_BOX_A_01.trim_end_matches("_A_01")
+}
 /// How far in front of a chest or a scrub Link lands: close enough that A
 /// opens or talks once he faces it. The first night's sweep landed 2 m off
 /// and never opened a chest.
@@ -159,7 +162,7 @@ type Raise = (Ready, Steps, Option<bool>);
 /// Plan every spot, in order.
 pub fn plan(romfs: &Romfs, spots: &[Spot]) -> Result<Vec<Planned>> {
     let chests = (spots.iter())
-        .filter(|s| s.holder.starts_with(CHEST))
+        .filter(|s| s.holder.starts_with(chest()))
         .map(|s| s.hash)
         .collect();
     let mut planner = Planner::new(romfs, chests);
@@ -210,7 +213,7 @@ impl Planner<'_> {
         let (trigger, child) = match gift {
             Some(gift) => self.gift(gift)?,
             None if cows::is_holder(&spot.holder) => self.cow(spot)?,
-            None if spot.holder.starts_with(CHEST)
+            None if spot.holder.starts_with(chest())
                 || spot.holder.starts_with(scrubs::HOLDER)
                 || pickups::within_reach(&spot.holder) =>
             {
@@ -259,8 +262,8 @@ impl Planner<'_> {
 
     /// The actor delete flags play sets along with `ready`'s, through the
     /// flows of the NPCs that set them. A jailed Fire Temple Goron's talk
-    /// sets `Npc_Goron_010_Delete`, which unlocks the chest behind him, and
-    /// his rescue `Npc_Goron_010_Adult_FireTemple_Delete`. Without that one
+    /// sets his delete flag, which unlocks the chest behind him, and
+    /// his rescue sets another. Without that one
     /// he still sits in front of the chest after a load.
     fn leaving(&mut self, ready: &[String]) -> Result<Ready> {
         if ready.is_empty() {
@@ -802,7 +805,7 @@ mod tests {
         };
         let chests: Vec<_> = planned
             .iter()
-            .filter(|p| p.spot.holder.starts_with(CHEST))
+            .filter(|p| p.spot.holder.starts_with(chest()))
             .collect();
         let mut opens = 0;
         for p in &chests {
@@ -913,6 +916,6 @@ mod tests {
         assert_eq!(step_of("Step_Get_StoneOfFire == Complete"), ruby);
         assert_eq!(step_of("Step_Meet_DekuTree > Step02"), None);
         assert_eq!(step_of("Step_A == B && Step_C == D"), None);
-        assert_eq!(step_of("IsGet.Item_Bow"), None);
+        assert_eq!(step_of("IsGet.Item_A"), None);
     }
 }

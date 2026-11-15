@@ -26,9 +26,23 @@ const PACKS: [&Name; 11] = [
     actor::SHOP_BOMBCHU_BUNDLE_07,
     actor::SHOP_BOMBCHU_BUNDLE_08,
 ];
-const ACTOR: &str = "Work/Actor/Item_Bombchu.engine__actor__ActorParam.gyml";
-const PARAM: &str =
-    "Component/PouchContentParam/Item_Bombchu.game__component__PouchContentParam.bgyml";
+/// The bundle's actor param, by its path in the pack.
+fn actor_param() -> String {
+    format!(
+        "Work/Actor/{}.engine__actor__ActorParam.gyml",
+        item::BOMBCHU
+    )
+}
+
+/// The Bombchu's pouch param, by its path in the pack.
+fn pouch_param() -> String {
+    format!(
+        "Component/{}/{}.game__component__{}.bgyml",
+        field::POUCH_CONTENT_PARAM,
+        item::BOMBCHU,
+        field::POUCH_CONTENT_PARAM
+    )
+}
 /// As many as the PC build allows. The dev switches hold them here too.
 const CAP: i32 = zootr_hook::switches::FREE_BOMBCHUS_CAP;
 
@@ -55,7 +69,7 @@ fn capped_by_bag(row: &BymlMap) -> bool {
             .is_some_and(|v| v == value)
     };
     is(field::MAX_NUM_GAME_DATA, "Bomb")
-        && (is("__RowId", item::BOMBCHU) || is(field::BUNDLE_ACTOR, ACTOR))
+        && (is("__RowId", item::BOMBCHU) || is(field::BUNDLE_ACTOR, &actor_param()))
 }
 
 /// Free every bombchu row of the pouch table.
@@ -76,7 +90,7 @@ pub fn write(builder: &mut ModBuilder, tables: &mut Tables) -> Result<()> {
         free_rows(tables)? > 0,
         "no bombchu row in the pouch table is capped by the bomb bag"
     );
-    builder.edit_param(&PACKS.map(|p| &**p), PARAM, free)
+    builder.edit_param(&PACKS.map(|p| &**p), &pouch_param(), free)
 }
 
 #[cfg(test)]
@@ -90,7 +104,7 @@ mod tests {
 
     fn param(romfs: &Romfs, pack: &str) -> Option<Vec<u8>> {
         let sarc = Sarc::new(romfs.read(&pack_file(pack)).ok()?).ok()?;
-        sarc.get_data(PARAM).map(<[u8]>::to_vec)
+        sarc.get_data(&pouch_param()).map(<[u8]>::to_vec)
     }
 
     #[test]
@@ -124,7 +138,7 @@ mod tests {
             let raw = std::fs::read(dir.join("romfs").join(pack_file(pack))).unwrap();
             let data = romfs.dicts().decompress(&pack_file(pack), &raw).unwrap();
             let sarc = Sarc::new(data).unwrap();
-            let doc = BymlDoc::parse(sarc.get_data(PARAM).unwrap()).unwrap();
+            let doc = BymlDoc::parse(sarc.get_data(&pouch_param()).unwrap()).unwrap();
             let fixed = doc
                 .root
                 .as_map()
@@ -232,7 +246,7 @@ mod tests {
         assert!(!capped_by_bag(&bomb));
         bomb.insert(
             field::BUNDLE_ACTOR.to_string().into(),
-            Byml::String(ACTOR.into()),
+            Byml::String(actor_param().into()),
         );
         assert!(capped_by_bag(&bomb));
         cap(&mut bomb);
@@ -247,6 +261,6 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        assert_eq!(crate::game::packs_holding(&romfs, PARAM), PACKS);
+        assert_eq!(crate::game::packs_holding(&romfs, &pouch_param()), PACKS);
     }
 }

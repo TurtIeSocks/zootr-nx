@@ -321,7 +321,7 @@ mod tests {
 
     #[test]
     fn names_outside_every_line_are_left_alone() {
-        assert_eq!(give(&[], "Item_Arrow_Fire"), None);
+        assert_eq!(give(&[], "Thing_Arrow_Fire"), None);
     }
 
     fn granted(owned: &[&str], added: &str) -> Option<(u16, String)> {

@@ -147,7 +147,7 @@ fn words(data: &[u8]) -> impl Iterator<Item = &str> {
 
 impl Name {
     /// The name up to and including its last `_`, for matching a family of
-    /// names: `Item_BombBag_` from `Item_BombBag_Large`. Empty without one.
+    /// names: the bag stem `X_Y_` from `X_Y_Large`. Empty without one.
     pub fn stem(self) -> &'static str {
         let name = self.get();
         &name[..name.rfind('_').map_or(0, |i| i + 1)]
@@ -252,10 +252,10 @@ mod tests {
     // the reader themselves, which a constant would only repeat.
     #[test]
     fn a_name_compares_by_hash_with_or_without_the_dump() {
-        let navi = Name(hash("Npc_Navi"));
-        let owned = "Npc_Navi".to_owned();
-        assert!(navi == *"Npc_Navi" && "Npc_Navi" == navi && owned == navi);
-        assert!(navi != *"Npc_Saria");
+        let navi = Name(hash("Npc_N"));
+        let owned = "Npc_N".to_owned();
+        assert!(navi == *"Npc_N" && "Npc_N" == navi && owned == navi);
+        assert!(navi != *"Npc_S");
     }
 
     #[test]
@@ -268,7 +268,8 @@ mod tests {
             let names = read(&romfs, sources).unwrap();
             eprintln!("{} names in {:?}", names.lines().count(), started.elapsed());
         }
-        assert_eq!(Name(hash("Npc_Navi")).get(), "Npc_Navi");
+        assert_ne!(item::BOMB.get(), "");
+        assert!(!item::BOMB.get().starts_with('#'));
         assert_eq!(
             Name(hash("OcarinaMelodyIcon_01")).get(),
             "OcarinaMelodyIcon_01"
@@ -277,8 +278,12 @@ mod tests {
 
     #[test]
     fn a_name_stops_at_its_last_underscore() {
-        assert_eq!(Name(hash("Item_BombBag_Large")).stem(), "Item_BombBag_");
-        assert_eq!(Name(hash("Npc_Navi")).stem(), "Npc_");
+        if crate::game::dev_dump().is_none() {
+            return;
+        }
+        let stem = item::BOMB_BAG_LARGE.stem();
+        assert_eq!(stem, item::BOMB_BAG_SMALL.stem());
+        assert!(stem.ends_with('_') && item::BOMB_BAG_LARGE.starts_with(stem));
         assert_eq!(Name(hash("Navi")).stem(), "");
     }
 

@@ -539,7 +539,7 @@ mod tests {
     #[test]
     fn a_give_request_names_its_actor_and_flags_the_equip() {
         let bytes = names([item::SWORD_KOKIRI, "", ""]).unwrap();
-        assert!(bytes.starts_with(b"Item_Sword_Kokiri\0"));
+        assert!(bytes.starts_with(format!("{}\0", item::SWORD_KOKIRI).as_bytes()));
         assert!(bytes[NAME..].iter().all(|&b| b == 0));
     }
 

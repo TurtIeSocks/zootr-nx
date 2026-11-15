@@ -59,7 +59,7 @@ impl Names {
     }
 }
 
-/// An id made readable: `TBox_Rupee_Blue` reads `Rupee Blue`, `KokiriForest`
+/// An id made readable: `Thing_Rupee_Blue` reads `Rupee Blue`, `KokiriForest`
 /// reads `Kokiri Forest`.
 pub fn pretty(id: &str) -> String {
     let id = PREFIXES
@@ -114,7 +114,7 @@ mod tests {
         missing.dedup();
         assert_eq!(missing, Vec::<&str>::new());
         assert_eq!(names.area("NoPlace"), "No Place");
-        assert_eq!(names.item("Item_No_Thing"), "No Thing");
+        assert_eq!(names.item("No_Thing"), "No Thing");
     }
 
     #[test]
@@ -149,6 +149,6 @@ mod tests {
         assert_eq!(pretty(actor::OBJ_HEART_PIECE), "Heart Piece");
         assert_eq!(pretty(item::GLASS_TRUTH), "Glass Truth");
         assert_eq!(pretty(flow::BOTTOM_OF_THE_WELL), "Bottom Of The Well");
-        assert_eq!(pretty("Item_Arrow_10"), "Arrow 10");
+        assert_eq!(pretty("Arrow_10"), "Arrow 10");
     }
 }

@@ -187,16 +187,7 @@ mod tests {
             ..Default::default()
         };
         let spots: Vec<Spot> = (0..60)
-            .map(|h| {
-                spot(
-                    h,
-                    if h % 2 == 0 {
-                        item::HOOKSHOT
-                    } else {
-                        "Item_Rupee"
-                    },
-                )
-            })
+            .map(|h| spot(h, if h % 2 == 0 { item::HOOKSHOT } else { "Item_A" }))
             .collect();
         let wanted = BTreeSet::from([item::HOOKSHOT.get()]);
         let hints = choose(&spots, &wanted, 7);

@@ -674,10 +674,10 @@ mod tests {
 
     #[test]
     fn verdicts_serialize_with_their_reason() {
-        let v = serde_json::to_value(Verdict::WrongItem("IsGet.Item_Bow".into())).unwrap();
+        let v = serde_json::to_value(Verdict::WrongItem("IsGet.Item_A".into())).unwrap();
         assert_eq!(
             v,
-            serde_json::json!({"verdict": "wrong_item", "why": "IsGet.Item_Bow"})
+            serde_json::json!({"verdict": "wrong_item", "why": "IsGet.Item_A"})
         );
         let v = serde_json::to_value(Verdict::Pass).unwrap();
         assert_eq!(v, serde_json::json!({"verdict": "pass"}));
