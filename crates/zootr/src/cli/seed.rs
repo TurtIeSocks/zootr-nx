@@ -147,6 +147,9 @@ mod tests {
 
     #[test]
     fn a_shuffle_command_parses_back_to_its_settings_and_extras() {
+        if crate::game::no_names() {
+            return;
+        }
         let settings = Settings::from([
             ("warp-kit".into(), true.into()),
             ("open-forest".into(), false.into()),

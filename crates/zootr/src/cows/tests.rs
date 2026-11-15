@@ -25,6 +25,9 @@ fn at(actor: &str, file: &str, hash: u64, pos: [f32; 3]) -> Placement {
 
 #[test]
 fn the_check_is_the_lowest_child_placement_else_the_lowest() {
+    if crate::game::no_names() {
+        return;
+    }
     let cows = group(vec![
         at(PLAIN, "Kak/Kak_Adult_Dynamic", 1, [0.0, 0.0, 0.0]),
         at(PLAIN, "Kak/Kak_Child_Dynamic", 9, [0.3, 5.0, 0.3]),

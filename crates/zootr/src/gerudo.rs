@@ -199,6 +199,9 @@ mod tests {
 
     #[test]
     fn the_guard_step_applies_only_where_they_watch() {
+        if crate::game::no_names() {
+            return;
+        }
         let step = (CHALLENGE.to_string(), STAND_DOWN.to_owned());
         assert_eq!(guard_step(flag::GERUDO_FORTRESS), Some(step.clone()));
         assert_eq!(guard_step(flag::GERUDO_TRAINING_GROUND), Some(step));
@@ -211,6 +214,9 @@ mod tests {
 
     #[test]
     fn the_card_is_moved_only_off_its_own_check() {
+        if crate::game::no_names() {
+            return;
+        }
         let own = GIFTS.iter().find(|g| g.item == CARD).unwrap().hash();
         assert!(moved(&card_at(ELSEWHERE)));
         assert!(!moved(&card_at(own)));

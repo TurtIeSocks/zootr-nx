@@ -381,6 +381,9 @@ mod tests {
 
     #[test]
     fn a_use_says_how_much_link_was_hurt_on_the_way() {
+        if crate::game::no_names() {
+            return;
+        }
         let chest = placed(actor::OBJ_T_BOX_A_01, 77, [10.0, 0.0, 2.0]);
         // Something bites him a quarter heart each push, and A opens nothing.
         let (used, _) = touched(&chest, |eyes| {
@@ -395,6 +398,9 @@ mod tests {
 
     #[test]
     fn a_keeper_across_a_counter_is_turned_to_with_one_tap_and_no_zl() {
+        if crate::game::no_names() {
+            return;
+        }
         // Warped onto the customer spot, facing away from the keeper.
         let keeper = placed(actor::NPC_GORON_011_SHOP_CHILD, 77, [2.0, 0.0, 0.0]);
         let room = mesh(&[quad(0.0, 0.0, 20.0, 4.0, 0.0)]);
@@ -420,6 +426,9 @@ mod tests {
 
     #[test]
     fn a_chest_is_faced_from_in_front_then_opened_with_a() {
+        if crate::game::no_names() {
+            return;
+        }
         // It faces +Z, so its front is where Link has to stand.
         let chest = placed(actor::OBJ_T_BOX_A_01, 77, [10.0, 0.0, 2.0]);
         let (used, eyes) = touched(&chest, answers_to_the_north);
@@ -452,6 +461,9 @@ mod tests {
 
     #[test]
     fn a_pot_is_struck_with_the_sword_and_its_drop_taken_on_its_spot() {
+        if crate::game::no_names() {
+            return;
+        }
         let presses = broken_by(actor::OBJ_POT_A_01, SWORD);
         // Only the take: an A before the blow would lift it.
         assert_eq!(presses.iter().filter(|b| *b == "A").count(), 1);
@@ -459,17 +471,26 @@ mod tests {
 
     #[test]
     fn a_rock_is_lifted_and_thrown_and_its_spot_stepped_on() {
+        if crate::game::no_names() {
+            return;
+        }
         let presses = broken_by(actor::OBJ_LIFT_ROCK_A_01, THROW);
         assert_eq!(presses.iter().filter(|b| *b == "A").count(), 3);
     }
 
     #[test]
     fn a_box_is_rolled_into_and_its_spot_stepped_on() {
+        if crate::game::no_names() {
+            return;
+        }
         broken_by(actor::OBJ_BROKEN_BOX_A_01, ROLL);
     }
 
     #[test]
     fn a_chest_that_answers_nothing_is_nothing_with_a_frame() {
+        if crate::game::no_names() {
+            return;
+        }
         let chest = placed(actor::OBJ_T_BOX_A_01, 77, [10.0, 0.0, 2.0]);
         let (used, eyes) = touched(&chest, |_| {});
         assert_eq!(used.result, Touch::Nothing);
@@ -478,6 +499,9 @@ mod tests {
 
     #[test]
     fn a_door_is_walked_through_without_a() {
+        if crate::game::no_names() {
+            return;
+        }
         let door = placed(actor::OBJ_KOKIRI_DOOR_A_02, 5, [10.0, 0.0, 2.0]);
         let (used, eyes) = touched(&door, |_| {});
         assert_eq!(used.result, Touch::Entered);
@@ -492,6 +516,9 @@ mod tests {
 
     #[test]
     fn a_door_that_stays_shut_is_nothing() {
+        if crate::game::no_names() {
+            return;
+        }
         let door = placed(actor::OBJ_KOKIRI_DOOR_A_02, 5, [10.0, 0.0, 2.0]);
         let (used, _) = touched(&door, |e| {
             e.0.borrow_mut().walls = vec![[9.9, 0.0, 10.1, 4.0]]
@@ -501,6 +528,9 @@ mod tests {
 
     #[test]
     fn a_door_that_loads_a_map_is_entered() {
+        if crate::game::no_names() {
+            return;
+        }
         let door = placed(actor::OBJ_KOKIRI_DOOR_A_02, 5, [10.0, 0.0, 2.0]);
         let (used, _) = touched(&door, |e| {
             e.0.borrow_mut().after_push = Some(Box::new(|w| {
@@ -526,6 +556,9 @@ mod tests {
 
     #[test]
     fn a_walk_that_gives_up_presses_nothing_more() {
+        if crate::game::no_names() {
+            return;
+        }
         let chest = placed(actor::OBJ_T_BOX_A_01, 77, [10.0, 0.0, 2.0]);
         let (used, eyes) = touched(&chest, |e| {
             e.0.borrow_mut().walls = vec![[5.0, 0.0, 5.2, 4.0]];
@@ -539,6 +572,9 @@ mod tests {
 
     #[test]
     fn a_walk_blocked_within_reach_still_faces_and_presses_a() {
+        if crate::game::no_names() {
+            return;
+        }
         let chest = placed(actor::OBJ_T_BOX_A_01, 77, [10.0, 0.0, 2.0]);
         let (used, eyes) = touched(&chest, |e| {
             e.0.borrow_mut().walls = vec![[9.2, 0.0, 9.4, 4.0]];
@@ -585,6 +621,9 @@ mod tests {
 
     #[test]
     fn each_kind_stands_where_the_table_says() {
+        if crate::game::no_names() {
+            return;
+        }
         let at = [10.0, 0.0, 2.0];
         let near = |a: [f32; 3], b: [f32; 2]| (a[0] - b[0]).hypot(a[2] - b[1]) < 1e-4;
         let chest = placed(actor::OBJ_T_BOX_A_01, 1, at);

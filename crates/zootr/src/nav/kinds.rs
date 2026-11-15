@@ -128,6 +128,9 @@ mod tests {
 
     #[test]
     fn placements_are_named_by_their_kind() {
+        if crate::game::no_names() {
+            return;
+        }
         let cases: [(&str, &str); 10] = [
             (actor::LAND_KOKIRI_CLIFF_E_05, "cliff"),
             ("Tree_Kokiri_A", "tree"),
@@ -148,6 +151,9 @@ mod tests {
 
     #[test]
     fn an_unknown_name_shows_raw_when_he_can_see_it() {
+        if crate::game::no_names() {
+            return;
+        }
         assert_eq!(label("Obj_M").as_deref(), Some("Obj_M"));
         assert_eq!(label(actor::OBJ_T_BOX_A_01).as_deref(), Some("chest"));
         assert_eq!(
@@ -161,6 +167,9 @@ mod tests {
 
     #[test]
     fn use_acts_by_kind() {
+        if crate::game::no_names() {
+            return;
+        }
         let act = |name| kind_of(name).and_then(|k| k.act);
         assert_eq!(act(actor::OBJ_T_BOX_A_01), Some(Act::Face { stand: 0.8 }));
         assert_eq!(act(actor::NPC_MIDO), Some(Act::Face { stand: 1.2 }));

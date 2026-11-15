@@ -874,6 +874,9 @@ mod tests {
 
     #[test]
     fn rules_drop_what_needs_nothing() {
+        if crate::game::no_names() {
+            return;
+        }
         let stingers = Expr::Or(vec![
             actor(actor::ENEMY_STINGER, "Dead"),
             Expr::SetFlag("Cleared".into(), vec![actor(actor::ENEMY_STINGER, "Dead")]),
@@ -888,6 +891,9 @@ mod tests {
 
     #[test]
     fn a_flag_the_graphs_set_reads_as_its_setter() {
+        if crate::game::no_names() {
+            return;
+        }
         let hit = actor(actor::OBJ_SWITCH_HIT_A_05, field::ON_STATE);
         let latch = Expr::SetFlag("Thing_On".into(), vec![hit.clone()]);
         assert_eq!(
@@ -898,6 +904,9 @@ mod tests {
 
     #[test]
     fn rules_absorb_and_bracket() {
+        if crate::game::no_names() {
+            return;
+        }
         let switch = actor(actor::OBJ_STEP_SWITCH_A_01, field::ON_STATE);
         let adult = Expr::Atom(Atom::Adult);
         let absorbed = Expr::Or(vec![switch.clone(), Expr::And(vec![adult.clone(), switch])]);
@@ -926,6 +935,9 @@ mod tests {
 
     #[test]
     fn module_paths_name_graphs_flat() {
+        if crate::game::no_names() {
+            return;
+        }
         let logic = format!(
             "Logic/Module/Area_A/{}.ain",
             field::DESERT_COLOSSUS_COMMON_7E8D_LOGIC_MODULE

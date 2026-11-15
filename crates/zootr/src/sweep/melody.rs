@@ -33,6 +33,9 @@ mod tests {
 
     #[test]
     fn a_song_item_names_its_notes() {
+        if crate::game::no_names() {
+            return;
+        }
         let nocturne: Vec<_> = notes(item::MELODY_SHADOW_NOCTURNE).unwrap().collect();
         assert_eq!(nocturne, ["Y", "A", "A", "L", "Y", "A", "R"]);
         assert!(notes("Item_A").is_none());

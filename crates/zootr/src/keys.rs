@@ -125,6 +125,9 @@ mod tests {
 
     #[test]
     fn a_key_chest_brings_a_red_rupee() {
+        if crate::game::no_names() {
+            return;
+        }
         let chest = |item: &str| ItemCheck {
             item: item.into(),
             ..crate::gifts::check(

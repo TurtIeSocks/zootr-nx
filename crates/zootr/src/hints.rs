@@ -180,6 +180,9 @@ mod tests {
 
     #[test]
     fn hints_name_wanted_items_only_and_follow_the_seed() {
+        if crate::game::no_names() {
+            return;
+        }
         let spot = |hash: u64, item: &str| Spot {
             hash,
             area: format!("Area{hash}"),

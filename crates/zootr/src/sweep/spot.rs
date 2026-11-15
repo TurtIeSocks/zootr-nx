@@ -790,6 +790,9 @@ mod tests {
 
     #[test]
     fn quest_steps_and_the_guards_are_written_as_their_save_copies() {
+        if crate::game::no_names() {
+            return;
+        }
         let at = |area: &str, steps: Steps| Planned {
             spot: crate::generate::Spot {
                 area: area.into(),

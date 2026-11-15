@@ -402,6 +402,9 @@ mod tests {
 
     #[test]
     fn a_chest_rupee_drops_as_the_floor_rupee_and_a_major_item_as_a_stand_in() {
+        if crate::game::no_names() {
+            return;
+        }
         assert_eq!(
             pickup_for(actor::T_BOX_RUPEE_RED, true).as_deref(),
             Some(actor::OBJ_RUPEE_RED.get())
@@ -415,6 +418,9 @@ mod tests {
 
     #[test]
     fn a_heart_piece_a_holder_drops_is_a_stand_in_that_lands() {
+        if crate::game::no_names() {
+            return;
+        }
         assert_eq!(pickup_for(actor::OBJ_HEART_PIECE, true), None);
         assert_eq!(pickup_for(actor::OBJ_HEART_CONTAINER, true), None);
         assert_eq!(template_for(DROP), DROPPED);

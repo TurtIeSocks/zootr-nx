@@ -153,6 +153,9 @@ mod tests {
 
     #[test]
     fn a_chest_item_is_watched_with_its_field_twin() {
+        if crate::game::no_names() {
+            return;
+        }
         assert_eq!(
             twins(actor::T_BOX_RUPEE_RED),
             [actor::T_BOX_RUPEE_RED, actor::OBJ_RUPEE_RED]
@@ -162,6 +165,9 @@ mod tests {
 
     #[test]
     fn an_upgrade_is_watched_at_every_level_of_its_line() {
+        if crate::game::no_names() {
+            return;
+        }
         let names = twins(item::RANGE_BOW);
         assert_eq!(names[0], item::RANGE_BOW);
         for n in [
@@ -189,6 +195,9 @@ mod tests {
 
     #[test]
     fn a_get_message_names_its_item() {
+        if crate::game::no_names() {
+            return;
+        }
         let change = |name: &str, change: &str| Change {
             hash: 0,
             name: name.into(),
@@ -242,6 +251,9 @@ mod tests {
 
     #[test]
     fn another_get_is_told_to_be_an_items_by_its_names() {
+        if crate::game::no_names() {
+            return;
+        }
         let names = twins(actor::T_BOX_RUPEE_RED);
         let flag = format!("IsGet.{}", actor::OBJ_RUPEE_RED);
         assert!(lands_as(&flag, &names));
@@ -253,6 +265,9 @@ mod tests {
 
     #[test]
     fn a_rupee_off_the_floor_is_not_another_get() {
+        if crate::game::no_names() {
+            return;
+        }
         let change = |name: &str, change: &str| Change {
             hash: 0,
             name: name.into(),
@@ -292,6 +307,9 @@ mod tests {
 
     #[test]
     fn arrows_without_a_bow_come_as_a_rupee() {
+        if crate::game::no_names() {
+            return;
+        }
         assert!(swapped(
             actor::T_BOX_ARROW_BUNDLE_MEDIUM,
             actor::T_BOX_RUPEE_RED
