@@ -9,6 +9,7 @@ mod rewrite;
 mod rolling;
 mod sales;
 mod table;
+mod zora;
 
 pub use cutscene::straight;
 pub(crate) use later::scene_marks;
@@ -416,10 +417,11 @@ const TAUGHT: [(&Name, &Name); 1] = [(scene::MELODY_GET_SUN_03, scene::MELODY_GE
 
 /// The Bools the gifts' edits set, which a new game adds to its save data.
 pub fn flags(on: &BTreeSet<String>) -> Vec<String> {
-    match on.contains(MERCHANTS) {
-        true => vec![MEDIGORON_SOLD.into()],
-        false => vec![],
-    }
+    [(MERCHANTS, MEDIGORON_SOLD), (NPC_GIFTS, zora::GIVEN)]
+        .into_iter()
+        .filter(|(setting, _)| on.contains(*setting))
+        .map(|(_, flag)| flag.into())
+        .collect()
 }
 
 /// Flows a dealt gift would leave stuck, each with the edit that frees it.
@@ -454,6 +456,9 @@ pub fn give_all(
         }
         if item == gift.item {
             continue;
+        }
+        if gift.flow == zora::FLOW {
+            zora::deal(romfs, rewrites, item)?;
         }
         for (_, flow, call) in FORETOLD.iter().filter(|f| f.0 == gift.flow) {
             flows::edit(romfs, rewrites, flow, |f| {
@@ -511,6 +516,30 @@ fn give(
         Some((callee, entry)) => flows::edit(romfs, rewrites, &callee, |f| stay(f, &entry)),
         None => Ok(()),
     }
+}
+
+#[cfg(test)]
+/// A flow before and after `f`, rendered, as the game would read it.
+pub(super) fn edited(
+    romfs: &Romfs,
+    name: &str,
+    f: impl FnOnce(&mut Flowchart) -> Result<()>,
+) -> (String, String) {
+    let mut flow = flows::load(romfs, name).unwrap().unwrap();
+    let before = flows::render(&flow);
+    f(&mut flow).unwrap();
+    let after = Flowchart::parse(&flow.to_bytes()).unwrap().unwrap();
+    (before, flows::render(&after))
+}
+
+#[cfg(test)]
+/// The lines of `after` that differ from `before` at the same place.
+pub(super) fn changed<'a>(before: &'a str, after: &'a str) -> Vec<(&'a str, &'a str)> {
+    before
+        .lines()
+        .zip(after.lines())
+        .filter(|(a, b)| a != b)
+        .collect()
 }
 
 #[cfg(test)]

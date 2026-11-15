@@ -44,65 +44,16 @@ pub(super) fn sell(
 const DISPLAY: &Name = flow::DISPLAY_ITEM_ACTOR;
 
 /// Medigoron asks whether he has sold, by his own Bool, not whether Link
-/// holds the knife, since what he sells may be anything.
+/// holds the knife.
 pub(super) fn ask_medigorons_bool(flow: &mut Flowchart) -> Result<()> {
-    let at = (flows::events(flow, IN_POUCH).into_iter())
-        .find(|(_, p)| param(p, ACTOR) == Some(actor::WEAPON_SWORD_GIANT))
-        .with_context(|| format!("{} never asks for the knife", flow.name))?
-        .0;
-    let asks =
-        flows::switch(flow, IS_BOOL).with_context(|| format!("{} asks no Bool", flow.name))?;
-    let asks = flows::model(flow, IS_BOOL, asks)?;
-    let mut params = asks.params;
-    flows::set(&mut params, GAME_DATA, string(MEDIGORON_SOLD))?;
-    let (actor, query) = flow.query(&asks.actor, asks.name);
-    let EventKind::Switch { cases, .. } = &flow.events[at as usize].kind else {
-        unreachable!("the gate was found as a switch");
-    };
-    // Case 0 is the Bool set, as it was the knife held.
-    let cases = cases.clone();
-    flow.events[at as usize].kind = EventKind::Switch {
-        actor,
-        query,
-        params,
-        cases,
-    };
-    Ok(())
+    ask_own_bool(flow, actor::WEAPON_SWORD_GIANT, MEDIGORON_SOLD)
 }
 
 /// The sale Medigoron's call leads to hands over `ActorName` plainly and sets
 /// his Bool right after.
 pub(super) fn set_medigorons_bool(flow: &mut Flowchart) -> Result<()> {
-    let sets = flows::running(flow, SET_BOOL);
-    let sets = sets
-        .first()
-        .with_context(|| format!("{} sets no Bool", flow.name))?;
-    let sets = flows::model(flow, SET_BOOL, *sets)?;
-    let calls = calls_to(flow, &[get(flow::GET_IN_EVENT_ITEM_SWORD_MEDIGORON)])?;
-    ensure!(!calls.is_empty(), "{} never gives the knife", flow.name);
-    for i in calls {
-        let EventKind::SubFlow {
-            entry_point, next, ..
-        } = &mut flow.events[i].kind
-        else {
-            unreachable!("calls_to finds sub-flows");
-        };
-        if DRESSED.iter().any(|d| **d == **entry_point) {
-            *entry_point = PLAIN.to_string();
-        }
-        let next = *next;
-        let mut params = sets.params.clone();
-        flows::set(&mut params, GAME_DATA, string(MEDIGORON_SOLD))?;
-        flows::set(&mut params, "Value", Value::Bool(vec![true]))?;
-        let (actor, action) = flow.action(&sets.actor, sets.name);
-        let mark = flow.push(EventKind::Action {
-            next,
-            actor,
-            action,
-            params,
-        });
-        flow.link(Link::Next(i as u16), Some(mark))?;
-    }
+    let knife = [get(flow::GET_IN_EVENT_ITEM_SWORD_MEDIGORON)];
+    set_own_bool(flow, &knife, MEDIGORON_SOLD)?;
     buys_into_a_full_pouch(flow)
 }
 
@@ -168,22 +119,10 @@ pub(super) fn hand_over_the_sold(flow: &mut Flowchart) -> Result<()> {
 /// The param a hand-over names its item by.
 const GIVEN: &Name = flow::REVEIVE_ITEM;
 
-/// A query on `flow`'s Bool `name`, modelled on the flow's first Bool
-/// query: to `set` when it holds, else to `unset`.
+/// A query on `flow`'s Bool `name`: to `set` when it holds, else to `unset`.
 fn ask_bool(flow: &mut Flowchart, name: &str, set: u16, unset: u16) -> Result<u16> {
-    let asks =
-        flows::switch(flow, IS_BOOL).with_context(|| format!("{} asks no Bool", flow.name))?;
-    let asks = flows::model(flow, IS_BOOL, asks)?;
-    let mut params = asks.params;
-    flows::set(&mut params, GAME_DATA, string(name))?;
-    let (actor, query) = flow.query(&asks.actor, asks.name);
-    // Case 0 is true.
-    Ok(flow.push(EventKind::Switch {
-        actor,
-        query,
-        params,
-        cases: vec![(0, set), (1, unset)],
-    }))
+    let ask = bool_switch(flow, name, vec![(0, set), (1, unset)])?;
+    Ok(flow.push(ask))
 }
 
 /// The carpet merchant's one sale, now of the dealt item, runs only until
@@ -218,28 +157,6 @@ pub(super) fn buys_while_unsold(flow: &mut Flowchart) -> Result<()> {
 mod tests {
     use super::*;
     use crate::known::{actor, field, flag, flow, item};
-
-    /// A flow before and after `f`, rendered, as the game would read it.
-    fn edited(
-        romfs: &Romfs,
-        name: &str,
-        f: impl FnOnce(&mut Flowchart) -> Result<()>,
-    ) -> (String, String) {
-        let mut flow = flows::load(romfs, name).unwrap().unwrap();
-        let before = flows::render(&flow);
-        f(&mut flow).unwrap();
-        let after = Flowchart::parse(&flow.to_bytes()).unwrap().unwrap();
-        (before, flows::render(&after))
-    }
-
-    /// The lines of `after` that differ from `before` at the same place.
-    fn changed<'a>(before: &'a str, after: &'a str) -> Vec<(&'a str, &'a str)> {
-        before
-            .lines()
-            .zip(after.lines())
-            .filter(|(a, b)| a != b)
-            .collect()
-    }
 
     fn sale(flow: &str) -> (&'static Gift, &'static [Call], &'static str, i32) {
         let gift = GIFTS.iter().find(|g| g.flow == flow).unwrap();
@@ -289,7 +206,7 @@ mod tests {
         assert!(sales.iter().all(|g| g.dealt(&on(&[MERCHANTS]))));
         assert!(sales.iter().all(|g| !g.dealt(&on(&[NPC_GIFTS]))));
         assert_eq!(flags(&on(&[MERCHANTS])), [MEDIGORON_SOLD]);
-        assert!(flags(&on(&[NPC_GIFTS])).is_empty());
+        assert!(!flags(&on(&[NPC_GIFTS])).contains(&MEDIGORON_SOLD.to_string()));
     }
 
     #[test]

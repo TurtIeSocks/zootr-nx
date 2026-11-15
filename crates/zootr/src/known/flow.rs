@@ -70,6 +70,7 @@ pub const GET_IN_EVENT_GREAT_FAIRY_WISDOM: &Name = &n!(0xf1d1df711eaf5708);
 pub const GET_IN_EVENT_IN_BOTTLE: &Name = &n!(0x16cf8874daac6097);
 pub const GET_IN_EVENT_ITEM_SWORD_BIGGORON: &Name = &n!(0x5ff6617fa24b773b);
 pub const GET_IN_EVENT_ITEM_SWORD_MEDIGORON: &Name = &n!(0xc65df5a3c841a086);
+pub const GET_IN_EVENT_MASK: &Name = &n!(0x498c6e13f1e4840d);
 pub const GET_IN_EVENT_NOT_LOOKAT_OBJECT_TURN_OFF: &Name = &n!(0xef1a0cfe34c47439);
 pub const GET_IN_EVENT_NOT_TURN: &Name = &n!(0x5058dc99bdf4af7d);
 pub const GET_IN_EVENT_NOT_TURN_2_D_SHOP: &Name = &n!(0x27aef3932bbca294);

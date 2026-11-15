@@ -121,7 +121,7 @@ pub(super) const PLAIN: &Name = flow::GET_IN_EVENT_DEMO_NOT_LOOKAT_OBJECT_ENTRY;
 
 /// Getting sub-flows dressed for one item, with a magic meter animation or
 /// the bracelet tutorial around the same grant. A swapped item gets `PLAIN`.
-pub(super) const DRESSED: [&Name; 8] = [
+pub(super) const DRESSED: [&Name; 9] = [
     flow::GET_IN_EVENT_GREAT_FAIRY_DIN,
     flow::GET_IN_EVENT_GREAT_FAIRY_WISDOM,
     flow::GET_IN_EVENT_GREAT_FAIRY_COURGE,
@@ -130,6 +130,7 @@ pub(super) const DRESSED: [&Name; 8] = [
     flow::GET_IN_EVENT_POESHOP,
     flow::GET_IN_EVENT_NOT_TURN_FIXED_CAMERA_WARP_LINK,
     flow::GET_IN_EVENT_ITEM_SWORD_MEDIGORON,
+    flow::GET_IN_EVENT_MASK,
 ];
 
 /// The events that make any of `calls`.
@@ -185,6 +186,84 @@ pub(super) fn rename_calls(
         flow.name,
         said(call)
     );
+    Ok(())
+}
+
+/// Ask the gift's own Bool `name` where `flow` asked whether Link holds
+/// `held`, since what the giver gives may be anything. Set goes where
+/// "held" went.
+pub(super) fn ask_own_bool(flow: &mut Flowchart, held: &str, name: &str) -> Result<()> {
+    let at = (flows::events(flow, IN_POUCH).into_iter())
+        .find(|(_, p)| param(p, ACTOR) == Some(held))
+        .with_context(|| format!("{} never asks for {held}", flow.name))?
+        .0;
+    let EventKind::Switch { cases, .. } = &flow.events[at as usize].kind else {
+        unreachable!("the question was found as a switch");
+    };
+    // Case 0 is the Bool set, as it was the item held.
+    flow.events[at as usize].kind = bool_switch(flow, name, cases.clone())?;
+    Ok(())
+}
+
+/// A query on `flow`'s Bool `name` with `cases`, modelled on the flow's
+/// first Bool query. Case 0 is true.
+pub(super) fn bool_switch(
+    flow: &mut Flowchart,
+    name: &str,
+    cases: Vec<(u32, u16)>,
+) -> Result<EventKind> {
+    let asks =
+        flows::switch(flow, IS_BOOL).with_context(|| format!("{} asks no Bool", flow.name))?;
+    let asks = flows::model(flow, IS_BOOL, asks)?;
+    let mut params = asks.params;
+    flows::set(&mut params, GAME_DATA, string(name))?;
+    let (actor, query) = flow.query(&asks.actor, asks.name);
+    Ok(EventKind::Switch {
+        actor,
+        query,
+        params,
+        cases,
+    })
+}
+
+/// Set the gift's own Bool `name` right after each call to `call`, at
+/// least one, so the gift is given once. A dressed call becomes `PLAIN`.
+pub(super) fn set_own_bool(flow: &mut Flowchart, call: &[Call], name: &str) -> Result<()> {
+    let sets = flows::running(flow, SET_BOOL);
+    let sets = sets
+        .first()
+        .with_context(|| format!("{} sets no Bool", flow.name))?;
+    let sets = flows::model(flow, SET_BOOL, *sets)?;
+    let calls = calls_to(flow, call)?;
+    ensure!(
+        !calls.is_empty(),
+        "{} never calls {}",
+        flow.name,
+        said(call)
+    );
+    for i in calls {
+        let EventKind::SubFlow {
+            entry_point, next, ..
+        } = &mut flow.events[i].kind
+        else {
+            unreachable!("calls_to finds sub-flows");
+        };
+        if DRESSED.iter().any(|d| **d == **entry_point) {
+            *entry_point = PLAIN.to_string();
+        }
+        let next = *next;
+        let mut params = sets.params.clone();
+        flows::set(&mut params, GAME_DATA, string(name))?;
+        flows::set(&mut params, "Value", Value::Bool(vec![true]))?;
+        let (actor, action) = flow.action(&sets.actor, sets.name);
+        let mark = flow.push(EventKind::Action {
+            next,
+            actor,
+            action,
+            params,
+        });
+        flow.link(Link::Next(i as u16), Some(mark))?;
+    }
     Ok(())
 }
 
