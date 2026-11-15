@@ -92,6 +92,12 @@ fn lookup(hash: u64) -> Option<&'static str> {
     })
 }
 
+/// Whether `text` is, exactly, a name in the dump. `false` without a dump.
+#[cfg(test)]
+pub(crate) fn is_dump_name(text: &str) -> bool {
+    lookup(hash(text)) == Some(text)
+}
+
 /// Tier `tier`'s names by hash. Read from the dump the first time, which
 /// takes seconds for the actor packs, then from a copy in the cache. The
 /// copy is named for the tier's sources, so adding one reads them again.

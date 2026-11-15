@@ -1,6 +1,8 @@
 //! Keeps the game's own names out of our source as text. A name is written
 //! as a `known::*` const (`n!(0x…)`), or in the logic vocabulary. This scans
-//! the files below and fails on a game-shaped identifier.
+//! the files below and fails on a game-shaped identifier. The first test knows
+//! the game's prefixes. The second asks the dump, so a name with any prefix
+//! (or none) is found too.
 
 use std::path::{Path, PathBuf};
 
@@ -82,8 +84,8 @@ fn files(dir: &Path, extension: &str, out: &mut Vec<PathBuf>) {
     }
 }
 
-/// Every `file:line: name` in what's scanned under `root`.
-fn offenders(root: &Path) -> Vec<String> {
+/// Each scanned file under `root` as `(relative path, text)`, sorted.
+fn scanned_texts(root: &Path) -> Vec<(String, String)> {
     let mut paths = Vec::new();
     for (dir, extension) in SCANNED {
         files(&root.join(dir), extension, &mut paths);
@@ -100,12 +102,51 @@ fn offenders(root: &Path) -> Vec<String> {
         {
             continue;
         }
-        let Ok(text) = std::fs::read_to_string(&path) else {
-            continue;
-        };
+        if let Ok(text) = std::fs::read_to_string(&path) {
+            out.push((rel, text));
+        }
+    }
+    out
+}
+
+/// Every `file:line: name` in what's scanned under `root`.
+fn offenders(root: &Path) -> Vec<String> {
+    let mut out = Vec::new();
+    for (rel, text) in scanned_texts(root) {
         for (i, line) in text.lines().enumerate() {
             for name in names_in(line) {
                 out.push(format!("{rel}:{}: {name}", i + 1));
+            }
+        }
+    }
+    out
+}
+
+/// The identifier-shaped words in `line` with an underscore, as written:
+/// `[A-Z][A-Za-z0-9]*(_[A-Za-z0-9]+)+`, whole (not part of a longer word).
+fn underscored_words(line: &str) -> Vec<&str> {
+    let word = |c: char| c.is_ascii_alphanumeric() || c == '_';
+    let shaped = |w: &str| {
+        w.starts_with(|c: char| c.is_ascii_uppercase())
+            && w.contains('_')
+            && w.split('_').skip(1).all(|part| !part.is_empty())
+    };
+    line.split(|c: char| !word(c))
+        .filter(|w| shaped(w))
+        .collect()
+}
+
+/// Every `file:line: name` in what's scanned under `root` that `known` says
+/// is a name in the dump, unless it is a made-up fixture.
+fn catalog_offenders(root: &Path, in_dump: impl Fn(&str) -> bool) -> Vec<String> {
+    let mut out = Vec::new();
+    for (rel, text) in scanned_texts(root) {
+        for (i, line) in text.lines().enumerate() {
+            for name in underscored_words(line) {
+                let rest = name.split_once('_').map_or("", |(_, rest)| rest);
+                if is_name(rest) && in_dump(name) {
+                    out.push(format!("{rel}:{}: {name}", i + 1));
+                }
             }
         }
     }
@@ -148,4 +189,44 @@ fn a_game_shaped_name_is_found_and_a_fixture_is_not() {
     ] {
         assert!(names_in(fine).is_empty(), "{fine}");
     }
+}
+
+#[test]
+fn no_dump_name_is_written_as_text() {
+    if crate::game::dev_dump().is_none() {
+        return;
+    }
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let found = catalog_offenders(&root, super::is_dump_name);
+    assert!(
+        found.is_empty(),
+        "names from the game's data written as text. Use a `known::*` const \
+         (`n!(0x…)`, hash from `zootr probe hash`), say it in words in a \
+         comment, or a made-up name like `Map_A` in a test:\n{}",
+        found.join("\n")
+    );
+}
+
+#[test]
+fn an_underscored_word_is_found_whole_and_a_fixture_is_not_a_hit() {
+    let name = |a: &str, b: &str| format!("{a}_{b}");
+    let line = format!(
+        "f(\"{}\", x{}, {}_);",
+        name("Map", "Real"),
+        name("Y", "z"),
+        "Item"
+    );
+    assert_eq!(underscored_words(&line), [name("Map", "Real")]);
+    let has = |n: &str| n == name("Map", "Real");
+    let hits = |text: &str| {
+        let dir = std::env::temp_dir().join(format!("guard-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(dir.join("crates"));
+        std::fs::write(dir.join("crates/t.rs"), text).unwrap();
+        let found = catalog_offenders(&dir, has);
+        let _ = std::fs::remove_dir_all(&dir);
+        found
+    };
+    assert_eq!(hits(&name("Map", "Real")), ["crates/t.rs:1: Map_Real"]);
+    assert!(hits(&name("Map", "Other")).is_empty());
+    assert!(hits(&name("Map", "A")).is_empty());
 }
