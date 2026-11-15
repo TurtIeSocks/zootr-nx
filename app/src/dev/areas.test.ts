@@ -4,8 +4,8 @@ import { area, areas, mapAge } from "@/dev/areas";
 const PLACES = [
   "Kakariko_Child/Kakariko_FrontOfGate",
   "Kakariko_Adult/Kakariko_FrontOfGate",
-  "HyruleField_Child/HyruleField_FrontOfMarket",
-  "HyruleField_Child/HyruleField_FrontOfKakarikoVillage",
+  "Hill_Child/Hill_FrontOfMarket",
+  "Hill_Child/Hill_FrontOfKakarikoGate",
   "DekuTree/DekuTree_Entrance",
 ];
 
@@ -18,11 +18,7 @@ test("a map's area drops its age, and its age reads from the suffix", () => {
 
 test("areas keep Link's age and maps for either age, sorted", () => {
   const child = areas(PLACES, true, "");
-  expect(child.map((a) => a.area)).toEqual([
-    "DekuTree",
-    "HyruleField",
-    "Kakariko",
-  ]);
+  expect(child.map((a) => a.area)).toEqual(["DekuTree", "Hill", "Kakariko"]);
   expect(child[2]?.spots.map((s) => s.map)).toEqual(["Kakariko_Child"]);
   const adult = areas(PLACES, false, "");
   expect(adult.map((a) => a.area)).toEqual(["DekuTree", "Kakariko"]);
@@ -38,6 +34,6 @@ test("the query matches the area or the spot, any case", () => {
     2,
   );
   expect(areas(PLACES, true, "market")[0]?.spots[0]?.spot).toBe(
-    "HyruleField_FrontOfMarket",
+    "Hill_FrontOfMarket",
   );
 });

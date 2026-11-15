@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { matching } from "@/lib/matching";
 
 test("matching needs a query and stops at the limit", () => {
-  const names = ["Sequence_IsChildhood", "Sequence_CurrentBanc", "Other"];
+  const names = ["Flag_IsChild", "Flag_CurrentMap", "Other"];
   expect(matching(names, "")).toEqual([]);
-  expect(matching(names, "sequence", 1)).toEqual(["Sequence_IsChildhood"]);
+  expect(matching(names, "flag", 1)).toEqual(["Flag_IsChild"]);
 });
