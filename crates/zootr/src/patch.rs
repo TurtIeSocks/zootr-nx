@@ -272,15 +272,24 @@ pub fn install(mod_dir: &Path, progressive: bool, dev: bool, flags: u32) -> Resu
 
 /// Take our cheat and exefs patch off `mod_dir`, leaving any others.
 pub fn remove(mod_dir: &Path) -> Result<()> {
-    for (path, _) in outputs(mod_dir) {
-        match std::fs::remove_file(&path) {
-            Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
-                return Err(e).with_context(|| format!("removing {}", path.display()));
-            }
-            _ => {}
+    outputs(mod_dir).iter().try_for_each(|(path, _)| take(path))
+}
+
+/// Take the cheat alone off `mod_dir`, for a game that reads the exefs
+/// patch. A game that reads both runs the hook twice, and reapplies the
+/// cheat many times a second.
+pub fn remove_cheat(mod_dir: &Path) -> Result<()> {
+    take(&path(mod_dir))
+}
+
+/// Delete `path` if it's there.
+fn take(path: &Path) -> Result<()> {
+    match std::fs::remove_file(path) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+            Err(e).with_context(|| format!("removing {}", path.display()))
         }
+        _ => Ok(()),
     }
-    Ok(())
 }
 
 #[cfg(test)]

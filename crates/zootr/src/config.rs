@@ -144,6 +144,14 @@ pub struct Target {
 }
 
 impl Target {
+    /// Whether the game loads the cheat, which only a settings line that
+    /// passes `{cheats}` hands it. Any other game reads the exefs patch.
+    pub fn reads_cheats(&self) -> bool {
+        (self.settings_file.iter())
+            .flat_map(|f| &f.lines)
+            .any(|l| l.contains("{cheats}"))
+    }
+
     /// Whether a process was started from `app`'s path.
     pub fn running(&self) -> bool {
         platform::running(&self.app)
