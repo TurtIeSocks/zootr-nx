@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { commands, type DevValue, type Info } from "@/bindings";
 import { NameField } from "@/components/name-field";
+import { linkClass } from "@/components/styles";
 import { Button } from "@/components/ui/button";
 import { ValueInput } from "@/components/value-input";
 import { DevSection } from "@/dev/section";
@@ -32,13 +33,14 @@ function useEdit() {
 /** The picked value's type, a field holding it, and where it came from, or
  * why it couldn't be read. */
 function DisplayValue() {
-  const { value: shown, error, again } = useValue();
+  const { name, value: shown, error, again } = useValue();
   const writable = shown && shown.info.input !== "read";
 
   return (
     <>
       {error && <p className="mt-1.5 text-danger-ink text-xs">{error}</p>}
-      {!!shown && (
+      {shown?.expr && <Formula expr={shown.expr} />}
+      {!!shown && !shown.expr && (
         <>
           <p className="mt-1.5 text-ink-muted text-xs">{shown.info.kind}</p>
           <div className="mt-1.5 flex gap-1.5">
@@ -48,11 +50,77 @@ function DisplayValue() {
           {origin(shown) && (
             <p className="mt-1 text-ink-faint text-xs">{origin(shown)}</p>
           )}
+          {name && <SavedStep name={name} />}
         </>
       )}
     </>
   );
 }
+
+/** A BoolExp's formula. The game keeps no value for it, so each name in
+ * it picks that name here, to set instead. */
+function Formula({ expr }: { expr: string }) {
+  const [names] = useDev.usePath("options.names");
+  const [, setName] = useUi.usePath("dev.set.name");
+  const pick = useEdit()(setName);
+
+  // Each part keyed by where it starts in the formula.
+  let at = 0;
+  const parts = expr.split(/([\w.]+)/).map((text) => {
+    const part = { text, at };
+    at += text.length;
+    return part;
+  });
+  return (
+    <>
+      <p className="mt-1.5 text-ink-muted text-xs">
+        Worked out from the values in it, so set those instead
+      </p>
+      <p className="type-mono mt-1 break-words text-xs">
+        {parts.map(({ text, at }) =>
+          names.includes(text) ? (
+            <button
+              key={at}
+              type="button"
+              className={linkClass}
+              onClick={() => pick(text)}
+            >
+              {text}
+            </button>
+          ) : (
+            <span key={at}>{text}</span>
+          ),
+        )}
+      </p>
+    </>
+  );
+}
+
+/** For a quest's saved step: a note that writing it leaves the quest
+ * where it was, and a way to move the quest itself. */
+function SavedStep({ name }: { name: string }) {
+  const [quests] = useDev.usePath("options.quests");
+  const [, setQuest] = useUi.usePath("dev.quest");
+  const [value] = useDev.usePath("gameValue");
+  const challenge = name.startsWith(SAVED) ? name.slice(SAVED.length) : "";
+  if (!quests[challenge]) return null;
+
+  return (
+    <p className="mt-1 text-ink-faint text-xs">
+      The save's copy of {challenge}: setting it leaves the quest where it was.{" "}
+      <button
+        type="button"
+        className={linkClass}
+        onClick={() => setQuest({ challenge, step: value })}
+      >
+        Move the quest
+      </button>
+    </p>
+  );
+}
+
+/** What a quest's saved step is named after: `Step_` and the quest. */
+const SAVED = "Step_";
 
 /** Writes the field to the picked name, then reads it back either way. */
 function SetValueButton({
@@ -143,6 +211,7 @@ function useValue() {
   // Nothing of the last name stays up while this one loads.
   return {
     ...(shown?.name === name ? shown : {}),
+    name,
     again: () => setRound((r) => r + 1),
   };
 }

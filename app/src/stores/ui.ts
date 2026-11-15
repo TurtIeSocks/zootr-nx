@@ -69,6 +69,8 @@ export interface Ui {
     give: { item: string; count: number };
     /** The GameData name picked in Set. */
     set: { name: string };
+    /** The quest and step picked in Quest step. */
+    quest: { challenge: string; step: string };
   };
 }
 
@@ -95,6 +97,7 @@ const INITIAL: Ui = {
     teleport: { tab: "places", places: "", actors: "", side: "front" },
     give: { item: "", count: 1 },
     set: { name: "" },
+    quest: { challenge: "", step: "" },
   },
 };
 

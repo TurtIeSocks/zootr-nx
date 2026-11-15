@@ -77,6 +77,7 @@ const values: Record<string, DevValue> = {
     }),
     game: true,
     live: "true",
+    expr: null,
   },
   Step_Goto_HyruleCastle: {
     info: info("Enum", "choice", {
@@ -85,23 +86,49 @@ const values: Record<string, DevValue> = {
     }),
     game: true,
     live: "Step01",
+    expr: null,
   },
   "PlayerStatus.CurrentRupee": {
     info: info("Int", "number", { default: "0" }),
     game: true,
     live: "42",
+    expr: null,
   },
   Sequence_CurrentBanc: {
     info: info("String64", "text", { default: "" }),
     game: true,
     live: "HyruleField_Child",
+    expr: null,
   },
-  Some_Array: { info: info("IntArray", "read"), game: true, live: "[1, 2]" },
+  Some_Array: {
+    info: info("IntArray", "read"),
+    game: true,
+    live: "[1, 2]",
+    expr: null,
+  },
+  Flag_A_Exp: {
+    info: info("BoolExp", "read"),
+    game: true,
+    live: null,
+    expr: "Step_A == Complete && !Flag_B",
+  },
+  Step_A: {
+    info: info("Enum", "choice", {
+      choices: ["NotReady", "Step01", "Complete"],
+      default: "NotReady",
+    }),
+    game: true,
+    live: "Step01",
+    expr: null,
+  },
 };
 const devValue = vi.fn((name: string) =>
   values[name] ? ok(values[name]) : err<DevValue>(`no entry named ${name}`),
 );
 const devSet = vi.fn((name: string, value: string) => ok(`${name} = ${value}`));
+const devStep = vi.fn((quest: string, step: string) =>
+  ok(`${quest} moved to ${step}`),
+);
 const devSwitches = vi.fn((s: DevSwitches) => ok(s));
 const setAlwaysOnTop = vi.fn((_on: boolean) => Promise.resolve());
 
@@ -118,7 +145,8 @@ vi.mock("@/bindings", () => ({
         ],
         spawns: [],
         items: ["Item_A"],
-        names: ["Sequence_IsChildhood", ...Object.keys(values)],
+        names: ["Sequence_IsChildhood", "Flag_B", ...Object.keys(values)],
+        quests: { A: ["NotReady", "Step01", "Complete"] },
       }),
     devTeleport: (p: string) => devTeleport(p),
     devActors: (m: string) => devActors(m),
@@ -126,6 +154,7 @@ vi.mock("@/bindings", () => ({
     devApply: (n: string) => devApply(n),
     devValue: (n: string) => devValue(n),
     devSet: (n: string, v: string) => devSet(n, v),
+    devStep: (q: string, s: string) => devStep(q, s),
     devSwitches: (s: DevSwitches) => devSwitches(s),
     devGoals: () => ok(goals),
     config: () => ok({ saved_tests: { [setup.name]: saved } }),
@@ -516,4 +545,49 @@ test("a poll that finds the game unchanged keeps what it held", async () => {
   } finally {
     vi.useRealTimers();
   }
+});
+
+test("a formula shows how it's worked out, its names picking each to set", async () => {
+  render(<DevWindow />);
+  const field = await screen.findByRole("textbox", { name: "GameData name" });
+  fireEvent.change(field, { target: { value: "Flag_A_Exp" } });
+  expect(await screen.findByText(/set those instead/)).toBeTruthy();
+  expect(screen.queryByLabelText("Value")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Set" })).toBeNull();
+  expect(screen.queryByText(/doesn't hold this value/)).toBeNull();
+  // Not a name the game has: plain text.
+  expect(screen.queryByRole("button", { name: "Complete" })).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "Step_A" }));
+  expect(useUi.getPath("dev.set.name")).toBe("Step_A");
+  await vi.waitFor(() =>
+    expect((screen.getByLabelText("Value") as HTMLSelectElement).value).toBe(
+      "Step01",
+    ),
+  );
+});
+
+test("a saved step says it leaves the quest, and fills Quest step to move it", async () => {
+  render(<DevWindow />);
+  await pick("Step_A", isSelect);
+  expect(await screen.findByText(/leaves the quest where it was/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Move the quest" }));
+  expect(useUi.getPath("dev.quest")).toEqual({
+    challenge: "A",
+    step: "Step01",
+  });
+});
+
+test("Quest step moves the picked quest to the picked step", async () => {
+  render(<DevWindow />);
+  const quest = await screen.findByRole("textbox", { name: "Quest" });
+  fireEvent.change(quest, { target: { value: "A" } });
+  const step = (await screen.findByLabelText("Step")) as HTMLSelectElement;
+  expect(step.value).toBe("NotReady");
+  fireEvent.change(step, { target: { value: "Complete" } });
+  const move = screen.getByRole("button", { name: "Move" });
+  await vi.waitFor(() => expect(move.hasAttribute("disabled")).toBe(false));
+  fireEvent.click(move);
+  expect(devStep).toHaveBeenCalledWith("A", "Complete");
+  expect(await screen.findByText("A moved to Complete")).toBeTruthy();
 });

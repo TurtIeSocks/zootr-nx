@@ -24,16 +24,17 @@ export function useGameOptions(): Loaded<GameOptions> {
   return useLoad(scanGame, game ?? "");
 }
 
+/** The options that are plain lists of names. */
+type List = Exclude<keyof GameOptions, "quests">;
+
 /** A list of the options once in, else empty, so a picker takes any text. */
-export const listed = (
-  options: Loaded<GameOptions>,
-  list: keyof GameOptions,
-): string[] => (options.status === "ok" ? options.data[list] : []);
+export const listed = (options: Loaded<GameOptions>, list: List): string[] =>
+  options.status === "ok" ? options.data[list] : [];
 
 /** Whether `value` is one of the dump's `list`. Anything is, until the
  * scan answers. */
 export const known = (
   options: Loaded<GameOptions>,
-  list: keyof GameOptions,
+  list: List,
   value: string,
 ) => options.status !== "ok" || options.data[list].includes(value);

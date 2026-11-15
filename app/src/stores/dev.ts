@@ -55,7 +55,7 @@ export const useDev = create<Dev>()(
       game: {},
       ready: false,
       gameValue: "",
-      options: { places: [], spawns: [], items: [], names: [] },
+      options: { places: [], spawns: [], items: [], names: [], quests: {} },
       tests: { setups: {}, goals: {}, holds: {} },
       pinned: true,
     }),
