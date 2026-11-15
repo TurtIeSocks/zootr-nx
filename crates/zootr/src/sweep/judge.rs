@@ -95,9 +95,9 @@ pub trait Judge {
     }
 }
 
-/// The paddock's chat API, OpenAI's shape, with the playbook as the
+/// A vision model that judges a stalled run from its frame, with the playbook as the
 /// system prompt and its lessons file growing as the sweep learns.
-pub struct Paddock {
+pub struct ModelJudge {
     pub vision: Vision,
     pub playbook: PathBuf,
     pub lessons: PathBuf,
@@ -116,7 +116,7 @@ Name only what you see. "It should give" is what the harness expects, not what i
 Link not visible: press ZL to bring the camera behind him.
 A text box or a get-item window: press A. A choice box: pick the line that buys, accepts or says yes. Link facing away from a chest or a person: turn him with a short stick push toward it, then A."#;
 
-impl Paddock {
+impl ModelJudge {
     fn system(&self) -> String {
         let read = |p: &Path| std::fs::read_to_string(p).unwrap_or_default();
         let lessons = read(&self.lessons);
@@ -130,7 +130,7 @@ impl Paddock {
     }
 }
 
-impl Judge for Paddock {
+impl Judge for ModelJudge {
     fn look(&mut self, look: &Look) -> Result<Answer> {
         let png = std::fs::read(look.shot)
             .with_context(|| format!("reading the shot {}", look.shot.display()))?;
@@ -169,6 +169,7 @@ impl Judge for Paddock {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vision::Api;
 
     #[test]
     fn each_answer_parses() {
@@ -217,11 +218,13 @@ mod tests {
         let (playbook, lessons) = (dir.join("playbook.md"), dir.join("lessons.md"));
         std::fs::write(&playbook, "Press ZL to recenter the camera.").unwrap();
         let vision = Vision {
+            api: Api::Anthropic,
             url: String::new(),
             key_file: PathBuf::new(),
             model: String::new(),
+            effort: None,
         };
-        let mut judge = Paddock {
+        let mut judge = ModelJudge {
             vision,
             playbook,
             lessons,

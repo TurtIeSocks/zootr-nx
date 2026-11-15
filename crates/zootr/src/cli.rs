@@ -9,7 +9,7 @@ use anyhow::{Context, Result, bail};
 use clap::Parser;
 
 use crate::config::Config;
-use crate::sweep::judge::Paddock;
+use crate::sweep::judge::ModelJudge;
 use crate::vision::Vision;
 use crate::{events, flows, game, generate, spawn, world};
 use args::{Cli, Command};
@@ -132,16 +132,14 @@ pub fn run() -> Result<()> {
         Command::Look {
             questions,
             model,
+            api,
             url,
             key_file,
+            effort,
             keep,
             frame,
         } => {
-            let vision = Vision {
-                url,
-                key_file,
-                model,
-            };
+            let vision = Vision::new(api, url, model, key_file, effort)?;
             look(&vision, &questions, keep.as_deref(), frame.as_deref())
         }
         Command::Play {
@@ -155,9 +153,11 @@ pub fn run() -> Result<()> {
             limit,
             mix,
             only,
+            judge_api,
             judge_url,
             judge_key_file,
             judge_model,
+            judge_effort,
             playbook,
             lessons,
             pristine,
@@ -165,12 +165,14 @@ pub fn run() -> Result<()> {
             let lessons = lessons.unwrap_or_else(|| playbook.with_file_name("lessons.md"));
             std::fs::metadata(&judge_key_file)
                 .with_context(|| format!("reading {}", judge_key_file.display()))?;
-            let vision = Vision {
-                url: judge_url,
-                key_file: judge_key_file,
-                model: judge_model,
-            };
-            let judge = Paddock {
+            let vision = Vision::new(
+                judge_api,
+                judge_url,
+                judge_model,
+                judge_key_file,
+                judge_effort,
+            )?;
+            let judge = ModelJudge {
                 vision,
                 playbook,
                 lessons,

@@ -8,6 +8,7 @@ use clap::{Parser, Subcommand};
 
 use crate::config::Config;
 use crate::settings::Settings;
+use crate::vision::{Api, Effort};
 use crate::warp::Side;
 use crate::{checks, generate, presets, savefile, settings, starting};
 
@@ -167,16 +168,23 @@ pub(super) enum Command {
         /// must all match: `Obj_Pot,Item_Melody` is a pot holding a song.
         #[arg(long)]
         only: Option<String>,
-        /// The judge's chat API, OpenAI's shape:
-        /// `<url>/v1/chat/completions`.
+        /// Which shape the vision model's API speaks.
+        #[arg(long, value_enum, default_value_t = Api::Anthropic)]
+        judge_api: Api,
+        /// The vision model's API, without `/v1/...`. Defaults to
+        /// `https://api.anthropic.com` on the Anthropic API and is
+        /// required on OpenAI's.
         #[arg(long)]
-        judge_url: String,
-        /// A file holding the judge's bearer key, kept out of the command
-        /// line.
+        judge_url: Option<String>,
+        /// A file holding the API's key, kept out of the command line.
         #[arg(long)]
         judge_key_file: PathBuf,
+        /// Defaults to `claude-opus-5-5` on the Anthropic API.
         #[arg(long)]
-        judge_model: String,
+        judge_model: Option<String>,
+        /// How hard an Anthropic judge thinks.
+        #[arg(long, value_enum)]
+        judge_effort: Option<Effort>,
         /// The judge's playbook, a Markdown file sent with every look.
         #[arg(long)]
         playbook: PathBuf,
@@ -196,15 +204,24 @@ pub(super) enum Command {
     Look {
         #[arg(required = true)]
         questions: Vec<String>,
-        #[arg(long, env = "ZOOTR_VISION_MODEL", default_value = "iq3_xxs")]
-        model: String,
-        /// The paddock's chat API, OpenAI's shape, without `/v1/...`.
+        /// The vision model. Defaults to `claude-opus-5-5` on the
+        /// Anthropic API.
+        #[arg(long, env = "ZOOTR_VISION_MODEL")]
+        model: Option<String>,
+        /// Which shape the vision model's API speaks.
+        #[arg(long, env = "ZOOTR_VISION_API", value_enum, default_value_t = Api::Anthropic)]
+        api: Api,
+        /// The vision model's API, without `/v1/...`. Defaults to
+        /// `https://api.anthropic.com` on the Anthropic API and is
+        /// required on OpenAI's.
         #[arg(long, env = "ZOOTR_VISION_URL")]
-        url: String,
-        /// A file holding the paddock's bearer key, kept out of the
-        /// command line.
+        url: Option<String>,
+        /// A file holding the API's key, kept out of the command line.
         #[arg(long, env = "ZOOTR_VISION_KEY_FILE")]
         key_file: PathBuf,
+        /// How hard an Anthropic model thinks.
+        #[arg(long, value_enum)]
+        effort: Option<Effort>,
         /// Keep the frame in this folder, so it can be opened when an
         /// answer looks wrong.
         #[arg(long, value_name = "DIR")]
