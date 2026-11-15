@@ -87,7 +87,60 @@ impl Dicts {
         let Some(dict) = self.for_name(name) else {
             return Ok(data.to_vec());
         };
-        let mut c = zstd::bulk::Compressor::with_dictionary(LEVEL, dict.unwrap_or_default())?;
-        Ok(c.compress(data)?)
+        compress_with(dict.unwrap_or_default(), data)
+    }
+}
+
+/// zstd treats a source that starts exactly where its dictionary's copy ends
+/// as a continuation of it, which codes it slightly differently. That's down
+/// to where the allocator put the two, so the same file came out as different
+/// bytes from one run to the next. Compressing from inside a larger buffer
+/// puts the source's start inside an allocation that isn't the dictionary's.
+fn compress_with(dict: &[u8], data: &[u8]) -> Result<Vec<u8>> {
+    const GUARD: usize = 64;
+    let mut padded = vec![0; GUARD];
+    padded.extend_from_slice(data);
+    let mut c = zstd::bulk::Compressor::with_dictionary(LEVEL, dict)?;
+    Ok(c.compress(&padded[GUARD..])?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The same bytes compress to the same frame wherever they and the
+    /// dictionary land in memory.
+    #[test]
+    fn compress_ignores_memory_layout() {
+        let word = |i: usize| format!("Event{}_{:x}", i % 97, i * 2654435761 % 4099);
+        let dict: Vec<u8> = (0..16384)
+            .flat_map(|i| word(i).into_bytes())
+            .take(131072)
+            .collect();
+        let data: Vec<u8> = (0..60000)
+            .flat_map(|i| word(i * 3 + 1).into_bytes())
+            .take(198536)
+            .collect();
+        let mut keep: Vec<Vec<u8>> = Vec::new();
+        let sizes: std::collections::BTreeSet<usize> = (0..600)
+            .map(|i| {
+                if i % 2 == 0 {
+                    keep.push(vec![1; 131072]);
+                }
+                if i % 5 == 0 && !keep.is_empty() {
+                    keep.remove(0);
+                }
+                if i % 7 == 0 {
+                    keep.push(vec![2; 131072 + 16384 * (i % 3)]);
+                }
+                let copy = data.clone();
+                let out = compress_with(&dict, &copy).unwrap();
+                if i % 3 == 0 {
+                    keep.pop();
+                }
+                out.len()
+            })
+            .collect();
+        assert_eq!(sizes.len(), 1, "{sizes:?}");
     }
 }
