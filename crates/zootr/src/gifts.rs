@@ -250,7 +250,7 @@ const fn reward(
     }
 }
 
-pub const GIFTS: [Gift; 72] = [
+pub const GIFTS: [Gift; 73] = [
     Gift {
         flow: scene::KOKIRI_0155,
         area: flag::KOKIRI_FOREST,
@@ -340,6 +340,21 @@ pub const GIFTS: [Gift; 72] = [
         area: flag::MARKET,
         giver: "Poe collector",
         item: item::BOTTLE,
+        how: How::Calls {
+            call: &[get(flow::GET_IN_EVENT_POESHOP)],
+            found: None,
+        },
+        setting: Some(NPC_GIFTS),
+    },
+    // The Gold Rupee is paid by its own call, so each gift renames only the
+    // call naming its item. Every sale adds 100 points and the game places
+    // exactly 10 Big Poes, each with its own cleared flag, so 1000 is reached
+    // once and this call runs once.
+    Gift {
+        flow: actor::NPC_HYLIA_048_BOTTLE_SHOP,
+        area: flag::MARKET,
+        giver: "Poe collector: 1000 points",
+        item: actor::OBJ_RUPEE_GOLD,
         how: How::Calls {
             call: &[get(flow::GET_IN_EVENT_POESHOP)],
             found: None,
@@ -3019,6 +3034,34 @@ mod tests {
             panic!("{flow} isn't a sale");
         };
         (gift, call, sold, price)
+    }
+
+    #[test]
+    fn each_poe_collector_gift_renames_only_the_call_naming_its_item() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gifts: Vec<_> = GIFTS
+            .iter()
+            .filter(|g| g.flow == actor::NPC_HYLIA_048_BOTTLE_SHOP)
+            .collect();
+        assert_eq!(gifts.len(), 2);
+        assert_ne!(gifts[0].hash(), gifts[1].hash());
+        for gift in gifts {
+            let How::Calls { call, found } = gift.how else {
+                panic!("{} is a call gift", gift.giver);
+            };
+            assert!(found.is_none());
+            let (before, after) = edited(&romfs, gift.flow, |f| {
+                rename_calls(f, call, gift.item, "Item_A")
+            });
+            let lines = changed(&before, &after);
+            assert_eq!(lines.len(), 1, "{} {lines:#?}", gift.giver);
+            let (was, now) = lines[0];
+            assert!(was.contains(&format!("=\"{}\"", gift.item)), "{was}");
+            assert!(now.contains("=\"Item_A\"") && !now.contains(&**gift.item));
+            assert!(now.contains(&format!("::{PLAIN}(")), "{now}");
+        }
     }
 
     #[test]
