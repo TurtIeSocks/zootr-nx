@@ -43,7 +43,8 @@ pub enum Probe {
     },
     /// An actor pack's files, or the files whose names contain `file`.
     Pack { actor: String, file: Option<String> },
-    /// The murmur3 of each text, the way GameData keys its names.
+    /// Each text's murmur3, the way GameData keys its names, then the
+    /// `n!(0x…)` that names it in our source (`known::hash`).
     Hash { text: Vec<String> },
     /// Every setting the app shows, by group: id, default, label,
     /// description, and a choice's options.
@@ -204,8 +205,10 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Data { key, holders, exps } => data(romfs, &key, holders, exps),
         Probe::Pack { actor, file } => pack(romfs, &actor, file.as_deref()),
         Probe::Hash { text } => {
-            text.iter()
-                .for_each(|t| println!("{:08x} {t}", murmur3(t.as_bytes())));
+            text.iter().for_each(|t| {
+                let (data, ours) = (murmur3(t.as_bytes()), crate::known::hash(t));
+                println!("{data:08x} n!({ours:#018x}) {t}");
+            });
             Ok(())
         }
         Probe::Text { pattern } => text(romfs, &pattern),

@@ -9,20 +9,10 @@ const PREFIXES: [&str; 8] = ["Item", "TBox", "Obj", "Armor", "Npc", "Enemy", "Dm
 
 /// What to scan, as `(folder, extension)` under the workspace root. To
 /// guard the logic rule files too, add `("crates/zootr/logic", "toml")`.
-const SCANNED: [(&str, &str); 1] = [("crates", "rs")];
+const SCANNED: [(&str, &str); 2] = [("crates", "rs"), ("crates/zootr/logic", "toml")];
 
-/// Files and folders not scanned yet, by path prefix from the workspace
-/// root. TEMPORARY: another branch is cleaning these. Delete this list once
-/// that branch has merged.
-const NOT_YET: [&str; 6] = [
-    "crates/zootr/src/rules.rs",
-    "crates/zootr/src/logic.rs",
-    "crates/zootr/src/tools.rs",
-    "crates/zootr/src/probe/logic.rs",
-    "crates/zootr/logic/",
-    // The guard's own examples.
-    "crates/zootr/src/known/guard.rs",
-];
+/// Files the guard skips: its own examples.
+const OWN_EXAMPLES: [&str; 1] = ["crates/zootr/src/known/guard.rs"];
 
 /// Files that hold a name as text because nothing can read it from the
 /// dump there: the hook runs inside the game, and the extract runs before
@@ -98,7 +88,11 @@ fn offenders(root: &Path) -> Vec<String> {
     for path in paths {
         let rel = path.strip_prefix(root).unwrap_or(&path);
         let rel = rel.to_string_lossy().replace('\\', "/");
-        if NOT_YET.iter().chain(&NO_DUMP).any(|p| rel.starts_with(p)) {
+        if OWN_EXAMPLES
+            .iter()
+            .chain(&NO_DUMP)
+            .any(|p| rel.starts_with(p))
+        {
             continue;
         }
         let Ok(text) = std::fs::read_to_string(&path) else {
