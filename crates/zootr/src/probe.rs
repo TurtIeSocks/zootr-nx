@@ -1,7 +1,7 @@
 //! `zootr probe`: quick questions about the game's data, one line per hit
 //! so the output greps well.
 
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
@@ -78,6 +78,11 @@ pub enum Probe {
     /// Arrival points a teleport can go to, as `MAP/SPOT`, whose text
     /// contains this, any case.
     Places { filter: Option<String> },
+    /// Map exits into or out of a node whose name contains this, any case:
+    /// era, from, to, the flag that gates it (`-` for none, `!flag` while
+    /// unset) and the rule file's need. Warp songs' pads are `StartPos`
+    /// actors named after the song (`probe actors --gyaml StartPos`).
+    Exits { node: String },
     /// Each chest a logic graph gates: placement hash, area and rule.
     Gates {
         /// Every chest a graph drives, gated or not, with the wiring
@@ -224,6 +229,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             }
             Ok(())
         }
+        Probe::Exits { node } => exits(romfs, &node),
         Probe::Gates { trace, node } => gates(romfs, trace, node),
         Probe::Checks { area, settings } => checks(romfs, area.as_deref(), &settings),
         Probe::Byml { pattern } => byml(romfs, game, &pattern),
@@ -652,6 +658,34 @@ fn groups(romfs: &Romfs, file: &str, logic: &str) -> Result<()> {
             }
         }
     }
+    Ok(())
+}
+
+/// Map exits touching `node`, each once, with its gate flag and rule.
+fn exits(romfs: &Romfs, node: &str) -> Result<()> {
+    let node = node.to_lowercase();
+    let touches = |name: &str| name.to_lowercase().contains(&node);
+    let book = crate::rules::Book::load()?;
+    let rule = |from: &str, to: &str| {
+        let r = book.exits.iter().find(|r| r.from == from && r.to == to);
+        r.map_or("always", |r| r.needs.as_str()).to_owned()
+    };
+    let row = |era: &str, from: &str, to: &str, gate: &str, need: &str| {
+        format!("{era:<5} {from:<28} -> {to:<28} {gate:<24} {need}")
+    };
+    let mut rows = BTreeSet::new();
+    for e in crate::world::exits(romfs)? {
+        if touches(&e.from) || touches(&e.to) {
+            let need = rule(&e.from, &e.to);
+            rows.insert(row(&e.era.to_string(), &e.from, &e.to, &e.presence, &need));
+        }
+    }
+    for r in book.exits.iter().filter(|r| r.added) {
+        if touches(&r.from) || touches(&r.to) {
+            rows.insert(row("added", &r.from, &r.to, "-", &r.needs));
+        }
+    }
+    rows.iter().for_each(|r| println!("{r}"));
     Ok(())
 }
 
