@@ -461,12 +461,21 @@ fn drain(map: &str) -> Option<String> {
 /// rooms dry. A new file starts the Water Temple at 2, its lower rooms
 /// flooded and their chests under the surface. At 0, as Zelda's Lullaby at
 /// the lowest tablet leaves it, they're dry (Mac, 2026-11-14). The map
-/// reads the level as it loads, so it's held like a flag.
-static WATER: LazyLock<[(&Name, String); 1]> = LazyLock::new(|| {
-    [(
-        flag::WATER_TEMPLE,
-        format!("{}=0", field::WATER_TEMPLE_ROOM00_WATER_LEVEL),
-    )]
+/// reads the level as it loads, so it's held like a flag. The Forest
+/// Temple's well stays full, its chest under the surface, until a switch
+/// sets its Bool (the sweep swam above the chest on every side,
+/// 2026-11-15).
+static WATER: LazyLock<[(&Name, String); 2]> = LazyLock::new(|| {
+    [
+        (
+            flag::WATER_TEMPLE,
+            format!("{}=0", field::WATER_TEMPLE_ROOM00_WATER_LEVEL),
+        ),
+        (
+            flag::FOREST_TEMPLE,
+            field::FOREST_TEMPLE_ROOM07_CHANGE_WATER_LEVEL_ACTOR.to_string(),
+        ),
+    ]
 });
 
 /// The water level `map` is planned at, if play changes it.
@@ -697,6 +706,10 @@ mod tests {
             [format!("{}=0", field::WATER_TEMPLE_ROOM00_WATER_LEVEL)]
         );
         assert!(water(flow::BOTTOM_OF_THE_WELL).is_empty());
+        assert_eq!(
+            water(flag::FOREST_TEMPLE),
+            [field::FOREST_TEMPLE_ROOM07_CHANGE_WATER_LEVEL_ACTOR.to_string()]
+        );
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };

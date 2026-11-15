@@ -114,6 +114,7 @@ pub const FLAG_NAME: &Name = &n!(0xde507861e4a83dd4);
 pub const FLOAT_ARRAY: &Name = &n!(0x42a3375f0ec8abe6);
 pub const FLOWCHART_FILE_NAME: &Name = &n!(0x54a7a305e4adc876);
 pub const FMDB_NAME: &Name = &n!(0xfb8d1b6e71af8b5d);
+pub const FOREST_TEMPLE_ROOM07_CHANGE_WATER_LEVEL_ACTOR: &Name = &n!(0xf81fc39e7afca303);
 pub const FOREST_TEMPLE_ROOM25_FIRST_TIME_BLOCK: &Name = &n!(0xeca1d7c9d56f2cc5);
 pub const FRONT_DEKU_TREE: &Name = &n!(0xcf07660e0dd6741b);
 pub const GAME_BANC_PARAM: &Name = &n!(0xeaac3ccab9ba95da);
