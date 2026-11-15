@@ -245,6 +245,9 @@ impl PartialEq<&Name> for str {
 }
 
 #[cfg(test)]
+mod guard;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
