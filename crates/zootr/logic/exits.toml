@@ -280,55 +280,60 @@ from = "DesertColossus_Adult"
 to = "HountedWasteland_Adult"
 needs = "lens"
 
-# Boss doors. Boss keys are `always`, like small keys.
+# Boss doors. Boss keys are `always`, like small keys. Each rule is the
+# stricter of Ship's route through the dungeon and the maintainer's notes
+# on the remake (docs/research/ship-boss-logic.md): Dodongo wants bombs,
+# not bombchus, Barinade the slingshot, Phantom Ganon the Song of Time and
+# Morpha Zelda's Lullaby. Bongo Bongo needs no longshot once keys are
+# `always`. Zelda's Lullaby brings the ocarina with it.
 
 [[exit]]
 from = "InsideTheDekuTree"
 to = "GohmaStage"
 added = true
-needs = "slingshot and (sticks or fire)"
+needs = "deku-shield and slingshot and (sticks or fire) and melee"
 
 [[exit]]
 from = "DodongoCavern"
 to = "DodongoStage"
 added = true
-needs = "explosives"
+needs = "bombs and melee"
 
 [[exit]]
 from = "InsideJabuJabuBelly"
 to = "BarinadeStage"
 added = true
-needs = "boomerang"
+needs = "boomerang and slingshot and melee"
 
 [[exit]]
 from = "ForestTemple"
 to = "PhantomGanonStage"
 added = true
-needs = "bow and hookshot"
+needs = "bow and hookshot and goron-bracelet and song-of-time"
 
 [[exit]]
 from = "FireTemple"
 to = "VolvagiaStage"
 added = true
-needs = "hammer and goron-tunic"
+needs = "hammer and goron-tunic and goron-bracelet and explosives"
 
 [[exit]]
 from = "WaterTemple"
 to = "MorphaStage"
 added = true
-needs = "longshot and iron-boots and zora-tunic"
+needs = "longshot and iron-boots and zora-tunic and zeldas-lullaby and (bow or fire)"
 
 [[exit]]
 from = "ShadowTemple"
 to = "BongoBongoStage"
 added = true
-needs = "lens and hover-boots and bow and explosives and zeldas-lullaby"
+needs = "lens and hover-boots and bow and explosives and zeldas-lullaby and hookshot and goron-bracelet"
 
 [[exit]]
 from = "SpiritTemple"
 to = "TwinrovaStage"
 added = true
-needs = "silver-gauntlets and mirror-shield and hookshot and explosives and lens and ocarina and Item_Melody_SpiritRequiem"
+needs = "silver-gauntlets and mirror-shield and hookshot and explosives and lens and bow and zeldas-lullaby and Item_Melody_SpiritRequiem"
 
 [[exit]]
 from = "InsideGanonCastle"
