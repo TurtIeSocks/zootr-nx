@@ -183,16 +183,30 @@ static WON: LazyLock<[(&Name, &Name, [String; 2]); 1]> = LazyLock::new(|| {
     )]
 });
 
-/// Givers who hand over their gift at a sale, as `(flow, values, item)`:
-/// the values the last sale finds and the item it takes. The Poe collector
-/// gives his bottle at the sale that reaches 1000 coupons, 100 a Big Poe
-/// (Mac, 2026-11-15).
-static SOLD: LazyLock<[(&Name, [String; 1], &Name); 1]> = LazyLock::new(|| {
-    [(
-        actor::NPC_HYLIA_048_BOTTLE_SHOP,
-        [format!("{}=900", flag::GHOST_SHOP_COUPON_NUM)],
-        item::BOTTLE_BIG_POE,
-    )]
+/// A giver who hands over a gift at a sale, as `(flow, gift, values, item)`:
+/// the gift's vanilla item, the values the last sale finds and the item it
+/// takes.
+type Sold = (&'static Name, &'static Name, [String; 1], &'static Name);
+
+/// Givers who hand over their gift at a sale. The Poe collector gives his
+/// bottle at the sale that reaches 500 points and a Gold Rupee at the one
+/// that reaches 1000, 100 a Big Poe, so the last sale finds 400, then 900.
+static SOLD: LazyLock<[Sold; 2]> = LazyLock::new(|| {
+    let poes = |points| [format!("{}={points}", flag::GHOST_SHOP_COUPON_NUM)];
+    [
+        (
+            actor::NPC_HYLIA_048_BOTTLE_SHOP,
+            item::BOTTLE,
+            poes(400),
+            item::BOTTLE_BIG_POE,
+        ),
+        (
+            actor::NPC_HYLIA_048_BOTTLE_SHOP,
+            actor::OBJ_RUPEE_GOLD,
+            poes(900),
+            item::BOTTLE_BIG_POE,
+        ),
+    ]
 });
 
 /// How the sweep stops a giver who rolls a track: the Bool true while he
@@ -613,8 +627,8 @@ impl Planner<'_> {
             return Ok((Trigger::Skip(why), None));
         };
         let child = warp::era(&map);
-        let sold = SOLD.iter().find(|(flow, ..)| *flow == giver);
-        let mut ready: Ready = sold.map_or(vec![], |s| s.1.iter().map(|v| v.to_string()).collect());
+        let sold = (SOLD.iter()).find(|(flow, item, ..)| *flow == giver && *item == gift.item);
+        let mut ready: Ready = sold.map_or(vec![], |s| s.2.iter().map(|v| v.to_string()).collect());
         let halted = HALTED.iter().find(|(flow, ..)| *flow == giver);
         let (at, face, halt) = match halted {
             Some((_, halt, values, link, him)) => {
@@ -630,7 +644,7 @@ impl Planner<'_> {
             steps: steps(gift),
             ready,
             then,
-            give: sold.map(|s| s.2.get()),
+            give: sold.map(|s| s.3.get()),
             counter: false,
             halt,
             map,
@@ -1238,19 +1252,22 @@ mod tests {
         let Some((_, _, planned)) = seed() else {
             return;
         };
-        let p = (planned.iter())
-            .find(|p| p.spot.holder == "Poe collector")
-            .unwrap();
-        let Trigger::Talk {
-            map, ready, give, ..
-        } = &p.trigger
-        else {
-            panic!("{:?}", p.trigger);
-        };
-        assert_eq!(map, flag::MARKET_ADULT);
-        let set: Vec<_> = ready.iter().map(|e| preset(e)).collect();
-        assert_eq!(set, [(&**flag::GHOST_SHOP_COUPON_NUM, "900")]);
-        assert_eq!(*give, Some(&**item::BOTTLE_BIG_POE));
+        for (holder, points) in [
+            ("Poe collector", "400"),
+            ("Poe collector: 1000 points", "900"),
+        ] {
+            let p = (planned.iter()).find(|p| p.spot.holder == holder).unwrap();
+            let Trigger::Talk {
+                map, ready, give, ..
+            } = &p.trigger
+            else {
+                panic!("{holder} {:?}", p.trigger);
+            };
+            assert_eq!(map, flag::MARKET_ADULT);
+            let set: Vec<_> = ready.iter().map(|e| preset(e)).collect();
+            assert_eq!(set, [(&**flag::GHOST_SHOP_COUPON_NUM, points)]);
+            assert_eq!(*give, Some(&**item::BOTTLE_BIG_POE));
+        }
     }
 
     #[test]

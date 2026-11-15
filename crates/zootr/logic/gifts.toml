@@ -93,6 +93,15 @@ place = "Market_Adult"
 era = "adult"
 needs = "bottle and bow and eponas-song"
 
+# The Poe collector's Gold Rupee, for the tenth Big Poe's 1000 points. The
+# bottle is the one he takes it in, so the rule is the bottle's.
+[[check]]
+hash = 18439654067606795684
+name = "Poe collector: 1000 points"
+place = "Market_Adult"
+era = "adult"
+needs = "bottle and bow and eponas-song"
+
 # The potion shop's free bottle, handed over to a child.
 [[check]]
 hash = 7148370261830864548
