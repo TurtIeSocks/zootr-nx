@@ -1,7 +1,7 @@
 //! `zootr probe`: quick questions about the game's data, one line per hit
 //! so the output greps well.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
@@ -14,10 +14,15 @@ use roead::sarc::Sarc;
 use crate::checks::{GYAML, actors, banc_files, flat, hash_of, load_banc, str_field, vec3};
 use crate::gamedata::GameData;
 use crate::items::scalar;
-use crate::known::{field, flag};
+use crate::known::flag;
 use crate::names::TEXT;
 use crate::nav::navmesh_file;
-use crate::tools::Tools;
+
+mod formats;
+mod logic;
+
+use formats::{ainb, byml, files, grep, pool, restbl, strings, unpacked};
+use logic::{checks, exits, gates, groups, pouch, settings, shops, tools};
 
 #[derive(Subcommand)]
 pub enum Probe {
@@ -401,23 +406,6 @@ fn pack(romfs: &Romfs, actor: &str, file: Option<&str>) -> Result<()> {
     Ok(())
 }
 
-/// The names in a file's bytes, sorted: AINB keeps node, parameter and
-/// blackboard names in one string pool, an ASB its commands and clips.
-fn strings(data: &[u8]) -> Vec<String> {
-    let mut out: Vec<String> = data
-        .split(|b| !b.is_ascii_graphic())
-        .filter(|s| s.len() >= 4 && s[0].is_ascii_alphabetic())
-        .filter(|s| {
-            s.iter()
-                .all(|b| b.is_ascii_alphanumeric() || b"._:".contains(b))
-        })
-        .map(|s| String::from_utf8_lossy(s).into_owned())
-        .collect();
-    out.sort();
-    out.dedup();
-    out
-}
-
 fn text(romfs: &Romfs, pattern: &str) -> Result<()> {
     let sarc = Sarc::new(romfs.read(TEXT)?).with_context(|| format!("reading {TEXT}"))?;
     let want = pattern.to_lowercase();
@@ -435,20 +423,6 @@ fn text(romfs: &Romfs, pattern: &str) -> Result<()> {
             println!("{name}:{id} {}", t.replace('\n', " / "));
         }
     }
-    Ok(())
-}
-
-fn files(romfs: &Romfs, game: &Path, pattern: &str, out: Option<&Path>) -> Result<()> {
-    let found = crate::game::search(game, pattern)?;
-    for (path, data) in &found {
-        println!("{:>10} {path}", data.len());
-        if let Some(out) = out {
-            let dest = out.join(path.strip_suffix(".zs").unwrap_or(path));
-            std::fs::create_dir_all(dest.parent().context("no parent")?)?;
-            std::fs::write(&dest, romfs.dicts().decompress(path, data)?)?;
-        }
-    }
-    eprintln!("{} files", found.len());
     Ok(())
 }
 
@@ -506,45 +480,6 @@ fn nav(
     Ok(())
 }
 
-/// Hands `f` each file whose path contains `pattern`, decompressed, or each
-/// member in its place when it's a SARC archive, marked as one.
-fn unpacked(
-    romfs: &Romfs,
-    game: &Path,
-    pattern: &str,
-    mut f: impl FnMut(&str, &[u8], bool) -> Result<()>,
-) -> Result<()> {
-    crate::game::each(game, pattern, |path, data| {
-        let data = romfs.dicts().decompress(&path, &data)?;
-        match Sarc::new(&data) {
-            Ok(sarc) => {
-                for file in sarc.files() {
-                    if let Some(name) = file.name() {
-                        f(&format!("{path}/{name}"), file.data(), true)?;
-                    }
-                }
-                Ok(())
-            }
-            Err(_) => f(&path, &data, false),
-        }
-    })
-}
-
-fn grep(romfs: &Romfs, game: &Path, needle: &str, path: &str) -> Result<()> {
-    let needle = needle.as_bytes();
-    let mut found = 0;
-    unpacked(romfs, game, path, |path, data, _| {
-        let n = data.windows(needle.len()).filter(|w| *w == needle).count();
-        if n > 0 {
-            println!("{n:>5} {path}");
-            found += 1;
-        }
-        Ok(())
-    })?;
-    eprintln!("{found} files");
-    Ok(())
-}
-
 fn names(romfs: &Romfs, game: &Path, path: &str) -> Result<()> {
     unpacked(romfs, game, path, |path, data, _| {
         println!("{path}");
@@ -581,114 +516,6 @@ fn tags(romfs: &Romfs, game: &Path, actors: &[String]) -> Result<()> {
     })
 }
 
-fn byml(romfs: &Romfs, game: &Path, pattern: &str) -> Result<()> {
-    unpacked(romfs, game, pattern, |path, data, _| {
-        if let Ok(doc) = ounce_formats::BymlDoc::parse(data) {
-            println!("{path}");
-            print!("{}", tree(&doc.root, 1));
-        }
-        Ok(())
-    })
-}
-
-/// A value as indented lines: a map's keys in order, an array's items by
-/// index, a scalar on its key's line.
-fn tree(v: &Byml, depth: usize) -> String {
-    let line = |key: &str, v: &Byml| match v {
-        Byml::Map(_) | Byml::Array(_) => {
-            format!("{:w$}{key}:\n{}", "", tree(v, depth + 1), w = depth * 2)
-        }
-        Byml::BinaryData(b) | Byml::FileData(b) => {
-            format!("{:w$}{key}: <{} bytes>\n", "", b.len(), w = depth * 2)
-        }
-        v => format!("{:w$}{key}: {}\n", "", scalar(v), w = depth * 2),
-    };
-    match v {
-        Byml::Map(m) => {
-            let mut pairs: Vec<_> = m.iter().collect();
-            pairs.sort_by_key(|(k, _)| k.as_str());
-            pairs.iter().map(|(k, v)| line(k, v)).collect()
-        }
-        Byml::Array(a) => a
-            .iter()
-            .enumerate()
-            .map(|(i, v)| line(&i.to_string(), v))
-            .collect(),
-        Byml::BinaryData(b) | Byml::FileData(b) => {
-            format!("{:w$}<{} bytes>\n", "", b.len(), w = depth * 2)
-        }
-        v => format!("{:w$}{}\n", "", scalar(v), w = depth * 2),
-    }
-}
-
-fn restbl(romfs: &Romfs, paths: &[String]) -> Result<()> {
-    let table = ounce_formats::Restbl::parse(&romfs.read(&romfs.restbl_rel()?)?)?;
-    for p in paths {
-        let size = table.get(p).map_or("-".into(), |s| s.to_string());
-        println!("{size} {p}");
-    }
-    Ok(())
-}
-
-fn shops(romfs: &Romfs, seed: u64) -> Result<()> {
-    for slot in crate::shops::slots(romfs)? {
-        let price = crate::shops::price(seed, slot.hash());
-        let rest: Vec<String> = slot.placements[1..].iter().map(u64::to_string).collect();
-        println!(
-            "{} {} {} {} {price} {}",
-            slot.shop,
-            slot.number,
-            slot.hash(),
-            slot.goods,
-            rest.join(",")
-        );
-    }
-    Ok(())
-}
-
-fn groups(romfs: &Romfs, file: &str, logic: &str) -> Result<()> {
-    for rel in banc_files(romfs)?.into_iter().filter(|r| r.contains(file)) {
-        let doc = load_banc(romfs, &rel)?;
-        let Some(groups) = doc.root.as_map()?.get(&**field::AI_GROUPS) else {
-            continue;
-        };
-        for g in groups.as_array()? {
-            if str_field(g, "Logic").is_some_and(|l| l.contains(logic)) {
-                println!("{rel} {}", show(g));
-            }
-        }
-    }
-    Ok(())
-}
-
-/// Map exits touching `node`, each once, with its gate flag and rule.
-fn exits(romfs: &Romfs, node: &str) -> Result<()> {
-    let node = node.to_lowercase();
-    let touches = |name: &str| name.to_lowercase().contains(&node);
-    let book = crate::rules::Book::load()?;
-    let rule = |from: &str, to: &str| {
-        let r = book.exits.iter().find(|r| r.from == from && r.to == to);
-        r.map_or("always", |r| r.needs.as_str()).to_owned()
-    };
-    let row = |era: &str, from: &str, to: &str, gate: &str, need: &str| {
-        format!("{era:<5} {from:<28} -> {to:<28} {gate:<24} {need}")
-    };
-    let mut rows = BTreeSet::new();
-    for e in crate::world::exits(romfs)? {
-        if touches(&e.from) || touches(&e.to) {
-            let need = rule(&e.from, &e.to);
-            rows.insert(row(&e.era.to_string(), &e.from, &e.to, &e.presence, &need));
-        }
-    }
-    for r in book.exits.iter().filter(|r| r.added) {
-        if touches(&r.from) || touches(&r.to) {
-            rows.insert(row("added", &r.from, &r.to, "-", &r.needs));
-        }
-    }
-    rows.iter().for_each(|r| println!("{r}"));
-    Ok(())
-}
-
 fn icons(romfs: &Romfs, game: &Path, pattern: &str, out: &Path) -> Result<()> {
     std::fs::create_dir_all(out)?;
     unpacked(romfs, game, pattern, |path, data, member| {
@@ -709,83 +536,6 @@ fn icons(romfs: &Romfs, game: &Path, pattern: &str, out: &Path) -> Result<()> {
         }
         Ok(())
     })
-}
-
-fn gates(romfs: &Romfs, trace: bool, node: Option<String>) -> Result<()> {
-    if let Some(node) = node {
-        for g in crate::gates::trace_node(romfs, &node)? {
-            println!("{} {}\n    {}", g.hash, g.area, g.expr);
-        }
-        return Ok(());
-    }
-    let (mut wired, mut gated) = (0, 0);
-    for g in crate::gates::trace(romfs)? {
-        let rule = crate::gates::rule(&g.expr);
-        wired += !g.expr.atoms().is_empty() as usize;
-        gated += rule.is_some() as usize;
-        match (trace, rule) {
-            (true, rule) => {
-                let rule = rule.unwrap_or_default();
-                println!("{} {} {rule}\n    {}", g.hash, g.area, g.expr);
-            }
-            (false, Some(rule)) => println!("{} {} {rule}", g.hash, g.area),
-            (false, None) => {}
-        }
-    }
-    eprintln!("{wired} chests wired to a graph, {gated} of them gated");
-    Ok(())
-}
-
-fn pouch(romfs: &Romfs, slot: &str, all: bool) -> Result<()> {
-    let gd = GameData::load(romfs)?;
-    let save = crate::savefile::load(&crate::savefile::path(slot)?)?;
-    let names = actor_names(romfs)?;
-    let value = |hash: u32| {
-        save.get(hash)
-            .and_then(|e| save.scalar(e))
-            .unwrap_or_default()
-    };
-    for (actor, stock) in crate::inventory::stock_keys(&gd)? {
-        let name = names
-            .get(&actor)
-            .cloned()
-            .unwrap_or_else(|| format!("#{actor:08x}"));
-        let (num, got) = (
-            value(stock) as i32,
-            value(murmur3(format!("IsGet.{name}").as_bytes())),
-        );
-        if all || num != 0 || got != 0 {
-            println!("{num:>5} {} {name}", if got != 0 { "got" } else { "   " });
-        }
-    }
-    for e in save.entries() {
-        let held: Vec<_> = save
-            .strings(*e)
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|s| !s.is_empty())
-            .collect();
-        if !held.is_empty() {
-            println!("{} {} {held:?}", e.kind, gd.name(e.hash));
-        }
-    }
-    Ok(())
-}
-
-fn tools(romfs: &Romfs, filter: &Filter) -> Result<()> {
-    let mut tools = Tools::new(romfs);
-    let mut counts = BTreeMap::<_, usize>::new();
-    for hit in hits(romfs, filter)? {
-        if let Some(rule) = tools.of(&hit.actor)? {
-            let guess = tools.guessed(&hit.gyaml)?;
-            *counts.entry((hit.gyaml, rule, guess)).or_default() += 1;
-        }
-    }
-    for ((gyaml, rule, guess), n) in counts {
-        let guess = if guess { "guess" } else { "" };
-        println!("{n:>5} {gyaml:<56} {rule:<44} {guess}");
-    }
-    Ok(())
 }
 
 /// Every actor pack's name by its murmur3, which is how the pouch keys
@@ -834,227 +584,15 @@ fn point(arg: &str) -> Result<[f32; 3]> {
     v.try_into().map_err(|_| anyhow::anyhow!("want X,Y,Z"))
 }
 
-/// Print a graph, one node per line.
-fn ainb(romfs: &Romfs, path: &str) -> Result<()> {
-    use ounce_formats::ainb::{Graph, Value};
-    let graph = Graph::parse(&graph_bytes(romfs, path)?)?;
-    let show = |v: &Value| match v {
-        Value::String(s) => format!("{s:?}"),
-        Value::Pointer => "ptr".into(),
-        v => format!("{v:?}"),
-    };
-    for (i, node) in graph.nodes.iter().enumerate() {
-        let props = node
-            .properties
-            .iter()
-            .map(|(n, v)| format!("{n}={}", show(v)));
-        let inputs = node
-            .inputs
-            .iter()
-            .map(|input| match input.sources.as_slice() {
-                [] => format!("{}={}", input.name, show(&input.value)),
-                links => {
-                    let from: Vec<_> = links
-                        .iter()
-                        .map(|l| format!("#{}.{}", l.node, l.output))
-                        .collect();
-                    format!("{}<-{}", input.name, from.join("|"))
-                }
-            });
-        let all: Vec<_> = props.chain(inputs).collect();
-        let outputs: Vec<_> = node.outputs.iter().map(|o| o.name.as_str()).collect();
-        println!(
-            "#{i} {:?} {} {} -> {}",
-            node.kind,
-            node.name,
-            all.join(" "),
-            outputs.join(",")
-        );
-    }
-    Ok(())
-}
-
-/// A graph's bytes: a romfs file, or a file inside an actor pack when the
-/// path runs through `Pack/Actor/NAME.pack.zs/`.
-fn graph_bytes(romfs: &Romfs, path: &str) -> Result<Vec<u8>> {
-    let Some((actor, inner)) = in_pack(path) else {
-        let Some((pack, inner)) = path.split_once(".pack.zs/") else {
-            return romfs.read(path);
-        };
-        // A shared pack, like `Pack/AI.Global.Product.111.pack.zs`.
-        let data = romfs.read(&format!("{pack}.pack.zs"))?;
-        let sarc = Sarc::new(&data)?;
-        let file = sarc.get_data(inner);
-        return Ok(file
-            .with_context(|| format!("{pack} has no {inner}"))?
-            .to_vec());
-    };
-    let pack = ActorPack::load(romfs, actor)?;
-    let data = pack.raw(inner).with_context(|| {
-        format!("{actor}'s pack has no {inner}. `zootr probe pack {actor}` lists its files")
-    })?;
-    Ok(data.to_vec())
-}
-
-/// Each spot of the widest sweep mix: hash, area, trigger or skip reason,
-/// name.
-fn pool(romfs: &Romfs, seed: u64) -> Result<()> {
-    use crate::sweep::night::{self, MIXES, mix};
-    use crate::sweep::plan::Trigger;
-    let dir = std::env::temp_dir().join("zootr-probe-pool");
-    let (_, settings) = mix(MIXES.len() - 1);
-    let places = crate::dev::places(romfs)?;
-    for p in night::pool(romfs, &dir, seed, &settings, &places)? {
-        let how = match &p.trigger {
-            Trigger::Skip(why) => format!("skip: {why}"),
-            t => night::kind(t).into(),
-        };
-        println!(
-            "{:<20} {:<24} {how:<10} {}",
-            p.spot.hash,
-            p.spot.area,
-            night::name(&p)
-        );
-    }
-    Ok(())
-}
-
-/// The actor and the file inside its pack, for a path into an actor pack.
-fn in_pack(path: &str) -> Option<(&str, &str)> {
-    let (pack, inner) = path.split_once(".pack.zs/")?;
-    Some((pack.strip_prefix("Pack/Actor/")?, inner))
-}
-
-/// Each dealt check with what logic says it needs, one line per era.
-fn checks(
-    romfs: &Romfs,
-    area: Option<&str>,
-    settings: &[(String, serde_json::Value)],
-) -> Result<()> {
-    use crate::generate::Spot;
-    use crate::settings::{NewGame, Settings};
-    let new_game = NewGame::from_settings(&settings.iter().cloned().collect::<Settings>(), &[])?;
-    let all = crate::checks::dealt(romfs, &new_game)?;
-    let fixed = crate::shuffle::Fixed::new();
-    let deal = crate::shuffle::deal(&all, &fixed, &new_game)?;
-    let book = crate::rules::Book::load()?;
-    let ctx = crate::rules::Ctx::new(&new_game);
-    let world = crate::logic::World::build(romfs, &book, &ctx, &all)?;
-    let free = deal
-        .free
-        .iter()
-        .filter(|c| area.is_none_or(|a| c.area.contains(a)));
-    let names = crate::names::Names::load(romfs, deal.free.iter().map(|c| c.item.as_str()))?;
-    let mut spots: Vec<Spot> = free
-        .map(|&check| {
-            Spot::new(
-                &crate::shuffle::Placement {
-                    check,
-                    item: &check.item,
-                },
-                &names,
-            )
-        })
-        .collect();
-    crate::places::fill(romfs, &mut spots)?;
-    spots.sort_by(|a, b| (&a.area, a.name()).cmp(&(&b.area, b.name())));
-    for s in &spots {
-        for l in world.locations.iter().filter(|l| l.hash == s.hash) {
-            let (node, era) = &world.places[l.place];
-            println!(
-                "{:<20} {era:<5} {node:<28} {:<40} {:<24} {}",
-                s.hash,
-                s.name(),
-                s.vanilla,
-                l.need
-            );
-        }
-    }
-    Ok(())
-}
-
-/// Prints the settings schema a group at a time, for auditing its copy.
-fn settings() {
-    use crate::settings::{GROUPS, Kind, schema};
-    let defs = schema();
-    for group in GROUPS {
-        println!("## {group}");
-        for d in defs.iter().filter(|d| d.group == group) {
-            let default = match &d.kind {
-                Kind::Toggle { default } => default.to_string(),
-                Kind::Choice { default, .. } => default.clone(),
-            };
-            let nest = [
-                d.parent.map(|p| format!("under {p}")),
-                d.subgroup.map(|s| format!("in {s}")),
-            ]
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>()
-            .join(", ");
-            println!(
-                "{} = {default} {nest}\n  {}: {}",
-                d.id, d.label, d.description
-            );
-            if let Kind::Choice { options, .. } = &d.kind {
-                options
-                    .iter()
-                    .for_each(|o| println!("    {}: {}", o.id, o.label));
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::{actor, field, map};
-
-    #[test]
-    fn names_are_four_or_more_name_bytes() {
-        let data = b"\0\x01Rotate_Shop\0ab\0Item_Common\xff";
-        assert_eq!(strings(data), ["Item_Common", field::ROTATE_SHOP]);
-    }
-
-    #[test]
-    fn a_byml_tree_puts_one_value_on_each_line_under_its_key() {
-        let map = |pairs: Vec<(&str, Byml)>| {
-            Byml::Map(pairs.into_iter().map(|(k, v)| (k.into(), v)).collect())
-        };
-        let array = Byml::Array(vec![Byml::I32(1), Byml::String("x".into())]);
-        let doc = map(vec![
-            ("b", array),
-            ("a", map(vec![("c", Byml::Bool(true))])),
-        ]);
-        assert_eq!(tree(&doc, 0), "a:\n  c: true\nb:\n  0: 1\n  1: x\n");
-    }
+    use crate::known::{actor, map};
 
     #[test]
     fn points_parse_with_negatives() {
         assert_eq!(point("1,-2.5, 3").unwrap(), [1.0, -2.5, 3.0]);
         assert!(point("1,2").is_err());
-    }
-
-    #[test]
-    fn a_path_through_an_actor_pack_names_the_actor_and_its_file() {
-        let path = &format!(
-            "Pack/Actor/{}.pack.zs/AI/{}.brain.root.ainb",
-            actor::ENEMY_SCRUB_BUSINESS,
-            actor::ENEMY_SCRUB_BUSINESS
-        );
-        assert_eq!(
-            in_pack(path),
-            Some((
-                &**actor::ENEMY_SCRUB_BUSINESS,
-                format!("AI/{}.brain.root.ainb", actor::ENEMY_SCRUB_BUSINESS).as_str()
-            ))
-        );
-        assert_eq!(in_pack("Logic/Market_Common_f252.logic.module.ainb"), None);
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let graph = ounce_formats::ainb::Graph::parse(&graph_bytes(&romfs, path).unwrap()).unwrap();
-        assert!(!graph.nodes.is_empty());
     }
 
     /// The runs D start in Kokiri Forest stands on the mesh. Where walk-to

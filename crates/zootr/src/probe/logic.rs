@@ -1,0 +1,229 @@
+//! Randomizer subcommands: shops, groups, exits, gates, the pouch, tools,
+//! checks and settings.
+
+use std::collections::{BTreeMap, BTreeSet};
+
+use anyhow::Result;
+use ounce_formats::{Romfs, murmur3};
+
+use super::{Filter, actor_names, hits, show};
+use crate::checks::{banc_files, load_banc, str_field};
+use crate::gamedata::GameData;
+use crate::known::field;
+use crate::tools::Tools;
+
+pub(super) fn shops(romfs: &Romfs, seed: u64) -> Result<()> {
+    for slot in crate::shops::slots(romfs)? {
+        let price = crate::shops::price(seed, slot.hash());
+        let rest: Vec<String> = slot.placements[1..].iter().map(u64::to_string).collect();
+        println!(
+            "{} {} {} {} {price} {}",
+            slot.shop,
+            slot.number,
+            slot.hash(),
+            slot.goods,
+            rest.join(",")
+        );
+    }
+    Ok(())
+}
+
+pub(super) fn groups(romfs: &Romfs, file: &str, logic: &str) -> Result<()> {
+    for rel in banc_files(romfs)?.into_iter().filter(|r| r.contains(file)) {
+        let doc = load_banc(romfs, &rel)?;
+        let Some(groups) = doc.root.as_map()?.get(&**field::AI_GROUPS) else {
+            continue;
+        };
+        for g in groups.as_array()? {
+            if str_field(g, "Logic").is_some_and(|l| l.contains(logic)) {
+                println!("{rel} {}", show(g));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Map exits touching `node`, each once, with its gate flag and rule.
+pub(super) fn exits(romfs: &Romfs, node: &str) -> Result<()> {
+    let node = node.to_lowercase();
+    let touches = |name: &str| name.to_lowercase().contains(&node);
+    let book = crate::rules::Book::load()?;
+    let rule = |from: &str, to: &str| {
+        let r = book.exits.iter().find(|r| r.from == from && r.to == to);
+        r.map_or("always", |r| r.needs.as_str()).to_owned()
+    };
+    let row = |era: &str, from: &str, to: &str, gate: &str, need: &str| {
+        format!("{era:<5} {from:<28} -> {to:<28} {gate:<24} {need}")
+    };
+    let mut rows = BTreeSet::new();
+    for e in crate::world::exits(romfs)? {
+        if touches(&e.from) || touches(&e.to) {
+            let need = rule(&e.from, &e.to);
+            rows.insert(row(&e.era.to_string(), &e.from, &e.to, &e.presence, &need));
+        }
+    }
+    for r in book.exits.iter().filter(|r| r.added) {
+        if touches(&r.from) || touches(&r.to) {
+            rows.insert(row("added", &r.from, &r.to, "-", &r.needs));
+        }
+    }
+    rows.iter().for_each(|r| println!("{r}"));
+    Ok(())
+}
+
+pub(super) fn gates(romfs: &Romfs, trace: bool, node: Option<String>) -> Result<()> {
+    if let Some(node) = node {
+        for g in crate::gates::trace_node(romfs, &node)? {
+            println!("{} {}\n    {}", g.hash, g.area, g.expr);
+        }
+        return Ok(());
+    }
+    let (mut wired, mut gated) = (0, 0);
+    for g in crate::gates::trace(romfs)? {
+        let rule = crate::gates::rule(&g.expr);
+        wired += !g.expr.atoms().is_empty() as usize;
+        gated += rule.is_some() as usize;
+        match (trace, rule) {
+            (true, rule) => {
+                let rule = rule.unwrap_or_default();
+                println!("{} {} {rule}\n    {}", g.hash, g.area, g.expr);
+            }
+            (false, Some(rule)) => println!("{} {} {rule}", g.hash, g.area),
+            (false, None) => {}
+        }
+    }
+    eprintln!("{wired} chests wired to a graph, {gated} of them gated");
+    Ok(())
+}
+
+pub(super) fn pouch(romfs: &Romfs, slot: &str, all: bool) -> Result<()> {
+    let gd = GameData::load(romfs)?;
+    let save = crate::savefile::load(&crate::savefile::path(slot)?)?;
+    let names = actor_names(romfs)?;
+    let value = |hash: u32| {
+        save.get(hash)
+            .and_then(|e| save.scalar(e))
+            .unwrap_or_default()
+    };
+    for (actor, stock) in crate::inventory::stock_keys(&gd)? {
+        let name = names
+            .get(&actor)
+            .cloned()
+            .unwrap_or_else(|| format!("#{actor:08x}"));
+        let (num, got) = (
+            value(stock) as i32,
+            value(murmur3(format!("IsGet.{name}").as_bytes())),
+        );
+        if all || num != 0 || got != 0 {
+            println!("{num:>5} {} {name}", if got != 0 { "got" } else { "   " });
+        }
+    }
+    for e in save.entries() {
+        let held: Vec<_> = save
+            .strings(*e)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|s| !s.is_empty())
+            .collect();
+        if !held.is_empty() {
+            println!("{} {} {held:?}", e.kind, gd.name(e.hash));
+        }
+    }
+    Ok(())
+}
+
+pub(super) fn tools(romfs: &Romfs, filter: &Filter) -> Result<()> {
+    let mut tools = Tools::new(romfs);
+    let mut counts = BTreeMap::<_, usize>::new();
+    for hit in hits(romfs, filter)? {
+        if let Some(rule) = tools.of(&hit.actor)? {
+            let guess = tools.guessed(&hit.gyaml)?;
+            *counts.entry((hit.gyaml, rule, guess)).or_default() += 1;
+        }
+    }
+    for ((gyaml, rule, guess), n) in counts {
+        let guess = if guess { "guess" } else { "" };
+        println!("{n:>5} {gyaml:<56} {rule:<44} {guess}");
+    }
+    Ok(())
+}
+
+/// Each dealt check with what logic says it needs, one line per era.
+pub(super) fn checks(
+    romfs: &Romfs,
+    area: Option<&str>,
+    settings: &[(String, serde_json::Value)],
+) -> Result<()> {
+    use crate::generate::Spot;
+    use crate::settings::{NewGame, Settings};
+    let new_game = NewGame::from_settings(&settings.iter().cloned().collect::<Settings>(), &[])?;
+    let all = crate::checks::dealt(romfs, &new_game)?;
+    let fixed = crate::shuffle::Fixed::new();
+    let deal = crate::shuffle::deal(&all, &fixed, &new_game)?;
+    let book = crate::rules::Book::load()?;
+    let ctx = crate::rules::Ctx::new(&new_game);
+    let world = crate::logic::World::build(romfs, &book, &ctx, &all)?;
+    let free = deal
+        .free
+        .iter()
+        .filter(|c| area.is_none_or(|a| c.area.contains(a)));
+    let names = crate::names::Names::load(romfs, deal.free.iter().map(|c| c.item.as_str()))?;
+    let mut spots: Vec<Spot> = free
+        .map(|&check| {
+            Spot::new(
+                &crate::shuffle::Placement {
+                    check,
+                    item: &check.item,
+                },
+                &names,
+            )
+        })
+        .collect();
+    crate::places::fill(romfs, &mut spots)?;
+    spots.sort_by(|a, b| (&a.area, a.name()).cmp(&(&b.area, b.name())));
+    for s in &spots {
+        for l in world.locations.iter().filter(|l| l.hash == s.hash) {
+            let (node, era) = &world.places[l.place];
+            println!(
+                "{:<20} {era:<5} {node:<28} {:<40} {:<24} {}",
+                s.hash,
+                s.name(),
+                s.vanilla,
+                l.need
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Prints the settings schema a group at a time, for auditing its copy.
+pub(super) fn settings() {
+    use crate::settings::{GROUPS, Kind, schema};
+    let defs = schema();
+    for group in GROUPS {
+        println!("## {group}");
+        for d in defs.iter().filter(|d| d.group == group) {
+            let default = match &d.kind {
+                Kind::Toggle { default } => default.to_string(),
+                Kind::Choice { default, .. } => default.clone(),
+            };
+            let nest = [
+                d.parent.map(|p| format!("under {p}")),
+                d.subgroup.map(|s| format!("in {s}")),
+            ]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
+            .join(", ");
+            println!(
+                "{} = {default} {nest}\n  {}: {}",
+                d.id, d.label, d.description
+            );
+            if let Kind::Choice { options, .. } = &d.kind {
+                options
+                    .iter()
+                    .for_each(|o| println!("    {}: {}", o.id, o.label));
+            }
+        }
+    }
+}
