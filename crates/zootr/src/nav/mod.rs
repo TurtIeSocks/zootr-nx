@@ -285,6 +285,9 @@ mod tests {
 
     #[test]
     fn a_holder_link_can_see_wins_over_an_area_at_its_pose() {
+        if crate::game::no_names() {
+            return;
+        }
         let placed = |name: &str| Placement {
             name: name.into(),
             hash: None,

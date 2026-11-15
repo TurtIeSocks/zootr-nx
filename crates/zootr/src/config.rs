@@ -205,11 +205,16 @@ fn expand_home(path: &Path, home: &Path) -> PathBuf {
     }
 }
 
-/// A path under `home` starts with `~` instead.
+/// A path under `home` starts with `~` instead, joined with `/` on every
+/// system so a preset reads the same wherever it's shared.
 fn collapse_home(path: &Path, home: &Path) -> PathBuf {
-    match path.strip_prefix(home) {
-        Ok(rest) => Path::new("~").join(rest),
-        Err(_) => path.to_owned(),
+    let Ok(rest) = path.strip_prefix(home) else {
+        return path.to_owned();
+    };
+    let parts: Vec<_> = rest.iter().map(|part| part.to_string_lossy()).collect();
+    match parts.is_empty() {
+        true => "~".into(),
+        false => format!("~/{}", parts.join("/")).into(),
     }
 }
 
@@ -513,6 +518,9 @@ mod tests {
 
     #[test]
     fn extras_carry_the_plando_draft() {
+        if crate::game::no_names() {
+            return;
+        }
         let fixed = Fixed::from([(u64::MAX, item::HOOKSHOT.to_string())]);
         let mut config = Config {
             test: TestSetup {

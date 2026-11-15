@@ -187,11 +187,23 @@ fn walk(
     Ok(())
 }
 
+/// Where tests find the dev dump.
+#[cfg(test)]
+const DEV_DUMP: &str = "../../dump/oot.nup";
+
 /// The dev dump, or `None` without one so tests that need it pass vacuously.
 #[cfg(test)]
 pub(crate) fn dev_dump() -> Option<Romfs> {
-    let path = Path::new("../../dump/oot.nup");
+    let path = Path::new(DEV_DUMP);
     path.exists().then(|| prepare(path).unwrap())
+}
+
+/// Whether tests run without the dev dump, and so without the game's
+/// names. A test that reads a name returns early then, as the dump-backed
+/// tests do: the names never live in the repo.
+#[cfg(test)]
+pub(crate) fn no_names() -> bool {
+    !Path::new(DEV_DUMP).exists()
 }
 
 /// Every actor pack holding `file`, sorted by name.

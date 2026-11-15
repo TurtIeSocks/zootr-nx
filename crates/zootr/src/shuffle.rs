@@ -348,6 +348,9 @@ mod tests {
 
     #[test]
     fn maps_and_compasses_stay_in_their_own_dungeon() {
+        if crate::game::no_names() {
+            return;
+        }
         let mut checks: Vec<_> = (1..=40).map(|h| chest(h, "Item_A")).collect();
         checks[0].item = OWN_DUNGEON[0].to_string();
         checks[1].item = OWN_DUNGEON[1].to_string();
@@ -390,6 +393,9 @@ mod tests {
 
     #[test]
     fn starting_with_keys_lets_their_chests_in_and_keeps_the_keys_out() {
+        if crate::game::no_names() {
+            return;
+        }
         let (checks, none) = (with_keys(), Fixed::new());
         let on = NewGame {
             keys: true,
@@ -419,6 +425,9 @@ mod tests {
 
     #[test]
     fn a_key_chest_that_changes_gets_a_drop_and_one_that_doesnt_is_left() {
+        if crate::game::no_names() {
+            return;
+        }
         let (checks, none) = (with_keys(), Fixed::new());
         let on = NewGame {
             keys: true,
@@ -436,6 +445,9 @@ mod tests {
 
     #[test]
     fn plando_takes_its_item_out_of_the_pool() {
+        if crate::game::no_names() {
+            return;
+        }
         let checks = [chest(1, "Item_A"), chest(2, "Item_B"), chest(3, "Item_C")];
         let fixed = Fixed::from([(1, "Item_C".into())]);
         let p = shuffle(&checks, 7, &fixed, &game(false, &[])).unwrap();
@@ -448,6 +460,9 @@ mod tests {
 
     #[test]
     fn vanilla_leaves_unplaced_chests_alone() {
+        if crate::game::no_names() {
+            return;
+        }
         let checks = [chest(1, "Item_A"), chest(2, "Item_B")];
         let fixed = Fixed::from([(1, item::HOOKSHOT.to_string())]);
         let p = shuffle(&checks, 7, &fixed, &game(true, &[])).unwrap();
@@ -468,6 +483,9 @@ mod tests {
 
     #[test]
     fn a_starting_item_leaves_the_pool_for_a_filler() {
+        if crate::game::no_names() {
+            return;
+        }
         let sword = &starting::ITEMS[0];
         let checks = [chest(1, sword.actor), chest(2, "Item_B")];
         let none = Fixed::new();
@@ -483,6 +501,9 @@ mod tests {
 
     #[test]
     fn a_starting_item_outside_the_pool_changes_nothing() {
+        if crate::game::no_names() {
+            return;
+        }
         let checks = [chest(1, "Item_A"), chest(2, "Item_B")];
         let (shield, none) = (&starting::ITEMS[1], Fixed::new());
         let p = shuffle(&checks, 7, &none, &game(true, &[shield])).unwrap();
@@ -491,6 +512,9 @@ mod tests {
 
     #[test]
     fn plando_still_places_a_starting_item() {
+        if crate::game::no_names() {
+            return;
+        }
         let sword = &starting::ITEMS[0];
         let checks = [chest(1, sword.actor), chest(2, "Item_B")];
         let fixed = Fixed::from([(2, sword.actor.to_string())]);
@@ -501,6 +525,9 @@ mod tests {
 
     #[test]
     fn progressive_lines_hold_their_first_level() {
+        if crate::game::no_names() {
+            return;
+        }
         let ([(hook, _), (long, _)], none) = (line(0), Fixed::new());
         let checks = [chest(1, hook), chest(2, long), chest(3, "Item_B")];
         let [(silver, _), (gold, _)] = line(1);
@@ -609,6 +636,9 @@ mod tests {
 
     #[test]
     fn gifts_never_hold_an_item_that_asks() {
+        if crate::game::no_names() {
+            return;
+        }
         let (checks, none) = (with_scrubs(), Fixed::new());
         let mut pool: Vec<_> = checks.iter().map(|c| progressive::first(&c.item)).collect();
         pool.sort();
@@ -625,6 +655,9 @@ mod tests {
 
     #[test]
     fn plando_cant_put_an_item_that_asks_on_a_gift() {
+        if crate::game::no_names() {
+            return;
+        }
         let checks = with_gifts();
         let saria = gifts::GIFTS[0].hash();
         let bombs = Fixed::from([(saria, ammo::NEEDS[0].0.to_string())]);
@@ -639,6 +672,9 @@ mod tests {
 
     #[test]
     fn a_scrub_can_hold_a_song_a_medallion_or_a_stone() {
+        if crate::game::no_names() {
+            return;
+        }
         let mut checks = with_scrubs();
         let plain = [item::MELODY_SUN_SONG, item::MEDAL_WATER, item::STONE_FIRE];
         checks.extend(
@@ -662,6 +698,9 @@ mod tests {
 
     #[test]
     fn vanilla_gifts_keep_their_own_item() {
+        if crate::game::no_names() {
+            return;
+        }
         let (checks, none) = (with_gifts(), Fixed::new());
         let p = shuffle(&checks, 7, &none, &progressive(true, &[])).unwrap();
         for gift in &gifts::GIFTS {
@@ -673,6 +712,9 @@ mod tests {
 
     #[test]
     fn a_starting_fairy_ocarina_leaves_the_other_to_upgrade() {
+        if crate::game::no_names() {
+            return;
+        }
         let (checks, none) = (with_gifts(), Fixed::new());
         let fairy = &starting::ITEMS[4];
         let [saria, zelda] = [0, 1].map(|i| gifts::GIFTS[i].hash());
@@ -690,6 +732,9 @@ mod tests {
 
     #[test]
     fn a_vanilla_substitute_chest_keeps_its_item_and_loses_its_swap() {
+        if crate::game::no_names() {
+            return;
+        }
         let owned = ItemCheck {
             substitute: Some("Item_B".into()),
             ..chest(1, "Item_A")
@@ -718,6 +763,9 @@ mod tests {
 
     #[test]
     fn only_ammo_swaps() {
+        if crate::game::no_names() {
+            return;
+        }
         let [(hook, _), _] = line(0);
         let (bombs, bag) = ammo::NEEDS[0];
         let swap = Swap {
@@ -738,6 +786,9 @@ mod tests {
 
     #[test]
     fn an_unshuffled_bomb_chest_gives_a_rupee_until_link_has_the_bag() {
+        if crate::game::no_names() {
+            return;
+        }
         let (bombs, none) = (ammo::NEEDS[0].0, Fixed::new());
         let checks = [chest(1, bombs), chest(2, "Item_B")];
         let p = shuffle(&checks, 7, &none, &game(true, &[])).unwrap();
@@ -748,6 +799,9 @@ mod tests {
 
     #[test]
     fn never_more_than_five_bottles_are_dealt() {
+        if crate::game::no_names() {
+            return;
+        }
         let mut checks: Vec<_> = (0..8).map(|n| chest(n, cows::VANILLA)).collect();
         checks.extend((8..10).map(|n| chest(n, item::BOTTLE)));
         checks.push(chest(10, item::BOTTLE_LETTER));

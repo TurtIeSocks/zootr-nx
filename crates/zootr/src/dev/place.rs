@@ -107,6 +107,9 @@ mod tests {
 
     #[test]
     fn a_place_is_map_slash_spot() {
+        if crate::game::no_names() {
+            return;
+        }
         let p = place(&format!(
             "{}/{}",
             flag::KAKARIKO_VILLAGE_CHILD,
@@ -132,6 +135,9 @@ mod tests {
 
     #[test]
     fn a_teleport_goes_only_where_an_exit_arrives() {
+        if crate::game::no_names() {
+            return;
+        }
         let places = BTreeSet::from([
             place(&format!(
                 "{}/{}",
@@ -174,6 +180,9 @@ mod tests {
 
     #[test]
     fn switching_age_keeps_the_map_or_goes_to_the_temple() {
+        if crate::game::no_names() {
+            return;
+        }
         let places = BTreeSet::from([
             place(&format!(
                 "{}/{}",

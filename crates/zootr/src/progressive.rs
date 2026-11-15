@@ -73,6 +73,9 @@ mod tests {
 
     #[test]
     fn every_level_starts_its_line() {
+        if crate::game::no_names() {
+            return;
+        }
         for line in LINES {
             for &(drop, _) in line {
                 assert_eq!(first(drop), line[0].0);

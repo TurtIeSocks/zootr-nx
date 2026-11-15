@@ -356,6 +356,9 @@ mod tests {
         let mut game = Fake::default();
         shoot(&mut game, &dir, "end.png", &mut report);
         assert_eq!(report.shots, ["end.png"]);
-        assert_eq!(game.lines, ["shot /nonexistent/end.png"]);
+        assert_eq!(
+            game.lines,
+            [format!("shot {}", dir.join("end.png").display())]
+        );
     }
 }

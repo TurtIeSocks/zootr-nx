@@ -616,6 +616,9 @@ mod tests {
 
     #[test]
     fn shuffle_flags_become_app_settings_and_extras() {
+        if crate::game::no_names() {
+            return;
+        }
         let args = [
             "zootr",
             "shuffle",

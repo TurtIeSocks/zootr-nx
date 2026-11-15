@@ -397,6 +397,9 @@ mod tests {
 
     #[test]
     fn big_chests_shrink_and_nothing_else_changes() {
+        if crate::game::no_names() {
+            return;
+        }
         let mut root = Byml::from_iter([(
             "Actors",
             [
@@ -424,6 +427,9 @@ mod tests {
 
     #[test]
     fn set_fields_writes_top_level_and_nested_fields() {
+        if crate::game::no_names() {
+            return;
+        }
         let mut root = Byml::from_iter([(
             "Actors",
             Byml::Array(vec![
@@ -516,6 +522,9 @@ mod tests {
 
     #[test]
     fn a_drop_with_a_swap_names_its_check_and_substitute_in_a_chest_that_reads_them() {
+        if crate::game::no_names() {
+            return;
+        }
         let fields = |swap| {
             let mut root = chest("Item_A", "Flag");
             let drop = Drop {
@@ -552,6 +561,9 @@ mod tests {
 
     #[test]
     fn a_drop_without_a_swap_clears_a_vanilla_one() {
+        if crate::game::no_names() {
+            return;
+        }
         let mut root = chest_in(
             actor::OBJ_T_BOX_A_06_NO_BAKE,
             [

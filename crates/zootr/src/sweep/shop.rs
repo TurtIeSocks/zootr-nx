@@ -182,6 +182,9 @@ mod tests {
 
     #[test]
     fn a_chest_rupee_shelves_as_the_rupee_and_a_token_as_itself() {
+        if crate::game::no_names() {
+            return;
+        }
         assert!(shelves_as(actor::T_BOX_RUPEE_RED, actor::OBJ_RUPEE_RED));
         assert!(shelves_as(item::TOKEN_GOLD, item::TOKEN_GOLD));
         assert!(!shelves_as(actor::T_BOX_RUPEE_RED, actor::OBJ_RUPEE_PURPLE));

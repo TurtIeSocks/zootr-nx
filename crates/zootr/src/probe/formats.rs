@@ -226,6 +226,9 @@ mod tests {
 
     #[test]
     fn names_are_four_or_more_name_bytes() {
+        if crate::game::no_names() {
+            return;
+        }
         let data = b"\0\x01Rotate_Shop\0ab\0Item_C\xff";
         assert_eq!(strings(data), ["Item_C", field::ROTATE_SHOP]);
     }

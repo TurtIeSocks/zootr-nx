@@ -332,6 +332,9 @@ mod tests {
 
     #[test]
     fn a_door_links_the_faces_on_each_side_both_ways() {
+        if crate::game::no_names() {
+            return;
+        }
         // A 3 m doorway between two rooms, the door in its middle facing +Z.
         let m = mesh(&[
             quad(0.0, -3.0, 2.0, 0.5, 0.0),

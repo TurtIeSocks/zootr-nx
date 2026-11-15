@@ -76,7 +76,9 @@ mod tests {
         let lines = changed(&before, &after);
         assert_eq!(lines.len(), 1, "{lines:#?}");
         let (was, now) = lines[0];
-        assert!(was.starts_with("#252 ") && was.contains("\"Obj_Armor_Zora\""));
+        assert!(
+            was.starts_with("#252 ") && was.contains(&format!("\"{}\"", actor::OBJ_ARMOR_ZORA))
+        );
         assert!(
             now.contains("\"Item_A\"") && !now.ends_with(" -> #133"),
             "{now}"
