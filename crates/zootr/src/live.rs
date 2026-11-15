@@ -712,9 +712,7 @@ pub(crate) mod tests {
 
     #[test]
     fn read_shows_any_kind_the_way_the_live_tab_does() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let gd = GameData::default();
         let list = entry(
             3,
@@ -852,9 +850,7 @@ pub(crate) mod tests {
 
     #[test]
     fn every_shape_shows_its_change() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let gd = GameData::default();
         let [was, now] = [0, 1].map(|n| snapshot(&shapes(n), 0x1000).unwrap());
         let row = |slot, i, kind, change| Change::new(&gd, hash(slot, i), kind, change);

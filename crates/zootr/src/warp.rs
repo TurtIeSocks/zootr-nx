@@ -359,9 +359,7 @@ mod tests {
 
     #[test]
     fn a_map_names_its_age_when_it_has_one() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         assert_eq!(era(map::KOKIRI_FOREST_CHILD), Some(true));
         assert_eq!(era(flag::KAKARIKO_VILLAGE_ADULT), Some(false));
         assert_eq!(era(flag::HYRULE_CASTLE), None);
@@ -430,9 +428,7 @@ mod tests {
 
     #[test]
     fn a_big_chest_turns_the_other_way_round() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let pose = Pose {
             at: [1.0, 2.0, 3.0],
             rotate: [0.0, FRAC_PI_2, 0.0],

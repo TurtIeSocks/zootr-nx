@@ -165,9 +165,7 @@ fn catalog_offenders(root: &Path, in_dump: impl Fn(&str) -> bool) -> Vec<String>
 
 #[test]
 fn no_game_name_is_written_as_text() {
-    if crate::game::no_names() {
-        return;
-    }
+    needs_names!();
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let found = offenders(&root);
     assert!(

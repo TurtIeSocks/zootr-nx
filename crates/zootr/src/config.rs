@@ -518,9 +518,7 @@ mod tests {
 
     #[test]
     fn extras_carry_the_plando_draft() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let fixed = Fixed::from([(u64::MAX, item::HOOKSHOT.to_string())]);
         let mut config = Config {
             test: TestSetup {

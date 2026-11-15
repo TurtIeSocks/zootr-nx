@@ -282,9 +282,7 @@ mod tests {
 
     #[test]
     fn borders_fall_in_the_hour_they_lie_and_say_what_is_past_them() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let placed = [placed(actor::LAND_KOKIRI_CLIFF_E_05, 1, [0.0, 0.0, 3.5])];
         let s = scene("Test", &room(), &placed, [0.0; 3], 0.0, 4.0);
         let ahead = entry(&s, 12, "wall");
@@ -334,9 +332,7 @@ mod tests {
 
     #[test]
     fn things_are_named_and_marked_behind_a_wall() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let placed = [
             placed(actor::OBJ_T_BOX_A_01, 10, [-1.0, 0.0, 5.0]),
             placed(actor::OBJ_KOKIRI_DOOR_A_02, 11, [-1.5, -0.2, 0.0]),
@@ -357,9 +353,7 @@ mod tests {
 
     #[test]
     fn a_thing_in_its_own_hole_is_not_behind_the_wall_around_it() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         // A chest in a hole of the mesh: the hole's border is no wall to it.
         let holed = mesh(&[
             quad(-3.0, -3.0, 3.0, 0.5, 0.0),
@@ -374,9 +368,7 @@ mod tests {
 
     #[test]
     fn the_nearest_known_thing_shows_for_an_hour() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let placed = [
             placed("Obj_M", 1, [0.0, 0.0, 1.0]),
             placed(actor::OBJ_T_BOX_A_01, 2, [0.0, 0.0, 1.5]),
@@ -389,9 +381,7 @@ mod tests {
 
     #[test]
     fn the_lines_read_the_way_the_spec_shows() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let placed = [
             placed(actor::LAND_KOKIRI_CLIFF_E_05, 1, [0.0, 0.0, 3.5]),
             placed(actor::OBJ_T_BOX_A_01, 10, [-1.0, 0.0, 5.0]),

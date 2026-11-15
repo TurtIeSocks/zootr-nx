@@ -239,9 +239,7 @@ mod tests {
 
     #[test]
     fn a_goal_holds_when_the_game_shows_its_value() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let shows = |text: &'static str| move |_| Ok(text.to_string());
         let met = Goal::check(&format!(" IsGet.{} = true", item::HOOKSHOT), shows("true"));
         assert_eq!(met.name, flag::IS_GET_ITEM_HOOKSHOT);
@@ -362,9 +360,7 @@ mod tests {
 
     #[test]
     fn a_bad_line_refuses_the_setup_before_anything_runs() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let bad = |setup: TestSetup| {
             let err = plan(&setup, Some(SPOT), |_, _| Ok(())).unwrap_err();
             err.to_string()

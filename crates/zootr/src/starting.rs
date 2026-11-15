@@ -240,9 +240,7 @@ mod tests {
 
     #[test]
     fn swapping_leaves_a_filler_once_per_item_and_skips_missing_ones() {
-        if crate::game::no_names() {
-            return;
-        }
+        needs_names!();
         let mut pool = [item::SWORD_KOKIRI, "Item_A", item::SWORD_KOKIRI];
         swap_out(&mut pool, &[&ITEMS[0], &ITEMS[4]]);
         assert_eq!(pool, [FILLER, "Item_A", item::SWORD_KOKIRI]);
