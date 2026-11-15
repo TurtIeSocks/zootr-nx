@@ -1,0 +1,41 @@
+# Lost Woods. A check with no rule here needs every obstacle placed in
+# the woods, and the woods' rocks would wall off scrubs standing in the
+# open. Rules from the placements and the maintainer's own file, on the
+# playtest list.
+
+# Every scrub also wants `stun-scrub`, added for all of them in
+# `logic.rs`: a rule here says only what reaching it takes.
+
+# By the bridge to the field.
+[[check]]
+hash = 5406759280757349546
+name = "Business Scrub near the bridge"
+needs = "always"
+setting = "scrubs"
+
+# In the open beside the Deku Theater's grotto, 10 to 16 m from it.
+[[check]]
+hash = 15048088372638595204
+name = "Business Scrub by the theater, potions"
+needs = "always"
+setting = "scrubs"
+
+[[check]]
+hash = 2569517939889411425
+name = "Business Scrub by the theater, bug buyer"
+needs = "always"
+setting = "scrubs"
+
+# In the grotto under the rock south of the theater: 17 m below the
+# woods' floor and 16 m from the rock.
+[[check]]
+hash = 2214083465643671502
+name = "Business Scrub in the rock grotto"
+needs = "explosives or hammer"
+setting = "scrubs"
+
+[[check]]
+hash = 4328741615941752705
+name = "Business Scrub in the rock grotto, nuts"
+needs = "explosives or hammer"
+setting = "scrubs"

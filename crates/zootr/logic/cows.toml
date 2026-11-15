@@ -1,0 +1,58 @@
+# Cows, dealt with the `cows` setting. Each gives its check for Epona's
+# Song. A cow's hash is its lowest child-file placement hash, else its
+# lowest, as `cows.rs` picks it. Its placements say where it is.
+
+# In the grotto on the trail, behind a rock a blast or a hammer breaks.
+[[check]]
+hash = 6253945510651149508
+name = "Death Mountain Trail grotto cow"
+needs = "eponas-song and (explosives or hammer)"
+setting = "cows"
+
+# In the field's grotto, behind a rock, then a web a lit stick or fire
+# burns.
+[[check]]
+hash = 4825657261695689152
+name = "Hyrule Field grotto cow"
+needs = "eponas-song and (explosives or hammer) and (sticks or fire)"
+setting = "cows"
+
+# The two in Lon Lon Ranch's stable.
+[[check]]
+hash = 5665703420335364217
+name = "Lon Lon Ranch stable cow 1"
+needs = "eponas-song"
+setting = "cows"
+
+[[check]]
+hash = 2139721051512122393
+name = "Lon Lon Ranch stable cow 2"
+needs = "eponas-song"
+setting = "cows"
+
+# In Impa's house.
+[[check]]
+hash = 3581309213670406493
+name = "Kakariko cow"
+needs = "eponas-song"
+setting = "cows"
+
+[[check]]
+hash = 11341244778524449886
+name = "Gerudo Fortress cow"
+needs = "eponas-song"
+setting = "cows"
+
+[[check]]
+hash = 9796879244811108931
+name = "Gerudo Valley cow"
+needs = "eponas-song"
+setting = "cows"
+
+# It stands in Link's house once he holds the horse race record, which
+# takes Epona.
+[[check]]
+hash = 11142894434822030727
+name = "Link's house cow"
+needs = "eponas-song"
+setting = "cows"

@@ -1,0 +1,893 @@
+//! The rule language: short sentences saying what Link needs, like
+//! `bombs or (adult and Item_Hammer)`. Rule files live in `logic/` and are
+//! built into the binary.
+
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+
+use anyhow::{Context, Result, bail, ensure};
+use serde::Deserialize;
+
+use crate::progressive::LINES;
+use crate::settings::{self, NewGame};
+use crate::world::Era;
+
+const ABILITIES: &str = "abilities.toml";
+
+/// Every rule file, by name. A test keeps this in step with `logic/`.
+const FILES: &[(&str, &str)] = &[
+    (ABILITIES, include_str!("../logic/abilities.toml")),
+    ("exits.toml", include_str!("../logic/exits.toml")),
+    ("gifts.toml", include_str!("../logic/gifts.toml")),
+    (
+        "BottomOfTheWell.toml",
+        include_str!("../logic/BottomOfTheWell.toml"),
+    ),
+    (
+        "InsideTheDekuTree.toml",
+        include_str!("../logic/InsideTheDekuTree.toml"),
+    ),
+    (
+        "KokiriForest.toml",
+        include_str!("../logic/KokiriForest.toml"),
+    ),
+    (
+        "HyruleField.toml",
+        include_str!("../logic/HyruleField.toml"),
+    ),
+    ("LostWood.toml", include_str!("../logic/LostWood.toml")),
+    ("vanilla.toml", include_str!("../logic/vanilla.toml")),
+    ("bosses.toml", include_str!("../logic/bosses.toml")),
+    ("cows.toml", include_str!("../logic/cows.toml")),
+    ("beans.toml", include_str!("../logic/beans.toml")),
+];
+
+/// Words naming an item actor start with one of these.
+const ITEM_PREFIXES: &[&str] = &["Item_", "TBox_", "Armor_", "Obj_"];
+/// A boss defeat. Only a vanilla source gives one, and Link holds it like
+/// an item.
+const BEAT: &str = "Beat_";
+
+/// A parsed rule, words unresolved.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Expr {
+    Word(String),
+    All(Vec<Expr>),
+    Any(Vec<Expr>),
+}
+
+/// A rule resolved for one seed's settings.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Need {
+    Always,
+    Never,
+    /// At least `count` of these actors between them.
+    Items {
+        actors: Vec<String>,
+        count: u32,
+    },
+    Era(Era),
+    Flag(String),
+    All(Vec<Need>),
+    Any(Vec<Need>),
+}
+
+/// What Link has collected so far.
+#[derive(Clone, Debug, Default)]
+pub struct Have {
+    pub items: HashMap<String, u32>,
+    pub flags: HashSet<String>,
+}
+
+impl Have {
+    pub fn add(&mut self, actor: &str) {
+        *self.items.entry(actor.to_owned()).or_default() += 1;
+    }
+}
+
+impl Need {
+    pub fn met(&self, have: &Have, era: Era) -> bool {
+        match self {
+            Need::Always => true,
+            Need::Never => false,
+            Need::Items { actors, count } => {
+                actors
+                    .iter()
+                    .map(|a| have.items.get(a).copied().unwrap_or(0))
+                    .sum::<u32>()
+                    >= *count
+            }
+            Need::Era(e) => *e == era,
+            Need::Flag(f) => have.flags.contains(f),
+            Need::All(needs) => needs.iter().all(|n| n.met(have, era)),
+            Need::Any(needs) => needs.iter().any(|n| n.met(have, era)),
+        }
+    }
+
+    /// Whether anything could meet this in `era`: every item, no flags.
+    pub fn possible(&self, era: Era) -> bool {
+        match self {
+            Need::Always | Need::Items { .. } => true,
+            Need::Never | Need::Flag(_) => false,
+            Need::Era(e) => *e == era,
+            Need::All(needs) => needs.iter().all(|n| n.possible(era)),
+            Need::Any(needs) => needs.iter().any(|n| n.possible(era)),
+        }
+    }
+
+    /// Every item actor this mentions.
+    pub fn items<'a>(&'a self, out: &mut BTreeSet<&'a str>) {
+        match self {
+            Need::Items { actors, .. } => out.extend(actors.iter().map(String::as_str)),
+            Need::All(needs) | Need::Any(needs) => needs.iter().for_each(|n| n.items(out)),
+            _ => {}
+        }
+    }
+}
+
+impl std::fmt::Display for Need {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let join = |f: &mut std::fmt::Formatter, needs: &[Need], op: &str| {
+            let parts: Vec<String> = needs
+                .iter()
+                .filter(|n| op == "or" || **n != Need::Always)
+                .map(|n| match n {
+                    Need::All(v) | Need::Any(v) if v.len() > 1 => format!("({n})"),
+                    _ => n.to_string(),
+                })
+                .collect();
+            match parts.is_empty() {
+                true => write!(f, "always"),
+                false => write!(f, "{}", parts.join(&format!(" {op} "))),
+            }
+        };
+        match self {
+            Need::Always => write!(f, "always"),
+            Need::Never => write!(f, "never"),
+            Need::Items { actors, count: 1 } => write!(f, "{}", actors.join("|")),
+            Need::Items { actors, count } => write!(f, "{}*{count}", actors.join("|")),
+            Need::Era(e) => write!(f, "{e}"),
+            Need::Flag(name) => write!(f, "flag:{name}"),
+            Need::All(v) => join(f, v, "and"),
+            Need::Any(v) => join(f, v, "or"),
+        }
+    }
+}
+
+pub fn parse(text: &str) -> Result<Expr> {
+    let spaced = text.replace('(', " ( ").replace(')', " ) ");
+    let tokens: Vec<&str> = spaced.split_whitespace().collect();
+    let mut at = 0;
+    let expr = or(&tokens, &mut at).with_context(|| format!("rule `{text}`"))?;
+    ensure!(
+        at == tokens.len(),
+        "rule `{text}`: unexpected `{}`",
+        tokens[at]
+    );
+    Ok(expr)
+}
+
+fn or(tokens: &[&str], at: &mut usize) -> Result<Expr> {
+    joined(tokens, at, "or", and, Expr::Any)
+}
+
+fn and(tokens: &[&str], at: &mut usize) -> Result<Expr> {
+    joined(tokens, at, "and", atom, Expr::All)
+}
+
+/// Terms parsed by `term`, separated by `op`. `and` binds tighter than `or`.
+fn joined(
+    tokens: &[&str],
+    at: &mut usize,
+    op: &str,
+    term: fn(&[&str], &mut usize) -> Result<Expr>,
+    group: fn(Vec<Expr>) -> Expr,
+) -> Result<Expr> {
+    let mut terms = vec![term(tokens, at)?];
+    while tokens.get(*at) == Some(&op) {
+        *at += 1;
+        terms.push(term(tokens, at)?);
+    }
+    Ok(if terms.len() == 1 {
+        terms.remove(0)
+    } else {
+        group(terms)
+    })
+}
+
+fn atom(tokens: &[&str], at: &mut usize) -> Result<Expr> {
+    let Some(&token) = tokens.get(*at) else {
+        bail!("ends early");
+    };
+    *at += 1;
+    match token {
+        "(" => {
+            let inner = or(tokens, at)?;
+            ensure!(tokens.get(*at) == Some(&")"), "missing `)`");
+            *at += 1;
+            Ok(inner)
+        }
+        ")" | "and" | "or" => bail!("unexpected `{token}`"),
+        word => Ok(Expr::Word(word.into())),
+    }
+}
+
+/// What a seed's rules resolve against.
+pub struct Ctx {
+    pub progressive: bool,
+    /// Toggles that are on.
+    pub on: BTreeSet<String>,
+    /// For what's rolled per seed, like shop prices.
+    pub seed: u64,
+}
+
+impl Ctx {
+    pub fn new(new_game: &NewGame) -> Self {
+        Self {
+            progressive: new_game.progressive,
+            on: new_game.on.clone(),
+            seed: new_game.seed,
+        }
+    }
+}
+
+/// Any rule file but `abilities.toml`.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RuleFile {
+    #[serde(default)]
+    check: Vec<CheckRule>,
+    #[serde(default)]
+    exit: Vec<ExitRule>,
+    #[serde(default)]
+    source: Vec<SourceRule>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CheckRule {
+    hash: u64,
+    /// For people reading the file.
+    #[allow(dead_code)]
+    name: String,
+    needs: String,
+    /// Where a check with no placement is, like a gift, or one whose
+    /// placement isn't where Link gets it.
+    place: Option<String>,
+    era: Option<Era>,
+    /// The setting that deals the check, so it may not be dealt.
+    setting: Option<String>,
+}
+
+/// What a check needs beyond reaching its place.
+pub struct CheckEntry {
+    pub needs: Expr,
+    /// Set for checks that aren't placed actors.
+    pub place: Option<(String, Era)>,
+    /// Dealt only with a setting on.
+    pub optional: bool,
+}
+
+/// What an exit between two maps needs. One the game's data doesn't have,
+/// like a boss door, says it's `added`.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExitRule {
+    pub from: String,
+    pub to: String,
+    #[serde(default)]
+    pub added: bool,
+    needs: String,
+    #[serde(skip, default = "always")]
+    pub expr: Expr,
+}
+
+/// Where Link gets an item that isn't shuffled yet.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SourceRule {
+    pub name: String,
+    pub place: String,
+    pub era: Era,
+    pub item: String,
+    needs: String,
+    #[serde(skip, default = "always")]
+    pub expr: Expr,
+}
+
+fn always() -> Expr {
+    Expr::Word("always".into())
+}
+
+/// Every rule file, parsed and checked.
+pub struct Book {
+    abilities: BTreeMap<String, Expr>,
+    checks: BTreeMap<u64, CheckEntry>,
+    pub exits: Vec<ExitRule>,
+    pub sources: Vec<SourceRule>,
+    toggles: BTreeSet<String>,
+}
+
+/// The settings the rule files read, by id.
+pub fn settings_read() -> BTreeSet<String> {
+    let word = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == ':';
+    FILES
+        .iter()
+        .flat_map(|(_, text)| text.split(move |c: char| !word(c)))
+        .filter_map(|w| w.strip_prefix("setting:"))
+        .filter(|id| !id.is_empty())
+        .map(String::from)
+        .collect()
+}
+
+impl Book {
+    pub fn load() -> Result<Self> {
+        Self::from_files(FILES)
+    }
+
+    fn from_files(files: &[(&str, &str)]) -> Result<Self> {
+        let mut book = Book {
+            abilities: BTreeMap::new(),
+            checks: BTreeMap::new(),
+            exits: Vec::new(),
+            sources: Vec::new(),
+            toggles: settings::toggles(),
+        };
+        for &(name, text) in files {
+            book.add(name, text)
+                .with_context(|| format!("logic/{name}"))?;
+        }
+        book.validate()?;
+        Ok(book)
+    }
+
+    fn add(&mut self, name: &str, text: &str) -> Result<()> {
+        if name == ABILITIES {
+            let table: BTreeMap<String, String> = toml::from_str(text)?;
+            for (word, rule) in table {
+                self.abilities.insert(word, parse(&rule)?);
+            }
+            return Ok(());
+        }
+        let file: RuleFile = toml::from_str(text)?;
+        for rule in file.check {
+            let place = match (rule.place, rule.era) {
+                (Some(place), Some(era)) => Some((place, era)),
+                (None, None) => None,
+                _ => bail!(
+                    "check {} needs both a place and an era, or neither",
+                    rule.hash
+                ),
+            };
+            let entry = CheckEntry {
+                needs: parse(&rule.needs)?,
+                place,
+                optional: rule.setting.is_some(),
+            };
+            ensure!(
+                self.checks.insert(rule.hash, entry).is_none(),
+                "check {} has two rules",
+                rule.hash
+            );
+        }
+        for mut exit in file.exit {
+            exit.expr = parse(&exit.needs)?;
+            self.exits.push(exit);
+        }
+        for mut source in file.source {
+            source.expr = parse(&source.needs)?;
+            self.sources.push(source);
+        }
+        Ok(())
+    }
+
+    /// Resolves every rule once, so an unknown word or a loop fails at load.
+    fn validate(&self) -> Result<()> {
+        let ctx = Ctx {
+            progressive: true,
+            on: BTreeSet::new(),
+            seed: 0,
+        };
+        for (word, expr) in &self.abilities {
+            self.need(expr, &ctx)
+                .with_context(|| format!("ability `{word}`"))?;
+        }
+        for (hash, entry) in &self.checks {
+            self.need(&entry.needs, &ctx)
+                .with_context(|| format!("check {hash}"))?;
+        }
+        for exit in &self.exits {
+            self.need(&exit.expr, &ctx)
+                .with_context(|| format!("exit {} to {}", exit.from, exit.to))?;
+        }
+        for source in &self.sources {
+            self.need(&source.expr, &ctx)
+                .with_context(|| format!("source {}", source.name))?;
+        }
+        Ok(())
+    }
+
+    /// The hand-written rule for a check, if it has one.
+    pub fn check(&self, hash: u64) -> Option<&CheckEntry> {
+        self.checks.get(&hash)
+    }
+
+    pub fn checks(&self) -> impl Iterator<Item = (u64, &CheckEntry)> {
+        self.checks.iter().map(|(h, e)| (*h, e))
+    }
+
+    /// `text` parsed and resolved, for rules from outside the files.
+    pub fn resolve(&self, text: &str, ctx: &Ctx) -> Result<Need> {
+        self.need(&parse(text)?, ctx)
+    }
+
+    pub fn need(&self, expr: &Expr, ctx: &Ctx) -> Result<Need> {
+        self.expand(expr, ctx, &mut vec![])
+    }
+
+    fn expand<'a>(&'a self, expr: &'a Expr, ctx: &Ctx, path: &mut Vec<&'a str>) -> Result<Need> {
+        let many = |exprs: &'a [Expr], path: &mut Vec<&'a str>| -> Result<Vec<Need>> {
+            exprs.iter().map(|e| self.expand(e, ctx, path)).collect()
+        };
+        Ok(match expr {
+            Expr::All(exprs) => Need::All(many(exprs, path)?),
+            Expr::Any(exprs) => Need::Any(many(exprs, path)?),
+            Expr::Word(word) => {
+                if let Some(inner) = self.abilities.get(word) {
+                    ensure!(!path.contains(&word.as_str()), "`{word}` uses itself");
+                    path.push(word);
+                    let need = self.expand(inner, ctx, path)?;
+                    path.pop();
+                    need
+                } else {
+                    self.word(word, ctx)?
+                }
+            }
+        })
+    }
+
+    fn word(&self, word: &str, ctx: &Ctx) -> Result<Need> {
+        if ITEM_PREFIXES.iter().any(|p| word.starts_with(p)) {
+            return item(word, ctx.progressive);
+        }
+        if word.len() > BEAT.len() && word.starts_with(BEAT) {
+            return item(word, false);
+        }
+        Ok(match word {
+            "always" => Need::Always,
+            "child" => Need::Era(Era::Child),
+            "adult" => Need::Era(Era::Adult),
+            _ => match word.split_once(':') {
+                Some(("setting", id)) => {
+                    ensure!(self.toggles.contains(id), "no toggle `{id}`");
+                    if ctx.on.contains(id) {
+                        Need::Always
+                    } else {
+                        Need::Never
+                    }
+                }
+                Some(("flag", name)) if !name.is_empty() => Need::Flag(name.into()),
+                // Something logic can't read yet, or a GameData enum it
+                // doesn't track (a race's prize), so nothing proves it.
+                Some(("todo" | "enum", what)) if !what.is_empty() => Need::Never,
+                _ => bail!("unknown word `{word}`"),
+            },
+        })
+    }
+}
+
+/// `Item_X` or `Item_X*n`. In an upgrade line, `n` counts levels from
+/// `Item_X`: with progressive items any of the line's items count, without
+/// them it names the level itself.
+fn item(word: &str, progressive: bool) -> Result<Need> {
+    let (actor, n) = match word.split_once('*') {
+        Some((actor, n)) => (actor, n.parse::<u32>().ok().filter(|&n| n > 0)),
+        None => (word, Some(1)),
+    };
+    let n = n.with_context(|| format!("bad count in `{word}`"))?;
+    let Some((line, at)) = LINES.iter().find_map(|l| {
+        l.iter()
+            .position(|&(drop, _)| drop == actor)
+            .map(|i| (l, i))
+    }) else {
+        return Ok(Need::Items {
+            actors: vec![actor.into()],
+            count: n,
+        });
+    };
+    let level = at + n as usize;
+    ensure!(level <= line.len(), "`{word}` is past the end of its line");
+    let (levels, count) = match progressive {
+        true => (&line[..], level),
+        // Owning a higher level does everything a lower one does.
+        false => (&line[level - 1..], 1),
+    };
+    Ok(Need::Items {
+        actors: levels.iter().map(|&(drop, _)| drop.to_string()).collect(),
+        count: count as u32,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::known::{actor, item};
+
+    fn w(s: &str) -> Expr {
+        Expr::Word(s.into())
+    }
+
+    fn ctx(progressive: bool, on: &[&str]) -> Ctx {
+        Ctx {
+            progressive,
+            on: on.iter().map(|s| s.to_string()).collect(),
+            seed: 0,
+        }
+    }
+
+    fn have(items: &[&str]) -> Have {
+        let mut have = Have::default();
+        items.iter().for_each(|i| have.add(i));
+        have
+    }
+
+    #[test]
+    fn and_binds_tighter_than_or() {
+        assert_eq!(
+            parse("a or b and c").unwrap(),
+            Expr::Any(vec![w("a"), Expr::All(vec![w("b"), w("c")])])
+        );
+        assert_eq!(
+            parse("(a or b) and c").unwrap(),
+            Expr::All(vec![Expr::Any(vec![w("a"), w("b")]), w("c")])
+        );
+        assert_eq!(parse("  a  ").unwrap(), w("a"));
+    }
+
+    #[test]
+    fn bad_rules_fail() {
+        for bad in ["", "a or", "(a", "a)", "a b", "and a", "()"] {
+            assert!(parse(bad).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn line_counts_follow_progressive_items() {
+        let book = Book::load().unwrap();
+        let on = ctx(true, &[]);
+        let off = ctx(false, &[]);
+        let longshot = |c: &Ctx| book.resolve(&format!("{}*2", item::HOOKSHOT), c).unwrap();
+
+        assert!(!longshot(&on).met(&have(&[item::HOOKSHOT]), Era::Adult));
+        assert!(longshot(&on).met(&have(&[item::HOOKSHOT, item::LONGSHOT]), Era::Adult));
+        assert!(longshot(&on).met(&have(&[item::LONGSHOT, item::LONGSHOT]), Era::Adult));
+        assert_eq!(longshot(&on), book.resolve(item::LONGSHOT, &on).unwrap());
+
+        assert!(!longshot(&off).met(&have(&[item::HOOKSHOT, item::HOOKSHOT]), Era::Adult));
+        assert!(longshot(&off).met(&have(&[item::LONGSHOT]), Era::Adult));
+
+        assert!(book.resolve(&format!("{}*3", item::HOOKSHOT), &on).is_err());
+        assert!(book.resolve(&format!("{}*0", item::HOOKSHOT), &on).is_err());
+    }
+
+    #[test]
+    fn abilities_expand_with_era() {
+        let book = Book::load().unwrap();
+        let c = ctx(true, &[]);
+        let hammer = book.resolve("explosives or hammer", &c).unwrap();
+        assert!(hammer.met(&have(&[item::HAMMER]), Era::Adult));
+        assert!(!hammer.met(&have(&[item::HAMMER]), Era::Child));
+        assert!(hammer.met(&have(&[item::BOMB_BAG_SMALL]), Era::Child));
+        assert!(!hammer.met(&have(&[]), Era::Adult));
+    }
+
+    #[test]
+    fn a_beehive_falls_to_what_reaches_and_hurts_it() {
+        // Its DamageRates give the slingshot seed 0, and a bomb's blast
+        // falls short of the overhang (Mac, 2026-11-15).
+        let book = Book::load().unwrap();
+        let knock = book.resolve("knock-down", &ctx(true, &[])).unwrap();
+        assert!(knock.met(&have(&[item::BOOMERANG]), Era::Child));
+        assert!(!knock.met(&have(&[item::RANGE_SLING_SHOT]), Era::Child));
+        assert!(!knock.met(&have(&[item::BOMB_BAG_SMALL]), Era::Child));
+    }
+
+    #[test]
+    fn a_milk_is_a_bottle() {
+        let book = Book::load().unwrap();
+        let bottle = book.resolve("bottle", &ctx(true, &[])).unwrap();
+        assert!(bottle.met(&have(&[item::BOTTLE_MILK]), Era::Child));
+        assert!(!bottle.met(&have(&[]), Era::Child));
+    }
+
+    #[test]
+    fn settings_switch_rules() {
+        let book = Book::load().unwrap();
+        let chus: &[&str] = &[item::BOMBCHU_BUNDLE_SMALL];
+        let off = book.resolve("bombchus", &ctx(true, &[])).unwrap();
+        let on = book
+            .resolve("bombchus", &ctx(true, &["free-bombchus"]))
+            .unwrap();
+        assert!(!off.met(&have(chus), Era::Child));
+        assert!(on.met(&have(chus), Era::Child));
+        assert!(
+            book.resolve("setting:no-such-toggle", &ctx(true, &[]))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn flags_and_unknown_words() {
+        let book = Book::load().unwrap();
+        let c = ctx(true, &[]);
+        let flag = book.resolve("flag:Some_Flag", &c).unwrap();
+        let mut h = have(&[]);
+        assert!(!flag.met(&h, Era::Child));
+        h.flags.insert("Some_Flag".into());
+        assert!(flag.met(&h, Era::Child));
+        for bad in ["strength", "flag:", "switch:Obj_A"] {
+            assert!(book.resolve(bad, &c).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn files_fail_loudly() {
+        let abilities = (ABILITIES, "a = \"b\"\nb = \"a\"");
+        assert!(Book::from_files(&[abilities]).is_err());
+        let unknown = (ABILITIES, "a = \"Item_A or strength\"");
+        assert!(Book::from_files(&[unknown]).is_err());
+        let twice = "[[check]]\nhash = 1\nname = \"x\"\nneeds = \"child\"\n";
+        let ok = (ABILITIES, "");
+        assert!(Book::from_files(&[ok, ("A.toml", twice), ("B.toml", twice)]).is_err());
+        assert!(Book::from_files(&[ok, ("A.toml", "[[check]]\nhash = 1\n")]).is_err());
+        assert!(Book::from_files(&[ok, ("A.toml", twice)]).is_ok());
+    }
+
+    #[test]
+    fn the_well_drains_with_zeldas_lullaby() {
+        let book = Book::load().unwrap();
+        let c = ctx(true, &[]);
+        let lullaby: &[&str] = &[item::OCARINA_FAIRY, item::MELODY_ZELDA_LULLABY];
+        for hash in [12988877782812797760, 5429815628949128345] {
+            let needs = book.need(&book.check(hash).unwrap().needs, &c).unwrap();
+            assert!(!needs.met(&have(&[]), Era::Child), "{hash}");
+            assert!(needs.met(&have(lullaby), Era::Child), "{hash}");
+        }
+    }
+
+    #[test]
+    fn sheik_in_the_crater_is_past_the_gap_and_the_heat() {
+        let book = Book::load().unwrap();
+        let c = ctx(true, &[]);
+        let needs = book
+            .need(&book.check(7517995748820283814).unwrap().needs, &c)
+            .unwrap();
+        let met = |items: &[&str]| needs.met(&have(items), Era::Adult);
+        let tunic = actor::ARMOR_ADULT_GORON;
+        assert!(!met(&[tunic]), "the tunic alone doesn't cross the gap");
+        assert!(!met(&[item::HOOKSHOT]), "the hookshot alone burns");
+        assert!(met(&[tunic, item::HOOKSHOT]));
+        assert!(met(&[tunic, item::HOVER_BOOT]));
+        assert!(met(&[tunic, item::OCARINA_FAIRY, item::MELODY_FIRE_BOLERO]));
+    }
+
+    #[test]
+    fn the_tunic_and_bag_givers_need_what_stops_or_thaws_them() {
+        let book = Book::load().unwrap();
+        let c = ctx(true, &[]);
+        let gift = |giver: &str| {
+            let gift = crate::gifts::GIFTS.iter().find(|g| g.giver == giver);
+            let needs = &book.check(gift.unwrap().hash()).unwrap().needs;
+            book.need(needs, &c).unwrap()
+        };
+        let cases: [(&str, Era, &[&str]); 3] = [
+            ("Link the Goron", Era::Adult, &[item::BOMB_BAG_SMALL]),
+            ("King Zora", Era::Adult, &[item::BOTTLE]),
+            ("Rolling Goron", Era::Child, &[item::BOMB_BAG_SMALL]),
+        ];
+        for (giver, era, items) in cases {
+            let needs = gift(giver);
+            assert!(!needs.met(&have(&[]), era), "{giver} with nothing");
+            assert!(needs.met(&have(items), era), "{giver} with {items:?}");
+        }
+        let sheik = book.check(7517995748820283814).unwrap();
+        let sheik = book.need(&sheik.needs, &c).unwrap();
+        let given = have(&[actor::OBJ_ARMOR_GORON, item::HOOKSHOT]);
+        assert!(sheik.met(&given, Era::Adult), "the given tunic counts");
+    }
+
+    #[test]
+    fn each_minigame_prize_needs_what_its_game_does() {
+        let book = Book::load().unwrap();
+        let c = ctx(true, &[]);
+        let (bag, bow) = (item::BOMBCHU_BUNDLE_SMALL, item::RANGE_BOW);
+        let (sling, gerudo) = (item::RANGE_SLING_SHOT, item::TOKEN_GERUDO);
+        let (letter, saria) = (item::ZELDA_LETTER, item::MELODY_SARIA_SONG);
+        let ocarina = item::OCARINA_FAIRY;
+        let epona = item::MELODY_EPONA_SONG;
+        let cases: Vec<(&str, Era, Vec<&str>)> = vec![
+            (
+                "Bombchu bowling: second prize",
+                Era::Child,
+                vec![bag, item::BOMB_BAG_SMALL],
+            ),
+            (
+                "Horseback archery: quiver",
+                Era::Adult,
+                vec![bow, ocarina, epona, gerudo],
+            ),
+            ("Market shooting gallery", Era::Child, vec![]),
+            ("Kakariko shooting gallery", Era::Adult, vec![bow]),
+            ("Lost Woods target", Era::Child, vec![sling]),
+            ("Talon's cuccos", Era::Child, vec![item::WEIRD_EGG]),
+            ("Deku Theater: Skull Mask", Era::Child, vec![letter]),
+            (
+                "Deku Theater: Mask of Truth",
+                Era::Child,
+                vec![letter, ocarina, saria],
+            ),
+        ];
+        for (giver, era, items) in cases {
+            let gift = crate::gifts::GIFTS.iter().find(|g| g.giver == giver);
+            let needs = &book.check(gift.unwrap().hash()).unwrap().needs;
+            let needs = book.need(needs, &c).unwrap();
+            assert!(needs.met(&have(&items), era), "{giver} with {items:?}");
+            for gone in 0..items.len() {
+                let mut fewer = items.clone();
+                fewer.remove(gone);
+                assert!(
+                    !needs.met(&have(&fewer), era),
+                    "{giver} without {}",
+                    items[gone]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn the_minigame_chests_need_the_lens_and_the_races_nothing() {
+        let book = Book::load().unwrap();
+        let c = ctx(true, &[]);
+        let chest = |hash| book.need(&book.check(hash).unwrap().needs, &c).unwrap();
+        let [treasure, hookshot, heart] = crate::gifts::PRIZE_CHESTS.map(chest);
+        let lens: [&str; 2] = [item::FAIRY_BLESS_MP, item::GLASS_TRUTH];
+        assert!(treasure.met(&have(&lens), Era::Child));
+        assert!(!treasure.met(&have(&lens[..1]), Era::Child));
+        assert!(!treasure.met(&have(&[]), Era::Child));
+        for race in [hookshot, heart] {
+            assert!(race.met(&have(&[]), Era::Adult));
+        }
+    }
+
+    #[test]
+    fn the_new_givers_need_their_rules_and_nothing_less() {
+        let book = Book::load().unwrap();
+        let c = ctx(true, &[]);
+        // Placed pickups have no giver, so these are by hash.
+        let pickups = [
+            ("Fire Arrows", 4598657944866228526),
+            ("Ruto's letter", 474136620438465634),
+        ];
+        let gift = |giver: &str| {
+            let hash = match pickups.iter().find(|p| p.0 == giver) {
+                Some(p) => p.1,
+                None => {
+                    let gift = crate::gifts::GIFTS.iter().find(|g| g.giver == giver);
+                    gift.unwrap().hash()
+                }
+            };
+            let needs = &book.check(hash).unwrap().needs;
+            book.need(needs, &c).unwrap()
+        };
+        let poes: [&str; 4] = [
+            item::BOTTLE,
+            item::RANGE_BOW,
+            item::OCARINA_FAIRY,
+            item::MELODY_EPONA_SONG,
+        ];
+        let cases: [(&str, Era, &[&str]); 6] = [
+            (
+                "Light Arrows",
+                Era::Adult,
+                &["Beat_BongoBongo", "Beat_Twinrova"][..],
+            ),
+            ("Poe collector", Era::Adult, &poes[..]),
+            (
+                "Fire Arrows",
+                Era::Adult,
+                &[item::RANGE_BOW, "Beat_Morpha"][..],
+            ),
+            ("Ruto's letter", Era::Child, &[&**item::SCALE_SILVER][..]),
+            ("Weird Egg", Era::Child, &[][..]),
+            ("Potion shop bottle", Era::Child, &[][..]),
+        ];
+        for (giver, era, items) in cases {
+            let needs = gift(giver);
+            assert!(needs.met(&have(items), era), "{giver} with {items:?}");
+            for (i, left) in items.iter().enumerate() {
+                let mut rest = items.to_vec();
+                rest.remove(i);
+                assert!(!needs.met(&have(&rest), era), "{giver} without {left}");
+            }
+        }
+        assert!(!gift("Poe collector").met(&have(&poes), Era::Child));
+        let knife = gift("Medigoron");
+        for blast in [item::BOMB_BAG_SMALL, item::HAMMER] {
+            assert!(knife.met(&have(&[blast]), Era::Adult), "{blast}");
+        }
+        assert!(!knife.met(&have(&[]), Era::Adult));
+        assert!(!knife.met(&have(&[item::HAMMER]), Era::Child));
+        // The bean seller sits past the boulders at Zora River's mouth.
+        let beans = gift("Bean seller");
+        assert!(!beans.met(&have(&[]), Era::Child));
+        for past in [item::BOMB_BAG_SMALL, item::SCALE_SILVER] {
+            assert!(beans.met(&have(&[past]), Era::Child), "{past}");
+        }
+        let letter = have(
+            &poes[1..3]
+                .iter()
+                .copied()
+                .chain([&**item::BOTTLE_LETTER, &**item::MELODY_EPONA_SONG])
+                .collect::<Vec<_>>(),
+        );
+        assert!(
+            gift("Poe collector").met(&letter, Era::Adult),
+            "Ruto's letter is a bottle"
+        );
+        // Talon sleeps by the courtyard's crates until the egg's cucco
+        // wakes him.
+        for giver in ["Zelda's letter", "Impa"] {
+            assert!(!gift(giver).met(&have(&[]), Era::Child), "{giver}");
+            assert!(
+                gift(giver).met(&have(&[item::WEIRD_EGG]), Era::Child),
+                "{giver}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_settings_rules_read_are_toggles() {
+        let read = settings_read();
+        assert!(read.contains("open-forest") && read.contains("kakariko-gate"));
+        assert!(read.is_subset(&settings::toggles()), "{read:?}");
+    }
+
+    #[test]
+    fn every_file_in_logic_is_built_in() {
+        let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/logic");
+        let on_disk: BTreeSet<String> = std::fs::read_dir(dir)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().into_string().unwrap())
+            .collect();
+        let built: BTreeSet<String> = FILES.iter().map(|f| f.0.to_owned()).collect();
+        assert_eq!(on_disk, built);
+    }
+
+    #[test]
+    fn every_item_word_is_an_item() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let known: BTreeSet<String> = crate::items::scan(&romfs)
+            .unwrap()
+            .into_iter()
+            .map(|i| i.actor)
+            .collect();
+        let book = Book::load().unwrap();
+        let c = ctx(true, &[]);
+        let mut used = BTreeSet::new();
+        let needs: Vec<Need> = book
+            .abilities
+            .values()
+            .chain(book.checks.values().map(|c| &c.needs))
+            .chain(book.exits.iter().map(|e| &e.expr))
+            .chain(book.sources.iter().map(|s| &s.expr))
+            .map(|e| book.need(e, &c).unwrap())
+            .collect();
+        needs.iter().for_each(|n| n.items(&mut used));
+        let missing: Vec<_> = used
+            .iter()
+            .filter(|a| !known.contains(**a) && !a.starts_with(BEAT))
+            .collect();
+        assert!(missing.is_empty(), "not items: {missing:?}");
+    }
+}

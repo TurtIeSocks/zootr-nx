@@ -1,0 +1,19 @@
+[package]
+name = "nup-format"
+version = "0.1.0"
+description = "Reader for NUP containers of unencrypted NX game dumps"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+sha2.workspace = true
+thiserror.workspace = true
+zstd.workspace = true
+
+[features]
+# A small container builder for tests, here and in crates that use this one
+fixture = []
+
+[dev-dependencies]
+nup-format = { path = ".", features = ["fixture"] }

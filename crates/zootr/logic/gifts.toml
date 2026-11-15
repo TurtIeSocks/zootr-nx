@@ -1,0 +1,619 @@
+# Gifts aren't placed actors, so each says where it is. A gift's hash is
+# its id in `gifts.rs`.
+
+# On the bridge out of the forest, past the Kokiri who blocks it.
+[[check]]
+hash = 129299066248871900
+name = "Saria's gift"
+place = "KokiriForest_Child"
+era = "child"
+needs = "setting:open-forest or Beat_Gohma"
+
+# At the castle moat, once Link has the three Spiritual Stones.
+[[check]]
+hash = 16028206441208456211
+name = "Zelda's gift"
+place = "HyruleField_Child"
+era = "child"
+needs = "Beat_Gohma and Beat_KingDodongo and Beat_Barinade"
+
+# NPC gifts, dealt only with the setting on.
+
+# The Skull Kid on the stump, for Saria's Song.
+[[check]]
+hash = 7968474297316728619
+name = "Skull Kid"
+place = "LostWood_Child"
+era = "child"
+needs = "sarias-song"
+
+# The Skull Kids' ocarina memory game.
+[[check]]
+hash = 13557807086646791370
+name = "Skull Kid's Memory Game"
+place = "LostWood_Child"
+era = "child"
+needs = "ocarina"
+
+# The frogs' heart piece comes after the sixth song they're played. The
+# ocarina game opens once they've heard all six too. They sit past the
+# two boulders at the river's mouth, which a child bombs, unless he comes
+# down the Lost Woods shortcut, which needs the silver scale.
+[[check]]
+hash = 11346219189188191312
+name = "Frogs' Songs"
+place = "ZoraRiver_Child"
+era = "child"
+needs = "zora-river and zeldas-lullaby and eponas-song and sarias-song and song-of-storms and song-of-time and Item_Melody_SunSong"
+
+[[check]]
+hash = 5229953148841764865
+name = "Frogs' Ocarina Game"
+place = "ZoraRiver_Child"
+era = "child"
+needs = "zora-river and zeldas-lullaby and eponas-song and sarias-song and song-of-storms and song-of-time and Item_Melody_SunSong"
+
+# The Lost Woods target needs a slingshot. The Deku Theater asks Link to wear
+# the masks the shop lends, and each gives the Medium stick or nut bag.
+[[check]]
+hash = 9411228621880230151
+name = "Lost Woods target"
+place = "LostWood_Child"
+era = "child"
+needs = "slingshot"
+
+[[check]]
+hash = 10902337446962469519
+name = "Deku Theater: Skull Mask"
+place = "LostWood_Child"
+era = "child"
+needs = "skull-mask"
+
+[[check]]
+hash = 4353811140173259339
+name = "Deku Theater: Mask of Truth"
+place = "LostWood_Child"
+era = "child"
+needs = "mask-of-truth"
+
+# Richard's owner in the back alley, at night.
+[[check]]
+hash = 11342286987436207867
+name = "Richard's Owner"
+place = "Market_Child"
+era = "child"
+needs = "always"
+
+# The Poe collector's bottle, for the Big Poes' points. The rule is the
+# Big Poes' in Ship of Harkinian.
+[[check]]
+hash = 7975754981590731986
+name = "Poe collector"
+place = "Market_Adult"
+era = "adult"
+needs = "bottle and bow and eponas-song"
+
+# The potion shop's free bottle, handed over to a child.
+[[check]]
+hash = 7148370261830864548
+name = "Potion shop bottle"
+place = "Market_Child"
+era = "child"
+needs = "always"
+
+# On Impa's roof. The hookshot is the safe way up.
+[[check]]
+hash = 9780435211847824593
+name = "Man on the Roof"
+place = "KakarikoVillage_Adult"
+era = "adult"
+needs = "hookshot"
+
+# The lab's dive is the original's Gold Scale depth.
+[[check]]
+hash = 10888561858771484232
+name = "Lake Scientist"
+place = "HyruleField_Child"
+era = "child"
+needs = "Item_Scale_Silver*2"
+
+[[check]]
+hash = 15692166203658509037
+name = "Anju"
+place = "KakarikoVillage_Child"
+era = "child"
+needs = "always"
+
+# The Great Fairies, each behind a wall and Zelda's Lullaby. Their gifts
+# and the bracelet match their vanilla sources, which these replace.
+
+[[check]]
+hash = 8102167512715863528
+name = "Great Fairy of Power"
+place = "HyruleCastle"
+era = "child"
+needs = "explosives and zeldas-lullaby"
+
+[[check]]
+hash = 10198943489153675532
+name = "Great Fairy of Din"
+place = "DeathMountainTrail_Child"
+era = "child"
+needs = "explosives and zeldas-lullaby"
+
+[[check]]
+hash = 3291474312194526326
+name = "Great Fairy of Farore"
+place = "ZoraFountain_Child"
+era = "child"
+needs = "explosives and zeldas-lullaby"
+
+[[check]]
+hash = 7533377855264181032
+name = "Great Fairy of Wisdom"
+place = "DeathMountainCrater_Adult"
+era = "adult"
+needs = "hammer and zeldas-lullaby"
+
+[[check]]
+hash = 7117313034680832833
+name = "Great Fairy of Nayru"
+place = "DesertColossus_Adult"
+era = "adult"
+needs = "explosives and zeldas-lullaby"
+
+# Past the pillar outside Ganon's Castle.
+[[check]]
+hash = 10465703333688921274
+name = "Great Fairy of Courage"
+place = "GanonCastle"
+era = "adult"
+needs = "gold-gauntlets and zeldas-lullaby"
+
+# Darunia dances to Saria's Song in his room.
+[[check]]
+hash = 17308229828817913695
+name = "Darunia"
+place = "GoronCity_Child"
+era = "child"
+needs = "zeldas-lullaby and sarias-song"
+
+# Link the Goron, stopped with a bomb as he rolls.
+[[check]]
+hash = 13001102097072792655
+name = "Link the Goron"
+place = "GoronCity_Adult"
+era = "adult"
+needs = "explosives"
+
+# King Zora, thawed with blue fire.
+[[check]]
+hash = 1482054428421877865
+name = "King Zora"
+place = "ZoraDomain_Adult"
+era = "adult"
+needs = "blue-fire"
+
+# The rolling Goron as a child, stopped with a bomb.
+[[check]]
+hash = 2241127569139982769
+name = "Rolling Goron"
+place = "GoronCity_Child"
+era = "child"
+needs = "explosives"
+
+# Pickups lying where only a seed's way reaches them, dealt with the NPC
+# gifts. Each is where its vanilla source is and needs what it does.
+
+# Lake Hylia's Fire Arrows, once the sun is shot.
+[[check]]
+hash = 4598657944866228526
+name = "Fire Arrows"
+place = "HyruleField_Adult"
+era = "adult"
+needs = "bow and Beat_Morpha"
+setting = "npc-gifts"
+
+# Ruto's letter, at the bottom of the lake.
+[[check]]
+hash = 474136620438465634
+name = "Ruto's letter"
+place = "HyruleField_Child"
+era = "child"
+needs = "silver-scale"
+setting = "npc-gifts"
+
+# Dungeon rewards, dealt only with the setting on. Each is at its boss's
+# stage, where the vanilla reward source it replaces is.
+
+[[check]]
+hash = 7976713952680358969
+name = "Queen Gohma"
+place = "GohmaStage"
+era = "child"
+needs = "always"
+
+[[check]]
+hash = 17500953785828008907
+name = "King Dodongo"
+place = "DodongoStage"
+era = "child"
+needs = "always"
+
+[[check]]
+hash = 1756007200646888751
+name = "Barinade"
+place = "BarinadeStage"
+era = "child"
+needs = "always"
+
+[[check]]
+hash = 16950648795519753327
+name = "Phantom Ganon"
+place = "PhantomGanonStage"
+era = "adult"
+needs = "always"
+
+[[check]]
+hash = 15655385584089977863
+name = "Volvagia"
+place = "VolvagiaStage"
+era = "adult"
+needs = "always"
+
+[[check]]
+hash = 16080263030858016933
+name = "Morpha"
+place = "MorphaStage"
+era = "adult"
+needs = "always"
+
+[[check]]
+hash = 9112680507839779871
+name = "Bongo Bongo"
+place = "BongoBongoStage"
+era = "adult"
+needs = "always"
+
+[[check]]
+hash = 572318066319489127
+name = "Twinrova"
+place = "TwinrovaStage"
+era = "adult"
+needs = "always"
+
+# Rauru, after the Master Sword. Dealt only with the Door of Time closed,
+# since the open door skips his scene.
+[[check]]
+hash = 15795527451931683735
+name = "Rauru"
+place = "Market_Adult"
+era = "adult"
+needs = "always"
+
+# Songs, dealt only with the setting on. Each is where its vanilla source
+# is and needs what it does, since the scene that teaches it starts the
+# same way.
+
+[[check]]
+hash = 9485640170203711850
+name = "Impa"
+place = "HyruleCastle"
+era = "child"
+needs = "courtyard"
+
+[[check]]
+hash = 5955961334009237089
+name = "Malon"
+place = "HyruleField_Child"
+era = "child"
+needs = "ocarina"
+
+[[check]]
+hash = 3350061319058231770
+name = "Saria in the Meadow"
+place = "SacredForestMeadow_Child"
+era = "child"
+needs = "zeldas-lullaby"
+
+[[check]]
+hash = 4624030970593856299
+name = "Windmill Man"
+place = "KakarikoVillage_Adult"
+era = "adult"
+needs = "ocarina"
+
+[[check]]
+hash = 4233716466148257051
+name = "Sheik in the Meadow"
+place = "SacredForestMeadow_Adult"
+era = "adult"
+needs = "always"
+
+[[check]]
+hash = 7517995748820283814
+name = "Sheik in the Crater"
+place = "DeathMountainCrater_Adult"
+era = "adult"
+needs = "crater-floor"
+
+[[check]]
+hash = 1221457217093522685
+name = "Sheik in the Ice Cavern"
+place = "IceCavern"
+era = "adult"
+needs = "blue-fire"
+
+[[check]]
+hash = 17185284981648881289
+name = "Sheik at the Colossus"
+place = "DesertColossus_Adult"
+era = "adult"
+needs = "always"
+
+[[check]]
+hash = 9447699849637278794
+name = "Sheik in Kakariko"
+place = "KakarikoVillage_Adult"
+era = "adult"
+needs = "Beat_PhantomGanon and Beat_Volvagia and Beat_Morpha"
+
+[[check]]
+hash = 15019753598795808613
+name = "Sheik at the Temple of Time"
+place = "Market_Adult"
+era = "adult"
+needs = "Beat_PhantomGanon"
+
+[[check]]
+hash = 9279441469018472147
+name = "Royal Family's Tomb"
+place = "Graveyard_Child"
+era = "child"
+needs = "zeldas-lullaby"
+
+# Zelda's song, granted straight after her gift with no lesson, so it
+# needs what her gift does and no ocarina.
+[[check]]
+hash = 3701241424386675305
+name = "Zelda's song"
+place = "HyruleField_Child"
+era = "child"
+needs = "Beat_Gohma and Beat_KingDodongo and Beat_Barinade"
+
+# The House of Skulltula's rewards, dealt with the NPC gifts. The tokens
+# that open them are only in logic with Gold Skulltulas shuffled.
+
+[[check]]
+hash = 9060474567289915003
+name = "House of Skulltula: 10"
+place = "KakarikoVillage_Child"
+era = "child"
+needs = "Item_Token_Gold*10"
+
+[[check]]
+hash = 909723496375037131
+name = "House of Skulltula: 20"
+place = "KakarikoVillage_Child"
+era = "child"
+needs = "Item_Token_Gold*20"
+
+[[check]]
+hash = 16284910007420782019
+name = "House of Skulltula: 30"
+place = "KakarikoVillage_Child"
+era = "child"
+needs = "Item_Token_Gold*30"
+
+[[check]]
+hash = 4405219083245412012
+name = "House of Skulltula: 40"
+place = "KakarikoVillage_Child"
+era = "child"
+needs = "Item_Token_Gold*40"
+
+[[check]]
+hash = 11445577403649451289
+name = "House of Skulltula: 50"
+place = "KakarikoVillage_Child"
+era = "child"
+needs = "Item_Token_Gold*50"
+
+[[check]]
+hash = 4522352553331655338
+name = "House of Skulltula: 100"
+place = "KakarikoVillage_Child"
+era = "child"
+needs = "Item_Token_Gold*100"
+
+# Gifts handed over inside a cutscene, dealt with the NPC gifts. Each is
+# where its vanilla source is and needs what it does.
+[[check]]
+hash = 4575241808838949671
+name = "Zelda's letter"
+place = "HyruleCastle"
+era = "child"
+needs = "courtyard"
+
+# Malon at the castle wall, who hands over the egg.
+[[check]]
+hash = 10551859442360452256
+name = "Weird Egg"
+place = "HyruleCastle"
+era = "child"
+needs = "always"
+
+# Zelda in the Temple of Time, after the last two temples. It needs what
+# its vanilla source does.
+[[check]]
+hash = 13737156624680648007
+name = "Light Arrows"
+place = "Market_Adult"
+era = "adult"
+needs = "Beat_BongoBongo and Beat_Twinrova"
+
+[[check]]
+hash = 18277160726242923509
+name = "Gerudo membership card"
+place = "GerudoFortress_Adult"
+era = "adult"
+needs = "hookshot"
+
+# Dampe's dig at night, a lottery of 10 rupees a go. The piece's Bool
+# stops it coming up twice, so enough digs always get it.
+[[check]]
+hash = 17953588650051017776
+name = "Dampe's dig"
+place = "Graveyard_Child"
+era = "child"
+needs = "always"
+
+# Minigame prizes. The fishing pond is off the lake, which the game counts
+# as Hyrule Field, and rents its rod.
+[[check]]
+hash = 12611601700011014094
+name = "Fishing as a child"
+place = "HyruleField_Child"
+era = "child"
+needs = "always"
+
+# An adult finds the lake drained and the pond out of reach until Morpha
+# fills it again, or a scarecrow or a bean leaf lifts him there.
+[[check]]
+hash = 11485802066891699092
+name = "Fishing as an adult"
+place = "HyruleField_Adult"
+era = "adult"
+needs = "Beat_Morpha or scarecrow or magic-beans"
+
+# Gerudos let only members ride the course, on Epona.
+[[check]]
+hash = 9443244066451772166
+name = "Horseback archery"
+place = "GerudoFortress_Adult"
+era = "adult"
+needs = "bow and eponas-song and Item_Token_Gerudo"
+
+# The quiver comes with the second win, as the heart does with the first.
+[[check]]
+hash = 14512106089570646515
+name = "Horseback archery: quiver"
+place = "GerudoFortress_Adult"
+era = "adult"
+needs = "bow and eponas-song and Item_Token_Gerudo"
+
+[[check]]
+hash = 7640046613117969341
+name = "Diving game"
+place = "ZoraDomain_Child"
+era = "child"
+needs = "always"
+
+# The third prize comes only after the first two, each a win.
+[[check]]
+hash = 9935389509796719985
+name = "Bombchu bowling: first prize"
+place = "Market_Child"
+era = "child"
+needs = "bombchus"
+
+[[check]]
+hash = 8748954161277078873
+name = "Bombchu bowling: second prize"
+place = "Market_Child"
+era = "child"
+needs = "bombchus"
+
+[[check]]
+hash = 8052831843135618910
+name = "Bombchu bowling: third prize"
+place = "Market_Child"
+era = "child"
+needs = "bombchus"
+
+# The Market gallery lends its own slingshot. The Kakariko one needs Link's
+# bow, and its reward a perfect score.
+[[check]]
+hash = 12555045194845838033
+name = "Market shooting gallery"
+place = "Market_Child"
+era = "child"
+needs = "always"
+
+[[check]]
+hash = 887949387241974339
+name = "Kakariko shooting gallery"
+place = "KakarikoVillage_Adult"
+era = "adult"
+needs = "bow"
+
+# The minigame chests, placed actors the shuffle lets in by hash. Where they
+# are comes from their placement. The Treasure Chest Game's heart piece is
+# behind the lens, and Dampe's two come from two races in his grave, which
+# only an adult opens, the second only after the first.
+[[check]]
+hash = 16881481538337649070
+name = "Treasure Chest Game"
+needs = "lens"
+
+[[check]]
+hash = 16041366920820397198
+name = "Dampe's race: first prize"
+needs = "adult"
+
+[[check]]
+hash = 5534919361313859554
+name = "Dampe's race: second prize"
+needs = "adult"
+
+# Talon's cucco game, in the ranch the game counts as Hyrule Field. He
+# runs it only once the cucco has woken him in the castle courtyard.
+[[check]]
+hash = 14014730143884270499
+name = "Talon's cuccos"
+place = "HyruleField_Child"
+era = "child"
+needs = "courtyard"
+
+# Biggoron's sword, at the end of the adult trade chain, which stays as it
+# is. A rule can't say "reach each stop", so it asks for what the stops
+# need: Zelda's Lullaby for Zora's Domain, a way across Gerudo Valley's
+# bridge for the carpenter, and a way up to the summit.
+[[check]]
+hash = 17580352713807808478
+name = "Biggoron"
+place = "DeathMountainTrail_Adult"
+era = "adult"
+needs = "zeldas-lullaby and (setting:carpenters-freed or longshot or eponas-song) and (explosives or hammer)"
+
+# People who sell one thing, dealt only with merchants on. Medigoron's wall
+# in Goron City needs a blast. The Giant's Knife costs 200 rupees, which
+# every wallet holds.
+[[check]]
+hash = 16722769607033707959
+name = "Medigoron"
+place = "GoronCity_Adult"
+era = "adult"
+needs = "explosives or hammer"
+setting = "merchants"
+
+# The carpet merchant's first sale, 90 rupees, which every wallet holds.
+# He sits in the Wasteland before the Lens of Truth part, so reaching it
+# is enough. Bombchus stay on sale after it.
+[[check]]
+hash = 17038515111946271548
+name = "Carpet merchant"
+place = "HountedWasteland_Adult"
+era = "adult"
+needs = "always"
+setting = "merchants"
+
+# The bean seller's first sale, 10 rupees. Beans stay on sale after it.
+# He sits past the boulders at the river's mouth.
+[[check]]
+hash = 2613616008539497854
+name = "Bean seller"
+place = "ZoraRiver_Child"
+era = "child"
+needs = "zora-river"
+setting = "merchants"

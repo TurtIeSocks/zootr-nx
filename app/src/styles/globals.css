@@ -1,0 +1,412 @@
+/* zootr-nx theme (Tailwind 4 + shadcn/ui). Token values come from the
+ * design handoff's tokens.json: change them there first, then here.
+ * Theme switching keeps the `.dark` class (src/lib/theme.ts).
+ */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/fraunces/full.css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── zootr-nx tokens: Daylight ── */
+:root {
+  --canvas: #f5f3ec;
+  --sidebar: #eeebe2;
+  --surface: #ffffff;
+  --surface-sunken: #efece4;
+  --surface-raised: #ffffff;
+  --surface-hover: #f0ede5;
+  --sidebar-hover: #e4e0d5;
+  --line: #e4dfd4;
+  --line-strong: #d3ccbe;
+  --control-border: #7c857f;
+  --ink: #17201b;
+  --ink-muted: #56605a;
+  --ink-faint: #616a65;
+  --primary: #2e6f4a;
+  --primary-hover: #265e3e;
+  --on-primary: #ffffff;
+  --primary-soft: #e3efe6;
+  --primary-ink: #235c3c;
+  --gold: #a87a12;
+  --gold-soft: #f7ecd0;
+  --gold-ink: #7a5508;
+  --info-soft: #e2edf7;
+  --info-ink: #2a6698;
+  --danger: #b23a2a;
+  --on-danger: #ffffff;
+  --danger-soft: #f9e4df;
+  --danger-ink: #a83526;
+  --focus: #2e6f4a;
+  --thumb: #ffffff;
+  --tooltip: #1d2621;
+  --tooltip-ink: #f2f4f0;
+  --scrim: rgba(23, 32, 27, 0.32);
+  --medal-forest: #2f7d4c;
+  --medal-forest-soft: #e4eee8;
+  --medal-fire: #c2462b;
+  --medal-fire-soft: #f7e7e3;
+  --medal-water: #2a6fb3;
+  --medal-water-soft: #e3ecf5;
+  --medal-shadow: #6e4fae;
+  --medal-shadow-soft: #ece8f4;
+  --medal-spirit: #b8691a;
+  --medal-spirit-soft: #f6ece1;
+  --medal-light: #977612;
+  --medal-light-soft: #f1ede0;
+  --shadow-xs: 0 1px 2px rgba(23, 32, 27, 0.06);
+  --shadow-sm:
+    0 1px 2px rgba(23, 32, 27, 0.06), 0 3px 8px rgba(23, 32, 27, 0.05);
+  --shadow-md:
+    0 2px 4px rgba(23, 32, 27, 0.05), 0 8px 24px rgba(23, 32, 27, 0.1);
+  --shadow-lg:
+    0 4px 8px rgba(23, 32, 27, 0.04), 0 24px 56px -8px rgba(23, 32, 27, 0.2);
+  --shadow-button:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 1px 2px rgba(23, 32, 27, 0.18);
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+  --control-sm: 28px;
+  --control-md: 32px;
+  --control-lg: 40px;
+  --titlebar: 44px;
+  --sidebar-width: 240px;
+  --content-width: 760px;
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 260ms;
+  --duration-flash: 1600ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.3, 1.4, 0.5, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --font-display-stack: "Fraunces Variable", "Iowan Old Style", Georgia, serif;
+  --font-sans-stack:
+    "Geist Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono-stack:
+    "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* shadcn slots, mapped onto the tokens */
+  --radius: var(--radius-md);
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--ink);
+  --primary-foreground: var(--on-primary);
+  --secondary: var(--surface-sunken);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--surface-hover);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--on-danger);
+  --border: var(--line);
+  --border-strong: var(--line-strong);
+  --input: var(--control-border);
+  --ring: var(--focus);
+  --sidebar-foreground: var(--ink);
+  --sidebar-accent: var(--sidebar-hover);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--focus);
+  color-scheme: light;
+}
+
+/* ── zootr-nx tokens: Night (set by src/lib/theme.ts) ── */
+.dark {
+  --canvas: #0f1411;
+  --sidebar: #0b0f0d;
+  --surface: #161c19;
+  --surface-sunken: #0b0f0d;
+  --surface-raised: #1d2420;
+  --surface-hover: #202824;
+  --sidebar-hover: #171e1a;
+  --line: #28312c;
+  --line-strong: #36413b;
+  --control-border: #66716b;
+  --ink: #ecf0ea;
+  --ink-muted: #a2aca6;
+  --ink-faint: #89938d;
+  --primary: #6cc892;
+  --primary-hover: #84d6a5;
+  --on-primary: #0a1910;
+  --primary-soft: #18301f;
+  --primary-ink: #8ad9ab;
+  --gold: #e6be55;
+  --gold-soft: #33290f;
+  --gold-ink: #f0cf78;
+  --info-soft: #132636;
+  --info-ink: #7ab6e8;
+  --danger: #ef7a64;
+  --on-danger: #1d0a06;
+  --danger-soft: #3a1913;
+  --danger-ink: #f59a88;
+  --focus: #7fd6a2;
+  --thumb: #eef2ee;
+  --tooltip: #2c3631;
+  --tooltip-ink: #ecf0ea;
+  --scrim: rgba(0, 0, 0, 0.55);
+  --medal-forest: #6fcb8e;
+  --medal-forest-soft: #24382c;
+  --medal-fire: #f2836a;
+  --medal-fire-soft: #392c26;
+  --medal-water: #6fb0ec;
+  --medal-water-soft: #24343b;
+  --medal-shadow: #b39ae8;
+  --medal-shadow-soft: #2f303a;
+  --medal-spirit: #f0aa5c;
+  --medal-spirit-soft: #393324;
+  --medal-light: #e7c657;
+  --medal-light-soft: #373723;
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45), 0 3px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md:
+    0 0 0 1px rgba(255, 255, 255, 0.06), 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg:
+    0 0 0 1px rgba(255, 255, 255, 0.07), 0 24px 56px -8px rgba(0, 0, 0, 0.7);
+  --shadow-button:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 1px 2px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: var(--font-sans-stack);
+  --font-mono: var(--font-mono-stack);
+  --font-display: var(--font-display-stack);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-button: var(--shadow-button);
+
+  --ease-out: var(--ease-out);
+  --ease-spring: var(--ease-spring);
+  --ease-in: var(--ease-in);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-on-primary: var(--on-primary);
+  --color-canvas: var(--canvas);
+  --color-sidebar: var(--sidebar);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-hover: var(--surface-hover);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-control-border: var(--control-border);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-ink: var(--primary-ink);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-ink: var(--gold-ink);
+  --color-info-soft: var(--info-soft);
+  --color-info-ink: var(--info-ink);
+  --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-ink: var(--danger-ink);
+  --color-focus: var(--focus);
+  --color-thumb: var(--thumb);
+  --color-tooltip: var(--tooltip);
+  --color-tooltip-ink: var(--tooltip-ink);
+  --color-scrim: var(--scrim);
+  --color-medal-forest: var(--medal-forest);
+  --color-medal-forest-soft: var(--medal-forest-soft);
+  --color-medal-fire: var(--medal-fire);
+  --color-medal-fire-soft: var(--medal-fire-soft);
+  --color-medal-water: var(--medal-water);
+  --color-medal-water-soft: var(--medal-water-soft);
+  --color-medal-shadow: var(--medal-shadow);
+  --color-medal-shadow-soft: var(--medal-shadow-soft);
+  --color-medal-spirit: var(--medal-spirit);
+  --color-medal-spirit-soft: var(--medal-spirit-soft);
+  --color-medal-light: var(--medal-light);
+  --color-medal-light-soft: var(--medal-light-soft);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
+  body {
+    @apply bg-background text-foreground antialiased select-none;
+    font-family: var(--font-sans-stack);
+    font-size: 14px;
+    line-height: 20px;
+    font-feature-settings: "ss01", "cv11";
+  }
+  input,
+  textarea,
+  td {
+    @apply select-text;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
+
+/* Motion built from the tokens, as `animate-*` utilities. */
+@theme {
+  --animate-ping-soft: zx-ping 1.8s var(--ease-out) infinite;
+  --animate-ping-rec: zx-ping 1.6s var(--ease-out) infinite;
+  --animate-flash: zx-flash var(--duration-flash) var(--ease-in);
+  --animate-gain: zx-gain 600ms var(--ease-spring);
+  --animate-rise: zx-rise var(--duration-slow) var(--ease-out);
+  --animate-beckon: zx-beckon 900ms var(--ease-out) 3;
+
+  @keyframes zx-ping {
+    0% {
+      transform: scale(0.6);
+      opacity: 0.5;
+    }
+    80%,
+    100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+  @keyframes zx-flash {
+    from {
+      background: var(--gold-soft);
+    }
+  }
+  @keyframes zx-gain {
+    0% {
+      transform: scale(0.7);
+    }
+    60% {
+      transform: scale(1.12);
+    }
+  }
+  @keyframes zx-beckon {
+    from {
+      box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 55%, transparent);
+    }
+    to {
+      box-shadow: 0 0 0 10px transparent;
+    }
+  }
+  @keyframes zx-rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+}
+
+/* Type styles from the tokens, for what Tailwind has no utility for. */
+@utility type-display-sm {
+  font-family: var(--font-display-stack);
+  font-variation-settings:
+    "SOFT" 50,
+    "opsz" 24;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+@utility type-display {
+  font-family: var(--font-display-stack);
+  font-variation-settings:
+    "SOFT" 50,
+    "opsz" 48;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+}
+@utility type-display-lg {
+  font-family: var(--font-display-stack);
+  font-variation-settings:
+    "SOFT" 50,
+    "opsz" 72;
+  font-size: 32px;
+  line-height: 38px;
+  font-weight: 560;
+  letter-spacing: -0.015em;
+}
+@utility type-overline {
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+@utility type-mono {
+  font-family: var(--font-mono-stack);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 450;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion wins over every utility */
+    animation-duration: 0ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion wins over every utility */
+    transition-duration: 0ms !important;
+  }
+}

@@ -1,0 +1,27 @@
+# Kokiri Forest. Rules from the original game, on the playtest list.
+
+# Behind the crawlspace south of the training area.
+[[check]]
+hash = 16757992849254467386
+name = "Kokiri Sword chest"
+needs = "child"
+
+[[check]]
+hash = 12786193094758345086
+name = "Mido's house back left"
+needs = "always"
+
+[[check]]
+hash = 10831981390482426294
+name = "Mido's house back right"
+needs = "always"
+
+[[check]]
+hash = 4555665598794293658
+name = "Mido's house front left"
+needs = "always"
+
+[[check]]
+hash = 9725242744547055868
+name = "Mido's house front right"
+needs = "always"

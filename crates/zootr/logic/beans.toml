@@ -1,0 +1,48 @@
+# Checks a magic bean's ride reaches, with any other way up. A bean
+# planted as a child grows for the adult, so each wants an adult. The
+# leaves floating on water nearby are no rides (`tools.rs`): the ride
+# grows from the soil each check here stands above.
+
+# On the ledge over the graveyard's soil, 5 m up. The Longshot reaches
+# it too.
+[[check]]
+hash = 2157466067026784951
+name = "Graveyard ledge heart piece"
+needs = "adult and (magic-beans or longshot)"
+setting = "freestanding"
+
+# On the lake laboratory's roof, 25 m over the lake's soil. A scarecrow
+# gives the hookshot a point to reach it.
+[[check]]
+hash = 13469300937852836203
+name = "Lake laboratory roof heart piece"
+needs = "adult and (magic-beans or scarecrow)"
+setting = "freestanding"
+
+# On the volcano, 16 m over the crater's soil.
+[[check]]
+hash = 744856631664786545
+name = "Death Mountain Crater volcano heart piece"
+needs = "adult and magic-beans"
+setting = "freestanding"
+
+# On the ledge 8 m over the colossus's soil.
+[[check]]
+hash = 10592092054086534681
+name = "Desert Colossus heart piece"
+needs = "adult and magic-beans"
+setting = "freestanding"
+
+# On the far platform the ride from the colossus's soil passes.
+[[check]]
+hash = 15057756765324812936
+name = "Desert Colossus platform Skulltula"
+needs = "adult and magic-beans"
+setting = "gold-skulltulas"
+
+# Above the theater, 6 m over the soil beside it.
+[[check]]
+hash = 4335656213162247230
+name = "Lost Woods Skulltula above the theater"
+needs = "adult and magic-beans"
+setting = "gold-skulltulas"

@@ -1,0 +1,25 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The main window, the items pop out and the dev panel: core permissions, the open dialog for picking paths, resizing the pop out to its grid, the dev panel's pin, closing a window once its view state is saved, and opening https links in the browser. The app's own commands are open to all three.",
+  "windows": [
+    "main",
+    "tracker",
+    "dev"
+  ],
+  "permissions": [
+    "core:default",
+    "dialog:allow-open",
+    "core:window:allow-set-size",
+    "core:window:allow-set-always-on-top",
+    "core:window:allow-destroy",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://*"
+        }
+      ]
+    }
+  ]
+}

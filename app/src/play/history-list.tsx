@@ -1,0 +1,212 @@
+import {
+  CircleCheck,
+  Download,
+  Pencil,
+  ScrollText,
+  SlidersHorizontal,
+  Trash2,
+} from "lucide-react";
+import { memo } from "react";
+import type { Summary } from "@/bindings";
+import { Card } from "@/components/card";
+import { CopySeed, SeedIcons } from "@/components/seed-icons";
+import { divided } from "@/components/styles";
+import { TipButton } from "@/components/tip-button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { when } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { ExtrasBadges, Name } from "@/play/seed";
+import { useArmed } from "@/play/use-armed";
+import {
+  clearHistory,
+  deleteSeed,
+  install,
+  takeSettings,
+  useSeeds,
+} from "@/stores/seeds";
+import { openLabel, openSpoiler } from "@/stores/shell";
+
+/** Deletes every seed but the installed one, on a second click. */
+function ClearHistory() {
+  const { armed, ...handlers } = useArmed(clearHistory);
+  return (
+    <Button
+      variant={armed ? "destructive" : "ghost"}
+      size="sm"
+      title="Delete every seed except the installed one"
+      {...handlers}
+    >
+      {armed ? "Really clear?" : "Clear"}
+    </Button>
+  );
+}
+
+/** Props for the row actions that act on one seed. */
+interface SeedActionProps {
+  /** The seed's id. */
+  id: number;
+}
+
+/** Installs the seed, unless something blocks it or a job runs. */
+function InstallSeed({ id }: SeedActionProps) {
+  const [blocked] = useSeeds.usePath("blocked");
+  const [busy] = useSeeds.usePath("busy");
+  return (
+    <TipButton
+      label="Install"
+      tip={blocked || "Install this seed"}
+      size="sm"
+      disabled={busy || !!blocked}
+      onClick={() => install(id)}
+    >
+      <Download />
+      Install
+    </TipButton>
+  );
+}
+
+/** Props for {@link DeleteSeed}. */
+interface DeleteSeedProps extends SeedActionProps {
+  /** The installed seed can't be deleted. */
+  installed: boolean;
+}
+
+/** Deletes the seed on a second click, while no job runs. */
+function DeleteSeed({ id, installed }: DeleteSeedProps) {
+  const [busy] = useSeeds.usePath("busy");
+  const { armed, ...handlers } = useArmed(() => deleteSeed(id));
+  return (
+    <TipButton
+      label="Delete seed"
+      tip={
+        installed
+          ? "The installed seed can't be deleted"
+          : armed
+            ? "Really delete?"
+            : "Delete this seed"
+      }
+      variant={armed ? "destructive" : "ghost"}
+      disabled={busy || installed}
+      {...handlers}
+    >
+      <Trash2 />
+    </TipButton>
+  );
+}
+
+/** Stays visible on the installed row, where Install would be. */
+function InstalledMark() {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge asChild variant="green" className="cursor-default">
+          <button type="button" aria-disabled="true">
+            <CircleCheck />
+            Installed
+          </button>
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>This seed is installed</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Every generated seed, newest first, with its actions a hover away. */
+export function HistoryList() {
+  const [entries] = useSeeds.usePath("history.entries");
+  const n = entries.length;
+  return (
+    <Card
+      title="History"
+      meta={n > 0 && `${n} seed${n === 1 ? "" : "s"}`}
+      action={n > 1 && <ClearHistory />}
+      className="flex min-h-60 flex-1 flex-col"
+    >
+      {n === 0 ? (
+        <p className="px-4 pb-4 text-[13px] text-ink-muted">No seeds yet.</p>
+      ) : (
+        <ul className={cn("min-h-0 flex-1 overflow-y-auto px-1 pb-1", divided)}>
+          {entries.map((e) => (
+            <HistoryRow key={e.id} entry={e} />
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+/** Props for {@link HistoryRow}. */
+interface HistoryRowProps {
+  entry: Summary;
+}
+
+/** An entry keeps its identity until history changes, so a row redraws only
+ * for its own values. */
+const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
+  const [installedId] = useSeeds.usePath("history.installed.id");
+  const [differs] = useSeeds.usePath(`diffs.${e.id}`, 0);
+  const isInstalled = e.id === installedId;
+  return (
+    <li className="group/row relative flex min-h-14 items-center gap-3 rounded-md px-3 py-2 transition-colors duration-(--duration-fast) focus-within:bg-surface-hover hover:bg-surface-hover">
+      <SeedIcons icons={e.icons} size="sm" />
+      <div className="min-w-0 flex-1">
+        {e.label.name ? (
+          <Name entry={e} className="w-fit max-w-full font-medium text-sm" />
+        ) : (
+          <p className="text-ink-faint text-sm">Unnamed seed</p>
+        )}
+        <div className="mt-0.5 flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-ink-faint text-xs">
+          {when(e.time)}
+          <ExtrasBadges entry={e} />
+          {differs > 0 && (
+            <span>
+              · differs in {differs} setting{differs === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
+      </div>
+      {isInstalled && <InstalledMark />}
+      {/* Floats over the row's end, so hidden actions take no room. */}
+      <div className="absolute inset-y-0 right-3 flex items-center gap-0.5 pointer-events-none bg-surface-hover pl-2 opacity-0 transition-opacity duration-(--duration-fast) group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100">
+        {!isInstalled && <InstallSeed id={e.id} />}
+        <TipButton
+          label="Use settings"
+          tip={
+            differs === 0
+              ? "Your settings already match this seed's"
+              : "Use this seed's settings for the next one. Plando and flag edits stay behind"
+          }
+          variant="ghost"
+          disabled={differs === 0}
+          onClick={() => takeSettings(e)}
+        >
+          <SlidersHorizontal />
+        </TipButton>
+        <TipButton
+          label="Spoiler"
+          tip="Spoiler Log"
+          variant="ghost"
+          onClick={() => openSpoiler(e)}
+        >
+          <ScrollText />
+        </TipButton>
+        <CopySeed entry={e} variant="ghost" size="icon-sm" />
+        <TipButton
+          label="Label seed"
+          tip="Name this seed or note what it's for"
+          variant="ghost"
+          onClick={() => openLabel(e)}
+        >
+          <Pencil />
+        </TipButton>
+        <DeleteSeed id={e.id} installed={isInstalled} />
+      </div>
+    </li>
+  );
+});

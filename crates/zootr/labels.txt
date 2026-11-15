@@ -1,0 +1,43 @@
+# Our own names for GameData values the game never names, shown next to the
+# hash. One per line: hash, then the label. A `?` marks a guess.
+a4aee8cd Player_Rot_For_Map
+c66e58f2 rupees shown on the HUD? trails CurrentRupee by one step
+e53eb6d1 play time in seconds? ticks with e573f564
+e573f564 play time in seconds? ticks with e53eb6d1
+# Matched by hash. Unread by every flow, and
+# all false in an early save, so what they gate is unknown.
+b43c6db8 IsVisitLocation.BottomOfTheWell, a hash match
+d0e4b0da IsVisitLocation.DeathMountainCrater, a hash match
+3c72143a IsVisitLocation.DeathMountainTrail, a hash match
+607d9fe6 IsVisitLocation.DesertColossus, a hash match
+f40f022c IsVisitLocation.DodongoCavern, a hash match
+029c8eef IsVisitLocation.DreamWorld, a hash match
+0dc6bad4 IsVisitLocation.FireTemple, a hash match
+9678793b IsVisitLocation.ForestTemple, a hash match
+dfdc011d IsVisitLocation.GanonCastle, a hash match
+3d07b702 IsVisitLocation.GerudoFortress, a hash match
+d36129a6 IsVisitLocation.GerudoTrainingGround, a hash match
+5a6c8704 IsVisitLocation.GerudoValley, a hash match
+ecf401b9 IsVisitLocation.GoronCity, a hash match
+671a6e1b IsVisitLocation.Graveyard, a hash match
+6160c3ec IsVisitLocation.HountedWasteland, a hash match
+b7c0f231 IsVisitLocation.HyruleCastle, a hash match
+dda673cb IsVisitLocation.HyruleField, a hash match
+a9bbc0e4 IsVisitLocation.IceCavern, a hash match
+db98688c IsVisitLocation.IngoRanch, a hash match
+607a448c IsVisitLocation.InsideGanonCastle, a hash match
+9e5ca01c IsVisitLocation.InsideJabuJabuBelly, a hash match
+94493c6f IsVisitLocation.InsideTheDekuTree, a hash match
+5c9e740f IsVisitLocation.KakarikoVillage, a hash match
+2e315eb6 IsVisitLocation.KokiriForest, a hash match
+36778630 IsVisitLocation.LakeHylia, a hash match
+009c5b53 IsVisitLocation.LonLonRanch, a hash match
+bd536912 IsVisitLocation.LostWood, a hash match
+c88633f0 IsVisitLocation.Market, a hash match
+eb724c83 IsVisitLocation.SacredForestMeadow, a hash match
+1f9a9780 IsVisitLocation.ShadowTemple, a hash match
+20e6e16d IsVisitLocation.SpiritTemple, a hash match
+463a8f77 IsVisitLocation.WaterTemple, a hash match
+ede02703 IsVisitLocation.ZoraDomain, a hash match
+5de8bbd8 IsVisitLocation.ZoraFountain, a hash match
+2e975eed IsVisitLocation.ZoraRiver, a hash match

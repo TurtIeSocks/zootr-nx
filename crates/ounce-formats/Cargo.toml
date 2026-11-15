@@ -1,0 +1,16 @@
+[package]
+name = "ounce-formats"
+version = "0.1.0"
+description = "Readers and writers for the Ounce engine's romfs formats (zstd dictionaries, BYML, SARC, RESTBL)"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+roead.workspace = true
+zstd.workspace = true
+texture2ddecoder.workspace = true
+
+[features]
+fixture = []

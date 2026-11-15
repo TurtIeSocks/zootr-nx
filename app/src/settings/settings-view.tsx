@@ -1,0 +1,67 @@
+import type { ReactNode } from "react";
+import { InlineError } from "@/components/callout";
+import { useRequest } from "@/lib/request";
+import { RequestProvider } from "@/lib/request-provider";
+import { AppSettings } from "@/settings/app-settings";
+import { DriftBar } from "@/settings/drift-bar";
+import { GroupPage } from "@/settings/group-page";
+import { PlandoPane } from "@/settings/plando-pane";
+import { SavePane } from "@/settings/save-pane";
+import { TargetsPane } from "@/settings/targets-pane";
+import { TestPane } from "@/settings/test-pane";
+import { Page } from "@/shell/page-header";
+import { useConfig } from "@/stores/config";
+import { useSeeds } from "@/stores/seeds";
+import { useUi } from "@/stores/ui";
+
+/** A settings group's page, or one of the app's panes, in the page frame. */
+export function SettingsView() {
+  const [section] = useUi.usePath("section");
+  return <Page>{PANES[section] ?? <Group group={section} />}</Page>;
+}
+
+/** The app's own panes, by section. Any other section is a schema group. */
+const PANES: Partial<Record<string, ReactNode>> = {
+  settings: <AppSettings />,
+  targets: <TargetsPane />,
+  save: <SavePane />,
+  test: <Test />,
+  plando: <PlandoPane />,
+};
+
+/** The test setup's form, reset whenever the saved setup changes. */
+function Test() {
+  const [test] = useConfig.usePath("config.test");
+  return <TestPane key={JSON.stringify(test)} />;
+}
+
+/** Props for {@link Group}. */
+interface GroupProps {
+  /** The schema group to show. */
+  group: string;
+}
+
+/** A schema group's page, then why its reset or a seed action failed, then
+ * the drift bar. */
+function Group({ group }: GroupProps) {
+  return (
+    <RequestProvider>
+      <GroupPage group={group} />
+      <GroupError />
+      <Drift />
+    </RequestProvider>
+  );
+}
+
+/** Why the group's reset failed, or else why the last seed action did. */
+function GroupError() {
+  const { error } = useRequest();
+  const [failed] = useSeeds.usePath("error");
+  return <InlineError error={error ?? failed} />;
+}
+
+/** The drift bar, while the settings differ from the installed seed's. */
+function Drift() {
+  const drifted = useSeeds((s) => s.drift.length > 0);
+  return drifted && <DriftBar />;
+}

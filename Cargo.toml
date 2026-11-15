@@ -1,0 +1,53 @@
+[workspace]
+resolver = "3"
+members = ["app/src-tauri", "crates/nup-format", "crates/ounce-formats", "crates/zootr", "crates/zootr-hook"]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+publish = false
+
+[workspace.dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive", "env"] }
+jiff = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+toml = "1"
+roead = { version = "1.0.0", default-features = false, features = ["byml", "sarc"] }
+zstd = "0.13"
+yaxpeax-arch = { version = "0.3", default-features = false }
+yaxpeax-arm = { version = "0.5", default-features = false, features = ["std", "fmt"] }
+texture2ddecoder = "0.1.2"
+png = "0.18"
+nup-format = { path = "crates/nup-format" }
+ounce-formats = { path = "crates/ounce-formats" }
+zootr = { path = "crates/zootr" }
+zootr-hook = { path = "crates/zootr-hook" }
+# Pinned exact: tauri-specta is still a release candidate and
+# needs the matching specta rc.
+specta = { version = "=2.0.0-rc.26", features = ["derive", "serde_json"] }
+specta-typescript = "0.0.13"
+tauri = "2.12.5"
+tauri-build = "2.7.4"
+tauri-plugin-dialog = "2.8.4"
+tauri-plugin-opener = "2.7.3"
+tauri-specta = { version = "=2.0.0-rc.26", features = ["typescript"] }
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+# zstd and BYML parsing over thousands of files is painfully slow unoptimised.
+opt-level = 3
+
+# Ours too: the BYML and zstd code they call is generic, so it compiles into
+# them, and unoptimised a seed took 20 s to generate instead of 5.
+[profile.dev.package.ounce-formats]
+opt-level = 3
+
+[profile.dev.package.nup-format]
+opt-level = 3

@@ -1,0 +1,35 @@
+[package]
+name = "zootr"
+version = "0.1.0"
+description = "Randomizer generator for Ocarina of Time on Switch 2"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+jiff.workspace = true
+nup-format.workspace = true
+ounce-formats.workspace = true
+png.workspace = true
+roead.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+specta = { workspace = true, optional = true }
+zootr-hook.workspace = true
+zstd.workspace = true
+
+[build-dependencies]
+zootr-hook.workspace = true
+
+[dev-dependencies]
+nup-format = { workspace = true, features = ["fixture"] }
+ounce-formats = { workspace = true, features = ["fixture"] }
+yaxpeax-arch.workspace = true
+yaxpeax-arm.workspace = true
+
+[features]
+# `specta::Type` on the API types, for the app's generated TypeScript
+specta = ["dep:specta"]

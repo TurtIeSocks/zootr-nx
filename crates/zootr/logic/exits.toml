@@ -1,0 +1,337 @@
+# What an exit between two maps needs. The game's exits are area sensors
+# that need nothing, so each rule here is an NPC, a door or a hazard on the
+# way, written from the original game and on the playtest list.
+#
+# A rule covers the exit in every era it exists in. An exit the game's data
+# doesn't have, like a boss door, says `added = true`.
+
+# Kokiri Forest
+
+[[exit]]
+from = "KokiriForest_Child"
+to = "HyruleField_Child"
+needs = "setting:open-forest or Beat_Gohma"
+
+[[exit]]
+from = "KokiriForest_Child"
+to = "InsideTheDekuTree"
+needs = "setting:open-forest or (kokiri-sword and deku-shield)"
+
+# The tree is dead by then.
+[[exit]]
+from = "KokiriForest_Adult"
+to = "InsideTheDekuTree"
+needs = "child"
+
+# Lost Woods
+
+[[exit]]
+from = "LostWood_Child"
+to = "GoronCity_Child"
+needs = "explosives or hammer"
+
+[[exit]]
+from = "LostWood_Adult"
+to = "GoronCity_Adult"
+needs = "explosives or hammer"
+
+[[exit]]
+from = "GoronCity_Child"
+to = "LostWood_Child"
+needs = "explosives or hammer"
+
+[[exit]]
+from = "GoronCity_Adult"
+to = "LostWood_Adult"
+needs = "explosives or hammer"
+
+[[exit]]
+from = "LostWood_Child"
+to = "ZoraRiver_Child"
+needs = "silver-scale"
+
+[[exit]]
+from = "LostWood_Adult"
+to = "ZoraRiver_Adult"
+needs = "silver-scale"
+
+[[exit]]
+from = "ZoraRiver_Child"
+to = "LostWood_Child"
+needs = "silver-scale"
+
+[[exit]]
+from = "ZoraRiver_Adult"
+to = "LostWood_Adult"
+needs = "silver-scale"
+
+[[exit]]
+from = "SacredForestMeadow_Child"
+to = "ForestTemple"
+needs = "hookshot"
+
+[[exit]]
+from = "SacredForestMeadow_Adult"
+to = "ForestTemple"
+needs = "hookshot"
+
+# Market and the Temple of Time
+
+# The Door of Time, then the Master Sword.
+[[exit]]
+from = "Market_Child"
+to = "Market_Adult"
+added = true
+needs = "setting:open-door-of-time or (Beat_Gohma and Beat_KingDodongo and Beat_Barinade and Item_Ocarina_Time and song-of-time)"
+
+[[exit]]
+from = "Market_Adult"
+to = "Market_Child"
+added = true
+needs = "always"
+
+[[exit]]
+from = "Market_Adult"
+to = "GanonCastle"
+needs = "setting:rainbow-bridge or (Item_Medal_Forest and Item_Medal_Fire and Item_Medal_Water and Item_Medal_Shadow and Item_Medal_Spirit and Item_Medal_Light and Beat_BongoBongo and Beat_Twinrova)"
+
+# Kakariko and the graveyard
+
+[[exit]]
+from = "KakarikoVillage_Child"
+to = "DeathMountainTrail_Child"
+needs = "setting:kakariko-gate or Item_ZeldaLetter"
+
+# The windmill drains the well, and only child Link fits inside.
+[[exit]]
+from = "KakarikoVillage_Child"
+to = "BottomOfTheWell"
+needs = "song-of-storms"
+
+[[exit]]
+from = "KakarikoVillage_Adult"
+to = "BottomOfTheWell"
+needs = "child"
+
+[[exit]]
+from = "KakarikoVillage_Adult_Alternative"
+to = "BottomOfTheWell"
+needs = "child"
+
+# The door is up by the Nocturne pad, behind torches.
+[[exit]]
+from = "Graveyard_Child"
+to = "ShadowTemple"
+needs = "adult"
+
+[[exit]]
+from = "Graveyard_Adult"
+to = "ShadowTemple"
+needs = "fire and ocarina and Item_Melody_ShadowNocturne"
+
+# Death Mountain
+
+[[exit]]
+from = "DeathMountainTrail_Child"
+to = "DodongoCavern"
+needs = "explosives or goron-bracelet"
+
+[[exit]]
+from = "DeathMountainTrail_Adult"
+to = "DodongoCavern"
+needs = "explosives or goron-bracelet or hammer"
+
+[[exit]]
+from = "DeathMountainTrail_Child"
+to = "DeathMountainCrater_Child"
+needs = "explosives or hammer"
+
+[[exit]]
+from = "DeathMountainTrail_Adult"
+to = "DeathMountainCrater_Adult"
+needs = "explosives or hammer"
+
+# Darunia's door.
+[[exit]]
+from = "GoronCity_Child"
+to = "DeathMountainCrater_Child"
+needs = "zeldas-lullaby"
+
+# Stopping the rolling Goron opens it.
+[[exit]]
+from = "GoronCity_Adult"
+to = "DeathMountainCrater_Adult"
+needs = "explosives"
+
+[[exit]]
+from = "DeathMountainCrater_Child"
+to = "FireTemple"
+needs = "adult"
+
+[[exit]]
+from = "DeathMountainCrater_Adult"
+to = "FireTemple"
+needs = "crater-floor"
+
+# Zora's River and Domain
+
+[[exit]]
+from = "ZoraRiver_Child"
+to = "ZoraDomain_Child"
+needs = "zeldas-lullaby"
+
+[[exit]]
+from = "ZoraRiver_Adult"
+to = "ZoraDomain_Adult"
+needs = "zeldas-lullaby"
+
+# Lake Hylia's underwater tunnel.
+[[exit]]
+from = "HyruleField_Child"
+to = "ZoraDomain_Child"
+needs = "silver-scale"
+
+[[exit]]
+from = "HyruleField_Adult"
+to = "ZoraDomain_Adult"
+needs = "silver-scale"
+
+[[exit]]
+from = "ZoraDomain_Child"
+to = "HyruleField_Child"
+needs = "silver-scale"
+
+[[exit]]
+from = "ZoraDomain_Adult"
+to = "HyruleField_Adult"
+needs = "silver-scale"
+
+[[exit]]
+from = "ZoraDomain_Adult_Alternative"
+to = "HyruleField_Adult"
+needs = "silver-scale"
+
+# King Zora moves for Ruto's letter.
+[[exit]]
+from = "ZoraDomain_Child"
+to = "ZoraFountain_Child"
+needs = "Item_Bottle_Letter"
+
+[[exit]]
+from = "ZoraDomain_Adult"
+to = "ZoraFountain_Adult"
+needs = "Item_Bottle_Letter"
+
+[[exit]]
+from = "ZoraDomain_Adult_Alternative"
+to = "ZoraFountain_Adult"
+needs = "Item_Bottle_Letter"
+
+# Jabu-Jabu opens for a fish.
+[[exit]]
+from = "ZoraFountain_Child"
+to = "InsideJabuJabuBelly"
+needs = "bottle"
+
+[[exit]]
+from = "HyruleField_Child"
+to = "WaterTemple"
+needs = "adult"
+
+[[exit]]
+from = "HyruleField_Adult"
+to = "WaterTemple"
+needs = "iron-boots and zora-tunic and hookshot"
+
+# Gerudo Valley and the desert
+
+[[exit]]
+from = "GerudoValley_Adult"
+to = "GerudoFortress_Adult"
+needs = "setting:carpenters-freed or longshot or eponas-song"
+
+[[exit]]
+from = "GerudoFortress_Adult"
+to = "GerudoTrainingGround"
+needs = "Item_Token_Gerudo"
+
+[[exit]]
+from = "GerudoFortress_Adult"
+to = "HountedWasteland_Adult"
+needs = "Item_Token_Gerudo and (longshot or hover-boots)"
+
+[[exit]]
+from = "HountedWasteland_Adult"
+to = "GerudoFortress_Adult"
+needs = "longshot or hover-boots"
+
+[[exit]]
+from = "HountedWasteland_Child"
+to = "DesertColossus_Child"
+needs = "lens"
+
+[[exit]]
+from = "HountedWasteland_Adult"
+to = "DesertColossus_Adult"
+needs = "lens"
+
+[[exit]]
+from = "DesertColossus_Adult"
+to = "HountedWasteland_Adult"
+needs = "lens"
+
+# Boss doors. Boss keys are `always`, like small keys.
+
+[[exit]]
+from = "InsideTheDekuTree"
+to = "GohmaStage"
+added = true
+needs = "slingshot and (sticks or fire)"
+
+[[exit]]
+from = "DodongoCavern"
+to = "DodongoStage"
+added = true
+needs = "explosives"
+
+[[exit]]
+from = "InsideJabuJabuBelly"
+to = "BarinadeStage"
+added = true
+needs = "boomerang"
+
+[[exit]]
+from = "ForestTemple"
+to = "PhantomGanonStage"
+added = true
+needs = "bow and hookshot"
+
+[[exit]]
+from = "FireTemple"
+to = "VolvagiaStage"
+added = true
+needs = "hammer and goron-tunic"
+
+[[exit]]
+from = "WaterTemple"
+to = "MorphaStage"
+added = true
+needs = "longshot and iron-boots and zora-tunic"
+
+[[exit]]
+from = "ShadowTemple"
+to = "BongoBongoStage"
+added = true
+needs = "lens and hover-boots and bow and explosives and zeldas-lullaby"
+
+[[exit]]
+from = "SpiritTemple"
+to = "TwinrovaStage"
+added = true
+needs = "silver-gauntlets and mirror-shield and hookshot and explosives and lens and ocarina and Item_Melody_SpiritRequiem"
+
+[[exit]]
+from = "InsideGanonCastle"
+to = "GanondorfStage"
+added = true
+needs = "setting:trials-done and magic and bow and Item_Arrow_Light"

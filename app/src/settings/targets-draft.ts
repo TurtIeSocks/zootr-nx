@@ -1,0 +1,123 @@
+import type { Target } from "@/bindings";
+import { splitLines } from "@/lib/format";
+
+/** A target as the form edits it: every field a string. */
+export interface Draft {
+  name: string;
+  app: string;
+  args: string;
+  mod_dir: string;
+  save_dir: string;
+  line_file: string;
+  /** One settings line per row. */
+  lines: string;
+  /** Not edited here, only kept. */
+  control: string;
+}
+
+/** A saved target as the form edits it. */
+export const toDraft = (t: Target): Draft => ({
+  name: t.name,
+  app: t.app,
+  args: t.args?.join(" ") ?? "",
+  mod_dir: t.mod_dir,
+  save_dir: t.save_dir ?? "",
+  line_file: t.settings_file?.file ?? "",
+  lines: t.settings_file?.lines?.join("\n") ?? "",
+  control: t.control ?? "",
+});
+
+/** The target a draft saves as, trimmed, with blank options left out. */
+export const toTarget = (d: Draft): Target => ({
+  name: d.name.trim(),
+  app: d.app.trim(),
+  args: d.args.split(/\s+/).filter(Boolean),
+  mod_dir: d.mod_dir.trim(),
+  save_dir: d.save_dir.trim() || null,
+  settings_file:
+    d.line_file.trim() && splitLines(d.lines).length
+      ? { file: d.line_file.trim(), lines: splitLines(d.lines) }
+      : null,
+  control: d.control || null,
+});
+
+/** A new target with nothing filled in. */
+export const BLANK: Draft = toDraft({ name: "", app: "", mod_dir: "" });
+
+/** The drafts with `t` added, numbered past any name already taken. */
+export function withTarget(drafts: Draft[], t: Target): Draft[] {
+  const taken = new Set(drafts.map((d) => d.name.trim()));
+  let name = t.name;
+  for (let n = 2; taken.has(name); n++) name = `${t.name} ${n}`;
+  return [...drafts, toDraft({ ...t, name })];
+}
+
+/** Whether `d` is what's saved under its name, so its export is what shows. */
+export const isSaved = (targets: Target[], d: Draft) => {
+  const t = targets.find((t) => t.name === d.name.trim());
+  return t !== undefined && JSON.stringify(toDraft(t)) === JSON.stringify(d);
+};
+
+/** One edited field of a target. */
+export interface DraftField {
+  key: Exclude<keyof Draft, "control">;
+  label: string;
+  /** The placeholder: what goes there. */
+  hint: string;
+  /** What its Browse button picks, if it has one. */
+  pick?: "folder" | "file";
+}
+
+/** The fields each target card shows, in order. */
+export const FIELDS: DraftField[] = [
+  { key: "name", label: "Name", hint: "Shown in the Play picker" },
+  {
+    key: "app",
+    label: "App",
+    hint: "What Play opens, e.g. /Applications/Some Runner.app",
+    pick: "file",
+  },
+  {
+    key: "args",
+    label: "Launch arguments (optional)",
+    hint: "-g {game}: {game} becomes your game dump",
+  },
+  {
+    key: "mod_dir",
+    label: "Mod folder",
+    hint: "The folder the runner loads as a mod. Install writes romfs/ here",
+    pick: "folder",
+  },
+  {
+    key: "save_dir",
+    label: "Save folder (optional)",
+    hint: "The folder holding slot_00, slot_01 and so on",
+    pick: "folder",
+  },
+  {
+    key: "line_file",
+    label: "Settings file (optional)",
+    hint: "For runners that read the mod path from a settings file",
+    pick: "file",
+  },
+  {
+    key: "lines",
+    label: "Settings lines (optional)",
+    hint: "One KEY=VALUE per line. {romfs} becomes the mod's romfs folder, {cheats} its cheat folder",
+  },
+];
+
+/** Why the drafts can't be saved as they are, or "" when they can. */
+export function problem(drafts: Draft[]): string {
+  const names = drafts.map((d) => d.name.trim());
+  if (
+    drafts.some((d) => !d.name.trim() || !d.app.trim() || !d.mod_dir.trim())
+  ) {
+    return "Each target needs a name, an app and a mod folder";
+  }
+  if (new Set(names).size !== names.length) return "Target names must differ";
+  if (drafts.some((d) => splitLines(d.lines).some((l) => !l.includes("=")))) {
+    return "A settings line looks like KEY={romfs}";
+  }
+  return "";
+}

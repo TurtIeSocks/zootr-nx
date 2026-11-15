@@ -1,0 +1,6 @@
+# esbuild's install script only checks the binary its platform package carries.
+allowBuilds:
+  esbuild: false
+minimumReleaseAgeExclude:
+  - dot.paths@0.2.3
+  - zustand-dot@1.4.0

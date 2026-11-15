@@ -1,0 +1,67 @@
+# Boss heart containers. Each is placed in its dungeon's boss room, so
+# this puts it on the boss's stage, past the boss door in `exits.toml`.
+# Beating the boss is taken as reaching it, as the medallion sources do.
+
+[[check]]
+hash = 17948245526767051747
+name = "Deku Tree heart container"
+place = "GohmaStage"
+era = "child"
+needs = "always"
+setting = "boss-hearts"
+
+[[check]]
+hash = 5936534468710061389
+name = "Dodongo's Cavern heart container"
+place = "DodongoStage"
+era = "child"
+needs = "always"
+setting = "boss-hearts"
+
+[[check]]
+hash = 17608884438514432711
+name = "Jabu-Jabu's Belly heart container"
+place = "BarinadeStage"
+era = "child"
+needs = "always"
+setting = "boss-hearts"
+
+[[check]]
+hash = 18379569660496940670
+name = "Forest Temple heart container"
+place = "PhantomGanonStage"
+era = "adult"
+needs = "always"
+setting = "boss-hearts"
+
+[[check]]
+hash = 9478330070473364248
+name = "Fire Temple heart container"
+place = "VolvagiaStage"
+era = "adult"
+needs = "always"
+setting = "boss-hearts"
+
+[[check]]
+hash = 14426685265732353862
+name = "Water Temple heart container"
+place = "MorphaStage"
+era = "adult"
+needs = "always"
+setting = "boss-hearts"
+
+[[check]]
+hash = 17599164808183510748
+name = "Shadow Temple heart container"
+place = "BongoBongoStage"
+era = "adult"
+needs = "always"
+setting = "boss-hearts"
+
+[[check]]
+hash = 4720088048159616469
+name = "Spirit Temple heart container"
+place = "TwinrovaStage"
+era = "adult"
+needs = "always"
+setting = "boss-hearts"

@@ -1,0 +1,28 @@
+# Hyrule Field. Rules from the original game, on the playtest list.
+
+# The grotto left of the castle drawbridge, under a rock a blast or a
+# hammer opens. Its crates lie at the bottom of the pond: Iron Boots
+# sink Link to them and a roll breaks them.
+[[check]]
+hash = 4293238463102171135
+name = "Grotto pond crate, child"
+needs = "(explosives or hammer) and iron-boots"
+setting = "crates"
+
+[[check]]
+hash = 13505816572168486267
+name = "Grotto pond crate 2, child"
+needs = "(explosives or hammer) and iron-boots"
+setting = "crates"
+
+[[check]]
+hash = 4706627579492125828
+name = "Grotto pond crate"
+needs = "(explosives or hammer) and iron-boots"
+setting = "crates"
+
+[[check]]
+hash = 13942975907881711341
+name = "Grotto pond crate 2"
+needs = "(explosives or hammer) and iron-boots"
+setting = "crates"

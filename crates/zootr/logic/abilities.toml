@@ -1,0 +1,85 @@
+# Ability words, shared by the rule files and the obstacle tool table.
+# Each one is a rule over item actors, `child` or `adult`, `setting:<id>`,
+# `flag:<name>`, `always` and other abilities.
+#
+# Era limits follow the original game until a playtest says otherwise.
+
+explosives = "bombs or bombchus"
+bombs = "Item_BombBag_Small"
+bombchus = "(Item_BombchuBundle_Small or Item_BombchuBundle_Medium or Item_BombchuBundle_Large) and (bombs or setting:free-bombchus)"
+
+hammer = "adult and Item_Hammer"
+goron-bracelet = "Item_Gauntlet_Goron"
+silver-gauntlets = "adult and Item_Gauntlet_Silver"
+gold-gauntlets = "adult and Item_Gauntlet_Gold"
+
+slingshot = "child and Item_Range_SlingShot"
+bow = "adult and Item_Range_Bow"
+boomerang = "child and Item_Boomerang"
+hookshot = "adult and Item_Hookshot"
+longshot = "adult and Item_Longshot"
+
+magic = "Item_FairyBless_MP"
+mirror-shield = "adult and Item_Shield_Mirror"
+fire = "(magic and Item_DinFire) or (magic and bow and Item_Arrow_Fire)"
+bottle = "Item_Bottle or Item_Bottle_Letter or Item_Bottle_Milk"
+blue-fire = "adult and bottle"
+light = "adult and (Item_Shield_Mirror or (magic and bow and Item_Arrow_Light))"
+lens = "magic and Item_GlassTruth"
+
+kokiri-sword = "child and Item_Sword_Kokiri"
+deku-shield = "child and TBox_Shield_Deku"
+# Deku Babas drop them and the Kokiri shop sells them. Only child Link
+# holds them, and they carry fire from a lit torch.
+sticks = "child"
+silver-scale = "Item_Scale_Silver"
+# Past the two boulders at Zora River's mouth: blown up, broken by the
+# hammer, or skipped down the Lost Woods shortcut, which lands upriver.
+zora-river = "explosives or hammer or silver-scale"
+iron-boots = "adult and Item_HeavyBoot"
+hover-boots = "adult and Item_HoverBoot"
+# Shops sell the pouch item, the givers hand over the pickup actor.
+zora-tunic = "adult and (Armor_Adult_Zora or Obj_Armor_Zora)"
+goron-tunic = "adult and (Armor_Adult_Goron or Obj_Armor_Goron)"
+# The crater floor past the broken bridge: Sheik and the Fire Temple door.
+# Either side of the crater ends at a gap only these cross, and Bolero of
+# Fire lands past it.
+crater-floor = "goron-tunic and (hookshot or hover-boots or (ocarina and Item_Melody_FireBolero))"
+
+# Hyrule Castle's courtyard, past Talon asleep by the crates. Only the cucco
+# that hatches from the Weird Egg wakes him, and an egg from anywhere hatches.
+courtyard = "Item_WeirdEgg"
+
+ocarina = "Item_Ocarina_Fairy"
+zeldas-lullaby = "ocarina and Item_Melody_ZeldaLullaby"
+eponas-song = "ocarina and Item_Melody_EponaSong"
+sarias-song = "ocarina and Item_Melody_SariaSong"
+song-of-storms = "ocarina and Item_Melody_StormSong"
+song-of-time = "ocarina and Item_Melody_TimeSong"
+scarecrow = "hookshot and ocarina and Item_Melody_ScarecrowSong"
+magic-beans = "Item_MagicBean"
+
+# The masks the Deku Theater asks for, which the Happy Mask Shop lends. The
+# shop opens once the Kakariko guard has seen the letter. The Mask of Truth
+# comes after every mask is sold, and the Skull Kid who buys the Skull Mask
+# needs Saria's Song.
+skull-mask = "Item_ZeldaLetter"
+mask-of-truth = "skull-mask and sarias-song"
+
+# Keys stay in their vanilla chests, and the vanilla game reaches each one
+# before its door. With `keys` at start Link holds every key from the
+# beginning, so this is true by construction. Silver rupees sit in the
+# room they open. Dig spots are on the playtest list.
+small-key = "always"
+silver-rupees = "always"
+digging = "always"
+
+# Many Gold Skulltulas sit up a wall, and which ones isn't read yet, so
+# logic wants a way to reach every one.
+gold-skulltula = "boomerang or hookshot"
+# A Business Scrub sells only once stunned: hit with a weapon, or its
+# nut sent back off a shield. The adult always has the Master Sword.
+stun-scrub = "adult or kokiri-sword or deku-shield or sticks or slingshot or boomerang"
+# Kakariko's beehives hang 4.6 m up under an overhang. Their DamageRates
+# give the slingshot seed 0, and a bomb's blast falls short of them.
+knock-down = "bow or boomerang or hookshot"

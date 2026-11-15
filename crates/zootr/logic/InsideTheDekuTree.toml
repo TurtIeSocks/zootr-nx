@@ -1,0 +1,24 @@
+# Inside the Deku Tree. Rules from the original game, on the playtest list.
+
+# Link drops to the basement through the web on the first floor.
+[[check]]
+hash = 12889104996486369065
+name = "Lower Three Deku Sticks"
+needs = "always"
+
+# The room's door opens once the Deku Scrub is beaten, by sending its nut
+# back with the shield.
+[[check]]
+hash = 821372075822700622
+name = "Upper Fairy Slingshot"
+needs = "deku-shield"
+
+[[check]]
+hash = 13027331340815880287
+name = "Upper Three Deku Nuts 1"
+needs = "always"
+
+[[check]]
+hash = 11368028582977069031
+name = "Upper Three Deku Nuts 2"
+needs = "always"

@@ -1,0 +1,251 @@
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
+import type { GameOptions, Info } from "@/bindings";
+import { type FullConfig, full, fullTest, NO_TEST } from "@/lib/config";
+import { TestPane } from "@/settings/test-pane";
+import { useConfig } from "@/stores/config";
+
+const setConfig = vi.fn((_c: FullConfig) =>
+  Promise.resolve({ status: "ok", data: null }),
+);
+
+/** A quest's saved step, as `dev_value` reads it. */
+const QUEST: Info = {
+  kind: "Enum",
+  input: "choice",
+  choices: ["Step01", "Step02"],
+  default: "Step01",
+};
+
+/** A scan that found nothing. */
+const NONE: GameOptions = { places: [], spawns: [], items: [], names: [] };
+
+/** Answers the option scan by hand instead, when set. */
+const scans: { answer?: () => Promise<GameOptions> } = {};
+
+vi.mock("@/bindings", () => ({
+  commands: {
+    gameOptions: async () => ({
+      status: "ok",
+      data: scans.answer
+        ? await scans.answer()
+        : {
+            places: [],
+            spawns: ["Graveyard_Child/ShadowNocturne"],
+            items: ["Item_GlassTruth", "Item_Bomb"],
+            names: ["IsGet.Item_Bomb", "Step_SageOfSpirit"],
+          },
+    }),
+    devValue: async (name: string) => ({
+      status: "ok",
+      data: {
+        info:
+          name === "Step_SageOfSpirit"
+            ? QUEST
+            : {
+                kind: "Bool",
+                input: "choice",
+                choices: ["true", "false"],
+                default: "false",
+              },
+        game: false,
+        live: null,
+      },
+    }),
+    devActors: async () => ({ status: "ok", data: { Npc_Poe: 1 } }),
+    shuffleCommand: () =>
+      Promise.resolve({ status: "ok", data: "zootr shuffle --give Item_Bomb" }),
+    setConfig: (c: FullConfig) => setConfig(c),
+  },
+}));
+
+afterEach(() => {
+  cleanup();
+  setConfig.mockClear();
+  scans.answer = undefined;
+});
+
+/** What was last saved is what the store now holds, so a later save builds
+ * on it. */
+function show(config: FullConfig = full({})) {
+  useConfig.setPath("config", config);
+  render(<TestPane />);
+  return setConfig;
+}
+
+const button = (name: string) =>
+  screen.getByRole("button", { name }) as HTMLButtonElement;
+const type = (label: string, value: string) =>
+  fireEvent.change(screen.getByLabelText(label), { target: { value } });
+/** Types a whole `NAME=VALUE` row and adds it. */
+const add = (label: string, noun: string, line: string) => {
+  type(label, line);
+  fireEvent.click(button(`Add ${noun}`));
+};
+
+test("saves a spawn, known items, flags and goals as the test setup", async () => {
+  const onChange = show();
+  await waitFor(() =>
+    expect(screen.getByPlaceholderText("Item_GlassTruth")).toBeTruthy(),
+  );
+  expect(button("Save").disabled).toBe(true);
+  type("Spawn", "Graveyard_Child/ShadowNocturne");
+  type("Near", " Npc_Poe ");
+  fireEvent.click(button("Back"));
+  type("Items", "Item_Nope");
+  expect(screen.getByText("Not a pouch item")).toBeTruthy();
+  expect(button("Add item").disabled).toBe(true);
+  type("Items", "Item_GlassTruth");
+  fireEvent.click(button("Add item"));
+  add("New-game flags", "flag", "A=1");
+  add("New-game flags", "flag", " B=2 ");
+  add("Quest steps", "quest step", "SageOfSpirit=Step02");
+  add("Quest steps", "quest step", "Goto_HyruleCastle=Step02");
+  add("Goals", "goal", "C=true");
+  type("Expect", " a lens ");
+  fireEvent.click(button("Save"));
+  expect(onChange).toHaveBeenCalledWith({
+    ...full({}),
+    test: {
+      spawn: "Graveyard_Child/ShadowNocturne",
+      give: ["Item_GlassTruth"],
+      defaults: ["A=1", "B=2"],
+      progress: ["SageOfSpirit=Step02", "Goto_HyruleCastle=Step02"],
+      near: "Npc_Poe",
+      side: "back",
+      hour: null,
+      goals: ["C=true"],
+      expect: "a lens",
+    },
+  });
+});
+
+test("quest steps alone make a setup that clears and saves", async () => {
+  const config = full({ test: { progress: ["SageOfSpirit=Step02"] } });
+  const onChange = show(config);
+  fireEvent.click(button("Remove SageOfSpirit=Step02"));
+  add("Quest steps", "quest step", "Goto_HyruleCastle=Step02");
+  fireEvent.click(button("Save"));
+  expect(onChange).toHaveBeenLastCalledWith({
+    ...config,
+    test: { ...config.test, progress: ["Goto_HyruleCastle=Step02"] },
+  });
+  await waitFor(() => expect(button("Clear").disabled).toBe(false));
+  fireEvent.click(button("Clear"));
+  expect(onChange).toHaveBeenLastCalledWith({ ...config, test: NO_TEST });
+  expect(screen.queryByText("Goto_HyruleCastle=Step02")).toBeNull();
+});
+
+test("a known quest offers its steps, starting at a new game's", async () => {
+  show();
+  await waitFor(() =>
+    expect(screen.getByPlaceholderText("Item_GlassTruth")).toBeTruthy(),
+  );
+  type("Quest steps", "SageOfSpirit");
+  const select = () => screen.getByLabelText("Quest steps value");
+  await waitFor(() => expect(select().tagName).toBe("SELECT"));
+  const step = select() as HTMLSelectElement;
+  await waitFor(() => expect(step.value).toBe("Step01"));
+  fireEvent.change(step, { target: { value: "Step02" } });
+  fireEvent.click(button("Add quest step"));
+  expect(screen.getByText("SageOfSpirit=Step02")).toBeTruthy();
+  type("Quest steps", "NoSuchQuest");
+  expect(screen.getByText(/no quest by that name/)).toBeTruthy();
+});
+
+test("near suggests the spawn map's actors", async () => {
+  show();
+  type("Spawn", "Graveyard_Child/ShadowNocturne");
+  type("Near", "Poe");
+  const list = await screen.findByLabelText("Near suggestions");
+  expect(list.textContent).toBe("Npc_Poe");
+});
+
+test("warns on an unknown spawn", async () => {
+  show();
+  await waitFor(() =>
+    expect(screen.getByPlaceholderText("Item_GlassTruth")).toBeTruthy(),
+  );
+  type("Spawn", "Nowhere/AtAll");
+  expect(screen.getByText(/never sends Link there/)).toBeTruthy();
+});
+
+test("clear empties a stored setup and removing an item drops it", async () => {
+  const config = full({
+    test: { spawn: null, give: ["Item_Bomb", "Item_GlassTruth"], defaults: [] },
+  });
+  const onChange = show(config);
+  fireEvent.click(button("Remove Item_Bomb"));
+  expect(screen.queryByText("Item_Bomb")).toBeNull();
+  fireEvent.click(button("Clear"));
+  expect(onChange).toHaveBeenCalledWith({
+    ...config,
+    test: NO_TEST,
+  });
+});
+
+test("saves a setup by name, switches to one and deletes one", async () => {
+  const well = fullTest({
+    spawn: "BottomOfTheWell/Well_KakarikoSide",
+    give: ["Item_GlassTruth"],
+  });
+  const config = full({ saved_tests: { Well: well } });
+  const onChange = show(config);
+  expect(button("Save as").disabled).toBe(true);
+  fireEvent.click(button("Well"));
+  expect(onChange).toHaveBeenLastCalledWith({ ...config, test: well });
+  type("Spawn", "Graveyard_Child/ShadowNocturne");
+  type("Saved setups", " Grave ");
+  await waitFor(() => expect(button("Save as").disabled).toBe(false));
+  fireEvent.click(button("Save as"));
+  const grave = fullTest({ spawn: "Graveyard_Child/ShadowNocturne" });
+  await waitFor(() =>
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...config,
+      test: grave,
+      saved_tests: { Well: well, Grave: grave },
+    }),
+  );
+  await waitFor(() => expect(button("Delete Well").disabled).toBe(false));
+  fireEvent.click(button("Delete Well"));
+  await waitFor(() =>
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...config,
+      test: grave,
+      saved_tests: { Grave: grave },
+    }),
+  );
+});
+
+test("copies the shuffle command once the setup is saved", async () => {
+  const writeText = vi.fn(() => Promise.resolve());
+  Object.assign(navigator, { clipboard: { writeText } });
+  show(full({ test: { give: ["Item_Bomb"] } }));
+  type("Spawn", "Graveyard_Child/ShadowNocturne");
+  expect(button("Copy as CLI").disabled).toBe(true);
+  type("Spawn", "");
+  fireEvent.click(button("Copy as CLI"));
+  await waitFor(() => expect(button("Copied")).toBeTruthy());
+  expect(writeText).toHaveBeenCalledWith("zootr shuffle --give Item_Bomb");
+});
+
+test("a slow option scan for a game no longer set is dropped", async () => {
+  const answers: ((o: GameOptions) => void)[] = [];
+  scans.answer = () => new Promise((resolve) => answers.push(resolve));
+  show(full({ game: "/dumps/old" }));
+  await waitFor(() => expect(answers).toHaveLength(1));
+  act(() => useConfig.setPath("config.game", "/dumps/new"));
+  await waitFor(() => expect(answers).toHaveLength(2));
+  await act(async () => answers[1]?.({ ...NONE, items: ["Item_New"] }));
+  await act(async () => answers[0]?.({ ...NONE, items: ["Item_Old"] }));
+  type("Items", "Item_");
+  const items = screen.getByLabelText("Items suggestions");
+  expect(items.textContent).toBe("Item_New");
+});

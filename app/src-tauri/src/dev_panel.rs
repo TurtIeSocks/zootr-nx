@@ -1,0 +1,228 @@
+//! The dev panel's commands: what it picks from, and the requests it
+//! sends the running game.
+
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::{Arc, Mutex};
+
+use anyhow::Context;
+use serde::Serialize;
+use specta::Type;
+use tauri::{AppHandle, Manager};
+use zootr::config::Config;
+use zootr::dev::{self, Dev, Place};
+use zootr::live;
+use zootr::warp::{self, Side};
+
+use crate::{Live, Res, blocking, romfs};
+
+/// What the dev panel, the test setup and plando pick from.
+#[derive(Serialize, Type)]
+pub(crate) struct GameOptions {
+    /// Every arrival point, `MAP/SPOT`, both ages.
+    places: Vec<String>,
+    /// Child `MAP/SPOT`s a new game can start at.
+    spawns: Vec<String>,
+    /// Pouch item actors.
+    items: Vec<String>,
+    /// GameData names, sorted.
+    names: Vec<String>,
+}
+
+/// Every arrival point, read from the dump once.
+#[derive(Default)]
+pub(crate) struct Places(Mutex<Option<Arc<BTreeSet<Place>>>>);
+
+impl Places {
+    fn get(&self, config: &Config) -> anyhow::Result<Arc<BTreeSet<Place>>> {
+        let mut places = self.0.lock().unwrap();
+        if places.is_none() {
+            *places = Some(Arc::new(dev::places(&romfs(config)?)?));
+        }
+        Ok(places.clone().expect("just loaded"))
+    }
+}
+
+/// The running game, through the picked target.
+fn dev_game() -> anyhow::Result<Dev> {
+    Dev::new(live::Game::attach(&Config::load()?.target()?)?)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn game_options(app: AppHandle) -> Res<GameOptions> {
+    blocking(move || {
+        let config = Config::load()?;
+        let romfs = romfs(&config)?;
+        let places = app.state::<Places>().get(&config)?;
+        let mut names: Vec<String> = (app.state::<Live>().gamedata(&config)?.names())
+            .map(Into::into)
+            .collect();
+        names.sort_unstable();
+        Ok(GameOptions {
+            places: places.iter().map(ToString::to_string).collect(),
+            spawns: zootr::spawn::destinations(&romfs)?.into_iter().collect(),
+            items: zootr::items::scan(&romfs)?
+                .into_iter()
+                .map(|i| i.actor)
+                .collect(),
+            names,
+        })
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_state() -> Res<dev::State> {
+    blocking(|| dev_game()?.state()).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_teleport(place: String) -> Res<String> {
+    blocking(move || Ok(dev_game()?.go(&Place::parse(&place)?)?.into())).await
+}
+
+/// One placement the panel's warp lists.
+#[derive(Serialize, Type)]
+pub(crate) struct DevActor {
+    actor: String,
+    /// Its instance hash, as text: a u64 doesn't fit a JavaScript number.
+    hash: String,
+    /// Its own `Name`, telling it from the actor's other placements.
+    label: Option<String>,
+}
+
+/// Every placement `map` has, for the panel's warp.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_actors(map: String) -> Res<Vec<DevActor>> {
+    blocking(move || {
+        let placed = warp::actors_in(&romfs(&Config::load()?)?, &map)?;
+        Ok(placed
+            .into_iter()
+            .map(|p| DevActor {
+                hash: p.hash.unwrap_or_default().to_string(),
+                actor: p.name,
+                label: p.label,
+            })
+            .collect())
+    })
+    .await
+}
+
+/// Warp Link to `side` of a placed actor of the map he's in.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_warp(actor: String, side: Side) -> Res<String> {
+    blocking(move || warp::beside(&dev_game()?, &romfs(&Config::load()?)?, &actor, side)).await
+}
+
+/// Switch age, and say where Link lands.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_age(app: AppHandle) -> Res<String> {
+    blocking(move || {
+        let places = app.state::<Places>().get(&Config::load()?)?;
+        let (place, done) = dev_game()?.switch_age(&places)?;
+        Ok(format!("{done}, to {place}"))
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_give(app: AppHandle, item: String, count: i32) -> Res<String> {
+    blocking(move || {
+        let gd = app.state::<Live>().gamedata(&Config::load()?)?;
+        dev_game()?.give(&gd, &item, count)?;
+        Ok(format!(
+            "gave {item} ×{count}, open the menu again to see it"
+        ))
+    })
+    .await
+}
+
+/// What a GameData name is, the values it takes, its default and what the
+/// game holds now. Reads memory only, so it needs no hook.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_value(app: AppHandle, name: String) -> Res<dev::Value> {
+    blocking(move || {
+        let config = Config::load()?;
+        let gd = app.state::<Live>().gamedata(&config)?;
+        let game = (config.target().ok()).and_then(|t| live::Game::attach(&t).ok());
+        dev::value(&gd, name.trim(), game.as_ref())
+    })
+    .await
+}
+
+/// Write a GameData value, or read it when `value` is empty. Refuses a
+/// value the name doesn't take. Says the value it holds after.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_set(app: AppHandle, name: String, value: String) -> Res<String> {
+    blocking(move || {
+        let gd = app.state::<Live>().gamedata(&Config::load()?)?;
+        let value = value.trim();
+        if !value.is_empty() {
+            gd.info(&name)?.check(&name, value)?;
+        }
+        let (dev, hash) = (dev_game()?, live::hash(&name)?);
+        if !value.is_empty() {
+            dev.game().set(hash, value)?;
+        }
+        Ok(format!("{name} = {}", dev.game().get(&gd, hash)?))
+    })
+    .await
+}
+
+/// Turn the dev switches on or off, and say what the game holds after.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_switches(switches: dev::Switches) -> Res<dev::Switches> {
+    blocking(move || {
+        let dev = dev_game()?;
+        dev.set_switches(switches)?;
+        dev.switches()
+    })
+    .await
+}
+
+/// Apply a saved test setup live, saying what it did.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_apply(app: AppHandle, name: String) -> Res<dev::Applied> {
+    blocking(move || {
+        let config = Config::load()?;
+        let setup = (config.saved_tests.get(&name))
+            .with_context(|| format!("no saved test setup is named {name}"))?;
+        let gd = app.state::<Live>().gamedata(&config)?;
+        let game = dev_game()?;
+        let near = zootr::warp::near(&romfs(&config)?, setup, || Ok(game.state()?.map))?;
+        game.apply(&gd, setup, near)
+    })
+    .await
+}
+
+/// The goals of every saved test setup that has any, read in one attach.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_goals(app: AppHandle) -> Res<BTreeMap<String, Vec<dev::Goal>>> {
+    blocking(move || {
+        let config = Config::load()?;
+        let mut tests = config
+            .saved_tests
+            .iter()
+            .filter(|(_, s)| !s.goals.is_empty())
+            .peekable();
+        if tests.peek().is_none() {
+            return Ok(BTreeMap::new());
+        }
+        let (gd, game) = (app.state::<Live>().gamedata(&config)?, dev_game()?);
+        Ok(tests
+            .map(|(name, s)| (name.clone(), game.goals(&gd, s)))
+            .collect())
+    })
+    .await
+}

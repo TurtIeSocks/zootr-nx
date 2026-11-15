@@ -1,0 +1,276 @@
+//! The commands that talk to the running game: watching its GameData,
+//! setting a value, giving an item and the dev panel's requests.
+
+use std::fmt::Display;
+use std::path::Path;
+use std::time::Duration;
+
+use anyhow::{Context, Result};
+use ounce_formats::Romfs;
+use serde::Serialize;
+
+use super::args::{DevCommand, Switch};
+use crate::config::{Config, TestSetup};
+use crate::nav::{act, drive};
+use crate::play::{self, Input};
+use crate::{gamedata, live, recorder, steps, warp};
+
+/// Whether `hash`'s name contains `grep`, or there's no `grep`.
+pub(super) fn named(gd: &gamedata::GameData, grep: &Option<String>, hash: u32) -> bool {
+    grep.as_ref()
+        .is_none_or(|g| gd.name(hash).contains(g.as_str()))
+}
+
+/// `[mm:ss]` since `start`.
+pub(super) fn stamp(start: std::time::Instant) -> String {
+    live::stamp(start.elapsed().as_secs())
+}
+
+/// The game's GameData values, printed as they change.
+pub(super) fn live(romfs: &Romfs, grep: Option<String>, all: bool, only_named: bool) -> Result<()> {
+    let gd = recorder::gamedata(romfs)?;
+    let game = attach()?;
+    println!("watching, Ctrl-C stops");
+    if !all {
+        let (n, secs) = (live::BURST, live::WINDOW.as_secs());
+        println!("values that change over {n} times in {secs}s are muted, --all shows them");
+    }
+    let start = std::time::Instant::now();
+    let mut poll = live::Poll::new(game)?;
+    loop {
+        std::thread::sleep(live::TICK);
+        let wanted = |h| named(&gd, &grep, h) && (!only_named || gd.known(h));
+        for c in poll.next(&gd, all, wanted)?.0 {
+            println!("{} {c}", stamp(start));
+        }
+    }
+}
+
+fn attach() -> Result<live::Game> {
+    live::Game::attach(&Config::load()?.target()?)
+}
+
+/// The target's way of pressing buttons and pushing the stick.
+fn input() -> Result<Box<dyn Input>> {
+    let config = Config::load()?;
+    play::input(&config.target()?, config.game.as_deref())
+}
+
+/// A report as lines, or as one JSON object with `json`.
+fn said<T: Display + Serialize>(report: &T, json: bool) -> Result<String> {
+    Ok(match json {
+        true => serde_json::to_string(report)?,
+        false => report.to_string(),
+    })
+}
+
+pub(super) fn give(romfs: &Romfs, actor: &str, count: i32) -> Result<()> {
+    let gd = recorder::gamedata(romfs)?;
+    crate::dev::Dev::new(attach()?)?.give(&gd, actor, count)?;
+    println!("gave {actor} x{count}, open the menu again to see it");
+    Ok(())
+}
+
+pub(super) fn set(romfs: &Romfs, name: &str, value: &str) -> Result<()> {
+    use live::Memory;
+    let info = gamedata::GameData::load(romfs)?.info(name)?;
+    if value == "?" {
+        if !info.choices.is_empty() {
+            println!("{name} takes one of: {}", info.choices.join(", "));
+        }
+        if let Some(default) = &info.default {
+            println!("default: {default}");
+        }
+    } else {
+        info.check(name, value)?;
+    }
+    let hash = live::hash(name)?;
+    let game = attach()?;
+    let (kind, at, len) = live::locate(&game, game.global(), hash)?;
+    let show = |label: &str| -> Result<()> {
+        let both = game.read(at, len * 2)?;
+        println!("{label}: {:02x?} saved {:02x?}", &both[..len], &both[len..]);
+        Ok(())
+    };
+    println!("{name} is a {kind} at {at:#x}");
+    show("was")?;
+    if value != "?" {
+        game.set(hash, value)?;
+        show("now")?;
+    }
+    Ok(())
+}
+
+pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()> {
+    use crate::dev::{self, Dev, Place, Request};
+    let game = Dev::new(attach()?)?;
+    let said = match cmd {
+        DevCommand::State => {
+            let s = game.state()?;
+            let age = if s.child { "child" } else { "adult" };
+            let busy = [(s.loading, ", loading"), (s.event, ", event playing")];
+            let busy: String = busy.iter().filter(|b| b.0).map(|b| b.1).collect();
+            format!("{} as {age}{busy}", s.map)
+        }
+        DevCommand::Teleport { place, near, side } => {
+            let place = Place::parse(&place)?;
+            dev::known(&place, &dev::places(romfs)?)?;
+            let at = (near.as_deref())
+                .map(|actor| warp::spot(romfs, &place.map, actor, side))
+                .transpose()?;
+            let went = game.go(&place)?;
+            match near.zip(at) {
+                Some((actor, at)) => {
+                    game.land(&place.map)?;
+                    let warped = game.warp(at)?;
+                    format!("{went}, then {warped} beside {actor}")
+                }
+                None => went.into(),
+            }
+        }
+        DevCommand::Warp { actor, side } => warp::beside(&game, romfs, &actor, side)?,
+        DevCommand::Around { radius, all, json } => {
+            said(&crate::around::read(&game, romfs, radius, all)?, json)?
+        }
+        DevCommand::Scene { radius, json } => said(
+            &crate::nav::scene::read(&game, romfs, game_path, radius)?,
+            json,
+        )?,
+        DevCommand::Go {
+            hash,
+            plan: true,
+            json,
+            ..
+        } => said(
+            &crate::nav::route::read(&game, romfs, game_path, hash)?,
+            json,
+        )?,
+        DevCommand::Go {
+            hash,
+            use_it,
+            warp,
+            budget,
+            json,
+            ..
+        } => {
+            let how = drive::How {
+                then_use: use_it,
+                warp,
+                budget: Duration::from_secs(budget),
+            };
+            said(
+                &drive::go(&game, &mut input()?, romfs, game_path, hash, &how)?,
+                json,
+            )?
+        }
+        DevCommand::Move { hour, secs, json } => said(
+            &drive::moved(&game, &mut input()?, romfs, game_path, hour, secs)?,
+            json,
+        )?,
+        DevCommand::Use { hash, json } => said(
+            &act::used(&game, &mut input()?, romfs, game_path, hash)?,
+            json,
+        )?,
+        DevCommand::Switches { on, off } => {
+            if off || !on.is_empty() {
+                game.set_switches(dev::Switches {
+                    health: on.contains(&Switch::Health),
+                    magic: on.contains(&Switch::Magic),
+                    resources: on.contains(&Switch::Resources),
+                })?;
+            }
+            let s = game.switches()?;
+            let held = [
+                ("health", s.health),
+                ("magic", s.magic),
+                ("resources", s.resources),
+            ];
+            let on: Vec<_> = held.iter().filter(|(_, on)| *on).map(|(n, _)| *n).collect();
+            match on.is_empty() {
+                true => "no switches on".into(),
+                false => format!("on: {}", on.join(", ")),
+            }
+        }
+        DevCommand::Age => {
+            let (place, done) = game.switch_age(&dev::places(romfs)?)?;
+            format!("{done}, to {place}")
+        }
+        DevCommand::Time { hour } => game.ask(&Request::Time(hour))?.into(),
+        DevCommand::Step { challenge, step } => {
+            steps::check(&recorder::gamedata(romfs)?, &challenge, &step)?;
+            let done = game.ask(&Request::Step(challenge.clone(), step.clone()))?;
+            format!("{done} {challenge}={step}")
+        }
+        DevCommand::Play { event } => {
+            format!("{} {event}", game.ask(&Request::Play(event.clone()))?)
+        }
+        DevCommand::Apply { name } => {
+            let setup = saved_test(&name)?;
+            let near = warp::near(romfs, &setup, || Ok(game.state()?.map))?;
+            let applied = game.apply(&recorder::gamedata(romfs)?, &setup, near)?;
+            let held = applied
+                .held
+                .iter()
+                .map(|g| format!("{g} held before Apply"));
+            applied
+                .done
+                .into_iter()
+                .chain(held)
+                .collect::<Vec<_>>()
+                .join("\n")
+        }
+        DevCommand::Goals { name } => {
+            let setup = saved_test(&name)?;
+            let goals = game.goals(&recorder::gamedata(romfs)?, &setup);
+            let lines = goals.iter().map(|g| {
+                let now = g.now.as_deref().or(g.error.as_deref()).unwrap_or("");
+                format!(
+                    "{} {}={} ({now})",
+                    if g.met { "✓" } else { "✗" },
+                    g.name,
+                    g.want
+                )
+            });
+            lines
+                .chain((!setup.expect.is_empty()).then(|| format!("expect: {}", setup.expect)))
+                .collect::<Vec<_>>()
+                .join("\n")
+        }
+    };
+    println!("{said}");
+    Ok(())
+}
+
+pub(super) fn saved_test(name: &str) -> Result<TestSetup> {
+    (Config::load()?.saved_tests.remove(name))
+        .with_context(|| format!("no saved test setup is named {name}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::game;
+    use crate::known::flag;
+
+    #[test]
+    fn set_refuses_a_bad_enum_or_bool_before_looking_for_the_game() {
+        let Some(romfs) = game::dev_dump() else {
+            return;
+        };
+        for (name, value, valid) in [
+            (
+                "Step_Goto_HyruleCastle",
+                "Step1",
+                format!("{}, Ready, Step01", flag::NOT_READY).as_str(),
+            ),
+            (flag::HYRULE_FIELD_ARRIVE_ENTRANCE, "yes", "true, false"),
+        ] {
+            let said = set(&romfs, name, value).unwrap_err().to_string();
+            assert!(
+                said.contains(format!("{value} isn't a value of {name}").as_str()),
+                "{said}"
+            );
+            assert!(said.contains(valid), "{said}");
+        }
+    }
+}
