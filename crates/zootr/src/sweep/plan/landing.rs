@@ -25,7 +25,6 @@ pub(super) const NEIGHBOURS: f32 = 2.5;
 /// every one of `others` `CLEAR` farther away than the holder, so A opens
 /// the holder and not its neighbour. Straight in front when no swing does.
 pub(super) fn clear_landing(pose: &Pose, others: &[[f32; 3]]) -> [f32; 3] {
-    let flat = |a: [f32; 3], b: [f32; 3]| (a[0] - b[0]).hypot(a[2] - b[2]);
     let swung = |degrees: f32| {
         let [x, y, z] = pose.rotate;
         let rotate = [x, y + degrees.to_radians(), z];
