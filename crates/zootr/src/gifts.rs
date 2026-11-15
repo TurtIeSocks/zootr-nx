@@ -895,21 +895,14 @@ const IS_GET: &str = "IsGet.";
 const LESSON: &Name = scene::SY_OCARINA;
 const ENTRY: &Name = flag::ENTRY_POINT0;
 
-/// 64-bit FNV-1a.
-fn fnv1a(s: &str) -> u64 {
-    s.bytes().fold(0xcbf29ce484222325, |h, b| {
-        (h ^ b as u64).wrapping_mul(0x100000001b3)
-    })
-}
-
 impl Gift {
     /// A stable id that reads like a Banc hash, for plando and history.
     pub fn hash(&self) -> u64 {
         match self.how {
             How::Calls { call, .. } | How::Later { call, .. } | How::Sale { call, .. } => {
-                fnv1a(&format!("{}{}{}", self.flow, said(call), self.item))
+                crate::known::hash(&format!("{}{}{}", self.flow, said(call), self.item))
             }
-            _ => fnv1a(self.flow),
+            _ => crate::known::hash(self.flow),
         }
     }
 
