@@ -13,6 +13,11 @@ Read the rules first. A pull request that breaks one can't be merged.
   docs, tests, commit messages or pull requests. Where the code needs one,
   say "the PC build" or "the emulator target". A target is configured by the
   user and nothing in the repo knows which one it is.
+- Game names go through `known::*` consts (`n!(0x…)`) or the logic
+  vocabulary words, never as text. That covers actor, item, flag, map and
+  scene names, in code, comments and tests. Find a hash with
+  `zootr probe hash`. A test that needs a made-up name uses one like
+  `Item_A`. The guard test in `known/guard.rs` enforces this.
 - No help obtaining emulators, firmware, keys or dumps, in issues or
   anywhere else.
 - Tests skip without a dump. A test that needs the game gets it from
