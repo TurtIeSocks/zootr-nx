@@ -318,6 +318,7 @@ pub const TRIGGER_GAME_DATA_SET_BOOL_TRUE: &Name = &n!(0x722f2d542fe4ce5f);
 pub const TWINROVA: &Name = &n!(0x53222d8b8caae365);
 pub const UI_IS_FINISH_CHALLENGE_MENU_OPEN_EVENT: &Name = &n!(0x58ec1a7c08ea33fd);
 pub const UI_IS_NEED_OPEN_PLUS_MENU_EQUIP_ACTION_GUIDE: &Name = &n!(0x5c19cf15a3a96eb9);
+pub const UI_IS_OPEN_CHALLENGE_MENU_ONCE: &Name = &n!(0xa7a947c6a9e8c41f);
 pub const UI_SYSTEM_ACTOR: &Name = &n!(0xb55c63ad60207293);
 pub const USE_EVENT_AS: &Name = &n!(0x80d409a76166c74c);
 pub const USE_EVENT_MODEL_ANIME: &Name = &n!(0xd01c2627d13bc7f3);

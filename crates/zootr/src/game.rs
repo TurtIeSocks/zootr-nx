@@ -17,7 +17,7 @@ pub const TITLE: u64 = 0x0400_4860_24DE_C000;
 pub const UPDATE: u32 = 131072;
 /// What zootr reads, under the romfs root, besides the files of
 /// [`crate::medallions::FILES`].
-pub const SUBTREES: [&str; 8] = [
+pub const SUBTREES: [&str; 9] = [
     "Banc",            // actor placement: chests, pots, freestanding items
     "GameData",        // save flag table
     "Pack",            // actor packs and the zstd dictionaries
@@ -26,6 +26,7 @@ pub const SUBTREES: [&str; 8] = [
     "Event/EventFlow", // cutscenes and NPC gifts
     "Logic",           // logic graphs: what makes a chest appear or unlock
     "RSDB",            // per-actor tables, for the actors shopsanity adds
+    "Sequence",        // menu graphs: the flags a menu reads, like the tapestry's
 ];
 
 /// Overrides where extracted dumps are cached.

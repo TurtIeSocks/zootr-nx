@@ -18,7 +18,13 @@ use ounce_formats::{Romfs, files_with_suffix};
 /// cached once read (see [`load`]).
 const SOURCES: [&[&str]; 2] = [
     &["Event/EventFlow", "RSDB", "Banc", "Logic", "GameData"],
-    &["Pack/Actor", "UI", "Mals/USen.Product.110.sarc.zs", "Model"],
+    &[
+        "Pack/Actor",
+        "UI",
+        "Mals/USen.Product.110.sarc.zs",
+        "Model",
+        "Sequence",
+    ],
 ];
 
 /// A game name by its [`hash`]. Derefs to the name read from the dump.
@@ -87,9 +93,11 @@ fn lookup(hash: u64) -> Option<&'static str> {
 }
 
 /// Tier `tier`'s names by hash. Read from the dump the first time, which
-/// takes seconds for the actor packs, then from a copy in the cache.
+/// takes seconds for the actor packs, then from a copy in the cache. The
+/// copy is named for the tier's sources, so adding one reads them again.
 fn load(root: &Path, tier: usize) -> Result<HashMap<u64, &'static str>> {
-    let file = crate::game::cached(root, "names")?.join(format!("tier{tier}.txt"));
+    let sources = hash(&SOURCES[tier].join("|"));
+    let file = crate::game::cached(root, "names")?.join(format!("tier{tier}-{sources:016x}.txt"));
     let text = match std::fs::read_to_string(&file) {
         Ok(text) => text,
         Err(_) => {

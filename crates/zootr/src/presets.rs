@@ -243,14 +243,19 @@ pub const PRESETS: [Preset; 15] = [
     Preset {
         name: "menus",
         label: "Menus open",
-        what: "Menu pages skip their guide pop-up the first time they fill, and the challenge tapestry is open from the start",
+        what: "Menu pages skip their guide pop-up the first time they fill, and the challenge tapestry is open from the start, without the reveal it plays the first time it opens",
         group: group::GENERAL,
         subgroup: None,
+        // The tapestry's menu graph (`Sequence/ChallengeLog`) plays its
+        // first-time reveal while the second flag reads false.
         edits: || {
             let mut edits = page_guides();
-            edits.push(format!(
-                "{}=true",
-                field::UI_IS_FINISH_CHALLENGE_MENU_OPEN_EVENT
+            edits.extend(all(
+                [
+                    field::UI_IS_FINISH_CHALLENGE_MENU_OPEN_EVENT,
+                    field::UI_IS_OPEN_CHALLENGE_MENU_ONCE,
+                ],
+                "true",
             ));
             edits
         },
@@ -561,6 +566,17 @@ mod tests {
             let preset = PRESETS.iter().find(|p| p.name == name).unwrap();
             assert_eq!(preset.subgroup, Some(starting::SUBGROUP));
             assert!(!DEFAULT_ON.contains(&preset.name));
+        }
+    }
+
+    #[test]
+    fn the_menus_preset_opens_the_tapestry_past_its_first_reveal() {
+        let edits = expand(&["menus".into()], &[]).unwrap();
+        for flag in [
+            field::UI_IS_FINISH_CHALLENGE_MENU_OPEN_EVENT,
+            field::UI_IS_OPEN_CHALLENGE_MENU_ONCE,
+        ] {
+            assert!(edits.contains(&format!("{flag}=true")), "{flag}");
         }
     }
 
