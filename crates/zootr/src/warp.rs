@@ -248,18 +248,21 @@ pub fn landing_at(pose: &Pose, side: Side, ahead: f32) -> [f32; 3] {
 }
 
 /// Actors whose model turns the other way round from the rest, the
-/// textbook way: the big chest. On the other machine's sweep, 10 of the 11
+/// textbook way: the big chests. On the other machine's sweep, 10 of the 11
 /// big chests that opened stood Link there, at every turn, small chests
-/// never.
-fn mirrored() -> &'static str {
-    actor::OBJ_T_BOX_A_02.trim_start_matches("Obj_")
+/// never. The boss key chest (`A_03`) borrows the big chest's sensor and
+/// blackboard, and opened 2 times in 17 left unturned.
+fn mirrored(actor: &str) -> bool {
+    [actor::OBJ_T_BOX_A_02, actor::OBJ_T_BOX_A_03]
+        .iter()
+        .any(|big| actor.contains(big.trim_start_matches("Obj_")))
 }
 
 /// `pose` as `actor` faces by it: turned the other way round for a
 /// [`mirrored`] model.
 pub fn facing(actor: &str, pose: &Pose) -> Pose {
     let [x, y, z] = pose.rotate;
-    match actor.contains(mirrored()) {
+    match mirrored(actor) {
         true => Pose {
             at: pose.at,
             rotate: [x, -y, z],
@@ -424,8 +427,10 @@ mod tests {
             at: [1.0, 2.0, 3.0],
             rotate: [0.0, FRAC_PI_2, 0.0],
         };
-        let big = landing(&facing(actor::OBJ_T_BOX_A_02_NO_BAKE, &pose), Side::Front);
-        assert!(near_enough(big, [3.0, 2.5, 3.0]), "{big:?}");
+        for chest in [actor::OBJ_T_BOX_A_02_NO_BAKE, actor::OBJ_T_BOX_A_03] {
+            let big = landing(&facing(chest, &pose), Side::Front);
+            assert!(near_enough(big, [3.0, 2.5, 3.0]), "{chest}: {big:?}");
+        }
         let small = landing(&facing(actor::OBJ_T_BOX_A_01, &pose), Side::Front);
         assert!(near_enough(small, [-1.0, 2.5, 3.0]), "{small:?}");
         // Unturned, both face +Z.
