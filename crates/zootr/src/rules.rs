@@ -276,7 +276,7 @@ pub struct ExitRule {
     pub to: String,
     #[serde(default)]
     pub added: bool,
-    needs: String,
+    pub needs: String,
     #[serde(skip, default = "always")]
     pub expr: Expr,
 }
