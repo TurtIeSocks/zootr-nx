@@ -13,7 +13,7 @@ use serde::Serialize;
 use super::judge::{Answer, Judge, Look, TURNS};
 use super::melody;
 use super::plan::{Halt, Planned, Trigger, preset};
-use super::watch::{MESSAGE, Watch, got_other, named, swapped};
+use super::watch::{MESSAGE, Watch, got_other, lands_as, named, owned_as, swapped};
 use crate::dev::{Dev, EVENT_PLAYING, NOT_TAKEN, Place, Request};
 use crate::gamedata::GameData;
 use crate::gerudo;
@@ -69,6 +69,10 @@ pub enum Verdict {
     Pass,
     /// Another item landed: its value's name.
     WrongItem(String),
+    /// The item of a neighbouring pot, crate or rock landed: the sword's
+    /// swing broke it as well as the holder. The harness's fault, not the
+    /// game's, and the dealt item's own holder may have given its item.
+    Neighbour(String),
     /// The game gave its stand-in for an item Link can't use yet, as it
     /// does in an unrandomized game: what it gave.
     Substituted(String),
@@ -268,10 +272,15 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             .any(|c| c.name != MESSAGE && wanted.contains(&c.name))
             || named.as_ref().is_some_and(|n| items.contains(n));
         let other = got_other(&changes, &wanted);
+        let next_door = match (&p.trigger, &other) {
+            (Trigger::Open { near, .. }, Some(c)) => neighbour(self.romfs, near, c),
+            _ => None,
+        };
         Ok(match (verdict, ours, other) {
             (Some(v @ (Verdict::Bug(_) | Verdict::Stall)), _, _) => v,
             (_, true, _) => Verdict::Pass,
             _ if swap.is_some() => Verdict::Substituted(swap.unwrap_or_default()),
+            _ if next_door.is_some() => Verdict::Neighbour(next_door.unwrap_or_default()),
             (_, false, Some(c)) => Verdict::WrongItem(c),
             _ => Verdict::Nothing,
         })
@@ -661,6 +670,14 @@ fn song(p: &Planned) -> &str {
     }
 }
 
+/// The item of the one of `near` that `other`, an item landing beside the
+/// spot's own, is the get of.
+fn neighbour(romfs: &Romfs, near: &[String], other: &str) -> Option<String> {
+    (near.iter())
+        .find(|item| owned_as(romfs, item).is_ok_and(|names| lands_as(other, &names)))
+        .cloned()
+}
+
 fn pays(p: &Planned) -> bool {
     matches!(p.trigger, Trigger::Talk { .. } | Trigger::Play { .. })
 }
@@ -668,7 +685,7 @@ fn pays(p: &Planned) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::{flag, flow, scene};
+    use crate::known::{actor, flag, flow, scene};
     use crate::sweep::plan::Steps;
     use crate::warp::Side;
 
@@ -678,6 +695,11 @@ mod tests {
         assert_eq!(
             v,
             serde_json::json!({"verdict": "wrong_item", "why": "IsGet.Item_A"})
+        );
+        let v = serde_json::to_value(Verdict::Neighbour("Item_A".into())).unwrap();
+        assert_eq!(
+            v,
+            serde_json::json!({"verdict": "neighbour", "why": "Item_A"})
         );
         let v = serde_json::to_value(Verdict::Pass).unwrap();
         assert_eq!(v, serde_json::json!({"verdict": "pass"}));
@@ -736,6 +758,24 @@ mod tests {
                 assert!(seen.contains(&(x, y)), "never near ({x}, {y})");
             }
         }
+    }
+
+    #[test]
+    fn an_item_landing_is_told_to_be_a_neighbours_by_its_names() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let near = vec![
+            actor::OBJ_RUPEE_RED.to_string(),
+            actor::OBJ_ARMOR_GORON.to_string(),
+        ];
+        let got = |item: &str| format!("IsGet.{item}");
+        let found = neighbour(&romfs, &near, &got(actor::OBJ_ARMOR_GORON));
+        assert_eq!(found.as_deref(), Some(actor::OBJ_ARMOR_GORON.get()));
+        let gear = got(actor::ARMOR_ADULT_GORON);
+        assert_eq!(neighbour(&romfs, &near, &gear).as_deref(), found.as_deref());
+        assert_eq!(neighbour(&romfs, &near, "IsGet.Item_A"), None);
+        assert_eq!(neighbour(&romfs, &[], &gear), None);
     }
 
     #[test]
@@ -814,6 +854,7 @@ mod tests {
             steps: vec![],
             first: None,
             broken: false,
+            near: vec![],
         };
         assert!(!pays(&with(open)));
     }

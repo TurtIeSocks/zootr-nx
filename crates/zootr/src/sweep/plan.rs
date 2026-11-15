@@ -16,8 +16,10 @@ use crate::known::{Name, actor, field, flag, flow};
 use crate::nav::kinds;
 use crate::warp::{self, Pose, Side};
 use crate::{flags, gates, pickups, rsdb, scrubs, shops, steps};
+use landing::{away_from, clear_landing, neighbours};
 
 mod events;
+mod landing;
 mod shop;
 
 /// `(challenge, step)` quest steps, written as their save copies before
@@ -55,6 +57,9 @@ pub enum Trigger {
         first: Option<String>,
         /// Break the holder, then take what it drops: a pot.
         broken: bool,
+        /// The items of the other breakables within a sword's swing of a
+        /// broken holder, which its swing can break too.
+        near: Vec<String>,
     },
     /// Warp near, use the holder, the judge steers the talk.
     Talk {
@@ -114,16 +119,6 @@ pub struct Planned {
 fn chest() -> &'static str {
     actor::OBJ_T_BOX_A_01.trim_end_matches("_A_01")
 }
-/// How far in front of a chest or a scrub Link lands: close enough that A
-/// opens or talks once he faces it. The first night's sweep landed 2 m off
-/// and never opened a chest.
-const REACH: f32 = 1.0;
-/// How far, in degrees, a chest's landing may swing off its front, tried
-/// in order, to keep clear of a chest beside it.
-const SWINGS: [f32; 7] = [0.0, -15.0, 15.0, -30.0, 30.0, -45.0, 45.0];
-/// How much farther than the holder every other chest must be from the
-/// landing. Mido's back chests each have a front one 1.5 ahead.
-const CLEAR: f32 = 0.2;
 const NPC: &str = "Npc_";
 /// Quest steps a gift's flow needs first, as `(flow, challenge, step)`,
 /// where a test preset already records them.
@@ -166,6 +161,10 @@ pub fn plan(romfs: &Romfs, spots: &[Spot]) -> Result<Vec<Planned>> {
         .map(|s| s.hash)
         .collect();
     let mut planner = Planner::new(romfs, chests);
+    planner.breakables = (spots.iter())
+        .filter(|s| pickups::broken(&s.holder))
+        .map(|s| (s.hash, s.item.clone()))
+        .collect();
     spots.iter().map(|s| planner.spot(s)).collect()
 }
 
@@ -186,6 +185,9 @@ struct Planner<'a> {
     sensors: Option<HashMap<u64, Vec<u64>>>,
     /// Every chest spot, by placement hash, to keep a landing clear of.
     chests: BTreeSet<u64>,
+    /// Every pot, crate and rock spot's item, by placement hash, to find
+    /// the neighbours a swing at one can break.
+    breakables: BTreeMap<u64, String>,
     gamedata: Option<GameData>,
     flows: Option<Flows>,
 }
@@ -201,6 +203,7 @@ impl<'a> Planner<'a> {
             cows: None,
             sensors: None,
             chests,
+            breakables: BTreeMap::new(),
             gamedata: None,
             flows: None,
         }
@@ -210,6 +213,7 @@ impl<'a> Planner<'a> {
 impl Planner<'_> {
     fn spot(&mut self, spot: &Spot) -> Result<Planned> {
         let gift = GIFTS.iter().find(|g| g.hash() == spot.hash);
+        let mut side = Side::Front;
         let (trigger, child) = match gift {
             Some(gift) => self.gift(gift)?,
             None if cows::is_holder(&spot.holder) => self.cow(spot)?,
@@ -217,7 +221,9 @@ impl Planner<'_> {
                 || spot.holder.starts_with(scrubs::HOLDER)
                 || pickups::within_reach(&spot.holder) =>
             {
-                self.placed(spot)?
+                let (trigger, child, landing) = self.placed(spot)?;
+                side = landing;
+                (trigger, child)
             }
             None if shops::is_holder(&spot.holder) => self.shop(spot)?,
             None => {
@@ -229,7 +235,7 @@ impl Planner<'_> {
             spot: spot.clone(),
             trigger,
             child,
-            side: Side::Front,
+            side,
         })
     }
 
@@ -292,8 +298,9 @@ impl Planner<'_> {
 
     /// A chest, a scrub, a pot or a pickup lying out: beside the actor with
     /// the spot's hash, in the child map before the adult one, or the map of
-    /// the only age its gate opens for.
-    fn placed(&mut self, spot: &Spot) -> Result<(Trigger, Option<bool>)> {
+    /// the only age its gate opens for. And the side to land on: a broken
+    /// holder is struck from the one that keeps its neighbours behind Link.
+    fn placed(&mut self, spot: &Spot) -> Result<(Trigger, Option<bool>, Side)> {
         let (raise, steps, age) = self.appear(spot.hash)?;
         let raise = [self.leaving(&raise)?, raise].concat();
         self.maps(&spot.area)?;
@@ -310,7 +317,7 @@ impl Planner<'_> {
             None => {
                 let kind = kinds::word(&spot.holder).unwrap_or(&spot.holder);
                 let why = format!("{kind} not found in {}", spot.area);
-                (Trigger::Skip(why), None)
+                (Trigger::Skip(why), None, Side::Front)
             }
             Some((map, poses, pose, era)) => {
                 let others: Vec<_> = (self.chests.iter())
@@ -320,6 +327,13 @@ impl Planner<'_> {
                 let pose = &warp::facing(&spot.holder, pose);
                 let (map, at) = (map.clone(), clear_landing(pose, &others));
                 let face = pose.at;
+                let broken = pickups::broken(&spot.holder);
+                let found = match broken {
+                    true => neighbours(spot.hash, face, poses, &self.breakables),
+                    false => vec![],
+                };
+                let side = away_from(pose, &found.iter().map(|n| n.1).collect::<Vec<_>>());
+                let near = found.into_iter().map(|n| n.0).collect();
                 let trigger = match scrub {
                     false => Trigger::Open {
                         ready: [raise, noted(&spot.holder), water(&map)].concat(),
@@ -328,7 +342,8 @@ impl Planner<'_> {
                         map,
                         at,
                         face,
-                        broken: pickups::broken(&spot.holder),
+                        broken,
+                        near,
                     },
                     true => Trigger::Talk {
                         ready: self.sellers(&map, spot.hash)?,
@@ -342,7 +357,7 @@ impl Planner<'_> {
                         halt: None,
                     },
                 };
-                (trigger, era)
+                (trigger, era, side)
             }
         })
     }
@@ -485,28 +500,6 @@ const NOTED: [(&Name, &Name); 1] = [(
 fn noted(holder: &str) -> Vec<String> {
     let of = NOTED.iter().filter(|(h, _)| *h == holder);
     of.map(|(_, flag)| flag.to_string()).collect()
-}
-
-/// In front of `pose` at `REACH`, swung off its front as little as keeps
-/// every one of `others` `CLEAR` farther away than the holder, so A opens
-/// the holder and not its neighbour. Straight in front when no swing does.
-fn clear_landing(pose: &Pose, others: &[[f32; 3]]) -> [f32; 3] {
-    let flat = |a: [f32; 3], b: [f32; 3]| (a[0] - b[0]).hypot(a[2] - b[2]);
-    let swung = |degrees: f32| {
-        let [x, y, z] = pose.rotate;
-        let rotate = [x, y + degrees.to_radians(), z];
-        warp::landing_at(
-            &Pose {
-                at: pose.at,
-                rotate,
-            },
-            Side::Front,
-            REACH,
-        )
-    };
-    (SWINGS.iter().map(|&d| swung(d)))
-        .find(|&at| others.iter().all(|&o| flat(at, o) >= REACH + CLEAR))
-        .unwrap_or_else(|| swung(0.0))
 }
 
 #[cfg(test)]
@@ -779,26 +772,6 @@ mod tests {
     }
 
     #[test]
-    fn a_chest_lands_clear_of_the_chest_in_front_of_it() {
-        let flat = |a: [f32; 3], b: [f32; 3]| (a[0] - b[0]).hypot(a[2] - b[2]);
-        // Mido's Back Right, and the Front Right chest 1.5 ahead of it.
-        let back_right = Pose {
-            at: [-50.3, 112.3, -42.0],
-            rotate: [0.0, -0.48513162, 0.0],
-        };
-        let front_right = [-49.3, 112.3, -40.9];
-        let ahead = warp::landing_at(&back_right, Side::Front, REACH);
-        assert!(
-            flat(ahead, front_right) < REACH,
-            "straight ahead is crowded"
-        );
-        let at = clear_landing(&back_right, &[front_right]);
-        assert!((flat(at, back_right.at) - REACH).abs() < 1e-4);
-        assert!(flat(at, front_right) >= REACH + CLEAR, "{at:?}");
-        assert_eq!(clear_landing(&back_right, &[]), ahead, "alone, straight on");
-    }
-
-    #[test]
     fn nearly_every_chest_opens_from_a_landing_inside_its_map() {
         let Some((romfs, _, planned)) = seed() else {
             return;
@@ -908,6 +881,50 @@ mod tests {
         };
         assert_eq!(broken(&planned[0]), Some(true), "{:?}", planned[0].trigger);
         assert_eq!(broken(&planned[1]), Some(false), "{:?}", planned[1].trigger);
+    }
+
+    #[test]
+    fn a_pot_beside_pots_is_struck_from_a_side_that_leaves_them_unswung_at() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        // Gerudo Valley's pot, with a pot 1.6 m off to its one side and
+        // another 2.4 m off to its other: its sword swing broke both.
+        let area = flow::GERUDO_VALLEY.to_string();
+        let at = |hash, item: &str| Spot {
+            hash,
+            area: area.clone(),
+            holder: actor::OBJ_POT_A_05.to_string(),
+            item: item.into(),
+            ..Default::default()
+        };
+        let spots = [
+            at(3407692112799570510, "Item_A"),
+            at(6896071498853277403, "Item_B"),
+            at(15334540056586068351, "Item_C"),
+        ];
+        let planned = plan(&romfs, &spots).unwrap();
+        let Trigger::Open { near, map, .. } = &planned[0].trigger else {
+            panic!("{:?}", planned[0].trigger);
+        };
+        assert_eq!(near, &["Item_B", "Item_C"], "nearest first");
+        let poses = &warp::poses_in(&romfs, &area).unwrap()[map];
+        let [pot, left, right] = [0, 1, 2].map(|i| &poses[&spots[i].hash]);
+        // From the side it lands on, neither lies past the holder from Link.
+        let held = warp::facing(&spots[0].holder, pot);
+        let link = warp::landing_at(&held, planned[0].side, 1.0);
+        for n in [left, right] {
+            let (to_pot, past) = ([pot.at[0] - link[0], pot.at[2] - link[2]], n.at);
+            let ahead = to_pot[0] * (past[0] - pot.at[0]) + to_pot[1] * (past[2] - pot.at[2]);
+            assert!(
+                ahead <= 0.1,
+                "{past:?} is in the swing from {:?}",
+                planned[0].side
+            );
+        }
+        // A pot alone keeps the front.
+        let alone = plan(&romfs, &spots[..1]).unwrap();
+        assert_eq!(alone[0].side, Side::Front);
     }
 
     #[test]
