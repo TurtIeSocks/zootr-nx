@@ -13,7 +13,7 @@ use crate::dev::Dev;
 use crate::history::History;
 use crate::live::{self, Game};
 use crate::play::{self, Report, Run, Script};
-use crate::sweep::judge::Paddock;
+use crate::sweep::judge::ModelJudge;
 use crate::sweep::night::{self, Night};
 use crate::vision::Vision;
 use crate::{recorder, warp};
@@ -99,7 +99,7 @@ fn seed() -> String {
 pub(super) fn sweep(
     romfs: &Romfs,
     game: &Path,
-    judge: Paddock,
+    judge: ModelJudge,
     dir: PathBuf,
     (rounds, limit, mix, only): (usize, Option<usize>, Option<String>, Option<String>),
     pristine: Option<PathBuf>,

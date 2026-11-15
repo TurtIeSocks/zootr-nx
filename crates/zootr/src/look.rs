@@ -99,6 +99,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+    use crate::vision::Api;
 
     fn asked() -> Vec<String> {
         vec![
@@ -111,9 +112,11 @@ mod tests {
     #[test]
     fn a_saved_frame_that_is_missing_is_named_before_any_ask() {
         let vision = Vision {
+            api: Api::OpenAi,
             url: "http://127.0.0.1:9".into(),
             key_file: PathBuf::from("key"),
             model: "m".into(),
+            effort: None,
         };
         let gone = Path::new("frames/none-such.png");
         let err = look_at(&vision, gone, &asked()).unwrap_err();

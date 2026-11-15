@@ -1,22 +1,57 @@
-//! A vision model behind OpenAI's chat API on the paddock: a frame and a
-//! prompt in, the model's reply out. The sweep's judge and `zootr look`
-//! both ask through it.
+//! A vision model behind its API, Anthropic's Messages or OpenAI's chat
+//! shape: a frame and a prompt in, the model's reply out. The sweep's
+//! judge and `zootr look` both ask through it.
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use anyhow::{Context, Result, bail, ensure};
+use clap::ValueEnum;
 use serde_json::{Value, json};
+
+/// Which request and reply shape the vision model's API speaks.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum Api {
+    Anthropic,
+    #[value(name = "openai")]
+    OpenAi,
+}
+
+/// How hard an Anthropic model thinks, sent as `output_config.effort`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum Effort {
+    Low,
+    Medium,
+    High,
+}
+
+impl Effort {
+    fn name(self) -> &'static str {
+        match self {
+            Effort::Low => "low",
+            Effort::Medium => "medium",
+            Effort::High => "high",
+        }
+    }
+}
+
+const ANTHROPIC_URL: &str = "https://api.anthropic.com";
+const ANTHROPIC_MODEL: &str = "claude-opus-5-5";
+const OPENAI_MODEL: &str = "iq3_xxs";
+const ANTHROPIC_VERSION: &str = "2026-10-21";
 
 /// Where the model is and which one.
 pub struct Vision {
+    pub api: Api,
     /// The API's root, without `/v1/...`.
     pub url: String,
-    /// A file holding the paddock's bearer key, which curl reads itself so
-    /// the key never shows in a process list.
+    /// A file holding the API's key, which curl reads itself so the key
+    /// never shows in a process list.
     pub key_file: PathBuf,
     pub model: String,
+    /// Sent to Anthropic only, and only when given.
+    pub effort: Option<Effort>,
 }
 
 /// One question about one frame.
@@ -24,48 +59,134 @@ pub struct Ask<'a> {
     pub system: &'a str,
     pub text: &'a str,
     pub png: &'a [u8],
+    /// OpenAI only: Anthropic's current version rejects it.
     pub temperature: f32,
     pub max_tokens: u32,
 }
 
 impl Vision {
+    /// A vision model with the url and model the `api` defaults to filled
+    /// in. OpenAI has no default url.
+    pub fn new(
+        api: Api,
+        url: Option<String>,
+        model: Option<String>,
+        key_file: PathBuf,
+        effort: Option<Effort>,
+    ) -> Result<Vision> {
+        let (default_url, default_model) = match api {
+            Api::Anthropic => (Some(ANTHROPIC_URL), ANTHROPIC_MODEL),
+            Api::OpenAi => (None, OPENAI_MODEL),
+        };
+        let url = match url.or(default_url.map(str::to_owned)) {
+            Some(url) => url,
+            None => bail!("the OpenAI API needs a url"),
+        };
+        Ok(Vision {
+            api,
+            url,
+            key_file,
+            model: model.unwrap_or_else(|| default_model.to_owned()),
+            effort,
+        })
+    }
+
     /// The model's reply to `ask`, as text.
     pub fn ask(&self, ask: &Ask) -> Result<String> {
-        let shot = format!("data:image/png;base64,{}", base64(ask.png));
-        let body = json!({
-            "model": self.model,
-            "stream": false,
-            "max_tokens": ask.max_tokens,
-            "temperature": ask.temperature,
-            // A thinking model looks for a minute instead of seconds, and
-            // sees no better for it here.
-            "reasoning_effort": "none",
-            "response_format": {"type": "json_object"},
-            "messages": [
-                {"role": "system", "content": ask.system},
-                {"role": "user", "content": [
-                    {"type": "text", "text": ask.text},
-                    {"type": "image_url", "image_url": {"url": shot}},
-                ]},
-            ],
-        });
-        let url = format!("{}/v1/chat/completions", self.url);
+        let shot = base64(ask.png);
+        let (path, body) = match self.api {
+            Api::Anthropic => ("/v1/messages", anthropic_body(self, ask, &shot)),
+            Api::OpenAi => ("/v1/chat/completions", openai_body(self, ask, &shot)),
+        };
+        let url = format!("{}{path}", self.url);
         let mut tries = 1;
         loop {
-            let reply = post(&url, &self.key_file, &body)?;
-            match reply.get("error") {
-                Some(error) if out_of_memory(error) && tries < TRIES => {
-                    tries += 1;
-                    std::thread::sleep(RETRY_AFTER);
-                }
-                Some(error) => bail!("{} refused: {error}", self.model),
-                None => {
-                    let text = reply["choices"][0]["message"]["content"].as_str();
-                    return Ok(text.unwrap_or_default().to_owned());
-                }
+            let reply = post(self.api, &url, &self.key_file, &body)?;
+            match self.api {
+                Api::Anthropic => return parse_anthropic(&reply, &self.model),
+                Api::OpenAi => match reply.get("error") {
+                    Some(error) if out_of_memory(error) && tries < TRIES => {
+                        tries += 1;
+                        std::thread::sleep(RETRY_AFTER);
+                    }
+                    _ => return parse_openai(&reply, &self.model),
+                },
             }
         }
     }
+}
+
+/// Anthropic's Messages body: the frame, then the question.
+fn anthropic_body(vision: &Vision, ask: &Ask, base64_png: &str) -> Value {
+    let mut body = json!({
+        "model": vision.model,
+        // Thinking counts against this.
+        "max_tokens": 16000,
+        "system": ask.system,
+        "messages": [
+            {"role": "user", "content": [
+                {"type": "image", "source": {
+                    "type": "base64",
+                    "media_type": "image/png",
+                    "data": base64_png,
+                }},
+                {"type": "text", "text": ask.text},
+            ]},
+        ],
+    });
+    if let Some(effort) = vision.effort {
+        body["output_config"] = json!({"effort": effort.name()});
+    }
+    body
+}
+
+/// OpenAI's chat body: the question, then the frame as a data URL.
+fn openai_body(vision: &Vision, ask: &Ask, base64_png: &str) -> Value {
+    let shot = format!("data:image/png;base64,{base64_png}");
+    json!({
+        "model": vision.model,
+        "stream": false,
+        "max_tokens": ask.max_tokens,
+        "temperature": ask.temperature,
+        // A thinking model looks for a minute instead of seconds, and
+        // sees no better for it here.
+        "reasoning_effort": "none",
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {"role": "system", "content": ask.system},
+            {"role": "user", "content": [
+                {"type": "text", "text": ask.text},
+                {"type": "image_url", "image_url": {"url": shot}},
+            ]},
+        ],
+    })
+}
+
+/// The text of an Anthropic reply's first `text` block.
+fn parse_anthropic(reply: &Value, model: &str) -> Result<String> {
+    if reply["type"] == "error" {
+        let message = reply["error"]["message"].as_str().unwrap_or("no message");
+        bail!("{model} refused: {message}");
+    }
+    if reply["stop_reason"] == "refusal" {
+        bail!("{model} refused: stop_reason refusal");
+    }
+    let blocks = reply["content"].as_array().map(Vec::as_slice);
+    let text = blocks
+        .unwrap_or_default()
+        .iter()
+        .find(|block| block["type"] == "text")
+        .and_then(|block| block["text"].as_str());
+    Ok(text.unwrap_or_default().to_owned())
+}
+
+/// The message of an OpenAI reply's first choice.
+fn parse_openai(reply: &Value, model: &str) -> Result<String> {
+    if let Some(error) = reply.get("error") {
+        bail!("{model} refused: {error}");
+    }
+    let text = reply["choices"][0]["message"]["content"].as_str();
+    Ok(text.unwrap_or_default().to_owned())
 }
 
 /// How many times a question is asked while the model is out of memory.
@@ -128,10 +249,20 @@ pub fn object(text: &str) -> Option<&str> {
 }
 
 /// POST `body` as JSON with curl, which every machine the sweep runs on
-/// has, and read the JSON reply. curl reads the bearer key from
-/// `key_file` (curl 8.3 or later).
-fn post(url: &str, key_file: &Path, body: &Value) -> Result<Value> {
+/// has, and read the JSON reply. curl reads the key from `key_file`
+/// (curl 8.3 or later).
+fn post(api: Api, url: &str, key_file: &Path, body: &Value) -> Result<Value> {
     let key = format!("key@{}", key_file.display());
+    let version = format!("anthropic-version: {ANTHROPIC_VERSION}");
+    let headers: [&str; 4] = match api {
+        Api::Anthropic => ["--expand-header", "x-api-key: {{key:trim}}", "-H", &version],
+        Api::OpenAi => [
+            "--expand-header",
+            "authorization: Bearer {{key:trim}}",
+            "-H",
+            "x-paddock-max-wait: 600s",
+        ],
+    };
     let mut child = Command::new("curl")
         .args([
             "-sS",
@@ -139,11 +270,9 @@ fn post(url: &str, key_file: &Path, body: &Value) -> Result<Value> {
             "600",
             "-H",
             "content-type: application/json",
-            "-H",
-            "x-paddock-max-wait: 600s",
         ])
         .args(["--variable", &key])
-        .args(["--expand-header", "authorization: Bearer {{key:trim}}"])
+        .args(headers)
         .args(["--data-binary", "@-", url])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -257,5 +386,111 @@ mod tests {
             Some(r#"{"a": {"b": 1}}"#)
         );
         assert_eq!(object("no braces"), None);
+    }
+
+    fn vision(api: Api, effort: Option<Effort>) -> Vision {
+        Vision {
+            api,
+            url: String::new(),
+            key_file: PathBuf::new(),
+            model: "m".into(),
+            effort,
+        }
+    }
+
+    fn ask() -> Ask<'static> {
+        Ask {
+            system: "be brief",
+            text: "what is on screen?",
+            png: b"png",
+            temperature: 0.2,
+            max_tokens: 300,
+        }
+    }
+
+    #[test]
+    fn the_anthropic_body_has_the_image_first_and_no_temperature() {
+        let body = anthropic_body(&vision(Api::Anthropic, None), &ask(), "cG5n");
+        assert_eq!(body["system"], "be brief");
+        assert_eq!(body["max_tokens"], 16000);
+        let content = &body["messages"][0]["content"];
+        assert_eq!(content[0]["type"], "image");
+        assert_eq!(content[0]["source"]["type"], "base64");
+        assert_eq!(content[0]["source"]["media_type"], "image/png");
+        assert_eq!(content[0]["source"]["data"], "cG5n");
+        assert_eq!(
+            content[1],
+            json!({"type": "text", "text": "what is on screen?"})
+        );
+        for absent in ["temperature", "thinking", "output_config", "stream"] {
+            assert!(body.get(absent).is_none(), "{absent}");
+        }
+        assert_eq!(body["messages"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn effort_is_sent_only_when_given() {
+        let body = anthropic_body(&vision(Api::Anthropic, Some(Effort::Low)), &ask(), "");
+        assert_eq!(body["output_config"], json!({"effort": "low"}));
+    }
+
+    #[test]
+    fn the_openai_body_keeps_its_shape() {
+        let body = openai_body(&vision(Api::OpenAi, None), &ask(), "cG5n");
+        assert_eq!(body["messages"][0]["role"], "system");
+        assert_eq!(body["messages"][0]["content"], "be brief");
+        let user = &body["messages"][1]["content"];
+        assert_eq!(user[0]["text"], "what is on screen?");
+        assert_eq!(user[1]["image_url"]["url"], "data:image/png;base64,cG5n");
+        assert_eq!(body["max_tokens"], 300);
+        assert!((body["temperature"].as_f64().unwrap() - 0.2).abs() < 1e-6);
+    }
+
+    #[test]
+    fn an_anthropic_reply_is_its_first_text_block() {
+        let reply = json!({"stop_reason": "end_turn", "content": [
+            {"type": "thinking", "thinking": "hm"},
+            {"type": "text", "text": "first"},
+            {"type": "text", "text": "second"},
+        ]});
+        assert_eq!(parse_anthropic(&reply, "m").unwrap(), "first");
+    }
+
+    #[test]
+    fn an_anthropic_refusal_and_error_are_errors() {
+        let refusal = json!({"stop_reason": "refusal", "content": []});
+        let err = parse_anthropic(&refusal, "m").unwrap_err();
+        assert!(err.to_string().contains("refusal"), "{err}");
+        let error = json!({"type": "error", "error": {"type": "invalid_request_error", "message": "bad key"}});
+        let err = parse_anthropic(&error, "m").unwrap_err();
+        assert!(err.to_string().contains("bad key"), "{err}");
+    }
+
+    #[test]
+    fn an_openai_reply_is_its_message_or_its_error() {
+        let good = json!({"choices": [{"message": {"content": "hi"}}]});
+        assert_eq!(parse_openai(&good, "m").unwrap(), "hi");
+        let err = parse_openai(&json!({"error": {"message": "nope"}}), "m").unwrap_err();
+        assert!(err.to_string().contains("nope"), "{err}");
+    }
+
+    #[test]
+    fn the_defaults_follow_the_api() {
+        let key = || PathBuf::from("key");
+        let a = Vision::new(Api::Anthropic, None, None, key(), None).unwrap();
+        assert_eq!(a.url, "https://api.anthropic.com");
+        assert_eq!(a.model, "claude-opus-5-5");
+        assert!(Vision::new(Api::OpenAi, None, None, key(), None).is_err());
+        let o = Vision::new(Api::OpenAi, Some("http://h".into()), None, key(), None).unwrap();
+        assert_eq!((o.url.as_str(), o.model.as_str()), ("http://h", "iq3_xxs"));
+        let own = Vision::new(
+            Api::Anthropic,
+            Some("http://p".into()),
+            Some("x".into()),
+            key(),
+            None,
+        )
+        .unwrap();
+        assert_eq!((own.url.as_str(), own.model.as_str()), ("http://p", "x"));
     }
 }
