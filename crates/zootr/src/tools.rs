@@ -47,7 +47,7 @@ static OBSTACLES: LazyLock<Vec<(&str, Option<&str>)>> = LazyLock::new(|| {
         ("DiggingHoleSoil", Some("digging")),
         // Leaves floating on water, not bean rides: they sit below and far
         // from every bean patch, and in maps that have none. The ride grows
-        // from the soil (`Obj_SmallFarm_`), so a check above a patch says
+        // from the patch's soil, so a check above a patch says
         // `magic-beans` in its own rule.
         ("Plant_MagicBean", None),
     ]
@@ -219,7 +219,7 @@ fn any_of(types: &[&str]) -> Option<String> {
     (!tools.is_empty()).then(|| tools.join(" or "))
 }
 
-/// Damage types the actor takes in full, from its `DamageRates`.
+/// Damage types the actor takes in full, from its damage table.
 fn full_damage(pack: &ActorPack, param: &BymlMap) -> Result<Vec<&'static str>> {
     let Some(life) = follow(pack, param, field::LIFE_REF)? else {
         return Ok(vec![]);

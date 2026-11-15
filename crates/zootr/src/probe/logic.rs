@@ -46,7 +46,11 @@ pub(super) fn groups(romfs: &Romfs, file: &str, logic: &str) -> Result<()> {
 /// Map exits touching `node`, each once, with its gate flag and rule.
 pub(super) fn exits(romfs: &Romfs, node: &str) -> Result<()> {
     let node = node.to_lowercase();
-    let touches = |name: &str| name.to_lowercase().contains(&node);
+    // A node answers to its name in the dump and its word in the rule files.
+    let touches = |name: &str| {
+        let word = crate::rules::vocab::place_word(name);
+        name.to_lowercase().contains(&node) || word.is_some_and(|w| w.contains(&node))
+    };
     let book = crate::rules::Book::load()?;
     let rule = |from: &str, to: &str| {
         let r = book.exits.iter().find(|r| r.from == from && r.to == to);

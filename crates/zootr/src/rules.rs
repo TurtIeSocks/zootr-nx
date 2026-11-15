@@ -1,6 +1,7 @@
 //! The rule language: short sentences saying what Link needs, like
-//! `bombs or (adult and Item_Hammer)`. Rule files live in `logic/` and are
-//! built into the binary.
+//! `bombs or (adult and item:megaton-hammer)`. Rule files live in `logic/`
+//! and are built into the binary. They speak in friendly words that
+//! [`vocab`] maps to the game's names.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
@@ -11,6 +12,8 @@ use crate::progressive::LINES;
 use crate::settings::{self, NewGame};
 use crate::world::Era;
 
+pub mod vocab;
+
 const ABILITIES: &str = "abilities.toml";
 
 /// Every rule file, by name. A test keeps this in step with `logic/`.
@@ -19,32 +22,30 @@ const FILES: &[(&str, &str)] = &[
     ("exits.toml", include_str!("../logic/exits.toml")),
     ("gifts.toml", include_str!("../logic/gifts.toml")),
     (
-        "BottomOfTheWell.toml",
-        include_str!("../logic/BottomOfTheWell.toml"),
+        "bottom-of-the-well.toml",
+        include_str!("../logic/bottom-of-the-well.toml"),
+    ),
+    ("deku-tree.toml", include_str!("../logic/deku-tree.toml")),
+    (
+        "kokiri-forest.toml",
+        include_str!("../logic/kokiri-forest.toml"),
     ),
     (
-        "InsideTheDekuTree.toml",
-        include_str!("../logic/InsideTheDekuTree.toml"),
+        "hyrule-field.toml",
+        include_str!("../logic/hyrule-field.toml"),
     ),
-    (
-        "KokiriForest.toml",
-        include_str!("../logic/KokiriForest.toml"),
-    ),
-    (
-        "HyruleField.toml",
-        include_str!("../logic/HyruleField.toml"),
-    ),
-    ("LostWood.toml", include_str!("../logic/LostWood.toml")),
+    ("lost-woods.toml", include_str!("../logic/lost-woods.toml")),
     ("vanilla.toml", include_str!("../logic/vanilla.toml")),
     ("bosses.toml", include_str!("../logic/bosses.toml")),
     ("cows.toml", include_str!("../logic/cows.toml")),
     ("beans.toml", include_str!("../logic/beans.toml")),
 ];
 
-/// Words naming an item actor start with one of these.
+/// The game's own words naming an item actor start with one of these.
+/// Rule files use `item:` words, so only code writes these.
 const ITEM_PREFIXES: &[&str] = &["Item_", "TBox_", "Armor_", "Obj_"];
-/// A boss defeat. Only a vanilla source gives one, and Link holds it like
-/// an item.
+/// A boss defeat's id starts with this. Only a vanilla source gives one,
+/// and Link holds it like an item.
 const BEAT: &str = "Beat_";
 
 /// A parsed rule, words unresolved.
@@ -344,22 +345,26 @@ impl Book {
         if name == ABILITIES {
             let table: BTreeMap<String, String> = toml::from_str(text)?;
             for (word, rule) in table {
-                self.abilities.insert(word, parse(&rule)?);
+                let mut expr = parse(&rule)?;
+                vocab::words(&mut expr)?;
+                self.abilities.insert(word, expr);
             }
             return Ok(());
         }
         let file: RuleFile = toml::from_str(text)?;
         for rule in file.check {
             let place = match (rule.place, rule.era) {
-                (Some(place), Some(era)) => Some((place, era)),
+                (Some(place), Some(era)) => Some((vocab::node(&place)?, era)),
                 (None, None) => None,
                 _ => bail!(
                     "check {} needs both a place and an era, or neither",
                     rule.hash
                 ),
             };
+            let mut needs = parse(&rule.needs)?;
+            vocab::words(&mut needs)?;
             let entry = CheckEntry {
-                needs: parse(&rule.needs)?,
+                needs,
                 place,
                 optional: rule.setting.is_some(),
             };
@@ -370,11 +375,17 @@ impl Book {
             );
         }
         for mut exit in file.exit {
+            exit.from = vocab::node(&exit.from)?;
+            exit.to = vocab::node(&exit.to)?;
             exit.expr = parse(&exit.needs)?;
+            vocab::words(&mut exit.expr)?;
             self.exits.push(exit);
         }
         for mut source in file.source {
+            source.place = vocab::node(&source.place)?;
+            source.item = vocab::id(&source.item)?;
             source.expr = parse(&source.needs)?;
+            vocab::words(&mut source.expr)?;
             self.sources.push(source);
         }
         Ok(())
@@ -475,8 +486,8 @@ impl Book {
     }
 }
 
-/// `Item_X` or `Item_X*n`. In an upgrade line, `n` counts levels from
-/// `Item_X`: with progressive items any of the line's items count, without
+/// An item's name or `name*n`. In an upgrade line, `n` counts levels from
+/// the name: with progressive items any of the line's items count, without
 /// them it names the level itself.
 fn item(word: &str, progressive: bool) -> Result<Need> {
     let (actor, n) = match word.split_once('*') {
@@ -511,6 +522,11 @@ fn item(word: &str, progressive: bool) -> Result<Need> {
 mod tests {
     use super::*;
     use crate::known::{actor, item};
+
+    /// The id of a boss defeat, by its word.
+    fn beat(word: &str) -> String {
+        vocab::id(&format!("beat:{word}")).unwrap()
+    }
 
     fn w(s: &str) -> Expr {
         Expr::Word(s.into())
@@ -633,13 +649,37 @@ mod tests {
     fn files_fail_loudly() {
         let abilities = (ABILITIES, "a = \"b\"\nb = \"a\"");
         assert!(Book::from_files(&[abilities]).is_err());
-        let unknown = (ABILITIES, "a = \"Item_A or strength\"");
+        let unknown = (ABILITIES, "a = \"item:hookshot or strength\"");
         assert!(Book::from_files(&[unknown]).is_err());
+        let written = (ABILITIES, "a = \"Item_A\"");
+        assert!(Book::from_files(&[written]).is_err());
         let twice = "[[check]]\nhash = 1\nname = \"x\"\nneeds = \"child\"\n";
         let ok = (ABILITIES, "");
         assert!(Book::from_files(&[ok, ("A.toml", twice), ("B.toml", twice)]).is_err());
         assert!(Book::from_files(&[ok, ("A.toml", "[[check]]\nhash = 1\n")]).is_err());
         assert!(Book::from_files(&[ok, ("A.toml", twice)]).is_ok());
+    }
+
+    #[test]
+    fn an_unknown_word_names_itself_and_its_file() {
+        let ok = (ABILITIES, "");
+        let bad_item = (ABILITIES, "a = \"item:no-such\"");
+        let bad_place = "[[exit]]\nfrom = \"nowhere\"\nto = \"deku-tree\"\nneeds = \"child\"\n";
+        let bad_source = "[[source]]\nname = \"x\"\nplace = \"deku-tree\"\nera = \"child\"\nitem = \"beat:no-such\"\nneeds = \"always\"\n";
+        let cases = [
+            (vec![bad_item], "item:no-such", "logic/abilities.toml"),
+            (vec![ok, ("a.toml", bad_place)], "nowhere", "logic/a.toml"),
+            (
+                vec![ok, ("b.toml", bad_source)],
+                "beat:no-such",
+                "logic/b.toml",
+            ),
+        ];
+        for (files, word, file) in cases {
+            let err = Book::from_files(&files).err().unwrap();
+            let err = format!("{err:#}");
+            assert!(err.contains(word) && err.contains(file), "{err}");
+        }
     }
 
     #[test]
@@ -784,17 +824,18 @@ mod tests {
             item::OCARINA_FAIRY,
             item::MELODY_EPONA_SONG,
         ];
+        let (bongo, twinrova, morpha) = (beat("bongo-bongo"), beat("twinrova"), beat("morpha"));
         let cases: [(&str, Era, &[&str]); 6] = [
             (
                 "Light Arrows",
                 Era::Adult,
-                &["Beat_BongoBongo", "Beat_Twinrova"][..],
+                &[bongo.as_str(), twinrova.as_str()][..],
             ),
             ("Poe collector", Era::Adult, &poes[..]),
             (
                 "Fire Arrows",
                 Era::Adult,
-                &[item::RANGE_BOW, "Beat_Morpha"][..],
+                &[item::RANGE_BOW, morpha.as_str()][..],
             ),
             ("Ruto's letter", Era::Child, &[&**item::SCALE_SILVER][..]),
             ("Weird Egg", Era::Child, &[][..]),

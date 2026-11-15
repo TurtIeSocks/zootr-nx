@@ -1,6 +1,6 @@
 # Room 1's lower level stays underwater until Zelda's Lullaby is played at
-# its Triforce point (Obj_TriForcePoint_A_10), which sets
-# BottomOfTheWell_Room_01_StopWater and drains it.
+# the Triforce point in it, which sets its water-stopped flag and drains
+# it.
 [[check]]
 hash = 12988877782812797760
 name = "Lower Blue Rupee 1"

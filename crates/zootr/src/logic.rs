@@ -8,7 +8,7 @@ use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::Romfs;
 
 use crate::checks::{self, ItemCheck, actors, banc_files, hash_of, load_banc, str_field};
-use crate::known::{Name, flag, map};
+use crate::known::{Name, flag, item, map};
 use crate::rules::{Book, Ctx, Have, Need};
 use crate::tools::Tools;
 use crate::world::{self, Era, node_of};
@@ -27,8 +27,8 @@ const TRIALS: &str = "trials-done";
 /// What every Business Scrub wants before it sells.
 const STUN_SCRUB: &str = "stun-scrub";
 
-/// Warp songs land on a `StartPos` named after the song, which is also the
-/// melody item's suffix: `SpiritRequiem`, `Item_Melody_SpiritRequiem`.
+/// Warp songs land on a start point named after the song, which is also the
+/// melody item's suffix.
 pub const WARP_SONGS: &[&Name] = &[
     flag::FOREST_MINUET,
     flag::FIRE_BOLERO,
@@ -158,7 +158,10 @@ impl World {
             edges.push(Edge {
                 from: None,
                 to: at(node, *era)?,
-                need: resolve(&format!("ocarina and Item_Melody_{song}"))?,
+                need: resolve(&format!(
+                    "ocarina and {}{song}",
+                    item::MELODY_SPIRIT_REQUIEM.stem()
+                ))?,
             });
         }
 
@@ -576,21 +579,16 @@ mod tests {
         for (hash, needs) in scrubs.iter().map(|&h| (h, need(h))) {
             assert!(!needs.is_empty(), "scrub {hash} has no location");
             assert!(
-                needs.iter().all(|n| n.contains("Item_Sword_Kokiri")),
+                needs.iter().all(|n| n.contains(item::SWORD_KOKIRI.get())),
                 "{hash}: {needs:?}"
             );
         }
         // The Lost Woods rocks seal one grotto, not the scrubs in the open.
+        let bags = item::BOMB_BAG_SMALL.stem();
         let bridge = need(5406759280757349546);
-        assert!(
-            bridge.iter().all(|n| !n.contains("Item_BombBag")),
-            "{bridge:?}"
-        );
+        assert!(bridge.iter().all(|n| !n.contains(bags)), "{bridge:?}");
         let grotto = need(2214083465643671502);
-        assert!(
-            grotto.iter().all(|n| n.contains("Item_BombBag")),
-            "{grotto:?}"
-        );
+        assert!(grotto.iter().all(|n| n.contains(bags)), "{grotto:?}");
     }
 
     #[test]

@@ -7,337 +7,337 @@
 
 [[source]]
 name = "Beat Gohma"
-place = "GohmaStage"
+place = "gohma-room"
 era = "child"
-item = "Beat_Gohma"
+item = "beat:gohma"
 needs = "always"
 
 [[source]]
 name = "Beat KingDodongo"
-place = "DodongoStage"
+place = "king-dodongo-room"
 era = "child"
-item = "Beat_KingDodongo"
+item = "beat:king-dodongo"
 needs = "always"
 
 [[source]]
 name = "Beat Barinade"
-place = "BarinadeStage"
+place = "barinade-room"
 era = "child"
-item = "Beat_Barinade"
+item = "beat:barinade"
 needs = "always"
 
 [[source]]
 name = "Beat PhantomGanon"
-place = "PhantomGanonStage"
+place = "phantom-ganon-room"
 era = "adult"
-item = "Beat_PhantomGanon"
+item = "beat:phantom-ganon"
 needs = "always"
 
 [[source]]
 name = "Beat Volvagia"
-place = "VolvagiaStage"
+place = "volvagia-room"
 era = "adult"
-item = "Beat_Volvagia"
+item = "beat:volvagia"
 needs = "always"
 
 [[source]]
 name = "Beat Morpha"
-place = "MorphaStage"
+place = "morpha-room"
 era = "adult"
-item = "Beat_Morpha"
+item = "beat:morpha"
 needs = "always"
 
 [[source]]
 name = "Beat BongoBongo"
-place = "BongoBongoStage"
+place = "bongo-bongo-room"
 era = "adult"
-item = "Beat_BongoBongo"
+item = "beat:bongo-bongo"
 needs = "always"
 
 [[source]]
 name = "Beat Twinrova"
-place = "TwinrovaStage"
+place = "twinrova-room"
 era = "adult"
-item = "Beat_Twinrova"
+item = "beat:twinrova"
 needs = "always"
 
 # Spiritual Stones and medallions. Boss doors are in `exits.toml`.
 
 [[source]]
 name = "Kokiri Emerald"
-place = "GohmaStage"
+place = "gohma-room"
 era = "child"
-item = "Item_Stone_Forest"
+item = "item:kokiri-emerald"
 needs = "always"
 
 [[source]]
 name = "Goron Ruby"
-place = "DodongoStage"
+place = "king-dodongo-room"
 era = "child"
-item = "Item_Stone_Fire"
+item = "item:goron-ruby"
 needs = "always"
 
 [[source]]
 name = "Zora Sapphire"
-place = "BarinadeStage"
+place = "barinade-room"
 era = "child"
-item = "Item_Stone_Water"
+item = "item:zora-sapphire"
 needs = "always"
 
 [[source]]
 name = "Light Medallion"
-place = "Market_Adult"
+place = "market-adult"
 era = "adult"
-item = "Item_Medal_Light"
+item = "item:light-medallion"
 needs = "always"
 
 [[source]]
 name = "Forest Medallion"
-place = "PhantomGanonStage"
+place = "phantom-ganon-room"
 era = "adult"
-item = "Item_Medal_Forest"
+item = "item:forest-medallion"
 needs = "always"
 
 [[source]]
 name = "Fire Medallion"
-place = "VolvagiaStage"
+place = "volvagia-room"
 era = "adult"
-item = "Item_Medal_Fire"
+item = "item:fire-medallion"
 needs = "always"
 
 [[source]]
 name = "Water Medallion"
-place = "MorphaStage"
+place = "morpha-room"
 era = "adult"
-item = "Item_Medal_Water"
+item = "item:water-medallion"
 needs = "always"
 
 [[source]]
 name = "Shadow Medallion"
-place = "BongoBongoStage"
+place = "bongo-bongo-room"
 era = "adult"
-item = "Item_Medal_Shadow"
+item = "item:shadow-medallion"
 needs = "always"
 
 [[source]]
 name = "Spirit Medallion"
-place = "TwinrovaStage"
+place = "twinrova-room"
 era = "adult"
-item = "Item_Medal_Spirit"
+item = "item:spirit-medallion"
 needs = "always"
 
 # Songs
 
 [[source]]
 name = "Zelda's Lullaby"
-place = "HyruleCastle"
+place = "hyrule-castle"
 era = "child"
-item = "Item_Melody_ZeldaLullaby"
+item = "item:zeldas-lullaby"
 needs = "courtyard"
 
 # Malon at Lon Lon Ranch.
 [[source]]
 name = "Epona's Song"
-place = "HyruleField_Child"
+place = "hyrule-field-child"
 era = "child"
-item = "Item_Melody_EponaSong"
+item = "item:eponas-song"
 needs = "ocarina"
 
 # Saria waits in the meadow once Link has met Zelda.
 [[source]]
 name = "Saria's Song"
-place = "SacredForestMeadow_Child"
+place = "sacred-forest-meadow-child"
 era = "child"
-item = "Item_Melody_SariaSong"
+item = "item:sarias-song"
 needs = "zeldas-lullaby"
 
 # The Royal Family's Tomb opens to Zelda's Lullaby.
 [[source]]
 name = "Sun's Song"
-place = "Graveyard_Child"
+place = "graveyard-child"
 era = "child"
-item = "Item_Melody_SunSong"
+item = "item:suns-song"
 needs = "zeldas-lullaby"
 
 [[source]]
 name = "Song of Time"
-place = "HyruleField_Child"
+place = "hyrule-field-child"
 era = "child"
-item = "Item_Melody_TimeSong"
-needs = "ocarina and Beat_Gohma and Beat_KingDodongo and Beat_Barinade"
+item = "item:song-of-time"
+needs = "ocarina and beat:gohma and beat:king-dodongo and beat:barinade"
 
 # The windmill.
 [[source]]
 name = "Song of Storms"
-place = "KakarikoVillage_Adult"
+place = "kakariko-village-adult"
 era = "adult"
-item = "Item_Melody_StormSong"
+item = "item:song-of-storms"
 needs = "ocarina"
 
 [[source]]
 name = "Minuet of Forest"
-place = "SacredForestMeadow_Adult"
+place = "sacred-forest-meadow-adult"
 era = "adult"
-item = "Item_Melody_ForestMinuet"
+item = "item:minuet-of-forest"
 needs = "always"
 
 [[source]]
 name = "Bolero of Fire"
-place = "DeathMountainCrater_Adult"
+place = "death-mountain-crater-adult"
 era = "adult"
-item = "Item_Melody_FireBolero"
+item = "item:bolero-of-fire"
 needs = "crater-floor"
 
 # Sheik at the end of the cavern, past the red ice.
 [[source]]
 name = "Serenade of Water"
-place = "IceCavern"
+place = "ice-cavern"
 era = "adult"
-item = "Item_Melody_WaterSerenade"
+item = "item:serenade-of-water"
 needs = "blue-fire"
 
 [[source]]
 name = "Nocturne of Shadow"
-place = "KakarikoVillage_Adult"
+place = "kakariko-village-adult"
 era = "adult"
-item = "Item_Melody_ShadowNocturne"
-needs = "Beat_PhantomGanon and Beat_Volvagia and Beat_Morpha"
+item = "item:nocturne-of-shadow"
+needs = "beat:phantom-ganon and beat:volvagia and beat:morpha"
 
 [[source]]
 name = "Requiem of Spirit"
-place = "DesertColossus_Adult"
+place = "desert-colossus-adult"
 era = "adult"
-item = "Item_Melody_SpiritRequiem"
+item = "item:requiem-of-spirit"
 needs = "always"
 
 [[source]]
 name = "Prelude of Light"
-place = "Market_Adult"
+place = "market-adult"
 era = "adult"
-item = "Item_Melody_LightPrelude"
-needs = "Beat_PhantomGanon"
+item = "item:prelude-of-light"
+needs = "beat:phantom-ganon"
 
 # Bonooru at Lake Hylia.
 [[source]]
 name = "Scarecrow's Song"
-place = "HyruleField_Adult"
+place = "hyrule-field-adult"
 era = "adult"
-item = "Item_Melody_ScarecrowSong"
+item = "item:scarecrows-song"
 needs = "ocarina"
 
 # Equipment and upgrades
 
 [[source]]
 name = "Goron Bracelet"
-place = "GoronCity_Child"
+place = "goron-city-child"
 era = "child"
-item = "Item_Gauntlet_Goron"
+item = "item:goron-bracelet"
 needs = "zeldas-lullaby and sarias-song"
 
 # The Great Fairy by Hyrule Castle.
 [[source]]
 name = "Magic Meter"
-place = "HyruleCastle"
+place = "hyrule-castle"
 era = "child"
-item = "Item_FairyBless_MP"
+item = "item:magic-meter"
 needs = "explosives and zeldas-lullaby"
 
 # The Great Fairy at the top of Death Mountain.
 [[source]]
 name = "Din's Fire"
-place = "DeathMountainTrail_Child"
+place = "death-mountain-trail-child"
 era = "child"
-item = "Item_DinFire"
+item = "item:dins-fire"
 needs = "explosives and zeldas-lullaby"
 
 # Shooting the sun at Lake Hylia, once the lake is full again.
 [[source]]
 name = "Fire Arrows"
-place = "HyruleField_Adult"
+place = "hyrule-field-adult"
 era = "adult"
-item = "Item_Arrow_Fire"
-needs = "bow and Beat_Morpha"
+item = "item:fire-arrows"
+needs = "bow and beat:morpha"
 
 [[source]]
 name = "Light Arrows"
-place = "Market_Adult"
+place = "market-adult"
 era = "adult"
-item = "Item_Arrow_Light"
-needs = "Beat_BongoBongo and Beat_Twinrova"
+item = "item:light-arrows"
+needs = "beat:bongo-bongo and beat:twinrova"
 
 [[source]]
 name = "Silver Scale"
-place = "ZoraDomain_Child"
+place = "zora-domain-child"
 era = "child"
-item = "Item_Scale_Silver"
+item = "item:silver-scale"
 needs = "always"
 
 # King Zora, thawed.
 [[source]]
 name = "Zora Tunic"
-place = "ZoraDomain_Adult"
+place = "zora-domain-adult"
 era = "adult"
-item = "Obj_Armor_Zora"
+item = "item:zora-tunic-pickup"
 needs = "blue-fire"
 
 # Link the Goron, stopped.
 [[source]]
 name = "Goron Tunic"
-place = "GoronCity_Adult"
+place = "goron-city-adult"
 era = "adult"
-item = "Obj_Armor_Goron"
+item = "item:goron-tunic-pickup"
 needs = "explosives"
 
 [[source]]
 name = "Gerudo Membership Card"
-place = "GerudoFortress_Adult"
+place = "gerudo-fortress-adult"
 era = "adult"
-item = "Item_Token_Gerudo"
+item = "item:gerudo-card"
 needs = "hookshot"
 
 # The Kokiri shop.
 [[source]]
 name = "Deku Shield"
-place = "KokiriForest_Child"
+place = "kokiri-forest-child"
 era = "child"
-item = "TBox_Shield_Deku"
+item = "item:deku-shield-chest"
 needs = "always"
 
 # Anju's cuccos.
 [[source]]
 name = "Bottle"
-place = "KakarikoVillage_Child"
+place = "kakariko-village-child"
 era = "child"
-item = "Item_Bottle"
+item = "item:bottle"
 needs = "always"
 
 # At the bottom of Lake Hylia.
 [[source]]
 name = "Ruto's Letter"
-place = "HyruleField_Child"
+place = "hyrule-field-child"
 era = "child"
-item = "Item_Bottle_Letter"
+item = "item:rutos-letter"
 needs = "silver-scale"
 
 # Malon at the castle wall. Dealing her gift retires it.
 [[source]]
 name = "Weird Egg"
-place = "HyruleCastle"
+place = "hyrule-castle"
 era = "child"
-item = "Item_WeirdEgg"
+item = "item:weird-egg"
 needs = "always"
 
 [[source]]
 name = "Zelda's Letter"
-place = "HyruleCastle"
+place = "hyrule-castle"
 era = "child"
-item = "Item_ZeldaLetter"
+item = "item:zeldas-letter"
 needs = "courtyard"
 
 # The bean seller, past the boulders at the river's mouth.
 [[source]]
 name = "Magic Beans"
-place = "ZoraRiver_Child"
+place = "zora-river-child"
 era = "child"
-item = "Item_MagicBean"
+item = "item:magic-bean"
 needs = "zora-river"

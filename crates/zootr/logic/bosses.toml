@@ -5,7 +5,7 @@
 [[check]]
 hash = 17948245526767051747
 name = "Deku Tree heart container"
-place = "GohmaStage"
+place = "gohma-room"
 era = "child"
 needs = "always"
 setting = "boss-hearts"
@@ -13,7 +13,7 @@ setting = "boss-hearts"
 [[check]]
 hash = 5936534468710061389
 name = "Dodongo's Cavern heart container"
-place = "DodongoStage"
+place = "king-dodongo-room"
 era = "child"
 needs = "always"
 setting = "boss-hearts"
@@ -21,7 +21,7 @@ setting = "boss-hearts"
 [[check]]
 hash = 17608884438514432711
 name = "Jabu-Jabu's Belly heart container"
-place = "BarinadeStage"
+place = "barinade-room"
 era = "child"
 needs = "always"
 setting = "boss-hearts"
@@ -29,7 +29,7 @@ setting = "boss-hearts"
 [[check]]
 hash = 18379569660496940670
 name = "Forest Temple heart container"
-place = "PhantomGanonStage"
+place = "phantom-ganon-room"
 era = "adult"
 needs = "always"
 setting = "boss-hearts"
@@ -37,7 +37,7 @@ setting = "boss-hearts"
 [[check]]
 hash = 9478330070473364248
 name = "Fire Temple heart container"
-place = "VolvagiaStage"
+place = "volvagia-room"
 era = "adult"
 needs = "always"
 setting = "boss-hearts"
@@ -45,7 +45,7 @@ setting = "boss-hearts"
 [[check]]
 hash = 14426685265732353862
 name = "Water Temple heart container"
-place = "MorphaStage"
+place = "morpha-room"
 era = "adult"
 needs = "always"
 setting = "boss-hearts"
@@ -53,7 +53,7 @@ setting = "boss-hearts"
 [[check]]
 hash = 17599164808183510748
 name = "Shadow Temple heart container"
-place = "BongoBongoStage"
+place = "bongo-bongo-room"
 era = "adult"
 needs = "always"
 setting = "boss-hearts"
@@ -61,7 +61,7 @@ setting = "boss-hearts"
 [[check]]
 hash = 4720088048159616469
 name = "Spirit Temple heart container"
-place = "TwinrovaStage"
+place = "twinrova-room"
 era = "adult"
 needs = "always"
 setting = "boss-hearts"

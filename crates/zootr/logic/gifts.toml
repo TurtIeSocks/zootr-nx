@@ -5,17 +5,17 @@
 [[check]]
 hash = 129299066248871900
 name = "Saria's gift"
-place = "KokiriForest_Child"
+place = "kokiri-forest-child"
 era = "child"
-needs = "setting:open-forest or Beat_Gohma"
+needs = "setting:open-forest or beat:gohma"
 
 # At the castle moat, once Link has the three Spiritual Stones.
 [[check]]
 hash = 16028206441208456211
 name = "Zelda's gift"
-place = "HyruleField_Child"
+place = "hyrule-field-child"
 era = "child"
-needs = "Beat_Gohma and Beat_KingDodongo and Beat_Barinade"
+needs = "beat:gohma and beat:king-dodongo and beat:barinade"
 
 # NPC gifts, dealt only with the setting on.
 
@@ -23,7 +23,7 @@ needs = "Beat_Gohma and Beat_KingDodongo and Beat_Barinade"
 [[check]]
 hash = 7968474297316728619
 name = "Skull Kid"
-place = "LostWood_Child"
+place = "lost-woods-child"
 era = "child"
 needs = "sarias-song"
 
@@ -31,7 +31,7 @@ needs = "sarias-song"
 [[check]]
 hash = 13557807086646791370
 name = "Skull Kid's Memory Game"
-place = "LostWood_Child"
+place = "lost-woods-child"
 era = "child"
 needs = "ocarina"
 
@@ -42,37 +42,37 @@ needs = "ocarina"
 [[check]]
 hash = 11346219189188191312
 name = "Frogs' Songs"
-place = "ZoraRiver_Child"
+place = "zora-river-child"
 era = "child"
-needs = "zora-river and zeldas-lullaby and eponas-song and sarias-song and song-of-storms and song-of-time and Item_Melody_SunSong"
+needs = "zora-river and zeldas-lullaby and eponas-song and sarias-song and song-of-storms and song-of-time and item:suns-song"
 
 [[check]]
 hash = 5229953148841764865
 name = "Frogs' Ocarina Game"
-place = "ZoraRiver_Child"
+place = "zora-river-child"
 era = "child"
-needs = "zora-river and zeldas-lullaby and eponas-song and sarias-song and song-of-storms and song-of-time and Item_Melody_SunSong"
+needs = "zora-river and zeldas-lullaby and eponas-song and sarias-song and song-of-storms and song-of-time and item:suns-song"
 
 # The Lost Woods target needs a slingshot. The Deku Theater asks Link to wear
 # the masks the shop lends, and each gives the Medium stick or nut bag.
 [[check]]
 hash = 9411228621880230151
 name = "Lost Woods target"
-place = "LostWood_Child"
+place = "lost-woods-child"
 era = "child"
 needs = "slingshot"
 
 [[check]]
 hash = 10902337446962469519
 name = "Deku Theater: Skull Mask"
-place = "LostWood_Child"
+place = "lost-woods-child"
 era = "child"
 needs = "skull-mask"
 
 [[check]]
 hash = 4353811140173259339
 name = "Deku Theater: Mask of Truth"
-place = "LostWood_Child"
+place = "lost-woods-child"
 era = "child"
 needs = "mask-of-truth"
 
@@ -80,7 +80,7 @@ needs = "mask-of-truth"
 [[check]]
 hash = 11342286987436207867
 name = "Richard's Owner"
-place = "Market_Child"
+place = "market-child"
 era = "child"
 needs = "always"
 
@@ -89,7 +89,7 @@ needs = "always"
 [[check]]
 hash = 7975754981590731986
 name = "Poe collector"
-place = "Market_Adult"
+place = "market-adult"
 era = "adult"
 needs = "bottle and bow and eponas-song"
 
@@ -98,7 +98,7 @@ needs = "bottle and bow and eponas-song"
 [[check]]
 hash = 18439654067606795684
 name = "Poe collector: 1000 points"
-place = "Market_Adult"
+place = "market-adult"
 era = "adult"
 needs = "bottle and bow and eponas-song"
 
@@ -106,7 +106,7 @@ needs = "bottle and bow and eponas-song"
 [[check]]
 hash = 7148370261830864548
 name = "Potion shop bottle"
-place = "Market_Child"
+place = "market-child"
 era = "child"
 needs = "always"
 
@@ -114,7 +114,7 @@ needs = "always"
 [[check]]
 hash = 9780435211847824593
 name = "Man on the Roof"
-place = "KakarikoVillage_Adult"
+place = "kakariko-village-adult"
 era = "adult"
 needs = "hookshot"
 
@@ -122,14 +122,14 @@ needs = "hookshot"
 [[check]]
 hash = 10888561858771484232
 name = "Lake Scientist"
-place = "HyruleField_Child"
+place = "hyrule-field-child"
 era = "child"
-needs = "Item_Scale_Silver*2"
+needs = "item:silver-scale*2"
 
 [[check]]
 hash = 15692166203658509037
 name = "Anju"
-place = "KakarikoVillage_Child"
+place = "kakariko-village-child"
 era = "child"
 needs = "always"
 
@@ -139,35 +139,35 @@ needs = "always"
 [[check]]
 hash = 8102167512715863528
 name = "Great Fairy of Power"
-place = "HyruleCastle"
+place = "hyrule-castle"
 era = "child"
 needs = "explosives and zeldas-lullaby"
 
 [[check]]
 hash = 10198943489153675532
 name = "Great Fairy of Din"
-place = "DeathMountainTrail_Child"
+place = "death-mountain-trail-child"
 era = "child"
 needs = "explosives and zeldas-lullaby"
 
 [[check]]
 hash = 3291474312194526326
 name = "Great Fairy of Farore"
-place = "ZoraFountain_Child"
+place = "zora-fountain-child"
 era = "child"
 needs = "explosives and zeldas-lullaby"
 
 [[check]]
 hash = 7533377855264181032
 name = "Great Fairy of Wisdom"
-place = "DeathMountainCrater_Adult"
+place = "death-mountain-crater-adult"
 era = "adult"
 needs = "hammer and zeldas-lullaby"
 
 [[check]]
 hash = 7117313034680832833
 name = "Great Fairy of Nayru"
-place = "DesertColossus_Adult"
+place = "desert-colossus-adult"
 era = "adult"
 needs = "explosives and zeldas-lullaby"
 
@@ -175,7 +175,7 @@ needs = "explosives and zeldas-lullaby"
 [[check]]
 hash = 10465703333688921274
 name = "Great Fairy of Courage"
-place = "GanonCastle"
+place = "ganons-castle"
 era = "adult"
 needs = "gold-gauntlets and zeldas-lullaby"
 
@@ -183,7 +183,7 @@ needs = "gold-gauntlets and zeldas-lullaby"
 [[check]]
 hash = 17308229828817913695
 name = "Darunia"
-place = "GoronCity_Child"
+place = "goron-city-child"
 era = "child"
 needs = "zeldas-lullaby and sarias-song"
 
@@ -191,7 +191,7 @@ needs = "zeldas-lullaby and sarias-song"
 [[check]]
 hash = 13001102097072792655
 name = "Link the Goron"
-place = "GoronCity_Adult"
+place = "goron-city-adult"
 era = "adult"
 needs = "explosives"
 
@@ -199,7 +199,7 @@ needs = "explosives"
 [[check]]
 hash = 1482054428421877865
 name = "King Zora"
-place = "ZoraDomain_Adult"
+place = "zora-domain-adult"
 era = "adult"
 needs = "blue-fire"
 
@@ -207,7 +207,7 @@ needs = "blue-fire"
 [[check]]
 hash = 2241127569139982769
 name = "Rolling Goron"
-place = "GoronCity_Child"
+place = "goron-city-child"
 era = "child"
 needs = "explosives"
 
@@ -218,16 +218,16 @@ needs = "explosives"
 [[check]]
 hash = 4598657944866228526
 name = "Fire Arrows"
-place = "HyruleField_Adult"
+place = "hyrule-field-adult"
 era = "adult"
-needs = "bow and Beat_Morpha"
+needs = "bow and beat:morpha"
 setting = "npc-gifts"
 
 # Ruto's letter, at the bottom of the lake.
 [[check]]
 hash = 474136620438465634
 name = "Ruto's letter"
-place = "HyruleField_Child"
+place = "hyrule-field-child"
 era = "child"
 needs = "silver-scale"
 setting = "npc-gifts"
@@ -238,56 +238,56 @@ setting = "npc-gifts"
 [[check]]
 hash = 7976713952680358969
 name = "Queen Gohma"
-place = "GohmaStage"
+place = "gohma-room"
 era = "child"
 needs = "always"
 
 [[check]]
 hash = 17500953785828008907
 name = "King Dodongo"
-place = "DodongoStage"
+place = "king-dodongo-room"
 era = "child"
 needs = "always"
 
 [[check]]
 hash = 1756007200646888751
 name = "Barinade"
-place = "BarinadeStage"
+place = "barinade-room"
 era = "child"
 needs = "always"
 
 [[check]]
 hash = 16950648795519753327
 name = "Phantom Ganon"
-place = "PhantomGanonStage"
+place = "phantom-ganon-room"
 era = "adult"
 needs = "always"
 
 [[check]]
 hash = 15655385584089977863
 name = "Volvagia"
-place = "VolvagiaStage"
+place = "volvagia-room"
 era = "adult"
 needs = "always"
 
 [[check]]
 hash = 16080263030858016933
 name = "Morpha"
-place = "MorphaStage"
+place = "morpha-room"
 era = "adult"
 needs = "always"
 
 [[check]]
 hash = 9112680507839779871
 name = "Bongo Bongo"
-place = "BongoBongoStage"
+place = "bongo-bongo-room"
 era = "adult"
 needs = "always"
 
 [[check]]
 hash = 572318066319489127
 name = "Twinrova"
-place = "TwinrovaStage"
+place = "twinrova-room"
 era = "adult"
 needs = "always"
 
@@ -296,7 +296,7 @@ needs = "always"
 [[check]]
 hash = 15795527451931683735
 name = "Rauru"
-place = "Market_Adult"
+place = "market-adult"
 era = "adult"
 needs = "always"
 
@@ -307,77 +307,77 @@ needs = "always"
 [[check]]
 hash = 9485640170203711850
 name = "Impa"
-place = "HyruleCastle"
+place = "hyrule-castle"
 era = "child"
 needs = "courtyard"
 
 [[check]]
 hash = 5955961334009237089
 name = "Malon"
-place = "HyruleField_Child"
+place = "hyrule-field-child"
 era = "child"
 needs = "ocarina"
 
 [[check]]
 hash = 3350061319058231770
 name = "Saria in the Meadow"
-place = "SacredForestMeadow_Child"
+place = "sacred-forest-meadow-child"
 era = "child"
 needs = "zeldas-lullaby"
 
 [[check]]
 hash = 4624030970593856299
 name = "Windmill Man"
-place = "KakarikoVillage_Adult"
+place = "kakariko-village-adult"
 era = "adult"
 needs = "ocarina"
 
 [[check]]
 hash = 4233716466148257051
 name = "Sheik in the Meadow"
-place = "SacredForestMeadow_Adult"
+place = "sacred-forest-meadow-adult"
 era = "adult"
 needs = "always"
 
 [[check]]
 hash = 7517995748820283814
 name = "Sheik in the Crater"
-place = "DeathMountainCrater_Adult"
+place = "death-mountain-crater-adult"
 era = "adult"
 needs = "crater-floor"
 
 [[check]]
 hash = 1221457217093522685
 name = "Sheik in the Ice Cavern"
-place = "IceCavern"
+place = "ice-cavern"
 era = "adult"
 needs = "blue-fire"
 
 [[check]]
 hash = 17185284981648881289
 name = "Sheik at the Colossus"
-place = "DesertColossus_Adult"
+place = "desert-colossus-adult"
 era = "adult"
 needs = "always"
 
 [[check]]
 hash = 9447699849637278794
 name = "Sheik in Kakariko"
-place = "KakarikoVillage_Adult"
+place = "kakariko-village-adult"
 era = "adult"
-needs = "Beat_PhantomGanon and Beat_Volvagia and Beat_Morpha"
+needs = "beat:phantom-ganon and beat:volvagia and beat:morpha"
 
 [[check]]
 hash = 15019753598795808613
 name = "Sheik at the Temple of Time"
-place = "Market_Adult"
+place = "market-adult"
 era = "adult"
-needs = "Beat_PhantomGanon"
+needs = "beat:phantom-ganon"
 
 [[check]]
 hash = 9279441469018472147
 name = "Royal Family's Tomb"
-place = "Graveyard_Child"
+place = "graveyard-child"
 era = "child"
 needs = "zeldas-lullaby"
 
@@ -386,9 +386,9 @@ needs = "zeldas-lullaby"
 [[check]]
 hash = 3701241424386675305
 name = "Zelda's song"
-place = "HyruleField_Child"
+place = "hyrule-field-child"
 era = "child"
-needs = "Beat_Gohma and Beat_KingDodongo and Beat_Barinade"
+needs = "beat:gohma and beat:king-dodongo and beat:barinade"
 
 # The House of Skulltula's rewards, dealt with the NPC gifts. The tokens
 # that open them are only in logic with Gold Skulltulas shuffled.
@@ -396,51 +396,51 @@ needs = "Beat_Gohma and Beat_KingDodongo and Beat_Barinade"
 [[check]]
 hash = 9060474567289915003
 name = "House of Skulltula: 10"
-place = "KakarikoVillage_Child"
+place = "kakariko-village-child"
 era = "child"
-needs = "Item_Token_Gold*10"
+needs = "item:gold-skulltula-token*10"
 
 [[check]]
 hash = 909723496375037131
 name = "House of Skulltula: 20"
-place = "KakarikoVillage_Child"
+place = "kakariko-village-child"
 era = "child"
-needs = "Item_Token_Gold*20"
+needs = "item:gold-skulltula-token*20"
 
 [[check]]
 hash = 16284910007420782019
 name = "House of Skulltula: 30"
-place = "KakarikoVillage_Child"
+place = "kakariko-village-child"
 era = "child"
-needs = "Item_Token_Gold*30"
+needs = "item:gold-skulltula-token*30"
 
 [[check]]
 hash = 4405219083245412012
 name = "House of Skulltula: 40"
-place = "KakarikoVillage_Child"
+place = "kakariko-village-child"
 era = "child"
-needs = "Item_Token_Gold*40"
+needs = "item:gold-skulltula-token*40"
 
 [[check]]
 hash = 11445577403649451289
 name = "House of Skulltula: 50"
-place = "KakarikoVillage_Child"
+place = "kakariko-village-child"
 era = "child"
-needs = "Item_Token_Gold*50"
+needs = "item:gold-skulltula-token*50"
 
 [[check]]
 hash = 4522352553331655338
 name = "House of Skulltula: 100"
-place = "KakarikoVillage_Child"
+place = "kakariko-village-child"
 era = "child"
-needs = "Item_Token_Gold*100"
+needs = "item:gold-skulltula-token*100"
 
 # Gifts handed over inside a cutscene, dealt with the NPC gifts. Each is
 # where its vanilla source is and needs what it does.
 [[check]]
 hash = 4575241808838949671
 name = "Zelda's letter"
-place = "HyruleCastle"
+place = "hyrule-castle"
 era = "child"
 needs = "courtyard"
 
@@ -448,7 +448,7 @@ needs = "courtyard"
 [[check]]
 hash = 10551859442360452256
 name = "Weird Egg"
-place = "HyruleCastle"
+place = "hyrule-castle"
 era = "child"
 needs = "always"
 
@@ -457,14 +457,14 @@ needs = "always"
 [[check]]
 hash = 13737156624680648007
 name = "Light Arrows"
-place = "Market_Adult"
+place = "market-adult"
 era = "adult"
-needs = "Beat_BongoBongo and Beat_Twinrova"
+needs = "beat:bongo-bongo and beat:twinrova"
 
 [[check]]
 hash = 18277160726242923509
 name = "Gerudo membership card"
-place = "GerudoFortress_Adult"
+place = "gerudo-fortress-adult"
 era = "adult"
 needs = "hookshot"
 
@@ -473,7 +473,7 @@ needs = "hookshot"
 [[check]]
 hash = 17953588650051017776
 name = "Dampe's dig"
-place = "Graveyard_Child"
+place = "graveyard-child"
 era = "child"
 needs = "always"
 
@@ -482,7 +482,7 @@ needs = "always"
 [[check]]
 hash = 12611601700011014094
 name = "Fishing as a child"
-place = "HyruleField_Child"
+place = "hyrule-field-child"
 era = "child"
 needs = "always"
 
@@ -491,30 +491,30 @@ needs = "always"
 [[check]]
 hash = 11485802066891699092
 name = "Fishing as an adult"
-place = "HyruleField_Adult"
+place = "hyrule-field-adult"
 era = "adult"
-needs = "Beat_Morpha or scarecrow or magic-beans"
+needs = "beat:morpha or scarecrow or magic-beans"
 
 # Gerudos let only members ride the course, on Epona.
 [[check]]
 hash = 9443244066451772166
 name = "Horseback archery"
-place = "GerudoFortress_Adult"
+place = "gerudo-fortress-adult"
 era = "adult"
-needs = "bow and eponas-song and Item_Token_Gerudo"
+needs = "bow and eponas-song and item:gerudo-card"
 
 # The quiver comes with the second win, as the heart does with the first.
 [[check]]
 hash = 14512106089570646515
 name = "Horseback archery: quiver"
-place = "GerudoFortress_Adult"
+place = "gerudo-fortress-adult"
 era = "adult"
-needs = "bow and eponas-song and Item_Token_Gerudo"
+needs = "bow and eponas-song and item:gerudo-card"
 
 [[check]]
 hash = 7640046613117969341
 name = "Diving game"
-place = "ZoraDomain_Child"
+place = "zora-domain-child"
 era = "child"
 needs = "always"
 
@@ -522,21 +522,21 @@ needs = "always"
 [[check]]
 hash = 9935389509796719985
 name = "Bombchu bowling: first prize"
-place = "Market_Child"
+place = "market-child"
 era = "child"
 needs = "bombchus"
 
 [[check]]
 hash = 8748954161277078873
 name = "Bombchu bowling: second prize"
-place = "Market_Child"
+place = "market-child"
 era = "child"
 needs = "bombchus"
 
 [[check]]
 hash = 8052831843135618910
 name = "Bombchu bowling: third prize"
-place = "Market_Child"
+place = "market-child"
 era = "child"
 needs = "bombchus"
 
@@ -545,14 +545,14 @@ needs = "bombchus"
 [[check]]
 hash = 12555045194845838033
 name = "Market shooting gallery"
-place = "Market_Child"
+place = "market-child"
 era = "child"
 needs = "always"
 
 [[check]]
 hash = 887949387241974339
 name = "Kakariko shooting gallery"
-place = "KakarikoVillage_Adult"
+place = "kakariko-village-adult"
 era = "adult"
 needs = "bow"
 
@@ -580,7 +580,7 @@ needs = "adult"
 [[check]]
 hash = 14014730143884270499
 name = "Talon's cuccos"
-place = "HyruleField_Child"
+place = "hyrule-field-child"
 era = "child"
 needs = "courtyard"
 
@@ -591,7 +591,7 @@ needs = "courtyard"
 [[check]]
 hash = 17580352713807808478
 name = "Biggoron"
-place = "DeathMountainTrail_Adult"
+place = "death-mountain-trail-adult"
 era = "adult"
 needs = "zeldas-lullaby and (setting:carpenters-freed or longshot or eponas-song) and (explosives or hammer)"
 
@@ -601,7 +601,7 @@ needs = "zeldas-lullaby and (setting:carpenters-freed or longshot or eponas-song
 [[check]]
 hash = 16722769607033707959
 name = "Medigoron"
-place = "GoronCity_Adult"
+place = "goron-city-adult"
 era = "adult"
 needs = "explosives or hammer"
 setting = "merchants"
@@ -612,7 +612,7 @@ setting = "merchants"
 [[check]]
 hash = 17038515111946271548
 name = "Carpet merchant"
-place = "HountedWasteland_Adult"
+place = "haunted-wasteland-adult"
 era = "adult"
 needs = "always"
 setting = "merchants"
@@ -622,7 +622,7 @@ setting = "merchants"
 [[check]]
 hash = 2613616008539497854
 name = "Bean seller"
-place = "ZoraRiver_Child"
+place = "zora-river-child"
 era = "child"
 needs = "zora-river"
 setting = "merchants"
