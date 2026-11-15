@@ -5,65 +5,65 @@
 # Era limits follow the original game until a playtest says otherwise.
 
 explosives = "bombs or bombchus"
-bombs = "Item_BombBag_Small"
-bombchus = "(Item_BombchuBundle_Small or Item_BombchuBundle_Medium or Item_BombchuBundle_Large) and (bombs or setting:free-bombchus)"
+bombs = "item:bomb-bag"
+bombchus = "(item:bombchus-small or item:bombchus-medium or item:bombchus-large) and (bombs or setting:free-bombchus)"
 
-hammer = "adult and Item_Hammer"
-goron-bracelet = "Item_Gauntlet_Goron"
-silver-gauntlets = "adult and Item_Gauntlet_Silver"
-gold-gauntlets = "adult and Item_Gauntlet_Gold"
+hammer = "adult and item:megaton-hammer"
+goron-bracelet = "item:goron-bracelet"
+silver-gauntlets = "adult and item:silver-gauntlets"
+gold-gauntlets = "adult and item:golden-gauntlets"
 
-slingshot = "child and Item_Range_SlingShot"
-bow = "adult and Item_Range_Bow"
-boomerang = "child and Item_Boomerang"
-hookshot = "adult and Item_Hookshot"
-longshot = "adult and Item_Longshot"
+slingshot = "child and item:slingshot"
+bow = "adult and item:bow"
+boomerang = "child and item:boomerang"
+hookshot = "adult and item:hookshot"
+longshot = "adult and item:longshot"
 
-magic = "Item_FairyBless_MP"
-mirror-shield = "adult and Item_Shield_Mirror"
-fire = "(magic and Item_DinFire) or (magic and bow and Item_Arrow_Fire)"
-bottle = "Item_Bottle or Item_Bottle_Letter or Item_Bottle_Milk"
+magic = "item:magic-meter"
+mirror-shield = "adult and item:mirror-shield"
+fire = "(magic and item:dins-fire) or (magic and bow and item:fire-arrows)"
+bottle = "item:bottle or item:rutos-letter or item:milk"
 blue-fire = "adult and bottle"
-light = "adult and (Item_Shield_Mirror or (magic and bow and Item_Arrow_Light))"
-lens = "magic and Item_GlassTruth"
+light = "adult and (item:mirror-shield or (magic and bow and item:light-arrows))"
+lens = "magic and item:lens-of-truth"
 
-kokiri-sword = "child and Item_Sword_Kokiri"
-deku-shield = "child and TBox_Shield_Deku"
+kokiri-sword = "child and item:kokiri-sword"
+deku-shield = "child and item:deku-shield-chest"
 # Deku Babas drop them and the Kokiri shop sells them. Only child Link
 # holds them, and they carry fire from a lit torch.
 sticks = "child"
-silver-scale = "Item_Scale_Silver"
+silver-scale = "item:silver-scale"
 # Past the two boulders at Zora River's mouth: blown up, broken by the
 # hammer, or skipped down the Lost Woods shortcut, which lands upriver.
 zora-river = "explosives or hammer or silver-scale"
-iron-boots = "adult and Item_HeavyBoot"
-hover-boots = "adult and Item_HoverBoot"
+iron-boots = "adult and item:iron-boots"
+hover-boots = "adult and item:hover-boots"
 # Shops sell the pouch item, the givers hand over the pickup actor.
-zora-tunic = "adult and (Armor_Adult_Zora or Obj_Armor_Zora)"
-goron-tunic = "adult and (Armor_Adult_Goron or Obj_Armor_Goron)"
+zora-tunic = "adult and (item:zora-tunic or item:zora-tunic-pickup)"
+goron-tunic = "adult and (item:goron-tunic or item:goron-tunic-pickup)"
 # The crater floor past the broken bridge: Sheik and the Fire Temple door.
 # Either side of the crater ends at a gap only these cross, and Bolero of
 # Fire lands past it.
-crater-floor = "goron-tunic and (hookshot or hover-boots or (ocarina and Item_Melody_FireBolero))"
+crater-floor = "goron-tunic and (hookshot or hover-boots or (ocarina and item:bolero-of-fire))"
 
 # Hyrule Castle's courtyard, past Talon asleep by the crates. Only the cucco
 # that hatches from the Weird Egg wakes him, and an egg from anywhere hatches.
-courtyard = "Item_WeirdEgg"
+courtyard = "item:weird-egg"
 
-ocarina = "Item_Ocarina_Fairy"
-zeldas-lullaby = "ocarina and Item_Melody_ZeldaLullaby"
-eponas-song = "ocarina and Item_Melody_EponaSong"
-sarias-song = "ocarina and Item_Melody_SariaSong"
-song-of-storms = "ocarina and Item_Melody_StormSong"
-song-of-time = "ocarina and Item_Melody_TimeSong"
-scarecrow = "hookshot and ocarina and Item_Melody_ScarecrowSong"
-magic-beans = "Item_MagicBean"
+ocarina = "item:fairy-ocarina"
+zeldas-lullaby = "ocarina and item:zeldas-lullaby"
+eponas-song = "ocarina and item:eponas-song"
+sarias-song = "ocarina and item:sarias-song"
+song-of-storms = "ocarina and item:song-of-storms"
+song-of-time = "ocarina and item:song-of-time"
+scarecrow = "hookshot and ocarina and item:scarecrows-song"
+magic-beans = "item:magic-bean"
 
 # The masks the Deku Theater asks for, which the Happy Mask Shop lends. The
 # shop opens once the Kakariko guard has seen the letter. The Mask of Truth
 # comes after every mask is sold, and the Skull Kid who buys the Skull Mask
 # needs Saria's Song.
-skull-mask = "Item_ZeldaLetter"
+skull-mask = "item:zeldas-letter"
 mask-of-truth = "skull-mask and sarias-song"
 
 # Keys stay in their vanilla chests, and the vanilla game reaches each one
@@ -83,6 +83,6 @@ melee = "adult or kokiri-sword or sticks"
 # A Business Scrub sells only once stunned: hit with a weapon, or its
 # nut sent back off a shield.
 stun-scrub = "melee or deku-shield or slingshot or boomerang"
-# Kakariko's beehives hang 4.6 m up under an overhang. Their DamageRates
-# give the slingshot seed 0, and a bomb's blast falls short of them.
+# Kakariko's beehives hang 4.6 m up under an overhang. Their damage table
+# gives the slingshot seed 0, and a bomb's blast falls short of them.
 knock-down = "bow or boomerang or hookshot"
