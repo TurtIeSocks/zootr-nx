@@ -30,7 +30,8 @@ pub fn running(targets: &[Target]) -> Option<&Target> {
 }
 
 /// Run `write` once per distinct mod folder, then write each target's
-/// settings line. Refuses while another install runs or any target's game
+/// settings line. A folder no target reads the cheat from keeps only the
+/// exefs patch. Refuses while another install runs or any target's game
 /// is open. Returns what the last `write` did.
 pub fn install<T>(targets: &[Target], mut write: impl FnMut(&Path) -> Result<T>) -> Result<T> {
     guarded(targets, || {
@@ -38,6 +39,9 @@ pub fn install<T>(targets: &[Target], mut write: impl FnMut(&Path) -> Result<T>)
         let mut out = None;
         for t in targets.iter().filter(|t| done.insert(&t.mod_dir)) {
             out = Some(write(&t.mod_dir)?);
+            if !(targets.iter()).any(|o| o.mod_dir == t.mod_dir && o.reads_cheats()) {
+                patch::remove_cheat(&t.mod_dir)?;
+            }
         }
         for t in targets {
             if let Some(line) = &t.settings_file {
@@ -145,6 +149,32 @@ mod tests {
         assert_eq!((wrote, last), (vec![dir.join("m1"), dir.join("m2")], 2));
         assert!(dir.join("b.txt").is_file() && dir.join("c.txt").is_file());
         assert!(install(&[], |_| Ok(())).is_err());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn the_cheat_stays_only_where_a_target_reads_it() {
+        let _turn = TURNS.lock().unwrap();
+        let dir = std::env::temp_dir().join(format!("zootr-cheat-{}", std::process::id()));
+        let target = |mod_dir: &str, line: &str| Target {
+            name: mod_dir.into(),
+            app: "/nowhere/zootr-test.app".into(),
+            mod_dir: dir.join(mod_dir),
+            settings_file: Some(SettingsFile {
+                file: dir.join(format!("{mod_dir}.txt")),
+                lines: vec![line.into()],
+            }),
+            save_dir: None,
+            args: vec![],
+            control: None,
+            bridge: None,
+            env: vec![],
+        };
+        let targets = [target("reads", "C={cheats}"), target("not", "R={romfs}")];
+        install(&targets, |d| crate::patch::install(d, true, false, 0)).unwrap();
+        let has = |m: &str| crate::patch::path(&dir.join(m)).exists();
+        assert!(has("reads") && !has("not"));
+        assert!(dir.join("not/exefs/zootr.pchtxt").is_file());
         std::fs::remove_dir_all(dir).unwrap();
     }
 }
