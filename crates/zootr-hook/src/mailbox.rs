@@ -155,9 +155,9 @@ mod tests {
     #[test]
     fn a_play_request_names_the_mailboxs_event() {
         let mut map = [0; NAME];
-        map[..17].copy_from_slice(b"Goto_HyruleCastle");
+        map[..9].copy_from_slice(b"Event_One");
         assert_eq!(Ask::from_word(6), Some(Ask::Play));
-        assert_eq!(play_event(&map), Some(&b"Goto_HyruleCastle\0"[..]));
+        assert_eq!(play_event(&map), Some(&b"Event_One\0"[..]));
         assert_eq!(play_event(&[0; NAME]), None);
         assert_eq!(play_event(&[b'A'; NAME]), None);
     }

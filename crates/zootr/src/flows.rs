@@ -13,7 +13,7 @@ use crate::known::{Name, field, flow};
 const DIR: &str = "Event/EventFlow";
 const SUFFIX: &str = ".bfevfl.zs";
 
-/// Every flowchart name, e.g. `Get_StoneOfForest`.
+/// Every flowchart name, as the game spells it.
 pub fn names(romfs: &Romfs) -> Result<Vec<String>> {
     files_with_suffix(&romfs.root().join(DIR), SUFFIX)?
         .iter()
@@ -155,9 +155,9 @@ const UI: &Name = field::UI_SYSTEM_ACTOR;
 const FADE_IN: &Name = flow::EVENT_EVENT_FADE_IN;
 
 /// Push a fade-in that runs `next` after it, a copy of the castle flow's own
-/// (`Goto_HyruleCastle`): a second long, and the flow waits for it. Safe on
+/// (the one that goes to the castle): a second long, and the flow waits for it. Safe on
 /// a clear screen: vanilla arrival flows fade in with no fade-out of their
-/// own, as `Goto_ZoraRiver` does with the same wait.
+/// own, as the Zora River arrival does with the same wait.
 pub(crate) fn fade_in(flow: &mut Flowchart, next: Option<u16>) -> u16 {
     let ui = Actor {
         name: UI.to_string(),

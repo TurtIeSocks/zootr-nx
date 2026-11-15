@@ -149,7 +149,7 @@ pub enum Probe {
     /// A map's navmesh (`Phive/NavMesh/MAP`): counts and bounds, or with
     /// `--at`, the face under a point and the mesh's edges near it.
     Nav {
-        /// A map, like `KokiriForest_Child`.
+        /// A map, by its Banc param name.
         map: String,
         /// Every type the file declares, with its fields.
         #[arg(long)]

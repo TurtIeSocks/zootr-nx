@@ -199,9 +199,9 @@ mod tests {
     #[test]
     fn every_name_is_found_by_walking_its_bits() {
         let names = [
-            "Mt_Item_Medal_Forest",
-            "Mt_Medal_Glaze",
-            "Mt_Medal_Glass",
+            "Tt_Item_Medal_Forest",
+            "Tt_Medal_Glaze",
+            "Tt_Medal_Glass",
             "B",
         ];
         let data = rename(&file(&names), "Forest", "Song07").unwrap();

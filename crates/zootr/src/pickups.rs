@@ -148,7 +148,7 @@ pub const FIRE_ARROWS: Kind = Kind {
 };
 
 /// Ruto's letter at the bottom of Lake Hylia, spawned by a logic module until
-/// `Get_StoneOfWater_GetRutoLetter` is set. `logic/gifts.toml` puts it past
+/// the challenge for the Water stone is set. `logic/gifts.toml` puts it past
 /// the Silver Scale.
 pub const RUTOS_LETTER: Kind = Kind {
     actors: &[actor::OBJ_BOTTLE_LETTER],

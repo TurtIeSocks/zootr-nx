@@ -39,8 +39,7 @@ const WAIT: Duration = Duration::from_secs(3);
 /// GameData names the state reads.
 const MAP: &Name = flag::SEQUENCE_CURRENT_BANC;
 const IS_CHILD: &Name = flag::SEQUENCE_IS_CHILDHOOD;
-// Not a word of the dump's name tables.
-const LOADING: &str = "Sequence_IsLoadingBanc";
+const LOADING: &Name = flag::SEQUENCE_IS_LOADING_BANC;
 /// The event manager's playing event.
 const PLAYING: u64 = 104;
 /// How long a quest step's or grant's event gets to finish, and how often to look. The

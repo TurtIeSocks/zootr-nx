@@ -132,13 +132,13 @@ const INTRO_GUARDS: [&Name; 2] = [arrivals::ENTRANCE, map::LOCATION_AREA];
 
 /// Skipped cutscenes whose played flag gates a map trigger that starts a flow
 /// doing more than play them: `scene::HRL_FIELD_0010` is the end of the field's
-/// `Goto_HyruleCastle_Kaepora_00`, which clears the field's first-visit sky,
-/// and `scene::TIME_TEMPLE_0020` the end of `DoorOfTime_DiscoverySword`, which
+/// the flow that goes to the castle, which clears the field's first-visit sky,
+/// and `scene::TIME_TEMPLE_0020` the end of the Door of Time's discovery flow, which
 /// finds the Master Sword. A new game that sets their flag stops the trigger,
 /// and that whole flow with it. So each transition to one sets the flag
 /// instead, where the cutscene would have ended.
 const FLAG_AT_END: [&Name; 2] = [scene::HRL_FIELD_0010, scene::TIME_TEMPLE_0020];
-/// Meeting Zelda in the castle courtyard, which `Goto_HyruleCastle_MeetZelda`
+/// Meeting Zelda in the castle courtyard, which the castle's meet-Zelda flow
 /// chains five scene changes for. Any one skipped, or the movie among them
 /// left, froze the game on a white screen, and the third, `0050`, is where
 /// her letter is granted. So crossing her trigger skips the whole chain with
@@ -167,7 +167,7 @@ const IMPA_SCENE: &Name = IMPA[0];
 /// The banc change her talk ends on, by the boot event it names.
 const IMPA_BANC: (&Name, &Name) = (field::GAME_SYSTEM_ACTOR, flow::EVENT_RESERVE_BANC_CHANGE);
 const IMPA_BOOT: &Name = field::HYRULE_FIELD_DOOR_OF_TIME_SEND_OFF;
-/// The field's arrival, started by `Goto_HyruleCastle_Kaepora_00`. It sets the
+/// The field's arrival, started by the flow that goes to the castle. It sets the
 /// clock, which the clock's start needs, so skipping it sets the time it ends
 /// on: the 7:30 it eases to, and the owl's cutscene sets again.
 const FIELD_ARRIVAL: &Name = scene::HRL_FIELD_0000;

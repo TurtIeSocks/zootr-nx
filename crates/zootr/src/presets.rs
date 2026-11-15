@@ -133,7 +133,7 @@ fn page_guides() -> Vec<String> {
     )
 }
 
-/// Every `ActionGuide_IsEnd` member: one bool per guide, which the game
+/// Every `flag::ACTION_GUIDE_IS_END` member: one bool per guide, which the game
 /// sets once the guide has been shown.
 static GUIDES: LazyLock<[&str; 53]> = LazyLock::new(|| {
     [
@@ -623,7 +623,9 @@ mod tests {
             return;
         };
         let gd = GameData::load(&romfs).unwrap();
-        let members = gd.members(murmur3(b"ActionGuide_IsEnd")).unwrap();
+        let members = gd
+            .members(murmur3(flag::ACTION_GUIDE_IS_END.as_bytes()))
+            .unwrap();
         let mut ours: Vec<_> = GUIDES
             .iter()
             .map(|g| murmur3(format!("{}.{g}", flag::ACTION_GUIDE_IS_END).as_bytes()))

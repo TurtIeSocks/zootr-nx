@@ -4,7 +4,7 @@
 //! A cow's song event first takes the ocarina out, then asks whether the
 //! melody played was the right one. The gate goes on that answer's right
 //! side, inside the two sub-entries every cow's song calls
-//! (`Cow_GiveMilk`, and `Cow_GiveMilk_gerudo` for the Gerudo cows). Each
+//! (`flag::COW_GIVE_MILK`, and its Gerudo variant for the Gerudo cows). Each
 //! cow's call passes its Bool and item as arguments. The grant is inline,
 //! as the plain cows' and Link's house's events never bind
 //! `GetPouchContent`.

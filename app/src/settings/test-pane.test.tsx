@@ -44,16 +44,16 @@ vi.mock("@/bindings", () => ({
         ? await scans.answer()
         : {
             places: [],
-            spawns: ["Graveyard_Child/ShadowNocturne"],
+            spawns: ["Grave_Child/Spot_A"],
             items: ["Item_A", "Item_B"],
-            names: ["IsGet.Item_B", "Step_SageOfSpirit"],
+            names: ["IsGet.Item_B", "Step_Sage"],
           },
     }),
     devValue: async (name: string) => ({
       status: "ok",
       data: {
         info:
-          name === "Step_SageOfSpirit"
+          name === "Step_Sage"
             ? QUEST
             : {
                 kind: "Bool",
@@ -102,7 +102,7 @@ test("saves a spawn, known items, flags and goals as the test setup", async () =
     expect(screen.getByPlaceholderText("an item's name")).toBeTruthy(),
   );
   expect(button("Save").disabled).toBe(true);
-  type("Spawn", "Graveyard_Child/ShadowNocturne");
+  type("Spawn", "Grave_Child/Spot_A");
   type("Near", " Npc_A ");
   fireEvent.click(button("Back"));
   type("Items", "Item_C");
@@ -112,18 +112,18 @@ test("saves a spawn, known items, flags and goals as the test setup", async () =
   fireEvent.click(button("Add item"));
   add("New-game flags", "flag", "A=1");
   add("New-game flags", "flag", " B=2 ");
-  add("Quest steps", "quest step", "SageOfSpirit=Step02");
-  add("Quest steps", "quest step", "Goto_HyruleCastle=Step02");
+  add("Quest steps", "quest step", "Sage=Step02");
+  add("Quest steps", "quest step", "Go_Castle=Step02");
   add("Goals", "goal", "C=true");
   type("Expect", " a lens ");
   fireEvent.click(button("Save"));
   expect(onChange).toHaveBeenCalledWith({
     ...full({}),
     test: {
-      spawn: "Graveyard_Child/ShadowNocturne",
+      spawn: "Grave_Child/Spot_A",
       give: ["Item_A"],
       defaults: ["A=1", "B=2"],
-      progress: ["SageOfSpirit=Step02", "Goto_HyruleCastle=Step02"],
+      progress: ["Sage=Step02", "Go_Castle=Step02"],
       near: "Npc_A",
       side: "back",
       hour: null,
@@ -134,19 +134,19 @@ test("saves a spawn, known items, flags and goals as the test setup", async () =
 });
 
 test("quest steps alone make a setup that clears and saves", async () => {
-  const config = full({ test: { progress: ["SageOfSpirit=Step02"] } });
+  const config = full({ test: { progress: ["Sage=Step02"] } });
   const onChange = show(config);
-  fireEvent.click(button("Remove SageOfSpirit=Step02"));
-  add("Quest steps", "quest step", "Goto_HyruleCastle=Step02");
+  fireEvent.click(button("Remove Sage=Step02"));
+  add("Quest steps", "quest step", "Go_Castle=Step02");
   fireEvent.click(button("Save"));
   expect(onChange).toHaveBeenLastCalledWith({
     ...config,
-    test: { ...config.test, progress: ["Goto_HyruleCastle=Step02"] },
+    test: { ...config.test, progress: ["Go_Castle=Step02"] },
   });
   await waitFor(() => expect(button("Clear").disabled).toBe(false));
   fireEvent.click(button("Clear"));
   expect(onChange).toHaveBeenLastCalledWith({ ...config, test: NO_TEST });
-  expect(screen.queryByText("Goto_HyruleCastle=Step02")).toBeNull();
+  expect(screen.queryByText("Go_Castle=Step02")).toBeNull();
 });
 
 test("a known quest offers its steps, starting at a new game's", async () => {
@@ -154,21 +154,21 @@ test("a known quest offers its steps, starting at a new game's", async () => {
   await waitFor(() =>
     expect(screen.getByPlaceholderText("an item's name")).toBeTruthy(),
   );
-  type("Quest steps", "SageOfSpirit");
+  type("Quest steps", "Sage");
   const select = () => screen.getByLabelText("Quest steps value");
   await waitFor(() => expect(select().tagName).toBe("SELECT"));
   const step = select() as HTMLSelectElement;
   await waitFor(() => expect(step.value).toBe("Step01"));
   fireEvent.change(step, { target: { value: "Step02" } });
   fireEvent.click(button("Add quest step"));
-  expect(screen.getByText("SageOfSpirit=Step02")).toBeTruthy();
+  expect(screen.getByText("Sage=Step02")).toBeTruthy();
   type("Quest steps", "NoSuchQuest");
   expect(screen.getByText(/no quest by that name/)).toBeTruthy();
 });
 
 test("near suggests the spawn map's actors", async () => {
   show();
-  type("Spawn", "Graveyard_Child/ShadowNocturne");
+  type("Spawn", "Grave_Child/Spot_A");
   type("Near", "c_A");
   const list = await screen.findByLabelText("Near suggestions");
   expect(list.textContent).toBe("Npc_A");
@@ -199,7 +199,7 @@ test("clear empties a stored setup and removing an item drops it", async () => {
 
 test("saves a setup by name, switches to one and deletes one", async () => {
   const well = fullTest({
-    spawn: "BottomOfTheWell/Well_KakarikoSide",
+    spawn: "Cellar/Cellar_SideA",
     give: ["Item_A"],
   });
   const config = full({ saved_tests: { Well: well } });
@@ -207,11 +207,11 @@ test("saves a setup by name, switches to one and deletes one", async () => {
   expect(button("Save as").disabled).toBe(true);
   fireEvent.click(button("Well"));
   expect(onChange).toHaveBeenLastCalledWith({ ...config, test: well });
-  type("Spawn", "Graveyard_Child/ShadowNocturne");
+  type("Spawn", "Grave_Child/Spot_A");
   type("Saved setups", " Grave ");
   await waitFor(() => expect(button("Save as").disabled).toBe(false));
   fireEvent.click(button("Save as"));
-  const grave = fullTest({ spawn: "Graveyard_Child/ShadowNocturne" });
+  const grave = fullTest({ spawn: "Grave_Child/Spot_A" });
   await waitFor(() =>
     expect(onChange).toHaveBeenLastCalledWith({
       ...config,
@@ -234,7 +234,7 @@ test("copies the shuffle command once the setup is saved", async () => {
   const writeText = vi.fn(() => Promise.resolve());
   Object.assign(navigator, { clipboard: { writeText } });
   show(full({ test: { give: ["Item_B"] } }));
-  type("Spawn", "Graveyard_Child/ShadowNocturne");
+  type("Spawn", "Grave_Child/Spot_A");
   expect(button("Copy as CLI").disabled).toBe(true);
   type("Spawn", "");
   fireEvent.click(button("Copy as CLI"));

@@ -1,7 +1,7 @@
 //! World-graph facts read from Banc files: scene exits, and the GameData
 //! flags that make an actor exist or vanish.
 //!
-//! A node is a Banc param name such as `KokiriForest_Child`. Overworld maps
+//! A node is a Banc param name such as a field's child map. Overworld maps
 //! have one per era; dungeons have a single era-less one.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -42,8 +42,8 @@ impl fmt::Display for Era {
     }
 }
 
-/// `Banc/KokiriForest/KokiriForest_Child_Static.bcett.byml.zs` is node
-/// `KokiriForest_Child`, child only. A dungeon file serves both eras.
+/// An overworld map's child-era `_Static` file is that map's child node, child
+/// only. A dungeon file serves both eras.
 pub fn node_of(file: &str) -> (String, Vec<Era>) {
     let stem = file.rsplit('/').next().unwrap_or(file);
     let node = ["_Static", "_Dynamic"]
@@ -138,7 +138,7 @@ pub fn exits(romfs: &Romfs) -> Result<BTreeSet<Exit>> {
 }
 
 /// Maps the game swaps for an `_Alternative` copy while a flag is set,
-/// e.g. `ZoraDomain_Adult` → `Sequence_IsAlternative_ZoraDomainAdult`.
+/// e.g. Zora's Domain as an adult, which has its own flag.
 /// Named on the neighbours' GameBancParam `OptimizeChangeBancUnits`.
 pub fn alternatives(romfs: &Romfs) -> Result<BTreeMap<String, String>> {
     let mut out = BTreeMap::new();

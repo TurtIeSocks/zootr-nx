@@ -50,8 +50,8 @@ pub enum Atom {
     Adult,
     /// A flag no graph sets.
     Flag(String),
-    /// A GameData enum holding a value, like the race prize
-    /// `Minigame_DampeRace_TreasureBoxState` at `AppearHookShot`.
+    /// A GameData enum holding a value, like the prize of Dampe's race,
+    /// set to the Hookshot's appearance.
     Enum {
         name: String,
         value: String,
@@ -926,10 +926,12 @@ mod tests {
 
     #[test]
     fn module_paths_name_graphs_flat() {
-        let logic =
-            "Logic/Module/DesertColossus_Common/DesertColossus_Common_7e8d.logic.module.ain";
+        let logic = format!(
+            "Logic/Module/Area_A/{}.ain",
+            field::DESERT_COLOSSUS_COMMON_7E8D_LOGIC_MODULE
+        );
         assert_eq!(
-            graph_name(logic),
+            graph_name(&logic),
             field::DESERT_COLOSSUS_COMMON_7E8D_LOGIC_MODULE
         );
     }

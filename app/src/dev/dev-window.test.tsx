@@ -20,7 +20,7 @@ const err = <T,>(error: string): Promise<Result<T>> =>
 
 const game = {
   state: {
-    map: "HyruleField_Child",
+    map: "Hill_Child",
     child: true,
     loading: false,
     event: false,
@@ -70,7 +70,7 @@ const info = (kind: string, input: DevValue["info"]["input"], more = {}) => ({
   ...more,
 });
 const values: Record<string, DevValue> = {
-  HyruleField_ArriveEntrance: {
+  Hill_ArriveEntrance: {
     info: info("Bool", "choice", {
       choices: ["true", "false"],
       default: "false",
@@ -79,7 +79,7 @@ const values: Record<string, DevValue> = {
     live: "true",
     expr: null,
   },
-  Step_Goto_HyruleCastle: {
+  Step_Go_Castle: {
     info: info("Enum", "choice", {
       choices: ["NotReady", "Ready", "Step01", "Complete"],
       default: "NotReady",
@@ -94,10 +94,10 @@ const values: Record<string, DevValue> = {
     live: "42",
     expr: null,
   },
-  Sequence_CurrentBanc: {
+  Flag_CurrentMap: {
     info: info("String64", "text", { default: "" }),
     game: true,
-    live: "HyruleField_Child",
+    live: "Hill_Child",
     expr: null,
   },
   Some_Array: {
@@ -139,13 +139,13 @@ vi.mock("@/bindings", () => ({
     gameOptions: () =>
       ok({
         places: [
-          "HyruleField_Child/HyruleField_FrontOfMarket",
-          "HyruleField_Adult/HyruleField_FrontOfMarket",
+          "Hill_Child/Hill_FrontOfMarket",
+          "Hill_Adult/Hill_FrontOfMarket",
           "Kakariko_Child/Kakariko_FrontOfGate",
         ],
         spawns: [],
         items: ["Item_A"],
-        names: ["Sequence_IsChildhood", "Flag_B", ...Object.keys(values)],
+        names: ["Flag_IsChild", "Flag_B", ...Object.keys(values)],
         quests: { A: ["NotReady", "Step01", "Complete"] },
       }),
     devTeleport: (p: string) => devTeleport(p),
@@ -167,7 +167,7 @@ vi.mock("@tauri-apps/api/window", () => ({
 
 beforeEach(() => {
   game.state = {
-    map: "HyruleField_Child",
+    map: "Hill_Child",
     child: true,
     loading: false,
     event: false,
@@ -185,9 +185,9 @@ afterEach(() => {
 
 test("shows the map and age, and lists places for that age by area", async () => {
   render(<DevWindow />);
-  expect(await screen.findByText("HyruleField_Child")).toBeTruthy();
+  expect(await screen.findByText("Hill_Child")).toBeTruthy();
   expect(screen.getByText("as child")).toBeTruthy();
-  const field = await screen.findByRole("list", { name: "HyruleField" });
+  const field = await screen.findByRole("list", { name: "Hill" });
   expect(within(field).getAllByRole("button")).toHaveLength(1);
   expect(screen.getByRole("list", { name: "Kakariko" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Switch to adult" })).toBeTruthy();
@@ -195,13 +195,11 @@ test("shows the map and age, and lists places for that age by area", async () =>
 
 test("a teleport says what happened, and a refusal shows inline", async () => {
   render(<DevWindow />);
-  const field = await screen.findByRole("list", { name: "HyruleField" });
+  const field = await screen.findByRole("list", { name: "Hill" });
   const spot = within(field).getByRole("button");
   await vi.waitFor(() => expect(spot.hasAttribute("disabled")).toBe(false));
   fireEvent.click(spot);
-  expect(devTeleport).toHaveBeenCalledWith(
-    "HyruleField_Child/HyruleField_FrontOfMarket",
-  );
+  expect(devTeleport).toHaveBeenCalledWith("Hill_Child/Hill_FrontOfMarket");
   expect((await screen.findByRole("status")).textContent).toBe("sent");
 
   devTeleport.mockImplementationOnce(() => err("an event is playing"));
@@ -243,7 +241,7 @@ test("the search narrows the places", async () => {
   fireEvent.change(screen.getByRole("textbox", { name: "Search places" }), {
     target: { value: "gate" },
   });
-  expect(screen.queryByRole("list", { name: "HyruleField" })).toBeNull();
+  expect(screen.queryByRole("list", { name: "Hill" })).toBeNull();
   expect(screen.getByRole("list", { name: "Kakariko" })).toBeTruthy();
 });
 
@@ -251,9 +249,9 @@ test("the actors tab lists the map's actors, and search narrows them", async () 
   render(<DevWindow />);
   fireEvent.click(await screen.findByRole("button", { name: "Actors" }));
   const list = await screen.findByRole("list", {
-    name: "Actors in HyruleField_Child",
+    name: "Actors in Hill_Child",
   });
-  expect(devActors).toHaveBeenCalledWith("HyruleField_Child");
+  expect(devActors).toHaveBeenCalledWith("Hill_Child");
   expect(await within(list).findByText("Field_000")).toBeTruthy();
   expect(within(list).getByText("#2")).toBeTruthy();
   expect(within(list).getAllByRole("button")).toHaveLength(3);
@@ -300,14 +298,14 @@ test("a name field suggests matches under itself, picked by click or Enter", asy
   const name = screen.getByRole("textbox", { name: "GameData name" });
   fireEvent.change(name, { target: { value: "child" } });
   fireEvent.keyDown(name, { key: "Enter" });
-  expect((name as HTMLInputElement).value).toBe("Sequence_IsChildhood");
+  expect((name as HTMLInputElement).value).toBe("Flag_IsChild");
 });
 
 test("with no game, it says why and nothing can be sent", async () => {
   game.state = undefined;
   render(<DevWindow />);
   expect(await screen.findByText("the game isn't running")).toBeTruthy();
-  const field = await screen.findByRole("list", { name: "HyruleField" });
+  const field = await screen.findByRole("list", { name: "Hill" });
   for (const b of within(field).getAllByRole("button")) {
     expect(b.hasAttribute("disabled")).toBe(true);
   }
@@ -401,12 +399,12 @@ const isSelect = (f: HTMLElement) => f.tagName === "SELECT";
 
 test("picking a name shows its live value in a field for its type", async () => {
   render(<DevWindow />);
-  const bool = await pick("HyruleField_ArriveEntrance", isSelect);
+  const bool = await pick("Hill_ArriveEntrance", isSelect);
   expect(bool.value).toBe("true");
   expect([...bool.options].map((o) => o.value)).toEqual(["true", "false"]);
 
   const step = await pick(
-    "Step_Goto_HyruleCastle",
+    "Step_Go_Castle",
     (f) =>
       f.tagName === "SELECT" && (f as HTMLSelectElement).options.length === 4,
   );
@@ -426,10 +424,10 @@ test("picking a name shows its live value in a field for its type", async () => 
   expect(rupees.value).toBe("42");
 
   const text = await pick(
-    "Sequence_CurrentBanc",
+    "Flag_CurrentMap",
     (f) => (f as HTMLInputElement).type === "text",
   );
-  expect(text.value).toBe("HyruleField_Child");
+  expect(text.value).toBe("Hill_Child");
 
   const array = await pick("Some_Array", (f) => f.tagName === "TEXTAREA");
   expect(array.value).toBe("[1, 2]");
@@ -440,28 +438,28 @@ test("picking a name shows its live value in a field for its type", async () => 
 test("without the game the field shows the default and says so", async () => {
   devValue.mockImplementationOnce(() =>
     ok({
-      ...values.Step_Goto_HyruleCastle,
+      ...values.Step_Go_Castle,
       game: false,
       live: null,
     } as DevValue),
   );
   render(<DevWindow />);
-  const step = await pick("Step_Goto_HyruleCastle", isSelect);
+  const step = await pick("Step_Go_Castle", isSelect);
   expect(step.value).toBe("NotReady");
   expect(screen.getByText(/isn't running, showing the default/)).toBeTruthy();
 });
 
 test("Set sends the picked value and reads the field again", async () => {
   render(<DevWindow />);
-  const step = await pick("Step_Goto_HyruleCastle", isSelect);
+  const step = await pick("Step_Go_Castle", isSelect);
   expect(step.value).toBe("Step01");
   const set = screen.getByRole("button", { name: "Set" });
   await vi.waitFor(() => expect(set.hasAttribute("disabled")).toBe(false));
   fireEvent.change(step, { target: { value: "Complete" } });
   fireEvent.click(set);
-  expect(devSet).toHaveBeenCalledWith("Step_Goto_HyruleCastle", "Complete");
+  expect(devSet).toHaveBeenCalledWith("Step_Go_Castle", "Complete");
   expect((await screen.findByRole("status")).textContent).toBe(
-    "Step_Goto_HyruleCastle = Complete",
+    "Step_Go_Castle = Complete",
   );
   await vi.waitFor(() => expect(devValue).toHaveBeenCalledTimes(2));
 });
@@ -539,7 +537,7 @@ test("a poll that finds the game unchanged keeps what it held", async () => {
     render(<DevWindow />);
     await act(() => vi.advanceTimersByTimeAsync(0));
     const held = useDev.getState().game;
-    expect(held.state?.map).toBe("HyruleField_Child");
+    expect(held.state?.map).toBe("Hill_Child");
     await act(() => vi.advanceTimersByTimeAsync(1000));
     expect(useDev.getState().game).toBe(held);
   } finally {

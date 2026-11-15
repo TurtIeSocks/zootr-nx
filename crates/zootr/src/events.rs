@@ -83,8 +83,8 @@ impl Flows {
     ///   entry it names exist;
     /// - a whole flow (`scene::KOKIRI_0063`), meaning every entry point;
     /// - an entry point with the full name in any flow
-    ///   (`SageOfShdawo_GetHoverBoots` in `SageOfShadow`);
-    /// - flow plus entry (`Get_StoneOfForest_GetSword`).
+    ///   (the Shadow sage's hover boots entry, in the Shadow sage's flow);
+    /// - flow plus entry (a flow's name, `::`, then an entry point).
     ///
     /// The rest cover names without a row, like a cutscene a flow calls
     /// by entry.

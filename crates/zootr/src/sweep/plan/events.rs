@@ -297,7 +297,7 @@ impl Planner<'_> {
     /// The one event whose entry point, in the flow a cutscene skip moves
     /// `gift`'s grant to, starts its scene. Playing the scene alone grants
     /// what it always did: Sheik's Bolero, where the seed's grant was in
-    /// `SageOfFire_MelodyGetFire` (the other machine, 2026-11-14).
+    /// the Fire sage's melody entry (the other machine, 2026-11-14).
     pub(super) fn skipped_in(&mut self, gift: &Gift) -> Result<Option<String>> {
         let Some(caller) = gift.caller() else {
             return Ok(None);
