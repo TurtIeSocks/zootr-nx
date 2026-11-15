@@ -18,6 +18,7 @@ const cell = (label: string, patch: Partial<Cell> = {}): Cell => ({
   section: "Inventory",
   label,
   icon: `Item_${label}`,
+  glyph: "unknown",
   tier: 1,
   tiers: 1,
   count: null,
