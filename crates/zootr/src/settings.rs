@@ -251,6 +251,7 @@ pub(crate) const LOGIC: &str = "logic";
 pub(crate) const VANILLA_CHESTS: &str = "vanilla-chests";
 pub(crate) const PROGRESSIVE: &str = "progressive-items";
 const FREE_BOMBCHUS: &str = "free-bombchus";
+const BUNNY_HOOD: &str = "bunny-hood";
 const QUIET_NAVI: &str = "quiet-navi";
 pub(crate) const OPEN_DOOR: &str = "open-door-of-time";
 pub(crate) const SCRUBS: &str = "scrubs";
@@ -559,6 +560,12 @@ pub fn schema() -> Vec<SettingDef> {
             "Navi never stops Link to talk on her own: the Lost Woods warning, dungeon and quest tips, and reminders. Hints you ask her for still work",
         ))])
         .chain([toggle(
+            BUNNY_HOOD,
+            group::GENERAL,
+            "Bunny Hood speed",
+            "Link runs half again as fast while he wears the Bunny Hood",
+        )])
+        .chain([toggle(
             BRIDGE_MEDALLIONS,
             group::LOGIC,
             "Bridge at six medallions",
@@ -631,6 +638,8 @@ pub struct NewGame {
     pub free_bombchus: bool,
     /// Navi never talks on her own.
     pub quiet_navi: bool,
+    /// Link runs faster in the Bunny Hood.
+    pub bunny_hood: bool,
     /// The rainbow bridge rises at six medallions.
     pub bridge_medallions: bool,
     /// Gossip stones name where needed items are.
@@ -706,6 +715,7 @@ impl NewGame {
             seed: 0,
             free_bombchus: on(FREE_BOMBCHUS),
             quiet_navi: on(QUIET_NAVI),
+            bunny_hood: on(BUNNY_HOOD),
             bridge_medallions: on(BRIDGE_MEDALLIONS),
             hints: on(HINTS),
             logic: chosen(settings, LOGIC),
@@ -825,6 +835,7 @@ mod tests {
                 seed: 0,
                 free_bombchus: true,
                 quiet_navi: true,
+                bunny_hood: false,
                 bridge_medallions: false,
                 hints: false,
                 spawn: None,

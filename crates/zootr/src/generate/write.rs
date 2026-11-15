@@ -216,15 +216,48 @@ pub fn write_mod(
     bombs::write(&mut builder)?;
     dig::write(romfs, &mut builder, drops)?;
     let files = builder.finish()?.len();
-    let flags = if new_game.free_bombchus {
-        zootr_hook::FREE_BOMBCHUS
-    } else {
-        0
-    };
-    patch::install(mod_dir, new_game.progressive, new_game.dev_panel, flags)?;
+    patch::install(
+        mod_dir,
+        new_game.progressive,
+        new_game.dev_panel,
+        hook_flags(new_game),
+    )?;
     Ok(Written {
         defaults,
         actors,
         files,
     })
+}
+
+/// The settings the hook acts on, as the table's flag bits.
+fn hook_flags(new_game: &NewGame) -> u32 {
+    [
+        (new_game.free_bombchus, zootr_hook::FREE_BOMBCHUS),
+        (new_game.bunny_hood, zootr_hook::BUNNY_HOOD),
+    ]
+    .into_iter()
+    .filter_map(|(on, bit)| on.then_some(bit))
+    .fold(0, |all, bit| all | bit)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS};
+
+    #[test]
+    fn each_hook_setting_sets_its_own_bit() {
+        assert_eq!(FREE_BOMBCHUS & BUNNY_HOOD, 0);
+        let flags = |free_bombchus, bunny_hood| {
+            hook_flags(&NewGame {
+                free_bombchus,
+                bunny_hood,
+                ..Default::default()
+            })
+        };
+        assert_eq!(flags(false, false), 0);
+        assert_eq!(flags(true, false), FREE_BOMBCHUS);
+        assert_eq!(flags(false, true), BUNNY_HOOD);
+        assert_eq!(flags(true, true), FREE_BOMBCHUS | BUNNY_HOOD);
+    }
 }

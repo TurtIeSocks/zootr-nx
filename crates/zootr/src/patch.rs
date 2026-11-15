@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
-use zootr_hook::{CAVE, LIST, Offsets, PANIC, RESUMES, Shared, TABLE, encode};
+use zootr_hook::{BUNNY_HOOD, CAVE, LIST, Offsets, PANIC, RESUMES, Shared, TABLE, encode};
 
 use crate::known::Name;
 use crate::progressive;
@@ -43,6 +43,7 @@ pub const OFFSETS: Offsets = Offsets {
     move_vtable: 0x4b4_c460,
     move_to: 0x6b_2530,
     controller_vtable: 0x4c3_4f10,
+    run_setter: 0x93_52f0,
 };
 /// Where the recorder, and the free space after rodata and bss, end.
 const CAVE_END: u32 = 0x17f_58e0;
@@ -64,6 +65,10 @@ const CALLS: [(u32, u32); 4] = [
     (0x2ef_6560, 4),
     (0x2ef_4888, 4),
 ];
+/// The run node's call to the speed setter and the hook entry it goes to,
+/// `run_speed`, which scales the speed in the Bunny Hood. Rewritten only
+/// in a seed with the setting.
+const RUN_CALL: (u32, u32) = (0x93_4990, 24);
 /// Each hooked function and the entry the `b` over its `pacibsp` goes to.
 /// Link's update only runs the dev panel's requests and switches, so it's
 /// hooked only with the dev panel on.
@@ -106,9 +111,11 @@ fn branch(from: u32, to: u32, link: bool) -> [u8; 4] {
 fn sites() -> impl Iterator<Item = Patch> {
     let calls = CALLS.map(|(at, entry)| (at, entry, true));
     let hooks = HOOKS.iter().map(|&(at, entry)| (at, entry, false));
+    let run = (RUN_CALL.0, RUN_CALL.1, true);
     calls
         .into_iter()
         .chain(hooks)
+        .chain([run])
         .map(|(at, entry, link)| Patch {
             at,
             bytes: branch(at, CAVE + entry, link).to_vec(),
@@ -133,7 +140,7 @@ pub fn site(at: u32) -> Option<Vec<u8>> {
 
 /// The gate, the hook, its table for `lines` and `flags`, then the calls
 /// and function hooks that reach it. Link's update is among them only with
-/// `dev`.
+/// `dev`, and the run's call only with [`BUNNY_HOOD`] in `flags`.
 pub fn patches<A: AsRef<str>>(lines: &[&[(A, A)]], dev: bool, flags: u32) -> Result<Vec<Patch>> {
     let owned: Vec<Vec<(&str, &str)>> = (lines.iter())
         .map(|l| l.iter().map(|(a, b)| (a.as_ref(), b.as_ref())).collect())
@@ -156,7 +163,12 @@ pub fn patches<A: AsRef<str>>(lines: &[&[(A, A)]], dev: bool, flags: u32) -> Res
     };
     let code = fit(CAVE, hook_code(), CAVE_END, "hook")?;
     let table = fit(TABLE, encode(OFFSETS, flags, &lines), TABLE_END, "table")?;
-    let sites = sites().filter(|p| dev || p.at != OFFSETS.link_update);
+    let bunny = flags & BUNNY_HOOD != 0;
+    let sites = sites().filter(|p| match p.at {
+        at if at == OFFSETS.link_update => dev,
+        at if at == RUN_CALL.0 => bunny,
+        _ => true,
+    });
     Ok([gate, code, table].into_iter().chain(sites).collect())
 }
 
@@ -237,11 +249,11 @@ fn outputs(mod_dir: &Path) -> [(PathBuf, Writer); 2] {
     ]
 }
 
-/// Write the cheat and exefs patch when `progressive` or `dev` is on, else
-/// take ours away. `dev` adds the dev panel's hook, and with only `dev` the
-/// table is empty.
+/// Write the cheat and exefs patch when `progressive`, `dev` or the Bunny
+/// Hood is on, else take ours away. `dev` adds the dev panel's hook, the
+/// hood the run's call, and without `progressive` the table is empty.
 pub fn install(mod_dir: &Path, progressive: bool, dev: bool, flags: u32) -> Result<()> {
-    if !progressive && !dev {
+    if !progressive && !dev && flags & BUNNY_HOOD == 0 {
         return remove(mod_dir);
     }
     let lines: &[&[(&Name, &Name)]] = if progressive {
@@ -382,18 +394,32 @@ mod tests {
 
     #[test]
     fn calls_and_hooks_branch_to_the_hook() {
-        let p = patches(&progressive::LINES, true, 0).unwrap();
+        let p = patches(&progressive::LINES, true, BUNNY_HOOD).unwrap();
         assert_eq!(p[3..], sites().collect::<Vec<_>>());
-        let without = patches(&progressive::LINES, false, 0).unwrap();
-        assert_eq!(without.len(), p.len() - 1);
-        assert!(without.iter().all(|w| w.at != OFFSETS.link_update));
         let at = |i: usize| u32::from_le_bytes(p[3 + i].bytes[..].try_into().unwrap());
         assert_eq!(at(0) >> 26, 0b100101, "a call stays a bl");
         assert_eq!(at(CALLS.len()) >> 26, 0b000101, "a hook is a b");
+        let run = p.last().unwrap();
+        assert_eq!(run.at, RUN_CALL.0);
+        assert_eq!(run.bytes, branch(RUN_CALL.0, CAVE + RUN_CALL.1, true));
         assert_eq!(branch(0x100, 0x104, true), 0x9400_0001u32.to_le_bytes());
         assert_eq!(branch(0x104, 0x100, true), 0x97ff_ffffu32.to_le_bytes());
         assert_eq!(branch(0x100, 0x108, false), 0x1400_0002u32.to_le_bytes());
         assert!(std::panic::catch_unwind(|| branch(0, 1 << 27, true)).is_err());
+    }
+
+    #[test]
+    fn link_s_update_needs_dev_and_the_run_call_the_hood() {
+        let all = patches(&progressive::LINES, true, BUNNY_HOOD).unwrap();
+        for (dev, flags, gone) in [
+            (false, BUNNY_HOOD, vec![OFFSETS.link_update]),
+            (true, 0, vec![RUN_CALL.0]),
+            (false, 0, vec![OFFSETS.link_update, RUN_CALL.0]),
+        ] {
+            let some = patches(&progressive::LINES, dev, flags).unwrap();
+            assert_eq!(some.len(), all.len() - gone.len(), "{dev} {flags}");
+            assert!(some.iter().all(|p| !gone.contains(&p.at)), "{dev} {flags}");
+        }
     }
 
     #[test]
@@ -422,7 +448,7 @@ mod tests {
              08000000 00000018 0F0E0D0C 0B0A0908\n\
              04000000 0000002C 04030201\n\n"
         );
-        let text = cheat(&patches(&progressive::LINES, true, 0).unwrap());
+        let text = cheat(&patches(&progressive::LINES, true, BUNNY_HOOD).unwrap());
         let cheats: Vec<_> = text.split("\n\n").filter(|c| !c.is_empty()).collect();
         let total = cheats.len();
         for (i, c) in cheats.iter().enumerate() {
@@ -492,6 +518,9 @@ mod tests {
                 .unwrap()
                 .contains(&format!("{:08X} ", OFFSETS.link_update))
         );
+        install(&dir, false, false, BUNNY_HOOD).unwrap();
+        let hood = std::fs::read_to_string(path(&dir)).unwrap();
+        assert!(hood.contains(&format!("{:08X}", RUN_CALL.0)), "{hood}");
         install(&dir, false, false, 0).unwrap();
         assert!(!path(&dir).exists() && !exefs.exists());
         assert!(other.exists());
