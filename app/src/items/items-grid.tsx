@@ -3,6 +3,7 @@ import { useShallow } from "zustand/react/shallow";
 import {
   type Cell,
   type DungeonRow,
+  type Glyph,
   type IconSize,
   type Placement,
   TRACKER_COLUMNS,
@@ -90,7 +91,7 @@ function Tile({ cell }: TileProps) {
           onError={() => setBroken(true)}
         />
       ) : (
-        <FallbackIcon icon={cell.icon} />
+        <FallbackIcon glyph={cell.glyph} />
       )}
       {cell.count !== null && !missing && (
         <span className="absolute -right-0.5 -bottom-0.5 inline-flex h-4 min-w-4.5 items-center justify-center rounded-xs bg-ink px-1 font-mono font-semibold text-[10.5px] text-surface leading-none">
@@ -104,14 +105,14 @@ function Tile({ cell }: TileProps) {
 
 /** Props for {@link FallbackIcon}. */
 interface FallbackIconProps {
-  /** The cell's icon name. */
-  icon: string;
+  /** The cell's glyph. */
+  glyph: Glyph;
 }
 
 /** zootr-nx's own icon for a cell, in dark ink on a light background and
  * white on a dark one, so a missing item's faded icon still shows. */
-function FallbackIcon({ icon }: FallbackIconProps) {
-  const Icon = fallbackIcon(icon);
+function FallbackIcon({ glyph }: FallbackIconProps) {
+  const Icon = fallbackIcon(glyph);
   return <Icon className={cn("size-[65%] stroke-[1.5]", useInk())} />;
 }
 

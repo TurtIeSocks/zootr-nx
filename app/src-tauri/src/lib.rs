@@ -910,24 +910,6 @@ mod tests {
         assert_eq!(icon_dump(&on).unwrap(), dump);
     }
 
-    /// The UI draws its own icon for every cell while game assets are off,
-    /// so a new item needs a stand-in there too.
-    #[test]
-    fn every_grid_icon_has_a_stand_in() {
-        // The icons' names come from the dump.
-        let dump = Path::new("../../dump/oot.nup");
-        if !dump.exists() {
-            return;
-        }
-        zootr::game::prepare(dump).unwrap();
-        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../src/items/fallback-icons.ts");
-        let stand_ins = std::fs::read_to_string(path).unwrap();
-        let missing: Vec<_> = inventory::icons()
-            .filter(|name| !stand_ins.contains(&format!("\"{name}\"")))
-            .collect();
-        assert!(missing.is_empty(), "no stand-in for {missing:?}");
-    }
-
     /// Keeps the checked-in bindings in step with the commands.
     #[test]
     fn bindings_are_current() {

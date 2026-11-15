@@ -121,6 +121,8 @@ export type Cell = {
 	label: string,
 	/**  The icon's name: the held tier, else the first. */
 	icon: string,
+	/**  What draws in its place when the game's art is off. */
+	glyph: Glyph,
 	/**  0 when missing, else which tier is held, from 1. */
 	tier: number,
 	/**  0 where a dungeon has no such item, drawn fainter than missing. */
@@ -266,6 +268,12 @@ export type GameOptions = {
 	/**  GameData names, sorted. */
 	names: string[],
 };
+
+/**
+ *  What a cell draws when the game's art is off. Tiers share one, as the
+ *  swords and the three wallets do.
+ */
+export type Glyph = "sticks" | "nuts" | "bombs" | "bombchus" | "bow" | "slingshot" | "ocarina" | "hookshot" | "boomerang" | "beans" | "lens" | "hammer" | "fire-arrow" | "fire-medallion" | "ice-arrow" | "light-arrow" | "light-medallion" | "dins-fire" | "farores-wind" | "nayrus-love" | "bottle" | "egg" | "cucco" | "letter" | "mask" | "truth-mask" | "mushroom" | "saw" | "sword" | "prescription" | "frog" | "eye-drops" | "claim-check" | "shield" | "tunic" | "iron-boots" | "hover-boots" | "gauntlets" | "scale" | "wallet" | "bomb-bag" | "quiver" | "bullet-bag" | "heart-piece" | "magic" | "gerudo-card" | "agony-stone" | "skulltula" | "song" | "stone" | "forest-medallion" | "water-medallion" | "spirit-medallion" | "shadow-medallion" | "small-key" | "boss-key" | "map" | "compass" | "unknown";
 
 /**  One of a test setup's goals, read from the game. */
 export type Goal = {

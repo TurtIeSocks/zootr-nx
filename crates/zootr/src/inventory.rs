@@ -15,6 +15,9 @@ use crate::keys;
 use crate::known::{Name, actor, field, flag, flow, item};
 use crate::savefile::Change;
 
+mod glyph;
+pub use glyph::Glyph;
+
 const POUCH: &str = "PouchData";
 const STOCK: &Name = flag::STOCK_NUM;
 
@@ -374,6 +377,8 @@ pub struct Cell {
     pub label: String,
     /// The icon's name: the held tier, else the first.
     pub icon: String,
+    /// What draws in its place when the game's art is off.
+    pub glyph: Glyph,
     /// 0 when missing, else which tier is held, from 1.
     pub tier: u8,
     /// 0 where a dungeon has no such item, drawn fainter than missing.
@@ -471,6 +476,7 @@ impl Inventory {
                 section: Section::Dungeons,
                 label: k.label.clone(),
                 icon: k.icon.to_string(),
+                glyph: Glyph::of(k.icon),
                 tier: u8::from(value > 0),
                 tiers: u8::from(k.key.is_some()),
                 count: (k.small && k.key.is_some()).then_some(value),
@@ -485,10 +491,12 @@ impl Inventory {
                     .rposition(|a| self.value(a) > 0)
                     .map_or(0, |i| i + 1);
                 let held = s.tiers[tier.saturating_sub(1)];
+                let icon = s.icon.unwrap_or(held);
                 Cell {
                     section: s.section,
                     label: s.label.into(),
-                    icon: s.icon.unwrap_or(held).to_string(),
+                    icon: icon.to_string(),
+                    glyph: Glyph::of(icon),
                     tier: tier as u8,
                     tiers: s.tiers.len() as u8,
                     count: s.count.map(|a| self.value(a)),
@@ -665,6 +673,31 @@ mod tests {
             (0, item::HAMMER.get())
         );
         assert_eq!(cell(&cells, "Slingshot").count, Some(0));
+    }
+
+    #[test]
+    fn a_cell_draws_the_glyph_of_the_tier_it_shows() {
+        let held = |names: &[&Name]| {
+            let pairs: Vec<_> = std::iter::once((0, 0))
+                .chain(names.iter().map(|a| (murmur3(a.as_bytes()), 1)))
+                .collect();
+            let save = Save::parse(Save::fixture(&pairs)).unwrap();
+            let mut inv = inventory();
+            inv.load(in_save(&save));
+            inv.cells()
+        };
+        let trade = |cells: &[Cell]| cell(cells, "Child Trade").glyph;
+        assert_eq!(trade(&held(&[])), Glyph::of(item::WEIRD_EGG));
+        let egg = held(&[item::WEIRD_EGG]);
+        assert_eq!(trade(&egg), Glyph::of(item::WEIRD_EGG));
+        let letter = held(&[item::WEIRD_EGG, item::ZELDA_LETTER]);
+        assert_eq!(trade(&letter), Glyph::of(item::ZELDA_LETTER));
+        assert_ne!(trade(&egg), trade(&letter));
+        // A bottle slot draws a bottle whatever it holds.
+        assert_eq!(cell(&letter, "Bottle").glyph, Glyph::of(item::BOTTLE));
+        let map = cell(&letter, "Forest Temple Map");
+        assert_eq!(map.glyph, Glyph::of(item::DUNGEON_MAP));
+        assert!(letter.iter().all(|c| c.glyph != Glyph::Unknown));
     }
 
     /// Forest has all four, the Deku Tree a map and a compass.

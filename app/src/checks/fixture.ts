@@ -10,7 +10,7 @@ export const row = (
   spot: {
     hash,
     area,
-    holder: "Obj_TBox_A_01",
+    holder: "Obj_A",
     vanilla: "Item_A",
     item: "Item_B",
     area_name: area,

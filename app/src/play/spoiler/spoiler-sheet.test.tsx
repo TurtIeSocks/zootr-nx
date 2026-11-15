@@ -91,8 +91,8 @@ test("a picked card makes a Start item it needs glow", async () => {
   const spoiler = seed();
   spoiler.spots[1] = {
     ...(spoiler.spots[1] as Spot),
-    need: "Item_Ocarina_Fairy",
-    need_items: ["Item_Ocarina_Fairy"],
+    need: "Item_H",
+    need_items: ["Item_H"],
   };
   const sheet = await open(spoiler);
   const round3 = within(await sheet.findByRole("list", { name: "Round 3" }));

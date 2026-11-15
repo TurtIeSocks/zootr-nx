@@ -15,7 +15,8 @@ Read the rules first. A pull request that breaks one can't be merged.
   user and nothing in the repo knows which one it is.
 - Game names go through `known::*` consts (`n!(0x…)`) or the logic
   vocabulary words, never as text. That covers actor, item, flag, map and
-  scene names, in code, comments and tests. `zootr probe hash NAME`
+  scene names, in code, comments and tests, and in the app, where a cell
+  draws a glyph the Rust side picks. `zootr probe hash NAME`
   prints the `n!(0x…)` to paste. A test that needs a made-up name uses
   one like `Item_A`. The guard test in `known/guard.rs` enforces this.
 - No help obtaining emulators, firmware, keys or dumps, in issues or

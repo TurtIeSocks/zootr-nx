@@ -40,8 +40,8 @@ const OPTIONS: PlandoOptions = {
     },
   ],
   items: [
-    { actor: "Item_Hookshot", name: "Hookshot" },
-    { actor: "Item_Bomb", name: "Bombs" },
+    { actor: "Item_A", name: "Hookshot" },
+    { actor: "Item_B", name: "Bombs" },
   ],
   error: null,
 };
@@ -107,7 +107,7 @@ test("pins a check into the draft, names it in the table, and removes it", async
   type("Item", "Hookshot");
   await waitFor(() => expect(button("Pin").disabled).toBe(false));
   fireEvent.click(button("Pin"));
-  await waitFor(() => expect(saved()?.place).toEqual({ 22: "Item_Hookshot" }));
+  await waitFor(() => expect(saved()?.place).toEqual({ 22: "Item_A" }));
   expect(await screen.findByText("Target")).toBeTruthy();
   expect(screen.getByText("Slingshot Upgrade")).toBeTruthy();
   expect(screen.getByText(/Not saved/)).toBeTruthy();
@@ -125,13 +125,13 @@ test("an unknown check or item can't be pinned", async () => {
 });
 
 test("a pinned check these settings don't deal says so", async () => {
-  show(full({ place: { 99: "Item_Bomb" } }));
+  show(full({ place: { 99: "Item_B" } }));
   expect(await screen.findByText("Not dealt with these settings")).toBeTruthy();
   expect(screen.getByText("Bombs")).toBeTruthy();
 });
 
 test("pins sort by area then check, unknown checks last", async () => {
-  show(full({ place: { 99: "Item_Bomb", 22: "Item_Bomb", 11: "Item_Bomb" } }));
+  show(full({ place: { 99: "Item_B", 22: "Item_B", 11: "Item_B" } }));
   await screen.findByText("Target");
   const rows = screen.getAllByRole("row").slice(1);
   expect(rows.map((r) => r.children[1]?.textContent)).toEqual([
@@ -144,19 +144,19 @@ test("pins sort by area then check, unknown checks last", async () => {
 test("the deal's error shows over the table", async () => {
   plandoOptions.mockResolvedValueOnce({
     status: "ok",
-    data: { ...OPTIONS, error: "Saria can't give Item_Bottle_Empty" },
+    data: { ...OPTIONS, error: "Saria can't give Item_C" },
   });
   show(full({}));
   expect(await screen.findByText(/Saria can't give/)).toBeTruthy();
 });
 
 test("Save keeps the draft under its name, then has nothing to save", async () => {
-  show(full({ place: { 11: "Item_Bomb" } }));
+  show(full({ place: { 11: "Item_B" } }));
   expect(button("Save").disabled).toBe(true);
   type("Plando name", "Bombs");
   fireEvent.click(button("Save"));
   await waitFor(() =>
-    expect(saved()?.plandos).toEqual({ Bombs: { 11: "Item_Bomb" } }),
+    expect(saved()?.plandos).toEqual({ Bombs: { 11: "Item_B" } }),
   );
   expect(await screen.findByText("Saved as Bombs")).toBeTruthy();
   expect(button("Save").disabled).toBe(true);
@@ -166,15 +166,15 @@ test("Save keeps the draft under its name, then has nothing to save", async () =
 test("a saved plando loads straight over saved pins and fills the name", async () => {
   show(
     full({
-      place: { 11: "Item_Bomb" },
-      plandos: { A: { 11: "Item_Bomb" }, B: { 22: "Item_Hookshot" } },
+      place: { 11: "Item_B" },
+      plandos: { A: { 11: "Item_B" }, B: { 22: "Item_A" } },
     }),
   );
   expect((screen.getByLabelText("Plando name") as HTMLInputElement).value).toBe(
     "A",
   );
   pick("B");
-  await waitFor(() => expect(saved()?.place).toEqual({ 22: "Item_Hookshot" }));
+  await waitFor(() => expect(saved()?.place).toEqual({ 22: "Item_A" }));
   expect(screen.queryByRole("dialog")).toBeNull();
   expect((screen.getByLabelText("Plando name") as HTMLInputElement).value).toBe(
     "B",
@@ -184,8 +184,8 @@ test("a saved plando loads straight over saved pins and fills the name", async (
 test("loading over unsaved pins asks first", async () => {
   show(
     full({
-      place: { 11: "Item_Bomb" },
-      plandos: { B: { 22: "Item_Hookshot" } },
+      place: { 11: "Item_B" },
+      plandos: { B: { 22: "Item_A" } },
     }),
   );
   pick("B");
@@ -195,19 +195,19 @@ test("loading over unsaved pins asks first", async () => {
   expect(setConfig).not.toHaveBeenCalled();
   pick("B");
   fireEvent.click(await screen.findByRole("button", { name: "Replace" }));
-  await waitFor(() => expect(saved()?.place).toEqual({ 22: "Item_Hookshot" }));
+  await waitFor(() => expect(saved()?.place).toEqual({ 22: "Item_A" }));
 });
 
 test("Delete drops the named saved plando and Clear empties the draft", async () => {
   show(
     full({
-      place: { 11: "Item_Bomb" },
-      plandos: { A: { 11: "Item_Bomb" } },
+      place: { 11: "Item_B" },
+      plandos: { A: { 11: "Item_B" } },
     }),
   );
   fireEvent.click(button("Delete"));
   await waitFor(() => expect(saved()?.plandos).toEqual({}));
-  expect(saved()?.place).toEqual({ 11: "Item_Bomb" });
+  expect(saved()?.place).toEqual({ 11: "Item_B" });
   expect(await screen.findByText(/Not saved/)).toBeTruthy();
   fireEvent.click(button("Clear"));
   await waitFor(() => expect(saved()?.place).toEqual({}));
@@ -215,7 +215,7 @@ test("Delete drops the named saved plando and Clear empties the draft", async ()
 });
 
 test("a check the settings leave out says which setting deals it", async () => {
-  show(full({ place: { 33: "Item_Bomb" } }));
+  show(full({ place: { 33: "Item_B" } }));
   expect(await screen.findByText("Needs NPC gifts")).toBeTruthy();
   fireEvent.focus(screen.getByLabelText("Check"));
   type("Check", "goron");

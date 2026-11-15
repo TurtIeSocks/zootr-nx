@@ -81,7 +81,7 @@ export type Part =
 /** `s` escaped to match itself in a regex. */
 const literal = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** `Item_Gauntlet_Goron` as "Gauntlet Goron". */
+/** `Item_A_B` as "A B". */
 const readable = (id: string) => id.replace(/^Item_/, "").replaceAll("_", " ");
 
 /** Orders spots by round, the ones without one last. */

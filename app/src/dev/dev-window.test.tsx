@@ -36,16 +36,16 @@ const placed = (actor: string, hash: string, label: string | null = null) => ({
 });
 const devActors = vi.fn((_map: string) =>
   ok([
-    placed("Npc_Hylia_Zelda_Child", "1"),
-    placed("Obj_Signboard", "2", "Field_000"),
-    placed("Obj_Signboard", "3"),
+    placed("Npc_A", "1"),
+    placed("Obj_A", "2", "Field_000"),
+    placed("Obj_A", "3"),
   ]),
 );
 const devWarp = vi.fn((actor: string, _side: string) =>
   ok(`warped beside ${actor}`),
 );
 const devApply = vi.fn((_n: string) =>
-  ok({ done: ["gave Item_Bomb", "sent to X/Y"], held: [] as string[] }),
+  ok({ done: ["gave Item_A", "sent to X/Y"], held: [] as string[] }),
 );
 const goal = (
   name: string,
@@ -117,7 +117,7 @@ vi.mock("@/bindings", () => ({
           "Kakariko_Child/Kakariko_FrontOfGate",
         ],
         spawns: [],
-        items: ["Item_Bomb"],
+        items: ["Item_A"],
         names: ["Sequence_IsChildhood", ...Object.keys(values)],
       }),
     devTeleport: (p: string) => devTeleport(p),
@@ -229,7 +229,7 @@ test("the actors tab lists the map's actors, and search narrows them", async () 
   expect(within(list).getByText("#2")).toBeTruthy();
   expect(within(list).getAllByRole("button")).toHaveLength(3);
   const search = screen.getByRole("textbox", { name: "Search actors" });
-  fireEvent.change(search, { target: { value: "zelda" } });
+  fireEvent.change(search, { target: { value: "npc" } });
   expect(within(list).getAllByRole("button")).toHaveLength(1);
   fireEvent.change(search, { target: { value: "field_0" } });
   expect(within(list).getAllByRole("button")).toHaveLength(1);
@@ -239,7 +239,7 @@ test("a click on an actor warps to the picked side", async () => {
   render(<DevWindow />);
   fireEvent.click(await screen.findByRole("button", { name: "Actors" }));
   const zelda = await screen.findByRole("button", {
-    name: "Npc_Hylia_Zelda_Child",
+    name: "Npc_A",
   });
   await vi.waitFor(() => expect(zelda.hasAttribute("disabled")).toBe(false));
   fireEvent.click(screen.getByRole("button", { name: "Back" }));
@@ -262,10 +262,10 @@ test("a name field suggests matches under itself, picked by click or Enter", asy
   render(<DevWindow />);
   const item = await screen.findByRole("textbox", { name: "Item" });
   await screen.findByRole("list", { name: "Kakariko" });
-  fireEvent.change(item, { target: { value: "bomb" } });
+  fireEvent.change(item, { target: { value: "item_a" } });
   const list = screen.getByRole("list", { name: "Item suggestions" });
-  fireEvent.click(within(list).getByRole("button", { name: "Item_Bomb" }));
-  expect((item as HTMLInputElement).value).toBe("Item_Bomb");
+  fireEvent.click(within(list).getByRole("button", { name: "Item_A" }));
+  expect((item as HTMLInputElement).value).toBe("Item_A");
   expect(screen.queryByRole("list", { name: "Item suggestions" })).toBeNull();
 
   const name = screen.getByRole("textbox", { name: "GameData name" });
@@ -302,7 +302,7 @@ test("a saved test start applies live and lists what it did", async () => {
   fireEvent.click(apply);
   expect(devApply).toHaveBeenCalledWith("Well");
   expect((await screen.findByRole("status")).textContent).toBe(
-    "gave Item_Bomb\nsent to X/Y",
+    "gave Item_A\nsent to X/Y",
   );
 });
 
@@ -333,11 +333,11 @@ test("a start ticks once its goals hold, marking ones held before Apply", async 
 });
 
 test("a start shows its goals from the config before the game answers", async () => {
-  saved.goals = ["IsGet.Item_Medal_Fire=true"];
+  saved.goals = ["IsGet.Item_B=true"];
   game.state = undefined;
   render(<DevWindow />);
   expect(await screen.findByLabelText("Goals open")).toBeTruthy();
-  expect(screen.getByText(/IsGet.Item_Medal_Fire=true/)).toBeTruthy();
+  expect(screen.getByText(/IsGet.Item_B=true/)).toBeTruthy();
 });
 
 test("a start whose name holds a dot still shows its goals and holds", async () => {
@@ -486,7 +486,7 @@ test("the picked tab, searches and Give's draft are kept in the view", async () 
     target: { value: "gate" },
   });
   fireEvent.change(screen.getByRole("textbox", { name: "Item" }), {
-    target: { value: "Item_Bomb" },
+    target: { value: "Item_A" },
   });
   fireEvent.click(screen.getByRole("button", { name: "Actors" }));
   cleanup();
@@ -500,8 +500,8 @@ test("the picked tab, searches and Give's draft are kept in the view", async () 
   ).toBe("gate");
   expect(
     (screen.getByRole("textbox", { name: "Item" }) as HTMLInputElement).value,
-  ).toBe("Item_Bomb");
-  expect(useUi.getState().dev.give.item).toBe("Item_Bomb");
+  ).toBe("Item_A");
+  expect(useUi.getState().dev.give.item).toBe("Item_A");
 });
 
 test("a poll that finds the game unchanged keeps what it held", async () => {

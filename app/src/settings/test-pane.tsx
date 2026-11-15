@@ -77,7 +77,7 @@ export function TestPane() {
               name="goals"
               label="Goals"
               noun="goal"
-              placeholder="IsGet.Item_Medal_Shadow"
+              placeholder="IsGet.<item>"
               hint="The dev panel ticks the setup once they all hold"
             />
             <Field

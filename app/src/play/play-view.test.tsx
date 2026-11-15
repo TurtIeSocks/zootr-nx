@@ -200,8 +200,8 @@ test("the plando draft shows by Generate and edits from there", () => {
   act(() =>
     useConfig.setPath("config", {
       ...useConfig.getState().config,
-      place: { 1: "Item_Hookshot", 2: "Item_Bomb" },
-      plandos: { Hooks: { 2: "Item_Bomb", 1: "Item_Hookshot" }, Idle: {} },
+      place: { 1: "Item_B", 2: "Item_C" },
+      plandos: { Hooks: { 2: "Item_C", 1: "Item_B" }, Idle: {} },
     }),
   );
   expect(screen.getByText("Plando Hooks: 2 checks pinned")).toBeTruthy();
