@@ -11,14 +11,14 @@ use crate::cutscenes::Catalogue;
 use crate::events::{Effect, Flows};
 use crate::gamedata::GameData;
 use crate::generate::Spot;
-use crate::gifts::{self, GIFTS, Gift, How};
-use crate::known::{Name, actor, field, flag, flow, item};
-use crate::nav::graph::dist;
+use crate::gifts::{GIFTS, Gift};
+use crate::known::{Name, actor, field, flag, flow};
 use crate::nav::kinds;
-use crate::settings::DUNGEON_REWARDS;
 use crate::warp::{self, Pose, Side};
-use crate::world::Presence;
-use crate::{flags, flows, gates, pickups, rsdb, scrubs, shops, steps};
+use crate::{flags, gates, pickups, rsdb, scrubs, shops, steps};
+
+mod events;
+mod shop;
 
 /// `(challenge, step)` quest steps, written as their save copies before
 /// the teleport (`sweep::spot::presets`).
@@ -111,19 +111,6 @@ pub struct Planned {
 
 // Not a word of the dump's name tables: only the start of chests' names.
 const CHEST: &str = "Obj_TBox";
-/// Every shopkeeper's actor name has this, like `Npc_Goron_011_Shop_Adult`.
-const KEEPER: &str = "_Shop_";
-/// And starts with this: the Bombchu Shop's music emitter,
-/// `BGM_Shop_Market_Bombchu`, stands nearer its shelf than its keeper.
-const PERSON: &str = "Npc_";
-/// The anchor a keeper links where his customers stand.
-const CUSTOMER: &Name = field::DESTINATION_ANCHOR;
-/// How far a [`CUSTOMER`] spot may be from its keeper, in m: A reached the
-/// Goron keeper from 2.2 (live, 2026-11-14), his spot is 2.0 off. The
-/// Kokiri keeper's link, 5.4 off, is something else.
-const COUNTER: f32 = 2.5;
-/// How far, flat, a keeper stands from the shelves behind them.
-const KEEPER_REACH: f32 = 5.0;
 /// How far in front of a chest or a scrub Link lands: close enough that A
 /// opens or talks once he faces it. The first night's sweep landed 2 m off
 /// and never opened a chest.
@@ -135,79 +122,13 @@ const SWINGS: [f32; 7] = [0.0, -15.0, 15.0, -30.0, 30.0, -45.0, 45.0];
 /// landing. Mido's back chests each have a front one 1.5 ahead.
 const CLEAR: f32 = 0.2;
 const NPC: &str = "Npc_";
-const SHEIK: &str = "Sheik";
-
-/// Gifts the sweep leaves alone, by the start of their flow, and what kind
-/// each is.
-static OUT_OF_SCOPE: LazyLock<[(&str, &str); 10]> = LazyLock::new(|| {
-    [
-        (flow::MINI_GAME_FISHING, "fishing"),
-        (flow::MINI_GAME_BOMBCHU_BOWLING, "bowling"),
-        (flow::MINIGAME_HORSEBACK_ARCHERY, "archery"),
-        ("MiniGame_", "minigame"),
-        ("Minigame_", "minigame"),
-        ("Npc_SkullKid", "minigame"),
-        ("Npc_Hylia_Dampe", "the dig"),
-        (flow::GATHERING_TOKEN_GOLD, "token reward"),
-        ("SubEvent_", "quest chain"),
-        ("Dm_", "cutscene"),
-    ]
-});
-
 /// Quest steps a gift's flow needs first, as `(flow, challenge, step)`,
 /// where a test preset already records them.
-/// Givers who teach only once Link takes his ocarina out after their
-/// talk, and the button that does it: the Windmill Man's Song of Storms
-/// (Mac, 2026-11-14). His flow isn't an event, so asked by name nothing
-/// plays, and he stands in the adult village only.
-const DRAWN: [(&Name, &str); 1] = [(actor::NPC_HYLIA_009_ADULT, "Left")];
-
 const STEPS: [(&Name, &Name, &str); 1] = [(
     actor::NPC_GORON_BIGGORON_ADULT,
     flow::SUB_EVENT_GET_SWORD_BIG_GORON,
     "Step11",
 )];
-
-/// Gifts a challenge wins, as `(flow, event, values)`: the values a won
-/// challenge leaves, set before the event the game plays as it ends. The
-/// Lake Scientist hands over his gift once Link has dived 9 deep, as long as
-/// he hasn't yet (`HasDived` is the gift given, Mac, 2026-11-14).
-static WON: LazyLock<[(&Name, &Name, [String; 2]); 1]> = LazyLock::new(|| {
-    [(
-        actor::NPC_HYLIA_045_CHILD,
-        actor::NPC_HYLIA_045_CHILD_DIVING_CHALLENGE,
-        [
-            format!("{}=false", flag::NPC_HYLIA_045_HAS_DIVED),
-            format!("{}=9", flag::NPC_HYLIA_045_DEPTH_OF_DIVING),
-        ],
-    )]
-});
-
-/// A giver who hands over a gift at a sale, as `(flow, gift, values, item)`:
-/// the gift's vanilla item, the values the last sale finds and the item it
-/// takes.
-type Sold = (&'static Name, &'static Name, [String; 1], &'static Name);
-
-/// Givers who hand over their gift at a sale. The Poe collector gives his
-/// bottle at the sale that reaches 500 points and a Gold Rupee at the one
-/// that reaches 1000, 100 a Big Poe, so the last sale finds 400, then 900.
-static SOLD: LazyLock<[Sold; 2]> = LazyLock::new(|| {
-    let poes = |points| [format!("{}={points}", flag::GHOST_SHOP_COUPON_NUM)];
-    [
-        (
-            actor::NPC_HYLIA_048_BOTTLE_SHOP,
-            item::BOTTLE,
-            poes(400),
-            item::BOTTLE_BIG_POE,
-        ),
-        (
-            actor::NPC_HYLIA_048_BOTTLE_SHOP,
-            actor::OBJ_RUPEE_GOLD,
-            poes(900),
-            item::BOTTLE_BIG_POE,
-        ),
-    ]
-});
 
 /// How the sweep stops a giver who rolls a track: the Bool true while he
 /// passes the one spot he can be stopped at, and the Bool a bomb hit there
@@ -220,38 +141,6 @@ pub struct Halt {
     pub passing: &'static Name,
     pub hit: &'static Name,
 }
-
-/// Givers the sweep stops first, as `(flow, halt, values, link, giver)`:
-/// the values that let him be stopped again and give again, and the `Name`s
-/// of the anchors his gift stands Link and him at. Link warps near the
-/// first and walks into reach of the second: once stopped, the rolling
-/// Goron stands up there (Mac, 2026-11-15: talked to from 1.5 m, his bomb
-/// bag given).
-/// A halted giver: flow, halt, values, link spot, his spot.
-type Halted = (
-    &'static Name,
-    Halt,
-    [String; 3],
-    &'static Name,
-    &'static Name,
-);
-static HALTED: LazyLock<[Halted; 1]> = LazyLock::new(|| {
-    [(
-        actor::NPC_GORON_006_CHILD,
-        Halt {
-            actor: actor::NPC_GORON_006_CHILD,
-            passing: flag::GORON_CITY_STOP_GORON006,
-            hit: flag::GORON_CITY_BOMB_HITS_GORON006,
-        },
-        [
-            format!("{}=false", flag::GORON_CITY_BOMB_HITS_GORON006),
-            format!("{}=0", field::GORON_CITY_GORON006_BOMB_HITS_WRONG_AREA),
-            format!("{}=false", flag::GORON_CITY_GET_BOMB_BAG_FROM_GORON006),
-        ],
-        field::GORON_CITY_GET_BOMB_BAG_LINK_POSITION,
-        field::GORON_CITY_GET_BOMB_BAG_GORON_POSITION,
-    )]
-});
 
 /// Where the placement named `label` stands in `map`.
 fn anchor(romfs: &Romfs, map: &str, label: &str) -> Result<[f32; 3]> {
@@ -455,84 +344,6 @@ impl Planner<'_> {
         })
     }
 
-    /// A shop slot: talk to the keeper behind its shelf, and the judge
-    /// browses to the item and buys it. The keeper is the shop NPC nearest
-    /// the shelf in a map of its age: Kakariko's adult keepers stand in the
-    /// alternative map, not the shelves'.
-    fn shop(&mut self, spot: &Spot) -> Result<(Trigger, Option<bool>)> {
-        let maps = self.maps(&spot.area)?;
-        let shelf = maps
-            .iter()
-            .find_map(|(map, poses)| Some((warp::era(map), poses.get(&spot.hash)?.at)));
-        let Some((era, shelf)) = shelf else {
-            let why = format!("shelf not found in {}", spot.area);
-            return Ok((Trigger::Skip(why), None));
-        };
-        let of_era: Vec<String> = (maps.keys())
-            .filter(|m| warp::era(m) == era)
-            .cloned()
-            .collect();
-        let mut keepers = Vec::new();
-        for map in of_era {
-            let placed = warp::placements_in(self.romfs, &map)?;
-            let shop = (placed.into_iter())
-                .filter(|p| p.name.starts_with(PERSON) && p.name.contains(KEEPER));
-            keepers.extend(shop.map(|p| (map.clone(), p.hash, p.pose, p.presence)));
-        }
-        let flat = |pose: &Pose| (pose.at[0] - shelf[0]).hypot(pose.at[2] - shelf[2]);
-        let near = keepers
-            .into_iter()
-            .filter(|(_, _, pose, _)| flat(pose) < KEEPER_REACH);
-        let Some((map, hash, pose, presence)) =
-            near.min_by(|a, b| flat(&a.2).total_cmp(&flat(&b.2)))
-        else {
-            let why = format!("no shopkeeper by the shelf in {}", spot.area);
-            return Ok((Trigger::Skip(why), None));
-        };
-        let (steps, ready) = self.bring(presence.as_ref())?;
-        let customer = match hash {
-            Some(hash) => self.customer(&map, hash, pose.at)?,
-            None => None,
-        };
-        let trigger = Trigger::Talk {
-            at: customer.unwrap_or_else(|| warp::landing(&pose, Side::Front)),
-            counter: customer.is_some(),
-            map,
-            face: pose.at,
-            steps,
-            ready,
-            then: None,
-            give: None,
-            halt: None,
-        };
-        Ok((trigger, era))
-    }
-
-    /// Where a customer of the keeper placed as `hash` stands: the
-    /// [`CUSTOMER`] his placement links within [`COUNTER`] of him at `at`.
-    fn customer(&self, map: &str, hash: u64, at: [f32; 3]) -> Result<Option<[f32; 3]>> {
-        let links = warp::linked(self.romfs, map, hash)?;
-        let placed = warp::placements_in(self.romfs, map)?;
-        Ok((placed.into_iter())
-            .filter(|p| p.name == CUSTOMER && p.hash.is_some_and(|h| links.contains(&h)))
-            .map(|p| p.pose.at)
-            .find(|spot| dist(*spot, at) < COUNTER))
-    }
-
-    /// What brings in a keeper there only by `presence`: the quest step
-    /// its BoolExp asks for (the Bombchu Shop's keeper comes once the
-    /// Goron's Ruby quest is complete), or its Bool set true. Nothing for
-    /// a keeper there while a flag is unset, or by any other expression.
-    fn bring(&mut self, presence: Option<&Presence>) -> Result<(Steps, Ready)> {
-        let Some(p) = presence.filter(|p| !p.negated) else {
-            return Ok(Default::default());
-        };
-        Ok(match self.gamedata()?.expr(&p.flag)? {
-            None => (vec![], vec![p.flag.clone()]),
-            Some(expr) => (step_of(&expr).into_iter().collect(), vec![]),
-        })
-    }
-
     /// GameData, with every quest's saved step named.
     fn gamedata(&mut self) -> Result<&GameData> {
         if self.gamedata.is_none() {
@@ -541,25 +352,6 @@ impl Planner<'_> {
             self.gamedata = Some(gamedata);
         }
         Ok(self.gamedata.as_ref().unwrap())
-    }
-
-    /// The Bools that make the Business Scrub placed as `hash` a seller,
-    /// with every other scrub in `map`. Until its flag is set a scrub is an
-    /// enemy, beaten in play by sending its nut back: its brain graph reads
-    /// `IsNPC_ScrubBusiness` for its own instance id. A neighbour left an
-    /// enemy shoots Link mid-talk, as in the Hyrule Field grotto of three.
-    fn sellers(&self, map: &str, hash: u64) -> Result<Ready> {
-        let placed = warp::placements_in(self.romfs, map)?;
-        let scrubs = (placed.iter())
-            .filter(|p| p.name == scrubs::ACTOR)
-            .filter_map(|p| p.hash)
-            .filter(|&h| h != hash);
-        let flags = std::iter::once(hash).chain(scrubs);
-        let mut ready: Ready = flags
-            .map(|h| format!("{}.{h}", field::IS_NPC_SCRUB_BUSINESS))
-            .collect();
-        ready.push(PASSWORD.to_string());
-        Ok(ready)
     }
 
     /// A cow: the event Epona's Song runs at it, in the map of the
@@ -584,212 +376,6 @@ impl Planner<'_> {
             at: None,
         };
         Ok((trigger, child))
-    }
-
-    fn gift(&mut self, gift: &Gift) -> Result<(Trigger, Option<bool>)> {
-        let drawn = DRAWN.iter().find(|(giver, _)| gift.caller() == Some(giver));
-        if let Some(&(giver, button)) = drawn {
-            return self.talk(gift, giver, Some(button));
-        }
-        if gift.item.starts_with("Item_Melody_") || gift.giver.contains("Great Fairy") {
-            return self.play(gift);
-        }
-        let kind = (gift.setting() == Some(DUNGEON_REWARDS))
-            .then_some("boss reward")
-            .or_else(|| {
-                let of = OUT_OF_SCOPE.iter().find(|(p, _)| gift.flow.starts_with(p));
-                of.map(|(_, kind)| *kind)
-            });
-        if let Some(kind) = kind {
-            return Ok((Trigger::Skip(format!("out of scope: {kind}")), None));
-        }
-        if let Some((_, event, values)) = WON.iter().find(|(flow, ..)| *flow == gift.flow) {
-            let values: Vec<&str> = values.iter().map(String::as_str).collect();
-            return self.won(gift, event, &values);
-        }
-        if !gift.flow.starts_with(NPC) {
-            let why = format!("no trigger: {} isn't an NPC", gift.flow);
-            return Ok((Trigger::Skip(why), None));
-        }
-        self.talk(gift, gift.flow, None)
-    }
-
-    /// Beside `giver`, where the Banc folder of the gift's area places it,
-    /// pressing `then` once the talk ends.
-    fn talk(
-        &mut self,
-        gift: &Gift,
-        giver: &str,
-        then: Option<&'static str>,
-    ) -> Result<(Trigger, Option<bool>)> {
-        let Some((map, pose)) = self.giver(giver, gift.area)? else {
-            let why = format!("no trigger: {giver} isn't placed in {}", gift.area);
-            return Ok((Trigger::Skip(why), None));
-        };
-        let child = warp::era(&map);
-        let sold = (SOLD.iter()).find(|(flow, item, ..)| *flow == giver && *item == gift.item);
-        let mut ready: Ready = sold.map_or(vec![], |s| s.2.iter().map(|v| v.to_string()).collect());
-        let halted = HALTED.iter().find(|(flow, ..)| *flow == giver);
-        let (at, face, halt) = match halted {
-            Some((_, halt, values, link, him)) => {
-                ready.extend(values.iter().map(|v| v.to_string()));
-                let anchor = |label| anchor(self.romfs, &map, label);
-                (anchor(link)?, anchor(him)?, Some(*halt))
-            }
-            None => (warp::landing(&pose, Side::Front), pose.at, None),
-        };
-        let trigger = Trigger::Talk {
-            at,
-            face,
-            steps: steps(gift),
-            ready,
-            then,
-            give: sold.map(|s| s.3.get()),
-            counter: false,
-            halt,
-            map,
-        };
-        Ok((trigger, child))
-    }
-
-    /// The challenge's end, played beside the giver with `values` set.
-    fn won(
-        &mut self,
-        gift: &Gift,
-        event: &str,
-        values: &[&str],
-    ) -> Result<(Trigger, Option<bool>)> {
-        let Some((map, pose)) = self.giver(gift.flow, gift.area)? else {
-            let why = format!("no trigger: {} isn't placed in {}", gift.flow, gift.area);
-            return Ok((Trigger::Skip(why), None));
-        };
-        let child = warp::era(&map);
-        let trigger = Trigger::Play {
-            map: Some(map),
-            event: event.into(),
-            steps: steps(gift),
-            ready: values.iter().map(|v| v.to_string()).collect(),
-            melody: None,
-            at: Some(warp::landing(&pose, Side::Front)),
-        };
-        Ok((trigger, child))
-    }
-
-    /// The map that places `giver` in `area`, and where.
-    fn giver(&mut self, giver: &str, area: &str) -> Result<Option<(String, Pose)>> {
-        let placed = warp::placements(self.romfs, giver)?;
-        let maps = self.maps(area)?;
-        Ok(placed.into_iter().find(|(map, _)| maps.contains_key(map)))
-    }
-
-    /// A song or a Great Fairy: the event that starts its scene.
-    fn play(&mut self, gift: &Gift) -> Result<(Trigger, Option<bool>)> {
-        let Some(event) = self.event(gift)? else {
-            let why = format!("no trigger: {} has no caller or event setting", gift.flow);
-            return Ok((Trigger::Skip(why), None));
-        };
-        let maps = self.maps(gift.area)?;
-        let has = |era| maps.keys().any(|m| warp::era(m) == Some(era));
-        let child = match (gift.giver.starts_with(SHEIK), has(true), has(false)) {
-            (true, _, _) => Some(false),
-            (_, true, _) => Some(true),
-            (_, false, true) => Some(false),
-            _ => None,
-        };
-        let of_era = |era| maps.keys().find(|m| warp::era(m) == era);
-        let map = of_era(child).or_else(|| of_era(None)).cloned();
-        let at = match &map {
-            Some(map) => self.step_in(gift.area, map, &event)?,
-            None => None,
-        };
-        let trigger = Trigger::Play {
-            map,
-            event,
-            steps: steps(gift),
-            ready: vec![],
-            melody: None,
-            at,
-        };
-        Ok((trigger, child))
-    }
-
-    /// Where in `map` of `area` Link steps in for `event` to start itself:
-    /// the sensor area of its request actor nearest that actor.
-    fn step_in(&mut self, area: &str, map: &str, event: &str) -> Result<Option<[f32; 3]>> {
-        let Some((Some(hash), request)) = warp::requested(self.romfs, event)?.remove(map) else {
-            return Ok(None);
-        };
-        if self.sensors.is_none() {
-            self.sensors = Some(gates::sensors(self.romfs)?);
-        }
-        let areas = (self.sensors.as_ref().unwrap().get(&hash).cloned()).unwrap_or_default();
-        let poses = &self.maps(area)?[map];
-        let off = |at: &[f32; 3]| (at[0] - request.at[0]).hypot(at[2] - request.at[2]);
-        let near = areas.iter().filter_map(|h| Some(poses.get(h)?.at));
-        Ok(near.min_by(|a, b| off(a).total_cmp(&off(b))))
-    }
-
-    /// The event to play for `gift`: the flow its grant waits in, else the
-    /// event that starts its scene in the flow a skip moves the grant to,
-    /// else the one flow that starts only its scene, else the scene's own
-    /// event.
-    fn event(&mut self, gift: &Gift) -> Result<Option<String>> {
-        if let How::Later { caller, .. } = gift.how {
-            return Ok(Some(caller.to_string()));
-        }
-        if let Some(event) = self.skipped_in(gift)? {
-            return Ok(Some(event));
-        }
-        if self.catalogue.is_none() {
-            self.catalogue = Some(Catalogue::load(self.romfs)?);
-        }
-        let all = &self.catalogue.as_ref().unwrap().0;
-        let scene = all.iter().find(|c| c.name == gift.flow);
-        let alone = |f: &&String| all.iter().filter(|c| c.flows.contains(*f)).count() == 1;
-        let mut callers = scene.iter().flat_map(|c| &c.flows).filter(alone);
-        if let (Some(only), None) = (callers.next(), callers.next()) {
-            return Ok(Some(only.clone()));
-        }
-        Ok(self
-            .events()?
-            .contains_key(&**gift.flow)
-            .then(|| gift.flow.to_string()))
-    }
-
-    /// The one event whose entry point, in the flow a cutscene skip moves
-    /// `gift`'s grant to, starts its scene. Playing the scene alone grants
-    /// what it always did: Sheik's Bolero, where the seed's grant was in
-    /// `SageOfFire_MelodyGetFire` (the other machine, 2026-11-14).
-    fn skipped_in(&mut self, gift: &Gift) -> Result<Option<String>> {
-        let Some(caller) = gift.caller() else {
-            return Ok(None);
-        };
-        let Some(flow) = flows::load(self.romfs, caller)? else {
-            return Ok(None);
-        };
-        let (plays, _) = gifts::scene_marks(&flow, gift.flow);
-        let starts = |entry: &Option<String>| {
-            entry.as_deref().is_some_and(|entry| {
-                flows::reachable(&flow, entry)
-                    .is_ok_and(|seen| plays.iter().any(|p| seen.contains(p)))
-            })
-        };
-        let mut events = (self.events()?.iter())
-            .filter(|(_, (f, entry))| f == caller && starts(entry))
-            .map(|(name, _)| name);
-        Ok(match (events.next(), events.next()) {
-            (Some(only), None) => Some(only.clone()),
-            _ => None,
-        })
-    }
-
-    /// Every event the game can start by name, with its flow file and entry
-    /// point.
-    fn events(&mut self) -> Result<&BTreeMap<String, rsdb::Runs>> {
-        if self.events.is_none() {
-            self.events = Some(rsdb::events(self.romfs)?);
-        }
-        Ok(self.events.as_ref().unwrap())
     }
 }
 
@@ -898,11 +484,6 @@ fn noted(holder: &str) -> Vec<String> {
     of.map(|(_, flag)| flag.to_string()).collect()
 }
 
-/// Set when Link has said the Hyrule Field scrub's password. Its flow asks
-/// only once a field note is read, then quizzes him, and with this set it
-/// goes straight to the sale. No other scrub's flow reads it.
-const PASSWORD: &Name = flag::ENEMY_SCRUB_BUSINESS_SECRET_SUCCESS;
-
 /// In front of `pose` at `REACH`, swung off its front as little as keeps
 /// every one of `others` `CLEAR` farther away than the holder, so A opens
 /// the holder and not its neighbour. Straight in front when no swing does.
@@ -927,7 +508,7 @@ fn clear_landing(pose: &Pose, others: &[[f32; 3]]) -> [f32; 3] {
 
 #[cfg(test)]
 mod tests {
-    use crate::known::{actor, field, flag, flow, item, map, scene};
+    use crate::known::{actor, field, flag, flow, map};
     use std::sync::OnceLock;
 
     use super::*;
@@ -938,7 +519,7 @@ mod tests {
 
     /// A seed with every shuffle setting on: its spots, and each planned
     /// once for all the tests.
-    fn seed() -> Option<(Romfs, &'static [Spot], &'static [Planned])> {
+    pub(super) fn seed() -> Option<(Romfs, &'static [Spot], &'static [Planned])> {
         static SEED: OnceLock<(Vec<Spot>, Vec<Planned>)> = OnceLock::new();
         let romfs = crate::game::dev_dump()?;
         let (spots, planned) = SEED.get_or_init(|| {
@@ -969,13 +550,6 @@ mod tests {
             (report.spots, planned)
         });
         Some((romfs, spots, planned))
-    }
-
-    fn songs_and_fairies(planned: &[Planned]) -> Vec<&Planned> {
-        let of = |p: &&Planned| {
-            p.spot.vanilla.starts_with("Item_Melody_") || p.spot.holder.contains("Great Fairy")
-        };
-        planned.iter().filter(of).collect()
     }
 
     #[test]
@@ -1160,181 +734,6 @@ mod tests {
     }
 
     #[test]
-    fn a_business_scrub_is_made_a_seller_before_its_talk() {
-        let Some((romfs, _, planned)) = seed() else {
-            return;
-        };
-        let gd = crate::gamedata::GameData::load(&romfs).unwrap();
-        let mut scrubs = 0;
-        for p in planned
-            .iter()
-            .filter(|p| p.spot.holder.starts_with(scrubs::HOLDER))
-        {
-            let Trigger::Talk { ready, .. } = &p.trigger else {
-                continue;
-            };
-            scrubs += 1;
-            assert_eq!(
-                ready[0],
-                format!("{}.{}", field::IS_NPC_SCRUB_BUSINESS, p.spot.hash)
-            );
-            assert!(ready.iter().any(|flag| flag == PASSWORD));
-            for flag in ready {
-                let hash = ounce_formats::murmur3(flag.as_bytes());
-                assert_eq!(gd.kind(hash), Some("Bool"), "{flag}");
-            }
-        }
-        assert!(scrubs > 10, "{scrubs} scrubs talk");
-    }
-
-    #[test]
-    fn a_scrub_sharing_a_grotto_makes_its_neighbours_sellers_too() {
-        let Some((_, _, planned)) = seed() else {
-            return;
-        };
-        // Hyrule Field's grotto scrub selling bombs, beside the seeds and
-        // nuts scrubs, which shoot Link mid-talk while they're enemies.
-        let bombs = planned.iter().find(|p| p.spot.hash == 16672855544778411393);
-        let Some(Trigger::Talk { ready, .. }) = bombs.map(|p| &p.trigger) else {
-            panic!("{bombs:?}");
-        };
-        for neighbour in [12901354557574090016_u64, 17418042722045679657] {
-            let flag = format!("{}.{neighbour}", field::IS_NPC_SCRUB_BUSINESS);
-            assert!(ready.contains(&flag), "{ready:?}");
-        }
-    }
-
-    #[test]
-    fn a_sheik_song_plays_the_event_its_skip_moves_the_grant_to() {
-        let Some((_, _, planned)) = seed() else {
-            return;
-        };
-        let play = |giver: &str| {
-            let p = planned.iter().find(|p| p.spot.holder == giver).unwrap();
-            match &p.trigger {
-                Trigger::Play { event, at, .. } => (event.clone(), *at),
-                other => panic!("{other:?}"),
-            }
-        };
-        let (event, at) = play("Sheik in the Crater");
-        assert_eq!(event, field::SAGE_OF_FIRE_MELODY_GET_FIRE);
-        // The sensor area of its request actor, where his step starts it.
-        assert_eq!(
-            at.map(|[x, _, z]| (x.round(), z.round())),
-            Some((-5.0, -11.0))
-        );
-        let (event, at) = play("Sheik at the Colossus");
-        assert_eq!(event, scene::MELODY_GET_SPILIT);
-        assert_eq!(
-            at.map(|[x, _, z]| (x.round(), z.round())),
-            Some((-161.0, 10.0))
-        );
-        let (_, at) = play("Sheik in the Meadow");
-        assert_eq!(
-            at.map(|[x, _, z]| (x.round(), z.round())),
-            Some((-2.0, -102.0))
-        );
-        // The scene alone grants the vanilla song where a skip moved the
-        // grant to its caller. The Colossus scene has no caller.
-        for p in planned
-            .iter()
-            .filter(|p| p.spot.holder.starts_with("Sheik"))
-            .filter(|p| p.spot.holder != "Sheik at the Colossus")
-        {
-            if let Trigger::Play { event, .. } = &p.trigger {
-                assert!(!event.starts_with("Dm_MelodyGet_"), "{event}");
-            }
-        }
-    }
-
-    #[test]
-    fn the_poe_collector_is_met_with_his_last_big_poe() {
-        let Some((_, _, planned)) = seed() else {
-            return;
-        };
-        for (holder, points) in [
-            ("Poe collector", "400"),
-            ("Poe collector: 1000 points", "900"),
-        ] {
-            let p = (planned.iter()).find(|p| p.spot.holder == holder).unwrap();
-            let Trigger::Talk {
-                map, ready, give, ..
-            } = &p.trigger
-            else {
-                panic!("{holder} {:?}", p.trigger);
-            };
-            assert_eq!(map, flag::MARKET_ADULT);
-            let set: Vec<_> = ready.iter().map(|e| preset(e)).collect();
-            assert_eq!(set, [(&**flag::GHOST_SHOP_COUPON_NUM, points)]);
-            assert_eq!(*give, Some(&**item::BOTTLE_BIG_POE));
-        }
-    }
-
-    #[test]
-    fn the_rolling_goron_is_stopped_then_talked_to_from_his_gift_spot() {
-        let Some((_, _, planned)) = seed() else {
-            return;
-        };
-        let p = (planned.iter())
-            .find(|p| p.spot.holder == "Rolling Goron")
-            .unwrap();
-        let Trigger::Talk {
-            map,
-            at,
-            face,
-            ready,
-            counter,
-            halt,
-            ..
-        } = &p.trigger
-        else {
-            panic!("{:?}", p.trigger);
-        };
-        assert_eq!(map, map::GORON_CITY_CHILD);
-        assert_eq!(halt.unwrap().hit, flag::GORON_CITY_BOMB_HITS_GORON006);
-        assert!(!*counter, "Link walks into reach of him");
-        // The anchors his bomb bag scene stands Link and him at.
-        let near = |a: [f32; 3], b: [f32; 3]| dist(a, b) < 0.1;
-        assert!(near(*at, [8.0, 109.6, -17.2]), "{at:?}");
-        assert!(near(*face, [7.0, 109.6, -19.0]), "{face:?}");
-        let set: Vec<_> = ready.iter().map(|e| preset(e)).collect();
-        assert!(set.contains(&(flag::GORON_CITY_BOMB_HITS_GORON006, "false")));
-    }
-
-    #[test]
-    fn the_lake_scientist_plays_his_dive_won_beside_him() {
-        let Some((_, _, planned)) = seed() else {
-            return;
-        };
-        let p = (planned.iter())
-            .find(|p| p.spot.holder == "Lake Scientist")
-            .unwrap();
-        let Trigger::Play {
-            map,
-            event,
-            ready,
-            at: Some([x, _, z]),
-            ..
-        } = &p.trigger
-        else {
-            panic!("{:?}", p.trigger);
-        };
-        assert_eq!(map.as_deref(), Some(&**map::HYRULE_FIELD_CHILD));
-        assert_eq!(event, actor::NPC_HYLIA_045_CHILD_DIVING_CHALLENGE);
-        assert_eq!(p.child, Some(true));
-        // His placement is at (-174.5, 422.3): Link lands a step in front.
-        assert!((x + 174.5).hypot(z - 422.3) < 2.0, "{x} {z}");
-        let set: Vec<_> = ready.iter().map(|e| preset(e)).collect();
-        assert_eq!(
-            set,
-            [
-                (&**flag::NPC_HYLIA_045_HAS_DIVED, "false"),
-                (&**flag::NPC_HYLIA_045_DEPTH_OF_DIVING, "9")
-            ]
-        );
-    }
-
-    #[test]
     fn a_preset_sets_a_bool_true_unless_it_names_a_value() {
         assert_eq!(preset("Flag"), ("Flag", "true"));
         assert_eq!(preset("Depth=9"), ("Depth", "9"));
@@ -1439,51 +838,6 @@ mod tests {
     }
 
     #[test]
-    fn the_windmill_man_is_talked_to_as_adult_then_the_ocarina_drawn() {
-        let Some((_, _, planned)) = seed() else {
-            return;
-        };
-        let storms = planned
-            .iter()
-            .find(|p| p.spot.vanilla == item::MELODY_STORM_SONG);
-        let storms = storms.unwrap();
-        match &storms.trigger {
-            Trigger::Talk { map, then, .. } => {
-                assert_eq!(map, flag::KAKARIKO_VILLAGE_ADULT);
-                assert_eq!(*then, Some("Left"));
-            }
-            other => panic!("{other:?}"),
-        }
-        assert_eq!(storms.child, Some(false));
-    }
-
-    #[test]
-    fn every_song_and_fairy_plays_an_event_or_says_why_not() {
-        let Some((_, _, planned)) = seed() else {
-            return;
-        };
-        let (mut plays, mut skips) = (0, 0);
-        for p in songs_and_fairies(planned) {
-            match &p.trigger {
-                Trigger::Talk { then: Some(_), .. } => plays += 1,
-                Trigger::Play { event, .. } => {
-                    assert!(!event.is_empty(), "{}", p.spot.holder);
-                    plays += 1;
-                    println!("{} plays {event}", p.spot.holder);
-                }
-                Trigger::Skip(why) => {
-                    assert!(!why.is_empty(), "{}", p.spot.holder);
-                    skips += 1;
-                    println!("{} is skipped: {why}", p.spot.holder);
-                }
-                other => panic!("{}: {other:?}", p.spot.holder),
-            }
-        }
-        println!("{plays} songs and fairies play, {skips} are skipped");
-        assert_eq!(plays + skips, 12 + 6);
-    }
-
-    #[test]
     fn quest_steps_are_steps_the_game_has() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
@@ -1551,75 +905,6 @@ mod tests {
         };
         assert_eq!(broken(&planned[0]), Some(true), "{:?}", planned[0].trigger);
         assert_eq!(broken(&planned[1]), Some(false), "{:?}", planned[1].trigger);
-    }
-
-    #[test]
-    fn a_shop_slot_is_bought_from_its_keeper() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let slots = shops::slots(&romfs).unwrap();
-        let shops = [
-            "Kokiri Shop",
-            "Goron Shop",
-            "Kakariko Bazaar",
-            "Bombchu Shop",
-        ];
-        let spots: Vec<Spot> = shops
-            .into_iter()
-            .map(|shop| {
-                let slot = slots.iter().find(|s| s.shop == shop).unwrap();
-                Spot {
-                    hash: slot.hash(),
-                    area: slot.area.clone(),
-                    holder: format!("{shop} 1"),
-                    ..Default::default()
-                }
-            })
-            .collect();
-        let planned = plan(&romfs, &spots).unwrap();
-        let talks: Vec<(&str, [f32; 3], &Steps)> = (planned.iter())
-            .map(|p| match &p.trigger {
-                Trigger::Talk {
-                    map, face, steps, ..
-                } => (map.as_str(), *face, steps),
-                t => panic!("{t:?}"),
-            })
-            .collect();
-        let maps: Vec<&str> = talks.iter().map(|(map, ..)| *map).collect();
-        assert_eq!(
-            maps,
-            [
-                map::KOKIRI_FOREST_CHILD,
-                map::GORON_CITY_CHILD,
-                map::KAKARIKO_VILLAGE_ADULT_ALTERNATIVE,
-                flag::MARKET_CHILD
-            ]
-        );
-        // Its keeper, not the music emitter standing nearer the shelf.
-        let (_, bombchu, quest) = talks[3];
-        assert!((bombchu[2] - 35.4).abs() < 0.1, "{bombchu:?}");
-        // Who comes only once the Goron's Ruby is won.
-        let ruby = (flow::GET_STONE_OF_FIRE.to_string(), "Complete".to_string());
-        assert_eq!(quest, &vec![ruby]);
-        let gd = GameData::load(&romfs).unwrap();
-        steps::check(&gd, &quest[0].0, &quest[0].1).unwrap();
-        assert!(talks[1].2.is_empty(), "the Goron keeper is always in");
-        // The Goron keeper is talked to from the customer spot he links, in
-        // front of his counter. The others from their front.
-        let counters: Vec<(bool, [f32; 3])> = (planned.iter())
-            .map(|p| match &p.trigger {
-                Trigger::Talk { counter, at, .. } => (*counter, *at),
-                t => panic!("{t:?}"),
-            })
-            .collect();
-        assert_eq!(counters.iter().filter(|c| c.0).count(), 1, "{counters:?}");
-        let (counter, at) = counters[1];
-        assert!(counter);
-        assert!(
-            (at[0] - -17.1).abs() < 0.1 && (at[2] - -20.2).abs() < 0.1,
-            "{at:?}"
-        );
     }
 
     #[test]
