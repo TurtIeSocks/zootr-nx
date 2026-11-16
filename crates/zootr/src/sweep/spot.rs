@@ -130,11 +130,20 @@ pub struct Sweeper<'a, I, J> {
 const AGAIN: usize = 3;
 
 /// The GameData values a spot writes before its teleport and holds through
-/// the load: its trigger's ready values, then each quest step it needs, and
-/// the guards stood down where they watch, as the step's save copy
-/// `Step_<challenge>`. Gates read that copy (a keeper's presence, the
-/// guards' `IsAfter` expressions). The copy is one write held through the
-/// load, where a step run through the quest system is an event of its own.
+/// the load: its trigger's ready values, then each quest step it needs, as
+/// the step's save copy `Step_<challenge>`. Gates read that copy (a
+/// keeper's presence). The copy is one write held through the load, where
+/// a step run through the quest system is an event of its own.
+/// The quest steps a spot needs.
+fn steps(p: &Planned) -> &[(String, String)] {
+    match &p.trigger {
+        Trigger::Open { steps, .. } | Trigger::Talk { steps, .. } | Trigger::Play { steps, .. } => {
+            steps
+        }
+        Trigger::Skip(_) => &[],
+    }
+}
+
 fn presets(p: &Planned) -> Vec<String> {
     let (ready, quests) = match &p.trigger {
         Trigger::Open { ready, steps, .. }
@@ -142,9 +151,7 @@ fn presets(p: &Planned) -> Vec<String> {
         | Trigger::Play { ready, steps, .. } => (ready, steps),
         Trigger::Skip(_) => return vec![],
     };
-    let guards = gerudo::guard_step(&p.spot.area)
-        .filter(|(quest, _)| !quests.iter().any(|(named, _)| named == quest));
-    let saved = (quests.iter().chain(&guards)).map(|(c, s)| format!("{SAVED}{c}={s}"));
+    let saved = quests.iter().map(|(c, s)| format!("{SAVED}{c}={s}"));
     ready.iter().cloned().chain(saved).collect()
 }
 
@@ -333,7 +340,15 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         Ok(cleared)
     }
 
-    /// The song a cow wants or the item a giver takes, then the map. Quest
+    /// Whether Link holds `item`.
+    fn holds(&self, item: &str) -> Result<bool> {
+        let hash = live::hash(&format!("IsGet.{item}"))?;
+        let (game, global) = (self.dev.game(), self.dev.global());
+        Ok(live::read(game, self.gd, global, hash)? == "true")
+    }
+
+    /// The song a cow wants, the item a giver takes or the card the guards
+    /// want, then the map. Quest
     /// steps are [`presets`].
     fn setup(&mut self, p: &Planned) -> Result<()> {
         let map = match &p.trigger {
@@ -352,6 +367,14 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         if let Some(item) = give {
             let gd = self.gd;
             self.calmly(|dev| dev.give(gd, item, 1))?;
+        }
+        // Held before the teleport, so the map change stands the guards
+        // down as it would in a seed.
+        if let Some(card) = gerudo::guard_card(&p.spot.area, steps(p))
+            && !self.holds(card)?
+        {
+            let gd = self.gd;
+            self.calmly(|dev| dev.give(gd, card, 1))?;
         }
         let Some(map) = map else {
             return Ok(());
@@ -846,7 +869,7 @@ mod tests {
     }
 
     #[test]
-    fn quest_steps_and_the_guards_are_written_as_their_save_copies() {
+    fn quest_steps_are_written_as_their_save_copies() {
         needs_names!();
         let at = |area: &str, steps: Steps| Planned {
             spot: crate::generate::Spot {
@@ -878,11 +901,8 @@ mod tests {
                 crate::steps::at(flow::SUB_EVENT_GET_SWORD_BIG_GORON, "Step11")
             ]
         );
-        assert_eq!(
-            presets(&at(flag::GERUDO_FORTRESS, vec![])),
-            ["Flag", &format!("{}=Step02", flag::STEP_SAGE_OF_SPIRIT)]
-        );
-        // A step the spot names itself wins over the guards'.
+        // The guards never read the save copy: the card stands them down.
+        assert_eq!(presets(&at(flag::GERUDO_FORTRESS, vec![])), ["Flag"]);
         let named = vec![(flow::SAGE_OF_SPIRIT.to_string(), "Step04".into())];
         assert_eq!(
             presets(&at(flag::GERUDO_FORTRESS, named)),

@@ -45,13 +45,12 @@ const GRANTERS: [&Name; 3] = [
     flow::NPC_COMMON,
 ];
 
-/// The quest step that stands the guards down, for a spot in `area` they
-/// watch: what holding the card does in a seed.
-pub fn guard_step(area: &str) -> Option<(String, String)> {
-    GUARDED
-        .iter()
-        .any(|g| **g == *area)
-        .then(|| (CHALLENGE.to_string(), STAND_DOWN.into()))
+/// The card a spot in `area` needs where the guards watch, unless its own
+/// `steps` move their quest: holding it stands them down at the next map
+/// change, as in a seed. They never read the quest's save copy.
+pub fn guard_card(area: &str, steps: &[(String, String)]) -> Option<&'static Name> {
+    let own = steps.iter().any(|(c, _)| *c == **CHALLENGE);
+    (!own && GUARDED.iter().any(|g| **g == *area)).then_some(CARD)
 }
 
 /// The shapes the hook copies from the quest's own flow.
@@ -198,12 +197,14 @@ mod tests {
     const ELSEWHERE: u64 = 1;
 
     #[test]
-    fn the_guard_step_applies_only_where_they_watch() {
+    fn the_card_is_given_only_where_the_guards_watch() {
         needs_names!();
-        let step = (CHALLENGE.to_string(), STAND_DOWN.to_owned());
-        assert_eq!(guard_step(flag::GERUDO_FORTRESS), Some(step.clone()));
-        assert_eq!(guard_step(flag::GERUDO_TRAINING_GROUND), Some(step));
-        assert_eq!(guard_step(flow::GERUDO_VALLEY), None);
+        assert_eq!(guard_card(flag::GERUDO_FORTRESS, &[]), Some(CARD));
+        assert_eq!(guard_card(flag::GERUDO_TRAINING_GROUND, &[]), Some(CARD));
+        assert_eq!(guard_card(flow::GERUDO_VALLEY, &[]), None);
+        // A spot that moves the quest itself keeps its own step.
+        let own = [(CHALLENGE.to_string(), "Step04".to_owned())];
+        assert_eq!(guard_card(flag::GERUDO_FORTRESS, &own), None);
     }
 
     fn card_at(hash: u64) -> HashMap<u64, Drop> {
