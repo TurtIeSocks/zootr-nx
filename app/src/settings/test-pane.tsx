@@ -71,7 +71,7 @@ export function TestPane() {
               name="progress"
               label="Quest steps"
               noun="quest step"
-              placeholder="SageOfSpirit"
+              placeholder="SageOf"
               hint="Run in order. A new game runs them in its opening and Apply runs them live. The names are checked when you save"
               quest
             />
