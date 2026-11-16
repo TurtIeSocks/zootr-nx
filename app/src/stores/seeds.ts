@@ -216,7 +216,9 @@ export function stepped(steps: Steps, event: StepEvent): Steps {
 }
 
 /** Sends a generate run's command a channel its steps come back on. A stop
- * isn't an error: its words go with the steps. */
+ * isn't an error: its words go with the steps. The command's answer can
+ * beat the channel's last event, so a stop is also told by its words,
+ * which `Stopped` in zootr's progress module always starts with. */
 async function stepping(send: (steps: Channel<StepEvent>) => Promise<unknown>) {
   const channel = new Channel<StepEvent>((event) =>
     useSeeds.setPath("steps", (s) => s && stepped(s, event)),
@@ -226,8 +228,12 @@ async function stepping(send: (steps: Channel<StepEvent>) => Promise<unknown>) {
   try {
     await send(channel);
   } catch (e) {
-    if (useSeeds.getState().steps?.end?.kind !== "stopped") throw e;
-    useSeeds.setPath("steps.stopped", message(e));
+    const text = message(e);
+    const stopped =
+      useSeeds.getState().steps?.end?.kind === "stopped" ||
+      text.startsWith("Stopped");
+    if (!stopped) throw e;
+    useSeeds.setPath("steps.stopped", text);
   } finally {
     useSeeds.setPath("generating", false);
     useSeeds.setPath("stopping", false);
