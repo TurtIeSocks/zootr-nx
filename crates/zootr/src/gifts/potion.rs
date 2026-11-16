@@ -2,6 +2,8 @@
 //! ends once Link catches the bug in that bottle. Until then the shopkeeper
 //! only talks about the bug. A seed that deals the check another item may
 //! leave Link no bottle to catch it with, so the tutorial ends with the gift.
+//! The catch also puts the bottled bug on the shelf, a shop slot of its own,
+//! so the gift does that too.
 
 use anyhow::{Result, bail};
 use ounce_formats::{EventKind, Flowchart, Link};
@@ -16,6 +18,8 @@ pub(super) const FLOW: &Name = actor::NPC_HYLIA_020_SHOP_CHILD;
 pub(super) const CALL: &[Call] = &[get(flow::GET_IN_EVENT_NOT_TURN_FIXED_CAMERA_WARP_LINK)];
 /// Set once the bug is caught, the tutorial's end.
 pub(super) const CLEARED: &Name = flag::MARKET_ITEM_BOTTLE_TUTORIAL_EVENT_CLEARED;
+/// Set as the bug is caught: the shelf slot selling a bottled bug shows.
+const ON_SHELF: &Name = flag::MARKET_ITEM_BOTTLE_TUTORIAL_EVENT_SHOP_BOTTLE_INSECT_APPEARED;
 /// What the tutorial leaves set: begun, ended, and the bug's bottle out on
 /// the shelf. Begun and not ended, the shop door stays shut from inside and
 /// the keeper talks only about the bug. Setting these skips the gift, so
@@ -23,31 +27,41 @@ pub(super) const CLEARED: &Name = flag::MARKET_ITEM_BOTTLE_TUTORIAL_EVENT_CLEARE
 pub(crate) const DONE: [&Name; 3] = [
     flag::MARKET_ITEM_BOTTLE_TUTORIAL_EVENT_STARTED,
     CLEARED,
-    flag::MARKET_ITEM_BOTTLE_TUTORIAL_EVENT_SHOP_BOTTLE_INSECT_APPEARED,
+    ON_SHELF,
 ];
 
-/// Send the gift's call to the event that sets `CLEARED`, which goes on to
-/// the tutorial's last step.
+/// Send the gift's call to a copy of the event that sets `ON_SHELF`, which
+/// goes on to the one setting `CLEARED`, then the tutorial's last step.
 pub(super) fn cleared_with_the_gift(flow: &mut Flowchart) -> Result<()> {
-    let sets = flows::running(flow, SET_BOOL);
-    let clears: Vec<u16> = sets
-        .into_iter()
-        .filter(|&i| match &flow.events[i as usize].kind {
-            EventKind::Action { params, .. } => param(params, GAME_DATA) == Some(CLEARED),
-            _ => false,
-        })
-        .collect();
-    let [clear] = clears[..] else {
-        bail!("{FLOW} sets {CLEARED} {} times, not once", clears.len());
+    let clear = sets(flow, CLEARED)?;
+    let mut on_shelf = flow.events[sets(flow, ON_SHELF)? as usize].kind.clone();
+    let EventKind::Action { next, .. } = &mut on_shelf else {
+        unreachable!("a setter is an action");
     };
+    *next = Some(clear);
+    let on_shelf = flow.push(on_shelf);
     let gives = calls_to(flow, CALL)?;
     if gives.is_empty() {
         bail!("{FLOW} never calls {}", said(CALL));
     }
     for i in gives {
-        flow.link(Link::Next(i as u16), Some(clear))?;
+        flow.link(Link::Next(i as u16), Some(on_shelf))?;
     }
     Ok(())
+}
+
+/// The one event in `flow` that sets `name`.
+fn sets(flow: &Flowchart, name: &Name) -> Result<u16> {
+    let found: Vec<u16> = (flows::running(flow, SET_BOOL).into_iter())
+        .filter(|&i| match &flow.events[i as usize].kind {
+            EventKind::Action { params, .. } => param(params, GAME_DATA) == Some(name),
+            _ => false,
+        })
+        .collect();
+    let [one] = found[..] else {
+        bail!("{FLOW} sets {name} {} times, not once", found.len());
+    };
+    Ok(one)
 }
 
 #[cfg(test)]
@@ -66,7 +80,7 @@ mod tests {
     }
 
     #[test]
-    fn a_dealt_bottle_ends_the_tutorial_and_a_vanilla_one_is_left_alone() {
+    fn a_dealt_bottle_shelves_the_bug_and_ends_the_tutorial_and_a_vanilla_one_is_left_alone() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
@@ -92,12 +106,16 @@ mod tests {
             })
             .collect();
         assert!(!gives.is_empty());
+        // It puts the bottled bug on the shelf, then ends the tutorial.
+        let set = |at: u16| match &flow.events[at as usize].kind {
+            EventKind::Action { params, next, .. } => (param(params, GAME_DATA), *next),
+            _ => panic!("#{at} isn't an action"),
+        };
         for i in gives {
             let to = next(&flow, i).expect("the gift goes on");
-            let EventKind::Action { params, .. } = &flow.events[to as usize].kind else {
-                panic!("#{i} goes to #{to}, not an action");
-            };
-            assert_eq!(param(params, GAME_DATA), Some(&**CLEARED), "#{i}");
+            let (shelf, then) = set(to);
+            assert_eq!(shelf, Some(&**ON_SHELF), "#{i}");
+            assert_eq!(set(then.unwrap()).0, Some(&**CLEARED), "#{i}");
         }
     }
 }
