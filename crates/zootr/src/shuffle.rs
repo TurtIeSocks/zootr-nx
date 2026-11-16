@@ -10,7 +10,7 @@ use crate::known::{Name, item};
 use crate::rng::Rng;
 use crate::settings::{self, NewGame};
 use crate::starting;
-use crate::{ammo, cows, gifts, pickups, progressive};
+use crate::{ammo, cows, gifts, progressive};
 
 /// One shuffled chest, for the spoiler log.
 #[derive(Clone, Copy)]
@@ -273,15 +273,14 @@ fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
 }
 
 /// Whether `check` may hold `item`: a gift can't hold one that asks, or
-/// one that [`gifts::clashes`]. A key copy goes in a plain chest, an NPC's
-/// gift or a pickup, whose gets the hook credits as Link gets them (the
-/// pouch add, or the pickup window). Shops, scrubs, cows and prize chests
-/// wait on their own proof (stage 1 of the every-item-everywhere spec).
+/// one that [`gifts::clashes`]. A key copy goes in any chest or gift
+/// (NPC, shop, scrub, cow, prize chest or pickup), whose gets the hook
+/// credits as Link gets them (the pouch add, or the pickup window). Each
+/// kind was proven live (stage 1 of the every-item-everywhere spec).
 pub(crate) fn allowed(check: &ItemCheck, item: &str, progressive: bool) -> bool {
     let gift = gifts::is_gift(check);
     let fits = !gift || !asks_at(check, item, progressive) && !gifts::clashes(check, item);
-    let chest = !gift && check.holder.starts_with("Obj_TBox_");
-    let credited = chest || gifts::of(check).is_some() || pickups::is_pickup(check);
+    let credited = gift || check.holder.starts_with("Obj_TBox_");
     fits && (credited || !keys::is_shuffled(item))
 }
 
@@ -483,7 +482,7 @@ mod tests {
     }
 
     #[test]
-    fn key_copies_go_in_chests_npc_gifts_and_pickups() {
+    fn key_copies_go_in_chests_and_every_gift() {
         needs_names!();
         let ring = crate::key_tints::ring(1);
         let pot = ItemCheck {
@@ -501,6 +500,16 @@ mod tests {
         assert!(allowed(&chest(1, "Item_A"), &ring, false));
         assert!(allowed(&saria, &ring, false));
         assert!(allowed(&pot, &ring, false));
+        let prize = ItemCheck {
+            hash: gifts::PRIZE_CHESTS[0],
+            ..chest(1, "Item_A")
+        };
+        let cow = ItemCheck {
+            holder: cows::HOLDER.to_string(),
+            ..chest(1, "Item_A")
+        };
+        assert!(allowed(&prize, &ring, false));
+        assert!(allowed(&cow, &ring, false));
         assert!(!allowed(&other, &ring, false));
         assert!(allowed(&other, "Item_A", false));
     }
