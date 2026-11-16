@@ -71,9 +71,19 @@ pub(super) fn give(romfs: &Romfs, actor: &str, count: i32) -> Result<()> {
     Ok(())
 }
 
+/// GameData as the installed seed wrote it, which names the Bools a seed
+/// adds, else the game's own.
+fn installed_gamedata(romfs: &Romfs) -> Result<gamedata::GameData> {
+    let file = Config::load()?.target()?.mod_dir.join("romfs");
+    match std::fs::read(file.join(gamedata::PATH)) {
+        Ok(raw) => gamedata::GameData::parse(&romfs.dicts().decompress(gamedata::PATH, &raw)?),
+        Err(_) => gamedata::GameData::load(romfs),
+    }
+}
+
 pub(super) fn set(romfs: &Romfs, name: &str, value: &str) -> Result<()> {
     use live::Memory;
-    let info = gamedata::GameData::load(romfs)?.info(name)?;
+    let info = installed_gamedata(romfs)?.info(name)?;
     if value == "?" {
         if !info.choices.is_empty() {
             println!("{name} takes one of: {}", info.choices.join(", "));
