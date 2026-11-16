@@ -364,6 +364,15 @@ pub fn of(check: &ItemCheck) -> Option<&'static Gift> {
     GIFTS.iter().find(|g| g.hash() == check.hash)
 }
 
+/// Whether `item` is what another gift of `check`'s flow gives in the
+/// vanilla game. Dealt there, the flow would name it twice, and the other
+/// gift's rewrite couldn't tell its own call apart.
+pub(crate) fn clashes(check: &ItemCheck, item: &str) -> bool {
+    of(check).is_some_and(|g| {
+        (GIFTS.iter()).any(|o| o.flow == g.flow && o.hash() != g.hash() && **o.item == *item)
+    })
+}
+
 /// The minigame chests that are checks, by placement hash: the Treasure
 /// Chest Game's heart piece, then Dampe's two. Every other chest whose event
 /// starts `MiniGame_` stays vanilla. Gifts in all but where they're placed,
@@ -578,6 +587,20 @@ mod tests {
 
     pub(super) fn strip(line: &str) -> &str {
         line.rsplit_once(" -> ").map_or(line, |(l, _)| l)
+    }
+
+    #[test]
+    fn a_gift_never_takes_what_a_gift_of_its_own_flow_gives() {
+        needs_names!();
+        let at = GIFTS
+            .iter()
+            .position(|g| g.flow == flow::MINIGAME_HORSEBACK_ARCHERY);
+        let (gifts, at) = (checks(), at.unwrap());
+        let heart = |item: &str| clashes(&gifts[at], item);
+        assert!(heart(item::QUIVER_MEDIUM));
+        assert!(!heart(GIFTS[at].item) && !heart(item::HOOKSHOT));
+        let chest = check(String::new(), "Area", 1, "Obj_TBox_A_02".into(), "Item_A");
+        assert!(!clashes(&chest, item::QUIVER_MEDIUM));
     }
 
     #[test]

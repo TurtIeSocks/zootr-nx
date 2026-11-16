@@ -262,21 +262,24 @@ fn asks(item: &str, progressive: bool) -> bool {
     ammo::swap(item).is_some() || progressive && progressive::in_line(item)
 }
 
-/// Whether `check` may hold `item`: a gift can't hold one that asks.
+/// Whether `check` may hold `item`: a gift can't hold one that asks, or
+/// one that [`gifts::clashes`].
 pub(crate) fn allowed(check: &ItemCheck, item: &str, progressive: bool) -> bool {
-    !gifts::is_gift(check) || !asks(item, progressive)
+    !gifts::is_gift(check) || !asks(item, progressive) && !gifts::clashes(check, item)
 }
 
-/// Trade each gift's item that asks for the next chest's (wrapping) that
-/// doesn't.
+/// Trade each gift's item it may not hold for the next chest's (wrapping)
+/// that it may.
 fn trade(dealt: &mut [Placement], progressive: bool) -> Result<()> {
     let n = dealt.len();
     let stuck = |p: &Placement| gifts::is_gift(p.check) || asks(p.item, progressive);
     for g in 0..n {
-        if !gifts::is_gift(dealt[g].check) || !asks(dealt[g].item, progressive) {
+        let gift = dealt[g].check;
+        if !gifts::is_gift(gift) || allowed(gift, dealt[g].item, progressive) {
             continue;
         }
-        let to = (1..n).map(|k| (g + k) % n).find(|&j| !stuck(&dealt[j]));
+        let fits = |j: &usize| !stuck(&dealt[*j]) && allowed(gift, dealt[*j].item, progressive);
+        let to = (1..n).map(|k| (g + k) % n).find(fits);
         let to = to.context("no chest left for a gift's item")?;
         let item = dealt[g].item;
         dealt[g].item = dealt[to].item;
