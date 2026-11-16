@@ -3,14 +3,14 @@
 //! the cows' Bools.
 
 use anyhow::{Context, Result};
-use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_path};
+use ounce_formats::{ActorPack, Byml, BymlDoc, ModBuilder, Romfs, pack_path};
 
 use super::{Cow, EVENT_NAME, PLAIN, REPLACE, event_of};
 use crate::checks::GYAML;
 use crate::known::field;
 use crate::rsdb::Events;
 use crate::standins::{
-    COMPONENTS, TABLE, Tables, actor_path, component, components, doc, path_of, raw, reference,
+    TABLE, Tables, actor_path, component, doc, path_of, raw, with_ref, write_clone,
 };
 
 /// Placement fields, as `HASH.PATH=VALUE`: every placement of a plain cow
@@ -110,25 +110,5 @@ fn clone(
         (new_table, doc(table, &table_doc), template_table),
         (new_replace, doc(replace, &replace_doc), template_replace),
     ];
-    let mut writer = template.writer();
-    for (path, data, like) in files {
-        let data = data.to_binary();
-        let like_size = raw(template, &like)?.len();
-        builder.add_entry(&path, &like, like_size, data.len())?;
-        writer.add_file(path, data);
-    }
-    builder.add(
-        &format!("Pack/Actor/{name}.pack.zs"),
-        &writer.to_binary(),
-        &format!("Pack/Actor/{}.pack.zs", template.name),
-    )
-}
-
-/// `param` with its `Components` entry `key` pointing at `path`.
-fn with_ref(param: &BymlMap, key: &str, path: &str) -> Result<BymlMap> {
-    let mut param = param.clone();
-    let mut refs = components(&param)?;
-    refs.insert(key.into(), reference(path));
-    param.insert(COMPONENTS.into(), Byml::Map(refs));
-    Ok(param)
+    write_clone(builder, template, &name, files)
 }

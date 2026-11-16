@@ -74,7 +74,7 @@ pub fn actors(root: &Byml) -> Result<&[Byml]> {
     }
 }
 
-fn actors_mut(root: &mut Byml) -> Result<&mut [Byml]> {
+pub(crate) fn actors_mut(root: &mut Byml) -> Result<&mut [Byml]> {
     match root.as_mut_map()?.get_mut("Actors") {
         Some(actors) => Ok(actors.as_mut_array()?),
         None => Ok(&mut []),

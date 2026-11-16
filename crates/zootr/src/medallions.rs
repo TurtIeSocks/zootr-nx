@@ -16,7 +16,7 @@ use ounce_formats::{
 use crate::known::{Name, field, item};
 use crate::sprites;
 use crate::standins::{self, ANIMATION, COMPONENTS, MODEL, Tables};
-use paint::Colour;
+pub(crate) use paint::Colour;
 
 /// The medallion every song's is copied from. Its name and a song's,
 /// a song medal's, are as long, so no offset in a copy moves.
@@ -69,11 +69,11 @@ const COLOURS: [(&Name, Colour); 12] = [
     (item::MELODY_LIGHT_PRELUDE, [255, 240, 120]),
 ];
 
-fn model_path(name: &str) -> String {
+pub(crate) fn model_path(name: &str) -> String {
     format!("Model/{name}.{name}.bfres.zs")
 }
 
-fn texture_path(name: &str, kind: &str) -> String {
+pub(crate) fn texture_path(name: &str, kind: &str) -> String {
     format!("Tex/Mt_{name}_{kind}.bntx.zs")
 }
 
@@ -233,7 +233,7 @@ fn rewrite_pack(
     builder.write(&ounce_formats::pack_file(&pack.name), &writer.to_binary())
 }
 
-fn colour(song: &str) -> Option<Colour> {
+pub(crate) fn colour(song: &str) -> Option<Colour> {
     COLOURS.iter().find(|(s, _)| *s == song).map(|(_, c)| *c)
 }
 

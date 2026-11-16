@@ -15,8 +15,15 @@ use crate::platform::{Folder, user_dir};
 pub const TITLE: u64 = 0x0400_4860_24DE_C000;
 /// The 1.1.0 update, the only one zootr reads.
 pub const UPDATE: u32 = 131072;
-/// What zootr reads, under the romfs root, besides the files of
-/// [`crate::medallions::FILES`].
+/// What zootr reads, under the romfs root, besides [`files`].
+/// The single files zootr reads, under the romfs root: what the custom
+/// models are made from.
+pub fn files() -> impl Iterator<Item = &'static str> {
+    crate::medallions::FILES
+        .into_iter()
+        .chain(crate::key_tints::FILES)
+}
+
 pub const SUBTREES: [&str; 9] = [
     "Banc",            // actor placement: chests, pots, freestanding items
     "GameData",        // save flag table
@@ -88,7 +95,7 @@ fn extract(path: &Path, cache: &Path) -> Result<PathBuf> {
     let _lock = EXTRACTING.lock().unwrap_or_else(|e| e.into_inner());
     let missing: Vec<&str> = SUBTREES
         .into_iter()
-        .chain(crate::medallions::FILES)
+        .chain(files())
         .filter(|sub| !out.join(sub).exists())
         .collect();
     if missing.is_empty() {
@@ -245,7 +252,7 @@ mod tests {
         let mut update: Vec<(String, &[u8])> = SUBTREES
             .iter()
             .map(|s| (format!("romfs/{s}/new.bin"), &b"update"[..]))
-            .chain(crate::medallions::FILES.map(|f| (format!("romfs/{f}"), &b"file"[..])))
+            .chain(files().map(|f| (format!("romfs/{f}"), &b"file"[..])))
             .collect();
         update.push(("romfs/Movie/skip.bin".into(), b"not read"));
         let update: Vec<(&str, &[u8])> = update.iter().map(|(p, d)| (p.as_str(), *d)).collect();
@@ -280,7 +287,7 @@ mod tests {
         for sub in SUBTREES {
             assert_eq!(fs::read(out.join(sub).join("new.bin")).unwrap(), b"update");
         }
-        for file in crate::medallions::FILES {
+        for file in files() {
             assert_eq!(fs::read(out.join(file)).unwrap(), b"file");
         }
         assert!(!out.join("Banc/old.Product.100.bin").exists());
