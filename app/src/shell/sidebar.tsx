@@ -235,7 +235,7 @@ export function Sidebar() {
     <aside className="flex min-h-0 flex-col border-line border-r bg-sidebar">
       <div
         data-tauri-drag-region
-        className="flex h-(--titlebar) shrink-0 items-center pr-3 pl-[76px]"
+        className="flex h-(--titlebar) shrink-0 items-center justify-end px-4"
       >
         <span data-tauri-drag-region className="type-display-sm text-ink">
           zootr<span className="text-primary-ink">-nx</span>
