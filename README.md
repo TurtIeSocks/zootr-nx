@@ -61,6 +61,14 @@ dump if you turn that on.
 
 ![The item tracker](assets/item-tracker.png)
 
+## Check off as you go
+
+The checks list reads the running game and ticks each check off as Link
+gets it, with nothing to click. What a check holds stays hidden until
+then.
+
+![The checks list, by area](assets/checks.png)
+
 ## Edit a save
 
 The Save Editor changes a save you already have. Click an item to step it

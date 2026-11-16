@@ -51,7 +51,10 @@ The builds aren't signed yet, so macOS and Windows warn the first time:
 
 ### Checks
 
-- Every check in the installed seed, by area, ticked off as Link opens it.
+- Every check in the installed seed, by area. It reads the running game
+  and ticks each one off as Link gets it, by itself.
+- What a check holds shows as hidden until Link gets it. A check marked
+  untracked has no flag zootr knows, so it never ticks.
 - Filter to every check, those not done, or those you've marked.
 - Rename a check, add a note to it, or set it aside as skipped.
 
