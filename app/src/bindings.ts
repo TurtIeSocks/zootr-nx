@@ -623,6 +623,11 @@ export type SlotRow = {
 	/**  The three stones and six medallions, each held or not. */
 	stones: Cell[],
 	medallions: Cell[],
+	/**  Songs learned. */
+	songs: number,
+	/**  Gold Skulltula tokens. */
+	skulltulas: number | null,
+	rupees: number | null,
 	/**  Why the save couldn't be read, leaving the summary out. */
 	error: string | null,
 };

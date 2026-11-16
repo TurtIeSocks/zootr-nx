@@ -8,9 +8,9 @@ use ounce_formats::{Save, murmur3};
 use serde::Serialize;
 
 use super::stamp;
-use super::status::MAX_LIFE;
+use super::status::{MAX_LIFE, RUPEES};
 use crate::inventory::{Cell, Inventory, Section, in_save};
-use crate::known::flag;
+use crate::known::{flag, item};
 use crate::savefile;
 
 /// One slot holding a save.
@@ -28,6 +28,11 @@ pub struct SlotRow {
     /// The three stones and six medallions, each held or not.
     pub stones: Vec<Cell>,
     pub medallions: Vec<Cell>,
+    /// Songs learned.
+    pub songs: u8,
+    /// Gold Skulltula tokens.
+    pub skulltulas: Option<i32>,
+    pub rupees: Option<i32>,
     /// Why the save couldn't be read, leaving the summary out.
     pub error: Option<String>,
 }
@@ -54,6 +59,9 @@ fn row(inv: &Inventory, dir: &Path, slot: u8) -> SlotRow {
         child: None,
         stones: Vec::new(),
         medallions: Vec::new(),
+        songs: 0,
+        skulltulas: None,
+        rupees: None,
         error: None,
     };
     match savefile::load(&path) {
@@ -66,6 +74,7 @@ fn row(inv: &Inventory, dir: &Path, slot: u8) -> SlotRow {
 fn summarise(row: &mut SlotRow, inv: &Inventory, save: &Save) {
     let scalar = |h| save.get(h).and_then(|e| save.scalar(e));
     row.max_life = scalar(MAX_LIFE).map(|v| v as i32);
+    row.rupees = scalar(RUPEES).map(|v| v as i32);
     row.child = scalar(murmur3(flag::SEQUENCE_IS_CHILDHOOD.as_bytes())).map(|v| v != 0);
     let mut inv = inv.clone();
     inv.load(in_save(save));
@@ -79,6 +88,12 @@ fn summarise(row: &mut SlotRow, inv: &Inventory, save: &Save) {
     };
     row.stones = of(Section::Stones);
     row.medallions = of(Section::Medallions);
+    row.songs = (cells.iter())
+        .filter(|c| c.section == Section::Songs && c.tier > 0)
+        .count() as u8;
+    row.skulltulas = (cells.iter())
+        .find(|c| c.icon == item::TOKEN_GOLD.get())
+        .and_then(|c| c.count);
 }
 
 #[cfg(test)]
@@ -91,7 +106,8 @@ mod tests {
         for (slot, life) in [(0u8, 12u32), (2, 28)] {
             let path = savefile::slot_file(&dir, slot);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            std::fs::write(&path, Save::fixture(&[(0, 2), (MAX_LIFE, life)])).unwrap();
+            let save = Save::fixture(&[(0, 2), (MAX_LIFE, life), (RUPEES, 99)]);
+            std::fs::write(&path, save).unwrap();
             std::thread::sleep(std::time::Duration::from_millis(20));
         }
         let broken = savefile::slot_file(&dir, 5);
@@ -104,6 +120,7 @@ mod tests {
         assert!(rows[0].continues && !rows[1].continues);
         assert!(rows[0].error.is_some());
         assert_eq!(rows[1].max_life, Some(28));
+        assert_eq!(rows[1].rupees, Some(99));
         std::fs::remove_dir_all(dir).unwrap();
     }
 }

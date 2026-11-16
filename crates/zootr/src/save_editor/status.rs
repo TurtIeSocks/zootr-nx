@@ -20,7 +20,7 @@ const MP: u32 = 0x76b18200;
 /// The size of Link's magic meter.
 const MP_MAX: u32 = 0x12d63a97;
 /// Link's rupees.
-const RUPEES: u32 = 0xa77921d7;
+pub(crate) const RUPEES: u32 = 0xa77921d7;
 /// The sword Link has out, an actor name.
 const SWORD: u32 = 0xa95a3521;
 /// The shield Link carries.

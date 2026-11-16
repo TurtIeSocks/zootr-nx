@@ -120,6 +120,15 @@ function SlotButton({ row, picked, onPick }: SlotButtonProps) {
           {row.child !== null && <span>{row.child ? "Child" : "Adult"}</span>}
           <Gems cells={row.stones} />
           <Gems cells={row.medallions} />
+          <span className="text-ink-muted">{count(row.songs, "song")}</span>
+          {row.skulltulas !== null && (
+            <span className="text-ink-muted">
+              {count(row.skulltulas, "skulltula")}
+            </span>
+          )}
+          {row.rupees !== null && (
+            <span className="text-ink-muted">{count(row.rupees, "rupee")}</span>
+          )}
         </span>
       )}
       {row.continues && <Badge variant="info">Continue</Badge>}

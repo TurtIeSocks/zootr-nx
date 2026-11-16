@@ -33,6 +33,9 @@ const row = (slot: number, stamp: number, more: Partial<SlotRow> = {}) => ({
   child: true,
   stones: [],
   medallions: [],
+  songs: 3,
+  skulltulas: 12,
+  rupees: 99,
   error: null,
   ...more,
 });
@@ -174,6 +177,9 @@ test("picks the newest slot and marks the one Continue loads", async () => {
   const slot2 = screen.getByRole("radio", { name: /Slot 2/ });
   expect(slot2.getAttribute("aria-checked")).toBe("true");
   expect(slot2.textContent).toContain("3 hearts");
+  expect(slot2.textContent).toContain("3 songs");
+  expect(slot2.textContent).toContain("12 skulltulas");
+  expect(slot2.textContent).toContain("99 rupees");
   expect(slot2.textContent).toContain("Continue");
 });
 
