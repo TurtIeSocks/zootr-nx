@@ -365,7 +365,8 @@ pub fn of(check: &ItemCheck) -> Option<&'static Gift> {
     GIFTS.iter().find(|g| g.hash() == check.hash)
 }
 
-/// Whether `check` is a gift that gives a line's level by what Link owns.
+/// Whether `check` is a gift that gives ammo or a line's level by what Link
+/// owns.
 pub(crate) fn by_level(check: &ItemCheck) -> bool {
     of(check).is_some_and(levels::chained)
 }

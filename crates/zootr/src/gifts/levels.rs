@@ -1,11 +1,13 @@
 //! A gift dealt a level of a progressive line gives the level Link needs,
-//! as the hook does for a chest. Each grant of the item gets a chain of
-//! pouch questions in front, highest level first: the game's own way of
+//! as the hook does for a chest, and one dealt ammo gives it only once Link
+//! has what fires it, as the chest swap does. Each grant of the item gets a
+//! chain of pouch questions in front, highest first: the game's own way of
 //! picking the archery quiver.
 
 use super::*;
 use crate::flows::Model;
-use crate::progressive;
+use crate::known::Name;
+use crate::{ammo, progressive};
 
 /// The pouch question every chain asks, as the archery flow asks it.
 pub(super) fn model(flows: &Flows) -> Result<Model> {
@@ -22,23 +24,43 @@ pub(super) fn chained(gift: &Gift) -> bool {
     !gift.is_sale()
 }
 
-/// Whether `gift`, dealt `item`, needs a chain: a level of a line, with
-/// progressive items on, unless the game already picks its level.
+/// Whether `gift`, dealt `item`, needs a chain: ammo, or a level of a line
+/// with progressive items on, unless the game already picks its level.
 pub(super) fn needs(gift: &Gift, item: &str, progressive: bool) -> bool {
     let picks = item == gift.item.get() && picked(item).is_some();
-    progressive && chained(gift) && progressive::in_line(item) && !picks
+    let level = progressive && progressive::in_line(item) && !picks;
+    chained(gift) && (level || ammo::swap(item).is_some())
+}
+
+/// What `item` gives by what Link owns, lowest first, each a drop and the
+/// pouch name owning it means, with how many steps past the highest owned a
+/// grant gives. A line's level gives the next level. Ammo steps from
+/// [`ammo::WITHOUT`] to itself, once per level of what fires it, and gives
+/// the highest step.
+fn ladder(item: &str) -> Option<(Vec<(&'static Name, &'static Name)>, usize)> {
+    let Some(&(ammo, fires)) = ammo::NEEDS.iter().find(|(a, _)| *a == item) else {
+        return progressive::line(item).map(|l| (l.to_vec(), 1));
+    };
+    let fired = progressive::line(fires).map_or(vec![(fires, fires)], <[_]>::to_vec);
+    let steps = fired.into_iter().map(|(_, pouch)| (ammo, pouch));
+    Some((
+        std::iter::once((ammo::WITHOUT, ammo::WITHOUT))
+            .chain(steps)
+            .collect(),
+        0,
+    ))
 }
 
 /// Put a chain in front of each event of `flow` granting or showing `item`,
-/// a level of a line. A grant gives the level after the highest one Link
-/// owns, the top once he owns it. A get window, shown after its own grant,
-/// names the highest level he owns.
+/// ammo or a level of a line. A grant of a level gives the one after the
+/// highest Link owns, the top once he owns it. A grant of ammo, and a get
+/// window shown after its own grant, name the highest step he owns.
 pub(super) fn by_level(flow: &mut Flowchart, model: &Model, item: &str) -> Result<()> {
-    let line = progressive::line(item).with_context(|| format!("{item} is in no line"))?;
+    let (ladder, next) = ladder(item).with_context(|| format!("{item} gives by nothing"))?;
     let named = events(flow, item);
     ensure!(!named.is_empty(), "{} never grants {item}", flow.name);
     for (at, after) in named {
-        chain(flow, model, line, at, after, item)?;
+        chain(flow, model, &ladder, at, after.min(next), item)?;
     }
     Ok(())
 }
@@ -154,26 +176,55 @@ mod tests {
         Some(gifts.into_iter().map(written).collect())
     }
 
-    #[test]
-    fn a_gift_of_each_kind_gives_the_hookshot_or_the_longshot_by_the_pouch() {
-        let kinds = |g: &Gift| match g.how {
+    /// One gift of each `How` that chains.
+    fn kinds(g: &Gift) -> bool {
+        match g.how {
             How::Calls { .. } => g.giver == "King Zora",
             How::Sale { .. } => false,
             _ => true,
-        };
-        let Some(dealt) = dealt(kinds, item::HOOKSHOT) else {
+        }
+    }
+
+    /// Each of [`kinds`] dealt `item` asks the pouch for `asks` and can
+    /// give `gives`.
+    fn asks_then_gives(item: &str, asks: &str, gives: &str) {
+        let Some(dealt) = dealt(kinds, item) else {
             return;
         };
-        let asks = format!("Actor=\"{}\"", item::HOOKSHOT);
+        let asks = format!("Actor=\"{asks}\"");
         for (gift, flow) in dealt {
             let flow = flows::render(&flow);
-            assert!(flow.contains(&*asks), "{} never asks for it", gift.giver);
-            assert!(
-                flow.contains(&**item::LONGSHOT),
-                "{} never gives the Longshot",
-                gift.giver
-            );
+            assert!(flow.contains(&*asks), "{} never asks {asks}", gift.giver);
+            assert!(flow.contains(gives), "{} never gives {gives}", gift.giver);
         }
+    }
+
+    #[test]
+    fn a_gift_of_each_kind_gives_the_hookshot_or_the_longshot_by_the_pouch() {
+        asks_then_gives(item::HOOKSHOT, item::HOOKSHOT, item::LONGSHOT);
+    }
+
+    #[test]
+    fn a_gift_of_each_kind_dealt_arrows_gives_a_red_rupee_without_the_bow() {
+        let arrows = crate::known::actor::T_BOX_ARROW_BUNDLE_SMALL;
+        asks_then_gives(arrows, crate::known::actor::WEAPON_RANGE_BOW, ammo::WITHOUT);
+    }
+
+    #[test]
+    fn ammo_steps_from_the_rupee_through_every_level_that_fires_it() {
+        let (bombs, next) = ladder(item::BOMB_BUNDLE_SMALL).unwrap();
+        let pouches: Vec<&str> = bombs.iter().map(|(_, p)| p.get()).collect();
+        let bags = [
+            item::BOMB_BAG_SMALL,
+            item::BOMB_BAG_MEDIUM,
+            item::BOMB_BAG_LARGE,
+        ];
+        assert_eq!(pouches[1..], bags.map(|b| b.get()));
+        assert_eq!(
+            (bombs[0].0, bombs[1].0, next),
+            (ammo::WITHOUT, item::BOMB_BUNDLE_SMALL, 0)
+        );
+        assert_eq!(ladder(item::HOOKSHOT).unwrap().1, 1);
     }
 
     #[test]
