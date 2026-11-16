@@ -41,6 +41,10 @@ pub enum Probe {
         /// Instead, every BoolExp whose name or expression contains `key`.
         #[arg(long)]
         exps: bool,
+        /// Instead, every Struct with a member named `key`, and the entry
+        /// that member points at.
+        #[arg(long)]
+        member: bool,
     },
     /// An actor pack's files, or the files whose names contain `file`.
     Pack { actor: String, file: Option<String> },
@@ -209,7 +213,12 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
     match probe {
         Probe::Actors(filter) => print_actors(romfs, &filter),
         Probe::Tools(filter) => tools(romfs, &filter),
-        Probe::Data { key, holders, exps } => data(romfs, &key, holders, exps),
+        Probe::Data {
+            key,
+            holders,
+            exps,
+            member,
+        } => data(romfs, &key, holders, exps, member),
         Probe::Pack { actor, file } => pack(romfs, &actor, file.as_deref()),
         Probe::Hash { text } => {
             text.iter().for_each(|t| {
@@ -338,7 +347,7 @@ fn print_actors(romfs: &Romfs, f: &Filter) -> Result<()> {
     Ok(())
 }
 
-fn data(romfs: &Romfs, key: &str, holders: bool, exps: bool) -> Result<()> {
+fn data(romfs: &Romfs, key: &str, holders: bool, exps: bool, member: bool) -> Result<()> {
     if exps {
         let survey = crate::flags::Survey::load(romfs, &crate::events::Flows::load(romfs)?)?;
         let gd = &survey.gamedata;
@@ -356,10 +365,11 @@ fn data(romfs: &Romfs, key: &str, holders: bool, exps: bool) -> Result<()> {
         Ok(h) if key.len() <= 9 && gd.entry(h).is_some() => h,
         _ => murmur3(key.as_bytes()),
     };
-    if holders {
+    if holders || member {
         for s in gd.of_kind("Struct") {
-            for (member, _) in gd.members(s)?.into_iter().filter(|&(_, v)| v == hash) {
-                println!("{} member {}", gd.name(s), gd.name(member));
+            let members = gd.members(s)?.into_iter();
+            for (m, v) in members.filter(|&(m, v)| if member { m == hash } else { v == hash }) {
+                println!("{} member {} -> {}", gd.name(s), gd.name(m), gd.name(v));
             }
         }
         return Ok(());
