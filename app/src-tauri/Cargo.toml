@@ -1,6 +1,6 @@
 [package]
 name = "zootr-app"
-version = "0.1.0"
+version = "0.2.0"
 description = "The zootr desktop app, which is also the CLI"
 edition.workspace = true
 license.workspace = true

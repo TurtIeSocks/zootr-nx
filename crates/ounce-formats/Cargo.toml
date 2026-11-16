@@ -1,6 +1,6 @@
 [package]
 name = "ounce-formats"
-version = "0.1.0"
+version = "0.2.0"
 description = "Readers and writers for the Ounce engine's romfs formats (zstd dictionaries, BYML, SARC, RESTBL)"
 edition.workspace = true
 license.workspace = true

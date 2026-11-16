@@ -1,6 +1,6 @@
 [package]
 name = "zootr-hook"
-version = "0.1.0"
+version = "0.2.0"
 description = "Code that runs inside the game, delivered by the randomizer"
 edition.workspace = true
 license.workspace = true
