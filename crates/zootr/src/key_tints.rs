@@ -128,20 +128,38 @@ pub fn boss(n: usize) -> String {
     BOSS_LOOK.name(n)
 }
 
-/// What the hook sets as each copy is found: with `bosses` a boss key's
-/// flag, and with `rings` a ring's counter, full.
-pub fn credits(bosses: bool, rings: bool) -> Vec<(String, Credit)> {
-    let hash = |name: String| murmur3(name.as_bytes());
+/// What a copy sets as it's found: a Bool true, or an Int to a value.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Sets {
+    Bool(String),
+    Int(String, i32),
+}
+
+/// What each copy sets as it's found: with `bosses` a boss key's flag, and
+/// with `rings` a ring's counter, full.
+pub fn sets(bosses: bool, rings: bool) -> Vec<(String, Sets)> {
     let mut out = Vec::new();
     for (i, (dungeon, small, room)) in DUNGEONS.iter().enumerate() {
         if bosses && room.is_some() {
-            out.push((boss(i + 1), Credit::Bool(hash(boss_flag(dungeon)))));
+            out.push((boss(i + 1), Sets::Bool(boss_flag(dungeon))));
         }
         if rings {
-            out.push((ring(i + 1), Credit::Int(hash(small_flag(dungeon)), *small)));
+            out.push((ring(i + 1), Sets::Int(small_flag(dungeon), *small)));
         }
     }
     out
+}
+
+/// [`sets`] as the hook's table names it.
+pub fn credits(bosses: bool, rings: bool) -> Vec<(String, Credit)> {
+    let hash = |name: &str| murmur3(name.as_bytes());
+    let credit = |s: Sets| match s {
+        Sets::Bool(name) => Credit::Bool(hash(&name)),
+        Sets::Int(name, value) => Credit::Int(hash(&name), value),
+    };
+    (sets(bosses, rings).into_iter())
+        .map(|(item, s)| (item, credit(s)))
+        .collect()
 }
 
 /// Writes each dungeon's model and actor copies, the boss key's only with

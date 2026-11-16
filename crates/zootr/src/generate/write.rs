@@ -13,9 +13,9 @@ use crate::flows::Rewrites;
 use crate::hints::Hint;
 use crate::settings::{ChestSize, DungeonKeys, NewGame};
 use crate::{
-    bombchus, bombs, bridge, cows, cutscenes, dampe, dig, door, flags, fortress, gamedata, gerudo,
-    gifts, hints, key_tints, keys, medallions, navi, patch, pickups, presets, rsdb, scrubs, shops,
-    spawn, standins, starting, steps, text,
+    bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, fortress,
+    gamedata, gerudo, gifts, hints, key_tints, keys, medallions, navi, patch, pickups, presets,
+    rsdb, scrubs, shops, spawn, standins, starting, steps, text,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -52,6 +52,7 @@ pub(super) fn flows(
         spawn::warp(romfs, &mut rewrites, spawn)?;
     }
     gifts::give_all(romfs, all, &mut rewrites, drops, new_game.progressive)?;
+    levels(romfs, drops, new_game)?.give(romfs, all, &mut rewrites)?;
     dampe::give(romfs, &mut rewrites, drops)?;
     gerudo::stand_down(romfs, &mut rewrites, drops)?;
     if new_game.scrubs {
@@ -146,13 +147,12 @@ pub fn write_mod(
     // Before the stand-ins, which copy a song's model as it's shown.
     let items = drops.values().map(|d| d.item.as_str());
     medallions::write(romfs, &mut builder, &mut tables, items)?;
-    // A boss key copy is credited by the hook, so without it the boss key
-    // stays as it is. Key rings deal them, and bring the hook along.
     let flags = hook_flags(new_game);
-    let rings = new_game.keys == DungeonKeys::Rings;
-    let bosses = rings || patch::hooked(new_game.progressive, new_game.dev_panel, flags);
+    let (bosses, rings) = key_copies(new_game);
     key_tints::write(romfs, &mut builder, &mut tables, bosses, rings)?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
+    let levels = levels(romfs, drops, new_game)?;
+    levels.events(&mut events)?;
     events.write(&mut builder)?;
     if new_game.shop_slots > 0 {
         let slots = shops::slots(romfs)?;
@@ -189,6 +189,7 @@ pub fn write_mod(
         false => &[],
     };
     let (mut found, mut actors) = (HashSet::new(), 0);
+    let mut chest_events = HashMap::new();
     for rel in checks::banc_files(romfs)? {
         let mut doc = checks::load_banc(romfs, &rel)?;
         let mut changed = checks::set_fields(&mut doc.root, &fields)?;
@@ -201,7 +202,9 @@ pub fn write_mod(
         let shrunk =
             new_game.chest_size == ChestSize::Small && checks::shrink_chests(&mut doc.root)? > 0;
         let tinted = key_tints::swap(&rel, &mut doc.root, bosses)? > 0;
-        if shrunk || tinted || !changed.is_empty() {
+        // After shrinking: a shrunk chest runs the small chest's flow.
+        let levelled = levels.name(romfs, &mut doc.root, &mut chest_events)? > 0;
+        if shrunk || tinted || levelled || !changed.is_empty() {
             builder.write(&rel, &doc.to_binary())?;
             actors += changed.len();
             found.extend(changed);
@@ -237,6 +240,31 @@ pub fn write_mod(
         actors,
         files,
     })
+}
+
+/// Whether a seed deals boss key copies, and key rings. A copy found in a
+/// chest that runs a scene of its own is credited by the hook, so without
+/// it the boss key stays as it is. Key rings deal them, and bring the hook
+/// along.
+fn key_copies(new_game: &NewGame) -> (bool, bool) {
+    let rings = new_game.keys == DungeonKeys::Rings;
+    let hooked = patch::hooked(
+        new_game.progressive,
+        new_game.dev_panel,
+        hook_flags(new_game),
+    );
+    (rings || hooked, rings)
+}
+
+/// The items `drops` give through a chest's own copy of its event.
+fn levels(
+    romfs: &Romfs,
+    drops: &HashMap<u64, Drop>,
+    new_game: &NewGame,
+) -> Result<chest_levels::Levels> {
+    let (bosses, rings) = key_copies(new_game);
+    let credits = key_tints::sets(bosses, rings);
+    chest_levels::Levels::new(romfs, drops, new_game.progressive, credits)
 }
 
 /// The settings the hook acts on, as the table's flag bits.

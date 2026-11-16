@@ -18,6 +18,7 @@ mod bombchus;
 mod bombs;
 mod bridge;
 mod checks;
+mod chest_levels;
 pub mod config;
 mod cows;
 mod cut;
