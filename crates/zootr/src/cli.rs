@@ -36,8 +36,14 @@ pub use seed::shuffle_command;
 
 pub fn run() -> Result<()> {
     let cli = Cli::parse();
-    if let Command::Turn { to, note, force } = cli.command {
-        return turn(to, note, force);
+    if let Command::Turn {
+        to,
+        note,
+        session,
+        force,
+    } = cli.command
+    {
+        return turn(to, note, session, force);
     }
     if let Command::Target(cmd) = cli.command {
         return target_command(cmd);
