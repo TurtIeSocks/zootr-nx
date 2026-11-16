@@ -13,7 +13,8 @@
 //! A map's chests are all made as it loads, so three more keep a second
 //! chest of a line in step: `map_loaded` empties the chest list,
 //! `chest_made` fills it, and `granted` recreates each closed chest's
-//! content as the level it now gives.
+//! content as the level it now gives. Every holder's grant passes through
+//! `granted`, so it also credits key copies, wherever Link finds them.
 //!
 //! A seed with the Bunny Hood setting takes the run's speed request too:
 //! `run_speed` makes it half again as fast while Link wears the hood.

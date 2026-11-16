@@ -326,7 +326,8 @@ mod tests {
                 if !keys::is_shuffled(p.item) {
                     continue;
                 }
-                assert!(p.check.holder.starts_with("Obj_TBox_"), "{}", p.item);
+                let chest = p.check.holder.starts_with("Obj_TBox_");
+                assert!(chest || gifts::of(p.check).is_some(), "{}", p.item);
                 let ring = (1..=keys::DUNGEONS.len()).find(|&n| key_tints::ring(n) == p.item);
                 if let Some(n) = ring {
                     assert_ne!(keys::dungeon_of(&p.check.file), Some(n), "{}", p.item);

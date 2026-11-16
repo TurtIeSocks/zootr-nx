@@ -273,13 +273,15 @@ fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
 }
 
 /// Whether `check` may hold `item`: a gift can't hold one that asks, or
-/// one that [`gifts::clashes`], and only a plain chest holds a ring or boss
-/// key copy, which the hook credits as it opens.
+/// one that [`gifts::clashes`]. A key copy goes in a plain chest or an
+/// NPC's gift, whose grants are proven to credit it as Link gets it. Shops,
+/// scrubs, cows, pickups and prize chests wait on their own proof (stage 1
+/// of the every-item-everywhere spec).
 pub(crate) fn allowed(check: &ItemCheck, item: &str, progressive: bool) -> bool {
     let gift = gifts::is_gift(check);
     let fits = !gift || !asks_at(check, item, progressive) && !gifts::clashes(check, item);
     let chest = !gift && check.holder.starts_with("Obj_TBox_");
-    fits && (chest || !keys::is_shuffled(item))
+    fits && (chest || gifts::of(check).is_some() || !keys::is_shuffled(item))
 }
 
 /// Trade each gift's item it may not hold for the next chest's (wrapping)
@@ -480,14 +482,19 @@ mod tests {
     }
 
     #[test]
-    fn rings_and_boss_keys_only_go_in_plain_chests() {
+    fn key_copies_go_in_chests_and_npc_gifts() {
         needs_names!();
         let ring = crate::key_tints::ring(1);
         let pot = ItemCheck {
             holder: "Obj_P".into(),
             ..chest(1, "Item_A")
         };
+        let saria = ItemCheck {
+            hash: gifts::GIFTS[0].hash(),
+            ..chest(1, "Item_A")
+        };
         assert!(allowed(&chest(1, "Item_A"), &ring, false));
+        assert!(allowed(&saria, &ring, false));
         assert!(!allowed(&pot, &ring, false));
         assert!(allowed(&pot, "Item_A", false));
     }
