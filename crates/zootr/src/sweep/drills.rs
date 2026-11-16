@@ -171,7 +171,8 @@ pub fn matched<'a>(drills: &[&'a Drill], planned: &[Planned]) -> Result<Vec<(&'a
 
 impl<I: Input, J: Judge> Night<'_, I, J> {
     /// Each of `drills`, `repeat` times over, through the sweep's own setup,
-    /// walk, use and judge. Each run's rows go to [`ROWS`], tagged with the
+    /// walk, use and judge, from the side and age earlier runs found, as the
+    /// sweep goes again. Each run's rows go to [`ROWS`], tagged with the
     /// drill and its skill.
     pub fn ladder(&mut self, drills: &[&Drill], repeat: usize) -> Result<()> {
         std::fs::create_dir_all(&self.dir)?;
@@ -193,10 +194,18 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
                 shots: &shots,
                 rows: &rows,
             };
+            // What earlier runs taught: the side a drill gave its item from,
+            // else its least missed one, as the sweep goes again.
+            let mut known = night::Known::default();
+            night::learn(
+                &mut known,
+                &std::fs::read_to_string(&rows).unwrap_or_default(),
+            );
             for (d, p) in &drills {
                 eprintln!("run {run}: {}", d.name);
                 let tag = json!({"drill": d.name, "skill": d.skill});
-                self.attempt(&mut live, &at, p, p, d.name.to_owned(), &tag)?;
+                let first = night::at_known(p, &known);
+                self.attempt(&mut live, &at, p, &first, d.name.to_owned(), &tag)?;
             }
         }
         Ok(())
