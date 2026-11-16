@@ -216,6 +216,11 @@ has these fields:
 | `bridge` | Optional. A control socket the app opens for zootr: a socket path on macOS and Linux, a pipe name on Windows. The tracker, Live log and dev panel read the game through it, and the game counts as running while it answers |
 | `env` | Optional. `NAME=VALUE` lines set when Play starts the app. `{bridge}` becomes the socket |
 
+Some apps apply the code patch only when they build the game, not each
+time it starts. With one of those, rebuild the game in that app after
+installing a seed from a new version of zootr. Seeds from the same version
+share one patch, so a new seed on its own needs no rebuild.
+
 In a settings line, `{romfs}` becomes the mod's romfs folder, `{cheats}` its
 cheat folder and `{control}` the target's control file. Install replaces
 lines with the same key and keeps the rest of the file.
