@@ -38,9 +38,8 @@ export interface TileProps {
   onAnimationEnd?: () => void;
 }
 
-/** One item: the dump's icon, a pulse while those build, or zootr-nx's
- * own when game assets are off or the icon won't load. Grey while
- * missing, and fainter still where a dungeon has none. */
+/** One item's {@link ItemIcon}, grey while missing, and fainter still
+ * where a dungeon has none. */
 export function Tile({
   cell,
   size,
@@ -49,8 +48,6 @@ export function Tile({
   className,
   onAnimationEnd,
 }: TileProps) {
-  const [art] = useItems.usePath("art");
-  const [broken, setBroken] = useState(false);
   const absent = cell.tiers === 0;
   const missing = cell.tier === 0;
   const tier = cell.section === "Upgrades" && cell.tiers > 1 && !missing;
@@ -73,25 +70,43 @@ export function Tile({
       style={{ width: size, height: size }}
       onAnimationEnd={onAnimationEnd}
     >
-      {art === "building" ? (
-        <span className="size-full animate-pulse rounded-sm bg-white/15" />
-      ) : art === "game" && !broken ? (
-        <img
-          src={iconUrl(cell.icon)}
-          alt=""
-          draggable={false}
-          className="size-full object-contain"
-          onError={() => setBroken(true)}
-        />
-      ) : (
-        <FallbackIcon glyph={cell.glyph} ink={ink} />
-      )}
+      <ItemIcon icon={cell.icon} glyph={cell.glyph} ink={ink} />
       {!noCount && cell.count !== null && !missing && (
         <span className={BADGE}>{cell.count}</span>
       )}
       {tier && <Tier cell={cell} />}
     </div>
   );
+}
+
+/** Props for {@link ItemIcon}. */
+interface ItemIconProps {
+  /** The dump's name for it. */
+  icon: string;
+  glyph: Glyph;
+  ink: string;
+}
+
+/** The dump's icon, a pulse while those build, or zootr-nx's own when
+ * game assets are off or the icon won't load. Fills its parent. */
+export function ItemIcon({ icon, glyph, ink }: ItemIconProps) {
+  const [art] = useItems.usePath("art");
+  const [broken, setBroken] = useState(false);
+  if (art === "building") {
+    return <span className="size-full animate-pulse rounded-sm bg-white/15" />;
+  }
+  if (art === "game" && !broken) {
+    return (
+      <img
+        src={iconUrl(icon)}
+        alt=""
+        draggable={false}
+        className="size-full object-contain"
+        onError={() => setBroken(true)}
+      />
+    );
+  }
+  return <FallbackIcon glyph={glyph} ink={ink} />;
 }
 
 /** zootr-nx's own icon for a cell, in the grid's ink, so a missing item's

@@ -17,7 +17,7 @@ const ICONS: &str = "UI/Tex/Icon/";
 /// Holds what `ICONS` lacks: the songbook and file select art.
 pub(crate) const LAYOUT: &str = "UI/Layout2Archive/Common.Product.100.Nin_Ounce_NVN2.bntx.zs";
 /// Layout textures and the grid icon each one is, matched by eye.
-const RENAMES: [(&Name, &Name); 22] = [
+const RENAMES: [(&Name, &Name); 23] = [
     (field::OCARINA_MELODY_ICON_00, item::MELODY_ZELDA_LULLABY),
     (field::OCARINA_MELODY_ICON_01, item::MELODY_EPONA_SONG),
     (field::OCARINA_MELODY_ICON_02, item::MELODY_SARIA_SONG),
@@ -40,6 +40,7 @@ const RENAMES: [(&Name, &Name); 22] = [
     (field::DATA_FILE_IMPORTANT_ICON_07, item::MEDAL_SPIRIT),
     (field::DATA_FILE_IMPORTANT_ICON_08, item::MEDAL_SHADOW),
     (field::COLLECT_HEART_PIECE_00, actor::OBJ_HEART_PIECE),
+    (field::HEART_W_00_ASTC4X4, actor::OBJ_HEART_CONTAINER),
 ];
 
 /// Each song's songbook icon number, `NN` of `OcarinaMelodyIcon_NN`, and

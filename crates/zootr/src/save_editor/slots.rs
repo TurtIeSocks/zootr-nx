@@ -9,8 +9,8 @@ use serde::Serialize;
 
 use super::stamp;
 use super::status::{MAX_LIFE, RUPEES};
-use crate::inventory::{Cell, Inventory, Section, in_save};
-use crate::known::{flag, item};
+use crate::inventory::{Cell, Glyph, Inventory, Section, in_save};
+use crate::known::{Name, actor, flag, item};
 use crate::savefile;
 
 /// One slot holding a save.
@@ -22,20 +22,37 @@ pub struct SlotRow {
     pub stamp: u64,
     /// The slot Continue loads: the one written last.
     pub continues: bool,
-    /// Heart containers, in quarters.
-    pub max_life: Option<i32>,
     pub child: Option<bool>,
     /// The three stones and six medallions, each held or not.
     pub stones: Vec<Cell>,
     pub medallions: Vec<Cell>,
-    /// Songs learned.
-    pub songs: u8,
-    /// Gold Skulltula tokens.
-    pub skulltulas: Option<i32>,
-    pub rupees: Option<i32>,
+    /// Hearts, songs, Gold Skulltulas and rupees, each the save holds.
+    pub stats: Vec<Stat>,
     /// Why the save couldn't be read, leaving the summary out.
     pub error: Option<String>,
 }
+
+/// A number a row shows beside its icon.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct Stat {
+    pub label: String,
+    pub icon: String,
+    /// What it draws with game art off.
+    pub glyph: Glyph,
+    /// In `per`ths of what the row shows, as a status field counts.
+    pub value: i32,
+    pub per: i32,
+}
+
+/// Each stat's label, icon, glyph and `per`, in the order a row shows
+/// them. Max life counts quarters of a heart.
+pub(crate) const STATS: [(&str, &Name, Glyph, i32); 4] = [
+    ("Hearts", actor::OBJ_HEART_CONTAINER, Glyph::Heart, 4),
+    ("Songs", item::OCARINA_TIME, Glyph::Song, 1),
+    ("Gold Skulltulas", item::TOKEN_GOLD, Glyph::Skulltula, 1),
+    ("Rupees", actor::OBJ_RUPEE_GREEN, Glyph::Rupee, 1),
+];
 
 /// Every slot under `dir`, newest first, summarised with the grid `inv`.
 pub fn slots(inv: &Inventory, dir: &Path) -> Result<Vec<SlotRow>> {
@@ -55,13 +72,10 @@ fn row(inv: &Inventory, dir: &Path, slot: u8) -> SlotRow {
         slot,
         stamp: stamp(&path).unwrap_or(0),
         continues: false,
-        max_life: None,
         child: None,
         stones: Vec::new(),
         medallions: Vec::new(),
-        songs: 0,
-        skulltulas: None,
-        rupees: None,
+        stats: Vec::new(),
         error: None,
     };
     match savefile::load(&path) {
@@ -73,8 +87,6 @@ fn row(inv: &Inventory, dir: &Path, slot: u8) -> SlotRow {
 
 fn summarise(row: &mut SlotRow, inv: &Inventory, save: &Save) {
     let scalar = |h| save.get(h).and_then(|e| save.scalar(e));
-    row.max_life = scalar(MAX_LIFE).map(|v| v as i32);
-    row.rupees = scalar(RUPEES).map(|v| v as i32);
     row.child = scalar(murmur3(flag::SEQUENCE_IS_CHILDHOOD.as_bytes())).map(|v| v != 0);
     let mut inv = inv.clone();
     inv.load(in_save(save));
@@ -88,12 +100,30 @@ fn summarise(row: &mut SlotRow, inv: &Inventory, save: &Save) {
     };
     row.stones = of(Section::Stones);
     row.medallions = of(Section::Medallions);
-    row.songs = (cells.iter())
+    let songs = (cells.iter())
         .filter(|c| c.section == Section::Songs && c.tier > 0)
-        .count() as u8;
-    row.skulltulas = (cells.iter())
+        .count();
+    let tokens = (cells.iter())
         .find(|c| c.icon == item::TOKEN_GOLD.get())
         .and_then(|c| c.count);
+    // In STATS' order.
+    let values = [
+        scalar(MAX_LIFE).map(|v| v as i32),
+        Some(songs as i32),
+        tokens,
+        scalar(RUPEES).map(|v| v as i32),
+    ];
+    row.stats = (STATS.iter().zip(values))
+        .filter_map(|(&(label, icon, glyph, per), value)| {
+            Some(Stat {
+                label: label.into(),
+                icon: icon.get().into(),
+                glyph,
+                value: value?,
+                per,
+            })
+        })
+        .collect();
 }
 
 #[cfg(test)]
@@ -119,8 +149,15 @@ mod tests {
         assert_eq!(order, [5, 2, 0]);
         assert!(rows[0].continues && !rows[1].continues);
         assert!(rows[0].error.is_some());
-        assert_eq!(rows[1].max_life, Some(28));
-        assert_eq!(rows[1].rupees, Some(99));
+        let stat = |label| {
+            rows[1]
+                .stats
+                .iter()
+                .find(|s| s.label == label)
+                .map(|s| s.value)
+        };
+        assert_eq!(stat("Hearts"), Some(28));
+        assert_eq!(stat("Rupees"), Some(99));
         std::fs::remove_dir_all(dir).unwrap();
     }
 }

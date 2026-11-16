@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Cell, SlotRow } from "@/bindings";
+import type { Cell, SlotRow, Stat } from "@/bindings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tile } from "@/items/tile";
+import { ItemIcon, Tile } from "@/items/tile";
 import { ago, count } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { pendingCount, pickSlot, usePending } from "@/save/tabs";
@@ -95,7 +95,6 @@ interface SlotButtonProps {
 
 /** One slot: when it was written and a short summary of the save. */
 function SlotButton({ row, picked, onPick }: SlotButtonProps) {
-  const hearts = row.max_life !== null ? row.max_life / 4 : null;
   return (
     // biome-ignore lint/a11y/useSemanticElements: a row of facts, not a bare radio
     <button
@@ -116,23 +115,38 @@ function SlotButton({ row, picked, onPick }: SlotButtonProps) {
         <span className="text-danger-ink">{row.error}</span>
       ) : (
         <span className="flex flex-1 gap-4">
-          {hearts !== null && <span>{count(hearts, "heart")}</span>}
           {row.child !== null && <span>{row.child ? "Child" : "Adult"}</span>}
           <Gems cells={row.stones} />
           <Gems cells={row.medallions} />
-          <span className="text-ink-muted">{count(row.songs, "song")}</span>
-          {row.skulltulas !== null && (
-            <span className="text-ink-muted">
-              {count(row.skulltulas, "skulltula")}
-            </span>
-          )}
-          {row.rupees !== null && (
-            <span className="text-ink-muted">{count(row.rupees, "rupee")}</span>
-          )}
+          {row.stats.map((stat) => (
+            <StatIcon key={stat.label} stat={stat} />
+          ))}
         </span>
       )}
       {row.continues && <Badge variant="info">Continue</Badge>}
     </button>
+  );
+}
+
+/** A number beside its icon, both greyed at none. */
+function StatIcon({ stat }: { stat: Stat }) {
+  return (
+    <span
+      title={stat.label}
+      className={cn(
+        "flex items-center gap-1 tabular-nums",
+        stat.value === 0 && "opacity-28 grayscale",
+      )}
+    >
+      <span
+        className="flex items-center justify-center"
+        style={{ width: GEM, height: GEM }}
+      >
+        <ItemIcon icon={stat.icon} glyph={stat.glyph} ink="text-ink" />
+      </span>
+      {(stat.value / stat.per).toLocaleString()}
+      <span className="sr-only"> {stat.label}</span>
+    </span>
   );
 }
 

@@ -363,7 +363,7 @@ export type GameOptions = {
  *  What a cell draws when the game's art is off. Tiers share one, as the
  *  swords and the three wallets do.
  */
-export type Glyph = "sticks" | "nuts" | "bombs" | "bombchus" | "bow" | "slingshot" | "ocarina" | "hookshot" | "boomerang" | "beans" | "lens" | "hammer" | "fire-arrow" | "fire-medallion" | "ice-arrow" | "light-arrow" | "light-medallion" | "dins-fire" | "farores-wind" | "nayrus-love" | "bottle" | "egg" | "cucco" | "letter" | "mask" | "truth-mask" | "mushroom" | "saw" | "sword" | "prescription" | "frog" | "eye-drops" | "claim-check" | "shield" | "tunic" | "iron-boots" | "hover-boots" | "gauntlets" | "scale" | "wallet" | "bomb-bag" | "quiver" | "bullet-bag" | "heart-piece" | "magic" | "gerudo-card" | "agony-stone" | "skulltula" | "song" | "stone" | "forest-medallion" | "water-medallion" | "spirit-medallion" | "shadow-medallion" | "small-key" | "boss-key" | "map" | "compass" | "unknown";
+export type Glyph = "sticks" | "nuts" | "bombs" | "bombchus" | "bow" | "slingshot" | "ocarina" | "hookshot" | "boomerang" | "beans" | "lens" | "hammer" | "fire-arrow" | "fire-medallion" | "ice-arrow" | "light-arrow" | "light-medallion" | "dins-fire" | "farores-wind" | "nayrus-love" | "bottle" | "egg" | "cucco" | "letter" | "mask" | "truth-mask" | "mushroom" | "saw" | "sword" | "prescription" | "frog" | "eye-drops" | "claim-check" | "shield" | "tunic" | "iron-boots" | "hover-boots" | "gauntlets" | "scale" | "wallet" | "bomb-bag" | "quiver" | "bullet-bag" | "heart-piece" | "heart" | "rupee" | "magic" | "gerudo-card" | "agony-stone" | "skulltula" | "song" | "stone" | "forest-medallion" | "water-medallion" | "spirit-medallion" | "shadow-medallion" | "small-key" | "boss-key" | "map" | "compass" | "unknown";
 
 /**  One of a test setup's goals, read from the game. */
 export type Goal = {
@@ -617,17 +617,12 @@ export type SlotRow = {
 	stamp: number,
 	/**  The slot Continue loads: the one written last. */
 	continues: boolean,
-	/**  Heart containers, in quarters. */
-	max_life: number | null,
 	child: boolean | null,
 	/**  The three stones and six medallions, each held or not. */
 	stones: Cell[],
 	medallions: Cell[],
-	/**  Songs learned. */
-	songs: number,
-	/**  Gold Skulltula tokens. */
-	skulltulas: number | null,
-	rupees: number | null,
+	/**  Hearts, songs, Gold Skulltulas and rupees, each the save holds. */
+	stats: Stat[],
 	/**  Why the save couldn't be read, leaving the summary out. */
 	error: string | null,
 };
@@ -696,6 +691,17 @@ export type Start = {
 	items: Held[],
 	/**  The settings logic's rules read that are on, by label. */
 	settings: string[],
+};
+
+/**  A number a row shows beside its icon. */
+export type Stat = {
+	label: string,
+	icon: string,
+	/**  What it draws with game art off. */
+	glyph: Glyph,
+	/**  In `per`ths of what the row shows, as a status field counts. */
+	value: number,
+	per: number,
 };
 
 export type Status = {

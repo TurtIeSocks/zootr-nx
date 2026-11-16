@@ -152,6 +152,7 @@ pub const GORON_GAUNTLET: &Name = &n!(0xb040d40c6f06f394);
 pub const GOTO_HYRULE_CASTLE_ENTRY_MARKET: &Name = &n!(0x0353e94253e3209d);
 pub const GO_INSIDE: &Name = &n!(0x2b78accaea614cd3);
 pub const GRAVEYARD_ADULT: &Name = &n!(0xe55392a6fb716469);
+pub const HEART_W_00_ASTC4X4: &Name = &n!(0x5f64b009e1c6f94d);
 pub const HEAD_SHORTCUT: &Name = &n!(0xbd1179c2da0e7d51);
 pub const HOLD_CHALLENGE_CURRENT_STEP_CHECK_ORDER: &Name = &n!(0xd3e544f815f45b1c);
 pub const HOLD_GAME_DATA_ENUM_CHECK_ORDER: &Name = &n!(0x6a6afae7b47b20ef);

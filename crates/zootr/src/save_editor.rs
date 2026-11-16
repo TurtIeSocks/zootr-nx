@@ -21,7 +21,8 @@ mod slots;
 mod status;
 
 pub use flags::{FlagGroup, FlagQuery, FlagRow, FlagsView, flags};
-pub use slots::{SlotRow, slots};
+pub(crate) use slots::STATS;
+pub use slots::{SlotRow, Stat, slots};
 pub use status::{StatusChoice, StatusField, StatusGroup, status};
 
 /// What's waiting to be saved: the presets turned on, then single edits

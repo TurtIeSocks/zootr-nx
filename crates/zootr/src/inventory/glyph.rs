@@ -55,6 +55,8 @@ pub enum Glyph {
     Quiver,
     BulletBag,
     HeartPiece,
+    Heart,
+    Rupee,
     Magic,
     GerudoCard,
     AgonyStone,

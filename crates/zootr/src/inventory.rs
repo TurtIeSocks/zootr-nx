@@ -317,6 +317,7 @@ pub fn icons() -> impl Iterator<Item = &'static str> {
     });
     grid.copied()
         .chain(KEPT.map(|k| k.1))
+        .chain(crate::save_editor::STATS.map(|s| s.1))
         .map(|icon| icon.get())
 }
 
