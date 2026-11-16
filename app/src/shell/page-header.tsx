@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { crumbs } from "@/shell/nav";
 import { useUi } from "@/stores/ui";
 
-/** The content's 44px drag band with the breadcrumb. */
+/** The content's drag band, as tall as the title bar, with the breadcrumb. */
 export function Topbar() {
   const [tab] = useUi.usePath("tab");
   const [section] = useUi.usePath("section");
