@@ -263,10 +263,10 @@ fn asks(item: &str, progressive: bool) -> bool {
     ammo::swap(item).is_some() || progressive && progressive::in_line(item)
 }
 
-/// Whether `item` asks on `check`. A line's level asks nothing of a gift
-/// that gives [`gifts::by_level`].
+/// Whether `item` asks on `check`. Nothing asks of a gift that gives
+/// [`gifts::by_level`].
 fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
-    asks(item, progressive && !gifts::by_level(check))
+    !gifts::by_level(check) && asks(item, progressive)
 }
 
 /// Whether `check` may hold `item`: a gift can't hold one that asks, or
@@ -658,15 +658,18 @@ mod tests {
     }
 
     #[test]
-    fn plando_cant_put_an_item_that_asks_on_a_gift() {
+    fn plando_cant_put_an_item_that_asks_on_a_sale() {
         needs_names!();
         let checks = with_gifts();
-        let saria = gifts::GIFTS[0].hash();
-        let bombs = Fixed::from([(saria, ammo::NEEDS[0].0.to_string())]);
-        let err = shuffle(&checks, 7, &bombs, &game(false, &[]))
+        let bombs = |g: &gifts::Gift| Fixed::from([(g.hash(), ammo::NEEDS[0].0.to_string())]);
+        let sale = gifts::GIFTS.iter().find(|g| g.is_sale()).unwrap();
+        let err = shuffle(&checks, 7, &bombs(sale), &game(false, &[]))
             .err()
             .unwrap();
-        assert!(err.to_string().contains("Saria"), "{err}");
+        assert!(err.to_string().contains(sale.giver), "{err}");
+        // Saria gives the bombs or a Red Rupee by what Link owns.
+        let saria = gifts::GIFTS[0].hash();
+        assert!(shuffle(&checks, 7, &bombs(&gifts::GIFTS[0]), &game(false, &[])).is_ok());
         let hook = Fixed::from([(saria, line(0)[0].0.into())]);
         assert!(shuffle(&checks, 7, &hook, &game(false, &[])).is_ok());
         // Saria gives the Hookshot or the Longshot by what Link owns.
