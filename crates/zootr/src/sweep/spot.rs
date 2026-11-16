@@ -705,21 +705,14 @@ fn pays(p: &Planned) -> bool {
     matches!(p.trigger, Trigger::Talk { .. } | Trigger::Play { .. })
 }
 
-/// Arrival points where a scene or a talk starts as Link lands and waits
-/// on its text, so a teleport there never settles: the adult meadow's by
-/// the temple, where Sheik teaches his song and gives its item before the
-/// sweep looks, and the fortress's from the Training Ground, beside its
-/// attendant.
-const SCENE_ON_ARRIVAL: [(&Name, &Name); 2] = [
-    (
-        map::SACRED_FOREST_MEADOW_ADULT,
-        field::OUTSIDE_OF_FOREST_TEMPLE,
-    ),
-    (
-        map::GERUDO_FORTRESS_ADULT,
-        field::GERUDO_FORTRESS_FROM_GERUDO_TRAINING_GROUND,
-    ),
-];
+/// Arrival points inside the trigger of a scene that plays as Link lands
+/// and waits on its get window, so a teleport there never settles and the
+/// item is given before the sweep looks: the adult meadow's by the temple,
+/// where Sheik teaches his song.
+const SCENE_ON_ARRIVAL: [(&Name, &Name); 1] = [(
+    map::SACRED_FOREST_MEADOW_ADULT,
+    field::OUTSIDE_OF_FOREST_TEMPLE,
+)];
 
 /// Where a teleport to `map` arrives: its first arrival point that starts
 /// no scene, or its first.
