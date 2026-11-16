@@ -53,8 +53,11 @@ const fn kind(segment: &'static str, word: &'static str, act: Option<Act>) -> Ki
 
 /// In the order they're tried: a scrub's actor is a scrub before it
 /// is an enemy.
-const KINDS: [Kind; 16] = [
+const KINDS: [Kind; 17] = [
     kind("Door", "door", Some(Act::Through { stand: 1.0 })),
+    // A chained door: A spends a key, from 0.6 m off the lock (Forest
+    // Temple, Mac, 2026-11-16).
+    kind("Lock", "lock", Some(Act::Face { stand: 0.6 })),
     kind("TBox", "chest", Some(Act::Face { stand: 0.8 })),
     kind(
         "Pot",
@@ -167,6 +170,8 @@ mod tests {
         let act = |name| kind_of(name).and_then(|k| k.act);
         assert_eq!(act(actor::OBJ_T_BOX_A_01), Some(Act::Face { stand: 0.8 }));
         assert_eq!(act(actor::NPC_MIDO), Some(Act::Face { stand: 1.2 }));
+        let lock = Some(Act::Face { stand: 0.6 });
+        assert_eq!(act(actor::OBJ_DOOR_CHAIN_LOCK_A_01), lock);
         let sword = Act::Break {
             stand: 0.7,
             by: SWORD,

@@ -75,6 +75,7 @@ pub const OBJ_BROKEN_BOX_A_01: &Name = &n!(0x1ebdfe97bfec0d23);
 pub const OBJ_CANDLE_STICK_A_02: &Name = &n!(0x410af9546e7aa1d5);
 pub const OBJ_COMMON_FRAGMENT_BROKEN_ROCK_A_00: &Name = &n!(0xbca5b79b2766ff49);
 pub const OBJ_DODONGO_CAVE_CRACK_FLOOR_A_01: &Name = &n!(0xcfb7c637ebfc34f9);
+pub const OBJ_DOOR_CHAIN_LOCK_A_01: &Name = &n!(0x50faf3e1e9b44ec3);
 pub const OBJ_DUNGEON_SMALL_KEY: &Name = &n!(0xd7073e597b2ede3a);
 pub const OBJ_DUNGEON_SMALL_KEY_GERUDO_FORTRESS_01: &Name = &n!(0xe407784fcfcc0bad);
 pub const OBJ_DUNGEON_SMALL_KEY_GERUDO_FORTRESS_02: &Name = &n!(0xe407754fcfcc0694);
