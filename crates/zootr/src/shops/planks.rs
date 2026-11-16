@@ -8,8 +8,18 @@
 //!
 //! A slot hidden at the time (behind a sold-out board or the keeper's
 //! hand) takes its row's other planks.
+//!
+//! The table holds each measured rise plus the rupee's floor in its
+//! `ActorInfo` row. That row's floor is the rupee in its own pose, which
+//! lifts it about 0.2 m. On the shelf it plays another pose, so [`plank`]
+//! swaps the row's floor for the one it has there.
 
 use super::SHOPS;
+use super::floors::floor;
+use crate::known::actor;
+
+/// The rupee's floor in its `ActorInfo` row, which the table carries.
+const ROW_FLOOR: f32 = 0.0072;
 
 /// Each shop's planks, metres above the placement, by slot number from 1.
 const PLANKS: [[f32; 8]; SHOPS.len()] = [
@@ -35,7 +45,8 @@ const PLANKS: [[f32; 8]; SHOPS.len()] = [
 /// placement. `None` for a shop or slot the table doesn't hold.
 pub fn plank(shop: &str, number: usize) -> Option<f32> {
     let at = SHOPS.iter().position(|s| *s == shop)?;
-    PLANKS[at].get(number.checked_sub(1)?).copied()
+    let measured = PLANKS[at].get(number.checked_sub(1)?)?;
+    Some(measured - ROW_FLOOR + floor(actor::T_BOX_RUPEE_RED)?)
 }
 
 #[cfg(test)]
@@ -43,9 +54,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_slot_finds_its_shops_plank() {
-        assert_eq!(plank("Goron Shop", 2), Some(0.27));
-        assert_eq!(plank("Kokiri Shop", 8), Some(0.16));
+    fn a_slot_finds_its_shops_plank_and_the_rupee_keeps_its_measured_rise() {
+        let red = floor(actor::T_BOX_RUPEE_RED).unwrap();
+        let rise = |shop, number| plank(shop, number).unwrap() - red;
+        assert!((rise("Goron Shop", 2) - (0.27 - ROW_FLOOR)).abs() < 1e-6);
+        assert!((rise("Kokiri Shop", 8) - (0.16 - ROW_FLOOR)).abs() < 1e-6);
         assert_eq!(plank("Kokiri Shop", 0), None);
         assert_eq!(plank("Kokiri Shop", 9), None);
         assert_eq!(plank("Fake Shop", 1), None);

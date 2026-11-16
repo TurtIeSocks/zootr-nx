@@ -20,7 +20,7 @@ pub(crate) use paint::Colour;
 
 /// The medallion every song's is copied from. Its name and a song's,
 /// a song medal's, are as long, so no offset in a copy moves.
-const HOST: &Name = item::MEDAL_FOREST;
+pub(crate) const HOST: &Name = item::MEDAL_FOREST;
 /// The host's own textures, each its own file, by suffix.
 const KINDS: [&str; 6] = ["Alb", "Emc", "Nrm", "AO", "Mtl", "Rgh"];
 /// The host's body. Its front face is a shallow dish mapped flat onto

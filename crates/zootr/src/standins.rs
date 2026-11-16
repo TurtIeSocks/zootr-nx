@@ -112,12 +112,11 @@ fn archive(name: &str) -> Byml {
 /// The pose `item` plays on a shelf: its model's own where some vanilla
 /// shop goods play it, else the gold token's. By the model, so a chest's
 /// form of the item finds the same pose.
-fn shelf_pose(actor: &BymlDoc, item: &str) -> Result<String> {
-    let item_row = row(actor, item)?;
-    let Some(model) = item_row.get(ARCHIVE.get()).and_then(|m| m.as_string().ok()) else {
+pub(crate) fn shelf_pose(actor: &BymlDoc, item: &str) -> Result<String> {
+    let Some(model) = model(actor, item)? else {
         return Ok(TOKEN_POSE.to_string());
     };
-    let own = format!("{model}{OWN_POSE}");
+    let own = own_pose(&model);
     for row in actor.root.as_array()? {
         if !row_id(row).starts_with(GOODS) {
             continue;
@@ -132,6 +131,29 @@ fn shelf_pose(actor: &BymlDoc, item: &str) -> Result<String> {
         }
     }
     Ok(TOKEN_POSE.to_string())
+}
+
+/// The model `item` shows, from its `ActorInfo` row.
+pub(crate) fn model(actor: &BymlDoc, item: &str) -> Result<Option<String>> {
+    let item_row = row(actor, item)?;
+    Ok((item_row.get(ARCHIVE.get()).and_then(|m| m.as_string().ok())).map(|m| m.to_string()))
+}
+
+/// The model file an actor pack shows: its model info's project and
+/// model names, as in `Model/PROJECT.MODEL.bfres.zs`.
+pub(crate) fn model_file(pack: &ActorPack) -> Result<Option<(String, String)>> {
+    let info = resolved(pack, &path_of(pack, MODEL)?)?;
+    let name = |key: &Name| {
+        info.get(key.get())
+            .and_then(|v| v.as_string().ok())
+            .map(|v| v.to_string())
+    };
+    Ok(name(field::MODEL_PROJECT_NAME).zip(name(field::FMDB_NAME)))
+}
+
+/// The pose archive of `model`'s own.
+pub(crate) fn own_pose(model: &str) -> String {
+    format!("{model}{OWN_POSE}")
 }
 
 /// A param file's path, made into the reference that names it.
@@ -606,10 +628,21 @@ fn shape_bottom(shape: &BymlMap) -> Option<f32> {
 
 /// How far a placed stand-in rises to rest on a shelf `plank` metres
 /// above its placement: the plank, less how far above its origin the
-/// item's model starts. The gold token's is centred, so it rises past the
-/// plank by half its height.
+/// item's model starts in the pose it plays there (`shops::floor`, else
+/// its `ActorInfo` row).
 pub fn rise(tables: &Tables, plank: f32, item: &str) -> Result<f32> {
-    Ok(plank - model_floor(&row(&tables.actor, item)?).unwrap_or(0.0))
+    let floor = match crate::shops::floor(item) {
+        Some(floor) => floor,
+        None => table_floor(&tables.actor, item)?,
+    };
+    Ok(plank - floor)
+}
+
+/// How far above its origin `item`'s model starts, by its `ActorInfo`
+/// row: the raw model for some items, posed in its own pose for others.
+/// 0 when the row has no bounds.
+pub(crate) fn table_floor(actor: &BymlDoc, item: &str) -> Result<f32> {
+    Ok(model_floor(&row(actor, item)?).unwrap_or(0.0))
 }
 
 /// How far above its origin an `ActorInfo` row's model starts.

@@ -154,6 +154,7 @@ pub const T_BOX_RUPEE_BLUE: &Name = &n!(0x581a4661837fa39b);
 pub const T_BOX_RUPEE_GREEN: &Name = &n!(0xf6c2124783af6666);
 pub const T_BOX_RUPEE_RED: &Name = &n!(0x9d47bc8ef1722b46);
 pub const T_BOX_SHIELD_DEKU: &Name = &n!(0xe646c5f2b8e40cce);
+pub const T_BOX_SHIELD_HYLIAN: &Name = &n!(0x7ff664e9a6674cd6);
 pub const WEAPON_RANGE_BOW: &Name = &n!(0xd9a22d17e30068fc);
 pub const WEAPON_RANGE_SLING_SHOT: &Name = &n!(0x3045946e12159b81);
 pub const WEAPON_SHIELD_DEKU: &Name = &n!(0x0cb109eee38cac87);

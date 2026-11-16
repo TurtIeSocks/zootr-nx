@@ -2,6 +2,7 @@
 //! own, built from its vanilla goods' pack and the seed's item, that sells
 //! the item once at a price rolled from the seed.
 
+mod floors;
 mod planks;
 
 use std::collections::HashMap;
@@ -17,9 +18,11 @@ use crate::known::{Name, actor, field, flag, item, scene};
 use crate::names::{ITEMS, name_label};
 use crate::rng::Rng;
 use crate::rules::Need;
+
 use crate::settings::NewGame;
 use crate::standins::{self, StandIn, Tables, item_pack};
 use crate::text::{Copies, CopyLine};
+pub(crate) use floors::floor;
 
 /// A shop check's `file`, since its slot spans several map files.
 pub const FILE: &str = "Shop";
@@ -451,6 +454,17 @@ mod tests {
     use crate::game::dev_dump;
     use crate::known::{actor, field, flag, item, scene};
     use crate::settings::DungeonKeys;
+
+    #[test]
+    fn a_shield_stands_up_on_a_shelf_and_the_rupee_lies_as_its_vertices_say() {
+        let at = |item: &Name| floor(item).unwrap();
+        // Posed in their own shop poses, they stand on their rims.
+        assert!((at(actor::T_BOX_SHIELD_DEKU) - 0.022).abs() < 0.001);
+        assert!((at(actor::T_BOX_SHIELD_HYLIAN) - 0.004).abs() < 0.001);
+        // The token's pose leaves the rupee centred on its origin.
+        assert!((at(actor::T_BOX_RUPEE_RED) + 0.191).abs() < 0.001);
+        assert_eq!(floor("FakeItem_Nothing"), None);
+    }
     use crate::standins::*;
     use ounce_formats::{Byml, BymlDoc, BymlMap, pack_path};
     use roead::sarc::Sarc;
