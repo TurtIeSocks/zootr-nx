@@ -65,6 +65,28 @@ The builds aren't signed yet, so macOS and Windows warn the first time:
   background colour.
 - Pop it out into its own window, sized to the grid, for OBS to capture.
 
+### Save Editor
+
+Changes a save you already have, without starting a new game. It reads the
+saves in the target's save folder.
+
+- Slots: each one shows when the game wrote it, Link's hearts, songs, Gold
+  Skulltulas and rupees, and his stones and medallions.
+- Items: Link's status, then his items laid out like the tracker. A click
+  steps an item up a tier, a right click steps it down.
+- Flags: every value in the save, grouped by name. Search by name, hash or
+  label, filter by type, or show only what differs from a new game
+  (Changed) or what you're about to write (Staged).
+- Presets: the presets a save can take. Turning one on stages its changes,
+  which then show in Flags. Presets that give items or move a quest on
+  only work on a new game, so they aren't here.
+- Nothing is written until you save. The bar counts your changes and
+  Discard drops them.
+- Close the game first. zootr won't write while a target is running.
+- The old save stays beside the new one as a backup.
+- If the game writes the slot after you opened it, zootr says so. Reload
+  puts your changes on the new file.
+
 ### Live
 
 - A log of the game's values as they change, for working out what a flag
@@ -86,7 +108,6 @@ The builds aren't signed yet, so macOS and Windows warn the first time:
 
 - Test setup picks where a new game starts and what Link holds. Seeds built
   with one are marked in the history, and setups save by name.
-- Save slot applies presets to an existing save without a new game.
 - The dev panel gives items, sets values and teleports Link in the running
   game.
 

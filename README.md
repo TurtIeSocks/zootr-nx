@@ -61,6 +61,14 @@ dump if you turn that on.
 
 ![The item tracker](assets/item-tracker.png)
 
+## Edit a save
+
+The Save Editor changes a save you already have. Click an item to step it
+up a tier, set hearts and rupees, or change any flag by name. Close the
+game first. The old save stays beside the new one as a backup.
+
+![The Save Editor's items](assets/save-editor.png)
+
 ## Watch the game's flags
 
 The Live log shows the game's values as they change, for working out what
