@@ -154,6 +154,37 @@ pub(crate) fn raw(pack: &ActorPack, path: &str) -> Result<Vec<u8>> {
         .to_vec())
 }
 
+/// `param` with its `Components` entry `key` pointing at `path`.
+pub(crate) fn with_ref(param: &BymlMap, key: &str, path: &str) -> Result<BymlMap> {
+    let mut param = param.clone();
+    let mut refs = components(&param)?;
+    refs.insert(key.into(), reference(path));
+    param.insert(COMPONENTS.into(), Byml::Map(refs));
+    Ok(param)
+}
+
+/// `name`'s pack: `template`'s with `files` added, each `(path, doc, like)`
+/// sized in the RESTBL like the template's file `like`.
+pub(crate) fn write_clone(
+    builder: &mut ModBuilder,
+    template: &ActorPack,
+    name: &str,
+    files: impl IntoIterator<Item = (String, BymlDoc, String)>,
+) -> Result<()> {
+    let mut writer = template.writer();
+    for (path, data, like) in files {
+        let data = data.to_binary();
+        let like_size = raw(template, &like)?.len();
+        builder.add_entry(&path, &like, like_size, data.len())?;
+        writer.add_file(path, data);
+    }
+    builder.add(
+        &format!("Pack/Actor/{name}.pack.zs"),
+        &writer.to_binary(),
+        &format!("Pack/Actor/{}.pack.zs", template.name),
+    )
+}
+
 /// A new file, sized in the RESTBL like a file of a pack it copies.
 struct NewFile<'a> {
     path: String,
@@ -445,7 +476,7 @@ fn edited<'a>(
 }
 
 /// `path` with its file named `name`, keeping its folder and type.
-fn renamed(path: &str, name: &str) -> String {
+pub(crate) fn renamed(path: &str, name: &str) -> String {
     let (dir, file) = path.rsplit_once('/').unwrap_or(("", path));
     let kind = file.split_once('.').map_or("", |(_, kind)| kind);
     format!("{dir}/{name}.{kind}")
@@ -687,6 +718,14 @@ impl Tables {
         insert(&mut self.game, name, game)?;
         self.added += 1;
         Ok(())
+    }
+
+    /// Rows for `name`, an item like `like` in every way but its name: its
+    /// pouch row too, so it counts as `like` does once Link has it.
+    pub(crate) fn copy_item(&mut self, name: &str, like: &str) -> Result<()> {
+        self.copy(name, like)?;
+        let pouch = row(&self.pouch, like)?;
+        insert(&mut self.pouch, name, pouch)
     }
 
     /// Hand `edit` every row of the pouch table, written with the rest.

@@ -43,6 +43,7 @@ pub mod history;
 mod icons;
 pub mod inventory;
 pub mod items;
+mod key_tints;
 mod keys;
 #[macro_use]
 pub mod known;

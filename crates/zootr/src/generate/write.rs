@@ -14,8 +14,8 @@ use crate::hints::Hint;
 use crate::settings::{ChestSize, NewGame};
 use crate::{
     bombchus, bombs, bridge, cows, cutscenes, dampe, dig, door, flags, fortress, gamedata, gerudo,
-    gifts, hints, medallions, navi, patch, pickups, presets, rsdb, scrubs, shops, spawn, standins,
-    starting, steps, text,
+    gifts, hints, key_tints, medallions, navi, patch, pickups, presets, rsdb, scrubs, shops, spawn,
+    standins, starting, steps, text,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -145,6 +145,7 @@ pub fn write_mod(
     // Before the stand-ins, which copy a song's model as it's shown.
     let items = drops.values().map(|d| d.item.as_str());
     medallions::write(romfs, &mut builder, &mut tables, items)?;
+    key_tints::write(romfs, &mut builder, &mut tables)?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
     events.write(&mut builder)?;
     if new_game.shop_slots > 0 {
@@ -193,7 +194,8 @@ pub fn write_mod(
         )?);
         let shrunk =
             new_game.chest_size == ChestSize::Small && checks::shrink_chests(&mut doc.root)? > 0;
-        if shrunk || !changed.is_empty() {
+        let tinted = key_tints::swap(&rel, &mut doc.root)? > 0;
+        if shrunk || tinted || !changed.is_empty() {
             builder.write(&rel, &doc.to_binary())?;
             actors += changed.len();
             found.extend(changed);
