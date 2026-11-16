@@ -108,8 +108,8 @@ pub(super) enum Command {
     /// Read, compare or edit a save slot by flag name.
     #[command(subcommand)]
     Save(SaveCommand),
-    /// Print GameData values as the running game changes them. macOS only:
-    /// reads the picked target's process.
+    /// Print GameData values as the running game changes them: through the
+    /// picked target's bridge, or its process on macOS.
     Live {
         /// Only names containing this.
         #[arg(long)]
@@ -127,14 +127,15 @@ pub(super) enum Command {
     /// Give Link an item in the running game, by its actor name, with
     /// the game's own grant, run by our hook on Link's next update. Needs a
     /// seed installed with `dev_panel` on in the config. The menu shows it
-    /// the next time it opens. macOS only.
+    /// the next time it opens. Needs macOS or a target with a bridge.
     Give {
         actor: String,
         /// How many, for items with a count.
         #[arg(default_value_t = 1)]
         count: i32,
     },
-    /// Write one GameData value into the running game. macOS only.
+    /// Write one GameData value into the running game. Needs macOS or a
+    /// target with a bridge.
     Set {
         /// A GameData name or 0x hash.
         name: String,

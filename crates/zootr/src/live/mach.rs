@@ -113,11 +113,11 @@ mod imp {
     }
 
     pub fn read(_: u32, _: u64, _: usize) -> Result<Vec<u8>> {
-        bail!("live reads need macOS")
+        bail!("live reads need macOS, or a target with a bridge")
     }
 
     pub fn write(_: u32, _: u64, _: &[u8]) -> Result<()> {
-        bail!("live writes need macOS")
+        bail!("live writes need macOS, or a target with a bridge")
     }
 
     pub fn code(_: u32) -> Vec<(u64, usize)> {

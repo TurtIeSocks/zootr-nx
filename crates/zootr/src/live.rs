@@ -402,13 +402,14 @@ impl std::fmt::Display for NotSigned {
 
 impl std::error::Error for NotSigned {}
 
-/// Live reads need macOS. Like [`NotSigned`], waiting won't fix it.
+/// Live reads need macOS, or a target with a bridge. Like [`NotSigned`],
+/// waiting won't fix it.
 #[derive(Debug)]
 pub struct Unsupported;
 
 impl std::fmt::Display for Unsupported {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.write_str("live reads need macOS")
+        f.write_str("live reads need macOS, or a target with a bridge")
     }
 }
 
@@ -606,6 +607,8 @@ pub(crate) use mach::pids;
 
 mod bridge;
 mod mach;
+#[cfg(windows)]
+mod pipe;
 
 pub use bridge::{Bridge, PATIENCE, Refused};
 

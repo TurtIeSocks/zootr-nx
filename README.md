@@ -89,8 +89,9 @@ Early. Expect seeds that break and settings that change.
 - zootr reads the 1.1.0 update of the game only.
 - macOS is the main platform. Windows and Linux builds exist but are barely
   tested.
-- The tracker, the Live log and the checks list read the running game,
-  which works on macOS only.
+- The tracker, the Live log and the checks list read the running game.
+  That works on macOS, and on Linux and Windows when the target has a
+  `bridge`, a control socket its app opens for zootr.
 - A setting the app marks Untested hasn't been played through yet.
 - The logic is still primitive and needs more testing. A seed can still
   ask for something Link can't reach.

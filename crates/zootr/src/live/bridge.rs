@@ -185,49 +185,11 @@ fn is_timeout(e: &std::io::Error) -> bool {
 #[cfg(unix)]
 type Stream = std::os::unix::net::UnixStream;
 
-#[cfg(not(unix))]
-type Stream = Unsupported;
+#[cfg(windows)]
+type Stream = super::pipe::Pipe;
 
-/// Stands in for the socket where there are no Unix sockets.
-#[cfg(not(unix))]
-pub struct Unsupported;
-
-#[cfg(not(unix))]
-impl Unsupported {
-    fn connect(_: &Path) -> std::io::Result<Self> {
-        Err(std::io::Error::other("the bridge needs Unix sockets"))
-    }
-
-    fn try_clone(&self) -> std::io::Result<Self> {
-        unreachable!()
-    }
-
-    fn set_read_timeout(&self, _: Option<Duration>) -> std::io::Result<()> {
-        unreachable!()
-    }
-}
-
-#[cfg(not(unix))]
-impl std::io::Read for Unsupported {
-    fn read(&mut self, _: &mut [u8]) -> std::io::Result<usize> {
-        unreachable!()
-    }
-}
-
-#[cfg(not(unix))]
-impl std::io::Write for Unsupported {
-    fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
-        unreachable!()
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        unreachable!()
-    }
-}
-
-#[cfg(all(test, unix))]
+#[cfg(test)]
 mod tests {
-    use std::os::unix::net::UnixListener;
     use std::sync::atomic::{AtomicU32, Ordering};
     use std::thread;
 
@@ -238,12 +200,10 @@ mod tests {
     fn fake(answer: impl Fn(&Value) -> Vec<Value> + Send + 'static) -> Bridge {
         static NEXT: AtomicU32 = AtomicU32::new(0);
         let n = NEXT.fetch_add(1, Ordering::Relaxed);
-        let path = std::env::temp_dir().join(format!("zootr-bridge-{}-{n}", std::process::id()));
-        let _ = std::fs::remove_file(&path);
-        let listener = UnixListener::bind(&path).unwrap();
+        let name = format!("zootr-bridge-{}-{n}", std::process::id());
+        let (path, accept) = listen(&name);
         thread::spawn(move || {
-            let (stream, _) = listener.accept().unwrap();
-            let mut out = stream.try_clone().unwrap();
+            let (stream, mut out) = accept();
             for line in BufReader::new(stream).lines() {
                 let req: Value = serde_json::from_str(&line.unwrap()).unwrap();
                 for reply in answer(&req) {
@@ -252,8 +212,40 @@ mod tests {
             }
         });
         let bridge = Bridge::connect(&path).unwrap();
+        #[cfg(unix)]
         std::fs::remove_file(&path).unwrap();
         bridge
+    }
+
+    /// A fresh place for a fake game to listen, and what waits for its one
+    /// client: the stream to read requests from and the one to answer on.
+    type Accept<R, W> = Box<dyn FnOnce() -> (R, W) + Send>;
+
+    #[cfg(unix)]
+    fn listen(
+        name: &str,
+    ) -> (
+        std::path::PathBuf,
+        Accept<std::os::unix::net::UnixStream, std::os::unix::net::UnixStream>,
+    ) {
+        let path = std::env::temp_dir().join(name);
+        let _ = std::fs::remove_file(&path);
+        let listener = std::os::unix::net::UnixListener::bind(&path).unwrap();
+        let accept = move || {
+            let (stream, _) = listener.accept().unwrap();
+            (stream.try_clone().unwrap(), stream)
+        };
+        (path, Box::new(accept))
+    }
+
+    #[cfg(windows)]
+    fn listen(name: &str) -> (std::path::PathBuf, Accept<std::fs::File, std::fs::File>) {
+        let server = super::super::pipe::tests::serve(name);
+        let accept = move || {
+            let server = server.accept();
+            (server.try_clone().unwrap(), server)
+        };
+        (name.into(), Box::new(accept))
     }
 
     fn ok(req: &Value, fields: Value) -> Value {
