@@ -151,6 +151,32 @@ impl Inventory {
         at: usize,
         intent: Intent,
     ) -> Result<Vec<Edit>> {
+        let mut out = self.cell_edits(pouch, save, at, intent)?;
+        out.extend(self.owning(&out, intent));
+        Ok(out)
+    }
+
+    /// The `IsGet` flags kept with the pouch counts `edits` set: on for a
+    /// count above none, off for a tier the click takes away. A count typed
+    /// down to none leaves it on, as Link still owns an empty bomb bag.
+    fn owning(&self, edits: &[Edit], intent: Intent) -> Vec<Edit> {
+        let typed = matches!(intent, Intent::Count(_));
+        (edits.iter())
+            .filter_map(|e| {
+                let flag = *self.owned.get(&e.hash)?;
+                let held = e.value != "0";
+                (held || !typed).then(|| Edit::new(flag, held.to_string()))
+            })
+            .collect()
+    }
+
+    fn cell_edits(
+        &self,
+        pouch: &Pouch,
+        save: &Save,
+        at: usize,
+        intent: Intent,
+    ) -> Result<Vec<Edit>> {
         if let Some(slot) = GRID.get(at) {
             return self.slot_edits(pouch, save, slot, intent);
         }
@@ -449,6 +475,37 @@ mod tests {
         let sling = cell_at(&inv.cells(), "Slingshot");
         let up = pairs(inv.edits(&pouch(), &save, sling, Intent::Up).unwrap());
         assert!(!up.iter().any(|(k, _)| *k == h(item::DEKU_SEED)), "{up:?}");
+    }
+
+    #[test]
+    fn a_pouch_count_keeps_its_flag() {
+        needs_names!();
+        const HOOK: u32 = 1;
+        const BOMB: u32 = 2;
+        let at = |inv: &Inventory, label| cell_at(&inv.cells(), label);
+        let of = |save: &Save| {
+            let mut inv = inventory();
+            inv.owned = HashMap::from([(h(item::HOOKSHOT), HOOK), (h(item::BOMB), BOMB)]);
+            inv.load(crate::inventory::in_save(save));
+            inv
+        };
+        let none = save_of(&[], "");
+        let inv = of(&none);
+        let up = pairs(
+            inv.edits(&pouch(), &none, at(&inv, "Hookshot"), Intent::Up)
+                .unwrap(),
+        );
+        assert!(up.contains(&(HOOK, "true".into())), "{up:?}");
+
+        let held = save_of(&[(item::HOOKSHOT, 1), (item::BOMB, 5)], "");
+        let inv = of(&held);
+        let down = pairs(
+            inv.edits(&pouch(), &held, at(&inv, "Hookshot"), Intent::Down)
+                .unwrap(),
+        );
+        assert!(down.contains(&(HOOK, "false".into())), "{down:?}");
+        let typed = inv.edits(&pouch(), &held, at(&inv, "Bombs"), Intent::Count(0));
+        assert_eq!(pairs(typed.unwrap()), [(h(item::BOMB), "0".into())]);
     }
 
     #[test]
