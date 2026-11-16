@@ -18,7 +18,7 @@ use super::watch::{MESSAGE, Watch, got_other, lands_as, named, owned_as, poured,
 use crate::dev::{Dev, EVENT_PLAYING, NOT_TAKEN, Place, Request};
 use crate::gamedata::GameData;
 use crate::gerudo;
-use crate::known::{Name, actor, flag};
+use crate::known::{Name, actor, field, flag, map};
 use crate::live;
 use crate::nav::act::Used;
 use crate::nav::drive::Drive;
@@ -360,9 +360,8 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         if here.map == *map && p.child.is_none_or(|c| c == here.child) {
             return Ok(());
         }
-        let place = (self.places.iter())
-            .find(|pl| pl.map == *map)
-            .with_context(|| format!("no arrival point in {map}"))?;
+        let place =
+            arrival(self.places, map).with_context(|| format!("no arrival point in {map}"))?;
         self.go(place, p.child)?;
         let dev = self.dev;
         dev.land_holding(map, || self.ready(p).map(drop))
@@ -706,12 +705,46 @@ fn pays(p: &Planned) -> bool {
     matches!(p.trigger, Trigger::Talk { .. } | Trigger::Play { .. })
 }
 
+/// Arrival points inside the trigger of a scene that plays as Link lands
+/// and waits on its get window, so a teleport there never settles and the
+/// item is given before the sweep looks: the adult meadow's by the temple,
+/// where Sheik teaches his song.
+const SCENE_ON_ARRIVAL: [(&Name, &Name); 1] = [(
+    map::SACRED_FOREST_MEADOW_ADULT,
+    field::OUTSIDE_OF_FOREST_TEMPLE,
+)];
+
+/// Where a teleport to `map` arrives: its first arrival point that starts
+/// no scene, or its first.
+fn arrival<'a>(places: &'a BTreeSet<Place>, map: &str) -> Option<&'a Place> {
+    let quiet =
+        |pl: &&Place| !(SCENE_ON_ARRIVAL.iter()).any(|(m, s)| **m == *pl.map && **s == *pl.spot);
+    let mut of = places.iter().filter(|pl| pl.map == map);
+    of.clone().find(quiet).or_else(|| of.next())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::known::{actor, flag, flow, scene};
     use crate::sweep::plan::Steps;
     use crate::warp::Side;
+
+    #[test]
+    fn a_teleport_arrives_where_no_scene_starts() {
+        let meadow = map::SACRED_FOREST_MEADOW_ADULT.to_string();
+        let place = |map: &str, spot: &str| Place {
+            map: map.to_string(),
+            spot: spot.to_string(),
+        };
+        let temple = place(&meadow, field::OUTSIDE_OF_FOREST_TEMPLE.get());
+        let woods = place(&meadow, "Zz_FakeEntrance");
+        let both = BTreeSet::from([temple.clone(), woods.clone()]);
+        assert_eq!(arrival(&both, &meadow), Some(&woods));
+        let only = BTreeSet::from([temple.clone()]);
+        assert_eq!(arrival(&only, &meadow), Some(&temple), "the only way in");
+        assert_eq!(arrival(&both, "FakeMap"), None);
+    }
 
     #[test]
     fn verdicts_serialize_with_their_reason() {

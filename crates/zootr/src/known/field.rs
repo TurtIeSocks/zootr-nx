@@ -274,6 +274,7 @@ pub const OPERATE_INVERT_BOOL: &Name = &n!(0xe4a81c15ef07754b);
 pub const OPERATE_OR: &Name = &n!(0x5466bd9a1bddf766);
 pub const OPERATE_OR_FIX_INPUT_TRUE: &Name = &n!(0xce13cc701042e6a3);
 pub const OPTIMIZE_CHANGE_BANC_UNITS: &Name = &n!(0x78da4c26335fb5ab);
+pub const OUTSIDE_OF_FOREST_TEMPLE: &Name = &n!(0xe4a5aeaae92272c1);
 pub const OVERRIDE_STYLE: &Name = &n!(0xb7d2029e0f2f669e);
 pub const PATH_LIST: &Name = &n!(0x40e94f9161bef2a2);
 pub const PHANTOM_GANON: &Name = &n!(0xd8d60a03e32d0ec5);
