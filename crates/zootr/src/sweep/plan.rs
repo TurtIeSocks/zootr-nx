@@ -78,7 +78,8 @@ pub enum Trigger {
         /// takes from him.
         give: Option<&'static str>,
         /// Talked to across a counter from `at` as it is: the customer
-        /// spot the keeper's placement links. The Goron Shop's floor is off
+        /// spot the keeper's placement links, or the side across from his
+        /// shelves when that isn't his front. The Goron Shop's floor is off
         /// the navmesh, so a landing found on it stood Link behind the
         /// counter, inside the keeper (maintainer, 2026-11-14).
         counter: bool,

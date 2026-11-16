@@ -9,7 +9,7 @@ use crate::generate::Spot;
 use crate::known::{Name, actor, field, flag};
 use crate::nav::graph::dist;
 use crate::scrubs;
-use crate::warp::{self, Pose};
+use crate::warp::{self, Pose, Side};
 use crate::world::Presence;
 
 /// Every shopkeeper's actor name has this, like a Goron shopkeeper's.
@@ -87,14 +87,17 @@ impl Planner<'_> {
             ),
             None => (None, vec![]),
         };
+        // A keeper turned to face his shelves is talked to from across
+        // them, a spot the sweep's own landing, by his front, never finds.
+        // Landed there by the navmesh, Link stood at the counter's end and
+        // A said nothing (Market Bazaar and Potion Shop, every round).
+        let shelves: Vec<[f32; 3]> = (sold.iter())
+            .filter_map(|h| Some(slots.get(h)?.at))
+            .collect();
+        let across = across_from(&pose, &shelves);
         let trigger = Trigger::Talk {
-            at: customer.unwrap_or_else(|| {
-                let shelves: Vec<[f32; 3]> = (sold.iter())
-                    .filter_map(|h| Some(slots.get(h)?.at))
-                    .collect();
-                warp::landing(&pose, across_from(&pose, &shelves))
-            }),
-            counter: customer.is_some(),
+            at: customer.unwrap_or_else(|| warp::landing(&pose, across)),
+            counter: customer.is_some() || across != Side::Front,
             map,
             face: pose.at,
             steps,
@@ -258,14 +261,16 @@ mod tests {
         steps::check(&gd, &quest[0].0, &quest[0].1).unwrap();
         assert!(talks[1].2.is_empty(), "the Goron keeper is always in");
         // The Goron keeper is talked to from the customer spot he links, in
-        // front of his counter. The others from their front.
+        // front of his counter, and the Kakariko keeper, turned to his
+        // shelves, from across them. The others from their front.
         let counters: Vec<(bool, [f32; 3])> = (planned.iter())
             .map(|p| match &p.trigger {
                 Trigger::Talk { counter, at, .. } => (*counter, *at),
                 t => panic!("{t:?}"),
             })
             .collect();
-        assert_eq!(counters.iter().filter(|c| c.0).count(), 1, "{counters:?}");
+        let kept: Vec<bool> = counters.iter().map(|c| c.0).collect();
+        assert_eq!(kept, [false, true, true, false], "{counters:?}");
         let (counter, at) = counters[1];
         assert!(counter);
         assert!(
@@ -295,7 +300,11 @@ mod tests {
         let planned = plan(&romfs, &spots).unwrap();
         for (p, potion) in planned.iter().zip([false, true]) {
             let Trigger::Talk {
-                at, face, ready, ..
+                at,
+                face,
+                ready,
+                counter,
+                ..
             } = &p.trigger
             else {
                 panic!("{:?}", p.trigger);
@@ -307,6 +316,8 @@ mod tests {
                 "{}: {at:?} by {face:?}",
                 p.spot.holder
             );
+            // Landed as planned, not by the navmesh (live, 2026-11-16).
+            assert!(counter, "{}", p.spot.holder);
             let tutorial = TUTORIAL_DONE.iter().all(|f| ready.contains(&f.to_string()));
             assert_eq!(tutorial, potion, "{}: {ready:?}", p.spot.holder);
         }
