@@ -28,8 +28,10 @@ use crate::medallions::{self, Colour, model_path, texture_path};
 use crate::rsdb::ROW_ID;
 use crate::settings::DungeonKeys;
 use crate::standins::{
-    MODEL, Tables, actor_path, clone_pack, doc, path_of, raw, renamed, with_ref, write_clone,
+    MODEL, POUCH, POUCH_ACTOR, Tables, actor_path, clone_pack, doc, path_of, pouch_actor, raw,
+    renamed, resolved, with_ref, write_clone,
 };
+use crate::text::Copies;
 
 /// One kind of key's model: the actor it's named like, its textures by
 /// suffix, and the prefix of a dungeon's copy, which with the dungeon's
@@ -162,11 +164,50 @@ pub fn copy_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<Option<
             continue;
         };
         let template = ActorPack::load(romfs, template)?;
-        let files = pointed(&template, item, &model)?;
+        let files = copied(&template, item, &model)?;
         return clone_pack(&template, item, files).map(Some);
     }
     Ok(None)
 }
+
+/// The text each copy's get shows, copied from its template's: a copy
+/// answers to its own name, so the game looks its lines up under it.
+pub fn captions(rings: bool, bosses: bool) -> Copies<'static> {
+    let new = made(rings, bosses)
+        .into_iter()
+        .flat_map(|(copy, template)| {
+            TEXT_PARTS.map(|part| {
+                (
+                    format!("{copy}{part}"),
+                    vec![format!("{}{part}", template.get())],
+                )
+            })
+        })
+        .collect();
+    Copies {
+        file: POUCH_TEXT,
+        new,
+    }
+}
+
+/// Each ring (with `rings`) and boss key copy (with `bosses`) the seed
+/// makes, with the game's key it copies.
+pub fn made(rings: bool, bosses: bool) -> Vec<(String, &'static Name)> {
+    let mut made = Vec::new();
+    for n in 1..=DUNGEONS.len() {
+        if rings {
+            made.push((ring(n), SMALL));
+        }
+        if bosses && has_boss(n) {
+            made.push((boss(n), BOSS));
+        }
+    }
+    made
+}
+
+/// The lines a key's get reads, each under the key's name.
+const TEXT_PARTS: [&str; 3] = ["_Name", "_GetMessage", "_GetCaption"];
+const POUCH_TEXT: &str = "ActorMsg/PouchContent";
 
 /// What a copy sets as it's found: a Bool true, an Int to a value, or one
 /// more on an Int.
@@ -229,23 +270,28 @@ pub fn write(
         let n = i + 1;
         let tint = colour(dungeon).with_context(|| format!("no colour for {dungeon}"))?;
         let name = small.paint(builder, n, tint)?;
-        copy(builder, tables, &chest, &chest_key(n), &name)?;
-        copy(builder, tables, &floor, &name, &name)?;
+        copy(builder, tables, &chest, &chest_key(n), &name, false)?;
+        copy(builder, tables, &floor, &name, &name, false)?;
         if keys == DungeonKeys::Rings {
             let model = rings::model(&small.model, *count as usize)?;
             small.write_as(builder, &ring_model(n, keys), &model, tint, true)?;
         }
         if keys.copies() {
-            copy(builder, tables, &chest, &ring(n), &ring_model(n, keys))?;
+            copy(
+                builder,
+                tables,
+                &chest,
+                &ring(n),
+                &ring_model(n, keys),
+                true,
+            )?;
         }
         if bosses && has_boss(n) {
             let name = boss.paint(builder, n, tint)?;
-            copy(builder, tables, &boss_chest, &name, &name)?;
+            copy(builder, tables, &boss_chest, &name, &name, true)?;
         }
     }
-    if keys.copies() {
-        uncounted(tables)?;
-    }
+    uncounted(tables, bosses, keys.copies())?;
     let name = small.paint(builder, FORTRESS_MODEL, FORTRESS_COLOUR)?;
     for k in 1..=FORTRESS.1 {
         let pack = ActorPack::load(romfs, &format!("{FORTRESS_KEY}{k:02}"))?;
@@ -255,36 +301,50 @@ pub fn write(
     Ok(())
 }
 
-/// Every ring's pouch row says the game neither stores nor counts it.
-fn uncounted(tables: &mut Tables) -> Result<()> {
-    let rings: Vec<String> = (1..=DUNGEONS.len()).map(ring).collect();
-    let deal = field::NOT_PUSH_TO_POUCH.to_string();
+/// Every credited copy's pouch row is a plain item. The template's deal
+/// would count a small key for the dungeon Link stands in (`SmallKey`), or
+/// keep a pickup from handing over a boss key (`NotPushToPouch`).
+fn uncounted(tables: &mut Tables, bosses: bool, rings: bool) -> Result<()> {
+    let copies: Vec<String> = made(rings, bosses).into_iter().map(|(c, _)| c).collect();
     let changed = tables.edit_pouch(|row| {
         let id = row.get(ROW_ID).and_then(|v| v.as_string().ok());
-        let hit = id.is_some_and(|id| rings.iter().any(|r| r == id));
+        let hit = id.is_some_and(|id| copies.iter().any(|c| c == id));
         if hit {
-            row.insert(field::POUCH_SPECIAL_DEAL.get().into(), deal.as_str().into());
+            row.insert(field::POUCH_SPECIAL_DEAL.get().into(), PLAIN_DEAL.into());
         }
         hit
     })?;
     ensure!(
-        changed == rings.len(),
-        "{changed} ring rows of {}",
-        rings.len()
+        changed == copies.len(),
+        "{changed} copy rows of {}",
+        copies.len()
     );
     Ok(())
 }
 
-/// `template` copied as `name`, showing `model`, with its rows.
+/// The deal of an item the game stores and counts no other way.
+const PLAIN_DEAL: &str = "None";
+
+/// `template` copied as `name`, showing `model`, with its rows. An `own`
+/// copy answers to its own name (a ring or boss key copy the hook
+/// credits), any other to the template's, as the game's own key.
 fn copy(
     builder: &mut ModBuilder,
     tables: &mut Tables,
     template: &ActorPack,
     name: &str,
     model: &str,
+    own: bool,
 ) -> Result<()> {
-    write_clone(builder, template, name, pointed(template, name, model)?)?;
+    let files = match own {
+        true => copied(template, name, model)?,
+        false => pointed(template, name, model)?.into(),
+    };
+    write_clone(builder, template, name, files)?;
     tables.copy_item(name, &template.name)?;
+    if own {
+        tables.name_itself(name)?;
+    }
     tables.show(name, &template.name, model)
 }
 
@@ -392,6 +452,24 @@ fn pointed(
     Ok([
         (actor_path(name), doc(actor, &actor_doc), actor_like),
         (info_path, doc(info, &info_doc), info_like),
+    ])
+}
+
+/// A copy's files: `template`'s actor showing `model`, as [`pointed`], and
+/// its own pouch content naming the copy. Left naming the template, the
+/// pouch would hand over the game's key from any holder that resolves it.
+fn copied(template: &ActorPack, name: &str, model: &str) -> Result<Vec<(String, BymlDoc, String)>> {
+    let [(actor_at, actor, actor_like), info] = pointed(template, name, model)?;
+    let pouch_like = path_of(template, POUCH)?;
+    let pouch_at = renamed(&pouch_like, name);
+    let pouch_doc = BymlDoc::parse(&raw(template, &pouch_like)?)?;
+    let mut pouch = resolved(template, &pouch_like)?;
+    pouch.insert(POUCH_ACTOR.get().into(), pouch_actor(name));
+    let actor = doc(with_ref(actor.root.as_map()?, POUCH, &pouch_at)?, &actor);
+    Ok(vec![
+        (actor_at, actor, actor_like),
+        info,
+        (pouch_at, doc(pouch, &pouch_doc), pouch_like),
     ])
 }
 
@@ -632,9 +710,6 @@ mod tests {
                 let boss = BOSS_LOOK.name(n);
                 copies.push((boss.clone(), BOSS, boss));
             }
-            let pouch = crate::standins::row(&tables.pouch, &ring(n)).unwrap();
-            let deal = pouch.get(field::POUCH_SPECIAL_DEAL.get()).unwrap();
-            assert_eq!(deal.as_string().unwrap(), field::NOT_PUSH_TO_POUCH.get());
             let shown = match keys {
                 DungeonKeys::Rings => RING_LOOK.name(n),
                 _ => SMALL_LOOK.name(n),
@@ -651,6 +726,19 @@ mod tests {
                 }
             }
             copies.push((ring(n), SMALL, shown));
+            let credited = made(true, true);
+            for (copy, template, _) in &copies {
+                let own = credited.iter().any(|(c, _)| c == copy);
+                let pouch = crate::standins::row(&tables.pouch, copy).unwrap();
+                let deal = pouch.get(field::POUCH_SPECIAL_DEAL.get()).unwrap();
+                let actor = crate::standins::row(&tables.actor, copy).unwrap();
+                let called = actor.get(flag::ACTOR_NAME.get()).unwrap();
+                let called_is = if own { copy.as_str() } else { template.get() };
+                assert_eq!(called.as_string().unwrap(), called_is, "{copy}");
+                if own {
+                    assert_eq!(deal.as_string().unwrap(), PLAIN_DEAL, "{copy}");
+                }
+            }
             for (copy, template, model) in copies {
                 assert!(!read(&model_path(&model)).is_empty(), "{model}");
                 assert_eq!(fmdb(&copy), Some(model), "{copy}");

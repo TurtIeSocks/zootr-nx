@@ -15,6 +15,8 @@ use serde::Serialize;
 use crate::known::{Name, field, flag};
 
 pub const PATH: &str = "GameData/GameDataList.Product.110.byml.zs";
+/// The Struct holding whether Link has each item, `IsGet.ITEM`.
+pub const IS_GET: &str = "IsGet";
 const BOOL_EXP: &Name = flag::BOOL_EXP;
 #[cfg_attr(test, derive(Default))]
 pub struct GameData {
@@ -393,14 +395,7 @@ impl GameData {
 /// with its own hash. The table isn't sorted, so the end will do, and a
 /// save from before loads them at their default.
 pub fn add_bools(root: &mut Byml, names: &[String]) -> Result<()> {
-    let bools = root
-        .as_mut_map()?
-        .get_mut("Data")
-        .context("no Data")?
-        .as_mut_map()?
-        .get_mut("Bool")
-        .context("no Bool table")?
-        .as_mut_array()?;
+    let bools = table(root, "Bool")?;
     let first = bools
         .first()
         .context("the Bool table is empty")?
@@ -408,24 +403,103 @@ pub fn add_bools(root: &mut Byml, names: &[String]) -> Result<()> {
         .clone();
     for name in names {
         let hash = murmur3(name.as_bytes());
-        let taken = bools.iter().any(|e| {
-            let h = e.as_map().ok().and_then(|m| m.get("Hash")).map(int);
-            h.is_some_and(|h| h.is_ok_and(|h| h == i64::from(hash)))
-        });
+        let taken = bools.iter().any(|e| has_hash(e, hash));
         ensure!(!taken, "{} already has a Bool {name}", flag::GAME_DATA);
-        let hash = match first.get("Hash") {
-            Some(Byml::U32(_)) => Byml::U32(hash),
-            Some(Byml::I32(_)) => Byml::I32(hash as i32),
-            Some(Byml::U64(_)) => Byml::U64(hash.into()),
-            Some(Byml::I64(_)) => Byml::I64(hash.into()),
-            other => bail!("a Bool's hash is {other:?}"),
-        };
         let mut entry = first.clone();
-        entry.insert("Hash".into(), hash);
+        entry.insert("Hash".into(), typed(first.get("Hash"), hash)?);
         entry.insert(field::DEFAULT_VALUE.to_string().into(), Byml::Bool(false));
         bools.push(Byml::Map(entry));
     }
     Ok(())
+}
+
+/// Make each of `names` a member of every Struct `like` is a member of
+/// (`IsGet` and others), each member's value a new false Bool. The game
+/// finds an item's entries through these member lists, and an item with
+/// none can't be taken from the floor. A value is named `S.NAME` after
+/// the one `S.LIKE` names `like`'s, for each `S` in `prefixes`, else after
+/// the Struct's hash. Only Bool values are copied.
+pub fn join_structs(
+    root: &mut Byml,
+    like: &str,
+    names: &[String],
+    prefixes: &[&str],
+) -> Result<()> {
+    let like_hash = murmur3(like.as_bytes());
+    let bools: HashSet<u32> = table(root, "Bool")?
+        .iter()
+        .filter_map(|e| Some(int(e.as_map().ok()?.get("Hash")?).ok()? as u32))
+        .collect();
+    let mut values = Vec::new();
+    for s in table(root, "Struct")?.iter_mut() {
+        let s = s.as_mut_map()?;
+        let struct_hash = int(s.get("Hash").context("a Struct with no hash")?)? as u32;
+        let members = s
+            .get_mut(field::DEFAULT_VALUE.get())
+            .context("a Struct with no members")?
+            .as_mut_array()?;
+        let Some(member) = members.iter().find(|m| has_hash(m, like_hash)) else {
+            continue;
+        };
+        let member = member.as_map()?.clone();
+        let value = int(&member["Value"])? as u32;
+        ensure!(
+            bools.contains(&value),
+            "{like}'s value in Struct #{struct_hash:08x} isn't a Bool"
+        );
+        let prefix = prefixes
+            .iter()
+            .find(|p| murmur3(format!("{p}.{like}").as_bytes()) == value)
+            .map_or_else(|| format!("#{struct_hash:08x}"), |p| p.to_string());
+        for name in names {
+            let value = format!("{prefix}.{name}");
+            let mut m = member.clone();
+            m.insert(
+                "Hash".into(),
+                typed(member.get("Hash"), murmur3(name.as_bytes()))?,
+            );
+            m.insert(
+                "Value".into(),
+                typed(member.get("Value"), murmur3(value.as_bytes()))?,
+            );
+            members.push(Byml::Map(m));
+            values.push(value);
+        }
+    }
+    ensure!(
+        !values.is_empty() || names.is_empty(),
+        "{like} is in no Struct"
+    );
+    add_bools(root, &values)
+}
+
+/// Whether entry `e`'s hash is `hash`.
+fn has_hash(e: &Byml, hash: u32) -> bool {
+    let h = e.as_map().ok().and_then(|m| m.get("Hash")).map(int);
+    h.is_some_and(|h| h.is_ok_and(|h| h == i64::from(hash)))
+}
+
+/// `Data`'s table `kind`.
+fn table<'a>(root: &'a mut Byml, kind: &str) -> Result<&'a mut Vec<Byml>> {
+    Ok(root
+        .as_mut_map()?
+        .get_mut("Data")
+        .context("no Data")?
+        .as_mut_map()?
+        .get_mut(kind)
+        .with_context(|| format!("no {kind} table"))?
+        .as_mut_array()?)
+}
+
+/// `hash` as the same integer type as `like`.
+fn typed(like: Option<&Byml>, hash: u32) -> Result<Byml> {
+    Ok(match like {
+        Some(Byml::U32(_)) => Byml::U32(hash),
+        Some(Byml::I32(_)) => Byml::I32(hash as i32),
+        Some(Byml::U64(_)) => Byml::U64(hash.into()),
+        Some(Byml::I64(_)) => Byml::I64(hash.into()),
+        other => bail!("a hash is {other:?}"),
+    })
 }
 
 #[cfg(test)]
@@ -451,6 +525,37 @@ mod tests {
 
     fn dump() -> Option<GameData> {
         Some(GameData::load(&crate::game::dev_dump()?).unwrap())
+    }
+
+    #[test]
+    fn a_joined_item_is_in_every_struct_its_like_is_with_bools_of_its_own() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut doc = BymlDoc::parse(&romfs.read(PATH).unwrap()).unwrap();
+        let like = crate::known::item::DUNGEON_SMALL_KEY.get();
+        let name = "Item_A".to_string();
+        join_structs(&mut doc.root, like, std::slice::from_ref(&name), &[IS_GET]).unwrap();
+        let members = |root: &mut Byml, item: &str| {
+            let hash = murmur3(item.as_bytes());
+            let structs = table(root, "Struct").unwrap();
+            let mut found = Vec::new();
+            for s in structs.iter() {
+                let s = s.as_map().unwrap();
+                for m in s[field::DEFAULT_VALUE.get()].as_array().unwrap() {
+                    if has_hash(m, hash) {
+                        found.push(int(&m.as_map().unwrap()["Value"]).unwrap() as u32);
+                    }
+                }
+            }
+            found
+        };
+        let theirs = members(&mut doc.root, like);
+        let ours = members(&mut doc.root, &name);
+        assert_eq!(theirs.len(), ours.len());
+        assert!(ours.contains(&murmur3(format!("{IS_GET}.{name}").as_bytes())));
+        let bools = table(&mut doc.root, "Bool").unwrap();
+        assert!(ours.iter().all(|v| bools.iter().any(|b| has_hash(b, *v))));
     }
 
     #[test]
