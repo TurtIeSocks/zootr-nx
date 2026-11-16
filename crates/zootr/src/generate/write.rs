@@ -158,13 +158,7 @@ pub fn write_mod(
     medallions::write(romfs, &mut builder, &mut tables, items)?;
     let flags = hook_flags(new_game);
     let bosses = boss_copies(new_game);
-    key_tints::write(
-        romfs,
-        &mut builder,
-        &mut tables,
-        bosses,
-        new_game.keys.copies(),
-    )?;
+    key_tints::write(romfs, &mut builder, &mut tables, bosses, new_game.keys)?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
     let levels = levels(romfs, drops, new_game)?;
     levels.events(&mut events)?;

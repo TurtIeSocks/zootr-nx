@@ -90,6 +90,7 @@ pub const DROP_CHECK_ACTOR: &Name = &n!(0xf29c32993b10ba33);
 pub const DROP_DROP_ACTOR: &Name = &n!(0x23988b72e41328e4);
 pub const DROP_DROP_ACTOR_SUBSTITUTE: &Name = &n!(0x3b7fab9d1b82e99d);
 pub const DUNGEON_ROOM_CENTER_ANCHOR: &Name = &n!(0x9ec4060266aedf2e);
+pub const DUNGEON_SMALL_KEY_MT_OBJ_DUNGEON_SMALL_KEY: &Name = &n!(0x4bb76964d527779b);
 pub const ENABLE_STOCK: &Name = &n!(0xba71ede1f0050d78);
 pub const END_DIALOG_OPTION: &Name = &n!(0x3b821f876b12c56f);
 pub const ENEMY_EVENT: &Name = &n!(0x800d38b0053d42f4);
