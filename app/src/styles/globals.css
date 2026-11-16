@@ -84,7 +84,9 @@
   --control-sm: 28px;
   --control-md: 32px;
   --control-lg: 40px;
-  --titlebar: 44px;
+  /* The title band. tauri.conf.json's trafficLightPosition centres the
+     macOS window buttons in it: (52 - 12) / 2 = 20. */
+  --titlebar: 52px;
   --sidebar-width: 240px;
   --content-width: 760px;
   --duration-fast: 120ms;

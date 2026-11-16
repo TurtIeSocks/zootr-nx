@@ -20,7 +20,7 @@
         "minHeight": 520,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,
-        "trafficLightPosition": { "x": 16, "y": 16 }
+        "trafficLightPosition": { "x": 20, "y": 20 }
       },
       {
         "label": "tracker",
