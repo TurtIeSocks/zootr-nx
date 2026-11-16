@@ -11,7 +11,7 @@ use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, ModBuilder, Romfs};
 
 use crate::checks::{
-    DROP_ACTOR, Drop, GYAML, ItemCheck, actors, banc_files, hash_of, load_banc, str_field,
+    DROP_ACTOR, Drop, GYAML, ItemCheck, actors, banc_files, hash_of, load_bancs, str_field,
 };
 use crate::gifts;
 use crate::known::{Name, actor, item};
@@ -244,11 +244,11 @@ impl Kind {
     /// One check per placement, as chests are.
     pub fn checks(&self, romfs: &Romfs) -> Result<Vec<ItemCheck>> {
         let mut out = Vec::new();
-        for file in banc_files(romfs)?
-            .into_iter()
+        let files = (banc_files(romfs)?.into_iter())
             .filter(|f| !f.starts_with(REMIX))
-        {
-            let doc = load_banc(romfs, &file)?;
+            .collect();
+        for (file, doc) in load_bancs(romfs, files) {
+            let doc = doc?;
             for actor in actors(&doc.root)? {
                 let gyaml = str_field(actor, GYAML).unwrap_or_default();
                 if !self.places(gyaml) {

@@ -15,7 +15,8 @@ mod rings;
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{
-    ActorPack, Byml, BymlDoc, ModBuilder, Romfs, levels, murmur3, pack_file, redraw, rename,
+    ActorPack, Byml, BymlDoc, ModBuilder, Romfs, Texture, murmur3, pack_file, redraw, rename,
+    top_level,
 };
 use zootr_hook::Credit;
 
@@ -406,11 +407,11 @@ fn copy(
     tables.show(name, &template.name, model)
 }
 
-/// A key's host model and its textures, read once.
+/// A key's host model and its textures, read and decoded once.
 struct Host {
     look: &'static Look,
     model: Vec<u8>,
-    textures: Vec<(&'static str, Vec<u8>)>,
+    textures: Vec<(&'static str, Vec<u8>, Texture)>,
 }
 
 impl Host {
@@ -418,7 +419,11 @@ impl Host {
         let textures = look
             .kinds
             .iter()
-            .map(|kind| Ok((*kind, romfs.read(&texture_path(look.host, kind))?)))
+            .map(|kind| {
+                let data = romfs.read(&texture_path(look.host, kind))?;
+                let top = top_level(&data)?;
+                Ok((*kind, data, top))
+            })
             .collect::<Result<_>>()?;
         Ok(Self {
             look,
@@ -451,24 +456,24 @@ impl Host {
             &rename(model, host, name)?,
             &model_path(host),
         )?;
-        for (kind, data) in &self.textures {
-            let data = texture(&rename(data, host, name)?, kind, tint, ring)?;
+        for (kind, data, top) in &self.textures {
+            let data = texture(&rename(data, host, name)?, top, kind, tint, ring)?;
             builder.add(&texture_path(name, kind), &data, &texture_path(host, kind))?;
         }
         Ok(())
     }
 }
 
-/// A texture of `kind`: an albedo's first level in `colour`, each texel
+/// A texture of `kind`, `top` its first level decoded: an albedo's first level in `colour`, each texel
 /// scaled by its brightness, so the metal maps keep the shine and a
 /// coloured albedo (the boss key's gold) takes the colour as cleanly as a
 /// grey one. With `ring`, any kind with the ring's iron and gold corner.
-fn texture(data: &[u8], kind: &str, colour: Colour, ring: bool) -> Result<Vec<u8>> {
+fn texture(data: &[u8], top: &Texture, kind: &str, colour: Colour, ring: bool) -> Result<Vec<u8>> {
     let albedo = kind == "Alb";
     if !albedo && !ring {
         return Ok(data.to_vec());
     }
-    let mut t = levels(data)?.swap_remove(0);
+    let mut t = top.clone();
     let key = t.rgba.clone();
     if albedo {
         tint(&mut t.rgba, colour);
