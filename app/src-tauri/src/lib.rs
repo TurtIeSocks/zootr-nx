@@ -367,7 +367,9 @@ fn play(target: String) -> Res<()> {
         return Err(format!("No target named {target}"));
     };
     let args = t.launch_args(config.game.as_deref()).map_err(text)?;
-    platform::open_app(&t.app, &args).map_err(|_| format!("Couldn't open {}", t.app.display()))
+    let env = t.launch_env().map_err(text)?;
+    platform::open_app(&t.app, &args, &env)
+        .map_err(|_| format!("Couldn't open {}", t.app.display()))
 }
 
 /// Every Live tab event, to whichever page is listening.

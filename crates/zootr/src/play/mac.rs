@@ -113,7 +113,7 @@ impl Input for Mac {
     }
 
     fn launch(&mut self) -> Result<()> {
-        platform::open_app(&self.app, &self.args)
+        platform::open_app(&self.app, &self.args, &[])
     }
 
     /// Every process of the app, the game and its host alike: a host left

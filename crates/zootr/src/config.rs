@@ -152,9 +152,14 @@ impl Target {
             .any(|l| l.contains("{cheats}"))
     }
 
-    /// Whether a process was started from `app`'s path.
+    /// Whether the game is running: answering on its bridge when it has
+    /// one, since `app` may only launch it under another name, else a
+    /// process started from `app`'s path.
     pub fn running(&self) -> bool {
-        platform::running(&self.app)
+        match &self.bridge {
+            Some(socket) => crate::live::Bridge::listening(socket),
+            None => platform::running(&self.app),
+        }
     }
 
     /// `args` with `{game}` filled in.
@@ -740,6 +745,22 @@ mod tests {
             ..target("a", None)
         };
         assert!(!t.running());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_bridge_target_runs_while_its_socket_answers() {
+        let path = std::env::temp_dir().join(format!("zootr-running-{}", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let t = Target {
+            bridge: Some(path.clone()),
+            ..target("a", None)
+        };
+        assert!(!t.running());
+        let listener = std::os::unix::net::UnixListener::bind(&path).unwrap();
+        assert!(t.running());
+        drop(listener);
+        std::fs::remove_file(&path).unwrap();
     }
 
     #[test]

@@ -113,10 +113,13 @@ pub fn running(app: &Path) -> bool {
     })
 }
 
-/// Opens `app`, passing `args` when this starts it.
-pub fn open_app(app: &Path, args: &[String]) -> Result<()> {
+/// Opens `app`, passing `args` and `env` when this starts it.
+pub fn open_app(app: &Path, args: &[String], env: &[(String, String)]) -> Result<()> {
     if cfg!(target_os = "macos") {
         let mut open = Command::new("open");
+        for (name, value) in env {
+            open.arg("--env").arg(format!("{name}={value}"));
+        }
         open.arg(app);
         if !args.is_empty() {
             // Only reaches the app when this starts it, not when it's already open.
@@ -130,6 +133,7 @@ pub fn open_app(app: &Path, args: &[String]) -> Result<()> {
     }
     let mut child = Command::new(app)
         .args(args)
+        .envs(env.iter().map(|(k, v)| (k, v)))
         .current_dir(app.parent().unwrap_or(Path::new(".")))
         .spawn()?;
     std::thread::spawn(move || child.wait());
@@ -178,6 +182,32 @@ mod tests {
 
     fn path(parts: &[&str]) -> PathBuf {
         parts.iter().collect()
+    }
+
+    /// Play starts the app with the target's env, which is how a runner
+    /// learns its control socket.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn open_app_passes_env_to_what_it_starts() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("zootr-open-env-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let app = dir.join("runner.sh");
+        let out = dir.join("out.txt");
+        std::fs::write(
+            &app,
+            "#!/bin/sh\nprintf %s \"$ZOOTR_SOCK\" > \"$1.tmp\" && mv \"$1.tmp\" \"$1\"\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&app, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let env = [("ZOOTR_SOCK".to_owned(), "/run/c.sock".to_owned())];
+        open_app(&app, &[out.to_string_lossy().into()], &env).unwrap();
+        let read = (0..100).find_map(|_| {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            std::fs::read_to_string(&out).ok()
+        });
+        std::fs::remove_dir_all(&dir).ok();
+        assert_eq!(read.as_deref(), Some("/run/c.sock"));
     }
 
     #[test]
