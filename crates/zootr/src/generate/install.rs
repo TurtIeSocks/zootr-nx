@@ -89,7 +89,7 @@ mod tests {
         let mod_dir = dir.join("mod");
         std::fs::create_dir_all(mod_dir.join("romfs/Pack")).unwrap();
         std::fs::write(mod_dir.join("spoiler.txt"), "").unwrap();
-        crate::patch::install(&mod_dir, true, false, 0).unwrap();
+        crate::patch::install(&mod_dir, true, false, 0, &[]).unwrap();
         let env = dir.join("env.txt");
         std::fs::write(&env, "A=1\nKEY=x\n").unwrap();
         let target = |line| Target {
@@ -171,7 +171,7 @@ mod tests {
             env: vec![],
         };
         let targets = [target("reads", "C={cheats}"), target("not", "R={romfs}")];
-        install(&targets, |d| crate::patch::install(d, true, false, 0)).unwrap();
+        install(&targets, |d| crate::patch::install(d, true, false, 0, &[])).unwrap();
         let has = |m: &str| crate::patch::path(&dir.join(m)).exists();
         assert!(has("reads") && !has("not"));
         assert!(dir.join("not/exefs/zootr.pchtxt").is_file());

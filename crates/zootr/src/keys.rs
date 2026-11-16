@@ -48,6 +48,11 @@ pub fn pooled(check: &ItemCheck) -> &str {
 /// The Gerudo Fortress counts keys like a dungeon, one for each thief.
 pub const FORTRESS: (&Name, i32) = (flag::GERUDO_FORTRESS, 4);
 
+/// The Bool `dungeon`'s boss key sets.
+pub fn boss_flag(dungeon: &Name) -> String {
+    format!("DungeonInfo.{dungeon}.IsGetBossKey")
+}
+
 /// The new-game defaults that fill the counters and boss key flags of
 /// every dungeon, and the Fortress's counter when `fortress`.
 pub fn defaults(dungeons: bool, fortress: bool) -> Vec<String> {
@@ -58,7 +63,7 @@ pub fn defaults(dungeons: bool, fortress: bool) -> Vec<String> {
             flag::SMALL_KEY_NUM
         ));
         if *boss {
-            edits.push(format!("DungeonInfo.{name}.IsGetBossKey=true"));
+            edits.push(format!("{}=true", boss_flag(name)));
         }
     }
     if fortress {

@@ -2,17 +2,19 @@
 //! the key model, its albedo tinted, and copies of the key actors showing
 //! it: the small key's chest content and floor key, and the boss key where
 //! the dungeon has one. The dungeon's key chests and floor keys name the
-//! copies, and each copy keeps its pouch row, so the game credits it as a
-//! key. The Gerudo Fortress's keys, their own actors already, show a
+//! copies, and each copy keeps its pouch row, so the game credits a small
+//! key. A chest's flow knows the boss key only by its own name, so the hook
+//! credits a boss key copy, and a seed without the hook keeps the boss key
+//! as it is. The Gerudo Fortress's keys, their own actors already, show a
 //! model of their own.
 
 use anyhow::{Context, Result};
 use ounce_formats::{
-    ActorPack, Byml, BymlDoc, ModBuilder, Romfs, levels, pack_file, redraw, rename,
+    ActorPack, Byml, BymlDoc, ModBuilder, Romfs, levels, murmur3, pack_file, redraw, rename,
 };
 
 use crate::checks::{self, DROP_ACTOR, GYAML};
-use crate::keys::{BOSS, DUNGEONS, FORTRESS, FORTRESS_KEY, SMALL};
+use crate::keys::{BOSS, DUNGEONS, FORTRESS, FORTRESS_KEY, SMALL, boss_flag};
 use crate::known::{Name, actor, field, flag, flow, item};
 use crate::medallions::{self, Colour, model_path, texture_path};
 use crate::standins::{
@@ -124,9 +126,27 @@ fn has_boss(n: usize) -> bool {
     DUNGEONS[n - 1].2
 }
 
-/// Writes each dungeon's model and actor copies, and points the Fortress
-/// keys at a model of their own.
-pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Result<()> {
+/// Each boss key copy, with the hash of the Bool the hook sets as it's
+/// found.
+pub fn credits() -> Vec<(String, u32)> {
+    let bosses = DUNGEONS.iter().enumerate().filter(|(_, (.., boss))| *boss);
+    let credit = |(i, (dungeon, ..)): (usize, &(&Name, i32, bool))| {
+        (
+            BOSS_LOOK.name(i + 1),
+            murmur3(boss_flag(dungeon).as_bytes()),
+        )
+    };
+    bosses.map(credit).collect()
+}
+
+/// Writes each dungeon's model and actor copies, the boss key's only with
+/// `bosses`, and points the Fortress keys at a model of their own.
+pub fn write(
+    romfs: &Romfs,
+    builder: &mut ModBuilder,
+    tables: &mut Tables,
+    bosses: bool,
+) -> Result<()> {
     let small = Host::read(romfs, &SMALL_LOOK)?;
     let boss = Host::read(romfs, &BOSS_LOOK)?;
     let floor = ActorPack::load(romfs, SMALL_LOOK.host)?;
@@ -138,7 +158,7 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Re
         let name = small.paint(builder, n, tint)?;
         copy(builder, tables, &chest, &chest_key(n), &name)?;
         copy(builder, tables, &floor, &name, &name)?;
-        if has_boss(n) {
+        if bosses && has_boss(n) {
             let name = boss.paint(builder, n, tint)?;
             copy(builder, tables, &boss_chest, &name, &name)?;
         }
@@ -266,14 +286,15 @@ fn repoint(builder: &mut ModBuilder, pack: &ActorPack, model: &str) -> Result<()
 }
 
 /// Swaps the keys placed in `rel`'s map, a dungeon's, for that dungeon's
-/// copies: a chest's content and a floor key. Returns how many.
-pub fn swap(rel: &str, root: &mut Byml) -> Result<usize> {
+/// copies: a chest's content and a floor key, and with `bosses` its boss
+/// key. Returns how many.
+pub fn swap(rel: &str, root: &mut Byml, bosses: bool) -> Result<usize> {
     let Some(n) = dungeon_of(rel) else {
         return Ok(0);
     };
     let floor = SMALL_LOOK.name(n);
     let mut contents = vec![(SMALL, chest_key(n))];
-    if has_boss(n) {
+    if bosses && has_boss(n) {
         contents.push((BOSS, BOSS_LOOK.name(n)));
     }
     let mut swapped = 0;
@@ -321,6 +342,24 @@ mod tests {
     }
 
     #[test]
+    fn each_boss_key_copy_credits_its_dungeon_s_flag() {
+        if crate::game::no_names() {
+            return;
+        }
+        let credits = credits();
+        assert_eq!(credits.len(), DUNGEONS.iter().filter(|d| d.2).count());
+        let forest = DUNGEONS
+            .iter()
+            .position(|d| d.0 == flag::FOREST_TEMPLE)
+            .unwrap();
+        let found = credits
+            .iter()
+            .find(|(name, _)| *name == BOSS_LOOK.name(forest + 1));
+        // The Forest Temple's, as `probe data` names it.
+        assert_eq!(found.map(|c| c.1), Some(0x4273_33a0));
+    }
+
+    #[test]
     fn every_dungeon_with_keys_has_a_colour() {
         for (dungeon, ..) in DUNGEONS {
             assert!(colour(dungeon).is_some(), "{dungeon}");
@@ -353,7 +392,16 @@ mod tests {
         let mut bosses = vec![0; DUNGEONS.len() + 1];
         for rel in checks::banc_files(&romfs).unwrap() {
             let mut doc = checks::load_banc(&romfs, &rel).unwrap();
-            let swapped = swap(&rel, &mut doc.root).unwrap();
+            let mut plain = doc.root.clone();
+            swap(&rel, &mut plain, false).unwrap();
+            for actor in checks::actors(&plain).unwrap() {
+                let held = actor.as_map().ok().and_then(|m| m.get("Dynamic"));
+                let held = held
+                    .and_then(|d| checks::str_field(d, DROP_ACTOR))
+                    .unwrap_or("");
+                assert!(!held.starts_with(BOSS_LOOK.copy), "{rel} without the hook");
+            }
+            let swapped = swap(&rel, &mut doc.root, true).unwrap();
             let Some(n) = dungeon_of(&rel) else {
                 assert_eq!(swapped, 0, "{rel}");
                 continue;
@@ -382,7 +430,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-key-tints-{}", std::process::id()));
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let mut tables = Tables::load(&romfs).unwrap();
-        write(&romfs, &mut builder, &mut tables).unwrap();
+        write(&romfs, &mut builder, &mut tables, true).unwrap();
         builder.finish().unwrap();
         let read = |rel: &str| {
             let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
