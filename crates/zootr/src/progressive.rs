@@ -2,9 +2,8 @@
 //! Link doesn't have, decided in the game by the hook (see `patch.rs`).
 //! A gift asks the pouch in its own flow instead (`gifts/levels.rs`).
 //!
-//! Levels from gifts stay out: the Goron Bracelet comes from Darunia, the
-//! first wallet is never an item, and the smallest stick and nut capacity
-//! come with the first stick or nut. The quiver and bullet bag lines start
+//! Some levels stay out: the first wallet is never an item, and the
+//! smallest stick and nut capacity come with the first stick or nut. The quiver and bullet bag lines start
 //! at the bow and slingshot, since the Small levels have no get text and a
 //! chest giving one hangs the game.
 use crate::known::{Name, actor, item};
@@ -14,6 +13,7 @@ use crate::known::{Name, actor, item};
 pub const LINES: [&[(&Name, &Name)]; 10] = [
     &[same(item::HOOKSHOT), same(item::LONGSHOT)],
     &[
+        (item::GAUNTLET_GORON, actor::ARMOR_CHILD_GAUNTLET_GORON),
         (item::GAUNTLET_SILVER, actor::ARMOR_ADULT_GAUNTLET_SILVER),
         (item::GAUNTLET_GOLD, actor::ARMOR_ADULT_GAUNTLET_GOLD),
     ],
@@ -64,6 +64,13 @@ pub fn levels(actor: &str) -> Vec<&'static str> {
         .collect()
 }
 
+/// What a seed with progressive items calls any level of `actor`'s line,
+/// where its first level's name would mislead: the Bracelet's line holds
+/// both gauntlets.
+pub fn label(actor: &str) -> Option<&'static str> {
+    (first(actor) == item::GAUNTLET_GORON.get()).then_some("Strength")
+}
+
 /// Whether `actor` is a level of some line.
 pub fn in_line(actor: &str) -> bool {
     line(actor).is_some()
@@ -72,6 +79,20 @@ pub fn in_line(actor: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_strength_level_is_strength_and_no_other_line_is() {
+        needs_names!();
+        for strength in [
+            item::GAUNTLET_GORON,
+            item::GAUNTLET_SILVER,
+            item::GAUNTLET_GOLD,
+        ] {
+            assert_eq!(label(strength), Some("Strength"));
+        }
+        assert_eq!(label(item::HOOKSHOT), None);
+        assert_eq!(label(item::BOMB_BAG_SMALL), None);
+    }
 
     #[test]
     fn every_level_starts_its_line() {

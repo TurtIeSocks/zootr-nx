@@ -19,6 +19,7 @@ const PREFIXES: [&str; 3] = ["Item_", "TBox_", "Obj_"];
 pub struct Names {
     areas: HashMap<String, String>,
     items: HashMap<String, String>,
+    progressive: bool,
 }
 
 impl Names {
@@ -44,7 +45,16 @@ impl Names {
         Ok(Self {
             areas: text(AREAS)?,
             items,
+            progressive: false,
         })
+    }
+
+    /// Name dealt items as a seed with progressive items deals them.
+    pub fn progressive(self, progressive: bool) -> Self {
+        Self {
+            progressive,
+            ..self
+        }
     }
 
     pub fn area(&self, id: &str) -> String {
@@ -56,6 +66,15 @@ impl Names {
             .get(actor)
             .cloned()
             .unwrap_or_else(|| pretty(actor))
+    }
+
+    /// What a check gives, as the seed deals it: a line's [label] with
+    /// progressive items on, else [`Self::item`].
+    ///
+    /// [label]: crate::progressive::label
+    pub fn dealt(&self, actor: &str) -> String {
+        let label = crate::progressive::label(actor).filter(|_| self.progressive);
+        label.map_or_else(|| self.item(actor), str::to_owned)
     }
 }
 

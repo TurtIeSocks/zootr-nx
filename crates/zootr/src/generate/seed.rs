@@ -46,7 +46,7 @@ pub fn shuffle(
         .iter()
         .flat_map(|p| [p.check.item.as_str(), p.item])
         .chain(have.items.keys().map(String::as_str));
-    let names = Names::load(romfs, actors)?;
+    let names = Names::load(romfs, actors)?.progressive(new_game.progressive);
     let mut spots: Vec<Spot> = placements.iter().map(|p| Spot::new(p, &names)).collect();
     places::fill(romfs, &mut spots)?;
     spots.sort_by(|a, b| (&a.area_name, a.name(), a.hash).cmp(&(&b.area_name, b.name(), b.hash)));
@@ -87,7 +87,7 @@ fn start(have: &Have, new_game: &NewGame, names: &Names) -> Start {
     let mut items: Vec<Held> = (have.items.iter())
         .map(|(item, &count)| Held {
             item: item.clone(),
-            name: names.item(item),
+            name: names.dealt(item),
             count,
         })
         .collect();

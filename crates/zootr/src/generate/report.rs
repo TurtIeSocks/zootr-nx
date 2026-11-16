@@ -62,7 +62,7 @@ impl Spot {
             item: p.item.to_owned(),
             area_name: names.area(area),
             chest_name: chest_name(names.item(&p.check.item), &p.check.holder),
-            item_name: names.item(p.item),
+            item_name: names.dealt(p.item),
             ..Default::default()
         }
     }

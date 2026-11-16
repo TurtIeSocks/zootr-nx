@@ -446,7 +446,7 @@ pub fn schema() -> Vec<SettingDef> {
                 PROGRESSIVE,
                 group::GENERAL,
                 "Progressive items",
-                "Upgrade chests give the next level Link doesn't have: Hookshot then Longshot, Silver then Gold Gauntlets and Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size",
+                "Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size",
             ))])
         .chain([default_on(toggle(
                 FREE_BOMBCHUS,
