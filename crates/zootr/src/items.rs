@@ -2,7 +2,7 @@
 //! PouchContentParam, which is what makes an actor something Link can own.
 
 use anyhow::Result;
-use ounce_formats::{ActorPack, Byml, BymlMap, Romfs, files_with_suffix};
+use ounce_formats::{ActorPack, Byml, BymlMap, Romfs, files_with_suffix, par_map};
 
 use crate::known::field;
 
@@ -100,14 +100,28 @@ fn load(romfs: &Romfs, actor: &str) -> Result<Option<Item>> {
 
 /// Every pouch item, sorted by actor name.
 pub fn scan(romfs: &Romfs) -> Result<Vec<Item>> {
-    let mut items = Vec::new();
-    for path in files_with_suffix(&romfs.root().join(DIR), SUFFIX)? {
-        let rel = romfs.rel(&path)?;
-        let actor = rel.trim_start_matches(DIR).trim_start_matches('/');
-        if let Some(item) = load(romfs, actor.trim_end_matches(SUFFIX))? {
-            items.push(item);
-        }
-    }
+    let actors = (files_with_suffix(&romfs.root().join(DIR), SUFFIX)?.iter())
+        .map(|path| {
+            let rel = romfs.rel(path)?;
+            let actor = rel.trim_start_matches(DIR).trim_start_matches('/');
+            Ok(actor.trim_end_matches(SUFFIX).to_owned())
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let mut items = (par_map(&actors, |actor| load(romfs, actor)).into_iter())
+        .filter_map(Result::transpose)
+        .collect::<Result<Vec<_>>>()?;
     items.sort_by(|a, b| a.actor.cmp(&b.actor));
     Ok(items)
+}
+
+/// `actor` as a pouch item, `None` when it's no actor or not one.
+pub fn get(romfs: &Romfs, actor: &str) -> Result<Option<Item>> {
+    match romfs
+        .root()
+        .join(format!("{DIR}/{actor}{SUFFIX}"))
+        .is_file()
+    {
+        true => load(romfs, actor),
+        false => Ok(None),
+    }
 }

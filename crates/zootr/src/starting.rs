@@ -207,9 +207,8 @@ pub fn grant(
     if items.is_empty() && give.is_empty() {
         return Ok(());
     }
-    if !give.is_empty() {
-        let known = items::scan(romfs)?;
-        if let Some(g) = give.iter().find(|g| !known.iter().any(|k| &k.actor == *g)) {
+    for g in give {
+        if items::get(romfs, g)?.is_none() {
             bail!("{g} isn't a pouch item. `zootr items` lists them");
         }
     }
