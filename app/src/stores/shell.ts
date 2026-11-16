@@ -14,7 +14,7 @@ interface Shell {
   beckon: number;
   /** The seed whose spoiler History opened, as it was when clicked. */
   spoiler?: Summary;
-  /** The installed seed whose spoiler was revealed during a run. */
+  /** The installed seed whose spoiler was revealed. */
   revealed?: number;
   /** The seed being labelled, as it was when clicked, so a poll never
    * clobbers a label being typed. */

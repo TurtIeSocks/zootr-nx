@@ -1,8 +1,10 @@
+import { EyeOff } from "lucide-react";
 import { useState } from "react";
 import { commands } from "@/bindings";
 import { InlineError } from "@/components/callout";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { type EdgeMark, ScrollEdges } from "@/components/scroll-edges";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -24,6 +26,7 @@ import {
   useShownTab,
   useSpoiler,
 } from "@/play/spoiler/spoiler-context";
+import { useSeeds } from "@/stores/seeds";
 import { closeSpoiler, useShell } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
 
@@ -78,12 +81,45 @@ export function SpoilerSheet() {
           {/* Another seed starts a fresh load and pick. */}
           {entry && (
             <ErrorBoundary label="The spoiler" resetKey={entry.id}>
-              <SpoilerBody key={entry.id} id={entry.id} />
+              <CoveredSpoiler id={entry.id} />
             </ErrorBoundary>
           )}
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** A seed's spoiler, covered until revealed when it's the installed seed's
+ * (once per seed), so nobody sees the seed they're playing by accident. */
+export function CoveredSpoiler({ id }: SpoilerBodyProps) {
+  const installed = useSeeds((s) => s.history.installed?.id);
+  const [revealed, setRevealed] = useShell.usePath("revealed");
+  return id === installed && revealed !== id ? (
+    <Cover onReveal={() => setRevealed(id)} />
+  ) : (
+    <SpoilerBody key={id} id={id} />
+  );
+}
+
+/** Props for {@link Cover}. */
+interface CoverProps {
+  onReveal: () => void;
+}
+
+/** Hides the spoiler of the seed being played, so a stray click doesn't
+ * give it away. */
+function Cover({ onReveal }: CoverProps) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+      <EyeOff className="size-6 text-ink-faint" />
+      <h2 className="font-semibold text-[15px]">Hidden while you play</h2>
+      <p className="max-w-[44ch] text-[13px] text-ink-muted">
+        The spoiler shows where every item is. Reveal it if you're stuck, or
+        when you're done.
+      </p>
+      <Button onClick={onReveal}>Reveal spoiler</Button>
+    </div>
   );
 }
 

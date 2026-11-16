@@ -19,7 +19,7 @@ import { useChecks } from "@/stores/checks";
 import { useConfig } from "@/stores/config";
 import { useLive } from "@/stores/live";
 import { useSeeds } from "@/stores/seeds";
-import { useShell } from "@/stores/shell";
+import { openSpoiler, useShell } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
 
 const toggle = (id: string, group: string): SettingDef => ({
@@ -148,7 +148,7 @@ test("Play sits alone above the run group, which holds the seed's views", () => 
   sidebar();
   const nav = screen.getByRole("navigation");
   expect(nav.querySelector("button")?.textContent).toBe("Play");
-  expect(runItems("Previous run")).toEqual([
+  expect(runItems("Current run")).toEqual([
     "Checks",
     "Items",
     "Live",
@@ -156,22 +156,21 @@ test("Play sits alone above the run group, which holds the seed's views", () => 
   ]);
 });
 
-test("the run group is the current run while the game is running", () => {
+test("the run group is the current run whether or not the game runs", () => {
   useSeeds.setPath("history", { installed: seed, entries: [seed] });
   sidebar();
-  expect(screen.queryByText("Current run")).toBeNull();
+  expect(runItems("Current run")).toHaveLength(4);
   act(() => useSeeds.setPath("running", true));
   expect(runItems("Current run")).toHaveLength(4);
-  expect(screen.queryByText("Previous run")).toBeNull();
 });
 
 test("the run group is hidden with no seed installed", () => {
   sidebar();
-  expect(screen.queryByText("Previous run")).toBeNull();
+  expect(screen.queryByText("Current run")).toBeNull();
   for (const name of [/^Checks/, /^Items/, /^Live/, /^Spoiler/])
     expect(screen.queryByRole("button", { name })).toBeNull();
   act(() => useSeeds.setPath("history", { installed: seed, entries: [seed] }));
-  expect(runItems("Previous run")).toHaveLength(4);
+  expect(runItems("Current run")).toHaveLength(4);
 });
 
 test("the Spoiler item opens the Spoiler tab", () => {
@@ -183,14 +182,30 @@ test("the Spoiler item opens the Spoiler tab", () => {
   expect(useShell.getState().spoiler).toBeUndefined();
 });
 
-test("the Spoiler tab shows the installed seed's spoiler inline", async () => {
+test("the Spoiler tab shows the installed seed's spoiler inline once revealed", async () => {
   backend.installed = seed;
   render(<App />);
   const nav = await screen.findByRole("navigation");
   fireEvent.click(within(nav).getByRole("button", { name: /^Spoiler/ }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Reveal spoiler" }),
+  );
   expect(await screen.findByText(/only its checks show/)).toBeTruthy();
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(commands.spoiler).toHaveBeenCalledWith(7);
+});
+
+test("History's spoiler of the installed seed is covered too", async () => {
+  vi.mocked(commands.spoiler).mockClear();
+  backend.installed = seed;
+  render(<App />);
+  await screen.findByRole("navigation");
+  act(() => openSpoiler(seed));
+  const dialog = await screen.findByRole("dialog");
+  expect(
+    within(dialog).getByRole("button", { name: "Reveal spoiler" }),
+  ).toBeTruthy();
+  expect(commands.spoiler).not.toHaveBeenCalled();
 });
 
 test("while the game runs, the Spoiler tab stays covered until revealed", async () => {
