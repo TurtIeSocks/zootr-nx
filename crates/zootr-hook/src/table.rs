@@ -1,7 +1,8 @@
 //! The table the seed writes into the game: its header, the offsets of what
-//! the hook needs, the progressive lines, and how a level is picked.
+//! the hook needs, the progressive lines, how a level is picked, and the
+//! flags an item sets as it's found.
 
-pub const MAGIC: &[u8; 4] = b"ZLT2";
+pub const MAGIC: &[u8; 4] = b"ZLT3";
 
 /// The header's flag for a seed whose bombchus need no bomb bag.
 pub const FREE_BOMBCHUS: u32 = 1;
@@ -19,6 +20,8 @@ pub struct Header {
     pub flags: u32,
     /// The size of the lines that follow.
     pub size: u32,
+    /// The size of the credits after them.
+    pub credits: u32,
 }
 
 const _: () = assert!(cfg!(target_endian = "little"));
@@ -114,19 +117,41 @@ offsets! {
 /// The table at `TABLE`. Each line is a level count, then each
 /// level lowest first: the actor it drops, then the pouch name it's owned
 /// as, each a length byte and the name with a NUL.
+///
+/// The credits follow: each a name the same way, then the little endian
+/// hash of the GameData Bool its find sets true. A chest's flow credits a
+/// dungeon item by its exact name, so a copy of one is credited here.
 pub struct Table<'a> {
     pub offsets: &'a Offsets,
     pub flags: u32,
     lines: &'a [u8],
+    credits: &'a [u8],
 }
 
 impl<'a> Table<'a> {
-    pub fn parse(header: &'a Header, lines: &'a [u8]) -> Option<Self> {
+    /// The table `header` starts, `body` being what follows it.
+    pub fn parse(header: &'a Header, body: &'a [u8]) -> Option<Self> {
+        let (lines, rest) = body.split_at_checked(header.size as usize)?;
         (header.magic == *MAGIC).then_some(Self {
             offsets: &header.offsets,
             flags: header.flags,
             lines,
+            credits: rest.get(..header.credits as usize)?,
         })
+    }
+
+    /// The Bool that finding `name` sets, by its hash.
+    pub fn credit(&self, name: &[u8]) -> Option<u32> {
+        let mut rest = self.credits;
+        while let Some((&len, after)) = rest.split_first() {
+            let found = after.get(..len as usize)?;
+            let hash = after.get(len as usize + 1..)?.first_chunk::<4>()?;
+            if found == name {
+                return Some(u32::from_le_bytes(*hash));
+            }
+            rest = &after[len as usize + 5..];
+        }
+        None
     }
 
     /// The level that drops or is owned as `name`, with its line's number
@@ -230,20 +255,33 @@ pub fn after_grant<'a>(
 }
 
 /// The table for `lines`, each lowest level first as (drop, pouch name),
-/// with the seed's `flags`.
+/// with the seed's `flags` and `credits` as (name, Bool hash).
 #[cfg(not(target_os = "none"))]
-pub fn encode(offsets: Offsets, flags: u32, lines: &[&[(&str, &str)]]) -> Vec<u8> {
+pub fn encode(
+    offsets: Offsets,
+    flags: u32,
+    lines: &[&[(&str, &str)]],
+    credits: &[(&str, u32)],
+) -> Vec<u8> {
+    fn push_name(out: &mut Vec<u8>, name: &str) {
+        out.push(u8::try_from(name.len()).expect("a name is under 256 bytes"));
+        out.extend(name.bytes().chain([0]));
+    }
     let mut body = Vec::new();
     for line in lines {
         body.push(u8::try_from(line.len()).expect("a line has under 256 levels"));
         for name in line.iter().flat_map(|&(drop, pouch)| [drop, pouch]) {
-            body.push(u8::try_from(name.len()).expect("a name is under 256 bytes"));
-            body.extend(name.bytes().chain([0]));
+            push_name(&mut body, name);
         }
     }
-    let size = u32::try_from(body.len()).expect("table under 4 GB");
+    let size = body.len();
+    for (name, hash) in credits {
+        push_name(&mut body, name);
+        body.extend(hash.to_le_bytes());
+    }
+    let words = [size, body.len() - size].map(|n| u32::try_from(n).expect("table under 4 GB"));
     let mut out = MAGIC.to_vec();
-    for v in offsets.words().into_iter().chain([flags, size]) {
+    for v in offsets.words().into_iter().chain([flags]).chain(words) {
         out.extend(v.to_le_bytes());
     }
     out.extend(body);
@@ -261,11 +299,15 @@ mod tests {
     const HOOK: &[(&str, &str)] = &[("Hook", "Hook"), ("Long", "Long")];
     /// Owned under another name.
     const GLOVES: &[(&str, &str)] = &[("Glove_S", "Arm_S"), ("Glove_G", "Arm_G")];
+    const CREDITS: &[(&str, u32)] = &[("Key_01", 0x1234_5678), ("Key_02", 0xdead_beef)];
 
     fn with_table<T>(f: impl FnOnce(Table) -> T) -> T {
-        let bytes = encode(offsets(), 0, &[HOOK, BAGS, GLOVES]);
+        let bytes = encode(offsets(), 0, &[HOOK, BAGS, GLOVES], CREDITS);
         let header = Header::read(&bytes);
-        assert_eq!(header.size as usize, bytes.len() - HEADER);
+        assert_eq!(
+            (header.size + header.credits) as usize,
+            bytes.len() - HEADER
+        );
         f(Table::parse(&header, &bytes[HEADER..]).unwrap())
     }
 
@@ -348,8 +390,30 @@ mod tests {
 
     #[test]
     fn a_wrong_magic_is_no_table() {
-        let mut bytes = encode(offsets(), 0, &[HOOK]);
+        let mut bytes = encode(offsets(), 0, &[HOOK], &[]);
         bytes[0] = b'X';
         assert!(Table::parse(&Header::read(&bytes), &bytes[HEADER..]).is_none());
+    }
+
+    #[test]
+    fn a_credit_names_its_bool() {
+        with_table(|t| {
+            assert_eq!(t.credit(b"Key_01"), Some(0x1234_5678));
+            assert_eq!(t.credit(b"Key_02"), Some(0xdead_beef));
+            assert_eq!(t.credit(b"Key_0"), None);
+            assert_eq!(t.credit(b"Hook"), None);
+        });
+    }
+
+    #[test]
+    fn credits_stay_out_of_the_lines() {
+        with_table(|t| assert!(t.find(b"Key_01").is_none()));
+    }
+
+    #[test]
+    fn a_table_cut_short_is_no_table() {
+        let bytes = encode(offsets(), 0, &[HOOK], CREDITS);
+        let cut = &bytes[HEADER..bytes.len() - 1];
+        assert!(Table::parse(&Header::read(&bytes), cut).is_none());
     }
 }

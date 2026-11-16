@@ -138,10 +138,15 @@ pub fn site(at: u32) -> Option<Vec<u8>> {
     sites().find(|p| p.at == at).map(|p| p.bytes)
 }
 
-/// The gate, the hook, its table for `lines` and `flags`, then the calls
+/// The gate, the hook, its table for `lines`, `flags` and `credits`, then the calls
 /// and function hooks that reach it. Link's update is among them only with
 /// `dev`, and the run's call only with [`BUNNY_HOOD`] in `flags`.
-pub fn patches<A: AsRef<str>>(lines: &[&[(A, A)]], dev: bool, flags: u32) -> Result<Vec<Patch>> {
+pub fn patches<A: AsRef<str>>(
+    lines: &[&[(A, A)]],
+    dev: bool,
+    flags: u32,
+    credits: &[(&str, u32)],
+) -> Result<Vec<Patch>> {
     let owned: Vec<Vec<(&str, &str)>> = (lines.iter())
         .map(|l| l.iter().map(|(a, b)| (a.as_ref(), b.as_ref())).collect())
         .collect();
@@ -162,7 +167,12 @@ pub fn patches<A: AsRef<str>>(lines: &[&[(A, A)]], dev: bool, flags: u32) -> Res
         bytes: branch(GATE.0, GATE.1, false).to_vec(),
     };
     let code = fit(CAVE, hook_code(), CAVE_END, "hook")?;
-    let table = fit(TABLE, encode(OFFSETS, flags, &lines), TABLE_END, "table")?;
+    let table = fit(
+        TABLE,
+        encode(OFFSETS, flags, &lines, credits),
+        TABLE_END,
+        "table",
+    )?;
     let bunny = flags & BUNNY_HOOD != 0;
     let sites = sites().filter(|p| match p.at {
         at if at == OFFSETS.link_update => dev,
@@ -249,11 +259,23 @@ fn outputs(mod_dir: &Path) -> [(PathBuf, Writer); 2] {
     ]
 }
 
-/// Write the cheat and exefs patch when `progressive`, `dev` or the Bunny
-/// Hood is on, else take ours away. `dev` adds the dev panel's hook, the
-/// hood the run's call, and without `progressive` the table is empty.
-pub fn install(mod_dir: &Path, progressive: bool, dev: bool, flags: u32) -> Result<()> {
-    if !progressive && !dev && flags & BUNNY_HOOD == 0 {
+/// Whether a seed with these settings runs the hook.
+pub fn hooked(progressive: bool, dev: bool, flags: u32) -> bool {
+    progressive || dev || flags & BUNNY_HOOD != 0
+}
+
+/// Write the cheat and exefs patch when [`hooked`], else take ours away.
+/// `dev` adds the dev panel's hook, the hood the run's call, and without
+/// `progressive` the table has no lines. `credits` are the Bools items
+/// set as they're found, by name.
+pub fn install(
+    mod_dir: &Path,
+    progressive: bool,
+    dev: bool,
+    flags: u32,
+    credits: &[(String, u32)],
+) -> Result<()> {
+    if !hooked(progressive, dev, flags) {
         return remove(mod_dir);
     }
     let lines: &[&[(&Name, &Name)]] = if progressive {
@@ -261,7 +283,8 @@ pub fn install(mod_dir: &Path, progressive: bool, dev: bool, flags: u32) -> Resu
     } else {
         &[]
     };
-    let patches = patches(lines, dev, flags)?;
+    let credits: Vec<(&str, u32)> = credits.iter().map(|(n, h)| (n.as_str(), *h)).collect();
+    let patches = patches(lines, dev, flags, &credits)?;
     for (path, write) in outputs(mod_dir) {
         std::fs::create_dir_all(path.parent().unwrap())?;
         std::fs::write(&path, write(&patches))
@@ -300,7 +323,7 @@ mod tests {
 
     #[test]
     fn the_code_and_table_go_in_their_places_and_read_back() {
-        let [_, code, table, ..] = &patches(&progressive::LINES, false, 0).unwrap()[..] else {
+        let [_, code, table, ..] = &patches(&progressive::LINES, false, 0, &[]).unwrap()[..] else {
             panic!("patches")
         };
         assert_eq!((code.at, code.bytes.len()), (CAVE, HOOK.len()));
@@ -342,7 +365,7 @@ mod tests {
 
     #[test]
     fn the_gate_skips_the_recorder() {
-        let gate = &patches(&progressive::LINES, false, 0).unwrap()[0];
+        let gate = &patches(&progressive::LINES, false, 0, &[]).unwrap()[0];
         assert_eq!(gate.at, 0x17d_59bc);
         // b 0x17d59c4
         assert_eq!(gate.bytes, 0x1400_0002u32.to_le_bytes());
@@ -403,7 +426,7 @@ mod tests {
 
     #[test]
     fn calls_and_hooks_branch_to_the_hook() {
-        let p = patches(&progressive::LINES, true, BUNNY_HOOD).unwrap();
+        let p = patches(&progressive::LINES, true, BUNNY_HOOD, &[]).unwrap();
         assert_eq!(p[3..], sites().collect::<Vec<_>>());
         let at = |i: usize| u32::from_le_bytes(p[3 + i].bytes[..].try_into().unwrap());
         assert_eq!(at(0) >> 26, 0b100101, "a call stays a bl");
@@ -419,13 +442,13 @@ mod tests {
 
     #[test]
     fn link_s_update_needs_dev_and_the_run_call_the_hood() {
-        let all = patches(&progressive::LINES, true, BUNNY_HOOD).unwrap();
+        let all = patches(&progressive::LINES, true, BUNNY_HOOD, &[]).unwrap();
         for (dev, flags, gone) in [
             (false, BUNNY_HOOD, vec![OFFSETS.link_update]),
             (true, 0, vec![RUN_CALL.0]),
             (false, 0, vec![OFFSETS.link_update, RUN_CALL.0]),
         ] {
-            let some = patches(&progressive::LINES, dev, flags).unwrap();
+            let some = patches(&progressive::LINES, dev, flags, &[]).unwrap();
             assert_eq!(some.len(), all.len() - gone.len(), "{dev} {flags}");
             assert!(some.iter().all(|p| !gone.contains(&p.at)), "{dev} {flags}");
         }
@@ -435,7 +458,7 @@ mod tests {
     fn a_table_too_big_for_the_space_is_refused() {
         let name = "Item_".repeat(40);
         let big = vec![(name.as_str(), name.as_str()); 20];
-        assert!(patches(&[&big], false, 0).is_err());
+        assert!(patches(&[&big], false, 0, &[]).is_err());
     }
 
     #[test]
@@ -457,7 +480,7 @@ mod tests {
              08000000 00000018 0F0E0D0C 0B0A0908\n\
              04000000 0000002C 04030201\n\n"
         );
-        let text = cheat(&patches(&progressive::LINES, true, BUNNY_HOOD).unwrap());
+        let text = cheat(&patches(&progressive::LINES, true, BUNNY_HOOD, &[]).unwrap());
         let cheats: Vec<_> = text.split("\n\n").filter(|c| !c.is_empty()).collect();
         let total = cheats.len();
         for (i, c) in cheats.iter().enumerate() {
@@ -509,13 +532,13 @@ mod tests {
         let other = dir.join("cheats/OTHER.txt");
         std::fs::create_dir_all(other.parent().unwrap()).unwrap();
         std::fs::write(&other, "").unwrap();
-        install(&dir, true, false, 0).unwrap();
+        install(&dir, true, false, 0, &[]).unwrap();
         assert!(
             std::fs::read_to_string(path(&dir))
                 .unwrap()
                 .starts_with("{zootr 1/")
         );
-        install(&dir, false, true, 0).unwrap();
+        install(&dir, false, true, 0, &[]).unwrap();
         let dev = std::fs::read_to_string(path(&dir)).unwrap();
         assert!(
             dev.contains(&format!("{:08X}", OFFSETS.link_update)),
@@ -527,10 +550,10 @@ mod tests {
                 .unwrap()
                 .contains(&format!("{:08X} ", OFFSETS.link_update))
         );
-        install(&dir, false, false, BUNNY_HOOD).unwrap();
+        install(&dir, false, false, BUNNY_HOOD, &[]).unwrap();
         let hood = std::fs::read_to_string(path(&dir)).unwrap();
         assert!(hood.contains(&format!("{:08X}", RUN_CALL.0)), "{hood}");
-        install(&dir, false, false, 0).unwrap();
+        install(&dir, false, false, 0, &[]).unwrap();
         assert!(!path(&dir).exists() && !exefs.exists());
         assert!(other.exists());
         remove(&dir).unwrap();

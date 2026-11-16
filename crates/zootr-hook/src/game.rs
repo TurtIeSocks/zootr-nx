@@ -110,8 +110,9 @@ fn table() -> Option<(usize, Table<'static>)> {
     // SAFETY: the cheat writes the table at `TABLE`, 8 byte aligned.
     let header = unsafe { &*((main + TABLE as usize) as *const Header) };
     let at = (header as *const Header).cast::<u8>();
-    let lines = unsafe { slice::from_raw_parts(at.add(HEADER), header.size as usize) };
-    Some((main, Table::parse(header, lines)?))
+    let size = (header.size + header.credits) as usize;
+    let body = unsafe { slice::from_raw_parts(at.add(HEADER), size) };
+    Some((main, Table::parse(header, body)?))
 }
 
 /// Run `f` for a function hook. The cheat writes the table with the
@@ -176,7 +177,13 @@ pub unsafe extern "C" fn content_name(
             if let Some(actor) = at(node, 8).and_then(|n| at(n, 8)) {
                 shared(main).with(|l| l.opened(actor));
             }
-            name(*value).and_then(|now| level_for(main, &table, now))
+            let now = name(*value);
+            let credit = now.and_then(|n| table.credit(n));
+            let gd = dev::single(main, table.offsets.gamedata);
+            if let (Some(hash), Some(gd)) = (credit, gd) {
+                dev::set_bool(main, table.offsets, gd, hash, true);
+            }
+            now.and_then(|now| level_for(main, &table, now))
         } else {
             None
         };

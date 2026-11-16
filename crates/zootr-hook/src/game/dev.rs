@@ -113,7 +113,7 @@ unsafe fn get_bool(main: usize, o: &Offsets, gd: usize, hash: u32) -> Option<boo
     (unsafe { get(gd, &mut out, hash) } & 1 == 1).then_some(out & 1 == 1)
 }
 
-unsafe fn set_bool(main: usize, o: &Offsets, gd: usize, hash: u32, value: bool) {
+pub(super) unsafe fn set_bool(main: usize, o: &Offsets, gd: usize, hash: u32, value: bool) {
     let set: SetBool = unsafe { core::mem::transmute(main + o.set_bool as usize) };
     unsafe { set(gd, value as u32, hash) }
 }
