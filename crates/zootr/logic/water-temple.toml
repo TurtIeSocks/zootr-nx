@@ -1,0 +1,7 @@
+# The chest north of the central pillar stands under water at every
+# level the temple drains to. Link sinks to it in the Iron Boots, under
+# the Zora Tunic, then the Bow and the Longshot carry him the rest.
+[[check]]
+hash = 3693930347660122883
+name = "Small Key 4"
+needs = "bow and longshot and iron-boots and zora-tunic"

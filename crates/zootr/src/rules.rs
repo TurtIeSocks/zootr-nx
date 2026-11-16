@@ -39,6 +39,10 @@ const FILES: &[(&str, &str)] = &[
     ("bosses.toml", include_str!("../logic/bosses.toml")),
     ("cows.toml", include_str!("../logic/cows.toml")),
     ("beans.toml", include_str!("../logic/beans.toml")),
+    (
+        "water-temple.toml",
+        include_str!("../logic/water-temple.toml"),
+    ),
 ];
 
 /// The game's own words naming an item actor start with one of these.
@@ -703,6 +707,28 @@ mod tests {
             let needs = book.need(&book.check(hash).unwrap().needs, &c).unwrap();
             assert!(!needs.met(&have(&[]), Era::Child), "{hash}");
             assert!(needs.met(&have(lullaby), Era::Child), "{hash}");
+        }
+    }
+
+    #[test]
+    fn the_water_temples_sunken_key_wants_boots_tunic_bow_and_longshot() {
+        needs_names!();
+        let book = Book::load().unwrap();
+        let c = ctx(false, &[]);
+        let needs = book
+            .need(&book.check(3693930347660122883).unwrap().needs, &c)
+            .unwrap();
+        let all: [&str; 4] = [
+            item::RANGE_BOW,
+            item::LONGSHOT,
+            item::HEAVY_BOOT,
+            actor::ARMOR_ADULT_ZORA,
+        ];
+        assert!(needs.met(&have(&all), Era::Adult));
+        assert!(!needs.met(&have(&all), Era::Child));
+        for missing in all {
+            let some: Vec<_> = all.into_iter().filter(|i| *i != missing).collect();
+            assert!(!needs.met(&have(&some), Era::Adult), "without {missing}");
         }
     }
 
