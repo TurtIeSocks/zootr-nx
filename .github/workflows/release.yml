@@ -38,9 +38,10 @@ jobs:
           }
           id=$(find_draft)
           if [ -z "$id" ]; then
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
-              --title "zootr-nx $TAG" --generate-notes
-            id=$(find_draft)
+            # The create call returns the id: the release list can lag a
+            # new draft by a few seconds.
+            id=$(gh api "repos/$GITHUB_REPOSITORY/releases" -f tag_name="$TAG" \
+              -f name="zootr-nx $TAG" -F draft=true -F generate_release_notes=true --jq .id)
           fi
           test -n "$id"
           echo "id=$id" >> "$GITHUB_OUTPUT"
