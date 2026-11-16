@@ -51,11 +51,23 @@ impl Pouch {
         let mut pouch = Self::default();
         for row in doc.root.as_array()? {
             let row = row.as_map()?;
-            let text = |key: &str| row.get(key).and_then(|v| v.as_string().ok()).map(|s| s.to_string());
-            let int = |key: &str| row.get(key).and_then(|v| v.as_int::<i64>().ok()).map(|n| n as i32);
+            let text = |key: &str| {
+                row.get(key)
+                    .and_then(|v| v.as_string().ok())
+                    .map(|s| s.to_string())
+            };
+            let int = |key: &str| {
+                row.get(key)
+                    .and_then(|v| v.as_int::<i64>().ok())
+                    .map(|n| n as i32)
+            };
             let Some(id) = text(ROW_ID) else { continue };
             let group = text(field::MAX_NUM_GAME_DATA.get());
-            match (group, int(field::AFTER_EXPANSION_MAX_NUM.get()), int(field::FIXED_MAX_NUM.get())) {
+            match (
+                group,
+                int(field::AFTER_EXPANSION_MAX_NUM.get()),
+                int(field::FIXED_MAX_NUM.get()),
+            ) {
                 (Some(group), Some(cap), _) => {
                     pouch.bags.insert(id, (group, cap));
                 }
@@ -111,13 +123,34 @@ impl Inventory {
     /// Each cell's cap in [`Inventory::cells`]'s order: how many a counted
     /// cell can hold, `None` for the rest.
     pub fn caps(&self, pouch: &Pouch, save: &Save) -> Vec<Option<i32>> {
-        let grid = GRID.iter().map(|s| s.count.and_then(|a| pouch.cap(a.get(), save)));
+        let grid = GRID
+            .iter()
+            .map(|s| s.count.and_then(|a| pouch.cap(a.get(), save)));
         grid.chain(self.dungeons.iter().map(|_| None)).collect()
+    }
+
+    /// The values each cell reads, in [`Inventory::cells`]'s order.
+    pub fn cell_hashes(&self) -> Vec<Vec<u32>> {
+        let grid = GRID.iter().map(|s| {
+            s.tiers
+                .iter()
+                .chain(&s.count)
+                .filter_map(|a| self.keys.get(a).copied())
+                .collect()
+        });
+        grid.chain(self.dungeons.iter().map(|k| k.key.into_iter().collect()))
+            .collect()
     }
 
     /// The edits a click on cell `at`, in [`Inventory::cells`]'s order,
     /// makes to `save`, which the grid was last loaded from.
-    pub fn edits(&self, pouch: &Pouch, save: &Save, at: usize, intent: Intent) -> Result<Vec<Edit>> {
+    pub fn edits(
+        &self,
+        pouch: &Pouch,
+        save: &Save,
+        at: usize,
+        intent: Intent,
+    ) -> Result<Vec<Edit>> {
         if let Some(slot) = GRID.get(at) {
             return self.slot_edits(pouch, save, slot, intent);
         }
@@ -139,12 +172,20 @@ impl Inventory {
             .map_or(0, |i| i + 1)
     }
 
-    fn slot_edits(&self, pouch: &Pouch, save: &Save, slot: &Slot, intent: Intent) -> Result<Vec<Edit>> {
+    fn slot_edits(
+        &self,
+        pouch: &Pouch,
+        save: &Save,
+        slot: &Slot,
+        intent: Intent,
+    ) -> Result<Vec<Edit>> {
         let key = |a: &Name| self.keys[a];
         let n = slot.tiers.len();
         let next = match intent {
             Intent::Count(c) => {
-                let actor = slot.count.with_context(|| format!("{} isn't counted", slot.label))?;
+                let actor = slot
+                    .count
+                    .with_context(|| format!("{} isn't counted", slot.label))?;
                 let cap = pouch.cap(actor.get(), save).unwrap_or(i32::MAX);
                 return Ok(vec![Edit::new(key(actor), c.clamp(0, cap).to_string())]);
             }
@@ -162,7 +203,11 @@ impl Inventory {
 
         // The highest bag held names the group's cap, and a count past the
         // new cap comes down to it.
-        let bags = slot.tiers.iter().enumerate().filter_map(|(i, a)| Some((i, a, pouch.bags.get(a.get())?)));
+        let bags = slot
+            .tiers
+            .iter()
+            .enumerate()
+            .filter_map(|(i, a)| Some((i, a, pouch.bags.get(a.get())?)));
         let mut groups: HashMap<&str, (&str, i32)> = HashMap::new();
         for (i, a, (group, cap)) in bags {
             let entry = groups.entry(group).or_insert(("", 0));
@@ -174,10 +219,11 @@ impl Inventory {
             if Pouch::bag_in(save, group) != Some(bag) {
                 out.push(Edit::new(Pouch::expansion(group), bag));
             }
-            if let Some(actor) = slot.count.filter(|a| pouch.caps.get(a.get()) == Some(&Cap::Bag(group.into()))) {
-                if self.value(actor) > cap {
-                    out.push(Edit::new(key(actor), cap.to_string()));
-                }
+            let capped = |a: &&Name| pouch.caps.get(a.get()) == Some(&Cap::Bag(group.into()));
+            if let Some(actor) = slot.count.filter(capped)
+                && self.value(actor) > cap
+            {
+                out.push(Edit::new(key(actor), cap.to_string()));
             }
         }
         Ok(out)
@@ -252,10 +298,18 @@ mod tests {
         let save = save_of(&[(item::HOOKSHOT, 1), (item::LONGSHOT, 1)], "");
         let mut inv = inventory();
         inv.load(crate::inventory::in_save(&save));
-        let up = inv.edits(&pouch(), &save, cell_at(&inv.cells(), "Hookshot"), Intent::Up);
+        let up = inv.edits(
+            &pouch(),
+            &save,
+            cell_at(&inv.cells(), "Hookshot"),
+            Intent::Up,
+        );
         assert_eq!(
             pairs(up.unwrap()),
-            [(h(item::HOOKSHOT), "0".into()), (h(item::LONGSHOT), "0".into())]
+            [
+                (h(item::HOOKSHOT), "0".into()),
+                (h(item::LONGSHOT), "0".into())
+            ]
         );
     }
 
@@ -265,17 +319,29 @@ mod tests {
         let save = save_of(&[(item::WEIRD_EGG, 1)], "");
         let mut inv = inventory();
         inv.load(crate::inventory::in_save(&save));
-        let up = inv.edits(&pouch(), &save, cell_at(&inv.cells(), "Child Trade"), Intent::Up);
+        let up = inv.edits(
+            &pouch(),
+            &save,
+            cell_at(&inv.cells(), "Child Trade"),
+            Intent::Up,
+        );
         assert_eq!(
             pairs(up.unwrap()),
-            [(h(item::WEIRD_EGG), "0".into()), (h(item::ALARM_CUCCO), "1".into())]
+            [
+                (h(item::WEIRD_EGG), "0".into()),
+                (h(item::ALARM_CUCCO), "1".into())
+            ]
         );
     }
 
     #[test]
     fn a_smaller_bag_names_itself_and_brings_the_count_down() {
         needs_names!();
-        let held = [(item::BOMB_BAG_SMALL, 1), (item::BOMB_BAG_MEDIUM, 1), (item::BOMB, 30)];
+        let held = [
+            (item::BOMB_BAG_SMALL, 1),
+            (item::BOMB_BAG_MEDIUM, 1),
+            (item::BOMB, 30),
+        ];
         let save = save_of(&held, item::BOMB_BAG_MEDIUM.get());
         let mut inv = inventory();
         inv.load(crate::inventory::in_save(&save));
@@ -286,12 +352,18 @@ mod tests {
             pairs(down),
             [
                 (h(item::BOMB_BAG_MEDIUM), "0".into()),
-                (Pouch::expansion("FakeBomb"), item::BOMB_BAG_SMALL.to_string()),
+                (
+                    Pouch::expansion("FakeBomb"),
+                    item::BOMB_BAG_SMALL.to_string()
+                ),
                 (h(item::BOMB), "20".into()),
             ]
         );
         let none = inv.edits(&pouch(), &save, bombs, Intent::Up).unwrap();
-        assert!(pairs(none).contains(&(Pouch::expansion("FakeBomb"), item::BOMB_BAG_LARGE.to_string())));
+        assert!(pairs(none).contains(&(
+            Pouch::expansion("FakeBomb"),
+            item::BOMB_BAG_LARGE.to_string()
+        )));
     }
 
     #[test]
@@ -305,19 +377,31 @@ mod tests {
         let count = |at, n| pairs(inv.edits(&pouch(), &save, at, Intent::Count(n)).unwrap());
         assert_eq!(count(at("Bombs"), 99), [(h(item::BOMB), "20".into())]);
         assert_eq!(count(at("Bombs"), -3), [(h(item::BOMB), "0".into())]);
-        assert_eq!(count(at("Gold Skulltulas"), 120), [(h(item::TOKEN_GOLD), "100".into())]);
-        assert!(inv.edits(&pouch(), &save, at("Hookshot"), Intent::Count(1)).is_err());
+        assert_eq!(
+            count(at("Gold Skulltulas"), 120),
+            [(h(item::TOKEN_GOLD), "100".into())]
+        );
+        assert!(
+            inv.edits(&pouch(), &save, at("Hookshot"), Intent::Count(1))
+                .is_err()
+        );
     }
 
     #[test]
     fn a_dungeon_cell_toggles_or_counts_its_keys() {
         needs_names!();
-        let inv = crate::inventory::tests::inventory_of(&[(crate::known::flag::FOREST_TEMPLE, item::DUNGEON_MAP)]);
+        let inv = crate::inventory::tests::inventory_of(&[(
+            crate::known::flag::FOREST_TEMPLE,
+            item::DUNGEON_MAP,
+        )]);
         let save = save_of(&[], "");
         let cells = inv.cells();
         let map = cell_at(&cells, "Forest Temple Map");
         let keys = cell_at(&cells, "Forest Temple Small Keys");
-        assert_eq!(pairs(inv.edits(&pouch(), &save, map, Intent::Up).unwrap())[0].1, "1");
+        assert_eq!(
+            pairs(inv.edits(&pouch(), &save, map, Intent::Up).unwrap())[0].1,
+            "1"
+        );
         assert!(inv.edits(&pouch(), &save, map, Intent::Count(2)).is_err());
         assert!(inv.edits(&pouch(), &save, keys, Intent::Up).is_err());
     }
@@ -330,12 +414,23 @@ mod tests {
         let pouch = Pouch::load(&romfs).unwrap();
         let bag = |a: &Name| pouch.bags.get(a.get()).map(|b| b.1);
         assert_eq!(
-            [item::BOMB_BAG_SMALL, item::BOMB_BAG_MEDIUM, item::BOMB_BAG_LARGE].map(bag),
+            [
+                item::BOMB_BAG_SMALL,
+                item::BOMB_BAG_MEDIUM,
+                item::BOMB_BAG_LARGE
+            ]
+            .map(bag),
             [Some(20), Some(30), Some(40)]
         );
-        assert_eq!(pouch.caps.get(item::TOKEN_GOLD.get()), Some(&Cap::Fixed(100)));
+        assert_eq!(
+            pouch.caps.get(item::TOKEN_GOLD.get()),
+            Some(&Cap::Fixed(100))
+        );
         let bomb_group = &pouch.bags[item::BOMB_BAG_SMALL.get()].0;
-        assert_eq!(pouch.caps.get(item::BOMB.get()), Some(&Cap::Bag(bomb_group.clone())));
+        assert_eq!(
+            pouch.caps.get(item::BOMB.get()),
+            Some(&Cap::Bag(bomb_group.clone()))
+        );
         assert!(pouch.bags.contains_key(item::WALLET_LARGE.get()));
     }
 }

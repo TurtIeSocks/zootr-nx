@@ -69,6 +69,7 @@ pub mod recorder;
 mod rng;
 mod rsdb;
 mod rules;
+pub mod save_editor;
 pub mod savefile;
 mod scrubs;
 pub mod settings;

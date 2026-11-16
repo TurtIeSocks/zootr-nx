@@ -86,15 +86,25 @@ pub fn encode(kind: &str, text: &str, width: usize) -> Result<Vec<u8>> {
         }
         _ => bail!("{kind} isn't writable"),
     };
-    ensure!(bytes.len() == width, "a {kind} is {} bytes, not {width}", bytes.len());
+    ensure!(
+        bytes.len() == width,
+        "a {kind} is {} bytes, not {width}",
+        bytes.len()
+    );
     Ok(bytes)
 }
 
 /// One element's bytes as text [`encode`] takes back. Types it can't
 /// write show their size.
 pub fn decode(gd: &GameData, kind: &str, b: &[u8]) -> String {
-    let word = |at: usize| b.get(at..at + 4).map_or(0, |w| u32::from_le_bytes(w.try_into().unwrap()));
-    let quad = |at: usize| b.get(at..at + 8).map_or(0, |w| u64::from_le_bytes(w.try_into().unwrap()));
+    let word = |at: usize| {
+        b.get(at..at + 4)
+            .map_or(0, |w| u32::from_le_bytes(w.try_into().unwrap()))
+    };
+    let quad = |at: usize| {
+        b.get(at..at + 8)
+            .map_or(0, |w| u64::from_le_bytes(w.try_into().unwrap()))
+    };
     let floats = |n: usize| {
         (0..n)
             .map(|i| f32::from_bits(word(i * 4)).to_string())
@@ -134,7 +144,10 @@ pub fn decode(gd: &GameData, kind: &str, b: &[u8]) -> String {
 pub fn scalar(gd: &GameData, kind: &str, text: &str) -> Result<u32> {
     let raw = u32::from_le_bytes(encode(kind, text, 4)?.try_into().unwrap());
     if element(kind) == "Enum" && gd.name(raw) != text {
-        bail!("{text} isn't a value of any {} enum", crate::known::flag::GAME_DATA);
+        bail!(
+            "{text} isn't a value of any {} enum",
+            crate::known::flag::GAME_DATA
+        );
     }
     Ok(raw)
 }
@@ -154,14 +167,26 @@ mod tests {
         assert_eq!(encode("Bool", "1", 4).unwrap(), [1, 0, 0, 0]);
         assert_eq!(encode("Bool", "0", 1).unwrap(), [0]);
         assert_eq!(encode("Int", "-1", 4).unwrap(), [0xff; 4]);
-        assert_eq!(encode("Enum", "New", 4).unwrap(), murmur3(b"New").to_le_bytes());
-        assert_eq!(encode("String16", "Kak", 16).unwrap(), *b"Kak\0\0\0\0\0\0\0\0\0\0\0\0\0");
+        assert_eq!(
+            encode("Enum", "New", 4).unwrap(),
+            murmur3(b"New").to_le_bytes()
+        );
+        assert_eq!(
+            encode("String16", "Kak", 16).unwrap(),
+            *b"Kak\0\0\0\0\0\0\0\0\0\0\0\0\0"
+        );
         assert_eq!(encode("Int64", "-2", 8).unwrap(), (-2i64).to_le_bytes());
         assert_eq!(
             encode("Vector3", "(1, 2.5, -3)", 12).unwrap(),
-            [1f32, 2.5, -3.].iter().flat_map(|f| f.to_le_bytes()).collect::<Vec<_>>()
+            [1f32, 2.5, -3.]
+                .iter()
+                .flat_map(|f| f.to_le_bytes())
+                .collect::<Vec<_>>()
         );
-        assert_eq!(encode("WString16", "Hi", 32).unwrap()[..4], [b'H', 0, b'i', 0]);
+        assert_eq!(
+            encode("WString16", "Hi", 32).unwrap()[..4],
+            [b'H', 0, b'i', 0]
+        );
         assert_eq!(encode("IntArray", "7", 4).unwrap(), 7i32.to_le_bytes());
         assert!(encode("String16", "0123456789abcdef", 16).is_err());
         assert!(encode("Bool", "yes", 1).is_err());

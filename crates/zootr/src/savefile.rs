@@ -15,7 +15,7 @@ use crate::known::field;
 use crate::{generate, presets, value};
 
 /// Slot `n`'s save under a save folder.
-fn slot_file(dir: &Path, n: u8) -> PathBuf {
+pub fn slot_file(dir: &Path, n: u8) -> PathBuf {
     dir.join(format!("slot_{n:02}/progress.sav"))
 }
 
@@ -89,7 +89,11 @@ pub fn values(gd: &GameData, save: &Save, e: SaveEntry) -> Option<Vec<String>> {
         Some(raw) => vec![raw],
         None => save.array(e)?,
     };
-    Some(raws.into_iter().map(|r| value::render(gd, e.kind, r)).collect())
+    Some(
+        raws.into_iter()
+            .map(|r| value::render(gd, e.kind, r))
+            .collect(),
+    )
 }
 
 /// `e`'s value, or its size for types [`values`] can't read.
@@ -269,10 +273,16 @@ pub fn split(edit: &str) -> Result<(&str, &str)> {
 pub(crate) fn edit(gd: &GameData, path: &Path, edits: &[String]) -> Result<(Vec<String>, PathBuf)> {
     let mut save = load(path)?;
     let log = set(gd, &mut save, edits)?;
+    Ok((log, write(path, &save)?))
+}
+
+/// Write `save` over the file at `path`, keeping the old one next to it as
+/// a timestamped backup, which it returns.
+pub fn write(path: &Path, save: &Save) -> Result<PathBuf> {
     let backup = path.with_extension(format!("sav.{}.bak", generate::time_seed() / 1_000_000_000));
     std::fs::copy(path, &backup)?;
     std::fs::write(path, save.bytes())?;
-    Ok((log, backup))
+    Ok(backup)
 }
 
 /// Apply `presets` to slot `n` under `dir`, as [`edit`] does.
@@ -339,14 +349,20 @@ pub fn apply(gd: &GameData, save: &mut Save, edits: &[Edit]) -> Result<Vec<Strin
             .map(|b| value::decode(gd, e.kind, b))
             .with_context(|| format!("{name} has no element {i}"))?;
         save.set(e, i, &bytes)?;
-        log.push(format!("{name}: {old} -> {}", value::decode(gd, e.kind, &bytes)));
+        log.push(format!(
+            "{name}: {old} -> {}",
+            value::decode(gd, e.kind, &bytes)
+        ));
     }
     Ok(log)
 }
 
 /// Apply `NAME=VALUE` edits, as [`apply`] does.
 pub fn set(gd: &GameData, save: &mut Save, edits: &[String]) -> Result<Vec<String>> {
-    let edits: Vec<Edit> = edits.iter().map(|e| Edit::parse(e)).collect::<Result<_>>()?;
+    let edits: Vec<Edit> = edits
+        .iter()
+        .map(|e| Edit::parse(e))
+        .collect::<Result<_>>()?;
     apply(gd, save, &edits)
 }
 
@@ -397,7 +413,10 @@ mod tests {
         )
         .unwrap();
         assert_eq!(log, ["#0000000b: false -> true", "#00000016:  -> Kak"]);
-        assert_eq!(save.strings(save.get(22).unwrap()), Some(vec!["Kak".into()]));
+        assert_eq!(
+            save.strings(save.get(22).unwrap()),
+            Some(vec!["Kak".into()])
+        );
         assert!(apply(&gd, &mut save, &[Edit::new(11, "maybe")]).is_err());
         assert!(apply(&gd, &mut save, &[Edit::new(33, "true")]).is_err());
         assert!(apply(&gd, &mut save, &[Edit::new(22, "far too long for this")]).is_err());

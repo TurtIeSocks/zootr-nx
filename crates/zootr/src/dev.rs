@@ -33,7 +33,7 @@ pub(crate) const ADULT: &str = "_Adult";
 const LINK_YAW: u32 = 0x1ea93bd8;
 /// Link's live hearts, in quarters (`PlayerStatus.Life` is only the save's
 /// copy).
-const HEARTS: u32 = 0x31ab5580;
+pub(crate) const HEARTS: u32 = 0x31ab5580;
 /// How long Link has to pick a request up.
 const WAIT: Duration = Duration::from_secs(3);
 /// GameData names the state reads.

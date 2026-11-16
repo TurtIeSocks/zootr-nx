@@ -12,9 +12,9 @@ use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::{Byml, BymlDoc, Romfs, murmur3};
 use serde::Serialize;
 
-pub use crate::value::Input;
-use crate::value;
 use crate::known::{Name, field, flag};
+use crate::value;
+pub use crate::value::Input;
 
 pub const PATH: &str = "GameData/GameDataList.Product.110.byml.zs";
 /// The Struct holding whether Link has each item, `IsGet.ITEM`.

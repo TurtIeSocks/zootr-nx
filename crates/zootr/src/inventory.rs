@@ -333,6 +333,7 @@ static KEPT: LazyLock<[(&str, &Name, &str); 4]> = LazyLock::new(|| {
 });
 
 /// One cell of a dungeon's row.
+#[derive(Clone)]
 struct Kept {
     label: String,
     /// The first cell's, which starts the row.
@@ -403,7 +404,7 @@ pub struct DungeonRow {
     pub name: String,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Inventory {
     /// Each actor the grid reads, to the value that says it's held.
     keys: HashMap<&'static Name, u32>,
