@@ -253,6 +253,27 @@ impl<M: Memory> Dev<M> {
     /// Leave `request` for the hook and wait for its answer: what it did,
     /// or an error in the words of its refusal.
     pub fn ask(&self, request: &Request) -> Result<&'static str> {
+        let mut outcome = self.send(request)?;
+        if outcome == Outcome::Soon {
+            // The hook keeps teleports `GUARD` s apart: wait it out once.
+            std::thread::sleep(Duration::from_secs(GUARD));
+            outcome = self.send(request)?;
+        }
+        if let Some(why) = refusal(outcome) {
+            return Err(anyhow!(why));
+        }
+        Ok(match (request, outcome) {
+            (_, Outcome::Unanswered) => UNANSWERED,
+            (Request::Time(_), _) => "set",
+            (Request::Step(..) | Request::Give(..), _) => "ran",
+            (Request::Warp(_), _) => "warped",
+            (Request::Where, _) => "found",
+            _ => "sent",
+        })
+    }
+
+    /// Hand `request` to the hook and wait for its answer.
+    fn send(&self, request: &Request) -> Result<Outcome> {
         let mail = self.main + u64::from(MAILBOX);
         let field = |off: usize| mail + off as u64;
         let (ask, hour, texts) = match request {
@@ -291,18 +312,7 @@ impl<M: Memory> Dev<M> {
             std::thread::sleep(Duration::from_millis(20));
         }
         let word = self.game.u32(field(offset_of!(Mailbox, outcome)))?;
-        let outcome = Outcome::from_word(word).context("the hook gave an unknown answer")?;
-        if let Some(why) = refusal(outcome) {
-            return Err(anyhow!(why));
-        }
-        Ok(match (request, outcome) {
-            (_, Outcome::Unanswered) => UNANSWERED,
-            (Request::Time(_), _) => "set",
-            (Request::Step(..) | Request::Give(..), _) => "ran",
-            (Request::Warp(_), _) => "warped",
-            (Request::Where, _) => "found",
-            _ => "sent",
-        })
+        Outcome::from_word(word).context("the hook gave an unknown answer")
     }
 
     /// Teleport to `place`, switching age first when it's the other age's.
