@@ -84,7 +84,12 @@ impl Levels {
         progressive: bool,
         credits: Vec<(String, Sets)>,
     ) -> Result<Self> {
-        let mut credits: HashMap<String, Sets> = credits.into_iter().collect();
+        // An add stays the hook's alone: it credits the copy from any holder,
+        // so the chest adding too would count the key twice.
+        let set = credits
+            .into_iter()
+            .filter(|(_, s)| !matches!(s, Sets::Add(..)));
+        let mut credits: HashMap<String, Sets> = set.collect();
         let mut items = BTreeMap::new();
         for item in drops.values().map(|d| &d.item) {
             let gives = match credits.remove(item) {
@@ -222,12 +227,22 @@ fn entry(f: &mut Flowchart, models: &Models, base: &Base, item: &str, gives: &Gi
             flows::set_after(f, &models.set_bool, at, name, Value::Bool(vec![true]))
         }
         Gives::Credit(Sets::Int(name, value)) => {
-            let set_int = Model {
-                name: flow::EVENT_TRIGGER_SET_GAME_DATA_INT.get(),
-                ..models.set_bool.clone()
-            };
-            flows::set_after(f, &set_int, at, name, Value::Int(vec![*value]))
+            let set = int_setter(models, flow::EVENT_TRIGGER_SET_GAME_DATA_INT);
+            flows::set_after(f, &set, at, name, Value::Int(vec![*value]))
         }
+        Gives::Credit(Sets::Add(name, n)) => {
+            let add = int_setter(models, flow::EVENT_TRIGGER_ADD_OR_SUB_GAME_DATA_INT);
+            flows::set_after(f, &add, at, name, Value::Int(vec![*n]))
+        }
+    }
+}
+
+/// The small chest's Bool setter retargeted to `action`, an Int action
+/// taking the same params.
+fn int_setter(models: &Models, action: &Name) -> Model {
+    Model {
+        name: action.get(),
+        ..models.set_bool.clone()
     }
 }
 
@@ -235,10 +250,11 @@ fn entry(f: &mut Flowchart, models: &Models, base: &Base, item: &str, gives: &Gi
 mod tests {
     use super::*;
     use crate::known::{actor, item};
+    use crate::settings::DungeonKeys;
 
     /// The first ring and the first boss key copy, with what each sets.
     fn keys() -> Vec<(String, Sets)> {
-        let all = crate::key_tints::sets(true, true);
+        let all = crate::key_tints::sets(true, DungeonKeys::Rings);
         let first = |bool: bool| {
             let found = all.iter().find(|(_, s)| matches!(s, Sets::Bool(_)) == bool);
             found.cloned().unwrap()
@@ -256,7 +272,29 @@ mod tests {
         for (n, (key, _)) in (3..).zip(keys()) {
             drops.insert(n, Drop::from(key));
         }
-        Levels::new(romfs, &drops, true, crate::key_tints::sets(true, true)).unwrap()
+        Levels::new(
+            romfs,
+            &drops,
+            true,
+            crate::key_tints::sets(true, DungeonKeys::Rings),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn keysanity_s_small_keys_are_left_to_the_hook() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let sets = crate::key_tints::sets(true, DungeonKeys::Singles);
+        let drops = (1..)
+            .zip(&sets)
+            .map(|(n, (key, _))| (n, Drop::from(key.clone())));
+        let levels = Levels::new(&romfs, &drops.collect(), false, sets.clone()).unwrap();
+        for (key, s) in &sets {
+            let added = matches!(s, Sets::Add(..));
+            assert_eq!(levels.items.contains_key(key), !added, "{key}");
+        }
     }
 
     #[test]
@@ -338,6 +376,11 @@ mod tests {
                     ),
                     Sets::Int(n, v) => (
                         flow::EVENT_TRIGGER_SET_GAME_DATA_INT,
+                        n,
+                        Value::Int(vec![*v]),
+                    ),
+                    Sets::Add(n, v) => (
+                        flow::EVENT_TRIGGER_ADD_OR_SUB_GAME_DATA_INT,
                         n,
                         Value::Int(vec![*v]),
                     ),

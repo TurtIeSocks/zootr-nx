@@ -11,7 +11,7 @@ use crate::checks::{self, Drop};
 use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::hints::Hint;
-use crate::settings::{ChestSize, DungeonKeys, NewGame};
+use crate::settings::{ChestSize, NewGame};
 use crate::{
     bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, fortress,
     gamedata, gerudo, gifts, hints, key_tints, keys, medallions, navi, patch, pickups, presets,
@@ -157,8 +157,14 @@ pub fn write_mod(
     let items = drops.values().map(|d| d.item.as_str());
     medallions::write(romfs, &mut builder, &mut tables, items)?;
     let flags = hook_flags(new_game);
-    let (bosses, rings) = key_copies(new_game);
-    key_tints::write(romfs, &mut builder, &mut tables, bosses, rings)?;
+    let bosses = boss_copies(new_game);
+    key_tints::write(
+        romfs,
+        &mut builder,
+        &mut tables,
+        bosses,
+        new_game.keys.copies(),
+    )?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
     let levels = levels(romfs, drops, new_game)?;
     levels.events(&mut events)?;
@@ -236,7 +242,7 @@ pub fn write_mod(
     bombs::write(&mut builder)?;
     dig::write(romfs, &mut builder, drops)?;
     let files = builder.finish()?.len();
-    let credits = key_tints::credits(bosses, rings);
+    let credits = key_tints::credits(bosses, new_game.keys);
     patch::install(
         mod_dir,
         new_game.progressive,
@@ -251,18 +257,17 @@ pub fn write_mod(
     })
 }
 
-/// Whether a seed deals boss key copies, and key rings. A copy found in a
-/// chest that runs a scene of its own is credited by the hook, so without
-/// it the boss key stays as it is. Key rings deal them, and bring the hook
+/// Whether a seed deals boss key copies. A copy found in a chest that runs
+/// a scene of its own is credited by the hook, so without it the boss key
+/// stays as it is. Key rings and Keysanity deal them, and bring the hook
 /// along.
-fn key_copies(new_game: &NewGame) -> (bool, bool) {
-    let rings = new_game.keys == DungeonKeys::Rings;
+fn boss_copies(new_game: &NewGame) -> bool {
     let hooked = patch::hooked(
         new_game.progressive,
         new_game.dev_panel,
         hook_flags(new_game),
     );
-    (rings || hooked, rings)
+    new_game.keys.copies() || hooked
 }
 
 /// The items `drops` give through a chest's own copy of its event.
@@ -271,8 +276,7 @@ fn levels(
     drops: &HashMap<u64, Drop>,
     new_game: &NewGame,
 ) -> Result<chest_levels::Levels> {
-    let (bosses, rings) = key_copies(new_game);
-    let credits = key_tints::sets(bosses, rings);
+    let credits = key_tints::sets(boss_copies(new_game), new_game.keys);
     chest_levels::Levels::new(romfs, drops, new_game.progressive, credits)
 }
 

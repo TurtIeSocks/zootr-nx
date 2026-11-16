@@ -185,6 +185,7 @@ pub unsafe extern "C" fn content_name(
                     dev::set_bool(main, table.offsets, gd, hash, true)
                 }
                 (Some(Credit::Int(hash, n)), Some(gd)) => refill::set_int(gd, hash, n),
+                (Some(Credit::Add(hash, n)), Some(gd)) => refill::add_int(gd, hash, n),
                 _ => {}
             }
             now.and_then(|now| level_for(main, &table, now))

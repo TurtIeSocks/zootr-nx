@@ -10,6 +10,7 @@ use crate::checks::ItemCheck;
 use crate::key_tints;
 use crate::known::{Name, actor, flag, flow, item, map};
 use crate::rules::Need;
+use crate::settings::DungeonKeys;
 
 pub const SMALL: &Name = item::DUNGEON_SMALL_KEY;
 pub const BOSS: &Name = item::DUNGEON_BOSS_KEY;
@@ -29,6 +30,12 @@ pub const DUNGEONS: [(&Name, i32, Option<&Name>); 8] = [
     (flag::GERUDO_TRAINING_GROUND, 9, None),
     (flag::INSIDE_GANON_CASTLE, 1, Some(map::GANONDORF_STAGE)),
 ];
+
+/// How many chests hold each of [`DUNGEONS`]' small keys: its keys, less
+/// the two lying in the open (Bottom of the Well's and the Shadow
+/// Temple's). With Keysanity, each brings a copy, and logic asks for them
+/// all.
+pub const CHEST_KEYS: [u32; 8] = [1, 5, 8, 4, 4, 5, 9, 1];
 
 /// The dungeon whose maps `rel`, a Banc file, is under, by its number in
 /// [`DUNGEONS`], counting from 1.
@@ -60,39 +67,72 @@ pub fn is_shuffled(item: &str) -> bool {
     SHUFFLED.iter().any(|s| s == item)
 }
 
-/// Each ring and boss key takes the place of a key chest's Red Rupee.
-pub fn deal_rings(items: &mut [&str]) -> Result<()> {
-    for key in SHUFFLED.iter() {
+/// With Keysanity, every small key copy, one for each key chest, and
+/// every boss key.
+pub static SINGLES: LazyLock<Vec<String>> = LazyLock::new(|| {
+    let n = 1..=DUNGEONS.len();
+    let smalls = n.clone().flat_map(|n| {
+        let ring = key_tints::ring(n);
+        (0..CHEST_KEYS[n - 1]).map(move |_| ring.clone())
+    });
+    smalls
+        .chain(n.filter(|&n| has_boss(n)).map(key_tints::boss))
+        .collect()
+});
+
+/// Each copy `keys` deals takes the place of a key chest's Red Rupee.
+pub fn deal_copies(items: &mut [&str], keys: DungeonKeys) -> Result<()> {
+    let copies: &[String] = match keys {
+        DungeonKeys::Rings => &SHUFFLED,
+        DungeonKeys::Singles => &SINGLES,
+        DungeonKeys::Vanilla | DungeonKeys::Start => &[],
+    };
+    for key in copies {
         let rupee = items.iter().position(|i| *INSTEAD == **i);
-        let rupee = rupee.context("too few key chests for the rings and boss keys")?;
+        let rupee = rupee.context("too few key chests for the dungeons' keys")?;
         items[rupee] = key;
     }
     Ok(())
 }
 
-/// With key rings, what logic adds to a check in `rel`, a Banc file: its
-/// dungeon's ring. Stricter than the game, which asks for it only past
-/// the first locked door.
-pub fn ring_need(rel: &str) -> Option<Need> {
-    dungeon_of(rel).map(|n| holds(key_tints::ring(n)))
+/// Dungeon `n`'s small keys as `keys` deals them: its ring, or every copy.
+fn smalls(n: usize, keys: DungeonKeys) -> Option<Need> {
+    let actors = vec![key_tints::ring(n)];
+    match keys {
+        DungeonKeys::Rings => Some(Need::Items { actors, count: 1 }),
+        DungeonKeys::Singles => Some(Need::Items {
+            actors,
+            count: CHEST_KEYS[n - 1],
+        }),
+        DungeonKeys::Vanilla | DungeonKeys::Start => None,
+    }
 }
 
-/// With key rings, what logic adds to the way into `room`, a boss room:
-/// its dungeon's boss key and ring.
-pub fn boss_door_need(room: &str) -> Option<Need> {
+/// With keys dealt as copies, what logic adds to a check in `rel`, a Banc
+/// file: all its dungeon's small keys. Stricter than the game, which asks
+/// for them door by door, but safe in any order Link spends them.
+pub fn dungeon_need(rel: &str, keys: DungeonKeys) -> Option<Need> {
+    smalls(dungeon_of(rel)?, keys)
+}
+
+/// With keys dealt as copies, what logic adds to the way into `room`, a
+/// boss room: its dungeon's boss key and small keys.
+pub fn boss_door_need(room: &str, keys: DungeonKeys) -> Option<Need> {
     let i = DUNGEONS
         .iter()
         .position(|(.., r)| r.is_some_and(|r| *r == *room))?;
-    let keys = [key_tints::boss(i + 1), key_tints::ring(i + 1)];
-    Some(Need::All(keys.map(holds).to_vec()))
+    let small = smalls(i + 1, keys)?;
+    Some(Need::All(vec![holds(key_tints::boss(i + 1)), small]))
 }
 
-/// A ring's or boss key copy's name, after its dungeon's: `area` names one
-/// by its id.
-pub fn copy_name(actor: &str, area: impl Fn(&str) -> String) -> Option<String> {
+/// A ring's, small key's or boss key copy's name, after its dungeon's:
+/// `area` names one by its id. The ring copy is a single small key with
+/// Keysanity.
+pub fn copy_name(actor: &str, area: impl Fn(&str) -> String, keys: DungeonKeys) -> Option<String> {
     DUNGEONS.iter().enumerate().find_map(|(i, (dungeon, ..))| {
         let n = i + 1;
         let kind = match actor {
+            a if a == key_tints::ring(n) && keys == DungeonKeys::Singles => "Small Key",
             a if a == key_tints::ring(n) => "Key Ring",
             a if a == key_tints::boss(n) => "Boss Key",
             _ => return None,
@@ -217,11 +257,49 @@ mod tests {
         let red = INSTEAD.get();
         let mut items = vec![red; SHUFFLED.len() + 1];
         items.push(item::HOOKSHOT.get());
-        deal_rings(&mut items).unwrap();
+        deal_copies(&mut items, DungeonKeys::Rings).unwrap();
         assert_eq!(items.iter().filter(|i| **i == red).count(), 1);
         assert!(SHUFFLED.iter().all(|k| items.contains(&k.as_str())));
         assert_eq!(SHUFFLED.len(), DUNGEONS.len() + 6);
-        assert!(deal_rings(&mut [red; 3]).is_err());
+        assert!(deal_copies(&mut [red; 3], DungeonKeys::Rings).is_err());
+    }
+
+    #[test]
+    fn keysanity_deals_a_copy_for_every_key_chest() {
+        needs_names!();
+        let red = INSTEAD.get();
+        // The 37 small key chests and 6 boss key chests: every key chest.
+        assert_eq!(SINGLES.len(), 37 + 6);
+        let mut items = vec![red; SINGLES.len()];
+        deal_copies(&mut items, DungeonKeys::Singles).unwrap();
+        assert!(!items.contains(&red));
+        let forest = DUNGEONS
+            .iter()
+            .position(|d| d.0 == flag::FOREST_TEMPLE)
+            .unwrap();
+        let ring = key_tints::ring(forest + 1);
+        let held = items.iter().filter(|i| **i == ring).count() as u32;
+        assert_eq!(held, CHEST_KEYS[forest]);
+        let mut start = vec![red; 2];
+        deal_copies(&mut start, DungeonKeys::Start).unwrap();
+        assert_eq!(start, [red; 2]);
+    }
+
+    #[test]
+    fn chest_keys_count_each_dungeon_s_small_key_chests() {
+        needs_names!();
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let checks = crate::checks::all(&romfs).unwrap();
+        let mut seen = std::collections::HashSet::new();
+        let mut counts = [0u32; 8];
+        for c in checks.iter().filter(|c| c.item == SMALL.get()) {
+            if let Some(n) = dungeon_of(&c.file).filter(|_| seen.insert(c.hash)) {
+                counts[n - 1] += 1;
+            }
+        }
+        assert_eq!(counts, CHEST_KEYS);
     }
 
     #[test]
@@ -229,13 +307,25 @@ mod tests {
         needs_names!();
         let forest = format!("Banc/{}/Fake.bcett.byml.zs", flag::FOREST_TEMPLE);
         let n = dungeon_of(&forest).unwrap();
-        assert_eq!(ring_need(&forest).unwrap().to_string(), key_tints::ring(n));
-        assert!(ring_need("Banc/FakeField/Fake.bcett.byml.zs").is_none());
-        let door = boss_door_need(map::PHANTOM_GANON_STAGE)
+        let rings = DungeonKeys::Rings;
+        let need = dungeon_need(&forest, rings).unwrap().to_string();
+        assert_eq!(need, key_tints::ring(n));
+        assert!(dungeon_need("Banc/FakeField/Fake.bcett.byml.zs", rings).is_none());
+        assert!(dungeon_need(&forest, DungeonKeys::Start).is_none());
+        let door = boss_door_need(map::PHANTOM_GANON_STAGE, rings)
             .unwrap()
             .to_string();
         assert!(door.contains(&key_tints::boss(n)) && door.contains(&key_tints::ring(n)));
-        assert!(boss_door_need(map::GOHMA_STAGE).is_none());
+        assert!(boss_door_need(map::GOHMA_STAGE, rings).is_none());
+        // Keysanity asks for every copy the dungeon's chests hold.
+        let all = dungeon_need(&forest, DungeonKeys::Singles).unwrap();
+        let Need::Items { actors, count } = all else {
+            panic!("{all}")
+        };
+        assert_eq!(
+            (actors, count),
+            (vec![key_tints::ring(n)], CHEST_KEYS[n - 1])
+        );
     }
 
     #[test]
@@ -243,7 +333,7 @@ mod tests {
         let area = |id: &str| format!("<{id}>");
         let forest = DUNGEONS.iter().position(|d| d.0 == flag::FOREST_TEMPLE);
         let n = forest.unwrap() + 1;
-        let named = |a: String| copy_name(&a, area);
+        let named = |a: String| copy_name(&a, area, DungeonKeys::Rings);
         assert_eq!(
             named(key_tints::ring(n)).unwrap(),
             format!("<{}> Key Ring", flag::FOREST_TEMPLE)
@@ -253,6 +343,10 @@ mod tests {
             format!("<{}> Boss Key", flag::FOREST_TEMPLE)
         );
         assert!(named(item::HOOKSHOT.to_string()).is_none());
+        assert_eq!(
+            copy_name(&key_tints::ring(n), area, DungeonKeys::Singles).unwrap(),
+            format!("<{}> Small Key", flag::FOREST_TEMPLE)
+        );
     }
 
     #[test]

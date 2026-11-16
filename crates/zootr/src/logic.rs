@@ -213,7 +213,7 @@ impl World {
             }
             ensure!(rule.added, "no exit from {} to {}", rule.from, rule.to);
             let mut need = book.need(&rule.expr, ctx)?;
-            if let Some(keys) = keys::boss_door_need(&rule.to).filter(|_| ctx.rings) {
+            if let Some(keys) = keys::boss_door_need(&rule.to, ctx.keys) {
                 need = Need::All(vec![need, keys]);
             }
             let to_eras = eras_of(&scan.places, &rule.to);
@@ -328,7 +328,7 @@ impl World {
                     Some(word) => Need::All(vec![need, resolve(word)?]),
                     None => need,
                 };
-                let need = match keys::ring_need(&check.file).filter(|_| ctx.rings) {
+                let need = match keys::dungeon_need(&check.file, ctx.keys) {
                     Some(ring) => Need::All(vec![need, ring]),
                     None => need,
                 };
@@ -375,7 +375,7 @@ impl World {
             progressive: ctx.progressive,
             on: ctx.on.iter().cloned().chain([TRIALS.into()]).collect(),
             seed: ctx.seed,
-            rings: ctx.rings,
+            keys: ctx.keys,
         };
         let mut goal = Vec::new();
         for rule in book.exits.iter().filter(|r| r.to == GOAL) {
