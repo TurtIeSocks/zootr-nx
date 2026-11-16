@@ -26,6 +26,10 @@ pub const LOOK: Duration = Duration::from_secs(2);
 const TITLE: Duration = Duration::from_secs(42);
 /// Run folders kept under `boot/`.
 const KEEP: usize = 10;
+/// The Mac runner's shader cache, which it keeps beside the save folder
+/// it's given. A run folder links them to the shared ones, or every run
+/// compiles every shader from nothing.
+const SHADER_CACHE: [&str; 2] = ["pso_archive", "pso_user.tsv"];
 
 /// What a start plays.
 pub enum Start {
@@ -75,9 +79,48 @@ pub fn boot(
             restore(from, to).context("restoring the save")?;
             input.launch(None)?;
         }
-        _ => input.launch(save)?,
+        _ => {
+            if let Some(save) = save {
+                share_cache(target, save)?;
+            }
+            input.launch(save)?
+        }
     }
     into_play(input, |since| by_memory(target, since), (limit, LOOK))
+}
+
+/// Link the shader cache beside `target`'s own save folder into the run
+/// folder holding `save`. Pruning a run removes the links, never what
+/// they point to.
+fn share_cache(target: &Target, save: &Path) -> Result<()> {
+    let shared = target.save_dir.as_deref().and_then(Path::parent);
+    let (Some(shared), Some(run)) = (shared, save.parent()) else {
+        return Ok(());
+    };
+    link_cache(shared, run)
+}
+
+fn link_cache(shared: &Path, run: &Path) -> Result<()> {
+    for name in SHADER_CACHE {
+        let (from, to) = (shared.join(name), run.join(name));
+        if from.exists() && to.symlink_metadata().is_err() {
+            link(&from, &to).with_context(|| format!("linking {}", to.display()))?;
+        }
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn link(from: &Path, to: &Path) -> std::io::Result<()> {
+    std::os::unix::fs::symlink(from, to)
+}
+
+#[cfg(windows)]
+fn link(from: &Path, to: &Path) -> std::io::Result<()> {
+    match from.is_dir() {
+        true => std::os::windows::fs::symlink_dir(from, to),
+        false => std::os::windows::fs::symlink_file(from, to),
+    }
 }
 
 /// Press A whenever the game is in its menus, until play. `look` says how
@@ -220,6 +263,30 @@ mod tests {
         let err = into_play(&mut game, |_| Boot::Starting, QUICK).unwrap_err();
         assert!(err.to_string().contains("never reached play"), "{err}");
         assert!(game.presses.is_empty());
+    }
+
+    #[test]
+    fn a_run_shares_the_shader_cache_and_pruning_it_keeps_the_cache() {
+        let dir = std::env::temp_dir().join(format!("zootr-cache-{}", std::process::id()));
+        let (shared, run) = (dir.join("shared"), dir.join("boot").join("run"));
+        std::fs::create_dir_all(shared.join(SHADER_CACHE[0])).unwrap();
+        std::fs::write(shared.join(SHADER_CACHE[0]).join("a.keys"), "k").unwrap();
+        std::fs::write(shared.join(SHADER_CACHE[1]), "t").unwrap();
+        std::fs::create_dir_all(&run).unwrap();
+
+        link_cache(&shared, &run).unwrap();
+        link_cache(&shared, &run).unwrap();
+        assert!(run.join(SHADER_CACHE[0]).join("a.keys").exists());
+        assert_eq!(
+            std::fs::read_to_string(run.join(SHADER_CACHE[1])).unwrap(),
+            "t"
+        );
+
+        recorder::keep_newest([run.clone()].into_iter(), 0).unwrap();
+        assert!(!run.exists());
+        assert!(shared.join(SHADER_CACHE[0]).join("a.keys").exists());
+        assert!(shared.join(SHADER_CACHE[1]).exists());
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
