@@ -185,7 +185,8 @@ Each panel in the app's sidebar, with what every setting does.
   to launch, the mod folder to install to, and optionally the save folder
   and settings lines.
 
-There are no prebuilt downloads yet. Build from source below.
+Download the app for your system from the Releases page, or build it from
+source below.
 
 ## Targets
 
@@ -196,7 +197,7 @@ has these fields:
 |---|---|
 | `name` | Shown in the Play picker |
 | `app` | What Play opens. Its process also tells zootr the game is running |
-| `mod_dir` | The mod folder. Install writes `romfs/` here |
+| `mod_dir` | The mod folder. Install writes `romfs/` and the code patch, `exefs/zootr.pchtxt`, here. The same patch goes in `cheats/` too when a settings line names `{cheats}` |
 | `args` | Optional launch arguments. `{game}` becomes your game dump |
 | `save_dir` | Optional. The folder holding `slot_00`, `slot_01` and so on |
 | `settings_file` | Optional. A `file` and the `lines` to set in it on install, for apps that read the mod path from a settings file |
