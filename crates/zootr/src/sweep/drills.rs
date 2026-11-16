@@ -16,7 +16,7 @@ use crate::play::Input;
 use crate::settings::{self, Settings};
 
 /// What a drill proves the harness can do.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, ValueEnum)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, ValueEnum)]
 #[serde(rename_all = "kebab-case")]
 pub enum Skill {
     /// Walk through a door or a shop's doorway.
@@ -41,6 +41,20 @@ pub enum Skill {
     Shop,
     /// Play a song back.
     Song,
+}
+
+impl Skill {
+    /// The skills every walk leans on. A walk that gave up can't say which
+    /// one it lacked.
+    pub const WALKING: [Skill; 4] = [Skill::Door, Skill::NoRoute, Skill::Climb, Skill::Swim];
+
+    /// Its name as rows and the command line spell it, like `no-route`.
+    pub fn label(self) -> String {
+        serde_json::to_value(self)
+            .ok()
+            .and_then(|v| v.as_str().map(str::to_owned))
+            .unwrap_or_default()
+    }
 }
 
 /// One play task with a known answer.

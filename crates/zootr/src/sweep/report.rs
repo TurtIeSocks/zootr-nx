@@ -2,13 +2,15 @@
 //! per holder kind and per failure ending. Both read the JSON lines rows a
 //! run appends.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::path::Path;
 
 use serde_json::Value;
 
+use super::drills::{DRILLS, Skill};
 use super::night::holder_kind;
+use crate::{cows, scrubs, shops};
 
 /// Passes out of runs.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -55,6 +57,9 @@ pub struct Sweep {
     pub kinds: BTreeMap<String, BTreeMap<String, usize>>,
     /// Rows that didn't pass, by how they ended.
     pub endings: BTreeMap<String, usize>,
+    /// Passes out of the rows whose skills are all proven, once the drills
+    /// say which are.
+    pub proven: Option<Tally>,
 }
 
 /// The rows of `text` that parse, skipping a night's error notes.
@@ -84,34 +89,65 @@ pub fn ending(row: &Value) -> String {
     format!("{}/{}/{}", part(walk), part(why), part(use_))
 }
 
-/// Tally the drill rows of `text`. A drill's run is every row it wrote in
-/// one round: a retry after a restart or as the other age is the same run,
-/// which passed if any of its tries did.
-pub fn drills(text: &str) -> Drills {
-    let mut runs: Vec<(u64, String, String, Vec<Value>)> = vec![];
+/// One drill's run: every row it wrote in one round. A retry after a
+/// restart or as the other age is the same run, which passed if any of its
+/// tries did.
+struct Run {
+    round: u64,
+    drill: String,
+    skill: String,
+    tries: Vec<Value>,
+}
+
+impl Run {
+    fn passed(&self) -> bool {
+        self.tries.iter().any(|r| verdict(r) == "pass")
+    }
+}
+
+/// The drill runs in `text`, in the order they began.
+fn runs(text: &str) -> Vec<Run> {
+    let mut runs: Vec<Run> = vec![];
     for row in rows(text) {
         let (Some(drill), Some(skill)) = (row["drill"].as_str(), row["skill"].as_str()) else {
             continue;
         };
         let round = row["round"].as_u64().unwrap_or(0);
-        match runs.iter_mut().find(|r| r.0 == round && r.1 == drill) {
-            Some(run) => run.3.push(row),
-            None => runs.push((round, drill.to_owned(), skill.to_owned(), vec![row])),
+        match runs
+            .iter_mut()
+            .find(|r| r.round == round && r.drill == drill)
+        {
+            Some(run) => run.tries.push(row),
+            None => runs.push(Run {
+                round,
+                drill: drill.to_owned(),
+                skill: skill.to_owned(),
+                tries: vec![row],
+            }),
         }
     }
+    runs
+}
+
+/// Tally the drill rows of `text`.
+pub fn drills(text: &str) -> Drills {
     let mut board = Drills::default();
-    for (_, drill, skill, tries) in runs {
-        let passed = tries.iter().any(|r| verdict(r) == "pass");
-        board.skills.entry(skill).or_default().add(passed);
-        board.drills.entry(drill.clone()).or_default().add(passed);
+    for run in runs(text) {
+        let passed = run.passed();
+        board.skills.entry(run.skill).or_default().add(passed);
+        board
+            .drills
+            .entry(run.drill.clone())
+            .or_default()
+            .add(passed);
         if passed {
             continue;
         }
-        for row in &tries {
+        for row in &run.tries {
             let shots = row["swept"]["shots"].as_array();
             let shot = shots.and_then(|s| s.last()).and_then(Value::as_str);
             board.failures.push(Failure {
-                drill: drill.clone(),
+                drill: run.drill.clone(),
                 verdict: verdict(row).to_owned(),
                 ending: ending(row),
                 shot: shot.unwrap_or("-").to_owned(),
@@ -121,18 +157,83 @@ pub fn drills(text: &str) -> Drills {
     board
 }
 
-/// Tally the sweep rows of `text` from round `from` through `to`.
-pub fn sweep(text: &str, from: Option<u64>, to: Option<u64>) -> Sweep {
-    let mut board = Sweep::default();
+/// The skills each ladder in `ladders` proves: every drill of the skill
+/// passed its last 3 runs. One ladder's rows a machine, so a skill is
+/// proven only where every machine agrees.
+pub fn proven(ladders: &[String]) -> BTreeSet<Skill> {
+    let proves = |runs: &[Run], drill: &str| {
+        let last: Vec<_> = runs
+            .iter()
+            .filter(|r| r.drill == drill)
+            .rev()
+            .take(3)
+            .collect();
+        last.len() == 3 && last.iter().all(|r| r.passed())
+    };
+    let ladders: Vec<Vec<Run>> = ladders.iter().map(|t| runs(t)).collect();
+    let mut drilled = DRILLS.iter().map(|d| d.skill).collect::<BTreeSet<_>>();
+    drilled.retain(|s| {
+        let mut theirs = DRILLS.iter().filter(|d| d.skill == *s);
+        !ladders.is_empty() && theirs.all(|d| ladders.iter().all(|l| proves(l, d.name)))
+    });
+    drilled
+}
+
+/// The skills a sweep row leans on: its use's, by its holder, and every
+/// walking one when its walk gave up. `None` for a holder no drill covers
+/// yet (a pot, a heart piece, a scene played straight).
+pub fn skills(row: &Value) -> Option<Vec<Skill>> {
+    let holder = row["spot"]["holder"].as_str().unwrap_or_default();
+    let by_prefix = [
+        ("Obj_TBox_", Skill::Chest),
+        ("Obj_BrokenBox_", Skill::Box),
+        ("Obj_LiftRock_", Skill::Lift),
+        (scrubs::HOLDER, Skill::Scrub),
+    ];
+    let used = (by_prefix.iter().find(|(p, _)| holder.starts_with(p)))
+        .map(|(_, s)| *s)
+        .or_else(|| shops::is_holder(holder).then_some(Skill::Shop))
+        .or_else(|| cows::is_holder(holder).then_some(Skill::Song))
+        .or_else(|| (row["trigger"] == "talk").then_some(Skill::Talk))?;
+    let mut skills = vec![used];
+    if row["swept"]["used"]["went"]["result"] == "gave up" {
+        skills.extend(Skill::WALKING);
+    }
+    Some(skills)
+}
+
+/// Tally the sweep rows of `text` from round `from` through `to`. With the
+/// `proven` skills known, a "nothing" row that leans on one that isn't
+/// proven reads "unproven": the harness can't do that yet, which says
+/// nothing of the seed.
+pub fn sweep(
+    text: &str,
+    from: Option<u64>,
+    to: Option<u64>,
+    proven: Option<&BTreeSet<Skill>>,
+) -> Sweep {
+    let mut board = Sweep {
+        proven: proven.map(|_| Tally::default()),
+        ..Sweep::default()
+    };
     let within = |r: &Value| {
         let round = r["round"].as_u64().unwrap_or(0);
         from.is_none_or(|f| round >= f) && to.is_none_or(|t| round <= t)
     };
     for row in rows(text).filter(within) {
         let kind = holder_kind(row["spot"]["holder"].as_str().unwrap_or("-"));
+        let mut said = verdict(&row);
+        if let (Some(proven), Some(tally)) = (proven, board.proven.as_mut()) {
+            let sure = skills(&row).is_some_and(|s| s.iter().all(|s| proven.contains(s)));
+            if sure {
+                tally.add(said == "pass");
+            } else if said == "nothing" {
+                said = "unproven";
+            }
+        }
         let verdicts = board.kinds.entry(kind.to_owned()).or_default();
-        *verdicts.entry(verdict(&row).to_owned()).or_default() += 1;
-        if verdict(&row) != "pass" {
+        *verdicts.entry(said.to_owned()).or_default() += 1;
+        if said != "pass" {
             *board.endings.entry(ending(&row)).or_default() += 1;
         }
     }
@@ -211,7 +312,11 @@ impl fmt::Display for Sweep {
         let mut sorted: Vec<_> = self.endings.iter().collect();
         sorted.sort_by(|a, b| b.1.cmp(a.1).then(a.0.cmp(b.0)));
         endings.extend(sorted.into_iter().map(|(e, n)| cells([e, n])));
-        write!(f, "{}\n{}", table(&kinds), table(&endings))
+        write!(f, "{}\n{}", table(&kinds), table(&endings))?;
+        if let Some(tally) = self.proven {
+            write!(f, "\npasses where every skill is proven: {tally}\n")?;
+        }
+        Ok(())
     }
 }
 
@@ -295,7 +400,7 @@ mod tests {
             row(9, "Obj_Fake_A_04", "nothing", None),
         ]
         .join("\n");
-        let board = sweep(&text, Some(1), Some(3));
+        let board = sweep(&text, Some(1), Some(3), None);
         assert_eq!(board.kinds["Obj_Fake_A"]["pass"], 1);
         assert_eq!(board.kinds["Obj_Fake_A"]["nothing"], 2);
         assert_eq!(board.kinds["Fake Shop"]["nothing"], 1);
@@ -308,6 +413,108 @@ mod tests {
             first.starts_with("gave up/blocked/nothing"),
             "most rows first: {shown}"
         );
+    }
+
+    /// Three passing runs of every drill of `skills`, as one ladder.
+    fn ladder(skills: &[Skill]) -> String {
+        let drilled = DRILLS.iter().filter(|d| skills.contains(&d.skill));
+        let each =
+            drilled.flat_map(|d| (0..3).map(|r| drill_row(r, d.name, &d.skill.label(), "pass")));
+        each.collect::<Vec<_>>().join("\n")
+    }
+
+    #[test]
+    fn a_skill_is_proven_by_three_passes_of_each_drill_on_every_ladder() {
+        let both = ladder(&[Skill::Chest, Skill::Box]);
+        assert_eq!(
+            proven(std::slice::from_ref(&both)),
+            [Skill::Box, Skill::Chest].into()
+        );
+        let one_slip = format!(
+            "{both}\n{}",
+            drill_row(3, "hyrule field box", "box", "nothing")
+        );
+        assert_eq!(
+            proven(&[one_slip]),
+            [Skill::Chest].into(),
+            "the last 3 runs count"
+        );
+        let other = ladder(&[Skill::Chest]);
+        assert_eq!(
+            proven(&[both, other]),
+            [Skill::Chest].into(),
+            "every machine agrees"
+        );
+        assert!(proven(&[]).is_empty());
+    }
+
+    #[test]
+    fn a_nothing_leaning_on_an_unproven_skill_reads_unproven() {
+        let text = [
+            row(0, "Obj_TBox_FakeA", "pass", Some(("arrived", "", "event"))),
+            row(
+                0,
+                "Obj_TBox_FakeB",
+                "nothing",
+                Some(("arrived", "", "nothing")),
+            ),
+            row(
+                0,
+                "Obj_TBox_FakeC",
+                "nothing",
+                Some(("gave up", "blocked", "nothing")),
+            ),
+            row(
+                0,
+                "Obj_BrokenBox_FakeA",
+                "nothing",
+                Some(("arrived", "", "nothing")),
+            ),
+            row(0, "Obj_FakePot", "nothing", None),
+        ]
+        .join("\n");
+        let proven = [Skill::Chest].into();
+        let board = sweep(&text, None, None, Some(&proven));
+        assert_eq!(board.kinds["Obj_TBox_FakeB"]["nothing"], 1, "a lead");
+        assert_eq!(
+            board.kinds["Obj_TBox_FakeC"]["unproven"], 1,
+            "walking isn't proven"
+        );
+        assert_eq!(board.kinds["Obj_BrokenBox_FakeA"]["unproven"], 1);
+        assert_eq!(board.kinds["Obj_FakePot"]["unproven"], 1, "no drill");
+        assert_eq!(board.proven, Some(Tally { passes: 1, runs: 2 }));
+        assert!(board.to_string().contains("every skill is proven: 1/2"));
+        let plain = sweep(&text, None, None, None);
+        assert_eq!(plain.kinds["Obj_FakePot"]["nothing"], 1);
+        assert_eq!(plain.proven, None);
+    }
+
+    #[test]
+    fn a_rows_skills_come_from_its_holder_and_its_walk() {
+        let of = |holder: &str, trigger: &str, walk: &str| {
+            let mut r: Value =
+                serde_json::from_str(&row(0, holder, "nothing", Some((walk, "", "nothing"))))
+                    .unwrap();
+            r["trigger"] = trigger.into();
+            skills(&r)
+        };
+        assert_eq!(
+            of("Business Scrub, sticks", "talk", "arrived"),
+            Some(vec![Skill::Scrub])
+        );
+        assert_eq!(
+            of("Goron Shop 3", "talk", "arrived"),
+            Some(vec![Skill::Shop])
+        );
+        assert_eq!(of("Grotto Cow", "play", "arrived"), Some(vec![Skill::Song]));
+        assert_eq!(
+            of("Fake person", "talk", "arrived"),
+            Some(vec![Skill::Talk])
+        );
+        assert_eq!(of("Fake scene", "play", "arrived"), None);
+        let gave_up = of("Obj_LiftRock_FakeA", "open", "gave up").unwrap();
+        assert_eq!(gave_up[0], Skill::Lift);
+        assert!(Skill::WALKING.iter().all(|s| gave_up.contains(s)));
     }
 
     #[test]

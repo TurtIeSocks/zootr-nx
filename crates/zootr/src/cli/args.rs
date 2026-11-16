@@ -75,6 +75,10 @@ pub(super) enum SweepReport {
         /// Up to this round.
         #[arg(long)]
         to: Option<u64>,
+        /// A ladder's folder, once for each machine. Its proven skills turn
+        /// a "nothing" that leans on an unproven one into "unproven".
+        #[arg(long)]
+        drills: Vec<PathBuf>,
     },
 }
 
