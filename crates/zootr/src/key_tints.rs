@@ -31,7 +31,7 @@ use crate::standins::{
     MODEL, POUCH, POUCH_ACTOR, Tables, actor_path, clone_pack, doc, path_of, pouch_actor, raw,
     renamed, resolved, with_ref, write_clone,
 };
-use crate::text::Copies;
+use crate::text::{Copies, CopyLine, Named};
 
 /// One kind of key's model: the actor it's named like, its textures by
 /// suffix, and the prefix of a dungeon's copy, which with the dungeon's
@@ -170,18 +170,33 @@ pub fn copy_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<Option<
     Ok(None)
 }
 
-/// The text each copy's get shows, copied from its template's: a copy
-/// answers to its own name, so the game looks its lines up under it.
-pub fn captions(rings: bool, bosses: bool) -> Copies<'static> {
-    let new = made(rings, bosses)
+/// The text each copy's get shows, copied from its template's and naming
+/// its dungeon: a copy answers to its own name, so the game looks its
+/// lines up under it.
+pub fn captions(keys: DungeonKeys, bosses: bool) -> Copies<'static> {
+    let new = made(keys.copies(), bosses)
         .into_iter()
-        .flat_map(|(copy, template)| {
-            TEXT_PARTS.map(|part| {
-                (
-                    format!("{copy}{part}"),
-                    vec![format!("{}{part}", template.get())],
-                )
-            })
+        .flat_map(|(copy, template, n)| {
+            let lines = match template == BOSS {
+                true => &BOSS_TEXT,
+                false if keys == DungeonKeys::Singles => &SINGLE_TEXT,
+                false => &RING_TEXT,
+            };
+            TEXT_PARTS
+                .iter()
+                .zip(lines)
+                .map(move |(part, &(english, bracketed))| {
+                    let names = english.map(|english| Named {
+                        place: place(n),
+                        english,
+                        bracketed,
+                    });
+                    CopyLine {
+                        label: format!("{copy}{part}"),
+                        sources: vec![format!("{}{part}", template.get())],
+                        names,
+                    }
+                })
         })
         .collect();
     Copies {
@@ -190,16 +205,26 @@ pub fn captions(rings: bool, bosses: bool) -> Copies<'static> {
     }
 }
 
+/// Dungeon `n`'s label in `LocationMsg/Location`. Ganon's Castle reads
+/// "Inside Ganondorf's Castle" under its own, so it takes the castle's.
+fn place(n: usize) -> &'static str {
+    match DUNGEONS[n - 1].0 {
+        d if d == flag::INSIDE_GANON_CASTLE => flag::GANON_CASTLE.get(),
+        d => d.get(),
+    }
+}
+
 /// Each ring (with `rings`) and boss key copy (with `bosses`) the seed
-/// makes, with the game's key it copies.
-pub fn made(rings: bool, bosses: bool) -> Vec<(String, &'static Name)> {
+/// makes, with the game's key it copies and its dungeon's number in
+/// [`DUNGEONS`].
+pub fn made(rings: bool, bosses: bool) -> Vec<(String, &'static Name, usize)> {
     let mut made = Vec::new();
     for n in 1..=DUNGEONS.len() {
         if rings {
-            made.push((ring(n), SMALL));
+            made.push((ring(n), SMALL, n));
         }
         if bosses && has_boss(n) {
-            made.push((boss(n), BOSS));
+            made.push((boss(n), BOSS, n));
         }
     }
     made
@@ -207,6 +232,26 @@ pub fn made(rings: bool, bosses: bool) -> Vec<(String, &'static Name)> {
 
 /// The lines a key's get reads, each under the key's name.
 const TEXT_PARTS: [&str; 3] = ["_Name", "_GetMessage", "_GetCaption"];
+
+/// Each of [`TEXT_PARTS`]' English line for a copy, `{}` its dungeon's
+/// name, and whether every other language adds the name in brackets.
+/// `None` keeps the game's line in every language.
+type CopyText = [(Option<&'static str>, bool); 3];
+const RING_TEXT: CopyText = [
+    (Some("{} Key Ring"), true),
+    (Some("You found the {} key ring!"), true),
+    (Some("It holds every {} small key."), false),
+];
+const SINGLE_TEXT: CopyText = [
+    (Some("{} Small Key"), true),
+    (Some("You found a {} small key!"), true),
+    (Some("It unlocks one {} door."), false),
+];
+const BOSS_TEXT: CopyText = [
+    (Some("{} Boss Key"), true),
+    (Some("You found the {} boss key!"), true),
+    (None, false),
+];
 const POUCH_TEXT: &str = "ActorMsg/PouchContent";
 
 /// What a copy sets as it's found: a Bool true, an Int to a value, or one
@@ -305,7 +350,7 @@ pub fn write(
 /// would count a small key for the dungeon Link stands in (`SmallKey`), or
 /// keep a pickup from handing over a boss key (`NotPushToPouch`).
 fn uncounted(tables: &mut Tables, bosses: bool, rings: bool) -> Result<()> {
-    let copies: Vec<String> = made(rings, bosses).into_iter().map(|(c, _)| c).collect();
+    let copies: Vec<String> = made(rings, bosses).into_iter().map(|(c, ..)| c).collect();
     let changed = tables.edit_pouch(|row| {
         let id = row.get(ROW_ID).and_then(|v| v.as_string().ok());
         let hit = id.is_some_and(|id| copies.iter().any(|c| c == id));
@@ -531,6 +576,156 @@ mod tests {
     use crate::game::dev_dump;
 
     #[test]
+    fn a_copy_s_text_names_its_dungeon_in_english_and_in_brackets_elsewhere() {
+        use ounce_formats::{Msbt, Part};
+        let Some(romfs) = dev_dump() else { return };
+        let dungeon = |d: &Name| DUNGEONS.iter().position(|e| e.0 == d).unwrap() + 1;
+        let (forest, ganon) = (
+            dungeon(flag::FOREST_TEMPLE),
+            dungeon(flag::INSIDE_GANON_CASTLE),
+        );
+        let text = |s: &str| vec![Part::Text(s.into())];
+        let (rings, singles) = (
+            captions(DungeonKeys::Rings, true),
+            captions(DungeonKeys::Singles, false),
+        );
+        let rels = crate::text::archives(&romfs).unwrap();
+        assert_eq!(rels.len(), 16);
+        for rel in rels {
+            let data = romfs.read(&rel).unwrap();
+            let read = |d: &[u8], file: &str| {
+                let sarc = roead::sarc::Sarc::new(d).unwrap();
+                Msbt::parse(sarc.get_data(file).unwrap()).unwrap()
+            };
+            let pouch = format!("{POUCH_TEXT}.msbt");
+            let (old, places) = (read(&data, &pouch), read(&data, crate::names::AREAS));
+            let line = |m: &Msbt, label: String| m.get(&label).unwrap().unwrap();
+            let ring_text = read(&crate::text::copied(&data, &rel, &rings).unwrap(), &pouch);
+            let single_text = read(&crate::text::copied(&data, &rel, &singles).unwrap(), &pouch);
+            let (small, boss_key) = (SMALL.get(), BOSS.get());
+            // Every language keeps the game's own captions but a ring's
+            // and a single key's in English.
+            assert_eq!(
+                line(&ring_text, format!("{}_GetCaption", boss(forest))),
+                line(&old, format!("{boss_key}_GetCaption")),
+                "{rel}"
+            );
+            if crate::text::is_english(&rel) {
+                let cases = [
+                    (
+                        &ring_text,
+                        ring(forest),
+                        "_GetMessage",
+                        "You found the Forest Temple key ring!",
+                    ),
+                    (&ring_text, ring(forest), "_Name", "Forest Temple Key Ring"),
+                    (
+                        &ring_text,
+                        ring(forest),
+                        "_GetCaption",
+                        "It holds every Forest Temple small key.",
+                    ),
+                    (
+                        &ring_text,
+                        ring(ganon),
+                        "_Name",
+                        "Ganondorf's Castle Key Ring",
+                    ),
+                    (
+                        &ring_text,
+                        boss(forest),
+                        "_GetMessage",
+                        "You found the Forest Temple boss key!",
+                    ),
+                    (
+                        &ring_text,
+                        boss(ganon),
+                        "_Name",
+                        "Ganondorf's Castle Boss Key",
+                    ),
+                    (
+                        &single_text,
+                        ring(forest),
+                        "_GetMessage",
+                        "You found a Forest Temple small key!",
+                    ),
+                    (
+                        &single_text,
+                        ring(forest),
+                        "_GetCaption",
+                        "It unlocks one Forest Temple door.",
+                    ),
+                ];
+                for (m, copy, part, want) in cases {
+                    assert_eq!(
+                        line(m, format!("{copy}{part}")),
+                        text(want),
+                        "{rel} {copy}{part}"
+                    );
+                }
+                continue;
+            }
+            let wide = rel.contains("zh.") || rel.contains("ja.");
+            let (open, close) = if wide { ("（", "）") } else { (" (", ")") };
+            let bracketed = |source: String, place: &Name| {
+                let mut want = line(&old, source);
+                want.push(Part::Text(open.into()));
+                want.extend(line(&places, place.get().into()));
+                want.push(Part::Text(close.into()));
+                // Adjacent text runs read back as one.
+                want.into_iter()
+                    .fold(Vec::new(), |mut out: Vec<Part>, part| {
+                        match (out.last_mut(), part) {
+                            (Some(Part::Text(last)), Part::Text(t)) => last.push_str(&t),
+                            (_, part) => out.push(part),
+                        }
+                        out
+                    })
+            };
+            let cases = [
+                (
+                    &ring_text,
+                    ring(forest),
+                    "_GetMessage",
+                    small,
+                    flag::FOREST_TEMPLE,
+                ),
+                (
+                    &ring_text,
+                    ring(forest),
+                    "_Name",
+                    small,
+                    flag::FOREST_TEMPLE,
+                ),
+                (&ring_text, ring(ganon), "_Name", small, flag::GANON_CASTLE),
+                (
+                    &ring_text,
+                    boss(forest),
+                    "_GetMessage",
+                    boss_key,
+                    flag::FOREST_TEMPLE,
+                ),
+                (
+                    &single_text,
+                    ring(forest),
+                    "_GetMessage",
+                    small,
+                    flag::FOREST_TEMPLE,
+                ),
+            ];
+            for (m, copy, part, template, place) in cases {
+                let want = bracketed(format!("{template}{part}"), place);
+                assert_eq!(line(m, format!("{copy}{part}")), want, "{rel} {copy}{part}");
+            }
+            assert_eq!(
+                line(&ring_text, format!("{}_GetCaption", ring(forest))),
+                line(&old, format!("{small}_GetCaption")),
+                "{rel}"
+            );
+        }
+    }
+
+    #[test]
     fn a_grey_texel_takes_the_colour_scaled_by_its_grey() {
         let mut rgba = [255, 255, 255, 255, 128, 128, 128, 200];
         tint(&mut rgba, [60, 220, 60]);
@@ -728,7 +923,7 @@ mod tests {
             copies.push((ring(n), SMALL, shown));
             let credited = made(true, true);
             for (copy, template, _) in &copies {
-                let own = credited.iter().any(|(c, _)| c == copy);
+                let own = credited.iter().any(|(c, ..)| c == copy);
                 let pouch = crate::standins::row(&tables.pouch, copy).unwrap();
                 let deal = pouch.get(field::POUCH_SPECIAL_DEAL.get()).unwrap();
                 let actor = crate::standins::row(&tables.actor, copy).unwrap();

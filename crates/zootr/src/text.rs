@@ -8,7 +8,7 @@ use ounce_formats::{ModBuilder, Msbt, Part, Romfs, files_with_suffix, messages, 
 use roead::sarc::Sarc;
 
 use crate::hints::{self, Hint};
-use crate::names::{ITEMS, name_label};
+use crate::names::{AREAS, ITEMS, name_label};
 
 /// Each language's text is one archive in `Mals`.
 const ARCHIVES: (&str, &str) = ("Mals", ".Product.110.sarc.zs");
@@ -32,8 +32,36 @@ pub struct Lines<'a> {
 pub struct Copies<'a> {
     /// The message file, as `ActorMsg/PouchContent`.
     pub file: &'a str,
-    /// Each new line's label, with its sources in order.
-    pub new: Vec<(String, Vec<String>)>,
+    pub new: Vec<CopyLine>,
+}
+
+/// One new line: its label, its sources in order, and the place it names.
+pub struct CopyLine {
+    pub label: String,
+    pub sources: Vec<String>,
+    pub names: Option<Named>,
+}
+
+impl CopyLine {
+    /// A line copied as it is.
+    pub fn plain(label: String, sources: Vec<String>) -> Self {
+        Self {
+            label,
+            sources,
+            names: None,
+        }
+    }
+}
+
+/// A copy naming a place: English reads `english`, its `{}` the place's
+/// English name. Every other language reads the source line, with the
+/// place's own name in brackets after it when `bracketed`. A language
+/// without the place's name keeps the source line.
+pub struct Named {
+    /// The place's label in `LocationMsg/Location`.
+    pub place: &'static str,
+    pub english: &'static str,
+    pub bracketed: bool,
 }
 
 /// Every language's archive, by romfs path.
@@ -164,23 +192,64 @@ fn language<'l>(
 }
 
 /// The archive at `rel` with `copies` added where it has a source.
-fn copied(data: &[u8], rel: &str, copies: &Copies) -> Result<Vec<u8>> {
+pub(crate) fn copied(data: &[u8], rel: &str, copies: &Copies) -> Result<Vec<u8>> {
     let sarc = Sarc::new(data).with_context(|| format!("reading {rel}"))?;
     let path = format!("{}.msbt", copies.file);
     let file = sarc.get_data(&path);
     let mut msbt = Msbt::parse(file.with_context(|| format!("{rel} has no {path}"))?)?;
-    for (label, sources) in &copies.new {
-        if msbt.get(label)?.is_some() {
+    let areas = sarc.get_data(AREAS);
+    let places = Msbt::parse(areas.with_context(|| format!("{rel} has no {AREAS}"))?)?;
+    for line in &copies.new {
+        if msbt.get(&line.label)?.is_some() {
             continue;
         }
-        for source in sources {
-            if let Some(text) = msbt.get(source)? {
-                msbt.set(label, &text)?;
+        let mut text = None;
+        for source in &line.sources {
+            text = msbt.get(source)?;
+            if text.is_some() {
                 break;
             }
         }
+        let Some(text) = text else { continue };
+        let text = match &line.names {
+            Some(named) => naming(text, named, rel, &places)?,
+            None => text,
+        };
+        msbt.set(&line.label, &text)?;
     }
     replace_file(data, &path, &msbt.to_binary())
+}
+
+/// `line` naming `named`'s place, in the language of the archive at `rel`,
+/// whose place names are `places`.
+fn naming(line: Vec<Part>, named: &Named, rel: &str, places: &Msbt) -> Result<Vec<Part>> {
+    let Some(place) = places.get(named.place)? else {
+        return Ok(line);
+    };
+    let words: String = place
+        .iter()
+        .filter_map(|p| match p {
+            Part::Text(t) => Some(t.as_str()),
+            Part::Tag(_) => None,
+        })
+        .collect();
+    if words.trim().is_empty() {
+        return Ok(line);
+    }
+    if is_english(rel) {
+        return Ok(vec![Part::Text(named.english.replace("{}", &words))]);
+    }
+    if !named.bracketed {
+        return Ok(line);
+    }
+    // Chinese and Japanese write full-width brackets, with no space.
+    let wide = ["zh.", "ja."].iter().any(|l| rel.contains(l));
+    let (open, close) = if wide { ("（", "）") } else { (" (", ")") };
+    let mut out = line;
+    out.push(Part::Text(open.into()));
+    out.extend(place);
+    out.push(Part::Text(close.into()));
+    Ok(out)
 }
 
 /// `name` as written, then with a lower case first letter, the way most
@@ -269,11 +338,11 @@ mod tests {
         let copies = Copies {
             file: &format!("{}/PouchContent", field::ACTOR_MSG),
             new: vec![
-                (
+                CopyLine::plain(
                     format!("{}_ShopCaption", item::MELODY_FIRE_BOLERO),
                     sources(item::MELODY_FIRE_BOLERO, &["Caption", field::GET_CAPTION]),
                 ),
-                (
+                CopyLine::plain(
                     actor::OBJ_HEART_SHOP_CAPTION.to_string(),
                     sources(actor::OBJ_HEART, &[field::GET_CAPTION]),
                 ),
