@@ -1,6 +1,6 @@
 # Our own names for GameData values the game never names, shown next to the
 # hash. One per line: hash, then the label. A `?` marks a guess.
-a4aee8cd Player_Rot_For_Map
+a4aee8cd player rotation for the map
 c66e58f2 rupees shown on the HUD? trails CurrentRupee by one step
 e53eb6d1 play time in seconds? ticks with e573f564
 e573f564 play time in seconds? ticks with e53eb6d1

@@ -190,18 +190,18 @@ mod tests {
     #[test]
     fn a_lone_name_splits_at_the_lowest_set_bit_of_its_last_byte() {
         // 't' is 0b0111_0100 and '3' is 0b0011_0011, as in a real model.
-        let forest = rename(&file(&["Tree_Forest"]), "Forest", "Forest").unwrap();
+        let forest = rename(&file(&["FakeTree_Forest"]), "Forest", "Forest").unwrap();
         assert_eq!(nodes(&forest), [(-1, 1, 0), (2, 0, 1)]);
-        let song = rename(&file(&["Tree_Forest"]), "Forest", "Song03").unwrap();
+        let song = rename(&file(&["FakeTree_Forest"]), "Forest", "Song03").unwrap();
         assert_eq!(nodes(&song), [(-1, 1, 0), (0, 0, 1)]);
     }
 
     #[test]
     fn every_name_is_found_by_walking_its_bits() {
         let names = [
-            "Tt_Item_Medal_Forest",
-            "Tt_Medal_Glaze",
-            "Tt_Medal_Glass",
+            "Tt_FakeItem_Medal_Forest",
+            "Tt_FakeMedal_Glaze",
+            "Tt_FakeMedal_Glass",
             "B",
         ];
         let data = rename(&file(&names), "Forest", "Song07").unwrap();

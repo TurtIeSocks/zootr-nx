@@ -36,13 +36,26 @@ pub fn is_carried(check: &ItemCheck) -> bool {
     CARRYING.contains(&check.hash) && keys::is_key(&check.item)
 }
 
+/// Each thief's call, by the number of the key it carries (01 first).
+const THIEVES: [&Name; 4] = [
+    flow::GERUDO_FORTRESS_DESTROY_GERUDO_THIEF01,
+    flow::GERUDO_FORTRESS_DESTROY_GERUDO_THIEF02,
+    flow::GERUDO_FORTRESS_DESTROY_GERUDO_THIEF03,
+    flow::GERUDO_FORTRESS_DESTROY_GERUDO_THIEF04,
+];
+
 /// The entry that runs the thief's call, and the Bool the key sets, for
 /// the key actor `key`.
 fn thief_of(key: &str) -> Result<(String, String)> {
     let n = key.strip_prefix(keys::FORTRESS_KEY);
     let n = n.with_context(|| format!("{key} isn't a Fortress key"))?;
+    let thief = n
+        .parse::<usize>()
+        .ok()
+        .and_then(|i| THIEVES.get(i.checked_sub(1)?));
+    let thief = thief.with_context(|| format!("{key} isn't a thief's key"))?;
     Ok((
-        format!("GerudoFortress_DestroyGerudoThief{n}"),
+        thief.to_string(),
         format!(
             "{}.{}{n}",
             field::IS_GET_SMALL_KEY_GERUDO_FORTRESS,
@@ -165,12 +178,11 @@ mod tests {
         let flow = Flowchart::parse(&rewrites[&flows::rel(FLOW)])
             .unwrap()
             .unwrap();
-        let entry = |n: &str| {
-            let name = format!("GerudoFortress_DestroyGerudoThief{n}");
-            let main = flow.entry_points.iter().find(|e| e.name == name);
+        let entry = |thief: &Name| {
+            let main = flow.entry_points.iter().find(|e| e.name == thief.get());
             &flow.events[main.unwrap().main.unwrap() as usize].kind
         };
-        let EventKind::SubFlow { params, next, .. } = entry("01") else {
+        let EventKind::SubFlow { params, next, .. } = entry(THIEVES[0]) else {
             panic!("a call")
         };
         let Some((_, Value::ActorId { name, secondary })) = params.iter().find(|p| p.0 == KEY)
@@ -191,7 +203,7 @@ mod tests {
         let vanilla = flows::load(&romfs, FLOW).unwrap().unwrap();
         let sets = |f: &Flowchart| flows::running(f, SET_BOOL).len();
         assert_eq!(sets(&flow), sets(&vanilla) + 1);
-        let EventKind::SubFlow { params, next, .. } = entry("02") else {
+        let EventKind::SubFlow { params, next, .. } = entry(THIEVES[1]) else {
             panic!("a call")
         };
         assert!(next.is_none());

@@ -90,8 +90,18 @@ pub fn quests(gd: &GameData) -> BTreeMap<String, Vec<String>> {
         .collect()
 }
 
+/// Quest `challenge`'s saved step, by name.
+pub fn saved(challenge: &Name) -> String {
+    format!("{SAVED}{challenge}")
+}
+
+/// The edit that saves quest `challenge` at `step`.
+pub fn at(challenge: &Name, step: impl std::fmt::Display) -> String {
+    format!("{}={step}", saved(challenge))
+}
+
 /// Teach `gd` every quest's saved step name, which its data keeps only as
-/// a hash: a BoolExp on one then reads `Step_Get_StoneOfFire == Complete`.
+/// a hash: a BoolExp on one then reads as the saved step and its value.
 pub fn learn(romfs: &Romfs, gd: &mut GameData) -> Result<()> {
     let table = BymlDoc::parse(&romfs.read(&rsdb::path(CHALLENGES))?)?;
     for row in table.root.as_array()? {

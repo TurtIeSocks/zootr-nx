@@ -297,7 +297,7 @@ impl GameData {
     }
 
     /// Opcodes, from the ones whose meaning the flag names give away:
-    /// `HaveDefeatedEnemy_X` is `count > 0`, `IsAfter_StepN` uses enum `>`,
+    /// `HaveDefeatedEnemy_X` is `count > 0`, `IsAfter_` and a step uses enum `>`,
     /// `IsCompleted` uses enum `== Complete`.
     pub(crate) fn render(&self, entry: &Byml) -> Result<String> {
         let mut stack: Vec<Term> = Vec::new();
@@ -461,7 +461,9 @@ mod tests {
     #[test]
     fn an_enum_offers_its_values_in_order() {
         let Some(gd) = dump() else { return };
-        let info = gd.info("Step_Goto_HyruleCastle").unwrap();
+        let info = gd
+            .info(&crate::steps::saved(crate::known::flow::GOTO_HYRULE_CASTLE))
+            .unwrap();
         assert_eq!(info.kind, "Enum");
         assert_eq!(info.input, Input::Choice);
         assert_eq!(
@@ -488,14 +490,27 @@ mod tests {
     #[test]
     fn a_value_outside_the_choices_is_refused_naming_them() {
         let Some(gd) = dump() else { return };
-        let enums = gd.info("Step_Goto_HyruleCastle").unwrap();
-        enums.check("Step_Goto_HyruleCastle", "Step01").unwrap();
+        let enums = gd
+            .info(&crate::steps::saved(crate::known::flow::GOTO_HYRULE_CASTLE))
+            .unwrap();
+        enums
+            .check(
+                &crate::steps::saved(crate::known::flow::GOTO_HYRULE_CASTLE),
+                "Step01",
+            )
+            .unwrap();
         let said = enums
-            .check("Step_Goto_HyruleCastle", "Step1")
+            .check(
+                &crate::steps::saved(crate::known::flow::GOTO_HYRULE_CASTLE),
+                "Step1",
+            )
             .unwrap_err()
             .to_string();
         assert!(
-            said.starts_with("Step1 isn't a value of Step_Goto_HyruleCastle"),
+            said.starts_with(&format!(
+                "Step1 isn't a value of {}",
+                crate::steps::saved(crate::known::flow::GOTO_HYRULE_CASTLE)
+            )),
             "{said}"
         );
         assert!(

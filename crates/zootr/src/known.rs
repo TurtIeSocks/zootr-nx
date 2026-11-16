@@ -102,7 +102,9 @@ pub(crate) fn is_dump_name(text: &str) -> bool {
 /// takes seconds for the actor packs, then from a copy in the cache. The
 /// copy is named for the tier's sources, so adding one reads them again.
 fn load(root: &Path, tier: usize) -> Result<HashMap<u64, &'static str>> {
-    let sources = hash(&SOURCES[tier].join("|"));
+    // Bump `STEMS` when what `read` takes from a file changes.
+    const STEMS: &str = "|parts|heads";
+    let sources = hash(&(SOURCES[tier].join("|") + STEMS));
     let file = crate::game::cached(root, "names")?.join(format!("tier{tier}-{sources:016x}.txt"));
     let text = match std::fs::read_to_string(&file) {
         Ok(text) => text,
@@ -143,7 +145,14 @@ fn read(romfs: &Romfs, sources: &[&str]) -> Result<String> {
             let rel = path.strip_prefix(romfs.root())?.to_string_lossy();
             let raw = std::fs::read(&path)?;
             let data = romfs.dicts().decompress(&rel, &raw).unwrap_or(raw);
-            for word in words(&data).filter(|w| seen.insert(hash(w))) {
+            // A file's own name counts, each part between its dots: maps,
+            // graphs and layouts are named by their files more than inside them.
+            let file = path
+                .file_name()
+                .and_then(|f| f.to_str())
+                .unwrap_or_default();
+            let mine = file.split('.').filter(|s| s.len() >= 4);
+            for word in mine.chain(words(&data)).filter(|w| seen.insert(hash(w))) {
                 names += word;
                 names.push('\n');
             }
@@ -152,11 +161,16 @@ fn read(romfs: &Romfs, sources: &[&str]) -> Result<String> {
     Ok(names)
 }
 
-/// The runs of name characters in `data` that could be a name.
+/// The runs of name characters in `data` that could be a name, each also
+/// up to its first dot: a file named in a pack (`X.engine__actor__ActorParam.gyml`)
+/// names `X`.
 fn words(data: &[u8]) -> impl Iterator<Item = &str> {
     data.split(|b| !(b.is_ascii_alphanumeric() || b"._:".contains(b)))
         .filter(|s| s.len() >= 4 && s[0].is_ascii_alphabetic())
         .filter_map(|s| std::str::from_utf8(s).ok())
+        .flat_map(|w| [Some(w), w.split_once('.').map(|(head, _)| head)])
+        .flatten()
+        .filter(|w| w.len() >= 4)
 }
 
 impl Name {

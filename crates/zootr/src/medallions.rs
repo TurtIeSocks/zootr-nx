@@ -46,7 +46,7 @@ pub const FILES: [&str; 8] = [
     sprites::LAYOUT,
 ];
 /// Where a song's spin in the get window comes from: the Agony Stone's
-/// animation sequence, which turns its model's `Skl_Root` there, and the
+/// animation sequence, which turns its model's root bone there, and the
 /// animations the menu's copy of the host plays on the host's own bones.
 const SPINNER: &Name = item::AGONY_STONE;
 static SPINS: LazyLock<[&str; 2]> = LazyLock::new(|| ["ASRef", field::AS_INFO_REF]);

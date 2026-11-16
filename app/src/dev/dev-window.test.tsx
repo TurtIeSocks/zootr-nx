@@ -20,7 +20,7 @@ const err = <T,>(error: string): Promise<Result<T>> =>
 
 const game = {
   state: {
-    map: "Hill_Child",
+    map: "FakeHill_Child",
     child: true,
     loading: false,
     event: false,
@@ -70,7 +70,7 @@ const info = (kind: string, input: DevValue["info"]["input"], more = {}) => ({
   ...more,
 });
 const values: Record<string, DevValue> = {
-  Hill_ArriveEntrance: {
+  FakeHill_ArriveEntrance: {
     info: info("Bool", "choice", {
       choices: ["true", "false"],
       default: "false",
@@ -79,7 +79,7 @@ const values: Record<string, DevValue> = {
     live: "true",
     expr: null,
   },
-  Step_Go_Castle: {
+  Step_FakeCastle: {
     info: info("Enum", "choice", {
       choices: ["NotReady", "Ready", "Step01", "Complete"],
       default: "NotReady",
@@ -94,13 +94,13 @@ const values: Record<string, DevValue> = {
     live: "42",
     expr: null,
   },
-  Flag_CurrentMap: {
+  FakeFlag_CurrentMap: {
     info: info("String64", "text", { default: "" }),
     game: true,
-    live: "Hill_Child",
+    live: "FakeHill_Child",
     expr: null,
   },
-  Some_Array: {
+  Fake_Array: {
     info: info("IntArray", "read"),
     game: true,
     live: "[1, 2]",
@@ -139,13 +139,13 @@ vi.mock("@/bindings", () => ({
     gameOptions: () =>
       ok({
         places: [
-          "Hill_Child/Hill_FrontOfMarket",
-          "Hill_Adult/Hill_FrontOfMarket",
-          "Kakariko_Child/Kakariko_FrontOfGate",
+          "FakeHill_Child/FakeHill_FrontOfMarket",
+          "FakeHill_Adult/FakeHill_FrontOfMarket",
+          "FakeKakariko_Child/FakeKakariko_FrontOfGate",
         ],
         spawns: [],
         items: ["Item_A"],
-        names: ["Flag_IsChild", "Flag_B", ...Object.keys(values)],
+        names: ["FakeFlag_IsChild", "Flag_B", ...Object.keys(values)],
         quests: { A: ["NotReady", "Step01", "Complete"] },
       }),
     devTeleport: (p: string) => devTeleport(p),
@@ -167,7 +167,7 @@ vi.mock("@tauri-apps/api/window", () => ({
 
 beforeEach(() => {
   game.state = {
-    map: "Hill_Child",
+    map: "FakeHill_Child",
     child: true,
     loading: false,
     event: false,
@@ -185,21 +185,23 @@ afterEach(() => {
 
 test("shows the map and age, and lists places for that age by area", async () => {
   render(<DevWindow />);
-  expect(await screen.findByText("Hill_Child")).toBeTruthy();
+  expect(await screen.findByText("FakeHill_Child")).toBeTruthy();
   expect(screen.getByText("as child")).toBeTruthy();
-  const field = await screen.findByRole("list", { name: "Hill" });
+  const field = await screen.findByRole("list", { name: "FakeHill" });
   expect(within(field).getAllByRole("button")).toHaveLength(1);
-  expect(screen.getByRole("list", { name: "Kakariko" })).toBeTruthy();
+  expect(screen.getByRole("list", { name: "FakeKakariko" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Switch to adult" })).toBeTruthy();
 });
 
 test("a teleport says what happened, and a refusal shows inline", async () => {
   render(<DevWindow />);
-  const field = await screen.findByRole("list", { name: "Hill" });
+  const field = await screen.findByRole("list", { name: "FakeHill" });
   const spot = within(field).getByRole("button");
   await vi.waitFor(() => expect(spot.hasAttribute("disabled")).toBe(false));
   fireEvent.click(spot);
-  expect(devTeleport).toHaveBeenCalledWith("Hill_Child/Hill_FrontOfMarket");
+  expect(devTeleport).toHaveBeenCalledWith(
+    "FakeHill_Child/FakeHill_FrontOfMarket",
+  );
   expect((await screen.findByRole("status")).textContent).toBe("sent");
 
   devTeleport.mockImplementationOnce(() => err("an event is playing"));
@@ -237,21 +239,21 @@ test("the switches show what the game holds, and a toggle sets one", async () =>
 
 test("the search narrows the places", async () => {
   render(<DevWindow />);
-  await screen.findByRole("list", { name: "Kakariko" });
+  await screen.findByRole("list", { name: "FakeKakariko" });
   fireEvent.change(screen.getByRole("textbox", { name: "Search places" }), {
     target: { value: "gate" },
   });
-  expect(screen.queryByRole("list", { name: "Hill" })).toBeNull();
-  expect(screen.getByRole("list", { name: "Kakariko" })).toBeTruthy();
+  expect(screen.queryByRole("list", { name: "FakeHill" })).toBeNull();
+  expect(screen.getByRole("list", { name: "FakeKakariko" })).toBeTruthy();
 });
 
 test("the actors tab lists the map's actors, and search narrows them", async () => {
   render(<DevWindow />);
   fireEvent.click(await screen.findByRole("button", { name: "Actors" }));
   const list = await screen.findByRole("list", {
-    name: "Actors in Hill_Child",
+    name: "Actors in FakeHill_Child",
   });
-  expect(devActors).toHaveBeenCalledWith("Hill_Child");
+  expect(devActors).toHaveBeenCalledWith("FakeHill_Child");
   expect(await within(list).findByText("Field_000")).toBeTruthy();
   expect(within(list).getByText("#2")).toBeTruthy();
   expect(within(list).getAllByRole("button")).toHaveLength(3);
@@ -288,7 +290,7 @@ test("without a map the actors tab waits for one", async () => {
 test("a name field suggests matches under itself, picked by click or Enter", async () => {
   render(<DevWindow />);
   const item = await screen.findByRole("textbox", { name: "Item" });
-  await screen.findByRole("list", { name: "Kakariko" });
+  await screen.findByRole("list", { name: "FakeKakariko" });
   fireEvent.change(item, { target: { value: "item_a" } });
   const list = screen.getByRole("list", { name: "Item suggestions" });
   fireEvent.click(within(list).getByRole("button", { name: "Item_A" }));
@@ -298,14 +300,14 @@ test("a name field suggests matches under itself, picked by click or Enter", asy
   const name = screen.getByRole("textbox", { name: "GameData name" });
   fireEvent.change(name, { target: { value: "child" } });
   fireEvent.keyDown(name, { key: "Enter" });
-  expect((name as HTMLInputElement).value).toBe("Flag_IsChild");
+  expect((name as HTMLInputElement).value).toBe("FakeFlag_IsChild");
 });
 
 test("with no game, it says why and nothing can be sent", async () => {
   game.state = undefined;
   render(<DevWindow />);
   expect(await screen.findByText("the game isn't running")).toBeTruthy();
-  const field = await screen.findByRole("list", { name: "Hill" });
+  const field = await screen.findByRole("list", { name: "FakeHill" });
   for (const b of within(field).getAllByRole("button")) {
     expect(b.hasAttribute("disabled")).toBe(true);
   }
@@ -399,12 +401,12 @@ const isSelect = (f: HTMLElement) => f.tagName === "SELECT";
 
 test("picking a name shows its live value in a field for its type", async () => {
   render(<DevWindow />);
-  const bool = await pick("Hill_ArriveEntrance", isSelect);
+  const bool = await pick("FakeHill_ArriveEntrance", isSelect);
   expect(bool.value).toBe("true");
   expect([...bool.options].map((o) => o.value)).toEqual(["true", "false"]);
 
   const step = await pick(
-    "Step_Go_Castle",
+    "Step_FakeCastle",
     (f) =>
       f.tagName === "SELECT" && (f as HTMLSelectElement).options.length === 4,
   );
@@ -424,12 +426,12 @@ test("picking a name shows its live value in a field for its type", async () => 
   expect(rupees.value).toBe("42");
 
   const text = await pick(
-    "Flag_CurrentMap",
+    "FakeFlag_CurrentMap",
     (f) => (f as HTMLInputElement).type === "text",
   );
-  expect(text.value).toBe("Hill_Child");
+  expect(text.value).toBe("FakeHill_Child");
 
-  const array = await pick("Some_Array", (f) => f.tagName === "TEXTAREA");
+  const array = await pick("Fake_Array", (f) => f.tagName === "TEXTAREA");
   expect(array.value).toBe("[1, 2]");
   expect(array.hasAttribute("readonly")).toBe(true);
   expect(screen.queryByRole("button", { name: "Set" })).toBeNull();
@@ -438,28 +440,28 @@ test("picking a name shows its live value in a field for its type", async () => 
 test("without the game the field shows the default and says so", async () => {
   devValue.mockImplementationOnce(() =>
     ok({
-      ...values.Step_Go_Castle,
+      ...values.Step_FakeCastle,
       game: false,
       live: null,
     } as DevValue),
   );
   render(<DevWindow />);
-  const step = await pick("Step_Go_Castle", isSelect);
+  const step = await pick("Step_FakeCastle", isSelect);
   expect(step.value).toBe("NotReady");
   expect(screen.getByText(/isn't running, showing the default/)).toBeTruthy();
 });
 
 test("Set sends the picked value and reads the field again", async () => {
   render(<DevWindow />);
-  const step = await pick("Step_Go_Castle", isSelect);
+  const step = await pick("Step_FakeCastle", isSelect);
   expect(step.value).toBe("Step01");
   const set = screen.getByRole("button", { name: "Set" });
   await vi.waitFor(() => expect(set.hasAttribute("disabled")).toBe(false));
   fireEvent.change(step, { target: { value: "Complete" } });
   fireEvent.click(set);
-  expect(devSet).toHaveBeenCalledWith("Step_Go_Castle", "Complete");
+  expect(devSet).toHaveBeenCalledWith("Step_FakeCastle", "Complete");
   expect((await screen.findByRole("status")).textContent).toBe(
-    "Step_Go_Castle = Complete",
+    "Step_FakeCastle = Complete",
   );
   await vi.waitFor(() => expect(devValue).toHaveBeenCalledTimes(2));
 });
@@ -508,7 +510,7 @@ test("a refused value shows the reason and an unknown name shows why", async () 
 
 test("the picked tab, searches and Give's draft are kept in the view", async () => {
   render(<DevWindow />);
-  await screen.findByRole("list", { name: "Kakariko" });
+  await screen.findByRole("list", { name: "FakeKakariko" });
   fireEvent.change(screen.getByRole("textbox", { name: "Search places" }), {
     target: { value: "gate" },
   });
@@ -537,7 +539,7 @@ test("a poll that finds the game unchanged keeps what it held", async () => {
     render(<DevWindow />);
     await act(() => vi.advanceTimersByTimeAsync(0));
     const held = useDev.getState().game;
-    expect(held.state?.map).toBe("Hill_Child");
+    expect(held.state?.map).toBe("FakeHill_Child");
     await act(() => vi.advanceTimersByTimeAsync(1000));
     expect(useDev.getState().game).toBe(held);
   } finally {

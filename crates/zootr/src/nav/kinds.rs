@@ -131,7 +131,7 @@ mod tests {
         needs_names!();
         let cases: [(&str, &str); 10] = [
             (actor::LAND_KOKIRI_CLIFF_E_05, "cliff"),
-            ("Tree_Kokiri_A", "tree"),
+            ("Tree_FakeKokiri", "tree"),
             (actor::LAND_KOKIRI_DEKU_TREE_A_01, "tree"),
             (actor::OBJ_T_BOX_A_01, "chest"),
             (actor::OBJ_KOKIRI_DOOR_A_02, "door"),
@@ -191,6 +191,6 @@ mod tests {
             Some(Act::Through { stand: 1.0 })
         );
         assert_eq!(act("Item_G"), Some(Act::Over));
-        assert_eq!(act("Tree_Kokiri_A"), None);
+        assert_eq!(act("Tree_FakeKokiri"), None);
     }
 }

@@ -32,7 +32,7 @@ pub(super) fn flows(
     }
     if new_game.bridge_medallions {
         bridge::keep_step(romfs, &mut rewrites)?;
-        flags.push(bridge::START.into());
+        flags.push(bridge::start());
     }
     if new_game.hints {
         hints::quiet(romfs, &mut rewrites)?;

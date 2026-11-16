@@ -62,7 +62,7 @@ export function TestPane() {
               name="defaults"
               label="New-game flags"
               noun="flag"
-              placeholder="Step_DoorOfTime"
+              placeholder="Name=value"
               hint="GameData values a new game starts with, on top of the presets"
             />
             <RowsField

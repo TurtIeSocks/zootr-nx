@@ -259,7 +259,7 @@ mod tests {
         };
         for (name, value, valid) in [
             (
-                "Step_Goto_HyruleCastle",
+                crate::steps::saved(crate::known::flow::GOTO_HYRULE_CASTLE).as_str(),
                 "Step1",
                 format!("{}, Ready, Step01", flag::NOT_READY).as_str(),
             ),

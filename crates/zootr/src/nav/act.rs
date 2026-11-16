@@ -585,7 +585,7 @@ mod tests {
 
     #[test]
     fn a_tree_has_no_use() {
-        let tree = placed("Tree_Kokiri_A", 1, [10.0, 0.0, 2.0]);
+        let tree = placed("Tree_FakeKokiri", 1, [10.0, 0.0, 2.0]);
         let room = mesh(&[quad(0.0, 0.0, 20.0, 4.0, 0.0)]);
         let graph = Graph::build(&room, &[], STEP_UP);
         let (eyes, mut hands) = sim::start([2.0, 0.0, 2.0], 0.0);

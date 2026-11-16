@@ -27,12 +27,12 @@ fn at(actor: &str, file: &str, hash: u64, pos: [f32; 3]) -> Placement {
 fn the_check_is_the_lowest_child_placement_else_the_lowest() {
     needs_names!();
     let cows = group(vec![
-        at(PLAIN, "Kak/Kak_Adult_Dynamic", 1, [0.0, 0.0, 0.0]),
-        at(PLAIN, "Kak/Kak_Child_Dynamic", 9, [0.3, 5.0, 0.3]),
-        at(PLAIN, "Kak/Kak_Child_Static", 5, [0.0, 0.0, 0.5]),
+        at(PLAIN, "Kak/FakeKak_Adult_Dynamic", 1, [0.0, 0.0, 0.0]),
+        at(PLAIN, "Kak/FakeKak_Child_Dynamic", 9, [0.3, 5.0, 0.3]),
+        at(PLAIN, "Kak/FakeKak_Child_Static", 5, [0.0, 0.0, 0.5]),
         at(
-            "Animal_Cow_Named",
-            "Fort/Fort_Adult_Static",
+            "Animal_Cow_FakeNamed",
+            "Fort/FakeFort_Adult_Static",
             7,
             [0.0, 0.0, 0.0],
         ),
@@ -53,18 +53,18 @@ fn the_check_is_the_lowest_child_placement_else_the_lowest() {
 #[test]
 fn only_the_same_actor_in_one_area_within_a_unit_is_one_cow() {
     let cows = group(vec![
-        at(PLAIN, "Field/Field_Child_Static", 1, [0.0, 0.0, 0.0]),
-        at(PLAIN, "Field/Field_Adult_Dynamic", 2, [0.4, 0.0, 0.0]),
-        at(PLAIN, "Field/Field_Child_Static", 3, [0.0, 0.0, 3.4]),
-        at(PLAIN, "Other/Other_Child_Static", 4, [0.0, 0.0, 0.0]),
+        at(PLAIN, "Field/FakeField_Child_Static", 1, [0.0, 0.0, 0.0]),
+        at(PLAIN, "Field/FakeField_Adult_Dynamic", 2, [0.4, 0.0, 0.0]),
+        at(PLAIN, "Field/FakeField_Child_Static", 3, [0.0, 0.0, 3.4]),
+        at(PLAIN, "Other/FakeOther_Child_Static", 4, [0.0, 0.0, 0.0]),
         at(
-            "Animal_Cow_Named",
-            "Field/Field_Child_Static",
+            "Animal_Cow_FakeNamed",
+            "Field/FakeField_Child_Static",
             5,
             [0.0, 0.0, 0.0],
         ),
         // The same placement again, as a second file can repeat it.
-        at(PLAIN, "Field/Field_Child_Dynamic", 1, [0.0, 0.0, 0.0]),
+        at(PLAIN, "Field/FakeField_Child_Dynamic", 1, [0.0, 0.0, 0.0]),
     ]);
     let sizes: Vec<usize> = cows.iter().map(|c| c.placements.len()).collect();
     assert_eq!(sizes, [2, 1, 1, 1]);

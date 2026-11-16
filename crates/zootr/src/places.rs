@@ -13,7 +13,7 @@ use crate::generate::Spot;
 use crate::known::{Name, actor, field};
 
 /// House models and the house each one is, in OoTR's words.
-const HOUSES: [(&str, &str); 1] = [("Land_Kokiri_House_Inside_E", "Mido's House")];
+const HOUSES: [(&Name, &str); 1] = [(actor::LAND_KOKIRI_HOUSE_INSIDE_E_03, "Mido's House")];
 /// How far from its house model a house's chests sit.
 const HOUSE_REACH: f32 = 6.0;
 /// Only dungeons place these, for the map screen.
@@ -104,7 +104,7 @@ impl Area {
         if str_field(actor, "Name") == Some(ENTRANCE) {
             self.entrance.get_or_insert(pos[1]);
         }
-        if let Some((_, name)) = HOUSES.iter().find(|(m, _)| gyaml.starts_with(m)) {
+        if let Some((_, name)) = HOUSES.iter().find(|(m, _)| gyaml.starts_with(m.stem())) {
             let rot_y = vec3(actor, "Rotate").map_or(0.0, |r| r[1]);
             self.houses.push(House { name, pos, rot_y });
         }

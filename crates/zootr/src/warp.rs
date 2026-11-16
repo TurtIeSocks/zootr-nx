@@ -358,17 +358,20 @@ mod tests {
 
     #[test]
     fn a_banc_file_names_its_map() {
+        needs_names!();
         let at = |rel: &str| map_of(rel).to_owned();
         assert_eq!(
             at(&format!(
-                "Banc/{}/KokiriForest_Child_Static.bcett.byml.zs",
-                flag::KOKIRI_FOREST
+                "Banc/{}/{}_Static.bcett.byml.zs",
+                flag::KOKIRI_FOREST,
+                map::KOKIRI_FOREST_CHILD
             )),
             map::KOKIRI_FOREST_CHILD
         );
         assert_eq!(
             at(&format!(
-                "Banc/{}/HyruleCastle_Dynamic.bcett.byml.zs",
+                "Banc/{}/{}_Dynamic.bcett.byml.zs",
+                flag::HYRULE_CASTLE,
                 flag::HYRULE_CASTLE
             )),
             flag::HYRULE_CASTLE

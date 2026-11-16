@@ -205,6 +205,13 @@ fn reached(flow: &Flowchart, entries: &[impl AsRef<str>]) -> Result<BTreeSet<u16
     Ok(seen)
 }
 
+/// Whether `entry` is one of `talk`'s Navi entries (`talk` then `Navi`).
+fn navis(entry: &str, talk: &str) -> bool {
+    entry
+        .strip_prefix(talk)
+        .is_some_and(|rest| rest.starts_with("Navi"))
+}
+
 /// Navi saying something, flying in to say it, or the tutorial screen
 /// after.
 fn is_talk(flow: &Flowchart, e: u16) -> bool {
@@ -214,8 +221,8 @@ fn is_talk(flow: &Flowchart, e: u16) -> bool {
             entry_point,
             ..
         } => {
-            (flowchart == flow::NAVI_EVENT_COMMON && entry_point.starts_with("EventTalk_Navi"))
-                || entry_point.starts_with("InitTalk_Navi")
+            (flowchart == flow::NAVI_EVENT_COMMON && navis(entry_point, "EventTalk_"))
+                || navis(entry_point, "InitTalk_")
                 || entry_point == flow::INIT_TALK_NAVI_HELP
                 || flowchart == flow::ACTION_GUIDE
         }

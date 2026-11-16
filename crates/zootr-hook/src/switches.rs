@@ -39,7 +39,7 @@ impl Cap {
     }
 }
 
-/// `CurrentExpansionActor_Bomb`, the bag bombs and bombchus share.
+/// The bomb bag's expansion value, which bombs and bombchus share.
 const BOMB_BAG: u32 = 0xa835_e3b0;
 
 /// A GameData Int a switch holds at its cap. Link keeps his own meters
@@ -117,7 +117,7 @@ pub const REFILLS: [Refill; 9] = [
         cap: Cap::Bombchus,
         meter: None,
     },
-    // PlayerStatus.CurrentRupee to CurrentExpansionActor_Rupee.
+    // Link's rupees to the wallet's expansion value.
     bag(0xa779_21d7, 0x3e42_affa, RUPEES),
 ];
 
@@ -243,12 +243,12 @@ mod tests {
 
     #[test]
     fn a_bags_cap_goes_by_its_size() {
-        assert_eq!(bag_cap(b"Bag_Wallet_Small", RUPEES), 200);
-        assert_eq!(bag_cap(b"Bag_Wallet_Medium", RUPEES), 500);
-        assert_eq!(bag_cap(b"Bag_Wallet_Large", RUPEES), 1000);
+        assert_eq!(bag_cap(b"FakeBag_Wallet_Small", RUPEES), 200);
+        assert_eq!(bag_cap(b"FakeBag_Wallet_Medium", RUPEES), 500);
+        assert_eq!(bag_cap(b"FakeBag_Wallet_Large", RUPEES), 1000);
         assert_eq!(
             bag_cap(
-                b"Work/Actor/Bag_Quiver_Medium.engine__actor__ActorParam.gyml",
+                b"Work/Actor/FakeBag_Quiver_Medium.engine__actor__ActorParam.gyml",
                 ARROWS
             ),
             40
@@ -256,7 +256,7 @@ mod tests {
         assert_eq!(bag_cap(b"", BOMBS), 0);
         // A cleared string keeps its old text after the NUL.
         assert_eq!(bag_cap(b"\0tem_BombBag_Large\0", BOMBS), 0);
-        assert_eq!(bag_cap(b"Bag_BombBag_Small\0Large", BOMBS), 20);
+        assert_eq!(bag_cap(b"FakeBag_BombBag_Small\0Large", BOMBS), 20);
     }
 
     #[test]
