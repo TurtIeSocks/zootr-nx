@@ -43,7 +43,7 @@ export function Card({
           {(meta || action) && (
             <div className="flex shrink-0 items-center gap-3">
               {meta && (
-                <span className="whitespace-nowrap pt-[3px] text-ink-faint text-xs tabular-nums">
+                <span className="whitespace-nowrap text-ink-faint text-xs tabular-nums">
                   {meta}
                 </span>
               )}
