@@ -54,6 +54,28 @@ const INLINE: [&str; 5] = ["Bool", "Int", "Float", "Enum", "UInt"];
 /// Arrays of 4-byte values: a count, then the values.
 const ARRAYS: [&str; 4] = ["IntArray", "FloatArray", "EnumArray", "UIntArray"];
 
+/// The bytes one element of `kind` takes in a save, for the types laid out
+/// as fixed-width elements: a scalar's 4, or an element of a type kept
+/// elsewhere (an array's after its count). `None` for packed or sized
+/// types (BoolArray, Binary, Bool64bitKey).
+pub fn width(kind: &str) -> Option<usize> {
+    let one = kind.strip_suffix("Array").unwrap_or(kind);
+    if let Some(n) = one.strip_prefix("WString") {
+        return n.parse::<usize>().ok().map(|n| n * 2);
+    }
+    if let Some(n) = one.strip_prefix("String") {
+        return n.parse().ok();
+    }
+    Some(match one {
+        // A BoolArray packs its bits, so only the scalar is laid out.
+        "Bool" if kind == "Bool" => 4,
+        "Int" | "Float" | "Enum" | "UInt" => 4,
+        "Int64" | "UInt64" | "Vector2" => 8,
+        "Vector3" => 12,
+        _ => return None,
+    })
+}
+
 #[derive(Clone, Copy)]
 pub struct Entry {
     pub hash: u32,
@@ -188,7 +210,48 @@ impl Save {
     pub fn set_scalar(&mut self, hash: u32, raw: u32) -> Result<()> {
         let e = self.get(hash).context("not in this save")?;
         ensure!(INLINE.contains(&e.kind), "{} isn't a scalar", e.kind);
-        self.bytes[e.pos..e.pos + 4].copy_from_slice(&raw.to_le_bytes());
+        self.set(e, 0, &raw.to_le_bytes())
+    }
+
+    /// How many elements `e` holds: an array's count, else 1. `None` for
+    /// types [`width`] doesn't lay out.
+    pub fn count(&self, e: Entry) -> Option<usize> {
+        width(e.kind)?;
+        match e.kind.ends_with("Array") {
+            true => Some(self.word(self.word(e.pos)? as usize)? as usize),
+            false => Some(1),
+        }
+    }
+
+    /// Where element `i` of `e` starts, if it has one.
+    fn element_at(&self, e: Entry, i: usize) -> Option<(usize, usize)> {
+        let w = width(e.kind)?;
+        if i >= self.count(e)? {
+            return None;
+        }
+        let at = match (INLINE.contains(&e.kind), e.kind.ends_with("Array")) {
+            (true, _) => e.pos,
+            (false, true) => self.word(e.pos)? as usize + 4 + i * w,
+            (false, false) => self.word(e.pos)? as usize,
+        };
+        (at + w <= self.bytes.len()).then_some((at, w))
+    }
+
+    /// Element `i` of `e`'s raw bytes: a scalar's 4, a string's full
+    /// padded width, an array's `i`th.
+    pub fn element(&self, e: Entry, i: usize) -> Option<&[u8]> {
+        let (at, w) = self.element_at(e, i)?;
+        Some(&self.bytes[at..at + w])
+    }
+
+    /// Overwrite element `i` of `e` in place with exactly its width of
+    /// bytes. The file never changes size.
+    pub fn set(&mut self, e: Entry, i: usize, value: &[u8]) -> Result<()> {
+        let (at, w) = self
+            .element_at(e, i)
+            .with_context(|| format!("{} has no element {i} to write", e.kind))?;
+        ensure!(value.len() == w, "a {} element is {w} bytes, not {}", e.kind, value.len());
+        self.bytes[at..at + w].copy_from_slice(value);
         Ok(())
     }
 
@@ -235,5 +298,83 @@ mod tests {
         assert_eq!(s.scalar(flag), Some(0));
         assert!(s.set_scalar(22, 0).is_err());
         assert_eq!(s.bytes().len(), sample().len());
+    }
+
+    /// Bool 11, IntArray 22 (7, 9), String16 33 ("Kak"), Vector3 44.
+    fn laid_out() -> Vec<u8> {
+        let mut b = Save::fixture(&[
+            (0, 0),
+            (11, 1),
+            (0, 3),
+            (22, 0),
+            (0, 12),
+            (33, 0),
+            (0, 10),
+            (44, 0),
+        ]);
+        let point = |b: &mut Vec<u8>, pair: usize| {
+            let at = b.len() as u32;
+            b[TABLE + pair * 8 + 4..TABLE + pair * 8 + 8].copy_from_slice(&at.to_le_bytes());
+        };
+        point(&mut b, 3);
+        b.extend([2u32, 7, 9].iter().flat_map(|w| w.to_le_bytes()));
+        point(&mut b, 5);
+        let mut text = b"Kak".to_vec();
+        text.resize(16, 0);
+        b.extend(text);
+        point(&mut b, 7);
+        b.extend([1f32, 2., 3.].iter().flat_map(|f| f.to_le_bytes()));
+        b
+    }
+
+    #[test]
+    fn every_laid_out_type_round_trips_an_element() {
+        let mut s = Save::parse(laid_out()).unwrap();
+        let len = s.bytes().len();
+        for (hash, i, value) in [
+            (11u32, 0usize, 0u32.to_le_bytes().to_vec()),
+            (22, 1, 5u32.to_le_bytes().to_vec()),
+            (33, 0, {
+                let mut t = b"Hyrule".to_vec();
+                t.resize(16, 0);
+                t
+            }),
+            (44, 0, [4f32, 5., 6.].iter().flat_map(|f| f.to_le_bytes()).collect()),
+        ] {
+            let e = s.get(hash).unwrap();
+            s.set(e, i, &value).unwrap();
+            let again = Save::parse(s.bytes().to_vec()).unwrap();
+            assert_eq!(again.element(again.get(hash).unwrap(), i), Some(&value[..]));
+        }
+        assert_eq!(s.array(s.get(22).unwrap()), Some(vec![7, 5]));
+        assert_eq!(s.strings(s.get(33).unwrap()), Some(vec!["Hyrule".into()]));
+        assert_eq!(s.bytes().len(), len);
+    }
+
+    #[test]
+    fn a_write_refuses_the_wrong_width_or_a_missing_element() {
+        let mut s = Save::parse(laid_out()).unwrap();
+        let array = s.get(22).unwrap();
+        assert_eq!(s.count(array), Some(2));
+        assert!(s.set(array, 2, &[0; 4]).is_err());
+        assert!(s.set(array, 0, &[0; 8]).is_err());
+        assert!(s.set(s.get(33).unwrap(), 0, b"short").is_err());
+    }
+
+    #[test]
+    fn widths_cover_the_laid_out_types_only() {
+        for (kind, w) in [
+            ("Bool", Some(4)),
+            ("IntArray", Some(4)),
+            ("Int64", Some(8)),
+            ("Vector3Array", Some(12)),
+            ("String64", Some(64)),
+            ("WString16", Some(32)),
+            ("BoolArray", None),
+            ("Binary", None),
+            ("Bool64bitKey", None),
+        ] {
+            assert_eq!(width(kind), w, "{kind}");
+        }
     }
 }
