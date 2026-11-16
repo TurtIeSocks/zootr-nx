@@ -58,6 +58,10 @@ export const isSaved = (targets: Target[], d: Draft) => {
   return t !== undefined && JSON.stringify(toDraft(t)) === JSON.stringify(d);
 };
 
+/** Whether the drafts differ from the saved targets, so there's a save to make. */
+export const isEdited = (targets: Target[], drafts: Draft[]) =>
+  JSON.stringify(targets.map(toDraft)) !== JSON.stringify(drafts);
+
 /** One edited field of a target. */
 export interface DraftField {
   key: Exclude<keyof Draft, "control">;
