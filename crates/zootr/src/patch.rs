@@ -1,5 +1,5 @@
 //! Our code in the game: the hook from `zootr-hook` and its table, written
-//! into `main` by a cheat file. Offsets are game 1.1.0's, see
+//! into `main` by a cheat file. Offsets are game 1.1.1's, see
 //! `docs/research/binary.md`.
 
 use std::path::{Path, PathBuf};

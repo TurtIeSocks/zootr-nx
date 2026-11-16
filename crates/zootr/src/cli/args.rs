@@ -19,7 +19,7 @@ use crate::{checks, generate, presets, savefile, settings, starting};
     about = "Randomizer generator for Ocarina of Time on Switch 2"
 )]
 pub(super) struct Cli {
-    /// Your game dump: a `.nup` holding the 1.1.0 update, or a folder of
+    /// Your game dump: a `.nup` holding the 1.1.1 update, or a folder of
     /// its extracted romfs. Defaults to the app's, then `dump/oot.nup`.
     #[arg(long, global = true, alias = "romfs")]
     pub(super) game: Option<PathBuf>,

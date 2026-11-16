@@ -5,7 +5,7 @@ The full reference: features, settings, targets and the CLI. The
 
 ## What you need
 
-- Your own dump of the game with the 1.1.0 update, as a `.nup` file or a
+- Your own dump of the game with the 1.1.1 update, as a `.nup` file or a
   folder of its extracted romfs. zootr extracts the files it reads into a
   cache on first use.
 - Somewhere to play it that loads a mod's `romfs` folder over the game's.

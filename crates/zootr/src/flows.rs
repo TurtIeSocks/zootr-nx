@@ -38,8 +38,8 @@ pub fn rel(name: &str) -> String {
 }
 
 /// Where a rewrite of `rel` goes: `rel` itself, plus the `.110` copy the
-/// 1.1.0 update ships beside 13 flows, like a cutscene's `NAME.110`. Which
-/// of the two the game loads isn't known, so both get the rewrite.
+/// update ships beside 13 flows, like a cutscene's `NAME.110`. Which of
+/// the two the game loads isn't known, so both get the rewrite.
 pub fn copies(romfs: &Romfs, rel: &str) -> Vec<String> {
     let twin = rel
         .strip_suffix(SUFFIX)
