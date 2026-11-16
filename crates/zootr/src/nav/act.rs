@@ -159,7 +159,7 @@ pub fn spot(graph: &Graph, placement: &Placement, link: [f32; 3]) -> Result<[f32
 
 /// The frame of using `hash`, in a folder of its own.
 pub fn frame(hash: u64) -> Result<PathBuf> {
-    let dir = crate::play::folder(&format!("use {hash}"))?;
+    let dir = crate::play::folder("play", &format!("use {hash}"))?;
     std::fs::create_dir_all(&dir)?;
     Ok(dir.join(format!("use-{hash}.png")))
 }

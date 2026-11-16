@@ -22,7 +22,28 @@ pub struct Script {
     pub test: Option<String>,
     /// A test start written in the script.
     pub setup: Option<TestSetup>,
+    /// What the game starts on, when the run starts it.
+    pub launch: Option<Launch>,
     pub steps: Vec<Step>,
+}
+
+/// What a harness start plays: a kept save by name, or a new file.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Launch {
+    Kept(String),
+    New,
+}
+
+impl Launch {
+    /// From `save = "NAME"` or `new = true`, never both.
+    pub fn named(save: Option<String>, new: bool) -> Result<Option<Self>> {
+        Ok(match (save, new) {
+            (Some(_), true) => bail!("a start is a kept save or a new file, not both"),
+            (Some(name), false) => Some(Self::Kept(name)),
+            (None, true) => Some(Self::New),
+            (None, false) => None,
+        })
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -80,6 +101,11 @@ struct File {
     name: String,
     test: Option<String>,
     setup: Option<TestSetup>,
+    /// A kept save to start on.
+    save: Option<String>,
+    /// Start on a new file.
+    #[serde(default)]
+    new: bool,
     #[serde(default)]
     step: Vec<Spanned<Raw>>,
 }
@@ -123,6 +149,7 @@ impl Script {
             name: file.name,
             test: file.test,
             setup: file.setup,
+            launch: Launch::named(file.save, file.new)?,
             steps,
         })
     }
@@ -266,6 +293,17 @@ expect = ["{}.{}=true"]
 
     fn error(text: &str) -> String {
         format!("{:#}", Script::parse(text).unwrap_err())
+    }
+
+    #[test]
+    fn a_script_names_a_kept_save_or_a_new_file_never_both() {
+        let parse = |head: &str| Script::parse(&format!("name = \"x\"\n{head}"));
+        assert_eq!(parse("").unwrap().launch, None);
+        let kept = parse("save = \"fake-deck\"").unwrap().launch;
+        assert_eq!(kept, Some(Launch::Kept("fake-deck".into())));
+        assert_eq!(parse("new = true").unwrap().launch, Some(Launch::New));
+        let both = parse("save = \"fake-deck\"\nnew = true").unwrap_err();
+        assert!(both.to_string().contains("not both"), "{both}");
     }
 
     #[test]

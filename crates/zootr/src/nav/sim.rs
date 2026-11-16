@@ -129,7 +129,7 @@ impl Input for Hands {
         true
     }
 
-    fn launch(&mut self) -> Result<()> {
+    fn launch(&mut self, _: Option<&Path>) -> Result<()> {
         Ok(())
     }
 

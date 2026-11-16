@@ -328,18 +328,28 @@ pub fn open(dir: &Path) -> Result<(PathBuf, File)> {
         .append(true)
         .open(&path)
         .with_context(|| format!("writing {}", path.display()))?;
-    let mut old: Vec<PathBuf> = std::fs::read_dir(dir)?
+    let logs = std::fs::read_dir(dir)?
         .filter_map(|e| Some(e.ok()?.path()))
         .filter(|p| {
             let name = p.file_name().and_then(|n| n.to_str()).unwrap_or_default();
             name.starts_with("live-") && name.ends_with(".log")
-        })
-        .collect();
-    old.sort();
-    for p in &old[..old.len().saturating_sub(KEEP)] {
-        std::fs::remove_file(p)?;
-    }
+        });
+    keep_newest(logs, KEEP)?;
     Ok((path, file))
+}
+
+/// Remove all but the `keep` last of `paths` by name (their names start
+/// with the time), files and folders alike.
+pub fn keep_newest(paths: impl Iterator<Item = PathBuf>, keep: usize) -> Result<()> {
+    let mut old: Vec<PathBuf> = paths.collect();
+    old.sort();
+    for p in &old[..old.len().saturating_sub(keep)] {
+        match p.is_dir() {
+            true => std::fs::remove_dir_all(p)?,
+            false => std::fs::remove_file(p)?,
+        }
+    }
+    Ok(())
 }
 
 type Rows = (Vec<Change>, Vec<u32>);
@@ -940,6 +950,7 @@ mod tests {
             control: None,
             bridge: None,
             env: vec![],
+            harness_env: vec![],
         };
         let (tx, rx) = std::sync::mpsc::channel();
         let send = move |e| {

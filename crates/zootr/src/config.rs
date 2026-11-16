@@ -141,6 +141,12 @@ pub struct Target {
     /// the socket.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub env: Vec<String>,
+    /// `NAME=VALUE` lines the play harness adds to `env` when it starts
+    /// `app`, never the app's own Play: muted, slower, its own saves.
+    /// `{save}` becomes the run's save folder, and a line naming it is left
+    /// out when a start has none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub harness_env: Vec<String>,
 }
 
 impl Target {
@@ -177,9 +183,28 @@ impl Target {
             .collect()
     }
 
-    /// `env` as pairs, with `{bridge}` filled in.
+    /// `env` as pairs, with `{bridge}` filled in: what the app's Play
+    /// starts the game with.
     pub fn launch_env(&self) -> Result<Vec<(String, String)>> {
-        self.env
+        Ok(with_save(&self.pairs(&self.env)?, None))
+    }
+
+    /// `env` and then `harness_env` as pairs, `{bridge}` filled in and
+    /// `{save}` left for [`with_save`]: what the play harness starts the
+    /// game with.
+    pub fn harness_env(&self) -> Result<Vec<(String, String)>> {
+        let mut env = self.pairs(&self.env)?;
+        env.extend(self.pairs(&self.harness_env)?);
+        Ok(env)
+    }
+
+    /// Whether the harness can start the game on a save folder of its own.
+    pub fn names_save(&self) -> bool {
+        self.harness_env.iter().any(|l| l.contains(SAVE))
+    }
+
+    fn pairs(&self, lines: &[String]) -> Result<Vec<(String, String)>> {
+        lines
             .iter()
             .map(|line| {
                 let (name, value) = line
@@ -199,6 +224,21 @@ impl Target {
             })
             .collect()
     }
+}
+
+/// What a harness line names for the run's save folder.
+const SAVE: &str = "{save}";
+
+/// `env` with `{save}` filled in by `save`, or the lines naming it left out
+/// when there's none.
+pub fn with_save(env: &[(String, String)], save: Option<&Path>) -> Vec<(String, String)> {
+    env.iter()
+        .filter_map(|(name, value)| match save {
+            Some(s) => Some((name.clone(), value.replace(SAVE, &s.to_string_lossy()))),
+            None if value.contains(SAVE) => None,
+            None => Some((name.clone(), value.clone())),
+        })
+        .collect()
 }
 
 /// The home folder, for the `~` in shared presets.
@@ -278,6 +318,7 @@ impl Target {
             control,
             bridge,
             env,
+            harness_env,
         } = Target {
             name: String::new(),
             app: PathBuf::new(),
@@ -288,6 +329,7 @@ impl Target {
             control: None,
             bridge: None,
             env: vec![],
+            harness_env: vec![],
         };
         let _ = (
             name,
@@ -299,6 +341,7 @@ impl Target {
             control,
             bridge,
             env,
+            harness_env,
         );
         vec![
             "name",
@@ -311,6 +354,7 @@ impl Target {
             "control",
             "bridge",
             "env",
+            "harness_env",
         ]
     }
 
@@ -578,6 +622,7 @@ mod tests {
             control: None,
             bridge: None,
             env: vec![],
+            harness_env: vec![],
         }
     }
 
@@ -837,6 +882,33 @@ mod tests {
         let old = Target::import_at(r#"{"name":"n","app":"/a","mod_dir":"/m"}"#, None).unwrap();
         assert!(old.bridge.is_none() && old.env.is_empty());
         assert!(!old.export().contains("bridge"));
+    }
+
+    #[test]
+    fn the_harness_adds_its_lines_and_fills_or_drops_the_save() {
+        let t = Target {
+            env: vec!["FOCUS=1".into()],
+            harness_env: vec!["SAVES={save}".into(), "FPS=30".into()],
+            ..target("a", None)
+        };
+        assert!(t.names_save() && !target("b", None).names_save());
+        let pair = |n: &str, v: &str| (n.to_string(), v.to_string());
+        assert_eq!(t.launch_env().unwrap(), [pair("FOCUS", "1")]);
+        let env = t.harness_env().unwrap();
+        assert_eq!(
+            with_save(&env, Some(Path::new("/run/save"))),
+            [
+                pair("FOCUS", "1"),
+                pair("SAVES", "/run/save"),
+                pair("FPS", "30")
+            ]
+        );
+        assert_eq!(
+            with_save(&env, None),
+            [pair("FOCUS", "1"), pair("FPS", "30")]
+        );
+        let back = Target::import_at(&t.export(), None).unwrap();
+        assert_eq!(back.harness_env, t.harness_env);
     }
 
     #[test]

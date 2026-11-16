@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 use serde_json::json;
 
@@ -21,17 +21,11 @@ use crate::gamedata::GameData;
 use crate::generate::{self, Extras};
 use crate::known::{Name, actor};
 use crate::live::Game;
-use crate::play::{Boot, Input};
+use crate::play::{Input, Start, boot};
 use crate::settings::{self, Settings};
 use crate::warp::{self, Side};
 
-/// How long the game gets to come up, its shaders prepared on a first start.
-const BOOT: Duration = Duration::from_secs(600);
 const LOOK: Duration = Duration::from_secs(2);
-/// How long a game that can't say how far it has got gets before A goes
-/// in: the Mac's title takes buttons after about 34 s, and one sent
-/// sooner lands in the menus.
-const TITLE: Duration = Duration::from_secs(42);
 /// How long an event may hold off a give.
 const CALM: Duration = Duration::from_secs(60);
 /// Heart containers given at each start, for 20 hearts: the harness stands
@@ -276,29 +270,11 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
     /// Start the game from the pristine save and play into it.
     fn start(&mut self) -> Result<Dev> {
         self.stop();
-        if let (Some(from), Some(to)) = (&self.pristine, &self.target.save_dir) {
-            restore(from, to).context("restoring the pristine save")?;
-        }
-        self.input.launch()?;
-        let start = Instant::now();
-        loop {
-            if start.elapsed() > BOOT {
-                bail!("the game never reached play");
-            }
-            sleep(LOOK);
-            let boot = match self.input.boot() {
-                Ok(Some(boot)) => boot,
-                Ok(None) => self.boot(start.elapsed()),
-                Err(_) => continue,
-            };
-            match boot {
-                Boot::Play => break,
-                Boot::Menus => {
-                    let _ = self.input.press("A");
-                }
-                Boot::Starting => {}
-            }
-        }
+        let save = match &self.pristine {
+            Some(p) => Some(boot::prepare(&Start::Save(p.clone()), "sweep")?),
+            None => None,
+        };
+        boot::boot(&mut self.input, self.target, save.as_deref(), boot::LIMIT)?;
         let dev = Dev::new(Game::attach(self.target)?)?;
         dev.set_switches(SWITCHES)?;
         for _ in 0..CONTAINERS {
@@ -306,20 +282,6 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         }
         self.give(&dev, ADULT_SWORD)?;
         Ok(dev)
-    }
-
-    /// How far a start has got, by the game's memory, for an input that
-    /// can't tell: menus once the title takes buttons, until the dev hook
-    /// answers from play.
-    fn boot(&self, since: Duration) -> Boot {
-        let state = Game::attach(self.target)
-            .and_then(Dev::new)
-            .and_then(|dev| dev.state());
-        match state {
-            Ok(s) if !s.map.is_empty() && !s.loading && !s.event => Boot::Play,
-            _ if since > TITLE => Boot::Menus,
-            _ => Boot::Starting,
-        }
     }
 
     /// One `actor`, pressing A through any event that holds it off: a new
@@ -567,41 +529,6 @@ pub(crate) fn name(p: &Planned) -> String {
     }
 }
 
-/// Copy the folder `from` over `to`, file by file.
-/// Make the save folder `to` the pristine one at `from`. Below `to`'s top
-/// level, whatever `from` lacks goes: the game keeps writing autosaves into
-/// slots the pristine save never had, and Continue loads the newest. `to`'s
-/// own neighbours of the save stay.
-fn restore(from: &Path, to: &Path) -> Result<()> {
-    mirror(from, to, false)
-}
-
-fn mirror(from: &Path, to: &Path, prune: bool) -> Result<()> {
-    std::fs::create_dir_all(to)?;
-    let mut kept = HashSet::new();
-    for entry in std::fs::read_dir(from)? {
-        let entry = entry?;
-        let dest = to.join(entry.file_name());
-        if entry.file_type()?.is_dir() {
-            mirror(&entry.path(), &dest, true)?;
-        } else {
-            std::fs::copy(entry.path(), &dest)?;
-        }
-        kept.insert(entry.file_name());
-    }
-    for entry in std::fs::read_dir(to)?.filter(|_| prune) {
-        let entry = entry?;
-        if kept.contains(&entry.file_name()) {
-            continue;
-        }
-        match entry.file_type()?.is_dir() {
-            true => std::fs::remove_dir_all(entry.path())?,
-            false => std::fs::remove_file(entry.path())?,
-        }
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -747,31 +674,6 @@ mod tests {
         assert_eq!(back(6), Side::Left, "and the front came to nothing");
         assert_eq!(back(1), Side::Left, "the side it gave from still wins");
         assert_eq!(back(3), Side::Back, "round again to the planned side");
-    }
-
-    #[test]
-    fn a_restore_drops_autosaves_the_pristine_save_never_had() {
-        let root = std::env::temp_dir().join(format!("zootr-restore-{}", std::process::id()));
-        let (pristine, saves) = (root.join("pristine"), root.join("data"));
-        let write = |path: PathBuf, text: &str| {
-            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            std::fs::write(path, text).unwrap();
-        };
-        write(pristine.join("runner/save/p/slot_00/progress.sav"), "start");
-        write(saves.join("runner/save/p/slot_00/progress.sav"), "played");
-        write(saves.join("runner/save/p/slot_03/progress.sav"), "autosave");
-        write(saves.join("runner/save/p/stray.sav"), "stray");
-        write(saves.join("containers/keep"), "the runner's own");
-        restore(&pristine, &saves).unwrap();
-        let read = |rel: &str| std::fs::read_to_string(saves.join(rel)).ok();
-        assert_eq!(
-            read("runner/save/p/slot_00/progress.sav").as_deref(),
-            Some("start")
-        );
-        assert!(!saves.join("runner/save/p/slot_03").exists());
-        assert_eq!(read("runner/save/p/stray.sav"), None);
-        assert_eq!(read("containers/keep").as_deref(), Some("the runner's own"));
-        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

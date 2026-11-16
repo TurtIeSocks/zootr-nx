@@ -32,7 +32,7 @@ pub fn session<T>(
         !input.running(),
         "the game is already running, and it may be the maintainer's. Pass --attach to use it"
     );
-    input.launch()?;
+    input.launch(None)?;
     let start = Instant::now();
     let game = loop {
         match connect() {
@@ -278,7 +278,7 @@ mod tests {
             self.running
         }
 
-        fn launch(&mut self) -> Result<()> {
+        fn launch(&mut self, _: Option<&Path>) -> Result<()> {
             self.launched += 1;
             self.running = true;
             Ok(())

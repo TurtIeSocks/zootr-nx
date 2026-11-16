@@ -8,7 +8,8 @@ use ounce_formats::Romfs;
 
 use super::args::SaveCommand;
 use super::running::{named, stamp};
-use crate::{presets, recorder, savefile};
+use crate::config::Config;
+use crate::{kept, presets, recorder, savefile};
 
 /// An entry's values as one column, `?` for types this tool can't read.
 pub(super) fn save_command(romfs: &Romfs, cmd: SaveCommand) -> Result<()> {
@@ -47,6 +48,24 @@ pub(super) fn save_command(romfs: &Romfs, cmd: SaveCommand) -> Result<()> {
                 std::thread::sleep(std::time::Duration::from_millis(500));
             }
         }
+        SaveCommand::Keep {
+            name,
+            slot,
+            from,
+            note,
+        } => {
+            let from = match from {
+                Some(from) => from,
+                None => Config::load()?.save_dir()?,
+            };
+            let kept = kept::keep(&gd, &name, &from, slot, note)?;
+            println!("kept {name}: {}", shown(&kept));
+        }
+        SaveCommand::Kept => {
+            for (name, kept) in kept::list()? {
+                println!("{name}: {}", shown(&kept));
+            }
+        }
         SaveCommand::Set {
             slot,
             edits,
@@ -59,4 +78,19 @@ pub(super) fn save_command(romfs: &Romfs, cmd: SaveCommand) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// A kept save's map, age, time and note on one line.
+fn shown(kept: &kept::Kept) -> String {
+    let age = match kept.child {
+        Some(true) => " (child)",
+        Some(false) => " (adult)",
+        None => "",
+    };
+    let map = if kept.map.is_empty() { "?" } else { &kept.map };
+    let note = match kept.note.is_empty() {
+        true => String::new(),
+        false => format!(", {}", kept.note),
+    };
+    format!("{map}{age}, kept {}{note}", kept.kept)
 }

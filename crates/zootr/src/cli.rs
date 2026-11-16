@@ -13,7 +13,7 @@ use crate::sweep::judge::ModelJudge;
 use crate::vision::Vision;
 use crate::{events, flows, game, generate, spawn, world};
 use args::{Cli, Command};
-use play::{look, play, sweep};
+use play::{boot_command, look, play, sweep};
 use research::{census, chest_events, cutscenes, flags, flow, items, logic};
 use running::{dev, give, live, set};
 use save::save_command;
@@ -130,6 +130,7 @@ pub fn run() -> Result<()> {
             Ok(())
         }
         Command::Save(cmd) => save_command(&romfs, cmd),
+        Command::Boot { start, limit } => boot_command(start, limit),
         Command::Live { grep, all, named } => live(&romfs, grep, all, named),
         Command::Give { actor, count } => give(&romfs, &actor, count),
         Command::Set { name, value } => set(&romfs, &name, &value),
@@ -152,7 +153,8 @@ pub fn run() -> Result<()> {
             script,
             attach,
             stall,
-        } => play(&romfs, &script, attach, stall),
+            start,
+        } => play(&romfs, &script, attach, stall, start),
         Command::Sweep {
             out,
             rounds,

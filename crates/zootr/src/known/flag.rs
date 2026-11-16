@@ -182,6 +182,7 @@ pub const STOCK_NUM: &Name = &n!(0x6a30b7b5521547e3);
 pub const SUB_EVENT_FIND_RICHARD_GET_HEART_PIECE: &Name = &n!(0x1ae73b0aea0eb347);
 pub const SUN_SONG: &Name = &n!(0x6729e911e6d96318);
 pub const TIME_TEMPLE: &Name = &n!(0x2d75e73273a7473d);
+pub const UI_DEBUG_IS_OPENED_TITLE: &Name = &n!(0x5f7fc51b0910bb39);
 pub const UI_IS_NEED_OPEN_SHORT_CUT_ACTION_GUIDE: &Name = &n!(0xda7a539e690c67e8);
 pub const UI_MESSAGE_TARGET_ACTOR_NAME: &Name = &n!(0x8a71353164897334);
 pub const UNDER_THE_GRAVE_DAMPE_RACE_HEART_GETED: &Name = &n!(0x92e4a4df2e5b561e);
