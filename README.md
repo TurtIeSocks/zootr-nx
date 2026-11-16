@@ -29,6 +29,12 @@ settings to a friend.
 
 ![The Shuffles settings page](assets/shuffles.png)
 
+## Songs you can see
+
+A song placed in the world shows its own medallion, in the song's colour
+with its icon on the face, where the game would show a rupee. zootr builds
+each one from your dump when it writes a seed.
+
 ## Less waiting
 
 Skip the cutscenes and tutorials, open every chest the quick way, and keep
@@ -81,6 +87,8 @@ Early. Expect seeds that break and settings that change.
 - The tracker, the Live log and the checks list read the running game,
   which works on macOS only.
 - A setting the app marks Untested hasn't been played through yet.
+- The logic is still primitive and needs more testing. A seed can still
+  ask for something Link can't reach.
 
 ## Contributing
 
