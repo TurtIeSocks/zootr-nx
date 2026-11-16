@@ -30,7 +30,45 @@ Read the rules first. A pull request that breaks one can't be merged.
   };
   ```
 
-  CI has no dump, so a test that panics without one fails the build.
+  CI has no dump, so a test that panics without one fails the build. Put
+  your own dump at `dump/oot.nup` to run these tests too.
+
+## Building from source
+
+Tools:
+
+| Tool | Version | Why |
+|---|---|---|
+| Rust via rustup | Pinned in `rust-toolchain.toml`, installed on first use | Everything |
+| `aarch64-unknown-none` target | Listed in `rust-toolchain.toml` | The code patch that runs inside the game, built by `crates/zootr/build.rs` |
+| Node.js | A current LTS | The app's UI |
+| pnpm | Pinned in `app/package.json` (`packageManager`) | The app's UI |
+| Tauri's system libraries | See Tauri's prerequisites guide | The app. Linux needs webkit2gtk 4.1 and friends |
+
+Build:
+
+```sh
+git clone <repo-url> zootr-nx
+cd zootr-nx
+cargo build                     # the CLI and the app's Rust side
+cd app
+pnpm install
+pnpm tauri dev                  # run the app
+```
+
+On macOS, live reads need a binary signed with the debugger entitlement.
+`pnpm tauri dev` signs the app for you. For the CLI, `make zootr` builds
+and signs it, and `make live` runs `zootr live`.
+
+## Repository layout
+
+| Path | What it is |
+|---|---|
+| `crates/zootr` | The randomizer library and the `zootr` CLI |
+| `crates/zootr-hook` | Code that runs inside the game, for progressive items |
+| `crates/ounce-formats` | Readers and writers for the game engine's file formats |
+| `crates/nup-format` | Reader for `.nup` game dumps |
+| `app` | The desktop app: Tauri 2, React and TypeScript |
 
 ## The gate
 
