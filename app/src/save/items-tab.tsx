@@ -5,6 +5,8 @@ import {
   type Info,
   type Intent,
   type ItemsView,
+  type Placement,
+  type Section,
   type StatusField,
   type StatusGroup,
 } from "@/bindings";
@@ -29,6 +31,14 @@ import { useUi } from "@/stores/ui";
 const SIZE = PIXELS.Medium;
 const INK = "text-ink";
 
+/** The grid's columns, top to bottom, sized to come out about as tall as
+ * each other. Dungeons is tall enough to take one alone. */
+const COLUMNS: Section[][] = [
+  ["Inventory", "Songs", "Quest"],
+  ["Equipment", "Upgrades", "Stones", "Medallions"],
+  ["Dungeons"],
+];
+
 /** The panel's groups, in order. */
 const GROUPS: StatusGroup[] = ["Meters", "Gear", "Age", "Counters"];
 
@@ -50,34 +60,45 @@ export function ItemsTab({ view }: ItemsTabProps) {
       <StatusPanel fields={view.status} />
       <InlineError error={error} />
       <Card>
-        {/* The tracker's sections in its default order, wrapped to the page
-            rather than stacked in its one default column. */}
-        <div className="flex flex-wrap items-start gap-x-8 gap-y-5 p-4">
-          {view.sections
-            .filter((p) => p.shown)
-            .map((placement) => (
-              <section key={placement.section}>
-                <SectionGrid
-                  placement={placement}
-                  cells={inSection(view.cells, placement.section)}
-                  size={SIZE}
-                  ink={INK}
-                >
-                  {(cell, at) => (
-                    <EditTile
-                      cell={cell}
-                      cap={view.caps[at] ?? null}
-                      staged={view.staged[at] ?? false}
-                      onClick={(intent) => click(at, intent)}
-                    />
-                  )}
-                </SectionGrid>
-              </section>
-            ))}
+        <div className="flex flex-wrap items-start gap-x-12 gap-y-5 p-4">
+          {columns(view.sections).map((column) => (
+            <div key={column[0]?.section} className="flex flex-col gap-5">
+              {column.map((placement) => (
+                <section key={placement.section}>
+                  <SectionGrid
+                    placement={placement}
+                    cells={inSection(view.cells, placement.section)}
+                    size={SIZE}
+                    ink={INK}
+                  >
+                    {(cell, at) => (
+                      <EditTile
+                        cell={cell}
+                        cap={view.caps[at] ?? null}
+                        staged={view.staged[at] ?? false}
+                        onClick={(intent) => click(at, intent)}
+                      />
+                    )}
+                  </SectionGrid>
+                </section>
+              ))}
+            </div>
+          ))}
         </div>
       </Card>
     </div>
   );
+}
+
+/** The shown sections by {@link COLUMNS}, any it misses in the first. */
+function columns(sections: Placement[]): Placement[][] {
+  const shown = sections.filter((p) => p.shown);
+  const out = COLUMNS.map((names) =>
+    names.flatMap((name) => shown.filter((p) => p.section === name)),
+  );
+  const placed = new Set(COLUMNS.flat());
+  out[0]?.push(...shown.filter((p) => !placed.has(p.section)));
+  return out.filter((column) => column.length > 0);
 }
 
 /** Asks what a click on cell `at` changes, and stages it. */
