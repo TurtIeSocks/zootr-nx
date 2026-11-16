@@ -6,8 +6,12 @@
 //! key. A chest's flow knows the boss key only by its own name, so the hook
 //! credits a boss key copy, and a seed without the hook keeps the boss key
 //! as it is. With key rings, each dungeon's ring is a small key copy the
-//! game doesn't count, and the hook fills the counter. The Gerudo
+//! game doesn't count, showing a ring of its keys ([`rings`]), and the hook
+//! fills the counter. With Keysanity the same copy is a single key, and
+//! shows one. The Gerudo
 //! Fortress's keys, their own actors already, show a model of their own.
+
+mod rings;
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{
@@ -49,6 +53,13 @@ const BOSS_LOOK: Look = Look {
     kinds: &["Alb", "AO", "Emc", "Inner_Nrm", "Mtl", "Nrm", "Rgh"],
     copy: "Item_Rando_BossKey",
 };
+/// A key ring's: the small key's textures with a plain metal corner, on a
+/// model of the dungeon's keys around a hoop.
+const RING_LOOK: Look = Look {
+    copy: "Obj_Rando_KeyRing_",
+    ..SMALL_LOOK
+};
+/// The looks with host files of their own: the ring's are the small key's.
 #[cfg(test)]
 const LOOKS: [&Look; 2] = [&SMALL_LOOK, &BOSS_LOOK];
 
@@ -124,18 +135,27 @@ pub fn ring(n: usize) -> String {
     format!("Item_Rando_KeyRing{n:02}")
 }
 
+/// The model dungeon `n`'s ring copy shows as `keys` deals it: the ring
+/// of its keys, or with Keysanity its single tinted key.
+fn ring_model(n: usize, keys: DungeonKeys) -> String {
+    match keys {
+        DungeonKeys::Rings => RING_LOOK.name(n),
+        _ => SMALL_LOOK.name(n),
+    }
+}
+
 /// Dungeon `n`'s boss key copy.
 pub fn boss(n: usize) -> String {
     BOSS_LOOK.name(n)
 }
 
 /// The pack a ring or boss key copy is built as, the same as [`write`]
-/// writes it, for a holder that stands in for it. `None` for any other
+/// writes it with `keys`, for a holder that stands in for it. `None` for any other
 /// item.
-pub fn copy_pack(romfs: &Romfs, item: &str) -> Result<Option<ActorPack>> {
+pub fn copy_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<Option<ActorPack>> {
     for n in 1..=DUNGEONS.len() {
         let (template, model) = if item == ring(n) {
-            (SMALL, SMALL_LOOK.name(n))
+            (SMALL, ring_model(n, keys))
         } else if has_boss(n) && item == boss(n) {
             (BOSS, boss(n))
         } else {
@@ -190,36 +210,40 @@ pub fn credits(bosses: bool, keys: DungeonKeys) -> Vec<(String, Credit)> {
 }
 
 /// Writes each dungeon's model and actor copies, the boss key's only with
-/// `bosses` and the ring (a single key with Keysanity) only with `copies`,
-/// and points the Fortress keys at
-/// a model of their own.
+/// `bosses`, and with `keys` dealing copies the ring: showing a ring with
+/// key rings, a single key with Keysanity. Points the Fortress keys at a
+/// model of their own.
 pub fn write(
     romfs: &Romfs,
     builder: &mut ModBuilder,
     tables: &mut Tables,
     bosses: bool,
-    copies: bool,
+    keys: DungeonKeys,
 ) -> Result<()> {
     let small = Host::read(romfs, &SMALL_LOOK)?;
     let boss = Host::read(romfs, &BOSS_LOOK)?;
     let floor = ActorPack::load(romfs, SMALL_LOOK.host)?;
     let chest = ActorPack::load(romfs, SMALL)?;
     let boss_chest = ActorPack::load(romfs, BOSS)?;
-    for (i, (dungeon, ..)) in DUNGEONS.iter().enumerate() {
+    for (i, (dungeon, count, _)) in DUNGEONS.iter().enumerate() {
         let n = i + 1;
         let tint = colour(dungeon).with_context(|| format!("no colour for {dungeon}"))?;
         let name = small.paint(builder, n, tint)?;
         copy(builder, tables, &chest, &chest_key(n), &name)?;
         copy(builder, tables, &floor, &name, &name)?;
-        if copies {
-            copy(builder, tables, &chest, &ring(n), &name)?;
+        if keys == DungeonKeys::Rings {
+            let model = rings::model(&small.model, *count as usize)?;
+            small.write_as(builder, &ring_model(n, keys), &model, tint, true)?;
+        }
+        if keys.copies() {
+            copy(builder, tables, &chest, &ring(n), &ring_model(n, keys))?;
         }
         if bosses && has_boss(n) {
             let name = boss.paint(builder, n, tint)?;
             copy(builder, tables, &boss_chest, &name, &name)?;
         }
     }
-    if copies {
+    if keys.copies() {
         uncounted(tables)?;
     }
     let name = small.paint(builder, FORTRESS_MODEL, FORTRESS_COLOUR)?;
@@ -287,32 +311,54 @@ impl Host {
 
     /// Model `n`, its albedo tinted `tint`. Returns its name.
     fn paint(&self, builder: &mut ModBuilder, n: usize, tint: Colour) -> Result<String> {
-        let host = self.look.host;
         let name = self.look.name(n);
-        let like = model_path(host);
+        self.write_as(builder, &name, &self.model, tint, false)?;
+        Ok(name)
+    }
+
+    /// `model`, a copy of the host's, written as `name` with the host's
+    /// textures, the albedo tinted `tint`, and with `ring` each with the
+    /// ring's plain metal corner.
+    fn write_as(
+        &self,
+        builder: &mut ModBuilder,
+        name: &str,
+        model: &[u8],
+        tint: Colour,
+        ring: bool,
+    ) -> Result<()> {
+        let host = self.look.host;
         builder.add(
-            &model_path(&name),
-            &rename(&self.model, host, &name)?,
-            &like,
+            &model_path(name),
+            &rename(model, host, name)?,
+            &model_path(host),
         )?;
         for (kind, data) in &self.textures {
-            let mut data = rename(data, host, &name)?;
-            if *kind == "Alb" {
-                data = tinted(&data, tint)?;
-            }
-            builder.add(&texture_path(&name, kind), &data, &texture_path(host, kind))?;
+            let data = texture(&rename(data, host, name)?, kind, tint, ring)?;
+            builder.add(&texture_path(name, kind), &data, &texture_path(host, kind))?;
         }
-        Ok(name)
+        Ok(())
     }
 }
 
-/// A texture's first level in `colour`, each texel scaled by its
-/// brightness. The metal maps keep the shine, and a coloured albedo (the
-/// boss key's gold) takes the colour as cleanly as a grey one.
-fn tinted(data: &[u8], colour: Colour) -> Result<Vec<u8>> {
+/// A texture of `kind`: an albedo's first level in `colour`, each texel
+/// scaled by its brightness, so the metal maps keep the shine and a
+/// coloured albedo (the boss key's gold) takes the colour as cleanly as a
+/// grey one. With `ring`, any kind with the ring's plain metal corner.
+fn texture(data: &[u8], kind: &str, colour: Colour, ring: bool) -> Result<Vec<u8>> {
+    let albedo = kind == "Alb";
+    if !albedo && !ring {
+        return Ok(data.to_vec());
+    }
     let mut t = levels(data)?.swap_remove(0);
-    tint(&mut t.rgba, colour);
-    redraw(data, &t.rgba, |_, _| false)
+    if albedo {
+        tint(&mut t.rgba, colour);
+    }
+    if ring {
+        rings::paint(&mut t, kind)?;
+    }
+    let (w, h) = (t.width, t.height);
+    redraw(data, &t.rgba, |x, y| !albedo && !rings::painted(w, h, x, y))
 }
 
 fn tint(rgba: &mut [u8], colour: Colour) {
@@ -471,7 +517,7 @@ mod tests {
         if crate::game::no_names() {
             return;
         }
-        for look in LOOKS {
+        for look in [&SMALL_LOOK, &BOSS_LOOK, &RING_LOOK] {
             assert_eq!(look.name(DUNGEONS.len() + 1).len(), look.host.len());
         }
     }
@@ -519,38 +565,48 @@ mod tests {
     #[test]
     fn a_copy_s_pack_built_in_memory_is_the_one_the_seed_writes() {
         let Some(romfs) = dev_dump() else { return };
-        let dir = std::env::temp_dir().join(format!("zootr-copy-pack-{}", std::process::id()));
-        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
-        let mut tables = Tables::load(&romfs).unwrap();
-        write(&romfs, &mut builder, &mut tables, true, true).unwrap();
-        builder.finish().unwrap();
-        for copy in [ring(2), boss(2)] {
-            let rel = pack_file(&copy);
-            let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-            let bytes = romfs.dicts().decompress(&rel, &raw).unwrap();
-            let written = ActorPack::from_bytes(&copy, bytes.to_vec()).unwrap();
-            let built = copy_pack(&romfs, &copy).unwrap().unwrap();
-            assert_eq!(built.files(), written.files(), "{copy}");
-            for f in built.files() {
-                assert_eq!(built.raw(&f), written.raw(&f), "{copy}: {f}");
+        for keys in [DungeonKeys::Rings, DungeonKeys::Singles] {
+            let dir = std::env::temp_dir()
+                .join(format!("zootr-copy-pack-{}-{keys:?}", std::process::id()));
+            let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+            let mut tables = Tables::load(&romfs).unwrap();
+            write(&romfs, &mut builder, &mut tables, true, keys).unwrap();
+            builder.finish().unwrap();
+            for copy in [ring(2), boss(2)] {
+                let rel = pack_file(&copy);
+                let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
+                let bytes = romfs.dicts().decompress(&rel, &raw).unwrap();
+                let written = ActorPack::from_bytes(&copy, bytes.to_vec()).unwrap();
+                let built = copy_pack(&romfs, &copy, keys).unwrap().unwrap();
+                assert_eq!(built.files(), written.files(), "{copy} {keys:?}");
+                for f in built.files() {
+                    assert_eq!(built.raw(&f), written.raw(&f), "{copy} {keys:?}: {f}");
+                }
             }
+            let hookshot = copy_pack(&romfs, item::HOOKSHOT, keys).unwrap();
+            assert!(hookshot.is_none());
         }
-        assert!(copy_pack(&romfs, item::HOOKSHOT).unwrap().is_none());
     }
 
     #[test]
-    fn each_copy_shows_its_own_model_from_its_own_file() {
+    fn each_copy_shows_its_own_model_from_its_own_file_and_a_ring_its_keys() {
         let Some(romfs) = dev_dump() else { return };
-        let dir = std::env::temp_dir().join(format!("zootr-key-tints-{}", std::process::id()));
-        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
-        let mut tables = Tables::load(&romfs).unwrap();
-        write(&romfs, &mut builder, &mut tables, true, true).unwrap();
+        shows_own_models(&romfs, DungeonKeys::Rings);
+        shows_own_models(&romfs, DungeonKeys::Singles);
+    }
+
+    fn shows_own_models(romfs: &Romfs, keys: DungeonKeys) {
+        let dir =
+            std::env::temp_dir().join(format!("zootr-key-tints-{}-{keys:?}", std::process::id()));
+        let mut builder = ModBuilder::new(romfs, &dir).unwrap();
+        let mut tables = Tables::load(romfs).unwrap();
+        write(romfs, &mut builder, &mut tables, true, keys).unwrap();
         builder.finish().unwrap();
         let read = |rel: &str| {
             let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
             romfs.dicts().decompress(rel, &raw).unwrap()
         };
-        let info = |name: &str| path_of(&ActorPack::load(&romfs, name).unwrap(), MODEL).unwrap();
+        let info = |name: &str| path_of(&ActorPack::load(romfs, name).unwrap(), MODEL).unwrap();
         let has = |bytes: &[u8], s: &str| bytes.windows(s.len()).any(|w| w == s.as_bytes());
         let fmdb = |name: &str| {
             let row = crate::standins::row(&tables.actor, name).unwrap();
@@ -559,7 +615,14 @@ mod tests {
                 .and_then(|v| v.as_string().ok());
             fmdb.map(|s| s.to_string())
         };
-        for n in 1..=DUNGEONS.len() {
+        let key_vertices = |model: &str| {
+            let shape = rings::SHAPE.replace(SMALL_LOOK.host.as_ref(), model);
+            let lods = ounce_formats::lods(&read(&model_path(model)), &shape).unwrap();
+            lods[0].vertices.len()
+        };
+        let one = key_vertices(&SMALL_LOOK.name(1));
+        for (i, (_, count, _)) in DUNGEONS.iter().enumerate() {
+            let n = i + 1;
             let small = SMALL_LOOK.name(n);
             let mut copies = vec![
                 (chest_key(n), SMALL, small.clone()),
@@ -572,7 +635,22 @@ mod tests {
             let pouch = crate::standins::row(&tables.pouch, &ring(n)).unwrap();
             let deal = pouch.get(field::POUCH_SPECIAL_DEAL.get()).unwrap();
             assert_eq!(deal.as_string().unwrap(), field::NOT_PUSH_TO_POUCH.get());
-            copies.push((ring(n), SMALL, SMALL_LOOK.name(n)));
+            let shown = match keys {
+                DungeonKeys::Rings => RING_LOOK.name(n),
+                _ => SMALL_LOOK.name(n),
+            };
+            let rings = *count as usize * usize::from(keys == DungeonKeys::Rings);
+            assert!(key_vertices(&shown) >= one * rings.max(1), "{shown}");
+            if rings > 0 {
+                assert!(key_vertices(&shown) < one * (rings + 1), "{shown}");
+                for kind in SMALL_LOOK.kinds {
+                    assert!(
+                        !read(&texture_path(&shown, kind)).is_empty(),
+                        "{shown} {kind}"
+                    );
+                }
+            }
+            copies.push((ring(n), SMALL, shown));
             for (copy, template, model) in copies {
                 assert!(!read(&model_path(&model)).is_empty(), "{model}");
                 assert_eq!(fmdb(&copy), Some(model), "{copy}");

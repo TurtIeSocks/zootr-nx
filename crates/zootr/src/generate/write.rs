@@ -158,28 +158,20 @@ pub fn write_mod(
     medallions::write(romfs, &mut builder, &mut tables, items)?;
     let flags = hook_flags(new_game);
     let bosses = boss_copies(new_game);
-    key_tints::write(
-        romfs,
-        &mut builder,
-        &mut tables,
-        bosses,
-        new_game.keys.copies(),
-    )?;
+    key_tints::write(romfs, &mut builder, &mut tables, bosses, new_game.keys)?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
     let levels = levels(romfs, drops, new_game)?;
     levels.events(&mut events)?;
     events.write(&mut builder)?;
     if new_game.shop_slots > 0 {
         let slots = shops::slots(romfs)?;
-        let (count, seed) = (new_game.shop_slots, new_game.seed);
         fields.extend(shops::write(
             romfs,
             &mut builder,
             &mut tables,
             &slots,
-            count,
             drops,
-            seed,
+            new_game,
         )?);
     }
     let pieces = pickups::dealt(romfs, new_game)?;
@@ -189,6 +181,7 @@ pub fn write_mod(
         &mut tables,
         &pieces,
         drops,
+        new_game.keys,
     )?);
     tables.write(&mut builder)?;
     // A pickup's drop is its field above, never the bare item. A cow's is
@@ -240,7 +233,7 @@ pub fn write_mod(
         bail!("no actor with hash {missing} has a {}", checks::DROP_ACTOR);
     }
     bombs::write(&mut builder)?;
-    dig::write(romfs, &mut builder, drops)?;
+    dig::write(romfs, &mut builder, drops, new_game.keys)?;
     let files = builder.finish()?.len();
     let credits = key_tints::credits(bosses, new_game.keys);
     patch::install(

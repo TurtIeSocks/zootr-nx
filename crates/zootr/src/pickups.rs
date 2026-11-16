@@ -15,7 +15,7 @@ use crate::checks::{
 };
 use crate::gifts;
 use crate::known::{Name, actor, item};
-use crate::settings::{NPC_GIFTS, NewGame};
+use crate::settings::{DungeonKeys, NPC_GIFTS, NewGame};
 use crate::standins::{StandIn, Tables, item_pack};
 use crate::world::presence_of;
 
@@ -376,6 +376,7 @@ pub fn write(
     tables: &mut Tables,
     checks: &[ItemCheck],
     drops: &HashMap<u64, Drop>,
+    keys: DungeonKeys,
 ) -> Result<Vec<String>> {
     let mut fields = Vec::new();
     for m in moved(checks, drops) {
@@ -383,7 +384,7 @@ pub fn write(
             let pickup = StandIn {
                 name: &m.actor,
                 template: ActorPack::load(romfs, m.template)?,
-                item: item_pack(romfs, m.item)?,
+                item: item_pack(romfs, m.item, keys)?,
                 price: None,
             };
             pickup
@@ -484,7 +485,7 @@ mod tests {
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let mut tables = Tables::load(&romfs).unwrap();
         let moved = |drops: &HashMap<u64, Drop>, builder: &mut ModBuilder, tables: &mut Tables| {
-            write(&romfs, builder, tables, &checks, drops).unwrap()
+            write(&romfs, builder, tables, &checks, drops, DungeonKeys::Rings).unwrap()
         };
         assert!(moved(&HashMap::new(), &mut builder, &mut tables).is_empty());
         let same = HashMap::from([
@@ -528,7 +529,15 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-free-{}", std::process::id()));
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let mut tables = Tables::load(&romfs).unwrap();
-        let fields = write(&romfs, &mut builder, &mut tables, &checks, &drops).unwrap();
+        let fields = write(
+            &romfs,
+            &mut builder,
+            &mut tables,
+            &checks,
+            &drops,
+            DungeonKeys::Rings,
+        )
+        .unwrap();
         tables.write(&mut builder).unwrap();
         builder.finish().unwrap();
         assert_eq!(fields.len(), 4, "{fields:?}");
