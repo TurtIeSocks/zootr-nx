@@ -334,6 +334,9 @@ mod tests {
             ("map", include_str!("known/map.rs")),
             ("scene", include_str!("known/scene.rs")),
         ];
+        // Animation names, read by `probe floors` from model archives that
+        // stay in the .nup: the extracted romfs never holds them.
+        let packed = ["field::POSE_COMMON", "field::POSE_SHOP"];
         let mut lost = Vec::new();
         for (kind, text) in kinds {
             for item in text.split("pub const ").skip(1) {
@@ -345,8 +348,10 @@ mod tests {
                     .split(')')
                     .next()
                     .unwrap();
-                if lookup(u64::from_str_radix(hex, 16).unwrap()).is_none() {
-                    lost.push(format!("{kind}::{ident}"));
+                let name = format!("{kind}::{ident}");
+                let missing = lookup(u64::from_str_radix(hex, 16).unwrap()).is_none();
+                if missing && !packed.contains(&name.as_str()) {
+                    lost.push(name);
                 }
             }
         }

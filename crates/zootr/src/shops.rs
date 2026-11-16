@@ -457,6 +457,7 @@ mod tests {
 
     #[test]
     fn a_shield_stands_up_on_a_shelf_and_the_rupee_lies_as_its_vertices_say() {
+        needs_names!();
         let at = |item: &Name| floor(item).unwrap();
         // Posed in their own shop poses, they stand on their rims.
         assert!((at(actor::T_BOX_SHIELD_DEKU) - 0.022).abs() < 0.001);

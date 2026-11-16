@@ -755,6 +755,7 @@ mod tests {
 
     #[test]
     fn a_teleport_arrives_where_no_scene_starts() {
+        needs_names!();
         let meadow = map::SACRED_FOREST_MEADOW_ADULT.to_string();
         let place = |map: &str, spot: &str| Place {
             map: map.to_string(),

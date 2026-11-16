@@ -55,6 +55,7 @@ mod tests {
 
     #[test]
     fn a_slot_finds_its_shops_plank_and_the_rupee_keeps_its_measured_rise() {
+        needs_names!();
         let red = floor(actor::T_BOX_RUPEE_RED).unwrap();
         let rise = |shop, number| plank(shop, number).unwrap() - red;
         assert!((rise("Goron Shop", 2) - (0.27 - ROW_FLOOR)).abs() < 1e-6);
