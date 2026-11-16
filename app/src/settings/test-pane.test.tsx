@@ -180,6 +180,8 @@ test("a known quest offers its steps, starting at a new game's", async () => {
   const select = () => screen.getByLabelText("Quest steps value");
   await waitFor(() => expect(select().tagName).toBe("SELECT"));
   const step = select() as HTMLSelectElement;
+  // Pinned like the text field it replaces, so the name keeps the row.
+  expect(step.className).toContain("w-40");
   await waitFor(() => expect(step.value).toBe("Step01"));
   fireEvent.change(step, { target: { value: "Step02" } });
   fireEvent.click(button("Add quest step"));

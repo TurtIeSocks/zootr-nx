@@ -12,6 +12,8 @@ export interface ValueInputProps {
   onChange: (v: string) => void;
   /** Its accessible name. */
   label?: string;
+  /** Sizing from the row it sits in. Fills the row when unset. */
+  className?: string;
 }
 
 /** The field for a GameData value's type: a select of its choices, a
@@ -21,6 +23,7 @@ export function ValueInput({
   value,
   onChange,
   label = "Value",
+  className,
 }: ValueInputProps) {
   const named = { "aria-label": label };
   const change = (e: { target: { value: string } }) => onChange(e.target.value);
@@ -31,7 +34,7 @@ export function ValueInput({
     return (
       <select
         {...named}
-        className={cn(fieldClass, "h-8 px-2")}
+        className={cn(fieldClass, "h-8 px-2", className)}
         value={value}
         onChange={change}
       >
@@ -49,7 +52,7 @@ export function ValueInput({
         {...named}
         readOnly
         rows={Math.min(value.split("\n").length, 8)}
-        className="type-mono"
+        className={cn("type-mono", className)}
         value={value || "nothing to show"}
       />
     );
@@ -57,6 +60,7 @@ export function ValueInput({
   return (
     <Input
       {...named}
+      className={className}
       type={info.input === "number" ? "number" : "text"}
       step={info.kind === "Float" ? "any" : 1}
       value={value}
