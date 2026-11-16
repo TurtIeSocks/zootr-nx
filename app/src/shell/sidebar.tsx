@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { TipButton } from "@/components/tip-button";
 import { Badge, ChangedDot } from "@/components/ui/badge";
+import { MAC } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import {
   APP_PANES,
@@ -235,7 +236,11 @@ export function Sidebar() {
     <aside className="flex min-h-0 flex-col border-line border-r bg-sidebar">
       <div
         data-tauri-drag-region
-        className="flex h-(--titlebar) shrink-0 items-center justify-end px-4"
+        className={cn(
+          "flex h-(--titlebar) shrink-0 items-center px-4",
+          // Clear of the macOS window buttons; in line with the nav elsewhere.
+          MAC && "justify-end",
+        )}
       >
         <span data-tauri-drag-region className="type-display-sm text-ink">
           zootr<span className="text-primary-ink">-nx</span>
