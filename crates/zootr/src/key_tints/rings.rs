@@ -3,7 +3,7 @@
 //! built from the key's own model. Each level of detail is the key's at
 //! that level, so many times over, and a hoop as fine. The hoop and its
 //! Triforces are drawn from a corner of the key's textures no key uses,
-//! painted iron and gold, so they stay untinted while the keys take the
+//! painted the key's own iron and gold, so they stay untinted while the keys take the
 //! dungeon's colour.
 
 use std::f32::consts::{PI, TAU};
@@ -39,28 +39,46 @@ const TRIFORCE_STEP: f32 = 55.0 * PI / 180.0;
 const TRIFORCE: f32 = 4.0 * TUBE;
 const RAISED: f32 = 0.005;
 
-/// A flat finish painted into the textures' corner no key uses: where
-/// (u, v from the top left), and its albedo, metalness and roughness.
+/// A finish painted into the textures' corner no key uses: where (u, v
+/// from the top left), and how its texels are filled.
 struct Finish {
     painted: ([f32; 2], [f32; 2]),
-    albedo: [u8; 3],
-    metal: u8,
-    rough: u8,
+    surface: Surface,
 }
 
-/// The hoop's dark iron and the Triforces' gold, one above the other.
+enum Surface {
+    /// One colour, metalness and roughness.
+    Flat {
+        albedo: [u8; 3],
+        metal: u8,
+        rough: u8,
+    },
+    /// The key's own iron, copied texel for texel from `from` (u, v of its
+    /// top left) in each texture, its albedo's brightness taking `albedo`.
+    Hammered { from: [f32; 2], albedo: [u8; 3] },
+}
+
+/// The hoop's iron, from the middle of the key's shaft, and the
+/// Triforces' gold, one above the other. The gold needs only its middle
+/// texel.
 const IRON: Finish = Finish {
-    painted: ([0.02, 0.58], [0.14, 0.75]),
-    albedo: [92, 90, 88],
-    metal: 220,
-    rough: 100,
+    painted: ([0.02, 0.58], [0.14, 0.84]),
+    surface: Surface::Hammered {
+        from: [0.19, 0.365],
+        albedo: [120, 116, 110],
+    },
 };
 const GOLD: Finish = Finish {
-    painted: ([0.02, 0.75], [0.14, 0.92]),
-    albedo: [232, 184, 72],
-    metal: 255,
-    rough: 55,
+    painted: ([0.02, 0.84], [0.14, 0.92]),
+    surface: Surface::Flat {
+        albedo: [232, 184, 72],
+        metal: 255,
+        rough: 55,
+    },
 };
+/// How many times the iron runs there and back around the hoop, so it
+/// isn't stretched round the whole of it.
+const REPEATS: f32 = 2.0;
 const FINISHES: [&Finish; 2] = [&IRON, &GOLD];
 /// How far UVs keep in from a finish's edges, so the mips' blur doesn't
 /// reach past it.
@@ -81,16 +99,40 @@ impl Finish {
         [(lo[0] + hi[0]) / 2.0, (lo[1] + hi[1]) / 2.0]
     }
 
-    /// Its texel in a texture of `kind`, flat and unshaded.
-    fn texel(&self, kind: &str) -> Result<[u8; 4]> {
-        let [r, g, b] = self.albedo;
-        Ok(match kind {
-            "Alb" => [r, g, b, 255],
-            "Mtl" => [self.metal, 0, 0, 255],
-            "Rgh" => [self.rough, 0, 0, 255],
-            "AO" => [255, 255, 255, 255],
-            "Nrm" => [128, 128, 255, 255],
-            _ => bail!("no finish for {kind}"),
+    /// Its texel `x`, `y` in a `w` by `h` texture of `kind`, whose untinted
+    /// texels are `key`.
+    fn texel(&self, kind: &str, key: &[u8], w: usize, x: usize, y: usize) -> Result<[u8; 4]> {
+        if !["Alb", "Mtl", "Rgh", "AO", "Nrm"].contains(&kind) {
+            bail!("no finish for {kind}");
+        }
+        Ok(match self.surface {
+            Surface::Flat {
+                albedo,
+                metal,
+                rough,
+            } => match kind {
+                "Alb" => [albedo[0], albedo[1], albedo[2], 255],
+                "Mtl" => [metal, 0, 0, 255],
+                "Rgh" => [rough, 0, 0, 255],
+                "AO" => [255, 255, 255, 255],
+                _ => [128, 128, 255, 255],
+            },
+            Surface::Hammered { from, albedo } => {
+                let h = key.len() / 4 / w;
+                let (lo, _) = self.painted;
+                let sx = (x as f32 + (from[0] - lo[0]) * w as f32).round() as usize;
+                let sy = (y as f32 + (from[1] - lo[1]) * h as f32).round() as usize;
+                let at = 4 * (sy * w + sx);
+                let px: [u8; 4] = key[at..at + 4].try_into()?;
+                match kind {
+                    "Alb" => {
+                        let l = super::luma(&px);
+                        let c = |a: u8| ((l * a as u32 + 127) / 255) as u8;
+                        [c(albedo[0]), c(albedo[1]), c(albedo[2]), 255]
+                    }
+                    _ => px,
+                }
+            }
         })
     }
 
@@ -219,9 +261,11 @@ impl Hoop {
                 let normal = add(scale(out, b.cos()), scale(self.axis, b.sin()));
                 let position = add(self.middle, add(scale(out, HOOP), scale(normal, TUBE)));
                 let (lo, hi) = IRON.mapped();
+                // There and back again, each of `REPEATS` times round.
+                let t = (REPEATS * i as f32 / around as f32).fract();
                 let uv = [
                     lo[0] + (hi[0] - lo[0]) * j as f32 / round as f32,
-                    lo[1] + (hi[1] - lo[1]) * i as f32 / around as f32,
+                    lo[1] + (hi[1] - lo[1]) * (1.0 - (1.0 - 2.0 * t).abs()),
                 ];
                 lod.vertices.push(Vertex {
                     position,
@@ -312,15 +356,15 @@ fn prism(lod: &mut Lod, base: [[f32; 3]; 3], rise: [f32; 3], uv: [f32; 2]) {
     }
 }
 
-/// `t`, a first level of the key's texture `kind`, with each [`Finish`]
-/// painted in.
-pub fn paint(t: &mut Texture, kind: &str) -> Result<()> {
+/// `t`, a first level of the key's texture `kind` whose untinted texels
+/// are `key`, with each [`Finish`] painted in.
+pub fn paint(t: &mut Texture, key: &[u8], kind: &str) -> Result<()> {
     let (w, h) = (t.width, t.height);
     for finish in FINISHES {
-        let value = finish.texel(kind)?;
         for y in 0..h {
             for x in 0..w {
                 if finish.holds(w, h, x, y) {
+                    let value = finish.texel(kind, key, w, x, y)?;
                     let at = 4 * (y * w + x);
                     t.rgba[at..at + 4].copy_from_slice(&value);
                 }
@@ -457,23 +501,51 @@ mod tests {
     }
 
     #[test]
-    fn the_corner_is_painted_iron_above_gold_and_nothing_past_it() {
-        let size = 64;
-        let mut t = Texture {
-            name: String::new(),
-            width: size,
-            height: size,
-            rgba: vec![0; 4 * size * size],
+    fn the_corner_is_painted_the_key_s_own_iron_above_gold_and_nothing_past_it() {
+        let size = 384;
+        // A key whose iron is white, but for one marked texel in the
+        // middle of the shaft the hoop copies.
+        let mut key = vec![255; 4 * size * size];
+        let Surface::Hammered { from, albedo } = IRON.surface else {
+            panic!("the iron is hammered")
         };
-        paint(&mut t, "Alb").unwrap();
-        let at = |[u, v]: [f32; 2]| {
-            let (x, y) = ((u * size as f32) as usize, (v * size as f32) as usize);
-            t.rgba[4 * (y * size + x)..4 * (y * size + x) + 3].to_vec()
+        let texel = |[u, v]: [f32; 2]| ((u * size as f32) as usize, (v * size as f32) as usize);
+        let index = |(x, y): (usize, usize)| 4 * (y * size + x);
+        let (lo, _) = IRON.painted;
+        let [u, v] = IRON.middle();
+        // As `paint` maps a texel of the corner to the key's.
+        let shift = |k: usize, at: usize| (at as f32 + (from[k] - lo[k]) * size as f32).round();
+        let (x, y) = texel([u, v]);
+        let source = (shift(0, x) as usize, shift(1, y) as usize);
+        key[index(source)..index(source) + 4].copy_from_slice(&[10, 20, 30, 40]);
+        let paint_as = |kind: &str| {
+            let mut t = Texture {
+                name: String::new(),
+                width: size,
+                height: size,
+                rgba: vec![0; 4 * size * size],
+            };
+            paint(&mut t, &key, kind).map(|()| t.rgba)
         };
-        assert_eq!(at(IRON.middle()), IRON.albedo);
-        assert_eq!(at(GOLD.middle()), GOLD.albedo);
-        assert_eq!(at([0.5, 0.5]), [0, 0, 0]);
-        assert!(paint(&mut t, "Fake").is_err());
+        let alb = paint_as("Alb").unwrap();
+        let nrm = paint_as("Nrm").unwrap();
+        let at = |rgba: &[u8], uv| rgba[index(texel(uv))..index(texel(uv)) + 4].to_vec();
+        // Iron: the key's white takes the iron's colour, its other maps copy.
+        let beside = [u + 1.0 / size as f32, v];
+        assert_eq!(at(&alb, beside), [albedo[0], albedo[1], albedo[2], 255]);
+        assert_eq!(at(&nrm, IRON.middle()), [10, 20, 30, 40]);
+        let Surface::Flat { albedo: gold, .. } = GOLD.surface else {
+            panic!("the gold is flat")
+        };
+        assert_eq!(at(&alb, GOLD.middle()), [gold[0], gold[1], gold[2], 255]);
+        assert_eq!(at(&nrm, GOLD.middle()), [128, 128, 255, 255]);
+        assert_eq!(at(&alb, [0.5, 0.5]), [0, 0, 0, 0]);
+        assert!(paint_as("Fake").is_err());
+        // The iron it copies is the key's own, outside the corner.
+        let (a, b) = (texel(from), texel([from[0] + 0.12, from[1] + 0.26]));
+        for (x, y) in [a, b, (a.0, b.1), (b.0, a.1)] {
+            assert!(!painted(size, size, x, y), "{x} {y}");
+        }
     }
 
     #[test]

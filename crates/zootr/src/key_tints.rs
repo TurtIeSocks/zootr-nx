@@ -404,18 +404,19 @@ impl Host {
 /// A texture of `kind`: an albedo's first level in `colour`, each texel
 /// scaled by its brightness, so the metal maps keep the shine and a
 /// coloured albedo (the boss key's gold) takes the colour as cleanly as a
-/// grey one. With `ring`, any kind with the ring's plain metal corner.
+/// grey one. With `ring`, any kind with the ring's iron and gold corner.
 fn texture(data: &[u8], kind: &str, colour: Colour, ring: bool) -> Result<Vec<u8>> {
     let albedo = kind == "Alb";
     if !albedo && !ring {
         return Ok(data.to_vec());
     }
     let mut t = levels(data)?.swap_remove(0);
+    let key = t.rgba.clone();
     if albedo {
         tint(&mut t.rgba, colour);
     }
     if ring {
-        rings::paint(&mut t, kind)?;
+        rings::paint(&mut t, &key, kind)?;
     }
     let (w, h) = (t.width, t.height);
     redraw(data, &t.rgba, |x, y| !albedo && !rings::painted(w, h, x, y))
@@ -423,12 +424,16 @@ fn texture(data: &[u8], kind: &str, colour: Colour, ring: bool) -> Result<Vec<u8
 
 fn tint(rgba: &mut [u8], colour: Colour) {
     for px in rgba.chunks_mut(4) {
-        // Rec. 709 luma, weights out of 256.
-        let luma = (px[0] as u32 * 54 + px[1] as u32 * 183 + px[2] as u32 * 19 + 128) / 256;
+        let luma = luma(px);
         for (c, tint) in px.iter_mut().zip(colour) {
             *c = ((luma * tint as u32 + 127) / 255) as u8;
         }
     }
+}
+
+/// A texel's brightness: Rec. 709 luma, weights out of 256.
+fn luma(px: &[u8]) -> u32 {
+    (px[0] as u32 * 54 + px[1] as u32 * 183 + px[2] as u32 * 19 + 128) / 256
 }
 
 /// `name`'s ActorParam and ModelInfo as `template`'s, the ModelInfo a file
