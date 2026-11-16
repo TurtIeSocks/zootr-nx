@@ -70,7 +70,7 @@ fn status() -> Res<Status> {
 #[tauri::command]
 #[specta::specta]
 fn schema() -> Vec<SettingDef> {
-    zootr::settings::schema()
+    zootr::settings::shown()
 }
 
 #[tauri::command]

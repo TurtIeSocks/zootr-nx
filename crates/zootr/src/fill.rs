@@ -198,7 +198,9 @@ mod tests {
     use crate::game::dev_dump;
     use crate::known::item;
     use crate::rules::{Book, Ctx};
-    use crate::settings::{DUNGEON_REWARDS, NPC_GIFTS, OPEN_DOOR, SONGS, Settings};
+    use crate::settings::{
+        CHESTS, DUNGEON_REWARDS, NPC_GIFTS, OPEN_DOOR, PROGRESSIVE, SONGS, Settings,
+    };
     use crate::shuffle::{Fixed, deal};
 
     /// Seeds each settings case must fill.
@@ -276,6 +278,18 @@ mod tests {
     #[test]
     fn default_seeds_reach_every_provable_check() {
         seeds_fill(&Settings::new());
+    }
+
+    #[test]
+    fn seeds_with_chests_kept_reach_every_provable_check() {
+        seeds_fill(&Settings::from([(CHESTS.into(), false.into())]));
+        seeds_fill(&Settings::from([
+            (CHESTS.into(), false.into()),
+            (PROGRESSIVE.into(), false.into()),
+            (NPC_GIFTS.into(), true.into()),
+            (DUNGEON_REWARDS.into(), true.into()),
+            (SONGS.into(), true.into()),
+        ]));
     }
 
     #[test]

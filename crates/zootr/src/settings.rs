@@ -13,7 +13,9 @@ use crate::keys;
 use crate::presets::{self, CARPENTERS_FREED, PRESETS};
 use crate::starting::{self, ITEMS};
 
+mod choices;
 mod upgrade;
+pub use choices::{ChestSize, Keys, Logic, ScrubPrice, ShopSlots};
 pub(crate) use upgrade::upgrade;
 
 /// Setting values by id. A missing id takes its default.
@@ -80,129 +82,6 @@ pub struct Choice {
     pub label: &'static str,
 }
 
-/// How big each chest is.
-#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
-pub enum ChestSize {
-    /// As the game has them
-    #[default]
-    Vanilla,
-    /// Every big chest becomes a small one
-    Small,
-}
-
-impl ChestSize {
-    fn label(self) -> &'static str {
-        match self {
-            Self::Vanilla => "Vanilla",
-            Self::Small => "All small",
-        }
-    }
-}
-
-/// How items are placed.
-#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
-pub enum Logic {
-    /// Every check Link can be shown to reach is reachable, without tricks
-    #[default]
-    Glitchless,
-    /// Items anywhere, so a seed may be unbeatable
-    NoLogic,
-}
-
-impl Logic {
-    fn label(self) -> &'static str {
-        match self {
-            Self::Glitchless => "Glitchless",
-            Self::NoLogic => "No logic",
-        }
-    }
-}
-
-/// Whether Link starts with keys he'd otherwise find.
-#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
-pub enum Keys {
-    /// Found in their chests, as in the game
-    #[default]
-    Vanilla,
-    /// Held from the start, so the chests that held them are checks
-    Start,
-}
-
-impl Keys {
-    fn label(self) -> &'static str {
-        match self {
-            Self::Vanilla => "Vanilla",
-            Self::Start => "Start with them",
-        }
-    }
-}
-
-/// How many slots of each shop sell a check, with shopsanity on.
-#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
-pub enum ShopSlots {
-    #[value(name = "1")]
-    One,
-    #[value(name = "2")]
-    Two,
-    #[value(name = "3")]
-    Three,
-    #[default]
-    #[value(name = "4")]
-    Four,
-    #[value(name = "5")]
-    Five,
-    #[value(name = "6")]
-    Six,
-    #[value(name = "7")]
-    Seven,
-    #[value(name = "8")]
-    Eight,
-}
-
-impl ShopSlots {
-    fn label(self) -> &'static str {
-        ["1", "2", "3", "4", "5", "6", "7", "8 (every slot)"][self.count() - 1]
-    }
-
-    pub fn count(self) -> usize {
-        self as usize + 1
-    }
-}
-
-/// What every Business Scrub asks for its check.
-#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
-pub enum ScrubPrice {
-    #[value(name = "10")]
-    Ten,
-    #[value(name = "20")]
-    Twenty,
-    #[default]
-    #[value(name = "40")]
-    Forty,
-    #[value(name = "60")]
-    Sixty,
-    #[value(name = "90")]
-    Ninety,
-}
-
-impl ScrubPrice {
-    /// Every price fits the child's wallet, so logic never needs a bigger
-    /// one for a scrub.
-    pub fn rupees(self) -> i32 {
-        [10, 20, 40, 60, 90][self as usize]
-    }
-
-    fn label(self) -> &'static str {
-        [
-            "10 rupees",
-            "20 rupees",
-            "40 rupees",
-            "60 rupees",
-            "90 rupees",
-        ][self as usize]
-    }
-}
-
 /// The id a choice is saved as, its clap name.
 pub(crate) fn choice_id(value: impl ValueEnum) -> String {
     value
@@ -252,6 +131,7 @@ const SKIP_ARRIVALS: &str = "skip-arrivals";
 pub(crate) const CHEST_SIZE: &str = "chest-size";
 pub(crate) const LOGIC: &str = "logic";
 pub(crate) const SHUFFLE_ITEMS: &str = "shuffle-items";
+pub(crate) const CHESTS: &str = "chests";
 pub(crate) const PROGRESSIVE: &str = "progressive-items";
 const FREE_BOMBCHUS: &str = "free-bombchus";
 const BUNNY_HOOD: &str = "bunny-hood";
@@ -332,6 +212,18 @@ fn toggle(
         parent: None,
         subgroup: None,
     }
+}
+
+/// Settings the CLI takes but the app leaves out for now. Shuffle items
+/// off undoes every other shuffle, which no one turning it off expected.
+const HIDDEN: [&str; 1] = [SHUFFLE_ITEMS];
+
+/// The settings the app shows.
+pub fn shown() -> Vec<SettingDef> {
+    schema()
+        .into_iter()
+        .filter(|d| !HIDDEN.contains(&d.id.as_str()))
+        .collect()
 }
 
 pub fn schema() -> Vec<SettingDef> {
@@ -417,6 +309,12 @@ pub fn schema() -> Vec<SettingDef> {
             group::SHUFFLES,
             "Shuffle items",
             "Every check gives a shuffled item. Off, each gives what it always does, though a starting item's spot still holds a Blue Rupee",
+        ))])
+        .chain([default_on(toggle(
+            CHESTS,
+            group::SHUFFLES,
+            "Chests",
+            "Each chest is a check. Off, a chest holds what it always does and the other checks shuffle among themselves, though a starting item's chest holds a Blue Rupee",
         ))])
         .chain([default_on(toggle(
                 OPEN_DOOR,
@@ -602,8 +500,10 @@ pub struct NewGame {
     pub defaults: Vec<String>,
     pub skips: Skips,
     pub chest_size: ChestSize,
-    /// Leave every chest's item where it is.
+    /// Leave every check's item where it is.
     pub vanilla: bool,
+    /// Leave each chest's item where it is, and shuffle the other checks.
+    pub keep_chests: bool,
     pub start: Vec<&'static starting::Item>,
     /// Upgrade chests give their line's levels in order.
     pub progressive: bool,
@@ -696,6 +596,7 @@ impl NewGame {
             },
             chest_size: chosen(settings, CHEST_SIZE),
             vanilla: !on(SHUFFLE_ITEMS),
+            keep_chests: !on(CHESTS),
             start: ITEMS.iter().filter(|i| on(i.id)).collect(),
             progressive: on(PROGRESSIVE),
             open_door: on(OPEN_DOOR),
@@ -819,6 +720,7 @@ mod tests {
                 },
                 chest_size: ChestSize::Vanilla,
                 vanilla: false,
+                keep_chests: false,
                 start: vec![],
                 progressive: true,
                 open_door: true,
