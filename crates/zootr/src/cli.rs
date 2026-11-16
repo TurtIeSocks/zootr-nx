@@ -155,9 +155,15 @@ pub fn run() -> Result<()> {
             start,
         } => play(&romfs, &script, attach, stall, start),
         Command::Sweep {
-            report: Some(SweepReport::Report { out, from, to }),
+            report:
+                Some(SweepReport::Report {
+                    out,
+                    from,
+                    to,
+                    drills,
+                }),
             ..
-        } => sweep_report(&out, from, to),
+        } => sweep_report(&out, from, to, &drills),
         Command::Sweep {
             out: Some(out),
             rounds,

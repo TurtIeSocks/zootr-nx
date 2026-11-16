@@ -255,16 +255,27 @@ pub(super) fn drill(
 }
 
 /// `zootr sweep report` and `zootr drill report`.
-pub(super) fn sweep_report(dir: &Path, from: Option<u64>, to: Option<u64>) -> Result<()> {
+pub(super) fn sweep_report(
+    dir: &Path,
+    from: Option<u64>,
+    to: Option<u64>,
+    ladders: &[PathBuf],
+) -> Result<()> {
     let rows = report::sweep_rows(dir).with_context(|| format!("reading {}", dir.display()))?;
-    print!("{}", report::sweep(&rows, from, to));
+    let texts = ladders.iter().map(|l| ladder_rows(l));
+    let proven = report::proven(&texts.collect::<Result<Vec<_>>>()?);
+    let shown = report::sweep(&rows, from, to, (!ladders.is_empty()).then_some(&proven));
+    print!("{shown}");
     Ok(())
 }
 
 pub(super) fn drill_report(dir: &Path) -> Result<()> {
-    let file = dir.join(drills::ROWS);
-    let rows =
-        std::fs::read_to_string(&file).with_context(|| format!("reading {}", file.display()))?;
-    print!("{}", report::drills(&rows));
+    print!("{}", report::drills(&ladder_rows(dir)?));
     Ok(())
+}
+
+/// The drill rows in a ladder's folder.
+fn ladder_rows(dir: &Path) -> Result<String> {
+    let file = dir.join(drills::ROWS);
+    std::fs::read_to_string(&file).with_context(|| format!("reading {}", file.display()))
 }
