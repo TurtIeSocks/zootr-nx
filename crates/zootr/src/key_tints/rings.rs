@@ -34,9 +34,9 @@ const LEAN: f32 = 30.0 * PI / 180.0;
 /// The Triforces on each face of the hoop: how many, the angle between two
 /// around its top, each one's height, and how far each stands above the
 /// tube.
-const TRIFORCES: usize = 5;
-const TRIFORCE_STEP: f32 = 40.0 * PI / 180.0;
-const TRIFORCE: f32 = 2.2 * TUBE;
+const TRIFORCES: usize = 3;
+const TRIFORCE_STEP: f32 = 55.0 * PI / 180.0;
+const TRIFORCE: f32 = 4.0 * TUBE;
 const RAISED: f32 = 0.005;
 
 /// A flat finish painted into the textures' corner no key uses: where
@@ -433,7 +433,7 @@ mod tests {
     fn the_triforces_face_out_in_gold_on_both_faces_over_the_top_clear_of_the_keys() {
         let hoop = Hoop::new();
         let lod = hoop.triforces();
-        // Five Triforces a face, three prisms each: a top and three walls.
+        // Each Triforce on each face, three prisms each: a top and three walls.
         assert_eq!(lod.vertices.len(), TRIFORCES * 2 * 3 * (3 + 3 * 4));
         assert_eq!(facing_out(&lod), 1.0);
         assert!(lod.vertices.iter().all(|v| v.uv == GOLD.middle()));
