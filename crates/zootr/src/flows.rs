@@ -5,7 +5,7 @@ use std::fmt::Write;
 
 use anyhow::{Context, Result, bail};
 use ounce_formats::{
-    Actor, EntryPoint, EventKind, Flowchart, Params, Romfs, Value, files_with_suffix,
+    Actor, EntryPoint, EventKind, Flowchart, Link, Params, Romfs, Value, files_with_suffix,
 };
 
 use crate::known::{Name, field, flow};
@@ -122,11 +122,39 @@ pub(crate) const FITS_POUCH: (&Name, &Name) = (
     flow::EVENT_QUERY_CAN_ADD_TO_PORCH,
 );
 
+/// What a GameData setter sets its value to.
+pub(crate) const VALUE: &str = "Value";
+
 /// Set `params`' existing `key`.
 pub(crate) fn set(params: &mut Params, key: &str, value: Value) -> Result<()> {
     let slot = params.iter_mut().find(|(k, _)| k == key);
     slot.with_context(|| format!("no {key} param"))?.1 = value;
     Ok(())
+}
+
+/// Run `setter`, a copy of a GameData setter, setting `name` to `value`
+/// right after the call at `at`.
+pub(crate) fn set_after(
+    flow: &mut Flowchart,
+    setter: &Model,
+    at: u16,
+    name: &str,
+    value: Value,
+) -> Result<()> {
+    let EventKind::SubFlow { next, .. } = flow.events[at as usize].kind else {
+        bail!("{} event {at} isn't a call", flow.name);
+    };
+    let (actor, action) = flow.action(&setter.actor, setter.name);
+    let mut params = setter.params.clone();
+    set(&mut params, GAME_DATA, string(name))?;
+    set(&mut params, VALUE, value)?;
+    let after = flow.push(EventKind::Action {
+        next,
+        actor,
+        action,
+        params,
+    });
+    flow.link(Link::Next(at), Some(after))
 }
 
 /// A one-string param value.
@@ -245,6 +273,7 @@ pub(crate) fn running(flow: &Flowchart, what: (impl AsRef<str>, impl AsRef<str>)
 }
 
 /// An event of a template flow, kept to build copies of.
+#[derive(Clone)]
 pub(crate) struct Model {
     pub actor: Actor,
     pub name: &'static str,

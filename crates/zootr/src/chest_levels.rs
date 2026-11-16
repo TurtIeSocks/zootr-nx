@@ -1,21 +1,23 @@
 //! A chest dealt a level of an upgrade line gives the level Link needs,
-//! picked in the chest's own flow rather than by the hook. A chest's get
+//! and one dealt a key ring or boss key copy credits its dungeon, both in
+//! the chest's own flow rather than by the hook. A chest's get
 //! event replaces its default one, and every event a chest runs to give its
 //! item (each chest flow's `Success`, and Mido's, which sets a Navi flag
 //! first) ends in one call naming the item. Each gets a copy per such item:
 //! the call naming it, behind the pouch questions a gift asks
-//! (`gifts/levels.rs`). An event row of the copy's name runs it, and each
+//! (`gifts/levels.rs`) or followed by the key's credit. An event row of the copy's name runs it, and each
 //! chest holding the item names the copy of the event it runs.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, HashMap};
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{Byml, EventKind, Flowchart, Romfs};
+use ounce_formats::{Byml, EventKind, Flowchart, Romfs, Value};
 
 use crate::checks::{self, DROP_ACTOR, Drop, GYAML, str_field};
 use crate::events::Flows;
 use crate::flows::{self, Model, Rewrites};
 use crate::gifts::levels;
+use crate::key_tints::Sets;
 use crate::known::{Name, field, flow};
 use crate::progressive;
 use crate::rsdb::{self, Events, Runs};
@@ -57,21 +59,42 @@ fn bases(runs: &BTreeMap<String, Runs>) -> Vec<Base> {
         .collect()
 }
 
-/// The items a seed's chests give by level, and the chest events each
-/// gets a copy of.
+/// What a copy does about its item.
+#[derive(Debug, PartialEq)]
+enum Gives {
+    /// Picks the level Link needs.
+    Level,
+    /// Gives it, then sets its credit.
+    Credit(Sets),
+}
+
+/// The items a seed's chests give through a copy, and the chest events
+/// each gets a copy of.
 pub struct Levels {
-    items: BTreeSet<String>,
+    items: BTreeMap<String, Gives>,
     bases: Vec<Base>,
 }
 
 impl Levels {
-    /// The line items in `drops`, when progressive items are on.
-    pub fn new(romfs: &Romfs, drops: &HashMap<u64, Drop>, progressive: bool) -> Result<Self> {
-        let items: BTreeSet<String> = (drops.values())
-            .map(|d| &d.item)
-            .filter(|i| progressive && progressive::in_line(i))
-            .cloned()
-            .collect();
+    /// The items in `drops` a copy gives: line items when progressive items
+    /// are on, and the key copies `credits` names.
+    pub fn new(
+        romfs: &Romfs,
+        drops: &HashMap<u64, Drop>,
+        progressive: bool,
+        credits: Vec<(String, Sets)>,
+    ) -> Result<Self> {
+        let mut credits: HashMap<String, Sets> = credits.into_iter().collect();
+        let mut items = BTreeMap::new();
+        for item in drops.values().map(|d| &d.item) {
+            let gives = match credits.remove(item) {
+                Some(sets) => Some(Gives::Credit(sets)),
+                None => (progressive && progressive::in_line(item)).then_some(Gives::Level),
+            };
+            if let Some(g) = gives {
+                items.entry(item.clone()).or_insert(g);
+            }
+        }
         let bases = match items.is_empty() {
             true => vec![],
             false => bases(&rsdb::events(romfs)?),
@@ -84,13 +107,16 @@ impl Levels {
         if self.items.is_empty() {
             return Ok(());
         }
-        let model = levels::model(flows)?;
+        let models = Models {
+            level: levels::model(flows)?,
+            set_bool: setter(romfs)?,
+        };
         for base in &self.bases {
-            for item in &self.items {
+            for (item, gives) in &self.items {
                 flows::edit(romfs, rewrites, &base.flow, |f| {
-                    entry(f, &model, base, item)
+                    entry(f, &models, base, item, gives)
                 })
-                .with_context(|| format!("{} giving {item} by level", base.event))?;
+                .with_context(|| format!("{} giving {item}", base.event))?;
             }
         }
         Ok(())
@@ -99,7 +125,7 @@ impl Levels {
     /// Add the event row running each copy, like its base's row.
     pub fn events(&self, events: &mut Events) -> Result<()> {
         for base in &self.bases {
-            for item in &self.items {
+            for item in self.items.keys() {
                 events.copy(&event(&base.event, item), &base.event)?;
             }
         }
@@ -123,7 +149,7 @@ impl Levels {
             let Some(dynamic) = actor.as_mut_map()?.get_mut("Dynamic") else {
                 continue;
             };
-            let held = str_field(dynamic, DROP_ACTOR).filter(|i| self.items.contains(*i));
+            let held = str_field(dynamic, DROP_ACTOR).filter(|i| self.items.contains_key(*i));
             let Some(item) = held.map(str::to_owned) else {
                 continue;
             };
@@ -160,10 +186,27 @@ fn default(
     Ok(d)
 }
 
-/// Add to chest flow `f` the copy of `base` giving `item` by level: its
-/// entry, whose call to `Success_` names `item`, behind the pouch
-/// questions.
-fn entry(f: &mut Flowchart, model: &Model, base: &Base, item: &str) -> Result<()> {
+/// The flow events a copy is built from.
+struct Models {
+    /// A pouch question.
+    level: Model,
+    /// A GameData Bool setter.
+    set_bool: Model,
+}
+
+/// The small chest flow's GameData Bool setter (Mido's Navi flag).
+fn setter(romfs: &Romfs) -> Result<Model> {
+    let small = flow::SY_TREASUREBOX_SMALL;
+    let f = flows::load(romfs, small)?.with_context(|| format!("{small} is a timeline"))?;
+    let at = (flows::running(&f, flows::SET_BOOL).first().copied())
+        .with_context(|| format!("{small} sets no Bool"))?;
+    flows::model(&f, flows::SET_BOOL, at)
+}
+
+/// Add to chest flow `f` the copy of `base` giving `item`: its entry,
+/// whose call to `Success_` names `item`, behind the pouch questions for a
+/// level or followed by the credit for a key.
+fn entry(f: &mut Flowchart, models: &Models, base: &Base, item: &str, gives: &Gives) -> Result<()> {
     let copied = flows::copy_entry(f, &base.entry, &event(&base.event, item))?;
     let mut calls = copied.into_values().filter(|&e| {
         matches!(&f.events[e as usize].kind, EventKind::SubFlow { entry_point, .. }
@@ -173,7 +216,19 @@ fn entry(f: &mut Flowchart, model: &Model, base: &Base, item: &str) -> Result<()
     ensure!(calls.next().is_none(), "calls Success_ twice");
     let call = flows::params_mut(&mut f.events[at as usize].kind);
     flows::set(call, flow::CONTENT_NAME, flows::string(item))?;
-    levels::by_level_at(f, model, item, at)
+    match gives {
+        Gives::Level => levels::by_level_at(f, &models.level, item, at),
+        Gives::Credit(Sets::Bool(name)) => {
+            flows::set_after(f, &models.set_bool, at, name, Value::Bool(vec![true]))
+        }
+        Gives::Credit(Sets::Int(name, value)) => {
+            let set_int = Model {
+                name: flow::EVENT_TRIGGER_SET_GAME_DATA_INT.get(),
+                ..models.set_bool.clone()
+            };
+            flows::set_after(f, &set_int, at, name, Value::Int(vec![*value]))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -181,14 +236,27 @@ mod tests {
     use super::*;
     use crate::known::{actor, item};
 
-    /// A seed's levels with the Hookshot dealt, and the rupee chest that
-    /// isn't chained.
+    /// The first ring and the first boss key copy, with what each sets.
+    fn keys() -> Vec<(String, Sets)> {
+        let all = crate::key_tints::sets(true, true);
+        let first = |bool: bool| {
+            let found = all.iter().find(|(_, s)| matches!(s, Sets::Bool(_)) == bool);
+            found.cloned().unwrap()
+        };
+        vec![first(true), first(false)]
+    }
+
+    /// A seed's copies with the Hookshot and [`keys`] dealt, and a rupee
+    /// that needs none.
     fn hookshot(romfs: &Romfs) -> Levels {
-        let drops = HashMap::from([
+        let mut drops = HashMap::from([
             (1, Drop::from(item::HOOKSHOT.to_string())),
             (2, Drop::from(actor::OBJ_RUPEE_RED.to_string())),
         ]);
-        Levels::new(romfs, &drops, true).unwrap()
+        for (n, (key, _)) in (3..).zip(keys()) {
+            drops.insert(n, Drop::from(key));
+        }
+        Levels::new(romfs, &drops, true, crate::key_tints::sets(true, true)).unwrap()
     }
 
     #[test]
@@ -227,6 +295,62 @@ mod tests {
             assert!(text.contains(&asks), "{} never asks {asks}", base.flow);
             let gives = format!("ContentName=\"{}\"", item::LONGSHOT.get());
             assert!(text.contains(&gives), "{} never gives {gives}", base.flow);
+        }
+    }
+
+    #[test]
+    fn each_base_credits_a_key_right_after_its_call() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let flows = Flows::load(&romfs).unwrap();
+        let mut rewrites = Rewrites::default();
+        let levels = hookshot(&romfs);
+        levels.give(&romfs, &flows, &mut rewrites).unwrap();
+        for base in &levels.bases {
+            let data = &rewrites[&flows::rel(&base.flow)];
+            let flow = Flowchart::parse(data).unwrap().unwrap();
+            for (key, sets) in keys() {
+                let call = (flow.events.iter())
+                    .find_map(|e| match &e.kind {
+                        EventKind::SubFlow { params, next, .. }
+                            if flows::param(params, flow::CONTENT_NAME) == Some(&key) =>
+                        {
+                            *next
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| panic!("{} never gives {key}", base.event));
+                let EventKind::Action {
+                    actor,
+                    action,
+                    params,
+                    ..
+                } = &flow.events[call as usize].kind
+                else {
+                    panic!("{key}'s call isn't followed by a set");
+                };
+                let (setter, name, value) = match &sets {
+                    Sets::Bool(n) => (
+                        flow::EVENT_TRIGGER_SET_GAME_DATA_BOOL,
+                        n,
+                        Value::Bool(vec![true]),
+                    ),
+                    Sets::Int(n, v) => (
+                        flow::EVENT_TRIGGER_SET_GAME_DATA_INT,
+                        n,
+                        Value::Int(vec![*v]),
+                    ),
+                };
+                let ran = &flow.actor_of(*actor).actions[*action as usize];
+                assert_eq!(ran, setter.get(), "{key}");
+                assert_eq!(flows::param(params, flows::GAME_DATA), Some(name.as_str()));
+                let set = params
+                    .iter()
+                    .find(|(k, _)| k == flows::VALUE)
+                    .map(|(_, v)| v);
+                assert_eq!(set, Some(&value), "{key}");
+            }
         }
     }
 
@@ -271,16 +395,21 @@ mod tests {
     }
 
     #[test]
-    fn nothing_is_chained_without_progressive_items() {
+    fn levels_need_progressive_items_and_keys_their_credits() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
         let drops = HashMap::from([(1, Drop::from(item::HOOKSHOT.to_string()))]);
-        let off = Levels::new(&romfs, &drops, false).unwrap();
+        let off = Levels::new(&romfs, &drops, false, vec![]).unwrap();
         assert!(off.items.is_empty() && off.bases.is_empty());
         assert_eq!(
-            hookshot(&romfs).items,
-            BTreeSet::from([item::HOOKSHOT.to_string()])
+            hookshot(&romfs).items.get(item::HOOKSHOT.get()),
+            Some(&Gives::Level)
+        );
+        let (ring, sets) = keys().swap_remove(0);
+        assert_eq!(
+            hookshot(&romfs).items.get(&ring),
+            Some(&Gives::Credit(sets))
         );
     }
 }

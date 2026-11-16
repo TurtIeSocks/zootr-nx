@@ -52,11 +52,7 @@ pub(super) fn flows(
         spawn::warp(romfs, &mut rewrites, spawn)?;
     }
     gifts::give_all(romfs, all, &mut rewrites, drops, new_game.progressive)?;
-    chest_levels::Levels::new(romfs, drops, new_game.progressive)?.give(
-        romfs,
-        all,
-        &mut rewrites,
-    )?;
+    levels(romfs, drops, new_game)?.give(romfs, all, &mut rewrites)?;
     dampe::give(romfs, &mut rewrites, drops)?;
     gerudo::stand_down(romfs, &mut rewrites, drops)?;
     if new_game.scrubs {
@@ -151,14 +147,11 @@ pub fn write_mod(
     // Before the stand-ins, which copy a song's model as it's shown.
     let items = drops.values().map(|d| d.item.as_str());
     medallions::write(romfs, &mut builder, &mut tables, items)?;
-    // A boss key copy is credited by the hook, so without it the boss key
-    // stays as it is. Key rings deal them, and bring the hook along.
     let flags = hook_flags(new_game);
-    let rings = new_game.keys == DungeonKeys::Rings;
-    let bosses = rings || patch::hooked(new_game.progressive, new_game.dev_panel, flags);
+    let (bosses, rings) = key_copies(new_game);
     key_tints::write(romfs, &mut builder, &mut tables, bosses, rings)?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
-    let levels = chest_levels::Levels::new(romfs, drops, new_game.progressive)?;
+    let levels = levels(romfs, drops, new_game)?;
     levels.events(&mut events)?;
     events.write(&mut builder)?;
     if new_game.shop_slots > 0 {
@@ -247,6 +240,31 @@ pub fn write_mod(
         actors,
         files,
     })
+}
+
+/// Whether a seed deals boss key copies, and key rings. A copy found in a
+/// chest that runs a scene of its own is credited by the hook, so without
+/// it the boss key stays as it is. Key rings deal them, and bring the hook
+/// along.
+fn key_copies(new_game: &NewGame) -> (bool, bool) {
+    let rings = new_game.keys == DungeonKeys::Rings;
+    let hooked = patch::hooked(
+        new_game.progressive,
+        new_game.dev_panel,
+        hook_flags(new_game),
+    );
+    (rings || hooked, rings)
+}
+
+/// The items `drops` give through a chest's own copy of its event.
+fn levels(
+    romfs: &Romfs,
+    drops: &HashMap<u64, Drop>,
+    new_game: &NewGame,
+) -> Result<chest_levels::Levels> {
+    let (bosses, rings) = key_copies(new_game);
+    let credits = key_tints::sets(bosses, rings);
+    chest_levels::Levels::new(romfs, drops, new_game.progressive, credits)
 }
 
 /// The settings the hook acts on, as the table's flag bits.
