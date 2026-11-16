@@ -15,7 +15,7 @@ use crate::starting::{self, ITEMS};
 
 mod choices;
 mod upgrade;
-pub use choices::{ChestSize, Keys, Logic, ScrubPrice, ShopSlots};
+pub use choices::{ChestSize, DungeonKeys, Keys, Logic, ScrubPrice, ShopSlots};
 pub(crate) use upgrade::upgrade;
 
 /// Setting values by id. A missing id takes its default.
@@ -363,8 +363,8 @@ pub fn schema() -> Vec<SettingDef> {
             KEYS,
             group::DUNGEONS,
             "Keys",
-            "With Start, Link holds every dungeon's small keys and boss key from the start. The 43 chests that held one become checks, each putting a Red Rupee in the pool in the key's place. The two keys lying in the open stay where they are",
-            Keys::label,
+            "With Start, Link holds every dungeon's small keys and boss key from the start. With Key rings, each dungeon's small keys come as one ring that opens all its small-key doors, and rings and boss keys turn up in random chests. Logic never puts a ring in its own dungeon. Either way the 43 chests that held a key become checks, each putting a Red Rupee in the pool in the key's place, less one for each ring and boss key. The two keys lying in the open stay where they are",
+            DungeonKeys::label,
         )])
         .chain([choice(
             FORTRESS_KEYS,
@@ -531,8 +531,9 @@ pub struct NewGame {
     pub hives: bool,
     /// Each cow gives a check for Epona's Song.
     pub cows: bool,
-    /// Link starts with every dungeon's keys, and their chests are checks.
-    pub keys: bool,
+    /// Where every dungeon's keys are. Unless vanilla, their chests are
+    /// checks.
+    pub keys: DungeonKeys,
     /// The Fortress counter starts full, and the thieves' keys are checks.
     pub fortress_keys: bool,
     /// The seed, for what's rolled while writing, like shop prices.
@@ -572,14 +573,18 @@ impl NewGame {
             .filter(|p| on(p.name))
             .map(|p| p.name.to_owned())
             .collect();
-        let start = |id: &str| chosen::<Keys>(settings, id) == Keys::Start;
-        let (keys, fortress_keys) = (start(KEYS), start(FORTRESS_KEYS));
+        let keys = chosen::<DungeonKeys>(settings, KEYS);
+        if keys == DungeonKeys::Rings && !on(SHUFFLE_ITEMS) {
+            bail!("Key rings need items shuffled: they take the place of key chests' items");
+        }
+        let fortress_keys = chosen::<Keys>(settings, FORTRESS_KEYS) == Keys::Start;
         if fortress_keys && picked.iter().any(|p| p == CARPENTERS_FREED) {
             bail!(
                 "Fortress keys can't start with {CARPENTERS_FREED}: its thieves are already beaten"
             );
         }
-        let edits = [keys::defaults(keys, fortress_keys), edits.to_vec()].concat();
+        let start = keys == DungeonKeys::Start;
+        let edits = [keys::defaults(start, fortress_keys), edits.to_vec()].concat();
         Ok(Self {
             defaults: presets::expand(&picked, &edits)?,
             skips: Skips {
@@ -735,7 +740,7 @@ mod tests {
                 rocks: false,
                 hives: false,
                 cows: false,
-                keys: false,
+                keys: DungeonKeys::Vanilla,
                 fortress_keys: false,
                 seed: 0,
                 free_bombchus: true,
@@ -813,27 +818,35 @@ mod tests {
     fn keys_start_fills_the_counters_before_any_edit() {
         let settings = Settings::from([(KEYS.into(), "start".into())]);
         let game = NewGame::from_settings(&settings, &["A=1".into()]).unwrap();
-        assert!(game.keys);
+        assert_eq!(game.keys, DungeonKeys::Start);
         assert_eq!(
             game.defaults,
             with_defaults_of(&keys::defaults(true, false), &["A=1"])
         );
         let settings = Settings::from([(FORTRESS_KEYS.into(), "start".into())]);
         let game = NewGame::from_settings(&settings, &[]).unwrap();
-        assert!(!game.keys && game.fortress_keys);
+        assert!(game.keys == DungeonKeys::Vanilla && game.fortress_keys);
         assert_eq!(
             game.defaults,
             with_defaults_of(&keys::defaults(false, true), &[])
         );
         let game = NewGame::from_settings(&Settings::new(), &[]).unwrap();
-        assert!(!game.keys && !game.defaults.iter().any(|d| d.contains("DungeonInfo")));
+        assert_eq!(game.keys, DungeonKeys::Vanilla);
+        assert!(!game.defaults.iter().any(|d| d.contains("DungeonInfo")));
+        let settings = Settings::from([(KEYS.into(), "rings".into())]);
+        let game = NewGame::from_settings(&settings, &[]).unwrap();
+        assert_eq!(game.keys, DungeonKeys::Rings);
+        assert!(!game.defaults.iter().any(|d| d.contains("DungeonInfo")));
+        let mut vanilla = settings.clone();
+        vanilla.insert(SHUFFLE_ITEMS.into(), false.into());
+        assert!(NewGame::from_settings(&vanilla, &[]).is_err());
         let def = schema().into_iter().find(|d| d.id == KEYS).unwrap();
         let Kind::Choice { default, options } = def.kind else {
             panic!()
         };
         assert_eq!(default, "vanilla");
         let ids: Vec<_> = options.iter().map(|o| o.id.as_str()).collect();
-        assert_eq!(ids, ["vanilla", "start"]);
+        assert_eq!(ids, ["vanilla", "start", "rings"]);
     }
 
     #[test]

@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
-use zootr_hook::{BUNNY_HOOD, CAVE, LIST, Offsets, PANIC, RESUMES, Shared, TABLE, encode};
+use zootr_hook::{BUNNY_HOOD, CAVE, Credit, LIST, Offsets, PANIC, RESUMES, Shared, TABLE, encode};
 
 use crate::known::Name;
 use crate::progressive;
@@ -145,7 +145,7 @@ pub fn patches<A: AsRef<str>>(
     lines: &[&[(A, A)]],
     dev: bool,
     flags: u32,
-    credits: &[(&str, u32)],
+    credits: &[(&str, Credit)],
 ) -> Result<Vec<Patch>> {
     let owned: Vec<Vec<(&str, &str)>> = (lines.iter())
         .map(|l| l.iter().map(|(a, b)| (a.as_ref(), b.as_ref())).collect())
@@ -266,16 +266,16 @@ pub fn hooked(progressive: bool, dev: bool, flags: u32) -> bool {
 
 /// Write the cheat and exefs patch when [`hooked`], else take ours away.
 /// `dev` adds the dev panel's hook, the hood the run's call, and without
-/// `progressive` the table has no lines. `credits` are the Bools items
-/// set as they're found, by name.
+/// `progressive` the table has no lines. `credits` are what items set as
+/// they're found, by name, and a seed with any runs the hook too.
 pub fn install(
     mod_dir: &Path,
     progressive: bool,
     dev: bool,
     flags: u32,
-    credits: &[(String, u32)],
+    credits: &[(String, Credit)],
 ) -> Result<()> {
-    if !hooked(progressive, dev, flags) {
+    if !hooked(progressive, dev, flags) && credits.is_empty() {
         return remove(mod_dir);
     }
     let lines: &[&[(&Name, &Name)]] = if progressive {
@@ -283,7 +283,7 @@ pub fn install(
     } else {
         &[]
     };
-    let credits: Vec<(&str, u32)> = credits.iter().map(|(n, h)| (n.as_str(), *h)).collect();
+    let credits: Vec<_> = credits.iter().map(|(n, c)| (n.as_str(), *c)).collect();
     let patches = patches(lines, dev, flags, &credits)?;
     for (path, write) in outputs(mod_dir) {
         std::fs::create_dir_all(path.parent().unwrap())?;

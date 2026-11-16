@@ -8,7 +8,7 @@ use crate::checks::{Drop, ItemCheck};
 use crate::keys;
 use crate::known::{Name, item};
 use crate::rng::Rng;
-use crate::settings::{self, NewGame};
+use crate::settings::{self, DungeonKeys, NewGame};
 use crate::starting;
 use crate::{ammo, cows, gifts, progressive};
 
@@ -40,7 +40,7 @@ impl Let {
     fn of(new_game: &NewGame) -> Self {
         Self {
             maps: maps_move(new_game),
-            keys: new_game.keys,
+            keys: new_game.keys.moved(),
         }
     }
 }
@@ -222,6 +222,9 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
     let kept = kept.into_iter().zip(all);
     placed.extend(kept.map(|(check, item)| Placement { check, item }));
     cap_bottles(&mut items, placed.iter().map(|p| p.item));
+    if new_game.keys == DungeonKeys::Rings {
+        keys::deal_rings(&mut items)?;
+    }
     Ok(Deal {
         placed,
         free,
@@ -270,9 +273,13 @@ fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
 }
 
 /// Whether `check` may hold `item`: a gift can't hold one that asks, or
-/// one that [`gifts::clashes`].
+/// one that [`gifts::clashes`], and only a plain chest holds a ring or boss
+/// key copy, which the hook credits as it opens.
 pub(crate) fn allowed(check: &ItemCheck, item: &str, progressive: bool) -> bool {
-    !gifts::is_gift(check) || !asks_at(check, item, progressive) && !gifts::clashes(check, item)
+    let gift = gifts::is_gift(check);
+    let fits = !gift || !asks_at(check, item, progressive) && !gifts::clashes(check, item);
+    let chest = !gift && check.holder.starts_with("Obj_TBox_");
+    fits && (chest || !keys::is_shuffled(item))
 }
 
 /// Trade each gift's item it may not hold for the next chest's (wrapping)
@@ -418,7 +425,7 @@ mod tests {
         needs_names!();
         let (checks, none) = (with_keys(), Fixed::new());
         let on = NewGame {
-            keys: true,
+            keys: DungeonKeys::Start,
             ..game(false, &[])
         };
         for vanilla in [false, true] {
@@ -448,7 +455,7 @@ mod tests {
         needs_names!();
         let (checks, none) = (with_keys(), Fixed::new());
         let on = NewGame {
-            keys: true,
+            keys: DungeonKeys::Start,
             ..game(false, &[])
         };
         let p = shuffle(&checks, 7, &none, &on).unwrap();
@@ -459,6 +466,19 @@ mod tests {
         }
         let p = shuffle(&checks, 7, &none, &game(false, &[])).unwrap();
         assert!(drops(&checks, &p).is_empty());
+    }
+
+    #[test]
+    fn rings_and_boss_keys_only_go_in_plain_chests() {
+        needs_names!();
+        let ring = crate::key_tints::ring(1);
+        let pot = ItemCheck {
+            holder: "Obj_FakePot".into(),
+            ..chest(1, "Item_A")
+        };
+        assert!(allowed(&chest(1, "Item_A"), &ring, false));
+        assert!(!allowed(&pot, &ring, false));
+        assert!(allowed(&pot, "Item_A", false));
     }
 
     #[test]

@@ -12,7 +12,7 @@ use crate::known::{Name, flag, item, map};
 use crate::rules::{Book, Ctx, Have, Need};
 use crate::tools::Tools;
 use crate::world::{self, Era, node_of};
-use crate::{cows, gates, gifts, pickups, scrubs, shops};
+use crate::{cows, gates, gifts, keys, pickups, scrubs, shops};
 
 pub type Place = (String, Era);
 
@@ -212,7 +212,10 @@ impl World {
                 continue;
             }
             ensure!(rule.added, "no exit from {} to {}", rule.from, rule.to);
-            let need = book.need(&rule.expr, ctx)?;
+            let mut need = book.need(&rule.expr, ctx)?;
+            if let Some(keys) = keys::boss_door_need(&rule.to).filter(|_| ctx.rings) {
+                need = Need::All(vec![need, keys]);
+            }
             let to_eras = eras_of(&scan.places, &rule.to);
             for era in eras_of(&scan.places, &rule.from) {
                 let to_era = match to_eras.contains(&era) {
@@ -325,6 +328,10 @@ impl World {
                     Some(word) => Need::All(vec![need, resolve(word)?]),
                     None => need,
                 };
+                let need = match keys::ring_need(&check.file).filter(|_| ctx.rings) {
+                    Some(ring) => Need::All(vec![need, ring]),
+                    None => need,
+                };
                 locations.push(Location {
                     hash: check.hash,
                     place: at(&place.0, place.1)?,
@@ -368,6 +375,7 @@ impl World {
             progressive: ctx.progressive,
             on: ctx.on.iter().cloned().chain([TRIALS.into()]).collect(),
             seed: ctx.seed,
+            rings: ctx.rings,
         };
         let mut goal = Vec::new();
         for rule in book.exits.iter().filter(|r| r.to == GOAL) {

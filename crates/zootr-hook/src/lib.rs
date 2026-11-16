@@ -41,8 +41,8 @@ pub use switches::SWITCHES;
 #[cfg(not(target_os = "none"))]
 pub use table::encode;
 pub use table::{
-    BUNNY_HOOD, FREE_BOMBCHUS, HEADER, Header, Level, Levels, MAGIC, Offsets, Table, after_grant,
-    pick, pick_with,
+    BUNNY_HOOD, Credit, FREE_BOMBCHUS, HEADER, Header, Level, Levels, MAGIC, Offsets, Table,
+    after_grant, pick, pick_with,
 };
 
 /// Where our pieces go in `main`, for game 1.1.0. The code goes over

@@ -2,7 +2,7 @@
 //! the hook needs, the progressive lines, how a level is picked, and the
 //! flags an item sets as it's found.
 
-pub const MAGIC: &[u8; 4] = b"ZLT3";
+pub const MAGIC: &[u8; 4] = b"ZLT4";
 
 /// The header's flag for a seed whose bombchus need no bomb bag.
 pub const FREE_BOMBCHUS: u32 = 1;
@@ -118,9 +118,9 @@ offsets! {
 /// level lowest first: the actor it drops, then the pouch name it's owned
 /// as, each a length byte and the name with a NUL.
 ///
-/// The credits follow: each a name the same way, then the little endian
-/// hash of the GameData Bool its find sets true. A chest's flow credits a
-/// dungeon item by its exact name, so a copy of one is credited here.
+/// The credits follow: each a name the same way, then the [`Credit`] its
+/// find sets. A chest's flow credits a dungeon item by its exact name, so a
+/// copy of one is credited here.
 pub struct Table<'a> {
     pub offsets: &'a Offsets,
     pub flags: u32,
@@ -140,16 +140,16 @@ impl<'a> Table<'a> {
         })
     }
 
-    /// The Bool that finding `name` sets, by its hash.
-    pub fn credit(&self, name: &[u8]) -> Option<u32> {
+    /// What finding `name` sets.
+    pub fn credit(&self, name: &[u8]) -> Option<Credit> {
         let mut rest = self.credits;
         while let Some((&len, after)) = rest.split_first() {
             let found = after.get(..len as usize)?;
-            let hash = after.get(len as usize + 1..)?.first_chunk::<4>()?;
+            let entry = after.get(len as usize + 1..)?.first_chunk()?;
             if found == name {
-                return Some(u32::from_le_bytes(*hash));
+                return Credit::read(entry);
             }
-            rest = &after[len as usize + 5..];
+            rest = &after[len as usize + 1 + Credit::SIZE..];
         }
         None
     }
@@ -170,6 +170,41 @@ impl<'a> Table<'a> {
             rest = line.skip_all()?;
         }
         None
+    }
+}
+
+/// What finding an item sets in GameData, by name hash. In the table: a
+/// kind byte, the hash, then the value, little endian.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Credit {
+    /// A Bool, set true.
+    Bool(u32),
+    /// An Int and its saved copy, set to the value.
+    Int(u32, i32),
+}
+
+impl Credit {
+    const SIZE: usize = 9;
+
+    fn read(&[kind, h0, h1, h2, h3, v0, v1, v2, v3]: &[u8; Self::SIZE]) -> Option<Self> {
+        let hash = u32::from_le_bytes([h0, h1, h2, h3]);
+        match kind {
+            0 => Some(Self::Bool(hash)),
+            1 => Some(Self::Int(hash, i32::from_le_bytes([v0, v1, v2, v3]))),
+            _ => None,
+        }
+    }
+
+    #[cfg(not(target_os = "none"))]
+    fn bytes(self) -> [u8; Self::SIZE] {
+        let (kind, hash, value) = match self {
+            Self::Bool(hash) => (0, hash, 0),
+            Self::Int(hash, value) => (1, hash, value),
+        };
+        let mut out = [kind; Self::SIZE];
+        out[1..5].copy_from_slice(&hash.to_le_bytes());
+        out[5..].copy_from_slice(&value.to_le_bytes());
+        out
     }
 }
 
@@ -255,13 +290,13 @@ pub fn after_grant<'a>(
 }
 
 /// The table for `lines`, each lowest level first as (drop, pouch name),
-/// with the seed's `flags` and `credits` as (name, Bool hash).
+/// with the seed's `flags` and `credits` by name.
 #[cfg(not(target_os = "none"))]
 pub fn encode(
     offsets: Offsets,
     flags: u32,
     lines: &[&[(&str, &str)]],
-    credits: &[(&str, u32)],
+    credits: &[(&str, Credit)],
 ) -> Vec<u8> {
     fn push_name(out: &mut Vec<u8>, name: &str) {
         out.push(u8::try_from(name.len()).expect("a name is under 256 bytes"));
@@ -275,9 +310,9 @@ pub fn encode(
         }
     }
     let size = body.len();
-    for (name, hash) in credits {
+    for (name, credit) in credits {
         push_name(&mut body, name);
-        body.extend(hash.to_le_bytes());
+        body.extend(credit.bytes());
     }
     let words = [size, body.len() - size].map(|n| u32::try_from(n).expect("table under 4 GB"));
     let mut out = MAGIC.to_vec();
@@ -299,7 +334,11 @@ mod tests {
     const HOOK: &[(&str, &str)] = &[("Hook", "Hook"), ("Long", "Long")];
     /// Owned under another name.
     const GLOVES: &[(&str, &str)] = &[("Glove_S", "Arm_S"), ("Glove_G", "Arm_G")];
-    const CREDITS: &[(&str, u32)] = &[("Key_01", 0x1234_5678), ("Key_02", 0xdead_beef)];
+    const CREDITS: &[(&str, Credit)] = &[
+        ("Key_01", Credit::Bool(0x1234_5678)),
+        ("Key_02", Credit::Int(0xdead_beef, -3)),
+        ("Key_03", Credit::Int(0x0bad_f00d, 9)),
+    ];
 
     fn with_table<T>(f: impl FnOnce(Table) -> T) -> T {
         let bytes = encode(offsets(), 0, &[HOOK, BAGS, GLOVES], CREDITS);
@@ -396,10 +435,11 @@ mod tests {
     }
 
     #[test]
-    fn a_credit_names_its_bool() {
+    fn a_credit_reads_back_with_its_kind_and_value() {
         with_table(|t| {
-            assert_eq!(t.credit(b"Key_01"), Some(0x1234_5678));
-            assert_eq!(t.credit(b"Key_02"), Some(0xdead_beef));
+            for &(name, credit) in CREDITS {
+                assert_eq!(t.credit(name.as_bytes()), Some(credit));
+            }
             assert_eq!(t.credit(b"Key_0"), None);
             assert_eq!(t.credit(b"Hook"), None);
         });

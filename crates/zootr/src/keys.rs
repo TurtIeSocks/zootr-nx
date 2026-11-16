@@ -2,8 +2,14 @@
 //! small-key door spends its dungeon's counter and a boss door reads its
 //! boss key flag, so a new game that fills both opens every door.
 
+use std::sync::LazyLock;
+
+use anyhow::{Context, Result};
+
 use crate::checks::ItemCheck;
-use crate::known::{Name, actor, flag, flow, item};
+use crate::key_tints;
+use crate::known::{Name, actor, flag, flow, item, map};
+use crate::rules::Need;
 
 pub const SMALL: &Name = item::DUNGEON_SMALL_KEY;
 pub const BOSS: &Name = item::DUNGEON_BOSS_KEY;
@@ -12,17 +18,95 @@ pub const INSTEAD: &Name = actor::T_BOX_RUPEE_RED;
 
 /// Each dungeon with keys, as its `DungeonInfo` member and Banc folder
 /// name: how many small keys it has, which is how many small-key doors,
-/// and whether it has a boss key.
-pub const DUNGEONS: [(&Name, i32, bool); 8] = [
-    (flow::BOTTOM_OF_THE_WELL, 2, false),
-    (flag::FOREST_TEMPLE, 5, true),
-    (flag::FIRE_TEMPLE, 8, true),
-    (flag::WATER_TEMPLE, 4, true),
-    (flag::SHADOW_TEMPLE, 5, true),
-    (flag::SPIRIT_TEMPLE, 5, true),
-    (flag::GERUDO_TRAINING_GROUND, 9, false),
-    (flag::INSIDE_GANON_CASTLE, 1, true),
+/// and the boss room its boss key opens, if it has one.
+pub const DUNGEONS: [(&Name, i32, Option<&Name>); 8] = [
+    (flow::BOTTOM_OF_THE_WELL, 2, None),
+    (flag::FOREST_TEMPLE, 5, Some(map::PHANTOM_GANON_STAGE)),
+    (flag::FIRE_TEMPLE, 8, Some(map::VOLVAGIA_STAGE)),
+    (flag::WATER_TEMPLE, 4, Some(map::MORPHA_STAGE)),
+    (flag::SHADOW_TEMPLE, 5, Some(map::BONGO_BONGO_STAGE)),
+    (flag::SPIRIT_TEMPLE, 5, Some(map::TWINROVA_STAGE)),
+    (flag::GERUDO_TRAINING_GROUND, 9, None),
+    (flag::INSIDE_GANON_CASTLE, 1, Some(map::GANONDORF_STAGE)),
 ];
+
+/// The dungeon whose maps `rel`, a Banc file, is under, by its number in
+/// [`DUNGEONS`], counting from 1.
+pub fn dungeon_of(rel: &str) -> Option<usize> {
+    let folder = rel.strip_prefix("Banc/")?.split('/').next()?;
+    DUNGEONS
+        .iter()
+        .position(|(d, ..)| *d == folder)
+        .map(|i| i + 1)
+}
+
+/// Whether dungeon `n` has a boss key.
+pub fn has_boss(n: usize) -> bool {
+    DUNGEONS[n - 1].2.is_some()
+}
+
+/// With key rings, every ring and boss key, each dealt once.
+pub static SHUFFLED: LazyLock<Vec<String>> = LazyLock::new(|| {
+    let n = 1..=DUNGEONS.len();
+    let rings = n.clone().map(key_tints::ring);
+    rings
+        .chain(n.filter(|&n| has_boss(n)).map(key_tints::boss))
+        .collect()
+});
+
+/// Whether `item` is a ring or boss key copy, which only a chest can give:
+/// the hook credits them as a chest opens.
+pub fn is_shuffled(item: &str) -> bool {
+    SHUFFLED.iter().any(|s| s == item)
+}
+
+/// Each ring and boss key takes the place of a key chest's Red Rupee.
+pub fn deal_rings(items: &mut [&str]) -> Result<()> {
+    for key in SHUFFLED.iter() {
+        let rupee = items.iter().position(|i| *INSTEAD == **i);
+        let rupee = rupee.context("too few key chests for the rings and boss keys")?;
+        items[rupee] = key;
+    }
+    Ok(())
+}
+
+/// With key rings, what logic adds to a check in `rel`, a Banc file: its
+/// dungeon's ring. Stricter than the game, which asks for it only past
+/// the first locked door.
+pub fn ring_need(rel: &str) -> Option<Need> {
+    dungeon_of(rel).map(|n| holds(key_tints::ring(n)))
+}
+
+/// With key rings, what logic adds to the way into `room`, a boss room:
+/// its dungeon's boss key and ring.
+pub fn boss_door_need(room: &str) -> Option<Need> {
+    let i = DUNGEONS
+        .iter()
+        .position(|(.., r)| r.is_some_and(|r| *r == *room))?;
+    let keys = [key_tints::boss(i + 1), key_tints::ring(i + 1)];
+    Some(Need::All(keys.map(holds).to_vec()))
+}
+
+/// A ring's or boss key copy's name, after its dungeon's: `area` names one
+/// by its id.
+pub fn copy_name(actor: &str, area: impl Fn(&str) -> String) -> Option<String> {
+    DUNGEONS.iter().enumerate().find_map(|(i, (dungeon, ..))| {
+        let n = i + 1;
+        let kind = match actor {
+            a if a == key_tints::ring(n) => "Key Ring",
+            a if a == key_tints::boss(n) => "Boss Key",
+            _ => return None,
+        };
+        Some(format!("{} {kind}", area(dungeon)))
+    })
+}
+
+fn holds(actor: String) -> Need {
+    Need::Items {
+        actors: vec![actor],
+        count: 1,
+    }
+}
 
 /// The Gerudo Fortress's keys, one for each thief, each its own actor.
 pub const FORTRESS_KEY: &str = "Obj_Dungeon_SmallKey_GerudoFortress_";
@@ -53,25 +137,24 @@ pub fn boss_flag(dungeon: &Name) -> String {
     format!("DungeonInfo.{dungeon}.IsGetBossKey")
 }
 
+/// The Int counting `dungeon`'s small keys.
+pub fn small_flag(dungeon: &Name) -> String {
+    format!("DungeonInfo.{dungeon}.{}", flag::SMALL_KEY_NUM)
+}
+
 /// The new-game defaults that fill the counters and boss key flags of
 /// every dungeon, and the Fortress's counter when `fortress`.
 pub fn defaults(dungeons: bool, fortress: bool) -> Vec<String> {
     let mut edits = Vec::new();
     for (name, small, boss) in DUNGEONS.iter().filter(|_| dungeons) {
-        edits.push(format!(
-            "DungeonInfo.{name}.{}={small}",
-            flag::SMALL_KEY_NUM
-        ));
-        if *boss {
+        edits.push(format!("{}={small}", small_flag(name)));
+        if boss.is_some() {
             edits.push(format!("{}=true", boss_flag(name)));
         }
     }
     if fortress {
         let (name, small) = FORTRESS;
-        edits.push(format!(
-            "DungeonInfo.{name}.{}={small}",
-            flag::SMALL_KEY_NUM
-        ));
+        edits.push(format!("{}={small}", small_flag(name)));
     }
     edits
 }
@@ -80,7 +163,7 @@ pub fn defaults(dungeons: bool, fortress: bool) -> Vec<String> {
 mod tests {
     use super::*;
     use crate::gamedata::GameData;
-    use crate::known::{actor, flag, flow, item};
+    use crate::known::{actor, flag, flow, item, map};
     use crate::presets;
 
     #[test]
@@ -126,6 +209,50 @@ mod tests {
             )]
         );
         assert!(defaults(false, false).is_empty());
+    }
+
+    #[test]
+    fn each_ring_and_boss_key_takes_a_red_rupee_s_place() {
+        needs_names!();
+        let red = INSTEAD.get();
+        let mut items = vec![red; SHUFFLED.len() + 1];
+        items.push(item::HOOKSHOT.get());
+        deal_rings(&mut items).unwrap();
+        assert_eq!(items.iter().filter(|i| **i == red).count(), 1);
+        assert!(SHUFFLED.iter().all(|k| items.contains(&k.as_str())));
+        assert_eq!(SHUFFLED.len(), DUNGEONS.len() + 6);
+        assert!(deal_rings(&mut [red; 3]).is_err());
+    }
+
+    #[test]
+    fn logic_asks_a_dungeon_s_checks_for_its_ring_and_its_boss_door_for_both() {
+        needs_names!();
+        let forest = format!("Banc/{}/Fake.bcett.byml.zs", flag::FOREST_TEMPLE);
+        let n = dungeon_of(&forest).unwrap();
+        assert_eq!(ring_need(&forest).unwrap().to_string(), key_tints::ring(n));
+        assert!(ring_need("Banc/FakeField/Fake.bcett.byml.zs").is_none());
+        let door = boss_door_need(map::PHANTOM_GANON_STAGE)
+            .unwrap()
+            .to_string();
+        assert!(door.contains(&key_tints::boss(n)) && door.contains(&key_tints::ring(n)));
+        assert!(boss_door_need(map::GOHMA_STAGE).is_none());
+    }
+
+    #[test]
+    fn a_copy_is_named_after_its_dungeon() {
+        let area = |id: &str| format!("<{id}>");
+        let forest = DUNGEONS.iter().position(|d| d.0 == flag::FOREST_TEMPLE);
+        let n = forest.unwrap() + 1;
+        let named = |a: String| copy_name(&a, area);
+        assert_eq!(
+            named(key_tints::ring(n)).unwrap(),
+            format!("<{}> Key Ring", flag::FOREST_TEMPLE)
+        );
+        assert_eq!(
+            named(key_tints::boss(n)).unwrap(),
+            format!("<{}> Boss Key", flag::FOREST_TEMPLE)
+        );
+        assert!(named(item::HOOKSHOT.to_string()).is_none());
     }
 
     #[test]
@@ -181,7 +308,7 @@ mod tests {
             };
             let lying = lying.iter().filter(|l| l.0 == name).count() as i32;
             assert_eq!(chests(SMALL) + lying, small, "{name}");
-            assert_eq!(chests(BOSS), i32::from(boss), "{name}");
+            assert_eq!(chests(BOSS), i32::from(boss.is_some()), "{name}");
         }
         assert_eq!(held.len(), 43);
     }

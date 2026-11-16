@@ -199,14 +199,20 @@ mod tests {
     use crate::known::item;
     use crate::rules::{Book, Ctx};
     use crate::settings::{
-        CHESTS, DUNGEON_REWARDS, NPC_GIFTS, OPEN_DOOR, PROGRESSIVE, SONGS, Settings,
+        CHESTS, DUNGEON_REWARDS, KEYS, NPC_GIFTS, OPEN_DOOR, PROGRESSIVE, SONGS, Settings,
     };
     use crate::shuffle::{Fixed, deal};
+    use crate::{key_tints, keys};
 
     /// Seeds each settings case must fill.
     const SEEDS: u64 = 200;
 
     fn seeds_fill(settings: &Settings) {
+        seeds_fill_and(settings, |_| {});
+    }
+
+    /// [`seeds_fill`], handing each filled seed to `each`.
+    fn seeds_fill_and(settings: &Settings, each: impl Fn(&Filled)) {
         let Some(romfs) = dev_dump() else { return };
         let new_game = NewGame::from_settings(settings, &[]).unwrap();
         let checks = crate::checks::all(&romfs).unwrap();
@@ -221,9 +227,13 @@ mod tests {
         let failed: Vec<String> = (0..SEEDS)
             .filter_map(|seed| {
                 let deal = deal(&checks, &fixed, &new_game).unwrap();
-                fill(&world, &checks, deal, seed * TRIES, &new_game)
-                    .err()
-                    .map(|e| format!("seed {seed}: {e:#}"))
+                match fill(&world, &checks, deal, seed * TRIES, &new_game) {
+                    Ok(filled) => {
+                        each(&filled);
+                        None
+                    }
+                    Err(e) => Some(format!("seed {seed}: {e:#}")),
+                }
             })
             .collect();
         assert!(
@@ -305,6 +315,30 @@ mod tests {
             (SONGS.into(), true.into()),
             // Rauru's is dealt only with the door closed.
             (OPEN_DOOR.into(), false.into()),
+        ]));
+    }
+
+    #[test]
+    fn key_ring_seeds_fill_and_keep_each_ring_out_of_its_dungeon() {
+        let rings = || (KEYS.into(), "rings".into());
+        let outside = |filled: &Filled| {
+            for p in filled.placements.iter() {
+                if !keys::is_shuffled(p.item) {
+                    continue;
+                }
+                assert!(p.check.holder.starts_with("Obj_TBox_"), "{}", p.item);
+                let ring = (1..=keys::DUNGEONS.len()).find(|&n| key_tints::ring(n) == p.item);
+                if let Some(n) = ring {
+                    assert_ne!(keys::dungeon_of(&p.check.file), Some(n), "{}", p.item);
+                }
+            }
+        };
+        seeds_fill_and(&Settings::from([rings()]), outside);
+        seeds_fill(&Settings::from([
+            rings(),
+            (NPC_GIFTS.into(), true.into()),
+            (DUNGEON_REWARDS.into(), true.into()),
+            (SONGS.into(), true.into()),
         ]));
     }
 }

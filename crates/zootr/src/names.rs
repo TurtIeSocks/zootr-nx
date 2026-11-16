@@ -33,9 +33,13 @@ impl Names {
             messages(data).with_context(|| format!("reading {path}"))
         };
         let pouch = text(ITEMS)?;
+        let areas = text(AREAS)?;
+        let area = |id: &str| areas.get(id).cloned().unwrap_or_else(|| pretty(id));
         let mut items = HashMap::new();
         for actor in actors {
-            if !items.contains_key(actor)
+            if let Some(name) = crate::keys::copy_name(actor, area) {
+                items.insert(actor.to_owned(), name);
+            } else if !items.contains_key(actor)
                 && let Some(label) = name_label(romfs, actor)?
                 && let Some(name) = pouch.get(&label).cloned()
             {
@@ -43,7 +47,7 @@ impl Names {
             }
         }
         Ok(Self {
-            areas: text(AREAS)?,
+            areas,
             items,
             progressive: false,
         })

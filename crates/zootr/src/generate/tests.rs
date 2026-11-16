@@ -295,7 +295,7 @@ fn key_chests_are_checks_and_hold_no_key_only_when_keys_start() {
         spots.map(|s| s.hash).collect::<HashSet<_>>()
     };
     let on = NewGame {
-        keys: true,
+        keys: crate::settings::DungeonKeys::Start,
         defaults: keys::defaults(true, false),
         ..Default::default()
     };
