@@ -26,12 +26,6 @@ jobs:
         os: [ubuntu-24.04, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      # The app's bindings test compares a checked-in file byte for byte,
-      # which CRLF checkouts would break.
-      - name: Keep LF line endings
-        if: runner.os == 'Windows'
-        run: git config --global core.autocrlf false
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # zootr-app is a workspace member, so clippy and the tests build Tauri.
