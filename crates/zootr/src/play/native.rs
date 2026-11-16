@@ -80,7 +80,7 @@ fn buttons(names: &str) -> Result<String> {
 
 impl Input for Native {
     fn running(&self) -> bool {
-        Bridge::connect(&self.socket).is_ok()
+        Bridge::listening(&self.socket)
     }
 
     fn launch(&mut self) -> Result<()> {

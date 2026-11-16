@@ -11,8 +11,10 @@ export interface Draft {
   line_file: string;
   /** One settings line per row. */
   lines: string;
-  /** Not edited here, only kept. */
   control: string;
+  bridge: string;
+  /** One env line per row. */
+  env: string;
 }
 
 /** A saved target as the form edits it. */
@@ -25,6 +27,8 @@ export const toDraft = (t: Target): Draft => ({
   line_file: t.settings_file?.file ?? "",
   lines: t.settings_file?.lines?.join("\n") ?? "",
   control: t.control ?? "",
+  bridge: t.bridge ?? "",
+  env: t.env?.join("\n") ?? "",
 });
 
 /** The target a draft saves as, trimmed, with blank options left out. */
@@ -38,7 +42,9 @@ export const toTarget = (d: Draft): Target => ({
     d.line_file.trim() && splitLines(d.lines).length
       ? { file: d.line_file.trim(), lines: splitLines(d.lines) }
       : null,
-  control: d.control || null,
+  control: d.control.trim() || null,
+  bridge: d.bridge.trim() || null,
+  env: splitLines(d.env),
 });
 
 /** A new target with nothing filled in. */
@@ -64,12 +70,14 @@ export const isEdited = (targets: Target[], drafts: Draft[]) =>
 
 /** One edited field of a target. */
 export interface DraftField {
-  key: Exclude<keyof Draft, "control">;
+  key: keyof Draft;
   label: string;
   /** The placeholder: what goes there. */
   hint: string;
   /** What its Browse button picks, if it has one. */
   pick?: "folder" | "file";
+  /** One entry per line. */
+  multiline?: boolean;
 }
 
 /** The fields each target card shows, in order. */
@@ -107,7 +115,25 @@ export const FIELDS: DraftField[] = [
   {
     key: "lines",
     label: "Settings lines (optional)",
-    hint: "One KEY=VALUE per line. {romfs} becomes the mod's romfs folder, {cheats} its cheat folder",
+    hint: "One KEY=VALUE per line. {romfs} becomes the mod's romfs folder, {cheats} its cheat folder, {control} the control file",
+    multiline: true,
+  },
+  {
+    key: "bridge",
+    label: "Control socket (optional)",
+    hint: "For runners with a control socket: live reads and dev tools go through it",
+  },
+  {
+    key: "env",
+    label: "Environment (optional)",
+    hint: "One NAME=VALUE per line, set when Play starts the app. {bridge} becomes the control socket",
+    multiline: true,
+  },
+  {
+    key: "control",
+    label: "Control file (optional)",
+    hint: "A file the game reads input lines from, for scripted play",
+    pick: "file",
   },
 ];
 
@@ -122,6 +148,12 @@ export function problem(drafts: Draft[]): string {
   if (new Set(names).size !== names.length) return "Target names must differ";
   if (drafts.some((d) => splitLines(d.lines).some((l) => !l.includes("=")))) {
     return "A settings line looks like KEY={romfs}";
+  }
+  if (drafts.some((d) => splitLines(d.env).some((l) => !l.includes("=")))) {
+    return "An environment line looks like NAME=VALUE";
+  }
+  if (drafts.some((d) => !d.bridge.trim() && d.env.includes("{bridge}"))) {
+    return "An environment line names {bridge}, so the target needs a control socket";
   }
   return "";
 }

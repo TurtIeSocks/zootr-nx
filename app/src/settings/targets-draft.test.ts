@@ -17,7 +17,18 @@ test("a draft saves back as the target it came from, blanks left out", () => {
     save_dir: null,
     settings_file: null,
     control: null,
+    bridge: null,
+    env: [],
   });
+});
+
+test("a bridge and its env lines save back as they were", () => {
+  const native = {
+    ...runner,
+    bridge: "/run/c.sock",
+    env: ["SOCK={bridge}", "MEM=rw"],
+  };
+  expect(toTarget(toDraft(native))).toMatchObject(native);
 });
 
 test("an added target is numbered past the names taken", () => {
@@ -38,4 +49,7 @@ test("problem names the first thing stopping a save", () => {
   expect(problem([BLANK])).toMatch(/needs a name/);
   expect(problem([ok, ok])).toBe("Target names must differ");
   expect(problem([{ ...ok, lines: "no equals" }])).toMatch(/KEY=/);
+  expect(problem([{ ...ok, env: "no equals" }])).toMatch(/NAME=VALUE/);
+  expect(problem([{ ...ok, env: "S={bridge}" }])).toMatch(/control socket/);
+  expect(problem([{ ...ok, env: "S={bridge}", bridge: "/s" }])).toBe("");
 });

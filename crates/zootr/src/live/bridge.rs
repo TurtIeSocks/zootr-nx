@@ -63,6 +63,11 @@ impl Bridge {
         })
     }
 
+    /// Whether a game answers on `path`.
+    pub fn listening(path: &Path) -> bool {
+        Stream::connect(path).is_ok()
+    }
+
     /// `cmd` with `args`, answered within [`PATIENCE`].
     pub fn request(&self, cmd: &str, args: Value) -> Result<Value> {
         self.ask(cmd, args, PATIENCE)

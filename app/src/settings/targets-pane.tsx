@@ -226,7 +226,7 @@ interface TargetFieldProps {
 /** A labelled field: a path with Browse, the settings lines, or a line of
  * text. */
 function TargetField({ id, field, value, onChange }: TargetFieldProps) {
-  const { key, label, hint, pick } = field;
+  const { key, label, hint, pick, multiline } = field;
   return (
     <Field id={id} label={label}>
       {pick ? (
@@ -237,7 +237,7 @@ function TargetField({ id, field, value, onChange }: TargetFieldProps) {
           value={value}
           onChange={onChange}
         />
-      ) : key === "lines" ? (
+      ) : multiline ? (
         <Textarea
           id={id}
           className="type-mono"
