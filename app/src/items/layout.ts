@@ -1,4 +1,10 @@
-import { type Placement, type Section, TRACKER_COLUMNS } from "@/bindings";
+import {
+  type Cell,
+  type IconSize,
+  type Placement,
+  type Section,
+  TRACKER_COLUMNS,
+} from "@/bindings";
 
 /** Each section's title, as the grid and its toolbars show it. */
 export const TITLES: Record<Section, string> = {
@@ -66,3 +72,26 @@ export function move(
       return set({ shown: true });
   }
 }
+
+/** A tile's side in pixels, by size. */
+export const PIXELS: Record<IconSize, number> = {
+  Small: 32,
+  Medium: 48,
+  Large: 72,
+};
+
+/** The count badge's look, on a tile or as its own button. */
+export const BADGE =
+  "absolute -right-0.5 -bottom-0.5 inline-flex h-4 min-w-4.5 items-center justify-center rounded-xs bg-ink px-1 font-mono font-semibold text-[10.5px] text-surface leading-none";
+
+/** The sections shown in each column, empty columns left out. */
+export function columnsOf(sections: Placement[], count: number) {
+  return Array.from({ length: count }, (_, i) => ({
+    n: i + 1,
+    shown: sections.filter((p) => p.shown && p.column === i + 1),
+  })).filter((c) => c.shown.length > 0);
+}
+
+/** One section's cells, each with where it sits among all of them. */
+export const inSection = (cells: Cell[], section: Section) =>
+  cells.flatMap((cell, at) => (cell.section === section ? [{ cell, at }] : []));
