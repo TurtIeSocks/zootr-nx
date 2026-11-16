@@ -119,7 +119,7 @@ pub(super) unsafe fn set_bool(main: usize, o: &Offsets, gd: usize, hash: u32, va
 }
 
 /// The system counter and its ticks per second.
-pub(super) fn clock() -> (u64, u64) {
+fn clock() -> (u64, u64) {
     let (now, rate): (u64, u64);
     // SAFETY: reads of the counter registers, open to user code.
     unsafe {
@@ -162,6 +162,15 @@ unsafe fn add(block: usize, key: &[u8], kind: u32, value: usize) -> bool {
         *((block + ARG_COUNT) as *mut u32) = n + 1;
         true
     }
+}
+
+/// Whether an event plays, or `None` before the game is up.
+///
+/// # Safety
+/// The offsets are this build's.
+pub(super) unsafe fn playing(main: usize, o: &Offsets) -> Option<bool> {
+    let events = unsafe { single(main, o.events) }?;
+    Some(unsafe { at(events, PLAYING) }.is_some())
 }
 
 /// One argument of an event request: a name in `texts` (by index)

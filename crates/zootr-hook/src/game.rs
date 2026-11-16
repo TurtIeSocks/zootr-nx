@@ -271,10 +271,6 @@ unsafe extern "C" fn picked(node: usize) {
     })
 }
 
-/// How many seconds apart one get's add and window can run, at most. A
-/// get event takes a few.
-const SAME_GET: u64 = 10;
-
 /// Where the pickup window's node keeps its bound `ActorName`.
 const PICKED_NAME: usize = 0x20;
 
@@ -288,12 +284,11 @@ unsafe fn credit(main: usize, table: &Table, added: &[u8], picked: bool) {
     let Some(credit) = table.credit(added) else {
         return;
     };
-    let (at, rate) = dev::clock();
     let name = added.iter().fold(0x811c_9dc5_u32, |h, &b| {
         (h ^ u32::from(b)).wrapping_mul(0x0100_0193)
     });
-    let note = Credited { name, picked, at };
-    if !shared(main).with(|l| l.first_credit(note, SAME_GET * rate)) {
+    let note = Credited { name, picked };
+    if !shared(main).with(|l| l.first_credit(note)) {
         return;
     }
     // SAFETY: the offsets were found in this build of `main`.
@@ -309,8 +304,8 @@ unsafe fn credit(main: usize, table: &Table, added: &[u8], picked: bool) {
     }
 }
 
-/// Link is about to update: hold what the dev switches hold, and run the
-/// app's request, if there is one.
+/// Link is about to update: hold what the dev switches hold, run the app's
+/// request, if there is one, and between events forget the last credit.
 ///
 /// # Safety
 /// Only the hooked function's entry calls this.
@@ -319,5 +314,8 @@ unsafe extern "C" fn link_update(actor: usize) {
     hooked(|main, table| unsafe {
         refill::refill(main, &table, actor);
         dev::serve(main, table.offsets, actor);
+        if dev::playing(main, table.offsets) == Some(false) {
+            shared(main).with(List::idle);
+        }
     })
 }

@@ -40,7 +40,6 @@ pub struct List {
 pub struct Credited {
     pub name: u32,
     pub picked: bool,
-    pub at: u64,
 }
 
 impl List {
@@ -68,13 +67,18 @@ impl List {
     /// hook credited the same name within `same_get` ticks, this is that
     /// get's other half. A paired credit is forgotten, so the next get of
     /// the same name counts.
-    pub fn first_credit(&mut self, now: Credited, same_get: u64) -> bool {
+    pub fn first_credit(&mut self, now: Credited) -> bool {
         let last = self.credited;
-        let pair = last.name == now.name
-            && last.picked != now.picked
-            && now.at.wrapping_sub(last.at) < same_get;
+        let pair =
+            last != Credited::default() && last.name == now.name && last.picked != now.picked;
         self.credited = if pair { Credited::default() } else { now };
         !pair
+    }
+
+    /// No event plays: the get that made the last credit is over, so no
+    /// later one pairs with it.
+    pub fn idle(&mut self) {
+        self.credited = Credited::default();
     }
 
     pub fn opened(&mut self, actor: usize) {
@@ -149,23 +153,34 @@ mod tests {
     #[test]
     fn one_get_seen_by_both_hooks_credits_once_in_either_order() {
         let shared = list();
-        let at = |name, picked, at| Credited { name, picked, at };
+        let add = |name| Credited {
+            name,
+            picked: false,
+        };
+        let window = |name| Credited { name, picked: true };
         shared.with(|l| {
-            // A chest: the add, then the window.
-            assert!(l.first_credit(at(7, false, 100), 10));
-            assert!(!l.first_credit(at(7, true, 105), 10));
+            // A chest's get event: the add, then the window.
+            assert!(l.first_credit(add(7)));
+            assert!(!l.first_credit(window(7)));
+            l.idle();
             // The window first, then the add.
-            assert!(l.first_credit(at(7, true, 200), 10));
-            assert!(!l.first_credit(at(7, false, 201), 10));
+            assert!(l.first_credit(window(7)));
+            assert!(!l.first_credit(add(7)));
+            l.idle();
             // Two pots in a row, the window alone each time.
-            assert!(l.first_credit(at(7, true, 300), 10));
-            assert!(l.first_credit(at(7, true, 301), 10));
-            // A gift with no window long before a pot of the same name.
-            assert!(l.first_credit(at(7, false, 400), 10));
-            assert!(l.first_credit(at(7, true, 500), 10));
+            assert!(l.first_credit(window(7)));
+            l.idle();
+            assert!(l.first_credit(window(7)));
+            l.idle();
+            // A gift with no window, then a pot of the same name, however
+            // soon: a frame with no event plays between them.
+            assert!(l.first_credit(add(7)));
+            l.idle();
+            assert!(l.first_credit(window(7)));
+            l.idle();
             // Another name between the halves isn't their pair.
-            assert!(l.first_credit(at(8, false, 600), 10));
-            assert!(l.first_credit(at(7, true, 601), 10));
+            assert!(l.first_credit(add(8)));
+            assert!(l.first_credit(window(7)));
         });
     }
 
