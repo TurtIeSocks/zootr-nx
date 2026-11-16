@@ -117,8 +117,10 @@ function Group({ group }: { group: FlagGroup }) {
         <Chevron className="size-3.5 text-ink-muted" />
         <span className="flex-1 font-medium">{group.name}</span>
         <span className="text-ink-muted text-xs">
-          {group.count.toLocaleString()}
-          {group.changed > 0 && ` (${group.changed} changed)`}
+          {group.changed === group.count
+            ? `${group.count.toLocaleString()} changed`
+            : group.count.toLocaleString() +
+              (group.changed > 0 ? ` (${group.changed} changed)` : "")}
         </span>
       </button>
       {group.open && (

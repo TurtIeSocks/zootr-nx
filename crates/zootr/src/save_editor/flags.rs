@@ -111,27 +111,34 @@ pub fn flags(gd: &GameData, save: &Save, staged: &HashSet<u32>, q: &FlagQuery) -
         if !wanted {
             continue;
         }
-        let group = group_of(&name).to_owned();
-        let (header, members) = groups.entry(group.clone()).or_insert_with(|| {
+        // The game spells some parts two ways (`NPC`, `Npc`): one group,
+        // named by the spelling that sorts first.
+        let group = group_of(&name);
+        let (header, members) = groups.entry(group.to_lowercase()).or_insert_with(|| {
             let header = FlagGroup {
-                open: q.open.contains_key(&group) || !search.is_empty(),
-                name: group,
+                open: false,
+                name: group.to_owned(),
                 count: 0,
                 changed: 0,
                 rows: Vec::new(),
             };
             (header, Vec::new())
         });
+        if group < header.name.as_str() {
+            header.name = group.to_owned();
+        }
         header.count += 1;
         header.changed += u32::from(changed);
-        if header.open {
-            members.push((name, e));
-        }
+        members.push((name, e));
     }
     kinds.sort();
     let mut out: Vec<FlagGroup> = groups
         .into_values()
         .map(|(mut header, mut members)| {
+            header.open = q.open.contains_key(&header.name) || !search.is_empty();
+            if !header.open {
+                return header;
+            }
             members.sort_by(|a, b| a.0.cmp(&b.0));
             let limit = q.open.get(&header.name).copied().unwrap_or(PAGE);
             header.rows = (members.into_iter().take(limit as usize))
