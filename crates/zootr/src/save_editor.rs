@@ -12,7 +12,7 @@ use ounce_formats::Save;
 use serde::{Deserialize, Serialize};
 
 use crate::gamedata::GameData;
-use crate::inventory::{Cell, Intent, Inventory, Pouch, in_save};
+use crate::inventory::{Cell, Intent, Inventory, Placement, Pouch, TrackerOptions, in_save};
 use crate::presets;
 use crate::savefile::{self, Change, Edit};
 
@@ -22,7 +22,7 @@ mod status;
 
 pub use flags::{FlagGroup, FlagQuery, FlagRow, FlagsView, flags};
 pub use slots::{SlotRow, slots};
-pub use status::{Choice, StatusField, StatusGroup, status};
+pub use status::{StatusChoice, StatusField, StatusGroup, status};
 
 /// What's waiting to be saved: the presets turned on, then single edits
 /// on top of them.
@@ -60,14 +60,14 @@ impl Opened {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct ItemsView {
+    /// The tracker's default layout.
+    pub sections: Vec<Placement>,
     pub cells: Vec<Cell>,
     /// How many each counted cell can hold, in `cells`' order.
     pub caps: Vec<Option<i32>>,
     /// Whether a pending edit changes each cell.
     pub staged: Vec<bool>,
     pub status: Vec<StatusField>,
-    /// The file's stamp, which Save sends back.
-    pub stamp: u64,
 }
 
 /// The Items tab for `opened`, read with the grid `inv`.
@@ -76,13 +76,13 @@ pub fn items(gd: &GameData, inv: &Inventory, pouch: &Pouch, opened: &Opened) -> 
     inv.load(in_save(&opened.edited));
     let staged = opened.staged(gd);
     ItemsView {
+        sections: TrackerOptions::default().sections,
         cells: inv.cells(),
         caps: inv.caps(pouch, &opened.edited),
         staged: (inv.cell_hashes().iter())
             .map(|hs| hs.iter().any(|h| staged.contains(h)))
             .collect(),
         status: status(gd, pouch, &opened.edited),
-        stamp: opened.stamp,
     }
 }
 

@@ -6,13 +6,13 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use anyhow::{Context, Result};
-use ounce_formats::{Byml, Romfs, Save, SaveEntry, murmur3};
+use ounce_formats::{Byml, Save, SaveEntry, murmur3};
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
 use crate::gamedata::GameData;
 use crate::known::field;
-use crate::{generate, presets, value};
+use crate::{generate, value};
 
 /// Slot `n`'s save under a save folder.
 pub fn slot_file(dir: &Path, n: u8) -> PathBuf {
@@ -283,17 +283,6 @@ pub fn write(path: &Path, save: &Save) -> Result<PathBuf> {
     std::fs::copy(path, &backup)?;
     std::fs::write(path, save.bytes())?;
     Ok(backup)
-}
-
-/// Apply `presets` to slot `n` under `dir`, as [`edit`] does.
-pub fn edit_slot(
-    romfs: &Romfs,
-    dir: &Path,
-    n: u8,
-    presets: &[String],
-) -> Result<(Vec<String>, PathBuf)> {
-    let edits = presets::for_save(presets, &[])?;
-    edit(&GameData::load(romfs)?, &slot_file(dir, n), &edits)
 }
 
 /// One element of a save value to set, as text its type takes.

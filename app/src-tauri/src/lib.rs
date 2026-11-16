@@ -23,6 +23,7 @@ use zootr::share;
 use zootr::tracker::{self, Row, Tracker};
 
 mod dev_panel;
+mod save_editor;
 mod targets;
 mod ui;
 
@@ -154,65 +155,6 @@ fn shuffle_command() -> Res<String> {
         &config.settings,
         &config.extras(),
     ))
-}
-
-/// A preset an existing save can take.
-#[derive(Serialize, Type)]
-struct SavePreset {
-    name: String,
-    label: String,
-    what: String,
-}
-
-/// What Save slot can pick from.
-#[derive(Serialize, Type)]
-struct SaveOptions {
-    /// Slot numbers holding a save, in the picked target's save folder.
-    slots: Vec<u8>,
-    presets: Vec<SavePreset>,
-}
-
-#[tauri::command]
-#[specta::specta]
-fn save_options() -> Res<SaveOptions> {
-    let dir = Config::load().and_then(|c| c.save_dir()).map_err(text)?;
-    Ok(SaveOptions {
-        slots: zootr::savefile::slots(&dir).map_err(text)?,
-        presets: zootr::presets::for_saves()
-            .map(|p| SavePreset {
-                name: p.name.into(),
-                label: p.label.into(),
-                what: p.what.into(),
-            })
-            .collect(),
-    })
-}
-
-/// What applying presets to a save changed.
-#[derive(Serialize, Type)]
-struct SaveEdit {
-    /// Each flag as `name: old -> new`.
-    log: Vec<String>,
-    backup: String,
-}
-
-/// Apply presets to a save slot, keeping a backup of the old save.
-#[tauri::command]
-#[specta::specta]
-async fn edit_save(slot: u8, presets: Vec<String>) -> Res<SaveEdit> {
-    blocking(move || {
-        let config = Config::load()?;
-        if config.targets.iter().any(|t| t.running()) {
-            bail!("Close the game first");
-        }
-        let (log, backup) =
-            zootr::savefile::edit_slot(&romfs(&config)?, &config.save_dir()?, slot, &presets)?;
-        Ok(SaveEdit {
-            log,
-            backup: backup.display().to_string(),
-        })
-    })
-    .await
 }
 
 /// Write a seed to every target.
@@ -740,8 +682,12 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             targets::read_target_file,
             shuffle_command,
             plando_options,
-            save_options,
-            edit_save,
+            save_editor::save_slots,
+            save_editor::save_presets,
+            save_editor::save_items,
+            save_editor::save_click,
+            save_editor::save_flags,
+            save_editor::save_write,
             live_state,
             live_label,
             live_mark,
@@ -818,6 +764,7 @@ pub fn run() -> tauri::Result<()> {
             builder.mount_events(app);
             app.manage(Checks::default());
             app.manage(Items::default());
+            app.manage(save_editor::Layout::default());
             app.manage(Icons::default());
             app.manage(dev_panel::Places::default());
             app.manage(ui::UiFile::default());

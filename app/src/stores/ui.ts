@@ -6,11 +6,19 @@ import {
   type StorageValue,
 } from "zustand/middleware";
 import { dotPath } from "zustand-dot";
-import { commands, events, type Side, type Value } from "@/bindings";
+import {
+  commands,
+  type Edit,
+  events,
+  type FlagQuery,
+  type Side,
+  type Value,
+} from "@/bindings";
 import type { Filter } from "@/checks/rows";
 import { call, message } from "@/lib/api";
 import { THEMES, type Theme } from "@/lib/theme";
 import type { SpoilerTab } from "@/play/spoiler/rows";
+import type { SaveTab } from "@/save/tabs";
 import type { Section, Tab } from "@/shell/nav";
 
 /** Live's resizable columns, in pixels. Change takes whatever is left. */
@@ -54,8 +62,18 @@ export interface Ui {
   update: { skipped: string | null };
   /** The checklists open on the settings pages, by title. */
   settings: { open: string[] };
-  /** Save slot's picks. */
-  save: { slot: number | null; presets: string[] };
+  /** The Save page: the slot, its tab, what's pending and the Flags
+   * tab's query. */
+  save: {
+    slot: number | null;
+    /** When the slot's file was written, as last read. Saving over a file
+     * written since is refused. */
+    stamp: number | null;
+    tab: SaveTab;
+    presets: string[];
+    edits: Edit[];
+    flags: FlagQuery;
+  };
   /** The dev panel's picks and drafts. */
   dev: {
     /** Teleport's tab, each tab's search, and the side to warp to. */
@@ -92,7 +110,14 @@ const INITIAL: Ui = {
   items: { bannerDismissed: false },
   update: { skipped: null },
   settings: { open: [] },
-  save: { slot: null, presets: [] },
+  save: {
+    slot: null,
+    stamp: null,
+    tab: "items",
+    presets: [],
+    edits: [],
+    flags: { search: "", kind: null, changed: true, staged: false, open: {} },
+  },
   dev: {
     teleport: { tab: "places", places: "", actors: "", side: "front" },
     give: { item: "", count: 1 },
@@ -275,10 +300,4 @@ export function init(): Promise<void> {
 export const setChecklistOpen = (title: string, open: boolean) =>
   useUi.setPath("settings.open", (o) =>
     open ? [...o, title] : o.filter((t) => t !== title),
-  );
-
-/** Picks a preset for the save slot, or drops it. */
-export const togglePreset = (name: string, on: boolean) =>
-  useUi.setPath("save.presets", (p) =>
-    on ? [...p, name] : p.filter((n) => n !== name),
   );

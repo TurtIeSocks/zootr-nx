@@ -8,6 +8,7 @@ import { LiveView } from "@/live/live-view";
 import { PlayView } from "@/play/play-view";
 import { SpoilerSheet } from "@/play/spoiler/spoiler-sheet";
 import { SpoilerView } from "@/play/spoiler/spoiler-view";
+import { SaveView } from "@/save/save-view";
 import { SettingsView } from "@/settings/settings-view";
 import { crumbs, type Tab } from "@/shell/nav";
 import { Topbar } from "@/shell/page-header";
@@ -24,6 +25,7 @@ import { init as initUpdate } from "@/stores/update";
 /** The view for each tab. */
 const VIEWS: Record<Tab | "Settings", () => React.JSX.Element> = {
   Play: PlayView,
+  Save: SaveView,
   Checks: ChecksView,
   Items: ItemsView,
   Live: LiveView,

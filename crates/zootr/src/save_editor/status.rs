@@ -56,7 +56,7 @@ pub enum StatusGroup {
 /// One value a choice field can take, and what it reads as.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
-pub struct Choice {
+pub struct StatusChoice {
     pub value: String,
     pub label: String,
 }
@@ -71,7 +71,7 @@ pub struct StatusField {
     pub input: Input,
     /// As the save holds it.
     pub value: String,
-    pub choices: Vec<Choice>,
+    pub choices: Vec<StatusChoice>,
     /// How many of the save's units make one shown: 4 for hearts, kept
     /// in quarters.
     pub per: u32,
@@ -208,7 +208,7 @@ pub fn status(gd: &GameData, pouch: &Pouch, save: &Save) -> Vec<StatusField> {
         })
         .collect();
     if let Some((_, value)) = read(age) {
-        let choice = |value: &str, label: &str| Choice {
+        let choice = |value: &str, label: &str| StatusChoice {
             value: value.into(),
             label: label.into(),
         };
@@ -229,22 +229,22 @@ pub fn status(gd: &GameData, pouch: &Pouch, save: &Save) -> Vec<StatusField> {
 
 /// None, then each piece of gear, then `now` if it's something else, so
 /// the field always shows what the save holds.
-fn choices(gear: &[(&Name, &str)], now: &str) -> Vec<Choice> {
+fn choices(gear: &[(&Name, &str)], now: &str) -> Vec<StatusChoice> {
     if gear.is_empty() {
         return Vec::new();
     }
-    let none = Choice {
+    let none = StatusChoice {
         value: String::new(),
         label: "None".into(),
     };
-    let mut out: Vec<Choice> = std::iter::once(none)
-        .chain(gear.iter().map(|(a, label)| Choice {
+    let mut out: Vec<StatusChoice> = std::iter::once(none)
+        .chain(gear.iter().map(|(a, label)| StatusChoice {
             value: a.to_string(),
             label: (*label).into(),
         }))
         .collect();
     if !out.iter().any(|c| c.value == now) {
-        out.push(Choice {
+        out.push(StatusChoice {
             value: now.into(),
             label: names::pretty(now),
         });

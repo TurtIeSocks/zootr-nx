@@ -22,10 +22,13 @@ import {
 } from "lucide-react";
 
 /** The views that aren't settings. */
-export type Tab = "Play" | "Checks" | "Items" | "Live" | "Spoiler";
+export type Tab = "Play" | "Save" | "Checks" | "Items" | "Live" | "Spoiler";
 
-/** Play, alone at the top of the sidebar. */
-export const PLAY: [Tab, LucideIcon] = ["Play", Gamepad2];
+/** Play and Save, at the top of the sidebar. */
+export const TOP_TABS: [Tab, LucideIcon][] = [
+  ["Play", Gamepad2],
+  ["Save", Save],
+];
 
 /** The installed seed's views, under Current run. */
 export const RUN_TABS: [Tab, LucideIcon][] = [
@@ -43,7 +46,6 @@ export const APP_PANES: [Section, string, LucideIcon][] = [
   ["settings", "Settings", Settings],
   ["targets", "Targets", MonitorPlay],
   ["test", "Test setup", FlaskConical],
-  ["save", "Save slot", Save],
 ];
 
 /** The randomizer's own panes, after the schema's groups. */
