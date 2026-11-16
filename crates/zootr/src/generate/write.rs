@@ -11,11 +11,11 @@ use crate::checks::{self, Drop};
 use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::hints::Hint;
-use crate::settings::{ChestSize, NewGame};
+use crate::settings::{ChestSize, DungeonKeys, NewGame};
 use crate::{
     bombchus, bombs, bridge, cows, cutscenes, dampe, dig, door, flags, fortress, gamedata, gerudo,
-    gifts, hints, key_tints, medallions, navi, patch, pickups, presets, rsdb, scrubs, shops, spawn,
-    standins, starting, steps, text,
+    gifts, hints, key_tints, keys, medallions, navi, patch, pickups, presets, rsdb, scrubs, shops,
+    spawn, standins, starting, steps, text,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -84,7 +84,8 @@ pub fn write_mod(
                 .into_iter()
                 .chain(d.swap.iter().flat_map(|s| [s.check, s.then]))
         })
-        .find(|i| !romfs.root().join(flags::actor_pack(i)).is_file())
+        // Ring and boss key copies are written with the mod.
+        .find(|i| !keys::is_shuffled(i) && !romfs.root().join(flags::actor_pack(i)).is_file())
     {
         bail!("{item} isn't an actor");
     }
@@ -146,10 +147,11 @@ pub fn write_mod(
     let items = drops.values().map(|d| d.item.as_str());
     medallions::write(romfs, &mut builder, &mut tables, items)?;
     // A boss key copy is credited by the hook, so without it the boss key
-    // stays as it is.
+    // stays as it is. Key rings deal them, and bring the hook along.
     let flags = hook_flags(new_game);
-    let bosses = patch::hooked(new_game.progressive, new_game.dev_panel, flags);
-    key_tints::write(romfs, &mut builder, &mut tables, bosses)?;
+    let rings = new_game.keys == DungeonKeys::Rings;
+    let bosses = rings || patch::hooked(new_game.progressive, new_game.dev_panel, flags);
+    key_tints::write(romfs, &mut builder, &mut tables, bosses, rings)?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
     events.write(&mut builder)?;
     if new_game.shop_slots > 0 {
@@ -222,7 +224,7 @@ pub fn write_mod(
     bombs::write(&mut builder)?;
     dig::write(romfs, &mut builder, drops)?;
     let files = builder.finish()?.len();
-    let credits = if bosses { key_tints::credits() } else { vec![] };
+    let credits = key_tints::credits(bosses, rings);
     patch::install(
         mod_dir,
         new_game.progressive,

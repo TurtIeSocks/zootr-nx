@@ -5,18 +5,23 @@
 //! copies, and each copy keeps its pouch row, so the game credits a small
 //! key. A chest's flow knows the boss key only by its own name, so the hook
 //! credits a boss key copy, and a seed without the hook keeps the boss key
-//! as it is. The Gerudo Fortress's keys, their own actors already, show a
-//! model of their own.
+//! as it is. With key rings, each dungeon's ring is a small key copy the
+//! game doesn't count, and the hook fills the counter. The Gerudo
+//! Fortress's keys, their own actors already, show a model of their own.
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, ensure};
 use ounce_formats::{
     ActorPack, Byml, BymlDoc, ModBuilder, Romfs, levels, murmur3, pack_file, redraw, rename,
 };
+use zootr_hook::Credit;
 
 use crate::checks::{self, DROP_ACTOR, GYAML};
-use crate::keys::{BOSS, DUNGEONS, FORTRESS, FORTRESS_KEY, SMALL, boss_flag};
+use crate::keys::{
+    BOSS, DUNGEONS, FORTRESS, FORTRESS_KEY, SMALL, boss_flag, dungeon_of, has_boss, small_flag,
+};
 use crate::known::{Name, actor, field, flag, flow, item};
 use crate::medallions::{self, Colour, model_path, texture_path};
+use crate::rsdb::ROW_ID;
 use crate::standins::{
     MODEL, Tables, actor_path, doc, path_of, raw, renamed, with_ref, write_clone,
 };
@@ -112,40 +117,42 @@ fn chest_key(n: usize) -> String {
     format!("Item_Rando_SmallKey{n:02}")
 }
 
-/// The dungeon whose maps `rel`, a Banc file, is under, by its number.
-fn dungeon_of(rel: &str) -> Option<usize> {
-    let folder = rel.strip_prefix("Banc/")?.split('/').next()?;
-    DUNGEONS
-        .iter()
-        .position(|(d, ..)| *d == folder)
-        .map(|i| i + 1)
+/// Dungeon `n`'s key ring: its small key as a chest's content, but one
+/// the game neither stores nor counts. The hook sets the counter.
+pub fn ring(n: usize) -> String {
+    format!("Item_Rando_KeyRing{n:02}")
 }
 
-/// Whether dungeon `n` has a boss key.
-fn has_boss(n: usize) -> bool {
-    DUNGEONS[n - 1].2
+/// Dungeon `n`'s boss key copy.
+pub fn boss(n: usize) -> String {
+    BOSS_LOOK.name(n)
 }
 
-/// Each boss key copy, with the hash of the Bool the hook sets as it's
-/// found.
-pub fn credits() -> Vec<(String, u32)> {
-    let bosses = DUNGEONS.iter().enumerate().filter(|(_, (.., boss))| *boss);
-    let credit = |(i, (dungeon, ..)): (usize, &(&Name, i32, bool))| {
-        (
-            BOSS_LOOK.name(i + 1),
-            murmur3(boss_flag(dungeon).as_bytes()),
-        )
-    };
-    bosses.map(credit).collect()
+/// What the hook sets as each copy is found: with `bosses` a boss key's
+/// flag, and with `rings` a ring's counter, full.
+pub fn credits(bosses: bool, rings: bool) -> Vec<(String, Credit)> {
+    let hash = |name: String| murmur3(name.as_bytes());
+    let mut out = Vec::new();
+    for (i, (dungeon, small, room)) in DUNGEONS.iter().enumerate() {
+        if bosses && room.is_some() {
+            out.push((boss(i + 1), Credit::Bool(hash(boss_flag(dungeon)))));
+        }
+        if rings {
+            out.push((ring(i + 1), Credit::Int(hash(small_flag(dungeon)), *small)));
+        }
+    }
+    out
 }
 
 /// Writes each dungeon's model and actor copies, the boss key's only with
-/// `bosses`, and points the Fortress keys at a model of their own.
+/// `bosses` and the ring only with `rings`, and points the Fortress keys at
+/// a model of their own.
 pub fn write(
     romfs: &Romfs,
     builder: &mut ModBuilder,
     tables: &mut Tables,
     bosses: bool,
+    rings: bool,
 ) -> Result<()> {
     let small = Host::read(romfs, &SMALL_LOOK)?;
     let boss = Host::read(romfs, &BOSS_LOOK)?;
@@ -158,10 +165,16 @@ pub fn write(
         let name = small.paint(builder, n, tint)?;
         copy(builder, tables, &chest, &chest_key(n), &name)?;
         copy(builder, tables, &floor, &name, &name)?;
+        if rings {
+            copy(builder, tables, &chest, &ring(n), &name)?;
+        }
         if bosses && has_boss(n) {
             let name = boss.paint(builder, n, tint)?;
             copy(builder, tables, &boss_chest, &name, &name)?;
         }
+    }
+    if rings {
+        uncounted(tables)?;
     }
     let name = small.paint(builder, FORTRESS_MODEL, FORTRESS_COLOUR)?;
     for k in 1..=FORTRESS.1 {
@@ -169,6 +182,26 @@ pub fn write(
         repoint(builder, &pack, &name)?;
         tables.show(&pack.name, SMALL_LOOK.host, &name)?;
     }
+    Ok(())
+}
+
+/// Every ring's pouch row says the game neither stores nor counts it.
+fn uncounted(tables: &mut Tables) -> Result<()> {
+    let rings: Vec<String> = (1..=DUNGEONS.len()).map(ring).collect();
+    let deal = field::NOT_PUSH_TO_POUCH.to_string();
+    let changed = tables.edit_pouch(|row| {
+        let id = row.get(ROW_ID).and_then(|v| v.as_string().ok());
+        let hit = id.is_some_and(|id| rings.iter().any(|r| r == id));
+        if hit {
+            row.insert(field::POUCH_SPECIAL_DEAL.get().into(), deal.as_str().into());
+        }
+        hit
+    })?;
+    ensure!(
+        changed == rings.len(),
+        "{changed} ring rows of {}",
+        rings.len()
+    );
     Ok(())
 }
 
@@ -342,21 +375,23 @@ mod tests {
     }
 
     #[test]
-    fn each_boss_key_copy_credits_its_dungeon_s_flag() {
+    fn each_copy_credits_its_dungeon_s_flag_or_counter() {
         if crate::game::no_names() {
             return;
         }
-        let credits = credits();
-        assert_eq!(credits.len(), DUNGEONS.iter().filter(|d| d.2).count());
+        let bosses = DUNGEONS.iter().filter(|d| d.2.is_some()).count();
+        assert_eq!(credits(true, false).len(), bosses);
+        assert_eq!(credits(false, true).len(), DUNGEONS.len());
+        assert!(credits(false, false).is_empty());
         let forest = DUNGEONS
             .iter()
             .position(|d| d.0 == flag::FOREST_TEMPLE)
             .unwrap();
-        let found = credits
-            .iter()
-            .find(|(name, _)| *name == BOSS_LOOK.name(forest + 1));
-        // The Forest Temple's, as `probe data` names it.
-        assert_eq!(found.map(|c| c.1), Some(0x4273_33a0));
+        let credits = credits(true, true);
+        let of = |name: String| credits.iter().find(|(n, _)| *n == name).map(|c| c.1);
+        // The Forest Temple's, as `probe data` names them.
+        assert_eq!(of(boss(forest + 1)), Some(Credit::Bool(0x4273_33a0)));
+        assert_eq!(of(ring(forest + 1)), Some(Credit::Int(0x9023_7092, 5)));
     }
 
     #[test]
@@ -420,7 +455,8 @@ mod tests {
         }
         for (i, (dungeon, _, boss)) in DUNGEONS.iter().enumerate() {
             assert!(per_dungeon[i + 1] > 0, "no keys swapped in {dungeon}");
-            assert_eq!(bosses[i + 1], usize::from(*boss), "{dungeon}'s boss key");
+            let boss = usize::from(boss.is_some());
+            assert_eq!(bosses[i + 1], boss, "{dungeon}'s boss key");
         }
     }
 
@@ -430,7 +466,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-key-tints-{}", std::process::id()));
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let mut tables = Tables::load(&romfs).unwrap();
-        write(&romfs, &mut builder, &mut tables, true).unwrap();
+        write(&romfs, &mut builder, &mut tables, true, true).unwrap();
         builder.finish().unwrap();
         let read = |rel: &str| {
             let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
@@ -455,6 +491,10 @@ mod tests {
                 let boss = BOSS_LOOK.name(n);
                 copies.push((boss.clone(), BOSS, boss));
             }
+            let pouch = crate::standins::row(&tables.pouch, &ring(n)).unwrap();
+            let deal = pouch.get(field::POUCH_SPECIAL_DEAL.get()).unwrap();
+            assert_eq!(deal.as_string().unwrap(), field::NOT_PUSH_TO_POUCH.get());
+            copies.push((ring(n), SMALL, SMALL_LOOK.name(n)));
             for (copy, template, model) in copies {
                 assert!(!read(&model_path(&model)).is_empty(), "{model}");
                 assert_eq!(fmdb(&copy), Some(model), "{copy}");

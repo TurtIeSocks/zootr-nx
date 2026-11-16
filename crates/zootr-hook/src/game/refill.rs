@@ -55,6 +55,14 @@ pub unsafe fn refill(main: usize, table: &Table, actor: usize) {
     }
 }
 
+/// Sets the Int `hash` and its saved copy to `n`, if GameData holds it.
+pub(super) unsafe fn set_int(gd: usize, hash: u32, n: i32) {
+    if let Some(at) = unsafe { entry(gd, INT, hash) } {
+        let value = at as *mut i32;
+        unsafe { (*value, *value.add(1)) = (n, n) };
+    }
+}
+
 /// Where `hash`'s current value sits in the GameData table given by its
 /// slot, entry stride and value offset, like [`INT`].
 unsafe fn entry(

@@ -3,7 +3,7 @@
 
 use core::{arch::asm, arch::global_asm, slice};
 
-use crate::{CAVE, HEADER, Header, LIST, List, Offsets, Shared, TABLE, Table};
+use crate::{CAVE, Credit, HEADER, Header, LIST, List, Offsets, Shared, TABLE, Table};
 
 mod bunny;
 mod chests;
@@ -180,8 +180,12 @@ pub unsafe extern "C" fn content_name(
             let now = name(*value);
             let credit = now.and_then(|n| table.credit(n));
             let gd = dev::single(main, table.offsets.gamedata);
-            if let (Some(hash), Some(gd)) = (credit, gd) {
-                dev::set_bool(main, table.offsets, gd, hash, true);
+            match (credit, gd) {
+                (Some(Credit::Bool(hash)), Some(gd)) => {
+                    dev::set_bool(main, table.offsets, gd, hash, true)
+                }
+                (Some(Credit::Int(hash, n)), Some(gd)) => refill::set_int(gd, hash, n),
+                _ => {}
             }
             now.and_then(|now| level_for(main, &table, now))
         } else {

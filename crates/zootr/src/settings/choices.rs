@@ -59,6 +59,33 @@ impl Keys {
     }
 }
 
+/// Where a dungeon's keys are: [`Keys`], or shuffled.
+#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
+pub enum DungeonKeys {
+    /// Found in their chests, as in the game
+    #[default]
+    Vanilla,
+    /// Held from the start, so the chests that held them are checks
+    Start,
+    /// Each dungeon's small keys as one ring, and its boss key, in any chest
+    Rings,
+}
+
+impl DungeonKeys {
+    pub(super) fn label(self) -> &'static str {
+        match self {
+            Self::Rings => "Key rings",
+            Self::Vanilla => Keys::Vanilla.label(),
+            Self::Start => Keys::Start.label(),
+        }
+    }
+
+    /// Whether the chests that held keys are checks.
+    pub fn moved(self) -> bool {
+        self != Self::Vanilla
+    }
+}
+
 /// How many slots of each shop sell a check, with shopsanity on.
 #[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
 pub enum ShopSlots {

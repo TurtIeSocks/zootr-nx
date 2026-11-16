@@ -9,7 +9,7 @@ use anyhow::{Context, Result, bail, ensure};
 use serde::Deserialize;
 
 use crate::progressive::LINES;
-use crate::settings::{self, NewGame};
+use crate::settings::{self, DungeonKeys, NewGame};
 use crate::world::Era;
 
 pub mod vocab;
@@ -219,6 +219,8 @@ pub struct Ctx {
     pub on: BTreeSet<String>,
     /// For what's rolled per seed, like shop prices.
     pub seed: u64,
+    /// Each dungeon's small keys are a ring, and its boss key shuffled.
+    pub rings: bool,
 }
 
 impl Ctx {
@@ -227,6 +229,7 @@ impl Ctx {
             progressive: new_game.progressive,
             on: new_game.on.clone(),
             seed: new_game.seed,
+            rings: new_game.keys == DungeonKeys::Rings,
         }
     }
 }
@@ -397,6 +400,7 @@ impl Book {
             progressive: true,
             on: BTreeSet::new(),
             seed: 0,
+            rings: false,
         };
         for (word, expr) in &self.abilities {
             self.need(expr, &ctx)
@@ -537,6 +541,7 @@ mod tests {
             progressive,
             on: on.iter().map(|s| s.to_string()).collect(),
             seed: 0,
+            rings: false,
         }
     }
 
