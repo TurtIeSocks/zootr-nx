@@ -52,6 +52,10 @@ const LAND: Duration = Duration::from_secs(30);
 const HOLD: Duration = Duration::from_secs(15);
 const STAY: Duration = Duration::from_millis(500);
 const HELD: f32 = 1.0;
+/// How far off the spot Link may settle, a step down a slope or off a
+/// ledge's lip, and still count as there when he settles in the same place
+/// twice: the walk after a warp reaches its goal from it.
+const SETTLED: f32 = 3.0;
 const TICK: Duration = Duration::from_millis(100);
 
 /// What the game is doing, as far as a teleport cares, and the dev
@@ -409,14 +413,15 @@ impl<M: Memory> Dev<M> {
     /// load, the game puts him back where he arrived.
     pub fn warp(&self, at: [f32; 3]) -> Result<&'static str> {
         let start = Instant::now();
+        let mut before = None;
         loop {
             let tried = self.ask(&Request::Warp(at)).and_then(|done| {
                 std::thread::sleep(STAY);
                 Ok((done, self.link()?))
             });
             match tried {
-                Ok((done, here)) if flat(here, at) <= HELD => return Ok(done),
-                Ok(_) if start.elapsed() < HOLD => {}
+                Ok((done, here)) if stayed(at, here, before) => return Ok(done),
+                Ok((_, here)) if start.elapsed() < HOLD => before = Some(here),
                 Err(_) if start.elapsed() < HOLD => std::thread::sleep(TICK),
                 Ok((_, here)) => bail!("Link didn't stay at {at:?}, he stands at {here:?}"),
                 Err(e) => return Err(e),
@@ -473,6 +478,13 @@ fn wait_while(
         std::thread::sleep(tick);
     }
     Ok(())
+}
+
+/// Whether Link, warped to `at`, stands there: on the spot, or settled
+/// within [`SETTLED`] of it where the last try left him too.
+fn stayed(at: [f32; 3], here: [f32; 3], before: Option<[f32; 3]>) -> bool {
+    let settled = before.is_some_and(|b| flat(b, here) <= HELD);
+    flat(here, at) <= HELD || (settled && flat(here, at) <= SETTLED)
 }
 
 #[cfg(test)]
@@ -550,6 +562,20 @@ mod tests {
         let bytes = names([item::SWORD_KOKIRI, "", ""]).unwrap();
         assert!(bytes.starts_with(format!("{}\0", item::SWORD_KOKIRI).as_bytes()));
         assert!(bytes[NAME..].iter().all(|&b| b == 0));
+    }
+
+    #[test]
+    fn a_warp_settled_a_step_off_its_spot_twice_stayed() {
+        let at = [0.0, 0.0, 0.0];
+        let off = [2.8, -0.5, 0.0];
+        assert!(!stayed(at, off, None), "once could be a slide still going");
+        assert!(stayed(at, off, Some([2.6, -0.4, 0.3])));
+        assert!(!stayed(at, off, Some([1.0, 0.0, 0.0])), "still sliding");
+        let arrival = [40.0, 0.0, 0.0];
+        assert!(
+            !stayed(at, arrival, Some(arrival)),
+            "put back where he arrived"
+        );
     }
 
     #[test]
