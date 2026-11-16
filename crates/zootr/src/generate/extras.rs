@@ -30,7 +30,7 @@ pub struct Extras {
     /// rather than the seed, so it's never kept.
     #[serde(skip)]
     pub dev_panel: bool,
-    /// From before Vanilla chests was a setting. History moves it there on
+    /// From before Shuffle items was a setting. History moves it there on
     /// load, and it's never written.
     #[serde(skip_serializing)]
     pub(crate) vanilla: bool,

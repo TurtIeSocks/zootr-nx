@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use crate::config::Config;
 use crate::generate::{Extras, Report, Spot};
 use crate::icons::icons;
-use crate::settings::{Settings, VANILLA_CHESTS};
+use crate::settings::{self, SHUFFLE_ITEMS, Settings};
 use crate::shuffle::Fixed;
 use crate::{places, share};
 use anyhow::{Context, Result, ensure};
@@ -123,14 +123,15 @@ impl History {
         }
     }
 
-    /// Saved history, brought up to date: readable chest names, and the old
-    /// `vanilla` extra as the Vanilla chests setting.
+    /// Saved history, brought up to date: readable chest names, older
+    /// settings, and the old `vanilla` extra as Shuffle items off.
     fn parse(json: &[u8]) -> Result<Self> {
         let mut history: Self = serde_json::from_slice(json)?;
         for e in &mut history.entries {
             e.report.spots.iter_mut().for_each(Spot::fill_names);
+            settings::upgrade(&mut e.settings);
             if std::mem::take(&mut e.extras.vanilla) {
-                e.settings.insert(VANILLA_CHESTS.into(), true.into());
+                e.settings.insert(SHUFFLE_ITEMS.into(), false.into());
             }
         }
         Ok(history)
@@ -439,7 +440,7 @@ mod tests {
         let mut json = serde_json::to_value(&history).unwrap();
         json["entries"][0]["extras"] = serde_json::json!({ "vanilla": true });
         let e = &History::parse(json.to_string().as_bytes()).unwrap().entries[0];
-        assert_eq!(e.settings[VANILLA_CHESTS], true);
+        assert_eq!(e.settings[SHUFFLE_ITEMS], false);
         assert!(e.extras.is_empty());
     }
 }

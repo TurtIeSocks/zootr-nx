@@ -591,7 +591,7 @@ impl Shuffle {
     pub(super) fn settings(&self) -> Settings {
         let mut settings = self.new_game.settings();
         if self.vanilla {
-            settings.insert(settings::VANILLA_CHESTS.into(), true.into());
+            settings.insert(settings::SHUFFLE_ITEMS.into(), false.into());
         }
         settings
     }

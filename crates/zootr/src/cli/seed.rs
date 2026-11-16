@@ -62,7 +62,7 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
             settings::SKIP_ALL => flag("skip", Some("all".into())),
             id if on && id.starts_with("skip-") => flag("skip", Some(id["skip-".len()..].into())),
             settings::CHEST_SIZE => flag("chest-size", Some(text)),
-            settings::VANILLA_CHESTS if on => flag("vanilla", None),
+            settings::SHUFFLE_ITEMS if !on => flag("vanilla", None),
             id => flag("setting", Some(format!("{id}={text}"))),
         }
     }
@@ -154,7 +154,7 @@ mod tests {
             (settings::SKIP_INTRO.into(), false.into()),
             ("skip-owl".into(), true.into()),
             (settings::CHEST_SIZE.into(), "small".into()),
-            (settings::VANILLA_CHESTS.into(), true.into()),
+            (settings::SHUFFLE_ITEMS.into(), false.into()),
             ("progressive-items".into(), false.into()),
             ("start-bomb-bag".into(), true.into()),
             ("not-a-setting".into(), true.into()),

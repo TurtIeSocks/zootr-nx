@@ -467,8 +467,9 @@ impl Config {
         }
     }
 
-    /// Configs from before the game field held a `romfs` folder instead. Not
-    /// a serde alias, which would leak into the app's TypeScript type.
+    /// Configs from before the game field held a `romfs` folder instead, and
+    /// older settings. Not a serde alias, which would leak into the app's
+    /// TypeScript type.
     fn parse(bytes: &[u8]) -> Result<Self> {
         let mut json: serde_json::Value = serde_json::from_slice(bytes)?;
         if let Some(obj) = json.as_object_mut()
@@ -476,7 +477,9 @@ impl Config {
         {
             obj.entry("game").or_insert(romfs);
         }
-        Ok(serde_json::from_value(json)?)
+        let mut config: Self = serde_json::from_value(json)?;
+        crate::settings::upgrade(&mut config.settings);
+        Ok(config)
     }
 
     /// Add an imported target under a name no other target has.
