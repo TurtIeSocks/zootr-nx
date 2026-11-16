@@ -24,7 +24,7 @@ const OWN_DUNGEON: [&Name; 2] = [item::DUNGEON_MAP, item::DUNGEON_COMPASS];
 
 /// Whether `new_game` moves maps and compasses around their own dungeon.
 fn maps_move(new_game: &NewGame) -> bool {
-    !new_game.vanilla && new_game.on.contains(settings::MAPS_COMPASSES)
+    !new_game.vanilla && !new_game.keep_chests && new_game.on.contains(settings::MAPS_COMPASSES)
 }
 
 /// What `shuffleable` lets in beyond the plain chests.
@@ -184,9 +184,23 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
         }
         placed.push(Placement { check, item });
     }
+    // Gifts come in a fixed order, Saria's first, so they keep their own
+    // item rather than a line's first level they couldn't swap.
+    let own = |c: &'a ItemCheck| match gifts::is_gift(c) {
+        true => keys::pooled(c),
+        false => level(keys::pooled(c)),
+    };
+    // With chests kept, a gift whose item asks keeps it too: only chests
+    // could take it off its hands.
+    let keeps = |c: &'a ItemCheck| {
+        let asks = asks(level(keys::pooled(c)), new_game.progressive);
+        new_game.keep_chests && (!gifts::is_gift(c) || asks) && !fixed.contains_key(&c.hash)
+    };
     let open = Let::of(new_game);
-    let (chests, mut items) = (unique_chests(checks, open)?, Vec::new());
-    items.extend(chests.iter().map(|c| keys::pooled(c)));
+    // Kept checks hold their own item, placed like plando's.
+    let (kept, chests): (Vec<_>, Vec<_>) =
+        (unique_chests(checks, open)?.into_iter()).partition(|c| keeps(c));
+    let mut items: Vec<_> = chests.iter().map(|c| keys::pooled(c)).collect();
     for p in placed.iter().filter(|p| shuffleable(p.check, open)) {
         take(&mut items, p.item, keys::pooled(p.check));
     }
@@ -195,17 +209,17 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
         .filter(|c| !fixed.contains_key(&c.hash))
         .collect();
     if new_game.vanilla {
-        // Gifts come in a fixed order, Saria's first, so they keep their own
-        // item rather than a line's first level they couldn't swap.
-        let own = |c: &'a ItemCheck| match gifts::is_gift(c) {
-            true => keys::pooled(c),
-            false => level(keys::pooled(c)),
-        };
         items = free.iter().map(|c| own(c)).collect();
     } else {
         items.iter_mut().for_each(|i| *i = level(i));
     }
-    starting::swap_out(&mut items, &new_game.start);
+    // One swap over both, so a starting item leaves one spot either way.
+    let mut all: Vec<_> = kept.iter().map(|c| own(c)).collect();
+    all.append(&mut items);
+    starting::swap_out(&mut all, &new_game.start);
+    let mut items = all.split_off(kept.len());
+    let kept = kept.into_iter().zip(all);
+    placed.extend(kept.map(|(check, item)| Placement { check, item }));
     cap_bottles(&mut items, placed.iter().map(|p| p.item));
     Ok(Deal {
         placed,
@@ -682,6 +696,24 @@ mod tests {
         }
         let d = drops(&checks, &p);
         assert!(gifts::GIFTS.iter().all(|g| !d.contains_key(&g.hash())));
+    }
+
+    #[test]
+    fn kept_chests_hold_their_own_item_and_the_rest_still_deal() {
+        needs_names!();
+        let sword = &starting::ITEMS[0];
+        let mut checks = with_gifts();
+        checks.push(chest(20, sword.actor));
+        let new_game = NewGame {
+            keep_chests: true,
+            ..game(false, &[sword])
+        };
+        let none = Fixed::new();
+        let d = deal(&checks, &none, &new_game).unwrap();
+        assert!(!d.free.is_empty() && d.free.iter().all(|c| gifts::is_gift(c)));
+        assert_eq!(d.items.len(), d.free.len());
+        let held = |h| d.placed.iter().find(|p| p.check.hash == h).unwrap().item;
+        assert_eq!((held(2), held(20)), ("Item_B", &**starting::FILLER));
     }
 
     #[test]
