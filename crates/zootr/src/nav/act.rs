@@ -10,7 +10,7 @@ use serde::Serialize;
 use ounce_formats::Romfs;
 
 use super::Level;
-use super::drive::{Drive, Sense, TAP_MS, lean, millis};
+use super::drive::{Drive, SLIDE, Sense, TAP_MS, lean, millis};
 use super::graph::{Graph, dist};
 use super::kinds::{self, Act, Blow};
 use super::route;
@@ -233,6 +233,16 @@ impl<S: Sense, I: Input> Drive<'_, S, I> {
         let went = match self.here {
             true => Went::here(),
             false => self.walk(graph, spot, STAND)?,
+        };
+        // Stopped short of reach but near: slide round what stopped him.
+        let near = dist(self.sense.link()?, placement.pose.at);
+        let went = match (went.reason, act) {
+            (Some(Reason::Blocked | Reason::NoRoute), Act::Face { .. })
+                if near > REACH && near <= SLIDE =>
+            {
+                self.slide(went, spot, STAND)?
+            }
+            _ => went,
         };
         // Blocked within reach is as good as there: a chest's lid or a
         // door's frame can stop Link short of his spot.
@@ -561,6 +571,22 @@ mod tests {
             e.0.borrow_mut().walls = vec![[9.2, 0.0, 9.4, 4.0]];
         });
         assert_eq!(used.went.reason, Some(Reason::Blocked));
+        assert_eq!(
+            eyes.0.borrow().presses.last().map(String::as_str),
+            Some("A")
+        );
+    }
+
+    #[test]
+    fn a_walk_stopped_near_slides_round_and_presses_a() {
+        needs_names!();
+        let chest = placed(actor::OBJ_T_BOX_A_01, 77, [10.0, 0.0, 2.0]);
+        let (used, eyes) = touched(&chest, |e| {
+            e.0.borrow_mut().walls = vec![[8.0, 0.0, 8.2, 2.8]];
+            answers_to_the_north(e);
+        });
+        let pushes = eyes.0.borrow().pushes.len();
+        assert_eq!(used.result, Touch::Event, "{used:?} after {pushes} pushes");
         assert_eq!(
             eyes.0.borrow().presses.last().map(String::as_str),
             Some("A")
