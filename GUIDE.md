@@ -33,7 +33,7 @@ The builds aren't signed yet, so macOS and Windows warn the first time:
 | Shuffle | Moves items to new places, from chests out to whatever the Shuffles and Dungeons settings add, with glitchless logic so the seed can be beaten |
 | Generate | Writes a mod folder with only the game files it changed, a code patch for progressive items, and a spoiler log |
 | Install | Writes the mod into each target's mod folder, plus any settings lines the target needs to load it |
-| Track | Watches the running game and ticks off checks and items as Link finds them. macOS only |
+| Track | Watches the running game and ticks off checks and items as Link finds them. On macOS, or any system when the target has a `bridge` |
 
 ## Features
 
@@ -183,12 +183,14 @@ has these fields:
 | Field | What it is |
 |---|---|
 | `name` | Shown in the Play picker |
-| `app` | What Play opens. Its process also tells zootr the game is running |
+| `app` | What Play opens. Without a `bridge`, its process also tells zootr the game is running |
 | `mod_dir` | The mod folder. Install writes `romfs/` and the code patch, `exefs/zootr.pchtxt`, here. The same patch goes in `cheats/` too when a settings line names `{cheats}` |
 | `args` | Optional launch arguments. `{game}` becomes your game dump |
 | `save_dir` | Optional. The folder holding `slot_00`, `slot_01` and so on |
 | `settings_file` | Optional. A `file` and the `lines` to set in it on install, for apps that read the mod path from a settings file |
 | `control` | Optional. A file the game reads input lines from, for the play harness. A settings line names it with `{control}` |
+| `bridge` | Optional. A control socket the app opens for zootr: a socket path on macOS and Linux, a pipe name on Windows. The tracker, Live log and dev panel read the game through it, and the game counts as running while it answers |
+| `env` | Optional. `NAME=VALUE` lines set when Play starts the app. `{bridge}` becomes the socket |
 
 In a settings line, `{romfs}` becomes the mod's romfs folder, `{cheats}` its
 cheat folder and `{control}` the target's control file. Install replaces

@@ -289,8 +289,8 @@ pub enum Next<G> {
     Retry(String),
 }
 
-/// Live reads if attaching worked. Only a build that isn't signed, or isn't
-/// on macOS, can't attach at all, so that falls back to autosaves, and
+/// Live reads if attaching worked. Only a build that isn't signed, or a
+/// target off macOS without a bridge, can't attach at all, so that falls back to autosaves, and
 /// anything else is retried.
 pub fn decide<G>(attach: Result<G>, saves: Option<PathBuf>) -> Next<G> {
     match attach {
@@ -842,7 +842,7 @@ mod tests {
         assert!(matches!(decide(unsigned(), None), Next::Wait(_)));
         let elsewhere = decide::<u8>(Err(Unsupported.into()), Some(dir.clone()));
         assert!(
-            matches!(elsewhere, Next::Record(Pick::Saves(_), Some(why)) if why == "live reads need macOS")
+            matches!(elsewhere, Next::Record(Pick::Saves(_), Some(why)) if why == "live reads need macOS, or a target with a bridge")
         );
         let booting = decide::<u8>(
             Err(anyhow::anyhow!("no {}\nyet", flag::GAME_DATA)),
