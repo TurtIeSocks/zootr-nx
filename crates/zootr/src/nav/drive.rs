@@ -11,10 +11,11 @@ use anyhow::Result;
 use ounce_formats::Romfs;
 use serde::Serialize;
 
-use super::act::{self, Used};
+use super::act;
 use super::graph::Graph;
 use super::route::{Route, Waypoint, plan};
 use super::scene::{Entry, scene};
+use super::went::{Done, Gone, Reason, Went};
 use super::{CLOCKWISE, Level, heading};
 use crate::around::clockwise;
 use crate::checks::flat;
@@ -32,6 +33,11 @@ const MAX_LEG: f32 = 1.5;
 const REACHED: f32 = 0.5;
 /// How near the goal `go` stops, in m.
 pub const ARRIVE: f32 = 1.0;
+/// How near a goal with no route Link still walks straight at, in m. The
+/// mesh leaves out ground he can stand on: Gerudo Valley's red rupee
+/// chest stands on rocks 2 m past its edge, and every walk to it gave up
+/// there (22 sweeps).
+const STRAIGHT: f32 = 3.0;
 /// How long a walk may take by default.
 pub const BUDGET: Duration = Duration::from_secs(60);
 /// How long the game gets to settle after ZL, and after a push, so the
@@ -166,102 +172,6 @@ pub fn contact(before: [f32; 3], after: [f32; 3], expected: f32, walls: &[u8]) -
 /// under half of it, and neither dropped nor climbed.
 fn stuck(before: [f32; 3], after: [f32; 3], expected: f32) -> bool {
     flat(before, after) < STUCK * expected && rise(before, after).abs() <= LEVEL
-}
-
-/// Why a walk gave up.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Reason {
-    /// No path in the graph.
-    NoRoute,
-    /// Two blocks at one waypoint: an enemy, a rock.
-    Blocked,
-    /// A loading zone took Link to another map.
-    LeftMap,
-    /// A text box or a scene started.
-    Event,
-    /// Out of time.
-    Budget,
-}
-
-said!(Reason {
-    NoRoute => "no route",
-    Blocked => "blocked",
-    LeftMap => "left map",
-    Event => "event",
-    Budget => "budget",
-});
-
-/// How a walk ended.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Done {
-    Arrived,
-    GaveUp,
-    /// Link was moved with `warp` instead of walking.
-    Warped,
-}
-
-said!(Done {
-    Arrived => "arrived",
-    GaveUp => "gave up",
-    Warped => "warped",
-});
-
-/// A walk: how it ended, and the cost.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
-pub struct Went {
-    pub result: Done,
-    pub reason: Option<Reason>,
-    pub secs: f32,
-    pub legs: u32,
-    /// Flat distance from Link to the goal, in m. Not said once he has left
-    /// the goal's map.
-    pub left: Option<f32>,
-}
-
-impl Went {
-    /// Standing at the goal without a step taken.
-    pub fn here() -> Self {
-        Self {
-            result: Done::Arrived,
-            reason: None,
-            secs: 0.0,
-            legs: 0,
-            left: Some(0.0),
-        }
-    }
-}
-
-impl fmt::Display for Went {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.result)?;
-        if let Some(reason) = self.reason {
-            write!(f, " ({reason})")?;
-        }
-        write!(f, ", {:.1} s, {} legs", self.secs, self.legs)?;
-        match self.left {
-            Some(left) => write!(f, ", {left:.1} m left"),
-            None => Ok(()),
-        }
-    }
-}
-
-/// A walk, and when asked the `use` that followed.
-#[derive(Debug, Serialize)]
-pub struct Gone {
-    #[serde(flatten)]
-    pub went: Went,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub used: Option<Used>,
-}
-
-impl fmt::Display for Gone {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.went)?;
-        match &self.used {
-            Some(used) => write!(f, "\n{used}"),
-            None => Ok(()),
-        }
-    }
 }
 
 /// One push toward an hour: where Link stood before and after it.
@@ -486,6 +396,31 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
         })
     }
 
+    /// No route to `goal`: within [`STRAIGHT`] of it, one push straight at
+    /// it, else no route. Short of it after the push, he was blocked if he
+    /// stopped, as by the chest he walks to.
+    fn straight(
+        &mut self,
+        goal: [f32; 3],
+        arrive: f32,
+        legs: u32,
+    ) -> Result<(Option<Reason>, u32)> {
+        let here = self.sense.link()?;
+        if flat(here, goal) > STRAIGHT {
+            return Ok((Some(Reason::NoRoute), legs));
+        }
+        let secs = lean(here, goal);
+        self.steer(goal, millis(secs))?;
+        let now = self.sense.link()?;
+        let reason = match () {
+            _ if self.sense.state()?.event => Some(Reason::Event),
+            _ if flat(now, goal) <= arrive => None,
+            _ if stuck(here, now, secs * SPEED) => Some(Reason::Blocked),
+            _ => Some(Reason::NoRoute),
+        };
+        Ok((reason, legs + 1))
+    }
+
     /// The legs of a walk, and the reason it stopped short, if it did. A
     /// block plans again from where Link is, and a second one at the same
     /// waypoint gives up.
@@ -504,7 +439,7 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             return Ok((None, 0));
         }
         let Ok(mut route) = plan(graph, link, goal) else {
-            return Ok((Some(Reason::NoRoute), 0));
+            return self.straight(goal, arrive, 0);
         };
         let (mut next, mut legs, mut blocked) = (1, 0, None::<[f32; 3]>);
         loop {
@@ -543,7 +478,7 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             }
             blocked = Some(target);
             let Ok(again) = plan(graph, now, goal) else {
-                return Ok((Some(Reason::NoRoute), legs));
+                return self.straight(goal, arrive, legs);
             };
             (route, next) = (again, 1);
         }
@@ -806,6 +741,22 @@ mod tests {
     }
 
     #[test]
+    fn a_goal_just_off_the_mesh_is_walked_to_straight() {
+        // Past the 1.5 m a plan reaches off the mesh for its goal.
+        let (eyes, mut hands) = sim::start([3.5, 0.0, 2.0], std::f32::consts::FRAC_PI_2);
+        let ledge = mesh(&[quad(0.0, 0.0, 4.0, 4.0, 0.0)]);
+        let graph = Graph::build(&ledge, &[], STEP_UP);
+        let went = sim::drive(&eyes, &mut hands)
+            .walk(&graph, [6.2, 0.0, 2.0], ARRIVE)
+            .unwrap();
+        assert_eq!(
+            (went.result, went.reason, went.legs),
+            (Done::Arrived, None, 1)
+        );
+        assert_eq!(eyes.0.borrow().pushes.len(), 1);
+    }
+
+    #[test]
     fn a_loading_zone_is_left_map() {
         let (went, _) = walked(|w| w.after_push = Some(Box::new(|w| w.map = "Other".into())));
         assert_eq!(
@@ -834,48 +785,6 @@ mod tests {
             (went.result, went.reason, went.legs),
             (Done::GaveUp, Some(Reason::Budget), 0)
         );
-    }
-
-    #[test]
-    fn a_walk_says_what_it_did_in_words_and_json() {
-        let went = Went {
-            result: Done::GaveUp,
-            reason: Some(Reason::NoRoute),
-            secs: 3.25,
-            legs: 2,
-            left: Some(4.5),
-        };
-        assert_eq!(
-            went.to_string(),
-            "gave up (no route), 3.2 s, 2 legs, 4.5 m left"
-        );
-        assert_eq!(
-            serde_json::to_string(&went).unwrap(),
-            r#"{"result":"gave up","reason":"no route","secs":3.25,"legs":2,"left":4.5}"#
-        );
-        let went = Went {
-            result: Done::Arrived,
-            reason: None,
-            ..went
-        };
-        assert!(
-            serde_json::to_string(&went)
-                .unwrap()
-                .contains(r#""reason":null"#)
-        );
-        // Without a `use` after it, `go` says just the walk.
-        let gone = Gone { went, used: None };
-        assert_eq!(
-            serde_json::to_string(&gone).unwrap(),
-            serde_json::to_string(&went).unwrap()
-        );
-        let away = Went {
-            result: Done::GaveUp,
-            reason: Some(Reason::LeftMap),
-            left: None,
-            ..went
-        };
-        assert_eq!(away.to_string(), "gave up (left map), 3.2 s, 2 legs");
     }
 
     /// A 4 m square room with a tree just past its east wall, and Link at

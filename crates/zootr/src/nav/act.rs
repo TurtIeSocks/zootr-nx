@@ -10,10 +10,11 @@ use serde::Serialize;
 use ounce_formats::Romfs;
 
 use super::Level;
-use super::drive::{Done, Drive, Reason, Sense, TAP_MS, Went, lean, millis};
+use super::drive::{Drive, Sense, TAP_MS, lean, millis};
 use super::graph::{Graph, dist};
 use super::kinds::{self, Act, Blow};
 use super::route;
+use super::went::{Done, Reason, Went};
 use crate::dev::Dev;
 use crate::live::Memory;
 use crate::play::Input;
