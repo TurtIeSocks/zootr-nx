@@ -2,26 +2,75 @@
 //! `zootr sweep`: a night of rounds on the native build.
 
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
 use ounce_formats::Romfs;
 
+use super::args::StartArgs;
 use super::running::saved_test;
 use crate::config::Config;
 use crate::dev::Dev;
 use crate::history::History;
 use crate::live::{self, Game};
-use crate::play::{self, Report, Run, Script};
+use crate::play::{self, Launch, Report, Run, Script, Start, boot};
 use crate::sweep::judge::ModelJudge;
 use crate::sweep::night::{self, Night};
+use crate::turn::{self, Turn};
 use crate::vision::Vision;
-use crate::{recorder, warp};
+use crate::{kept, recorder, warp};
 
 /// How long the game gets to start and load.
 const LAUNCH: Duration = Duration::from_secs(180);
 
-pub(super) fn play(romfs: &Romfs, script: &Path, attach: bool, stall: u64) -> Result<()> {
+/// `zootr boot`: the game started on a kept save or a new file, into play.
+pub(super) fn boot_command(start: StartArgs, limit: u64) -> Result<()> {
+    let launch =
+        Launch::named(start.save, start.new)?.context("name a start: --save NAME or --new")?;
+    let config = Config::load()?;
+    let target = config.target()?;
+    let mut input = play::input(&target, config.game.as_deref())?;
+    let begun = Instant::now();
+    let save = boot_on(
+        &mut input,
+        &target,
+        &launch,
+        &start.session,
+        Duration::from_secs(limit),
+    )?;
+    let map = Dev::new(Game::attach(&target)?).and_then(|dev| dev.state());
+    let map = map.map(|s| s.map).unwrap_or_else(|_| "?".into());
+    println!("in play on {map} after {} s", begun.elapsed().as_secs());
+    println!("save folder: {}", save.display());
+    Ok(())
+}
+
+/// Start the game on `launch` from a run folder of its own, on this
+/// session's turn, and return that folder.
+fn boot_on(
+    input: &mut impl play::Input,
+    target: &crate::config::Target,
+    launch: &Launch,
+    session: &str,
+    limit: Duration,
+) -> Result<PathBuf> {
+    Turn::load()?.ensure_held(session, turn::from_claude())?;
+    let (start, name) = match launch {
+        Launch::Kept(name) => (Start::Save(kept::path(name)?), name.as_str()),
+        Launch::New => (Start::New, "new"),
+    };
+    let save = boot::prepare(&start, name)?;
+    boot::boot(input, target, Some(&save), limit)?;
+    Ok(save)
+}
+
+pub(super) fn play(
+    romfs: &Romfs,
+    script: &Path,
+    attach: bool,
+    stall: u64,
+    start: StartArgs,
+) -> Result<()> {
     let path = script;
     let script = Script::load(path)?;
     let setup = match &script.test {
@@ -32,10 +81,18 @@ pub(super) fn play(romfs: &Romfs, script: &Path, attach: bool, stall: u64) -> Re
     let config = Config::load()?;
     let target = config.target()?;
     let mut input = play::input(&target, config.game.as_deref())?;
+    let launch = match attach {
+        true => None,
+        false => Launch::named(start.save, start.new)?.or(script.launch.clone()),
+    };
+    if let Some(launch) = &launch {
+        boot_on(&mut input, &target, launch, &start.session, boot::LIMIT)?;
+    }
+    let attach = attach || launch.is_some();
     let connect = || Dev::new(Game::attach(&target)?);
     let ready = |dev: &Dev| Ok(dev.state().is_ok_and(|s| !s.loading && !s.map.is_empty()));
     let dev = play::session(&mut input, attach, connect, ready, (LAUNCH, live::TICK))?;
-    let dir = play::folder(&script.name)?;
+    let dir = play::folder("play", &script.name)?;
     let report = Report {
         name: script.name.clone(),
         script: path.to_path_buf(),

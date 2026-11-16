@@ -8,6 +8,7 @@ use anyhow::Result;
 
 use crate::config::Target;
 
+pub mod boot;
 mod input;
 mod mac;
 mod native;
@@ -16,28 +17,31 @@ mod run;
 mod script;
 mod watch;
 
+pub use boot::Start;
 pub use input::{Boot, Input, PRESS};
 pub use mac::Mac;
 pub use native::Native;
 pub use report::Report;
 pub use run::{Run, run, session};
-pub use script::{Kind, Script, Step};
+pub use script::{Kind, Launch, Script, Step};
 
 /// The target's game as an [`Input`]: the native build when the target
 /// has a bridge, else the Mac game. `game` is the dump `{game}` names.
 pub fn input(target: &Target, game: Option<&Path>) -> Result<Box<dyn Input>> {
-    let args = target.launch_args(game)?;
+    let (app, args, env) = (
+        target.app.clone(),
+        target.launch_args(game)?,
+        target.harness_env()?,
+    );
     Ok(match &target.bridge {
-        Some(socket) => {
-            let env = target.launch_env()?;
-            Box::new(Native::new(target.app.clone(), args, env, socket.clone()))
-        }
-        None => Box::new(Mac::new(target.app.clone(), args, target.control.clone())),
+        Some(socket) => Box::new(Native::new(app, args, env, socket.clone())),
+        None => Box::new(Mac::new(app, args, env, target.control.clone())),
     })
 }
 
-/// A run's own folder, `play/<time>-<name>/` beside the app's live logs.
-pub fn folder(name: &str) -> Result<PathBuf> {
+/// A run's own folder, `<kind>/<time>-<name>/` beside the app's live
+/// logs.
+pub fn folder(kind: &str, name: &str) -> Result<PathBuf> {
     let time = jiff::Zoned::now().strftime("%Y-%m-%d-%H%M%S");
     let slug: String = (name.chars())
         .map(|c| {
@@ -54,6 +58,6 @@ pub fn folder(name: &str) -> Result<PathBuf> {
         .collect::<Vec<_>>()
         .join("-");
     Ok(crate::recorder::logs()?
-        .with_file_name("play")
+        .with_file_name(kind)
         .join(format!("{time}-{slug}")))
 }

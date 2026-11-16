@@ -10,6 +10,7 @@ use serde_json::{Value, json};
 
 use super::mac::{line, stick};
 use super::{Boot, Input};
+use crate::config::with_save;
 use crate::live::{Bridge, PATIENCE};
 
 /// The game's frames a second, for turning a hold's milliseconds into
@@ -83,10 +84,10 @@ impl Input for Native {
         Bridge::listening(&self.socket)
     }
 
-    fn launch(&mut self) -> Result<()> {
+    fn launch(&mut self, save: Option<&Path>) -> Result<()> {
         Command::new(&self.app)
             .args(&self.args)
-            .envs(self.env.iter().map(|(k, v)| (k, v)))
+            .envs(with_save(&self.env, save))
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())

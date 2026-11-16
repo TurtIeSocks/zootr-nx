@@ -40,6 +40,8 @@ const WAIT: Duration = Duration::from_secs(3);
 const MAP: &Name = flag::SEQUENCE_CURRENT_BANC;
 const IS_CHILD: &Name = flag::SEQUENCE_IS_CHILDHOOD;
 const LOADING: &Name = flag::SEQUENCE_IS_LOADING_BANC;
+/// Set as the title's menu opens.
+const TITLE: &Name = flag::UI_DEBUG_IS_OPENED_TITLE;
 /// The event manager's playing event.
 const PLAYING: u64 = 104;
 /// How long a quest step's or grant's event gets to finish, and how often to look. The
@@ -225,6 +227,11 @@ impl<M: Memory> Dev<M> {
 
     fn flag(&self, name: &str) -> Result<bool> {
         Ok(self.value(name)?[0] & 1 == 1)
+    }
+
+    /// Whether the title's menu has opened, so it takes buttons.
+    pub fn title_open(&self) -> Result<bool> {
+        self.flag(TITLE)
     }
 
     pub fn state(&self) -> Result<State> {

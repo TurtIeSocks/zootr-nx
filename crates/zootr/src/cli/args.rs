@@ -45,6 +45,18 @@ pub(super) enum Command {
         #[arg(long)]
         force: bool,
     },
+    /// Start the game on a kept save or a new file and press A through the
+    /// menus, returning once Link is in play. On Claude's turn only, when
+    /// run from Claude's shell. Muted, 30 fps and off the cloud saves when
+    /// the target's harness env says so.
+    #[command(hide = true)]
+    Boot {
+        #[command(flatten)]
+        start: StartArgs,
+        /// Seconds to give up after: the first start prepares shaders.
+        #[arg(long, default_value_t = 600)]
+        limit: u64,
+    },
     /// Extract the game files zootr reads from the dump into the cache,
     /// and print where they are.
     Extract,
@@ -251,12 +263,30 @@ pub(super) enum Command {
         script: PathBuf,
         /// Use the game already running. Without it a running game is
         /// refused, since it may be someone's session.
-        #[arg(long)]
+        #[arg(long, conflicts_with_all = ["save", "new"])]
         attach: bool,
         /// Seconds an event may play with nothing changing.
         #[arg(long, default_value_t = 15)]
         stall: u64,
+        #[command(flatten)]
+        start: StartArgs,
     },
+}
+
+/// What a harness start plays. Without either, the game's own saves.
+#[derive(clap::Args)]
+pub(super) struct StartArgs {
+    /// Continue a kept save (`zootr save kept`). The game plays a copy, so
+    /// the kept one never changes.
+    #[arg(long, value_name = "NAME", conflicts_with = "new")]
+    pub(super) save: Option<String>,
+    /// A new file on the installed seed.
+    #[arg(long)]
+    pub(super) new: bool,
+    /// This Claude session's name, as it took the turn. Needed from
+    /// Claude's shell.
+    #[arg(long, default_value = "")]
+    pub(super) session: String,
 }
 
 #[derive(Subcommand)]
@@ -463,6 +493,24 @@ pub(super) enum SaveCommand {
         #[arg(long)]
         grep: Option<String>,
     },
+    /// Keep a save folder in the library as NAME, for `boot --save NAME`.
+    /// Replaces a kept save of the same name. Quit the game first when
+    /// keeping the folder it plays in.
+    Keep {
+        name: String,
+        /// Only this slot, kept as slot 0 so Continue loads it.
+        #[arg(long)]
+        slot: Option<u8>,
+        /// The save folder: the picked target's when omitted, or a boot's
+        /// run folder to keep what that run reached.
+        #[arg(long, value_name = "DIR")]
+        from: Option<PathBuf>,
+        /// What the save is for.
+        #[arg(long, default_value = "")]
+        note: String,
+    },
+    /// The kept saves: name, map, age, when and why each was kept.
+    Kept,
     /// Set scalar values, e.g. `IsGet.ITEM=true`. Close the game
     /// first. The old file is kept next to it as a timestamped backup.
     Set {

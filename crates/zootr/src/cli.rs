@@ -13,7 +13,7 @@ use crate::sweep::judge::ModelJudge;
 use crate::vision::Vision;
 use crate::{events, flows, game, generate, spawn, world};
 use args::{Cli, Command};
-use play::{look, play, sweep};
+use play::{boot_command, look, play, sweep};
 use research::{census, chest_events, cutscenes, flags, flow, items, logic};
 use running::{dev, give, live, set};
 use save::save_command;
@@ -48,6 +48,9 @@ pub fn run() -> Result<()> {
     if let Command::Target(cmd) = cli.command {
         return target_command(cmd);
     }
+    if let Command::Boot { start, limit } = cli.command {
+        return boot_command(start, limit);
+    }
     let path = match cli.game {
         Some(p) => p,
         None => Config::load()?
@@ -60,7 +63,7 @@ pub fn run() -> Result<()> {
     }
     let romfs = game::prepare(&path)?;
     match cli.command {
-        Command::Extract | Command::Target(_) | Command::Turn { .. } => {
+        Command::Extract | Command::Target(_) | Command::Turn { .. } | Command::Boot { .. } => {
             unreachable!("handled above")
         }
         Command::Census => census(&romfs),
@@ -152,7 +155,8 @@ pub fn run() -> Result<()> {
             script,
             attach,
             stall,
-        } => play(&romfs, &script, attach, stall),
+            start,
+        } => play(&romfs, &script, attach, stall, start),
         Command::Sweep {
             out,
             rounds,

@@ -15,6 +15,8 @@ export interface Draft {
   bridge: string;
   /** One env line per row. */
   env: string;
+  /** One harness env line per row. */
+  harness_env: string;
 }
 
 /** A saved target as the form edits it. */
@@ -29,6 +31,7 @@ export const toDraft = (t: Target): Draft => ({
   control: t.control ?? "",
   bridge: t.bridge ?? "",
   env: t.env?.join("\n") ?? "",
+  harness_env: t.harness_env?.join("\n") ?? "",
 });
 
 /** The target a draft saves as, trimmed, with blank options left out. */
@@ -45,6 +48,7 @@ export const toTarget = (d: Draft): Target => ({
   control: d.control.trim() || null,
   bridge: d.bridge.trim() || null,
   env: splitLines(d.env),
+  harness_env: splitLines(d.harness_env),
 });
 
 /** A new target with nothing filled in. */
@@ -130,6 +134,12 @@ export const FIELDS: DraftField[] = [
     multiline: true,
   },
   {
+    key: "harness_env",
+    label: "Harness environment (optional)",
+    hint: "One NAME=VALUE per line, added when an agent's play harness starts the app, never Play. {save} becomes the run's save folder",
+    multiline: true,
+  },
+  {
     key: "control",
     label: "Control file (optional)",
     hint: "A file the game reads input lines from, for scripted play",
@@ -149,10 +159,18 @@ export function problem(drafts: Draft[]): string {
   if (drafts.some((d) => splitLines(d.lines).some((l) => !l.includes("=")))) {
     return "A settings line looks like KEY={romfs}";
   }
-  if (drafts.some((d) => splitLines(d.env).some((l) => !l.includes("=")))) {
+  const env = (d: Draft) => [
+    ...splitLines(d.env),
+    ...splitLines(d.harness_env),
+  ];
+  if (drafts.some((d) => env(d).some((l) => !l.includes("=")))) {
     return "An environment line looks like NAME=VALUE";
   }
-  if (drafts.some((d) => !d.bridge.trim() && d.env.includes("{bridge}"))) {
+  if (
+    drafts.some(
+      (d) => !d.bridge.trim() && env(d).some((l) => l.includes("{bridge}")),
+    )
+  ) {
     return "An environment line names {bridge}, so the target needs a control socket";
   }
   return "";

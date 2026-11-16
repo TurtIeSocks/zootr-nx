@@ -628,6 +628,13 @@ export type Target = {
 	 *  the socket.
 	 */
 	env?: string[],
+	/**
+	 *  `NAME=VALUE` lines the play harness adds to `env` when it starts
+	 *  `app`, never the app's own Play: muted, slower, its own saves.
+	 *  `{save}` becomes the run's save folder, and a line naming it is left
+	 *  out when a start has none.
+	 */
+	harness_env?: string[],
 } & ({
 	/**  Settings file lines written on install, e.g. `KEY={romfs}`. */
 	settings_file?: SettingsFile | null,

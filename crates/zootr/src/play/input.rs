@@ -23,8 +23,9 @@ pub trait Input {
     /// Whether the game is running already.
     fn running(&self) -> bool;
 
-    /// Start the game with the installed seed.
-    fn launch(&mut self) -> Result<()>;
+    /// Start the game with the installed seed, playing from the save
+    /// folder `save` when given (the target's `{save}` harness line).
+    fn launch(&mut self, save: Option<&Path>) -> Result<()>;
 
     /// Whether this game takes buttons and the stick, or why not.
     fn keys(&self) -> Result<()>;
@@ -65,8 +66,8 @@ impl<I: Input + ?Sized> Input for Box<I> {
         (**self).running()
     }
 
-    fn launch(&mut self) -> Result<()> {
-        (**self).launch()
+    fn launch(&mut self, save: Option<&Path>) -> Result<()> {
+        (**self).launch(save)
     }
 
     fn keys(&self) -> Result<()> {

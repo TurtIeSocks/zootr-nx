@@ -102,6 +102,7 @@ mod tests {
             control: None,
             bridge: None,
             env: vec![],
+            harness_env: vec![],
         };
         let line = SettingsFile {
             file: env.clone(),
@@ -134,6 +135,7 @@ mod tests {
             control: None,
             bridge: None,
             env: vec![],
+            harness_env: vec![],
         };
         let targets = [
             target("a", "m1", false),
@@ -169,6 +171,7 @@ mod tests {
             control: None,
             bridge: None,
             env: vec![],
+            harness_env: vec![],
         };
         let targets = [target("reads", "C={cheats}"), target("not", "R={romfs}")];
         install(&targets, |d| crate::patch::install(d, true, false, 0, &[])).unwrap();

@@ -11,6 +11,7 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result, bail, ensure};
 
 use super::Input;
+use crate::config::with_save;
 use crate::{live, platform};
 
 /// The names a control line takes, joined with `+`.
@@ -37,16 +38,28 @@ function run(argv) {
 }
 "#;
 
-/// A game started from `app` with `args`, taking input from `control`.
+/// A game started from `app` with `args` and the harness's `env`, taking
+/// input from `control`.
 pub struct Mac {
     app: PathBuf,
     args: Vec<String>,
+    env: Vec<(String, String)>,
     control: Option<PathBuf>,
 }
 
 impl Mac {
-    pub fn new(app: PathBuf, args: Vec<String>, control: Option<PathBuf>) -> Self {
-        Self { app, args, control }
+    pub fn new(
+        app: PathBuf,
+        args: Vec<String>,
+        env: Vec<(String, String)>,
+        control: Option<PathBuf>,
+    ) -> Self {
+        Self {
+            app,
+            args,
+            env,
+            control,
+        }
     }
 
     fn control(&self) -> Result<&Path> {
@@ -112,8 +125,8 @@ impl Input for Mac {
         platform::running(&self.app)
     }
 
-    fn launch(&mut self) -> Result<()> {
-        platform::open_app(&self.app, &self.args, &[])
+    fn launch(&mut self, save: Option<&Path>) -> Result<()> {
+        platform::open_app(&self.app, &self.args, &with_save(&self.env, save))
     }
 
     /// Every process of the app, the game and its host alike: a host left
@@ -207,7 +220,7 @@ mod tests {
     fn each_step_appends_its_line_to_the_control_file() {
         let dir = scratch("control");
         let control = dir.join("input.txt");
-        let mut game = Mac::new(dir.join("none.app"), vec![], Some(control.clone()));
+        let mut game = Mac::new(dir.join("none.app"), vec![], vec![], Some(control.clone()));
         game.keys().unwrap();
         game.press("A").unwrap();
         game.press("A+B").unwrap();
@@ -244,11 +257,11 @@ mod tests {
     fn a_bad_button_or_no_control_file_is_refused() {
         let dir = scratch("bad");
         let control = dir.join("input.txt");
-        let mut game = Mac::new(dir.join("none.app"), vec![], Some(control.clone()));
+        let mut game = Mac::new(dir.join("none.app"), vec![], vec![], Some(control.clone()));
         let err = game.press("Start").unwrap_err().to_string();
         assert!(err.contains("Start isn't a button"), "{err}");
         assert!(!control.exists());
-        let mut bare = Mac::new(dir.join("none.app"), vec![], None);
+        let mut bare = Mac::new(dir.join("none.app"), vec![], vec![], None);
         assert!(bare.keys().unwrap_err().to_string().contains("control"));
         assert!(bare.press("A").is_err());
         bare.dump().unwrap();

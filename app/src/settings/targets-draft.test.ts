@@ -19,6 +19,7 @@ test("a draft saves back as the target it came from, blanks left out", () => {
     control: null,
     bridge: null,
     env: [],
+    harness_env: [],
   });
 });
 
@@ -27,6 +28,7 @@ test("a bridge and its env lines save back as they were", () => {
     ...runner,
     bridge: "/run/c.sock",
     env: ["SOCK={bridge}", "MEM=rw"],
+    harness_env: ["SAVES={save}", "FPS=30"],
   };
   expect(toTarget(toDraft(native))).toMatchObject(native);
 });
@@ -52,4 +54,8 @@ test("problem names the first thing stopping a save", () => {
   expect(problem([{ ...ok, env: "no equals" }])).toMatch(/NAME=VALUE/);
   expect(problem([{ ...ok, env: "S={bridge}" }])).toMatch(/control socket/);
   expect(problem([{ ...ok, env: "S={bridge}", bridge: "/s" }])).toBe("");
+  expect(problem([{ ...ok, harness_env: "no equals" }])).toMatch(/NAME=VALUE/);
+  expect(problem([{ ...ok, harness_env: "S={bridge}" }])).toMatch(
+    /control socket/,
+  );
 });

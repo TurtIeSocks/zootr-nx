@@ -10,7 +10,7 @@ pub(super) fn turn(to: Option<String>, note: String, session: String, force: boo
     let mut now = Turn::load()?;
     if let Some(to) = to {
         let to = Turn::player(&to)?;
-        let claude = std::env::var_os("CLAUDECODE").is_some();
+        let claude = crate::turn::from_claude();
         let secs = jiff::Timestamp::now().as_second();
         now = now.hand(to, note, session, secs, claude, force)?;
         now.save()?;
