@@ -46,3 +46,11 @@ hash = 4335656213162247230
 name = "Lost Woods Skulltula above the theater"
 needs = "adult and magic-beans"
 setting = "gold-skulltulas"
+
+# Kokiri Forest's west ledge chest. No path reaches the ledge, and the
+# ride from the soil 43 m south of it does. The child map places the
+# chest too, but no child reaches it.
+[[check]]
+hash = 4349272251343787229
+name = "Kokiri Forest west ledge chest"
+needs = "adult and magic-beans"
