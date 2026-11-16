@@ -5,13 +5,13 @@
 use std::collections::HashMap;
 
 use anyhow::{Context, Result};
-use ounce_formats::{ActorPack, ModBuilder, Romfs};
+use ounce_formats::{ActorPack, Byml, BymlDoc, ModBuilder, Romfs};
 
 use crate::checks::{
     Drop, GYAML, ItemCheck, TRANSLATE, actors, banc_files, hash_of, load_banc, str_field, vec3,
 };
 use crate::gifts;
-use crate::known::{Name, actor, flag, item, scene};
+use crate::known::{Name, actor, field, flag, item, scene};
 use crate::names::{ITEMS, name_label};
 use crate::rng::Rng;
 use crate::rules::Need;
@@ -25,6 +25,9 @@ const GOODS: &str = "Shop_";
 /// Not goods: the mask shop lends, so it stays as it is, and boards are
 /// the signs on the shelves.
 const NOT_GOODS: [&str; 2] = ["Shop_Mask_", "Shop_Board_"];
+/// Shopkeepers' actors start so. Those near a shop's slots with a shop
+/// param are its keepers.
+const KEEPER: &str = "Npc_";
 /// Each check slot's actor is this plus the slot's number.
 const NEW: &str = "Shop_Rando_";
 /// Copies of one shelf spot sit this close.
@@ -70,6 +73,10 @@ pub struct Slot {
     pos: [f32; 3],
     /// From 0, across every shop, for the new actor's name.
     index: usize,
+    /// The slot's entry in its keepers' goods list.
+    goods_index: i32,
+    /// The actors near the slot's shop that may keep it, each age's.
+    keepers: Vec<String>,
 }
 
 impl Slot {
@@ -130,22 +137,37 @@ fn shop_name(area: &str, goods: &[&str]) -> Result<&'static str> {
 /// shop's in the order they become checks.
 pub fn slots(romfs: &Romfs) -> Result<Vec<Slot>> {
     let mut found = Vec::new();
+    let mut npcs = Vec::new();
     for file in banc_files(romfs)? {
         let doc = load_banc(romfs, &file)?;
         for actor in actors(&doc.root)? {
             let goods = str_field(actor, GYAML).unwrap_or_default();
+            let area = file.split('/').nth(1).unwrap_or("?").to_owned();
+            if goods.starts_with(KEEPER) {
+                if let Some(pos) = vec3(actor, "Translate") {
+                    npcs.push((area, goods.to_owned(), pos));
+                }
+                continue;
+            }
             if !goods.starts_with(GOODS) || NOT_GOODS.iter().any(|n| goods.starts_with(n)) {
                 continue;
             }
-            let area = file.split('/').nth(1).unwrap_or("?").to_owned();
             let hash = hash_of(actor).context("a shelf actor without Hash")?;
             let pos = vec3(actor, "Translate").context("a shelf actor without Translate")?;
-            found.push((!file.contains("_Child_"), area, goods.to_owned(), hash, pos));
+            let index = goods_index(actor);
+            found.push((
+                !file.contains("_Child_"),
+                area,
+                goods.to_owned(),
+                hash,
+                pos,
+                index,
+            ));
         }
     }
     found.sort_by_key(|f| f.0);
     let mut slots: Vec<Slot> = Vec::new();
-    for (_, area, goods, hash, pos) in found {
+    for (_, area, goods, hash, pos, goods_index) in found {
         let same =
             |s: &&mut Slot| s.area == area && s.goods == goods && dist(s.pos, pos) < SAME_SLOT;
         match slots.iter_mut().find(same) {
@@ -158,6 +180,8 @@ pub fn slots(romfs: &Romfs) -> Result<Vec<Slot>> {
                 placements: vec![hash],
                 pos,
                 index: 0,
+                goods_index,
+                keepers: Vec::new(),
             }),
         }
     }
@@ -177,6 +201,14 @@ pub fn slots(romfs: &Romfs) -> Result<Vec<Slot>> {
     for mut group in groups {
         let goods: Vec<&str> = group.iter().map(|s| s.goods.as_str()).collect();
         let shop = shop_name(&group[0].area, &goods)?;
+        let mut keepers: Vec<String> = (npcs.iter())
+            .filter(|(area, _, pos)| {
+                (group.iter()).any(|s| s.area == *area && dist(s.pos, *pos) < SAME_SHOP)
+            })
+            .map(|(_, name, _)| name.clone())
+            .collect();
+        keepers.sort();
+        keepers.dedup();
         group.sort_by(|a, b| {
             let key = |s: &Slot| (source_of(&s.goods).is_some(), s.pos);
             let (ka, kb) = (key(a), key(b));
@@ -190,6 +222,7 @@ pub fn slots(romfs: &Romfs) -> Result<Vec<Slot>> {
         for (i, slot) in group.iter_mut().enumerate() {
             slot.shop = shop;
             slot.number = i + 1;
+            slot.keepers.clone_from(&keepers);
         }
         out.extend(group);
     }
@@ -198,6 +231,17 @@ pub fn slots(romfs: &Romfs) -> Result<Vec<Slot>> {
         slot.index = i;
     }
     Ok(out)
+}
+
+/// A shelf placement's entry in its keeper's goods list. The first
+/// entry's placements leave it out.
+fn goods_index(actor: &Byml) -> i32 {
+    let index = || {
+        let dynamic = actor.as_map().ok()?.get(field::DYNAMIC.get())?;
+        let dynamic = dynamic.as_map().ok()?;
+        dynamic.get(field::SHOP_ITEM_INDEX.get())?.as_int().ok()
+    };
+    index().unwrap_or(0)
 }
 
 /// The first `count` slots of each shop, as checks.
@@ -318,7 +362,9 @@ pub fn write(
     new_game: &NewGame,
 ) -> Result<Vec<String>> {
     let mut fields = Vec::new();
-    for (slot, item) in sold(slots, new_game.shop_slots, drops) {
+    let sold: Vec<_> = sold(slots, new_game.shop_slots, drops).collect();
+    stock_once(romfs, builder, sold.iter().map(|(slot, _)| *slot))?;
+    for (slot, item) in sold {
         let name = slot.actor();
         let sale = StandIn {
             name: &name,
@@ -337,6 +383,62 @@ pub fn write(
         }
     }
     Ok(fields)
+}
+
+/// Give each of `slots` a stock of one in its keepers' goods lists, so the
+/// game sells it once, then shows it sold out. Every vanilla slot's stock
+/// is endless.
+fn stock_once<'a>(
+    romfs: &Romfs,
+    builder: &mut ModBuilder,
+    slots: impl Iterator<Item = &'a Slot>,
+) -> Result<()> {
+    let mut by_keeper: HashMap<&str, Vec<(i32, &str)>> = HashMap::new();
+    for slot in slots {
+        let index = slot.goods_index;
+        for keeper in &slot.keepers {
+            (by_keeper.entry(keeper))
+                .or_default()
+                .push((index, &slot.goods));
+        }
+    }
+    let mut keepers: Vec<_> = by_keeper.into_iter().collect();
+    keepers.sort();
+    for (keeper, goods) in keepers {
+        let pack = ActorPack::load(romfs, keeper)?;
+        let suffix = format!(".game__component__{}.bgyml", field::SHOP_PARAM);
+        for param in pack.files().into_iter().filter(|f| f.ends_with(&suffix)) {
+            builder
+                .edit_param(&[keeper], &param, |data| limited(data, &goods))
+                .with_context(|| format!("{keeper}'s goods"))?;
+        }
+    }
+    Ok(())
+}
+
+/// A shop param with each of `goods` (index, vanilla actor) stocked once.
+/// An entry selling other goods at that index is left alone: that keeper
+/// doesn't keep the slot.
+fn limited(data: &[u8], goods: &[(i32, &str)]) -> Result<Vec<u8>> {
+    let mut doc = BymlDoc::parse(data)?;
+    let root = doc.root.as_mut_map()?;
+    let list = (root.get_mut(field::GOODS_LIST.get()))
+        .context("a shop param without goods")?
+        .as_mut_array()?;
+    for &(index, actor) in goods {
+        let Some(entry) = usize::try_from(index).ok().and_then(|i| list.get_mut(i)) else {
+            continue;
+        };
+        let entry = entry.as_mut_map()?;
+        let sells = (entry
+            .get(field::ACTOR.get())
+            .and_then(|a| a.as_string().ok()))
+        .is_some_and(|a| a.ends_with(&format!("/{actor}.engine__actor__ActorParam.gyml")));
+        if sells {
+            entry.insert(field::STOCK_NUM.to_string().into(), Byml::I32(1));
+        }
+    }
+    Ok(doc.to_binary())
 }
 
 #[cfg(test)]
@@ -367,6 +469,47 @@ mod tests {
         assert!(slots.iter().all(|s| !s.goods.starts_with(NOT_GOODS[0])));
         let kokiri = slots.iter().filter(|s| s.area == flag::KOKIRI_FOREST);
         assert_eq!(kokiri.map(|s| s.placements.len()).sum::<usize>(), 24);
+    }
+
+    #[test]
+    fn every_slot_is_kept_and_a_check_slot_sells_once() {
+        let Some(romfs) = dev_dump() else { return };
+        let suffix = format!(".game__component__{}.bgyml", field::SHOP_PARAM);
+        let params = |keeper: &str| {
+            let pack = ActorPack::load(&romfs, keeper).unwrap();
+            (pack.files().into_iter())
+                .filter(|f| f.ends_with(&suffix))
+                .map(|f| pack.raw(&f).unwrap().to_vec())
+                .collect::<Vec<_>>()
+        };
+        let stock = |data: &[u8], index: i32| {
+            let doc = BymlDoc::parse(data).unwrap();
+            let list = doc.root.as_map().unwrap()[field::GOODS_LIST.get()].clone();
+            let entry = list.as_array().unwrap()[index as usize].clone();
+            let entry = entry.as_map().unwrap().clone();
+            let actor = entry[field::ACTOR.get()].as_string().unwrap().to_string();
+            let stock = entry.get(field::STOCK_NUM.get());
+            (actor, stock.map(|s| s.as_int::<i32>().unwrap()))
+        };
+        for slot in slots(&romfs).unwrap() {
+            let index = slot.goods_index;
+            let goods = [(index, slot.goods.as_str())];
+            let mut kept = 0;
+            for data in slot.keepers.iter().flat_map(|k| params(k)) {
+                let (actor, before) = stock(&data, index);
+                let (_, after) = stock(&limited(&data, &goods).unwrap(), index);
+                if actor.ends_with(&format!("/{}.engine__actor__ActorParam.gyml", slot.goods)) {
+                    kept += 1;
+                    // Mostly endless. The keeper before the Deku Tree sells some
+                    // goods once already, and leaves the shield's out.
+                    assert!(matches!(before, None | Some(-1 | 1)), "{}", slot.holder());
+                    assert_eq!(after, Some(1), "{}", slot.holder());
+                } else {
+                    assert_eq!(after, before, "{}", slot.holder());
+                }
+            }
+            assert!(kept > 0, "{} has no keeper", slot.holder());
+        }
     }
 
     #[test]
