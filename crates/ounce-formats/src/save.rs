@@ -250,7 +250,12 @@ impl Save {
         let (at, w) = self
             .element_at(e, i)
             .with_context(|| format!("{} has no element {i} to write", e.kind))?;
-        ensure!(value.len() == w, "a {} element is {w} bytes, not {}", e.kind, value.len());
+        ensure!(
+            value.len() == w,
+            "a {} element is {w} bytes, not {}",
+            e.kind,
+            value.len()
+        );
         self.bytes[at..at + w].copy_from_slice(value);
         Ok(())
     }
@@ -339,7 +344,14 @@ mod tests {
                 t.resize(16, 0);
                 t
             }),
-            (44, 0, [4f32, 5., 6.].iter().flat_map(|f| f.to_le_bytes()).collect()),
+            (
+                44,
+                0,
+                [4f32, 5., 6.]
+                    .iter()
+                    .flat_map(|f| f.to_le_bytes())
+                    .collect(),
+            ),
         ] {
             let e = s.get(hash).unwrap();
             s.set(e, i, &value).unwrap();
