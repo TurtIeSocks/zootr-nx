@@ -108,34 +108,8 @@ jobs:
         working-directory: app
         run: pnpm install --frozen-lockfile
 
-      - name: Build the CLI
-        run: cargo build --release --bin zootr
-
-      # Ad-hoc, with the debugger entitlement `zootr live` needs, as the
-      # Makefile does for local builds.
-      - name: Sign the CLI for live reads
-        if: runner.os == 'macOS'
-        run: codesign -f -s - --entitlements crates/zootr/live.entitlements target/release/zootr
-
-      - name: Attach the CLI
-        if: env.TAGGED == 'true'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
-          NAME: zootr-${{ github.ref_name }}-${{ matrix.name }}
-        run: |
-          cd target/release
-          if [ "$RUNNER_OS" = Windows ]; then
-            archive="$NAME.zip"
-            7z a "$archive" zootr.exe
-          else
-            archive="$NAME.tar.gz"
-            tar -czf "$archive" zootr
-          fi
-          gh release upload "$TAG" "$archive" --repo "$GITHUB_REPOSITORY" --clobber
-
-      # Last, so the signing secrets reach only the app build. Optional.
+      # Just before the app, so the signing secrets reach no earlier step.
+      # The CLI steps after it compile only our own crate. Optional.
       # Unset secrets are left out of the environment entirely,
       # because Tauri treats an empty APPLE_CERTIFICATE as a certificate to
       # import. With none set, the app keeps tauri.conf.json's ad-hoc
@@ -171,3 +145,34 @@ jobs:
           tauriScript: pnpm tauri
           args: --runner cargo
           releaseId: ${{ needs.draft.outputs.id }}
+
+      # After the app, and naming its package too, so cargo picks the
+      # features the app build used for the crates they share. Built
+      # alone, the CLI wants other features and recompiles about 25 of
+      # them. This way only `zootr` itself links.
+      - name: Build the CLI
+        run: cargo build --release -p zootr -p zootr-app --bin zootr
+
+      # Ad-hoc, with the debugger entitlement `zootr live` needs, as the
+      # Makefile does for local builds.
+      - name: Sign the CLI for live reads
+        if: runner.os == 'macOS'
+        run: codesign -f -s - --entitlements crates/zootr/live.entitlements target/release/zootr
+
+      - name: Attach the CLI
+        if: env.TAGGED == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          NAME: zootr-${{ github.ref_name }}-${{ matrix.name }}
+        run: |
+          cd target/release
+          if [ "$RUNNER_OS" = Windows ]; then
+            archive="$NAME.zip"
+            7z a "$archive" zootr.exe
+          else
+            archive="$NAME.tar.gz"
+            tar -czf "$archive" zootr
+          fi
+          gh release upload "$TAG" "$archive" --repo "$GITHUB_REPOSITORY" --clobber
