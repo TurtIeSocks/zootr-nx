@@ -12,9 +12,7 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, Romfs, pack_path};
 
-use crate::checks::{
-    GYAML, ItemCheck, actors, banc_files, flat, hash_of, load_banc, str_field, vec3,
-};
+use crate::checks::{GYAML, ItemCheck, actors, bancs, flat, hash_of, str_field, vec3};
 use crate::flows;
 use crate::gifts;
 use crate::known::{Name, actor, field, item};
@@ -183,8 +181,8 @@ fn event_of(pack: &ActorPack) -> Result<String> {
 /// Every cow the game places, each with the event its song will run.
 pub fn find(romfs: &Romfs) -> Result<Vec<Cow>> {
     let mut placed = Vec::new();
-    for file in banc_files(romfs)? {
-        let doc = load_banc(romfs, &file)?;
+    for (file, doc) in bancs(romfs)? {
+        let doc = doc?;
         for a in actors(&doc.root)? {
             let Some(actor) = str_field(a, GYAML).filter(|g| g.starts_with(&**PLAIN)) else {
                 continue;

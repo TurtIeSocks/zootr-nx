@@ -7,7 +7,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::Romfs;
 
-use crate::checks::{self, ItemCheck, actors, banc_files, hash_of, load_banc, str_field};
+use crate::checks::{self, ItemCheck, actors, bancs, hash_of, str_field};
 use crate::known::{Name, flag, item, map};
 use crate::rules::{Book, Ctx, Have, Need};
 use crate::tools::Tools;
@@ -104,10 +104,11 @@ fn scan(romfs: &Romfs, tools: &mut Tools) -> Result<Scan> {
         warps: BTreeSet::new(),
         nodes_of: HashMap::new(),
     };
-    for file in banc_files(romfs)? {
+    for (file, doc) in bancs(romfs)? {
+        let doc = doc?;
         let (node, eras) = node_of(&file);
         s.places.extend(eras.iter().map(|&e| (node.clone(), e)));
-        for actor in actors(&load_banc(romfs, &file)?.root)? {
+        for actor in actors(&doc.root)? {
             if let Some(hash) = hash_of(actor) {
                 s.nodes_of.entry(hash).or_default().insert(node.clone());
             }

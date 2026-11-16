@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
 
 use anyhow::Result;
-use ounce_formats::{EventKind, Flowchart, Params, Romfs, Value};
+use ounce_formats::{EventKind, Flowchart, Params, Romfs, Value, par_map};
 
 use crate::known::{Name, field, flow, scene};
 use crate::{flows, rsdb};
@@ -63,9 +63,11 @@ type Bindings = BTreeMap<String, String>;
 
 impl Flows {
     pub fn load(romfs: &Romfs) -> Result<Self> {
+        let names = flows::names(romfs)?;
+        let loaded = par_map(&names, |name| flows::load(romfs, name));
         let mut map = HashMap::new();
-        for name in flows::names(romfs)? {
-            if let Some(flow) = flows::load(romfs, &name)? {
+        for (name, flow) in names.into_iter().zip(loaded) {
+            if let Some(flow) = flow? {
                 map.insert(name, flow);
             }
         }

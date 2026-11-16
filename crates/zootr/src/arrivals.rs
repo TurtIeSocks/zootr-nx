@@ -87,8 +87,8 @@ pub struct Arrival {
 pub fn all(romfs: &Romfs, flows: &Flows) -> Result<Vec<Arrival>> {
     let gd = GameData::load(romfs)?;
     let mut found = BTreeSet::new();
-    for rel in checks::banc_files(romfs)? {
-        let doc = checks::load_banc(romfs, &rel)?;
+    for (_, doc) in checks::bancs(romfs)? {
+        let doc = doc?;
         for a in checks::actors(&doc.root)? {
             if checks::str_field(a, "Gyaml") != Some(ENTRANCE) {
                 continue;

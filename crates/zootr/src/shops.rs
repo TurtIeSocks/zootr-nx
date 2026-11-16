@@ -10,9 +10,7 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, Byml, BymlDoc, ModBuilder, Romfs};
 
-use crate::checks::{
-    Drop, GYAML, ItemCheck, TRANSLATE, actors, banc_files, hash_of, load_banc, str_field, vec3,
-};
+use crate::checks::{Drop, GYAML, ItemCheck, TRANSLATE, actors, bancs, hash_of, str_field, vec3};
 use crate::gifts;
 use crate::known::{Name, actor, field, flag, item, scene};
 use crate::names::{ITEMS, name_label};
@@ -143,8 +141,8 @@ fn shop_name(area: &str, goods: &[&str]) -> Result<&'static str> {
 pub fn slots(romfs: &Romfs) -> Result<Vec<Slot>> {
     let mut found = Vec::new();
     let mut npcs = Vec::new();
-    for file in banc_files(romfs)? {
-        let doc = load_banc(romfs, &file)?;
+    for (file, doc) in bancs(romfs)? {
+        let doc = doc?;
         for actor in actors(&doc.root)? {
             let goods = str_field(actor, GYAML).unwrap_or_default();
             let area = file.split('/').nth(1).unwrap_or("?").to_owned();

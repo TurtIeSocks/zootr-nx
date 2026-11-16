@@ -9,8 +9,8 @@ use std::sync::LazyLock;
 
 use anyhow::{Context, Result};
 use ounce_formats::{
-    ActorPack, Byml, BymlDoc, ModBuilder, Romfs, Texture, Vertex, edit_vertices, levels, redraw,
-    rename, textures_named, vertices,
+    ActorPack, Byml, BymlDoc, ModBuilder, Romfs, Texture, Vertex, edit_vertices, redraw, rename,
+    textures_named, top_level, vertices,
 };
 
 use crate::known::{Name, field, item};
@@ -241,7 +241,7 @@ pub(crate) fn colour(song: &str) -> Option<Colour> {
 /// glow in its colour, the icon on the face, raised in the normal map and
 /// unshaded in the occlusion map. The rest are the host's.
 fn draw(kind: &str, data: &[u8], icon: &Texture, colour: Colour) -> Result<Vec<u8>> {
-    let mut t = levels(data)?.swap_remove(0);
+    let mut t = top_level(data)?;
     let (w, h) = (t.width, t.height);
     let off_face = |x, y| !paint::on_face(w, h, x, y);
     match kind {
@@ -271,6 +271,7 @@ mod tests {
     use super::*;
     use crate::game::{dev_dump, packs_holding};
     use crate::known::{field, item};
+    use ounce_formats::levels;
 
     #[test]
     fn the_host_files_are_where_its_name_puts_them() {
