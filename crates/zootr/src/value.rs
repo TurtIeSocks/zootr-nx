@@ -133,7 +133,7 @@ pub fn decode(gd: &GameData, kind: &str, b: &[u8]) -> String {
 /// refusing an Enum value no enum has.
 pub fn scalar(gd: &GameData, kind: &str, text: &str) -> Result<u32> {
     let raw = u32::from_le_bytes(encode(kind, text, 4)?.try_into().unwrap());
-    if kind == "Enum" && gd.name(raw) != text {
+    if element(kind) == "Enum" && gd.name(raw) != text {
         bail!("{text} isn't a value of any {} enum", crate::known::flag::GAME_DATA);
     }
     Ok(raw)
