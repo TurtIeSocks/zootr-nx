@@ -11,6 +11,7 @@ use crate::checks::{self, Drop};
 use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::hints::Hint;
+use crate::progress::Run;
 use crate::settings::{ChestSize, NewGame};
 use crate::{
     bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, fortress,
@@ -79,13 +80,15 @@ pub(super) fn flows(
 
 /// Apply `drops` (actor hash -> drop) to every Banc file, `new_game` to
 /// GameData and the cutscenes, and `hints` to the gossip stones, and write
-/// the changed files as a mod.
+/// the changed files as a mod. A stop lands before each Banc file, and
+/// leaves the mod as it was.
 pub fn write_mod(
     romfs: &Romfs,
     mod_dir: &Path,
     drops: &HashMap<u64, Drop>,
     new_game: &NewGame,
     hints: &[Hint],
+    run: &Run,
 ) -> Result<Written> {
     if let Some(item) = drops
         .values()
@@ -207,6 +210,7 @@ pub fn write_mod(
     let (mut found, mut actors) = (HashSet::new(), 0);
     let mut chest_events = HashMap::new();
     for rel in checks::banc_files(romfs)? {
+        run.check()?;
         let mut doc = checks::load_banc(romfs, &rel)?;
         let mut changed = checks::set_fields(&mut doc.root, &fields)?;
         changed.extend(checks::clear_drops(&mut doc.root, carried)?);
@@ -242,6 +246,7 @@ pub fn write_mod(
     }
     bombs::write(&mut builder)?;
     dig::write(romfs, &mut builder, drops, new_game.keys)?;
+    run.check()?;
     let files = builder.finish()?.len();
     let credits = key_tints::credits(bosses, new_game.keys);
     patch::install(

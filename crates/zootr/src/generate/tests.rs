@@ -9,6 +9,7 @@ use crate::checks::{self, Drop};
 use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::known::{actor, flag, flow, item, scene};
+use crate::progress::{Event, Run, Step};
 use crate::settings::{NewGame, Settings};
 use crate::shuffle::Fixed;
 use crate::standins;
@@ -24,12 +25,50 @@ fn same_seed_and_settings_give_the_same_mod() {
     let dir = std::env::temp_dir().join(format!("zootr-gen-{}", std::process::id()));
     let settings = Settings::from([("open-forest".into(), true.into())]);
     let extras = Extras::default();
-    let a = generate(&romfs, &dir.join("a"), 7, &settings, &extras).unwrap();
-    let b = generate(&romfs, &dir.join("a"), 7, &settings, &extras).unwrap();
+    let a = generate(
+        &romfs,
+        &dir.join("a"),
+        7,
+        &settings,
+        &extras,
+        &Run::silent(),
+    )
+    .unwrap();
+    let b = generate(
+        &romfs,
+        &dir.join("a"),
+        7,
+        &settings,
+        &extras,
+        &Run::silent(),
+    )
+    .unwrap();
     assert_eq!(a, b);
     assert!(a.changed() > 0 && !a.written.defaults.is_empty());
     let spoiler = std::fs::read_to_string(dir.join("a/spoiler.txt")).unwrap();
     assert_eq!(spoiler, a.spoiler(&icons::icons(7, &settings, &extras)));
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn a_run_reports_every_step_in_order() {
+    let path = Path::new(crate::game::DEV_DUMP);
+    if !path.exists() {
+        return;
+    }
+    let began = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let heard = began.clone();
+    let run = Run::silent().with(move |e| {
+        if let Event::Began { step } = e {
+            heard.lock().unwrap().push(*step);
+        }
+    });
+    let romfs = crate::game::prepare(path, &run).unwrap();
+    let dir = std::env::temp_dir().join(format!("zootr-steps-{}", std::process::id()));
+    generate(&romfs, &dir, 7, &Settings::new(), &Extras::default(), &run).unwrap();
+    use Step::*;
+    let steps = [Dump, Checks, Logic, Placing, Writing, Spoiler];
+    assert_eq!(*began.lock().unwrap(), steps);
     std::fs::remove_dir_all(dir).unwrap();
 }
 
@@ -39,7 +78,15 @@ fn every_seed_can_call_navi_without_the_deku_tree() {
         return;
     };
     let dir = std::env::temp_dir().join(format!("zootr-navi-{}", std::process::id()));
-    let report = generate(&romfs, &dir, 1, &Settings::new(), &Extras::default()).unwrap();
+    let report = generate(
+        &romfs,
+        &dir,
+        1,
+        &Settings::new(),
+        &Extras::default(),
+        &Run::silent(),
+    )
+    .unwrap();
     assert!(report.written.defaults.contains(&format!(
         "{}.Navi: false -> true",
         flag::ACTION_GUIDE_IS_END
@@ -163,7 +210,7 @@ fn a_bad_quest_step_stops_the_seed_before_anything_is_written() {
         progress: vec![format!("{}=Step99", flow::SAGE_OF_SPIRIT)],
         ..Default::default()
     };
-    let err = generate(&romfs, &dir, 7, &Settings::new(), &extras).unwrap_err();
+    let err = generate(&romfs, &dir, 7, &Settings::new(), &extras, &Run::silent()).unwrap_err();
     assert!(
         err.to_string()
             .contains(&format!("{}=Step99", flow::SAGE_OF_SPIRIT)),
@@ -187,7 +234,15 @@ fn scrubs_are_checks_only_with_the_option_on() {
         scrubs: true,
         ..Default::default()
     };
-    let report = shuffle(&romfs, &dir.join("on"), 7, &Fixed::new(), &on).unwrap();
+    let report = shuffle(
+        &romfs,
+        &dir.join("on"),
+        7,
+        &Fixed::new(),
+        &on,
+        &Run::silent(),
+    )
+    .unwrap();
     assert_eq!(scrubs(&report), scrubs::SCRUBS.len());
     assert!(dir.join("on/romfs").join(&flow).is_file());
     let report = shuffle(
@@ -196,6 +251,7 @@ fn scrubs_are_checks_only_with_the_option_on() {
         7,
         &Fixed::new(),
         &NewGame::default(),
+        &Run::silent(),
     );
     assert_eq!(scrubs(&report.unwrap()), 0);
     assert!(!dir.join("off/romfs").join(&flow).is_file());
@@ -234,13 +290,29 @@ fn cows_are_checks_and_bools_only_with_the_option_on() {
         cows: true,
         ..Default::default()
     };
-    let report = shuffle(&romfs, &dir.join("on"), 7, &Fixed::new(), &on).unwrap();
+    let report = shuffle(
+        &romfs,
+        &dir.join("on"),
+        7,
+        &Fixed::new(),
+        &on,
+        &Run::silent(),
+    )
+    .unwrap();
     assert_eq!(cows(&report), 8);
     assert_eq!(written(&dir.join("on")), vanilla + 8);
     assert!(dir.join("on/romfs").join(&flow).is_file());
     assert!(clone(&dir.join("on")).is_file());
     let off = &dir.join("off");
-    let report = shuffle(&romfs, off, 7, &Fixed::new(), &NewGame::default()).unwrap();
+    let report = shuffle(
+        &romfs,
+        off,
+        7,
+        &Fixed::new(),
+        &NewGame::default(),
+        &Run::silent(),
+    )
+    .unwrap();
     assert_eq!(cows(&report), 0);
     assert_eq!(written(off), vanilla);
     assert!(!off.join("romfs").join(&flow).is_file());
@@ -263,7 +335,15 @@ fn shop_slots_are_checks_with_shopsanity_on() {
         progressive: true,
         ..Default::default()
     };
-    let report = shuffle(&romfs, &dir.join("on"), 7, &Fixed::new(), &on).unwrap();
+    let report = shuffle(
+        &romfs,
+        &dir.join("on"),
+        7,
+        &Fixed::new(),
+        &on,
+        &Run::silent(),
+    )
+    .unwrap();
     let sold = shops(&report);
     assert_eq!(sold.len(), 32);
     assert!(sold.iter().all(|s| s.name() == s.holder));
@@ -279,6 +359,7 @@ fn shop_slots_are_checks_with_shopsanity_on() {
         7,
         &Fixed::new(),
         &NewGame::default(),
+        &Run::silent(),
     );
     assert!(shops(&off.unwrap()).is_empty());
     std::fs::remove_dir_all(dir).unwrap();
@@ -299,7 +380,15 @@ fn key_chests_are_checks_and_hold_no_key_only_when_keys_start() {
         defaults: keys::defaults(true, false),
         ..Default::default()
     };
-    let report = shuffle(&romfs, &dir.join("on"), 7, &Fixed::new(), &on).unwrap();
+    let report = shuffle(
+        &romfs,
+        &dir.join("on"),
+        7,
+        &Fixed::new(),
+        &on,
+        &Run::silent(),
+    )
+    .unwrap();
     assert_eq!(held(&report).len(), 43);
     assert!(report.spots.iter().all(|s| !keys::is_key(&s.item)));
     // Logic reads no key: the chests sit behind the dungeon's own obstacles.
@@ -319,6 +408,7 @@ fn key_chests_are_checks_and_hold_no_key_only_when_keys_start() {
         7,
         &Fixed::new(),
         &NewGame::default(),
+        &Run::silent(),
     )
     .unwrap();
     assert!(held(&off).is_empty());
@@ -370,7 +460,15 @@ fn thief_keys_are_checks_and_the_carried_ones_are_cleared_when_fortress_keys_sta
         defaults: keys::defaults(false, true),
         ..Default::default()
     };
-    let report = shuffle(&romfs, &dir.join("on"), 7, &Fixed::new(), &on).unwrap();
+    let report = shuffle(
+        &romfs,
+        &dir.join("on"),
+        7,
+        &Fixed::new(),
+        &on,
+        &Run::silent(),
+    )
+    .unwrap();
     let spots = thieves(&report);
     assert_eq!(spots.len(), 4);
     for s in &spots {
@@ -400,6 +498,7 @@ fn thief_keys_are_checks_and_the_carried_ones_are_cleared_when_fortress_keys_sta
         7,
         &Fixed::new(),
         &NewGame::default(),
+        &Run::silent(),
     )
     .unwrap();
     assert!(thieves(&off).is_empty());
@@ -429,7 +528,15 @@ fn pickups_are_checks_with_their_options_on() {
         hives: true,
         ..Default::default()
     };
-    let report = shuffle(&romfs, &dir.join("on"), 7, &Fixed::new(), &on).unwrap();
+    let report = shuffle(
+        &romfs,
+        &dir.join("on"),
+        7,
+        &Fixed::new(),
+        &on,
+        &Run::silent(),
+    )
+    .unwrap();
     assert_eq!(of(&report, &pickups::POTS).len(), 100);
     assert_eq!(of(&report, &pickups::CRATES).len(), 11);
     assert_eq!(of(&report, &pickups::ROCKS).len(), 14);
@@ -445,6 +552,7 @@ fn pickups_are_checks_with_their_options_on() {
         7,
         &Fixed::new(),
         &NewGame::default(),
+        &Run::silent(),
     );
     let off = off.unwrap();
     assert!(of(&off, &pickups::FREESTANDING).is_empty());
@@ -469,7 +577,15 @@ fn the_lake_pickups_are_checks_only_with_npc_gifts_on() {
         on: [NPC_GIFTS.into()].into(),
         ..Default::default()
     };
-    let report = shuffle(&romfs, &dir.join("on"), 7, &Fixed::new(), &on).unwrap();
+    let report = shuffle(
+        &romfs,
+        &dir.join("on"),
+        7,
+        &Fixed::new(),
+        &on,
+        &Run::silent(),
+    )
+    .unwrap();
     assert_eq!(held(&report), 2);
     let off = shuffle(
         &romfs,
@@ -477,6 +593,7 @@ fn the_lake_pickups_are_checks_only_with_npc_gifts_on() {
         7,
         &Fixed::new(),
         &NewGame::default(),
+        &Run::silent(),
     );
     assert_eq!(held(&off.unwrap()), 0);
     std::fs::remove_dir_all(dir).unwrap();
@@ -511,7 +628,7 @@ fn the_merchants_sell_their_checks_only_with_merchants_on() {
         on: [MERCHANTS.into()].into(),
         ..Default::default()
     };
-    let report = shuffle(&romfs, &dir.join("on"), 7, &fixed, &on).unwrap();
+    let report = shuffle(&romfs, &dir.join("on"), 7, &fixed, &on, &Run::silent()).unwrap();
     assert_eq!(held(&report), 3);
     assert!(rels.iter().all(|r| written(&dir.join("on"), r)));
     assert!(written(&dir.join("on"), crate::gamedata::PATH));
@@ -521,6 +638,7 @@ fn the_merchants_sell_their_checks_only_with_merchants_on() {
         7,
         &Fixed::new(),
         &NewGame::default(),
+        &Run::silent(),
     );
     let report = off.unwrap();
     assert_eq!(held(&report), 0);
@@ -537,7 +655,15 @@ fn gift_flows_are_written_when_they_give_something() {
     let [saria, zelda] = [0, 1].map(|i| crate::flows::rel(gifts::GIFTS[i].flow));
     let written = |dir: &Path, rel: &str| dir.join("romfs").join(rel).is_file();
     let hook = Fixed::from([(gifts::GIFTS[0].hash(), item::HOOKSHOT.to_string())]);
-    let report = shuffle(&romfs, &dir.join("a"), 7, &hook, &NewGame::default()).unwrap();
+    let report = shuffle(
+        &romfs,
+        &dir.join("a"),
+        7,
+        &hook,
+        &NewGame::default(),
+        &Run::silent(),
+    )
+    .unwrap();
     assert!(written(&dir.join("a"), &saria) && written(&dir.join("a"), &zelda));
     assert!(
         report
@@ -549,7 +675,15 @@ fn gift_flows_are_written_when_they_give_something() {
         vanilla: true,
         ..Default::default()
     };
-    shuffle(&romfs, &dir.join("b"), 7, &Fixed::new(), &vanilla).unwrap();
+    shuffle(
+        &romfs,
+        &dir.join("b"),
+        7,
+        &Fixed::new(),
+        &vanilla,
+        &Run::silent(),
+    )
+    .unwrap();
     assert!(!written(&dir.join("b"), &saria) && written(&dir.join("b"), &zelda));
     std::fs::remove_dir_all(dir).unwrap();
 }
@@ -575,7 +709,7 @@ fn dealt_gifts_are_checks_only_with_their_option_on() {
             on: [setting.into()].into(),
             ..Default::default()
         };
-        let report = shuffle(&romfs, &dir.join("on"), 7, &first, &on).unwrap();
+        let report = shuffle(&romfs, &dir.join("on"), 7, &first, &on, &Run::silent()).unwrap();
         assert_eq!(dealt(&report), ours.len(), "{setting}");
         let flow = dir.join("on/romfs").join(crate::flows::rel(ours[0].flow));
         assert!(flow.is_file(), "{setting}");
@@ -585,6 +719,7 @@ fn dealt_gifts_are_checks_only_with_their_option_on() {
             7,
             &Fixed::new(),
             &NewGame::default(),
+            &Run::silent(),
         );
         assert_eq!(dealt(&off.unwrap()), 0, "{setting}");
         std::fs::remove_dir_all(dir).unwrap();
@@ -601,7 +736,7 @@ fn the_medallion_bridge_starts_armed_and_keeps_its_step() {
         bridge_medallions: true,
         ..Default::default()
     };
-    let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &on).unwrap();
+    let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &on, &Run::silent()).unwrap();
     let step = &report.written.defaults;
     assert!(step.iter().any(|d| {
         d.starts_with(&format!("{}: ", crate::steps::saved(flow::DEFEAT_GANON)))
@@ -646,7 +781,15 @@ fn hints_fill_every_stone_only_with_the_option_on() {
         hints: true,
         ..Default::default()
     };
-    shuffle(&romfs, &dir.join("a"), 7, &Fixed::new(), &on).unwrap();
+    shuffle(
+        &romfs,
+        &dir.join("a"),
+        7,
+        &Fixed::new(),
+        &on,
+        &Run::silent(),
+    )
+    .unwrap();
     let read = stones(&dir.join("a")).unwrap();
     assert_eq!(read.len(), hints::STONES);
     assert!(
@@ -664,6 +807,7 @@ fn hints_fill_every_stone_only_with_the_option_on() {
         7,
         &Fixed::new(),
         &NewGame::default(),
+        &Run::silent(),
     )
     .unwrap();
     let vanilla = stones(&dir.join("b")).unwrap_or_default();
@@ -684,7 +828,7 @@ fn line_chests_hold_their_first_level_and_no_swap() {
         progressive: true,
         ..Default::default()
     };
-    shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game).unwrap();
+    shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
     let mut moved = 0;
     for chest in checks.iter().filter(|c| in_line(&c.item)) {
         let doc = match std::fs::read(dir.join("romfs").join(&chest.file)) {
@@ -734,7 +878,7 @@ fn a_pickup_holding_a_major_item_drops_its_stand_in() {
         (pot.hash, item::HOOKSHOT.to_string()),
         (skulltula.hash, item::BOOMERANG.to_string()),
     ]);
-    shuffle(&romfs, &dir, 7, &fixed, &new_game).unwrap();
+    shuffle(&romfs, &dir, 7, &fixed, &new_game, &Run::silent()).unwrap();
     for check in [pot, skulltula] {
         let raw = std::fs::read(dir.join("romfs").join(&check.file)).unwrap();
         let raw = romfs.dicts().decompress(&check.file, &raw).unwrap();
@@ -761,7 +905,15 @@ fn a_logic_seed_keeps_each_spots_round_hero_and_rule() {
         return;
     };
     let dir = std::env::temp_dir().join(format!("zootr-logic-{}", std::process::id()));
-    let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &NewGame::default()).unwrap();
+    let report = shuffle(
+        &romfs,
+        &dir,
+        7,
+        &Fixed::new(),
+        &NewGame::default(),
+        &Run::silent(),
+    )
+    .unwrap();
     std::fs::remove_dir_all(dir).unwrap();
     let rounds: HashSet<u16> = (report.spots.iter().filter_map(|s| s.round))
         .chain(report.events.iter().map(|e| e.round))
@@ -795,7 +947,7 @@ fn a_logic_seed_lists_what_link_starts_with() {
         on: ["open-forest".to_owned()].into(),
         ..NewGame::default()
     };
-    let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game).unwrap();
+    let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
     std::fs::remove_dir_all(dir).unwrap();
     let held = report.start.items.iter().find(|h| h.item == sword.actor);
     let held = held.expect("the starting item is listed");

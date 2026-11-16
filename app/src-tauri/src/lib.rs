@@ -16,6 +16,7 @@ use zootr::generate::{self, Extras, Report, RoundEvent, Spot, Start};
 use zootr::history::{History, Label, Mark, Summary, View};
 use zootr::inventory::{self, Cell, Inventory, TrackerOptions};
 use zootr::platform;
+use zootr::progress::Run;
 use zootr::recorder::{self, Ask, Event, Hub, Numbered, Snapshot, Watch};
 use zootr::savefile::{self, Change};
 use zootr::settings::{SettingDef, Settings};
@@ -128,7 +129,7 @@ async fn set_config(app: AppHandle, config: Config) -> Res<()> {
             .as_ref()
             .filter(|&g| old.game.as_ref() != Some(g))
         {
-            zootr::game::prepare(game)?;
+            zootr::game::prepare(game, &Run::silent())?;
         }
         check_steps(&old, &config)?;
         config.save()?;
@@ -142,7 +143,8 @@ async fn set_config(app: AppHandle, config: Config) -> Res<()> {
 
 /// The game files from the config's dump.
 fn romfs(config: &Config) -> anyhow::Result<Romfs> {
-    zootr::game::prepare(config.game.as_ref().context("Set the game dump first")?)
+    let game = config.game.as_ref().context("Set the game dump first")?;
+    zootr::game::prepare(game, &Run::silent())
 }
 
 /// The `zootr shuffle` command that Generate stands for, with the current
@@ -163,8 +165,9 @@ fn install_seed(seed: u64, settings: &Settings, extras: &Extras) -> anyhow::Resu
     let romfs = romfs(&config)?;
     let mut extras = extras.clone();
     extras.dev_panel = config.dev_panel;
-    generate::install(&config.targets, |d| {
-        generate::generate(&romfs, d, seed, settings, &extras)
+    let run = Run::silent();
+    generate::install(&config.targets, &run, |d| {
+        generate::generate(&romfs, d, seed, settings, &extras, &run)
     })
 }
 

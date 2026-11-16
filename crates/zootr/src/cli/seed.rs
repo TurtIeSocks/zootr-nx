@@ -4,13 +4,13 @@
 use std::path::Path;
 
 use anyhow::Result;
-use ounce_formats::Romfs;
 
 use super::args::Shuffle;
 use crate::config::Config;
 use crate::history::{History, Label};
+use crate::progress::{self, Run};
 use crate::settings::Settings;
-use crate::{generate, presets, settings, starting};
+use crate::{game, generate, presets, settings, starting};
 
 pub(super) fn print_written(w: &generate::Written) {
     w.defaults.iter().for_each(|l| println!("default {l}"));
@@ -90,21 +90,27 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
     args.iter().map(|a| quote(a)).collect::<Vec<_>>().join(" ")
 }
 
-pub(super) fn shuffle(romfs: &Romfs, args: Shuffle) -> Result<()> {
+pub(super) fn shuffle(game: &Path, args: Shuffle) -> Result<()> {
     let seed = args.seed.unwrap_or_else(generate::time_seed);
     let settings = args.settings();
     let extras = generate::Extras {
         dev_panel: Config::load()?.dev_panel,
         ..args.extras()
     };
-    let generate = |d: &Path| generate::generate(romfs, d, seed, &settings, &extras);
     let held = args.out.held()?;
-    let (report, installed) = match held {
-        // The history keeps what it needs to build the seed again, so the
-        // mod itself can go.
-        Some(_) => (throwaway(generate)?, false),
-        None => args.out.write(generate)?,
-    };
+    let run = Run::silent().with(progress::print);
+    let built = (|| {
+        let romfs = game::prepare(game, &run)?;
+        let generate = |d: &Path| generate::generate(&romfs, d, seed, &settings, &extras, &run);
+        match held {
+            // The history keeps what it needs to build the seed again, so the
+            // mod itself can go.
+            Some(_) => Ok((throwaway(generate)?, false)),
+            None => args.out.write(&run, generate),
+        }
+    })();
+    run.end(&built);
+    let (report, installed) = built?;
     print_written(&report.written);
     println!(
         "seed {seed}: {} chests, {} changed, spoiler.txt beside each mod",

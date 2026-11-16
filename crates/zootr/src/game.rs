@@ -10,6 +10,7 @@ use nup_format::{Kind, Node, Nup};
 use ounce_formats::{Romfs, files_with_suffix, murmur3};
 
 use crate::platform::{Folder, user_dir};
+use crate::progress::{Run, Step};
 
 /// Ocarina of Time's base title. Its update is `TITLE | 0x800`.
 pub const TITLE: u64 = 0x0400_4860_24DE_C000;
@@ -43,7 +44,8 @@ const ENV: &str = "ZOOTR_CACHE";
 /// Held while extracting, so a second caller waits and reuses the result.
 static EXTRACTING: Mutex<()> = Mutex::new(());
 
-fn cache() -> Result<PathBuf> {
+/// Where extracted dumps and what's built from them are cached.
+pub fn cache() -> Result<PathBuf> {
     match std::env::var_os(ENV) {
         Some(p) => Ok(p.into()),
         None => user_dir(Folder::Cache, ENV),
@@ -72,23 +74,26 @@ fn open(path: &Path) -> Result<Nup> {
 
 /// The romfs folder for `path`: a folder as is, a `.nup` extracted into the
 /// cache first.
-pub fn folder(path: &Path) -> Result<PathBuf> {
+pub fn folder(path: &Path, run: &Run) -> Result<PathBuf> {
     if path.is_dir() {
+        run.detail("a folder");
         return Ok(path.into());
     }
-    extract(path, &cache()?.join("romfs"))
+    extract(path, &cache()?.join("romfs"), run)
 }
 
-pub fn prepare(path: &Path) -> Result<Romfs> {
-    let romfs = Romfs::open(folder(path)?)?;
+pub fn prepare(path: &Path, run: &Run) -> Result<Romfs> {
+    run.step(Step::Dump)?;
+    let romfs = Romfs::open(folder(path, run)?)?;
     crate::known::found(romfs.root());
     Ok(romfs)
 }
 
 /// Extract into `<cache>/<uuid>` each subtree an earlier run didn't finish,
 /// so a cache from before a subtree was added gains it. Builds in
-/// `<uuid>.part` so an interrupted run never looks finished.
-fn extract(path: &Path, cache: &Path) -> Result<PathBuf> {
+/// `<uuid>.part` so an interrupted run never looks finished, and a stop
+/// lands between subtrees.
+fn extract(path: &Path, cache: &Path, run: &Run) -> Result<PathBuf> {
     let nup = open(path)?;
     let romfs = romfs(&nup)?;
     let uuid: String = nup.uuid().iter().map(|b| format!("{b:02x}")).collect();
@@ -100,13 +105,16 @@ fn extract(path: &Path, cache: &Path) -> Result<PathBuf> {
         .filter(|sub| !out.join(sub).exists())
         .collect();
     if missing.is_empty() {
+        run.detail("cached");
         return Ok(out);
     }
     let part = out.with_extension("part");
     if part.exists() {
         fs::remove_dir_all(&part)?;
     }
-    for sub in &missing {
+    for (i, sub) in missing.iter().enumerate() {
+        run.detail(format!("extracting {sub} ({} of {})", i + 1, missing.len()));
+        run.check()?;
         let dest = part.join(sub);
         let extracting = || format!("extracting romfs/{sub}");
         match nup.find(romfs, sub) {
@@ -197,13 +205,14 @@ fn walk(
 
 /// Where tests find the dev dump.
 #[cfg(test)]
-const DEV_DUMP: &str = "../../dump/oot.nup";
+pub(crate) const DEV_DUMP: &str = "../../dump/oot.nup";
 
 /// The dev dump, or `None` without one so tests that need it pass vacuously.
 #[cfg(test)]
 pub(crate) fn dev_dump() -> Option<Romfs> {
     let path = Path::new(DEV_DUMP);
-    path.exists().then(|| prepare(path).unwrap())
+    path.exists()
+        .then(|| prepare(path, &Run::silent()).unwrap())
 }
 
 /// Whether tests run without the dev dump, and so without the game's
@@ -284,7 +293,7 @@ mod tests {
     #[test]
     fn extracts_the_update_subtrees_only() {
         let (path, cache) = dump("update", UPDATE);
-        let out = extract(&path, &cache).unwrap();
+        let out = extract(&path, &cache, &Run::silent()).unwrap();
         for sub in SUBTREES {
             assert_eq!(fs::read(out.join(sub).join("new.bin")).unwrap(), b"update");
         }
@@ -298,24 +307,26 @@ mod tests {
     #[test]
     fn refuses_other_versions() {
         let (path, cache) = dump("version", UPDATE + 1);
-        let err = extract(&path, &cache).unwrap_err().to_string();
+        let err = extract(&path, &cache, &Run::silent())
+            .unwrap_err()
+            .to_string();
         assert!(err.contains("1.1.1"), "{err}");
-        assert!(prepare(&path).is_err());
+        assert!(prepare(&path, &Run::silent()).is_err());
     }
 
     #[test]
     fn reuses_a_finished_cache_and_rebuilds_a_partial_one() {
         let (path, cache) = dump("cache", UPDATE);
-        let out = extract(&path, &cache).unwrap();
+        let out = extract(&path, &cache, &Run::silent()).unwrap();
         fs::write(out.join("Banc/new.bin"), b"edited").unwrap();
-        assert_eq!(extract(&path, &cache).unwrap(), out);
+        assert_eq!(extract(&path, &cache, &Run::silent()).unwrap(), out);
         assert_eq!(fs::read(out.join("Banc/new.bin")).unwrap(), b"edited");
 
         fs::remove_dir_all(&out).unwrap();
         let part = out.with_extension("part");
         fs::create_dir_all(&part).unwrap();
         fs::write(part.join("junk"), b"").unwrap();
-        extract(&path, &cache).unwrap();
+        extract(&path, &cache, &Run::silent()).unwrap();
         assert!(!part.exists() && !out.join("junk").exists());
         assert_eq!(fs::read(out.join("Banc/new.bin")).unwrap(), b"update");
     }
@@ -323,10 +334,10 @@ mod tests {
     #[test]
     fn fills_in_a_subtree_an_older_cache_lacks() {
         let (path, cache) = dump("stale", UPDATE);
-        let out = extract(&path, &cache).unwrap();
+        let out = extract(&path, &cache, &Run::silent()).unwrap();
         fs::write(out.join("Banc/new.bin"), b"edited").unwrap();
         fs::remove_dir_all(out.join("Logic")).unwrap();
-        assert_eq!(extract(&path, &cache).unwrap(), out);
+        assert_eq!(extract(&path, &cache, &Run::silent()).unwrap(), out);
         assert_eq!(fs::read(out.join("Logic/new.bin")).unwrap(), b"update");
         assert_eq!(fs::read(out.join("Banc/new.bin")).unwrap(), b"edited");
     }

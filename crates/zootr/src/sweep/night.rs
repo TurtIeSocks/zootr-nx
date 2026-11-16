@@ -22,6 +22,7 @@ use crate::generate::{self, Extras};
 use crate::known::{Name, actor};
 use crate::live::Game;
 use crate::play::{Input, Start, boot};
+use crate::progress::Run;
 use crate::settings::{self, Settings};
 use crate::warp::{self, Side};
 
@@ -130,7 +131,7 @@ pub fn pool(
         dev_panel: true,
         ..Default::default()
     };
-    let report = generate::generate(romfs, mod_dir, seed, settings, &extras)?;
+    let report = generate::generate(romfs, mod_dir, seed, settings, &extras, &Run::silent())?;
     let mut planned = plan(romfs, &report.spots)?;
     skip_unreachable(&mut planned, places);
     Ok(planned)
