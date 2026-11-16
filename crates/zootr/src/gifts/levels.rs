@@ -212,6 +212,7 @@ mod tests {
 
     #[test]
     fn ammo_steps_from_the_rupee_through_every_level_that_fires_it() {
+        needs_names!();
         let (bombs, next) = ladder(item::BOMB_BUNDLE_SMALL).unwrap();
         let pouches: Vec<&str> = bombs.iter().map(|(_, p)| p.get()).collect();
         let bags = [
