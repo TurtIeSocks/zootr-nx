@@ -17,7 +17,7 @@ use crate::rng::Rng;
 use crate::rules::Need;
 use crate::settings::NewGame;
 use crate::standins::{self, StandIn, Tables, item_pack};
-use crate::text::Copies;
+use crate::text::{Copies, CopyLine};
 
 /// A shop check's `file`, since its slot spans several map files.
 pub const FILE: &str = "Shop";
@@ -298,9 +298,9 @@ pub fn captions(
         };
         let stem = label.strip_suffix("_Name").context("a name label")?;
         let caption = format!("{stem}{CAPTION}");
-        if !new.iter().any(|(l, _)| *l == caption) {
+        if !new.iter().any(|l: &CopyLine| l.label == caption) {
             let sources = CAPTION_SOURCES.map(|s| format!("{stem}{s}")).to_vec();
-            new.push((caption, sources));
+            new.push(CopyLine::plain(caption, sources));
         }
     }
     Ok(Copies {
@@ -446,17 +446,17 @@ mod tests {
         let drops = HashMap::from([(goron.hash(), Drop::from(item::HOOKSHOT.to_string()))]);
         let copies = captions(&romfs, &slots, 1, &drops).unwrap();
         assert_eq!(copies.file, format!("{}/PouchContent", field::ACTOR_MSG));
-        let (_, sources) = (copies.new.iter())
-            .find(|(label, _)| *label == format!("{}_ShopCaption", item::HOOKSHOT))
+        let line = (copies.new.iter())
+            .find(|l| l.label == format!("{}_ShopCaption", item::HOOKSHOT))
             .unwrap();
         assert_eq!(
-            sources,
+            line.sources,
             &[
                 format!("{}_GetCaption", item::HOOKSHOT),
                 format!("{}_Caption", item::HOOKSHOT)
             ]
         );
-        let labels = copies.new.iter().map(|(l, _)| l);
+        let labels = copies.new.iter().map(|l| &l.label);
         assert!(labels.clone().all(|l| l.ends_with("_ShopCaption")));
         let unique: std::collections::HashSet<_> = labels.clone().collect();
         assert_eq!(unique.len(), labels.count());
