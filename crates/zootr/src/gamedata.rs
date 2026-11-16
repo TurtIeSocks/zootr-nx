@@ -104,7 +104,12 @@ fn operand((text, top): Term, op: &str) -> String {
 
 impl GameData {
     pub fn load(romfs: &Romfs) -> Result<Self> {
-        let doc = BymlDoc::parse(&romfs.read(PATH)?).context(PATH)?;
+        Self::parse(&romfs.read(PATH)?)
+    }
+
+    /// GameData from its decompressed file.
+    pub fn parse(data: &[u8]) -> Result<Self> {
+        let doc = BymlDoc::parse(data).context(PATH)?;
         let mut entries = HashMap::new();
         let mut names = HashMap::new();
         for (table, list) in doc
