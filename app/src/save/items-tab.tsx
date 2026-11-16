@@ -7,7 +7,6 @@ import {
   type ItemsView,
   type StatusField,
   type StatusGroup,
-  TRACKER_COLUMNS,
 } from "@/bindings";
 import { InlineError } from "@/components/callout";
 import { Card } from "@/components/card";
@@ -18,7 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { BADGE, columnsOf, inSection, PIXELS } from "@/items/layout";
+import { BADGE, inSection, PIXELS } from "@/items/layout";
 import { SectionGrid, Tile } from "@/items/tile";
 import { call, message } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -51,30 +50,30 @@ export function ItemsTab({ view }: ItemsTabProps) {
       <StatusPanel fields={view.status} />
       <InlineError error={error} />
       <Card>
-        <div className="flex items-start gap-6 p-4">
-          {columnsOf(view.sections, TRACKER_COLUMNS).map(({ n, shown }) => (
-            <div key={n} className="flex flex-col gap-4">
-              {shown.map((placement) => (
-                <section key={placement.section}>
-                  <SectionGrid
-                    placement={placement}
-                    cells={inSection(view.cells, placement.section)}
-                    size={SIZE}
-                    ink={INK}
-                  >
-                    {(cell, at) => (
-                      <EditTile
-                        cell={cell}
-                        cap={view.caps[at] ?? null}
-                        staged={view.staged[at] ?? false}
-                        onClick={(intent) => click(at, intent)}
-                      />
-                    )}
-                  </SectionGrid>
-                </section>
-              ))}
-            </div>
-          ))}
+        {/* The tracker's sections in its default order, wrapped to the page
+            rather than stacked in its one default column. */}
+        <div className="flex flex-wrap items-start gap-x-8 gap-y-5 p-4">
+          {view.sections
+            .filter((p) => p.shown)
+            .map((placement) => (
+              <section key={placement.section}>
+                <SectionGrid
+                  placement={placement}
+                  cells={inSection(view.cells, placement.section)}
+                  size={SIZE}
+                  ink={INK}
+                >
+                  {(cell, at) => (
+                    <EditTile
+                      cell={cell}
+                      cap={view.caps[at] ?? null}
+                      staged={view.staged[at] ?? false}
+                      onClick={(intent) => click(at, intent)}
+                    />
+                  )}
+                </SectionGrid>
+              </section>
+            ))}
         </div>
       </Card>
     </div>

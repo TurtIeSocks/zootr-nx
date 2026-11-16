@@ -140,7 +140,6 @@ const saveWrite = vi.fn(
 );
 
 vi.mock("@/bindings", () => ({
-  TRACKER_COLUMNS: 3,
   commands: {
     saveSlots: () => saveSlots(),
     saveItems: (s: number, p: Pending) => saveItems(s, p),

@@ -132,8 +132,9 @@ export function SectionGrid({
       >
         {TITLES[placement.section]}
       </h3>
+      {/* As wide as its tiles, so a row's label doesn't take the slack. */}
       <div
-        className="grid gap-1"
+        className="grid w-max gap-1"
         style={{
           gridTemplateColumns: `${rows ? "auto " : ""}repeat(${placement.width}, ${size}px)`,
         }}
