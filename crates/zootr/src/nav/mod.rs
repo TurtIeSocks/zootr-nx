@@ -40,6 +40,7 @@ pub mod route;
 pub mod scene;
 #[cfg(test)]
 mod sim;
+pub mod went;
 
 /// The stick directions clockwise from up, an eighth of a turn apart.
 const CLOCKWISE: [&str; 8] = [
