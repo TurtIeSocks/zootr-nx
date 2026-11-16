@@ -13,7 +13,8 @@ use crate::platform::{Folder, user_dir};
 
 /// Ocarina of Time's base title. Its update is `TITLE | 0x800`.
 pub const TITLE: u64 = 0x0400_4860_24DE_C000;
-/// The 1.1.0 update, the only one zootr reads.
+/// The 1.1.1 update, the only one zootr reads. Its romfs names its
+/// resource size table `Product.111`.
 pub const UPDATE: u32 = 131072;
 /// The single files zootr reads, under the romfs root: what the custom
 /// models are made from.
@@ -59,7 +60,7 @@ fn romfs(nup: &Nup) -> Result<nup_format::Dir> {
     match found.and_then(|p| p.romfs) {
         Some(d) => Ok(d),
         None => bail!(
-            "this dump has no 1.1.0 update of Ocarina of Time (title {:016X}, version {UPDATE})",
+            "this dump has no 1.1.1 update of Ocarina of Time (title {:016X}, version {UPDATE})",
             TITLE | 0x800
         ),
     }
@@ -116,7 +117,7 @@ fn extract(path: &Path, cache: &Path) -> Result<PathBuf> {
                 fs::create_dir_all(dest.parent().context("no parent")?)?;
                 fs::write(&dest, nup.read(file).with_context(extracting)?)?;
             }
-            None => bail!("the 1.1.0 update has no romfs/{sub}"),
+            None => bail!("the 1.1.1 update has no romfs/{sub}"),
         }
     }
     for sub in missing {
@@ -298,7 +299,7 @@ mod tests {
     fn refuses_other_versions() {
         let (path, cache) = dump("version", UPDATE + 1);
         let err = extract(&path, &cache).unwrap_err().to_string();
-        assert!(err.contains("1.1.0"), "{err}");
+        assert!(err.contains("1.1.1"), "{err}");
         assert!(prepare(&path).is_err());
     }
 

@@ -48,7 +48,7 @@ pub use table::{
     after_grant, pick, pick_with,
 };
 
-/// Where our pieces go in `main`, for game 1.1.0. The code goes over
+/// Where our pieces go in `main`, for game 1.1.1. The code goes over
 /// Havok's physics trace recorder, which a patch keeps from ever running,
 /// the table in the zero padding after rodata, and the chest list in the
 /// zeroed page tail after bss.

@@ -88,7 +88,7 @@ a flag does.
 
 1. Download the app for your system from the
    [Releases page](https://github.com/TurtIeSocks/zootr-nx/releases).
-2. Point it at your own dump of the game with the 1.1.0 update.
+2. Point it at your own dump of the game with the 1.1.1 update.
 3. Add a target: the app that runs the game and the mod folder it loads.
 4. Generate a seed and press Play.
 
@@ -99,7 +99,7 @@ the CLI.
 
 Early. Expect seeds that break and settings that change.
 
-- zootr reads the 1.1.0 update of the game only.
+- zootr reads the 1.1.1 update of the game only.
 - macOS is the main platform. Windows and Linux builds exist but are barely
   tested.
 - The tracker, the Live log and the checks list read the running game.
