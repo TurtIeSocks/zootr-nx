@@ -239,17 +239,17 @@ const TEXT_PARTS: [&str; 3] = ["_Name", "_GetMessage", "_GetCaption"];
 type CopyText = [(Option<&'static str>, bool); 3];
 const RING_TEXT: CopyText = [
     (Some("{} Key Ring"), true),
-    (Some("You found the {} key ring!"), true),
+    (Some("You found {the} {} key ring!"), true),
     (Some("It holds every {} small key."), false),
 ];
 const SINGLE_TEXT: CopyText = [
     (Some("{} Small Key"), true),
-    (Some("You found a {} small key!"), true),
+    (Some("You found {a} {} small key!"), true),
     (Some("It unlocks one {} door."), false),
 ];
 const BOSS_TEXT: CopyText = [
     (Some("{} Boss Key"), true),
-    (Some("You found the {} boss key!"), true),
+    (Some("You found {the} {} boss key!"), true),
     (None, false),
 ];
 const POUCH_TEXT: &str = "ActorMsg/PouchContent";
@@ -630,6 +630,24 @@ mod tests {
                         ring(ganon),
                         "_Name",
                         "Ganondorf's Castle Key Ring",
+                    ),
+                    (
+                        &ring_text,
+                        ring(ganon),
+                        "_GetMessage",
+                        "You found Ganondorf's Castle key ring!",
+                    ),
+                    (
+                        &ring_text,
+                        boss(ganon),
+                        "_GetMessage",
+                        "You found Ganondorf's Castle boss key!",
+                    ),
+                    (
+                        &single_text,
+                        ring(ganon),
+                        "_GetMessage",
+                        "You found Ganondorf's Castle small key!",
                     ),
                     (
                         &ring_text,

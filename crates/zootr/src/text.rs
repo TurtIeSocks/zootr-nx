@@ -54,7 +54,8 @@ impl CopyLine {
 }
 
 /// A copy naming a place: English reads `english`, its `{}` the place's
-/// English name. Every other language reads the source line, with the
+/// English name, and `{the} ` or `{a} ` its article, which a possessive
+/// name ("Ganondorf's Castle") goes without. Every other language reads the source line, with the
 /// place's own name in brackets after it when `bracketed`. A language
 /// without the place's name keeps the source line.
 pub struct Named {
@@ -237,7 +238,15 @@ fn naming(line: Vec<Part>, named: &Named, rel: &str, places: &Msbt) -> Result<Ve
         return Ok(line);
     }
     if is_english(rel) {
-        return Ok(vec![Part::Text(named.english.replace("{}", &words))]);
+        let article = |a: &str| match words.contains("'s") {
+            true => String::new(),
+            false => format!("{a} "),
+        };
+        let english = (named.english)
+            .replace("{the} ", &article("the"))
+            .replace("{a} ", &article("a"))
+            .replace("{}", &words);
+        return Ok(vec![Part::Text(english)]);
     }
     if !named.bracketed {
         return Ok(line);
