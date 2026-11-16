@@ -1,6 +1,8 @@
 //! Whose turn it is on the game: the maintainer's, Claude's, or nobody's.
 //! Kept in a file beside the config, so it outlives any one session.
 //! Claude plays only on its own turn, and never takes the maintainer's.
+//! Each Claude session names itself, so one session's turn isn't taken
+//! for another's.
 
 use std::path::PathBuf;
 
@@ -24,6 +26,9 @@ pub struct Turn {
     pub since: i64,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub note: String,
+    /// The Claude session holding a Claude turn, as it named itself.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub session: String,
 }
 
 impl Turn {
@@ -60,29 +65,45 @@ impl Turn {
         })
     }
 
-    /// The turn handed to `to`. From Claude's shell, the maintainer's turn
-    /// can only be handed back by her, unless `force`.
+    /// The turn handed to `to` by Claude session `session`. From Claude's
+    /// shell, unless `force`: the maintainer's turn can only be handed back
+    /// by her, a Claude turn only by the session holding it, and Claude
+    /// takes a turn only naming its session.
     pub fn hand(
         &self,
         to: Option<Player>,
         note: String,
+        session: String,
         now: i64,
         claude: bool,
         force: bool,
     ) -> Result<Self> {
-        if claude
-            && !force
-            && self.player == Some(Player::Maintainer)
-            && to != Some(Player::Maintainer)
-        {
-            bail!(
-                "it's the maintainer's turn: only she hands it over (from her own terminal, or with --force)"
-            );
+        if claude && !force {
+            if self.player == Some(Player::Maintainer) && to != Some(Player::Maintainer) {
+                bail!(
+                    "it's the maintainer's turn: only she hands it over (from her own terminal, or with --force)"
+                );
+            }
+            if self.player == Some(Player::Claude) && self.session != session {
+                bail!(
+                    "it's another Claude session's turn ({self}): only that session hands it over (or --force)"
+                );
+            }
+            if to == Some(Player::Claude) && session.is_empty() {
+                bail!(
+                    "name this Claude session with --session, so other sessions know the turn isn't theirs"
+                );
+            }
         }
+        let session = match to {
+            Some(Player::Claude) => session,
+            _ => String::new(),
+        };
         Ok(Self {
             player: to,
             since: now,
             note,
+            session,
         })
     }
 }
@@ -100,7 +121,10 @@ impl std::fmt::Display for Turn {
             None if self.since == 0 => write!(f, "free")?,
             None => write!(f, "free since {since}")?,
             Some(Player::Maintainer) => write!(f, "the maintainer's turn since {since}")?,
-            Some(Player::Claude) => write!(f, "Claude's turn since {since}")?,
+            Some(Player::Claude) if self.session.is_empty() => {
+                write!(f, "Claude's turn since {since}")?
+            }
+            Some(Player::Claude) => write!(f, "Claude's turn ({}) since {since}", self.session)?,
         }
         match self.note.is_empty() {
             true => Ok(()),
@@ -118,6 +142,14 @@ mod tests {
             player,
             since: 1,
             note: String::new(),
+            session: String::new(),
+        }
+    }
+
+    fn claudes(session: &str) -> Turn {
+        Turn {
+            session: session.into(),
+            ..held(Some(Player::Claude))
         }
     }
 
@@ -125,30 +157,137 @@ mod tests {
     fn claude_never_takes_the_maintainers_turn() {
         let hers = held(Some(Player::Maintainer));
         assert!(
-            hers.hand(Some(Player::Claude), String::new(), 2, true, false)
+            hers.hand(
+                Some(Player::Claude),
+                String::new(),
+                "fake-mine".into(),
+                2,
+                true,
+                false
+            )
+            .is_err()
+        );
+        assert!(
+            hers.hand(None, String::new(), "fake-mine".into(), 2, true, false)
                 .is_err()
         );
-        assert!(hers.hand(None, String::new(), 2, true, false).is_err());
         assert!(
-            hers.hand(Some(Player::Claude), String::new(), 2, true, true)
-                .is_ok()
+            hers.hand(
+                Some(Player::Claude),
+                String::new(),
+                "fake-mine".into(),
+                2,
+                true,
+                true
+            )
+            .is_ok()
         );
         assert!(
-            hers.hand(Some(Player::Claude), String::new(), 2, false, false)
-                .is_ok()
+            hers.hand(
+                Some(Player::Claude),
+                String::new(),
+                String::new(),
+                2,
+                false,
+                false
+            )
+            .is_ok()
         );
     }
 
     #[test]
     fn claude_takes_a_free_turn_and_hands_its_own_back() {
-        let free = held(None).hand(Some(Player::Claude), "notes".into(), 2, true, false);
+        let free = held(None).hand(
+            Some(Player::Claude),
+            "notes".into(),
+            "fake-mine".into(),
+            2,
+            true,
+            false,
+        );
         let mine = free.unwrap();
         assert_eq!((mine.player, mine.since), (Some(Player::Claude), 2));
         assert!(
-            mine.hand(Some(Player::Maintainer), String::new(), 3, true, false)
+            mine.hand(
+                Some(Player::Maintainer),
+                String::new(),
+                "fake-mine".into(),
+                3,
+                true,
+                false
+            )
+            .is_ok()
+        );
+        assert!(
+            mine.hand(None, String::new(), "fake-mine".into(), 3, true, false)
                 .is_ok()
         );
-        assert!(mine.hand(None, String::new(), 3, true, false).is_ok());
+    }
+
+    #[test]
+    fn a_session_hands_over_only_its_own_turn() {
+        let theirs = claudes("fake-other");
+        let to = |to, session: &str, force| {
+            theirs.hand(to, String::new(), session.into(), 2, true, force)
+        };
+        assert!(to(None, "fake-mine", false).is_err());
+        assert!(to(Some(Player::Claude), "fake-mine", false).is_err());
+        assert!(to(None, "", false).is_err());
+        assert!(to(None, "fake-other", false).is_ok());
+        assert!(to(Some(Player::Claude), "fake-mine", true).is_ok());
+        assert!(
+            theirs
+                .hand(None, String::new(), String::new(), 2, false, false)
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn a_turn_without_a_session_is_handed_back_without_one() {
+        let old = claudes("");
+        assert!(
+            old.hand(None, String::new(), String::new(), 2, true, false)
+                .is_ok()
+        );
+        assert!(
+            old.hand(None, String::new(), "fake-mine".into(), 2, true, false)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn claude_takes_a_turn_only_naming_its_session() {
+        let free = held(None);
+        let take = |session: &str| {
+            free.hand(
+                Some(Player::Claude),
+                String::new(),
+                session.into(),
+                2,
+                true,
+                false,
+            )
+        };
+        assert!(take("").is_err());
+        let mine = take("fake-mine").unwrap();
+        assert_eq!(mine.session, "fake-mine");
+        assert_eq!(
+            mine.to_string().split(" since").next(),
+            Some("Claude's turn (fake-mine)")
+        );
+    }
+
+    #[test]
+    fn a_turn_handed_away_from_claude_drops_the_session() {
+        let back =
+            claudes("fake-mine").hand(None, String::new(), "fake-mine".into(), 2, true, false);
+        assert_eq!(back.unwrap().session, "");
+    }
+
+    #[test]
+    fn an_old_file_without_a_session_loads() {
+        let old: Turn = serde_json::from_str(r#"{"player":"claude","since":1}"#).unwrap();
+        assert_eq!(old, claudes(""));
     }
 
     #[test]

@@ -36,7 +36,12 @@ pub(super) enum Command {
         /// Why, or what's being tested.
         #[arg(long, default_value = "")]
         note: String,
-        /// Hand over the maintainer's turn from Claude's shell anyway.
+        /// The Claude session taking or handing over the turn, by a short
+        /// name of its own. Needed to take a turn from Claude's shell.
+        #[arg(long, default_value = "")]
+        session: String,
+        /// Hand over the maintainer's or another session's turn from
+        /// Claude's shell anyway.
         #[arg(long)]
         force: bool,
     },
