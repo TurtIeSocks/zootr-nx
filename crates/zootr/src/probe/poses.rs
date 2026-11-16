@@ -92,12 +92,13 @@ pub(super) fn floors(romfs: &Romfs, game: &Path) -> Result<()> {
         else {
             continue;
         };
-        let pose = standins::shelf_pose(&tables.actor, &item)?;
+        let pose = standins::vanilla_pose(&tables.actor, &item)?;
         wanted.push((item, format!("{project}.{model}{MODEL}"), row_model, pose));
     }
     let files: HashSet<&str> = wanted.iter().map(|(_, f, _, _)| f.as_str()).collect();
     let mut archives: HashSet<String> = wanted.iter().map(|(.., p)| p.clone()).collect();
     archives.extend(wanted.iter().map(|(_, _, m, _)| standins::own_pose(m)));
+    archives.insert(standins::stand_pose());
 
     // One pass over the dump's models.
     let mut meshes: HashMap<String, (Vec<[f32; 3]>, bool)> = HashMap::new();
@@ -132,23 +133,36 @@ pub(super) fn floors(romfs: &Romfs, game: &Path) -> Result<()> {
             .map_or(0.0, |t| t[1])
     };
     let mut floors = BTreeMap::new();
+    let token = actor::OBJ_TOKEN_GOLD_ANIMATION.to_string();
     for (item, file, model, pose) in &wanted {
-        let played = roots.get(pose).copied().unwrap_or_default();
-        let floor = match meshes.get(file) {
-            Some((points, false)) if !points.is_empty() => lowest(points, &played),
+        let mesh = match meshes.get(file) {
+            Some((points, false)) if !points.is_empty() => Some(points),
+            _ => None,
+        };
+        let stands = *pose == token && mesh.is_some_and(|m| flat(m));
+        let pose = match stands {
+            true => standins::stand_pose(),
+            false => pose.clone(),
+        };
+        let played = roots.get(&pose).copied().unwrap_or_default();
+        let floor = match mesh {
+            Some(points) => lowest(points, &played),
             // The row's floor is the model in its own pose for these.
             _ => {
                 eprintln!("{item}: vertices unread, from its row");
                 standins::table_floor(&tables.actor, item)? - lift(&standins::own_pose(model))
-                    + lift(pose)
+                    + lift(&pose)
             }
         };
-        floors.insert(hash(item), floor);
+        if stands {
+            eprintln!("{item}: flat, stands up");
+        }
+        floors.insert(hash(item), (floor, stands));
     }
     print!("{HEADER}");
-    println!("const FLOORS: [(Name, f32); {}] = [", floors.len());
-    for (h, floor) in floors {
-        println!("    (n!({h:#018x}), {floor:.4}),");
+    println!("const FLOORS: [(Name, f32, bool); {}] = [", floors.len());
+    for (h, (floor, stands)) in floors {
+        println!("    (n!({h:#018x}), {floor:.4}, {stands}),");
     }
     println!("];\n{FOOTER}");
     Ok(())
@@ -160,18 +174,28 @@ const HEADER: &str = "\
 //! scaled, turned and lifted the skeleton root. Written by `zootr probe
 //! floors`, from the dump: rerun it when the pool or the poses change. A
 //! model whose vertices it can't read takes its `ActorInfo` floor, less
-//! its own pose's lift, plus the shelf pose's.
+//! its own pose's lift, plus the shelf pose's. A model lying flat in the
+//! token's pose stands up in the Deku Shield's instead.
 
 use crate::known::{Name, hash};
 
-/// By the item name's hash, in hash order.
+/// By the item name's hash, in hash order, with whether the item stands up.
 ";
 
 const FOOTER: &str = "
 /// `item`'s floor on a shelf, if the table has it.
 pub fn floor(item: &str) -> Option<f32> {
-    let at = FLOORS.binary_search_by_key(&hash(item), |(n, _)| n.0).ok()?;
-    Some(FLOORS[at].1)
+    row(item).map(|r| r.1)
+}
+
+/// Whether `item`'s model lies flat, so stands up on a shelf.
+pub fn stands(item: &str) -> bool {
+    row(item).is_some_and(|r| r.2)
+}
+
+fn row(item: &str) -> Option<&'static (Name, f32, bool)> {
+    let at = FLOORS.binary_search_by_key(&hash(item), |(n, ..)| n.0).ok()?;
+    Some(&FLOORS[at])
 }";
 
 /// The skeleton root's values in the shelf pose an archive holds, or none
@@ -189,6 +213,18 @@ fn shelf_root(data: &[u8]) -> Result<Base> {
         .into_iter()
         .find(|(n, _)| hash(n) == field::SKL_ROOT.0);
     Ok(root.map(|(_, b)| b).unwrap_or_default())
+}
+
+/// Whether `points` lie flat: thinner upright than half their narrower
+/// side across.
+fn flat(points: &[[f32; 3]]) -> bool {
+    let extent = |i: usize| {
+        let (lo, hi) = points.iter().fold((f32::MAX, f32::MIN), |(lo, hi), p| {
+            (lo.min(p[i]), hi.max(p[i]))
+        });
+        hi - lo
+    };
+    extent(1) < 0.5 * extent(0).min(extent(2))
 }
 
 /// The lowest of `points` once `pose` scales, turns (Euler X, Y, Z) and
@@ -210,6 +246,16 @@ fn lowest(points: &[[f32; 3]], pose: &Base) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_plate_lies_flat_and_a_rod_or_a_post_does_not() {
+        let plate = [[-1.0, 0.0, -1.0], [1.0, 0.2, 1.0]];
+        let rod = [[-1.0, 0.0, -0.1], [1.0, 0.1, 0.1]];
+        let post = [[-0.1, 0.0, -0.1], [0.1, 1.0, 0.1]];
+        assert!(flat(&plate));
+        assert!(!flat(&rod));
+        assert!(!flat(&post));
+    }
 
     #[test]
     fn a_pose_scales_turns_and_lifts_the_lowest_point() {

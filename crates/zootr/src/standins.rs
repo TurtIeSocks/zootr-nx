@@ -113,6 +113,22 @@ fn archive(name: &str) -> Byml {
 /// shop goods play it, else the gold token's. By the model, so a chest's
 /// form of the item finds the same pose.
 pub(crate) fn shelf_pose(actor: &BymlDoc, item: &str) -> Result<String> {
+    let pose = vanilla_pose(actor, item)?;
+    Ok(match pose == **TOKEN_POSE && crate::shops::stands(item) {
+        true => stand_pose(),
+        false => pose,
+    })
+}
+
+/// The Deku Shield's shelf pose, which stands a flat model up: what a
+/// model lying flat in the token's pose plays instead.
+pub(crate) fn stand_pose() -> String {
+    own_pose(actor::WEAPON_SHIELD_DEKU)
+}
+
+/// The pose `item` plays before any flat model stands up: its own if a
+/// vanilla shop sells it in one, else the token's.
+pub(crate) fn vanilla_pose(actor: &BymlDoc, item: &str) -> Result<String> {
     let Some(model) = model(actor, item)? else {
         return Ok(TOKEN_POSE.to_string());
     };

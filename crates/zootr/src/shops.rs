@@ -22,7 +22,7 @@ use crate::rules::Need;
 use crate::settings::NewGame;
 use crate::standins::{self, StandIn, Tables, item_pack};
 use crate::text::{Copies, CopyLine};
-pub(crate) use floors::floor;
+pub(crate) use floors::{floor, stands};
 
 /// A shop check's `file`, since its slot spans several map files.
 pub const FILE: &str = "Shop";
