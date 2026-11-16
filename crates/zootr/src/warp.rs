@@ -20,7 +20,7 @@ const AHEAD: f32 = 2.0;
 const LIFT: f32 = 0.5;
 
 /// Which side of the actor Link lands on, by its facing.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, ValueEnum)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize, ValueEnum)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(rename_all = "lowercase")]
 pub enum Side {

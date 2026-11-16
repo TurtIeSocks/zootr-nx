@@ -407,7 +407,7 @@ pub(super) struct Round<'a> {
 
 /// What earlier nights learned of each spot, by placement hash.
 #[derive(Debug, Default)]
-struct Known {
+pub(super) struct Known {
     /// The age a spot was last reached at: an item landed, the dealt one
     /// or not, on a try that named Link's age.
     ages: HashMap<u64, bool>,
@@ -420,9 +420,9 @@ struct Known {
     kinds: HashSet<String>,
     /// The side Link last used a spot from when an item landed.
     sides: HashMap<u64, Side>,
-    /// The sides a spot came to nothing from: a chest opened from behind,
-    /// a keeper talked to from the wrong side of his counter.
-    missed: HashMap<u64, Vec<Side>>,
+    /// How often a spot came to nothing from each side: a chest opened
+    /// from behind, a keeper talked to from the wrong side of his counter.
+    missed: HashMap<u64, HashMap<Side, usize>>,
 }
 
 /// What kind of holder `holder` is, its number off: `Pot_A_03` is a
@@ -432,7 +432,7 @@ pub(super) fn holder_kind(holder: &str) -> &str {
 }
 
 /// Add what `rows` tell of each spot to `known`. A later row's age wins.
-fn learn(known: &mut Known, rows: &str) {
+pub(super) fn learn(known: &mut Known, rows: &str) {
     for row in rows
         .lines()
         .filter_map(|l| serde_json::from_str::<serde_json::Value>(l).ok())
@@ -455,10 +455,12 @@ fn learn(known: &mut Known, rows: &str) {
             (Ok(side), true) => _ = known.sides.insert(hash, side),
             // A side a swing broke a neighbour from is as good as none.
             (Ok(side), false) if matches!(verdict, Some("nothing" | "neighbour")) => {
-                let missed = known.missed.entry(hash).or_default();
-                if !missed.contains(&side) {
-                    missed.push(side);
-                }
+                *known
+                    .missed
+                    .entry(hash)
+                    .or_default()
+                    .entry(side)
+                    .or_default() += 1;
             }
             _ => {}
         }
@@ -467,17 +469,19 @@ fn learn(known: &mut Known, rows: &str) {
 
 /// `p` at the age it was last reached at, when its map names none. Logic
 /// lists most dungeon checks for both ages, and the wrong one costs a try.
-/// And from the side it gave an item from, else the first side it hasn't
-/// come to nothing from yet, starting with its planned one, and round to
-/// that again once every side has.
-fn at_known(p: &Planned, known: &Known) -> Planned {
+/// And from the side it gave an item from, else the side it came to
+/// nothing from least often, its planned one first among equals. Once every
+/// side has missed, the least tried comes round next, so a fix to `use`
+/// gets its turn at each: the Well's chest missed from its front 27 times
+/// and its back once, and the back is where it opens.
+pub(super) fn at_known(p: &Planned, known: &Known) -> Planned {
     let hash = p.spot.hash;
-    let missed = known.missed.get(&hash);
-    let untried = warp::sides_from(p.side).find(|s| missed.is_none_or(|m| !m.contains(s)));
+    let missed = |s: &Side| (known.missed.get(&hash)).map_or(0, |m| m.get(s).copied().unwrap_or(0));
+    let least = warp::sides_from(p.side).min_by_key(missed);
     Planned {
         child: p.child.or_else(|| known.ages.get(&hash).copied()),
         side: (known.sides.get(&hash).copied())
-            .or(untried)
+            .or(least)
             .unwrap_or(p.side),
         ..p.clone()
     }
@@ -669,7 +673,7 @@ mod tests {
     }
 
     #[test]
-    fn a_spot_goes_again_from_the_side_it_gave_from_else_one_not_tried() {
+    fn a_spot_goes_again_from_the_side_it_gave_from_else_the_least_missed() {
         let row = |hash: u64, side: &str, verdict: &str| {
             json!({"spot": {"hash": hash.to_string()},
                 "swept": {"verdict": {"verdict": verdict}, "used": {"side": side}}})
@@ -689,8 +693,12 @@ mod tests {
             row(6, "back", "neighbour"),
             row(6, "front", "nothing"),
         ];
+        let worn = [
+            "front", "front", "front", "left", "left", "right", "right", "back",
+        ];
+        let rows = rows.into_iter().chain(worn.map(|s| row(7, s, "nothing")));
         let mut known = Known::default();
-        learn(&mut known, &rows.join("\n"));
+        learn(&mut known, &rows.collect::<Vec<_>>().join("\n"));
         let planned = |hash, side| Planned {
             spot: crate::generate::Spot {
                 hash,
@@ -704,6 +712,7 @@ mod tests {
         assert_eq!(side(2), Side::Right, "the next side not come to nothing");
         assert_eq!(side(3), Side::Front, "round again once all have");
         assert_eq!(side(4), Side::Front, "never swept");
+        assert_eq!(side(7), Side::Back, "every side missed: the least missed");
         let back = |hash| at_known(&planned(hash, Side::Back), &known).side;
         assert_eq!(back(4), Side::Back, "never swept, from the planned side");
         assert_eq!(back(5), Side::Front, "a neighbour broke from the back");
