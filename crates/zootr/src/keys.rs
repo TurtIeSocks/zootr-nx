@@ -61,8 +61,8 @@ pub static SHUFFLED: LazyLock<Vec<String>> = LazyLock::new(|| {
         .collect()
 });
 
-/// Whether `item` is a ring or boss key copy, which only a chest can give:
-/// the hook credits them as a chest opens.
+/// Whether `item` is a ring, small key or boss key copy, which the hook
+/// credits as Link gets it.
 pub fn is_shuffled(item: &str) -> bool {
     SHUFFLED.iter().any(|s| s == item)
 }

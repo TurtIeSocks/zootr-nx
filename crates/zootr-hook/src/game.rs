@@ -177,18 +177,7 @@ pub unsafe extern "C" fn content_name(
             if let Some(actor) = at(node, 8).and_then(|n| at(n, 8)) {
                 shared(main).with(|l| l.opened(actor));
             }
-            let now = name(*value);
-            let credit = now.and_then(|n| table.credit(n));
-            let gd = dev::single(main, table.offsets.gamedata);
-            match (credit, gd) {
-                (Some(Credit::Bool(hash)), Some(gd)) => {
-                    dev::set_bool(main, table.offsets, gd, hash, true)
-                }
-                (Some(Credit::Int(hash, n)), Some(gd)) => refill::set_int(gd, hash, n),
-                (Some(Credit::Add(hash, n)), Some(gd)) => refill::add_int(gd, hash, n),
-                _ => {}
-            }
-            now.and_then(|now| level_for(main, &table, now))
+            name(*value).and_then(|now| level_for(main, &table, now))
         } else {
             None
         };
@@ -240,7 +229,9 @@ unsafe extern "C" fn chest_made(node: usize) {
     })
 }
 
-/// `name` is about to be added to the pouch.
+/// `name` is about to be added to the pouch: credit it, then remake the
+/// closed chests of its line. Every holder's grant passes here once, so a
+/// copy found anywhere credits its dungeon once.
 ///
 /// # Safety
 /// Only the hooked function's entry calls this.
@@ -248,9 +239,31 @@ unsafe extern "C" fn chest_made(node: usize) {
 unsafe extern "C" fn granted(_: usize, added: *const *const u8) {
     hooked(|main, table| unsafe {
         if let Some(added) = name(*added) {
+            credit(main, table, added);
             recreate(main, table, added);
         }
     })
+}
+
+/// Set what the table credits `added` with, if anything.
+///
+/// # Safety
+/// The table's offsets are this build's.
+unsafe fn credit(main: usize, table: &Table, added: &[u8]) {
+    let Some(credit) = table.credit(added) else {
+        return;
+    };
+    // SAFETY: the offsets were found in this build of `main`.
+    let Some(gd) = (unsafe { dev::single(main, table.offsets.gamedata) }) else {
+        return;
+    };
+    unsafe {
+        match credit {
+            Credit::Bool(hash) => dev::set_bool(main, table.offsets, gd, hash, true),
+            Credit::Int(hash, n) => refill::set_int(gd, hash, n),
+            Credit::Add(hash, n) => refill::add_int(gd, hash, n),
+        }
+    }
 }
 
 /// Link is about to update: hold what the dev switches hold, and run the
