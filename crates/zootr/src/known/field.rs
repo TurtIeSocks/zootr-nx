@@ -17,6 +17,7 @@ pub const ACTOR_MSG: &Name = &n!(0x064f61413859d22f);
 pub const ACTOR_NAME_REF: &Name = &n!(0xabd744105cf59ca6);
 pub const ACTOR_PARAM: &Name = &n!(0x6fc60091688d6b6b);
 pub const ADULT_EQUIPMENT: &Name = &n!(0xd9dba99123d86051);
+pub const AFTER_EXPANSION_MAX_NUM: &Name = &n!(0xce16530e52997640);
 pub const AI_GROUP: &Name = &n!(0x50e08c771c488f66);
 pub const AI_GROUPS: &Name = &n!(0xb61dc3650f4b20af);
 pub const ALTERNATIVE_GAME_DATA: &Name = &n!(0xd50618f29ef90b4a);
