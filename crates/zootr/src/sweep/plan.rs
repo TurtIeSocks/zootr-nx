@@ -974,8 +974,20 @@ mod tests {
     fn a_step_is_read_from_its_expression() {
         needs_names!();
         let ruby = Some((flow::GET_STONE_OF_FIRE.to_string(), "Complete".into()));
-        assert_eq!(step_of("Step_Get_StoneOfFire == Complete"), ruby);
-        assert_eq!(step_of("Step_Meet_DekuTree > Step02"), None);
+        assert_eq!(
+            step_of(&format!(
+                "{} == Complete",
+                crate::steps::saved(flow::GET_STONE_OF_FIRE)
+            )),
+            ruby
+        );
+        assert_eq!(
+            step_of(&format!(
+                "{} > Step02",
+                crate::steps::saved(flow::MEET_DEKU_TREE)
+            )),
+            None
+        );
         assert_eq!(step_of("Step_A == B && Step_C == D"), None);
         assert_eq!(step_of("IsGet.Item_A"), None);
     }

@@ -641,10 +641,10 @@ mod tests {
         needs_names!();
         let book = Book::load().unwrap();
         let c = ctx(true, &[]);
-        let flag = book.resolve("flag:Some_Flag", &c).unwrap();
+        let flag = book.resolve("flag:Fake_Flag", &c).unwrap();
         let mut h = have(&[]);
         assert!(!flag.met(&h, Era::Child));
-        h.flags.insert("Some_Flag".into());
+        h.flags.insert("Fake_Flag".into());
         assert!(flag.met(&h, Era::Child));
         for bad in ["strength", "flag:", "switch:Obj_A"] {
             assert!(book.resolve(bad, &c).is_err(), "{bad}");

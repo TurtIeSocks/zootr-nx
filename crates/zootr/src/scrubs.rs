@@ -19,7 +19,7 @@ const SECRET: &str = "Secret";
 /// Takes the rupees, grants `ActorName` and sends the scrub off.
 const ONE_TIME: &Name = flow::SIMPLE_SHOP_SUB_SCRUB_BUSINESS_ONE_TIME;
 /// `ONE_TIME` with the get event swapped for the plain grant.
-const PLAIN_ONE_TIME: &str = "SimpleShopSub_Scrub_Business_OneTime_Plain";
+const PLAIN_ONE_TIME: &str = "Rando_ScrubPlainOneTime";
 /// The vanilla get event, which shows the item in Link's hands.
 const SHOW: &Name = flow::GET_IN_EVENT_NOT_TURN_2_D_SHOP;
 const SHOW_FLOW: &Name = scene::SY_GET_IN_EVENT;

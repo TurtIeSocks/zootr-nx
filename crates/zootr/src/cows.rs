@@ -58,7 +58,7 @@ const EVENT_NAME: &Name = crate::known::flow::EVENT_NAME;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Placement {
     pub actor: String,
-    /// The Banc file, like `Banc/KakarikoVillage/KakarikoVillage_Child_Dynamic.bcett.byml.zs`.
+    /// The Banc file, like `Banc/<area>/<map>_Child_Dynamic.bcett.byml.zs`.
     pub file: String,
     pub hash: u64,
     pub pos: [f32; 3],

@@ -37,8 +37,10 @@ mod tests {
     fn known_values() {
         assert_eq!(murmur3(b""), 0);
         assert_eq!(murmur3(b"Hello, world!"), 0xC036_3E43);
-        // A GameData flag name, length not a multiple of four.
-        assert_eq!(murmur3(b"Sequence_IsChildhood"), 3466731731);
-        assert_eq!(murmur3(b"SageOfWater_IsCompleted_Exp"), 2410602309);
+        // Length not a multiple of four.
+        assert_eq!(
+            murmur3(b"The quick brown fox jumps over the lazy dog"),
+            0x2E4F_F723
+        );
     }
 }

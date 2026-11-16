@@ -21,12 +21,12 @@ const PREFIXES: &[&str] = &["Obj_", "FldObj_"];
 static OBSTACLES: LazyLock<Vec<(&str, Option<&str>)>> = LazyLock::new(|| {
     vec![
         // Debris left by broken rocks: a model and nothing else.
-        ("Common_Fragment", None),
+        ("Fragment", None),
         // These collide only with bombs or the hookshot.
-        ("AirWall_HitOnlyBomb", None),
-        ("AirWall_Hookshot", None),
-        ("AirWall_HitBomb", Some("explosives")),
-        ("AirWall_CrawlHole", Some("child")),
+        ("HitOnlyBomb", None),
+        ("Hookshot", None),
+        ("HitBomb", Some("explosives")),
+        ("CrawlHole", Some("child")),
         ("HookShotTarget", Some("hookshot")),
         (flag::BOMB_FLOWER, Some("goron-bracelet")),
         ("BrokenRock", Some("explosives or hammer")),
@@ -41,7 +41,7 @@ static OBSTACLES: LazyLock<Vec<(&str, Option<&str>)>> = LazyLock::new(|| {
         (flag::RED_ICE, Some("blue-fire")),
         ("Hammer", Some("hammer")),
         (flag::SOLAR_SWITCH, Some("light")),
-        ("RupeeToken_Silver", Some("silver-rupees")),
+        ("RupeeToken", Some("silver-rupees")),
         ("DoorChainLock", Some("small-key")),
         (field::SPIDER_WEB, Some("explosives or fire")),
         ("DiggingHoleSoil", Some("digging")),
@@ -49,7 +49,7 @@ static OBSTACLES: LazyLock<Vec<(&str, Option<&str>)>> = LazyLock::new(|| {
         // from every bean patch, and in maps that have none. The ride grows
         // from the patch's soil, so a check above a patch says
         // `magic-beans` in its own rule.
-        ("Plant_MagicBean", None),
+        ("MagicBean", None),
     ]
 });
 

@@ -78,7 +78,7 @@ impl Names {
     }
 }
 
-/// An id made readable: `Thing_Rupee_Blue` reads `Rupee Blue`, `KokiriForest`
+/// An id made readable: `Fake_Rupee_Blue` reads `Rupee Blue`, `KokiriForest`
 /// reads `Kokiri Forest`.
 pub fn pretty(id: &str) -> String {
     let id = PREFIXES
@@ -133,7 +133,7 @@ mod tests {
         missing.dedup();
         assert_eq!(missing, Vec::<&str>::new());
         assert_eq!(names.area("NoPlace"), "No Place");
-        assert_eq!(names.item("No_Thing"), "No Thing");
+        assert_eq!(names.item("Fake_Thing"), "Fake Thing");
     }
 
     #[test]

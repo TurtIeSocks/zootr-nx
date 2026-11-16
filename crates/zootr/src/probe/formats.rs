@@ -258,7 +258,7 @@ mod tests {
                 format!("AI/{}.brain.root.ainb", actor::ENEMY_SCRUB_BUSINESS).as_str()
             ))
         );
-        assert_eq!(in_pack("Logic/Market_Common_f252.logic.module.ainb"), None);
+        assert_eq!(in_pack("Logic/FakeMap_Common.logic.module.ainb"), None);
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };

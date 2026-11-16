@@ -57,7 +57,7 @@ pub enum Atom {
         value: String,
     },
     /// A GameData enum past a value: a quest past a step, like the Water
-    /// Temple's heart container waiting for `Step_SageOfWater` past
+    /// Temple's heart container waiting for the Water Sage's quest past
     /// `Step07_2`. The walk doesn't know the steps' order, GameData does.
     After {
         name: String,
@@ -891,7 +891,7 @@ mod tests {
     fn a_flag_the_graphs_set_reads_as_its_setter() {
         needs_names!();
         let hit = actor(actor::OBJ_SWITCH_HIT_A_05, field::ON_STATE);
-        let latch = Expr::SetFlag("Thing_On".into(), vec![hit.clone()]);
+        let latch = Expr::SetFlag("Fake_On".into(), vec![hit.clone()]);
         assert_eq!(
             rule(&Expr::Or(vec![hit, latch])).unwrap(),
             format!("switch:{}", actor::OBJ_SWITCH_HIT_A_05)

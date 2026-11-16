@@ -446,7 +446,7 @@ mod tests {
 
     #[test]
     fn labels_hash_into_buckets_the_msbt_way() {
-        assert_eq!(bucket("Thing_Scrub_Heart_01", 101), 93);
+        assert_eq!(bucket("Fake_Scrub_Heart_01", 101), 14);
         let data = build(true, false, &[&[Text("x")], &[Text("y")]]);
         let mut msbt = Msbt::parse(&data).unwrap();
         assert!(msbt.misplaced().is_empty());

@@ -171,20 +171,24 @@ mod tests {
 
     #[test]
     fn nodes_and_eras_come_from_the_file_name() {
+        needs_names!();
         let (n, e) = node_of(&format!(
-            "Banc/{}/KokiriForest_Child_Static.bcett.byml.zs",
-            flag::KOKIRI_FOREST
+            "Banc/{}/{}_Static.bcett.byml.zs",
+            flag::KOKIRI_FOREST,
+            map::KOKIRI_FOREST_CHILD
         ));
         assert_eq!(n, map::KOKIRI_FOREST_CHILD);
         assert_eq!(e, [Era::Child]);
         let (n, e) = node_of(&format!(
-            "Banc/{}/ZoraDomain_Adult_Alternative_Static.bcett.byml.zs",
-            flag::ZORA_DOMAIN
+            "Banc/{}/{}_Static.bcett.byml.zs",
+            flag::ZORA_DOMAIN,
+            map::ZORA_DOMAIN_ADULT_ALTERNATIVE
         ));
         assert_eq!(n, map::ZORA_DOMAIN_ADULT_ALTERNATIVE);
         assert_eq!(e, [Era::Adult]);
         let (n, e) = node_of(&format!(
-            "Banc/{}/FireTemple_Dynamic.bcett.byml.zs",
+            "Banc/{}/{}_Dynamic.bcett.byml.zs",
+            flag::FIRE_TEMPLE,
             flag::FIRE_TEMPLE
         ));
         assert_eq!(n, flag::FIRE_TEMPLE);

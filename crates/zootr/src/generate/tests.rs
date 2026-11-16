@@ -345,8 +345,9 @@ fn thief_keys_are_checks_and_the_carried_ones_are_cleared_when_fortress_keys_sta
     // game's own where the mod leaves it alone.
     let carrying = |dir: &Path| {
         let rel = &format!(
-            "Banc/{}/GerudoFortress_Adult_Static.bcett.byml.zs",
-            flag::GERUDO_FORTRESS
+            "Banc/{}/{}_Static.bcett.byml.zs",
+            flag::GERUDO_FORTRESS,
+            crate::known::map::GERUDO_FORTRESS_ADULT
         );
         let data = match std::fs::read(dir.join("romfs").join(rel)) {
             Ok(raw) => romfs.dicts().decompress(rel, &raw).unwrap(),
@@ -602,10 +603,10 @@ fn the_medallion_bridge_starts_armed_and_keeps_its_step() {
     };
     let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &on).unwrap();
     let step = &report.written.defaults;
-    assert!(
-        step.iter()
-            .any(|d| d.starts_with("Step_Defeat_Ganon: ") && d.ends_with("-> Step01"))
-    );
+    assert!(step.iter().any(|d| {
+        d.starts_with(&format!("{}: ", crate::steps::saved(flow::DEFEAT_GANON)))
+            && d.ends_with("-> Step01")
+    }));
     assert!(
         dir.join("romfs")
             .join(crate::flows::rel(flow::ALL_SAGE))

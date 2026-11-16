@@ -42,7 +42,7 @@ pub const AREAS: [(&str, &str, &[&str]); 27] = [
         "Zora's River, Domain and Fountain",
         &["ZoraRiver", "Zora", "ZoraFountain"],
     ),
-    ("jabu", "Jabu-Jabu's Belly", &["InsideJabu_Jabu"]),
+    ("jabu", "Jabu-Jabu's Belly", &["InsideJabu"]),
     ("lake", "Lake Hylia", &["LakeHrl"]),
     (
         "gerudo",
@@ -118,8 +118,8 @@ fn great_deku_flags() -> [String; 6] {
             "{}=true",
             field::KOKIRI_FOREST_MEET_DEKU_TREE_OPEN_DEKU_TREE_MOUTH
         ),
-        "Step_Meet_DekuTree=Complete".into(),
-        format!("Step_Get_StoneOfForest={}", field::GO_INSIDE),
+        crate::steps::at(flow::MEET_DEKU_TREE, "Complete"),
+        crate::steps::at(flow::GET_STONE_OF_FOREST, field::GO_INSIDE),
     ]
 }
 /// Area intros whose one change is a warp that walks Link in from the door,
@@ -561,7 +561,7 @@ mod tests {
                 "{}=true",
                 field::KOKIRI_FOREST_MEET_DEKU_TREE_OPEN_DEKU_TREE_MOUTH
             ),
-            &format!("Step_Get_StoneOfForest={}", field::GO_INSIDE),
+            &crate::steps::at(flow::GET_STONE_OF_FOREST, field::GO_INSIDE),
         ] {
             assert!(flags.contains(&f.to_owned()), "{f} in {flags:?}");
         }

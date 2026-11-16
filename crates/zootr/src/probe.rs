@@ -107,7 +107,7 @@ pub enum Probe {
     /// A logic or AI graph, one node per line: index, class, values, and
     /// where each linked input comes from.
     Ainb {
-        /// Romfs path, like `Logic/Market_Common_f252.logic.module.ainb`,
+        /// Romfs path, like `Logic/NAME.logic.module.ainb`,
         /// or a graph inside an actor pack as `probe grep` names it, like
         /// `Pack/Actor/NAME.pack.zs/AI/NAME.brain.root.ainb`.
         path: String,

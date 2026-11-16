@@ -34,6 +34,7 @@ pub const LAND_DEKU_SPIDER_WEB_PROP_A_05: &Name = &n!(0x22e8eb063838b031);
 pub const LAND_KOKIRI_CLIFF_E_05: &Name = &n!(0xf2a2c4256d082e77);
 pub const LAND_KOKIRI_DEKU_TREE_A_01: &Name = &n!(0x9a49ead31882bc82);
 pub const LAND_KOKIRI_FIELD_PROP_A_01: &Name = &n!(0xdef497d47235c23e);
+pub const LAND_KOKIRI_HOUSE_INSIDE_E_03: &Name = &n!(0x38526ee0f87ef62e);
 pub const LAND_KOKIRI_HOUSE_OUTSIDE_D_00: &Name = &n!(0x4b9e052b31872577);
 pub const ITEM_BOTTLE_BLUE_FIRE: &Name = &n!(0xd23776688b24ed58);
 pub const LAND_KOKIRI_INTERIOR_A_01: &Name = &n!(0x20e2f3c20fa5c503);

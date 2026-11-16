@@ -48,16 +48,20 @@ pub const CARPENTERS_FREED: &str = "carpenters-freed";
 pub const DEFAULT_ON: [&str; 2] = ["menus", "clock"];
 
 const QUEST: Option<&str> = Some("Quest progress");
-const STONES: [&str; 3] = ["Forest", "Fire", "Water"];
+const STONES: [&Name; 3] = [
+    flow::GET_STONE_OF_FOREST,
+    flow::GET_STONE_OF_FIRE,
+    flow::GET_STONE_OF_WATER,
+];
 const TRIALS: [&str; 6] = ["Light", "Forest", "Water", "Shadow", "Fire", "Spirit"];
 
 /// Zelda met and her lullaby learned, with the Door of Time quest at `door`.
 fn zelda(door: &str) -> Vec<String> {
     let mut edits = lit(&[
-        "Step_Goto_HyruleCastle=Complete",
+        &crate::steps::at(flow::GOTO_HYRULE_CASTLE, "Complete"),
         &format!("IsGet.{}=true", item::MELODY_ZELDA_LULLABY),
     ]);
-    edits.push(format!("Step_DoorOfTime={door}"));
+    edits.push(crate::steps::at(flow::DOOR_OF_TIME, door));
     edits
 }
 
@@ -81,7 +85,13 @@ fn carpenters() -> Vec<String> {
     });
     edits.extend(all(cells, "true"));
     edits.extend(all(
-        (1..=4).map(|n| format!("GerudoFortress_WarpPoint0{n}_ClearEvent")),
+        [
+            flag::GERUDO_FORTRESS_WARP_POINT01_CLEAR_EVENT,
+            flag::GERUDO_FORTRESS_WARP_POINT02_CLEAR_EVENT,
+            flag::GERUDO_FORTRESS_WARP_POINT03_CLEAR_EVENT,
+            flag::GERUDO_FORTRESS_WARP_POINT04_CLEAR_EVENT,
+        ]
+        .map(|f| f.to_string()),
         "true",
     ));
     edits
@@ -90,14 +100,14 @@ fn carpenters() -> Vec<String> {
 /// Every sage awake and the rainbow bridge up, with Ganon's quest at `step`.
 fn ganon(step: &str) -> Vec<String> {
     let mut edits = lit(&[
-        "Step_AllSage=Complete",
+        &crate::steps::at(flow::ALL_SAGE, "Complete"),
         &format!(
             "{}.{}=true",
             flag::HAVE_PLAYED_EVENT,
             field::GANON_CASTLE_ADULT_FIELD_RAINBOW
         ),
     ]);
-    edits.push(format!("Step_Defeat_Ganon={step}"));
+    edits.push(crate::steps::at(flow::DEFEAT_GANON, step));
     edits
 }
 
@@ -123,8 +133,13 @@ const fn bag(
 
 /// The guide pop-ups a menu page opens the first time it fills, all off.
 fn page_guides() -> Vec<String> {
-    let pages = ["Equip", "Head", "Boot", "Item"]
-        .map(|p| format!("UI_IsNeedOpenPlusMenu{p}{}", flow::ACTION_GUIDE));
+    let pages = [
+        field::UI_IS_NEED_OPEN_PLUS_MENU_EQUIP_ACTION_GUIDE,
+        field::UI_IS_NEED_OPEN_PLUS_MENU_HEAD_ACTION_GUIDE,
+        field::UI_IS_NEED_OPEN_PLUS_MENU_BOOT_ACTION_GUIDE,
+        field::UI_IS_NEED_OPEN_PLUS_MENU_ITEM_ACTION_GUIDE,
+    ]
+    .map(|p| p.to_string());
     all(
         pages
             .into_iter()
@@ -306,10 +321,7 @@ pub const PRESETS: [Preset; 15] = [
         subgroup: QUEST,
         edits: || {
             let mut edits = zelda("Step06");
-            edits.extend(all(
-                STONES.map(|s| format!("Step_Get_StoneOf{s}")),
-                "Complete",
-            ));
+            edits.extend(all(STONES.map(crate::steps::saved), "Complete"));
             edits.extend(lit(&[
                 &format!("IsGet.{}=true", item::MELODY_TIME_SONG),
                 &format!("{}=true", flag::MARKET_CHILD_TIME_TEMPLE_DOOR_OPENED),
@@ -372,7 +384,12 @@ pub const PRESETS: [Preset; 15] = [
         what: "The trade quest's last step, with the Claim Check in hand",
         group: group::INVENTORY,
         subgroup: QUEST,
-        edits: || lit(&["Step_SubEvent_GetSwordBigGoron=Step11"]),
+        edits: || {
+            vec![crate::steps::at(
+                flow::SUB_EVENT_GET_SWORD_BIG_GORON,
+                "Step11",
+            )]
+        },
         give: &[item::CLAIM_CHECK],
         progress: &[],
     },
@@ -673,8 +690,8 @@ mod tests {
     fn quest_presets_land_on_their_step() {
         needs_names!();
         let edits = |p: &str| expand(&[p.into()], &[]).unwrap();
-        assert!(edits("door-of-time").contains(&"Step_DoorOfTime=Step06".into()));
-        assert!(edits("trials-done").contains(&"Step_Defeat_Ganon=Step04".into()));
+        assert!(edits("door-of-time").contains(&crate::steps::at(flow::DOOR_OF_TIME, "Step06")));
+        assert!(edits("trials-done").contains(&crate::steps::at(flow::DEFEAT_GANON, "Step04")));
         assert_eq!(
             edits("carpenters-freed")
                 .iter()

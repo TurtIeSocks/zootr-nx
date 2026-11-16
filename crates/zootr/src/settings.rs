@@ -781,10 +781,10 @@ mod tests {
         let settings = Settings::from([("claim-check".into(), true.into())]);
         let game = NewGame::from_settings(&settings, &[]).unwrap();
         assert_eq!(game.give, [item::CLAIM_CHECK]);
-        assert!(
-            game.defaults
-                .contains(&"Step_SubEvent_GetSwordBigGoron=Step11".to_owned())
-        );
+        assert!(game.defaults.contains(&crate::steps::at(
+            crate::known::flow::SUB_EVENT_GET_SWORD_BIG_GORON,
+            "Step11"
+        )));
         let def = schema()
             .into_iter()
             .find(|d| d.id == "claim-check")

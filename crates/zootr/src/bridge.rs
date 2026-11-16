@@ -13,7 +13,9 @@ use crate::known::{Name, field, flag, flow, item};
 const ARMED_UNTIL: &Name = flag::DEFEAT_GANON_IS_AFTER_STEP01_EXP;
 /// Step01 from the start, so the trigger is armed whenever the medallions
 /// are in.
-pub const START: &str = "Step_Defeat_Ganon=Step01";
+pub fn start() -> String {
+    crate::steps::at(flow::DEFEAT_GANON, "Step01")
+}
 pub const MEDALLIONS: [&Name; 6] = [
     item::MEDAL_FOREST,
     item::MEDAL_FIRE,

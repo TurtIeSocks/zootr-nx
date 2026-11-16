@@ -24,17 +24,11 @@ const OWN_EXAMPLES: [&str; 1] = ["crates/zootr/src/known/guard.rs"];
 /// Files that hold a name as text because nothing can read it from the
 /// dump there: the hook runs inside the game, and the extract runs before
 /// a dump is open.
-const NO_DUMP: [&str; 2] = [
+const NO_DUMP: [&str; 3] = [
     "crates/zootr-hook/src/game/dev.rs",
     "crates/zootr/src/medallions.rs",
+    "crates/zootr/src/sprites.rs",
 ];
-
-/// Files the dump-backed guard skips, each with why. `ounce-formats` is below
-/// `zootr` and can't use `known`.
-const ALLOWED: [(&str, &str); 1] = [(
-    "crates/ounce-formats/src/murmur3.rs",
-    "hash test vectors: the murmur3 of two real flag names, checked against the game's own hashes",
-)];
 
 /// Whether `word`, what follows a prefix and its `_`, is a game name. Made-up
 /// fixtures (`Item_A`, `Dm_X_0000`) and bare prefixes (`Item_Melody_`, for a
@@ -148,9 +142,6 @@ fn underscored_words(line: &str) -> Vec<&str> {
 fn catalog_offenders(root: &Path, in_dump: impl Fn(&str) -> bool) -> Vec<String> {
     let mut out = Vec::new();
     for (rel, text) in scanned_texts(root) {
-        if ALLOWED.iter().any(|(file, _)| rel == *file) {
-            continue;
-        }
         for (i, line) in text.lines().enumerate() {
             for name in underscored_words(line) {
                 let rest = name.split_once('_').map_or("", |(_, rest)| rest);
@@ -193,8 +184,8 @@ fn a_game_shaped_name_is_found_and_a_fixture_is_not() {
         "Npc_N_02",
         "Dm_X_0000",
         "Item_Melody_{s}",
-        "Mt_Item_Medal_Forest",
-        "Objective_Thing",
+        "Mt_Item_FakeMedal_Forest",
+        "Objective_FakeThing",
         "Item_",
         "Obj_lower",
     ] {
@@ -223,12 +214,12 @@ fn an_underscored_word_is_found_whole_and_a_fixture_is_not_a_hit() {
     let name = |a: &str, b: &str| format!("{a}_{b}");
     let line = format!(
         "f(\"{}\", x{}, {}_);",
-        name("Map", "Real"),
+        name("Map", "FakeReal"),
         name("Y", "z"),
         "Item"
     );
-    assert_eq!(underscored_words(&line), [name("Map", "Real")]);
-    let has = |n: &str| n == name("Map", "Real");
+    assert_eq!(underscored_words(&line), [name("Map", "FakeReal")]);
+    let has = |n: &str| n == name("Map", "FakeReal");
     let hits = |text: &str| {
         let dir = std::env::temp_dir().join(format!("guard-{}", std::process::id()));
         let _ = std::fs::create_dir_all(dir.join("crates"));
@@ -237,7 +228,10 @@ fn an_underscored_word_is_found_whole_and_a_fixture_is_not_a_hit() {
         let _ = std::fs::remove_dir_all(&dir);
         found
     };
-    assert_eq!(hits(&name("Map", "Real")), ["crates/t.rs:1: Map_Real"]);
+    assert_eq!(
+        hits(&name("Map", "FakeReal")),
+        ["crates/t.rs:1: Map_FakeReal"]
+    );
     assert!(hits(&name("Map", "Other")).is_empty());
     assert!(hits(&name("Map", "A")).is_empty());
 }

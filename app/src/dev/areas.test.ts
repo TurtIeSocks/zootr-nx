@@ -2,30 +2,36 @@ import { expect, test } from "vitest";
 import { area, areas, mapAge } from "@/dev/areas";
 
 const PLACES = [
-  "Kakariko_Child/Kakariko_FrontOfGate",
-  "Kakariko_Adult/Kakariko_FrontOfGate",
-  "Hill_Child/Hill_FrontOfMarket",
-  "Hill_Child/Hill_FrontOfKakarikoGate",
-  "DekuTree/DekuTree_Entrance",
+  "FakeKakariko_Child/FakeKakariko_FrontOfGate",
+  "FakeKakariko_Adult/FakeKakariko_FrontOfGate",
+  "FakeHill_Child/FakeHill_FrontOfMarket",
+  "FakeHill_Child/FakeHill_FrontOfKakarikoGate",
+  "DekuTree/FakeDekuTree_Entrance",
 ];
 
 test("a map's area drops its age, and its age reads from the suffix", () => {
-  expect(area("Kakariko_Child")).toBe("Kakariko");
+  expect(area("FakeKakariko_Child")).toBe("FakeKakariko");
   expect(area("DekuTree")).toBe("DekuTree");
-  expect(mapAge("Kakariko_Adult")).toBe("adult");
+  expect(mapAge("FakeKakariko_Adult")).toBe("adult");
   expect(mapAge("DekuTree")).toBeUndefined();
 });
 
 test("areas keep Link's age and maps for either age, sorted", () => {
   const child = areas(PLACES, true, "");
-  expect(child.map((a) => a.area)).toEqual(["DekuTree", "Hill", "Kakariko"]);
-  expect(child[2]?.spots.map((s) => s.map)).toEqual(["Kakariko_Child"]);
+  expect(child.map((a) => a.area)).toEqual([
+    "DekuTree",
+    "FakeHill",
+    "FakeKakariko",
+  ]);
+  expect(child[2]?.spots.map((s) => s.map)).toEqual(["FakeKakariko_Child"]);
   const adult = areas(PLACES, false, "");
-  expect(adult.map((a) => a.area)).toEqual(["DekuTree", "Kakariko"]);
+  expect(adult.map((a) => a.area)).toEqual(["DekuTree", "FakeKakariko"]);
 });
 
 test("with no age known, both show", () => {
-  const kak = areas(PLACES, undefined, "").find((a) => a.area === "Kakariko");
+  const kak = areas(PLACES, undefined, "").find(
+    (a) => a.area === "FakeKakariko",
+  );
   expect(kak?.spots).toHaveLength(2);
 });
 
@@ -34,6 +40,6 @@ test("the query matches the area or the spot, any case", () => {
     2,
   );
   expect(areas(PLACES, true, "market")[0]?.spots[0]?.spot).toBe(
-    "Hill_FrontOfMarket",
+    "FakeHill_FrontOfMarket",
   );
 });

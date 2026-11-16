@@ -112,7 +112,7 @@ fn shop_name(area: &str, goods: &[&str]) -> Result<&'static str> {
         .with_context(|| format!("a shop in {area}, which has none"))?;
     let all = |prefix: &str| goods.iter().all(|g| g.starts_with(prefix));
     let name = match () {
-        _ if all("Shop_Bombchu") => "Bombchu Shop".to_owned(),
+        _ if all(actor::SHOP_BOMBCHU_BUNDLE_01.stem()) => "Bombchu Shop".to_owned(),
         _ if all("Shop_Bottle_") => format!("{town} Potion Shop"),
         _ if goods.iter().any(|g| *g == actor::SHOP_WEAPON_SHIELD_HYLIAN) => {
             format!("{town} Bazaar")

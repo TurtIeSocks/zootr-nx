@@ -885,7 +885,7 @@ mod tests {
             map: "Test".into(),
             mesh: mesh(&[quad(0.0, 0.0, 4.0, 4.0, 0.0)]),
             placed: vec![Placement {
-                name: "Tree_Kokiri_A".into(),
+                name: "Tree_FakeKokiri".into(),
                 hash: Some(3),
                 label: None,
                 pose: Pose {
@@ -928,7 +928,7 @@ mod tests {
         assert!(moved.on_mesh);
         let there = moved.there.clone().expect("a wall ahead");
         assert_eq!((there.what.as_str(), there.hour), ("wall", 12));
-        assert_eq!(there.name.as_deref(), Some("Tree_Kokiri_A"));
+        assert_eq!(there.name.as_deref(), Some("Tree_FakeKokiri"));
         let said = moved.to_string();
         assert!(
             said.starts_with("12:00 for 1.0 s: blocked, moved 0.1 of 5.0 m"),

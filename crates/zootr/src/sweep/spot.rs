@@ -840,7 +840,10 @@ mod tests {
         )];
         assert_eq!(
             presets(&at(flag::DEATH_MOUNTAIN_TRAIL, biggoron)),
-            ["Flag", "Step_SubEvent_GetSwordBigGoron=Step11"]
+            [
+                "Flag".to_owned(),
+                crate::steps::at(flow::SUB_EVENT_GET_SWORD_BIG_GORON, "Step11")
+            ]
         );
         assert_eq!(
             presets(&at(flag::GERUDO_FORTRESS, vec![])),

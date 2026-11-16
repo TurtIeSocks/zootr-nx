@@ -13,16 +13,20 @@ use ounce_formats::ainb::{Graph, Patch};
 use ounce_formats::{Actor, EventKind, Flowchart, Params, Romfs, Value};
 
 use crate::flows::{self, Rewrites};
-use crate::known::{Name, field, flag, flow, item};
+use crate::known::{Name, field, flag, flow, item, map};
 use crate::starting;
 
 /// Set when the door opens. A new game starts with it.
 pub const OPENED: &Name = flag::MARKET_CHILD_TIME_TEMPLE_DOOR_OPENED;
 /// What Rauru gives.
 pub const MEDALLION: &Name = item::MEDAL_LIGHT;
-const DOOR: &str = "Logic/Market_Common_f252.logic.module.ainb";
-const PEDESTAL: &str = "Logic/Market_Adult_Prefab_89da.logic.module.ainb";
-const SHEIK: &str = "Logic/Market_Adult_Prefab_7f43.logic.module.ainb";
+const DOOR: &Name = map::MARKET_COMMON_F252;
+const PEDESTAL: &Name = map::MARKET_ADULT_PREFAB_89DA;
+const SHEIK: &Name = map::MARKET_ADULT_PREFAB_7F43;
+/// The romfs path of logic module `name`.
+fn logic(name: &Name) -> String {
+    format!("Logic/{name}.logic.module.ainb")
+}
 const CHECK_STEP: &Name = field::HOLD_CHALLENGE_CURRENT_STEP_CHECK_ORDER;
 /// The step that opens the door.
 const OPEN_STEP: &str = "Step06";
@@ -148,9 +152,11 @@ fn first_adult(flow: &Flowchart) -> Result<Vec<(&Actor, &str, Params)>> {
 /// the opening, so the game moves the quests itself. Returns the GameData
 /// edits a new game needs. It also needs [`MEDALLION`].
 pub fn open(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<Vec<String>> {
-    let graphs: [(&str, Edit); 3] = [(DOOR, door), (PEDESTAL, pedestal), (SHEIK, sheik)];
-    for (rel, patch) in graphs {
-        rewrites.insert(rel.into(), patch(romfs.read(rel)?).context(rel)?);
+    let graphs: [(&Name, Edit); 3] = [(DOOR, door), (PEDESTAL, pedestal), (SHEIK, sheik)];
+    for (name, patch) in graphs {
+        let rel = logic(name);
+        let patched = patch(romfs.read(&rel)?).with_context(|| rel.clone())?;
+        rewrites.insert(rel, patched);
     }
     let (name, _) = FIRST_ADULT;
     let sages = flows::load(romfs, name)?.with_context(|| format!("{name} is a timeline"))?;
@@ -166,8 +172,8 @@ mod tests {
     use crate::game::dev_dump;
     use crate::known::{field, flag, flow};
 
-    fn patched(romfs: &Romfs, rel: &str, patch: Edit) -> Graph {
-        Graph::parse(&patch(romfs.read(rel).unwrap()).unwrap()).unwrap()
+    fn patched(romfs: &Romfs, name: &Name, patch: Edit) -> Graph {
+        Graph::parse(&patch(romfs.read(&logic(name)).unwrap()).unwrap()).unwrap()
     }
 
     #[test]

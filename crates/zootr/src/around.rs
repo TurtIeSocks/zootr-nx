@@ -183,7 +183,7 @@ mod tests {
     fn near_lists_what_he_can_see_nearest_first() {
         let placed = vec![
             placed("Obj_F", [0.0, 0.0, 9.0]),
-            placed("Land_Floor", [0.0, 0.0, 1.0]),
+            placed("FakeLand_Floor", [0.0, 0.0, 1.0]),
             placed("Npc_N", [0.0, 2.0, 3.0]),
             placed("Obj_O", [0.0, 0.0, 20.0]),
         ];
@@ -194,7 +194,7 @@ mod tests {
             (near[0].distance, near[0].height, near[0].hour),
             (3.0, 2.0, 12)
         );
-        assert!(!seen("Objective_Thing") && seen("Obj_T"));
+        assert!(!seen("Objective_FakeThing") && seen("Obj_T"));
     }
 
     #[test]

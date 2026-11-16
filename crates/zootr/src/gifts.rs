@@ -625,7 +625,13 @@ mod tests {
         let heart = |item: &str| clashes(&gifts[at], item);
         assert!(heart(item::QUIVER_MEDIUM));
         assert!(!heart(GIFTS[at].item) && !heart(item::HOOKSHOT));
-        let chest = check(String::new(), "Area", 1, "Obj_TBox_A_02".into(), "Item_A");
+        let chest = check(
+            String::new(),
+            "Area",
+            1,
+            actor::OBJ_T_BOX_A_02.to_string(),
+            "Item_A",
+        );
         assert!(!clashes(&chest, item::QUIVER_MEDIUM));
     }
 
