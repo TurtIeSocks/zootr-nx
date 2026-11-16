@@ -412,6 +412,9 @@ pub struct Inventory {
     /// The Dungeons section's cells.
     dungeons: Vec<Kept>,
     values: HashMap<u32, i32>,
+    /// Each pouch count's `IsGet` flag, where the game has one. Its menus
+    /// list only an item whose flag is on.
+    owned: HashMap<u32, u32>,
 }
 
 impl Inventory {
@@ -426,15 +429,20 @@ impl Inventory {
             Some(&k) => k,
             None => murmur3(format!("IsGet.{actor}").as_bytes()),
         };
-        let keys = GRID
-            .iter()
-            .flat_map(|s| s.tiers.iter().chain(&s.count))
-            .map(|&a| (a, key(a)))
+        let actors = || GRID.iter().flat_map(|s| s.tiers.iter().chain(&s.count));
+        let keys = actors().map(|&a| (a, key(a))).collect();
+        let owned = actors()
+            .filter_map(|a| {
+                let count = *stock.get(&murmur3(a.as_bytes()))?;
+                let flag = murmur3(format!("IsGet.{a}").as_bytes());
+                gd.kind(flag).map(|_| (count, flag))
+            })
             .collect();
         Ok(Self {
             keys,
             dungeons: kept(found),
             values: HashMap::new(),
+            owned,
         })
     }
 
