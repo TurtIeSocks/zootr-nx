@@ -571,16 +571,15 @@ fn shape_bottom(shape: &BymlMap) -> Option<f32> {
         .reduce(f32::min)
 }
 
-/// How far under its origin an `ActorInfo` row's model reaches.
-/// How far a placed stand-in rises to sit where its goods sat: how much
-/// further below its origin the item's model reaches than the goods'. The
-/// gold token's is centred, a shelf's bomb bundle sits on its base.
-pub fn rise(tables: &Tables, goods: &str, item: &str) -> Result<f32> {
-    let floor =
-        |name| Ok::<_, anyhow::Error>(model_floor(&row(&tables.actor, name)?).unwrap_or(0.0));
-    Ok((floor(goods)? - floor(item)?).max(0.0))
+/// How far a placed stand-in rises to rest on a shelf `plank` metres
+/// above its placement: the plank, less how far above its origin the
+/// item's model starts. The gold token's is centred, so it rises past the
+/// plank by half its height.
+pub fn rise(tables: &Tables, plank: f32, item: &str) -> Result<f32> {
+    Ok(plank - model_floor(&row(&tables.actor, item)?).unwrap_or(0.0))
 }
 
+/// How far above its origin an `ActorInfo` row's model starts.
 fn model_floor(row: &BymlMap) -> Option<f32> {
     float(row.get(MODEL_MIN.get())?.as_map().ok()?.get("Y")?)
 }

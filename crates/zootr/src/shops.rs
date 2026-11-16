@@ -2,6 +2,8 @@
 //! own, built from its vanilla goods' pack and the seed's item, that sells
 //! the item once at a price rolled from the seed.
 
+mod planks;
+
 use std::collections::HashMap;
 
 use anyhow::{Context, Result};
@@ -374,10 +376,12 @@ pub fn write(
         };
         sale.build(builder, tables)
             .with_context(|| format!("{} selling {item}", slot.holder()))?;
-        let rise = standins::rise(tables, &slot.goods, item)?;
+        let plank = planks::plank(slot.shop, slot.number)
+            .with_context(|| format!("no plank measured for {}", slot.holder()))?;
+        let rise = standins::rise(tables, plank, item)?;
         for h in &slot.placements {
             fields.push(format!("{h}.{GYAML}={name}"));
-            if rise > 0.0 {
+            if rise != 0.0 {
                 fields.push(format!("{h}.{TRANSLATE}.1+={rise}"));
             }
         }
@@ -635,15 +639,16 @@ mod tests {
         let placed = |s: &Slot| (s.number == 1) as usize * s.placements.len();
         let placed: usize = slots.iter().map(placed).sum();
         assert!(fields.contains(&format!("{}.Gyaml={name}", goron.hash())));
-        // The Hookshot reaches 0.15 below its origin, the bomb bundle it
-        // replaces sits on its base: it rises by the difference.
+        // The Hookshot reaches 0.15 below its origin, so it rises that much
+        // past the slot's plank.
         let raised = format!("{}.Translate.1+=", goron.hash());
         let rise: f32 = (fields.iter())
             .find_map(|f| f.strip_prefix(&raised))
             .unwrap()
             .parse()
             .unwrap();
-        assert!((0.1..0.25).contains(&rise), "{rise}");
+        let plank = planks::plank(goron.shop, goron.number).unwrap();
+        assert!((plank + 0.1..plank + 0.2).contains(&rise), "{rise}");
         let rises = fields.iter().filter(|f| f.contains("+=")).count();
         assert_eq!(fields.len() - rises, placed);
 
