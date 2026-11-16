@@ -5,14 +5,14 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use ounce_formats::{Byml, Romfs, Save, SaveEntry, murmur3};
 use serde::Serialize;
 
 use crate::config::Config;
 use crate::gamedata::GameData;
-use crate::known::{field, flag};
-use crate::{generate, presets};
+use crate::known::field;
+use crate::{generate, presets, value};
 
 /// Slot `n`'s save under a save folder.
 fn slot_file(dir: &Path, n: u8) -> PathBuf {
@@ -48,21 +48,6 @@ pub fn slots(dir: &Path) -> Result<Vec<u8>> {
 
 pub fn load(path: &Path) -> Result<Save> {
     Save::parse(std::fs::read(path).with_context(|| format!("reading {}", path.display()))?)
-}
-
-/// The scalar type an array holds.
-pub(crate) fn element(kind: &str) -> &str {
-    kind.strip_suffix("Array").unwrap_or(kind)
-}
-
-pub fn render(gd: &GameData, kind: &str, raw: u32) -> String {
-    match element(kind) {
-        "Bool" => (raw != 0).to_string(),
-        "Int" => (raw as i32).to_string(),
-        "Float" => f32::from_bits(raw).to_string(),
-        "Enum" => gd.name(raw),
-        _ => raw.to_string(),
-    }
 }
 
 /// A GameData `DefaultValue` as the raw bits a save would hold.
@@ -104,7 +89,7 @@ pub fn values(gd: &GameData, save: &Save, e: SaveEntry) -> Option<Vec<String>> {
         Some(raw) => vec![raw],
         None => save.array(e)?,
     };
-    Some(raws.into_iter().map(|r| render(gd, e.kind, r)).collect())
+    Some(raws.into_iter().map(|r| value::render(gd, e.kind, r)).collect())
 }
 
 /// `e`'s value, or its size for types [`values`] can't read.
@@ -279,28 +264,6 @@ pub fn split(edit: &str) -> Result<(&str, &str)> {
     edit.split_once('=').context("edits look like NAME=VALUE")
 }
 
-/// `text` as the raw bits of a `kind` (a GameData table name) value.
-pub fn parse(gd: &GameData, kind: &str, text: &str) -> Result<u32> {
-    Ok(match kind {
-        "Bool" => match text {
-            "true" | "1" => 1,
-            "false" | "0" => 0,
-            _ => bail!("{text} isn't true or false"),
-        },
-        "Int" => text.parse::<i32>()? as u32,
-        "UInt" => text.parse()?,
-        "Float" => text.parse::<f32>()?.to_bits(),
-        "Enum" => {
-            let raw = murmur3(text.as_bytes());
-            if gd.name(raw) != text {
-                bail!("{text} isn't a value of any {} enum", flag::GAME_DATA);
-            }
-            raw
-        }
-        _ => bail!("{kind} values can't be set yet"),
-    })
-}
-
 /// Apply `edits` to the save at `path`, keeping the old file next to it as a
 /// timestamped backup. Returns the edit log and the backup.
 pub(crate) fn edit(gd: &GameData, path: &Path, edits: &[String]) -> Result<(Vec<String>, PathBuf)> {
@@ -332,7 +295,7 @@ pub fn set(gd: &GameData, save: &mut Save, edits: &[String]) -> Result<Vec<Strin
             .get(murmur3(name.as_bytes()))
             .with_context(|| format!("{name} isn't in this save"))?;
         let old = values(gd, save, e).unwrap_or_default().join(",");
-        save.set_scalar(e.hash, parse(gd, e.kind, text).context(name.to_owned())?)?;
+        save.set_scalar(e.hash, value::scalar(gd, e.kind, text).context(name.to_owned())?)?;
         log.push(format!("{name}: {old} -> {text}"));
     }
     Ok(log)

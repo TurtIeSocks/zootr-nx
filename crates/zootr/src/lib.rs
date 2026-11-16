@@ -85,6 +85,7 @@ mod text;
 mod tools;
 pub mod tracker;
 pub mod turn;
+pub mod value;
 pub mod vision;
 pub mod warp;
 mod world;

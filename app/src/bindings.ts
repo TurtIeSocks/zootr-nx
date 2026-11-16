@@ -325,14 +325,13 @@ export type Info = {
 	default: string | null,
 };
 
-/**  The field a value is edited in. */
+/**  The field one element of a value is edited in. */
 export type Input = 
-/**  One of `choices`. */
+/**  One of the value's choices. */
 "choice" | "number" | "text" | 
-/**
- *  Shown, not written: what [`live::encode`](crate::live::encode)
- *  can't write.
- */
+/**  Comma-separated floats: `x,y` or `x,y,z`. */
+"vector" | 
+/**  Shown, not written: what [`encode`] can't write. */
 "read";
 
 /**  The grid changed, or its options did. */
