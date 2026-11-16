@@ -475,7 +475,14 @@ mod tests {
             .map(|g| (g.hash(), Drop::from(HEART.to_string())))
             .collect();
         let mut rewrites = Rewrites::default();
-        give_all(&romfs, &Flows::load(&romfs).unwrap(), &mut rewrites, &dealt).unwrap();
+        give_all(
+            &romfs,
+            &Flows::load(&romfs).unwrap(),
+            &mut rewrites,
+            &dealt,
+            false,
+        )
+        .unwrap();
         for gift in picked_gifts() {
             let flow = written(&rewrites, gift.flow);
             assert!(gives(&flow, HEART), "{} never gives the heart", gift.giver);

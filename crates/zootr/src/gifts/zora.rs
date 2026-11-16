@@ -54,7 +54,14 @@ mod tests {
         let gift = GIFTS.iter().find(|g| g.flow == FLOW).unwrap();
         let drops = HashMap::from([(gift.hash(), Drop::from(item.to_owned()))]);
         let mut rewrites = Rewrites::default();
-        give_all(romfs, &Flows::load(romfs).unwrap(), &mut rewrites, &drops).unwrap();
+        give_all(
+            romfs,
+            &Flows::load(romfs).unwrap(),
+            &mut rewrites,
+            &drops,
+            false,
+        )
+        .unwrap();
         rewrites
     }
 

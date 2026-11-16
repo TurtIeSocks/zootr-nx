@@ -176,7 +176,8 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
         let check = checks.iter().find(|c| c.hash == hash);
         let check = check.with_context(|| format!("no check with hash {hash}"))?;
         let item = level(item);
-        if let Some(gift) = gifts::of(check).filter(|_| asks(item, new_game.progressive)) {
+        if let Some(gift) = gifts::of(check).filter(|_| asks_at(check, item, new_game.progressive))
+        {
             bail!(
                 "{} can't give {item}: what it gives depends on what Link has, and a gift can't check",
                 gift.giver
@@ -190,11 +191,11 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
         true => keys::pooled(c),
         false => level(keys::pooled(c)),
     };
-    // With chests kept, a gift whose item asks keeps it too: only chests
-    // could take it off its hands.
+    // With chests kept, a gift that may not hold its own item keeps it
+    // too: only chests could take it off its hands.
     let keeps = |c: &'a ItemCheck| {
-        let asks = asks(level(keys::pooled(c)), new_game.progressive);
-        new_game.keep_chests && (!gifts::is_gift(c) || asks) && !fixed.contains_key(&c.hash)
+        let held = allowed(c, level(keys::pooled(c)), new_game.progressive);
+        new_game.keep_chests && (!gifts::is_gift(c) || !held) && !fixed.contains_key(&c.hash)
     };
     let open = Let::of(new_game);
     // Kept checks hold their own item, placed like plando's.
@@ -262,17 +263,23 @@ fn asks(item: &str, progressive: bool) -> bool {
     ammo::swap(item).is_some() || progressive && progressive::in_line(item)
 }
 
+/// Whether `item` asks on `check`. A line's level asks nothing of a gift
+/// that gives [`gifts::by_level`].
+fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
+    asks(item, progressive && !gifts::by_level(check))
+}
+
 /// Whether `check` may hold `item`: a gift can't hold one that asks, or
 /// one that [`gifts::clashes`].
 pub(crate) fn allowed(check: &ItemCheck, item: &str, progressive: bool) -> bool {
-    !gifts::is_gift(check) || !asks(item, progressive) && !gifts::clashes(check, item)
+    !gifts::is_gift(check) || !asks_at(check, item, progressive) && !gifts::clashes(check, item)
 }
 
 /// Trade each gift's item it may not hold for the next chest's (wrapping)
 /// that it may.
 fn trade(dealt: &mut [Placement], progressive: bool) -> Result<()> {
     let n = dealt.len();
-    let stuck = |p: &Placement| gifts::is_gift(p.check) || asks(p.item, progressive);
+    let stuck = |p: &Placement| gifts::is_gift(p.check);
     for g in 0..n {
         let gift = dealt[g].check;
         if !gifts::is_gift(gift) || allowed(gift, dealt[g].item, progressive) {
@@ -634,7 +641,7 @@ mod tests {
     }
 
     #[test]
-    fn gifts_never_hold_an_item_that_asks() {
+    fn gifts_hold_an_item_that_asks_only_when_they_give_by_level() {
         needs_names!();
         let (checks, none) = (with_scrubs(), Fixed::new());
         let mut pool: Vec<_> = checks.iter().map(|c| progressive::first(&c.item)).collect();
@@ -645,7 +652,7 @@ mod tests {
             dealt.sort();
             assert_eq!(dealt, pool);
             for p in p.iter().filter(|p| gifts::is_gift(p.check)) {
-                assert!(!asks(p.item, true), "seed {seed}: {}", p.item);
+                assert!(!asks_at(p.check, p.item, true), "seed {seed}: {}", p.item);
             }
         }
     }
@@ -662,7 +669,8 @@ mod tests {
         assert!(err.to_string().contains("Saria"), "{err}");
         let hook = Fixed::from([(saria, line(0)[0].0.into())]);
         assert!(shuffle(&checks, 7, &hook, &game(false, &[])).is_ok());
-        assert!(shuffle(&checks, 7, &hook, &progressive(true, &[])).is_err());
+        // Saria gives the Hookshot or the Longshot by what Link owns.
+        assert!(shuffle(&checks, 7, &hook, &progressive(true, &[])).is_ok());
     }
 
     #[test]
@@ -730,10 +738,7 @@ mod tests {
         assert_eq!(holding(&p, zelda), item::OCARINA_TIME);
         let p = shuffle(&checks, 7, &none, &progressive(false, &[fairy])).unwrap();
         let held: Vec<_> = p.iter().filter(|p| p.item == fairy.actor).collect();
-        let [one] = held[..] else {
-            panic!("one Fairy Ocarina left")
-        };
-        assert!(!gifts::is_gift(one.check));
+        assert_eq!(held.len(), 1, "one Fairy Ocarina left");
         assert!(p.iter().any(|p| p.item == starting::FILLER));
     }
 

@@ -3,6 +3,7 @@
 mod cucco;
 mod cutscene;
 mod later;
+mod levels;
 mod lines;
 mod potion;
 mod rewrite;
@@ -364,6 +365,11 @@ pub fn of(check: &ItemCheck) -> Option<&'static Gift> {
     GIFTS.iter().find(|g| g.hash() == check.hash)
 }
 
+/// Whether `check` is a gift that gives a line's level by what Link owns.
+pub(crate) fn by_level(check: &ItemCheck) -> bool {
+    of(check).is_some_and(levels::chained)
+}
+
 /// Whether `item` is what another gift of `check`'s flow gives in the
 /// vanilla game. Dealt there, the flow would name it twice, and the other
 /// gift's rewrite couldn't tell its own call apart.
@@ -447,7 +453,11 @@ pub fn give_all(
     flows: &Flows,
     rewrites: &mut Rewrites,
     drops: &HashMap<u64, Drop>,
+    progressive: bool,
 ) -> Result<()> {
+    // Chained once every gift is renamed: a chain names other levels, maybe
+    // another gift's own item in the same flow.
+    let mut by_level = BTreeSet::new();
     for gift in &GIFTS {
         let item = item_at(drops, gift.hash(), gift.item);
         if let Some(line) = picked(gift.item).filter(|_| item != gift.item) {
@@ -459,9 +469,17 @@ pub fn give_all(
         {
             flows::edit(romfs, rewrites, gift.flow, free)?;
         }
-        if item != gift.item || matches!(gift.how, How::Cut { .. }) || gift.skipped(rewrites)? {
+        let lost = gift.skipped(rewrites)?;
+        let given = item != gift.item || matches!(gift.how, How::Cut { .. }) || lost;
+        if given {
             give(romfs, flows, rewrites, gift, item)
                 .with_context(|| format!("{} giving {item}", gift.giver))?;
+        }
+        if levels::needs(gift, item, progressive) {
+            // The grant moved to the caller when its scene can't play.
+            let later = given && matches!(gift.how, How::Later { .. });
+            let at = gift.caller().filter(|_| lost || later);
+            by_level.insert((at.unwrap_or(gift.flow), item));
         }
         if item == gift.item {
             continue;
@@ -479,6 +497,13 @@ pub fn give_all(
         }
     }
     lines::retalk(romfs, rewrites, drops)?;
+    if !by_level.is_empty() {
+        let model = levels::model(flows)?;
+        for (flow, item) in by_level {
+            flows::edit(romfs, rewrites, flow, |f| levels::by_level(f, &model, item))
+                .with_context(|| format!("{flow} giving {item} by level"))?;
+        }
+    }
     flows::edit(romfs, rewrites, BIGGORON, waited)?;
     flows::edit(romfs, rewrites, FOUNTAIN, ungated)
 }
@@ -807,7 +832,7 @@ mod tests {
             })
             .collect();
         let all = Flows::load(romfs).unwrap();
-        give_all(romfs, &all, &mut rewrites, &drops).unwrap();
+        give_all(romfs, &all, &mut rewrites, &drops, false).unwrap();
         (rewrites, flags)
     }
 

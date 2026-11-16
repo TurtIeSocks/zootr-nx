@@ -140,8 +140,14 @@ mod tests {
     fn says(drops: &HashMap<u64, Drop>) -> Vec<String> {
         let romfs = dev_dump().unwrap();
         let mut rewrites = Rewrites::default();
-        super::super::give_all(&romfs, &Flows::load(&romfs).unwrap(), &mut rewrites, drops)
-            .unwrap();
+        super::super::give_all(
+            &romfs,
+            &Flows::load(&romfs).unwrap(),
+            &mut rewrites,
+            drops,
+            false,
+        )
+        .unwrap();
         let flow = match rewrites.get(&flows::rel(NAMED[0].0)) {
             Some(data) => Flowchart::parse(data).unwrap().unwrap(),
             None => flows::load(&romfs, NAMED[0].0).unwrap().unwrap(),
@@ -179,8 +185,14 @@ mod tests {
         let gift = GIFTS.iter().find(|g| g.flow == flow).unwrap();
         let mut rewrites = Rewrites::default();
         let drops = HashMap::from([(gift.hash(), Drop::from("Item_A".to_owned()))]);
-        super::super::give_all(&romfs, &Flows::load(&romfs).unwrap(), &mut rewrites, &drops)
-            .unwrap();
+        super::super::give_all(
+            &romfs,
+            &Flows::load(&romfs).unwrap(),
+            &mut rewrites,
+            &drops,
+            false,
+        )
+        .unwrap();
         let flow = Flowchart::parse(&rewrites[&flows::rel(flow)])
             .unwrap()
             .unwrap();
