@@ -13,7 +13,7 @@ use zootr::config::Config;
 use zootr::gamedata::GameData;
 use zootr::inventory::{Intent, Inventory, Pouch};
 use zootr::save_editor::{
-    self as editor, FlagQuery, FlagsView, ItemsView, Opened, Pending, SlotRow,
+    self as editor, FlagQuery, FlagsView, ItemsView, Opened, Pending, SlotRow, Staged,
 };
 use zootr::savefile::Edit;
 
@@ -93,6 +93,21 @@ pub(crate) async fn save_items(app: AppHandle, slot: u8, pending: Pending) -> Re
     blocking(move || {
         let r = ready(&app, slot, &pending)?;
         Ok(editor::items(&r.gd, &r.layout.0, &r.layout.1, &r.opened))
+    })
+    .await
+}
+
+/// `pending` cut to the edits that change the slot, and how many things
+/// they change. Refuses an edit the save won't take.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn save_stage(app: AppHandle, slot: u8, pending: Pending) -> Res<Staged> {
+    blocking(move || {
+        let config = Config::load()?;
+        let gd = app.state::<Live>().gamedata(&config)?;
+        let layout = app.state::<Layout>().get(&gd, &config)?;
+        let (inv, pouch) = &*layout;
+        editor::stage(&gd, inv, pouch, &config.save_dir()?, slot, &pending)
     })
     .await
 }

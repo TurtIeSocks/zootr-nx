@@ -80,11 +80,56 @@ pub fn items(gd: &GameData, inv: &Inventory, pouch: &Pouch, opened: &Opened) -> 
         sections: TrackerOptions::default().sections,
         cells: inv.cells(),
         caps: inv.caps(pouch, &opened.edited),
-        staged: (inv.cell_hashes().iter())
+        staged: (inv.cell_hashes(pouch).iter())
             .map(|hs| hs.iter().any(|h| staged.contains(h)))
             .collect(),
         status: status(gd, pouch, &opened.edited),
     }
+}
+
+/// What's pending, cut to the edits that change the save, and how many
+/// things they change.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct Staged {
+    /// `pending`'s edits that leave a value other than the presets do. A
+    /// cell clicked back to where it was drops out.
+    pub edits: Vec<Edit>,
+    /// A grid cell counts once however many values its click wrote, and
+    /// any other value once.
+    pub count: u32,
+}
+
+/// `pending` as it should be kept for slot `slot` under `dir`.
+pub fn stage(
+    gd: &GameData,
+    inv: &Inventory,
+    pouch: &Pouch,
+    dir: &Path,
+    slot: u8,
+    pending: &Pending,
+) -> Result<Staged> {
+    let presets = Pending {
+        presets: pending.presets.clone(),
+        edits: Vec::new(),
+    };
+    let before = open(gd, dir, slot, &presets)?.edited;
+    let after = open(gd, dir, slot, pending)?.edited;
+    let changed: HashSet<u32> = (savefile::diff(gd, &before, &after, |_| true).into_iter())
+        .map(|c| c.hash)
+        .collect();
+    let cells = inv.cell_hashes(pouch);
+    // Each change's owner: the first cell that holds it, else the value.
+    let owners: HashSet<Result<usize, u32>> = (changed.iter())
+        .map(|h| cells.iter().position(|c| c.contains(h)).ok_or(*h))
+        .collect();
+    Ok(Staged {
+        edits: (pending.edits.iter())
+            .filter(|e| changed.contains(&e.hash))
+            .cloned()
+            .collect(),
+        count: owners.len() as u32,
+    })
 }
 
 /// The edits a click on cell `at` makes, on top of what's pending.
@@ -184,6 +229,28 @@ mod tests {
             opened.original.scalar(opened.original.get(11).unwrap()),
             Some(0)
         );
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn stage_drops_what_changes_nothing() {
+        let dir = folder("stage");
+        let gd = GameData::default();
+        let (inv, pouch) = (Inventory::default(), Pouch::default());
+        let staged = stage(
+            &gd,
+            &inv,
+            &pouch,
+            &dir,
+            0,
+            &pending(&[(11, "true"), (22, "5")]),
+        );
+        let staged = staged.unwrap();
+        assert_eq!(staged.edits, [Edit::new(11, "true")]);
+        assert_eq!(staged.count, 1);
+        let back = pending(&[(11, "true"), (22, "9"), (11, "false"), (22, "5")]);
+        let none = stage(&gd, &inv, &pouch, &dir, 0, &back).unwrap();
+        assert_eq!((none.edits.len(), none.count), (0, 0));
         std::fs::remove_dir_all(dir).unwrap();
     }
 

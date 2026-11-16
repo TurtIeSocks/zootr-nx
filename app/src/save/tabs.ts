@@ -10,9 +10,11 @@ export type SaveTab = "items" | "flags" | "presets";
 export const usePending = (): Pending =>
   useUi(useShallow((s) => ({ presets: s.save.presets, edits: s.save.edits })));
 
-/** How many changes are waiting. */
-export const pendingCount = ({ presets, edits }: Pending) =>
-  presets.length + edits.length;
+/** How many changes are waiting: each preset, and each thing the edits
+ * change, as the backend counts them (a cell once, however many values
+ * its click wrote). */
+export const usePendingCount = () =>
+  useUi((s) => s.save.presets.length + s.save.changes);
 
 /** `now` with `add` on top: an element edited again keeps only its last
  * edit, which goes last. */
@@ -23,14 +25,18 @@ export const merge = (now: Edit[], add: Edit[]) => [
   ...add,
 ];
 
-/** Adds edits to what's pending. The slot is opened with them first, so a
- * value the save won't take throws here and is never staged. */
+/** Adds edits to what's pending, keeping only those that change the
+ * save, so a cell clicked back to where it was drops out. The slot is
+ * opened with them first: a value the save won't take throws here and is
+ * never staged. */
 export async function stage(add: Edit[]) {
   const { slot, presets, edits } = useUi.getState().save;
   if (slot === null || add.length === 0) return;
-  const next = merge(edits, add);
-  await call(commands.saveItems(slot, { presets, edits: next }));
-  useUi.setPath("save.edits", next);
+  const staged = await call(
+    commands.saveStage(slot, { presets, edits: merge(edits, add) }),
+  );
+  useUi.setPath("save.edits", staged.edits);
+  useUi.setPath("save.changes", staged.count);
 }
 
 /** Turns a preset on or off. Its edits apply before the single ones. */
@@ -42,6 +48,7 @@ export const togglePreset = (name: string, on: boolean) =>
 /** Drops everything pending. */
 export function discard() {
   useUi.setPath("save.edits", []);
+  useUi.setPath("save.changes", 0);
   useUi.setPath("save.presets", []);
 }
 

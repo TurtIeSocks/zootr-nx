@@ -13,7 +13,7 @@ import {
 import { ItemIcon, Tile } from "@/items/tile";
 import { ago, count } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { pendingCount, pickSlot, usePending } from "@/save/tabs";
+import { pickSlot, usePendingCount } from "@/save/tabs";
 import { useUi } from "@/stores/ui";
 
 /** A stone or medallion's side in pixels, about a line of text tall. */
@@ -29,7 +29,7 @@ interface SlotListProps {
  * pending asks first. */
 export function SlotList({ rows }: SlotListProps) {
   const [slot] = useUi.usePath("save.slot");
-  const pending = pendingCount(usePending());
+  const pending = usePendingCount();
   const [asking, setAsking] = useState<SlotRow>();
   if (rows.length === 0) {
     return (
