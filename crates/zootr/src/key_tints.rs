@@ -163,10 +163,11 @@ pub fn copy_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<Option<
     clone_pack(&template, item, files).map(Some)
 }
 
-/// The key `item` copies, if it's a ring or boss key copy. Its pack lives
-/// only in the seed, so what reads the dump for it reads this key's.
-pub fn template_of(item: &str) -> Option<&'static Name> {
-    copy_of(item, DungeonKeys::default()).map(|(template, _)| template)
+/// The label naming `item`, if it's a ring or boss key copy. Its pack
+/// lives only in the seed, and it answers to its own name, whose lines
+/// [`captions`] writes.
+pub fn name_label(item: &str) -> Option<String> {
+    copy_of(item, DungeonKeys::default()).map(|_| format!("{item}{}", TEXT_PARTS[0]))
 }
 
 /// The key `item` copies and the model it shows as `keys` deals it.

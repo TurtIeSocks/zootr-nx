@@ -114,7 +114,8 @@ pub fn write_mod(
         count => vec![shops::captions(romfs, &shops::slots(romfs)?, count, drops)?],
     };
     let key_copies = (new_game.keys.copies(), boss_copies(new_game));
-    copies.push(key_tints::captions(new_game.keys, key_copies.1));
+    // First, so a copy on a shelf takes its caption from its own lines.
+    copies.insert(0, key_tints::captions(new_game.keys, key_copies.1));
     text::write(romfs, &mut builder, &lines, &copies, hints)?;
     let cows = match new_game.cows {
         true => cows::find(romfs)?,
