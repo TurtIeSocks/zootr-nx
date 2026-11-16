@@ -109,10 +109,12 @@ pub fn write_mod(
     }
     let mut lines = gifts::lines(drops);
     lines.push(scrubs::lines(drops));
-    let copies = match new_game.shop_slots {
+    let mut copies = match new_game.shop_slots {
         0 => Vec::new(),
         count => vec![shops::captions(romfs, &shops::slots(romfs)?, count, drops)?],
     };
+    let key_copies = (new_game.keys.copies(), boss_copies(new_game));
+    copies.push(key_tints::captions(key_copies.0, key_copies.1));
     text::write(romfs, &mut builder, &lines, &copies, hints)?;
     let cows = match new_game.cows {
         true => cows::find(romfs)?,
@@ -125,11 +127,16 @@ pub fn write_mod(
     let mut bools = cows::flags(&cows);
     bools.extend(gifts::flags(&new_game.on));
     bools.extend(dampe::flags(drops));
-    if !edits.is_empty() || !bools.is_empty() {
+    let made = key_tints::made(key_copies.0, key_copies.1);
+    if !edits.is_empty() || !bools.is_empty() || !made.is_empty() {
         let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
         let gd = gamedata::GameData::load(romfs)?;
         defaults = presets::apply(&gd, &mut doc.root, &edits)?;
         gamedata::add_bools(&mut doc.root, &bools)?;
+        for (copy, template) in &made {
+            let names = [copy.clone()];
+            gamedata::join_structs(&mut doc.root, template.get(), &names, &[gamedata::IS_GET])?;
+        }
         if new_game.bridge_medallions {
             bridge::need_medallions(&mut doc.root)?;
         }

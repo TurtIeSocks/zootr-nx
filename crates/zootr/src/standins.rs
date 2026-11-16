@@ -154,6 +154,11 @@ pub(crate) fn raw(pack: &ActorPack, path: &str) -> Result<Vec<u8>> {
         .to_vec())
 }
 
+/// A pouch content's `PouchActor`, naming actor `name`.
+pub(crate) fn pouch_actor(name: &str) -> Byml {
+    Byml::String(format!("Work/Actor/{name}.engine__actor__ActorParam.gyml").into())
+}
+
 /// `param` with its `Components` entry `key` pointing at `path`.
 pub(crate) fn with_ref(param: &BymlMap, key: &str, path: &str) -> Result<BymlMap> {
     let mut param = param.clone();
@@ -246,9 +251,9 @@ impl StandIn<'_> {
         // What it gives: the item's own pouch content, naming the item.
         let item_pouch = path_of(item, POUCH)?;
         let mut pouch = resolved(item, &item_pouch)?;
-        pouch.entry(POUCH_ACTOR.get().into()).or_insert_with(|| {
-            Byml::String(format!("Work/Actor/{}.engine__actor__ActorParam.gyml", item.name).into())
-        });
+        pouch
+            .entry(POUCH_ACTOR.get().into())
+            .or_insert_with(|| pouch_actor(&item.name));
         if self.price.is_none() {
             pouch.insert(COUNT_CHECK.get().into(), Byml::Bool(false));
         }
@@ -765,6 +770,20 @@ impl Tables {
         self.copy(name, like)?;
         let pouch = row(&self.pouch, like)?;
         insert(&mut self.pouch, name, pouch)
+    }
+
+    /// `name`'s actor row answers to its own name. A copied row answers to
+    /// its source's, and the game asks that field who an actor is.
+    pub(crate) fn name_itself(&mut self, name: &str) -> Result<()> {
+        let rows = self.actor.root.as_mut_array()?;
+        let at = rows.partition_point(|r| row_id(r) < name);
+        let found = rows.get_mut(at).filter(|r| row_id(r) == name);
+        let row = found
+            .with_context(|| format!("no row {name}"))?
+            .as_mut_map()?;
+        row.insert(flag::ACTOR_NAME.get().into(), Byml::String(name.into()));
+        self.added += 1;
+        Ok(())
     }
 
     /// Hand `edit` every row of the pouch table, written with the rest.
