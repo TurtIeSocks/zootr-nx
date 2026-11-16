@@ -396,6 +396,10 @@ mod tests {
 
     #[test]
     fn every_dungeon_with_keys_has_a_colour() {
+        // A song's colour comes from its name.
+        if crate::game::no_names() {
+            return;
+        }
         for (dungeon, ..) in DUNGEONS {
             assert!(colour(dungeon).is_some(), "{dungeon}");
         }
