@@ -27,6 +27,13 @@ rewards, boss hearts, even pots, crates, rocks and beehives. Glitchless logic
 makes sure every seed can be beaten, and a share code passes a seed and its
 settings to a friend.
 
+![The Shuffles settings page](assets/shuffles.png)
+
+## Less waiting
+
+Skip the cutscenes and tutorials, open every chest the quick way, and keep
+Navi quiet unless you ask her.
+
 ![The General settings page](assets/settings.png)
 
 ## A spoiler that shows its working
