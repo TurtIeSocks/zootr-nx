@@ -52,8 +52,11 @@ pub(super) fn flows(
         spawn::warp(romfs, &mut rewrites, spawn)?;
     }
     gifts::give_all(romfs, all, &mut rewrites, drops, new_game.progressive)?;
-    let chained = chest_levels::chained(drops, new_game.progressive);
-    chest_levels::give(romfs, all, &mut rewrites, &chained)?;
+    chest_levels::Levels::new(romfs, drops, new_game.progressive)?.give(
+        romfs,
+        all,
+        &mut rewrites,
+    )?;
     dampe::give(romfs, &mut rewrites, drops)?;
     gerudo::stand_down(romfs, &mut rewrites, drops)?;
     if new_game.scrubs {
@@ -155,8 +158,8 @@ pub fn write_mod(
     let bosses = rings || patch::hooked(new_game.progressive, new_game.dev_panel, flags);
     key_tints::write(romfs, &mut builder, &mut tables, bosses, rings)?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
-    let chained = chest_levels::chained(drops, new_game.progressive);
-    chest_levels::events(&mut events, &chained)?;
+    let levels = chest_levels::Levels::new(romfs, drops, new_game.progressive)?;
+    levels.events(&mut events)?;
     events.write(&mut builder)?;
     if new_game.shop_slots > 0 {
         let slots = shops::slots(romfs)?;
@@ -207,7 +210,7 @@ pub fn write_mod(
             new_game.chest_size == ChestSize::Small && checks::shrink_chests(&mut doc.root)? > 0;
         let tinted = key_tints::swap(&rel, &mut doc.root, bosses)? > 0;
         // After shrinking: a shrunk chest runs the small chest's flow.
-        let levelled = chest_levels::name(romfs, &mut doc.root, &chained, &mut chest_events)? > 0;
+        let levelled = levels.name(romfs, &mut doc.root, &mut chest_events)? > 0;
         if shrunk || tinted || levelled || !changed.is_empty() {
             builder.write(&rel, &doc.to_binary())?;
             actors += changed.len();
