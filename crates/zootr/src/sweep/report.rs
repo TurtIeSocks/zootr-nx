@@ -265,26 +265,26 @@ mod tests {
     #[test]
     fn a_sweep_board_tallies_kinds_and_endings_between_two_rounds() {
         let text = [
-            row(1, "Obj_Fake_A_01", "pass", Some(("arrived", "", "event"))),
+            row(1, "Fake_Box_A_01", "pass", Some(("arrived", "", "event"))),
             row(
                 2,
-                "Obj_Fake_A_02",
+                "Fake_Box_A_02",
                 "nothing",
                 Some(("gave up", "blocked", "nothing")),
             ),
             row(
                 2,
-                "Obj_Fake_A_03",
+                "Fake_Box_A_03",
                 "nothing",
                 Some(("gave up", "blocked", "nothing")),
             ),
             row(3, "Fake Shop 1", "nothing", Some(("arrived", "", "event"))),
-            row(9, "Obj_Fake_A_04", "nothing", None),
+            row(9, "Fake_Box_A_04", "nothing", None),
         ]
         .join("\n");
         let board = sweep(&text, Some(1), Some(3));
-        assert_eq!(board.kinds["Obj_Fake_A"]["pass"], 1);
-        assert_eq!(board.kinds["Obj_Fake_A"]["nothing"], 2);
+        assert_eq!(board.kinds["Fake_Box_A"]["pass"], 1);
+        assert_eq!(board.kinds["Fake_Box_A"]["nothing"], 2);
         assert_eq!(board.kinds["Fake Shop"]["nothing"], 1);
         assert_eq!(board.endings["gave up/blocked/nothing"], 2);
         assert_eq!(board.endings["arrived/-/event"], 1);
