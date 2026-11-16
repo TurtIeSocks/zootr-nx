@@ -61,7 +61,7 @@ export function SaveView() {
   return (
     <Page wide>
       <PageHeader
-        title="Save"
+        title="Save Editor"
         description="Changes a save you already have: items, hearts and the rest, and any flag. Close the game first. The old save is kept next to it as a backup."
       />
       <Loading loaded={slots}>

@@ -13,6 +13,7 @@ import {
   type Section,
   type Tab,
   TOP_TABS,
+  tabLabel,
 } from "@/shell/nav";
 import { LiveDot, StatusPill } from "@/shell/status-pill";
 import { useChecks } from "@/stores/checks";
@@ -86,7 +87,7 @@ function TabItem({ tab, icon }: TabItemProps) {
   return (
     <NavItem
       icon={icon}
-      label={tab}
+      label={tabLabel(tab)}
       current={current === tab}
       onClick={() => setTab(tab)}
     >

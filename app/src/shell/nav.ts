@@ -24,6 +24,12 @@ import {
 /** The views that aren't settings. */
 export type Tab = "Play" | "Save" | "Checks" | "Items" | "Live" | "Spoiler";
 
+/** A tab's name where it isn't its id. */
+const TAB_LABELS: Partial<Record<Tab, string>> = { Save: "Save Editor" };
+
+/** What the sidebar and breadcrumb call `tab`. */
+export const tabLabel = (tab: Tab) => TAB_LABELS[tab] ?? tab;
+
 /** Play and Save, at the top of the sidebar. */
 export const TOP_TABS: [Tab, LucideIcon][] = [
   ["Play", Gamepad2],
@@ -77,7 +83,7 @@ export const groupIcon = (group: string) => GROUP_ICONS[group] ?? Settings2;
 /** Where a page sits, for the topbar. */
 export const crumbs = (tab: Tab | "Settings", section: Section): string[] =>
   tab !== "Settings"
-    ? [tab]
+    ? [tabLabel(tab)]
     : [
         appPane(section) ? "App" : "Randomizer",
         ownPane(section)?.[1] ?? section,
