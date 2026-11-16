@@ -114,7 +114,7 @@ pub fn write_mod(
         count => vec![shops::captions(romfs, &shops::slots(romfs)?, count, drops)?],
     };
     let key_copies = (new_game.keys.copies(), boss_copies(new_game));
-    copies.push(key_tints::captions(key_copies.0, key_copies.1));
+    copies.push(key_tints::captions(new_game.keys, key_copies.1));
     text::write(romfs, &mut builder, &lines, &copies, hints)?;
     let cows = match new_game.cows {
         true => cows::find(romfs)?,
@@ -133,7 +133,7 @@ pub fn write_mod(
         let gd = gamedata::GameData::load(romfs)?;
         defaults = presets::apply(&gd, &mut doc.root, &edits)?;
         gamedata::add_bools(&mut doc.root, &bools)?;
-        for (copy, template) in &made {
+        for (copy, template, _) in &made {
             let names = [copy.clone()];
             gamedata::join_structs(&mut doc.root, template.get(), &names, &[gamedata::IS_GET])?;
         }
