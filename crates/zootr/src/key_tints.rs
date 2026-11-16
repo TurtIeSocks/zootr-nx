@@ -1,9 +1,10 @@
-//! Small keys in their dungeon's colour. Each dungeon with keys gets a
-//! copy of the key model, its albedo tinted, and copies of both key actors
-//! showing it. The dungeon's key chests and floor keys name the copies,
-//! and each copy keeps its pouch row, so the game credits it as a key.
-//! The Gerudo Fortress's keys, their own actors already, show a model of
-//! their own.
+//! Keys in their dungeon's colour. Each dungeon with keys gets a copy of
+//! the key model, its albedo tinted, and copies of the key actors showing
+//! it: the small key's chest content and floor key, and the boss key where
+//! the dungeon has one. The dungeon's key chests and floor keys name the
+//! copies, and each copy keeps its pouch row, so the game credits it as a
+//! key. The Gerudo Fortress's keys, their own actors already, show a
+//! model of their own.
 
 use anyhow::{Context, Result};
 use ounce_formats::{
@@ -11,25 +12,69 @@ use ounce_formats::{
 };
 
 use crate::checks::{self, DROP_ACTOR, GYAML};
-use crate::keys::{DUNGEONS, FORTRESS, FORTRESS_KEY, SMALL};
+use crate::keys::{BOSS, DUNGEONS, FORTRESS, FORTRESS_KEY, SMALL};
 use crate::known::{Name, actor, field, flag, flow, item};
 use crate::medallions::{self, Colour, model_path, texture_path};
 use crate::standins::{
     MODEL, Tables, actor_path, doc, path_of, raw, renamed, with_ref, write_clone,
 };
 
-/// The key's model, named like the floor key that shows it.
-const HOST: &Name = actor::OBJ_DUNGEON_SMALL_KEY;
-/// The model's own textures, by suffix. Only the albedo is tinted.
-const KINDS: [&str; 5] = ["Alb", "AO", "Mtl", "Nrm", "Rgh"];
-/// The files the copies are made from, extracted before a dump is open.
-pub const FILES: [&str; 6] = [
+/// One kind of key's model: the actor it's named like, its textures by
+/// suffix, and the prefix of a dungeon's copy, which with the dungeon's
+/// two-digit number is as long as the host so no offset in a copy moves.
+struct Look {
+    host: &'static Name,
+    kinds: &'static [&'static str],
+    copy: &'static str,
+}
+
+/// The small key's, named like the floor key that shows it.
+const SMALL_LOOK: Look = Look {
+    host: actor::OBJ_DUNGEON_SMALL_KEY,
+    kinds: &["Alb", "AO", "Mtl", "Nrm", "Rgh"],
+    copy: "Obj_Rando_SmallKey",
+};
+/// The boss key's. Its gem glows from its own emissive map, left red so a
+/// boss key still reads as one.
+const BOSS_LOOK: Look = Look {
+    host: BOSS,
+    kinds: &["Alb", "AO", "Emc", "Inner_Nrm", "Mtl", "Nrm", "Rgh"],
+    copy: "Item_Rando_BossKey",
+};
+#[cfg(test)]
+const LOOKS: [&Look; 2] = [&SMALL_LOOK, &BOSS_LOOK];
+
+impl Look {
+    /// Dungeon `n`'s copy, by its place in [`DUNGEONS`], counting from 1.
+    fn name(&self, n: usize) -> String {
+        format!("{}{n:02}", self.copy)
+    }
+
+    /// The model and texture files a copy is made from.
+    #[cfg(test)]
+    fn files(&self) -> impl Iterator<Item = String> {
+        let textures = self.kinds.iter().map(|k| texture_path(self.host, k));
+        std::iter::once(model_path(self.host)).chain(textures)
+    }
+}
+
+/// The files the copies are made from, extracted before a dump is open,
+/// so spelled out: a [`Name`] needs the dump's names to read.
+pub const FILES: [&str; 14] = [
     "Model/Obj_Dungeon_SmallKey.Obj_Dungeon_SmallKey.bfres.zs",
     "Tex/Mt_Obj_Dungeon_SmallKey_Alb.bntx.zs",
     "Tex/Mt_Obj_Dungeon_SmallKey_AO.bntx.zs",
     "Tex/Mt_Obj_Dungeon_SmallKey_Mtl.bntx.zs",
     "Tex/Mt_Obj_Dungeon_SmallKey_Nrm.bntx.zs",
     "Tex/Mt_Obj_Dungeon_SmallKey_Rgh.bntx.zs",
+    "Model/Item_Dungeon_BossKey.Item_Dungeon_BossKey.bfres.zs",
+    "Tex/Mt_Item_Dungeon_BossKey_Alb.bntx.zs",
+    "Tex/Mt_Item_Dungeon_BossKey_AO.bntx.zs",
+    "Tex/Mt_Item_Dungeon_BossKey_Emc.bntx.zs",
+    "Tex/Mt_Item_Dungeon_BossKey_Inner_Nrm.bntx.zs",
+    "Tex/Mt_Item_Dungeon_BossKey_Mtl.bntx.zs",
+    "Tex/Mt_Item_Dungeon_BossKey_Nrm.bntx.zs",
+    "Tex/Mt_Item_Dungeon_BossKey_Rgh.bntx.zs",
 ];
 
 /// A dungeon's colour: a temple's its medallion song's, the Training
@@ -49,7 +94,7 @@ const OWN: [(&Name, Colour); 2] = [
 ];
 
 /// The Gerudo Fortress's keys are their own actors already, one for each
-/// thief. They show the model after the dungeons'.
+/// thief. They show the small key model after the dungeons'.
 const FORTRESS_MODEL: usize = DUNGEONS.len() + 1;
 const FORTRESS_COLOUR: Colour = [90, 55, 30];
 
@@ -59,13 +104,8 @@ fn colour(dungeon: &Name) -> Option<Colour> {
         .or_else(|| OWN.iter().find(|(d, _)| *d == dungeon).map(|(_, c)| *c))
 }
 
-/// A dungeon's copies, by its place in [`DUNGEONS`], counting from 1: the
-/// model (as long as the host's, so no offset in a copy moves), the chest
-/// content and the floor key.
-fn model(n: usize) -> String {
-    format!("Obj_Rando_SmallKey{n:02}")
-}
-
+/// Dungeon `n`'s small key as a chest's content. On the floor it's the
+/// model's own name.
 fn chest_key(n: usize) -> String {
     format!("Item_Rando_SmallKey{n:02}")
 }
@@ -79,83 +119,109 @@ fn dungeon_of(rel: &str) -> Option<usize> {
         .map(|i| i + 1)
 }
 
+/// Whether dungeon `n` has a boss key.
+fn has_boss(n: usize) -> bool {
+    DUNGEONS[n - 1].2
+}
+
 /// Writes each dungeon's model and actor copies, and points the Fortress
 /// keys at a model of their own.
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Result<()> {
-    let host = Host::read(romfs)?;
-    let floor = ActorPack::load(romfs, HOST)?;
+    let small = Host::read(romfs, &SMALL_LOOK)?;
+    let boss = Host::read(romfs, &BOSS_LOOK)?;
+    let floor = ActorPack::load(romfs, SMALL_LOOK.host)?;
     let chest = ActorPack::load(romfs, SMALL)?;
+    let boss_chest = ActorPack::load(romfs, BOSS)?;
     for (i, (dungeon, ..)) in DUNGEONS.iter().enumerate() {
         let n = i + 1;
         let tint = colour(dungeon).with_context(|| format!("no colour for {dungeon}"))?;
-        let name = host.paint(builder, n, tint)?;
-        for (template, copy) in [(&chest, chest_key(n)), (&floor, name.clone())] {
-            let files = pointed(template, &copy, &name)?;
-            write_clone(builder, template, &copy, files)?;
-            tables.copy_item(&copy, &template.name)?;
-            tables.show(&copy, &template.name, &name)?;
+        let name = small.paint(builder, n, tint)?;
+        copy(builder, tables, &chest, &chest_key(n), &name)?;
+        copy(builder, tables, &floor, &name, &name)?;
+        if has_boss(n) {
+            let name = boss.paint(builder, n, tint)?;
+            copy(builder, tables, &boss_chest, &name, &name)?;
         }
     }
-    let name = host.paint(builder, FORTRESS_MODEL, FORTRESS_COLOUR)?;
+    let name = small.paint(builder, FORTRESS_MODEL, FORTRESS_COLOUR)?;
     for k in 1..=FORTRESS.1 {
         let pack = ActorPack::load(romfs, &format!("{FORTRESS_KEY}{k:02}"))?;
         repoint(builder, &pack, &name)?;
-        tables.show(&pack.name, HOST, &name)?;
+        tables.show(&pack.name, SMALL_LOOK.host, &name)?;
     }
     Ok(())
 }
 
-/// The host model and its textures, read once.
+/// `template` copied as `name`, showing `model`, with its rows.
+fn copy(
+    builder: &mut ModBuilder,
+    tables: &mut Tables,
+    template: &ActorPack,
+    name: &str,
+    model: &str,
+) -> Result<()> {
+    write_clone(builder, template, name, pointed(template, name, model)?)?;
+    tables.copy_item(name, &template.name)?;
+    tables.show(name, &template.name, model)
+}
+
+/// A key's host model and its textures, read once.
 struct Host {
+    look: &'static Look,
     model: Vec<u8>,
     textures: Vec<(&'static str, Vec<u8>)>,
 }
 
 impl Host {
-    fn read(romfs: &Romfs) -> Result<Self> {
-        let textures = KINDS
+    fn read(romfs: &Romfs, look: &'static Look) -> Result<Self> {
+        let textures = look
+            .kinds
             .iter()
-            .map(|kind| Ok((*kind, romfs.read(&texture_path(HOST, kind))?)))
+            .map(|kind| Ok((*kind, romfs.read(&texture_path(look.host, kind))?)))
             .collect::<Result<_>>()?;
         Ok(Self {
-            model: romfs.read(&model_path(HOST))?,
+            look,
+            model: romfs.read(&model_path(look.host))?,
             textures,
         })
     }
 
     /// Model `n`, its albedo tinted `tint`. Returns its name.
     fn paint(&self, builder: &mut ModBuilder, n: usize, tint: Colour) -> Result<String> {
-        let name = model(n);
-        let like = model_path(HOST);
+        let host = self.look.host;
+        let name = self.look.name(n);
+        let like = model_path(host);
         builder.add(
             &model_path(&name),
-            &rename(&self.model, HOST, &name)?,
+            &rename(&self.model, host, &name)?,
             &like,
         )?;
         for (kind, data) in &self.textures {
-            let mut data = rename(data, HOST, &name)?;
+            let mut data = rename(data, host, &name)?;
             if *kind == "Alb" {
                 data = tinted(&data, tint)?;
             }
-            builder.add(&texture_path(&name, kind), &data, &texture_path(HOST, kind))?;
+            builder.add(&texture_path(&name, kind), &data, &texture_path(host, kind))?;
         }
         Ok(name)
     }
 }
 
-/// A texture's first level multiplied by `colour`. The albedo is a near
-/// neutral grey, so the key takes the colour and the metal maps keep the
-/// shine.
+/// A texture's first level in `colour`, each texel scaled by its
+/// brightness. The metal maps keep the shine, and a coloured albedo (the
+/// boss key's gold) takes the colour as cleanly as a grey one.
 fn tinted(data: &[u8], colour: Colour) -> Result<Vec<u8>> {
     let mut t = levels(data)?.swap_remove(0);
-    multiply(&mut t.rgba, colour);
+    tint(&mut t.rgba, colour);
     redraw(data, &t.rgba, |_, _| false)
 }
 
-fn multiply(rgba: &mut [u8], colour: Colour) {
+fn tint(rgba: &mut [u8], colour: Colour) {
     for px in rgba.chunks_mut(4) {
+        // Rec. 709 luma, weights out of 256.
+        let luma = (px[0] as u32 * 54 + px[1] as u32 * 183 + px[2] as u32 * 19 + 128) / 256;
         for (c, tint) in px.iter_mut().zip(colour) {
-            *c = ((*c as u16 * tint as u16 + 127) / 255) as u8;
+            *c = ((luma * tint as u32 + 127) / 255) as u8;
         }
     }
 }
@@ -199,25 +265,36 @@ fn repoint(builder: &mut ModBuilder, pack: &ActorPack, model: &str) -> Result<()
     builder.write(&pack_file(&pack.name), &writer.to_binary())
 }
 
-/// Swaps the small keys placed in `rel`'s map, a dungeon's, for that
-/// dungeon's copies: a chest's content and a floor key. Returns how many.
+/// Swaps the keys placed in `rel`'s map, a dungeon's, for that dungeon's
+/// copies: a chest's content and a floor key. Returns how many.
 pub fn swap(rel: &str, root: &mut Byml) -> Result<usize> {
     let Some(n) = dungeon_of(rel) else {
         return Ok(0);
     };
+    let floor = SMALL_LOOK.name(n);
+    let mut contents = vec![(SMALL, chest_key(n))];
+    if has_boss(n) {
+        contents.push((BOSS, BOSS_LOOK.name(n)));
+    }
     let mut swapped = 0;
     for actor in checks::actors_mut(root)? {
-        if checks::str_field(actor, GYAML) == Some(HOST.as_ref()) {
-            actor.as_mut_map()?.insert(GYAML.into(), model(n).into());
+        if checks::str_field(actor, GYAML) == Some(SMALL_LOOK.host.as_ref()) {
+            actor
+                .as_mut_map()?
+                .insert(GYAML.into(), floor.as_str().into());
             swapped += 1;
         }
         let Some(dynamic) = actor.as_mut_map()?.get_mut("Dynamic") else {
             continue;
         };
-        if checks::str_field(dynamic, DROP_ACTOR) == Some(SMALL.as_ref()) {
+        let held = checks::str_field(dynamic, DROP_ACTOR);
+        if let Some((_, copy)) = contents
+            .iter()
+            .find(|(from, _)| held == Some(from.as_ref()))
+        {
             dynamic
                 .as_mut_map()?
-                .insert((&**DROP_ACTOR).into(), chest_key(n).into());
+                .insert((&**DROP_ACTOR).into(), copy.as_str().into());
             swapped += 1;
         }
     }
@@ -232,8 +309,15 @@ mod tests {
     #[test]
     fn a_grey_texel_takes_the_colour_scaled_by_its_grey() {
         let mut rgba = [255, 255, 255, 255, 128, 128, 128, 200];
-        multiply(&mut rgba, [60, 220, 60]);
+        tint(&mut rgba, [60, 220, 60]);
         assert_eq!(rgba, [60, 220, 60, 255, 30, 110, 30, 200]);
+    }
+
+    #[test]
+    fn a_gold_texel_takes_the_colour_by_its_brightness_not_its_hue() {
+        let mut rgba = [255, 200, 100, 255];
+        tint(&mut rgba, [60, 220, 60]);
+        assert_eq!(rgba, [48, 176, 48, 255]);
     }
 
     #[test]
@@ -244,15 +328,29 @@ mod tests {
     }
 
     #[test]
-    fn copies_are_named_as_long_as_the_host() {
-        let host = FILES[0].split(['/', '.']).nth(1).unwrap();
-        assert_eq!(model(1).len(), host.len());
+    fn the_spelled_out_files_are_each_look_s() {
+        if crate::game::no_names() {
+            return;
+        }
+        let looks: Vec<String> = LOOKS.into_iter().flat_map(Look::files).collect();
+        assert_eq!(looks, FILES);
+    }
+
+    #[test]
+    fn copies_are_named_as_long_as_their_host() {
+        if crate::game::no_names() {
+            return;
+        }
+        for look in LOOKS {
+            assert_eq!(look.name(DUNGEONS.len() + 1).len(), look.host.len());
+        }
     }
 
     #[test]
     fn each_dungeon_s_keys_name_its_copies() {
         let Some(romfs) = dev_dump() else { return };
         let mut per_dungeon = vec![0; DUNGEONS.len() + 1];
+        let mut bosses = vec![0; DUNGEONS.len() + 1];
         for rel in checks::banc_files(&romfs).unwrap() {
             let mut doc = checks::load_banc(&romfs, &rel).unwrap();
             let swapped = swap(&rel, &mut doc.root).unwrap();
@@ -262,15 +360,19 @@ mod tests {
             };
             per_dungeon[n] += swapped;
             for actor in checks::actors(&doc.root).unwrap() {
-                assert_ne!(
-                    checks::str_field(actor, GYAML),
-                    Some(HOST.as_ref()),
-                    "{rel}"
-                );
+                let gyaml = checks::str_field(actor, GYAML);
+                assert_ne!(gyaml, Some(SMALL_LOOK.host.as_ref()), "{rel}");
+                let held = actor.as_map().ok().and_then(|m| m.get("Dynamic"));
+                let held = held.and_then(|d| checks::str_field(d, DROP_ACTOR));
+                for key in [SMALL, BOSS] {
+                    assert_ne!(held, Some(key.as_ref()), "{rel}");
+                }
+                bosses[n] += usize::from(held == Some(BOSS_LOOK.name(n).as_str()));
             }
         }
-        for (i, (dungeon, ..)) in DUNGEONS.iter().enumerate() {
+        for (i, (dungeon, _, boss)) in DUNGEONS.iter().enumerate() {
             assert!(per_dungeon[i + 1] > 0, "no keys swapped in {dungeon}");
+            assert_eq!(bosses[i + 1], usize::from(*boss), "{dungeon}'s boss key");
         }
     }
 
@@ -286,32 +388,38 @@ mod tests {
             let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
             romfs.dicts().decompress(rel, &raw).unwrap()
         };
-        let info = path_of(&ActorPack::load(&romfs, SMALL).unwrap(), MODEL).unwrap();
+        let info = |name: &str| path_of(&ActorPack::load(&romfs, name).unwrap(), MODEL).unwrap();
         let has = |bytes: &[u8], s: &str| bytes.windows(s.len()).any(|w| w == s.as_bytes());
-        for n in 1..=DUNGEONS.len() {
-            assert!(!read(&model_path(&model(n))).is_empty());
-            for copy in [chest_key(n), model(n)] {
-                let row = crate::standins::row(&tables.actor, &copy).unwrap();
-                let fmdb = row
-                    .get(field::FMDB_NAME.get())
-                    .and_then(|v| v.as_string().ok());
-                assert_eq!(fmdb.map(|s| s.to_string()), Some(model(n)), "{copy}");
-                crate::standins::row(&tables.pouch, &copy).unwrap();
-                let pack = read(&format!("Pack/Actor/{copy}.pack.zs"));
-                assert!(
-                    has(&pack, &renamed(&info, &copy)),
-                    "{copy} has no ModelInfo of its own"
-                );
-            }
-        }
-        let floor_info = path_of(&ActorPack::load(&romfs, HOST).unwrap(), MODEL).unwrap();
-        for k in 1..=FORTRESS.1 {
-            let key = format!("{FORTRESS_KEY}{k:02}");
-            let row = crate::standins::row(&tables.actor, &key).unwrap();
+        let fmdb = |name: &str| {
+            let row = crate::standins::row(&tables.actor, name).unwrap();
             let fmdb = row
                 .get(field::FMDB_NAME.get())
                 .and_then(|v| v.as_string().ok());
-            assert_eq!(fmdb.map(|s| s.to_string()), Some(model(FORTRESS_MODEL)));
+            fmdb.map(|s| s.to_string())
+        };
+        for n in 1..=DUNGEONS.len() {
+            let small = SMALL_LOOK.name(n);
+            let mut copies = vec![
+                (chest_key(n), SMALL, small.clone()),
+                (small.clone(), SMALL, small),
+            ];
+            if has_boss(n) {
+                let boss = BOSS_LOOK.name(n);
+                copies.push((boss.clone(), BOSS, boss));
+            }
+            for (copy, template, model) in copies {
+                assert!(!read(&model_path(&model)).is_empty(), "{model}");
+                assert_eq!(fmdb(&copy), Some(model), "{copy}");
+                crate::standins::row(&tables.pouch, &copy).unwrap();
+                let pack = read(&format!("Pack/Actor/{copy}.pack.zs"));
+                let own = renamed(&info(template), &copy);
+                assert!(has(&pack, &own), "{copy} has no ModelInfo of its own");
+            }
+        }
+        let floor_info = info(SMALL_LOOK.host);
+        for k in 1..=FORTRESS.1 {
+            let key = format!("{FORTRESS_KEY}{k:02}");
+            assert_eq!(fmdb(&key), Some(SMALL_LOOK.name(FORTRESS_MODEL)));
             let pack = read(&format!("Pack/Actor/{key}.pack.zs"));
             assert!(has(&pack, &renamed(&floor_info, &key)), "{key}");
         }

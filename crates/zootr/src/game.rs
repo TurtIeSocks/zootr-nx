@@ -15,7 +15,6 @@ use crate::platform::{Folder, user_dir};
 pub const TITLE: u64 = 0x0400_4860_24DE_C000;
 /// The 1.1.0 update, the only one zootr reads.
 pub const UPDATE: u32 = 131072;
-/// What zootr reads, under the romfs root, besides [`files`].
 /// The single files zootr reads, under the romfs root: what the custom
 /// models are made from.
 pub fn files() -> impl Iterator<Item = &'static str> {
@@ -24,6 +23,7 @@ pub fn files() -> impl Iterator<Item = &'static str> {
         .chain(crate::key_tints::FILES)
 }
 
+/// What zootr reads, under the romfs root, besides [`files`].
 pub const SUBTREES: [&str; 9] = [
     "Banc",            // actor placement: chests, pots, freestanding items
     "GameData",        // save flag table
