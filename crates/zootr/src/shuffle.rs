@@ -473,7 +473,7 @@ mod tests {
         needs_names!();
         let ring = crate::key_tints::ring(1);
         let pot = ItemCheck {
-            holder: "Obj_FakePot".into(),
+            holder: "Obj_P".into(),
             ..chest(1, "Item_A")
         };
         assert!(allowed(&chest(1, "Item_A"), &ring, false));

@@ -305,7 +305,7 @@ mod tests {
             mesh: fixture::mesh(&[fixture::quad(0.0, 0.0, 4.0, 4.0, 0.0)]),
             placed: vec![
                 placed(actor::DROP_KEEP_AWAY_AREA_T_BOX_A_01),
-                placed("Obj_FakeWall_A_02"),
+                placed("Obj_W_A_02"),
                 placed(actor::OBJ_T_BOX_A_01),
             ],
         };
