@@ -138,11 +138,15 @@ fn stand_from(
     }
 }
 
-/// Whether a walk got Link close enough to act: he arrived, or something
-/// stopped him `short` m from where he acts, at most `reach`.
+/// Whether a walk got Link close enough to act: he arrived, or it stopped
+/// `short` m from where he acts, at most `reach`, blocked or with no route.
+/// A holder on floor the navmesh leaves out (the Well's chest on its
+/// Lens of Truth crypt) has no route to it, and its straight push stops
+/// short of the arrival circle, yet A opens it from 0.8 m (Mac,
+/// 2026-11-16).
 fn within_reach(went: &Went, short: Option<f32>, reach: f32) -> bool {
-    went.result == Done::Arrived
-        || (went.reason == Some(Reason::Blocked) && short.is_some_and(|d| d <= reach))
+    let near = matches!(went.reason, Some(Reason::Blocked | Reason::NoRoute));
+    went.result == Done::Arrived || (near && short.is_some_and(|d| d <= reach))
 }
 
 /// How `use` acts on `placement`, or why it can't.
@@ -564,7 +568,7 @@ mod tests {
     }
 
     #[test]
-    fn blocked_within_reach_counts_as_there() {
+    fn blocked_or_no_route_within_reach_counts_as_there() {
         let went = |result, reason| Went {
             result,
             reason,
@@ -576,11 +580,11 @@ mod tests {
         assert!(within_reach(&blocked, Some(0.8), REACH));
         assert!(!within_reach(&blocked, Some(REACH + 0.1), REACH));
         assert!(!within_reach(&blocked, None, REACH));
-        assert!(!within_reach(
-            &went(Done::GaveUp, Some(Reason::NoRoute)),
-            Some(0.1),
-            REACH
-        ));
+        let no_route = went(Done::GaveUp, Some(Reason::NoRoute));
+        assert!(within_reach(&no_route, Some(0.8), REACH));
+        assert!(!within_reach(&no_route, Some(REACH + 0.1), REACH));
+        let budget = went(Done::GaveUp, Some(Reason::Budget));
+        assert!(!within_reach(&budget, Some(0.1), REACH));
         assert!(within_reach(&went(Done::Arrived, None), None, REACH));
     }
 
