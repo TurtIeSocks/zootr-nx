@@ -27,7 +27,7 @@ import {
   type SaveTab,
   usePending,
 } from "@/save/tabs";
-import { PageHeader } from "@/shell/page-header";
+import { Page, PageHeader } from "@/shell/page-header";
 import { useUi } from "@/stores/ui";
 
 const TABS: { id: SaveTab; label: string }[] = [
@@ -59,7 +59,7 @@ export function SaveView() {
   const reload = () => setVersion((v) => v + 1);
   useFollowSlots(slots);
   return (
-    <>
+    <Page wide>
       <PageHeader
         title="Save"
         description="Changes a save you already have: items, hearts and the rest, and any flag. Close the game first. The old save is kept next to it as a backup."
@@ -82,7 +82,7 @@ export function SaveView() {
         }}
         onReload={reload}
       />
-    </>
+    </Page>
   );
 }
 
@@ -112,7 +112,7 @@ function SlotTabs({ slot, version }: { slot: number; version: number }) {
     [slot, pending, version],
   );
   return (
-    <>
+    <div className="flex flex-col gap-3">
       <Segmented
         aria-label="View"
         className="self-start"
@@ -123,7 +123,7 @@ function SlotTabs({ slot, version }: { slot: number; version: number }) {
       {tab === "items" && <ItemsLoader viewKey={key} />}
       {tab === "flags" && <FlagsLoader viewKey={key} />}
       {tab === "presets" && <PresetsLoader />}
-    </>
+    </div>
   );
 }
 
