@@ -44,7 +44,10 @@ pub fn decode(code: &str) -> Result<Shared> {
         .context("not a share code")?;
     let packed = from_base64(body).context("a share code got cut or changed")?;
     let json = zstd::bulk::decompress(&packed, MAX_JSON).context("a share code got cut")?;
-    serde_json::from_slice(&json).context("a share code from another version")
+    let mut shared: Shared =
+        serde_json::from_slice(&json).context("a share code from another version")?;
+    crate::settings::upgrade(&mut shared.settings);
+    Ok(shared)
 }
 
 /// URL-safe base64 without padding, so a code survives chat apps.

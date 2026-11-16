@@ -13,6 +13,9 @@ use crate::keys;
 use crate::presets::{self, CARPENTERS_FREED, PRESETS};
 use crate::starting::{self, ITEMS};
 
+mod upgrade;
+pub(crate) use upgrade::upgrade;
+
 /// Setting values by id. A missing id takes its default.
 pub type Settings = BTreeMap<String, Value>;
 
@@ -248,7 +251,7 @@ const SKIP_GREAT_DEKU: &str = "skip-great-deku";
 const SKIP_ARRIVALS: &str = "skip-arrivals";
 pub(crate) const CHEST_SIZE: &str = "chest-size";
 pub(crate) const LOGIC: &str = "logic";
-pub(crate) const VANILLA_CHESTS: &str = "vanilla-chests";
+pub(crate) const SHUFFLE_ITEMS: &str = "shuffle-items";
 pub(crate) const PROGRESSIVE: &str = "progressive-items";
 const FREE_BOMBCHUS: &str = "free-bombchus";
 const BUNNY_HOOD: &str = "bunny-hood";
@@ -409,12 +412,12 @@ pub fn schema() -> Vec<SettingDef> {
             "All small makes every chest a small one, which opens without the big chest's long animation. What a chest holds doesn't change",
             ChestSize::label,
         )])
-        .chain([toggle(
-            VANILLA_CHESTS,
+        .chain([default_on(toggle(
+            SHUFFLE_ITEMS,
             group::SHUFFLES,
-            "Vanilla chests",
-            "Nothing is shuffled: chests, Saria and Zelda give what they always do. A starting item's spot still holds a Blue Rupee",
-        )])
+            "Shuffle items",
+            "Every check gives a shuffled item. Off, each gives what it always does, though a starting item's spot still holds a Blue Rupee",
+        ))])
         .chain([default_on(toggle(
                 OPEN_DOOR,
                 group::LOGIC,
@@ -692,7 +695,7 @@ impl NewGame {
                     .collect(),
             },
             chest_size: chosen(settings, CHEST_SIZE),
-            vanilla: on(VANILLA_CHESTS),
+            vanilla: !on(SHUFFLE_ITEMS),
             start: ITEMS.iter().filter(|i| on(i.id)).collect(),
             progressive: on(PROGRESSIVE),
             open_door: on(OPEN_DOOR),
@@ -858,7 +861,7 @@ mod tests {
             ("unknown".into(), true.into()),
             ("start-bomb-bag".into(), true.into()),
             ("start-kokiri-sword".into(), true.into()),
-            (VANILLA_CHESTS.into(), true.into()),
+            (SHUFFLE_ITEMS.into(), false.into()),
             (PROGRESSIVE.into(), false.into()),
         ]);
         let game = NewGame::from_settings(&settings, &["A=1".into()]).unwrap();

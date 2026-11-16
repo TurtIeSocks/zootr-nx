@@ -125,7 +125,7 @@ Each page under Randomizer in the app's sidebar, with what every setting does.
 
 | Setting | What it does |
 |---|---|
-| Vanilla chests | Nothing is shuffled: chests, Saria and Zelda give what they always do |
+| Shuffle items | On by default. Off, nothing is shuffled: chests, Saria and Zelda give what they always do |
 | Business scrubs | Every Business Scrub outside the Dream World sells a check once, at a price you pick from 10 to 90 rupees |
 | NPC gifts | Heart pieces and items people hand over become checks, from the Skull Kid to Darunia's bracelet |
 | Songs | Ten songs become checks, given without the lesson. The Sun's Song, the Song of Time and the Scarecrow's Song stay where they are |
