@@ -23,22 +23,19 @@ the result as a mod.
 ## Shuffle more than chests
 
 Songs, NPC gifts, Business Scrubs, shops, cows, Gold Skulltulas, dungeon
-rewards, boss hearts, even pots, crates, rocks and beehives. Glitchless logic
-makes sure every seed can be beaten, and a share code passes a seed and its
-settings to a friend.
+rewards, boss hearts, even pots, crates, rocks and beehives. Each dungeon's
+small keys can come as one key ring, shuffled with the boss keys. Glitchless
+logic makes sure every seed can be beaten, and a share code passes a seed and
+its settings to a friend.
 
 ![The Shuffles settings page](assets/shuffles.png)
 
 ## Custom models
 
 A song placed in the world shows its own medallion, in the song's colour
-with its icon on the face, where the game would show a rupee. zootr builds
-each one from your dump when it writes a seed.
-
-Coming soon:
-
-- Small keys and boss keys in their dungeon's colour
-- Key rings
+with its icon on the face, where the game would show a rupee. Keys take
+their dungeon's colour, so a key found far from home says where it belongs.
+zootr builds each model from your dump when it writes a seed.
 
 ## Less waiting
 
