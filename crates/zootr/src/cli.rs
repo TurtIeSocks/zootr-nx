@@ -48,9 +48,6 @@ pub fn run() -> Result<()> {
     if let Command::Target(cmd) = cli.command {
         return target_command(cmd);
     }
-    if let Command::Boot { start, limit } = cli.command {
-        return boot_command(start, limit);
-    }
     let path = match cli.game {
         Some(p) => p,
         None => Config::load()?
@@ -63,7 +60,7 @@ pub fn run() -> Result<()> {
     }
     let romfs = game::prepare(&path)?;
     match cli.command {
-        Command::Extract | Command::Target(_) | Command::Turn { .. } | Command::Boot { .. } => {
+        Command::Extract | Command::Target(_) | Command::Turn { .. } => {
             unreachable!("handled above")
         }
         Command::Census => census(&romfs),
@@ -133,6 +130,7 @@ pub fn run() -> Result<()> {
             Ok(())
         }
         Command::Save(cmd) => save_command(&romfs, cmd),
+        Command::Boot { start, limit } => boot_command(start, limit),
         Command::Live { grep, all, named } => live(&romfs, grep, all, named),
         Command::Give { actor, count } => give(&romfs, &actor, count),
         Command::Set { name, value } => set(&romfs, &name, &value),
