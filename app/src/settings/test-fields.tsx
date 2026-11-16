@@ -173,6 +173,10 @@ export function ItemsField() {
   );
 }
 
+/** The value beside a row's name, whichever field it is, so the name
+ * keeps the rest of the row. */
+const VALUE_WIDTH = "w-40 shrink-0";
+
 /** The saved step of a quest, a GameData enum. */
 const QUEST = "Step_";
 
@@ -258,11 +262,12 @@ export function RowsField({
               value={value}
               onChange={setValue}
               label={`${label} value`}
+              className={VALUE_WIDTH}
             />
           ) : (
             <Input
               aria-label={`${label} value`}
-              className="w-40"
+              className={VALUE_WIDTH}
               placeholder="Value"
               value={value}
               onChange={(e) => setValue(e.target.value)}
