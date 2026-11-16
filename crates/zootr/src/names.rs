@@ -113,8 +113,10 @@ pub fn pretty(id: &str) -> String {
 
 /// The label naming an actor in `ITEMS`, through the `ActorName` its param
 /// points at: `?ActorSystem/ActorName/<stem>.engine__actor__ActorName.bgyml`
-/// is named by `<stem>_Name`.
+/// is named by `<stem>_Name`. A key copy reads the key it copies, whose
+/// lines its own are copied from.
 pub(crate) fn name_label(romfs: &Romfs, actor: &str) -> Result<Option<String>> {
+    let actor = crate::key_tints::template_of(actor).map_or(actor, |t| t.get());
     let Some(param) = ActorPack::load(romfs, actor)?.actor_param()? else {
         return Ok(None);
     };
@@ -172,6 +174,20 @@ mod tests {
             let same = ounce_formats::replace_file(&data, name, f.data()).unwrap();
             assert!(same == data, "{name}");
         }
+    }
+
+    #[test]
+    fn a_key_copy_is_labelled_as_the_key_it_copies() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let label = |a: &str| name_label(&romfs, a).unwrap();
+        let small = label(crate::keys::SMALL);
+        assert!(small.is_some());
+        assert_eq!(label(&crate::key_tints::ring(1)), small);
+        let boss = (1..=crate::keys::DUNGEONS.len()).find(|n| crate::keys::has_boss(*n));
+        let boss = crate::key_tints::boss(boss.unwrap());
+        assert_eq!(label(&boss), label(crate::keys::BOSS));
     }
 
     #[test]

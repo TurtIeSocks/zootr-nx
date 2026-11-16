@@ -155,19 +155,31 @@ pub fn boss(n: usize) -> String {
 /// writes it with `keys`, for a holder that stands in for it. `None` for any other
 /// item.
 pub fn copy_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<Option<ActorPack>> {
-    for n in 1..=DUNGEONS.len() {
-        let (template, model) = if item == ring(n) {
-            (SMALL, ring_model(n, keys))
+    let Some((template, model)) = copy_of(item, keys) else {
+        return Ok(None);
+    };
+    let template = ActorPack::load(romfs, template)?;
+    let files = copied(&template, item, &model)?;
+    clone_pack(&template, item, files).map(Some)
+}
+
+/// The key `item` copies, if it's a ring or boss key copy. Its pack lives
+/// only in the seed, so what reads the dump for it reads this key's.
+pub fn template_of(item: &str) -> Option<&'static Name> {
+    copy_of(item, DungeonKeys::default()).map(|(template, _)| template)
+}
+
+/// The key `item` copies and the model it shows as `keys` deals it.
+fn copy_of(item: &str, keys: DungeonKeys) -> Option<(&'static Name, String)> {
+    (1..=DUNGEONS.len()).find_map(|n| {
+        if item == ring(n) {
+            Some((SMALL, ring_model(n, keys)))
         } else if has_boss(n) && item == boss(n) {
-            (BOSS, boss(n))
+            Some((BOSS, boss(n)))
         } else {
-            continue;
-        };
-        let template = ActorPack::load(romfs, template)?;
-        let files = copied(&template, item, &model)?;
-        return clone_pack(&template, item, files).map(Some);
-    }
-    Ok(None)
+            None
+        }
+    })
 }
 
 /// The text each copy's get shows, copied from its template's and naming
