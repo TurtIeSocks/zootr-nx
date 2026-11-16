@@ -181,6 +181,9 @@ pub enum Credit {
     Bool(u32),
     /// An Int and its saved copy, set to the value.
     Int(u32, i32),
+    /// An Int and its saved copy, the value added: a single small key
+    /// counts one more for its own dungeon, wherever Link is.
+    Add(u32, i32),
 }
 
 impl Credit {
@@ -191,6 +194,7 @@ impl Credit {
         match kind {
             0 => Some(Self::Bool(hash)),
             1 => Some(Self::Int(hash, i32::from_le_bytes([v0, v1, v2, v3]))),
+            2 => Some(Self::Add(hash, i32::from_le_bytes([v0, v1, v2, v3]))),
             _ => None,
         }
     }
@@ -200,6 +204,7 @@ impl Credit {
         let (kind, hash, value) = match self {
             Self::Bool(hash) => (0, hash, 0),
             Self::Int(hash, value) => (1, hash, value),
+            Self::Add(hash, value) => (2, hash, value),
         };
         let mut out = [kind; Self::SIZE];
         out[1..5].copy_from_slice(&hash.to_le_bytes());
@@ -338,6 +343,7 @@ mod tests {
         ("Key_01", Credit::Bool(0x1234_5678)),
         ("Key_02", Credit::Int(0xdead_beef, -3)),
         ("Key_03", Credit::Int(0x0bad_f00d, 9)),
+        ("Key_04", Credit::Add(0xfeed_face, 1)),
     ];
 
     fn with_table<T>(f: impl FnOnce(Table) -> T) -> T {

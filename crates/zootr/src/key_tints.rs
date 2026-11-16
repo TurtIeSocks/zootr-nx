@@ -22,6 +22,7 @@ use crate::keys::{
 use crate::known::{Name, actor, field, flag, flow, item};
 use crate::medallions::{self, Colour, model_path, texture_path};
 use crate::rsdb::ROW_ID;
+use crate::settings::DungeonKeys;
 use crate::standins::{
     MODEL, Tables, actor_path, doc, path_of, raw, renamed, with_ref, write_clone,
 };
@@ -129,30 +130,35 @@ pub fn boss(n: usize) -> String {
 }
 
 /// What the hook sets as each copy is found: with `bosses` a boss key's
-/// flag, and with `rings` a ring's counter, full.
-pub fn credits(bosses: bool, rings: bool) -> Vec<(String, Credit)> {
+/// flag, with key rings a ring's counter, full, and with Keysanity one
+/// more on a small key's counter.
+pub fn credits(bosses: bool, keys: DungeonKeys) -> Vec<(String, Credit)> {
     let hash = |name: String| murmur3(name.as_bytes());
     let mut out = Vec::new();
     for (i, (dungeon, small, room)) in DUNGEONS.iter().enumerate() {
         if bosses && room.is_some() {
             out.push((boss(i + 1), Credit::Bool(hash(boss_flag(dungeon)))));
         }
-        if rings {
-            out.push((ring(i + 1), Credit::Int(hash(small_flag(dungeon)), *small)));
+        let counter = hash(small_flag(dungeon));
+        match keys {
+            DungeonKeys::Rings => out.push((ring(i + 1), Credit::Int(counter, *small))),
+            DungeonKeys::Singles => out.push((ring(i + 1), Credit::Add(counter, 1))),
+            DungeonKeys::Vanilla | DungeonKeys::Start => {}
         }
     }
     out
 }
 
 /// Writes each dungeon's model and actor copies, the boss key's only with
-/// `bosses` and the ring only with `rings`, and points the Fortress keys at
+/// `bosses` and the ring (a single key with Keysanity) only with `copies`,
+/// and points the Fortress keys at
 /// a model of their own.
 pub fn write(
     romfs: &Romfs,
     builder: &mut ModBuilder,
     tables: &mut Tables,
     bosses: bool,
-    rings: bool,
+    copies: bool,
 ) -> Result<()> {
     let small = Host::read(romfs, &SMALL_LOOK)?;
     let boss = Host::read(romfs, &BOSS_LOOK)?;
@@ -165,7 +171,7 @@ pub fn write(
         let name = small.paint(builder, n, tint)?;
         copy(builder, tables, &chest, &chest_key(n), &name)?;
         copy(builder, tables, &floor, &name, &name)?;
-        if rings {
+        if copies {
             copy(builder, tables, &chest, &ring(n), &name)?;
         }
         if bosses && has_boss(n) {
@@ -173,7 +179,7 @@ pub fn write(
             copy(builder, tables, &boss_chest, &name, &name)?;
         }
     }
-    if rings {
+    if copies {
         uncounted(tables)?;
     }
     let name = small.paint(builder, FORTRESS_MODEL, FORTRESS_COLOUR)?;
@@ -380,18 +386,24 @@ mod tests {
             return;
         }
         let bosses = DUNGEONS.iter().filter(|d| d.2.is_some()).count();
-        assert_eq!(credits(true, false).len(), bosses);
-        assert_eq!(credits(false, true).len(), DUNGEONS.len());
-        assert!(credits(false, false).is_empty());
+        assert_eq!(credits(true, DungeonKeys::Start).len(), bosses);
+        assert_eq!(credits(false, DungeonKeys::Rings).len(), DUNGEONS.len());
+        assert!(credits(false, DungeonKeys::Vanilla).is_empty());
         let forest = DUNGEONS
             .iter()
             .position(|d| d.0 == flag::FOREST_TEMPLE)
             .unwrap();
-        let credits = credits(true, true);
+        let credits = credits(true, DungeonKeys::Rings);
         let of = |name: String| credits.iter().find(|(n, _)| *n == name).map(|c| c.1);
         // The Forest Temple's, as `probe data` names them.
         assert_eq!(of(boss(forest + 1)), Some(Credit::Bool(0x4273_33a0)));
         assert_eq!(of(ring(forest + 1)), Some(Credit::Int(0x9023_7092, 5)));
+        let singles = super::credits(true, DungeonKeys::Singles);
+        let one = singles
+            .iter()
+            .find(|(n, _)| *n == ring(forest + 1))
+            .map(|c| c.1);
+        assert_eq!(one, Some(Credit::Add(0x9023_7092, 1)));
     }
 
     #[test]

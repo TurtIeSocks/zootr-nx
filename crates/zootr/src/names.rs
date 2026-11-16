@@ -9,6 +9,7 @@ use roead::sarc::Sarc;
 
 use crate::items::component;
 use crate::known::field;
+use crate::settings::DungeonKeys;
 
 pub(crate) const TEXT: &str = "Mals/USen.Product.110.sarc.zs";
 pub(crate) const AREAS: &str = "LocationMsg/Location.msbt";
@@ -20,6 +21,8 @@ pub struct Names {
     areas: HashMap<String, String>,
     items: HashMap<String, String>,
     progressive: bool,
+    /// How the seed deals keys, which names the ring copy.
+    keys: DungeonKeys,
 }
 
 impl Names {
@@ -37,9 +40,8 @@ impl Names {
         let area = |id: &str| areas.get(id).cloned().unwrap_or_else(|| pretty(id));
         let mut items = HashMap::new();
         for actor in actors {
-            if let Some(name) = crate::keys::copy_name(actor, area) {
-                items.insert(actor.to_owned(), name);
-            } else if !items.contains_key(actor)
+            if crate::keys::copy_name(actor, area, DungeonKeys::Rings).is_none()
+                && !items.contains_key(actor)
                 && let Some(label) = name_label(romfs, actor)?
                 && let Some(name) = pouch.get(&label).cloned()
             {
@@ -50,6 +52,7 @@ impl Names {
             areas,
             items,
             progressive: false,
+            keys: DungeonKeys::Rings,
         })
     }
 
@@ -61,14 +64,19 @@ impl Names {
         }
     }
 
+    /// Name key copies as a seed with `keys` deals them.
+    pub fn keys(self, keys: DungeonKeys) -> Self {
+        Self { keys, ..self }
+    }
+
     pub fn area(&self, id: &str) -> String {
         self.areas.get(id).cloned().unwrap_or_else(|| pretty(id))
     }
 
     pub fn item(&self, actor: &str) -> String {
-        self.items
-            .get(actor)
-            .cloned()
+        let copy = || crate::keys::copy_name(actor, |id| self.area(id), self.keys);
+        (self.items.get(actor).cloned())
+            .or_else(copy)
             .unwrap_or_else(|| pretty(actor))
     }
 

@@ -363,7 +363,7 @@ pub fn schema() -> Vec<SettingDef> {
             KEYS,
             group::DUNGEONS,
             "Keys",
-            "With Start, Link holds every dungeon's small keys and boss key from the start. With Key rings, each dungeon's small keys come as one ring that opens all its small-key doors, and rings and boss keys turn up in random chests. Logic never puts a ring in its own dungeon. Either way the 43 chests that held a key become checks, each putting a Red Rupee in the pool in the key's place, less one for each ring and boss key. The two keys lying in the open stay where they are",
+            "With Start, Link holds every dungeon's small keys and boss key from the start. With Key rings, each dungeon's small keys come as one ring that opens all its small-key doors. With Keysanity, each small key comes on its own. Rings, small keys and boss keys turn up in random chests, never in their own dungeon. The 43 chests that held a key become checks. With Start each brings a Red Rupee to the pool. With Key rings, one of a dungeon's rupees becomes its ring and another its boss key. The two keys lying in the open stay where they are",
             DungeonKeys::label,
         )])
         .chain([choice(
@@ -574,8 +574,11 @@ impl NewGame {
             .map(|p| p.name.to_owned())
             .collect();
         let keys = chosen::<DungeonKeys>(settings, KEYS);
-        if keys == DungeonKeys::Rings && !on(SHUFFLE_ITEMS) {
-            bail!("Key rings need items shuffled: they take the place of key chests' items");
+        if keys.copies() && !on(SHUFFLE_ITEMS) {
+            bail!(
+                "{} needs items shuffled: keys take the place of key chests' items",
+                keys.label()
+            );
         }
         let fortress_keys = chosen::<Keys>(settings, FORTRESS_KEYS) == Keys::Start;
         if fortress_keys && picked.iter().any(|p| p == CARPENTERS_FREED) {
@@ -846,7 +849,7 @@ mod tests {
         };
         assert_eq!(default, "vanilla");
         let ids: Vec<_> = options.iter().map(|o| o.id.as_str()).collect();
-        assert_eq!(ids, ["vanilla", "start", "rings"]);
+        assert_eq!(ids, ["vanilla", "start", "rings", "singles"]);
     }
 
     #[test]

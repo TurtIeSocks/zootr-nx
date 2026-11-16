@@ -8,7 +8,7 @@ use crate::checks::{Drop, ItemCheck};
 use crate::keys;
 use crate::known::{Name, item};
 use crate::rng::Rng;
-use crate::settings::{self, DungeonKeys, NewGame};
+use crate::settings::{self, NewGame};
 use crate::starting;
 use crate::{ammo, cows, gifts, progressive};
 
@@ -222,9 +222,7 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
     let kept = kept.into_iter().zip(all);
     placed.extend(kept.map(|(check, item)| Placement { check, item }));
     cap_bottles(&mut items, placed.iter().map(|p| p.item));
-    if new_game.keys == DungeonKeys::Rings {
-        keys::deal_rings(&mut items)?;
-    }
+    keys::deal_copies(&mut items, new_game.keys)?;
     Ok(Deal {
         placed,
         free,
@@ -425,7 +423,7 @@ mod tests {
         needs_names!();
         let (checks, none) = (with_keys(), Fixed::new());
         let on = NewGame {
-            keys: DungeonKeys::Start,
+            keys: settings::DungeonKeys::Start,
             ..game(false, &[])
         };
         for vanilla in [false, true] {
@@ -455,7 +453,7 @@ mod tests {
         needs_names!();
         let (checks, none) = (with_keys(), Fixed::new());
         let on = NewGame {
-            keys: DungeonKeys::Start,
+            keys: settings::DungeonKeys::Start,
             ..game(false, &[])
         };
         let p = shuffle(&checks, 7, &none, &on).unwrap();

@@ -11,7 +11,7 @@ use crate::checks::{self, Drop};
 use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::hints::Hint;
-use crate::settings::{ChestSize, DungeonKeys, NewGame};
+use crate::settings::{ChestSize, NewGame};
 use crate::{
     bombchus, bombs, bridge, cows, cutscenes, dampe, dig, door, flags, fortress, gamedata, gerudo,
     gifts, hints, key_tints, keys, medallions, navi, patch, pickups, presets, rsdb, scrubs, shops,
@@ -147,11 +147,11 @@ pub fn write_mod(
     let items = drops.values().map(|d| d.item.as_str());
     medallions::write(romfs, &mut builder, &mut tables, items)?;
     // A boss key copy is credited by the hook, so without it the boss key
-    // stays as it is. Key rings deal them, and bring the hook along.
+    // stays as it is. Key rings and Keysanity deal them, and bring the hook along.
     let flags = hook_flags(new_game);
-    let rings = new_game.keys == DungeonKeys::Rings;
-    let bosses = rings || patch::hooked(new_game.progressive, new_game.dev_panel, flags);
-    key_tints::write(romfs, &mut builder, &mut tables, bosses, rings)?;
+    let copies = new_game.keys.copies();
+    let bosses = copies || patch::hooked(new_game.progressive, new_game.dev_panel, flags);
+    key_tints::write(romfs, &mut builder, &mut tables, bosses, copies)?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
     events.write(&mut builder)?;
     if new_game.shop_slots > 0 {
@@ -224,7 +224,7 @@ pub fn write_mod(
     bombs::write(&mut builder)?;
     dig::write(romfs, &mut builder, drops)?;
     let files = builder.finish()?.len();
-    let credits = key_tints::credits(bosses, rings);
+    let credits = key_tints::credits(bosses, new_game.keys);
     patch::install(
         mod_dir,
         new_game.progressive,

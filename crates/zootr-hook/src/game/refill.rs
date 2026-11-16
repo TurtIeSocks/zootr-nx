@@ -63,6 +63,16 @@ pub(super) unsafe fn set_int(gd: usize, hash: u32, n: i32) {
     }
 }
 
+/// Adds `n` to the Int `hash`, and sets its saved copy to the sum, if
+/// GameData holds it.
+pub(super) unsafe fn add_int(gd: usize, hash: u32, n: i32) {
+    if let Some(at) = unsafe { entry(gd, INT, hash) } {
+        let value = at as *mut i32;
+        let sum = unsafe { *value }.saturating_add(n);
+        unsafe { (*value, *value.add(1)) = (sum, sum) };
+    }
+}
+
 /// Where `hash`'s current value sits in the GameData table given by its
 /// slot, entry stride and value offset, like [`INT`].
 unsafe fn entry(
