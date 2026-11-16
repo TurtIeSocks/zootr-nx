@@ -33,3 +33,18 @@ test("drops an answer for a key that has changed", async () => {
   await act(async () => answers.get("old")?.("old data"));
   expect(result.current).toEqual({ status: "ok", data: "new data" });
 });
+
+test("with keep, the last answer stays up while the next loads", async () => {
+  const answers = new Map<number, (n: number) => void>();
+  const load = (key: number) =>
+    new Promise<number>((resolve) => answers.set(key, resolve));
+  const { result, rerender } = renderHook(
+    ({ key }) => useLoad(load, key, true),
+    { initialProps: { key: 1 } },
+  );
+  await act(async () => answers.get(1)?.(10));
+  rerender({ key: 2 });
+  expect(result.current).toEqual({ status: "ok", data: 10 });
+  await act(async () => answers.get(2)?.(20));
+  expect(result.current).toEqual({ status: "ok", data: 20 });
+});
