@@ -14,6 +14,7 @@ use roead::sarc::{Sarc, SarcWriter};
 use crate::checks::Drop;
 use crate::gifts::{self, GIFTS};
 use crate::known::{Name, actor, field};
+use crate::settings::DungeonKeys;
 use crate::standins::item_pack;
 
 /// Dampe's flow, and the actor his dig shows.
@@ -39,8 +40,8 @@ struct Model {
 }
 
 /// The model `item`'s own actor is drawn with.
-fn model(romfs: &Romfs, item: &str) -> Result<Model> {
-    let pack = item_pack(romfs, item)?;
+fn model(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<Model> {
+    let pack = item_pack(romfs, item, keys)?;
     let param = pack
         .actor_param()?
         .with_context(|| format!("{item} has no actor of its own"))?;
@@ -82,7 +83,12 @@ fn lend(param: &[u8], reference: &str) -> Result<Vec<u8>> {
 
 /// Make the dig show the prize this seed puts there, unless it's the heart
 /// piece.
-pub fn write(romfs: &Romfs, builder: &mut ModBuilder, drops: &HashMap<u64, Drop>) -> Result<()> {
+pub fn write(
+    romfs: &Romfs,
+    builder: &mut ModBuilder,
+    drops: &HashMap<u64, Drop>,
+    keys: DungeonKeys,
+) -> Result<()> {
     let gift = GIFTS
         .iter()
         .find(|g| g.flow == DAMPE)
@@ -91,7 +97,7 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, drops: &HashMap<u64, Drop>
     if item == gift.item {
         return Ok(());
     }
-    let model = model(romfs, item)?;
+    let model = model(romfs, item, keys)?;
     let rel = rel(PIECE);
     let raw = romfs.read(&rel)?;
     let sarc = Sarc::new(&raw).with_context(|| format!("reading {rel}"))?;
@@ -125,7 +131,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-dig-{}", std::process::id()));
         let mut builder = ModBuilder::new(romfs, &dir).unwrap();
         let drops = HashMap::from([(gift.hash(), Drop::from(PRIZE.to_string()))]);
-        write(romfs, &mut builder, &drops).unwrap();
+        write(romfs, &mut builder, &drops, DungeonKeys::Rings).unwrap();
         let files = builder.finish().unwrap();
         let raw = std::fs::read(dir.join("romfs").join(rel(PIECE))).unwrap();
         let data = romfs.dicts().decompress(&rel(PIECE), &raw).unwrap();
@@ -146,7 +152,7 @@ mod tests {
         let (data, files) = written(&romfs);
         assert_eq!(files, [rel(PIECE), romfs.restbl_rel().unwrap()]);
         let sarc = Sarc::new(&data).unwrap();
-        let prize = model(&romfs, PRIZE).unwrap();
+        let prize = model(&romfs, PRIZE, DungeonKeys::Rings).unwrap();
         let raw = romfs.read(&rel(PIECE)).unwrap();
         let (mut now, mut vanilla) = (components(&sarc), components(&Sarc::new(&raw).unwrap()));
         let lent = now.as_mut_map().unwrap().remove(MODEL.get()).unwrap();
@@ -165,7 +171,7 @@ mod tests {
             return;
         };
         for check in crate::checks::all(&romfs).unwrap() {
-            model(&romfs, &check.item).unwrap();
+            model(&romfs, &check.item, DungeonKeys::Rings).unwrap();
         }
     }
 
@@ -176,7 +182,7 @@ mod tests {
         };
         let dir = std::env::temp_dir().join(format!("zootr-dig-vanilla-{}", std::process::id()));
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
-        write(&romfs, &mut builder, &HashMap::new()).unwrap();
+        write(&romfs, &mut builder, &HashMap::new(), DungeonKeys::Rings).unwrap();
         assert_eq!(builder.finish().unwrap().len(), 1);
         std::fs::remove_dir_all(dir).unwrap();
     }

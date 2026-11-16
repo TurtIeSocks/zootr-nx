@@ -135,18 +135,27 @@ pub fn ring(n: usize) -> String {
     format!("Item_Rando_KeyRing{n:02}")
 }
 
+/// The model dungeon `n`'s ring copy shows as `keys` deals it: the ring
+/// of its keys, or with Keysanity its single tinted key.
+fn ring_model(n: usize, keys: DungeonKeys) -> String {
+    match keys {
+        DungeonKeys::Rings => RING_LOOK.name(n),
+        _ => SMALL_LOOK.name(n),
+    }
+}
+
 /// Dungeon `n`'s boss key copy.
 pub fn boss(n: usize) -> String {
     BOSS_LOOK.name(n)
 }
 
 /// The pack a ring or boss key copy is built as, the same as [`write`]
-/// writes it, for a holder that stands in for it. `None` for any other
+/// writes it with `keys`, for a holder that stands in for it. `None` for any other
 /// item.
-pub fn copy_pack(romfs: &Romfs, item: &str) -> Result<Option<ActorPack>> {
+pub fn copy_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<Option<ActorPack>> {
     for n in 1..=DUNGEONS.len() {
         let (template, model) = if item == ring(n) {
-            (SMALL, SMALL_LOOK.name(n))
+            (SMALL, ring_model(n, keys))
         } else if has_boss(n) && item == boss(n) {
             (BOSS, boss(n))
         } else {
@@ -222,15 +231,12 @@ pub fn write(
         let name = small.paint(builder, n, tint)?;
         copy(builder, tables, &chest, &chest_key(n), &name)?;
         copy(builder, tables, &floor, &name, &name)?;
-        match keys {
-            DungeonKeys::Rings => {
-                let model = rings::model(&small.model, *count as usize)?;
-                let ring_model = RING_LOOK.name(n);
-                small.write_as(builder, &ring_model, &model, tint, true)?;
-                copy(builder, tables, &chest, &ring(n), &ring_model)?;
-            }
-            DungeonKeys::Singles => copy(builder, tables, &chest, &ring(n), &name)?,
-            DungeonKeys::Vanilla | DungeonKeys::Start => {}
+        if keys == DungeonKeys::Rings {
+            let model = rings::model(&small.model, *count as usize)?;
+            small.write_as(builder, &ring_model(n, keys), &model, tint, true)?;
+        }
+        if keys.copies() {
+            copy(builder, tables, &chest, &ring(n), &ring_model(n, keys))?;
         }
         if bosses && has_boss(n) {
             let name = boss.paint(builder, n, tint)?;
@@ -559,23 +565,27 @@ mod tests {
     #[test]
     fn a_copy_s_pack_built_in_memory_is_the_one_the_seed_writes() {
         let Some(romfs) = dev_dump() else { return };
-        let dir = std::env::temp_dir().join(format!("zootr-copy-pack-{}", std::process::id()));
-        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
-        let mut tables = Tables::load(&romfs).unwrap();
-        write(&romfs, &mut builder, &mut tables, true, DungeonKeys::Singles).unwrap();
-        builder.finish().unwrap();
-        for copy in [ring(2), boss(2)] {
-            let rel = pack_file(&copy);
-            let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-            let bytes = romfs.dicts().decompress(&rel, &raw).unwrap();
-            let written = ActorPack::from_bytes(&copy, bytes.to_vec()).unwrap();
-            let built = copy_pack(&romfs, &copy).unwrap().unwrap();
-            assert_eq!(built.files(), written.files(), "{copy}");
-            for f in built.files() {
-                assert_eq!(built.raw(&f), written.raw(&f), "{copy}: {f}");
+        for keys in [DungeonKeys::Rings, DungeonKeys::Singles] {
+            let dir = std::env::temp_dir()
+                .join(format!("zootr-copy-pack-{}-{keys:?}", std::process::id()));
+            let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+            let mut tables = Tables::load(&romfs).unwrap();
+            write(&romfs, &mut builder, &mut tables, true, keys).unwrap();
+            builder.finish().unwrap();
+            for copy in [ring(2), boss(2)] {
+                let rel = pack_file(&copy);
+                let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
+                let bytes = romfs.dicts().decompress(&rel, &raw).unwrap();
+                let written = ActorPack::from_bytes(&copy, bytes.to_vec()).unwrap();
+                let built = copy_pack(&romfs, &copy, keys).unwrap().unwrap();
+                assert_eq!(built.files(), written.files(), "{copy} {keys:?}");
+                for f in built.files() {
+                    assert_eq!(built.raw(&f), written.raw(&f), "{copy} {keys:?}: {f}");
+                }
             }
+            let hookshot = copy_pack(&romfs, item::HOOKSHOT, keys).unwrap();
+            assert!(hookshot.is_none());
         }
-        assert!(copy_pack(&romfs, item::HOOKSHOT).unwrap().is_none());
     }
 
     #[test]
