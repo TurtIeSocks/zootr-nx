@@ -3,7 +3,7 @@
 mod cucco;
 mod cutscene;
 mod later;
-mod levels;
+pub(crate) mod levels;
 mod lines;
 mod potion;
 mod rewrite;

@@ -129,24 +129,45 @@ pub fn boss(n: usize) -> String {
     BOSS_LOOK.name(n)
 }
 
-/// What the hook sets as each copy is found: with `bosses` a boss key's
-/// flag, with key rings a ring's counter, full, and with Keysanity one
-/// more on a small key's counter.
-pub fn credits(bosses: bool, keys: DungeonKeys) -> Vec<(String, Credit)> {
-    let hash = |name: String| murmur3(name.as_bytes());
+/// What a copy sets as it's found: a Bool true, an Int to a value, or one
+/// more on an Int.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Sets {
+    Bool(String),
+    Int(String, i32),
+    Add(String, i32),
+}
+
+/// What each copy sets as it's found: with `bosses` a boss key's flag, with
+/// key rings a ring's counter, full, and with Keysanity one more on a small
+/// key's counter.
+pub fn sets(bosses: bool, keys: DungeonKeys) -> Vec<(String, Sets)> {
     let mut out = Vec::new();
     for (i, (dungeon, small, room)) in DUNGEONS.iter().enumerate() {
         if bosses && room.is_some() {
-            out.push((boss(i + 1), Credit::Bool(hash(boss_flag(dungeon)))));
+            out.push((boss(i + 1), Sets::Bool(boss_flag(dungeon))));
         }
-        let counter = hash(small_flag(dungeon));
+        let counter = small_flag(dungeon);
         match keys {
-            DungeonKeys::Rings => out.push((ring(i + 1), Credit::Int(counter, *small))),
-            DungeonKeys::Singles => out.push((ring(i + 1), Credit::Add(counter, 1))),
+            DungeonKeys::Rings => out.push((ring(i + 1), Sets::Int(counter, *small))),
+            DungeonKeys::Singles => out.push((ring(i + 1), Sets::Add(counter, 1))),
             DungeonKeys::Vanilla | DungeonKeys::Start => {}
         }
     }
     out
+}
+
+/// [`sets`] as the hook's table names it.
+pub fn credits(bosses: bool, keys: DungeonKeys) -> Vec<(String, Credit)> {
+    let hash = |name: &str| murmur3(name.as_bytes());
+    let credit = |s: Sets| match s {
+        Sets::Bool(name) => Credit::Bool(hash(&name)),
+        Sets::Int(name, value) => Credit::Int(hash(&name), value),
+        Sets::Add(name, n) => Credit::Add(hash(&name), n),
+    };
+    (sets(bosses, keys).into_iter())
+        .map(|(item, s)| (item, credit(s)))
+        .collect()
 }
 
 /// Writes each dungeon's model and actor copies, the boss key's only with

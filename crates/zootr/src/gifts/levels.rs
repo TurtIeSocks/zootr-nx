@@ -10,7 +10,7 @@ use crate::known::Name;
 use crate::{ammo, progressive};
 
 /// The pouch question every chain asks, as the archery flow asks it.
-pub(super) fn model(flows: &Flows) -> Result<Model> {
+pub(crate) fn model(flows: &Flows) -> Result<Model> {
     let archery = flow::MINIGAME_HORSEBACK_ARCHERY;
     let chart = (flows.0.get(&**archery)).with_context(|| format!("no {archery} flow"))?;
     let at = flows::switch(chart, IN_POUCH)
@@ -63,6 +63,13 @@ pub(super) fn by_level(flow: &mut Flowchart, model: &Model, item: &str) -> Resul
         chain(flow, model, &ladder, at, after.min(next), item)?;
     }
     Ok(())
+}
+
+/// Put a chain in front of the call `at` of `flow`, which gives `item`, so
+/// it gives the level after the highest Link owns.
+pub(crate) fn by_level_at(flow: &mut Flowchart, model: &Model, item: &str, at: u16) -> Result<()> {
+    let (ladder, next) = ladder(item).with_context(|| format!("{item} gives by nothing"))?;
+    chain(flow, model, &ladder, at, next, item)
 }
 
 /// The events of `flow` granting `item`, each with how many levels past
@@ -138,9 +145,14 @@ fn chain(
 
 /// Name `to` wherever `kind` names `from` as its item.
 fn rename(kind: &mut EventKind, from: &str, to: &str) -> Result<()> {
-    let keys: &[&str] = match kind {
-        EventKind::Action { .. } => &[ACTOR],
-        _ => &ITEM_PARAMS.map(|k| k.get()),
+    // A chest's flow passes its item on as `ContentName`, a cow's song as
+    // our own argument.
+    let calls = ITEM_PARAMS.into_iter().chain([flow::CONTENT_NAME]);
+    let keys: Vec<&str> = match kind {
+        EventKind::Action { .. } => vec![ACTOR],
+        _ => (calls.map(|k| k.get()))
+            .chain([crate::cows::ARG_ITEM])
+            .collect(),
     };
     let params = params_mut(kind);
     for key in keys {

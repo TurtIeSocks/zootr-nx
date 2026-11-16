@@ -10,11 +10,11 @@
 use std::collections::HashMap;
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{EventKind, Flowchart, Link, Value};
+use ounce_formats::{EventKind, Flowchart, Value};
 
 use crate::checks::{Drop, ItemCheck};
 use crate::flows::SET_BOOL;
-use crate::flows::{self, GAME_DATA, Rewrites, params_mut, running, set, string};
+use crate::flows::{self, Rewrites, params_mut, running};
 use crate::known::{Name, field, flow};
 use crate::{keys, pickups};
 
@@ -28,7 +28,6 @@ pub const CARRYING: [u64; 3] = [
 ];
 /// The call's argument naming the key's actor.
 const KEY: &Name = flow::OBJ_SMALL_KEY;
-const VALUE: &str = "Value";
 
 /// Whether `check` is a thief's own drop, which a seed with Fortress keys
 /// clears and checks the placed key for instead.
@@ -95,20 +94,7 @@ pub fn give(
                 "{entry} doesn't start with a call"
             );
             rename(flow, call, &m.actor)?;
-            let (actor, action) = flow.action(&set_bool.actor, set_bool.name);
-            let mut params = set_bool.params.clone();
-            set(&mut params, GAME_DATA, string(&flag))?;
-            set(&mut params, VALUE, Value::Bool(vec![true]))?;
-            let EventKind::SubFlow { next, .. } = flow.events[call as usize].kind else {
-                unreachable!("checked above");
-            };
-            let after = flow.push(EventKind::Action {
-                next,
-                actor,
-                action,
-                params,
-            });
-            flow.link(Link::Next(call), Some(after))?;
+            flows::set_after(flow, &set_bool, call, &flag, Value::Bool(vec![true]))?;
         }
         Ok(())
     })
@@ -197,7 +183,7 @@ mod tests {
         };
         assert!(next.is_none());
         assert_eq!(
-            flows::param(params, GAME_DATA),
+            flows::param(params, flows::GAME_DATA),
             Some(&**flag::IS_GET_SMALL_KEY_GERUDO_FORTRESS_SMALL_KEY01)
         );
         let vanilla = flows::load(&romfs, FLOW).unwrap().unwrap();

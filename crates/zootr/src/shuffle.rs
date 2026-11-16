@@ -265,9 +265,11 @@ fn asks(item: &str, progressive: bool) -> bool {
 }
 
 /// Whether `item` asks on `check`. Nothing asks of a gift that gives
-/// [`gifts::by_level`].
+/// [`gifts::by_level`], and a line's level doesn't of a cow, whose song
+/// asks the pouch first.
 fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
-    !gifts::by_level(check) && asks(item, progressive)
+    let cow = cows::is_cow(check) && ammo::swap(item).is_none();
+    !gifts::by_level(check) && !cow && asks(item, progressive)
 }
 
 /// Whether `check` may hold `item`: a gift can't hold one that asks, or
@@ -464,6 +466,17 @@ mod tests {
         }
         let p = shuffle(&checks, 7, &none, &game(false, &[])).unwrap();
         assert!(drops(&checks, &p).is_empty());
+    }
+
+    #[test]
+    fn a_cow_holds_a_line_item_but_not_ammo() {
+        needs_names!();
+        let cow = ItemCheck {
+            holder: cows::HOLDER.into(),
+            ..chest(1, "Item_A")
+        };
+        assert!(allowed(&cow, item::HOOKSHOT, true));
+        assert!(!allowed(&cow, item::BOMB_BUNDLE_SMALL, true));
     }
 
     #[test]
