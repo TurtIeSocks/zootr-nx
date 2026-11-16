@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { commands, type Info } from "@/bindings";
 import { Field } from "@/components/field";
 import { NameField } from "@/components/name-field";
+import { QuestStepPicker } from "@/components/quest-step-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { ValueInput } from "@/components/value-input";
 import { call } from "@/lib/api";
 import { known, listed } from "@/lib/game-options";
+import { type QuestStep, stepOf } from "@/lib/quest-step";
 import { SIDES } from "@/lib/sides";
 import { useLoad } from "@/lib/use-load";
 import { type TestForm, useTestForm } from "@/settings/test-form";
@@ -177,9 +179,6 @@ export function ItemsField() {
  * keeps the rest of the row. */
 const VALUE_WIDTH = "w-40 shrink-0";
 
-/** The saved step of a quest, a GameData enum. */
-const QUEST = "Step_";
-
 /** A GameData value's type, or none for a blank name. */
 const infoOf = async (name: string): Promise<Info | undefined> =>
   name ? (await call(commands.devValue(name))).info : undefined;
@@ -187,14 +186,12 @@ const infoOf = async (name: string): Promise<Info | undefined> =>
 /** Props for {@link RowsField}. */
 interface RowsFieldProps {
   /** The form field it edits, one `NAME=VALUE` a row. */
-  name: "defaults" | "progress" | "goals";
+  name: Rows;
   label: string;
   /** What one row is, for its Add button. */
   noun: string;
   placeholder: string;
   hint: string;
-  /** Rows name a quest and its step, not any GameData value. */
-  quest?: boolean;
 }
 
 /** Rows of `NAME=VALUE`: pick a name from the dump and a value its type
@@ -205,19 +202,15 @@ export function RowsField({
   noun,
   placeholder,
   hint,
-  quest,
 }: RowsFieldProps) {
-  const { form, set, options } = useTestForm();
+  const { options } = useTestForm();
   const [key, setKey] = useState("");
   const [value, setValue] = useState("");
-  const all = listed(options, "names");
-  const names = quest
-    ? all.filter((n) => n.startsWith(QUEST)).map((n) => n.slice(QUEST.length))
-    : all;
+  const names = listed(options, "names");
   const typed = key.trim();
   const whole = typed.includes("=");
   const isKnown = names.includes(typed);
-  const info = useLoad(infoOf, isKnown ? (quest ? QUEST : "") + typed : "");
+  const info = useLoad(infoOf, isKnown ? typed : "");
   const shown = info.status === "ok" ? info.data : undefined;
 
   // A newly read value starts at what a new game holds.
@@ -228,11 +221,7 @@ export function RowsField({
 
   const line = whole ? typed : `${typed}=${value.trim()}`;
   const ok = whole || (!!typed && !!value.trim());
-  const add = () => {
-    if (!ok || form[name].includes(line)) return;
-    set({ [name]: [...form[name], line] } as Partial<TestForm>);
-    setKey("");
-  };
+  const add = useAddRow(name, line, ok, () => setKey(""));
   const id = `test-${name}`;
   return (
     <Field
@@ -241,7 +230,7 @@ export function RowsField({
       hint={hint}
       warn={
         typed && !whole && names.length > 0 && !isKnown
-          ? `The game has no ${quest ? "quest" : "value"} by that name`
+          ? "The game has no value by that name"
           : undefined
       }
     >
@@ -283,14 +272,87 @@ export function RowsField({
           Add
         </Button>
       </div>
-      <Chips
-        items={form[name]}
-        onRemove={(gone) =>
-          set({
-            [name]: form[name].filter((l) => l !== gone),
-          } as Partial<TestForm>)
-        }
-      />
+      <RowChips name={name} />
     </Field>
+  );
+}
+
+/** Quest steps, run in order: pick a quest from the game's and one of its
+ * steps, then add it. A whole `QUEST=STEP` typed as the name adds as is. */
+export function QuestStepsField() {
+  const { options } = useTestForm();
+  const [pick, setPick] = useState<QuestStep>({ challenge: "", step: "" });
+  const quests = options.status === "ok" ? options.data.quests : {};
+  const typed = pick.challenge.trim();
+  const whole = typed.includes("=");
+  const step = stepOf(quests, pick);
+  const line = whole ? typed : `${typed}=${step}`;
+  const add = useAddRow("progress", line, whole || !!step, () =>
+    setPick({ challenge: "", step: "" }),
+  );
+  const label = "Quest steps";
+  const known = Object.keys(quests);
+  return (
+    <Field
+      id="test-progress"
+      label={label}
+      hint="Run in order. A new game runs them in its opening and Apply runs them live. The names are checked when you save"
+      warn={
+        typed && !whole && known.length > 0 && !quests[typed]
+          ? "The game has no quest by that name"
+          : undefined
+      }
+    >
+      <QuestStepPicker
+        id="test-progress"
+        label={label}
+        stepLabel={`${label} value`}
+        placeholder="SageOf"
+        quests={quests}
+        value={pick}
+        onChange={setPick}
+        onEnter={add}
+        stepClassName={VALUE_WIDTH}
+      >
+        <Button
+          variant="secondary"
+          aria-label="Add quest step"
+          onClick={add}
+          disabled={!(whole || step)}
+        >
+          Add
+        </Button>
+      </QuestStepPicker>
+      <RowChips name="progress" />
+    </Field>
+  );
+}
+
+/** The form fields made of `NAME=VALUE` rows. */
+type Rows = "defaults" | "progress" | "goals";
+
+/** Adds `line` to the rows of `name` once it's `ok` and not there yet,
+ * then runs `done`. */
+function useAddRow(name: Rows, line: string, ok: boolean, done: () => void) {
+  const { form, set } = useTestForm();
+  return () => {
+    if (!ok || form[name].includes(line)) return;
+    set({ [name]: [...form[name], line] } as Partial<TestForm>);
+    done();
+  };
+}
+
+/** The rows of `name`, each removable. */
+function RowChips({ name }: { name: Rows }) {
+  const { form, set } = useTestForm();
+  return (
+    <Chips
+      items={form[name]}
+      onRemove={(gone) =>
+        set({
+          [name]: form[name].filter((l) => l !== gone),
+        } as Partial<TestForm>)
+      }
+    />
   );
 }

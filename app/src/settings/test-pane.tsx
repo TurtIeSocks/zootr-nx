@@ -18,6 +18,7 @@ import { useCopied } from "@/lib/use-copied";
 import {
   ItemsField,
   NearField,
+  QuestStepsField,
   RowsField,
   SpawnField,
   TextInput,
@@ -67,14 +68,7 @@ export function TestPane() {
               placeholder="Name=value"
               hint="GameData values a new game starts with, on top of the presets"
             />
-            <RowsField
-              name="progress"
-              label="Quest steps"
-              noun="quest step"
-              placeholder="SageOf"
-              hint="Run in order. A new game runs them in its opening and Apply runs them live. The names are checked when you save"
-              quest
-            />
+            <QuestStepsField />
             <RowsField
               name="goals"
               label="Goals"

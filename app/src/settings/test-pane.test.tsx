@@ -7,7 +7,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import type { GameOptions, Info } from "@/bindings";
+import type { GameOptions } from "@/bindings";
 import { type FullConfig, full, fullTest, NO_TEST } from "@/lib/config";
 import { TestPane } from "@/settings/test-pane";
 import { useConfig } from "@/stores/config";
@@ -15,14 +15,6 @@ import { useConfig } from "@/stores/config";
 const setConfig = vi.fn((_c: FullConfig) =>
   Promise.resolve({ status: "ok", data: null }),
 );
-
-/** A quest's saved step, as `dev_value` reads it. */
-const QUEST: Info = {
-  kind: "Enum",
-  input: "choice",
-  choices: ["Step01", "Step02"],
-  default: "Step01",
-};
 
 /** A scan that found nothing. */
 const NONE: GameOptions = {
@@ -46,21 +38,19 @@ vi.mock("@/bindings", () => ({
             places: [],
             spawns: ["FakeGrave_Child/Spot_A"],
             items: ["Item_A", "Item_B"],
-            names: ["IsGet.Item_B", "Step_FakeSage"],
+            names: ["IsGet.Item_B"],
+            quests: { FakeSage: ["Step01", "Step02"] },
           },
     }),
-    devValue: async (name: string) => ({
+    devValue: async () => ({
       status: "ok",
       data: {
-        info:
-          name === "Step_FakeSage"
-            ? QUEST
-            : {
-                kind: "Bool",
-                input: "choice",
-                choices: ["true", "false"],
-                default: "false",
-              },
+        info: {
+          kind: "Bool",
+          input: "choice",
+          choices: ["true", "false"],
+          default: "false",
+        },
         game: false,
         live: null,
       },
