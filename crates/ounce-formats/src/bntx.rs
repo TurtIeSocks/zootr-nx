@@ -5,6 +5,7 @@ use anyhow::{Context, Result, bail, ensure};
 use texture2ddecoder as tex;
 
 use crate::blocks::{self, Rgba};
+use crate::par::par_map;
 
 pub struct Texture {
     pub name: String,
@@ -160,7 +161,11 @@ fn first(data: &[u8]) -> Result<usize> {
 /// all takes keeps its bytes. The layout stays byte for byte: only blocks
 /// change. Each ASTC block is the closest of one colour or two. BC4
 /// takes the red channel.
-pub fn redraw(data: &[u8], rgba: &[u8], keep: impl Fn(usize, usize) -> bool) -> Result<Vec<u8>> {
+pub fn redraw(
+    data: &[u8],
+    rgba: &[u8],
+    keep: impl Fn(usize, usize) -> bool + Sync,
+) -> Result<Vec<u8>> {
     let info = Info::read(data, first(data)?)?;
     let (width, height) = (info.width, info.height);
     ensure!(
@@ -202,33 +207,38 @@ pub fn redraw(data: &[u8], rgba: &[u8], keep: impl Fn(usize, usize) -> bool) -> 
         let (cols, rows) = (w.div_ceil(bw), h.div_ceil(bh));
         let row_bytes = cols * unit;
         let gobs_wide = row_bytes.div_ceil(64);
-        for by in 0..rows {
-            for bx in 0..cols {
-                // The first level's texels the block covers.
-                let (x0, y0) = ((bx * bw) << i, (by * bh) << i);
-                let (x1, y1) = (((bx + 1) * bw) << i, ((by + 1) * bh) << i);
-                let kept = (y0..y1.min(height)).all(|y| (x0..x1.min(width)).all(|x| keep(x, y)));
-                if kept {
-                    continue;
-                }
-                let texels: Vec<Rgba> = (0..bh)
-                    .flat_map(|y| (0..bw).map(move |x| (x, y)))
-                    .map(|(x, y)| {
-                        let (x, y) = ((bx * bw + x).min(w - 1), (by * bh + y).min(h - 1));
-                        image[y * w + x]
-                    })
-                    .collect();
-                let encoded: Vec<u8> = match bc4 {
-                    true => {
-                        let red: [u8; 16] = std::array::from_fn(|t| texels[t][0]);
-                        blocks::bc4(&red).to_vec()
-                    }
-                    false => blocks::astc(&texels, bw, bh).to_vec(),
-                };
-                let (x, y) = (bx * unit, by);
-                let to = at + gob_address(x, y, gobs_wide, gobs) + gob_offset(x, y);
-                out[to..to + unit].copy_from_slice(&encoded);
+        // Each block encodes on its own, so they encode at once.
+        let at_blocks: Vec<(usize, usize)> = (0..rows)
+            .flat_map(|by| (0..cols).map(move |bx| (bx, by)))
+            .collect();
+        let encoded = par_map(&at_blocks, |&(bx, by)| {
+            // The first level's texels the block covers.
+            let (x0, y0) = ((bx * bw) << i, (by * bh) << i);
+            let (x1, y1) = (((bx + 1) * bw) << i, ((by + 1) * bh) << i);
+            let kept = (y0..y1.min(height)).all(|y| (x0..x1.min(width)).all(|x| keep(x, y)));
+            if kept {
+                return None;
             }
+            let texels: Vec<Rgba> = (0..bh)
+                .flat_map(|y| (0..bw).map(move |x| (x, y)))
+                .map(|(x, y)| {
+                    let (x, y) = ((bx * bw + x).min(w - 1), (by * bh + y).min(h - 1));
+                    image[y * w + x]
+                })
+                .collect();
+            Some(match bc4 {
+                true => {
+                    let red: [u8; 16] = std::array::from_fn(|t| texels[t][0]);
+                    blocks::bc4(&red).to_vec()
+                }
+                false => blocks::astc(&texels, bw, bh).to_vec(),
+            })
+        });
+        for (&(bx, by), encoded) in at_blocks.iter().zip(encoded) {
+            let Some(encoded) = encoded else { continue };
+            let (x, y) = (bx * unit, by);
+            let to = at + gob_address(x, y, gobs_wide, gobs) + gob_offset(x, y);
+            out[to..to + unit].copy_from_slice(&encoded);
         }
     }
     Ok(out)
