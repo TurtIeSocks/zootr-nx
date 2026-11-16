@@ -536,7 +536,7 @@ mod tests {
         needs_names!();
         let ([(hook, _), (long, _)], none) = (line(0), Fixed::new());
         let checks = [chest(1, hook), chest(2, long), chest(3, "Item_B")];
-        let [(silver, _), (gold, _)] = line(1);
+        let [(silver, _), (gold, _)] = line(3);
         let fixed = Fixed::from([(3, gold.into())]);
         for vanilla in [false, true] {
             let new_game = NewGame {
