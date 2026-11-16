@@ -10,7 +10,7 @@ use std::fmt;
 use anyhow::Result;
 use ounce_formats::{Byml, BymlDoc, Romfs, files_with_suffix};
 
-use crate::checks::{self, actors, banc_files, load_banc, str_field};
+use crate::checks::{self, actors, bancs, str_field};
 use crate::known::{Name, field};
 
 const EXIT_ACTOR: &Name = field::FIELD_AND_DUNGEON_ENTRANCE_EVENT_REQUEST_ACTOR;
@@ -106,9 +106,9 @@ pub struct Exit {
 /// entrances are several trigger boxes), so duplicates collapse.
 pub fn exits(romfs: &Romfs) -> Result<BTreeSet<Exit>> {
     let mut out = BTreeSet::new();
-    for file in banc_files(romfs)? {
+    for (file, doc) in bancs(romfs)? {
+        let doc = doc?;
         let (from, eras) = node_of(&file);
-        let doc = load_banc(romfs, &file)?;
         for actor in actors(&doc.root)? {
             if str_field(actor, checks::GYAML) != Some(EXIT_ACTOR) {
                 continue;

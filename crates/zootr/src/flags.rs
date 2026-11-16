@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use anyhow::Result;
 use ounce_formats::{Byml, EventKind, Flowchart, Romfs, files_with_suffix, murmur3};
 
-use crate::checks::{actors, banc_files, load_banc};
+use crate::checks::{actors, bancs};
 use crate::events::Flows;
 use crate::flows;
 use crate::gamedata::GameData;
@@ -76,8 +76,8 @@ impl Survey {
     pub fn load(romfs: &Romfs, flows: &Flows) -> Result<Self> {
         let mut gamedata = GameData::load(romfs)?;
         let mut presence = BTreeMap::<String, Usage>::new();
-        for file in banc_files(romfs)? {
-            let doc = load_banc(romfs, &file)?;
+        for (file, doc) in bancs(romfs)? {
+            let doc = doc?;
             let area = file.split('/').nth(1).unwrap_or("?").to_owned();
             for actor in actors(&doc.root)? {
                 learn_all(&mut gamedata, actor);

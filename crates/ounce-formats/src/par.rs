@@ -34,6 +34,25 @@ pub fn par_map<T: Sync, R: Send>(items: &[T], f: impl Fn(&T) -> R + Sync) -> Vec
     done.into_iter().map(|(_, r)| r).collect()
 }
 
+/// [`par_map`] over a few of `items` per core at a time, each item with
+/// its result, so only one batch of results is held at once: for results
+/// much bigger than their items, like parsed files.
+pub fn par_batches<T: Sync, R: Send>(
+    items: Vec<T>,
+    f: impl Fn(&T) -> R + Sync,
+) -> impl Iterator<Item = (T, R)> {
+    let batch = 2 * threads();
+    let mut items = items.into_iter();
+    std::iter::from_fn(move || {
+        let chunk: Vec<T> = items.by_ref().take(batch).collect();
+        (!chunk.is_empty()).then(|| {
+            let done = par_map(&chunk, &f);
+            chunk.into_iter().zip(done)
+        })
+    })
+    .flatten()
+}
+
 fn threads() -> usize {
     std::thread::available_parallelism().map_or(1, NonZero::get)
 }
@@ -49,6 +68,13 @@ mod tests {
             par_map(&items, |n| n * 2),
             (0..1000).map(|n| n * 2).collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn batches_pair_each_item_with_its_result_in_order() {
+        let items: Vec<u32> = (0..1000).collect();
+        let got: Vec<(u32, u32)> = par_batches(items, |n| n * 2).collect();
+        assert_eq!(got, (0..1000).map(|n| (n, n * 2)).collect::<Vec<_>>());
     }
 
     #[test]

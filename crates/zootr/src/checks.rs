@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 
 use anyhow::{Context, Result, bail, ensure};
-use ounce_formats::{Byml, BymlDoc, Romfs, files_with_suffix};
+use ounce_formats::{Byml, BymlDoc, Romfs, files_with_suffix, par_batches};
 
 use crate::known::{Name, actor, field};
 use crate::world::{Presence, presence_of};
@@ -67,6 +67,22 @@ pub fn load_banc(romfs: &Romfs, rel: &str) -> Result<BymlDoc> {
     BymlDoc::parse(&romfs.read(rel)?).with_context(|| format!("parsing {rel}"))
 }
 
+/// Every Banc file with its path and its doc, read and parsed a batch at a
+/// time on every core.
+pub fn bancs(romfs: &Romfs) -> Result<impl Iterator<Item = (String, Result<BymlDoc>)> + '_> {
+    Ok(load_bancs(romfs, banc_files(romfs)?))
+}
+
+/// Each of `files` with its doc, in order, read and parsed a batch at a
+/// time on every core. A parsed doc is many times its file, so only a
+/// batch is held at once.
+pub fn load_bancs(
+    romfs: &Romfs,
+    files: Vec<String>,
+) -> impl Iterator<Item = (String, Result<BymlDoc>)> + '_ {
+    par_batches(files, |rel| load_banc(romfs, rel))
+}
+
 pub fn actors(root: &Byml) -> Result<&[Byml]> {
     match root.as_map()?.get("Actors") {
         Some(actors) => Ok(actors.as_array()?),
@@ -108,8 +124,8 @@ pub fn flat(a: [f32; 3], b: [f32; 3]) -> f32 {
 
 pub fn scan(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
     let mut out = Vec::new();
-    for file in banc_files(romfs)? {
-        let doc = load_banc(romfs, &file)?;
+    for (file, doc) in bancs(romfs)? {
+        let doc = doc?;
         for actor in actors(&doc.root)? {
             let Some(dynamic) = actor.as_map()?.get("Dynamic") else {
                 continue;

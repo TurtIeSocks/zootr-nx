@@ -15,7 +15,7 @@ use anyhow::{Context, Result};
 use ounce_formats::ainb::{Graph, Input, Node, NodeKind, Value};
 use ounce_formats::{Byml, Romfs};
 
-use crate::checks::{GYAML, actors, banc_files, hash_of, load_banc, str_field};
+use crate::checks::{GYAML, actors, bancs, hash_of, str_field};
 use crate::known::{Name, actor, field, flag};
 
 const LOGIC: &str = "Logic";
@@ -333,8 +333,8 @@ impl World {
             gyamls: HashMap::new(),
             setters: HashMap::new(),
         };
-        for rel in banc_files(romfs)? {
-            let doc = load_banc(romfs, &rel)?;
+        for (rel, doc) in bancs(romfs)? {
+            let doc = doc?;
             for a in actors(&doc.root)? {
                 if let (Some(hash), Some(gyaml)) = (hash_of(a), str_field(a, GYAML)) {
                     world.gyamls.entry(hash).or_insert_with(|| gyaml.to_owned());
