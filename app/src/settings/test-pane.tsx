@@ -1,4 +1,4 @@
-import { Loader2, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useState } from "react";
 import { commands } from "@/bindings";
 import { InlineError } from "@/components/callout";
@@ -8,10 +8,11 @@ import { RequestError } from "@/components/request-error";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Input } from "@/components/ui/input";
+import { UnsavedBar } from "@/components/unsaved-bar";
 import { call, same } from "@/lib/api";
 import { fullTest, NO_TEST, testOn } from "@/lib/config";
 import { useGameOptions } from "@/lib/game-options";
-import { useRequest, useRequestState } from "@/lib/request";
+import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
 import { useCopied } from "@/lib/use-copied";
 import {
@@ -48,6 +49,7 @@ export function TestPane() {
         <PageHeader
           title="Test setup"
           description="Generate starts every new game here, holding these items, until you clear it. Seeds built with it show a test badge in the history."
+          actions={<SetupActions />}
         />
         <InlineError
           error={options.status === "error" ? options.error : undefined}
@@ -94,7 +96,6 @@ export function TestPane() {
           </div>
         </Card>
         <SaveBar />
-        <RequestError />
       </RequestProvider>
     </TestFormContext>
   );
@@ -186,13 +187,13 @@ function SavedSetups() {
   );
 }
 
-/** Save, Clear, and Copy as CLI once what's shown is saved. */
-function SaveBar() {
+/** Clear, and Copy as CLI once what's shown is saved. Both go through the
+ * pane's request, so a failure shows with a failed Save. */
+function SetupActions() {
   const [current] = useConfig.usePath("config.test");
-  const { busy } = useRequest();
+  const { busy, run } = useRequest();
   const store = useStore();
   const { form, set } = useTestForm();
-  const copy = useRequestState();
   const { copied, flash } = useCopied();
   const unchanged = same(fromForm(form), current);
   const clear = () => {
@@ -202,42 +203,52 @@ function SaveBar() {
 
   return (
     <>
-      <div className="flex gap-2">
-        <Button
-          onClick={() => store({ test: fromForm(form) })}
-          disabled={busy || unchanged}
-        >
-          {busy && <Loader2 className="animate-spin" />}
-          Save
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={clear}
-          disabled={busy || !testOn(current)}
-        >
-          Clear
-        </Button>
-        <Button
-          variant="ghost"
-          className="ml-auto"
-          disabled={!unchanged || copy.busy}
-          title={
-            unchanged
-              ? "The zootr shuffle command for your settings and this setup"
-              : "Save first"
-          }
-          onClick={() =>
-            copy.run(async () => {
-              const line = await call(commands.shuffleCommand());
-              await navigator.clipboard.writeText(line);
-              flash("command");
-            })
-          }
-        >
-          {copied ? "Copied" : "Copy as CLI"}
-        </Button>
-      </div>
-      <InlineError error={copy.error} />
+      <Button
+        variant="secondary"
+        onClick={clear}
+        disabled={busy || !testOn(current)}
+      >
+        Clear
+      </Button>
+      <Button
+        variant="ghost"
+        disabled={!unchanged || busy}
+        title={
+          unchanged
+            ? "The zootr shuffle command for your settings and this setup"
+            : "Save first"
+        }
+        onClick={() =>
+          run(async () => {
+            const line = await call(commands.shuffleCommand());
+            await navigator.clipboard.writeText(line);
+            flash("command");
+          })
+        }
+      >
+        {copied ? "Copied" : "Copy as CLI"}
+      </Button>
     </>
+  );
+}
+
+/** Floats while the form differs from the saved setup, with Discard and
+ * Save. Otherwise a failed Clear or Copy shows where it stood. */
+function SaveBar() {
+  const [current] = useConfig.usePath("config.test");
+  const { busy, error } = useRequest();
+  const store = useStore();
+  const { form, set } = useTestForm();
+  if (same(fromForm(form), current)) return <RequestError />;
+
+  return (
+    <UnsavedBar
+      message="Unsaved changes to the test setup"
+      error={error}
+      busy={busy}
+      saveLabel="Save setup"
+      onDiscard={() => set(toForm(current))}
+      onSave={() => store({ test: fromForm(form) })}
+    />
   );
 }

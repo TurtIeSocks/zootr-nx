@@ -101,7 +101,7 @@ test("saves a spawn, known items, flags and goals as the test setup", async () =
   await waitFor(() =>
     expect(screen.getByPlaceholderText("an item's name")).toBeTruthy(),
   );
-  expect(button("Save").disabled).toBe(true);
+  expect(screen.queryByRole("button", { name: "Save setup" })).toBeNull();
   type("Spawn", "FakeGrave_Child/Spot_A");
   type("Near", " Npc_A ");
   fireEvent.click(button("Back"));
@@ -116,7 +116,7 @@ test("saves a spawn, known items, flags and goals as the test setup", async () =
   add("Quest steps", "quest step", "FakeCastle=Step02");
   add("Goals", "goal", "C=true");
   type("Expect", " a lens ");
-  fireEvent.click(button("Save"));
+  fireEvent.click(button("Save setup"));
   expect(onChange).toHaveBeenCalledWith({
     ...full({}),
     test: {
@@ -133,12 +133,34 @@ test("saves a spawn, known items, flags and goals as the test setup", async () =
   });
 });
 
+test("the bar floats only while the form differs, and Discard puts the saved setup back", async () => {
+  show(full({ test: { give: ["Item_B"] } }));
+  expect(screen.queryByText("Unsaved changes to the test setup")).toBeNull();
+  type("Spawn", "FakeGrave_Child/Spot_A");
+  expect(screen.getByText("Unsaved changes to the test setup")).toBeTruthy();
+  type("Spawn", "");
+  expect(screen.queryByText("Unsaved changes to the test setup")).toBeNull();
+  fireEvent.click(button("Remove Item_B"));
+  fireEvent.click(button("Discard"));
+  expect(screen.getByText("Item_B")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Discard" })).toBeNull();
+});
+
+test("the bar goes once the setup is saved", async () => {
+  show();
+  type("Spawn", "FakeGrave_Child/Spot_A");
+  fireEvent.click(button("Save setup"));
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: "Save setup" })).toBeNull(),
+  );
+});
+
 test("quest steps alone make a setup that clears and saves", async () => {
   const config = full({ test: { progress: ["FakeSage=Step02"] } });
   const onChange = show(config);
   fireEvent.click(button("Remove FakeSage=Step02"));
   add("Quest steps", "quest step", "FakeCastle=Step02");
-  fireEvent.click(button("Save"));
+  fireEvent.click(button("Save setup"));
   expect(onChange).toHaveBeenLastCalledWith({
     ...config,
     test: { ...config.test, progress: ["FakeCastle=Step02"] },
