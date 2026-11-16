@@ -296,6 +296,34 @@ fn burns(pack: &ActorPack, param: &BymlMap) -> Result<bool> {
 
 /// The initial value of a bool on the actor's blackboard, if it has one.
 fn blackboard_bool(pack: &ActorPack, param: &BymlMap, key: &str) -> Result<Option<bool>> {
+    let array = field::BLACKBOARD_PARAM_BOOL_ARRAY;
+    let value = blackboard(pack, param, array, field::INIT_VAL, key)?;
+    Ok(value.and_then(|v| v.as_bool().ok()))
+}
+
+/// The initial value of a string on actor `gyaml`'s blackboard, if it has
+/// one.
+pub(crate) fn blackboard_string(romfs: &Romfs, gyaml: &str, key: &str) -> Result<Option<String>> {
+    let pack = ActorPack::load(romfs, gyaml)?;
+    let Some(param) = pack.actor_param()? else {
+        return Ok(None);
+    };
+    let array = field::BLACKBOARD_PARAM_STRING_ARRAY;
+    let value = blackboard(&pack, &param, array, field::INIT_VAL_CONVERTED, key)?;
+    Ok(value.and_then(|v| v.as_string().ok().map(|s| s.to_string())))
+}
+
+/// The initial value `init` of `key` in the `array` of the actor's
+/// blackboard tables, if it has one. The first table naming it wins: an
+/// actor's own table comes before the ones it shares (a big chest's before
+/// the small chest's).
+fn blackboard(
+    pack: &ActorPack,
+    param: &BymlMap,
+    array: &Name,
+    init: &Name,
+    key: &str,
+) -> Result<Option<Byml>> {
     let Some(info) = follow(pack, param, field::BLACKBOARD_REF)? else {
         return Ok(None);
     };
@@ -310,12 +338,14 @@ fn blackboard_bool(pack: &ActorPack, param: &BymlMap, key: &str) -> Result<Optio
         let Some(table) = pack.resolve(table)? else {
             continue;
         };
-        let bools = table
-            .get(&**field::BLACKBOARD_PARAM_BOOL_ARRAY)
-            .and_then(|b| b.as_array().ok());
-        for entry in bools.into_iter().flatten().filter_map(|e| e.as_map().ok()) {
+        let entries = table.get(&**array).and_then(|b| b.as_array().ok());
+        for entry in entries
+            .into_iter()
+            .flatten()
+            .filter_map(|e| e.as_map().ok())
+        {
             if string(entry, "BBKey") == Some(key) {
-                return Ok(entry.get(&**field::INIT_VAL).and_then(|v| v.as_bool().ok()));
+                return Ok(entry.get(&**init).cloned());
             }
         }
     }
