@@ -96,11 +96,13 @@ pub fn write(
     let labels = name_labels(romfs, items.chain(hints.iter().map(|h| h.item.as_str())))?;
     for rel in archives(romfs)? {
         let mut data = romfs.read(&rel)?;
-        for l in &lines {
-            data = language(&data, &rel, l, &labels)?.0;
-        }
+        // Copies first: a line names its item from the item text, which
+        // holds a key copy's name only once its copy is in.
         for c in &copies {
             data = copied(&data, &rel, c)?;
+        }
+        for l in &lines {
+            data = language(&data, &rel, l, &labels)?.0;
         }
         if !hints.is_empty() {
             data = hints::language(&data, &rel, hints, &labels)?;
@@ -377,6 +379,40 @@ mod tests {
             line(&new, actor::OBJ_HEART_SHOP_CAPTION),
             line(&old, actor::OBJ_HEART_SHOP_CAPTION)
         );
+    }
+
+    #[test]
+    fn a_key_copy_at_a_scrub_is_named_by_its_dungeon() {
+        let Some(romfs) = dev_dump() else { return };
+        let dir = std::env::temp_dir().join(format!("zootr-text-copy-{}", std::process::id()));
+        let forest = crate::keys::DUNGEONS
+            .iter()
+            .position(|d| d.0 == crate::known::flag::FOREST_TEMPLE)
+            .unwrap();
+        let copy = crate::key_tints::boss(forest + 1);
+        let drops = HashMap::from([(SCRUBS[0].hash(), Drop::from(copy.clone()))]);
+        let new_game = NewGame {
+            scrubs: true,
+            keys: crate::settings::DungeonKeys::Singles,
+            ..Default::default()
+        };
+        crate::generate::write_mod(&romfs, &dir, &drops, &new_game, &[]).unwrap();
+        let lines = scrubs::lines(&drops);
+        let (label, _) = lines.new.iter().find(|(_, i)| *i == copy).unwrap();
+        let rel = archives(&romfs)
+            .unwrap()
+            .into_iter()
+            .find(|r| r.contains("USen"))
+            .unwrap();
+        let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
+        let data = romfs.dicts().decompress(&rel, &raw).unwrap();
+        let sarc = Sarc::new(&data).unwrap();
+        let path = format!("{}.msbt", lines.file);
+        let msbt = Msbt::parse(sarc.get_data(&path).unwrap()).unwrap();
+        let (text, _) = split(&msbt.get(label).unwrap().unwrap());
+        std::fs::remove_dir_all(dir).unwrap();
+        // The copy's own name, not the line naming no item.
+        assert!(text.contains("Forest Temple"), "{text}");
     }
 
     #[test]
