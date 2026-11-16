@@ -327,7 +327,7 @@ mod tests {
                     continue;
                 }
                 let chest = p.check.holder.starts_with("Obj_TBox_");
-                assert!(chest || gifts::of(p.check).is_some(), "{}", p.item);
+                assert!(chest || gifts::is_gift(p.check), "{}", p.item);
                 let ring = (1..=keys::DUNGEONS.len()).find(|&n| key_tints::ring(n) == p.item);
                 if let Some(n) = ring {
                     assert_ne!(keys::dungeon_of(&p.check.file), Some(n), "{}", p.item);
