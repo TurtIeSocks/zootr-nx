@@ -9,7 +9,7 @@ use serde::Serialize;
 use specta::Type;
 use tauri::{AppHandle, Manager, State};
 use tauri_specta::{Event as _, collect_commands, collect_events};
-use zootr::config::{Config, Target};
+use zootr::config::Config;
 use zootr::gamedata::GameData;
 use zootr::generate::plando::PlandoOptions;
 use zootr::generate::{self, Extras, Report, RoundEvent, Spot, Start};
@@ -23,6 +23,7 @@ use zootr::share;
 use zootr::tracker::{self, Row, Tracker};
 
 mod dev_panel;
+mod targets;
 mod ui;
 
 /// Where the bindings are written, from this crate's folder.
@@ -367,26 +368,6 @@ fn play(target: String) -> Res<()> {
     };
     let args = t.launch_args(config.game.as_deref()).map_err(text)?;
     platform::open_app(&t.app, &args).map_err(|_| format!("Couldn't open {}", t.app.display()))
-}
-
-/// A shared preset as a new target, named so no saved target has its name.
-#[tauri::command]
-#[specta::specta]
-fn import_target(text: String) -> Res<Target> {
-    let mut target = Target::import(&text).map_err(crate::text)?;
-    target.name = target.unique_name(&Config::load().map_err(crate::text)?.targets);
-    Ok(target)
-}
-
-/// A saved target's preset JSON, to share.
-#[tauri::command]
-#[specta::specta]
-fn export_target(name: String) -> Res<String> {
-    let config = Config::load().map_err(text)?;
-    match config.targets.iter().find(|t| t.name == name) {
-        Some(t) => Ok(t.export()),
-        None => Err(format!("No target named {name}")),
-    }
 }
 
 /// Every Live tab event, to whichever page is listening.
@@ -751,8 +732,10 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             clear_history,
             spoiler,
             play,
-            import_target,
-            export_target,
+            targets::import_target,
+            targets::export_target,
+            targets::save_target,
+            targets::read_target_file,
             shuffle_command,
             plando_options,
             save_options,

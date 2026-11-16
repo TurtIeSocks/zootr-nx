@@ -1,4 +1,5 @@
-import { Check, ClipboardCopy, Plus, Trash2 } from "lucide-react";
+import { save as pickFile } from "@tauri-apps/plugin-dialog";
+import { Check, ClipboardCopy, Download, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { commands } from "@/bindings";
 import { InlineError } from "@/components/callout";
@@ -36,19 +37,13 @@ import { saveConfig, useConfig } from "@/stores/config";
 export function TargetsPane() {
   const [targets] = useConfig.usePath("config.targets");
   return (
-    <>
-      <PageHeader
-        title="Targets"
-        description="A target is an app that runs the game with a mod folder. Install writes the seed to every target."
-      />
-      <RequestProvider key={JSON.stringify(targets)}>
-        <TargetsForm />
-      </RequestProvider>
-    </>
+    <RequestProvider key={JSON.stringify(targets)}>
+      <TargetsForm />
+    </RequestProvider>
   );
 }
 
-/** The drafts, one card each, with Add and Import under them, and a bar
+/** The drafts, one card each, with Add and Import in the header, and a bar
  * with Save floating at the foot while they differ from the saved targets.
  * Copying a target and saving them all share the request, one at a time. */
 function TargetsForm() {
@@ -76,6 +71,23 @@ function TargetsForm() {
 
   return (
     <>
+      <PageHeader
+        title="Targets"
+        description="A target is an app that runs the game with a mod folder. Install writes the seed to every target."
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setDrafts((ds) => [...ds, BLANK])}
+            >
+              <Plus /> Add a target
+            </Button>
+            <ImportTargetDialog
+              onImport={(t) => setDrafts((ds) => withTarget(ds, t))}
+            />
+          </>
+        }
+      />
       {drafts.map((d, i) => (
         <TargetCard
           // biome-ignore lint/suspicious/noArrayIndexKey: drafts have no stable id until saved, and only grow at the end
@@ -90,17 +102,6 @@ function TargetsForm() {
           onRemove={() => setDrafts((ds) => ds.filter((_, j) => j !== i))}
         />
       ))}
-      <div className="flex gap-2">
-        <Button
-          variant="secondary"
-          onClick={() => setDrafts((ds) => [...ds, BLANK])}
-        >
-          <Plus /> Add a target
-        </Button>
-        <ImportTargetDialog
-          onImport={(t) => setDrafts((ds) => withTarget(ds, t))}
-        />
-      </div>
       {isEdited(targets, drafts) && (
         <FloatingBar
           message={
@@ -139,7 +140,7 @@ interface TargetCardProps {
   onRemove: () => void;
 }
 
-/** One target's fields, with Copy once it's saved, and Remove. */
+/** One target's fields, with Copy and Download once it's saved, and Remove. */
 function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
   const [targets] = useConfig.usePath("config.targets");
   const { run } = useRequest();
@@ -153,6 +154,15 @@ function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
       );
       flash("target");
     });
+  const download = () =>
+    run(async () => {
+      const file = await pickFile({
+        defaultPath: `${name}.json`,
+        filters: [{ name: "Target", extensions: ["json"] }],
+      });
+      if (file) await call(commands.saveTarget(name, file));
+    });
+  const unsaved = "Save this target to share it";
 
   return (
     <Card
@@ -162,17 +172,22 @@ function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
           <TipButton
             label="Copy"
             tip={
-              !saved
-                ? "Save this target to copy it"
-                : copied
-                  ? "Copied"
-                  : "Copy this target to share"
+              !saved ? unsaved : copied ? "Copied" : "Copy this target to share"
             }
             variant="ghost"
             disabled={!saved}
             onClick={copy}
           >
             {copied ? <Check /> : <ClipboardCopy />}
+          </TipButton>
+          <TipButton
+            label="Download"
+            tip={saved ? "Save this target to a file to share" : unsaved}
+            variant="ghost"
+            disabled={!saved}
+            onClick={download}
+          >
+            <Download />
           </TipButton>
           <TipButton
             label="Remove"

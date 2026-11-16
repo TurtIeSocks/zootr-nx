@@ -30,6 +30,10 @@ export const commands = {
 	importTarget: (text: string) => typedError<Target, string>(__TAURI_INVOKE("import_target", { text })),
 	/**  A saved target's preset JSON, to share. */
 	exportTarget: (name: string) => typedError<string, string>(__TAURI_INVOKE("export_target", { name })),
+	/**  A saved target's preset JSON, written to `file` to share. */
+	saveTarget: (name: string, file: string) => typedError<null, string>(__TAURI_INVOKE("save_target", { name, file })),
+	/**  A shared target's file, read for Import to show before it adds it. */
+	readTargetFile: (file: string) => typedError<string, string>(__TAURI_INVOKE("read_target_file", { file })),
 	/**
 	 *  The `zootr shuffle` command that Generate stands for, with the current
 	 *  settings and test setup.

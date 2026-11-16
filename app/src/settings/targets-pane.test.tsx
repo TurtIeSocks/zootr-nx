@@ -24,6 +24,21 @@ const exportTarget = vi.fn((name: string) =>
   Promise.resolve({ status: "ok", data: `preset of ${name}` }),
 );
 
+const saveTarget = vi.fn((_name: string, _file: string) =>
+  Promise.resolve({ status: "ok", data: null }),
+);
+const readTargetFile = vi.fn((_file: string) =>
+  Promise.resolve({ status: "ok", data: '{"name":"Runner"}' }),
+);
+const dialog = {
+  save: vi.fn(async () => "/shared/Runner.json" as string | null),
+  open: vi.fn(async () => "/shared/Runner.json" as string | null),
+};
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  save: () => dialog.save(),
+  open: () => dialog.open(),
+}));
+
 /** Answers a config save; tests that hold one set `hold`. */
 const saving = { hold: undefined as Promise<void> | undefined };
 const setConfig = vi.fn(async () => {
@@ -35,6 +50,8 @@ vi.mock("@/bindings", () => ({
   commands: {
     importTarget: (text: string) => importTarget(text),
     exportTarget: (name: string) => exportTarget(name),
+    saveTarget: (name: string, file: string) => saveTarget(name, file),
+    readTargetFile: (file: string) => readTargetFile(file),
     setConfig: () => setConfig(),
   },
 }));
@@ -151,4 +168,32 @@ test("a second Save while one runs is ignored, and the bar goes once saved", asy
   );
   expect(nameField().value).toBe("Runner edited");
   saving.hold = undefined;
+});
+
+test("Download writes the saved target to the file picked", async () => {
+  show();
+  fireEvent.click(button("Download"));
+  await waitFor(() =>
+    expect(saveTarget).toHaveBeenCalledWith("Runner", "/shared/Runner.json"),
+  );
+});
+
+test("Download does nothing when the picker is cancelled", async () => {
+  dialog.save.mockResolvedValueOnce(null);
+  show();
+  fireEvent.click(button("Download"));
+  await waitFor(() => expect(dialog.save).toHaveBeenCalled());
+  expect(saveTarget).not.toHaveBeenCalled();
+});
+
+test("Import opens a file into the text box to check before importing", async () => {
+  show();
+  fireEvent.click(button("Import"));
+  fireEvent.click(button("Open a file"));
+  await waitFor(() =>
+    expect((screen.getByLabelText("Target") as HTMLTextAreaElement).value).toBe(
+      '{"name":"Runner"}',
+    ),
+  );
+  expect(readTargetFile).toHaveBeenCalledWith("/shared/Runner.json");
 });
