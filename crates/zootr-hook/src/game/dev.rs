@@ -164,6 +164,15 @@ unsafe fn add(block: usize, key: &[u8], kind: u32, value: usize) -> bool {
     }
 }
 
+/// Whether an event plays, or `None` before the game is up.
+///
+/// # Safety
+/// The offsets are this build's.
+pub(super) unsafe fn playing(main: usize, o: &Offsets) -> Option<bool> {
+    let events = unsafe { single(main, o.events) }?;
+    Some(unsafe { at(events, PLAYING) }.is_some())
+}
+
 /// One argument of an event request: a name in `texts` (by index)
 /// or a bool.
 enum Arg {

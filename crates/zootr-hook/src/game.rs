@@ -3,7 +3,7 @@
 
 use core::{arch::asm, arch::global_asm, slice};
 
-use crate::{CAVE, Credit, HEADER, Header, LIST, List, Offsets, Shared, TABLE, Table};
+use crate::{CAVE, Credit, Credited, HEADER, Header, LIST, List, Offsets, Shared, TABLE, Table};
 
 mod bunny;
 mod chests;
@@ -22,8 +22,8 @@ const KEY: &[u8] = b"ContentName";
 const MAX: usize = 128;
 
 // The call sites `bl` to content_name at +0, drop_actor at +4 and
-// run_speed at +24. The hooked functions `b` to +8, +12, +16 and +20 in
-// place of their pacibsp.
+// run_speed at +24. The hooked functions `b` to +8, +12, +16, +20 and +28
+// in place of their pacibsp.
 // The opening node is in x20 at both content_name call sites.
 //
 // A function hook keeps every argument register and the link register,
@@ -67,6 +67,7 @@ global_asm!(
     "b granted_entry",
     "b link_update_entry",
     "b run_speed",
+    "b picked_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -75,6 +76,8 @@ global_asm!(
     "granted_resume:",
     "brk #0",
     "link_update_resume:",
+    "brk #0",
+    "picked_resume:",
     "brk #0",
     ".text",
     "content_name_entry:",
@@ -88,6 +91,8 @@ global_asm!(
     "function_hook granted, granted_resume",
     "link_update_entry:",
     "function_hook link_update, link_update_resume",
+    "picked_entry:",
+    "function_hook picked, picked_resume",
 );
 
 /// `main`, from where the hook starts.
@@ -230,8 +235,9 @@ unsafe extern "C" fn chest_made(node: usize) {
 }
 
 /// `name` is about to be added to the pouch: credit it, then remake the
-/// closed chests of its line. Every holder's grant passes here once, so a
-/// copy found anywhere credits its dungeon once.
+/// closed chests of its line. Every holder that adds to the pouch passes
+/// here once, so a copy credits its dungeon once. Pickups don't add, and
+/// [`picked`] credits theirs.
 ///
 /// # Safety
 /// Only the hooked function's entry calls this.
@@ -239,20 +245,52 @@ unsafe extern "C" fn chest_made(node: usize) {
 unsafe extern "C" fn granted(_: usize, added: *const *const u8) {
     hooked(|main, table| unsafe {
         if let Some(added) = name(*added) {
-            credit(main, table, added);
+            credit(main, table, added, false);
             recreate(main, table, added);
         }
     })
 }
 
-/// Set what the table credits `added` with, if anything.
+/// A pickup window is opening on what Link takes (a pot's drop, a
+/// freestanding item): credit it. The take stocks the pouch without
+/// passing the add, so `granted` never sees it. The window's node binds
+/// the item's name, its slot at `node + 0x20` tagged in the low 2 bits.
+///
+/// # Safety
+/// Only the hooked function's entry calls this.
+#[unsafe(no_mangle)]
+unsafe extern "C" fn picked(node: usize) {
+    hooked(|main, table| unsafe {
+        let slot = at(node, PICKED_NAME).map(|s| s & !3);
+        if let Some(added) = slot
+            .and_then(|s| at(s, 0))
+            .and_then(|p| name(p as *const u8))
+        {
+            credit(main, table, added, true);
+        }
+    })
+}
+
+/// Where the pickup window's node keeps its bound `ActorName`.
+const PICKED_NAME: usize = 0x20;
+
+/// Set what the table credits `added` with, if anything, unless the other
+/// hook (the add, or with `picked` the pickup window) already credited
+/// this get.
 ///
 /// # Safety
 /// The table's offsets are this build's.
-unsafe fn credit(main: usize, table: &Table, added: &[u8]) {
+unsafe fn credit(main: usize, table: &Table, added: &[u8], picked: bool) {
     let Some(credit) = table.credit(added) else {
         return;
     };
+    let name = added.iter().fold(0x811c_9dc5_u32, |h, &b| {
+        (h ^ u32::from(b)).wrapping_mul(0x0100_0193)
+    });
+    let note = Credited { name, picked };
+    if !shared(main).with(|l| l.first_credit(note)) {
+        return;
+    }
     // SAFETY: the offsets were found in this build of `main`.
     let Some(gd) = (unsafe { dev::single(main, table.offsets.gamedata) }) else {
         return;
@@ -266,8 +304,8 @@ unsafe fn credit(main: usize, table: &Table, added: &[u8]) {
     }
 }
 
-/// Link is about to update: hold what the dev switches hold, and run the
-/// app's request, if there is one.
+/// Link is about to update: hold what the dev switches hold, run the app's
+/// request, if there is one, and between events forget the last credit.
 ///
 /// # Safety
 /// Only the hooked function's entry calls this.
@@ -276,5 +314,8 @@ unsafe extern "C" fn link_update(actor: usize) {
     hooked(|main, table| unsafe {
         refill::refill(main, &table, actor);
         dev::serve(main, table.offsets, actor);
+        if dev::playing(main, table.offsets) == Some(false) {
+            shared(main).with(List::idle);
+        }
     })
 }

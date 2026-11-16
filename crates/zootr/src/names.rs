@@ -113,8 +113,11 @@ pub fn pretty(id: &str) -> String {
 
 /// The label naming an actor in `ITEMS`, through the `ActorName` its param
 /// points at: `?ActorSystem/ActorName/<stem>.engine__actor__ActorName.bgyml`
-/// is named by `<stem>_Name`.
+/// is named by `<stem>_Name`. A key copy is named by its own lines.
 pub(crate) fn name_label(romfs: &Romfs, actor: &str) -> Result<Option<String>> {
+    if let Some(label) = crate::key_tints::name_label(actor) {
+        return Ok(Some(label));
+    }
     let Some(param) = ActorPack::load(romfs, actor)?.actor_param()? else {
         return Ok(None);
     };
@@ -172,6 +175,20 @@ mod tests {
             let same = ounce_formats::replace_file(&data, name, f.data()).unwrap();
             assert!(same == data, "{name}");
         }
+    }
+
+    #[test]
+    fn a_key_copy_is_labelled_by_its_own_lines() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let label = |a: &str| name_label(&romfs, a).unwrap();
+        assert!(label(crate::keys::SMALL).is_some());
+        let ring = crate::key_tints::ring(1);
+        assert_eq!(label(&ring), Some(format!("{ring}_Name")));
+        let boss = (1..=crate::keys::DUNGEONS.len()).find(|n| crate::keys::has_boss(*n));
+        let boss = crate::key_tints::boss(boss.unwrap());
+        assert_eq!(label(&boss), Some(format!("{boss}_Name")));
     }
 
     #[test]

@@ -78,11 +78,12 @@ offsets! {
     /// A holder slot's vtable.
     slot_vtable,
     /// The hooked functions: map loaded, chest content made, pouch add,
-    /// Link's update.
+    /// Link's update, a pickup window opening.
     map_loaded,
     chest_made,
     granted,
     link_update,
+    picked,
     /// The game's own `malloc`.
     malloc,
     /// Builds an event request in place.

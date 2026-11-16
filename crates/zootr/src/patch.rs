@@ -25,6 +25,8 @@ pub const OFFSETS: Offsets = Offsets {
     chest_made: 0xd2_72f0,
     granted: 0x110_d570,
     link_update: 0x2c2_15e0,
+    // `OneShotRequestOpenPickUpWindow`'s run.
+    picked: 0x101_55d0,
     malloc: 0x14c_6c90,
     make_arg: 0xd7_9f10,
     request: 0xd7_a820,
@@ -77,6 +79,7 @@ const HOOKS: &[(u32, u32)] = &[
     (OFFSETS.chest_made, 12),
     (OFFSETS.granted, 16),
     (OFFSETS.link_update, 20),
+    (OFFSETS.picked, 28),
 ];
 /// `main`'s build ID, as its NSO header's 32 byte field holds it. Its first
 /// 8 bytes name the cheat file and the rest, trailing zeros left out, the
