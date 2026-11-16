@@ -28,7 +28,9 @@ mod tagfile;
 mod walk;
 mod zs;
 
-pub use bfres::{Lod, Vertex, edit_vertices, lods, pack, pointers, replace_mesh, unpack, vertices};
+pub use bfres::{
+    Lod, Vertex, edit_vertices, lods, pack, pointers, replace_mesh, shape_names, unpack, vertices,
+};
 pub use bntx::{Texture, levels, redraw, redraw_halve, textures, textures_named};
 pub use byml_doc::BymlDoc;
 pub use crc32::crc32;

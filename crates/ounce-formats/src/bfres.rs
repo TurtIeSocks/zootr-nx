@@ -585,6 +585,13 @@ fn to_half(f: f32) -> Result<u16> {
     Ok(sign | (((exp as u32) << 10) + (mantissa >> 13) + ((mantissa >> 12) & 1)) as u16)
 }
 
+/// Every shape's name.
+pub fn shape_names(data: &[u8]) -> Vec<String> {
+    (shapes(data).filter_map(|s| shape_name(data, s)))
+        .map(|n| String::from_utf8_lossy(n).into_owned())
+        .collect()
+}
+
 /// Every shape header's offset.
 fn shapes(data: &[u8]) -> impl Iterator<Item = usize> + '_ {
     (0..data.len().saturating_sub(SHAPE_VERTICES + 8))
