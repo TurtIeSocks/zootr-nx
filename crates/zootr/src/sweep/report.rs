@@ -84,31 +84,36 @@ pub fn ending(row: &Value) -> String {
     format!("{}/{}/{}", part(walk), part(why), part(use_))
 }
 
-/// Tally the drill rows of `text`.
+/// Tally the drill rows of `text`. A drill's run is every row it wrote in
+/// one round: a retry after a restart or as the other age is the same run,
+/// which passed if any of its tries did.
 pub fn drills(text: &str) -> Drills {
-    let mut board = Drills::default();
+    let mut runs: Vec<(u64, String, String, Vec<Value>)> = vec![];
     for row in rows(text) {
         let (Some(drill), Some(skill)) = (row["drill"].as_str(), row["skill"].as_str()) else {
             continue;
         };
-        let passed = verdict(&row) == "pass";
-        board
-            .skills
-            .entry(skill.to_owned())
-            .or_default()
-            .add(passed);
-        board
-            .drills
-            .entry(drill.to_owned())
-            .or_default()
-            .add(passed);
-        if !passed {
+        let round = row["round"].as_u64().unwrap_or(0);
+        match runs.iter_mut().find(|r| r.0 == round && r.1 == drill) {
+            Some(run) => run.3.push(row),
+            None => runs.push((round, drill.to_owned(), skill.to_owned(), vec![row])),
+        }
+    }
+    let mut board = Drills::default();
+    for (_, drill, skill, tries) in runs {
+        let passed = tries.iter().any(|r| verdict(r) == "pass");
+        board.skills.entry(skill).or_default().add(passed);
+        board.drills.entry(drill.clone()).or_default().add(passed);
+        if passed {
+            continue;
+        }
+        for row in &tries {
             let shots = row["swept"]["shots"].as_array();
             let shot = shots.and_then(|s| s.last()).and_then(Value::as_str);
             board.failures.push(Failure {
-                drill: drill.to_owned(),
-                verdict: verdict(&row).to_owned(),
-                ending: ending(&row),
+                drill: drill.clone(),
+                verdict: verdict(row).to_owned(),
+                ending: ending(row),
                 shot: shot.unwrap_or("-").to_owned(),
             });
         }
@@ -227,8 +232,8 @@ mod tests {
         serde_json::json!({"round": round, "spot": {"holder": holder}, "swept": swept}).to_string()
     }
 
-    fn drill_row(drill: &str, skill: &str, verdict: &str) -> String {
-        let mut r: Value = serde_json::from_str(&row(0, "Fake", verdict, None)).unwrap();
+    fn drill_row(round: u64, drill: &str, skill: &str, verdict: &str) -> String {
+        let mut r: Value = serde_json::from_str(&row(round, "Fake", verdict, None)).unwrap();
         r["drill"] = drill.into();
         r["skill"] = skill.into();
         r.to_string()
@@ -237,19 +242,27 @@ mod tests {
     #[test]
     fn a_drill_board_tallies_each_skill_and_drill_and_lists_each_failure() {
         let text = [
-            drill_row("fake chest", "chest", "pass"),
-            drill_row("fake chest", "chest", "nothing"),
-            drill_row("fake box", "box", "pass"),
+            drill_row(0, "fake chest", "chest", "pass"),
+            drill_row(1, "fake chest", "chest", "nothing"),
+            drill_row(0, "fake box", "box", "nothing"),
+            drill_row(0, "fake box", "box", "pass"),
+            drill_row(1, "fake box", "box", "nothing"),
+            drill_row(1, "fake box", "box", "nothing"),
             row(0, "Fake", "pass", None),
             r#"{"round": 0, "error": "the game quit"}"#.to_owned(),
         ]
         .join("\n");
         let board = drills(&text);
         assert_eq!(board.skills["chest"], Tally { passes: 1, runs: 2 });
-        assert_eq!(board.skills["box"], Tally { passes: 1, runs: 1 });
-        assert_eq!(board.drills.len(), 2, "a sweep row isn't a drill");
         assert_eq!(
-            board.failures,
+            board.skills["box"],
+            Tally { passes: 1, runs: 2 },
+            "a retry in the same round is the same run"
+        );
+        assert_eq!(board.drills.len(), 2, "a sweep row isn't a drill");
+        assert_eq!(board.failures.len(), 3, "each try of a failed run");
+        assert_eq!(
+            board.failures[..1],
             [Failure {
                 drill: "fake chest".into(),
                 verdict: "nothing".into(),
