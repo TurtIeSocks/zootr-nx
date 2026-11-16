@@ -31,8 +31,8 @@ const row = (slot: number, stamp: number, more: Partial<SlotRow> = {}) => ({
   continues: false,
   max_life: 12,
   child: true,
-  stones: 1,
-  medallions: 0,
+  stones: [],
+  medallions: [],
   error: null,
   ...more,
 });

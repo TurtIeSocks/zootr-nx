@@ -620,8 +620,9 @@ export type SlotRow = {
 	/**  Heart containers, in quarters. */
 	max_life: number | null,
 	child: boolean | null,
-	stones: number,
-	medallions: number,
+	/**  The three stones and six medallions, each held or not. */
+	stones: Cell[],
+	medallions: Cell[],
 	/**  Why the save couldn't be read, leaving the summary out. */
 	error: string | null,
 };

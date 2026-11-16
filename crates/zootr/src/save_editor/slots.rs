@@ -9,7 +9,7 @@ use serde::Serialize;
 
 use super::stamp;
 use super::status::MAX_LIFE;
-use crate::inventory::{Inventory, Section, in_save};
+use crate::inventory::{Cell, Inventory, Section, in_save};
 use crate::known::flag;
 use crate::savefile;
 
@@ -25,8 +25,9 @@ pub struct SlotRow {
     /// Heart containers, in quarters.
     pub max_life: Option<i32>,
     pub child: Option<bool>,
-    pub stones: u8,
-    pub medallions: u8,
+    /// The three stones and six medallions, each held or not.
+    pub stones: Vec<Cell>,
+    pub medallions: Vec<Cell>,
     /// Why the save couldn't be read, leaving the summary out.
     pub error: Option<String>,
 }
@@ -51,8 +52,8 @@ fn row(inv: &Inventory, dir: &Path, slot: u8) -> SlotRow {
         continues: false,
         max_life: None,
         child: None,
-        stones: 0,
-        medallions: 0,
+        stones: Vec::new(),
+        medallions: Vec::new(),
         error: None,
     };
     match savefile::load(&path) {
@@ -68,14 +69,10 @@ fn summarise(row: &mut SlotRow, inv: &Inventory, save: &Save) {
     row.child = scalar(murmur3(flag::SEQUENCE_IS_CHILDHOOD.as_bytes())).map(|v| v != 0);
     let mut inv = inv.clone();
     inv.load(in_save(save));
-    let held = |section| {
-        inv.cells()
-            .iter()
-            .filter(|c| c.section == section && c.tier > 0)
-            .count() as u8
-    };
-    row.stones = held(Section::Stones);
-    row.medallions = held(Section::Medallions);
+    let cells = inv.cells();
+    let of = |section| cells.iter().filter(|c| c.section == section).cloned().collect();
+    row.stones = of(Section::Stones);
+    row.medallions = of(Section::Medallions);
 }
 
 #[cfg(test)]

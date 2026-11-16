@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { SlotRow } from "@/bindings";
+import type { Cell, SlotRow } from "@/bindings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,10 +10,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tile } from "@/items/tile";
 import { ago, count } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { pendingCount, pickSlot, usePending } from "@/save/tabs";
 import { useUi } from "@/stores/ui";
+
+/** A stone or medallion's side in pixels, about a line of text tall. */
+const GEM = 22;
 
 /** Props for {@link SlotList}. */
 interface SlotListProps {
@@ -114,11 +118,22 @@ function SlotButton({ row, picked, onPick }: SlotButtonProps) {
         <span className="flex flex-1 gap-4">
           {hearts !== null && <span>{count(hearts, "heart")}</span>}
           {row.child !== null && <span>{row.child ? "Child" : "Adult"}</span>}
-          <span>{count(row.stones, "stone")}</span>
-          <span>{count(row.medallions, "medallion")}</span>
+          <Gems cells={row.stones} />
+          <Gems cells={row.medallions} />
         </span>
       )}
       {row.continues && <Badge variant="info">Continue</Badge>}
     </button>
+  );
+}
+
+/** A row of stones or medallions, the missing ones greyed. */
+function Gems({ cells }: { cells: Cell[] }) {
+  return (
+    <span className="flex items-center">
+      {cells.map((cell) => (
+        <Tile key={cell.label} cell={cell} size={GEM} ink="text-ink" />
+      ))}
+    </span>
   );
 }
