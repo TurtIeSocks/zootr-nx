@@ -401,9 +401,11 @@ const isSelect = (f: HTMLElement) => f.tagName === "SELECT";
 
 test("picking a name shows its live value in a field for its type", async () => {
   render(<DevWindow />);
-  const bool = await pick("FakeHill_ArriveEntrance", isSelect);
-  expect(bool.value).toBe("true");
-  expect([...bool.options].map((o) => o.value)).toEqual(["true", "false"]);
+  const bool = await pick(
+    "FakeHill_ArriveEntrance",
+    (f) => f.getAttribute("role") === "switch",
+  );
+  expect(bool.getAttribute("aria-checked")).toBe("true");
 
   const step = await pick(
     "Step_FakeCastle",

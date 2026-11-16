@@ -13,6 +13,7 @@ use crate::logic::WARP_SONGS;
 use crate::savefile;
 use crate::settings::group;
 use crate::starting;
+use crate::value;
 
 /// Every flag in `names` set to `value`.
 fn all(names: impl IntoIterator<Item = impl std::fmt::Display>, value: &str) -> Vec<String> {
@@ -519,7 +520,7 @@ pub fn apply(gd: &GameData, root: &mut Byml, edits: &[String]) -> Result<Vec<Str
         let table = gd
             .table(name)
             .with_context(|| format!("{name} isn't in {}", flag::GAME_DATA))?;
-        let raw = savefile::parse(gd, table, text).context(name.to_owned())?;
+        let raw = value::scalar(gd, table, text).context(name.to_owned())?;
         let hash = i64::from(murmur3(name.as_bytes()));
         let entry = tables
             .get_mut(table)
@@ -532,7 +533,7 @@ pub fn apply(gd: &GameData, root: &mut Byml, edits: &[String]) -> Result<Vec<Str
         let old = entry
             .get(&**field::DEFAULT_VALUE)
             .with_context(|| format!("{name} has no default"))?;
-        let was = savefile::raw(old).map_or("?".into(), |r| savefile::render(gd, table, r));
+        let was = savefile::raw(old).map_or("?".into(), |r| value::render(gd, table, r));
         let new = savefile::to_default(old, raw)
             .with_context(|| format!("{table} defaults can't be set"))?;
         log.push(format!("{name}: {was} -> {text}"));

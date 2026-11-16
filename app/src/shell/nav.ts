@@ -22,10 +22,19 @@ import {
 } from "lucide-react";
 
 /** The views that aren't settings. */
-export type Tab = "Play" | "Checks" | "Items" | "Live" | "Spoiler";
+export type Tab = "Play" | "Save" | "Checks" | "Items" | "Live" | "Spoiler";
 
-/** Play, alone at the top of the sidebar. */
-export const PLAY: [Tab, LucideIcon] = ["Play", Gamepad2];
+/** A tab's name where it isn't its id. */
+const TAB_LABELS: Partial<Record<Tab, string>> = { Save: "Save Editor" };
+
+/** What the sidebar and breadcrumb call `tab`. */
+export const tabLabel = (tab: Tab) => TAB_LABELS[tab] ?? tab;
+
+/** Play and Save, at the top of the sidebar. */
+export const TOP_TABS: [Tab, LucideIcon][] = [
+  ["Play", Gamepad2],
+  ["Save", Save],
+];
 
 /** The installed seed's views, under Current run. */
 export const RUN_TABS: [Tab, LucideIcon][] = [
@@ -43,7 +52,6 @@ export const APP_PANES: [Section, string, LucideIcon][] = [
   ["settings", "Settings", Settings],
   ["targets", "Targets", MonitorPlay],
   ["test", "Test setup", FlaskConical],
-  ["save", "Save slot", Save],
 ];
 
 /** The randomizer's own panes, after the schema's groups. */
@@ -75,7 +83,7 @@ export const groupIcon = (group: string) => GROUP_ICONS[group] ?? Settings2;
 /** Where a page sits, for the topbar. */
 export const crumbs = (tab: Tab | "Settings", section: Section): string[] =>
   tab !== "Settings"
-    ? [tab]
+    ? [tabLabel(tab)]
     : [
         appPane(section) ? "App" : "Randomizer",
         ownPane(section)?.[1] ?? section,

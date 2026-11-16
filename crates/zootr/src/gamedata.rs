@@ -13,6 +13,8 @@ use ounce_formats::{Byml, BymlDoc, Romfs, murmur3};
 use serde::Serialize;
 
 use crate::known::{Name, field, flag};
+use crate::value;
+pub use crate::value::Input;
 
 pub const PATH: &str = "GameData/GameDataList.Product.110.byml.zs";
 /// The Struct holding whether Link has each item, `IsGet.ITEM`.
@@ -25,20 +27,6 @@ pub struct GameData {
     names: HashMap<u32, String>,
     /// From [`labels`](crate::labels), changeable while shared.
     labels: RwLock<HashMap<u32, String>>,
-}
-
-/// The field a value is edited in.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
-#[cfg_attr(feature = "specta", derive(specta::Type))]
-#[serde(rename_all = "lowercase")]
-pub enum Input {
-    /// One of `choices`.
-    Choice,
-    Number,
-    Text,
-    /// Shown, not written: what [`live::encode`](crate::live::encode)
-    /// can't write.
-    Read,
 }
 
 /// What GameData says about one value.
@@ -236,11 +224,10 @@ impl GameData {
             "Enum" => raw_values(entry).unwrap_or_default(),
             _ => Vec::new(),
         };
-        let input = match kind.as_str() {
-            "Bool" | "Enum" => Input::Choice,
-            "Int" | "UInt" | "Float" => Input::Number,
-            "String16" | "String32" | "String64" => Input::Text,
-            _ => Input::Read,
+        // A whole array isn't one field; its elements each are.
+        let input = match kind.ends_with("Array") {
+            true => Input::Read,
+            false => value::input(kind),
         };
         let default = map
             .get(&**field::DEFAULT_VALUE)

@@ -6,7 +6,6 @@ import { AppSettings } from "@/settings/app-settings";
 import { DriftBar } from "@/settings/drift-bar";
 import { GroupPage } from "@/settings/group-page";
 import { PlandoPane } from "@/settings/plando-pane";
-import { SavePane } from "@/settings/save-pane";
 import { TargetsPane } from "@/settings/targets-pane";
 import { TestPane } from "@/settings/test-pane";
 import { Page } from "@/shell/page-header";
@@ -24,7 +23,6 @@ export function SettingsView() {
 const PANES: Partial<Record<string, ReactNode>> = {
   settings: <AppSettings />,
   targets: <TargetsPane />,
-  save: <SavePane />,
   test: <Test />,
   plando: <PlandoPane />,
 };

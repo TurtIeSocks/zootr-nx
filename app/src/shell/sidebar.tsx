@@ -8,11 +8,12 @@ import { cn } from "@/lib/utils";
 import {
   APP_PANES,
   groupIcon,
-  PLAY,
   RANDOMIZER_PANES,
   RUN_TABS,
   type Section,
   type Tab,
+  TOP_TABS,
+  tabLabel,
 } from "@/shell/nav";
 import { LiveDot, StatusPill } from "@/shell/status-pill";
 import { useChecks } from "@/stores/checks";
@@ -86,7 +87,7 @@ function TabItem({ tab, icon }: TabItemProps) {
   return (
     <NavItem
       icon={icon}
-      label={tab}
+      label={tabLabel(tab)}
       current={current === tab}
       onClick={() => setTab(tab)}
     >
@@ -245,7 +246,9 @@ export function Sidebar() {
         </span>
       </div>
       <nav className="min-h-0 flex-1 overflow-auto px-2 pt-1 pb-3">
-        <TabItem tab={PLAY[0]} icon={PLAY[1]} />
+        {TOP_TABS.map(([t, icon]) => (
+          <TabItem key={t} tab={t} icon={icon} />
+        ))}
         <RunGroup />
         <NavGroup title="Randomizer">
           <Groups />

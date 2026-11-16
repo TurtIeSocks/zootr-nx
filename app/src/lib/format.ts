@@ -31,3 +31,13 @@ export function when(seconds: number): string {
     timeStyle: "short",
   });
 }
+
+/** How long before `now` a time in milliseconds was: "just now", "3m ago",
+ * "2h ago", "4d ago". */
+export function ago(ms: number, now = Date.now()): string {
+  const minutes = Math.floor((now - ms) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
+}

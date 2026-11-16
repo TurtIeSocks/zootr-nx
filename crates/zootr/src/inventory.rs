@@ -15,7 +15,9 @@ use crate::keys;
 use crate::known::{Name, actor, field, flag, flow, item};
 use crate::savefile::Change;
 
+mod edit;
 mod glyph;
+pub use edit::{Intent, Pouch};
 pub use glyph::Glyph;
 
 const POUCH: &str = "PouchData";
@@ -162,6 +164,8 @@ struct Slot {
     icon: Option<&'static Name>,
     /// Shown as a number.
     count: Option<&'static Name>,
+    /// Held one tier at a time, as a trade sequence is.
+    exclusive: bool,
 }
 
 const fn slot(section: Section, label: &'static str, tiers: &'static [&'static Name]) -> Slot {
@@ -171,6 +175,7 @@ const fn slot(section: Section, label: &'static str, tiers: &'static [&'static N
         tiers,
         icon: None,
         count: None,
+        exclusive: false,
     }
 }
 
@@ -221,14 +226,14 @@ const GRID: &[Slot] = &[
     bottle("Bottle", &[field::BOTTLE_B]),
     bottle("Bottle", &[field::BOTTLE_C]),
     bottle("Bottle", &[field::BOTTLE_D]),
-    slot(Inventory, "Child Trade", &[
+    Slot { exclusive: true, ..slot(Inventory, "Child Trade", &[
         item::WEIRD_EGG, item::ALARM_CUCCO, item::ZELDA_LETTER, actor::ARMOR_CHILD_MASK_KEATON,
         actor::ARMOR_CHILD_MASK_SKULL, actor::ARMOR_CHILD_MASK_SPOOKY, actor::ARMOR_CHILD_MASK_BUNNY, actor::ARMOR_CHILD_MASK_TRUTH,
-    ]),
-    slot(Inventory, "Adult Trade", &[
+    ]) },
+    Slot { exclusive: true, ..slot(Inventory, "Adult Trade", &[
         item::POCKET_EGG, item::POCKET_CUCCO, item::COJIRO_CUCCO, item::ODD_MUSHROOM, item::ODD_POWDER,
         item::POACHER_SAW, item::BROKEN_SWORD, item::PRESCRIPTION, item::EYEBALL_FROG, item::EYE_DROP, item::CLAIM_CHECK,
-    ]),
+    ]) },
     slot(Equipment, "Kokiri Sword", &[actor::WEAPON_SWORD_KOKIRI]),
     slot(Equipment, "Master Sword", &[actor::WEAPON_SWORD_MASTER]),
     slot(Equipment, "Biggoron's Sword", &[actor::WEAPON_SWORD_GIANT, actor::WEAPON_SWORD_BIGGORON]),
@@ -312,6 +317,7 @@ pub fn icons() -> impl Iterator<Item = &'static str> {
     });
     grid.copied()
         .chain(KEPT.map(|k| k.1))
+        .chain(crate::save_editor::STATS.map(|s| s.1))
         .map(|icon| icon.get())
 }
 
@@ -328,6 +334,7 @@ static KEPT: LazyLock<[(&str, &Name, &str); 4]> = LazyLock::new(|| {
 });
 
 /// One cell of a dungeon's row.
+#[derive(Clone)]
 struct Kept {
     label: String,
     /// The first cell's, which starts the row.
@@ -398,7 +405,7 @@ pub struct DungeonRow {
     pub name: String,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Inventory {
     /// Each actor the grid reads, to the value that says it's held.
     keys: HashMap<&'static Name, u32>,
@@ -543,7 +550,7 @@ pub fn has_flag(gd: &GameData, actor: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
     use crate::known::{flag, item};
 
@@ -606,12 +613,12 @@ mod tests {
     }
 
     /// Keys as if every actor were its own hash.
-    fn inventory() -> Inventory {
+    pub(super) fn inventory() -> Inventory {
         inventory_of(&[])
     }
 
     /// `inventory`, with the dungeons that have the `(area, item)`s.
-    fn inventory_of(has: &[(&Name, &Name)]) -> Inventory {
+    pub(super) fn inventory_of(has: &[(&Name, &Name)]) -> Inventory {
         let keys = GRID
             .iter()
             .flat_map(|s| s.tiers.iter().chain(&s.count))
@@ -632,7 +639,12 @@ mod tests {
     }
 
     fn cell<'a>(cells: &'a [Cell], label: &str) -> &'a Cell {
-        cells.iter().find(|c| c.label == label).unwrap()
+        &cells[cell_at(cells, label)]
+    }
+
+    /// Where the cell labelled `label` sits.
+    pub(super) fn cell_at(cells: &[Cell], label: &str) -> usize {
+        cells.iter().position(|c| c.label == label).unwrap()
     }
 
     #[test]

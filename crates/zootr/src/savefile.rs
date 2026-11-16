@@ -5,17 +5,17 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-use anyhow::{Context, Result, bail};
-use ounce_formats::{Byml, Romfs, Save, SaveEntry, murmur3};
-use serde::Serialize;
+use anyhow::{Context, Result};
+use ounce_formats::{Byml, Save, SaveEntry, murmur3};
+use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
 use crate::gamedata::GameData;
-use crate::known::{field, flag};
-use crate::{generate, presets};
+use crate::known::field;
+use crate::{generate, value};
 
 /// Slot `n`'s save under a save folder.
-fn slot_file(dir: &Path, n: u8) -> PathBuf {
+pub fn slot_file(dir: &Path, n: u8) -> PathBuf {
     dir.join(format!("slot_{n:02}/progress.sav"))
 }
 
@@ -48,21 +48,6 @@ pub fn slots(dir: &Path) -> Result<Vec<u8>> {
 
 pub fn load(path: &Path) -> Result<Save> {
     Save::parse(std::fs::read(path).with_context(|| format!("reading {}", path.display()))?)
-}
-
-/// The scalar type an array holds.
-pub(crate) fn element(kind: &str) -> &str {
-    kind.strip_suffix("Array").unwrap_or(kind)
-}
-
-pub fn render(gd: &GameData, kind: &str, raw: u32) -> String {
-    match element(kind) {
-        "Bool" => (raw != 0).to_string(),
-        "Int" => (raw as i32).to_string(),
-        "Float" => f32::from_bits(raw).to_string(),
-        "Enum" => gd.name(raw),
-        _ => raw.to_string(),
-    }
 }
 
 /// A GameData `DefaultValue` as the raw bits a save would hold.
@@ -104,7 +89,11 @@ pub fn values(gd: &GameData, save: &Save, e: SaveEntry) -> Option<Vec<String>> {
         Some(raw) => vec![raw],
         None => save.array(e)?,
     };
-    Some(raws.into_iter().map(|r| render(gd, e.kind, r)).collect())
+    Some(
+        raws.into_iter()
+            .map(|r| value::render(gd, e.kind, r))
+            .collect(),
+    )
 }
 
 /// `e`'s value, or its size for types [`values`] can't read.
@@ -279,63 +268,91 @@ pub fn split(edit: &str) -> Result<(&str, &str)> {
     edit.split_once('=').context("edits look like NAME=VALUE")
 }
 
-/// `text` as the raw bits of a `kind` (a GameData table name) value.
-pub fn parse(gd: &GameData, kind: &str, text: &str) -> Result<u32> {
-    Ok(match kind {
-        "Bool" => match text {
-            "true" | "1" => 1,
-            "false" | "0" => 0,
-            _ => bail!("{text} isn't true or false"),
-        },
-        "Int" => text.parse::<i32>()? as u32,
-        "UInt" => text.parse()?,
-        "Float" => text.parse::<f32>()?.to_bits(),
-        "Enum" => {
-            let raw = murmur3(text.as_bytes());
-            if gd.name(raw) != text {
-                bail!("{text} isn't a value of any {} enum", flag::GAME_DATA);
-            }
-            raw
-        }
-        _ => bail!("{kind} values can't be set yet"),
-    })
-}
-
 /// Apply `edits` to the save at `path`, keeping the old file next to it as a
 /// timestamped backup. Returns the edit log and the backup.
 pub(crate) fn edit(gd: &GameData, path: &Path, edits: &[String]) -> Result<(Vec<String>, PathBuf)> {
     let mut save = load(path)?;
     let log = set(gd, &mut save, edits)?;
+    Ok((log, write(path, &save)?))
+}
+
+/// Write `save` over the file at `path`, keeping the old one next to it as
+/// a timestamped backup, which it returns.
+pub fn write(path: &Path, save: &Save) -> Result<PathBuf> {
     let backup = path.with_extension(format!("sav.{}.bak", generate::time_seed() / 1_000_000_000));
     std::fs::copy(path, &backup)?;
     std::fs::write(path, save.bytes())?;
-    Ok((log, backup))
+    Ok(backup)
 }
 
-/// Apply `presets` to slot `n` under `dir`, as [`edit`] does.
-pub fn edit_slot(
-    romfs: &Romfs,
-    dir: &Path,
-    n: u8,
-    presets: &[String],
-) -> Result<(Vec<String>, PathBuf)> {
-    let edits = presets::for_save(presets, &[])?;
-    edit(&GameData::load(romfs)?, &slot_file(dir, n), &edits)
+/// One element of a save value to set, as text its type takes.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct Edit {
+    pub hash: u32,
+    /// The element: 0 for anything that isn't an array.
+    #[serde(default)]
+    pub index: u32,
+    pub value: String,
 }
 
-/// Apply `NAME=VALUE` edits. Returns each edit as `name: old -> new`.
-pub fn set(gd: &GameData, save: &mut Save, edits: &[String]) -> Result<Vec<String>> {
+impl Edit {
+    pub fn new(hash: u32, value: impl Into<String>) -> Self {
+        Self {
+            hash,
+            index: 0,
+            value: value.into(),
+        }
+    }
+
+    /// `NAME=VALUE`.
+    pub fn parse(edit: &str) -> Result<Self> {
+        let (name, text) = split(edit)?;
+        Ok(Self::new(murmur3(name.as_bytes()), text))
+    }
+}
+
+/// Apply `edits` in order. Returns each as `name: old -> new`. Stops at the
+/// first one the save can't take, so a caller that writes only on success
+/// never writes half of them.
+pub fn apply(gd: &GameData, save: &mut Save, edits: &[Edit]) -> Result<Vec<String>> {
     let mut log = Vec::new();
     for edit in edits {
-        let (name, text) = split(edit)?;
+        let mut name = gd.name(edit.hash);
         let e = save
-            .get(murmur3(name.as_bytes()))
+            .get(edit.hash)
             .with_context(|| format!("{name} isn't in this save"))?;
-        let old = values(gd, save, e).unwrap_or_default().join(",");
-        save.set_scalar(e.hash, parse(gd, e.kind, text).context(name.to_owned())?)?;
-        log.push(format!("{name}: {old} -> {text}"));
+        if e.kind.ends_with("Array") {
+            name = format!("{name}[{}]", edit.index);
+        }
+        let i = edit.index as usize;
+        let width = ounce_formats::save_width(e.kind)
+            .with_context(|| format!("{name}: {} values can't be written", e.kind))?;
+        let bytes = match value::element(e.kind) {
+            "Enum" => value::scalar(gd, e.kind, &edit.value).map(|r| r.to_le_bytes().to_vec()),
+            _ => value::encode(e.kind, &edit.value, width),
+        }
+        .context(name.clone())?;
+        let old = save
+            .element(e, i)
+            .map(|b| value::decode(gd, e.kind, b))
+            .with_context(|| format!("{name} has no element {i}"))?;
+        save.set(e, i, &bytes)?;
+        log.push(format!(
+            "{name}: {old} -> {}",
+            value::decode(gd, e.kind, &bytes)
+        ));
     }
     Ok(log)
+}
+
+/// Apply `NAME=VALUE` edits, as [`apply`] does.
+pub fn set(gd: &GameData, save: &mut Save, edits: &[String]) -> Result<Vec<String>> {
+    let edits: Vec<Edit> = edits
+        .iter()
+        .map(|e| Edit::parse(e))
+        .collect::<Result<_>>()?;
+    apply(gd, save, &edits)
 }
 
 #[cfg(test)]
@@ -344,10 +361,16 @@ mod tests {
 
     /// A save with bools `(hash, value)` and binaries `(hash, data)`.
     fn save(bools: &[(u32, u32)], binaries: &[(u32, &[u8])]) -> Vec<u8> {
+        typed(bools, 18, binaries)
+    }
+
+    /// A save with bools `(hash, value)`, then values of the save type
+    /// numbered `kind` kept out of the table, `(hash, data)`.
+    fn typed(bools: &[(u32, u32)], kind: u32, binaries: &[(u32, &[u8])]) -> Vec<u8> {
         const TABLE: usize = 0x20;
         let mut pairs = vec![(0, 0)];
         pairs.extend(bools);
-        pairs.push((0, 18));
+        pairs.push((0, kind));
         let end = TABLE + (pairs.len() + binaries.len()) * 8;
         let mut at = end;
         for (h, data) in binaries {
@@ -365,6 +388,27 @@ mod tests {
         );
         binaries.iter().for_each(|(_, data)| b.extend(*data));
         b
+    }
+
+    #[test]
+    fn edits_write_each_type_they_name_and_stop_at_a_bad_one() {
+        let gd = GameData::default();
+        // String16 is the save's type 12.
+        let mut save = Save::parse(typed(&[(11, 0)], 12, &[(22, &[0; 16])])).unwrap();
+        let log = apply(
+            &gd,
+            &mut save,
+            &[Edit::new(11, "true"), Edit::new(22, "Kak")],
+        )
+        .unwrap();
+        assert_eq!(log, ["#0000000b: false -> true", "#00000016:  -> Kak"]);
+        assert_eq!(
+            save.strings(save.get(22).unwrap()),
+            Some(vec!["Kak".into()])
+        );
+        assert!(apply(&gd, &mut save, &[Edit::new(11, "maybe")]).is_err());
+        assert!(apply(&gd, &mut save, &[Edit::new(33, "true")]).is_err());
+        assert!(apply(&gd, &mut save, &[Edit::new(22, "far too long for this")]).is_err());
     }
 
     #[test]

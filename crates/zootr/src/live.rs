@@ -6,7 +6,7 @@ use std::path::Path;
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
-use anyhow::{Result, bail, ensure};
+use anyhow::{Result, bail};
 
 use ounce_formats::murmur3;
 
@@ -15,6 +15,7 @@ use crate::gamedata::GameData;
 use crate::known::{field, flag};
 use crate::patch::OFFSETS;
 use crate::savefile::{self, Change};
+use crate::value;
 
 /// Where a type keeps its current value in an entry.
 #[derive(Clone, Copy)]
@@ -211,23 +212,11 @@ fn text(kind: &str, b: &[u8]) -> Vec<u8> {
 }
 
 fn show(gd: &GameData, kind: &str, b: &[u8]) -> String {
-    let f = |at| f32::from_bits(word(b, at));
-    match savefile::element(kind) {
-        "Bool" => savefile::render(gd, kind, b[0].into()),
-        "Int64" => (quad(b, 0) as i64).to_string(),
-        k if k == field::U_INT64 => quad(b, 0).to_string(),
-        "Vector3" => format!("({}, {}, {})", f(0), f(4), f(8)),
-        k if k == field::W_STRING16 => {
-            let units: Vec<u16> = b
-                .as_chunks::<2>()
-                .0
-                .iter()
-                .map(|&c| u16::from_le_bytes(c))
-                .collect();
-            format!("{:?}", String::from_utf16_lossy(&units))
-        }
-        k if k.starts_with("String") => format!("{:?}", String::from_utf8_lossy(b)),
-        _ => savefile::render(gd, kind, word(b, 0)),
+    let text = value::decode(gd, kind, b);
+    match value::element(kind) {
+        k if k.starts_with("String") || k.starts_with("WString") => format!("{text:?}"),
+        "Vector2" | "Vector3" => format!("({})", text.replace(',', ", ")),
+        _ => text,
     }
 }
 
@@ -547,30 +536,11 @@ pub fn read(mem: &impl Memory, gd: &GameData, global: u64, hash: u32) -> Result<
     })
 }
 
-/// `value` as the game stores a `kind` `width` bytes wide: true/false, a
-/// number, an Enum value's name, or text padded with zeros.
-pub fn encode(kind: &str, value: &str, width: usize) -> Result<Vec<u8>> {
-    Ok(match kind {
-        "String16" | "String32" | "String64" => {
-            ensure!(value.len() < width, "{value} is too long for a {kind}");
-            let mut out = value.as_bytes().to_vec();
-            out.resize(width, 0);
-            out
-        }
-        "Bool" => vec![u8::from(value.parse::<bool>()?)],
-        "Int" => value.parse::<i32>()?.to_le_bytes().into(),
-        "UInt" => value.parse::<u32>()?.to_le_bytes().into(),
-        "Float" => value.parse::<f32>()?.to_le_bytes().into(),
-        "Enum" => murmur3(value.as_bytes()).to_le_bytes().into(),
-        _ => bail!("{kind} isn't writable"),
-    })
-}
-
 /// Writes the current value, and for a scalar the copy after it, which
 /// is the one the game saves from. Data pages only.
 pub fn set(mem: &impl Memory, global: u64, hash: u32, value: &str) -> Result<()> {
     let (kind, at, width) = locate(mem, global, hash)?;
-    let bytes = encode(kind, value, width)?;
+    let bytes = value::encode(kind, value, width)?;
     let copies = if kind.starts_with("String") { 1 } else { 2 };
     mem.write(at, &bytes.repeat(copies))
 }
@@ -748,23 +718,6 @@ pub(crate) mod tests {
         assert_eq!(at(3), "[1, -2, 3]");
         assert_eq!(at(18), "768 bytes");
         assert!(read(&mem, &gd, 0x1000, 0xdead).is_err());
-    }
-
-    #[test]
-    fn values_encode_as_the_game_stores_them() {
-        assert_eq!(encode("Bool", "true", 1).unwrap(), [1]);
-        assert_eq!(encode("Int", "-1", 4).unwrap(), [0xff; 4]);
-        assert_eq!(
-            encode("Enum", "New", 4).unwrap(),
-            murmur3(b"New").to_le_bytes()
-        );
-        assert_eq!(
-            encode("String16", "Kak", 16).unwrap(),
-            *b"Kak\0\0\0\0\0\0\0\0\0\0\0\0\0"
-        );
-        assert!(encode("String16", "0123456789abcdef", 16).is_err());
-        assert!(encode("Bool", "yes", 1).is_err());
-        assert!(encode("Vector3", "0", 12).is_err());
     }
 
     #[test]

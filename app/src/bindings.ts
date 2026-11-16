@@ -44,9 +44,20 @@ export const commands = {
 	 *  the deal refuses it, if it does.
 	 */
 	plandoOptions: () => typedError<PlandoOptions, string>(__TAURI_INVOKE("plando_options")),
-	saveOptions: () => typedError<SaveOptions, string>(__TAURI_INVOKE("save_options")),
-	/**  Apply presets to a save slot, keeping a backup of the old save. */
-	editSave: (slot: number, presets: string[]) => typedError<SaveEdit, string>(__TAURI_INVOKE("edit_save", { slot, presets })),
+	/**  Every slot holding a save, newest first. */
+	saveSlots: () => typedError<SlotRow[], string>(__TAURI_INVOKE("save_slots")),
+	savePresets: () => __TAURI_INVOKE<SavePreset[]>("save_presets"),
+	/**  The Items tab. */
+	saveItems: (slot: number, pending: Pending) => typedError<ItemsView, string>(__TAURI_INVOKE("save_items", { slot, pending })),
+	/**  The edits a click on a grid cell makes, to add to the pending ones. */
+	saveClick: (slot: number, pending: Pending, at: number, intent: Intent) => typedError<Edit[], string>(__TAURI_INVOKE("save_click", { slot, pending, at, intent })),
+	/**  The Flags tab. */
+	saveFlags: (slot: number, pending: Pending, query: FlagQuery) => typedError<FlagsView, string>(__TAURI_INVOKE("save_flags", { slot, pending, query })),
+	/**
+	 *  Write the pending edits to a slot, keeping a backup. Refused while the
+	 *  game runs, or when the file changed since `stamp`.
+	 */
+	saveWrite: (slot: number, pending: Pending, stamp: number) => typedError<SaveEdit, string>(__TAURI_INVOKE("save_write", { slot, pending, stamp })),
 	/**  Where the Live tab picks up after a reload. */
 	liveState: () => __TAURI_INVOKE<Snapshot>("live_state"),
 	/**  Label an unnamed value, or drop its label for an empty one. */
@@ -263,6 +274,14 @@ export type DungeonRow = {
 	name: string,
 };
 
+/**  One element of a save value to set, as text its type takes. */
+export type Edit = {
+	hash: number,
+	/**  The element: 0 for anything that isn't an array. */
+	index?: number,
+	value: string,
+};
+
 export type Event = { type: "Started"; session: Session } | 
 /**  A change `at` seconds into the session, from an autosave if `save`. */
 { type: "Row"; at: number; save: boolean; change: Change } | 
@@ -270,6 +289,61 @@ export type Event = { type: "Started"; session: Session } |
 { type: "Muted"; hash: number; name: string; manual: boolean } | 
 /**  A marker `at` seconds into the session, saying what happened. */
 { type: "Marked"; at: number; text: string } | { type: "Unsaved"; reason: string } | { type: "Ended"; reason: string } | { type: "Status"; status: LiveStatus };
+
+/**  One group's header, with its rows when it's open. */
+export type FlagGroup = {
+	name: string,
+	/**  Values that pass the filters. */
+	count: number,
+	/**  Of those, how many differ from their default. */
+	changed: number,
+	open: boolean,
+	rows: FlagRow[],
+};
+
+/**  What the tab asks for. */
+export type FlagQuery = {
+	/**  Matched against the name, the hash in hex and any label. */
+	search: string,
+	/**  Only values of this type. */
+	kind: string | null,
+	/**  Only values that differ from what a new game starts with. */
+	changed: boolean,
+	/**  Only values the pending edits change. */
+	staged: boolean,
+	/**
+	 *  Each open group, to how many rows it shows. A search opens the
+	 *  groups it hits, at a page each.
+	 */
+	open: { [key in string]: number },
+};
+
+/**  One value. */
+export type FlagRow = {
+	hash: number,
+	/**  The name, else `#hash`. */
+	name: string,
+	label: string | null,
+	kind: string,
+	/**  The field each element is edited in. */
+	input: Input,
+	choices: string[],
+	/**
+	 *  One per element: one for a scalar. Empty when the type can't be
+	 *  read, with `size` saying how big it is.
+	 */
+	values: string[],
+	size: number,
+	default: string | null,
+	changed: boolean,
+	staged: boolean,
+};
+
+export type FlagsView = {
+	groups: FlagGroup[],
+	/**  Every type the save holds, for the type filter. */
+	kinds: string[],
+};
 
 /**  What the dev panel, the test setup and plando pick from. */
 export type GameOptions = {
@@ -289,7 +363,7 @@ export type GameOptions = {
  *  What a cell draws when the game's art is off. Tiers share one, as the
  *  swords and the three wallets do.
  */
-export type Glyph = "sticks" | "nuts" | "bombs" | "bombchus" | "bow" | "slingshot" | "ocarina" | "hookshot" | "boomerang" | "beans" | "lens" | "hammer" | "fire-arrow" | "fire-medallion" | "ice-arrow" | "light-arrow" | "light-medallion" | "dins-fire" | "farores-wind" | "nayrus-love" | "bottle" | "egg" | "cucco" | "letter" | "mask" | "truth-mask" | "mushroom" | "saw" | "sword" | "prescription" | "frog" | "eye-drops" | "claim-check" | "shield" | "tunic" | "iron-boots" | "hover-boots" | "gauntlets" | "scale" | "wallet" | "bomb-bag" | "quiver" | "bullet-bag" | "heart-piece" | "magic" | "gerudo-card" | "agony-stone" | "skulltula" | "song" | "stone" | "forest-medallion" | "water-medallion" | "spirit-medallion" | "shadow-medallion" | "small-key" | "boss-key" | "map" | "compass" | "unknown";
+export type Glyph = "sticks" | "nuts" | "bombs" | "bombchus" | "bow" | "slingshot" | "ocarina" | "hookshot" | "boomerang" | "beans" | "lens" | "hammer" | "fire-arrow" | "fire-medallion" | "ice-arrow" | "light-arrow" | "light-medallion" | "dins-fire" | "farores-wind" | "nayrus-love" | "bottle" | "egg" | "cucco" | "letter" | "mask" | "truth-mask" | "mushroom" | "saw" | "sword" | "prescription" | "frog" | "eye-drops" | "claim-check" | "shield" | "tunic" | "iron-boots" | "hover-boots" | "gauntlets" | "scale" | "wallet" | "bomb-bag" | "quiver" | "bullet-bag" | "heart-piece" | "heart" | "rupee" | "magic" | "gerudo-card" | "agony-stone" | "skulltula" | "song" | "stone" | "forest-medallion" | "water-medallion" | "spirit-medallion" | "shadow-medallion" | "small-key" | "boss-key" | "map" | "compass" | "unknown";
 
 /**  One of a test setup's goals, read from the game. */
 export type Goal = {
@@ -325,15 +399,23 @@ export type Info = {
 	default: string | null,
 };
 
-/**  The field a value is edited in. */
+/**  The field one element of a value is edited in. */
 export type Input = 
-/**  One of `choices`. */
+/**  One of the value's choices. */
 "choice" | "number" | "text" | 
-/**
- *  Shown, not written: what [`live::encode`](crate::live::encode)
- *  can't write.
- */
+/**  Comma-separated floats: `x,y` or `x,y,z`. */
+"vector" | 
+/**  Shown, not written: what [`encode`] can't write. */
 "read";
+
+/**  What a click on a cell asks for. */
+export type Intent = 
+/**  The next tier, wrapping to none after the last. */
+"up" | 
+/**  The tier before, wrapping from none to the last. */
+"down" | 
+/**  This many of a counted item, kept within its cap. */
+{ count: number };
 
 /**  The grid changed, or its options did. */
 export type ItemsEvent = ItemsState;
@@ -344,6 +426,21 @@ export type ItemsState = {
 	options: TrackerOptions,
 	/**  The icons come from the dump: game assets are on and a dump is set. */
 	game_art: boolean,
+};
+
+/**
+ *  The Items tab: the grid and the Status panel, as the pending edits
+ *  leave the save.
+ */
+export type ItemsView = {
+	/**  The tracker's default layout. */
+	sections: Placement[],
+	cells: Cell[],
+	/**  How many each counted cell can hold, in `cells`' order. */
+	caps: (number | null)[],
+	/**  Whether a pending edit changes each cell. */
+	staged: boolean[],
+	status: StatusField[],
 };
 
 export type Kind = { type: "toggle"; default: boolean } | 
@@ -379,6 +476,15 @@ export type Mark = { kind: "Skipped" } | { kind: "Note"; text: string };
 export type Numbered = {
 	seq: number,
 	event: Event,
+};
+
+/**
+ *  What's waiting to be saved: the presets turned on, then single edits
+ *  on top of them.
+ */
+export type Pending = {
+	presets: string[],
+	edits: Edit[],
 };
 
 /**  Where a section sits in the grid and how wide it draws. */
@@ -442,18 +548,11 @@ export type Row = {
 	mark: Mark | null,
 };
 
-/**  What applying presets to a save changed. */
+/**  What saving changed. */
 export type SaveEdit = {
-	/**  Each flag as `name: old -> new`. */
+	/**  Each value as `name: old -> new`. */
 	log: string[],
 	backup: string,
-};
-
-/**  What Save slot can pick from. */
-export type SaveOptions = {
-	/**  Slot numbers holding a save, in the picked target's save folder. */
-	slots: number[],
-	presets: SavePreset[],
 };
 
 /**  A preset an existing save can take. */
@@ -510,6 +609,23 @@ export type SettingsFile = {
 
 /**  Which side of the actor Link lands on, by its facing. */
 export type Side = "front" | "back" | "left" | "right";
+
+/**  One slot holding a save. */
+export type SlotRow = {
+	slot: number,
+	/**  When the save was last written, in milliseconds. */
+	stamp: number,
+	/**  The slot Continue loads: the one written last. */
+	continues: boolean,
+	child: boolean | null,
+	/**  The three stones and six medallions, each held or not. */
+	stones: Cell[],
+	medallions: Cell[],
+	/**  Hearts, songs, Gold Skulltulas and rupees, each the save holds. */
+	stats: Stat[],
+	/**  Why the save couldn't be read, leaving the summary out. */
+	error: string | null,
+};
 
 /**  Everything a page needs to pick up where the stream is. */
 export type Snapshot = {
@@ -577,11 +693,51 @@ export type Start = {
 	settings: string[],
 };
 
+/**  A number a row shows beside its icon. */
+export type Stat = {
+	label: string,
+	icon: string,
+	/**  What it draws with game art off. */
+	glyph: Glyph,
+	/**  In `per`ths of what the row shows, as a status field counts. */
+	value: number,
+	per: number,
+};
+
 export type Status = {
 	/**  The game dump's path exists. Save already extracted it. */
 	game: boolean,
 	targets: TargetStatus[],
 };
+
+/**  One value a choice field can take, and what it reads as. */
+export type StatusChoice = {
+	value: string,
+	label: string,
+};
+
+/**  One field of the panel. */
+export type StatusField = {
+	group: StatusGroup,
+	label: string,
+	hash: number,
+	input: Input,
+	/**  As the save holds it. */
+	value: string,
+	choices: StatusChoice[],
+	/**
+	 *  How many of the save's units make one shown: 4 for hearts, kept
+	 *  in quarters.
+	 */
+	per: number,
+	/**  The most it takes, in the save's units. */
+	max: number | null,
+	/**  Why the value looks wrong, without refusing it. */
+	warn: string | null,
+};
+
+/**  Where a field sits in the panel. */
+export type StatusGroup = "Meters" | "Gear" | "Age" | "Counters";
 
 /**  An entry without its spots, for lists. */
 export type Summary = {
