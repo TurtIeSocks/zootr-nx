@@ -9,7 +9,7 @@ use crate::checks::{self, Drop};
 use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::known::{actor, flag, flow, item, scene};
-use crate::progress::{Event, Run, Step};
+use crate::progress::{Run, Step, StepEvent};
 use crate::settings::{NewGame, Settings};
 use crate::shuffle::Fixed;
 use crate::standins;
@@ -59,7 +59,7 @@ fn a_run_reports_every_step_in_order() {
     let began = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
     let heard = began.clone();
     let run = Run::silent().with(move |e| {
-        if let Event::Began { step } = e {
+        if let StepEvent::Began { step } = e {
             heard.lock().unwrap().push(*step);
         }
     });

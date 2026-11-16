@@ -202,7 +202,7 @@ mod tests {
     use super::*;
     use crate::game::dev_dump;
     use crate::known::item;
-    use crate::progress::{self, Event};
+    use crate::progress::{self, StepEvent};
     use crate::rules::{Book, Ctx};
     use crate::settings::{
         CHESTS, DUNGEON_REWARDS, KEYS, NPC_GIFTS, OPEN_DOOR, PROGRESSIVE, SONGS, Settings,
@@ -309,7 +309,7 @@ mod tests {
         let run = Run::silent();
         let (stopper, heard) = (run.stopper(), seen.clone());
         let run = run.with(move |e| {
-            if let Event::Detail { text } = e {
+            if let StepEvent::Detail { text } = e {
                 heard.lock().unwrap().push(text.clone());
                 stopper.stop();
             }

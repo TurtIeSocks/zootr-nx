@@ -6,7 +6,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use super::{End, Event, Run, Stopped, line};
+use super::{End, Run, StepEvent, Stopped, line};
 use crate::config::Target;
 use crate::generate::Extras;
 use crate::settings::Settings;
@@ -87,11 +87,11 @@ impl Run {
                 write(&l);
             }
             match e {
-                Event::End {
+                StepEvent::End {
                     end: End::Failed { error },
                     ..
                 } => write(error),
-                Event::End {
+                StepEvent::End {
                     end: End::Stopped { took_off: true },
                     ..
                 } => write(&Stopped { took_off: true }.to_string()),

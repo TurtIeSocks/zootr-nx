@@ -1,9 +1,13 @@
+import { Channel } from "@tauri-apps/api/core";
 import { create } from "zustand";
 import { dotPath } from "zustand-dot";
 import {
   commands,
+  type End,
   type Label,
   type Status,
+  type Step,
+  type StepEvent,
   type Summary,
   type View,
 } from "@/bindings";
@@ -12,6 +16,28 @@ import { blocked } from "@/lib/config";
 import { settingsDiff } from "@/lib/settings";
 import { saveConfig, useConfig } from "@/stores/config";
 import { once } from "@/stores/once";
+
+/** A step of a generate run, as the New Seed card lists it. */
+export interface StepRow {
+  step: Step;
+  /** What it's doing now, or did last. */
+  detail: string;
+  /** Its time once it ended, null while it runs. */
+  secs: number | null;
+  /** When it started, by `Date.now()`, for its live timer. */
+  started: number;
+}
+
+/** The running or last generate run. */
+export interface Steps {
+  rows: StepRow[];
+  /** How it ended, once it has. */
+  end: End | null;
+  /** Its whole time, once it ended. */
+  secs: number;
+  /** What a stop left, in the stop's words. */
+  stopped?: string;
+}
 
 /** The targets' status, the seed history, and the actions that write them. */
 interface Seeds {
@@ -34,6 +60,12 @@ interface Seeds {
   drift: string[];
   /** How many settings differ from each entry's, by entry id. */
   diffs: Record<number, number>;
+  /** The running or last generate run's steps, or null before the first. */
+  steps: Steps | null;
+  /** A seed is being generated, so it can be stopped. */
+  generating: boolean;
+  /** Stop was pressed and the run hasn't ended yet. */
+  stopping: boolean;
 }
 
 /** The seeds store. Start it with {@link init}. */
@@ -48,6 +80,9 @@ export const useSeeds = create<Seeds>()(
       running: false,
       drift: [],
       diffs: {},
+      steps: null,
+      generating: false,
+      stopping: false,
     }),
   ),
 );
@@ -151,11 +186,67 @@ async function run(action: () => Promise<unknown>) {
   }
 }
 
+/** `steps` with `event` applied. Detail and an end land on the last row,
+ * the step running. */
+export function stepped(steps: Steps, event: StepEvent): Steps {
+  const last = (row: Partial<StepRow>) =>
+    steps.rows.map((r, i) =>
+      i === steps.rows.length - 1 ? { ...r, ...row } : r,
+    );
+  switch (event.kind) {
+    case "began": {
+      const row = {
+        step: event.step,
+        detail: "",
+        secs: null,
+        started: Date.now(),
+      };
+      return { ...steps, rows: [...steps.rows, row] };
+    }
+    case "detail":
+      return { ...steps, rows: last({ detail: event.text }) };
+    case "ended":
+      return {
+        ...steps,
+        rows: last({ detail: event.detail, secs: event.secs ?? 0 }),
+      };
+    case "end":
+      return { ...steps, end: event.end, secs: event.secs ?? 0 };
+  }
+}
+
+/** Sends a generate run's command a channel its steps come back on. A stop
+ * isn't an error: its words go with the steps. */
+async function stepping(send: (steps: Channel<StepEvent>) => Promise<unknown>) {
+  const channel = new Channel<StepEvent>((event) =>
+    useSeeds.setPath("steps", (s) => s && stepped(s, event)),
+  );
+  useSeeds.setPath("steps", { rows: [], end: null, secs: 0 });
+  useSeeds.setPath("generating", true);
+  try {
+    await send(channel);
+  } catch (e) {
+    if (useSeeds.getState().steps?.end?.kind !== "stopped") throw e;
+    useSeeds.setPath("steps.stopped", message(e));
+  } finally {
+    useSeeds.setPath("generating", false);
+    useSeeds.setPath("stopping", false);
+  }
+}
+
 /** Generates and installs a seed. `seed` is typed in, or null for random. */
 export const generate = (seed: string | null) =>
-  run(() => call(commands.generate(seed)));
+  run(() => stepping((steps) => call(commands.generate(seed, steps))));
 /** Installs a history entry to every target. */
-export const install = (id: number) => run(() => call(commands.install(id)));
+export const install = (id: number) =>
+  run(() => stepping((steps) => call(commands.install(id, steps))));
+/** Asks the seed being generated to stop at its next checkpoint. */
+export async function stopGenerate() {
+  useSeeds.setPath("stopping", true);
+  await commands.stopGenerate();
+}
+/** The last generate run's log. Throws why it couldn't be read. */
+export const generateLog = () => call(commands.generateLog());
 /** Takes the mod off every target. */
 export const uninstall = () => run(() => call(commands.uninstall()));
 /** Deletes a history entry. */

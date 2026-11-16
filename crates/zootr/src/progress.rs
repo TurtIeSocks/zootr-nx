@@ -83,7 +83,7 @@ pub enum End {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(tag = "kind", rename_all = "camelCase")]
-pub enum Event {
+pub enum StepEvent {
     Began {
         step: Step,
     },
@@ -113,7 +113,7 @@ pub struct Stopped {
 impl fmt::Display for Stopped {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.took_off {
-            false => write!(f, "Stopped"),
+            false => write!(f, "Stopped: the targets are as they were"),
             true => write!(
                 f,
                 "Stopped while writing: the mod is off every target, so the game runs vanilla until the next install"
@@ -139,7 +139,7 @@ impl Stopper {
     }
 }
 
-type Sink = Box<dyn Fn(&Event) + Send + Sync>;
+type Sink = Box<dyn Fn(&StepEvent) + Send + Sync>;
 
 #[derive(Default)]
 struct Now {
@@ -172,7 +172,7 @@ impl Run {
     }
 
     /// This run, also reporting to `sink`.
-    pub fn with(mut self, sink: impl Fn(&Event) + Send + Sync + 'static) -> Run {
+    pub fn with(mut self, sink: impl Fn(&StepEvent) + Send + Sync + 'static) -> Run {
         self.sinks.push(Box::new(sink));
         self
     }
@@ -181,7 +181,7 @@ impl Run {
         self.stop.clone()
     }
 
-    fn send(&self, event: Event) {
+    fn send(&self, event: StepEvent) {
         self.sinks.iter().for_each(|s| s(&event));
     }
 
@@ -190,7 +190,7 @@ impl Run {
         if let Some((step, at)) = now.step.take() {
             let detail = std::mem::take(&mut now.detail);
             let secs = at.elapsed().as_secs_f64();
-            self.send(Event::Ended { step, detail, secs });
+            self.send(StepEvent::Ended { step, detail, secs });
         }
     }
 
@@ -201,10 +201,10 @@ impl Run {
         self.close(&mut now);
         now.step = Some((step, Instant::now()));
         now.reached.push(step);
-        self.send(Event::Began { step });
+        self.send(StepEvent::Began { step });
         if step == Step::Writing && !now.target.is_empty() {
             now.detail = now.target.clone();
-            self.send(Event::Detail {
+            self.send(StepEvent::Detail {
                 text: now.detail.clone(),
             });
         }
@@ -215,7 +215,7 @@ impl Run {
     pub fn detail(&self, text: impl Into<String>) {
         let text = text.into();
         self.now.lock().unwrap().detail = text.clone();
-        self.send(Event::Detail { text });
+        self.send(StepEvent::Detail { text });
     }
 
     /// The target the mod is written for next.
@@ -251,32 +251,32 @@ impl Run {
             },
         };
         let secs = self.started.elapsed().as_secs_f64();
-        self.send(Event::End { end, secs });
+        self.send(StepEvent::End { end, secs });
     }
 }
 
 /// `event` as a line of the log or the command line, if it makes one: an
 /// ended step with its time, or the end.
-pub fn line(event: &Event) -> Option<String> {
+pub fn line(event: &StepEvent) -> Option<String> {
     match event {
-        Event::Ended { step, detail, secs } => {
+        StepEvent::Ended { step, detail, secs } => {
             let detail = match detail.is_empty() {
                 true => String::new(),
                 false => format!(" ({detail})"),
             };
             Some(format!("{secs:>5.1} s  {}{detail}", step.name()))
         }
-        Event::End { end, secs } => Some(match end {
+        StepEvent::End { end, secs } => Some(match end {
             End::Done => format!("  done in {secs:.1} s"),
             End::Failed { .. } => format!("  failed after {secs:.1} s"),
             End::Stopped { .. } => format!("  stopped after {secs:.1} s"),
         }),
-        Event::Began { .. } | Event::Detail { .. } => None,
+        StepEvent::Began { .. } | StepEvent::Detail { .. } => None,
     }
 }
 
 /// Prints each ended step and the end to stderr.
-pub fn print(event: &Event) {
+pub fn print(event: &StepEvent) {
     if let Some(line) = line(event) {
         eprintln!("{line}");
     }
@@ -287,7 +287,7 @@ mod tests {
     use super::*;
 
     /// A run whose events land in the returned list.
-    fn heard() -> (Run, Arc<Mutex<Vec<Event>>>) {
+    fn heard() -> (Run, Arc<Mutex<Vec<StepEvent>>>) {
         let events = Arc::new(Mutex::new(Vec::new()));
         let sink = events.clone();
         let run = Run::silent().with(move |e| sink.lock().unwrap().push(e.clone()));
@@ -305,10 +305,10 @@ mod tests {
         let kinds: Vec<String> = events
             .iter()
             .map(|e| match e {
-                Event::Began { step } => format!("began {}", step.name()),
-                Event::Detail { text } => format!("detail {text}"),
-                Event::Ended { step, detail, .. } => format!("ended {} {detail}", step.name()),
-                Event::End { end, .. } => format!("end {end:?}"),
+                StepEvent::Began { step } => format!("began {}", step.name()),
+                StepEvent::Detail { text } => format!("detail {text}"),
+                StepEvent::Ended { step, detail, .. } => format!("ended {} {detail}", step.name()),
+                StepEvent::End { end, .. } => format!("end {end:?}"),
             })
             .collect();
         assert_eq!(
@@ -322,8 +322,8 @@ mod tests {
                 "end Done",
             ]
         );
-        let secs = |e: &Event| match e {
-            Event::Ended { secs, .. } | Event::End { secs, .. } => *secs,
+        let secs = |e: &StepEvent| match e {
+            StepEvent::Ended { secs, .. } | StepEvent::End { secs, .. } => *secs,
             _ => 0.0,
         };
         assert!(secs(&events[5]) >= secs(&events[2]) + secs(&events[4]));
@@ -348,11 +348,11 @@ mod tests {
         assert!(matches!(
             &events[events.len() - 2..],
             [
-                Event::Ended {
+                StepEvent::Ended {
                     step: Step::Placing,
                     ..
                 },
-                Event::End {
+                StepEvent::End {
                     end: End::Stopped { took_off: false },
                     ..
                 }
@@ -368,9 +368,9 @@ mod tests {
         run.step(Step::Writing).unwrap();
         run.end(&Err::<(), _>(anyhow::anyhow!("broke")));
         let events = events.lock().unwrap();
-        assert!(matches!(&events[2], Event::Ended { detail, .. } if detail == "t"));
+        assert!(matches!(&events[2], StepEvent::Ended { detail, .. } if detail == "t"));
         assert!(
-            matches!(&events[3], Event::End { end: End::Failed { error }, .. } if error == "broke")
+            matches!(&events[3], StepEvent::End { end: End::Failed { error }, .. } if error == "broke")
         );
     }
 }
