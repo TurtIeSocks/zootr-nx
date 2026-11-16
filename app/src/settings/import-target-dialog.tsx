@@ -1,4 +1,5 @@
-import { Upload } from "lucide-react";
+import { open as pickFile } from "@tauri-apps/plugin-dialog";
+import { FileUp, Upload } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { commands, type Target } from "@/bindings";
 import { InlineError } from "@/components/callout";
@@ -37,8 +38,8 @@ export function ImportTargetDialog({ onImport }: ImportTargetDialogProps) {
         <DialogHeader>
           <DialogTitle>Import a target</DialogTitle>
           <DialogDescription>
-            Paste a target someone shared. It is added as a new target for you
-            to check, then save.
+            Paste a target someone shared, or open its file. It is added as a
+            new target for you to check, then save.
           </DialogDescription>
         </DialogHeader>
         <ImportForm
@@ -52,8 +53,8 @@ export function ImportTargetDialog({ onImport }: ImportTargetDialogProps) {
   );
 }
 
-/** The pasted text and its request. It mounts with the dialog's content, so
- * each opening starts empty. */
+/** The pasted or opened text and its request. It mounts with the dialog's
+ * content, so each opening starts empty. */
 function ImportForm({ onImport }: ImportTargetDialogProps) {
   const [text, setText] = useState("");
   const action = useRequestState();
@@ -61,6 +62,13 @@ function ImportForm({ onImport }: ImportTargetDialogProps) {
     e.preventDefault();
     action.run(async () => onImport(await call(commands.importTarget(text))));
   };
+  const openFile = () =>
+    action.run(async () => {
+      const file = await pickFile({
+        filters: [{ name: "Target", extensions: ["json"] }],
+      });
+      if (file) setText(await call(commands.readTargetFile(file)));
+    });
 
   return (
     <form className="flex flex-col gap-4" onSubmit={submit}>
@@ -74,6 +82,15 @@ function ImportForm({ onImport }: ImportTargetDialogProps) {
       />
       <InlineError error={action.error} />
       <DialogFooter className="pt-1">
+        <Button
+          type="button"
+          variant="ghost"
+          className="sm:mr-auto"
+          disabled={action.busy}
+          onClick={openFile}
+        >
+          <FileUp /> Open a file
+        </Button>
         <DialogClose asChild>
           <Button type="button" variant="ghost">
             Cancel
