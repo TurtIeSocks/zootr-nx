@@ -4,6 +4,9 @@ import { NameField } from "@/components/name-field";
 import { ValueInput } from "@/components/value-input";
 import { type QuestStep, type Quests, stepOf } from "@/lib/quest-step";
 
+/** Pinned, so a long step name can't squeeze the quest field shut. */
+const STEP_WIDTH = "w-40 shrink-0";
+
 /** Props for {@link QuestStepPicker}. */
 interface QuestStepPickerProps {
   quests: Quests;
@@ -14,8 +17,6 @@ interface QuestStepPickerProps {
   id?: string;
   placeholder?: string;
   onEnter?: () => void;
-  /** Classes for the step's choice. */
-  stepClassName?: string;
   /** What acts on the pick, after the step: a button. */
   children?: ReactNode;
 }
@@ -31,7 +32,6 @@ export function QuestStepPicker({
   id,
   placeholder,
   onEnter,
-  stepClassName,
   children,
 }: QuestStepPickerProps) {
   const steps = quests[value.challenge.trim()] ?? [];
@@ -58,7 +58,7 @@ export function QuestStepPicker({
           info={info}
           value={stepOf(quests, value)}
           onChange={(step) => onChange({ ...value, step })}
-          className={stepClassName}
+          className={STEP_WIDTH}
         />
       )}
       {children}

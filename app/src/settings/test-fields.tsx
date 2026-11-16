@@ -312,7 +312,6 @@ export function QuestStepsField() {
         value={pick}
         onChange={setPick}
         onEnter={add}
-        stepClassName={VALUE_WIDTH}
       >
         <Button
           variant="secondary"

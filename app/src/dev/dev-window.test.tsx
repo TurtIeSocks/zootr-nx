@@ -585,6 +585,8 @@ test("Quest step moves the picked quest to the picked step", async () => {
   const quest = await screen.findByRole("textbox", { name: "Quest" });
   fireEvent.change(quest, { target: { value: "A" } });
   const step = (await screen.findByLabelText("Step")) as HTMLSelectElement;
+  // Pinned, or a long step squeezes the quest field shut.
+  expect(step.className).toContain("shrink-0");
   expect(step.value).toBe("NotReady");
   fireEvent.change(step, { target: { value: "Complete" } });
   const move = screen.getByRole("button", { name: "Move" });
