@@ -6,6 +6,7 @@ use std::sync::LazyLock;
 use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 
+use super::ice;
 use crate::cows::{self, Cow};
 use crate::cutscenes::Catalogue;
 use crate::events::{Effect, Flows};
@@ -60,6 +61,8 @@ pub enum Trigger {
         /// The items of the other breakables within a sword's swing of a
         /// broken holder, which its swing can break too.
         near: Vec<String>,
+        /// The red ice the holder is frozen in, melted with Blue Fire first.
+        ice: Option<[f32; 3]>,
     },
     /// Warp near, use the holder, the judge steers the talk.
     Talk {
@@ -149,7 +152,7 @@ fn anchor(romfs: &Romfs, map: &str, label: &str) -> Result<[f32; 3]> {
         .with_context(|| format!("nothing in {map} is named {label}"))
 }
 
-type Maps = BTreeMap<String, HashMap<u64, Pose>>;
+type Maps<T = HashMap<u64, Pose>> = BTreeMap<String, T>;
 /// A gated holder's ready entries, the quest steps it waits on, and the
 /// only age that opens it.
 type Raise = (Ready, Steps, Option<bool>);
@@ -190,6 +193,8 @@ struct Planner<'a> {
     breakables: BTreeMap<u64, String>,
     gamedata: Option<GameData>,
     flows: Option<Flows>,
+    /// Where each red ice stands, by area, then map.
+    ice: HashMap<String, Maps<Vec<[f32; 3]>>>,
 }
 
 impl<'a> Planner<'a> {
@@ -206,6 +211,7 @@ impl<'a> Planner<'a> {
             breakables: BTreeMap::new(),
             gamedata: None,
             flows: None,
+            ice: HashMap::new(),
         }
     }
 }
@@ -244,6 +250,8 @@ impl Planner<'_> {
         if !self.areas.contains_key(area) {
             let maps = warp::poses_in(self.romfs, area)?;
             self.areas.insert(area.to_owned(), maps);
+            let ice = warp::spots_in(self.romfs, area, &ice::RED_ICE)?;
+            self.ice.insert(area.to_owned(), ice);
         }
         Ok(&self.areas[area])
     }
@@ -327,6 +335,7 @@ impl Planner<'_> {
                 let pose = &warp::facing(&spot.holder, pose);
                 let (map, at) = (map.clone(), clear_landing(pose, &others));
                 let face = pose.at;
+                let ice = (self.ice[&spot.area].get(&map)).and_then(|i| ice::encasing(i, face));
                 let broken = pickups::broken(&spot.holder);
                 let found = match broken {
                     true => neighbours(spot.hash, face, poses, &self.breakables),
@@ -344,6 +353,7 @@ impl Planner<'_> {
                         face,
                         broken,
                         near,
+                        ice,
                     },
                     true => Trigger::Talk {
                         ready: self.sellers(&map, spot.hash)?,
@@ -863,6 +873,25 @@ mod tests {
             planned[0].trigger,
             Trigger::Skip(format!("chest not found in {}", flag::KOKIRI_FOREST))
         );
+    }
+
+    #[test]
+    fn holders_frozen_in_red_ice_melt_it_first() {
+        let Some((_, _, planned)) = seed() else {
+            return;
+        };
+        let frozen: BTreeSet<u64> = (planned.iter())
+            .filter(|p| matches!(p.trigger, Trigger::Open { ice: Some(_), .. }))
+            .map(|p| p.spot.hash)
+            .collect();
+        // The Ice Cavern's two pots and its map chest.
+        let cavern = [
+            3105481948394149361,
+            13545259034644162992,
+            11498802739257120175,
+        ];
+        assert!(cavern.iter().all(|h| frozen.contains(h)), "{frozen:?}");
+        assert!(frozen.len() < 10, "{frozen:?}");
     }
 
     #[test]

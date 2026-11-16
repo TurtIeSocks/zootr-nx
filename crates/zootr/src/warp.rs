@@ -172,6 +172,24 @@ pub fn poses_in(romfs: &Romfs, area: &str) -> Result<BTreeMap<String, HashMap<u6
         .collect())
 }
 
+/// Where each placement of any of `actors` stands in `area`'s maps, by map.
+pub fn spots_in(
+    romfs: &Romfs,
+    area: &str,
+    actors: &[&Name],
+) -> Result<BTreeMap<String, Vec<[f32; 3]>>> {
+    let found = placed_by_map(romfs, |rel| rel.split('/').nth(1) == Some(area))?;
+    Ok(found
+        .into_iter()
+        .map(|(map, placed)| {
+            let of = placed
+                .into_iter()
+                .filter(|p| actors.iter().any(|a| **a == p.name));
+            (map, of.map(|p| p.pose.at).collect())
+        })
+        .collect())
+}
+
 /// A placement's own name field.
 const LABEL: &str = "Name";
 

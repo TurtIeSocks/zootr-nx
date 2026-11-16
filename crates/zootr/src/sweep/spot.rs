@@ -10,6 +10,7 @@ use anyhow::{Context, Result, bail};
 use ounce_formats::Romfs;
 use serde::Serialize;
 
+use super::ice;
 use super::judge::{Answer, Judge, Look, TURNS};
 use super::melody;
 use super::plan::{Halt, Planned, Trigger, preset};
@@ -17,7 +18,7 @@ use super::watch::{MESSAGE, Watch, got_other, lands_as, named, owned_as, swapped
 use crate::dev::{Dev, EVENT_PLAYING, NOT_TAKEN, Place, Request};
 use crate::gamedata::GameData;
 use crate::gerudo;
-use crate::known::{Name, flag};
+use crate::known::{Name, actor, flag};
 use crate::live;
 use crate::nav::act::Used;
 use crate::nav::drive::Drive;
@@ -424,6 +425,9 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             false => nav::landing(&graph, holder, at, p.side),
         };
         self.calmly(|dev| dev.warp(at))?;
+        if let Trigger::Open { ice: Some(ice), .. } = &p.trigger {
+            self.melt(*ice)?;
+        }
         let shot = self.frame(p, name, "use");
         let mut drive = Drive::new(self.dev, &mut *self.input);
         drive.side = p.side;
@@ -437,6 +441,22 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         {
             self.after_talk(button)?;
         }
+        Ok(())
+    }
+
+    /// Melt the red ice at `ice` with Blue Fire: give a bottle of it, put
+    /// it on ZR from the Items screen, face the ice and pour.
+    fn melt(&mut self, ice: [f32; 3]) -> Result<()> {
+        let gd = self.gd;
+        self.calmly(|dev| dev.give(gd, actor::ITEM_BOTTLE_BLUE_FIRE, 1))?;
+        for (button, wait) in ice::EQUIP {
+            self.input.press(button)?;
+            sleep(wait);
+        }
+        // A pour facing away empties the bottle and leaves the ice.
+        Drive::new(self.dev, &mut *self.input).face(ice)?;
+        self.input.press("ZR")?;
+        sleep(ice::MELT);
         Ok(())
     }
 
@@ -856,6 +876,7 @@ mod tests {
             first: None,
             broken: false,
             near: vec![],
+            ice: None,
         };
         assert!(!pays(&with(open)));
     }
