@@ -115,11 +115,15 @@ impl Level {
     }
 
     /// The placement standing at `at`, for a caller that knows a holder
-    /// by its pose rather than its hash. One Link can see goes first: a
-    /// chest shares its pose with the area around it.
+    /// by its pose rather than its hash. One `use` acts on goes first, then
+    /// one Link can see: a chest shares its pose with the area around it,
+    /// and the Spirit Temple's boss key chest with the fire wall round it.
     pub fn standing_at(&self, at: [f32; 3]) -> Result<&Placement> {
         let here = || (self.placed.iter()).filter(|p| graph::dist(p.pose.at, at) < SAME);
-        (here().find(|p| crate::around::seen(&p.name)))
+        let seen = |p: &&Placement| crate::around::seen(&p.name);
+        let used = |p: &&Placement| kinds::kind_of(&p.name).is_some_and(|k| k.act.is_some());
+        (here().find(|p| seen(p) && used(p)))
+            .or_else(|| here().find(seen))
             .or_else(|| here().next())
             .with_context(|| format!("nothing is placed at {at:?} in {}", self.map))
     }
@@ -284,7 +288,7 @@ mod tests {
     }
 
     #[test]
-    fn a_holder_link_can_see_wins_over_an_area_at_its_pose() {
+    fn a_holder_use_acts_on_wins_over_a_wall_or_area_at_its_pose() {
         needs_names!();
         let placed = |name: &str| Placement {
             name: name.into(),
@@ -301,6 +305,7 @@ mod tests {
             mesh: fixture::mesh(&[fixture::quad(0.0, 0.0, 4.0, 4.0, 0.0)]),
             placed: vec![
                 placed(actor::DROP_KEEP_AWAY_AREA_T_BOX_A_01),
+                placed("Obj_FakeWall_A_02"),
                 placed(actor::OBJ_T_BOX_A_01),
             ],
         };
