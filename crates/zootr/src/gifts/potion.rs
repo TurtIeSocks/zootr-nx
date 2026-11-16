@@ -16,6 +16,15 @@ pub(super) const FLOW: &Name = actor::NPC_HYLIA_020_SHOP_CHILD;
 pub(super) const CALL: &[Call] = &[get(flow::GET_IN_EVENT_NOT_TURN_FIXED_CAMERA_WARP_LINK)];
 /// Set once the bug is caught, the tutorial's end.
 pub(super) const CLEARED: &Name = flag::MARKET_ITEM_BOTTLE_TUTORIAL_EVENT_CLEARED;
+/// What the tutorial leaves set: begun, ended, and the bug's bottle out on
+/// the shelf. Begun and not ended, the shop door stays shut from inside and
+/// the keeper talks only about the bug. Setting these skips the gift, so
+/// only a harness does it, never a seed.
+pub(crate) const DONE: [&Name; 3] = [
+    flag::MARKET_ITEM_BOTTLE_TUTORIAL_EVENT_STARTED,
+    CLEARED,
+    flag::MARKET_ITEM_BOTTLE_TUTORIAL_EVENT_SHOP_BOTTLE_INSECT_APPEARED,
+];
 
 /// Send the gift's call to the event that sets `CLEARED`, which goes on to
 /// the tutorial's last step.

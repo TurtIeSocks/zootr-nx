@@ -287,6 +287,11 @@ pub(super) struct StartArgs {
     /// Claude's shell.
     #[arg(long, default_value = "")]
     pub(super) session: String,
+    /// Keep the Market Potion Shop's bottle tutorial, for a test of its
+    /// gift. Otherwise it's marked done once Link is in play: begun and not
+    /// ended, it shuts Link in the shop until he catches a bug.
+    #[arg(long)]
+    pub(super) bottle_tutorial: bool,
 }
 
 #[derive(Subcommand)]
