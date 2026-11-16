@@ -14,7 +14,9 @@ public until you publish the draft.
 
 The app is built by `tauri-apps/tauri-action`, with every bundle Tauri makes
 for the platform (`bundle.targets` is `"all"`). The CLI is the `zootr` binary
-from `crates/zootr`, built with `cargo build --release --bin zootr`. On macOS
+from `crates/zootr`, built after the app with
+`cargo build --release -p zootr -p zootr-app --bin zootr` so it reuses the
+app's compiled crates. On macOS
 it gets an ad-hoc signature with `crates/zootr/live.entitlements`, like
 `make zootr` does, so `zootr live` can read the running game.
 

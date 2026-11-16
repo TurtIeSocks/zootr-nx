@@ -17,6 +17,15 @@ On Linux, the `.deb` and `.rpm` add zootr-nx to your apps with its icon.
 The AppImage runs from anywhere, but shows its icon only once an AppImage
 manager such as Gear Lever adds it to your apps.
 
+The builds aren't signed yet, so macOS and Windows warn the first time:
+
+- macOS says it can't check the app for malicious software. Try to open it
+  once, then choose Open Anyway in System Settings, under Privacy &
+  Security. The CLI from the `.tar.gz` needs
+  `xattr -d com.apple.quarantine zootr` instead.
+- Windows SmartScreen says it protected your PC. Choose More info, then
+  Run anyway.
+
 ## What it does
 
 | Step | What happens |
