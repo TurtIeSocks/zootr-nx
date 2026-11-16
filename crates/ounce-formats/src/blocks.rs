@@ -154,58 +154,63 @@ fn block_mode(w: usize, h: usize, bits: usize) -> Option<u32> {
 /// The two texels farthest apart along the block's main axis of change.
 fn ends(texels: &[Rgba], channels: &[usize]) -> (Rgba, Rgba) {
     let n = texels.len() as f32;
-    let mean: Vec<f32> = channels
-        .iter()
-        .map(|&c| texels.iter().map(|t| t[c] as f32).sum::<f32>() / n)
+    let k = channels.len();
+    let mut mean = [0.0; 4];
+    for (m, &c) in mean.iter_mut().zip(channels) {
+        *m = texels.iter().map(|t| t[c] as f32).sum::<f32>() / n;
+    }
+    let mean = &mean[..k];
+    let centred: Vec<Picked> = (texels.iter())
+        .map(|t| picked(channels, |i, c| t[c] as f32 - mean[i]))
         .collect();
-    let centred = |t: &Rgba| -> Vec<f32> {
-        channels
-            .iter()
-            .zip(&mean)
-            .map(|(&c, m)| t[c] as f32 - m)
-            .collect()
-    };
     // Power iteration on the covariance, from the farthest texel.
-    let far = texels
-        .iter()
-        .map(centred)
-        .max_by(|a, b| norm(a).total_cmp(&norm(b)))
+    let far = (centred.iter())
+        .max_by(|a, b| norm(&a[..k]).total_cmp(&norm(&b[..k])))
+        .copied()
         .unwrap_or_default();
     let mut axis = far;
     for _ in 0..4 {
-        let mut next = vec![0.0; channels.len()];
-        for t in texels {
-            let d = centred(t);
-            let along = dot(&d, &axis);
-            for (n, v) in next.iter_mut().zip(&d) {
+        let mut next = [0.0; 4];
+        for d in &centred {
+            let along = dot(&d[..k], &axis[..k]);
+            for (n, v) in next[..k].iter_mut().zip(&d[..k]) {
                 *n += along * v;
             }
         }
-        if norm(&next) == 0.0 {
+        if norm(&next[..k]) == 0.0 {
             break;
         }
         axis = next;
     }
-    let along = |t: &&Rgba| dot(&centred(t), &axis);
-    let lo = texels.iter().min_by(|a, b| along(a).total_cmp(&along(b)));
-    let hi = texels.iter().max_by(|a, b| along(a).total_cmp(&along(b)));
-    (*lo.expect("a texel"), *hi.expect("a texel"))
+    let along: Vec<f32> = centred.iter().map(|d| dot(&d[..k], &axis[..k])).collect();
+    let by_along = |a: &(&Rgba, &f32), b: &(&Rgba, &f32)| a.1.total_cmp(b.1);
+    let lo = texels.iter().zip(&along).min_by(by_along);
+    let hi = texels.iter().zip(&along).max_by(by_along);
+    (*lo.expect("a texel").0, *hi.expect("a texel").0)
+}
+
+/// Up to four channels' values, the rest zero: a block's channels without
+/// a heap allocation per texel.
+type Picked = [f32; 4];
+
+/// `value(i, channel)` for each of `channels`.
+fn picked(channels: &[usize], value: impl Fn(usize, usize) -> f32) -> Picked {
+    let mut out = [0.0; 4];
+    for (i, (o, &c)) in out.iter_mut().zip(channels).enumerate() {
+        *o = value(i, c);
+    }
+    out
 }
 
 /// Where `t` falls from `e0` (0) to `e1` (1).
 fn project(t: Rgba, e0: Rgba, e1: Rgba, channels: &[usize]) -> f32 {
-    let d: Vec<f32> = channels
-        .iter()
-        .map(|&c| e1[c] as f32 - e0[c] as f32)
-        .collect();
-    let p: Vec<f32> = channels
-        .iter()
-        .map(|&c| t[c] as f32 - e0[c] as f32)
-        .collect();
-    let len = dot(&d, &d);
+    let k = channels.len();
+    let d = picked(channels, |_, c| e1[c] as f32 - e0[c] as f32);
+    let p = picked(channels, |_, c| t[c] as f32 - e0[c] as f32);
+    let len = dot(&d[..k], &d[..k]);
     match len {
         0.0 => 0.0,
-        _ => (dot(&p, &d) / len).clamp(0.0, 1.0),
+        _ => (dot(&p[..k], &d[..k]) / len).clamp(0.0, 1.0),
     }
 }
 

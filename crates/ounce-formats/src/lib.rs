@@ -18,6 +18,7 @@ mod msbt;
 mod murmur3;
 mod navmesh;
 mod pack;
+mod par;
 mod reader;
 mod rename;
 mod restbl;
@@ -32,7 +33,7 @@ pub use bfres::{
     Lod, Vertex, edit_vertices, lods, pack, pointers, positions, replace_mesh, shape_names, unpack,
     vertices,
 };
-pub use bntx::{Texture, levels, redraw, redraw_halve, textures, textures_named};
+pub use bntx::{Texture, levels, redraw, redraw_halve, textures, textures_named, top_level};
 pub use byml_doc::BymlDoc;
 pub use crc32::crc32;
 pub use evfl::{Actor, EntryPoint, Event, EventKind, Flowchart, Link, Params, Value, relink};
@@ -41,6 +42,7 @@ pub use msbt::{Msbt, Part, messages};
 pub use murmur3::murmur3;
 pub use navmesh::{Border, Edge, Face, Footing, NavMesh, closest};
 pub use pack::{ActorPack, pack_file, pack_path};
+pub use par::{par_batches, par_map};
 pub use rename::rename;
 pub use restbl::Restbl;
 pub use roead::byml::{Byml, Map as BymlMap};

@@ -75,8 +75,8 @@ impl Catalogue {
             .collect();
         // Started by the map, or by a scene change's `BootEventName`.
         let mut map: BTreeSet<String> = boots(&all);
-        for rel in checks::banc_files(romfs)? {
-            let doc = checks::load_banc(romfs, &rel)?;
+        for (_, doc) in checks::bancs(romfs)? {
+            let doc = doc?;
             let mut s = Vec::new();
             strings(&doc.root, &mut s);
             let mut guarded = Vec::new();

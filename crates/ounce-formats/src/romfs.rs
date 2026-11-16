@@ -4,7 +4,7 @@ use anyhow::{Context, Result, anyhow, bail, ensure};
 
 use roead::sarc::{Sarc, SarcWriter};
 
-use crate::{Dicts, Restbl, files_with_suffix, pack_file};
+use crate::{Dicts, Restbl, files_with_suffix, pack_file, par_map};
 
 /// A read-only extracted romfs folder.
 pub struct Romfs {
@@ -55,6 +55,10 @@ impl Romfs {
     }
 }
 
+/// How much a mod holds uncompressed before compressing it: enough files
+/// to keep every core busy, few enough to keep memory down.
+const BATCH_BYTES: usize = 16 << 20;
+
 /// Marks a mod folder as generated, so regenerating may clear it.
 const MARKER: &str = ".ounce-mod";
 
@@ -70,6 +74,9 @@ pub struct ModBuilder<'a> {
     restbl_rel: String,
     restbl: Restbl,
     written: Vec<String>,
+    /// Files to compress and write, a batch at a time, in order.
+    pending: Vec<(String, Vec<u8>)>,
+    pending_bytes: usize,
 }
 
 /// `dir` with `suffix`, hidden next to it.
@@ -119,6 +126,8 @@ impl<'a> ModBuilder<'a> {
             restbl_rel,
             restbl,
             written: Vec::new(),
+            pending: Vec::new(),
+            pending_bytes: 0,
         })
     }
 
@@ -203,17 +212,36 @@ impl<'a> ModBuilder<'a> {
         self.restbl.add(path, size)
     }
 
-    fn put(&self, rel: &str, contents: &[u8]) -> Result<()> {
-        let path = self.staging.join("romfs").join(rel);
-        std::fs::create_dir_all(path.parent().expect("romfs paths have a parent"))?;
-        let bytes = self.romfs.dicts().compress(rel, contents)?;
-        std::fs::write(&path, bytes).with_context(|| format!("writing {}", path.display()))
+    fn put(&mut self, rel: &str, contents: &[u8]) -> Result<()> {
+        self.pending.push((rel.to_owned(), contents.to_vec()));
+        self.pending_bytes += contents.len();
+        match self.pending_bytes >= BATCH_BYTES {
+            true => self.flush(),
+            false => Ok(()),
+        }
+    }
+
+    /// Compress every pending file at once, then write each in the order
+    /// it came, so a file written twice keeps its last contents.
+    fn flush(&mut self) -> Result<()> {
+        let dicts = self.romfs.dicts();
+        let pending = std::mem::take(&mut self.pending);
+        self.pending_bytes = 0;
+        let compressed = par_map(&pending, |(rel, contents)| dicts.compress(rel, contents));
+        for ((rel, _), bytes) in pending.iter().zip(compressed) {
+            let path = self.staging.join("romfs").join(rel);
+            std::fs::create_dir_all(path.parent().expect("romfs paths have a parent"))?;
+            std::fs::write(&path, bytes?).with_context(|| format!("writing {}", path.display()))?;
+        }
+        Ok(())
     }
 
     /// Write the RESTBL, swap the new mod in and return the romfs paths
     /// written, RESTBL included.
     pub fn finish(mut self) -> Result<Vec<String>> {
-        self.put(&self.restbl_rel, &self.restbl.to_binary())?;
+        let (restbl_rel, restbl) = (self.restbl_rel.clone(), self.restbl.to_binary());
+        self.put(&restbl_rel, &restbl)?;
+        self.flush()?;
         self.written.push(self.restbl_rel);
         let old = sibling(&self.mod_dir, "old")?;
         clear(&old)?;
