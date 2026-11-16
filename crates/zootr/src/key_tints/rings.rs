@@ -35,6 +35,9 @@ const LEAN: f32 = 30.0 * PI / 180.0;
 /// around its top, each one's height, and how far each stands above the
 /// tube.
 const TRIFORCES: usize = 3;
+/// Off for now: the hammered iron reads well enough bare (the
+/// maintainer's call, 2026-11-16). Kept, tested, for a later look.
+const SHOW_TRIFORCES: bool = false;
 const TRIFORCE_STEP: f32 = 55.0 * PI / 180.0;
 const TRIFORCE: f32 = 4.0 * TUBE;
 const RAISED: f32 = 0.005;
@@ -162,7 +165,9 @@ fn place(key: &[Lod], keys: usize) -> Vec<Lod> {
                 append(&mut out, &hoop.turned(lod, angle));
             }
             append(&mut out, &hoop.lod(level));
-            append(&mut out, &hoop.triforces());
+            if SHOW_TRIFORCES {
+                append(&mut out, &hoop.triforces());
+            }
             out
         })
         .collect();
@@ -637,7 +642,10 @@ mod tests {
             assert_eq!(ring.len(), key.len());
             for (level, (r, k)) in ring.iter().zip(&key).enumerate() {
                 let hoop = hoop.lod(level);
-                let gold = Hoop::new().triforces();
+                let gold = match SHOW_TRIFORCES {
+                    true => Hoop::new().triforces(),
+                    false => Lod::default(),
+                };
                 assert_eq!(
                     r.vertices.len(),
                     keys * k.vertices.len() + hoop.vertices.len() + gold.vertices.len()

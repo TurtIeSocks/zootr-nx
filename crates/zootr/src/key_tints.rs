@@ -722,7 +722,7 @@ mod tests {
             let rings = *count as usize * usize::from(keys == DungeonKeys::Rings);
             assert!(key_vertices(&shown) >= one * rings.max(1), "{shown}");
             if rings > 0 {
-                // The hoop and its Triforces weigh less than two keys.
+                // The hoop, with any Triforces, weighs less than two keys.
                 assert!(key_vertices(&shown) < one * (rings + 2), "{shown}");
                 for kind in SMALL_LOOK.kinds {
                     assert!(
