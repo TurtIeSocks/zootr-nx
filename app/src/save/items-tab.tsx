@@ -31,13 +31,15 @@ import { useUi } from "@/stores/ui";
 const SIZE = PIXELS.Medium;
 const INK = "text-ink";
 
-/** The grid's columns, top to bottom, sized to come out about as tall as
- * each other. Dungeons is tall enough to take one alone. */
-const COLUMNS: Section[][] = [
-  ["Inventory", "Songs", "Quest"],
-  ["Equipment", "Upgrades", "Stones", "Medallions"],
-  ["Dungeons"],
+/** The item columns, top to bottom, sized to come out about as tall as
+ * each other. They sit side by side where there's room, else stacked. */
+const MAIN: Section[][] = [
+  ["Inventory", "Songs", "Upgrades"],
+  ["Equipment", "Quest", "Stones", "Medallions"],
 ];
+
+/** Tall enough to take a column alone, kept on the right at any width. */
+const SIDE: Section[] = ["Dungeons"];
 
 /** The panel's groups, in order. */
 const GROUPS: StatusGroup[] = ["Meters", "Gear", "Age", "Counters"];
@@ -60,45 +62,74 @@ export function ItemsTab({ view }: ItemsTabProps) {
       <StatusPanel fields={view.status} />
       <InlineError error={error} />
       <Card>
-        <div className="flex flex-wrap items-start gap-x-12 gap-y-5 p-4">
-          {columns(view.sections).map((column) => (
-            <div key={column[0]?.section} className="flex flex-col gap-5">
-              {column.map((placement) => (
-                <section key={placement.section}>
-                  <SectionGrid
-                    placement={placement}
-                    cells={inSection(view.cells, placement.section)}
-                    size={SIZE}
-                    ink={INK}
-                  >
-                    {(cell, at) => (
-                      <EditTile
-                        cell={cell}
-                        cap={view.caps[at] ?? null}
-                        staged={view.staged[at] ?? false}
-                        onClick={(intent) => click(at, intent)}
-                      />
-                    )}
-                  </SectionGrid>
-                </section>
-              ))}
-            </div>
-          ))}
+        <div className="flex items-start gap-x-12 p-4">
+          <div className="flex flex-wrap items-start gap-x-12 gap-y-5">
+            {main(view.sections).map((column) => (
+              <Column
+                key={column[0]?.section}
+                view={view}
+                placements={column}
+                onClick={click}
+              />
+            ))}
+          </div>
+          <Column
+            view={view}
+            placements={view.sections.filter(
+              (p) => p.shown && SIDE.includes(p.section),
+            )}
+            onClick={click}
+          />
         </div>
       </Card>
     </div>
   );
 }
 
-/** The shown sections by {@link COLUMNS}, any it misses in the first. */
-function columns(sections: Placement[]): Placement[][] {
+/** The shown sections by {@link MAIN}, any it and {@link SIDE} miss in
+ * the first. */
+function main(sections: Placement[]): Placement[][] {
   const shown = sections.filter((p) => p.shown);
-  const out = COLUMNS.map((names) =>
+  const out = MAIN.map((names) =>
     names.flatMap((name) => shown.filter((p) => p.section === name)),
   );
-  const placed = new Set(COLUMNS.flat());
+  const placed = new Set([...MAIN.flat(), ...SIDE]);
   out[0]?.push(...shown.filter((p) => !placed.has(p.section)));
   return out.filter((column) => column.length > 0);
+}
+
+/** Props for {@link Column}. */
+interface ColumnProps {
+  view: ItemsView;
+  placements: Placement[];
+  onClick: (at: number, intent: Intent) => void;
+}
+
+/** Sections stacked top to bottom, their tiles as buttons. */
+function Column({ view, placements, onClick }: ColumnProps) {
+  return (
+    <div className="flex flex-col gap-5">
+      {placements.map((placement) => (
+        <section key={placement.section}>
+          <SectionGrid
+            placement={placement}
+            cells={inSection(view.cells, placement.section)}
+            size={SIZE}
+            ink={INK}
+          >
+            {(cell, at) => (
+              <EditTile
+                cell={cell}
+                cap={view.caps[at] ?? null}
+                staged={view.staged[at] ?? false}
+                onClick={(intent) => onClick(at, intent)}
+              />
+            )}
+          </SectionGrid>
+        </section>
+      ))}
+    </div>
+  );
 }
 
 /** Asks what a click on cell `at` changes, and stages it. */
