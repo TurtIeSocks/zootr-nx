@@ -39,7 +39,10 @@ vi.mock("@/bindings", () => ({
   },
 }));
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 const config = full({
   targets: [{ name: "Runner", app: "/a", mod_dir: "/m" }],
@@ -52,6 +55,11 @@ function show() {
 
 const button = (name: string) =>
   screen.getByRole("button", { name }) as HTMLButtonElement;
+
+const nameField = () => screen.getByDisplayValue(/^Runner/) as HTMLInputElement;
+
+const rename = (value: string) =>
+  fireEvent.change(nameField(), { target: { value } });
 
 test("imports pasted text as a new draft with its name made unique", async () => {
   show();
@@ -91,28 +99,56 @@ test("copy puts the saved target's export on the clipboard", async () => {
 
 test("a reload with the same targets keeps the form's edits, new ones reset it", () => {
   show();
-  const name = () => screen.getByDisplayValue(/^Runner/) as HTMLInputElement;
-  fireEvent.change(name(), { target: { value: "Runner edited" } });
+  rename("Runner edited");
   act(() => useConfig.setPath("config", keep(full({ ...config }))));
-  expect(name().value).toBe("Runner edited");
+  expect(nameField().value).toBe("Runner edited");
   act(() =>
     useConfig.setPath(
       "config",
       keep(full({ targets: [{ name: "Runner", app: "/b", mod_dir: "/m" }] })),
     ),
   );
-  expect(name().value).toBe("Runner");
+  expect(nameField().value).toBe("Runner");
 });
 
-test("a second Save while one runs is ignored", async () => {
+test("Save floats in a bar only while the targets have unsaved edits", () => {
+  show();
+  expect(screen.queryByRole("button", { name: "Save targets" })).toBeNull();
+  rename("Runner edited");
+  expect(screen.getByText("Unsaved changes to targets")).toBeTruthy();
+  rename("Runner");
+  expect(screen.queryByRole("button", { name: "Save targets" })).toBeNull();
+});
+
+test("Discard puts the saved targets back", () => {
+  show();
+  rename("Runner edited");
+  fireEvent.click(button("Discard"));
+  expect(nameField().value).toBe("Runner");
+  expect(screen.queryByRole("button", { name: "Discard" })).toBeNull();
+});
+
+test("an invalid draft says why in the bar", () => {
+  show();
+  rename("");
+  fireEvent.click(button("Save targets"));
+  expect(screen.getByRole("alert")).toBeTruthy();
+  expect(setConfig).not.toHaveBeenCalled();
+});
+
+test("a second Save while one runs is ignored, and the bar goes once saved", async () => {
   let finish = () => {};
   saving.hold = new Promise((resolve) => (finish = resolve));
   show();
+  rename("Runner edited");
   fireEvent.click(button("Save targets"));
   fireEvent.click(button("Save targets"));
   expect(setConfig).toHaveBeenCalledTimes(1);
   expect(button("Save targets").disabled).toBe(true);
   await act(async () => finish());
-  await waitFor(() => expect(button("Save targets").disabled).toBe(false));
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: "Save targets" })).toBeNull(),
+  );
+  expect(nameField().value).toBe("Runner edited");
   saving.hold = undefined;
 });

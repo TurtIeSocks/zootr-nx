@@ -4,6 +4,7 @@ import { commands } from "@/bindings";
 import { InlineError } from "@/components/callout";
 import { Card } from "@/components/card";
 import { Field } from "@/components/field";
+import { FloatingBar } from "@/components/floating-bar";
 import { PathInput } from "@/components/path-input";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import {
   type Draft,
   type DraftField,
   FIELDS,
+  isEdited,
   isSaved,
   problem,
   toDraft,
@@ -46,12 +48,12 @@ export function TargetsPane() {
   );
 }
 
-/** The drafts, one card each, with Add, Import and Save under them. Copying
- * a target and saving them all share the request, one at a time. */
+/** The drafts, one card each, with Add and Import under them, and a bar
+ * with Save floating at the foot while they differ from the saved targets.
+ * Copying a target and saving them all share the request, one at a time. */
 function TargetsForm() {
-  const [drafts, setDrafts] = useState(() =>
-    useConfig.getPath("config.targets").map(toDraft),
-  );
+  const [targets] = useConfig.usePath("config.targets");
+  const [drafts, setDrafts] = useState(() => targets.map(toDraft));
   /** Why the form couldn't be saved as it was. */
   const [invalid, setInvalid] = useState("");
   const { busy, error, run } = useRequest();
@@ -98,11 +100,32 @@ function TargetsForm() {
         <ImportTargetDialog
           onImport={(t) => setDrafts((ds) => withTarget(ds, t))}
         />
-        <Button className="ml-auto" disabled={busy} onClick={save}>
-          Save targets
-        </Button>
       </div>
-      <InlineError error={invalid || error} />
+      {isEdited(targets, drafts) && (
+        <FloatingBar
+          message={
+            invalid || error ? (
+              <InlineError error={invalid || error} />
+            ) : (
+              <p>Unsaved changes to targets</p>
+            )
+          }
+        >
+          <Button
+            variant="ghost"
+            disabled={busy}
+            onClick={() => {
+              setInvalid("");
+              setDrafts(targets.map(toDraft));
+            }}
+          >
+            Discard
+          </Button>
+          <Button disabled={busy} onClick={save}>
+            Save targets
+          </Button>
+        </FloatingBar>
+      )}
     </>
   );
 }

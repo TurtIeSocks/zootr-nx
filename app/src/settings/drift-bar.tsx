@@ -1,5 +1,5 @@
 import { Dices, Loader2 } from "lucide-react";
-import { ChangedDot } from "@/components/ui/badge";
+import { FloatingBar } from "@/components/floating-bar";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -31,14 +31,16 @@ export function DriftBar() {
     </Button>
   );
   return (
-    <div className="sticky bottom-5 z-10 mx-auto flex w-full max-w-160 animate-rise items-center gap-3 rounded-xl border border-line bg-surface-raised py-2 pr-2 pl-4 text-[13px] shadow-lg">
-      <ChangedDot className="size-2" />
-      <p className="min-w-0 flex-1">
-        <b className="font-semibold">
-          {n} setting{n === 1 ? "" : "s"}
-        </b>{" "}
-        {n === 1 ? "differs" : "differ"} from the installed seed
-      </p>
+    <FloatingBar
+      message={
+        <p>
+          <b className="font-semibold">
+            {n} setting{n === 1 ? "" : "s"}
+          </b>{" "}
+          {n === 1 ? "differs" : "differ"} from the installed seed
+        </p>
+      }
+    >
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="ghost">Review</Button>
@@ -60,6 +62,6 @@ export function DriftBar() {
       ) : (
         generateButton
       )}
-    </div>
+    </FloatingBar>
   );
 }
