@@ -25,6 +25,7 @@ mod flow;
 mod tests;
 mod write;
 
+pub(crate) use flow::ARG_ITEM;
 pub use flow::give;
 pub use write::{fields, flags, write};
 

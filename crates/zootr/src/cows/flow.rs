@@ -19,10 +19,11 @@ use crate::checks::Drop;
 use crate::flows::{
     self, ACTOR, GAME_DATA, IS_BOOL, Model, Rewrites, SET_BOOL, running, set, string, switch,
 };
+use crate::gifts::levels;
 use crate::grant;
 use crate::known::{Name, field, flag, flow};
-use crate::rsdb;
 use crate::standins::row;
+use crate::{progressive, rsdb};
 
 /// Whether the melody just played was the one the event asked for. Case 0
 /// is the right one.
@@ -32,7 +33,7 @@ pub(super) const MELODY: (&Name, &Name) = (
 );
 /// The arguments a cow's call passes the gate.
 pub(super) const ARG_FLAG: &str = "ZootrCowFlag";
-pub(super) const ARG_ITEM: &str = "ZootrCowItem";
+pub(crate) const ARG_ITEM: &str = "ZootrCowItem";
 /// The sub-entries every cow's song calls, which ask the melody.
 pub(super) const MILK: [&Name; 2] = [flag::COW_GIVE_MILK, flow::COW_GIVE_MILK_GERUDO];
 /// The milk sub-entries' argument naming the cow by actor name.
@@ -82,12 +83,14 @@ struct Call<'a> {
     item: &'a str,
 }
 
-/// Gate the milk on every cow's Bool, granting its item from `drops`.
+/// Gate the milk on every cow's Bool, granting its item from `drops`. With
+/// `level`, the pouch question, a line's item gives the level Link needs.
 pub fn give(
     romfs: &Romfs,
     rewrites: &mut Rewrites,
     cows: &[Cow],
     drops: &HashMap<u64, Drop>,
+    level: Option<&Model>,
 ) -> Result<()> {
     if cows.is_empty() {
         return Ok(());
@@ -124,11 +127,11 @@ pub fn give(
     let own = by_flow.remove(&**FLOW).unwrap_or_default();
     flows::edit(romfs, rewrites, FLOW, |flow| {
         gate(flow, &inline)?;
-        own.iter().try_for_each(|c| pass(flow, c))
+        own.iter().try_for_each(|c| pass(flow, c, level))
     })?;
     for (name, calls) in by_flow {
         flows::edit(romfs, rewrites, &name, |flow| {
-            calls.iter().try_for_each(|c| pass(flow, c))
+            calls.iter().try_for_each(|c| pass(flow, c, level))
         })?;
     }
     Ok(())
@@ -196,8 +199,9 @@ pub(super) fn melodies(flow: &Flowchart) -> Vec<u16> {
 
 /// Make `c`'s entry pass its Bool and item to every milk call it makes. A
 /// plain cow's entry is first copied from the shared one, its clone named
-/// in place of the plain actor.
-fn pass(flow: &mut Flowchart, c: &Call) -> Result<()> {
+/// in place of the plain actor. With `level`, a call passing a line's item
+/// asks the pouch first and passes the level Link needs.
+fn pass(flow: &mut Flowchart, c: &Call, level: Option<&Model>) -> Result<()> {
     let calls: Vec<u16> = match &c.plain {
         Some((shared, clone)) => {
             let copy = flows::copy_entry(flow, shared, &c.entry)?;
@@ -226,6 +230,9 @@ fn pass(flow: &mut Flowchart, c: &Call) -> Result<()> {
         let params = params(flow, at);
         params.push((ARG_FLAG.into(), string(&c.flag)));
         params.push((ARG_ITEM.into(), string(c.item)));
+        if let Some(model) = level.filter(|_| progressive::in_line(c.item)) {
+            levels::by_level_at(flow, model, c.item, at)?;
+        }
     }
     Ok(())
 }

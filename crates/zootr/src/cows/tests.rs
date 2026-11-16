@@ -10,7 +10,7 @@ use super::*;
 use crate::checks::Drop;
 use crate::flows::{GAME_DATA, IS_BOOL, Rewrites, SET_BOOL, param, reachable};
 use crate::game::dev_dump;
-use crate::known::{actor, field, flag};
+use crate::known::{actor, field, flag, item};
 use crate::rsdb;
 use crate::standins::{Tables, actor_path, row};
 
@@ -199,7 +199,7 @@ fn after_the_right_melody_the_milk_asks_the_bool_its_caller_passes() {
     let Some((romfs, cows)) = cows() else { return };
     let before = flows::load(&romfs, FLOW).unwrap().unwrap();
     let mut rewrites = Rewrites::new();
-    give(&romfs, &mut rewrites, &cows, &drops(&cows)).unwrap();
+    give(&romfs, &mut rewrites, &cows, &drops(&cows), None).unwrap();
     let flow = parse(&rewrites[&flows::rel(FLOW)]);
     assert_eq!(parse(&flow.to_bytes()), flow);
     let cases = |flow: &Flowchart, at: u16| match &flow.events[at as usize].kind {
@@ -248,7 +248,7 @@ fn after_the_right_melody_the_milk_asks_the_bool_its_caller_passes() {
 fn every_cow_passes_its_own_bool_and_item_to_its_milk() {
     let Some((romfs, cows)) = cows() else { return };
     let mut rewrites = Rewrites::new();
-    give(&romfs, &mut rewrites, &cows, &drops(&cows)).unwrap();
+    give(&romfs, &mut rewrites, &cows, &drops(&cows), None).unwrap();
     let events = BymlDoc::parse(&romfs.read(&rsdb::path(rsdb::EVENTS)).unwrap()).unwrap();
     let (plain_flow, _) = target(&events, actor::ANIMAL_COW_GIVE_MILK).unwrap();
     let mut flags = BTreeSet::new();
@@ -258,18 +258,7 @@ fn every_cow_passes_its_own_bool_and_item_to_its_milk() {
             false => target(&events, &cow.event).unwrap(),
         };
         let flow = parse(&rewrites[&flows::rel(&name)]);
-        let calls: Vec<&Params> = reachable(&flow, &entry)
-            .unwrap()
-            .into_iter()
-            .filter_map(|e| match &flow.events[e as usize].kind {
-                EventKind::SubFlow {
-                    entry_point,
-                    params,
-                    ..
-                } if MILK.iter().any(|m| entry_point == m) => Some(params),
-                _ => None,
-            })
-            .collect();
+        let calls = milk_calls(&flow, &entry);
         assert!(!calls.is_empty(), "{entry} calls no milk");
         let item = format!("Item_Test_{:02}", cow.index);
         for params in calls {
@@ -296,11 +285,51 @@ fn every_cow_passes_its_own_bool_and_item_to_its_milk() {
     assert_eq!(flags.len(), 8);
 }
 
+/// The params of every milk call `entry` of `flow` reaches.
+fn milk_calls<'a>(flow: &'a Flowchart, entry: &str) -> Vec<&'a Params> {
+    (reachable(flow, entry).unwrap().into_iter())
+        .filter_map(|e| match &flow.events[e as usize].kind {
+            EventKind::SubFlow {
+                entry_point,
+                params,
+                ..
+            } if MILK.iter().any(|m| entry_point == m) => Some(params),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn a_cow_dealt_a_line_item_passes_the_level_link_needs() {
+    let Some((romfs, cows)) = cows() else { return };
+    let model = crate::gifts::levels::model(&crate::events::Flows::load(&romfs).unwrap()).unwrap();
+    let hookshot = |c: &Cow| (c.hash(), Drop::from(item::HOOKSHOT.to_string()));
+    let drops: HashMap<u64, Drop> = cows.iter().map(hookshot).collect();
+    let mut rewrites = Rewrites::new();
+    give(&romfs, &mut rewrites, &cows, &drops, Some(&model)).unwrap();
+    let events = BymlDoc::parse(&romfs.read(&rsdb::path(rsdb::EVENTS)).unwrap()).unwrap();
+    let (plain_flow, _) = target(&events, actor::ANIMAL_COW_GIVE_MILK).unwrap();
+    for cow in &cows {
+        let (name, entry) = match cow.plain() {
+            true => (plain_flow.clone(), cow.event.clone()),
+            false => target(&events, &cow.event).unwrap(),
+        };
+        let flow = parse(&rewrites[&flows::rel(&name)]);
+        assert_eq!(parse(&flow.to_bytes()), flow);
+        let passed: BTreeSet<_> = (milk_calls(&flow, &entry).into_iter())
+            .inspect(|p| assert_eq!(param(p, ARG_FLAG), Some(cow.flag().as_str())))
+            .map(|p| param(p, ARG_ITEM).unwrap().to_string())
+            .collect();
+        let both = [item::HOOKSHOT, item::LONGSHOT].map(|i| i.get().to_string());
+        assert_eq!(passed, BTreeSet::from(both), "{entry}");
+    }
+}
+
 #[test]
 fn no_cows_change_no_flow() {
     let Some(romfs) = dev_dump() else { return };
     let mut rewrites = Rewrites::new();
-    give(&romfs, &mut rewrites, &[], &HashMap::new()).unwrap();
+    give(&romfs, &mut rewrites, &[], &HashMap::new(), None).unwrap();
     assert!(rewrites.is_empty());
 }
 

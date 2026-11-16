@@ -145,11 +145,14 @@ fn chain(
 
 /// Name `to` wherever `kind` names `from` as its item.
 fn rename(kind: &mut EventKind, from: &str, to: &str) -> Result<()> {
-    // A chest's flow passes its item on as `ContentName`.
+    // A chest's flow passes its item on as `ContentName`, a cow's song as
+    // our own argument.
     let calls = ITEM_PARAMS.into_iter().chain([flow::CONTENT_NAME]);
     let keys: Vec<&str> = match kind {
         EventKind::Action { .. } => vec![ACTOR],
-        _ => calls.map(|k| k.get()).collect(),
+        _ => (calls.map(|k| k.get()))
+            .chain([crate::cows::ARG_ITEM])
+            .collect(),
     };
     let params = params_mut(kind);
     for key in keys {
