@@ -171,18 +171,57 @@ pub(crate) fn write_clone(
     name: &str,
     files: impl IntoIterator<Item = (String, BymlDoc, String)>,
 ) -> Result<()> {
-    let mut writer = template.writer();
-    for (path, data, like) in files {
-        let data = data.to_binary();
-        let like_size = raw(template, &like)?.len();
-        builder.add_entry(&path, &like, like_size, data.len())?;
-        writer.add_file(path, data);
+    let (pack, added) = cloned(template, files)?;
+    for (path, like, like_size, size) in &added {
+        builder.add_entry(path, like, *like_size, *size)?;
     }
     builder.add(
         &format!("Pack/Actor/{name}.pack.zs"),
-        &writer.to_binary(),
+        &pack,
         &format!("Pack/Actor/{}.pack.zs", template.name),
     )
+}
+
+/// `template` as actor `name` with `files` over it, built in memory, as
+/// [`write_clone`] writes it.
+pub(crate) fn clone_pack(
+    template: &ActorPack,
+    name: &str,
+    files: impl IntoIterator<Item = (String, BymlDoc, String)>,
+) -> Result<ActorPack> {
+    ActorPack::from_bytes(name, cloned(template, files)?.0)
+}
+
+/// What a clone is: `template`'s pack with `files` added over it, and
+/// each added file's path, the file it's sized like and both sizes.
+type Cloned = (Vec<u8>, Vec<(String, String, usize, usize)>);
+
+fn cloned(
+    template: &ActorPack,
+    files: impl IntoIterator<Item = (String, BymlDoc, String)>,
+) -> Result<Cloned> {
+    let mut writer = template.writer();
+    let mut added = Vec::new();
+    for (path, data, like) in files {
+        let data = data.to_binary();
+        added.push((
+            path.clone(),
+            like.clone(),
+            raw(template, &like)?.len(),
+            data.len(),
+        ));
+        writer.add_file(path, data);
+    }
+    Ok((writer.to_binary(), added))
+}
+
+/// `item`'s pack, for a holder that shows or stands in for it: a key copy
+/// the seed builds, or the dump's.
+pub(crate) fn item_pack(romfs: &Romfs, item: &str) -> Result<ActorPack> {
+    match crate::key_tints::copy_pack(romfs, item)? {
+        Some(pack) => Ok(pack),
+        None => ActorPack::load(romfs, item),
+    }
 }
 
 /// A new file, sized in the RESTBL like a file of a pack it copies.
