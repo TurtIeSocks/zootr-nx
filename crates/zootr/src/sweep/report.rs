@@ -179,15 +179,20 @@ pub fn proven(ladders: &[String]) -> BTreeSet<Skill> {
     drilled
 }
 
+/// The holder prefixes a drill covers by name.
+const CHEST: &str = "Obj_TBox_";
+const BOX: &str = "Obj_BrokenBox_";
+const LIFT: &str = "Obj_LiftRock_";
+
 /// The skills a sweep row leans on: its use's, by its holder, and every
 /// walking one when its walk gave up. `None` for a holder no drill covers
 /// yet (a pot, a heart piece, a scene played straight).
 pub fn skills(row: &Value) -> Option<Vec<Skill>> {
     let holder = row["spot"]["holder"].as_str().unwrap_or_default();
     let by_prefix = [
-        ("Obj_TBox_", Skill::Chest),
-        ("Obj_BrokenBox_", Skill::Box),
-        ("Obj_LiftRock_", Skill::Lift),
+        (CHEST, Skill::Chest),
+        (BOX, Skill::Box),
+        (LIFT, Skill::Lift),
         (scrubs::HOLDER, Skill::Scrub),
     ];
     let used = (by_prefix.iter().find(|(p, _)| holder.starts_with(p)))
@@ -450,42 +455,31 @@ mod tests {
 
     #[test]
     fn a_nothing_leaning_on_an_unproven_skill_reads_unproven() {
+        let [chest_a, chest_b, chest_c] = ["A", "B", "C"].map(|n| format!("{CHEST}Fake{n}"));
+        let box_a = format!("{BOX}FakeA");
         let text = [
-            row(0, "Obj_TBox_FakeA", "pass", Some(("arrived", "", "event"))),
+            row(0, &chest_a, "pass", Some(("arrived", "", "event"))),
+            row(0, &chest_b, "nothing", Some(("arrived", "", "nothing"))),
             row(
                 0,
-                "Obj_TBox_FakeB",
-                "nothing",
-                Some(("arrived", "", "nothing")),
-            ),
-            row(
-                0,
-                "Obj_TBox_FakeC",
+                &chest_c,
                 "nothing",
                 Some(("gave up", "blocked", "nothing")),
             ),
-            row(
-                0,
-                "Obj_BrokenBox_FakeA",
-                "nothing",
-                Some(("arrived", "", "nothing")),
-            ),
-            row(0, "Obj_FakePot", "nothing", None),
+            row(0, &box_a, "nothing", Some(("arrived", "", "nothing"))),
+            row(0, "Fake_Pot", "nothing", None),
         ]
         .join("\n");
         let proven = [Skill::Chest].into();
         let board = sweep(&text, None, None, Some(&proven));
-        assert_eq!(board.kinds["Obj_TBox_FakeB"]["nothing"], 1, "a lead");
-        assert_eq!(
-            board.kinds["Obj_TBox_FakeC"]["unproven"], 1,
-            "walking isn't proven"
-        );
-        assert_eq!(board.kinds["Obj_BrokenBox_FakeA"]["unproven"], 1);
-        assert_eq!(board.kinds["Obj_FakePot"]["unproven"], 1, "no drill");
+        assert_eq!(board.kinds[&chest_b]["nothing"], 1, "a lead");
+        assert_eq!(board.kinds[&chest_c]["unproven"], 1, "walking isn't proven");
+        assert_eq!(board.kinds[&box_a]["unproven"], 1);
+        assert_eq!(board.kinds["Fake_Pot"]["unproven"], 1, "no drill");
         assert_eq!(board.proven, Some(Tally { passes: 1, runs: 2 }));
         assert!(board.to_string().contains("every skill is proven: 1/2"));
         let plain = sweep(&text, None, None, None);
-        assert_eq!(plain.kinds["Obj_FakePot"]["nothing"], 1);
+        assert_eq!(plain.kinds["Fake_Pot"]["nothing"], 1);
         assert_eq!(plain.proven, None);
     }
 
@@ -512,7 +506,7 @@ mod tests {
             Some(vec![Skill::Talk])
         );
         assert_eq!(of("Fake scene", "play", "arrived"), None);
-        let gave_up = of("Obj_LiftRock_FakeA", "open", "gave up").unwrap();
+        let gave_up = of(&format!("{LIFT}FakeA"), "open", "gave up").unwrap();
         assert_eq!(gave_up[0], Skill::Lift);
         assert!(Skill::WALKING.iter().all(|s| gave_up.contains(s)));
     }
