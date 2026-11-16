@@ -15,7 +15,7 @@ use crate::known::{Name, actor, flag, item, scene};
 use crate::names::{ITEMS, name_label};
 use crate::rng::Rng;
 use crate::rules::Need;
-use crate::standins::{self, StandIn, Tables};
+use crate::standins::{self, StandIn, Tables, item_pack};
 use crate::text::Copies;
 
 /// A shop check's `file`, since its slot spans several map files.
@@ -323,7 +323,7 @@ pub fn write(
         let sale = StandIn {
             name: &name,
             template: ActorPack::load(romfs, &slot.goods)?,
-            item: ActorPack::load(romfs, item)?,
+            item: item_pack(romfs, item)?,
             price: Some(price(seed, slot.hash())),
         };
         sale.build(builder, tables)

@@ -24,7 +24,7 @@ use crate::medallions::{self, Colour, model_path, texture_path};
 use crate::rsdb::ROW_ID;
 use crate::settings::DungeonKeys;
 use crate::standins::{
-    MODEL, Tables, actor_path, doc, path_of, raw, renamed, with_ref, write_clone,
+    MODEL, Tables, actor_path, clone_pack, doc, path_of, raw, renamed, with_ref, write_clone,
 };
 
 /// One kind of key's model: the actor it's named like, its textures by
@@ -127,6 +127,25 @@ pub fn ring(n: usize) -> String {
 /// Dungeon `n`'s boss key copy.
 pub fn boss(n: usize) -> String {
     BOSS_LOOK.name(n)
+}
+
+/// The pack a ring or boss key copy is built as, the same as [`write`]
+/// writes it, for a holder that stands in for it. `None` for any other
+/// item.
+pub fn copy_pack(romfs: &Romfs, item: &str) -> Result<Option<ActorPack>> {
+    for n in 1..=DUNGEONS.len() {
+        let (template, model) = if item == ring(n) {
+            (SMALL, SMALL_LOOK.name(n))
+        } else if has_boss(n) && item == boss(n) {
+            (BOSS, boss(n))
+        } else {
+            continue;
+        };
+        let template = ActorPack::load(romfs, template)?;
+        let files = pointed(&template, item, &model)?;
+        return clone_pack(&template, item, files).map(Some);
+    }
+    Ok(None)
 }
 
 /// What a copy sets as it's found: a Bool true, an Int to a value, or one
@@ -495,6 +514,28 @@ mod tests {
             let boss = usize::from(boss.is_some());
             assert_eq!(bosses[i + 1], boss, "{dungeon}'s boss key");
         }
+    }
+
+    #[test]
+    fn a_copy_s_pack_built_in_memory_is_the_one_the_seed_writes() {
+        let Some(romfs) = dev_dump() else { return };
+        let dir = std::env::temp_dir().join(format!("zootr-copy-pack-{}", std::process::id()));
+        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+        let mut tables = Tables::load(&romfs).unwrap();
+        write(&romfs, &mut builder, &mut tables, true, true).unwrap();
+        builder.finish().unwrap();
+        for copy in [ring(2), boss(2)] {
+            let rel = pack_file(&copy);
+            let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
+            let bytes = romfs.dicts().decompress(&rel, &raw).unwrap();
+            let written = ActorPack::from_bytes(&copy, bytes.to_vec()).unwrap();
+            let built = copy_pack(&romfs, &copy).unwrap().unwrap();
+            assert_eq!(built.files(), written.files(), "{copy}");
+            for f in built.files() {
+                assert_eq!(built.raw(&f), written.raw(&f), "{copy}: {f}");
+            }
+        }
+        assert!(copy_pack(&romfs, item::HOOKSHOT).unwrap().is_none());
     }
 
     #[test]

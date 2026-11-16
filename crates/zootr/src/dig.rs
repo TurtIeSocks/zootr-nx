@@ -8,12 +8,13 @@
 use std::collections::HashMap;
 
 use anyhow::{Context, Result};
-use ounce_formats::{ActorPack, Byml, BymlDoc, ModBuilder, Romfs};
+use ounce_formats::{Byml, BymlDoc, ModBuilder, Romfs};
 use roead::sarc::{Sarc, SarcWriter};
 
 use crate::checks::Drop;
 use crate::gifts::{self, GIFTS};
 use crate::known::{Name, actor, field};
+use crate::standins::item_pack;
 
 /// Dampe's flow, and the actor his dig shows.
 const DAMPE: &Name = actor::NPC_HYLIA_DAMPE_001;
@@ -39,7 +40,7 @@ struct Model {
 
 /// The model `item`'s own actor is drawn with.
 fn model(romfs: &Romfs, item: &str) -> Result<Model> {
-    let pack = ActorPack::load(romfs, item)?;
+    let pack = item_pack(romfs, item)?;
     let param = pack
         .actor_param()?
         .with_context(|| format!("{item} has no actor of its own"))?;

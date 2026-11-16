@@ -16,7 +16,7 @@ use crate::checks::{
 use crate::gifts;
 use crate::known::{Name, actor, item};
 use crate::settings::{NPC_GIFTS, NewGame};
-use crate::standins::{StandIn, Tables};
+use crate::standins::{StandIn, Tables, item_pack};
 use crate::world::presence_of;
 
 /// One kind of placed holder.
@@ -383,7 +383,7 @@ pub fn write(
             let pickup = StandIn {
                 name: &m.actor,
                 template: ActorPack::load(romfs, m.template)?,
-                item: ActorPack::load(romfs, m.item)?,
+                item: item_pack(romfs, m.item)?,
                 price: None,
             };
             pickup
