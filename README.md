@@ -29,11 +29,16 @@ settings to a friend.
 
 ![The Shuffles settings page](assets/shuffles.png)
 
-## Songs you can see
+## Custom models
 
 A song placed in the world shows its own medallion, in the song's colour
 with its icon on the face, where the game would show a rupee. zootr builds
 each one from your dump when it writes a seed.
+
+Coming soon:
+
+- Small keys and boss keys in their dungeon's colour
+- Key rings
 
 ## Less waiting
 
