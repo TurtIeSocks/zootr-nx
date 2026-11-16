@@ -16,8 +16,9 @@ import { call } from "@/lib/api";
 import { useRequest } from "@/lib/request";
 import { saveConfig, useConfig } from "@/stores/config";
 
-/** Play the picked target, with the other targets a click away. Runs in
- * the request around it, which shows why either failed. */
+/** Play the picked target, with the other targets a click away when there
+ * are others. Runs in the request around it, which shows why either
+ * failed. */
 export function PlayButtonGroup() {
   const play = useRequest();
   const [targets] = useConfig.usePath("config.targets");
@@ -33,28 +34,32 @@ export function PlayButtonGroup() {
       >
         <Play /> Play {picked}
       </Button>
-      <ButtonGroupSeparator className="bg-on-primary/20" />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button size="lg" className="w-8 px-0" aria-label="Pick a target">
-            <ChevronDownIcon />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-44">
-          <DropdownMenuRadioGroup
-            value={picked}
-            onValueChange={(name) =>
-              play.run(() => saveConfig({ picked: name }))
-            }
-          >
-            {targets.map((t) => (
-              <DropdownMenuRadioItem key={t.name} value={t.name}>
-                {t.name}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {targets.length > 1 && (
+        <>
+          <ButtonGroupSeparator className="bg-on-primary/20" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="lg" className="w-8 px-0" aria-label="Pick a target">
+                <ChevronDownIcon />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuRadioGroup
+                value={picked}
+                onValueChange={(name) =>
+                  play.run(() => saveConfig({ picked: name }))
+                }
+              >
+                {targets.map((t) => (
+                  <DropdownMenuRadioItem key={t.name} value={t.name}>
+                    {t.name}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
+      )}
     </ButtonGroup>
   );
 }
