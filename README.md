@@ -13,8 +13,8 @@ the result as a mod.
 - No emulation help. The project doesn't provide, link to or support
   obtaining emulators, firmware, keys or game dumps, and won't answer
   questions about them. Issues and discussions asking for them get closed.
-- Not affiliated with, endorsed by or associated with Nintendo, the Ocarina
-  of Time Randomizer project, or the Ship of Harkinian (Shipwright) project.
+- Not affiliated with or endorsed by Nintendo or the Ocarina of Time
+  Randomizer project.
   Nintendo, Nintendo Switch 2, The Legend of Zelda and Ocarina of Time are
   trademarks of Nintendo. All trademarks belong to their owners.
 
