@@ -20,6 +20,7 @@ use crate::nav::navmesh_file;
 
 mod formats;
 mod logic;
+mod rooms;
 
 use formats::{ainb, byml, files, grep, pool, restbl, strings, unpacked};
 use logic::{checks, exits, gates, groups, pouch, settings, shops, tools};
@@ -146,6 +147,12 @@ pub enum Probe {
         #[arg(long, default_value_t = 0)]
         seed: u64,
     },
+    /// A map's rooms: its navmesh's faces joined without a locked door,
+    /// with the chests and locks in each.
+    Rooms {
+        /// A map, by its Banc param name.
+        map: String,
+    },
     /// A map's navmesh (`Phive/NavMesh/MAP`): counts and bounds, or with
     /// `--at`, the face under a point and the mesh's edges near it.
     Nav {
@@ -217,6 +224,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             Ok(())
         }
         Probe::Files { pattern, out } => files(romfs, game, &pattern, out.as_deref()),
+        Probe::Rooms { map } => rooms::rooms(romfs, game, &map),
         Probe::Nav {
             map,
             types,
