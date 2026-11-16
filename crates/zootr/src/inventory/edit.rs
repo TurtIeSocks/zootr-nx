@@ -215,7 +215,7 @@ impl Inventory {
                 *entry = (a.get(), *cap);
             }
         }
-        for (group, (bag, cap)) in groups {
+        for (&group, &(bag, cap)) in &groups {
             if Pouch::bag_in(save, group) != Some(bag) {
                 out.push(Edit::new(Pouch::expansion(group), bag));
             }
@@ -226,7 +226,51 @@ impl Inventory {
                 out.push(Edit::new(key(actor), cap.to_string()));
             }
         }
+
+        // Taking ammo from none fills it, as finding it does. A count that
+        // is the item itself, like a Gold Skulltula's, isn't ammo.
+        if self.tier(slot) == 0
+            && next > 0
+            && let Some(actor) = slot.count
+            && !slot.tiers.contains(&actor)
+            && self.value(actor) == 0
+        {
+            out.extend(self.fill(pouch, save, actor, &groups));
+        }
         Ok(out)
+    }
+
+    /// `actor` filled to its cap, with `held` the bag this click leaves
+    /// each group at. With no bag, Link gets the group's smallest, as the
+    /// Slingshot brings a Bullet Bag.
+    fn fill(
+        &self,
+        pouch: &Pouch,
+        save: &Save,
+        actor: &Name,
+        held: &HashMap<&str, (&str, i32)>,
+    ) -> Vec<Edit> {
+        let count = |n: i32| Edit::new(self.keys[actor], n.to_string());
+        let group = match pouch.caps.get(actor.get()) {
+            Some(Cap::Fixed(n)) => return vec![count(*n)],
+            Some(Cap::Bag(group)) => group.as_str(),
+            None => return Vec::new(),
+        };
+        let now = (held.get(group).map(|b| b.1)).unwrap_or_else(|| pouch.group_cap(group, save));
+        if now > 0 {
+            return vec![count(now)];
+        }
+        let smallest = (pouch.bags.iter())
+            .filter(|(_, (g, _))| g == group)
+            .min_by_key(|(_, (_, cap))| *cap);
+        let Some((bag, &(_, cap))) = smallest else {
+            return Vec::new();
+        };
+        let has = (self.keys.iter()).find(|(a, _)| a.get() == bag.as_str());
+        let mut out: Vec<Edit> = has.map(|(_, &k)| Edit::new(k, "1")).into_iter().collect();
+        out.push(Edit::new(Pouch::expansion(group), bag.as_str()));
+        out.push(count(cap));
+        out
     }
 }
 
@@ -255,15 +299,19 @@ mod tests {
 
     fn pouch() -> Pouch {
         let bag = |a: &Name, cap| (a.to_string(), ("FakeBomb".to_string(), cap));
+        let seed_bag = |a: &Name, cap| (a.to_string(), ("FakeSeed".to_string(), cap));
         Pouch {
             bags: [
                 bag(item::BOMB_BAG_SMALL, 20),
                 bag(item::BOMB_BAG_MEDIUM, 30),
                 bag(item::BOMB_BAG_LARGE, 40),
+                seed_bag(item::BULLET_BAG_SMALL, 30),
+                seed_bag(item::BULLET_BAG_MEDIUM, 40),
             ]
             .into(),
             caps: [
                 (item::BOMB.to_string(), Cap::Bag("FakeBomb".into())),
+                (item::DEKU_SEED.to_string(), Cap::Bag("FakeSeed".into())),
                 (item::TOKEN_GOLD.to_string(), Cap::Fixed(100)),
             ]
             .into(),
@@ -364,6 +412,43 @@ mod tests {
             Pouch::expansion("FakeBomb"),
             item::BOMB_BAG_LARGE.to_string()
         )));
+    }
+
+    #[test]
+    fn ammo_from_none_comes_full() {
+        needs_names!();
+        let save = save_of(&[], "");
+        let mut inv = inventory();
+        inv.load(crate::inventory::in_save(&save));
+        let cells = inv.cells();
+        let up = |label| {
+            pairs(
+                inv.edits(&pouch(), &save, cell_at(&cells, label), Intent::Up)
+                    .unwrap(),
+            )
+        };
+        let bombs = up("Bombs");
+        assert!(bombs.contains(&(h(item::BOMB_BAG_SMALL), "1".into())));
+        assert!(bombs.contains(&(h(item::BOMB), "20".into())));
+        // No Bullet Bag yet: the Slingshot brings the smallest.
+        let sling = up("Slingshot");
+        assert!(sling.contains(&(h(item::BULLET_BAG_SMALL), "1".into())));
+        assert!(sling.contains(&(
+            Pouch::expansion("FakeSeed"),
+            item::BULLET_BAG_SMALL.to_string()
+        )));
+        assert!(sling.contains(&(h(item::DEKU_SEED), "30".into())));
+    }
+
+    #[test]
+    fn ammo_already_held_keeps_its_count() {
+        needs_names!();
+        let save = save_of(&[(item::DEKU_SEED, 7)], "");
+        let mut inv = inventory();
+        inv.load(crate::inventory::in_save(&save));
+        let sling = cell_at(&inv.cells(), "Slingshot");
+        let up = pairs(inv.edits(&pouch(), &save, sling, Intent::Up).unwrap());
+        assert!(!up.iter().any(|(k, _)| *k == h(item::DEKU_SEED)), "{up:?}");
     }
 
     #[test]

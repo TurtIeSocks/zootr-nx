@@ -70,7 +70,13 @@ fn summarise(row: &mut SlotRow, inv: &Inventory, save: &Save) {
     let mut inv = inv.clone();
     inv.load(in_save(save));
     let cells = inv.cells();
-    let of = |section| cells.iter().filter(|c| c.section == section).cloned().collect();
+    let of = |section| {
+        cells
+            .iter()
+            .filter(|c| c.section == section)
+            .cloned()
+            .collect()
+    };
     row.stones = of(Section::Stones);
     row.medallions = of(Section::Medallions);
 }
