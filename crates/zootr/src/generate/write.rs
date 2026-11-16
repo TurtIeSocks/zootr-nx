@@ -59,7 +59,16 @@ pub(super) fn flows(
         scrubs::write(romfs, &mut rewrites, drops, new_game.scrub_price)?;
     }
     if new_game.cows {
-        cows::give(romfs, &mut rewrites, &cows::find(romfs)?, drops)?;
+        let level = (new_game.progressive)
+            .then(|| gifts::levels::model(all))
+            .transpose()?;
+        cows::give(
+            romfs,
+            &mut rewrites,
+            &cows::find(romfs)?,
+            drops,
+            level.as_ref(),
+        )?;
     }
     if new_game.fortress_keys {
         let pieces = pickups::dealt(romfs, new_game)?;
