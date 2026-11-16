@@ -75,6 +75,10 @@ pub enum Probe {
     /// looking inside SARC archives: for formats nothing decodes yet, like
     /// an ASB's commands and clips.
     Strings { path: String },
+    /// Each skeletal animation in the animation archives whose path
+    /// contains this, and the scale, rotation (radians) and translation it
+    /// gives each bone at its first frame.
+    Poses { path: String },
     /// Decodes every BNTX texture whose path contains this to `out`, as PNG,
     /// including those inside SARC archives.
     Icons { pattern: String, out: PathBuf },
@@ -242,6 +246,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         } => nav(romfs, game, &map, types, at, within),
         Probe::Grep { needle, path } => grep(romfs, game, &needle, &path),
         Probe::Strings { path } => names(romfs, game, &path),
+        Probe::Poses { path } => poses(romfs, game, &path),
         Probe::Icons { pattern, out } => icons(romfs, game, &pattern, &out),
         Probe::Pouch { slot, all } => pouch(romfs, &slot, all),
         Probe::Places { filter } => {
@@ -499,6 +504,23 @@ fn nav(
         );
     }
     Ok(())
+}
+
+fn poses(romfs: &Romfs, game: &Path, path: &str) -> Result<()> {
+    unpacked(romfs, game, path, |path, data, _| {
+        println!("{path}");
+        for anim in ounce_formats::animation_names(data) {
+            let bones = ounce_formats::bases(data, &anim)?.unwrap_or_default();
+            println!("  {anim}");
+            for (bone, b) in bones.iter().filter(|(_, b)| *b != Default::default()) {
+                println!(
+                    "    {bone} S{:?} R{:?} T{:?}",
+                    b.scale, b.rotate, b.translate
+                );
+            }
+        }
+        Ok(())
+    })
 }
 
 fn names(romfs: &Romfs, game: &Path, path: &str) -> Result<()> {

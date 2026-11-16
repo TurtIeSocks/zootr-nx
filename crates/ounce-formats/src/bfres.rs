@@ -440,7 +440,7 @@ impl Layout {
         let offset = |(name, format): (&str, u32)| -> Result<usize> {
             for i in 0..data[v + VERTEX_ATTRIBUTE_COUNT] as usize {
                 let a = attributes + 16 * i;
-                if shape_string(data, u64_at(data, a)?) == Some(name.as_bytes()) {
+                if pool_string(data, u64_at(data, a)?) == Some(name.as_bytes()) {
                     let found = u32_at(data, a + 8)? as u32;
                     if found != format {
                         bail!("{shape}: {name} in format {found:#x}");
@@ -593,21 +593,21 @@ fn shapes(data: &[u8]) -> impl Iterator<Item = usize> + '_ {
 }
 
 fn shape_name(data: &[u8], shape: usize) -> Option<&[u8]> {
-    shape_string(data, u64_at(data, shape + SHAPE_NAME).ok()?)
+    pool_string(data, u64_at(data, shape + SHAPE_NAME).ok()?)
 }
 
 /// A string in the file's pool: its length first.
-fn shape_string(data: &[u8], at: usize) -> Option<&[u8]> {
+pub(crate) fn pool_string(data: &[u8], at: usize) -> Option<&[u8]> {
     let len = u16::from_le_bytes(data.get(at..at + 2)?.try_into().ok()?) as usize;
     data.get(at + 2..at + 2 + len)
 }
 
-fn u32_at(data: &[u8], at: usize) -> Result<usize> {
+pub(crate) fn u32_at(data: &[u8], at: usize) -> Result<usize> {
     let b = data.get(at..at + 4).context("past the end")?;
     Ok(u32::from_le_bytes(b.try_into()?) as usize)
 }
 
-fn u64_at(data: &[u8], at: usize) -> Result<usize> {
+pub(crate) fn u64_at(data: &[u8], at: usize) -> Result<usize> {
     let b = data.get(at..at + 8).context("past the end")?;
     Ok(u64::from_le_bytes(b.try_into()?) as usize)
 }
