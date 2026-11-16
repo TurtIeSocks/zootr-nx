@@ -67,6 +67,21 @@ pub fn vertices(data: &[u8], shape: &str) -> Result<Vec<Vertex>> {
     (0..layout.count).map(|i| layout.read(data, i)).collect()
 }
 
+/// The positions of the shape named `shape`, whatever its other
+/// attributes' formats.
+pub fn positions(data: &[u8], shape: &str) -> Result<Vec<[f32; 3]>> {
+    let buffer = Buffer::find(data, shape)?;
+    let position = buffer.offset(data, POSITION)?;
+    (0..buffer.count)
+        .map(|i| {
+            let at = buffer.start + buffer.stride * i + position;
+            let half =
+                |k: usize| -> Result<f32> { Ok(from_half(u32_at(data, at + 2 * k)? as u16)) };
+            Ok([half(0)?, half(1)?, half(2)?])
+        })
+        .collect()
+}
+
 /// `data` with `edit` run over each vertex of the shape named `shape`.
 /// Only the vertices it changes are written back.
 pub fn edit_vertices(
@@ -415,6 +430,58 @@ fn shape_at(data: &[u8], shape: &str) -> Result<usize> {
         .with_context(|| format!("no shape {shape}"))
 }
 
+/// Where a shape's vertices are, and how to find each attribute.
+struct Buffer<'a> {
+    shape: &'a str,
+    start: usize,
+    stride: usize,
+    count: usize,
+    vertex: usize,
+    attributes: usize,
+}
+
+impl<'a> Buffer<'a> {
+    fn find(data: &[u8], shape: &'a str) -> Result<Self> {
+        let at = shape_at(data, shape)?;
+        let (_, pool, size) = pool(data)?;
+        let pool_end = pool + size;
+        let v = u64_at(data, at + SHAPE_VERTICES)?;
+        ensure!(
+            data.get(v + VERTEX_BUFFER_COUNT) == Some(&1),
+            "{shape}: not one vertex buffer"
+        );
+        let buffer = Self {
+            shape,
+            start: pool + u32_at(data, v + VERTEX_DATA)?,
+            stride: u32_at(data, u64_at(data, v + VERTEX_STRIDES)?)?,
+            count: u32_at(data, v + VERTEX_COUNT)?,
+            vertex: v,
+            attributes: u64_at(data, v + VERTEX_ATTRIBUTES)?,
+        };
+        ensure!(
+            buffer.start + buffer.stride * buffer.count <= pool_end.min(data.len()),
+            "{shape}: vertices past the pool"
+        );
+        Ok(buffer)
+    }
+
+    /// Where attribute `name` sits in each vertex, if it's in `format`.
+    fn offset(&self, data: &[u8], (name, format): (&str, u32)) -> Result<usize> {
+        let shape = self.shape;
+        for i in 0..data[self.vertex + VERTEX_ATTRIBUTE_COUNT] as usize {
+            let a = self.attributes + 16 * i;
+            if pool_string(data, u64_at(data, a)?) == Some(name.as_bytes()) {
+                let found = u32_at(data, a + 8)? as u32;
+                if found != format {
+                    bail!("{shape}: {name} in format {found:#x}");
+                }
+                return Ok(u16::from_le_bytes([data[a + 12], data[a + 13]]) as usize);
+            }
+        }
+        bail!("{shape}: no {name}")
+    }
+}
+
 /// Where a shape's vertices and each edited attribute are.
 struct Layout {
     start: usize,
@@ -428,42 +495,17 @@ struct Layout {
 
 impl Layout {
     fn find(data: &[u8], shape: &str) -> Result<Self> {
-        let at = shape_at(data, shape)?;
-        let (_, pool, size) = pool(data)?;
-        let pool_end = pool + size;
-        let v = u64_at(data, at + SHAPE_VERTICES)?;
-        ensure!(
-            data.get(v + VERTEX_BUFFER_COUNT) == Some(&1),
-            "{shape}: not one vertex buffer"
-        );
-        let attributes = u64_at(data, v + VERTEX_ATTRIBUTES)?;
-        let offset = |(name, format): (&str, u32)| -> Result<usize> {
-            for i in 0..data[v + VERTEX_ATTRIBUTE_COUNT] as usize {
-                let a = attributes + 16 * i;
-                if pool_string(data, u64_at(data, a)?) == Some(name.as_bytes()) {
-                    let found = u32_at(data, a + 8)? as u32;
-                    if found != format {
-                        bail!("{shape}: {name} in format {found:#x}");
-                    }
-                    return Ok(u16::from_le_bytes([data[a + 12], data[a + 13]]) as usize);
-                }
-            }
-            bail!("{shape}: no {name}")
-        };
-        let layout = Self {
-            start: pool + u32_at(data, v + VERTEX_DATA)?,
-            stride: u32_at(data, u64_at(data, v + VERTEX_STRIDES)?)?,
-            count: u32_at(data, v + VERTEX_COUNT)?,
+        let buffer = Buffer::find(data, shape)?;
+        let offset = |attribute| buffer.offset(data, attribute);
+        Ok(Self {
+            start: buffer.start,
+            stride: buffer.stride,
+            count: buffer.count,
             position: offset(POSITION)?,
             uv: offset(UV)?,
             normal: offset(NORMAL)?,
             tangent: offset(TANGENT)?,
-        };
-        ensure!(
-            layout.start + layout.stride * layout.count <= pool_end.min(data.len()),
-            "{shape}: vertices past the pool"
-        );
-        Ok(layout)
+        })
     }
 
     fn read(&self, data: &[u8], i: usize) -> Result<Vertex> {

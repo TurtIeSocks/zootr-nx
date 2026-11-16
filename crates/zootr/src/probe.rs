@@ -20,6 +20,7 @@ use crate::nav::navmesh_file;
 
 mod formats;
 mod logic;
+mod poses;
 mod rooms;
 
 use formats::{ainb, byml, files, grep, pool, restbl, strings, unpacked};
@@ -81,6 +82,9 @@ pub enum Probe {
     Poses { path: String },
     /// Each shape in the models whose path contains this: the lowest and
     /// highest corner of its vertices as stored, before any pose.
+    /// How far below its origin each pool item's model reaches on a
+    /// shelf, in the pose it plays there: the source of `shops/floors.rs`.
+    Floors,
     Bounds {
         path: String,
         /// Euler X, Y, Z in radians, a scale and a lift, as `probe poses`
@@ -255,8 +259,9 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         } => nav(romfs, game, &map, types, at, within),
         Probe::Grep { needle, path } => grep(romfs, game, &needle, &path),
         Probe::Strings { path } => names(romfs, game, &path),
-        Probe::Poses { path } => poses(romfs, game, &path),
-        Probe::Bounds { path, pose } => bounds(romfs, game, &path, pose.as_deref()),
+        Probe::Poses { path } => poses::poses(romfs, game, &path),
+        Probe::Bounds { path, pose } => poses::bounds(romfs, game, &path, pose.as_deref()),
+        Probe::Floors => poses::floors(romfs, game),
         Probe::Icons { pattern, out } => icons(romfs, game, &pattern, &out),
         Probe::Pouch { slot, all } => pouch(romfs, &slot, all),
         Probe::Places { filter } => {
@@ -514,53 +519,6 @@ fn nav(
         );
     }
     Ok(())
-}
-
-fn poses(romfs: &Romfs, game: &Path, path: &str) -> Result<()> {
-    unpacked(romfs, game, path, |path, data, _| {
-        println!("{path}");
-        for anim in ounce_formats::animation_names(data) {
-            let bones = ounce_formats::bases(data, &anim)?.unwrap_or_default();
-            println!("  {anim}");
-            for (bone, b) in bones.iter().filter(|(_, b)| *b != Default::default()) {
-                println!(
-                    "    {bone} S{:?} R{:?} T{:?}",
-                    b.scale, b.rotate, b.translate
-                );
-            }
-        }
-        Ok(())
-    })
-}
-
-fn bounds(romfs: &Romfs, game: &Path, path: &str, pose: Option<&[f32]>) -> Result<()> {
-    unpacked(romfs, game, path, |path, data, _| {
-        println!("{path}");
-        for shape in ounce_formats::shape_names(data) {
-            let mut lo = [f32::MAX; 3];
-            let mut hi = [f32::MIN; 3];
-            let vertices = ounce_formats::vertices(data, &shape)?;
-            for v in &vertices {
-                for i in 0..3 {
-                    lo[i] = lo[i].min(v.position[i]);
-                    hi[i] = hi[i].max(v.position[i]);
-                }
-            }
-            println!("  {shape} {lo:.3?} {hi:.3?}");
-            if let Some(p) = pose {
-                let (sx, cx) = p[0].sin_cos();
-                let (sy, cy) = p[1].sin_cos();
-                let (sz, cz) = p[2].sin_cos();
-                // Row Y of Rz * Ry * Rx.
-                let row = [cy * sz, sx * sy * sz + cx * cz, cx * sy * sz - sx * cz];
-                let low = (vertices.iter())
-                    .map(|v| (0..3).map(|i| row[i] * v.position[i] * p[3]).sum::<f32>())
-                    .fold(f32::MAX, f32::min);
-                println!("    posed lowest {:.3}", low + p[4]);
-            }
-        }
-        Ok(())
-    })
 }
 
 fn names(romfs: &Romfs, game: &Path, path: &str) -> Result<()> {
