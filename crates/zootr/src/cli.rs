@@ -5,15 +5,14 @@
 
 use std::collections::HashMap;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 use clap::Parser;
 
 use crate::config::Config;
-use crate::sweep::judge::ModelJudge;
 use crate::vision::Vision;
 use crate::{events, flows, game, generate, spawn, world};
-use args::{Cli, Command};
-use play::{boot_command, look, play, sweep};
+use args::{Cli, Command, DrillReport, SweepReport};
+use play::{boot_command, drill, drill_report, look, play, sweep, sweep_report};
 use research::{census, chest_events, cutscenes, flags, flow, items, logic};
 use running::{dev, give, live, set};
 use save::save_command;
@@ -156,37 +155,30 @@ pub fn run() -> Result<()> {
             start,
         } => play(&romfs, &script, attach, stall, start),
         Command::Sweep {
-            out,
+            report: Some(SweepReport::Report { out, from, to }),
+            ..
+        } => sweep_report(&out, from, to),
+        Command::Sweep {
+            out: Some(out),
             rounds,
             limit,
             mix,
             only,
-            judge_api,
-            judge_url,
-            judge_key_file,
-            judge_model,
-            judge_effort,
-            playbook,
-            lessons,
-            pristine,
-        } => {
-            let lessons = lessons.unwrap_or_else(|| playbook.with_file_name("lessons.md"));
-            std::fs::metadata(&judge_key_file)
-                .with_context(|| format!("reading {}", judge_key_file.display()))?;
-            let vision = Vision::new(
-                judge_api,
-                judge_url,
-                judge_model,
-                judge_key_file,
-                judge_effort,
-            )?;
-            let judge = ModelJudge {
-                vision,
-                playbook,
-                lessons,
-            };
-            let scope = (rounds, limit, mix, only);
-            sweep(&romfs, &path, judge, out, scope, pristine)
-        }
+            judge,
+            ..
+        } => sweep(&romfs, &path, judge, out, (rounds, limit, mix, only)),
+        Command::Drill {
+            report: Some(DrillReport::Report { out }),
+            ..
+        } => drill_report(&out),
+        Command::Drill {
+            out: Some(out),
+            skill,
+            name,
+            repeat,
+            judge,
+            ..
+        } => drill(&romfs, &path, judge, out, (skill, name, repeat)),
+        Command::Sweep { .. } | Command::Drill { .. } => bail!("--out is required"),
     }
 }

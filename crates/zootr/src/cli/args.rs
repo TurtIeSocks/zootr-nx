@@ -4,10 +4,11 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 
 use crate::config::Config;
 use crate::settings::Settings;
+use crate::sweep::drills::Skill;
 use crate::vision::{Api, Effort};
 use crate::warp::Side;
 use crate::{checks, generate, presets, savefile, settings, starting};
@@ -24,6 +25,69 @@ pub(super) struct Cli {
     pub(super) game: Option<PathBuf>,
     #[command(subcommand)]
     pub(super) command: Command,
+}
+
+/// The vision model that judges a spot, and the save each start loads.
+#[derive(Args)]
+pub(super) struct JudgeArgs {
+    /// Which shape the vision model's API speaks.
+    #[arg(long, value_enum, default_value_t = Api::Anthropic)]
+    pub(super) judge_api: Api,
+    /// The vision model's API, without `/v1/...`. Defaults to
+    /// `https://api.anthropic.com` on the Anthropic API and is
+    /// required on OpenAI's.
+    #[arg(long)]
+    pub(super) judge_url: Option<String>,
+    /// A file holding the API's key, kept out of the command line.
+    #[arg(long, required = true)]
+    pub(super) judge_key_file: Option<PathBuf>,
+    /// Defaults to `claude-opus-5-5` on the Anthropic API.
+    #[arg(long)]
+    pub(super) judge_model: Option<String>,
+    /// How hard an Anthropic judge thinks.
+    #[arg(long, value_enum)]
+    pub(super) judge_effort: Option<Effort>,
+    /// The judge's playbook, a Markdown file sent with every look.
+    #[arg(long, required = true)]
+    pub(super) playbook: Option<PathBuf>,
+    /// Where the judge's lessons grow. Defaults to `lessons.md` beside
+    /// the playbook.
+    #[arg(long)]
+    pub(super) lessons: Option<PathBuf>,
+    /// A save folder copied over the target's save folder before each
+    /// start.
+    #[arg(long)]
+    pub(super) pristine: Option<PathBuf>,
+}
+
+/// `sweep report`.
+#[derive(Subcommand)]
+pub(super) enum SweepReport {
+    /// Tally a sweep's rows by holder kind and verdict, and its failures by
+    /// how the walk and use ended.
+    Report {
+        /// A night's folder, or a folder of nights.
+        #[arg(long)]
+        out: PathBuf,
+        /// From this round on.
+        #[arg(long)]
+        from: Option<u64>,
+        /// Up to this round.
+        #[arg(long)]
+        to: Option<u64>,
+    },
+}
+
+/// `drill report`.
+#[derive(Subcommand)]
+pub(super) enum DrillReport {
+    /// The ladder's scoreboard: passes per skill and per drill, and how each
+    /// failed run ended, with its last frame.
+    Report {
+        /// The ladder's folder.
+        #[arg(long)]
+        out: PathBuf,
+    },
 }
 
 #[derive(Subcommand)]
@@ -170,11 +234,17 @@ pub(super) enum Command {
     /// Sweep every spot of new seeds, round after round,
     /// a vision model judging the spots that don't resolve by themselves.
     /// Results go to `<out>/results.jsonl`. Runs on the Mac too.
-    #[command(hide = true)]
+    #[command(
+        hide = true,
+        args_conflicts_with_subcommands = true,
+        subcommand_negates_reqs = true
+    )]
     Sweep {
+        #[command(subcommand)]
+        report: Option<SweepReport>,
         /// The night's folder.
-        #[arg(long)]
-        out: PathBuf,
+        #[arg(long, required = true)]
+        out: Option<PathBuf>,
         /// Rounds to run, 0 for no end.
         #[arg(long, default_value_t = 1)]
         rounds: usize,
@@ -190,34 +260,34 @@ pub(super) enum Command {
         /// must all match: `Pot,Melody` is a pot holding a song.
         #[arg(long)]
         only: Option<String>,
-        /// Which shape the vision model's API speaks.
-        #[arg(long, value_enum, default_value_t = Api::Anthropic)]
-        judge_api: Api,
-        /// The vision model's API, without `/v1/...`. Defaults to
-        /// `https://api.anthropic.com` on the Anthropic API and is
-        /// required on OpenAI's.
-        #[arg(long)]
-        judge_url: Option<String>,
-        /// A file holding the API's key, kept out of the command line.
-        #[arg(long)]
-        judge_key_file: PathBuf,
-        /// Defaults to `claude-opus-5-5` on the Anthropic API.
-        #[arg(long)]
-        judge_model: Option<String>,
-        /// How hard an Anthropic judge thinks.
+        #[command(flatten)]
+        judge: JudgeArgs,
+    },
+    /// Run the harness ladder's drills: small play tasks with a known
+    /// answer, through the sweep's own code, on a seed that shuffles
+    /// nothing. Rows go to `<out>/drills.jsonl`.
+    #[command(
+        hide = true,
+        args_conflicts_with_subcommands = true,
+        subcommand_negates_reqs = true
+    )]
+    Drill {
+        #[command(subcommand)]
+        report: Option<DrillReport>,
+        /// The ladder's folder.
+        #[arg(long, required = true)]
+        out: Option<PathBuf>,
+        /// Only this skill's drills.
         #[arg(long, value_enum)]
-        judge_effort: Option<Effort>,
-        /// The judge's playbook, a Markdown file sent with every look.
+        skill: Option<Skill>,
+        /// Only the drills whose name holds this.
         #[arg(long)]
-        playbook: PathBuf,
-        /// Where the judge's lessons grow. Defaults to `lessons.md` beside
-        /// the playbook.
-        #[arg(long)]
-        lessons: Option<PathBuf>,
-        /// A save folder copied over the target's save folder before each
-        /// start.
-        #[arg(long)]
-        pristine: Option<PathBuf>,
+        name: Option<String>,
+        /// Run each drill this many times, to catch a flaky one.
+        #[arg(long, default_value_t = 1)]
+        repeat: usize,
+        #[command(flatten)]
+        judge: JudgeArgs,
     },
     /// Ask a vision model questions about the game's picture, all at once,
     /// and print the answers as one JSON object. A question is yes or no,
