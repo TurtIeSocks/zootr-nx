@@ -6,6 +6,7 @@ use anyhow::Result;
 use super::landing::across_from;
 use super::{Planner, Ready, Steps, Trigger, step_of};
 use crate::generate::Spot;
+use crate::gifts;
 use crate::known::{Name, actor, field, flag};
 use crate::nav::graph::dist;
 use crate::scrubs;
@@ -31,15 +32,11 @@ const FOR_SALE: &str = "ForSale";
 /// only once a field note is read, then quizzes him, and with this set it
 /// goes straight to the sale. No other scrub's flow reads it.
 const PASSWORD: &Name = flag::ENEMY_SCRUB_BUSINESS_SECRET_SUCCESS;
-/// The Market Potion Shop's keeper, and the Bools that end the bottle
-/// tutorial he starts as Link comes near. Until both are set his talk is
-/// about the bug, never the shop (live, 2026-11-15). The tutorial's own
-/// check is a gift, planned elsewhere.
+/// The Market Potion Shop's keeper. He starts the bottle tutorial as Link
+/// comes near, and until it's done his talk is about the bug, never the
+/// shop (live, 2026-11-15). The tutorial's own check is a gift, planned
+/// elsewhere.
 const POTION_KEEPER: &Name = actor::NPC_HYLIA_020_SHOP_CHILD;
-const TUTORIAL_DONE: [&Name; 2] = [
-    flag::MARKET_ITEM_BOTTLE_TUTORIAL_EVENT_STARTED,
-    flag::MARKET_ITEM_BOTTLE_TUTORIAL_EVENT_CLEARED,
-];
 
 impl Planner<'_> {
     /// A shop slot: talk to the keeper behind its shelf, and the judge
@@ -78,7 +75,7 @@ impl Planner<'_> {
         };
         let (steps, mut ready) = self.bring(presence.as_ref())?;
         if name == **POTION_KEEPER {
-            ready.extend(TUTORIAL_DONE.map(|f| f.to_string()));
+            ready.extend(gifts::BOTTLE_TUTORIAL_DONE.map(|f| f.to_string()));
         }
         let (customer, sold) = match hash {
             Some(hash) => (
@@ -318,7 +315,9 @@ mod tests {
             );
             // Landed as planned, not by the navmesh (live, 2026-11-16).
             assert!(counter, "{}", p.spot.holder);
-            let tutorial = TUTORIAL_DONE.iter().all(|f| ready.contains(&f.to_string()));
+            let tutorial = gifts::BOTTLE_TUTORIAL_DONE
+                .iter()
+                .all(|f| ready.contains(&f.to_string()));
             assert_eq!(tutorial, potion, "{}: {ready:?}", p.spot.holder);
         }
     }

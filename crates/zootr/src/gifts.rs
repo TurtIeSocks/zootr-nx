@@ -6,6 +6,7 @@ mod later;
 pub(crate) mod levels;
 mod lines;
 mod potion;
+pub(crate) use potion::DONE as BOTTLE_TUTORIAL_DONE;
 mod rewrite;
 mod rolling;
 mod sales;

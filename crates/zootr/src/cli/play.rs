@@ -11,6 +11,7 @@ use super::args::StartArgs;
 use super::running::saved_test;
 use crate::config::Config;
 use crate::dev::Dev;
+use crate::gifts;
 use crate::history::History;
 use crate::live::{self, Game};
 use crate::play::{self, Launch, Report, Run, Script, Start, boot};
@@ -25,8 +26,8 @@ const LAUNCH: Duration = Duration::from_secs(180);
 
 /// `zootr boot`: the game started on a kept save or a new file, into play.
 pub(super) fn boot_command(start: StartArgs, limit: u64) -> Result<()> {
-    let launch =
-        Launch::named(start.save, start.new)?.context("name a start: --save NAME or --new")?;
+    let launch = Launch::named(start.save.clone(), start.new)?
+        .context("name a start: --save NAME or --new")?;
     let config = Config::load()?;
     let target = config.target()?;
     let mut input = play::input(&target, config.game.as_deref())?;
@@ -35,7 +36,7 @@ pub(super) fn boot_command(start: StartArgs, limit: u64) -> Result<()> {
         &mut input,
         &target,
         &launch,
-        &start.session,
+        &start,
         Duration::from_secs(limit),
     )?;
     let map = Dev::new(Game::attach(&target)?).and_then(|dev| dev.state());
@@ -46,21 +47,28 @@ pub(super) fn boot_command(start: StartArgs, limit: u64) -> Result<()> {
 }
 
 /// Start the game on `launch` from a run folder of its own, on this
-/// session's turn, and return that folder.
+/// session's turn, and return that folder. Once Link is in play the bottle
+/// tutorial is marked done, unless `start` keeps it.
 fn boot_on(
     input: &mut impl play::Input,
     target: &crate::config::Target,
     launch: &Launch,
-    session: &str,
+    start: &StartArgs,
     limit: Duration,
 ) -> Result<PathBuf> {
-    Turn::load()?.ensure_held(session, turn::from_claude())?;
-    let (start, name) = match launch {
+    Turn::load()?.ensure_held(&start.session, turn::from_claude())?;
+    let (from, name) = match launch {
         Launch::Kept(name) => (Start::Save(kept::path(name)?), name.as_str()),
         Launch::New => (Start::New, "new"),
     };
-    let save = boot::prepare(&start, name)?;
+    let save = boot::prepare(&from, name)?;
     boot::boot(input, target, Some(&save), limit)?;
+    if !start.bottle_tutorial {
+        let game = Game::attach(target)?;
+        for flag in gifts::BOTTLE_TUTORIAL_DONE {
+            game.set(live::hash(flag)?, "true")?;
+        }
+    }
     Ok(save)
 }
 
@@ -83,10 +91,10 @@ pub(super) fn play(
     let mut input = play::input(&target, config.game.as_deref())?;
     let launch = match attach {
         true => None,
-        false => Launch::named(start.save, start.new)?.or(script.launch.clone()),
+        false => Launch::named(start.save.clone(), start.new)?.or(script.launch.clone()),
     };
     if let Some(launch) = &launch {
-        boot_on(&mut input, &target, launch, &start.session, boot::LIMIT)?;
+        boot_on(&mut input, &target, launch, &start, boot::LIMIT)?;
     }
     let attach = attach || launch.is_some();
     let connect = || Dev::new(Game::attach(&target)?);
