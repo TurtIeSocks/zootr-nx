@@ -475,13 +475,16 @@ fn drain(map: &str) -> Option<String> {
 /// reads the level as it loads, so it's held like a flag. The Forest
 /// Temple's well stays full, its chest under the surface, until a switch
 /// sets its Bool (the sweep swam above the chest on every side,
-/// 2026-11-15).
-static WATER: LazyLock<[(&Name, String); 2]> = LazyLock::new(|| {
+/// 2026-11-15). Morpha's pool stays over the boss heart until her defeat
+/// sets its Bool: the quest step alone left the heart 5 m under water
+/// (0 of 36 sweeps, Mac 2026-11-16).
+static WATER: LazyLock<[(&Name, String); 3]> = LazyLock::new(|| {
     [
         (
             flag::WATER_TEMPLE,
             format!("{}=0", field::WATER_TEMPLE_ROOM00_WATER_LEVEL),
         ),
+        (flag::WATER_TEMPLE, flag::MORPHA_DELETE_WATER.to_string()),
         (
             flag::FOREST_TEMPLE,
             field::FOREST_TEMPLE_ROOM07_CHANGE_WATER_LEVEL_ACTOR.to_string(),
@@ -715,7 +718,10 @@ mod tests {
         needs_names!();
         assert_eq!(
             water(flag::WATER_TEMPLE),
-            [format!("{}=0", field::WATER_TEMPLE_ROOM00_WATER_LEVEL)]
+            [
+                format!("{}=0", field::WATER_TEMPLE_ROOM00_WATER_LEVEL),
+                flag::MORPHA_DELETE_WATER.to_string()
+            ]
         );
         assert!(water(flow::BOTTOM_OF_THE_WELL).is_empty());
         assert_eq!(
