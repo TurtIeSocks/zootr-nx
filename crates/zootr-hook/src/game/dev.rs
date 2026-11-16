@@ -119,7 +119,7 @@ pub(super) unsafe fn set_bool(main: usize, o: &Offsets, gd: usize, hash: u32, va
 }
 
 /// The system counter and its ticks per second.
-fn clock() -> (u64, u64) {
+pub(super) fn clock() -> (u64, u64) {
     let (now, rate): (u64, u64);
     // SAFETY: reads of the counter registers, open to user code.
     unsafe {

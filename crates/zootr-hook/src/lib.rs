@@ -13,8 +13,10 @@
 //! A map's chests are all made as it loads, so three more keep a second
 //! chest of a line in step: `map_loaded` empties the chest list,
 //! `chest_made` fills it, and `granted` recreates each closed chest's
-//! content as the level it now gives. Every holder's grant passes through
-//! `granted`, so it also credits key copies, wherever Link finds them.
+//! content as the level it now gives. `granted` also credits key copies
+//! from every holder that adds to the pouch, and `picked`, as a pickup
+//! window opens, from the floor, whose take stocks the pouch without the
+//! add.
 //!
 //! A seed with the Bunny Hood setting takes the run's speed request too:
 //! `run_speed` makes it half again as fast while Link wears the hood.
@@ -37,7 +39,7 @@ pub use mailbox::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_NAME, Ask, GUARD, MAILBOX,
     Mailbox, NAME, Outcome, play_event,
 };
-pub use shared::{CHESTS, Chest, List, Shared};
+pub use shared::{CHESTS, Chest, Credited, List, Shared};
 pub use switches::SWITCHES;
 #[cfg(not(target_os = "none"))]
 pub use table::encode;
@@ -59,4 +61,4 @@ pub const PANIC: u32 = 0x4e9_aff0;
 /// Where each function hook's resume slot sits in the hook, one word each
 /// in the order the hooks are listed, right after the entries. The patch
 /// writes a `b` past the hooked function's pacibsp into each.
-pub const RESUMES: u32 = 28;
+pub const RESUMES: u32 = 32;
