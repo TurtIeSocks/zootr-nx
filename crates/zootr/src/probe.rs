@@ -79,6 +79,15 @@ pub enum Probe {
     /// contains this, and the scale, rotation (radians) and translation it
     /// gives each bone at its first frame.
     Poses { path: String },
+    /// Each shape in the models whose path contains this: the lowest and
+    /// highest corner of its vertices as stored, before any pose.
+    Bounds {
+        path: String,
+        /// Euler X, Y, Z in radians, a scale and a lift, as `probe poses`
+        /// prints them: also print each shape's lowest point so posed.
+        #[arg(long, num_args = 5, allow_hyphen_values = true)]
+        pose: Option<Vec<f32>>,
+    },
     /// Decodes every BNTX texture whose path contains this to `out`, as PNG,
     /// including those inside SARC archives.
     Icons { pattern: String, out: PathBuf },
@@ -247,6 +256,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Grep { needle, path } => grep(romfs, game, &needle, &path),
         Probe::Strings { path } => names(romfs, game, &path),
         Probe::Poses { path } => poses(romfs, game, &path),
+        Probe::Bounds { path, pose } => bounds(romfs, game, &path, pose.as_deref()),
         Probe::Icons { pattern, out } => icons(romfs, game, &pattern, &out),
         Probe::Pouch { slot, all } => pouch(romfs, &slot, all),
         Probe::Places { filter } => {
@@ -517,6 +527,36 @@ fn poses(romfs: &Romfs, game: &Path, path: &str) -> Result<()> {
                     "    {bone} S{:?} R{:?} T{:?}",
                     b.scale, b.rotate, b.translate
                 );
+            }
+        }
+        Ok(())
+    })
+}
+
+fn bounds(romfs: &Romfs, game: &Path, path: &str, pose: Option<&[f32]>) -> Result<()> {
+    unpacked(romfs, game, path, |path, data, _| {
+        println!("{path}");
+        for shape in ounce_formats::shape_names(data) {
+            let mut lo = [f32::MAX; 3];
+            let mut hi = [f32::MIN; 3];
+            let vertices = ounce_formats::vertices(data, &shape)?;
+            for v in &vertices {
+                for i in 0..3 {
+                    lo[i] = lo[i].min(v.position[i]);
+                    hi[i] = hi[i].max(v.position[i]);
+                }
+            }
+            println!("  {shape} {lo:.3?} {hi:.3?}");
+            if let Some(p) = pose {
+                let (sx, cx) = p[0].sin_cos();
+                let (sy, cy) = p[1].sin_cos();
+                let (sz, cz) = p[2].sin_cos();
+                // Row Y of Rz * Ry * Rx.
+                let row = [cy * sz, sx * sy * sz + cx * cz, cx * sy * sz - sx * cz];
+                let low = (vertices.iter())
+                    .map(|v| (0..3).map(|i| row[i] * v.position[i] * p[3]).sum::<f32>())
+                    .fold(f32::MAX, f32::min);
+                println!("    posed lowest {:.3}", low + p[4]);
             }
         }
         Ok(())
