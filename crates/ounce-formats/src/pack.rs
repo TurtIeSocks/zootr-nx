@@ -57,6 +57,15 @@ impl ActorPack {
         })
     }
 
+    /// A pack built in memory as actor `name`, from its SARC's bytes.
+    pub fn from_bytes(name: &str, data: Vec<u8>) -> Result<Self> {
+        let sarc = Sarc::new(data).with_context(|| format!("reading {name}'s pack"))?;
+        Ok(Self {
+            name: name.to_owned(),
+            sarc,
+        })
+    }
+
     /// Every file in the pack, by path.
     pub fn files(&self) -> Vec<String> {
         self.sarc
