@@ -194,48 +194,75 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         planned.truncate(self.limit.unwrap_or(usize::MAX));
         let shots = self.dir.join(format!("round-{round:03}-{seed}"));
         std::fs::create_dir_all(&shots)?;
-        let mut dev = self.start()?;
-        let mut fails = 0;
+        let mut live = self.start()?;
+        let rows = self.results();
         let at = Round {
             round,
             seed,
             mix,
             places,
             shots: &shots,
+            rows: &rows,
         };
         for p in &planned {
             let first = at_known(p, &known);
-            let mut verdict = self.spot(&dev, &at, &first, name(p))?;
-            if stuck(&verdict) {
-                dev = self.start()?;
-                verdict = self.spot(&dev, &at, &first, format!("{} (after a restart)", name(p)))?;
-            }
-            if let Some(again) = other_age(p, &verdict, dev.state()?.child) {
-                let again = Planned {
-                    side: first.side,
-                    ..again
-                };
-                let age = if again.child == Some(true) {
-                    "child"
-                } else {
-                    "adult"
-                };
-                verdict = self.spot(&dev, &at, &again, format!("{} (as {age})", name(p)))?;
-            }
-            fails = match verdict {
-                Verdict::SetupFailed(_) => fails + 1,
-                _ => 0,
+            self.attempt(&mut live, &at, p, &first, name(p), &json!({}))?;
+        }
+        Ok(())
+    }
+
+    /// Sweep `first`, the spot `p` as earlier nights left it: again after a
+    /// restart when the game never took its teleport, and again as the
+    /// other age when `p`'s map names none. Restarts the game after a spot
+    /// that broke it, or after [`FAILS`] setups in a row failed. `tag` adds
+    /// its fields to each row.
+    pub(super) fn attempt(
+        &mut self,
+        live: &mut Live,
+        at: &Round,
+        p: &Planned,
+        first: &Planned,
+        name: String,
+        tag: &serde_json::Value,
+    ) -> Result<()> {
+        let mut verdict = self.spot(&live.dev, at, first, name.clone(), tag)?;
+        if stuck(&verdict) {
+            *live = self.start()?;
+            let again = format!("{name} (after a restart)");
+            verdict = self.spot(&live.dev, at, first, again, tag)?;
+        }
+        if let Some(again) = other_age(p, &verdict, live.dev.state()?.child) {
+            let again = Planned {
+                side: first.side,
+                ..again
             };
-            if verdict.broke() || fails >= FAILS {
-                dev = self.start()?;
-                fails = 0;
-            }
+            let age = if again.child == Some(true) {
+                "child"
+            } else {
+                "adult"
+            };
+            let named = format!("{name} (as {age})");
+            verdict = self.spot(&live.dev, at, &again, named, tag)?;
+        }
+        live.fails = match verdict {
+            Verdict::SetupFailed(_) => live.fails + 1,
+            _ => 0,
+        };
+        if verdict.broke() || live.fails >= FAILS {
+            *live = self.start()?;
         }
         Ok(())
     }
 
     /// Sweep one spot and record its row.
-    fn spot(&mut self, dev: &Dev, at: &Round, p: &Planned, name: String) -> Result<Verdict> {
+    fn spot(
+        &mut self,
+        dev: &Dev,
+        at: &Round,
+        p: &Planned,
+        name: String,
+        tag: &serde_json::Value,
+    ) -> Result<Verdict> {
         let started = Instant::now();
         let swept = Sweeper {
             dev,
@@ -248,12 +275,15 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             dir: at.shots,
         }
         .sweep(p, &name);
-        let row = json!({
+        let mut row = json!({
             "round": at.round, "seed": at.seed, "mix": at.mix, "name": name,
             "spot": p.spot, "trigger": kind(&p.trigger), "child": p.child,
             "secs": started.elapsed().as_secs_f32(), "swept": swept,
         });
-        self.append(&row)?;
+        if let (Some(row), Some(tag)) = (row.as_object_mut(), tag.as_object()) {
+            row.extend(tag.clone());
+        }
+        append(at.rows, &row)?;
         let verdict = swept.verdict.unwrap_or(Verdict::Nothing);
         eprintln!("  {name}: {}", serde_json::to_string(&verdict)?);
         Ok(verdict)
@@ -268,7 +298,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
     }
 
     /// Start the game from the pristine save and play into it.
-    fn start(&mut self) -> Result<Dev> {
+    pub(super) fn start(&mut self) -> Result<Live> {
         self.stop();
         let save = match &self.pristine {
             Some(p) => Some(boot::prepare(&Start::Save(p.clone()), "sweep")?),
@@ -281,7 +311,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             self.give(&dev, actor::OBJ_HEART_CONTAINER)?;
         }
         self.give(&dev, ADULT_SWORD)?;
-        Ok(dev)
+        Ok(Live { dev, fails: 0 })
     }
 
     /// One `actor`, pressing A through any event that holds it off: a new
@@ -298,15 +328,6 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
                 Err(e) => return Err(e),
             }
         }
-    }
-
-    fn append(&self, row: &serde_json::Value) -> Result<()> {
-        let mut file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(self.results())?;
-        writeln!(file, "{row}")?;
-        Ok(())
     }
 
     fn results(&self) -> PathBuf {
@@ -335,13 +356,26 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
     }
 
     fn note(&self, round: usize, error: &str) -> Result<()> {
-        self.append(&json!({"round": round, "error": error}))
+        append(&self.results(), &json!({"round": round, "error": error}))
     }
+}
+
+/// Add `row` to the JSON lines file `rows`.
+fn append(rows: &Path, row: &serde_json::Value) -> Result<()> {
+    let mut file = OpenOptions::new().create(true).append(true).open(rows)?;
+    writeln!(file, "{row}")?;
+    Ok(())
+}
+
+/// The game as a round plays it, and the setups in a row that failed.
+pub(super) struct Live {
+    dev: Dev,
+    fails: usize,
 }
 
 /// The round after the last one `results` records, so a night restarted
 /// after a deploy goes on through the mixes instead of starting over.
-fn next_round(results: &str) -> usize {
+pub(super) fn next_round(results: &str) -> usize {
     (results.lines())
         .filter_map(|l| serde_json::from_str::<serde_json::Value>(l).ok()?["round"].as_u64())
         .max()
@@ -361,12 +395,14 @@ fn stuck(verdict: &Verdict) -> bool {
 }
 
 /// The round a spot is swept in, for its row.
-struct Round<'a> {
-    round: usize,
-    seed: u64,
-    mix: &'static str,
-    places: &'a BTreeSet<dev::Place>,
-    shots: &'a Path,
+pub(super) struct Round<'a> {
+    pub round: usize,
+    pub seed: u64,
+    pub mix: &'static str,
+    pub places: &'a BTreeSet<dev::Place>,
+    pub shots: &'a Path,
+    /// The JSON lines file each spot's row goes to.
+    pub rows: &'a Path,
 }
 
 /// What earlier nights learned of each spot, by placement hash.
@@ -391,7 +427,7 @@ struct Known {
 
 /// What kind of holder `holder` is, its number off: `Pot_A_03` is a
 /// `Pot_A`, `Kokiri Shop 2` a `Kokiri Shop`.
-fn holder_kind(holder: &str) -> &str {
+pub(super) fn holder_kind(holder: &str) -> &str {
     holder.trim_end_matches(|c: char| c.is_ascii_digit() || c == '_' || c == ' ')
 }
 

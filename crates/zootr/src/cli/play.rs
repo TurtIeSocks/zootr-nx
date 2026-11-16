@@ -1,5 +1,6 @@
 //! `zootr play`: a script run on the game, on the Mac or the native build.
 //! `zootr sweep`: a night of rounds on the native build.
+//! `zootr drill`: the harness ladder, and both scoreboards.
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -7,7 +8,7 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result, bail};
 use ounce_formats::Romfs;
 
-use super::args::StartArgs;
+use super::args::{JudgeArgs, StartArgs};
 use super::running::saved_test;
 use crate::config::Config;
 use crate::dev::Dev;
@@ -15,8 +16,10 @@ use crate::gifts;
 use crate::history::History;
 use crate::live::{self, Game};
 use crate::play::{self, Launch, Report, Run, Script, Start, boot};
+use crate::sweep::drills::{self, Skill};
 use crate::sweep::judge::ModelJudge;
 use crate::sweep::night::{self, Night};
+use crate::sweep::report;
 use crate::turn::{self, Turn};
 use crate::vision::Vision;
 use crate::{kept, recorder, warp};
@@ -161,15 +164,41 @@ fn seed() -> String {
     }
 }
 
-pub(super) fn sweep(
+impl JudgeArgs {
+    /// The judge these name, and the save each start loads.
+    fn judge(self) -> Result<(ModelJudge, Option<PathBuf>)> {
+        let (Some(key_file), Some(playbook)) = (self.judge_key_file, self.playbook) else {
+            bail!("--judge-key-file and --playbook are required");
+        };
+        std::fs::metadata(&key_file).with_context(|| format!("reading {}", key_file.display()))?;
+        let lessons = (self.lessons).unwrap_or_else(|| playbook.with_file_name("lessons.md"));
+        let api = self.judge_api;
+        let vision = Vision::new(
+            api,
+            self.judge_url,
+            self.judge_model,
+            key_file,
+            self.judge_effort,
+        )?;
+        let judge = ModelJudge {
+            vision,
+            playbook,
+            lessons,
+        };
+        Ok((judge, self.pristine))
+    }
+}
+
+/// A night on the configured target, judged as `judge` names, writing to
+/// `dir`, handed to `go`.
+fn with_night(
     romfs: &Romfs,
     game: &Path,
-    judge: ModelJudge,
+    judge: JudgeArgs,
     dir: PathBuf,
-    (rounds, limit, mix, only): (usize, Option<usize>, Option<String>, Option<String>),
-    pristine: Option<PathBuf>,
+    go: impl FnOnce(&mut Night<Box<dyn play::Input>, ModelJudge>) -> Result<()>,
 ) -> Result<()> {
-    let mix = mix.map(|name| night::pinned(&name)).transpose()?;
+    let (judge, pristine) = judge.judge()?;
     let config = Config::load()?;
     let target = config.target()?;
     let input = play::input(&target, config.game.as_deref())?;
@@ -183,9 +212,59 @@ pub(super) fn sweep(
         judge,
         dir,
         pristine,
-        limit,
-        mix,
-        only,
+        limit: None,
+        mix: None,
+        only: None,
     };
-    night.run(rounds)
+    go(&mut night)
+}
+
+/// `zootr sweep`: `rounds` rounds, `limit` spots each at most, in mix
+/// `mix` only, of the spots `only` picks.
+pub(super) fn sweep(
+    romfs: &Romfs,
+    game: &Path,
+    judge: JudgeArgs,
+    dir: PathBuf,
+    (rounds, limit, mix, only): (usize, Option<usize>, Option<String>, Option<String>),
+) -> Result<()> {
+    let mix = mix.map(|name| night::pinned(&name)).transpose()?;
+    with_night(romfs, game, judge, dir, |night| {
+        night.limit = limit;
+        night.mix = mix;
+        night.only = only;
+        night.run(rounds)
+    })
+}
+
+/// `zootr drill`: the drills `skill` and `name` pick, `repeat` times over.
+pub(super) fn drill(
+    romfs: &Romfs,
+    game: &Path,
+    judge: JudgeArgs,
+    dir: PathBuf,
+    (skill, name, repeat): (Option<Skill>, Option<String>, usize),
+) -> Result<()> {
+    let drills = drills::chosen(skill, name.as_deref());
+    if drills.is_empty() {
+        bail!("no drill fits");
+    }
+    with_night(romfs, game, judge, dir, |night| {
+        night.ladder(&drills, repeat)
+    })
+}
+
+/// `zootr sweep report` and `zootr drill report`.
+pub(super) fn sweep_report(dir: &Path, from: Option<u64>, to: Option<u64>) -> Result<()> {
+    let rows = report::sweep_rows(dir).with_context(|| format!("reading {}", dir.display()))?;
+    print!("{}", report::sweep(&rows, from, to));
+    Ok(())
+}
+
+pub(super) fn drill_report(dir: &Path) -> Result<()> {
+    let file = dir.join(drills::ROWS);
+    let rows =
+        std::fs::read_to_string(&file).with_context(|| format!("reading {}", file.display()))?;
+    print!("{}", report::drills(&rows));
+    Ok(())
 }
