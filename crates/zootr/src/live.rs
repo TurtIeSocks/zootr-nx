@@ -170,7 +170,7 @@ pub fn snapshot(mem: &impl Memory, global: u64) -> Result<Vec<Value>> {
 
 fn sized(kind: &str, len: usize) -> Result<usize> {
     if len > MAX {
-        bail!("a {kind} read of {len} bytes; is this the 1.1.0 PC build?");
+        bail!("a {kind} read of {len} bytes; is this the 1.1.0 update?");
     }
     Ok(len)
 }
@@ -468,7 +468,7 @@ impl Game {
             return Err(NotSigned { pid }.into());
         }
         bail!(
-            "{} wasn't found in the game; is this the 1.1.0 PC build?",
+            "{} wasn't found in the game; is this the 1.1.0 update?",
             flag::GAME_DATA
         )
     }

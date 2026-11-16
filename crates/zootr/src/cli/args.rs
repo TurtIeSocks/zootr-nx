@@ -13,7 +13,10 @@ use crate::warp::Side;
 use crate::{checks, generate, presets, savefile, settings, starting};
 
 #[derive(Parser)]
-#[command(about = "Randomizer generator for Ocarina of Time on Switch 2")]
+#[command(
+    version,
+    about = "Randomizer generator for Ocarina of Time on Switch 2"
+)]
 pub(super) struct Cli {
     /// Your game dump: a `.nup` holding the 1.1.0 update, or a folder of
     /// its extracted romfs. Defaults to the app's, then `dump/oot.nup`.
@@ -27,6 +30,7 @@ pub(super) struct Cli {
 pub(super) enum Command {
     /// Whose turn it is on the game. Naming `claude`, `maintainer` or
     /// `free` hands it over.
+    #[command(hide = true)]
     Turn {
         to: Option<String>,
         /// Why, or what's being tested.
@@ -104,8 +108,8 @@ pub(super) enum Command {
     /// Read, compare or edit a save slot by flag name.
     #[command(subcommand)]
     Save(SaveCommand),
-    /// Print GameData values as the running game changes them. PC build on
-    /// macOS only: reads the picked target's process.
+    /// Print GameData values as the running game changes them. macOS only:
+    /// reads the picked target's process.
     Live {
         /// Only names containing this.
         #[arg(long)]
@@ -118,20 +122,19 @@ pub(super) enum Command {
         #[arg(long)]
         named: bool,
     },
-    /// Chaos chest shuffle (M2): no logic, so a seed may be unbeatable.
+    /// Shuffle the items and write the seed as a mod.
     Shuffle(Shuffle),
     /// Give Link an item in the running game, by its actor name, with
     /// the game's own grant, run by our hook on Link's next update. Needs a
     /// seed installed with `dev_panel` on in the config. The menu shows it
-    /// the next time it opens. PC build on macOS only.
+    /// the next time it opens. macOS only.
     Give {
         actor: String,
         /// How many, for items with a count.
         #[arg(default_value_t = 1)]
         count: i32,
     },
-    /// Write one GameData value into the running game. PC build on macOS
-    /// only.
+    /// Write one GameData value into the running game. macOS only.
     Set {
         /// A GameData name or 0x hash.
         name: String,
@@ -149,6 +152,7 @@ pub(super) enum Command {
     /// Sweep every spot of new seeds, round after round,
     /// a vision model judging the spots that don't resolve by themselves.
     /// Results go to `<out>/results.jsonl`. Runs on the Mac too.
+    #[command(hide = true)]
     Sweep {
         /// The night's folder.
         #[arg(long)]
@@ -201,6 +205,7 @@ pub(super) enum Command {
     /// and print the answers as one JSON object. A question is yes or no,
     /// or asks for words when it ends in `?:`. The frame comes from the
     /// target's game, the native build when it has a bridge.
+    #[command(hide = true)]
     Look {
         #[arg(required = true)]
         questions: Vec<String>,
@@ -235,6 +240,7 @@ pub(super) enum Command {
     /// start, its steps, a watch for stalls, and a report with screenshots
     /// beside the app's live logs. Exits nonzero when the run fails. Starts
     /// the game with the installed seed, never installing one.
+    #[command(hide = true)]
     Play {
         script: PathBuf,
         /// Use the game already running. Without it a running game is
