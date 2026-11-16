@@ -17,14 +17,20 @@ const NAME: &Name = field::ACTOR_NAME_REF;
 /// its `ActorInfo` row alike.
 const ANIMATIONS: &Name = field::ANIMATION_RESOURCES;
 const ARCHIVE: &Name = field::MODEL_PROJECT_NAME;
-/// Every shelf stand-in's animations: the spin the goods play when
-/// selected, and the gold token's pose on the root bones every
-/// item model has. The medallions have no animations and the songs none of
-/// their own, so on a shelf they stood still, and the bombs' shop pose
-/// lifted Bolero well above its spot. The maintainer picked the token's
-/// pose over each item's own (Mac, 2026-11-15). Both, a third archive,
-/// crashed the game as the shop loaded.
-const SHELF_ANIMATIONS: [&Name; 2] = [item::COMMON_ANIMATION, actor::OBJ_TOKEN_GOLD_ANIMATION];
+/// A shelf stand-in's animations: the spin the goods play when selected,
+/// then a pose on the root bones every item model has. The medallions have
+/// no animations and the songs none of their own, so on a shelf they stood
+/// still, and the bombs' shop pose lifted Bolero well above its spot. The
+/// maintainer picked the gold token's pose over each item's own (Mac,
+/// 2026-11-15), save for an item a vanilla shop sells in a pose of its
+/// own, which keeps it (2026-11-16): the token's laid the Deku Shield
+/// flat. A third archive crashed the game as the shop loaded.
+const SPIN: &Name = item::COMMON_ANIMATION;
+const TOKEN_POSE: &Name = actor::OBJ_TOKEN_GOLD_ANIMATION;
+/// An item's own pose archive is its model's name and this.
+const OWN_POSE: &str = "_Animation";
+/// Shop goods' `ActorInfo` rows start with this.
+const GOODS: &str = "Shop_";
 pub(crate) const POUCH: &Name = field::POUCH_CONTENT_REF;
 pub(crate) const TABLE: &Name = field::GAME_PARAMETER_TABLE_REF;
 pub(crate) const RESPAWN: &Name = field::ACTOR_GAME_DATA_SETTING;
@@ -101,6 +107,31 @@ fn archive(name: &str) -> Byml {
     let mut entry = BymlMap::default();
     entry.insert(ARCHIVE.get().into(), Byml::String(name.into()));
     Byml::Map(entry)
+}
+
+/// The pose `item` plays on a shelf: its model's own where some vanilla
+/// shop goods play it, else the gold token's. By the model, so a chest's
+/// form of the item finds the same pose.
+fn shelf_pose(actor: &BymlDoc, item: &str) -> Result<String> {
+    let item_row = row(actor, item)?;
+    let Some(model) = item_row.get(ARCHIVE.get()).and_then(|m| m.as_string().ok()) else {
+        return Ok(TOKEN_POSE.to_string());
+    };
+    let own = format!("{model}{OWN_POSE}");
+    for row in actor.root.as_array()? {
+        if !row_id(row).starts_with(GOODS) {
+            continue;
+        }
+        let Some(Byml::Array(archives)) = row.as_map()?.get(ANIMATIONS.get()) else {
+            continue;
+        };
+        let named =
+            |a: &Byml| (a.as_map().ok()?.get(ARCHIVE.get())?.as_string().ok()).map(|n| *n == own);
+        if archives.iter().any(|a| named(a) == Some(true)) {
+            return Ok(own);
+        }
+    }
+    Ok(TOKEN_POSE.to_string())
 }
 
 /// A param file's path, made into the reference that names it.
@@ -274,7 +305,7 @@ impl StandIn<'_> {
         refs.insert(POUCH.get().into(), reference(&new_pouch));
         refs.insert(RESPAWN.get().into(), Byml::String(NO_RESPAWN.into()));
         let shelf = match self.price {
-            Some(_) => Some(self.animate(name, &like, &mut refs, &mut new_files)?),
+            Some(_) => Some(self.animate(name, tables, &like, &mut refs, &mut new_files)?),
             None => None,
         };
         if self.price.is_none() && self.falls()? {
@@ -335,12 +366,14 @@ impl StandIn<'_> {
     fn animate<'a>(
         &'a self,
         name: &str,
+        tables: &Tables,
         like: &BymlDoc,
         refs: &mut BymlMap,
         new_files: &mut Vec<NewFile<'a>>,
     ) -> Result<Byml> {
         let template = &self.template;
-        let animations = Byml::Array(SHELF_ANIMATIONS.map(|a| archive(a)).to_vec());
+        let pose = shelf_pose(&tables.actor, &self.item.name)?;
+        let animations = Byml::Array(vec![archive(SPIN), archive(&pose)]);
         let template_param = path_of(template, ANIMATION)?;
         let mut param = resolved(template, &template_param)?;
         param.insert(ANIMATIONS.get().into(), animations.clone());
@@ -820,7 +853,18 @@ impl Tables {
 mod tests {
     use super::*;
     use crate::game::dev_dump;
-    use crate::known::{actor, field};
+    use crate::known::{actor, field, item};
+
+    #[test]
+    fn a_shield_keeps_its_own_shelf_pose_and_a_medallion_takes_the_tokens() {
+        let Some(romfs) = dev_dump() else { return };
+        let tables = Tables::load(&romfs).unwrap();
+        let pose = |i: &Name| shelf_pose(&tables.actor, i).unwrap();
+        let shield = format!("{}{OWN_POSE}", actor::WEAPON_SHIELD_DEKU);
+        assert_eq!(pose(actor::WEAPON_SHIELD_DEKU), shield);
+        assert_eq!(pose(actor::T_BOX_SHIELD_DEKU), shield);
+        assert_eq!(pose(item::MEDAL_FIRE), TOKEN_POSE.get());
+    }
 
     #[test]
     fn every_pool_item_can_stand_in() {
