@@ -129,3 +129,10 @@ workflow passes on only the ones that are set.
 
 Windows and Linux have no secret slots yet. Tauri's guides cover adding
 Windows code signing when it's wanted.
+
+## The build cache
+
+A tag can only restore caches saved on its own ref or on `main`, so the
+Release workflow also runs on `main` every Monday, and by hand from the
+Actions tab. Those runs build everything, release nothing, and save the
+cache the next tag starts from. Tag runs don't save one.

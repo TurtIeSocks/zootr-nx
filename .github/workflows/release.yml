@@ -3,10 +3,18 @@ name: Release
 # A `v*` tag builds the app and the CLI for each platform and attaches them
 # to a draft release. Publishing the draft is a manual step. See
 # .github/RELEASING.md.
+#
+# The weekly and manual runs on main build the same way but release nothing.
+# They keep a release build cache on main: a tag can only read caches from
+# its own ref and the default branch, so without one every tag built cold.
+# Unused caches go after 7 days, hence weekly.
 
 on:
   push:
     tags: ["v*"]
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -16,10 +24,12 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  TAGGED: ${{ startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   draft:
     name: Draft release
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-24.04
     outputs:
       id: ${{ steps.draft.outputs.id }}
@@ -49,6 +59,8 @@ jobs:
   build:
     name: Build (${{ matrix.name }})
     needs: draft
+    # A warm-up run skips the draft, and builds anyway.
+    if: ${{ !cancelled() && needs.draft.result != 'failure' }}
     strategy:
       fail-fast: false
       matrix:
@@ -79,6 +91,8 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           prefix-key: release
+          # Only main's cache is any use to the next tag.
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
@@ -104,6 +118,7 @@ jobs:
         run: codesign -f -s - --entitlements crates/zootr/live.entitlements target/release/zootr
 
       - name: Attach the CLI
+        if: env.TAGGED == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -126,7 +141,7 @@ jobs:
       # import. With none set, the app keeps tauri.conf.json's ad-hoc
       # signature and isn't notarized.
       - name: Use the macOS signing secrets that are set
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && env.TAGGED == 'true'
         shell: bash
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -146,6 +161,7 @@ jobs:
       # build.runner, set for macOS only in tauri.macos.conf.json, is a
       # shell script that signs debug builds for `tauri dev`. A release
       # build has nothing for it to do, so `--runner cargo` skips it.
+      # Without a release id (a warm-up run) it only builds.
       - name: Build the app and attach it
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
