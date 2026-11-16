@@ -13,6 +13,10 @@ The full reference: features, settings, targets and the CLI. The
   to launch, the mod folder to install to, and optionally the save folder
   and settings lines.
 
+On Linux, the `.deb` and `.rpm` add zootr-nx to your apps with its icon.
+The AppImage runs from anywhere, but shows its icon only once an AppImage
+manager such as Gear Lever adds it to your apps.
+
 ## What it does
 
 | Step | What happens |
@@ -31,8 +35,9 @@ The full reference: features, settings, targets and the CLI. The
 - Each seed shows as a row of icons instead of a number.
 - Every seed stays in the history with its spoiler, a name and a note, and
   can be installed again.
-- A bar flags settings you've changed since the installed seed, lists them,
-  and makes a new seed from them.
+- A bar flags settings you've changed since the installed seed (or from the
+  defaults, before the first seed), lists them, and makes a new seed from
+  them.
 - Play launches the game through whichever target you pick.
 
 ### Checks
@@ -65,8 +70,8 @@ The full reference: features, settings, targets and the CLI. The
 - All checks: every check and what it holds, searchable.
 - Pick a check to see why it's in its round. What it needs glows gold,
   dashed when it's one option of several, and what it opens up glows blue.
-- Covered while the game runs, so a glance doesn't spoil the run. Reveal it
-  if you're stuck.
+- The installed seed's stays covered, so a glance doesn't spoil the run.
+  Reveal it if you're stuck.
 
 ### For testing
 

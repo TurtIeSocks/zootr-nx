@@ -51,8 +51,8 @@ Navi quiet unless you ask her.
 
 Rounds lay out what Link can reach after each find. Pick a check to see
 what it needs, and Way of the Hero stars everything Link can't finish
-without. It stays covered while the game runs, so a glance doesn't spoil
-the run.
+without. The installed seed's stays covered until you reveal it, so a
+glance doesn't spoil the run.
 
 ![The spoiler's rounds, with one check's needs below](assets/spoiler.png)
 
