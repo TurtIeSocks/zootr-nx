@@ -213,6 +213,14 @@ test("the drift bar counts what differs from the installed seed", () => {
   ).toBeTruthy();
 });
 
+test("with no seed installed, the drift bar counts what differs from the defaults", () => {
+  show();
+  expect(screen.queryByText(/from the default settings/)).toBeNull();
+  cleanup();
+  show({ settings: { "open-forest": true } });
+  expect(screen.getByText(/from the default settings/)).toBeTruthy();
+});
+
 test("an open checklist is still open after leaving the page", () => {
   show({ defs: cutscenes, section: "Cutscenes" });
   fireEvent.click(screen.getByRole("button", { name: /By area/ }));

@@ -138,15 +138,13 @@ function SectionItem({ section, label, icon, children }: SectionItemProps) {
   );
 }
 
-/** The installed seed's views: the current run while the game is running,
- * the previous one otherwise. Hidden with no seed installed. It redraws only
- * when a seed is installed or removed, or the game opens or closes. */
+/** The installed seed's views. Hidden with no seed installed. It redraws
+ * only when a seed is installed or removed. */
 function RunGroup() {
   const installed = useSeeds((s) => s.history.installed !== null);
-  const [running] = useSeeds.usePath("running");
   if (!installed) return null;
   return (
-    <NavGroup title={running ? "Current run" : "Previous run"}>
+    <NavGroup title="Current run">
       {RUN_TABS.map(([t, icon]) => (
         <TabItem key={t} tab={t} icon={icon} />
       ))}

@@ -29,7 +29,8 @@ interface Seeds {
   blocked: string;
   /** A target's game is running. */
   running: boolean;
-  /** The settings that differ from the installed seed's, one line each. */
+  /** The settings that differ from the installed seed's, or from the
+   * defaults with none installed, one line each. */
   drift: string[];
   /** How many settings differ from each entry's, by entry id. */
   diffs: Record<number, number>;
@@ -51,6 +52,12 @@ export const useSeeds = create<Seeds>()(
   ),
 );
 
+/** What `drift` is measured from, for its wording. */
+export const useDriftFrom = () =>
+  useSeeds((s) =>
+    s.history.installed ? "the installed seed" : "the default settings",
+  );
+
 /** Works out `blocked`, `running`, `drift` and `diffs` from status,
  * history and the config. */
 function derive() {
@@ -65,7 +72,11 @@ function derive() {
   );
   useSeeds.setPath(
     "drift",
-    keep(history.installed ? diff(history.installed) : []),
+    keep(
+      history.installed
+        ? diff(history.installed)
+        : settingsDiff(schema, {}, config.settings),
+    ),
   );
   useSeeds.setPath(
     "diffs",
