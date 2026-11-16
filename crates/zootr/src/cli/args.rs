@@ -7,7 +7,7 @@ use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 
 use crate::config::Config;
-use crate::progress::Run;
+use crate::progress::{About, Run};
 use crate::settings::Settings;
 use crate::sweep::drills::Skill;
 use crate::vision::{Api, Effort};
@@ -710,6 +710,14 @@ impl ModDir {
         }
         let targets = Config::load()?.targets;
         Ok(generate::running(&targets).map(|t| t.name.clone()))
+    }
+
+    /// The folders written: `--mod-dir`, or every target's.
+    pub(super) fn folders(&self) -> Result<Vec<(String, PathBuf)>> {
+        Ok(match &self.mod_dir {
+            Some(d) => vec![("--mod-dir".into(), d.clone())],
+            None => About::folders(&Config::load()?.targets),
+        })
     }
 
     /// `write` into `--mod-dir`, or install to every target like the app.

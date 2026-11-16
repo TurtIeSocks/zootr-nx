@@ -2,12 +2,17 @@
 //! stop asked for between them.
 
 use std::fmt;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use anyhow::Result;
 use serde::Serialize;
+
+mod log;
+
+pub use log::About;
 
 /// The steps of generating and installing a seed, in order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -151,6 +156,7 @@ pub struct Run {
     stop: Stopper,
     started: Instant,
     now: Mutex<Now>,
+    log: Option<PathBuf>,
 }
 
 impl Run {
@@ -161,6 +167,7 @@ impl Run {
             stop: Stopper::default(),
             started: Instant::now(),
             now: Mutex::default(),
+            log: None,
         }
     }
 

@@ -8,7 +8,7 @@ use anyhow::Result;
 use super::args::Shuffle;
 use crate::config::Config;
 use crate::history::{History, Label};
-use crate::progress::{self, Run};
+use crate::progress::{self, About, Run};
 use crate::settings::Settings;
 use crate::{game, generate, presets, settings, starting};
 
@@ -98,7 +98,14 @@ pub(super) fn shuffle(game: &Path, args: Shuffle) -> Result<()> {
         ..args.extras()
     };
     let held = args.out.held()?;
-    let run = Run::silent().with(progress::print);
+    let about = About {
+        seed,
+        settings: &settings,
+        extras: &extras,
+        game,
+        folders: args.out.folders()?,
+    };
+    let run = Run::silent().with(progress::print).logged(&about);
     let built = (|| {
         let romfs = game::prepare(game, &run)?;
         let generate = |d: &Path| generate::generate(&romfs, d, seed, &settings, &extras, &run);

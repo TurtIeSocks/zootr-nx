@@ -318,11 +318,12 @@ pub fn logs() -> Result<PathBuf> {
     Ok(Config::path()?.with_file_name("logs"))
 }
 
-/// A new session log in `dir`, keeping the [`KEEP`] newest.
-pub fn open(dir: &Path) -> Result<(PathBuf, File)> {
+/// A new `<kind>-<time>.log` in `dir`, keeping the [`KEEP`] newest of its
+/// kind.
+pub fn open(dir: &Path, kind: &str) -> Result<(PathBuf, File)> {
     std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
-    let name = jiff::Zoned::now().strftime("live-%Y-%m-%d-%H%M%S.log");
-    let path = dir.join(name.to_string());
+    let name = jiff::Zoned::now().strftime("-%Y-%m-%d-%H%M%S.log");
+    let path = dir.join(format!("{kind}{name}"));
     let file = File::options()
         .create(true)
         .append(true)
@@ -332,7 +333,7 @@ pub fn open(dir: &Path) -> Result<(PathBuf, File)> {
         .filter_map(|e| Some(e.ok()?.path()))
         .filter(|p| {
             let name = p.file_name().and_then(|n| n.to_str()).unwrap_or_default();
-            name.starts_with("live-") && name.ends_with(".log")
+            name.starts_with(&format!("{kind}-")) && name.ends_with(".log")
         });
     keep_newest(logs, KEEP)?;
     Ok((path, file))
@@ -487,7 +488,7 @@ impl Recorder {
             started: jiff::Zoned::now().strftime("%H:%M").to_string(),
         };
         let stop = Arc::new(AtomicBool::new(false));
-        let log = match open(logs) {
+        let log = match open(logs, "live") {
             Ok((path, file)) => {
                 session.log = Some(path);
                 Some(file)
@@ -696,7 +697,7 @@ mod tests {
     #[test]
     fn a_session_logs_its_rows_and_why_it_ended() {
         let dir = scratch("log");
-        let (path, log) = open(&dir).unwrap();
+        let (path, log) = open(&dir, "live").unwrap();
         let events = Arc::new(Mutex::new(Vec::new()));
         let sent = events.clone();
         let gd = Arc::new(GameData::default());
@@ -739,7 +740,7 @@ mod tests {
     #[test]
     fn a_session_marks_and_mutes_by_hand_when_asked() {
         let dir = scratch("asks");
-        let (path, log) = open(&dir).unwrap();
+        let (path, log) = open(&dir, "live").unwrap();
         let sent = Arc::new(Mutex::new(Vec::new()));
         let events = sent.clone();
         let asked = Mutex::new(vec![vec![
@@ -982,7 +983,7 @@ mod tests {
         let old = |i| dir.join(format!("live-2000-01-01-{i:06}.log"));
         (0..25).for_each(|i| std::fs::write(old(i), "").unwrap());
         std::fs::write(dir.join("notes.txt"), "").unwrap();
-        let (path, _) = open(&dir).unwrap();
+        let (path, _) = open(&dir, "live").unwrap();
         assert!(path.exists() && dir.join("notes.txt").exists());
         assert!(!old(5).exists() && old(6).exists());
         let logs = std::fs::read_dir(&dir).unwrap().count() - 1;

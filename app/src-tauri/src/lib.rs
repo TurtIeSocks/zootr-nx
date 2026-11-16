@@ -16,7 +16,7 @@ use zootr::generate::{self, Extras, Report, RoundEvent, Spot, Start};
 use zootr::history::{History, Label, Mark, Summary, View};
 use zootr::inventory::{self, Cell, Inventory, TrackerOptions};
 use zootr::platform;
-use zootr::progress::Run;
+use zootr::progress::{About, Run};
 use zootr::recorder::{self, Ask, Event, Hub, Numbered, Snapshot, Watch};
 use zootr::savefile::{self, Change};
 use zootr::settings::{SettingDef, Settings};
@@ -162,13 +162,23 @@ fn shuffle_command() -> Res<String> {
 /// Write a seed to every target.
 fn install_seed(seed: u64, settings: &Settings, extras: &Extras) -> anyhow::Result<Report> {
     let config = Config::load()?;
-    let romfs = romfs(&config)?;
+    let game = config.game.as_ref().context("Set the game dump first")?;
+    let run = Run::silent().logged(&About {
+        seed,
+        settings,
+        extras,
+        game,
+        folders: About::folders(&config.targets),
+    });
     let mut extras = extras.clone();
     extras.dev_panel = config.dev_panel;
-    let run = Run::silent();
-    generate::install(&config.targets, &run, |d| {
-        generate::generate(&romfs, d, seed, settings, &extras, &run)
-    })
+    let report = zootr::game::prepare(game, &run).and_then(|romfs| {
+        generate::install(&config.targets, &run, |d| {
+            generate::generate(&romfs, d, seed, settings, &extras, &run)
+        })
+    });
+    run.end(&report);
+    report
 }
 
 /// Run `f` off the UI thread.
