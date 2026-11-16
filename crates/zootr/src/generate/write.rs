@@ -51,7 +51,7 @@ pub(super) fn flows(
     if let Some(spawn) = &new_game.spawn {
         spawn::warp(romfs, &mut rewrites, spawn)?;
     }
-    gifts::give_all(romfs, all, &mut rewrites, drops)?;
+    gifts::give_all(romfs, all, &mut rewrites, drops, new_game.progressive)?;
     dampe::give(romfs, &mut rewrites, drops)?;
     gerudo::stand_down(romfs, &mut rewrites, drops)?;
     if new_game.scrubs {

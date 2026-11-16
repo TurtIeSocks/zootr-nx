@@ -1,5 +1,6 @@
 //! Upgrade lines. A chest holding any level of a line gives the next level
 //! Link doesn't have, decided in the game by the hook (see `patch.rs`).
+//! A gift asks the pouch in its own flow instead (`gifts/levels.rs`).
 //!
 //! Levels from gifts stay out: the Goron Bracelet comes from Darunia, the
 //! first wallet is never an item, and the smallest stick and nut capacity
@@ -42,7 +43,8 @@ const fn same(actor: &Name) -> (&Name, &Name) {
     (actor, actor)
 }
 
-fn line(actor: &str) -> Option<&'static [(&'static Name, &'static Name)]> {
+/// `actor`'s line, each level's drop then its pouch name, lowest first.
+pub(crate) fn line(actor: &str) -> Option<&'static [(&'static Name, &'static Name)]> {
     LINES
         .into_iter()
         .find(|l| l.iter().any(|&(drop, _)| drop == actor))
