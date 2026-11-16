@@ -33,7 +33,7 @@ pub use bfres::{
     Lod, Vertex, edit_vertices, lods, pack, pointers, positions, replace_mesh, shape_names, unpack,
     vertices,
 };
-pub use bntx::{Texture, levels, redraw, redraw_halve, textures, textures_named};
+pub use bntx::{Texture, levels, redraw, redraw_halve, textures, textures_named, top_level};
 pub use byml_doc::BymlDoc;
 pub use crc32::crc32;
 pub use evfl::{Actor, EntryPoint, Event, EventKind, Flowchart, Link, Params, Value, relink};

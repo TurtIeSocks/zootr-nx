@@ -7,6 +7,7 @@ use texture2ddecoder as tex;
 use crate::blocks::{self, Rgba};
 use crate::par::par_map;
 
+#[derive(Clone)]
 pub struct Texture {
     pub name: String,
     pub width: usize,
@@ -135,19 +136,25 @@ fn decode(info: &Info, raw: &[u8], width: usize, height: usize, gobs: usize) -> 
 /// Every mip level of a file's first texture, decoded.
 pub fn levels(data: &[u8]) -> Result<Vec<Texture>> {
     let info = Info::read(data, first(data)?)?;
-    (0..info.levels)
-        .map(|i| {
-            let (w, h, gobs, bytes) = info.level(i)?;
-            let at = info.level_starts[i];
-            let raw = data.get(at..at + bytes).context("level past the end")?;
-            Ok(Texture {
-                name: info.name.clone(),
-                width: w,
-                height: h,
-                rgba: decode(&info, raw, w, h, gobs)?,
-            })
-        })
-        .collect()
+    (0..info.levels).map(|i| level(data, &info, i)).collect()
+}
+
+/// A file's first texture's first mip level, decoded: the one [`redraw`]
+/// takes.
+pub fn top_level(data: &[u8]) -> Result<Texture> {
+    level(data, &Info::read(data, first(data)?)?, 0)
+}
+
+fn level(data: &[u8], info: &Info, i: usize) -> Result<Texture> {
+    let (w, h, gobs, bytes) = info.level(i)?;
+    let at = info.level_starts[i];
+    let raw = data.get(at..at + bytes).context("level past the end")?;
+    Ok(Texture {
+        name: info.name.clone(),
+        width: w,
+        height: h,
+        rgba: decode(info, raw, w, h, gobs)?,
+    })
 }
 
 fn first(data: &[u8]) -> Result<usize> {
