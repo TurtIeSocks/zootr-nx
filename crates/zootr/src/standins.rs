@@ -6,6 +6,7 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_path};
 
 use crate::known::{Name, actor, field, flag, item};
+use crate::settings::DungeonKeys;
 use crate::{medallions, rsdb};
 
 pub(crate) const COMPONENTS: &str = "Components";
@@ -222,8 +223,8 @@ fn cloned(
 
 /// `item`'s pack, for a holder that shows or stands in for it: a key copy
 /// the seed builds, or the dump's.
-pub(crate) fn item_pack(romfs: &Romfs, item: &str) -> Result<ActorPack> {
-    match crate::key_tints::copy_pack(romfs, item)? {
+pub(crate) fn item_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<ActorPack> {
+    match crate::key_tints::copy_pack(romfs, item, keys)? {
         Some(pack) => Ok(pack),
         None => ActorPack::load(romfs, item),
     }

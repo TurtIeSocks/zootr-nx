@@ -15,6 +15,7 @@ use crate::known::{Name, actor, flag, item, scene};
 use crate::names::{ITEMS, name_label};
 use crate::rng::Rng;
 use crate::rules::Need;
+use crate::settings::NewGame;
 use crate::standins::{self, StandIn, Tables, item_pack};
 use crate::text::Copies;
 
@@ -313,18 +314,17 @@ pub fn write(
     builder: &mut ModBuilder,
     tables: &mut Tables,
     slots: &[Slot],
-    count: usize,
     drops: &HashMap<u64, Drop>,
-    seed: u64,
+    new_game: &NewGame,
 ) -> Result<Vec<String>> {
     let mut fields = Vec::new();
-    for (slot, item) in sold(slots, count, drops) {
+    for (slot, item) in sold(slots, new_game.shop_slots, drops) {
         let name = slot.actor();
         let sale = StandIn {
             name: &name,
             template: ActorPack::load(romfs, &slot.goods)?,
-            item: item_pack(romfs, item)?,
-            price: Some(price(seed, slot.hash())),
+            item: item_pack(romfs, item, new_game.keys)?,
+            price: Some(price(new_game.seed, slot.hash())),
         };
         sale.build(builder, tables)
             .with_context(|| format!("{} selling {item}", slot.holder()))?;
@@ -344,6 +344,7 @@ mod tests {
     use super::*;
     use crate::game::dev_dump;
     use crate::known::{actor, field, flag, item, scene};
+    use crate::settings::DungeonKeys;
     use crate::standins::*;
     use ounce_formats::{Byml, BymlDoc, BymlMap, pack_path};
     use roead::sarc::Sarc;
@@ -470,7 +471,20 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-shops-{}", std::process::id()));
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let mut tables = Tables::load(&romfs).unwrap();
-        let fields = write(&romfs, &mut builder, &mut tables, &slots, 1, &drops, 7).unwrap();
+        let fields = write(
+            &romfs,
+            &mut builder,
+            &mut tables,
+            &slots,
+            &drops,
+            &NewGame {
+                shop_slots: 1,
+                seed: 7,
+                keys: DungeonKeys::Rings,
+                ..NewGame::default()
+            },
+        )
+        .unwrap();
         tables.write(&mut builder).unwrap();
         builder.finish().unwrap();
 

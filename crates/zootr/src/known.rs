@@ -100,11 +100,13 @@ pub(crate) fn is_dump_name(text: &str) -> bool {
 
 /// Tier `tier`'s names by hash. Read from the dump the first time, which
 /// takes seconds for the actor packs, then from a copy in the cache. The
-/// copy is named for the tier's sources, so adding one reads them again.
+/// copy is named for the tier's sources and the single files extracted
+/// into them, so adding either reads them again.
 fn load(root: &Path, tier: usize) -> Result<HashMap<u64, &'static str>> {
     // Bump `STEMS` when what `read` takes from a file changes.
     const STEMS: &str = "|parts|heads";
-    let sources = hash(&(SOURCES[tier].join("|") + STEMS));
+    let files: Vec<&str> = crate::game::files().collect();
+    let sources = hash(&[SOURCES[tier].join("|"), STEMS.into(), files.join("|")].concat());
     let file = crate::game::cached(root, "names")?.join(format!("tier{tier}-{sources:016x}.txt"));
     let text = match std::fs::read_to_string(&file) {
         Ok(text) => text,
