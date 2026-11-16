@@ -7,7 +7,7 @@ use ounce_formats::{BymlDoc, Romfs};
 use crate::dev::Dev;
 use crate::gamedata::GameData;
 use crate::inventory;
-use crate::known::{Name, field, flag};
+use crate::known::{Name, actor, field, flag};
 use crate::live;
 use crate::progressive;
 use crate::savefile::Change;
@@ -40,6 +40,15 @@ pub(super) fn named(changes: &[Change]) -> Option<String> {
     let c = changes.iter().find(|c| c.name == MESSAGE)?;
     let to = c.change.rsplit(" -> ").next()?.trim_matches('"');
     (!to.is_empty()).then(|| to.to_owned())
+}
+
+/// Whether `c` is the harness's own Blue Fire, given to melt red ice: its
+/// get flag, or the get window naming it.
+pub(super) fn poured(c: &Change) -> bool {
+    let fire = actor::ITEM_BOTTLE_BLUE_FIRE.get();
+    c.name == format!("IsGet.{fire}")
+        || c.name == MESSAGE
+            && c.change.rsplit(" -> ").next().map(|t| t.trim_matches('"')) == Some(fire)
 }
 
 /// A rupee lying on the floor, which Link can pick up beside any spot. A
@@ -187,6 +196,27 @@ mod tests {
         let names = owned_as(&romfs, actor::OBJ_ARMOR_GORON).unwrap();
         assert_eq!(names, [actor::OBJ_ARMOR_GORON, actor::ARMOR_ADULT_GORON]);
         assert_eq!(owned_as(&romfs, "Item_A").unwrap(), ["Item_A"]);
+    }
+
+    #[test]
+    fn the_harness_blue_fire_is_told_apart() {
+        needs_names!();
+        let change = |name: &str, change: &str| Change {
+            hash: 0,
+            name: name.into(),
+            label: None,
+            kind: String::new(),
+            change: change.into(),
+        };
+        let fire = actor::ITEM_BOTTLE_BLUE_FIRE;
+        assert!(poured(&change(&format!("IsGet.{fire}"), "false -> true")));
+        assert!(poured(&change(MESSAGE, &format!(r#""" -> "{fire}""#))));
+        let chest = format!(r#""{fire}" -> "{}""#, actor::T_BOX_RUPEE_BLUE);
+        assert!(!poured(&change(MESSAGE, &chest)));
+        assert!(!poured(&change(
+            &format!("IsGet.{}", actor::OBJ_RUPEE_RED),
+            "false -> true"
+        )));
     }
 
     #[test]
