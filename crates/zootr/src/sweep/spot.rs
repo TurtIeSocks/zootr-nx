@@ -14,7 +14,7 @@ use super::ice;
 use super::judge::{Answer, Judge, Look, TURNS};
 use super::melody;
 use super::plan::{Halt, Planned, Trigger, preset};
-use super::watch::{MESSAGE, Watch, got_other, lands_as, named, owned_as, swapped};
+use super::watch::{MESSAGE, Watch, got_other, lands_as, named, owned_as, poured, swapped};
 use crate::dev::{Dev, EVENT_PLAYING, NOT_TAKEN, Place, Request};
 use crate::gamedata::GameData;
 use crate::gerudo;
@@ -258,7 +258,11 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             verdict = self.judged(p, name, &landed, swept)?;
         }
         let now = live::snapshot(self.dev.game(), self.dev.global())?;
-        let changes = live::changes(self.gd, &was, &now, |_| true);
+        let mut changes = live::changes(self.gd, &was, &now, |_| true);
+        // A shop may sell Blue Fire, so only a pour on red ice is ours.
+        if matches!(p.trigger, Trigger::Open { ice: Some(_), .. }) {
+            changes.retain(|c| !poured(c));
+        }
         let cleared = cleared
             .iter()
             .map(|f| format!("{f} cleared by the map load"));
