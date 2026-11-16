@@ -2,15 +2,14 @@ import { save as pickFile } from "@tauri-apps/plugin-dialog";
 import { Check, ClipboardCopy, Download, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { commands } from "@/bindings";
-import { InlineError } from "@/components/callout";
 import { Card } from "@/components/card";
 import { Field } from "@/components/field";
-import { FloatingBar } from "@/components/floating-bar";
 import { PathInput } from "@/components/path-input";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { UnsavedBar } from "@/components/unsaved-bar";
 import { call } from "@/lib/api";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
@@ -103,29 +102,17 @@ function TargetsForm() {
         />
       ))}
       {isEdited(targets, drafts) && (
-        <FloatingBar
-          message={
-            invalid || error ? (
-              <InlineError error={invalid || error} />
-            ) : (
-              <p>Unsaved changes to targets</p>
-            )
-          }
-        >
-          <Button
-            variant="ghost"
-            disabled={busy}
-            onClick={() => {
-              setInvalid("");
-              setDrafts(targets.map(toDraft));
-            }}
-          >
-            Discard
-          </Button>
-          <Button disabled={busy} onClick={save}>
-            Save targets
-          </Button>
-        </FloatingBar>
+        <UnsavedBar
+          message="Unsaved changes to targets"
+          error={invalid || error}
+          busy={busy}
+          saveLabel="Save targets"
+          onDiscard={() => {
+            setInvalid("");
+            setDrafts(targets.map(toDraft));
+          }}
+          onSave={save}
+        />
       )}
     </>
   );
