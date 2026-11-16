@@ -137,6 +137,19 @@ const saveFlags = vi.fn((_slot: number, { edits }: Pending, q: FlagQuery) =>
     ],
   }),
 );
+/** The made-up save's values before any edit. */
+const ORIGINAL: Record<number, string> = {
+  [HOOK]: "0",
+  [COUNT]: "5",
+  [FLAG]: "false",
+  9: "12",
+};
+/** Keeps the edits that change the save, one change each, as the backend
+ * does for values no cell shares. */
+const saveStage = vi.fn((_slot: number, { edits }: Pending) => {
+  const kept = edits.filter((e) => ORIGINAL[e.hash] !== e.value);
+  return ok({ edits: kept, count: kept.length });
+});
 const saveWrite = vi.fn(
   (_slot: number, { edits }: Pending, _stamp: number): Promise<unknown> =>
     ok({ log: edits.map((e) => `#${e.hash}: ${e.value}`), backup: "b.bak" }),
@@ -149,6 +162,7 @@ vi.mock("@/bindings", () => ({
     saveClick: (s: number, p: Pending, at: number, i: Intent) =>
       saveClick(s, p, at, i),
     saveFlags: (s: number, p: Pending, q: FlagQuery) => saveFlags(s, p, q),
+    saveStage: (s: number, p: Pending) => saveStage(s, p),
     savePresets: () =>
       Promise.resolve([{ name: "fake-done", label: "Fake done", what: "x" }]),
     saveWrite: (s: number, p: Pending, stamp: number) => saveWrite(s, p, stamp),
@@ -181,7 +195,7 @@ test("picks the newest slot and marks the one Continue loads", async () => {
   expect(slot2.textContent).toContain("Continue");
 });
 
-test("a click goes up a tier, a right click down, and the tile shows a dot", async () => {
+test("a click goes up a tier and the tile shows a dot, and a right click back unstages it", async () => {
   await open();
   fireEvent.click(tile("Hookshot"));
   await waitFor(() => expect(useUi.getPath("save.edits")).toHaveLength(1));
@@ -193,13 +207,10 @@ test("a click goes up a tier, a right click down, and the tile shows a dot", asy
       screen.getByRole("button", { name: /Hookshot.*changed/ }),
     ).toBeTruthy(),
   );
-  fireEvent.contextMenu(tile("Hookshot"));
-  await waitFor(() =>
-    expect(useUi.getPath("save.edits")).toEqual([
-      { hash: HOOK, index: 0, value: "0" },
-    ]),
-  );
   expect(screen.getByText("1 change to slot 2")).toBeTruthy();
+  fireEvent.contextMenu(tile("Hookshot"));
+  await waitFor(() => expect(useUi.getPath("save.edits")).toEqual([]));
+  expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 });
 
 test("the count opens a field that stages how many", async () => {

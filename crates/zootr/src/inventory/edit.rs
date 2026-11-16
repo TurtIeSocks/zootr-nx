@@ -129,14 +129,19 @@ impl Inventory {
         grid.chain(self.dungeons.iter().map(|_| None)).collect()
     }
 
-    /// The values each cell reads, in [`Inventory::cells`]'s order.
-    pub fn cell_hashes(&self) -> Vec<Vec<u32>> {
+    /// The values each cell reads or a click on it writes, in
+    /// [`Inventory::cells`]'s order: its pouch counts, their `IsGet`
+    /// flags, and the cap a bag names.
+    pub fn cell_hashes(&self, pouch: &Pouch) -> Vec<Vec<u32>> {
         let grid = GRID.iter().map(|s| {
-            s.tiers
-                .iter()
-                .chain(&s.count)
-                .filter_map(|a| self.keys.get(a).copied())
-                .collect()
+            let actors = || s.tiers.iter().chain(&s.count);
+            let keys: Vec<u32> = actors().filter_map(|a| self.keys.get(a).copied()).collect();
+            let flags = keys.iter().filter_map(|k| self.owned.get(k).copied());
+            let caps = actors()
+                .filter_map(|a| pouch.bags.get(a.get()))
+                .map(|(group, _)| Pouch::expansion(group));
+            let more: Vec<u32> = flags.chain(caps).collect();
+            [keys, more].concat()
         });
         grid.chain(self.dungeons.iter().map(|k| k.key.into_iter().collect()))
             .collect()
@@ -506,6 +511,19 @@ mod tests {
         assert!(down.contains(&(HOOK, "false".into())), "{down:?}");
         let typed = inv.edits(&pouch(), &held, at(&inv, "Bombs"), Intent::Count(0));
         assert_eq!(pairs(typed.unwrap()), [(h(item::BOMB), "0".into())]);
+    }
+
+    #[test]
+    fn a_cell_owns_its_flags_and_its_bags_cap() {
+        needs_names!();
+        let mut inv = inventory();
+        inv.owned = HashMap::from([(h(item::BOMB), 1)]);
+        let cells = inv.cells();
+        let hashes = inv.cell_hashes(&pouch());
+        let bombs = &hashes[cell_at(&cells, "Bombs")];
+        for want in [h(item::BOMB), 1, Pouch::expansion("FakeBomb")] {
+            assert!(bombs.contains(&want), "{want:08x} in {bombs:?}");
+        }
     }
 
     #[test]

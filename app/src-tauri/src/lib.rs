@@ -686,6 +686,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             save_editor::save_presets,
             save_editor::save_items,
             save_editor::save_click,
+            save_editor::save_stage,
             save_editor::save_flags,
             save_editor::save_write,
             live_state,

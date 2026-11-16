@@ -72,6 +72,8 @@ export interface Ui {
     tab: SaveTab;
     presets: string[];
     edits: Edit[];
+    /** How many things `edits` change, as the last stage counted. */
+    changes: number;
     flags: FlagQuery;
   };
   /** The dev panel's picks and drafts. */
@@ -116,6 +118,7 @@ const INITIAL: Ui = {
     tab: "items",
     presets: [],
     edits: [],
+    changes: 0,
     flags: { search: "", kind: null, changed: true, staged: false, open: {} },
   },
   dev: {

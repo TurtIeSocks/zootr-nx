@@ -22,10 +22,10 @@ import { PresetsTab } from "@/save/presets-tab";
 import { SlotList } from "@/save/slot-list";
 import {
   discard,
-  pendingCount,
   pickSlot,
   type SaveTab,
   usePending,
+  usePendingCount,
 } from "@/save/tabs";
 import { Page, PageHeader } from "@/shell/page-header";
 import { useUi } from "@/stores/ui";
@@ -190,7 +190,7 @@ function SaveBar({ onSaved, onReload }: SaveBarProps) {
   const [stamp, setStamp] = useUi.usePath("save.stamp");
   const save = useRequestState();
   const [stale, setStale] = useState<number>();
-  const n = pendingCount(pending);
+  const n = usePendingCount();
   if (n === 0 || slot === null) return null;
   const write = () =>
     save.run(async () => {

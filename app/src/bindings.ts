@@ -51,6 +51,11 @@ export const commands = {
 	saveItems: (slot: number, pending: Pending) => typedError<ItemsView, string>(__TAURI_INVOKE("save_items", { slot, pending })),
 	/**  The edits a click on a grid cell makes, to add to the pending ones. */
 	saveClick: (slot: number, pending: Pending, at: number, intent: Intent) => typedError<Edit[], string>(__TAURI_INVOKE("save_click", { slot, pending, at, intent })),
+	/**
+	 *  `pending` cut to the edits that change the slot, and how many things
+	 *  they change. Refuses an edit the save won't take.
+	 */
+	saveStage: (slot: number, pending: Pending) => typedError<Staged, string>(__TAURI_INVOKE("save_stage", { slot, pending })),
 	/**  The Flags tab. */
 	saveFlags: (slot: number, pending: Pending, query: FlagQuery) => typedError<FlagsView, string>(__TAURI_INVOKE("save_flags", { slot, pending, query })),
 	/**
@@ -683,6 +688,23 @@ export type Spot = {
 	need?: string,
 	/**  The item ids that rule names. */
 	need_items?: string[],
+};
+
+/**
+ *  What's pending, cut to the edits that change the save, and how many
+ *  things they change.
+ */
+export type Staged = {
+	/**
+	 *  `pending`'s edits that leave a value other than the presets do. A
+	 *  cell clicked back to where it was drops out.
+	 */
+	edits: Edit[],
+	/**
+	 *  A grid cell counts once however many values its click wrote, and
+	 *  any other value once.
+	 */
+	count: number,
 };
 
 /**  What logic counts Link as having before round 1. */
