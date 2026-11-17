@@ -94,5 +94,7 @@ mod spots;
 mod tests;
 
 pub use placements::{events, fields, flags, gone, leaves, lines, sold_out};
-pub(crate) use sales::{Level, write};
+pub(crate) use sales::write;
+#[cfg(test)]
+use crate::gifts::levels::Level;
 pub use spots::{SCRUBS, at, checks, of};

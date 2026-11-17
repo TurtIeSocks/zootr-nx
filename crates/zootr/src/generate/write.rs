@@ -68,25 +68,16 @@ pub(super) fn flows(
     levels(romfs, drops, new_game)?.give(romfs, all, &mut rewrites)?;
     dampe::give(romfs, &mut rewrites, drops)?;
     gerudo::stand_down(romfs, &mut rewrites, drops)?;
+    let model = gifts::levels::model(all)?;
+    let level = gifts::levels::Level {
+        model: &model,
+        progressive: new_game.progressive,
+    };
     if new_game.scrubs {
-        let model = gifts::levels::model(all)?;
-        let level = scrubs::Level {
-            model: &model,
-            progressive: new_game.progressive,
-        };
         scrubs::write(romfs, &mut rewrites, drops, new_game.scrub_price, level)?;
     }
     if new_game.cows {
-        let level = (new_game.progressive)
-            .then(|| gifts::levels::model(all))
-            .transpose()?;
-        cows::give(
-            romfs,
-            &mut rewrites,
-            &cows::find(romfs)?,
-            drops,
-            level.as_ref(),
-        )?;
+        cows::give(romfs, &mut rewrites, &cows::find(romfs)?, drops, level)?;
     }
     if new_game.fortress_keys {
         let pieces = pickups::dealt(romfs, new_game)?;
@@ -131,7 +122,7 @@ pub fn write_mod(
             builder.write(&to, data)?;
         }
     }
-    let mut lines = gifts::lines(drops);
+    let mut lines = gifts::lines(drops, new_game.progressive);
     lines.push(scrubs::lines(drops));
     lines.extend(scrubs::sold_out(drops));
     let mut copies = match new_game.shop_slots {

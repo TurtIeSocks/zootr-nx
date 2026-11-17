@@ -260,13 +260,11 @@ pub fn shuffle<'a>(
 }
 
 /// Whether `item` asks on `check`, which a gift can't answer unless it
-/// asks the pouch first. Nothing asks of a gift that gives
-/// [`gifts::by_level`] or of a scrub, whose sale asks the pouch, and a
-/// line's level doesn't of a cow, whose song does.
+/// asks the pouch first. Nothing asks of an NPC gift, a scrub or a cow:
+/// each puts the pouch questions in front of its grant (`gifts::levels`).
 fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
-    let cow = cows::is_cow(check) && ammo::swap(item).is_none();
-    let picks = gifts::by_level(check) || scrubs::of(check).is_some();
-    !picks && !cow && levels::asks(item, progressive)
+    let picks = gifts::of(check).is_some() || scrubs::of(check).is_some() || cows::is_cow(check);
+    !picks && levels::asks(item, progressive)
 }
 
 /// Whether `check` may hold `item`: a gift can't hold one that asks. A
@@ -468,14 +466,14 @@ mod tests {
     }
 
     #[test]
-    fn a_cow_holds_a_line_item_but_not_ammo() {
+    fn a_cow_holds_a_line_item_and_ammo() {
         needs_names!();
         let cow = ItemCheck {
             holder: cows::HOLDER.into(),
             ..chest(1, "Item_A")
         };
         assert!(allowed(&cow, item::HOOKSHOT, true));
-        assert!(!allowed(&cow, item::BOMB_BUNDLE_SMALL, true));
+        assert!(allowed(&cow, item::BOMB_BUNDLE_SMALL, true));
     }
 
     #[test]
@@ -722,22 +720,19 @@ mod tests {
     }
 
     #[test]
-    fn plando_cant_put_an_item_that_asks_on_a_sale() {
+    fn plando_puts_an_item_that_asks_on_any_npc_gift_a_sale_included() {
         needs_names!();
         let checks = with_gifts();
         let bombs = |g: &gifts::Gift| Fixed::from([(g.hash(), ammo::NEEDS[0].0.to_string())]);
-        let sale = gifts::GIFTS.iter().find(|g| g.is_sale()).unwrap();
-        let err = shuffle(&checks, 7, &bombs(sale), &game(false, &[]))
-            .err()
-            .unwrap();
-        assert!(err.to_string().contains(sale.giver), "{err}");
-        // Saria gives the bombs or a Red Rupee by what Link owns.
-        let saria = gifts::GIFTS[0].hash();
-        assert!(shuffle(&checks, 7, &bombs(&gifts::GIFTS[0]), &game(false, &[])).is_ok());
-        let hook = Fixed::from([(saria, line(0)[0].0.into())]);
-        assert!(shuffle(&checks, 7, &hook, &game(false, &[])).is_ok());
-        // Saria gives the Hookshot or the Longshot by what Link owns.
-        assert!(shuffle(&checks, 7, &hook, &progressive(true, &[])).is_ok());
+        let hook = |g: &gifts::Gift| Fixed::from([(g.hash(), line(0)[0].0.to_string())]);
+        // Saria and the sales give the bombs or a Red Rupee, and the
+        // Hookshot or the Longshot, by what Link owns.
+        let sales = gifts::GIFTS.iter().filter(|g| g.is_sale());
+        for g in std::iter::once(&gifts::GIFTS[0]).chain(sales) {
+            assert!(shuffle(&checks, 7, &bombs(g), &game(false, &[])).is_ok());
+            assert!(shuffle(&checks, 7, &hook(g), &game(false, &[])).is_ok());
+            assert!(shuffle(&checks, 7, &hook(g), &progressive(true, &[])).is_ok());
+        }
     }
 
     #[test]

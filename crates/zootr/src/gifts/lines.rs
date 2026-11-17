@@ -5,9 +5,9 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 
 use anyhow::{Result, ensure};
-use ounce_formats::{Event, EventKind, Flowchart, Romfs};
+use ounce_formats::{Event, EventKind, Flowchart, Params, Romfs};
 
-use super::{GIFTS, Gift, NAME, item_at};
+use super::{GIFTS, Gift, NAME, item_at, levels};
 use crate::checks::Drop;
 use crate::flows::{self, Rewrites, param, params_mut, string};
 use crate::known::{Name, actor, field, flow, item};
@@ -67,15 +67,35 @@ fn label(line: &str, item: &str) -> String {
     format!("{line}_{item}")
 }
 
-/// The copies the dealt gifts' lines need, one message file each.
-pub fn lines(drops: &HashMap<u64, Drop>) -> Vec<Lines<'_>> {
+/// Point a sale's paid line, a copy naming `from`, at the copy naming `to`.
+/// A chain by level gives `to` instead.
+pub(super) fn repoint(params: &mut Params, from: &str, to: &str) -> Result<()> {
+    let line = param(params, PAID).and_then(|l| l.strip_suffix(&*label("", from)));
+    match line.map(|l| label(l, to)) {
+        Some(to) => flows::set(params, PAID, string(&to)),
+        None => Ok(()),
+    }
+}
+
+/// The copies the dealt gifts' lines need, one message file each: one
+/// naming each item the gift can give, every level of a chain by level.
+pub fn lines(drops: &HashMap<u64, Drop>, progressive: bool) -> Vec<Lines<'_>> {
     dealt(drops)
-        .map(|d| Lines {
-            file: d.file,
-            like: (d.line, d.named),
-            // A language that can't name the item keeps the vanilla line.
-            fallback: d.line,
-            new: vec![(label(d.line, d.item), d.item)],
+        .map(|d| {
+            // Only a sale's line is said after the chain picks the level.
+            let chained = d.gift.is_sale() && levels::needs(d.gift, d.item, progressive);
+            let steps = chained.then(|| levels::steps(d.item)).into_iter().flatten();
+            let mut items: Vec<&str> = steps.collect();
+            if !items.contains(&d.item) {
+                items.push(d.item);
+            }
+            Lines {
+                file: d.file,
+                like: (d.line, d.named),
+                // A language that can't name the item keeps the vanilla line.
+                fallback: d.line,
+                new: items.into_iter().map(|i| (label(d.line, i), i)).collect(),
+            }
         })
         .collect()
 }
@@ -224,6 +244,6 @@ mod tests {
         }
         let said = says(&HashMap::new());
         assert!(said.contains(&format!("{}:{}", NAMED[0].1, NAMED[0].2)));
-        assert!(lines(&HashMap::new()).is_empty());
+        assert!(lines(&HashMap::new(), true).is_empty());
     }
 }
