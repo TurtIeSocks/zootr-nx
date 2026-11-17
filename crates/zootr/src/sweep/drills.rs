@@ -195,7 +195,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
                 rows: &rows,
             };
             // What earlier runs taught: the side a drill gave its item from,
-            // else its least missed one, as the sweep goes again.
+            // else the one it missed from longest ago, as the sweep goes again.
             let mut known = night::Known::default();
             night::learn(
                 &mut known,
