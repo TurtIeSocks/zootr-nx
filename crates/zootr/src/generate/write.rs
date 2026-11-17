@@ -234,6 +234,7 @@ pub fn write_mod(
         drops,
         new_game,
     )?);
+    held::write(romfs, &mut builder, &mut tables)?;
     tables.write(&mut builder)?;
     // A pickup's drop is its field above, never the bare item. A cow's is
     // its flow's grant.
@@ -290,7 +291,6 @@ pub fn write_mod(
         bail!("no actor with hash {missing} has a {}", checks::DROP_ACTOR);
     }
     bombs::write(&mut builder)?;
-    held::write(romfs, &mut builder, drops.values().map(|d| d.item.as_str()))?;
     dig::write(romfs, &mut builder, drops, new_game)?;
     run.check()?;
     let files = builder.finish()?.len();

@@ -1,52 +1,52 @@
 //! What Link holds up in a get. A chest's flow, and a pickup's, bind the
-//! item to Link's hands with `EventTriggerModelBindForItemGetDemo`, an
-//! event only some event graphs answer: the one the item's
-//! `EventPerformerParam` names. The ocarinas' (`Common`) doesn't, so a
-//! chest dealt one showed Link holding up nothing under the right text
-//! (Mac, 2026-11-17). Each dealt ocarina takes every other item's
-//! performer (`PouchContent`), whose graph answers that event and every
-//! one `Common` does, so the scenes that drive the ocarina keep working.
+//! item to Link's hands with `EventTriggerModelBindForItemGetDemo`. The
+//! ocarinas miss it twice: their performer's event graph (`Common`) has no
+//! such event, and they calculate after every other actor (`CalcPriority`,
+//! in their row and in their system setting). So a chest dealt one showed
+//! Link holding up nothing under the right text. Each ocarina takes every
+//! other item's performer (`PouchContent`), whose graph answers that event
+//! and every one `Common` does, and the Hookshot's system setting, and its
+//! row drops the priority: then Link holds it up (Mac, 2026-11-17). With
+//! the performer alone he still didn't. A chest gives a line's first
+//! level and the level Link needs is picked as it opens, so both are
+//! written in every seed.
 
 use anyhow::Result;
 use ounce_formats::{ActorPack, Byml, BymlDoc, ModBuilder, Romfs, pack_file};
 
 use crate::known::{Name, item};
-use crate::standins::{self, COMPONENTS};
+use crate::standins::{self, COMPONENTS, Tables};
 
-/// The items whose event graph leaves them out of Link's hands.
+/// The items the game leaves out of Link's hands.
 const UNBOUND: [&Name; 2] = [item::OCARINA_FAIRY, item::OCARINA_TIME];
-/// Whose performer each takes.
+/// Whose parts each takes.
 const LENDER: &Name = item::HOOKSHOT;
 const PERFORMER: &str = "EventPerformerRef";
+const SETTING: &str = "SystemSetting";
+/// The row field that has an actor calculate out of turn. The lender's row
+/// has none.
+const PRIORITY: &str = "CalcPriority";
 
-/// Write each item in `items` the game leaves out of Link's hands with
-/// the lender's performer.
-pub fn write<'a>(
-    romfs: &Romfs,
-    builder: &mut ModBuilder,
-    items: impl Iterator<Item = &'a str>,
-) -> Result<()> {
-    let items: Vec<&str> = items.collect();
-    let dealt: Vec<&Name> = (UNBOUND.into_iter())
-        .filter(|u| items.iter().any(|i| **u == **i))
-        .collect();
-    if dealt.is_empty() {
-        return Ok(());
-    }
+/// Write each item the game leaves out of Link's hands with the lender's
+/// performer and system setting, and its row without its priority.
+pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Result<()> {
     let lender = ActorPack::load(romfs, LENDER)?;
-    for name in dealt {
+    for name in UNBOUND {
         let pack = ActorPack::load(romfs, name)?;
         let mut writer = pack.writer();
         let path = standins::actor_path(name);
         let old = standins::raw(&pack, &path)?;
         let mut actor = BymlDoc::parse(&old)?;
         let mut refs = standins::components(actor.root.as_map()?)?;
-        standins::lend(&mut writer, &mut refs, PERFORMER, &lender)?;
+        for key in [PERFORMER, SETTING] {
+            standins::lend(&mut writer, &mut refs, key, &lender)?;
+        }
         (actor.root.as_mut_map()?).insert(COMPONENTS.into(), Byml::Map(refs));
         let new = actor.to_binary();
         builder.resize(&path, old.len(), new.len())?;
         writer.add_file(path, new);
         builder.write(&pack_file(name), &writer.to_binary())?;
+        tables.take(name, LENDER, &[PRIORITY])?;
     }
     Ok(())
 }
@@ -55,12 +55,15 @@ pub fn write<'a>(
 mod tests {
     use super::*;
     use crate::game::dev_dump;
+    use crate::standins::row;
     use roead::sarc::Sarc;
 
     const BIND: &str = "EventTriggerModelBindForItemGetDemo";
     const GRAPH: &str = "EventUniqueAin";
     /// The pack the event graphs no actor carries itself live in.
     const SHARED: &str = "Pack/AI.Global.Product.111.pack.zs";
+    /// The system setting that calculates an actor after the rest.
+    const AFTER: &str = "GameActorAfter";
 
     /// The event graph `pack`'s performer runs: the pack's own copy, or the
     /// shared one.
@@ -86,6 +89,12 @@ mod tests {
         graph.windows(BIND.len()).any(|w| w == BIND.as_bytes())
     }
 
+    /// Whether `pack`'s system setting calculates it after the rest.
+    fn after(pack: &ActorPack) -> bool {
+        let param = pack.actor_param().unwrap().unwrap();
+        standins::component(&param, SETTING).is_some_and(|s| s.contains(AFTER))
+    }
+
     #[test]
     fn every_item_a_check_holds_is_held_up_in_its_get() {
         let Some(romfs) = dev_dump() else { return };
@@ -105,7 +114,8 @@ mod tests {
         }
         let dir = std::env::temp_dir().join(format!("zootr-held-{}", std::process::id()));
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
-        write(&romfs, &mut builder, items.iter().map(String::as_str)).unwrap();
+        let mut tables = Tables::load(&romfs).unwrap();
+        write(&romfs, &mut builder, &mut tables).unwrap();
         builder.finish().unwrap();
         let mut unbound = Vec::new();
         for item in &items {
@@ -117,7 +127,8 @@ mod tests {
                 }
                 Err(_) => ActorPack::load(&romfs, item).unwrap(),
             };
-            if !binds(&graph(&romfs, &pack)) {
+            let late = row(&tables.actor, item).is_ok_and(|r| r.contains_key(PRIORITY));
+            if !binds(&graph(&romfs, &pack)) || after(&pack) || late {
                 unbound.push(item.as_str());
             }
         }
@@ -144,25 +155,6 @@ mod tests {
             let missing: Vec<_> = own.iter().filter(|e| !lender.contains(e)).collect();
             assert!(missing.is_empty(), "{u}: {missing:?}");
         }
-    }
-
-    #[test]
-    fn only_the_dealt_ocarina_s_pack_is_written() {
-        let Some(romfs) = dev_dump() else { return };
-        let dir = std::env::temp_dir().join(format!("zootr-held-one-{}", std::process::id()));
-        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
-        let dealt = [
-            LENDER.get(),
-            item::OCARINA_TIME.get(),
-            item::OCARINA_TIME.get(),
-        ];
-        write(&romfs, &mut builder, dealt.into_iter()).unwrap();
-        let files = builder.finish().unwrap();
-        assert_eq!(
-            files,
-            [pack_file(item::OCARINA_TIME), romfs.restbl_rel().unwrap()]
-        );
-        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
