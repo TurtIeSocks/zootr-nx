@@ -421,10 +421,14 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             }
             None => level.standing_at(face)?,
         };
-        let spots = match here {
-            true => vec![at],
-            false => nav::landings(&graph, holder, at, p.side, sides),
+        // Up on a pillar: stand on it and take it from there.
+        let aloft = nav::aloft(&graph, holder);
+        let spots = match (aloft, here) {
+            (true, _) => vec![holder.pose.at],
+            (false, true) => vec![at],
+            (false, false) => nav::landings(&graph, holder, at, p.side, sides),
         };
+        let here = here || aloft;
         for (i, &at) in spots.iter().enumerate() {
             self.calmly(|dev| dev.warp(at))?;
             if let Trigger::Open { wield: Some(w), .. } = &p.trigger {
