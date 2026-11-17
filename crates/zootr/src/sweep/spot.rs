@@ -478,6 +478,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             if !voided || i + 1 == spots.len() {
                 break;
             }
+            eprintln!("    {name}: the warp beside it didn't hold, another side");
         }
         if let Trigger::Talk {
             then: Some(button), ..
