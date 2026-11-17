@@ -176,9 +176,10 @@ pub fn run() -> Result<()> {
             limit,
             mix,
             only,
+            seed,
             judge,
             ..
-        } => sweep(&romfs, &path, judge, out, (rounds, limit, mix, only)),
+        } => sweep(&romfs, &path, judge, out, (rounds, limit, mix, only, seed)),
         Command::Drill {
             report: Some(DrillReport::Report { out }),
             ..

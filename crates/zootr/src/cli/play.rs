@@ -218,24 +218,32 @@ fn with_night(
         limit: None,
         mix: None,
         only: None,
+        seed: None,
     };
     go(&mut night)
 }
 
 /// `zootr sweep`: `rounds` rounds, `limit` spots each at most, in mix
-/// `mix` only, of the spots `only` picks.
+/// `mix` only, of the spots `only` picks, on `seed` alone if it's given.
 pub(super) fn sweep(
     romfs: &Romfs,
     game: &Path,
     judge: JudgeArgs,
     dir: PathBuf,
-    (rounds, limit, mix, only): (usize, Option<usize>, Option<String>, Option<String>),
+    (rounds, limit, mix, only, seed): (
+        usize,
+        Option<usize>,
+        Option<String>,
+        Option<String>,
+        Option<u64>,
+    ),
 ) -> Result<()> {
     let mix = mix.map(|name| night::pinned(&name)).transpose()?;
     with_night(romfs, game, judge, dir, |night| {
         night.limit = limit;
         night.mix = mix;
         night.only = only;
+        night.seed = seed;
         night.run(rounds)
     })
 }
