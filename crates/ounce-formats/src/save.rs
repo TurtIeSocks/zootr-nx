@@ -5,7 +5,7 @@
 //! with hash 0 starts the group for type `value`. Scalars keep their value
 //! in the pair; every other type keeps an offset to its data.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use anyhow::{Context, Result, bail, ensure};
 
@@ -48,6 +48,10 @@ const TYPES: [&str; 33] = [
     "WString64Array",
     "Bool64bitKey",
 ];
+
+/// The type of per-placement flags: one entry whose data is the keys that
+/// are true, as sorted u64s, then a zero.
+pub const KEYED: &str = "Bool64bitKey";
 
 const INLINE: [&str; 5] = ["Bool", "Int", "Float", "Enum", "UInt"];
 
@@ -143,6 +147,18 @@ impl Save {
 
     pub fn entries(&self) -> &[Entry] {
         &self.entries
+    }
+
+    /// The per-placement flags that are true.
+    pub fn keys(&self) -> BTreeSet<u64> {
+        (self.entries.iter().filter(|e| e.kind == KEYED))
+            .flat_map(|&e| {
+                let data = self.data(e).as_chunks::<8>().0;
+                data.iter()
+                    .map(|k| u64::from_le_bytes(*k))
+                    .take_while(|&k| k != 0)
+            })
+            .collect()
     }
 
     pub fn get(&self, hash: u32) -> Option<Entry> {
@@ -288,6 +304,19 @@ mod tests {
             b.extend(w.to_le_bytes());
         }
         b
+    }
+
+    #[test]
+    fn keys_are_the_sorted_u64s_up_to_the_zero() {
+        let mut b = Save::fixture(&[(0, 0), (11, 1), (0, 32), (5, 0)]);
+        let at = b.len() as u32;
+        b[TABLE + 3 * 8 + 4..TABLE + 3 * 8 + 8].copy_from_slice(&at.to_le_bytes());
+        for k in [3u64, 1 << 40, 0, 9] {
+            b.extend(k.to_le_bytes());
+        }
+        let s = Save::parse(b).unwrap();
+        assert_eq!(s.keys(), BTreeSet::from([3, 1 << 40]));
+        assert!(Save::parse(sample()).unwrap().keys().is_empty());
     }
 
     #[test]

@@ -1,14 +1,14 @@
 //! GameData values read and written live in the running PC build, from
 //! outside the game. Plain memory access, no hooks. Layout in `docs/research/live-flags.md`.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::Path;
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
 use anyhow::{Result, bail};
 
-use ounce_formats::murmur3;
+use ounce_formats::{KEYED, murmur3};
 
 use crate::config::Target;
 use crate::gamedata::GameData;
@@ -139,9 +139,41 @@ pub fn global(code: &[u8], base: u64) -> Option<u64> {
     })
 }
 
+/// GameData's manager, given the global from [`global`].
+fn manager(mem: &impl Memory, global: u64) -> Result<u64> {
+    mem.u64(mem.u64(global)?)
+}
+
 /// Every mapped value, in manager order, given the global from [`global`].
 pub fn snapshot(mem: &impl Memory, global: u64) -> Result<Vec<Value>> {
-    let manager = mem.u64(mem.u64(global)?)?;
+    values(mem, manager(mem, global)?)
+}
+
+/// The per-placement flags (Bool64bitKey) that are true, given the global
+/// from [`global`].
+pub fn keys(mem: &impl Memory, global: u64) -> Result<BTreeSet<u64>> {
+    keys_of(mem, manager(mem, global)?)
+}
+
+/// The manager keeps the per-placement flags apart from the typed tables:
+/// a count, then a pointer to entries sorted by key. Each entry is the u64
+/// key, then its value at [`KEY_VALUE`]. `docs/research/tracker-flags.md`.
+const KEYS: u64 = 0xc58;
+const KEY_STRIDE: usize = 0x10;
+const KEY_VALUE: usize = 0xc;
+
+fn keys_of(mem: &impl Memory, manager: u64) -> Result<BTreeSet<u64>> {
+    let count = mem.u32(manager + KEYS)? as usize;
+    let at = mem.u64(manager + KEYS + 8)?;
+    let entries = mem.read(at, sized(KEYED, count * KEY_STRIDE)?)?;
+    let (entries, _) = entries.as_chunks::<KEY_STRIDE>();
+    Ok((entries.iter())
+        .filter(|e| e[KEY_VALUE] != 0)
+        .map(|e| quad(e, 0))
+        .collect())
+}
+
+fn values(mem: &impl Memory, manager: u64) -> Result<Vec<Value>> {
     let mut out = Vec::new();
     for &(slot, kind, stride, shape) in TYPES.iter() {
         let table = manager + 8 + TABLE * slot;
@@ -268,6 +300,7 @@ pub struct Poll<M> {
     mem: M,
     global: u64,
     was: Vec<Value>,
+    keys: BTreeSet<u64>,
     noise: Noise,
     muted: HashSet<u32>,
 }
@@ -281,8 +314,10 @@ impl Poll<Game> {
 
 impl<M: Memory> Poll<M> {
     pub fn over(mem: M, global: u64) -> Result<Self> {
+        let manager = manager(&mem, global)?;
         Ok(Self {
-            was: snapshot(&mem, global)?,
+            was: values(&mem, manager)?,
+            keys: keys_of(&mem, manager)?,
             mem,
             global,
             noise: Noise::default(),
@@ -298,7 +333,9 @@ impl<M: Memory> Poll<M> {
         all: bool,
         mut wanted: impl FnMut(u32) -> bool,
     ) -> Result<(Vec<Change>, Vec<u32>)> {
-        let now = snapshot(&self.mem, self.global)?;
+        let manager = manager(&self.mem, self.global)?;
+        let now = values(&self.mem, manager)?;
+        let keys = keys_of(&self.mem, manager)?;
         let (at, mut muted) = (Instant::now(), Vec::new());
         let keep = |h| {
             if !wanted(h) {
@@ -312,8 +349,9 @@ impl<M: Memory> Poll<M> {
             }
             false
         };
-        let out = changes(gd, &self.was, &now, keep);
-        self.was = now;
+        let mut out = changes(gd, &self.was, &now, keep);
+        out.extend(savefile::keyed(&self.keys, &keys));
+        (self.was, self.keys) = (now, keys);
         Ok((out, muted))
     }
 }
@@ -638,7 +676,29 @@ pub(crate) mod tests {
     /// backwards, so a snapshot has to go by the map. Pointers in entries
     /// lead into `heap`.
     pub(crate) fn game(tables: &[(u64, Vec<Vec<u8>>)], heap: &[(u64, Vec<u8>)]) -> Fake {
-        let mut manager = vec![0; 8 + 0x60 * 28];
+        keyed(tables, heap, &[])
+    }
+
+    /// [`game`], with these per-placement flags and whether each is set.
+    pub(crate) fn keyed(
+        tables: &[(u64, Vec<Vec<u8>>)],
+        heap: &[(u64, Vec<u8>)],
+        keys: &[(u64, bool)],
+    ) -> Fake {
+        let mut manager = vec![0; KEYS as usize + 0x10];
+        let at = 0x80000u64;
+        put(
+            &mut manager,
+            KEYS as usize,
+            &(keys.len() as u32).to_le_bytes(),
+        );
+        put(&mut manager, KEYS as usize + 8, &at.to_le_bytes());
+        let entries = (keys.iter()).flat_map(|&(k, on)| {
+            let mut e = [0u8; KEY_STRIDE];
+            put(&mut e, 0, &k.to_le_bytes());
+            e[KEY_VALUE] = on.into();
+            e
+        });
         let mut mem = vec![
             (0x1000, 0x2000u64.to_le_bytes().into()),
             (0x2000, 0x3000u64.to_le_bytes().into()),
@@ -660,6 +720,7 @@ pub(crate) mod tests {
             mem.push((at + 0x8000, map));
         }
         mem.push((0x3000, manager));
+        mem.push((at, entries.collect()));
         mem.extend(heap.iter().cloned());
         Fake(mem)
     }
@@ -867,6 +928,28 @@ pub(crate) mod tests {
         expected.extend([(0, vec![hash(2, 1)]), (0, vec![]), (0, vec![])]);
         assert_eq!(seen, expected);
         assert_eq!(poll.next(&gd, true, |_| true).unwrap().0.len(), 1);
+    }
+
+    #[test]
+    fn a_poll_reports_each_placement_flag_that_flips() {
+        let gd = GameData::default();
+        let at = |a, b| keyed(&[], &[], &[(1 << 63, a), (7, b)]);
+        let flip = Flip(vec![at(false, true), at(true, false)], 0.into());
+        assert_eq!(keys(&flip.0[0], 0x1000).unwrap(), BTreeSet::from([7]));
+        let mut poll = Poll::over(flip, 0x1000).unwrap();
+        let (changes, _) = poll.next(&gd, false, |_| true).unwrap();
+        // A flip lands right after the manager's read, so the first poll
+        // reads the second game and the next one the first.
+        let shown: Vec<_> = (changes.iter())
+            .map(|c| (c.key(), c.kind.as_str(), c.change.as_str()))
+            .collect();
+        assert_eq!(
+            shown,
+            [
+                (Some(7), KEYED, "false -> true"),
+                (Some(1 << 63), KEYED, "true -> false"),
+            ]
+        );
     }
 
     #[test]

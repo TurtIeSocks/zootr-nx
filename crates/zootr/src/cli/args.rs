@@ -933,6 +933,9 @@ pub enum MemCommand {
         #[arg(long)]
         to: Option<String>,
     },
+    /// The per-placement flags (Bool64bitKey) that are set, one placement
+    /// hash a line.
+    Keys,
     /// Bytes at an address, as hex, sixteen to a line.
     Read {
         /// A 0x address.

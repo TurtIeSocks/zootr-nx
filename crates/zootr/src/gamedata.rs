@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::RwLock;
 
 use anyhow::{Context, Result, bail, ensure};
-use ounce_formats::{Byml, BymlDoc, BymlMap, Romfs, murmur3};
+use ounce_formats::{Byml, BymlDoc, BymlMap, KEYED, Romfs, murmur3};
 use serde::Serialize;
 
 use crate::known::{Name, field, flag};
@@ -20,11 +20,17 @@ pub const PATH: &str = "GameData/GameDataList.Product.110.byml.zs";
 /// The Struct holding whether Link has each item, `IsGet.ITEM`.
 pub const IS_GET: &str = "IsGet";
 const BOOL_EXP: &Name = flag::BOOL_EXP;
+/// The ResetType of a flag that never resets (`NoRespawn`): Gold
+/// Skulltulas, heart pieces, placed rupees. `docs/research/tokens-freestanding-pots.md`.
+const NO_RESPAWN: i64 = 24;
 #[cfg_attr(test, derive(Default))]
 pub struct GameData {
     /// Table (`Bool`, `BoolExp`, `Enum`...) and entry, by hash.
     entries: HashMap<u32, (String, Byml)>,
     names: HashMap<u32, String>,
+    /// The per-placement flags (Bool64bitKey) that never reset, by
+    /// placement hash.
+    keys: HashSet<u64>,
     /// From [`labels`](crate::labels), changeable while shared.
     labels: RwLock<HashMap<u32, String>>,
 }
@@ -102,6 +108,7 @@ impl GameData {
         let doc = BymlDoc::parse(data).context(PATH)?;
         let mut entries = HashMap::new();
         let mut names = HashMap::new();
+        let mut keys = HashSet::new();
         for (table, list) in doc
             .root
             .as_map()?
@@ -110,8 +117,15 @@ impl GameData {
             .as_map()?
         {
             for e in list.as_array()? {
-                // Bool64bitKey hashes don't fit; nothing here names them.
-                let Ok(hash) = u32::try_from(int(&e.as_map()?["Hash"])?) else {
+                let hash = int(&e.as_map()?["Hash"])?;
+                if table == KEYED {
+                    let reset = e.as_map()?.get(&**field::RESET_TYPE_VALUE);
+                    if reset.map(int).transpose()? == Some(NO_RESPAWN) {
+                        keys.insert(hash as u64);
+                    }
+                    continue;
+                }
+                let Ok(hash) = u32::try_from(hash) else {
                     continue;
                 };
                 if let Some(raw) = e.as_map()?.get(&**field::RAW_VALUES) {
@@ -127,8 +141,16 @@ impl GameData {
         Ok(Self {
             entries,
             names,
+            keys,
             labels: labels.into(),
         })
+    }
+
+    /// Whether placement `hash` has a per-placement flag that never resets.
+    /// A pot's resets with its area, and it sets on the break, not when
+    /// Link picks up the drop, so it can't say the check is done.
+    pub fn has_key(&self, hash: u64) -> bool {
+        self.keys.contains(&hash)
     }
 
     /// Remember `name` if it hashes to an entry or enum value.
@@ -661,6 +683,20 @@ fn typed(like: Option<&Byml>, hash: u32) -> Result<Byml> {
 mod tests {
     use super::*;
     use crate::known::{field, flag};
+
+    #[test]
+    fn knows_each_placements_own_flag() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gd = GameData::load(&romfs).unwrap();
+        // A Kokiri Forest Gold Skulltula and heart piece. A rock's key
+        // resets with its area, and a chest's opened flag is no key.
+        assert!(gd.has_key(7116603238806634901));
+        assert!(gd.has_key(12406896586250888098));
+        assert!(!gd.has_key(6429280567576879719));
+        assert!(!gd.has_key(0x316d8a20));
+    }
 
     #[test]
     fn a_label_shows_next_to_the_hash() {
