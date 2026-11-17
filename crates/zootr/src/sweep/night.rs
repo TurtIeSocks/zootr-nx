@@ -184,14 +184,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         let mut planned = pool(self.romfs, &self.target.mod_dir, seed, &settings, places)?;
         planned.retain(|p| self.only.as_deref().is_none_or(|text| picked(p, text)));
         let known = self.known();
-        let skip = |p: &Planned| matches!(p.trigger, Trigger::Skip(_));
-        let fresh = |p: &Planned| !skip(p) && !known.confirmed.contains(&p.spot.hash);
-        let shown = |p: &Planned| known.kinds.contains(holder_kind(&p.spot.holder));
-        planned.sort_by_key(|p| (skip(p), !fresh(p), shown(p), map(p)));
-        let new = planned.iter().filter(|p| fresh(p)).count();
-        let (new, old) = planned.split_at_mut(new);
-        start_at(new, seed);
-        start_at(old, seed);
+        order(&mut planned, &known, seed);
         planned.truncate(self.limit.unwrap_or(usize::MAX));
         let shots = self.dir.join(format!("round-{round:03}-{seed}"));
         std::fs::create_dir_all(&shots)?;
@@ -424,6 +417,8 @@ pub(super) struct Known {
     /// How often a spot came to nothing from each side: a chest opened
     /// from behind, a keeper talked to from the wrong side of his counter.
     missed: HashMap<u64, HashMap<Side, usize>>,
+    /// How often a spot was swept without giving its item, from any side.
+    tries: HashMap<u64, usize>,
 }
 
 /// What kind of holder `holder` is, its number off: `Pot_A_03` is a
@@ -443,6 +438,9 @@ pub(super) fn learn(known: &mut Known, rows: &str) {
         let Some(hash) = row["spot"]["hash"].as_str().and_then(|h| h.parse().ok()) else {
             continue;
         };
+        if verdict.is_some_and(|v| !matches!(v, "pass" | "substituted")) {
+            *known.tries.entry(hash).or_default() += 1;
+        }
         if let (true, Some(child)) = (reached, row["child"].as_bool()) {
             known.ages.insert(hash, child);
         }
@@ -514,19 +512,35 @@ fn skip_unreachable(planned: &mut [Planned], places: &BTreeSet<dev::Place>) {
 }
 
 /// The map a spot is swept in, for sweeping a map's spots together.
-/// Turn the spots, sorted by map, to start at a map `seed` picks, so a
-/// round cut short by `--limit` reaches a different part of the game each
-/// time. The skips stay last.
-fn start_at(planned: &mut [Planned], seed: u64) {
-    let live = (planned.iter())
-        .position(|p| matches!(p.trigger, Trigger::Skip(_)))
-        .unwrap_or(planned.len());
-    let starts: Vec<usize> = (0..live)
-        .filter(|&i| i == 0 || map(&planned[i]) != map(&planned[i - 1]))
+/// The round's order. Spots no try has confirmed go first, the least
+/// tried of them first, so a spot that never gives can't take every round
+/// from the rest. Then kinds no spot has shown before shown ones, then by
+/// map from one `seed` picks, so a round cut short by `--limit` reaches a
+/// different part of the game each time. The skips go last.
+fn order(planned: &mut [Planned], known: &Known, seed: u64) {
+    let maps: Vec<String> = (planned.iter())
+        .filter(|p| !matches!(p.trigger, Trigger::Skip(_)))
+        .map(map)
+        .collect::<BTreeSet<_>>()
+        .into_iter()
         .collect();
-    if !starts.is_empty() {
-        planned[..live].rotate_left(starts[seed as usize % starts.len()]);
-    }
+    let start = seed as usize % maps.len().max(1);
+    let rank = |p: &Planned| {
+        let i = maps.binary_search(&map(p)).unwrap_or_default();
+        (i + maps.len() - start) % maps.len().max(1)
+    };
+    planned.sort_by_cached_key(|p| {
+        let hash = p.spot.hash;
+        let skip = matches!(p.trigger, Trigger::Skip(_));
+        let tries = known.tries.get(&hash).copied().unwrap_or_default();
+        (
+            skip,
+            known.confirmed.contains(&hash),
+            tries,
+            known.kinds.contains(holder_kind(&p.spot.holder)),
+            rank(p),
+        )
+    });
 }
 
 /// Whether `--only text` keeps `p`: its name, holder or the seed's item
@@ -740,14 +754,43 @@ mod tests {
             trigger: Trigger::Skip("none".into()),
             ..open("")
         };
-        let order = |seed| {
+        let order_of = |seed| {
             let mut planned = [open("A"), open("A"), open("B"), open("C"), skip.clone()];
-            start_at(&mut planned, seed);
+            order(&mut planned, &Known::default(), seed);
             planned.iter().map(map).collect::<Vec<_>>()
         };
-        assert_eq!(order(0), ["A", "A", "B", "C", ""]);
-        assert_eq!(order(1), ["B", "C", "A", "A", ""]);
-        assert_eq!(order(5), ["C", "A", "A", "B", ""], "the skips stay last");
+        assert_eq!(order_of(0), ["A", "A", "B", "C", ""]);
+        assert_eq!(order_of(1), ["B", "C", "A", "A", ""]);
+        assert_eq!(order_of(5), ["C", "A", "A", "B", ""], "the skips stay last");
+    }
+
+    #[test]
+    fn the_least_tried_spots_go_first_and_confirmed_ones_last() {
+        let at = |map: &str, hash: u64| {
+            let mut p = open(map);
+            p.spot.hash = hash;
+            p
+        };
+        let row = |hash: u64, verdict: &str| {
+            json!({"spot": {"hash": hash.to_string()}, "swept": {"verdict": {"verdict": verdict}}})
+                .to_string()
+        };
+        let rows = [
+            row(1, "nothing"),
+            row(1, "nothing"),
+            row(2, "setup_failed"),
+            row(3, "pass"),
+        ];
+        let mut known = Known::default();
+        learn(&mut known, &rows.join("\n"));
+        let mut planned = [at("A", 1), at("A", 2), at("A", 3), at("B", 4)];
+        order(&mut planned, &known, 0);
+        let hashes: Vec<u64> = planned.iter().map(|p| p.spot.hash).collect();
+        assert_eq!(
+            hashes,
+            [4, 2, 1, 3],
+            "never tried, then tried once, twice, then confirmed"
+        );
     }
 
     #[test]
