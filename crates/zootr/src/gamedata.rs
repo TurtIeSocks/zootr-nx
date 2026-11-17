@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::RwLock;
 
 use anyhow::{Context, Result, bail, ensure};
-use ounce_formats::{Byml, BymlDoc, Romfs, murmur3};
+use ounce_formats::{Byml, BymlDoc, BymlMap, Romfs, murmur3};
 use serde::Serialize;
 
 use crate::known::{Name, field, flag};
@@ -382,20 +382,59 @@ impl GameData {
 /// with its own hash. The table isn't sorted, so the end will do, and a
 /// save from before loads them at their default.
 pub fn add_bools(root: &mut Byml, names: &[String]) -> Result<()> {
-    let bools = table(root, "Bool")?;
-    let first = bools
-        .first()
-        .context("the Bool table is empty")?
-        .as_map()?
+    add(root, "Bool", names, |_| true)
+}
+
+/// [`add_bools`] for the `Int` table, defaulting to 0. Each copies the first
+/// Int kept in the save the way Link's rupees and keys are.
+pub fn add_ints(root: &mut Byml, names: &[String]) -> Result<()> {
+    let kept = |e: &BymlMap| {
+        e.get(&**field::RESET_TYPE_VALUE)
+            .is_some_and(|v| int(v).ok() == Some(KEPT))
+    };
+    add(root, "Int", names, kept)
+}
+
+/// False or 0, typed as `like`.
+fn zero(like: Option<&Byml>) -> Option<Byml> {
+    Some(match like? {
+        Byml::Bool(_) => Byml::Bool(false),
+        Byml::I32(_) => Byml::I32(0),
+        Byml::U32(_) => Byml::U32(0),
+        Byml::I64(_) => Byml::I64(0),
+        Byml::U64(_) => Byml::U64(0),
+        _ => return None,
+    })
+}
+
+/// The reset type of a value the save keeps.
+const KEPT: i64 = 8;
+
+/// Append an entry to table `kind` named each of `names`, copying the first
+/// entry `like` takes, with its value at false or 0.
+fn add(
+    root: &mut Byml,
+    kind: &str,
+    names: &[String],
+    like: impl Fn(&BymlMap) -> bool,
+) -> Result<()> {
+    let entries = table(root, kind)?;
+    let template = entries
+        .iter()
+        .filter_map(|e| e.as_map().ok())
+        .find(|e| like(e))
+        .with_context(|| format!("the {kind} table has no entry to copy"))?
         .clone();
     for name in names {
         let hash = murmur3(name.as_bytes());
-        let taken = bools.iter().any(|e| has_hash(e, hash));
-        ensure!(!taken, "{} already has a Bool {name}", flag::GAME_DATA);
-        let mut entry = first.clone();
-        entry.insert("Hash".into(), typed(first.get("Hash"), hash)?);
-        entry.insert(field::DEFAULT_VALUE.to_string().into(), Byml::Bool(false));
-        bools.push(Byml::Map(entry));
+        let taken = entries.iter().any(|e| has_hash(e, hash));
+        ensure!(!taken, "{} already has a {kind} {name}", flag::GAME_DATA);
+        let mut entry = template.clone();
+        entry.insert("Hash".into(), typed(template.get("Hash"), hash)?);
+        let value = zero(template.get(&**field::DEFAULT_VALUE))
+            .with_context(|| format!("a {kind}'s default isn't a Bool or an integer"))?;
+        entry.insert(field::DEFAULT_VALUE.to_string().into(), value);
+        entries.push(Byml::Map(entry));
     }
     Ok(())
 }
@@ -729,6 +768,28 @@ mod tests {
             .to_string();
         assert!(said.ends_with("one of: true, false"), "{said}");
         assert!(gd.info("NoSuchName").is_err());
+    }
+
+    #[test]
+    fn an_added_int_is_kept_in_the_save_at_0_under_its_own_hash() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut doc = BymlDoc::parse(&romfs.read(PATH).unwrap()).unwrap();
+        let name = "Rando_FakeCount".to_owned();
+        add_ints(&mut doc.root, std::slice::from_ref(&name)).unwrap();
+        let back = BymlDoc::parse(&doc.to_binary()).unwrap();
+        let ints = back.root.as_map().unwrap()["Data"].as_map().unwrap()["Int"]
+            .as_array()
+            .unwrap();
+        let entry = ints.last().unwrap().as_map().unwrap();
+        assert_eq!(
+            int(&entry["Hash"]).unwrap(),
+            i64::from(murmur3(name.as_bytes()))
+        );
+        assert_eq!(int(&entry[&**field::DEFAULT_VALUE]).unwrap(), 0);
+        assert_eq!(int(&entry[&**field::RESET_TYPE_VALUE]).unwrap(), KEPT);
+        assert!(add_ints(&mut doc.root, &[name]).is_err());
     }
 
     #[test]

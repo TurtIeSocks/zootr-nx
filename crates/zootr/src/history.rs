@@ -82,6 +82,8 @@ pub struct Summary {
     test: bool,
     /// Built with a plando: items pinned to checks.
     plando: bool,
+    /// The slot, for a seed opened from an Archipelago `.apznx`.
+    ap_slot: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -106,10 +108,12 @@ impl From<&Entry> for Summary {
             changed: e.report.changed() as u32,
             test: !Extras {
                 place: Fixed::new(),
+                ap: None,
                 ..e.extras.clone()
             }
             .is_empty(),
             plando: !e.extras.place.is_empty(),
+            ap_slot: e.extras.ap.as_ref().map(|a| a.slot.clone()),
         }
     }
 }
@@ -345,6 +349,23 @@ mod tests {
             }),
             (true, false)
         );
+    }
+
+    #[test]
+    fn an_ap_seed_carries_its_slot_and_isnt_a_test() {
+        let mut history = History::default();
+        let ap = crate::ap::ApSeed {
+            world_version: String::new(),
+            settings: Settings::new(),
+            seed: 1,
+            slot: "FakeSlot".into(),
+            player: 1,
+            start: vec![],
+            placements: BTreeMap::new(),
+        };
+        history.add(Settings::new(), Extras::ap(ap), Label::default(), report(1));
+        let s = Summary::from(&history.entries[0]);
+        assert_eq!((s.test, s.ap_slot.as_deref()), (false, Some("FakeSlot")));
     }
 
     #[test]

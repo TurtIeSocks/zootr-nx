@@ -12,7 +12,8 @@ use anyhow::{Context, Result, anyhow, bail, ensure};
 use serde::{Deserialize, Serialize};
 use zootr_hook::{Ask, GUARD, MAILBOX, Mailbox, NAME, Outcome, SWITCHES, switches};
 
-use crate::checks::flat;
+use crate::ammo;
+use crate::checks::{Swap, flat};
 use crate::gamedata::GameData;
 use crate::known::{Name, flag, scene};
 use crate::live::{self, Game, Memory};
@@ -23,7 +24,7 @@ mod setup;
 
 pub use place::{Place, known, other_age, places};
 pub use setup::{Applied, Goal, Value, value};
-use setup::{Grant, plan_give};
+use setup::{Grant, grants, plan_give};
 
 /// The arrival event a teleport plays. Some areas may want their own.
 const ARRIVE: &Name = scene::SY_BANC_CHANGE_ARRIVE;
@@ -117,6 +118,9 @@ pub enum Request {
     Step(String, String),
     /// Grant an item actor, equipped or not, as the game does.
     Give(String, bool),
+    /// Grant the level of the actor's progressive line Link needs next, or
+    /// with a swap, its `then` until Link owns what fires it.
+    GiveLevel(String, Option<Swap>),
     /// Start an event by name, with Link as its starter.
     Play(String),
     /// Move Link to a point of the current map.
@@ -276,7 +280,7 @@ impl<M: Memory> Dev<M> {
         Ok(match (request, outcome) {
             (_, Outcome::Unanswered) => UNANSWERED,
             (Request::Time(_), _) => "set",
-            (Request::Step(..) | Request::Give(..), _) => "ran",
+            (Request::Step(..) | Request::Give(..) | Request::GiveLevel(..), _) => "ran",
             (Request::Warp(_), _) => "warped",
             (Request::Where, _) => "found",
             _ => "sent",
@@ -296,6 +300,10 @@ impl<M: Memory> Dev<M> {
             }
             Request::Step(challenge, step) => (Ask::Step, 0, Some([&**challenge, step, ""])),
             Request::Give(actor, equip) => (Ask::Give, u32::from(*equip), Some([&**actor, "", ""])),
+            Request::GiveLevel(actor, swap) => {
+                let (check, then) = swap.map_or(("", ""), |s| (s.check, ammo::WITHOUT.get()));
+                (Ask::GiveLevel, 0, Some([&**actor, check, then]))
+            }
             Request::Play(event) => (Ask::Play, 0, Some([&**event, "", ""])),
             Request::Warp(_) => (Ask::Warp, 0, None),
             Request::Where => (Ask::Where, 0, None),
@@ -368,10 +376,26 @@ impl<M: Memory> Dev<M> {
     /// Give Link `count` of an item, as `zootr give` does: the game's own
     /// grant once, then the count written over its stock.
     pub fn give(&self, gd: &GameData, actor: &str, count: i32) -> Result<()> {
-        for job in plan_give(gd, actor, count)? {
+        self.grant(plan_give(gd, actor, count)?, false)
+    }
+
+    /// One of an item a seed deals, as a chest gives it: a progressive
+    /// line's at the level Link needs next, ammo as a red rupee until Link
+    /// owns what fires it. The deal vouches for the item, so unlike
+    /// [`Dev::give`] it isn't checked against the pouch.
+    pub fn give_level(&self, actor: &str) -> Result<()> {
+        self.grant(grants(actor), true)
+    }
+
+    fn grant(&self, jobs: Vec<Grant>, level: bool) -> Result<()> {
+        for job in jobs {
             match job {
                 Grant::Game(actor, equip) => {
-                    self.ask(&Request::Give(actor, equip))?;
+                    let request = match level && !equip {
+                        true => Request::GiveLevel(actor.clone(), ammo::swap(&actor)),
+                        false => Request::Give(actor, equip),
+                    };
+                    self.ask(&request)?;
                     self.settle()?;
                 }
                 Grant::Stock(hash, count) => {

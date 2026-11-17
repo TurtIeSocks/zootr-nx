@@ -12,7 +12,7 @@ mod menu;
 mod refill;
 mod rt;
 
-use chests::{drop_value, level_for, record, recreate, rewrite};
+use chests::{drop_value, level_for, owned, record, recreate, rewrite};
 
 type Setter = unsafe extern "C" fn(*mut u8, *const *const u8, *const *const u8);
 type Reader = unsafe extern "C" fn(*mut u8, *const u8, usize, usize) -> usize;

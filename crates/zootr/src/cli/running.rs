@@ -68,6 +68,31 @@ fn said<T: Display + Serialize>(report: &T, json: bool) -> Result<String> {
     })
 }
 
+/// `zootr ap connect`: the client core on the live game, its notes
+/// printed until the process is stopped.
+pub(super) fn ap_connect(
+    romfs: &Romfs,
+    server: String,
+    slot: Option<String>,
+    password: Option<String>,
+) -> Result<()> {
+    use crate::ap::client::{self, Room};
+    let gd = recorder::gamedata(romfs)?;
+    let mut client = client::installed(romfs, gd.into(), attach()?)?;
+    let room = Room {
+        server,
+        slot: slot.unwrap_or(client.slot),
+        password,
+    };
+    // Held for the run: the core stops once every sender is gone.
+    let (_keep, stop) = std::sync::mpsc::channel();
+    let start = std::time::Instant::now();
+    client::run(&room, &client.book, &mut client.game, &stop, &mut |note| {
+        println!("{} {note}", stamp(start));
+    });
+    Ok(())
+}
+
 pub(super) fn give(romfs: &Romfs, actor: &str, count: i32) -> Result<()> {
     let gd = recorder::gamedata(romfs)?;
     crate::dev::Dev::new(attach()?)?.give(&gd, actor, count)?;

@@ -56,6 +56,8 @@ export interface Ui {
   spoiler: { tab: SpoilerTab; heroOnly: boolean; query: string };
   /** The seed or share code typed into New seed. */
   newSeed: { seed: string };
+  /** Each Archipelago seed's server and password, by history id. */
+  ap: { rooms: Record<number, { server: string; password: string }> };
   /** The Items tab's banner about zootr-nx's own icons was dismissed. */
   items: { bannerDismissed: boolean };
   /** The release the update notice was told to skip. */
@@ -109,6 +111,7 @@ const INITIAL: Ui = {
   checks: { query: "", filter: "all" },
   spoiler: { tab: "spheres", heroOnly: false, query: "" },
   newSeed: { seed: "" },
+  ap: { rooms: {} },
   items: { bannerDismissed: false },
   update: { skipped: null },
   settings: { open: [] },

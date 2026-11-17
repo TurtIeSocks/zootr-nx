@@ -26,6 +26,7 @@ use zootr::settings::{SettingDef, Settings};
 use zootr::share;
 use zootr::tracker::{self, Row, Tracker};
 
+mod archipelago;
 mod dev_panel;
 mod generating;
 mod save_editor;
@@ -780,6 +781,9 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             items_icons,
             items_pop_out,
             dev_pop_out,
+            archipelago::ap_state,
+            archipelago::ap_connect,
+            archipelago::ap_disconnect,
             dev_panel::game_options,
             dev_panel::dev_state,
             dev_panel::dev_teleport,
@@ -800,6 +804,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             LiveEvent,
             ChecksEvent,
             ItemsEvent,
+            archipelago::ApEvent,
             ui::UiShared
         ])
         .constant("TRACKER_COLUMNS", inventory::COLUMNS)
@@ -850,6 +855,7 @@ pub fn run() -> tauri::Result<()> {
         })
         .setup(move |app| {
             builder.mount_events(app);
+            app.manage(archipelago::Ap::default());
             app.manage(Checks::default());
             app.manage(Items::default());
             app.manage(Generating::default());
