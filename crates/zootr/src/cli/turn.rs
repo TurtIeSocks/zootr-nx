@@ -14,12 +14,17 @@ pub(super) fn turn(
     session: String,
     force: bool,
     urgent: bool,
+    both: bool,
     on: String,
 ) -> Result<()> {
     let config = Config::load()?.turn;
     if config.remote() {
-        return queued(&config, to.as_deref(), note, session, urgent, on);
+        return queued(&config, to.as_deref(), note, session, urgent, both, on);
     }
+    ensure!(
+        !both,
+        "`--both` needs a queue: set `turn.url` in the config"
+    );
     if let Some(step @ ("join" | "wait" | "reserve" | "serve")) = to.as_deref() {
         bail!("`{step}` needs a queue: set `turn.url` in the config");
     }
@@ -42,6 +47,7 @@ fn queued(
     note: String,
     session: String,
     urgent: bool,
+    both: bool,
     on: String,
 ) -> Result<()> {
     let claude = turn::from_claude();
@@ -57,6 +63,7 @@ fn queued(
                 session,
                 note,
                 urgent,
+                both,
             })?;
             println!("number {} in line", place.place.unwrap_or_default());
         }

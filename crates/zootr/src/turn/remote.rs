@@ -62,6 +62,8 @@ pub enum Ask {
         session: String,
         note: String,
         urgent: bool,
+        #[serde(default)]
+        both: bool,
     },
     Wait {
         session: String,
@@ -71,6 +73,9 @@ pub enum Ask {
     },
     Renew {
         session: String,
+        /// This machine's game, named back when the session holds it.
+        #[serde(default)]
+        here: String,
     },
     Take {
         game: String,

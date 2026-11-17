@@ -119,6 +119,10 @@ pub(super) enum Command {
         /// bug the maintainer reported.
         #[arg(long)]
         urgent: bool,
+        /// `join` for every game at once: granted together once all are
+        /// free, never one alone.
+        #[arg(long)]
+        both: bool,
         /// The game `reserve` keeps.
         #[arg(long, default_value = "")]
         on: String,
