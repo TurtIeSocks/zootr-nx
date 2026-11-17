@@ -43,6 +43,7 @@ const seed: Summary = {
   icons: ["Sun", "Moon", "Sun", "Key", "Fish"],
   test: false,
   plando: false,
+  ap_slot: null,
   share: "",
 };
 

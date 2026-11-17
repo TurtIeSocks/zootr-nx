@@ -6,6 +6,7 @@
 //! tests. [`Live`] is the real one: the Mac game or a native build's bridge.
 
 use std::collections::{BTreeSet, HashMap};
+use std::sync::Arc;
 use std::sync::mpsc::{Receiver, TryRecvError};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -332,17 +333,39 @@ fn location_name(client: &ap::Client, id: i64) -> String {
     (client.this_game().location(id)).map_or_else(|| id.to_string(), |l| l.name().to_string())
 }
 
+/// The installed seed's client parts, on the game `target` runs.
+pub struct Installed {
+    pub book: Book,
+    pub game: Live,
+    /// The seed's own slot.
+    pub slot: String,
+}
+
+/// What the client needs of the installed seed. `gd` is the installed
+/// seed's, which names the Int it adds.
+pub fn installed(romfs: &Romfs, gd: Arc<GameData>, target: Target) -> Result<Installed> {
+    let history = crate::history::History::load()?;
+    let entry = history.get(history.installed.context("no seed is installed")?)?;
+    let seed =
+        (entry.extras.ap.as_ref()).context("the installed seed isn't one from Archipelago")?;
+    Ok(Installed {
+        book: Book::new(romfs, seed)?,
+        game: Live::new(target, gd, &entry.report.spots)?,
+        slot: seed.slot.clone(),
+    })
+}
+
 /// The running game, through the mailbox.
 pub struct Live {
     dev: Dev<Target>,
-    gd: GameData,
+    gd: Arc<GameData>,
     tracker: Tracker,
     goal: u32,
     received: u32,
 }
 
 impl Live {
-    pub fn new(game: Target, gd: GameData, spots: &[Spot]) -> Result<Self> {
+    pub fn new(game: Target, gd: Arc<GameData>, spots: &[Spot]) -> Result<Self> {
         let tracker = Tracker::new(&gd, spots)?;
         Ok(Self {
             dev: Dev::new(game)?,

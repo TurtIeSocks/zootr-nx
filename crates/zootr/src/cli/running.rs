@@ -76,23 +76,18 @@ pub(super) fn ap_connect(
     slot: Option<String>,
     password: Option<String>,
 ) -> Result<()> {
-    use crate::ap::client::{self, Book, Room};
-    let history = crate::history::History::load()?;
-    let entry = history.get(history.installed.context("no seed is installed")?)?;
-    let seed =
-        (entry.extras.ap.as_ref()).context("the installed seed isn't one from Archipelago")?;
-    let book = Book::new(romfs, seed)?;
+    use crate::ap::client::{self, Room};
     let gd = recorder::gamedata(romfs)?;
-    let mut game = client::Live::new(attach()?, gd, &entry.report.spots)?;
+    let mut client = client::installed(romfs, gd.into(), attach()?)?;
     let room = Room {
         server,
-        slot: slot.unwrap_or_else(|| seed.slot.clone()),
+        slot: slot.unwrap_or(client.slot),
         password,
     };
     // Held for the run: the core stops once every sender is gone.
     let (_keep, stop) = std::sync::mpsc::channel();
     let start = std::time::Instant::now();
-    client::run(&room, &book, &mut game, &stop, &mut |note| {
+    client::run(&room, &client.book, &mut client.game, &stop, &mut |note| {
         println!("{} {note}", stamp(start));
     });
     Ok(())

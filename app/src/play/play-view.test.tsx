@@ -38,6 +38,7 @@ const seed = {
   share: "ZR1-shared",
   test: false,
   plando: false,
+  ap_slot: null,
 };
 
 const ok = { status: "ok", data: null } as const;

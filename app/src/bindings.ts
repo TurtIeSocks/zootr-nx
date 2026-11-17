@@ -107,6 +107,13 @@ export const commands = {
 	/**  Opens the items pop out, or brings it forward. */
 	itemsPopOut: () => typedError<null, string>(__TAURI_INVOKE("items_pop_out")),
 	devPopOut: () => typedError<null, string>(__TAURI_INVOKE("dev_pop_out")),
+	apState: () => __TAURI_INVOKE<ApState>("ap_state"),
+	/**
+	 *  Connect the running game to `server` as the installed seed's slot. It
+	 *  keeps reconnecting until [`ap_disconnect`], or a refusal.
+	 */
+	apConnect: (server: string, password: string | null) => typedError<null, string>(__TAURI_INVOKE("ap_connect", { server, password })),
+	apDisconnect: () => __TAURI_INVOKE<void>("ap_disconnect"),
 	gameOptions: () => typedError<GameOptions, string>(__TAURI_INVOKE("game_options")),
 	devState: () => typedError<DevState, string>(__TAURI_INVOKE("dev_state")),
 	devTeleport: (place: string) => typedError<string, string>(__TAURI_INVOKE("dev_teleport", { place })),
@@ -146,6 +153,7 @@ export const commands = {
 
 /** Events */
 export const events = {
+	apEvent: makeEvent<ApEvent, ApEvent>("ap-event"),
 	checksEvent: makeEvent<ChecksEvent, ChecksEvent>("checks-event"),
 	itemsEvent: makeEvent<ItemsEvent, ItemsEvent>("items-event"),
 	liveEvent: makeEvent<LiveEvent, LiveEvent>("live-event"),
@@ -158,6 +166,20 @@ export const STEPS = [{"name":"reading the dump","step":"dump"},{"name":"reading
 export const TRACKER_COLUMNS = 3 as const;
 
 /* Types */
+/**  A status change or a log line. */
+export type ApEvent = {
+	status: ApStatus,
+	line: string | null,
+};
+
+/**  What the page shows: the status and the log so far. */
+export type ApState = {
+	status: ApStatus,
+	log: string[],
+};
+
+export type ApStatus = "offline" | "connecting" | "connected" | "refused";
+
 /**  What applying a test setup did. */
 export type Applied = {
 	done: string[],
@@ -853,6 +875,8 @@ export type Summary = {
 	test: boolean,
 	/**  Built with a plando: items pinned to checks. */
 	plando: boolean,
+	/**  The slot, for a seed opened from an Archipelago `.apznx`. */
+	ap_slot: string | null,
 };
 
 /**  A runner a seed installs to. Nothing here knows which runner it is. */
