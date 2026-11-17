@@ -166,7 +166,8 @@ fn keys_of(mem: &impl Memory, manager: u64) -> Result<BTreeSet<u64>> {
     let count = mem.u32(manager + KEYS)? as usize;
     let at = mem.u64(manager + KEYS + 8)?;
     let entries = mem.read(at, sized(KEYED, count * KEY_STRIDE)?)?;
-    Ok((entries.chunks_exact(KEY_STRIDE))
+    let (entries, _) = entries.as_chunks::<KEY_STRIDE>();
+    Ok((entries.iter())
         .filter(|e| e[KEY_VALUE] != 0)
         .map(|e| quad(e, 0))
         .collect())
