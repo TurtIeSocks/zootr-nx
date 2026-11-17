@@ -231,6 +231,8 @@ pub fn write_mod(
         let twinned = twins::place(&rel, &mut doc.root, &twins)? > 0;
         let mut changed = checks::set_fields(&mut doc.root, &fields)?;
         changed.extend(checks::gone_once(&mut doc.root, &gone)?);
+        let leaves = scrubs::leaves(&doc.root, &gone)?;
+        changed.extend(checks::gone_once(&mut doc.root, &leaves)?);
         changed.extend(checks::clear_drops(&mut doc.root, carried)?);
         changed.extend(checks::set_drops(
             &mut doc.root,

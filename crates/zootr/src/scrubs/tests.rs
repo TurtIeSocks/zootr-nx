@@ -786,3 +786,20 @@ fn a_scrub_dealt_arrows_offers_a_red_rupee_without_the_bow() {
     let bow = actor::WEAPON_RANGE_BOW;
     assert!(asked.iter().any(|&e| asks_for(&after, e, bow)));
 }
+
+#[test]
+fn every_scrub_spot_takes_the_leaves_it_stands_in() {
+    let Some(romfs) = dev_dump() else { return };
+    let gone: Vec<_> = SCRUBS
+        .iter()
+        .flat_map(|s| s.placements.iter().map(|h| (*h, s.flag())))
+        .collect();
+    let mut leaves = Vec::new();
+    for (_, doc) in crate::checks::bancs(&romfs).unwrap() {
+        leaves.extend(super::leaves(&doc.unwrap().root, &gone).unwrap());
+    }
+    for s in &SCRUBS {
+        let n = leaves.iter().filter(|(_, f)| *f == s.flag()).count();
+        assert!(n >= s.placements.len(), "{} stands in {n} leaves", s.name);
+    }
+}

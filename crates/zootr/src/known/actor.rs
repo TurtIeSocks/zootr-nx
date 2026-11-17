@@ -25,6 +25,7 @@ pub const ENEMY_SCRUB_BUSINESS_BOMB_01: &Name = &n!(0x134e864ada40d18b);
 pub const ENEMY_SCRUB_BUSINESS_GREETING_06: &Name = &n!(0xbf64b3a7f6087ad3);
 pub const ENEMY_SCRUB_BUSINESS_HEART_01: &Name = &n!(0x61084fa2211e2421);
 pub const ENEMY_SCRUB_BUSINESS_HEART_02: &Name = &n!(0x61084ca2211e1f08);
+pub const ENEMY_SCRUB_BUSINESS_LEAF: &Name = &n!(0x4ce2b0e474a56fdb);
 pub const ENEMY_SCRUB_DEKU_LEAF: &Name = &n!(0x9887db4e8ba1d0b0);
 pub const ENEMY_SKULLTULA_GOLD: &Name = &n!(0x7e2a54b97016c048);
 pub const ENEMY_STINGER: &Name = &n!(0xd6afe28e3cfed01e);

@@ -4,11 +4,13 @@
 use std::collections::{BTreeSet, HashMap};
 
 use anyhow::Result;
+use ounce_formats::Byml;
 
 use super::spots::{Branch, Scrub, edits, plain};
 use super::{ACTOR, ATTACKED, HEART, ITEM, LIKE, NEUTRAL, PRICED, TALK, TEXT};
-use crate::checks::Drop;
+use crate::checks::{self, Drop, GYAML, TRANSLATE};
 use crate::gifts::levels;
+use crate::known::actor;
 use crate::rsdb::Events;
 use crate::text::Lines;
 
@@ -40,6 +42,32 @@ pub fn gone(drops: &HashMap<u64, Drop>) -> Vec<(u64, String)> {
     own(drops)
         .flat_map(|(s, _)| s.placements.iter().map(move |h| (*h, s.flag())))
         .collect()
+}
+
+/// Each leaf in `root` a placement in `gone` stands in, with that
+/// placement's Bool: a vanilla sold scrub takes its leaf with it.
+pub fn leaves(root: &Byml, gone: &[(u64, String)]) -> Result<Vec<(u64, String)>> {
+    let all = checks::actors(root)?;
+    let at = |a: &Byml, gyaml: &str| {
+        let is = checks::str_field(a, GYAML) == Some(gyaml);
+        is.then(|| checks::vec3(a, TRANSLATE)).flatten()
+    };
+    let scrubs: Vec<_> = all
+        .iter()
+        .filter_map(|a| {
+            let (_, flag) = gone.iter().find(|g| Some(g.0) == checks::hash_of(a))?;
+            Some((at(a, actor::ENEMY_SCRUB_BUSINESS)?, flag))
+        })
+        .collect();
+    let on = |p: [f32; 3], q: [f32; 3]| checks::flat(p, q) < 0.5 && (p[1] - q[1]).abs() < 0.5;
+    Ok(all
+        .iter()
+        .filter_map(|a| {
+            let p = at(a, actor::ENEMY_SCRUB_BUSINESS_LEAF)?;
+            let (_, flag) = scrubs.iter().find(|(q, _)| on(p, *q))?;
+            Some((checks::hash_of(a)?, (*flag).clone()))
+        })
+        .collect())
 }
 
 /// The label of the line selling `item`.
