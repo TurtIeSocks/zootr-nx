@@ -1,6 +1,6 @@
 //! Which of the seed's spots Link has checked: chests by their opened flag,
-//! gifts by the played flag of their event, scrubs by their sold flag. See
-//! `docs/research/chests.md`.
+//! gifts by the played flag of their event, scrubs by their sold flag, cows
+//! by their own. See `docs/research/chests.md`.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
@@ -13,7 +13,7 @@ use crate::generate::Spot;
 use crate::gifts::GIFTS;
 use crate::history::{Entry, Mark};
 use crate::savefile::Change;
-use crate::scrubs;
+use crate::{cows, scrubs};
 
 /// Struct whose members are named by a chest's placement hash in decimal
 /// and hold its opened flag.
@@ -64,9 +64,11 @@ impl Tracker {
             let name = match (
                 GIFTS.iter().find(|g| g.hash() == spot.hash),
                 scrubs::at(spot.hash),
+                cows::flag_at(spot.hash),
             ) {
-                (Some(g), _) => g.found(),
-                (_, Some(s)) => s.sold(&spot.item),
+                (Some(g), ..) => g.found(),
+                (_, Some(s), _) => s.sold(&spot.item),
+                (.., Some(cow)) => Some(cow),
                 _ => return chests(spot.hash),
             };
             name.map(|f| murmur3(f.as_bytes()))
@@ -159,6 +161,8 @@ pub fn in_save(save: &Save) -> impl Fn(u32) -> bool + '_ {
 mod tests {
     use super::*;
     use crate::game::dev_dump;
+    use crate::gifts;
+    use crate::settings::{MERCHANTS, NPC_GIFTS, TRADE_CHAIN};
 
     /// Mido's House, front left to far right, and each chest's flag.
     const MIDO: [(u64, u32); 4] = [
@@ -274,11 +278,29 @@ mod tests {
         for (h, f) in MIDO {
             assert_eq!(t.flags[&h], f);
         }
+        let on = [MERCHANTS, NPC_GIFTS, TRADE_CHAIN].map(String::from).into();
+        let added = gifts::flags(&on);
         for (g, found) in GIFTS.iter().filter_map(|g| Some((g, g.found()?))) {
             let f = t.flags[&g.hash()];
-            assert_eq!(gd.table(&found), Some("Bool"), "{}", g.flow);
-            assert!(gd.entry(f).is_some());
+            assert_eq!(f, murmur3(found.as_bytes()), "{}", g.giver);
+            if !added.contains(&found) {
+                assert_eq!(gd.table(&found), Some("Bool"), "{}", g.flow);
+            }
         }
+        for own in &added {
+            let gift = GIFTS.iter().filter(|g| g.found().as_ref() == Some(own));
+            assert_eq!(gift.count(), 1, "{own} is one gift's");
+        }
+    }
+
+    #[test]
+    fn cows_map_to_their_own_flags() {
+        let Some(romfs) = dev_dump() else { return };
+        let gd = GameData::load(&romfs).unwrap();
+        let hash = 11142894434822030727;
+        let t = Tracker::new(&gd, &[spot(hash)]).unwrap();
+        let flag = cows::flag_at(hash).unwrap();
+        assert_eq!(t.flag(hash), Some(murmur3(flag.as_bytes())));
     }
 
     #[test]

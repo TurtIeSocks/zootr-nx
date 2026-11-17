@@ -264,9 +264,12 @@ impl Gift {
         }
     }
 
-    /// The GameData Bool set once it's given: a cutscene's played flag, or
-    /// an NPC's own. Biggoron sets none.
+    /// The GameData Bool set once it's given: a cutscene's played flag, an
+    /// NPC's own, or one the seed adds. Biggoron sets none.
     pub fn found(&self) -> Option<String> {
+        if let Some((.., own)) = OWN.iter().find(|(flow, ..)| *flow == self.flow) {
+            return Some((*own).into());
+        }
         let flag = |found: &Name| match found == SCENE_PLAYED {
             true => format!("{PLAYED}.{}", self.flow),
             false => found.to_string(),
@@ -428,17 +431,24 @@ const FORETOLD: [(&Name, &Name, &[Call]); 1] = [(
 /// flow, then the lesson's. The lesson flow is emptied when the item changes.
 const TAUGHT: [(&Name, &Name); 1] = [(scene::MELODY_GET_SUN_03, scene::MELODY_GET_SUN)];
 
+/// The Bools the gifts' edits add, each set once its gift is given: the
+/// gift's flow, its setting, the Bool.
+const OWN: [(&Name, &str, &str); 3] = [
+    (MEDIGORON, MERCHANTS, MEDIGORON_SOLD),
+    (flow::SAGE_OF_WATER, NPC_GIFTS, zora::GIVEN),
+    (
+        actor::NPC_HYLIA_TALON_ADULT_KAKARIKO,
+        TRADE_CHAIN,
+        crate::trade_chain::TALON_GAVE,
+    ),
+];
+
 /// The Bools the gifts' edits set, which a new game adds to its save data.
 pub fn flags(on: &BTreeSet<String>) -> Vec<String> {
-    [
-        (MERCHANTS, MEDIGORON_SOLD),
-        (NPC_GIFTS, zora::GIVEN),
-        (TRADE_CHAIN, crate::trade_chain::TALON_GAVE),
-    ]
-    .into_iter()
-    .filter(|(setting, _)| on.contains(*setting))
-    .map(|(_, flag)| flag.into())
-    .collect()
+    OWN.iter()
+        .filter(|(_, setting, _)| on.contains(*setting))
+        .map(|(.., flag)| (*flag).into())
+        .collect()
 }
 
 /// Flows a dealt gift would leave stuck, each with the edit that frees it.

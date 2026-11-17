@@ -136,6 +136,17 @@ fn eight_cows_five_plain_and_kakarikos_in_three_files() {
 }
 
 #[test]
+fn each_cows_flag_is_known_from_its_check_hash() {
+    let Some((_, cows)) = cows() else { return };
+    let hashes: Vec<u64> = cows.iter().map(Cow::hash).collect();
+    assert_eq!(hashes, CHECKS);
+    for c in &cows {
+        assert_eq!(flag_at(c.hash()), Some(c.flag()));
+    }
+    assert_eq!(flag_at(1), None);
+}
+
+#[test]
 fn every_cow_has_a_logic_rule_needing_eponas_song() {
     let Some((_, cows)) = cows() else { return };
     let book = crate::rules::Book::load().unwrap();
