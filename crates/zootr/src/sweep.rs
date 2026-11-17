@@ -9,6 +9,7 @@ pub mod melody;
 pub mod night;
 pub mod plan;
 pub mod report;
+pub mod resume;
 mod shop;
 pub mod spot;
 pub mod verdict;

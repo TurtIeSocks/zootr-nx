@@ -14,6 +14,7 @@ use serde_json::json;
 
 use super::judge::Judge;
 use super::plan::{Planned, Trigger, plan};
+use super::resume::{Resume, Yielding};
 use super::spot::{Sweeper, slug};
 use super::verdict::Verdict;
 use crate::config::Target;
@@ -192,6 +193,17 @@ pub struct Night<'a, I, J> {
     pub only: Option<String>,
     /// The seed every round shuffles. `None` for a new one each round.
     pub seed: Option<u64>,
+    /// The turn queue to step aside for between spots. `None` sweeps on
+    /// regardless.
+    pub yielding: Option<Yielding>,
+}
+
+/// How a round ended.
+#[derive(PartialEq)]
+enum Ended {
+    Swept,
+    /// Stepped aside for someone waiting for the game.
+    Yielded,
 }
 
 impl<I: Input, J: Judge> Night<'_, I, J> {
@@ -200,26 +212,59 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         std::fs::create_dir_all(&self.dir)?;
         let places = dev::places(self.romfs)?;
         let rows = std::fs::read_to_string(self.results()).unwrap_or_default();
-        let first = next_round(&rows);
+        let mut resume = Resume::load(&self.dir);
+        let first = resume
+            .as_ref()
+            .map_or_else(|| next_round(&rows), |r| r.round);
+        if let Some(y) = &self.yielding {
+            y.start();
+        }
         for round in (first..).take_while(|&r| rounds == 0 || r < first + rounds) {
-            if let Err(e) = self.round(round, &places) {
-                eprintln!("round {round} ended early: {e:#}");
-                self.note(round, &format!("{e:#}"))?;
+            match self.round(round, &places, resume.take()) {
+                Ok(Ended::Yielded) => break,
+                Ok(Ended::Swept) => Resume::clear(&self.dir),
+                Err(e) => {
+                    Resume::clear(&self.dir);
+                    eprintln!("round {round} ended early: {e:#}");
+                    self.note(round, &format!("{e:#}"))?;
+                }
             }
+        }
+        if self.yielding.is_some() {
+            self.stop();
+        }
+        if let Some(y) = &self.yielding {
+            y.done();
         }
         Ok(())
     }
 
-    fn round(&mut self, round: usize, places: &BTreeSet<dev::Place>) -> Result<()> {
+    /// Round `round`, or the rest of it as `resume` left it.
+    fn round(
+        &mut self,
+        round: usize,
+        places: &BTreeSet<dev::Place>,
+        resume: Option<Resume>,
+    ) -> Result<Ended> {
         let (mix, settings) = mix(self.mix.unwrap_or(round));
-        let seed = (self.seed).unwrap_or_else(|| generate::time_seed() % 1_000_000);
-        eprintln!("round {round}: {mix}, seed {seed}");
+        let seed = (resume.as_ref().map(|r| r.seed).or(self.seed))
+            .unwrap_or_else(|| generate::time_seed() % 1_000_000);
+        let mut resume = resume.unwrap_or(Resume {
+            round,
+            seed,
+            done: Vec::new(),
+        });
+        match resume.done.len() {
+            0 => eprintln!("round {round}: {mix}, seed {seed}"),
+            n => eprintln!("round {round}: {mix}, seed {seed}, resumed after {n} spots"),
+        }
         self.stop();
         let mut planned = pool(self.romfs, &self.target.mod_dir, seed, &settings, places)?;
         planned.retain(|p| self.only.as_deref().is_none_or(|text| picked(p, text)));
         let known = self.known();
         order(&mut planned, &known, seed);
         planned.truncate(self.limit.unwrap_or(usize::MAX));
+        resume.skip(&mut planned, name);
         let shots = self.dir.join(format!("round-{round:03}-{seed}"));
         std::fs::create_dir_all(&shots)?;
         let mut live = self.start()?;
@@ -233,10 +278,19 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             rows: &rows,
         };
         for p in &planned {
+            if self.yielding.as_ref().is_some_and(Yielding::asked) {
+                eprintln!(
+                    "round {round}: stepping aside after {} spots",
+                    resume.done.len()
+                );
+                resume.save(&self.dir)?;
+                return Ok(Ended::Yielded);
+            }
             let first = at_known(p, &known);
             self.attempt(&mut live, &at, p, &first, name(p), &json!({}))?;
+            resume.done.push(name(p));
         }
-        Ok(())
+        Ok(Ended::Swept)
     }
 
     /// Sweep `first`, the spot `p` as earlier nights left it: again after a

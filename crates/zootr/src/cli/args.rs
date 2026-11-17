@@ -285,6 +285,12 @@ pub(super) enum Command {
         /// (`round-011-412851`), to see a failure again.
         #[arg(long)]
         seed: Option<u64>,
+        /// Step aside between spots whenever someone waits for this game
+        /// in the turn queue, keeping the round's place in
+        /// `<out>/resume.json`. Run again, it waits for the game, then
+        /// finishes that round.
+        #[arg(long = "yield", value_name = "GAME")]
+        yield_to: Option<String>,
         #[command(flatten)]
         judge: JudgeArgs,
     },
