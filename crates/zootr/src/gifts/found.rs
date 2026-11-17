@@ -105,9 +105,7 @@ mod tests {
             return;
         };
         let all = Flows::load(&romfs).unwrap();
-        let on: BTreeSet<String> = [NPC_GIFTS, MERCHANTS, TRADE_CHAIN]
-            .map(String::from)
-            .into();
+        let on: BTreeSet<String> = [NPC_GIFTS, MERCHANTS, TRADE_CHAIN].map(String::from).into();
         let added: Vec<&Gift> = (GIFTS.iter())
             .filter(|g| g.dealt(&on) && g.added().is_some())
             .collect();
@@ -125,9 +123,19 @@ mod tests {
             }
         }
         let mut rewrites = Rewrites::default();
-        give_all(&romfs, &all, &mut rewrites, &HashMap::new(), false, &Default::default()).unwrap();
+        give_all(
+            &romfs,
+            &all,
+            &mut rewrites,
+            &HashMap::new(),
+            false,
+            &Default::default(),
+        )
+        .unwrap();
         let flag = added[0].added().unwrap();
         let untouched = rewrites.get(&flows::rel(added[0].flow));
-        assert!(untouched.is_none_or(|b| !flows::render(&Flowchart::parse(b).unwrap().unwrap()).contains(&flag)));
+        assert!(untouched.is_none_or(|b| {
+            !flows::render(&Flowchart::parse(b).unwrap().unwrap()).contains(&flag)
+        }));
     }
 }

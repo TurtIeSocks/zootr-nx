@@ -840,7 +840,15 @@ mod tests {
             })
             .collect();
         let all = Flows::load(romfs).unwrap();
-        give_all(romfs, &all, &mut rewrites, &drops, false, &Default::default()).unwrap();
+        give_all(
+            romfs,
+            &all,
+            &mut rewrites,
+            &drops,
+            false,
+            &Default::default(),
+        )
+        .unwrap();
         (rewrites, flags)
     }
 
@@ -863,7 +871,15 @@ mod tests {
             .map(|(g, item)| (g.hash(), Drop::from(item.clone())))
             .collect();
         let mut rewrites = Rewrites::default();
-        give_all(romfs, all, &mut rewrites, &drops, false, &Default::default()).unwrap();
+        give_all(
+            romfs,
+            all,
+            &mut rewrites,
+            &drops,
+            false,
+            &Default::default(),
+        )
+        .unwrap();
         flows::render(&written(&rewrites, deal[0].0.flow))
     }
 

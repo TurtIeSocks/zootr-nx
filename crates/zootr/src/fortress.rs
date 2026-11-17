@@ -52,7 +52,9 @@ fn gave(n: &str) -> String {
 
 /// The Bools a new game with Fortress keys adds, one per thief.
 pub fn flags() -> Vec<String> {
-    (1..=THIEVES.len()).map(|i| gave(&format!("{i:02}"))).collect()
+    (1..=THIEVES.len())
+        .map(|i| gave(&format!("{i:02}")))
+        .collect()
 }
 
 /// The Bool set once the thief whose key is `vanilla` gives `item`: the
@@ -114,7 +116,10 @@ pub fn give(
                 "{entry} doesn't start with a call"
             );
             rename(flow, call, &m.actor)?;
-            let n = m.vanilla.strip_prefix(keys::FORTRESS_KEY).unwrap_or_default();
+            let n = m
+                .vanilla
+                .strip_prefix(keys::FORTRESS_KEY)
+                .unwrap_or_default();
             // Each lands right after the call, so the key's Bool runs first.
             for flag in [gave(n), flag] {
                 flows::set_after(flow, &set_bool, call, &flag, Value::Bool(vec![true]))?;
@@ -206,10 +211,16 @@ mod tests {
             else {
                 panic!("a Bool")
             };
-            (flows::param(params, flows::GAME_DATA).unwrap().to_owned(), *next)
+            (
+                flows::param(params, flows::GAME_DATA).unwrap().to_owned(),
+                *next,
+            )
         };
         let (key, next) = set(*next);
-        assert_eq!(key, flag::IS_GET_SMALL_KEY_GERUDO_FORTRESS_SMALL_KEY01.get());
+        assert_eq!(
+            key,
+            flag::IS_GET_SMALL_KEY_GERUDO_FORTRESS_SMALL_KEY01.get()
+        );
         let (thief, next) = set(next);
         assert_eq!(Some(thief), got(&key_actor(1), &actor));
         assert!(next.is_none());
@@ -237,7 +248,10 @@ mod tests {
         let own = got(&key, &key).unwrap();
         assert!(own.ends_with("03"), "{own}");
         assert!(!own.starts_with("Rando_"), "{own}");
-        assert_eq!(got(&key, "Item_FakeOther").as_deref(), Some("Rando_Thief_03"));
+        assert_eq!(
+            got(&key, "Item_FakeOther").as_deref(),
+            Some("Rando_Thief_03")
+        );
         assert!(flags().contains(&"Rando_Thief_03".to_string()));
         assert_eq!(got("Obj_FakeChest", "Item_FakeOther"), None);
     }
