@@ -13,7 +13,7 @@ import { TestPane } from "@/settings/test-pane";
 import { useConfig } from "@/stores/config";
 
 const setConfig = vi.fn((_c: FullConfig) =>
-  Promise.resolve({ status: "ok", data: null }),
+  Promise.resolve({ status: "ok", data: [] }),
 );
 
 /** A scan that found nothing. */

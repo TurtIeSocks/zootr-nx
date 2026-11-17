@@ -12,6 +12,8 @@ use crate::inventory::TrackerOptions;
 use crate::platform::{self, Folder, user_dir};
 use crate::shuffle::Fixed;
 
+mod mods_root;
+
 /// Overrides where `config.json` lives, for tests and portable setups.
 const ENV: &str = "ZOOTR_CONFIG";
 
@@ -528,6 +530,7 @@ impl Config {
         }
         let mut config: Self = serde_json::from_value(json)?;
         crate::settings::upgrade(&mut config.settings);
+        config.fix_mods_roots();
         Ok(config)
     }
 

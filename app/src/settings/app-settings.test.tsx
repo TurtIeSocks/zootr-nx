@@ -19,7 +19,7 @@ afterEach(() => {
 test("the page keeps the game dump and saves the dev panel toggle", async () => {
   const setConfig = vi
     .spyOn(commands, "setConfig")
-    .mockResolvedValue({ status: "ok", data: null });
+    .mockResolvedValue({ status: "ok", data: [] });
   const config = full({ game: "/oot.nup" });
   useConfig.setPath("config", config);
   render(<AppSettings />);
@@ -43,7 +43,7 @@ test("the page keeps the game dump and saves the dev panel toggle", async () => 
 test("game assets save from their switch, which needs a dump", async () => {
   const setConfig = vi
     .spyOn(commands, "setConfig")
-    .mockResolvedValue({ status: "ok", data: null });
+    .mockResolvedValue({ status: "ok", data: [] });
   useConfig.setPath("config", full({}));
   render(<AppSettings />);
   const name = "Icons from the game dump";
@@ -75,7 +75,7 @@ test("a newly saved game dump resets the field to it", () => {
 test("the update check switch saves its inverse", async () => {
   const setConfig = vi
     .spyOn(commands, "setConfig")
-    .mockResolvedValue({ status: "ok", data: null });
+    .mockResolvedValue({ status: "ok", data: [] });
   const config = full({});
   useConfig.setPath("config", config);
   render(<AppSettings />);
