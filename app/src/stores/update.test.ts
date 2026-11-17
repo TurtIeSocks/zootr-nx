@@ -1,9 +1,12 @@
+import { getVersion } from "@tauri-apps/api/app";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { full } from "@/lib/config";
 import { useConfig } from "@/stores/config";
 import { init, stop, useUpdate } from "@/stores/update";
 
-vi.mock("@tauri-apps/api/app", () => ({ getVersion: async () => "0.1.0" }));
+vi.mock("@tauri-apps/api/app", () => ({
+  getVersion: vi.fn(async () => "0.1.0"),
+}));
 vi.mock("@/stores/config", async (original) => ({
   ...(await original<typeof import("@/stores/config")>()),
   init: async () => {},
@@ -34,16 +37,25 @@ test("a newer release is kept, with this build's version", async () => {
   expect(useUpdate.getState().current).toBe("0.1.0");
 });
 
+test("a version it can't read leaves the version blank and offers nothing", async () => {
+  vi.spyOn(console, "debug").mockImplementation(() => {});
+  vi.mocked(getVersion).mockRejectedValueOnce(new Error("no Tauri"));
+  await init();
+  expect(useUpdate.getState().current).toBeNull();
+  expect(useUpdate.getState().latest).toBeNull();
+});
+
 test("an older or equal release isn't", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(release("v0.1.0")));
   await init();
   expect(useUpdate.getState().latest).toBeNull();
 });
 
-test("the switch off makes no request", async () => {
+test("the switch off makes no request, and still reads the version", async () => {
   useConfig.setPath("config", full({ no_update_check: true }));
   await init();
   expect(fetch).not.toHaveBeenCalled();
+  expect(useUpdate.getState().current).toBe("0.1.0");
 });
 
 test("dev without VITE_UPDATE_REPO makes no request", async () => {

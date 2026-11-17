@@ -186,11 +186,18 @@ jobs:
       - name: Build the app and attach it
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
+          # Signs the update bundles. With a release id, tauri-action also
+          # uploads latest.json, the feed the app's updater reads.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ env.TAGGED == 'true' && secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ env.TAGGED == 'true' && secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
           GITHUB_TOKEN: ${{ github.token }}
         with:
           projectPath: app
           tauriScript: pnpm tauri
-          args: --runner cargo
+          # Updater files need the updater's signing key, which only a
+          # tagged build gets. Others build without them. TAURI_CONFIG
+          # doesn't turn them off: the CLI still asks for the key.
+          args: --runner cargo ${{ env.TAGGED != 'true' && '--config src-tauri/no-updater.conf.json' || '' }}
           releaseId: ${{ needs.draft.outputs.id }}
 
       # After the app, and naming its package too, so cargo picks the

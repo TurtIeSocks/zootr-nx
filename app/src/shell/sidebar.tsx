@@ -22,6 +22,7 @@ import { useLive } from "@/stores/live";
 import { useSeeds } from "@/stores/seeds";
 import { openDev, openSettings } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
+import { useUpdate } from "@/stores/update";
 import { UpdateAlert } from "@/update/update-alert";
 
 /** Props for {@link NavItem}. */
@@ -213,6 +214,16 @@ function StatusPills() {
   );
 }
 
+/** This build's version, so a screenshot always says which one it is. */
+function Version() {
+  const [current] = useUpdate.usePath("current");
+  return (
+    <span className="mr-auto pl-2 font-mono text-ink-faint text-xs">
+      {current && `v${current}`}
+    </span>
+  );
+}
+
 /** Opens the dev panel. Greyed while the setting is off. */
 function DevButton() {
   const [dev] = useConfig.usePath("config.dev_panel");
@@ -268,8 +279,9 @@ export function Sidebar() {
       </nav>
       <div className="flex shrink-0 flex-col gap-2 border-line border-t p-3">
         <UpdateAlert />
-        <div className="flex items-end gap-1.5">
-          <StatusPills />
+        <StatusPills />
+        <div className="flex items-center gap-1.5">
+          <Version />
           <DevButton />
           <ThemeToggle />
         </div>

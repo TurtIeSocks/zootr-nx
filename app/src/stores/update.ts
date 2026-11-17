@@ -41,19 +41,21 @@ async function check() {
     useUpdate.setPath("latest", null);
     return;
   }
-  const [current, latest] = await Promise.all([
-    getVersion(),
-    fetchLatest(from),
-  ]);
-  useUpdate.setState({
-    current,
-    latest: latest && newer(current, latest.version) ? latest : null,
-  });
+  const latest = await fetchLatest(from);
+  const { current } = useUpdate.getState();
+  useUpdate.setPath(
+    "latest",
+    latest && current && newer(current, latest.version) ? latest : null,
+  );
 }
 
-/** Checks once the config is read, then every 6 hours and whenever the
- * switch flips. */
+/** Reads this build's version, which the sidebar always shows, then checks
+ * once the config is read, every 6 hours and whenever the switch flips. */
 const started = once(async () => {
+  await getVersion().then(
+    (v) => useUpdate.setPath("current", v),
+    (e: unknown) => console.debug("Couldn't read the version", e),
+  );
   await initConfig();
   await check();
   const timer = setInterval(() => void check(), EVERY);

@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchLatest, newer, notesHtml } from "@/update/release";
+import {
+  fetchLatest,
+  newer,
+  notesHtml,
+  stripChangelog,
+} from "@/update/release";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -40,6 +45,23 @@ describe("notesHtml", () => {
   });
 });
 
+describe("stripChangelog", () => {
+  it("drops the link line in either spelling", () => {
+    const tail = "https://github.com/o/r/compare/v0.1.0...v0.2.0";
+    expect(stripChangelog(`- a fix\n\nFull changelog: ${tail}`)).toBe(
+      "- a fix",
+    );
+    expect(stripChangelog(`- a fix\n\n**Full Changelog**: ${tail}\n`)).toBe(
+      "- a fix",
+    );
+  });
+
+  it("keeps a line that only mentions the changelog", () => {
+    const md = "- the full changelog moved to CHANGELOG.md";
+    expect(stripChangelog(md)).toBe(md);
+  });
+});
+
 describe("fetchLatest", () => {
   const answer = (res: unknown) =>
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(res));
@@ -58,6 +80,7 @@ describe("fetchLatest", () => {
     expect(await fetchLatest("o/r")).toEqual({
       version: "0.2.0",
       url: "https://github.com/o/r/releases/tag/v0.2.0",
+      changelog: "https://github.com/o/r/blob/main/CHANGELOG.md",
       notes: "notes",
       published: "2026-11-14T00:00:00Z",
     });
