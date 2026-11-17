@@ -594,6 +594,92 @@ place = "death-mountain-trail-adult"
 era = "adult"
 needs = "item:claim-check and (explosives or hammer)"
 
+# The adult trade chain, dealt only with trade-chain on. Each giver
+# trades whatever order Link finds the items in.
+
+# Anju's Pocket Egg, in Kakariko.
+[[check]]
+hash = 4829374028878320404
+name = "Anju as adult"
+place = "kakariko-village-adult"
+era = "adult"
+needs = "always"
+
+# Talon, shown the Pocket Cucco: in Kakariko, or at the ranch once Epona is
+# won. Either one gives the check, once.
+[[check]]
+hash = 5600989862490052494
+name = "Talon: Pocket Cucco"
+place = "kakariko-village-adult"
+era = "adult"
+needs = "item:pocket-egg"
+
+# Grog at the Lost Woods stump, shown Cojiro.
+[[check]]
+hash = 4830705234802295701
+name = "Grog: Cojiro"
+place = "lost-woods-adult"
+era = "adult"
+needs = "item:cojiro"
+
+# Granny in the potion shop, shown the Odd Mushroom.
+[[check]]
+hash = 3994987831222113762
+name = "Granny: Odd Mushroom"
+place = "kakariko-village-adult"
+era = "adult"
+needs = "item:odd-mushroom"
+
+# Fado at Grog's stump, shown the Odd Powder. Cojiro held keeps Grog there
+# instead, and he takes it first.
+[[check]]
+hash = 10103296210716215394
+name = "Fado: Odd Powder"
+place = "lost-woods-adult"
+era = "adult"
+needs = "item:odd-powder"
+
+# The carpenter boss, past the valley's bridge, shown the Poacher's Saw.
+[[check]]
+hash = 7003280842759835681
+name = "Carpenter boss: Poacher's Saw"
+place = "gerudo-valley-adult"
+era = "adult"
+needs = "item:poachers-saw and (setting:carpenters-freed or longshot or eponas-song)"
+
+# Biggoron at the summit, shown the Broken Sword.
+[[check]]
+hash = 1215836471142643217
+name = "Biggoron: Broken Sword"
+place = "death-mountain-trail-adult"
+era = "adult"
+needs = "item:broken-sword and (explosives or hammer)"
+
+# King Zora, thawed, shown the Prescription. Frozen, he can't be shown
+# anything.
+[[check]]
+hash = 1822814056923789762
+name = "King Zora: Prescription"
+place = "zora-domain-adult"
+era = "adult"
+needs = "item:prescription and (blue-fire or beat:morpha)"
+
+# The Lake Scientist, shown the Eyeball Frog.
+[[check]]
+hash = 18434302011375146275
+name = "Lake Scientist: Eyeball Frog"
+place = "hyrule-field-adult"
+era = "adult"
+needs = "item:eyeball-frog"
+
+# Biggoron at the summit, shown the Eye Drops.
+[[check]]
+hash = 8480443483483791996
+name = "Biggoron: Eye Drops"
+place = "death-mountain-trail-adult"
+era = "adult"
+needs = "item:eye-drops and (explosives or hammer)"
+
 # People who sell one thing, dealt only with merchants on. Medigoron's wall
 # in Goron City needs a blast. The Giant's Knife costs 200 rupees, which
 # every wallet holds.

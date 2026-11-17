@@ -596,6 +596,11 @@ mod tests {
         for list in [&off, &on, &sold] {
             assert!(list.iter().any(|n| n == "Magic Beans"));
         }
+        // The trade chain's Biggoron check gives the Claim Check, and
+        // every trade check has a place.
+        let traded = sources(&[crate::settings::NPC_GIFTS, crate::settings::TRADE_CHAIN]);
+        assert!(on.iter().any(|n| n == "Claim Check"));
+        assert!(!traded.iter().any(|n| n == "Claim Check"));
     }
 
     #[test]
