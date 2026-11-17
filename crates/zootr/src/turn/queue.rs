@@ -192,7 +192,8 @@ impl Queue {
         Ok(())
     }
 
-    /// Keep `game` for `session` only, or lift that with `None`.
+    /// Keep `game` for `session` only, or lift that with `None`. While a
+    /// game is kept for it, the session waits for that game alone.
     pub fn reserve(&mut self, game: &str, session: Option<&str>) -> Result<()> {
         self.game(game)?.reserved = session.map(Into::into);
         Ok(())
@@ -252,11 +253,13 @@ impl Queue {
         let mut i = 0;
         while i < self.waiting.len() {
             let session = self.waiting[i].session.clone();
+            // A session a game is kept for waits for that game alone.
+            let kept = (self.games.iter()).any(|g| g.reserved.as_deref() == Some(&session));
             let free = |(j, g): &(usize, &Game)| {
                 !claimed[*j]
                     && g.holder.is_none()
                     && !g.maintainer
-                    && g.reserved.as_ref().is_none_or(|r| *r == session)
+                    && g.reserved.as_deref() == kept.then_some(session.as_str())
             };
             let Some(j) = self.games.iter().enumerate().find(free).map(|(j, _)| j) else {
                 i += 1;
@@ -410,6 +413,19 @@ mod tests {
         q.join("a", "", false, 0).unwrap();
         q.join("r", "", false, 1).unwrap();
         assert_eq!(granted(&mut q, 2), [pair("a", "far"), pair("r", "near")]);
+    }
+
+    #[test]
+    fn a_session_with_a_kept_game_waits_for_it_while_others_are_free() {
+        let mut q = queue();
+        q.reserve("far", Some("r")).unwrap();
+        q.take("far", 0).unwrap();
+        q.join("r", "", false, 1).unwrap();
+        assert_eq!(granted(&mut q, 2), []);
+        q.join("a", "", false, 3).unwrap();
+        assert_eq!(granted(&mut q, 4), [pair("a", "near")]);
+        q.leave("far").unwrap();
+        assert_eq!(granted(&mut q, 5), [pair("r", "far")]);
     }
 
     #[test]
