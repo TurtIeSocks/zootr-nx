@@ -22,6 +22,7 @@ const UPDATE = { version: "0.2.0" } as Update;
 const RELEASE = {
   version: "0.2.0",
   url: "https://github.com/o/r/releases/tag/v0.2.0",
+  changelog: "https://github.com/o/r/blob/main/CHANGELOG.md",
   notes:
     "## What's Changed\n\n* marks in [#12](https://github.com/o/r/pull/12)",
   published: "2026-11-14T12:00:00Z",
@@ -64,6 +65,8 @@ test("the popover shows the notes and opens the release page", () => {
   expect(screen.getByRole("heading", { name: "What's Changed" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Open release page" }));
   expect(openUrl).toHaveBeenCalledWith(RELEASE.url);
+  fireEvent.click(screen.getByRole("button", { name: "Changelog" }));
+  expect(openUrl).toHaveBeenCalledWith(RELEASE.changelog);
 });
 
 test("a link in the notes opens in the browser", () => {

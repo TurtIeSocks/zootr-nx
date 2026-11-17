@@ -10,6 +10,8 @@ export interface Release {
   version: string;
   /** The release page. */
   url: string;
+  /** The repo's CHANGELOG.md. */
+  changelog: string;
   /** Markdown. Untrusted: render it only through {@link notesHtml}. */
   notes: string;
   /** ISO 8601, or "" when GitHub gave none. */
@@ -28,6 +30,14 @@ export function newer(current: string, next: string): boolean {
   return i >= 0 && (b[i] ?? 0) > (a[i] ?? 0);
 }
 
+/** A "Full changelog: URL" line, as GitHub's generated notes end. */
+const CHANGELOG_LINE = /^\s*\**full changelog\**:?\**\s*\S+\s*$/gim;
+
+/** `md` without its "Full changelog" link line: the notice has a
+ * Changelog button instead. */
+export const stripChangelog = (md: string) =>
+  md.replace(CHANGELOG_LINE, "").trim();
+
 /** The latest published release of `repo`, or null when there's none or
  * the check fails. Drafts and prereleases never count. */
 export async function fetchLatest(repo: string): Promise<Release | null> {
@@ -43,7 +53,8 @@ export async function fetchLatest(repo: string): Promise<Release | null> {
     return {
       version: r.tag_name.replace(/^v/, ""),
       url: r.html_url,
-      notes: typeof r.body === "string" ? r.body : "",
+      changelog: `https://github.com/${repo}/blob/main/CHANGELOG.md`,
+      notes: typeof r.body === "string" ? stripChangelog(r.body) : "",
       published: typeof r.published_at === "string" ? r.published_at : "",
     };
   } catch (e) {

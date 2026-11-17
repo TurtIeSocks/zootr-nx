@@ -82,7 +82,7 @@ function useInstall(version: string) {
 
 type InstallState = ReturnType<typeof useInstall>;
 
-/** The install's button, beside the release page and skip. */
+/** The install's button, across from skip. */
 function InstallButton({ update, progress, running, go }: InstallState) {
   if (!update) return null;
   return (
@@ -129,8 +129,9 @@ interface ReleaseCardProps {
   onSkip: () => void;
 }
 
-/** The popover's content: what's out, its notes, and its actions: the
- * install when the updater has it, the release page and skip. */
+/** The popover's content: what's out, its notes with links to the
+ * changelog and the release page, then skip and the install when the
+ * updater has it. */
 function ReleaseCard({ release, onSkip }: ReleaseCardProps) {
   const [current] = useUpdate.usePath("current");
   const install = useInstall(release.version);
@@ -145,19 +146,28 @@ function ReleaseCard({ release, onSkip }: ReleaseCardProps) {
         <p className="text-ink-faint text-xs">{when.join(" · ")}</p>
       </div>
       <Notes md={release.notes} />
+      <div className="flex gap-2 px-3 pb-2.5">
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => void openUrl(release.changelog)}
+        >
+          Changelog
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => void openUrl(release.url)}
+        >
+          Open release page
+        </Button>
+      </div>
       <div className="flex flex-col gap-1.5 border-line border-t px-3 py-2.5">
-        <div className="flex gap-2">
-          <InstallButton {...install} />
-          <Button
-            size="sm"
-            variant={install.update ? "secondary" : "default"}
-            onClick={() => void openUrl(release.url)}
-          >
-            Open release page
-          </Button>
+        <div className="flex justify-between gap-2">
           <Button size="sm" variant="ghost" onClick={onSkip}>
             Skip this version
           </Button>
+          <InstallButton {...install} />
         </div>
         <InstallStatus {...install} />
       </div>
