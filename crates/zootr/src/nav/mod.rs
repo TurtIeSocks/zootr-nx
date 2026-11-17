@@ -40,6 +40,7 @@ pub mod kinds;
 pub mod route;
 pub mod scene;
 pub mod shape;
+pub mod shove;
 #[cfg(test)]
 mod sim;
 pub mod went;

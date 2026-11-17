@@ -11,7 +11,7 @@ use serde::Serialize;
 
 use super::args::{DevCommand, Switch};
 use crate::config::{Config, TestSetup};
-use crate::nav::{act, drive};
+use crate::nav::{act, drive, shove};
 use crate::play::{self, Input};
 use crate::{gamedata, live, recorder, steps, warp};
 
@@ -174,7 +174,7 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             )?
         }
         DevCommand::Move { hour, secs, json } => said(
-            &drive::moved(&game, &mut input()?, romfs, game_path, hour, secs)?,
+            &shove::moved(&game, &mut input()?, romfs, game_path, hour, secs)?,
             json,
         )?,
         DevCommand::Use { hash, json } => said(
