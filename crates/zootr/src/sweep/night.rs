@@ -159,6 +159,8 @@ pub struct Night<'a, I, J> {
     pub mix: Option<usize>,
     /// Only the spots [`picked`] by this text. `None` for all.
     pub only: Option<String>,
+    /// The seed every round shuffles. `None` for a new one each round.
+    pub seed: Option<u64>,
 }
 
 impl<I: Input, J: Judge> Night<'_, I, J> {
@@ -179,7 +181,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
 
     fn round(&mut self, round: usize, places: &BTreeSet<dev::Place>) -> Result<()> {
         let (mix, settings) = mix(self.mix.unwrap_or(round));
-        let seed = generate::time_seed() % 1_000_000;
+        let seed = (self.seed).unwrap_or_else(|| generate::time_seed() % 1_000_000);
         eprintln!("round {round}: {mix}, seed {seed}");
         self.stop();
         let mut planned = pool(self.romfs, &self.target.mod_dir, seed, &settings, places)?;

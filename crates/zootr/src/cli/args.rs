@@ -265,6 +265,10 @@ pub(super) enum Command {
         /// must all match: `Pot,Melody` is a pot holding a song.
         #[arg(long)]
         only: Option<String>,
+        /// Every round on this seed, as a night's round named it
+        /// (`round-011-412851`), to see a failure again.
+        #[arg(long)]
+        seed: Option<u64>,
         #[command(flatten)]
         judge: JudgeArgs,
     },
