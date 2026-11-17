@@ -76,3 +76,13 @@ test("Stop shows while a seed generates and reads Stopping once pressed", () => 
   const button = screen.getByRole("button", { name: "Stopping" });
   expect((button as HTMLButtonElement).disabled).toBe(true);
 });
+
+test("a finished rebuild says so and has no log to copy", () => {
+  useSeeds.setPath("rebuilt", "FakeBuild");
+  const rows = [{ kind: "began", step: "rebuilding" }] as StepEvent[];
+  const rebuilt = rows.reduce(stepped, { rows: [], end: null, secs: 0 });
+  show({ ...rebuilt, end: { kind: "done" }, secs: 840 }, false);
+  expect(screen.getByText(/Rebuilt in 840.0 s/)).toBeTruthy();
+  expect(screen.queryByText("Copy log")).toBeNull();
+  useSeeds.setPath("rebuilt", null);
+});

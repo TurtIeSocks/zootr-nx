@@ -20,7 +20,16 @@ export const commands = {
 	generate: (seed: string | null, steps: Channel<StepEvent>) => typedError<Summary, string>(__TAURI_INVOKE("generate", { seed, steps })),
 	/**  Reinstall a history entry from its seed and settings. */
 	install: (id: number, steps: Channel<StepEvent>) => typedError<null, string>(__TAURI_INVOKE("install", { id, steps })),
-	/**  Stop the seed being generated at its next checkpoint. */
+	/**
+	 *  Rebuild a target's game, its output each a detail of the rebuilding
+	 *  step sent to `steps`. Fails unless the build has the installed hook
+	 *  patch afterwards. Stop Generate stops it too.
+	 */
+	rebuild: (name: string, steps: Channel<StepEvent>) => typedError<null, string>(__TAURI_INVOKE("rebuild", { name, steps })),
+	/**
+	 *  Stop the seed being generated, or the game being rebuilt, at its next
+	 *  checkpoint.
+	 */
 	stopGenerate: () => __TAURI_INVOKE<void>("stop_generate"),
 	/**  The last generate run's log, to paste into a bug report. */
 	generateLog: () => typedError<string, string>(__TAURI_INVOKE("generate_log")),
@@ -138,7 +147,7 @@ export const events = {
 };
 
 /* Constants */
-export const STEPS = [{"name":"reading the dump","step":"dump"},{"name":"reading checks","step":"checks"},{"name":"building logic","step":"logic"},{"name":"placing items","step":"placing"},{"name":"writing the mod","step":"writing"},{"name":"writing the spoiler","step":"spoiler"},{"name":"installing","step":"installing"}] as const;
+export const STEPS = [{"name":"reading the dump","step":"dump"},{"name":"reading checks","step":"checks"},{"name":"building logic","step":"logic"},{"name":"placing items","step":"placing"},{"name":"writing the mod","step":"writing"},{"name":"writing the spoiler","step":"spoiler"},{"name":"installing","step":"installing"},{"name":"rebuilding the game","step":"rebuilding"}] as const;
 
 export const TRACKER_COLUMNS = 3 as const;
 
@@ -149,6 +158,25 @@ export type Applied = {
 	/**  Goals that held before Apply, which prove nothing. */
 	held: string[],
 };
+
+export type Build = {
+	status: BuildStatus,
+	/**  What the user is told, when the build isn't current. */
+	text: string | null,
+	/**  The target has a rebuild command. */
+	command: boolean,
+};
+
+/**  Whether a game's last build saw the hook patch installed now. */
+export type BuildStatus = 
+/**  The build has the installed patch, or neither has one. */
+{ kind: "current" } | 
+/**  The patch changed, came or went since the build. */
+{ kind: "stale" } | 
+/**  The build refused the patch, saying why. */
+{ kind: "refused"; note: string } | 
+/**  The build lists no patches, so it may not load them. */
+{ kind: "unrecorded" };
 
 /**  One drawn cell. */
 export type Cell = {
@@ -549,6 +577,16 @@ export type PlandoOptions = {
 	error: string | null,
 };
 
+export type Rebuild = {
+	/**  What rebuilds the game, as arguments. `{game}` becomes the game dump. */
+	command?: string[],
+	/**
+	 *  The build's patch list, when it isn't in the game folder that holds
+	 *  `mods/<name>`.
+	 */
+	manifest?: string | null,
+};
+
 /**  An item Link gets outside the shuffle, in the round that collects it. */
 export type RoundEvent = {
 	round: number,
@@ -779,8 +817,11 @@ export type StatusField = {
 /**  Where a field sits in the panel. */
 export type StatusGroup = "Meters" | "Gear" | "Age" | "Counters";
 
-/**  The steps of generating and installing a seed, in order. */
-export type Step = "dump" | "checks" | "logic" | "placing" | "writing" | "spoiler" | "installing";
+/**
+ *  The steps of generating and installing a seed, in order, and the one
+ *  of rebuilding a game.
+ */
+export type Step = "dump" | "checks" | "logic" | "placing" | "writing" | "spoiler" | "installing" | "rebuilding";
 
 /**  What a run reports as it goes. */
 export type StepEvent = { kind: "began"; step: Step } | 
@@ -841,6 +882,8 @@ export type Target = {
 	 *  out when a start has none.
 	 */
 	harness_env?: string[],
+	/**  How to rebuild a game that bakes exefs patches in at build time. */
+	rebuild?: Rebuild | null,
 } & ({
 	/**  Settings file lines written on install, e.g. `KEY={romfs}`. */
 	settings_file?: SettingsFile | null,
@@ -854,6 +897,11 @@ export type TargetStatus = {
 	app: boolean,
 	mod_dir: boolean,
 	running: boolean,
+	/**
+	 *  For a game that bakes the hook patch in at build time, whether its
+	 *  build has the installed one.
+	 */
+	build?: Build | null,
 };
 
 /**

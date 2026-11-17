@@ -118,6 +118,9 @@ pub(super) fn shuffle(game: &Path, args: Shuffle) -> Result<()> {
     })();
     run.end(&built);
     let (report, installed) = built?;
+    if installed {
+        super::target::warn_builds(&Config::load()?.targets);
+    }
     print_written(&report.written);
     println!(
         "seed {seed}: {} chests, {} changed, spoiler.txt beside each mod",

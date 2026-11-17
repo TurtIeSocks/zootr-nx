@@ -17,6 +17,7 @@ mod arrivals;
 mod bombchus;
 mod bombs;
 mod bridge;
+pub mod build;
 mod checks;
 mod chest_levels;
 pub mod config;

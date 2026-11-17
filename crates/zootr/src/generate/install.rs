@@ -135,6 +135,7 @@ mod tests {
             bridge: None,
             env: vec![],
             harness_env: vec![],
+            rebuild: None,
         };
         let line = SettingsFile {
             file: env.clone(),
@@ -168,6 +169,7 @@ mod tests {
             bridge: None,
             env: vec![],
             harness_env: vec![],
+            rebuild: None,
         };
         let targets = [
             target("a", "m1", false),
@@ -209,6 +211,7 @@ mod tests {
             bridge: None,
             env: vec![],
             harness_env: vec![],
+            rebuild: None,
         };
         let has = |m: &str| crate::patch::path(&dir.join(m)).exists();
         // Either way round: a folder written first without a reader still
@@ -251,6 +254,7 @@ mod tests {
             bridge: None,
             env: vec![],
             harness_env: vec![],
+            rebuild: None,
         };
         let targets = [target("a"), target("b")];
         for t in &targets {

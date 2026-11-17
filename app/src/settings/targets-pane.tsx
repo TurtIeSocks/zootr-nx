@@ -22,9 +22,11 @@ import { call } from "@/lib/api";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
 import { useCopied } from "@/lib/use-copied";
+import { BuildNote } from "@/settings/build-note";
 import { ImportTargetDialog } from "@/settings/import-target-dialog";
 import {
   BLANK,
+  BUILD_FIELDS,
   type Draft,
   type DraftField,
   FIELDS,
@@ -158,6 +160,10 @@ function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
   const { copied, flash } = useCopied();
   const saved = isSaved(targets, draft);
   const name = draft.name.trim();
+  // Read once, so clearing the fields doesn't close the section on them.
+  const [buildOpen] = useState(() =>
+    Boolean(draft.rebuild_command || draft.manifest),
+  );
   const copy = () =>
     run(async () => {
       await navigator.clipboard.writeText(
@@ -212,6 +218,7 @@ function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
       }
     >
       <div className="grid gap-4 px-4 pt-2 pb-4">
+        <BuildNote name={name} />
         {FIELDS.map((field) => (
           <TargetField
             key={field.key}
@@ -221,6 +228,22 @@ function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
             onChange={(value) => onChange({ [field.key]: value })}
           />
         ))}
+        <details className="text-[13px]" open={buildOpen}>
+          <summary className="cursor-pointer text-ink-muted">
+            Applies patches at build time
+          </summary>
+          <div className="grid gap-4 pt-3">
+            {BUILD_FIELDS.map((field) => (
+              <TargetField
+                key={field.key}
+                id={`${id}-${field.key}`}
+                field={field}
+                value={draft[field.key]}
+                onChange={(value) => onChange({ [field.key]: value })}
+              />
+            ))}
+          </div>
+        </details>
       </div>
     </Card>
   );

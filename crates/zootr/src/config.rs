@@ -13,6 +13,9 @@ use crate::platform::{self, Folder, user_dir};
 use crate::shuffle::Fixed;
 
 mod mods_root;
+mod rebuild;
+
+pub use rebuild::Rebuild;
 
 /// Overrides where `config.json` lives, for tests and portable setups.
 const ENV: &str = "ZOOTR_CONFIG";
@@ -149,6 +152,9 @@ pub struct Target {
     /// out when a start has none.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub harness_env: Vec<String>,
+    /// How to rebuild a game that bakes exefs patches in at build time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rebuild: Option<Rebuild>,
 }
 
 impl Target {
@@ -172,17 +178,7 @@ impl Target {
 
     /// `args` with `{game}` filled in.
     pub fn launch_args(&self, game: Option<&Path>) -> Result<Vec<String>> {
-        self.args
-            .iter()
-            .map(|a| match game {
-                _ if !a.contains("{game}") => Ok(a.clone()),
-                Some(g) => Ok(a.replace("{game}", &g.to_string_lossy())),
-                None => bail!(
-                    "{} launches with {{game}}: set the game dump first",
-                    self.name
-                ),
-            })
-            .collect()
+        self.with_game(&self.args, game)
     }
 
     /// `env` as pairs, with `{bridge}` filled in: what the app's Play
@@ -287,6 +283,9 @@ impl Target {
         if let Some(file) = json.get("settings_file").or(json.get("settings_line")) {
             reject_unknown(file, &["file", "lines", "line"], "settings_file")?;
         }
+        if let Some(rebuild) = json.get("rebuild") {
+            reject_unknown(rebuild, &["command", "manifest"], "rebuild")?;
+        }
         if target.name.trim().is_empty() {
             bail!("the target needs a name");
         }
@@ -321,6 +320,7 @@ impl Target {
             bridge,
             env,
             harness_env,
+            rebuild,
         } = Target {
             name: String::new(),
             app: PathBuf::new(),
@@ -332,6 +332,7 @@ impl Target {
             bridge: None,
             env: vec![],
             harness_env: vec![],
+            rebuild: None,
         };
         let _ = (
             name,
@@ -344,6 +345,7 @@ impl Target {
             bridge,
             env,
             harness_env,
+            rebuild,
         );
         vec![
             "name",
@@ -357,6 +359,7 @@ impl Target {
             "bridge",
             "env",
             "harness_env",
+            "rebuild",
         ]
     }
 
@@ -367,15 +370,18 @@ impl Target {
             .chain(self.save_dir.iter())
             .chain(self.control.iter())
             .chain(self.bridge.iter())
+            .chain(self.rebuild.iter().filter_map(|r| r.manifest.as_ref()))
             .chain(file)
     }
 
     fn map_paths(&mut self, f: impl Fn(&Path) -> PathBuf) {
         self.app = f(&self.app);
         self.mod_dir = f(&self.mod_dir);
+        let manifest = self.rebuild.as_mut().and_then(|r| r.manifest.as_mut());
         for p in [&mut self.save_dir, &mut self.control, &mut self.bridge]
             .into_iter()
             .flatten()
+            .chain(manifest)
         {
             *p = f(p);
         }
@@ -626,6 +632,7 @@ mod tests {
             bridge: None,
             env: vec![],
             harness_env: vec![],
+            rebuild: None,
         }
     }
 

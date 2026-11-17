@@ -14,7 +14,8 @@ mod log;
 
 pub use log::About;
 
-/// The steps of generating and installing a seed, in order.
+/// The steps of generating and installing a seed, in order, and the one
+/// of rebuilding a game.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(rename_all = "camelCase")]
@@ -26,9 +27,10 @@ pub enum Step {
     Writing,
     Spoiler,
     Installing,
+    Rebuilding,
 }
 
-pub const STEPS: [Step; 7] = [
+pub const STEPS: [Step; 8] = [
     Step::Dump,
     Step::Checks,
     Step::Logic,
@@ -36,6 +38,7 @@ pub const STEPS: [Step; 7] = [
     Step::Writing,
     Step::Spoiler,
     Step::Installing,
+    Step::Rebuilding,
 ];
 
 impl Step {
@@ -48,6 +51,7 @@ impl Step {
             Step::Writing => "writing the mod",
             Step::Spoiler => "writing the spoiler",
             Step::Installing => "installing",
+            Step::Rebuilding => "rebuilding the game",
         }
     }
 }

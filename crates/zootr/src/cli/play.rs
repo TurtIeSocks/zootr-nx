@@ -100,6 +100,9 @@ pub(super) fn play(
         boot_on(&mut input, &target, launch, &start, boot::LIMIT)?;
     }
     let attach = attach || launch.is_some();
+    if !attach {
+        boot::built(&target)?;
+    }
     let connect = || Dev::new(Game::attach(&target)?);
     let ready = |dev: &Dev| Ok(dev.state().is_ok_and(|s| !s.loading && !s.map.is_empty()));
     let dev = play::session(&mut input, attach, connect, ready, (LAUNCH, live::TICK))?;

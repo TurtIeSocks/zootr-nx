@@ -250,16 +250,21 @@ pub fn path(mod_dir: &Path) -> PathBuf {
     mod_dir.join("cheats").join(format!("{id}.txt"))
 }
 
+/// Where a mod folder's exefs patch goes.
+pub fn exefs(mod_dir: &Path) -> PathBuf {
+    mod_dir.join("exefs").join(EXEFS)
+}
+
+/// The exefs patch's file name.
+pub const EXEFS: &str = "zootr.pchtxt";
+
 /// Writes patches as one file's text.
 type Writer = fn(&[Patch]) -> String;
 
 /// Our files in a mod folder and how each writes the patches: the cheat,
 /// and the same bytes as an exefs patch.
 fn outputs(mod_dir: &Path) -> [(PathBuf, Writer); 2] {
-    [
-        (path(mod_dir), cheat),
-        (mod_dir.join("exefs/zootr.pchtxt"), pchtxt),
-    ]
+    [(path(mod_dir), cheat), (exefs(mod_dir), pchtxt)]
 }
 
 /// Whether a seed with these settings runs the hook.

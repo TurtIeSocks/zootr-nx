@@ -1,3 +1,5 @@
+import { TriangleAlert } from "lucide-react";
+import { Callout } from "@/components/callout";
 import { Meter } from "@/components/meter";
 import { RequestError } from "@/components/request-error";
 import { SeedIcons } from "@/components/seed-icons";
@@ -15,6 +17,9 @@ import { useSeeds } from "@/stores/seeds";
 export function InstalledSeed() {
   const [schema] = useConfig.usePath("schema");
   const [installed] = useSeeds.usePath("history.installed");
+  const [targets] = useSeeds.usePath("status.targets");
+  // Builds that bake the hook patch in and haven't seen the installed one.
+  const builds = targets.flatMap((t) => t.build?.text ?? []);
 
   return (
     <RequestProvider>
@@ -67,6 +72,11 @@ export function InstalledSeed() {
             </Meter>
           </div>
         )}
+        {builds.map((text) => (
+          <Callout key={text} tone="gold" icon={TriangleAlert}>
+            {text}
+          </Callout>
+        ))}
         <RequestError />
       </section>
     </RequestProvider>
