@@ -1,11 +1,24 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { type Build, commands } from "@/bindings";
+import { RequestError } from "@/components/request-error";
 import { full } from "@/lib/config";
 import { RequestProvider } from "@/lib/request-provider";
 import { PlayButtonGroup } from "@/play/play-button-group";
 import { useConfig } from "@/stores/config";
 import { useSeeds } from "@/stores/seeds";
+
+// The step log's channel, which needs the app's window.
+vi.mock("@tauri-apps/api/core", () => ({
+  Channel: class {},
+  invoke: vi.fn(),
+}));
 
 afterEach(() => {
   cleanup();
@@ -24,6 +37,7 @@ function show(...names: string[]) {
   render(
     <RequestProvider>
       <PlayButtonGroup />
+      <RequestError />
     </RequestProvider>,
   );
 }
@@ -73,7 +87,7 @@ test("Play on a stale target asks first, and Play anyway starts it", () => {
   show("FakeOne");
   fireEvent.click(screen.getByRole("button", { name: "Play FakeOne" }));
   expect(screen.getByText("Rebuild FakeOne first?")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Rebuild" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Rebuild and play" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
   expect(play).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Play anyway" }));
@@ -90,4 +104,46 @@ test("Play on a current build starts at once", () => {
   fireEvent.click(screen.getByRole("button", { name: "Play FakeOne" }));
   expect(play).toHaveBeenCalledWith("FakeOne");
   expect(screen.queryByText("Rebuild FakeOne first?")).toBeNull();
+});
+
+/** FakeOne stale with a command, Play pressed, then Rebuild and play,
+ * the rebuild answering `answer`. Returns the play spy. */
+function rebuildAndPlay(
+  answer: { status: "ok"; data: null } | { status: "error"; error: string },
+) {
+  vi.spyOn(commands, "status").mockResolvedValue({
+    status: "ok",
+    data: { game: true, targets: [] },
+  });
+  vi.spyOn(commands, "history").mockResolvedValue({
+    status: "ok",
+    data: { installed: null, entries: [] },
+  });
+  vi.spyOn(commands, "rebuild").mockResolvedValue(answer);
+  const play = vi
+    .spyOn(commands, "play")
+    .mockResolvedValue({ status: "ok", data: null });
+  built({
+    status: { kind: "stale" },
+    text: "FakeOne needs a rebuild: its hook patch changed since the last build",
+    command: true,
+  });
+  show("FakeOne");
+  fireEvent.click(screen.getByRole("button", { name: "Play FakeOne" }));
+  fireEvent.click(screen.getByRole("button", { name: "Rebuild and play" }));
+  return play;
+}
+
+test("Rebuild and play starts the game once the build is current", async () => {
+  const play = rebuildAndPlay({ status: "ok", data: null });
+  await waitFor(() => expect(play).toHaveBeenCalledWith("FakeOne"));
+  expect(commands.rebuild).toHaveBeenCalledWith("FakeOne", expect.anything());
+});
+
+test("a rebuild that leaves the build stale shows why and doesn't play", async () => {
+  const still =
+    "FakeOne's rebuild command finished, but the build still doesn't have the installed hook patch";
+  const play = rebuildAndPlay({ status: "error", error: still });
+  expect(await screen.findByText(still)).toBeTruthy();
+  expect(play).not.toHaveBeenCalled();
 });

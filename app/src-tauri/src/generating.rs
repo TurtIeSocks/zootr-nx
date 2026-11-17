@@ -67,7 +67,27 @@ impl Generating {
     }
 }
 
-/// Stop the seed being generated at its next checkpoint.
+impl Generating {
+    /// Rebuild the target named `name`, its output sent to `steps`. A stop
+    /// kills the rebuild.
+    pub(crate) fn rebuild(&self, steps: Channel<StepEvent>, name: &str) -> anyhow::Result<()> {
+        let config = Config::load()?;
+        let target = (config.targets.iter())
+            .find(|t| t.name == name)
+            .with_context(|| format!("No target named {name}"))?;
+        let run = Run::silent().with(move |e| {
+            let _ = steps.send(e.clone());
+        });
+        *self.stop.lock().unwrap() = Some(run.stopper());
+        let done = zootr::build::rebuild(target, config.game.as_deref(), &run).map(drop);
+        run.end(&done);
+        *self.stop.lock().unwrap() = None;
+        done
+    }
+}
+
+/// Stop the seed being generated, or the game being rebuilt, at its next
+/// checkpoint.
 #[tauri::command]
 #[specta::specta]
 pub(crate) fn stop_generate(generating: State<Generating>) {

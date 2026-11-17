@@ -222,11 +222,12 @@ export function stepped(steps: Steps, event: StepEvent): Steps {
 /** Sends a generate run's command a channel its steps come back on. A stop
  * isn't an error: its words go with the steps. The command's answer can
  * beat the channel's last event, so a stop is also told by its words,
- * which `Stopped` in zootr's progress module always starts with. */
+ * which `Stopped` in zootr's progress module always starts with. Says
+ * whether the run finished rather than stopped. */
 async function stepping(
   send: (steps: Channel<StepEvent>) => Promise<unknown>,
   rebuilt: string | null = null,
-) {
+): Promise<boolean> {
   const channel = new Channel<StepEvent>((event) =>
     useSeeds.setPath("steps", (s) => s && stepped(s, event)),
   );
@@ -235,6 +236,7 @@ async function stepping(
   useSeeds.setPath("generating", true);
   try {
     await send(channel);
+    return true;
   } catch (e) {
     const text = message(e);
     const stopped =
@@ -242,6 +244,7 @@ async function stepping(
       text.startsWith("Stopped");
     if (!stopped) throw e;
     useSeeds.setPath("steps.stopped", text);
+    return false;
   } finally {
     useSeeds.setPath("generating", false);
     useSeeds.setPath("stopping", false);
@@ -254,18 +257,19 @@ export const generate = (seed: string | null) =>
 /** Installs a history entry to every target. */
 export const install = (id: number) =>
   run(() => stepping((steps) => call(commands.install(id, steps))));
-/** Rebuilds a target's game, its output in the step log. Throws why it
- * failed, or why the build still lacks the installed hook patch. */
+/** Rebuilds a target's game, its output in the step log, and says whether
+ * it finished rather than stopped. Throws why it failed, or why the build
+ * still lacks the installed hook patch. */
 export async function rebuild(name: string) {
   useSeeds.setPath("busy", true);
   try {
-    await stepping((steps) => call(commands.rebuild(name, steps)), name);
+    return await stepping((steps) => call(commands.rebuild(name, steps)), name);
   } finally {
     useSeeds.setPath("busy", false);
     await refresh();
   }
 }
-/** Asks the seed being generated to stop at its next checkpoint. */
+/** Asks the seed being generated, or the game being rebuilt, to stop. */
 export async function stopGenerate() {
   useSeeds.setPath("stopping", true);
   await commands.stopGenerate();

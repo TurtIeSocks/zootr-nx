@@ -75,7 +75,13 @@ export function PlayButtonGroup() {
         build={build}
         onClose={() => setAsking(undefined)}
         onPlay={() => asking && start(asking)}
-        onRebuild={() => asking && play.run(() => rebuild(asking))}
+        onRebuild={() =>
+          asking &&
+          play.run(async () => {
+            // A rebuild that ends without the build current throws.
+            if (await rebuild(asking)) await call(commands.play(asking));
+          })
+        }
       />
     </ButtonGroup>
   );

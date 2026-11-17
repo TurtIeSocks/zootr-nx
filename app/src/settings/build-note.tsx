@@ -1,11 +1,17 @@
-import { Hammer, TriangleAlert } from "lucide-react";
+import { CircleStop, Hammer, TriangleAlert } from "lucide-react";
 import type { BuildStatus } from "@/bindings";
 import { Callout, InlineError } from "@/components/callout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRequestState } from "@/lib/request";
 import { GenerateSteps } from "@/play/generate-steps";
-import { rebuild, stale, useBuild, useSeeds } from "@/stores/seeds";
+import {
+  rebuild,
+  stale,
+  stopGenerate,
+  useBuild,
+  useSeeds,
+} from "@/stores/seeds";
 
 type Kind = BuildStatus["kind"];
 
@@ -27,6 +33,7 @@ export function BuildNote({ name }: { name: string }) {
   const build = useBuild(name);
   const [rebuilt] = useSeeds.usePath("rebuilt");
   const [generating] = useSeeds.usePath("generating");
+  const [stopping] = useSeeds.usePath("stopping");
   const request = useRequestState();
   if (!build) return null;
   const { label, variant } = BADGES[build.status.kind];
@@ -43,6 +50,16 @@ export function BuildNote({ name }: { name: string }) {
             onClick={() => request.run(() => rebuild(name))}
           >
             <Hammer /> Rebuild
+          </Button>
+        )}
+        {generating && rebuilt === name && (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={stopping}
+            onClick={() => void stopGenerate()}
+          >
+            <CircleStop /> {stopping ? "Stopping" : "Stop"}
           </Button>
         )}
       </div>

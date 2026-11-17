@@ -20,7 +20,7 @@ interface RebuildDialogProps {
 }
 
 /** Asked before Play starts a game whose build has another hook patch
- * than the installed one: Rebuild, Play anyway, or Cancel. */
+ * than the installed one: Rebuild (then play), Play anyway, or Cancel. */
 export function RebuildDialog({
   name,
   build,
@@ -51,7 +51,9 @@ export function RebuildDialog({
           <Button variant="secondary" onClick={then(onPlay)}>
             Play anyway
           </Button>
-          {build?.command && <Button onClick={then(onRebuild)}>Rebuild</Button>}
+          {build?.command && (
+            <Button onClick={then(onRebuild)}>Rebuild and play</Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

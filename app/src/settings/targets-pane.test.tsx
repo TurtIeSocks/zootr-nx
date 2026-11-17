@@ -53,8 +53,11 @@ const setConfig = vi.fn(async () => {
   return { status: "ok", data: saving.notes };
 });
 
+const stopGenerate = vi.fn(async () => {});
+
 vi.mock("@/bindings", () => ({
   commands: {
+    stopGenerate: () => stopGenerate(),
     importTarget: (text: string) => importTarget(text),
     exportTarget: (name: string) => exportTarget(name),
     saveTarget: (name: string, file: string) => saveTarget(name, file),
@@ -255,4 +258,14 @@ test("a current build only shows its badge", () => {
   showBuilt({ status: { kind: "current" }, text: null, command: true });
   expect(screen.getByText("Build current")).toBeTruthy();
   expect(screen.queryByText(stale)).toBeNull();
+});
+
+test("Stop shows while this target rebuilds and stops it", () => {
+  useSeeds.setPath("generating", true);
+  useSeeds.setPath("rebuilt", "Runner");
+  showBuilt({ status: { kind: "stale" }, text: stale, command: true });
+  expect(button("Rebuild").disabled).toBe(true);
+  fireEvent.click(button("Stop"));
+  expect(stopGenerate).toHaveBeenCalledOnce();
+  expect(button("Stopping").disabled).toBe(true);
 });

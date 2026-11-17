@@ -67,7 +67,7 @@ export function GenerateSteps() {
           />
         ))}
       </ul>
-      {!generating && !rebuilt && <Ending steps={steps} />}
+      {!generating && <Ending steps={steps} log={!rebuilt} />}
     </div>
   );
 }
@@ -125,14 +125,14 @@ function useNow(ticking: boolean) {
   return now;
 }
 
-/** How a run that didn't finish ended, and its log. */
-function Ending({ steps }: { steps: Steps }) {
+/** How a run that didn't finish ended, and its log when it has one. */
+function Ending({ steps, log }: { steps: Steps; log: boolean }) {
   const stopped = steps.end?.kind === "stopped";
   return (
     <div className="flex items-center gap-2 text-ink-muted">
       {stopped && <CircleStop className="size-3.5" />}
       {stopped && <span>{steps.stopped ?? "Stopped"}</span>}
-      <CopyLog />
+      {log && <CopyLog />}
     </div>
   );
 }

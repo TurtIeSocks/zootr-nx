@@ -263,23 +263,11 @@ async fn install(app: AppHandle, id: u32, steps: Channel<progress::StepEvent>) -
 
 /// Rebuild a target's game, its output each a detail of the rebuilding
 /// step sent to `steps`. Fails unless the build has the installed hook
-/// patch afterwards.
+/// patch afterwards. Stop Generate stops it too.
 #[tauri::command]
 #[specta::specta]
-async fn rebuild(name: String, steps: Channel<progress::StepEvent>) -> Res<()> {
-    blocking(move || {
-        let config = Config::load()?;
-        let target = (config.targets.iter())
-            .find(|t| t.name == name)
-            .with_context(|| format!("No target named {name}"))?;
-        let run = Run::silent().with(move |e| {
-            let _ = steps.send(e.clone());
-        });
-        let done = build::rebuild(target, config.game.as_deref(), &run).map(drop);
-        run.end(&done);
-        done
-    })
-    .await
+async fn rebuild(app: AppHandle, name: String, steps: Channel<progress::StepEvent>) -> Res<()> {
+    blocking(move || app.state::<Generating>().rebuild(steps, &name)).await
 }
 
 /// Take the mod off every target so the game runs vanilla.

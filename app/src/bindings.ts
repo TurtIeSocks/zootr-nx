@@ -23,10 +23,13 @@ export const commands = {
 	/**
 	 *  Rebuild a target's game, its output each a detail of the rebuilding
 	 *  step sent to `steps`. Fails unless the build has the installed hook
-	 *  patch afterwards.
+	 *  patch afterwards. Stop Generate stops it too.
 	 */
 	rebuild: (name: string, steps: Channel<StepEvent>) => typedError<null, string>(__TAURI_INVOKE("rebuild", { name, steps })),
-	/**  Stop the seed being generated at its next checkpoint. */
+	/**
+	 *  Stop the seed being generated, or the game being rebuilt, at its next
+	 *  checkpoint.
+	 */
 	stopGenerate: () => __TAURI_INVOKE<void>("stop_generate"),
 	/**  The last generate run's log, to paste into a bug report. */
 	generateLog: () => typedError<string, string>(__TAURI_INVOKE("generate_log")),

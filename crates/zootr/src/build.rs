@@ -7,8 +7,10 @@
 
 use std::io::{BufRead, BufReader, Read};
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, ExitStatus, Stdio};
 use std::sync::Mutex;
+use std::sync::mpsc::{self, RecvTimeoutError};
+use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
 use serde::Serialize;
@@ -152,22 +154,21 @@ pub fn rebuild(target: &Target, game: Option<&Path>, run: &Run) -> Result<Status
     let _held = Held::take(name)?;
     run.step(Step::Rebuilding)?;
     let (program, rest) = args.split_first().context("an empty rebuild command")?;
-    let mut child = (Command::new(program).args(rest))
+    let mut command = Command::new(program);
+    // Its own process group, so a stop reaches everything it starts.
+    #[cfg(unix)]
+    std::os::unix::process::CommandExt::process_group(&mut command, 0);
+    let child = (command.args(rest))
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .with_context(|| format!("starting {program}"))?;
-    let (out, err) = (child.stdout.take(), child.stderr.take());
-    std::thread::scope(|s| {
-        if let Some(err) = err {
-            s.spawn(|| stream(err, run));
-        }
-        if let Some(out) = out {
-            stream(out, run);
-        }
-    });
-    let exit = child.wait()?;
+    let Some(exit) = watch(child, run)? else {
+        return Err(run.check().unwrap_err().context(
+            "Stopped the rebuild before it finished, so rebuild the game before playing it",
+        ));
+    };
     if !exit.success() {
         bail!("{name}'s rebuild command failed ({exit})");
     }
@@ -181,11 +182,62 @@ pub fn rebuild(target: &Target, game: Option<&Path>, run: &Run) -> Result<Status
     }
 }
 
-/// Each line read from `from` as a detail of `run`.
-fn stream(from: impl Read, run: &Run) {
-    (BufReader::new(from).lines())
-        .map_while(Result::ok)
-        .for_each(|line| run.detail(line));
+/// How often a rebuild looks for a stop and its own end.
+const TICK: Duration = Duration::from_millis(100);
+
+/// Each line `child` prints a detail of `run`, until it exits. A stop
+/// asked of `run` kills it and everything it started, and gives `None`.
+fn watch(mut child: Child, run: &Run) -> Result<Option<ExitStatus>> {
+    let (tx, rx) = mpsc::channel();
+    let pipes: [Option<Box<dyn Read + Send>>; 2] = [
+        child.stdout.take().map(|p| Box::new(p) as _),
+        child.stderr.take().map(|p| Box::new(p) as _),
+    ];
+    // Left to run: a process the command started apart can hold a pipe
+    // open after it exits.
+    for pipe in pipes.into_iter().flatten() {
+        let tx = tx.clone();
+        std::thread::spawn(move || {
+            for line in BufReader::new(pipe).lines().map_while(Result::ok) {
+                if tx.send(line).is_err() {
+                    break;
+                }
+            }
+        });
+    }
+    drop(tx);
+    let mut stopped = false;
+    loop {
+        match rx.recv_timeout(TICK) {
+            Ok(line) => run.detail(line),
+            Err(RecvTimeoutError::Disconnected) => std::thread::sleep(TICK),
+            Err(RecvTimeoutError::Timeout) => {}
+        }
+        if !stopped && run.check().is_err() {
+            kill_tree(&mut child);
+            stopped = true;
+        }
+        if let Some(exit) = child.try_wait()? {
+            rx.try_iter().for_each(|line| run.detail(line));
+            return Ok((!stopped).then_some(exit));
+        }
+    }
+}
+
+/// Kill `child` and every process it started.
+fn kill_tree(child: &mut Child) {
+    let pid = child.id().to_string();
+    #[cfg(unix)]
+    let killed = Command::new("kill")
+        .args(["-TERM", "--", &format!("-{pid}")])
+        .status();
+    #[cfg(windows)]
+    let killed = Command::new("taskkill")
+        .args(["/T", "/F", "/PID", &pid])
+        .status();
+    if !killed.is_ok_and(|s| s.success()) {
+        let _ = child.kill();
+    }
 }
 
 /// Prints a rebuild's output lines to stderr as they come.
@@ -396,6 +448,66 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(err.contains("no rebuild command"), "{err}");
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_stop_kills_the_rebuild_and_what_it_started() {
+        let dir = game("rebuild-stop");
+        let t = target(&dir);
+        let pid = dir.join("pid");
+        let line = format!(
+            "sleep 30 & echo $! > '{}'; echo started; sleep 30; echo never",
+            pid.display()
+        );
+        let t = rebuilt_by(&t, line);
+        let heard = std::sync::Arc::new(Mutex::new(Vec::new()));
+        let sink = heard.clone();
+        let run = Run::silent().with(move |e| sink.lock().unwrap().push(e.clone()));
+        let stop = run.stopper();
+        let begun = std::time::Instant::now();
+        std::thread::scope(|s| {
+            s.spawn(|| {
+                while !heard
+                    .lock()
+                    .unwrap()
+                    .iter()
+                    .any(|e| matches!(e, StepEvent::Detail { text } if text == "started"))
+                {
+                    std::thread::sleep(TICK);
+                }
+                stop.stop();
+            });
+            let err = rebuild(&t, None, &run).unwrap_err();
+            assert!(crate::progress::stopped(&err).is_some(), "{err:#}");
+            assert!(
+                format!("{err:#}").starts_with("Stopped the rebuild"),
+                "{err:#}"
+            );
+        });
+        assert!(begun.elapsed() < Duration::from_secs(10));
+        let pid = std::fs::read_to_string(&pid).unwrap();
+        let alive = || {
+            Command::new("kill")
+                .args(["-0", pid.trim()])
+                .stderr(Stdio::null())
+                .status()
+                .unwrap()
+                .success()
+        };
+        let gone = std::time::Instant::now();
+        while alive() && gone.elapsed() < Duration::from_secs(5) {
+            std::thread::sleep(TICK);
+        }
+        assert!(!alive(), "the command's own child outlived the stop");
+        assert!(
+            !heard
+                .lock()
+                .unwrap()
+                .iter()
+                .any(|e| { matches!(e, StepEvent::Detail { text } if text == "never") })
+        );
         std::fs::remove_dir_all(dir).unwrap();
     }
 
