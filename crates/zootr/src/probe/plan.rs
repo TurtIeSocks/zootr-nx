@@ -11,13 +11,27 @@ use crate::sweep::night::{self, holder_kind};
 use crate::sweep::plan::Trigger;
 
 /// Tally a round's spots by holder kind and how they'd be swept, and list
-/// each skipped spot with its reason.
-pub fn plan(romfs: &Romfs, mix: Option<&str>, seed: u64) -> Result<()> {
+/// each skipped spot with its reason. With `only`, the whole plan of each
+/// spot whose name holds it instead.
+pub fn plan(romfs: &Romfs, mix: Option<&str>, seed: u64, only: Option<&str>) -> Result<()> {
     let (name, settings) = night::mix(mix.map(night::pinned).transpose()?.unwrap_or(0));
     let dir = std::env::temp_dir().join(format!("zootr-plan-{}", std::process::id()));
     let planned = night::pool(romfs, &dir, seed, &settings, &dev::places(romfs)?);
     let _ = std::fs::remove_dir_all(&dir);
     let planned = planned?;
+    if let Some(only) = only {
+        for p in planned.iter().filter(|p| night::name(p).contains(only)) {
+            println!(
+                "{}  {} (child {:?}, side {:?})",
+                night::name(p),
+                p.spot.holder,
+                p.child,
+                p.side
+            );
+            println!("  {:?}", p.trigger);
+        }
+        return Ok(());
+    }
     let mut tally: BTreeMap<(&str, &str), usize> = BTreeMap::new();
     let mut skipped = Vec::new();
     for p in &planned {
