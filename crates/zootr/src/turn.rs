@@ -67,6 +67,7 @@ pub fn hold(session: &str) -> Result<()> {
     if turn.remote() {
         match turn.ask(Ask::Renew {
             session: session.into(),
+            here: turn.here.clone(),
         }) {
             Ok(held) => return here(&turn, session, held.game.as_deref()),
             Err(e) if !unreachable(&e) => return Err(e),

@@ -42,10 +42,11 @@ pub fn run() -> Result<()> {
         session,
         force,
         urgent,
+        both,
         on,
     } = cli.command
     {
-        return turn(to, note, session, force, urgent, on);
+        return turn(to, note, session, force, urgent, both, on);
     }
     if let Command::Target(cmd) = cli.command {
         return target_command(cmd);

@@ -53,10 +53,12 @@ impl Shared {
                 session,
                 note,
                 urgent,
-            } => answer.place = Some(q.join(&session, &note, urgent, now())?),
+                both,
+            } => answer.place = Some(q.join(&session, &note, urgent, both, now())?),
             Ask::Wait { session } => loop {
-                if let Some(g) = q.held(&session) {
-                    answer.game = Some(g.name.clone());
+                let held: Vec<_> = q.holds(&session).map(|g| g.name.as_str()).collect();
+                if !held.is_empty() {
+                    answer.game = Some(held.join(", "));
                     break;
                 }
                 if !q.waiting.iter().any(|w| w.session == session) {
@@ -69,7 +71,7 @@ impl Shared {
                     .0;
             },
             Ask::Free { session } => answer.yes = Some(q.free(&session)),
-            Ask::Renew { session } => answer.game = Some(q.renew(&session, now())?),
+            Ask::Renew { session, here } => answer.game = Some(q.renew(&session, &here, now())?),
             Ask::Take { game } => q.take(&game, now())?,
             Ask::Leave { game } => q.leave(&game)?,
             Ask::Reserve { game, session } => q.reserve(&game, session.as_deref())?,
@@ -207,6 +209,7 @@ mod tests {
             session: session.into(),
             note: "".into(),
             urgent: false,
+            both: false,
         };
         turn.ask(ask).unwrap()
     }
@@ -224,6 +227,7 @@ mod tests {
         let renew = turn
             .ask(Ask::Renew {
                 session: "a".into(),
+                here: "".into(),
             })
             .unwrap();
         assert_eq!(renew.game.as_deref(), Some("near"));
@@ -238,6 +242,7 @@ mod tests {
         let refused = turn
             .ask(Ask::Renew {
                 session: "a".into(),
+                here: "".into(),
             })
             .unwrap_err();
         assert!(refused.to_string().contains("isn't holding"), "{refused}");
@@ -271,6 +276,40 @@ mod tests {
     }
 
     #[test]
+    fn a_both_wait_names_every_game_and_renew_names_this_machine_s() {
+        let (turn, _dir) = started("both", &["near", "far"]);
+        let ask = Ask::Join {
+            session: "ab".into(),
+            note: "".into(),
+            urgent: false,
+            both: true,
+        };
+        turn.ask(ask).unwrap();
+        let wait = turn.ask(Ask::Wait {
+            session: "ab".into(),
+        });
+        assert_eq!(wait.unwrap().game.as_deref(), Some("near, far"));
+        let renew = turn.ask(Ask::Renew {
+            session: "ab".into(),
+            here: "far".into(),
+        });
+        assert_eq!(renew.unwrap().game.as_deref(), Some("far"));
+    }
+
+    #[test]
+    fn requests_and_a_queue_from_before_both_still_load() {
+        let join = r#"{"op":"join","session":"a","note":"","urgent":false}"#;
+        assert!(matches!(
+            serde_json::from_str(join).unwrap(),
+            Ask::Join { both: false, .. }
+        ));
+        let renew: Ask = serde_json::from_str(r#"{"op":"renew","session":"a"}"#).unwrap();
+        assert!(matches!(renew, Ask::Renew { here, .. } if here.is_empty()));
+        let q = r#"{"games":[],"waiting":[{"session":"a","note":"","urgent":false,"since":0}]}"#;
+        assert!(!serde_json::from_str::<Queue>(q).unwrap().waiting[0].both);
+    }
+
+    #[test]
     fn a_wrong_key_is_refused() {
         let (mut turn, dir) = started("key", &["near"]);
         turn.key_file = dir.join("other");
@@ -289,6 +328,7 @@ mod tests {
         let refused = turn
             .ask(Ask::Renew {
                 session: "a".into(),
+                here: "".into(),
             })
             .unwrap_err();
         assert!(!crate::turn::unreachable(&refused), "{refused:#}");
