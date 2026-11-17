@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, ensure};
 use ounce_formats::Romfs;
 use serde_json::json;
 
@@ -21,9 +21,10 @@ use crate::dev::{self, Dev};
 use crate::gamedata::GameData;
 use crate::generate::{self, Extras};
 use crate::known::{Name, actor};
-use crate::live::Game;
+use crate::live::{self, Game};
 use crate::play::{Input, Start, boot};
 use crate::progress::Run;
+use crate::savefile;
 use crate::settings::{self, Settings};
 use crate::warp::{self, Side};
 
@@ -117,6 +118,31 @@ pub fn pinned(name: &str) -> Result<usize> {
             names().collect::<Vec<_>>().join(", ")
         )
     })
+}
+
+/// GameData's play time in seconds, a UInt known only by its hash.
+const PLAY_TIME: u32 = 0xe573f564;
+/// The most play a start adds to the save it loads: 8 s measured (86 over a
+/// pristine 78), against 52 s for a save that had one sweep spot played on
+/// it (the other machine, 2026-11-17).
+const START_PLAY: u32 = 30;
+
+/// The most play time any save under `dir` holds, `None` with no save.
+fn played(dir: &Path) -> Result<Option<u32>> {
+    let mut most = None;
+    for entry in std::fs::read_dir(dir)? {
+        let path = entry?.path();
+        let time = if path.is_dir() {
+            played(&path)?
+        } else if path.file_name().is_some_and(|n| n == "progress.sav") {
+            let save = savefile::load(&path)?;
+            save.get(PLAY_TIME).and_then(|e| save.scalar(e))
+        } else {
+            None
+        };
+        most = most.max(time);
+    }
+    Ok(most)
 }
 
 /// Shuffle `seed` with `settings` into `mod_dir` and plan each spot, the
@@ -303,12 +329,34 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         };
         boot::boot(&mut self.input, self.target, save.as_deref(), boot::LIMIT)?;
         let dev = Dev::new(Game::attach(self.target)?)?;
+        if let Some(pristine) = &self.pristine {
+            self.loaded(&dev, pristine)?;
+        }
         dev.set_switches(SWITCHES)?;
         for _ in 0..CONTAINERS {
             self.give(&dev, actor::OBJ_HEART_CONTAINER)?;
         }
         self.give(&dev, ADULT_SWORD)?;
         Ok(Live { dev, fails: 0 })
+    }
+
+    /// Refuse a game that didn't load `pristine`: one played longer than
+    /// any of its slots plus a start. The other machine's runner moved its
+    /// saves out of the target's save folder, and two nights swept one
+    /// save that kept every chest it opened (2026-11-17).
+    fn loaded(&self, dev: &Dev, pristine: &Path) -> Result<()> {
+        let Some(saved) = played(pristine)? else {
+            return Ok(());
+        };
+        let now = live::read(dev.game(), self.gd, dev.global(), PLAY_TIME)?;
+        let now: u32 = now.parse().with_context(|| format!("play time {now}"))?;
+        ensure!(
+            now <= saved + START_PLAY,
+            "the game loaded a save played {now} s, the pristine one {saved} s: \
+             is {} the save folder it reads?",
+            (self.target.save_dir.as_deref()).map_or("nothing".into(), |d| d.display().to_string())
+        );
+        Ok(())
     }
 
     /// One `actor`, pressing A through any event that holds it off: a new
