@@ -87,6 +87,9 @@ jobs:
           version=${next#v}
           git switch -C release
           sed -i '/^\[workspace.package\]/,/^\[/s/^version = ".*"$/version = "'"$version"'"/' Cargo.toml
+          # The AP world's version is the app's (a Rust test checks it).
+          jq --arg v "$version" '.world_version = $v' ap/znx/archipelago.json > "$RUNNER_TEMP/manifest.json"
+          mv "$RUNNER_TEMP/manifest.json" ap/znx/archipelago.json
           cargo update --workspace
           if [ -f CHANGELOG.md ]; then
             git cliff --unreleased --tag "$next" --prepend CHANGELOG.md
@@ -96,7 +99,7 @@ jobs:
           git cliff --unreleased --tag "$next" --strip all > "$RUNNER_TEMP/notes.md"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Cargo.toml Cargo.lock CHANGELOG.md
+          git add Cargo.toml Cargo.lock CHANGELOG.md ap/znx/archipelago.json
           git commit -m "chore(release): $next"
           git push --force origin release
           echo "next=$next" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,31 @@
+name: Archipelago with the znx world
+description: Checks out the pinned Archipelago into `archipelago/`, installs its packages and copies `ap/znx` into its worlds.
+
+inputs:
+  python:
+    description: The Python version
+    default: "3.13"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: ArchipelagoMW/Archipelago
+        ref: 54803be064fc7e80c4628777ed0b46a9390f255f # 0.6.8
+        path: archipelago
+        persist-credentials: false
+
+    - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      with:
+        python-version: ${{ inputs.python }}
+
+    - name: Install Archipelago's packages
+      shell: bash
+      working-directory: archipelago
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r ci-requirements.txt
+        python ModuleUpdate.py --yes --force
+        python Launcher.py --update_settings
+        cp -r ../ap/znx worlds/znx

@@ -32,8 +32,9 @@ Commit messages pick the version, and `CHANGELOG.md` writes itself.
 2. After each merge the workflow opens or updates one PR, `chore(release):
    vX.Y.Z`, on the `release` branch. It bumps `version` in the root
    `Cargo.toml` (every crate inherits it, and the app's bundles take it
-   from the app crate) and prepends the version's section to
-   `CHANGELOG.md`. CI runs on it through `workflow_dispatch`.
+   from the app crate) and `world_version` in `ap/znx/archipelago.json`,
+   and prepends the version's section to `CHANGELOG.md`. CI runs on it
+   through `workflow_dispatch`.
 3. Merge the release PR when it's time for a release. The workflow tags
    `vX.Y.Z` and calls `release.yml` with the tag, which builds every
    platform and makes the draft with the changelog section as its notes.
