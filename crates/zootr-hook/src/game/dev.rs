@@ -5,7 +5,7 @@ use core::arch::asm;
 use core::sync::atomic::Ordering;
 
 use super::rt::{memcpy, memset};
-use super::{at, name, shared};
+use super::{at, level_for, name, shared};
 use crate::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_NAME, Ask, GUARD, Mailbox,
     NAME, Offsets, Outcome, play_event,
@@ -69,7 +69,8 @@ pub unsafe fn serve(main: usize, o: &Offsets, actor: usize) {
         Some(Ask::Age) => unsafe { age(main, o, mail, actor) },
         Some(Ask::Time) => unsafe { time(main, o, mail.hour) },
         Some(Ask::Step) => unsafe { step(main, o, mail, actor) },
-        Some(Ask::Give) => unsafe { give(main, o, mail, actor) },
+        Some(Ask::Give) => unsafe { give(main, o, mail, actor, false) },
+        Some(Ask::GiveLevel) => unsafe { give(main, o, mail, actor, true) },
         Some(Ask::Play) => unsafe { play(main, o, mail, actor) },
         Some(Ask::Warp) => unsafe { warp(main, o, mail, actor) },
         Some(Ask::Where) => unsafe { locate(mail, actor) },
@@ -310,15 +311,46 @@ unsafe fn step(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcom
 /// An item: the same event with `ZootrGive` set, which a dev seed's
 /// flow answers by granting the actor `map` names, equipped when
 /// `ZootrEquip` is, and ending. The game's own grant sets what a
-/// bare write of the item's flags leaves out.
-unsafe fn give(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcome {
-    let texts = [&mail.map];
+/// bare write of the item's flags leaves out. With `level`, an item of a
+/// progressive line is swapped for the level Link needs next, as a chest
+/// picks it.
+unsafe fn give(main: usize, o: &Offsets, mail: &Mailbox, actor: usize, level: bool) -> Outcome {
+    let mut picked = [0; NAME];
+    let item = match level {
+        true => unsafe { next_level(main, &mail.map, &mut picked) },
+        false => &mail.map,
+    };
+    let texts = [item];
     let args = [
         Arg::Bool(ARG_GIVE, true),
         Arg::Text(ARG_ACTOR, 0),
         Arg::Bool(ARG_EQUIP, mail.hour != 0),
     ];
     unsafe { request_map_change(main, o, actor, EVENT, &texts, &args) }
+}
+
+/// `item`, or the level of its line Link needs next written into `picked`.
+/// Outside every line, or with no table, `item` as it is.
+///
+/// # Safety
+/// The table's offsets are this build's.
+unsafe fn next_level<'a>(
+    main: usize,
+    item: &'a [u8; NAME],
+    picked: &'a mut [u8; NAME],
+) -> &'a [u8; NAME] {
+    let Some((_, table)) = super::table() else {
+        return item;
+    };
+    let now = unsafe { name(item.as_ptr()) };
+    let Some(level) = now.and_then(|now| unsafe { level_for(main, &table, now) }) else {
+        return item;
+    };
+    if level.len() >= NAME {
+        return item;
+    }
+    picked[..level.len()].copy_from_slice(level);
+    picked
 }
 
 /// A warp: Link's character controller moved to `at`, the way the game

@@ -86,6 +86,9 @@ word_enum! {
         Warp = 7,
         /// Write where Link stands to `link`.
         Where = 8,
+        /// [`Ask::Give`], of the level of `map`'s progressive line Link
+        /// needs next, as a chest picks it.
+        GiveLevel = 9,
     }
 }
 

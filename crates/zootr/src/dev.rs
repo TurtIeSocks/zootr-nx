@@ -117,6 +117,8 @@ pub enum Request {
     Step(String, String),
     /// Grant an item actor, equipped or not, as the game does.
     Give(String, bool),
+    /// Grant the level of the actor's progressive line Link needs next.
+    GiveLevel(String),
     /// Start an event by name, with Link as its starter.
     Play(String),
     /// Move Link to a point of the current map.
@@ -276,7 +278,7 @@ impl<M: Memory> Dev<M> {
         Ok(match (request, outcome) {
             (_, Outcome::Unanswered) => UNANSWERED,
             (Request::Time(_), _) => "set",
-            (Request::Step(..) | Request::Give(..), _) => "ran",
+            (Request::Step(..) | Request::Give(..) | Request::GiveLevel(_), _) => "ran",
             (Request::Warp(_), _) => "warped",
             (Request::Where, _) => "found",
             _ => "sent",
@@ -296,6 +298,7 @@ impl<M: Memory> Dev<M> {
             }
             Request::Step(challenge, step) => (Ask::Step, 0, Some([&**challenge, step, ""])),
             Request::Give(actor, equip) => (Ask::Give, u32::from(*equip), Some([&**actor, "", ""])),
+            Request::GiveLevel(actor) => (Ask::GiveLevel, 0, Some([&**actor, "", ""])),
             Request::Play(event) => (Ask::Play, 0, Some([&**event, "", ""])),
             Request::Warp(_) => (Ask::Warp, 0, None),
             Request::Where => (Ask::Where, 0, None),
@@ -368,10 +371,24 @@ impl<M: Memory> Dev<M> {
     /// Give Link `count` of an item, as `zootr give` does: the game's own
     /// grant once, then the count written over its stock.
     pub fn give(&self, gd: &GameData, actor: &str, count: i32) -> Result<()> {
+        self.grant(gd, actor, count, false)
+    }
+
+    /// [`Dev::give`] of one, a progressive line's item taken at the level
+    /// Link needs next, as a chest picks it.
+    pub fn give_level(&self, gd: &GameData, actor: &str) -> Result<()> {
+        self.grant(gd, actor, 1, true)
+    }
+
+    fn grant(&self, gd: &GameData, actor: &str, count: i32, level: bool) -> Result<()> {
         for job in plan_give(gd, actor, count)? {
             match job {
                 Grant::Game(actor, equip) => {
-                    self.ask(&Request::Give(actor, equip))?;
+                    let request = match level && !equip {
+                        true => Request::GiveLevel(actor),
+                        false => Request::Give(actor, equip),
+                    };
+                    self.ask(&request)?;
                     self.settle()?;
                 }
                 Grant::Stock(hash, count) => {
