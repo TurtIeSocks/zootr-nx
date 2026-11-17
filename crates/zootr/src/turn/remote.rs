@@ -36,7 +36,8 @@ pub struct ServeConfig {
     pub listen: String,
     /// Seconds a hold lasts with no game command.
     pub lease: i64,
-    /// Seconds a sweep gets to finish its row before it counts as gone.
+    /// Seconds a sweep gets to finish its row before it counts as gone:
+    /// past the longest row (324 s on 2026-11-17).
     pub yield_cap: i64,
     /// Where the queue is kept between restarts.
     pub state: PathBuf,
@@ -47,7 +48,7 @@ impl Default for ServeConfig {
         Self {
             listen: String::new(),
             lease: 15 * 60,
-            yield_cap: 3 * 60,
+            yield_cap: 7 * 60,
             state: PathBuf::new(),
         }
     }
