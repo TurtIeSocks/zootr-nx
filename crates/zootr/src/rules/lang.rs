@@ -27,6 +27,9 @@ pub enum Need {
     },
     Era(Era),
     Flag(String),
+    /// A toggle the Archipelago export leaves open, answered per player.
+    /// Unmet here: no seed of ours opens one.
+    Setting(String),
     All(Vec<Need>),
     Any(Vec<Need>),
 }
@@ -58,6 +61,7 @@ impl Need {
             }
             Need::Era(e) => *e == era,
             Need::Flag(f) => have.flags.contains(f),
+            Need::Setting(_) => false,
             Need::All(needs) => needs.iter().all(|n| n.met(have, era)),
             Need::Any(needs) => needs.iter().any(|n| n.met(have, era)),
         }
@@ -66,7 +70,7 @@ impl Need {
     /// Whether anything could meet this in `era`: every item, no flags.
     pub fn possible(&self, era: Era) -> bool {
         match self {
-            Need::Always | Need::Items { .. } => true,
+            Need::Always | Need::Items { .. } | Need::Setting(_) => true,
             Need::Never | Need::Flag(_) => false,
             Need::Era(e) => *e == era,
             Need::All(needs) => needs.iter().all(|n| n.possible(era)),
@@ -107,6 +111,7 @@ impl std::fmt::Display for Need {
             Need::Items { actors, count } => write!(f, "{}*{count}", actors.join("|")),
             Need::Era(e) => write!(f, "{e}"),
             Need::Flag(name) => write!(f, "flag:{name}"),
+            Need::Setting(id) => write!(f, "setting:{id}"),
             Need::All(v) => join(f, v, "and"),
             Need::Any(v) => join(f, v, "or"),
         }

@@ -384,6 +384,7 @@ impl World {
             on: ctx.on.iter().cloned().chain([TRIALS.into()]).collect(),
             seed: ctx.seed,
             keys: ctx.keys,
+            open: ctx.open.iter().filter(|o| *o != TRIALS).cloned().collect(),
         };
         let mut goal = Vec::new();
         for rule in book.exits.iter().filter(|r| r.to == GOAL) {
@@ -401,6 +402,12 @@ impl World {
             obstacles: scan.obstacles,
             goal,
         })
+    }
+
+    /// Each exit into `GOAL`: its place and what it needs, the trials
+    /// counted done.
+    pub fn goal(&self) -> &[(usize, Need)] {
+        &self.goal
     }
 
     pub fn start(&self) -> usize {
