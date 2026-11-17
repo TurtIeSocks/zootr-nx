@@ -98,7 +98,9 @@ pub(super) enum DrillReport {
 #[derive(Subcommand)]
 pub(super) enum Command {
     /// Whose turn it is on the game. Naming `claude`, `maintainer` or
-    /// `free` hands it over.
+    /// `free` hands it over. With a queue in the config's `turn`: `join`
+    /// the line, `wait` for a game, `free` it, `reserve` one, `maintainer`
+    /// to play this machine's, or `serve` the queue itself.
     #[command(hide = true)]
     Turn {
         to: Option<String>,
@@ -107,12 +109,19 @@ pub(super) enum Command {
         note: String,
         /// The Claude session taking or handing over the turn, by a short
         /// name of its own. Needed to take a turn from Claude's shell.
-        #[arg(long, default_value = "")]
+        #[arg(long, default_value = "", env = crate::turn::SESSION)]
         session: String,
         /// Hand over the maintainer's or another session's turn from
         /// Claude's shell anyway.
         #[arg(long)]
         force: bool,
+        /// `join` ahead of the waiters who aren't: for a merge blocker or a
+        /// bug the maintainer reported.
+        #[arg(long)]
+        urgent: bool,
+        /// The game `reserve` keeps.
+        #[arg(long, default_value = "")]
+        on: String,
     },
     /// Start the game on a kept save or a new file and press A through the
     /// menus, returning once Link is in play. On Claude's turn only, when
@@ -371,7 +380,7 @@ pub(super) struct StartArgs {
     pub(super) new: bool,
     /// This Claude session's name, as it took the turn. Needed from
     /// Claude's shell.
-    #[arg(long, default_value = "")]
+    #[arg(long, default_value = "", env = crate::turn::SESSION)]
     pub(super) session: String,
     /// Keep the Market Potion Shop's bottle tutorial, for a test of its
     /// gift. Otherwise it's marked done once Link is in play: begun and not
@@ -772,6 +781,9 @@ impl ModDir {
             println!("wrote {}", d.display());
             Ok(out)
         };
+        if self.mod_dir.is_none() {
+            crate::turn::hold(&crate::turn::session())?;
+        }
         match self.mod_dir {
             Some(d) => Ok((each(&d)?, false)),
             None => Ok((

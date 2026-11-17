@@ -46,12 +46,16 @@ pub(super) fn live(romfs: &Romfs, grep: Option<String>, all: bool, only_named: b
     }
 }
 
+/// The target's running game, on this session's turn.
 fn attach() -> Result<live::Game> {
+    crate::turn::hold(&crate::turn::session())?;
     live::Game::attach(&Config::load()?.target()?)
 }
 
-/// The target's way of pressing buttons and pushing the stick.
+/// The target's way of pressing buttons and pushing the stick, on this
+/// session's turn.
 fn input() -> Result<Box<dyn Input>> {
+    crate::turn::hold(&crate::turn::session())?;
     let config = Config::load()?;
     play::input(&config.target()?, config.game.as_deref())
 }

@@ -20,7 +20,7 @@ use crate::sweep::drills::{self, Skill};
 use crate::sweep::judge::ModelJudge;
 use crate::sweep::night::{self, Night};
 use crate::sweep::report;
-use crate::turn::{self, Turn};
+use crate::turn;
 use crate::vision::Vision;
 use crate::{kept, recorder, warp};
 
@@ -59,7 +59,7 @@ fn boot_on(
     start: &StartArgs,
     limit: Duration,
 ) -> Result<PathBuf> {
-    Turn::load()?.ensure_held(&start.session, turn::from_claude())?;
+    turn::hold(&start.session)?;
     let (from, name) = match launch {
         Launch::Kept(name) => (Start::Save(kept::path(name)?), name.as_str()),
         Launch::New => (Start::New, "new"),
