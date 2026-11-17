@@ -54,22 +54,27 @@ pub fn load(romfs: &Romfs, name: &str) -> Result<Option<Flowchart>> {
     Flowchart::parse(&romfs.read(&rel)?).with_context(|| format!("parsing {rel}"))
 }
 
-/// Load `name` from `rewrites`, or the game's own when no other setting
-/// rewrote it, run `f` on it and store the result.
+/// `name` as `rewrites` has it, or the game's own when no other setting
+/// rewrote it.
+pub fn current(romfs: &Romfs, rewrites: &Rewrites, name: &str) -> Result<Flowchart> {
+    let rel = rel(name);
+    let data = match rewrites.get(&rel) {
+        Some(data) => data.clone(),
+        None => romfs.read(&rel)?,
+    };
+    Flowchart::parse(&data)?.with_context(|| format!("{name} is a timeline"))
+}
+
+/// Load `name` as [`current`] does, run `f` on it and store the result.
 pub fn edit(
     romfs: &Romfs,
     rewrites: &mut Rewrites,
     name: &str,
     f: impl FnOnce(&mut Flowchart) -> Result<()>,
 ) -> Result<()> {
-    let rel = rel(name);
-    let data = match rewrites.get(&rel) {
-        Some(data) => data.clone(),
-        None => romfs.read(&rel)?,
-    };
-    let mut flow = Flowchart::parse(&data)?.with_context(|| format!("{name} is a timeline"))?;
+    let mut flow = current(romfs, rewrites, name)?;
     f(&mut flow).with_context(|| format!("editing {name}"))?;
-    rewrites.insert(rel, flow.to_bytes());
+    rewrites.insert(rel(name), flow.to_bytes());
     Ok(())
 }
 

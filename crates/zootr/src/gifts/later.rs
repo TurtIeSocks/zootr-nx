@@ -126,7 +126,15 @@ mod tests {
             panic!("Zelda's letter is granted by its caller")
         };
         let mut rewrites = Rewrites::new();
-        give(&romfs, &all, &mut rewrites, zelda, item::MEDAL_FIRE).unwrap();
+        give(
+            &romfs,
+            &all,
+            &mut rewrites,
+            zelda,
+            item::MEDAL_FIRE,
+            &BTreeSet::new(),
+        )
+        .unwrap();
         let parse = |name: &str| {
             let bytes = &rewrites[&flows::rel(name)];
             Flowchart::parse(bytes).unwrap().unwrap()

@@ -161,32 +161,60 @@ pub(super) fn rename_calls(
     from: &str,
     to: &str,
 ) -> Result<()> {
-    let calls = calls_to(flow, call)?;
-    let mut renamed = 0;
-    for i in calls {
-        let kind = &mut flow.events[i].kind;
+    rename_untaken(flow, call, from, to, &BTreeSet::new()).map(drop)
+}
+
+/// The calls to `call` naming `item` that aren't `taken` by another gift.
+pub(super) fn naming(
+    flow: &Flowchart,
+    call: &[Call],
+    item: &str,
+    taken: &BTreeSet<u16>,
+) -> Result<Vec<u16>> {
+    let names = |i: &u16| match &flow.events[*i as usize].kind {
+        EventKind::SubFlow { params, .. } => {
+            ITEM_PARAMS.iter().any(|k| param(params, k) == Some(item))
+        }
+        _ => false,
+    };
+    Ok((calls_to(flow, call)?.into_iter())
+        .map(|i| i as u16)
+        .filter(|i| !taken.contains(i) && names(i))
+        .collect())
+}
+
+/// [`rename_calls`], skipping the calls another gift of the flow has
+/// `taken`. Two gifts of one flow can hold each other's items that way.
+/// Returns the calls renamed.
+pub(super) fn rename_untaken(
+    flow: &mut Flowchart,
+    call: &[Call],
+    from: &str,
+    to: &str,
+    taken: &BTreeSet<u16>,
+) -> Result<Vec<u16>> {
+    let calls = naming(flow, call, from, taken)?;
+    ensure!(
+        !calls.is_empty(),
+        "{} never calls {} with {from}",
+        flow.name,
+        said(call)
+    );
+    for &i in &calls {
+        let kind = &mut flow.events[i as usize].kind;
         let params = params_mut(kind);
-        let before = renamed;
         for key in ITEM_PARAMS {
             if param(params, key) == Some(from) {
                 flows::set(params, key, string(to))?;
-                renamed += 1;
             }
         }
         if let EventKind::SubFlow { entry_point, .. } = kind
-            && renamed > before
             && DRESSED.iter().any(|d| **d == **entry_point)
         {
             *entry_point = PLAIN.to_string();
         }
     }
-    ensure!(
-        renamed > 0,
-        "{} never calls {} with {from}",
-        flow.name,
-        said(call)
-    );
-    Ok(())
+    Ok(calls)
 }
 
 /// Ask the gift's own Bool `name` where `flow` asked whether Link holds
@@ -292,10 +320,12 @@ pub(super) fn leaves(link: &Link) -> Option<u16> {
     }
 }
 
-/// The event of `flow` giving `keep`, the one sub-flow call naming it.
-pub(super) fn giving(flow: &Flowchart, keep: &str) -> Result<u16> {
+/// The event of `flow` giving `keep`, the one sub-flow call naming it that
+/// another gift hasn't `taken`.
+pub(super) fn giving(flow: &Flowchart, keep: &str, taken: &BTreeSet<u16>) -> Result<u16> {
     let calls: Vec<u16> = (0u16..)
         .zip(&flow.events)
+        .filter(|(i, _)| !taken.contains(i))
         .filter(|(_, e)| match &e.kind {
             EventKind::SubFlow { params, .. } => {
                 ITEM_PARAMS.iter().any(|k| param(params, k) == Some(keep))
@@ -333,9 +363,14 @@ pub(super) fn asked(flow: &Flowchart, ask: &str, call: u16) -> Vec<u16> {
 /// holds, but a gift has one call. Send whatever leads to the first
 /// question about the `ask` line before the call giving `keep` straight to
 /// that call, or to the event that runs it, so it's reached whatever Link
-/// holds.
-pub(super) fn one_of(flow: &mut Flowchart, ask: &str, keep: &str) -> Result<()> {
-    let call = giving(flow, keep)?;
+/// holds. Calls another gift has `taken` aren't `keep`'s.
+pub(super) fn one_of(
+    flow: &mut Flowchart,
+    ask: &str,
+    keep: &str,
+    taken: &BTreeSet<u16>,
+) -> Result<()> {
+    let call = giving(flow, keep, taken)?;
     let asks = asked(flow, ask, call);
     // The first question is the one no other question leads to.
     let first = asks.iter().copied().find(|&q| {
@@ -451,9 +486,13 @@ mod tests {
         for gift in picked_gifts() {
             let line = picked(gift.item).unwrap();
             let mut flow = flows::load(&romfs, gift.flow).unwrap().unwrap();
-            let asks = asked(&flow, line, giving(&flow, gift.item).unwrap());
+            let asks = asked(
+                &flow,
+                line,
+                giving(&flow, gift.item, &BTreeSet::new()).unwrap(),
+            );
             assert!(!asks.is_empty(), "{}", gift.giver);
-            one_of(&mut flow, line, gift.item).unwrap();
+            one_of(&mut flow, line, gift.item, &BTreeSet::new()).unwrap();
             let reached: BTreeSet<u16> = (flow.entry_points.iter())
                 .flat_map(|e| flows::reachable_from(&flow, e.main))
                 .collect();
