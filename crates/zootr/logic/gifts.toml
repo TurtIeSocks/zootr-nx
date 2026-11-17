@@ -586,16 +586,13 @@ place = "hyrule-field-child"
 era = "child"
 needs = "courtyard"
 
-# Biggoron's sword, at the end of the adult trade chain, which stays as it
-# is. A rule can't say "reach each stop", so it asks for what the stops
-# need: Zelda's Lullaby for Zora's Domain, a way across Gerudo Valley's
-# bridge for the carpenter, and a way up to the summit.
+# Biggoron's sword, for the Claim Check, at the summit.
 [[check]]
 hash = 17580352713807808478
 name = "Biggoron"
 place = "death-mountain-trail-adult"
 era = "adult"
-needs = "zeldas-lullaby and (setting:carpenters-freed or longshot or eponas-song) and (explosives or hammer)"
+needs = "item:claim-check and (explosives or hammer)"
 
 # People who sell one thing, dealt only with merchants on. Medigoron's wall
 # in Goron City needs a blast. The Giant's Knife costs 200 rupees, which
