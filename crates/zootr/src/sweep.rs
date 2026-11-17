@@ -2,6 +2,7 @@
 //! each given a verdict, round after round.
 
 pub mod drills;
+mod gear;
 mod ice;
 pub mod judge;
 pub mod melody;
