@@ -248,6 +248,8 @@ struct RuleFile {
     exit: Vec<ExitRule>,
     #[serde(default)]
     source: Vec<SourceRule>,
+    #[serde(default)]
+    alternative: Vec<AlternativeRule>,
 }
 
 #[derive(Deserialize)]
@@ -289,6 +291,17 @@ pub struct ExitRule {
     pub expr: Expr,
 }
 
+/// What makes the game load a map's `_Alternative` copy in its place. The
+/// game's own gate is a flag logic can't evaluate.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AlternativeRule {
+    pub place: String,
+    needs: String,
+    #[serde(skip, default = "always")]
+    pub expr: Expr,
+}
+
 /// Where Link gets an item that isn't shuffled yet.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -311,6 +324,7 @@ pub struct Book {
     abilities: BTreeMap<String, Expr>,
     checks: BTreeMap<u64, CheckEntry>,
     pub exits: Vec<ExitRule>,
+    pub alternatives: Vec<AlternativeRule>,
     pub sources: Vec<SourceRule>,
     toggles: BTreeSet<String>,
 }
@@ -337,6 +351,7 @@ impl Book {
             abilities: BTreeMap::new(),
             checks: BTreeMap::new(),
             exits: Vec::new(),
+            alternatives: Vec::new(),
             sources: Vec::new(),
             toggles: settings::toggles(),
         };
@@ -388,6 +403,17 @@ impl Book {
             vocab::words(&mut exit.expr)?;
             self.exits.push(exit);
         }
+        for mut alt in file.alternative {
+            alt.place = vocab::node(&alt.place)?;
+            alt.expr = parse(&alt.needs)?;
+            vocab::words(&mut alt.expr)?;
+            ensure!(
+                !self.alternatives.iter().any(|a| a.place == alt.place),
+                "{} has two alternative rules",
+                alt.place
+            );
+            self.alternatives.push(alt);
+        }
         for mut source in file.source {
             source.place = vocab::node(&source.place)?;
             source.item = vocab::id(&source.item)?;
@@ -418,11 +444,26 @@ impl Book {
             self.need(&exit.expr, &ctx)
                 .with_context(|| format!("exit {} to {}", exit.from, exit.to))?;
         }
+        for alt in &self.alternatives {
+            self.need(&alt.expr, &ctx)
+                .with_context(|| format!("alternative to {}", alt.place))?;
+        }
         for source in &self.sources {
             self.need(&source.expr, &ctx)
                 .with_context(|| format!("source {}", source.name))?;
         }
         Ok(())
+    }
+
+    /// What loads `map`'s alternative, resolved. Every alternative the
+    /// game has needs a rule: its own flag is out of logic's reach.
+    pub fn alternative(&self, map: &str, ctx: &Ctx) -> Result<Need> {
+        let rule = self
+            .alternatives
+            .iter()
+            .find(|a| a.place == map)
+            .with_context(|| format!("{map} has an alternative but no rule for it"))?;
+        self.need(&rule.expr, ctx)
     }
 
     /// The hand-written rule for a check, if it has one.
@@ -529,7 +570,7 @@ fn item(word: &str, progressive: bool) -> Result<Need> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::{actor, item};
+    use crate::known::{actor, item, map};
 
     /// The id of a boss defeat, by its word.
     fn beat(word: &str) -> String {
@@ -673,6 +714,22 @@ mod tests {
         assert!(Book::from_files(&[ok, ("A.toml", twice), ("B.toml", twice)]).is_err());
         assert!(Book::from_files(&[ok, ("A.toml", "[[check]]\nhash = 1\n")]).is_err());
         assert!(Book::from_files(&[ok, ("A.toml", twice)]).is_ok());
+    }
+
+    #[test]
+    fn an_alternative_takes_its_one_rule() {
+        let ok = (ABILITIES, "");
+        let rule = "[[alternative]]\nplace = \"zora-domain-adult\"\nneeds = \"beat:morpha\"\n";
+        let book = Book::from_files(&[ok, ("a.toml", rule)]).unwrap();
+        let c = ctx(true, &[]);
+        let need = book.alternative(map::ZORA_DOMAIN_ADULT, &c).unwrap();
+        assert_eq!(
+            need.to_string(),
+            book.resolve(&beat("morpha"), &c).unwrap().to_string()
+        );
+        // The game swapping a map with no rule would hide a check from logic.
+        assert!(book.alternative(map::KAKARIKO_VILLAGE_ADULT, &c).is_err());
+        assert!(Book::from_files(&[ok, ("a.toml", rule), ("b.toml", rule)]).is_err());
     }
 
     #[test]

@@ -171,6 +171,13 @@ impl World {
             |from: &str, to: &str| book.exits.iter().find(|r| r.from == from && r.to == to);
         let mut ruled = HashSet::new();
         let alternatives = world::alternatives(romfs)?;
+        if let Some(stale) = book
+            .alternatives
+            .iter()
+            .find(|a| !alternatives.contains_key(&a.place))
+        {
+            bail!("{} has an alternative rule but no alternative", stale.place);
+        }
         for e in world::exits(romfs)? {
             let mut need = match e.presence.as_str() {
                 // Flags only ever get set, so an exit open while one is unset
@@ -188,12 +195,12 @@ impl World {
             let (Ok(from), Ok(to)) = (at(&e.from, e.era), at(&e.to, e.era)) else {
                 continue;
             };
-            // While the flag is set the game loads the _Alternative map instead.
-            if let Some(flag) = alternatives.get(&e.to) {
+            // Once its rule holds the game loads the _Alternative map instead.
+            if alternatives.contains_key(&e.to) {
                 edges.push(Edge {
                     from: Some(from),
                     to: at(&format!("{}_Alternative", e.to), e.era)?,
-                    need: Need::All(vec![need.clone(), Need::Flag(flag.clone())]),
+                    need: Need::All(vec![need.clone(), book.alternative(&e.to, ctx)?]),
                 });
             }
             edges.push(Edge {
@@ -530,7 +537,7 @@ fn switches(rule: &str, tools: &mut Tools) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::actor;
+    use crate::known::{actor, map};
 
     #[test]
     fn a_dealt_check_takes_over_from_its_source() {
@@ -598,6 +605,40 @@ mod tests {
         assert!(bridge.iter().all(|n| !n.contains(bags)), "{bridge:?}");
         let grotto = need(2214083465643671502);
         assert!(grotto.iter().all(|n| n.contains(bags)), "{grotto:?}");
+    }
+
+    #[test]
+    fn burning_kakariko_waits_for_three_sages() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let book = crate::rules::Book::load().unwrap();
+        let new_game = crate::settings::NewGame::default();
+        let checks = checks::dealt(&romfs, &new_game).unwrap();
+        let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
+        let burning = (
+            map::KAKARIKO_VILLAGE_ADULT_ALTERNATIVE.to_string(),
+            Era::Adult,
+        );
+        let beat = |words: &[&str]| {
+            let mut have = Have::default();
+            for w in words {
+                have.add(&crate::rules::vocab::id(&format!("beat:{w}")).unwrap());
+            }
+            have
+        };
+        let edges = world.edges.iter().filter(|e| world.places[e.to] == burning);
+        let (mut two, mut three) = (true, false);
+        for e in edges {
+            two &= !e
+                .need
+                .met(&beat(&["phantom-ganon", "volvagia"]), Era::Adult);
+            three |= e
+                .need
+                .met(&beat(&["phantom-ganon", "volvagia", "morpha"]), Era::Adult);
+        }
+        assert!(two, "burning with two sages done");
+        assert!(three, "never burning");
     }
 
     #[test]
