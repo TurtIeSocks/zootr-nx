@@ -44,6 +44,14 @@ impl Extras {
     pub fn is_empty(&self) -> bool {
         *self == Self::default()
     }
+
+    /// An Archipelago seed's, with nothing else.
+    pub fn ap(ap: ApSeed) -> Self {
+        Self {
+            ap: Some(ap),
+            ..Self::default()
+        }
+    }
 }
 
 #[cfg(test)]

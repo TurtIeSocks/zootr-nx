@@ -254,6 +254,9 @@ async function stepping(
 /** Generates and installs a seed. `seed` is typed in, or null for random. */
 export const generate = (seed: string | null) =>
   run(() => stepping((steps) => call(commands.generate(seed, steps))));
+/** Installs one slot of an Archipelago multiworld from its `.apznx`. */
+export const generateAp = (path: string) =>
+  run(() => stepping((steps) => call(commands.generateAp(path, steps))));
 /** Installs a history entry to every target. */
 export const install = (id: number) =>
   run(() => stepping((steps) => call(commands.install(id, steps))));

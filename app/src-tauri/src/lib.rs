@@ -22,7 +22,7 @@ use zootr::platform;
 use zootr::progress::{self, Run};
 use zootr::recorder::{self, Ask, Event, Hub, Numbered, Snapshot, Watch};
 use zootr::savefile::{self, Change};
-use zootr::settings::SettingDef;
+use zootr::settings::{SettingDef, Settings};
 use zootr::share;
 use zootr::tracker::{self, Row, Tracker};
 
@@ -228,10 +228,38 @@ async fn generate(
                 extras,
             ),
         };
-        let report = (app.state::<Generating>()).install(steps, seed, &settings, &extras)?;
-        History::record(settings, extras, Label::default(), report, true)
+        record(&app, steps, seed, settings, extras)
     })
     .await
+}
+
+/// Install one slot of an Archipelago multiworld from its `.apznx`. The
+/// file brings its own settings, placements and seed.
+#[tauri::command]
+#[specta::specta]
+async fn generate_ap(
+    app: AppHandle,
+    path: PathBuf,
+    steps: Channel<progress::StepEvent>,
+) -> Res<Summary> {
+    blocking(move || {
+        let ap = zootr::ap::ApSeed::read(&path)?;
+        let (seed, settings) = (ap.seed, ap.full_settings());
+        record(&app, steps, seed, settings, generate::Extras::ap(ap))
+    })
+    .await
+}
+
+/// Install a new seed and add it to the history.
+fn record(
+    app: &AppHandle,
+    steps: Channel<progress::StepEvent>,
+    seed: u64,
+    settings: Settings,
+    extras: generate::Extras,
+) -> anyhow::Result<Summary> {
+    let report = (app.state::<Generating>()).install(steps, seed, &settings, &extras)?;
+    History::record(settings, extras, Label::default(), report, true)
 }
 
 /// What the plando draft can pick from with the current settings, and why
@@ -712,6 +740,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             config,
             set_config,
             generate,
+            generate_ap,
             install,
             rebuild,
             generating::stop_generate,

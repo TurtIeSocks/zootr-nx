@@ -18,6 +18,11 @@ export const commands = {
 	 *  blank seed is random. A share code brings its own settings and extras.
 	 */
 	generate: (seed: string | null, steps: Channel<StepEvent>) => typedError<Summary, string>(__TAURI_INVOKE("generate", { seed, steps })),
+	/**
+	 *  Install one slot of an Archipelago multiworld from its `.apznx`. The
+	 *  file brings its own settings, placements and seed.
+	 */
+	generateAp: (path: string, steps: Channel<StepEvent>) => typedError<Summary, string>(__TAURI_INVOKE("generate_ap", { path, steps })),
 	/**  Reinstall a history entry from its seed and settings. */
 	install: (id: number, steps: Channel<StepEvent>) => typedError<null, string>(__TAURI_INVOKE("install", { id, steps })),
 	/**

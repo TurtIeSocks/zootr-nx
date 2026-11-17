@@ -16,6 +16,9 @@ import { useConfig } from "@/stores/config";
 import { refresh, useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
 
+const picked = vi.fn(async () => "/seeds/AP_1_P1_Link.apznx" as string | null);
+vi.mock("@tauri-apps/plugin-dialog", () => ({ open: () => picked() }));
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -253,6 +256,27 @@ test("a pasted share code goes to Generate whole, a seed as digits", async () =>
   );
   fireEvent.change(box, { target: { value: "12a34" } });
   expect((box as HTMLInputElement).value).toBe("1234");
+});
+
+test("an AP seed installs from the .apznx picked, and a cancel does nothing", async () => {
+  mockIPC(() => {});
+  const generateAp = vi.spyOn(commands, "generateAp").mockResolvedValue({
+    status: "ok",
+    data: seed,
+  });
+  backend({ installed: seed, entries: [seed] });
+  show(null);
+  fireEvent.click(button("Open AP seed"));
+  await waitFor(() =>
+    expect(generateAp).toHaveBeenCalledWith(
+      "/seeds/AP_1_P1_Link.apznx",
+      expect.anything(),
+    ),
+  );
+  picked.mockResolvedValueOnce(null);
+  fireEvent.click(button("Open AP seed"));
+  await waitFor(() => expect(picked).toHaveBeenCalledTimes(2));
+  expect(generateAp).toHaveBeenCalledTimes(1);
 });
 
 test("the seed typed into New seed is still there after leaving the tab", () => {

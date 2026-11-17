@@ -104,8 +104,7 @@ pub(super) fn ap_open(game: &Path, file: &Path, args: Install) -> Result<()> {
     let ap = crate::ap::ApSeed::read(file)?;
     let extras = generate::Extras {
         dev_panel: Config::load()?.dev_panel,
-        ap: Some(ap.clone()),
-        ..Default::default()
+        ..generate::Extras::ap(ap.clone())
     };
     install(game, ap.seed, ap.full_settings(), extras, args)
 }
