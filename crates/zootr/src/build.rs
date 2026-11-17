@@ -10,7 +10,7 @@ use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Stdio};
 use std::sync::Mutex;
 use std::sync::mpsc::{self, RecvTimeoutError};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
 use serde::Serialize;
@@ -218,8 +218,25 @@ fn watch(mut child: Child, run: &Run) -> Result<Option<ExitStatus>> {
             stopped = true;
         }
         if let Some(exit) = child.try_wait()? {
-            rx.try_iter().for_each(|line| run.detail(line));
+            drain(&rx, run);
             return Ok((!stopped).then_some(exit));
+        }
+    }
+}
+
+/// How long a rebuild's output is still read after it exits: its last
+/// lines can reach the pipe readers after the exit (Linux CI, 2026-11-17).
+const DRAIN: Duration = Duration::from_secs(1);
+
+/// The lines still coming from `rx` as details of `run`, until both pipes
+/// close or [`DRAIN`] is up: a process the command started apart can hold
+/// one open long after.
+fn drain(rx: &mpsc::Receiver<String>, run: &Run) {
+    let until = Instant::now() + DRAIN;
+    while let Some(left) = until.checked_duration_since(Instant::now()) {
+        match rx.recv_timeout(left) {
+            Ok(line) => run.detail(line),
+            Err(_) => break,
         }
     }
 }
@@ -449,6 +466,26 @@ mod tests {
             .to_string();
         assert!(err.contains("no rebuild command"), "{err}");
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn lines_printed_after_the_rebuild_exits_are_heard_but_not_waited_on() {
+        let heard = std::sync::Arc::new(Mutex::new(Vec::new()));
+        let sink = heard.clone();
+        let run = Run::silent().with(move |e| sink.lock().unwrap().push(e.clone()));
+        let child = Command::new("sh")
+            .args(["-c", "(sleep 0.3; echo late) & (sleep 5) & echo early"])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let begun = Instant::now();
+        assert!(watch(child, &run).unwrap().is_some_and(|e| e.success()));
+        assert!(begun.elapsed() < DRAIN * 3, "{:?}", begun.elapsed());
+        let detail = |s: &str| StepEvent::Detail { text: s.into() };
+        let heard = heard.lock().unwrap();
+        assert!(heard.contains(&detail("early")) && heard.contains(&detail("late")));
     }
 
     #[cfg(unix)]
