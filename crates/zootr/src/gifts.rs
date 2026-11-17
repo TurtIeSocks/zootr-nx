@@ -442,9 +442,13 @@ pub fn flags(on: &BTreeSet<String>) -> Vec<String> {
 }
 
 /// Flows a dealt gift would leave stuck, each with the edit that frees it.
-const UNSTUCK: [(&Name, Edit); 2] = [
+const UNSTUCK: [(&Name, Edit); 3] = [
     (cucco::FLOW, cucco::open),
     (potion::FLOW, potion::cleared_with_the_gift),
+    (
+        actor::NPC_HYLIA_048_BOTTLE_SHOP,
+        sales::rewards_into_a_full_wallet,
+    ),
 ];
 
 /// Write each gift whose item changed, and Zelda's always, so her lesson

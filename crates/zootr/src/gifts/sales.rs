@@ -67,6 +67,44 @@ fn buys_into_a_full_pouch(flow: &mut Flowchart) -> Result<()> {
     Ok(())
 }
 
+/// The Poe collector's sale that reaches 1000 points asks whether Link's
+/// wallet takes the Gold Rupee's 200, and on a full one skips his reward
+/// yet completes the quest: a dealt item there was lost for good, and a
+/// full wallet is where the sweep sells from. Every answer rewards.
+pub(super) fn rewards_into_a_full_wallet(flow: &mut Flowchart) -> Result<()> {
+    let rewards = calls_to(flow, &[get(flow::GET_IN_EVENT_POESHOP)])?;
+    let before: Vec<u16> = (rewards.into_iter())
+        .flat_map(|r| flow.links_to(r as u16))
+        .filter_map(|l| match l {
+            Link::Next(i) => Some(i),
+            _ => None,
+        })
+        .collect();
+    let rewarded = |flow: &mut Flowchart, ask: u16| {
+        (cases_mut(flow, ask).iter())
+            .map(|c| c.1)
+            .find(|to| before.contains(to))
+    };
+    let asks: Vec<(u16, u16)> = (running(flow, WALLET_TAKES).into_iter())
+        .filter_map(|ask| rewarded(flow, ask).map(|to| (ask, to)))
+        .collect();
+    let [(ask, reward)] = asks[..] else {
+        bail!(
+            "{} asks the wallet before a reward {} times",
+            flow.name,
+            asks.len()
+        );
+    };
+    cases_mut(flow, ask).iter_mut().for_each(|c| c.1 = reward);
+    Ok(())
+}
+
+/// The query whether Link's wallet takes a sum without losing any.
+const WALLET_TAKES: (&Name, &Name) = (
+    field::POUCH_SYSTEM_ACTOR,
+    flow::EVENT_QUERY_CHECK_LOSE_MONEY_IF_SELL_SOME,
+);
+
 /// The one question whether the item fits the pouch that the sale `call`
 /// starts asks. Answer 0 buys, 2 is a full pouch.
 fn pouch_question(flow: &Flowchart, Call(_, entry): Call) -> Result<u16> {
@@ -167,6 +205,36 @@ mod tests {
             panic!("{flow} isn't a sale");
         };
         (gift, call, sold, price)
+    }
+
+    #[test]
+    fn the_poe_collectors_last_reward_is_given_into_a_full_wallet() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let shop = actor::NPC_HYLIA_048_BOTTLE_SHOP;
+        let (before, after) = edited(&romfs, shop, rewards_into_a_full_wallet);
+        let lines = changed(&before, &after);
+        assert_eq!(lines.len(), 1, "{lines:#?}");
+        let (was, now) = lines[0];
+        let ask = &**flow::EVENT_QUERY_CHECK_LOSE_MONEY_IF_SELL_SOME;
+        assert!(was.contains(ask), "{was}");
+        let to = |line: &str| -> Vec<String> {
+            let cases = line.rsplit_once("? ").unwrap().1;
+            cases
+                .split(' ')
+                .map(|c| c.split_once(':').unwrap().1.into())
+                .collect()
+        };
+        let (was, now) = (to(was), to(now));
+        assert!(was.iter().any(|t| *t != was[0]), "{was:?}");
+        assert!(now.iter().all(|t| *t == now[0]) && was.contains(&now[0]));
+        // Both of his gifts run it when dealt.
+        let (_, twice) = edited(&romfs, shop, |f| {
+            rewards_into_a_full_wallet(f)?;
+            rewards_into_a_full_wallet(f)
+        });
+        assert_eq!(twice, after);
     }
 
     #[test]
