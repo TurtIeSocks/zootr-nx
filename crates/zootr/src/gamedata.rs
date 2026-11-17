@@ -493,6 +493,66 @@ pub fn join_structs(
     add_bools(root, &values)
 }
 
+/// BoolExp opcodes, as [`GameData::render`] reads them.
+pub(crate) mod op {
+    pub const INT_GREATER: i64 = 19;
+    pub const INT_CONSTANT: i64 = 16;
+    pub const AND: i64 = 3;
+    pub const OR: i64 = 4;
+    pub const NOT: i64 = 5;
+}
+
+/// BoolExp `name`'s program, a postfix list of instructions, to edit.
+pub(crate) fn program<'a>(root: &'a mut Byml, name: &str) -> Result<&'a mut Vec<Byml>> {
+    let hash = murmur3(name.as_bytes());
+    Ok(table(root, BOOL_EXP.get())?
+        .iter_mut()
+        .find(|e| has_hash(e, hash))
+        .with_context(|| format!("no {} {name}", flag::BOOL_EXP))?
+        .as_mut_map()?
+        .get_mut("Values")
+        .with_context(|| format!("{name} has no Values"))?
+        .as_mut_array()?)
+}
+
+/// Instruction `code`, with `operand` if any, in the integer types of
+/// `template`, an instruction of the same program that has an operand.
+pub(crate) fn instruction(template: &[Byml], code: i64, operand: Option<i64>) -> Result<Byml> {
+    let [op, arg] = template else {
+        bail!("a template instruction takes an operand")
+    };
+    let mut out = vec![like(op, code)?];
+    out.extend(operand.map(|n| like(arg, n)).transpose()?);
+    Ok(Byml::Array(out))
+}
+
+/// Make BoolExp `name` always false, as `e && !e` of its own program, so
+/// it still reads only what it read before.
+pub fn never(root: &mut Byml, name: &str) -> Result<()> {
+    let values = program(root, name)?;
+    let template = (values.iter())
+        .filter_map(|v| v.as_array().ok())
+        .find(|i| i.len() == 2)
+        .with_context(|| format!("{name} reads nothing"))?
+        .to_vec();
+    let e = values.clone();
+    values.extend(e);
+    values.push(instruction(&template, op::NOT, None)?);
+    values.push(instruction(&template, op::AND, None)?);
+    Ok(())
+}
+
+/// `n` as the same BYML integer kind as `template`.
+fn like(template: &Byml, n: i64) -> Result<Byml> {
+    Ok(match template {
+        Byml::I32(_) => Byml::I32(i32::try_from(n)?),
+        Byml::U32(_) => Byml::U32(u32::try_from(n)?),
+        Byml::I64(_) => Byml::I64(n),
+        Byml::U64(_) => Byml::U64(u64::try_from(n)?),
+        other => bail!("{other:?} isn't an integer"),
+    })
+}
+
 /// Whether entry `e`'s hash is `hash`.
 fn has_hash(e: &Byml, hash: u32) -> bool {
     let h = e.as_map().ok().and_then(|m| m.get("Hash")).map(int);

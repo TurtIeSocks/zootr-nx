@@ -1,10 +1,11 @@
 //! The rainbow bridge at six medallions. See
 //! `docs/superpowers/specs/2026-11-12-win-conditions-design.md`.
 
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, ensure};
 use ounce_formats::{Byml, EventKind, Romfs, murmur3};
 
 use crate::flows::{self, Rewrites};
+use crate::gamedata::{self, op};
 use crate::known::{Name, field, flag, flow, item};
 
 /// The bridge's logic module arms its walk-in trigger while the Ganon step
@@ -24,12 +25,6 @@ pub const MEDALLIONS: [&Name; 6] = [
     item::MEDAL_SHADOW,
     item::MEDAL_LIGHT,
 ];
-/// BoolExp opcodes, as `gamedata.rs` reads them.
-const INT_GREATER: i64 = 19;
-const INT_CONSTANT: i64 = 16;
-const AND: i64 = 3;
-const OR: i64 = 4;
-const NOT: i64 = 5;
 /// Zelda's Light Arrows scene, which also sets Step01.
 const ARROWS: (&Name, &Name) = (flow::ALL_SAGE, field::MARKET_ADULT_FIELD_GET_ARROW_LIGHT);
 const STEP: (&Name, &Name) = (
@@ -40,55 +35,21 @@ const STEP: (&Name, &Name) = (
 /// Keep the trigger armed past Step01 while any medallion is missing:
 /// `step > Step01 || !(every medallion count > 0)`.
 pub fn need_medallions(root: &mut Byml) -> Result<()> {
-    let hash = i64::from(murmur3(ARMED_UNTIL.as_bytes()));
-    let exps = root.as_mut_map()?.get_mut("Data").context("no Data")?;
-    let entry = exps
-        .as_mut_map()?
-        .get_mut(flag::BOOL_EXP.get())
-        .with_context(|| format!("no {} table", flag::BOOL_EXP))?
-        .as_mut_array()?
-        .iter_mut()
-        .find(|e| e["Hash"].as_int::<i64>().is_ok_and(|h| h == hash))
-        .with_context(|| format!("no {ARMED_UNTIL}"))?
-        .as_mut_map()?;
-    let values = entry
-        .get_mut("Values")
-        .context("no Values")?
-        .as_mut_array()?;
+    let values = gamedata::program(root, ARMED_UNTIL)?;
     ensure!(values.len() == 2, "{ARMED_UNTIL} isn't one comparison");
-    let first = values[0].as_array()?;
-    ensure!(
-        first.len() == 2,
-        "{ARMED_UNTIL} starts with an odd instruction"
-    );
-    let (op, arg) = (first[0].clone(), first[1].clone());
-    let ins = |code: i64, operand: Option<i64>| -> Result<Byml> {
-        let mut out = vec![like(&op, code)?];
-        out.extend(operand.map(|n| like(&arg, n)).transpose()?);
-        Ok(Byml::Array(out))
-    };
+    let first = values[0].as_array()?.to_vec();
+    let ins = |code, operand| gamedata::instruction(&first, code, operand);
     for (i, medal) in MEDALLIONS.iter().enumerate() {
         let count = murmur3(format!("PouchData.{medal}.{}", flag::STOCK_NUM).as_bytes());
-        values.push(ins(INT_GREATER, Some(i64::from(count)))?);
-        values.push(ins(INT_CONSTANT, Some(0))?);
+        values.push(ins(op::INT_GREATER, Some(i64::from(count)))?);
+        values.push(ins(op::INT_CONSTANT, Some(0))?);
         if i > 0 {
-            values.push(ins(AND, None)?);
+            values.push(ins(op::AND, None)?);
         }
     }
-    values.push(ins(NOT, None)?);
-    values.push(ins(OR, None)?);
+    values.push(ins(op::NOT, None)?);
+    values.push(ins(op::OR, None)?);
     Ok(())
-}
-
-/// `n` as the same BYML integer kind as `template`.
-fn like(template: &Byml, n: i64) -> Result<Byml> {
-    Ok(match template {
-        Byml::I32(_) => Byml::I32(i32::try_from(n)?),
-        Byml::U32(_) => Byml::U32(u32::try_from(n)?),
-        Byml::I64(_) => Byml::I64(n),
-        Byml::U64(_) => Byml::U64(u64::try_from(n)?),
-        other => bail!("{other:?} isn't an integer"),
-    })
 }
 
 /// Zelda's Light Arrows scene keeps the Ganon step where it is, so a

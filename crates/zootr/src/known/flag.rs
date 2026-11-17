@@ -183,6 +183,7 @@ pub const START_POS: &Name = &n!(0x257f467ec255c57f);
 pub const STEP_SAGE_OF_SPIRIT: &Name = &n!(0x409e6a0e75c25694);
 pub const STOCK_NUM: &Name = &n!(0x6a30b7b5521547e3);
 pub const SUB_EVENT_FIND_RICHARD_GET_HEART_PIECE: &Name = &n!(0x1ae73b0aea0eb347);
+pub const SUB_EVENT_GET_SWORD_BIG_GORON_TIMER_COUNTING_STEP: &Name = &n!(0xb86195ecb924285f);
 pub const SUN_SONG: &Name = &n!(0x6729e911e6d96318);
 pub const TIME_TEMPLE: &Name = &n!(0x2d75e73273a7473d);
 pub const UI_DEBUG_IS_OPENED_TITLE: &Name = &n!(0x5f7fc51b0910bb39);

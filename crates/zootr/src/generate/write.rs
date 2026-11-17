@@ -16,7 +16,7 @@ use crate::settings::{ChestSize, NewGame};
 use crate::{
     bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, fortress,
     gamedata, gerudo, gifts, hints, key_tints, keys, medallions, navi, patch, pickups, presets,
-    rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker, twins,
+    rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -39,6 +39,7 @@ pub(super) fn flows(
         hints::quiet(romfs, &mut rewrites)?;
     }
     flags.push(starting::navi_guide());
+    trade_chain::cut_timers(romfs, &mut rewrites)?;
     let mut give = new_game.give.clone();
     if new_game.open_door {
         flags.extend(door::open(romfs, &mut rewrites)?);
@@ -127,7 +128,6 @@ pub fn write_mod(
     // Presets and `--default` edits go last, so they win over a skip's.
     let mut edits = flags;
     edits.extend(new_game.defaults.iter().cloned());
-    let mut defaults = Vec::new();
     let mut bools = cows::flags(&cows);
     bools.extend(gifts::flags(&new_game.on));
     bools.extend(dampe::flags(drops));
@@ -136,20 +136,19 @@ pub fn write_mod(
     let opened = tracker::chest_flags(&gd)?;
     let twins = twins::find(romfs, |h| drops.contains_key(&h), opened)?;
     let aliases: Vec<_> = twins.iter().filter_map(twins::Twin::alias).collect();
-    if !edits.is_empty() || !bools.is_empty() || !made.is_empty() || !aliases.is_empty() {
-        let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
-        defaults = presets::apply(&gd, &mut doc.root, &edits)?;
-        gamedata::add_bools(&mut doc.root, &bools)?;
-        gamedata::add_aliases(&mut doc.root, &aliases)?;
-        for (copy, template, _) in &made {
-            let names = [copy.clone()];
-            gamedata::join_structs(&mut doc.root, template.get(), &names, &[gamedata::IS_GET])?;
-        }
-        if new_game.bridge_medallions {
-            bridge::need_medallions(&mut doc.root)?;
-        }
-        builder.write(gamedata::PATH, &doc.to_binary())?;
+    let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
+    trade_chain::never_counting(&mut doc.root)?;
+    let defaults = presets::apply(&gd, &mut doc.root, &edits)?;
+    gamedata::add_bools(&mut doc.root, &bools)?;
+    gamedata::add_aliases(&mut doc.root, &aliases)?;
+    for (copy, template, _) in &made {
+        let names = [copy.clone()];
+        gamedata::join_structs(&mut doc.root, template.get(), &names, &[gamedata::IS_GET])?;
     }
+    if new_game.bridge_medallions {
+        bridge::need_medallions(&mut doc.root)?;
+    }
+    builder.write(gamedata::PATH, &doc.to_binary())?;
     let mut posed = HashMap::new();
     let mut shows_off = |e: &str| {
         *posed
