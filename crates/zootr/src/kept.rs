@@ -115,16 +115,22 @@ fn copy(from: &Path, to: &Path, slot: Option<u8>) -> Result<()> {
         let slot = from.join(format!("slot_{n:02}"));
         ensure!(slot.is_dir(), "{} has no slot {n}", from.display());
     }
+    let entries = std::fs::read_dir(from).with_context(|| format!("reading {}", from.display()))?;
+    let slots = entries
+        .flatten()
+        .filter(|e| slot_of(&e.file_name().to_string_lossy()).is_some());
+    ensure!(
+        slots.count() > 0,
+        "{} holds no slot_NN folder: --from takes the folder the slots are in",
+        from.display()
+    );
     let _ = std::fs::remove_dir_all(to);
     std::fs::create_dir_all(to)?;
     for entry in std::fs::read_dir(from).with_context(|| format!("reading {}", from.display()))? {
         let entry = entry?;
         let name = entry.file_name().to_string_lossy().into_owned();
         if entry.file_type()?.is_dir() {
-            let Some(n) = name
-                .strip_prefix("slot_")
-                .and_then(|n| n.parse::<u8>().ok())
-            else {
+            let Some(n) = slot_of(&name) else {
                 continue;
             };
             match slot {
@@ -137,6 +143,11 @@ fn copy(from: &Path, to: &Path, slot: Option<u8>) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// The number of a `slot_NN` folder's name.
+fn slot_of(name: &str) -> Option<u8> {
+    name.strip_prefix("slot_")?.parse().ok()
 }
 
 fn copy_dir(from: &Path, to: &Path) -> Result<()> {
@@ -186,6 +197,21 @@ mod tests {
         copy(&from, &to, None).unwrap();
         assert_eq!(read("slot_00/progress.sav").as_deref(), Some("manual"));
         assert!(to.join("slot_03/progress.sav").exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn a_folder_with_no_slots_is_refused_and_the_old_keep_stays() {
+        let root = std::env::temp_dir().join(format!("zootr-keep-none-{}", std::process::id()));
+        let (from, to) = (root.join("data"), root.join("kept"));
+        let nested = from.join("game/save/user/slot_00");
+        std::fs::create_dir_all(&nested).unwrap();
+        std::fs::write(nested.join("progress.sav"), "deeper down").unwrap();
+        std::fs::create_dir_all(&to).unwrap();
+        std::fs::write(to.join("option.sav"), "kept before").unwrap();
+        let err = copy(&from, &to, None).unwrap_err().to_string();
+        assert!(err.contains("no slot_NN folder"), "{err}");
+        assert!(to.join("option.sav").exists());
         std::fs::remove_dir_all(root).unwrap();
     }
 
