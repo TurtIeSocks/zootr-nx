@@ -63,6 +63,11 @@ impl Store {
         self.input.hide(out.swallow)
     }
 
+    /// Whether Link is cycling the slot.
+    pub fn cycling(&self) -> bool {
+        matches!(self.cycle, Cycle::On { .. })
+    }
+
     /// What the slot should show now, see [`Cycle::showing`].
     pub fn showing(&self, slot: &MultiSlot) -> Option<usize> {
         let age = self.seen.age();
@@ -118,10 +123,12 @@ mod tests {
         assert_eq!(store.read(Buttons::A, &FAKE), Buttons::A);
         assert_eq!(store.read(Buttons::A, &FAKE), Buttons::A, "still held");
         assert_eq!(store.read(Buttons::NONE, &FAKE), Buttons::NONE);
+        assert!(store.cycling());
         assert_eq!(store.read(Buttons::D_RIGHT, &FAKE), Buttons::D_RIGHT);
         assert_eq!(store.showing(&FAKE), Some(2));
         store.read(Buttons::NONE, &FAKE);
         assert_eq!(store.read(Buttons::A, &FAKE), Buttons::NONE, "to the game");
+        assert!(!store.cycling());
         assert_eq!(store.showing(&FAKE), Some(2), "the choice");
     }
 

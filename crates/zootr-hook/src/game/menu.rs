@@ -22,9 +22,11 @@ const STATE: usize = 0x38;
 const CURSOR_ON: [u8; 2] = [1, 3];
 /// The cell's copy of its actor's name.
 const CELL_NAME: usize = 0x90;
-/// One controller state as `GetNpadStates` writes it, and its buttons.
+/// One controller state as `GetNpadStates` writes it, its buttons, and
+/// its left stick's x (an `i32`, y follows).
 const NPAD_STATE: usize = 0x28;
 const NPAD_BUTTONS: usize = 8;
+const NPAD_STICK_X: usize = 0x10;
 
 type GetStates = unsafe extern "C" fn(*mut u8, i32, *const u32) -> i32;
 type CellSet = unsafe extern "C" fn(usize, *const *const u8, i32, i32, i32);
@@ -57,12 +59,23 @@ pub unsafe extern "C" fn npad_states(
     let Some(slot) = table.slot.filter(|_| n > 0) else {
         return n;
     };
-    let buttons = |i: i32| (states as usize + i as usize * NPAD_STATE + NPAD_BUTTONS) as *mut u64;
+    let state = |i: i32| states as usize + i as usize * NPAD_STATE;
     // SAFETY: the call wrote `n` states.
-    let now = Buttons(unsafe { *buttons(0) } as u32);
-    let hide = shared(main).ui.with(|s| s.read(now, &slot.actors));
-    if hide != Buttons::NONE {
-        (0..n).for_each(|i| unsafe { *buttons(i) &= !u64::from(hide.0) });
+    let now = Buttons(unsafe { *((state(0) + NPAD_BUTTONS) as *const u64) } as u32);
+    let (hide, cycling) = shared(main)
+        .ui
+        .with(|s| (s.read(now, &slot.actors), s.cycling()));
+    for i in 0..n {
+        // SAFETY: as above.
+        unsafe {
+            *((state(i) + NPAD_BUTTONS) as *mut u64) &= !u64::from(hide.0);
+            // The menu moves on the stick's position, not only its
+            // direction bits, and left and right belong to the cycle.
+            // Up and down still reach the menu, to leave the slot.
+            if cycling {
+                *((state(i) + NPAD_STICK_X) as *mut i32) = 0;
+            }
+        }
     }
     n
 }
