@@ -44,7 +44,8 @@ fn is_name(word: &str) -> bool {
     })
 }
 
-/// The game names in `line`, as written.
+/// The game names in `line`, as written. A part marked `Fake`
+/// (`Item_FakeBow`) makes a test's name read as made up.
 fn names_in(line: &str) -> Vec<String> {
     let word = |c: char| c.is_ascii_alphanumeric() || c == '_';
     let mut found = Vec::new();
@@ -58,7 +59,8 @@ fn names_in(line: &str) -> Vec<String> {
                 continue;
             }
             let end = rest.find(|c: char| !word(c)).unwrap_or(rest.len());
-            if is_name(&rest[..end]) {
+            let made_up = rest[..end].split('_').any(|p| p.starts_with("Fake"));
+            if is_name(&rest[..end]) && !made_up {
                 found.push(format!("{prefix}_{}", &rest[..end]));
             }
         }
@@ -187,6 +189,8 @@ fn a_game_shaped_name_is_found_and_a_fixture_is_not() {
         "Item_Melody_{s}",
         "Mt_Item_FakeMedal_Forest",
         "Objective_FakeThing",
+        "Item_FakeBow",
+        "Obj_FakeHeart_Piece",
         "Item_",
         "Obj_lower",
     ] {
