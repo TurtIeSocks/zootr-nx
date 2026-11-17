@@ -175,6 +175,9 @@ pub(super) enum Command {
     /// Quick questions about the game's data, for research.
     #[command(subcommand)]
     Probe(crate::probe::Probe),
+    /// Archipelago: the data the `znx` world loads.
+    #[command(subcommand)]
+    Ap(ApCommand),
     /// Round-trip every Banc file, GameData and the RESTBL through the
     /// format code and report anything that doesn't survive.
     Selftest,
@@ -388,6 +391,17 @@ pub(super) enum TargetCommand {
     /// patch in when it's built, then say whether its build has the
     /// installed patch.
     Rebuild { name: String },
+}
+
+#[derive(Subcommand)]
+pub(super) enum ApCommand {
+    /// Write the world graph, pool, options, ids and golden answers the
+    /// `znx` world loads, keeping the ids the last export gave out.
+    Export {
+        /// Defaults to the repo's `ap/znx/data`.
+        #[arg(long)]
+        out: Option<PathBuf>,
+    },
 }
 
 #[derive(Subcommand)]
