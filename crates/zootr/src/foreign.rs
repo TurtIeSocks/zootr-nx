@@ -39,7 +39,8 @@ pub fn actor(n: usize) -> String {
 
 /// Whether `item` is a copy for another player.
 pub fn is_foreign(item: &str) -> bool {
-    item.strip_prefix(MADE).is_some_and(|rest| rest.starts_with(AP))
+    item.strip_prefix(MADE)
+        .is_some_and(|rest| rest.starts_with(AP))
 }
 
 /// The label naming `item`, if it's a copy: like a key ring, it answers
