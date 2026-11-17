@@ -35,6 +35,7 @@ pub const FIRE_TEMPLE_BOSS_GROUND_CHANGE: &Name = &n!(0x92d16207765ed90b);
 pub const FISHING_ROD: &Name = &n!(0xd0ff5208b6b2e40e);
 pub const FOREST_MINUET: &Name = &n!(0xa6cd0f68696b18ba);
 pub const FOREST_TEMPLE: &Name = &n!(0x5327c5e3226e43f1);
+pub const FOREST_TEMPLE_ROOM07_CLEARD: &Name = &n!(0x679a1427cce67d36);
 pub const GAME_DATA: &Name = &n!(0x53d1d98c78a21e8f);
 pub const GANON_CASTLE: &Name = &n!(0xf8105d1095601878);
 pub const GATHERING_TOKEN_GOLD_FATHER_BACKTO_HUMAN: &Name = &n!(0x5137f98e3b8ccb5c);

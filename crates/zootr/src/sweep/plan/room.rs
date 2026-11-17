@@ -25,12 +25,13 @@ pub(super) fn drain(map: &str) -> Option<String> {
 /// flooded and their chests under the surface. At 0, as Zelda's Lullaby at
 /// the lowest tablet leaves it, they're dry (Mac, 2026-11-14). The map
 /// reads the level as it loads, so it's held like a flag. The Forest
-/// Temple's well stays full, its chest under the surface, until a switch
-/// sets its Bool (the sweep swam above the chest on every side,
-/// 2026-11-15). Morpha's pool stays over the boss heart until her defeat
+/// Temple's well stays full, its chest under the surface, until its switch
+/// clears the room: the water plane's own Bool alone left Link swimming
+/// over the chest (0 of 52 sweeps), and with the room's cleared flag too
+/// he stood beside it and opened it (Mac, 2026-11-17). Morpha's pool stays over the boss heart until her defeat
 /// sets its Bool: the quest step alone left the heart 5 m under water
 /// (0 of 36 sweeps, Mac 2026-11-16).
-static WATER: LazyLock<[(&Name, String); 3]> = LazyLock::new(|| {
+static WATER: LazyLock<[(&Name, String); 4]> = LazyLock::new(|| {
     [
         (
             flag::WATER_TEMPLE,
@@ -40,6 +41,10 @@ static WATER: LazyLock<[(&Name, String); 3]> = LazyLock::new(|| {
         (
             flag::FOREST_TEMPLE,
             field::FOREST_TEMPLE_ROOM07_CHANGE_WATER_LEVEL_ACTOR.to_string(),
+        ),
+        (
+            flag::FOREST_TEMPLE,
+            flag::FOREST_TEMPLE_ROOM07_CLEARD.to_string(),
         ),
     ]
 });
@@ -114,7 +119,10 @@ mod tests {
         assert!(water(flow::BOTTOM_OF_THE_WELL).is_empty());
         assert_eq!(
             water(flag::FOREST_TEMPLE),
-            [field::FOREST_TEMPLE_ROOM07_CHANGE_WATER_LEVEL_ACTOR.to_string()]
+            [
+                field::FOREST_TEMPLE_ROOM07_CHANGE_WATER_LEVEL_ACTOR.to_string(),
+                flag::FOREST_TEMPLE_ROOM07_CLEARD.to_string()
+            ]
         );
         let Some(romfs) = crate::game::dev_dump() else {
             return;
