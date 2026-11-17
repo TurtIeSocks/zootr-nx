@@ -15,9 +15,9 @@ use crate::progress::Run;
 use crate::settings::{ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
     bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, foreign,
-    fortress, gamedata, gerudo, gifts, hints, key_tints, keys, medallions, navi, patch, pickups,
-    presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain,
-    twins,
+    fortress, gamedata, gerudo, gifts, held, hints, key_tints, keys, medallions, navi, patch,
+    pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker,
+    trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -234,6 +234,7 @@ pub fn write_mod(
         drops,
         new_game,
     )?);
+    held::write(romfs, &mut builder, &mut tables)?;
     tables.write(&mut builder)?;
     // A pickup's drop is its field above, never the bare item. A cow's is
     // its flow's grant.

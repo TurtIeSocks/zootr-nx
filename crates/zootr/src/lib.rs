@@ -43,6 +43,7 @@ mod gerudo;
 mod gifts;
 mod grant;
 mod graphs;
+mod held;
 pub mod hints;
 pub mod history;
 mod icons;
