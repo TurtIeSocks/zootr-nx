@@ -258,6 +258,11 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             0 => eprintln!("round {round}: {mix}, seed {seed}"),
             n => eprintln!("round {round}: {mix}, seed {seed}, resumed after {n} spots"),
         }
+        // Before quitting the game or installing over it: both are the
+        // holder's if someone else has the game.
+        if self.step_aside(&resume)? {
+            return Ok(Ended::Yielded);
+        }
         self.stop();
         let mut planned = pool(self.romfs, &self.target.mod_dir, seed, &settings, places)?;
         planned.retain(|p| self.only.as_deref().is_none_or(|text| picked(p, text)));
