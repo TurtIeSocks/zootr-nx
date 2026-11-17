@@ -115,18 +115,21 @@ fn check_steps(old: &Config, config: &Config) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Saves the config, and says which targets' mod folders it moved out of
+/// the game's mods root.
 #[tauri::command]
 #[specta::specta]
-async fn set_config(app: AppHandle, config: Config) -> Res<()> {
+async fn set_config(app: AppHandle, config: Config) -> Res<Vec<String>> {
     blocking(move || {
         // A new dump is extracted now, so a bad file fails at Save and the
         // first Generate doesn't wait on it. A dump already cached is reused.
         let old = Config::load()?;
         // The UI's config never carries the tracker's options.
-        let config = Config {
+        let mut config = Config {
             tracker: old.tracker.clone(),
             ..config
         };
+        let notes = config.fix_mods_roots();
         if let Some(game) = config
             .game
             .as_ref()
@@ -139,7 +142,7 @@ async fn set_config(app: AppHandle, config: Config) -> Res<()> {
         if game_art(&old) != game_art(&config) || old.game != config.game {
             app.state::<Items>().emit(&app);
         }
-        Ok(())
+        Ok(notes)
     })
     .await
 }

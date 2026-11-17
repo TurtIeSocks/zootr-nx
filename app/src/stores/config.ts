@@ -102,19 +102,23 @@ let saving: Promise<void> | undefined;
 
 /** Saves the config with `patch` laid over it. Saves run one after another,
  * and a patch given as a function is worked out from the config the save
- * before it left, so a quick second change never undoes the first. Throws
- * what saving failed with. */
+ * before it left, so a quick second change never undoes the first. Returns
+ * what the save changed on its own (a target moved out of the game's mods
+ * root), and throws what saving failed with. */
 export function saveConfig(
   patch: Partial<FullConfig> | ((config: FullConfig) => Partial<FullConfig>),
-): Promise<void> {
+): Promise<string[]> {
   const run = async () => {
     const before = useConfig.getState().config;
     const config = {
       ...before,
       ...(typeof patch === "function" ? patch(before) : patch),
     };
-    await call(commands.setConfig(config));
+    const notes = await call(commands.setConfig(config));
     useConfig.setPath("config", keep(config));
+    // The save changed what was sent, so read back what it wrote.
+    if (notes.length > 0) await reload();
+    return notes;
   };
   // Starts at once when nothing is saving, else after the last save.
   const save = saving ? saving.then(run) : run();

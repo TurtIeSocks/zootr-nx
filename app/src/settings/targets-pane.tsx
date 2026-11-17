@@ -1,7 +1,15 @@
 import { save as pickFile } from "@tauri-apps/plugin-dialog";
-import { Check, ClipboardCopy, Download, Plus, Trash2 } from "lucide-react";
+import {
+  Check,
+  ClipboardCopy,
+  Download,
+  FolderInput,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { commands } from "@/bindings";
+import { Callout } from "@/components/callout";
 import { Card } from "@/components/card";
 import { Field } from "@/components/field";
 import { PathInput } from "@/components/path-input";
@@ -35,17 +43,26 @@ import { saveConfig, useConfig } from "@/stores/config";
  * its edits. */
 export function TargetsPane() {
   const [targets] = useConfig.usePath("config.targets");
+  // Kept here, since the save that sets them starts the form again.
+  const [notes, setNotes] = useState<string[]>([]);
   return (
     <RequestProvider key={JSON.stringify(targets)}>
-      <TargetsForm />
+      <TargetsForm notes={notes} onSaved={setNotes} />
     </RequestProvider>
   );
+}
+
+/** Props for {@link TargetsForm}. */
+interface TargetsFormProps {
+  /** What the last save changed on its own. */
+  notes: string[];
+  onSaved: (notes: string[]) => void;
 }
 
 /** The drafts, one card each, with Add and Import in the header, and a bar
  * with Save floating at the foot while they differ from the saved targets.
  * Copying a target and saving them all share the request, one at a time. */
-function TargetsForm() {
+function TargetsForm({ notes, onSaved }: TargetsFormProps) {
   const [targets] = useConfig.usePath("config.targets");
   const [drafts, setDrafts] = useState(() => targets.map(toDraft));
   /** Why the form couldn't be saved as it was. */
@@ -58,13 +75,15 @@ function TargetsForm() {
     if (bad) return;
     const next = drafts.map(toTarget);
     const picked = useConfig.getPath("config.picked");
-    run(() =>
-      saveConfig({
-        targets: next,
-        picked: next.some((t) => t.name === picked)
-          ? picked
-          : (next[0]?.name ?? null),
-      }),
+    run(async () =>
+      onSaved(
+        await saveConfig({
+          targets: next,
+          picked: next.some((t) => t.name === picked)
+            ? picked
+            : (next[0]?.name ?? null),
+        }),
+      ),
     );
   };
 
@@ -87,6 +106,11 @@ function TargetsForm() {
           </>
         }
       />
+      {notes.map((note) => (
+        <Callout key={note} tone="info" icon={FolderInput}>
+          {note}
+        </Callout>
+      ))}
       {drafts.map((d, i) => (
         <TargetCard
           // biome-ignore lint/suspicious/noArrayIndexKey: drafts have no stable id until saved, and only grow at the end

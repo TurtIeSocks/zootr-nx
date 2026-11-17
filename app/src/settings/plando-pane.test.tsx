@@ -12,7 +12,7 @@ import { PlandoPane } from "@/settings/plando-pane";
 import { useConfig } from "@/stores/config";
 
 const setConfig = vi.fn((_c: FullConfig) =>
-  Promise.resolve({ status: "ok", data: null }),
+  Promise.resolve({ status: "ok", data: [] }),
 );
 
 const OPTIONS: PlandoOptions = {

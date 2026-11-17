@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { keep } from "@/lib/api";
-import { full } from "@/lib/config";
+import { type FullConfig, full } from "@/lib/config";
 import { TargetsPane } from "@/settings/targets-pane";
 import { useConfig } from "@/stores/config";
 
@@ -39,11 +39,16 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: () => dialog.open(),
 }));
 
-/** Answers a config save; tests that hold one set `hold`. */
-const saving = { hold: undefined as Promise<void> | undefined };
+/** Answers a config save; tests that hold one set `hold`, and one that
+ * moves a mod folder sets `notes` and what the config reads back. */
+const saving = {
+  hold: undefined as Promise<void> | undefined,
+  notes: [] as string[],
+  after: undefined as FullConfig | undefined,
+};
 const setConfig = vi.fn(async () => {
   await saving.hold;
-  return { status: "ok", data: null };
+  return { status: "ok", data: saving.notes };
 });
 
 vi.mock("@/bindings", () => ({
@@ -53,6 +58,7 @@ vi.mock("@/bindings", () => ({
     saveTarget: (name: string, file: string) => saveTarget(name, file),
     readTargetFile: (file: string) => readTargetFile(file),
     setConfig: () => setConfig(),
+    config: () => Promise.resolve({ status: "ok", data: saving.after }),
   },
 }));
 
@@ -196,4 +202,20 @@ test("Import opens a file into the text box to check before importing", async ()
     ),
   );
   expect(readTargetFile).toHaveBeenCalledWith("/shared/Runner.json");
+});
+
+test("a save that moves a mod folder says so, and shows the folder it saved", async () => {
+  const moved = "/m/0400486024DEC000/zootr";
+  const note = `Runner: installs into ${moved}`;
+  saving.notes = [note];
+  saving.after = full({
+    targets: [{ name: "Runner", app: "/a", mod_dir: moved }],
+  });
+  show();
+  rename("Runner edited");
+  fireEvent.click(button("Save targets"));
+  await waitFor(() => expect(screen.getByText(note)).toBeTruthy());
+  expect(screen.getByDisplayValue(moved)).toBeTruthy();
+  saving.notes = [];
+  saving.after = undefined;
 });
