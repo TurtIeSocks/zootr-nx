@@ -33,11 +33,13 @@ macro_rules! said {
 }
 
 pub mod act;
+pub mod clear;
 pub mod drive;
 pub mod graph;
 pub mod kinds;
 pub mod route;
 pub mod scene;
+pub mod shape;
 #[cfg(test)]
 mod sim;
 pub mod went;
@@ -86,27 +88,47 @@ pub fn load(romfs: &Romfs, game: &Path, map: &str) -> Result<NavMesh> {
 /// How near two poses are to be the same placement's, in m.
 const SAME: f32 = 0.01;
 
-/// A map as the tools read it: its navmesh and its placements.
+/// A map as the tools read it: its navmesh, its placements, and the solids
+/// among them that the mesh doesn't know.
 pub struct Level {
     pub map: String,
     pub mesh: NavMesh,
     pub placed: Vec<Placement>,
+    pub solids: Vec<shape::Solid>,
 }
 
 impl Level {
     /// The map the running game is in.
     pub fn read<M: Memory>(dev: &Dev<M>, romfs: &Romfs, game: &Path) -> Result<Self> {
         let map = dev.state()?.map;
+        Self::of(romfs, game, &map)
+    }
+
+    /// The map `map`.
+    pub fn of(romfs: &Romfs, game: &Path, map: &str) -> Result<Self> {
+        let placed = warp::placements_in(romfs, map)?;
         Ok(Self {
-            mesh: load(romfs, game, &map)?,
-            placed: warp::placements_in(romfs, &map)?,
-            map,
+            map: map.to_owned(),
+            mesh: load(romfs, game, map)?,
+            solids: shape::solids(romfs, &placed)?,
+            placed,
         })
     }
 
-    /// The graph of its mesh, with its doors.
+    /// A level with no solids, as a test builds one.
+    #[cfg(test)]
+    pub fn new(map: &str, mesh: NavMesh, placed: Vec<Placement>) -> Self {
+        Self {
+            map: map.into(),
+            mesh,
+            placed,
+            solids: vec![],
+        }
+    }
+
+    /// The graph of its mesh, with its doors and its solids.
     pub fn graph(&self) -> graph::Graph<'_> {
-        graph::Graph::build(&self.mesh, &self.placed, graph::STEP_UP)
+        graph::Graph::build(&self.mesh, &self.placed, graph::STEP_UP).with_solids(&self.solids)
     }
 
     /// The placement with `hash`.
@@ -237,17 +259,18 @@ mod tests {
             pose: crate::warp::Pose {
                 at,
                 rotate: [0.0; 3],
+                scale: [1.0; 3],
             },
             presence: None,
         };
-        let level = Level {
-            map: "Test".into(),
-            mesh: fixture::mesh(&[fixture::quad(0.0, 0.0, 4.0, 4.0, 0.0)]),
-            placed: vec![
+        let level = Level::new(
+            "Test",
+            fixture::mesh(&[fixture::quad(0.0, 0.0, 4.0, 4.0, 0.0)]),
+            vec![
                 placed("Tree", [1.0, 0.0, 1.0]),
                 placed("Npc", [2.5, 0.0, 3.0]),
             ],
-        };
+        );
         assert_eq!(level.standing_at([2.5, 0.0, 3.0]).unwrap().name, "Npc");
         assert!(level.standing_at([2.5, 0.0, 2.0]).is_err());
     }
@@ -264,6 +287,7 @@ mod tests {
             pose: crate::warp::Pose {
                 at: [2.0, 0.0, 3.5],
                 rotate: [0.0; 3],
+                scale: [1.0; 3],
             },
             presence: None,
         };
@@ -283,6 +307,7 @@ mod tests {
             pose: crate::warp::Pose {
                 at: [20.0, 0.0, 20.0],
                 rotate: [0.0; 3],
+                scale: [1.0; 3],
             },
             ..scrub
         };
@@ -302,18 +327,19 @@ mod tests {
             pose: crate::warp::Pose {
                 at: [2.0, 0.0, 2.0],
                 rotate: [0.0; 3],
+                scale: [1.0; 3],
             },
             presence: None,
         };
-        let level = Level {
-            map: "Test".into(),
-            mesh: fixture::mesh(&[fixture::quad(0.0, 0.0, 4.0, 4.0, 0.0)]),
-            placed: vec![
+        let level = Level::new(
+            "Test",
+            fixture::mesh(&[fixture::quad(0.0, 0.0, 4.0, 4.0, 0.0)]),
+            vec![
                 placed(actor::DROP_KEEP_AWAY_AREA_T_BOX_A_01),
                 placed("Obj_W_A_02"),
                 placed(actor::OBJ_T_BOX_A_01),
             ],
-        };
+        );
         let holder = level.standing_at([2.0, 0.0, 2.0]).unwrap();
         assert_eq!(holder.name, actor::OBJ_T_BOX_A_01);
     }
