@@ -11,8 +11,15 @@ mod export;
 mod golden;
 mod ids;
 mod names;
+mod open;
 mod rule;
 mod seed;
+mod zip;
+
+pub use open::{ApSeed, Placed, Resolved};
+
+/// The game's name in Archipelago.
+pub const GAME: &str = "Ocarina of Time (znx)";
 
 /// The settings the AP world exposes, by id. Each passes the
 /// `an_exposed_option_changes_only_rules` test.

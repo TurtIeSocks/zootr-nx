@@ -402,6 +402,13 @@ pub(super) enum ApCommand {
         #[arg(long)]
         out: Option<PathBuf>,
     },
+    /// Install the mod for one slot of a multiworld, from the `.apznx`
+    /// Archipelago generated for it.
+    Open {
+        file: PathBuf,
+        #[command(flatten)]
+        install: Install,
+    },
 }
 
 #[derive(Subcommand)]
@@ -557,6 +564,13 @@ pub(super) struct Shuffle {
     progress: Vec<String>,
     #[command(flatten)]
     new_game: NewGame,
+    #[command(flatten)]
+    pub(super) install: Install,
+}
+
+/// Where a seed's mod goes, and how the history shows it.
+#[derive(clap::Args)]
+pub(super) struct Install {
     #[command(flatten)]
     pub(super) out: ModDir,
     /// What the seed is for, shown in the app's history.

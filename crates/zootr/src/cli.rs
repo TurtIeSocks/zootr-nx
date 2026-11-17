@@ -59,12 +59,20 @@ pub fn run() -> Result<()> {
         return Ok(());
     }
     // Its run reads the dump as its first step.
-    if let Command::Shuffle(args) = cli.command {
-        return shuffle(&path, args);
+    match cli.command {
+        Command::Shuffle(args) => return shuffle(&path, args),
+        Command::Ap(ApCommand::Open { file, install }) => {
+            return seed::ap_open(&path, &file, install);
+        }
+        _ => {}
     }
     let romfs = game::prepare(&path, &Run::silent())?;
     match cli.command {
-        Command::Extract | Command::Target(_) | Command::Turn { .. } | Command::Shuffle(_) => {
+        Command::Extract
+        | Command::Target(_)
+        | Command::Turn { .. }
+        | Command::Shuffle(_)
+        | Command::Ap(ApCommand::Open { .. }) => {
             unreachable!("handled above")
         }
         Command::Census => census(&romfs),

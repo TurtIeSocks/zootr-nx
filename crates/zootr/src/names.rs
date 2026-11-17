@@ -69,6 +69,14 @@ impl Names {
         Self { keys, ..self }
     }
 
+    /// Name each copy for another player by its item and player.
+    pub fn foreign(mut self, foreign: &[crate::foreign::Foreign]) -> Self {
+        for f in foreign {
+            self.items.insert(f.actor.clone(), f.name());
+        }
+        self
+    }
+
     pub fn area(&self, id: &str) -> String {
         self.areas.get(id).cloned().unwrap_or_else(|| pretty(id))
     }

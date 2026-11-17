@@ -3,7 +3,7 @@
 use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
 
-use anyhow::Result;
+use anyhow::{Result, ensure};
 use ounce_formats::Romfs;
 
 use super::{Extras, Held, Report, RoundEvent, Spot, Start, write_mod};
@@ -56,7 +56,8 @@ pub fn shuffle(
         .chain(have.items.keys().map(String::as_str));
     let names = (Names::load(romfs, actors)?)
         .progressive(new_game.progressive)
-        .keys(new_game.keys);
+        .keys(new_game.keys)
+        .foreign(&new_game.foreign);
     let mut spots: Vec<Spot> = placements.iter().map(|p| Spot::new(p, &names)).collect();
     places::fill(romfs, &mut spots)?;
     spots.sort_by(|a, b| (&a.area_name, a.name(), a.hash).cmp(&(&b.area_name, b.name(), b.hash)));
@@ -180,21 +181,32 @@ pub fn generate(
     extras: &Extras,
     run: &Run,
 ) -> Result<Report> {
+    let ap = extras.ap.as_ref().map(|ap| ap.resolve(romfs)).transpose()?;
+    ensure!(
+        ap.is_none() || extras.place.is_empty(),
+        "an Archipelago seed places every item itself"
+    );
     let mut new_game = NewGame {
         spawn: extras.spawn.clone(),
         fields: extras.fields.clone(),
         dev_panel: extras.dev_panel,
-        mailbox: extras.dev_panel,
+        // The client gives through it.
+        mailbox: extras.dev_panel || ap.is_some(),
         ..NewGame::from_settings(settings, &extras.defaults)?
     };
     new_game.give.extend(extras.give.iter().cloned());
+    if let Some(ap) = &ap {
+        new_game.foreign = ap.foreign.clone();
+        new_game.give.extend(ap.give.iter().cloned());
+    }
+    let place = ap.as_ref().map_or(&extras.place, |ap| &ap.fixed);
     if !extras.progress.is_empty() {
         let gd = gamedata::GameData::load(romfs)?;
         new_game
             .progress
             .extend(steps::parse_all(&gd, &extras.progress)?);
     }
-    let report = shuffle(romfs, mod_dir, seed, &extras.place, &new_game, run)?;
+    let report = shuffle(romfs, mod_dir, seed, place, &new_game, run)?;
     run.step(Step::Spoiler)?;
     let icons = icons::icons(seed, settings, extras);
     std::fs::write(mod_dir.join("spoiler.txt"), report.spoiler(&icons))?;

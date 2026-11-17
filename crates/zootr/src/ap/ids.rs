@@ -1,7 +1,7 @@
 //! AP ids, append-only: a check or item keeps its id for good, and an id
 //! is never handed out twice.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Serialize};
 
@@ -24,6 +24,15 @@ impl Ids {
 
     pub fn location_id(&self, hash: u64) -> Option<u64> {
         self.locations.get(&hash.to_string()).copied()
+    }
+
+    /// Each of `actors` the table has an id for, by that id.
+    pub fn actors<'a>(&self, actors: impl IntoIterator<Item = &'a str>) -> HashMap<u64, &'a str> {
+        let id = |a: &str| self.items.get(&item_key(a)).copied();
+        actors
+            .into_iter()
+            .filter_map(|a| Some((id(a)?, a)))
+            .collect()
     }
 }
 

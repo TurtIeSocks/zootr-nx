@@ -5,7 +5,7 @@ use std::path::Path;
 
 use anyhow::Result;
 
-use super::args::Shuffle;
+use super::args::{Install, Shuffle};
 use crate::config::Config;
 use crate::history::{History, Label};
 use crate::progress::{self, About, Run};
@@ -92,11 +92,32 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
 
 pub(super) fn shuffle(game: &Path, args: Shuffle) -> Result<()> {
     let seed = args.seed.unwrap_or_else(generate::time_seed);
-    let settings = args.settings();
     let extras = generate::Extras {
         dev_panel: Config::load()?.dev_panel,
         ..args.extras()
     };
+    install(game, seed, args.settings(), extras, args.install)
+}
+
+/// The mod for one slot of an Archipelago multiworld.
+pub(super) fn ap_open(game: &Path, file: &Path, args: Install) -> Result<()> {
+    let ap = crate::ap::ApSeed::read(file)?;
+    let extras = generate::Extras {
+        dev_panel: Config::load()?.dev_panel,
+        ap: Some(ap.clone()),
+        ..Default::default()
+    };
+    install(game, ap.seed, ap.full_settings(), extras, args)
+}
+
+/// Builds the seed and installs it, or writes `--mod-dir`, then records it.
+fn install(
+    game: &Path,
+    seed: u64,
+    settings: Settings,
+    extras: generate::Extras,
+    args: Install,
+) -> Result<()> {
     let held = args.out.held()?;
     let about = About {
         seed,

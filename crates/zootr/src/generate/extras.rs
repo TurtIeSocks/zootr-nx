@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::ap::ApSeed;
 use crate::shuffle::Fixed;
 
 /// Options only the CLI sets. Kept with a seed so it reinstalls the same.
@@ -26,6 +27,9 @@ pub struct Extras {
     /// Placement fields set by hand, as `HASH.PATH=VALUE`.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub fields: Vec<String>,
+    /// An Archipelago seed: its placements stand in for the shuffle.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ap: Option<ApSeed>,
     /// Install the dev panel's hook. It follows the config at each install
     /// rather than the seed, so it's never kept.
     #[serde(skip)]
