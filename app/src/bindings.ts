@@ -8,7 +8,11 @@ export const commands = {
 	status: () => typedError<Status, string>(__TAURI_INVOKE("status")),
 	schema: () => __TAURI_INVOKE<SettingDef[]>("schema"),
 	config: () => typedError<Config, string>(__TAURI_INVOKE("config")),
-	setConfig: (config: Config) => typedError<null, string>(__TAURI_INVOKE("set_config", { config })),
+	/**
+	 *  Saves the config, and says which targets' mod folders it moved out of
+	 *  the game's mods root.
+	 */
+	setConfig: (config: Config) => typedError<string[], string>(__TAURI_INVOKE("set_config", { config })),
 	/**
 	 *  Generate and install a seed with the current settings and test setup. A
 	 *  blank seed is random. A share code brings its own settings and extras.

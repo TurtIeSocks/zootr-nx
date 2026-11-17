@@ -83,7 +83,7 @@ function show({
 } = {}) {
   const setConfig = vi
     .spyOn(commands, "setConfig")
-    .mockResolvedValue({ status: "ok", data: null });
+    .mockResolvedValue({ status: "ok", data: [] });
   useConfig.setPath("schema", defs);
   useConfig.setPath("config", full({ settings }));
   useSeeds.setPath("status", { game: true, targets: [] });

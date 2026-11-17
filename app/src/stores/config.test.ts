@@ -13,7 +13,7 @@ vi.mock("@/bindings", () => ({
       new Promise((resolve) =>
         saves.push({
           config,
-          finish: () => resolve({ status: "ok", data: null }),
+          finish: () => resolve({ status: "ok", data: [] }),
         }),
       ),
   },
