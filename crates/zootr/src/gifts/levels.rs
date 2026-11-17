@@ -55,9 +55,18 @@ fn ladder(item: &str) -> Option<(Vec<(&'static Name, &'static Name)>, usize)> {
 /// ammo or a level of a line. A grant of a level gives the one after the
 /// highest Link owns, the top once he owns it. A grant of ammo, and a get
 /// window shown after its own grant, name the highest step he owns.
-pub(super) fn by_level(flow: &mut Flowchart, model: &Model, item: &str) -> Result<()> {
+/// With `only`, just the grants at those events.
+pub(super) fn by_level(
+    flow: &mut Flowchart,
+    model: &Model,
+    item: &str,
+    only: Option<&[u16]>,
+) -> Result<()> {
     let (ladder, next) = ladder(item).with_context(|| format!("{item} gives by nothing"))?;
-    let named = events(flow, item);
+    let mut named = events(flow, item);
+    if let Some(only) = only {
+        named.retain(|(at, _)| only.contains(at));
+    }
     ensure!(!named.is_empty(), "{} never grants {item}", flow.name);
     for (at, after) in named {
         chain(flow, model, &ladder, at, after.min(next), item)?;
@@ -245,13 +254,9 @@ mod tests {
     #[test]
     fn no_level_is_granted_after_another() {
         // One gift a flow: two gifts of one scene each grant in turn.
-        let checks = crate::gifts::checks();
         let mut one = HashMap::new();
         for g in GIFTS.iter().filter(|g| chained(g)) {
-            let check = checks.iter().find(|c| c.hash == g.hash()).unwrap();
-            if !clashes(check, item::HOOKSHOT) {
-                one.entry(g.flow).or_insert(g.hash());
-            }
+            one.entry(g.flow).or_insert(g.hash());
         }
         let fits = |g: &Gift| one.get(g.flow) == Some(&g.hash());
         let Some(dealt) = dealt(fits, item::HOOKSHOT) else {
@@ -275,6 +280,40 @@ mod tests {
                 assert!(twice.is_empty(), "{}: #{g} then {twice:?}", flow.name);
             }
         }
+    }
+
+    #[test]
+    fn a_gift_holding_its_flow_mates_level_chains_only_its_own_call() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let archery = |item: &str| {
+            let g = GIFTS
+                .iter()
+                .find(|g| g.flow == flow::MINIGAME_HORSEBACK_ARCHERY && g.item == item);
+            g.unwrap()
+        };
+        let (quiver, heart) = (archery(item::QUIVER_MEDIUM), archery(HEART));
+        let How::Calls { call, .. } = quiver.how else {
+            panic!("the archery prizes are calls")
+        };
+        let before = flows::load(&romfs, quiver.flow).unwrap().unwrap();
+        let at = |gift: &Gift| naming(&before, call, gift.item, &BTreeSet::new()).unwrap();
+        let drops = HashMap::from([(heart.hash(), Drop::from(item::QUIVER_MEDIUM.to_string()))]);
+        let mut rewrites = Rewrites::default();
+        let flows = Flows::load(&romfs).unwrap();
+        give_all(&romfs, &flows, &mut rewrites, &drops, true).unwrap();
+        let after = written(&rewrites, quiver.flow);
+        let led = |flow: &Flowchart, gift: &Gift| {
+            at(gift)
+                .iter()
+                .map(|&e| flow.links_to(e))
+                .collect::<Vec<_>>()
+        };
+        // The heart prize asks the pouch first. The quiver prize, whose
+        // level the game picks, is reached as it was.
+        assert_ne!(led(&before, heart), led(&after, heart));
+        assert_eq!(led(&before, quiver), led(&after, quiver));
     }
 
     #[test]

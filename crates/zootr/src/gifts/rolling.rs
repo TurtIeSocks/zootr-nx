@@ -28,9 +28,19 @@ mod tests {
             return;
         };
         let mut flow = flows::load(&romfs, FLOW).unwrap().unwrap();
-        let asks = asked(&flow, "Item_BombBag_", giving(&flow, BAG).unwrap());
+        let asks = asked(
+            &flow,
+            "Item_BombBag_",
+            giving(&flow, BAG, &std::collections::BTreeSet::new()).unwrap(),
+        );
         assert!(asks.len() >= 2, "{asks:?}");
-        one_of(&mut flow, "Item_BombBag_", BAG).unwrap();
+        one_of(
+            &mut flow,
+            "Item_BombBag_",
+            BAG,
+            &std::collections::BTreeSet::new(),
+        )
+        .unwrap();
         let reached = flows::reachable(&flow, flag::BOMB_HITS_TALK).unwrap();
         for q in &asks {
             assert!(!reached.contains(q), "#{q} still asked");

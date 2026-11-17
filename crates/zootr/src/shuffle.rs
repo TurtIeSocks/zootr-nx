@@ -272,14 +272,14 @@ fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
     !gifts::by_level(check) && !cow && asks(item, progressive)
 }
 
-/// Whether `check` may hold `item`: a gift can't hold one that asks, or
-/// one that [`gifts::clashes`]. A key copy goes in any chest or gift
+/// Whether `check` may hold `item`: a gift can't hold one that asks. A
+/// key copy goes in any chest or gift
 /// (NPC, shop, scrub, cow, prize chest or pickup), whose gets the hook
 /// credits as Link gets them (the pouch add, or the pickup window). Each
 /// kind was proven live (stage 1 of the every-item-everywhere spec).
 pub(crate) fn allowed(check: &ItemCheck, item: &str, progressive: bool) -> bool {
     let gift = gifts::is_gift(check);
-    let fits = !gift || !asks_at(check, item, progressive) && !gifts::clashes(check, item);
+    let fits = !gift || !asks_at(check, item, progressive);
     let credited = gift || check.holder.starts_with("Obj_TBox_");
     fits && (credited || !keys::is_shuffled(item))
 }

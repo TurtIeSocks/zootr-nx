@@ -93,14 +93,15 @@ fn names_item(params: &Params, items: &[&str]) -> bool {
 
 /// Point the entry point at the reward for `item`, then `then` if any,
 /// then copies of the cutscene's save changes. Returns the flow and entry
-/// point it hands back to, if it ends in a call to another flow.
+/// point it hands back to, if it ends in a call to another flow, and the
+/// reward giving `item`.
 pub(super) fn cut(
     flow: &mut Flowchart,
     flows: &Flows,
     gift: &Name,
     item: &str,
     then: Option<&Name>,
-) -> Result<Option<(String, String)>> {
+) -> Result<(Option<(String, String)>, u16)> {
     let items: Vec<&str> = [Some(gift), then]
         .into_iter()
         .flatten()
@@ -133,7 +134,8 @@ pub(super) fn cut(
     }
     let entry = flow.entry_points.iter().position(|e| e.name == ENTRY);
     flow.link(Link::Entry(entry.context("no entry point")?), first)?;
-    Ok(back)
+    // Pushed last, so the reward is the first event.
+    Ok((back, first.context("nothing given")?))
 }
 
 #[cfg(test)]
@@ -152,7 +154,7 @@ mod tests {
             panic!("Zelda's lesson is cut")
         };
         let mut flow = flows::load(&romfs, zelda.flow).unwrap().unwrap();
-        let back = cut(&mut flow, &all, zelda.item, "Item_A", then).unwrap();
+        let (back, _) = cut(&mut flow, &all, zelda.item, "Item_A", then).unwrap();
         assert_eq!(
             back,
             Some((

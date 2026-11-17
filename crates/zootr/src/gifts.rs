@@ -377,15 +377,6 @@ pub(crate) fn by_level(check: &ItemCheck) -> bool {
     of(check).is_some_and(levels::chained)
 }
 
-/// Whether `item` is what another gift of `check`'s flow gives in the
-/// vanilla game. Dealt there, the flow would name it twice, and the other
-/// gift's rewrite couldn't tell its own call apart.
-pub(crate) fn clashes(check: &ItemCheck, item: &str) -> bool {
-    of(check).is_some_and(|g| {
-        (GIFTS.iter()).any(|o| o.flow == g.flow && o.hash() != g.hash() && **o.item == *item)
-    })
-}
-
 /// The minigame chests that are checks, by placement hash: the Treasure
 /// Chest Game's heart piece, then Dampe's two. Every other chest whose event
 /// starts `MiniGame_` stays vanilla. Gifts in all but where they're placed,
@@ -473,10 +464,16 @@ pub fn give_all(
     // Chained once every gift is renamed: a chain names other levels, maybe
     // another gift's own item in the same flow.
     let mut by_level = BTreeSet::new();
+    // The events each flow's gifts took so far, so a flow-mate dealt one's
+    // item never renames or chains the other's.
+    let mut taken: HashMap<&str, BTreeSet<u16>> = HashMap::new();
     for gift in &GIFTS {
         let item = item_at(drops, gift.hash(), gift.item);
+        let mine = taken.entry(gift.flow.get()).or_default();
         if let Some(line) = picked(gift.item).filter(|_| item != gift.item) {
-            flows::edit(romfs, rewrites, gift.flow, |f| one_of(f, line, gift.item))?;
+            flows::edit(romfs, rewrites, gift.flow, |f| {
+                one_of(f, line, gift.item, mine)
+            })?;
         }
         for (_, free) in UNSTUCK
             .iter()
@@ -486,17 +483,24 @@ pub fn give_all(
         }
         let lost = gift.skipped(rewrites)?;
         let given = item != gift.item || matches!(gift.how, How::Cut { .. }) || lost;
-        if given {
-            give(romfs, flows, rewrites, gift, item)
-                .with_context(|| format!("{} giving {item}", gift.giver))?;
-        }
+        let took = match (given, &gift.how) {
+            (true, _) => give(romfs, flows, rewrites, gift, item, mine)
+                .with_context(|| format!("{} giving {item}", gift.giver))?,
+            (false, How::Calls { call, .. }) => {
+                let flow = flows::current(romfs, rewrites, gift.flow)?;
+                naming(&flow, call, item, mine)?
+            }
+            _ => Vec::new(),
+        };
+        mine.extend(&took);
         if levels::needs(gift, item, progressive) {
             // The grant moved to the caller when its scene can't play.
             let later = given && matches!(gift.how, How::Later { .. });
             let at = gift.caller().filter(|_| lost || later);
-            by_level.insert((at.unwrap_or(gift.flow), item));
+            let only = (at.is_none() && !took.is_empty()).then_some(took);
+            by_level.insert((at.unwrap_or(gift.flow), item, only));
             if let How::Added { also } = gift.how {
-                by_level.extend(also.iter().map(|flow| (flow.get(), item)));
+                by_level.extend(also.iter().map(|flow| (flow.get(), item, None)));
             }
         }
         if item == gift.item {
@@ -517,30 +521,41 @@ pub fn give_all(
     lines::retalk(romfs, rewrites, drops)?;
     if !by_level.is_empty() {
         let model = levels::model(flows)?;
-        for (flow, item) in by_level {
-            flows::edit(romfs, rewrites, flow, |f| levels::by_level(f, &model, item))
-                .with_context(|| format!("{flow} giving {item} by level"))?;
+        for (flow, item, only) in by_level {
+            flows::edit(romfs, rewrites, flow, |f| {
+                levels::by_level(f, &model, item, only.as_deref())
+            })
+            .with_context(|| format!("{flow} giving {item} by level"))?;
         }
     }
     flows::edit(romfs, rewrites, BIGGORON, waited)?;
     flows::edit(romfs, rewrites, FOUNTAIN, ungated)
 }
 
+/// Rewrite `gift` to give `item`, leaving alone the events of its flow
+/// another gift has `taken`. Returns the events of its flow that give it.
 fn give(
     romfs: &Romfs,
     flows: &Flows,
     rewrites: &mut Rewrites,
     gift: &Gift,
     item: &str,
-) -> Result<()> {
+    taken: &BTreeSet<u16>,
+) -> Result<Vec<u16>> {
     let mut back = None;
+    let mut took = Vec::new();
     let lost = gift.skipped(rewrites)?;
     // A scene that never plays has nothing to cut or silence.
     if !lost {
         flows::edit(romfs, rewrites, gift.flow, |flow| match gift.how {
             How::InPlace => in_place(flow, item),
-            How::Cut { then } => cut(flow, flows, gift.item, item, then).map(|b| back = b),
-            How::Calls { call, .. } => rename_calls(flow, call, gift.item, item),
+            How::Cut { then } => cut(flow, flows, gift.item, item, then).map(|(b, given)| {
+                back = b;
+                took = vec![given];
+            }),
+            How::Calls { call, .. } => {
+                rename_untaken(flow, call, gift.item, item, taken).map(|t| took = t)
+            }
             How::Later { call, .. } => silence_calls(flow, call, gift.item),
             How::Added { .. } => Ok(()),
             How::Sale {
@@ -565,10 +580,10 @@ fn give(
             grant_after(f, flows, gift.flow, item)
         })?;
     }
-    match back {
-        Some((callee, entry)) => flows::edit(romfs, rewrites, &callee, |f| stay(f, &entry)),
-        None => Ok(()),
+    if let Some((callee, entry)) = back {
+        flows::edit(romfs, rewrites, &callee, |f| stay(f, &entry))?;
     }
+    Ok(took)
 }
 
 #[cfg(test)]
@@ -634,23 +649,14 @@ mod tests {
     }
 
     #[test]
-    fn a_gift_never_takes_what_a_gift_of_its_own_flow_gives() {
+    fn a_gift_may_take_what_a_gift_of_its_own_flow_gives() {
         needs_names!();
         let at = GIFTS
             .iter()
-            .position(|g| g.flow == flow::MINIGAME_HORSEBACK_ARCHERY);
-        let (gifts, at) = (checks(), at.unwrap());
-        let heart = |item: &str| clashes(&gifts[at], item);
-        assert!(heart(item::QUIVER_MEDIUM));
-        assert!(!heart(GIFTS[at].item) && !heart(item::HOOKSHOT));
-        let chest = check(
-            String::new(),
-            "Area",
-            1,
-            actor::OBJ_T_BOX_A_02.to_string(),
-            "Item_A",
-        );
-        assert!(!clashes(&chest, item::QUIVER_MEDIUM));
+            .position(|g| g.flow == flow::MINIGAME_HORSEBACK_ARCHERY && g.item == HEART);
+        let heart = &checks()[at.unwrap()];
+        assert!(crate::shuffle::allowed(heart, item::QUIVER_MEDIUM, true));
+        assert!(crate::shuffle::allowed(heart, item::QUIVER_MEDIUM, false));
     }
 
     #[test]
@@ -859,6 +865,64 @@ mod tests {
         let all = Flows::load(romfs).unwrap();
         give_all(romfs, &all, &mut rewrites, &drops, false).unwrap();
         (rewrites, flags)
+    }
+
+    /// Each flow holding several gifts, with them in table order.
+    fn shared() -> Vec<Vec<&'static Gift>> {
+        let mut by_flow: Vec<Vec<&Gift>> = Vec::new();
+        for gift in &GIFTS {
+            match by_flow.iter_mut().find(|f| f[0].flow == gift.flow) {
+                Some(flow) => flow.push(gift),
+                None => by_flow.push(vec![gift]),
+            }
+        }
+        by_flow.retain(|f| f.len() > 1);
+        by_flow
+    }
+
+    /// `flow` as `give_all` writes it with each gift dealt its item.
+    fn dealt_flow(romfs: &Romfs, all: &Flows, deal: &[(&Gift, String)]) -> String {
+        let drops = (deal.iter())
+            .map(|(g, item)| (g.hash(), Drop::from(item.clone())))
+            .collect();
+        let mut rewrites = Rewrites::default();
+        give_all(romfs, all, &mut rewrites, &drops, false).unwrap();
+        flows::render(&written(&rewrites, deal[0].0.flow))
+    }
+
+    #[test]
+    fn gifts_of_one_flow_hold_each_others_items() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let all = Flows::load(&romfs).unwrap();
+        let mut wrong = Vec::new();
+        for gifts in shared() {
+            // Each gift a flow-mate's item, where that's another item.
+            let next = |i: usize| gifts[(i + 1) % gifts.len()].item.to_string();
+            let held: Vec<(usize, &Gift)> = (gifts.iter().copied().enumerate())
+                .filter(|&(i, g)| next(i) != **g.item)
+                .collect();
+            if held.is_empty() {
+                continue;
+            }
+            // Made-up items clash with nothing, so they mark where each
+            // gift's grant belongs.
+            let fake = |i: usize| format!("Item_Fake{i:02}");
+            let marked: Vec<_> = held.iter().map(|&(i, g)| (g, fake(i))).collect();
+            let traded: Vec<_> = held.iter().map(|&(i, g)| (g, next(i))).collect();
+            let mut want = dealt_flow(&romfs, &all, &marked);
+            for &(i, _) in &held {
+                want = want.replace(&fake(i), &next(i));
+            }
+            if dealt_flow(&romfs, &all, &traded) != want {
+                wrong.push(gifts[0].flow.to_string());
+            }
+        }
+        assert!(
+            wrong.is_empty(),
+            "a gift renamed a flow-mate's grant: {wrong:?}"
+        );
     }
 
     pub(super) fn written(rewrites: &Rewrites, flow: &str) -> Flowchart {
