@@ -15,7 +15,7 @@ use crate::settings::{ChestSize, NewGame};
 use crate::{
     bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, fortress,
     gamedata, gerudo, gifts, hints, key_tints, keys, medallions, navi, patch, pickups, presets,
-    rsdb, scrubs, shops, spawn, standins, starting, steps, text,
+    rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -129,11 +129,15 @@ pub fn write_mod(
     bools.extend(gifts::flags(&new_game.on));
     bools.extend(dampe::flags(drops));
     let made = key_tints::made(key_copies.0, key_copies.1);
-    if !edits.is_empty() || !bools.is_empty() || !made.is_empty() {
+    let gd = gamedata::GameData::load(romfs)?;
+    let opened = tracker::chest_flags(&gd)?;
+    let twins = twins::find(romfs, |h| drops.contains_key(&h), opened)?;
+    let aliases: Vec<_> = twins.iter().map(|t| (t.alias(), t.opened)).collect();
+    if !edits.is_empty() || !bools.is_empty() || !made.is_empty() || !aliases.is_empty() {
         let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
-        let gd = gamedata::GameData::load(romfs)?;
         defaults = presets::apply(&gd, &mut doc.root, &edits)?;
         gamedata::add_bools(&mut doc.root, &bools)?;
+        gamedata::add_aliases(&mut doc.root, &aliases)?;
         for (copy, template, _) in &made {
             let names = [copy.clone()];
             gamedata::join_structs(&mut doc.root, template.get(), &names, &[gamedata::IS_GET])?;
@@ -208,6 +212,8 @@ pub fn write_mod(
     let mut chest_events = HashMap::new();
     for rel in checks::banc_files(romfs)? {
         let mut doc = checks::load_banc(romfs, &rel)?;
+        // First, so a check placed in its twin's map takes its drop below.
+        let twinned = twins::place(&rel, &mut doc.root, &twins)? > 0;
         let mut changed = checks::set_fields(&mut doc.root, &fields)?;
         changed.extend(checks::clear_drops(&mut doc.root, carried)?);
         changed.extend(checks::set_drops(
@@ -220,7 +226,7 @@ pub fn write_mod(
         let tinted = key_tints::swap(&rel, &mut doc.root, bosses)? > 0;
         // After shrinking: a shrunk chest runs the small chest's flow.
         let levelled = levels.name(romfs, &mut doc.root, &mut chest_events)? > 0;
-        if shrunk || tinted || levelled || !changed.is_empty() {
+        if twinned || shrunk || tinted || levelled || !changed.is_empty() {
             builder.write(&rel, &doc.to_binary())?;
             actors += changed.len();
             found.extend(changed);

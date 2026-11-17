@@ -8,7 +8,7 @@ use super::*;
 use crate::checks::{self, Drop};
 use crate::events::Flows;
 use crate::flows::Rewrites;
-use crate::known::{actor, flag, flow, item, scene};
+use crate::known::{Name, actor, flag, flow, item, map, scene};
 use crate::settings::{NewGame, Settings};
 use crate::shuffle::Fixed;
 use crate::standins;
@@ -804,4 +804,36 @@ fn a_logic_seed_lists_what_link_starts_with() {
         "{held:?}"
     );
     assert!(report.start.settings.iter().any(|s| s.contains("orest")));
+}
+
+#[test]
+fn burning_kakariko_holds_the_purple_rupee_chest_with_its_dealt_item() {
+    let Some(romfs) = crate::game::dev_dump() else {
+        return;
+    };
+    const CHEST_1: u64 = 11929552275106311978;
+    let dir = std::env::temp_dir().join(format!("zootr-twins-{}", std::process::id()));
+    shuffle(&romfs, &dir, 7, &Fixed::new(), &NewGame::default()).unwrap();
+    let written = |rel: &str| {
+        let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
+        romfs.dicts().decompress(rel, &raw).unwrap()
+    };
+    let drop_in = |map: &Name| {
+        let rel = format!(
+            "Banc/{}/{map}_Dynamic.bcett.byml.zs",
+            flag::KAKARIKO_VILLAGE
+        );
+        let doc = BymlDoc::parse(&written(&rel)).unwrap();
+        let actors = checks::actors(&doc.root).unwrap();
+        let chest = actors.iter().find(|a| checks::hash_of(a) == Some(CHEST_1));
+        let dynamic = &chest.unwrap().as_map().unwrap()["Dynamic"];
+        checks::str_field(dynamic, checks::DROP_ACTOR).map(String::from)
+    };
+    let dealt = drop_in(map::KAKARIKO_VILLAGE_ADULT);
+    assert!(dealt.is_some());
+    assert_eq!(drop_in(map::KAKARIKO_VILLAGE_ADULT_ALTERNATIVE), dealt);
+    let gd = gamedata::GameData::parse(&written(gamedata::PATH)).unwrap();
+    let alias = format!("ZootrOpened.{CHEST_1}");
+    assert!(gd.expr(&alias).unwrap().is_some(), "{alias} isn't written");
+    std::fs::remove_dir_all(dir).unwrap();
 }

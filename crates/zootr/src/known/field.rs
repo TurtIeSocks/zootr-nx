@@ -180,6 +180,7 @@ pub const IS_ANIME_DRIVEN: &Name = &n!(0x7f945599a699d0f1);
 pub const IS_ANONYMOUS: &Name = &n!(0x8a3152ec3c390f3e);
 pub const IS_BIND_NEAREST_ACTOR: &Name = &n!(0xe641719079983fd9);
 pub const IS_BURN: &Name = &n!(0x55e38456e201b848);
+pub const IS_CHECK_LAZY: &Name = &n!(0x768db08d66675b15);
 pub const IS_CLOSE_DIALOG: &Name = &n!(0xf750b195783cbf3f);
 pub const IS_COUNT_CHECK_ON_FIRST_GET: &Name = &n!(0x4cfb59e80d328e43);
 pub const IS_DRIVE: &Name = &n!(0x7cd9a7deafc44607);

@@ -400,6 +400,39 @@ pub fn add_bools(root: &mut Byml, names: &[String]) -> Result<()> {
     Ok(())
 }
 
+/// Append a BoolExp named each alias that reads its Bool alone, by hash.
+/// A Presence names its flag, so this is how one reads a Bool whose name
+/// isn't known, like a chest's opened flag.
+pub fn add_aliases(root: &mut Byml, aliases: &[(String, u32)]) -> Result<()> {
+    let exps = table(root, BOOL_EXP.get())?;
+    let first = exps
+        .first()
+        .with_context(|| format!("the {} table is empty", flag::BOOL_EXP))?
+        .as_map()?
+        .clone();
+    // An instruction pushing an entry, for its integer types.
+    let push = exps
+        .iter()
+        .filter_map(|e| e.as_map().ok()?.get("Values")?.as_array().ok())
+        .flatten()
+        .filter_map(|i| i.as_array().ok())
+        .find(|i| i.len() == 2)
+        .context("no BoolExp reads an entry")?
+        .to_vec();
+    for (name, of) in aliases {
+        let hash = murmur3(name.as_bytes());
+        let taken = exps.iter().any(|e| has_hash(e, hash));
+        ensure!(!taken, "{} already has {name}", flag::GAME_DATA);
+        let mut entry = first.clone();
+        entry.insert("Hash".into(), typed(first.get("Hash"), hash)?);
+        // Opcode 0 pushes a Bool.
+        let read = vec![typed(push.first(), 0)?, typed(push.get(1), *of)?];
+        entry.insert("Values".into(), Byml::Array(vec![Byml::Array(read)]));
+        exps.push(Byml::Map(entry));
+    }
+    Ok(())
+}
+
 /// Make each of `names` a member of every Struct `like` is a member of
 /// (`IsGet` and others), each member's value a new false Bool. The game
 /// finds an item's entries through these member lists, and an item with
@@ -512,6 +545,20 @@ mod tests {
 
     fn dump() -> Option<GameData> {
         Some(GameData::load(&crate::game::dev_dump()?).unwrap())
+    }
+
+    #[test]
+    fn an_alias_reads_its_bool_alone() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut doc = BymlDoc::parse(&romfs.read(PATH).unwrap()).unwrap();
+        let alias = ("ZootrOpened.1".to_string(), 0xc66e58f2);
+        add_aliases(&mut doc.root, std::slice::from_ref(&alias)).unwrap();
+        let gd = GameData::parse(&doc.to_binary()).unwrap();
+        assert_eq!(gd.expr(&alias.0).unwrap(), Some(gd.name(alias.1)));
+        assert!(gd.implied_by(&alias.0, &gd.name(alias.1)).is_ok());
+        assert!(add_aliases(&mut doc.root, &[alias]).is_err(), "added twice");
     }
 
     #[test]
