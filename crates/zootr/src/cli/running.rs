@@ -235,9 +235,13 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             format!("{done}, to {place}")
         }
         DevCommand::Time { hour } => game.ask(&Request::Time(hour))?.into(),
-        DevCommand::Step { challenge, step } => {
+        DevCommand::Step {
+            challenge,
+            step,
+            back,
+        } => {
             steps::check(&recorder::gamedata(romfs)?, &challenge, &step)?;
-            let done = game.ask(&Request::Step(challenge.clone(), step.clone()))?;
+            let done = game.ask(&Request::Step(challenge.clone(), step.clone(), back))?;
             format!("{done} {challenge}={step}")
         }
         DevCommand::Play { event } => {

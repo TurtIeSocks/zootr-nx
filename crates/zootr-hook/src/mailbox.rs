@@ -15,6 +15,8 @@ pub const NAME: usize = 64;
 pub const ARG_STEP: &[u8] = b"ZootrStep\0";
 pub const ARG_CHALLENGE: &[u8] = b"ZootrChallenge\0";
 pub const ARG_STEP_NAME: &[u8] = b"ZootrStepName\0";
+/// Whether the step request moves the quest back to the step instead.
+pub const ARG_STEP_BACK: &[u8] = b"ZootrStepBack\0";
 /// The arguments an item request passes, read the same way: whether it is a
 /// give, the item's actor, and whether to equip it.
 pub const ARG_GIVE: &[u8] = b"ZootrGive\0";
@@ -75,7 +77,8 @@ word_enum! {
         /// Set the clock to `hour`.
         Time = 3,
         /// Move the quest `map` to its step `spot`, with the event a
-        /// seed's map change flow runs for it.
+        /// seed's map change flow runs for it: back to it when `hour` is
+        /// not 0, since moving on never goes back.
         Step = 4,
         /// Give Link the item actor `map`, equipped when `hour` is not 0,
         /// with the grant a seed's map change flow runs for it.
@@ -142,6 +145,7 @@ mod tests {
                 ARG_STEP,
                 ARG_CHALLENGE,
                 ARG_STEP_NAME,
+                ARG_STEP_BACK,
                 ARG_GIVE,
                 ARG_ACTOR,
                 ARG_EQUIP

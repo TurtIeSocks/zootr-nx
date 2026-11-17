@@ -37,8 +37,8 @@ mod table;
 pub mod ui;
 
 pub use mailbox::{
-    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_NAME, Ask, GUARD, MAILBOX,
-    Mailbox, NAME, Outcome, play_event,
+    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_BACK, ARG_STEP_NAME, Ask,
+    GUARD, MAILBOX, Mailbox, NAME, Outcome, play_event,
 };
 pub use shared::{CHESTS, Chest, Credited, List, Shared};
 pub use switches::SWITCHES;

@@ -548,7 +548,13 @@ pub(super) enum DevCommand {
     Time { hour: u32 },
     /// Move a quest to one of its steps, as the game's own flows do, e.g.
     /// `SageOfSpirit Step02`.
-    Step { challenge: String, step: String },
+    Step {
+        challenge: String,
+        step: String,
+        /// Roll the quest back to the step, which moving on never does.
+        #[arg(long)]
+        back: bool,
+    },
     /// Play an event with Link as its starter, by
     /// its full name.
     Play { event: String },

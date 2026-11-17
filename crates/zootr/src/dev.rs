@@ -114,8 +114,8 @@ pub enum Request {
     /// Switch age and land here.
     Age(Place),
     Time(u32),
-    /// Move a quest to one of its steps.
-    Step(String, String),
+    /// Move a quest to one of its steps, or back to it when the bool is set.
+    Step(String, String, bool),
     /// Grant an item actor, equipped or not, as the game does.
     Give(String, bool),
     /// Grant the level of the actor's progressive line Link needs next, or
@@ -298,7 +298,9 @@ impl<M: Memory> Dev<M> {
                 ensure!(*h < 24, "an hour is 0 to 23");
                 (Ask::Time, *h, None)
             }
-            Request::Step(challenge, step) => (Ask::Step, 0, Some([&**challenge, step, ""])),
+            Request::Step(challenge, step, back) => {
+                (Ask::Step, u32::from(*back), Some([&**challenge, step, ""]))
+            }
             Request::Give(actor, equip) => (Ask::Give, u32::from(*equip), Some([&**actor, "", ""])),
             Request::GiveLevel(actor, swap) => {
                 let (check, then) = swap.map_or(("", ""), |s| (s.check, ammo::WITHOUT.get()));
@@ -471,7 +473,7 @@ impl<M: Memory> Dev<M> {
     /// Run quest `challenge`'s `step` through the quest system, and wait
     /// for its event to end.
     pub fn step(&self, challenge: &str, step: &str) -> Result<()> {
-        self.ask(&Request::Step(challenge.into(), step.into()))?;
+        self.ask(&Request::Step(challenge.into(), step.into(), false))?;
         self.settle()
     }
 }

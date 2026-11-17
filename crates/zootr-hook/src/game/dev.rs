@@ -7,8 +7,8 @@ use core::sync::atomic::Ordering;
 use super::rt::{memcpy, memset};
 use super::{at, level_for, name, owned, shared};
 use crate::{
-    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_NAME, Ask, GUARD, Mailbox,
-    NAME, Offsets, Outcome, play_event,
+    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_BACK, ARG_STEP_NAME, Ask,
+    GUARD, Mailbox, NAME, Offsets, Outcome, play_event,
 };
 
 type Malloc = unsafe extern "C" fn(usize) -> usize;
@@ -297,6 +297,7 @@ unsafe fn teleport(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Ou
 /// seed's flow answers by running the step, `map` the quest and
 /// `spot` its step, and ending. It changes no map, so the teleport
 /// guard doesn't apply. `ZootrGive` is asked first, so it's named false.
+/// `ZootrStepBack` rolls the quest back to the step instead.
 unsafe fn step(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcome {
     let texts = [&mail.map, &mail.spot];
     let args = [
@@ -304,6 +305,7 @@ unsafe fn step(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcom
         Arg::Bool(ARG_STEP, true),
         Arg::Text(ARG_CHALLENGE, 0),
         Arg::Text(ARG_STEP_NAME, 1),
+        Arg::Bool(ARG_STEP_BACK, mail.hour != 0),
     ];
     unsafe { request_map_change(main, o, actor, EVENT, &texts, &args) }
 }

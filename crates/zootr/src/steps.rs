@@ -12,7 +12,9 @@ use std::collections::BTreeMap;
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{BymlDoc, EventKind, Flowchart, Link, Params, Romfs, Value};
-use zootr_hook::{ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_NAME};
+use zootr_hook::{
+    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_BACK, ARG_STEP_NAME,
+};
 
 use crate::checks::str_field;
 use crate::flows::{self, Model, Rewrites, running, set, switch};
@@ -26,6 +28,12 @@ pub(crate) const TEMPLATE: &Name = flow::SAGE_OF_SPIRIT;
 pub(crate) const PROGRESS: (&Name, &Name) = (
     field::CHALLENGE_SYSTEM_ACTOR,
     flow::EVENT_EXECUTE_PROGRESS_CHALLENGE_STEP,
+);
+/// The flow with a quest's own rollback event, to copy, and the event.
+const ROLLBACK_TEMPLATE: &Name = flow::MINIGAME_CATCH_CUCCO;
+const ROLLBACK: (&Name, &Name) = (
+    field::CHALLENGE_SYSTEM_ACTOR,
+    flow::EVENT_EXECUTE_ROLLBACK_CHALLENGE_STEP,
 );
 /// Hides the quest progress banner.
 pub(crate) const QUIET: &Name = field::IS_IGNORE_CHALLENGE_PROGRESS_UI;
@@ -137,14 +145,16 @@ fn arg(name: &[u8]) -> String {
 /// Put branches at the head of the map change flow's entry: when the hook
 /// passes `ZootrGive`, grant the item `ZootrActor`, equipped if `ZootrEquip`,
 /// and end. When it passes `ZootrStep`, run the quest step named by
-/// `ZootrChallenge` and `ZootrStepName` and end. Otherwise the flow runs as
-/// it did, since an argument the hook doesn't pass reads as false.
+/// `ZootrChallenge` and `ZootrStepName` and end, or with `ZootrStepBack`
+/// roll the quest back to that step. Otherwise the flow runs as it did,
+/// since an argument the hook doesn't pass reads as false.
 pub fn dev_branch(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
     let template = template(romfs)?;
     let progress = progress(&template)?;
     let grant = starting::template(romfs)?;
+    let rollback = rollback_model(romfs)?;
     flows::edit(romfs, rewrites, BANC, |flow| {
-        branch(flow, &progress, &grant)
+        branch(flow, &progress, &rollback, &grant)
     })
 }
 
@@ -191,7 +201,12 @@ pub(crate) fn entry(flow: &Flowchart) -> Result<(usize, u16)> {
     Ok((entry, main))
 }
 
-fn branch(flow: &mut Flowchart, progress: &Model, template: &Flowchart) -> Result<()> {
+fn branch(
+    flow: &mut Flowchart,
+    progress: &Model,
+    rollback: &Model,
+    template: &Flowchart,
+) -> Result<()> {
     let (entry, main) = entry(flow)?;
     let asks = switch(flow, IS_BOOL).with_context(|| format!("{BANC} never asks {IS_BOOL:?}"))?;
     let asks = flows::model(flow, IS_BOOL, asks)?;
@@ -207,7 +222,9 @@ fn branch(flow: &mut Flowchart, progress: &Model, template: &Flowchart) -> Resul
         action,
         params,
     });
-    let step = when(flow, &asks, ARG_STEP, run, main)?;
+    let back = back(flow, rollback)?;
+    let back = when(flow, &asks, ARG_STEP_BACK, back, run)?;
+    let step = when(flow, &asks, ARG_STEP, back, main)?;
     // Equipping is a second query, between two grants, so the only argument
     // a flow reads is the one the steps already prove: a query's `BoolValue`.
     let plain = grant(flow, template, false)?;
@@ -215,6 +232,40 @@ fn branch(flow: &mut Flowchart, progress: &Model, template: &Flowchart) -> Resul
     let give = when(flow, &asks, ARG_EQUIP, equipped, plain)?;
     let head = when(flow, &asks, ARG_GIVE, give, step)?;
     flow.link(Link::Entry(entry), Some(head))
+}
+
+/// A quest's own rollback event, to copy.
+fn rollback_model(romfs: &Romfs) -> Result<Model> {
+    let template = flows::load(romfs, ROLLBACK_TEMPLATE)?
+        .with_context(|| format!("{ROLLBACK_TEMPLATE} is a timeline"))?;
+    let at = *running(&template, ROLLBACK)
+        .first()
+        .with_context(|| format!("{ROLLBACK_TEMPLATE} never rolls a quest back"))?;
+    flows::model(&template, ROLLBACK, at)
+}
+
+/// The rollback, moving the hook's quest back to its step, with no banner,
+/// and ending.
+fn back(flow: &mut Flowchart, model: &Model) -> Result<u16> {
+    let mut params = model.params.clone();
+    set(
+        &mut params,
+        field::CHALLENGE_NAME,
+        Value::Argument(arg(ARG_CHALLENGE)),
+    )?;
+    set(
+        &mut params,
+        field::CHALLENGE_STEP,
+        Value::Argument(arg(ARG_STEP_NAME)),
+    )?;
+    set(&mut params, QUIET, Value::Bool(vec![true]))?;
+    let (actor, action) = flow.action(&model.actor, model.name);
+    Ok(flow.push(EventKind::Action {
+        next: None,
+        actor,
+        action,
+        params,
+    }))
 }
 
 #[cfg(test)]
@@ -333,8 +384,24 @@ mod tests {
         // Give is first, and ZootrGive false reaches the step.
         let (give, [_, next]) = asks(&flow, head(&flow));
         assert_eq!(give, argument("ZootrGive"));
-        let (step, [run, rest]) = asks(&flow, next);
+        let (step, [back, rest]) = asks(&flow, next);
         assert_eq!(step, argument("ZootrStep"));
+        let (asked, [rolled, run]) = asks(&flow, back);
+        assert_eq!(asked, argument("ZootrStepBack"));
+        let EventKind::Action { next, .. } = &flow.events[rolled as usize].kind else {
+            panic!("no rollback")
+        };
+        assert_eq!(*next, None, "a rollback ends the event");
+        for (key, arg) in [
+            (field::CHALLENGE_NAME, "ZootrChallenge"),
+            (field::CHALLENGE_STEP, "ZootrStepName"),
+        ] {
+            assert_eq!(param(&flow, rolled, key), &argument(arg), "{key}");
+        }
+        assert_eq!(param(&flow, rolled, QUIET), &Value::Bool(vec![true]));
+        let rollbacks = running(&flow, ROLLBACK);
+        assert!(rollbacks.contains(&rolled));
+        assert_eq!(rollbacks.len(), running(&before, ROLLBACK).len() + 1);
         assert_eq!(
             rest, was,
             "ZootrStep false reaches the original first event"
@@ -401,8 +468,18 @@ mod tests {
     #[test]
     fn the_hook_and_the_flow_name_the_same_arguments() {
         assert_eq!(
-            [arg(ARG_STEP), arg(ARG_CHALLENGE), arg(ARG_STEP_NAME)],
-            ["ZootrStep", "ZootrChallenge", "ZootrStepName"]
+            [
+                arg(ARG_STEP),
+                arg(ARG_CHALLENGE),
+                arg(ARG_STEP_NAME),
+                arg(ARG_STEP_BACK)
+            ],
+            [
+                "ZootrStep",
+                "ZootrChallenge",
+                "ZootrStepName",
+                "ZootrStepBack"
+            ]
         );
         assert_eq!(
             [arg(ARG_GIVE), arg(ARG_ACTOR), arg(ARG_EQUIP)],

@@ -56,6 +56,7 @@ pub const BOTTOM_OF_THE_WELL_LEVEL_ROOM01_WATER_LEVEL_DOWN: &Name = &n!(0x5e8bcb
 pub const BUNDLE_ACTOR: &Name = &n!(0xc713662b9f8a469a);
 pub const BUYING_PRICE: &Name = &n!(0xf56ace1bd839a9d2);
 pub const CHALLENGE_NAME: &Name = &n!(0xf436b138dfa158fd);
+pub const CHALLENGE_STEP: &Name = &n!(0xdf28911bc7e2db8c);
 pub const CHALLENGE_STEP_NAME: &Name = &n!(0x72f217621e57a5a7);
 pub const CHALLENGE_SYSTEM_ACTOR: &Name = &n!(0x2f8dad9ca80a790c);
 pub const CHANGE_MSTXT_FOR_ACTOR: &Name = &n!(0x21481809399fc717);

@@ -23,6 +23,7 @@ pub const EVENT_CAMERA: &Name = &n!(0x48cf53d31ccc6a50);
 pub const EVENT_DEMO_PRODUCT_SUPPORT_COMMENT: &Name = &n!(0x2389ac156cd4d5db);
 pub const EVENT_EVENT_FADE_IN: &Name = &n!(0xb69285a3c44c8bd8);
 pub const EVENT_EVENT_FADE_OUT: &Name = &n!(0x99d7194698bab91d);
+pub const EVENT_EXECUTE_ROLLBACK_CHALLENGE_STEP: &Name = &n!(0x71628ca820c408a9);
 pub const EVENT_EXECUTE_PROGRESS_CHALLENGE_STEP: &Name = &n!(0xb59ba4ffcfe11d44);
 pub const EVENT_MEMBER_CREATE_METHOD: &Name = &n!(0x21eefe405563cba0);
 pub const EVENT_MOVE_TO_TARGET_POS_CAMERA: &Name = &n!(0x89e0dc9aed88f573);
