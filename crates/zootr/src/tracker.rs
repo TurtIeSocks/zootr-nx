@@ -72,6 +72,11 @@ impl Tracker {
         })
     }
 
+    /// The Bool that's set once spot `hash` is checked, if known.
+    pub fn flag(&self, hash: u64) -> Option<u32> {
+        self.flags.get(&hash).copied()
+    }
+
     /// Takes every flag from `set`, a save or values read live.
     pub fn load(&mut self, set: impl Fn(u32) -> bool) -> Flips {
         self.on = self.flags.values().copied().filter(|&f| set(f)).collect();
