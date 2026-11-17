@@ -9,10 +9,11 @@
 //! scene brings its own Sheik, as all her others do.
 
 use anyhow::{Context, Result};
-use ounce_formats::ainb::{Graph, Patch};
+use ounce_formats::ainb::Patch;
 use ounce_formats::{Actor, EventKind, Flowchart, Params, Romfs, Value};
 
 use crate::flows::{self, Rewrites};
+use crate::graphs::{logic, node, relink};
 use crate::known::{Name, field, flag, flow, item, map};
 use crate::starting;
 
@@ -23,10 +24,6 @@ pub const MEDALLION: &Name = item::MEDAL_LIGHT;
 const DOOR: &Name = map::MARKET_COMMON_F252;
 const PEDESTAL: &Name = map::MARKET_ADULT_PREFAB_89DA;
 const SHEIK: &Name = map::MARKET_ADULT_PREFAB_7F43;
-/// The romfs path of logic module `name`.
-fn logic(name: &Name) -> String {
-    format!("Logic/{name}.logic.module.ainb")
-}
 const CHECK_STEP: &Name = field::HOLD_CHALLENGE_CURRENT_STEP_CHECK_ORDER;
 /// The step that opens the door.
 const OPEN_STEP: &str = "Step06";
@@ -52,42 +49,6 @@ const FIRST_ADULT: (&Name, &Name) = (flow::ALL_SAGE, field::MARKET_ADULT_ALL_SAG
 
 /// Patches one graph file.
 type Edit = fn(Vec<u8>) -> Result<Vec<u8>>;
-
-/// The one node of class `name` whose string `key` is `value`.
-fn node(graph: &Graph, (name, key): (&Name, &Name), value: &str) -> Result<usize> {
-    let mut found = (0..)
-        .zip(&graph.nodes)
-        .filter(|(_, n)| n.name == name && n.str(key) == Some(value));
-    let (i, _) = found
-        .next()
-        .with_context(|| format!("no {name} with {key} {value}"))?;
-    anyhow::ensure!(found.next().is_none(), "two {name} with {key} {value}");
-    Ok(i)
-}
-
-/// `(node, input, source)` of the one link from `from`'s `output`.
-fn link_from(graph: &Graph, from: usize, output: &str) -> Result<(usize, String, usize)> {
-    let links = graph.nodes.iter().enumerate().flat_map(|(n, node)| {
-        node.inputs.iter().flat_map(move |input| {
-            let at = input
-                .sources
-                .iter()
-                .position(|l| l.node == from && l.output == output);
-            at.map(|i| (n, input.name.clone(), i))
-        })
-    });
-    let links: Vec<_> = links.collect();
-    match &links[..] {
-        [one] => Ok(one.clone()),
-        _ => anyhow::bail!("{} links from node {from}'s {output}, not one", links.len()),
-    }
-}
-
-/// What reads `from.output` reads `to.output` instead.
-fn relink(patch: &mut Patch, from: (usize, &str), to: (usize, &str)) -> Result<()> {
-    let (n, input, i) = link_from(patch.graph(), from.0, from.1)?;
-    patch.relink(n, &input, i, to.0, to.1)
-}
 
 /// The door opens on `OPENED` where it opened after the step.
 fn door(data: Vec<u8>) -> Result<Vec<u8>> {
@@ -168,8 +129,11 @@ pub fn open(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<Vec<String>> {
 
 #[cfg(test)]
 mod tests {
+    use ounce_formats::ainb::Graph;
+
     use super::*;
     use crate::game::dev_dump;
+    use crate::graphs::link_from;
     use crate::known::{field, flag, flow};
 
     fn patched(romfs: &Romfs, name: &Name, patch: Edit) -> Graph {
