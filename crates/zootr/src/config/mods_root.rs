@@ -61,6 +61,7 @@ mod tests {
             bridge: None,
             env: vec![],
             harness_env: vec![],
+            rebuild: None,
         }
     }
 

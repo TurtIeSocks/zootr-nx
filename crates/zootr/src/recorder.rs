@@ -952,6 +952,7 @@ mod tests {
             bridge: None,
             env: vec![],
             harness_env: vec![],
+            rebuild: None,
         };
         let (tx, rx) = std::sync::mpsc::channel();
         let send = move |e| {
