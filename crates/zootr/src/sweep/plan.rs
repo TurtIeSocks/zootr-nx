@@ -241,7 +241,7 @@ impl Planner<'_> {
         Ok(Planned {
             spot: spot.clone(),
             trigger,
-            child,
+            child: child.or(spot.child),
             side,
         })
     }
@@ -842,7 +842,7 @@ mod tests {
                 p.spot.holder
             );
             assert!(at.iter().all(|v| v.is_finite()) && at.iter().any(|&v| v != 0.0));
-            assert_eq!(p.child, warp::era(map), "{map}");
+            assert_eq!(p.child, warp::era(map).or(p.spot.child), "{map}");
         }
         println!("{opens} of {} chests open", chests.len());
         assert!(

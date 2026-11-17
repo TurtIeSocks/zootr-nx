@@ -45,6 +45,10 @@ pub struct Spot {
     /// The item ids that rule names.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub need_items: Vec<String>,
+    /// `Some(true)` when only a child can get it by logic, `Some(false)`
+    /// only an adult. `None` for both, or when logic can't tell.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub child: Option<bool>,
 }
 
 fn is_false(b: &bool) -> bool {
