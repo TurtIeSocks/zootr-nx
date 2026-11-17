@@ -8,7 +8,7 @@
 use anyhow::{Result, ensure};
 use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs};
 
-use crate::key_tints::{POUCH_TEXT, TEXT_PARTS};
+use crate::key_tints::{MADE, POUCH_TEXT, TEXT_PARTS};
 use crate::keys::SMALL;
 use crate::standins::{
     POUCH, POUCH_ACTOR, Tables, actor_path, doc, path_of, pouch_actor, raw, renamed, resolved,
@@ -29,16 +29,17 @@ pub struct Foreign {
     pub player: String,
 }
 
-const PREFIX: &str = "Item_Rando_Ap";
+/// What follows [`MADE`] in a copy's name.
+const AP: &str = "Ap";
 
 /// The `n`th copy's actor.
 pub fn actor(n: usize) -> String {
-    format!("{PREFIX}{n:04}")
+    format!("{MADE}{AP}{n:04}")
 }
 
 /// Whether `item` is a copy for another player.
 pub fn is_foreign(item: &str) -> bool {
-    item.starts_with(PREFIX)
+    item.strip_prefix(MADE).is_some_and(|rest| rest.starts_with(AP))
 }
 
 /// The label naming `item`, if it's a copy: like a key ring, it answers

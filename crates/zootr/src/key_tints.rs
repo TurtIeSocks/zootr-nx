@@ -127,16 +127,19 @@ fn colour(dungeon: &Name) -> Option<Colour> {
         .or_else(|| OWN.iter().find(|(d, _)| *d == dungeon).map(|(_, c)| *c))
 }
 
+/// How every item actor the seed makes begins, the dump's prefix and ours.
+pub(crate) const MADE: &str = "Item_Rando_";
+
 /// Dungeon `n`'s small key as a chest's content. On the floor it's the
 /// model's own name.
 fn chest_key(n: usize) -> String {
-    format!("Item_Rando_SmallKey{n:02}")
+    format!("{MADE}SmallKey{n:02}")
 }
 
 /// Dungeon `n`'s key ring: its small key as a chest's content, but one
 /// the game neither stores nor counts. The hook sets the counter.
 pub fn ring(n: usize) -> String {
-    format!("Item_Rando_KeyRing{n:02}")
+    format!("{MADE}KeyRing{n:02}")
 }
 
 /// The model dungeon `n`'s ring copy shows as `keys` deals it: the ring
