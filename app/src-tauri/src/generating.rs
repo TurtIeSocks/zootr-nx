@@ -60,7 +60,7 @@ impl Generating {
             && progress::stopped(e).is_some_and(|s| s.took_off)
         {
             let mut history = History::load()?;
-            history.installed = None;
+            history.install(None);
             history.save()?;
         }
         report

@@ -215,6 +215,18 @@ pub fn newest(dir: &Path) -> Result<Option<PathBuf>> {
     Ok(files(dir)?.into_iter().max_by_key(modified))
 }
 
+/// Whether `path` was written at or after `since`, in Unix seconds. With no
+/// time, every save counts.
+pub fn written_since(path: &Path, since: Option<u32>) -> bool {
+    let Some(since) = since else {
+        return true;
+    };
+    let at = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(since.into());
+    std::fs::metadata(path)
+        .and_then(|m| m.modified())
+        .is_ok_and(|m| m >= at)
+}
+
 /// Each save as last read, to diff the next write against.
 #[derive(Default)]
 pub struct Watcher {
@@ -357,6 +369,23 @@ pub fn set(gd: &GameData, save: &mut Save, edits: &[String]) -> Result<Vec<Strin
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_save_counts_from_the_install_on() {
+        let dir = std::env::temp_dir().join(format!("zootr-since-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let save = dir.join("progress.sav");
+        std::fs::write(&save, b"save").unwrap();
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as u32;
+        assert!(written_since(&save, None));
+        assert!(written_since(&save, Some(now - 60)));
+        assert!(!written_since(&save, Some(now + 60)));
+        assert!(!written_since(&dir.join("gone.sav"), Some(0)));
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
     use super::*;
 
     /// A save with bools `(hash, value)` and binaries `(hash, data)`.
