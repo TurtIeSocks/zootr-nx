@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 
 use anyhow::{Context, Result, bail, ensure};
-use ounce_formats::{Byml, BymlDoc, Romfs, files_with_suffix, par_batches};
+use ounce_formats::{Byml, BymlDoc, BymlMap, Romfs, files_with_suffix, par_batches};
 
 use crate::known::{Name, actor, field};
 use crate::world::{Presence, presence_of};
@@ -264,6 +264,35 @@ pub fn set_drops(
                 .insert(GYAML.into(), format!("{chest}{bake}").into());
         }
         changed.push(hash);
+    }
+    Ok(changed)
+}
+
+/// Gives `actor` a Presence on `flag`, read lazily, so never mid-open.
+/// Negated, it stands only while the flag is unset.
+pub(crate) fn gate(actor: &mut Byml, flag: &str, negated: bool) -> Result<()> {
+    let map = actor.as_mut_map()?;
+    ensure!(!map.contains_key("Presence"), "{flag}: already gated");
+    let mut presence = BymlMap::default();
+    presence.insert(field::FLAG_NAME.get().into(), Byml::String(flag.into()));
+    presence.insert(field::IS_CHECK_LAZY.get().into(), Byml::Bool(true));
+    presence.insert(field::IS_NEGATION.get().into(), Byml::Bool(negated));
+    map.insert("Presence".into(), Byml::Map(presence));
+    Ok(())
+}
+
+/// Gate each placement in `gone` on its flag, so it's gone once the flag
+/// is set. Returns the hashes changed in this document.
+pub fn gone_once(root: &mut Byml, gone: &[(u64, String)]) -> Result<Vec<u64>> {
+    let mut changed = Vec::new();
+    for actor in actors_mut(root)? {
+        let Some(hash) = hash_of(actor) else {
+            continue;
+        };
+        for (_, flag) in gone.iter().filter(|g| g.0 == hash) {
+            gate(actor, flag, true)?;
+            changed.push(hash);
+        }
     }
     Ok(changed)
 }

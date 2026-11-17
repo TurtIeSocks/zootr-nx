@@ -62,7 +62,12 @@ pub(super) fn flows(
     dampe::give(romfs, &mut rewrites, drops)?;
     gerudo::stand_down(romfs, &mut rewrites, drops)?;
     if new_game.scrubs {
-        scrubs::write(romfs, &mut rewrites, drops, new_game.scrub_price)?;
+        let model = gifts::levels::model(all)?;
+        let level = scrubs::Level {
+            model: &model,
+            progressive: new_game.progressive,
+        };
+        scrubs::write(romfs, &mut rewrites, drops, new_game.scrub_price, level)?;
     }
     if new_game.cows {
         let level = (new_game.progressive)
@@ -140,6 +145,13 @@ pub fn write_mod(
     let mut bools = cows::flags(&cows);
     bools.extend(gifts::flags(&new_game.on));
     bools.extend(dampe::flags(drops));
+    let gone = match new_game.scrubs {
+        true => {
+            bools.extend(scrubs::flags(drops));
+            scrubs::gone(drops)
+        }
+        false => Vec::new(),
+    };
     let made = key_tints::made(key_copies.0, key_copies.1);
     let gd = gamedata::GameData::load(romfs)?;
     let opened = tracker::chest_flags(&gd)?;
@@ -241,6 +253,9 @@ pub fn write_mod(
         // First, so a check placed in its twin's map takes its drop below.
         let twinned = twins::place(&rel, &mut doc.root, &twins)? > 0;
         let mut changed = checks::set_fields(&mut doc.root, &fields)?;
+        changed.extend(checks::gone_once(&mut doc.root, &gone)?);
+        let leaves = scrubs::leaves(&doc.root, &gone)?;
+        changed.extend(checks::gone_once(&mut doc.root, &leaves)?);
         changed.extend(checks::clear_drops(&mut doc.root, carried)?);
         changed.extend(checks::set_drops(
             &mut doc.root,

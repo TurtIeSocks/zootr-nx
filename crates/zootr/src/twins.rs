@@ -13,11 +13,10 @@
 
 use std::collections::HashSet;
 
-use anyhow::{Context, Result, ensure};
-use ounce_formats::{Byml, BymlMap, Romfs};
+use anyhow::{Context, Result};
+use ounce_formats::{Byml, Romfs};
 
 use crate::checks::{self, GYAML, TRANSLATE, actors, hash_of, str_field, vec3};
-use crate::known::field;
 
 /// How far apart two placements can be, in m, and still share a spot.
 const SAME_SPOT: f32 = 0.05;
@@ -148,31 +147,19 @@ pub fn place(file: &str, root: &mut Byml, twins: &[Twin]) -> Result<usize> {
                 .iter_mut()
                 .find(|a| hash_of(a) == Some(twin))
                 .with_context(|| format!("no twin {twin} in {file}"))?;
-            gate(twin, &alias, false)?;
-            gate(&mut copy, &alias, true)?;
+            checks::gate(twin, &alias, false)?;
+            checks::gate(&mut copy, &alias, true)?;
         }
         list.push(copy);
     }
     Ok(mine.len())
 }
 
-/// Gives `actor` a Presence on `flag`, read lazily, so never mid-open.
-fn gate(actor: &mut Byml, flag: &str, negated: bool) -> Result<()> {
-    let map = actor.as_mut_map()?;
-    ensure!(!map.contains_key("Presence"), "{flag}: already gated");
-    let mut presence = BymlMap::default();
-    presence.insert(field::FLAG_NAME.get().into(), Byml::String(flag.into()));
-    presence.insert(field::IS_CHECK_LAZY.get().into(), Byml::Bool(true));
-    presence.insert(field::IS_NEGATION.get().into(), Byml::Bool(negated));
-    map.insert("Presence".into(), Byml::Map(presence));
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::generate::shuffle;
-    use crate::known::{Name, flag, map};
+    use crate::known::{Name, field, flag, map};
     use crate::progress::Run;
     use crate::settings::NewGame;
     use crate::shuffle::Fixed;

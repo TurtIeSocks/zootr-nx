@@ -151,6 +151,11 @@ impl Scrub {
         self.placements[0]
     }
 
+    /// The Bool set once Link buys here, shared by every copy of the spot.
+    pub(super) fn flag(&self) -> String {
+        format!("Rando_ScrubSold_{}", self.hash())
+    }
+
     fn holder(&self) -> String {
         match self.name {
             "" => HOLDER.into(),

@@ -164,6 +164,7 @@ pub const SAGE_OF_LIGHT: &Name = &n!(0x562ba60fdb854434);
 pub const SAGE_OF_SPIRIT_IS_AFTER_STEP01_EXP: &Name = &n!(0x251d4c944a8a76d0);
 pub const SAGE_ROOM: &Name = &n!(0x13f00c7a43fc73b2);
 pub const SARIA_SONG: &Name = &n!(0xc301b3a33ababf22);
+pub const SCRUB_BUSINESS_BUY_SUCCESS: &Name = &n!(0xd6d75a225d1c78f8);
 pub const SCRUB_BUSINESS_SEED: &Name = &n!(0xc6987455a989fe5b);
 pub const SCRUB_BUSINESS_TEMP_ITEM_NAME_00: &Name = &n!(0xb37405fcff622a9f);
 pub const SEQUENCE_CURRENT_BANC: &Name = &n!(0x856d2c203bae93c4);

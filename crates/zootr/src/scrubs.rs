@@ -11,8 +11,6 @@ pub const FLOW: &Name = flow::ENEMY_SCRUB_BUSINESS_COMMON;
 pub const HOLDER: &str = "Business Scrub";
 /// The placed actor every Business Scrub check is.
 pub const ACTOR: &Name = actor::ENEMY_SCRUB_BUSINESS;
-/// The entry a repeat spot's talk runs once it's a check.
-static ENTRY: LazyLock<String> = LazyLock::new(|| format!("{ACTOR}_Check"));
 /// Copies the placement's items into `TEMP`, then dispatches on it.
 const ROOT: &Name = flow::SIMPLE_SHOP_ROOT_ENEMY_SCRUB_BUSINESS_POUCH;
 const SECRET: &str = "Secret";
@@ -36,8 +34,11 @@ const WAIT_PAID: (&Name, &Name) = (field::UI_SYSTEM_ACTOR, flow::EVENT_WAIT_STAB
 const PRICE: &Name = flag::SIMPLE_SHOP_PRICE;
 /// The sale call's price, which `PRICE` takes and the seller line shows.
 const PRICE_PARAM: &str = "Price";
-/// A flag the vanilla chain asks for, copied to ask for another.
-const SOME_FLAG: &Name = flag::IS_GET_ITEM_DEKU_STICK;
+/// Set by a sale Link paid for, and asked after the pouch root returns.
+const BOUGHT: &Name = flag::SCRUB_BUSINESS_BUY_SUCCESS;
+/// A one-time talk: the pouch root, then whether Link paid, then its sold
+/// flag. Each spot's entry copies the last two.
+const SOLD_LIKE: &Name = flag::ENEMY_SCRUB_BUSINESS_DEKU_STICK_POUCH_01;
 /// What the scrub's talk starts with, to find the talk's `TEMP` write.
 const WRITE_ITEM: (&Name, &Name) = (
     ACTOR,
@@ -80,6 +81,6 @@ mod spots;
 #[cfg(test)]
 mod tests;
 
-pub use placements::{events, fields, lines};
-pub use sales::write;
+pub use placements::{events, fields, flags, gone, leaves, lines};
+pub(crate) use sales::{Level, write};
 pub use spots::{SCRUBS, checks, of};
