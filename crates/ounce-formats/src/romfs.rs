@@ -243,16 +243,45 @@ impl<'a> ModBuilder<'a> {
         self.put(&restbl_rel, &restbl)?;
         self.flush()?;
         self.written.push(self.restbl_rel);
-        let old = sibling(&self.mod_dir, "old")?;
-        clear(&old)?;
-        if self.mod_dir.exists() {
-            std::fs::rename(&self.mod_dir, &old)?;
-        }
-        std::fs::rename(&self.staging, &self.mod_dir)
-            .with_context(|| format!("moving the mod into {}", self.mod_dir.display()))?;
-        clear(&old)?;
+        swap_in(&self.staging, &self.mod_dir)?;
         Ok(self.written)
     }
+}
+
+/// Replace `mod_dir` whole with `staging`, keeping it until the move lands.
+fn swap_in(staging: &Path, mod_dir: &Path) -> Result<()> {
+    let old = sibling(mod_dir, "old")?;
+    clear(&old)?;
+    if mod_dir.exists() {
+        std::fs::rename(mod_dir, &old)?;
+    }
+    std::fs::rename(staging, mod_dir)
+        .with_context(|| format!("moving the mod into {}", mod_dir.display()))?;
+    clear(&old)
+}
+
+/// Copy a written mod folder over `to`, staged and swapped in as
+/// [`ModBuilder::finish`] does, so a failed copy leaves `to` as it was.
+pub fn copy_mod(from: &Path, to: &Path) -> Result<()> {
+    let staging = sibling(to, "part")?;
+    clear(&staging)?;
+    copy_dir(from, &staging)
+        .with_context(|| format!("copying {} to {}", from.display(), to.display()))?;
+    std::fs::write(staging.join(MARKER), b"")?;
+    swap_in(&staging, to)
+}
+
+fn copy_dir(from: &Path, to: &Path) -> Result<()> {
+    std::fs::create_dir_all(to)?;
+    for entry in std::fs::read_dir(from)? {
+        let entry = entry?;
+        let dest = to.join(entry.file_name());
+        match entry.file_type()?.is_dir() {
+            true => copy_dir(&entry.path(), &dest)?,
+            false => _ = std::fs::copy(entry.path(), &dest)?,
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]

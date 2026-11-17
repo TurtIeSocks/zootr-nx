@@ -9,6 +9,7 @@ use ounce_formats::Romfs;
 use super::{Extras, Held, Report, RoundEvent, Spot, Start, write_mod};
 use crate::logic::{Got, World};
 use crate::names::Names;
+use crate::progress::{Run, Step};
 use crate::rules::{self, Book, Ctx, Have, Need};
 use crate::settings::{self, Logic, NewGame, Settings};
 use crate::shuffle::{self, Fixed};
@@ -22,23 +23,30 @@ pub fn shuffle(
     seed: u64,
     fixed: &Fixed,
     new_game: &NewGame,
+    run: &Run,
 ) -> Result<Report> {
     let new_game = &NewGame {
         seed,
         ..new_game.clone()
     };
+    run.step(Step::Checks)?;
     let checks = checks::dealt(romfs, new_game)?;
     let logic = new_game.logic == Logic::Glitchless && !new_game.vanilla;
     let fixed = &shuffle::own_dungeon(&checks, seed, fixed, new_game)?;
     let (placements, filled) = match logic {
         true => {
+            run.step(Step::Logic)?;
             let ctx = Ctx::new(new_game);
             let world = World::build(romfs, &Book::load()?, &ctx, &checks)?;
+            run.step(Step::Placing)?;
             let deal = shuffle::deal(&checks, fixed, new_game)?;
-            let filled = fill::fill(&world, &checks, deal, seed, new_game)?;
+            let filled = fill::fill(&world, &checks, deal, seed, new_game, run)?;
             (filled.placements.clone(), Some((world, filled)))
         }
-        false => (shuffle::shuffle(&checks, seed, fixed, new_game)?, None),
+        false => {
+            run.step(Step::Placing)?;
+            (shuffle::shuffle(&checks, seed, fixed, new_game)?, None)
+        }
     };
     let drops = shuffle::drops(&checks, &placements);
     let have = fill::start(new_game);
@@ -56,7 +64,6 @@ pub fn shuffle(
         (true, Some((world, _))) => hints::choose(&spots, &world.items(), seed),
         _ => vec![],
     };
-    let written = write_mod(romfs, mod_dir, &drops, new_game, &hints)?;
     let (mut events, mut unprovable) = (Vec::new(), Vec::new());
     if let Some((world, filled)) = &filled {
         events = rounds(world, filled, &mut spots);
@@ -71,6 +78,8 @@ pub fn shuffle(
             .map(|s| format!("{}: {}", s.area_name, s.name()))
             .collect();
     }
+    run.step(Step::Writing)?;
+    let written = write_mod(romfs, mod_dir, &drops, new_game, &hints, run)?;
     Ok(Report {
         seed,
         spots,
@@ -168,6 +177,7 @@ pub fn generate(
     seed: u64,
     settings: &Settings,
     extras: &Extras,
+    run: &Run,
 ) -> Result<Report> {
     let mut new_game = NewGame {
         spawn: extras.spawn.clone(),
@@ -182,7 +192,8 @@ pub fn generate(
             .progress
             .extend(steps::parse_all(&gd, &extras.progress)?);
     }
-    let report = shuffle(romfs, mod_dir, seed, &extras.place, &new_game)?;
+    let report = shuffle(romfs, mod_dir, seed, &extras.place, &new_game, run)?;
+    run.step(Step::Spoiler)?;
     let icons = icons::icons(seed, settings, extras);
     std::fs::write(mod_dir.join("spoiler.txt"), report.spoiler(&icons))?;
     Ok(report)

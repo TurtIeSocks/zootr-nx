@@ -1,3 +1,4 @@
+import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import {
   cleanup,
   fireEvent,
@@ -18,6 +19,7 @@ import { useUi } from "@/stores/ui";
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  clearMocks();
 });
 
 const target = { name: "Emu", app: "/a.app", mod_dir: "/m" };
@@ -235,6 +237,8 @@ test("deleting a seed and clearing history each ask for a second click", async (
 });
 
 test("a pasted share code goes to Generate whole, a seed as digits", async () => {
+  // Its steps come back on a channel, which needs the IPC.
+  mockIPC(() => {});
   const generate = vi.spyOn(commands, "generate").mockResolvedValue({
     status: "ok",
     data: seed,
@@ -244,7 +248,9 @@ test("a pasted share code goes to Generate whole, a seed as digits", async () =>
   const box = screen.getByRole("textbox", { name: "Seed or share code" });
   fireEvent.change(box, { target: { value: " ZR1-ab_c-9 " } });
   fireEvent.click(button("Generate & install"));
-  await waitFor(() => expect(generate).toHaveBeenCalledWith("ZR1-ab_c-9"));
+  await waitFor(() =>
+    expect(generate).toHaveBeenCalledWith("ZR1-ab_c-9", expect.anything()),
+  );
   fireEvent.change(box, { target: { value: "12a34" } });
   expect((box as HTMLInputElement).value).toBe("1234");
 });

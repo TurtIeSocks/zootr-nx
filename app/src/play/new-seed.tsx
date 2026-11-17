@@ -1,6 +1,7 @@
 import {
   CircleAlert,
   CircleOff,
+  CircleStop,
   Dices,
   FlaskConical,
   Loader2,
@@ -24,9 +25,10 @@ import { testSummary } from "@/lib/config";
 import { count, seedOrCode } from "@/lib/format";
 import { savedAs } from "@/lib/plando";
 import { summary } from "@/lib/settings";
+import { GenerateSteps } from "@/play/generate-steps";
 import { SettingsChanged } from "@/play/settings-changed";
 import { useConfig } from "@/stores/config";
-import { generate, uninstall, useSeeds } from "@/stores/seeds";
+import { generate, stopGenerate, uninstall, useSeeds } from "@/stores/seeds";
 import { openSettings } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
 
@@ -42,6 +44,7 @@ export function NewSeed() {
     >
       <div className="flex flex-col gap-3 px-4 pt-2 pb-4">
         <SeedRow />
+        <GenerateSteps />
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-muted">
           <SettingsSummary />
           <button
@@ -133,10 +136,26 @@ function VanillaButton() {
 }
 
 /** Generates from the typed seed, read on click. Blocked, it stays
- * hoverable and its tooltip says why. */
-function GenerateButton() {
+ * hoverable and its tooltip says why. While a seed generates, it's Stop. */
+export function GenerateButton() {
   const [busy] = useSeeds.usePath("busy");
   const [blocked] = useSeeds.usePath("blocked");
+  const [generating] = useSeeds.usePath("generating");
+  const [stopping] = useSeeds.usePath("stopping");
+  if (generating) {
+    return (
+      <Button
+        size="lg"
+        variant="secondary"
+        className="ml-auto"
+        disabled={stopping}
+        onClick={stopGenerate}
+      >
+        {stopping ? <Loader2 className="animate-spin" /> : <CircleStop />}
+        {stopping ? "Stopping" : "Stop"}
+      </Button>
+    );
+  }
   return (
     <Tooltip open={blocked ? undefined : false}>
       <TooltipTrigger asChild>
