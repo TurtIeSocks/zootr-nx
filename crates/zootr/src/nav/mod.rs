@@ -156,6 +156,14 @@ impl Level {
 /// half a metre, and a floor farther down is past a drop.
 const UNDERFOOT: f32 = 1.0;
 
+/// An item lying out up where the mesh has no floor a step under it: the
+/// Graveyard's heart piece tops a pillar 1.2 m over the path, and A from
+/// the path never reached it in 15 sweeps. Warped onto the pillar, Link
+/// took it with A (Mac, 2026-11-17).
+pub fn aloft(graph: &graph::Graph, holder: &Placement) -> bool {
+    kinds::word(&holder.name) == Some("item") && graph.floor(holder.pose.at, UNDERFOOT).is_none()
+}
+
 /// Where to warp beside `holder`: its `first` side, `planned` for the
 /// front, unless no floor lies under it (past a ledge, over a pit), then
 /// the first other side at the same distance that has one. A warp over a
@@ -289,6 +297,33 @@ mod tests {
         );
         assert_eq!(level.standing_at([2.5, 0.0, 3.0]).unwrap().name, "Npc");
         assert!(level.standing_at([2.5, 0.0, 2.0]).is_err());
+    }
+
+    #[test]
+    fn an_item_is_aloft_only_with_no_floor_a_step_under_it() {
+        let floor = fixture::mesh(&[fixture::quad(0.0, 0.0, 4.0, 4.0, 0.0)]);
+        let graph = graph::Graph::build(&floor, &[], graph::STEP_UP);
+        // Made up: a `known` name reads as its hash without the dump.
+        let at = |name: &str, y| Placement {
+            name: name.to_string(),
+            hash: None,
+            label: None,
+            pose: crate::warp::Pose {
+                at: [2.0, y, 2.0],
+                rotate: [0.0; 3],
+                scale: [1.0; 3],
+            },
+            presence: None,
+        };
+        assert!(
+            aloft(&graph, &at("Obj_FakeHeart_Piece", 1.5)),
+            "on a pillar"
+        );
+        assert!(
+            !aloft(&graph, &at("Obj_FakeHeart_Piece", 0.0)),
+            "on the floor"
+        );
+        assert!(!aloft(&graph, &at("Obj_FakeTBox", 1.5)), "a chest isn't");
     }
 
     #[test]
