@@ -12,4 +12,5 @@ pub mod plan;
 pub mod report;
 mod shop;
 pub mod spot;
+pub mod verdict;
 mod watch;
