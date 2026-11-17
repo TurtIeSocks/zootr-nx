@@ -28,11 +28,11 @@
     {
       "at": [
         {
-          "place": "kokiri-forest-child",
+          "place": "kokiri-forest-adult",
           "rule": true
         },
         {
-          "place": "kokiri-forest-adult",
+          "place": "kokiri-forest-child",
           "rule": true
         }
       ],
@@ -1136,42 +1136,6 @@
     {
       "at": [
         {
-          "place": "lost-woods-child",
-          "rule": {
-            "any": [
-              {
-                "count": 1,
-                "items": [
-                  "Progressive Bomb Bag"
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Bombchus (5)"
-                    ]
-                  },
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "setting": "free-bombchus"
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        {
           "place": "lost-woods-adult",
           "rule": {
             "any": [
@@ -1212,6 +1176,42 @@
                 "count": 1,
                 "items": [
                   "Megaton Hammer"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "lost-woods-child",
+          "rule": {
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Bomb Bag"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Bombchus (5)"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "setting": "free-bombchus"
+                      }
+                    ]
+                  }
                 ]
               }
             ]
@@ -1892,10 +1892,6 @@
         {
           "place": "jabu-jabu-child",
           "rule": true
-        },
-        {
-          "place": "jabu-jabu-adult",
-          "rule": true
         }
       ],
       "forbid": [],
@@ -2452,42 +2448,6 @@
     {
       "at": [
         {
-          "place": "lost-woods-child",
-          "rule": {
-            "any": [
-              {
-                "count": 1,
-                "items": [
-                  "Progressive Bomb Bag"
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Bombchus (5)"
-                    ]
-                  },
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "setting": "free-bombchus"
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        {
           "place": "lost-woods-adult",
           "rule": {
             "any": [
@@ -2528,6 +2488,42 @@
                 "count": 1,
                 "items": [
                   "Megaton Hammer"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "lost-woods-child",
+          "rule": {
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Bomb Bag"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Bombchus (5)"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "setting": "free-bombchus"
+                      }
+                    ]
+                  }
                 ]
               }
             ]
@@ -2888,11 +2884,11 @@
     {
       "at": [
         {
-          "place": "lost-woods-child",
+          "place": "lost-woods-adult",
           "rule": true
         },
         {
-          "place": "lost-woods-adult",
+          "place": "lost-woods-child",
           "rule": true
         }
       ],
@@ -2935,25 +2931,6 @@
               }
             ]
           }
-        },
-        {
-          "place": "bottom-of-the-well-adult",
-          "rule": {
-            "all": [
-              {
-                "count": 1,
-                "items": [
-                  "Progressive Ocarina"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Zelda's Lullaby"
-                ]
-              }
-            ]
-          }
         }
       ],
       "forbid": [],
@@ -2966,10 +2943,6 @@
       "at": [
         {
           "place": "jabu-jabu-child",
-          "rule": true
-        },
-        {
-          "place": "jabu-jabu-adult",
           "rule": true
         }
       ],
@@ -5358,10 +5331,6 @@
         {
           "place": "jabu-jabu-child",
           "rule": true
-        },
-        {
-          "place": "jabu-jabu-adult",
-          "rule": true
         }
       ],
       "forbid": [
@@ -6107,99 +6076,6 @@
     {
       "at": [
         {
-          "place": "hyrule-field-child",
-          "rule": {
-            "all": [
-              {
-                "any": [
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
-                          },
-                          {
-                            "any": [
-                              {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
-                              },
-                              {
-                                "setting": "free-bombchus"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Magic Meter"
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Din's Fire"
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "any": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bomb Bag"
-                    ]
-                  },
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Bombchus (5)"
-                        ]
-                      },
-                      {
-                        "any": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
-                          },
-                          {
-                            "setting": "free-bombchus"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        {
           "place": "hyrule-field-adult",
           "rule": {
             "all": [
@@ -6343,6 +6219,99 @@
                     "count": 1,
                     "items": [
                       "Scarecrow's Song"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              },
+                              {
+                                "setting": "free-bombchus"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Din's Fire"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "setting": "free-bombchus"
+                          }
+                        ]
+                      }
                     ]
                   }
                 ]
@@ -6840,10 +6809,6 @@
       "at": [
         {
           "place": "deku-tree-child",
-          "rule": true
-        },
-        {
-          "place": "deku-tree-adult",
           "rule": true
         }
       ],
@@ -7577,10 +7542,6 @@
         {
           "place": "deku-tree-child",
           "rule": true
-        },
-        {
-          "place": "deku-tree-adult",
-          "rule": true
         }
       ],
       "forbid": [],
@@ -7707,11 +7668,11 @@
     {
       "at": [
         {
-          "place": "kakariko-village-adult-alternative-adult",
+          "place": "kakariko-village-adult",
           "rule": true
         },
         {
-          "place": "kakariko-village-adult",
+          "place": "kakariko-village-adult-alternative-adult",
           "rule": true
         },
         {
@@ -7753,25 +7714,6 @@
               }
             ]
           }
-        },
-        {
-          "place": "bottom-of-the-well-adult",
-          "rule": {
-            "all": [
-              {
-                "count": 1,
-                "items": [
-                  "Progressive Ocarina"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Zelda's Lullaby"
-                ]
-              }
-            ]
-          }
         }
       ],
       "forbid": [],
@@ -7784,10 +7726,6 @@
       "at": [
         {
           "place": "deku-tree-child",
-          "rule": true
-        },
-        {
-          "place": "deku-tree-adult",
           "rule": true
         }
       ],
@@ -8883,10 +8821,6 @@
     },
     {
       "at": [
-        {
-          "place": "lost-woods-child",
-          "rule": true
-        },
         {
           "place": "lost-woods-child",
           "rule": true
@@ -11444,10 +11378,6 @@
         {
           "place": "gohma-room-child",
           "rule": true
-        },
-        {
-          "place": "gohma-room-adult",
-          "rule": true
         }
       ],
       "name": "vanilla-272710906552258554"
@@ -13367,10 +13297,6 @@
         {
           "place": "gohma-room-child",
           "rule": true
-        },
-        {
-          "place": "gohma-room-adult",
-          "rule": true
         }
       ],
       "name": "vanilla-2478360857842555164"
@@ -13715,10 +13641,6 @@
         {
           "place": "gohma-room-child",
           "rule": true
-        },
-        {
-          "place": "gohma-room-adult",
-          "rule": true
         }
       ],
       "name": "vanilla-2988260348651760167"
@@ -14008,10 +13930,6 @@
       "at": [
         {
           "place": "jabu-jabu-child",
-          "rule": true
-        },
-        {
-          "place": "jabu-jabu-adult",
           "rule": true
         }
       ],
@@ -17902,10 +17820,6 @@
         {
           "place": "gohma-room-child",
           "rule": true
-        },
-        {
-          "place": "gohma-room-adult",
-          "rule": true
         }
       ],
       "name": "vanilla-9885852591435111570"
@@ -21568,10 +21482,6 @@
         {
           "place": "jabu-jabu-child",
           "rule": true
-        },
-        {
-          "place": "jabu-jabu-adult",
-          "rule": true
         }
       ],
       "name": "vanilla-14933854942830098290"
@@ -22072,10 +21982,6 @@
       "at": [
         {
           "place": "gohma-room-child",
-          "rule": true
-        },
-        {
-          "place": "gohma-room-adult",
           "rule": true
         }
       ],
@@ -23211,10 +23117,6 @@
       "at": [
         {
           "place": "gohma-room-child",
-          "rule": true
-        },
-        {
-          "place": "gohma-room-adult",
           "rule": true
         }
       ],
@@ -25345,11 +25247,6 @@
       "to": "sacred-forest-meadow-child"
     },
     {
-      "from": "barinade-room-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
       "from": "barinade-room-child",
       "rule": true,
       "to": "anywhere-child"
@@ -25358,47 +25255,6 @@
       "from": "bongo-bongo-room-adult",
       "rule": true,
       "to": "anywhere-adult"
-    },
-    {
-      "from": "bongo-bongo-room-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "bottom-of-the-well-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "bottom-of-the-well-adult",
-      "rule": true,
-      "to": "kakariko-village-adult"
-    },
-    {
-      "from": "bottom-of-the-well-adult",
-      "rule": {
-        "all": [
-          {
-            "count": 1,
-            "items": [
-              "Beat PhantomGanon"
-            ]
-          },
-          {
-            "count": 1,
-            "items": [
-              "Beat Volvagia"
-            ]
-          },
-          {
-            "count": 1,
-            "items": [
-              "Beat Morpha"
-            ]
-          }
-        ]
-      },
-      "to": "kakariko-village-adult-alternative-adult"
     },
     {
       "from": "bottom-of-the-well-child",
@@ -25729,16 +25585,6 @@
       "to": "kakariko-village-child"
     },
     {
-      "from": "deku-tree-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "deku-tree-adult",
-      "rule": true,
-      "to": "kokiri-forest-adult"
-    },
-    {
       "from": "deku-tree-child",
       "rule": true,
       "to": "anywhere-child"
@@ -25924,16 +25770,6 @@
       "to": "volvagia-room-adult"
     },
     {
-      "from": "fire-temple-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "fire-temple-child",
-      "rule": true,
-      "to": "death-mountain-crater-child"
-    },
-    {
       "from": "forest-temple-adult",
       "rule": true,
       "to": "anywhere-adult"
@@ -25987,26 +25823,6 @@
       "to": "sacred-forest-meadow-adult"
     },
     {
-      "from": "forest-temple-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "forest-temple-child",
-      "rule": true,
-      "to": "sacred-forest-meadow-child"
-    },
-    {
-      "from": "ganondorf-room-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "ganondorf-room-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
       "from": "ganons-castle-adult",
       "rule": true,
       "to": "anywhere-adult"
@@ -26020,16 +25836,6 @@
       "from": "ganons-castle-adult",
       "rule": true,
       "to": "market-adult"
-    },
-    {
-      "from": "ganons-castle-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "ganons-castle-child",
-      "rule": true,
-      "to": "inside-ganons-castle-child"
     },
     {
       "from": "gerudo-fortress-adult",
@@ -26092,11 +25898,6 @@
       "to": "gerudo-fortress-adult"
     },
     {
-      "from": "gerudo-training-ground-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
       "from": "gerudo-valley-adult",
       "rule": true,
       "to": "anywhere-adult"
@@ -26135,11 +25936,6 @@
       "from": "gerudo-valley-adult",
       "rule": true,
       "to": "hyrule-field-adult"
-    },
-    {
-      "from": "gohma-room-adult",
-      "rule": true,
-      "to": "anywhere-adult"
     },
     {
       "from": "gohma-room-child",
@@ -26596,16 +26392,6 @@
       "to": "desert-colossus-child"
     },
     {
-      "from": "hyrule-castle-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "hyrule-castle-adult",
-      "rule": true,
-      "to": "hyrule-field-adult"
-    },
-    {
       "from": "hyrule-castle-child",
       "rule": true,
       "to": "anywhere-child"
@@ -26778,16 +26564,6 @@
       "to": "zora-fountain-adult"
     },
     {
-      "from": "ice-cavern-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "ice-cavern-child",
-      "rule": true,
-      "to": "zora-fountain-child"
-    },
-    {
       "from": "inside-ganons-castle-adult",
       "rule": true,
       "to": "anywhere-adult"
@@ -26796,26 +26572,6 @@
       "from": "inside-ganons-castle-adult",
       "rule": true,
       "to": "ganons-castle-adult"
-    },
-    {
-      "from": "inside-ganons-castle-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "inside-ganons-castle-child",
-      "rule": true,
-      "to": "ganons-castle-child"
-    },
-    {
-      "from": "jabu-jabu-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "jabu-jabu-adult",
-      "rule": true,
-      "to": "zora-fountain-adult"
     },
     {
       "from": "jabu-jabu-child",
@@ -27383,209 +27139,9 @@
       "to": "anywhere-adult"
     },
     {
-      "from": "morpha-room-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
       "from": "phantom-ganon-room-adult",
       "rule": true,
       "to": "anywhere-adult"
-    },
-    {
-      "from": "phantom-ganon-room-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-010ea491-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-010ea491-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-03a8e5be-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-03a8e5be-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-0e1f7f7d-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-0e1f7f7d-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-13f00c7a-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-13f00c7a-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-194d1f24-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-194d1f24-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-2060a385-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-2060a385-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-2e654855-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-2e654855-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-41121949-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-41121949-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-4a032ddf-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-4a032ddf-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-4ce361d4-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-4ce361d4-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-62cce28f-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-62cce28f-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-6369ae1a-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-6369ae1a-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-714b1ea2-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-714b1ea2-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-7b5ec68e-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-7b5ec68e-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-a03f8b8f-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-a03f8b8f-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-a1b6ec8d-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-a1b6ec8d-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-a5d4c95c-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-a5d4c95c-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-ac68834f-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-ac68834f-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-acb615f1-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-acb615f1-child",
-      "rule": true,
-      "to": "anywhere-child"
     },
     {
       "from": "place-b13887e8-child",
@@ -27596,46 +27152,6 @@
       "from": "place-b13887e8-child",
       "rule": true,
       "to": "hyrule-field-child"
-    },
-    {
-      "from": "place-d25ef2f3-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-d25ef2f3-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-d51f2fe5-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-d51f2fe5-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-f31cbb5b-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-f31cbb5b-adult",
-      "rule": true,
-      "to": "place-714b1ea2-adult"
-    },
-    {
-      "from": "place-f31cbb5b-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "place-f31cbb5b-child",
-      "rule": true,
-      "to": "place-714b1ea2-child"
     },
     {
       "from": "sacred-forest-meadow-adult",
@@ -27776,16 +27292,6 @@
       "to": "graveyard-adult"
     },
     {
-      "from": "shadow-temple-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "shadow-temple-child",
-      "rule": true,
-      "to": "graveyard-child"
-    },
-    {
       "from": "spirit-temple-adult",
       "rule": true,
       "to": "anywhere-adult"
@@ -27915,19 +27421,9 @@
       "to": "anywhere-adult"
     },
     {
-      "from": "twinrova-room-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
       "from": "volvagia-room-adult",
       "rule": true,
       "to": "anywhere-adult"
-    },
-    {
-      "from": "volvagia-room-child",
-      "rule": true,
-      "to": "anywhere-child"
     },
     {
       "from": "water-temple-adult",
@@ -28032,16 +27528,6 @@
         ]
       },
       "to": "morpha-room-adult"
-    },
-    {
-      "from": "water-temple-child",
-      "rule": true,
-      "to": "anywhere-child"
-    },
-    {
-      "from": "water-temple-child",
-      "rule": true,
-      "to": "hyrule-field-child"
     },
     {
       "from": "zora-domain-adult",
@@ -28302,60 +27788,26 @@
   "goal": "victory",
   "places": [
     "barinade-room-child",
-    "barinade-room-adult",
-    "place-4a032ddf-child",
-    "place-4a032ddf-adult",
-    "bongo-bongo-room-child",
     "bongo-bongo-room-adult",
-    "place-03a8e5be-child",
-    "place-03a8e5be-adult",
     "bottom-of-the-well-child",
-    "bottom-of-the-well-adult",
-    "place-f31cbb5b-child",
-    "place-f31cbb5b-adult",
-    "place-a1b6ec8d-child",
-    "place-a1b6ec8d-adult",
-    "place-d51f2fe5-child",
-    "place-d51f2fe5-adult",
     "death-mountain-crater-adult",
     "death-mountain-crater-child",
     "death-mountain-trail-adult",
     "death-mountain-trail-child",
-    "place-62cce28f-child",
-    "place-62cce28f-adult",
     "desert-colossus-adult",
     "desert-colossus-child",
-    "place-41121949-child",
-    "place-41121949-adult",
     "dodongos-cavern-child",
     "dodongos-cavern-adult",
     "king-dodongo-room-child",
     "king-dodongo-room-adult",
-    "place-010ea491-child",
-    "place-010ea491-adult",
-    "place-714b1ea2-child",
-    "place-714b1ea2-adult",
-    "fire-temple-child",
     "fire-temple-adult",
-    "place-6369ae1a-child",
-    "place-6369ae1a-adult",
-    "forest-temple-child",
     "forest-temple-adult",
-    "ganons-castle-child",
     "ganons-castle-adult",
-    "place-ac68834f-child",
-    "place-ac68834f-adult",
-    "ganondorf-room-child",
-    "ganondorf-room-adult",
     "gerudo-fortress-adult",
-    "place-2060a385-child",
-    "place-2060a385-adult",
-    "gerudo-training-ground-child",
     "gerudo-training-ground-adult",
     "gerudo-valley-adult",
     "place-b13887e8-child",
     "gohma-room-child",
-    "gohma-room-adult",
     "goron-city-adult",
     "goron-city-child",
     "graveyard-adult",
@@ -28363,62 +27815,31 @@
     "haunted-wasteland-adult",
     "haunted-wasteland-child",
     "hyrule-castle-child",
-    "hyrule-castle-adult",
     "hyrule-field-adult",
     "hyrule-field-child",
-    "ice-cavern-child",
     "ice-cavern-adult",
-    "inside-ganons-castle-child",
     "inside-ganons-castle-adult",
     "jabu-jabu-child",
-    "jabu-jabu-adult",
     "deku-tree-child",
-    "deku-tree-adult",
-    "place-acb615f1-child",
-    "place-acb615f1-adult",
-    "place-a03f8b8f-child",
-    "place-a03f8b8f-adult",
     "kakariko-village-adult",
     "kakariko-village-adult-alternative-adult",
     "kakariko-village-child",
     "kokiri-forest-adult",
     "kokiri-forest-child",
-    "place-194d1f24-child",
-    "place-194d1f24-adult",
     "lost-woods-adult",
     "lost-woods-child",
     "market-adult",
     "market-child",
-    "place-7b5ec68e-child",
-    "place-7b5ec68e-adult",
-    "morpha-room-child",
     "morpha-room-adult",
-    "place-2e654855-child",
-    "place-2e654855-adult",
-    "phantom-ganon-room-child",
     "phantom-ganon-room-adult",
     "sacred-forest-meadow-adult",
     "sacred-forest-meadow-child",
-    "place-13f00c7a-child",
-    "place-13f00c7a-adult",
-    "shadow-temple-child",
     "shadow-temple-adult",
     "spirit-temple-child",
     "spirit-temple-adult",
-    "place-4ce361d4-child",
-    "place-4ce361d4-adult",
-    "place-0e1f7f7d-child",
-    "place-0e1f7f7d-adult",
-    "twinrova-room-child",
     "twinrova-room-adult",
-    "volvagia-room-child",
     "volvagia-room-adult",
-    "water-temple-child",
     "water-temple-adult",
-    "place-a5d4c95c-child",
-    "place-a5d4c95c-adult",
-    "place-d25ef2f3-child",
-    "place-d25ef2f3-adult",
     "zora-domain-adult",
     "zora-domain-adult-alternative-adult",
     "zora-domain-child",

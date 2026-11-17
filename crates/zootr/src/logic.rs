@@ -501,7 +501,7 @@ impl World {
     }
 
     /// Which places are reachable with `have`, without collecting anything.
-    fn seen(&self, have: &Have) -> Vec<bool> {
+    pub(crate) fn seen(&self, have: &Have) -> Vec<bool> {
         let mut seen = vec![false; self.places.len()];
         seen[self.start()] = true;
         self.grow(&mut seen, have);

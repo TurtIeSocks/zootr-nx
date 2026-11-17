@@ -15,6 +15,26 @@ use crate::rules::{Book, Ctx, Have};
 use crate::settings::{Kind, NewGame, Settings, schema};
 use crate::shuffle::{self, Fixed};
 
+/// What Link reaches holding everything. The rest never happens, so the
+/// export leaves it out.
+#[derive(PartialEq)]
+pub(super) struct Everything {
+    pub checks: HashSet<u64>,
+    /// By index into the world's sources.
+    pub sources: BTreeSet<usize>,
+    /// By index into the world's places.
+    pub places: BTreeSet<usize>,
+}
+
+impl Everything {
+    #[cfg(test)]
+    fn covers(&self, other: &Self) -> bool {
+        self.checks.is_superset(&other.checks)
+            && self.sources.is_superset(&other.sources)
+            && self.places.is_superset(&other.places)
+    }
+}
+
 /// One seed's settings as the export sees them: what's dealt, what Link
 /// starts with, and the graph.
 pub(super) struct Seed {
@@ -68,19 +88,23 @@ impl Seed {
         self.world.play(have, &kept)
     }
 
-    /// What Link reaches holding everything: the checks, and the sources by
-    /// index.
-    pub fn everything(&self) -> (HashSet<u64>, BTreeSet<usize>) {
+    /// What Link reaches holding everything.
+    pub fn everything(&self) -> Everything {
         let mut all = self.start.clone();
         self.pool.iter().for_each(|i| all.add(i));
         let play = self.play(&all);
-        let sourced = (play.rounds.iter().flatten())
+        let sources = (play.rounds.iter().flatten())
             .filter_map(|g| match g {
                 Got::Source(i) => Some(*i),
                 Got::Check(_) => None,
             })
             .collect();
-        (play.reached, sourced)
+        let seen = self.world.seen(&play.have).into_iter().enumerate();
+        Everything {
+            checks: play.reached,
+            sources,
+            places: seen.filter(|(_, s)| *s).map(|(i, _)| i).collect(),
+        }
     }
 
     /// What every edge, check, source and the goal need.
@@ -181,8 +205,7 @@ mod tests {
             let rules = !read.contains(&id) && seed.needs() != base_seed.needs();
             // The export leaves out what the base can't reach, so no value
             // may reach less.
-            let (checks, sources) = seed.everything();
-            let less = !checks.is_superset(&base_all.0) || !sources.is_superset(&base_all.1);
+            let less = !seed.everything().covers(&base_all);
             if seed.shape() != base_seed.shape() || rules || less {
                 changed.push(format!("{id} = {value}"));
             }
