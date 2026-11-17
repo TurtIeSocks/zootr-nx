@@ -203,7 +203,16 @@ impl Target {
         self.harness_env.iter().any(|l| l.contains(SAVE))
     }
 
+    /// Also makes the bridge's folder when a line names it: the game only
+    /// serves a socket whose folder exists, and one under `/run/user` is
+    /// gone after every reboot.
     fn pairs(&self, lines: &[String]) -> Result<Vec<(String, String)>> {
+        if let Some(dir) = self.bridge.as_deref().and_then(Path::parent)
+            && lines.iter().any(|l| l.contains("{bridge}"))
+        {
+            std::fs::create_dir_all(dir)
+                .with_context(|| format!("making the bridge's folder {}", dir.display()))?;
+        }
         lines
             .iter()
             .map(|line| {
@@ -740,16 +749,35 @@ mod tests {
 
     #[test]
     fn a_bridge_and_env_round_trip_and_fill_in() {
-        let text = r#"{"name":"n","app":"/a","mod_dir":"/m","bridge":"/run/c.sock","env":["SOCK={bridge}","MEM=rw"]}"#;
-        let t = Target::import_at(text, None).unwrap();
-        assert_eq!(t.bridge.as_deref(), Some(Path::new("/run/c.sock")));
+        let sock = scratch("round-trip").join("c.sock");
+        let text = format!(
+            r#"{{"name":"n","app":"/a","mod_dir":"/m","bridge":{},"env":["SOCK={{bridge}}","MEM=rw"]}}"#,
+            serde_json::to_string(&sock).unwrap()
+        );
+        let t = Target::import_at(&text, None).unwrap();
+        assert_eq!(t.bridge.as_deref(), Some(sock.as_path()));
         let env = t.launch_env().unwrap();
-        assert_eq!(env[0], ("SOCK".into(), "/run/c.sock".into()));
+        assert_eq!(env[0], ("SOCK".into(), sock.display().to_string()));
         assert_eq!(env[1], ("MEM".into(), "rw".into()));
         assert_eq!(Target::import_at(&t.export(), None).unwrap(), t);
         let old = Target::import_at(r#"{"name":"n","app":"/a","mod_dir":"/m"}"#, None).unwrap();
         assert!(old.bridge.is_none() && old.env.is_empty());
         assert!(!old.export().contains("bridge"));
+    }
+
+    #[test]
+    fn a_launch_makes_the_bridge_folder() {
+        let run = scratch("bridge-folder").join("zootr");
+        let t = Target {
+            bridge: Some(run.join("control.sock")),
+            env: vec!["SOCK={bridge}".into()],
+            ..target("a", None)
+        };
+        t.launch_env().unwrap();
+        assert!(run.is_dir());
+        std::fs::remove_dir(&run).unwrap();
+        t.harness_env().unwrap();
+        assert!(run.is_dir());
     }
 
     #[test]
