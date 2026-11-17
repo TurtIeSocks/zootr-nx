@@ -12,7 +12,10 @@ pub(super) fn target_command(cmd: TargetCommand) -> Result<()> {
     match cmd {
         TargetCommand::Import { file } => {
             let text = read(&file)?;
-            let target = Target::import(&text).context("not a target preset")?;
+            let mut target = Target::import(&text).context("not a target preset")?;
+            if let Some(note) = target.fix_mods_root() {
+                eprintln!("{note}");
+            }
             let mut config = Config::load()?;
             let name = config.add_imported(target);
             config.save()?;
