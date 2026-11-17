@@ -28,6 +28,7 @@ pub const EVENT_PLAYER_WARP_TO_TARGET_ACTOR: &Name = &n!(0x0230b5cfa5588bc9);
 pub const EVENT_QUERY_CAN_ADD_TO_PORCH: &Name = &n!(0x06bd814e9f144c0d);
 pub const EVENT_QUERY_CHECK_ELAPSED_TIME: &Name = &n!(0x82226b5c68a5d18c);
 pub const EVENT_QUERY_CHECK_IS_GET: &Name = &n!(0x8e463c6b231de4d5);
+pub const EVENT_QUERY_CHECK_LOSE_MONEY_IF_SELL_SOME: &Name = &n!(0x1037e8eac7dbe341);
 pub const EVENT_QUERY_IS_ANY_BOTTLE_EMPTY: &Name = &n!(0x453a1d1bd54ac2ea);
 pub const EVENT_QUERY_IS_BOOL: &Name = &n!(0x155279201a4eaa4d);
 pub const EVENT_QUERY_IS_EVENT_SKIPED_MOST_RECENT: &Name = &n!(0x15fc832b9f124499);
