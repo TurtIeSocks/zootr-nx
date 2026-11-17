@@ -783,7 +783,10 @@ mod tests {
             .as_array()
             .unwrap();
         let entry = ints.last().unwrap().as_map().unwrap();
-        assert_eq!(int(&entry["Hash"]).unwrap(), i64::from(murmur3(name.as_bytes())));
+        assert_eq!(
+            int(&entry["Hash"]).unwrap(),
+            i64::from(murmur3(name.as_bytes()))
+        );
         assert_eq!(int(&entry[&**field::DEFAULT_VALUE]).unwrap(), 0);
         assert_eq!(int(&entry[&**field::RESET_TYPE_VALUE]).unwrap(), KEPT);
         assert!(add_ints(&mut doc.root, &[name]).is_err());

@@ -22,6 +22,8 @@ toml.workspace = true
 specta = { workspace = true, optional = true }
 zootr-hook.workspace = true
 zstd.workspace = true
+archipelago_rs = { version = "3.0.1", default-features = false, features = ["rustls"] }
+rustls = { version = "0.23.36", default-features = false, features = ["aws_lc_rs", "std"] }
 
 [build-dependencies]
 zootr-hook.workspace = true

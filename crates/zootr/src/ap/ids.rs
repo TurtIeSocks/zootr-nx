@@ -13,7 +13,14 @@ pub struct Ids {
     items: BTreeMap<String, u64>,
 }
 
+/// The AP world's table, as the app ships it.
+const IDS: &str = include_str!("../../../../ap/znx/data/ids.json");
+
 impl Ids {
+    pub fn load() -> anyhow::Result<Self> {
+        Ok(serde_json::from_str(IDS)?)
+    }
+
     pub fn location(&mut self, hash: u64) -> u64 {
         take(&mut self.locations, hash.to_string())
     }

@@ -21,8 +21,6 @@ use crate::shuffle::Fixed;
 const STAND_IN: &Name = item::TOKEN_GERUDO;
 
 /// The ids the world was exported with.
-const IDS: &str = include_str!("../../../../ap/znx/data/ids.json");
-
 /// A `.apznx`, as kept with a seed so it reinstalls without the file.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ApSeed {
@@ -104,7 +102,7 @@ impl ApSeed {
         Ok(seed)
     }
 
-    fn from_zip(data: &[u8]) -> Result<Self> {
+    pub(super) fn from_zip(data: &[u8]) -> Result<Self> {
         let files = super::zip::files(data)?;
         let manifest: Manifest = json(&files, "archipelago.json")?;
         Self::check_manifest(&manifest)?;
@@ -156,7 +154,7 @@ impl ApSeed {
             missing.is_empty() && extra.is_empty(),
             "the seed doesn't match this version's checks: none placed at {missing:?}, unknown {extra:?}"
         );
-        let ids: Ids = serde_json::from_str(IDS)?;
+        let ids = Ids::load()?;
         let actors = ids.actors(dealt.pool.iter().map(String::as_str));
         let actor = |id: u64| match actors.get(&id) {
             Some(a) => Ok(a.to_string()),
@@ -296,7 +294,7 @@ mod tests {
     fn a_seed_from_ap_of_our_own_items_installs_what_the_shuffle_dealt() {
         let Some(romfs) = dev_dump() else { return };
         let shuffled = installed(&romfs, 7, &Extras::default());
-        let ids: Ids = serde_json::from_str(IDS).unwrap();
+        let ids = Ids::load().unwrap();
         let mut ap = ApSeed::from_zip(TWO_SLOTS).unwrap();
         let free = Dealt::new(&romfs, &ap.full_settings()).unwrap().free;
         ap.placements = (shuffled.spots.iter())

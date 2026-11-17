@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 
+pub mod client;
 mod export;
 mod golden;
 mod ids;

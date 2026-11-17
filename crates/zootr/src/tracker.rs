@@ -81,6 +81,11 @@ impl Tracker {
         })
     }
 
+    /// Every flag it watches.
+    pub fn flags(&self) -> impl Iterator<Item = u32> + '_ {
+        self.flags.values().copied()
+    }
+
     /// The Bool that's set once spot `hash` is checked, if known.
     pub fn flag(&self, hash: u64) -> Option<u32> {
         self.flags.get(&hash).copied()
