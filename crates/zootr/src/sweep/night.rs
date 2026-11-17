@@ -520,12 +520,24 @@ fn skip_unreachable(planned: &mut [Planned], places: &BTreeSet<dev::Place>) {
 }
 
 /// The map a spot is swept in, for sweeping a map's spots together.
+/// How many tries a spot comes to nothing in before it goes first only
+/// in one round of [`STUBBORN_EVERY`].
+const STUBBORN: usize = 20;
+
+/// How often a stubborn spot goes first, in rounds. 21 spots past 50 tries
+/// took 21 of every round's 40 (2026-11-17), so the 356 confirmed ones
+/// came round for a fresh seed's item half as often.
+const STUBBORN_EVERY: u64 = 4;
+
 /// The round's order. Spots no try has confirmed go first, the least
 /// tried of them first, so a spot that never gives can't take every round
-/// from the rest. Then kinds no spot has shown before shown ones, then by
-/// map from one `seed` picks, so a round cut short by `--limit` reaches a
-/// different part of the game each time. The skips go last.
+/// from the rest. One that came to nothing [`STUBBORN`] times goes after
+/// the confirmed ones, but for one round in [`STUBBORN_EVERY`], so a fix
+/// still reaches it. Then kinds no spot has shown before shown ones, then
+/// by map from one `seed` picks, so a round cut short by `--limit` reaches
+/// a different part of the game each time. The skips go last.
 fn order(planned: &mut [Planned], known: &Known, seed: u64) {
+    let due = seed.is_multiple_of(STUBBORN_EVERY);
     let maps: Vec<String> = (planned.iter())
         .filter(|p| !matches!(p.trigger, Trigger::Skip(_)))
         .map(map)
@@ -541,9 +553,12 @@ fn order(planned: &mut [Planned], known: &Known, seed: u64) {
         let hash = p.spot.hash;
         let skip = matches!(p.trigger, Trigger::Skip(_));
         let tries = known.tries.get(&hash).copied().unwrap_or_default();
+        let confirmed = known.confirmed.contains(&hash);
+        let resting = !confirmed && !due && tries >= STUBBORN;
         (
             skip,
-            known.confirmed.contains(&hash),
+            resting,
+            confirmed,
             tries,
             known.kinds.contains(holder_kind(&p.spot.holder)),
             rank(p),
@@ -799,6 +814,31 @@ mod tests {
             [4, 2, 1, 3],
             "never tried, then tried once, twice, then confirmed"
         );
+    }
+
+    #[test]
+    fn a_stubborn_spot_goes_first_one_round_in_four_and_last_otherwise() {
+        let at = |hash: u64| {
+            let mut p = open("A");
+            p.spot.hash = hash;
+            p
+        };
+        let row = |hash: u64, verdict: &str| {
+            json!({"spot": {"hash": hash.to_string()}, "swept": {"verdict": {"verdict": verdict}}})
+                .to_string()
+        };
+        let rows = std::iter::repeat_n(row(1, "nothing"), STUBBORN)
+            .chain(std::iter::repeat_n(row(2, "nothing"), STUBBORN - 1))
+            .chain([row(3, "pass")]);
+        let mut known = Known::default();
+        learn(&mut known, &rows.collect::<Vec<_>>().join("\n"));
+        let order_of = |seed| {
+            let mut planned = [at(1), at(2), at(3)];
+            order(&mut planned, &known, seed);
+            planned.map(|p| p.spot.hash)
+        };
+        assert_eq!(order_of(4), [2, 1, 3], "its round: by tries");
+        assert_eq!(order_of(5), [2, 3, 1], "else after the confirmed");
     }
 
     #[test]
