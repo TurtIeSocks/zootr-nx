@@ -42,3 +42,16 @@ pub fn write(romfs: &Romfs, dir: &Path) -> Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::data_dir;
+
+    #[test]
+    fn the_world_version_is_the_app_version() {
+        let manifest = data_dir().join("../archipelago.json");
+        let manifest: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(manifest).unwrap()).unwrap();
+        assert_eq!(manifest["world_version"], env!("CARGO_PKG_VERSION"));
+    }
+}
