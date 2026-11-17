@@ -235,9 +235,13 @@ fn session(
     stop: &Receiver<()>,
     note: &mut impl FnMut(Note),
 ) -> End {
+    // Other worlds' finds alone would be `starting_inventory: false`, but
+    // archipelago_rs 3.0.1 then sends no items flag at all, and the server
+    // sends nothing. So take the start inventory too, and skip it: the mod
+    // already gives it.
     let mut options = ConnectionOptions::new().receive_items(ItemHandling::OtherWorlds {
         own_world: false,
-        starting_inventory: false,
+        starting_inventory: true,
     });
     if let Some(p) = &room.password {
         options = options.password(p.clone());
@@ -289,11 +293,7 @@ fn tick(
     ledger: &mut Ledger,
     note: &mut impl FnMut(Note),
 ) {
-    let received: Vec<i64> = client
-        .received_items()
-        .iter()
-        .map(|r| r.item().id())
-        .collect();
+    let received: Vec<i64> = found(client).map(|r| r.item().id()).collect();
     let look = match ledger.look(game, book, &received) {
         Ok(look) => look,
         Err(e) => return note(Note::Trouble(format!("{e:#}"))),
@@ -320,13 +320,21 @@ fn tick(
         }
     }
     if let Some((index, _)) = look.gave
-        && let Some(r) = client.received_items().get(index)
+        && let Some(r) = found(client).nth(index)
     {
         note(Note::Received {
             item: r.item().name().to_string(),
             from: r.sender().name().to_string(),
         });
     }
+}
+
+/// AP's location for an item in the start inventory.
+const START: i64 = -2;
+
+/// What other worlds found for Link, in the server's order.
+fn found(client: &ap::Client) -> impl Iterator<Item = &ap::ReceivedItem> {
+    (client.received_items().iter()).filter(|r| r.location().id() != START)
 }
 
 fn location_name(client: &ap::Client, id: i64) -> String {
@@ -554,5 +562,72 @@ mod tests {
                 .keys()
                 .all(|h| book.locations.contains_key(h))
         );
+    }
+
+    /// Against a real room: `ZOOTR_AP_SERVER` hosting the `.apznx` at
+    /// `ZOOTR_AP_SEED`, whose other slot is ChecksFinder's `Finder`. The core
+    /// sends checks and the goal, and gives what Finder's checks find for us.
+    #[test]
+    #[ignore = "needs a running Archipelago room"]
+    fn a_room_takes_checks_and_the_goal_and_sends_items() {
+        let (Ok(server), Ok(path)) = (
+            std::env::var("ZOOTR_AP_SERVER"),
+            std::env::var("ZOOTR_AP_SEED"),
+        ) else {
+            panic!("set ZOOTR_AP_SERVER and ZOOTR_AP_SEED");
+        };
+        let romfs = crate::game::dev_dump().expect("the dump");
+        let seed = ApSeed::read(std::path::Path::new(&path)).unwrap();
+        let book = Book::new(&romfs, &seed).unwrap();
+        let room = Room {
+            server: server.clone(),
+            slot: seed.slot.clone(),
+            password: None,
+        };
+        let finder = thread::spawn(move || {
+            let mut conn: ap::Connection = ap::Connection::new(
+                server,
+                "Finder",
+                Some("ChecksFinder"),
+                ConnectionOptions::new(),
+            );
+            let until = Instant::now() + Duration::from_secs(8);
+            let mut done = false;
+            while Instant::now() < until {
+                conn.update();
+                if let ConnectionState::Connected(c) = conn.state_mut()
+                    && !done
+                {
+                    let all: Vec<_> = c.unchecked_locations().collect();
+                    c.mark_checked(all).unwrap();
+                    done = true;
+                }
+                thread::sleep(POLL);
+            }
+            assert!(done, "Finder never connected");
+        });
+        let mut game = Fake {
+            checked: seed.placements.keys().take(3).copied().collect(),
+            goal: true,
+            ..Fake::default()
+        };
+        let (send, stop) = std::sync::mpsc::channel();
+        let stopper = thread::spawn(move || {
+            thread::sleep(Duration::from_secs(10));
+            drop(send);
+        });
+        let mut notes = vec![];
+        run(&room, &book, &mut game, &stop, &mut |n| notes.push(n));
+        finder.join().unwrap();
+        stopper.join().unwrap();
+        let said = |f: fn(&Note) -> bool| notes.iter().any(f);
+        assert!(said(|n| matches!(n, Note::Connected)), "{notes:?}");
+        assert!(
+            said(|n| matches!(n, Note::Sent(s) if s.len() == 3)),
+            "{notes:?}"
+        );
+        assert!(said(|n| matches!(n, Note::Goal)), "{notes:?}");
+        assert!(!game.given.is_empty(), "nothing given: {notes:?}");
+        assert!(!said(|n| matches!(n, Note::Trouble(_))), "{notes:?}");
     }
 }
