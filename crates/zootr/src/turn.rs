@@ -68,7 +68,7 @@ pub fn hold(session: &str) -> Result<()> {
         match turn.ask(Ask::Renew {
             session: session.into(),
         }) {
-            Ok(_) => return Ok(()),
+            Ok(held) => return here(&turn, session, held.game.as_deref()),
             Err(e) if !unreachable(&e) => return Err(e),
             Err(e) => eprintln!("{e:#}: going by the local turn"),
         }
@@ -117,6 +117,18 @@ fn played(
     }
     while running() {
         std::thread::sleep(look);
+    }
+}
+
+/// Refuses unless `held`, the game `session` holds, is this machine's:
+/// a hold on another machine's game doesn't cover this one's.
+fn here(turn: &TurnConfig, session: &str, held: Option<&str>) -> Result<()> {
+    let here = &turn.here;
+    match held {
+        Some(game) if !here.is_empty() && game != here => {
+            bail!("{session} holds {game}, and this machine's game is {here}: run it there")
+        }
+        _ => Ok(()),
     }
 }
 
@@ -244,6 +256,24 @@ impl std::fmt::Display for Turn {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_hold_covers_only_this_machine_s_game() {
+        let turn = TurnConfig {
+            here: "near".into(),
+            ..TurnConfig::default()
+        };
+        assert!(here(&turn, "a", Some("near")).is_ok());
+        let far = here(&turn, "a", Some("far")).unwrap_err().to_string();
+        assert!(
+            far.contains("a holds far, and this machine's game is near"),
+            "{far}"
+        );
+        assert!(
+            here(&TurnConfig::default(), "a", Some("far")).is_ok(),
+            "no `here` set"
+        );
+    }
 
     #[test]
     fn played_returns_once_the_game_came_up_and_quit_or_never_came_up() {
