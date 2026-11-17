@@ -13,7 +13,9 @@ public until you publish the draft.
 | Linux, x86_64 | `ubuntu-24.04` | `.deb`, `.AppImage`, `.rpm` | `zootr-<tag>-linux-x86_64.tar.gz` |
 
 The app is built by `tauri-apps/tauri-action`, with every bundle Tauri makes
-for the platform (`bundle.targets` is `"all"`). The CLI is the `zootr` binary
+for the platform (`bundle.targets` is `"all"`). Each bundle the updater
+installs also gets a `.sig`, and the draft gets `latest.json`, the feed
+installed apps read (see "Updater key"). The CLI is the `zootr` binary
 from `crates/zootr`, built after the app with
 `cargo build --release -p zootr -p zootr-app --bin zootr` so it reuses the
 app's compiled crates. On macOS
@@ -45,6 +47,12 @@ Commit messages pick the version, and `CHANGELOG.md` writes itself.
 Publishing is what tells running copies of the app. Each one asks GitHub
 for the latest release at launch and every 6 hours, and shows its notes
 in the sidebar. A draft or a release marked as a prerelease never shows.
+
+Its popover also offers "Install and restart" once the release's
+`latest.json` lists the player's platform. The app downloads the update,
+checks its signature, installs it and comes back up on the new version.
+Releases before 0.5.0 have no `latest.json`, so copies older than that
+update by hand once.
 
 ### What the changelog keeps
 
@@ -101,7 +109,31 @@ beside it. `ZOOTR_CACHE` overrides the cache folder.
 
 ## Signing
 
-There are no signing secrets yet. Without them:
+### Updater key
+
+The updater trusts only bundles signed with the key whose public half is
+`plugins.updater.pubkey` in `app/src-tauri/tauri.conf.json`. Tagged builds
+sign with two secrets:
+
+| Secret | What it is |
+|---|---|
+| `TAURI_SIGNING_PRIVATE_KEY` | The private key from `pnpm tauri signer generate` |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Its password |
+
+- The maintainer keeps a copy of both in a password manager. A lost key means
+  installed copies can't update again until players reinstall by hand.
+- A new key pair means a new `pubkey`, and copies built with the old one
+  can't install a release signed with the new one.
+- Untagged builds have no key and set `TAURI_CONFIG` to turn the updater
+  files off. Do the same for a local bundle:
+  `TAURI_CONFIG='{"bundle":{"createUpdaterArtifacts":false}}' pnpm tauri build`.
+- A debug build reads `ZOOTR_UPDATER_ENDPOINT` and `ZOOTR_UPDATER_PUBKEY` in
+  place of the configured feed and key, to try an install against a local
+  `latest.json`. A release build ignores both.
+
+### Platform signing
+
+There are no platform signing secrets yet. Without them:
 
 - The macOS app keeps the ad-hoc signature `tauri.conf.json` asks for
   (`signingIdentity: "-"`) and isn't notarized. Players have to approve it in

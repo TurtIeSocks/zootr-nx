@@ -92,6 +92,9 @@ a flag does.
 3. Add a target: the app that runs the game and the mod folder it loads.
 4. Generate a seed and press Play.
 
+From then on the app tells you when a new release is out, and installs it
+when you click Install and restart.
+
 The [guide](GUIDE.md) covers every feature, setting and target field, and
 the CLI.
 

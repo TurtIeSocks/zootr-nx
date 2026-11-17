@@ -793,6 +793,8 @@ pub fn run() -> tauri::Result<()> {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(builder.invoke_handler())
         .register_asynchronous_uri_scheme_protocol(ICONS, |ctx, request, responder| {
             let app = ctx.app_handle().clone();
@@ -824,7 +826,26 @@ pub fn run() -> tauri::Result<()> {
             app.manage(Live::new(app.handle().clone()));
             Ok(app.state::<Live>().watch(app.handle())?)
         })
-        .run(tauri::generate_context!())
+        .run(context())
+}
+
+/// The app's context. A debug build takes the updater's feed and key from
+/// `ZOOTR_UPDATER_ENDPOINT` and `ZOOTR_UPDATER_PUBKEY` when set, to try an
+/// install against a local `latest.json`. A release build never reads them,
+/// so nothing outside the app can point a player at another feed.
+fn context() -> tauri::Context<tauri::Wry> {
+    #[allow(unused_mut)]
+    let mut context = tauri::generate_context!();
+    #[cfg(debug_assertions)]
+    if let Some(updater) = context.config_mut().plugins.0.get_mut("updater") {
+        if let Ok(url) = std::env::var("ZOOTR_UPDATER_ENDPOINT") {
+            updater["endpoints"] = serde_json::json!([url]);
+        }
+        if let Ok(key) = std::env::var("ZOOTR_UPDATER_PUBKEY") {
+            updater["pubkey"] = key.into();
+        }
+    }
+    context
 }
 
 #[cfg(test)]

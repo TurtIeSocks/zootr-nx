@@ -158,6 +158,13 @@ jobs:
             fi
           done
 
+      # Updater files need the updater's signing key, which only a tagged
+      # build gets. Others build without them.
+      - name: Skip the updater files on an untagged build
+        if: env.TAGGED != 'true'
+        shell: bash
+        run: echo 'TAURI_CONFIG={"bundle":{"createUpdaterArtifacts":false}}' >> "$GITHUB_ENV"
+
       # build.runner, set for macOS only in tauri.macos.conf.json, is a
       # shell script that signs debug builds for `tauri dev`. A release
       # build has nothing for it to do, so `--runner cargo` skips it.
@@ -165,6 +172,10 @@ jobs:
       - name: Build the app and attach it
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
+          # Signs the update bundles. With a release id, tauri-action also
+          # uploads latest.json, the feed the app's updater reads.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ env.TAGGED == 'true' && secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ env.TAGGED == 'true' && secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
           GITHUB_TOKEN: ${{ github.token }}
         with:
           projectPath: app

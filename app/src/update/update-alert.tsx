@@ -1,14 +1,17 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
+import type { Update } from "@tauri-apps/plugin-updater";
 import { CircleArrowUp } from "lucide-react";
-import { type MouseEvent, useMemo, useState } from "react";
+import { type MouseEvent, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
 import { skip, useUpdate } from "@/stores/update";
+import { install, installable, type Progress } from "@/update/install";
 import { notesHtml, type Release } from "@/update/release";
 
 /** Markdown's elements, styled for the popover. */
@@ -51,13 +54,78 @@ const day = (iso: string) =>
     year: "numeric",
   });
 
+/** Props for {@link Install}. */
+interface InstallProps {
+  version: string;
+}
+
+/** Install and restart, once the updater can install `version`. Held while
+ * a game runs: the restart would drop its bridge and tracker. */
+function Install({ version }: InstallProps) {
+  const [update, setUpdate] = useState<Update | null>(null);
+  const [progress, setProgress] = useState<Progress | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [running] = useSeeds.usePath("running");
+  useEffect(() => {
+    let live = true;
+    void installable(version).then((u) => live && setUpdate(u));
+    return () => {
+      live = false;
+    };
+  }, [version]);
+  if (!update) return null;
+  const go = () => {
+    setError(null);
+    setProgress({ done: 0, total: null });
+    install(update, setProgress).catch((e: unknown) => {
+      setProgress(null);
+      setError(String(e));
+    });
+  };
+  const share = progress?.total ? progress.done / progress.total : null;
+  return (
+    <div className="flex flex-col gap-1.5 border-line border-t px-3 py-2.5">
+      <Button
+        size="sm"
+        className="self-start"
+        disabled={running || progress !== null}
+        onClick={go}
+      >
+        {progress ? "Installing…" : "Install and restart"}
+      </Button>
+      {running && !progress && (
+        <p className="text-ink-faint text-xs">Close the game to update</p>
+      )}
+      {progress && (
+        <div
+          role="progressbar"
+          aria-label="Download"
+          aria-valuenow={share === null ? undefined : Math.round(share * 100)}
+          className="h-1 overflow-hidden rounded-full bg-surface-sunken"
+        >
+          <div
+            className={`h-full bg-primary ${share === null ? "w-full animate-pulse" : ""}`}
+            style={share === null ? undefined : { width: `${share * 100}%` }}
+          />
+        </div>
+      )}
+      {error && (
+        <p className="text-danger-ink text-xs">
+          The update failed: {error}. Try the release page.
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** Props for {@link ReleaseCard}. */
 interface ReleaseCardProps {
   release: Release;
   onSkip: () => void;
 }
 
-/** The popover's content: what's out, its notes, and the two actions. */
+/** The popover's content: what's out, its notes, the install when the
+ * updater has it, and the two other actions. */
 function ReleaseCard({ release, onSkip }: ReleaseCardProps) {
   const [current] = useUpdate.usePath("current");
   const when = [
@@ -71,6 +139,7 @@ function ReleaseCard({ release, onSkip }: ReleaseCardProps) {
         <p className="text-ink-faint text-xs">{when.join(" · ")}</p>
       </div>
       <Notes md={release.notes} />
+      <Install version={release.version} />
       <div className="flex gap-2 border-line border-t px-3 py-2.5">
         <Button size="sm" onClick={() => void openUrl(release.url)}>
           Open release page
