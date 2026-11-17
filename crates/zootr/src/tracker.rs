@@ -17,6 +17,13 @@ use crate::savefile::Change;
 /// and hold its opened flag.
 const CHESTS: u32 = 0xce0c4dfe;
 
+/// Each chest's opened flag, a Bool known only by its hash, by the chest's
+/// placement hash.
+pub(crate) fn chest_flags(gd: &GameData) -> Result<impl Fn(u64) -> Option<u32>> {
+    let chests: HashMap<u32, u32> = gd.members(CHESTS)?.into_iter().collect();
+    Ok(move |hash: u64| chests.get(&murmur3(hash.to_string().as_bytes())).copied())
+}
+
 #[derive(Default)]
 pub struct Tracker {
     /// Spot to the Bool that's set once it's checked.
@@ -50,12 +57,10 @@ pub struct Row {
 impl Tracker {
     /// Spots with no known flag are left out, never checked.
     pub fn new(gd: &GameData, spots: &[Spot]) -> Result<Self> {
-        let chests: HashMap<u32, u32> = gd.members(CHESTS)?.into_iter().collect();
+        let chests = chest_flags(gd)?;
         let flag = |spot: &Spot| match GIFTS.iter().find(|g| g.hash() == spot.hash) {
             Some(g) => g.found().map(|f| murmur3(f.as_bytes())),
-            None => chests
-                .get(&murmur3(spot.hash.to_string().as_bytes()))
-                .copied(),
+            None => chests(spot.hash),
         };
         let flags = spots
             .iter()

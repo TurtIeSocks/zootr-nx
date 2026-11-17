@@ -340,3 +340,17 @@ from = "inside-ganons-castle"
 to = "ganondorf-room"
 added = true
 needs = "setting:trials-done and magic and bow and item:light-arrows"
+
+# Maps the game swaps for their `_Alternative` copy once a sage is done,
+# for good. The game's own gate is a flag logic can't read, so each
+# alternative has its rule here, and one without fails the build.
+
+# Kakariko burns once the Forest, Fire and Water sages are done.
+[[alternative]]
+place = "kakariko-village-adult"
+needs = "beat:phantom-ganon and beat:volvagia and beat:morpha"
+
+# Zora's Domain thaws once the Water sage is done.
+[[alternative]]
+place = "zora-domain-adult"
+needs = "beat:morpha"
