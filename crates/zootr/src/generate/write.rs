@@ -15,7 +15,7 @@ use crate::progress::Run;
 use crate::settings::{ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
     bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, foreign,
-    fortress, gamedata, gerudo, gifts, hints, key_tints, keys, medallions, navi, patch, pickups,
+    fortress, gamedata, gerudo, gifts, held, hints, key_tints, keys, medallions, navi, patch, pickups,
     presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain,
     twins,
 };
@@ -290,6 +290,7 @@ pub fn write_mod(
         bail!("no actor with hash {missing} has a {}", checks::DROP_ACTOR);
     }
     bombs::write(&mut builder)?;
+    held::write(romfs, &mut builder, drops.values().map(|d| d.item.as_str()))?;
     dig::write(romfs, &mut builder, drops, new_game)?;
     run.check()?;
     let files = builder.finish()?.len();

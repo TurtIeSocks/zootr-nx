@@ -209,15 +209,7 @@ fn rewrite_pack(
     let mut actor = BymlDoc::parse(&standins::raw(pack, &actor_path)?)?;
     let mut refs = standins::components(actor.root.as_map()?)?;
     for (key, lender) in lenders {
-        let param = lender
-            .actor_param()?
-            .with_context(|| format!("no {}", field::ACTOR_PARAM))?;
-        let r = standins::component(&param, key)
-            .with_context(|| format!("{} has no {key}", lender.name))?;
-        if let Some((path, data)) = lender.find(&r) {
-            writer.add_file(path, data.to_vec());
-        }
-        refs.insert((*key).into(), Byml::String(r.into()));
+        standins::lend(&mut writer, &mut refs, key, lender)?;
     }
     actor
         .root

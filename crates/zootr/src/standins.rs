@@ -4,6 +4,7 @@
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_path};
+use roead::sarc::SarcWriter;
 
 use crate::known::{Name, actor, field, flag, item};
 use crate::medallions;
@@ -235,6 +236,25 @@ pub(crate) fn raw(pack: &ActorPack, path: &str) -> Result<Vec<u8>> {
 /// A pouch content's `PouchActor`, naming actor `name`.
 pub(crate) fn pouch_actor(name: &str) -> Byml {
     Byml::String(format!("Work/Actor/{name}.engine__actor__ActorParam.gyml").into())
+}
+
+/// Point `refs`' `key` at the file `lender`'s ActorParam names there, and
+/// copy that file into `writer` when `lender`'s pack holds it.
+pub(crate) fn lend(
+    writer: &mut SarcWriter,
+    refs: &mut BymlMap,
+    key: &str,
+    lender: &ActorPack,
+) -> Result<()> {
+    let param = lender
+        .actor_param()?
+        .with_context(|| format!("no {}", field::ACTOR_PARAM))?;
+    let r = component(&param, key).with_context(|| format!("{} has no {key}", lender.name))?;
+    if let Some((path, data)) = lender.find(&r) {
+        writer.add_file(path, data.to_vec());
+    }
+    refs.insert(key.into(), Byml::String(r.into()));
+    Ok(())
 }
 
 /// `param` with its `Components` entry `key` pointing at `path`.
