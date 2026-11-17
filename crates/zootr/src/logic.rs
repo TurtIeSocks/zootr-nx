@@ -527,16 +527,35 @@ impl World {
     /// check at `hash`: the eras of its copies whose rule anything could
     /// meet there. `None` when both can, or logic can't tell.
     pub fn only_child(&self, hash: u64) -> Option<bool> {
-        let eras: BTreeSet<Era> = (self.locations.iter())
-            .filter(|l| l.hash == hash)
-            .map(|l| (l, self.places[l.place].1))
-            .filter(|(l, era)| l.need.possible(*era))
-            .map(|(_, era)| era)
-            .collect();
+        let eras = self.eras(hash, Need::possible)?;
         match eras.len() {
             1 => eras.first().map(|e| *e == Era::Child),
             _ => None,
         }
+    }
+
+    /// Whether logic has the check at `hash` but no item or flag gets
+    /// Link to it at either age, like a child's copy that needs the Iron
+    /// Boots.
+    pub fn never(&self, hash: u64) -> bool {
+        self.eras(hash, Need::ever)
+            .is_some_and(|eras| eras.is_empty())
+    }
+
+    /// The eras whose copy of the check at `hash` has a rule `could`
+    /// meet. `None` when logic has no copy of it.
+    fn eras(&self, hash: u64, could: fn(&Need, Era) -> bool) -> Option<BTreeSet<Era>> {
+        let mut copies = (self.locations.iter())
+            .filter(|l| l.hash == hash)
+            .map(|l| (l, self.places[l.place].1))
+            .peekable();
+        copies.peek()?;
+        Some(
+            copies
+                .filter(|(l, era)| could(&l.need, *era))
+                .map(|(_, era)| era)
+                .collect(),
+        )
     }
 }
 
@@ -615,6 +634,25 @@ mod tests {
         // The Water Temple's fourth small key chest, underwater: Iron Boots.
         assert_eq!(world.only_child(3693930347660122883), Some(false));
         assert_eq!(world.only_child(1), None, "no such check");
+    }
+
+    #[test]
+    fn a_check_no_age_can_get_is_never() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let book = crate::rules::Book::load().unwrap();
+        let new_game = crate::settings::NewGame {
+            crates: true,
+            ..Default::default()
+        };
+        let checks = checks::dealt(&romfs, &new_game).unwrap();
+        let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
+        // Hyrule Field's grotto pond crates: the child's copy needs the
+        // Iron Boots, the adult's gets them.
+        assert!(world.never(13505816572168486267));
+        assert!(!world.never(13942975907881711341));
+        assert!(!world.never(1), "no such check");
     }
 
     #[test]

@@ -152,11 +152,13 @@ pub(super) fn tools(romfs: &Romfs, filter: &Filter) -> Result<()> {
     Ok(())
 }
 
-/// Each dealt check with what logic says it needs, one line per era.
+/// Each dealt check with what logic says it needs, one line per era, or
+/// with `never` only those no age can get.
 pub(super) fn checks(
     romfs: &Romfs,
     area: Option<&str>,
     settings: &[(String, serde_json::Value)],
+    never: bool,
 ) -> Result<()> {
     use crate::generate::Spot;
     use crate::settings::{NewGame, Settings};
@@ -170,7 +172,8 @@ pub(super) fn checks(
     let free = deal
         .free
         .iter()
-        .filter(|c| area.is_none_or(|a| c.area.contains(a)));
+        .filter(|c| area.is_none_or(|a| c.area.contains(a)))
+        .filter(|c| !never || world.never(c.hash));
     let names = crate::names::Names::load(romfs, deal.free.iter().map(|c| c.item.as_str()))?;
     let mut spots: Vec<Spot> = free
         .map(|&check| {

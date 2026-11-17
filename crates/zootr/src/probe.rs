@@ -147,6 +147,10 @@ pub enum Probe {
         /// Repeatable.
         #[arg(long = "setting", value_name = "ID=VALUE", value_parser = crate::cli::args::setting)]
         settings: Vec<(String, serde_json::Value)>,
+        /// Only the checks logic has but no item or flag reaches at either
+        /// age: its odd cases, from a wrong-age rule to a plain `never`.
+        #[arg(long)]
+        never: bool,
     },
     /// Every spot of a seed with the sweep's widest mix, and how the sweep
     /// triggers it (open, talk, play) or why it skips it. The pool to
@@ -314,7 +318,11 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         }
         Probe::Exits { node } => exits(romfs, &node),
         Probe::Gates { trace, node } => gates(romfs, trace, node),
-        Probe::Checks { area, settings } => checks(romfs, area.as_deref(), &settings),
+        Probe::Checks {
+            area,
+            settings,
+            never,
+        } => checks(romfs, area.as_deref(), &settings, never),
         Probe::Byml { pattern } => byml(romfs, game, &pattern),
         Probe::Ainb { path } => ainb(romfs, &path),
         Probe::Rsdb { table, pattern } => rsdb(romfs, game, &table, &pattern),
