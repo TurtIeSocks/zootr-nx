@@ -9,6 +9,7 @@ use anyhow::{Context, Result, bail, ensure};
 use crate::config::Target;
 use crate::patch;
 use crate::progress::{self, Run, Step, Stopped};
+use ounce_formats::copy_mod;
 
 /// Held while a seed is being installed, so two can't overlap.
 static INSTALLING: Mutex<()> = Mutex::new(());
@@ -45,10 +46,18 @@ pub fn install<T>(
     guarded(targets, || {
         let wrote: Result<T> = (|| {
             let mut done = HashSet::new();
-            let mut out = None;
-            for t in targets.iter().filter(|t| done.insert(&t.mod_dir)) {
+            let folders: Vec<&Target> =
+                targets.iter().filter(|t| done.insert(&t.mod_dir)).collect();
+            let (first, rest) = folders.split_first().context("no targets")?;
+            run.target(&first.name);
+            let out = write(&first.mod_dir)?;
+            // One seed is the same in every folder: the rest get a copy.
+            for t in rest {
+                run.check()?;
                 run.target(&t.name);
-                out = Some(write(&t.mod_dir)?);
+                copy_mod(&first.mod_dir, &t.mod_dir)?;
+            }
+            for t in &folders {
                 if !(targets.iter()).any(|o| o.mod_dir == t.mod_dir && o.reads_cheats()) {
                     patch::remove_cheat(&t.mod_dir)?;
                 }
@@ -60,7 +69,7 @@ pub fn install<T>(
                     line.apply(&t.mod_dir, t.control.as_deref())?;
                 }
             }
-            Ok(out.expect("targets is not empty"))
+            Ok(out)
         })();
         match wrote {
             // Writing the spoiler starts once a mod folder was replaced.
@@ -142,7 +151,7 @@ mod tests {
     }
 
     #[test]
-    fn install_writes_each_folder_once_then_every_settings_line() {
+    fn install_writes_one_folder_copies_it_to_the_rest_then_every_settings_line() {
         let _turn = TURNS.lock().unwrap();
         let dir = std::env::temp_dir().join(format!("zootr-install-{}", std::process::id()));
         let target = |name: &str, mod_dir: &str, line: bool| Target {
@@ -168,10 +177,15 @@ mod tests {
         let mut wrote = vec![];
         let last = install(&targets, &Run::silent(), |d| {
             wrote.push(d.to_owned());
+            std::fs::create_dir_all(d.join("romfs/Pack"))?;
+            std::fs::write(d.join("romfs/Pack/seed.txt"), "7")?;
             Ok(wrote.len())
         })
         .unwrap();
-        assert_eq!((wrote, last), (vec![dir.join("m1"), dir.join("m2")], 2));
+        // One seed, written once: a second folder gets a copy of it.
+        assert_eq!((wrote, last), (vec![dir.join("m1")], 1));
+        let copied = std::fs::read_to_string(dir.join("m2/romfs/Pack/seed.txt")).unwrap();
+        assert_eq!(copied, "7");
         assert!(dir.join("b.txt").is_file() && dir.join("c.txt").is_file());
         assert!(install(&[], &Run::silent(), |_| Ok(())).is_err());
         std::fs::remove_dir_all(dir).unwrap();
@@ -196,14 +210,26 @@ mod tests {
             env: vec![],
             harness_env: vec![],
         };
-        let targets = [target("reads", "C={cheats}"), target("not", "R={romfs}")];
-        install(&targets, &Run::silent(), |d| {
-            crate::patch::install(d, true, false, 0, &[])
-        })
-        .unwrap();
         let has = |m: &str| crate::patch::path(&dir.join(m)).exists();
-        assert!(has("reads") && !has("not"));
-        assert!(dir.join("not/exefs/zootr.pchtxt").is_file());
+        // Either way round: a folder written first without a reader still
+        // hands the cheat to the copy that has one.
+        for order in [["reads", "not"], ["not", "reads"]] {
+            let _ = std::fs::remove_dir_all(&dir);
+            let line = |m| {
+                if m == "reads" {
+                    "C={cheats}"
+                } else {
+                    "R={romfs}"
+                }
+            };
+            let targets = order.map(|m| target(m, line(m)));
+            install(&targets, &Run::silent(), |d| {
+                crate::patch::install(d, true, false, 0, &[])
+            })
+            .unwrap();
+            assert!(has("reads") && !has("not"), "{order:?}");
+            assert!(dir.join("not/exefs/zootr.pchtxt").is_file());
+        }
         std::fs::remove_dir_all(dir).unwrap();
     }
 
