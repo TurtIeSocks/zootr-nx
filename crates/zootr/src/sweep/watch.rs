@@ -58,7 +58,12 @@ pub(super) const FLOOR_RUPEE: &str = "Obj_Rupee_";
 /// The first get outside `wanted` that `changes` show: an `IsGet` flag
 /// turned on, else the item a get window named. A flag turned off is a load
 /// or a reset, and a floor rupee a pickup beside the spot, never its get.
-pub(super) fn got_other(changes: &[Change], wanted: &[String]) -> Option<String> {
+/// A `windowed` holder (any but a broken one) gives through a get window,
+/// so a flag with no window beside it is a pickup Link walked over: a
+/// recovery heart by a chest in Jabu-Jabu's Belly that never opened
+/// (other machine, 2026-11-17).
+pub(super) fn got_other(changes: &[Change], wanted: &[String], windowed: bool) -> Option<String> {
+    let window = named(changes);
     let flag = changes.iter().find(|c| {
         c.name
             .strip_prefix("IsGet.")
@@ -66,7 +71,8 @@ pub(super) fn got_other(changes: &[Change], wanted: &[String]) -> Option<String>
             && !wanted.contains(&c.name)
             && c.change.ends_with("-> true")
     });
-    let named = named(changes).filter(|n| !n.starts_with(FLOOR_RUPEE));
+    let flag = flag.filter(|_| !windowed || window.is_some());
+    let named = window.filter(|n| !n.starts_with(FLOOR_RUPEE));
     (flag.map(|c| c.name.clone())).or(named.map(|n| format!("{MESSAGE} {n}")))
 }
 
@@ -296,14 +302,39 @@ mod tests {
             &format!("IsGet.{}", actor::OBJ_HEART_CONTAINER),
             "true -> false",
         )];
-        assert_eq!(got_other(&lost, &wanted), None);
+        assert_eq!(got_other(&lost, &wanted, false), None);
         let got = [change("IsGet.Item_A", "false -> true")];
-        assert_eq!(got_other(&got, &wanted).as_deref(), Some("IsGet.Item_A"));
+        assert_eq!(
+            got_other(&got, &wanted, false).as_deref(),
+            Some("IsGet.Item_A")
+        );
         let ours = [change(
             &format!("IsGet.{}", item::HOVER_BOOT),
             "false -> true",
         )];
-        assert_eq!(got_other(&ours, &wanted), None);
+        assert_eq!(got_other(&ours, &wanted, false), None);
+        assert_eq!(got_other(&got, &wanted, true), None, "no window, a pickup");
+    }
+
+    #[test]
+    fn beside_a_whole_holder_a_flag_counts_only_with_a_window() {
+        needs_names!();
+        let change = |name: &str, change: &str| Change {
+            hash: 0,
+            name: name.into(),
+            label: None,
+            kind: String::new(),
+            change: change.into(),
+        };
+        let wanted = [format!("IsGet.{}", item::HOVER_BOOT)];
+        let window = [
+            change("IsGet.Item_A", "false -> true"),
+            change(MESSAGE, r#""" -> "Item_A""#),
+        ];
+        assert_eq!(
+            got_other(&window, &wanted, true).as_deref(),
+            Some("IsGet.Item_A")
+        );
     }
 
     #[test]
@@ -336,7 +367,7 @@ mod tests {
             ),
             change(MESSAGE, &format!(r#""" -> "{}""#, actor::OBJ_RUPEE_GREEN)),
         ];
-        assert_eq!(got_other(&floor, &wanted), None);
+        assert_eq!(got_other(&floor, &wanted, false), None);
         let chest = [
             change(
                 &format!("IsGet.{}", actor::OBJ_RUPEE_GREEN),
@@ -344,7 +375,7 @@ mod tests {
             ),
             change(MESSAGE, &format!(r#""" -> "{}""#, actor::T_BOX_RUPEE_GREEN)),
         ];
-        let got = got_other(&chest, &wanted);
+        let got = got_other(&chest, &wanted, false);
         assert_eq!(
             got.as_deref(),
             Some(

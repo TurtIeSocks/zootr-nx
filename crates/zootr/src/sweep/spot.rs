@@ -255,7 +255,8 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             .iter()
             .any(|c| c.name != MESSAGE && wanted.contains(&c.name))
             || named.as_ref().is_some_and(|n| items.contains(n));
-        let other = got_other(&changes, &wanted);
+        let windowed = !matches!(p.trigger, Trigger::Open { broken: true, .. });
+        let other = got_other(&changes, &wanted, windowed);
         let next_door = match (&p.trigger, &other) {
             (Trigger::Open { near, .. }, Some(c)) => neighbour(self.romfs, near, c),
             _ => None,
