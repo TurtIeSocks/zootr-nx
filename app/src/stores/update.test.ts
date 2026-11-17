@@ -40,10 +40,11 @@ test("an older or equal release isn't", async () => {
   expect(useUpdate.getState().latest).toBeNull();
 });
 
-test("the switch off makes no request", async () => {
+test("the switch off makes no request, and still reads the version", async () => {
   useConfig.setPath("config", full({ no_update_check: true }));
   await init();
   expect(fetch).not.toHaveBeenCalled();
+  expect(useUpdate.getState().current).toBe("0.1.0");
 });
 
 test("dev without VITE_UPDATE_REPO makes no request", async () => {

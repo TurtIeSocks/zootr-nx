@@ -61,11 +61,11 @@ test("the popover shows the notes and opens the release page", () => {
   expect(screen.getByRole("button", { name: /v0\.2\.0/ })).toBeTruthy();
   open();
   expect(screen.getByText("zootr-nx v0.2.0")).toBeTruthy();
-  expect(screen.getByText(/you have 0\.1\.0/)).toBeTruthy();
+  expect(screen.getByText("Published Nov 14, 2026")).toBeTruthy();
   expect(screen.getByRole("heading", { name: "What's Changed" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Open release page" }));
+  fireEvent.click(screen.getByRole("link", { name: "Release page" }));
   expect(openUrl).toHaveBeenCalledWith(RELEASE.url);
-  fireEvent.click(screen.getByRole("button", { name: "Changelog" }));
+  fireEvent.click(screen.getByRole("link", { name: "Changelog" }));
   expect(openUrl).toHaveBeenCalledWith(RELEASE.changelog);
 });
 
@@ -98,9 +98,7 @@ test("no install without an update the updater can install", async () => {
   await openSettled();
   expect(installable).toHaveBeenCalledWith("0.2.0");
   expect(installButton()).toBeNull();
-  expect(
-    screen.getByRole("button", { name: "Open release page" }),
-  ).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Release page" })).toBeTruthy();
 });
 
 test("Install & restart installs the update", async () => {
@@ -133,7 +131,5 @@ test("a failed install says so and keeps the release page", async () => {
     screen.getByText(/The update failed: signature mismatch/),
   ).toBeTruthy();
   expect(installButton()).toHaveProperty("disabled", false);
-  expect(
-    screen.getByRole("button", { name: "Open release page" }),
-  ).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Release page" })).toBeTruthy();
 });

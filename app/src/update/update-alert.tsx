@@ -1,6 +1,6 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { Update } from "@tauri-apps/plugin-updater";
-import { CircleArrowUp } from "lucide-react";
+import { ArrowUpRight, CircleArrowUp } from "lucide-react";
 import { type MouseEvent, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +16,7 @@ import { notesHtml, type Release } from "@/update/release";
 
 /** Markdown's elements, styled for the popover. */
 const NOTES =
-  "max-h-80 overflow-auto px-3 py-2 text-ink-muted text-sm leading-relaxed [&_a]:text-primary-ink [&_a]:underline [&_code]:font-mono [&_code]:text-[12px] [&_:is(h1,h2,h3,h4,h5,h6)]:mt-2 [&_:is(h1,h2,h3,h4,h5,h6)]:font-medium [&_:is(h1,h2,h3,h4,h5,h6)]:text-ink [&_li]:mt-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-1.5 [&_ul]:list-disc [&_ul]:pl-5";
+  "max-h-80 overflow-auto px-4 py-5 [&>:first-child]:mt-0 text-ink-muted text-sm leading-relaxed [&_a]:text-primary-ink [&_a]:underline [&_code]:font-mono [&_code]:text-[12px] [&_:is(h1,h2,h3,h4,h5,h6)]:mt-2 [&_:is(h1,h2,h3,h4,h5,h6)]:font-medium [&_:is(h1,h2,h3,h4,h5,h6)]:text-ink [&_li+li]:mt-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-1.5 [&_ul]:list-disc [&_ul]:pl-5";
 
 /** Opens a link from the notes in the browser, never in the webview. */
 function follow(e: MouseEvent) {
@@ -123,46 +123,58 @@ function InstallStatus({ update, progress, error, running }: InstallState) {
   );
 }
 
+/** Props for {@link ReleaseLink}. */
+interface ReleaseLinkProps {
+  href: string;
+  children: string;
+}
+
+/** A link beside the release's name, opened in the browser. */
+function ReleaseLink({ href, children }: ReleaseLinkProps) {
+  return (
+    <a
+      href={href}
+      className="inline-flex items-center gap-0.5 hover:text-ink hover:underline"
+      onClick={(e) => {
+        e.preventDefault();
+        void openUrl(href);
+      }}
+    >
+      {children}
+      <ArrowUpRight className="size-3" />
+    </a>
+  );
+}
+
 /** Props for {@link ReleaseCard}. */
 interface ReleaseCardProps {
   release: Release;
   onSkip: () => void;
 }
 
-/** The popover's content: what's out, its notes with links to the
- * changelog and the release page, then skip and the install when the
- * updater has it. */
+/** The popover's content: what's out with links to its changelog and
+ * release page, its notes, then skip and the install when the updater has
+ * it. */
 function ReleaseCard({ release, onSkip }: ReleaseCardProps) {
-  const [current] = useUpdate.usePath("current");
   const install = useInstall(release.version);
-  const when = [
-    release.published && `Published ${day(release.published)}`,
-    current && `you have ${current}`,
-  ].filter(Boolean);
   return (
     <>
-      <div className="border-line border-b px-3 py-2.5">
-        <p className="font-medium text-sm">zootr-nx v{release.version}</p>
-        <p className="text-ink-faint text-xs">{when.join(" · ")}</p>
+      <div className="flex items-start justify-between gap-3 border-line border-b px-4 py-2.5">
+        <div>
+          <p className="font-medium text-sm">zootr-nx v{release.version}</p>
+          {release.published && (
+            <p className="text-ink-faint text-xs">
+              Published {day(release.published)}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-0.5 text-ink-faint text-xs">
+          <ReleaseLink href={release.changelog}>Changelog</ReleaseLink>
+          <ReleaseLink href={release.url}>Release page</ReleaseLink>
+        </div>
       </div>
       <Notes md={release.notes} />
-      <div className="flex gap-2 px-3 pb-2.5">
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => void openUrl(release.changelog)}
-        >
-          Changelog
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => void openUrl(release.url)}
-        >
-          Open release page
-        </Button>
-      </div>
-      <div className="flex flex-col gap-1.5 border-line border-t px-3 py-2.5">
+      <div className="flex flex-col gap-1.5 border-line border-t px-4 py-2.5">
         <div className="flex justify-between gap-2">
           <Button size="sm" variant="ghost" onClick={onSkip}>
             Skip this version
