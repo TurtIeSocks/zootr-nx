@@ -21,6 +21,7 @@ pub const ITEMS: &[(&str, &Name)] = &[
     ("boomerang", item::BOOMERANG),
     ("bottle", item::BOTTLE),
     ("bow", item::RANGE_BOW),
+    ("claim-check", item::CLAIM_CHECK),
     ("deku-shield-chest", actor::T_BOX_SHIELD_DEKU),
     ("dins-fire", item::DIN_FIRE),
     ("eponas-song", item::MELODY_EPONA_SONG),

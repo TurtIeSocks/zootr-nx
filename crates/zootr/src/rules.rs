@@ -809,6 +809,38 @@ mod tests {
     }
 
     #[test]
+    fn the_sword_wants_the_claim_check_which_the_chain_gives() {
+        needs_names!();
+        let book = Book::load().unwrap();
+        let c = ctx(false, &[]);
+        let biggoron = crate::gifts::GIFTS.iter().find(|g| g.giver == "Biggoron");
+        let sword = &book.check(biggoron.unwrap().hash()).unwrap().needs;
+        let sword = book.need(sword, &c).unwrap();
+        let check: [&str; 2] = [item::CLAIM_CHECK, item::BOMB_BAG_SMALL];
+        assert!(sword.met(&have(&check), Era::Adult));
+        assert!(!sword.met(&have(&check[1..]), Era::Adult));
+        let chain = book.sources.iter().find(|s| s.name == "Claim Check");
+        let chain = book.need(&chain.unwrap().expr, &c).unwrap();
+        let all: [&str; 5] = [
+            item::OCARINA_FAIRY,
+            item::MELODY_ZELDA_LULLABY,
+            item::BOTTLE,
+            item::LONGSHOT,
+            item::BOMB_BAG_SMALL,
+        ];
+        assert!(chain.met(&have(&all), Era::Adult));
+        for (i, left) in all.iter().enumerate() {
+            let mut rest = all.to_vec();
+            rest.remove(i);
+            assert!(!chain.met(&have(&rest), Era::Adult), "without {left}");
+        }
+        // The lake's tunnel into the domain, and Morpha thawing the King.
+        let morpha = beat("morpha");
+        let other: [&str; 4] = [item::SCALE_SILVER, &morpha, item::LONGSHOT, item::HAMMER];
+        assert!(chain.met(&have(&other), Era::Adult));
+    }
+
+    #[test]
     fn the_settings_rules_read_are_toggles() {
         let read = settings_read();
         assert!(read.contains("open-forest") && read.contains("kakariko-gate"));

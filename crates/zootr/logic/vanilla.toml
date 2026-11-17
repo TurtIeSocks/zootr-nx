@@ -334,6 +334,18 @@ era = "child"
 item = "item:zeldas-letter"
 needs = "courtyard"
 
+# The adult trade chain, which ends with the Claim Check at the summit. A
+# rule can't say "reach each stop", so it asks for what the stops need: a
+# way into Zora's Domain, King Zora thawed (frozen, he takes nothing), a
+# way across Gerudo Valley's bridge for the carpenter, and a way up to the
+# summit.
+[[source]]
+name = "Claim Check"
+place = "death-mountain-trail-adult"
+era = "adult"
+item = "item:claim-check"
+needs = "(zeldas-lullaby or silver-scale) and (blue-fire or beat:morpha) and (setting:carpenters-freed or longshot or eponas-song) and (explosives or hammer)"
+
 # The bean seller, past the boulders at the river's mouth.
 [[source]]
 name = "Magic Beans"
