@@ -415,9 +415,12 @@ pub(super) struct Known {
     kinds: HashSet<String>,
     /// The side Link last used a spot from when an item landed.
     sides: HashMap<u64, Side>,
-    /// How often a spot came to nothing from each side: a chest opened
-    /// from behind, a keeper talked to from the wrong side of his counter.
+    /// When a spot last came to nothing from each side, as the row it did
+    /// in: a chest opened from behind, a keeper talked to from the wrong
+    /// side of his counter.
     missed: HashMap<u64, HashMap<Side, usize>>,
+    /// How many rows it has learnt from, so a later miss counts as later.
+    rows: usize,
     /// How often a spot was swept without giving its item, from any side.
     tries: HashMap<u64, usize>,
 }
@@ -434,6 +437,7 @@ pub(super) fn learn(known: &mut Known, rows: &str) {
         .lines()
         .filter_map(|l| serde_json::from_str::<serde_json::Value>(l).ok())
     {
+        known.rows += 1;
         let verdict = row["swept"]["verdict"]["verdict"].as_str();
         let reached = matches!(verdict, Some("pass" | "wrong_item" | "substituted"));
         let Some(hash) = row["spot"]["hash"].as_str().and_then(|h| h.parse().ok()) else {
@@ -455,12 +459,11 @@ pub(super) fn learn(known: &mut Known, rows: &str) {
             (Ok(side), true) => _ = known.sides.insert(hash, side),
             // A side a swing broke a neighbour from is as good as none.
             (Ok(side), false) if matches!(verdict, Some("nothing" | "neighbour")) => {
-                *known
+                known
                     .missed
                     .entry(hash)
                     .or_default()
-                    .entry(side)
-                    .or_default() += 1;
+                    .insert(side, known.rows);
             }
             _ => {}
         }
@@ -469,11 +472,15 @@ pub(super) fn learn(known: &mut Known, rows: &str) {
 
 /// `p` at the age it was last reached at, when its map names none. Logic
 /// lists most dungeon checks for both ages, and the wrong one costs a try.
-/// And from the side it gave an item from, else the side it came to
-/// nothing from least often, its planned one first among equals. Once every
-/// side has missed, the least tried comes round next, so a fix to `use`
-/// gets its turn at each: the Well's chest missed from its front 27 times
-/// and its back once, and the back is where it opens.
+/// And from the side it gave an item from, else a side it never came to
+/// nothing from, its planned one first. Once every side has missed, the one
+/// that missed longest ago comes round next, so a fix to `use` gets its turn
+/// at each: the Well's chest missed from its front 27 times and its back
+/// once, and the back is where it opens. Counting misses instead starved a
+/// side that missed often before the fix: the Spirit Trial's hammer chest
+/// missed 50 times from its front while its flames were up, so the sweep
+/// kept trying the other sides once the hammer put them out, and the front
+/// is where it opens.
 pub(super) fn at_known(p: &Planned, known: &Known) -> Planned {
     let hash = p.spot.hash;
     let missed = |s: &Side| (known.missed.get(&hash)).map_or(0, |m| m.get(s).copied().unwrap_or(0));
@@ -689,7 +696,7 @@ mod tests {
     }
 
     #[test]
-    fn a_spot_goes_again_from_the_side_it_gave_from_else_the_least_missed() {
+    fn a_spot_goes_again_from_the_side_it_gave_from_else_the_one_missed_longest_ago() {
         let row = |hash: u64, side: &str, verdict: &str| {
             json!({"spot": {"hash": hash.to_string()},
                 "swept": {"verdict": {"verdict": verdict}, "used": {"side": side}}})
@@ -728,13 +735,13 @@ mod tests {
         assert_eq!(side(2), Side::Right, "the next side not come to nothing");
         assert_eq!(side(3), Side::Front, "round again once all have");
         assert_eq!(side(4), Side::Front, "never swept");
-        assert_eq!(side(7), Side::Back, "every side missed: the least missed");
+        assert_eq!(side(7), Side::Front, "every side missed: the longest ago");
         let back = |hash| at_known(&planned(hash, Side::Back), &known).side;
         assert_eq!(back(4), Side::Back, "never swept, from the planned side");
         assert_eq!(back(5), Side::Front, "a neighbour broke from the back");
         assert_eq!(back(6), Side::Left, "and the front came to nothing");
         assert_eq!(back(1), Side::Left, "the side it gave from still wins");
-        assert_eq!(back(3), Side::Back, "round again to the planned side");
+        assert_eq!(back(3), Side::Front, "round again from the longest ago");
     }
 
     #[test]
