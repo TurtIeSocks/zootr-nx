@@ -28,6 +28,13 @@ const CELL_ICON: usize = 0x48;
 /// grey when that's another age's item.
 const USABLE: f32 = 1.0;
 const ON_BUTTON: f32 = 2.0;
+/// The cell's `AttentionTrans` animation. Halfway through, it rings the
+/// button in a soft white bloom, which marks the slot while Link cycles it.
+const CELL_HALO: usize = 0x80;
+const HALO: f32 = 25.0;
+/// An animation's frame controller, and the frame it's on.
+const ANIM_CONTROL: usize = 0x20;
+const ANIM_FRAME: usize = 0x18;
 /// One controller state as `GetNpadStates` writes it, its buttons, and
 /// its left stick's x (an `i32`, y follows).
 const NPAD_STATE: usize = 0x28;
@@ -144,11 +151,12 @@ unsafe fn show(main: usize, table: &Table) -> Option<()> {
             child,
             held,
         };
-        let want = ui.with(|s| {
+        let (want, cycling) = ui.with(|s| {
             s.seen = seen;
-            s.showing(&slot.actors)
-        })?;
-        let (actor, kind) = slot.actor(want)?;
+            (s.showing(&slot.actors), s.cycling())
+        });
+        seek(main, o, cell, CELL_HALO, if cycling { HALO } else { 0.0 })?;
+        let (actor, kind) = slot.actor(want?)?;
         if name(at(cell, CELL_NAME)? as *const u8) == Some(actor) {
             return Some(());
         }
@@ -156,12 +164,37 @@ unsafe fn show(main: usize, table: &Table) -> Option<()> {
         set(cell, &actor.as_ptr(), i32::from(kind), 0, 1);
         let equipped: Equipped = transmute(main + o.equipped as usize);
         let on_button = equipped(at(main, o.manager as usize)?, child.into(), 1) == i32::from(kind);
-        let frame = if on_button { ON_BUTTON } else { USABLE };
-        transmute::<usize, AnimFrame>(main + o.anim_frame as usize)(at(cell, CELL_ICON)?, frame);
+        seek(
+            main,
+            o,
+            cell,
+            CELL_ICON,
+            if on_button { ON_BUTTON } else { USABLE },
+        )?;
         if focused {
             for refresh in [o.unfocus, o.focus] {
                 transmute::<usize, Focus>(main + refresh as usize)(button, 0, 0, 0);
             }
+        }
+    }
+    Some(())
+}
+
+/// Seek the cell's animation at `anim` to `frame`, unless it's there.
+///
+/// # Safety
+/// `cell` is an Items page cell, and the offsets are this build's.
+unsafe fn seek(
+    main: usize,
+    o: &crate::Offsets,
+    cell: usize,
+    anim: usize,
+    frame: f32,
+) -> Option<()> {
+    unsafe {
+        let anim = at(cell, anim)?;
+        if *((at(anim, ANIM_CONTROL)? + ANIM_FRAME) as *const f32) != frame {
+            transmute::<usize, AnimFrame>(main + o.anim_frame as usize)(anim, frame);
         }
     }
     Some(())
