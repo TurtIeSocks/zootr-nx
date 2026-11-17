@@ -423,7 +423,7 @@ pub(super) struct Known {
 
 /// What kind of holder `holder` is, its number off: `Pot_A_03` is a
 /// `Pot_A`, `Kokiri Shop 2` a `Kokiri Shop`.
-pub(super) fn holder_kind(holder: &str) -> &str {
+pub(crate) fn holder_kind(holder: &str) -> &str {
     holder.trim_end_matches(|c: char| c.is_ascii_digit() || c == '_' || c == ' ')
 }
 
