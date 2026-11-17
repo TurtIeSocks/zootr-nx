@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use ounce_formats::{EntryPoint, EventKind, Flowchart, Value};
 
-use super::events::{calls, case, with};
+use super::events::{calls, case, next, with};
 use super::placements::{seller, sells};
 use super::sales::secret;
 use super::spots::{Branch, RED, edits, plain};
 use super::*;
 use crate::checks::Drop;
-use crate::flows::{self, GAME_DATA, IN_POUCH, Rewrites, events, param, reachable};
+use crate::flows::{self, GAME_DATA, IN_POUCH, IS_BOOL, Model, Rewrites, events, param, reachable};
 use crate::game::dev_dump;
 use crate::known::{Name, actor, field, flag, item};
 
@@ -27,13 +27,25 @@ fn drops(at: &[(usize, impl AsRef<str>)]) -> HashMap<u64, Drop> {
         .collect()
 }
 
-/// The flow before and after `write`, or `None` without a dump.
+/// The pouch question the chains ask.
+fn model(romfs: &ounce_formats::Romfs) -> Model {
+    let flows = crate::events::Flows::load(romfs).unwrap();
+    crate::gifts::levels::model(&flows).unwrap()
+}
+
+/// The flow before and after `write` with progressive items on, or `None`
+/// without a dump.
 fn written(at: &[(usize, impl AsRef<str>)]) -> Option<(Flowchart, Flowchart)> {
     let romfs = dev_dump()?;
     let parse = |data: &[u8]| Flowchart::parse(data).unwrap().unwrap();
     let before = parse(&romfs.read(&flows::rel(FLOW)).unwrap());
     let mut rewrites = Rewrites::new();
-    write(&romfs, &mut rewrites, &drops(at), PRICE_SET).unwrap();
+    let model = model(&romfs);
+    let level = Level {
+        model: &model,
+        progressive: true,
+    };
+    write(&romfs, &mut rewrites, &drops(at), PRICE_SET, level).unwrap();
     Some((before, parse(&rewrites[&flows::rel(FLOW)])))
 }
 
@@ -43,26 +55,21 @@ fn head(flow: &Flowchart) -> u16 {
     heads.into_iter().find(|e| compares.contains(e)).unwrap()
 }
 
-/// What the pouch root's chain sells `item` as: the call's params, and
-/// whether a pouch check stands in front of it.
-fn branch(flow: &Flowchart, item: &str) -> Option<(String, bool)> {
+/// What the pouch root's chain sells `item` as: the call's item and price.
+fn branch(flow: &Flowchart, item: &str) -> Option<String> {
     let compares = with(flow, COMPARE, field::GAME_DATA_NAME, TEMP);
     let root = reachable(flow, ROOT).unwrap();
     let hit = with(flow, COMPARE, "Value", item)
         .into_iter()
         .find(|e| compares.contains(e) && root.contains(e))?;
-    let mut at = case(flow, hit, 0).unwrap();
-    let gated = events(flow, IN_POUCH).iter().any(|(e, _)| *e == at);
-    if gated {
-        at = case(flow, at, 1).unwrap();
-    }
+    let at = case(flow, hit, 0).unwrap();
     let EventKind::SubFlow { params, .. } = &flow.events[at as usize].kind else {
         panic!("{item} doesn't sell")
     };
     let p = |k| param(params, k).map_or(String::new(), str::to_owned);
     let price = params.iter().find(|(k, _)| k == "Price").unwrap();
     assert_eq!(p(SELLER), seller(item), "{item}");
-    Some((format!("{} {:?}", p(flag::ACTOR_NAME), price.1), gated))
+    Some(format!("{} {:?}", p(flag::ACTOR_NAME), price.1))
 }
 
 #[test]
@@ -71,7 +78,7 @@ fn a_changed_pouch_scrub_sells_its_item_ahead_of_the_vanilla_chain() {
         return;
     };
     let sold = branch(&after, item::BOOMERANG).unwrap();
-    assert_eq!(sold, (format!("{} Int([25])", item::BOOMERANG), true));
+    assert_eq!(sold, format!("{} Int([25])", item::BOOMERANG));
     assert_eq!(head(&after), head(&before));
     let root = reachable(&after, ROOT).unwrap();
     assert!(root.contains(&head(&after)), "vanilla chain cut off");
@@ -85,14 +92,6 @@ const LW_NUTS: usize = 2;
 const SONG: &Name = item::MELODY_SUN_SONG;
 const MEDAL: &Name = item::MEDAL_WATER;
 const STONE: &Name = item::STONE_FIRE;
-
-/// What an action or call runs next.
-fn next(flow: &Flowchart, e: u16) -> Option<u16> {
-    match &flow.events[e as usize].kind {
-        EventKind::Action { next, .. } | EventKind::SubFlow { next, .. } => *next,
-        other => panic!("{other:?} doesn't run one thing next"),
-    }
-}
 
 fn entry_of<'a>(flow: &'a Flowchart, name: &str) -> &'a EntryPoint {
     let found = flow.entry_points.iter().find(|e| e.name == name);
@@ -142,16 +141,38 @@ fn called(flow: &Flowchart, entry: &str) -> Vec<String> {
     calls.collect()
 }
 
-/// The check and the call a sale of `item` makes through the pouch root.
-fn sale(flow: &Flowchart, item: &str) -> (u16, u16) {
+/// Where the pouch root's compare for `item` goes on a match.
+fn sale(flow: &Flowchart, item: &str) -> u16 {
     let compares = with(flow, COMPARE, field::GAME_DATA_NAME, TEMP);
     let root = reachable(flow, ROOT).unwrap();
     let hit = with(flow, COMPARE, "Value", item)
         .into_iter()
         .find(|e| compares.contains(e) && root.contains(e))
         .unwrap();
-    let gate = case(flow, hit, 0).unwrap();
-    (gate, case(flow, gate, 1).unwrap())
+    case(flow, hit, 0).unwrap()
+}
+
+/// Every sale call reachable from `at`, as its item and seller line.
+fn sales_from(flow: &Flowchart, at: u16) -> Vec<(String, String)> {
+    let reached = flows::reachable_from(flow, Some(at));
+    let mut sales: Vec<_> = (reached.into_iter())
+        .filter_map(|e| match &flow.events[e as usize].kind {
+            EventKind::SubFlow { params, .. } => {
+                let p = |k| param(params, k).map(str::to_owned);
+                Some((p(flag::ACTOR_NAME)?, p(SELLER)?))
+            }
+            _ => None,
+        })
+        .collect();
+    sales.sort();
+    sales.dedup();
+    sales
+}
+
+/// Whether `e` asks the pouch for `item`.
+fn asks_for(flow: &Flowchart, e: u16, item: &str) -> bool {
+    let asks = events(flow, IN_POUCH).into_iter().any(|(at, _)| at == e);
+    asks && value(flow, e, "Actor").and_then(Value::as_str) == Some(item)
 }
 
 #[test]
@@ -160,10 +181,7 @@ fn a_plain_item_sells_through_the_rupee_deduction_and_the_plain_grant() {
         let Some((before, after)) = written(&[(LW_NUTS, item)]) else {
             return;
         };
-        // A song has no pouch count, so Link's `IsGet` flag stands in.
-        let (gate, call) = sale(&after, item);
-        let flag = value(&after, gate, GAME_DATA).unwrap();
-        assert_eq!(flag.as_str(), Some(format!("IsGet.{item}").as_str()));
+        let call = sale(&after, item);
         let EventKind::SubFlow { entry_point, .. } = &after.events[call as usize].kind else {
             panic!("{item} doesn't sell")
         };
@@ -242,8 +260,8 @@ fn a_plain_pouch_spot_names_the_item_after_reading_the_placement() {
                 .any(|f| f.starts_with(&format!("{h}.Dynamic.{ATTACKED}")))
         );
     }
-    // The entry sets the item, then runs the vanilla entry's call, and
-    // so its sold flag after.
+    // The entry sets the item, then runs the vanilla entry's call, then
+    // the spot's own sold flag.
     let main = entry_of(&after, &sells(nuts, SONG)).main.unwrap();
     assert_eq!(action_of(&after, main), texts(SET_STRING));
     assert_eq!(
@@ -260,11 +278,11 @@ fn a_plain_pouch_spot_names_the_item_after_reading_the_placement() {
         panic!("no call")
     };
     assert_eq!(entry_point, ROOT);
-    assert_eq!(next(&after, call), next(&before, vanilla));
     assert_eq!(
-        after.events[call as usize].kind,
-        after.events[vanilla as usize].kind
+        value(&after, call, "Greeting_00"),
+        value(&before, vanilla, "Greeting_00")
     );
+    assert_eq!(sold_flag(&after, call), nuts.flag());
     // After the talk reads the placement, the item set there goes into
     // `TEMP`, and is cleared. With none set the talk carries on as before.
     let reads = events(&before, WRITE_ITEM);
@@ -379,26 +397,19 @@ fn a_mod_with_plain_items_at_scrubs_generates() {
 }
 
 #[test]
-fn a_plain_item_at_a_spot_with_an_attack_entry_takes_it_over_too() {
+fn an_edited_spot_with_an_attack_entry_takes_it_over_too() {
     needs_names!();
     let dm = SCRUBS
         .iter()
         .position(|s| s.talk == actor::ENEMY_SCRUB_BUSINESS_HEART_02)
         .unwrap();
-    let fields = fields(&drops(&[(dm, MEDAL)]));
-    let entry = sells(&SCRUBS[dm], MEDAL);
-    for h in SCRUBS[dm].placements {
-        assert!(fields.contains(&format!("{h}.Dynamic.{ATTACKED}={entry}")));
+    for item in [MEDAL, item::HAMMER] {
+        let fields = fields(&drops(&[(dm, item)]));
+        let entry = sells(&SCRUBS[dm], item);
+        for h in SCRUBS[dm].placements {
+            assert!(fields.contains(&format!("{h}.Dynamic.{ATTACKED}={entry}")));
+        }
     }
-    // A different item there keeps the vanilla attack entry.
-    let fields = super::fields(&drops(&[(dm, item::HAMMER)]));
-    let mine = |f: &&String| {
-        SCRUBS[dm]
-            .placements
-            .iter()
-            .any(|h| f.starts_with(&h.to_string()))
-    };
-    assert!(!fields.iter().filter(mine).any(|f| f.contains(&**ATTACKED)));
 }
 
 #[test]
@@ -413,10 +424,8 @@ fn a_plain_item_at_a_shop_spot_keeps_the_spot_s_stock_and_runs_its_own_entry() {
     assert!(fields.contains(&format!("{h}.Dynamic.{TALK}={}", sells(bombs, STONE))));
     let main = entry_of(&after, &sells(bombs, STONE)).main.unwrap();
     let call = next(&after, main).unwrap();
-    assert_eq!(next(&after, call), None);
-    // The other repeat spots still run theirs.
-    assert!(entry_of(&after, &ENTRY).main.is_some());
-    let (_, sale) = sale(&after, STONE);
+    assert_eq!(sold_flag(&after, call), bombs.flag());
+    let sale = sale(&after, STONE);
     let EventKind::SubFlow { entry_point, .. } = &after.events[sale as usize].kind else {
         panic!("{STONE} doesn't sell")
     };
@@ -440,7 +449,8 @@ fn hyrule_fields_riddle_scrub_sells_a_plain_item_through_the_plain_sale() {
         value(&after, sale, flag::ACTOR_NAME).and_then(Value::as_str),
         Some(SONG.get())
     );
-    assert!(after.entry_points.iter().all(|e| !e.name.contains("Sells")));
+    let hf = SCRUBS[HF_HEART].hash().to_string();
+    assert!(after.entry_points.iter().all(|e| !e.name.contains(&hf)));
 }
 
 #[test]
@@ -449,8 +459,7 @@ fn items_with_a_get_animation_keep_the_vanilla_sale() {
         return;
     };
     assert!(after.entry_points.iter().all(|e| e.name != PLAIN_ONE_TIME));
-    assert!(after.entry_points.iter().all(|e| !e.name.contains("Sells")));
-    let (_, call) = sale(&after, item::BOOMERANG);
+    let call = sale(&after, item::BOOMERANG);
     let EventKind::SubFlow { entry_point, .. } = &after.events[call as usize].kind else {
         panic!("no sale")
     };
@@ -458,9 +467,8 @@ fn items_with_a_get_animation_keep_the_vanilla_sale() {
 }
 
 #[test]
-fn every_plain_item_has_the_flag_the_sale_asks_for() {
-    let Some(romfs) = dev_dump() else { return };
-    let mut data = crate::gamedata::GameData::load(&romfs).unwrap();
+fn songs_medallions_and_stones_are_plain() {
+    needs_names!();
     let songs = [
         "ZeldaLullaby",
         flag::EPONA_SONG,
@@ -485,8 +493,6 @@ fn every_plain_item_has_the_flag_the_sale_asks_for() {
         .chain(stones.map(|s| format!("Item_Stone_{s}")));
     for item in items {
         assert!(plain(&item), "{item}");
-        data.learn(&format!("IsGet.{item}"));
-        assert!(data.names().any(|n| n == format!("IsGet.{item}")), "{item}");
     }
     for item in [
         item::HAMMER,
@@ -499,16 +505,16 @@ fn every_plain_item_has_the_flag_the_sale_asks_for() {
 }
 
 #[test]
-fn a_shop_spot_gets_the_new_entry_and_consumables_skip_the_pouch_check() {
+fn a_shop_spot_runs_its_own_entry_into_the_pouch_root() {
     let Some((_, after)) = written(&[(HF_BOMBS, item::DIN_FIRE)]) else {
         return;
     };
     assert_eq!(
         branch(&after, item::DIN_FIRE).unwrap(),
-        (format!("{} Int([25])", item::DIN_FIRE), true)
+        format!("{} Int([25])", item::DIN_FIRE)
     );
-    assert!(!branch(&after, RED).unwrap().1);
-    let entry = reachable(&after, &ENTRY).unwrap();
+    assert!(branch(&after, RED).is_some());
+    let entry = reachable(&after, &sells(&SCRUBS[HF_BOMBS], item::DIN_FIRE)).unwrap();
     assert!(entry.contains(&head(&after)));
 }
 
@@ -519,7 +525,8 @@ fn an_unchanged_seed_edits_only_the_shop_spots() {
     assert_eq!(edited, [Branch::Shop; 10]);
     let fields = fields(&HashMap::new());
     let hf = SCRUBS[HF_BOMBS].hash();
-    assert!(fields.contains(&format!("{hf}.Dynamic.{TALK}={}", *ENTRY)));
+    let talk = sells(&SCRUBS[HF_BOMBS], RED);
+    assert!(fields.contains(&format!("{hf}.Dynamic.{TALK}={talk}")));
     assert!(fields.contains(&format!("{hf}.Dynamic.{ITEM}={RED}")));
     assert!(
         !fields
@@ -529,15 +536,16 @@ fn an_unchanged_seed_edits_only_the_shop_spots() {
 }
 
 #[test]
-fn every_copy_of_a_spot_takes_the_item() {
-    let fields = fields(&drops(&[(KOKIRI, item::BOOMERANG)]));
-    for h in SCRUBS[KOKIRI].placements {
+fn every_copy_of_a_spot_takes_the_item_its_entry_and_its_sold_flag() {
+    let kokiri = &SCRUBS[KOKIRI];
+    let drops = drops(&[(KOKIRI, item::BOOMERANG)]);
+    let fields = fields(&drops);
+    let gone = gone(&drops);
+    for h in kokiri.placements {
         assert!(fields.contains(&format!("{h}.Dynamic.{ITEM}={}", item::BOOMERANG)));
-        assert!(
-            !fields
-                .iter()
-                .any(|f| f.starts_with(&format!("{h}.Dynamic.{TALK}")))
-        );
+        let talk = sells(kokiri, item::BOOMERANG);
+        assert!(fields.contains(&format!("{h}.Dynamic.{TALK}={talk}")));
+        assert!(gone.contains(&(*h, kokiri.flag())));
     }
 }
 
@@ -547,7 +555,12 @@ fn hyrule_fields_heart_scrub_changes_only_its_sale_and_what_it_shows() {
     let data = romfs.read(&flows::rel(FLOW)).unwrap();
     let before = Flowchart::parse(&data).unwrap().unwrap();
     let mut after = Flowchart::parse(&data).unwrap().unwrap();
-    secret(&mut after, item::HAMMER, PRICE_SET).unwrap();
+    let model = model(&romfs);
+    let level = Level {
+        model: &model,
+        progressive: true,
+    };
+    secret(&mut after, item::HAMMER, PRICE_SET, level).unwrap();
     let lines = |f: &Flowchart| {
         flows::render(f)
             .lines()
@@ -643,8 +656,14 @@ fn every_talk_a_scrub_runs_has_its_event_rows() {
         .filter_map(|f| f.split_once(&format!(".Dynamic.{TALK}=")))
         .map(|(_, t)| t.to_owned())
         .collect();
-    assert!(talks.contains(&ENTRY.clone()), "{talks:?}");
-    assert!(talks.iter().any(|t| t.contains("_Sells_")), "{talks:?}");
+    assert!(
+        talks.contains(&sells(&SCRUBS[HF_BOMBS], item::BOOMERANG)),
+        "{talks:?}"
+    );
+    assert!(
+        talks.contains(&sells(&SCRUBS[LW_STICKS], SONG)),
+        "{talks:?}"
+    );
     let mut tables = crate::rsdb::Events::load(&romfs).unwrap();
     crate::scrubs::events(&drops, &mut tables).unwrap();
     for t in &talks {
@@ -681,7 +700,89 @@ fn every_sale_asks_the_set_price() {
         .collect();
     assert!(prices.contains(&"Int([25])".to_owned()), "{prices:?}");
     assert_eq!(
-        branch(&after, item::BOOMERANG).unwrap().0,
+        branch(&after, item::BOOMERANG).unwrap(),
         format!("{} Int([25])", item::BOOMERANG)
     );
+}
+
+/// The Bool a root call `call` sets once Link pays.
+fn sold_flag(flow: &Flowchart, call: u16) -> String {
+    let ask = next(flow, call).expect("nothing asks whether Link paid");
+    let paid = events(flow, IS_BOOL).into_iter().any(|(e, _)| e == ask);
+    assert!(paid, "{ask} isn't a Bool check");
+    assert_eq!(
+        value(flow, ask, GAME_DATA).and_then(Value::as_str),
+        Some(BOUGHT.get())
+    );
+    let set = case(flow, ask, 0).unwrap();
+    assert_eq!(next(flow, set), None);
+    let flag = value(flow, set, GAME_DATA).and_then(Value::as_str);
+    flag.unwrap().to_owned()
+}
+
+#[test]
+fn every_edited_spot_sets_its_own_bool_once_paid() {
+    let at: Vec<_> = (0..SCRUBS.len())
+        .filter(|&s| SCRUBS[s].branch != Branch::Secret)
+        .map(|s| (s, [item::BOOMERANG, SONG][s % 2]))
+        .collect();
+    let Some((_, after)) = written(&at) else {
+        return;
+    };
+    let drops = drops(&at);
+    let mut flags = flags(&drops);
+    for &(s, item) in &at {
+        let spot = &SCRUBS[s];
+        let main = entry_of(&after, &sells(spot, item)).main.unwrap();
+        let call = match plain(item) {
+            true => next(&after, main).unwrap(),
+            false => main,
+        };
+        assert_eq!(sold_flag(&after, call), spot.flag(), "{}", spot.name);
+    }
+    // One per spot, and never the Hyrule Field riddle scrub's.
+    let all = flags.len();
+    flags.sort();
+    flags.dedup();
+    assert_eq!(flags.len(), all);
+    assert_eq!(all, SCRUBS.len() - 1);
+    let placed: usize = at.iter().map(|(s, _)| SCRUBS[*s].placements.len()).sum();
+    assert_eq!(gone(&drops).len(), placed);
+}
+
+#[test]
+fn a_scrub_dealt_the_hookshot_offers_and_sells_the_step_link_owns() {
+    needs_names!();
+    let Some((_, after)) = written(&[(KOKIRI, item::HOOKSHOT)]) else {
+        return;
+    };
+    // Highest first: the Longshot, then the Hookshot.
+    let ask = sale(&after, item::HOOKSHOT);
+    assert!(asks_for(&after, ask, item::LONGSHOT));
+    let asked = flows::reachable_from(&after, Some(ask));
+    assert!(asked.iter().any(|&e| asks_for(&after, e, item::HOOKSHOT)));
+    let both = [item::HOOKSHOT, item::LONGSHOT].map(|i| (i.to_string(), seller(i)));
+    assert_eq!(sales_from(&after, ask), both);
+    let dealt = drops(&[(KOKIRI, item::HOOKSHOT)]);
+    let lines = lines(&dealt);
+    for i in [item::HOOKSHOT, item::LONGSHOT] {
+        assert!(lines.new.iter().any(|(_, l)| *l == i.get()), "{i}");
+    }
+}
+
+#[test]
+fn a_scrub_dealt_arrows_offers_a_red_rupee_without_the_bow() {
+    needs_names!();
+    let arrows = actor::T_BOX_ARROW_BUNDLE_SMALL;
+    let Some((_, after)) = written(&[(KOKIRI, arrows)]) else {
+        return;
+    };
+    let ask = sale(&after, arrows);
+    let sales = sales_from(&after, ask);
+    let named = |i: &str| (i.to_string(), seller(i));
+    assert!(sales.contains(&named(crate::ammo::WITHOUT)), "{sales:?}");
+    assert!(sales.contains(&named(arrows)), "{sales:?}");
+    let asked = flows::reachable_from(&after, Some(ask));
+    let bow = actor::WEAPON_RANGE_BOW;
+    assert!(asked.iter().any(|&e| asks_for(&after, e, bow)));
 }

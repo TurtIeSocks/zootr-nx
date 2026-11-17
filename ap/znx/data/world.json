@@ -36,20 +36,7 @@
           "rule": true
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "182031956235860994",
       "id": 2,
       "name": "Kokiri Forest Business Scrub (Sticks)",
@@ -1218,20 +1205,7 @@
           }
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "2214083465643671502",
       "id": 15,
       "name": "Lost Woods Business Scrub (Rock Grotto)",
@@ -1545,20 +1519,7 @@
           }
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "2518138296199711695",
       "id": 18,
       "name": "Death Mountain Crater Business Scrub (Heart Piece)",
@@ -1571,20 +1532,7 @@
           "rule": true
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "2569517939889411425",
       "id": 19,
       "name": "Lost Woods Business Scrub (Bug Buyer)",
@@ -2530,20 +2478,7 @@
           }
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "4328741615941752705",
       "id": 29,
       "name": "Lost Woods Business Scrub (Nuts)",
@@ -2892,20 +2827,7 @@
           "rule": true
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "5406759280757349546",
       "id": 37,
       "name": "Lost Woods Business Scrub (Sticks)",
@@ -3866,20 +3788,7 @@
           }
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "7388739057158296701",
       "id": 49,
       "name": "Dodongo's Cavern Business Scrub",
@@ -4780,20 +4689,7 @@
           }
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "8721287453021850502",
       "id": 58,
       "name": "Shadow Temple Business Scrub",
@@ -5333,20 +5229,7 @@
           "rule": true
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "9496373148524757782",
       "id": 66,
       "name": "Jabu-Jabu's Belly Business Scrub",
@@ -6320,20 +6203,7 @@
           }
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "10364468093017215295",
       "id": 74,
       "name": "Hyrule Field Business Scrub (Heart Piece)",
@@ -7646,20 +7516,7 @@
           }
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "12901354557574090016",
       "id": 92,
       "name": "Hyrule Field Business Scrub (Seeds)",
@@ -8826,20 +8683,7 @@
           "rule": true
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "15048088372638595204",
       "id": 107,
       "name": "Lost Woods Business Scrub (Potions)",
@@ -9325,20 +9169,7 @@
           }
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "15945446340598299551",
       "id": 113,
       "name": "Bottom of the Well Business Scrub",
@@ -9599,20 +9430,7 @@
           }
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "16672855544778411393",
       "id": 118,
       "name": "Hyrule Field Business Scrub (Bombs)",
@@ -10276,20 +10094,7 @@
           }
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)",
-        "Progressive Bomb Bag",
-        "Progressive Bow",
-        "Progressive Deku Nut Bag",
-        "Progressive Deku Stick Bag",
-        "Progressive Hookshot",
-        "Progressive Ocarina",
-        "Progressive Slingshot",
-        "Progressive Strength Upgrade"
-      ],
+      "forbid": [],
       "hash": "17418042722045679657",
       "id": 125,
       "name": "Hyrule Field Business Scrub (Nuts)",

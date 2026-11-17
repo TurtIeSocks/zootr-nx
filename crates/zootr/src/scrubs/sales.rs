@@ -7,28 +7,49 @@ use std::collections::HashMap;
 use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::{EntryPoint, EventKind, Flowchart, Link, Romfs, Value};
 
-use super::events::{calls, case, last, one, set_cases, set_string, with};
+use super::events::{self, calls, case, last, one, set_cases, set_string, with};
 use super::placements::{seller, sells};
 use super::spots::{Branch, Scrub, edits, plain};
 use super::{
-    COMPARE, ENTRY, FLOW, GRANT, HEAD, NAME, ONE_TIME, PAY, PLAIN_ONE_TIME, PRICE, PRICE_PARAM,
-    ROOT, SECRET, SELECTED, SELLER, SET_STRING, SHOW, SHOW_FLOW, SOME_FLAG, TEMP, WAIT_PAID,
+    BOUGHT, COMPARE, FLOW, GRANT, HEAD, NAME, ONE_TIME, PAY, PLAIN_ONE_TIME, PRICE, PRICE_PARAM,
+    ROOT, SECRET, SELECTED, SELLER, SET_STRING, SHOW, SHOW_FLOW, SOLD_LIKE, TEMP, WAIT_PAID,
     WRITE_ITEM,
 };
 use crate::checks::Drop;
 use crate::flows::{
-    self, GAME_DATA, IN_POUCH, IS_BOOL, Rewrites, events, params_mut, reachable, string,
+    self, GAME_DATA, IS_BOOL, Model, Rewrites, events, param, params_mut, reachable, string,
 };
-use crate::known::{field, flag, item};
+use crate::gifts::levels;
+use crate::known::{field, flag};
+
+/// The pouch question, and whether progressive items are on: what a sale
+/// needs to give the step Link owns.
+#[derive(Clone, Copy)]
+pub(crate) struct Level<'a> {
+    pub model: &'a Model,
+    pub progressive: bool,
+}
+
+impl Level<'_> {
+    /// Put the pouch questions in front of the sale `at` of `item`, if
+    /// what it gives depends on what Link owns.
+    fn chain(self, flow: &mut Flowchart, item: &str, at: u16) -> Result<()> {
+        match levels::asks(item, self.progressive) {
+            true => levels::by_level_at(flow, self.model, item, at),
+            false => Ok(()),
+        }
+    }
+}
 
 /// Sell each edited scrub's item in the shared flow, every one at `price`.
 /// Sales are picked by item, so one price for all keeps two scrubs selling
 /// the same item from asking one price and taking another's.
-pub fn write(
+pub(crate) fn write(
     romfs: &Romfs,
     rewrites: &mut Rewrites,
     drops: &HashMap<u64, Drop>,
     price: i32,
+    level: Level,
 ) -> Result<()> {
     let edits: Vec<_> = edits(drops).collect();
     if edits.is_empty() {
@@ -41,28 +62,23 @@ pub fn write(
         let mut sales: Vec<&str> = Vec::new();
         for &(s, item) in &edits {
             match s.branch {
-                Branch::Secret => secret(flow, item, price)?,
+                Branch::Secret => secret(flow, item, price, level)?,
                 _ if sales.contains(&item) => {}
                 _ => sales.push(item),
             }
         }
-        sell(flow, &sales, price)?;
-        if edits
-            .iter()
-            .any(|(s, item)| s.branch == Branch::Shop && !plain(item))
-        {
-            entry(flow)?;
-        }
+        sell(flow, &sales, price, level)?;
         let spots: Vec<_> = edits
             .iter()
-            .filter(|(s, item)| s.branch != Branch::Secret && plain(item))
+            .filter(|(s, _)| s.branch != Branch::Secret)
             .collect();
-        spots_sell(flow, &spots)
+        entries(flow, &spots)?;
+        name_lines(flow)
     })
 }
 
 /// Hyrule Field's sale and the item it shows, swapped in place.
-pub(super) fn secret(flow: &mut Flowchart, item: &str, price: i32) -> Result<()> {
+pub(super) fn secret(flow: &mut Flowchart, item: &str, price: i32, level: Level) -> Result<()> {
     let talk = reachable(flow, SECRET)?;
     let only = |found: Vec<u16>, what| {
         one(
@@ -88,20 +104,13 @@ pub(super) fn secret(flow: &mut Flowchart, item: &str, price: i32) -> Result<()>
         params_mut(&mut flow.events[shown as usize].kind),
         "Value",
         string(item),
-    )
-}
-
-/// Whether Link keeps `item`, so a second copy of its scrub mustn't sell it
-/// again.
-fn kept(item: &str) -> bool {
-    !["Obj_", "TBox_", item::BOTTLE]
-        .iter()
-        .any(|p| item.starts_with(p))
+    )?;
+    level.chain(flow, item, sale)
 }
 
 /// Put a compare for each of `sales` in front of the vanilla chain. A match
-/// sells the item at `price`, unless Link already keeps it.
-fn sell(flow: &mut Flowchart, sales: &[&str], price: i32) -> Result<()> {
+/// sells the item at `price`, the step Link owns for one that asks.
+fn sell(flow: &mut Flowchart, sales: &[&str], price: i32, level: Level) -> Result<()> {
     if sales.is_empty() {
         return Ok(());
     }
@@ -113,13 +122,7 @@ fn sell(flow: &mut Flowchart, sales: &[&str], price: i32) -> Result<()> {
             .collect(),
         "chain heads",
     )?;
-    let mut miss = head;
-    while compares.contains(&miss) {
-        miss = case(flow, miss, 1)?;
-    }
     let call = *calls(flow, ONE_TIME).first().context("no one-time sale")?;
-    let gate = events(flow, IN_POUCH).first().context("no pouch check")?.0;
-    let flag = one(with(flow, IS_BOOL, GAME_DATA, SOME_FLAG), "flag checks")?;
     let into_head = flow.links_to(head);
     let mut next = head;
     for &item in sales.iter().rev() {
@@ -131,32 +134,41 @@ fn sell(flow: &mut Flowchart, sales: &[&str], price: i32) -> Result<()> {
         if let (true, EventKind::SubFlow { entry_point, .. }) = (plain(item), &mut sale) {
             *entry_point = PLAIN_ONE_TIME.into();
         }
-        let mut sale = flow.push(sale);
-        if kept(item) {
-            // Songs have no pouch count, only a flag that says Link has them.
-            let (mut check, key, value) = match plain(item) {
-                true => (
-                    flow.events[flag as usize].kind.clone(),
-                    GAME_DATA.get(),
-                    format!("IsGet.{item}"),
-                ),
-                false => (
-                    flow.events[gate as usize].kind.clone(),
-                    "Actor",
-                    item.to_owned(),
-                ),
-            };
-            flows::set(params_mut(&mut check), key, string(&value))?;
-            set_cases(&mut check, [miss, sale]);
-            sale = flow.push(check);
-        }
+        let sale = flow.push(sale);
         let mut compare = flow.events[head as usize].kind.clone();
         flows::set(params_mut(&mut compare), "Value", string(item))?;
         set_cases(&mut compare, [sale, next]);
         next = flow.push(compare);
+        // After the compare, which the chain then leads through.
+        level.chain(flow, item, sale)?;
     }
     for link in into_head {
         flow.link(link, Some(next))?;
+    }
+    Ok(())
+}
+
+/// Point each of our sales' seller line at the line naming what it sells,
+/// once the chains have copied a sale per step.
+fn name_lines(flow: &mut Flowchart) -> Result<()> {
+    let ours = seller("");
+    for e in 0..flow.events.len() {
+        let EventKind::SubFlow {
+            entry_point,
+            params,
+            ..
+        } = &mut flow.events[e].kind
+        else {
+            continue;
+        };
+        if ![ONE_TIME.get(), PLAIN_ONE_TIME].contains(&entry_point.as_str())
+            || !param(params, SELLER).is_some_and(|l| l.starts_with(&ours))
+        {
+            continue;
+        }
+        let item = param(params, NAME).context("a sale names no item")?;
+        let line = seller(item);
+        flows::set(params, SELLER, string(&line))?;
     }
     Ok(())
 }
@@ -252,26 +264,51 @@ fn hook(flow: &mut Flowchart, items: &[&str]) -> Result<()> {
     flow.link(Link::Next(read), Some(miss))
 }
 
-/// Give each of `spots` an entry for its talk: it names the item to sell,
-/// then runs what the spot's talk ran before.
-fn spots_sell(flow: &mut Flowchart, spots: &[&(&Scrub, &str)]) -> Result<()> {
+/// Give each of `spots` an entry for its talk: it names a plain item to
+/// sell, runs what the spot's talk ran before, then sets the spot's own
+/// Bool once Link pays. Never the vanilla sold Bool, which spots share.
+fn entries(flow: &mut Flowchart, spots: &[&(&Scrub, &str)]) -> Result<()> {
     if spots.is_empty() {
         return Ok(());
     }
-    let mut items: Vec<&str> = spots.iter().map(|(_, item)| *item).collect();
+    let mut items: Vec<&str> = (spots.iter().map(|(_, item)| *item))
+        .filter(|i| plain(i))
+        .collect();
     items.sort();
     items.dedup();
-    hook(flow, &items)?;
+    if !items.is_empty() {
+        hook(flow, &items)?;
+    }
     let root = *calls(flow, ROOT)
         .first()
         .context("no call to the pouch root")?;
+    let like = flow.entry_points.iter().find(|e| e.name == SOLD_LIKE);
+    let like = like.and_then(|e| e.main).context("no one-time talk")?;
+    let paid = (events::next(flow, like)).context("a one-time talk ends at the root")?;
+    ensure!(
+        with(flow, IS_BOOL, GAME_DATA, BOUGHT).contains(&paid),
+        "{SOLD_LIKE} doesn't ask whether Link paid"
+    );
+    let sold = case(flow, paid, 0)?;
     for &&(s, item) in spots {
         let name = sells(s, item);
         ensure!(
             flow.entry_points.iter().all(|e| e.name != name),
             "{FLOW} already has {name}"
         );
-        let call = match s.branch {
+        let mut mark = flow.events[sold as usize].kind.clone();
+        flows::set(params_mut(&mut mark), GAME_DATA, string(&s.flag()))?;
+        let EventKind::Action { next, .. } = &mut mark else {
+            bail!("a paid sale's sold flag isn't an action")
+        };
+        *next = None;
+        let mark = flow.push(mark);
+        let mut ask = flow.events[paid as usize].kind.clone();
+        if let EventKind::Switch { cases, .. } = &mut ask {
+            *cases = vec![(0, mark)];
+        }
+        let ask = flow.push(ask);
+        let mut call = match s.branch {
             Branch::Shop => last(flow, root),
             _ => {
                 let vanilla = flow.entry_points.iter().find(|e| e.name == s.talk);
@@ -287,35 +324,19 @@ fn spots_sell(flow: &mut Flowchart, spots: &[&(&Scrub, &str)]) -> Result<()> {
                 }
             }
         };
-        let call = flow.push(call);
-        let set = set_string(flow, SELECTED, item, Some(call))?;
-        let main = Some(flow.push(set));
+        if let EventKind::SubFlow { next, .. } = &mut call {
+            *next = Some(ask);
+        }
+        let mut main = flow.push(call);
+        if plain(item) {
+            let set = set_string(flow, SELECTED, item, Some(main))?;
+            main = flow.push(set);
+        }
         flow.entry_points.push(EntryPoint {
             name,
-            main,
+            main: Some(main),
             vars: vec![],
         });
     }
-    Ok(())
-}
-
-/// Add `ENTRY`: the pouch root with the greeting every one-time scrub uses,
-/// and no sold flag after.
-fn entry(flow: &mut Flowchart) -> Result<()> {
-    ensure!(
-        flow.entry_points.iter().all(|e| e.name != *ENTRY),
-        "{FLOW} already has {}",
-        *ENTRY
-    );
-    let root = *calls(flow, ROOT)
-        .first()
-        .context("no call to the pouch root")?;
-    let call = last(flow, root);
-    let main = Some(flow.push(call));
-    flow.entry_points.push(EntryPoint {
-        name: ENTRY.clone(),
-        main,
-        vars: vec![],
-    });
     Ok(())
 }

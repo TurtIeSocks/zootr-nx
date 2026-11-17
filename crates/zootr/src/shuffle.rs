@@ -5,12 +5,13 @@ use std::collections::{BTreeMap, HashMap};
 use anyhow::{Context, Result, bail};
 
 use crate::checks::{Drop, ItemCheck};
+use crate::gifts::levels;
 use crate::keys;
 use crate::known::{Name, item};
 use crate::rng::Rng;
 use crate::settings::{self, NewGame};
 use crate::starting;
-use crate::{ammo, cows, gifts, progressive};
+use crate::{ammo, cows, gifts, progressive, scrubs};
 
 /// One shuffled chest, for the spoiler log.
 #[derive(Clone, Copy)]
@@ -258,18 +259,14 @@ pub fn shuffle<'a>(
     Ok(placed)
 }
 
-/// Whether what `item` gives depends on what Link has, which a gift can't
-/// check: ammo without its bag, or a line the hook upgrades.
-fn asks(item: &str, progressive: bool) -> bool {
-    ammo::swap(item).is_some() || progressive && progressive::in_line(item)
-}
-
-/// Whether `item` asks on `check`. Nothing asks of a gift that gives
-/// [`gifts::by_level`], and a line's level doesn't of a cow, whose song
-/// asks the pouch first.
+/// Whether `item` asks on `check`, which a gift can't answer unless it
+/// asks the pouch first. Nothing asks of a gift that gives
+/// [`gifts::by_level`] or of a scrub, whose sale asks the pouch, and a
+/// line's level doesn't of a cow, whose song does.
 fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
     let cow = cows::is_cow(check) && ammo::swap(item).is_none();
-    !gifts::by_level(check) && !cow && asks(item, progressive)
+    let picks = gifts::by_level(check) || scrubs::of(check).is_some();
+    !picks && !cow && levels::asks(item, progressive)
 }
 
 /// Whether `check` may hold `item`: a gift can't hold one that asks, or
@@ -479,6 +476,20 @@ mod tests {
         };
         assert!(allowed(&cow, item::HOOKSHOT, true));
         assert!(!allowed(&cow, item::BOMB_BUNDLE_SMALL, true));
+    }
+
+    #[test]
+    fn a_scrub_holds_every_lines_first_level_and_ammo() {
+        needs_names!();
+        let scrub = &crate::scrubs::checks()[0];
+        for on in [false, true] {
+            for line in progressive::LINES {
+                assert!(allowed(scrub, line[0].0, on), "{}", line[0].0);
+            }
+            for (ammo, _) in ammo::NEEDS {
+                assert!(allowed(scrub, ammo, on), "{ammo}");
+            }
+        }
     }
 
     #[test]

@@ -52,6 +52,14 @@ pub(super) fn last(flow: &Flowchart, e: u16) -> EventKind {
     call
 }
 
+/// What an action or call runs next.
+pub(super) fn next(flow: &Flowchart, e: u16) -> Option<u16> {
+    match &flow.events[e as usize].kind {
+        EventKind::Action { next, .. } | EventKind::SubFlow { next, .. } => *next,
+        _ => None,
+    }
+}
+
 /// Where a switch's case `n` goes.
 pub(super) fn case(flow: &Flowchart, e: u16, n: u32) -> Result<u16> {
     match &flow.events[e as usize].kind {

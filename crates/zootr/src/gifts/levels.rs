@@ -24,12 +24,24 @@ pub(super) fn chained(gift: &Gift) -> bool {
     !gift.is_sale()
 }
 
+/// Whether what `item` gives depends on what Link owns: ammo without what
+/// fires it, or a line's level with progressive items on.
+pub(crate) fn asks(item: &str, progressive: bool) -> bool {
+    ammo::swap(item).is_some() || progressive && progressive::in_line(item)
+}
+
 /// Whether `gift`, dealt `item`, needs a chain: ammo, or a level of a line
 /// with progressive items on, unless the game already picks its level.
 pub(super) fn needs(gift: &Gift, item: &str, progressive: bool) -> bool {
     let picks = item == gift.item.get() && picked(item).is_some();
     let level = progressive && progressive::in_line(item) && !picks;
     chained(gift) && (level || ammo::swap(item).is_some())
+}
+
+/// Every item a chain for `item` can give, lowest first.
+pub(crate) fn steps(item: &str) -> impl Iterator<Item = &'static str> + use<> {
+    let ladder = ladder(item).map(|(l, _)| l).unwrap_or_default();
+    ladder.into_iter().map(|(give, _)| give.get())
 }
 
 /// What `item` gives by what Link owns, lowest first, each a drop and the
