@@ -1,8 +1,8 @@
 # The Spirit Temple is one map both ages share, so its obstacles
 # together ask for child-only crawl holes and the adult-only Hammer at
-# once, which no one Link meets. Each chest says which side it's on
-# instead, matched to the original game's chest by what stands around
-# it, with Ship's rule for that chest. Keys are `always`, so the key
+# once, which no one Link meets. Each check says which side it's on
+# instead, matched to the original game's check by what stands around
+# it, with Ship's rule for that check. Keys are `always`, so the key
 # counts drop out. Rules on the playtest list.
 
 # The child side's bridge room, past the crawl holes: a hit switch drops
@@ -44,3 +44,101 @@ needs = "silver-gauntlets and explosives and lens"
 hash = 13828480906010430010
 name = "Upper Five Bombs 2"
 needs = "silver-gauntlets and explosives and hookshot and light"
+
+# The child side's torch room past the bridge: sticks light its two
+# torches and raise the chest.
+[[check]]
+hash = 5703423643219134246
+name = "Lower Small Key 1"
+needs = "slingshot or boomerang"
+setting = "keys"
+
+# The torch at the statue's foot raises the map chest. Child comes up
+# the climb and blows the wall, adult comes round the mirror rooms.
+[[check]]
+hash = 13852283723126411131
+name = "Upper Dungeon Map"
+needs = "(child and explosives) or (silver-gauntlets and fire)"
+setting = "maps-compasses"
+
+# On the statue's hand: Zelda's Lullaby on the other hand's Triforce
+# stone raises it.
+[[check]]
+hash = 2203243501006528435
+name = "Upper Small Key 1"
+needs = "silver-gauntlets and zeldas-lullaby and hookshot"
+setting = "keys"
+
+# The sun block room's ledge chest, raised by its torch. Child lights it
+# with a stick, adult brings fire.
+[[check]]
+hash = 17407066694905911064
+name = "Upper Small Key 2"
+needs = "(child and explosives and goron-bracelet) or (silver-gauntlets and hookshot and fire)"
+setting = "keys"
+
+# The adult side's sand pit: Zelda's Lullaby on the Triforce stone
+# raises the chest on its ledge.
+[[check]]
+hash = 15633505270333176438
+name = "Compass"
+needs = "silver-gauntlets and zeldas-lullaby and hookshot"
+setting = "maps-compasses"
+
+# The adult side's boulder room, past the door switch.
+[[check]]
+hash = 4277978357934400600
+name = "Lower Small Key 2"
+needs = "silver-gauntlets and (bow or hookshot)"
+setting = "keys"
+
+# The side room off the four Armos, past a Beamos: a reflected sunbeam on
+# its sun switch opens it.
+[[check]]
+hash = 12042193296697281461
+name = "Upper Small Key 3"
+needs = "silver-gauntlets and explosives and light"
+setting = "keys"
+
+# Inside the fire ring behind the lullaby door: an eye switch puts the
+# ring out and the Hookshot crosses to it.
+[[check]]
+hash = 16272168033146555902
+name = "Upper Boss Key"
+needs = "silver-gauntlets and explosives and zeldas-lullaby and hookshot and bow"
+setting = "keys"
+
+# Gold Skulltulas. Beside the child side's silver rupee fence:
+[[check]]
+hash = 10530233152473742636
+name = "Metal Fence Token"
+needs = "slingshot or boomerang"
+setting = "gold-skulltulas"
+
+# On the central chamber's west ledge:
+[[check]]
+hash = 5086449036385341804
+name = "Lobby Token"
+needs = "silver-gauntlets and hookshot"
+setting = "gold-skulltulas"
+
+# Low on the central chamber's east pillar:
+[[check]]
+hash = 12959656942046734931
+name = "Sun Floor Token"
+needs = "(explosives and boomerang) or (silver-gauntlets and hookshot)"
+setting = "gold-skulltulas"
+
+# In the hall past the sun block room:
+[[check]]
+hash = 10127391959410674946
+name = "Sun Block Hall Token"
+needs = "(explosives and goron-bracelet and boomerang) or (silver-gauntlets and hookshot)"
+setting = "gold-skulltulas"
+
+# By the boulder room's Song of Time block:
+[[check]]
+hash = 8120267919866495114
+name = "Boulder Room Token"
+needs = "silver-gauntlets and song-of-time and (bow or hookshot)"
+setting = "gold-skulltulas"
