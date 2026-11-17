@@ -396,7 +396,15 @@ mod tests {
             keys: crate::settings::DungeonKeys::Singles,
             ..Default::default()
         };
-        crate::generate::write_mod(&romfs, &dir, &drops, &new_game, &[]).unwrap();
+        crate::generate::write_mod(
+            &romfs,
+            &dir,
+            &drops,
+            &new_game,
+            &[],
+            &crate::progress::Run::silent(),
+        )
+        .unwrap();
         let lines = scrubs::lines(&drops);
         let (label, _) = lines.new.iter().find(|(_, i)| *i == copy).unwrap();
         let rel = archives(&romfs)
@@ -424,7 +432,15 @@ mod tests {
             scrubs: true,
             ..Default::default()
         };
-        crate::generate::write_mod(&romfs, &dir, &drops, &new_game, &[]).unwrap();
+        crate::generate::write_mod(
+            &romfs,
+            &dir,
+            &drops,
+            &new_game,
+            &[],
+            &crate::progress::Run::silent(),
+        )
+        .unwrap();
         let lines = scrubs::lines(&drops);
         let (label, _) = lines.new.iter().find(|(_, i)| *i == item::HAMMER).unwrap();
         let rels = archives(&romfs).unwrap();
@@ -467,7 +483,15 @@ mod tests {
             scrubs: true,
             ..Default::default()
         };
-        crate::generate::write_mod(&romfs, &dir, &drops, &new_game, &[]).unwrap();
+        crate::generate::write_mod(
+            &romfs,
+            &dir,
+            &drops,
+            &new_game,
+            &[],
+            &crate::progress::Run::silent(),
+        )
+        .unwrap();
         let mut lines = crate::gifts::lines(&drops);
         lines.push(scrubs::lines(&drops));
         assert_eq!(lines.len(), 2);
@@ -501,7 +525,15 @@ mod tests {
             on: [crate::settings::MERCHANTS.into()].into(),
             ..Default::default()
         };
-        crate::generate::write_mod(&romfs, &dir, &drops, &new_game, &[]).unwrap();
+        crate::generate::write_mod(
+            &romfs,
+            &dir,
+            &drops,
+            &new_game,
+            &[],
+            &crate::progress::Run::silent(),
+        )
+        .unwrap();
         let lines = crate::gifts::lines(&drops);
         let [l] = &lines[..] else {
             panic!("{} lines", lines.len())

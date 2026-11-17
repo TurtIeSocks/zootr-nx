@@ -360,7 +360,15 @@ fn a_mod_with_plain_items_at_scrubs_generates() {
         scrubs: true,
         ..Default::default()
     };
-    crate::generate::write_mod(&romfs, &dir, &drops(&at), &new_game, &[]).unwrap();
+    crate::generate::write_mod(
+        &romfs,
+        &dir,
+        &drops(&at),
+        &new_game,
+        &[],
+        &crate::progress::Run::silent(),
+    )
+    .unwrap();
     let rel = flows::rel(FLOW);
     let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
     let data = romfs.dicts().decompress(&rel, &raw).unwrap();

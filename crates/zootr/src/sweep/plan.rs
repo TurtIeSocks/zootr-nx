@@ -563,7 +563,15 @@ mod tests {
             ];
             let settings: Settings = ids.map(|id| (id.into(), true.into())).into();
             let dir = std::env::temp_dir().join(format!("zootr-sweep-plan-{}", std::process::id()));
-            let report = generate(&romfs, &dir, 7, &settings, &Extras::default()).unwrap();
+            let report = generate(
+                &romfs,
+                &dir,
+                7,
+                &settings,
+                &Extras::default(),
+                &crate::progress::Run::silent(),
+            )
+            .unwrap();
             std::fs::remove_dir_all(dir).unwrap();
             let planned = plan(&romfs, &report.spots).unwrap();
             (report.spots, planned)

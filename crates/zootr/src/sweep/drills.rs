@@ -224,7 +224,14 @@ mod tests {
             return;
         };
         let dir = std::env::temp_dir().join(format!("zootr-drills-{}", std::process::id()));
-        let report = generate(&romfs, &dir, SEED, &settings().unwrap(), &Extras::default());
+        let report = generate(
+            &romfs,
+            &dir,
+            SEED,
+            &settings().unwrap(),
+            &Extras::default(),
+            &crate::progress::Run::silent(),
+        );
         std::fs::remove_dir_all(&dir).unwrap();
         let planned = plan(&romfs, &report.unwrap().spots).unwrap();
         let all: Vec<&Drill> = DRILLS.iter().collect();

@@ -9,6 +9,7 @@ use anyhow::{Result, bail};
 use clap::Parser;
 
 use crate::config::Config;
+use crate::progress::Run;
 use crate::vision::Vision;
 use crate::{events, flows, game, generate, spawn, world};
 use args::{Cli, Command, DrillReport, SweepReport};
@@ -54,12 +55,16 @@ pub fn run() -> Result<()> {
             .unwrap_or_else(|| "dump/oot.nup".into()),
     };
     if let Command::Extract = cli.command {
-        println!("{}", game::folder(&path)?.display());
+        println!("{}", game::folder(&path, &Run::silent())?.display());
         return Ok(());
     }
-    let romfs = game::prepare(&path)?;
+    // Its run reads the dump as its first step.
+    if let Command::Shuffle(args) = cli.command {
+        return shuffle(&path, args);
+    }
+    let romfs = game::prepare(&path, &Run::silent())?;
     match cli.command {
-        Command::Extract | Command::Target(_) | Command::Turn { .. } => {
+        Command::Extract | Command::Target(_) | Command::Turn { .. } | Command::Shuffle(_) => {
             unreachable!("handled above")
         }
         Command::Census => census(&romfs),
@@ -123,8 +128,10 @@ pub fn run() -> Result<()> {
             out,
         } => {
             let (drops, new_game) = (HashMap::from([(hash, item.into())]), new_game.resolve()?);
-            let (written, _) =
-                out.write(|d| generate::write_mod(&romfs, d, &drops, &new_game, &[]))?;
+            let run = Run::silent();
+            let (written, _) = out.write(&run, |d| {
+                generate::write_mod(&romfs, d, &drops, &new_game, &[], &run)
+            })?;
             print_written(&written);
             Ok(())
         }
@@ -133,7 +140,6 @@ pub fn run() -> Result<()> {
         Command::Live { grep, all, named } => live(&romfs, grep, all, named),
         Command::Give { actor, count } => give(&romfs, &actor, count),
         Command::Set { name, value } => set(&romfs, &name, &value),
-        Command::Shuffle(args) => shuffle(&romfs, args),
         Command::Dev(cmd) => dev(&romfs, &path, cmd),
         Command::Look {
             questions,

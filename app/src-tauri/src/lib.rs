@@ -4,25 +4,29 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, anyhow, bail};
+use generating::Generating;
 use ounce_formats::Romfs;
 use serde::Serialize;
 use specta::Type;
+use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager, State};
 use tauri_specta::{Event as _, collect_commands, collect_events};
 use zootr::config::Config;
 use zootr::gamedata::GameData;
 use zootr::generate::plando::PlandoOptions;
-use zootr::generate::{self, Extras, Report, RoundEvent, Spot, Start};
+use zootr::generate::{self, RoundEvent, Spot, Start};
 use zootr::history::{History, Label, Mark, Summary, View};
 use zootr::inventory::{self, Cell, Inventory, TrackerOptions};
 use zootr::platform;
+use zootr::progress::{self, Run};
 use zootr::recorder::{self, Ask, Event, Hub, Numbered, Snapshot, Watch};
 use zootr::savefile::{self, Change};
-use zootr::settings::{SettingDef, Settings};
+use zootr::settings::SettingDef;
 use zootr::share;
 use zootr::tracker::{self, Row, Tracker};
 
 mod dev_panel;
+mod generating;
 mod save_editor;
 mod targets;
 mod ui;
@@ -128,7 +132,7 @@ async fn set_config(app: AppHandle, config: Config) -> Res<()> {
             .as_ref()
             .filter(|&g| old.game.as_ref() != Some(g))
         {
-            zootr::game::prepare(game)?;
+            zootr::game::prepare(game, &Run::silent())?;
         }
         check_steps(&old, &config)?;
         config.save()?;
@@ -142,7 +146,8 @@ async fn set_config(app: AppHandle, config: Config) -> Res<()> {
 
 /// The game files from the config's dump.
 fn romfs(config: &Config) -> anyhow::Result<Romfs> {
-    zootr::game::prepare(config.game.as_ref().context("Set the game dump first")?)
+    let game = config.game.as_ref().context("Set the game dump first")?;
+    zootr::game::prepare(game, &Run::silent())
 }
 
 /// The `zootr shuffle` command that Generate stands for, with the current
@@ -155,17 +160,6 @@ fn shuffle_command() -> Res<String> {
         &config.settings,
         &config.extras(),
     ))
-}
-
-/// Write a seed to every target.
-fn install_seed(seed: u64, settings: &Settings, extras: &Extras) -> anyhow::Result<Report> {
-    let config = Config::load()?;
-    let romfs = romfs(&config)?;
-    let mut extras = extras.clone();
-    extras.dev_panel = config.dev_panel;
-    generate::install(&config.targets, |d| {
-        generate::generate(&romfs, d, seed, settings, &extras)
-    })
 }
 
 /// Run `f` off the UI thread.
@@ -182,7 +176,11 @@ async fn blocking<T: Send + 'static>(
 /// blank seed is random. A share code brings its own settings and extras.
 #[tauri::command]
 #[specta::specta]
-async fn generate(seed: Option<String>) -> Res<Summary> {
+async fn generate(
+    app: AppHandle,
+    seed: Option<String>,
+    steps: Channel<progress::StepEvent>,
+) -> Res<Summary> {
     blocking(move || {
         let config = Config::load()?;
         let extras = config.extras();
@@ -198,7 +196,7 @@ async fn generate(seed: Option<String>) -> Res<Summary> {
                 extras,
             ),
         };
-        let report = install_seed(seed, &settings, &extras)?;
+        let report = (app.state::<Generating>()).install(steps, seed, &settings, &extras)?;
         History::record(settings, extras, Label::default(), report, true)
     })
     .await
@@ -219,11 +217,12 @@ async fn plando_options() -> Res<PlandoOptions> {
 /// Reinstall a history entry from its seed and settings.
 #[tauri::command]
 #[specta::specta]
-async fn install(id: u32) -> Res<()> {
+async fn install(app: AppHandle, id: u32, steps: Channel<progress::StepEvent>) -> Res<()> {
     blocking(move || {
         let mut history = History::load()?;
         let entry = history.get(id)?;
-        install_seed(entry.report.seed, &entry.settings, &entry.extras)?;
+        let generating = app.state::<Generating>();
+        generating.install(steps, entry.report.seed, &entry.settings, &entry.extras)?;
         history.installed = Some(id);
         history.save()
     })
@@ -669,6 +668,8 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             set_config,
             generate,
             install,
+            generating::stop_generate,
+            generating::generate_log,
             uninstall,
             history,
             delete_seed,
@@ -724,6 +725,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             ui::UiShared
         ])
         .constant("TRACKER_COLUMNS", inventory::COLUMNS)
+        .constant("STEPS", progress::names())
         // Only setting values (JSON numbers) and small counts reach this: the
         // u64 seeds and hashes go over as strings.
         .dangerously_cast_bigints_to_number()
@@ -765,6 +767,7 @@ pub fn run() -> tauri::Result<()> {
             builder.mount_events(app);
             app.manage(Checks::default());
             app.manage(Items::default());
+            app.manage(Generating::default());
             app.manage(save_editor::Layout::default());
             app.manage(Icons::default());
             app.manage(dev_panel::Places::default());
