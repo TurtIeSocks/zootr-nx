@@ -20,7 +20,7 @@ use crate::gamedata::GameData;
 use crate::gerudo;
 use crate::known::{Name, actor, field, flag, map};
 use crate::live;
-use crate::nav::act::Used;
+use crate::nav::act::{Touch, Used};
 use crate::nav::drive::Drive;
 use crate::nav::{self, Level};
 use crate::play::Input;
@@ -164,6 +164,18 @@ fn stopped_at(level: &Level, halt: &Halt, at: [f32; 3]) -> Result<Placement> {
         .clone();
     him.pose.at = at;
     Ok(him)
+}
+
+/// How far from the holder a warp beside it can leave Link: farther, with
+/// nothing started and no step taken, and the warp voided him out.
+const VOIDED: f32 = 6.0;
+
+/// Whether `use` gave up because its warp didn't hold: Link fell and came
+/// back where he entered the map, tens of metres off.
+fn voided(used: &Used) -> bool {
+    matches!(used.result, Touch::Nothing)
+        && used.went.legs == 0
+        && used.went.left.is_some_and(|left| left > VOIDED)
 }
 
 /// `ask`, and again after `calm` while it's refused for an event: Navi or
@@ -446,21 +458,28 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             }
             None => level.standing_at(face)?,
         };
-        let at = match here {
-            true => at,
-            false => nav::landing(&graph, holder, at, p.side),
+        let spots = match here {
+            true => vec![at],
+            false => nav::landings(&graph, holder, at, p.side),
         };
-        self.calmly(|dev| dev.warp(at))?;
-        if let Trigger::Open { ice: Some(ice), .. } = &p.trigger {
-            self.melt(*ice)?;
+        for (i, &at) in spots.iter().enumerate() {
+            self.calmly(|dev| dev.warp(at))?;
+            if let Trigger::Open { ice: Some(ice), .. } = &p.trigger {
+                self.melt(*ice)?;
+            }
+            let shot = self.frame(p, name, "use");
+            let mut drive = Drive::new(self.dev, &mut *self.input);
+            drive.side = p.side;
+            drive.here = here;
+            let used = drive.touch(&graph, holder, shot)?;
+            swept.shots.extend(used.shot.clone());
+            let voided = voided(&used);
+            swept.used = Some(used);
+            if !voided || i + 1 == spots.len() {
+                break;
+            }
+            eprintln!("    {name}: the warp beside it didn't hold, another side");
         }
-        let shot = self.frame(p, name, "use");
-        let mut drive = Drive::new(self.dev, &mut *self.input);
-        drive.side = p.side;
-        drive.here = here;
-        let used = drive.touch(&graph, holder, shot)?;
-        swept.shots.extend(used.shot.clone());
-        swept.used = Some(used);
         if let Trigger::Talk {
             then: Some(button), ..
         } = &p.trigger
@@ -752,6 +771,32 @@ mod tests {
     use crate::known::{actor, flag, flow, scene};
     use crate::sweep::plan::Steps;
     use crate::warp::Side;
+
+    #[test]
+    fn a_use_that_never_left_a_far_landing_voided() {
+        use crate::nav::went::{Done, Reason, Went};
+        let used = |result, legs, left| Used {
+            name: actor::ENEMY_SCRUB_BUSINESS.to_string(),
+            hash: None,
+            result,
+            went: Went {
+                result: Done::GaveUp,
+                reason: Some(Reason::NoRoute),
+                secs: 0.8,
+                legs,
+                left,
+            },
+            hurt: None,
+            side: None,
+            shot: None,
+        };
+        // The sticks scrub's sweep rows: no route, 87.7 m off, no step.
+        assert!(voided(&used(Touch::Nothing, 0, Some(87.7))));
+        assert!(!voided(&used(Touch::Nothing, 0, Some(1.5))), "beside it");
+        assert!(!voided(&used(Touch::Nothing, 3, Some(87.7))), "it walked");
+        assert!(!voided(&used(Touch::Event, 0, Some(87.7))), "it started");
+        assert!(!voided(&used(Touch::Nothing, 0, None)), "left the map");
+    }
 
     #[test]
     fn a_teleport_arrives_where_no_scene_starts() {
