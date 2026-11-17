@@ -158,26 +158,41 @@ const UNDERFOOT: f32 = 1.0;
 
 /// Where to warp beside `holder`: its `first` side, `planned` for the
 /// front, unless no floor lies under it (past a ledge, over a pit), then
-/// the first other side at the same distance that has one. A warp over a drop voids Link out, back to where
-/// he entered the map. With no floor on any side, as beside a chest in a
-/// hole in the mesh, its `first` side all the same: the Well's key chest
-/// sent to its back landed on its front, a step below it, and the walk
-/// round went off a ledge (other machine, 2026-11-16).
+/// the first other side at the same distance that has one. A warp over a
+/// drop voids Link out, back to where he entered the map. With no floor on
+/// any side, as beside a chest in a hole in the mesh, its `first` side all
+/// the same: the Well's key chest sent to its back landed on its front, a
+/// step below it, and the walk round went off a ledge (other machine,
+/// 2026-11-16).
 pub fn landing(
     graph: &graph::Graph,
     holder: &Placement,
     planned: [f32; 3],
     first: Side,
 ) -> [f32; 3] {
+    landings(graph, holder, planned, first)[0]
+}
+
+/// Every side [`landing`] could pick, in the order it would: those with
+/// floor first. The mesh can't see every void: two sides of Kokiri
+/// Forest's sticks scrub stand on it and still void Link out (Mac,
+/// 2026-11-17), so a warp that didn't hold tries the next.
+pub fn landings(
+    graph: &graph::Graph,
+    holder: &Placement,
+    planned: [f32; 3],
+    first: Side,
+) -> Vec<[f32; 3]> {
     let ahead = (planned[0] - holder.pose.at[0]).hypot(planned[2] - holder.pose.at[2]);
     let pose = warp::facing(&holder.name, &holder.pose);
     let at = |side| match side {
         Side::Front => planned,
         side => warp::landing_at(&pose, side, ahead),
     };
-    (warp::sides_from(first).map(at))
-        .find(|&at| graph.floor(at, UNDERFOOT).is_some())
-        .unwrap_or_else(|| at(first))
+    let (mut floored, bare): (Vec<_>, Vec<_>) =
+        (warp::sides_from(first).map(at)).partition(|&at| graph.floor(at, UNDERFOOT).is_some());
+    floored.extend(bare);
+    floored
 }
 
 /// Hand-built meshes for the tests.
@@ -302,6 +317,15 @@ mod tests {
         // A first side with floor is landed on ahead of the front.
         let back = landing(&graph, &scrub, front, Side::Back);
         assert!(graph::dist(back, inside) < 1e-3, "{back:?}");
+        // Every side is listed for a warp that doesn't hold, floor first.
+        let all = landings(&graph, &scrub, front, Side::Front);
+        assert_eq!(all.len(), 4);
+        assert_eq!(all.last(), Some(&front), "the front has no floor");
+        assert!(
+            all[..3]
+                .iter()
+                .all(|&at| graph.floor(at, UNDERFOOT).is_some())
+        );
         // With no floor on any side, the first side all the same.
         let far = Placement {
             pose: crate::warp::Pose {
