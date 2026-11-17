@@ -240,6 +240,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         }
         // Before the teleport, and held through its load, which clears
         // them. Once more after, naming any the load still cleared.
+        super::clock::set(self.dev, &p.trigger)?;
         self.ready(p)?;
         self.setup(p)?;
         let cleared = self.ready(p)?;
