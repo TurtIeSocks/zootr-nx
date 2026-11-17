@@ -202,7 +202,7 @@ mod tests {
         let flows = Flows::load(&romfs).unwrap();
         // Talon's grant is the trade chain's, which a seed adds first.
         crate::trade_chain::deal(&romfs, &mut rewrites, &drops).unwrap();
-        give_all(&romfs, &flows, &mut rewrites, &drops, true).unwrap();
+        give_all(&romfs, &flows, &mut rewrites, &drops, true, &Default::default()).unwrap();
         let at = |g: &Gift| match g.how {
             How::Later { caller, .. } => caller.get(),
             _ => g.flow.get(),
@@ -314,7 +314,7 @@ mod tests {
         let drops = HashMap::from([(heart.hash(), Drop::from(item::QUIVER_MEDIUM.to_string()))]);
         let mut rewrites = Rewrites::default();
         let flows = Flows::load(&romfs).unwrap();
-        give_all(&romfs, &flows, &mut rewrites, &drops, true).unwrap();
+        give_all(&romfs, &flows, &mut rewrites, &drops, true, &Default::default()).unwrap();
         let after = written(&rewrites, quiver.flow);
         let led = |flow: &Flowchart, gift: &Gift| {
             at(gift)

@@ -270,6 +270,9 @@ impl Gift {
         if let Some((.., own)) = OWN.iter().find(|(flow, ..)| *flow == self.flow) {
             return Some((*own).into());
         }
+        if let Some(added) = self.added() {
+            return Some(added);
+        }
         let flag = |found: &Name| match found == SCENE_PLAYED {
             true => format!("{PLAYED}.{}", self.flow),
             false => found.to_string(),
@@ -280,6 +283,14 @@ impl Gift {
             How::Added { .. } => None,
             _ => Some(flag(SCENE_PLAYED)),
         }
+    }
+
+    /// The Bool the seed adds and sets right after its grant, for a gift
+    /// the game marks with nothing of its own.
+    fn added(&self) -> Option<String> {
+        let own = OWN.iter().any(|(flow, ..)| *flow == self.flow);
+        let none = matches!(self.how, How::Calls { found: None, .. });
+        (none && !own).then(|| format!("Rando_Gift_{:016x}", self.hash()))
     }
 
     /// Whether a new game with `on` deals it: its setting is on, and it's
@@ -445,10 +456,11 @@ const OWN: [(&Name, &str, &str); 3] = [
 
 /// The Bools the gifts' edits set, which a new game adds to its save data.
 pub fn flags(on: &BTreeSet<String>) -> Vec<String> {
-    OWN.iter()
+    let own = (OWN.iter())
         .filter(|(_, setting, _)| on.contains(*setting))
-        .map(|(.., flag)| (*flag).into())
-        .collect()
+        .map(|(.., flag)| (*flag).into());
+    let added = GIFTS.iter().filter(|g| g.dealt(on)).filter_map(Gift::added);
+    own.chain(added).collect()
 }
 
 /// Flows a dealt gift would leave stuck, each with the edit that frees it.
@@ -470,7 +482,9 @@ pub fn give_all(
     rewrites: &mut Rewrites,
     drops: &HashMap<u64, Drop>,
     progressive: bool,
+    on: &BTreeSet<String>,
 ) -> Result<()> {
+    let mut set_bool = None;
     // Chained once every gift is renamed: a chain names other levels, maybe
     // another gift's own item in the same flow.
     let mut by_level = BTreeSet::new();
@@ -503,6 +517,17 @@ pub fn give_all(
             _ => Vec::new(),
         };
         mine.extend(&took);
+        if let Some(flag) = gift.added().filter(|_| gift.dealt(on)) {
+            let set_bool = match &set_bool {
+                Some(s) => s,
+                None => set_bool.insert(crate::chest_levels::setter(romfs)?),
+            };
+            flows::edit(romfs, rewrites, gift.flow, |f| {
+                (took.iter()).try_for_each(|&at| {
+                    flows::set_after(f, set_bool, at, &flag, Value::Bool(vec![true]))
+                })
+            })?;
+        }
         if levels::needs(gift, item, progressive) {
             // The grant moved to the caller when its scene can't play.
             let later = given && matches!(gift.how, How::Later { .. });
@@ -873,7 +898,7 @@ mod tests {
             })
             .collect();
         let all = Flows::load(romfs).unwrap();
-        give_all(romfs, &all, &mut rewrites, &drops, false).unwrap();
+        give_all(romfs, &all, &mut rewrites, &drops, false, &Default::default()).unwrap();
         (rewrites, flags)
     }
 
@@ -896,7 +921,7 @@ mod tests {
             .map(|(g, item)| (g.hash(), Drop::from(item.clone())))
             .collect();
         let mut rewrites = Rewrites::default();
-        give_all(romfs, all, &mut rewrites, &drops, false).unwrap();
+        give_all(romfs, all, &mut rewrites, &drops, false, &Default::default()).unwrap();
         flows::render(&written(&rewrites, deal[0].0.flow))
     }
 
@@ -933,6 +958,38 @@ mod tests {
             wrong.is_empty(),
             "a gift renamed a flow-mate's grant: {wrong:?}"
         );
+    }
+
+    #[test]
+    fn each_dealt_gift_the_game_marks_with_nothing_sets_its_own_bool() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let all = Flows::load(&romfs).unwrap();
+        let on: BTreeSet<String> = [NPC_GIFTS, MERCHANTS, TRADE_CHAIN]
+            .map(String::from)
+            .into();
+        let added: Vec<&Gift> = (GIFTS.iter())
+            .filter(|g| g.dealt(&on) && g.added().is_some())
+            .collect();
+        assert!(added.len() > 10, "{} gifts", added.len());
+        // As dealt, then each holding the next one's item, chained by level.
+        let next = |i: usize| (added[(i + 1) % added.len()].hash(), added[i].item);
+        let rotated = (0..added.len()).map(|i| (next(i).0, Drop::from(next(i).1.to_string())));
+        for (drops, progressive) in [(HashMap::new(), false), (rotated.collect(), true)] {
+            let mut rewrites = Rewrites::default();
+            give_all(&romfs, &all, &mut rewrites, &drops, progressive, &on).unwrap();
+            for gift in &added {
+                let flag = gift.added().unwrap();
+                let flow = flows::render(&written(&rewrites, gift.flow));
+                assert!(flow.contains(&flag), "{} sets no {flag}", gift.giver);
+            }
+        }
+        let mut rewrites = Rewrites::default();
+        give_all(&romfs, &all, &mut rewrites, &HashMap::new(), false, &Default::default()).unwrap();
+        let flag = added[0].added().unwrap();
+        let untouched = rewrites.get(&flows::rel(added[0].flow));
+        assert!(untouched.is_none_or(|b| !flows::render(&Flowchart::parse(b).unwrap().unwrap()).contains(&flag)));
     }
 
     pub(super) fn written(rewrites: &Rewrites, flow: &str) -> Flowchart {

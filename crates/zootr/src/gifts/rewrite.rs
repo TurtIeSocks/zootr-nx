@@ -520,6 +520,7 @@ mod tests {
             &mut rewrites,
             &dealt,
             false,
+            &Default::default(),
         )
         .unwrap();
         for gift in picked_gifts() {

@@ -57,7 +57,14 @@ pub(super) fn flows(
     if new_game.on.contains(TRADE_CHAIN) {
         trade_chain::deal(romfs, &mut rewrites, drops)?;
     }
-    gifts::give_all(romfs, all, &mut rewrites, drops, new_game.progressive)?;
+    gifts::give_all(
+        romfs,
+        all,
+        &mut rewrites,
+        drops,
+        new_game.progressive,
+        &new_game.on,
+    )?;
     levels(romfs, drops, new_game)?.give(romfs, all, &mut rewrites)?;
     dampe::give(romfs, &mut rewrites, drops)?;
     gerudo::stand_down(romfs, &mut rewrites, drops)?;

@@ -89,7 +89,7 @@ mod tests {
         let give = |item: &str| {
             let drops = HashMap::from([(gift.hash(), crate::checks::Drop::from(item.to_owned()))]);
             let mut rewrites = flows::Rewrites::default();
-            give_all(&romfs, &flows, &mut rewrites, &drops, false).unwrap();
+            give_all(&romfs, &flows, &mut rewrites, &drops, false, &Default::default()).unwrap();
             rewrites.get(&flows::rel(FLOW)).cloned()
         };
         assert!(give(gift.item).is_none());

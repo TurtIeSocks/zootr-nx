@@ -60,6 +60,7 @@ mod tests {
             &mut rewrites,
             &drops,
             false,
+            &Default::default(),
         )
         .unwrap();
         rewrites
@@ -135,7 +136,7 @@ mod tests {
     #[test]
     fn the_kings_bool_is_in_every_npc_gift_save() {
         let on = |s: &[&str]| s.iter().map(|s| s.to_string()).collect::<BTreeSet<_>>();
-        assert_eq!(flags(&on(&[NPC_GIFTS])), [GIVEN]);
+        assert!(flags(&on(&[NPC_GIFTS])).contains(&GIVEN.to_string()));
         assert!(!flags(&on(&[MERCHANTS])).contains(&GIVEN.to_string()));
     }
 }

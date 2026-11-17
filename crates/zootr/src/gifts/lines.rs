@@ -146,6 +146,7 @@ mod tests {
             &mut rewrites,
             drops,
             false,
+            &Default::default(),
         )
         .unwrap();
         let flow = match rewrites.get(&flows::rel(NAMED[0].0)) {
@@ -191,6 +192,7 @@ mod tests {
             &mut rewrites,
             &drops,
             false,
+            &Default::default(),
         )
         .unwrap();
         let flow = Flowchart::parse(&rewrites[&flows::rel(flow)])
