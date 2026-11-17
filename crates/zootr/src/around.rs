@@ -157,6 +157,7 @@ mod tests {
         let pose = Pose {
             at,
             rotate: [0.0; 3],
+            scale: [1.0; 3],
         };
         Placement {
             name: name.into(),

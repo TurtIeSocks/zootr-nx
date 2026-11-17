@@ -9,6 +9,7 @@ use ounce_formats::{Footing, NavMesh, closest};
 use serde::Serialize;
 
 use super::kinds;
+use super::shape::Solid;
 use crate::warp::{self, Placement, Side};
 
 /// The highest ledge Link pulls himself up, in m. A placeholder until it
@@ -83,6 +84,8 @@ pub struct Snap {
 
 pub struct Graph<'a> {
     pub mesh: &'a NavMesh,
+    /// The placed solids the mesh doesn't know, which a route goes round.
+    pub solids: &'a [Solid],
     pub centers: Vec<[f32; 3]>,
     pub arcs: Vec<Vec<Arc>>,
     /// The faces whose corners' bounds touch each cell, by x and z.
@@ -113,6 +116,7 @@ impl<'a> Graph<'a> {
             .collect();
         let mut graph = Self {
             mesh,
+            solids: &[],
             arcs: vec![vec![]; centers.len()],
             cells: Self::cells(mesh),
             centers,
@@ -121,6 +125,11 @@ impl<'a> Graph<'a> {
         graph.border_arcs(step_up);
         graph.door_arcs(placed);
         graph
+    }
+
+    /// The graph with `solids` for its routes to go round.
+    pub fn with_solids(self, solids: &'a [Solid]) -> Self {
+        Self { solids, ..self }
     }
 
     fn cells(mesh: &NavMesh) -> HashMap<(i32, i32), Vec<usize>> {
@@ -153,6 +162,24 @@ impl<'a> Graph<'a> {
         found.sort_unstable();
         found.dedup();
         found
+    }
+
+    /// The corners of the mesh's border (where a wall or a drop begins)
+    /// within `r` of (x, z), measured flat.
+    pub fn border_corners(&self, x: f32, z: f32, r: f32) -> Vec<[f32; 3]> {
+        let mesh = self.mesh;
+        let ends = |f: usize| {
+            (mesh.ring(f).iter())
+                .filter(|e| e.across.is_none())
+                .flat_map(|e| [e.a, e.b])
+        };
+        let mut found: Vec<usize> = (self.faces_near(x, z, r).into_iter())
+            .flat_map(ends)
+            .filter(|&v| (mesh.vertices[v][0] - x).hypot(mesh.vertices[v][2] - z) <= r)
+            .collect();
+        found.sort_unstable();
+        found.dedup();
+        found.into_iter().map(|v| mesh.vertices[v]).collect()
     }
 
     /// The floor under `p` nearest its height, within `reach`.
@@ -306,6 +333,7 @@ mod tests {
             pose: Pose {
                 at,
                 rotate: [0.0; 3],
+                scale: [1.0; 3],
             },
             presence: None,
         }

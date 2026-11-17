@@ -515,6 +515,22 @@ impl World {
             .iter()
             .any(|(p, need)| seen[*p] && need.met(have, era(*p)))
     }
+
+    /// Whether only a child (`Some(true)`) or only an adult can get the
+    /// check at `hash`: the eras of its copies whose rule anything could
+    /// meet there. `None` when both can, or logic can't tell.
+    pub fn only_child(&self, hash: u64) -> Option<bool> {
+        let eras: BTreeSet<Era> = (self.locations.iter())
+            .filter(|l| l.hash == hash)
+            .map(|l| (l, self.places[l.place].1))
+            .filter(|(l, era)| l.need.possible(*era))
+            .map(|(_, era)| era)
+            .collect();
+        match eras.len() {
+            1 => eras.first().map(|e| *e == Era::Child),
+            _ => None,
+        }
+    }
 }
 
 /// `rule` with each `switch:<actor>` swapped for what the actor's pack
@@ -573,6 +589,20 @@ mod tests {
         for list in [&off, &on, &sold] {
             assert!(list.iter().any(|n| n == "Magic Beans"));
         }
+    }
+
+    #[test]
+    fn a_check_only_one_age_can_get_names_that_age() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let book = crate::rules::Book::load().unwrap();
+        let new_game = crate::settings::NewGame::default();
+        let checks = checks::dealt(&romfs, &new_game).unwrap();
+        let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
+        // The Water Temple's fourth small key chest, underwater: Iron Boots.
+        assert_eq!(world.only_child(3693930347660122883), Some(false));
+        assert_eq!(world.only_child(1), None, "no such check");
     }
 
     #[test]

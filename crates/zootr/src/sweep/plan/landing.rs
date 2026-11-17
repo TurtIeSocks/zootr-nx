@@ -28,14 +28,7 @@ pub(super) fn clear_landing(pose: &Pose, others: &[[f32; 3]]) -> [f32; 3] {
     let swung = |degrees: f32| {
         let [x, y, z] = pose.rotate;
         let rotate = [x, y + degrees.to_radians(), z];
-        warp::landing_at(
-            &Pose {
-                at: pose.at,
-                rotate,
-            },
-            Side::Front,
-            REACH,
-        )
+        warp::landing_at(&Pose { rotate, ..*pose }, Side::Front, REACH)
     };
     (SWINGS.iter().map(|&d| swung(d)))
         .find(|&at| others.iter().all(|&o| flat(at, o) >= REACH + CLEAR))
@@ -120,6 +113,7 @@ mod tests {
         let back_right = Pose {
             at: [-50.3, 112.3, -42.0],
             rotate: [0.0, -0.48513162, 0.0],
+            scale: [1.0; 3],
         };
         let front_right = [-49.3, 112.3, -40.9];
         let ahead = warp::landing_at(&back_right, Side::Front, REACH);
@@ -138,6 +132,7 @@ mod tests {
         Pose {
             at: [0.0; 3],
             rotate: [0.0; 3],
+            scale: [1.0; 3],
         }
     }
 
@@ -165,6 +160,7 @@ mod tests {
         let at = |x: f32| Pose {
             at: [x, 0.0, 0.0],
             rotate: [0.0; 3],
+            scale: [1.0; 3],
         };
         let poses: HashMap<u64, Pose> =
             [(1, at(0.0)), (2, at(1.6)), (3, at(2.4)), (4, at(9.0))].into();

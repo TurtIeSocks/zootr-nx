@@ -739,6 +739,11 @@ export type Spot = {
 	need?: string,
 	/**  The item ids that rule names. */
 	need_items?: string[],
+	/**
+	 *  `Some(true)` when only a child can get it by logic, `Some(false)`
+	 *  only an adult. `None` for both, or when logic can't tell.
+	 */
+	child?: boolean | null,
 };
 
 /**

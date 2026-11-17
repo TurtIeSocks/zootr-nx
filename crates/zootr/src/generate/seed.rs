@@ -71,6 +71,7 @@ pub fn shuffle(
         for s in &mut spots {
             s.hero = needed.contains(&s.hash);
             (s.need, s.need_items) = need(world, s.hash);
+            s.child = world.only_child(s.hash);
         }
         let spot = |h: &u64| spots.iter().find(|s| s.hash == *h);
         let names = filled.unprovable.iter().filter_map(|c| spot(&c.hash));

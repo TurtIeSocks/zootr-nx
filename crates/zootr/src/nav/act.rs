@@ -322,6 +322,7 @@ mod tests {
             pose: Pose {
                 at,
                 rotate: [0.0; 3],
+                scale: [1.0; 3],
             },
             presence: None,
         }

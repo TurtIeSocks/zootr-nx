@@ -22,6 +22,7 @@ mod formats;
 mod logic;
 mod poses;
 mod rooms;
+mod shapes;
 
 use formats::{ainb, byml, files, grep, pool, restbl, strings, unpacked};
 use logic::{checks, exits, gates, groups, pouch, settings, shops, tools};
@@ -174,6 +175,20 @@ pub enum Probe {
         /// A map, by its Banc param name.
         map: String,
     },
+    /// A map's placed actors by their solid shapes: each actor's count,
+    /// whether it cuts the navmesh at run time, and its main body's parts.
+    Shapes {
+        /// A map, by its Banc param name.
+        map: String,
+        /// Only actors whose name contains this, with each placement's
+        /// footprint.
+        #[arg(long)]
+        gyaml: Option<String>,
+        /// Instead, walk across each solid the route keeps clear of, with
+        /// and without the solids, and tell which walks now go round.
+        #[arg(long)]
+        cross: bool,
+    },
     /// A map's navmesh (`Phive/NavMesh/MAP`): counts and bounds, or with
     /// `--at`, the face under a point and the mesh's edges near it.
     Nav {
@@ -251,6 +266,10 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         }
         Probe::Files { pattern, out } => files(romfs, game, &pattern, out.as_deref()),
         Probe::Rooms { map } => rooms::rooms(romfs, game, &map),
+        Probe::Shapes {
+            map, cross: true, ..
+        } => shapes::crossings(romfs, game, &map),
+        Probe::Shapes { map, gyaml, .. } => shapes::shapes(romfs, game, &map, gyaml.as_deref()),
         Probe::Nav {
             map,
             types,
