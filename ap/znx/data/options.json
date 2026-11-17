@@ -1,0 +1,68 @@
+[
+  {
+    "default": false,
+    "description": "Mido and the forest exit stop blocking Link, as child or adult",
+    "id": "open-forest",
+    "kind": "toggle",
+    "label": "Open forest"
+  },
+  {
+    "default": false,
+    "description": "The Kakariko gate guard has already seen Zelda's letter, so the Death Mountain trail is open from the start",
+    "id": "kakariko-gate",
+    "kind": "toggle",
+    "label": "Open Kakariko gate"
+  },
+  {
+    "default": true,
+    "description": "The Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, starts with the Light Medallion, and can put the sword back any time",
+    "id": "open-door-of-time",
+    "kind": "toggle",
+    "label": "Open Door of Time"
+  },
+  {
+    "default": true,
+    "description": "Bombchus hold up to 50 on their own, so they open the same checks bombs do without waiting on the bag",
+    "id": "free-bombchus",
+    "kind": "toggle",
+    "label": "Bombchus without a bomb bag"
+  },
+  {
+    "default": false,
+    "description": "Turns on every skip below. Cutscenes that give an item, set a flag or move Link still play",
+    "id": "skip-cutscenes",
+    "kind": "toggle",
+    "label": "Skip all cutscenes"
+  },
+  {
+    "default": "vanilla",
+    "description": "All small makes every chest a small one, which opens without the big chest's long animation. What a chest holds doesn't change",
+    "id": "chest-size",
+    "kind": "choice",
+    "label": "Chest size",
+    "options": [
+      {
+        "id": "vanilla",
+        "label": "Vanilla"
+      },
+      {
+        "id": "small",
+        "label": "All small"
+      }
+    ]
+  },
+  {
+    "default": true,
+    "description": "Navi never stops Link to talk on her own: the Lost Woods warning, dungeon and quest tips, and reminders. Hints you ask her for still work",
+    "id": "quiet-navi",
+    "kind": "toggle",
+    "label": "Quiet Navi"
+  },
+  {
+    "default": false,
+    "description": "Link runs half again as fast while he wears the Bunny Hood",
+    "id": "bunny-hood",
+    "kind": "toggle",
+    "label": "Bunny Hood speed"
+  }
+]
