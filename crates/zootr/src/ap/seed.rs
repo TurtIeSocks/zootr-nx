@@ -38,6 +38,14 @@ impl Everything {
 /// One seed's settings as the export sees them: what's dealt, what Link
 /// starts with, and the graph.
 pub(super) struct Seed {
+    pub dealt: Dealt,
+    pub start: Have,
+    pub world: World,
+}
+
+/// One seed's deal as the export sees it: the checks AP places, and the
+/// items it places there.
+pub(super) struct Dealt {
     pub new_game: NewGame,
     pub checks: Vec<ItemCheck>,
     /// The checks the deal shuffles.
@@ -45,13 +53,10 @@ pub(super) struct Seed {
     /// The item each other check keeps.
     pub kept: HashMap<u64, String>,
     pub pool: Vec<String>,
-    pub start: Have,
-    pub world: World,
 }
 
-impl Seed {
-    /// `settings` resolved as a normal seed would, with `open` left open.
-    pub fn build(romfs: &Romfs, settings: &Settings, open: &BTreeSet<String>) -> Result<Self> {
+impl Dealt {
+    pub fn new(romfs: &Romfs, settings: &Settings) -> Result<Self> {
         let new_game = NewGame::from_settings(settings, &[])?;
         let checks = checks::dealt(romfs, &new_game)?;
         let fixed = shuffle::own_dungeon(&checks, 0, &Fixed::new(), &new_game)?;
@@ -65,18 +70,29 @@ impl Seed {
         for c in checks.iter().filter(|c| !free.contains(&c.hash)) {
             kept.entry(c.hash).or_insert_with(|| c.item.clone());
         }
-        let ctx = Ctx {
-            open: open.clone(),
-            ..Ctx::new(&new_game)
-        };
-        let world = World::build(romfs, &Book::load()?, &ctx, &checks)?;
-        let start = fill::start(&new_game);
         Ok(Self {
             new_game,
             checks,
             free,
             kept,
             pool,
+        })
+    }
+}
+
+impl Seed {
+    /// `settings` resolved as a normal seed would, with `open` left open.
+    pub fn build(romfs: &Romfs, settings: &Settings, open: &BTreeSet<String>) -> Result<Self> {
+        let dealt = Dealt::new(romfs, settings)?;
+        let (new_game, checks) = (&dealt.new_game, &dealt.checks);
+        let ctx = Ctx {
+            open: open.clone(),
+            ..Ctx::new(new_game)
+        };
+        let world = World::build(romfs, &Book::load()?, &ctx, checks)?;
+        let start = fill::start(new_game);
+        Ok(Self {
+            dealt,
             start,
             world,
         })
@@ -84,14 +100,19 @@ impl Seed {
 
     /// What Link reaches holding `have`, kept checks giving theirs.
     pub fn play(&self, have: &Have) -> Play {
-        let kept = self.kept.iter().map(|(h, i)| (*h, i.as_str())).collect();
+        let kept = self
+            .dealt
+            .kept
+            .iter()
+            .map(|(h, i)| (*h, i.as_str()))
+            .collect();
         self.world.play(have, &kept)
     }
 
     /// What Link reaches holding everything.
     pub fn everything(&self) -> Everything {
         let mut all = self.start.clone();
-        self.pool.iter().for_each(|i| all.add(i));
+        self.dealt.pool.iter().for_each(|i| all.add(i));
         let play = self.play(&all);
         let sources = (play.rounds.iter().flatten())
             .filter_map(|g| match g {
@@ -124,7 +145,7 @@ impl Seed {
     #[cfg(test)]
     pub fn shape(&self) -> String {
         let w = &self.world;
-        let mut pool = self.pool.clone();
+        let mut pool = self.dealt.pool.clone();
         pool.sort();
         let mut start: Vec<_> = self.start.items.iter().collect();
         start.sort();
@@ -135,10 +156,10 @@ impl Seed {
         let sources: Vec<_> = (w.sources.iter())
             .map(|s| (&s.name, s.place, &s.item))
             .collect();
-        let checks: BTreeSet<u64> = self.checks.iter().map(|c| c.hash).collect();
+        let checks: BTreeSet<u64> = self.dealt.checks.iter().map(|c| c.hash).collect();
         format!(
             "{checks:?}{:?}{pool:?}{start:?}{:?}{edges:?}{locations:?}{sources:?}",
-            self.free, w.places
+            self.dealt.free, w.places
         )
     }
 }

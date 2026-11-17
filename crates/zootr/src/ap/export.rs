@@ -66,7 +66,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     for s in &w.sources {
         givers.entry(&s.item).or_default().push(s.name.clone());
     }
-    for (hash, item) in &seed.kept {
+    for (hash, item) in &seed.dealt.kept {
         givers.entry(item).or_default().push(vanilla(*hash));
     }
     let mut rules = Rules {
@@ -137,21 +137,21 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     }
     let mut checks = Vec::new();
     let mut events = Vec::new();
-    let pooled: BTreeSet<&str> = seed.pool.iter().map(String::as_str).collect();
+    let pooled: BTreeSet<&str> = seed.dealt.pool.iter().map(String::as_str).collect();
     for (hash, spots) in by_hash {
         let at = at(&mut rules, spots);
-        if seed.kept.contains_key(&hash) {
+        if seed.dealt.kept.contains_key(&hash) {
             if reach.checks.contains(&hash) {
                 events.push(json!({ "name": vanilla(hash), "at": at }));
             }
             continue;
         }
-        let check = (seed.checks.iter().find(|c| c.hash == hash))
+        let check = (seed.dealt.checks.iter().find(|c| c.hash == hash))
             .with_context(|| format!("no check {hash}"))?;
         let mut forbid = BTreeSet::new();
         for actor in pooled
             .iter()
-            .filter(|a| !allowed(check, a, seed.new_game.progressive))
+            .filter(|a| !allowed(check, a, seed.dealt.new_game.progressive))
         {
             forbid.insert(names.item(actor)?);
         }
@@ -175,7 +175,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     events.push(json!({ "name": VICTORY, "at": goal }));
 
     let mut counts: BTreeMap<&str, (u32, &str)> = BTreeMap::new();
-    for actor in &seed.pool {
+    for actor in &seed.dealt.pool {
         let name = names.item(actor)?;
         let row = counts.entry(name).or_insert((0, actor));
         ensure!(row.1 == actor, "{name} names two items");
@@ -235,7 +235,11 @@ fn vanilla(hash: u64) -> String {
 /// Each shuffled check once.
 fn unique_free(seed: &Seed) -> Vec<ItemCheck> {
     let mut seen = BTreeSet::new();
-    let free = seed.checks.iter().filter(|c| seed.free.contains(&c.hash));
+    let free = seed
+        .dealt
+        .checks
+        .iter()
+        .filter(|c| seed.dealt.free.contains(&c.hash));
     free.filter(|c| seen.insert(c.hash)).cloned().collect()
 }
 
@@ -281,7 +285,7 @@ impl Namer {
             .collect();
         Ok(Self {
             places,
-            progressive: seed.new_game.progressive,
+            progressive: seed.dealt.new_game.progressive,
             locations: names::locations(romfs, &unique_free(seed))?,
         })
     }

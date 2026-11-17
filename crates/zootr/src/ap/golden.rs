@@ -42,14 +42,14 @@ pub fn golden(romfs: &Romfs, base_seed: &Seed, names: &Namer, ids: &Ids) -> Resu
     for (n, settings) in cases.into_iter().enumerate() {
         let seed = Seed::build(romfs, &settings, &Default::default())?;
         for share in SHARES {
-            let mut pool = base_seed.pool.clone();
+            let mut pool = base_seed.dealt.pool.clone();
             Rng::new((n * OF + share) as u64).shuffle(&mut pool);
             pool.truncate(pool.len() * share / OF);
             let mut have = seed.start.clone();
             pool.iter().for_each(|i| have.add(i));
             let reached = seed.play(&have).reached;
             let mut reachable = Vec::new();
-            for hash in reached.into_iter().filter(|h| seed.free.contains(h)) {
+            for hash in reached.into_iter().filter(|h| seed.dealt.free.contains(h)) {
                 let id = ids.location_id(hash);
                 reachable.push(id.with_context(|| format!("check {hash} has no id"))?);
             }
