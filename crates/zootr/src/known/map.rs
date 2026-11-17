@@ -14,6 +14,7 @@ pub const DESERT_COLOSSUS_ADULT: &Name = &n!(0xcca545b284302562);
 pub const DESERT_COLOSSUS_CHILD: &Name = &n!(0x982859adf2a0ddfc);
 pub const DODONGO_CAVERN: &Name = &n!(0xd8d44ca517b7ce52);
 pub const DODONGO_STAGE: &Name = &n!(0x62eae4e5002525fb);
+pub const DREAM_WORLD: &Name = &n!(0x2aed1fccdaedc6c8);
 pub const FIRE_TEMPLE: &Name = &n!(0x66cd76e9faa40548);
 pub const FOREST_TEMPLE: &Name = &n!(0x5327c5e3226e43f1);
 pub const GANONDORF_STAGE: &Name = &n!(0xf3d473a35f32a391);
