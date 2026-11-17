@@ -314,6 +314,19 @@ mod tests {
         )];
         assert_eq!(got_other(&ours, &wanted, false), None);
         assert_eq!(got_other(&got, &wanted, true), None, "no window, a pickup");
+    }
+
+    #[test]
+    fn beside_a_whole_holder_a_flag_counts_only_with_a_window() {
+        needs_names!();
+        let change = |name: &str, change: &str| Change {
+            hash: 0,
+            name: name.into(),
+            label: None,
+            kind: String::new(),
+            change: change.into(),
+        };
+        let wanted = [format!("IsGet.{}", item::HOVER_BOOT)];
         let window = [
             change("IsGet.Item_A", "false -> true"),
             change(MESSAGE, r#""" -> "Item_A""#),
