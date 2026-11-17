@@ -897,20 +897,21 @@ mod tests {
     /// A 4 m square room with a tree just past its east wall, and Link at
     /// `at` having pushed toward 12:00 while facing +X.
     fn judged(at: [f32; 3]) -> Moved {
-        let level = Level {
-            map: "Test".into(),
-            mesh: mesh(&[quad(0.0, 0.0, 4.0, 4.0, 0.0)]),
-            placed: vec![Placement {
+        let level = Level::new(
+            "Test",
+            mesh(&[quad(0.0, 0.0, 4.0, 4.0, 0.0)]),
+            vec![Placement {
                 name: "Tree_FakeKokiri".into(),
                 hash: Some(3),
                 label: None,
                 pose: Pose {
                     at: [4.5, 0.0, at[2]],
                     rotate: ORIGIN,
+                    scale: [1.0; 3],
                 },
                 presence: None,
             }],
-        };
+        );
         let push = Shove {
             hour: 12,
             secs: 1.0,
@@ -927,11 +928,7 @@ mod tests {
         let (eyes, mut hands) = sim::start(ORIGIN, 0.0);
         eyes.0.borrow_mut().after_push = Some(Box::new(|w| w.map = "Other".into()));
         let push = sim::drive(&eyes, &mut hands).shove(12, 1.0).unwrap();
-        let level = Level {
-            map: "Test".into(),
-            mesh: mesh(&[quad(0.0, 0.0, 4.0, 4.0, 0.0)]),
-            placed: vec![],
-        };
+        let level = Level::new("Test", mesh(&[quad(0.0, 0.0, 4.0, 4.0, 0.0)]), vec![]);
         let moved = judge(&level, &push);
         assert_eq!(moved.contact, Contact::LeftMap);
         assert!(moved.there.is_none() && !moved.on_mesh);
@@ -964,11 +961,7 @@ mod tests {
 
     #[test]
     fn a_free_push_names_nothing() {
-        let level = Level {
-            map: "Test".into(),
-            mesh: mesh(&[quad(0.0, 0.0, 20.0, 4.0, 0.0)]),
-            placed: vec![],
-        };
+        let level = Level::new("Test", mesh(&[quad(0.0, 0.0, 20.0, 4.0, 0.0)]), vec![]);
         let push = Shove {
             hour: 12,
             secs: 1.0,

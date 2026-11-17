@@ -8,13 +8,13 @@ use std::fmt;
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use ounce_formats::{NavMesh, Romfs};
+use ounce_formats::Romfs;
 use serde::Serialize;
 
-use super::graph::{Arc, Cross, Graph, STEP_UP, Via, dist};
+use super::Level;
+use super::graph::{Arc, Cross, Graph, Via, dist};
 use crate::dev::Dev;
 use crate::live::Memory;
-use crate::warp::Placement;
 
 /// A spot to walk to, and how it is reached from the one before.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
@@ -221,7 +221,7 @@ pub fn plan(graph: &Graph, from: [f32; 3], to: [f32; 3]) -> Result<Route> {
         .locate(to)
         .context("no route: no mesh within 1.5 m of the goal")?;
     let path = search(graph, start.face, goal.face).context("no route")?;
-    let waypoints = pull(graph, from, start.at, &path, goal.at);
+    let waypoints = super::clear::clear(graph, pull(graph, from, start.at, &path, goal.at));
     let length = waypoints.windows(2).map(|w| dist(w[0].at, w[1].at)).sum();
     Ok(Route { waypoints, length })
 }
@@ -237,17 +237,12 @@ pub struct Plan {
     pub route: Route,
 }
 
-/// The route from `from` to the placement with `hash` in `map`.
-pub fn plan_to(
-    map: &str,
-    mesh: &NavMesh,
-    placed: &[Placement],
-    from: [f32; 3],
-    hash: u64,
-) -> Result<Plan> {
+/// The route from `from` to the placement with `hash` in `level`.
+pub fn plan_to(level: &Level, from: [f32; 3], hash: u64) -> Result<Plan> {
+    let (map, placed) = (&level.map, &level.placed);
     let goal = (placed.iter().find(|p| p.hash == Some(hash)))
         .with_context(|| format!("{hash} isn't placed in {map}"))?;
-    let graph = Graph::build(mesh, placed, STEP_UP);
+    let graph = level.graph();
     Ok(Plan {
         map: map.to_owned(),
         name: goal.name.clone(),
@@ -260,8 +255,8 @@ pub fn plan_to(
 /// The route from where Link is in the running game to a placement of his
 /// map, without moving him.
 pub fn read<M: Memory>(dev: &Dev<M>, romfs: &Romfs, game: &Path, hash: u64) -> Result<Plan> {
-    let level = super::Level::read(dev, romfs, game)?;
-    plan_to(&level.map, &level.mesh, &level.placed, dev.link()?, hash)
+    let level = Level::read(dev, romfs, game)?;
+    plan_to(&level, dev.link()?, hash)
 }
 
 impl fmt::Display for Plan {
@@ -290,11 +285,14 @@ impl fmt::Display for Plan {
 
 #[cfg(test)]
 mod tests {
+    use ounce_formats::NavMesh;
+
     use super::*;
     use crate::checks::flat;
     use crate::known::{actor, map};
     use crate::nav::fixture::{mesh, quad};
-    use crate::warp::{self, Pose};
+    use crate::nav::graph::STEP_UP;
+    use crate::warp::{Placement, Pose};
 
     fn route(m: &NavMesh, placed: &[Placement], from: [f32; 3], to: [f32; 3]) -> Route {
         plan(&Graph::build(m, placed, STEP_UP), from, to).unwrap()
@@ -363,6 +361,7 @@ mod tests {
             pose: Pose {
                 at: [1.0, 0.0, 2.0],
                 rotate: [0.0; 3],
+                scale: [1.0; 3],
             },
             presence: None,
         };
@@ -406,18 +405,16 @@ mod tests {
             return;
         };
         let game = Path::new("../../dump/oot.nup");
-        let map = map::KOKIRI_FOREST_CHILD;
-        let mesh = super::super::load(&romfs, game, map).unwrap();
-        let placed = warp::placements_in(&romfs, map).unwrap();
+        let level = Level::of(&romfs, game, map::KOKIRI_FOREST_CHILD).unwrap();
         let (chest, door) = (10831981390482426294, 5297260056723171008);
-        let graph = Graph::build(&mesh, &placed, STEP_UP);
+        let graph = level.graph();
         let door_links = graph.arcs.iter().flatten().filter(
             |a| matches!(a.cross, Cross::Link { via: Via::Door(Some(h)), .. } if h == door),
         );
         assert_eq!(door_links.count(), 2);
 
-        let plan = plan_to(map, &mesh, &placed, [-31.0, 110.0, -20.0], chest).unwrap();
-        let at = placed
+        let plan = plan_to(&level, [-31.0, 110.0, -20.0], chest).unwrap();
+        let at = (level.placed)
             .iter()
             .find(|p| p.hash == Some(door))
             .unwrap()
@@ -432,7 +429,7 @@ mod tests {
         assert!(nearest < 1.5, "{nearest} from the door in {plan}");
         assert!(flat(*spots.last().unwrap(), [-50.3, 112.3, -42.0]) < 1.5);
 
-        let err = plan_to(map, &mesh, &placed, [-32.0, 121.2, -65.2], chest).unwrap_err();
+        let err = plan_to(&level, [-32.0, 121.2, -65.2], chest).unwrap_err();
         assert_eq!(err.to_string(), "no route");
     }
 }

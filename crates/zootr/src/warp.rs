@@ -31,11 +31,13 @@ pub enum Side {
     Right,
 }
 
-/// Where a placed actor stands, and its `Rotate` angles in radians.
+/// Where a placed actor stands, its `Rotate` angles in radians, and its
+/// `Scale`.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Pose {
     pub at: [f32; 3],
     pub rotate: [f32; 3],
+    pub scale: [f32; 3],
 }
 
 /// Each map that places `actor`, a name or a placement hash, with its first
@@ -87,6 +89,7 @@ fn pose_of(actor: &Byml) -> Pose {
     Pose {
         at: vec3(actor, "Translate").unwrap_or_default(),
         rotate: vec3(actor, "Rotate").unwrap_or_default(),
+        scale: vec3(actor, "Scale").unwrap_or([1.0; 3]),
     }
 }
 
@@ -286,8 +289,8 @@ pub fn facing(actor: &str, pose: &Pose) -> Pose {
     let [x, y, z] = pose.rotate;
     match mirrored(actor) {
         true => Pose {
-            at: pose.at,
             rotate: [x, -y, z],
+            ..*pose
         },
         false => *pose,
     }
@@ -414,6 +417,7 @@ mod tests {
         let pose = Pose {
             at: [1.0, 2.0, 3.0],
             rotate: [0.0; 3],
+            scale: [1.0; 3],
         };
         let cases = [
             (Side::Front, [1.0, 2.5, 5.0]),
@@ -432,6 +436,7 @@ mod tests {
         let pose = |rotate| Pose {
             at: [1.0, 2.0, 3.0],
             rotate,
+            scale: [1.0; 3],
         };
         let cases = [
             ([0.0; 3], [1.0, 2.5, 5.0]),
@@ -453,6 +458,7 @@ mod tests {
         let pose = Pose {
             at: [1.0, 2.0, 3.0],
             rotate: [0.0, FRAC_PI_2, 0.0],
+            scale: [1.0; 3],
         };
         for chest in [actor::OBJ_T_BOX_A_02_NO_BAKE, actor::OBJ_T_BOX_A_03] {
             let big = landing(&facing(chest, &pose), Side::Front);
