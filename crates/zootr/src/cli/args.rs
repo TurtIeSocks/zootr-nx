@@ -7,6 +7,7 @@ use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 
 use crate::config::Config;
+use crate::progress::{About, Run};
 use crate::settings::Settings;
 use crate::sweep::drills::Skill;
 use crate::vision::{Api, Effort};
@@ -711,9 +712,21 @@ impl ModDir {
         Ok(generate::running(&targets).map(|t| t.name.clone()))
     }
 
+    /// The folders written: `--mod-dir`, or every target's.
+    pub(super) fn folders(&self) -> Result<Vec<(String, PathBuf)>> {
+        Ok(match &self.mod_dir {
+            Some(d) => vec![("--mod-dir".into(), d.clone())],
+            None => About::folders(&Config::load()?.targets),
+        })
+    }
+
     /// `write` into `--mod-dir`, or install to every target like the app.
     /// Also returns whether it went to the targets.
-    pub(super) fn write<T>(self, mut write: impl FnMut(&Path) -> Result<T>) -> Result<(T, bool)> {
+    pub(super) fn write<T>(
+        self,
+        run: &Run,
+        mut write: impl FnMut(&Path) -> Result<T>,
+    ) -> Result<(T, bool)> {
         let mut each = |d: &Path| {
             let out = write(d)?;
             println!("wrote {}", d.display());
@@ -721,7 +734,10 @@ impl ModDir {
         };
         match self.mod_dir {
             Some(d) => Ok((each(&d)?, false)),
-            None => Ok((generate::install(&Config::load()?.targets, each)?, true)),
+            None => Ok((
+                generate::install(&Config::load()?.targets, run, each)?,
+                true,
+            )),
         }
     }
 }

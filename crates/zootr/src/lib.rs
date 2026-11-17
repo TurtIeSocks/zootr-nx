@@ -64,6 +64,7 @@ pub mod platform;
 pub mod play;
 pub mod presets;
 mod probe;
+pub mod progress;
 mod progressive;
 pub mod recorder;
 mod rng;

@@ -9,6 +9,7 @@ use anyhow::{Result, bail};
 use crate::checks::ItemCheck;
 use crate::gifts;
 use crate::logic::{Play, World};
+use crate::progress::Run;
 use crate::rng::Rng;
 use crate::rules::Have;
 use crate::settings::NewGame;
@@ -77,13 +78,15 @@ pub struct Filled<'a> {
     pub at: HashMap<u64, &'a str>,
 }
 
-/// Deal `deal` with logic, trying up to `TRIES` shuffles.
+/// Deal `deal` with logic, trying up to `TRIES` shuffles. A stop lands
+/// between tries.
 pub fn fill<'a>(
     world: &World,
     checks: &'a [ItemCheck],
     deal: Deal<'a>,
     seed: u64,
     new_game: &NewGame,
+    run: &Run,
 ) -> Result<Filled<'a>> {
     let start = start(new_game);
     let base = fixed(checks, &deal);
@@ -92,6 +95,8 @@ pub fn fill<'a>(
     let important = |i: &str| mentioned.contains(i);
     let mut last = None;
     for t in 0..TRIES {
+        run.detail(format!("try {} of {TRIES}", t + 1));
+        run.check()?;
         let mut rng = Rng::new(seed.wrapping_add(t));
         match once(
             world,
@@ -197,6 +202,7 @@ mod tests {
     use super::*;
     use crate::game::dev_dump;
     use crate::known::item;
+    use crate::progress::{self, StepEvent};
     use crate::rules::{Book, Ctx};
     use crate::settings::{
         CHESTS, DUNGEON_REWARDS, KEYS, NPC_GIFTS, OPEN_DOOR, PROGRESSIVE, SONGS, Settings,
@@ -227,7 +233,14 @@ mod tests {
         let failed: Vec<String> = (0..SEEDS)
             .filter_map(|seed| {
                 let deal = deal(&checks, &fixed, &new_game).unwrap();
-                match fill(&world, &checks, deal, seed * TRIES, &new_game) {
+                match fill(
+                    &world,
+                    &checks,
+                    deal,
+                    seed * TRIES,
+                    &new_game,
+                    &Run::silent(),
+                ) {
                     Ok(filled) => {
                         each(&filled);
                         None
@@ -255,7 +268,7 @@ mod tests {
         assert!(!world.beaten(&start), "a new game can't reach Ganondorf");
         let fixed = Fixed::new();
         let deal = deal(&checks, &fixed, &new_game).unwrap();
-        let filled = fill(&world, &checks, deal, 0, &new_game).unwrap();
+        let filled = fill(&world, &checks, deal, 0, &new_game, &Run::silent()).unwrap();
         assert!(
             world.beaten(&filled.play.have),
             "the seed reaches Ganondorf"
@@ -283,6 +296,31 @@ mod tests {
             !world.beaten(&world.play(&start, &without).have),
             "Ganondorf needs a bow"
         );
+    }
+
+    #[test]
+    fn a_stop_between_tries_ends_the_fill_with_stopped() {
+        let Some(romfs) = dev_dump() else { return };
+        let new_game = NewGame::from_settings(&Settings::new(), &[]).unwrap();
+        let checks = crate::checks::all(&romfs).unwrap();
+        let book = Book::load().unwrap();
+        let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let run = Run::silent();
+        let (stopper, heard) = (run.stopper(), seen.clone());
+        let run = run.with(move |e| {
+            if let StepEvent::Detail { text } = e {
+                heard.lock().unwrap().push(text.clone());
+                stopper.stop();
+            }
+        });
+        let fixed = Fixed::new();
+        let deal = deal(&checks, &fixed, &new_game).unwrap();
+        let Err(e) = fill(&world, &checks, deal, 0, &new_game, &run) else {
+            panic!("the fill went on")
+        };
+        assert!(progress::stopped(&e).is_some(), "{e:#}");
+        assert_eq!(*seen.lock().unwrap(), [format!("try 1 of {TRIES}")]);
     }
 
     #[test]
