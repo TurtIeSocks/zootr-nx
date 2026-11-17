@@ -292,6 +292,11 @@ pub(super) fn mem(cmd: MemCommand) -> Result<()> {
     use live::Memory;
     let game = attach()?;
     match cmd {
+        MemCommand::Keys => {
+            for key in live::keys(&game, game.global())? {
+                println!("{key}");
+            }
+        }
         MemCommand::Regions { min } => {
             for (start, size, prot) in game.regions()? {
                 if size >= min << 20 {
