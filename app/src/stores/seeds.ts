@@ -2,6 +2,7 @@ import { Channel } from "@tauri-apps/api/core";
 import { create } from "zustand";
 import { dotPath } from "zustand-dot";
 import {
+  type Build,
   commands,
   type End,
   type Label,
@@ -66,6 +67,8 @@ interface Seeds {
   generating: boolean;
   /** Stop was pressed and the run hasn't ended yet. */
   stopping: boolean;
+  /** The target `steps` rebuilt, or null when they generated a seed. */
+  rebuilt: string | null;
 }
 
 /** The seeds store. Start it with {@link init}. */
@@ -83,6 +86,7 @@ export const useSeeds = create<Seeds>()(
       steps: null,
       generating: false,
       stopping: false,
+      rebuilt: null,
     }),
   ),
 );
@@ -219,11 +223,15 @@ export function stepped(steps: Steps, event: StepEvent): Steps {
  * isn't an error: its words go with the steps. The command's answer can
  * beat the channel's last event, so a stop is also told by its words,
  * which `Stopped` in zootr's progress module always starts with. */
-async function stepping(send: (steps: Channel<StepEvent>) => Promise<unknown>) {
+async function stepping(
+  send: (steps: Channel<StepEvent>) => Promise<unknown>,
+  rebuilt: string | null = null,
+) {
   const channel = new Channel<StepEvent>((event) =>
     useSeeds.setPath("steps", (s) => s && stepped(s, event)),
   );
   useSeeds.setPath("steps", { rows: [], end: null, secs: 0 });
+  useSeeds.setPath("rebuilt", rebuilt);
   useSeeds.setPath("generating", true);
   try {
     await send(channel);
@@ -246,6 +254,17 @@ export const generate = (seed: string | null) =>
 /** Installs a history entry to every target. */
 export const install = (id: number) =>
   run(() => stepping((steps) => call(commands.install(id, steps))));
+/** Rebuilds a target's game, its output in the step log. Throws why it
+ * failed, or why the build still lacks the installed hook patch. */
+export async function rebuild(name: string) {
+  useSeeds.setPath("busy", true);
+  try {
+    await stepping((steps) => call(commands.rebuild(name, steps)), name);
+  } finally {
+    useSeeds.setPath("busy", false);
+    await refresh();
+  }
+}
 /** Asks the seed being generated to stop at its next checkpoint. */
 export async function stopGenerate() {
   useSeeds.setPath("stopping", true);
@@ -263,6 +282,15 @@ export const clearHistory = () => run(() => call(commands.clearHistory()));
 /** Makes an entry's settings the current ones. */
 export const takeSettings = (entry: Summary) =>
   run(() => saveConfig({ settings: entry.settings }));
+
+/** A target's build status, for a game that bakes the hook patch in when
+ * it's built. */
+export const useBuild = (name: string | undefined) =>
+  useSeeds((s) => s.status.targets.find((t) => t.name === name)?.build);
+
+/** Whether the game would run another hook than the installed one. */
+export const stale = (build: Build | null | undefined) =>
+  build?.status.kind === "stale" || build?.status.kind === "refused";
 
 /** Names a seed and notes what it's for. Throws what saving failed with. */
 export async function label(id: number, label: Label) {

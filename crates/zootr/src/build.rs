@@ -59,7 +59,7 @@ pub fn parse(text: &str) -> Vec<Line> {
 /// Whether a game's last build saw the hook patch installed now.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(tag = "kind", rename = "BuildStatus", rename_all = "camelCase")]
 pub enum Status {
     /// The build has the installed patch, or neither has one.
     Current,

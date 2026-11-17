@@ -17,6 +17,9 @@ export interface Draft {
   env: string;
   /** One harness env line per row. */
   harness_env: string;
+  /** One rebuild command argument per row. */
+  rebuild_command: string;
+  manifest: string;
 }
 
 /** A saved target as the form edits it. */
@@ -32,6 +35,8 @@ export const toDraft = (t: Target): Draft => ({
   bridge: t.bridge ?? "",
   env: t.env?.join("\n") ?? "",
   harness_env: t.harness_env?.join("\n") ?? "",
+  rebuild_command: t.rebuild?.command?.join("\n") ?? "",
+  manifest: t.rebuild?.manifest ?? "",
 });
 
 /** The target a draft saves as, trimmed, with blank options left out. */
@@ -49,6 +54,13 @@ export const toTarget = (d: Draft): Target => ({
   bridge: d.bridge.trim() || null,
   env: splitLines(d.env),
   harness_env: splitLines(d.harness_env),
+  rebuild:
+    splitLines(d.rebuild_command).length || d.manifest.trim()
+      ? {
+          command: splitLines(d.rebuild_command),
+          manifest: d.manifest.trim() || null,
+        }
+      : null,
 });
 
 /** A new target with nothing filled in. */
@@ -143,6 +155,23 @@ export const FIELDS: DraftField[] = [
     key: "control",
     label: "Control file (optional)",
     hint: "A file the game reads input lines from, for scripted play",
+    pick: "file",
+  },
+];
+
+/** The fields of a game that bakes the mods' exefs patches in when it's
+ * built, in their own section. */
+export const BUILD_FIELDS: DraftField[] = [
+  {
+    key: "rebuild_command",
+    label: "Rebuild command (optional)",
+    hint: "One argument per line: what rebuilds the game. {game} becomes your game dump",
+    multiline: true,
+  },
+  {
+    key: "manifest",
+    label: "Patch list (optional)",
+    hint: "The build's exefs_patches.txt, when it isn't in the game folder that holds the mod folder",
     pick: "file",
   },
 ];

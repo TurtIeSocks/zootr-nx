@@ -20,6 +20,24 @@ test("a draft saves back as the target it came from, blanks left out", () => {
     bridge: null,
     env: [],
     harness_env: [],
+    rebuild: null,
+  });
+});
+
+test("a rebuild command keeps one argument per line", () => {
+  const baked = {
+    ...runner,
+    rebuild: {
+      command: ["bash", "-c", "make game --update"],
+      manifest: "/g/exefs_patches.txt",
+    },
+  };
+  const draft = toDraft(baked);
+  expect(draft.rebuild_command).toBe("bash\n-c\nmake game --update");
+  expect(toTarget(draft)).toMatchObject(baked);
+  expect(toTarget({ ...draft, manifest: " " }).rebuild).toEqual({
+    command: baked.rebuild.command,
+    manifest: null,
   });
 });
 

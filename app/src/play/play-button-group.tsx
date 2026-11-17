@@ -1,4 +1,5 @@
 import { ChevronDownIcon, Play } from "lucide-react";
+import { useState } from "react";
 import { commands } from "@/bindings";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,23 +15,32 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { call } from "@/lib/api";
 import { useRequest } from "@/lib/request";
+import { RebuildDialog } from "@/play/rebuild-dialog";
 import { saveConfig, useConfig } from "@/stores/config";
+import { rebuild, stale, useBuild } from "@/stores/seeds";
 
 /** Play the picked target, with the other targets a click away when there
- * are others. Runs in the request around it, which shows why either
- * failed. */
+ * are others. A game whose build lacks the installed hook patch asks
+ * first. Runs in the request around it, which shows why any failed. */
 export function PlayButtonGroup() {
   const play = useRequest();
   const [targets] = useConfig.usePath("config.targets");
   const [choice] = useConfig.usePath("config.picked");
   const picked = choice ?? targets[0]?.name;
+  const build = useBuild(picked);
+  const [asking, setAsking] = useState<string>();
+  const start = (name: string) => play.run(() => call(commands.play(name)));
 
   return (
     <ButtonGroup>
       <Button
         size="lg"
         disabled={!picked || play.busy}
-        onClick={() => picked && play.run(() => call(commands.play(picked)))}
+        onClick={() => {
+          if (!picked) return;
+          if (stale(build)) setAsking(picked);
+          else start(picked);
+        }}
       >
         <Play /> Play {picked}
       </Button>
@@ -60,6 +70,13 @@ export function PlayButtonGroup() {
           </DropdownMenu>
         </>
       )}
+      <RebuildDialog
+        name={asking}
+        build={build}
+        onClose={() => setAsking(undefined)}
+        onPlay={() => asking && start(asking)}
+        onRebuild={() => asking && play.run(() => rebuild(asking))}
+      />
     </ButtonGroup>
   );
 }

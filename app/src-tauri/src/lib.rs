@@ -11,7 +11,8 @@ use specta::Type;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager, State};
 use tauri_specta::{Event as _, collect_commands, collect_events};
-use zootr::config::Config;
+use zootr::build;
+use zootr::config::{Config, Target};
 use zootr::gamedata::GameData;
 use zootr::generate::plando::PlandoOptions;
 use zootr::generate::{self, RoundEvent, Spot, Start};
@@ -47,6 +48,33 @@ struct TargetStatus {
     app: bool,
     mod_dir: bool,
     running: bool,
+    /// For a game that bakes the hook patch in at build time, whether its
+    /// build has the installed one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    build: Option<Build>,
+}
+
+#[derive(Serialize, Type)]
+struct Build {
+    status: build::Status,
+    /// What the user is told, when the build isn't current.
+    text: Option<String>,
+    /// The target has a rebuild command.
+    command: bool,
+}
+
+impl Build {
+    fn of(target: &Target) -> Option<Build> {
+        let status = build::status(target)?;
+        Some(Build {
+            text: status.text(&target.name),
+            status,
+            command: target
+                .rebuild
+                .as_ref()
+                .is_some_and(|r| !r.command.is_empty()),
+        })
+    }
 }
 
 #[derive(Serialize, Type)]
@@ -65,6 +93,7 @@ fn status() -> Res<Status> {
         app: t.app.exists(),
         mod_dir: t.mod_dir.is_dir(),
         running: t.running(),
+        build: Build::of(t),
     });
     Ok(Status {
         game: config.game.is_some_and(|g| g.exists()),
@@ -228,6 +257,27 @@ async fn install(app: AppHandle, id: u32, steps: Channel<progress::StepEvent>) -
         generating.install(steps, entry.report.seed, &entry.settings, &entry.extras)?;
         history.install(Some(id));
         history.save()
+    })
+    .await
+}
+
+/// Rebuild a target's game, its output each a detail of the rebuilding
+/// step sent to `steps`. Fails unless the build has the installed hook
+/// patch afterwards.
+#[tauri::command]
+#[specta::specta]
+async fn rebuild(name: String, steps: Channel<progress::StepEvent>) -> Res<()> {
+    blocking(move || {
+        let config = Config::load()?;
+        let target = (config.targets.iter())
+            .find(|t| t.name == name)
+            .with_context(|| format!("No target named {name}"))?;
+        let run = Run::silent().with(move |e| {
+            let _ = steps.send(e.clone());
+        });
+        let done = build::rebuild(target, config.game.as_deref(), &run).map(drop);
+        run.end(&done);
+        done
     })
     .await
 }
@@ -675,6 +725,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             set_config,
             generate,
             install,
+            rebuild,
             generating::stop_generate,
             generating::generate_log,
             uninstall,

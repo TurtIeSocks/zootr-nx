@@ -7,10 +7,12 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
+import type { Build } from "@/bindings";
 import { keep } from "@/lib/api";
 import { type FullConfig, full } from "@/lib/config";
 import { TargetsPane } from "@/settings/targets-pane";
 import { useConfig } from "@/stores/config";
+import { useSeeds } from "@/stores/seeds";
 
 const importTarget = vi.fn((text: string) =>
   text.startsWith("{")
@@ -65,6 +67,7 @@ vi.mock("@/bindings", () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  useSeeds.setPath("status", { game: true, targets: [] });
 });
 
 const config = full({
@@ -218,4 +221,38 @@ test("a save that moves a mod folder says so, and shows the folder it saved", as
   expect(screen.getByDisplayValue(moved)).toBeTruthy();
   saving.notes = [];
   saving.after = undefined;
+});
+
+/** Shows the pane with Runner's game built as `build` says. */
+function showBuilt(build: Build) {
+  useSeeds.setPath("status", {
+    game: true,
+    targets: [
+      { name: "Runner", app: true, mod_dir: true, running: false, build },
+    ],
+  });
+  show();
+}
+
+const stale =
+  "Runner needs a rebuild: its hook patch changed since the last build";
+
+test("a stale build shows its badge, what's wrong and Rebuild", () => {
+  showBuilt({ status: { kind: "stale" }, text: stale, command: true });
+  expect(screen.getByText("Needs a rebuild")).toBeTruthy();
+  expect(screen.getByText(stale)).toBeTruthy();
+  expect(button("Rebuild").disabled).toBe(false);
+  expect(screen.queryByText(/Rebuild it by hand/)).toBeNull();
+});
+
+test("a stale build with no command says to rebuild it by hand", () => {
+  showBuilt({ status: { kind: "stale" }, text: stale, command: false });
+  expect(screen.getByText(/Rebuild it by hand/)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Rebuild" })).toBeNull();
+});
+
+test("a current build only shows its badge", () => {
+  showBuilt({ status: { kind: "current" }, text: null, command: true });
+  expect(screen.getByText("Build current")).toBeTruthy();
+  expect(screen.queryByText(stale)).toBeNull();
 });

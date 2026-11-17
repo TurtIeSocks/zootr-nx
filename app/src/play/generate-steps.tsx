@@ -34,6 +34,8 @@ function hint(row: StepRow) {
 export function GenerateSteps() {
   const [steps] = useSeeds.usePath("steps");
   const [generating] = useSeeds.usePath("generating");
+  // A rebuild's run has no log of its own.
+  const [rebuilt] = useSeeds.usePath("rebuilt");
   const [open, setOpen] = useState(false);
   // A run that failed before its first step has nothing to show.
   if (!steps || (!steps.rows.length && !generating)) return null;
@@ -41,7 +43,7 @@ export function GenerateSteps() {
     return (
       <div className="flex items-center gap-2 text-[13px] text-ink-muted">
         <Check className="size-3.5 text-primary-ink" />
-        Generated in {seconds(steps.secs)}
+        {rebuilt ? "Rebuilt" : "Generated"} in {seconds(steps.secs)}
         <button
           type="button"
           className={linkClass}
@@ -49,7 +51,7 @@ export function GenerateSteps() {
         >
           Details
         </button>
-        <CopyLog />
+        {!rebuilt && <CopyLog />}
       </div>
     );
   }
@@ -65,7 +67,7 @@ export function GenerateSteps() {
           />
         ))}
       </ul>
-      {!generating && <Ending steps={steps} />}
+      {!generating && !rebuilt && <Ending steps={steps} />}
     </div>
   );
 }
