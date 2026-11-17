@@ -1,6 +1,6 @@
 [package]
 name = "zootr"
-version = "0.4.0"
+version.workspace = true
 description = "Randomizer generator for Ocarina of Time on Switch 2"
 edition.workspace = true
 license.workspace = true

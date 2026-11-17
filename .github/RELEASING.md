@@ -22,60 +22,62 @@ it gets an ad-hoc signature with `crates/zootr/live.entitlements`, like
 
 ## Cutting a release
 
-1. Pick the new version, for example `0.2.0`.
-2. Bump it everywhere it's written:
+Commit messages pick the version, and `CHANGELOG.md` writes itself.
+`.github/workflows/release-pr.yml` does both, with `cliff.toml`.
 
-   | File | Field |
-   |---|---|
-   | `crates/zootr/Cargo.toml` | `version` |
-   | `crates/ounce-formats/Cargo.toml` | `version` |
-   | `crates/nup-format/Cargo.toml` | `version` |
-   | `crates/zootr-hook/Cargo.toml` | `version` |
-   | `app/src-tauri/Cargo.toml` | `version` |
-   | `app/package.json` | `version` |
-   | `app/src-tauri/tauri.conf.json` | `version` |
-
-   The crates aren't published, so only the app's version shows anywhere.
-   Keeping all of them in step means nobody has to remember which ones count.
-   `tauri.conf.json` decides the version in the bundle names and metadata.
-
-3. Run the gate. It also refreshes `Cargo.lock`:
-
-   ```sh
-   cargo fmt --check
-   cargo clippy --all-targets -- -D warnings
-   cargo test --workspace --lib --bins --tests
-   cd app && pnpm typecheck && pnpm lint && pnpm test
-   ```
-
-4. Commit the bump as `chore(release): v0.2.0`.
-5. Tag and push the tag:
-
-   ```sh
-   git tag v0.2.0
-   git push origin v0.2.0
-   ```
-
-6. Wait for the Release workflow. Each platform builds on its own, and a
-   failed one doesn't stop the others.
-7. Open the draft on the Releases page. Check every asset in the table above
-   is there, edit the generated notes, then publish.
+1. Merge PRs into `main` as usual. Their commits' conventional types
+   decide the next version: a `feat` bumps the minor, a `fix` or `perf` the
+   patch (`features_always_bump_minor` in `cliff.toml`, while the version
+   is 0.x).
+2. After each merge the workflow opens or updates one PR, `chore(release):
+   vX.Y.Z`, on the `release` branch. It bumps `version` in the root
+   `Cargo.toml` (every crate inherits it, and the app's bundles take it
+   from the app crate) and prepends the version's section to
+   `CHANGELOG.md`. CI runs on it through `workflow_dispatch`.
+3. Merge the release PR when it's time for a release. The workflow tags
+   `vX.Y.Z` and calls `release.yml` with the tag, which builds every
+   platform and makes the draft with the changelog section as its notes.
+4. Each platform builds on its own, and a failed one doesn't stop the
+   others.
+5. Open the draft on the Releases page. Check every asset in the table above
+   is there, then publish.
 
 Publishing is what tells running copies of the app. Each one asks GitHub
 for the latest release at launch and every 6 hours, and shows its notes
 in the sidebar. A draft or a release marked as a prerelease never shows.
+
+### What the changelog keeps
+
+`Added` for `feat`, `Fixed` for `fix`, `Faster` for `perf`. Everything else
+stays out: merge commits, `chore`, `refactor`, `test`, `docs`, `ci`, and the
+dev-only scopes `sweep`, `probe` and `play`. Players read it in the app, so
+a new dev-only scope belongs in `cliff.toml`'s skip list.
+
+To see what the next release would say, with git-cliff installed:
+
+```sh
+git cliff --bumped-version
+git cliff --unreleased --tag "$(git cliff --bumped-version)"
+```
 
 ## When something goes wrong
 
 - A failed build: fix it on `main`, then rerun the failed job from the
   Actions page. The rerun finds the draft the first run made and replaces
   the assets it uploads.
-- A bad tag: delete the draft, then the tag, and tag again.
+- A bad tag: delete the draft, then the tag. The next push to `main` tags
+  the version again, since it has no tag.
 
   ```sh
   git push origin :refs/tags/v0.2.0
   git tag -d v0.2.0
   ```
+
+- The workflow is down: bump `version` in the root `Cargo.toml`, run
+  `cargo update --workspace`, prepend the section with
+  `git cliff --unreleased --tag vX.Y.Z --prepend CHANGELOG.md`, commit as
+  `chore(release): vX.Y.Z`, then tag and push the tag by hand. A pushed tag
+  runs `release.yml` on its own.
 
 ## App identifier
 

@@ -4,6 +4,10 @@ name: Release
 # to a draft release. Publishing the draft is a manual step. See
 # .github/RELEASING.md.
 #
+# release-pr.yml calls this with the tag it just made: a tag pushed with
+# GITHUB_TOKEN starts no workflow of its own. A tag pushed by hand still
+# comes in through `push`.
+#
 # The weekly and manual runs on main build the same way but release nothing.
 # They keep a release build cache on main: a tag can only read caches from
 # its own ref and the default branch, so without one every tag built cold.
@@ -15,32 +19,48 @@ on:
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag:
+        description: The vX.Y.Z tag to release
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.ref }}
 
 env:
   CARGO_TERM_COLOR: always
-  TAGGED: ${{ startsWith(github.ref, 'refs/tags/') }}
+  TAG: ${{ inputs.tag || github.ref_name }}
+  TAGGED: ${{ inputs.tag != '' || startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   draft:
     name: Draft release
-    if: startsWith(github.ref, 'refs/tags/')
+    if: inputs.tag != '' || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-24.04
     outputs:
       id: ${{ steps.draft.outputs.id }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The tag's section of CHANGELOG.md, from its heading to the next
+      # one. A tag made by hand may have none: GitHub's notes then.
+      - name: Find the tag's changelog section
+        run: |
+          awk -v head="## [${TAG#v}]" 'index($0, head) == 1 { on = 1; next } on && /^## \[/ { exit } on' \
+            CHANGELOG.md 2>/dev/null > notes.md || true
+          echo "notes: $(grep -c . notes.md) lines"
+
       # One job makes the draft so the builds below never race to create it.
       # A rerun reuses the draft it made the first time.
       - name: Create or find the draft
         id: draft
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
         run: |
           find_draft() {
             gh api --paginate "repos/$GITHUB_REPOSITORY/releases" \
@@ -50,8 +70,13 @@ jobs:
           if [ -z "$id" ]; then
             # The create call returns the id: the release list can lag a
             # new draft by a few seconds.
+            if grep -q . notes.md; then
+              notes=(-F body=@notes.md)
+            else
+              notes=(-F generate_release_notes=true)
+            fi
             id=$(gh api "repos/$GITHUB_REPOSITORY/releases" -f tag_name="$TAG" \
-              -f name="zootr-nx $TAG" -F draft=true -F generate_release_notes=true --jq .id)
+              -f name="zootr-nx $TAG" -F draft=true "${notes[@]}" --jq .id)
           fi
           test -n "$id"
           echo "id=$id" >> "$GITHUB_OUTPUT"
@@ -91,8 +116,9 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           prefix-key: release
-          # Only main's cache is any use to the next tag.
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          # Only main's cache is any use to the next tag. A release called
+          # from main runs on main's ref too, and leaves the cache alone.
+          save-if: ${{ github.ref == 'refs/heads/main' && env.TAGGED != 'true' }}
 
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
@@ -164,8 +190,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
-          NAME: zootr-${{ github.ref_name }}-${{ matrix.name }}
+          NAME: zootr-${{ inputs.tag || github.ref_name }}-${{ matrix.name }}
         run: |
           cd target/release
           if [ "$RUNNER_OS" = Windows ]; then
