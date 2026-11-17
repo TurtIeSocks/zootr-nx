@@ -341,9 +341,9 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
     }
 
     /// Refuse a game that didn't load `pristine`: one played longer than
-    /// any of its slots plus a start. The other machine's runner moved its
-    /// saves out of the target's save folder, and two nights swept one
-    /// save that kept every chest it opened (2026-11-17).
+    /// any of its slots plus a start. A game launched without the data
+    /// folder its target's save folder names reads another folder's save,
+    /// which keeps every chest an earlier run opened (2026-11-17).
     fn loaded(&self, dev: &Dev, pristine: &Path) -> Result<()> {
         let Some(saved) = played(pristine)? else {
             return Ok(());
