@@ -1,0 +1,10 @@
+# Inside Ganon's Castle. Rules from the original game, on the playtest
+# list.
+
+# The Light Trial's second room, past the pillar the Golden Gauntlets
+# lift and the first room's invisible enemies, whose deaths open its
+# shutter. Zelda's Lullaby on the Triforce mark makes the chest appear.
+[[check]]
+hash = 4733634471038136588
+name = "Lower Green Rupee"
+needs = "gold-gauntlets and lens and zeldas-lullaby"

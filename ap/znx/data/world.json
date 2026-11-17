@@ -971,20 +971,118 @@
       "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "desert-colossus-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 2,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "setting": "free-bombchus"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
       "forbid": [],
       "hash": "1186167733408299582",
       "id": 12,
       "name": "Desert Colossus Northwest Purple Rupee (50) Chest",
-      "unprovable": true
+      "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "spirit-temple-child",
+          "rule": {
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Slingshot"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Boomerang"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "spirit-temple-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 2,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bow"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
       "forbid": [],
       "hash": "1501288453962537671",
       "id": 13,
       "name": "Spirit Temple Upper Bombchus (5) Chest",
-      "unprovable": true
+      "unprovable": false
     },
     {
       "at": [
@@ -2870,20 +2968,87 @@
       "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "inside-ganons-castle-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 3,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Magic Meter"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Lens of Truth"
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Zelda's Lullaby"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
       "forbid": [],
       "hash": "4733634471038136588",
       "id": 35,
       "name": "Ganon's Castle Lower Green Rupee (1) Chest",
-      "unprovable": true
+      "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "spirit-temple-child",
+          "rule": {
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Slingshot"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Boomerang"
+                ]
+              }
+            ]
+          }
+        }
+      ],
       "forbid": [],
       "hash": "5309180490719879013",
       "id": 36,
       "name": "Spirit Temple Deku Shield Chest",
-      "unprovable": true
+      "unprovable": false
     },
     {
       "at": [
@@ -3230,12 +3395,51 @@
       "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Ocarina"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Song of Storms"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "all": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Ocarina"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Song of Storms"
+                ]
+              }
+            ]
+          }
+        }
+      ],
       "forbid": [],
       "hash": "5755485285664292988",
       "id": 42,
       "name": "Hyrule Field Northeast Purple Rupee (50) Chest",
-      "unprovable": true
+      "unprovable": false
     },
     {
       "at": [
@@ -4331,12 +4535,51 @@
       "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "sacred-forest-meadow-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Ocarina"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Song of Storms"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "sacred-forest-meadow-child",
+          "rule": {
+            "all": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Ocarina"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Song of Storms"
+                ]
+              }
+            ]
+          }
+        }
+      ],
       "forbid": [],
       "hash": "7995233962349162969",
       "id": 55,
       "name": "Sacred Forest Meadow South Purple Rupee (50) Chest",
-      "unprovable": true
+      "unprovable": false
     },
     {
       "at": [
@@ -5330,28 +5573,185 @@
       "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "any": [
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "setting": "free-bombchus"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Megaton Hammer"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Bomb Bag"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Bombchus (5)"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "setting": "free-bombchus"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
       "forbid": [],
       "hash": "9128916506605227251",
       "id": 63,
       "name": "Death Mountain Crater West Purple Rupee (50) Chest",
-      "unprovable": true
+      "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "spirit-temple-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 2,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "setting": "free-bombchus"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Magic Meter"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Lens of Truth"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
       "forbid": [],
       "hash": "9143177002861777924",
       "id": 64,
       "name": "Spirit Temple Upper Red Rupee (20) Chest 1",
-      "unprovable": true
+      "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "goron-city-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Progressive Hookshot"
+            ]
+          }
+        }
+      ],
       "forbid": [],
       "hash": "9159710900681116662",
       "id": 65,
       "name": "Goron City Southwest Green Rupee (1) Chest",
-      "unprovable": true
+      "unprovable": false
     },
     {
       "at": [
@@ -6747,12 +7147,22 @@
       "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "goron-city-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Progressive Hookshot"
+            ]
+          }
+        }
+      ],
       "forbid": [],
       "hash": "10944569637726152230",
       "id": 79,
       "name": "Goron City Southwest Purple Rupee (50) Chest",
-      "unprovable": true
+      "unprovable": false
     },
     {
       "at": [
@@ -7726,12 +8136,23 @@
       "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "spirit-temple-adult",
+          "rule": {
+            "count": 2,
+            "items": [
+              "Goron Bracelet",
+              "Progressive Strength Upgrade"
+            ]
+          }
+        }
+      ],
       "forbid": [],
       "hash": "12909857529499414969",
       "id": 94,
       "name": "Spirit Temple Upper Bombs (5) Chest 1",
-      "unprovable": true
+      "unprovable": false
     },
     {
       "at": [
@@ -7926,20 +8347,170 @@
       "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "spirit-temple-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 2,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "setting": "free-bombchus"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Mirror Shield"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bow"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Light Arrows"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
       "forbid": [],
       "hash": "13828480906010430010",
       "id": 99,
       "name": "Spirit Temple Upper Bombs (5) Chest 2",
-      "unprovable": true
+      "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "spirit-temple-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 2,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "setting": "free-bombchus"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Magic Meter"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Lens of Truth"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
       "forbid": [],
       "hash": "14040210993541550542",
       "id": 100,
       "name": "Spirit Temple Upper Red Rupee (20) Chest 2",
-      "unprovable": true
+      "unprovable": false
     },
     {
       "at": [
@@ -8680,12 +9251,42 @@
       "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "kokiri-forest-child",
+          "rule": {
+            "all": [
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Song of Storms"
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Deku Shield"
+                ]
+              }
+            ]
+          }
+        }
+      ],
       "forbid": [],
       "hash": "14818888396401495482",
       "id": 105,
       "name": "Kokiri Forest Northwest Green Rupee (1) Chest",
-      "unprovable": true
+      "unprovable": false
     },
     {
       "at": [
