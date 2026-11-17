@@ -119,8 +119,6 @@ struct Ledger {
 struct Look {
     send: Vec<u64>,
     goal: bool,
-    /// The received item's index and actor, given.
-    gave: Option<(usize, String)>,
 }
 
 impl Ledger {
@@ -129,36 +127,43 @@ impl Ledger {
         *self = Self::default();
     }
 
-    /// `received` is the server's full list of item ids for this slot.
-    fn look(&mut self, game: &mut impl Game, book: &Book, received: &[i64]) -> Result<Look> {
+    /// What to send. Both reads come before anything is marked, so a
+    /// failed read loses nothing.
+    fn look(&mut self, game: &mut impl Game) -> Result<Look> {
         let checked = game.checked()?;
+        let goal = !self.goal && game.goal()?;
         let send: Vec<u64> = checked.difference(&self.sent).copied().collect();
         self.sent.extend(&send);
-        let goal = !self.goal && game.goal()?;
         self.goal |= goal;
-        let mut look = Look {
-            send,
-            goal,
-            gave: None,
-        };
-        if !game.ready()? {
-            return Ok(look);
-        }
-        let given = game.given()?;
-        let Some(&id) = received.get(given) else {
-            ensure!(
-                given <= received.len(),
-                "the save has {given} items given, but the server sent {}: is it another room's save?",
-                received.len()
-            );
-            return Ok(look);
-        };
-        let actor =
-            (book.actors.get(&id)).with_context(|| format!("no item of ours has AP id {id}"))?;
-        game.give(actor, given + 1)?;
-        look.gave = Some((given, actor.clone()));
-        Ok(look)
+        Ok(Look { send, goal })
     }
+}
+
+/// Give Link the next received item, if he's in play and one is left:
+/// its index and actor. `received` is the server's full list of item ids
+/// for this slot. Apart from [`Ledger::look`], so a give that fails never
+/// holds up a send.
+fn give_next(
+    game: &mut impl Game,
+    book: &Book,
+    received: &[i64],
+) -> Result<Option<(usize, String)>> {
+    if !game.ready()? {
+        return Ok(None);
+    }
+    let given = game.given()?;
+    let Some(&id) = received.get(given) else {
+        ensure!(
+            given <= received.len(),
+            "the save has {given} items given, but the server sent {}: is it another room's save?",
+            received.len()
+        );
+        return Ok(None);
+    };
+    let actor =
+        (book.actors.get(&id)).with_context(|| format!("no item of ours has AP id {id}"))?;
+    game.give(actor, given + 1)?;
+    Ok(Some((given, actor.clone())))
 }
 
 /// Where and as whom to connect.
@@ -293,8 +298,7 @@ fn tick(
     ledger: &mut Ledger,
     note: &mut impl FnMut(Note),
 ) {
-    let received: Vec<i64> = found(client).map(|r| r.item().id()).collect();
-    let look = match ledger.look(game, book, &received) {
+    let look = match ledger.look(game) {
         Ok(look) => look,
         Err(e) => return note(Note::Trouble(format!("{e:#}"))),
     };
@@ -319,13 +323,18 @@ fn tick(
             }
         }
     }
-    if let Some((index, _)) = look.gave
-        && let Some(r) = found(client).nth(index)
-    {
-        note(Note::Received {
-            item: r.item().name().to_string(),
-            from: r.sender().name().to_string(),
-        });
+    let received: Vec<i64> = found(client).map(|r| r.item().id()).collect();
+    match give_next(game, book, &received) {
+        Ok(Some((index, _))) => {
+            if let Some(r) = found(client).nth(index) {
+                note(Note::Received {
+                    item: r.item().name().to_string(),
+                    from: r.sender().name().to_string(),
+                });
+            }
+        }
+        Ok(None) => {}
+        Err(e) => note(Note::Trouble(format!("{e:#}"))),
     }
 }
 
@@ -466,14 +475,14 @@ mod tests {
 
     #[test]
     fn a_check_is_sent_once_per_connection() {
-        let (mut game, book, mut ledger) = (Fake::default(), book(), Ledger::default());
+        let (mut game, mut ledger) = (Fake::default(), Ledger::default());
         game.checked = [10].into();
-        assert_eq!(ledger.look(&mut game, &book, &[]).unwrap().send, [10]);
+        assert_eq!(ledger.look(&mut game).unwrap().send, [10]);
         game.checked.insert(20);
-        assert_eq!(ledger.look(&mut game, &book, &[]).unwrap().send, [20]);
-        assert!(ledger.look(&mut game, &book, &[]).unwrap().send.is_empty());
+        assert_eq!(ledger.look(&mut game).unwrap().send, [20]);
+        assert!(ledger.look(&mut game).unwrap().send.is_empty());
         ledger.reset();
-        assert_eq!(ledger.look(&mut game, &book, &[]).unwrap().send, [10, 20]);
+        assert_eq!(ledger.look(&mut game).unwrap().send, [10, 20]);
     }
 
     #[test]
@@ -483,13 +492,13 @@ mod tests {
 
     #[test]
     fn items_are_given_once_each_in_order_and_only_in_play() {
-        let (mut game, book, mut ledger) = (Fake::default(), book(), Ledger::default());
+        let (mut game, book) = (Fake::default(), book());
         let received = [2, 1, 2];
         game.busy = true;
-        assert_eq!(ledger.look(&mut game, &book, &received).unwrap().gave, None);
+        assert_eq!(give_next(&mut game, &book, &received).unwrap(), None);
         game.busy = false;
         for _ in 0..5 {
-            ledger.look(&mut game, &book, &received).unwrap();
+            give_next(&mut game, &book, &received).unwrap();
         }
         assert_eq!(
             game.given,
@@ -499,37 +508,36 @@ mod tests {
 
     #[test]
     fn a_reconnect_resending_the_list_gives_nothing_twice() {
-        let (mut game, book, mut ledger) = (Fake::default(), book(), Ledger::default());
-        ledger.look(&mut game, &book, &[1]).unwrap();
-        ledger.reset();
-        let look = ledger.look(&mut game, &book, &[1, 2]).unwrap();
-        assert_eq!(look.gave, Some((1, "Item_FakeHook".into())));
+        let (mut game, book) = (Fake::default(), book());
+        give_next(&mut game, &book, &[1]).unwrap();
+        let gave = give_next(&mut game, &book, &[1, 2]).unwrap();
+        assert_eq!(gave, Some((1, "Item_FakeHook".into())));
         assert_eq!(game.given.len(), 2);
     }
 
     #[test]
     fn a_save_ahead_of_the_server_gives_nothing_and_says_so() {
-        let (mut game, book, mut ledger) = (Fake::default(), book(), Ledger::default());
+        let (mut game, book) = (Fake::default(), book());
         game.given = vec!["Item_FakeBow".into(); 3];
-        let err = ledger.look(&mut game, &book, &[1]).unwrap_err();
+        let err = give_next(&mut game, &book, &[1]).unwrap_err();
         assert!(err.to_string().contains("another room"), "{err}");
         assert_eq!(game.given.len(), 3);
     }
 
     #[test]
     fn an_unknown_item_stops_the_queue_on_it() {
-        let (mut game, book, mut ledger) = (Fake::default(), book(), Ledger::default());
-        assert!(ledger.look(&mut game, &book, &[9, 1]).is_err());
+        let (mut game, book) = (Fake::default(), book());
+        assert!(give_next(&mut game, &book, &[9, 1]).is_err());
         assert!(game.given.is_empty());
     }
 
     #[test]
     fn the_goal_is_sent_once() {
-        let (mut game, book, mut ledger) = (Fake::default(), book(), Ledger::default());
-        assert!(!ledger.look(&mut game, &book, &[]).unwrap().goal);
+        let (mut game, mut ledger) = (Fake::default(), Ledger::default());
+        assert!(!ledger.look(&mut game).unwrap().goal);
         game.goal = true;
-        assert!(ledger.look(&mut game, &book, &[]).unwrap().goal);
-        assert!(!ledger.look(&mut game, &book, &[]).unwrap().goal);
+        assert!(ledger.look(&mut game).unwrap().goal);
+        assert!(!ledger.look(&mut game).unwrap().goal);
     }
 
     #[test]
