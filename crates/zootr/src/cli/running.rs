@@ -68,6 +68,9 @@ fn said<T: Display + Serialize>(report: &T, json: bool) -> Result<String> {
     })
 }
 
+/// How often `zootr ap connect` renews its hold on the game.
+const RENEW: std::time::Duration = std::time::Duration::from_secs(5 * 60);
+
 /// `zootr ap connect`: the client core on the live game, its notes
 /// printed until the process is stopped.
 pub(super) fn ap_connect(
@@ -84,8 +87,9 @@ pub(super) fn ap_connect(
         slot: slot.unwrap_or(client.slot),
         password,
     };
-    // Held for the run: the core stops once every sender is gone.
-    let (_keep, stop) = std::sync::mpsc::channel();
+    // Well inside the queue's 15 min lease. The core stops if a renewal
+    // is refused.
+    let stop = crate::turn::kept(crate::turn::session(), RENEW);
     let start = std::time::Instant::now();
     client::run(&room, &client.book, &mut client.game, &stop, &mut |note| {
         println!("{} {note}", stamp(start));
