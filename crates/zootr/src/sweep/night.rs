@@ -537,7 +537,7 @@ const STUBBORN_EVERY: u64 = 4;
 /// by map from one `seed` picks, so a round cut short by `--limit` reaches
 /// a different part of the game each time. The skips go last.
 fn order(planned: &mut [Planned], known: &Known, seed: u64) {
-    let due = seed % STUBBORN_EVERY == 0;
+    let due = seed.is_multiple_of(STUBBORN_EVERY);
     let maps: Vec<String> = (planned.iter())
         .filter(|p| !matches!(p.trigger, Trigger::Skip(_)))
         .map(map)
