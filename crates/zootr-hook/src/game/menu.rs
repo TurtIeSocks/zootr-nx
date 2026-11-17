@@ -28,10 +28,20 @@ const CELL_ICON: usize = 0x48;
 /// grey when that's another age's item.
 const USABLE: f32 = 1.0;
 const ON_BUTTON: f32 = 2.0;
-/// The cell's `AttentionTrans` animation. Halfway through, it rings the
-/// button in a soft white bloom, which marks the slot while Link cycles it.
-const CELL_HALO: usize = 0x80;
-const HALO: f32 = 25.0;
+/// The cell's layout, its panes (count, array, each `PANE` long), and
+/// the cursor line, its border, among them. A pane's material
+/// tints it, this cell's alone.
+const CELL_LAYOUT: usize = 0x20;
+const LAYOUT_PANES: usize = 0x80;
+const PANE_COUNT: usize = 0x13c;
+const PANE_ARRAY: usize = 0x100;
+const PANE: usize = 0xb0;
+const CURSOR_LINE: usize = 13;
+const PANE_MATERIAL: usize = 8;
+const MATERIAL_COLOUR: usize = 0x20;
+/// The border while Link cycles the slot, and as the game draws it.
+const CYCLING: [f32; 4] = [0.2, 0.6, 1.0, 1.0];
+const PLAIN: [f32; 4] = [1.0; 4];
 /// An animation's frame controller, and the frame it's on.
 const ANIM_CONTROL: usize = 0x20;
 const ANIM_FRAME: usize = 0x18;
@@ -155,7 +165,7 @@ unsafe fn show(main: usize, table: &Table) -> Option<()> {
             s.seen = seen;
             (s.showing(&slot.actors), s.cycling())
         });
-        seek(main, o, cell, CELL_HALO, if cycling { HALO } else { 0.0 })?;
+        tint(cell, if cycling { CYCLING } else { PLAIN })?;
         let (actor, kind) = slot.actor(want?)?;
         if name(at(cell, CELL_NAME)? as *const u8) == Some(actor) {
             return Some(());
@@ -195,6 +205,23 @@ unsafe fn seek(
         let anim = at(cell, anim)?;
         if *((at(anim, ANIM_CONTROL)? + ANIM_FRAME) as *const f32) != frame {
             transmute::<usize, AnimFrame>(main + o.anim_frame as usize)(anim, frame);
+        }
+    }
+    Some(())
+}
+
+/// Tint the cell's cursor border, unless it's that colour.
+///
+/// # Safety
+/// `cell` is an Items page cell.
+unsafe fn tint(cell: usize, colour: [f32; 4]) -> Option<()> {
+    unsafe {
+        let panes = at(at(cell, CELL_LAYOUT)?, LAYOUT_PANES)?;
+        (usize::from(*((panes + PANE_COUNT) as *const u16)) > CURSOR_LINE).then_some(())?;
+        let line = at(panes, PANE_ARRAY)? + CURSOR_LINE * PANE;
+        let now = (at(line, PANE_MATERIAL)? + MATERIAL_COLOUR) as *mut [f32; 4];
+        if *now != colour {
+            *now = colour;
         }
     }
     Some(())
