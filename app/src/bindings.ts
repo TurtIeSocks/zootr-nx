@@ -625,7 +625,10 @@ export type RoundEvent = {
 export type Row = {
 	spot: Spot,
 	checked: boolean,
-	/**  The spot's opened flag. Without one it never ticks. */
+	/**
+	 *  The spot's Bool, which the tab can label. A spot ticked by its
+	 *  per-placement flag has none.
+	 */
 	flag: number | null,
 	/**  The user's label for the flag, which wins over the spot's names. */
 	label: string | null,
