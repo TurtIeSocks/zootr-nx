@@ -1,5 +1,6 @@
 //! Which of the seed's spots Link has checked: chests by their opened flag,
-//! gifts by the played flag of their event. See `docs/research/chests.md`.
+//! gifts by the played flag of their event, scrubs by their sold flag. See
+//! `docs/research/chests.md`.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
@@ -12,6 +13,7 @@ use crate::generate::Spot;
 use crate::gifts::GIFTS;
 use crate::history::{Entry, Mark};
 use crate::savefile::Change;
+use crate::scrubs;
 
 /// Struct whose members are named by a chest's placement hash in decimal
 /// and hold its opened flag.
@@ -58,9 +60,16 @@ impl Tracker {
     /// Spots with no known flag are left out, never checked.
     pub fn new(gd: &GameData, spots: &[Spot]) -> Result<Self> {
         let chests = chest_flags(gd)?;
-        let flag = |spot: &Spot| match GIFTS.iter().find(|g| g.hash() == spot.hash) {
-            Some(g) => g.found().map(|f| murmur3(f.as_bytes())),
-            None => chests(spot.hash),
+        let flag = |spot: &Spot| {
+            let name = match (
+                GIFTS.iter().find(|g| g.hash() == spot.hash),
+                scrubs::at(spot.hash),
+            ) {
+                (Some(g), _) => g.found(),
+                (_, Some(s)) => s.sold(&spot.item),
+                _ => return chests(spot.hash),
+            };
+            name.map(|f| murmur3(f.as_bytes()))
         };
         let flags = spots
             .iter()
@@ -264,6 +273,26 @@ mod tests {
             let f = t.flags[&g.hash()];
             assert_eq!(gd.table(&found), Some("Bool"), "{}", g.flow);
             assert!(gd.entry(f).is_some());
+        }
+    }
+
+    #[test]
+    fn scrubs_map_to_their_sold_flags() {
+        let Some(romfs) = dev_dump() else { return };
+        let gd = GameData::load(&romfs).unwrap();
+        for s in &scrubs::SCRUBS {
+            for item in [s.item.to_string(), "Item_Rando_Ap0001".to_string()] {
+                let spot = Spot {
+                    item: item.clone(),
+                    ..spot(s.hash())
+                };
+                let t = Tracker::new(&gd, &[spot]).unwrap();
+                let sold = s.sold(&item).unwrap();
+                assert_eq!(t.flag(s.hash()), Some(murmur3(sold.as_bytes())), "{sold}");
+                if !sold.starts_with("Rando_") {
+                    assert_eq!(gd.table(&sold), Some("Bool"), "{sold}");
+                }
+            }
         }
     }
 }
