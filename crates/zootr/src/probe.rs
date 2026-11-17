@@ -20,6 +20,7 @@ use crate::nav::navmesh_file;
 
 mod formats;
 mod logic;
+mod plan;
 mod poses;
 mod rooms;
 mod shapes;
@@ -189,6 +190,16 @@ pub enum Probe {
         #[arg(long)]
         cross: bool,
     },
+    /// The sweep's plan for one round: each holder kind by how it'd be
+    /// swept (open, talk, play, skip), and every skipped spot with why.
+    Plan {
+        /// A settings mix, by the start of its name. Defaults to the first.
+        #[arg(long)]
+        mix: Option<String>,
+        /// The seed to shuffle.
+        #[arg(long, default_value_t = 1)]
+        seed: u64,
+    },
     /// A map's navmesh (`Phive/NavMesh/MAP`): counts and bounds, or with
     /// `--at`, the face under a point and the mesh's edges near it.
     Nav {
@@ -276,6 +287,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             at,
             within,
         } => nav(romfs, game, &map, types, at, within),
+        Probe::Plan { mix, seed } => plan::plan(romfs, mix.as_deref(), seed),
         Probe::Grep { needle, path } => grep(romfs, game, &needle, &path),
         Probe::Strings { path } => names(romfs, game, &path),
         Probe::Poses { path } => poses::poses(romfs, game, &path),
