@@ -25527,6 +25527,139 @@
     {
       "at": [
         {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Ocarina"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Zelda's Lullaby"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Silver Scale"
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bottle"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Ruto's Letter"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Beat Morpha"
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 2,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Ocarina"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Epona's Song"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              },
+                              {
+                                "setting": "free-bombchus"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Megaton Hammer"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "name": "Claim Check"
+    },
+    {
+      "at": [
+        {
           "place": "zora-river-child",
           "rule": {
             "any": [
