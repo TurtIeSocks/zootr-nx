@@ -124,9 +124,9 @@ sign with two secrets:
   installed copies can't update again until players reinstall by hand.
 - A new key pair means a new `pubkey`, and copies built with the old one
   can't install a release signed with the new one.
-- Untagged builds have no key and set `TAURI_CONFIG` to turn the updater
-  files off. Do the same for a local bundle:
-  `TAURI_CONFIG='{"bundle":{"createUpdaterArtifacts":false}}' pnpm tauri build`.
+- Untagged builds have no key and pass `--config
+  src-tauri/no-updater.conf.json` to turn the updater files off. Do the same
+  for a local bundle: `pnpm tauri build --config src-tauri/no-updater.conf.json`.
 - A debug build reads `ZOOTR_UPDATER_ENDPOINT` and `ZOOTR_UPDATER_PUBKEY` in
   place of the configured feed and key, to try an install against a local
   `latest.json`. A release build ignores both.

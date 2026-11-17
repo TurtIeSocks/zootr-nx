@@ -158,13 +158,6 @@ jobs:
             fi
           done
 
-      # Updater files need the updater's signing key, which only a tagged
-      # build gets. Others build without them.
-      - name: Skip the updater files on an untagged build
-        if: env.TAGGED != 'true'
-        shell: bash
-        run: echo 'TAURI_CONFIG={"bundle":{"createUpdaterArtifacts":false}}' >> "$GITHUB_ENV"
-
       # build.runner, set for macOS only in tauri.macos.conf.json, is a
       # shell script that signs debug builds for `tauri dev`. A release
       # build has nothing for it to do, so `--runner cargo` skips it.
@@ -180,7 +173,10 @@ jobs:
         with:
           projectPath: app
           tauriScript: pnpm tauri
-          args: --runner cargo
+          # Updater files need the updater's signing key, which only a
+          # tagged build gets. Others build without them. TAURI_CONFIG
+          # doesn't turn them off: the CLI still asks for the key.
+          args: --runner cargo ${{ env.TAGGED != 'true' && '--config src-tauri/no-updater.conf.json' || '' }}
           releaseId: ${{ needs.draft.outputs.id }}
 
       # After the app, and naming its package too, so cargo picks the
