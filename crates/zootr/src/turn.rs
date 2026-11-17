@@ -77,6 +77,32 @@ pub fn hold(session: &str) -> Result<()> {
     Turn::load()?.ensure_held(session, true)
 }
 
+/// For a run that touches the game long after it starts: renews
+/// `session`'s hold every `every` on a thread of its own. The returned
+/// channel closes once a renewal is refused, so the run stops rather than
+/// outlive its turn.
+pub fn kept(session: String, every: std::time::Duration) -> std::sync::mpsc::Receiver<()> {
+    let (keep, stop) = std::sync::mpsc::channel();
+    std::thread::spawn(move || renewing(every, || hold(&session), keep));
+    stop
+}
+
+/// Renews every `every` until a renewal is refused, then drops `keep`.
+fn renewing(
+    every: std::time::Duration,
+    mut renew: impl FnMut() -> Result<()>,
+    keep: std::sync::mpsc::Sender<()>,
+) {
+    loop {
+        std::thread::sleep(every);
+        if let Err(e) = renew() {
+            eprintln!("{e:#}: stopping");
+            drop(keep);
+            return;
+        }
+    }
+}
+
 /// How often [`plays`] looks at the game, and how long it waits for the
 /// game to come up before it gives the game back.
 const LOOK: std::time::Duration = std::time::Duration::from_secs(5);
@@ -257,6 +283,23 @@ impl std::fmt::Display for Turn {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_kept_run_stops_once_a_renewal_is_refused() {
+        let (keep, stop) = std::sync::mpsc::channel();
+        let mut tries = 0;
+        renewing(
+            std::time::Duration::ZERO,
+            || {
+                tries += 1;
+                ensure!(tries < 3, "the maintainer took mac");
+                Ok(())
+            },
+            keep,
+        );
+        assert_eq!(tries, 3);
+        assert!(stop.recv().is_err(), "the run's channel closed");
+    }
 
     #[test]
     fn a_hold_covers_only_this_machine_s_game() {
