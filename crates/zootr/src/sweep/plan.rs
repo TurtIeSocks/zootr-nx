@@ -13,10 +13,10 @@ use crate::gamedata::GameData;
 use crate::generate::Spot;
 use crate::gifts::GIFTS;
 use crate::known::{Name, actor, field, flow};
-use crate::nav::kinds;
+use crate::nav::kinds::{self, Act};
 use crate::warp::{self, Pose, Side};
 use crate::{flags, gates, pickups, rsdb, scrubs, shops, steps};
-use landing::{away_from, clear_landing, neighbours};
+use landing::{around, away_from, clear_landing, neighbours, off_line};
 use quest::{quests, step_of, steps};
 use room::{drain, noted, water};
 
@@ -25,6 +25,11 @@ mod landing;
 mod quest;
 mod room;
 mod shop;
+
+/// What `by` holds for `map` of `area`.
+fn in_map<'a, T>(by: &'a HashMap<String, Maps<Vec<T>>>, area: &str, map: &str) -> &'a [T] {
+    (by.get(area).and_then(|m| m.get(map))).map_or(&[], Vec::as_slice)
+}
 
 /// The actors `expr` reads, by name: a switch, an enemy beaten.
 fn drivers(expr: &gates::Expr) -> Vec<Name> {
@@ -76,6 +81,9 @@ pub enum Trigger {
         /// What Link wields first: Blue Fire on the red ice the holder is
         /// frozen in, the hammer on the pillar pinning its switch down.
         wield: Option<Wield>,
+        /// Every side to use a broken holder from, best first, for when the
+        /// planned one has no floor: the crater box's left lies over lava.
+        sides: Vec<Side>,
     },
     /// Warp near, use the holder, the judge steers the talk.
     Talk {
@@ -206,6 +214,9 @@ struct Planner<'a> {
     ice: HashMap<String, Maps<Vec<[f32; 3]>>>,
     /// Where each hammer pillar stands, by area, then map.
     pillars: HashMap<String, Maps<Vec<[f32; 3]>>>,
+    /// Where every pot, crate and rock stands, a check this seed or not, by
+    /// area, then map: a swing breaks either kind.
+    breaking: HashMap<String, Maps<Vec<[f32; 3]>>>,
 }
 
 impl<'a> Planner<'a> {
@@ -224,6 +235,7 @@ impl<'a> Planner<'a> {
             flows: None,
             ice: HashMap::new(),
             pillars: HashMap::new(),
+            breaking: HashMap::new(),
             drivers: HashMap::new(),
         }
     }
@@ -267,6 +279,8 @@ impl Planner<'_> {
             self.ice.insert(area.to_owned(), ice);
             let pillars = warp::spots_in(self.romfs, area, &[wield::PILLAR])?;
             self.pillars.insert(area.to_owned(), pillars);
+            let breaking = warp::spots_where(self.romfs, area, |p| pickups::broken(&p.name))?;
+            self.breaking.insert(area.to_owned(), breaking);
         }
         Ok(&self.areas[area])
     }
@@ -297,10 +311,8 @@ impl Planner<'_> {
     /// `map`: a pour on red ice it's frozen in, else a pound on a pillar
     /// pinning down a switch its gate reads.
     fn wield(&self, spot: &Spot, map: &str, face: [f32; 3]) -> Result<Option<Wield>> {
-        let of = |by: &HashMap<String, Maps<Vec<[f32; 3]>>>| {
-            (by.get(&spot.area).and_then(|m| m.get(map))).map_or(vec![], Vec::clone)
-        };
-        if let Some(melt) = wield::melt(&of(&self.ice), face) {
+        let of = |by| in_map(by, &spot.area, map);
+        if let Some(melt) = wield::melt(of(&self.ice), face) {
             return Ok(Some(melt));
         }
         let Some(drivers) = self.drivers.get(&spot.hash) else {
@@ -309,7 +321,7 @@ impl Planner<'_> {
         let drivers: Vec<&Name> = drivers.iter().collect();
         let switches = warp::spots_in(self.romfs, &spot.area, &drivers)?;
         let switches = switches.get(map).map_or(&[][..], Vec::as_slice);
-        Ok(wield::pound(&of(&self.pillars), switches))
+        Ok(wield::pound(of(&self.pillars), switches))
     }
 
     /// The actor delete flags play sets along with `ready`'s, through the
@@ -379,7 +391,18 @@ impl Planner<'_> {
                     true => neighbours(spot.hash, face, poses, &self.breakables),
                     false => vec![],
                 };
-                let side = away_from(pose, &found.iter().map(|n| n.1).collect::<Vec<_>>());
+                // Every breakable near, not only this seed's: the crater
+                // box's roll broke the Gold Skulltula box beside it, its
+                // drop no check, 33 times (other machine, 2026-11-17).
+                let breaking = in_map(&self.breaking, &spot.area, &map);
+                let near_at = around(face, breaking);
+                let act = kinds::kind_of(&spot.holder).and_then(|k| k.act);
+                let sides = match act {
+                    Some(Act::Break { by, .. }) if by == kinds::ROLL => off_line(pose, &near_at),
+                    _ if broken => away_from(pose, &near_at),
+                    _ => vec![],
+                };
+                let side = sides.first().copied().unwrap_or_default();
                 let near = found.into_iter().map(|n| n.0).collect();
                 let trigger = match scrub {
                     false => Trigger::Open {
@@ -392,6 +415,7 @@ impl Planner<'_> {
                         broken,
                         near,
                         wield,
+                        sides,
                     },
                     true => Trigger::Talk {
                         ready: self.sellers(&map, spot.hash)?,
@@ -876,8 +900,43 @@ mod tests {
                 planned[0].side
             );
         }
-        // A pot alone keeps the front.
+        // Planned alone, its neighbours no checks, they still break.
         let alone = plan(&romfs, &spots[..1]).unwrap();
-        assert_eq!(alone[0].side, Side::Front);
+        assert_eq!(alone[0].side, planned[0].side);
+        assert!(matches!(&alone[0].trigger, Trigger::Open { near, .. } if near.is_empty()));
+    }
+
+    #[test]
+    fn a_box_is_rolled_at_from_a_side_off_the_line_of_a_box_that_is_no_check() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        // The crater's box, and 1.9 m off the box a Gold Skulltula hides in.
+        let spot = Spot {
+            hash: 4502491733150659917,
+            area: flag::DEATH_MOUNTAIN_CRATER.to_string(),
+            holder: actor::OBJ_BROKEN_BOX_A_01.to_string(),
+            ..Default::default()
+        };
+        let planned = plan(&romfs, std::slice::from_ref(&spot)).unwrap();
+        let Trigger::Open { map, sides, .. } = &planned[0].trigger else {
+            panic!("{:?}", planned[0].trigger);
+        };
+        // Its left lies over lava: the right comes next, the box's line last.
+        assert_eq!(sides, &[Side::Left, Side::Right, Side::Front, Side::Back]);
+        let poses = &warp::poses_in(&romfs, &spot.area).unwrap();
+        let held = warp::facing(&spot.holder, &poses[map][&spot.hash]);
+        let link = warp::landing_at(&held, planned[0].side, 1.0);
+        // Off the roll's line by more than a box: its run-up starts 1.4 m
+        // out, so behind Link is as bad as past the box.
+        let skulltula = [-2.9, 128.2, 48.7];
+        let (dx, dz) = (held.at[0] - link[0], held.at[2] - link[2]);
+        let (sx, sz) = (skulltula[0] - held.at[0], skulltula[2] - held.at[2]);
+        let off = (dx * sz - dz * sx).abs() / dx.hypot(dz);
+        assert!(
+            off >= 1.0,
+            "{off} m off the roll from {:?}",
+            planned[0].side
+        );
     }
 }

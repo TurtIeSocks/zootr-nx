@@ -274,6 +274,8 @@ pub struct Drive<'a, S, I> {
     pub budget: Duration,
     /// The side of a thing to face it from first.
     pub side: Side,
+    /// The sides to try after `side`, best first: the plan's ranking.
+    pub then: Vec<Side>,
     /// Link already stands where he uses the next thing he touches: a
     /// counter's customer spot, off the navmesh. He doesn't walk, and he
     /// turns without ZL: ZL locks on to the keeper across the counter, and
@@ -314,6 +316,7 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             wait: WAIT,
             budget: BUDGET,
             side: Side::Front,
+            then: vec![],
             here: false,
         }
     }

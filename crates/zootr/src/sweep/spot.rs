@@ -383,15 +383,17 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
     /// Open, talk or play: whatever starts the spot's event. A holder is
     /// used as `zootr dev use` does, from a warp near it.
     fn trigger(&mut self, p: &Planned, name: &str, swept: &mut Swept) -> Result<()> {
-        let (at, face, here, halt) = match &p.trigger {
-            Trigger::Open { at, face, .. } => (*at, *face, false, None),
+        let (at, face, here, halt, sides) = match &p.trigger {
+            Trigger::Open {
+                at, face, sides, ..
+            } => (*at, *face, false, None, sides.as_slice()),
             Trigger::Talk {
                 at,
                 face,
                 counter,
                 halt,
                 ..
-            } => (*at, *face, *counter, *halt),
+            } => (*at, *face, *counter, *halt, &[][..]),
             Trigger::Play {
                 event, melody, at, ..
             } => {
@@ -421,7 +423,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         };
         let spots = match here {
             true => vec![at],
-            false => nav::landings(&graph, holder, at, p.side),
+            false => nav::landings(&graph, holder, at, p.side, sides),
         };
         for (i, &at) in spots.iter().enumerate() {
             self.calmly(|dev| dev.warp(at))?;
@@ -431,6 +433,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             let shot = self.frame(p, name, "use");
             let mut drive = Drive::new(self.dev, &mut *self.input);
             drive.side = p.side;
+            drive.then = sides.to_vec();
             drive.here = here;
             let used = drive.touch(&graph, holder, shot)?;
             swept.shots.extend(used.shot.clone());
@@ -941,6 +944,7 @@ mod tests {
             broken: false,
             near: vec![],
             wield: None,
+            sides: vec![],
         };
         assert!(!pays(&with(open)));
     }
