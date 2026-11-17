@@ -5,7 +5,7 @@ use core::arch::asm;
 use core::sync::atomic::Ordering;
 
 use super::rt::{memcpy, memset};
-use super::{at, level_for, name, shared};
+use super::{at, level_for, name, owned, shared};
 use crate::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_NAME, Ask, GUARD, Mailbox,
     NAME, Offsets, Outcome, play_event,
@@ -317,7 +317,7 @@ unsafe fn step(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcom
 unsafe fn give(main: usize, o: &Offsets, mail: &Mailbox, actor: usize, level: bool) -> Outcome {
     let mut picked = [0; NAME];
     let item = match level {
-        true => unsafe { next_level(main, &mail.map, &mut picked) },
+        true => unsafe { pick(main, mail, &mut picked) },
         false => &mail.map,
     };
     let texts = [item];
@@ -329,19 +329,29 @@ unsafe fn give(main: usize, o: &Offsets, mail: &Mailbox, actor: usize, level: bo
     unsafe { request_map_change(main, o, actor, EVENT, &texts, &args) }
 }
 
-/// `item`, or the level of its line Link needs next written into `picked`.
-/// Outside every line, or with no table, `item` as it is.
+/// What a [`Ask::GiveLevel`] gives: `arrive` when `spot` names what fires
+/// the item and Link owns no level of it, as a chest's swap does. Else the
+/// level of the item's line Link needs next, written into `picked`.
+/// Outside every line, or with no table, the item as it is.
 ///
 /// # Safety
 /// The table's offsets are this build's.
-unsafe fn next_level<'a>(
-    main: usize,
-    item: &'a [u8; NAME],
-    picked: &'a mut [u8; NAME],
-) -> &'a [u8; NAME] {
+unsafe fn pick<'a>(main: usize, mail: &'a Mailbox, picked: &'a mut [u8; NAME]) -> &'a [u8; NAME] {
+    let item = &mail.map;
     let Some((_, table)) = super::table() else {
         return item;
     };
+    let fires = unsafe { name(mail.spot.as_ptr()) }.filter(|f| !f.is_empty());
+    if let Some(fires) = fires {
+        let Some(owns) = (unsafe { owned(main, table.offsets) }) else {
+            return item;
+        };
+        let has = match table.find(fires) {
+            Some((_, mut levels, _)) => levels.any(|l| owns(l.pouch)),
+            None => owns(fires),
+        };
+        return if has { item } else { &mail.arrive };
+    }
     let now = unsafe { name(item.as_ptr()) };
     let Some(level) = now.and_then(|now| unsafe { level_for(main, &table, now) }) else {
         return item;
@@ -349,7 +359,7 @@ unsafe fn next_level<'a>(
     if level.len() >= NAME {
         return item;
     }
-    picked[..level.len()].copy_from_slice(level);
+    unsafe { memcpy(picked.as_mut_ptr(), level.as_ptr(), level.len()) };
     picked
 }
 

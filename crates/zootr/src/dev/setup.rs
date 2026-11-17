@@ -92,15 +92,20 @@ pub(super) fn plan_give(gd: &GameData, actor: &str, count: i32) -> Result<Vec<Gr
             || starting::ITEMS.iter().any(|i| i.actor == actor),
         "{actor} isn't an item Link can be given. `zootr items` lists them"
     );
-    let mut jobs: Vec<_> = (starting::granted(actor).into_iter())
-        .map(|(actor, equip)| Grant::Game(actor.into(), equip))
-        .collect();
+    let mut jobs = grants(actor);
     if count > 1 {
         let stock =
             stock.with_context(|| format!("{actor} has no count, only one can be given"))?;
         jobs.push(Grant::Stock(stock, count));
     }
     Ok(jobs)
+}
+
+/// The game's grants of `actor` and of what comes with it.
+pub(super) fn grants(actor: &str) -> Vec<Grant> {
+    (starting::granted(actor).into_iter())
+        .map(|(actor, equip)| Grant::Game(actor.into(), equip))
+        .collect()
 }
 
 /// One thing Apply does.
