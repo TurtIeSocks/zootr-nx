@@ -444,10 +444,10 @@ pub fn flags(on: &BTreeSet<String>) -> Vec<String> {
         (NPC_GIFTS, zora::GIVEN),
         (TRADE_CHAIN, crate::trade_chain::TALON_GAVE),
     ]
-        .into_iter()
-        .filter(|(setting, _)| on.contains(*setting))
-        .map(|(_, flag)| flag.into())
-        .collect()
+    .into_iter()
+    .filter(|(setting, _)| on.contains(*setting))
+    .map(|(_, flag)| flag.into())
+    .collect()
 }
 
 /// Flows a dealt gift would leave stuck, each with the edit that frees it.

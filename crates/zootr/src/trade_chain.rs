@@ -15,8 +15,8 @@ use crate::checks::Drop;
 use crate::flows::{self, IS_BOOL, Rewrites, SET_BOOL};
 use crate::gamedata::{self, op};
 use crate::gifts::{GIFTS, How, item_at};
-use crate::graphs::{logic, node};
 use crate::grant::Models;
+use crate::graphs::{logic, node};
 use crate::known::{Name, actor, field, flag, flow, item, map};
 
 /// The flow holding the chain's shared entries, the countdowns among them.
@@ -138,7 +138,9 @@ fn skip_cojiro(flow: &mut Flowchart) -> Result<()> {
                 ..
             } => {
                 (flowchart.as_str(), entry_point.as_str()) == (HAND_OVER.0.get(), HAND_OVER.1.get())
-                    && params.iter().any(|(_, v)| v.as_str() == Some(item::COJIRO_CUCCO))
+                    && params
+                        .iter()
+                        .any(|(_, v)| v.as_str() == Some(item::COJIRO_CUCCO))
             }
             _ => false,
         })
@@ -311,9 +313,7 @@ mod tests {
     /// Whether `flow` can reach a hand-over of Cojiro from any entry.
     fn hands_over_cojiro(flow: &Flowchart) -> bool {
         let rendered = flows::render(flow);
-        let lines: Vec<&str> = (rendered.lines())
-            .filter(|l| l.starts_with('#'))
-            .collect();
+        let lines: Vec<&str> = (rendered.lines()).filter(|l| l.starts_with('#')).collect();
         (flow.entry_points.iter()).any(|e| {
             let reached = flows::reachable(flow, &e.name).unwrap();
             reached.into_iter().any(|i| {
@@ -389,7 +389,10 @@ mod tests {
             let took = next(&flow, set).unwrap();
             let (action, params) = said(&flow, took);
             assert_eq!(action, flows::GRANT.1.get());
-            assert!(params.contains(item::POCKET_CUCCO.get()) && params.contains("Num=-1"), "{params}");
+            assert!(
+                params.contains(item::POCKET_CUCCO.get()) && params.contains("Num=-1"),
+                "{params}"
+            );
             let granted = next(&flow, took).unwrap();
             let (action, params) = said(&flow, granted);
             assert_eq!(action, flows::GRANT.1.get());
@@ -420,10 +423,16 @@ mod tests {
         assert_eq!(create(named(field::ACTOR_LOGIC_NPC, GROG)), alive);
         assert_eq!(create(named(field::ACTOR_LOGIC_NPC, FADO)), alive);
         let dead = (always, field::DEAD.to_string());
-        assert_eq!(create(named(field::ACTOR_LOGIC_SIMPLE_ACTOR, SKULL_KID)), dead);
+        assert_eq!(
+            create(named(field::ACTOR_LOGIC_SIMPLE_ACTOR, SKULL_KID)),
+            dead
+        );
         // The always-there actor is created on a constant and never deleted.
         let input = |name: &Name| graph.nodes[always].input(name).unwrap().sources.len();
-        assert_eq!((input(field::LOGIC_CREATE), input(field::LOGIC_DELETE)), (0, 0));
+        assert_eq!(
+            (input(field::LOGIC_CREATE), input(field::LOGIC_DELETE)),
+            (0, 0)
+        );
     }
 
     #[test]
@@ -440,7 +449,11 @@ mod tests {
         let hash = murmur3(FADO_WAITS.as_bytes());
         let table = &doc.root["Data"][flag::BOOL_EXP.get()];
         let entry = (table.as_array().unwrap().iter())
-            .find(|e| e["Hash"].as_int::<i64>().is_ok_and(|h| h == i64::from(hash)))
+            .find(|e| {
+                e["Hash"]
+                    .as_int::<i64>()
+                    .is_ok_and(|h| h == i64::from(hash))
+            })
             .unwrap();
         assert_eq!(
             gd.render(entry).unwrap(),
