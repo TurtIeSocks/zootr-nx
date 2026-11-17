@@ -30,7 +30,7 @@ pub fn golden(romfs: &Romfs, base_seed: &Seed, names: &Namer, ids: &Ids) -> Resu
             pool.truncate(pool.len() * share / OF);
             let mut have = seed.start.clone();
             pool.iter().for_each(|i| have.add(i));
-            let reached = seed.play(&have);
+            let reached = seed.play(&have).reached;
             let mut reachable = Vec::new();
             for hash in reached.into_iter().filter(|h| seed.free.contains(h)) {
                 let id = ids.location_id(hash);

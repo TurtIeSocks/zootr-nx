@@ -1,7 +1,7 @@
 //! One seed's settings as the export resolves them, and the exposed
 //! options' settings.
 
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap};
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::Romfs;
@@ -10,7 +10,7 @@ use serde_json::Value;
 use super::OPTIONS;
 use crate::checks::{self, ItemCheck};
 use crate::fill;
-use crate::logic::World;
+use crate::logic::{Play, World};
 use crate::rules::{Book, Ctx, Have};
 use crate::settings::{Kind, NewGame, Settings, schema};
 use crate::shuffle::{self, Fixed};
@@ -62,10 +62,10 @@ impl Seed {
         })
     }
 
-    /// The checks Link reaches holding `have`, kept checks giving theirs.
-    pub fn play(&self, have: &Have) -> HashSet<u64> {
+    /// What Link reaches holding `have`, kept checks giving theirs.
+    pub fn play(&self, have: &Have) -> Play {
         let kept = self.kept.iter().map(|(h, i)| (*h, i.as_str())).collect();
-        self.world.play(have, &kept).reached
+        self.world.play(have, &kept)
     }
 
     /// What every edge, check, source and the goal need.

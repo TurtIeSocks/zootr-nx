@@ -7,11 +7,12 @@ use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::Romfs;
 use serde_json::{Value, json};
 
-use super::rule::Rules;
+use super::rule::{Rules, any};
 use super::seed::{Seed, base, open, variants};
 use super::{OPTIONS, ids::Ids, names};
 use crate::checks::ItemCheck;
 use crate::fill;
+use crate::logic::Got;
 use crate::rules::{Need, vocab};
 use crate::settings::{Kind, NewGame, schema};
 use crate::shuffle::allowed;
@@ -89,26 +90,43 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         "two places share a name"
     );
 
-    let mut exits = Vec::new();
+    // One exit per pair of places, any of the edges between them.
+    let mut pairs: BTreeMap<(String, String), Vec<Value>> = BTreeMap::new();
     for e in &w.edges {
         let (from, era) = match e.from {
             Some(f) => (names.place(f), era(f)),
             None => (Namer::hub(era(e.to)), era(e.to)),
         };
         let rule = rules.rule(&e.need, era);
-        if rule != Value::Bool(false) {
-            exits.push(json!({ "from": from, "to": names.place(e.to), "rule": rule }));
-        }
+        pairs
+            .entry((from, names.place(e.to)))
+            .or_default()
+            .push(rule);
     }
     for i in 0..w.places.len() {
-        let to = Namer::hub(era(i));
-        exits.push(json!({ "from": names.place(i), "to": to, "rule": true }));
+        let pair = (names.place(i), Namer::hub(era(i)));
+        pairs.entry(pair).or_default().push(true.into());
+    }
+    let mut exits = Vec::new();
+    for ((from, to), rules) in pairs {
+        let rule = any(rules);
+        if rule != Value::Bool(false) {
+            exits.push(json!({ "from": from, "to": to, "rule": rule }));
+        }
     }
 
-    // Every check Link can reach once he holds everything.
+    // Everything Link can reach once he holds everything. The rest never
+    // happens, so no event stands for it.
     let mut all = seed.start.clone();
     seed.pool.iter().for_each(|i| all.add(i));
-    let reached = seed.play(&all);
+    let play = seed.play(&all);
+    let reached = play.reached;
+    let sourced: BTreeSet<usize> = (play.rounds.iter().flatten())
+        .filter_map(|g| match g {
+            Got::Source(i) => Some(*i),
+            Got::Check(_) => None,
+        })
+        .collect();
 
     let mut by_hash: BTreeMap<u64, Vec<Value>> = BTreeMap::new();
     for l in &w.locations {
@@ -120,7 +138,9 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let pooled: BTreeSet<&str> = seed.pool.iter().map(String::as_str).collect();
     for (hash, at) in by_hash {
         if seed.kept.contains_key(&hash) {
-            events.push(json!({ "name": vanilla(hash), "at": at }));
+            if reached.contains(&hash) {
+                events.push(json!({ "name": vanilla(hash), "at": at }));
+            }
             continue;
         }
         let check = (seed.checks.iter().find(|c| c.hash == hash))
@@ -142,7 +162,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         }));
     }
 
-    for s in &w.sources {
+    for (_, s) in (w.sources.iter().enumerate()).filter(|(i, _)| sourced.contains(i)) {
         events.push(json!({ "name": s.name, "at": at(&mut rules, s.place, &s.need).into_iter().collect::<Vec<_>>() }));
     }
     let goal: Vec<Value> = (w.goal().iter())
