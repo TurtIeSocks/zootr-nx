@@ -8,19 +8,19 @@ use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::{EntryPoint, EventKind, Flowchart, Link, Romfs, Value};
 
 use super::events::{self, calls, case, last, one, set_cases, set_string, with};
-use super::placements::{seller, sells};
+use super::placements::{naming, seller, sells};
 use super::spots::{Branch, Scrub, edits, plain};
 use super::{
-    BOUGHT, COMPARE, FLOW, GRANT, HEAD, NAME, ONE_TIME, PAY, PLAIN_ONE_TIME, PRICE, PRICE_PARAM,
-    ROOT, SECRET, SELECTED, SELLER, SET_STRING, SHOW, SHOW_FLOW, SOLD_LIKE, TEMP, WAIT_PAID,
-    WRITE_ITEM,
+    BOUGHT, COMPARE, FLOW, GRANT, HEAD, HEART, HEART_GAUGE, NAME, ONE_TIME, PAY, PLAIN_ONE_TIME,
+    PRICE, PRICE_PARAM, ROOT, SECRET, SELECTED, SELLER, SET_STRING, SHOW, SHOW_FLOW, SOLD_LIKE,
+    SOLD_OUT, TEMP, TEXT, WAIT_PAID, WRITE_ITEM,
 };
 use crate::checks::Drop;
 use crate::flows::{
     self, GAME_DATA, IS_BOOL, Model, Rewrites, events, param, params_mut, reachable, string,
 };
 use crate::gifts::levels;
-use crate::known::{field, flag};
+use crate::known::{actor, field, flag};
 
 /// The pouch question, and whether progressive items are on: what a sale
 /// needs to give the step Link owns.
@@ -77,7 +77,9 @@ pub(crate) fn write(
     })
 }
 
-/// Hyrule Field's sale and the item it shows, swapped in place.
+/// Hyrule Field's sale, the step Link gets picked before its shop opens:
+/// each step opens its own copy of the shop, naming that step and showing
+/// the hearts only for a heart, as the pouch root's sales do.
 pub(super) fn secret(flow: &mut Flowchart, item: &str, price: i32, level: Level) -> Result<()> {
     let talk = reachable(flow, SECRET)?;
     let only = |found: Vec<u16>, what| {
@@ -100,12 +102,111 @@ pub(super) fn secret(flow: &mut Flowchart, item: &str, price: i32, level: Level)
     flows::set(params, flag::ACTOR_NAME, string(item))?;
     flows::set(params, PRICE_PARAM, Value::Int(vec![price]))?;
     flows::set(params, SELLER, string(&seller(item)))?;
-    flows::set(
-        params_mut(&mut flow.events[shown as usize].kind),
-        "Value",
-        string(item),
-    )?;
-    level.chain(flow, item, sale)
+    if *item != **HEART {
+        sold_out(flow, item)?;
+    }
+    let opens = run_into(flow, sale);
+    ensure!(
+        opens.contains(&shown),
+        "the secret sale opens without its item"
+    );
+    let sales = |f: &Flowchart| [calls(f, ONE_TIME), calls(f, PLAIN_ONE_TIME)].concat();
+    let before = sales(flow);
+    level.chain(flow, item, sale)?;
+    let last = *opens.last().context("the secret sale opens with nothing")?;
+    let ask = events::next(flow, last).context("the secret shop opens into nothing")?;
+    flow.link(Link::Next(last), None)?;
+    let steps = sales(flow)
+        .into_iter()
+        .filter(|e| *e == sale || !before.contains(e));
+    let mut start = ask;
+    for step in steps.collect::<Vec<_>>() {
+        let into = flow.links_to(step);
+        let open = open(flow, &opens, shown, step)?;
+        for link in into {
+            flow.link(link, Some(open))?;
+        }
+        if step == ask {
+            start = open;
+        }
+    }
+    for link in flow.links_to(opens[0]) {
+        flow.link(link, Some(start))?;
+    }
+    Ok(())
+}
+
+/// Point the riddle scrub's sold-out talks at their lines naming `item`.
+fn sold_out(flow: &mut Flowchart, item: &str) -> Result<()> {
+    for like in SOLD_OUT {
+        let id = |label: &str| format!("{}:{label}", *TEXT);
+        let talks = (0u16..)
+            .zip(&flow.events)
+            .filter_map(|(e, ev)| match &ev.kind {
+                EventKind::Action { params, .. }
+                    if param(params, field::MESSAGE_ID) == Some(&id(like)) =>
+                {
+                    Some(e)
+                }
+                _ => None,
+            });
+        let talks: Vec<u16> = talks.collect();
+        ensure!(!talks.is_empty(), "nothing says {like}");
+        for e in talks {
+            let params = params_mut(&mut flow.events[e as usize].kind);
+            flows::set(params, field::MESSAGE_ID, string(&id(&naming(like, item))))?;
+        }
+    }
+    Ok(())
+}
+
+/// The straight run of actions into `e`, first to last: back from it while
+/// each event has one way in.
+pub(super) fn run_into(flow: &Flowchart, e: u16) -> Vec<u16> {
+    let mut run = Vec::new();
+    let mut at = e;
+    while let [Link::Next(before)] = flow.links_to(at)[..]
+        && matches!(flow.events[before as usize].kind, EventKind::Action { .. })
+    {
+        run.insert(0, before);
+        at = before;
+    }
+    run
+}
+
+/// A copy of `opens` leading into `sale`, its `shown` naming what `sale`
+/// sells, and the hearts left hidden unless that's a heart. Returns where
+/// the copy starts.
+fn open(flow: &mut Flowchart, opens: &[u16], shown: u16, sale: u16) -> Result<u16> {
+    let kind = &flow.events[sale as usize].kind;
+    let EventKind::SubFlow { params, .. } = kind else {
+        bail!("event {sale} isn't a sale")
+    };
+    let item = param(params, flag::ACTOR_NAME)
+        .context("a sale names no item")?
+        .to_owned();
+    let hearts = [actor::OBJ_HEART_PIECE, actor::OBJ_HEART_CONTAINER]
+        .iter()
+        .any(|h| &***h == item.as_str());
+    let gauges: Vec<u16> = events(flow, HEART_GAUGE)
+        .into_iter()
+        .map(|(e, _)| e)
+        .collect();
+    let mut next = sale;
+    for &e in opens.iter().rev() {
+        if !hearts && gauges.contains(&e) {
+            continue;
+        }
+        let mut kind = flow.events[e as usize].kind.clone();
+        if e == shown {
+            flows::set(params_mut(&mut kind), "Value", string(&item))?;
+        }
+        if let EventKind::Action { next: n, .. } = &mut kind {
+            *n = Some(next);
+        }
+        next = flow.push(kind);
+    }
+    Ok(next)
 }
 
 /// Put a compare for each of `sales` in front of the vanilla chain. A match

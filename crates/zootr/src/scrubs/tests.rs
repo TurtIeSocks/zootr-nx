@@ -4,7 +4,7 @@ use ounce_formats::{EntryPoint, EventKind, Flowchart, Value};
 
 use super::events::{calls, case, next, with};
 use super::placements::{seller, sells};
-use super::sales::secret;
+use super::sales::{run_into, secret};
 use super::spots::{Branch, RED, edits, plain};
 use super::*;
 use crate::checks::Drop;
@@ -549,35 +549,59 @@ fn every_copy_of_a_spot_takes_the_item_its_entry_and_its_sold_flag() {
     }
 }
 
-#[test]
-fn hyrule_fields_heart_scrub_changes_only_its_sale_and_what_it_shows() {
-    let Some(romfs) = dev_dump() else { return };
+/// The riddle scrub's flow dealt `item`, or `None` without a dump.
+fn riddle(item: &str) -> Option<Flowchart> {
+    let romfs = dev_dump()?;
     let data = romfs.read(&flows::rel(FLOW)).unwrap();
-    let before = Flowchart::parse(&data).unwrap().unwrap();
-    let mut after = Flowchart::parse(&data).unwrap().unwrap();
+    let mut flow = Flowchart::parse(&data).unwrap().unwrap();
     let model = model(&romfs);
     let level = Level {
         model: &model,
         progressive: true,
     };
-    secret(&mut after, item::HAMMER, PRICE_SET, level).unwrap();
-    let lines = |f: &Flowchart| {
-        flows::render(f)
-            .lines()
-            .map(str::to_owned)
-            .collect::<Vec<_>>()
+    secret(&mut flow, item, PRICE_SET, level).unwrap();
+    Some(flow)
+}
+
+/// Each sale the riddle talk reaches: what it sells, what its shop opening
+/// shows, and whether that opening shows the hearts.
+fn riddle_sales(flow: &Flowchart) -> Vec<(String, Vec<String>, bool)> {
+    let talk = reachable(flow, SECRET).unwrap();
+    let gauges: Vec<u16> = events(flow, HEART_GAUGE)
+        .into_iter()
+        .map(|(e, _)| e)
+        .collect();
+    calls(flow, ONE_TIME)
+        .into_iter()
+        .filter(|e| talk.contains(e))
+        .map(|sale| {
+            let opens = run_into(flow, sale);
+            let shown = (opens.iter())
+                .filter(|e| with(flow, SET_STRING, GAME_DATA, SELECTED).contains(e))
+                .map(|&e| sold(flow, e, "Value"))
+                .collect();
+            let hearts = opens.iter().any(|e| gauges.contains(e));
+            (sold(flow, sale, flag::ACTOR_NAME), shown, hearts)
+        })
+        .collect()
+}
+
+fn sold(flow: &Flowchart, e: u16, key: &str) -> String {
+    let kind = &flow.events[e as usize].kind;
+    let (EventKind::Action { params, .. } | EventKind::SubFlow { params, .. }) = kind else {
+        panic!("event {e} has no params")
     };
-    let (old, new) = (lines(&before), lines(&after));
-    let changed: Vec<_> = old.iter().zip(&new).filter(|(a, b)| a != b).collect();
-    let [(_, sale), (_, shown)] = changed[..] else {
-        panic!("{changed:#?}")
+    param(params, key).unwrap().to_owned()
+}
+
+#[test]
+fn the_riddle_scrub_opens_its_shop_naming_what_it_sells() {
+    let Some(flow) = riddle(item::HAMMER) else {
+        return;
     };
-    assert!(
-        sale.contains(&**ONE_TIME)
-            && sale.contains(&format!("{}=\"{}\"", flag::ACTOR_NAME, item::HAMMER))
-    );
-    assert!(sale.contains(&seller(item::HAMMER)));
-    assert!(shown.contains(&**SELECTED) && shown.contains(&format!("Value=\"{}\"", item::HAMMER)));
+    let sales = riddle_sales(&flow);
+    let hammer = item::HAMMER.to_string();
+    assert_eq!(sales, [(hammer.clone(), vec![hammer], false)]);
     let fields = fields(&drops(&[(HF_HEART, item::HAMMER)]));
     let hf = SCRUBS[HF_HEART].placements;
     assert!(
@@ -585,6 +609,26 @@ fn hyrule_fields_heart_scrub_changes_only_its_sale_and_what_it_shows() {
             .iter()
             .all(|f| hf.iter().all(|h| !f.starts_with(&h.to_string())))
     );
+}
+
+#[test]
+fn the_riddle_scrub_dealt_the_hookshot_opens_a_shop_per_step() {
+    let Some(flow) = riddle(item::HOOKSHOT) else {
+        return;
+    };
+    let mut sales = riddle_sales(&flow);
+    sales.sort();
+    // Link owning either shot gets the Longshot.
+    sales.dedup();
+    let step = |i: &str| (i.to_string(), vec![i.to_string()], false);
+    assert_eq!(sales, [step(item::HOOKSHOT), step(item::LONGSHOT)]);
+}
+
+#[test]
+fn the_riddle_scrub_dealt_a_heart_still_shows_the_hearts() {
+    let Some(flow) = riddle(HEART) else { return };
+    let heart = HEART.to_string();
+    assert_eq!(riddle_sales(&flow), [(heart.clone(), vec![heart], true)]);
 }
 
 #[test]
@@ -801,5 +845,28 @@ fn every_scrub_spot_takes_the_leaves_it_stands_in() {
     for s in &SCRUBS {
         let n = leaves.iter().filter(|(_, f)| *f == s.flag()).count();
         assert!(n >= s.placements.len(), "{} stands in {n} leaves", s.name);
+    }
+}
+
+#[test]
+fn the_riddle_scrub_as_an_adult_names_what_it_was_dealt() {
+    let says = |flow: &Flowchart, label: &str| {
+        let id = format!("{}:{label}", *TEXT);
+        let talks = flow.events.iter().filter(|e| match &e.kind {
+            EventKind::Action { params, .. } => param(params, field::MESSAGE_ID) == Some(&id),
+            _ => false,
+        });
+        talks.count()
+    };
+    let (Some(hookshot), Some(heart)) = (riddle(item::HOOKSHOT), riddle(HEART)) else {
+        return;
+    };
+    for like in SOLD_OUT {
+        let named = super::placements::naming(like, item::HOOKSHOT);
+        assert!(
+            says(&hookshot, &named) > 0 && says(&hookshot, like) == 0,
+            "{like}"
+        );
+        assert!(says(&heart, like) > 0, "{like}");
     }
 }

@@ -126,6 +126,7 @@ pub fn write_mod(
     }
     let mut lines = gifts::lines(drops);
     lines.push(scrubs::lines(drops));
+    lines.extend(scrubs::sold_out(drops));
     let mut copies = match new_game.shop_slots {
         0 => Vec::new(),
         count => vec![shops::captions(romfs, &shops::slots(romfs)?, count, drops)?],

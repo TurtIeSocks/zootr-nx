@@ -30,6 +30,11 @@ const PAY: (&Name, &Name) = (
     field::POUCH_SYSTEM_ACTOR,
     flow::EVENT_TRIGGER_ADD_GAME_DATA_INT_TO_RUPEE,
 );
+/// Shows or hides the hearts during a sale: on only for a heart.
+const HEART_GAUGE: (&Name, &Name) = (
+    field::UI_SYSTEM_ACTOR,
+    flow::EVENT_TRIGGER_SET_DISPLAY_HEART_GAUGE,
+);
 const WAIT_PAID: (&Name, &Name) = (field::UI_SYSTEM_ACTOR, flow::EVENT_WAIT_STABLE_NUM_DISPLAY);
 const PRICE: &Name = flag::SIMPLE_SHOP_PRICE;
 /// The sale call's price, which `PRICE` takes and the seller line shows.
@@ -70,6 +75,13 @@ static TEXT: LazyLock<String> =
 const PRICED: &Name = actor::ENEMY_SCRUB_BUSINESS_HEART_01;
 /// A seller line naming no item, copied where the priced line can't be.
 const NEUTRAL: &Name = actor::ENEMY_SCRUB_BUSINESS_GREETING_06;
+/// The riddle scrub's lines as an adult, each saying a fairy bought the
+/// heart piece it had.
+const SOLD_OUT: [&Name; 3] = [
+    actor::ENEMY_SCRUB_BUSINESS_SECRET_07,
+    actor::ENEMY_SCRUB_BUSINESS_SECRET_10,
+    actor::ENEMY_SCRUB_BUSINESS_SECRET_11,
+];
 /// A pouch scrub's talk, whose event rows each new talk copies: it calls
 /// every flow a sale does.
 const LIKE: &Name = actor::ENEMY_SCRUB_BUSINESS_BOMB_01;
@@ -81,6 +93,6 @@ mod spots;
 #[cfg(test)]
 mod tests;
 
-pub use placements::{events, fields, flags, gone, leaves, lines};
+pub use placements::{events, fields, flags, gone, leaves, lines, sold_out};
 pub(crate) use sales::{Level, write};
 pub use spots::{SCRUBS, checks, of};

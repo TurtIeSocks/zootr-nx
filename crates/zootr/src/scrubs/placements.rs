@@ -7,7 +7,7 @@ use anyhow::Result;
 use ounce_formats::Byml;
 
 use super::spots::{Branch, Scrub, edits, plain};
-use super::{ACTOR, ATTACKED, HEART, ITEM, LIKE, NEUTRAL, PRICED, TALK, TEXT};
+use super::{ACTOR, ATTACKED, HEART, ITEM, LIKE, NEUTRAL, PRICED, SOLD_OUT, TALK, TEXT};
 use crate::checks::{self, Drop, GYAML, TRANSLATE};
 use crate::gifts::levels;
 use crate::known::actor;
@@ -101,6 +101,27 @@ pub fn lines(drops: &HashMap<u64, Drop>) -> Lines<'_> {
         fallback: NEUTRAL,
         new,
     }
+}
+
+/// The label of vanilla line `like` naming `item` instead.
+pub(super) fn naming(like: &str, item: &str) -> String {
+    format!("{like}_{item}")
+}
+
+/// The riddle scrub's sold-out lines, naming what it was dealt instead of
+/// the heart piece.
+pub fn sold_out(drops: &HashMap<u64, Drop>) -> Vec<Lines<'_>> {
+    let riddle = edits(drops).filter(|(s, item)| s.branch == Branch::Secret && **item != **HEART);
+    riddle
+        .flat_map(|(_, item)| {
+            SOLD_OUT.iter().map(move |like| Lines {
+                file: &TEXT,
+                like: (like, HEART),
+                fallback: like,
+                new: vec![(naming(like, item), item)],
+            })
+        })
+        .collect()
 }
 
 /// Placement fields, as `HASH.PATH=VALUE`: each edited scrub's item, and

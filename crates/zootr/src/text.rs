@@ -326,7 +326,7 @@ fn swap(line: &[Part], old: &str, new: &str) -> Vec<Part> {
 
 #[cfg(test)]
 mod tests {
-    use crate::known::{actor, field, item};
+    use crate::known::{actor, field, flag, item};
     use ounce_formats::frame_dict_id;
 
     use super::*;
@@ -434,27 +434,24 @@ mod tests {
         assert!(text.contains("Forest Temple"), "{text}");
     }
 
-    #[test]
-    fn a_hammer_at_kokiris_scrub_is_named_in_every_language() {
-        let Some(romfs) = dev_dump() else { return };
-        let dir = std::env::temp_dir().join(format!("zootr-text-{}", std::process::id()));
-        let drops = hammer_at_kokiri();
+    /// A mod dealing `drops` with scrubs on, in a folder of its own.
+    fn scrub_mod(romfs: &Romfs, drops: &HashMap<u64, Drop>, tag: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("zootr-text-{tag}-{}", std::process::id()));
         let new_game = NewGame {
             scrubs: true,
             ..Default::default()
         };
-        crate::generate::write_mod(
-            &romfs,
-            &dir,
-            &drops,
-            &new_game,
-            &[],
-            &crate::progress::Run::silent(),
-        )
-        .unwrap();
-        let lines = scrubs::lines(&drops);
+        let run = crate::progress::Run::silent();
+        crate::generate::write_mod(romfs, &dir, drops, &new_game, &[], &run).unwrap();
+        dir
+    }
+
+    /// In every language of the mod in `dir`, `lines`' line naming the
+    /// hammer keeps its vanilla line's tags, or is its fallback. In English
+    /// it reads as the vanilla line with the Piece of Heart swapped out.
+    fn hammer_named(romfs: &Romfs, dir: &std::path::Path, lines: &Lines) {
         let (label, _) = lines.new.iter().find(|(_, i)| *i == item::HAMMER).unwrap();
-        let rels = archives(&romfs).unwrap();
+        let rels = archives(romfs).unwrap();
         assert_eq!(rels.len(), 16);
         for rel in &rels {
             let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
@@ -477,6 +474,30 @@ mod tests {
                 assert!(!new_tags.is_empty());
                 assert_eq!(new_tags, old_tags);
             }
+        }
+    }
+
+    #[test]
+    fn a_hammer_at_kokiris_scrub_is_named_in_every_language() {
+        let Some(romfs) = dev_dump() else { return };
+        let drops = hammer_at_kokiri();
+        let dir = scrub_mod(&romfs, &drops, "kokiri");
+        let lines = scrubs::lines(&drops);
+        hammer_named(&romfs, &dir, &lines);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn the_riddle_scrub_says_a_fairy_bought_what_it_was_dealt() {
+        let Some(romfs) = dev_dump() else { return };
+        let riddle =
+            (SCRUBS.iter()).find(|s| s.area == flag::HYRULE_FIELD && s.name == "heart piece");
+        let drops = HashMap::from([(riddle.unwrap().hash(), Drop::from(item::HAMMER.to_string()))]);
+        let dir = scrub_mod(&romfs, &drops, "riddle");
+        let lines = scrubs::sold_out(&drops);
+        assert_eq!(lines.len(), 3);
+        for l in &lines {
+            hammer_named(&romfs, &dir, l);
         }
         std::fs::remove_dir_all(dir).unwrap();
     }
