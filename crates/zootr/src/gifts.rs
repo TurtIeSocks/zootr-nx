@@ -37,7 +37,7 @@ use crate::flows::{
     only, param, params_mut, running, string,
 };
 use crate::known::{Name, actor, field, flag, flow, item, scene};
-use crate::settings::{DUNGEON_REWARDS, MERCHANTS, NPC_GIFTS, OPEN_DOOR, SONGS};
+use crate::settings::{DUNGEON_REWARDS, MERCHANTS, NPC_GIFTS, OPEN_DOOR, SONGS, TRADE_CHAIN};
 use crate::{cows, dampe, grant, pickups, scrubs, shops, starting};
 
 pub struct Gift {
@@ -82,6 +82,10 @@ pub enum How {
     /// A sale of one item. The call to `call` at `price` that sells `sold`
     /// sells the dealt item instead, and `gate` and `shop` edit the giver's
     /// flow and the shop flow around it, whichever the sale needs.
+    /// No grant in the vanilla game: `trade_chain` adds one, of the dealt
+    /// item, to the giver's flow and to each flow in `also`, where the same
+    /// giver stands in another place.
+    Added { also: &'static [&'static Name] },
     Sale {
         call: &'static [Call],
         sold: &'static Name,
@@ -270,6 +274,7 @@ impl Gift {
         match self.how {
             How::Calls { found, .. } | How::Sale { found, .. } => found.map(flag),
             How::Later { found, .. } => Some(flag(found)),
+            How::Added { .. } => None,
             _ => Some(flag(SCENE_PLAYED)),
         }
     }
@@ -434,7 +439,11 @@ const TAUGHT: [(&Name, &Name); 1] = [(scene::MELODY_GET_SUN_03, scene::MELODY_GE
 
 /// The Bools the gifts' edits set, which a new game adds to its save data.
 pub fn flags(on: &BTreeSet<String>) -> Vec<String> {
-    [(MERCHANTS, MEDIGORON_SOLD), (NPC_GIFTS, zora::GIVEN)]
+    [
+        (MERCHANTS, MEDIGORON_SOLD),
+        (NPC_GIFTS, zora::GIVEN),
+        (TRADE_CHAIN, crate::trade_chain::TALON_GAVE),
+    ]
         .into_iter()
         .filter(|(setting, _)| on.contains(*setting))
         .map(|(_, flag)| flag.into())
@@ -486,6 +495,9 @@ pub fn give_all(
             let later = given && matches!(gift.how, How::Later { .. });
             let at = gift.caller().filter(|_| lost || later);
             by_level.insert((at.unwrap_or(gift.flow), item));
+            if let How::Added { also } = gift.how {
+                by_level.extend(also.iter().map(|flow| (flow.get(), item)));
+            }
         }
         if item == gift.item {
             continue;
@@ -530,6 +542,7 @@ fn give(
             How::Cut { then } => cut(flow, flows, gift.item, item, then).map(|b| back = b),
             How::Calls { call, .. } => rename_calls(flow, call, gift.item, item),
             How::Later { call, .. } => silence_calls(flow, call, gift.item),
+            How::Added { .. } => Ok(()),
             How::Sale {
                 call,
                 sold,

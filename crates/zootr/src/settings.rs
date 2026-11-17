@@ -158,6 +158,7 @@ pub(crate) const COWS: &str = "cows";
 pub(crate) const KEYS: &str = "keys";
 pub(crate) const FORTRESS_KEYS: &str = "fortress-keys";
 pub(crate) const MERCHANTS: &str = "merchants";
+pub(crate) const TRADE_CHAIN: &str = "trade-chain";
 
 /// The setting `--skip <name>` turns on: `all`, a named one or an area.
 pub(crate) fn skip_id(name: &str) -> String {
@@ -403,6 +404,12 @@ pub fn schema() -> Vec<SettingDef> {
             group::SHUFFLES,
             "Merchants",
             "People who sell one thing sell a check once, for the price of the thing: Medigoron's Giant's Knife, the carpet merchant's Bombchus, and the bean seller's first bean. Bombchus and beans stay on sale after that",
+        )])
+        .chain([toggle(
+            TRADE_CHAIN,
+            group::SHUFFLES,
+            "Adult trade quest",
+            "Each trade on the way to Biggoron's sword becomes a check, from Anju's Pocket Egg to Biggoron's Claim Check, and the ten trade items join the pool. Showing an item to the one who wants it gives that check, whatever order Link finds them in. Grog or Fado waits at the stump by which item Link holds. The Pocket Cucco still hatches from the egg",
         )])
         .chain([toggle(
             SKULLTULAS,

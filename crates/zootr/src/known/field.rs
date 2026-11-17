@@ -83,6 +83,7 @@ pub const DATA_FILE_IMPORTANT_ICON_05: &Name = &n!(0x9ea5d8536ddfa878);
 pub const DATA_FILE_IMPORTANT_ICON_06: &Name = &n!(0x9ea5db536ddfad91);
 pub const DATA_FILE_IMPORTANT_ICON_07: &Name = &n!(0x9ea5da536ddfabde);
 pub const DATA_FILE_IMPORTANT_ICON_08: &Name = &n!(0x9ea5d5536ddfa35f);
+pub const DEAD: &Name = &n!(0xd049237343c44e47);
 pub const DEFAULT_DUNGEON_ROOM_INDEX: &Name = &n!(0x09dc969f9e7ee42d);
 pub const DEFAULT_VALUE: &Name = &n!(0x1360db86318e0a5f);
 pub const DESERT_COLOSSUS_COMMON_7E8D_LOGIC_MODULE: &Name = &n!(0x0ba01073971572a2);
