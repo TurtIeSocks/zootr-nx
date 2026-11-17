@@ -257,7 +257,7 @@ pub fn write_mod(
     patch::install(
         mod_dir,
         new_game.progressive,
-        new_game.dev_panel,
+        new_game.mailbox,
         flags,
         &credits,
     )?;
@@ -273,11 +273,7 @@ pub fn write_mod(
 /// stays as it is. Key rings and Keysanity deal them, and bring the hook
 /// along.
 fn boss_copies(new_game: &NewGame) -> bool {
-    let hooked = patch::hooked(
-        new_game.progressive,
-        new_game.dev_panel,
-        hook_flags(new_game),
-    );
+    let hooked = patch::hooked(new_game.progressive, new_game.mailbox, hook_flags(new_game));
     new_game.keys.copies() || hooked
 }
 

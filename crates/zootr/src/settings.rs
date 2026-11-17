@@ -559,8 +559,11 @@ pub struct NewGame {
     pub give: Vec<String>,
     /// Quest steps the opening moves on, as `(challenge, step)`.
     pub progress: Vec<(String, String)>,
-    /// The cheat carries the dev panel's hook.
+    /// The dev menu's branch in the opening flow.
     pub dev_panel: bool,
+    /// The cheat carries the mailbox's hook on Link's update, which the
+    /// app's requests go through: the dev panel's, and AP's gives.
+    pub mailbox: bool,
 }
 
 impl NewGame {
@@ -637,6 +640,7 @@ impl NewGame {
             spawn: None,
             fields: vec![],
             dev_panel: false,
+            mailbox: false,
         })
     }
 }
@@ -756,6 +760,7 @@ mod tests {
                 give: vec![],
                 progress: vec![],
                 dev_panel: false,
+                mailbox: false,
                 logic: Logic::Glitchless,
                 on: toggles_on(&Settings::new()),
             }

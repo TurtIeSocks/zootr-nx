@@ -91,8 +91,8 @@ const RUN_CALL: (u32, u32) = (0x93_4990, 24);
 /// Items page hooks.
 const NPAD_CALLS: [(u32, u32); 3] = [(0x346_966c, 32), (0x346_9698, 36), (0x346_94f8, 40)];
 /// Each hooked function and the entry the `b` over its `pacibsp` goes to.
-/// Link's update only runs the dev panel's requests and switches, so it's
-/// hooked only with the dev panel on.
+/// Link's update only runs the mailbox's requests and the dev switches, so
+/// it's hooked only for a seed with the mailbox.
 const HOOKS: &[(u32, u32)] = &[
     (OFFSETS.map_loaded, 8),
     (OFFSETS.chest_made, 12),
@@ -174,11 +174,11 @@ pub fn site(at: u32) -> Option<Vec<u8>> {
 
 /// The gate, the hook, its table for `lines`, `flags` and `credits`, then the calls
 /// and function hooks that reach it. Link's update is among them only with
-/// `dev`, the run's call only with [`BUNNY_HOOD`] in `flags`, and the trade
+/// `mailbox`, the run's call only with [`BUNNY_HOOD`] in `flags`, and the trade
 /// slot's sites, with its slot in the table, only with [`TRADE_CYCLE`].
 pub fn patches<A: AsRef<str>>(
     lines: &[&[(A, A)]],
-    dev: bool,
+    mailbox: bool,
     flags: u32,
     credits: &[(&str, Credit)],
 ) -> Result<Vec<Patch>> {
@@ -213,7 +213,7 @@ pub fn patches<A: AsRef<str>>(
     )?;
     let bunny = flags & BUNNY_HOOD != 0;
     let sites = sites().filter(|p| match p.at {
-        at if at == OFFSETS.link_update => dev,
+        at if at == OFFSETS.link_update => mailbox,
         at if at == RUN_CALL.0 => bunny,
         at if TRADE_SITES.contains(&at) => trade,
         _ => true,
@@ -304,22 +304,22 @@ fn outputs(mod_dir: &Path) -> [(PathBuf, Writer); 2] {
 }
 
 /// Whether a seed with these settings runs the hook.
-pub fn hooked(progressive: bool, dev: bool, flags: u32) -> bool {
-    progressive || dev || flags & (BUNNY_HOOD | TRADE_CYCLE) != 0
+pub fn hooked(progressive: bool, mailbox: bool, flags: u32) -> bool {
+    progressive || mailbox || flags & (BUNNY_HOOD | TRADE_CYCLE) != 0
 }
 
 /// Write the cheat and exefs patch when [`hooked`], else take ours away.
-/// `dev` adds the dev panel's hook, the hood the run's call, and without
+/// `mailbox` adds the mailbox's hook, the hood the run's call, and without
 /// `progressive` the table has no lines. `credits` are what items set as
 /// they're found, by name, and a seed with any runs the hook too.
 pub fn install(
     mod_dir: &Path,
     progressive: bool,
-    dev: bool,
+    mailbox: bool,
     flags: u32,
     credits: &[(String, Credit)],
 ) -> Result<()> {
-    if !hooked(progressive, dev, flags) && credits.is_empty() {
+    if !hooked(progressive, mailbox, flags) && credits.is_empty() {
         return remove(mod_dir);
     }
     let lines: &[&[(&Name, &Name)]] = if progressive {
@@ -328,7 +328,7 @@ pub fn install(
         &[]
     };
     let credits: Vec<_> = credits.iter().map(|(n, c)| (n.as_str(), *c)).collect();
-    let patches = patches(lines, dev, flags, &credits)?;
+    let patches = patches(lines, mailbox, flags, &credits)?;
     for (path, write) in outputs(mod_dir) {
         std::fs::create_dir_all(path.parent().unwrap())?;
         std::fs::write(&path, write(&patches))

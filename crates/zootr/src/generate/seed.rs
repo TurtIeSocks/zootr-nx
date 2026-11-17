@@ -184,6 +184,7 @@ pub fn generate(
         spawn: extras.spawn.clone(),
         fields: extras.fields.clone(),
         dev_panel: extras.dev_panel,
+        mailbox: extras.dev_panel,
         ..NewGame::from_settings(settings, &extras.defaults)?
     };
     new_game.give.extend(extras.give.iter().cloned());
