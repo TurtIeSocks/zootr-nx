@@ -1,7 +1,9 @@
 //! Which of the seed's spots Link has checked: chests by their opened flag,
 //! gifts by the played flag of their event, scrubs by their sold flag, cows
-//! and Gerudo thieves by their own, and anything else with a per-placement
-//! flag (Bool64bitKey) by that. See `docs/research/chests.md` and
+//! and Gerudo thieves by their own, and Gold Skulltulas, heart pieces and
+//! the like by their per-placement flag (Bool64bitKey) that never resets.
+//! Pots, rocks, boxes and hives have one that resets, set on the break,
+//! so they don't tick yet. See `docs/research/chests.md` and
 //! `docs/research/tracker-flags.md`.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
