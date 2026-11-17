@@ -38,6 +38,11 @@ pub const ARRIVE: f32 = 1.0;
 /// chest stands on rocks 2 m past its edge, and every walk to it gave up
 /// there (22 sweeps).
 const STRAIGHT: f32 = 3.0;
+/// How near a holder a use whose walk stopped short of reach still slides
+/// round what stopped it, in m.
+pub const SLIDE: f32 = 3.0;
+/// How far each slide steps aside, in m.
+const ASIDE: f32 = 1.0;
 /// How long a walk may take by default.
 pub const BUDGET: Duration = Duration::from_secs(60);
 /// How long the game gets to settle after ZL, and after a push, so the
@@ -51,6 +56,8 @@ const TICK: Duration = Duration::from_millis(100);
 pub(super) const TAP_MS: u64 = 80;
 /// How far from the way he's asked to face Link may be, in degrees.
 const FACING: f32 = 20.0;
+/// A push that moves Link less than this moved him nowhere, in m.
+const STILL: f32 = 0.05;
 /// How many taps Link gets to turn.
 const TURNS: usize = 3;
 /// A height changed by more than this is a drop or a climb, in m.
@@ -275,6 +282,19 @@ pub struct Drive<'a, S, I> {
     pub here: bool,
 }
 
+/// The point `far` m from `here`, `angle` radians round from the way to
+/// `goal`.
+fn beside(here: [f32; 3], goal: [f32; 3], angle: f32, far: f32) -> [f32; 3] {
+    let (dx, dz) = (goal[0] - here[0], goal[2] - here[2]);
+    let len = dx.hypot(dz).max(f32::EPSILON);
+    let (sin, cos) = angle.sin_cos();
+    [
+        here[0] + (dx * cos - dz * sin) / len * far,
+        here[1],
+        here[2] + (dx * sin + dz * cos) / len * far,
+    ]
+}
+
 /// How long a push walks Link from `here` toward `to`, at most `MAX_LEG`.
 pub(super) fn lean(here: [f32; 3], to: [f32; 3]) -> f32 {
     (flat(here, to) / SPEED).min(MAX_LEG)
@@ -342,6 +362,27 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
         self.facing(at)
     }
 
+    /// Push Link in toward `at` until he stands within `stand` of it, at
+    /// most 3 short pushes, stopping at one that moves him nowhere. A walk
+    /// counts as arrived 0.4 m from its spot, and the Well's key chest
+    /// shows "Open" only within 0.9 m: Link stopped 1.0 m off and A did
+    /// nothing (other machine and Mac, 2026-11-16).
+    pub(super) fn close_in(&mut self, at: [f32; 3], stand: f32) -> Result<()> {
+        for _ in 0..TURNS {
+            let here = self.sense.link()?;
+            let off = flat(here, at);
+            if off <= stand {
+                break;
+            }
+            // A tap only turns him: the distance walks on after it.
+            self.steer(at, TAP_MS + millis((off - stand) / SPEED))?;
+            if flat(self.sense.link()?, here) < STILL {
+                break;
+            }
+        }
+        Ok(())
+    }
+
     /// Wait up to `wait` for the game's state to answer `yes`.
     pub(super) fn watch(&self, yes: impl Fn(&State) -> bool) -> Result<bool> {
         let start = Instant::now();
@@ -393,6 +434,54 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             secs: start.elapsed().as_secs_f32(),
             legs,
             left,
+        })
+    }
+
+    /// A walk to `goal` that stopped short: a step aside 45 degrees off
+    /// the way to it, each way, then 90, each followed by a push straight
+    /// at it, until Link is within `arrive`. The Well's key chest stands
+    /// behind a Lens of Truth wall that stopped the walk 2 m off, and a
+    /// step aside got round it (Mac, 2026-11-16). A drop ends it: the step
+    /// went off a ledge.
+    pub fn slide(&mut self, went: Went, goal: [f32; 3], arrive: f32) -> Result<Went> {
+        use std::f32::consts::FRAC_PI_4;
+        let start = Instant::now();
+        let (mut reason, mut legs) = (went.reason, went.legs);
+        for eighths in [1.0, -1.0, 2.0, -2.0] {
+            let here = self.sense.link()?;
+            self.steer(
+                beside(here, goal, eighths * FRAC_PI_4, ASIDE),
+                millis(ASIDE / SPEED),
+            )?;
+            let stepped = self.sense.link()?;
+            legs += 1;
+            if rise(here, stepped) < -LEVEL {
+                break;
+            }
+            self.steer(goal, millis(lean(stepped, goal)))?;
+            legs += 1;
+            let now = self.sense.link()?;
+            if self.sense.state()?.event {
+                reason = Some(Reason::Event);
+                break;
+            }
+            if flat(now, goal) <= arrive {
+                reason = None;
+                break;
+            }
+            if rise(stepped, now) < -LEVEL {
+                break;
+            }
+        }
+        Ok(Went {
+            result: match reason {
+                None => Done::Arrived,
+                Some(_) => Done::GaveUp,
+            },
+            reason,
+            secs: went.secs + start.elapsed().as_secs_f32(),
+            legs,
+            left: Some(flat(self.sense.link()?, goal)),
         })
     }
 
@@ -753,6 +842,24 @@ mod tests {
             (went.result, went.reason, went.legs),
             (Done::Arrived, None, 1)
         );
+        assert_eq!(eyes.0.borrow().pushes.len(), 1);
+    }
+
+    #[test]
+    fn a_slide_that_drops_stops_there() {
+        let (eyes, mut hands) = sim::start([6.0, 0.0, 2.0], std::f32::consts::FRAC_PI_2);
+        eyes.0.borrow_mut().after_push = Some(Box::new(|w| w.at[1] = -2.0));
+        let stopped = Went {
+            result: Done::GaveUp,
+            reason: Some(Reason::Blocked),
+            secs: 0.0,
+            legs: 2,
+            left: Some(3.0),
+        };
+        let went = sim::drive(&eyes, &mut hands)
+            .slide(stopped, [9.0, 0.0, 2.0], ARRIVE)
+            .unwrap();
+        assert_eq!((went.reason, went.legs), (Some(Reason::Blocked), 3));
         assert_eq!(eyes.0.borrow().pushes.len(), 1);
     }
 

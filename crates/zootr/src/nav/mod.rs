@@ -137,8 +137,10 @@ const UNDERFOOT: f32 = 1.0;
 /// Where to warp beside `holder`: its `first` side, `planned` for the
 /// front, unless no floor lies under it (past a ledge, over a pit), then
 /// the first other side at the same distance that has one. A warp over a drop voids Link out, back to where
-/// he entered the map. `planned` when no side has a floor, as beside a
-/// chest, which is a hole in the mesh.
+/// he entered the map. With no floor on any side, as beside a chest in a
+/// hole in the mesh, its `first` side all the same: the Well's key chest
+/// sent to its back landed on its front, a step below it, and the walk
+/// round went off a ledge (other machine, 2026-11-16).
 pub fn landing(
     graph: &graph::Graph,
     holder: &Placement,
@@ -153,7 +155,7 @@ pub fn landing(
     };
     (warp::sides_from(first).map(at))
         .find(|&at| graph.floor(at, UNDERFOOT).is_some())
-        .unwrap_or(planned)
+        .unwrap_or_else(|| at(first))
 }
 
 /// Hand-built meshes for the tests.
@@ -276,7 +278,7 @@ mod tests {
         // A first side with floor is landed on ahead of the front.
         let back = landing(&graph, &scrub, front, Side::Back);
         assert!(graph::dist(back, inside) < 1e-3, "{back:?}");
-        // With no floor on any side, the plan stands.
+        // With no floor on any side, the first side all the same.
         let far = Placement {
             pose: crate::warp::Pose {
                 at: [20.0, 0.0, 20.0],
@@ -285,7 +287,9 @@ mod tests {
             ..scrub
         };
         let off = warp::landing_at(&far.pose, warp::Side::Front, 1.2);
-        assert_eq!(landing(&graph, &far, off, Side::Left), off);
+        assert_eq!(landing(&graph, &far, off, Side::Front), off);
+        let left = warp::landing_at(&far.pose, warp::Side::Left, 1.2);
+        assert!(graph::dist(landing(&graph, &far, off, Side::Left), left) < 1e-3);
     }
 
     #[test]
