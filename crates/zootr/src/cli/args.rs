@@ -229,6 +229,10 @@ pub(super) enum Command {
         /// lists the values it takes.
         value: String,
     },
+    /// Read, search and write the running game's memory, for finding
+    /// where the game keeps something. The Mac game only.
+    #[command(subcommand)]
+    Mem(MemCommand),
     /// Add a target from a shared preset, or print one to share.
     #[command(subcommand)]
     Target(TargetCommand),
@@ -839,4 +843,46 @@ pub enum Switch {
     Health,
     Magic,
     Resources,
+}
+
+#[derive(Subcommand)]
+pub enum MemCommand {
+    /// The mapped regions: start, end, size and protection, the larger
+    /// than `--min` MB only.
+    Regions {
+        #[arg(long, default_value_t = 0)]
+        min: usize,
+    },
+    /// Where these bytes are, in readable memory.
+    Find {
+        /// Hex bytes (`0f 1e`, `0f1e`), or text in quotes after `s:`
+        /// (`s:Rupee`).
+        needle: String,
+        /// Only writable memory, where the game's loaded data lives.
+        #[arg(long)]
+        writable: bool,
+        /// Stop after this many hits.
+        #[arg(long, default_value_t = 64)]
+        limit: usize,
+        /// Only from this 0x address.
+        #[arg(long)]
+        from: Option<String>,
+        /// Only below this 0x address.
+        #[arg(long)]
+        to: Option<String>,
+    },
+    /// Bytes at an address, as hex, sixteen to a line.
+    Read {
+        /// A 0x address.
+        at: String,
+        #[arg(default_value_t = 64)]
+        len: usize,
+    },
+    /// Write hex bytes at an address.
+    Write {
+        /// A 0x address.
+        at: String,
+        /// Hex bytes.
+        bytes: String,
+    },
 }
