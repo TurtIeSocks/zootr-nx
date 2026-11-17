@@ -1,0 +1,162 @@
+[
+  {
+    "class": "filler",
+    "id": 1,
+    "name": "Arrows (10)"
+  },
+  {
+    "class": "filler",
+    "id": 2,
+    "name": "Arrows (3)"
+  },
+  {
+    "class": "filler",
+    "id": 3,
+    "name": "Arrows (5)"
+  },
+  {
+    "class": "filler",
+    "id": 4,
+    "name": "Blue Rupee (5)"
+  },
+  {
+    "class": "progression",
+    "id": 5,
+    "name": "Bombchus (5)"
+  },
+  {
+    "class": "filler",
+    "id": 6,
+    "name": "Bombs (5)"
+  },
+  {
+    "class": "progression",
+    "id": 7,
+    "name": "Boomerang"
+  },
+  {
+    "class": "filler",
+    "id": 8,
+    "name": "Deku Nuts (3)"
+  },
+  {
+    "class": "progression",
+    "id": 9,
+    "name": "Deku Shield"
+  },
+  {
+    "class": "filler",
+    "id": 10,
+    "name": "Deku Sticks (3)"
+  },
+  {
+    "class": "filler",
+    "id": 11,
+    "name": "Gold Rupee (200)"
+  },
+  {
+    "class": "filler",
+    "id": 12,
+    "name": "Green Rupee (1)"
+  },
+  {
+    "class": "progression",
+    "id": 13,
+    "name": "Hover Boots"
+  },
+  {
+    "class": "useful",
+    "id": 14,
+    "name": "Hylian Shield"
+  },
+  {
+    "class": "useful",
+    "id": 15,
+    "name": "Ice Arrows"
+  },
+  {
+    "class": "progression",
+    "id": 16,
+    "name": "Iron Boots"
+  },
+  {
+    "class": "progression",
+    "id": 17,
+    "name": "Kokiri Sword"
+  },
+  {
+    "class": "progression",
+    "id": 18,
+    "name": "Lens of Truth"
+  },
+  {
+    "class": "filler",
+    "id": 19,
+    "name": "Magic Jar"
+  },
+  {
+    "class": "progression",
+    "id": 20,
+    "name": "Megaton Hammer"
+  },
+  {
+    "class": "progression",
+    "id": 21,
+    "name": "Mirror Shield"
+  },
+  {
+    "class": "useful",
+    "id": 22,
+    "name": "Piece of Heart"
+  },
+  {
+    "class": "progression",
+    "id": 23,
+    "name": "Progressive Bomb Bag"
+  },
+  {
+    "class": "progression",
+    "id": 24,
+    "name": "Progressive Bow"
+  },
+  {
+    "class": "useful",
+    "id": 25,
+    "name": "Progressive Deku Nut Bag"
+  },
+  {
+    "class": "useful",
+    "id": 26,
+    "name": "Progressive Deku Stick Bag"
+  },
+  {
+    "class": "progression",
+    "id": 27,
+    "name": "Progressive Hookshot"
+  },
+  {
+    "class": "progression",
+    "id": 28,
+    "name": "Progressive Ocarina"
+  },
+  {
+    "class": "progression",
+    "id": 29,
+    "name": "Progressive Slingshot"
+  },
+  {
+    "class": "progression",
+    "id": 30,
+    "name": "Progressive Strength Upgrade"
+  },
+  {
+    "class": "filler",
+    "id": 31,
+    "name": "Purple Rupee (50)"
+  },
+  {
+    "class": "filler",
+    "id": 32,
+    "name": "Red Rupee (20)"
+  }
+]

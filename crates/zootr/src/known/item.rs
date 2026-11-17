@@ -32,6 +32,7 @@ pub const COMMON_ANIMATION: &Name = &n!(0xf836bfb3a1450227);
 pub const DEKU_NUT: &Name = &n!(0x98333e189663c7cf);
 pub const DEKU_SEED: &Name = &n!(0x2fd78a2656e9f061);
 pub const DEKU_STICK: &Name = &n!(0x116b19b4ada65524);
+pub const DEKU_STICK_BUNDLE_SMALL: &Name = &n!(0xff8e1f33bd9c94c8);
 pub const DIN_FIRE: &Name = &n!(0xf5f46f08e2665b1a);
 pub const DUNGEON_BOSS_KEY: &Name = &n!(0x7296d85d819da3c0);
 pub const DUNGEON_COMPASS: &Name = &n!(0xf23d0be27ddcb758);

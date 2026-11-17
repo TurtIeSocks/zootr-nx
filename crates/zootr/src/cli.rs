@@ -12,7 +12,7 @@ use crate::config::Config;
 use crate::progress::Run;
 use crate::vision::Vision;
 use crate::{events, flows, game, generate, spawn, world};
-use args::{Cli, Command, DrillReport, SweepReport};
+use args::{ApCommand, Cli, Command, DrillReport, SweepReport};
 use play::{boot_command, drill, drill_report, look, play, sweep, sweep_report};
 use research::{census, chest_events, cutscenes, flags, flow, items, logic};
 use running::{dev, give, live, mem, set};
@@ -68,6 +68,12 @@ pub fn run() -> Result<()> {
             unreachable!("handled above")
         }
         Command::Census => census(&romfs),
+        Command::Ap(ApCommand::Export { out }) => {
+            let dir = out.unwrap_or_else(crate::ap::data_dir);
+            crate::ap::write(&romfs, &dir)?;
+            println!("{}", dir.display());
+            Ok(())
+        }
         Command::Exits => {
             for e in world::exits(&romfs)? {
                 println!(

@@ -64,6 +64,9 @@ pub struct Ctx {
     pub seed: u64,
     /// How dungeon keys are dealt: as copies, logic asks for them.
     pub keys: DungeonKeys,
+    /// Toggles left open, each a [`Need::Setting`] instead of always or
+    /// never. Only the Archipelago export opens any.
+    pub open: BTreeSet<String>,
 }
 
 impl Ctx {
@@ -73,6 +76,7 @@ impl Ctx {
             on: new_game.on.clone(),
             seed: new_game.seed,
             keys: new_game.keys,
+            open: BTreeSet::new(),
         }
     }
 }
@@ -270,6 +274,7 @@ impl Book {
             on: BTreeSet::new(),
             seed: 0,
             keys: DungeonKeys::Vanilla,
+            open: BTreeSet::new(),
         };
         for (word, expr) in &self.abilities {
             self.need(expr, &ctx)
@@ -358,7 +363,9 @@ impl Book {
             _ => match word.split_once(':') {
                 Some(("setting", id)) => {
                     ensure!(self.toggles.contains(id), "no toggle `{id}`");
-                    if ctx.on.contains(id) {
+                    if ctx.open.contains(id) {
+                        Need::Setting(id.into())
+                    } else if ctx.on.contains(id) {
                         Need::Always
                     } else {
                         Need::Never
@@ -422,6 +429,7 @@ mod tests {
             on: on.iter().map(|s| s.to_string()).collect(),
             seed: 0,
             keys: DungeonKeys::Vanilla,
+            open: BTreeSet::new(),
         }
     }
 
