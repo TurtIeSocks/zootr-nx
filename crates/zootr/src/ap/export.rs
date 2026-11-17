@@ -7,7 +7,7 @@ use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::Romfs;
 use serde_json::{Value, json};
 
-use super::rule::Rules;
+use super::rule::{Rules, any};
 use super::seed::{Seed, base, open, variants};
 use super::{OPTIONS, ids::Ids, names};
 use crate::checks::ItemCheck;
@@ -76,51 +76,74 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         givers: &givers,
         used: BTreeSet::new(),
     };
+    // What Link reaches holding everything. The rest never happens.
+    let reach = seed.everything();
     let era = |i: usize| w.places[i].1;
-    let at = |rules: &mut Rules, place: usize, need: &Need| {
-        let rule = rules.rule(need, era(place));
-        (rule != Value::Bool(false)).then(|| json!({ "place": names.place(place), "rule": rule }))
+    // Where something is: one spot per place, any of its needs there.
+    let at = |rules: &mut Rules, spots: Vec<(usize, &Need)>| {
+        let mut by_place: BTreeMap<usize, Vec<Value>> = BTreeMap::new();
+        for (place, need) in spots.into_iter().filter(|(p, _)| reach.places.contains(p)) {
+            by_place
+                .entry(place)
+                .or_default()
+                .push(rules.rule(need, era(place)));
+        }
+        let spots = by_place
+            .into_iter()
+            .map(|(place, needs)| (place, any(needs)));
+        let spots = spots.filter(|(_, rule)| *rule != Value::Bool(false));
+        let spots = spots.map(|(place, rule)| json!({ "place": names.place(place), "rule": rule }));
+        spots.collect::<Vec<_>>()
     };
 
-    let mut places: Vec<String> = (0..w.places.len()).map(|i| names.place(i)).collect();
+    let mut places: Vec<String> = reach.places.iter().map(|i| names.place(*i)).collect();
     places.extend([Namer::hub(Era::Child), Namer::hub(Era::Adult)]);
     ensure!(
         places.iter().collect::<BTreeSet<_>>().len() == places.len(),
         "two places share a name"
     );
 
-    let mut exits = Vec::new();
-    for e in &w.edges {
+    // One exit per pair of places, any of the edges between them.
+    let mut pairs: BTreeMap<(String, String), Vec<Value>> = BTreeMap::new();
+    let edges = w.edges.iter().filter(|e| {
+        reach.places.contains(&e.to) && e.from.is_none_or(|f| reach.places.contains(&f))
+    });
+    for e in edges {
         let (from, era) = match e.from {
             Some(f) => (names.place(f), era(f)),
             None => (Namer::hub(era(e.to)), era(e.to)),
         };
         let rule = rules.rule(&e.need, era);
+        pairs
+            .entry((from, names.place(e.to)))
+            .or_default()
+            .push(rule);
+    }
+    for &i in &reach.places {
+        let pair = (names.place(i), Namer::hub(era(i)));
+        pairs.entry(pair).or_default().push(true.into());
+    }
+    let mut exits = Vec::new();
+    for ((from, to), rules) in pairs {
+        let rule = any(rules);
         if rule != Value::Bool(false) {
-            exits.push(json!({ "from": from, "to": names.place(e.to), "rule": rule }));
+            exits.push(json!({ "from": from, "to": to, "rule": rule }));
         }
     }
-    for i in 0..w.places.len() {
-        let to = Namer::hub(era(i));
-        exits.push(json!({ "from": names.place(i), "to": to, "rule": true }));
-    }
 
-    // Every check Link can reach once he holds everything.
-    let mut all = seed.start.clone();
-    seed.pool.iter().for_each(|i| all.add(i));
-    let reached = seed.play(&all);
-
-    let mut by_hash: BTreeMap<u64, Vec<Value>> = BTreeMap::new();
+    let mut by_hash: BTreeMap<u64, Vec<(usize, &Need)>> = BTreeMap::new();
     for l in &w.locations {
-        let spot = at(&mut rules, l.place, &l.need);
-        by_hash.entry(l.hash).or_default().extend(spot);
+        by_hash.entry(l.hash).or_default().push((l.place, &l.need));
     }
     let mut checks = Vec::new();
     let mut events = Vec::new();
     let pooled: BTreeSet<&str> = seed.pool.iter().map(String::as_str).collect();
-    for (hash, at) in by_hash {
+    for (hash, spots) in by_hash {
+        let at = at(&mut rules, spots);
         if seed.kept.contains_key(&hash) {
-            events.push(json!({ "name": vanilla(hash), "at": at }));
+            if reach.checks.contains(&hash) {
+                events.push(json!({ "name": vanilla(hash), "at": at }));
+            }
             continue;
         }
         let check = (seed.checks.iter().find(|c| c.hash == hash))
@@ -137,17 +160,18 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
             "hash": hash.to_string(),
             "name": names.location(hash)?,
             "at": at,
-            "unprovable": !reached.contains(&hash),
+            "unprovable": !reach.checks.contains(&hash),
             "forbid": forbid,
         }));
     }
 
-    for s in &w.sources {
-        events.push(json!({ "name": s.name, "at": at(&mut rules, s.place, &s.need).into_iter().collect::<Vec<_>>() }));
+    for (_, s) in (w.sources.iter().enumerate()).filter(|(i, _)| reach.sources.contains(i)) {
+        events.push(json!({ "name": s.name, "at": at(&mut rules, vec![(s.place, &s.need)]) }));
     }
-    let goal: Vec<Value> = (w.goal().iter())
-        .filter_map(|(p, need)| at(&mut rules, *p, need))
-        .collect();
+    let goal = at(
+        &mut rules,
+        w.goal().iter().map(|(p, need)| (*p, need)).collect(),
+    );
     events.push(json!({ "name": VICTORY, "at": goal }));
 
     let mut counts: BTreeMap<&str, (u32, &str)> = BTreeMap::new();

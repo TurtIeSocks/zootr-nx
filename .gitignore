@@ -30,3 +30,6 @@ re/
 # here by the maintainer.
 /docs/
 /CLAUDE.md
+
+# Python, from the Archipelago world's tests
+__pycache__/

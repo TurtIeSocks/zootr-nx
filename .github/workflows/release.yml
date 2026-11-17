@@ -81,6 +81,27 @@ jobs:
           test -n "$id"
           echo "id=$id" >> "$GITHUB_OUTPUT"
 
+  apworld:
+    name: Build znx.apworld
+    needs: draft
+    if: ${{ !cancelled() && needs.draft.result != 'failure' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: ./.github/actions/archipelago
+
+      # AP's own packager adds the container version to the manifest.
+      - name: Build the world
+        working-directory: archipelago
+        run: python Launcher.py "Build APWorlds" -- "Ocarina of Time (znx)"
+
+      - name: Attach the world
+        if: env.TAGGED == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" archipelago/build/apworlds/znx.apworld --repo "$GITHUB_REPOSITORY" --clobber
+
   build:
     name: Build (${{ matrix.name }})
     needs: draft

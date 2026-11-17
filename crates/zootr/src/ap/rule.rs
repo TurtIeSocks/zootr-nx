@@ -58,7 +58,7 @@ impl Rules<'_> {
     }
 }
 
-fn all(rules: Vec<Value>) -> Value {
+pub(super) fn all(rules: Vec<Value>) -> Value {
     if rules.contains(&Value::Bool(false)) {
         return false.into();
     }
@@ -73,7 +73,7 @@ fn all(rules: Vec<Value>) -> Value {
     }
 }
 
-fn any(rules: Vec<Value>) -> Value {
+pub(super) fn any(rules: Vec<Value>) -> Value {
     if rules.contains(&Value::Bool(true)) {
         return true.into();
     }

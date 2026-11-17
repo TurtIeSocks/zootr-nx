@@ -5,24 +5,41 @@ use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 use serde_json::{Value, json};
 
+use super::OPTIONS;
 use super::export::Namer;
 use super::ids::Ids;
 use super::seed::{Seed, base, variants};
 use crate::rng::Rng;
+use crate::settings::{Kind, Settings, schema};
 
 /// Shares of the pool each case holds.
 const SHARES: [usize; 4] = [0, 1, 2, 3];
 const OF: usize = 4;
 
+/// Every exposed option's value in `settings`, its default if unset.
+fn exposed(settings: &Settings) -> Result<serde_json::Map<String, Value>> {
+    let defs = schema();
+    let mut out = serde_json::Map::new();
+    for id in OPTIONS {
+        let def = defs.iter().find(|d| d.id == *id);
+        let default = match &def.with_context(|| format!("no setting {id}"))?.kind {
+            Kind::Toggle { default } => Value::Bool(*default),
+            Kind::Choice { default, .. } => Value::String(default.clone()),
+        };
+        out.insert((*id).into(), settings.get(*id).cloned().unwrap_or(default));
+    }
+    Ok(out)
+}
+
 pub fn golden(romfs: &Romfs, base_seed: &Seed, names: &Namer, ids: &Ids) -> Result<Value> {
-    let mut cases = vec![(None, base())];
+    let mut cases = vec![base()];
     for (id, value) in variants()? {
         let mut s = base();
-        s.insert(id.clone(), value.clone());
-        cases.push((Some((id, value)), s));
+        s.insert(id, value);
+        cases.push(s);
     }
     let mut out = Vec::new();
-    for (n, (changed, settings)) in cases.into_iter().enumerate() {
+    for (n, settings) in cases.into_iter().enumerate() {
         let seed = Seed::build(romfs, &settings, &Default::default())?;
         for share in SHARES {
             let mut pool = base_seed.pool.clone();
@@ -30,7 +47,7 @@ pub fn golden(romfs: &Romfs, base_seed: &Seed, names: &Namer, ids: &Ids) -> Resu
             pool.truncate(pool.len() * share / OF);
             let mut have = seed.start.clone();
             pool.iter().for_each(|i| have.add(i));
-            let reached = seed.play(&have);
+            let reached = seed.play(&have).reached;
             let mut reachable = Vec::new();
             for hash in reached.into_iter().filter(|h| seed.free.contains(h)) {
                 let id = ids.location_id(hash);
@@ -41,9 +58,8 @@ pub fn golden(romfs: &Romfs, base_seed: &Seed, names: &Namer, ids: &Ids) -> Resu
                 .iter()
                 .map(|a| names.item(a))
                 .collect::<Result<Vec<_>>>()?;
-            let settings = changed.iter().map(|(id, v)| (id.clone(), v.clone()));
             out.push(json!({
-                "settings": settings.collect::<serde_json::Map<_, _>>(),
+                "settings": exposed(&settings)?,
                 "items": items,
                 "reachable": reachable,
             }));

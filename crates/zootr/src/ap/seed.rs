@@ -10,10 +10,30 @@ use serde_json::Value;
 use super::OPTIONS;
 use crate::checks::{self, ItemCheck};
 use crate::fill;
-use crate::logic::World;
+use crate::logic::{Got, Play, World};
 use crate::rules::{Book, Ctx, Have};
 use crate::settings::{Kind, NewGame, Settings, schema};
 use crate::shuffle::{self, Fixed};
+
+/// What Link reaches holding everything. The rest never happens, so the
+/// export leaves it out.
+#[derive(PartialEq)]
+pub(super) struct Everything {
+    pub checks: HashSet<u64>,
+    /// By index into the world's sources.
+    pub sources: BTreeSet<usize>,
+    /// By index into the world's places.
+    pub places: BTreeSet<usize>,
+}
+
+impl Everything {
+    #[cfg(test)]
+    fn covers(&self, other: &Self) -> bool {
+        self.checks.is_superset(&other.checks)
+            && self.sources.is_superset(&other.sources)
+            && self.places.is_superset(&other.places)
+    }
+}
 
 /// One seed's settings as the export sees them: what's dealt, what Link
 /// starts with, and the graph.
@@ -62,10 +82,29 @@ impl Seed {
         })
     }
 
-    /// The checks Link reaches holding `have`, kept checks giving theirs.
-    pub fn play(&self, have: &Have) -> HashSet<u64> {
+    /// What Link reaches holding `have`, kept checks giving theirs.
+    pub fn play(&self, have: &Have) -> Play {
         let kept = self.kept.iter().map(|(h, i)| (*h, i.as_str())).collect();
-        self.world.play(have, &kept).reached
+        self.world.play(have, &kept)
+    }
+
+    /// What Link reaches holding everything.
+    pub fn everything(&self) -> Everything {
+        let mut all = self.start.clone();
+        self.pool.iter().for_each(|i| all.add(i));
+        let play = self.play(&all);
+        let sources = (play.rounds.iter().flatten())
+            .filter_map(|g| match g {
+                Got::Source(i) => Some(*i),
+                Got::Check(_) => None,
+            })
+            .collect();
+        let seen = self.world.seen(&play.have).into_iter().enumerate();
+        Everything {
+            checks: play.reached,
+            sources,
+            places: seen.filter(|(_, s)| *s).map(|(i, _)| i).collect(),
+        }
     }
 
     /// What every edge, check, source and the goal need.
@@ -157,13 +196,17 @@ mod tests {
         };
         let read = settings_read();
         let base_seed = Seed::build(&romfs, &base(), &open()).unwrap();
+        let base_all = base_seed.everything();
         let mut changed = Vec::new();
         for (id, value) in variants().unwrap() {
             let mut s = base();
             s.insert(id.clone(), value.clone());
             let seed = Seed::build(&romfs, &s, &open()).unwrap();
             let rules = !read.contains(&id) && seed.needs() != base_seed.needs();
-            if seed.shape() != base_seed.shape() || rules {
+            // The export leaves out what the base can't reach, so no value
+            // may reach less.
+            let less = !seed.everything().covers(&base_all);
+            if seed.shape() != base_seed.shape() || rules || less {
                 changed.push(format!("{id} = {value}"));
             }
         }

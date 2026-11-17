@@ -12,7 +12,16 @@
       107,
       119
     ],
-    "settings": {}
+    "settings": {
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
+    }
   },
   {
     "items": [
@@ -71,7 +80,16 @@
       119,
       121
     ],
-    "settings": {}
+    "settings": {
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
+    }
   },
   {
     "items": [
@@ -163,7 +181,16 @@
       119,
       121
     ],
-    "settings": {}
+    "settings": {
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
+    }
   },
   {
     "items": [
@@ -298,7 +325,16 @@
       125,
       126
     ],
-    "settings": {}
+    "settings": {
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
+    }
   },
   {
     "items": [],
@@ -322,7 +358,14 @@
       121
     ],
     "settings": {
-      "open-forest": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": true,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -383,7 +426,14 @@
       121
     ],
     "settings": {
-      "open-forest": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": true,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -496,7 +546,14 @@
       128
     ],
     "settings": {
-      "open-forest": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": true,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -694,7 +751,14 @@
       131
     ],
     "settings": {
-      "open-forest": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": true,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -711,7 +775,14 @@
       119
     ],
     "settings": {
-      "kakariko-gate": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": true,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -761,7 +832,14 @@
       119
     ],
     "settings": {
-      "kakariko-gate": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": true,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -892,7 +970,14 @@
       129
     ],
     "settings": {
-      "kakariko-gate": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": true,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -1033,7 +1118,14 @@
       128
     ],
     "settings": {
-      "kakariko-gate": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": true,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -1050,7 +1142,14 @@
       119
     ],
     "settings": {
-      "open-door-of-time": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": true,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -1100,7 +1199,14 @@
       119
     ],
     "settings": {
-      "open-door-of-time": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": true,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -1197,7 +1303,14 @@
       126
     ],
     "settings": {
-      "open-door-of-time": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": true,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -1367,7 +1480,14 @@
       126
     ],
     "settings": {
-      "open-door-of-time": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": true,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -1384,7 +1504,14 @@
       119
     ],
     "settings": {
-      "free-bombchus": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": true,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -1459,7 +1586,14 @@
       128
     ],
     "settings": {
-      "free-bombchus": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": true,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -1542,7 +1676,14 @@
       119
     ],
     "settings": {
-      "free-bombchus": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": true,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -1688,7 +1829,14 @@
       128
     ],
     "settings": {
-      "free-bombchus": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": true,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -1705,6 +1853,13 @@
       119
     ],
     "settings": {
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
       "skip-cutscenes": true
     }
   },
@@ -1755,6 +1910,13 @@
       119
     ],
     "settings": {
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
       "skip-cutscenes": true
     }
   },
@@ -1855,6 +2017,13 @@
       126
     ],
     "settings": {
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
       "skip-cutscenes": true
     }
   },
@@ -1996,6 +2165,13 @@
       126
     ],
     "settings": {
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
       "skip-cutscenes": true
     }
   },
@@ -2013,7 +2189,14 @@
       119
     ],
     "settings": {
-      "chest-size": "small"
+      "bunny-hood": false,
+      "chest-size": "small",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -2063,7 +2246,14 @@
       119
     ],
     "settings": {
-      "chest-size": "small"
+      "bunny-hood": false,
+      "chest-size": "small",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -2171,7 +2361,14 @@
       126
     ],
     "settings": {
-      "chest-size": "small"
+      "bunny-hood": false,
+      "chest-size": "small",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -2314,7 +2511,14 @@
       126
     ],
     "settings": {
-      "chest-size": "small"
+      "bunny-hood": false,
+      "chest-size": "small",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -2331,7 +2535,14 @@
       119
     ],
     "settings": {
-      "quiet-navi": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": true,
+      "skip-cutscenes": false
     }
   },
   {
@@ -2397,7 +2608,14 @@
       126
     ],
     "settings": {
-      "quiet-navi": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": true,
+      "skip-cutscenes": false
     }
   },
   {
@@ -2545,7 +2763,14 @@
       131
     ],
     "settings": {
-      "quiet-navi": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": true,
+      "skip-cutscenes": false
     }
   },
   {
@@ -2691,7 +2916,14 @@
       128
     ],
     "settings": {
-      "quiet-navi": true
+      "bunny-hood": false,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": true,
+      "skip-cutscenes": false
     }
   },
   {
@@ -2708,7 +2940,14 @@
       119
     ],
     "settings": {
-      "bunny-hood": true
+      "bunny-hood": true,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -2762,7 +3001,14 @@
       119
     ],
     "settings": {
-      "bunny-hood": true
+      "bunny-hood": true,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -2856,7 +3102,14 @@
       121
     ],
     "settings": {
-      "bunny-hood": true
+      "bunny-hood": true,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   },
   {
@@ -2997,7 +3250,14 @@
       126
     ],
     "settings": {
-      "bunny-hood": true
+      "bunny-hood": true,
+      "chest-size": "vanilla",
+      "free-bombchus": false,
+      "kakariko-gate": false,
+      "open-door-of-time": false,
+      "open-forest": false,
+      "quiet-navi": false,
+      "skip-cutscenes": false
     }
   }
 ]
