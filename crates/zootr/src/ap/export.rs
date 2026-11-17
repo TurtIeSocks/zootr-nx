@@ -1,21 +1,20 @@
-//! The world graph, pool and options as the `znx` world loads them. Rules
-//! go out as trees of `true`, `false`, `{items, count}`, `{event}`,
-//! `{setting}`, `{all}` and `{any}`, with abilities inlined, eras resolved
-//! per place and start flags folded in.
+//! The world graph, pool and options as the `znx` world loads them, with
+//! abilities inlined, eras resolved per place and start flags folded in.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::Romfs;
 use serde_json::{Value, json};
 
+use super::rule::Rules;
+use super::seed::{Seed, base, open, variants};
 use super::{OPTIONS, ids::Ids, names};
-use crate::checks::{self, ItemCheck};
+use crate::checks::ItemCheck;
 use crate::fill;
-use crate::logic::World;
-use crate::rules::{Book, Ctx, Have, Need, vocab};
-use crate::settings::{Kind, NewGame, Settings, schema};
-use crate::shuffle::{self, Fixed, allowed};
+use crate::rules::{Need, vocab};
+use crate::settings::{Kind, NewGame, schema};
+use crate::shuffle::allowed;
 use crate::world::Era;
 
 /// Items that aren't progression but are worth more than filler.
@@ -29,136 +28,6 @@ const USEFUL: &[&str] = &[
 
 /// The event that beats the seed.
 pub const VICTORY: &str = "victory";
-
-/// One seed's settings as the export sees them: what's dealt, what Link
-/// starts with, and the graph.
-pub(super) struct Seed {
-    pub new_game: NewGame,
-    pub checks: Vec<ItemCheck>,
-    /// The checks the deal shuffles.
-    pub free: BTreeSet<u64>,
-    /// The item each other check keeps.
-    pub kept: HashMap<u64, String>,
-    pub pool: Vec<String>,
-    pub start: Have,
-    pub world: World,
-}
-
-impl Seed {
-    /// `settings` resolved as a normal seed would, with `open` left open.
-    pub fn build(romfs: &Romfs, settings: &Settings, open: &BTreeSet<String>) -> Result<Self> {
-        let new_game = NewGame::from_settings(settings, &[])?;
-        let checks = checks::dealt(romfs, &new_game)?;
-        let fixed = shuffle::own_dungeon(&checks, 0, &Fixed::new(), &new_game)?;
-        ensure!(fixed.is_empty(), "these settings pin items, which AP can't");
-        let deal = shuffle::deal(&checks, &fixed, &new_game)?;
-        let pool = deal.items.iter().map(|i| i.to_string()).collect();
-        let free: BTreeSet<u64> = deal.free.iter().map(|c| c.hash).collect();
-        let mut kept: HashMap<u64, String> = (deal.placed.iter())
-            .map(|p| (p.check.hash, p.item.to_owned()))
-            .collect();
-        for c in checks.iter().filter(|c| !free.contains(&c.hash)) {
-            kept.entry(c.hash).or_insert_with(|| c.item.clone());
-        }
-        let ctx = Ctx {
-            open: open.clone(),
-            ..Ctx::new(&new_game)
-        };
-        let world = World::build(romfs, &Book::load()?, &ctx, &checks)?;
-        let start = fill::start(&new_game);
-        Ok(Self {
-            new_game,
-            checks,
-            free,
-            kept,
-            pool,
-            start,
-            world,
-        })
-    }
-
-    /// The checks Link reaches holding `have`, kept checks giving theirs.
-    pub fn play(&self, have: &Have) -> std::collections::HashSet<u64> {
-        let kept = self.kept.iter().map(|(h, i)| (*h, i.as_str())).collect();
-        self.world.play(have, &kept).reached
-    }
-
-    /// What every edge, check, source and the goal need.
-    #[cfg(test)]
-    pub fn needs(&self) -> String {
-        let w = &self.world;
-        let edges = w.edges.iter().map(|e| e.need.to_string());
-        let locations = w.locations.iter().map(|l| l.need.to_string());
-        let sources = w.sources.iter().map(|s| s.need.to_string());
-        let goal = w.goal().iter().map(|(_, n)| n.to_string());
-        let all: Vec<String> = edges.chain(locations).chain(sources).chain(goal).collect();
-        all.join("\n")
-    }
-
-    /// Everything about the seed but what its rules need: the checks, the
-    /// pool, the start, and the graph's shape.
-    #[cfg(test)]
-    pub fn shape(&self) -> String {
-        let w = &self.world;
-        let mut pool = self.pool.clone();
-        pool.sort();
-        let mut start: Vec<_> = self.start.items.iter().collect();
-        start.sort();
-        let mut edges: Vec<_> = w.edges.iter().map(|e| (e.from, e.to)).collect();
-        edges.sort();
-        let mut locations: Vec<_> = w.locations.iter().map(|l| (l.hash, l.place)).collect();
-        locations.sort();
-        let sources: Vec<_> = (w.sources.iter())
-            .map(|s| (&s.name, s.place, &s.item))
-            .collect();
-        let checks: BTreeSet<u64> = self.checks.iter().map(|c| c.hash).collect();
-        format!(
-            "{checks:?}{:?}{pool:?}{start:?}{:?}{edges:?}{locations:?}{sources:?}",
-            self.free, w.places
-        )
-    }
-}
-
-/// The base settings: every exposed toggle off.
-pub(super) fn base() -> Settings {
-    let defs = schema();
-    let mut s = Settings::new();
-    for id in OPTIONS {
-        if let Some(d) = defs.iter().find(|d| d.id == *id)
-            && let Kind::Toggle { .. } = d.kind
-        {
-            s.insert((*id).into(), Value::Bool(false));
-        }
-    }
-    s
-}
-
-/// The settings each exposed option can take besides the base's.
-pub(super) fn variants() -> Result<Vec<(String, Value)>> {
-    let defs = schema();
-    let mut out = Vec::new();
-    for id in OPTIONS {
-        let def = defs.iter().find(|d| d.id == *id);
-        match def
-            .map(|d| &d.kind)
-            .with_context(|| format!("no setting {id}"))?
-        {
-            Kind::Toggle { .. } => out.push(((*id).into(), Value::Bool(true))),
-            Kind::Choice {
-                default, options, ..
-            } => {
-                let others = options.iter().filter(|o| o.id != *default);
-                out.extend(others.map(|o| ((*id).into(), Value::String(o.id.clone()))));
-            }
-        }
-    }
-    Ok(out)
-}
-
-/// The exposed ids that are toggles, which rules can read.
-pub(super) fn open() -> BTreeSet<String> {
-    base().into_keys().collect()
-}
 
 /// Every file of the export, by name, as JSON text. `ids` is the last
 /// export's `ids.json`, if any.
@@ -412,126 +281,9 @@ impl Namer {
     }
 }
 
-/// Turns a [`Need`] into a rule tree, noting each item name a rule uses.
-struct Rules<'a> {
-    seed: &'a Seed,
-    names: &'a Namer,
-    flag_settings: &'a BTreeMap<String, Vec<String>>,
-    givers: &'a BTreeMap<&'a str, Vec<String>>,
-    used: BTreeSet<String>,
-}
-
-impl Rules<'_> {
-    fn rule(&mut self, need: &Need, era: Era) -> Value {
-        match need {
-            Need::Always => true.into(),
-            Need::Never => false.into(),
-            Need::Era(e) => (*e == era).into(),
-            Need::Setting(id) => json!({ "setting": id }),
-            Need::Flag(f) if self.seed.start.flags.contains(f) => true.into(),
-            Need::Flag(f) => {
-                let ids = self.flag_settings.get(f).into_iter().flatten();
-                any(ids.map(|id| json!({ "setting": id })).collect())
-            }
-            Need::Items { actors, count } => {
-                let have = &self.seed.start.items;
-                let held: u32 = actors.iter().filter_map(|a| have.get(a)).sum();
-                if held >= *count {
-                    return true.into();
-                }
-                let mut names = BTreeSet::new();
-                for a in actors {
-                    if self.seed.pool.iter().any(|p| p == a)
-                        && let Ok(n) = self.names.item(a)
-                    {
-                        names.insert(n.to_owned());
-                    }
-                    names.extend(self.givers.get(a.as_str()).into_iter().flatten().cloned());
-                }
-                if names.is_empty() {
-                    return false.into();
-                }
-                self.used.extend(names.iter().cloned());
-                json!({ "items": names, "count": count - held })
-            }
-            Need::All(needs) => all(needs.iter().map(|n| self.rule(n, era)).collect()),
-            Need::Any(needs) => any(needs.iter().map(|n| self.rule(n, era)).collect()),
-        }
-    }
-}
-
-fn all(rules: Vec<Value>) -> Value {
-    if rules.contains(&Value::Bool(false)) {
-        return false.into();
-    }
-    let mut rest: Vec<Value> = rules
-        .into_iter()
-        .filter(|r| *r != Value::Bool(true))
-        .collect();
-    match rest.len() {
-        0 => true.into(),
-        1 => rest.remove(0),
-        _ => json!({ "all": rest }),
-    }
-}
-
-fn any(rules: Vec<Value>) -> Value {
-    if rules.contains(&Value::Bool(true)) {
-        return true.into();
-    }
-    let mut rest: Vec<Value> = rules
-        .into_iter()
-        .filter(|r| *r != Value::Bool(false))
-        .collect();
-    match rest.len() {
-        0 => false.into(),
-        1 => rest.remove(0),
-        _ => json!({ "any": rest }),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rules::settings_read;
-
-    #[test]
-    fn an_exposed_option_changes_only_rules() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let read = settings_read();
-        let base_seed = Seed::build(&romfs, &base(), &open()).unwrap();
-        let mut changed = Vec::new();
-        for (id, value) in variants().unwrap() {
-            let mut s = base();
-            s.insert(id.clone(), value.clone());
-            let seed = Seed::build(&romfs, &s, &open()).unwrap();
-            let rules = !read.contains(&id) && seed.needs() != base_seed.needs();
-            if seed.shape() != base_seed.shape() || rules {
-                changed.push(format!("{id} = {value}"));
-            }
-        }
-        assert_eq!(changed, Vec::<String>::new());
-    }
-
-    #[test]
-    fn an_exposed_rule_setting_has_no_parent() {
-        let defs = schema();
-        for id in OPTIONS.iter().filter(|id| settings_read().contains(**id)) {
-            let def = defs.iter().find(|d| d.id == *id).unwrap();
-            assert_eq!(def.parent, None, "{id}");
-        }
-    }
-
-    #[test]
-    fn a_normal_seed_leaves_no_setting_open() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let seed = Seed::build(&romfs, &base(), &BTreeSet::new()).unwrap();
-        assert!(!seed.needs().contains("setting:"));
-    }
 
     #[test]
     fn the_committed_data_matches_a_fresh_export() {
@@ -565,16 +317,5 @@ mod tests {
                 });
             assert_eq!(id, None, "{name}");
         }
-    }
-
-    #[test]
-    fn all_and_any_fold_constants() {
-        let item = json!({ "items": ["Hookshot"], "count": 1 });
-        assert_eq!(all(vec![true.into(), item.clone()]), item);
-        assert_eq!(all(vec![false.into(), item.clone()]), Value::Bool(false));
-        assert_eq!(any(vec![false.into(), item.clone()]), item);
-        assert_eq!(any(vec![true.into(), item.clone()]), Value::Bool(true));
-        assert_eq!(all(vec![]), Value::Bool(true));
-        assert_eq!(any(vec![]), Value::Bool(false));
     }
 }

@@ -11,6 +11,8 @@ mod export;
 mod golden;
 mod ids;
 mod names;
+mod rule;
+mod seed;
 
 /// The settings the AP world exposes, by id. Each passes the
 /// `an_exposed_option_changes_only_rules` test.

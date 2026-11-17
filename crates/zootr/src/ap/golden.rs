@@ -5,8 +5,9 @@ use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 use serde_json::{Value, json};
 
-use super::export::{Namer, Seed, base, variants};
+use super::export::Namer;
 use super::ids::Ids;
+use super::seed::{Seed, base, variants};
 use crate::rng::Rng;
 
 /// Shares of the pool each case holds.
