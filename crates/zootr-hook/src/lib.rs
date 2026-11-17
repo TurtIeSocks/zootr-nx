@@ -34,6 +34,7 @@ mod mailbox;
 mod shared;
 pub mod switches;
 mod table;
+pub mod ui;
 
 pub use mailbox::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_NAME, Ask, GUARD, MAILBOX,
