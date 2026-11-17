@@ -90,6 +90,21 @@ pub enum Note {
     Trouble(String),
 }
 
+impl std::fmt::Display for Note {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::Connecting => write!(f, "connecting"),
+            Self::Connected => write!(f, "connected"),
+            Self::Refused(why) => write!(f, "refused: {why}"),
+            Self::Lost(why, wait) => write!(f, "lost ({why}), retrying in {} s", wait.as_secs()),
+            Self::Sent(names) => write!(f, "sent {}", names.join(", ")),
+            Self::Received { item, from } => write!(f, "received {item} from {from}"),
+            Self::Goal => write!(f, "goal sent"),
+            Self::Trouble(why) => write!(f, "{why}"),
+        }
+    }
+}
+
 /// One look at the game, without the server: what to send, whether the goal
 /// is new, and the one give to make.
 #[derive(Default)]

@@ -424,6 +424,18 @@ pub(super) enum ApCommand {
         #[command(flatten)]
         install: Install,
     },
+    /// Connect the running game to an Archipelago server as the installed
+    /// seed's slot: send its checks, give Link what other worlds find for
+    /// him, and report the goal. Runs until stopped.
+    Connect {
+        /// `host[:port]` (port 38281 by default), or a `ws://`/`wss://` url.
+        server: String,
+        /// Defaults to the seed's own slot.
+        #[arg(long)]
+        slot: Option<String>,
+        #[arg(long)]
+        password: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]

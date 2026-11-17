@@ -68,6 +68,36 @@ fn said<T: Display + Serialize>(report: &T, json: bool) -> Result<String> {
     })
 }
 
+/// `zootr ap connect`: the client core on the live game, its notes
+/// printed until the process is stopped.
+pub(super) fn ap_connect(
+    romfs: &Romfs,
+    server: String,
+    slot: Option<String>,
+    password: Option<String>,
+) -> Result<()> {
+    use crate::ap::client::{self, Book, Room};
+    let history = crate::history::History::load()?;
+    let entry = history.get(history.installed.context("no seed is installed")?)?;
+    let seed =
+        (entry.extras.ap.as_ref()).context("the installed seed isn't one from Archipelago")?;
+    let book = Book::new(romfs, seed)?;
+    let gd = recorder::gamedata(romfs)?;
+    let mut game = client::Live::new(attach()?, gd, &entry.report.spots)?;
+    let room = Room {
+        server,
+        slot: slot.unwrap_or_else(|| seed.slot.clone()),
+        password,
+    };
+    // Held for the run: the core stops once every sender is gone.
+    let (_keep, stop) = std::sync::mpsc::channel();
+    let start = std::time::Instant::now();
+    client::run(&room, &book, &mut game, &stop, &mut |note| {
+        println!("{} {note}", stamp(start));
+    });
+    Ok(())
+}
+
 pub(super) fn give(romfs: &Romfs, actor: &str, count: i32) -> Result<()> {
     let gd = recorder::gamedata(romfs)?;
     crate::dev::Dev::new(attach()?)?.give(&gd, actor, count)?;

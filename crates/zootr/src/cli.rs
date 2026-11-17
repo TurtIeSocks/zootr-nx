@@ -15,7 +15,7 @@ use crate::{events, flows, game, generate, spawn, world};
 use args::{ApCommand, Cli, Command, DrillReport, SweepReport};
 use play::{boot_command, drill, drill_report, look, play, sweep, sweep_report};
 use research::{census, chest_events, cutscenes, flags, flow, items, logic};
-use running::{dev, give, live, mem, set};
+use running::{ap_connect, dev, give, live, mem, set};
 use save::save_command;
 use seed::{print_written, shuffle};
 use selftest::selftest;
@@ -78,6 +78,11 @@ pub fn run() -> Result<()> {
             unreachable!("handled above")
         }
         Command::Census => census(&romfs),
+        Command::Ap(ApCommand::Connect {
+            server,
+            slot,
+            password,
+        }) => ap_connect(&romfs, server, slot, password),
         Command::Ap(ApCommand::Export { out }) => {
             let dir = out.unwrap_or_else(crate::ap::data_dir);
             crate::ap::write(&romfs, &dir)?;
