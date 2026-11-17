@@ -692,7 +692,7 @@ fn dealt_gifts_are_checks_only_with_their_option_on() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    use crate::settings::{DUNGEON_REWARDS, NPC_GIFTS, SONGS, TRADE_CHAIN};
+    use crate::settings::{DUNGEON_REWARDS, HUNDRED_TOKENS, NPC_GIFTS, SONGS, TRADE_CHAIN};
     for setting in [NPC_GIFTS, DUNGEON_REWARDS, SONGS, TRADE_CHAIN] {
         let dir = std::env::temp_dir().join(format!("zootr-{setting}-{}", std::process::id()));
         let ours: Vec<&gifts::Gift> = gifts::GIFTS
@@ -705,8 +705,9 @@ fn dealt_gifts_are_checks_only_with_their_option_on() {
         };
         // An adult item, so an adult-only first gift (Anju's egg) can hold it.
         let first = Fixed::from([(ours[0].hash(), item::HOOKSHOT.to_string())]);
+        // With the 100-token reward on, as it is unless turned off.
         let on = NewGame {
-            on: [setting.into()].into(),
+            on: [setting, HUNDRED_TOKENS].map(String::from).into(),
             ..Default::default()
         };
         let report = shuffle(&romfs, &dir.join("on"), 7, &first, &on, &Run::silent()).unwrap();
