@@ -153,6 +153,9 @@ pub fn write_mod(
     let mut bools = cows::flags(&cows);
     bools.extend(gifts::flags(&new_game.on));
     bools.extend(dampe::flags(drops));
+    if new_game.fortress_keys {
+        bools.extend(fortress::flags());
+    }
     let gone = match new_game.scrubs {
         true => {
             bools.extend(scrubs::flags(drops));

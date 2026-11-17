@@ -1,6 +1,6 @@
 //! Which of the seed's spots Link has checked: chests by their opened flag,
 //! gifts by the played flag of their event, scrubs by their sold flag, cows
-//! by their own. See `docs/research/chests.md`.
+//! and Gerudo thieves by their own. See `docs/research/chests.md`.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
@@ -13,7 +13,7 @@ use crate::generate::Spot;
 use crate::gifts::GIFTS;
 use crate::history::{Entry, Mark};
 use crate::savefile::Change;
-use crate::{cows, scrubs};
+use crate::{cows, fortress, scrubs};
 
 /// Struct whose members are named by a chest's placement hash in decimal
 /// and hold its opened flag.
@@ -65,10 +65,12 @@ impl Tracker {
                 GIFTS.iter().find(|g| g.hash() == spot.hash),
                 scrubs::at(spot.hash),
                 cows::flag_at(spot.hash),
+                fortress::got(&spot.vanilla, &spot.item),
             ) {
                 (Some(g), ..) => g.found(),
-                (_, Some(s), _) => s.sold(&spot.item),
-                (.., Some(cow)) => Some(cow),
+                (_, Some(s), ..) => s.sold(&spot.item),
+                (_, _, Some(cow), _) => Some(cow),
+                (.., Some(thief)) => Some(thief),
                 _ => return chests(spot.hash),
             };
             name.map(|f| murmur3(f.as_bytes()))
