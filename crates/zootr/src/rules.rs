@@ -623,6 +623,7 @@ mod tests {
 
     #[test]
     fn spirit_temple_chests_each_take_their_own_side() {
+        needs_names!();
         let book = Book::load().unwrap();
         let c = ctx(true, &[]);
         let ages = |hash: u64| {
