@@ -8,7 +8,8 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result};
 
 use super::judge::Judge;
-use super::spot::{ALONE, BEAT, RUPEES, Sweeper, Swept, Verdict};
+use super::spot::{ALONE, BEAT, RUPEES, Sweeper};
+use super::verdict::{Swept, Verdict};
 use crate::known::{Name, flag};
 use crate::live;
 use crate::play::Input;

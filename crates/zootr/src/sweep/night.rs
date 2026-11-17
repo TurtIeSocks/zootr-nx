@@ -14,7 +14,8 @@ use serde_json::json;
 
 use super::judge::Judge;
 use super::plan::{Planned, Trigger, plan};
-use super::spot::{Sweeper, Verdict, slug};
+use super::spot::{Sweeper, slug};
+use super::verdict::Verdict;
 use crate::config::Target;
 use crate::dev::{self, Dev};
 use crate::gamedata::GameData;
