@@ -1,7 +1,7 @@
 //! One seed's settings as the export resolves them, and the exposed
 //! options' settings.
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::Romfs;
@@ -10,7 +10,7 @@ use serde_json::Value;
 use super::OPTIONS;
 use crate::checks::{self, ItemCheck};
 use crate::fill;
-use crate::logic::{Play, World};
+use crate::logic::{Got, Play, World};
 use crate::rules::{Book, Ctx, Have};
 use crate::settings::{Kind, NewGame, Settings, schema};
 use crate::shuffle::{self, Fixed};
@@ -66,6 +66,21 @@ impl Seed {
     pub fn play(&self, have: &Have) -> Play {
         let kept = self.kept.iter().map(|(h, i)| (*h, i.as_str())).collect();
         self.world.play(have, &kept)
+    }
+
+    /// What Link reaches holding everything: the checks, and the sources by
+    /// index.
+    pub fn everything(&self) -> (HashSet<u64>, BTreeSet<usize>) {
+        let mut all = self.start.clone();
+        self.pool.iter().for_each(|i| all.add(i));
+        let play = self.play(&all);
+        let sourced = (play.rounds.iter().flatten())
+            .filter_map(|g| match g {
+                Got::Source(i) => Some(*i),
+                Got::Check(_) => None,
+            })
+            .collect();
+        (play.reached, sourced)
     }
 
     /// What every edge, check, source and the goal need.
@@ -157,13 +172,18 @@ mod tests {
         };
         let read = settings_read();
         let base_seed = Seed::build(&romfs, &base(), &open()).unwrap();
+        let base_all = base_seed.everything();
         let mut changed = Vec::new();
         for (id, value) in variants().unwrap() {
             let mut s = base();
             s.insert(id.clone(), value.clone());
             let seed = Seed::build(&romfs, &s, &open()).unwrap();
             let rules = !read.contains(&id) && seed.needs() != base_seed.needs();
-            if seed.shape() != base_seed.shape() || rules {
+            // The export leaves out what the base can't reach, so no value
+            // may reach less.
+            let (checks, sources) = seed.everything();
+            let less = !checks.is_superset(&base_all.0) || !sources.is_superset(&base_all.1);
+            if seed.shape() != base_seed.shape() || rules || less {
                 changed.push(format!("{id} = {value}"));
             }
         }

@@ -12,7 +12,6 @@ use super::seed::{Seed, base, open, variants};
 use super::{OPTIONS, ids::Ids, names};
 use crate::checks::ItemCheck;
 use crate::fill;
-use crate::logic::Got;
 use crate::rules::{Need, vocab};
 use crate::settings::{Kind, NewGame, schema};
 use crate::shuffle::allowed;
@@ -117,16 +116,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
 
     // Everything Link can reach once he holds everything. The rest never
     // happens, so no event stands for it.
-    let mut all = seed.start.clone();
-    seed.pool.iter().for_each(|i| all.add(i));
-    let play = seed.play(&all);
-    let reached = play.reached;
-    let sourced: BTreeSet<usize> = (play.rounds.iter().flatten())
-        .filter_map(|g| match g {
-            Got::Source(i) => Some(*i),
-            Got::Check(_) => None,
-        })
-        .collect();
+    let (reached, sourced) = seed.everything();
 
     let mut by_hash: BTreeMap<u64, Vec<Value>> = BTreeMap::new();
     for l in &w.locations {
