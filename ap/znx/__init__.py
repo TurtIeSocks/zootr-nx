@@ -140,6 +140,13 @@ class ZnxWorld(World):
             "seed": self.random.getrandbits(64),
             "slot": names[self.player],
             "player": self.player,
+            # The server never sends the start inventory with our
+            # items_handling, so the mod hands it over.
+            "start": [
+                item.code
+                for item in self.multiworld.precollected_items[self.player]
+                if item.code is not None
+            ],
         }
         name = self.multiworld.get_out_file_name_base(self.player)
         ZnxContainer(

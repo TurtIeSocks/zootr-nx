@@ -24,13 +24,12 @@ use crate::keys::{
 };
 use crate::known::{Name, actor, field, flag, flow, item};
 use crate::medallions::{self, Colour};
-use crate::rsdb::ROW_ID;
 use crate::settings::DungeonKeys;
 use crate::standins::{
     MODEL, POUCH, POUCH_ACTOR, Tables, actor_path, clone_pack, doc, path_of, pouch_actor, raw,
     renamed, resolved, with_ref, write_clone,
 };
-use crate::text::{Copies, CopyLine, Named};
+use crate::text::{Copies, CopyLine, Named, Says};
 use paint::Host;
 
 /// One kind of key's model: the actor it's named like, its textures by
@@ -128,16 +127,19 @@ fn colour(dungeon: &Name) -> Option<Colour> {
         .or_else(|| OWN.iter().find(|(d, _)| *d == dungeon).map(|(_, c)| *c))
 }
 
+/// How every item actor the seed makes begins, the dump's prefix and ours.
+pub(crate) const MADE: &str = "Item_Rando_";
+
 /// Dungeon `n`'s small key as a chest's content. On the floor it's the
 /// model's own name.
 fn chest_key(n: usize) -> String {
-    format!("Item_Rando_SmallKey{n:02}")
+    format!("{MADE}SmallKey{n:02}")
 }
 
 /// Dungeon `n`'s key ring: its small key as a chest's content, but one
 /// the game neither stores nor counts. The hook sets the counter.
 pub fn ring(n: usize) -> String {
-    format!("Item_Rando_KeyRing{n:02}")
+    format!("{MADE}KeyRing{n:02}")
 }
 
 /// The model dungeon `n`'s ring copy shows as `keys` deals it: the ring
@@ -202,15 +204,17 @@ pub fn captions(keys: DungeonKeys, bosses: bool) -> Copies<'static> {
                 .iter()
                 .zip(lines)
                 .map(move |(part, &(english, bracketed))| {
-                    let names = english.map(|english| Named {
-                        place: place(n),
-                        english,
-                        bracketed,
+                    let says = english.map_or(Says::Source, |english| {
+                        Says::Named(Named {
+                            place: place(n),
+                            english,
+                            bracketed,
+                        })
                     });
                     CopyLine {
                         label: format!("{copy}{part}"),
                         sources: vec![format!("{}{part}", template.get())],
-                        names,
+                        says,
                     }
                 })
         })
@@ -247,7 +251,7 @@ pub fn made(rings: bool, bosses: bool) -> Vec<(String, &'static Name, usize)> {
 }
 
 /// The lines a key's get reads, each under the key's name.
-const TEXT_PARTS: [&str; 3] = ["_Name", "_GetMessage", "_GetCaption"];
+pub(crate) const TEXT_PARTS: [&str; 3] = ["_Name", "_GetMessage", "_GetCaption"];
 
 /// Each of [`TEXT_PARTS`]' English line for a copy, `{}` its dungeon's
 /// name, and whether every other language adds the name in brackets.
@@ -268,7 +272,7 @@ const BOSS_TEXT: CopyText = [
     (Some("You found {the} {} boss key!"), true),
     (None, false),
 ];
-const POUCH_TEXT: &str = "ActorMsg/PouchContent";
+pub(crate) const POUCH_TEXT: &str = "ActorMsg/PouchContent";
 
 /// What a copy sets as it's found: a Bool true, an Int to a value, or one
 /// more on an Int.
@@ -367,14 +371,7 @@ pub fn write(
 /// keep a pickup from handing over a boss key (`NotPushToPouch`).
 fn uncounted(tables: &mut Tables, bosses: bool, rings: bool) -> Result<()> {
     let copies: Vec<String> = made(rings, bosses).into_iter().map(|(c, ..)| c).collect();
-    let changed = tables.edit_pouch(|row| {
-        let id = row.get(ROW_ID).and_then(|v| v.as_string().ok());
-        let hit = id.is_some_and(|id| copies.iter().any(|c| c == id));
-        if hit {
-            row.insert(field::POUCH_SPECIAL_DEAL.get().into(), PLAIN_DEAL.into());
-        }
-        hit
-    })?;
+    let changed = tables.plain_deal(&copies)?;
     ensure!(
         changed == copies.len(),
         "{changed} copy rows of {}",
@@ -382,9 +379,6 @@ fn uncounted(tables: &mut Tables, bosses: bool, rings: bool) -> Result<()> {
     );
     Ok(())
 }
-
-/// The deal of an item the game stores and counts no other way.
-const PLAIN_DEAL: &str = "None";
 
 /// `template` copied as `name`, showing `model`, with its rows. An `own`
 /// copy answers to its own name (a ring or boss key copy the hook
@@ -869,7 +863,11 @@ mod tests {
                 let called_is = if own { copy.as_str() } else { template.get() };
                 assert_eq!(called.as_string().unwrap(), called_is, "{copy}");
                 if own {
-                    assert_eq!(deal.as_string().unwrap(), PLAIN_DEAL, "{copy}");
+                    assert_eq!(
+                        deal.as_string().unwrap(),
+                        crate::standins::PLAIN_DEAL,
+                        "{copy}"
+                    );
                 }
             }
             for (copy, template, model) in copies {

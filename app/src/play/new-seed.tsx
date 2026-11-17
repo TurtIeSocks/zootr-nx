@@ -1,9 +1,11 @@
+import { open as pickFile } from "@tauri-apps/plugin-dialog";
 import {
   CircleAlert,
   CircleOff,
   CircleStop,
   Dices,
   FlaskConical,
+  FolderOpen,
   Loader2,
   type LucideIcon,
   Pin,
@@ -28,7 +30,13 @@ import { summary } from "@/lib/settings";
 import { GenerateSteps } from "@/play/generate-steps";
 import { SettingsChanged } from "@/play/settings-changed";
 import { useConfig } from "@/stores/config";
-import { generate, stopGenerate, uninstall, useSeeds } from "@/stores/seeds";
+import {
+  generate,
+  generateAp,
+  stopGenerate,
+  uninstall,
+  useSeeds,
+} from "@/stores/seeds";
 import { openSettings } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
 
@@ -73,6 +81,7 @@ function SeedRow() {
       <SeedInput />
       <RollButton />
       <VanillaButton />
+      <OpenApButton />
       <GenerateButton />
     </div>
   );
@@ -131,6 +140,31 @@ function VanillaButton() {
       onClick={uninstall}
     >
       <CircleOff />
+    </TipButton>
+  );
+}
+
+/** Installs an Archipelago seed from the `.apznx` picked. The file brings
+ * its own settings, so the test setup and plando don't apply. */
+function OpenApButton() {
+  const [busy] = useSeeds.usePath("busy");
+  const [blocked] = useSeeds.usePath("blocked");
+  const open = async () => {
+    const file = await pickFile({
+      filters: [{ name: "Archipelago seed", extensions: ["apznx"] }],
+    });
+    if (file) await generateAp(file);
+  };
+  return (
+    <TipButton
+      label="Open AP seed"
+      tip={blocked || "Install your slot of an Archipelago multiworld"}
+      variant="secondary"
+      size="icon-lg"
+      disabled={busy || !!blocked}
+      onClick={open}
+    >
+      <FolderOpen />
     </TipButton>
   );
 }

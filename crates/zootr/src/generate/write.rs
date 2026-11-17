@@ -14,9 +14,10 @@ use crate::hints::Hint;
 use crate::progress::Run;
 use crate::settings::{ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
-    bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, fortress,
-    gamedata, gerudo, gifts, hints, key_tints, keys, medallions, navi, patch, pickups, presets,
-    rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain, twins,
+    bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, foreign,
+    fortress, gamedata, gerudo, gifts, hints, key_tints, keys, medallions, navi, patch, pickups,
+    presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain,
+    twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -101,8 +102,12 @@ pub fn write_mod(
                 .into_iter()
                 .chain(d.swap.iter().flat_map(|s| [s.check, s.then]))
         })
-        // Ring and boss key copies are written with the mod.
-        .find(|i| !keys::is_shuffled(i) && !romfs.root().join(flags::actor_pack(i)).is_file())
+        // Key copies and other players' items are written with the mod.
+        .find(|i| {
+            !keys::is_shuffled(i)
+                && !foreign::is_foreign(i)
+                && !romfs.root().join(flags::actor_pack(i)).is_file()
+        })
     {
         bail!("{item} isn't an actor");
     }
@@ -122,6 +127,7 @@ pub fn write_mod(
     };
     let key_copies = (new_game.keys.copies(), boss_copies(new_game));
     // First, so a copy on a shelf takes its caption from its own lines.
+    copies.insert(0, foreign::captions(&new_game.foreign));
     copies.insert(0, key_tints::captions(new_game.keys, key_copies.1));
     text::write(romfs, &mut builder, &lines, &copies, hints)?;
     let cows = match new_game.cows {
@@ -151,6 +157,15 @@ pub fn write_mod(
         let names = [copy.clone()];
         gamedata::join_structs(&mut doc.root, template.get(), &names, &[gamedata::IS_GET])?;
     }
+    let names: Vec<String> = new_game.foreign.iter().map(|f| f.actor.clone()).collect();
+    if !names.is_empty() {
+        gamedata::join_structs(
+            &mut doc.root,
+            keys::SMALL.get(),
+            &names,
+            &[gamedata::IS_GET],
+        )?;
+    }
     if new_game.bridge_medallions {
         bridge::need_medallions(&mut doc.root)?;
     }
@@ -174,11 +189,13 @@ pub fn write_mod(
         bombchus::write(&mut builder, &mut tables)?;
     }
     // Before the stand-ins, which copy a song's model as it's shown.
-    let items = drops.values().map(|d| d.item.as_str());
+    let shown = new_game.foreign.iter().map(|f| f.shows.as_str());
+    let items = drops.values().map(|d| d.item.as_str()).chain(shown);
     medallions::write(romfs, &mut builder, &mut tables, items)?;
     let flags = hook_flags(new_game);
     let bosses = boss_copies(new_game);
     key_tints::write(romfs, &mut builder, &mut tables, bosses, new_game.keys)?;
+    foreign::write(romfs, &mut builder, &mut tables, &new_game.foreign)?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
     let levels = levels(romfs, drops, new_game)?;
     levels.events(&mut events)?;
@@ -201,7 +218,7 @@ pub fn write_mod(
         &mut tables,
         &pieces,
         drops,
-        new_game.keys,
+        new_game,
     )?);
     tables.write(&mut builder)?;
     // A pickup's drop is its field above, never the bare item. A cow's is
@@ -256,14 +273,14 @@ pub fn write_mod(
         bail!("no actor with hash {missing} has a {}", checks::DROP_ACTOR);
     }
     bombs::write(&mut builder)?;
-    dig::write(romfs, &mut builder, drops, new_game.keys)?;
+    dig::write(romfs, &mut builder, drops, new_game)?;
     run.check()?;
     let files = builder.finish()?.len();
     let credits = key_tints::credits(bosses, new_game.keys);
     patch::install(
         mod_dir,
         new_game.progressive,
-        new_game.dev_panel,
+        new_game.mailbox,
         flags,
         &credits,
     )?;
@@ -279,11 +296,7 @@ pub fn write_mod(
 /// stays as it is. Key rings and Keysanity deal them, and bring the hook
 /// along.
 fn boss_copies(new_game: &NewGame) -> bool {
-    let hooked = patch::hooked(
-        new_game.progressive,
-        new_game.dev_panel,
-        hook_flags(new_game),
-    );
+    let hooked = patch::hooked(new_game.progressive, new_game.mailbox, hook_flags(new_game));
     new_game.keys.copies() || hooked
 }
 

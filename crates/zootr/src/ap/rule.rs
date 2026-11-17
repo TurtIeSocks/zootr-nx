@@ -39,7 +39,7 @@ impl Rules<'_> {
                 }
                 let mut names = BTreeSet::new();
                 for a in actors {
-                    if self.seed.pool.iter().any(|p| p == a)
+                    if self.seed.dealt.pool.iter().any(|p| p == a)
                         && let Ok(n) = self.names.item(a)
                     {
                         names.insert(n.to_owned());

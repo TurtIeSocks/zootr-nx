@@ -35,11 +35,21 @@ pub struct Copies<'a> {
     pub new: Vec<CopyLine>,
 }
 
-/// One new line: its label, its sources in order, and the place it names.
+/// One new line: its label, its sources in order, and what it says.
 pub struct CopyLine {
     pub label: String,
     pub sources: Vec<String>,
-    pub names: Option<Named>,
+    pub says: Says,
+}
+
+/// What a copied line says.
+pub enum Says {
+    /// Its source, as it is.
+    Source,
+    /// Its source, naming a place.
+    Named(Named),
+    /// These words, in every language that has a source.
+    Text(String),
 }
 
 impl CopyLine {
@@ -48,7 +58,7 @@ impl CopyLine {
         Self {
             label,
             sources,
-            names: None,
+            says: Says::Source,
         }
     }
 }
@@ -214,9 +224,10 @@ pub(crate) fn copied(data: &[u8], rel: &str, copies: &Copies) -> Result<Vec<u8>>
             }
         }
         let Some(text) = text else { continue };
-        let text = match &line.names {
-            Some(named) => naming(text, named, rel, &places)?,
-            None => text,
+        let text = match &line.says {
+            Says::Source => text,
+            Says::Named(named) => naming(text, named, rel, &places)?,
+            Says::Text(words) => vec![Part::Text(words.clone())],
         };
         msbt.set(&line.label, &text)?;
     }

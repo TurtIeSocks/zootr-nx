@@ -10,6 +10,9 @@ use super::{
 use crate::known::{field, flag};
 use crate::rsdb;
 
+/// The deal of an item the game stores and counts no other way.
+pub(crate) const PLAIN_DEAL: &str = "None";
+
 /// The RSDB tables that key a row by actor.
 pub struct Tables {
     pub(crate) actor: BymlDoc,
@@ -179,8 +182,7 @@ impl Tables {
     /// pouch row too, so it counts as `like` does once Link has it.
     pub(crate) fn copy_item(&mut self, name: &str, like: &str) -> Result<()> {
         self.copy(name, like)?;
-        let pouch = row(&self.pouch, like)?;
-        insert(&mut self.pouch, name, pouch)
+        self.copy_pouch(name, like)
     }
 
     /// `name`'s actor row answers to its own name. A copied row answers to
@@ -195,6 +197,25 @@ impl Tables {
         row.insert(flag::ACTOR_NAME.get().into(), Byml::String(name.into()));
         self.added += 1;
         Ok(())
+    }
+
+    /// `name`'s pouch row, `like`'s.
+    pub(crate) fn copy_pouch(&mut self, name: &str, like: &str) -> Result<()> {
+        let pouch = row(&self.pouch, like)?;
+        insert(&mut self.pouch, name, pouch)
+    }
+
+    /// The pouch rows of `names` take the deal of an item the game stores
+    /// and counts no other way. Returns how many it found.
+    pub(crate) fn plain_deal(&mut self, names: &[String]) -> Result<usize> {
+        self.edit_pouch(|row| {
+            let id = row.get(rsdb::ROW_ID).and_then(|v| v.as_string().ok());
+            let hit = id.is_some_and(|id| names.iter().any(|n| n == id));
+            if hit {
+                row.insert(field::POUCH_SPECIAL_DEAL.get().into(), PLAIN_DEAL.into());
+            }
+            hit
+        })
     }
 
     /// Hand `edit` every row of the pouch table, written with the rest.

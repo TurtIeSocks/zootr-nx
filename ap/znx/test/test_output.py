@@ -1,5 +1,5 @@
-"""A generated seed's `.apznx`: a placement for every check, and the
-settings as our settings JSON."""
+"""A generated seed's `.apznx`: a placement for every check, the settings
+as our settings JSON, and the start inventory."""
 
 import json
 import os
@@ -9,7 +9,7 @@ import zipfile
 from Fill import distribute_items_restrictive
 from worlds.AutoWorld import call_all
 
-from ..exported import OPTIONS, WORLD
+from ..exported import ITEM_NAME_TO_ID, OPTIONS, WORLD
 from . import ZnxTestBase
 
 
@@ -17,6 +17,9 @@ class TestOutput(ZnxTestBase):
     options = {"open_forest": True, "chest_size": "small"}
 
     def test_apznx(self) -> None:
+        # Generate.py's Main hands out the start inventory, which the test
+        # base skips.
+        self.multiworld.push_precollected(self.world.create_item("Boomerang"))
         distribute_items_restrictive(self.multiworld)
         call_all(self.multiworld, "post_fill")
         with tempfile.TemporaryDirectory() as out:
@@ -33,3 +36,4 @@ class TestOutput(ZnxTestBase):
         self.assertEqual(set(seed["settings"]), {entry["id"] for entry in OPTIONS})
         self.assertIs(seed["settings"]["open-forest"], True)
         self.assertEqual(seed["settings"]["chest-size"], "small")
+        self.assertEqual(seed["start"], [ITEM_NAME_TO_ID["Boomerang"]])
