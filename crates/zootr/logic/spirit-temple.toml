@@ -1,0 +1,46 @@
+# The Spirit Temple is one map both ages share, so its obstacles
+# together ask for child-only crawl holes and the adult-only Hammer at
+# once, which no one Link meets. Each chest says which side it's on
+# instead, matched to the original game's chest by what stands around
+# it, with Ship's rule for that chest. Keys are `always`, so the key
+# counts drop out. Rules on the playtest list.
+
+# The child side's bridge room, past the crawl holes: a hit switch drops
+# the bridge to the chest.
+[[check]]
+hash = 5309180490719879013
+name = "Deku Shield"
+needs = "slingshot or boomerang"
+
+# Atop the child side's climb. Child Link shoots the switch himself, or
+# adult Link comes round from the central chamber.
+[[check]]
+hash = 1501288453962537671
+name = "Upper Five Bombchus"
+needs = "slingshot or boomerang or (silver-gauntlets and (bow or hookshot))"
+
+# The adult side's first mirror room, past the silver block: turning the
+# mirror lights the sun switch by the chest.
+[[check]]
+hash = 12909857529499414969
+name = "Upper Five Bombs 1"
+needs = "silver-gauntlets"
+
+# The two invisible chests in the hall beyond the central chamber's
+# locked door.
+[[check]]
+hash = 9143177002861777924
+name = "Upper Red Rupee 1"
+needs = "silver-gauntlets and explosives and lens"
+
+[[check]]
+hash = 14040210993541550542
+name = "Upper Red Rupee 2"
+needs = "silver-gauntlets and explosives and lens"
+
+# The topmost chest, past the final locked door: a reflected sunbeam on
+# its sun switch makes it appear.
+[[check]]
+hash = 13828480906010430010
+name = "Upper Five Bombs 2"
+needs = "silver-gauntlets and explosives and hookshot and light"

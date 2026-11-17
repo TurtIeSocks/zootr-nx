@@ -46,6 +46,15 @@ const FILES: &[(&str, &str)] = &[
         "water-temple.toml",
         include_str!("../logic/water-temple.toml"),
     ),
+    (
+        "spirit-temple.toml",
+        include_str!("../logic/spirit-temple.toml"),
+    ),
+    (
+        "ganons-castle.toml",
+        include_str!("../logic/ganons-castle.toml"),
+    ),
+    ("grottos.toml", include_str!("../logic/grottos.toml")),
 ];
 
 /// The game's own words naming an item actor start with one of these.
@@ -609,6 +618,28 @@ mod tests {
         for missing in all {
             let some: Vec<_> = all.into_iter().filter(|i| *i != missing).collect();
             assert!(!needs.met(&have(&some), Era::Adult), "without {missing}");
+        }
+    }
+
+    #[test]
+    fn spirit_temple_chests_each_take_their_own_side() {
+        needs_names!();
+        let book = Book::load().unwrap();
+        let c = ctx(true, &[]);
+        let ages = |hash: u64| {
+            let needs = book.need(&book.check(hash).unwrap().needs, &c).unwrap();
+            (needs.possible(Era::Child), needs.possible(Era::Adult))
+        };
+        assert_eq!(ages(5309180490719879013), (true, false), "the bridge");
+        assert_eq!(ages(1501288453962537671), (true, true), "the climb");
+        let adult_side = [
+            12909857529499414969,
+            9143177002861777924,
+            14040210993541550542,
+            13828480906010430010,
+        ];
+        for hash in adult_side {
+            assert_eq!(ages(hash), (false, true), "{hash}");
         }
     }
 

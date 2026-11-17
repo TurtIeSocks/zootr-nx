@@ -1,0 +1,54 @@
+# Hidden grottos whose chest a logic graph gates. Each grotto hides under
+# a cover the obstacle table doesn't read: a rock, or a patch of grass
+# the Song of Storms clears. Inside, the chest appears once Link clears
+# the room, so each rule names the cover and what clears the room.
+# Ship's kill rules: a blade beats a ReDead, a Dinolfos or a Wolfos, and
+# only explosives beat a Beamos. Rules on the playtest list.
+
+# Hyrule Field, north-east: under storm grass, two ReDeads.
+[[check]]
+hash = 5755485285664292988
+name = "Hyrule Field Northeast Purple Rupee"
+needs = "song-of-storms and melee"
+
+# Death Mountain Crater's upper ledge: under a breakable rock, two
+# Dinolfos.
+[[check]]
+hash = 9128916506605227251
+name = "Death Mountain Crater West Purple Rupee"
+needs = "(explosives or hammer) and melee"
+
+# Desert Colossus: under a rock only the Silver Gauntlets lift, a Beamos
+# and five Skullwalltulas.
+[[check]]
+hash = 1186167733408299582
+name = "Desert Colossus Northwest Purple Rupee"
+needs = "silver-gauntlets and explosives and melee"
+
+# Sacred Forest Meadow: under storm grass, two Wolfos.
+[[check]]
+hash = 7995233962349162969
+name = "Sacred Forest Meadow South Purple Rupee"
+needs = "song-of-storms and melee"
+
+# Kokiri Forest: under storm grass, the three Deku Scrub Brothers. Once
+# their nuts come back off the shield in the right order, the one Link
+# talks to sets the flag that makes the chest appear.
+[[check]]
+hash = 14818888396401495482
+name = "Kokiri Forest Northwest Green Rupee"
+needs = "song-of-storms and deku-shield"
+
+# Goron City: the grotto on the platform over the lava, which only the
+# Hookshot reaches. Six signs stand inside. Cutting the right three makes
+# the Purple Rupee chest appear, cutting a wrong one the Green Rupee
+# chest. Signs stand again once Link comes back, so he gets both.
+[[check]]
+hash = 10944569637726152230
+name = "Goron City Southwest Purple Rupee"
+needs = "hookshot and melee"
+
+[[check]]
+hash = 9159710900681116662
+name = "Goron City Southwest Green Rupee"
+needs = "hookshot and melee"
