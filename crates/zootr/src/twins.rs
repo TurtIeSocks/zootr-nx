@@ -171,8 +171,14 @@ fn gate(actor: &mut Byml, flag: &str, negated: bool) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::map;
+    use crate::generate::shuffle;
+    use crate::known::{Name, flag, map};
+    use crate::progress::Run;
+    use crate::settings::NewGame;
+    use crate::shuffle::Fixed;
     use crate::world::presence_of;
+    use crate::{gamedata, pickups};
+    use ounce_formats::BymlDoc;
 
     /// Burning Kakariko's purple rupee chests, from the research notes.
     const CHEST_1: u64 = 11929552275106311978;
@@ -274,5 +280,59 @@ mod tests {
             .err()
             .unwrap();
         assert!(err.to_string().contains("has no twin"), "{err}");
+    }
+
+    #[test]
+    fn burning_kakariko_holds_the_purple_rupee_chest_and_the_hives_with_their_dealt_items() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let dir = std::env::temp_dir().join(format!("zootr-twins-{}", std::process::id()));
+        let hives = NewGame {
+            hives: true,
+            ..NewGame::default()
+        };
+        shuffle(&romfs, &dir, 7, &Fixed::new(), &hives, &Run::silent()).unwrap();
+        let written = |rel: &str| {
+            let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
+            romfs.dicts().decompress(rel, &raw).unwrap()
+        };
+        let actors_in = |map: &Name| {
+            let rel = format!(
+                "Banc/{}/{map}_Dynamic.bcett.byml.zs",
+                flag::KAKARIKO_VILLAGE
+            );
+            let doc = BymlDoc::parse(&written(&rel)).unwrap();
+            checks::actors(&doc.root).unwrap().to_vec()
+        };
+        let (normal, burning) = (
+            actors_in(map::KAKARIKO_VILLAGE_ADULT),
+            actors_in(map::KAKARIKO_VILLAGE_ADULT_ALTERNATIVE),
+        );
+        // Whole actors, so a check's dealt fields and drop come along.
+        let actor = |actors: &[Byml], hash: u64| {
+            let found = actors.iter().find(|a| checks::hash_of(a) == Some(hash));
+            found.cloned()
+        };
+        let chest = actor(&normal, CHEST_1).unwrap();
+        let dynamic = &chest.as_map().unwrap()["Dynamic"];
+        assert!(checks::str_field(dynamic, checks::DROP_ACTOR).is_some());
+        let mut copy = actor(&burning, CHEST_1).unwrap();
+        // Its gate is the one difference.
+        copy.as_mut_map().unwrap().remove("Presence");
+        assert_eq!(copy, chest);
+        // Each hive check in the normal map stands in the burning map too.
+        let checks = pickups::HIVES.checks(&romfs).unwrap();
+        let hives: Vec<u64> = (normal.iter().filter_map(checks::hash_of))
+            .filter(|h| checks.iter().any(|c| c.hash == *h))
+            .collect();
+        assert_eq!(hives.len(), 3);
+        for hash in hives {
+            assert_eq!(actor(&burning, hash), actor(&normal, hash), "hive {hash}");
+        }
+        let gd = gamedata::GameData::parse(&written(gamedata::PATH)).unwrap();
+        let alias = format!("ZootrOpened.{CHEST_1}");
+        assert!(gd.expr(&alias).unwrap().is_some(), "{alias} isn't written");
+        std::fs::remove_dir_all(dir).unwrap();
     }
 }
