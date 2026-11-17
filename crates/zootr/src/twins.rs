@@ -6,6 +6,10 @@
 //! There's no room beside it, so the copy's spot holds both in turn: chest
 //! 1 until it's opened, then its twin, which stands closed in its place as
 //! soon as chest 1's get window closes.
+//!
+//! Its beehives are twins too, each a little off the other's spot. A hive
+//! has no opened flag to take turns on, so each is copied in beside its
+//! twin.
 
 use std::collections::HashSet;
 
@@ -18,31 +22,49 @@ use crate::known::field;
 /// How far apart two placements can be, in m, and still share a spot.
 const SAME_SPOT: f32 = 0.05;
 
-/// A check a map places but its alternative doesn't, and the twin standing
-/// on its spot there.
+/// A check a map places but its alternative doesn't, and how the
+/// alternative hands it out.
 pub struct Twin {
     /// The alternative's Banc file.
     pub file: String,
     /// The check's actor, as the map places it.
     pub actor: Byml,
     pub hash: u64,
-    pub twin: u64,
-    /// The check's opened flag, a Bool known only by hash.
-    pub opened: u32,
+    pub share: Share,
+}
+
+/// How a [`Twin`] shares the alternative with the actor on its spot.
+pub enum Share {
+    /// It stands until opened, then `twin` in its place.
+    Turns {
+        twin: u64,
+        /// The check's opened flag, a Bool known only by hash.
+        opened: u32,
+    },
+    /// It stands beside its twin: with no opened flag, it can't take turns.
+    Beside,
 }
 
 impl Twin {
-    /// The BoolExp both gates name: the check's opened flag.
-    pub fn alias(&self) -> String {
-        format!("ZootrOpened.{}", self.hash)
+    /// The BoolExp both gates of a [`Share::Turns`] name, and the opened
+    /// flag it reads.
+    pub fn alias(&self) -> Option<(String, u32)> {
+        match self.share {
+            Share::Turns { opened, .. } => Some((alias_of(self.hash), opened)),
+            Share::Beside => None,
+        }
     }
 }
 
+/// The BoolExp naming the opened flag of the check placed as `hash`.
+fn alias_of(hash: u64) -> String {
+    format!("ZootrOpened.{hash}")
+}
+
 /// Each check `dealt` says is in the shuffle that a map places and its
-/// alternative doesn't, with its twin. Only a check with an `opened` flag
-/// can take turns, so the rest are left as they are (Kakariko's beehives
-/// keep theirs in a table a BoolExp can't read). One with a flag and no
-/// twin fails: nothing would hand it out once the game swaps the map.
+/// alternative doesn't. One with an `opened` flag takes turns with its
+/// twin, and fails without one: nothing would hand it out once the game
+/// swaps the map. The rest (Kakariko's beehives) stand beside theirs.
 pub fn find(
     romfs: &Romfs,
     dealt: impl Fn(u64) -> bool,
@@ -64,6 +86,12 @@ pub fn find(
                     continue;
                 };
                 let Some(opened) = opened(hash) else {
+                    out.push(Twin {
+                        file: file.clone(),
+                        actor: actor.clone(),
+                        hash,
+                        share: Share::Beside,
+                    });
                     continue;
                 };
                 let twin = alt
@@ -78,8 +106,7 @@ pub fn find(
                     file: file.clone(),
                     actor: actor.clone(),
                     hash,
-                    twin,
-                    opened,
+                    share: Share::Turns { twin, opened },
                 });
             }
         }
@@ -100,9 +127,9 @@ fn same_spot(a: &Byml, b: &Byml) -> bool {
 }
 
 /// Places each of `twins` whose alternative is `file` in `root`, that
-/// file's doc: the check stands until it's opened, its twin from then on.
-/// Both gates are lazy, so the swap waits for the open to finish.
-/// Returns how many checks it placed.
+/// file's doc. One taking turns stands until it's opened, its twin from
+/// then on, and both gates are lazy, so the swap waits for the open to
+/// finish. Returns how many checks it placed.
 pub fn place(file: &str, root: &mut Byml, twins: &[Twin]) -> Result<usize> {
     let mine: Vec<&Twin> = twins.iter().filter(|t| t.file == file).collect();
     if mine.is_empty() {
@@ -114,13 +141,16 @@ pub fn place(file: &str, root: &mut Byml, twins: &[Twin]) -> Result<usize> {
         .with_context(|| format!("{file} has no actors"))?
         .as_mut_array()?;
     for t in &mine {
-        let twin = list
-            .iter_mut()
-            .find(|a| hash_of(a) == Some(t.twin))
-            .with_context(|| format!("no twin {} in {file}", t.twin))?;
-        gate(twin, &t.alias(), false)?;
         let mut copy = t.actor.clone();
-        gate(&mut copy, &t.alias(), true)?;
+        if let Share::Turns { twin, .. } = t.share {
+            let alias = alias_of(t.hash);
+            let twin = list
+                .iter_mut()
+                .find(|a| hash_of(a) == Some(twin))
+                .with_context(|| format!("no twin {twin} in {file}"))?;
+            gate(twin, &alias, false)?;
+            gate(&mut copy, &alias, true)?;
+        }
         list.push(copy);
     }
     Ok(mine.len())
@@ -166,16 +196,28 @@ mod tests {
         let opened = crate::tracker::chest_flags(&gd).unwrap();
         let all = placed(&romfs);
         let twins = find(&romfs, |h| all.contains(&h), opened).unwrap();
-        let found: Vec<(u64, u64)> = twins.iter().map(|t| (t.hash, t.twin)).collect();
+        let turns: Vec<_> = twins
+            .iter()
+            .filter_map(|t| match t.share {
+                Share::Turns { twin, .. } => Some((t, twin)),
+                Share::Beside => None,
+            })
+            .collect();
+        let found: Vec<(u64, u64)> = turns.iter().map(|(t, twin)| (t.hash, *twin)).collect();
         assert_eq!(found, [(CHEST_1, CHEST_2)]);
-        let t = &twins[0];
+        let t = turns[0].0;
+        let alias = t.alias().unwrap().0;
         assert!(
             t.file
                 .contains(map::KAKARIKO_VILLAGE_ADULT_ALTERNATIVE.get())
         );
 
         let mut doc = checks::load_banc(&romfs, &t.file).unwrap();
-        assert_eq!(place(&t.file, &mut doc.root, &twins).unwrap(), 1);
+        let mine = |file: &str| twins.iter().filter(|t| t.file == file).count();
+        assert_eq!(
+            place(&t.file, &mut doc.root, &twins).unwrap(),
+            mine(&t.file)
+        );
         let gate_of = |hash| {
             let all = actors(&doc.root).unwrap();
             let mut at = all.iter().filter(|a| hash_of(a) == Some(hash));
@@ -190,13 +232,10 @@ mod tests {
         };
         let first = gate_of(CHEST_1);
         let second = gate_of(CHEST_2);
-        assert_eq!(
-            (first.flag.as_str(), first.negated),
-            (t.alias().as_str(), true)
-        );
+        assert_eq!((first.flag.as_str(), first.negated), (alias.as_str(), true));
         assert_eq!(
             (second.flag.as_str(), second.negated),
-            (t.alias().as_str(), false)
+            (alias.as_str(), false)
         );
         // Placed again, it would gate an actor twice.
         assert!(place(&t.file, &mut doc.root, &twins).is_err());
@@ -208,13 +247,27 @@ mod tests {
     }
 
     #[test]
-    fn only_a_check_with_an_opened_flag_takes_turns() {
+    fn a_check_with_no_opened_flag_stands_beside_its_twin() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
         let all = placed(&romfs);
-        let none = find(&romfs, |h| all.contains(&h), |_| None).unwrap();
-        assert!(none.is_empty());
+        let beside = find(&romfs, |h| all.contains(&h), |_| None).unwrap();
+        assert!(!beside.is_empty());
+        assert!(beside.iter().all(|t| matches!(t.share, Share::Beside)));
+        assert!(beside.iter().all(|t| t.alias().is_none()));
+        // Copied in as they are: same hash, no gate, nothing else touched.
+        let file = &beside[0].file;
+        let mut doc = checks::load_banc(&romfs, file).unwrap();
+        let before = actors(&doc.root).unwrap().len();
+        let mine: Vec<_> = beside.iter().filter(|t| &t.file == file).collect();
+        assert_eq!(place(file, &mut doc.root, &beside).unwrap(), mine.len());
+        let after = actors(&doc.root).unwrap();
+        assert_eq!(after.len(), before + mine.len());
+        for t in mine {
+            let copy = after.iter().find(|a| hash_of(a) == Some(t.hash)).unwrap();
+            assert!(presence_of(copy).is_none(), "{} gated", t.hash);
+        }
         // Given a flag, a beehive standing a little off its twin's spot has
         // nothing to take turns with.
         let err = find(&romfs, |h| all.contains(&h), |_| Some(1))

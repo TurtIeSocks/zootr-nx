@@ -1,4 +1,4 @@
-use ounce_formats::{BymlDoc, Flowchart, Link};
+use ounce_formats::{Byml, BymlDoc, Flowchart, Link};
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -807,31 +807,54 @@ fn a_logic_seed_lists_what_link_starts_with() {
 }
 
 #[test]
-fn burning_kakariko_holds_the_purple_rupee_chest_with_its_dealt_item() {
+fn burning_kakariko_holds_the_purple_rupee_chest_and_the_hives_with_their_dealt_items() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
     const CHEST_1: u64 = 11929552275106311978;
     let dir = std::env::temp_dir().join(format!("zootr-twins-{}", std::process::id()));
-    shuffle(&romfs, &dir, 7, &Fixed::new(), &NewGame::default()).unwrap();
+    let hives = NewGame {
+        hives: true,
+        ..NewGame::default()
+    };
+    shuffle(&romfs, &dir, 7, &Fixed::new(), &hives).unwrap();
     let written = |rel: &str| {
         let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
         romfs.dicts().decompress(rel, &raw).unwrap()
     };
-    let drop_in = |map: &Name| {
+    let actors_in = |map: &Name| {
         let rel = format!(
             "Banc/{}/{map}_Dynamic.bcett.byml.zs",
             flag::KAKARIKO_VILLAGE
         );
         let doc = BymlDoc::parse(&written(&rel)).unwrap();
-        let actors = checks::actors(&doc.root).unwrap();
-        let chest = actors.iter().find(|a| checks::hash_of(a) == Some(CHEST_1));
-        let dynamic = &chest.unwrap().as_map().unwrap()["Dynamic"];
-        checks::str_field(dynamic, checks::DROP_ACTOR).map(String::from)
+        checks::actors(&doc.root).unwrap().to_vec()
     };
-    let dealt = drop_in(map::KAKARIKO_VILLAGE_ADULT);
-    assert!(dealt.is_some());
-    assert_eq!(drop_in(map::KAKARIKO_VILLAGE_ADULT_ALTERNATIVE), dealt);
+    let (normal, burning) = (
+        actors_in(map::KAKARIKO_VILLAGE_ADULT),
+        actors_in(map::KAKARIKO_VILLAGE_ADULT_ALTERNATIVE),
+    );
+    // Whole actors, so a check's dealt fields and drop come along.
+    let actor = |actors: &[Byml], hash: u64| {
+        let found = actors.iter().find(|a| checks::hash_of(a) == Some(hash));
+        found.cloned()
+    };
+    let chest = actor(&normal, CHEST_1).unwrap();
+    let dynamic = &chest.as_map().unwrap()["Dynamic"];
+    assert!(checks::str_field(dynamic, checks::DROP_ACTOR).is_some());
+    let mut copy = actor(&burning, CHEST_1).unwrap();
+    // Its gate is the one difference.
+    copy.as_mut_map().unwrap().remove("Presence");
+    assert_eq!(copy, chest);
+    // Each hive check in the normal map stands in the burning map too.
+    let checks = pickups::HIVES.checks(&romfs).unwrap();
+    let hives: Vec<u64> = (normal.iter().filter_map(checks::hash_of))
+        .filter(|h| checks.iter().any(|c| c.hash == *h))
+        .collect();
+    assert_eq!(hives.len(), 3);
+    for hash in hives {
+        assert_eq!(actor(&burning, hash), actor(&normal, hash), "hive {hash}");
+    }
     let gd = gamedata::GameData::parse(&written(gamedata::PATH)).unwrap();
     let alias = format!("ZootrOpened.{CHEST_1}");
     assert!(gd.expr(&alias).unwrap().is_some(), "{alias} isn't written");
