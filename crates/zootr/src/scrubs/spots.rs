@@ -31,6 +31,9 @@ pub struct Scrub {
     pub placements: &'static [u64],
     pub branch: Branch,
     pub item: &'static Name,
+    /// The Bool the vanilla sale sets, which spots may share. A repeat spot
+    /// sells forever and has none.
+    pub sold: Option<&'static Name>,
     /// Whether the placements run their talk entry when hit, too.
     pub attacked: bool,
 }
@@ -54,6 +57,7 @@ const fn shop(
         placements,
         branch: Branch::Shop,
         item: RED,
+        sold: None,
         attacked,
     }
 }
@@ -64,6 +68,7 @@ const fn pouch(
     placements: &'static [u64],
     talk: &'static Name,
     item: &'static Name,
+    sold: &'static Name,
     attacked: bool,
 ) -> Scrub {
     Scrub {
@@ -73,6 +78,7 @@ const fn pouch(
         placements,
         branch: Branch::Pouch,
         item,
+        sold: Some(sold),
         attacked,
     }
 }
@@ -84,6 +90,7 @@ pub const SCRUBS: [Scrub; 15] = [
         &[182031956235860994, 7488448334396031424],
         flag::ENEMY_SCRUB_BUSINESS_DEKU_STICK_POUCH_01,
         item::STICK_BAG_MEDIUM,
+        flag::LOST_WOOD_ENEMY_SCRUB_BUSINESS_DEKU_STICK_POUCH_01,
         false,
     ),
     pouch(
@@ -92,6 +99,7 @@ pub const SCRUBS: [Scrub; 15] = [
         &[5406759280757349546, 11192313919554167152],
         flag::ENEMY_SCRUB_BUSINESS_DEKU_STICK_POUCH_01,
         item::STICK_BAG_MEDIUM,
+        flag::LOST_WOOD_ENEMY_SCRUB_BUSINESS_DEKU_STICK_POUCH_01,
         false,
     ),
     pouch(
@@ -100,6 +108,7 @@ pub const SCRUBS: [Scrub; 15] = [
         &[4328741615941752705, 5764461665617243979],
         flag::ENEMY_SCRUB_BUSINESS_DEKU_NUTS_POUCH_01,
         item::NUT_BAG_MEDIUM,
+        flag::LOSTWOOD_ENEMY_SCRUB_BUSINESS_DEKU_NUTS_POUCH_01,
         false,
     ),
     pouch(
@@ -108,6 +117,7 @@ pub const SCRUBS: [Scrub; 15] = [
         &[2518138296199711695],
         actor::ENEMY_SCRUB_BUSINESS_HEART_02,
         actor::OBJ_HEART_PIECE,
+        flag::DEATH_MOUNTAIN_ENEMY_SCRUB_BUSINESS_HEART_PIECE_01,
         true,
     ),
     Scrub {
@@ -117,6 +127,7 @@ pub const SCRUBS: [Scrub; 15] = [
         placements: &[10364468093017215295, 1888007325063123154],
         branch: Branch::Secret,
         item: actor::OBJ_HEART_PIECE,
+        sold: Some(flag::HYRULE_FIELD_ENEMY_SCRUB_BUSINESS_HEART_PIECE_01),
         attacked: false,
     },
     shop(flag::HYRULE_FIELD, "seeds", &[12901354557574090016], false),
@@ -156,6 +167,15 @@ impl Scrub {
         format!("Rando_ScrubSold_{}", self.hash())
     }
 
+    /// The Bool set once Link buys `item` here: the spot's own when the seed
+    /// edits its sale, else the vanilla sale's.
+    pub fn sold(&self, item: &str) -> Option<String> {
+        match self.branch != Branch::Secret && self.edited(item) {
+            true => Some(self.flag()),
+            false => self.sold.map(|f| f.to_string()),
+        }
+    }
+
     fn holder(&self) -> String {
         match self.name {
             "" => HOLDER.into(),
@@ -179,7 +199,12 @@ pub fn checks() -> Vec<ItemCheck> {
 }
 
 pub fn of(check: &ItemCheck) -> Option<&'static Scrub> {
-    SCRUBS.iter().find(|s| s.hash() == check.hash)
+    at(check.hash)
+}
+
+/// The scrub whose check is `hash`.
+pub fn at(hash: u64) -> Option<&'static Scrub> {
+    SCRUBS.iter().find(|s| s.hash() == hash)
 }
 
 /// The families whose items have no get animation: songs, medallions and

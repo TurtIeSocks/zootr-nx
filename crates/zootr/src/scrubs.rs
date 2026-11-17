@@ -83,4 +83,4 @@ mod tests;
 
 pub use placements::{events, fields, flags, gone, leaves, lines};
 pub(crate) use sales::{Level, write};
-pub use spots::{SCRUBS, checks, of};
+pub use spots::{SCRUBS, at, checks, of};
