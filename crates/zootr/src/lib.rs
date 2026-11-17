@@ -87,6 +87,7 @@ pub mod sweep;
 mod text;
 mod tools;
 pub mod tracker;
+mod trade_slot;
 pub mod turn;
 mod twins;
 pub mod value;

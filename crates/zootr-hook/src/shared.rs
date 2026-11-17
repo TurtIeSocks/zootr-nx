@@ -1,10 +1,12 @@
 //! The memory the hook keeps in the game: the loaded map's chest list, under
-//! a lock, and the dev mailbox and switches beside it.
+//! a lock, the dev mailbox and switches beside it, and the cycled slot's
+//! store under a lock of its own.
 
 use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicU32, Ordering};
 
 use crate::Mailbox;
+use crate::ui::Store;
 
 /// How many chests a map's list holds.
 pub const CHESTS: usize = 64;
@@ -88,47 +90,61 @@ impl List {
     }
 }
 
-/// The list and its lock, as they sit in the game's zeroed memory. Chests
-/// are made on several threads at once.
+/// A value and its spin lock, as they sit in the game's zeroed memory.
+#[repr(C)]
+pub struct Locked<T> {
+    lock: AtomicU32,
+    value: UnsafeCell<T>,
+}
+
+// SAFETY: the value is only reached through `with`, under the lock.
+unsafe impl<T: Send> Sync for Locked<T> {}
+
+impl<T> Locked<T> {
+    pub fn with<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
+        lock(&self.lock);
+        // SAFETY: the lock is held.
+        let out = f(unsafe { &mut *self.value.get() });
+        self.lock.store(0, Ordering::Release);
+        out
+    }
+}
+
+/// Out of line, since every hook takes it and space is short.
+#[inline(never)]
+fn lock(lock: &AtomicU32) {
+    while lock
+        .compare_exchange_weak(0, 1, Ordering::Acquire, Ordering::Relaxed)
+        .is_err()
+    {
+        core::hint::spin_loop();
+    }
+}
+
+/// The hook's memory. Chests are made on several threads at once, and the
+/// controller is read on other threads than the menu runs on.
 #[repr(C)]
 pub struct Shared {
-    lock: AtomicU32,
-    list: UnsafeCell<List>,
+    list: Locked<List>,
     pub dev: Mailbox,
     /// The dev switches the app turns on, see [`crate::switches`].
     pub switches: AtomicU32,
+    pub ui: Locked<Store>,
 }
 
-// SAFETY: the list is only reached through `with`, under the lock. The
-// mailbox's plain fields are only read after `asked` is.
+// SAFETY: the mailbox's plain fields are only read after `asked` is.
 unsafe impl Sync for Shared {}
 
 impl Shared {
     pub fn with<T>(&self, f: impl FnOnce(&mut List) -> T) -> T {
-        self.lock();
-        // SAFETY: the lock is held.
-        let out = f(unsafe { &mut *self.list.get() });
-        self.lock.store(0, Ordering::Release);
-        out
-    }
-
-    /// Out of line, since every hook takes it and space is short.
-    #[inline(never)]
-    fn lock(&self) {
-        while self
-            .lock
-            .compare_exchange_weak(0, 1, Ordering::Acquire, Ordering::Relaxed)
-            .is_err()
-        {
-            core::hint::spin_loop();
-        }
+        self.list.with(f)
     }
 
     /// Where chest `i`'s name lives, for create.
     pub fn name_at(&self, i: usize) -> *const usize {
         // SAFETY: an address only, `i` is under `CHESTS`.
         unsafe {
-            let chests = &raw const (*self.list.get()).chests;
+            let chests = &raw const (*self.list.value.get()).chests;
             &raw const (*chests.cast::<Chest>().add(i)).name
         }
     }

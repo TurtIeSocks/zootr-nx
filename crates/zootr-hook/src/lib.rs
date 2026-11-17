@@ -43,10 +43,12 @@ pub use mailbox::{
 pub use shared::{CHESTS, Chest, Credited, List, Shared};
 pub use switches::SWITCHES;
 #[cfg(not(target_os = "none"))]
+pub use table::SlotSpec;
+#[cfg(not(target_os = "none"))]
 pub use table::encode;
 pub use table::{
-    BUNNY_HOOD, Credit, FREE_BOMBCHUS, HEADER, Header, Level, Levels, MAGIC, Offsets, Table,
-    after_grant, pick, pick_with,
+    BUNNY_HOOD, Credit, FREE_BOMBCHUS, HEADER, Header, Level, Levels, MAGIC, Offsets, Slot,
+    TRADE_CYCLE, Table, after_grant, pick, pick_with,
 };
 
 /// Where our pieces go in `main`, for game 1.1.1. The code goes over
@@ -62,4 +64,4 @@ pub const PANIC: u32 = 0x4e9_aff0;
 /// Where each function hook's resume slot sits in the hook, one word each
 /// in the order the hooks are listed, right after the entries. The patch
 /// writes a `b` past the hooked function's pacibsp into each.
-pub const RESUMES: u32 = 32;
+pub const RESUMES: u32 = 56;

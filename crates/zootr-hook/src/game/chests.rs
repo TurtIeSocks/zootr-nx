@@ -177,7 +177,7 @@ pub(super) unsafe fn rewrite(main: usize, table: &Table, value: *mut u8) {
 ///
 /// # Safety
 /// The offsets are this build's.
-unsafe fn owned(main: usize, o: &Offsets) -> Option<impl Fn(&[u8]) -> bool> {
+pub(super) unsafe fn owned(main: usize, o: &Offsets) -> Option<impl Fn(&[u8]) -> bool> {
     let manager = unsafe { at(main, o.manager as usize) }?;
     let count: Count = unsafe { core::mem::transmute(main + o.count as usize) };
     Some(move |pouch: &[u8]| unsafe { count(manager, &pouch.as_ptr(), 0, 0) } > 0)

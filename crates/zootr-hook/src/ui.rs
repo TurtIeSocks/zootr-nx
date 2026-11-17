@@ -8,7 +8,9 @@
 pub mod cycle;
 pub mod input;
 pub mod slots;
+pub mod store;
 
 pub use cycle::{Cycle, Frame, Out, Sound};
 pub use input::{Buttons, Input};
 pub use slots::{Age, MultiSlot};
+pub use store::{Seen, Store};

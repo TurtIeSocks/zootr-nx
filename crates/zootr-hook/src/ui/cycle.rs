@@ -34,7 +34,9 @@ pub struct Out {
 }
 
 /// Off, or cycling with what the slot showed on entering and shows now.
+/// All zeros is `Off`, as the game's memory starts.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[repr(u8)]
 pub enum Cycle {
     #[default]
     Off,
@@ -45,6 +47,24 @@ pub enum Cycle {
 }
 
 impl Cycle {
+    /// What the slot should show: the actor cycled to, else Link's
+    /// `choice` while he holds it and his age can use it, else the game's
+    /// own pick.
+    pub fn showing(
+        &self,
+        slot: &MultiSlot,
+        choice: Option<usize>,
+        age: Age,
+        held: impl Fn(usize) -> bool,
+    ) -> Option<usize> {
+        if let Self::On { now, .. } = *self {
+            return Some(now);
+        }
+        choice
+            .filter(|&i| slot.usable(i, age, &held))
+            .or_else(|| slot.shown(age, held))
+    }
+
     /// Moves on one frame of the menu.
     pub fn step(
         &mut self,
@@ -156,6 +176,24 @@ mod tests {
         assert_eq!(out.chosen, Some(2));
         assert_eq!(out.swallow, Buttons::NONE);
         assert_eq!(cycle, Cycle::Off);
+    }
+
+    #[test]
+    fn the_slot_shows_the_cycle_then_the_choice_then_the_game_s_pick() {
+        let off = Cycle::Off;
+        assert_eq!(
+            off.showing(&FAKE, Some(2), ADULT, holding(&[1, 2])),
+            Some(2)
+        );
+        let on = Cycle::On { before: 2, now: 0 };
+        assert_eq!(on.showing(&FAKE, Some(2), ADULT, holding(&[0, 2])), Some(0));
+        // Traded away, or the other age's: the game's pick.
+        assert_eq!(off.showing(&FAKE, Some(2), ADULT, holding(&[1])), Some(1));
+        assert_eq!(
+            off.showing(&FAKE, Some(4), ADULT, holding(&[1, 4])),
+            Some(1)
+        );
+        assert_eq!(off.showing(&FAKE, None, ADULT, holding(&[])), None);
     }
 
     #[test]

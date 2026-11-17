@@ -18,8 +18,9 @@ pub struct MultiSlot<'a> {
 }
 
 impl MultiSlot<'_> {
-    fn usable(&self, i: usize, age: Age, held: &impl Fn(usize) -> bool) -> bool {
-        self.ages[i] & age as u8 != 0 && held(i)
+    /// Whether Link holds actor `i` and his age can use it.
+    pub fn usable(&self, i: usize, age: Age, held: &impl Fn(usize) -> bool) -> bool {
+        self.ages.get(i).is_some_and(|a| a & age as u8 != 0) && held(i)
     }
 
     /// What the game shows: the first usable actor Link holds.
@@ -44,10 +45,15 @@ impl MultiSlot<'_> {
         forward: bool,
     ) -> Option<usize> {
         let n = self.ages.len();
+        // `checked_rem` keeps a panic (and its relocated location) out of
+        // the hook: `n` is never 0 inside the range.
         (1..=n)
-            .map(|k| match forward {
-                true => (from + n - k) % n,
-                false => (from + k) % n,
+            .filter_map(|k| {
+                match forward {
+                    true => from + n - k,
+                    false => from + k,
+                }
+                .checked_rem(n)
             })
             .find(|&i| self.usable(i, age, &held))
     }

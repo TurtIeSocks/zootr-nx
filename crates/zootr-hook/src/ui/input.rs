@@ -65,11 +65,13 @@ impl Not for Buttons {
     }
 }
 
-/// This frame's buttons beside last frame's.
+/// This frame's buttons beside last frame's, and the ones kept from the
+/// game. All zeros is no buttons, as the game's memory starts.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Input {
     pub held: Buttons,
     before: Buttons,
+    hidden: Buttons,
 }
 
 impl Input {
@@ -87,6 +89,14 @@ impl Input {
     /// Buttons up this frame and down the last.
     pub fn released(&self) -> Buttons {
         self.before & !self.held
+    }
+
+    /// Keeps `swallow` from the game, and every button already kept, until
+    /// it's released: a held button let through later would reach the game
+    /// as a fresh press. Returns the buttons to clear this frame.
+    pub fn hide(&mut self, swallow: Buttons) -> Buttons {
+        self.hidden = (self.hidden | swallow) & self.held;
+        self.hidden
     }
 
     /// Whether all of `hold` are down and one of `press` was just pressed:
@@ -118,6 +128,19 @@ mod tests {
         assert!(Buttons::STICK_LEFT.any(Buttons::LEFT));
         assert!(Buttons::D_RIGHT.any(Buttons::RIGHT));
         assert!(!Buttons::D_UP.any(Buttons::LEFT | Buttons::RIGHT));
+    }
+
+    #[test]
+    fn a_hidden_button_stays_hidden_until_released() {
+        let mut input = Input::default();
+        input.step(Buttons::A);
+        assert_eq!(input.hide(Buttons::A), Buttons::A);
+        input.step(Buttons::A | Buttons::B);
+        assert_eq!(input.hide(Buttons::NONE), Buttons::A);
+        input.step(Buttons::B);
+        assert_eq!(input.hide(Buttons::NONE), Buttons::NONE);
+        input.step(Buttons::A);
+        assert_eq!(input.hide(Buttons::NONE), Buttons::NONE);
     }
 
     #[test]
