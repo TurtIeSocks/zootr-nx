@@ -99,8 +99,10 @@ pub(super) fn twins(item: &str) -> Vec<String> {
 /// The pouch row fields naming the gear a pickup is owned as.
 pub(super) const GEAR: [&Name; 2] = [field::ADULT_EQUIPMENT, field::CHILD_EQUIPMENT];
 
-/// [`twins`], and the gear its pouch row says `item` is owned as:
-/// a pickup's actor and its gear's flag can differ.
+/// [`twins`], the gear its pouch row says `item` is owned as (a pickup's
+/// actor and its gear's flag can differ), and the `Item_` row of an `Obj_`
+/// pickup that counts the same thing: a Deku Stick in a pot lands as the
+/// stick's `Item_` row.
 pub(super) fn owned_as(romfs: &Romfs, item: &str) -> Result<Vec<String>> {
     let mut out = twins(item);
     let table = standins::POUCH_ACTOR_INFO;
@@ -117,6 +119,19 @@ pub(super) fn owned_as(romfs: &Romfs, item: &str) -> Result<Vec<String>> {
         if !out.contains(&actor) {
             out.push(actor);
         }
+    }
+    let counts = |row: &ounce_formats::BymlMap| -> Option<String> {
+        row.get(field::MAX_NUM_GAME_DATA.get())?
+            .as_string()
+            .ok()
+            .map(|s| s.to_string())
+    };
+    let count = counts(&row);
+    let item_row = item.strip_prefix("Obj_").map(|rest| format!("Item_{rest}"));
+    if let Some(other) = item_row.filter(|o| count.is_some() && !out.contains(o))
+        && standins::row(&doc, &other).is_ok_and(|o| counts(&o) == count)
+    {
+        out.push(other);
     }
     Ok(out)
 }
@@ -196,6 +211,18 @@ mod tests {
         let names = owned_as(&romfs, actor::OBJ_ARMOR_GORON).unwrap();
         assert_eq!(names, [actor::OBJ_ARMOR_GORON, actor::ARMOR_ADULT_GORON]);
         assert_eq!(owned_as(&romfs, "Item_A").unwrap(), ["Item_A"]);
+    }
+
+    #[test]
+    fn a_pickup_is_watched_as_the_item_row_counting_the_same_thing() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let obj = |i: &Name| format!("Obj_{}", i.get().strip_prefix("Item_").unwrap());
+        for i in [item::DEKU_STICK, item::DEKU_NUT, item::BOMB] {
+            let names = owned_as(&romfs, &obj(i)).unwrap();
+            assert!(names.iter().any(|n| n == i.get()), "{names:?}");
+        }
     }
 
     #[test]
