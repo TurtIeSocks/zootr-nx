@@ -19,6 +19,11 @@ const KEEP: usize = 100;
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct History {
     pub installed: Option<u32>,
+    /// When `installed` went in, in Unix seconds. A save older than this
+    /// was played on another seed. Histories from before it was kept have
+    /// none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub installed_at: Option<u32>,
     /// Oldest first.
     pub entries: Vec<Entry>,
 }
@@ -163,10 +168,20 @@ impl History {
         let entry = history.add(settings, extras, label, report);
         let (id, summary) = (entry.id, Summary::from(entry));
         if installed {
-            history.installed = Some(id);
+            history.install(Some(id));
         }
         history.save()?;
         Ok(summary)
+    }
+
+    /// Makes `id` the installed seed, or none for vanilla. Installing the
+    /// seed already in keeps its time, so the saves played on it still
+    /// count.
+    pub fn install(&mut self, id: Option<u32>) {
+        if id != self.installed {
+            self.installed_at = id.map(|_| now());
+        }
+        self.installed = id;
     }
 
     /// Record a seed. Installing it is up to the caller.
@@ -178,12 +193,9 @@ impl History {
         report: Report,
     ) -> &Entry {
         let id = self.entries.last().map_or(1, |e| e.id + 1);
-        let time = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map_or(0, |d| d.as_secs() as u32);
         self.entries.push(Entry {
             id,
-            time,
+            time: now(),
             settings,
             extras,
             label,
@@ -249,8 +261,33 @@ impl History {
     }
 }
 
+/// Now, in Unix seconds.
+fn now() -> u32 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs() as u32)
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn installing_another_seed_restarts_its_clock() {
+        let mut history = History::default();
+        history.install(Some(1));
+        let earlier = history.installed_at.unwrap() - 100;
+        history.installed_at = Some(earlier);
+        // The same seed again keeps its saves.
+        history.install(Some(1));
+        assert_eq!(history.installed_at, Some(earlier));
+        history.install(Some(2));
+        assert!(history.installed_at.unwrap() > earlier);
+        history.install(None);
+        assert_eq!((history.installed, history.installed_at), (None, None));
+        // A history from before the time was kept reads with none.
+        let old: History = serde_json::from_str(r#"{"installed": 3, "entries": []}"#).unwrap();
+        assert_eq!(old.installed_at, None);
+    }
+
     use super::*;
     use crate::generate::Written;
     use crate::known::{actor, item};

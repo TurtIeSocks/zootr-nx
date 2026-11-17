@@ -223,7 +223,7 @@ async fn install(app: AppHandle, id: u32, steps: Channel<progress::StepEvent>) -
         let entry = history.get(id)?;
         let generating = app.state::<Generating>();
         generating.install(steps, entry.report.seed, &entry.settings, &entry.extras)?;
-        history.installed = Some(id);
+        history.install(Some(id));
         history.save()
     })
     .await
@@ -236,7 +236,7 @@ async fn uninstall() -> Res<()> {
     blocking(|| {
         generate::uninstall(&Config::load()?.targets)?;
         let mut history = History::load()?;
-        history.installed = None;
+        history.install(None);
         history.save()
     })
     .await
@@ -450,7 +450,11 @@ impl Checks {
             }
             let gd = app.state::<Live>().gamedata(&config)?;
             let mut t = Tracker::new(&gd, &history.get(id)?.report.spots)?;
-            if let Some(save) = savefile::newest(&config.save_dir()?)? {
+            // Only a save played since this seed went in: an older one
+            // holds another seed's checks.
+            let save = savefile::newest(&config.save_dir()?)?
+                .filter(|s| savefile::written_since(s, history.installed_at));
+            if let Some(save) = save {
                 t.load(tracker::in_save(&savefile::load(&save)?));
             }
             *tracker = Some((id, t));
