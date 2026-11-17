@@ -870,3 +870,42 @@ fn the_riddle_scrub_as_an_adult_names_what_it_was_dealt() {
         assert!(says(&heart, like) > 0, "{like}");
     }
 }
+
+#[test]
+fn a_spot_is_sold_by_the_flag_its_seed_registers() {
+    let other = actor::OBJ_HEART_PIECE.to_string();
+    for (i, s) in SCRUBS.iter().enumerate() {
+        let item = match s.item == other.as_str() {
+            true => item::STICK_BAG_MEDIUM.to_string(),
+            false => other.clone(),
+        };
+        let registered = flags(&drops(&[(i, &item)]));
+        let sold = s.sold(&item).unwrap();
+        let own = s.branch != Branch::Secret;
+        assert_eq!(registered.contains(&sold), own, "{}", s.name);
+    }
+}
+
+#[test]
+fn an_unedited_spot_keeps_its_vanilla_sold_flag() {
+    if dev_dump().is_none() {
+        return;
+    }
+    for s in SCRUBS.iter().filter(|s| s.branch != Branch::Shop) {
+        let vanilla = s.sold.map(|f| f.to_string());
+        assert!(vanilla.is_some(), "{}", s.name);
+        assert_eq!(s.sold(s.item.as_ref()), vanilla, "{}", s.name);
+    }
+    let hf = &SCRUBS[HF_HEART];
+    let other = item::STICK_BAG_MEDIUM.to_string();
+    assert_eq!(
+        hf.sold(&other),
+        Some(flag::HYRULE_FIELD_ENEMY_SCRUB_BUSINESS_HEART_PIECE_01.to_string())
+    );
+    assert!(
+        SCRUBS
+            .iter()
+            .filter(|s| s.branch == Branch::Shop)
+            .all(|s| s.sold.is_none())
+    );
+}

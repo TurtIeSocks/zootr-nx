@@ -154,6 +154,10 @@ pub enum Probe {
     Pool {
         #[arg(long, default_value_t = 1)]
         seed: u64,
+        /// Only the spots the tracker has no flag for, which never tick
+        /// as checked, with their holder.
+        #[arg(long)]
+        untracked: bool,
     },
     /// Rows of an RSDB table, like `EventSetting` or `Challenge`, whose
     /// row id contains `pattern`.
@@ -318,7 +322,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Groups { file, logic } => groups(romfs, &file, &logic),
         Probe::Restbl { paths } => restbl(romfs, &paths),
         Probe::Shops { seed } => shops(romfs, seed),
-        Probe::Pool { seed } => pool(romfs, seed),
+        Probe::Pool { seed, untracked } => pool(romfs, seed, untracked),
     }
 }
 

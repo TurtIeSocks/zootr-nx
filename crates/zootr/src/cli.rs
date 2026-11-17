@@ -41,9 +41,11 @@ pub fn run() -> Result<()> {
         note,
         session,
         force,
+        urgent,
+        on,
     } = cli.command
     {
-        return turn(to, note, session, force);
+        return turn(to, note, session, force, urgent, on);
     }
     if let Command::Target(cmd) = cli.command {
         return target_command(cmd);
@@ -192,9 +194,17 @@ pub fn run() -> Result<()> {
             mix,
             only,
             seed,
+            yield_to,
             judge,
             ..
-        } => sweep(&romfs, &path, judge, out, (rounds, limit, mix, only, seed)),
+        } => sweep(
+            &romfs,
+            &path,
+            judge,
+            out,
+            (rounds, limit, mix, only, seed),
+            yield_to,
+        ),
         Command::Drill {
             report: Some(DrillReport::Report { out }),
             ..

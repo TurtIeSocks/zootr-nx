@@ -11,6 +11,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
 
+pub mod queue;
+pub mod remote;
+pub mod serve;
+
+pub use remote::{Ask, TurnConfig};
+
+/// Names the Claude session running a command, for every command that
+/// touches the game without a `--session` of its own.
+pub const SESSION: &str = "ZOOTR_SESSION";
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Player {
@@ -34,6 +44,86 @@ pub struct Turn {
 /// Whether zootr runs from Claude's shell, where turns are enforced.
 pub fn from_claude() -> bool {
     std::env::var_os("CLAUDECODE").is_some()
+}
+
+/// This Claude session's name, from [`SESSION`].
+pub fn session() -> String {
+    std::env::var(SESSION).unwrap_or_default()
+}
+
+/// Refuses a command touching the game from Claude's shell unless session
+/// `session` holds it, and renews that hold. With a queue configured the
+/// service decides, else the local `turn.json` (also when the service
+/// can't be reached). The maintainer's own commands always go through.
+pub fn hold(session: &str) -> Result<()> {
+    if !from_claude() {
+        return Ok(());
+    }
+    ensure!(
+        !session.is_empty(),
+        "name this Claude session: set {SESSION} (or pass --session) to the name it joined the queue with"
+    );
+    let turn = Config::load()?.turn;
+    if turn.remote() {
+        match turn.ask(Ask::Renew {
+            session: session.into(),
+        }) {
+            Ok(_) => return Ok(()),
+            Err(e) if !unreachable(&e) => return Err(e),
+            Err(e) => eprintln!("{e:#}: going by the local turn"),
+        }
+    }
+    Turn::load()?.ensure_held(session, true)
+}
+
+/// How often [`plays`] looks at the game, and how long it waits for the
+/// game to come up before it gives the game back.
+const LOOK: std::time::Duration = std::time::Duration::from_secs(5);
+const LAUNCH: std::time::Duration = std::time::Duration::from_secs(120);
+
+/// The maintainer pressed Play: take this machine's game in the queue at
+/// once, and give it back once `running` says the game quit. Does nothing
+/// without a queue, and the queue not answering never stops Play.
+pub fn plays(turn: TurnConfig, running: impl FnMut() -> bool + Send + 'static) {
+    if !turn.remote() || turn.here.is_empty() {
+        return;
+    }
+    let game = turn.here.clone();
+    if let Err(e) = turn.ask(Ask::Take { game: game.clone() }) {
+        eprintln!("taking {game} in the turn queue: {e:#}");
+        return;
+    }
+    std::thread::spawn(move || {
+        played(running, LOOK, LAUNCH);
+        if let Err(e) = turn.ask(Ask::Leave { game }) {
+            eprintln!("giving the game back to the turn queue: {e:#}");
+        }
+    });
+}
+
+/// Returns once the game came up and quit, or never came up within
+/// `launch`, looking every `look`.
+fn played(
+    mut running: impl FnMut() -> bool,
+    look: std::time::Duration,
+    launch: std::time::Duration,
+) {
+    let start = std::time::Instant::now();
+    while !running() {
+        if start.elapsed() >= launch {
+            return;
+        }
+        std::thread::sleep(look);
+    }
+    while running() {
+        std::thread::sleep(look);
+    }
+}
+
+/// Whether `e` is the service not answering, rather than refusing.
+fn unreachable(e: &anyhow::Error) -> bool {
+    e.chain()
+        .any(|c| c.downcast_ref::<std::io::Error>().is_some())
 }
 
 impl Turn {
@@ -154,6 +244,24 @@ impl std::fmt::Display for Turn {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn played_returns_once_the_game_came_up_and_quit_or_never_came_up() {
+        let ms = std::time::Duration::from_millis(1);
+        let mut looks = [false, false, true, true, false].into_iter();
+        played(|| looks.next().unwrap(), ms, ms * 1000);
+        assert_eq!(looks.next(), None, "looked until it quit");
+        let mut never = 0;
+        played(
+            || {
+                never += 1;
+                false
+            },
+            ms,
+            ms * 20,
+        );
+        assert!(never > 1);
+    }
 
     fn held(player: Option<Player>) -> Turn {
         Turn {

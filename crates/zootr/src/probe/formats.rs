@@ -113,13 +113,24 @@ fn graph_bytes(romfs: &Romfs, path: &str) -> Result<Vec<u8>> {
 
 /// Each spot of the widest sweep mix: hash, area, trigger or skip reason,
 /// name.
-pub(super) fn pool(romfs: &Romfs, seed: u64) -> Result<()> {
+pub(super) fn pool(romfs: &Romfs, seed: u64, untracked: bool) -> Result<()> {
     use crate::sweep::night::{self, MIXES, mix};
     use crate::sweep::plan::Trigger;
     let dir = std::env::temp_dir().join("zootr-probe-pool");
     let (_, settings) = mix(MIXES.len() - 1);
     let places = crate::dev::places(romfs)?;
-    for p in night::pool(romfs, &dir, seed, &settings, &places)? {
+    let pool = night::pool(romfs, &dir, seed, &settings, &places)?;
+    if untracked {
+        let spots: Vec<_> = pool.iter().map(|p| p.spot.clone()).collect();
+        let gd = crate::gamedata::GameData::load(romfs)?;
+        let tracker = crate::tracker::Tracker::new(&gd, &spots)?;
+        let left = spots.iter().filter(|s| tracker.flag(s.hash).is_none());
+        for s in left {
+            println!("{:<20} {:<24} {}", s.hash, s.area, s.holder);
+        }
+        return Ok(());
+    }
+    for p in pool {
         let how = match &p.trigger {
             Trigger::Skip(why) => format!("skip: {why}"),
             t => night::kind(t).into(),

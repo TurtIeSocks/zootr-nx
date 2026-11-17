@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::Romfs;
 
 use super::args::{JudgeArgs, StartArgs};
@@ -20,7 +20,8 @@ use crate::sweep::drills::{self, Skill};
 use crate::sweep::judge::ModelJudge;
 use crate::sweep::night::{self, Night};
 use crate::sweep::report;
-use crate::turn::{self, Turn};
+use crate::sweep::resume::Yielding;
+use crate::turn;
 use crate::vision::Vision;
 use crate::{kept, recorder, warp};
 
@@ -59,7 +60,7 @@ fn boot_on(
     start: &StartArgs,
     limit: Duration,
 ) -> Result<PathBuf> {
-    Turn::load()?.ensure_held(&start.session, turn::from_claude())?;
+    turn::hold(&start.session)?;
     let (from, name) = match launch {
         Launch::Kept(name) => (Start::Save(kept::path(name)?), name.as_str()),
         Launch::New => (Start::New, "new"),
@@ -219,12 +220,14 @@ fn with_night(
         mix: None,
         only: None,
         seed: None,
+        yielding: None,
     };
     go(&mut night)
 }
 
 /// `zootr sweep`: `rounds` rounds, `limit` spots each at most, in mix
-/// `mix` only, of the spots `only` picks, on `seed` alone if it's given.
+/// `mix` only, of the spots `only` picks, on `seed` alone if it's given,
+/// stepping aside for anyone waiting for game `yield_to`.
 pub(super) fn sweep(
     romfs: &Romfs,
     game: &Path,
@@ -237,13 +240,29 @@ pub(super) fn sweep(
         Option<String>,
         Option<u64>,
     ),
+    yield_to: Option<String>,
 ) -> Result<()> {
     let mix = mix.map(|name| night::pinned(&name)).transpose()?;
+    let yielding = match yield_to {
+        Some(game) => {
+            let turn = Config::load()?.turn;
+            ensure!(
+                turn.remote(),
+                "--yield needs a queue: set `turn.url` in the config"
+            );
+            let name = dir
+                .file_name()
+                .map_or("sweep".into(), |n| n.to_string_lossy().into_owned());
+            Some(Yielding { turn, game, name })
+        }
+        None => None,
+    };
     with_night(romfs, game, judge, dir, |night| {
         night.limit = limit;
         night.mix = mix;
         night.only = only;
         night.seed = seed;
+        night.yielding = yielding;
         night.run(rounds)
     })
 }

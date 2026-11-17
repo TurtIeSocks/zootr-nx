@@ -56,6 +56,10 @@ pub struct Config {
     /// Seeds install the dev panel's hook, and the app's Dev button opens
     /// the panel.
     pub dev_panel: bool,
+    /// The turn queue: where it is and the games it hands out.
+    #[cfg_attr(feature = "specta", specta(skip))]
+    #[serde(skip_serializing_if = "crate::turn::TurnConfig::is_unset")]
+    pub turn: crate::turn::TurnConfig,
     /// Draw item icons from the game dump. zootr-nx ships none of the
     /// game's art, so it's off until the person turns it on.
     pub game_assets: bool,
