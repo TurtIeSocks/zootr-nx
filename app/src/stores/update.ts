@@ -52,7 +52,10 @@ async function check() {
 /** Reads this build's version, which the sidebar always shows, then checks
  * once the config is read, every 6 hours and whenever the switch flips. */
 const started = once(async () => {
-  useUpdate.setPath("current", await getVersion());
+  await getVersion().then(
+    (v) => useUpdate.setPath("current", v),
+    (e: unknown) => console.debug("Couldn't read the version", e),
+  );
   await initConfig();
   await check();
   const timer = setInterval(() => void check(), EVERY);

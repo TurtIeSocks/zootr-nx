@@ -1,9 +1,12 @@
+import { getVersion } from "@tauri-apps/api/app";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { full } from "@/lib/config";
 import { useConfig } from "@/stores/config";
 import { init, stop, useUpdate } from "@/stores/update";
 
-vi.mock("@tauri-apps/api/app", () => ({ getVersion: async () => "0.1.0" }));
+vi.mock("@tauri-apps/api/app", () => ({
+  getVersion: vi.fn(async () => "0.1.0"),
+}));
 vi.mock("@/stores/config", async (original) => ({
   ...(await original<typeof import("@/stores/config")>()),
   init: async () => {},
@@ -32,6 +35,14 @@ test("a newer release is kept, with this build's version", async () => {
   await init();
   expect(useUpdate.getState().latest?.version).toBe("0.2.0");
   expect(useUpdate.getState().current).toBe("0.1.0");
+});
+
+test("a version it can't read leaves the version blank and offers nothing", async () => {
+  vi.spyOn(console, "debug").mockImplementation(() => {});
+  vi.mocked(getVersion).mockRejectedValueOnce(new Error("no Tauri"));
+  await init();
+  expect(useUpdate.getState().current).toBeNull();
+  expect(useUpdate.getState().latest).toBeNull();
 });
 
 test("an older or equal release isn't", async () => {
