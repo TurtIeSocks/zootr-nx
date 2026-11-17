@@ -73,7 +73,8 @@ pub fn boot(
         Some(from) if !target.names_save() => {
             ensure!(
                 std::fs::read_dir(from)?.next().is_some(),
-                "a new file needs a {{save}} line in {}'s harness env",
+                "a new file needs a {{save}} line in {}'s harness env: \
+                 start from a kept new file with `--save` instead",
                 target.name
             );
             let to = (target.save_dir.as_ref())
