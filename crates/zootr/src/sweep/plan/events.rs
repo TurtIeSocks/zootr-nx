@@ -9,7 +9,7 @@ use anyhow::Result;
 use super::{Halt, NPC, Planner, Ready, Trigger, anchor, steps};
 use crate::cutscenes::Catalogue;
 use crate::gifts::{self, Gift, How};
-use crate::known::{Name, actor, field, flag, flow, item};
+use crate::known::{Name, actor, field, flag, flow, item, scene};
 use crate::settings::DUNGEON_REWARDS;
 use crate::warp::{self, Pose, Side};
 use crate::{flows, gates, rsdb};
@@ -40,10 +40,24 @@ static OUT_OF_SCOPE: LazyLock<[(&str, &str); 10]> = LazyLock::new(|| {
 });
 
 /// Givers who teach only once Link takes his ocarina out after their
-/// talk, and the button that does it: the Windmill Man's Song of Storms
-/// (Mac, 2026-11-14). His flow isn't an event, so asked by name nothing
-/// plays, and he stands in the adult village only.
-const DRAWN: [(&Name, &str); 1] = [(actor::NPC_HYLIA_009_ADULT, "Left")];
+/// talk, by the gift's caller or flow, with the giver and the button that
+/// does it: the Windmill Man's Song of Storms (Mac, 2026-11-14). His flow
+/// isn't an event, so asked by name nothing plays, and he stands in the
+/// adult village only. Malon's song, asked by name, was refused, and
+/// beside her at the ranch her talk loops until Link draws it (Mac,
+/// 2026-11-17).
+const DRAWN: [(&Name, &Name, &str); 2] = [
+    (
+        actor::NPC_HYLIA_009_ADULT,
+        actor::NPC_HYLIA_009_ADULT,
+        "Left",
+    ),
+    (
+        scene::MELODY_GET_EPONA,
+        actor::NPC_HYLIA_MALON_CHILD,
+        "Left",
+    ),
+];
 
 /// Gifts a challenge wins, as `(flow, event, values)`: the values a won
 /// challenge leaves, set before the event the game plays as it ends. The
@@ -120,8 +134,8 @@ static HALTED: LazyLock<[Halted; 1]> = LazyLock::new(|| {
 
 impl Planner<'_> {
     pub(super) fn gift(&mut self, gift: &Gift) -> Result<(Trigger, Option<bool>)> {
-        let drawn = DRAWN.iter().find(|(giver, _)| gift.caller() == Some(giver));
-        if let Some(&(giver, button)) = drawn {
+        let drawn = (DRAWN.iter()).find(|(by, ..)| gift.caller() == Some(by) || gift.flow == *by);
+        if let Some(&(_, giver, button)) = drawn {
             return self.talk(gift, giver, Some(button));
         }
         if gift.item.starts_with("Item_Melody_") || gift.giver.contains("Great Fairy") {
@@ -160,6 +174,14 @@ impl Planner<'_> {
             return Ok((Trigger::Skip(why), None));
         };
         let child = warp::era(&map);
+        // A giver there only past a quest step, as Malon at the ranch.
+        let placed = warp::placements_in(self.romfs, &map)?;
+        let presence = placed
+            .into_iter()
+            .find(|p| p.name == giver)
+            .and_then(|p| p.presence);
+        let mut steps = steps(gift);
+        steps.extend(self.bring(presence.as_ref())?.0);
         let sold = (SOLD.iter()).find(|(flow, item, ..)| *flow == giver && *item == gift.item);
         let mut ready: Ready = sold.map_or(vec![], |s| s.2.iter().map(|v| v.to_string()).collect());
         let halted = HALTED.iter().find(|(flow, ..)| *flow == giver);
@@ -174,7 +196,7 @@ impl Planner<'_> {
         let trigger = Trigger::Talk {
             at,
             face,
-            steps: steps(gift),
+            steps,
             ready,
             then,
             give: sold.map(|s| s.3.get()),
@@ -474,6 +496,31 @@ mod tests {
                 (&**flag::NPC_HYLIA_045_DEPTH_OF_DIVING, "9")
             ]
         );
+    }
+
+    #[test]
+    fn malon_is_talked_to_at_the_ranch_then_the_ocarina_drawn() {
+        let Some((_, _, planned)) = seed() else {
+            return;
+        };
+        let p = planned.iter().find(|p| p.spot.holder == "Malon").unwrap();
+        let Trigger::Talk {
+            at: [x, _, z],
+            steps,
+            then,
+            ..
+        } = &p.trigger
+        else {
+            panic!("{:?}", p.trigger);
+        };
+        assert_eq!(*then, Some("Left"));
+        // She comes to the ranch once the castle quest is past meeting her.
+        assert!(
+            steps.iter().any(|(q, _)| q == &**flow::GOTO_HYRULE_CASTLE),
+            "{steps:?}"
+        );
+        // Her placement is at (-91.9, 245.4): Link lands a step in front.
+        assert!((x + 91.9).hypot(z - 245.4) < 2.5, "{x} {z}");
     }
 
     #[test]

@@ -54,6 +54,7 @@ pub const NPC_HYLIA_047_CHILD: &Name = &n!(0xe9c27836ad286d47);
 pub const NPC_HYLIA_048_BOTTLE_SHOP: &Name = &n!(0x88022239b8764288);
 pub const NPC_HYLIA_DAMPE_001: &Name = &n!(0x297a866293869e0a);
 pub const NPC_HYLIA_IMPERIAL_SOLDIER_BOMB: &Name = &n!(0x7012d59fa06b16a3);
+pub const NPC_HYLIA_MALON_CHILD: &Name = &n!(0x39b51ad30daf2215);
 pub const NPC_HYLIA_ZELDA_CHILD: &Name = &n!(0x6226d3629e8de2da);
 pub const NPC_KAEPORA_LAKE_HYLIA: &Name = &n!(0x9ac553a5b3a4a769);
 pub const NPC_MIDO: &Name = &n!(0x7c8f54f2839a24c6);

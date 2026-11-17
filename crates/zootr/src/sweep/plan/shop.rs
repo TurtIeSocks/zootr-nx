@@ -4,7 +4,8 @@
 use anyhow::Result;
 
 use super::landing::across_from;
-use super::{Planner, Ready, Steps, Trigger, step_of};
+use super::{Planner, Ready, Steps, Trigger, quests, step_of};
+use crate::gates::{Atom, Expr};
 use crate::generate::Spot;
 use crate::gifts;
 use crate::known::{Name, actor, field, flag};
@@ -119,15 +120,21 @@ impl Planner<'_> {
 
     /// What brings in a keeper there only by `presence`: the quest step
     /// its BoolExp asks for (the Bombchu Shop's keeper comes once the
-    /// Goron's Ruby quest is complete), or its Bool set true. Nothing for
-    /// a keeper there while a flag is unset, or by any other expression.
+    /// Goron's Ruby quest is complete), or the step after the one it asks
+    /// a quest to be past (Malon at the ranch once the castle quest is past
+    /// meeting her), or its Bool set true. Nothing for a keeper there while
+    /// a flag is unset, or by any other expression.
     pub(super) fn bring(&mut self, presence: Option<&Presence>) -> Result<(Steps, Ready)> {
         let Some(p) = presence.filter(|p| !p.negated) else {
             return Ok(Default::default());
         };
-        Ok(match self.gamedata()?.expr(&p.flag)? {
+        let gd = self.gamedata()?;
+        Ok(match gd.expr(&p.flag)? {
             None => (vec![], vec![p.flag.clone()]),
-            Some(expr) => (step_of(&expr).into_iter().collect(), vec![]),
+            Some(expr) => {
+                let past = quests(gd, &Expr::Atom(Atom::Exp(p.flag.clone())));
+                (step_of(&expr).into_iter().chain(past).collect(), vec![])
+            }
         })
     }
 
