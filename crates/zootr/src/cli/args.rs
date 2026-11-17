@@ -376,6 +376,10 @@ pub(super) enum TargetCommand {
     Import { file: PathBuf },
     /// Print a target's preset JSON, with the home folder as `~`.
     Export { name: String },
+    /// Run a target's rebuild command, for a game that bakes the hook
+    /// patch in when it's built, then say whether its build has the
+    /// installed patch.
+    Rebuild { name: String },
 }
 
 #[derive(Subcommand)]

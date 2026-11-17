@@ -1,4 +1,5 @@
-//! `zootr target`: adding a target from a shared preset and printing one.
+//! `zootr target`: adding a target from a shared preset, printing one, and
+//! rebuilding one's game.
 
 use std::io::Read;
 use std::path::Path;
@@ -6,7 +7,9 @@ use std::path::Path;
 use anyhow::{Context, Result, bail};
 
 use super::args::TargetCommand;
+use crate::build;
 use crate::config::{Config, Target};
+use crate::progress::{self, Run};
 
 pub(super) fn target_command(cmd: TargetCommand) -> Result<()> {
     match cmd {
@@ -23,13 +26,36 @@ pub(super) fn target_command(cmd: TargetCommand) -> Result<()> {
         }
         TargetCommand::Export { name } => {
             let config = Config::load()?;
-            let Some(target) = config.targets.iter().find(|t| t.name == name) else {
-                bail!("no target named {name}");
-            };
-            println!("{}", target.export());
+            println!("{}", named(&config, &name)?.export());
+        }
+        TargetCommand::Rebuild { name } => {
+            let config = Config::load()?;
+            let target = named(&config, &name)?;
+            let run = Run::silent().with(build::echo).with(progress::print);
+            let done = build::rebuild(target, config.game.as_deref(), &run);
+            run.end(&done);
+            done?;
+            println!("{name}'s build has the installed hook patch");
         }
     }
     Ok(())
+}
+
+fn named<'a>(config: &'a Config, name: &str) -> Result<&'a Target> {
+    match config.targets.iter().find(|t| t.name == name) {
+        Some(target) => Ok(target),
+        None => bail!("no target named {name}"),
+    }
+}
+
+/// Each target's build status line on stderr, for a game whose build hasn't
+/// seen the hook patch just installed.
+pub(super) fn warn_builds(targets: &[Target]) {
+    for t in targets {
+        if let Some(text) = build::status(t).and_then(|s| s.text(&t.name)) {
+            eprintln!("{text}");
+        }
+    }
 }
 
 /// The file's text, or stdin's for `-`.

@@ -8,10 +8,11 @@ use std::path::{Path, PathBuf};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use anyhow::{Context, Result, ensure};
+use anyhow::{Context, Result, bail, ensure};
 
 use super::{Boot, Input};
-use crate::config::Target;
+use crate::build::{self, Status};
+use crate::config::{Config, Target};
 use crate::dev::Dev;
 use crate::live::Game;
 use crate::recorder;
@@ -67,6 +68,7 @@ pub fn boot(
         !input.running(),
         "the game is already running, and it may be the maintainer's"
     );
+    built(target)?;
     match save {
         Some(from) if !target.names_save() => {
             ensure!(
@@ -87,6 +89,33 @@ pub fn boot(
         }
     }
     into_play(input, |since| by_memory(target, since), (limit, LOOK))
+}
+
+/// Make sure a game that bakes the hook patch in was built with the one
+/// installed: rebuild it when it has a command, since no one waits on a
+/// harness run, else refuse, since a run on an older hook means nothing.
+pub fn built(target: &Target) -> Result<()> {
+    match build::status(target) {
+        Some(status) if status.stale() => {
+            let text = status.text(&target.name).unwrap_or_default();
+            if !target
+                .rebuild
+                .as_ref()
+                .is_some_and(|r| !r.command.is_empty())
+            {
+                bail!("{text}. It has no rebuild command, so rebuild it by hand first");
+            }
+            eprintln!("{text}: rebuilding it first");
+            let game = Config::load()?.game;
+            let run = crate::progress::Run::silent().with(build::echo);
+            build::rebuild(target, game.as_deref(), &run)?;
+        }
+        Some(status @ Status::Unrecorded) => {
+            eprintln!("{}", status.text(&target.name).unwrap_or_default());
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
 /// Link the shader cache beside `target`'s own save folder into the run
@@ -210,10 +239,12 @@ mod tests {
 
     use super::*;
 
-    /// A game that reports nothing of its own start, counting presses.
+    /// A game that reports nothing of its own start, counting presses
+    /// and launches.
     #[derive(Default)]
     struct Fake {
         presses: Vec<String>,
+        launches: u32,
     }
 
     impl Input for Fake {
@@ -221,6 +252,7 @@ mod tests {
             false
         }
         fn launch(&mut self, _: Option<&Path>) -> Result<()> {
+            self.launches += 1;
             Ok(())
         }
         fn keys(&self) -> Result<()> {
@@ -239,6 +271,39 @@ mod tests {
     }
 
     const QUICK: (Duration, Duration) = (Duration::from_millis(200), Duration::ZERO);
+
+    #[test]
+    fn a_stale_target_with_no_command_refuses_before_launch() {
+        let dir = std::env::temp_dir().join(format!("zootr-boot-stale-{}", std::process::id()));
+        let mod_dir = dir.join("mods/zootr");
+        std::fs::create_dir_all(mod_dir.join("exefs")).unwrap();
+        std::fs::write(mod_dir.join("exefs/zootr.pchtxt"), "@stop\n").unwrap();
+        std::fs::write(
+            dir.join("exefs_patches.txt"),
+            "# fake build\nzootr\tzootr.pchtxt\t00000000\tcode\t\n",
+        )
+        .unwrap();
+        let target = Target {
+            name: "FakeBaked".into(),
+            app: dir.join("nothing runs this"),
+            mod_dir,
+            settings_file: None,
+            save_dir: None,
+            args: vec![],
+            control: None,
+            bridge: None,
+            env: vec![],
+            harness_env: vec![],
+            rebuild: None,
+        };
+        let mut game = Fake::default();
+        let err = boot(&mut game, &target, None, Duration::ZERO).unwrap_err();
+        let err = err.to_string();
+        assert!(err.contains("FakeBaked needs a rebuild"), "{err}");
+        assert!(err.contains("rebuild it by hand"), "{err}");
+        assert_eq!(game.launches, 0);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 
     #[test]
     fn a_start_presses_a_only_in_the_menus_and_stops_at_play() {
