@@ -56,6 +56,8 @@ const TICK: Duration = Duration::from_millis(100);
 pub(super) const TAP_MS: u64 = 80;
 /// How far from the way he's asked to face Link may be, in degrees.
 const FACING: f32 = 20.0;
+/// A push that moves Link less than this moved him nowhere, in m.
+const STILL: f32 = 0.05;
 /// How many taps Link gets to turn.
 const TURNS: usize = 3;
 /// A height changed by more than this is a drop or a climb, in m.
@@ -358,6 +360,27 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             self.steer(at, TAP_MS)?;
         }
         self.facing(at)
+    }
+
+    /// Push Link in toward `at` until he stands within `stand` of it, at
+    /// most 3 short pushes, stopping at one that moves him nowhere. A walk
+    /// counts as arrived 0.4 m from its spot, and the Well's key chest
+    /// shows "Open" only within 0.9 m: Link stopped 1.0 m off and A did
+    /// nothing (other machine and Mac, 2026-11-16).
+    pub(super) fn close_in(&mut self, at: [f32; 3], stand: f32) -> Result<()> {
+        for _ in 0..TURNS {
+            let here = self.sense.link()?;
+            let off = flat(here, at);
+            if off <= stand {
+                break;
+            }
+            // A tap only turns him: the distance walks on after it.
+            self.steer(at, TAP_MS + millis((off - stand) / SPEED))?;
+            if flat(self.sense.link()?, here) < STILL {
+                break;
+            }
+        }
+        Ok(())
     }
 
     /// Wait up to `wait` for the game's state to answer `yes`.

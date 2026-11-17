@@ -255,12 +255,15 @@ impl<S: Sense, I: Input> Drive<'_, S, I> {
         };
         let reached = within_reach(&went, short, reach);
         let result = match (went.result, act) {
-            (_, Act::Face { .. }) if reached => {
+            (_, Act::Face { stand }) if reached => {
                 match self.here {
                     // One tap: the camera the warp left behind him stays
                     // only until he turns. A talks from 30 degrees off.
                     true => self.steer(placement.pose.at, TAP_MS)?,
-                    false => _ = self.face(placement.pose.at)?,
+                    false => {
+                        self.face(placement.pose.at)?;
+                        self.close_in(placement.pose.at, stand)?;
+                    }
                 }
                 self.input.press("A")?;
                 self.event()?
@@ -303,6 +306,7 @@ pub fn used<M: Memory, I: Input>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::checks::flat;
     use crate::known::actor;
     use crate::nav::fixture::{mesh, quad};
     use crate::nav::graph::STEP_UP;
@@ -591,6 +595,33 @@ mod tests {
             eyes.0.borrow().presses.last().map(String::as_str),
             Some("A")
         );
+    }
+
+    #[test]
+    fn a_walk_that_stops_out_of_range_steps_in_before_a() {
+        // The Well's key chest shows "Open" only within 0.9 m, and the
+        // walk's arrival let Link stop 1.0 m off (Mac, 2026-11-16).
+        needs_names!();
+        let chest = placed(actor::OBJ_T_BOX_A_01, 77, [10.0, 0.0, 2.0]);
+        let (used, eyes) = touched(&chest, |e| {
+            // The walk's first push past 1.0 m stops there, short of the
+            // 0.8 m spot but within arrival of it.
+            let mut short = true;
+            e.0.borrow_mut().after_push = Some(Box::new(move |w| {
+                let off = flat(w.at, [10.0, 0.0, 2.0]);
+                if short && off < 1.0 {
+                    let k = 1.0 / off;
+                    w.at = [10.0 + (w.at[0] - 10.0) * k, 0.0, 2.0 + (w.at[2] - 2.0) * k];
+                    short = false;
+                }
+            }));
+            e.0.borrow_mut().after_press = Some(Box::new(|w| {
+                let near = flat(w.at, [10.0, 0.0, 2.0]) <= 0.9;
+                w.event |= near && w.presses.last().is_some_and(|b| b == "A");
+            }));
+        });
+        let at = eyes.0.borrow().at;
+        assert_eq!(used.result, Touch::Event, "Link at {at:?}");
     }
 
     #[test]
