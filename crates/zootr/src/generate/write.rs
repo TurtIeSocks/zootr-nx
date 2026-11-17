@@ -135,7 +135,7 @@ pub fn write_mod(
     let gd = gamedata::GameData::load(romfs)?;
     let opened = tracker::chest_flags(&gd)?;
     let twins = twins::find(romfs, |h| drops.contains_key(&h), opened)?;
-    let aliases: Vec<_> = twins.iter().map(|t| (t.alias(), t.opened)).collect();
+    let aliases: Vec<_> = twins.iter().filter_map(twins::Twin::alias).collect();
     if !edits.is_empty() || !bools.is_empty() || !made.is_empty() || !aliases.is_empty() {
         let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
         defaults = presets::apply(&gd, &mut doc.root, &edits)?;
