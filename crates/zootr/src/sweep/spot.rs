@@ -14,7 +14,7 @@ use super::judge::{Answer, Judge, Look, TURNS};
 use super::melody;
 use super::plan::{Halt, Planned, Trigger, preset};
 use super::verdict::{Swept, Verdict};
-use super::watch::{MESSAGE, Watch, got_other, lands_as, named, owned_as, swapped, wielded};
+use super::watch::{MESSAGE, Watch, got_other, named, swapped, wielded};
 use super::wield::{self, Wield};
 use crate::dev::{Dev, EVENT_PLAYING, NOT_TAKEN, Place, Request};
 use crate::gamedata::GameData;
@@ -29,6 +29,10 @@ use crate::play::Input;
 use crate::shops;
 use crate::steps::SAVED;
 use crate::warp::Placement;
+
+mod drop;
+
+use drop::neighbour;
 
 /// How long the harness presses through an event by itself before the
 /// judge is asked.
@@ -53,11 +57,6 @@ const OCARINA: Duration = Duration::from_millis(3000);
 const STEP_IN: Duration = Duration::from_secs(5);
 /// How many beats of A `finish` presses between songs.
 const ENCORE: usize = 5;
-/// Legs of each length in the square spiral [`search`] walks.
-const SPIRAL: usize = 8;
-/// How long each step pushes the stick: about 0.75 m on the Mac. A 100 ms
-/// push moves Link 0.15 m, most of it spent getting going.
-const STEP_MS: u64 = 250;
 /// How long a rolling giver may take to pass his stopping spot: a lap of
 /// the rolling Goron's track is about 19 s (Mac, 2026-11-15).
 const LAP: Duration = Duration::from_secs(45);
@@ -514,22 +513,6 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         self.input.press(button)
     }
 
-    /// [`search`] for what a broken pot dropped until that lands or a get
-    /// event starts. `use` broke it with the sword and stepped onto its
-    /// spot, where the drop falls, but one can bounce off (a rock's in the
-    /// Colossus).
-    fn fetch(&mut self, landed: &impl Fn(&Self) -> Result<bool>) -> Result<()> {
-        self.input.press("ZL")?;
-        sleep(BEAT / 2);
-        for push in search() {
-            if self.dev.state()?.event || landed(self)? {
-                break;
-            }
-            self.input.stick(push, STEP_MS)?;
-        }
-        Ok(())
-    }
-
     /// Press A through the event alone, for [`ALONE`]. A verdict of pass
     /// when it lands and the event ends, `None` for the judge to go on.
     fn alone(&mut self, landed: &impl Fn(&Self) -> Result<bool>) -> Result<Option<Verdict>> {
@@ -679,14 +662,6 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
     }
 }
 
-/// The stick pushes Link takes looking for a drop, the camera behind him:
-/// a square spiral out from where he stands. Its rows are a step apart, so
-/// it passes over a drop that bounced aside or behind.
-fn search() -> impl Iterator<Item = &'static str> {
-    const TURNS: [&str; 4] = ["LUp", "LRight", "LDown", "LLeft"];
-    (0..2 * SPIRAL).flat_map(|leg| std::iter::repeat_n(TURNS[leg % 4], leg / 2 + 1))
-}
-
 /// `name` fit for a file name.
 pub fn slug(name: &str) -> String {
     let s: String = (name.chars())
@@ -704,8 +679,6 @@ pub fn slug(name: &str) -> String {
         .join("-")
 }
 
-/// Whether Link may have to pay at the spot: a scrub or a shop sells, and
-/// each Great Fairy asks an offering, up to 500 rupees, before her gift.
 /// The song to play when the judge sees a prompt for one: the trigger's own,
 /// else the one the spot's vanilla item teaches.
 fn song(p: &Planned) -> &str {
@@ -717,14 +690,8 @@ fn song(p: &Planned) -> &str {
     }
 }
 
-/// The item of the one of `near` that `other`, an item landing beside the
-/// spot's own, is the get of.
-fn neighbour(romfs: &Romfs, near: &[String], other: &str) -> Option<String> {
-    (near.iter())
-        .find(|item| owned_as(romfs, item).is_ok_and(|names| lands_as(other, &names)))
-        .cloned()
-}
-
+/// Whether Link may have to pay at the spot: a scrub or a shop sells, and
+/// each Great Fairy asks an offering, up to 500 rupees, before her gift.
 fn pays(p: &Planned) -> bool {
     matches!(p.trigger, Trigger::Talk { .. } | Trigger::Play { .. })
 }
@@ -828,45 +795,6 @@ mod tests {
             || Ok(()),
         );
         assert!(other.is_err(), "only an event is waited out");
-    }
-
-    #[test]
-    fn the_search_passes_within_a_step_of_every_spot_around_the_break() {
-        let mut at = (0i32, 0i32);
-        let mut seen = std::collections::BTreeSet::from([at]);
-        for push in search() {
-            match push {
-                "LUp" => at.1 += 1,
-                "LDown" => at.1 -= 1,
-                "LRight" => at.0 += 1,
-                _ => at.0 -= 1,
-            }
-            seen.insert(at);
-        }
-        let reach = SPIRAL as i32 / 2 - 1;
-        for x in -reach..=reach {
-            for y in -reach..=reach {
-                assert!(seen.contains(&(x, y)), "never near ({x}, {y})");
-            }
-        }
-    }
-
-    #[test]
-    fn an_item_landing_is_told_to_be_a_neighbours_by_its_names() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let near = vec![
-            actor::OBJ_RUPEE_RED.to_string(),
-            actor::OBJ_ARMOR_GORON.to_string(),
-        ];
-        let got = |item: &str| format!("IsGet.{item}");
-        let found = neighbour(&romfs, &near, &got(actor::OBJ_ARMOR_GORON));
-        assert_eq!(found.as_deref(), Some(actor::OBJ_ARMOR_GORON.get()));
-        let gear = got(actor::ARMOR_ADULT_GORON);
-        assert_eq!(neighbour(&romfs, &near, &gear).as_deref(), found.as_deref());
-        assert_eq!(neighbour(&romfs, &near, "IsGet.Item_A"), None);
-        assert_eq!(neighbour(&romfs, &[], &gear), None);
     }
 
     #[test]
