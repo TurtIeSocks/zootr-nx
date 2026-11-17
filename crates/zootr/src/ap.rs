@@ -21,6 +21,11 @@ pub use open::{ApSeed, Placed, Resolved};
 /// The game's name in Archipelago.
 pub const GAME: &str = "Ocarina of Time (znx)";
 
+/// The Int an AP seed adds, counting the received items the client has
+/// given Link. It's kept in the save, so the count and the items Link holds
+/// always roll back together.
+pub const RECEIVED: &str = "Rando_ApReceived";
+
 /// The settings the AP world exposes, by id. Each passes the
 /// `an_exposed_option_changes_only_rules` test.
 pub const OPTIONS: &[&str] = &[

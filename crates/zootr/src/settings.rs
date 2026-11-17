@@ -566,11 +566,13 @@ pub struct NewGame {
     pub give: Vec<String>,
     /// Quest steps the opening moves on, as `(challenge, step)`.
     pub progress: Vec<(String, String)>,
-    /// The dev menu's branch in the opening flow.
-    pub dev_panel: bool,
     /// The cheat carries the mailbox's hook on Link's update, which the
-    /// app's requests go through: the dev panel's, and AP's gives.
+    /// app's requests go through: the dev panel's, and AP's gives. The
+    /// opening flow gets the branch that runs a give or a quest step, which
+    /// only the hook's arguments reach.
     pub mailbox: bool,
+    /// Ints the seed adds, at 0 and kept in the save.
+    pub ints: Vec<String>,
     /// The copies standing in for other players' items, in an AP seed.
     pub foreign: Vec<crate::foreign::Foreign>,
 }
@@ -657,8 +659,8 @@ impl NewGame {
             progress: presets::progress(&picked)?,
             spawn: None,
             fields: vec![],
-            dev_panel: false,
             mailbox: false,
+            ints: vec![],
             foreign: vec![],
         })
     }
@@ -778,8 +780,8 @@ mod tests {
                 fields: vec![],
                 give: vec![],
                 progress: vec![],
-                dev_panel: false,
                 mailbox: false,
+                ints: vec![],
                 foreign: vec![],
                 logic: Logic::Glitchless,
                 on: toggles_on(&Settings::new()),

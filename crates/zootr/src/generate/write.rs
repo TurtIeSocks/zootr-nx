@@ -48,7 +48,7 @@ pub(super) fn flows(
     }
     starting::grant(romfs, &mut rewrites, &new_game.start, &give)?;
     starting::replay(romfs, &mut rewrites, &new_game.progress)?;
-    if new_game.dev_panel {
+    if new_game.mailbox {
         steps::dev_branch(romfs, &mut rewrites)?;
     }
     if let Some(spawn) = &new_game.spawn {
@@ -165,6 +165,7 @@ pub fn write_mod(
     }
     let defaults = presets::apply(&gd, &mut doc.root, &edits)?;
     gamedata::add_bools(&mut doc.root, &bools)?;
+    gamedata::add_ints(&mut doc.root, &new_game.ints)?;
     gamedata::add_aliases(&mut doc.root, &aliases)?;
     for (copy, template, _) in &made {
         let names = [copy.clone()];

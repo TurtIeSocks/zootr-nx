@@ -310,6 +310,7 @@ pub const RAW_VALUES: &Name = &n!(0x29c5aada74b85d37);
 pub const REPLACE_EVENT_PARAM: &Name = &n!(0xe08156e591409a0e);
 pub const REQUEST_DEATH_IF_BURNED: &Name = &n!(0x893124ea51729f6f);
 pub const REQUEST_EVENT_NAME: &Name = &n!(0x907ecc3e588bbdcd);
+pub const RESET_TYPE_VALUE: &Name = &n!(0x62d9852f4d0e8039);
 pub const RIGID_BODY_ENTITY_NAME_PATH_ARY: &Name = &n!(0x768546254d5117a3);
 pub const RIGID_BODY_NAME: &Name = &n!(0xff6927ec3b3dcf4b);
 pub const ROTARY_SLASH: &Name = &n!(0x25f050af5fd64075);

@@ -189,7 +189,6 @@ pub fn generate(
     let mut new_game = NewGame {
         spawn: extras.spawn.clone(),
         fields: extras.fields.clone(),
-        dev_panel: extras.dev_panel,
         // The client gives through it.
         mailbox: extras.dev_panel || ap.is_some(),
         ..NewGame::from_settings(settings, &extras.defaults)?
@@ -197,6 +196,7 @@ pub fn generate(
     new_game.give.extend(extras.give.iter().cloned());
     if let Some(ap) = &ap {
         new_game.foreign = ap.foreign.clone();
+        new_game.ints.push(crate::ap::RECEIVED.into());
         new_game.give.extend(ap.give.iter().cloned());
     }
     let place = ap.as_ref().map_or(&extras.place, |ap| &ap.fixed);
