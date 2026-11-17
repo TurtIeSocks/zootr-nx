@@ -1,0 +1,122 @@
+name: Release PR
+
+# On every push to main, two things, in this order:
+#   - main's version has no tag yet (a release PR was just merged): tag it
+#     and build its draft through release.yml.
+#   - commits since the last tag that the changelog keeps: open or update
+#     the release PR, which bumps the version and prepends CHANGELOG.md.
+# cliff.toml decides the next version and what the changelog keeps. See
+# .github/RELEASING.md.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: release-pr
+  cancel-in-progress: false
+
+env:
+  GIT_CLIFF: git-cliff==2.14.2
+
+jobs:
+  tag:
+    name: Tag a new version
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Tag main's version if it has none
+        id: tag
+        run: |
+          version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"$/\1/p' Cargo.toml)
+          test -n "$version"
+          tag="v$version"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "$tag is tagged already"
+            exit 0
+          fi
+          git tag "$tag" "$GITHUB_SHA"
+          git push origin "refs/tags/$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  # A tag pushed with GITHUB_TOKEN starts no workflow, so the draft is built
+  # by calling release.yml here.
+  release:
+    name: Release
+    needs: tag
+    if: needs.tag.outputs.tag != ''
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.tag.outputs.tag }}
+    secrets: inherit
+
+  pr:
+    name: Open or update the release PR
+    needs: tag
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install git-cliff
+        run: pipx install "$GIT_CLIFF"
+
+      - name: Count what the changelog would keep
+        id: count
+        run: |
+          count=$(git cliff --unreleased --context | jq '[.[].commits[]] | length')
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "$count unreleased commits for the changelog"
+
+      - name: Bump the version and the changelog on the release branch
+        if: steps.count.outputs.count != '0'
+        id: bump
+        run: |
+          next=$(git cliff --bumped-version)
+          version=${next#v}
+          git switch -C release
+          sed -i '/^\[workspace.package\]/,/^\[/s/^version = ".*"$/version = "'"$version"'"/' Cargo.toml
+          cargo update --workspace
+          if [ -f CHANGELOG.md ]; then
+            git cliff --unreleased --tag "$next" --prepend CHANGELOG.md
+          else
+            git cliff --unreleased --tag "$next" -o CHANGELOG.md
+          fi
+          git cliff --unreleased --tag "$next" --strip all > "$RUNNER_TEMP/notes.md"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Cargo.toml Cargo.lock CHANGELOG.md
+          git commit -m "chore(release): $next"
+          git push --force origin release
+          echo "next=$next" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the PR, then run CI on it
+        if: steps.count.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEXT: ${{ steps.bump.outputs.next }}
+        run: |
+          {
+            echo "Merging this tags $NEXT and builds its draft release."
+            echo
+            cat "$RUNNER_TEMP/notes.md"
+          } > "$RUNNER_TEMP/body.md"
+          pr=$(gh pr list --head release --base main --state open --json number --jq '.[0].number')
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" --title "chore(release): $NEXT" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh pr create --head release --base main --title "chore(release): $NEXT" --body-file "$RUNNER_TEMP/body.md"
+          fi
+          # A PR opened with GITHUB_TOKEN gets no pull_request run.
+          gh workflow run ci.yml --ref release

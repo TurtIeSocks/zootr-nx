@@ -1,0 +1,49 @@
+# The changelog and the next version, from commit messages since the last
+# vX.Y.Z tag. .github/workflows/release-pr.yml runs it. RELEASING.md says how.
+
+[changelog]
+header = """
+# Changelog
+
+What changed in each release of zootr-nx, newest first. Releases before
+0.5.0 have their notes on the GitHub Releases page.
+"""
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## Unreleased
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim }}
+
+{% for commit in commits %}\
+- {{ commit.message | split(pat="\n") | first | upper_first | trim }}
+{% endfor %}\
+{% endfor %}\
+"""
+# Each release ends with one blank line, so prepended sections stay apart.
+trim = false
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+filter_commits = true
+# Only plain vX.Y.Z tags: the release candidates before 0.2.0 don't count.
+tag_pattern = "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+# Players read this in the app's sidebar, so only what changes the app for
+# them: the night tooling's scopes and the housekeeping types stay out.
+commit_parsers = [
+  { message = "^Merge ", skip = true },
+  { field = "scope", pattern = "^(sweep|probe|play)$", skip = true },
+  { message = "^feat", group = "<!-- 0 -->Added" },
+  { message = "^fix", group = "<!-- 1 -->Fixed" },
+  { message = "^perf", group = "<!-- 2 -->Faster" },
+  { message = ".*", skip = true },
+]
+
+[bump]
+# In 0.x a feature bumps the minor and a fix the patch. A breaking change
+# also bumps the minor until 1.0.
+features_always_bump_minor = true
+breaking_always_bump_major = false
