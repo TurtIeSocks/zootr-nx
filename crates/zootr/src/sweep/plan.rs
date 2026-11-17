@@ -6,7 +6,7 @@ use std::sync::LazyLock;
 use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 
-use super::ice;
+use super::wield::{self, Wield};
 use crate::cows::{self, Cow};
 use crate::cutscenes::Catalogue;
 use crate::events::{Effect, Flows};
@@ -24,6 +24,15 @@ mod events;
 mod landing;
 mod quest;
 mod shop;
+
+/// The actors `expr` reads, by name: a switch, an enemy beaten.
+fn drivers(expr: &gates::Expr) -> Vec<Name> {
+    let actor = |a: &gates::Atom| match a {
+        gates::Atom::Actor { name, .. } => Some(Name(crate::known::hash(name))),
+        _ => None,
+    };
+    expr.atoms().into_iter().filter_map(actor).collect()
+}
 
 /// `(challenge, step)` quest steps, written as their save copies before
 /// the teleport (`sweep::spot::presets`).
@@ -63,8 +72,9 @@ pub enum Trigger {
         /// The items of the other breakables within a sword's swing of a
         /// broken holder, which its swing can break too.
         near: Vec<String>,
-        /// The red ice the holder is frozen in, melted with Blue Fire first.
-        ice: Option<[f32; 3]>,
+        /// What Link wields first: Blue Fire on the red ice the holder is
+        /// frozen in, the hammer on the pillar pinning its switch down.
+        wield: Option<Wield>,
     },
     /// Warp near, use the holder, the judge steers the talk.
     Talk {
@@ -178,6 +188,9 @@ struct Planner<'a> {
     /// The GameData values that raise each chest a graph gates, by
     /// placement hash.
     appear: Option<HashMap<u64, Raise>>,
+    /// The actors each gated chest's graph reads, by placement hash: a
+    /// switch a pillar may pin down.
+    drivers: HashMap<u64, Vec<Name>>,
     cows: Option<Vec<Cow>>,
     /// The sensor areas that start each request actor's event.
     sensors: Option<HashMap<u64, Vec<u64>>>,
@@ -190,6 +203,8 @@ struct Planner<'a> {
     flows: Option<Flows>,
     /// Where each red ice stands, by area, then map.
     ice: HashMap<String, Maps<Vec<[f32; 3]>>>,
+    /// Where each hammer pillar stands, by area, then map.
+    pillars: HashMap<String, Maps<Vec<[f32; 3]>>>,
 }
 
 impl<'a> Planner<'a> {
@@ -207,6 +222,8 @@ impl<'a> Planner<'a> {
             gamedata: None,
             flows: None,
             ice: HashMap::new(),
+            pillars: HashMap::new(),
+            drivers: HashMap::new(),
         }
     }
 }
@@ -245,8 +262,10 @@ impl Planner<'_> {
         if !self.areas.contains_key(area) {
             let maps = warp::poses_in(self.romfs, area)?;
             self.areas.insert(area.to_owned(), maps);
-            let ice = warp::spots_in(self.romfs, area, &ice::RED_ICE)?;
+            let ice = warp::spots_in(self.romfs, area, &wield::RED_ICE)?;
             self.ice.insert(area.to_owned(), ice);
+            let pillars = warp::spots_in(self.romfs, area, &[wield::PILLAR])?;
+            self.pillars.insert(area.to_owned(), pillars);
         }
         Ok(&self.areas[area])
     }
@@ -257,6 +276,10 @@ impl Planner<'_> {
     fn appear(&mut self, hash: u64) -> Result<Raise> {
         if self.appear.is_none() {
             let gated = [gates::trace(self.romfs)?, gates::hearts(self.romfs)?].concat();
+            self.drivers = (gated.iter())
+                .map(|g| (g.hash, drivers(&g.expr)))
+                .filter(|(_, d)| !d.is_empty())
+                .collect();
             let gd = self.gamedata()?;
             let raise = |g: gates::Gate| {
                 let steps = quests(gd, &g.expr);
@@ -267,6 +290,25 @@ impl Planner<'_> {
         Ok((self.appear.as_ref())
             .and_then(|a| a.get(&hash).cloned())
             .unwrap_or_default())
+    }
+
+    /// What Link wields before he uses the holder of `spot` at `face` in
+    /// `map`: a pour on red ice it's frozen in, else a pound on a pillar
+    /// pinning down a switch its gate reads.
+    fn wield(&self, spot: &Spot, map: &str, face: [f32; 3]) -> Result<Option<Wield>> {
+        let of = |by: &HashMap<String, Maps<Vec<[f32; 3]>>>| {
+            (by.get(&spot.area).and_then(|m| m.get(map))).map_or(vec![], Vec::clone)
+        };
+        if let Some(melt) = wield::melt(&of(&self.ice), face) {
+            return Ok(Some(melt));
+        }
+        let Some(drivers) = self.drivers.get(&spot.hash) else {
+            return Ok(None);
+        };
+        let drivers: Vec<&Name> = drivers.iter().collect();
+        let switches = warp::spots_in(self.romfs, &spot.area, &drivers)?;
+        let switches = switches.get(map).map_or(&[][..], Vec::as_slice);
+        Ok(wield::pound(&of(&self.pillars), switches))
     }
 
     /// The actor delete flags play sets along with `ready`'s, through the
@@ -330,7 +372,7 @@ impl Planner<'_> {
                 let pose = &warp::facing(&spot.holder, pose);
                 let (map, at) = (map.clone(), clear_landing(pose, &others));
                 let face = pose.at;
-                let ice = (self.ice[&spot.area].get(&map)).and_then(|i| ice::encasing(i, face));
+                let wield = self.wield(spot, &map, face)?;
                 let broken = pickups::broken(&spot.holder);
                 let found = match broken {
                     true => neighbours(spot.hash, face, poses, &self.breakables),
@@ -348,7 +390,7 @@ impl Planner<'_> {
                         face,
                         broken,
                         near,
-                        ice,
+                        wield,
                     },
                     true => Trigger::Talk {
                         ready: self.sellers(&map, spot.hash)?,
@@ -832,7 +874,7 @@ mod tests {
             return;
         };
         let frozen: BTreeSet<u64> = (planned.iter())
-            .filter(|p| matches!(p.trigger, Trigger::Open { ice: Some(_), .. }))
+            .filter(|p| matches!(&p.trigger, Trigger::Open { wield: Some(w), .. } if w.item == actor::ITEM_BOTTLE_BLUE_FIRE))
             .map(|p| p.spot.hash)
             .collect();
         // The Ice Cavern's two pots and its map chest.
@@ -843,6 +885,33 @@ mod tests {
         ];
         assert!(cavern.iter().all(|h| frozen.contains(h)), "{frozen:?}");
         assert!(frozen.len() < 10, "{frozen:?}");
+    }
+
+    #[test]
+    fn a_chest_whose_switch_a_pillar_pins_has_the_hammer_pound_it_first() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let chest = |hash| Spot {
+            hash,
+            area: crate::known::map::GERUDO_TRAINING_GROUND.to_string(),
+            holder: actor::OBJ_T_BOX_A_01.to_string(),
+            ..Default::default()
+        };
+        // The Spirit Trial's chest ringed by flames, and one an eye
+        // switch opens.
+        let planned = plan(
+            &romfs,
+            &[chest(4372363658229299619), chest(2436665354602612279)],
+        );
+        let wields: Vec<_> = (planned.unwrap().into_iter())
+            .map(|p| match p.trigger {
+                Trigger::Open { wield, .. } => wield.map(|w| (w.item, w.on.map(f32::round))),
+                other => panic!("{other:?}"),
+            })
+            .collect();
+        let pillar = [52.0, 98.0, -86.0];
+        assert_eq!(wields, [Some((crate::known::item::HAMMER, pillar)), None]);
     }
 
     #[test]

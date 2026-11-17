@@ -84,6 +84,7 @@ pub const OBJ_DUNGEON_SMALL_KEY_GERUDO_FORTRESS_03: &Name = &n!(0xe407764fcfcc08
 pub const OBJ_DUNGEON_SMALL_KEY_GERUDO_FORTRESS_04: &Name = &n!(0xe407734fcfcc032e);
 pub const OBJ_EYE_SWITCH_A_02: &Name = &n!(0xc942ad5d1ab0b917);
 pub const OBJ_FIRE_ARROW: &Name = &n!(0xca72927f14df223d);
+pub const OBJ_FIRE_TEMPLE_HAMMER_SLIP_PILLAR_A_01: &Name = &n!(0x59a9fa1b7a503233);
 pub const OBJ_GANON_CASTLE_BROKEN_RUBBLE_A_01: &Name = &n!(0xfaa6e3d03beb7dc2);
 pub const OBJ_GERUDO_VALLEY_HEART_PIECE: &Name = &n!(0xcecbcef2aa2dc7ba);
 pub const OBJ_HEART: &Name = &n!(0x5f426a1d6b4f7cb5);
