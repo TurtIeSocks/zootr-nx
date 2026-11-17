@@ -4,7 +4,8 @@
 //! Burning Kakariko's East Purple Rupee 2 is chest 1's twin: the same chest
 //! on the same spot under another placement hash, with its own opened flag.
 //! There's no room beside it, so the copy's spot holds both in turn: chest
-//! 1 until it's opened, then its twin from the next load on.
+//! 1 until it's opened, then its twin, which stands closed in its place as
+//! soon as chest 1's get window closes.
 
 use std::collections::HashSet;
 
@@ -100,7 +101,7 @@ fn same_spot(a: &Byml, b: &Byml) -> bool {
 
 /// Places each of `twins` whose alternative is `file` in `root`, that
 /// file's doc: the check stands until it's opened, its twin from then on.
-/// Both gates are read as the map loads, so neither swaps mid-open.
+/// Both gates are lazy, so the swap waits for the open to finish.
 /// Returns how many checks it placed.
 pub fn place(file: &str, root: &mut Byml, twins: &[Twin]) -> Result<usize> {
     let mine: Vec<&Twin> = twins.iter().filter(|t| t.file == file).collect();
@@ -125,7 +126,7 @@ pub fn place(file: &str, root: &mut Byml, twins: &[Twin]) -> Result<usize> {
     Ok(mine.len())
 }
 
-/// Gives `actor` a Presence on `flag`, read once as the map loads.
+/// Gives `actor` a Presence on `flag`, read lazily, so never mid-open.
 fn gate(actor: &mut Byml, flag: &str, negated: bool) -> Result<()> {
     let map = actor.as_mut_map()?;
     ensure!(!map.contains_key("Presence"), "{flag}: already gated");
