@@ -425,6 +425,9 @@ fn add(
         .find(|e| like(e))
         .with_context(|| format!("the {kind} table has no entry to copy"))?
         .clone();
+    let file = int(template
+        .get(&**field::SAVE_FILE_INDEX)
+        .context(field::SAVE_FILE_INDEX)?)?;
     for name in names {
         let hash = murmur3(name.as_bytes());
         let taken = entries.iter().any(|e| has_hash(e, hash));
@@ -436,6 +439,38 @@ fn add(
         entry.insert(field::DEFAULT_VALUE.to_string().into(), value);
         entries.push(Byml::Map(entry));
     }
+    grow_saves(root, file, names.len())
+}
+
+/// The bytes one entry takes in a save's table: its hash, then its value
+/// or where its value is.
+const SAVE_PAIR: i64 = 8;
+
+/// Make room for `n` more entries in save file `file`'s table. The game
+/// lays a save out by these sizes, so left alone the longer table runs
+/// into the values after it and clobbers the first arrays there.
+fn grow_saves(root: &mut Byml, file: i64, n: usize) -> Result<()> {
+    let grow = n as i64 * SAVE_PAIR;
+    let meta = (root.as_mut_map()?)
+        .get_mut(&**field::META_DATA)
+        .context(field::META_DATA)?
+        .as_mut_map()?;
+    for key in [field::ALL_DATA_SAVE_OFFSET, field::ALL_DATA_SAVE_SIZE] {
+        bump(meta.get_mut(&**key).context(key)?, grow)?;
+    }
+    let Ok(file) = usize::try_from(file) else {
+        return Ok(());
+    };
+    for key in [field::SAVE_DATA_OFFSET_POS, field::SAVE_DATA_SIZE] {
+        let sizes = meta.get_mut(&**key).context(key)?.as_mut_array()?;
+        bump(sizes.get_mut(file).context(key)?, grow)?;
+    }
+    Ok(())
+}
+
+/// Add `by` to integer `v`, keeping its kind.
+fn bump(v: &mut Byml, by: i64) -> Result<()> {
+    *v = like(v, int(v)? + by)?;
     Ok(())
 }
 
@@ -820,5 +855,35 @@ mod tests {
         assert!(add_bools(&mut doc.root, &names[..1]).is_err());
         let back = BymlDoc::parse(&doc.to_binary()).unwrap();
         assert_eq!(count(&back.root), before + 2);
+    }
+
+    /// The save's layout sizes, from `MetaData`: progress.sav's table end
+    /// and size, then the same for the file of every value.
+    fn layout(root: &Byml) -> [i64; 4] {
+        let meta = root.as_map().unwrap()[&**field::META_DATA]
+            .as_map()
+            .unwrap();
+        let first = |key: &Name| int(&meta[&**key].as_array().unwrap()[0]).unwrap();
+        let one = |key: &Name| int(&meta[&**key]).unwrap();
+        [
+            first(field::SAVE_DATA_OFFSET_POS),
+            first(field::SAVE_DATA_SIZE),
+            one(field::ALL_DATA_SAVE_OFFSET),
+            one(field::ALL_DATA_SAVE_SIZE),
+        ]
+    }
+
+    #[test]
+    fn added_entries_grow_the_save_table_so_it_ends_before_the_values() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut doc = BymlDoc::parse(&romfs.read(PATH).unwrap()).unwrap();
+        let before = layout(&doc.root);
+        let bools = ["FakeBool_00".to_owned(), "FakeBool_01".to_owned()];
+        add_bools(&mut doc.root, &bools).unwrap();
+        add_ints(&mut doc.root, &["FakeInt_00".to_owned()]).unwrap();
+        let back = BymlDoc::parse(&doc.to_binary()).unwrap();
+        assert_eq!(layout(&back.root), before.map(|n| n + 3 * SAVE_PAIR));
     }
 }
