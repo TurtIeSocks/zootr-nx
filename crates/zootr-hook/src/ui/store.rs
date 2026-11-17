@@ -53,6 +53,7 @@ impl Store {
         let frame = Frame {
             on_slot: self.seen.on_slot,
             pressed: self.input.pressed(),
+            shown: self.showing(slot),
         };
         let age = self.seen.age();
         let out = self.cycle.step(frame, slot, age, self.seen.held());
@@ -122,6 +123,17 @@ mod tests {
         store.read(Buttons::NONE, &FAKE);
         assert_eq!(store.read(Buttons::A, &FAKE), Buttons::NONE, "to the game");
         assert_eq!(store.showing(&FAKE), Some(2), "the choice");
+    }
+
+    #[test]
+    fn a_cycle_starts_from_the_choice() {
+        let mut store = fresh(&[1, 2]);
+        store.granted(2, &FAKE);
+        store.read(Buttons::A, &FAKE);
+        assert_eq!(store.showing(&FAKE), Some(2));
+        store.read(Buttons::NONE, &FAKE);
+        store.read(Buttons::D_RIGHT, &FAKE);
+        assert_eq!(store.showing(&FAKE), Some(1));
     }
 
     #[test]

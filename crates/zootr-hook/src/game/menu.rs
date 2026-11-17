@@ -14,11 +14,12 @@ use crate::ui::{Buttons, Seen};
 /// The Items page's cells and their count.
 const CELLS: usize = 0x78;
 const COUNT: usize = 0x70;
-/// A cell's button, the button's state, and the state while the cursor
-/// is on it.
+/// A cell's button, the button's state, and its states while the cursor
+/// is on it: focusing (as a refresh leaves it for a few frames) and
+/// focused. Unfocusing is the cursor leaving, and 0 is away.
 const BUTTON: usize = 0xe8;
 const STATE: usize = 0x38;
-const FOCUSED: u8 = 3;
+const CURSOR_ON: [u8; 2] = [1, 3];
 /// The cell's copy of its actor's name.
 const CELL_NAME: usize = 0x90;
 /// One controller state as `GetNpadStates` writes it, and its buttons.
@@ -110,7 +111,7 @@ unsafe fn show(main: usize, table: &Table) -> Option<()> {
     unsafe {
         let cell = cell(page, slot.cell)?;
         let button = at(cell, BUTTON)?;
-        let focused = *((button + STATE) as *const u8) == FOCUSED;
+        let focused = CURSOR_ON.contains(&*((button + STATE) as *const u8));
         let owns = chests::owned(main, o)?;
         let held = (0..slot.actors.ages.len())
             .filter(|&i| slot.actor(i).is_some_and(|(n, _)| owns(n)))

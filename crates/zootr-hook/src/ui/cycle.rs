@@ -19,6 +19,8 @@ pub struct Frame {
     /// Whether the cursor is on this slot.
     pub on_slot: bool,
     pub pressed: Buttons,
+    /// What the slot shows, which a cycle starts from.
+    pub shown: Option<usize>,
 }
 
 /// What the hook does for the cycle this frame.
@@ -76,7 +78,7 @@ impl Cycle {
         let pressed = frame.pressed;
         let Self::On { before, now } = *self else {
             let enter = frame.on_slot && pressed.any(Buttons::A) && slot.count(age, &held) > 1;
-            let Some(shown) = slot.shown(age, &held).filter(|_| enter) else {
+            let Some(shown) = frame.shown.filter(|_| enter) else {
                 return Out::default();
             };
             *self = Self::On {
@@ -131,6 +133,7 @@ mod tests {
         Frame {
             on_slot: true,
             pressed,
+            shown: Some(1),
         }
     }
 
@@ -153,7 +156,7 @@ mod tests {
         let mut cycle = Cycle::Off;
         let frame = Frame {
             on_slot: false,
-            pressed: Buttons::A,
+            ..on(Buttons::A)
         };
         assert_eq!(run(&mut cycle, frame, &[1, 2]), Out::default());
     }
@@ -206,7 +209,7 @@ mod tests {
         let mut cycle = Cycle::On { before: 1, now: 2 };
         let away = Frame {
             on_slot: false,
-            pressed: Buttons::D_UP,
+            ..on(Buttons::D_UP)
         };
         let out = run(&mut cycle, away, &[1, 2]);
         assert_eq!((out.show, out.swallow), (Some(1), Buttons::NONE));
