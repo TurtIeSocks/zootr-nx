@@ -1,6 +1,8 @@
 //! Which of the seed's spots Link has checked: chests by their opened flag,
 //! gifts by the played flag of their event, scrubs by their sold flag, cows
-//! and Gerudo thieves by their own. See `docs/research/chests.md`.
+//! and Gerudo thieves by their own, and anything else with a per-placement
+//! flag (Bool64bitKey) by that. See `docs/research/chests.md` and
+//! `docs/research/tracker-flags.md`.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
@@ -26,12 +28,21 @@ pub(crate) fn chest_flags(gd: &GameData) -> Result<impl Fn(u64) -> Option<u32>> 
     Ok(move |hash: u64| chests.get(&murmur3(hash.to_string().as_bytes())).copied())
 }
 
+/// What's set once a spot is checked.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Flag {
+    /// A Bool, by its hash.
+    Bool(u32),
+    /// A per-placement flag, by its key: the placement's hash.
+    Key(u64),
+}
+
 #[derive(Default)]
 pub struct Tracker {
-    /// Spot to the Bool that's set once it's checked.
-    flags: HashMap<u64, u32>,
+    /// Spot to what's set once it's checked.
+    flags: HashMap<u64, Flag>,
     /// Tracked flags that are set.
-    on: HashSet<u32>,
+    on: HashSet<Flag>,
     checked: BTreeSet<u64>,
 }
 
@@ -49,7 +60,8 @@ pub struct Flips {
 pub struct Row {
     pub spot: Spot,
     pub checked: bool,
-    /// The spot's opened flag. Without one it never ticks.
+    /// The spot's Bool, which the tab can label. A spot ticked by its
+    /// per-placement flag has none.
     pub flag: Option<u32>,
     /// The user's label for the flag, which wins over the spot's names.
     pub label: Option<String>,
@@ -71,9 +83,12 @@ impl Tracker {
                 (_, Some(s), ..) => s.sold(&spot.item),
                 (_, _, Some(cow), _) => Some(cow),
                 (.., Some(thief)) => Some(thief),
-                _ => return chests(spot.hash),
+                _ => {
+                    let key = gd.has_key(spot.hash).then_some(Flag::Key(spot.hash));
+                    return chests(spot.hash).map(Flag::Bool).or(key);
+                }
             };
-            name.map(|f| murmur3(f.as_bytes()))
+            name.map(|f| Flag::Bool(murmur3(f.as_bytes())))
         };
         let flags = spots
             .iter()
@@ -86,30 +101,35 @@ impl Tracker {
     }
 
     /// Every flag it watches.
-    pub fn flags(&self) -> impl Iterator<Item = u32> + '_ {
+    pub fn flags(&self) -> impl Iterator<Item = Flag> + '_ {
         self.flags.values().copied()
     }
 
-    /// The Bool that's set once spot `hash` is checked, if known.
-    pub fn flag(&self, hash: u64) -> Option<u32> {
+    /// What's set once spot `hash` is checked, if known.
+    pub fn flag(&self, hash: u64) -> Option<Flag> {
         self.flags.get(&hash).copied()
     }
 
     /// Takes every flag from `set`, a save or values read live.
-    pub fn load(&mut self, set: impl Fn(u32) -> bool) -> Flips {
+    pub fn load(&mut self, set: impl Fn(Flag) -> bool) -> Flips {
         self.on = self.flags.values().copied().filter(|&f| set(f)).collect();
         self.flips()
     }
 
     /// Takes one change the watcher saw.
     pub fn change(&mut self, c: &Change) -> Flips {
-        if c.kind != "Bool" || !self.flags.values().any(|&f| f == c.hash) {
+        let flag = match c.key() {
+            Some(key) => Flag::Key(key),
+            None if c.kind == "Bool" => Flag::Bool(c.hash),
+            None => return Flips::default(),
+        };
+        if !self.flags.values().any(|&f| f == flag) {
             return Flips::default();
         }
         if c.change.ends_with("-> true") {
-            self.on.insert(c.hash);
+            self.on.insert(flag);
         } else {
-            self.on.remove(&c.hash);
+            self.on.remove(&flag);
         }
         self.flips()
     }
@@ -133,7 +153,11 @@ impl Tracker {
     /// The Checks tab's rows, with `label` giving each flag's label.
     pub fn rows(&self, entry: &Entry, label: impl Fn(u32) -> Option<String>) -> Vec<Row> {
         let row = |spot: &Spot| {
-            let flag = self.flags.get(&spot.hash).copied();
+            // Only a Bool can be labelled.
+            let flag = match self.flags.get(&spot.hash) {
+                Some(Flag::Bool(f)) => Some(*f),
+                _ => None,
+            };
             Row {
                 spot: spot.clone(),
                 checked: self.checked.contains(&spot.hash),
@@ -151,11 +175,13 @@ impl Tracker {
 }
 
 /// Flags set in a save.
-pub fn in_save(save: &Save) -> impl Fn(u32) -> bool + '_ {
-    |h| {
-        save.get(h)
+pub fn in_save(save: &Save) -> impl Fn(Flag) -> bool + '_ {
+    let keys = save.keys();
+    move |f| match f {
+        Flag::Bool(h) => (save.get(h))
             .and_then(|e| save.scalar(e))
-            .is_some_and(|v| v != 0)
+            .is_some_and(|v| v != 0),
+        Flag::Key(k) => keys.contains(&k),
     }
 }
 
@@ -183,7 +209,7 @@ mod tests {
 
     fn mido() -> Tracker {
         Tracker {
-            flags: MIDO.into_iter().collect(),
+            flags: MIDO.map(|(s, f)| (s, Flag::Bool(f))).into(),
             ..Default::default()
         }
     }
@@ -206,6 +232,19 @@ mod tests {
         let flips = t.change(&bool_(MIDO[1].1, "true -> false"));
         assert_eq!(flips.unchecked, [MIDO[1].0]);
         assert!(t.checked().is_empty());
+    }
+
+    #[test]
+    fn a_placement_ticks_by_its_own_key() {
+        let mut t = Tracker {
+            flags: [(7, Flag::Key(7))].into(),
+            ..Default::default()
+        };
+        assert_eq!(t.change(&Change::keyed(8, true)), Flips::default());
+        assert_eq!(t.change(&Change::keyed(7, true)).checked, [7]);
+        assert_eq!(t.change(&Change::keyed(7, false)).unchecked, [7]);
+        // A Bool that happens to share the key's low bits is another flag.
+        assert_eq!(t.change(&bool_(7, "false -> true")), Flips::default());
     }
 
     #[test]
@@ -278,13 +317,13 @@ mod tests {
         spots.extend(GIFTS.iter().map(|g| spot(g.hash())));
         let t = Tracker::new(&gd, &spots).unwrap();
         for (h, f) in MIDO {
-            assert_eq!(t.flags[&h], f);
+            assert_eq!(t.flags[&h], Flag::Bool(f));
         }
         let on = [MERCHANTS, NPC_GIFTS, TRADE_CHAIN].map(String::from).into();
         let added = gifts::flags(&on);
         for (g, found) in GIFTS.iter().filter_map(|g| Some((g, g.found()?))) {
             let f = t.flags[&g.hash()];
-            assert_eq!(f, murmur3(found.as_bytes()), "{}", g.giver);
+            assert_eq!(f, Flag::Bool(murmur3(found.as_bytes())), "{}", g.giver);
             if !added.contains(&found) {
                 assert_eq!(gd.table(&found), Some("Bool"), "{}", g.flow);
             }
@@ -302,7 +341,7 @@ mod tests {
         let hash = 11142894434822030727;
         let t = Tracker::new(&gd, &[spot(hash)]).unwrap();
         let flag = cows::flag_at(hash).unwrap();
-        assert_eq!(t.flag(hash), Some(murmur3(flag.as_bytes())));
+        assert_eq!(t.flag(hash), Some(Flag::Bool(murmur3(flag.as_bytes()))));
     }
 
     #[test]
@@ -317,7 +356,11 @@ mod tests {
                 };
                 let t = Tracker::new(&gd, &[spot]).unwrap();
                 let sold = s.sold(&item).unwrap();
-                assert_eq!(t.flag(s.hash()), Some(murmur3(sold.as_bytes())), "{sold}");
+                assert_eq!(
+                    t.flag(s.hash()),
+                    Some(Flag::Bool(murmur3(sold.as_bytes()))),
+                    "{sold}"
+                );
                 if !sold.starts_with("Rando_") {
                     assert_eq!(gd.table(&sold), Some("Bool"), "{sold}");
                 }

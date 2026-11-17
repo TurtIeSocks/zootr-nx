@@ -24,7 +24,7 @@ use crate::generate::Spot;
 use crate::known::flow;
 use crate::live::{self, Game as Target};
 use crate::steps;
-use crate::tracker::Tracker;
+use crate::tracker::{Flag, Tracker};
 
 /// What the core needs of the running game.
 pub trait Game {
@@ -408,8 +408,13 @@ impl Game for Live {
     }
 
     fn checked(&mut self) -> Result<BTreeSet<u64>> {
-        let set = |f: u32| self.dev.game().get(&self.gd, f).is_ok_and(|v| v == "true");
-        let on: Vec<u32> = self.tracker.flags().filter(|&f| set(f)).collect();
+        let game = self.dev.game();
+        let keys = live::keys(game, game.global())?;
+        let set = |f: Flag| match f {
+            Flag::Bool(h) => game.get(&self.gd, h).is_ok_and(|v| v == "true"),
+            Flag::Key(k) => keys.contains(&k),
+        };
+        let on: Vec<Flag> = self.tracker.flags().filter(|&f| set(f)).collect();
         self.tracker.load(|f| on.contains(&f));
         Ok(self.tracker.checked().clone())
     }

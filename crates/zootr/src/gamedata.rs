@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::RwLock;
 
 use anyhow::{Context, Result, bail, ensure};
-use ounce_formats::{Byml, BymlDoc, BymlMap, Romfs, murmur3};
+use ounce_formats::{Byml, BymlDoc, BymlMap, KEYED, Romfs, murmur3};
 use serde::Serialize;
 
 use crate::known::{Name, field, flag};
@@ -25,6 +25,8 @@ pub struct GameData {
     /// Table (`Bool`, `BoolExp`, `Enum`...) and entry, by hash.
     entries: HashMap<u32, (String, Byml)>,
     names: HashMap<u32, String>,
+    /// The per-placement flags (Bool64bitKey), by placement hash.
+    keys: HashSet<u64>,
     /// From [`labels`](crate::labels), changeable while shared.
     labels: RwLock<HashMap<u32, String>>,
 }
@@ -102,6 +104,7 @@ impl GameData {
         let doc = BymlDoc::parse(data).context(PATH)?;
         let mut entries = HashMap::new();
         let mut names = HashMap::new();
+        let mut keys = HashSet::new();
         for (table, list) in doc
             .root
             .as_map()?
@@ -110,8 +113,12 @@ impl GameData {
             .as_map()?
         {
             for e in list.as_array()? {
-                // Bool64bitKey hashes don't fit; nothing here names them.
-                let Ok(hash) = u32::try_from(int(&e.as_map()?["Hash"])?) else {
+                let hash = int(&e.as_map()?["Hash"])?;
+                if table == KEYED {
+                    keys.insert(hash as u64);
+                    continue;
+                }
+                let Ok(hash) = u32::try_from(hash) else {
                     continue;
                 };
                 if let Some(raw) = e.as_map()?.get(&**field::RAW_VALUES) {
@@ -127,8 +134,14 @@ impl GameData {
         Ok(Self {
             entries,
             names,
+            keys,
             labels: labels.into(),
         })
+    }
+
+    /// Whether placement `hash` has a per-placement flag.
+    pub fn has_key(&self, hash: u64) -> bool {
+        self.keys.contains(&hash)
     }
 
     /// Remember `name` if it hashes to an entry or enum value.
@@ -661,6 +674,20 @@ fn typed(like: Option<&Byml>, hash: u32) -> Result<Byml> {
 mod tests {
     use super::*;
     use crate::known::{field, flag};
+
+    #[test]
+    fn knows_each_placements_own_flag() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gd = GameData::load(&romfs).unwrap();
+        // Two Kokiri Forest rocks, one past i64's range, and a chest's
+        // opened flag's hash, which is no key.
+        assert!(gd.has_key(6429280567576879719));
+        assert!(gd.has_key(13002777795600434992));
+        assert!(!gd.has_key(0x316d8a20));
+        assert_eq!(gd.keys.len(), 11657);
+    }
 
     #[test]
     fn a_label_shows_next_to_the_hash() {

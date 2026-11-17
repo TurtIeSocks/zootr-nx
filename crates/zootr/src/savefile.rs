@@ -1,12 +1,12 @@
 //! Save slots by flag name: read, compare and edit them for playtests.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use anyhow::{Context, Result};
-use ounce_formats::{Byml, Save, SaveEntry, murmur3};
+use ounce_formats::{Byml, KEYED, Save, SaveEntry, murmur3};
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
@@ -125,6 +125,22 @@ impl Change {
         }
     }
 
+    /// A per-placement flag going `on` or off, named by its key.
+    pub fn keyed(key: u64, on: bool) -> Self {
+        Self {
+            hash: 0,
+            name: key.to_string(),
+            label: None,
+            kind: KEYED.into(),
+            change: format!("{} -> {on}", !on),
+        }
+    }
+
+    /// The key a per-placement flag's change names.
+    pub fn key(&self) -> Option<u64> {
+        (self.kind == KEYED).then(|| self.name.parse().ok())?
+    }
+
     /// The same change, as element `i` of an array.
     pub fn at(mut self, i: usize) -> Self {
         self.name = format!("{}[{i}]", self.name);
@@ -162,9 +178,18 @@ pub(crate) fn bytes(a: &[u8], b: &[u8]) -> String {
     format!("{} -> {} bytes{at}", a.len(), b.len())
 }
 
+/// Each per-placement flag that went on or off from `was` to `now`.
+pub fn keyed(was: &BTreeSet<u64>, now: &BTreeSet<u64>) -> Vec<Change> {
+    let on = now.difference(was).map(|&k| Change::keyed(k, true));
+    on.chain(was.difference(now).map(|&k| Change::keyed(k, false)))
+        .collect()
+}
+
 /// Every difference from `a` to `b` among the entries `wanted` keeps, one
-/// line each, including entries only one of them has.
+/// line each, including entries only one of them has. Per-placement flags
+/// come one key each.
 pub fn diff(gd: &GameData, a: &Save, b: &Save, wanted: impl Fn(SaveEntry) -> bool) -> Vec<Change> {
+    let wanted = |e: SaveEntry| e.kind != KEYED && wanted(e);
     let mut out: Vec<Change> = b
         .entries()
         .iter()
@@ -193,6 +218,7 @@ pub fn diff(gd: &GameData, a: &Save, b: &Save, wanted: impl Fn(SaveEntry) -> boo
             .filter(|&&e| wanted(e) && b.get(e.hash).is_none())
             .map(|&e| Change::new(gd, e.hash, e.kind, "gone")),
     );
+    out.extend(keyed(&a.keys(), &b.keys()));
     out
 }
 
@@ -387,6 +413,22 @@ mod tests {
     }
 
     use super::*;
+
+    #[test]
+    fn keys_that_flip_come_one_change_each() {
+        let changes = keyed(&BTreeSet::from([1, 2]), &BTreeSet::from([2, 3]));
+        let shown: Vec<_> = (changes.iter())
+            .map(|c| (c.key(), c.change.as_str()))
+            .collect();
+        assert_eq!(
+            shown,
+            [(Some(3), "false -> true"), (Some(1), "true -> false")]
+        );
+        assert_eq!(
+            Change::new(&GameData::default(), 3, "Bool", "x").key(),
+            None
+        );
+    }
 
     /// A save with bools `(hash, value)` and binaries `(hash, data)`.
     fn save(bools: &[(u32, u32)], binaries: &[(u32, &[u8])]) -> Vec<u8> {

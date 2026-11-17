@@ -48,7 +48,7 @@ pub use restbl::Restbl;
 pub use roead::byml::{Byml, Map as BymlMap};
 pub use romfs::{ModBuilder, Romfs, copy_mod};
 pub use sarc::replace_file;
-pub use save::{Entry as SaveEntry, Save, width as save_width};
+pub use save::{Entry as SaveEntry, KEYED, Save, width as save_width};
 pub use tagfile::{Field, Item, Obj, Tagfile, Type};
 pub use walk::files_with_suffix;
 pub use zs::{Dicts, frame_dict_id};
