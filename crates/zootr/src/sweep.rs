@@ -1,6 +1,7 @@
 //! The overnight sweep: every spot of a seed triggered on the native build,
 //! each given a verdict, round after round.
 
+mod clock;
 pub mod drills;
 mod gear;
 mod ice;
