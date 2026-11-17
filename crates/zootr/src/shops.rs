@@ -372,7 +372,7 @@ pub fn write(
         let sale = StandIn {
             name: &name,
             template: ActorPack::load(romfs, &slot.goods)?,
-            item: item_pack(romfs, item, new_game.keys)?,
+            item: item_pack(romfs, item, new_game)?,
             price: Some(price(new_game.seed, slot.hash())),
         };
         sale.build(builder, tables)

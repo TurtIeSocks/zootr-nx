@@ -115,7 +115,8 @@ pub fn pretty(id: &str) -> String {
 /// points at: `?ActorSystem/ActorName/<stem>.engine__actor__ActorName.bgyml`
 /// is named by `<stem>_Name`. A key copy is named by its own lines.
 pub(crate) fn name_label(romfs: &Romfs, actor: &str) -> Result<Option<String>> {
-    if let Some(label) = crate::key_tints::name_label(actor) {
+    let copy = crate::key_tints::name_label(actor).or_else(|| crate::foreign::name_label(actor));
+    if let Some(label) = copy {
         return Ok(Some(label));
     }
     let Some(param) = ActorPack::load(romfs, actor)?.actor_param()? else {

@@ -564,9 +564,20 @@ pub struct NewGame {
     /// The cheat carries the mailbox's hook on Link's update, which the
     /// app's requests go through: the dev panel's, and AP's gives.
     pub mailbox: bool,
+    /// The copies standing in for other players' items, in an AP seed.
+    pub foreign: Vec<crate::foreign::Foreign>,
 }
 
 impl NewGame {
+    /// A test's new game: the defaults, with key rings.
+    #[cfg(test)]
+    pub(crate) fn rings() -> Self {
+        Self {
+            keys: DungeonKeys::Rings,
+            ..Self::default()
+        }
+    }
+
     /// `settings`, then `edits` (`NAME=VALUE`) on top.
     pub fn from_settings(settings: &Settings, edits: &[String]) -> Result<Self> {
         let schema = schema();
@@ -641,6 +652,7 @@ impl NewGame {
             fields: vec![],
             dev_panel: false,
             mailbox: false,
+            foreign: vec![],
         })
     }
 }
@@ -761,6 +773,7 @@ mod tests {
                 progress: vec![],
                 dev_panel: false,
                 mailbox: false,
+                foreign: vec![],
                 logic: Logic::Glitchless,
                 on: toggles_on(&Settings::new()),
             }

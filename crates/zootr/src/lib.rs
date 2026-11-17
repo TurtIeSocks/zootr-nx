@@ -33,6 +33,7 @@ mod events;
 mod fill;
 mod flags;
 mod flows;
+mod foreign;
 mod fortress;
 pub mod game;
 pub mod gamedata;

@@ -7,10 +7,12 @@ use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_p
 
 use crate::known::{Name, actor, field, flag, item};
 use crate::medallions;
-use crate::settings::DungeonKeys;
+use crate::settings::NewGame;
 
 mod tables;
 
+#[cfg(test)]
+pub(crate) use tables::PLAIN_DEAL;
 pub use tables::Tables;
 use tables::number;
 pub(crate) use tables::{insert, row, row_id};
@@ -297,9 +299,12 @@ fn cloned(
 }
 
 /// `item`'s pack, for a holder that shows or stands in for it: a key copy
-/// the seed builds, or the dump's.
-pub(crate) fn item_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<ActorPack> {
-    match crate::key_tints::copy_pack(romfs, item, keys)? {
+/// or another player's item the seed builds, or the dump's.
+pub(crate) fn item_pack(romfs: &Romfs, item: &str, new_game: &NewGame) -> Result<ActorPack> {
+    if let Some(pack) = crate::key_tints::copy_pack(romfs, item, new_game.keys)? {
+        return Ok(pack);
+    }
+    match crate::foreign::pack(romfs, item, &new_game.foreign)? {
         Some(pack) => Ok(pack),
         None => ActorPack::load(romfs, item),
     }
