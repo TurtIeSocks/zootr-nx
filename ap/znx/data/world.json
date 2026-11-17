@@ -13701,6 +13701,47 @@
     {
       "at": [
         {
+          "place": "spirit-temple-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 2,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Zelda's Lullaby"
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "name": "vanilla-2203243501006528435"
+    },
+    {
+      "at": [
+        {
           "place": "gohma-room-child",
           "rule": true
         }
@@ -14651,6 +14692,41 @@
     {
       "at": [
         {
+          "place": "spirit-temple-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 2,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bow"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "name": "vanilla-4277978357934400600"
+    },
+    {
+      "at": [
+        {
           "place": "gerudo-training-ground-adult",
           "rule": {
             "all": [
@@ -15511,6 +15587,30 @@
         }
       ],
       "name": "vanilla-5597448927131828918"
+    },
+    {
+      "at": [
+        {
+          "place": "spirit-temple-child",
+          "rule": {
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Slingshot"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Boomerang"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "name": "vanilla-5703423643219134246"
     },
     {
       "at": [
@@ -19463,6 +19563,90 @@
     {
       "at": [
         {
+          "place": "spirit-temple-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 2,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "setting": "free-bombchus"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Mirror Shield"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bow"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Light Arrows"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "name": "vanilla-12042193296697281461"
+    },
+    {
+      "at": [
+        {
           "place": "hyrule-field-adult",
           "rule": {
             "all": [
@@ -21137,6 +21321,103 @@
     {
       "at": [
         {
+          "place": "spirit-temple-child",
+          "rule": {
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Bomb Bag"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Bombchus (5)"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "setting": "free-bombchus"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "spirit-temple-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 2,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Din's Fire"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bow"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Fire Arrows"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "name": "vanilla-13852283723126411131"
+    },
+    {
+      "at": [
+        {
           "place": "hyrule-field-child",
           "rule": {
             "all": [
@@ -22182,6 +22463,47 @@
     {
       "at": [
         {
+          "place": "spirit-temple-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 2,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Zelda's Lullaby"
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "name": "vanilla-15633505270333176438"
+    },
+    {
+      "at": [
+        {
           "place": "market-child",
           "rule": true
         }
@@ -22650,6 +22972,86 @@
         }
       ],
       "name": "vanilla-16206638005430417269"
+    },
+    {
+      "at": [
+        {
+          "place": "spirit-temple-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 2,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "setting": "free-bombchus"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Zelda's Lullaby"
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Bow"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "name": "vanilla-16272168033146555902"
     },
     {
       "at": [
@@ -23527,6 +23929,120 @@
         }
       ],
       "name": "vanilla-17274067799607933872"
+    },
+    {
+      "at": [
+        {
+          "place": "spirit-temple-child",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "setting": "free-bombchus"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "spirit-temple-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 2,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Din's Fire"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bow"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Fire Arrows"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "name": "vanilla-17407066694905911064"
     },
     {
       "at": [
