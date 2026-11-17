@@ -206,6 +206,8 @@ impl ApSeed {
 mod tests {
     use super::*;
     use crate::game::dev_dump;
+    use crate::generate::{Extras, generate};
+    use crate::progress::Run;
 
     /// Slot 1 of a two-slot znx multiworld from AP's `Generate.py`.
     const TWO_SLOTS: &[u8] = include_bytes!("testdata/two_slots.apznx");
@@ -257,6 +259,58 @@ mod tests {
         assert!(resolved.foreign.iter().all(|f| f.player == "Zelda"));
         // Zelda's items are ours, so each copy shows the item itself.
         assert!(resolved.foreign.iter().all(|f| f.shows != STAND_IN.get()));
+    }
+
+    /// What `extras` installs from `seed` with the fixture's settings.
+    fn installed(romfs: &Romfs, seed: u64, extras: &Extras) -> crate::generate::Report {
+        let settings = ApSeed::from_zip(TWO_SLOTS).unwrap().full_settings();
+        let dir = std::env::temp_dir().join(format!("zootr-ap-{}-{seed}", std::process::id()));
+        let report = generate(romfs, &dir, seed, &settings, extras, &Run::silent()).unwrap();
+        std::fs::remove_dir_all(dir).unwrap();
+        report
+    }
+
+    #[test]
+    fn a_seed_from_ap_always_installs_the_same_mod_with_its_items_for_others() {
+        let Some(romfs) = dev_dump() else { return };
+        let ap = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        let extras = Extras::ap(ap.clone());
+        let report = installed(&romfs, ap.seed, &extras);
+        assert_eq!(report, installed(&romfs, ap.seed, &extras));
+        let others = (report.spots.iter())
+            .filter(|s| foreign::is_foreign(&s.item))
+            .count();
+        let foreign = (ap.placements.values())
+            .filter(|p| matches!(p, Placed::Foreign(_)))
+            .count();
+        assert_eq!(others, foreign);
+        assert!(
+            report
+                .spots
+                .iter()
+                .any(|s| s.item_name.ends_with(" for Zelda"))
+        );
+    }
+
+    #[test]
+    fn a_seed_from_ap_of_our_own_items_installs_what_the_shuffle_dealt() {
+        let Some(romfs) = dev_dump() else { return };
+        let shuffled = installed(&romfs, 7, &Extras::default());
+        let ids: Ids = serde_json::from_str(IDS).unwrap();
+        let mut ap = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        let free = Dealt::new(&romfs, &ap.full_settings()).unwrap().free;
+        ap.placements = (shuffled.spots.iter())
+            .filter(|s| free.contains(&s.hash))
+            .map(|s| (s.hash, Placed::Own(ids.item_id(&s.item).unwrap())))
+            .collect();
+        ap.start.clear();
+        let from_ap = installed(&romfs, 7, &Extras::ap(ap));
+        let items = |r: &crate::generate::Report| {
+            (r.spots.iter())
+                .map(|s| (s.hash, s.item.clone()))
+                .collect::<BTreeMap<_, _>>()
+        };
+        assert_eq!(items(&from_ap), items(&shuffled));
     }
 
     #[test]
