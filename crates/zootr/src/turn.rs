@@ -11,6 +11,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
 
+pub mod queue;
+pub mod remote;
+pub mod serve;
+
+pub use remote::{Ask, TurnConfig};
+
+/// Names the Claude session running a command, for every command that
+/// touches the game without a `--session` of its own.
+pub const SESSION: &str = "ZOOTR_SESSION";
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Player {
@@ -34,6 +44,42 @@ pub struct Turn {
 /// Whether zootr runs from Claude's shell, where turns are enforced.
 pub fn from_claude() -> bool {
     std::env::var_os("CLAUDECODE").is_some()
+}
+
+/// This Claude session's name, from [`SESSION`].
+pub fn session() -> String {
+    std::env::var(SESSION).unwrap_or_default()
+}
+
+/// Refuses a command touching the game from Claude's shell unless session
+/// `session` holds it, and renews that hold. With a queue configured the
+/// service decides, else the local `turn.json` (also when the service
+/// can't be reached). The maintainer's own commands always go through.
+pub fn hold(session: &str) -> Result<()> {
+    if !from_claude() {
+        return Ok(());
+    }
+    ensure!(
+        !session.is_empty(),
+        "name this Claude session: set {SESSION} (or pass --session) to the name it joined the queue with"
+    );
+    let turn = Config::load()?.turn;
+    if turn.remote() {
+        match turn.ask(Ask::Renew {
+            session: session.into(),
+        }) {
+            Ok(_) => return Ok(()),
+            Err(e) if !unreachable(&e) => return Err(e),
+            Err(e) => eprintln!("{e:#}: going by the local turn"),
+        }
+    }
+    Turn::load()?.ensure_held(session, true)
+}
+
+/// Whether `e` is the service not answering, rather than refusing.
+fn unreachable(e: &anyhow::Error) -> bool {
+    e.chain()
+        .any(|c| c.downcast_ref::<std::io::Error>().is_some())
 }
 
 impl Turn {
