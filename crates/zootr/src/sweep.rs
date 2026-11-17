@@ -4,7 +4,6 @@
 mod clock;
 pub mod drills;
 mod gear;
-mod ice;
 pub mod judge;
 pub mod melody;
 pub mod night;
@@ -14,3 +13,4 @@ mod shop;
 pub mod spot;
 pub mod verdict;
 mod watch;
+mod wield;

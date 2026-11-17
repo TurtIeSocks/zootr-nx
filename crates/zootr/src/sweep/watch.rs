@@ -7,7 +7,7 @@ use ounce_formats::{BymlDoc, Romfs};
 use crate::dev::Dev;
 use crate::gamedata::GameData;
 use crate::inventory;
-use crate::known::{Name, actor, field, flag};
+use crate::known::{Name, field, flag};
 use crate::live;
 use crate::progressive;
 use crate::savefile::Change;
@@ -42,13 +42,13 @@ pub(super) fn named(changes: &[Change]) -> Option<String> {
     (!to.is_empty()).then(|| to.to_owned())
 }
 
-/// Whether `c` is the harness's own Blue Fire, given to melt red ice: its
-/// get flag, or the get window naming it.
-pub(super) fn poured(c: &Change) -> bool {
-    let fire = actor::ITEM_BOTTLE_BLUE_FIRE.get();
-    c.name == format!("IsGet.{fire}")
+/// Whether `c` is the harness's own `item`, given to wield: its get flag,
+/// or the get window naming it.
+pub(super) fn wielded(c: &Change, item: &Name) -> bool {
+    let item = item.get();
+    c.name == format!("IsGet.{item}")
         || c.name == MESSAGE
-            && c.change.rsplit(" -> ").next().map(|t| t.trim_matches('"')) == Some(fire)
+            && c.change.rsplit(" -> ").next().map(|t| t.trim_matches('"')) == Some(item)
 }
 
 /// A rupee lying on the floor, which Link can pick up beside any spot. A
@@ -209,14 +209,20 @@ mod tests {
             change: change.into(),
         };
         let fire = actor::ITEM_BOTTLE_BLUE_FIRE;
-        assert!(poured(&change(&format!("IsGet.{fire}"), "false -> true")));
-        assert!(poured(&change(MESSAGE, &format!(r#""" -> "{fire}""#))));
+        assert!(wielded(
+            &change(&format!("IsGet.{fire}"), "false -> true"),
+            fire
+        ));
+        assert!(wielded(
+            &change(MESSAGE, &format!(r#""" -> "{fire}""#)),
+            fire
+        ));
         let chest = format!(r#""{fire}" -> "{}""#, actor::T_BOX_RUPEE_BLUE);
-        assert!(!poured(&change(MESSAGE, &chest)));
-        assert!(!poured(&change(
-            &format!("IsGet.{}", actor::OBJ_RUPEE_RED),
-            "false -> true"
-        )));
+        assert!(!wielded(&change(MESSAGE, &chest), fire));
+        assert!(!wielded(
+            &change(&format!("IsGet.{}", actor::OBJ_RUPEE_RED), "false -> true"),
+            fire
+        ));
     }
 
     #[test]

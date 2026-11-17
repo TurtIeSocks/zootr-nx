@@ -10,19 +10,20 @@ use anyhow::{Context, Result, bail};
 use ounce_formats::Romfs;
 
 use super::gear;
-use super::ice;
 use super::judge::{Answer, Judge, Look, TURNS};
 use super::melody;
 use super::plan::{Halt, Planned, Trigger, preset};
 use super::verdict::{Swept, Verdict};
-use super::watch::{MESSAGE, Watch, got_other, lands_as, named, owned_as, poured, swapped};
+use super::watch::{MESSAGE, Watch, got_other, lands_as, named, owned_as, swapped, wielded};
+use super::wield::{self, Wield};
 use crate::dev::{Dev, EVENT_PLAYING, NOT_TAKEN, Place, Request};
 use crate::gamedata::GameData;
 use crate::gerudo;
-use crate::known::{Name, actor, field, flag, map};
+use crate::known::{Name, field, flag, map};
 use crate::live;
 use crate::nav::act::{Touch, Used};
 use crate::nav::drive::Drive;
+use crate::nav::graph::dist;
 use crate::nav::{self, Level};
 use crate::play::Input;
 use crate::shops;
@@ -238,9 +239,9 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         }
         let now = live::snapshot(self.dev.game(), self.dev.global())?;
         let mut changes = live::changes(self.gd, &was, &now, |_| true);
-        // A shop may sell Blue Fire, so only a pour on red ice is ours.
-        if matches!(p.trigger, Trigger::Open { ice: Some(_), .. }) {
-            changes.retain(|c| !poured(c));
+        // A shop may sell Blue Fire or a hammer, so only one wielded is ours.
+        if let Trigger::Open { wield: Some(w), .. } = &p.trigger {
+            changes.retain(|c| !wielded(c, w.item));
         }
         let cleared = cleared
             .iter()
@@ -424,8 +425,8 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         };
         for (i, &at) in spots.iter().enumerate() {
             self.calmly(|dev| dev.warp(at))?;
-            if let Trigger::Open { ice: Some(ice), .. } = &p.trigger {
-                self.melt(*ice)?;
+            if let Trigger::Open { wield: Some(w), .. } = &p.trigger {
+                self.wield(w, p, name, swept)?;
             }
             let shot = self.frame(p, name, "use");
             let mut drive = Drive::new(self.dev, &mut *self.input);
@@ -449,19 +450,33 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         Ok(())
     }
 
-    /// Melt the red ice at `ice` with Blue Fire: give a bottle of it, put
-    /// it on ZR from the Items screen, face the ice and pour.
-    fn melt(&mut self, ice: [f32; 3]) -> Result<()> {
+    /// Wield `w`: give its item, put it on ZR from the Items screen, face
+    /// what it acts on and press ZR, then stand on the switch it frees.
+    /// Out of reach of that, Link warps beside it first, and back after.
+    fn wield(&mut self, w: &Wield, p: &Planned, name: &str, swept: &mut Swept) -> Result<()> {
         let gd = self.gd;
-        self.calmly(|dev| dev.give(gd, actor::ITEM_BOTTLE_BLUE_FIRE, 1))?;
-        for (button, wait) in ice::EQUIP {
+        self.calmly(|dev| dev.give(gd, w.item, 1))?;
+        for (button, wait) in wield::EQUIP {
             self.input.press(button)?;
             sleep(wait);
         }
+        let here = self.dev.link()?;
+        let far = dist(here, w.on) > wield::REACH;
+        if far {
+            self.calmly(|dev| dev.warp(wield::beside(w.on, here)))?;
+        }
         // A pour facing away empties the bottle and leaves the ice.
-        Drive::new(self.dev, &mut *self.input).face(ice)?;
+        Drive::new(self.dev, &mut *self.input).face(w.on)?;
         self.input.press("ZR")?;
-        sleep(ice::MELT);
+        sleep(w.after);
+        self.shot(p, name, "wield", swept);
+        if let Some(switch) = w.press {
+            self.calmly(|dev| dev.warp(switch))?;
+            sleep(wield::PRESSED);
+        }
+        if far || w.press.is_some() {
+            self.calmly(|dev| dev.warp(here))?;
+        }
         Ok(())
     }
 
@@ -925,7 +940,7 @@ mod tests {
             first: None,
             broken: false,
             near: vec![],
-            ice: None,
+            wield: None,
         };
         assert!(!pays(&with(open)));
     }
