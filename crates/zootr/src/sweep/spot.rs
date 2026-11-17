@@ -10,6 +10,7 @@ use anyhow::{Context, Result, bail};
 use ounce_formats::Romfs;
 use serde::Serialize;
 
+use super::gear;
 use super::ice;
 use super::judge::{Answer, Judge, Look, TURNS};
 use super::melody;
@@ -242,6 +243,14 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         self.ready(p)?;
         self.setup(p)?;
         let cleared = self.ready(p)?;
+        let sink = gear::sinks(&p.spot.need_items, p.child);
+        if sink {
+            for armor in gear::UNDERWATER {
+                let gd = self.gd;
+                self.calmly(|dev| dev.give(gd, armor, 1))?;
+            }
+        }
+        gear::wear(self.dev, sink)?;
         if let Trigger::Open {
             first: Some(event), ..
         } = &p.trigger
