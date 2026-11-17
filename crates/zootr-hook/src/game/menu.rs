@@ -20,8 +20,14 @@ const COUNT: usize = 0x70;
 const BUTTON: usize = 0xe8;
 const STATE: usize = 0x38;
 const CURSOR_ON: [u8; 2] = [1, 3];
-/// The cell's copy of its actor's name.
+/// The cell's copy of its actor's name, and its icon's animation.
 const CELL_NAME: usize = 0x90;
+const CELL_ICON: usize = 0x48;
+/// The icon frames the Items build gives a held item its age can use, and
+/// one on a button. The build leaves the slot on its own pick's frame,
+/// grey when that's another age's item.
+const USABLE: f32 = 1.0;
+const ON_BUTTON: f32 = 2.0;
 /// One controller state as `GetNpadStates` writes it, its buttons, and
 /// its left stick's x (an `i32`, y follows).
 const NPAD_STATE: usize = 0x28;
@@ -31,6 +37,8 @@ const NPAD_STICK_X: usize = 0x10;
 type GetStates = unsafe extern "C" fn(*mut u8, i32, *const u32) -> i32;
 type CellSet = unsafe extern "C" fn(usize, *const *const u8, i32, i32, i32);
 type Focus = unsafe extern "C" fn(usize, usize, usize, usize);
+type AnimFrame = unsafe extern "C" fn(usize, f32);
+type Equipped = unsafe extern "C" fn(usize, u8, u32) -> i32;
 
 /// Called in place of the controller device's `GetNpadStates` calls, with
 /// their arguments and which `style` the call reads. The newest state
@@ -146,6 +154,10 @@ unsafe fn show(main: usize, table: &Table) -> Option<()> {
         }
         let set: CellSet = transmute(main + o.cell_set as usize);
         set(cell, &actor.as_ptr(), i32::from(kind), 0, 1);
+        let equipped: Equipped = transmute(main + o.equipped as usize);
+        let on_button = equipped(at(main, o.manager as usize)?, child.into(), 1) == i32::from(kind);
+        let frame = if on_button { ON_BUTTON } else { USABLE };
+        transmute::<usize, AnimFrame>(main + o.anim_frame as usize)(at(cell, CELL_ICON)?, frame);
         if focused {
             for refresh in [o.unfocus, o.focus] {
                 transmute::<usize, Focus>(main + refresh as usize)(button, 0, 0, 0);

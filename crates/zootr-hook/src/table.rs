@@ -4,7 +4,7 @@
 
 use crate::ui::MultiSlot;
 
-pub const MAGIC: &[u8; 4] = b"ZLT5";
+pub const MAGIC: &[u8; 4] = b"ZLT6";
 
 /// The header's flag for a seed whose bombchus need no bomb bag.
 pub const FREE_BOMBCHUS: u32 = 1;
@@ -134,6 +134,11 @@ offsets! {
     cell_set,
     unfocus,
     focus,
+    /// Seeks a layout animation to a frame, which colours an Items page
+    /// cell's icon: usable, or on a button.
+    anim_frame,
+    /// The item kind on a button for an age (the manager, child, 1).
+    equipped,
 }
 
 /// The table at `TABLE`. Each line is a level count, then each
