@@ -58,6 +58,8 @@ pub const OFFSETS: Offsets = Offsets {
     cell_set: 0xa7_3060,
     unfocus: 0xab_5080,
     focus: 0xab_4ec0,
+    anim_frame: 0x2d_2d90,
+    equipped: 0x17_b6e0,
 };
 /// Where the recorder, and the free space after rodata and bss, end.
 const CAVE_END: u32 = 0x17f_58e0;

@@ -20,15 +20,32 @@ const COUNT: usize = 0x70;
 const BUTTON: usize = 0xe8;
 const STATE: usize = 0x38;
 const CURSOR_ON: [u8; 2] = [1, 3];
-/// The cell's copy of its actor's name.
+/// The cell's copy of its actor's name, and its icon's animation.
 const CELL_NAME: usize = 0x90;
-/// One controller state as `GetNpadStates` writes it, and its buttons.
+const CELL_ICON: usize = 0x48;
+/// The icon frames the Items build gives a held item its age can use, and
+/// one on a button. The build leaves the slot on its own pick's frame,
+/// grey when that's another age's item.
+const USABLE: f32 = 1.0;
+const ON_BUTTON: f32 = 2.0;
+/// The cell's `AttentionTrans` animation. Halfway through, it rings the
+/// button in a soft white bloom, which marks the slot while Link cycles it.
+const CELL_HALO: usize = 0x80;
+const HALO: f32 = 25.0;
+/// An animation's frame controller, and the frame it's on.
+const ANIM_CONTROL: usize = 0x20;
+const ANIM_FRAME: usize = 0x18;
+/// One controller state as `GetNpadStates` writes it, its buttons, and
+/// its left stick's x (an `i32`, y follows).
 const NPAD_STATE: usize = 0x28;
 const NPAD_BUTTONS: usize = 8;
+const NPAD_STICK_X: usize = 0x10;
 
 type GetStates = unsafe extern "C" fn(*mut u8, i32, *const u32) -> i32;
 type CellSet = unsafe extern "C" fn(usize, *const *const u8, i32, i32, i32);
 type Focus = unsafe extern "C" fn(usize, usize, usize, usize);
+type AnimFrame = unsafe extern "C" fn(usize, f32);
+type Equipped = unsafe extern "C" fn(usize, u8, u32) -> i32;
 
 /// Called in place of the controller device's `GetNpadStates` calls, with
 /// their arguments and which `style` the call reads. The newest state
@@ -57,12 +74,23 @@ pub unsafe extern "C" fn npad_states(
     let Some(slot) = table.slot.filter(|_| n > 0) else {
         return n;
     };
-    let buttons = |i: i32| (states as usize + i as usize * NPAD_STATE + NPAD_BUTTONS) as *mut u64;
+    let state = |i: i32| states as usize + i as usize * NPAD_STATE;
     // SAFETY: the call wrote `n` states.
-    let now = Buttons(unsafe { *buttons(0) } as u32);
-    let hide = shared(main).ui.with(|s| s.read(now, &slot.actors));
-    if hide != Buttons::NONE {
-        (0..n).for_each(|i| unsafe { *buttons(i) &= !u64::from(hide.0) });
+    let now = Buttons(unsafe { *((state(0) + NPAD_BUTTONS) as *const u64) } as u32);
+    let (hide, cycling) = shared(main)
+        .ui
+        .with(|s| (s.read(now, &slot.actors), s.cycling()));
+    for i in 0..n {
+        // SAFETY: as above.
+        unsafe {
+            *((state(i) + NPAD_BUTTONS) as *mut u64) &= !u64::from(hide.0);
+            // The menu moves on the stick's position, not only its
+            // direction bits, and left and right belong to the cycle.
+            // Up and down still reach the menu, to leave the slot.
+            if cycling {
+                *((state(i) + NPAD_STICK_X) as *mut i32) = 0;
+            }
+        }
     }
     n
 }
@@ -123,20 +151,50 @@ unsafe fn show(main: usize, table: &Table) -> Option<()> {
             child,
             held,
         };
-        let want = ui.with(|s| {
+        let (want, cycling) = ui.with(|s| {
             s.seen = seen;
-            s.showing(&slot.actors)
-        })?;
-        let (actor, kind) = slot.actor(want)?;
+            (s.showing(&slot.actors), s.cycling())
+        });
+        seek(main, o, cell, CELL_HALO, if cycling { HALO } else { 0.0 })?;
+        let (actor, kind) = slot.actor(want?)?;
         if name(at(cell, CELL_NAME)? as *const u8) == Some(actor) {
             return Some(());
         }
         let set: CellSet = transmute(main + o.cell_set as usize);
         set(cell, &actor.as_ptr(), i32::from(kind), 0, 1);
+        let equipped: Equipped = transmute(main + o.equipped as usize);
+        let on_button = equipped(at(main, o.manager as usize)?, child.into(), 1) == i32::from(kind);
+        seek(
+            main,
+            o,
+            cell,
+            CELL_ICON,
+            if on_button { ON_BUTTON } else { USABLE },
+        )?;
         if focused {
             for refresh in [o.unfocus, o.focus] {
                 transmute::<usize, Focus>(main + refresh as usize)(button, 0, 0, 0);
             }
+        }
+    }
+    Some(())
+}
+
+/// Seek the cell's animation at `anim` to `frame`, unless it's there.
+///
+/// # Safety
+/// `cell` is an Items page cell, and the offsets are this build's.
+unsafe fn seek(
+    main: usize,
+    o: &crate::Offsets,
+    cell: usize,
+    anim: usize,
+    frame: f32,
+) -> Option<()> {
+    unsafe {
+        let anim = at(cell, anim)?;
+        if *((at(anim, ANIM_CONTROL)? + ANIM_FRAME) as *const f32) != frame {
+            transmute::<usize, AnimFrame>(main + o.anim_frame as usize)(anim, frame);
         }
     }
     Some(())
