@@ -658,11 +658,11 @@ pub(super) enum SaveCommand {
     },
     /// The kept saves: name, map, age, when and why each was kept.
     Kept,
-    /// Set scalar values, e.g. `IsGet.ITEM=true`. Close the game
-    /// first. The old file is kept next to it as a timestamped backup.
+    /// Set values, e.g. `IsGet.ITEM=true`, or one array element as
+    /// `NAME[INDEX]=VALUE`. Close the game first. The old file is kept next to it as a timestamped backup.
     Set {
         slot: String,
-        /// NAME=VALUE pairs. Enums take a value name.
+        /// NAME=VALUE or NAME[INDEX]=VALUE pairs. Enums take a value name.
         #[arg(required_unless_present = "presets")]
         edits: Vec<String>,
         /// Flag sets to apply too. Repeatable.

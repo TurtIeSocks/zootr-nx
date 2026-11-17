@@ -317,10 +317,20 @@ impl Edit {
         }
     }
 
-    /// `NAME=VALUE`.
+    /// `NAME=VALUE`, or `NAME[INDEX]=VALUE` for one element of an array.
     pub fn parse(edit: &str) -> Result<Self> {
         let (name, text) = split(edit)?;
-        Ok(Self::new(murmur3(name.as_bytes()), text))
+        let (name, index) = match name.strip_suffix(']').and_then(|n| n.split_once('[')) {
+            Some((name, i)) => (
+                name,
+                i.parse().with_context(|| format!("{i:?} isn't an index"))?,
+            ),
+            None => (name, 0),
+        };
+        Ok(Self {
+            index,
+            ..Self::new(murmur3(name.as_bytes()), text)
+        })
     }
 }
 
@@ -387,6 +397,24 @@ mod tests {
     }
 
     use super::*;
+
+    #[test]
+    fn an_edit_names_an_array_element_by_index() {
+        let hash = murmur3(b"FakeArray");
+        assert_eq!(
+            Edit::parse("FakeArray[3]=true").unwrap(),
+            Edit {
+                hash,
+                index: 3,
+                value: "true".into()
+            }
+        );
+        assert_eq!(
+            Edit::parse("FakeArray=true").unwrap(),
+            Edit::new(hash, "true")
+        );
+        assert!(Edit::parse("FakeArray[x]=true").is_err());
+    }
 
     /// A save with bools `(hash, value)` and binaries `(hash, data)`.
     fn save(bools: &[(u32, u32)], binaries: &[(u32, &[u8])]) -> Vec<u8> {
