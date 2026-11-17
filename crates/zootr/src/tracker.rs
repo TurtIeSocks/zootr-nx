@@ -281,7 +281,7 @@ mod tests {
         let Some(romfs) = dev_dump() else { return };
         let gd = GameData::load(&romfs).unwrap();
         for s in &scrubs::SCRUBS {
-            for item in [s.item.to_string(), "Item_Rando_Ap0001".to_string()] {
+            for item in [s.item.to_string(), crate::foreign::actor(1)] {
                 let spot = Spot {
                     item: item.clone(),
                     ..spot(s.hash())
