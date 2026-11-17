@@ -69,8 +69,9 @@ mod imp {
         Ok(())
     }
 
-    /// Readable, executable regions, lowest first.
-    pub fn code(task: Port) -> Vec<(u64, usize)> {
+    /// Every mapped region, lowest first: its start, size and protection
+    /// (read 1, write 2, execute 4).
+    pub fn regions(task: Port) -> Vec<(u64, usize, i32)> {
         let mut out = Vec::new();
         let mut at = 0;
         loop {
@@ -89,10 +90,7 @@ mod imp {
             if kr != 0 {
                 return out;
             }
-            // info[0] is the protection: read 1, execute 4.
-            if info[0] & 5 == 5 {
-                out.push((at, size as usize));
-            }
+            out.push((at, size as usize, info[0]));
             at += size;
         }
     }
@@ -120,9 +118,17 @@ mod imp {
         bail!("live writes need macOS, or a target with a bridge")
     }
 
-    pub fn code(_: u32) -> Vec<(u64, usize)> {
+    pub fn regions(_: u32) -> Vec<(u64, usize, i32)> {
         Vec::new()
     }
 }
 
 pub use imp::*;
+
+/// Readable, executable regions, lowest first.
+pub fn code(task: u32) -> Vec<(u64, usize)> {
+    (regions(task).into_iter())
+        .filter(|&(_, _, prot)| prot & 5 == 5)
+        .map(|(at, size, _)| (at, size))
+        .collect()
+}

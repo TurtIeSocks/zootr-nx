@@ -107,7 +107,7 @@ pub(super) unsafe fn single(main: usize, slot: u32) -> Option<usize> {
     unsafe { at(at(main, slot as usize)?, 0) }
 }
 
-unsafe fn get_bool(main: usize, o: &Offsets, gd: usize, hash: u32) -> Option<bool> {
+pub(super) unsafe fn get_bool(main: usize, o: &Offsets, gd: usize, hash: u32) -> Option<bool> {
     let get: GetBool = unsafe { core::mem::transmute(main + o.get_bool as usize) };
     let mut out = 0;
     (unsafe { get(gd, &mut out, hash) } & 1 == 1).then_some(out & 1 == 1)

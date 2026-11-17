@@ -15,7 +15,7 @@ use crate::{events, flows, game, generate, spawn, world};
 use args::{Cli, Command, DrillReport, SweepReport};
 use play::{boot_command, drill, drill_report, look, play, sweep, sweep_report};
 use research::{census, chest_events, cutscenes, flags, flow, items, logic};
-use running::{dev, give, live, set};
+use running::{dev, give, live, mem, set};
 use save::save_command;
 use seed::{print_written, shuffle};
 use selftest::selftest;
@@ -141,6 +141,7 @@ pub fn run() -> Result<()> {
         Command::Give { actor, count } => give(&romfs, &actor, count),
         Command::Set { name, value } => set(&romfs, &name, &value),
         Command::Dev(cmd) => dev(&romfs, &path, cmd),
+        Command::Mem(cmd) => mem(cmd),
         Command::Look {
             questions,
             model,

@@ -5,10 +5,12 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
-use zootr_hook::{BUNNY_HOOD, CAVE, Credit, LIST, Offsets, PANIC, RESUMES, Shared, TABLE, encode};
+use zootr_hook::{
+    BUNNY_HOOD, CAVE, Credit, LIST, Offsets, PANIC, RESUMES, Shared, TABLE, TRADE_CYCLE, encode,
+};
 
 use crate::known::Name;
-use crate::progressive;
+use crate::{progressive, trade_slot};
 
 /// The hook's code, built by `build.rs`.
 const HOOK: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/hook.bin"));
@@ -46,6 +48,16 @@ pub const OFFSETS: Offsets = Offsets {
     move_to: 0x6b_2530,
     controller_vtable: 0x4c3_4f10,
     run_setter: 0x93_52f0,
+    npad_full: 0x3c4_2800,
+    npad_handheld: 0x3c4_2830,
+    npad_dual: 0x3c4_27f0,
+    items_built: 0xa7_13b0,
+    // The Items page's vtable slot 7, run as it's left or the menu closes.
+    items_left: 0xa7_6770,
+    ui_update: 0x6e_6be0,
+    cell_set: 0xa7_3060,
+    unfocus: 0xab_5080,
+    focus: 0xab_4ec0,
 };
 /// Where the recorder, and the free space after rodata and bss, end.
 const CAVE_END: u32 = 0x17f_58e0;
@@ -71,6 +83,11 @@ const CALLS: [(u32, u32); 4] = [
 /// `run_speed`, which scales the speed in the Bunny Hood. Rewritten only
 /// in a seed with the setting.
 const RUN_CALL: (u32, u32) = (0x93_4990, 24);
+/// The controller device's three `GetNpadStates` calls (full key,
+/// handheld, joy dual) and their hook entries, which run the trade slot's
+/// cycle. Rewritten only in a seed with [`TRADE_CYCLE`], with the three
+/// Items page hooks.
+const NPAD_CALLS: [(u32, u32); 3] = [(0x346_966c, 32), (0x346_9698, 36), (0x346_94f8, 40)];
 /// Each hooked function and the entry the `b` over its `pacibsp` goes to.
 /// Link's update only runs the dev panel's requests and switches, so it's
 /// hooked only with the dev panel on.
@@ -80,6 +97,18 @@ const HOOKS: &[(u32, u32)] = &[
     (OFFSETS.granted, 16),
     (OFFSETS.link_update, 20),
     (OFFSETS.picked, 28),
+    (OFFSETS.items_built, 44),
+    (OFFSETS.items_left, 48),
+    (OFFSETS.ui_update, 52),
+];
+/// The sites only a seed with [`TRADE_CYCLE`] gets.
+const TRADE_SITES: [u32; 6] = [
+    NPAD_CALLS[0].0,
+    NPAD_CALLS[1].0,
+    NPAD_CALLS[2].0,
+    OFFSETS.items_built,
+    OFFSETS.items_left,
+    OFFSETS.ui_update,
 ];
 /// `main`'s build ID, as its NSO header's 32 byte field holds it. Its first
 /// 8 bytes name the cheat file and the rest, trailing zeros left out, the
@@ -112,11 +141,11 @@ fn branch(from: u32, to: u32, link: bool) -> [u8; 4] {
 
 /// The calls and hooked functions, each branching to its hook entry.
 fn sites() -> impl Iterator<Item = Patch> {
-    let calls = CALLS.map(|(at, entry)| (at, entry, true));
+    let calls = CALLS.into_iter().chain(NPAD_CALLS);
+    let calls = calls.map(|(at, entry)| (at, entry, true));
     let hooks = HOOKS.iter().map(|&(at, entry)| (at, entry, false));
     let run = (RUN_CALL.0, RUN_CALL.1, true);
     calls
-        .into_iter()
         .chain(hooks)
         .chain([run])
         .map(|(at, entry, link)| Patch {
@@ -143,7 +172,8 @@ pub fn site(at: u32) -> Option<Vec<u8>> {
 
 /// The gate, the hook, its table for `lines`, `flags` and `credits`, then the calls
 /// and function hooks that reach it. Link's update is among them only with
-/// `dev`, and the run's call only with [`BUNNY_HOOD`] in `flags`.
+/// `dev`, the run's call only with [`BUNNY_HOOD`] in `flags`, and the trade
+/// slot's sites, with its slot in the table, only with [`TRADE_CYCLE`].
 pub fn patches<A: AsRef<str>>(
     lines: &[&[(A, A)]],
     dev: bool,
@@ -170,9 +200,12 @@ pub fn patches<A: AsRef<str>>(
         bytes: branch(GATE.0, GATE.1, false).to_vec(),
     };
     let code = fit(CAVE, hook_code(), CAVE_END, "hook")?;
+    let trade = flags & TRADE_CYCLE != 0;
+    let actors = trade_slot::actors();
+    let slot = trade.then(|| trade_slot::spec(&actors));
     let table = fit(
         TABLE,
-        encode(OFFSETS, flags, &lines, credits),
+        encode(OFFSETS, flags, &lines, credits, slot.as_ref()),
         TABLE_END,
         "table",
     )?;
@@ -180,6 +213,7 @@ pub fn patches<A: AsRef<str>>(
     let sites = sites().filter(|p| match p.at {
         at if at == OFFSETS.link_update => dev,
         at if at == RUN_CALL.0 => bunny,
+        at if TRADE_SITES.contains(&at) => trade,
         _ => true,
     });
     Ok([gate, code, table].into_iter().chain(sites).collect())
@@ -269,7 +303,7 @@ fn outputs(mod_dir: &Path) -> [(PathBuf, Writer); 2] {
 
 /// Whether a seed with these settings runs the hook.
 pub fn hooked(progressive: bool, dev: bool, flags: u32) -> bool {
-    progressive || dev || flags & BUNNY_HOOD != 0
+    progressive || dev || flags & (BUNNY_HOOD | TRADE_CYCLE) != 0
 }
 
 /// Write the cheat and exefs patch when [`hooked`], else take ours away.
@@ -328,6 +362,9 @@ mod tests {
     use zootr_hook::{HEADER, Header, Table};
 
     use super::*;
+
+    /// Every flag that adds a site.
+    const ALL: u32 = BUNNY_HOOD | TRADE_CYCLE;
 
     #[test]
     fn the_code_and_table_go_in_their_places_and_read_back() {
@@ -434,11 +471,15 @@ mod tests {
 
     #[test]
     fn calls_and_hooks_branch_to_the_hook() {
-        let p = patches(&progressive::LINES, true, BUNNY_HOOD, &[]).unwrap();
+        let p = patches(&progressive::LINES, true, ALL, &[]).unwrap();
         assert_eq!(p[3..], sites().collect::<Vec<_>>());
         let at = |i: usize| u32::from_le_bytes(p[3 + i].bytes[..].try_into().unwrap());
         assert_eq!(at(0) >> 26, 0b100101, "a call stays a bl");
-        assert_eq!(at(CALLS.len()) >> 26, 0b000101, "a hook is a b");
+        assert_eq!(
+            at(CALLS.len() + NPAD_CALLS.len()) >> 26,
+            0b000101,
+            "a hook is a b"
+        );
         let run = p.last().unwrap();
         assert_eq!(run.at, RUN_CALL.0);
         assert_eq!(run.bytes, branch(RUN_CALL.0, CAVE + RUN_CALL.1, true));
@@ -449,12 +490,13 @@ mod tests {
     }
 
     #[test]
-    fn link_s_update_needs_dev_and_the_run_call_the_hood() {
-        let all = patches(&progressive::LINES, true, BUNNY_HOOD, &[]).unwrap();
+    fn link_s_update_needs_dev_the_run_call_the_hood_and_the_trade_sites_their_flag() {
+        let all = patches(&progressive::LINES, true, ALL, &[]).unwrap();
         for (dev, flags, gone) in [
-            (false, BUNNY_HOOD, vec![OFFSETS.link_update]),
-            (true, 0, vec![RUN_CALL.0]),
-            (false, 0, vec![OFFSETS.link_update, RUN_CALL.0]),
+            (false, ALL, vec![OFFSETS.link_update]),
+            (true, TRADE_CYCLE, vec![RUN_CALL.0]),
+            (false, TRADE_CYCLE, vec![OFFSETS.link_update, RUN_CALL.0]),
+            (true, BUNNY_HOOD, TRADE_SITES.to_vec()),
         ] {
             let some = patches(&progressive::LINES, dev, flags, &[]).unwrap();
             assert_eq!(some.len(), all.len() - gone.len(), "{dev} {flags}");
@@ -488,7 +530,7 @@ mod tests {
              08000000 00000018 0F0E0D0C 0B0A0908\n\
              04000000 0000002C 04030201\n\n"
         );
-        let text = cheat(&patches(&progressive::LINES, true, BUNNY_HOOD, &[]).unwrap());
+        let text = cheat(&patches(&progressive::LINES, true, ALL, &[]).unwrap());
         let cheats: Vec<_> = text.split("\n\n").filter(|c| !c.is_empty()).collect();
         let total = cheats.len();
         for (i, c) in cheats.iter().enumerate() {

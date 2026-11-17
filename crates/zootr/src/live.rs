@@ -570,6 +570,15 @@ impl Game {
     pub fn set(&self, hash: u32, value: &str) -> Result<()> {
         set(self, self.global, hash, value)
     }
+
+    /// The game's mapped regions: start, size and protection (read 1,
+    /// write 2, execute 4). The Mac game only.
+    pub fn regions(&self) -> Result<Vec<(u64, usize, i32)>> {
+        match &self.mem {
+            Backend::Mach(task) => Ok(mach::regions(*task)),
+            Backend::Bridge(_) => bail!("the bridge can't list regions"),
+        }
+    }
 }
 
 /// The processes started from `app`.

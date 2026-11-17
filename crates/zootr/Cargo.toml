@@ -10,6 +10,7 @@ publish.workspace = true
 anyhow.workspace = true
 clap.workspace = true
 jiff.workspace = true
+memchr.workspace = true
 nup-format.workspace = true
 ounce-formats.workspace = true
 png.workspace = true

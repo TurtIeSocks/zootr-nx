@@ -3,11 +3,12 @@
 
 use core::{arch::asm, arch::global_asm, slice};
 
-use crate::{CAVE, Credit, Credited, HEADER, Header, LIST, List, Offsets, Shared, TABLE, Table};
+use crate::{CAVE, Credit, Credited, HEADER, Header, LIST, List, Shared, TABLE, Table};
 
 mod bunny;
 mod chests;
 mod dev;
+mod menu;
 mod refill;
 mod rt;
 
@@ -21,9 +22,10 @@ const KEY: &[u8] = b"ContentName";
 /// Longer than any actor name, so a runaway string stops here.
 const MAX: usize = 128;
 
-// The call sites `bl` to content_name at +0, drop_actor at +4 and
-// run_speed at +24. The hooked functions `b` to +8, +12, +16, +20 and +28
-// in place of their pacibsp.
+// The call sites `bl` to content_name at +0, drop_actor at +4, run_speed
+// at +24 and the controller reads to +32, +36 and +40. The hooked
+// functions `b` to +8, +12, +16, +20, +28, +44, +48 and +52 in place of
+// their pacibsp.
 // The opening node is in x20 at both content_name call sites.
 //
 // A function hook keeps every argument register and the link register,
@@ -57,6 +59,25 @@ global_asm!(
     "pacibsp",
     "b \\resume",
     ".endm",
+    // A hook that runs its handler after the function returns, for a
+    // function called with no stack arguments: it calls the function
+    // through the pacibsp and slot, keeps its result, and then returns
+    // to the function's caller.
+    ".macro function_hook_after handler, resume",
+    "stp x29, x30, [sp, #-0x30]!",
+    "mov x29, sp",
+    "bl 1f",
+    "str x0, [sp, #0x10]",
+    "str q0, [sp, #0x20]",
+    "bl \\handler",
+    "ldr q0, [sp, #0x20]",
+    "ldr x0, [sp, #0x10]",
+    "ldp x29, x30, [sp], #0x30",
+    "ret",
+    "1:",
+    "pacibsp",
+    "b \\resume",
+    ".endm",
     ".section .text.entry, \"ax\"",
     ".global entries",
     "entries:",
@@ -68,6 +89,12 @@ global_asm!(
     "b link_update_entry",
     "b run_speed",
     "b picked_entry",
+    "b npad_full_entry",
+    "b npad_handheld_entry",
+    "b npad_dual_entry",
+    "b items_built_entry",
+    "b items_left_entry",
+    "b ui_update_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -78,6 +105,12 @@ global_asm!(
     "link_update_resume:",
     "brk #0",
     "picked_resume:",
+    "brk #0",
+    "items_built_resume:",
+    "brk #0",
+    "items_left_resume:",
+    "brk #0",
+    "ui_update_resume:",
     "brk #0",
     ".text",
     "content_name_entry:",
@@ -93,6 +126,22 @@ global_asm!(
     "function_hook link_update, link_update_resume",
     "picked_entry:",
     "function_hook picked, picked_resume",
+    // GetNpadStates takes three arguments, so x3 is free for the style.
+    "npad_full_entry:",
+    "mov x3, #0",
+    "b npad_states",
+    "npad_handheld_entry:",
+    "mov x3, #1",
+    "b npad_states",
+    "npad_dual_entry:",
+    "mov x3, #2",
+    "b npad_states",
+    "items_built_entry:",
+    "function_hook items_built, items_built_resume",
+    "items_left_entry:",
+    "function_hook items_left, items_left_resume",
+    "ui_update_entry:",
+    "function_hook_after ui_update, ui_update_resume",
 );
 
 /// `main`, from where the hook starts.
@@ -115,7 +164,7 @@ fn table() -> Option<(usize, Table<'static>)> {
     // SAFETY: the cheat writes the table at `TABLE`, 8 byte aligned.
     let header = unsafe { &*((main + TABLE as usize) as *const Header) };
     let at = (header as *const Header).cast::<u8>();
-    let size = (header.size + header.credits) as usize;
+    let size = (header.size + header.credits + header.slot) as usize;
     let body = unsafe { slice::from_raw_parts(at.add(HEADER), size) };
     Some((main, Table::parse(header, body)?))
 }
@@ -247,6 +296,7 @@ unsafe extern "C" fn granted(_: usize, added: *const *const u8) {
         if let Some(added) = name(*added) {
             credit(main, table, added, false);
             recreate(main, table, added);
+            menu::granted(main, table, added);
         }
     })
 }

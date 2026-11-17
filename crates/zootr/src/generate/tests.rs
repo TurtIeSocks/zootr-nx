@@ -283,8 +283,6 @@ fn cows_are_checks_and_bools_only_with_the_option_on() {
         let raw = std::fs::read(dir.join("romfs").join(gamedata::PATH)).unwrap();
         bools(&romfs.dicts().decompress(gamedata::PATH, &raw).unwrap())
     };
-    // The seed moves Dampe's chests, so the race has two Bools of its own.
-    let vanilla = bools(&romfs.read(gamedata::PATH).unwrap()) + 2;
     let clone = |dir: &Path| dir.join("romfs/Pack/Actor/Animal_Cow_Rando_00.pack.zs");
     let on = NewGame {
         cows: true,
@@ -300,7 +298,6 @@ fn cows_are_checks_and_bools_only_with_the_option_on() {
     )
     .unwrap();
     assert_eq!(cows(&report), 8);
-    assert_eq!(written(&dir.join("on")), vanilla + 8);
     assert!(dir.join("on/romfs").join(&flow).is_file());
     assert!(clone(&dir.join("on")).is_file());
     let off = &dir.join("off");
@@ -314,7 +311,9 @@ fn cows_are_checks_and_bools_only_with_the_option_on() {
     )
     .unwrap();
     assert_eq!(cows(&report), 0);
-    assert_eq!(written(off), vanilla);
+    // Against the seed without cows, since every seed adds Bools of its
+    // own (Dampe's race, boss key copies).
+    assert_eq!(written(&dir.join("on")), written(off) + 8);
     assert!(!off.join("romfs").join(&flow).is_file());
     assert!(!clone(off).is_file());
     std::fs::remove_dir_all(dir).unwrap();

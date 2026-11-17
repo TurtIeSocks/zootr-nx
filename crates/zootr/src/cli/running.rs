@@ -9,7 +9,7 @@ use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 use serde::Serialize;
 
-use super::args::{DevCommand, Switch};
+use super::args::{DevCommand, MemCommand, Switch};
 use crate::config::{Config, TestSetup};
 use crate::nav::{act, drive, shove};
 use crate::play::{self, Input};
@@ -256,6 +256,98 @@ pub(super) fn saved_test(name: &str) -> Result<TestSetup> {
         .with_context(|| format!("no saved test setup is named {name}"))
 }
 
+/// How far a search reads at once, so a big region never stalls the game.
+const CHUNK: usize = 1 << 20;
+
+pub(super) fn mem(cmd: MemCommand) -> Result<()> {
+    use live::Memory;
+    let game = attach()?;
+    match cmd {
+        MemCommand::Regions { min } => {
+            for (start, size, prot) in game.regions()? {
+                if size >= min << 20 {
+                    let end = start + size as u64;
+                    println!("{start:#x}..{end:#x} {:>8} KB prot {prot}", size >> 10);
+                }
+            }
+        }
+        MemCommand::Find {
+            needle,
+            writable,
+            limit,
+            from,
+            to,
+        } => {
+            let needle = bytes(&needle)?;
+            anyhow::ensure!(!needle.is_empty(), "nothing to find");
+            let wanted = if writable { 3 } else { 1 };
+            let from = from.as_deref().map(address).transpose()?.unwrap_or(0);
+            let to = to.as_deref().map(address).transpose()?.unwrap_or(u64::MAX);
+            let mut hits = 0;
+            for (start, size, prot) in game.regions()? {
+                if prot & wanted != wanted {
+                    continue;
+                }
+                let end = (start + size as u64).min(to);
+                let mut at = start.max(from);
+                while at < end && hits < limit {
+                    let len = CHUNK.min((end - at) as usize);
+                    // Overlap chunks so a match across a seam is still seen.
+                    let len = (len + needle.len() - 1).min((end - at) as usize);
+                    let Ok(data) = game.read(at, len) else { break };
+                    for i in memchr::memmem::find_iter(&data, &needle) {
+                        println!("{:#x} (region {start:#x}, prot {prot})", at + i as u64);
+                        hits += 1;
+                        if hits == limit {
+                            break;
+                        }
+                    }
+                    at += CHUNK as u64;
+                }
+            }
+            println!("{hits} found");
+        }
+        MemCommand::Read { at, len } => {
+            let at = address(&at)?;
+            for (i, row) in game.read(at, len)?.chunks(16).enumerate() {
+                let hex: Vec<_> = row.iter().map(|b| format!("{b:02x}")).collect();
+                let text: String = (row.iter())
+                    .map(|&b| if b.is_ascii_graphic() { b as char } else { '.' })
+                    .collect();
+                println!("{:#x}  {:<47}  {text}", at + 16 * i as u64, hex.join(" "));
+            }
+        }
+        MemCommand::Write { at, bytes: hex } => {
+            let (at, data) = (address(&at)?, bytes(&hex)?);
+            println!("was {:02x?}", game.read(at, data.len())?);
+            game.write(at, &data)?;
+            println!("now {:02x?}", game.read(at, data.len())?);
+        }
+    }
+    Ok(())
+}
+
+fn address(text: &str) -> Result<u64> {
+    let digits = text.trim_start_matches("0x");
+    u64::from_str_radix(digits, 16).with_context(|| format!("{text} isn't a hex address"))
+}
+
+/// Hex bytes, or `s:` and text.
+fn bytes(text: &str) -> Result<Vec<u8>> {
+    if let Some(s) = text.strip_prefix("s:") {
+        return Ok(s.as_bytes().to_vec());
+    }
+    let digits: String = text.chars().filter(|c| !c.is_whitespace()).collect();
+    anyhow::ensure!(
+        digits.len().is_multiple_of(2),
+        "{text} has an odd number of hex digits"
+    );
+    (0..digits.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&digits[i..i + 2], 16).context("not hex"))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -282,5 +374,14 @@ mod tests {
             );
             assert!(said.contains(valid), "{said}");
         }
+    }
+
+    #[test]
+    fn a_needle_is_hex_or_text() {
+        assert_eq!(bytes("0f 1e").unwrap(), [0x0f, 0x1e]);
+        assert_eq!(bytes("0f1e").unwrap(), [0x0f, 0x1e]);
+        assert_eq!(bytes("s:Ab").unwrap(), b"Ab");
+        assert!(bytes("0f1").is_err());
+        assert_eq!(address("0x7f21d600e0").unwrap(), 0x007f_21d6_00e0);
     }
 }
