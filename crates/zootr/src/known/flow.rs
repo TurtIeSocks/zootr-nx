@@ -4,6 +4,9 @@ use super::Name;
 
 pub const ACTION_GUIDE: &Name = &n!(0x392b72507298e81d);
 pub const ALL_SAGE: &Name = &n!(0x1129ba42a64e65ac);
+pub const BIG_GORON_TIMER_STEP04: &Name = &n!(0x77f6c3c81f2bc7e2);
+pub const BIG_GORON_TIMER_STEP09: &Name = &n!(0x77f6c8c81f2bd061);
+pub const BIG_GORON_TIMER_STEP10: &Name = &n!(0x77fa45c81f2eda9f);
 pub const BOTTOM_OF_THE_WELL: &Name = &n!(0xab6c3eee1d36619a);
 pub const CHILD_BANC: &Name = &n!(0x1b9df7d728402c67);
 pub const CONTENT_NAME: &Name = &n!(0x3964573c75142249);
