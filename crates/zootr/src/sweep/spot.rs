@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::Romfs;
 
 use super::gear;
@@ -195,13 +195,15 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         self.setup(p, !unset.is_empty())?;
         let cleared = self.ready(p)?;
         let sink = gear::sinks(&p.spot.need_items, p.child);
-        if sink {
-            for armor in gear::UNDERWATER {
-                let gd = self.gd;
-                self.calmly(|dev| dev.give(gd, armor, 1))?;
-            }
+        for armor in gear::toggles(sink, &gear::worn(self.dev)?) {
+            self.equip(armor)?;
         }
-        gear::wear(self.dev, sink)?;
+        let (boots, _) = gear::worn(self.dev)?;
+        ensure!(
+            boots == sink,
+            "the Iron Boots stayed {}",
+            if boots { "on" } else { "off" }
+        );
         if let Trigger::Open {
             first: Some(event), ..
         } = &p.trigger
@@ -463,12 +465,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
     /// what it acts on and press ZR, then stand on the switch it frees.
     /// Out of reach of that, Link warps beside it first, and back after.
     fn wield(&mut self, w: &Wield, p: &Planned, name: &str, swept: &mut Swept) -> Result<()> {
-        let gd = self.gd;
-        self.calmly(|dev| dev.give(gd, w.item, 1))?;
-        for (button, wait) in wield::EQUIP {
-            self.input.press(button)?;
-            sleep(wait);
-        }
+        self.equip(w.item)?;
         let here = self.dev.link()?;
         let far = dist(here, w.on) > wield::REACH;
         if far {
@@ -485,6 +482,19 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         }
         if far || w.press.is_some() {
             self.calmly(|dev| dev.warp(here))?;
+        }
+        Ok(())
+    }
+
+    /// Give `item` and press it in the menu, which opens on the newest
+    /// item: a ZR item goes on ZR, and gear (the Iron Boots, a tunic) goes
+    /// on or comes off.
+    fn equip(&mut self, item: &'static Name) -> Result<()> {
+        let gd = self.gd;
+        self.calmly(|dev| dev.give(gd, item, 1))?;
+        for (button, wait) in wield::EQUIP {
+            self.input.press(button)?;
+            sleep(wait);
         }
         Ok(())
     }
