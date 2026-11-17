@@ -191,8 +191,8 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         // Before the teleport, and held through its load, which clears
         // them. Once more after, naming any the load still cleared.
         super::clock::set(self.dev, &p.trigger)?;
-        self.ready(p)?;
-        self.setup(p)?;
+        let unset = self.ready(p)?;
+        self.setup(p, !unset.is_empty())?;
         let cleared = self.ready(p)?;
         let sink = gear::sinks(&p.spot.need_items, p.child);
         if sink {
@@ -320,9 +320,11 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
     }
 
     /// The song a cow wants, the item a giver takes or the card the guards
-    /// want, then the map. Quest
+    /// want, then the map: loaded again when Link is already in it but
+    /// `reload`, since a preset that wasn't set yet (a raised chest's flag,
+    /// a scrub's seller flag) is read only as the map spawns. Quest
     /// steps are [`presets`].
-    fn setup(&mut self, p: &Planned) -> Result<()> {
+    fn setup(&mut self, p: &Planned, reload: bool) -> Result<()> {
         let map = match &p.trigger {
             Trigger::Open { map, .. } | Trigger::Talk { map, .. } => Some(map),
             Trigger::Play { map, .. } => map.as_ref(),
@@ -352,7 +354,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             return Ok(());
         };
         let here = self.dev.state()?;
-        if here.map == *map && p.child.is_none_or(|c| c == here.child) {
+        if !reload && here.map == *map && p.child.is_none_or(|c| c == here.child) {
             return Ok(());
         }
         let place =
