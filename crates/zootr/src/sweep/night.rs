@@ -267,6 +267,9 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         resume.skip(&mut planned, name);
         let shots = self.dir.join(format!("round-{round:03}-{seed}"));
         std::fs::create_dir_all(&shots)?;
+        if self.step_aside(&resume)? {
+            return Ok(Ended::Yielded);
+        }
         let mut live = self.start()?;
         let rows = self.results();
         let at = Round {
@@ -278,12 +281,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             rows: &rows,
         };
         for p in &planned {
-            if self.yielding.as_ref().is_some_and(Yielding::asked) {
-                eprintln!(
-                    "round {round}: stepping aside after {} spots",
-                    resume.done.len()
-                );
-                resume.save(&self.dir)?;
+            if self.step_aside(&resume)? {
                 return Ok(Ended::Yielded);
             }
             let first = at_known(p, &known);
@@ -291,6 +289,18 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             resume.done.push(name(p));
         }
         Ok(Ended::Swept)
+    }
+
+    /// Whether the turn queue wants the game back: if so, keep the
+    /// round's place in `resume.json`.
+    fn step_aside(&self, resume: &Resume) -> Result<bool> {
+        if !self.yielding.as_ref().is_some_and(Yielding::asked) {
+            return Ok(false);
+        }
+        let done = resume.done.len();
+        eprintln!("round {}: stepping aside after {done} spots", resume.round);
+        resume.save(&self.dir)?;
+        Ok(true)
     }
 
     /// Sweep `first`, the spot `p` as earlier nights left it: again after a
