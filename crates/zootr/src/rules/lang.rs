@@ -69,12 +69,23 @@ impl Need {
 
     /// Whether anything could meet this in `era`: every item, no flags.
     pub fn possible(&self, era: Era) -> bool {
+        self.could(era, false)
+    }
+
+    /// Whether anything could ever meet this in `era`: every item, and
+    /// every flag set.
+    pub fn ever(&self, era: Era) -> bool {
+        self.could(era, true)
+    }
+
+    fn could(&self, era: Era, flags: bool) -> bool {
         match self {
             Need::Always | Need::Items { .. } | Need::Setting(_) => true,
-            Need::Never | Need::Flag(_) => false,
+            Need::Never => false,
+            Need::Flag(_) => flags,
             Need::Era(e) => *e == era,
-            Need::All(needs) => needs.iter().all(|n| n.possible(era)),
-            Need::Any(needs) => needs.iter().any(|n| n.possible(era)),
+            Need::All(needs) => needs.iter().all(|n| n.could(era, flags)),
+            Need::Any(needs) => needs.iter().any(|n| n.could(era, flags)),
         }
     }
 
