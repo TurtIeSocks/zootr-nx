@@ -495,6 +495,7 @@ pub fn join_structs(
 
 /// BoolExp opcodes, as [`GameData::render`] reads them.
 pub(crate) mod op {
+    pub const INT_EQUAL: i64 = 15;
     pub const INT_GREATER: i64 = 19;
     pub const INT_CONSTANT: i64 = 16;
     pub const AND: i64 = 3;

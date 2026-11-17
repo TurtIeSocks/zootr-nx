@@ -102,6 +102,8 @@ pub(crate) const GRANT: (&Name, &Name) = (
 );
 /// The item a `GRANT` adds.
 pub(crate) const ACTOR: &str = "Actor";
+/// How many a `GRANT` adds, or takes when negative.
+pub(crate) const NUM: &str = "Num";
 /// The param naming the GameData entry an event reads or sets.
 pub(crate) const GAME_DATA: &Name = field::GAME_DATA_NAME;
 /// The query whether a GameData Bool is set. Case 0 is set.

@@ -27,6 +27,24 @@ const fn npc(
     }
 }
 
+/// A step of the adult trade chain, given for the item shown.
+const fn trade(
+    flow: &'static Name,
+    area: &'static Name,
+    giver: &'static str,
+    item: &'static Name,
+    call: &'static [Call],
+) -> Gift {
+    Gift {
+        flow,
+        area,
+        giver,
+        item,
+        how: How::Calls { call, found: None },
+        setting: Some(TRADE_CHAIN),
+    }
+}
+
 /// A song, taught in a scene the gift cuts down to its grant, so there's
 /// no lesson.
 pub(super) const fn song(
@@ -67,7 +85,7 @@ pub(super) const fn reward(
     }
 }
 
-pub const GIFTS: [Gift; 73] = [
+pub const GIFTS: [Gift; 83] = [
     Gift {
         flow: scene::KOKIRI_0155,
         area: flag::KOKIRI_FOREST,
@@ -527,7 +545,80 @@ pub const GIFTS: [Gift; 73] = [
         &[HAND_OVER],
         flag::MINI_GAME_BOMBCHU_BOWLING_CLEAR_SECOND_TIME,
     ),
-    // The trade chain stays as it is. Only the sword at its end moves.
+    // The adult trade chain, each giver by what Link shows them.
+    trade(
+        actor::NPC_HYLIA_049_ADULT,
+        flag::KAKARIKO_VILLAGE,
+        "Anju as adult",
+        item::POCKET_EGG,
+        &[HAND_OVER],
+    ),
+    Gift {
+        flow: actor::NPC_HYLIA_TALON_ADULT_KAKARIKO,
+        area: flag::KAKARIKO_VILLAGE,
+        giver: "Talon: Pocket Cucco",
+        item: item::COJIRO_CUCCO,
+        how: How::Added {
+            also: &[actor::NPC_HYLIA_TALON_ADULT],
+        },
+        setting: Some(TRADE_CHAIN),
+    },
+    trade(
+        actor::NPC_HYLIA_017_ADULT,
+        flag::LOST_WOOD,
+        "Grog: Cojiro",
+        item::ODD_MUSHROOM,
+        &[HAND_OVER],
+    ),
+    trade(
+        actor::NPC_HYLIA_053_ADULT,
+        flag::KAKARIKO_VILLAGE,
+        "Granny: Odd Mushroom",
+        item::ODD_POWDER,
+        &[HAND_OVER],
+    ),
+    trade(
+        actor::NPC_KOKIRI_FADO_ADULT,
+        flag::LOST_WOOD,
+        "Fado: Odd Powder",
+        item::POACHER_SAW,
+        &[get(flow::GET_IN_EVENT_NOT_TURN_FADO)],
+    ),
+    trade(
+        actor::NPC_HYLIA_012_ADULT,
+        flag::GERUDO_VALLEY,
+        "Carpenter boss: Poacher's Saw",
+        item::BROKEN_SWORD,
+        &[HAND_OVER],
+    ),
+    trade(
+        BIGGORON,
+        flag::DEATH_MOUNTAIN_TRAIL,
+        "Biggoron: Broken Sword",
+        item::PRESCRIPTION,
+        &[get(flow::GET_IN_EVENT_NOT_TURN_FOR_POS_CAMERA_BIG_GORON)],
+    ),
+    trade(
+        actor::NPC_ZORA_KING_ZORA_ADULT,
+        flag::ZORA_DOMAIN,
+        "King Zora: Prescription",
+        item::EYEBALL_FROG,
+        &[get(flow::GET_IN_EVENT_NOT_TURN_POS_CAMERA)],
+    ),
+    trade(
+        actor::NPC_HYLIA_045_ADULT,
+        flag::HYRULE_FIELD,
+        "Lake Scientist: Eyeball Frog",
+        item::EYE_DROP,
+        &[HAND_OVER],
+    ),
+    trade(
+        scene::DEATH_MT_TRAIL_0050,
+        flag::DEATH_MOUNTAIN_TRAIL,
+        "Biggoron: Eye Drops",
+        item::CLAIM_CHECK,
+        &[get(flow::GET_IN_EVENT_NOT_LOOKAT_OBJECT_TURN_OFF)],
+    ),
     Gift {
         flow: BIGGORON,
         area: flag::DEATH_MOUNTAIN_TRAIL,

@@ -12,7 +12,7 @@ use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::hints::Hint;
 use crate::progress::Run;
-use crate::settings::{ChestSize, NewGame};
+use crate::settings::{ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
     bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, fortress,
     gamedata, gerudo, gifts, hints, key_tints, keys, medallions, navi, patch, pickups, presets,
@@ -52,6 +52,9 @@ pub(super) fn flows(
     }
     if let Some(spawn) = &new_game.spawn {
         spawn::warp(romfs, &mut rewrites, spawn)?;
+    }
+    if new_game.on.contains(TRADE_CHAIN) {
+        trade_chain::deal(romfs, &mut rewrites, drops)?;
     }
     gifts::give_all(romfs, all, &mut rewrites, drops, new_game.progressive)?;
     levels(romfs, drops, new_game)?.give(romfs, all, &mut rewrites)?;
@@ -138,6 +141,9 @@ pub fn write_mod(
     let aliases: Vec<_> = twins.iter().filter_map(twins::Twin::alias).collect();
     let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
     trade_chain::never_counting(&mut doc.root)?;
+    if new_game.on.contains(TRADE_CHAIN) {
+        trade_chain::by_pouch(&mut doc.root)?;
+    }
     let defaults = presets::apply(&gd, &mut doc.root, &edits)?;
     gamedata::add_bools(&mut doc.root, &bools)?;
     gamedata::add_aliases(&mut doc.root, &aliases)?;

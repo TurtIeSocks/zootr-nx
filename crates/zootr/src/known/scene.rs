@@ -19,6 +19,7 @@ pub const DEATH_MT_TRAIL_0027: &Name = &n!(0x51464848d0f08dc4);
 pub const DEATH_MT_TRAIL_0030: &Name = &n!(0x5142c148d0ed7288);
 pub const DEATH_MT_TRAIL_0035: &Name = &n!(0x5142c648d0ed7b07);
 pub const DEATH_MT_TRAIL_0040: &Name = &n!(0x515acb48d1021567);
+pub const DEATH_MT_TRAIL_0050: &Name = &n!(0x51574548d0fefbde);
 pub const DEKU_0000: &Name = &n!(0xfbc5c0e79c855eed);
 pub const DEKU_0003: &Name = &n!(0xfbc5bde79c8559d4);
 pub const DEKU_0010: &Name = &n!(0xfbc23ae79c824564);

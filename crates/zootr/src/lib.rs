@@ -41,6 +41,7 @@ pub mod generate;
 mod gerudo;
 mod gifts;
 mod grant;
+mod graphs;
 pub mod hints;
 pub mod history;
 mod icons;

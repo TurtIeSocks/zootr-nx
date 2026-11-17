@@ -175,7 +175,7 @@ fn effect(flow: &Flowchart, flows: &Flows, items: &[&str], e: u16) -> Fx {
             if action.starts_with("EventPlayerWarp") {
                 Fx::Nothing
             } else if actor.name == GRANT.0 && action == GRANT.1 {
-                let num = params.iter().find(|(k, _)| k == "Num");
+                let num = params.iter().find(|(k, _)| k == crate::flows::NUM);
                 let num = num.and_then(|(_, v)| match v {
                     Value::Int(v) => v.first().copied(),
                     _ => None,

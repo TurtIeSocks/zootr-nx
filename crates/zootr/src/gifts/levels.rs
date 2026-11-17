@@ -179,6 +179,8 @@ mod tests {
             .collect();
         let mut rewrites = Rewrites::default();
         let flows = Flows::load(&romfs).unwrap();
+        // Talon's grant is the trade chain's, which a seed adds first.
+        crate::trade_chain::deal(&romfs, &mut rewrites, &drops).unwrap();
         give_all(&romfs, &flows, &mut rewrites, &drops, true).unwrap();
         let at = |g: &Gift| match g.how {
             How::Later { caller, .. } => caller.get(),

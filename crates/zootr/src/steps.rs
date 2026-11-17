@@ -383,7 +383,7 @@ mod tests {
                 param(&flow, at, field::IS_GET_EVENT),
                 &Value::Bool(vec![false])
             );
-            assert_eq!(param(&flow, at, "Num"), &Value::Int(vec![1]));
+            assert_eq!(param(&flow, at, crate::flows::NUM), &Value::Int(vec![1]));
         }
     }
 
