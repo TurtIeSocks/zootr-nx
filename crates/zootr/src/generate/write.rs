@@ -57,7 +57,14 @@ pub(super) fn flows(
     if new_game.on.contains(TRADE_CHAIN) {
         trade_chain::deal(romfs, &mut rewrites, drops)?;
     }
-    gifts::give_all(romfs, all, &mut rewrites, drops, new_game.progressive)?;
+    gifts::give_all(
+        romfs,
+        all,
+        &mut rewrites,
+        drops,
+        new_game.progressive,
+        &new_game.on,
+    )?;
     levels(romfs, drops, new_game)?.give(romfs, all, &mut rewrites)?;
     dampe::give(romfs, &mut rewrites, drops)?;
     gerudo::stand_down(romfs, &mut rewrites, drops)?;
@@ -146,6 +153,9 @@ pub fn write_mod(
     let mut bools = cows::flags(&cows);
     bools.extend(gifts::flags(&new_game.on));
     bools.extend(dampe::flags(drops));
+    if new_game.fortress_keys {
+        bools.extend(fortress::flags());
+    }
     let gone = match new_game.scrubs {
         true => {
             bools.extend(scrubs::flags(drops));

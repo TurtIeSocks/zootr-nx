@@ -49,6 +49,18 @@ const NAMES: [(u64, &str); 5] = [
     (5665703420335364217, "Lon Lon Ranch Cow 2"),
     (11142894434822030727, "Link's House Cow"),
 ];
+/// Each cow's check hash, in their order, so a cow's Bool is known from its
+/// hash alone. A test holds it to [`find`].
+const CHECKS: [u64; 8] = [
+    2139721051512122393,
+    3581309213670406493,
+    4825657261695689152,
+    5665703420335364217,
+    6253945510651149508,
+    9796879244811108931,
+    11142894434822030727,
+    11341244778524449886,
+];
 /// The pack component naming the event Epona's Song runs.
 const REPLACE: &Name = field::REPLACE_EVENT_PARAM;
 const EVENT_NAME: &Name = crate::known::flow::EVENT_NAME;
@@ -112,7 +124,7 @@ impl Cow {
 
     /// The GameData Bool set once it's given its item.
     pub fn flag(&self) -> String {
-        format!("Rando_Cow_{:02}", self.index)
+        flag_name(self.index)
     }
 
     /// The clone pack a plain cow is swapped to.
@@ -124,6 +136,15 @@ impl Cow {
         let named = NAMES.iter().find(|(hash, _)| *hash == self.hash());
         named.map_or(HOLDER, |(_, name)| name).to_owned()
     }
+}
+
+fn flag_name(index: usize) -> String {
+    format!("Rando_Cow_{index:02}")
+}
+
+/// The Bool set once the cow whose check is `hash` gives its item.
+pub fn flag_at(hash: u64) -> Option<String> {
+    CHECKS.iter().position(|&h| h == hash).map(flag_name)
 }
 
 fn area(file: &str) -> &str {

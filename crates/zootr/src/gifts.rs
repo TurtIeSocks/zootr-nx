@@ -2,6 +2,7 @@
 
 mod cucco;
 mod cutscene;
+mod found;
 mod later;
 pub(crate) mod levels;
 mod lines;
@@ -14,6 +15,7 @@ mod table;
 mod zora;
 
 pub use cutscene::straight;
+pub use found::flags;
 pub(crate) use later::scene_marks;
 pub use lines::lines;
 pub use table::GIFTS;
@@ -264,21 +266,6 @@ impl Gift {
         }
     }
 
-    /// The GameData Bool set once it's given: a cutscene's played flag, or
-    /// an NPC's own. Biggoron sets none.
-    pub fn found(&self) -> Option<String> {
-        let flag = |found: &Name| match found == SCENE_PLAYED {
-            true => format!("{PLAYED}.{}", self.flow),
-            false => found.to_string(),
-        };
-        match self.how {
-            How::Calls { found, .. } | How::Sale { found, .. } => found.map(flag),
-            How::Later { found, .. } => Some(flag(found)),
-            How::Added { .. } => None,
-            _ => Some(flag(SCENE_PLAYED)),
-        }
-    }
-
     /// Whether a new game with `on` deals it: its setting is on, and it's
     /// not Rauru's with the Door of Time open.
     pub fn dealt(&self, on: &BTreeSet<String>) -> bool {
@@ -428,19 +415,6 @@ const FORETOLD: [(&Name, &Name, &[Call]); 1] = [(
 /// flow, then the lesson's. The lesson flow is emptied when the item changes.
 const TAUGHT: [(&Name, &Name); 1] = [(scene::MELODY_GET_SUN_03, scene::MELODY_GET_SUN)];
 
-/// The Bools the gifts' edits set, which a new game adds to its save data.
-pub fn flags(on: &BTreeSet<String>) -> Vec<String> {
-    [
-        (MERCHANTS, MEDIGORON_SOLD),
-        (NPC_GIFTS, zora::GIVEN),
-        (TRADE_CHAIN, crate::trade_chain::TALON_GAVE),
-    ]
-    .into_iter()
-    .filter(|(setting, _)| on.contains(*setting))
-    .map(|(_, flag)| flag.into())
-    .collect()
-}
-
 /// Flows a dealt gift would leave stuck, each with the edit that frees it.
 const UNSTUCK: [(&Name, Edit); 3] = [
     (cucco::FLOW, cucco::open),
@@ -460,7 +434,9 @@ pub fn give_all(
     rewrites: &mut Rewrites,
     drops: &HashMap<u64, Drop>,
     progressive: bool,
+    on: &BTreeSet<String>,
 ) -> Result<()> {
+    let mut marks = found::Marks::default();
     // Chained once every gift is renamed: a chain names other levels, maybe
     // another gift's own item in the same flow.
     let mut by_level = BTreeSet::new();
@@ -493,6 +469,7 @@ pub fn give_all(
             _ => Vec::new(),
         };
         mine.extend(&took);
+        marks.mark(romfs, rewrites, gift, &took, on)?;
         if levels::needs(gift, item, progressive) {
             // The grant moved to the caller when its scene can't play.
             let later = given && matches!(gift.how, How::Later { .. });
@@ -863,7 +840,15 @@ mod tests {
             })
             .collect();
         let all = Flows::load(romfs).unwrap();
-        give_all(romfs, &all, &mut rewrites, &drops, false).unwrap();
+        give_all(
+            romfs,
+            &all,
+            &mut rewrites,
+            &drops,
+            false,
+            &Default::default(),
+        )
+        .unwrap();
         (rewrites, flags)
     }
 
@@ -886,7 +871,15 @@ mod tests {
             .map(|(g, item)| (g.hash(), Drop::from(item.clone())))
             .collect();
         let mut rewrites = Rewrites::default();
-        give_all(romfs, all, &mut rewrites, &drops, false).unwrap();
+        give_all(
+            romfs,
+            all,
+            &mut rewrites,
+            &drops,
+            false,
+            &Default::default(),
+        )
+        .unwrap();
         flows::render(&written(&rewrites, deal[0].0.flow))
     }
 

@@ -43,6 +43,28 @@ const THIEVES: [&Name; 4] = [
     flow::GERUDO_FORTRESS_DESTROY_GERUDO_THIEF04,
 ];
 
+/// The Bool the seed sets once the thief carrying key `n` (01 first) gives
+/// another item. The key's own Bool can't say so: the key, placed
+/// elsewhere, sets it there.
+fn gave(n: &str) -> String {
+    format!("Rando_Thief_{n}")
+}
+
+/// The Bools a new game with Fortress keys adds, one per thief.
+pub fn flags() -> Vec<String> {
+    (1..=THIEVES.len())
+        .map(|i| gave(&format!("{i:02}")))
+        .collect()
+}
+
+/// The Bool set once the thief whose key is `vanilla` gives `item`: the
+/// key's own while it holds its key, else the seed's.
+pub fn got(vanilla: &str, item: &str) -> Option<String> {
+    let (_, key) = thief_of(vanilla).ok()?;
+    let n = vanilla.strip_prefix(keys::FORTRESS_KEY)?;
+    Some(if item == vanilla { key } else { gave(n) })
+}
+
 /// The entry that runs the thief's call, and the Bool the key sets, for
 /// the key actor `key`.
 fn thief_of(key: &str) -> Result<(String, String)> {
@@ -94,7 +116,14 @@ pub fn give(
                 "{entry} doesn't start with a call"
             );
             rename(flow, call, &m.actor)?;
-            flows::set_after(flow, &set_bool, call, &flag, Value::Bool(vec![true]))?;
+            let n = m
+                .vanilla
+                .strip_prefix(keys::FORTRESS_KEY)
+                .unwrap_or_default();
+            // Each lands right after the call, so the key's Bool runs first.
+            for flag in [gave(n), flag] {
+                flows::set_after(flow, &set_bool, call, &flag, Value::Bool(vec![true]))?;
+            }
         }
         Ok(())
     })
@@ -177,18 +206,27 @@ mod tests {
         };
         assert_eq!(name.as_str(), actor.as_str());
         assert_eq!(secondary, field::SMALL_KEY_FOR_EVENT_01);
-        let EventKind::Action { params, next, .. } = &flow.events[next.unwrap() as usize].kind
-        else {
-            panic!("a Bool")
+        let set = |at: Option<u16>| {
+            let EventKind::Action { params, next, .. } = &flow.events[at.unwrap() as usize].kind
+            else {
+                panic!("a Bool")
+            };
+            (
+                flows::param(params, flows::GAME_DATA).unwrap().to_owned(),
+                *next,
+            )
         };
-        assert!(next.is_none());
+        let (key, next) = set(*next);
         assert_eq!(
-            flows::param(params, flows::GAME_DATA),
-            Some(&**flag::IS_GET_SMALL_KEY_GERUDO_FORTRESS_SMALL_KEY01)
+            key,
+            flag::IS_GET_SMALL_KEY_GERUDO_FORTRESS_SMALL_KEY01.get()
         );
+        let (thief, next) = set(next);
+        assert_eq!(Some(thief), got(&key_actor(1), &actor));
+        assert!(next.is_none());
         let vanilla = flows::load(&romfs, FLOW).unwrap().unwrap();
         let sets = |f: &Flowchart| flows::running(f, SET_BOOL).len();
-        assert_eq!(sets(&flow), sets(&vanilla) + 1);
+        assert_eq!(sets(&flow), sets(&vanilla) + 2);
         let EventKind::SubFlow { params, next, .. } = entry(THIEVES[1]) else {
             panic!("a call")
         };
@@ -197,6 +235,25 @@ mod tests {
             panic!("an actor")
         };
         assert_eq!(name, actor::OBJ_DUNGEON_SMALL_KEY_GERUDO_FORTRESS_02);
+    }
+
+    fn key_actor(n: usize) -> String {
+        format!("{}{n:02}", keys::FORTRESS_KEY)
+    }
+
+    #[test]
+    fn a_thief_ticks_by_its_keys_bool_only_while_it_holds_its_key() {
+        needs_names!();
+        let key = key_actor(3);
+        let own = got(&key, &key).unwrap();
+        assert!(own.ends_with("03"), "{own}");
+        assert!(!own.starts_with("Rando_"), "{own}");
+        assert_eq!(
+            got(&key, "Item_FakeOther").as_deref(),
+            Some("Rando_Thief_03")
+        );
+        assert!(flags().contains(&"Rando_Thief_03".to_string()));
+        assert_eq!(got("Obj_FakeChest", "Item_FakeOther"), None);
     }
 
     #[test]
