@@ -102,10 +102,10 @@ const FOOTED: f32 = 0.5;
 /// from the first other side with some. A side with floor Link can walk to
 /// comes before one he can't (a gap between paired boxes).
 pub fn stand(graph: &Graph, placement: &Placement, act: Act, link: [f32; 3]) -> [f32; 3] {
-    stand_from(graph, placement, act, link, Side::Front).1
+    stand_from(graph, placement, act, link, Side::Front, &[]).1
 }
 
-/// [`stand`], trying the `first` side before the others, with the side a
+/// [`stand`], trying the `first` side, then `then`'s, before the others, with the side a
 /// thing to face is faced from.
 fn stand_from(
     graph: &Graph,
@@ -113,6 +113,7 @@ fn stand_from(
     act: Act,
     link: [f32; 3],
     first: Side,
+    then: &[Side],
 ) -> (Option<Side>, [f32; 3]) {
     let at = placement.pose.at;
     match act {
@@ -124,7 +125,7 @@ fn stand_from(
             let walked = |p: &[f32; 3]| route::plan(graph, link, *p).is_ok();
             let pose = warp::facing(&placement.name, &placement.pose);
             let side = |side| (side, warp::landing_at(&pose, side, stand));
-            let sides = || warp::sides_from(first).map(side);
+            let sides = || warp::ranked(first, then).map(side);
             let found = (sides().find(|(_, p)| footed(p) && walked(p)))
                 .or_else(|| sides().find(|(_, p)| footed(p)));
             let (side, spot) = found.unwrap_or_else(|| side(first));
@@ -229,7 +230,8 @@ impl<S: Sense, I: Input> Drive<'_, S, I> {
     pub fn touch(&mut self, graph: &Graph, placement: &Placement, shot: PathBuf) -> Result<Used> {
         let act = act_of(placement)?;
         let hearts = self.sense.hearts()?;
-        let (side, spot) = stand_from(graph, placement, act, self.sense.link()?, self.side);
+        let link = self.sense.link()?;
+        let (side, spot) = stand_from(graph, placement, act, link, self.side, &self.then);
         let went = match self.here {
             true => Went::here(),
             false => self.walk(graph, spot, STAND)?,
@@ -394,7 +396,7 @@ mod tests {
             quad(x0, -4.0, x1, 4.0, 0.0),
         ]);
         let graph = Graph::build(&room, &[], STEP_UP);
-        let (side, at) = stand_from(&graph, &crate_, roll, [0.0, 0.0, 3.0], Side::Left);
+        let (side, at) = stand_from(&graph, &crate_, roll, [0.0, 0.0, 3.0], Side::Left, &[]);
         assert_ne!(side, Some(Side::Left), "{at:?}");
         assert!(route::plan(&graph, [0.0, 0.0, 3.0], at).is_ok(), "{at:?}");
     }

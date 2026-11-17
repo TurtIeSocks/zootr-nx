@@ -54,6 +54,12 @@ pub(super) fn neighbours(
     found
 }
 
+/// The spots of `spots` within [`NEIGHBOURS`] of `own`, but `own` itself.
+pub(super) fn around(own: [f32; 3], spots: &[[f32; 3]]) -> Vec<[f32; 3]> {
+    let near = |at: &&[f32; 3]| (0.01..=NEIGHBOURS).contains(&flat(**at, own));
+    spots.iter().filter(near).copied().collect()
+}
+
 /// The distance between two points, measured flat.
 fn flat(a: [f32; 3], b: [f32; 3]) -> f32 {
     (a[0] - b[0]).hypot(a[2] - b[2])
@@ -63,44 +69,47 @@ fn flat(a: [f32; 3], b: [f32; 3]) -> f32 {
 /// from `near`: the one whose landing lies most toward the nearest of them
 /// it can, the sword then swinging at the holder with them behind him.
 /// The front when nothing stands near.
-pub(super) fn away_from(pose: &Pose, near: &[[f32; 3]]) -> Side {
-    most(pose, near, 1.0)
+pub(super) fn away_from(pose: &Pose, near: &[[f32; 3]]) -> Vec<Side> {
+    rank(pose, near, |cos| cos)
+}
+
+/// The side of the holder at `pose` to roll at it from, so that `near`
+/// lies off the roll's line: its run-up starts 1.4 m out, so a neighbour
+/// behind Link is in its path as much as one past the holder. The crater
+/// box's front put the Gold Skulltula box 1.9 m off it right behind him,
+/// and the roll broke that one (other machine, 2026-11-17).
+pub(super) fn off_line(pose: &Pose, near: &[[f32; 3]]) -> Vec<Side> {
+    rank(pose, near, |cos: f32| -cos.abs())
 }
 
 /// The side of the holder at `pose` whose landing lies furthest from every
 /// one of `far`, so Link faces the holder with them beyond it: a keeper's
 /// customers stand across the counter from his shelves.
 pub(super) fn across_from(pose: &Pose, far: &[[f32; 3]]) -> Side {
-    most(pose, far, -1.0)
+    rank(pose, far, |cos| -cos)[0]
 }
 
-/// The side whose landing lies, by `sign`, most toward the point of
-/// `near` it lies least toward.
-fn most(pose: &Pose, near: &[[f32; 3]], sign: f32) -> Side {
+/// Every side, best first by how its worst point of `near` scores by
+/// `score`, of the cosine of the angle between Link's landing and the
+/// point, seen from the holder: 1 for a point right behind him. Ties keep
+/// [`warp::sides_from`]'s order, the front first.
+fn rank(pose: &Pose, near: &[[f32; 3]], score: impl Fn(f32) -> f32) -> Vec<Side> {
     let unit = |from: [f32; 3], to: [f32; 3]| {
         let n = flat(to, from).max(1e-3);
         [(to[0] - from[0]) / n, (to[2] - from[2]) / n]
     };
-    // The worst a neighbour does to the side: how far behind the holder
-    // from Link it lies, as the cosine of the angle off his back.
-    let cover = |side| {
+    let worst = |side| {
         let link = unit(pose.at, warp::landing_at(pose, side, REACH));
         (near.iter())
             .map(|&n| {
                 let n = unit(pose.at, n);
-                sign * (link[0] * n[0] + link[1] * n[1])
+                score(link[0] * n[0] + link[1] * n[1])
             })
             .fold(f32::INFINITY, f32::min)
     };
-    (warp::sides_from(Side::Front))
-        .reduce(|best, side| {
-            if cover(side) > cover(best) {
-                side
-            } else {
-                best
-            }
-        })
-        .unwrap_or_default()
+    let mut sides: Vec<Side> = warp::sides_from(Side::Front).collect();
+    sides.sort_by(|&a, &b| worst(b).total_cmp(&worst(a)));
+    sides
 }
 
 #[cfg(test)]
@@ -139,18 +148,18 @@ mod tests {
     #[test]
     fn a_pot_is_struck_from_the_side_its_neighbour_is_behind_link() {
         // Alone, or with its neighbour in front, the front stands.
-        assert_eq!(away_from(&pot(), &[]), Side::Front);
-        assert_eq!(away_from(&pot(), &[[0.0, 0.0, 1.6]]), Side::Front);
+        assert_eq!(away_from(&pot(), &[])[0], Side::Front);
+        assert_eq!(away_from(&pot(), &[[0.0, 0.0, 1.6]])[0], Side::Front);
         // A neighbour behind the pot lies in the front swing's path.
-        assert_eq!(away_from(&pot(), &[[0.0, 0.0, -1.6]]), Side::Back);
+        assert_eq!(away_from(&pot(), &[[0.0, 0.0, -1.6]])[0], Side::Back);
         // One to a side is kept behind him from the other.
         let to_the_left = warp::landing_at(&pot(), Side::Left, 1.6);
-        assert_eq!(away_from(&pot(), &[to_the_left]), Side::Left);
+        assert_eq!(away_from(&pot(), &[to_the_left])[0], Side::Left);
         let to_the_right = warp::landing_at(&pot(), Side::Right, 2.4);
-        assert_eq!(away_from(&pot(), &[to_the_right]), Side::Right);
+        assert_eq!(away_from(&pot(), &[to_the_right])[0], Side::Right);
         // One behind and one in front: a side swings across neither.
         assert_eq!(
-            away_from(&pot(), &[[0.0, 0.0, -1.6], [0.0, 0.0, 2.4]]),
+            away_from(&pot(), &[[0.0, 0.0, -1.6], [0.0, 0.0, 2.4]])[0],
             Side::Left
         );
     }

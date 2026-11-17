@@ -170,11 +170,11 @@ pub fn landing(
     planned: [f32; 3],
     first: Side,
 ) -> [f32; 3] {
-    landings(graph, holder, planned, first)[0]
+    landings(graph, holder, planned, first, &[])[0]
 }
 
 /// Every side [`landing`] could pick, in the order it would: those with
-/// floor first. The mesh can't see every void: two sides of Kokiri
+/// floor first, each kind `first`, then `then`'s, then the rest. The mesh can't see every void: two sides of Kokiri
 /// Forest's sticks scrub stand on it and still void Link out (Mac,
 /// 2026-11-17), so a warp that didn't hold tries the next.
 pub fn landings(
@@ -182,6 +182,7 @@ pub fn landings(
     holder: &Placement,
     planned: [f32; 3],
     first: Side,
+    then: &[Side],
 ) -> Vec<[f32; 3]> {
     let ahead = (planned[0] - holder.pose.at[0]).hypot(planned[2] - holder.pose.at[2]);
     let pose = warp::facing(&holder.name, &holder.pose);
@@ -190,7 +191,7 @@ pub fn landings(
         side => warp::landing_at(&pose, side, ahead),
     };
     let (mut floored, bare): (Vec<_>, Vec<_>) =
-        (warp::sides_from(first).map(at)).partition(|&at| graph.floor(at, UNDERFOOT).is_some());
+        (warp::ranked(first, then).map(at)).partition(|&at| graph.floor(at, UNDERFOOT).is_some());
     floored.extend(bare);
     floored
 }
@@ -318,7 +319,7 @@ mod tests {
         let back = landing(&graph, &scrub, front, Side::Back);
         assert!(graph::dist(back, inside) < 1e-3, "{back:?}");
         // Every side is listed for a warp that doesn't hold, floor first.
-        let all = landings(&graph, &scrub, front, Side::Front);
+        let all = landings(&graph, &scrub, front, Side::Front, &[]);
         assert_eq!(all.len(), 4);
         assert_eq!(all.last(), Some(&front), "the front has no floor");
         assert!(

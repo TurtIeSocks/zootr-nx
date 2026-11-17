@@ -181,13 +181,20 @@ pub fn spots_in(
     area: &str,
     actors: &[&Name],
 ) -> Result<BTreeMap<String, Vec<[f32; 3]>>> {
+    spots_where(romfs, area, |p| actors.iter().any(|a| **a == p.name))
+}
+
+/// Where each placement `keep` keeps stands in `area`'s maps, by map.
+pub fn spots_where(
+    romfs: &Romfs,
+    area: &str,
+    keep: impl Fn(&Placement) -> bool,
+) -> Result<BTreeMap<String, Vec<[f32; 3]>>> {
     let found = placed_by_map(romfs, |rel| rel.split('/').nth(1) == Some(area))?;
     Ok(found
         .into_iter()
         .map(|(map, placed)| {
-            let of = placed
-                .into_iter()
-                .filter(|p| actors.iter().any(|a| **a == p.name));
+            let of = placed.into_iter().filter(|p| keep(p));
             (map, of.map(|p| p.pose.at).collect())
         })
         .collect())
@@ -302,7 +309,19 @@ const SIDES: [Side; 4] = [Side::Front, Side::Left, Side::Right, Side::Back];
 
 /// The sides to try, `first` first, then the rest in [`SIDES`] order.
 pub fn sides_from(first: Side) -> impl Iterator<Item = Side> {
-    std::iter::once(first).chain(SIDES.into_iter().filter(move |&s| s != first))
+    ranked(first, &[])
+}
+
+/// The sides to try, `first` first, then those of `then` in its order, then
+/// the rest in [`SIDES`] order.
+pub fn ranked(first: Side, then: &[Side]) -> impl Iterator<Item = Side> {
+    let rest = then.iter().copied().chain(SIDES);
+    let mut seen = vec![first];
+    std::iter::once(first).chain(rest.filter(move |s| {
+        let new = !seen.contains(s);
+        seen.push(*s);
+        new
+    }))
 }
 
 /// Where a warp to `side` of `actor` in `map` puts Link.
@@ -450,6 +469,15 @@ mod tests {
             let got = landing(&pose(rotate), Side::Front);
             assert!(near_enough(got, want), "{rotate:?}: {got:?}");
         }
+    }
+
+    #[test]
+    fn sides_go_first_then_ranked_then_the_rest() {
+        let order = |first, then: &[Side]| ranked(first, then).collect::<Vec<_>>();
+        assert_eq!(order(Side::Front, &[]), SIDES);
+        let (l, r, f, b) = (Side::Left, Side::Right, Side::Front, Side::Back);
+        assert_eq!(order(l, &[l, r, f, b]), [l, r, f, b]);
+        assert_eq!(order(b, &[r]), [b, r, f, l], "the rest in their order");
     }
 
     #[test]
