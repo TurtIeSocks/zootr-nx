@@ -89,7 +89,7 @@ const openSettled = async () => {
 };
 
 const installButton = () =>
-  screen.queryByRole("button", { name: "Install and restart" });
+  screen.queryByRole("button", { name: "Install & restart" });
 
 test("no install without an update the updater can install", async () => {
   await openSettled();
@@ -100,7 +100,7 @@ test("no install without an update the updater can install", async () => {
   ).toBeTruthy();
 });
 
-test("Install and restart installs the update", async () => {
+test("Install & restart installs the update", async () => {
   vi.mocked(installable).mockResolvedValue(UPDATE);
   vi.mocked(install).mockReturnValue(new Promise(() => {}));
   await openSettled();

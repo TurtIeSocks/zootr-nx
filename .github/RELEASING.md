@@ -48,7 +48,7 @@ Publishing is what tells running copies of the app. Each one asks GitHub
 for the latest release at launch and every 6 hours, and shows its notes
 in the sidebar. A draft or a release marked as a prerelease never shows.
 
-Its popover also offers "Install and restart" once the release's
+Its popover also offers "Install & restart" once the release's
 `latest.json` lists the player's platform. The app downloads the update,
 checks its signature, installs it and comes back up on the new version.
 Releases before 0.5.0 have no `latest.json`, so copies older than that

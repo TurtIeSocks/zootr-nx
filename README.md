@@ -93,7 +93,7 @@ a flag does.
 4. Generate a seed and press Play.
 
 From then on the app tells you when a new release is out, and installs it
-when you click Install and restart.
+when you click Install & restart.
 
 The [guide](GUIDE.md) covers every feature, setting and target field, and
 the CLI.

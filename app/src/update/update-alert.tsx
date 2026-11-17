@@ -54,14 +54,9 @@ const day = (iso: string) =>
     year: "numeric",
   });
 
-/** Props for {@link Install}. */
-interface InstallProps {
-  version: string;
-}
-
-/** Install and restart, once the updater can install `version`. Held while
+/** Install & restart, once the updater can install `version`. Held while
  * a game runs: the restart would drop its bridge and tracker. */
-function Install({ version }: InstallProps) {
+function useInstall(version: string) {
   const [update, setUpdate] = useState<Update | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,8 +68,8 @@ function Install({ version }: InstallProps) {
       live = false;
     };
   }, [version]);
-  if (!update) return null;
   const go = () => {
+    if (!update) return;
     setError(null);
     setProgress({ done: 0, total: null });
     install(update, setProgress).catch((e: unknown) => {
@@ -82,17 +77,27 @@ function Install({ version }: InstallProps) {
       setError(String(e));
     });
   };
+  return { update, progress, error, running, go };
+}
+
+type InstallState = ReturnType<typeof useInstall>;
+
+/** The install's button, beside the release page and skip. */
+function InstallButton({ update, progress, running, go }: InstallState) {
+  if (!update) return null;
+  return (
+    <Button size="sm" disabled={running || progress !== null} onClick={go}>
+      {progress ? "Installing…" : "Install & restart"}
+    </Button>
+  );
+}
+
+/** What holds the install back, how far it got, or why it failed. */
+function InstallStatus({ update, progress, error, running }: InstallState) {
+  if (!update) return null;
   const share = progress?.total ? progress.done / progress.total : null;
   return (
-    <div className="flex flex-col gap-1.5 border-line border-t px-3 py-2.5">
-      <Button
-        size="sm"
-        className="self-start"
-        disabled={running || progress !== null}
-        onClick={go}
-      >
-        {progress ? "Installing…" : "Install and restart"}
-      </Button>
+    <>
       {running && !progress && (
         <p className="text-ink-faint text-xs">Close the game to update</p>
       )}
@@ -114,7 +119,7 @@ function Install({ version }: InstallProps) {
           The update failed: {error}. Try the release page.
         </p>
       )}
-    </div>
+    </>
   );
 }
 
@@ -124,10 +129,11 @@ interface ReleaseCardProps {
   onSkip: () => void;
 }
 
-/** The popover's content: what's out, its notes, the install when the
- * updater has it, and the two other actions. */
+/** The popover's content: what's out, its notes, and its actions: the
+ * install when the updater has it, the release page and skip. */
 function ReleaseCard({ release, onSkip }: ReleaseCardProps) {
   const [current] = useUpdate.usePath("current");
+  const install = useInstall(release.version);
   const when = [
     release.published && `Published ${day(release.published)}`,
     current && `you have ${current}`,
@@ -139,14 +145,21 @@ function ReleaseCard({ release, onSkip }: ReleaseCardProps) {
         <p className="text-ink-faint text-xs">{when.join(" · ")}</p>
       </div>
       <Notes md={release.notes} />
-      <Install version={release.version} />
-      <div className="flex gap-2 border-line border-t px-3 py-2.5">
-        <Button size="sm" onClick={() => void openUrl(release.url)}>
-          Open release page
-        </Button>
-        <Button size="sm" variant="ghost" onClick={onSkip}>
-          Skip this version
-        </Button>
+      <div className="flex flex-col gap-1.5 border-line border-t px-3 py-2.5">
+        <div className="flex gap-2">
+          <InstallButton {...install} />
+          <Button
+            size="sm"
+            variant={install.update ? "secondary" : "default"}
+            onClick={() => void openUrl(release.url)}
+          >
+            Open release page
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onSkip}>
+            Skip this version
+          </Button>
+        </div>
+        <InstallStatus {...install} />
       </div>
     </>
   );
