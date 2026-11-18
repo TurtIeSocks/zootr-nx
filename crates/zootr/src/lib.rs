@@ -38,6 +38,7 @@ mod fortress;
 pub mod game;
 pub mod gamedata;
 pub mod gates;
+mod gear;
 pub mod generate;
 mod gerudo;
 mod gifts;

@@ -96,15 +96,6 @@ pub fn beside(on: [f32; 3], from: [f32; 3]) -> [f32; 3] {
     [on[0] + dx / n * STEP, on[1], on[2] + dz / n * STEP]
 }
 
-/// The buttons, each with the wait after it, that put a just-given item
-/// on ZR: the Items screen opens on the newest item. The item ring never
-/// selected a bottle (12 pushes).
-pub const EQUIP: [(&str, Duration); 3] = [
-    ("Plus", Duration::from_millis(2500)),
-    ("A", Duration::from_millis(500)),
-    ("Plus", Duration::from_secs(3)),
-];
-
 #[cfg(test)]
 mod tests {
     use super::*;

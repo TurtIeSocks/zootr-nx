@@ -359,6 +359,18 @@ impl Graph<'_> {
             })
     }
 
+    /// The spot on the surface over `p`, when `p` lies under a water the
+    /// graph swims, deeper than Link floats and within its depth: where he
+    /// sinks from to reach it.
+    pub fn above(&self, p: [f32; 3]) -> Option<[f32; 3]> {
+        let under = |w: &&Water| {
+            w.covers(p[0], p[2])
+                && (w.surface - w.depth - IN..w.surface - self.float).contains(&p[1])
+        };
+        let w = self.waters.iter().find(under)?;
+        Some([p[0], w.surface, p[2]])
+    }
+
     /// Whether Link at `p` swims: a water holds him, with no land under him
     /// near its surface.
     pub fn in_water(&self, p: [f32; 3]) -> bool {
@@ -535,6 +547,17 @@ mod tests {
         let w = Water::of(&placed([0.0; 3], FRAC_PI_4, [1.0; 3]), TILE);
         assert!(w.covers(6.9, 0.0));
         assert!(!w.covers(4.5, 4.5));
+    }
+
+    #[test]
+    fn a_spot_deeper_than_link_floats_is_sunk_to_from_the_surface_over_it() {
+        let w = Water::of(&placed([0.0, 20.0, 0.0], 0.0, [1.0; 3]), TILE);
+        let mesh = crate::nav::fixture::mesh(&[]);
+        let graph = Graph::build(&mesh, &[], crate::nav::graph::STEP_UP).with_swims(&[w], false);
+        assert_eq!(graph.above([1.0, 12.0, 2.0]), Some([1.0, 20.0, 2.0]));
+        assert_eq!(graph.above([1.0, 19.0, 2.0]), None, "he floats there");
+        assert_eq!(graph.above([1.0, 8.0, 2.0]), None, "under its depth");
+        assert_eq!(graph.above([6.0, 12.0, 2.0]), None, "off its tile");
     }
 
     #[test]
