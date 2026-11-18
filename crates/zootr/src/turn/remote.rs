@@ -76,6 +76,10 @@ pub enum Ask {
         /// This machine's game, named back when the session holds it.
         #[serde(default)]
         here: String,
+        /// Only a read of the game: check the hold, leave its lease alone.
+        /// A server from before it renews anyway.
+        #[serde(default)]
+        look: bool,
     },
     Take {
         game: String,

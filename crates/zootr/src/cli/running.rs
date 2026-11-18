@@ -29,7 +29,7 @@ pub(super) fn stamp(start: std::time::Instant) -> String {
 /// The game's GameData values, printed as they change.
 pub(super) fn live(romfs: &Romfs, grep: Option<String>, all: bool, only_named: bool) -> Result<()> {
     let gd = recorder::gamedata(romfs)?;
-    let game = attach()?;
+    let game = attach(false)?;
     println!("watching, Ctrl-C stops");
     if !all {
         let (n, secs) = (live::BURST, live::WINDOW.as_secs());
@@ -46,9 +46,14 @@ pub(super) fn live(romfs: &Romfs, grep: Option<String>, all: bool, only_named: b
     }
 }
 
-/// The target's running game, on this session's turn.
-fn attach() -> Result<live::Game> {
-    crate::turn::hold(&crate::turn::session())?;
+/// The target's running game, on this session's turn. Only a command
+/// that `plays` it renews the turn: one that only reads lets it lapse.
+fn attach(plays: bool) -> Result<live::Game> {
+    let session = crate::turn::session();
+    match plays {
+        true => crate::turn::hold(&session)?,
+        false => crate::turn::sees(&session)?,
+    }
     live::Game::attach(&Config::load()?.target()?)
 }
 
@@ -81,7 +86,7 @@ pub(super) fn ap_connect(
 ) -> Result<()> {
     use crate::ap::client::{self, Room};
     let gd = recorder::gamedata(romfs)?;
-    let mut client = client::installed(romfs, gd.into(), attach()?)?;
+    let mut client = client::installed(romfs, gd.into(), attach(true)?)?;
     let room = Room {
         server,
         slot: slot.unwrap_or(client.slot),
@@ -99,7 +104,7 @@ pub(super) fn ap_connect(
 
 pub(super) fn give(romfs: &Romfs, actor: &str, count: i32) -> Result<()> {
     let gd = recorder::gamedata(romfs)?;
-    crate::dev::Dev::new(attach()?)?.give(&gd, actor, count)?;
+    crate::dev::Dev::new(attach(true)?)?.give(&gd, actor, count)?;
     println!("gave {actor} x{count}, open the menu again to see it");
     Ok(())
 }
@@ -128,7 +133,7 @@ pub(super) fn set(romfs: &Romfs, name: &str, value: &str) -> Result<()> {
         info.check(name, value)?;
     }
     let hash = live::hash(name)?;
-    let game = attach()?;
+    let game = attach(value != "?")?;
     let (kind, at, len) = live::locate(&game, game.global(), hash)?;
     let show = |label: &str| -> Result<()> {
         let both = game.read(at, len * 2)?;
@@ -146,7 +151,14 @@ pub(super) fn set(romfs: &Romfs, name: &str, value: &str) -> Result<()> {
 
 pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()> {
     use crate::dev::{self, Dev, Place, Request};
-    let game = Dev::new(attach()?)?;
+    let reads = matches!(
+        cmd,
+        DevCommand::State
+            | DevCommand::Around { .. }
+            | DevCommand::Scene { .. }
+            | DevCommand::Go { plan: true, .. }
+    );
+    let game = Dev::new(attach(!reads)?)?;
     let said = match cmd {
         DevCommand::State => {
             let s = game.state()?;
@@ -294,7 +306,7 @@ const CHUNK: usize = 1 << 20;
 
 pub(super) fn mem(cmd: MemCommand) -> Result<()> {
     use live::Memory;
-    let game = attach()?;
+    let game = attach(matches!(cmd, MemCommand::Write { .. }))?;
     match cmd {
         MemCommand::Keys => {
             for key in live::keys(&game, game.global())? {

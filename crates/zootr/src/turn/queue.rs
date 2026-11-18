@@ -175,10 +175,23 @@ impl Queue {
         held || waited != self.waiting.len()
     }
 
-    /// `session` used a game: renew the lease on every game it holds.
+    /// `session` played a game: renew the lease on every game it holds.
     /// Refused unless it holds one. Returns `here` when it holds that,
     /// else the first game it holds.
     pub fn renew(&mut self, session: &str, here: &str, now: i64) -> Result<String> {
+        self.holding(session, here, Some(now))
+    }
+
+    /// `session` only read a game: [`Self::renew`]'s answer, with each
+    /// lease left to run out. A hold kept up by reads alone, such as a
+    /// loop of `dev state`, lapses like an idle one (maintainer,
+    /// 2026-11-17).
+    pub fn look(&mut self, session: &str, here: &str) -> Result<String> {
+        self.holding(session, here, None)
+    }
+
+    /// The game `session` holds, renewing each of its leases to `now`.
+    fn holding(&mut self, session: &str, here: &str, now: Option<i64>) -> Result<String> {
         if let Some(g) = (self.games.iter_mut()).find(|g| g.bumped.as_deref() == Some(session)) {
             g.bumped = None;
             bail!("the maintainer took {}: join the queue again", g.name);
@@ -186,7 +199,7 @@ impl Queue {
         let mut held = Vec::new();
         for g in &mut self.games {
             if let Some(h) = g.holder.as_mut().filter(|h| h.session == session) {
-                h.seen = now;
+                h.seen = now.unwrap_or(h.seen);
                 held.push(g.name.clone());
             }
         }
@@ -458,6 +471,25 @@ mod tests {
         granted(&mut q, 600 + LEASE);
         assert!(q.held("a").is_none());
         assert!(q.renew("a", "", 600 + LEASE).is_err());
+    }
+
+    #[test]
+    fn a_hold_kept_up_by_looks_alone_lapses() {
+        // A loop of `dev state` kept games held while nothing played
+        // (maintainer, 2026-11-17).
+        let mut q = queue();
+        q.join("a", "", false, false, 0).unwrap();
+        granted(&mut q, 0);
+        assert_eq!(q.look("a", "").unwrap(), "near");
+        granted(&mut q, LEASE - 1);
+        assert_eq!(
+            q.look("a", "").unwrap(),
+            "near",
+            "a look answers like a renewal"
+        );
+        granted(&mut q, LEASE);
+        assert!(q.held("a").is_none(), "looks never renewed it");
+        assert!(q.look("a", "").is_err());
     }
 
     #[test]

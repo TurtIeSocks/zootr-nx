@@ -51,11 +51,21 @@ pub fn session() -> String {
     std::env::var(SESSION).unwrap_or_default()
 }
 
-/// Refuses a command touching the game from Claude's shell unless session
+/// Refuses a command playing the game from Claude's shell unless session
 /// `session` holds it, and renews that hold. With a queue configured the
 /// service decides, else the local `turn.json` (also when the service
 /// can't be reached). The maintainer's own commands always go through.
 pub fn hold(session: &str) -> Result<()> {
+    holds(session, false)
+}
+
+/// [`hold`] for a command that only reads the game: the hold's lease
+/// isn't renewed, so reads alone never keep a game from the queue.
+pub fn sees(session: &str) -> Result<()> {
+    holds(session, true)
+}
+
+fn holds(session: &str, look: bool) -> Result<()> {
     if !from_claude() {
         return Ok(());
     }
@@ -68,6 +78,7 @@ pub fn hold(session: &str) -> Result<()> {
         match turn.ask(Ask::Renew {
             session: session.into(),
             here: turn.here.clone(),
+            look,
         }) {
             Ok(held) => return here(&turn, session, held.game.as_deref()),
             Err(e) if !unreachable(&e) => return Err(e),
