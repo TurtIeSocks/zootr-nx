@@ -454,3 +454,32 @@ test("a standard seed's hero has no room line", () => {
   show(seed);
   expect(card("Installed").queryByRole("status")).toBeNull();
 });
+
+test("History filters by kind, and a slot's row can't reuse or share its settings", () => {
+  const slot = { ...seed, id: 2, ap_slot: "FakeSlot" };
+  show(seed, {}, {}, [slot]);
+  openTab("History");
+  const history = card("History");
+  const names = () =>
+    history.getAllByRole("listitem").map((li) => li.textContent ?? "");
+  expect(names()).toHaveLength(2);
+  const [first, row] = history.getAllByRole("listitem") as [
+    HTMLElement,
+    HTMLElement,
+  ];
+  expect(row.textContent).toContain("FakeSlot");
+  expect(row.textContent).toContain("Archipelago");
+  const actions = (li: HTMLElement) =>
+    within(li)
+      .getAllByRole("button")
+      .map((b) => b.getAttribute("aria-label") ?? b.textContent);
+  expect(actions(row)).not.toContain("Use settings");
+  expect(actions(row)).not.toContain("Copy share code");
+  expect(actions(first)).toContain("Use settings");
+  fireEvent.click(history.getByRole("button", { name: "Archipelago" }));
+  expect(names()).toEqual([expect.stringContaining("FakeSlot")]);
+  expect(useUi.getState().play.history).toBe("archipelago");
+  fireEvent.click(history.getByRole("button", { name: "Standard" }));
+  expect(names()).toHaveLength(1);
+  expect(names()[0]).not.toContain("FakeSlot");
+});

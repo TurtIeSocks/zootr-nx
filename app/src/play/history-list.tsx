@@ -14,6 +14,7 @@ import { divided } from "@/components/styles";
 import { TipButton } from "@/components/tip-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Segmented } from "@/components/ui/segmented";
 import {
   Tooltip,
   TooltipContent,
@@ -31,6 +32,7 @@ import {
   useSeeds,
 } from "@/stores/seeds";
 import { openLabel, openSpoiler } from "@/stores/shell";
+import { type HistoryFilter, useUi } from "@/stores/ui";
 
 /** Deletes every seed but the installed one, on a second click. */
 function ClearHistory() {
@@ -117,23 +119,54 @@ function InstalledMark() {
   );
 }
 
+const FILTERS = [
+  { id: "all", label: "All" },
+  { id: "standard", label: "Standard" },
+  { id: "archipelago", label: "Archipelago" },
+] as const satisfies readonly { id: HistoryFilter; label: string }[];
+
+/** What a filter that keeps no seed says. */
+const EMPTY: Record<HistoryFilter, string> = {
+  all: "No seeds yet.",
+  standard: "No standard seeds yet.",
+  archipelago: "No Archipelago slots yet.",
+};
+
 /** The History folder: every generated seed, newest first, with its
  * actions a hover away. */
 export function HistoryList() {
   const [entries] = useSeeds.usePath("history.entries");
-  const n = entries.length;
+  const [filter, setFilter] = useUi.usePath("play.history");
+  const shown = entries.filter(
+    (e) => filter === "all" || (filter === "archipelago") === !!e.ap_slot,
+  );
+  const n = shown.length;
   return (
     <>
       <CardHeader
         title="History"
         meta={n > 0 && `${n} seed${n === 1 ? "" : "s"}`}
-        action={n > 1 && <ClearHistory />}
+        action={
+          <div className="flex items-center gap-2">
+            {entries.length > 0 && (
+              <Segmented
+                aria-label="Show"
+                options={FILTERS}
+                value={filter}
+                onValueChange={setFilter}
+              />
+            )}
+            {entries.length > 1 && <ClearHistory />}
+          </div>
+        }
       />
       {n === 0 ? (
-        <p className="px-4 pb-4 text-[13px] text-ink-muted">No seeds yet.</p>
+        <p className="px-4 pb-4 text-[13px] text-ink-muted">
+          {entries.length ? EMPTY[filter] : "No seeds yet."}
+        </p>
       ) : (
         <ul className={cn("px-1 pb-1", divided)}>
-          {entries.map((e) => (
+          {shown.map((e) => (
             <HistoryRow key={e.id} entry={e} />
           ))}
         </ul>
@@ -165,7 +198,7 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
         <div className="mt-0.5 flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-ink-faint text-xs">
           {when(e.time)}
           <ExtrasBadges entry={e} />
-          {differs > 0 && (
+          {!e.ap_slot && differs > 0 && (
             <span>
               · differs in {differs} setting{differs === 1 ? "" : "s"}
             </span>
@@ -176,19 +209,22 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
       {/* Floats over the row's end, so hidden actions take no room. */}
       <div className="absolute inset-y-0 right-3 flex items-center gap-0.5 pointer-events-none bg-surface-hover pl-2 opacity-0 transition-opacity duration-(--duration-fast) group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100">
         {!isInstalled && <InstallSeed id={e.id} />}
-        <TipButton
-          label="Use settings"
-          tip={
-            differs === 0
-              ? "Your settings already match this seed's"
-              : "Use this seed's settings for the next one. Plando and flag edits stay behind"
-          }
-          variant="ghost"
-          disabled={differs === 0}
-          onClick={() => takeSettings(e)}
-        >
-          <SlidersHorizontal />
-        </TipButton>
+        {/* A slot's settings belong to its multiworld, and no code rebuilds it. */}
+        {!e.ap_slot && (
+          <TipButton
+            label="Use settings"
+            tip={
+              differs === 0
+                ? "Your settings already match this seed's"
+                : "Use this seed's settings for the next one. Plando and flag edits stay behind"
+            }
+            variant="ghost"
+            disabled={differs === 0}
+            onClick={() => takeSettings(e)}
+          >
+            <SlidersHorizontal />
+          </TipButton>
+        )}
         <TipButton
           label="Spoiler"
           tip="Spoiler Log"
@@ -197,7 +233,7 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
         >
           <ScrollText />
         </TipButton>
-        <CopySeed entry={e} variant="ghost" size="icon-sm" />
+        {!e.ap_slot && <CopySeed entry={e} variant="ghost" size="icon-sm" />}
         <TipButton
           label="Label seed"
           tip="Name this seed or note what it's for"

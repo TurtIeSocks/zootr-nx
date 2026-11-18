@@ -105,11 +105,23 @@ export const useSeeds = create<Seeds>()(
   ),
 );
 
+/** The seed `drift` is measured from: the installed one, unless it's an
+ * Archipelago slot, whose settings came with its file. Then the newest
+ * standard seed, or null for the defaults. */
+function driftBase({ installed, entries }: View): Summary | null {
+  if (!installed?.ap_slot) return installed;
+  return entries.find((e) => !e.ap_slot) ?? null;
+}
+
 /** What `drift` is measured from, for its wording. */
 export const useDriftFrom = () =>
-  useSeeds((s) =>
-    s.history.installed ? "the installed seed" : "the default settings",
-  );
+  useSeeds((s) => {
+    const base = driftBase(s.history);
+    if (!base) return "the default settings";
+    return base === s.history.installed
+      ? "the installed seed"
+      : "the last standard seed";
+  });
 
 /** Works out `blocked`, `running`, `drift` and `diffs` from status,
  * history and the config. */
@@ -124,13 +136,10 @@ function derive() {
     "running",
     status.targets.some((t) => t.running),
   );
+  const base = driftBase(history);
   useSeeds.setPath(
     "drift",
-    keep(
-      history.installed
-        ? diff(history.installed)
-        : settingsDiff(schema, {}, config.settings),
-    ),
+    keep(base ? diff(base) : settingsDiff(schema, {}, config.settings)),
   );
   useSeeds.setPath(
     "diffs",
