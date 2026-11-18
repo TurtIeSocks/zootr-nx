@@ -8,12 +8,12 @@
 //! way keys take their dungeon's colour.
 
 use anyhow::{Result, ensure};
-use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs};
+use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs, set_param};
 
 use crate::key_tints::paint::{Host, Look};
 use crate::key_tints::{MADE, POUCH_TEXT, TEXT_PARTS, pointed};
 use crate::keys::SMALL;
-use crate::known::{field, item};
+use crate::known::{actor, field};
 use crate::medallions::Colour;
 use crate::standins::{
     POUCH, POUCH_ACTOR, Tables, actor_path, doc, path_of, pouch_actor, raw, renamed, resolved,
@@ -37,24 +37,33 @@ pub struct Foreign {
     pub player: String,
 }
 
-/// The model another game's item shows: Sheik's harp, which Link never
-/// gets, tinted by the item's class.
+/// The model another game's item shows: a Poe's spirit, a flame Link
+/// never gets loose, its body tinted and its glow coloured by the item's
+/// class.
 pub(crate) const CLASS_LOOK: Look = Look {
-    host: item::HARP_SHEIK,
-    material: Some(field::MT_HARP_SHEIK),
-    kinds: &["Alb", "AO", "Mtl", "Nrm", "Rgh"],
-    copy: "Obj_Rando_Ap_",
+    host: actor::OBJ_SPIRIT_POE,
+    material: Some(field::MT_BODY),
+    kinds: &["Alb", "AO", "Emm", "Gn0", "Nrm", "Rgh"],
+    others: &["{}_Body_Gn0"],
+    copy: "Obj_RandoAp_",
 };
+/// The spirit's glow colours, by their names' hashes: the flame's own, and
+/// the lighter one round it. The flame's is purple until a Poe's colour
+/// animation sets it; a copy's is its class's.
+const GLOW: u64 = 0x68e1_31e7_2bcd_91ad;
+const GLOW_LIGHT: u64 = 0xe647_277d_46e8_c1d8;
 
 /// The files [`CLASS_LOOK`] is made from, spelled out like
 /// [`crate::key_tints::FILES`]: extracted before a dump's names are read.
-pub const FILES: [&str; 6] = [
-    "Model/Item_Harp_Sheik.Item_Harp_Sheik.bfres.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_Alb.bntx.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_AO.bntx.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_Mtl.bntx.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_Nrm.bntx.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_Rgh.bntx.zs",
+pub const FILES: [&str; 8] = [
+    "Model/Obj_Spirit_Poe.Obj_Spirit_Poe.bfres.zs",
+    "Tex/Mt_Body_Obj_Spirit_Poe_Alb.bntx.zs",
+    "Tex/Mt_Body_Obj_Spirit_Poe_AO.bntx.zs",
+    "Tex/Mt_Body_Obj_Spirit_Poe_Emm.bntx.zs",
+    "Tex/Mt_Body_Obj_Spirit_Poe_Gn0.bntx.zs",
+    "Tex/Mt_Body_Obj_Spirit_Poe_Nrm.bntx.zs",
+    "Tex/Mt_Body_Obj_Spirit_Poe_Rgh.bntx.zs",
+    "Tex/Obj_Spirit_Poe_Body_Gn0.bntx.zs",
 ];
 
 /// Each class's colour, as Archipelago's text client shows it: plum,
@@ -71,6 +80,15 @@ pub fn class_model(class: &str) -> String {
     let filler = CLASSES.len() - 1;
     let n = CLASSES.iter().position(|(c, _)| *c == class);
     CLASS_LOOK.name(n.unwrap_or(filler) + 1)
+}
+
+/// The spirit's model glowing `colour`: the flame in it, and the light
+/// round it halfway to white, as a Poe's own colours are.
+fn glowing(model: &[u8], colour: Colour) -> Result<Vec<u8>> {
+    let linear = colour.map(|c| (c as f32 / 255.0).powf(2.2));
+    let light = linear.map(|c| (c + 1.0) / 2.0);
+    let model = set_param(model, GLOW, [linear[0], linear[1], linear[2], 1.0])?;
+    set_param(&model, GLOW_LIGHT, [light[0], light[1], light[2], 1.0])
 }
 
 /// What follows [`MADE`] in a copy's name.
@@ -236,7 +254,8 @@ pub fn write(
     if foreign.iter().any(|f| f.model.is_some()) {
         let host = Host::read(romfs, &CLASS_LOOK)?;
         for (n, (_, colour)) in CLASSES.iter().enumerate() {
-            host.paint(builder, n + 1, *colour)?;
+            let model = glowing(&host.model, *colour)?;
+            host.write_as(builder, &CLASS_LOOK.name(n + 1), &model, *colour, false)?;
         }
     }
     for f in foreign {
@@ -245,10 +264,10 @@ pub fn write(
         tables.copy_pouch(&f.actor, SMALL)?;
         tables.name_itself(&f.actor)?;
         if let Some(model) = &f.model {
-            // The shown item's animations and heaps, which hold the harp's,
-            // and the harp's bounds from the actor that shows it in a scene.
+            // The shown item's animations, the spirit's bounds, and heaps
+            // for the bigger of the two.
             let bounds = [field::MODEL_AABB_MAX, field::MODEL_AABB_MIN];
-            tables.take(&f.actor, item::DM_ITEM_SHEIK_HARP, &bounds)?;
+            tables.take(&f.actor, CLASS_LOOK.host, &bounds)?;
             tables.point(&f.actor, model)?;
         }
     }

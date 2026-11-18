@@ -18,6 +18,9 @@ pub(crate) struct Look {
     /// `Mt` when `None`.
     pub(crate) material: Option<&'static Name>,
     pub(crate) kinds: &'static [&'static str],
+    /// Textures named another way, `{}` for the host's or a copy's name,
+    /// the kind after the last `_`.
+    pub(crate) others: &'static [&'static str],
     pub(crate) copy: &'static str,
 }
 
@@ -27,16 +30,23 @@ impl Look {
         format!("{}{n:02}", self.copy)
     }
 
-    /// The texture of `kind` for `name`, the host or a copy.
-    fn texture(&self, name: &str, kind: &str) -> String {
+    /// Each texture of `name`, the host or a copy, by kind.
+    fn textures(&self, name: &str) -> Vec<(&'static str, String)> {
         let material = self.material.map_or("Mt", |m| m.get());
-        format!("Tex/{material}_{name}_{kind}.bntx.zs")
+        let named = (self.kinds.iter()).map(|k| (*k, format!("{material}_{name}_{k}")));
+        let others = self.others.iter().map(|o| {
+            let kind = o.rsplit('_').next().unwrap_or(o);
+            (kind, o.replace("{}", name))
+        });
+        (named.chain(others))
+            .map(|(kind, file)| (kind, format!("Tex/{file}.bntx.zs")))
+            .collect()
     }
 
     /// The model and texture files a copy is made from.
     #[cfg(test)]
     pub(crate) fn files(&self) -> impl Iterator<Item = String> {
-        let textures = self.kinds.iter().map(|k| self.texture(self.host, k));
+        let textures = self.textures(self.host).into_iter().map(|(_, path)| path);
         std::iter::once(model_path(self.host)).chain(textures)
     }
 }
@@ -44,19 +54,18 @@ impl Look {
 /// A host model and its textures, read and decoded once.
 pub(crate) struct Host {
     look: &'static Look,
-    pub(super) model: Vec<u8>,
-    textures: Vec<(&'static str, Vec<u8>, Texture)>,
+    pub(crate) model: Vec<u8>,
+    /// By kind and the host's path.
+    textures: Vec<(&'static str, String, Vec<u8>, Texture)>,
 }
 
 impl Host {
     pub(crate) fn read(romfs: &Romfs, look: &'static Look) -> Result<Self> {
-        let textures = look
-            .kinds
-            .iter()
-            .map(|kind| {
-                let data = romfs.read(&look.texture(look.host, kind))?;
+        let textures = (look.textures(look.host).into_iter())
+            .map(|(kind, path)| {
+                let data = romfs.read(&path)?;
                 let top = top_level(&data)?;
-                Ok((*kind, data, top))
+                Ok((kind, path, data, top))
             })
             .collect::<Result<_>>()?;
         Ok(Self {
@@ -76,7 +85,7 @@ impl Host {
     /// `model`, a copy of the host's, written as `name` with the host's
     /// textures, the albedo tinted `tint`, and with `ring` each with the
     /// ring's plain metal corner.
-    pub(super) fn write_as(
+    pub(crate) fn write_as(
         &self,
         builder: &mut ModBuilder,
         name: &str,
@@ -90,9 +99,10 @@ impl Host {
             &rename(model, host, name)?,
             &model_path(host),
         )?;
-        for (kind, data, top) in &self.textures {
+        let copies = look.textures(name).into_iter().map(|(_, path)| path);
+        for ((kind, like, data, top), path) in self.textures.iter().zip(copies) {
             let data = texture(&rename(data, host, name)?, top, kind, tint, ring)?;
-            builder.add(&look.texture(name, kind), &data, &look.texture(host, kind))?;
+            builder.add(&path, &data, like)?;
         }
         Ok(())
     }
