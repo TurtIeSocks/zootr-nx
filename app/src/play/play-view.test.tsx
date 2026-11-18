@@ -253,7 +253,11 @@ test("a pasted share code goes to Generate whole, a seed as digits", async () =>
   fireEvent.change(box, { target: { value: " ZR1-ab_c-9 " } });
   fireEvent.click(button("Generate & install"));
   await waitFor(() =>
-    expect(generate).toHaveBeenCalledWith("ZR1-ab_c-9", expect.anything()),
+    expect(generate).toHaveBeenCalledWith(
+      "ZR1-ab_c-9",
+      true,
+      expect.anything(),
+    ),
   );
   fireEvent.change(box, { target: { value: "12a34" } });
   expect((box as HTMLInputElement).value).toBe("1234");
@@ -330,6 +334,24 @@ test("a poll that finds nothing new renders nothing", async () => {
   await act(refresh);
   expect(commands.history).toHaveBeenCalled();
   expect(commits).not.toHaveBeenCalled();
+});
+
+test("Generate only adds a seed to History while the game is open", async () => {
+  mockIPC(() => {});
+  const generate = vi.spyOn(commands, "generate").mockResolvedValue({
+    status: "ok",
+    data: seed,
+  });
+  backend({ installed: seed, entries: [seed] });
+  show(null);
+  act(() => useSeeds.setPath("blocked", "Close the game first"));
+  expect(button("Generate & install").getAttribute("aria-disabled")).toBe(
+    "true",
+  );
+  fireEvent.click(button("Generate only"));
+  await waitFor(() =>
+    expect(generate).toHaveBeenCalledWith(null, false, expect.anything()),
+  );
 });
 
 test("a blocked Generate stays hoverable, says why, and generates nothing", () => {

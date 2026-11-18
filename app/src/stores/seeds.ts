@@ -13,7 +13,7 @@ import {
   type View,
 } from "@/bindings";
 import { call, keep, message } from "@/lib/api";
-import { blocked } from "@/lib/config";
+import { blocked, unbuildable } from "@/lib/config";
 import { settingsDiff } from "@/lib/settings";
 import { saveConfig, useConfig } from "@/stores/config";
 import { once } from "@/stores/once";
@@ -54,6 +54,8 @@ interface Seeds {
   error?: string;
   /** Why nothing can be installed right now, or "" when something can. */
   blocked: string;
+  /** Why no seed can be built right now, even for History alone. */
+  unbuildable: string;
   /** A target's game is running. */
   running: boolean;
   /** The settings that differ from the installed seed's, or from the
@@ -80,6 +82,7 @@ export const useSeeds = create<Seeds>()(
       history: { installed: null, entries: [] },
       busy: false,
       blocked: "",
+      unbuildable: "",
       running: false,
       drift: [],
       diffs: {},
@@ -105,6 +108,7 @@ function derive() {
   const diff = (e: Summary) =>
     settingsDiff(schema, e.settings, config.settings);
   useSeeds.setPath("blocked", blocked(status, config));
+  useSeeds.setPath("unbuildable", unbuildable(status));
   useSeeds.setPath(
     "running",
     status.targets.some((t) => t.running),
@@ -251,9 +255,10 @@ async function stepping(
   }
 }
 
-/** Generates and installs a seed. `seed` is typed in, or null for random. */
-export const generate = (seed: string | null) =>
-  run(() => stepping((steps) => call(commands.generate(seed, steps))));
+/** Generates a seed and installs it, or with `install` false only adds it
+ * to History. `seed` is typed in, or null for random. */
+export const generate = (seed: string | null, install = true) =>
+  run(() => stepping((steps) => call(commands.generate(seed, install, steps))));
 /** Installs one slot of an Archipelago multiworld from its `.apznx`. */
 export const generateAp = (path: string) =>
   run(() => stepping((steps) => call(commands.generateAp(path, steps))));

@@ -23,14 +23,16 @@ pub(crate) struct Generating {
 }
 
 impl Generating {
-    /// Write a seed to every target, each step sent to `steps`. A stop that
-    /// took the mod off leaves History with nothing installed.
-    pub(crate) fn install(
+    /// Build a seed, each step sent to `steps`, and write it to every
+    /// target when `install`. A stop that took the mod off leaves History
+    /// with nothing installed.
+    pub(crate) fn build(
         &self,
         steps: Channel<StepEvent>,
         seed: u64,
         settings: &Settings,
         extras: &Extras,
+        install: bool,
     ) -> anyhow::Result<Report> {
         *self.log.lock().unwrap() = None;
         let config = Config::load()?;
@@ -43,16 +45,22 @@ impl Generating {
             settings,
             extras,
             game,
-            folders: About::folders(&config.targets),
+            folders: match install {
+                true => About::folders(&config.targets),
+                false => Vec::new(),
+            },
         });
         *self.log.lock().unwrap() = run.log().map(Into::into);
         *self.stop.lock().unwrap() = Some(run.stopper());
         let mut extras = extras.clone();
         extras.dev_panel = config.dev_panel;
         let report = zootr::game::prepare(game, &run).and_then(|romfs| {
-            generate::install(&config.targets, &run, |d| {
-                generate::generate(&romfs, d, seed, settings, &extras, &run)
-            })
+            let write =
+                |d: &std::path::Path| generate::generate(&romfs, d, seed, settings, &extras, &run);
+            match install {
+                true => generate::install(&config.targets, &run, write),
+                false => generate::throwaway(write),
+            }
         });
         run.end(&report);
         *self.stop.lock().unwrap() = None;

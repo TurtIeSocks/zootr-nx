@@ -615,6 +615,11 @@ pub(super) struct Install {
     /// back because the game is open.
     #[arg(long)]
     pub(super) history: bool,
+    /// Build the seed and add it to the app's history, writing no mod
+    /// anywhere. Install it from the history later, even while the game
+    /// is open now.
+    #[arg(long, conflicts_with_all = ["mod_dir", "history"])]
+    pub(super) no_install: bool,
 }
 
 #[derive(Subcommand)]

@@ -67,7 +67,9 @@ test("a stopped run says what the targets hold", () => {
 test("Stop shows while a seed generates and reads Stopping once pressed", () => {
   const stop = vi.spyOn(commands, "stopGenerate").mockResolvedValue();
   render(<GenerateButton />);
-  expect(screen.getByRole("button", { name: /Generate/ })).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: /Generate & install/ }),
+  ).toBeTruthy();
   cleanup();
   useSeeds.setPath("generating", true);
   render(<GenerateButton />);

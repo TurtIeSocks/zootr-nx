@@ -9,6 +9,7 @@ import {
   Loader2,
   type LucideIcon,
   Pin,
+  ScrollText,
   Sparkles,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -169,11 +170,11 @@ function OpenApButton() {
   );
 }
 
-/** Generates from the typed seed, read on click. Blocked, it stays
- * hoverable and its tooltip says why. While a seed generates, it's Stop. */
+/** Generate only, which adds the seed to History, and Generate & install.
+ * While a seed generates, they're Stop. */
 export function GenerateButton() {
-  const [busy] = useSeeds.usePath("busy");
   const [blocked] = useSeeds.usePath("blocked");
+  const [unbuildable] = useSeeds.usePath("unbuildable");
   const [generating] = useSeeds.usePath("generating");
   const [stopping] = useSeeds.usePath("stopping");
   if (generating) {
@@ -191,21 +192,63 @@ export function GenerateButton() {
     );
   }
   return (
+    <>
+      <GenerateAction
+        install={false}
+        blocked={unbuildable}
+        icon={ScrollText}
+        className="ml-auto"
+        variant="secondary"
+      >
+        Generate only
+      </GenerateAction>
+      <GenerateAction install blocked={blocked} icon={Sparkles}>
+        Generate & install
+      </GenerateAction>
+    </>
+  );
+}
+
+/** Props for {@link GenerateAction}. */
+interface GenerateActionProps {
+  /** Install the seed, else only add it to History. */
+  install: boolean;
+  /** Why it can't run, or "". */
+  blocked: string;
+  icon: LucideIcon;
+  className?: string;
+  variant?: "secondary";
+  children: ReactNode;
+}
+
+/** One way to generate from the typed seed, read on click. Blocked, it
+ * stays hoverable and its tooltip says why. */
+function GenerateAction({
+  install,
+  blocked,
+  icon: Icon,
+  className,
+  variant,
+  children,
+}: GenerateActionProps) {
+  const [busy] = useSeeds.usePath("busy");
+  return (
     <Tooltip open={blocked ? undefined : false}>
       <TooltipTrigger asChild>
         <Button
           size="lg"
-          className="ml-auto"
+          variant={variant}
+          className={className}
           disabled={busy}
           aria-disabled={!!blocked || undefined}
           onClick={
             blocked
               ? undefined
-              : () => generate(useUi.getPath("newSeed.seed") || null)
+              : () => generate(useUi.getPath("newSeed.seed") || null, install)
           }
         >
-          {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-          Generate & install
+          {busy ? <Loader2 className="animate-spin" /> : <Icon />}
+          {children}
         </Button>
       </TooltipTrigger>
       <TooltipContent>{blocked}</TooltipContent>

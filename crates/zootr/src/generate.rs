@@ -15,7 +15,7 @@ mod write;
 mod tests;
 
 pub use extras::Extras;
-pub use install::{install, running, uninstall};
+pub use install::{install, running, throwaway, uninstall};
 pub use report::{Held, Report, RoundEvent, Spot, Start, Written};
 pub use seed::{generate, shuffle, time_seed};
 pub use write::write_mod;

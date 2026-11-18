@@ -205,13 +205,15 @@ async fn blocking<T: Send + 'static>(
         .map_err(text)
 }
 
-/// Generate and install a seed with the current settings and test setup. A
-/// blank seed is random. A share code brings its own settings and extras.
+/// Generate a seed with the current settings and test setup, and install
+/// it when `install`, else only add it to History. A blank seed is random.
+/// A share code brings its own settings and extras.
 #[tauri::command]
 #[specta::specta]
 async fn generate(
     app: AppHandle,
     seed: Option<String>,
+    install: bool,
     steps: Channel<progress::StepEvent>,
 ) -> Res<Summary> {
     blocking(move || {
@@ -229,7 +231,7 @@ async fn generate(
                 extras,
             ),
         };
-        record(&app, steps, seed, settings, extras)
+        record(&app, steps, seed, settings, extras, install)
     })
     .await
 }
@@ -246,7 +248,7 @@ async fn generate_ap(
     blocking(move || {
         let ap = zootr::ap::ApSeed::read(&path)?;
         let (seed, settings) = (ap.seed, ap.full_settings());
-        record(&app, steps, seed, settings, generate::Extras::ap(ap))
+        record(&app, steps, seed, settings, generate::Extras::ap(ap), true)
     })
     .await
 }
@@ -258,9 +260,10 @@ fn record(
     seed: u64,
     settings: Settings,
     extras: generate::Extras,
+    install: bool,
 ) -> anyhow::Result<Summary> {
-    let report = (app.state::<Generating>()).install(steps, seed, &settings, &extras)?;
-    History::record(settings, extras, Label::default(), report, true)
+    let report = (app.state::<Generating>()).build(steps, seed, &settings, &extras, install)?;
+    History::record(settings, extras, Label::default(), report, install)
 }
 
 /// What the plando draft can pick from with the current settings, and why
@@ -283,7 +286,13 @@ async fn install(app: AppHandle, id: u32, steps: Channel<progress::StepEvent>) -
         let mut history = History::load()?;
         let entry = history.get(id)?;
         let generating = app.state::<Generating>();
-        generating.install(steps, entry.report.seed, &entry.settings, &entry.extras)?;
+        generating.build(
+            steps,
+            entry.report.seed,
+            &entry.settings,
+            &entry.extras,
+            true,
+        )?;
         history.install(Some(id));
         history.save()
     })

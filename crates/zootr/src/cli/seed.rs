@@ -117,23 +117,30 @@ fn install(
     extras: generate::Extras,
     args: Install,
 ) -> Result<()> {
-    let held = args.out.held()?;
+    let held = match args.no_install {
+        true => None,
+        false => args.out.held()?,
+    };
+    // The history keeps what it needs to build the seed again, so the mod
+    // itself can go.
+    let unplaced = args.no_install || held.is_some();
     let about = About {
         seed,
         settings: &settings,
         extras: &extras,
         game,
-        folders: args.out.folders()?,
+        folders: match unplaced {
+            true => Vec::new(),
+            false => args.out.folders()?,
+        },
     };
     let run = Run::silent().with(progress::print).logged(&about);
     let built = (|| {
         let romfs = game::prepare(game, &run)?;
         let generate = |d: &Path| generate::generate(&romfs, d, seed, &settings, &extras, &run);
-        match held {
-            // The history keeps what it needs to build the seed again, so the
-            // mod itself can go.
-            Some(_) => Ok((throwaway(generate)?, false)),
-            None => args.out.write(&run, generate),
+        match unplaced {
+            true => Ok((generate::throwaway(generate)?, false)),
+            false => args.out.write(&run, generate),
         }
     })();
     run.end(&built);
@@ -143,11 +150,16 @@ fn install(
     }
     print_written(&report.written);
     println!(
-        "seed {seed}: {} chests, {} changed, spoiler.txt beside each mod",
+        "seed {seed}: {} chests, {} changed{}",
         report.spots.len(),
         report.changed(),
+        if unplaced {
+            ""
+        } else {
+            ", spoiler.txt beside each mod"
+        },
     );
-    if installed || held.is_some() || args.history {
+    if installed || unplaced || args.history {
         let label = Label {
             name: args.name,
             note: args.note,
@@ -166,20 +178,23 @@ fn install(
     Ok(())
 }
 
-/// `write` into a folder that's gone again after.
-fn throwaway<T>(write: impl FnOnce(&Path) -> Result<T>) -> Result<T> {
-    let dir = std::env::temp_dir().join(format!("zootr-held-{}", std::process::id()));
-    let out = write(&dir);
-    std::fs::remove_dir_all(&dir).ok();
-    out
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::cli::args::{Cli, Command};
     use crate::known::{field, flow, item};
     use clap::Parser;
+
+    #[test]
+    fn no_install_writes_nowhere_so_it_takes_no_mod_dir() {
+        let parse = |line: &str| Cli::try_parse_from(line.split(' '));
+        let Command::Shuffle(s) = parse("zootr shuffle --no-install").unwrap().command else {
+            panic!("not a shuffle");
+        };
+        assert!(s.install.no_install);
+        assert!(parse("zootr shuffle --no-install --mod-dir out").is_err());
+        assert!(parse("zootr shuffle --no-install --history").is_err());
+    }
 
     #[test]
     fn a_shuffle_command_parses_back_to_its_settings_and_extras() {
