@@ -63,6 +63,7 @@ pub const NPC_HYLIA_049_ADULT: &Name = &n!(0x990cb11dc1eb196f);
 pub const NPC_HYLIA_053_ADULT: &Name = &n!(0x128181708fa99b88);
 pub const NPC_HYLIA_DAMPE_001: &Name = &n!(0x297a866293869e0a);
 pub const NPC_HYLIA_IMPERIAL_SOLDIER_BOMB: &Name = &n!(0x7012d59fa06b16a3);
+pub const NPC_HYLIA_RUNNING_MAN_ADULT: &Name = &n!(0x7de501fdb9391f2f);
 pub const NPC_HYLIA_MALON_CHILD: &Name = &n!(0x39b51ad30daf2215);
 pub const NPC_HYLIA_TALON_ADULT: &Name = &n!(0x70d649be38e43ad8);
 pub const NPC_HYLIA_TALON_ADULT_KAKARIKO: &Name = &n!(0x4dbab69ac848978e);

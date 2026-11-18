@@ -86,6 +86,7 @@ pub const GET_IN_EVENT_NOT_TURN: &Name = &n!(0x5058dc99bdf4af7d);
 pub const GET_IN_EVENT_NOT_TURN_2_D_SHOP: &Name = &n!(0x27aef3932bbca294);
 pub const GET_IN_EVENT_NOT_TURN_FADO: &Name = &n!(0x4ebfff6fb4864a2e);
 pub const GET_IN_EVENT_NOT_TURN_FIXED_CAMERA_WARP_LINK: &Name = &n!(0x471a10f1314b25d6);
+pub const GET_IN_EVENT_NOT_TURN_FOR_POS_CAMERA: &Name = &n!(0x3afd0bd3576a4ee1);
 pub const GET_IN_EVENT_NOT_TURN_FOR_POS_CAMERA_BIG_GORON: &Name = &n!(0x16a78701d31461b1);
 pub const GET_IN_EVENT_NOT_TURN_NOT_NPC: &Name = &n!(0x46d9b794350bb0c2);
 pub const GET_IN_EVENT_NOT_TURN_NOT_NPC_DAMPE: &Name = &n!(0x2be6000044ddeec8);
