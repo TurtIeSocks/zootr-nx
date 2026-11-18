@@ -9,6 +9,9 @@ use crate::{LIST, Shared};
 
 /// The seed's event that springs a trap: it makes [`SENSOR`] on Link.
 pub const EVENT: &[u8] = b"Rando_IceTrap\0";
+/// The seed's event that takes the sensor away. It outlives Link's freeze,
+/// and would freeze him again after each break (live, 2026-11-18).
+pub const END: &[u8] = b"Rando_IceTrapEnd\0";
 /// The sensor that hits Link with a Freezard's breath.
 pub const SENSOR: &str = "Sensor_Rando_IceTrap";
 
@@ -41,6 +44,13 @@ pub fn spring(waiting: &AtomicU32, on: u32, since: Option<u64>, rate: u64) -> bo
         && (waiting.try_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_sub(1))).is_ok()
 }
 
+/// Whether to take the last trap's sensor away now: Link, with bad
+/// conditions `on`, is frozen, or [`THAW`] seconds have gone by `since` it
+/// sprang with no freeze to wait for.
+pub fn unmake(on: u32, since: Option<u64>, rate: u64) -> bool {
+    on & FROZEN != 0 || since.is_none_or(|ticks| ticks >= THAW * rate)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -66,6 +76,13 @@ mod tests {
         let waiting = AtomicU32::new(1);
         assert!(!spring(&waiting, FROZEN, None, RATE));
         assert_eq!(waiting.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn the_sensor_goes_once_link_is_frozen_or_never_will_be() {
+        assert!(!unmake(0, Some(0), RATE));
+        assert!(unmake(FROZEN, Some(0), RATE));
+        assert!(unmake(0, Some(THAW * RATE), RATE));
     }
 
     #[test]

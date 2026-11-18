@@ -10,7 +10,7 @@ use ounce_formats::{
     pack_path,
 };
 use roead::sarc::SarcWriter;
-use zootr_hook::traps::{EVENT, SENSOR};
+use zootr_hook::traps::{END, EVENT, SENSOR};
 
 use crate::flows::{self, Rewrites, set, string};
 use crate::known::{Name, actor, field, flow, scene};
@@ -43,6 +43,9 @@ const MAKE: (&Name, &Name) = (
     field::GAME_SYSTEM_ACTOR,
     flow::EVENT_TRIGGER_REQUEST_CREATE_CONDITION_SENSOR,
 );
+/// The call that takes the sensor away. The system holds one condition
+/// sensor, so it names none.
+const UNMAKE: &Name = flow::EVENT_TRIGGER_REQUEST_DELETE_CONDITION_SENSOR;
 
 /// Keys of a controller set, each an array of `{FilePath, Name}`.
 const CCOL_SENSORS: &Name = field::C_COL_SENSOR_NAME_PATH_ARY;
@@ -54,11 +57,21 @@ const ATK: &str = "Atk";
 
 /// The event's name, without its NUL.
 fn name() -> &'static str {
-    core::str::from_utf8(&EVENT[..EVENT.len() - 1]).expect("the event's name is text")
+    text(EVENT)
+}
+
+/// The ending event's name, without its NUL.
+fn end() -> &'static str {
+    text(END)
+}
+
+fn text(event: &'static [u8]) -> &'static str {
+    core::str::from_utf8(&event[..event.len() - 1]).expect("an event's name is text")
 }
 
 /// The map change flow with an entry point named for the event, which
-/// makes the sensor and ends.
+/// makes the sensor and ends, and one for [`END`], which takes it away. It
+/// outlives Link's freeze and would freeze him again after each break.
 pub fn flow(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
     let songs = flows::load(romfs, SONGS)?.context("the song flow is a timeline")?;
     let at = *flows::running(&songs, MAKE)
@@ -75,19 +88,29 @@ pub fn flow(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
             action,
             params,
         });
-        flow.entry_points.push(EntryPoint {
-            name: name().into(),
-            main: Some(make),
-            vars: vec![],
+        let (actor, action) = flow.action(&model.actor, UNMAKE.get());
+        let unmake = flow.push(EventKind::Action {
+            next: None,
+            actor,
+            action,
+            params: vec![],
         });
+        for (name, main) in [(name(), make), (end(), unmake)] {
+            flow.entry_points.push(EntryPoint {
+                name: name.into(),
+                main: Some(main),
+                vars: vec![],
+            });
+        }
         Ok(())
     })
 }
 
-/// The event's rows: the map change's, starting the entry point [`flow`]
+/// The events' rows: the map change's, starting the entry points [`flow`]
 /// adds.
 pub fn event(events: &mut Events) -> Result<()> {
-    events.copy(name(), FLOW)
+    events.copy(name(), FLOW)?;
+    events.copy(end(), FLOW)
 }
 
 /// The sensor's pack and rows: the sun's sensor, on the Freezard's side,
@@ -102,27 +125,46 @@ pub fn sensor(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> R
 /// 2026-11-18). His pack carries the frozen reaction all the same.
 const CHILD: &Name = actor::PLAYER_CHILD;
 
-/// Write child Link's pack with his `Frozen` bad condition on.
+/// Write child Link's pack with his `Frozen` bad condition on, and the
+/// adult's effects: the frozen shell's break is only in the adult's
+/// (live, 2026-11-18).
 pub fn thaw(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     let pack = ActorPack::load(romfs, CHILD)?;
-    let (path, old, new) = thawed(&pack)?;
-    builder.resize(&path, old.len(), new.len())?;
     let mut writer = pack.writer();
-    writer.add_file(path, new);
+    for (path, old, new) in thawed(&pack)? {
+        builder.resize(&path, old.len(), new.len())?;
+        writer.add_file(path, new);
+    }
     builder.write(&pack_file(CHILD), &writer.to_binary())
 }
 
-/// Child Link's conditions file: its path, its bytes, and its bytes with
-/// `Frozen` on.
-fn thawed(pack: &ActorPack) -> Result<(String, Vec<u8>, Vec<u8>)> {
-    let at =
-        component(&param(pack)?, field::CONDITION_REF).context("child Link has no conditions")?;
-    let path = pack_path(&at);
+/// A file of a pack: its path, its bytes, and its bytes edited.
+type Edit = (String, Vec<u8>, Vec<u8>);
+
+/// Child Link's conditions and effects files, as [`thaw`] writes them.
+fn thawed(pack: &ActorPack) -> Result<[Edit; 2]> {
+    let param = param(pack)?;
+    let adult = Byml::String(actor::PLAYER_ADULT.get().into());
+    Ok([
+        edited(
+            pack,
+            &param,
+            field::CONDITION_REF,
+            field::IS_ENABLE_FROZEN,
+            Byml::Bool(true),
+        )?,
+        edited(pack, &param, field::E_LINK_REF, field::USER_NAME, adult)?,
+    ])
+}
+
+/// The file of `pack`'s component `at`, with `key` set to `value`.
+fn edited(pack: &ActorPack, param: &BymlMap, at: &Name, key: &Name, value: Byml) -> Result<Edit> {
+    let file = component(param, at).with_context(|| format!("child Link has no {}", at.get()))?;
+    let path = pack_path(&file);
     let old = raw(pack, &path)?;
-    let mut conditions = BymlDoc::parse(&old)?;
-    let frozen = field::IS_ENABLE_FROZEN.get().into();
-    (conditions.root.as_mut_map()?).insert(frozen, Byml::Bool(true));
-    Ok((path, old, conditions.to_binary()))
+    let mut doc = BymlDoc::parse(&old)?;
+    (doc.root.as_mut_map()?).insert(key.get().into(), value);
+    Ok((path, old, doc.to_binary()))
 }
 
 fn remade(romfs: &Romfs) -> Result<Remade> {
@@ -410,7 +452,7 @@ mod tests {
     use crate::standins::row;
 
     #[test]
-    fn the_event_makes_the_sensor_and_ends() {
+    fn one_event_makes_the_sensor_and_one_takes_it_away() {
         let Some(romfs) = dev_dump() else { return };
         let mut rewrites = Rewrites::new();
         flow(&romfs, &mut rewrites).unwrap();
@@ -420,28 +462,38 @@ mod tests {
             panic!("one sensor made")
         };
         assert_eq!(entry.main, Some(make));
+        let entry = flow.entry_points.iter().find(|e| e.name == end()).unwrap();
+        let [unmake] = running(&flow, (MAKE.0, UNMAKE))[..] else {
+            panic!("one sensor taken away")
+        };
+        assert_eq!(entry.main, Some(unmake));
         let mut events = Events::load(&romfs).unwrap();
         event(&mut events).unwrap();
-        row(&events.setting, name()).unwrap();
-        row(&events.analyzed, name()).unwrap();
+        for name in [name(), end()] {
+            row(&events.setting, name).unwrap();
+            row(&events.analyzed, name).unwrap();
+        }
     }
 
     #[test]
-    fn child_link_can_freeze() {
+    fn child_link_can_freeze_and_shows_it() {
         let Some(romfs) = dev_dump() else { return };
         let pack = ActorPack::load(&romfs, CHILD).unwrap();
-        let (_, old, new) = thawed(&pack).unwrap();
-        let frozen = |data: &[u8]| {
+        let [(_, old, new), (_, old_fx, new_fx)] = thawed(&pack).unwrap();
+        let read = |data: &[u8], key: &Name| {
             let doc = BymlDoc::parse(data).unwrap();
-            let on = doc
-                .root
-                .as_map()
-                .unwrap()
-                .get(field::IS_ENABLE_FROZEN.get());
-            on.unwrap().as_bool().unwrap()
+            doc.root.as_map().unwrap().get(key.get()).unwrap().clone()
         };
-        assert!(!frozen(&old), "the game's child Link can't");
-        assert!(frozen(&new));
+        let frozen = field::IS_ENABLE_FROZEN;
+        assert_eq!(
+            read(&old, frozen),
+            Byml::Bool(false),
+            "the game's child Link can't"
+        );
+        assert_eq!(read(&new, frozen), Byml::Bool(true));
+        let adult = Byml::String(actor::PLAYER_ADULT.get().into());
+        assert_ne!(read(&old_fx, field::USER_NAME), adult);
+        assert_eq!(read(&new_fx, field::USER_NAME), adult);
     }
 
     #[test]

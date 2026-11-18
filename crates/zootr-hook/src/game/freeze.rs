@@ -4,7 +4,7 @@ use core::sync::atomic::Ordering;
 
 use super::dev::{clock, player, playing, start};
 use super::{at, shared};
-use crate::traps::{BAD_CONDITIONS, COMPONENTS, EVENT, ON, spring};
+use crate::traps::{BAD_CONDITIONS, COMPONENTS, END, EVENT, ON, spring, unmake};
 use crate::{Outcome, Table};
 
 /// Start the trap event for the next trap waiting, while no event plays
@@ -17,7 +17,8 @@ use crate::{Outcome, Table};
 pub unsafe fn freeze(main: usize, table: &Table, actor: usize) {
     let o = table.offsets;
     let shared = shared(main);
-    if shared.traps.load(Ordering::Relaxed) == 0
+    let out = shared.sensing.load(Ordering::Relaxed) != 0;
+    if shared.traps.load(Ordering::Relaxed) == 0 && !out
         || unsafe { playing(main, o) } != Some(false)
         || unsafe { player(main, o, actor) }.is_none()
     {
@@ -31,14 +32,24 @@ pub unsafe fn freeze(main: usize, table: &Table, actor: usize) {
     let (now, rate) = clock();
     let last = shared.sprung.load(Ordering::Relaxed);
     let since = (last != 0).then(|| now.wrapping_sub(last));
+    let started = |event| {
+        matches!(
+            unsafe { start(main, o, actor, event) },
+            Outcome::Done | Outcome::Unanswered
+        )
+    };
+    if out {
+        if unmake(on, since, rate) && started(END) {
+            shared.sensing.store(0, Ordering::Relaxed);
+        }
+        return;
+    }
     if !spring(&shared.traps, on, since, rate) {
         return;
     }
-    if matches!(
-        unsafe { start(main, o, actor, EVENT) },
-        Outcome::Done | Outcome::Unanswered
-    ) {
+    if started(EVENT) {
         shared.sprung.store(now, Ordering::Relaxed);
+        shared.sensing.store(1, Ordering::Relaxed);
     } else {
         shared.traps.fetch_add(1, Ordering::Relaxed);
     }

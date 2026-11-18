@@ -134,6 +134,8 @@ pub struct Shared {
     pub traps: AtomicU32,
     /// The system counter when the last trap sprang, 0 before any.
     pub sprung: AtomicU64,
+    /// 1 while a trap's sensor is out, until the hook takes it away.
+    pub sensing: AtomicU32,
 }
 
 // SAFETY: the mailbox's plain fields are only read after `asked` is.
