@@ -113,6 +113,9 @@ pub(super) enum DevCommand {
     /// Drop Link's hearts to zero, as a last hit would: a bottled fairy
     /// still saves him.
     Kill,
+    /// Spring an ice trap: Link freezes once he's free to, as from a
+    /// trap's get.
+    Freeze,
     /// Switch age: the same map for the other age, else the Temple of Time.
     Age,
     /// Set the time of day.
@@ -173,14 +176,14 @@ pub enum MemCommand {
     Keys,
     /// Bytes at an address, as hex, sixteen to a line.
     Read {
-        /// A 0x address.
+        /// A 0x address, or `main+0x…` for an offset into `main`.
         at: String,
         #[arg(default_value_t = 64)]
         len: usize,
     },
     /// Write hex bytes at an address.
     Write {
-        /// A 0x address.
+        /// A 0x address, or `main+0x…` for an offset into `main`.
         at: String,
         /// Hex bytes.
         bytes: String,
