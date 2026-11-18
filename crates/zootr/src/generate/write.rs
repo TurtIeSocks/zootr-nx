@@ -162,7 +162,11 @@ pub fn write_mod(
     let gd = gamedata::GameData::load(romfs)?;
     let opened = tracker::chest_flags(&gd)?;
     let twins = twins::find(romfs, |h| drops.contains_key(&h), opened)?;
-    let aliases: Vec<_> = twins.iter().filter_map(twins::Twin::alias).collect();
+    let aliases = twins.iter().filter_map(twins::Twin::alias);
+    let mut exps: Vec<_> = aliases
+        .map(|(name, of)| (name, vec![gamedata::Op::Bool(of)]))
+        .collect();
+    exps.extend(picked::exps(&picked));
     let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
     trade_chain::never_counting(&mut doc.root)?;
     if new_game.on.contains(TRADE_CHAIN) {
@@ -171,7 +175,7 @@ pub fn write_mod(
     let defaults = presets::apply(&gd, &mut doc.root, &edits)?;
     gamedata::add_bools(&mut doc.root, &bools)?;
     gamedata::add_ints(&mut doc.root, &new_game.ints)?;
-    gamedata::add_aliases(&mut doc.root, &aliases)?;
+    gamedata::add_exps(&mut doc.root, &exps)?;
     gamedata::add_keys(&mut doc.root, &picked::pairs(&picked))?;
     for (copy, template, _) in &made {
         let names = [copy.clone()];
