@@ -15,9 +15,9 @@ use crate::progress::Run;
 use crate::settings::{ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
     ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, foreign,
-    fortress, gamedata, gerudo, gifts, held, hints, key_tints, keys, medallions, navi, patch,
-    picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker,
-    trade_chain, twins,
+    fortress, gamedata, gerudo, gifts, held, hints, key_tints, keys, medallions, navi, notice,
+    patch, picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text,
+    tracker, trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -146,6 +146,10 @@ pub fn write_mod(
     // First, so a copy on a shelf takes its caption from its own lines.
     copies.insert(0, foreign::captions(&new_game.foreign));
     copies.insert(0, key_tints::captions(new_game.keys, key_copies.1));
+    if new_game.mailbox {
+        copies.push(notice::banners());
+        copies.push(notice::senders(&new_game.players));
+    }
     text::write(romfs, &mut builder, &lines, &copies, hints)?;
     let cows = match new_game.cows {
         true => cows::find(romfs)?,

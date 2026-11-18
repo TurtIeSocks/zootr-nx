@@ -13,6 +13,7 @@ mod export;
 mod golden;
 mod ids;
 mod names;
+mod notice;
 mod open;
 mod rule;
 mod seed;
