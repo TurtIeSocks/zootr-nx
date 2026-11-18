@@ -14,11 +14,11 @@
 
 ## Playing
 
-1. In the zootr-nx app, open the Play page and press Open AP seed. Pick your `.apznx`. It installs your slot with the settings from your options file.
+1. In the zootr-nx app, open the Play page's Archipelago tab. Drop your `.apznx` on the window, or press Browse… and pick it. It installs your slot with the settings from your options file.
 2. Press Play and start a new file.
-3. In the Archipelago panel under the seed, enter the room's address (like `archipelago.gg:38281`) and its password if it has one, then press Connect.
+3. Under Room in the same tab, enter the room's server (like `archipelago.gg:38281`) and its password if it has one, then press Connect.
 
-While connected, the app sends your checks to the room, gives Link the items other players find for him, and reports your goal. Its log lists each item that arrives. The server and password are kept for each seed, so reconnecting later is one press.
+While connected, the app sends your checks to the room, gives Link the items other players find for him, and reports your goal. The Client log lists each item sent and received. The server and password are kept for each seed, and the room's status line under the installed seed has Connect, so reconnecting later is one press.
 
 - Items from other worlds arrive whenever Link is in play, never during a text box, event or load.
 - Each one shows at the top of the screen, like "Hookshot from Saria", with the item's icon over Link for ammo and other pouch items. A big release shows 3 one by one, then "+74 more from Saria".
