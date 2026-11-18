@@ -8,7 +8,7 @@
 //! way keys take their dungeon's colour.
 
 use anyhow::{Result, ensure};
-use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs};
+use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs, set_param};
 
 use crate::key_tints::paint::{Host, Look};
 use crate::key_tints::{MADE, POUCH_TEXT, TEXT_PARTS, pointed};
@@ -38,16 +38,20 @@ pub struct Foreign {
 }
 
 /// The model another game's item shows: a Poe's spirit, a flame Link
-/// never gets loose, tinted by the item's class. Its glow takes the colour
-/// from its emissive map, which is white, so the colour shows true.
+/// never gets loose, its body tinted and its glow coloured by the item's
+/// class.
 pub(crate) const CLASS_LOOK: Look = Look {
     host: actor::OBJ_SPIRIT_POE,
     material: Some(field::MT_BODY),
     kinds: &["Alb", "AO", "Emm", "Gn0", "Nrm", "Rgh"],
     others: &["{}_Body_Gn0"],
-    tinted: &["Alb", "Emm"],
     copy: "Obj_RandoAp_",
 };
+/// The spirit's glow colours, by their names' hashes: the flame's own, and
+/// the lighter one round it. The flame's is purple until a Poe's colour
+/// animation sets it; a copy's is its class's.
+const GLOW: u64 = 0x68e1_31e7_2bcd_91ad;
+const GLOW_LIGHT: u64 = 0xe647_277d_46e8_c1d8;
 
 /// The files [`CLASS_LOOK`] is made from, spelled out like
 /// [`crate::key_tints::FILES`]: extracted before a dump's names are read.
@@ -76,6 +80,15 @@ pub fn class_model(class: &str) -> String {
     let filler = CLASSES.len() - 1;
     let n = CLASSES.iter().position(|(c, _)| *c == class);
     CLASS_LOOK.name(n.unwrap_or(filler) + 1)
+}
+
+/// The spirit's model glowing `colour`: the flame in it, and the light
+/// round it halfway to white, as a Poe's own colours are.
+fn glowing(model: &[u8], colour: Colour) -> Result<Vec<u8>> {
+    let linear = colour.map(|c| (c as f32 / 255.0).powf(2.2));
+    let light = linear.map(|c| (c + 1.0) / 2.0);
+    let model = set_param(model, GLOW, [linear[0], linear[1], linear[2], 1.0])?;
+    set_param(&model, GLOW_LIGHT, [light[0], light[1], light[2], 1.0])
 }
 
 /// What follows [`MADE`] in a copy's name.
@@ -241,7 +254,8 @@ pub fn write(
     if foreign.iter().any(|f| f.model.is_some()) {
         let host = Host::read(romfs, &CLASS_LOOK)?;
         for (n, (_, colour)) in CLASSES.iter().enumerate() {
-            host.paint(builder, n + 1, *colour)?;
+            let model = glowing(&host.model, *colour)?;
+            host.write_as(builder, &CLASS_LOOK.name(n + 1), &model, *colour, false)?;
         }
     }
     for f in foreign {

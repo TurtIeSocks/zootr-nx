@@ -1,6 +1,5 @@
-//! A model copied in a colour: its albedo (or a glow's emissive map) tinted
-//! by each texel's brightness, and a key ring's iron and gold corner where
-//! it has one.
+//! A model copied in a colour: its albedo tinted by each texel's
+//! brightness, and a key ring's iron and gold corner where it has one.
 //! Keys take their dungeon's colour, another game's item its class's.
 
 use anyhow::Result;
@@ -22,8 +21,6 @@ pub(crate) struct Look {
     /// Textures named another way, `{}` for the host's or a copy's name,
     /// the kind after the last `_`.
     pub(crate) others: &'static [&'static str],
-    /// The kinds that take the colour.
-    pub(crate) tinted: &'static [&'static str],
     pub(crate) copy: &'static str,
 }
 
@@ -57,7 +54,7 @@ impl Look {
 /// A host model and its textures, read and decoded once.
 pub(crate) struct Host {
     look: &'static Look,
-    pub(super) model: Vec<u8>,
+    pub(crate) model: Vec<u8>,
     /// By kind and the host's path.
     textures: Vec<(&'static str, String, Vec<u8>, Texture)>,
 }
@@ -88,7 +85,7 @@ impl Host {
     /// `model`, a copy of the host's, written as `name` with the host's
     /// textures, the albedo tinted `tint`, and with `ring` each with the
     /// ring's plain metal corner.
-    pub(super) fn write_as(
+    pub(crate) fn write_as(
         &self,
         builder: &mut ModBuilder,
         name: &str,
@@ -104,46 +101,32 @@ impl Host {
         )?;
         let copies = look.textures(name).into_iter().map(|(_, path)| path);
         for ((kind, like, data, top), path) in self.textures.iter().zip(copies) {
-            let tinted = look.tinted.contains(kind);
-            let data = texture(
-                &rename(data, host, name)?,
-                top,
-                kind,
-                tinted.then_some(tint),
-                ring,
-            )?;
+            let data = texture(&rename(data, host, name)?, top, kind, tint, ring)?;
             builder.add(&path, &data, like)?;
         }
         Ok(())
     }
 }
 
-/// A texture of `kind`, `top` its first level decoded. With `colour`, its
-/// first level in that colour, each texel scaled by its brightness, so the
-/// metal maps keep the shine and a coloured albedo (the boss key's gold)
-/// takes the colour as cleanly as a grey one. With `ring`, any kind with
-/// the ring's iron and gold corner.
-fn texture(
-    data: &[u8],
-    top: &Texture,
-    kind: &str,
-    colour: Option<Colour>,
-    ring: bool,
-) -> Result<Vec<u8>> {
-    if colour.is_none() && !ring {
+/// A texture of `kind`, `top` its first level decoded: an albedo's first level in `colour`, each texel
+/// scaled by its brightness, so the metal maps keep the shine and a
+/// coloured albedo (the boss key's gold) takes the colour as cleanly as a
+/// grey one. With `ring`, any kind with the ring's iron and gold corner.
+fn texture(data: &[u8], top: &Texture, kind: &str, colour: Colour, ring: bool) -> Result<Vec<u8>> {
+    let albedo = kind == "Alb";
+    if !albedo && !ring {
         return Ok(data.to_vec());
     }
     let mut t = top.clone();
     let key = t.rgba.clone();
-    if let Some(colour) = colour {
+    if albedo {
         tint(&mut t.rgba, colour);
     }
     if ring {
         rings::paint(&mut t, &key, kind)?;
     }
     let (w, h) = (t.width, t.height);
-    let tinted = colour.is_some();
-    redraw(data, &t.rgba, |x, y| !tinted && !rings::painted(w, h, x, y))
+    redraw(data, &t.rgba, |x, y| !albedo && !rings::painted(w, h, x, y))
 }
 
 fn tint(rgba: &mut [u8], colour: Colour) {
