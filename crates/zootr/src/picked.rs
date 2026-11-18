@@ -279,6 +279,14 @@ pub fn spots(root: &Byml, holders: &[Holder]) -> Result<Vec<Spot>> {
     Ok(out)
 }
 
+/// The GameData entries the hook reads `spots` from: two words each, at
+/// [`Spot::key`].
+pub fn entries(spots: &[Spot]) -> Vec<(u32, u64)> {
+    (spots.iter().zip(0..))
+        .flat_map(|(s, i)| (0..).zip(s.words()).map(move |(w, v)| (Spot::key(i, w), v)))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeSet;
@@ -548,6 +556,26 @@ mod tests {
             })
             .count();
         assert_eq!(spots.len(), here);
+    }
+
+    #[test]
+    fn each_spot_is_two_entries_the_hook_reads_back_by_index() {
+        let spot = |flag| Spot {
+            flag,
+            name: 7,
+            at: [-3, 0, 900],
+        };
+        let spots = [spot(1), spot(2)];
+        let entries = entries(&spots);
+        let keys: Vec<u32> = entries.iter().map(|e| e.0).collect();
+        assert_eq!(
+            keys,
+            (0..4).map(|k| zootr_hook::SPOT_KEY + k).collect::<Vec<_>>()
+        );
+        for (i, s) in (0..).zip(spots) {
+            let word = |w| entries.iter().find(|e| e.0 == Spot::key(i, w)).unwrap().1;
+            assert_eq!(Spot::from_words([word(0), word(1)]), s);
+        }
     }
 
     #[test]

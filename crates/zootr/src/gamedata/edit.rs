@@ -53,6 +53,42 @@ pub fn add_ints(root: &mut Byml, names: &[String]) -> Result<()> {
     add(root, "Int", names, kept)
 }
 
+/// Append an unsaved `UInt64` for each `(hash, value)`, a copy of the
+/// table's first unsaved entry. A save never holds one, so it can't carry
+/// one seed's values into another, and the save layout stays as it is.
+/// Refuses a hash any table already has.
+pub fn add_u64s(root: &mut Byml, values: &[(u32, u64)]) -> Result<()> {
+    let data = root.as_map()?.get("Data").context("no Data")?.as_map()?;
+    let hashes: HashSet<i64> = (data.iter())
+        .filter(|(kind, _)| kind.as_str() != KEYED)
+        .filter_map(|(_, list)| list.as_array().ok())
+        .flatten()
+        .filter_map(|e| int(e.as_map().ok()?.get("Hash")?).ok())
+        .collect();
+    if let Some((hash, _)) = values.iter().find(|(h, _)| hashes.contains(&i64::from(*h))) {
+        bail!("{} already has an entry {hash:#010x}", flag::GAME_DATA);
+    }
+    let entries = table(root, "UInt64")?;
+    let unsaved = |e: &&Byml| {
+        let file = e
+            .as_map()
+            .ok()
+            .and_then(|m| m.get(&**field::SAVE_FILE_INDEX));
+        file.is_some_and(|f| int(f).ok() == Some(-1))
+    };
+    let template = (entries.iter().find(unsaved))
+        .context("the UInt64 table has no unsaved entry to copy")?
+        .as_map()?
+        .clone();
+    for &(hash, value) in values {
+        let mut entry = template.clone();
+        entry.insert("Hash".into(), typed(template.get("Hash"), hash)?);
+        entry.insert(field::DEFAULT_VALUE.to_string().into(), Byml::U64(value));
+        entries.push(Byml::Map(entry));
+    }
+    Ok(())
+}
+
 /// False or 0, typed as `like`.
 fn zero(like: Option<&Byml>) -> Option<Byml> {
     Some(match like? {
@@ -390,6 +426,34 @@ mod tests {
         assert_eq!(Byml::Map(held), copy);
         assert!(!hashes.contains(&5));
         assert!(add_keys(&mut doc.root, &twins).is_err());
+    }
+
+    #[test]
+    fn unsaved_u64s_keep_their_values_and_the_save_layout() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut doc = BymlDoc::parse(&romfs.read(PATH).unwrap()).unwrap();
+        let meta = |root: &Byml| root.as_map().unwrap()[&**field::META_DATA].clone();
+        let was = meta(&doc.root);
+        let values = [(0xfa4e_0001, u64::MAX), (0xfa4e_0002, 7)];
+        add_u64s(&mut doc.root, &values).unwrap();
+        assert_eq!(meta(&doc.root), was);
+        let entries = table(&mut doc.root, "UInt64").unwrap();
+        for (hash, value) in values {
+            let e = entries
+                .iter()
+                .find(|e| has_hash(e, hash))
+                .unwrap()
+                .as_map()
+                .unwrap();
+            assert_eq!(e[&**field::DEFAULT_VALUE], Byml::U64(value));
+            assert_eq!(int(&e[&**field::SAVE_FILE_INDEX]).unwrap(), -1);
+        }
+        assert!(
+            add_u64s(&mut doc.root, &values[..1]).is_err(),
+            "added twice"
+        );
     }
 
     #[test]

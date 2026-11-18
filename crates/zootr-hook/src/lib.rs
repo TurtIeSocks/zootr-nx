@@ -45,12 +45,12 @@ pub use shared::{CHESTS, Chest, Credited, List, Shared};
 pub use switches::SWITCHES;
 #[cfg(not(target_os = "none"))]
 pub use table::SlotSpec;
-pub use table::{
-    BUNNY_HOOD, Credit, FREE_BOMBCHUS, HEADER, Header, Level, Levels, MAGIC, Offsets, REACH, Slot,
-    Spot, TRADE_CYCLE, Table, after_grant, fnv, pick, pick_with,
-};
 #[cfg(not(target_os = "none"))]
-pub use table::{encode, spot_list};
+pub use table::encode;
+pub use table::{
+    BUNNY_HOOD, Credit, FREE_BOMBCHUS, HEADER, Header, Level, Levels, MAGIC, Offsets, REACH,
+    SPOT_KEY, Slot, Spot, TRADE_CYCLE, Table, after_grant, fnv, nearest, pick, pick_with,
+};
 
 /// Where our pieces go in `main`, for game 1.1.1. The code goes over
 /// Havok's physics trace recorder, which a patch keeps from ever running,
@@ -58,10 +58,6 @@ pub use table::{encode, spot_list};
 /// zeroed page tail after bss.
 pub const CAVE: u32 = 0x17f_1680;
 pub const TABLE: u32 = 0x484_c080;
-/// The spot list, in the zero padding between text and rodata: the
-/// table's own padding is too small for every holder. Nothing branches or
-/// points there, so Hookshot's lift never takes it for code.
-pub const SPOTS: u32 = 0x3c4_61d0;
 pub const LIST: u32 = 0x4e9_a4d0;
 /// Where a panic in the hook leaves its line and file, in the list page's
 /// last 16 bytes, for reading from outside when the game hangs.

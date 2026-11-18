@@ -3,7 +3,9 @@
 
 use core::{arch::asm, arch::global_asm, slice};
 
-use crate::{CAVE, Credit, Credited, HEADER, Header, LIST, List, SPOTS, Shared, TABLE, Table, fnv};
+use crate::{
+    CAVE, Credit, Credited, HEADER, Header, LIST, List, Shared, TABLE, Table, fnv, nearest,
+};
 
 mod bunny;
 mod chests;
@@ -189,11 +191,7 @@ fn table() -> Option<(usize, Table<'static>)> {
     let at = (header as *const Header).cast::<u8>();
     let size = (header.size + header.credits + header.slot) as usize;
     let body = unsafe { slice::from_raw_parts(at.add(HEADER), size) };
-    // SAFETY: the cheat writes the spot list at `SPOTS`, its size in the header.
-    let spots = unsafe {
-        slice::from_raw_parts((main + SPOTS as usize) as *const u8, header.spots as usize)
-    };
-    Some((main, Table::parse(header, body, spots)?))
+    Some((main, Table::parse(header, body)?))
 }
 
 /// Run `f` for a function hook. The cheat writes the table with the
@@ -402,7 +400,8 @@ unsafe extern "C" fn taken(pouched: usize) {
         };
         // A flag missing from GameData counts as picked, so nothing sets it.
         let picked = |flag| dev::get_bool(main, table.offsets, gd, flag) != Some(false);
-        if let Some(flag) = table.spot(name, lies, picked) {
+        let spots = (0..table.spots).map_while(|i| dev::spot(main, table.offsets, gd, i));
+        if let Some(flag) = nearest(spots, name, lies, picked) {
             dev::set_bool(main, table.offsets, gd, flag, true);
         }
     })

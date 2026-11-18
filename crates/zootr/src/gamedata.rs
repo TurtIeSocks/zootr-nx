@@ -35,6 +35,26 @@ pub struct GameData {
     labels: RwLock<HashMap<u32, String>>,
 }
 
+/// Each table of the GameData file and how many entries it holds, in the
+/// file's order, or with `only` that table's first three entries (or the
+/// save layout, for `MetaData`).
+pub fn print_tables(romfs: &Romfs, only: Option<&str>) -> Result<()> {
+    let doc = BymlDoc::parse(&romfs.read(PATH)?).context(PATH)?;
+    let data = doc.root.as_map()?.get("Data").context("no Data")?;
+    if only == Some("MetaData") {
+        println!("{:?}", doc.root.as_map()?.get("MetaData"));
+    }
+    for (table, list) in data.as_map()? {
+        let list = list.as_array()?;
+        match only {
+            None => println!("{:>6} {table}", list.len()),
+            Some(t) if t == table.as_str() => list.iter().take(3).for_each(|e| println!("{e:?}")),
+            Some(_) => {}
+        }
+    }
+    Ok(())
+}
+
 /// What GameData says about one value.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
