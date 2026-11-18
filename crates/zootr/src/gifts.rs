@@ -365,7 +365,16 @@ pub fn checks() -> Vec<ItemCheck> {
 }
 
 pub fn of(check: &ItemCheck) -> Option<&'static Gift> {
-    GIFTS.iter().find(|g| g.hash() == check.hash)
+    by_hash(check.hash)
+}
+
+/// The gift whose [`Gift::hash`] is `hash`, the first in [`GIFTS`] when
+/// two share it. Indexed once: a gift's hash spells out its flow, call and
+/// item, and the fill asks for every check of every seed.
+pub fn by_hash(hash: u64) -> Option<&'static Gift> {
+    static INDEX: std::sync::LazyLock<HashMap<u64, &'static Gift>> =
+        std::sync::LazyLock::new(|| GIFTS.iter().rev().map(|g| (g.hash(), g)).collect());
+    INDEX.get(&hash).copied()
 }
 
 /// The minigame chests that are checks, by placement hash: the Treasure
