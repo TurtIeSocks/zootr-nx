@@ -17,13 +17,16 @@ const DOOR_ACTOR: &Name = field::FIELD_AND_DUNGEON_ENTRANCE_EVENT_REQUEST_ACTOR;
 const DYNAMIC: &str = "Dynamic";
 
 /// The fields that say where a door leads. A moved door takes all of them
-/// from the door it stands in for, and drops any that one lacks.
-const BLOCK: [&Name; 5] = [
+/// from the door it stands in for, and drops any that one lacks. The init
+/// event is the destination's first-arrival scene, so it moves too.
+const BLOCK: [&Name; 7] = [
     field::NEXT_BANC_PARAM_NAME_CHILD,
     field::NEXT_BANC_PARAM_NAME_ADULT,
     field::NEXT_START_POS_NAME,
     field::NEXT_EVENT_NAME,
     field::IS_ALTERNATIVE_GAME_DATA_BOOL,
+    field::INIT_EVENT_NAME,
+    field::INIT_EVENT_FLAG,
 ];
 
 /// A dungeon and its front door.
@@ -399,8 +402,13 @@ mod tests {
     }
 
     /// The doors in `node`'s maps after `doors` rewrites them: each one's
-    /// child map, adult map, arrival point and arrival scene.
-    fn doors_in(romfs: &Romfs, node: &str, doors: &Doors, blocks: &Blocks) -> Vec<[String; 4]> {
+    /// [`BLOCK`] fields, `-` for one it lacks.
+    fn doors_in(
+        romfs: &Romfs,
+        node: &str,
+        doors: &Doors,
+        blocks: &Blocks,
+    ) -> Vec<[String; BLOCK.len()]> {
         let mut out = Vec::new();
         for file in files(romfs, node) {
             let mut doc = load_banc(romfs, &file).unwrap();
@@ -460,6 +468,33 @@ mod tests {
                 .any(|d| d[1] == deku && d[2] == **field::ENTRANCE)
         );
         assert!(crater.iter().all(|d| d[1] != fire), "{crater:?}");
+    }
+
+    #[test]
+    fn a_moved_door_brings_its_dungeons_first_arrival_scene() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let blocks = Blocks::read(&romfs).unwrap();
+        let init = BLOCK
+            .iter()
+            .position(|f| **f == **field::INIT_EVENT_FLAG)
+            .unwrap();
+        let vanilla = doors_in(
+            &romfs,
+            map::DEATH_MOUNTAIN_CRATER_ADULT,
+            &Doors::default(),
+            &blocks,
+        );
+        let fire = vanilla.iter().find(|d| d[2] == **map::FIRE_TEMPLE).unwrap();
+        assert_ne!(fire[init], "-");
+        let kokiri = doors_in(&romfs, map::KOKIRI_FOREST_CHILD, &deku_for_fire(), &blocks);
+        assert!(
+            kokiri
+                .iter()
+                .any(|d| d[2] == **map::FIRE_TEMPLE && d[init] == fire[init]),
+            "{kokiri:?}"
+        );
     }
 
     #[test]
