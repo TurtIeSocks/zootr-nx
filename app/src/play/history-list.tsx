@@ -19,7 +19,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { when } from "@/lib/format";
+import { nameOf, when } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ExtrasBadges, Name } from "@/play/seed";
 import { useArmed } from "@/play/use-armed";
@@ -157,7 +157,7 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
     <li className="group/row relative flex min-h-14 items-center gap-3 rounded-md px-3 py-2 transition-colors duration-(--duration-fast) focus-within:bg-surface-hover hover:bg-surface-hover">
       <SeedIcons icons={e.icons} size="sm" />
       <div className="min-w-0 flex-1">
-        {e.label.name ? (
+        {nameOf(e) ? (
           <Name entry={e} className="w-fit max-w-full font-medium text-sm" />
         ) : (
           <p className="text-ink-faint text-sm">Unnamed seed</p>

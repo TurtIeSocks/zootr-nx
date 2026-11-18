@@ -436,3 +436,21 @@ test("arrow keys move between the tabs", async () => {
   fireEvent.keyDown(selected(), { key: "End" });
   await waitFor(() => expect(selected().textContent).toMatch(/^History/));
 });
+
+test("an installed AP slot is named by its slot, badged, and shows its room", () => {
+  show({ ...seed, ap_slot: "FakeSlot" });
+  openTab("Standard");
+  const hero = card("Installed");
+  expect(hero.getByText("FakeSlot")).toBeTruthy();
+  expect(hero.getByText("Archipelago")).toBeTruthy();
+  expect(hero.getByRole("status").textContent).toContain("No room yet");
+  fireEvent.click(hero.getByRole("button", { name: "Set up room" }));
+  expect(screen.getByRole("tab", { selected: true }).textContent).toBe(
+    "Archipelago",
+  );
+});
+
+test("a standard seed's hero has no room line", () => {
+  show(seed);
+  expect(card("Installed").queryByRole("status")).toBeNull();
+});
