@@ -22,8 +22,8 @@ use crate::flows::{
 use crate::gifts::levels::Level;
 use crate::grant;
 use crate::known::{Name, field, flag, flow};
-use crate::standins::row;
 use crate::rsdb;
+use crate::standins::row;
 
 /// Whether the melody just played was the one the event asked for. Case 0
 /// is the right one.

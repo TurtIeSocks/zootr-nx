@@ -288,8 +288,7 @@ mod tests {
                 let EventKind::SubFlow { params, .. } = &e.kind else {
                     continue;
                 };
-                let Some(item) = param(params, NAME).filter(|i| line.iter().any(|l| l == i))
-                else {
+                let Some(item) = param(params, NAME).filter(|i| line.iter().any(|l| l == i)) else {
                     continue;
                 };
                 sold.insert(item.to_string());
@@ -303,7 +302,11 @@ mod tests {
                 if let Some(paid) = param(params, flow::PAYMENT_MESSAGE_ID)
                     && paid.contains("Talk_03")
                 {
-                    assert!(paid.ends_with(&format!("_{item}")), "{}: {paid}", gift.giver);
+                    assert!(
+                        paid.ends_with(&format!("_{item}")),
+                        "{}: {paid}",
+                        gift.giver
+                    );
                 }
             }
             let line: BTreeSet<_> = line.iter().map(|i| i.to_string()).collect();
