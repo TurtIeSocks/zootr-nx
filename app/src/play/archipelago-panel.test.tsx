@@ -1,5 +1,6 @@
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -236,14 +237,13 @@ test("an .apznx dropped on the window installs that slot", async () => {
   );
 });
 
-test("a build without the apworld links the release's, and a player is told what to ask for", async () => {
+test("a build without the apworld opens the release's, and a player is told what to ask for", async () => {
   vi.spyOn(commands, "apworldBundled").mockResolvedValue(false);
   useUpdate.setPath("current", "1.2.3");
   show("offline", [], { installed: null });
+  await act(async () => {});
   expect(screen.getByText(/Your host sends your .apznx/)).toBeTruthy();
-  fireEvent.click(
-    await screen.findByRole("button", { name: "znx.apworld 1.2.3" }),
-  );
+  fireEvent.click(button("Save apworld"));
   expect(opened).toHaveBeenLastCalledWith(
     "https://github.com/TurtIeSocks/zootr-nx/releases/download/v1.2.3/znx.apworld",
   );
@@ -261,12 +261,9 @@ test("a release build saves its own apworld where the host picks", async () => {
   savedTo.mockResolvedValue("/fake/znx.apworld");
   useUpdate.setPath("current", "1.2.3");
   show("offline", [], { installed: null });
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Save znx.apworld 1.2.3" }),
-  );
+  await act(async () => {});
+  fireEvent.click(button("Save apworld"));
   expect(await screen.findByRole("button", { name: "Saved" })).toBeTruthy();
   expect(save).toHaveBeenCalledWith("/fake/znx.apworld");
-  expect(
-    screen.queryByRole("button", { name: "znx.apworld 1.2.3" }),
-  ).toBeNull();
+  expect(opened).not.toHaveBeenCalled();
 });

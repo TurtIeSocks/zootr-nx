@@ -72,12 +72,10 @@ function Slot({ slot }: { slot: string | null }) {
     });
     if (file) open(file);
   };
+  const apworld = useApworld();
   return (
     <section>
-      <CardHeader
-        title="Slot"
-        description="A slot's .apznx brings its own settings, so your settings, plando and test setup don't apply."
-      />
+      <CardHeader title="Slot" action={<ForHosts apworld={apworld} />} />
       <div className="flex flex-col gap-3 px-4 pb-4">
         <div
           data-over={over}
@@ -89,7 +87,7 @@ function Slot({ slot }: { slot: string | null }) {
           <div className="min-w-0 flex-1">
             <p className="font-medium text-sm">Drop a slot's .apznx here</p>
             <p className="mt-0.5 text-[12.5px] text-ink-muted leading-[17px]">
-              Installing it replaces the installed seed.
+              It brings its own settings and replaces the installed seed.
               {slot && ` Installed now: ${slot}.`}
             </p>
           </div>
@@ -106,17 +104,25 @@ function Slot({ slot }: { slot: string | null }) {
           </TipButton>
         </div>
         <GenerateSteps ap />
-        <Roles />
+        <p className="text-[12.5px] text-ink-muted leading-[17px]">
+          Your host sends your .apznx and the room's server.{" "}
+          <button
+            type="button"
+            className={linkClass}
+            onClick={() => void openUrl(AP_GUIDE_URL)}
+          >
+            Setup guide
+          </button>
+        </p>
+        <InlineError error={apworld.error} />
       </div>
     </section>
   );
 }
 
-/** Who needs what, for someone new to Archipelago: a player needs only
- * what their host sends, a host needs Archipelago and the apworld. A release
- * build saves its own copy, so it always matches the app. A build without one
- * links the release's. */
-function Roles() {
+/** The host's apworld. A release build saves its own copy, so it always
+ * matches the app. A build without one links the release's. */
+function useApworld() {
   const [version] = useUpdate.usePath("current");
   const [bundled, setBundled] = useState(false);
   useEffect(() => {
@@ -130,7 +136,8 @@ function Roles() {
   const [error, setError] = useState<string>();
   const name = version ? `znx.apworld ${version}` : "znx.apworld";
 
-  const saveApworld = async () => {
+  const get = async () => {
+    if (!bundled) return void openUrl(apworldUrl(version));
     const path = await pickSave({
       defaultPath: "znx.apworld",
       filters: [{ name: "Archipelago world", extensions: ["apworld"] }],
@@ -144,55 +151,30 @@ function Roles() {
       setError(e instanceof Error ? e.message : String(e));
     }
   };
-  const guide = (
-    <button
-      type="button"
-      className={linkClass}
-      onClick={() => void openUrl(AP_GUIDE_URL)}
-    >
-      Setup guide
-    </button>
-  );
+  return { bundled, saved: !!saved, error, name, get };
+}
 
+/** The Slot header's corner: the apworld, which only a host needs. */
+function ForHosts({ apworld }: { apworld: ReturnType<typeof useApworld> }) {
+  const { bundled, saved, name, get } = apworld;
   return (
-    <div className="flex flex-col gap-1 text-[12.5px] text-ink-muted leading-[17px]">
-      <p>
-        <span className="font-medium text-ink">Joining a friend's game?</span>{" "}
-        Your host sends your .apznx and the room's server. Drop the file here,
-        then connect under Room.
-      </p>
-      {bundled ? (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <p>
-            <span className="font-medium text-ink">Hosting?</span> You need
-            Archipelago and this app's apworld to generate the multiworld.{" "}
-            {guide}
-          </p>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => void saveApworld()}
-          >
-            {saved ? <Check /> : <Download />}
-            {saved ? "Saved" : `Save ${name}`}
-          </Button>
-        </div>
-      ) : (
-        <p>
-          <span className="font-medium text-ink">Hosting?</span> You need
-          Archipelago and{" "}
-          <button
-            type="button"
-            className={linkClass}
-            onClick={() => void openUrl(apworldUrl(version))}
-          >
-            {name}
-          </button>{" "}
-          to generate the multiworld. {guide}
-        </p>
-      )}
-      <InlineError error={error} />
-    </div>
+    <span className="flex items-center gap-2 text-ink-faint text-xs">
+      For hosts:
+      <TipButton
+        label={saved ? "Saved" : "Save apworld"}
+        tip={
+          bundled
+            ? `Save ${name}, built with this app, for Archipelago`
+            : `Open ${name} on its release page`
+        }
+        variant="secondary"
+        size="sm"
+        onClick={() => void get()}
+      >
+        {saved ? <Check /> : <Download />}
+        {saved ? "Saved" : "Save apworld"}
+      </TipButton>
+    </span>
   );
 }
 

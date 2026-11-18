@@ -59,7 +59,7 @@ The builds aren't signed yet, so macOS and Windows warn the first time:
 - Joining a friend's game needs only what the host sends: your `.apznx`
   and the room's server. No Archipelago install.
 - Hosting needs Archipelago and `znx.apworld` from the same release. The
-  Archipelago tab's Save znx.apworld saves the copy built with your app. The [setup guide](ap/znx/docs/setup_en.md)
+  Archipelago tab's Save apworld saves the copy built with your app. The [setup guide](ap/znx/docs/setup_en.md)
   has the steps for both.
 - The Play page's Archipelago tab installs your slot from its `.apznx`
   (drop it on the window, or Browse…), with the settings the host
