@@ -56,3 +56,10 @@ opt-level = 3
 
 [profile.dev.package.nup-format]
 opt-level = 3
+
+# The tests spend most of their CPU in our own code: the logic engine's
+# lookups and the seed fill. Level 1 halves the dump-backed suite's CPU
+# (1004 s to 547 s on the Mac) for an edit that compiles in about 6 s
+# instead of 2 to 3. Debug assertions and overflow checks stay on.
+[profile.dev.package.zootr]
+opt-level = 1

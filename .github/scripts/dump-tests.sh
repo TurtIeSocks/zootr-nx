@@ -20,14 +20,8 @@ fi
 # The tests open ../../dump/oot.nup from the crate.
 ln -sf /dump/oot.nup dump/oot.nup
 
-# The dev profile leaves our own crate unoptimised, and the logic and fill
-# code the tests run spend most of their CPU in it, hashing above all. Level
-# 1 costs about 25 s more to compile and runs the tests in about half the
-# CPU. Debug assertions and overflow checks stay on. Local builds keep 0.
-opt=(--config 'profile.dev.package.zootr.opt-level=1')
-
 log=/logs/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.log
-CARGO_TERM_COLOR=never cargo test "${opt[@]}" -p zootr --lib --bins --tests > "$log" 2>&1
+CARGO_TERM_COLOR=never cargo test -p zootr --lib --bins --tests > "$log" 2>&1
 status=$?
 
 grep -E '^test result:|^test .* \.\.\. FAILED$' "$log"
