@@ -29,7 +29,7 @@ pub struct Header {
     pub credits: u32,
     /// The size of the [`Slot`] after them, 0 for none.
     pub slot: u32,
-    /// The size of the [`Spot`]s after it.
+    /// The size of the [`Spot`] list at [`crate::SPOTS`].
     pub spots: u32,
 }
 
@@ -158,12 +158,13 @@ pub struct Table<'a> {
 }
 
 impl<'a> Table<'a> {
-    /// The table `header` starts, `body` being what follows it.
-    pub fn parse(header: &'a Header, body: &'a [u8]) -> Option<Self> {
+    /// The table `header` starts, `body` being what follows it and
+    /// `spots` the spot list.
+    pub fn parse(header: &'a Header, body: &'a [u8], spots: &'a [u8]) -> Option<Self> {
         let (lines, rest) = body.split_at_checked(header.size as usize)?;
         let (credits, rest) = rest.split_at_checked(header.credits as usize)?;
-        let (slot, rest) = rest.split_at_checked(header.slot as usize)?;
-        let spots = rest.get(..header.spots as usize)?;
+        let slot = rest.get(..header.slot as usize)?;
+        let spots = spots.get(..header.spots as usize)?;
         (header.magic == *MAGIC).then_some(Self {
             offsets: &header.offsets,
             flags: header.flags,
@@ -463,7 +464,7 @@ pub fn after_grant<'a>(
 
 /// The table for `lines`, each lowest level first as (drop, pouch name),
 /// with the seed's `flags`, `credits` by name, the `slot` Link cycles and
-/// the twinned holders' `spots`.
+/// the size of the holders' `spots`, which [`spot_list`] writes apart.
 #[cfg(not(target_os = "none"))]
 pub fn encode(
     offsets: Offsets,
@@ -501,7 +502,6 @@ pub fn encode(
         }
     }
     let slot = body.len() - size - credits;
-    body.extend(spots.iter().flat_map(|s| s.bytes()));
     let words = [size, credits, slot, spots.len() * Spot::SIZE]
         .map(|n| u32::try_from(n).expect("table under 4 GB"));
     let mut out = MAGIC.to_vec();
@@ -510,6 +510,12 @@ pub fn encode(
     }
     out.extend(body);
     out
+}
+
+/// The spot list for [`crate::SPOTS`].
+#[cfg(not(target_os = "none"))]
+pub fn spot_list(spots: &[Spot]) -> Vec<u8> {
+    spots.iter().flat_map(|s| s.bytes()).collect()
 }
 
 #[cfg(test)]
@@ -564,10 +570,12 @@ mod tests {
         );
         let header = Header::read(&bytes);
         assert_eq!(
-            (header.size + header.credits + header.slot + header.spots) as usize,
+            (header.size + header.credits + header.slot) as usize,
             bytes.len() - HEADER
         );
-        f(Table::parse(&header, &bytes[HEADER..]).unwrap())
+        let spots = spot_list(SPOTS);
+        assert_eq!(header.spots as usize, spots.len());
+        f(Table::parse(&header, &bytes[HEADER..], &spots).unwrap())
     }
 
     fn give(owned: &[&str], name: &str) -> Option<String> {
@@ -651,7 +659,7 @@ mod tests {
     fn a_wrong_magic_is_no_table() {
         let mut bytes = encode(offsets(), 0, &[HOOK], &[], None, &[]);
         bytes[0] = b'X';
-        assert!(Table::parse(&Header::read(&bytes), &bytes[HEADER..]).is_none());
+        assert!(Table::parse(&Header::read(&bytes), &bytes[HEADER..], &[]).is_none());
     }
 
     #[test]
@@ -673,8 +681,11 @@ mod tests {
     #[test]
     fn a_table_cut_short_is_no_table() {
         let bytes = encode(offsets(), 0, &[HOOK], CREDITS, Some(&SLOT), SPOTS);
+        let (header, spots) = (Header::read(&bytes), spot_list(SPOTS));
         let cut = &bytes[HEADER..bytes.len() - 1];
-        assert!(Table::parse(&Header::read(&bytes), cut).is_none());
+        assert!(Table::parse(&header, cut, &spots).is_none());
+        let body = &bytes[HEADER..];
+        assert!(Table::parse(&header, body, &spots[..spots.len() - 1]).is_none());
     }
 
     const SLOT: SlotSpec = SlotSpec {
@@ -702,7 +713,7 @@ mod tests {
         let bytes = encode(offsets(), 0, &[HOOK], CREDITS, None, &[]);
         let header = Header::read(&bytes);
         assert!(
-            Table::parse(&header, &bytes[HEADER..])
+            Table::parse(&header, &bytes[HEADER..], &[])
                 .unwrap()
                 .slot
                 .is_none()
