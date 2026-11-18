@@ -2,8 +2,9 @@
 //! gifts by the played flag of their event, scrubs by their sold flag, cows
 //! and Gerudo thieves by their own, and Gold Skulltulas, heart pieces and
 //! the like by their per-placement flag (Bool64bitKey) that never resets.
-//! Pots, rocks, boxes and hives by the seed's Bool the hook sets once
-//! their drop is picked up (`picked`). See `docs/research/chests.md` and
+//! Pots, rocks, boxes, hives and Gold Skulltulas dealt anything but their
+//! own token by the seed's Bool the hook sets once their drop is picked up
+//! (`picked`). See `docs/research/chests.md` and
 //! `docs/research/tracker-flags.md`.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -80,7 +81,7 @@ impl Tracker {
                 scrubs::at(spot.hash),
                 cows::flag_at(spot.hash),
                 fortress::got(&spot.vanilla, &spot.item),
-                picked::flag_at(&spot.holder, spot.hash),
+                picked::flag_at(spot),
             ) {
                 (Some(g), ..) => g.found(),
                 (_, Some(s), ..) => s.sold(&spot.item),
@@ -378,6 +379,21 @@ mod tests {
             t.flag(slot.hash()),
             Some(Flag::Bool(murmur3(flag.as_bytes())))
         );
+    }
+
+    #[test]
+    fn a_skulltula_keeping_its_token_ticks_by_its_key() {
+        let Some(romfs) = dev_dump() else { return };
+        let gd = GameData::load(&romfs).unwrap();
+        let s = &crate::pickups::SKULLTULAS.checks(&romfs).unwrap()[0];
+        let token = Spot {
+            holder: s.holder.clone(),
+            vanilla: s.item.clone(),
+            item: s.item.clone(),
+            ..spot(s.hash)
+        };
+        let t = Tracker::new(&gd, &[token]).unwrap();
+        assert_eq!(t.flag(s.hash), Some(Flag::Key(s.hash)));
     }
 
     #[test]
