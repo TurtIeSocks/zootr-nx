@@ -808,17 +808,23 @@ impl ModDir {
             println!("wrote {}", d.display());
             Ok(out)
         };
-        if self.mod_dir.is_none() {
+        let targets = Config::load()?.targets;
+        let mods = targets.iter().map(|t| t.mod_dir.as_path());
+        if self.mod_dir.as_deref().is_none_or(|d| is_mod_dir(d, mods)) {
             crate::turn::hold(&crate::turn::session())?;
         }
         match self.mod_dir {
             Some(d) => Ok((each(&d)?, false)),
-            None => Ok((
-                generate::install(&Config::load()?.targets, run, each)?,
-                true,
-            )),
+            None => Ok((generate::install(&targets, run, each)?, true)),
         }
     }
+}
+
+/// Whether `dir` is one of the targets' `mods`: writing there installs on
+/// that game as surely as installing does, so it needs the turn too.
+fn is_mod_dir<'a>(dir: &Path, mods: impl IntoIterator<Item = &'a Path>) -> bool {
+    let real = |p: &Path| std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
+    mods.into_iter().any(|m| real(m) == real(dir))
 }
 
 impl Shuffle {
@@ -847,6 +853,20 @@ impl Shuffle {
 mod tests {
     use super::*;
     use crate::known::{field, flow, item};
+
+    #[test]
+    fn a_mod_dir_that_is_a_targets_own_counts_as_an_install() {
+        let dir = std::env::temp_dir().join(format!("zootr-moddir-{}", std::process::id()));
+        let (ours, scratch) = (dir.join("mods/zootr"), dir.join("scratch"));
+        std::fs::create_dir_all(&ours).unwrap();
+        std::fs::create_dir_all(&scratch).unwrap();
+        let mods = [ours.as_path()];
+        assert!(is_mod_dir(&ours, mods));
+        assert!(is_mod_dir(&dir.join("mods/../mods/zootr"), mods));
+        assert!(!is_mod_dir(&scratch, mods));
+        assert!(!is_mod_dir(&dir.join("never-made"), mods));
+        std::fs::remove_dir_all(&dir).ok();
+    }
 
     #[test]
     fn shuffle_flags_become_app_settings_and_extras() {
