@@ -111,9 +111,13 @@ pub(super) fn give(romfs: &Romfs, actor: &str, count: i32) -> Result<()> {
 
 /// GameData as the installed seed wrote it, which names the Bools a seed
 /// adds, else the game's own.
+/// The installed seed's gamedata, or the game's own when there's no target
+/// or the target has no seed installed.
 fn installed_gamedata(romfs: &Romfs) -> Result<gamedata::GameData> {
-    let file = Config::load()?.target()?.mod_dir.join("romfs");
-    match std::fs::read(file.join(gamedata::PATH)) {
+    let installed = Config::load()
+        .and_then(|c| Ok(c.target()?.mod_dir.join("romfs").join(gamedata::PATH)))
+        .and_then(|file| Ok(std::fs::read(file)?));
+    match installed {
         Ok(raw) => gamedata::GameData::parse(&romfs.dicts().decompress(gamedata::PATH, &raw)?),
         Err(_) => gamedata::GameData::load(romfs),
     }
