@@ -19,8 +19,8 @@ const SHT_RELA: u32 = 4;
 const SHT_REL: u32 = 9;
 const SHF_ALLOC: u64 = 2;
 /// The `b` instructions the patches branch to, one per hook, right before
-/// the resume slots.
-const ENTRIES: u64 = zootr_hook::RESUMES as u64 / 4;
+/// the branch slots.
+const ENTRIES: u64 = zootr_hook::SLOTS as u64 / 4;
 
 fn main() {
     let hook = Path::new(env!("CARGO_MANIFEST_DIR")).join("../zootr-hook");
