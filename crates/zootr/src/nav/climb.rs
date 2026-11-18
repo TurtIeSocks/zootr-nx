@@ -3,7 +3,7 @@
 //! solid, as one box placed in the world. Its most upright side is the
 //! climb and its thinnest the way its face looks, so a box modelled lying
 //! down and stood up by its placement reads the same as one modelled
-//! upright. A route climbs one as a link from the floor at its foot up to
+//! upright. A route climbs one as a link between the floor at its foot and
 //! the floor at its top, like a door's.
 
 use std::collections::HashMap;

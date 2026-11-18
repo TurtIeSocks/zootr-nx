@@ -34,6 +34,9 @@ const CLIMBED: f32 = 1.0;
 /// How fast Link climbs, in m a second: up held 2 s took him 2.8 m up the
 /// Kokiri Forest vines and over the top (Mac, 2026-11-18).
 const CLIMB_SPEED: f32 = 1.4;
+/// How near the floor at its foot a climb down ends, in m: on the Well
+/// ladder's last rung Link stood 0.4 m up it (Mac, 2026-11-18).
+const OFF_CLIMB: f32 = 0.2;
 /// How near the goal `go` stops, in m.
 pub const ARRIVE: f32 = 1.0;
 /// How near a goal with no route Link still walks straight at, in m. The
@@ -142,7 +145,7 @@ pub(super) fn lean(here: [f32; 3], to: [f32; 3]) -> f32 {
     (flat(here, to) / SPEED).min(MAX_LEG)
 }
 
-/// [`lean`] toward a waypoint reached `via`: up a climb, as long
+/// [`lean`] toward a waypoint reached `via`: up or down a climb, as long
 /// as its height takes at climbing speed.
 fn lean_via(here: [f32; 3], to: [f32; 3], via: Via) -> f32 {
     match via {
@@ -337,6 +340,18 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
         })
     }
 
+    /// Onto the climb down to `foot` from its top: facing it at its edge,
+    /// the game offers "A Climb Down". At the Well ladder it did 0.8 m
+    /// from the top's waypoint, not 0.9 m, and Link stops at the edge
+    /// (Mac, 2026-11-18), so he steps up to it first.
+    fn take_hold(&mut self, foot: [f32; 3]) -> Result<()> {
+        self.face(foot)?;
+        self.steer(foot, TAP_MS)?;
+        self.input.press("A")?;
+        sleep(self.settle);
+        Ok(())
+    }
+
     /// No route to `goal`: within [`STRAIGHT`] of it, one push straight at
     /// it, else no route. Short of it after the push, he was blocked if he
     /// stopped, as by the chest he walks to.
@@ -383,6 +398,9 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             return self.straight(goal, arrive, 0);
         };
         let (mut next, mut legs, mut blocked) = (1, 0, None::<[f32; 3]>);
+        // The waypoint whose climb down Link last took hold of, and the one
+        // whose hold missed, so he drops to its foot instead.
+        let (mut held, mut missed) = (None, None);
         loop {
             let state = self.sense.state()?;
             if state.loading || state.map != map {
@@ -400,18 +418,54 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
                 return Ok((None, legs));
             }
             let last = next + 1 == waypoints.len();
-            let level = !matches!(via, Via::Climb(_)) || (here[1] - target[1]).abs() <= CLIMBED;
-            if level && flat(here, target) <= if last { arrive } else { REACHED } {
+            let climb = |w: Option<&Waypoint>| w.is_some_and(|w| matches!(w.via, Via::Climb(_)));
+            let on = if held == Some(next) {
+                OFF_CLIMB
+            } else {
+                CLIMBED
+            };
+            let level = !matches!(via, Via::Climb(_)) || (here[1] - target[1]).abs() <= on;
+            // Either end of a climb is reached within CLIMBED: Link stopped
+            // 0.4 m short of the Well ladder's top, at its edge (Mac,
+            // 2026-11-18).
+            let reach = if last {
+                arrive
+            } else if climb(waypoints.get(next)) || climb(waypoints.get(next + 1)) {
+                CLIMBED
+            } else {
+                REACHED
+            };
+            if level && flat(here, target) <= reach {
                 next += 1;
                 continue;
             }
             if start.elapsed() >= self.budget {
                 return Ok((Some(Reason::Budget), legs));
             }
+            let below = here[1] - target[1] > on;
+            if matches!(via, Via::Climb(_)) && below && held != Some(next) {
+                self.take_hold(target)?;
+                held = Some(next);
+                continue;
+            }
             let secs = lean_via(here, target, via);
-            self.steer(target, millis(secs))?;
+            let down = held == Some(next) && below && missed != Some(next);
+            if down {
+                // On the climb, down climbs down: steered at the foot, Link
+                // hung on the Well ladder until the budget ran out (Mac,
+                // 2026-11-18).
+                self.push("LDown", millis(secs))?;
+            } else {
+                self.steer(target, millis(secs))?;
+            }
             legs += 1;
             let now = self.sense.link()?;
+            if down && here[1] - now[1] < OFF_CLIMB {
+                // No "A Climb Down" there: the Kokiri Forest vines run up
+                // beside their ledge, 3.2 m over the floor at their foot
+                // (Mac, 2026-11-18).
+                missed = Some(next);
+            }
             if !stuck(here, now, secs * SPEED) {
                 continue;
             }
@@ -422,7 +476,7 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             let Ok(again) = plan(graph, now, goal) else {
                 return self.straight(goal, arrive, legs);
             };
-            (route, next) = (again, 1);
+            (route, next, held, missed) = (again, 1, None, None);
         }
     }
 }
