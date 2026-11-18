@@ -110,6 +110,18 @@ const PROGRESSIVE: &[(&Name, &str)] = &[
     (item::NUT_BAG_MEDIUM, "Progressive Deku Nut Bag"),
 ];
 
+/// A pickup a gift hands over, by the chest item that gives the same, so
+/// AP has one item for both.
+const SAME_AS: &[(&Name, &Name)] = &[(actor::OBJ_RUPEE_PURPLE, actor::T_BOX_RUPEE_PURPLE)];
+
+/// `actor`, or the chest item that gives the same.
+pub fn same_as(actor: &str) -> &str {
+    SAME_AS
+        .iter()
+        .find(|(a, _)| a.get() == actor)
+        .map_or(actor, |(_, chest)| chest.get())
+}
+
 fn find(table: &[(&Name, &'static str)], id: &str) -> Option<&'static str> {
     table.iter().find(|(n, _)| n.get() == id).map(|(_, w)| *w)
 }
@@ -121,6 +133,7 @@ pub fn area(folder: &str) -> Result<&'static str> {
 
 /// The item's name: its line's with progressive items on, else its own.
 pub fn item(actor: &str, progressive: bool) -> Result<&'static str> {
+    let actor = same_as(actor);
     let line = progressive
         .then(|| LINES.iter().find(|l| l[0].0.get() == actor))
         .flatten();
@@ -185,4 +198,19 @@ fn title(text: &str) -> String {
             .unwrap_or_default()
     };
     text.split(' ').map(word).collect::<Vec<String>>().join(" ")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_running_mans_rupee_is_the_chests() {
+        let purple = item(actor::OBJ_RUPEE_PURPLE.get(), false).unwrap();
+        assert_eq!(
+            purple,
+            item(actor::T_BOX_RUPEE_PURPLE.get(), false).unwrap()
+        );
+        assert_eq!(same_as(item::HOOKSHOT.get()), item::HOOKSHOT.get());
+    }
 }

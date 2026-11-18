@@ -203,6 +203,7 @@ impl ApSeed {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ap::names::same_as;
     use crate::game::dev_dump;
     use crate::generate::{Extras, generate};
     use crate::progress::Run;
@@ -299,15 +300,17 @@ mod tests {
         let free = Dealt::new(&romfs, &ap.full_settings()).unwrap().free;
         ap.placements = (shuffled.spots.iter())
             .filter(|s| free.contains(&s.hash))
-            .map(|s| (s.hash, Placed::Own(ids.item_id(&s.item).unwrap())))
+            .map(|s| (s.hash, Placed::Own(ids.item_id(same_as(&s.item)).unwrap())))
             .collect();
         ap.start.clear();
         let from_ap = installed(&romfs, 7, &Extras::ap(ap));
         let items = |r: &crate::generate::Report| {
             (r.spots.iter())
-                .map(|s| (s.hash, s.item.clone()))
+                .map(|s| (s.hash, same_as(&s.item).to_owned()))
                 .collect::<BTreeMap<_, _>>()
         };
+        // AP has one item for a pickup and the chest item that gives the
+        // same, so it installs the chest's.
         assert_eq!(items(&from_ap), items(&shuffled));
     }
 

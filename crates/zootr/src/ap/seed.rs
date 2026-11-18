@@ -7,7 +7,7 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::Romfs;
 use serde_json::Value;
 
-use super::OPTIONS;
+use super::{OPTIONS, names};
 use crate::checks::{self, ItemCheck};
 use crate::fill;
 use crate::logic::{Got, Play, World};
@@ -62,7 +62,11 @@ impl Dealt {
         let fixed = shuffle::own_dungeon(&checks, 0, &Fixed::new(), &new_game)?;
         ensure!(fixed.is_empty(), "these settings pin items, which AP can't");
         let deal = shuffle::deal(&checks, &fixed, &new_game)?;
-        let pool = deal.items.iter().map(|i| i.to_string()).collect();
+        let pool = deal
+            .items
+            .iter()
+            .map(|i| names::same_as(i).to_owned())
+            .collect();
         let free: BTreeSet<u64> = deal.free.iter().map(|c| c.hash).collect();
         let mut kept: HashMap<u64, String> = (deal.placed.iter())
             .map(|p| (p.check.hash, p.item.to_owned()))
