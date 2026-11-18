@@ -50,6 +50,16 @@ impl Notices {
         game.notice(&shown)?;
         Ok(Some(shown))
     }
+
+    /// [`Notices::look`] between a burst's gives: only for its first few,
+    /// so the rest are given without waiting on notices (a slow game takes
+    /// seconds a give) and summed up once the burst is given.
+    pub fn look_giving(&mut self, game: &mut impl Game, now: Instant) -> Result<Option<Shown>> {
+        match self.burst < ONE_BY_ONE {
+            true => self.look(game, now),
+            false => Ok(None),
+        }
+    }
 }
 
 /// One notice for all of `items`: from their sender, or from several.
@@ -150,6 +160,22 @@ mod tests {
         run(&mut notices, &mut game, Instant::now(), 10);
         assert!(game.notices.iter().all(|n| n.kind == Notice::Item));
         assert_eq!(game.notices.len(), 4);
+    }
+
+    #[test]
+    fn gives_wait_on_a_burst_s_first_few_notices_only() {
+        let (mut notices, mut game, start) = (Notices::default(), Fake::default(), Instant::now());
+        // A slow game: each give 6 s after the last, so each look is due.
+        for i in 0..10 {
+            notices.got("Item_FakeBow", SARIA);
+            let now = start + Duration::from_secs(6 * i);
+            notices.look_giving(&mut game, now).unwrap();
+        }
+        assert_eq!(game.notices.len(), ONE_BY_ONE);
+        notices
+            .look(&mut game, start + Duration::from_secs(60))
+            .unwrap();
+        assert_eq!(game.notices[ONE_BY_ONE], Shown::summary(Some(SARIA), 7));
     }
 
     #[test]

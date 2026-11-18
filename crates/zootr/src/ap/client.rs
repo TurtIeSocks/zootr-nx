@@ -393,7 +393,7 @@ fn tick(
                 from: r.sender().name().to_string(),
             });
         }
-        notices.look(game, Instant::now()).map(drop)
+        notices.look_giving(game, Instant::now()).map(drop)
     });
     if let Err(e) = given.and_then(|()| notices.look(game, Instant::now()).map(drop)) {
         note(Note::Trouble(format!("{e:#}")));
