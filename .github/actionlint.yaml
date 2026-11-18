@@ -1,0 +1,3 @@
+self-hosted-runner:
+  # Our own runner, which holds the game dump (the "Dump tests" job).
+  labels: [zootr-nx]
