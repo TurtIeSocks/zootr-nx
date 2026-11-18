@@ -46,7 +46,7 @@ pub enum Via {
     Door(Option<u64>),
     Drop,
     Step,
-    /// Up the ladder or climb wall placed with this hash.
+    /// Up or down the ladder or climb wall placed with this hash.
     Climb(Option<u64>),
 }
 
@@ -136,14 +136,13 @@ impl<'a> Graph<'a> {
         graph
     }
 
-    /// The graph with a link up each of `climbs` whose foot and top
-    /// [`Graph::climb_ends`] finds. Up only: walked off the top of the
-    /// Kokiri Forest vines, Link fell 5.7 m past them instead of taking
-    /// hold (Mac, 2026-11-18), so the way down isn't known yet.
+    /// The graph with a link both ways up each of `climbs` whose foot and
+    /// top [`Graph::climb_ends`] finds.
     pub fn with_climbs(mut self, climbs: &[Climb]) -> Self {
         for c in climbs {
             if let Ok((foot, top)) = self.climb_ends(c) {
                 self.link(foot.face, top.face, Via::Climb(c.hash), foot.at, top.at);
+                self.link(top.face, foot.face, Via::Climb(c.hash), top.at, foot.at);
             }
         }
         self
@@ -422,14 +421,14 @@ mod tests {
     }
 
     #[test]
-    fn a_climb_links_the_floor_at_its_foot_up_to_the_ledge_at_its_top() {
+    fn a_climb_links_the_floor_at_its_foot_and_the_ledge_at_its_top_both_ways() {
         let m = mesh(&[
             quad(0.0, -3.0, 2.0, 0.2, 0.0),
             quad(0.0, 0.6, 2.0, 4.0, 4.0),
         ]);
         let g = Graph::build(&m, &[], STEP_UP).with_climbs(&[ladder()]);
         assert_eq!(links(&g, 0), [(1, Via::Climb(Some(9)))]);
-        assert!(links(&g, 1).is_empty());
+        assert_eq!(links(&g, 1), [(0, Via::Climb(Some(9)))]);
     }
 
     #[test]

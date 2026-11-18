@@ -429,7 +429,9 @@ mod tests {
         assert!(nearest < 1.5, "{nearest} from the door in {plan}");
         assert!(flat(*spots.last().unwrap(), [-50.3, 112.3, -42.0]) < 1.5);
 
-        let err = plan_to(&level, [-32.0, 121.2, -65.2], chest).unwrap_err();
-        assert_eq!(err.to_string(), "no route");
+        // From the ledge above, the way down is the vine wall.
+        let down = plan_to(&level, [-32.0, 121.2, -65.2], chest).unwrap();
+        let vias = down.route.waypoints.iter().map(|w| w.via);
+        assert!(vias.clone().any(|v| matches!(v, Via::Climb(_))), "{down}");
     }
 }
