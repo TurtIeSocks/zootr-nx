@@ -196,16 +196,17 @@ fn give_next(
 }
 
 /// Give every received item still owed, each index and what Link got to
-/// `gave`. A pass doesn't stop at one: over a bridge, each look between
+/// `gave`, with the game: a burst's first notices show while the rest are
+/// given. A pass doesn't stop at one: over a bridge, each look between
 /// passes is slow.
-fn give_pending(
-    game: &mut impl Game,
+fn give_pending<G: Game>(
+    game: &mut G,
     book: &Book,
     received: &[i64],
-    mut gave: impl FnMut(usize, &str),
+    mut gave: impl FnMut(&mut G, usize, &str) -> Result<()>,
 ) -> Result<()> {
     while let Some((index, got)) = give_next(game, book, received)? {
-        gave(index, &got);
+        gave(game, index, &got)?;
     }
     Ok(())
 }
@@ -384,7 +385,7 @@ fn tick(
         }
     }
     let received: Vec<i64> = found(client).map(|r| r.item().id()).collect();
-    let given = give_pending(game, book, &received, |index, got| {
+    let given = give_pending(game, book, &received, |game, index, got| {
         if let Some(r) = found(client).nth(index) {
             notices.got(got, r.sender().slot());
             note(Note::Received {
@@ -392,6 +393,7 @@ fn tick(
                 from: r.sender().name().to_string(),
             });
         }
+        notices.look(game, Instant::now()).map(drop)
     });
     if let Err(e) = given.and_then(|()| notices.look(game, Instant::now()).map(drop)) {
         note(Note::Trouble(format!("{e:#}")));
@@ -637,9 +639,32 @@ pub(super) mod tests {
     fn one_pass_gives_every_item_still_owed() {
         let (mut game, book) = (Fake::default(), book());
         let mut gave = vec![];
-        give_pending(&mut game, &book, &[2, 1, 2], |i, _| gave.push(i)).unwrap();
+        let record = |_: &mut Fake, i, _: &str| {
+            gave.push(i);
+            Ok(())
+        };
+        give_pending(&mut game, &book, &[2, 1, 2], record).unwrap();
         assert_eq!(gave, [0, 1, 2]);
         assert_eq!(game.given.len(), 3);
+    }
+
+    #[test]
+    fn a_burst_shows_its_first_notice_before_the_rest_are_given() {
+        let (mut game, book, mut notices) = (Fake::default(), book(), Notices::default());
+        let now = Instant::now();
+        let mut shown_at = vec![];
+        give_pending(&mut game, &book, &[2, 1, 2], |game, _, got| {
+            notices.got(got, 0);
+            notices.look(game, now)?;
+            shown_at.push(game.notices.len());
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(
+            shown_at,
+            [1, 1, 1],
+            "one shown at the first give, paced after"
+        );
     }
 
     #[test]
