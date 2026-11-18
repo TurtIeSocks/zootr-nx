@@ -17,29 +17,10 @@ use super::{
 };
 use crate::checks::Drop;
 use crate::flows::{
-    self, GAME_DATA, IS_BOOL, Model, Rewrites, events, param, params_mut, reachable, string,
+    self, GAME_DATA, IS_BOOL, Rewrites, events, param, params_mut, reachable, string,
 };
-use crate::gifts::levels;
+use crate::gifts::levels::Level;
 use crate::known::{actor, field, flag};
-
-/// The pouch question, and whether progressive items are on: what a sale
-/// needs to give the step Link owns.
-#[derive(Clone, Copy)]
-pub(crate) struct Level<'a> {
-    pub model: &'a Model,
-    pub progressive: bool,
-}
-
-impl Level<'_> {
-    /// Put the pouch questions in front of the sale `at` of `item`, if
-    /// what it gives depends on what Link owns.
-    fn chain(self, flow: &mut Flowchart, item: &str, at: u16) -> Result<()> {
-        match levels::asks(item, self.progressive) {
-            true => levels::by_level_at(flow, self.model, item, at),
-            false => Ok(()),
-        }
-    }
-}
 
 /// Sell each edited scrub's item in the shared flow, every one at `price`.
 /// Sales are picked by item, so one price for all keeps two scrubs selling

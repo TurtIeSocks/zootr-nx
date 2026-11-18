@@ -22,13 +22,7 @@ pub(super) fn sell(
             continue;
         }
         flows::set(params, NAME, string(item))?;
-        for (key, value) in params.iter_mut() {
-            if let Value::ActorId { name, .. } = value
-                && key == DISPLAY
-            {
-                *name = item.into();
-            }
-        }
+        show(params, item);
         sells += 1;
     }
     ensure!(
@@ -41,7 +35,18 @@ pub(super) fn sell(
 }
 
 /// The param a sale shows its item by.
-const DISPLAY: &Name = flow::DISPLAY_ITEM_ACTOR;
+pub(super) const DISPLAY: &Name = flow::DISPLAY_ITEM_ACTOR;
+
+/// Show `item` in a sale's `params`, if the sale shows its item.
+pub(super) fn show(params: &mut Params, item: &str) {
+    for (key, value) in params.iter_mut() {
+        if let Value::ActorId { name, .. } = value
+            && key == DISPLAY
+        {
+            *name = item.into();
+        }
+    }
+}
 
 /// Medigoron asks whether he has sold, by his own Bool, not whether Link
 /// holds the knife.

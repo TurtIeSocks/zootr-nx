@@ -367,12 +367,6 @@ pub fn of(check: &ItemCheck) -> Option<&'static Gift> {
     GIFTS.iter().find(|g| g.hash() == check.hash)
 }
 
-/// Whether `check` is a gift that gives ammo or a line's level by what Link
-/// owns.
-pub(crate) fn by_level(check: &ItemCheck) -> bool {
-    of(check).is_some_and(levels::chained)
-}
-
 /// The minigame chests that are checks, by placement hash: the Treasure
 /// Chest Game's heart piece, then Dampe's two. Every other chest whose event
 /// starts `MiniGame_` stays vanilla. Gifts in all but where they're placed,

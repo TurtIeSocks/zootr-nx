@@ -18,10 +18,23 @@ pub(crate) fn model(flows: &Flows) -> Result<Model> {
     flows::model(chart, IN_POUCH, at)
 }
 
-/// Whether `gift` gives through events [`by_level`] can put a chain in
-/// front of. A sale grants inside the shop flow every sale shares.
-pub(super) fn chained(gift: &Gift) -> bool {
-    !gift.is_sale()
+/// The pouch question, and whether progressive items are on: what a holder
+/// needs to give the step Link owns.
+#[derive(Clone, Copy)]
+pub(crate) struct Level<'a> {
+    pub model: &'a Model,
+    pub progressive: bool,
+}
+
+impl Level<'_> {
+    /// Put the pouch questions in front of the call `at` of `flow` giving
+    /// `item`, if what it gives depends on what Link owns.
+    pub(crate) fn chain(self, flow: &mut Flowchart, item: &str, at: u16) -> Result<()> {
+        match asks(item, self.progressive) {
+            true => by_level_at(flow, self.model, item, at),
+            false => Ok(()),
+        }
+    }
 }
 
 /// Whether what `item` gives depends on what Link owns: ammo without what
@@ -32,10 +45,12 @@ pub(crate) fn asks(item: &str, progressive: bool) -> bool {
 
 /// Whether `gift`, dealt `item`, needs a chain: ammo, or a level of a line
 /// with progressive items on, unless the game already picks its level.
+/// A sale's chain goes in front of its call into the shared shop flow,
+/// which hands over the `ActorName` it's passed.
 pub(super) fn needs(gift: &Gift, item: &str, progressive: bool) -> bool {
     let picks = item == gift.item.get() && picked(item).is_some();
     let level = progressive && progressive::in_line(item) && !picks;
-    chained(gift) && (level || ammo::swap(item).is_some())
+    level || ammo::swap(item).is_some()
 }
 
 /// Every item a chain for `item` can give, lowest first.
@@ -176,10 +191,16 @@ fn rename(kind: &mut EventKind, from: &str, to: &str) -> Result<()> {
             .collect(),
     };
     let params = params_mut(kind);
+    let sells = param(params, NAME) == Some(from);
     for key in keys {
         if param(params, key) == Some(from) {
             flows::set(params, key, string(to))?;
         }
+    }
+    if sells {
+        // A sale shows its item and thanks by a line naming it.
+        sales::show(params, to);
+        lines::repoint(params, from, to)?;
     }
     Ok(())
 }
@@ -223,7 +244,6 @@ mod tests {
     fn kinds(g: &Gift) -> bool {
         match g.how {
             How::Calls { .. } => g.giver == "King Zora",
-            How::Sale { .. } => false,
             _ => true,
         }
     }
@@ -253,6 +273,47 @@ mod tests {
         asks_then_gives(arrows, crate::known::actor::WEAPON_RANGE_BOW, ammo::WITHOUT);
     }
 
+    /// Each sale's calls naming a level of the Hookshot's line, by the
+    /// `ActorName` they sell, with what they show and the line said once
+    /// paid.
+    #[test]
+    fn a_sale_shows_and_thanks_by_the_level_it_sells() {
+        let Some(dealt) = dealt(Gift::is_sale, item::HOOKSHOT) else {
+            return;
+        };
+        let line = [item::HOOKSHOT, item::LONGSHOT];
+        for (gift, flow) in dealt {
+            let mut sold = BTreeSet::new();
+            for e in &flow.events {
+                let EventKind::SubFlow { params, .. } = &e.kind else {
+                    continue;
+                };
+                let Some(item) = param(params, NAME).filter(|i| line.iter().any(|l| l == i)) else {
+                    continue;
+                };
+                sold.insert(item.to_string());
+                for (key, value) in params {
+                    if let Value::ActorId { name, .. } = value
+                        && key == super::super::sales::DISPLAY
+                    {
+                        assert_eq!(name, item, "{} shows {name}", gift.giver);
+                    }
+                }
+                if let Some(paid) = param(params, flow::PAYMENT_MESSAGE_ID)
+                    && paid.contains("Talk_03")
+                {
+                    assert!(
+                        paid.ends_with(&format!("_{item}")),
+                        "{}: {paid}",
+                        gift.giver
+                    );
+                }
+            }
+            let line: BTreeSet<_> = line.iter().map(|i| i.to_string()).collect();
+            assert_eq!(sold, line, "{}", gift.giver);
+        }
+    }
+
     #[test]
     fn ammo_steps_from_the_rupee_through_every_level_that_fires_it() {
         needs_names!();
@@ -275,7 +336,7 @@ mod tests {
     fn no_level_is_granted_after_another() {
         // One gift a flow: two gifts of one scene each grant in turn.
         let mut one = HashMap::new();
-        for g in GIFTS.iter().filter(|g| chained(g)) {
+        for g in &GIFTS {
             one.entry(g.flow).or_insert(g.hash());
         }
         let fits = |g: &Gift| one.get(g.flow) == Some(&g.hash());

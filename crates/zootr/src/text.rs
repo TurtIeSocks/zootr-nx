@@ -524,7 +524,7 @@ mod tests {
             &crate::progress::Run::silent(),
         )
         .unwrap();
-        let mut lines = crate::gifts::lines(&drops);
+        let mut lines = crate::gifts::lines(&drops, false);
         lines.push(scrubs::lines(&drops));
         assert_eq!(lines.len(), 2);
         let rel = archives(&romfs)
@@ -566,7 +566,7 @@ mod tests {
             &crate::progress::Run::silent(),
         )
         .unwrap();
-        let lines = crate::gifts::lines(&drops);
+        let lines = crate::gifts::lines(&drops, false);
         let [l] = &lines[..] else {
             panic!("{} lines", lines.len())
         };

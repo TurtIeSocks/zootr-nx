@@ -19,11 +19,11 @@ use crate::checks::Drop;
 use crate::flows::{
     self, ACTOR, GAME_DATA, IS_BOOL, Model, Rewrites, SET_BOOL, running, set, string, switch,
 };
-use crate::gifts::levels;
+use crate::gifts::levels::Level;
 use crate::grant;
 use crate::known::{Name, field, flag, flow};
+use crate::rsdb;
 use crate::standins::row;
-use crate::{progressive, rsdb};
 
 /// Whether the melody just played was the one the event asked for. Case 0
 /// is the right one.
@@ -83,14 +83,14 @@ struct Call<'a> {
     item: &'a str,
 }
 
-/// Gate the milk on every cow's Bool, granting its item from `drops`. With
-/// `level`, the pouch question, a line's item gives the level Link needs.
+/// Gate the milk on every cow's Bool, granting its item from `drops`. Ammo,
+/// and a line's item with progressive items on, give the step Link needs.
 pub fn give(
     romfs: &Romfs,
     rewrites: &mut Rewrites,
     cows: &[Cow],
     drops: &HashMap<u64, Drop>,
-    level: Option<&Model>,
+    level: Level,
 ) -> Result<()> {
     if cows.is_empty() {
         return Ok(());
@@ -199,9 +199,9 @@ pub(super) fn melodies(flow: &Flowchart) -> Vec<u16> {
 
 /// Make `c`'s entry pass its Bool and item to every milk call it makes. A
 /// plain cow's entry is first copied from the shared one, its clone named
-/// in place of the plain actor. With `level`, a call passing a line's item
-/// asks the pouch first and passes the level Link needs.
-fn pass(flow: &mut Flowchart, c: &Call, level: Option<&Model>) -> Result<()> {
+/// in place of the plain actor. A call passing ammo or a line's item asks
+/// the pouch first and passes the step Link needs.
+fn pass(flow: &mut Flowchart, c: &Call, level: Level) -> Result<()> {
     let calls: Vec<u16> = match &c.plain {
         Some((shared, clone)) => {
             let copy = flows::copy_entry(flow, shared, &c.entry)?;
@@ -230,9 +230,7 @@ fn pass(flow: &mut Flowchart, c: &Call, level: Option<&Model>) -> Result<()> {
         let params = params(flow, at);
         params.push((ARG_FLAG.into(), string(&c.flag)));
         params.push((ARG_ITEM.into(), string(c.item)));
-        if let Some(model) = level.filter(|_| progressive::in_line(c.item)) {
-            levels::by_level_at(flow, model, c.item, at)?;
-        }
+        level.chain(flow, c.item, at)?;
     }
     Ok(())
 }

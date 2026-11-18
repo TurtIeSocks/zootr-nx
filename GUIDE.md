@@ -135,7 +135,7 @@ Each page under Randomizer in the app's sidebar, with what every setting does.
 | Clock runs | Time passes from the start, as it does once Link first walks into Hyrule Field |
 | No tutorials | Every guide screen counts as already shown, except the Great Fairy's |
 | Chest size | All small makes every chest a small one, which opens without the big chest's long animation. What a chest holds doesn't change |
-| Progressive items | Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size. Business scrubs and cows give the level too, and a scrub's offer names it. Shops, sellers and minigame prize chests never hold an upgrade. The spoiler calls each strength level Strength |
+| Progressive items | Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size. Business scrubs, cows and the three merchants give the level too, and a scrub's offer names it. Shops and minigame prize chests never hold an upgrade. The spoiler calls each strength level Strength |
 | Bombchus without a bomb bag | Bombchus hold up to 50 on their own, so they open the same checks bombs do |
 | Quiet Navi | Navi never stops Link to talk on her own. Hints you ask her for still work |
 | Bunny Hood speed | Link runs half again as fast while he wears the Bunny Hood |
@@ -163,14 +163,14 @@ Each page under Randomizer in the app's sidebar, with what every setting does.
 
 | Setting | What it does |
 |---|---|
-| Chests | On by default. Off, each chest holds what it always does and the other checks shuffle among themselves. A gift that can't give its item by what Link has, like a seller offering a bag upgrade, keeps it too |
+| Chests | On by default. Off, each chest holds what it always does and the other checks shuffle among themselves. A gift that can't give its item by what Link has, like a shop shelf offering a bag upgrade, keeps it too |
 | Business scrubs | Every Business Scrub outside the Dream World sells a check once, at a price you pick from 10 to 90 rupees |
 | NPC gifts | Heart pieces and items people hand over become checks, from the Skull Kid to Darunia's bracelet. A gift dealt arrows, seeds or bombs gives a Red Rupee until Link has what fires them, as a chest does |
 | Songs | Ten songs become checks, given without the lesson. The Sun's Song, the Song of Time and the Scarecrow's Song stay where they are |
 | Shopsanity | 1 to 8 slots in each of the eight shops sell a check once, at a random price |
 | Freestanding heart pieces | The fourteen heart pieces lying out in the world are checks |
-| Cows | Each of the eight cows gives a check once, for Epona's Song |
-| Merchants | Medigoron's Giant's Knife, the carpet merchant's Bombchus and the bean seller's first bean are checks |
+| Cows | Each of the eight cows gives a check once, for Epona's Song. A cow dealt arrows, seeds or bombs gives a Red Rupee until Link has what fires them |
+| Merchants | Medigoron's Giant's Knife, the carpet merchant's Bombchus and the bean seller's first bean are checks. A merchant dealt arrows, seeds or bombs sells a Red Rupee until Link has what fires them |
 | Gold Skulltulas | Each of the 100 Gold Skulltulas drops a check, and a token for each goes in the pool |
 | Pots | Each pot placed with a drop is a check. A broken pot may come back when the area reloads, and its item with it |
 | Crates | Each wooden crate placed with a drop is a check. Link breaks one by rolling into it |
