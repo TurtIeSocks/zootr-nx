@@ -217,8 +217,10 @@ mod tests {
         seeds_fill_and(settings, |_| {});
     }
 
-    /// [`seeds_fill`], handing each filled seed to `each`.
-    fn seeds_fill_and(settings: &Settings, each: impl Fn(&Filled)) {
+    /// [`seeds_fill`], handing each filled seed to `each`. The seeds fill
+    /// in parallel, each thread taking the next seed left, since these
+    /// tests set the suite's wall time.
+    fn seeds_fill_and(settings: &Settings, each: impl Fn(&Filled) + Sync) {
         let Some(romfs) = dev_dump() else { return };
         let new_game = NewGame::from_settings(settings, &[]).unwrap();
         let checks = crate::checks::all(&romfs).unwrap();
@@ -230,30 +232,55 @@ mod tests {
         )
         .unwrap();
         let fixed = Fixed::new();
-        let failed: Vec<String> = (0..SEEDS)
-            .filter_map(|seed| {
-                let deal = deal(&checks, &fixed, &new_game).unwrap();
-                match fill(
-                    &world,
-                    &checks,
-                    deal,
-                    seed * TRIES,
-                    &new_game,
-                    &Run::silent(),
-                ) {
-                    Ok(filled) => {
-                        each(&filled);
-                        None
-                    }
-                    Err(e) => Some(format!("seed {seed}: {e:#}")),
+        let one = |seed: u64| {
+            let deal = deal(&checks, &fixed, &new_game).unwrap();
+            match fill(
+                &world,
+                &checks,
+                deal,
+                seed * TRIES,
+                &new_game,
+                &Run::silent(),
+            ) {
+                Ok(filled) => {
+                    each(&filled);
+                    None
                 }
-            })
-            .collect();
+                Err(e) => Some((seed, format!("seed {seed}: {e:#}"))),
+            }
+        };
+        let next = std::sync::atomic::AtomicU64::new(0);
+        let threads = std::thread::available_parallelism().map_or(1, |n| n.get());
+        let mut failed: Vec<(u64, String)> = std::thread::scope(|s| {
+            let workers: Vec<_> = (0..threads)
+                .map(|_| {
+                    s.spawn(|| {
+                        let mut failed = Vec::new();
+                        loop {
+                            let seed = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                            if seed >= SEEDS {
+                                return failed;
+                            }
+                            failed.extend(one(seed));
+                        }
+                    })
+                })
+                .collect();
+            workers
+                .into_iter()
+                .flat_map(|w| w.join().unwrap())
+                .collect()
+        });
+        failed.sort();
         assert!(
             failed.is_empty(),
             "{} of {SEEDS} failed:\n{}",
             failed.len(),
-            failed.join("\n")
+            failed
+                .iter()
+                .map(|f| f.1.as_str())
+                .collect::<Vec<_>>()
+                .join("\n")
         );
     }
 
