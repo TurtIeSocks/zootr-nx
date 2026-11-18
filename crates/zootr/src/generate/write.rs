@@ -163,9 +163,10 @@ pub fn write_mod(
     let opened = tracker::chest_flags(&gd)?;
     let twins = twins::find(romfs, |h| drops.contains_key(&h), opened)?;
     let aliases = twins.iter().filter_map(twins::Twin::alias);
-    let exps: Vec<_> = aliases
+    let mut exps: Vec<_> = aliases
         .map(|(name, of)| (name, vec![gamedata::Op::Bool(of)]))
         .collect();
+    exps.extend(picked::exps(&picked));
     let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
     trade_chain::never_counting(&mut doc.root)?;
     if new_game.on.contains(TRADE_CHAIN) {

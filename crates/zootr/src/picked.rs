@@ -10,6 +10,12 @@
 //! It stands until its drop is picked up instead, so a drop left behind
 //! comes back.
 //!
+//! A Gold Skulltula gets no twin either, as a vanilla one never comes
+//! back. Its key is set only by a token or a heart piece taken from it,
+//! so one dropping anything else would stand again after a reset. It stands
+//! until its drop is picked up instead. One that shows once beans are
+//! planted keeps that gate, read with the flag through a BoolExp.
+//!
 //! Ruto's letter, a pickup its logic module deletes once Link has the
 //! letter, is deleted by the flag instead: Link getting the letter
 //! elsewhere would take away what lies there, and getting what lies
@@ -28,12 +34,14 @@ use zootr_hook::Spot;
 
 use crate::checks::{self, DROP_ACTOR, GYAML, ItemCheck, TRANSLATE, hash_of, str_field, vec3};
 use crate::flows::Rewrites;
+use crate::gamedata::Op;
 use crate::graphs::logic;
 use crate::known::{field, flag, map};
-use crate::pickups::{CRATES, HIVES, Kind, POTS, ROCKS, RUTOS_LETTER};
+use crate::pickups::{CRATES, HIVES, Kind, POTS, ROCKS, RUTOS_LETTER, SKULLTULAS};
+use crate::world::Presence;
 
 /// The kinds whose holders stand until picked.
-const KINDS: [&Kind; 5] = [&POTS, &CRATES, &ROCKS, &HIVES, &RUTOS_LETTER];
+const KINDS: [&Kind; 6] = [&POTS, &CRATES, &ROCKS, &HIVES, &RUTOS_LETTER, &SKULLTULAS];
 
 /// A holder of a shuffled item, standing until it's picked.
 pub struct Holder {
@@ -48,6 +56,8 @@ pub enum After {
     Twin(u64),
     /// Nothing, as the game takes it away once crushed.
     Gone,
+    /// Nothing, as it's a Gold Skulltula. It keeps its own gate, if any.
+    Killed(Option<Presence>),
     /// Nothing, as its logic module deletes it (Ruto's letter).
     Deleted,
 }
@@ -56,6 +66,12 @@ pub enum After {
 /// picked up.
 pub fn flag(hash: u64) -> String {
     format!("Rando_Picked_{hash}")
+}
+
+/// The BoolExp a gated Gold Skulltula shows by: its own gate, and its
+/// drop not picked up yet.
+pub fn shown(hash: u64) -> String {
+    format!("Rando_Shown_{hash}")
 }
 
 /// The flag a spot ticks by, when its holder stands until picked.
@@ -67,6 +83,7 @@ pub fn flag_at(holder: &str, hash: u64) -> Option<String> {
 pub fn holders(pieces: &[ItemCheck]) -> Vec<Holder> {
     let after = |c: &ItemCheck| match () {
         _ if RUTOS_LETTER.holds(c) => After::Deleted,
+        _ if SKULLTULAS.holds(c) => After::Killed(c.presence.clone()),
         _ if c.presence.is_some() => After::Gone,
         _ => After::Twin(crate::known::hash(&flag(c.hash))),
     };
@@ -83,6 +100,22 @@ pub fn holders(pieces: &[ItemCheck]) -> Vec<Holder> {
 
 pub fn flags(holders: &[Holder]) -> Vec<String> {
     holders.iter().map(|h| flag(h.hash)).collect()
+}
+
+/// The BoolExp each gated Gold Skulltula among `holders` shows by.
+pub fn exps(holders: &[Holder]) -> Vec<(String, Vec<Op>)> {
+    let bool_of = |name: &str| Op::Bool(murmur3(name.as_bytes()));
+    let gated = holders.iter().filter_map(|h| match &h.after {
+        After::Killed(Some(gate)) => Some((h.hash, gate)),
+        _ => None,
+    });
+    let exps = gated.map(|(hash, gate)| {
+        let mut program = vec![bool_of(&gate.flag)];
+        program.extend(gate.negated.then_some(Op::Not));
+        program.extend([bool_of(&flag(hash)), Op::Not, Op::And]);
+        (shown(hash), program)
+    });
+    exps.collect()
 }
 
 /// Each holder's hash, then its twin's.
@@ -126,9 +159,10 @@ pub fn delete_letter(romfs: &Romfs, rewrites: &mut Rewrites, holders: &[Holder])
 /// Place a twin beside each of `holders` in `root`, a Banc file's doc:
 /// a copy as it is now, under the twin's hash, standing once the flag is
 /// set, while the holder stands until then. Run before the holder's drop
-/// changes, so the twin keeps the vanilla one. Returns how many it placed.
+/// changes, so the twin keeps the vanilla one. Returns how many holders
+/// it changed.
 pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
-    let mut twins = Vec::new();
+    let (mut twins, mut gated) = (Vec::new(), 0);
     for actor in checks::actors_mut(root)? {
         let Some(hash) = hash_of(actor) else {
             continue;
@@ -149,6 +183,24 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
                     "holder {hash} stands only once something happens, so it can't take turns"
                 );
                 checks::gate(actor, &flag, true)?;
+                gated += 1;
+                continue;
+            }
+            After::Killed(None) => {
+                checks::gate(actor, &flag, true).with_context(|| format!("Skulltula {hash}"))?;
+                gated += 1;
+                continue;
+            }
+            After::Killed(Some(_)) => {
+                let presence = actor.as_mut_map()?.get_mut("Presence");
+                let presence = presence.with_context(|| format!("Skulltula {hash} isn't gated"))?;
+                let presence = presence.as_mut_map()?;
+                presence.insert(
+                    field::FLAG_NAME.get().into(),
+                    Byml::String(shown(hash).into()),
+                );
+                presence.insert(field::IS_NEGATION.get().into(), Byml::Bool(false));
+                gated += 1;
                 continue;
             }
         };
@@ -165,9 +217,9 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
         checks::gate(&mut twin, &flag, false)?;
         twins.push(twin);
     }
-    let placed = twins.len();
-    if placed == 0 {
-        return Ok(0);
+    let changed = twins.len() + gated;
+    if twins.is_empty() {
+        return Ok(changed);
     }
     let list = (root.as_mut_map()?)
         .get_mut("Actors")
@@ -181,7 +233,7 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
         );
     }
     list.extend(twins);
-    Ok(placed)
+    Ok(changed)
 }
 
 /// Each of `holders` placed in `root`, a Banc file's doc, as the hook's
@@ -210,8 +262,13 @@ pub fn spots(root: &Byml, holders: &[Holder]) -> Result<Vec<Spot>> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
+    use ounce_formats::BymlDoc;
+
     use super::*;
     use crate::game::dev_dump;
+    use crate::gamedata;
     use crate::known::actor;
     use crate::pickups;
     use crate::settings::NewGame;
@@ -238,19 +295,24 @@ mod tests {
     }
 
     #[test]
-    fn every_breakable_holder_and_hive_gets_a_twin_and_nothing_else() {
+    fn breakables_get_twins_and_skulltulas_stand_until_picked() {
         if dev_dump().is_none() {
             return;
         }
         let (_, pieces) = pool();
         let holders = holders(&pieces);
-        assert_eq!(holders.len(), 134);
         let skulltulas = pickups::SKULLTULAS.checks(&dev_dump().unwrap()).unwrap();
-        assert!(
-            skulltulas
-                .iter()
-                .all(|s| holders.iter().all(|h| h.hash != s.hash))
-        );
+        let skulltulas: BTreeSet<u64> = skulltulas.iter().map(|s| s.hash).collect();
+        assert_eq!(skulltulas.len(), 100);
+        assert_eq!(holders.len(), 134 + 100);
+        let killed = |h: &&Holder| matches!(h.after, After::Killed(_));
+        let killed: BTreeSet<u64> = holders.iter().filter(killed).map(|h| h.hash).collect();
+        assert_eq!(killed, skulltulas);
+        // The bean soil ones keep their gate.
+        let gated = holders
+            .iter()
+            .filter(|h| matches!(h.after, After::Killed(Some(_))));
+        assert_eq!(gated.count(), 10);
         assert!(
             holders
                 .iter()
@@ -267,7 +329,51 @@ mod tests {
             flag_at(actor::OBJ_LIFT_ROCK_A_01.get(), ROCK),
             Some(flag(ROCK))
         );
-        assert_eq!(flag_at(actor::ENEMY_SKULLTULA_GOLD.get(), ROCK), None);
+        let skulltula = *skulltulas.first().unwrap();
+        let at = flag_at(actor::ENEMY_SKULLTULA_GOLD.get(), skulltula);
+        assert_eq!(at, Some(flag(skulltula)));
+    }
+
+    #[test]
+    fn a_skulltula_stands_until_picked_and_a_bean_one_until_planted_too() {
+        let Some(romfs) = dev_dump() else { return };
+        let pieces = pickups::SKULLTULAS.checks(&romfs).unwrap();
+        let holders = holders(&pieces);
+        let bean = holders
+            .iter()
+            .find(|h| matches!(h.after, After::Killed(Some(_))))
+            .unwrap();
+        let After::Killed(Some(soil)) = &bean.after else {
+            unreachable!()
+        };
+        let plain = holders
+            .iter()
+            .find(|h| h.after == After::Killed(None))
+            .unwrap();
+        for h in [bean, plain] {
+            let piece = pieces.iter().find(|c| c.hash == h.hash).unwrap();
+            let mut doc = checks::load_banc(&romfs, &piece.file).unwrap();
+            let before = checks::actors(&doc.root).unwrap().len();
+            assert!(place(&mut doc.root, &holders).unwrap() > 0);
+            let actors = checks::actors(&doc.root).unwrap();
+            assert_eq!(actors.len(), before, "no twins");
+            let placed = actors.iter().find(|a| hash_of(a) == Some(h.hash)).unwrap();
+            let gate = presence_of(placed).unwrap();
+            match h.hash == plain.hash {
+                true => assert_eq!((gate.flag, gate.negated), (flag(h.hash), true)),
+                false => assert_eq!((gate.flag, gate.negated), (shown(h.hash), false)),
+            }
+        }
+        let exps = exps(&holders);
+        assert_eq!(exps.len(), 10);
+        let (name, program) = exps.iter().find(|(n, _)| *n == shown(bean.hash)).unwrap();
+        let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH).unwrap()).unwrap();
+        gamedata::add_bools(&mut doc.root, &[flag(bean.hash)]).unwrap();
+        gamedata::add_exps(&mut doc.root, &[(name.clone(), program.clone())]).unwrap();
+        let gd = gamedata::GameData::parse(&doc.to_binary()).unwrap();
+        let name_of = |n: &str| gd.name(murmur3(n.as_bytes()));
+        let expr = format!("{} && !{}", name_of(&soil.flag), name_of(&flag(bean.hash)));
+        assert_eq!(gd.expr(name).unwrap(), Some(expr));
     }
 
     #[test]
@@ -287,7 +393,15 @@ mod tests {
             .len();
         assert_eq!(place(&mut doc.root, &holders).unwrap(), mine);
         let actors = checks::actors(&doc.root).unwrap();
-        assert_eq!(actors.len(), before + mine);
+        let twins = (holders.iter())
+            .filter(|h| matches!(h.after, After::Twin(_)))
+            .filter(|h| {
+                pieces
+                    .iter()
+                    .any(|c| c.hash == h.hash && c.file == rock.file)
+            })
+            .count();
+        assert_eq!(actors.len(), before + twins);
         let After::Twin(twin) = holders.iter().find(|h| h.hash == rock_hash).unwrap().after else {
             panic!("the rock has no twin");
         };
