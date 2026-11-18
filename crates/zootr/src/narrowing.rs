@@ -302,7 +302,10 @@ pub(crate) mod tests {
         assert_eq!(why(&seed), Some(LeftOut::Narrowed(Narrowing::ScrubSeed)));
         assert_eq!(why(&game), Some(LeftOut::Narrowed(Narrowing::Minigame)));
         for hash in dampe::REPEAT_CHESTS {
-            let repeat = ItemCheck { hash, ..game.clone() };
+            let repeat = ItemCheck {
+                hash,
+                ..game.clone()
+            };
             assert_eq!(why(&repeat), Some(LeftOut::Maintainer));
         }
     }
