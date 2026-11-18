@@ -64,6 +64,7 @@ mod names;
 mod narrowing;
 pub mod nav;
 mod navi;
+pub mod notice;
 mod patch;
 mod picked;
 mod pickups;

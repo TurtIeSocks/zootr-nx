@@ -18,6 +18,7 @@ use ounce_formats::Romfs;
 use super::death::{Death, Deaths, Done};
 use super::ids::Ids;
 use super::names;
+use super::notice::Notices;
 use super::seed::Dealt;
 use super::{ApSeed, GAME, RECEIVED};
 use crate::dev::Dev;
@@ -25,6 +26,7 @@ use crate::gamedata::GameData;
 use crate::generate::Spot;
 use crate::known::flow;
 use crate::live::{self, Game as Target};
+use crate::notice::Shown;
 use crate::steps;
 use crate::tracker::{Flag, Tracker};
 
@@ -38,8 +40,11 @@ pub trait Game {
     fn goal(&mut self) -> Result<bool>;
     /// How many received items Link has been given, from the save.
     fn given(&mut self) -> Result<usize>;
-    /// Give Link `actor`, then count `given` items given.
-    fn give(&mut self, actor: &str, given: usize) -> Result<()>;
+    /// Give Link `actor`, then count `given` items given. Says what he
+    /// got: a progressive item's level.
+    fn give(&mut self, actor: &str, given: usize) -> Result<String>;
+    /// Show a received item's notice.
+    fn notice(&mut self, shown: &Shown) -> Result<()>;
     /// Link died since the last look.
     fn died(&mut self) -> Result<bool>;
     /// Drop Link's hearts to zero, as a last hit would.
@@ -164,7 +169,7 @@ impl Ledger {
 }
 
 /// Give Link the next received item, if he's in play and one is left:
-/// its index and actor. `received` is the server's full list of item ids
+/// its index and what he got. `received` is the server's full list of item ids
 /// for this slot. Apart from [`Ledger::look`], so a give that fails never
 /// holds up a send.
 fn give_next(
@@ -186,20 +191,21 @@ fn give_next(
     };
     let actor =
         (book.actors.get(&id)).with_context(|| format!("no item of ours has AP id {id}"))?;
-    game.give(actor, given + 1)?;
-    Ok(Some((given, actor.clone())))
+    let got = game.give(actor, given + 1)?;
+    Ok(Some((given, got)))
 }
 
-/// Give every received item still owed, each index to `gave`. A pass
-/// doesn't stop at one: over a bridge, each look between passes is slow.
+/// Give every received item still owed, each index and what Link got to
+/// `gave`. A pass doesn't stop at one: over a bridge, each look between
+/// passes is slow.
 fn give_pending(
     game: &mut impl Game,
     book: &Book,
     received: &[i64],
-    mut gave: impl FnMut(usize),
+    mut gave: impl FnMut(usize, &str),
 ) -> Result<()> {
-    while let Some((index, _)) = give_next(game, book, received)? {
-        gave(index);
+    while let Some((index, got)) = give_next(game, book, received)? {
+        gave(index, &got);
     }
     Ok(())
 }
@@ -296,6 +302,7 @@ fn session(
         ap::Connection::new(room.server.clone(), room.slot.clone(), Some(GAME), options);
     let mut ledger = Ledger::default();
     let mut deaths = Deaths::default();
+    let mut notices = Notices::default();
     let mut heard = Vec::new();
     let mut connected = false;
     let mut next_look = Instant::now();
@@ -328,7 +335,7 @@ fn session(
             }
             ConnectionState::Connected(client) if Instant::now() >= next_look => {
                 next_look = Instant::now() + LOOK;
-                tick(client, book, game, &mut ledger, note);
+                tick(client, book, game, &mut ledger, &mut notices, note);
                 if book.death_link {
                     // The room's own bounce comes back to us too.
                     let me = client.this_player().alias().to_string();
@@ -348,6 +355,7 @@ fn tick(
     book: &Book,
     game: &mut impl Game,
     ledger: &mut Ledger,
+    notices: &mut Notices,
     note: &mut impl FnMut(Note),
 ) {
     let look = match ledger.look(game) {
@@ -376,15 +384,16 @@ fn tick(
         }
     }
     let received: Vec<i64> = found(client).map(|r| r.item().id()).collect();
-    let given = give_pending(game, book, &received, |index| {
+    let given = give_pending(game, book, &received, |index, got| {
         if let Some(r) = found(client).nth(index) {
+            notices.got(got, r.sender().slot());
             note(Note::Received {
                 item: r.item().name().to_string(),
                 from: r.sender().name().to_string(),
             });
         }
     });
-    if let Err(e) = given {
+    if let Err(e) = given.and_then(|()| notices.look(game, Instant::now()).map(drop)) {
         note(Note::Trouble(format!("{e:#}")));
     }
 }
@@ -520,14 +529,19 @@ impl Game for Live {
         self.dev.kill()
     }
 
-    fn give(&mut self, actor: &str, given: usize) -> Result<()> {
-        self.dev.give_level(actor)?;
+    fn give(&mut self, actor: &str, given: usize) -> Result<String> {
+        let got = self.dev.give_level(actor)?;
         live::set(
             self.dev.game(),
             self.dev.game().global(),
             self.received,
             &given.to_string(),
-        )
+        )?;
+        Ok(got)
+    }
+
+    fn notice(&mut self, shown: &Shown) -> Result<()> {
+        self.dev.notice(shown)
     }
 }
 
@@ -544,6 +558,7 @@ pub(super) mod tests {
         /// Link died since the last look.
         pub died: bool,
         pub kills: usize,
+        pub notices: Vec<Shown>,
     }
 
     impl Game for Fake {
@@ -559,9 +574,13 @@ pub(super) mod tests {
         fn given(&mut self) -> Result<usize> {
             Ok(self.given.len())
         }
-        fn give(&mut self, actor: &str, given: usize) -> Result<()> {
+        fn give(&mut self, actor: &str, given: usize) -> Result<String> {
             self.given.push(actor.into());
             assert_eq!(self.given.len(), given);
+            Ok(actor.into())
+        }
+        fn notice(&mut self, shown: &Shown) -> Result<()> {
+            self.notices.push(shown.clone());
             Ok(())
         }
         fn died(&mut self) -> Result<bool> {
@@ -618,7 +637,7 @@ pub(super) mod tests {
     fn one_pass_gives_every_item_still_owed() {
         let (mut game, book) = (Fake::default(), book());
         let mut gave = vec![];
-        give_pending(&mut game, &book, &[2, 1, 2], |i| gave.push(i)).unwrap();
+        give_pending(&mut game, &book, &[2, 1, 2], |i, _| gave.push(i)).unwrap();
         assert_eq!(gave, [0, 1, 2]);
         assert_eq!(game.given.len(), 3);
     }

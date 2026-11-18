@@ -12,12 +12,15 @@ use std::collections::BTreeMap;
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{BymlDoc, EventKind, Flowchart, Link, Params, Romfs, Value};
-use zootr_hook::{ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_NAME};
+use zootr_hook::{
+    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
+};
 
 use crate::checks::str_field;
 use crate::flows::{self, Model, Rewrites, running, set, switch};
 use crate::gamedata::GameData;
 use crate::known::{Name, field, flag, flow, scene};
+use crate::notice::Shows;
 use crate::rsdb;
 use crate::starting;
 
@@ -130,21 +133,24 @@ pub fn parse_all(gd: &GameData, lines: &[String]) -> Result<Vec<(String, String)
 }
 
 /// An argument's name as the flow reads it.
-fn arg(name: &[u8]) -> String {
+pub(crate) fn arg(name: &[u8]) -> String {
     String::from_utf8_lossy(&name[..name.len() - 1]).into_owned()
 }
 
 /// Put branches at the head of the map change flow's entry: when the hook
 /// passes `ZootrGive`, grant the item `ZootrActor`, equipped if `ZootrEquip`,
 /// and end. When it passes `ZootrStep`, run the quest step named by
-/// `ZootrChallenge` and `ZootrStepName` and end. Otherwise the flow runs as
-/// it did, since an argument the hook doesn't pass reads as false.
+/// `ZootrChallenge` and `ZootrStepName` and end. When it passes
+/// `ZootrNotice`, show a received item's notice ([`crate::notice`]).
+/// Otherwise the flow runs as it did, since an argument the hook doesn't
+/// pass reads as false.
 pub fn dev_branch(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
     let template = template(romfs)?;
     let progress = progress(&template)?;
     let grant = starting::template(romfs)?;
+    let shows = Shows::load(romfs)?;
     flows::edit(romfs, rewrites, BANC, |flow| {
-        branch(flow, &progress, &grant)
+        branch(flow, &progress, &grant, &shows)
     })
 }
 
@@ -191,7 +197,12 @@ pub(crate) fn entry(flow: &Flowchart) -> Result<(usize, u16)> {
     Ok((entry, main))
 }
 
-fn branch(flow: &mut Flowchart, progress: &Model, template: &Flowchart) -> Result<()> {
+fn branch(
+    flow: &mut Flowchart,
+    progress: &Model,
+    template: &Flowchart,
+    shows: &Shows,
+) -> Result<()> {
     let (entry, main) = entry(flow)?;
     let asks = switch(flow, IS_BOOL).with_context(|| format!("{BANC} never asks {IS_BOOL:?}"))?;
     let asks = flows::model(flow, IS_BOOL, asks)?;
@@ -213,7 +224,9 @@ fn branch(flow: &mut Flowchart, progress: &Model, template: &Flowchart) -> Resul
     let plain = grant(flow, template, false)?;
     let equipped = grant(flow, template, true)?;
     let give = when(flow, &asks, ARG_EQUIP, equipped, plain)?;
-    let head = when(flow, &asks, ARG_GIVE, give, step)?;
+    let give = when(flow, &asks, ARG_GIVE, give, step)?;
+    let notice = shows.branch(flow, |flow, name, yes, no| when(flow, &asks, name, yes, no))?;
+    let head = when(flow, &asks, ARG_NOTICE, notice, give)?;
     flow.link(Link::Entry(entry), Some(head))
 }
 
@@ -326,12 +339,49 @@ mod tests {
         entry.main.unwrap()
     }
 
+    /// The give branch: where ZootrNotice false, asked first, goes.
+    fn past_notice(flow: &Flowchart) -> u16 {
+        let (notice, [_, rest]) = asks(flow, head(flow));
+        assert_eq!(notice, argument("ZootrNotice"));
+        rest
+    }
+
+    /// The action at `at`, and the event after it.
+    fn then(flow: &Flowchart, at: u16) -> Option<u16> {
+        let EventKind::Action { next, .. } = &flow.events[at as usize].kind else {
+            panic!("event {at} isn't an action")
+        };
+        *next
+    }
+
+    #[test]
+    fn a_dev_branch_shows_a_notice_first() {
+        let Some(romfs) = dev_dump() else { return };
+        let (_, flow, _) = branched(&romfs);
+        let (_, [notice, _]) = asks(&flow, head(&flow));
+        let (asked, [summary, popup]) = asks(&flow, notice);
+        assert_eq!(asked, argument("ZootrSummary"));
+        assert_eq!(
+            param(&flow, popup, flag::ACTOR_NAME),
+            &argument("ZootrActor")
+        );
+        let banner = then(&flow, popup).expect("the popup goes on to the banner");
+        assert_eq!(param(&flow, banner, field::TYPE), &Value::Int(vec![12]));
+        assert_eq!(then(&flow, banner), None, "a notice ends the event");
+        let (asked, [mixed, from]) = asks(&flow, summary);
+        assert_eq!(asked, argument("ZootrMixed"));
+        for (at, kind) in [(mixed, 3), (from, 1)] {
+            assert_eq!(param(&flow, at, field::TYPE), &Value::Int(vec![kind]));
+            assert_eq!(then(&flow, at), None, "a summary has no popup");
+        }
+    }
+
     #[test]
     fn a_dev_branch_runs_the_step_or_the_old_flow() {
         let Some(romfs) = dev_dump() else { return };
         let (before, flow, was) = branched(&romfs);
-        // Give is first, and ZootrGive false reaches the step.
-        let (give, [_, next]) = asks(&flow, head(&flow));
+        // Give is next, and ZootrGive false reaches the step.
+        let (give, [_, next]) = asks(&flow, past_notice(&flow));
         assert_eq!(give, argument("ZootrGive"));
         let (step, [run, rest]) = asks(&flow, next);
         assert_eq!(step, argument("ZootrStep"));
@@ -362,7 +412,7 @@ mod tests {
     fn a_dev_branch_grants_what_the_hook_names() {
         let Some(romfs) = dev_dump() else { return };
         let (_, flow, _) = branched(&romfs);
-        let (_, [equip, _]) = asks(&flow, head(&flow));
+        let (_, [equip, _]) = asks(&flow, past_notice(&flow));
         let (asked, [equipped, plain]) = asks(&flow, equip);
         assert_eq!(asked, argument("ZootrEquip"));
         let grants = running(&flow, flows::GRANT);
@@ -407,6 +457,10 @@ mod tests {
         assert_eq!(
             [arg(ARG_GIVE), arg(ARG_ACTOR), arg(ARG_EQUIP)],
             ["ZootrGive", "ZootrActor", "ZootrEquip"]
+        );
+        assert_eq!(
+            [ARG_NOTICE, zootr_hook::ARG_SUMMARY, zootr_hook::ARG_MIXED].map(arg),
+            ["ZootrNotice", "ZootrSummary", "ZootrMixed"]
         );
     }
 }

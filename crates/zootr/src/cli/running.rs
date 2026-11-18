@@ -12,6 +12,7 @@ use serde::Serialize;
 use super::dev_args::{DevCommand, MemCommand, Switch};
 use crate::config::{Config, TestSetup};
 use crate::nav::{act, drive, shove};
+use crate::notice::Shown;
 use crate::play::{self, Input};
 use crate::tracker::Flag;
 use crate::{gamedata, live, recorder, steps, warp};
@@ -251,6 +252,19 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
                 true => "no switches on".into(),
                 false => format!("on: {}", on.join(", ")),
             }
+        }
+        DevCommand::Notice {
+            item,
+            from,
+            count,
+            mixed,
+        } => {
+            let shown = match (item, count) {
+                (Some(item), _) => Shown::item(&item, from),
+                (None, count) => Shown::summary((!mixed).then_some(from), count.unwrap_or(1)),
+            };
+            game.notice(&shown)?;
+            "shown".into()
         }
         DevCommand::Kill => {
             game.kill()?;

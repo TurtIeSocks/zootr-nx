@@ -50,7 +50,29 @@ pub enum Says {
     Named(Named),
     /// These words, in every language that has a source.
     Text(String),
+    /// Words and GameData tags, each tag copied from a vanilla line that
+    /// reads it. A language without one of the tags goes without the line.
+    Tagged(&'static [Piece]),
 }
+
+/// A run of a [`Says::Tagged`] line.
+#[derive(Clone, Copy)]
+pub enum Piece {
+    Words(&'static str),
+    Tag(Tagged),
+}
+
+/// A GameData tag: one of `kind` reading `name`, as some line of `file`
+/// (as `LayoutMsg/NAME`) holds it.
+#[derive(Clone, Copy)]
+pub struct Tagged {
+    pub file: &'static str,
+    pub name: &'static crate::known::Name,
+    pub kind: u16,
+}
+
+/// Tags that read GameData are group 2.
+const GAMEDATA: u16 = 2;
 
 impl CopyLine {
     /// A line copied as it is.
@@ -228,10 +250,62 @@ pub(crate) fn copied(data: &[u8], rel: &str, copies: &Copies) -> Result<Vec<u8>>
             Says::Source => text,
             Says::Named(named) => naming(text, named, rel, &places)?,
             Says::Text(words) => vec![Part::Text(words.clone())],
+            Says::Tagged(pieces) => match tagged(&sarc, pieces)? {
+                Some(parts) => parts,
+                None => continue,
+            },
         };
         msbt.set(&line.label, &text)?;
     }
     replace_file(data, &path, &msbt.to_binary())
+}
+
+/// `pieces` as one language's parts, its tags copied from that language's
+/// lines, or `None` when a tag isn't found.
+fn tagged(sarc: &Sarc, pieces: &[Piece]) -> Result<Option<Vec<Part>>> {
+    let mut parts = Vec::with_capacity(pieces.len());
+    for piece in pieces {
+        parts.push(match piece {
+            Piece::Words(w) => Part::Text((*w).to_owned()),
+            Piece::Tag(t) => match find_tag(sarc, t)? {
+                Some(tag) => tag,
+                None => return Ok(None),
+            },
+        });
+    }
+    Ok(Some(parts))
+}
+
+/// The first tag in `tag`'s file that is it, as stored.
+fn find_tag(sarc: &Sarc, tag: &Tagged) -> Result<Option<Part>> {
+    let Some(data) = sarc.get_data(&format!("{}.msbt", tag.file)) else {
+        return Ok(None);
+    };
+    let msbt = Msbt::parse(data)?;
+    for label in msbt.labels()? {
+        for part in msbt.get(label)?.unwrap_or_default() {
+            if let Part::Tag(raw) = &part
+                && reads(raw, tag)
+            {
+                return Ok(Some(part));
+            }
+        }
+    }
+    Ok(None)
+}
+
+/// Whether the stored tag `raw` is `tag`: its marker (two bytes in a wide
+/// file, whose second is 0), group and kind, then the name in its
+/// parameters, in either width.
+pub(crate) fn reads(raw: &[u8], tag: &Tagged) -> bool {
+    let at = if raw.get(1) == Some(&0) { 2 } else { 1 };
+    let word = |i: usize| raw.get(i..i + 2).map(|b| u16::from_le_bytes([b[0], b[1]]));
+    let name = tag.name.get();
+    let wide: Vec<u8> = name.encode_utf16().flat_map(u16::to_le_bytes).collect();
+    let holds = |n: &[u8]| raw.windows(n.len()).any(|w| w == n);
+    word(at) == Some(GAMEDATA)
+        && word(at + 2) == Some(tag.kind)
+        && (holds(name.as_bytes()) || holds(&wide))
 }
 
 /// `line` naming `named`'s place, in the language of the archive at `rel`,
