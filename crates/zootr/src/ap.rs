@@ -8,6 +8,7 @@ use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 
 pub mod client;
+mod death;
 mod export;
 mod golden;
 mod ids;
