@@ -94,7 +94,7 @@ offsets! {
     granted,
     link_update,
     picked,
-    pushed,
+    taken,
     /// The game's own `malloc`.
     malloc,
     /// Builds an event request in place.

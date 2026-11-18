@@ -16,8 +16,8 @@
 //! content as the level it now gives. `granted` also credits key copies
 //! from every holder that adds to the pouch, and `picked`, as a pickup
 //! window opens, from the floor, whose take stocks the pouch without the
-//! add. `pushed`, as any take goes into the pouch, sets the flag of the
-//! twinned holder (a pot, box, rock or hive) whose drop it was.
+//! add. `taken`, as any take goes into the pouch, window or not, sets the
+//! flag of the twinned holder (a pot, box, rock or hive) whose drop it was.
 //!
 //! A seed with the Bunny Hood setting takes the run's speed request too:
 //! `run_speed` makes it half again as fast while Link wears the hood.

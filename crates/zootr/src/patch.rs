@@ -29,8 +29,10 @@ pub const OFFSETS: Offsets = Offsets {
     link_update: 0x2c2_15e0,
     // `OneShotRequestOpenPickUpWindow`'s run.
     picked: 0x101_55d0,
-    // `OneShotPouchContentPushToPouchOwnInEvent`'s run (vtable 0x4a2_2210).
-    pushed: 0xc6_f590,
+    // Puts a pickup's content in the pouch, on every take: from the
+    // pickup's own event (`OneShotPouchContentPushToPouchOwnInEvent`) or,
+    // with no window, straight from the touch.
+    taken: 0xc6_f620,
     malloc: 0x14c_6c90,
     make_arg: 0xd7_9f10,
     request: 0xd7_a820,
@@ -104,7 +106,7 @@ const HOOKS: &[(u32, u32)] = &[
     (OFFSETS.items_built, 44),
     (OFFSETS.items_left, 48),
     (OFFSETS.ui_update, 52),
-    (OFFSETS.pushed, 56),
+    (OFFSETS.taken, 56),
 ];
 /// The sites only a seed with [`TRADE_CYCLE`] gets.
 const TRADE_SITES: [u32; 6] = [
@@ -226,7 +228,7 @@ pub fn patches<A: AsRef<str>>(
         at if at == OFFSETS.link_update => mailbox,
         at if at == RUN_CALL.0 => bunny,
         at if TRADE_SITES.contains(&at) => trade,
-        at if at == OFFSETS.pushed => !spots.is_empty(),
+        at if at == OFFSETS.taken => !spots.is_empty(),
         _ => true,
     });
     Ok([gate, code, table].into_iter().chain(sites).collect())
@@ -406,10 +408,10 @@ mod tests {
     }
 
     #[test]
-    fn the_pouch_push_is_hooked_only_with_spots() {
+    fn the_take_is_hooked_only_with_spots() {
         let hooks = |spots: &[Spot]| {
             let p = patches(&progressive::LINES, false, 0, &[], spots).unwrap();
-            p.iter().any(|p| p.at == OFFSETS.pushed)
+            p.iter().any(|p| p.at == OFFSETS.taken)
         };
         assert!(!hooks(&[]));
         assert!(hooks(&[SPOT]));

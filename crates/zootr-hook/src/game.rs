@@ -111,7 +111,7 @@ global_asm!(
     "b items_built_entry",
     "b items_left_entry",
     "b ui_update_entry",
-    "b pushed_entry",
+    "b taken_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -129,7 +129,7 @@ global_asm!(
     "brk #0",
     "ui_update_resume:",
     "brk #0",
-    "pushed_resume:",
+    "taken_resume:",
     "brk #0",
     "npad_full_stub:",
     "brk #0",
@@ -151,8 +151,8 @@ global_asm!(
     "function_hook link_update, link_update_resume",
     "picked_entry:",
     "function_hook picked, picked_resume",
-    "pushed_entry:",
-    "function_hook pushed, pushed_resume",
+    "taken_entry:",
+    "function_hook taken, taken_resume",
     "npad_full_entry:",
     "npad_read npad_full_stub",
     "npad_handheld_entry:",
@@ -377,22 +377,19 @@ unsafe fn credit(main: usize, table: &Table, added: &[u8], picked: bool) {
     }
 }
 
-/// Link takes something into the pouch, through the pickup's own event,
-/// window or not: set the flag of the twinned holder it dropped from. A
-/// repeat take opens no window, so `picked` misses it.
+/// Link takes a pickup into the pouch, window or not: set the flag of the
+/// twinned holder it dropped from. A repeat take opens no window, so
+/// `picked` misses it, and skips the pickup's own event too.
 ///
 /// # Safety
 /// Only the hooked function's entry calls this.
 #[unsafe(no_mangle)]
-unsafe extern "C" fn pushed(node: usize) {
+unsafe extern "C" fn taken(pouched: usize) {
     hooked(|main, table| unsafe {
-        let Some(actor) = at(node, 8)
-            .and_then(|n| at(n, 8))
-            .and_then(|n| at(n, OWNER))
-        else {
+        let Some(actor) = at(pouched, OWNER) else {
             return;
         };
-        let Some(taken) = at(actor, ACTOR_NAME).and_then(|p| name(p as *const u8)) else {
+        let Some(name) = at(actor, ACTOR_NAME).and_then(|p| name(p as *const u8)) else {
             return;
         };
         let lies = *((actor + dev::POSITION) as *const [f32; 3]);
@@ -401,15 +398,15 @@ unsafe extern "C" fn pushed(node: usize) {
         };
         // A flag missing from GameData counts as picked, so nothing sets it.
         let picked = |flag| dev::get_bool(main, table.offsets, gd, flag) != Some(false);
-        if let Some(flag) = table.spot(taken, lies, picked) {
+        if let Some(flag) = table.spot(name, lies, picked) {
             dev::set_bool(main, table.offsets, gd, flag, true);
         }
     })
 }
 
-/// The pickup behind the push node: `[[node + 8] + 8] + OWNER`.
-const OWNER: usize = 0x1f0;
-/// An actor's name, the pointer the pouch push passes.
+/// The pickup a pouch content belongs to.
+const OWNER: usize = 0x18;
+/// An actor's name.
 const ACTOR_NAME: usize = 0x260;
 
 /// Link is about to update: hold what the dev switches hold, run the app's
