@@ -215,12 +215,32 @@ pub(super) fn files(romfs: &Romfs, game: &Path, pattern: &str, out: Option<&Path
     for (path, data) in &found {
         println!("{:>10} {path}", data.len());
         if let Some(out) = out {
-            let dest = out.join(path.strip_suffix(".zs").unwrap_or(path));
-            std::fs::create_dir_all(dest.parent().context("no parent")?)?;
-            std::fs::write(&dest, romfs.dicts().decompress(path, data)?)?;
+            write_under(out, path, &romfs.dicts().decompress(path, data)?)?;
         }
     }
     eprintln!("{} files", found.len());
+    Ok(())
+}
+
+/// Writes every file whose path contains `pattern` under `out`,
+/// decompressed and with each SARC archive opened into a folder of its
+/// members, so plain tools (`rg`, `ls`) can search the result.
+pub(super) fn unpack(romfs: &Romfs, game: &Path, pattern: &str, out: &Path) -> Result<()> {
+    let mut written = 0;
+    unpacked(romfs, game, pattern, |path, data, _| {
+        written += 1;
+        write_under(out, path, data)
+    })?;
+    eprintln!("{written} files");
+    Ok(())
+}
+
+/// Writes `data` at its romfs `path` under `out`, `.zs` dropped from each
+/// part of it (an archive's own name becomes its members' folder).
+fn write_under(out: &Path, path: &str, data: &[u8]) -> Result<()> {
+    let dest = out.join(path.replace(".zs/", "/").trim_end_matches(".zs"));
+    std::fs::create_dir_all(dest.parent().context("no parent")?)?;
+    std::fs::write(&dest, data)?;
     Ok(())
 }
 
@@ -234,6 +254,17 @@ fn in_pack(path: &str) -> Option<(&str, &str)> {
 mod tests {
     use super::*;
     use crate::known::{actor, field};
+
+    #[test]
+    fn an_archive_member_lands_in_a_folder_named_for_its_archive() {
+        let out = std::env::temp_dir().join(format!("zootr-unpack-{}", std::process::id()));
+        write_under(&out, "Pack/Actor/FakeActor.pack.zs/AI/Fake.ainb", b"ai").unwrap();
+        write_under(&out, "Banc/FakeMap.bcett.byml.zs", b"map").unwrap();
+        let read = |p: &str| std::fs::read(out.join(p)).unwrap();
+        assert_eq!(read("Pack/Actor/FakeActor.pack/AI/Fake.ainb"), b"ai");
+        assert_eq!(read("Banc/FakeMap.bcett.byml"), b"map");
+        std::fs::remove_dir_all(&out).unwrap();
+    }
 
     #[test]
     fn names_are_four_or_more_name_bytes() {

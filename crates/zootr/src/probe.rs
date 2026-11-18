@@ -25,7 +25,7 @@ mod poses;
 mod rooms;
 mod shapes;
 
-use formats::{ainb, byml, files, grep, pool, restbl, strings, unpacked};
+use formats::{ainb, byml, files, grep, pool, restbl, strings, unpack, unpacked};
 use logic::{checks, exits, gates, groups, pouch, settings, shops, tools};
 
 #[derive(Subcommand)]
@@ -69,6 +69,13 @@ pub enum Probe {
         /// Also write each hit here, decompressed, under its romfs path.
         #[arg(long)]
         out: Option<PathBuf>,
+    },
+    /// Writes the files whose path contains this to `--out`, decompressed
+    /// and with SARC archives opened into folders, for `rg` and `ls`.
+    Unpack {
+        pattern: String,
+        #[arg(long)]
+        out: PathBuf,
     },
     /// Files whose path contains `--path` and whose bytes contain this,
     /// decompressed and looking inside SARC archives, with a hit count.
@@ -303,6 +310,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             within,
         } => nav(romfs, game, &map, types, at, within),
         Probe::Plan { mix, seed, only } => plan::plan(romfs, mix.as_deref(), seed, only.as_deref()),
+        Probe::Unpack { pattern, out } => unpack(romfs, game, &pattern, &out),
         Probe::Grep { needle, path } => grep(romfs, game, &needle, &path),
         Probe::Strings { path } => names(romfs, game, &path),
         Probe::Poses { path } => poses::poses(romfs, game, &path),
