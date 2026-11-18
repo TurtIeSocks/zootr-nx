@@ -18,6 +18,7 @@ use crate::known::flag;
 use crate::names::TEXT;
 use crate::nav::navmesh_file;
 
+mod climbs;
 mod formats;
 mod logic;
 mod plan;
@@ -219,6 +220,12 @@ pub enum Probe {
         #[arg(long)]
         cross: bool,
     },
+    /// A map's ladders and climb walls: each one's foot and top, and the
+    /// floor a route climbs between, or why it has no link.
+    Climbs {
+        /// A map, by its Banc param name.
+        map: String,
+    },
     /// The sweep's plan for one round: each holder kind by how it'd be
     /// swept (open, talk, play, skip), and every skipped spot with why.
     Plan {
@@ -311,6 +318,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         }
         Probe::Files { pattern, out } => files(romfs, game, &pattern, out.as_deref()),
         Probe::Rooms { map } => rooms::rooms(romfs, game, &map),
+        Probe::Climbs { map } => climbs::climbs(romfs, game, &map),
         Probe::Shapes {
             map, cross: true, ..
         } => shapes::crossings(romfs, game, &map),

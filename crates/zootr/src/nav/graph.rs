@@ -1,6 +1,6 @@
 //! The faces of a map's navmesh as a graph. Faces that share an edge are
-//! linked both ways. A door, a drop and a step up add links the mesh alone
-//! doesn't have, and a route keeps each as a waypoint.
+//! linked both ways. A door, a climb, a drop and a step up add links the
+//! mesh alone doesn't have, and a route keeps each as a waypoint.
 
 use std::collections::HashMap;
 use std::fmt;
@@ -8,6 +8,7 @@ use std::fmt;
 use ounce_formats::{Footing, NavMesh, closest};
 use serde::Serialize;
 
+use super::climb::Climb;
 use super::kinds;
 use super::shape::Solid;
 use crate::warp::{self, Placement, Side};
@@ -25,6 +26,10 @@ pub(super) const STEP_MIN: f32 = 0.5;
 pub(super) const LOOK: f32 = 0.5;
 /// How far on each side of a door the nearest face may be.
 const DOOR_REACH: f32 = 2.5;
+/// How far from a climb's foot or top the floor there may be. The mesh
+/// keeps off the wall a climb stands on, and a vine can hang down past the
+/// ledge it starts from (Kokiri Forest's, 2.9 m).
+const CLIMB_REACH: f32 = 3.5;
 /// How far off the mesh a start or goal snaps to the nearest face.
 const SNAP: f32 = 1.5;
 /// How far from a point's height the floor under it may be.
@@ -41,6 +46,8 @@ pub enum Via {
     Door(Option<u64>),
     Drop,
     Step,
+    /// Up the ladder or climb wall placed with this hash.
+    Climb(Option<u64>),
 }
 
 impl fmt::Display for Via {
@@ -51,6 +58,8 @@ impl fmt::Display for Via {
             Via::Door(None) => write!(f, "door"),
             Via::Drop => write!(f, "drop"),
             Via::Step => write!(f, "step"),
+            Via::Climb(Some(hash)) => write!(f, "climb {hash}"),
+            Via::Climb(None) => write!(f, "climb"),
         }
     }
 }
@@ -125,6 +134,34 @@ impl<'a> Graph<'a> {
         graph.border_arcs(step_up);
         graph.door_arcs(placed);
         graph
+    }
+
+    /// The graph with a link up each of `climbs` whose foot and top
+    /// [`Graph::climb_ends`] finds. Up only: walked off the top of the
+    /// Kokiri Forest vines, Link fell 5.7 m past them instead of taking
+    /// hold (Mac, 2026-11-18), so the way down isn't known yet.
+    pub fn with_climbs(mut self, climbs: &[Climb]) -> Self {
+        for c in climbs {
+            if let Ok((foot, top)) = self.climb_ends(c) {
+                self.link(foot.face, top.face, Via::Climb(c.hash), foot.at, top.at);
+            }
+        }
+        self
+    }
+
+    /// The floor at the foot of `c` and at its top, or why there's no
+    /// climb: the mesh nearest each, within [`CLIMB_REACH`], below its
+    /// middle for the foot and above it for the top.
+    pub fn climb_ends(&self, c: &Climb) -> std::result::Result<(Snap, Snap), &'static str> {
+        let middle = (c.foot[1] + c.top[1]) / 2.0;
+        let foot = (self.nearest(c.foot, CLIMB_REACH, |q| q[1] <= middle))
+            .ok_or("no floor at its foot")?;
+        let top =
+            (self.nearest(c.top, CLIMB_REACH, |q| q[1] >= middle)).ok_or("no floor at its top")?;
+        if top.face == foot.face || top.at[1] - foot.at[1] < STEP_MIN {
+            return Err("its top is no higher than its foot");
+        }
+        Ok((foot, top))
     }
 
     /// The graph with `solids` for its routes to go round.
@@ -369,6 +406,41 @@ mod tests {
         let g = Graph::build(&m, &[door([1.0, 0.0, 2.0])], STEP_UP);
         assert_eq!(links(&g, 0), [(1, Via::Door(Some(7)))]);
         assert_eq!(links(&g, 1), [(0, Via::Door(Some(7)))]);
+    }
+
+    /// A ladder 4 m up a wall at z 0.4, from the floor before it to the
+    /// ledge over it.
+    fn ladder() -> Climb {
+        Climb {
+            name: "Obj_FakeLadder".into(),
+            hash: Some(9),
+            foot: [1.0, 0.0, 0.4],
+            top: [1.0, 4.0, 0.4],
+            out: [0.0, 1.0],
+            half: 0.1,
+        }
+    }
+
+    #[test]
+    fn a_climb_links_the_floor_at_its_foot_up_to_the_ledge_at_its_top() {
+        let m = mesh(&[
+            quad(0.0, -3.0, 2.0, 0.2, 0.0),
+            quad(0.0, 0.6, 2.0, 4.0, 4.0),
+        ]);
+        let g = Graph::build(&m, &[], STEP_UP).with_climbs(&[ladder()]);
+        assert_eq!(links(&g, 0), [(1, Via::Climb(Some(9)))]);
+        assert!(links(&g, 1).is_empty());
+    }
+
+    #[test]
+    fn a_climb_with_no_ledge_at_its_top_links_nothing() {
+        let m = mesh(&[
+            quad(0.0, -3.0, 2.0, 0.2, 0.0),
+            quad(0.0, 0.6, 2.0, 4.0, 9.0),
+        ]);
+        let g = Graph::build(&m, &[], STEP_UP);
+        assert_eq!(g.climb_ends(&ladder()), Err("no floor at its top"));
+        assert!(links(&g.with_climbs(&[ladder()]), 0).is_empty());
     }
 
     #[test]

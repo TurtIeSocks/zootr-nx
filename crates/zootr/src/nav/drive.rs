@@ -9,7 +9,7 @@ use anyhow::Result;
 use ounce_formats::Romfs;
 
 use super::act;
-use super::graph::Graph;
+use super::graph::{Graph, Via};
 use super::route::{Route, Waypoint, plan};
 use super::shove::{LEVEL, Shove, rise};
 use super::went::{Done, Gone, Reason, Went};
@@ -28,6 +28,12 @@ pub const SPEED: f32 = 5.0;
 const MAX_LEG: f32 = 1.5;
 /// How near a waypoint on the way counts as reached, in m.
 const REACHED: f32 = 0.5;
+/// How near in height the top or foot of a climb is to be reached, in m:
+/// its top stands almost over its foot, so flat it's reached at once.
+const CLIMBED: f32 = 1.0;
+/// How fast Link climbs, in m a second: up held 2 s took him 2.8 m up the
+/// Kokiri Forest vines and over the top (Mac, 2026-11-18).
+const CLIMB_SPEED: f32 = 1.4;
 /// How near the goal `go` stops, in m.
 pub const ARRIVE: f32 = 1.0;
 /// How near a goal with no route Link still walks straight at, in m. The
@@ -134,6 +140,15 @@ fn beside(here: [f32; 3], goal: [f32; 3], angle: f32, far: f32) -> [f32; 3] {
 /// How long a push walks Link from `here` toward `to`, at most `MAX_LEG`.
 pub(super) fn lean(here: [f32; 3], to: [f32; 3]) -> f32 {
     (flat(here, to) / SPEED).min(MAX_LEG)
+}
+
+/// [`lean`] toward a waypoint reached `via`: up a climb, as long
+/// as its height takes at climbing speed.
+fn lean_via(here: [f32; 3], to: [f32; 3], via: Via) -> f32 {
+    match via {
+        Via::Climb(_) => ((to[1] - here[1]).abs() / CLIMB_SPEED).clamp(lean(here, to), MAX_LEG),
+        _ => lean(here, to),
+    }
 }
 
 /// Milliseconds in `secs`.
@@ -378,21 +393,22 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             }
             let here = self.sense.link()?;
             let Route { waypoints, .. } = &route;
-            let Some(&Waypoint { at: target, .. }) = waypoints.get(next) else {
+            let Some(&Waypoint { at: target, via }) = waypoints.get(next) else {
                 return Ok((None, legs));
             };
             if flat(here, goal) <= arrive {
                 return Ok((None, legs));
             }
             let last = next + 1 == waypoints.len();
-            if flat(here, target) <= if last { arrive } else { REACHED } {
+            let level = !matches!(via, Via::Climb(_)) || (here[1] - target[1]).abs() <= CLIMBED;
+            if level && flat(here, target) <= if last { arrive } else { REACHED } {
                 next += 1;
                 continue;
             }
             if start.elapsed() >= self.budget {
                 return Ok((Some(Reason::Budget), legs));
             }
-            let secs = lean(here, target);
+            let secs = lean_via(here, target, via);
             self.steer(target, millis(secs))?;
             legs += 1;
             let now = self.sense.link()?;
@@ -477,6 +493,14 @@ mod tests {
         assert!(stuck(ORIGIN, to(2.0, 0.0), 5.0));
         assert!(!stuck(ORIGIN, to(3.0, 0.0), 5.0));
         assert!(!stuck(ORIGIN, to(0.5, 1.0), 5.0));
+    }
+
+    #[test]
+    fn a_push_up_a_climb_lasts_as_long_as_its_height_takes() {
+        let (foot, top) = ([0.0, 0.0, 0.0], [0.5, 1.4, 0.0]);
+        assert_eq!(lean_via(foot, top, Via::Walk), 0.1);
+        assert!((lean_via(foot, top, Via::Climb(None)) - 1.0).abs() < 1e-6);
+        assert_eq!(lean_via(foot, [0.5, 9.0, 0.0], Via::Climb(None)), MAX_LEG);
     }
 
     #[test]

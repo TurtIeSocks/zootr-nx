@@ -34,6 +34,7 @@ macro_rules! said {
 
 pub mod act;
 pub mod clear;
+pub mod climb;
 pub mod drive;
 pub mod graph;
 pub mod kinds;
@@ -90,12 +91,13 @@ pub fn load(romfs: &Romfs, game: &Path, map: &str) -> Result<NavMesh> {
 const SAME: f32 = 0.01;
 
 /// A map as the tools read it: its navmesh, its placements, and the solids
-/// among them that the mesh doesn't know.
+/// and climbs among them that the mesh doesn't know.
 pub struct Level {
     pub map: String,
     pub mesh: NavMesh,
     pub placed: Vec<Placement>,
     pub solids: Vec<shape::Solid>,
+    pub climbs: Vec<climb::Climb>,
 }
 
 impl Level {
@@ -112,11 +114,12 @@ impl Level {
             map: map.to_owned(),
             mesh: load(romfs, game, map)?,
             solids: shape::solids(romfs, &placed)?,
+            climbs: climb::climbs(romfs, &placed)?,
             placed,
         })
     }
 
-    /// A level with no solids, as a test builds one.
+    /// A level with no solids or climbs, as a test builds one.
     #[cfg(test)]
     pub fn new(map: &str, mesh: NavMesh, placed: Vec<Placement>) -> Self {
         Self {
@@ -124,12 +127,15 @@ impl Level {
             mesh,
             placed,
             solids: vec![],
+            climbs: vec![],
         }
     }
 
-    /// The graph of its mesh, with its doors and its solids.
+    /// The graph of its mesh, with its doors, climbs and solids.
     pub fn graph(&self) -> graph::Graph<'_> {
-        graph::Graph::build(&self.mesh, &self.placed, graph::STEP_UP).with_solids(&self.solids)
+        graph::Graph::build(&self.mesh, &self.placed, graph::STEP_UP)
+            .with_climbs(&self.climbs)
+            .with_solids(&self.solids)
     }
 
     /// The placement with `hash`.
