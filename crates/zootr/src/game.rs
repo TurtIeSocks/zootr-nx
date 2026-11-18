@@ -23,6 +23,7 @@ pub fn files() -> impl Iterator<Item = &'static str> {
     crate::medallions::FILES
         .into_iter()
         .chain(crate::key_tints::FILES)
+        .chain(crate::foreign::FILES)
         .chain(crate::trade_slot::FILES)
 }
 

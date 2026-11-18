@@ -1,26 +1,60 @@
-//! A key's model copied in a dungeon's colour: its albedo tinted by each
-//! texel's brightness, and a ring's iron and gold corner where it has one.
+//! A model copied in a colour: its albedo tinted by each texel's
+//! brightness, and a key ring's iron and gold corner where it has one.
+//! Keys take their dungeon's colour, another game's item its class's.
 
 use anyhow::Result;
 use ounce_formats::{ModBuilder, Romfs, Texture, redraw, rename, top_level};
 
-use super::{Look, rings};
-use crate::medallions::{Colour, model_path, texture_path};
+use super::rings;
+use crate::known::Name;
+use crate::medallions::{Colour, model_path};
 
-/// A key's host model and its textures, read and decoded once.
-pub(super) struct Host {
+/// One model to copy: the actor it's named like, its textures by suffix,
+/// and the prefix of a copy, which with a two-digit number is as long as
+/// the host so no offset in a copy moves.
+pub(crate) struct Look {
+    pub(crate) host: &'static Name,
+    /// The material its textures are named by, before the host's name:
+    /// `Mt` when `None`.
+    pub(crate) material: Option<&'static Name>,
+    pub(crate) kinds: &'static [&'static str],
+    pub(crate) copy: &'static str,
+}
+
+impl Look {
+    /// Copy `n`, counting from 1.
+    pub(crate) fn name(&self, n: usize) -> String {
+        format!("{}{n:02}", self.copy)
+    }
+
+    /// The texture of `kind` for `name`, the host or a copy.
+    fn texture(&self, name: &str, kind: &str) -> String {
+        let material = self.material.map_or("Mt", |m| m.get());
+        format!("Tex/{material}_{name}_{kind}.bntx.zs")
+    }
+
+    /// The model and texture files a copy is made from.
+    #[cfg(test)]
+    pub(crate) fn files(&self) -> impl Iterator<Item = String> {
+        let textures = self.kinds.iter().map(|k| self.texture(self.host, k));
+        std::iter::once(model_path(self.host)).chain(textures)
+    }
+}
+
+/// A host model and its textures, read and decoded once.
+pub(crate) struct Host {
     look: &'static Look,
     pub(super) model: Vec<u8>,
     textures: Vec<(&'static str, Vec<u8>, Texture)>,
 }
 
 impl Host {
-    pub(super) fn read(romfs: &Romfs, look: &'static Look) -> Result<Self> {
+    pub(crate) fn read(romfs: &Romfs, look: &'static Look) -> Result<Self> {
         let textures = look
             .kinds
             .iter()
             .map(|kind| {
-                let data = romfs.read(&texture_path(look.host, kind))?;
+                let data = romfs.read(&look.texture(look.host, kind))?;
                 let top = top_level(&data)?;
                 Ok((*kind, data, top))
             })
@@ -33,7 +67,7 @@ impl Host {
     }
 
     /// Model `n`, its albedo tinted `tint`. Returns its name.
-    pub(super) fn paint(&self, builder: &mut ModBuilder, n: usize, tint: Colour) -> Result<String> {
+    pub(crate) fn paint(&self, builder: &mut ModBuilder, n: usize, tint: Colour) -> Result<String> {
         let name = self.look.name(n);
         self.write_as(builder, &name, &self.model, tint, false)?;
         Ok(name)
@@ -50,7 +84,7 @@ impl Host {
         tint: Colour,
         ring: bool,
     ) -> Result<()> {
-        let host = self.look.host;
+        let (look, host) = (self.look, self.look.host);
         builder.add(
             &model_path(name),
             &rename(model, host, name)?,
@@ -58,7 +92,7 @@ impl Host {
         )?;
         for (kind, data, top) in &self.textures {
             let data = texture(&rename(data, host, name)?, top, kind, tint, ring)?;
-            builder.add(&texture_path(name, kind), &data, &texture_path(host, kind))?;
+            builder.add(&look.texture(name, kind), &data, &look.texture(host, kind))?;
         }
         Ok(())
     }

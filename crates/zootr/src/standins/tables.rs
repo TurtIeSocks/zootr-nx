@@ -118,6 +118,11 @@ impl Tables {
     /// `name`'s row shows `model`, a copy of `like`'s model.
     pub(crate) fn show(&mut self, name: &str, like: &str, model: &str) -> Result<()> {
         self.take(name, like, &MODEL_FIELDS[1..])?;
+        self.point(name, model)
+    }
+
+    /// `name`'s row names `model`, its own fields otherwise kept.
+    pub(crate) fn point(&mut self, name: &str, model: &str) -> Result<()> {
         let mut actor = row(&self.actor, name)?;
         for field in [field::FMDB_NAME, field::MODEL_PROJECT_NAME] {
             actor.insert(field.get().into(), Byml::String(model.into()));
