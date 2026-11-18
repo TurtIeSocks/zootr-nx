@@ -262,9 +262,13 @@ impl<S: Sense, I: Input> Drive<'_, S, I> {
                     // One tap: the camera the warp left behind him stays
                     // only until he turns. A talks from 30 degrees off.
                     true => self.steer(placement.pose.at, TAP_MS)?,
+                    // Again after closing in: a push into a person slides
+                    // Link round them, and Anju's "Talk" stayed hidden
+                    // with him turned away (other machine, 2026-11-17).
                     false => {
                         self.face(placement.pose.at)?;
                         self.close_in(placement.pose.at, stand)?;
+                        self.face(placement.pose.at)?;
                     }
                 }
                 self.input.press("A")?;
@@ -625,6 +629,46 @@ mod tests {
         });
         let at = eyes.0.borrow().at;
         assert_eq!(used.result, Touch::Event, "Link at {at:?}");
+    }
+
+    #[test]
+    fn a_person_is_faced_again_after_the_push_in_slides_link_round() {
+        // Anju showed "Talk" only with Link facing her, and the push in
+        // left him turned away (other machine, 2026-11-17).
+        needs_names!();
+        let person = [10.0, 0.0, 2.0];
+        let anju = placed(actor::NPC_HYLIA_049_ADULT, 77, person);
+        let (used, eyes) = touched(&anju, |e| {
+            let (mut short, mut slid) = (true, false);
+            e.0.borrow_mut().after_push = Some(Box::new(move |w| {
+                let off = flat(w.at, person);
+                // The walk stops 1.6 m off, like the arrival did.
+                if short && off < 1.6 {
+                    let k = 1.6 / off;
+                    w.at = [10.0 + (w.at[0] - 10.0) * k, 0.0, 2.0 + (w.at[2] - 2.0) * k];
+                    short = false;
+                // The push in meets her and turns him a quarter away.
+                } else if !short && !slid && off < 1.3 {
+                    w.yaw += std::f32::consts::FRAC_PI_2;
+                    slid = true;
+                }
+            }));
+            e.0.borrow_mut().after_press = Some(Box::new(move |w| {
+                let (sin, cos) = w.yaw.sin_cos();
+                let off = flat(w.at, person);
+                let ahead = ((person[0] - w.at[0]) * sin + (person[2] - w.at[2]) * cos) / off;
+                let a = w.presses.last().is_some_and(|b| b == "A");
+                w.event |= a && ahead > 30f32.to_radians().cos();
+            }));
+        });
+        let world = eyes.0.borrow();
+        assert_eq!(
+            used.result,
+            Touch::Event,
+            "Link at {:?} yaw {}",
+            world.at,
+            world.yaw
+        );
     }
 
     #[test]
