@@ -270,7 +270,6 @@ mod tests {
 
     use super::*;
     use crate::config::Rebuild;
-    use std::process::Command;
 
     #[test]
     fn fnv1a_matches_the_reference_values() {
@@ -475,7 +474,7 @@ mod tests {
         let heard = std::sync::Arc::new(Mutex::new(Vec::new()));
         let sink = heard.clone();
         let run = Run::silent().with(move |e| sink.lock().unwrap().push(e.clone()));
-        let child = Command::new("sh")
+        let child = crate::platform::command("sh")
             .args(["-c", "(sleep 0.3; echo late) & (sleep 5) & echo early"])
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -527,7 +526,7 @@ mod tests {
         assert!(begun.elapsed() < Duration::from_secs(10));
         let pid = std::fs::read_to_string(&pid).unwrap();
         let alive = || {
-            Command::new("kill")
+            crate::platform::command("kill")
                 .args(["-0", pid.trim()])
                 .stderr(Stdio::null())
                 .status()
