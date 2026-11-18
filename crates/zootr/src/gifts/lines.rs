@@ -67,14 +67,44 @@ fn label(line: &str, item: &str) -> String {
     format!("{line}_{item}")
 }
 
-/// Point a sale's paid line, a copy naming `from`, at the copy naming `to`.
-/// A chain by level gives `to` instead.
+/// The full name of `line`'s copy in `file` naming `item`, as a talk says it.
+fn copy(file: &str, line: &str, item: &str) -> String {
+    format!("{file}:{}", label(line, item))
+}
+
+/// The line copy naming `item` that `message` is, as its file and line.
+fn copy_of<'a>(message: &str, item: &str) -> Option<(&'a str, &'a Name)> {
+    NAMED
+        .iter()
+        .map(|(_, file, line, _)| (file.as_str(), *line))
+        .find(|(file, line)| message == copy(file, line, item))
+}
+
+/// Point a talk or a sale's paid line, a copy naming `from`, at the copy
+/// naming `to`. A chain by level gives `to` instead.
 pub(super) fn repoint(params: &mut Params, from: &str, to: &str) -> Result<()> {
-    let line = param(params, PAID).and_then(|l| l.strip_suffix(&*label("", from)));
-    match line.map(|l| label(l, to)) {
-        Some(to) => flows::set(params, PAID, string(&to)),
-        None => Ok(()),
+    for key in [MESSAGE, PAID] {
+        let named = param(params, key).and_then(|m| copy_of(m, from));
+        if let Some((file, line)) = named {
+            flows::set(params, key, string(&copy(file, line, to)))?;
+        }
     }
+    Ok(())
+}
+
+/// The talks of `flow` saying a line copy naming `item`. Each is said
+/// before the grant, so a chain by level puts one in front of each too.
+pub(super) fn talks(flow: &Flowchart, item: &str) -> Vec<u16> {
+    (0u16..)
+        .zip(&flow.events)
+        .filter(|(_, e)| match &e.kind {
+            EventKind::Action { params, .. } => {
+                param(params, MESSAGE).is_some_and(|m| copy_of(m, item).is_some())
+            }
+            _ => false,
+        })
+        .map(|(i, _)| i)
+        .collect()
 }
 
 /// The copies the dealt gifts' lines need, one message file each: one
@@ -82,8 +112,7 @@ pub(super) fn repoint(params: &mut Params, from: &str, to: &str) -> Result<()> {
 pub fn lines(drops: &HashMap<u64, Drop>, progressive: bool) -> Vec<Lines<'_>> {
     dealt(drops)
         .map(|d| {
-            // Only a sale's line is said after the chain picks the level.
-            let chained = d.gift.is_sale() && levels::needs(d.gift, d.item, progressive);
+            let chained = levels::needs(d.gift, d.item, progressive);
             let steps = chained.then(|| levels::steps(d.item)).into_iter().flatten();
             let mut items: Vec<&str> = steps.collect();
             if !items.contains(&d.item) {
@@ -111,7 +140,7 @@ pub(super) fn retalk(
             point(
                 f,
                 &format!("{}:{}", d.file, d.line),
-                &format!("{}:{}", d.file, label(d.line, d.item)),
+                &copy(d.file, d.line, d.item),
                 d.item,
             )
         })?;
@@ -149,7 +178,7 @@ mod tests {
     use super::*;
     use crate::events::Flows;
     use crate::game::dev_dump;
-    use crate::known::actor;
+    use crate::known::{actor, item};
 
     fn goron_gives(item: &str) -> HashMap<u64, Drop> {
         let gift = GIFTS.iter().find(|g| g.flow == NAMED[0].0).unwrap();
@@ -158,6 +187,11 @@ mod tests {
 
     /// Every `MessageId` Link the Goron's flow says, after `drops`.
     fn says(drops: &HashMap<u64, Drop>) -> Vec<String> {
+        says_with(drops, false)
+    }
+
+    /// [`says`], with progressive items on or off.
+    fn says_with(drops: &HashMap<u64, Drop>, progressive: bool) -> Vec<String> {
         let romfs = dev_dump().unwrap();
         let mut rewrites = Rewrites::default();
         super::super::give_all(
@@ -165,7 +199,7 @@ mod tests {
             &Flows::load(&romfs).unwrap(),
             &mut rewrites,
             drops,
-            false,
+            progressive,
             &Default::default(),
         )
         .unwrap();
@@ -194,6 +228,25 @@ mod tests {
             "{said:?}"
         );
         assert!(!said.contains(&format!("{file}:{line}")), "{said:?}");
+    }
+
+    /// His line comes before his grant, so it names the level the grant
+    /// gives, and a copy naming each level is written.
+    #[test]
+    fn link_the_goron_says_the_level_he_gives() {
+        if dev_dump().is_none() {
+            return;
+        }
+        let drops = goron_gives(item::HOOKSHOT);
+        let said = says_with(&drops, true);
+        let (file, line) = (&NAMED[0].1, NAMED[0].2);
+        for level in [item::HOOKSHOT, item::LONGSHOT] {
+            let copy = copy(file, line, level);
+            assert!(said.contains(&copy), "{copy} not in {said:?}");
+        }
+        let written = &lines(&drops, true)[0].new;
+        let named: Vec<&str> = written.iter().map(|(_, i)| *i).collect();
+        assert_eq!(named, [item::HOOKSHOT.get(), item::LONGSHOT.get()]);
     }
 
     #[test]
