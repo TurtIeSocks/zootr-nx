@@ -69,13 +69,16 @@ pub(super) fn bounds(romfs: &Romfs, game: &Path, path: &str, pose: Option<&[f32]
 }
 
 /// Prints `shops/floors.rs`: each pool item's lowest point on a shelf, in
-/// the pose `standins::shelf_pose` gives it there.
+/// the pose `standins::shelf_pose` gives it there, and every level of each
+/// line, which a shelf's steps show.
 pub(super) fn floors(romfs: &Romfs, game: &Path) -> Result<()> {
     let tables = Tables::load(romfs)?;
     let mut items: Vec<String> = (crate::checks::all(romfs)?.into_iter())
         .map(|c| c.item)
         .collect();
     items.extend(RUPEES.map(|r| r.to_string()));
+    let levels = crate::progressive::LINES.iter().flat_map(|l| l.iter());
+    items.extend(levels.map(|(level, _)| level.to_string()));
     items.sort();
     items.dedup();
     // Each item with the model file it shows, its row's model and its

@@ -9,8 +9,9 @@
 use crate::known::{Name, hash};
 
 /// By the item name's hash, in hash order, with whether the item stands up.
-const FLOORS: [(Name, f32, bool); 101] = [
+const FLOORS: [(Name, f32, bool); 117] = [
     (n!(0x016ba14954b94413), -0.1830, false),
+    (n!(0x04059a2faff0f78b), -0.2098, false),
     (n!(0x053d9943df28a61c), -0.1829, false),
     (n!(0x0bd8d037bb0680ed), -0.1913, false),
     (n!(0x0d1021df51e3a977), -0.0344, false),
@@ -20,8 +21,10 @@ const FLOORS: [(Name, f32, bool); 101] = [
     (n!(0x1dfcdeba8aeb221d), -0.1860, false),
     (n!(0x1e4a2c86b137d587), 0.0031, false),
     (n!(0x256e626be6efc659), -0.1300, false),
+    (n!(0x28818025d73b6757), -0.2252, false),
     (n!(0x289a7328bb01a605), 0.0424, true),
     (n!(0x2b06fbe704e7266a), -0.1960, false),
+    (n!(0x2b471322eb4bb045), -0.2920, false),
     (n!(0x2bcba4a62eafe8a7), -0.0876, false),
     (n!(0x2d22267de3e05f87), -0.3774, false),
     (n!(0x2f0e1097bc8fb730), -0.2023, false),
@@ -39,6 +42,7 @@ const FLOORS: [(Name, f32, bool); 101] = [
     (n!(0x4b99c81b6a31cd91), -0.1829, false),
     (n!(0x4e5f51b2f63a6683), -0.1829, false),
     (n!(0x4ed1f077e771cbbb), -0.1829, false),
+    (n!(0x50b61524b8857e27), -0.1564, false),
     (n!(0x50c384def266c025), 0.0230, false),
     (n!(0x5161995a90266e75), -0.2852, false),
     (n!(0x53f834d37bb08b3e), -0.1829, false),
@@ -46,10 +50,14 @@ const FLOORS: [(Name, f32, bool); 101] = [
     (n!(0x5a56eba6893ac7b5), -0.2683, false),
     (n!(0x5f426a1d6b4f7cb5), 0.0341, false),
     (n!(0x628ba2c689042b76), -0.2532, false),
+    (n!(0x64c6e184994582a6), -0.1288, false),
     (n!(0x66dbb4c703280e46), 0.1179, true),
     (n!(0x68d7d2f81e8a48e4), -0.0812, true),
+    (n!(0x6a621679b464b8f2), -0.0526, true),
     (n!(0x6bc8efa748e27393), -0.1829, false),
+    (n!(0x70b5843d76c24437), -0.1913, false),
     (n!(0x7296d85d819da3c0), -0.0845, false),
+    (n!(0x730a3376ade861b3), -0.1123, false),
     (n!(0x7622098154db4c6f), 0.0571, false),
     (n!(0x76f4e56e40878baa), -0.0458, false),
     (n!(0x7a75e312841c1d66), -0.1660, false),
@@ -58,8 +66,10 @@ const FLOORS: [(Name, f32, bool); 101] = [
     (n!(0x7ff664e9a6674cd6), 0.0036, false),
     (n!(0x82e3c9f87e5c6e22), -0.2617, false),
     (n!(0x84f1f71215cfb96d), -0.1604, false),
+    (n!(0x85d7e1dad585fd6b), -0.2092, false),
     (n!(0x87bf26aaf452246b), -0.1204, false),
     (n!(0x894c2633c28e8a08), -0.1829, false),
+    (n!(0x8ae28d3a03220d01), -0.1088, false),
     (n!(0x8d6ea5abdfca936d), -0.1014, false),
     (n!(0x90fe4f2387940c73), -0.0876, false),
     (n!(0x91bccdfb548e2c6e), -0.2617, false),
@@ -68,6 +78,7 @@ const FLOORS: [(Name, f32, bool); 101] = [
     (n!(0x95273fceda681693), -0.1523, false),
     (n!(0x960f099fc9a09b6b), -0.0042, false),
     (n!(0x9645921751662a12), -0.0456, false),
+    (n!(0x97f11f7f868530ad), 0.1110, true),
     (n!(0x982e949421d2180b), 0.1761, false),
     (n!(0x9d47bc8ef1722b46), -0.1913, false),
     (n!(0x9efd008752cbce99), -0.0054, false),
@@ -78,15 +89,18 @@ const FLOORS: [(Name, f32, bool); 101] = [
     (n!(0xa489be84b08ec5aa), -0.0438, true),
     (n!(0xabd164120d9cf88e), -0.2125, false),
     (n!(0xad5bcf2c8a9cd61e), -0.2444, false),
+    (n!(0xae09ad35f7a2a351), -0.2438, false),
     (n!(0xaffeab641da6c068), -0.0930, false),
     (n!(0xb444a7de2ebfc8cb), -0.1212, false),
     (n!(0xb4b0a90e69041944), -0.0049, false),
     (n!(0xb871c405051df84d), -0.1829, false),
+    (n!(0xb9ced51b585d0af3), -0.1193, false),
     (n!(0xbc05e0eee2239fa9), -0.1829, false),
     (n!(0xbd4630d233a7e378), -0.1079, false),
     (n!(0xc0f994a7bcca8ed1), -0.0000, false),
     (n!(0xc15a2b8e7d480294), -0.1829, false),
     (n!(0xc3830a82c2c7dc35), -0.1432, false),
+    (n!(0xc5159f3bd2214932), -0.0454, false),
     (n!(0xc53cc3d286cd3f79), -0.2571, false),
     (n!(0xc7f41e7168844e2d), -0.1842, false),
     (n!(0xc9edc4297d40b825), -0.1913, false),
@@ -95,9 +109,11 @@ const FLOORS: [(Name, f32, bool); 101] = [
     (n!(0xd0dc2b2e4e0ab562), -0.1810, false),
     (n!(0xd28909d34d8315b2), -0.7224, false),
     (n!(0xdc2f22de64149496), -0.1015, false),
+    (n!(0xe1d586719fa70ce4), -0.2140, false),
     (n!(0xe407734fcfcc032e), -0.2532, false),
     (n!(0xe407754fcfcc0694), -0.2532, false),
     (n!(0xe407784fcfcc0bad), -0.2532, false),
+    (n!(0xe4cc675820e5af02), -0.1014, false),
     (n!(0xe646c5f2b8e40cce), 0.0222, false),
     (n!(0xe73a5f040b7b9e28), 0.0571, false),
     (n!(0xed3ea2f1e6f81726), -0.3335, false),
@@ -124,8 +140,6 @@ pub fn stands(item: &str) -> bool {
 }
 
 fn row(item: &str) -> Option<&'static (Name, f32, bool)> {
-    let at = FLOORS
-        .binary_search_by_key(&hash(item), |(n, ..)| n.0)
-        .ok()?;
+    let at = FLOORS.binary_search_by_key(&hash(item), |(n, ..)| n.0).ok()?;
     Some(&FLOORS[at])
 }
