@@ -233,6 +233,15 @@ pub struct File {
 }
 
 impl File {
+    /// The node the graph's first command starts at: its root.
+    pub fn root(&self) -> Result<usize> {
+        ensure!(
+            self.commands.len() >= COMMAND_LEN,
+            "a graph without a command"
+        );
+        Ok(u16::from_le_bytes([self.commands[0x14], self.commands[0x15]]) as usize)
+    }
+
     pub fn parse(data: &[u8]) -> Result<Self> {
         let r = Reader(data);
         ensure!(r.bytes(0, 4)? == MAGIC, "not an AINB file");
@@ -649,6 +658,17 @@ pub(super) mod tests {
         let g = crate::ainb::Graph::parse(&bytes).unwrap();
         assert_eq!(g.nodes[1].name, "QueryFake");
         assert_eq!(g.nodes[1].outputs.len(), 2);
+    }
+
+    #[test]
+    fn the_root_is_where_the_first_command_starts() {
+        let mut f = fake(vec![Fake::default(), Fake::default()]);
+        assert!(f.root().is_err());
+        let mut command = vec![0; COMMAND_LEN];
+        command[0x14] = 1;
+        f.commands = command;
+        let back = File::parse(&f.to_bytes().unwrap()).unwrap();
+        assert_eq!(back.root().unwrap(), 1);
     }
 
     #[test]

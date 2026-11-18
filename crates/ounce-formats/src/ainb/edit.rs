@@ -171,6 +171,11 @@ impl File {
         self.nodes.iter().position(named)
     }
 
+    /// The first bool selector, which picks a child by a bool input.
+    pub fn find_bool_selector(&self) -> Option<usize> {
+        self.nodes.iter().position(|n| n.kind() == BOOL_SELECTOR)
+    }
+
     /// Copies `from`'s node `node` onto the end of this graph and gives its
     /// index. The copy reads no links and no queries, and its child plugs
     /// point nowhere until `set_child` points them, or `to_bytes` refuses.
@@ -715,6 +720,7 @@ mod tests {
         assert!(plug(&back, name, GENERIC).is_empty());
         assert_ne!(back.guid(actor).unwrap(), back.guid(name).unwrap());
         assert_eq!(back.find("OneShotFakeDeath"), Some(death));
+        assert_eq!(back.find_bool_selector(), Some(select));
     }
 
     #[test]
