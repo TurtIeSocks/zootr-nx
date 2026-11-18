@@ -20,6 +20,8 @@ use crate::standins::{StandIn, Tables, item_pack};
 use crate::warp;
 use crate::world::presence_of;
 
+mod stale;
+
 /// One kind of placed holder.
 pub struct Kind {
     /// The placed actors.
@@ -233,6 +235,8 @@ const KINDS: [&Kind; 12] = [
 /// What a thief's key check is held by, in the spoiler.
 pub const THIEF: &str = "Gerudo Thief";
 
+/// The pack of AI graphs no actor carries itself, like the drop graph.
+pub const GLOBAL_AI: &str = "Pack/AI.Global.Product.111.pack.zs";
 const DROP: &str = "Dynamic.Drop__DropActor";
 const NAME: &str = "Name";
 /// A drop that's a creature (bugs from some shrubs and a rock), not an
