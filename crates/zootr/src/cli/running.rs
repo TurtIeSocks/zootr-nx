@@ -13,6 +13,7 @@ use super::dev_args::{DevCommand, MemCommand, Switch};
 use crate::config::{Config, TestSetup};
 use crate::nav::{act, drive, shove};
 use crate::play::{self, Input};
+use crate::tracker::Flag;
 use crate::{gamedata, live, recorder, steps, warp};
 
 /// Whether `hash`'s name contains `grep`, or there's no `grep`.
@@ -161,6 +162,7 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             | DevCommand::Around { .. }
             | DevCommand::Scene { .. }
             | DevCommand::Go { plan: true, .. }
+            | DevCommand::Checked { .. }
     );
     let game = Dev::new(attach(!reads)?)?;
     let said = match cmd {
@@ -281,6 +283,19 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
                 .chain(held)
                 .collect::<Vec<_>>()
                 .join("\n")
+        }
+        DevCommand::Checked { hash } => {
+            let gd = installed_gamedata(romfs)?;
+            match crate::ledger::flag(romfs, &gd, hash)? {
+                None => "no flag".into(),
+                // A pickup's Bool exists only in a seed that shuffles it.
+                Some(Flag::Bool(h)) if gd.entry(h).is_none() => "no flag in this seed".into(),
+                Some(Flag::Bool(h)) => (game.game().get(&gd, h)? == "true").to_string(),
+                Some(Flag::Key(k)) => {
+                    let g = game.game();
+                    live::keys(g, g.global())?.contains(&k).to_string()
+                }
+            }
         }
         DevCommand::Goals { name } => {
             let setup = saved_test(&name)?;
