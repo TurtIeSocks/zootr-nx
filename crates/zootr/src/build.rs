@@ -7,7 +7,7 @@
 
 use std::io::{BufRead, BufReader, Read};
 use std::path::Path;
-use std::process::{Child, Command, ExitStatus, Stdio};
+use std::process::{Child, ExitStatus, Stdio};
 use std::sync::Mutex;
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::{Duration, Instant};
@@ -154,7 +154,7 @@ pub fn rebuild(target: &Target, game: Option<&Path>, run: &Run) -> Result<Status
     let _held = Held::take(name)?;
     run.step(Step::Rebuilding)?;
     let (program, rest) = args.split_first().context("an empty rebuild command")?;
-    let mut command = Command::new(program);
+    let mut command = crate::platform::command(program);
     // Its own process group, so a stop reaches everything it starts.
     #[cfg(unix)]
     std::os::unix::process::CommandExt::process_group(&mut command, 0);
@@ -245,11 +245,11 @@ fn drain(rx: &mpsc::Receiver<String>, run: &Run) {
 fn kill_tree(child: &mut Child) {
     let pid = child.id().to_string();
     #[cfg(unix)]
-    let killed = Command::new("kill")
+    let killed = crate::platform::command("kill")
         .args(["-TERM", "--", &format!("-{pid}")])
         .status();
     #[cfg(windows)]
-    let killed = Command::new("taskkill")
+    let killed = crate::platform::command("taskkill")
         .args(["/T", "/F", "/PID", &pid])
         .status();
     if !killed.is_ok_and(|s| s.success()) {
@@ -270,6 +270,7 @@ mod tests {
 
     use super::*;
     use crate::config::Rebuild;
+    use std::process::Command;
 
     #[test]
     fn fnv1a_matches_the_reference_values() {
