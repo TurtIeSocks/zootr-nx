@@ -237,7 +237,7 @@ fn template_for(field: &str) -> &'static str {
 
 impl Kind {
     /// Whether `actor` is one of the placed actors.
-    fn places(&self, actor: &str) -> bool {
+    pub(crate) fn places(&self, actor: &str) -> bool {
         self.actors.iter().any(|a| **a == *actor)
     }
 

@@ -61,7 +61,7 @@ impl Info {
     }
 }
 
-fn int(v: &Byml) -> Result<i64> {
+pub(crate) fn int(v: &Byml) -> Result<i64> {
     Ok(v.as_int::<i64>()?)
 }
 
@@ -407,6 +407,35 @@ pub fn add_bools(root: &mut Byml, names: &[String]) -> Result<()> {
     add(root, "Bool", names, |_| true)
 }
 
+/// Give each new placement in `twins` (a placement's hash, then its
+/// copy's) a key like the placement's: reset and area alike. A placement
+/// with no key gives its copy none. The table stays sorted by hash, as
+/// the game's is. Returns how many it added.
+pub fn add_keys(root: &mut Byml, twins: &[(u64, u64)]) -> Result<usize> {
+    let entries = table(root, KEYED)?;
+    let hash_at = |e: &Byml| -> Option<u64> { e.as_map().ok()?.get("Hash")?.as_int::<u64>().ok() };
+    let mut added = Vec::new();
+    for &(of, copy) in twins {
+        let Some(like) = entries.iter().find(|e| hash_at(e) == Some(of)) else {
+            continue;
+        };
+        let mut entry = like.as_map()?.clone();
+        entry.insert("Hash".into(), Byml::U64(copy));
+        added.push(Byml::Map(entry));
+    }
+    let n = added.len();
+    for entry in added {
+        let hash = hash_at(&entry).context("a key without a hash")?;
+        match entries.binary_search_by_key(&Some(hash), &hash_at) {
+            Ok(_) => bail!("{} already has a key {hash}", flag::GAME_DATA),
+            Err(at) => entries.insert(at, entry),
+        }
+    }
+    // A save keeps each key that's set, 8 bytes each.
+    grow_saves(root, 0, n)?;
+    Ok(n)
+}
+
 /// [`add_bools`] for the `Int` table, defaulting to 0. Each copies the first
 /// Int kept in the save the way Link's rupees and keys are.
 pub fn add_ints(root: &mut Byml, names: &[String]) -> Result<()> {
@@ -683,6 +712,38 @@ fn typed(like: Option<&Byml>, hash: u32) -> Result<Byml> {
 mod tests {
     use super::*;
     use crate::known::{field, flag};
+
+    #[test]
+    fn a_twin_gets_a_key_like_its_holders_in_order() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut doc = BymlDoc::parse(&romfs.read(PATH).unwrap()).unwrap();
+        let size = |root: &Byml| {
+            let meta = root.as_map().unwrap()[&**field::META_DATA]
+                .as_map()
+                .unwrap();
+            int(&meta[&**field::ALL_DATA_SAVE_SIZE]).unwrap()
+        };
+        let was = size(&doc.root);
+        // A rock's key resets with its area. A made-up placement has none.
+        let (rock, fake) = (6429280567576879719, 3);
+        let twins = [(rock, 1 << 62), (fake, 5)];
+        assert_eq!(add_keys(&mut doc.root, &twins).unwrap(), 1);
+        assert_eq!(size(&doc.root), was + SAVE_PAIR);
+        let keys = table(&mut doc.root, KEYED).unwrap();
+        let hashes: Vec<u64> = keys
+            .iter()
+            .map(|e| e.as_map().unwrap()["Hash"].as_int::<u64>().unwrap())
+            .collect();
+        assert!(hashes.is_sorted());
+        let entry = |h: u64| keys[hashes.iter().position(|&x| x == h).unwrap()].clone();
+        let (mut held, copy) = (entry(rock).as_map().unwrap().clone(), entry(1 << 62));
+        held.insert("Hash".into(), Byml::U64(1 << 62));
+        assert_eq!(Byml::Map(held), copy);
+        assert!(!hashes.contains(&5));
+        assert!(add_keys(&mut doc.root, &twins).is_err());
+    }
 
     #[test]
     fn knows_each_placements_own_flag() {
