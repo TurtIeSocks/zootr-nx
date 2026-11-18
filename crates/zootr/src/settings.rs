@@ -140,6 +140,7 @@ pub(crate) const OPEN_DOOR: &str = "open-door-of-time";
 pub(crate) const SCRUBS: &str = "scrubs";
 const SCRUB_PRICE: &str = "scrub-price";
 pub(crate) const NPC_GIFTS: &str = "npc-gifts";
+pub(crate) const HUNDRED_TOKENS: &str = "hundred-token-reward";
 pub(crate) const DUNGEON_REWARDS: &str = "dungeon-rewards";
 pub(crate) const SONGS: &str = "songs";
 const BRIDGE_MEDALLIONS: &str = "bridge-medallions";
@@ -342,6 +343,12 @@ pub fn schema() -> Vec<SettingDef> {
                 "NPC gifts",
                 "What people hand over becomes a check: their gifts, minigame prizes, the House of Skulltula's rewards and the Great Fairies' upgrades",
             )])
+        .chain([default_on(toggle(
+                HUNDRED_TOKENS,
+                group::SHUFFLES,
+                "100-token reward",
+                "With NPC gifts on, the House of Skulltula's reward for all 100 tokens is a check too. Off, it pays its Gold Rupee as always, and logic never sends Link for all 100",
+            ))])
         .chain([toggle(
                 DUNGEON_REWARDS,
                 group::DUNGEONS,

@@ -39,7 +39,9 @@ use crate::flows::{
     only, param, params_mut, running, string,
 };
 use crate::known::{Name, actor, field, flag, flow, item, scene};
-use crate::settings::{DUNGEON_REWARDS, MERCHANTS, NPC_GIFTS, OPEN_DOOR, SONGS, TRADE_CHAIN};
+use crate::settings::{
+    DUNGEON_REWARDS, HUNDRED_TOKENS, MERCHANTS, NPC_GIFTS, OPEN_DOOR, SONGS, TRADE_CHAIN,
+};
 use crate::{cows, dampe, grant, pickups, scrubs, shops, starting};
 
 pub struct Gift {
@@ -266,11 +268,18 @@ impl Gift {
         }
     }
 
-    /// Whether a new game with `on` deals it: its setting is on, and it's
-    /// not Rauru's with the Door of Time open.
+    /// Whether a new game with `on` deals it: its setting is on, it's not
+    /// Rauru's with the Door of Time open, and it's not the 100-token
+    /// reward with that one turned off.
     pub fn dealt(&self, on: &BTreeSet<String>) -> bool {
         self.setting().is_none_or(|s| on.contains(s))
             && !(self.flow == RAURU && on.contains(OPEN_DOOR))
+            && !(self.is_hundred_tokens() && !on.contains(HUNDRED_TOKENS))
+    }
+
+    /// Whether it's the House of Skulltula's reward for all 100 tokens.
+    fn is_hundred_tokens(&self) -> bool {
+        self.flow == flow::GATHERING_TOKEN_GOLD && self.item == actor::OBJ_RUPEE_GOLD
     }
 
     /// The flow that starts its scene, when the grant can move there: a
@@ -643,6 +652,25 @@ mod tests {
         assert!(rauru.dealt(&on(&[DUNGEON_REWARDS])));
         assert!(!rauru.dealt(&on(&[DUNGEON_REWARDS, OPEN_DOOR])));
         assert!(!rauru.dealt(&on(&[])));
+    }
+
+    #[test]
+    fn the_hundred_token_reward_needs_its_own_setting_too() {
+        let house: Vec<&Gift> = GIFTS
+            .iter()
+            .filter(|g| g.flow == flow::GATHERING_TOKEN_GOLD)
+            .collect();
+        assert_eq!(house.iter().filter(|g| g.is_hundred_tokens()).count(), 1);
+        let dealt = |ids: &[&str]| {
+            let on = ids.iter().map(|&i| i.to_owned()).collect();
+            house.iter().filter(|g| g.dealt(&on)).count()
+        };
+        assert_eq!(dealt(&[NPC_GIFTS, HUNDRED_TOKENS]), house.len());
+        assert_eq!(dealt(&[NPC_GIFTS]), house.len() - 1);
+        assert_eq!(dealt(&[HUNDRED_TOKENS]), 0);
+        // On unless turned off, so an older seed's settings deal it as before.
+        let defaults = crate::settings::toggles_on(&Default::default());
+        assert!(defaults.contains(HUNDRED_TOKENS));
     }
 
     #[test]
