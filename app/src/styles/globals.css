@@ -52,6 +52,9 @@
   --medal-water-soft: #e3ecf5;
   --medal-shadow: #6e4fae;
   --medal-shadow-soft: #ece8f4;
+  /* Archipelago marks wear the Shadow medal. */
+  --ap-soft: var(--medal-shadow-soft);
+  --ap-ink: var(--medal-shadow);
   --medal-spirit: #b8691a;
   --medal-spirit-soft: #f6ece1;
   --medal-light: #977612;
@@ -174,6 +177,8 @@
   --medal-water-soft: #24343b;
   --medal-shadow: #b39ae8;
   --medal-shadow-soft: #2f303a;
+  --ap-soft: var(--medal-shadow-soft);
+  --ap-ink: var(--medal-shadow);
   --medal-spirit: #f0aa5c;
   --medal-spirit-soft: #393324;
   --medal-light: #e7c657;
@@ -275,6 +280,8 @@
   --color-medal-water-soft: var(--medal-water-soft);
   --color-medal-shadow: var(--medal-shadow);
   --color-medal-shadow-soft: var(--medal-shadow-soft);
+  --color-ap-soft: var(--ap-soft);
+  --color-ap-ink: var(--ap-ink);
   --color-medal-spirit: var(--medal-spirit);
   --color-medal-spirit-soft: var(--medal-spirit-soft);
   --color-medal-light: var(--medal-light);

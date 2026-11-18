@@ -24,8 +24,9 @@ function hint(row: StepRow) {
   }
 }
 
-/** The running or last generate run's steps, under the Generate row. */
-export function GenerateSteps() {
+/** The running or last generate run's steps, in the folder that started
+ * it: Archipelago for a slot (`ap`), Standard for the rest. */
+export function GenerateSteps({ ap = false }: { ap?: boolean }) {
   const [steps] = useSeeds.usePath("steps");
   const [generating] = useSeeds.usePath("generating");
   // A rebuild's run has no log of its own.
@@ -33,6 +34,7 @@ export function GenerateSteps() {
   const [open, setOpen] = useState(false);
   // A run that failed before its first step has nothing to show.
   if (!steps || (!steps.rows.length && !generating)) return null;
+  if (!!steps.ap !== ap) return null;
   if (steps.end?.kind === "done" && !open) {
     return (
       <div className="flex items-center gap-2 text-[13px] text-ink-muted">

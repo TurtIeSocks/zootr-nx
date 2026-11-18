@@ -45,6 +45,8 @@ export interface Steps {
   secs: number;
   /** How many steps a run of its kind takes, for its progress. */
   total?: number;
+  /** It installs an Archipelago slot, so its steps show in that folder. */
+  ap?: boolean;
   /** What a stop left, in the stop's words. */
   stopped?: string;
 }
@@ -232,6 +234,16 @@ export function stepped(steps: Steps, event: StepEvent): Steps {
   }
 }
 
+/** What a run is, for its steps. */
+interface Run {
+  /** How many steps its kind takes. */
+  total: number;
+  /** The target it rebuilds, for a rebuild. */
+  rebuilt?: string | null;
+  /** It installs an Archipelago slot. */
+  ap?: boolean;
+}
+
 /** Sends a generate run's command a channel its steps come back on. A stop
  * isn't an error: its words go with the steps. The command's answer can
  * beat the channel's last event, so a stop is also told by its words,
@@ -239,13 +251,12 @@ export function stepped(steps: Steps, event: StepEvent): Steps {
  * whether the run finished rather than stopped. */
 async function stepping(
   send: (steps: Channel<StepEvent>) => Promise<unknown>,
-  total: number,
-  rebuilt: string | null = null,
+  { total, rebuilt = null, ap }: Run,
 ): Promise<boolean> {
   const channel = new Channel<StepEvent>((event) =>
     useSeeds.setPath("steps", (s) => s && stepped(s, event)),
   );
-  useSeeds.setPath("steps", { rows: [], end: null, secs: 0, total });
+  useSeeds.setPath("steps", { rows: [], end: null, secs: 0, total, ap });
   useSeeds.setPath("rebuilt", rebuilt);
   useSeeds.setPath("generating", true);
   try {
@@ -273,30 +284,33 @@ const installed = () => STEPS.findIndex((s) => s.step === "installing") + 1;
  * to History. `seed` is typed in, or null for random. */
 export const generate = (seed: string | null, install = true) =>
   run(() =>
-    stepping(
-      (steps) => call(commands.generate(seed, install, steps)),
-      install ? installed() : installed() - 1,
-    ),
+    stepping((steps) => call(commands.generate(seed, install, steps)), {
+      total: install ? installed() : installed() - 1,
+    }),
   );
 /** Installs one slot of an Archipelago multiworld from its `.apznx`. */
 export const generateAp = (path: string) =>
   run(() =>
-    stepping((steps) => call(commands.generateAp(path, steps)), installed()),
+    stepping((steps) => call(commands.generateAp(path, steps)), {
+      total: installed(),
+      ap: true,
+    }),
   );
 /** Installs a history entry to every target. */
 export const install = (id: number) =>
-  run(() => stepping((steps) => call(commands.install(id, steps)), 1));
+  run(() =>
+    stepping((steps) => call(commands.install(id, steps)), { total: 1 }),
+  );
 /** Rebuilds a target's game, its output in the step log, and says whether
  * it finished rather than stopped. Throws why it failed, or why the build
  * still lacks the installed hook patch. */
 export async function rebuild(name: string) {
   useSeeds.setPath("busy", true);
   try {
-    return await stepping(
-      (steps) => call(commands.rebuild(name, steps)),
-      1,
-      name,
-    );
+    return await stepping((steps) => call(commands.rebuild(name, steps)), {
+      total: 1,
+      rebuilt: name,
+    });
   } finally {
     useSeeds.setPath("busy", false);
     await refresh();

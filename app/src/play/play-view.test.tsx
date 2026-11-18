@@ -298,7 +298,7 @@ test("an AP seed installs from the .apznx picked, and a cancel does nothing", as
   backend({ installed: seed, entries: [seed] });
   show(null);
   openTab("Archipelago");
-  fireEvent.click(button("Open AP seed"));
+  fireEvent.click(button("Browse…"));
   await waitFor(() =>
     expect(generateAp).toHaveBeenCalledWith(
       "/seeds/AP_1_P1_Link.apznx",
@@ -306,7 +306,7 @@ test("an AP seed installs from the .apznx picked, and a cancel does nothing", as
     ),
   );
   picked.mockResolvedValueOnce(null);
-  fireEvent.click(button("Open AP seed"));
+  fireEvent.click(button("Browse…"));
   await waitFor(() => expect(picked).toHaveBeenCalledTimes(2));
   expect(generateAp).toHaveBeenCalledTimes(1);
 });

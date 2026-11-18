@@ -1,0 +1,159 @@
+import { Skull } from "lucide-react";
+import type { ReactNode } from "react";
+import type { Summary } from "@/bindings";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { reconnecting, refusal } from "@/play/ap-lines";
+import { connect, disconnect, useAp } from "@/stores/ap";
+import { useUi } from "@/stores/ui";
+
+/** The room's dot: hollow while there's no connection. */
+const DOT = {
+  off: "shadow-[inset_0_0_0_1.5px_var(--ink-faint)]",
+  wait: "animate-pulse bg-gold",
+  on: "bg-primary",
+  bad: "bg-danger",
+} as const;
+
+/** Props for {@link RoomStatus}. */
+interface RoomStatusProps {
+  /** The installed AP slot. */
+  entry: Summary;
+  /** Set up room, where the fields are. Without it, it opens the
+   * Archipelago folder. */
+  onSetUp?: () => void;
+}
+
+/** One line saying whether the game is talking to its Archipelago room,
+ * with the one step that fits. The bold word names the state, so the dot
+ * is never alone. */
+export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
+  const status = useAp((s) => s.status);
+  const lines = useAp((s) => s.lines);
+  const [rooms] = useUi.usePath("ap.rooms");
+  const server = rooms[entry.id]?.server ?? "";
+  const slot = entry.ap_slot ?? "";
+  const addr = server && (
+    <span className="font-mono text-[12.5px] text-ink-muted">{server}</span>
+  );
+  const go = () => void connect(entry.id);
+
+  if (status === "connected") {
+    return (
+      <Strip
+        dot="on"
+        ping
+        action={<Act ghost label="Disconnect" onClick={disconnect} />}
+      >
+        <span>
+          <b className="font-semibold">Connected</b> as {slot}
+        </span>
+        {addr}
+        {entry.death_link && <DeathLinkBadge />}
+      </Strip>
+    );
+  }
+  if (status === "connecting") {
+    return (
+      <Strip
+        dot="wait"
+        action={<Act ghost label="Cancel" onClick={disconnect} />}
+      >
+        <b className="font-semibold">
+          {reconnecting(lines) ? "Reconnecting" : "Connecting"}
+        </b>
+        {addr}
+      </Strip>
+    );
+  }
+  if (status === "refused") {
+    return (
+      <Strip dot="bad" bad action={<Act label="Try again" onClick={go} />}>
+        <span>
+          <b className="font-semibold">Refused:</b> {refusal(lines, slot)}
+        </span>
+      </Strip>
+    );
+  }
+  if (!server) {
+    const setUp = onSetUp ?? (() => useUi.setPath("play.tab", "archipelago"));
+    return (
+      <Strip dot="off" action={<Act label="Set up room" onClick={setUp} />}>
+        <b className="font-semibold">No room yet</b>
+        <span className="text-ink-muted">
+          Add the server in the Archipelago tab
+        </span>
+      </Strip>
+    );
+  }
+  return (
+    <Strip dot="off" action={<Act primary label="Connect" onClick={go} />}>
+      <b className="font-semibold">Not connected</b>
+      {addr}
+    </Strip>
+  );
+}
+
+/** The DeathLink mark, for a slot that plays it. */
+export function DeathLinkBadge() {
+  return (
+    <Badge variant="danger" shape="square" title="This slot plays DeathLink">
+      <Skull />
+      DeathLink
+    </Badge>
+  );
+}
+
+/** Props for {@link Strip}. */
+interface StripProps {
+  dot: keyof typeof DOT;
+  /** The dot pings, for a live connection. */
+  ping?: boolean;
+  /** A refusal's danger ground. */
+  bad?: boolean;
+  action: ReactNode;
+  children: ReactNode;
+}
+
+/** The room line's sunken strip: dot, words, then its action. */
+function Strip({ dot, ping, bad, action, children }: StripProps) {
+  return (
+    <div
+      role="status"
+      className={cn(
+        "flex items-center gap-3 rounded-md py-2 pr-2 pl-3 text-[13px]",
+        bad ? "bg-danger-soft text-danger-ink" : "bg-surface-sunken",
+      )}
+    >
+      <span className="relative flex size-[7px] shrink-0">
+        {ping && (
+          <span className="absolute inset-0 animate-ping rounded-full bg-primary opacity-60" />
+        )}
+        <span className={cn("relative size-[7px] rounded-full", DOT[dot])} />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+        {children}
+      </span>
+      {action}
+    </div>
+  );
+}
+
+/** Props for {@link Act}. */
+interface ActProps {
+  label: string;
+  onClick: () => void;
+  primary?: boolean;
+  ghost?: boolean;
+}
+
+/** The room line's one action. */
+function Act({ label, onClick, primary, ghost }: ActProps) {
+  const variant = primary ? "default" : ghost ? "ghost" : "secondary";
+  return (
+    <Button size="sm" variant={variant} onClick={onClick}>
+      {label}
+    </Button>
+  );
+}

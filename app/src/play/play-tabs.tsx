@@ -1,8 +1,8 @@
 import { Globe, History, Sparkles } from "lucide-react";
 import { FolderTabs } from "@/components/folder-tabs";
-import { ApClient } from "@/play/ap-client";
+import { ArchipelagoPanel } from "@/play/archipelago-panel";
 import { HistoryList } from "@/play/history-list";
-import { NewSeed, OpenApButton } from "@/play/new-seed";
+import { NewSeed } from "@/play/new-seed";
 import { useAp } from "@/stores/ap";
 import { useSeeds } from "@/stores/seeds";
 import { type PlayTab, useUi } from "@/stores/ui";
@@ -19,7 +19,6 @@ function useOpenTab(): PlayTab {
 export function PlayTabs() {
   const tab = useOpenTab();
   const connected = useAp((s) => s.status === "connected");
-  const installed = useSeeds((s) => s.history.installed);
   const n = useSeeds((s) => s.history.entries.length);
   return (
     <FolderTabs
@@ -44,12 +43,7 @@ export function PlayTabs() {
               className="size-[7px] rounded-full bg-primary"
             />
           ),
-          panel: (
-            <div className="flex flex-col gap-3 p-4">
-              <OpenApButton />
-              {installed?.ap_slot && <ApClient entry={installed} />}
-            </div>
-          ),
+          panel: <ArchipelagoPanel />,
         },
         {
           id: "history",
