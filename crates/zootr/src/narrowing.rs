@@ -9,7 +9,7 @@ use crate::known::{Name, item};
 use crate::settings::{self, NewGame};
 use crate::{cows, dampe, gifts, keys, scrubs, shops};
 
-/// One narrowing from the EIE spec's list: #1, #4, #8 and #9.
+/// One narrowing from the EIE spec's list: #1, #4 and #8.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Narrowing {
     /// A key copy at a holder whose get the hook can't credit.
@@ -19,8 +19,6 @@ pub enum Narrowing {
     AsksPouch,
     /// A minigame's own event picks what it gives.
     Minigame,
-    /// The remix's scrub seed, not understood yet.
-    ScrubSeed,
 }
 
 impl Narrowing {
@@ -30,7 +28,6 @@ impl Narrowing {
             Self::Uncredited => 1,
             Self::AsksPouch => 4,
             Self::Minigame => 8,
-            Self::ScrubSeed => 9,
         }
     }
 }
@@ -97,9 +94,6 @@ pub(crate) fn left_out(c: &ItemCheck, open: Let) -> Option<LeftOut> {
         || open.keys && keys::is_dungeon_key(&c.item);
     if c.item.starts_with("Item_Dungeon_") && !moves {
         return Some(LeftOut::Setting);
-    }
-    if c.item == item::SCRUB_BUSINESS_SEED {
-        return Some(LeftOut::Narrowed(Narrowing::ScrubSeed));
     }
     if dampe::REPEAT_CHESTS.contains(&c.hash) {
         return Some(LeftOut::Maintainer);
@@ -298,8 +292,8 @@ pub(crate) mod tests {
             why(&chest(1, item::DUNGEON_MAP.get())),
             Some(LeftOut::Setting)
         );
-        let seed = chest(1, item::SCRUB_BUSINESS_SEED.get());
-        assert_eq!(why(&seed), Some(LeftOut::Narrowed(Narrowing::ScrubSeed)));
+        // Nothing reads the Business Scrub Seed, so its chests are dealt.
+        assert_eq!(why(&chest(1, item::SCRUB_BUSINESS_SEED.get())), None);
         assert_eq!(why(&game), Some(LeftOut::Narrowed(Narrowing::Minigame)));
         for hash in dampe::REPEAT_CHESTS {
             let repeat = ItemCheck {
