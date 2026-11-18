@@ -71,7 +71,16 @@ impl Shared {
                     .0;
             },
             Ask::Free { session } => answer.yes = Some(q.free(&session)),
-            Ask::Renew { session, here } => answer.game = Some(q.renew(&session, &here, now())?),
+            Ask::Renew {
+                session,
+                here,
+                look,
+            } => {
+                answer.game = Some(match look {
+                    true => q.look(&session, &here)?,
+                    false => q.renew(&session, &here, now())?,
+                })
+            }
             Ask::Take { game } => q.take(&game, now())?,
             Ask::Leave { game } => q.leave(&game)?,
             Ask::Reserve { game, session } => q.reserve(&game, session.as_deref())?,
@@ -228,6 +237,7 @@ mod tests {
             .ask(Ask::Renew {
                 session: "a".into(),
                 here: "".into(),
+                look: false,
             })
             .unwrap();
         assert_eq!(renew.game.as_deref(), Some("near"));
@@ -243,6 +253,7 @@ mod tests {
             .ask(Ask::Renew {
                 session: "a".into(),
                 here: "".into(),
+                look: false,
             })
             .unwrap_err();
         assert!(refused.to_string().contains("isn't holding"), "{refused}");
@@ -292,6 +303,7 @@ mod tests {
         let renew = turn.ask(Ask::Renew {
             session: "ab".into(),
             here: "far".into(),
+            look: false,
         });
         assert_eq!(renew.unwrap().game.as_deref(), Some("far"));
     }
@@ -329,6 +341,7 @@ mod tests {
             .ask(Ask::Renew {
                 session: "a".into(),
                 here: "".into(),
+                look: false,
             })
             .unwrap_err();
         assert!(!crate::turn::unreachable(&refused), "{refused:#}");
