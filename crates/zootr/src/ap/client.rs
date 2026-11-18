@@ -577,29 +577,67 @@ mod tests {
         );
     }
 
+    /// The core on `game` as `seed`'s slot, against the room at `server`,
+    /// for `secs`.
+    fn played(server: &str, seed: &ApSeed, mut game: Fake, secs: u64) -> (Fake, Vec<Note>) {
+        let romfs = crate::game::dev_dump().expect("the dump");
+        let book = Book::new(&romfs, seed).unwrap();
+        let room = Room {
+            server: server.into(),
+            slot: seed.slot.clone(),
+            password: None,
+        };
+        let (send, stop) = std::sync::mpsc::channel();
+        let stopper = thread::spawn(move || {
+            thread::sleep(Duration::from_secs(secs));
+            drop(send);
+        });
+        let mut notes = vec![];
+        run(&room, &book, &mut game, &stop, &mut |n| notes.push(n));
+        stopper.join().unwrap();
+        (game, notes)
+    }
+
+    /// The room's server and the `.apznx` files in `ZOOTR_AP_SEED`
+    /// (comma-separated).
+    fn room() -> (String, Vec<ApSeed>) {
+        let (Ok(server), Ok(paths)) = (
+            std::env::var("ZOOTR_AP_SERVER"),
+            std::env::var("ZOOTR_AP_SEED"),
+        ) else {
+            panic!("set ZOOTR_AP_SERVER and ZOOTR_AP_SEED");
+        };
+        let seeds = (paths.split(','))
+            .map(|p| ApSeed::read(std::path::Path::new(p)).unwrap())
+            .collect();
+        (server, seeds)
+    }
+
+    /// The notes say it connected, sent, reached the goal, and never had
+    /// trouble.
+    fn went_well(notes: &[Note]) {
+        let said = |f: fn(&Note) -> bool| notes.iter().any(f);
+        assert!(said(|n| matches!(n, Note::Connected)), "{notes:?}");
+        assert!(
+            said(|n| matches!(n, Note::Sent(s) if !s.is_empty())),
+            "{notes:?}"
+        );
+        assert!(said(|n| matches!(n, Note::Goal)), "{notes:?}");
+        assert!(!said(|n| matches!(n, Note::Trouble(_))), "{notes:?}");
+    }
+
     /// Against a real room: `ZOOTR_AP_SERVER` hosting the `.apznx` at
     /// `ZOOTR_AP_SEED`, whose other slot is ChecksFinder's `Finder`. The core
     /// sends checks and the goal, and gives what Finder's checks find for us.
     #[test]
     #[ignore = "needs a running Archipelago room"]
     fn a_room_takes_checks_and_the_goal_and_sends_items() {
-        let (Ok(server), Ok(path)) = (
-            std::env::var("ZOOTR_AP_SERVER"),
-            std::env::var("ZOOTR_AP_SEED"),
-        ) else {
-            panic!("set ZOOTR_AP_SERVER and ZOOTR_AP_SEED");
-        };
-        let romfs = crate::game::dev_dump().expect("the dump");
-        let seed = ApSeed::read(std::path::Path::new(&path)).unwrap();
-        let book = Book::new(&romfs, &seed).unwrap();
-        let room = Room {
-            server: server.clone(),
-            slot: seed.slot.clone(),
-            password: None,
-        };
+        let (server, seeds) = room();
+        let seed = &seeds[0];
+        let finder_server = server.clone();
         let finder = thread::spawn(move || {
             let mut conn: ap::Connection = ap::Connection::new(
-                server,
+                finder_server,
                 "Finder",
                 Some("ChecksFinder"),
                 ConnectionOptions::new(),
@@ -619,28 +657,57 @@ mod tests {
             }
             assert!(done, "Finder never connected");
         });
-        let mut game = Fake {
+        let game = Fake {
             checked: seed.placements.keys().take(3).copied().collect(),
             goal: true,
             ..Fake::default()
         };
-        let (send, stop) = std::sync::mpsc::channel();
-        let stopper = thread::spawn(move || {
-            thread::sleep(Duration::from_secs(10));
-            drop(send);
-        });
-        let mut notes = vec![];
-        run(&room, &book, &mut game, &stop, &mut |n| notes.push(n));
+        let (game, notes) = played(&server, seed, game, 10);
         finder.join().unwrap();
-        stopper.join().unwrap();
-        let said = |f: fn(&Note) -> bool| notes.iter().any(f);
-        assert!(said(|n| matches!(n, Note::Connected)), "{notes:?}");
+        went_well(&notes);
         assert!(
-            said(|n| matches!(n, Note::Sent(s) if s.len() == 3)),
+            notes
+                .iter()
+                .any(|n| matches!(n, Note::Sent(s) if s.len() == 3)),
             "{notes:?}"
         );
-        assert!(said(|n| matches!(n, Note::Goal)), "{notes:?}");
         assert!(!game.given.is_empty(), "nothing given: {notes:?}");
-        assert!(!said(|n| matches!(n, Note::Trouble(_))), "{notes:?}");
+    }
+
+    /// M4 without the games: two of our slots in one room
+    /// (`ZOOTR_AP_SEED=a.apznx,b.apznx`), each on a fake game that has
+    /// made every check. Each gets the items the other found for it, once
+    /// each, and both reach the goal.
+    #[test]
+    #[ignore = "needs a running Archipelago room"]
+    fn two_of_ours_trade_items_both_ways() {
+        let (server, seeds) = room();
+        assert_eq!(seeds.len(), 2, "two .apznx in ZOOTR_AP_SEED");
+        let runs: Vec<_> = (seeds.iter().cloned())
+            .map(|seed| {
+                let server = server.clone();
+                thread::spawn(move || {
+                    let game = Fake {
+                        checked: seed.placements.keys().copied().collect(),
+                        goal: true,
+                        ..Fake::default()
+                    };
+                    played(&server, &seed, game, 15)
+                })
+            })
+            .collect();
+        for (seed, run) in seeds.iter().zip(runs) {
+            let (game, notes) = run.join().unwrap();
+            went_well(&notes);
+            let foreign = (seed.placements.values())
+                .filter(|p| matches!(p, super::super::Placed::Foreign(_)))
+                .count();
+            assert!(foreign > 0, "{} places nothing for the other", seed.slot);
+            assert!(
+                !game.given.is_empty(),
+                "{} got nothing: {notes:?}",
+                seed.slot
+            );
+        }
     }
 }
