@@ -126,7 +126,8 @@ impl Input for Mac {
     }
 
     fn launch(&mut self, save: Option<&Path>) -> Result<()> {
-        platform::open_app(&self.app, &self.args, &with_save(&self.env, save))
+        let env = with_save(&self.env, save);
+        platform::open_game(&self.app, &self.args, &env, self.control.as_deref())
     }
 
     /// Every process of the app, the game and its host alike: a host left

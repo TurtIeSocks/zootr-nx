@@ -5,7 +5,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow, bail};
 
 /// A per-user folder zootr keeps its own subfolder in.
 #[derive(Clone, Copy)]
@@ -113,6 +113,28 @@ pub fn running(app: &Path) -> bool {
     })
 }
 
+/// Opens a game like [`open_app`], first emptying its control file when
+/// this starts it: the game reads the file from the top, so lines the last
+/// run left would replay before any new one.
+pub fn open_game(
+    app: &Path,
+    args: &[String],
+    env: &[(String, String)],
+    control: Option<&Path>,
+) -> Result<()> {
+    fresh_control(app, control)?;
+    open_app(app, args, env)
+}
+
+fn fresh_control(app: &Path, control: Option<&Path>) -> Result<()> {
+    match control {
+        Some(c) if c.exists() && !running(app) => {
+            std::fs::write(c, "").with_context(|| format!("emptying {}", c.display()))
+        }
+        _ => Ok(()),
+    }
+}
+
 /// Opens `app`, passing `args` and `env` when this starts it.
 pub fn open_app(app: &Path, args: &[String], env: &[(String, String)]) -> Result<()> {
     if cfg!(target_os = "macos") {
@@ -208,6 +230,20 @@ mod tests {
         });
         std::fs::remove_dir_all(&dir).ok();
         assert_eq!(read.as_deref(), Some("/run/c.sock"));
+    }
+
+    #[test]
+    fn a_start_empties_the_control_file_and_creates_none() {
+        let dir = std::env::temp_dir().join(format!("zootr-fresh-ctl-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let (app, control) = (dir.join("none.app"), dir.join("input.txt"));
+        std::fs::write(&control, "A\nLUp~1.5\n").unwrap();
+        fresh_control(&app, Some(&control)).unwrap();
+        assert_eq!(std::fs::read_to_string(&control).unwrap(), "");
+        let missing = dir.join("missing.txt");
+        fresh_control(&app, Some(&missing)).unwrap();
+        assert!(!missing.exists());
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
