@@ -129,20 +129,31 @@ fn copy(from: &Path, to: &Path, slot: Option<u8>) -> Result<()> {
     for entry in std::fs::read_dir(from).with_context(|| format!("reading {}", from.display()))? {
         let entry = entry?;
         let name = entry.file_name().to_string_lossy().into_owned();
-        if entry.file_type()?.is_dir() {
-            let Some(n) = slot_of(&name) else {
-                continue;
-            };
-            match slot {
+        let dir = entry.file_type()?.is_dir();
+        if !is_save(&name, dir) {
+            continue;
+        }
+        match (dir, slot_of(&name)) {
+            (true, Some(n)) => match slot {
                 Some(want) if want != n => {}
                 Some(_) => copy_dir(&entry.path(), &to.join("slot_00"))?,
                 None => copy_dir(&entry.path(), &to.join(&name))?,
+            },
+            _ => {
+                std::fs::copy(entry.path(), to.join(&name))?;
             }
-        } else if name.ends_with(".sav") {
-            std::fs::copy(entry.path(), to.join(&name))?;
         }
     }
     Ok(())
+}
+
+/// Whether `name`, a folder when `dir`, is part of a save folder's save:
+/// a `slot_NN` folder or a `.sav` file.
+pub(crate) fn is_save(name: &str, dir: bool) -> bool {
+    match dir {
+        true => slot_of(name).is_some(),
+        false => name.ends_with(".sav"),
+    }
 }
 
 /// The number of a `slot_NN` folder's name.

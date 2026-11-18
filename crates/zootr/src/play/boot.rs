@@ -14,6 +14,7 @@ use super::{Boot, Input};
 use crate::build::{self, Status};
 use crate::config::{Config, Target};
 use crate::dev::Dev;
+use crate::kept;
 use crate::live::Game;
 use crate::recorder;
 
@@ -198,33 +199,36 @@ fn by_memory(target: &Target, since: Duration) -> Boot {
     }
 }
 
-/// Make the save folder `to` the one at `from`. Below `to`'s top level,
-/// whatever `from` lacks goes: the game keeps writing autosaves into slots
-/// `from` never had, and Continue loads the newest. `to`'s own neighbours
-/// of the save stay.
+/// Make the save folder `to` the one at `from`. Whatever save `from`
+/// lacks goes: the game keeps writing autosaves into slots `from` never
+/// had, and Continue loads the newest. At `to`'s top level that's its
+/// `slot_NN` folders and `.sav` files, so its other neighbours of the
+/// save stay; below it, everything.
 pub fn restore(from: &Path, to: &Path) -> Result<()> {
-    mirror(from, to, false)
+    mirror(from, to, kept::is_save)
 }
 
-fn mirror(from: &Path, to: &Path, prune: bool) -> Result<()> {
+fn mirror(from: &Path, to: &Path, prune: fn(&str, bool) -> bool) -> Result<()> {
     std::fs::create_dir_all(to)?;
     let mut kept = HashSet::new();
     for entry in std::fs::read_dir(from)? {
         let entry = entry?;
         let dest = to.join(entry.file_name());
         if entry.file_type()?.is_dir() {
-            mirror(&entry.path(), &dest, true)?;
+            mirror(&entry.path(), &dest, |_, _| true)?;
         } else {
             std::fs::copy(entry.path(), &dest)?;
         }
         kept.insert(entry.file_name());
     }
-    for entry in std::fs::read_dir(to)?.filter(|_| prune) {
+    for entry in std::fs::read_dir(to)? {
         let entry = entry?;
-        if kept.contains(&entry.file_name()) {
+        let dir = entry.file_type()?.is_dir();
+        let name = entry.file_name();
+        if kept.contains(&name) || !prune(&name.to_string_lossy(), dir) {
             continue;
         }
-        match entry.file_type()?.is_dir() {
+        match dir {
             true => std::fs::remove_dir_all(entry.path())?,
             false => std::fs::remove_file(entry.path())?,
         }
@@ -353,6 +357,33 @@ mod tests {
         assert!(shared.join(SHADER_CACHE[0]).join("a.keys").exists());
         assert!(shared.join(SHADER_CACHE[1]).exists());
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn a_restore_into_a_profile_folder_drops_its_stale_slots() {
+        // A kept save holds the slots at its top, and so does the profile
+        // folder a target's save folder names: an autosave left beside
+        // them was what Continue loaded (other machine, 2026-11-17).
+        let root = std::env::temp_dir().join(format!("zootr-profile-{}", std::process::id()));
+        let (kept, saves) = (root.join("kept"), root.join("profile"));
+        let write = |path: PathBuf, text: &str| {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, text).unwrap();
+        };
+        write(kept.join("slot_00/progress.sav"), "start");
+        write(kept.join("account.sav"), "account");
+        write(saves.join("slot_00/progress.sav"), "played");
+        write(saves.join("slot_02/progress.sav"), "autosave");
+        write(saves.join("option.sav"), "stray");
+        write(saves.join("cache/keep"), "the runner's own");
+        restore(&kept, &saves).unwrap();
+        let read = |rel: &str| std::fs::read_to_string(saves.join(rel)).ok();
+        assert_eq!(read("slot_00/progress.sav").as_deref(), Some("start"));
+        assert_eq!(read("account.sav").as_deref(), Some("account"));
+        assert!(!saves.join("slot_02").exists());
+        assert_eq!(read("option.sav"), None);
+        assert_eq!(read("cache/keep").as_deref(), Some("the runner's own"));
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
