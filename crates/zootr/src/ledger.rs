@@ -9,11 +9,13 @@ use ounce_formats::{ActorPack, Romfs};
 use serde::Serialize;
 
 use crate::checks::{self, GYAML, ItemCheck, actors, banc_files, hash_of, load_bancs, str_field};
+use crate::gamedata::GameData;
 use crate::generate::Spot;
 use crate::known::{Name, actor};
 use crate::narrowing::{self, LeftOut, Let};
 use crate::settings::{self, Kind, NewGame, Settings, group};
 use crate::shuffle::{self, Fixed, Placement};
+use crate::tracker::{Flag, Tracker};
 use crate::{cows, gifts, pickups, scrubs, shops};
 
 /// Bumped whenever a row changes shape, so the app refuses a ledger it
@@ -216,8 +218,8 @@ pub fn build(romfs: &Romfs) -> Result<Ledger> {
         })
         .collect();
     crate::places::fill(romfs, &mut spots)?;
-    let gd = crate::gamedata::GameData::load(romfs)?;
-    let tracker = crate::tracker::Tracker::new(&gd, &spots)?;
+    let gd = GameData::load(romfs)?;
+    let tracker = Tracker::new(&gd, &spots)?;
     let dealt_spots: Vec<Spot> = (spots.iter())
         .filter(|s| free.contains(&s.hash))
         .cloned()
@@ -342,6 +344,26 @@ fn explain(c: &ItemCheck, new_game: &NewGame, breakable: &BTreeSet<String>) -> W
         .map_or(Why::Unknown, |(_, why)| why.clone())
 }
 
+/// What the tracker reads once check `hash` is done in a vanilla game,
+/// as the Checks tab does. `None` when it has no known flag.
+pub fn flag(romfs: &Romfs, gd: &GameData, hash: u64) -> Result<Option<Flag>> {
+    let new_game = NewGame::from_settings(&every_shuffle(), &[])?;
+    let dealt = checks::dealt(romfs, &new_game)?;
+    let check = match dealt.into_iter().find(|c| c.hash == hash) {
+        Some(c) => c,
+        None => (census(romfs, &breakables(romfs)?)?.into_iter())
+            .find(|c| c.hash == hash)
+            .with_context(|| format!("no check {hash}"))?,
+    };
+    let held = [check.item.as_str()].into_iter().filter(|i| !i.is_empty());
+    let names = crate::names::Names::load(romfs, held)?;
+    let placement = Placement {
+        check: &check,
+        item: &check.item,
+    };
+    Ok(Tracker::new(gd, &[Spot::new(&placement, &names)])?.flag(hash))
+}
+
 /// Every placement that holds something, dealt or not: what drops a
 /// fixed item, every gift and scrub, and every breakable, whose drop
 /// is random unless placed.
@@ -451,6 +473,13 @@ mod tests {
             .map(|r| r.hash)
             .collect();
         assert_eq!(untracked, [0u64; 0], "dealt checks with no tracker flag");
+        // `dev checked` finds each kind's flag as the tracker column does.
+        let gd = GameData::load(&romfs).unwrap();
+        let mut kinds = BTreeSet::new();
+        for r in ledger.rows.iter().filter(|r| kinds.insert(r.kind)) {
+            let one = flag(&romfs, &gd, r.hash).unwrap().map(|f| f.to_string());
+            assert_eq!(one, r.tracker, "{} ({:?})", r.hash, r.kind);
+        }
         let unknown: Vec<_> = (ledger.rows.iter())
             .filter(|r| r.left_out == Some(Why::Unknown))
             .map(|r| (r.hash, &r.holder))
