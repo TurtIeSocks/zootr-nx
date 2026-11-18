@@ -288,6 +288,8 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             let gd = installed_gamedata(romfs)?;
             match crate::ledger::flag(romfs, &gd, hash)? {
                 None => "no flag".into(),
+                // A pickup's Bool exists only in a seed that shuffles it.
+                Some(Flag::Bool(h)) if gd.entry(h).is_none() => "no flag in this seed".into(),
                 Some(Flag::Bool(h)) => (game.game().get(&gd, h)? == "true").to_string(),
                 Some(Flag::Key(k)) => {
                     let g = game.game();

@@ -129,7 +129,8 @@ pub(super) enum DevCommand {
     /// Read a saved test setup's goals: ✓ or ✗ and the value each holds.
     Goals { name: String },
     /// Whether a check is done in the running game, read from the flag the
-    /// Checks tab reads: `true`, `false` or `no flag`. For a vanilla game.
+    /// Checks tab reads: `true`, `false`, `no flag`, or `no flag in this seed`
+    /// for a Bool only a seed that shuffles it adds.
     Checked { hash: u64 },
 }
 
