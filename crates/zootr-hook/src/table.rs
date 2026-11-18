@@ -5,7 +5,7 @@
 
 use crate::ui::MultiSlot;
 
-pub const MAGIC: &[u8; 4] = b"ZLT8";
+pub const MAGIC: &[u8; 4] = b"ZLT9";
 
 /// The header's flag for a seed whose bombchus need no bomb bag.
 pub const FREE_BOMBCHUS: u32 = 1;
@@ -29,7 +29,7 @@ pub struct Header {
     pub credits: u32,
     /// The size of the [`Slot`] after them, 0 for none.
     pub slot: u32,
-    /// The size of the [`Spot`] list at [`crate::SPOTS`].
+    /// How many [`Spot`]s the seed wrote to GameData.
     pub spots: u32,
 }
 
@@ -106,9 +106,11 @@ offsets! {
     release_link,
     /// What an empty actor link points at.
     link_empty,
-    /// GameData's Bool getter and setter, by name hash.
+    /// GameData's Bool getter and setter, and its UInt64 getter, by name
+    /// hash.
     get_bool,
     set_bool,
+    get_u64,
     /// The pointers to the event manager, GameData and the world.
     events,
     gamedata,
@@ -154,24 +156,23 @@ pub struct Table<'a> {
     lines: &'a [u8],
     credits: &'a [u8],
     pub slot: Option<Slot<'a>>,
-    spots: &'a [u8],
+    /// How many [`Spot`]s the seed wrote to GameData.
+    pub spots: u32,
 }
 
 impl<'a> Table<'a> {
-    /// The table `header` starts, `body` being what follows it and
-    /// `spots` the spot list.
-    pub fn parse(header: &'a Header, body: &'a [u8], spots: &'a [u8]) -> Option<Self> {
+    /// The table `header` starts, `body` being what follows it.
+    pub fn parse(header: &'a Header, body: &'a [u8]) -> Option<Self> {
         let (lines, rest) = body.split_at_checked(header.size as usize)?;
         let (credits, rest) = rest.split_at_checked(header.credits as usize)?;
         let slot = rest.get(..header.slot as usize)?;
-        let spots = spots.get(..header.spots as usize)?;
         (header.magic == *MAGIC).then_some(Self {
             offsets: &header.offsets,
             flags: header.flags,
             lines,
             credits,
             slot: Slot::parse(slot),
-            spots,
+            spots: header.spots,
         })
     }
 
@@ -187,23 +188,6 @@ impl<'a> Table<'a> {
             rest = &after[len as usize + 1 + Credit::SIZE..];
         }
         None
-    }
-
-    /// The flag of the holder whose drop Link just took: `name`, lying
-    /// `at`. The nearest within [`REACH`] that drops that name, of those
-    /// not yet `picked`. Two holders dropping the same name that close
-    /// may swap ticks, which leaves Link the same item either way.
-    pub fn spot(&self, name: &[u8], at: [f32; 3], picked: impl Fn(u32) -> bool) -> Option<u32> {
-        let name = Spot::name_hash(name);
-        let (chunks, _) = self.spots.as_chunks::<{ Spot::SIZE }>();
-        chunks
-            .iter()
-            .map(Spot::read)
-            .filter(|s| s.name == name)
-            .map(|s| (s.distance2(at), s.flag))
-            .filter(|&(d, flag)| d <= REACH * REACH && !picked(flag))
-            .min_by(|a, b| a.0.total_cmp(&b.0))
-            .map(|(_, flag)| flag)
     }
 
     /// Each line: its number, whether it's [`KEYED`], and its levels.
@@ -284,9 +268,36 @@ impl Credit {
 /// where it lands.
 pub const REACH: f32 = 8.0;
 
-/// A twinned holder (a pot, box, rock or hive) in the table: the Bool its
-/// drop sets once taken, the drop's name by [`Spot::name_hash`], and where
-/// the holder stands, in whole metres. Little endian.
+/// The flag of the holder whose drop Link just took: `name`, lying `at`.
+/// The nearest of `spots` within [`REACH`] that drops that name, of those
+/// not yet `picked`. Two holders dropping the same name that close may
+/// swap ticks, which leaves Link the same item either way.
+pub fn nearest(
+    spots: impl Iterator<Item = Spot>,
+    name: &[u8],
+    at: [f32; 3],
+    picked: impl Fn(u32) -> bool,
+) -> Option<u32> {
+    let name = Spot::name_hash(name);
+    let mut best: Option<(f32, u32)> = None;
+    for s in spots.filter(|s| s.name == name) {
+        let d = s.distance2(at);
+        let nearer = best.is_none_or(|(b, _)| d < b);
+        if nearer && d <= REACH * REACH && !picked(s.flag) {
+            best = Some((d, s.flag));
+        }
+    }
+    best.map(|(_, flag)| flag)
+}
+
+/// Where the spots' GameData hashes start, two to a spot: murmur3 of
+/// `Rando_Spot`, so the hook needs no name hashing.
+pub const SPOT_KEY: u32 = 0xa5b7_e07e;
+
+/// A twinned holder (a pot, box, rock or hive): the Bool its drop sets
+/// once taken, the drop's name by [`Spot::name_hash`], and where the holder
+/// stands, in whole metres. The seed writes each as two unsaved UInt64s in
+/// GameData, at [`Spot::key`].
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Spot {
     pub flag: u32,
@@ -295,27 +306,33 @@ pub struct Spot {
 }
 
 impl Spot {
-    const SIZE: usize = 12;
+    /// The GameData hash of spot `i`'s `word`: 0 its flag and name, 1
+    /// where it stands.
+    pub fn key(i: u32, word: u32) -> u32 {
+        SPOT_KEY.wrapping_add(i.wrapping_mul(2)).wrapping_add(word)
+    }
 
     /// The low half of a name's FNV-1a.
     pub fn name_hash(name: &[u8]) -> u16 {
         fnv(name) as u16
     }
 
-    fn read(&[f0, f1, f2, f3, n0, n1, x0, x1, y0, y1, z0, z1]: &[u8; Self::SIZE]) -> Self {
+    /// The spot from its two GameData words.
+    pub fn from_words([who, at]: [u64; 2]) -> Self {
         Self {
-            flag: u32::from_le_bytes([f0, f1, f2, f3]),
-            name: u16::from_le_bytes([n0, n1]),
-            at: [[x0, x1], [y0, y1], [z0, z1]].map(i16::from_le_bytes),
+            flag: who as u32,
+            name: (who >> 32) as u16,
+            at: [0, 16, 32].map(|shift| (at >> shift) as u16 as i16),
         }
     }
 
+    /// Its two GameData words: the flag and name, then where it stands.
     #[cfg(not(target_os = "none"))]
-    fn bytes(self) -> impl Iterator<Item = u8> {
-        let at = self.at.into_iter().flat_map(i16::to_le_bytes);
-        (self.flag.to_le_bytes().into_iter())
-            .chain(self.name.to_le_bytes())
-            .chain(at)
+    pub fn words(self) -> [u64; 2] {
+        let who = u64::from(self.flag) | u64::from(self.name) << 32;
+        let at = (self.at.iter().zip([0, 16, 32]))
+            .fold(0, |at, (&v, shift)| at | u64::from(v as u16) << shift);
+        [who, at]
     }
 
     fn distance2(&self, at: [f32; 3]) -> f32 {
@@ -486,8 +503,8 @@ pub fn after_grant<'a>(
 
 /// The table for `lines`, then the [`KEYED`] lines `keyed`, each lowest
 /// level first as (drop, pouch name), with the seed's `flags`, `credits`
-/// by name, the `slot` Link cycles and the size of the holders' `spots`,
-/// which [`spot_list`] writes apart.
+/// by name, the `slot` Link cycles and how many holders' `spots` the seed
+/// writes to GameData.
 #[cfg(not(target_os = "none"))]
 pub fn encode(
     offsets: Offsets,
@@ -531,20 +548,14 @@ pub fn encode(
         }
     }
     let slot = body.len() - size - credits;
-    let words = [size, credits, slot, spots.len() * Spot::SIZE]
-        .map(|n| u32::try_from(n).expect("table under 4 GB"));
+    let words =
+        [size, credits, slot, spots.len()].map(|n| u32::try_from(n).expect("table under 4 GB"));
     let mut out = MAGIC.to_vec();
     for v in offsets.words().into_iter().chain([flags]).chain(words) {
         out.extend(v.to_le_bytes());
     }
     out.extend(body);
     out
-}
-
-/// The spot list for [`crate::SPOTS`].
-#[cfg(not(target_os = "none"))]
-pub fn spot_list(spots: &[Spot]) -> Vec<u8> {
-    spots.iter().flat_map(|s| s.bytes()).collect()
 }
 
 #[cfg(test)]
@@ -611,9 +622,8 @@ mod tests {
             (header.size + header.credits + header.slot) as usize,
             bytes.len() - HEADER
         );
-        let spots = spot_list(SPOTS);
-        assert_eq!(header.spots as usize, spots.len());
-        f(Table::parse(&header, &bytes[HEADER..], &spots).unwrap())
+        assert_eq!(header.spots as usize, SPOTS.len());
+        f(Table::parse(&header, &bytes[HEADER..]).unwrap())
     }
 
     fn give(owned: &[&str], name: &str) -> Option<String> {
@@ -724,7 +734,7 @@ mod tests {
     fn a_wrong_magic_is_no_table() {
         let mut bytes = encode(offsets(), 0, &[HOOK], &[], &[], None, &[]);
         bytes[0] = b'X';
-        assert!(Table::parse(&Header::read(&bytes), &bytes[HEADER..], &[]).is_none());
+        assert!(Table::parse(&Header::read(&bytes), &bytes[HEADER..]).is_none());
     }
 
     #[test]
@@ -746,11 +756,9 @@ mod tests {
     #[test]
     fn a_table_cut_short_is_no_table() {
         let bytes = encode(offsets(), 0, &[HOOK], &[], CREDITS, Some(&SLOT), SPOTS);
-        let (header, spots) = (Header::read(&bytes), spot_list(SPOTS));
+        let header = Header::read(&bytes);
         let cut = &bytes[HEADER..bytes.len() - 1];
-        assert!(Table::parse(&header, cut, &spots).is_none());
-        let body = &bytes[HEADER..];
-        assert!(Table::parse(&header, body, &spots[..spots.len() - 1]).is_none());
+        assert!(Table::parse(&header, cut).is_none());
     }
 
     const SLOT: SlotSpec = SlotSpec {
@@ -778,7 +786,7 @@ mod tests {
         let bytes = encode(offsets(), 0, &[HOOK], &[], CREDITS, None, &[]);
         let header = Header::read(&bytes);
         assert!(
-            Table::parse(&header, &bytes[HEADER..], &[])
+            Table::parse(&header, &bytes[HEADER..])
                 .unwrap()
                 .slot
                 .is_none()
@@ -786,7 +794,8 @@ mod tests {
     }
 
     fn take(name: &str, at: [f32; 3], picked: &[u32]) -> Option<u32> {
-        with_table(|t| t.spot(name.as_bytes(), at, |f| picked.contains(&f)))
+        let spots = SPOTS.iter().map(|s| Spot::from_words(s.words()));
+        nearest(spots, name.as_bytes(), at, |f| picked.contains(&f))
     }
 
     #[test]
@@ -808,6 +817,16 @@ mod tests {
         assert_eq!(take("Obj_FakeGreen", [10.0, 9.0, 10.0], &[]), None);
         assert_eq!(take("Obj_FakeBlue", [10.0, 0.0, 10.0], &[]), None);
         assert_eq!(take("Obj_FakeGreen", [100.0, 7.0, 13.0], &[]), Some(4));
+    }
+
+    #[test]
+    fn a_spot_round_trips_through_its_words_and_far_off_spots_keep_their_sign() {
+        let far = spot(u32::MAX, "Obj_FakeGreen", [-32768, -1, 32767]);
+        assert_eq!(Spot::from_words(far.words()), far);
+        assert_eq!(
+            (Spot::key(0, 0), Spot::key(0, 1), Spot::key(1, 0)),
+            (SPOT_KEY, SPOT_KEY + 1, SPOT_KEY + 2)
+        );
     }
 
     #[test]

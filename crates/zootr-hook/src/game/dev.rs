@@ -8,7 +8,7 @@ use super::rt::{memcpy, memset};
 use super::{at, level_for, name, owned, shared};
 use crate::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_NAME, Ask, GUARD, Mailbox,
-    NAME, Offsets, Outcome, play_event,
+    NAME, Offsets, Outcome, Spot, play_event,
 };
 
 type Malloc = unsafe extern "C" fn(usize) -> usize;
@@ -18,6 +18,7 @@ type SetLink = unsafe extern "C" fn(usize, usize, usize);
 type Release = unsafe extern "C" fn(usize);
 type GetBool = unsafe extern "C" fn(usize, *mut u64, u32) -> u32;
 type SetBool = unsafe extern "C" fn(usize, u32, u32);
+type GetU64 = unsafe extern "C" fn(usize, *mut u64, u32) -> u32;
 type SetTime = unsafe extern "C" fn(usize, u32);
 type MoveTo = unsafe extern "C" fn(usize, *const f32);
 
@@ -112,6 +113,18 @@ pub(super) unsafe fn get_bool(main: usize, o: &Offsets, gd: usize, hash: u32) ->
     let get: GetBool = unsafe { core::mem::transmute(main + o.get_bool as usize) };
     let mut out = 0;
     (unsafe { get(gd, &mut out, hash) } & 1 == 1).then_some(out & 1 == 1)
+}
+
+unsafe fn get_u64(main: usize, o: &Offsets, gd: usize, hash: u32) -> Option<u64> {
+    let get: GetU64 = unsafe { core::mem::transmute(main + o.get_u64 as usize) };
+    let mut out = 0;
+    (unsafe { get(gd, &mut out, hash) } & 1 == 1).then_some(out)
+}
+
+/// Spot `i` of those the seed wrote to GameData.
+pub(super) unsafe fn spot(main: usize, o: &Offsets, gd: usize, i: u32) -> Option<Spot> {
+    let word = |w| unsafe { get_u64(main, o, gd, Spot::key(i, w)) };
+    Some(Spot::from_words([word(0)?, word(1)?]))
 }
 
 pub(super) unsafe fn set_bool(main: usize, o: &Offsets, gd: usize, hash: u32, value: bool) {

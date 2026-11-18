@@ -184,33 +184,32 @@ pub fn write_mod(
         .collect();
     exps.extend(picked::exps(&picked));
     exps.extend(shelves.exps.iter().cloned());
-    let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
-    trade_chain::never_counting(&mut doc.root)?;
+    let mut data = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
+    trade_chain::never_counting(&mut data.root)?;
     if new_game.on.contains(TRADE_CHAIN) {
-        trade_chain::by_pouch(&mut doc.root)?;
+        trade_chain::by_pouch(&mut data.root)?;
     }
-    let defaults = presets::apply(&gd, &mut doc.root, &edits)?;
-    gamedata::add_bools(&mut doc.root, &bools)?;
-    gamedata::add_ints(&mut doc.root, &new_game.ints)?;
-    gamedata::add_exps(&mut doc.root, &exps)?;
-    gamedata::add_keys(&mut doc.root, &picked::pairs(&picked))?;
+    let defaults = presets::apply(&gd, &mut data.root, &edits)?;
+    gamedata::add_bools(&mut data.root, &bools)?;
+    gamedata::add_ints(&mut data.root, &new_game.ints)?;
+    gamedata::add_exps(&mut data.root, &exps)?;
+    gamedata::add_keys(&mut data.root, &picked::pairs(&picked))?;
     for (copy, template, _) in &made {
         let names = [copy.clone()];
-        gamedata::join_structs(&mut doc.root, template.get(), &names, &[gamedata::IS_GET])?;
+        gamedata::join_structs(&mut data.root, template.get(), &names, &[gamedata::IS_GET])?;
     }
     let names: Vec<String> = new_game.foreign.iter().map(|f| f.actor.clone()).collect();
     if !names.is_empty() {
         gamedata::join_structs(
-            &mut doc.root,
+            &mut data.root,
             keys::SMALL.get(),
             &names,
             &[gamedata::IS_GET],
         )?;
     }
     if new_game.bridge_medallions {
-        bridge::need_medallions(&mut doc.root)?;
+        bridge::need_medallions(&mut data.root)?;
     }
-    builder.write(gamedata::PATH, &doc.to_binary())?;
     let mut posed = HashMap::new();
     let mut shows_off = |e: &str| {
         *posed
@@ -321,6 +320,9 @@ pub fn write_mod(
     if let Some(missing) = drops.keys().find(|h| !found.contains(*h) && !gift(h)) {
         bail!("no actor with hash {missing} has a {}", checks::DROP_ACTOR);
     }
+    // Last, once every holder's spot is known.
+    gamedata::add_u64s(&mut data.root, &picked::entries(&spots))?;
+    builder.write(gamedata::PATH, &data.to_binary())?;
     bombs::write(&mut builder)?;
     dig::write(romfs, &mut builder, drops, new_game)?;
     run.check()?;

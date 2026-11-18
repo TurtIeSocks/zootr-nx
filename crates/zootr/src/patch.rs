@@ -6,8 +6,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
 use zootr_hook::{
-    BUNNY_HOOD, CAVE, Credit, LIST, Offsets, PANIC, SLOTS, SPOTS, Shared, Spot, TABLE, TRADE_CYCLE,
-    encode,
+    BUNNY_HOOD, CAVE, Credit, LIST, Offsets, PANIC, SLOTS, Shared, Spot, TABLE, TRADE_CYCLE, encode,
 };
 
 use crate::known::Name;
@@ -42,6 +41,7 @@ pub const OFFSETS: Offsets = Offsets {
     link_empty: 0x497_4b20,
     get_bool: 0x20_d9c0,
     set_bool: 0x68_2b20,
+    get_u64: 0x57_a380,
     events: 0x4c7_e090,
     gamedata: 0x4c7_e180,
     // The slot the game's own set-time node reads. The one at 0x4c7_e878
@@ -66,8 +66,6 @@ pub const OFFSETS: Offsets = Offsets {
 /// Where the recorder, and the free space after rodata and bss, end.
 const CAVE_END: u32 = 0x17f_58e0;
 const TABLE_END: u32 = 0x484_d000;
-/// Where text, and its zero padding, end.
-const SPOTS_END: u32 = 0x3c4_7000;
 const LIST_END: u32 = 0x4e9_b000;
 const _: () = assert!(LIST + size_of::<Shared>() as u32 <= PANIC && LIST.is_multiple_of(8));
 const _: () = assert!(PANIC + 16 == LIST_END);
@@ -240,7 +238,6 @@ pub fn patches<A: AsRef<str>>(
         TABLE_END,
         "table",
     )?;
-    let spots_at = fit(SPOTS, zootr_hook::spot_list(spots), SPOTS_END, "spot list")?;
     let bunny = flags & BUNNY_HOOD != 0;
     let sites = sites().filter(|p| match p.at {
         at if at == OFFSETS.link_update => mailbox,
@@ -249,12 +246,7 @@ pub fn patches<A: AsRef<str>>(
         at if at == OFFSETS.taken => !spots.is_empty(),
         _ => true,
     });
-    let spots_at = (!spots.is_empty()).then_some(spots_at);
-    Ok([gate, code, table]
-        .into_iter()
-        .chain(spots_at)
-        .chain(sites)
-        .collect())
+    Ok([gate, code, table].into_iter().chain(sites).collect())
 }
 
 /// One type 0 write into `main`: 8 bytes where aligned, else 4.
@@ -348,8 +340,9 @@ pub fn hooked(progressive: bool, mailbox: bool, flags: u32) -> bool {
 /// `mailbox` adds the mailbox's hook, the hood the run's call, and without
 /// `progressive` the table has no lines but the `keyed` ones (a prize
 /// chest's ammo). `credits` are what items set as they're found, by name,
-/// `spots` the twinned holders whose drops set a flag as they're taken,
-/// and a seed with any of these runs the hook too.
+/// `spots` the twinned holders whose drops set a flag as they're taken
+/// (GameData holds them, the table their count), and a seed with any of
+/// these runs the hook too.
 pub fn install(
     mod_dir: &Path,
     progressive: bool,
@@ -408,10 +401,6 @@ mod tests {
 
     /// Every flag that adds a site.
     const ALL: u32 = BUNNY_HOOD | TRADE_CYCLE;
-    /// Every holder that stands until picked, with every pickup kind on:
-    /// 134 breakables, 100 Gold Skulltulas and Ruto's letter (`picked`'s
-    /// tests).
-    const HOLDERS: usize = 134 + 100 + 1;
     /// A holder that stands until picked, which adds the take's site.
     const SPOT: Spot = Spot {
         flag: 1,
@@ -422,7 +411,6 @@ mod tests {
     #[test]
     fn the_fullest_table_fits() {
         use crate::settings::DungeonKeys;
-        let spots = [SPOT; HOLDERS];
         // Every ammo kind's, more than the three prize chests can hold.
         // Their names come from the dump.
         let keyed: Vec<_> = match crate::game::dev_dump() {
@@ -438,19 +426,19 @@ mod tests {
         ] {
             let credits = crate::key_tints::credits(true, keys);
             let credits: Vec<_> = credits.iter().map(|(n, c)| (n.as_str(), *c)).collect();
-            let p = patches(&progressive::LINES, &keyed, true, ALL, &credits, &spots);
+            let p = patches(&progressive::LINES, &keyed, true, ALL, &credits, &[SPOT]);
             assert!(p.is_ok(), "{keys:?}: {}", p.unwrap_err());
         }
     }
 
     #[test]
-    fn the_take_is_hooked_and_the_spots_written_only_with_spots() {
+    fn the_take_is_hooked_only_with_spots() {
         let at = |spots: &[Spot], at| {
             let p = patches(&progressive::LINES, &[], false, 0, &[], spots).unwrap();
             p.iter().any(|p| p.at == at)
         };
-        assert!(!at(&[], OFFSETS.taken) && !at(&[], SPOTS));
-        assert!(at(&[SPOT], OFFSETS.taken) && at(&[SPOT], SPOTS));
+        assert!(!at(&[], OFFSETS.taken));
+        assert!(at(&[SPOT], OFFSETS.taken));
     }
 
     #[test]
@@ -464,7 +452,7 @@ mod tests {
         assert_eq!(table.at % 8, 0, "the header is read in place");
         let header = Header::read(&table.bytes);
         let lines = &table.bytes[HEADER..][..header.size as usize];
-        let table = Table::parse(&header, lines, &[]).unwrap();
+        let table = Table::parse(&header, lines).unwrap();
         assert_eq!(*table.offsets, OFFSETS);
         for line in progressive::LINES {
             let (_, read, _) = table.find(line[1].0.as_bytes()).unwrap();
@@ -563,9 +551,8 @@ mod tests {
     #[test]
     fn calls_and_hooks_branch_to_the_hook() {
         let p = patches(&progressive::LINES, &[], true, ALL, &[], &[SPOT]).unwrap();
-        assert_eq!(p[3].at, SPOTS, "the spot list");
-        assert_eq!(p[4..], sites().collect::<Vec<_>>());
-        let at = |i: usize| u32::from_le_bytes(p[4 + i].bytes[..].try_into().unwrap());
+        assert_eq!(p[3..], sites().collect::<Vec<_>>());
+        let at = |i: usize| u32::from_le_bytes(p[3 + i].bytes[..].try_into().unwrap());
         assert_eq!(at(0) >> 26, 0b100101, "a call stays a bl");
         assert_eq!(
             at(CALLS.len() + NPAD_CALLS.len()) >> 26,
