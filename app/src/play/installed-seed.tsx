@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { when } from "@/lib/format";
 import { RequestProvider } from "@/lib/request-provider";
 import { summaryParts } from "@/lib/settings";
-import { ApClient } from "@/play/ap-client";
 import { PlayButtonGroup } from "@/play/play-button-group";
 import { ExtrasBadges, Name } from "@/play/seed";
 import { useConfig } from "@/stores/config";
@@ -73,7 +72,6 @@ export function InstalledSeed() {
             </Meter>
           </div>
         )}
-        {installed?.ap_slot && <ApClient entry={installed} />}
         {builds.map((text) => (
           <Callout key={text} tone="gold" icon={TriangleAlert}>
             {text}

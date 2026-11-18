@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { memo } from "react";
 import type { Summary } from "@/bindings";
-import { Card } from "@/components/card";
+import { CardHeader } from "@/components/card";
 import { CopySeed, SeedIcons } from "@/components/seed-icons";
 import { divided } from "@/components/styles";
 import { TipButton } from "@/components/tip-button";
@@ -117,27 +117,28 @@ function InstalledMark() {
   );
 }
 
-/** Every generated seed, newest first, with its actions a hover away. */
+/** The History folder: every generated seed, newest first, with its
+ * actions a hover away. */
 export function HistoryList() {
   const [entries] = useSeeds.usePath("history.entries");
   const n = entries.length;
   return (
-    <Card
-      title="History"
-      meta={n > 0 && `${n} seed${n === 1 ? "" : "s"}`}
-      action={n > 1 && <ClearHistory />}
-      className="flex min-h-60 flex-1 flex-col"
-    >
+    <>
+      <CardHeader
+        title="History"
+        meta={n > 0 && `${n} seed${n === 1 ? "" : "s"}`}
+        action={n > 1 && <ClearHistory />}
+      />
       {n === 0 ? (
         <p className="px-4 pb-4 text-[13px] text-ink-muted">No seeds yet.</p>
       ) : (
-        <ul className={cn("min-h-0 flex-1 overflow-y-auto px-1 pb-1", divided)}>
+        <ul className={cn("px-1 pb-1", divided)}>
           {entries.map((e) => (
             <HistoryRow key={e.id} entry={e} />
           ))}
         </ul>
       )}
-    </Card>
+    </>
   );
 }
 

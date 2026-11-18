@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Callout, InlineError } from "@/components/callout";
-import { Card } from "@/components/card";
+import { CardHeader } from "@/components/card";
 import { linkClass } from "@/components/styles";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
@@ -41,16 +41,16 @@ import {
 import { openSettings } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
 
-/** Generates and installs a seed from the current settings, or from a
- * share code's own. */
+/** The Standard folder: generates and installs a seed from the current
+ * settings, or from a share code's own. */
 export function NewSeed() {
   const [error] = useSeeds.usePath("error");
   return (
-    <Card
-      title="New seed"
-      description="Built from your current settings, or a share code's, and installed to every target"
-      className="shrink-0"
-    >
+    <>
+      <CardHeader
+        title="New seed"
+        description="Built from your current settings, or a share code's, and installed to every target"
+      />
       <div className="flex flex-col gap-3 px-4 pt-2 pb-4">
         <SeedRow />
         <GenerateSteps />
@@ -70,7 +70,7 @@ export function NewSeed() {
         <Blocked />
         <InlineError error={error} />
       </div>
-    </Card>
+    </>
   );
 }
 
@@ -82,7 +82,6 @@ function SeedRow() {
       <SeedInput />
       <RollButton />
       <VanillaButton />
-      <OpenApButton />
       <GenerateButton />
     </div>
   );
@@ -147,7 +146,7 @@ function VanillaButton() {
 
 /** Installs an Archipelago seed from the `.apznx` picked. The file brings
  * its own settings, so the test setup and plando don't apply. */
-function OpenApButton() {
+export function OpenApButton() {
   const [busy] = useSeeds.usePath("busy");
   const [blocked] = useSeeds.usePath("blocked");
   const open = async () => {
