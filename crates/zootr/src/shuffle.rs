@@ -262,15 +262,16 @@ pub fn shuffle<'a>(
 /// Whether `item` asks on `check`, which a gift can't answer unless it
 /// asks the pouch first. Nothing asks of an NPC gift, a scrub or a cow:
 /// each puts the pouch questions in front of its grant (`gifts::levels`).
-/// A prize chest is a chest to the hook, which gives a line's level there.
-/// A shop slot shows each step on a shelf of its own (`shops::steps`).
+/// A prize chest is a chest to the hook, which gives a line's level there
+/// and swaps a Red Rupee copy for ammo (`ammo::line`). A shop slot shows
+/// each step on a shelf of its own (`shops::steps`).
 fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
     let picks = gifts::of(check).is_some()
         || scrubs::of(check).is_some()
         || cows::is_cow(check)
-        || shops::is_shop(check);
-    let leveled = gifts::is_prize(check) && ammo::swap(item).is_none();
-    !picks && !leveled && levels::asks(item, progressive)
+        || shops::is_shop(check)
+        || gifts::is_prize(check);
+    !picks && levels::asks(item, progressive)
 }
 
 /// Whether `check` may hold `item`: a gift can't hold one that asks. A
@@ -322,6 +323,8 @@ pub fn drop(item: &str) -> Drop {
 pub fn drops(checks: &[ItemCheck], placements: &[Placement]) -> HashMap<u64, Drop> {
     let write = |c: &ItemCheck, item: &str| {
         let d = match gifts::is_gift(c) {
+            // A minigame's chest can't be a substitute chest.
+            true if gifts::is_prize(c) => Drop::from(ammo::copy(item).unwrap_or(item.to_owned())),
             // The deal keeps swaps off gifts.
             true => Drop::from(item.to_owned()),
             false => drop(item),
@@ -482,10 +485,10 @@ mod tests {
         assert!(allowed(&cow, item::BOMB_BUNDLE_SMALL, true));
     }
 
-    /// The hook levels a prize chest's line as it does any chest's. Ammo
-    /// still asks: a minigame's chest can't turn into a substitute one.
+    /// The hook levels a prize chest's line as it does any chest's, and
+    /// swaps its Red Rupee copy for ammo.
     #[test]
-    fn a_prize_chest_holds_every_line_level_but_not_ammo() {
+    fn a_prize_chest_holds_every_line_level_and_ammo() {
         needs_names!();
         for hash in gifts::PRIZE_CHESTS {
             let prize = ItemCheck {
@@ -498,8 +501,29 @@ mod tests {
                 }
             }
             for (ammo, _) in ammo::NEEDS {
-                assert!(!allowed(&prize, ammo, true), "{ammo}");
+                assert!(allowed(&prize, ammo, true), "{ammo}");
+                assert!(allowed(&prize, ammo, false), "{ammo}");
             }
+        }
+    }
+
+    /// A minigame's chest can't turn into a substitute one, so it drops
+    /// the ammo's Red Rupee copy, with no swap.
+    #[test]
+    fn a_prize_chest_drops_ammos_copy() {
+        needs_names!();
+        let prize = ItemCheck {
+            hash: gifts::PRIZE_CHESTS[0],
+            ..chest(1, "Item_A")
+        };
+        for (ammo, _) in ammo::NEEDS {
+            let placed = [Placement {
+                check: &prize,
+                item: ammo,
+            }];
+            let drops = drops(std::slice::from_ref(&prize), &placed);
+            let want = Drop::from(ammo::copy(ammo).unwrap());
+            assert_eq!(drops.get(&prize.hash), Some(&want), "{ammo}");
         }
     }
 

@@ -11,7 +11,7 @@
 //! shows one. The Gerudo
 //! Fortress's keys, their own actors already, show a model of their own.
 
-pub(crate) mod paint;
+mod paint;
 mod rings;
 
 use anyhow::{Context, Result, ensure};
@@ -30,12 +30,20 @@ use crate::standins::{
     renamed, resolved, with_ref, write_clone,
 };
 use crate::text::{Copies, CopyLine, Named, Says};
-use paint::{Host, Look};
+use paint::Host;
+
+/// One kind of key's model: the actor it's named like, its textures by
+/// suffix, and the prefix of a dungeon's copy, which with the dungeon's
+/// two-digit number is as long as the host so no offset in a copy moves.
+struct Look {
+    host: &'static Name,
+    kinds: &'static [&'static str],
+    copy: &'static str,
+}
 
 /// The small key's, named like the floor key that shows it.
 const SMALL_LOOK: Look = Look {
     host: actor::OBJ_DUNGEON_SMALL_KEY,
-    material: None,
     kinds: &["Alb", "AO", "Mtl", "Nrm", "Rgh"],
     copy: "Obj_Rando_SmallKey",
 };
@@ -43,7 +51,6 @@ const SMALL_LOOK: Look = Look {
 /// boss key still reads as one.
 const BOSS_LOOK: Look = Look {
     host: BOSS,
-    material: None,
     kinds: &["Alb", "AO", "Emc", "Inner_Nrm", "Mtl", "Nrm", "Rgh"],
     copy: "Item_Rando_BossKey",
 };
@@ -56,6 +63,23 @@ const RING_LOOK: Look = Look {
 /// The looks with host files of their own: the ring's are the small key's.
 #[cfg(test)]
 const LOOKS: [&Look; 2] = [&SMALL_LOOK, &BOSS_LOOK];
+
+impl Look {
+    /// Dungeon `n`'s copy, by its place in [`DUNGEONS`], counting from 1.
+    fn name(&self, n: usize) -> String {
+        format!("{}{n:02}", self.copy)
+    }
+
+    /// The model and texture files a copy is made from.
+    #[cfg(test)]
+    fn files(&self) -> impl Iterator<Item = String> {
+        let textures = self
+            .kinds
+            .iter()
+            .map(|k| medallions::texture_path(self.host, k));
+        std::iter::once(medallions::model_path(self.host)).chain(textures)
+    }
+}
 
 /// The files the copies are made from, extracted before a dump is open,
 /// so spelled out: a [`Name`] needs the dump's names to read.
@@ -382,7 +406,7 @@ fn copy(
 /// `name`'s ActorParam and ModelInfo as `template`'s, the ModelInfo a file
 /// of its own naming `model`, since packs sharing a file share whichever
 /// loaded first. Each is `(path, doc, the template file it copies)`.
-pub(crate) fn pointed(
+fn pointed(
     template: &ActorPack,
     name: &str,
     model: &str,

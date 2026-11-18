@@ -24,9 +24,8 @@ const OWN_EXAMPLES: [&str; 1] = ["crates/zootr/src/known/guard.rs"];
 /// Files that hold a name as text because nothing can read it from the
 /// dump there: the hook runs inside the game, and the extract runs before
 /// a dump is open.
-const NO_DUMP: [&str; 5] = [
+const NO_DUMP: [&str; 4] = [
     "crates/zootr-hook/src/game/dev.rs",
-    "crates/zootr/src/foreign.rs",
     "crates/zootr/src/key_tints.rs",
     "crates/zootr/src/medallions.rs",
     "crates/zootr/src/sprites.rs",

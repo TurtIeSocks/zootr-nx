@@ -14,7 +14,7 @@ use crate::hints::Hint;
 use crate::progress::Run;
 use crate::settings::{ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
-    bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, foreign,
+    ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, foreign,
     fortress, gamedata, gerudo, gifts, held, hints, key_tints, keys, medallions, navi, patch,
     picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker,
     trade_chain, twins,
@@ -110,10 +110,12 @@ pub fn write_mod(
                 .into_iter()
                 .chain(d.swap.iter().flat_map(|s| [s.check, s.then]))
         })
-        // Key copies and other players' items are written with the mod.
+        // Key copies, Red Rupee copies and other players' items are written
+        // with the mod.
         .find(|i| {
             !keys::is_shuffled(i)
                 && !foreign::is_foreign(i)
+                && ammo::copied(i).is_none()
                 && !romfs.root().join(flags::actor_pack(i)).is_file()
         })
     {
@@ -173,6 +175,7 @@ pub fn write_mod(
         false => Vec::new(),
     };
     let made = key_tints::made(key_copies.0, key_copies.1);
+    let rupees = ammo::copies(drops.values().map(|d| d.item.as_str()));
     let opened = tracker::chest_flags(&gd)?;
     let twins = twins::find(romfs, |h| drops.contains_key(&h), opened)?;
     let aliases = twins.iter().filter_map(twins::Twin::alias);
@@ -234,6 +237,7 @@ pub fn write_mod(
     let bosses = boss_copies(new_game);
     key_tints::write(romfs, &mut builder, &mut tables, bosses, new_game.keys)?;
     foreign::write(romfs, &mut builder, &mut tables, &new_game.foreign)?;
+    ammo::write(romfs, &mut builder, &mut tables, &rupees)?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
     let levels = levels(romfs, drops, new_game)?;
     levels.events(&mut events)?;
@@ -322,9 +326,13 @@ pub fn write_mod(
     run.check()?;
     let files = builder.finish()?.len();
     let credits = key_tints::credits(bosses, new_game.keys);
+    let keyed: Vec<_> = (rupees.iter())
+        .filter_map(|r| ammo::line(ammo::copied(r)?))
+        .collect();
     patch::install(
         mod_dir,
         new_game.progressive,
+        &keyed,
         new_game.mailbox,
         flags,
         &credits,
