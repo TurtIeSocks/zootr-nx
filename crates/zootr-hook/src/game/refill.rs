@@ -7,8 +7,8 @@ use super::dev::{player, single};
 use super::{at, shared};
 use crate::Table;
 use crate::switches::{
-    COUNT, Cap, ENTRIES, INT, MAP, MAP_SIZE, STRING64, STRING64_SIZE, TABLE, bag_cap, held, index,
-    meter, top_up,
+    COUNT, Cap, ENTRIES, HEARTS, INT, LIFE, MAP, MAP_SIZE, STRING64, STRING64_SIZE, TABLE, bag_cap,
+    held, index, meter, take_kill, top_up,
 };
 
 /// Top each value a switch that is on holds up to its cap. A value at its
@@ -22,6 +22,11 @@ pub unsafe fn refill(main: usize, table: &Table, actor: usize) {
     let Some(owner) = (unsafe { player(main, o, actor) }) else {
         return;
     };
+    if take_kill(&shared(main).switches)
+        && let Some(life) = unsafe { meter(owner, LIFE, HEARTS) }
+    {
+        unsafe { *(life as *mut i32) = 0 };
+    }
     let Some(gd) = (unsafe { single(main, o.gamedata) }) else {
         return;
     };

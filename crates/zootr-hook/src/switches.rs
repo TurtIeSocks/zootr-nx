@@ -2,6 +2,8 @@
 //! which the hook keeps topped up on Link's update. See
 //! `docs/superpowers/specs/2026-11-13-dev-switches-design.md`.
 
+use core::sync::atomic::{AtomicU32, Ordering};
+
 use crate::{LIST, Shared};
 
 /// Where the switches word sits in `main`.
@@ -11,6 +13,18 @@ pub const SWITCHES: u32 = LIST + core::mem::offset_of!(Shared, switches) as u32;
 pub const HEALTH: u32 = 1;
 pub const MAGIC: u32 = 2;
 pub const RESOURCES: u32 = 4;
+/// Not held: Link's hearts drop to zero on his next update, as a last hit
+/// would, and the hook clears the bit.
+pub const KILL: u32 = 8;
+
+/// Link's hearts, in quarters, and where his player object keeps them: a
+/// ref the player points at, MaxLife's after it.
+pub const HEARTS: u32 = 0x31ab_5580;
+pub const LIFE: Meter = Meter {
+    via: Some(0x1cd8),
+    value: 8,
+    hash: 12,
+};
 
 /// Where a value's cap comes from: another Int, or the bag a
 /// `CurrentExpansionActor_*` String64 names and each size's cap.
@@ -83,14 +97,9 @@ pub const REFILLS: [Refill; 9] = [
     // PlayerStatus.Life to PlayerStatus.MaxLife, in quarter hearts.
     Refill {
         switch: HEALTH,
-        value: 0x31ab_5580,
+        value: HEARTS,
         cap: Cap::Int(0xfbe0_1da1),
-        // A ref the player points at, MaxLife's after it.
-        meter: Some(Meter {
-            via: Some(0x1cd8),
-            value: 8,
-            hash: 12,
-        }),
+        meter: Some(LIFE),
     },
     // PlayerStatus.MP to PlayerStatus.MPMax.
     Refill {
@@ -134,6 +143,11 @@ pub unsafe fn meter(owner: usize, m: Meter, hash: u32) -> Option<usize> {
     };
     let named = base != 0 && unsafe { *((base + m.hash) as *const u32) } == hash;
     named.then_some(base + m.value)
+}
+
+/// Clears [`KILL`] in `word`: whether it was set.
+pub fn take_kill(word: &AtomicU32) -> bool {
+    word.fetch_and(!KILL, Ordering::Relaxed) & KILL != 0
 }
 
 /// The refills of the switches `word` turns on.
@@ -211,6 +225,15 @@ mod tests {
         assert_eq!(values(HEALTH | MAGIC).len(), 2);
         assert_eq!(values(RESOURCES).len(), 7);
         assert_eq!(values(HEALTH | MAGIC | RESOURCES).len(), REFILLS.len());
+        assert_eq!(values(KILL), []);
+    }
+
+    #[test]
+    fn a_kill_is_taken_once_and_leaves_the_switches_on() {
+        let word = AtomicU32::new(HEALTH | KILL);
+        assert!(take_kill(&word));
+        assert!(!take_kill(&word));
+        assert_eq!(word.load(Ordering::Relaxed), HEALTH);
     }
 
     #[test]
