@@ -32,10 +32,11 @@ its settings to a friend.
 
 ## Play a multiworld
 
-zootr-nx is an Archipelago game. Generate a multiworld with `znx.apworld`,
-open your slot in the app and connect. What your friends find for Link
-reaches him in game, with the sender named on screen: "Longshot from
-Saria".
+zootr-nx is an Archipelago game. Joining a friend's multiworld takes the
+file they send you: drop it in the app and connect. What your friends find
+for Link reaches him in game, with the sender named on screen: "Longshot
+from Saria". Hosting one takes Archipelago and `znx.apworld`, and the
+[setup guide](ap/znx/docs/setup_en.md) walks through both.
 
 ## Custom models
 

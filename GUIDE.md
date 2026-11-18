@@ -56,11 +56,14 @@ The builds aren't signed yet, so macOS and Windows warn the first time:
 
 ### Archipelago
 
-- Generate a multiworld in Archipelago with `znx.apworld` from the same
-  release. Its [setup guide](ap/znx/docs/setup_en.md) has the steps.
+- Joining a friend's game needs only what the host sends: your `.apznx`
+  and the room's server. No Archipelago install.
+- Hosting needs Archipelago and `znx.apworld` from the same release, which
+  the Archipelago tab links. The [setup guide](ap/znx/docs/setup_en.md)
+  has the steps for both.
 - The Play page's Archipelago tab installs your slot from its `.apznx`
-  (drop it on the window, or Browse…), with the settings from your options
-  file.
+  (drop it on the window, or Browse…), with the settings the host
+  generated it with.
 - Its Room section connects the running game to a room. It sends your
   checks, gives Link what other players find for him, and reports your
   goal. The server and password are kept for each seed, and the room's
