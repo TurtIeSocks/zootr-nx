@@ -18,7 +18,7 @@ const SHEIK: &str = "Sheik";
 
 /// Gifts the sweep leaves alone, by the start of their flow, and what kind
 /// each is.
-static OUT_OF_SCOPE: LazyLock<[(&str, &str); 10]> = LazyLock::new(|| {
+static OUT_OF_SCOPE: LazyLock<[(&str, &str); 11]> = LazyLock::new(|| {
     [
         (flow::MINI_GAME_FISHING, "fishing"),
         (flow::MINI_GAME_BOMBCHU_BOWLING, "bowling"),
@@ -34,6 +34,9 @@ static OUT_OF_SCOPE: LazyLock<[(&str, &str); 10]> = LazyLock::new(|| {
             "the dig",
         ),
         (flow::GATHERING_TOKEN_GOLD, "token reward"),
+        // Won at the finish line, whose area logic runs the prize. No
+        // event setting starts it.
+        (actor::NPC_HYLIA_RUNNING_MAN_ADULT, "race"),
         ("SubEvent_", "quest chain"),
         ("Dm_", "cutscene"),
     ]
