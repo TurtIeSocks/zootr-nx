@@ -5,7 +5,7 @@
 
 use crate::ui::MultiSlot;
 
-pub const MAGIC: &[u8; 4] = b"ZLT7";
+pub const MAGIC: &[u8; 4] = b"ZLT8";
 
 /// The header's flag for a seed whose bombchus need no bomb bag.
 pub const FREE_BOMBCHUS: u32 = 1;
@@ -141,9 +141,9 @@ offsets! {
     equipped,
 }
 
-/// The table at `TABLE`. Each line is a level count, then each
-/// level lowest first: the actor it drops, then the pouch name it's owned
-/// as, each a length byte and the name with a NUL.
+/// The table at `TABLE`. Each line is a level count, [`KEYED`] or not,
+/// then each level lowest first: the actor it drops, then the pouch name
+/// it's owned as, each a length byte and the name with a NUL.
 ///
 /// The credits follow: each a name the same way, then the [`Credit`] its
 /// find sets. A chest's flow credits a dungeon item by its exact name, so a
@@ -206,24 +206,39 @@ impl<'a> Table<'a> {
             .map(|(_, flag)| flag)
     }
 
-    /// The level that drops or is owned as `name`, with its line's number
-    /// and levels.
-    pub fn find(&self, name: &[u8]) -> Option<(u16, Levels<'a>, Level<'a>)> {
+    /// Each line: its number, whether it's [`KEYED`], and its levels.
+    fn lines(&self) -> impl Iterator<Item = (u16, bool, Levels<'a>)> {
         let mut rest = self.lines;
-        for i in 0.. {
+        (0..).map_while(move |i| {
             let (&n, after) = rest.split_first()?;
             let line = Levels {
                 rest: after,
-                left: n,
+                left: n & !KEYED,
             };
-            if let Some(level) = line.clone().find(|l| l.drop == name || l.pouch == name) {
-                return Some((i, line, level));
-            }
-            rest = line.skip_all()?;
-        }
-        None
+            rest = line.clone().skip_all().unwrap_or_default();
+            Some((i, n & KEYED != 0, line))
+        })
+    }
+
+    /// The level that drops or is owned as `name`, with its line's number
+    /// and levels. A keyed line answers only to its bottom level's drop.
+    pub fn find(&self, name: &[u8]) -> Option<(u16, Levels<'a>, Level<'a>)> {
+        self.lines().find_map(|(i, keyed, line)| {
+            let mut levels = line.clone();
+            let level = match keyed {
+                true => levels.next().filter(|l| l.drop == name),
+                false => levels.find(|l| l.drop == name || l.pouch == name),
+            }?;
+            Some((i, line, level))
+        })
     }
 }
+
+/// A line count's bit for a line that acts only on its bottom level's drop,
+/// a name nothing but its own holders carry. A grant reaches it by the
+/// pouch names above that. A prize chest's ammo is one: a Red Rupee copy,
+/// then the ammo once Link owns what fires it.
+pub const KEYED: u8 = 0x80;
 
 /// What finding an item sets in GameData, by name hash. In the table: a
 /// kind byte, the hash, then the value, little endian.
@@ -451,25 +466,34 @@ pub fn pick_with<'a>(
     pick(levels, |p| p == also || owns(p))
 }
 
-/// The line `added` is a level of and what its chests give once it's
-/// owned, as the line's number and the drop name.
+/// Each line `added` is a level of and what its chests give once it's
+/// owned, as the line's number and the drop name. A keyed line counts it
+/// only as a pouch name above its bottom.
 pub fn after_grant<'a>(
     table: &Table<'a>,
     added: &[u8],
     owns: &impl Fn(&[u8]) -> bool,
-) -> Option<(u16, &'a [u8])> {
-    let (line, levels, level) = table.find(added)?;
-    Some((line, pick_with(levels, level.pouch, owns)?))
+) -> impl Iterator<Item = (u16, &'a [u8])> {
+    table.lines().filter_map(move |(i, keyed, line)| {
+        let mut levels = line.clone().skip(keyed.into());
+        let level = levels.find(|l| match keyed {
+            true => l.pouch == added,
+            false => l.drop == added || l.pouch == added,
+        })?;
+        Some((i, pick_with(line, level.pouch, owns)?))
+    })
 }
 
-/// The table for `lines`, each lowest level first as (drop, pouch name),
-/// with the seed's `flags`, `credits` by name, the `slot` Link cycles and
-/// the size of the holders' `spots`, which [`spot_list`] writes apart.
+/// The table for `lines`, then the [`KEYED`] lines `keyed`, each lowest
+/// level first as (drop, pouch name), with the seed's `flags`, `credits`
+/// by name, the `slot` Link cycles and the size of the holders' `spots`,
+/// which [`spot_list`] writes apart.
 #[cfg(not(target_os = "none"))]
 pub fn encode(
     offsets: Offsets,
     flags: u32,
     lines: &[&[(&str, &str)]],
+    keyed: &[&[(&str, &str)]],
     credits: &[(&str, Credit)],
     slot: Option<&SlotSpec>,
     spots: &[Spot],
@@ -479,8 +503,13 @@ pub fn encode(
         out.extend(name.bytes().chain([0]));
     }
     let mut body = Vec::new();
-    for line in lines {
-        body.push(u8::try_from(line.len()).expect("a line has under 256 levels"));
+    let marked = lines
+        .iter()
+        .map(|l| (l, 0))
+        .chain(keyed.iter().map(|l| (l, KEYED)));
+    for (line, mark) in marked {
+        let n = u8::try_from(line.len()).ok().filter(|&n| n & KEYED == 0);
+        body.push(n.expect("a line has under 128 levels") | mark);
         for name in line.iter().flat_map(|&(drop, pouch)| [drop, pouch]) {
             push_name(&mut body, name);
         }
@@ -529,6 +558,14 @@ mod tests {
     const HOOK: &[(&str, &str)] = &[("Hook", "Hook"), ("Long", "Long")];
     /// Owned under another name.
     const GLOVES: &[(&str, &str)] = &[("Glove_S", "Arm_S"), ("Glove_G", "Arm_G")];
+    /// Keyed: a rupee only its holders drop, then seeds once Link owns any
+    /// bag.
+    const SEEDS: &[(&str, &str)] = &[
+        ("Rupee_FakeCopy", "Rupee_FakeCopy"),
+        ("Seed", "Bag_S"),
+        ("Seed", "Bag_M"),
+        ("Seed", "Bag_L"),
+    ];
     const CREDITS: &[(&str, Credit)] = &[
         ("Key_01", Credit::Bool(0x1234_5678)),
         ("Key_02", Credit::Int(0xdead_beef, -3)),
@@ -564,6 +601,7 @@ mod tests {
             offsets(),
             0,
             &[HOOK, BAGS, GLOVES],
+            &[SEEDS],
             CREDITS,
             Some(&SLOT),
             SPOTS,
@@ -636,7 +674,7 @@ mod tests {
     fn granted(owned: &[&str], added: &str) -> Option<(u16, String)> {
         with_table(|t| {
             let owns = |l: &[u8]| owned.iter().any(|o| o.as_bytes() == l);
-            let (line, next) = after_grant(&t, added.as_bytes(), &owns)?;
+            let (line, next) = after_grant(&t, added.as_bytes(), &owns).next()?;
             Some((line, String::from_utf8(next.to_vec()).unwrap()))
         })
     }
@@ -656,8 +694,35 @@ mod tests {
     }
 
     #[test]
+    fn a_keyed_line_answers_only_to_its_bottom_drop() {
+        assert_eq!(give(&[], "Rupee_FakeCopy").unwrap(), "Rupee_FakeCopy");
+        assert_eq!(give(&["Bag_M"], "Rupee_FakeCopy").unwrap(), "Seed");
+        // The bags' own line, never the keyed one.
+        assert_eq!(give(&[], "Bag_S").unwrap(), "Bag_S");
+        assert_eq!(give(&["Bag_S"], "Seed"), None);
+    }
+
+    #[test]
+    fn a_grant_reaches_every_line_it_owns_a_level_of() {
+        let all = |owned: &[&str], added: &str| {
+            with_table(|t| {
+                let owns = |l: &[u8]| owned.iter().any(|o| o.as_bytes() == l);
+                (after_grant(&t, added.as_bytes(), &owns))
+                    .map(|(line, next)| (line, String::from_utf8(next.to_vec()).unwrap()))
+                    .collect::<Vec<_>>()
+            })
+        };
+        let seeds = (3, "Seed".to_owned());
+        assert_eq!(all(&[], "Bag_S"), [(1, "Bag_M".into()), seeds.clone()]);
+        assert_eq!(all(&["Bag_S"], "Bag_L"), [(1, "Bag_L".into()), seeds]);
+        // Its own copy and its ammo don't reach it.
+        assert_eq!(all(&[], "Rupee_FakeCopy"), []);
+        assert_eq!(all(&[], "Seed"), []);
+    }
+
+    #[test]
     fn a_wrong_magic_is_no_table() {
-        let mut bytes = encode(offsets(), 0, &[HOOK], &[], None, &[]);
+        let mut bytes = encode(offsets(), 0, &[HOOK], &[], &[], None, &[]);
         bytes[0] = b'X';
         assert!(Table::parse(&Header::read(&bytes), &bytes[HEADER..], &[]).is_none());
     }
@@ -680,7 +745,7 @@ mod tests {
 
     #[test]
     fn a_table_cut_short_is_no_table() {
-        let bytes = encode(offsets(), 0, &[HOOK], CREDITS, Some(&SLOT), SPOTS);
+        let bytes = encode(offsets(), 0, &[HOOK], &[], CREDITS, Some(&SLOT), SPOTS);
         let (header, spots) = (Header::read(&bytes), spot_list(SPOTS));
         let cut = &bytes[HEADER..bytes.len() - 1];
         assert!(Table::parse(&header, cut, &spots).is_none());
@@ -710,7 +775,7 @@ mod tests {
 
     #[test]
     fn a_table_without_a_slot_has_none() {
-        let bytes = encode(offsets(), 0, &[HOOK], CREDITS, None, &[]);
+        let bytes = encode(offsets(), 0, &[HOOK], &[], CREDITS, None, &[]);
         let header = Header::read(&bytes);
         assert!(
             Table::parse(&header, &bytes[HEADER..], &[])

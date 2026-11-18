@@ -185,13 +185,15 @@ pub fn site(at: u32) -> Option<Vec<u8>> {
     sites().find(|p| p.at == at).map(|p| p.bytes)
 }
 
-/// The gate, the hook, its table for `lines`, `flags`, `credits` and
-/// `spots`, then the calls and function hooks that reach it. Link's update
+/// The gate, the hook, its table for `lines`, the [`zootr_hook::KEYED`]
+/// lines `keyed`, `flags`, `credits` and `spots`, then the calls and
+/// function hooks that reach it. Link's update
 /// is among them only with `mailbox`, the run's call only with
 /// [`BUNNY_HOOD`] in `flags`, the trade slot's sites, with its slot in the
 /// table, only with [`TRADE_CYCLE`], and the pouch push only with `spots`.
 pub fn patches<A: AsRef<str>>(
     lines: &[&[(A, A)]],
+    keyed: &[Vec<(String, String)>],
     mailbox: bool,
     flags: u32,
     credits: &[(&str, Credit)],
@@ -201,6 +203,10 @@ pub fn patches<A: AsRef<str>>(
         .map(|l| l.iter().map(|(a, b)| (a.as_ref(), b.as_ref())).collect())
         .collect();
     let lines: Vec<&[(&str, &str)]> = owned.iter().map(Vec::as_slice).collect();
+    let keyed: Vec<Vec<(&str, &str)>> = (keyed.iter())
+        .map(|l| l.iter().map(|(a, b)| (a.as_str(), b.as_str())).collect())
+        .collect();
+    let keyed: Vec<&[(&str, &str)]> = keyed.iter().map(Vec::as_slice).collect();
     let fit = |at: u32, mut bytes: Vec<u8>, end: u32, what: &str| {
         // Writes go a word at a time.
         bytes.resize(bytes.len().next_multiple_of(4), 0);
@@ -222,7 +228,15 @@ pub fn patches<A: AsRef<str>>(
     let slot = trade.then(|| trade_slot::spec(&actors));
     let table = fit(
         TABLE,
-        encode(OFFSETS, flags, &lines, credits, slot.as_ref(), spots),
+        encode(
+            OFFSETS,
+            flags,
+            &lines,
+            &keyed,
+            credits,
+            slot.as_ref(),
+            spots,
+        ),
         TABLE_END,
         "table",
     )?;
@@ -332,18 +346,21 @@ pub fn hooked(progressive: bool, mailbox: bool, flags: u32) -> bool {
 
 /// Write the cheat and exefs patch when [`hooked`], else take ours away.
 /// `mailbox` adds the mailbox's hook, the hood the run's call, and without
-/// `progressive` the table has no lines. `credits` are what items set as
-/// they're found, by name, `spots` the twinned holders whose drops set a
-/// flag as they're taken, and a seed with any of either runs the hook too.
+/// `progressive` the table has no lines but the `keyed` ones (a prize
+/// chest's ammo). `credits` are what items set as they're found, by name,
+/// `spots` the twinned holders whose drops set a flag as they're taken,
+/// and a seed with any of these runs the hook too.
 pub fn install(
     mod_dir: &Path,
     progressive: bool,
+    keyed: &[Vec<(String, String)>],
     mailbox: bool,
     flags: u32,
     credits: &[(String, Credit)],
     spots: &[Spot],
 ) -> Result<()> {
-    if !hooked(progressive, mailbox, flags) && credits.is_empty() && spots.is_empty() {
+    let any = !keyed.is_empty() || !credits.is_empty() || !spots.is_empty();
+    if !hooked(progressive, mailbox, flags) && !any {
         return remove(mod_dir);
     }
     let lines: &[&[(&Name, &Name)]] = if progressive {
@@ -352,7 +369,7 @@ pub fn install(
         &[]
     };
     let credits: Vec<_> = credits.iter().map(|(n, c)| (n.as_str(), *c)).collect();
-    let patches = patches(lines, mailbox, flags, &credits, spots)?;
+    let patches = patches(lines, keyed, mailbox, flags, &credits, spots)?;
     for (path, write) in outputs(mod_dir) {
         std::fs::create_dir_all(path.parent().unwrap())?;
         std::fs::write(&path, write(&patches))
@@ -406,6 +423,14 @@ mod tests {
     fn the_fullest_table_fits() {
         use crate::settings::DungeonKeys;
         let spots = [SPOT; HOLDERS];
+        // Every ammo kind's, more than the three prize chests can hold.
+        // Their names come from the dump.
+        let keyed: Vec<_> = match crate::game::dev_dump() {
+            Some(_) => (crate::ammo::NEEDS.iter())
+                .map(|(a, _)| crate::ammo::line(a).unwrap())
+                .collect(),
+            None => Vec::new(),
+        };
         for keys in [
             DungeonKeys::Vanilla,
             DungeonKeys::Rings,
@@ -413,7 +438,7 @@ mod tests {
         ] {
             let credits = crate::key_tints::credits(true, keys);
             let credits: Vec<_> = credits.iter().map(|(n, c)| (n.as_str(), *c)).collect();
-            let p = patches(&progressive::LINES, true, ALL, &credits, &spots);
+            let p = patches(&progressive::LINES, &keyed, true, ALL, &credits, &spots);
             assert!(p.is_ok(), "{keys:?}: {}", p.unwrap_err());
         }
     }
@@ -421,7 +446,7 @@ mod tests {
     #[test]
     fn the_take_is_hooked_and_the_spots_written_only_with_spots() {
         let at = |spots: &[Spot], at| {
-            let p = patches(&progressive::LINES, false, 0, &[], spots).unwrap();
+            let p = patches(&progressive::LINES, &[], false, 0, &[], spots).unwrap();
             p.iter().any(|p| p.at == at)
         };
         assert!(!at(&[], OFFSETS.taken) && !at(&[], SPOTS));
@@ -430,7 +455,8 @@ mod tests {
 
     #[test]
     fn the_code_and_table_go_in_their_places_and_read_back() {
-        let [_, code, table, ..] = &patches(&progressive::LINES, false, 0, &[], &[]).unwrap()[..]
+        let [_, code, table, ..] =
+            &patches(&progressive::LINES, &[], false, 0, &[], &[]).unwrap()[..]
         else {
             panic!("patches")
         };
@@ -475,7 +501,7 @@ mod tests {
 
     #[test]
     fn the_gate_skips_the_recorder() {
-        let gate = &patches(&progressive::LINES, false, 0, &[], &[]).unwrap()[0];
+        let gate = &patches(&progressive::LINES, &[], false, 0, &[], &[]).unwrap()[0];
         assert_eq!(gate.at, 0x17d_59bc);
         // b 0x17d59c4
         assert_eq!(gate.bytes, 0x1400_0002u32.to_le_bytes());
@@ -536,7 +562,7 @@ mod tests {
 
     #[test]
     fn calls_and_hooks_branch_to_the_hook() {
-        let p = patches(&progressive::LINES, true, ALL, &[], &[SPOT]).unwrap();
+        let p = patches(&progressive::LINES, &[], true, ALL, &[], &[SPOT]).unwrap();
         assert_eq!(p[3].at, SPOTS, "the spot list");
         assert_eq!(p[4..], sites().collect::<Vec<_>>());
         let at = |i: usize| u32::from_le_bytes(p[4 + i].bytes[..].try_into().unwrap());
@@ -557,14 +583,14 @@ mod tests {
 
     #[test]
     fn link_s_update_needs_dev_the_run_call_the_hood_and_the_trade_sites_their_flag() {
-        let all = patches(&progressive::LINES, true, ALL, &[], &[]).unwrap();
+        let all = patches(&progressive::LINES, &[], true, ALL, &[], &[]).unwrap();
         for (dev, flags, gone) in [
             (false, ALL, vec![OFFSETS.link_update]),
             (true, TRADE_CYCLE, vec![RUN_CALL.0]),
             (false, TRADE_CYCLE, vec![OFFSETS.link_update, RUN_CALL.0]),
             (true, BUNNY_HOOD, TRADE_SITES.to_vec()),
         ] {
-            let some = patches(&progressive::LINES, dev, flags, &[], &[]).unwrap();
+            let some = patches(&progressive::LINES, &[], dev, flags, &[], &[]).unwrap();
             assert_eq!(some.len(), all.len() - gone.len(), "{dev} {flags}");
             assert!(some.iter().all(|p| !gone.contains(&p.at)), "{dev} {flags}");
         }
@@ -574,7 +600,7 @@ mod tests {
     fn a_table_too_big_for_the_space_is_refused() {
         let name = "Item_".repeat(40);
         let big = vec![(name.as_str(), name.as_str()); 20];
-        assert!(patches(&[&big], false, 0, &[], &[]).is_err());
+        assert!(patches(&[&big], &[], false, 0, &[], &[]).is_err());
     }
 
     #[test]
@@ -596,7 +622,7 @@ mod tests {
              08000000 00000018 0F0E0D0C 0B0A0908\n\
              04000000 0000002C 04030201\n\n"
         );
-        let text = cheat(&patches(&progressive::LINES, true, ALL, &[], &[SPOT]).unwrap());
+        let text = cheat(&patches(&progressive::LINES, &[], true, ALL, &[], &[SPOT]).unwrap());
         let cheats: Vec<_> = text.split("\n\n").filter(|c| !c.is_empty()).collect();
         let total = cheats.len();
         for (i, c) in cheats.iter().enumerate() {
@@ -648,13 +674,13 @@ mod tests {
         let other = dir.join("cheats/OTHER.txt");
         std::fs::create_dir_all(other.parent().unwrap()).unwrap();
         std::fs::write(&other, "").unwrap();
-        install(&dir, true, false, 0, &[], &[]).unwrap();
+        install(&dir, true, &[], false, 0, &[], &[]).unwrap();
         assert!(
             std::fs::read_to_string(path(&dir))
                 .unwrap()
                 .starts_with("{zootr 1/")
         );
-        install(&dir, false, true, 0, &[], &[]).unwrap();
+        install(&dir, false, &[], true, 0, &[], &[]).unwrap();
         let dev = std::fs::read_to_string(path(&dir)).unwrap();
         assert!(
             dev.contains(&format!("{:08X}", OFFSETS.link_update)),
@@ -666,10 +692,10 @@ mod tests {
                 .unwrap()
                 .contains(&format!("{:08X} ", OFFSETS.link_update))
         );
-        install(&dir, false, false, BUNNY_HOOD, &[], &[]).unwrap();
+        install(&dir, false, &[], false, BUNNY_HOOD, &[], &[]).unwrap();
         let hood = std::fs::read_to_string(path(&dir)).unwrap();
         assert!(hood.contains(&format!("{:08X}", RUN_CALL.0)), "{hood}");
-        install(&dir, false, false, 0, &[], &[]).unwrap();
+        install(&dir, false, &[], false, 0, &[], &[]).unwrap();
         assert!(!path(&dir).exists() && !exefs.exists());
         assert!(other.exists());
         remove(&dir).unwrap();

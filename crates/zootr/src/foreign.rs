@@ -3,18 +3,13 @@
 //! key: its own name, the small key's pouch content and row, and a plain
 //! deal, so the game stores it as nothing Link can use and counts nothing.
 //! Link gets the check's flag and the get, which names the item and its
-//! player. The app's client sends the item on. Another game's item shows
-//! a model by its Archipelago class, one no item of ours uses, tinted the
-//! way keys take their dungeon's colour.
+//! player. The app's client sends the item on.
 
 use anyhow::{Result, ensure};
 use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs};
 
-use crate::key_tints::paint::{Host, Look};
-use crate::key_tints::{MADE, POUCH_TEXT, TEXT_PARTS, pointed};
+use crate::key_tints::{MADE, POUCH_TEXT, TEXT_PARTS};
 use crate::keys::SMALL;
-use crate::known::{field, item};
-use crate::medallions::Colour;
 use crate::standins::{
     POUCH, POUCH_ACTOR, Tables, actor_path, doc, path_of, pouch_actor, raw, renamed, resolved,
     with_ref,
@@ -26,51 +21,12 @@ use crate::text::{Copies, CopyLine, Says};
 pub struct Foreign {
     /// The copy's actor, from [`actor`].
     pub actor: String,
-    /// The item it's a copy of: the item itself when it's ours.
+    /// The item whose model it shows: the item itself when it's ours.
     pub shows: String,
-    /// The model it shows instead of `shows`' own: its class's, when the
-    /// item is another game's.
-    pub model: Option<String>,
     /// The item as its game names it.
     pub item: String,
     /// The player it goes to.
     pub player: String,
-}
-
-/// The model another game's item shows: Sheik's harp, which Link never
-/// gets, tinted by the item's class.
-pub(crate) const CLASS_LOOK: Look = Look {
-    host: item::HARP_SHEIK,
-    material: Some(field::MT_HARP_SHEIK),
-    kinds: &["Alb", "AO", "Mtl", "Nrm", "Rgh"],
-    copy: "Obj_Rando_Ap_",
-};
-
-/// The files [`CLASS_LOOK`] is made from, spelled out like
-/// [`crate::key_tints::FILES`]: extracted before a dump's names are read.
-pub const FILES: [&str; 6] = [
-    "Model/Item_Harp_Sheik.Item_Harp_Sheik.bfres.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_Alb.bntx.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_AO.bntx.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_Mtl.bntx.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_Nrm.bntx.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_Rgh.bntx.zs",
-];
-
-/// Each class's colour, as Archipelago's text client shows it: plum,
-/// slate blue and cyan.
-const CLASSES: [(&str, Colour); 3] = [
-    ("progression", [221, 160, 221]),
-    ("useful", [106, 90, 205]),
-    ("filler", [0, 255, 255]),
-];
-
-/// The model another game's item of `class` shows. A trap shows as
-/// filler, as does a class this version doesn't know.
-pub fn class_model(class: &str) -> String {
-    let filler = CLASSES.len() - 1;
-    let n = CLASSES.iter().position(|(c, _)| *c == class);
-    CLASS_LOOK.name(n.unwrap_or(filler) + 1)
 }
 
 /// What follows [`MADE`] in a copy's name.
@@ -174,19 +130,12 @@ impl<'a> Built<'a> {
         let mut pouch = resolved(&key, &pouch_like)?;
         pouch.insert(POUCH_ACTOR.get().into(), pouch_actor(name));
         let actor_like = actor_path(&shown.name);
-        let (actor_doc, info) = match &foreign.model {
-            Some(model) => {
-                let [(_, actor, _), info] = pointed(&shown, name, model)?;
-                (actor, Some(info))
-            }
-            None => (BymlDoc::parse(&raw(&shown, &actor_like)?)?, None),
-        };
+        let actor_doc = BymlDoc::parse(&raw(&shown, &actor_like)?)?;
         let actor = with_ref(actor_doc.root.as_map()?, POUCH, &pouch_at)?;
-        let mut files = vec![
+        let files = vec![
             (actor_path(name), doc(actor, &actor_doc), actor_like, false),
             (pouch_at, doc(pouch, &pouch_doc), pouch_like, true),
         ];
-        files.extend(info.map(|(path, info, like)| (path, info, like, false)));
         Ok(Self {
             foreign,
             shown,
@@ -225,32 +174,18 @@ impl<'a> Built<'a> {
 }
 
 /// Writes each copy and its rows: the shown item's actor rows, the small
-/// key's pouch row with a plain deal, answering to its own name. With
-/// another game's items, each class's model too.
+/// key's pouch row with a plain deal, answering to its own name.
 pub fn write(
     romfs: &Romfs,
     builder: &mut ModBuilder,
     tables: &mut Tables,
     foreign: &[Foreign],
 ) -> Result<()> {
-    if foreign.iter().any(|f| f.model.is_some()) {
-        let host = Host::read(romfs, &CLASS_LOOK)?;
-        for (n, (_, colour)) in CLASSES.iter().enumerate() {
-            host.paint(builder, n + 1, *colour)?;
-        }
-    }
     for f in foreign {
         Built::new(romfs, f)?.write(builder)?;
         tables.copy(&f.actor, &f.shows)?;
         tables.copy_pouch(&f.actor, SMALL)?;
         tables.name_itself(&f.actor)?;
-        if let Some(model) = &f.model {
-            // The shown item's animations and heaps, which hold the harp's,
-            // and the harp's bounds from the actor that shows it in a scene.
-            let bounds = [field::MODEL_AABB_MAX, field::MODEL_AABB_MIN];
-            tables.take(&f.actor, item::DM_ITEM_SHEIK_HARP, &bounds)?;
-            tables.point(&f.actor, model)?;
-        }
     }
     let names: Vec<String> = foreign.iter().map(|f| f.actor.clone()).collect();
     let plain = tables.plain_deal(&names)?;
@@ -263,7 +198,6 @@ mod tests {
     use super::*;
     use crate::game::dev_dump;
     use crate::known::{field, flag, item};
-    use crate::medallions::model_path;
     use crate::standins::{PLAIN_DEAL, row};
     use ounce_formats::{Msbt, Part, pack_file};
     use roead::sarc::Sarc;
@@ -272,61 +206,9 @@ mod tests {
         Foreign {
             actor: actor(1),
             shows: item::HOOKSHOT.to_string(),
-            model: None,
             item: "Hookshot".into(),
             player: player.into(),
         }
-    }
-
-    #[test]
-    fn the_spelled_out_files_are_the_class_look_s_and_copies_fit_the_host() {
-        if crate::game::no_names() {
-            return;
-        }
-        assert_eq!(CLASS_LOOK.files().collect::<Vec<_>>(), FILES);
-        assert_eq!(CLASS_LOOK.name(1).len(), CLASS_LOOK.host.get().len());
-    }
-
-    #[test]
-    fn each_class_shows_its_own_copy_and_a_trap_or_new_class_filler_s() {
-        let model = |class| class_model(class);
-        let [progression, useful, filler] = [1, 2, 3].map(|n| CLASS_LOOK.name(n));
-        assert_eq!(model("progression"), progression);
-        assert_eq!(model("useful"), useful);
-        assert_eq!(model("filler"), filler);
-        assert_eq!(model("trap"), filler);
-        assert_eq!(model("a class from a later Archipelago"), filler);
-    }
-
-    #[test]
-    fn a_class_copy_shows_its_tinted_model_and_every_class_s_is_written() {
-        let Some(romfs) = dev_dump() else { return };
-        let mut copy = hookshot_for("Player2");
-        copy.model = Some(class_model("useful"));
-        let foreign = [copy];
-        let dir = std::env::temp_dir().join(format!("zootr-foreign-class-{}", std::process::id()));
-        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
-        let mut tables = Tables::load(&romfs).unwrap();
-        write(&romfs, &mut builder, &mut tables, &foreign).unwrap();
-        builder.finish().unwrap();
-        let painted: Vec<bool> = (1..=CLASSES.len())
-            .map(|n| {
-                dir.join("romfs")
-                    .join(model_path(&CLASS_LOOK.name(n)))
-                    .exists()
-            })
-            .collect();
-        std::fs::remove_dir_all(&dir).unwrap();
-        assert_eq!(painted, [true; 3]);
-
-        let built = pack(&romfs, &foreign[0].actor, &foreign).unwrap().unwrap();
-        let info = path_of(&built, crate::standins::MODEL).unwrap();
-        let info = resolved(&built, &info).unwrap();
-        let shows = info.get(field::FMDB_NAME.get()).unwrap();
-        assert_eq!(shows.as_string().unwrap(), &CLASS_LOOK.name(2));
-        let row = row(&tables.actor, &foreign[0].actor).unwrap();
-        let shows = row.get(field::FMDB_NAME.get()).unwrap();
-        assert_eq!(shows.as_string().unwrap(), &CLASS_LOOK.name(2));
     }
 
     #[test]

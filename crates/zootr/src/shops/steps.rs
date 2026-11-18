@@ -22,7 +22,7 @@ use crate::{ammo, progressive};
 /// gives `item`.
 pub(crate) fn steps(item: &str, progressive: bool) -> Option<Vec<(&'static str, Vec<Op>)>> {
     if let Some(&(bundle, fires)) = ammo::NEEDS.iter().find(|(a, _)| *a == item) {
-        let owns = any(pouches(fires).map(owned));
+        let owns = any(ammo::pouches(fires).map(owned));
         return Some(vec![
             (ammo::WITHOUT.get(), not(owns.clone())),
             (bundle.get(), owns),
@@ -45,13 +45,6 @@ pub(crate) fn steps(item: &str, progressive: bool) -> Option<Vec<(&'static str, 
             .map(|(k, (level, _))| (level.get(), program(k)))
             .collect(),
     )
-}
-
-/// The pouch names owning any of which means owning `fires`.
-fn pouches(fires: &'static str) -> impl Iterator<Item = &'static str> {
-    let line = progressive::line(fires).unwrap_or_default();
-    let named = line.iter().map(|(_, pouch)| pouch.get());
-    named.chain(line.is_empty().then_some(fires))
 }
 
 fn owned(pouch: &str) -> Vec<Op> {
@@ -410,7 +403,7 @@ mod tests {
         };
         let gd = GameData::load(&romfs).unwrap();
         let lines = progressive::LINES.iter().flat_map(|l| l.iter());
-        let fired = ammo::NEEDS.iter().flat_map(|(_, f)| pouches(f));
+        let fired = ammo::NEEDS.iter().flat_map(|(_, f)| ammo::pouches(f));
         for pouch in lines.map(|(_, p)| p.get()).chain(fired) {
             let name = format!("{IS_GET}.{pouch}");
             assert_eq!(Op::read(&gd, &name).ok(), owned(pouch).pop(), "{name}");

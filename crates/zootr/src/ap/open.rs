@@ -17,8 +17,8 @@ use crate::known::{Name, item};
 use crate::settings::Settings;
 use crate::shuffle::Fixed;
 
-/// The item another game's item is a copy of, showing its class's model:
-/// one Link gets once, so it reads as a get of its own.
+/// The item another game's item shows until models by class arrive: one
+/// Link gets once, so it reads as a get of its own.
 const STAND_IN: &Name = item::TOKEN_GERUDO;
 
 /// The ids the world was exported with.
@@ -163,20 +163,16 @@ impl ApSeed {
         };
 
         let mut fixed = Fixed::new();
-        type Copy = (String, Option<String>, String, String);
-        let mut copies: BTreeMap<Copy, String> = BTreeMap::new();
+        let mut copies: BTreeMap<(String, String, String), String> = BTreeMap::new();
         for (&hash, placed) in &self.placements {
             let item = match placed {
                 Placed::Own(id) => actor(*id)?,
                 Placed::Foreign(f) => {
-                    let (shows, model) = match (f.game == GAME, f.id) {
-                        (true, Some(id)) => (actor(id)?, None),
-                        _ => (
-                            STAND_IN.get().to_owned(),
-                            Some(foreign::class_model(&f.class)),
-                        ),
+                    let shows = match (f.game == GAME, f.id) {
+                        (true, Some(id)) => actor(id)?,
+                        _ => STAND_IN.get().to_owned(),
                     };
-                    let key = (shows, model, f.item.clone(), f.player_name.clone());
+                    let key = (shows, f.item.clone(), f.player_name.clone());
                     let next = foreign::actor(copies.len() + 1);
                     copies.entry(key).or_insert(next).clone()
                 }
@@ -185,10 +181,9 @@ impl ApSeed {
         }
         let foreign = copies
             .into_iter()
-            .map(|((shows, model, item, player), actor)| Foreign {
+            .map(|((shows, item, player), actor)| Foreign {
                 actor,
                 shows,
-                model,
                 item,
                 player,
             })
@@ -263,39 +258,6 @@ mod tests {
         assert!(resolved.foreign.iter().all(|f| f.player == "Zelda"));
         // Zelda's items are ours, so each copy shows the item itself.
         assert!(resolved.foreign.iter().all(|f| f.shows != STAND_IN.get()));
-        assert!(resolved.foreign.iter().all(|f| f.model.is_none()));
-    }
-
-    #[test]
-    fn another_game_s_items_show_their_class_s_model() {
-        let Some(romfs) = dev_dump() else { return };
-        let mut seed = ApSeed::from_zip(TWO_SLOTS).unwrap();
-        let classes = ["progression", "useful", "filler", "trap"];
-        for (placed, class) in seed.placements.values_mut().zip(classes) {
-            *placed = Placed::Foreign(ForeignItem {
-                player: 3,
-                player_name: "Saria".into(),
-                game: "FakeGame".into(),
-                item: format!("Fake {class}"),
-                class: class.into(),
-                id: None,
-            });
-        }
-        let resolved = seed.resolve(&romfs).unwrap();
-        let shown = |class: &str| {
-            let f = resolved
-                .foreign
-                .iter()
-                .find(|f| f.item == format!("Fake {class}"));
-            let f = f.unwrap();
-            assert_eq!(f.shows, STAND_IN.get());
-            f.model.clone().unwrap()
-        };
-        let filler = foreign::class_model("filler");
-        assert_eq!(shown("progression"), foreign::class_model("progression"));
-        assert_eq!(shown("useful"), foreign::class_model("useful"));
-        assert_eq!(shown("filler"), filler);
-        assert_eq!(shown("trap"), filler);
     }
 
     /// What `extras` installs from `seed` with the fixture's settings.

@@ -637,17 +637,12 @@ fn icons(romfs: &Romfs, game: &Path, pattern: &str, out: &Path) -> Result<()> {
         }
         match ounce_formats::textures(data) {
             Ok(all) => {
-                let redrawn = match ounce_formats::format(data) {
-                    Ok(f) if ounce_formats::redraws(f) => format!("format {f:#06x}, redrawable"),
-                    Ok(f) => format!("format {f:#06x}, not redrawable"),
-                    Err(e) => format!("format unread: {e:#}"),
-                };
                 for t in all {
                     std::fs::write(
                         out.join(format!("{}.png", t.name)),
                         crate::sprites::png(&t)?,
                     )?;
-                    println!("{}x{} {} {path} ({redrawn})", t.width, t.height, t.name);
+                    println!("{}x{} {} {path}", t.width, t.height, t.name);
                 }
             }
             Err(e) => println!("FAIL {path}: {e:#}"),

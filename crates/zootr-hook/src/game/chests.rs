@@ -48,15 +48,24 @@ pub(super) unsafe fn record(main: usize, table: &Table, node: usize) -> Option<(
     Some(())
 }
 
-/// Recreate the content of every closed chest of `added`'s line as the
+/// Recreate the content of every closed chest of `added`'s lines as the
 /// level it gives once `added` is owned.
 ///
 /// # Safety
 /// The table's offsets are this build's.
 pub(super) unsafe fn recreate(main: usize, table: &Table, added: &[u8]) -> Option<()> {
     let owns = unsafe { owned(main, table.offsets) }?;
-    let (line, next) = after_grant(table, added, &owns)?;
-    let next = next.as_ptr() as usize;
+    for (line, next) in after_grant(table, added, &owns) {
+        unsafe { remake(main, table, line, next.as_ptr() as usize) };
+    }
+    Some(())
+}
+
+/// Recreate the content of every closed chest of `line` as `next`.
+///
+/// # Safety
+/// The table's offsets are this build's, `next` a table name's address.
+unsafe fn remake(main: usize, table: &Table, line: u16, next: usize) {
     let shared = shared(main);
     for i in 0..CHESTS {
         // Claimed under the lock, swapped outside it, since create may
@@ -79,7 +88,6 @@ pub(super) unsafe fn recreate(main: usize, table: &Table, added: &[u8]) -> Optio
             });
         }
     }
-    Some(())
 }
 
 /// Delete `chest`'s content and create `name` in its slot. `None` when

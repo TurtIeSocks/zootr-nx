@@ -162,27 +162,12 @@ fn first(data: &[u8]) -> Result<usize> {
     u64_at(data, u64_at(data, 0x28)?)
 }
 
-/// A file's first texture's format, as its BRTI stores it.
-pub fn format(data: &[u8]) -> Result<u32> {
-    Ok(Info::read(data, first(data)?)?.format)
-}
-
-/// Format kinds, a format's high byte.
-const BC1: u32 = 0x1a;
-const BC4: u32 = 0x1d;
-
-/// Whether [`redraw`] redraws a texture of `format`: ASTC, BC1 or BC4.
-pub fn redraws(format: u32) -> bool {
-    let kind = format >> 8;
-    kind == BC1 || kind == BC4 || (0x2d..=0x3a).contains(&kind)
-}
-
 /// A file of one texture with its texels redrawn from `rgba`, its first
 /// level row-major at its size, in every mip level, each level the one
 /// above box-filtered. A block whose texels `keep` (by first-level x and y)
 /// all takes keeps its bytes. The layout stays byte for byte: only blocks
-/// change. Each ASTC block is the closest of one colour or two, each BC1
-/// block of four. BC4 takes the red channel.
+/// change. Each ASTC block is the closest of one colour or two. BC4
+/// takes the red channel.
 pub fn redraw(
     data: &[u8],
     rgba: &[u8],
@@ -196,10 +181,10 @@ pub fn redraw(
         info.name
     );
     let (bw, bh, unit) = block(info.format)?;
-    let kind = info.format >> 8;
+    let bc4 = info.format >> 8 == 0x1d;
     ensure!(
-        redraws(info.format),
-        "{}: only ASTC, BC1 and BC4 are redrawn",
+        bc4 || (0x2d..=0x3a).contains(&(info.format >> 8)),
+        "{}: only ASTC and BC4 are redrawn",
         info.name
     );
     let mut out = data.to_vec();
@@ -248,13 +233,12 @@ pub fn redraw(
                     image[y * w + x]
                 })
                 .collect();
-            Some(match kind {
-                BC1 => blocks::bc1(&texels).to_vec(),
-                BC4 => {
+            Some(match bc4 {
+                true => {
                     let red: [u8; 16] = std::array::from_fn(|t| texels[t][0]);
                     blocks::bc4(&red).to_vec()
                 }
-                _ => blocks::astc(&texels, bw, bh).to_vec(),
+                false => blocks::astc(&texels, bw, bh).to_vec(),
             })
         });
         for (&(bx, by), encoded) in at_blocks.iter().zip(encoded) {
