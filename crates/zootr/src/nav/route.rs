@@ -12,7 +12,7 @@ use ounce_formats::Romfs;
 use serde::Serialize;
 
 use super::Level;
-use super::graph::{Arc, Cross, Graph, Via, dist};
+use super::graph::{Arc, Cross, FLOOR, Graph, Via, dist};
 use crate::dev::Dev;
 use crate::live::Memory;
 
@@ -214,14 +214,27 @@ pub fn plan(graph: &Graph, from: [f32; 3], to: [f32; 3]) -> Result<Route> {
             waypoints: waypoints.into(),
         });
     }
-    let start = graph
-        .locate(from)
-        .context("no route: no mesh within 1.5 m of Link")?;
+    // In water off the mesh, Link swims ashore first: a bank within reach
+    // may be one he can't climb.
+    let ashore = (graph.floor(from, FLOOR).is_none())
+        .then(|| graph.ashore(from))
+        .flatten();
+    let (start, swim) = match ashore {
+        Some((start, via)) => (start, Some(via)),
+        None => graph
+            .locate(from)
+            .map(|start| (start, None))
+            .context("no route: no mesh within 1.5 m of Link")?,
+    };
     let goal = graph
         .locate(to)
         .context("no route: no mesh within 1.5 m of the goal")?;
     let path = search(graph, start.face, goal.face).context("no route")?;
-    let waypoints = super::clear::clear(graph, pull(graph, from, start.at, &path, goal.at));
+    let mut pulled = pull(graph, from, start.at, &path, goal.at);
+    if let Some(via) = swim {
+        pulled.insert(1, Waypoint { at: start.at, via });
+    }
+    let waypoints = super::clear::clear(graph, pulled);
     let length = waypoints.windows(2).map(|w| dist(w[0].at, w[1].at)).sum();
     Ok(Route { waypoints, length })
 }

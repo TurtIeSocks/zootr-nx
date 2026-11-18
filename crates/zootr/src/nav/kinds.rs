@@ -120,6 +120,13 @@ pub fn climbs(name: &str) -> bool {
     matches!(word(name), Some("ladder" | "climb wall"))
 }
 
+/// Whether Link swims in a placement named `name`: a water plane. Effect
+/// locators (`EftLoc_`) only play ripples, and cutscene copies (`Dm_`)
+/// are never placed for play.
+pub fn water(name: &str) -> bool {
+    name.contains("WaterPlane") && !name.starts_with("EftLoc_") && !name.starts_with("Dm_")
+}
+
 /// The word for a placement's name.
 pub fn word(name: &str) -> Option<&'static str> {
     kind_of(name).map(|k| k.word)

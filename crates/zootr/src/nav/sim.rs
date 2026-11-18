@@ -157,6 +157,8 @@ impl Input for Hands {
         assert!(world.camera, "a push without ZL before it");
         world.camera = false;
         world.pushes.push((direction.into(), ms));
+        // A button held along with the stick (a dash) moves him no further.
+        let direction = direction.split('+').next().unwrap_or(direction);
         let eighths = CLOCKWISE.iter().position(|&d| d == direction).unwrap();
         world.yaw -= eighths as f32 * std::f32::consts::FRAC_PI_4;
         if ms > TAP {
