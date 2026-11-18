@@ -235,6 +235,7 @@ mod tests {
     use super::*;
     use crate::game::dev_dump;
     use crate::known::{actor, field, flow};
+    use zootr_hook::Notice;
 
     #[test]
     fn a_line_is_a_challenge_and_a_step() {
@@ -366,12 +367,13 @@ mod tests {
             &argument("ZootrActor")
         );
         let banner = then(&flow, popup).expect("the popup goes on to the banner");
-        assert_eq!(param(&flow, banner, field::TYPE), &Value::Int(vec![12]));
+        let kind = |notice| Value::Int(vec![crate::notice::banner(notice).kind]);
+        assert_eq!(param(&flow, banner, field::TYPE), &kind(Notice::Item));
         assert_eq!(then(&flow, banner), None, "a notice ends the event");
         let (asked, [mixed, from]) = asks(&flow, summary);
         assert_eq!(asked, argument("ZootrMixed"));
-        for (at, kind) in [(mixed, 3), (from, 1)] {
-            assert_eq!(param(&flow, at, field::TYPE), &Value::Int(vec![kind]));
+        for (at, notice) in [(mixed, Notice::Mixed), (from, Notice::Summary)] {
+            assert_eq!(param(&flow, at, field::TYPE), &kind(notice));
             assert_eq!(then(&flow, at), None, "a summary has no popup");
         }
     }

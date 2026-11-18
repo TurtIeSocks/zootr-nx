@@ -52,6 +52,8 @@ pub enum Says {
     Text(String),
     /// Words and GameData tags, each tag copied from a vanilla line that
     /// reads it. A language without one of the tags goes without the line.
+    /// It replaces a label that already has a line: a line the game reads
+    /// by a fixed label (a banner type's) can only be taken over.
     Tagged(&'static [Piece]),
 }
 
@@ -235,7 +237,8 @@ pub(crate) fn copied(data: &[u8], rel: &str, copies: &Copies) -> Result<Vec<u8>>
     let areas = sarc.get_data(AREAS);
     let places = Msbt::parse(areas.with_context(|| format!("{rel} has no {AREAS}"))?)?;
     for line in &copies.new {
-        if msbt.get(&line.label)?.is_some() {
+        let replaces = matches!(line.says, Says::Tagged(_));
+        if !replaces && msbt.get(&line.label)?.is_some() {
             continue;
         }
         let mut text = None;

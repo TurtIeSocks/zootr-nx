@@ -6,8 +6,8 @@
 //! The banner's words come from GameData: the app writes the item, the
 //! sender's stand-in and a count, then asks the hook for the notice, which
 //! the dev branch of a seed's map change flow shows. So the seed writes
-//! three banner lines, on SimpleInfo types the game has no line for, and a
-//! name for each slot's stand-in.
+//! three banner lines over the amiibo ones, and a name for each slot's
+//! stand-in.
 
 use std::collections::BTreeMap;
 
@@ -52,17 +52,21 @@ const COUNT_TAG: Tagged = Tagged {
 
 /// One banner: its SimpleInfo type, the label the game reads for it, and
 /// its words.
-struct Banner {
-    kind: i32,
+pub(crate) struct Banner {
+    pub(crate) kind: i32,
     label: &'static Name,
     says: &'static [Piece],
 }
 
-/// [`Notice::Item`], [`Notice::Summary`] and [`Notice::Mixed`]'s banners.
+/// [`Notice::Item`], [`Notice::Summary`] and [`Notice::Mixed`]'s banners,
+/// over the amiibo banners. The game's unused banner types would leave
+/// those alone, but their names are only in `main`, which a dump's romfs
+/// lacks: the maintainer's call (received notice spec). An amiibo used
+/// in a seed shows a notice's last words instead of its own.
 const LINES: [Banner; 3] = [
     Banner {
-        kind: 12,
-        label: field::CANNOT_PUT_WARP_POINT,
+        kind: 28,
+        label: field::CANNOT_USE_AMIIBO_HERE,
         says: &[
             Piece::Tag(ITEM_TAG),
             Piece::Words(" from "),
@@ -70,8 +74,8 @@ const LINES: [Banner; 3] = [
         ],
     },
     Banner {
-        kind: 1,
-        label: field::RUPEE_SHORTAGE,
+        kind: 26,
+        label: field::CANNOT_USE_AMIIBO_TODAY,
         says: &[
             Piece::Words("+"),
             Piece::Tag(COUNT_TAG),
@@ -80,8 +84,8 @@ const LINES: [Banner; 3] = [
         ],
     },
     Banner {
-        kind: 3,
-        label: field::CANNOT_PICK_UP_MORE,
+        kind: 27,
+        label: field::CANNOT_USE_UNSUPPORTED_AMIIBO,
         says: &[
             Piece::Words("+"),
             Piece::Tag(COUNT_TAG),
@@ -91,7 +95,7 @@ const LINES: [Banner; 3] = [
 ];
 
 /// The banner `notice` shows.
-fn banner(notice: Notice) -> &'static Banner {
+pub(crate) fn banner(notice: Notice) -> &'static Banner {
     &LINES[notice as usize]
 }
 
@@ -148,7 +152,7 @@ impl Shown {
 pub(crate) fn banners() -> Copies<'static> {
     let new = LINES.iter().map(|b| CopyLine {
         label: b.label.get().to_owned(),
-        sources: vec![field::EATEN_EQUIPMENT.get().to_owned()],
+        sources: vec![b.label.get().to_owned()],
         says: Says::Tagged(b.says),
     });
     Copies {
@@ -264,9 +268,9 @@ mod tests {
 
     #[test]
     fn each_notice_has_its_banner() {
-        assert_eq!(banner(Notice::Item).kind, 12);
-        assert_eq!(banner(Notice::Summary).kind, 1);
-        assert_eq!(banner(Notice::Mixed).kind, 3);
+        assert_eq!(banner(Notice::Item).kind, 28);
+        assert_eq!(banner(Notice::Summary).kind, 26);
+        assert_eq!(banner(Notice::Mixed).kind, 27);
     }
 
     #[test]
@@ -279,14 +283,10 @@ mod tests {
                 _ => panic!("a name is plain text"),
             })
             .collect();
-        assert_eq!(
-            said,
-            [
-                ("Item_Rando_From0_Name", "Archipelago"),
-                ("Item_Rando_From1_Name", "Link"),
-                ("Item_Rando_From2_Name", "Saria"),
-            ]
-        );
+        let label = |slot| format!("{}{}", sender(slot), TEXT_PARTS[0]);
+        let want = [(0, "Archipelago"), (1, "Link"), (2, "Saria")].map(|(s, n)| (label(s), n));
+        let said: Vec<_> = said.into_iter().map(|(l, n)| (l.to_owned(), n)).collect();
+        assert_eq!(said, want);
         assert!(senders(&BTreeMap::new()).new.is_empty());
     }
 
@@ -296,15 +296,16 @@ mod tests {
             return;
         };
         let path = format!("{BANNERS}.msbt");
+        let banners = banners();
         let rels = crate::text::archives(&romfs).unwrap();
         assert!(rels.len() > 10, "every language: {rels:?}");
         for rel in rels {
             let data = romfs.read(&rel).unwrap();
-            let data = crate::text::copied(&data, &rel, &banners()).unwrap();
+            let data = crate::text::copied(&data, &rel, &banners).unwrap();
             let sarc = roead::sarc::Sarc::new(&data).unwrap();
             let msbt = ounce_formats::Msbt::parse(sarc.get_data(&path).unwrap()).unwrap();
             for b in &LINES {
-                let line = msbt.get(b.label).unwrap();
+                let line = msbt.get(b.label.get()).unwrap();
                 let line = line.unwrap_or_else(|| panic!("{rel} has no {}", b.label));
                 assert_eq!(line.len(), b.says.len(), "{rel} {}", b.label);
                 for (part, piece) in line.iter().zip(b.says) {
