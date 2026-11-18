@@ -76,7 +76,6 @@ pub const MELODY_SUN_SONG: &Name = &n!(0x4e5f51b2f63a6683);
 pub const MELODY_TIME_SONG: &Name = &n!(0xc15a2b8e7d480294);
 pub const MELODY_WATER_SERENADE: &Name = &n!(0x894c2633c28e8a08);
 pub const MELODY_ZELDA_LULLABY: &Name = &n!(0xa1390a24431311e3);
-pub const NAVIGATION_DESTINATION_POINT: &Name = &n!(0x29c17f73cbca5c4c);
 pub const NAYRU_LOVE: &Name = &n!(0x4b2f6e63a297608c);
 pub const NUT_BAG_LARGE: &Name = &n!(0xe1d586719fa70ce4);
 pub const NUT_BAG_MEDIUM: &Name = &n!(0x7a75e312841c1d66);
