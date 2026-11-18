@@ -133,12 +133,27 @@ fn bump(v: &mut Byml, by: i64) -> Result<()> {
 }
 
 /// One instruction of a BoolExp program.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Op {
     /// Push a Bool, by hash.
     Bool(u32),
+    /// Push another BoolExp, by hash.
+    Exp(u32),
     Not,
     And,
+    Or,
+}
+
+impl Op {
+    /// Push `name`'s entry, a Bool or a BoolExp in `gd`.
+    pub fn read(gd: &GameData, name: &str) -> Result<Self> {
+        let hash = murmur3(name.as_bytes());
+        match gd.kind(hash) {
+            Some("Bool") => Ok(Self::Bool(hash)),
+            Some(k) if k == BOOL_EXP.get() => Ok(Self::Exp(hash)),
+            other => bail!("{name} is {other:?}, not a Bool or a {}", flag::BOOL_EXP),
+        }
+    }
 }
 
 /// Append a BoolExp named each of `exps`, running its program. A Presence
@@ -164,12 +179,20 @@ pub fn add_exps(root: &mut Byml, exps: &[(String, Vec<Op>)]) -> Result<()> {
         let taken = table.iter().any(|e| has_hash(e, hash));
         ensure!(!taken, "{} already has {name}", flag::GAME_DATA);
         let values = program.iter().map(|op| match *op {
-            Op::Bool(of) => Ok(Byml::Array(vec![
-                like(&template[0], op::BOOL)?,
-                typed(template.get(1), of)?,
-            ])),
+            Op::Bool(of) | Op::Exp(of) => {
+                let code = if matches!(op, Op::Bool(_)) {
+                    op::BOOL
+                } else {
+                    op::BOOL_EXP
+                };
+                Ok(Byml::Array(vec![
+                    like(&template[0], code)?,
+                    typed(template.get(1), of)?,
+                ]))
+            }
             Op::Not => instruction(&template, op::NOT, None),
             Op::And => instruction(&template, op::AND, None),
+            Op::Or => instruction(&template, op::OR, None),
         });
         let mut entry = first.clone();
         entry.insert("Hash".into(), typed(first.get("Hash"), hash)?);
@@ -242,6 +265,7 @@ pub fn join_structs(
 /// BoolExp opcodes, as [`GameData::render`] reads them.
 pub(crate) mod op {
     pub const BOOL: i64 = 0;
+    pub const BOOL_EXP: i64 = 10;
     pub const INT_EQUAL: i64 = 15;
     pub const INT_GREATER: i64 = 19;
     pub const INT_CONSTANT: i64 = 16;
@@ -390,6 +414,35 @@ mod tests {
         let (a, b) = (gd.name(alias.1), gd.name(both.1));
         assert_eq!(gd.expr(&both.0).unwrap(), Some(format!("{a} && !{b}")));
         assert!(add_exps(&mut doc.root, &exps[..1]).is_err(), "added twice");
+    }
+
+    #[test]
+    fn an_exp_reads_other_exps_and_ors() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gd = GameData::load(&romfs).unwrap();
+        let mut doc = BymlDoc::parse(&romfs.read(PATH).unwrap()).unwrap();
+        let (bool_name, exp_name) = (
+            flag::IS_GET_ITEM_DIN_FIRE.get(),
+            flag::SAGE_OF_FOREST_IS_COMPLETED_EXP.get(),
+        );
+        let program = vec![
+            Op::read(&gd, bool_name).unwrap(),
+            Op::read(&gd, exp_name).unwrap(),
+            Op::Not,
+            Op::Or,
+        ];
+        assert_eq!(program[1], Op::Exp(murmur3(exp_name.as_bytes())));
+        let name = "ZootrFake.Exp".to_string();
+        add_exps(&mut doc.root, &[(name.clone(), program)]).unwrap();
+        let mut ours = GameData::parse(&doc.to_binary()).unwrap();
+        ours.learn(bool_name);
+        ours.learn(exp_name);
+        assert_eq!(
+            ours.expr(&name).unwrap(),
+            Some(format!("{bool_name} || !{exp_name}"))
+        );
     }
 
     #[test]
