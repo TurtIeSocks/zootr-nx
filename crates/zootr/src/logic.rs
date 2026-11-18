@@ -351,7 +351,7 @@ impl World {
             ensure!(
                 entry.optional
                     || seen.iter().any(|(h, _)| *h == hash)
-                    || gifts::GIFTS.iter().any(|g| g.hash() == hash),
+                    || gifts::by_hash(hash).is_some(),
                 "a rule names check {hash}, which no check has"
             );
         }
