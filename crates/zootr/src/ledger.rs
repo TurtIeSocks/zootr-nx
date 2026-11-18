@@ -24,7 +24,7 @@ pub const SCHEMA: u32 = 1;
 /// and the `accounting` test fails one that adds debt.
 pub const BASELINE: Debt = Debt {
     refused: 4727,
-    left_out: 813,
+    left_out: 816,
 };
 
 /// EIE #11: the Gerudo thieves' keys, which `fortress-keys` never shuffles.
@@ -40,10 +40,14 @@ const NOT_HOLDERS: [(&Name, Why); 10] = [
     (actor::OBJ_IRON_KNUCKLE_CHAIR_A_02, Why::Scenery),
     (actor::OBJ_TREE_A_02, Why::Scenery),
     (actor::OBJ_GERUDO_COW_BONE_DECORATION_B_01, Why::Scenery),
-    // Enemies that drop an item when beaten, flying pots included.
+    // Enemies that drop an item when beaten.
     (actor::ENEMY_WOLFOS, Why::Scenery),
     (actor::ENEMY_SKULLTULA, Why::Scenery),
-    (actor::ENEMY_FLYING_POT_SPIRIT_TEMPLE, Why::Scenery),
+    // Flying pots are pots, the maintainer's call (2026-11-18).
+    (
+        actor::ENEMY_FLYING_POT_SPIRIT_TEMPLE,
+        Why::Eie { eie: BREAKABLES },
+    ),
     // The Treasure Chest Game's room chests: only its prize is a check.
     (actor::OBJ_HRL_CITY_SHOP_T_BOX_A_01, Why::Maintainer),
     (actor::OBJ_HRL_CITY_SHOP_T_BOX_A_02, Why::Maintainer),
