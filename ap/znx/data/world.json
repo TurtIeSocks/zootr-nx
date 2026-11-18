@@ -3046,12 +3046,7 @@
           "rule": true
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)"
-      ],
+      "forbid": [],
       "hash": "5534919361313859554",
       "id": 40,
       "name": "Graveyard Southwest Piece of Heart Chest",
@@ -9817,12 +9812,7 @@
           "rule": true
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)"
-      ],
+      "forbid": [],
       "hash": "16041366920820397198",
       "id": 115,
       "name": "Graveyard Southwest Hookshot Chest",
@@ -10064,12 +10054,7 @@
           }
         }
       ],
-      "forbid": [
-        "Arrows (10)",
-        "Arrows (3)",
-        "Arrows (5)",
-        "Bombs (5)"
-      ],
+      "forbid": [],
       "hash": "16881481538337649070",
       "id": 120,
       "name": "Market Treasure Chest Game Prize",
