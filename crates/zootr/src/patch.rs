@@ -6,7 +6,8 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
 use zootr_hook::{
-    BUNNY_HOOD, CAVE, Credit, LIST, Offsets, PANIC, SLOTS, Shared, Spot, TABLE, TRADE_CYCLE, encode,
+    BUNNY_HOOD, CAVE, Credit, DEV, ICE_TRAPS, LIST, Offsets, PANIC, SLOTS, Shared, Spot, TABLE,
+    TRADE_CYCLE, encode,
 };
 
 use crate::known::Name;
@@ -221,6 +222,7 @@ pub fn patches<A: AsRef<str>>(
         bytes: branch(GATE.0, GATE.1, false).to_vec(),
     };
     let code = fit(CAVE, hook_code(), CAVE_END, "hook")?;
+    let flags = flags | if mailbox { DEV } else { 0 };
     let trade = flags & TRADE_CYCLE != 0;
     let actors = trade_slot::actors();
     let slot = trade.then(|| trade_slot::spec(&actors));
@@ -240,7 +242,7 @@ pub fn patches<A: AsRef<str>>(
     )?;
     let bunny = flags & BUNNY_HOOD != 0;
     let sites = sites().filter(|p| match p.at {
-        at if at == OFFSETS.link_update => mailbox,
+        at if at == OFFSETS.link_update => flags & (DEV | ICE_TRAPS) != 0,
         at if at == RUN_CALL.0 => bunny,
         at if TRADE_SITES.contains(&at) => trade,
         at if at == OFFSETS.taken => !spots.is_empty(),
@@ -569,13 +571,18 @@ mod tests {
     }
 
     #[test]
-    fn link_s_update_needs_dev_the_run_call_the_hood_and_the_trade_sites_their_flag() {
+    fn link_s_update_needs_dev_or_traps_the_run_call_the_hood_and_the_trade_sites_their_flag() {
         let all = patches(&progressive::LINES, &[], true, ALL, &[], &[]).unwrap();
         for (dev, flags, gone) in [
             (false, ALL, vec![OFFSETS.link_update]),
             (true, TRADE_CYCLE, vec![RUN_CALL.0]),
             (false, TRADE_CYCLE, vec![OFFSETS.link_update, RUN_CALL.0]),
             (true, BUNNY_HOOD, TRADE_SITES.to_vec()),
+            (
+                false,
+                ICE_TRAPS,
+                vec![RUN_CALL.0].into_iter().chain(TRADE_SITES).collect(),
+            ),
         ] {
             let some = patches(&progressive::LINES, &[], dev, flags, &[], &[]).unwrap();
             assert_eq!(some.len(), all.len() - gone.len(), "{dev} {flags}");

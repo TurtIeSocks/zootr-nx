@@ -13,6 +13,12 @@ pub const FREE_BOMBCHUS: u32 = 1;
 pub const BUNNY_HOOD: u32 = 2;
 /// The header's flag for a seed where Link picks what the trade slot shows.
 pub const TRADE_CYCLE: u32 = 4;
+/// The header's flag for a seed with ice traps, which spring on Link's
+/// update.
+pub const ICE_TRAPS: u32 = 8;
+/// The header's flag for a seed carrying the mailbox: the app's requests
+/// and the dev switches, held on Link's update.
+pub const DEV: u32 = 16;
 pub const HEADER: usize = size_of::<Header>();
 
 /// The table's start, little endian like the game.
@@ -235,6 +241,8 @@ pub enum Credit {
     /// An Int and its saved copy, the value added: a single small key
     /// counts one more for its own dungeon, wherever Link is.
     Add(u32, i32),
+    /// An ice trap: Link freezes once he's free to.
+    Freeze,
 }
 
 impl Credit {
@@ -246,6 +254,7 @@ impl Credit {
             0 => Some(Self::Bool(hash)),
             1 => Some(Self::Int(hash, i32::from_le_bytes([v0, v1, v2, v3]))),
             2 => Some(Self::Add(hash, i32::from_le_bytes([v0, v1, v2, v3]))),
+            3 => Some(Self::Freeze),
             _ => None,
         }
     }
@@ -256,6 +265,7 @@ impl Credit {
             Self::Bool(hash) => (0, hash, 0),
             Self::Int(hash, value) => (1, hash, value),
             Self::Add(hash, value) => (2, hash, value),
+            Self::Freeze => (3, 0, 0),
         };
         let mut out = [kind; Self::SIZE];
         out[1..5].copy_from_slice(&hash.to_le_bytes());
@@ -582,6 +592,7 @@ mod tests {
         ("Key_02", Credit::Int(0xdead_beef, -3)),
         ("Key_03", Credit::Int(0x0bad_f00d, 9)),
         ("Key_04", Credit::Add(0xfeed_face, 1)),
+        ("FakeTrap", Credit::Freeze),
     ];
 
     /// Two pots dropping a green rupee 3 m apart, one a stand-in further

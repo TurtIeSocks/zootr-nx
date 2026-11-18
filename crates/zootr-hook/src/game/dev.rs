@@ -133,7 +133,7 @@ pub(super) unsafe fn set_bool(main: usize, o: &Offsets, gd: usize, hash: u32, va
 }
 
 /// The system counter and its ticks per second.
-fn clock() -> (u64, u64) {
+pub(super) fn clock() -> (u64, u64) {
     let (now, rate): (u64, u64);
     // SAFETY: reads of the counter registers, open to user code.
     unsafe {
@@ -410,9 +410,14 @@ unsafe fn locate(mail: &Mailbox, actor: usize) -> Outcome {
 /// it.
 unsafe fn play(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcome {
     match play_event(&mail.map) {
-        Some(event) => unsafe { request_map_change(main, o, actor, event, &[], &[]) },
+        Some(event) => unsafe { start(main, o, actor, event) },
         None => Outcome::NotBuilt,
     }
+}
+
+/// Start `event`, NUL ended, with no arguments, as a trigger would.
+pub(super) unsafe fn start(main: usize, o: &Offsets, actor: usize, event: &[u8]) -> Outcome {
+    unsafe { request_map_change(main, o, actor, event, &[], &[]) }
 }
 
 /// Flip the age and teleport. The flag goes back if the teleport
