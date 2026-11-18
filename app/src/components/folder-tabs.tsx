@@ -23,7 +23,9 @@ interface FolderTabsProps<T extends string> {
 }
 
 /** Tabs drawn like the labels on files in a cabinet drawer: the open one
- * runs into the folder body, the rest tuck behind it. Arrow keys move and
+ * runs into the folder body (above it), the rest tuck behind its top edge
+ * (below it). The list sets no z-index of its own, so each tab stacks
+ * against the body. Only colours animate: a switch doesn't move anything. Arrow keys move and
  * open, Home and End jump. */
 export function FolderTabs<T extends string>({
   tabs,
@@ -37,15 +39,12 @@ export function FolderTabs<T extends string>({
       onValueChange={(id) => onValueChange(id as T)}
       className="flex flex-col"
     >
-      <Tabs.List
-        aria-label={label}
-        className="relative z-2 flex items-end gap-1"
-      >
+      <Tabs.List aria-label={label} className="flex items-end gap-1">
         {tabs.map(({ id, label, icon: Icon, meta }) => (
           <Tabs.Trigger
             key={id}
             value={id}
-            className="group/tab -mb-1 relative inline-flex h-9 cursor-pointer items-center gap-2 whitespace-nowrap rounded-t-lg border border-line border-b-0 bg-surface-sunken px-4 pb-1 font-medium text-[13.5px] text-ink-muted transition-[background-color,color,transform,height] duration-(--duration-base) ease-out hover:-translate-y-0.5 hover:bg-surface-hover hover:text-ink focus-visible:outline-offset-[-2px] data-[state=active]:z-3 data-[state=active]:-mb-px data-[state=active]:h-[42px] data-[state=active]:translate-y-0 data-[state=active]:bg-surface data-[state=active]:pb-0 data-[state=active]:text-ink data-[state=active]:shadow-[0_-1px_3px_rgba(0,0,0,0.04)]"
+            className="group/tab -mb-1 relative z-0 inline-flex h-9 cursor-pointer items-center gap-2 whitespace-nowrap rounded-t-lg border border-line border-b-0 bg-surface-sunken px-4 pb-1 font-medium text-[13.5px] text-ink-muted transition-colors duration-(--duration-fast) hover:bg-surface-hover hover:text-ink focus-visible:outline-offset-[-2px] data-[state=active]:z-2 data-[state=active]:-mb-px data-[state=active]:h-[42px] data-[state=active]:bg-surface data-[state=active]:pb-0 data-[state=active]:text-ink"
           >
             <Icon className="size-4 stroke-[1.75] text-ink-faint group-data-[state=active]/tab:text-primary-ink" />
             {label}
