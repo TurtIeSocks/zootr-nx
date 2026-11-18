@@ -262,9 +262,11 @@ pub fn shuffle<'a>(
 /// Whether `item` asks on `check`, which a gift can't answer unless it
 /// asks the pouch first. Nothing asks of an NPC gift, a scrub or a cow:
 /// each puts the pouch questions in front of its grant (`gifts::levels`).
+/// A prize chest is a chest to the hook, which gives a line's level there.
 fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
     let picks = gifts::of(check).is_some() || scrubs::of(check).is_some() || cows::is_cow(check);
-    !picks && levels::asks(item, progressive)
+    let leveled = gifts::is_prize(check) && ammo::swap(item).is_none();
+    !picks && !leveled && levels::asks(item, progressive)
 }
 
 /// Whether `check` may hold `item`: a gift can't hold one that asks. A
@@ -474,6 +476,27 @@ mod tests {
         };
         assert!(allowed(&cow, item::HOOKSHOT, true));
         assert!(allowed(&cow, item::BOMB_BUNDLE_SMALL, true));
+    }
+
+    /// The hook levels a prize chest's line as it does any chest's. Ammo
+    /// still asks: a minigame's chest can't turn into a substitute one.
+    #[test]
+    fn a_prize_chest_holds_every_line_level_but_not_ammo() {
+        needs_names!();
+        for hash in gifts::PRIZE_CHESTS {
+            let prize = ItemCheck {
+                hash,
+                ..chest(1, "Item_A")
+            };
+            for line in progressive::LINES {
+                for &(level, _) in line.iter() {
+                    assert!(allowed(&prize, level, true), "{level}");
+                }
+            }
+            for (ammo, _) in ammo::NEEDS {
+                assert!(!allowed(&prize, ammo, true), "{ammo}");
+            }
+        }
     }
 
     #[test]

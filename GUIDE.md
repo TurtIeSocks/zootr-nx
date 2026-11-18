@@ -135,7 +135,7 @@ Each page under Randomizer in the app's sidebar, with what every setting does.
 | Clock runs | Time passes from the start, as it does once Link first walks into Hyrule Field |
 | No tutorials | Every guide screen counts as already shown, except the Great Fairy's |
 | Chest size | All small makes every chest a small one, which opens without the big chest's long animation. What a chest holds doesn't change |
-| Progressive items | Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size. Business scrubs, cows and the three merchants give the level too, and a scrub's offer names it. Shops and minigame prize chests never hold an upgrade. The spoiler calls each strength level Strength |
+| Progressive items | Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size. Business scrubs, cows and the three merchants give the level too, and a scrub's offer names it. Minigame prize chests give the level too, as any chest does. Shops never hold an upgrade. The spoiler calls each strength level Strength |
 | Bombchus without a bomb bag | Bombchus hold up to 50 on their own, so they open the same checks bombs do |
 | Quiet Navi | Navi never stops Link to talk on her own. Hints you ask her for still work |
 | Bunny Hood speed | Link runs half again as fast while he wears the Bunny Hood |
