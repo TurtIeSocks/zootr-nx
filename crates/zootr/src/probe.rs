@@ -52,6 +52,10 @@ pub enum Probe {
     /// A placement's own key (GameData's Bool64bitKey entry), by its
     /// placement hash in decimal.
     Key { hash: u64 },
+    /// Each GameData table and how many entries it holds, as the file
+    /// lists them, or with `table` that table's first entries (`MetaData`
+    /// for the save layout).
+    Tables { table: Option<String> },
     /// An actor pack's files, or the files whose names contain `file`.
     Pack { actor: String, file: Option<String> },
     /// Each text's murmur3, the way GameData keys its names, then the
@@ -291,6 +295,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             member,
         } => data(romfs, &key, holders, exps, member),
         Probe::Key { hash } => key(romfs, hash),
+        Probe::Tables { table } => crate::gamedata::print_tables(romfs, table.as_deref()),
         Probe::Pack { actor, file } => pack(romfs, &actor, file.as_deref()),
         Probe::Hash { text } => {
             text.iter().for_each(|t| {
