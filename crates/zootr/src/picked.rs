@@ -9,13 +9,18 @@
 //! pots) gets no twin, since the vanilla one is gone after the pickup too.
 //! It stands until its drop is picked up instead, so a drop left behind
 //! comes back.
+//!
+//! A dropped pickup doesn't know its holder, so the hook's table lists each
+//! holder's [`Spot`]: its flag, what it drops and where it stands. A take
+//! sets the nearest unpicked one dropping that name.
 
 use std::collections::BTreeMap;
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::Byml;
+use ounce_formats::{Byml, murmur3};
+use zootr_hook::Spot;
 
-use crate::checks::{self, ItemCheck, hash_of};
+use crate::checks::{self, DROP_ACTOR, ItemCheck, TRANSLATE, hash_of, str_field, vec3};
 use crate::known::field;
 use crate::pickups::{CRATES, HIVES, Kind, POTS, ROCKS};
 
@@ -123,6 +128,28 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
     }
     list.extend(twins);
     Ok(placed)
+}
+
+/// Each of `holders` placed in `root`, a Banc file's doc, as the hook's
+/// table lists it. Run once the drops are written, so each names the
+/// shuffled one.
+pub fn spots(root: &Byml, holders: &[Holder]) -> Result<Vec<Spot>> {
+    let mut out = Vec::new();
+    for actor in checks::actors(root)? {
+        let Some(hash) = hash_of(actor).filter(|h| holders.iter().any(|x| x.hash == *h)) else {
+            continue;
+        };
+        let dynamic = actor.as_map()?.get("Dynamic");
+        let drop = dynamic.and_then(|d| str_field(d, DROP_ACTOR.get()));
+        let drop = drop.with_context(|| format!("holder {hash} drops nothing"))?;
+        let at = vec3(actor, TRANSLATE).with_context(|| format!("holder {hash} stands nowhere"))?;
+        out.push(Spot {
+            flag: murmur3(flag(hash).as_bytes()),
+            name: Spot::name_hash(drop.as_bytes()),
+            at: at.map(|v| v.round() as i16),
+        });
+    }
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -248,5 +275,44 @@ mod tests {
             let gate = presence_of(pot).unwrap();
             assert_eq!((gate.flag, gate.negated), (flag(hash), true));
         }
+    }
+
+    #[test]
+    fn a_holder_lists_its_flag_its_shuffled_drop_and_where_it_stands() {
+        let Some(_) = dev_dump() else { return };
+        let (romfs, pieces) = pool();
+        let holders = holders(&pieces);
+        let rock = pieces.iter().find(|c| ROCKS.holds(c)).unwrap();
+        let mut doc = checks::load_banc(&romfs, &rock.file).unwrap();
+        let field = format!(
+            "{}.Dynamic.{}=Obj_FakeStandIn_001",
+            rock.hash,
+            DROP_ACTOR.get()
+        );
+        place(&mut doc.root, &holders).unwrap();
+        checks::set_fields(&mut doc.root, &[field]).unwrap();
+        let spots = spots(&doc.root, &holders).unwrap();
+        let mine = spots
+            .iter()
+            .find(|s| s.flag == murmur3(flag(rock.hash).as_bytes()))
+            .unwrap();
+        assert_eq!(mine.name, Spot::name_hash(b"Obj_FakeStandIn_001"));
+        let actors = checks::actors(&doc.root).unwrap();
+        let placed = actors
+            .iter()
+            .find(|a| hash_of(a) == Some(rock.hash))
+            .unwrap();
+        let at = vec3(placed, TRANSLATE).unwrap();
+        assert_eq!(mine.at, at.map(|v| v.round() as i16));
+        // Twins aren't listed: one spot per holder in the file.
+        let here = holders
+            .iter()
+            .filter(|h| {
+                pieces
+                    .iter()
+                    .any(|c| c.hash == h.hash && c.file == rock.file)
+            })
+            .count();
+        assert_eq!(spots.len(), here);
     }
 }

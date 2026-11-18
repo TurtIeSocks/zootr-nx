@@ -132,7 +132,7 @@ mod tests {
         let mod_dir = dir.join("mod");
         std::fs::create_dir_all(mod_dir.join("romfs/Pack")).unwrap();
         std::fs::write(mod_dir.join("spoiler.txt"), "").unwrap();
-        crate::patch::install(&mod_dir, true, false, 0, &[]).unwrap();
+        crate::patch::install(&mod_dir, true, false, 0, &[], &[]).unwrap();
         let env = dir.join("env.txt");
         std::fs::write(&env, "A=1\nKEY=x\n").unwrap();
         let target = |line| Target {
@@ -238,7 +238,7 @@ mod tests {
             };
             let targets = order.map(|m| target(m, line(m)));
             install(&targets, &Run::silent(), |d| {
-                crate::patch::install(d, true, false, 0, &[])
+                crate::patch::install(d, true, false, 0, &[], &[])
             })
             .unwrap();
             assert!(has("reads") && !has("not"), "{order:?}");

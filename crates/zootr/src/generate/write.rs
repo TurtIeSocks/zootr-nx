@@ -253,6 +253,7 @@ pub fn write_mod(
         false => &[],
     };
     let (mut found, mut actors) = (HashSet::new(), 0);
+    let mut spots = Vec::new();
     let mut chest_events = HashMap::new();
     for rel in checks::banc_files(romfs)? {
         run.check()?;
@@ -262,6 +263,7 @@ pub fn write_mod(
         // Before the fields, so each twin keeps its holder's vanilla drop.
         let paired = picked::place(&mut doc.root, &picked)? > 0;
         let mut changed = checks::set_fields(&mut doc.root, &fields)?;
+        spots.extend(picked::spots(&doc.root, &picked)?);
         changed.extend(checks::gone_once(&mut doc.root, &gone)?);
         let leaves = scrubs::leaves(&doc.root, &gone)?;
         changed.extend(checks::gone_once(&mut doc.root, &leaves)?);
@@ -307,6 +309,7 @@ pub fn write_mod(
         new_game.mailbox,
         flags,
         &credits,
+        &spots,
     )?;
     Ok(Written {
         defaults,
