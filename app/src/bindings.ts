@@ -355,6 +355,19 @@ export type DevValue = {
 	expr: string | null,
 };
 
+/**  A dungeon door and the dungeon behind it. */
+export type Door = {
+	/**  The door, by `--door`'s id: the dungeon behind it in vanilla. */
+	id: string,
+	/**  Where the door stands, by name. */
+	area: string,
+	/**  The dungeon behind it in vanilla, by name. */
+	vanilla: string,
+	/**  The dungeon behind it in this seed: its id, then its name. */
+	dungeon: string,
+	dungeon_name: string,
+};
+
 /**  The dungeon a row of the Dungeons section is for. */
 export type DungeonRow = {
 	/**  What starts the row, such as "FoT". */
@@ -764,6 +777,7 @@ export type Spoiler = {
 	events: RoundEvent[],
 	unprovable: string[],
 	start: Start,
+	entrances: Door[],
 };
 
 /**  One chest in a seed. */

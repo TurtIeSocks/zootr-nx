@@ -164,6 +164,31 @@ pub struct Report {
     /// What logic starts Link with. Empty for seeds from before it was kept.
     #[serde(default, skip_serializing_if = "Start::is_empty")]
     pub start: Start,
+    /// Each shuffled dungeon door. Empty while doors stay put.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub entrances: Vec<Door>,
+}
+
+/// A dungeon door and the dungeon behind it.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct Door {
+    /// The door, by `--door`'s id: the dungeon behind it in vanilla.
+    pub id: String,
+    /// Where the door stands, by name.
+    pub area: String,
+    /// The dungeon behind it in vanilla, by name.
+    pub vanilla: String,
+    /// The dungeon behind it in this seed: its id, then its name.
+    pub dungeon: String,
+    pub dungeon_name: String,
+}
+
+impl Door {
+    /// `Area, Dungeon door`.
+    pub fn name(&self) -> String {
+        format!("{}, {} door", self.area, self.vanilla)
+    }
 }
 
 /// What logic counts Link as having before round 1.
@@ -201,6 +226,14 @@ impl Report {
         let width = self.spots.iter().map(|s| s.name().chars().count());
         let width = width.max().unwrap_or(0);
         let mut out = format!("seed {}\nicons {}\n", self.seed, icons.join(" · "));
+        if !self.entrances.is_empty() {
+            let width = self.entrances.iter().map(|d| d.name().chars().count());
+            let width = width.max().unwrap_or(0);
+            out += "\nEntrances\n";
+            for door in &self.entrances {
+                out += &format!("  {:<width$}  -> {}\n", door.name(), door.dungeon_name);
+            }
+        }
         let mut area = None;
         for s in &self.spots {
             if area != Some(&s.area_name) {
@@ -283,6 +316,7 @@ mod tests {
             playthrough: vec![],
             unprovable: vec![],
             start: Default::default(),
+            entrances: vec![],
             spots: vec![Spot {
                 hash: u64::MAX - 1,
                 area: "Area".into(),
@@ -305,6 +339,42 @@ mod tests {
         assert_eq!(json["seed"], u64::MAX.to_string());
         assert_eq!(json["files"], 3);
         assert_eq!(serde_json::from_value::<Report>(json).unwrap(), report());
+    }
+
+    #[test]
+    fn spoiler_lists_each_shuffled_door_first() {
+        let door = |area: &str, vanilla: &str, dungeon: &str| Door {
+            id: String::new(),
+            area: area.into(),
+            vanilla: vanilla.into(),
+            dungeon: String::new(),
+            dungeon_name: dungeon.into(),
+        };
+        let report = Report {
+            seed: 7,
+            spots: vec![],
+            entrances: vec![
+                door("Kokiri Forest", "Deku Tree", "Fire Temple"),
+                door("Death Mountain Crater", "Fire Temple", "Deku Tree"),
+            ],
+            ..report()
+        };
+        assert_eq!(
+            report.spoiler(&[]),
+            "seed 7\nicons \n\nEntrances\n  Kokiri Forest, Deku Tree door            -> Fire Temple\n  Death Mountain Crater, Fire Temple door  -> Deku Tree\n"
+        );
+    }
+
+    #[test]
+    fn a_report_from_before_entrances_loads_with_none() {
+        let mut json = serde_json::to_value(report()).unwrap();
+        json.as_object_mut().unwrap().remove("entrances");
+        assert!(
+            serde_json::from_value::<Report>(json)
+                .unwrap()
+                .entrances
+                .is_empty()
+        );
     }
 
     #[test]

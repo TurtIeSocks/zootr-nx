@@ -23,9 +23,10 @@ export function useSpoiler(): SpoilerState {
 }
 
 /** The tab showing: the one chosen, or All checks for a seed without logic,
- * which has no rounds to show. */
+ * which has no rounds to show, or Entrances chosen on a seed without them. */
 export function useShownTab(): SpoilerTab {
   const { spoiler } = useSpoiler();
   const [tab] = useUi.usePath("spoiler.tab");
-  return hasLogic(spoiler) ? tab : "checks";
+  const shown = tab !== "entrances" || spoiler.entrances.length > 0;
+  return hasLogic(spoiler) && shown ? tab : "checks";
 }

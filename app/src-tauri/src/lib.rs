@@ -16,7 +16,7 @@ use zootr::build;
 use zootr::config::{Config, Target};
 use zootr::gamedata::GameData;
 use zootr::generate::plando::PlandoOptions;
-use zootr::generate::{self, RoundEvent, Spot, Start};
+use zootr::generate::{self, Door, RoundEvent, Spot, Start};
 use zootr::history::{self, History, Label, Mark, Summary, View};
 use zootr::inventory::{self, Cell, Inventory, TrackerOptions};
 use zootr::platform;
@@ -387,6 +387,7 @@ struct Spoiler {
     events: Vec<RoundEvent>,
     unprovable: Vec<String>,
     start: Start,
+    entrances: Vec<Door>,
 }
 
 #[tauri::command]
@@ -399,6 +400,7 @@ fn spoiler(id: u32) -> Res<Spoiler> {
         events: report.events.clone(),
         unprovable: report.unprovable.clone(),
         start: report.start.clone(),
+        entrances: report.entrances.clone(),
     })
 }
 

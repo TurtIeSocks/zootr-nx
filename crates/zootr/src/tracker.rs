@@ -296,6 +296,7 @@ mod tests {
             playthrough: vec![],
             unprovable: vec![],
             start: Default::default(),
+            entrances: vec![],
             spots: vec![spot(MIDO[2].0), spot(1)],
             written: crate::generate::Written {
                 defaults: vec![],

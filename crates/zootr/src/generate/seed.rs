@@ -6,7 +6,7 @@ use std::path::Path;
 use anyhow::{Result, ensure};
 use ounce_formats::Romfs;
 
-use super::{Extras, Held, Report, RoundEvent, Spot, Start, write_mod};
+use super::{Door, Extras, Held, Report, RoundEvent, Spot, Start, write_mod};
 use crate::entrances::Doors;
 use crate::logic::{Got, World};
 use crate::names::Names;
@@ -151,7 +151,22 @@ pub fn shuffle(
         playthrough: vec![],
         unprovable,
         start: start(&have, new_game, &names),
+        entrances: entrances(new_game),
     })
+}
+
+/// Each door the seed shuffles, with the dungeon behind it.
+fn entrances(new_game: &NewGame) -> Vec<Door> {
+    let doors = new_game.doors.shuffled(new_game.dungeon_entrances);
+    doors
+        .map(|(door, dungeon)| Door {
+            id: door.id.into(),
+            area: door.door.into(),
+            vanilla: door.label.into(),
+            dungeon: dungeon.id.into(),
+            dungeon_name: dungeon.label.into(),
+        })
+        .collect()
 }
 
 /// What logic starts Link with, named: `have`'s items, and the settings

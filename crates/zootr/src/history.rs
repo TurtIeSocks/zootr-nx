@@ -367,6 +367,7 @@ mod tests {
             playthrough: vec![],
             unprovable: vec![],
             start: Default::default(),
+            entrances: vec![],
             spots: vec![Spot {
                 hash: 1,
                 area: "Area".into(),

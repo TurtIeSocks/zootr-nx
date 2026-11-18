@@ -165,6 +165,15 @@ fn index(id: &str) -> Result<usize> {
     })
 }
 
+/// The doors `mode` shuffles, by index in [`DUNGEONS`].
+pub fn pool(mode: DungeonEntrances) -> std::ops::Range<usize> {
+    match mode {
+        DungeonEntrances::Off => 0..0,
+        DungeonEntrances::On => 0..DUNGEONS.len() - 1,
+        DungeonEntrances::OnGanon => 0..DUNGEONS.len(),
+    }
+}
+
 /// Which dungeon is behind each door. Both are named by their index in
 /// [`DUNGEONS`], a door by the dungeon behind it in the vanilla game.
 #[derive(Clone, Debug, PartialEq)]
@@ -180,11 +189,7 @@ impl Doors {
     /// The doors `mode` shuffles, with each of `pins` (`DOOR=DUNGEON`)
     /// holding its dungeon and the rest rolled.
     pub fn roll(mode: DungeonEntrances, pins: &[String], rng: &mut Rng) -> Result<Self> {
-        let pool: Vec<usize> = match mode {
-            DungeonEntrances::Off => vec![],
-            DungeonEntrances::On => (0..DUNGEONS.len() - 1).collect(),
-            DungeonEntrances::OnGanon => (0..DUNGEONS.len()).collect(),
-        };
+        let pool: Vec<usize> = pool(mode).collect();
         let (mut doors, mut dungeons) = (pool.clone(), pool.clone());
         let mut out = Self::default();
         for pin in pins {
@@ -224,6 +229,14 @@ impl Doors {
         (self.0.iter().enumerate())
             .filter(|(door, dungeon)| door != *dungeon)
             .map(|(door, &dungeon)| (&DUNGEONS[door], &DUNGEONS[dungeon]))
+    }
+
+    /// Each door `mode` shuffles, with the dungeon behind it.
+    pub fn shuffled(
+        &self,
+        mode: DungeonEntrances,
+    ) -> impl Iterator<Item = (&'static Dungeon, &'static Dungeon)> + '_ {
+        pool(mode).map(|door| (&DUNGEONS[door], &DUNGEONS[self.0[door]]))
     }
 
     pub fn is_vanilla(&self) -> bool {
