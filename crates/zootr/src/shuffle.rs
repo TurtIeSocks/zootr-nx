@@ -11,7 +11,7 @@ use crate::known::{Name, item};
 use crate::rng::Rng;
 use crate::settings::{self, NewGame};
 use crate::starting;
-use crate::{ammo, cows, gifts, progressive, scrubs};
+use crate::{ammo, cows, gifts, progressive, scrubs, shops};
 
 /// One shuffled chest, for the spoiler log.
 #[derive(Clone, Copy)]
@@ -263,8 +263,12 @@ pub fn shuffle<'a>(
 /// asks the pouch first. Nothing asks of an NPC gift, a scrub or a cow:
 /// each puts the pouch questions in front of its grant (`gifts::levels`).
 /// A prize chest is a chest to the hook, which gives a line's level there.
+/// A shop slot shows each step on a shelf of its own (`shops::steps`).
 fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
-    let picks = gifts::of(check).is_some() || scrubs::of(check).is_some() || cows::is_cow(check);
+    let picks = gifts::of(check).is_some()
+        || scrubs::of(check).is_some()
+        || cows::is_cow(check)
+        || shops::is_shop(check);
     let leveled = gifts::is_prize(check) && ammo::swap(item).is_none();
     !picks && !leveled && levels::asks(item, progressive)
 }
@@ -509,6 +513,25 @@ mod tests {
             }
             for (ammo, _) in ammo::NEEDS {
                 assert!(allowed(scrub, ammo, on), "{ammo}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_shop_slot_holds_every_line_level_and_ammo() {
+        needs_names!();
+        let slot = ItemCheck {
+            file: shops::FILE.into(),
+            ..chest(1, "Item_A")
+        };
+        for on in [false, true] {
+            for line in progressive::LINES {
+                for &(level, _) in line.iter() {
+                    assert!(allowed(&slot, level, on), "{level}");
+                }
+            }
+            for (ammo, _) in ammo::NEEDS {
+                assert!(allowed(&slot, ammo, on), "{ammo}");
             }
         }
     }

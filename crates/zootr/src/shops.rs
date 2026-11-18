@@ -5,6 +5,7 @@
 mod floors;
 mod planks;
 pub mod sold;
+mod steps;
 
 use std::collections::HashMap;
 
@@ -21,7 +22,9 @@ use crate::rules::Need;
 use crate::settings::NewGame;
 use crate::standins::{self, StandIn, Tables, item_pack};
 use crate::text::{Copies, CopyLine};
+use crate::world::{Presence, presence_of};
 pub(crate) use floors::{floor, stands};
+pub use steps::Shelves;
 
 /// A shop check's `file`, since its slot spans several map files.
 pub const FILE: &str = "Shop";
@@ -74,6 +77,8 @@ pub struct Slot {
     pub goods: String,
     /// Every placement, child maps first. The first is the check's id.
     pub placements: Vec<u64>,
+    /// The placements standing only on a flag, with it.
+    presence: HashMap<u64, Presence>,
     pos: [f32; 3],
     /// From 0, across every shop, for the new actor's name.
     index: usize,
@@ -166,22 +171,28 @@ pub fn slots(romfs: &Romfs) -> Result<Vec<Slot>> {
                 hash,
                 pos,
                 index,
+                presence_of(actor),
             ));
         }
     }
     found.sort_by_key(|f| f.0);
     let mut slots: Vec<Slot> = Vec::new();
-    for (_, area, goods, hash, pos, goods_index) in found {
+    for (_, area, goods, hash, pos, goods_index, presence) in found {
         let same =
             |s: &&mut Slot| s.area == area && s.goods == goods && dist(s.pos, pos) < SAME_SLOT;
+        let presence: HashMap<u64, Presence> = presence.map(|p| (hash, p)).into_iter().collect();
         match slots.iter_mut().find(same) {
-            Some(slot) => slot.placements.push(hash),
+            Some(slot) => {
+                slot.placements.push(hash);
+                slot.presence.extend(presence);
+            }
             None => slots.push(Slot {
                 area,
                 shop: "",
                 number: 0,
                 goods,
                 placements: vec![hash],
+                presence,
                 pos,
                 index: 0,
                 goods_index,
@@ -323,24 +334,19 @@ const CAPTION: &str = "_ShopCaption";
 const CAPTION_SOURCES: [&str; 2] = ["_GetCaption", "_Caption"];
 
 /// The items the first `count` slots of each shop sell, by slot.
-fn sold<'a>(
+fn dealt<'a>(
     slots: &'a [Slot],
     count: usize,
     drops: &'a HashMap<u64, Drop>,
 ) -> impl Iterator<Item = (&'a Slot, &'a str)> {
-    let open = slots.iter().filter(move |s| s.number <= count);
+    let open = sold::checks(slots, count);
     open.map(|s| (s, gifts::item_at(drops, s.hash(), s.vanilla())))
 }
 
-/// A caption for each item the slots sell, copied from its own text.
-pub fn captions(
-    romfs: &Romfs,
-    slots: &[Slot],
-    count: usize,
-    drops: &HashMap<u64, Drop>,
-) -> Result<Copies<'static>> {
+/// A caption for each item the shelves show, copied from its own text.
+pub fn captions(romfs: &Romfs, shelves: &Shelves) -> Result<Copies<'static>> {
     let mut new = Vec::new();
-    for (_, item) in sold(slots, count, drops) {
+    for item in shelves.stands.iter().map(|s| s.item) {
         let Some(label) = name_label(romfs, item)? else {
             continue;
         };
@@ -361,17 +367,15 @@ pub fn write(
     romfs: &Romfs,
     builder: &mut ModBuilder,
     tables: &mut Tables,
-    slots: &[Slot],
-    drops: &HashMap<u64, Drop>,
+    shelves: &Shelves,
     new_game: &NewGame,
 ) -> Result<Vec<String>> {
     let mut fields = Vec::new();
-    let sold: Vec<_> = sold(slots, new_game.shop_slots, drops).collect();
-    stock_once(romfs, builder, sold.iter().map(|(slot, _)| *slot))?;
-    for (slot, item) in sold {
-        let name = slot.actor();
+    stock_once(romfs, builder, shelves.sold.iter().copied())?;
+    for stand in &shelves.stands {
+        let (slot, item, name) = (stand.slot, stand.item, &stand.actor);
         let sale = StandIn {
-            name: &name,
+            name,
             template: ActorPack::load(romfs, &slot.goods)?,
             item: item_pack(romfs, item, new_game)?,
             price: Some(price(new_game.seed, slot.hash())),
@@ -381,7 +385,7 @@ pub fn write(
         let plank = planks::plank(slot.shop, slot.number)
             .with_context(|| format!("no plank measured for {}", slot.holder()))?;
         let rise = standins::rise(tables, plank, item)?;
-        for h in &slot.placements {
+        for h in &stand.placements {
             fields.push(format!("{h}.{GYAML}={name}"));
             if rise != 0.0 {
                 fields.push(format!("{h}.{TRANSLATE}.1+={rise}"));
@@ -451,6 +455,7 @@ fn limited(data: &[u8], goods: &[(i32, &str)]) -> Result<Vec<u8>> {
 mod tests {
     use super::*;
     use crate::game::dev_dump;
+    use crate::gamedata::GameData;
     use crate::known::{actor, field, flag, item, scene};
     use crate::settings::DungeonKeys;
 
@@ -605,7 +610,17 @@ mod tests {
         let slots = slots(&romfs).unwrap();
         let goron = slots.iter().find(|s| s.shop == "Goron Shop").unwrap();
         let drops = HashMap::from([(goron.hash(), Drop::from(item::HOOKSHOT.to_string()))]);
-        let copies = captions(&romfs, &slots, 1, &drops).unwrap();
+        let gd = GameData::load(&romfs).unwrap();
+        let new_game = NewGame {
+            shop_slots: 1,
+            progressive: true,
+            ..NewGame::default()
+        };
+        let shelves = Shelves::new(&slots, &drops, &new_game, &gd).unwrap();
+        let copies = captions(&romfs, &shelves).unwrap();
+        // Each level it can show has its caption.
+        let longshot = format!("{}_ShopCaption", item::LONGSHOT);
+        assert!(copies.new.iter().any(|l| l.label == longshot));
         assert_eq!(copies.file, format!("{}/PouchContent", field::ACTOR_MSG));
         let line = (copies.new.iter())
             .find(|l| l.label == format!("{}_ShopCaption", item::HOOKSHOT))
@@ -632,20 +647,16 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-shops-{}", std::process::id()));
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let mut tables = Tables::load(&romfs).unwrap();
-        let fields = write(
-            &romfs,
-            &mut builder,
-            &mut tables,
-            &slots,
-            &drops,
-            &NewGame {
-                shop_slots: 1,
-                seed: 7,
-                keys: DungeonKeys::Rings,
-                ..NewGame::default()
-            },
-        )
-        .unwrap();
+        let new_game = NewGame {
+            shop_slots: 1,
+            seed: 7,
+            keys: DungeonKeys::Rings,
+            ..NewGame::default()
+        };
+        let gd = GameData::load(&romfs).unwrap();
+        let shelves = Shelves::new(&slots, &drops, &new_game, &gd).unwrap();
+        assert!(shelves.exps.is_empty(), "a plain item has no steps");
+        let fields = write(&romfs, &mut builder, &mut tables, &shelves, &new_game).unwrap();
         tables.write(&mut builder).unwrap();
         builder.finish().unwrap();
 

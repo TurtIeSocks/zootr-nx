@@ -68,7 +68,7 @@ pub(super) fn flows(
     levels(romfs, drops, new_game)?.give(romfs, all, &mut rewrites)?;
     if new_game.shop_slots > 0 {
         let slots = shops::slots(romfs)?;
-        shops::sold::write(romfs, &mut rewrites, &slots, new_game.shop_slots)?;
+        shops::sold::write(romfs, &mut rewrites, &slots, new_game, drops)?;
     }
     dampe::give(romfs, &mut rewrites, drops)?;
     gerudo::stand_down(romfs, &mut rewrites, drops)?;
@@ -130,9 +130,15 @@ pub fn write_mod(
     let mut lines = gifts::lines(drops, new_game.progressive);
     lines.push(scrubs::lines(drops));
     lines.extend(scrubs::sold_out(drops));
+    let gd = gamedata::GameData::load(romfs)?;
+    let slots = match new_game.shop_slots {
+        0 => Vec::new(),
+        _ => shops::slots(romfs)?,
+    };
+    let shelves = shops::Shelves::new(&slots, drops, new_game, &gd)?;
     let mut copies = match new_game.shop_slots {
         0 => Vec::new(),
-        count => vec![shops::captions(romfs, &shops::slots(romfs)?, count, drops)?],
+        _ => vec![shops::captions(romfs, &shelves)?],
     };
     let key_copies = (new_game.keys.copies(), boss_copies(new_game));
     // First, so a copy on a shelf takes its caption from its own lines.
@@ -151,10 +157,8 @@ pub fn write_mod(
     let mut bools = cows::flags(&cows);
     bools.extend(picked::flags(&picked));
     if new_game.shop_slots > 0 {
-        bools.extend(shops::sold::flags(
-            &shops::slots(romfs)?,
-            new_game.shop_slots,
-        ));
+        bools.extend(shops::sold::flags(&slots, new_game.shop_slots));
+        bools.extend(shelves.bools.iter().cloned());
     }
     bools.extend(gifts::flags(&new_game.on));
     bools.extend(dampe::flags(drops));
@@ -169,7 +173,6 @@ pub fn write_mod(
         false => Vec::new(),
     };
     let made = key_tints::made(key_copies.0, key_copies.1);
-    let gd = gamedata::GameData::load(romfs)?;
     let opened = tracker::chest_flags(&gd)?;
     let twins = twins::find(romfs, |h| drops.contains_key(&h), opened)?;
     let aliases = twins.iter().filter_map(twins::Twin::alias);
@@ -177,6 +180,7 @@ pub fn write_mod(
         .map(|(name, of)| (name, vec![gamedata::Op::Bool(of)]))
         .collect();
     exps.extend(picked::exps(&picked));
+    exps.extend(shelves.exps.iter().cloned());
     let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
     trade_chain::never_counting(&mut doc.root)?;
     if new_game.on.contains(TRADE_CHAIN) {
@@ -235,13 +239,11 @@ pub fn write_mod(
     levels.events(&mut events)?;
     events.write(&mut builder)?;
     if new_game.shop_slots > 0 {
-        let slots = shops::slots(romfs)?;
         fields.extend(shops::write(
             romfs,
             &mut builder,
             &mut tables,
-            &slots,
-            drops,
+            &shelves,
             new_game,
         )?);
     }
@@ -277,6 +279,8 @@ pub fn write_mod(
         let twinned = twins::place(&rel, &mut doc.root, &twins)? > 0;
         // Before the fields, so each twin keeps its holder's vanilla drop.
         let paired = picked::place(&mut doc.root, &picked)? > 0;
+        // Before the fields, which give each step's copy its stand-in.
+        let shelved = shelves.place(&mut doc.root)?;
         let mut changed = checks::set_fields(&mut doc.root, &fields)?;
         spots.extend(picked::spots(&doc.root, &picked)?);
         changed.extend(checks::gone_once(&mut doc.root, &gone)?);
@@ -293,7 +297,7 @@ pub fn write_mod(
         let tinted = key_tints::swap(&rel, &mut doc.root, bosses)? > 0;
         // After shrinking: a shrunk chest runs the small chest's flow.
         let levelled = levels.name(romfs, &mut doc.root, &mut chest_events)? > 0;
-        if twinned || paired || shrunk || tinted || levelled || !changed.is_empty() {
+        if twinned || paired || shelved || shrunk || tinted || levelled || !changed.is_empty() {
             builder.write(&rel, &doc.to_binary())?;
             actors += changed.len();
             found.extend(changed);
