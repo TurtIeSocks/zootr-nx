@@ -235,6 +235,10 @@ pub const THIEF: &str = "Gerudo Thief";
 
 const DROP: &str = "Dynamic.Drop__DropActor";
 const NAME: &str = "Name";
+/// A drop that's a creature (bugs from some shrubs and a rock), not an
+/// item Link gets. Its holder counts as having no fixed drop, as Ship's
+/// grass brings a rupee rather than its bugs.
+const ANIMAL: &str = "Animal_";
 /// The remix's Dream World, outside the story a seed plays.
 const REMIX: &str = "Banc/DreamWorld/";
 
@@ -347,7 +351,8 @@ impl Kind {
                     continue;
                 }
                 let dynamic = actor.as_map()?.get("Dynamic");
-                let held = dynamic.and_then(|d| str_field(d, DROP_ACTOR));
+                let held = (dynamic.and_then(|d| str_field(d, DROP_ACTOR)))
+                    .filter(|d| !d.starts_with(ANIMAL));
                 let table = dynamic.and_then(|d| str_field(d, fields::DROP_DROP_TABLE));
                 let own = self.owns_drop().then(|| own_drop(table, &file).get());
                 let (holder, item) = match &self.named {
@@ -593,6 +598,32 @@ mod tests {
                 .iter()
                 .all(|h| tabled(&checks).contains(h))
         );
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn a_shrub_dropping_bugs_brings_a_heart_and_drops_it() {
+        let Some(romfs) = dev_dump() else { return };
+        let checks = GRASS.checks(&romfs).unwrap();
+        // A Hyrule Field shrub whose placement drops bugs.
+        let shrub = 493105369468884447;
+        let check = checks.iter().find(|c| c.hash == shrub).unwrap();
+        assert_eq!(check.item, actor::OBJ_HEART.get());
+        assert!(checks.iter().all(|c| !c.item.starts_with(ANIMAL)));
+        let dir = std::env::temp_dir().join(format!("zootr-bugs-{}", std::process::id()));
+        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+        let mut tables = Tables::load(&romfs).unwrap();
+        let none = HashMap::new();
+        let fields = write(
+            &romfs,
+            &mut builder,
+            &mut tables,
+            &checks,
+            &none,
+            &NewGame::rings(),
+        );
+        let heart = format!("{shrub}.{DROP}={}", actor::OBJ_HEART.get());
+        assert!(fields.unwrap().contains(&heart));
         let _ = std::fs::remove_dir_all(dir);
     }
 
