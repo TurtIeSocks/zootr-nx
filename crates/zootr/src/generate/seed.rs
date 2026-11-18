@@ -17,6 +17,9 @@ use crate::settings::{self, DungeonEntrances, Logic, NewGame, Settings};
 use crate::shuffle::{self, Fixed};
 use crate::{checks, fill, gamedata, hints, ice_traps, icons, places, steps};
 
+/// How many door layouts a seed tries before it gives up.
+const DOOR_TRIES: u32 = 10;
+
 /// Shuffle the chests around `fixed`, unless `new_game` keeps them vanilla,
 /// and write the mod.
 pub fn shuffle(
@@ -27,42 +30,83 @@ pub fn shuffle(
     new_game: &NewGame,
     run: &Run,
 ) -> Result<Report> {
-    let new_game = &NewGame {
+    let mut doors = Rng::new(seed.rotate_left(29));
+    let roll = |rng: &mut Rng| Doors::roll(new_game.dungeon_entrances, &new_game.door_pins, rng);
+    let mut new_game = NewGame {
         seed,
-        doors: Doors::roll(
-            new_game.dungeon_entrances,
-            &new_game.door_pins,
-            &mut Rng::new(seed.rotate_left(29)),
-        )?,
+        doors: roll(&mut doors)?,
         ..new_game.clone()
     };
     run.step(Step::Checks)?;
-    let checks = checks::dealt(romfs, new_game)?;
+    let checks = checks::dealt(romfs, &new_game)?;
     let logic = new_game.logic == Logic::Glitchless && !new_game.vanilla;
-    let mut deal = shuffle::deal(&checks, fixed, new_game)?;
     let (mut placements, filled) = match logic {
         true => {
-            run.step(Step::Logic)?;
-            let ctx = Ctx::new(new_game);
-            let world = World::build(romfs, &Book::load()?, &ctx, &checks)?;
-            run.step(Step::Placing)?;
-            let needed = world.items();
-            ice_traps::swap(romfs, &mut deal.items, &needed, new_game.ice_traps, seed)?;
-            let filled = fill::fill(&world, &checks, deal, seed, new_game, run)?;
-            (filled.placements.clone(), Some((world, filled)))
+            let book = Book::load()?;
+            let shuffles = new_game.dungeon_entrances != DungeonEntrances::Off;
+            let start = fill::start(&new_game);
+            let build = |new_game: &NewGame| {
+                let world = World::build(romfs, &book, &Ctx::new(new_game), &checks)?;
+                let deal = shuffle::deal(&checks, fixed, new_game)?;
+                Ok::<_, anyhow::Error>((world, deal))
+            };
+            // Whether vanilla doors leave the seed beatable, asked once.
+            let mut vanilla = None;
+            let mut tries = 1;
+            loop {
+                run.step(Step::Logic)?;
+                let (world, mut deal) = build(&new_game)?;
+                let mut reroll = shuffles && !fill::beatable(&world, &checks, &deal, &start);
+                if reroll && vanilla.is_none() {
+                    let doors = NewGame {
+                        doors: Doors::default(),
+                        ..new_game.clone()
+                    };
+                    let (world, deal) = build(&doors)?;
+                    vanilla = Some(fill::beatable(&world, &checks, &deal, &start));
+                }
+                reroll &= vanilla == Some(true);
+                run.step(Step::Placing)?;
+                let filled = match reroll {
+                    true => None,
+                    false => {
+                        let needed = world.items();
+                        ice_traps::swap(romfs, &mut deal.items, &needed, new_game.ice_traps, seed)?;
+                        match fill::fill(&world, &checks, deal, seed, &new_game, run) {
+                            Ok(filled) => Some(filled),
+                            Err(e) if !shuffles || tries == DOOR_TRIES => return Err(e),
+                            Err(_) => None,
+                        }
+                    }
+                };
+                if let Some(filled) = filled {
+                    break (filled.placements.clone(), Some((world, filled)));
+                }
+                // A layout logic can't beat, like the Water Temple behind
+                // Jabu-Jabu's child-only door, rolls new doors.
+                ensure!(
+                    shuffles && tries < DOOR_TRIES,
+                    "no door layout logic can beat in {DOOR_TRIES} tries"
+                );
+                run.check()?;
+                tries += 1;
+                new_game.doors = roll(&mut doors)?;
+            }
         }
         false => {
             run.step(Step::Placing)?;
+            let mut deal = shuffle::deal(&checks, fixed, &new_game)?;
             let none = BTreeSet::new();
             ice_traps::swap(romfs, &mut deal.items, &none, new_game.ice_traps, seed)?;
-            (shuffle::scatter(deal, seed, new_game)?, None)
+            (shuffle::scatter(deal, seed, &new_game)?, None)
         }
     };
     let needed = filled.as_ref().map(|(world, _)| world.items());
     let traps = ice_traps::disguise(romfs, &mut placements, needed.as_ref(), seed)?;
+    let foreign = [new_game.foreign.clone(), traps].concat();
     let new_game = &NewGame {
-        foreign: [new_game.foreign.clone(), traps].concat(),
-        ..new_game.clone()
+        foreign,
+        ..new_game
     };
     let drops = shuffle::drops(&checks, &placements);
     let have = fill::start(new_game);

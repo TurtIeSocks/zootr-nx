@@ -153,7 +153,7 @@ impl Seed {
         let mut locations: Vec<_> = w.locations.iter().map(|l| (l.hash, l.place)).collect();
         locations.sort();
         let sources: Vec<_> = (w.sources.iter())
-            .map(|s| (&s.name, s.place, &s.item))
+            .map(|s| (&s.name, &s.places, &s.item))
             .collect();
         let checks: BTreeSet<u64> = self.dealt.checks.iter().map(|c| c.hash).collect();
         format!(

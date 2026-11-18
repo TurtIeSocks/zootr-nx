@@ -69,6 +69,12 @@ pub fn provable(world: &World, checks: &[ItemCheck], deal: &Deal, start: &Have) 
     free.filter(|h| reached.contains(h)).collect()
 }
 
+/// Whether logic reaches Ganondorf once Link holds every item in `deal`.
+pub fn beatable(world: &World, checks: &[ItemCheck], deal: &Deal, start: &Have) -> bool {
+    let all = everything(start, deal.items.iter().copied());
+    world.beaten(&world.play(&all, &fixed(checks, deal)).have)
+}
+
 pub struct Filled<'a> {
     pub placements: Vec<Placement<'a>>,
     /// Free checks logic can't prove a way into. They hold filler.

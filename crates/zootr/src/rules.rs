@@ -9,7 +9,8 @@ use std::sync::OnceLock;
 use anyhow::{Context, Result, bail, ensure};
 use serde::Deserialize;
 
-use crate::settings::{self, DungeonKeys, FortressKeys, NewGame};
+use crate::entrances::Doors;
+use crate::settings::{self, DungeonEntrances, DungeonKeys, FortressKeys, NewGame};
 use crate::world::Era;
 
 mod item;
@@ -77,6 +78,8 @@ pub struct Ctx {
     /// Toggles left open, each a [`Need::Setting`] instead of always or
     /// never. Only the Archipelago export opens any.
     pub open: BTreeSet<String>,
+    /// Where each dungeon door leads, while dungeon entrances shuffle.
+    pub doors: Option<Doors>,
 }
 
 impl Ctx {
@@ -88,6 +91,8 @@ impl Ctx {
             keys: new_game.keys,
             fortress: new_game.fortress_keys,
             open: BTreeSet::new(),
+            doors: (new_game.dungeon_entrances != DungeonEntrances::Off)
+                .then(|| new_game.doors.clone()),
         }
     }
 }
@@ -288,6 +293,7 @@ impl Book {
             keys: DungeonKeys::Vanilla,
             fortress: FortressKeys::Vanilla,
             open: BTreeSet::new(),
+            doors: None,
         };
         for (word, expr) in &self.abilities {
             self.need(expr, &ctx)
@@ -421,6 +427,7 @@ mod tests {
             keys: DungeonKeys::Vanilla,
             fortress: FortressKeys::Vanilla,
             open: BTreeSet::new(),
+            doors: None,
         }
     }
 

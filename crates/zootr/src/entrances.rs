@@ -41,6 +41,8 @@ pub struct Dungeon {
     inside: &'static Name,
     /// Where the front exit lands outside.
     outside: &'static Name,
+    /// Its boss's room, which logic lets either era reach once doors move.
+    pub boss: Option<&'static Name>,
 }
 
 /// Ganon's Castle last: only `on-ganon` shuffles it.
@@ -52,6 +54,7 @@ pub const DUNGEONS: [Dungeon; 12] = [
         node: map::INSIDE_THE_DEKU_TREE,
         inside: field::ENTRANCE,
         outside: field::FRONT_DEKU_TREE,
+        boss: Some(map::GOHMA_STAGE),
     },
     Dungeon {
         id: "dodongos-cavern",
@@ -60,6 +63,7 @@ pub const DUNGEONS: [Dungeon; 12] = [
         node: map::DODONGO_CAVERN,
         inside: field::DODONGO_CAVERN_MOUNTAIN_TRAIL_SIDE,
         outside: field::MOUNTAIN_TRAIL_DODONGO_CAVERN_SIDE,
+        boss: Some(map::DODONGO_STAGE),
     },
     Dungeon {
         id: "jabu-jabu",
@@ -68,6 +72,7 @@ pub const DUNGEONS: [Dungeon; 12] = [
         node: map::INSIDE_JABU_JABU_BELLY,
         inside: field::INSIDE_JABU_JABU_BELLY_FROM_ZORA_FOUNTAIN,
         outside: field::ZORA_FOUNTAIN_FROM_INSIDE_JABU_JABU_BELLY,
+        boss: Some(map::BARINADE_STAGE),
     },
     Dungeon {
         id: "forest-temple",
@@ -76,6 +81,7 @@ pub const DUNGEONS: [Dungeon; 12] = [
         node: map::FOREST_TEMPLE,
         inside: map::FOREST_TEMPLE,
         outside: field::OUTSIDE_OF_FOREST_TEMPLE,
+        boss: Some(map::PHANTOM_GANON_STAGE),
     },
     Dungeon {
         id: "fire-temple",
@@ -84,6 +90,7 @@ pub const DUNGEONS: [Dungeon; 12] = [
         node: map::FIRE_TEMPLE,
         inside: map::FIRE_TEMPLE,
         outside: field::OUTSIDE_OF_FIRE_TEMPLE,
+        boss: Some(map::VOLVAGIA_STAGE),
     },
     Dungeon {
         id: "water-temple",
@@ -92,6 +99,7 @@ pub const DUNGEONS: [Dungeon; 12] = [
         node: map::WATER_TEMPLE,
         inside: field::WATER_TEMPLE_FROM_LAKE_HYLIA,
         outside: field::OUTSIDE_OF_WATER_TEMPLE,
+        boss: Some(map::MORPHA_STAGE),
     },
     Dungeon {
         id: "shadow-temple",
@@ -100,6 +108,7 @@ pub const DUNGEONS: [Dungeon; 12] = [
         node: map::SHADOW_TEMPLE,
         inside: field::ENTRANCE,
         outside: field::GRAVE_YARD_SHADOW_TEMPLE_SIDE,
+        boss: Some(map::BONGO_BONGO_STAGE),
     },
     Dungeon {
         id: "spirit-temple",
@@ -108,6 +117,7 @@ pub const DUNGEONS: [Dungeon; 12] = [
         node: map::SPIRIT_TEMPLE,
         inside: field::SPIRIT_TEMPLE_ENTRANCE,
         outside: field::DESERT_COLOSSUS_FROM_SPIRIT_TEMPLE_ENTRANCE,
+        boss: Some(map::TWINROVA_STAGE),
     },
     Dungeon {
         id: "bottom-of-the-well",
@@ -116,6 +126,7 @@ pub const DUNGEONS: [Dungeon; 12] = [
         node: map::BOTTOM_OF_THE_WELL,
         inside: field::WELL_KAKARIKO_SIDE,
         outside: field::KAKARIKO_WELL_SIDE,
+        boss: None,
     },
     Dungeon {
         id: "ice-cavern",
@@ -124,6 +135,7 @@ pub const DUNGEONS: [Dungeon; 12] = [
         node: map::ICE_CAVERN,
         inside: field::ICE_CAVERN_FROM_ZORA_FOUNTAIN,
         outside: field::ZORA_FOUNTAIN_FROM_ICE_CAVERN,
+        boss: None,
     },
     Dungeon {
         id: "gerudo-training-ground",
@@ -132,6 +144,7 @@ pub const DUNGEONS: [Dungeon; 12] = [
         node: map::GERUDO_TRAINING_GROUND,
         inside: field::GERUDO_TRAINING_GROUND_FROM_GERUDO_FORTRESS,
         outside: field::GERUDO_FORTRESS_FROM_GERUDO_TRAINING_GROUND,
+        boss: None,
     },
     Dungeon {
         id: "ganons-castle",
@@ -140,6 +153,7 @@ pub const DUNGEONS: [Dungeon; 12] = [
         node: map::INSIDE_GANON_CASTLE,
         inside: field::ENTRANCE,
         outside: field::GANON_CASTLE_ENTRANCE_FROM_INSIDE,
+        boss: Some(map::GANONDORF_STAGE),
     },
 ];
 
@@ -215,11 +229,19 @@ impl Doors {
     pub fn is_vanilla(&self) -> bool {
         self.moved().next().is_none()
     }
+
+    /// Dungeons `a` and `b` swapped, and nothing else.
+    #[cfg(test)]
+    pub(crate) fn swapped(a: &str, b: &str) -> Self {
+        let mut doors = Self::default();
+        doors.0.swap(index(a).unwrap(), index(b).unwrap());
+        doors
+    }
 }
 
-/// What a door actor is to the shuffle.
+/// What a door is to the shuffle.
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum Role {
+pub enum Role {
     /// The world side of a dungeon's front door.
     Into(usize),
     /// A dungeon's front exit.
@@ -234,20 +256,29 @@ fn door_of_actor(actor: &Byml) -> Option<&Byml> {
 }
 
 /// What the door with `dynamic`, in map `node`, is to the shuffle.
-fn role(node: &str, dynamic: &Byml) -> Option<Role> {
+fn role_of_door(node: &str, dynamic: &Byml) -> Option<Role> {
     let get = |key: &Name| str_field(dynamic, key);
-    let start = get(field::NEXT_START_POS_NAME)?;
+    let maps = [
+        field::NEXT_BANC_PARAM_NAME_CHILD,
+        field::NEXT_BANC_PARAM_NAME_ADULT,
+    ];
+    role(
+        node,
+        maps.iter().filter_map(|&k| get(k)),
+        get(field::NEXT_START_POS_NAME)?,
+    )
+}
+
+/// What a door in map `node`, into one of `to` at `start`, is to the
+/// shuffle. Doors are told apart by where they land, so a dungeon's other
+/// ways out (the Spirit Temple's hands, the Ice Cavern's backdoor) stay put.
+pub fn role<'a>(node: &str, to: impl IntoIterator<Item = &'a str>, start: &str) -> Option<Role> {
+    let to: Vec<&str> = to.into_iter().collect();
     DUNGEONS.iter().enumerate().find_map(|(i, d)| {
-        let leads_in = [
-            field::NEXT_BANC_PARAM_NAME_CHILD,
-            field::NEXT_BANC_PARAM_NAME_ADULT,
-        ]
-        .iter()
-        .any(|&key| get(key) == Some(&**d.node));
         if node == &**d.node {
             (start == &**d.outside).then_some(Role::OutOf(i))
         } else {
-            (leads_in && start == &**d.inside).then_some(Role::Into(i))
+            (to.contains(&&**d.node) && start == &**d.inside).then_some(Role::Into(i))
         }
     })
 }
@@ -274,7 +305,7 @@ impl Blocks {
             let doc = doc?;
             let node = node_of(&file).0;
             for dynamic in actors(&doc.root)?.iter().filter_map(door_of_actor) {
-                let (seen, i) = match role(&node, dynamic) {
+                let (seen, i) = match role_of_door(&node, dynamic) {
                     Some(Role::Into(i)) => (&mut into, i),
                     Some(Role::OutOf(i)) => (&mut out_of, i),
                     None => continue,
@@ -310,7 +341,7 @@ pub fn rewrite(file: &str, root: &mut Byml, doors: &Doors, blocks: &Blocks) -> R
     let node = node_of(file).0;
     let mut moved = 0;
     for actor in actors_mut(root)? {
-        let Some(role) = door_of_actor(actor).and_then(|d| role(&node, d)) else {
+        let Some(role) = door_of_actor(actor).and_then(|d| role_of_door(&node, d)) else {
             continue;
         };
         let block = match role {
@@ -422,13 +453,6 @@ mod tests {
         out
     }
 
-    /// The Deku Tree and Fire Temple swapped, and nothing else.
-    fn deku_for_fire() -> Doors {
-        let mut doors = Doors::default();
-        doors.0.swap(0, 4);
-        doors
-    }
-
     #[test]
     fn every_dungeon_has_one_front_door_and_one_front_exit() {
         let Some(romfs) = crate::game::dev_dump() else {
@@ -443,7 +467,7 @@ mod tests {
             return;
         };
         let blocks = Blocks::read(&romfs).unwrap();
-        let doors = deku_for_fire();
+        let doors = Doors::swapped("deku-tree", "fire-temple");
         let fire = map::FIRE_TEMPLE.to_string();
         let kokiri = doors_in(&romfs, map::KOKIRI_FOREST_CHILD, &doors, &blocks);
         assert!(
@@ -488,7 +512,12 @@ mod tests {
         );
         let fire = vanilla.iter().find(|d| d[2] == **map::FIRE_TEMPLE).unwrap();
         assert_ne!(fire[init], "-");
-        let kokiri = doors_in(&romfs, map::KOKIRI_FOREST_CHILD, &deku_for_fire(), &blocks);
+        let kokiri = doors_in(
+            &romfs,
+            map::KOKIRI_FOREST_CHILD,
+            &Doors::swapped("deku-tree", "fire-temple"),
+            &blocks,
+        );
         assert!(
             kokiri
                 .iter()

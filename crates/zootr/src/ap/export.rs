@@ -166,7 +166,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     }
 
     for (_, s) in (w.sources.iter().enumerate()).filter(|(i, _)| reach.sources.contains(i)) {
-        events.push(json!({ "name": s.name, "at": at(&mut rules, vec![(s.place, &s.need)]) }));
+        events.push(json!({ "name": s.name, "at": at(&mut rules, s.places.iter().map(|&p| (p, &s.need)).collect()) }));
     }
     let goal = at(
         &mut rules,
