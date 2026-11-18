@@ -7,7 +7,7 @@ use crate::checks::ItemCheck;
 use crate::gifts::levels;
 use crate::known::{Name, item};
 use crate::settings::{self, NewGame};
-use crate::{cows, gifts, keys, scrubs, shops};
+use crate::{cows, dampe, gifts, keys, scrubs, shops};
 
 /// One narrowing from the EIE spec's list: #1, #4, #8 and #9.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -44,6 +44,8 @@ pub enum LeftOut {
     NotAHolder,
     /// A map, compass or key that its setting keeps where it is.
     Setting,
+    /// The maintainer's call, written in a spec.
+    Maintainer,
 }
 
 /// What a map or compass gives depends on the dungeon it's found in.
@@ -98,6 +100,9 @@ pub(crate) fn left_out(c: &ItemCheck, open: Let) -> Option<LeftOut> {
     }
     if c.item == item::SCRUB_BUSINESS_SEED {
         return Some(LeftOut::Narrowed(Narrowing::ScrubSeed));
+    }
+    if dampe::REPEAT_CHESTS.contains(&c.hash) {
+        return Some(LeftOut::Maintainer);
     }
     // Minigame events pick the outcome themselves, bar the prize chests.
     let minigame = c
@@ -296,6 +301,13 @@ pub(crate) mod tests {
         let seed = chest(1, item::SCRUB_BUSINESS_SEED.get());
         assert_eq!(why(&seed), Some(LeftOut::Narrowed(Narrowing::ScrubSeed)));
         assert_eq!(why(&game), Some(LeftOut::Narrowed(Narrowing::Minigame)));
+        for hash in dampe::REPEAT_CHESTS {
+            let repeat = ItemCheck {
+                hash,
+                ..game.clone()
+            };
+            assert_eq!(why(&repeat), Some(LeftOut::Maintainer));
+        }
     }
 
     #[test]

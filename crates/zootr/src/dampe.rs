@@ -20,6 +20,9 @@ use crate::known::{Name, field, flag, flow, item};
 /// The chest that holds the Hookshot, then the one with the heart piece.
 pub const HOOKSHOT_CHEST: u64 = 16041366920820397198;
 pub const HEART_CHEST: u64 = 5534919361313859554;
+/// The Blue and Red Rupee chests, the race's repeat prizes. They stay
+/// vanilla, the maintainer's call (EIE spec, row 8).
+pub const REPEAT_CHESTS: [u64; 2] = [4322670163630771947, 234006393181394602];
 /// Set when the first chest opens, then the second.
 pub const FIRST: &str = "Randomizer_DampeRace_First";
 pub const SECOND: &str = "Randomizer_DampeRace_Second";
