@@ -557,6 +557,12 @@ pub(super) struct Shuffle {
     /// Shuffle nothing: only `--place` changes chests.
     #[arg(long)]
     vanilla: bool,
+    /// Pin a dungeon door, as `DOOR=DUNGEON` by each one's dungeon, e.g.
+    /// `deku-tree=fire-temple`: the Deku Tree's door leads into the Fire
+    /// Temple. Needs dungeon entrances shuffled. The rest are rolled.
+    /// Repeatable.
+    #[arg(long, value_name = "DOOR=DUNGEON")]
+    door: Vec<String>,
     /// Start a new game here instead of Link's house, as `MAP/SPOT` from
     /// `spawns`. For setting up a test.
     #[arg(long, value_name = "MAP/SPOT")]
@@ -839,6 +845,7 @@ impl Shuffle {
             give: self.give.clone(),
             progress: self.progress.clone(),
             fields: self.field.clone(),
+            doors: self.door.clone(),
             ..Default::default()
         }
     }

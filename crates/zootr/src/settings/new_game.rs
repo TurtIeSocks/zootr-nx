@@ -52,6 +52,12 @@ pub struct NewGame {
     pub fortress_keys: FortressKeys,
     /// How much junk becomes ice traps.
     pub ice_traps: IceTraps,
+    /// Which dungeon doors swap.
+    pub dungeon_entrances: DungeonEntrances,
+    /// Doors pinned by hand for a test, as `DOOR=DUNGEON`.
+    pub door_pins: Vec<String>,
+    /// Which dungeon is behind each door, rolled with the seed.
+    pub doors: Doors,
     /// The seed, for what's rolled while writing, like shop prices.
     pub seed: u64,
     /// Bombchus have their own cap instead of the bomb bag's.
@@ -164,6 +170,9 @@ impl NewGame {
             cows: on(COWS),
             keys,
             fortress_keys,
+            dungeon_entrances: chosen(settings, DUNGEON_ENTRANCES),
+            door_pins: vec![],
+            doors: Doors::default(),
             shop_slots: match on(SHOPS) {
                 true => chosen::<ShopSlots>(settings, SHOP_SLOTS).count(),
                 false => 0,
@@ -274,6 +283,9 @@ mod tests {
                 keys: DungeonKeys::Vanilla,
                 fortress_keys: FortressKeys::Vanilla,
                 ice_traps: IceTraps::Off,
+                dungeon_entrances: DungeonEntrances::Off,
+                door_pins: vec![],
+                doors: Doors::default(),
                 seed: 0,
                 free_bombchus: true,
                 quiet_navi: true,

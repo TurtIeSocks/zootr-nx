@@ -7,11 +7,13 @@ use anyhow::{Result, ensure};
 use ounce_formats::Romfs;
 
 use super::{Extras, Held, Report, RoundEvent, Spot, Start, write_mod};
+use crate::entrances::Doors;
 use crate::logic::{Got, World};
 use crate::names::Names;
 use crate::progress::{Run, Step};
+use crate::rng::Rng;
 use crate::rules::{self, Book, Ctx, Have, Need};
-use crate::settings::{self, Logic, NewGame, Settings};
+use crate::settings::{self, DungeonEntrances, Logic, NewGame, Settings};
 use crate::shuffle::{self, Fixed};
 use crate::{checks, fill, gamedata, hints, ice_traps, icons, places, steps};
 
@@ -27,6 +29,11 @@ pub fn shuffle(
 ) -> Result<Report> {
     let new_game = &NewGame {
         seed,
+        doors: Doors::roll(
+            new_game.dungeon_entrances,
+            &new_game.door_pins,
+            &mut Rng::new(seed.rotate_left(29)),
+        )?,
         ..new_game.clone()
     };
     run.step(Step::Checks)?;
@@ -187,6 +194,7 @@ fn need(world: &World, hash: u64) -> (String, Vec<String>) {
 fn new_game(settings: &Settings, extras: &Extras) -> Result<NewGame> {
     let mut new_game = NewGame {
         spawn: extras.spawn.clone(),
+        door_pins: extras.doors.clone(),
         ..NewGame::from_settings(settings, &extras.defaults)?
     };
     new_game.fields.extend(extras.fields.iter().cloned());
@@ -208,6 +216,10 @@ pub fn generate(
         "an Archipelago seed places every item itself"
     );
     let mut new_game = new_game(settings, extras)?;
+    ensure!(
+        ap.is_none() || new_game.dungeon_entrances == DungeonEntrances::Off,
+        "an Archipelago seed can't shuffle dungeon entrances yet"
+    );
     if let Some(ap) = &ap {
         new_game.foreign = ap.foreign.clone();
         new_game.players = extras

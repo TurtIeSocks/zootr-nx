@@ -16,9 +16,10 @@ use crate::progress::Run;
 use crate::settings::{AGELESS_WEAPONS, ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
     ageless, ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, day_skulltulas,
-    dig, door, enemies, flags, foreign, fortress, gamedata, gerudo, gifts, held, hints, ice_traps,
-    key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb,
-    scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain, twins,
+    dig, door, enemies, entrances, flags, foreign, fortress, gamedata, gerudo, gifts, held, hints,
+    ice_traps, key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups,
+    presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain,
+    twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -360,6 +361,10 @@ pub fn write_mod(
     // A step's copy is placed with its holder's table, which goes too.
     let copied = steps.copies.iter().filter(|(of, _)| tabled.contains(of));
     tabled.extend(copied.map(|(_, copy)| *copy).collect::<Vec<_>>());
+    let blocks = match new_game.doors.is_vanilla() {
+        true => None,
+        false => Some(entrances::Blocks::read(romfs)?),
+    };
     let (mut found, mut actors) = (HashSet::new(), 0);
     let mut spots = Vec::new();
     let mut chest_events = HashMap::new();
@@ -403,6 +408,10 @@ pub fn write_mod(
         let tinted = key_tints::swap(&rel, &mut doc.root, bosses)? > 0;
         // After shrinking: a shrunk chest runs the small chest's flow.
         let levelled = levels.name(romfs, &mut doc.root, &mut chest_events)? > 0;
+        let doors = match &blocks {
+            Some(b) => entrances::rewrite(&rel, &mut doc.root, &new_game.doors, b)? > 0,
+            None => false,
+        };
         if twinned
             || paired
             || stepped
@@ -411,6 +420,7 @@ pub fn write_mod(
             || shrunk
             || tinted
             || levelled
+            || doors
             || !changed.is_empty()
         {
             actors += changed.len();

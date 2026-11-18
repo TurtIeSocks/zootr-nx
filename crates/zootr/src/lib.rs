@@ -32,6 +32,7 @@ pub mod dev;
 mod dig;
 mod door;
 mod enemies;
+mod entrances;
 mod events;
 mod fill;
 mod flags;

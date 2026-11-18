@@ -228,3 +228,25 @@ impl IceTraps {
         }
     }
 }
+
+/// Which dungeon doors lead to another dungeon.
+#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
+pub enum DungeonEntrances {
+    /// Every door leads where it always does
+    #[default]
+    Off,
+    /// The eleven dungeons swap doors
+    On,
+    /// The eleven dungeons and Ganon's Castle swap doors
+    OnGanon,
+}
+
+impl DungeonEntrances {
+    pub(super) fn label(self) -> &'static str {
+        match self {
+            Self::Off => "Off",
+            Self::On => "On",
+            Self::OnGanon => "On, with Ganon's Castle",
+        }
+    }
+}
