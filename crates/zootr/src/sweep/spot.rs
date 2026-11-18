@@ -6,10 +6,9 @@ use std::path::{Path, PathBuf};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, bail};
 use ounce_formats::Romfs;
 
-use super::gear;
 use super::judge::{Answer, Judge, Look, TURNS};
 use super::melody;
 use super::plan::{Halt, Planned, Trigger, preset};
@@ -18,6 +17,7 @@ use super::watch::{MESSAGE, Watch, got_other, named, swapped, wielded};
 use super::wield::{self, Wield};
 use crate::dev::{Dev, EVENT_PLAYING, NOT_TAKEN, Place, Request};
 use crate::gamedata::GameData;
+use crate::gear;
 use crate::gerudo;
 use crate::known::{Name, field, flag, map};
 use crate::live;
@@ -194,16 +194,9 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         let unset = self.ready(p)?;
         self.setup(p, !unset.is_empty())?;
         let cleared = self.ready(p)?;
-        let sink = gear::sinks(&p.spot.need_items, p.child);
-        for armor in gear::toggles(sink, &gear::worn(self.dev)?) {
-            self.equip(armor)?;
-        }
-        let (boots, _) = gear::worn(self.dev)?;
-        ensure!(
-            boots == sink,
-            "the Iron Boots stayed {}",
-            if boots { "on" } else { "off" }
-        );
+        // The boots come off: a holder under water puts them on itself.
+        self.calm()?;
+        gear::wear(self.dev, self.gd, &mut *self.input, false)?;
         if let Trigger::Open {
             first: Some(event), ..
         } = &p.trigger
@@ -434,7 +427,9 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         };
         let here = here || aloft;
         for (i, &at) in spots.iter().enumerate() {
-            self.calmly(|dev| dev.warp(at))?;
+            // Under water, Link sinks to it from the surface over it.
+            let over = graph.above(at);
+            self.calmly(|dev| dev.warp(over.unwrap_or(at)))?;
             if let Trigger::Open { wield: Some(w), .. } = &p.trigger {
                 self.wield(w, p, name, swept)?;
             }
@@ -443,7 +438,10 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             drive.side = p.side;
             drive.then = sides.to_vec();
             drive.here = here;
-            let used = drive.touch(&graph, holder, shot)?;
+            let used = match over {
+                Some(_) => nav::sink::touch_under(&mut drive, self.gd, &graph, holder, shot)?,
+                None => drive.touch(&graph, holder, shot)?,
+            };
             swept.shots.extend(used.shot.clone());
             let voided = voided(&used);
             swept.used = Some(used);
@@ -486,17 +484,10 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         Ok(())
     }
 
-    /// Give `item` and press it in the menu, which opens on the newest
-    /// item: a ZR item goes on ZR, and gear (the Iron Boots, a tunic) goes
-    /// on or comes off.
+    /// Give `item` and press it in the menu, once no event plays.
     fn equip(&mut self, item: &'static Name) -> Result<()> {
-        let gd = self.gd;
-        self.calmly(|dev| dev.give(gd, item, 1))?;
-        for (button, wait) in wield::EQUIP {
-            self.input.press(button)?;
-            sleep(wait);
-        }
-        Ok(())
+        self.calm()?;
+        gear::equip(self.dev, self.gd, &mut *self.input, item)
     }
 
     /// Stop a giver who rolls a track: wait for him to pass the one spot

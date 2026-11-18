@@ -14,10 +14,11 @@ use super::route::{Route, Waypoint, plan};
 use super::shove::{LEVEL, Shove, rise};
 use super::water::{DASH, DASH_SPEED};
 use super::went::{Done, Gone, Reason, Went};
-use super::{CLOCKWISE, Level, heading};
+use super::{CLOCKWISE, Level, eighths, heading};
 use crate::around::clockwise;
 use crate::checks::flat;
 use crate::dev::{Dev, State};
+use crate::gamedata::GameData;
 use crate::live::Memory;
 use crate::play::Input;
 use crate::warp::{self, Side};
@@ -78,6 +79,11 @@ const STILL: f32 = 0.05;
 const TURNS: usize = 3;
 /// `go`: a leg that covers under this share of the distance is a block.
 const STUCK: f32 = 0.5;
+/// How far a push must move Link for the way he went to stand in for his
+/// heading, in m.
+const WENT: f32 = 0.2;
+/// The stroke that finds which way Link faces in water, in ms.
+const FIND_MS: u64 = 300;
 /// What `drive` reads of the game: where Link stands and faces, and the
 /// map's state.
 pub trait Sense {
@@ -109,6 +115,12 @@ impl<M: Memory> Sense for Dev<M> {
     }
 }
 
+/// Where Link from `yaw` faces after the stick turns him `eighths` of a
+/// turn clockwise of up.
+fn turned(yaw: f32, eighths: i32) -> f32 {
+    yaw - eighths as f32 * std::f32::consts::FRAC_PI_4
+}
+
 /// Whether a leg that meant to cover `expected` m was stopped: it moved
 /// under half of it, and neither dropped nor climbed.
 fn stuck(before: [f32; 3], after: [f32; 3], expected: f32) -> bool {
@@ -135,6 +147,13 @@ pub struct Drive<'a, S, I> {
     /// a tap under lock-on stepped Link 2.6 m back, out of reach (Mac,
     /// 2026-11-14). A tap alone turns him, the counter stops the step.
     pub here: bool,
+    /// Where the last push left Link facing: the way he went, or for a tap
+    /// too short to tell, the way the stick turned him.
+    went: Option<f32>,
+    /// Whether Link was in water at the last leg.
+    wet: bool,
+    /// Whether Link stands on a floor under water in the Iron Boots.
+    pub sunk: bool,
 }
 
 /// The point `far` m from `here`, `angle` radians round from the way to
@@ -203,7 +222,41 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             side: Side::Front,
             then: vec![],
             here: false,
+            went: None,
+            wet: false,
+            sunk: false,
         }
+    }
+
+    /// Which way Link faces. In water the game's heading is no good: it
+    /// kept what a respawn set through pushes that moved him elsewhere,
+    /// and jumped to it again after a stroke (Mac, 2026-11-18). There the
+    /// last push says it, as he goes the way he faces.
+    fn yaw(&self) -> Result<f32> {
+        match self.went {
+            Some(went) if self.wet || self.sunk => Ok(went),
+            _ => self.sense.yaw(),
+        }
+    }
+
+    /// A stroke forward, to find which way Link faces in water. Only at the
+    /// surface: on a pond floor in the Iron Boots the first step on the
+    /// stale heading walked him off the floor's edge (Mac, 2026-11-18).
+    pub fn find(&mut self) -> Result<()> {
+        let (yaw, before) = (self.yaw()?, self.sense.link()?);
+        self.push("up", FIND_MS)?;
+        self.moved(before, yaw)
+    }
+
+    /// Note where a push from `before` left Link facing: the way he went,
+    /// or `turned`, the way the stick turned him, when he barely moved.
+    fn moved(&mut self, before: [f32; 3], turned: f32) -> Result<()> {
+        let after = self.sense.link()?;
+        self.went = Some(match flat(before, after) > WENT {
+            true => (after[0] - before[0]).atan2(after[2] - before[2]),
+            false => turned,
+        });
+        Ok(())
     }
 
     /// ZL first, so the camera is behind Link and the stick's direction is
@@ -231,18 +284,19 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             self.input.press("ZL")?;
             sleep(self.settle);
         }
-        let direction = heading(self.sense.yaw()?, self.sense.link()?, to);
+        let (yaw, before) = (self.yaw()?, self.sense.link()?);
+        let direction = heading(yaw, before, to);
         match button {
             Some(b) => self.input.stick(&format!("{direction}+{b}"), ms)?,
             None => self.input.stick(direction, ms)?,
         }
         sleep(self.settle);
-        Ok(())
+        self.moved(before, turned(yaw, eighths(yaw, before, to)))
     }
 
     /// Whether Link faces `at` within 20 degrees.
     fn facing(&self, at: [f32; 3]) -> Result<bool> {
-        let turned = clockwise(self.sense.yaw()?, self.sense.link()?, at);
+        let turned = clockwise(self.yaw()?, self.sense.link()?, at);
         Ok(turned.abs() <= FACING.to_radians())
     }
 
@@ -297,9 +351,10 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
     pub fn shove(&mut self, hour: u8, secs: f32) -> Result<Shove> {
         // Twelve hours onto the stick's eight directions.
         let eighths = (hour as usize % 12 * 2 + 1) / 3;
-        let (yaw, before) = (self.sense.yaw()?, self.sense.link()?);
+        let (yaw, before) = (self.yaw()?, self.sense.link()?);
         let map = self.sense.state()?.map;
         self.push(CLOCKWISE[eighths], millis(secs))?;
+        self.moved(before, turned(yaw, eighths as i32))?;
         let state = self.sense.state()?;
         Ok(Shove {
             hour,
@@ -451,8 +506,9 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
                 return Ok((Some(Reason::Event), legs));
             }
             let here = self.sense.link()?;
+            self.wet = graph.in_water(here);
             let Route { waypoints, .. } = &route;
-            if graph.in_water(here) {
+            if self.wet {
                 next = ahead(waypoints, next, here);
             }
             let Some(&Waypoint { at: target, via }) = waypoints.get(next) else {
@@ -508,7 +564,8 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             } else {
                 // On land X isn't a dash: held at a waterfall's lip, Link
                 // stood still there (Zora's River, Mac, 2026-11-18).
-                let dash = graph.in_water(here).then_some(DASH);
+                // Nor on a floor under water in the Iron Boots.
+                let dash = (self.wet && !self.sunk).then_some(DASH);
                 self.steer_with(target, millis(secs), dash)?;
             }
             legs += 1;
@@ -562,9 +619,25 @@ pub fn go<M: Memory, I: Input>(
         true => act::spot(&graph, placement, dev.link()?)?,
         false => placement.pose.at,
     };
+    // Under water, Link is warped to the surface over it and sinks there:
+    // the harness plays only the last metre to a holder, and the rest of
+    // the way is what logic vouches for.
+    let over = how.then_use.then(|| graph.above(goal)).flatten();
     let mut drive = Drive::new(dev, input);
     drive.budget = how.budget;
-    let mut went = drive.walk(&graph, goal, ARRIVE)?;
+    let mut went = match over {
+        Some(top) => {
+            let start = Instant::now();
+            dev.warp(top)?;
+            Went {
+                result: Done::Warped,
+                secs: start.elapsed().as_secs_f32(),
+                left: Some(flat(dev.link()?, top)),
+                ..Went::here()
+            }
+        }
+        None => drive.walk(&graph, goal, ARRIVE)?,
+    };
     if how.warp && went.reason == Some(Reason::NoRoute) {
         let start = Instant::now();
         warp::beside(dev, romfs, &hash.to_string(), Side::Front)?;
@@ -578,9 +651,16 @@ pub fn go<M: Memory, I: Input>(
     // A block can leave Link already in reach, which `use` judges itself.
     let near =
         matches!(went.result, Done::Arrived | Done::Warped) || went.reason == Some(Reason::Blocked);
-    let used = match how.then_use && near {
-        true => Some(drive.touch(&graph, placement, act::frame(hash)?)?),
-        false => None,
+    let shot = act::frame(hash)?;
+    let used = match (how.then_use && near, over) {
+        (false, _) => None,
+        (true, None) => Some(drive.touch(&graph, placement, shot)?),
+        (true, Some(_)) => {
+            let gd = GameData::load(romfs)?;
+            Some(super::sink::touch_under(
+                &mut drive, &gd, &graph, placement, shot,
+            )?)
+        }
     };
     Ok(Gone { went, used })
 }
@@ -664,6 +744,21 @@ mod tests {
                 (hour, [2.0, 0.0, 2.0], world.at)
             );
         }
+    }
+
+    #[test]
+    fn in_water_the_last_push_says_which_way_link_faces() {
+        let (eyes, mut hands) = sim::start(ORIGIN, 0.0);
+        // The game still says the heading a respawn set: the other way.
+        eyes.0.borrow_mut().stale = Some(std::f32::consts::PI);
+        let behind = [0.0, 0.0, -3.0];
+        let mut drive = sim::drive(&eyes, &mut hands);
+        drive.sunk = true;
+        drive.find().unwrap();
+        assert!(drive.face(behind).unwrap());
+        let world = eyes.0.borrow();
+        let off = clockwise(world.yaw, world.at, behind);
+        assert!(off.abs() <= FACING.to_radians(), "{off} off");
     }
 
     /// A 20 by 4 m room, and Link at (1, 2) facing +X.

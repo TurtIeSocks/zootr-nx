@@ -44,6 +44,7 @@ pub mod shape;
 pub mod shove;
 #[cfg(test)]
 mod sim;
+pub mod sink;
 pub mod water;
 pub mod went;
 
@@ -62,10 +63,14 @@ const CLOCKWISE: [&str; 8] = [
 /// The stick direction, with the camera behind Link, that points him from
 /// `yaw` at `from` toward `to`, to the nearest eighth of a turn.
 pub fn heading(yaw: f32, from: [f32; 3], to: [f32; 3]) -> &'static str {
-    use std::f32::consts::FRAC_PI_4;
-    // A tap that far clockwise of up turns him that far down from `yaw`.
-    let eighths = (crate::around::clockwise(yaw, from, to) / FRAC_PI_4).round() as i32;
-    CLOCKWISE[eighths.rem_euclid(8) as usize]
+    CLOCKWISE[eighths(yaw, from, to).rem_euclid(8) as usize]
+}
+
+/// How many eighths of a turn clockwise of `yaw` Link at `from` turns to
+/// face `to`: a tap that far clockwise of up turns him that far down from
+/// `yaw`.
+pub fn eighths(yaw: f32, from: [f32; 3], to: [f32; 3]) -> i32 {
+    (crate::around::clockwise(yaw, from, to) / std::f32::consts::FRAC_PI_4).round() as i32
 }
 
 /// A map's navmesh file, decompressed, or `None` for a map whose mesh

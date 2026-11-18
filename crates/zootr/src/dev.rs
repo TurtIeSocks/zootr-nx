@@ -32,6 +32,10 @@ pub(crate) const CHILD: &str = "_Child";
 pub(crate) const ADULT: &str = "_Adult";
 /// Link's yaw (GameData, unnamed).
 const LINK_YAW: u32 = 0x1ea93bd8;
+/// The Iron Boots on (a Bool): Link sinks, and the HUD shows them. A
+/// member of `PlayerStatus` no name table names, found by putting them on
+/// from the menu (Mac, 2026-11-17).
+const BOOTS_ON: &str = "#a6719419";
 /// Link's live hearts, in quarters (`PlayerStatus.Life` is only the save's
 /// copy).
 pub(crate) const HEARTS: u32 = switches::HEARTS;
@@ -223,6 +227,11 @@ impl<M: Memory> Dev<M> {
         let bytes = self.value_of(LINK_YAW)?;
         ensure!(bytes.len() == 4, "Link's yaw is {} bytes", bytes.len());
         Ok(floats::<1>(&bytes)[0])
+    }
+
+    /// Whether Link wears the Iron Boots.
+    pub fn boots(&self) -> Result<bool> {
+        self.flag(BOOTS_ON)
     }
 
     /// Link's hearts now, in quarters.
