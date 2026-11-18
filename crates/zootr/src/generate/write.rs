@@ -276,6 +276,7 @@ pub fn write_mod(
         true => &fortress::CARRYING[..],
         false => &[],
     };
+    let tabled = pickups::tabled(&pieces);
     let (mut found, mut actors) = (HashSet::new(), 0);
     let mut spots = Vec::new();
     let mut chest_events = HashMap::new();
@@ -294,6 +295,7 @@ pub fn write_mod(
         let leaves = scrubs::leaves(&doc.root, &gone)?;
         changed.extend(checks::gone_once(&mut doc.root, &leaves)?);
         changed.extend(checks::clear_drops(&mut doc.root, carried)?);
+        changed.extend(checks::clear_tables(&mut doc.root, &tabled)?);
         changed.extend(checks::set_drops(
             &mut doc.root,
             &chest_drops,

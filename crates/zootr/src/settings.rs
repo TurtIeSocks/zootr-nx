@@ -154,6 +154,7 @@ pub(crate) const BOSS_HEARTS: &str = "boss-hearts";
 pub(crate) const POTS: &str = "pots";
 pub(crate) const CRATES: &str = "crates";
 pub(crate) const ROCKS: &str = "rocks";
+pub(crate) const GRASS: &str = "grass";
 pub(crate) const HIVES: &str = "hives";
 pub(crate) const COWS: &str = "cows";
 pub(crate) const KEYS: &str = "keys";
@@ -442,19 +443,25 @@ pub fn schema() -> Vec<SettingDef> {
                 POTS,
                 group::SHUFFLES,
                 "Pots",
-                "Each pot placed with a drop is a check. A broken pot may come back when the area reloads, so its item may too",
+                "Each pot is a check, flying pots included. One placed with no drop of its own brings a Recovery Heart, a Deku Stick and the like to the pool. A broken pot may come back when the area reloads, so its item may too",
             ),
             toggle(
                 CRATES,
                 group::SHUFFLES,
                 "Crates",
-                "Each wooden crate placed with a drop is a check. Link breaks one by rolling into it",
+                "Each wooden crate is a check. Link breaks a big one by rolling into it",
             ),
             toggle(
                 ROCKS,
                 group::SHUFFLES,
                 "Rocks",
-                "Each small rock placed with a drop is a check. Link lifts and throws one to break it",
+                "Each small rock is a check. Link lifts and throws one to break it",
+            ),
+            toggle(
+                GRASS,
+                group::SHUFFLES,
+                "Grass",
+                "Each grass shrub Link can cut or lift is a check, like those outside Saria's house",
             ),
             toggle(
                 HIVES,
@@ -548,6 +555,8 @@ pub struct NewGame {
     pub crates: bool,
     /// Small rocks are checks.
     pub rocks: bool,
+    /// Grass shrubs are checks.
+    pub grass: bool,
     /// Beehives are checks.
     pub hives: bool,
     /// Each cow gives a check for Epona's Song.
@@ -653,6 +662,7 @@ impl NewGame {
             pots: on(POTS),
             crates: on(CRATES),
             rocks: on(ROCKS),
+            grass: on(GRASS),
             hives: on(HIVES),
             cows: on(COWS),
             keys,
@@ -780,6 +790,7 @@ mod tests {
                 pots: false,
                 crates: false,
                 rocks: false,
+                grass: false,
                 hives: false,
                 cows: false,
                 keys: DungeonKeys::Vanilla,

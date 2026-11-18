@@ -1,11 +1,11 @@
 //! Placed actors that hold an item as a check without a chest: freestanding
 //! heart pieces, Gold Skulltulas, whose kill drops their token, the
-//! pots, crates, rocks and hives that drop something when broken, and the
-//! Gerudo thieves' keys. One
+//! pots, crates, rocks, grass, hives and flying pots that drop something
+//! when broken, and the Gerudo thieves' keys. One
 //! that holds something else gets a pickup for it, a stand-in built on a
 //! pickup that gives a major item when no `Obj_*` form exists.
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, ModBuilder, Romfs};
@@ -14,9 +14,10 @@ use crate::checks::{
     DROP_ACTOR, Drop, GYAML, ItemCheck, actors, banc_files, hash_of, load_bancs, str_field,
 };
 use crate::gifts;
-use crate::known::{Name, actor, item};
+use crate::known::{Name, actor, field as fields, item, map};
 use crate::settings::{NPC_GIFTS, NewGame};
 use crate::standins::{StandIn, Tables, item_pack};
+use crate::warp;
 use crate::world::presence_of;
 
 /// One kind of placed holder.
@@ -71,8 +72,9 @@ pub const BOSS_HEARTS: Kind = Kind {
     named: None,
 };
 
-/// Pots, each with the drop it's placed with. The remix's `_Dream` pots
-/// stay out.
+/// Every pot, each with its [`own_drop`]. The `_Respawn` ones come back
+/// with their area, and Ganon's Castle has `_Dream` ones. The remix's
+/// files stay out ([`REMIX`]).
 pub const POTS: Kind = Kind {
     actors: &[
         actor::OBJ_POT_A_01,
@@ -83,6 +85,11 @@ pub const POTS: Kind = Kind {
         actor::OBJ_POT_A_06,
         actor::OBJ_POT_A_07,
         actor::OBJ_POT_A_08,
+        actor::OBJ_POT_A_02_RESPAWN,
+        actor::OBJ_POT_A_05_RESPAWN,
+        actor::OBJ_POT_A_07_RESPAWN,
+        actor::OBJ_POT_A_08_RESPAWN,
+        actor::OBJ_POT_A_06_DREAM,
     ],
     item: None,
     field: DROP,
@@ -90,19 +97,49 @@ pub const POTS: Kind = Kind {
     named: None,
 };
 
-/// Wooden crates, which break to a rolling Link.
+/// Wooden crates, which break to a rolling Link, and the small ones he
+/// lifts.
 pub const CRATES: Kind = Kind {
-    actors: &[actor::OBJ_BROKEN_BOX_A_01],
+    actors: &[actor::OBJ_BROKEN_BOX_A_01, actor::OBJ_BROKEN_BOX_A_03],
     item: None,
     field: DROP,
     needs: None,
     named: None,
 };
 
-/// Small rocks Link lifts and throws. The rock that needs gauntlets stays
-/// out.
+/// Small rocks Link lifts and throws, both of the light grade. The rock
+/// that needs gauntlets stays out.
 pub const ROCKS: Kind = Kind {
-    actors: &[actor::OBJ_LIFT_ROCK_A_01],
+    actors: &[actor::OBJ_LIFT_ROCK_A_01, actor::OBJ_LIFT_ROCK_A_03],
+    item: None,
+    field: DROP,
+    needs: None,
+    named: None,
+};
+
+/// Grass shrubs Link cuts or lifts, like those outside Saria's house.
+pub const GRASS: Kind = Kind {
+    actors: &[
+        actor::OBJ_PLANT_GRASS_A_01,
+        actor::OBJ_PLANT_GRASS_A_01_RESPAWN,
+        actor::OBJ_PLANT_GRASS_A_03,
+        // Hyrule Field's shrubs, whose own table drops nothing.
+        actor::LAND_KOKIRI_PLANT_A_02_DROP_FIXED_03,
+    ],
+    item: None,
+    field: DROP,
+    needs: None,
+    named: None,
+};
+
+/// Flying pots, enemies that break against Link and drop as pots do. The
+/// pots setting deals them.
+pub const FLYING_POTS: Kind = Kind {
+    actors: &[
+        actor::ENEMY_FLYING_POT_ICE_CAVERN,
+        actor::ENEMY_FLYING_POT_SHADOW_TEMPLE,
+        actor::ENEMY_FLYING_POT_SPIRIT_TEMPLE,
+    ],
     item: None,
     field: DROP,
     needs: None,
@@ -159,7 +196,7 @@ pub const RUTOS_LETTER: Kind = Kind {
 };
 
 /// The holders Link breaks for what they drop.
-const BREAKABLE: [&Kind; 3] = [&POTS, &CRATES, &ROCKS];
+const BREAKABLE: [&Kind; 4] = [&POTS, &CRATES, &ROCKS, &GRASS];
 
 /// Whether one of `kinds` places `holder`.
 fn any_holds(kinds: &[&Kind], holder: &str) -> bool {
@@ -172,18 +209,21 @@ pub fn within_reach(holder: &str) -> bool {
     any_holds(&[&FREESTANDING, &BOSS_HEARTS], holder) || broken(holder)
 }
 
-/// Whether `holder` is broken for what it drops: a pot, crate or rock.
+/// Whether `holder` is broken for what it drops: a pot, crate, rock or
+/// shrub.
 pub fn broken(holder: &str) -> bool {
     any_holds(&BREAKABLE, holder)
 }
 
-const KINDS: [&Kind; 10] = [
+const KINDS: [&Kind; 12] = [
     &FREESTANDING,
     &SKULLTULAS,
     &BOSS_HEARTS,
     &POTS,
     &CRATES,
     &ROCKS,
+    &GRASS,
+    &FLYING_POTS,
     &HIVES,
     &FORTRESS_KEYS,
     &FIRE_ARROWS,
@@ -227,6 +267,53 @@ fn pickup_for(item: &str, dropped: bool) -> Option<String> {
     (!dropped || !PLACED_ONLY.iter().any(|p| **p == *pickup)).then_some(pickup)
 }
 
+/// What a holder placed without a fixed drop brings to the pool: what its
+/// drop table always gives, Deku seeds in a child's file or arrows in an
+/// adult's for a range weapon table, and a Recovery Heart for the rest (a
+/// table picking what Link is lowest on, or none), as Ship does.
+fn own_drop(table: Option<&str>, file: &str) -> &'static Name {
+    const ALWAYS: [(&Name, &Name); 6] = [
+        (fields::DROP_TABLE_OBJ_HEART, actor::OBJ_HEART),
+        (
+            fields::DROP_TABLE_OBJ_MAGIC_JAR_SMALL,
+            actor::OBJ_MAGIC_JAR_SMALL,
+        ),
+        (fields::DROP_TABLE_OBJ_BOMB, actor::OBJ_BOMB),
+        (fields::DROP_TABLE_OBJ_DEKU_STICK, actor::OBJ_DEKU_STICK),
+        (fields::DROP_TABLE_OBJ_FAIRY, actor::OBJ_FAIRY),
+        (fields::DROP_RUPEE_RED2, actor::OBJ_RUPEE_RED),
+    ];
+    const RANGE: [&Name; 2] = [
+        fields::DROP_TABLE_RANGE_WEAPON_01,
+        fields::DROP_TABLE_RANGE_WEAPON_02,
+    ];
+    let Some(table) = table else {
+        return actor::OBJ_HEART;
+    };
+    if let Some((_, item)) = ALWAYS.iter().find(|(t, _)| **t == *table) {
+        return item;
+    }
+    match RANGE.iter().any(|t| **t == *table) {
+        true if child_file(file) => actor::OBJ_DEKU_SEED,
+        true => actor::OBJ_ARROW_BUNDLE_SMALL,
+        false => actor::OBJ_HEART,
+    }
+}
+
+/// The dungeons only a child plays, whose files name no age.
+const CHILD_DUNGEONS: [&Name; 4] = [
+    map::INSIDE_THE_DEKU_TREE,
+    map::DODONGO_CAVERN,
+    map::INSIDE_JABU_JABU_BELLY,
+    map::BOTTOM_OF_THE_WELL,
+];
+
+/// Whether Link is a child in Banc file `file`.
+fn child_file(file: &str) -> bool {
+    let map = warp::map_of(file);
+    warp::era(map).unwrap_or_else(|| CHILD_DUNGEONS.iter().any(|d| **d == *map))
+}
+
 /// The pickup a stand-in for what `field` names is built on.
 fn template_for(field: &str) -> &'static str {
     match field {
@@ -239,6 +326,11 @@ impl Kind {
     /// Whether `actor` is one of the placed actors.
     pub(crate) fn places(&self, actor: &str) -> bool {
         self.actors.iter().any(|a| **a == *actor)
+    }
+
+    /// Whether a placement with no fixed drop brings its [`own_drop`].
+    fn owns_drop(&self) -> bool {
+        self.item.is_none() && self.field == DROP
     }
 
     /// One check per placement, as chests are.
@@ -254,10 +346,10 @@ impl Kind {
                 if !self.places(gyaml) {
                     continue;
                 }
-                let held = actor
-                    .as_map()?
-                    .get("Dynamic")
-                    .and_then(|d| str_field(d, DROP_ACTOR));
+                let dynamic = actor.as_map()?.get("Dynamic");
+                let held = dynamic.and_then(|d| str_field(d, DROP_ACTOR));
+                let table = dynamic.and_then(|d| str_field(d, fields::DROP_DROP_TABLE));
+                let own = self.owns_drop().then(|| own_drop(table, &file).get());
                 let (holder, item) = match &self.named {
                     Some(Named { prefix, holder }) => {
                         if !str_field(actor, NAME).is_some_and(|n| n.starts_with(prefix)) {
@@ -266,7 +358,7 @@ impl Kind {
                         (*holder, gyaml)
                     }
                     None => {
-                        let Some(item) = self.item.map(|i| i.get()).or(held) else {
+                        let Some(item) = self.item.map(|i| i.get()).or(held).or(own) else {
                             continue;
                         };
                         (gyaml, item)
@@ -298,8 +390,10 @@ pub fn dealt(romfs: &Romfs, new_game: &NewGame) -> Result<Vec<ItemCheck>> {
         (new_game.skulltulas, &SKULLTULAS),
         (new_game.boss_hearts, &BOSS_HEARTS),
         (new_game.pots, &POTS),
+        (new_game.pots, &FLYING_POTS),
         (new_game.crates, &CRATES),
         (new_game.rocks, &ROCKS),
+        (new_game.grass, &GRASS),
         (new_game.hives, &HIVES),
         (new_game.fortress_keys, &FORTRESS_KEYS),
         (npc_gifts, &FIRE_ARROWS),
@@ -393,7 +487,28 @@ pub fn write(
         }
         fields.push(format!("{}.{}={}", m.hash, m.field, m.actor));
     }
+    // One keeping its own drop drops it as dealt too, since its table goes
+    // ([`tabled`]). A heart piece lying in place keeps its own field.
+    for c in checks
+        .iter()
+        .filter(|c| kind_of(c).is_some_and(Kind::owns_drop))
+    {
+        let item = gifts::item_at(drops, c.hash, &c.item);
+        if item == c.item && pickup_for(item, true).as_deref() == Some(item) {
+            fields.push(format!("{}.{DROP}={item}", c.hash));
+        }
+    }
     Ok(fields)
+}
+
+/// The holders in `checks` whose drop table the seed takes away, so each
+/// drops exactly what it was dealt: every one whose kind brings an
+/// [`own_drop`].
+pub fn tabled(checks: &[ItemCheck]) -> HashSet<u64> {
+    (checks.iter())
+        .filter(|c| kind_of(c).is_some_and(Kind::owns_drop))
+        .map(|c| c.hash)
+        .collect()
 }
 
 #[cfg(test)]
@@ -425,6 +540,63 @@ mod tests {
     }
 
     #[test]
+    fn a_holder_without_a_fixed_drop_brings_what_its_table_gives() {
+        needs_names!();
+        let file = |map: &Name| format!("Banc/X/{}_Dynamic.bcett.byml.zs", map.get());
+        let (child, adult) = (file(map::GORON_CITY_CHILD), file(map::FOREST_TEMPLE));
+        let stick = Some(field::DROP_TABLE_OBJ_DEKU_STICK.get());
+        assert_eq!(own_drop(stick, &adult), actor::OBJ_DEKU_STICK);
+        let range = Some(field::DROP_TABLE_RANGE_WEAPON_02.get());
+        assert_eq!(own_drop(range, &child), actor::OBJ_DEKU_SEED);
+        assert_eq!(own_drop(range, &adult), actor::OBJ_ARROW_BUNDLE_SMALL);
+        // A child's dungeon names no age.
+        assert_eq!(
+            own_drop(range, &file(map::DODONGO_CAVERN)),
+            actor::OBJ_DEKU_SEED
+        );
+        assert_eq!(own_drop(Some("Drop_FakeSupply"), &child), actor::OBJ_HEART);
+        assert_eq!(own_drop(None, &child), actor::OBJ_HEART);
+    }
+
+    #[test]
+    fn a_pot_keeping_its_tables_drop_drops_it_and_loses_the_table() {
+        let Some(romfs) = dev_dump() else { return };
+        let checks = POTS.checks(&romfs).unwrap();
+        let item = |hash: u64| checks.iter().find(|c| c.hash == hash).unwrap().item.clone();
+        // Zora's River's pot on the Deku Stick table, and Water Temple pots
+        // on the range weapon table and on one picking what Link lacks.
+        let (river, range, supply) = (
+            13505325356541728049,
+            12146339761792216385,
+            7331502814510362649,
+        );
+        assert_eq!(item(river), actor::OBJ_DEKU_STICK.get());
+        assert_eq!(item(range), actor::OBJ_ARROW_BUNDLE_SMALL.get());
+        assert_eq!(item(supply), actor::OBJ_HEART.get());
+        let dir = std::env::temp_dir().join(format!("zootr-own-{}", std::process::id()));
+        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+        let mut tables = Tables::load(&romfs).unwrap();
+        let none = HashMap::new();
+        let fields = write(
+            &romfs,
+            &mut builder,
+            &mut tables,
+            &checks,
+            &none,
+            &NewGame::rings(),
+        );
+        let fields = fields.unwrap();
+        let stick = format!("{river}.{DROP}={}", actor::OBJ_DEKU_STICK.get());
+        assert!(fields.contains(&stick));
+        assert!(
+            [river, range, supply]
+                .iter()
+                .all(|h| tabled(&checks).contains(h))
+        );
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
     fn only_a_dropped_template_and_the_drops_lands() {
         let Some(romfs) = dev_dump() else { return };
         let lands = |actor: &str| {
@@ -453,17 +625,19 @@ mod tests {
             (&FREESTANDING, 14),
             (&SKULLTULAS, 100),
             (&BOSS_HEARTS, 8),
-            (&POTS, 100),
-            (&CRATES, 11),
-            (&ROCKS, 14),
-            (&HIVES, 9),
+            (&POTS, 530),
+            (&CRATES, 44),
+            (&ROCKS, 167),
+            (&GRASS, 160),
+            (&FLYING_POTS, 23),
+            (&HIVES, 21),
             (&FORTRESS_KEYS, 4),
             (&FIRE_ARROWS, 1),
             (&RUTOS_LETTER, 1),
         ] {
             let checks = kind.checks(&romfs).unwrap();
             let hashes: BTreeSet<u64> = checks.iter().map(|c| c.hash).collect();
-            assert_eq!(hashes.len(), count);
+            assert_eq!(hashes.len(), count, "{}", kind.actors[0].get());
             assert!(
                 checks
                     .iter()

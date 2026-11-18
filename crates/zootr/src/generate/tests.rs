@@ -535,6 +535,7 @@ fn pickups_are_checks_with_their_options_on() {
         pots: true,
         crates: true,
         rocks: true,
+        grass: true,
         hives: true,
         ..Default::default()
     };
@@ -547,10 +548,12 @@ fn pickups_are_checks_with_their_options_on() {
         &Run::silent(),
     )
     .unwrap();
-    assert_eq!(of(&report, &pickups::POTS).len(), 100);
-    assert_eq!(of(&report, &pickups::CRATES).len(), 11);
-    assert_eq!(of(&report, &pickups::ROCKS).len(), 14);
-    assert_eq!(of(&report, &pickups::HIVES).len(), 9);
+    assert_eq!(of(&report, &pickups::POTS).len(), 530);
+    assert_eq!(of(&report, &pickups::FLYING_POTS).len(), 23);
+    assert_eq!(of(&report, &pickups::CRATES).len(), 44);
+    assert_eq!(of(&report, &pickups::ROCKS).len(), 167);
+    assert_eq!(of(&report, &pickups::GRASS).len(), 160);
+    assert_eq!(of(&report, &pickups::HIVES).len(), 21);
     assert_eq!(of(&report, &pickups::FREESTANDING).len(), 14);
     assert_eq!(of(&report, &pickups::SKULLTULAS).len(), 100);
     assert_eq!(of(&report, &pickups::BOSS_HEARTS).len(), 8);

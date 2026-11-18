@@ -5,7 +5,7 @@
 //! actor (same `Hash`) can appear in both a `_Child_` and an `_Adult_` file,
 //! so one check may span several files.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::{Byml, BymlDoc, BymlMap, Romfs, files_with_suffix, par_batches};
@@ -300,15 +300,27 @@ pub fn gone_once(root: &mut Byml, gone: &[(u64, String)]) -> Result<Vec<u64>> {
 /// Remove the drop of each actor whose hash is in `hashes`, so it drops
 /// nothing. Returns the hashes changed in this document.
 pub fn clear_drops(root: &mut Byml, hashes: &[u64]) -> Result<Vec<u64>> {
+    clear_dynamic(root, |h| hashes.contains(h), DROP_ACTOR)
+}
+
+/// Remove the drop table of each actor whose hash is in `hashes`, so it
+/// drops only its drop. Returns the hashes changed in this document.
+pub fn clear_tables(root: &mut Byml, hashes: &HashSet<u64>) -> Result<Vec<u64>> {
+    clear_dynamic(root, |h| hashes.contains(h), field::DROP_DROP_TABLE)
+}
+
+/// Remove `key` from the `Dynamic` of each actor whose hash is `of`.
+/// Returns the hashes changed in this document.
+fn clear_dynamic(root: &mut Byml, of: impl Fn(&u64) -> bool, key: &Name) -> Result<Vec<u64>> {
     let mut changed = Vec::new();
     for actor in actors_mut(root)? {
-        let Some(hash) = hash_of(actor).filter(|h| hashes.contains(h)) else {
+        let Some(hash) = hash_of(actor).filter(&of) else {
             continue;
         };
         let Some(dynamic) = actor.as_mut_map()?.get_mut("Dynamic") else {
             continue;
         };
-        if dynamic.as_mut_map()?.remove(&**DROP_ACTOR).is_some() {
+        if dynamic.as_mut_map()?.remove(&**key).is_some() {
             changed.push(hash);
         }
     }
