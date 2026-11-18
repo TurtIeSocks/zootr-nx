@@ -137,6 +137,7 @@ pub const OBJ_SHIELD_DEKU: &Name = &n!(0xbd316ef5d55c5adc);
 pub const OBJ_SHIELD_HYLIAN: &Name = &n!(0x1933bf5fe49e01bc);
 pub const OBJ_SIGN_BOARD_A_01: &Name = &n!(0x146492c6ad183a44);
 pub const OBJ_SOLAR_SWITCH_A_01: &Name = &n!(0x84b4124022ec315a);
+pub const OBJ_SPIRIT_POE: &Name = &n!(0x8b69898c53ccaba9);
 pub const OBJ_STEP_SWITCH_A_01: &Name = &n!(0x4bbb35eab7bf0b65);
 pub const OBJ_SWITCH_HIT_A_05: &Name = &n!(0x6b48ceb1bc2420c2);
 pub const OBJ_TOKEN_GOLD_ANIMATION: &Name = &n!(0x0d4d35b910f28cee);

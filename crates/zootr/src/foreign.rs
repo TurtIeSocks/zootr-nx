@@ -13,7 +13,7 @@ use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs};
 use crate::key_tints::paint::{Host, Look};
 use crate::key_tints::{MADE, POUCH_TEXT, TEXT_PARTS, pointed};
 use crate::keys::SMALL;
-use crate::known::{field, item};
+use crate::known::{actor, field};
 use crate::medallions::Colour;
 use crate::standins::{
     POUCH, POUCH_ACTOR, Tables, actor_path, doc, path_of, pouch_actor, raw, renamed, resolved,
@@ -37,24 +37,29 @@ pub struct Foreign {
     pub player: String,
 }
 
-/// The model another game's item shows: Sheik's harp, which Link never
-/// gets, tinted by the item's class.
+/// The model another game's item shows: a Poe's spirit, a flame Link
+/// never gets loose, tinted by the item's class. Its glow takes the colour
+/// from its emissive map, which is white, so the colour shows true.
 pub(crate) const CLASS_LOOK: Look = Look {
-    host: item::HARP_SHEIK,
-    material: Some(field::MT_HARP_SHEIK),
-    kinds: &["Alb", "AO", "Mtl", "Nrm", "Rgh"],
-    copy: "Obj_Rando_Ap_",
+    host: actor::OBJ_SPIRIT_POE,
+    material: Some(field::MT_BODY),
+    kinds: &["Alb", "AO", "Emm", "Gn0", "Nrm", "Rgh"],
+    others: &["{}_Body_Gn0"],
+    tinted: &["Alb", "Emm"],
+    copy: "Obj_RandoAp_",
 };
 
 /// The files [`CLASS_LOOK`] is made from, spelled out like
 /// [`crate::key_tints::FILES`]: extracted before a dump's names are read.
-pub const FILES: [&str; 6] = [
-    "Model/Item_Harp_Sheik.Item_Harp_Sheik.bfres.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_Alb.bntx.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_AO.bntx.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_Mtl.bntx.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_Nrm.bntx.zs",
-    "Tex/Mt_Harp_Sheik_Item_Harp_Sheik_Rgh.bntx.zs",
+pub const FILES: [&str; 8] = [
+    "Model/Obj_Spirit_Poe.Obj_Spirit_Poe.bfres.zs",
+    "Tex/Mt_Body_Obj_Spirit_Poe_Alb.bntx.zs",
+    "Tex/Mt_Body_Obj_Spirit_Poe_AO.bntx.zs",
+    "Tex/Mt_Body_Obj_Spirit_Poe_Emm.bntx.zs",
+    "Tex/Mt_Body_Obj_Spirit_Poe_Gn0.bntx.zs",
+    "Tex/Mt_Body_Obj_Spirit_Poe_Nrm.bntx.zs",
+    "Tex/Mt_Body_Obj_Spirit_Poe_Rgh.bntx.zs",
+    "Tex/Obj_Spirit_Poe_Body_Gn0.bntx.zs",
 ];
 
 /// Each class's colour, as Archipelago's text client shows it: plum,
@@ -245,10 +250,10 @@ pub fn write(
         tables.copy_pouch(&f.actor, SMALL)?;
         tables.name_itself(&f.actor)?;
         if let Some(model) = &f.model {
-            // The shown item's animations and heaps, which hold the harp's,
-            // and the harp's bounds from the actor that shows it in a scene.
+            // The shown item's animations, the spirit's bounds, and heaps
+            // for the bigger of the two.
             let bounds = [field::MODEL_AABB_MAX, field::MODEL_AABB_MIN];
-            tables.take(&f.actor, item::DM_ITEM_SHEIK_HARP, &bounds)?;
+            tables.take(&f.actor, CLASS_LOOK.host, &bounds)?;
             tables.point(&f.actor, model)?;
         }
     }

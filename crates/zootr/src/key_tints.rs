@@ -37,6 +37,8 @@ const SMALL_LOOK: Look = Look {
     host: actor::OBJ_DUNGEON_SMALL_KEY,
     material: None,
     kinds: &["Alb", "AO", "Mtl", "Nrm", "Rgh"],
+    others: &[],
+    tinted: &["Alb"],
     copy: "Obj_Rando_SmallKey",
 };
 /// The boss key's. Its gem glows from its own emissive map, left red so a
@@ -45,6 +47,8 @@ const BOSS_LOOK: Look = Look {
     host: BOSS,
     material: None,
     kinds: &["Alb", "AO", "Emc", "Inner_Nrm", "Mtl", "Nrm", "Rgh"],
+    others: &[],
+    tinted: &["Alb"],
     copy: "Item_Rando_BossKey",
 };
 /// A key ring's: the small key's textures with a plain metal corner, on a
