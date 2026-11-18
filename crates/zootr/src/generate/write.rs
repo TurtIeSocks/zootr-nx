@@ -87,7 +87,7 @@ pub(super) fn flows(
     if new_game.fortress_keys {
         fortress::give(romfs, &mut rewrites, &pieces, drops)?;
     }
-    picked::delete_letter(romfs, &mut rewrites, &picked::holders(&pieces))?;
+    picked::delete_letter(romfs, &mut rewrites, &picked::holders(&pieces, drops))?;
     Ok((rewrites, flags))
 }
 
@@ -147,7 +147,7 @@ pub fn write_mod(
     let mut edits = flags;
     edits.extend(new_game.defaults.iter().cloned());
     let pieces = pickups::dealt(romfs, new_game)?;
-    let picked = picked::holders(&pieces);
+    let picked = picked::holders(&pieces, drops);
     let mut bools = cows::flags(&cows);
     bools.extend(picked::flags(&picked));
     if new_game.shop_slots > 0 {

@@ -14,7 +14,9 @@
 //! back. Its key is set only by a token or a heart piece taken from it,
 //! so one dropping anything else would stand again after a reset. It stands
 //! until its drop is picked up instead. One that shows once beans are
-//! planted keeps that gate, read with the flag through a BoolExp.
+//! planted keeps that gate, read with the flag through a BoolExp. One
+//! dealt its own token is left vanilla: the token sets its key, which the
+//! tracker reads.
 //!
 //! Ruto's letter, a pickup its logic module deletes once Link has the
 //! letter, is deleted by the flag instead: Link getting the letter
@@ -25,14 +27,16 @@
 //! holder's [`Spot`]: its flag, what it drops and where it stands. A take
 //! sets the nearest unpicked one dropping that name.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::ainb::Patch;
 use ounce_formats::{Byml, Romfs, murmur3};
 use zootr_hook::Spot;
 
-use crate::checks::{self, DROP_ACTOR, GYAML, ItemCheck, TRANSLATE, hash_of, str_field, vec3};
+use crate::checks::{
+    self, DROP_ACTOR, Drop, GYAML, ItemCheck, TRANSLATE, hash_of, str_field, vec3,
+};
 use crate::flows::Rewrites;
 use crate::gamedata::Op;
 use crate::graphs::logic;
@@ -74,15 +78,24 @@ pub fn shown(hash: u64) -> String {
     format!("Rando_Shown_{hash}")
 }
 
-/// The flag a spot ticks by, when its holder stands until picked or is
-/// a shop slot (`shops::sold`).
-pub fn flag_at(holder: &str, hash: u64) -> Option<String> {
-    let picked = KINDS.iter().any(|k| k.places(holder));
-    (picked || crate::shops::is_holder(holder)).then(|| flag(hash))
+/// A Gold Skulltula dealt its own token stays vanilla: the token sets its
+/// key, which the tracker reads.
+fn keeps_token(skulltula: bool, vanilla: &str, item: &str) -> bool {
+    skulltula && item == vanilla
 }
 
-/// Each holder among `pieces` that stands until picked, once each.
-pub fn holders(pieces: &[ItemCheck]) -> Vec<Holder> {
+/// The flag a spot ticks by, when its holder stands until picked or is
+/// a shop slot (`shops::sold`).
+pub fn flag_at(spot: &crate::generate::Spot) -> Option<String> {
+    let holder = spot.holder.as_str();
+    let kept = keeps_token(SKULLTULAS.places(holder), &spot.vanilla, &spot.item);
+    let picked = KINDS.iter().any(|k| k.places(holder)) && !kept;
+    (picked || crate::shops::is_holder(holder)).then(|| flag(spot.hash))
+}
+
+/// Each holder among `pieces`, dealt `drops`, that stands until picked,
+/// once each.
+pub fn holders(pieces: &[ItemCheck], drops: &HashMap<u64, Drop>) -> Vec<Holder> {
     let after = |c: &ItemCheck| match () {
         _ if RUTOS_LETTER.holds(c) => After::Deleted,
         _ if SKULLTULAS.holds(c) => After::Killed(c.presence.clone()),
@@ -92,6 +105,10 @@ pub fn holders(pieces: &[ItemCheck]) -> Vec<Holder> {
     let found: BTreeMap<u64, After> = pieces
         .iter()
         .filter(|c| KINDS.iter().any(|k| k.holds(c)))
+        .filter(|c| {
+            let item = crate::gifts::item_at(drops, c.hash, &c.item);
+            !keeps_token(SKULLTULAS.holds(c), &c.item, item)
+        })
         .map(|c| (c.hash, after(c)))
         .collect();
     let holders = found
@@ -271,6 +288,8 @@ mod tests {
     use super::*;
     use crate::game::dev_dump;
     use crate::gamedata;
+    use crate::generate::Spot as Row;
+    use crate::known::Name;
     use crate::known::actor;
     use crate::pickups;
     use crate::settings::NewGame;
@@ -283,6 +302,21 @@ mod tests {
     /// The Ice Cavern pots gone once crushed.
     const ICE_RED: u64 = 3105481948394149361;
     const ICE_BLUE: u64 = 6330430963809465220;
+
+    /// Every one of `pieces` dealt something else than its own item.
+    fn moved(pieces: &[ItemCheck]) -> HashMap<u64, Drop> {
+        let other = |_| Drop::from("Obj_FakeDrop".to_string());
+        pieces.iter().map(|c| (c.hash, other(c))).collect()
+    }
+
+    fn at(holder: &Name, hash: u64) -> Row {
+        Row {
+            hash,
+            holder: holder.get().into(),
+            item: "Obj_FakeDrop".into(),
+            ..Default::default()
+        }
+    }
 
     fn pool() -> (ounce_formats::Romfs, Vec<ItemCheck>) {
         let romfs = dev_dump().unwrap();
@@ -302,7 +336,7 @@ mod tests {
             return;
         }
         let (_, pieces) = pool();
-        let holders = holders(&pieces);
+        let holders = holders(&pieces, &moved(&pieces));
         let skulltulas = pickups::SKULLTULAS.checks(&dev_dump().unwrap()).unwrap();
         let skulltulas: BTreeSet<u64> = skulltulas.iter().map(|s| s.hash).collect();
         assert_eq!(skulltulas.len(), 100);
@@ -328,19 +362,47 @@ mod tests {
         assert_eq!(gone, [ICE_RED, ICE_BLUE]);
         assert!(holders.iter().all(|h| h.after != After::Deleted));
         assert_eq!(
-            flag_at(actor::OBJ_LIFT_ROCK_A_01.get(), ROCK),
+            flag_at(&at(actor::OBJ_LIFT_ROCK_A_01, ROCK)),
             Some(flag(ROCK))
         );
         let skulltula = *skulltulas.first().unwrap();
-        let at = flag_at(actor::ENEMY_SKULLTULA_GOLD.get(), skulltula);
-        assert_eq!(at, Some(flag(skulltula)));
+        let spot = at(actor::ENEMY_SKULLTULA_GOLD, skulltula);
+        assert_eq!(flag_at(&spot), Some(flag(skulltula)));
+    }
+
+    #[test]
+    fn a_skulltula_keeping_its_token_stays_vanilla() {
+        let Some(romfs) = dev_dump() else { return };
+        let pieces = pickups::SKULLTULAS.checks(&romfs).unwrap();
+        let kept = &pieces[..1];
+        let mut drops = moved(&pieces);
+        drops.remove(&kept[0].hash);
+        let holders = holders(&pieces, &drops);
+        assert_eq!(holders.len(), 100 - 1);
+        assert!(holders.iter().all(|h| h.hash != kept[0].hash));
+        let token = Row {
+            vanilla: kept[0].item.clone(),
+            item: kept[0].item.clone(),
+            ..at(actor::ENEMY_SKULLTULA_GOLD, kept[0].hash)
+        };
+        assert_eq!(flag_at(&token), None);
+        // Its placement keeps its vanilla gate, if any.
+        let mut doc = checks::load_banc(&romfs, &kept[0].file).unwrap();
+        let before = doc.root.clone();
+        place(&mut doc.root, &holders).unwrap();
+        let find = |root: &Byml| {
+            let actors = checks::actors(root).unwrap();
+            let a = actors.iter().find(|a| hash_of(a) == Some(kept[0].hash));
+            a.map(|a| presence_of(a).map(|p| (p.flag, p.negated)))
+        };
+        assert_eq!(find(&doc.root), find(&before));
     }
 
     #[test]
     fn a_skulltula_stands_until_picked_and_a_bean_one_until_planted_too() {
         let Some(romfs) = dev_dump() else { return };
         let pieces = pickups::SKULLTULAS.checks(&romfs).unwrap();
-        let holders = holders(&pieces);
+        let holders = holders(&pieces, &moved(&pieces));
         let bean = holders
             .iter()
             .find(|h| matches!(h.after, After::Killed(Some(_))))
@@ -382,7 +444,7 @@ mod tests {
     fn a_holder_stands_until_picked_and_its_vanilla_twin_after() {
         let Some(_) = dev_dump() else { return };
         let (romfs, pieces) = pool();
-        let holders = holders(&pieces);
+        let holders = holders(&pieces, &moved(&pieces));
         let rock = pieces.iter().find(|c| ROCKS.holds(c)).unwrap();
         let rock_hash = rock.hash;
         let mut doc = checks::load_banc(&romfs, &rock.file).unwrap();
@@ -426,7 +488,7 @@ mod tests {
     fn a_pot_gone_once_crushed_stands_until_picked_instead() {
         let Some(_) = dev_dump() else { return };
         let (romfs, pieces) = pool();
-        let holders = holders(&pieces);
+        let holders = holders(&pieces, &moved(&pieces));
         let pot = pieces.iter().find(|c| c.hash == ICE_RED).unwrap();
         let mut doc = checks::load_banc(&romfs, &pot.file).unwrap();
         let before = checks::actors(&doc.root).unwrap().len();
@@ -453,7 +515,7 @@ mod tests {
     fn a_holder_lists_its_flag_its_shuffled_drop_and_where_it_stands() {
         let Some(_) = dev_dump() else { return };
         let (romfs, pieces) = pool();
-        let holders = holders(&pieces);
+        let holders = holders(&pieces, &moved(&pieces));
         let rock = pieces.iter().find(|c| ROCKS.holds(c)).unwrap();
         let mut doc = checks::load_banc(&romfs, &rock.file).unwrap();
         let field = format!(
@@ -492,16 +554,14 @@ mod tests {
     fn rutos_letter_goes_once_picked_not_once_link_has_the_letter() {
         let Some(romfs) = dev_dump() else { return };
         let pieces = RUTOS_LETTER.checks(&romfs).unwrap();
-        let holders = holders(&pieces);
+        let holders = holders(&pieces, &moved(&pieces));
         assert_eq!(holders.len(), 1);
         assert_eq!(
             (holders[0].hash, &holders[0].after),
             (LETTER, &After::Deleted)
         );
-        assert_eq!(
-            flag_at(actor::OBJ_BOTTLE_LETTER.get(), LETTER),
-            Some(flag(LETTER))
-        );
+        let letter = at(actor::OBJ_BOTTLE_LETTER, LETTER);
+        assert_eq!(flag_at(&letter), Some(flag(LETTER)));
         assert!(pairs(&holders).is_empty());
         let mut rewrites = Rewrites::new();
         delete_letter(&romfs, &mut rewrites, &holders).unwrap();
