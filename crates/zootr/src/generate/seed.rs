@@ -13,7 +13,7 @@ use crate::progress::{Run, Step};
 use crate::rules::{self, Book, Ctx, Have, Need};
 use crate::settings::{self, Logic, NewGame, Settings};
 use crate::shuffle::{self, Fixed};
-use crate::{checks, fill, gamedata, hints, icons, places, steps};
+use crate::{checks, fill, gamedata, hints, ice_traps, icons, places, steps};
 
 /// Shuffle the chests around `fixed`, unless `new_game` keeps them vanilla,
 /// and write the mod.
@@ -33,20 +33,30 @@ pub fn shuffle(
     let checks = checks::dealt(romfs, new_game)?;
     let logic = new_game.logic == Logic::Glitchless && !new_game.vanilla;
     let fixed = &shuffle::own_dungeon(&checks, seed, fixed, new_game)?;
-    let (placements, filled) = match logic {
+    let mut deal = shuffle::deal(&checks, fixed, new_game)?;
+    let (mut placements, filled) = match logic {
         true => {
             run.step(Step::Logic)?;
             let ctx = Ctx::new(new_game);
             let world = World::build(romfs, &Book::load()?, &ctx, &checks)?;
             run.step(Step::Placing)?;
-            let deal = shuffle::deal(&checks, fixed, new_game)?;
+            let needed = world.items();
+            ice_traps::swap(romfs, &mut deal.items, &needed, new_game.ice_traps, seed)?;
             let filled = fill::fill(&world, &checks, deal, seed, new_game, run)?;
             (filled.placements.clone(), Some((world, filled)))
         }
         false => {
             run.step(Step::Placing)?;
-            (shuffle::shuffle(&checks, seed, fixed, new_game)?, None)
+            let none = BTreeSet::new();
+            ice_traps::swap(romfs, &mut deal.items, &none, new_game.ice_traps, seed)?;
+            (shuffle::scatter(deal, seed, new_game)?, None)
         }
+    };
+    let needed = filled.as_ref().map(|(world, _)| world.items());
+    let traps = ice_traps::disguise(romfs, &mut placements, needed.as_ref(), seed)?;
+    let new_game = &NewGame {
+        foreign: [new_game.foreign.clone(), traps].concat(),
+        ..new_game.clone()
     };
     let drops = shuffle::drops(&checks, &placements);
     let have = fill::start(new_game);

@@ -1,11 +1,14 @@
-//! Items for another player's world, in an Archipelago seed. Each is a
-//! copy of the item it shows, the way a key ring is a copy of the small
-//! key: its own name, the small key's pouch content and row, and a plain
-//! deal, so the game stores it as nothing Link can use and counts nothing.
-//! Link gets the check's flag and the get, which names the item and its
-//! player. The app's client sends the item on. Another game's item shows
-//! a model by its Archipelago class, one no item of ours uses, tinted the
-//! way keys take their dungeon's colour.
+//! Copies that count as nothing: items for another player's world, in an
+//! Archipelago seed, and ice traps. Each is a copy of the item it shows,
+//! the way a key ring is a copy of the small key: its own name, the small
+//! key's pouch content and row, and a plain deal, so the game stores it as
+//! nothing Link can use and counts nothing.
+//!
+//! Link gets the check's flag and the get. Another player's names the item
+//! and its player, and the app's client sends the item on. Another game's
+//! item shows a model by its Archipelago class, one no item of ours uses,
+//! tinted the way keys take their dungeon's colour. A trap's get says
+//! "FOOL!", and the hook freezes Link (`crate::ice_traps`).
 
 use anyhow::{Result, ensure};
 use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs, set_param};
@@ -21,20 +24,27 @@ use crate::standins::{
 };
 use crate::text::{Copies, CopyLine, Says};
 
-/// One item for another player, at a check.
+/// One copy, at any number of checks.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Foreign {
-    /// The copy's actor, from [`actor`].
+    /// The copy's actor, from [`actor`] or `ice_traps`.
     pub actor: String,
     /// The item it's a copy of: the item itself when it's ours.
     pub shows: String,
     /// The model it shows instead of `shows`' own: its class's, when the
     /// item is another game's.
     pub model: Option<String>,
-    /// The item as its game names it.
-    pub item: String,
-    /// The player it goes to.
-    pub player: String,
+    pub owner: Owner,
+}
+
+/// Whom a copy is for.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Owner {
+    /// Another player: the item as its game names it, and the player.
+    Player { item: String, player: String },
+    /// No one: an ice trap, named on a shelf by its disguise's name line,
+    /// `label`.
+    Trap { label: String },
 }
 
 /// The model another game's item shows: a Poe's spirit, a flame Link
@@ -105,10 +115,16 @@ pub fn is_foreign(item: &str) -> bool {
         .is_some_and(|rest| rest.starts_with(AP))
 }
 
+/// Whether `item` is a copy this module writes: for another player, or an
+/// ice trap.
+pub fn is_copy(item: &str) -> bool {
+    is_foreign(item) || crate::ice_traps::is_trap(item)
+}
+
 /// The label naming `item`, if it's a copy: like a key ring, it answers
 /// to its own name, whose lines [`captions`] writes.
 pub fn name_label(item: &str) -> Option<String> {
-    is_foreign(item).then(|| format!("{item}{}", TEXT_PARTS[0]))
+    is_copy(item).then(|| format!("{item}{}", TEXT_PARTS[0]))
 }
 
 /// The longest a player's or item's name reads in a get, past which it's
@@ -126,20 +142,46 @@ fn clean(name: &str) -> String {
 }
 
 impl Foreign {
-    /// What the item list and spoiler call it.
-    pub fn name(&self) -> String {
-        format!("{} for {}", clean(&self.item), clean(&self.player))
+    /// What the item list and spoiler call it, `shown` naming the item it
+    /// shows.
+    pub fn name(&self, shown: impl FnOnce(&str) -> String) -> String {
+        match &self.owner {
+            Owner::Player { item, player } => format!("{} for {}", clean(item), clean(player)),
+            Owner::Trap { .. } => format!("Ice Trap (as {})", shown(&self.shows)),
+        }
     }
 
-    /// Each of [`TEXT_PARTS`]' line, in every language: AP's item and
-    /// player names have no translations.
-    fn lines(&self) -> [String; 3] {
-        let (item, player) = (clean(&self.item), clean(&self.player));
-        [
-            self.name(),
-            format!("You found {item} for {player}!"),
-            format!("Archipelago sends it to {player}."),
-        ]
+    /// Each of [`TEXT_PARTS`]' line. Another player's say the same in every
+    /// language: AP's item and player names have no translations. A trap's
+    /// name is its disguise's, its get "FOOL!" and its caption a space: an
+    /// empty one held the get open for good (live, 2026-11-18).
+    fn lines(&self) -> [Says; 3] {
+        match &self.owner {
+            Owner::Player { item, player } => {
+                let (item, player) = (clean(item), clean(player));
+                [
+                    format!("{item} for {player}"),
+                    format!("You found {item} for {player}!"),
+                    format!("Archipelago sends it to {player}."),
+                ]
+                .map(Says::Text)
+            }
+            Owner::Trap { .. } => [
+                Says::Source,
+                Says::Text(crate::ice_traps::FOOL.into()),
+                Says::Text(" ".into()),
+            ],
+        }
+    }
+
+    /// Where each of [`TEXT_PARTS`]' line is copied from: the small key's,
+    /// and for a trap's name its disguise's first.
+    fn sources(&self, part: &str) -> Vec<String> {
+        let key = format!("{}{part}", SMALL.get());
+        match &self.owner {
+            Owner::Trap { label } if part == TEXT_PARTS[0] => vec![label.clone(), key],
+            _ => vec![key],
+        }
     }
 }
 
@@ -149,10 +191,10 @@ pub fn captions(foreign: &[Foreign]) -> Copies<'static> {
         TEXT_PARTS
             .iter()
             .zip(f.lines())
-            .map(|(part, line)| CopyLine {
+            .map(|(part, says)| CopyLine {
                 label: format!("{}{part}", f.actor),
-                sources: vec![format!("{}{part}", SMALL.get())],
-                says: Says::Text(line),
+                sources: f.sources(part),
+                says,
             })
     });
     Copies {
@@ -292,8 +334,10 @@ mod tests {
             actor: actor(1),
             shows: item::HOOKSHOT.to_string(),
             model: None,
-            item: "Hookshot".into(),
-            player: player.into(),
+            owner: Owner::Player {
+                item: "Hookshot".into(),
+                player: player.into(),
+            },
         }
     }
 
@@ -350,10 +394,16 @@ mod tests {
 
     #[test]
     fn a_name_loses_control_characters_and_is_cut_to_fit() {
-        assert_eq!(hookshot_for("Player\n2").name(), "Hookshot for Player2");
+        assert_eq!(
+            hookshot_for("Player\n2").name(str::to_owned),
+            "Hookshot for Player2"
+        );
         let long = "x".repeat(40);
         let cut = format!("{}…", "x".repeat(LONGEST - 1));
-        assert_eq!(hookshot_for(&long).name(), format!("Hookshot for {cut}"));
+        assert_eq!(
+            hookshot_for(&long).name(str::to_owned),
+            format!("Hookshot for {cut}")
+        );
     }
 
     #[test]

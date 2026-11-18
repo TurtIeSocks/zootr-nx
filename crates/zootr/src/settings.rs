@@ -15,7 +15,7 @@ use crate::starting::{self, ITEMS};
 
 mod choices;
 mod upgrade;
-pub use choices::{ChestSize, DungeonKeys, Keys, Logic, ScrubPrice, ShopSlots};
+pub use choices::{ChestSize, DungeonKeys, IceTraps, Keys, Logic, ScrubPrice, ShopSlots};
 pub(crate) use upgrade::upgrade;
 
 /// Setting values by id. A missing id takes its default.
@@ -130,6 +130,7 @@ const SKIP_GREAT_DEKU: &str = "skip-great-deku";
 const SKIP_ARRIVALS: &str = "skip-arrivals";
 pub(crate) const CHEST_SIZE: &str = "chest-size";
 pub(crate) const LOGIC: &str = "logic";
+pub(crate) const ICE_TRAPS: &str = "ice-traps";
 pub(crate) const SHUFFLE_ITEMS: &str = "shuffle-items";
 pub(crate) const CHESTS: &str = "chests";
 pub(crate) const PROGRESSIVE: &str = "progressive-items";
@@ -300,6 +301,13 @@ pub fn schema() -> Vec<SettingDef> {
             "Logic",
             "Glitchless places each item where Link can reach it without that item, so a seed can always be beaten. No logic places items anywhere, so a seed may not be",
             Logic::label,
+        )])
+        .chain([choice(
+            ICE_TRAPS,
+            group::GENERAL,
+            "Ice traps",
+            "Swaps junk (rupees, ammo, recovery hearts) for ice traps. Each looks like an item logic needs until Link gets it, then says FOOL! and freezes him",
+            IceTraps::label,
         )])
         .chain([choice(
             CHEST_SIZE,
@@ -566,6 +574,8 @@ pub struct NewGame {
     pub keys: DungeonKeys,
     /// The Fortress counter starts full, and the thieves' keys are checks.
     pub fortress_keys: bool,
+    /// How much junk becomes ice traps.
+    pub ice_traps: IceTraps,
     /// The seed, for what's rolled while writing, like shop prices.
     pub seed: u64,
     /// Bombchus have their own cap instead of the bomb bag's.
@@ -649,6 +659,7 @@ impl NewGame {
                     .collect(),
             },
             chest_size: chosen(settings, CHEST_SIZE),
+            ice_traps: chosen(settings, ICE_TRAPS),
             vanilla: !on(SHUFFLE_ITEMS),
             keep_chests: !on(CHESTS),
             start: ITEMS.iter().filter(|i| on(i.id)).collect(),
@@ -776,6 +787,7 @@ mod tests {
                     ..Default::default()
                 },
                 chest_size: ChestSize::Vanilla,
+                ice_traps: IceTraps::Off,
                 vanilla: false,
                 keep_chests: false,
                 start: vec![],

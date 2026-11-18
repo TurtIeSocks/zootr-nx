@@ -15,9 +15,9 @@ use crate::progress::Run;
 use crate::settings::{ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
     ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, foreign,
-    fortress, gamedata, gerudo, gifts, held, hints, key_tints, keys, medallions, navi, patch,
-    picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker,
-    trade_chain, twins,
+    fortress, gamedata, gerudo, gifts, held, hints, ice_traps, key_tints, keys, medallions, navi,
+    patch, picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text,
+    tracker, trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -88,6 +88,9 @@ pub(super) fn flows(
         fortress::give(romfs, &mut rewrites, &pieces, drops)?;
     }
     picked::delete_letter(romfs, &mut rewrites, &picked::holders(&pieces, drops))?;
+    if ice_traps::springs(new_game) {
+        ice_traps::flow(romfs, &mut rewrites)?;
+    }
     Ok((rewrites, flags))
 }
 
@@ -110,11 +113,11 @@ pub fn write_mod(
                 .into_iter()
                 .chain(d.swap.iter().flat_map(|s| [s.check, s.then]))
         })
-        // Key copies, Red Rupee copies and other players' items are written
-        // with the mod.
+        // Key copies, Red Rupee copies, other players' items and ice traps
+        // are written with the mod.
         .find(|i| {
             !keys::is_shuffled(i)
-                && !foreign::is_foreign(i)
+                && !foreign::is_copy(i)
                 && ammo::copied(i).is_none()
                 && !romfs.root().join(flags::actor_pack(i)).is_file()
         })
@@ -244,6 +247,11 @@ pub fn write_mod(
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
     let levels = levels(romfs, drops, new_game)?;
     levels.events(&mut events)?;
+    if ice_traps::springs(new_game) {
+        ice_traps::event(&mut events)?;
+        ice_traps::sensor(romfs, &mut builder, &mut tables)?;
+        ice_traps::thaw(romfs, &mut builder)?;
+    }
     events.write(&mut builder)?;
     if new_game.shop_slots > 0 {
         fields.extend(shops::write(
@@ -333,7 +341,8 @@ pub fn write_mod(
     dig::write(romfs, &mut builder, drops, new_game)?;
     run.check()?;
     let files = builder.finish()?.len();
-    let credits = key_tints::credits(bosses, new_game.keys);
+    let mut credits = key_tints::credits(bosses, new_game.keys);
+    credits.extend(ice_traps::credits(&new_game.foreign));
     let keyed: Vec<_> = (rupees.iter())
         .filter_map(|r| ammo::line(ammo::copied(r)?))
         .collect();
@@ -378,6 +387,7 @@ fn hook_flags(new_game: &NewGame) -> u32 {
     [
         (new_game.free_bombchus, zootr_hook::FREE_BOMBCHUS),
         (new_game.bunny_hood, zootr_hook::BUNNY_HOOD),
+        (ice_traps::springs(new_game), zootr_hook::ICE_TRAPS),
         (true, zootr_hook::TRADE_CYCLE),
     ]
     .into_iter()
