@@ -60,6 +60,7 @@ mod logic;
 pub mod look;
 mod medallions;
 mod names;
+mod narrowing;
 pub mod nav;
 mod navi;
 mod patch;

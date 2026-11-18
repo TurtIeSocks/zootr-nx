@@ -5,60 +5,19 @@ use std::collections::{BTreeMap, HashMap};
 use anyhow::{Context, Result, bail};
 
 use crate::checks::{Drop, ItemCheck};
-use crate::gifts::levels;
 use crate::keys;
-use crate::known::{Name, item};
+use crate::known::item;
+use crate::narrowing::{Let, OWN_DUNGEON, allowed, asks_at, maps_move, shuffleable};
 use crate::rng::Rng;
-use crate::settings::{self, NewGame};
+use crate::settings::NewGame;
 use crate::starting;
-use crate::{ammo, cows, gifts, progressive, scrubs, shops};
+use crate::{ammo, cows, gifts, progressive};
 
 /// One shuffled chest, for the spoiler log.
 #[derive(Clone, Copy)]
 pub struct Placement<'a> {
     pub check: &'a ItemCheck,
     pub item: &'a str,
-}
-
-/// What a map or compass gives depends on the dungeon it's found in.
-const OWN_DUNGEON: [&Name; 2] = [item::DUNGEON_MAP, item::DUNGEON_COMPASS];
-
-/// Whether `new_game` moves maps and compasses around their own dungeon.
-fn maps_move(new_game: &NewGame) -> bool {
-    !new_game.vanilla && !new_game.keep_chests && new_game.on.contains(settings::MAPS_COMPASSES)
-}
-
-/// What `shuffleable` lets in beyond the plain chests.
-#[derive(Clone, Copy)]
-struct Let {
-    /// Maps and compasses.
-    maps: bool,
-    /// The chests of keys Link starts with.
-    keys: bool,
-}
-
-impl Let {
-    fn of(new_game: &NewGame) -> Self {
-        Self {
-            maps: maps_move(new_game),
-            keys: new_game.keys.moved(),
-        }
-    }
-}
-
-/// Chests M2 may touch. The rest stay vanilla until logic can place them.
-fn shuffleable(c: &ItemCheck, open: Let) -> bool {
-    // Not the Treasure Chest Game's shop chests, but its prize.
-    (c.holder.starts_with("Obj_TBox_") || gifts::is_gift(c))
-        // Keys moved around can soft-lock, since logic doesn't count them.
-        // Keys Link starts with aren't moved: their chests bring a rupee.
-        && (!c.item.starts_with("Item_Dungeon_")
-            || open.maps && OWN_DUNGEON.iter().any(|d| **d == *c.item)
-            || open.keys && keys::is_dungeon_key(&c.item))
-        // Remix-only and not understood yet.
-        && c.item != item::SCRUB_BUSINESS_SEED
-        // Minigame events pick the outcome themselves, bar the prize chests.
-        && (gifts::is_prize(c) || !c.get_event.as_deref().is_some_and(|e| e.starts_with("MiniGame_")))
 }
 
 /// One entry per chest. The child and adult copies of a map share a hash,
@@ -259,33 +218,6 @@ pub fn shuffle<'a>(
     Ok(placed)
 }
 
-/// Whether `item` asks on `check`, which a gift can't answer unless it
-/// asks the pouch first. Nothing asks of an NPC gift, a scrub or a cow:
-/// each puts the pouch questions in front of its grant (`gifts::levels`).
-/// A prize chest is a chest to the hook, which gives a line's level there
-/// and swaps a Red Rupee copy for ammo (`ammo::line`). A shop slot shows
-/// each step on a shelf of its own (`shops::steps`).
-fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
-    let picks = gifts::of(check).is_some()
-        || scrubs::of(check).is_some()
-        || cows::is_cow(check)
-        || shops::is_shop(check)
-        || gifts::is_prize(check);
-    !picks && levels::asks(item, progressive)
-}
-
-/// Whether `check` may hold `item`: a gift can't hold one that asks. A
-/// key copy goes in any chest or gift
-/// (NPC, shop, scrub, cow, prize chest or pickup), whose gets the hook
-/// credits as Link gets them (the pouch add, or the pickup window). Each
-/// kind was proven live (stage 1 of the every-item-everywhere spec).
-pub(crate) fn allowed(check: &ItemCheck, item: &str, progressive: bool) -> bool {
-    let gift = gifts::is_gift(check);
-    let fits = !gift || !asks_at(check, item, progressive);
-    let credited = gift || check.holder.starts_with("Obj_TBox_");
-    fits && (credited || !keys::is_shuffled(item))
-}
-
 /// Trade each gift's item it may not hold for the next chest's (wrapping)
 /// that it may.
 fn trade(dealt: &mut [Placement], progressive: bool) -> Result<()> {
@@ -340,32 +272,12 @@ pub fn drops(checks: &[ItemCheck], placements: &[Placement]) -> HashMap<u64, Dro
 
 #[cfg(test)]
 mod tests {
-    use crate::known::{actor, flag, item};
-    use std::collections::BTreeSet;
+    use crate::known::{flag, item};
+    use crate::settings;
 
     use super::*;
     use crate::checks::Swap;
-
-    fn chest(hash: u64, item: &str) -> ItemCheck {
-        ItemCheck {
-            file: "Banc/Area/Map.bcett.byml.zs".into(),
-            area: "Area".into(),
-            hash,
-            holder: actor::OBJ_T_BOX_A_02.to_string(),
-            item: item.into(),
-            get_event: None,
-            substitute: None,
-            presence: None,
-        }
-    }
-
-    /// Nothing beyond plain chests.
-    fn no() -> Let {
-        Let {
-            maps: false,
-            keys: false,
-        }
-    }
+    use crate::narrowing::tests::chest;
 
     fn game(vanilla: bool, start: &[&'static starting::Item]) -> NewGame {
         NewGame {
@@ -474,39 +386,6 @@ mod tests {
         assert!(drops(&checks, &p).is_empty());
     }
 
-    #[test]
-    fn a_cow_holds_a_line_item_and_ammo() {
-        needs_names!();
-        let cow = ItemCheck {
-            holder: cows::HOLDER.into(),
-            ..chest(1, "Item_A")
-        };
-        assert!(allowed(&cow, item::HOOKSHOT, true));
-        assert!(allowed(&cow, item::BOMB_BUNDLE_SMALL, true));
-    }
-
-    /// The hook levels a prize chest's line as it does any chest's, and
-    /// swaps its Red Rupee copy for ammo.
-    #[test]
-    fn a_prize_chest_holds_every_line_level_and_ammo() {
-        needs_names!();
-        for hash in gifts::PRIZE_CHESTS {
-            let prize = ItemCheck {
-                hash,
-                ..chest(1, "Item_A")
-            };
-            for line in progressive::LINES {
-                for &(level, _) in line.iter() {
-                    assert!(allowed(&prize, level, true), "{level}");
-                }
-            }
-            for (ammo, _) in ammo::NEEDS {
-                assert!(allowed(&prize, ammo, true), "{ammo}");
-                assert!(allowed(&prize, ammo, false), "{ammo}");
-            }
-        }
-    }
-
     /// A minigame's chest can't turn into a substitute one, so it drops
     /// the ammo's Red Rupee copy, with no swap.
     #[test]
@@ -525,72 +404,6 @@ mod tests {
             let want = Drop::from(ammo::copy(ammo).unwrap());
             assert_eq!(drops.get(&prize.hash), Some(&want), "{ammo}");
         }
-    }
-
-    #[test]
-    fn a_scrub_holds_every_lines_first_level_and_ammo() {
-        needs_names!();
-        let scrub = &crate::scrubs::checks()[0];
-        for on in [false, true] {
-            for line in progressive::LINES {
-                assert!(allowed(scrub, line[0].0, on), "{}", line[0].0);
-            }
-            for (ammo, _) in ammo::NEEDS {
-                assert!(allowed(scrub, ammo, on), "{ammo}");
-            }
-        }
-    }
-
-    #[test]
-    fn a_shop_slot_holds_every_line_level_and_ammo() {
-        needs_names!();
-        let slot = ItemCheck {
-            file: shops::FILE.into(),
-            ..chest(1, "Item_A")
-        };
-        for on in [false, true] {
-            for line in progressive::LINES {
-                for &(level, _) in line.iter() {
-                    assert!(allowed(&slot, level, on), "{level}");
-                }
-            }
-            for (ammo, _) in ammo::NEEDS {
-                assert!(allowed(&slot, ammo, on), "{ammo}");
-            }
-        }
-    }
-
-    #[test]
-    fn key_copies_go_in_chests_and_every_gift() {
-        needs_names!();
-        let ring = crate::key_tints::ring(1);
-        let pot = ItemCheck {
-            holder: actor::OBJ_POT_A_01.to_string(),
-            ..chest(1, "Item_A")
-        };
-        let other = ItemCheck {
-            holder: "Obj_P".into(),
-            ..chest(1, "Item_A")
-        };
-        let saria = ItemCheck {
-            hash: gifts::GIFTS[0].hash(),
-            ..chest(1, "Item_A")
-        };
-        assert!(allowed(&chest(1, "Item_A"), &ring, false));
-        assert!(allowed(&saria, &ring, false));
-        assert!(allowed(&pot, &ring, false));
-        let prize = ItemCheck {
-            hash: gifts::PRIZE_CHESTS[0],
-            ..chest(1, "Item_A")
-        };
-        let cow = ItemCheck {
-            holder: cows::HOLDER.to_string(),
-            ..chest(1, "Item_A")
-        };
-        assert!(allowed(&prize, &ring, false));
-        assert!(allowed(&cow, &ring, false));
-        assert!(!allowed(&other, &ring, false));
-        assert!(allowed(&other, "Item_A", false));
     }
 
     #[test]
@@ -690,40 +503,6 @@ mod tests {
     fn line(i: usize) -> [(&'static str, &'static str); 2] {
         let [(a, b), (c, d)] = <[_; 2]>::try_from(progressive::LINES[i]).unwrap();
         [(a.get(), b.get()), (c.get(), d.get())]
-    }
-
-    #[test]
-    fn only_the_three_prize_chests_of_the_minigames_are_dealt() {
-        let minigame = |hash, holder: &str| ItemCheck {
-            holder: holder.into(),
-            get_event: Some(flag::MINI_GAME_DAMPE_RACE_OPEN_GOAL_T_BOX.to_string()),
-            ..chest(hash, "Item_A")
-        };
-        for hash in gifts::PRIZE_CHESTS {
-            assert!(shuffleable(
-                &minigame(hash, actor::OBJ_HRL_CITY_SHOP_T_BOX_A_02),
-                no()
-            ));
-        }
-        assert!(!shuffleable(&minigame(3, actor::OBJ_T_BOX_A_02), no()));
-        assert!(!shuffleable(
-            &minigame(4, actor::OBJ_HRL_CITY_SHOP_T_BOX_A_02),
-            no()
-        ));
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let checks = crate::checks::scan(&romfs).unwrap();
-        let games = |c: &&ItemCheck| {
-            c.get_event
-                .as_deref()
-                .is_some_and(|e| e.starts_with("MiniGame_"))
-        };
-        let dealt: BTreeSet<u64> = (checks.iter().filter(games))
-            .filter(|c| shuffleable(c, no()))
-            .map(|c| c.hash)
-            .collect();
-        assert_eq!(dealt, BTreeSet::from(gifts::PRIZE_CHESTS));
     }
 
     #[test]
@@ -886,21 +665,6 @@ mod tests {
         assert_eq!(p.len(), 2);
         let d = drops(&checks, &p);
         assert_eq!(d, HashMap::from([(1, Drop::from("Item_A".to_owned()))]));
-    }
-
-    #[test]
-    fn every_vanilla_substitute_chest_is_shuffleable() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let checks = crate::checks::scan(&romfs).unwrap();
-        let owned: std::collections::BTreeSet<_> = checks
-            .iter()
-            .filter(|c| c.substitute.is_some())
-            .inspect(|c| assert!(shuffleable(c, no()), "{} {}", c.file, c.hash))
-            .map(|c| c.hash)
-            .collect();
-        assert_eq!(owned.len(), 7);
     }
 
     #[test]
