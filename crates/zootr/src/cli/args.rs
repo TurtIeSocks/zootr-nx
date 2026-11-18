@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
 
 use crate::config::Config;
@@ -710,13 +710,27 @@ pub(super) struct NewGame {
 }
 
 /// `ID=VALUE`, where `true` and `false` are toggles and anything else a
-/// choice. The id must be one of the app's settings.
+/// choice. The id must be one of the app's settings and the value one it
+/// takes: an unknown choice would quietly read as the default.
 pub(crate) fn setting(arg: &str) -> Result<(String, serde_json::Value)> {
     let (id, value) = savefile::split(arg)?;
-    anyhow::ensure!(
-        settings::schema().iter().any(|def| def.id == id),
-        "no setting is called {id}"
-    );
+    let schema = settings::schema();
+    let def = schema.iter().find(|def| def.id == id);
+    let def = def.with_context(|| format!("no setting is called {id}"))?;
+    match &def.kind {
+        settings::Kind::Toggle { .. } => anyhow::ensure!(
+            value.parse::<bool>().is_ok(),
+            "{id} is true or false, not {value}"
+        ),
+        settings::Kind::Choice { options, .. } => {
+            let ids: Vec<&str> = options.iter().map(|o| o.id.as_str()).collect();
+            anyhow::ensure!(
+                ids.contains(&value),
+                "{id} takes {}, not {value}",
+                ids.join(", ")
+            );
+        }
+    }
     let value = value.parse::<bool>().map_or(value.into(), Into::into);
     Ok((id.to_owned(), value))
 }
@@ -921,6 +935,16 @@ mod tests {
         assert!(setting("keys=start").is_ok());
         let error = setting("minigames=true").unwrap_err().to_string();
         assert!(error.contains("minigames"), "{error}");
+    }
+
+    #[test]
+    fn a_value_must_be_one_the_setting_takes() {
+        let error = setting("keys=keysanity").unwrap_err().to_string();
+        assert!(error.contains("singles"), "{error}");
+        let error = setting("chests=maybe").unwrap_err().to_string();
+        assert!(error.contains("true or false"), "{error}");
+        assert!(setting("keys=singles").is_ok());
+        assert!(setting("chests=false").is_ok());
     }
 }
 

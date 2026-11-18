@@ -597,6 +597,20 @@ mod tests {
     use crate::known::{actor, flag, item, map};
     use crate::warp::Side;
 
+    #[test]
+    fn every_mix_entry_is_a_setting_the_cli_takes() {
+        let entries = MIXES
+            .iter()
+            .flat_map(|(_, extra)| BASE.iter().chain(*extra));
+        for entry in entries {
+            let arg = match entry.contains('=') {
+                true => entry.to_string(),
+                false => format!("{entry}=true"),
+            };
+            crate::cli::args::setting(&arg).unwrap();
+        }
+    }
+
     /// A chest spot in `map`, for any age.
     pub(super) fn open(map: &str) -> Planned {
         Planned {
