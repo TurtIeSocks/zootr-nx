@@ -7,7 +7,7 @@
 # it too.
 [[check]]
 hash = 2157466067026784951
-name = "Graveyard ledge heart piece"
+name = "Ledge heart piece"
 needs = "adult and (magic-beans or longshot)"
 setting = "freestanding"
 
@@ -22,7 +22,7 @@ setting = "freestanding"
 # On the volcano, 16 m over the crater's soil.
 [[check]]
 hash = 744856631664786545
-name = "Death Mountain Crater volcano heart piece"
+name = "Volcano heart piece"
 needs = "adult and magic-beans"
 setting = "freestanding"
 
@@ -43,7 +43,7 @@ setting = "gold-skulltulas"
 # Above the theater, 6 m over the soil beside it.
 [[check]]
 hash = 4335656213162247230
-name = "Lost Woods Skulltula above the theater"
+name = "Skulltula above the theater"
 needs = "adult and magic-beans"
 setting = "gold-skulltulas"
 
@@ -52,5 +52,5 @@ setting = "gold-skulltulas"
 # chest too, but no child reaches it.
 [[check]]
 hash = 4349272251343787229
-name = "Kokiri Forest west ledge chest"
+name = "West ledge chest"
 needs = "adult and magic-beans"

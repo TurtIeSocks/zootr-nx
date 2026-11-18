@@ -576,7 +576,7 @@ export type Placement = {
 export type PlandoCheck = {
 	hash: string,
 	area: string,
-	/**  Where it is, else what it held in the vanilla game. */
+	/**  Its name (`Spot::name`). */
 	place: string,
 	/**  What it holds in the vanilla game. */
 	vanilla: string,
@@ -757,6 +757,8 @@ export type Spot = {
 	 *  seeds from before it was kept.
 	 */
 	place?: string,
+	/**  Its name in the rule files, shown before `place` (`places::fill`). */
+	custom?: string,
 	/**
 	 *  The playthrough round that collects it, from 1, for a check logic
 	 *  placed whose item a rule names.

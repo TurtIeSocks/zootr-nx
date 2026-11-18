@@ -11,6 +11,7 @@ use ounce_formats::{Byml, Romfs};
 use crate::checks::{GYAML, actors, banc_files, flat, hash_of, load_bancs, str_field, vec3};
 use crate::generate::Spot;
 use crate::known::{Name, actor, field};
+use crate::rules::Book;
 
 /// House models and the house each one is, in OoTR's words.
 const HOUSES: [(&Name, &str); 1] = [(actor::LAND_KOKIRI_HOUSE_INSIDE_E_03, "Mido's House")];
@@ -34,13 +35,14 @@ const COMPASS: [&str; 8] = [
     "Northwest",
 ];
 
-/// Sets each placed spot's `place`. Same names in an area get numbers, in
-/// room order.
+/// Sets each spot's `custom` name from the rule files, and each placed
+/// spot's `place`. Same places in an area get numbers, in room order.
 pub fn fill(romfs: &Romfs, spots: &mut [Spot]) -> Result<()> {
     let wanted: HashSet<String> = spots.iter().map(|s| s.area.clone()).collect();
     let areas = read(romfs, &wanted)?;
     let mut found = Vec::new();
     for (i, spot) in spots.iter_mut().enumerate() {
+        spot.custom = Book::name(spot.hash).unwrap_or_default().to_owned();
         let Some(area) = areas.get(&spot.area) else {
             continue;
         };

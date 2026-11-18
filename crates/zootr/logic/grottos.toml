@@ -8,14 +8,14 @@
 # Hyrule Field, north-east: under storm grass, two ReDeads.
 [[check]]
 hash = 5755485285664292988
-name = "Hyrule Field Northeast Purple Rupee"
+name = "Northeast Purple Rupee"
 needs = "song-of-storms and melee"
 
 # Death Mountain Crater's upper ledge: under a breakable rock, two
 # Dinolfos.
 [[check]]
 hash = 9128916506605227251
-name = "Death Mountain Crater West Purple Rupee"
+name = "West Purple Rupee"
 needs = "(explosives or hammer) and melee"
 
 # Desert Colossus: under a rock only the Silver Gauntlets lift, a Beamos
@@ -36,7 +36,7 @@ needs = "song-of-storms and melee"
 # talks to sets the flag that makes the chest appear.
 [[check]]
 hash = 14818888396401495482
-name = "Kokiri Forest Northwest Green Rupee"
+name = "Northwest Green Rupee"
 needs = "song-of-storms and deku-shield"
 
 # Goron City: the grotto on the platform over the lava, which only the
@@ -45,10 +45,10 @@ needs = "song-of-storms and deku-shield"
 # chest. Signs stand again once Link comes back, so he gets both.
 [[check]]
 hash = 10944569637726152230
-name = "Goron City Southwest Purple Rupee"
+name = "Southwest Purple Rupee"
 needs = "hookshot and melee"
 
 [[check]]
 hash = 9159710900681116662
-name = "Goron City Southwest Green Rupee"
+name = "Southwest Green Rupee"
 needs = "hookshot and melee"
