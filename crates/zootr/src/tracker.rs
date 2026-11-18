@@ -13,8 +13,9 @@ use anyhow::Result;
 use ounce_formats::{Save, murmur3};
 use serde::Serialize;
 
+use crate::entrances::{DUNGEONS, reveal};
 use crate::gamedata::GameData;
-use crate::generate::Spot;
+use crate::generate::{Door, Spot};
 use crate::gifts::GIFTS;
 use crate::history::{Entry, Mark};
 use crate::savefile::Change;
@@ -56,6 +57,11 @@ pub struct Tracker {
     /// Tracked flags that are set.
     on: HashSet<Flag>,
     checked: BTreeSet<u64>,
+    /// Each shuffled door, by id, and the Bool set once Link has been
+    /// through it.
+    doors: Vec<(String, u32)>,
+    /// Doors Link has been through.
+    revealed: BTreeSet<String>,
 }
 
 /// Spots that changed since the last look.
@@ -64,6 +70,24 @@ pub struct Flips {
     pub checked: Vec<u64>,
     /// After loading an older save, say.
     pub unchecked: Vec<u64>,
+    /// Whether a door was revealed, or hidden again.
+    pub doors: bool,
+}
+
+/// One shuffled door on the Checks tab.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct DoorRow {
+    /// The door, by `--door`'s id: the dungeon behind it in vanilla. The
+    /// doors' ids are also every dungeon a door can lead to.
+    pub id: String,
+    pub name: String,
+    /// The dungeon behind it in vanilla, by name, labelling `id`.
+    pub vanilla: String,
+    /// The dungeon behind it by id, once Link has been through.
+    pub found: Option<String>,
+    /// The player's guess, by id, until the door is revealed.
+    pub pick: Option<String>,
 }
 
 /// One row of the Checks tab.
@@ -116,9 +140,21 @@ impl Tracker {
         })
     }
 
+    /// Watches `doors`, each revealed by its dungeon's arrival Bool.
+    pub fn with_doors(mut self, doors: &[Door]) -> Self {
+        self.doors = (doors.iter())
+            .filter_map(|d| {
+                let i = DUNGEONS.iter().position(|x| x.id == d.dungeon)?;
+                Some((d.id.clone(), murmur3(reveal::flag(i).as_bytes())))
+            })
+            .collect();
+        self
+    }
+
     /// Every flag it watches.
     pub fn flags(&self) -> impl Iterator<Item = Flag> + '_ {
-        self.flags.values().copied()
+        let doors = self.doors.iter().map(|(_, f)| Flag::Bool(*f));
+        self.flags.values().copied().chain(doors)
     }
 
     /// What's set once spot `hash` is checked, if known.
@@ -128,7 +164,7 @@ impl Tracker {
 
     /// Takes every flag from `set`, a save or values read live.
     pub fn load(&mut self, set: impl Fn(Flag) -> bool) -> Flips {
-        self.on = self.flags.values().copied().filter(|&f| set(f)).collect();
+        self.on = self.flags().filter(|&f| set(f)).collect();
         self.flips()
     }
 
@@ -139,7 +175,7 @@ impl Tracker {
             None if c.kind == "Bool" => Flag::Bool(c.hash),
             None => return Flips::default(),
         };
-        if !self.flags.values().any(|&f| f == flag) {
+        if !self.flags().any(|f| f == flag) {
             return Flips::default();
         }
         if c.change.ends_with("-> true") {
@@ -157,12 +193,36 @@ impl Tracker {
             .filter(|(_, f)| self.on.contains(f))
             .map(|(&s, _)| s)
             .collect();
+        let revealed: BTreeSet<String> = (self.doors.iter())
+            .filter(|(_, f)| self.on.contains(&Flag::Bool(*f)))
+            .map(|(d, _)| d.clone())
+            .collect();
         let flips = Flips {
             checked: now.difference(&self.checked).copied().collect(),
             unchecked: self.checked.difference(&now).copied().collect(),
+            doors: revealed != self.revealed,
         };
         self.checked = now;
+        self.revealed = revealed;
         flips
+    }
+
+    /// The Checks tab's door rows for a seed's history entry.
+    pub fn door_rows(&self, entry: &Entry) -> Vec<DoorRow> {
+        let row = |d: &Door| {
+            let found = self.revealed.contains(&d.id).then(|| d.dungeon.clone());
+            DoorRow {
+                id: d.id.clone(),
+                name: d.name(),
+                vanilla: d.vanilla.clone(),
+                // A revealed door ignores its pick.
+                pick: (found.is_none())
+                    .then(|| entry.picks.get(&d.id).cloned())
+                    .flatten(),
+                found,
+            }
+        };
+        entry.report.entrances.iter().map(row).collect()
     }
 
     /// The tab's rows for a seed's history entry.
@@ -232,6 +292,62 @@ mod tests {
 
     fn bool_(hash: u32, change: &str) -> Change {
         Change::new(&GameData::default(), hash, "Bool", change)
+    }
+
+    /// Kokiri Forest's door holding the Fire Temple, and the Fire Temple's
+    /// door holding the Deku Tree.
+    fn swapped() -> Vec<Door> {
+        let door = |id: &str, vanilla: &str, dungeon: &str, name: &str| Door {
+            id: id.into(),
+            area: "FakeArea".into(),
+            vanilla: vanilla.into(),
+            dungeon: dungeon.into(),
+            dungeon_name: name.into(),
+        };
+        vec![
+            door("deku-tree", "Deku Tree", "fire-temple", "Fire Temple"),
+            door("fire-temple", "Fire Temple", "deku-tree", "Deku Tree"),
+        ]
+    }
+
+    fn arrived(dungeon: &str) -> u32 {
+        let i = DUNGEONS.iter().position(|d| d.id == dungeon).unwrap();
+        murmur3(reveal::flag(i).as_bytes())
+    }
+
+    #[test]
+    fn a_door_is_revealed_by_the_bool_of_the_dungeon_behind_it() {
+        let mut t = Tracker::default().with_doors(&swapped());
+        let mut history = crate::history::History::default();
+        let report = crate::generate::Report {
+            entrances: swapped(),
+            ..crate::history::tests::report(7)
+        };
+        let none = (Default::default(), Default::default(), Default::default());
+        history.add(none.0, none.1, none.2, report);
+        history.pick(1, "deku-tree", Some("deku-tree")).unwrap();
+        let entry = history.get(1).unwrap();
+        let rows = t.door_rows(entry);
+        assert_eq!(rows[0].found, None);
+        assert_eq!(rows[0].pick.as_deref(), Some("deku-tree"));
+        let flips = t.change(&bool_(arrived("fire-temple"), "false -> true"));
+        assert!(flips.doors && flips.checked.is_empty());
+        let rows = t.door_rows(entry);
+        assert_eq!(rows[0].found.as_deref(), Some("fire-temple"));
+        assert_eq!(rows[0].pick, None, "a revealed door ignores its pick");
+        assert_eq!(rows[1].found, None);
+        assert!(
+            !t.change(&bool_(arrived("fire-temple"), "false -> true"))
+                .doors
+        );
+    }
+
+    #[test]
+    fn a_save_reveals_the_doors_link_has_been_through() {
+        let mut t = Tracker::default().with_doors(&swapped());
+        let deku = arrived("deku-tree");
+        assert!(t.load(|f| f == Flag::Bool(deku)).doors);
+        assert_eq!(t.revealed, BTreeSet::from(["fire-temple".to_string()]));
     }
 
     #[test]

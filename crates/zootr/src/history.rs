@@ -44,6 +44,10 @@ pub struct Entry {
     /// The player's marks on the check tracker, by spot.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub marks: BTreeMap<u64, Mark>,
+    /// The player's guesses at shuffled doors: door id to dungeon id, as
+    /// the report's entrances name them.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub picks: BTreeMap<String, String>,
 }
 
 /// A check the player set aside, or a note on it.
@@ -248,6 +252,7 @@ impl History {
             label,
             report,
             marks: BTreeMap::new(),
+            picks: BTreeMap::new(),
         });
         let excess = self.entries.len().saturating_sub(KEEP);
         self.entries.drain(..excess);
@@ -277,6 +282,22 @@ impl History {
         match mark {
             Some(m) => entry.marks.insert(spot, m),
             None => entry.marks.remove(&spot),
+        };
+        Ok(())
+    }
+
+    /// Guess the dungeon behind a seed's shuffled door, or clear the guess
+    /// with `None`. Both are ids from the seed's entrances.
+    pub fn pick(&mut self, id: u32, door: &str, dungeon: Option<&str>) -> Result<()> {
+        let entry = self.get_mut(id)?;
+        let known = |i: &str| entry.report.entrances.iter().any(|d| d.id == i);
+        ensure!(known(door), "{door} isn't a shuffled door of seed {id}");
+        match dungeon {
+            Some(d) => {
+                ensure!(known(d), "{d} isn't a shuffled dungeon of seed {id}");
+                entry.picks.insert(door.into(), d.into())
+            }
+            None => entry.picks.remove(door),
         };
         Ok(())
     }
@@ -316,7 +337,7 @@ fn now() -> u32 {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     #[test]
     fn a_kept_view_is_read_again_only_once_the_file_changes() {
         let path = std::env::temp_dir().join(format!("zootr-kept-{}", std::process::id()));
@@ -359,7 +380,7 @@ mod tests {
     use crate::generate::Written;
     use crate::known::{actor, item};
 
-    fn report(seed: u64) -> Report {
+    pub(crate) fn report(seed: u64) -> Report {
         Report {
             seed,
             events: vec![],
@@ -492,6 +513,33 @@ mod tests {
         assert!(history.mark(2, 1, None).is_err());
         let back = History::parse(&serde_json::to_vec(&history).unwrap()).unwrap();
         assert_eq!(back.entries[0].marks, BTreeMap::from([(1, note)]));
+    }
+
+    #[test]
+    fn a_pick_names_a_shuffled_door_and_dungeon_and_clears() {
+        let mut history = History::default();
+        let door = crate::generate::Door {
+            id: "deku-tree".into(),
+            area: "FakeArea".into(),
+            vanilla: "Deku Tree".into(),
+            dungeon: "deku-tree".into(),
+            dungeon_name: "Deku Tree".into(),
+        };
+        let report = Report {
+            entrances: vec![door],
+            ..report(7)
+        };
+        history.add(Settings::new(), Extras::default(), Label::default(), report);
+        let json = serde_json::to_value(&history).unwrap();
+        assert!(json["entries"][0].get("picks").is_none());
+        assert!(history.pick(1, "fire-temple", Some("deku-tree")).is_err());
+        assert!(history.pick(1, "deku-tree", Some("fire-temple")).is_err());
+        history.pick(1, "deku-tree", Some("deku-tree")).unwrap();
+        let back = History::parse(&serde_json::to_vec(&history).unwrap()).unwrap();
+        let picked = BTreeMap::from([("deku-tree".to_string(), "deku-tree".to_string())]);
+        assert_eq!(back.entries[0].picks, picked);
+        history.pick(1, "deku-tree", None).unwrap();
+        assert!(history.get(1).unwrap().picks.is_empty());
     }
 
     #[test]

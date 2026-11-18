@@ -17,7 +17,7 @@ use zootr::config::{Config, Target};
 use zootr::gamedata::GameData;
 use zootr::generate::plando::PlandoOptions;
 use zootr::generate::{self, Door, RoundEvent, Spot, Start};
-use zootr::history::{self, History, Label, Mark, Summary, View};
+use zootr::history::{self, History, Label, Summary, View};
 use zootr::inventory::{self, Cell, Inventory, TrackerOptions};
 use zootr::platform;
 use zootr::progress::{self, Run};
@@ -25,9 +25,9 @@ use zootr::recorder;
 use zootr::savefile::{self, Change};
 use zootr::settings::{SettingDef, Settings};
 use zootr::share;
-use zootr::tracker::{self, Row, Tracker};
 
 mod archipelago;
+mod checks;
 mod dev_panel;
 mod generating;
 mod live_tab;
@@ -420,100 +420,6 @@ fn play(target: String) -> Res<()> {
     Ok(())
 }
 
-/// A spot checked or unchecked in the installed seed.
-#[derive(Clone, Serialize, Type)]
-struct ChecksEvent {
-    hash: String,
-    checked: bool,
-}
-
-impl tauri_specta::Event for ChecksEvent {
-    const NAME: &'static str = "checks-event";
-}
-
-#[derive(Serialize, Type)]
-struct ChecksState {
-    /// The installed seed's history entry, if one is installed.
-    id: Option<u32>,
-    rows: Vec<Row>,
-}
-
-/// The installed seed's tracker, kept current by the watcher's rows.
-#[derive(Default)]
-struct Checks(Mutex<Option<(u32, Tracker)>>);
-
-impl Checks {
-    /// Builds the tracker for a newly installed seed from the last save,
-    /// first finding places for a seed saved before they were kept.
-    fn state(&self, app: &AppHandle) -> anyhow::Result<ChecksState> {
-        let mut history = History::load()?;
-        let Some(id) = history.installed else {
-            *self.0.lock().unwrap() = None;
-            return Ok(ChecksState {
-                id: None,
-                rows: vec![],
-            });
-        };
-        let mut tracker = self.0.lock().unwrap();
-        if tracker.as_ref().is_none_or(|(had, _)| *had != id) {
-            let config = Config::load()?;
-            if history
-                .get(id)?
-                .report
-                .spots
-                .iter()
-                .all(|s| s.place.is_empty())
-            {
-                history.place(id, &romfs(&config)?)?;
-                history.save()?;
-            }
-            let gd = app.state::<Live>().gamedata(&config)?;
-            let mut t = Tracker::new(&gd, &history.get(id)?.report.spots)?;
-            // Only a save played since this seed went in: an older one
-            // holds another seed's checks.
-            let save = savefile::newest(&config.save_dir()?)?
-                .filter(|s| savefile::written_since(s, history.installed_at));
-            if let Some(save) = save {
-                t.load(tracker::in_save(&savefile::load(&save)?));
-            }
-            *tracker = Some((id, t));
-        }
-        let (_, t) = tracker.as_ref().expect("just built");
-        let gd = app.state::<Live>().gd.lock().unwrap().clone();
-        Ok(ChecksState {
-            id: Some(id),
-            rows: t.rows(history.get(id)?, |f| gd.as_ref()?.label(f)),
-        })
-    }
-
-    fn change(&self, app: &AppHandle, change: &Change) {
-        let Some((_, t)) = &mut *self.0.lock().unwrap() else {
-            return;
-        };
-        let flips = t.change(change);
-        let events = flips.checked.iter().map(|h| (h, true));
-        for (hash, checked) in events.chain(flips.unchecked.iter().map(|h| (h, false))) {
-            let hash = hash.to_string();
-            let _ = ChecksEvent { hash, checked }.emit(app);
-        }
-    }
-}
-
-/// The Checks tab's rows for the installed seed.
-#[tauri::command]
-#[specta::specta]
-async fn checks_state(app: AppHandle) -> Res<ChecksState> {
-    blocking(move || app.state::<Checks>().state(&app)).await
-}
-
-/// Mark a check in a seed, or clear its mark.
-#[tauri::command]
-#[specta::specta]
-fn checks_mark(id: u32, hash: String, mark: Option<Mark>) -> Res<()> {
-    let hash = hash.parse().map_err(|_| format!("{hash} isn't a spot"))?;
-    edit_history(|h| h.mark(id, hash, mark))
-}
-
 /// What the Items tab and the pop out draw.
 #[derive(Clone, Serialize, Type)]
 struct ItemsState {
@@ -724,8 +630,9 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             live_tab::live_mark,
             live_tab::live_mute,
             reveal_log,
-            checks_state,
-            checks_mark,
+            checks::checks_state,
+            checks::checks_mark,
+            checks::checks_pick,
             items_state,
             items_options,
             items_icons,
@@ -754,7 +661,8 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
         ])
         .events(collect_events![
             live_tab::LiveEvent,
-            ChecksEvent,
+            checks::ChecksEvent,
+            checks::DoorsEvent,
             ItemsEvent,
             archipelago::ApEvent,
             ui::UiShared
@@ -808,7 +716,7 @@ pub fn run() -> tauri::Result<()> {
         .setup(move |app| {
             builder.mount_events(app);
             app.manage(archipelago::Ap::default());
-            app.manage(Checks::default());
+            app.manage(checks::Checks::default());
             app.manage(Items::default());
             app.manage(Generating::default());
             app.manage(save_editor::Layout::default());
