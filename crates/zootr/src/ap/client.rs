@@ -15,6 +15,7 @@ use anyhow::{Context, Result, ensure};
 use archipelago_rs::{self as ap, ClientStatus, ConnectionOptions, ConnectionState, ItemHandling};
 use ounce_formats::Romfs;
 
+use super::death::{Death, Deaths, Done};
 use super::ids::Ids;
 use super::names;
 use super::seed::Dealt;
@@ -39,12 +40,18 @@ pub trait Game {
     fn given(&mut self) -> Result<usize>;
     /// Give Link `actor`, then count `given` items given.
     fn give(&mut self, actor: &str, given: usize) -> Result<()>;
+    /// Link died since the last look.
+    fn died(&mut self) -> Result<bool>;
+    /// Drop Link's hearts to zero, as a last hit would.
+    fn kill(&mut self) -> Result<()>;
 }
 
 /// The seed's AP ids: each free check's location, each pool item's actor.
+/// And whether the slot plays DeathLink.
 pub struct Book {
     locations: HashMap<u64, i64>,
     actors: HashMap<i64, String>,
+    death_link: bool,
 }
 
 impl Book {
@@ -60,7 +67,11 @@ impl Book {
             .into_iter()
             .map(|(i, a)| Ok((id(i)?, a.to_owned())))
             .collect::<Result<_>>()?;
-        Ok(Self { locations, actors })
+        Ok(Self {
+            locations,
+            actors,
+            death_link: seed.death_link,
+        })
     }
 
     /// The AP locations of `spots`, skipping any AP didn't place.
@@ -88,6 +99,13 @@ pub enum Note {
         from: String,
     },
     Goal,
+    /// Link died, and the room was told.
+    Died,
+    /// Link was killed for a death in the room.
+    Killed {
+        from: String,
+        cause: Option<String>,
+    },
     /// Something went wrong that the core keeps going past.
     Trouble(String),
 }
@@ -102,6 +120,11 @@ impl std::fmt::Display for Note {
             Self::Sent(names) => write!(f, "sent {}", names.join(", ")),
             Self::Received { item, from } => write!(f, "received {item} from {from}"),
             Self::Goal => write!(f, "goal sent"),
+            Self::Died => write!(f, "Link died, DeathLink sent"),
+            Self::Killed { from, cause } => match cause {
+                Some(cause) => write!(f, "DeathLink: {cause}"),
+                None => write!(f, "DeathLink: {from} died"),
+            },
             Self::Trouble(why) => write!(f, "{why}"),
         }
     }
@@ -266,9 +289,14 @@ fn session(
     if let Some(p) = &room.password {
         options = options.password(p.clone());
     }
+    if book.death_link {
+        options = options.tags([ap::tags::DEATH_LINK]);
+    }
     let mut conn: ap::Connection =
         ap::Connection::new(room.server.clone(), room.slot.clone(), Some(GAME), options);
     let mut ledger = Ledger::default();
+    let mut deaths = Deaths::default();
+    let mut heard = Vec::new();
     let mut connected = false;
     let mut next_look = Instant::now();
     loop {
@@ -285,6 +313,9 @@ fn session(
                 ap::Event::Error(e) if !conn.is_disconnected() => {
                     note(Note::Trouble(e.to_string()))
                 }
+                ap::Event::DeathLink { source, cause, .. } if book.death_link => {
+                    heard.push(Death { source, cause });
+                }
                 _ => {}
             }
         }
@@ -298,6 +329,12 @@ fn session(
             ConnectionState::Connected(client) if Instant::now() >= next_look => {
                 next_look = Instant::now() + LOOK;
                 tick(client, book, game, &mut ledger, note);
+                if book.death_link {
+                    // The room's own bounce comes back to us too.
+                    let me = client.this_player().alias().to_string();
+                    (heard.drain(..).filter(|d| d.source != me)).for_each(|d| deaths.hold(d));
+                    death_link(client, game, &mut deaths, &me, note);
+                }
             }
             _ => {}
         }
@@ -352,6 +389,29 @@ fn tick(
     }
 }
 
+/// Send Link's death to the room, or kill him for one of the room's.
+fn death_link(
+    client: &mut ap::Client,
+    game: &mut impl Game,
+    deaths: &mut Deaths,
+    me: &str,
+    note: &mut impl FnMut(Note),
+) {
+    let sent = match deaths.look(game) {
+        Ok(Some(Done::Died)) => {
+            let options = ap::DeathLinkOptions::new().cause(format!("{me} died."));
+            client.death_link(options).map(|()| Note::Died)
+        }
+        Ok(Some(Done::Killed(d))) => Ok(Note::Killed {
+            from: d.source,
+            cause: d.cause,
+        }),
+        Ok(None) => return,
+        Err(e) => return note(Note::Trouble(format!("{e:#}"))),
+    };
+    note(sent.unwrap_or_else(|e| Note::Trouble(e.to_string())));
+}
+
 /// AP's location for an item in the start inventory.
 const START: i64 = -2;
 
@@ -393,6 +453,8 @@ pub struct Live {
     tracker: Tracker,
     goal: u32,
     received: u32,
+    /// [`DEATHS`] at the last look.
+    deaths: Option<i64>,
 }
 
 impl Live {
@@ -404,6 +466,7 @@ impl Live {
             tracker,
             goal: live::hash(&steps::saved(flow::DEFEAT_GANON))?,
             received: live::hash(RECEIVED)?,
+            deaths: None,
         })
     }
 
@@ -411,6 +474,10 @@ impl Live {
         self.dev.game().get(&self.gd, hash)
     }
 }
+
+/// Link's deaths in the save (GameData, unnamed). It counts the moment his
+/// hearts run out, and a fairy's save doesn't count.
+const DEATHS: u32 = 0xd30c_8e29;
 
 /// The step Ganon's defeat reaches once his last fight is over.
 const GOAL_DONE: &str = "Complete";
@@ -442,6 +509,17 @@ impl Game for Live {
         Ok(usize::try_from(n)?)
     }
 
+    fn died(&mut self) -> Result<bool> {
+        let n: i64 = self.get(DEATHS)?.parse()?;
+        let died = self.deaths.is_some_and(|last| n > last);
+        self.deaths = Some(n);
+        Ok(died)
+    }
+
+    fn kill(&mut self) -> Result<()> {
+        self.dev.kill()
+    }
+
     fn give(&mut self, actor: &str, given: usize) -> Result<()> {
         self.dev.give_level(actor)?;
         live::set(
@@ -454,15 +532,18 @@ impl Game for Live {
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
 
     #[derive(Default)]
-    struct Fake {
-        busy: bool,
-        checked: BTreeSet<u64>,
-        goal: bool,
-        given: Vec<String>,
+    pub(in crate::ap) struct Fake {
+        pub busy: bool,
+        pub checked: BTreeSet<u64>,
+        pub goal: bool,
+        pub given: Vec<String>,
+        /// Link died since the last look.
+        pub died: bool,
+        pub kills: usize,
     }
 
     impl Game for Fake {
@@ -483,12 +564,20 @@ mod tests {
             assert_eq!(self.given.len(), given);
             Ok(())
         }
+        fn died(&mut self) -> Result<bool> {
+            Ok(std::mem::take(&mut self.died))
+        }
+        fn kill(&mut self) -> Result<()> {
+            self.kills += 1;
+            Ok(())
+        }
     }
 
     fn book() -> Book {
         Book {
             locations: [(10, 100), (20, 200)].into(),
             actors: [(1, "Item_FakeBow".into()), (2, "Item_FakeHook".into())].into(),
+            death_link: false,
         }
     }
 

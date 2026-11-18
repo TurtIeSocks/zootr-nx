@@ -14,7 +14,7 @@ from . import ZnxTestBase
 
 
 class TestOutput(ZnxTestBase):
-    options = {"open_forest": True, "chest_size": "small"}
+    options = {"open_forest": True, "chest_size": "small", "death_link": True}
 
     def test_apznx(self) -> None:
         # Generate.py's Main hands out the start inventory, which the test
@@ -37,3 +37,4 @@ class TestOutput(ZnxTestBase):
         self.assertIs(seed["settings"]["open-forest"], True)
         self.assertEqual(seed["settings"]["chest-size"], "small")
         self.assertEqual(seed["start"], [ITEM_NAME_TO_ID["Boomerang"]])
+        self.assertIs(seed["death_link"], True)

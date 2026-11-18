@@ -34,7 +34,7 @@ pub(crate) const ADULT: &str = "_Adult";
 const LINK_YAW: u32 = 0x1ea93bd8;
 /// Link's live hearts, in quarters (`PlayerStatus.Life` is only the save's
 /// copy).
-pub(crate) const HEARTS: u32 = 0x31ab5580;
+pub(crate) const HEARTS: u32 = switches::HEARTS;
 /// How long Link has to pick a request up.
 const WAIT: Duration = Duration::from_secs(3);
 /// GameData names the state reads.
@@ -263,6 +263,13 @@ impl<M: Memory> Dev<M> {
     pub fn set_switches(&self, switches: Switches) -> Result<()> {
         let word = switches.word().to_le_bytes();
         self.game.write(self.main + u64::from(SWITCHES), &word)
+    }
+
+    /// Drop Link's hearts to zero on his next update, as a last hit would.
+    pub fn kill(&self) -> Result<()> {
+        let at = self.main + u64::from(SWITCHES);
+        let word = self.game.u32(at)? | switches::KILL;
+        self.game.write(at, &word.to_le_bytes())
     }
 
     /// Leave `request` for the hook and wait for its answer: what it did,

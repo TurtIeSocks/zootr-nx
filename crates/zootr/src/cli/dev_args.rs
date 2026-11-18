@@ -110,6 +110,9 @@ pub(super) enum DevCommand {
         #[arg(long, conflicts_with = "on")]
         off: bool,
     },
+    /// Drop Link's hearts to zero, as a last hit would: a bottled fairy
+    /// still saves him.
+    Kill,
     /// Switch age: the same map for the other age, else the Temple of Time.
     Age,
     /// Set the time of day.

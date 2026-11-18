@@ -3,7 +3,7 @@
 import types
 from dataclasses import make_dataclass
 
-from Options import Choice, DefaultOnToggle, PerGameCommonOptions, StartInventoryPool, Toggle
+from Options import Choice, DeathLink, DefaultOnToggle, PerGameCommonOptions, StartInventoryPool, Toggle
 
 from .exported import OPTIONS
 
@@ -37,7 +37,7 @@ def setting_value(entry: dict, option) -> bool | str:
 ZnxOptions = make_dataclass(
     "ZnxOptions",
     [(attr(entry["id"]), option_class(entry)) for entry in OPTIONS]
-    + [("start_inventory_from_pool", StartInventoryPool)],
+    + [("start_inventory_from_pool", StartInventoryPool), ("death_link", DeathLink)],
     bases=(PerGameCommonOptions,),
 )
 ZnxOptions.__module__ = __name__

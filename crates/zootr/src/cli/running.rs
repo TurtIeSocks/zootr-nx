@@ -250,6 +250,10 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
                 false => format!("on: {}", on.join(", ")),
             }
         }
+        DevCommand::Kill => {
+            game.kill()?;
+            "sent".into()
+        }
         DevCommand::Age => {
             let (place, done) = game.switch_age(&dev::places(romfs)?)?;
             format!("{done}, to {place}")
