@@ -94,7 +94,8 @@ pub fn give(
     pieces: &[ItemCheck],
     drops: &HashMap<u64, Drop>,
 ) -> Result<()> {
-    let moved: Vec<_> = pickups::moved(pieces, drops)
+    // A thief's key never shows a step at a time, whatever the setting.
+    let moved: Vec<_> = pickups::moved(pieces, drops, false)
         .into_iter()
         .filter(|m| keys::is_key(m.vanilla))
         .collect();
@@ -189,7 +190,7 @@ mod tests {
         let drops = HashMap::from([(key.hash, Drop::from(keys::INSTEAD.to_string()))]);
         let mut rewrites = Rewrites::new();
         give(&romfs, &mut rewrites, &pieces, &drops).unwrap();
-        let actor = pickups::moved(&pieces, &drops).remove(0).actor;
+        let actor = pickups::moved(&pieces, &drops, false).remove(0).actor;
         let flow = Flowchart::parse(&rewrites[&flows::rel(FLOW)])
             .unwrap()
             .unwrap();

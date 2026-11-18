@@ -25,7 +25,7 @@ pub const SCHEMA: u32 = 1;
 /// The EIE debt today. A PR that pays some off lowers it in the same PR,
 /// and the `accounting` test fails one that adds debt.
 pub const BASELINE: Debt = Debt {
-    refused: 17999,
+    refused: 6057,
     left_out: 48,
 };
 
@@ -381,6 +381,7 @@ fn census(romfs: &Romfs, breakable: &BTreeSet<String>) -> Result<Vec<ItemCheck>>
                     get_event: None,
                     substitute: None,
                     presence: crate::world::presence_of(actor),
+                    watched: false,
                 });
             }
         }

@@ -53,6 +53,9 @@ pub struct ItemCheck {
     pub substitute: Option<String>,
     /// The flag the holder needs to exist at all, if any.
     pub presence: Option<Presence>,
+    /// A logic module makes the placement appear or watches it, so the
+    /// seed can't place copies of it (`pickups::steps`).
+    pub watched: bool,
 }
 
 /// Every Banc file, as romfs-relative paths.
@@ -147,6 +150,7 @@ pub fn scan(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
                 get_event: str_field(dynamic, GET_EVENT).map(str::to_owned),
                 substitute: substitute.map(str::to_owned),
                 presence: presence_of(actor),
+                watched: false,
             });
         }
     }

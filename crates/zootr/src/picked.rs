@@ -41,10 +41,21 @@ use crate::flows::Rewrites;
 use crate::gamedata::Op;
 use crate::graphs::logic;
 use crate::known::{field, flag, map};
+use crate::pickups::steps::asks;
 use crate::pickups::{
-    CRATES, FLYING_POTS, GRASS, HIVES, Kind, POTS, ROCKS, RUTOS_LETTER, SKULLTULAS,
+    BOSS_HEARTS, CRATES, FIRE_ARROWS, FLYING_POTS, FREESTANDING, GRASS, HIVES, Kind, POTS, ROCKS,
+    RUTOS_LETTER, SKULLTULAS,
 };
 use crate::world::Presence;
+
+/// Pickups lying in place, which stand until picked only when dealt what
+/// might show a step at a time. Their key tracks the rest.
+const LYING: [&Kind; 3] = [&FREESTANDING, &BOSS_HEARTS, &FIRE_ARROWS];
+
+/// Whether `holder`, dealt `item`, stands until picked as a lying pickup.
+fn taken(holder: &str, item: &str) -> bool {
+    LYING.iter().any(|k| k.places(holder)) && asks(item)
+}
 
 /// The kinds whose holders stand until picked.
 const KINDS: [&Kind; 8] = [
@@ -75,6 +86,9 @@ pub enum After {
     Killed(Option<Presence>),
     /// Nothing, as its logic module deletes it (Ruto's letter).
     Deleted,
+    /// Nothing, as it's a pickup lying in place, dealt what might show a
+    /// step at a time (`pickups::steps`). It keeps its own gate, if any.
+    Taken(Option<Presence>),
 }
 
 /// The seed Bool set once the drop of the holder placed as `hash` is
@@ -100,22 +114,27 @@ fn keeps_token(skulltula: bool, vanilla: &str, item: &str) -> bool {
 pub fn flag_at(spot: &crate::generate::Spot) -> Option<String> {
     let holder = spot.holder.as_str();
     let kept = keeps_token(SKULLTULAS.places(holder), &spot.vanilla, &spot.item);
-    let picked = KINDS.iter().any(|k| k.places(holder)) && !kept;
+    let picked = KINDS.iter().any(|k| k.places(holder)) && !kept || taken(holder, &spot.item);
     (picked || crate::shops::is_holder(holder)).then(|| flag(spot.hash))
 }
 
 /// Each holder among `pieces`, dealt `drops`, that stands until picked,
 /// once each.
 pub fn holders(pieces: &[ItemCheck], drops: &HashMap<u64, Drop>) -> Vec<Holder> {
+    let item = |c: &ItemCheck, f: fn(&str, &str) -> bool| {
+        f(&c.holder, crate::gifts::item_at(drops, c.hash, &c.item))
+    };
+    let lying = |c: &ItemCheck| item(c, taken);
     let after = |c: &ItemCheck| match () {
         _ if RUTOS_LETTER.holds(c) => After::Deleted,
         _ if SKULLTULAS.holds(c) => After::Killed(c.presence.clone()),
+        _ if lying(c) => After::Taken(c.presence.clone()),
         _ if c.presence.is_some() => After::Gone,
         _ => After::Twin(crate::known::hash(&flag(c.hash))),
     };
     let found: BTreeMap<u64, After> = pieces
         .iter()
-        .filter(|c| KINDS.iter().any(|k| k.holds(c)))
+        .filter(|c| KINDS.iter().any(|k| k.holds(c)) || lying(c))
         .filter(|c| {
             let item = crate::gifts::item_at(drops, c.hash, &c.item);
             !keeps_token(SKULLTULAS.holds(c), &c.item, item)
@@ -203,7 +222,8 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
         let flag = flag(hash);
         let twin_hash = match h.after {
             After::Twin(twin) => twin,
-            After::Deleted => continue,
+            // Its steps' gates take its turns (`pickups::steps`).
+            After::Deleted | After::Taken(_) => continue,
             After::Gone => {
                 let gone = actor.as_mut_map()?.remove("Presence");
                 let gone = gone.as_ref().and_then(|p| p.as_map().ok());
@@ -261,19 +281,29 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
 
 /// Each of `holders` placed in `root`, a Banc file's doc, as the hook's
 /// table lists it: by what it drops, or what it is when it drops nothing
-/// (Ruto's letter). Run once the fields are written, so each names the
-/// shuffled item.
-pub fn spots(root: &Byml, holders: &[Holder]) -> Result<Vec<Spot>> {
+/// (Ruto's letter). A step's placement past a holder's own, among `copies`
+/// by the placement each copies, ticks its holder's flag. Run once the
+/// fields are written, so each names the shuffled item.
+pub fn spots(root: &Byml, holders: &[Holder], copies: &[(u64, u64)]) -> Result<Vec<Spot>> {
+    let holder = |placed: u64| {
+        let of = copies.iter().find(|(_, copy)| *copy == placed);
+        let hash = of.map_or(placed, |(of, _)| *of);
+        holders.iter().any(|h| h.hash == hash).then_some(hash)
+    };
     let mut out = Vec::new();
     for actor in checks::actors(root)? {
-        let Some(hash) = hash_of(actor).filter(|h| holders.iter().any(|x| x.hash == *h)) else {
+        let Some(placed) = hash_of(actor) else {
+            continue;
+        };
+        let Some(hash) = holder(placed) else {
             continue;
         };
         let dynamic = actor.as_map()?.get("Dynamic");
         let drop = dynamic.and_then(|d| str_field(d, DROP_ACTOR.get()));
         let drop = drop.or_else(|| str_field(actor, GYAML));
-        let drop = drop.with_context(|| format!("holder {hash} is nothing"))?;
-        let at = vec3(actor, TRANSLATE).with_context(|| format!("holder {hash} stands nowhere"))?;
+        let drop = drop.with_context(|| format!("holder {placed} is nothing"))?;
+        let at =
+            vec3(actor, TRANSLATE).with_context(|| format!("holder {placed} stands nowhere"))?;
         out.push(Spot {
             flag: murmur3(flag(hash).as_bytes()),
             name: Spot::name_hash(drop.as_bytes()),
@@ -539,7 +569,7 @@ mod tests {
         );
         place(&mut doc.root, &holders).unwrap();
         checks::set_fields(&mut doc.root, &[field]).unwrap();
-        let spots = spots(&doc.root, &holders).unwrap();
+        let spots = spots(&doc.root, &holders, &[]).unwrap();
         let mine = spots
             .iter()
             .find(|s| s.flag == murmur3(flag(rock.hash).as_bytes()))
@@ -614,7 +644,7 @@ mod tests {
         assert_eq!(place(&mut doc.root, &holders).unwrap(), 0);
         let field = format!("{LETTER}.{GYAML}=Obj_FakeStandIn_001");
         checks::set_fields(&mut doc.root, &[field]).unwrap();
-        let spots = spots(&doc.root, &holders).unwrap();
+        let spots = spots(&doc.root, &holders, &[]).unwrap();
         assert_eq!(spots.len(), 1);
         assert_eq!(spots[0].name, Spot::name_hash(b"Obj_FakeStandIn_001"));
     }
