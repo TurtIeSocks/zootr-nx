@@ -68,7 +68,7 @@ export function NewSeed() {
  * installed, and Generate. */
 function SeedRow() {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <SeedInput />
       <VanillaButton />
       <GenerateButton />
@@ -81,7 +81,7 @@ function SeedRow() {
 function SeedInput() {
   const [seed, setSeed] = useUi.usePath("newSeed.seed");
   return (
-    <div className="relative w-[280px]">
+    <div className="relative w-[280px] max-w-full">
       <Input
         className="h-10 pr-10 font-mono text-[15px]"
         placeholder="Random, or a share code"

@@ -91,6 +91,7 @@ function Slot({ slot }: { slot: string | null }) {
             label="Browse…"
             tip={blocked || "Pick your slot's .apznx"}
             variant="secondary"
+            size="default"
             disabled={busy || !!blocked}
             onClick={browse}
           >
