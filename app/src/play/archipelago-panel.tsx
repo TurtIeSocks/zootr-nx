@@ -1,8 +1,8 @@
-import { open as pickFile } from "@tauri-apps/plugin-dialog";
+import { open as pickFile, save as pickSave } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Eye, EyeOff, FileUp, FolderOpen } from "lucide-react";
-import { useCallback, useId, useRef, useState } from "react";
-import type { Summary } from "@/bindings";
+import { Check, Download, Eye, EyeOff, FileUp, FolderOpen } from "lucide-react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { commands, type Summary } from "@/bindings";
 import { InlineError } from "@/components/callout";
 import { CardHeader } from "@/components/card";
 import { linkClass } from "@/components/styles";
@@ -10,6 +10,8 @@ import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { call } from "@/lib/api";
+import { useCopied } from "@/lib/use-copied";
 import { ApLog } from "@/play/ap-log";
 import { GenerateSteps } from "@/play/generate-steps";
 import { DeathLinkBadge, RoomStatus } from "@/play/room-status";
@@ -111,19 +113,47 @@ function Slot({ slot }: { slot: string | null }) {
 }
 
 /** Who needs what, for someone new to Archipelago: a player needs only
- * what their host sends, a host needs Archipelago and this version's
- * apworld. */
+ * what their host sends, a host needs Archipelago and the apworld. A release
+ * build saves its own copy, so it always matches the app. A build without one
+ * links the release's. */
 function Roles() {
   const [version] = useUpdate.usePath("current");
-  const link = (url: string, text: string) => (
+  const [bundled, setBundled] = useState(false);
+  useEffect(() => {
+    commands
+      .apworldBundled()
+      .then(setBundled, (e: unknown) =>
+        console.debug("Couldn't ask for the apworld", e),
+      );
+  }, []);
+  const { copied: saved, flash } = useCopied();
+  const [error, setError] = useState<string>();
+  const name = version ? `znx.apworld ${version}` : "znx.apworld";
+
+  const saveApworld = async () => {
+    const path = await pickSave({
+      defaultPath: "znx.apworld",
+      filters: [{ name: "Archipelago world", extensions: ["apworld"] }],
+    });
+    if (!path) return;
+    try {
+      await call(commands.saveApworld(path));
+      setError(undefined);
+      flash("apworld");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+  const guide = (
     <button
       type="button"
       className={linkClass}
-      onClick={() => void openUrl(url)}
+      onClick={() => void openUrl(AP_GUIDE_URL)}
     >
-      {text}
+      Setup guide
     </button>
   );
+
   return (
     <div className="flex flex-col gap-1 text-[12.5px] text-ink-muted leading-[17px]">
       <p>
@@ -131,15 +161,37 @@ function Roles() {
         Your host sends your .apznx and the room's server. Drop the file here,
         then connect under Room.
       </p>
-      <p>
-        <span className="font-medium text-ink">Hosting?</span> You need
-        Archipelago and{" "}
-        {link(
-          apworldUrl(version),
-          version ? `znx.apworld ${version}` : "znx.apworld",
-        )}{" "}
-        to generate the multiworld. {link(AP_GUIDE_URL, "Setup guide")}
-      </p>
+      {bundled ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <p>
+            <span className="font-medium text-ink">Hosting?</span> You need
+            Archipelago and this app's apworld to generate the multiworld.{" "}
+            {guide}
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void saveApworld()}
+          >
+            {saved ? <Check /> : <Download />}
+            {saved ? "Saved" : `Save ${name}`}
+          </Button>
+        </div>
+      ) : (
+        <p>
+          <span className="font-medium text-ink">Hosting?</span> You need
+          Archipelago and{" "}
+          <button
+            type="button"
+            className={linkClass}
+            onClick={() => void openUrl(apworldUrl(version))}
+          >
+            {name}
+          </button>{" "}
+          to generate the multiworld. {guide}
+        </p>
+      )}
+      <InlineError error={error} />
     </div>
   );
 }

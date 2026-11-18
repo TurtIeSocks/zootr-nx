@@ -29,6 +29,8 @@ vi.mock("@tauri-apps/api/webview", () => ({
 
 const opened = vi.hoisted(() => vi.fn());
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: opened }));
+const savedTo = vi.hoisted(() => vi.fn());
+vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn(), save: savedTo }));
 
 const slot: Summary = {
   id: 3,
@@ -234,11 +236,14 @@ test("an .apznx dropped on the window installs that slot", async () => {
   );
 });
 
-test("a host gets this version's apworld and the guide, a player is told what to ask for", () => {
+test("a build without the apworld links the release's, and a player is told what to ask for", async () => {
+  vi.spyOn(commands, "apworldBundled").mockResolvedValue(false);
   useUpdate.setPath("current", "1.2.3");
   show("offline", [], { installed: null });
   expect(screen.getByText(/Your host sends your .apznx/)).toBeTruthy();
-  fireEvent.click(button("znx.apworld 1.2.3"));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "znx.apworld 1.2.3" }),
+  );
   expect(opened).toHaveBeenLastCalledWith(
     "https://github.com/TurtIeSocks/zootr-nx/releases/download/v1.2.3/znx.apworld",
   );
@@ -246,4 +251,22 @@ test("a host gets this version's apworld and the guide, a player is told what to
   expect(opened).toHaveBeenLastCalledWith(
     expect.stringMatching(/ap\/znx\/docs\/setup_en\.md$/),
   );
+});
+
+test("a release build saves its own apworld where the host picks", async () => {
+  vi.spyOn(commands, "apworldBundled").mockResolvedValue(true);
+  const save = vi
+    .spyOn(commands, "saveApworld")
+    .mockResolvedValue({ status: "ok", data: null });
+  savedTo.mockResolvedValue("/fake/znx.apworld");
+  useUpdate.setPath("current", "1.2.3");
+  show("offline", [], { installed: null });
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Save znx.apworld 1.2.3" }),
+  );
+  expect(await screen.findByRole("button", { name: "Saved" })).toBeTruthy();
+  expect(save).toHaveBeenCalledWith("/fake/znx.apworld");
+  expect(
+    screen.queryByRole("button", { name: "znx.apworld 1.2.3" }),
+  ).toBeNull();
 });

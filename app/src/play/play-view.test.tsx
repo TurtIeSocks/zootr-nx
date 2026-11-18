@@ -18,7 +18,10 @@ import { refresh, useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
 
 const picked = vi.fn(async () => "/seeds/AP_1_P1_Link.apznx" as string | null);
-vi.mock("@tauri-apps/plugin-dialog", () => ({ open: () => picked() }));
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  open: () => picked(),
+  save: vi.fn(),
+}));
 
 afterEach(() => {
   cleanup();

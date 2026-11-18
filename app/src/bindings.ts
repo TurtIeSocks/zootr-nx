@@ -115,6 +115,10 @@ export const commands = {
 	 */
 	apConnect: (server: string, password: string | null) => typedError<null, string>(__TAURI_INVOKE("ap_connect", { server, password })),
 	apDisconnect: () => __TAURI_INVOKE<void>("ap_disconnect"),
+	/**  Whether this build carries its znx.apworld. Release builds do. */
+	apworldBundled: () => __TAURI_INVOKE<boolean>("apworld_bundled"),
+	/**  Saves this build's znx.apworld to `path`. */
+	saveApworld: (path: string) => typedError<null, string>(__TAURI_INVOKE("save_apworld", { path })),
 	gameOptions: () => typedError<GameOptions, string>(__TAURI_INVOKE("game_options")),
 	devState: () => typedError<DevState, string>(__TAURI_INVOKE("dev_state")),
 	devTeleport: (place: string) => typedError<string, string>(__TAURI_INVOKE("dev_teleport", { place })),

@@ -102,11 +102,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$TAG" archipelago/build/apworlds/znx.apworld --repo "$GITHUB_REPOSITORY" --clobber
 
+      # Each app build embeds this copy, so its Save znx.apworld matches it.
+      - name: Hand the world to the app builds
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: znx-apworld
+          path: archipelago/build/apworlds/znx.apworld
+          if-no-files-found: error
+
   build:
     name: Build (${{ matrix.name }})
-    needs: draft
+    needs: [draft, apworld]
     # A warm-up run skips the draft, and builds anyway.
-    if: ${{ !cancelled() && needs.draft.result != 'failure' }}
+    if: ${{ !cancelled() && needs.draft.result != 'failure' && needs.apworld.result == 'success' }}
     strategy:
       fail-fast: false
       matrix:
@@ -178,6 +186,16 @@ jobs:
               echo "using $name"
             fi
           done
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: znx-apworld
+          path: apworld
+
+      # The app's build.rs embeds the file this names.
+      - name: Point the app at the world
+        shell: bash
+        run: echo "ZNX_APWORLD=$GITHUB_WORKSPACE/apworld/znx.apworld" >> "$GITHUB_ENV"
 
       # build.runner, set for macOS only in tauri.macos.conf.json, is a
       # shell script that signs debug builds for `tauri dev`. A release
