@@ -167,6 +167,20 @@ fn give_next(
     Ok(Some((given, actor.clone())))
 }
 
+/// Give every received item still owed, each index to `gave`. A pass
+/// doesn't stop at one: over a bridge, each look between passes is slow.
+fn give_pending(
+    game: &mut impl Game,
+    book: &Book,
+    received: &[i64],
+    mut gave: impl FnMut(usize),
+) -> Result<()> {
+    while let Some((index, _)) = give_next(game, book, received)? {
+        gave(index);
+    }
+    Ok(())
+}
+
 /// Where and as whom to connect.
 #[derive(Clone, Debug)]
 pub struct Room {
@@ -325,17 +339,16 @@ fn tick(
         }
     }
     let received: Vec<i64> = found(client).map(|r| r.item().id()).collect();
-    match give_next(game, book, &received) {
-        Ok(Some((index, _))) => {
-            if let Some(r) = found(client).nth(index) {
-                note(Note::Received {
-                    item: r.item().name().to_string(),
-                    from: r.sender().name().to_string(),
-                });
-            }
+    let given = give_pending(game, book, &received, |index| {
+        if let Some(r) = found(client).nth(index) {
+            note(Note::Received {
+                item: r.item().name().to_string(),
+                from: r.sender().name().to_string(),
+            });
         }
-        Ok(None) => {}
-        Err(e) => note(Note::Trouble(format!("{e:#}"))),
+    });
+    if let Err(e) = given {
+        note(Note::Trouble(format!("{e:#}")));
     }
 }
 
@@ -510,6 +523,15 @@ mod tests {
             game.given,
             ["Item_FakeHook", "Item_FakeBow", "Item_FakeHook"]
         );
+    }
+
+    #[test]
+    fn one_pass_gives_every_item_still_owed() {
+        let (mut game, book) = (Fake::default(), book());
+        let mut gave = vec![];
+        give_pending(&mut game, &book, &[2, 1, 2], |i| gave.push(i)).unwrap();
+        assert_eq!(gave, [0, 1, 2]);
+        assert_eq!(game.given.len(), 3);
     }
 
     #[test]
