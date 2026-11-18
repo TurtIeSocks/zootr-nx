@@ -160,6 +160,7 @@ pub(crate) const KEYS: &str = "keys";
 pub(crate) const FORTRESS_KEYS: &str = "fortress-keys";
 pub(crate) const MERCHANTS: &str = "merchants";
 pub(crate) const TRADE_CHAIN: &str = "trade-chain";
+pub(crate) const RUNNING_RACE: &str = "running-race";
 
 /// The setting `--skip <name>` turns on: `all`, a named one or an area.
 pub(crate) fn skip_id(name: &str) -> String {
@@ -418,6 +419,12 @@ pub fn schema() -> Vec<SettingDef> {
             "Adult trade quest",
             "Each trade on the way to Biggoron's sword becomes a check, from Anju's Pocket Egg to Biggoron's Claim Check, and the ten trade items join the pool. Showing an item to the one who wants it gives that check, whatever order Link finds them in. Grog or Fado waits at the stump by which item Link holds. The Pocket Cucco still hatches from the egg",
         )])
+        .chain([default_on(toggle(
+            RUNNING_RACE,
+            group::SHUFFLES,
+            "Running man's race",
+            "The running man's prize for Link's first win becomes a check. Later wins still pay a Red Rupee. Logic expects it only with Carpenters freed, since he offers the race once the valley bridge is fixed",
+        ))])
         .chain([toggle(
             SKULLTULAS,
             group::SHUFFLES,

@@ -85,7 +85,7 @@ pub(super) const fn reward(
     }
 }
 
-pub const GIFTS: [Gift; 83] = [
+pub const GIFTS: [Gift; 84] = [
     Gift {
         flow: scene::KOKIRI_0155,
         area: flag::KOKIRI_FOREST,
@@ -195,6 +195,22 @@ pub const GIFTS: [Gift; 83] = [
             found: None,
         },
         setting: Some(NPC_GIFTS),
+    },
+    // The running man pays a Purple Rupee for Link's first win, then sets
+    // the clear Bool. Every later win pays a Red Rupee through the same
+    // call, which names its own rupee, so it stays vanilla.
+    Gift {
+        flow: actor::NPC_HYLIA_RUNNING_MAN_ADULT,
+        area: flag::GERUDO_VALLEY,
+        giver: "Running man's race",
+        item: actor::OBJ_RUPEE_PURPLE,
+        how: How::Calls {
+            call: &[get(flow::GET_IN_EVENT_NOT_TURN_FOR_POS_CAMERA)],
+            found: Some(
+                flag::HAVE_TALKED_SPECIAL_NPC_HYLIA_RUNNING_MAN_ADULT_RUNNING_RACE_CLEAR_EVENT32,
+            ),
+        },
+        setting: Some(RUNNING_RACE),
     },
     npc(
         potion::FLOW,

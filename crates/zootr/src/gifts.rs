@@ -40,7 +40,8 @@ use crate::flows::{
 };
 use crate::known::{Name, actor, field, flag, flow, item, scene};
 use crate::settings::{
-    DUNGEON_REWARDS, HUNDRED_TOKENS, MERCHANTS, NPC_GIFTS, OPEN_DOOR, SONGS, TRADE_CHAIN,
+    DUNGEON_REWARDS, HUNDRED_TOKENS, MERCHANTS, NPC_GIFTS, OPEN_DOOR, RUNNING_RACE, SONGS,
+    TRADE_CHAIN,
 };
 use crate::{cows, dampe, grant, pickups, scrubs, shops, starting};
 
@@ -944,6 +945,29 @@ mod tests {
             wrong.is_empty(),
             "a gift renamed a flow-mate's grant: {wrong:?}"
         );
+    }
+
+    #[test]
+    fn the_race_deals_its_first_win_and_leaves_the_repeat_rupee() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let race = (GIFTS.iter())
+            .find(|g| g.flow == actor::NPC_HYLIA_RUNNING_MAN_ADULT)
+            .unwrap();
+        let on = |ids: &[&str]| ids.iter().map(|&i| i.to_owned()).collect();
+        assert!(race.dealt(&on(&[RUNNING_RACE])));
+        assert!(!race.dealt(&on(&[NPC_GIFTS])));
+        let all = Flows::load(&romfs).unwrap();
+        let before = flows::render(&flows::load(&romfs, race.flow).unwrap().unwrap());
+        let after = dealt_flow(&romfs, &all, &[(race, "Item_Fake00".into())]);
+        let changed = changed(&before, &after);
+        let actor = |item: &str| format!("\"{item}\"");
+        assert_eq!(changed.len(), 1, "{changed:?}");
+        let (was, now) = changed[0];
+        assert!(was.contains(&actor(actor::OBJ_RUPEE_PURPLE)), "{was}");
+        assert!(now.contains(&actor("Item_Fake00")), "{now}");
+        assert!(after.contains(&actor(actor::OBJ_RUPEE_RED)));
     }
 
     pub(super) fn written(rewrites: &Rewrites, flow: &str) -> Flowchart {
