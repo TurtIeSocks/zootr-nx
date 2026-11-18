@@ -79,10 +79,11 @@ pub(super) fn flows(
     if new_game.cows {
         cows::give(romfs, &mut rewrites, &cows::find(romfs)?, drops, level)?;
     }
+    let pieces = pickups::dealt(romfs, new_game)?;
     if new_game.fortress_keys {
-        let pieces = pickups::dealt(romfs, new_game)?;
         fortress::give(romfs, &mut rewrites, &pieces, drops)?;
     }
+    picked::delete_letter(romfs, &mut rewrites, &picked::holders(&pieces))?;
     Ok((rewrites, flags))
 }
 
