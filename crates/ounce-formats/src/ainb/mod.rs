@@ -2,7 +2,7 @@
 //! node's name, properties, inputs and outputs, and the links from an input
 //! to the outputs feeding it. Control flow (plugs), blackboards,
 //! attachments and expressions are skipped. `Patch` relinks inputs and
-//! sets strings in place.
+//! sets strings in place, and `File` holds every section so a graph can grow.
 //!
 //! Version 0x407 and later. Every offset is absolute, and every string an
 //! offset into the pool. Properties and parameters live in per-type tables,
@@ -11,6 +11,12 @@
 use anyhow::{Result, bail, ensure};
 
 use crate::reader::Reader;
+
+mod edit;
+mod file;
+
+pub use edit::check;
+pub use file::File;
 
 const MAGIC: &[u8; 4] = b"AIB ";
 const MIN_VERSION: u32 = 0x407;
@@ -387,26 +393,31 @@ impl Patch {
         self.reparse()
     }
 
-    /// `s`'s offset in the pool, added to its end if it isn't there.
     fn intern(&mut self, s: &str) -> Result<u32> {
         let pool = Reader(&self.data).u32(0x24)? as usize;
-        let mut at = pool;
-        for part in self.data[pool..].split(|&b| b == 0) {
-            if part == s.as_bytes() {
-                return Ok((at - pool) as u32);
-            }
-            at += part.len() + 1;
-        }
-        let offset = (self.data.len() - pool) as u32;
-        self.data.extend(s.as_bytes());
-        self.data.push(0);
-        Ok(offset)
+        Ok(intern(&mut self.data, pool, s))
     }
 
     fn reparse(&mut self) -> Result<()> {
         self.graph = Graph::parse(&self.data)?;
         Ok(())
     }
+}
+
+/// `s`'s offset in the string pool that runs from `pool` to the end of
+/// `data`, added to its end if it isn't there.
+fn intern(data: &mut Vec<u8>, pool: usize, s: &str) -> u32 {
+    let mut at = pool;
+    while let Some(len) = data[at..].iter().position(|&b| b == 0) {
+        if &data[at..at + len] == s.as_bytes() {
+            return (at - pool) as u32;
+        }
+        at += len + 1;
+    }
+    let offset = (data.len() - pool) as u32;
+    data.extend(s.as_bytes());
+    data.push(0);
+    offset
 }
 
 /// Each type's `[start, end)` in the property table, which begins with
