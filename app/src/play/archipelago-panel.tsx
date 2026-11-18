@@ -1,9 +1,11 @@
 import { open as pickFile } from "@tauri-apps/plugin-dialog";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { Eye, EyeOff, FileUp, FolderOpen } from "lucide-react";
 import { useCallback, useId, useRef, useState } from "react";
 import type { Summary } from "@/bindings";
 import { InlineError } from "@/components/callout";
 import { CardHeader } from "@/components/card";
+import { linkClass } from "@/components/styles";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +17,8 @@ import { useApznxDrop } from "@/play/use-apznx-drop";
 import { useAp } from "@/stores/ap";
 import { generateAp, useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
+import { useUpdate } from "@/stores/update";
+import { AP_GUIDE_URL, apworldUrl } from "@/update/release";
 
 /** The Archipelago folder: open a multiworld slot, connect the game to its
  * room, and watch what the client does. */
@@ -100,8 +104,43 @@ function Slot({ slot }: { slot: string | null }) {
           </TipButton>
         </div>
         <GenerateSteps ap />
+        <Roles />
       </div>
     </section>
+  );
+}
+
+/** Who needs what, for someone new to Archipelago: a player needs only
+ * what their host sends, a host needs Archipelago and this version's
+ * apworld. */
+function Roles() {
+  const [version] = useUpdate.usePath("current");
+  const link = (url: string, text: string) => (
+    <button
+      type="button"
+      className={linkClass}
+      onClick={() => void openUrl(url)}
+    >
+      {text}
+    </button>
+  );
+  return (
+    <div className="flex flex-col gap-1 text-[12.5px] text-ink-muted leading-[17px]">
+      <p>
+        <span className="font-medium text-ink">Joining a friend's game?</span>{" "}
+        Your host sends your .apznx and the room's server. Drop the file here,
+        then connect under Room.
+      </p>
+      <p>
+        <span className="font-medium text-ink">Hosting?</span> You need
+        Archipelago and{" "}
+        {link(
+          apworldUrl(version),
+          version ? `znx.apworld ${version}` : "znx.apworld",
+        )}{" "}
+        to generate the multiworld. {link(AP_GUIDE_URL, "Setup guide")}
+      </p>
+    </div>
   );
 }
 

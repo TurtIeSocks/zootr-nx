@@ -12,6 +12,7 @@ import { ArchipelagoPanel } from "@/play/archipelago-panel";
 import { useAp } from "@/stores/ap";
 import { useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
+import { useUpdate } from "@/stores/update";
 
 /** The window's file drops, as the panel last listened for them. */
 const drops = vi.hoisted(() => ({
@@ -25,6 +26,9 @@ vi.mock("@tauri-apps/api/webview", () => ({
     },
   }),
 }));
+
+const opened = vi.hoisted(() => vi.fn());
+vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: opened }));
 
 const slot: Summary = {
   id: 3,
@@ -227,5 +231,19 @@ test("an .apznx dropped on the window installs that slot", async () => {
       "/fake/FakeSlot.apznx",
       expect.anything(),
     ),
+  );
+});
+
+test("a host gets this version's apworld and the guide, a player is told what to ask for", () => {
+  useUpdate.setPath("current", "1.2.3");
+  show("offline", [], { installed: null });
+  expect(screen.getByText(/Your host sends your .apznx/)).toBeTruthy();
+  fireEvent.click(button("znx.apworld 1.2.3"));
+  expect(opened).toHaveBeenLastCalledWith(
+    "https://github.com/TurtIeSocks/zootr-nx/releases/download/v1.2.3/znx.apworld",
+  );
+  fireEvent.click(button("Setup guide"));
+  expect(opened).toHaveBeenLastCalledWith(
+    expect.stringMatching(/ap\/znx\/docs\/setup_en\.md$/),
   );
 });
