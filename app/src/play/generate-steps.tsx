@@ -1,6 +1,5 @@
 import { Check, CircleAlert, CircleStop, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { STEPS } from "@/bindings";
 import { linkClass } from "@/components/styles";
 import { message } from "@/lib/api";
 import { useCopied } from "@/lib/use-copied";
@@ -8,6 +7,7 @@ import {
   generateLog,
   type StepRow,
   type Steps,
+  stepName,
   useSeeds,
 } from "@/stores/seeds";
 
@@ -16,12 +16,6 @@ const HINT_AFTER = 10_000;
 
 /** Seconds as the step list shows them. */
 const seconds = (secs: number) => `${secs.toFixed(1)} s`;
-
-/** A step's name, capitalized. */
-function stepName(row: StepRow) {
-  const name = STEPS.find((s) => s.step === row.step)?.name ?? row.step;
-  return name.charAt(0).toUpperCase() + name.slice(1);
-}
 
 /** Why a step that runs long may be slow, where something helps. */
 function hint(row: StepRow) {
@@ -101,7 +95,7 @@ function StepLine({ row, failed, running }: StepLineProps) {
                 : "size-3.5 text-primary-ink"
           }
         />
-        <span>{stepName(row)}</span>
+        <span>{stepName(row.step)}</span>
         {row.detail && <span className="text-ink-muted">{row.detail}</span>}
         <span className="ml-auto font-mono text-ink-muted">
           {seconds(secs)}

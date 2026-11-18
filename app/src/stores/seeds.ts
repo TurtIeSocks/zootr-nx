@@ -6,6 +6,7 @@ import {
   commands,
   type End,
   type Label,
+  STEPS,
   type Status,
   type Step,
   type StepEvent,
@@ -29,6 +30,12 @@ export interface StepRow {
   started: number;
 }
 
+/** A step's name, capitalized. */
+export function stepName(step: Step) {
+  const name = STEPS.find((s) => s.step === step)?.name ?? step;
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
 /** The running or last generate run. */
 export interface Steps {
   rows: StepRow[];
@@ -36,6 +43,8 @@ export interface Steps {
   end: End | null;
   /** Its whole time, once it ended. */
   secs: number;
+  /** How many steps a run of its kind takes, for its progress. */
+  total?: number;
   /** What a stop left, in the stop's words. */
   stopped?: string;
 }
@@ -230,12 +239,13 @@ export function stepped(steps: Steps, event: StepEvent): Steps {
  * whether the run finished rather than stopped. */
 async function stepping(
   send: (steps: Channel<StepEvent>) => Promise<unknown>,
+  total: number,
   rebuilt: string | null = null,
 ): Promise<boolean> {
   const channel = new Channel<StepEvent>((event) =>
     useSeeds.setPath("steps", (s) => s && stepped(s, event)),
   );
-  useSeeds.setPath("steps", { rows: [], end: null, secs: 0 });
+  useSeeds.setPath("steps", { rows: [], end: null, secs: 0, total });
   useSeeds.setPath("rebuilt", rebuilt);
   useSeeds.setPath("generating", true);
   try {
@@ -255,23 +265,38 @@ async function stepping(
   }
 }
 
+/** The steps of a run that builds a seed and installs it: every step up to
+ * installing. */
+const installed = () => STEPS.findIndex((s) => s.step === "installing") + 1;
+
 /** Generates a seed and installs it, or with `install` false only adds it
  * to History. `seed` is typed in, or null for random. */
 export const generate = (seed: string | null, install = true) =>
-  run(() => stepping((steps) => call(commands.generate(seed, install, steps))));
+  run(() =>
+    stepping(
+      (steps) => call(commands.generate(seed, install, steps)),
+      install ? installed() : installed() - 1,
+    ),
+  );
 /** Installs one slot of an Archipelago multiworld from its `.apznx`. */
 export const generateAp = (path: string) =>
-  run(() => stepping((steps) => call(commands.generateAp(path, steps))));
+  run(() =>
+    stepping((steps) => call(commands.generateAp(path, steps)), installed()),
+  );
 /** Installs a history entry to every target. */
 export const install = (id: number) =>
-  run(() => stepping((steps) => call(commands.install(id, steps))));
+  run(() => stepping((steps) => call(commands.install(id, steps)), 1));
 /** Rebuilds a target's game, its output in the step log, and says whether
  * it finished rather than stopped. Throws why it failed, or why the build
  * still lacks the installed hook patch. */
 export async function rebuild(name: string) {
   useSeeds.setPath("busy", true);
   try {
-    return await stepping((steps) => call(commands.rebuild(name, steps)), name);
+    return await stepping(
+      (steps) => call(commands.rebuild(name, steps)),
+      1,
+      name,
+    );
   } finally {
     useSeeds.setPath("busy", false);
     await refresh();

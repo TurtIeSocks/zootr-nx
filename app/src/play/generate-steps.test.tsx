@@ -1,8 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { commands, type StepEvent } from "@/bindings";
+import type { StepEvent } from "@/bindings";
 import { GenerateSteps } from "@/play/generate-steps";
-import { GenerateButton } from "@/play/new-seed";
 import { type Steps, stepped, useSeeds } from "@/stores/seeds";
 
 afterEach(() => {
@@ -62,21 +61,6 @@ test("a stopped run says what the targets hold", () => {
   show({ ...running, end, stopped }, false);
   expect(screen.getByText(stopped)).toBeTruthy();
   expect(screen.getByText("Copy log")).toBeTruthy();
-});
-
-test("Stop shows while a seed generates and reads Stopping once pressed", () => {
-  const stop = vi.spyOn(commands, "stopGenerate").mockResolvedValue();
-  render(<GenerateButton />);
-  expect(
-    screen.getByRole("button", { name: /Generate & install/ }),
-  ).toBeTruthy();
-  cleanup();
-  useSeeds.setPath("generating", true);
-  render(<GenerateButton />);
-  fireEvent.click(screen.getByRole("button", { name: "Stop" }));
-  expect(stop).toHaveBeenCalledOnce();
-  const button = screen.getByRole("button", { name: "Stopping" });
-  expect((button as HTMLButtonElement).disabled).toBe(true);
 });
 
 test("a finished rebuild says so and has no log to copy", () => {

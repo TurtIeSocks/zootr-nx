@@ -375,7 +375,10 @@ test("Generate only adds a seed to History while the game is open", async () => 
   expect(button("Generate & install").getAttribute("aria-disabled")).toBe(
     "true",
   );
-  fireEvent.click(button("Generate only"));
+  fireEvent.keyDown(button("More ways to generate"), { key: "Enter" });
+  fireEvent.click(
+    await screen.findByRole("menuitem", { name: /Generate only/ }),
+  );
   await waitFor(() =>
     expect(generate).toHaveBeenCalledWith(null, false, expect.anything()),
   );

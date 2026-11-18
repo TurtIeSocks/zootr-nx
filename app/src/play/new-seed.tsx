@@ -2,15 +2,11 @@ import { open as pickFile } from "@tauri-apps/plugin-dialog";
 import {
   CircleAlert,
   CircleOff,
-  CircleStop,
   Dices,
   FlaskConical,
   FolderOpen,
-  Loader2,
   type LucideIcon,
   Pin,
-  ScrollText,
-  Sparkles,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Callout, InlineError } from "@/components/callout";
@@ -19,25 +15,16 @@ import { linkClass } from "@/components/styles";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { testSummary } from "@/lib/config";
 import { count, seedOrCode } from "@/lib/format";
 import { savedAs } from "@/lib/plando";
 import { summary } from "@/lib/settings";
+import { generateKey } from "@/play/generate";
+import { GenerateButton } from "@/play/generate-button";
 import { GenerateSteps } from "@/play/generate-steps";
 import { SettingsChanged } from "@/play/settings-changed";
 import { useConfig } from "@/stores/config";
-import {
-  generate,
-  generateAp,
-  stopGenerate,
-  uninstall,
-  useSeeds,
-} from "@/stores/seeds";
+import { generateAp, uninstall, useSeeds } from "@/stores/seeds";
 import { openSettings } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
 
@@ -51,7 +38,12 @@ export function NewSeed() {
         title="New seed"
         description="Built from your current settings, or a share code's, and installed to every target"
       />
-      <div className="flex flex-col gap-3 px-4 pt-2 pb-4">
+      {/* ⌘↵ and ⇧⌘↵ work from anywhere in the folder. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: keys bubble up from its controls */}
+      <div
+        className="flex flex-col gap-3 px-4 pt-2 pb-4"
+        onKeyDown={generateKey}
+      >
         <SeedRow />
         <GenerateSteps />
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-muted">
@@ -74,30 +66,33 @@ export function NewSeed() {
   );
 }
 
-/** The seed to generate, a roll, Vanilla once something is installed, and
- * Generate. */
+/** The seed to generate with Roll inside it, Vanilla once something is
+ * installed, and Generate. */
 function SeedRow() {
   return (
     <div className="flex items-center gap-2">
       <SeedInput />
-      <RollButton />
       <VanillaButton />
       <GenerateButton />
     </div>
   );
 }
 
-/** The seed or share code to generate from; blank rolls one. */
+/** The seed or share code to generate from, blank to roll one, with Roll
+ * at its trailing edge. */
 function SeedInput() {
   const [seed, setSeed] = useUi.usePath("newSeed.seed");
   return (
-    <Input
-      className="h-10 w-60 font-mono text-[15px]"
-      placeholder="Random, or a share code"
-      aria-label="Seed or share code"
-      value={seed}
-      onChange={(e) => setSeed(seedOrCode(e.target.value))}
-    />
+    <div className="relative w-[280px]">
+      <Input
+        className="h-10 pr-10 font-mono text-[15px]"
+        placeholder="Random, or a share code"
+        aria-label="Seed or share code"
+        value={seed}
+        onChange={(e) => setSeed(seedOrCode(e.target.value))}
+      />
+      <RollButton />
+    </div>
   );
 }
 
@@ -105,8 +100,9 @@ function SeedInput() {
 function RollButton() {
   return (
     <Button
-      variant="secondary"
-      size="icon-lg"
+      variant="ghost"
+      size="icon-sm"
+      className="-translate-y-1/2 absolute top-1/2 right-1.5"
       title="Roll a seed"
       onClick={() =>
         useUi.setPath(
@@ -166,92 +162,6 @@ export function OpenApButton() {
     >
       <FolderOpen />
     </TipButton>
-  );
-}
-
-/** Generate only, which adds the seed to History, and Generate & install.
- * While a seed generates, they're Stop. */
-export function GenerateButton() {
-  const [blocked] = useSeeds.usePath("blocked");
-  const [unbuildable] = useSeeds.usePath("unbuildable");
-  const [generating] = useSeeds.usePath("generating");
-  const [stopping] = useSeeds.usePath("stopping");
-  if (generating) {
-    return (
-      <Button
-        size="lg"
-        variant="secondary"
-        className="ml-auto"
-        disabled={stopping}
-        onClick={stopGenerate}
-      >
-        {stopping ? <Loader2 className="animate-spin" /> : <CircleStop />}
-        {stopping ? "Stopping" : "Stop"}
-      </Button>
-    );
-  }
-  return (
-    <>
-      <GenerateAction
-        install={false}
-        blocked={unbuildable}
-        icon={ScrollText}
-        className="ml-auto"
-        variant="secondary"
-      >
-        Generate only
-      </GenerateAction>
-      <GenerateAction install blocked={blocked} icon={Sparkles}>
-        Generate & install
-      </GenerateAction>
-    </>
-  );
-}
-
-/** Props for {@link GenerateAction}. */
-interface GenerateActionProps {
-  /** Install the seed, else only add it to History. */
-  install: boolean;
-  /** Why it can't run, or "". */
-  blocked: string;
-  icon: LucideIcon;
-  className?: string;
-  variant?: "secondary";
-  children: ReactNode;
-}
-
-/** One way to generate from the typed seed, read on click. Blocked, it
- * stays hoverable and its tooltip says why. */
-function GenerateAction({
-  install,
-  blocked,
-  icon: Icon,
-  className,
-  variant,
-  children,
-}: GenerateActionProps) {
-  const [busy] = useSeeds.usePath("busy");
-  return (
-    <Tooltip open={blocked ? undefined : false}>
-      <TooltipTrigger asChild>
-        <Button
-          size="lg"
-          variant={variant}
-          className={className}
-          disabled={busy}
-          aria-disabled={!!blocked || undefined}
-          onClick={
-            blocked
-              ? undefined
-              : () => generate(useUi.getPath("newSeed.seed") || null, install)
-          }
-        >
-          {busy ? <Loader2 className="animate-spin" /> : <Icon />}
-          {children}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{blocked}</TooltipContent>
-    </Tooltip>
   );
 }
 
