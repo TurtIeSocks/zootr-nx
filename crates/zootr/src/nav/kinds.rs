@@ -59,7 +59,7 @@ const fn kind(segment: &'static str, word: &'static str, act: Option<Act>) -> Ki
 
 /// In the order they're tried: a scrub's actor is a scrub before it
 /// is an enemy.
-const KINDS: [Kind; 19] = [
+const KINDS: [Kind; 23] = [
     kind("Door", "door", Some(Act::Through { stand: 1.0 })),
     // A chained door: A spends a key, from 0.6 m off the lock (Forest
     // Temple, Mac, 2026-11-16).
@@ -93,6 +93,11 @@ const KINDS: [Kind; 19] = [
     kind("Enemy", "enemy", None),
     kind("Item", "item", Some(Act::Over)),
     kind("Container", "item", Some(Act::Face { stand: 0.5 })),
+    // Before a tree: the Deku Tree's ladder is a ladder.
+    kind("Ladder", "ladder", None),
+    kind("Climbable", "climb wall", None),
+    kind("ClimbWall", "climb wall", None),
+    kind("ClimbPlayer", "climb wall", None),
     kind("Tree", "tree", None),
     kind("Cliff", "cliff", None),
     kind("Interior", "house", None),
@@ -106,6 +111,13 @@ pub fn kind_of(name: &str) -> Option<&'static Kind> {
     KINDS
         .iter()
         .find(|k| name.split('_').any(|part| part.ends_with(k.segment)))
+}
+
+/// Whether Link climbs a placement named `name`: a ladder, or a wall of
+/// ivy or grating. Only one with a shape of its own climbs: hanging vines
+/// and wind ivy have none, so they're scenery.
+pub fn climbs(name: &str) -> bool {
+    matches!(word(name), Some("ladder" | "climb wall"))
 }
 
 /// The word for a placement's name.
@@ -134,7 +146,7 @@ mod tests {
     #[test]
     fn placements_are_named_by_their_kind() {
         needs_names!();
-        let cases: [(&str, &str); 10] = [
+        let cases: [(&str, &str); 14] = [
             (actor::LAND_KOKIRI_CLIFF_E_05, "cliff"),
             ("Tree_FakeKokiri", "tree"),
             (actor::LAND_KOKIRI_DEKU_TREE_A_01, "tree"),
@@ -145,6 +157,13 @@ mod tests {
             (actor::ENEMY_SCRUB_BUSINESS, "scrub"),
             (actor::LAND_KOKIRI_INTERIOR_A_01, "house"),
             (actor::LAND_KOKIRI_HOUSE_OUTSIDE_D_00, "house"),
+            (
+                actor::OBJ_INSIDE_THE_DEKU_TREE_FALLING_LADDER_A_01,
+                "ladder",
+            ),
+            (actor::LAND_IVY_CLIMBABLE_A_01, "climb wall"),
+            (actor::LAND_SPIRIT_TEMPLE_CLIMB_WALL_A_07, "climb wall"),
+            (actor::FLD_OBJ_AIR_WALL_CLIMB_PLAYER, "climb wall"),
         ];
         for (name, word) in cases {
             assert_eq!(super::word(name), Some(word), "{name}");
