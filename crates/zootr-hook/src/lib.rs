@@ -16,7 +16,8 @@
 //! content as the level it now gives. `granted` also credits key copies
 //! from every holder that adds to the pouch, and `picked`, as a pickup
 //! window opens, from the floor, whose take stocks the pouch without the
-//! add.
+//! add. `taken`, as any take goes into the pouch, window or not, sets the
+//! flag of the twinned holder (a pot, box, rock or hive) whose drop it was.
 //!
 //! A seed with the Bunny Hood setting takes the run's speed request too:
 //! `run_speed` makes it half again as fast while Link wears the hood.
@@ -47,8 +48,8 @@ pub use table::SlotSpec;
 #[cfg(not(target_os = "none"))]
 pub use table::encode;
 pub use table::{
-    BUNNY_HOOD, Credit, FREE_BOMBCHUS, HEADER, Header, Level, Levels, MAGIC, Offsets, Slot,
-    TRADE_CYCLE, Table, after_grant, pick, pick_with,
+    BUNNY_HOOD, Credit, FREE_BOMBCHUS, HEADER, Header, Level, Levels, MAGIC, Offsets, REACH, Slot,
+    Spot, TRADE_CYCLE, Table, after_grant, fnv, pick, pick_with,
 };
 
 /// Where our pieces go in `main`, for game 1.1.1. The code goes over
@@ -66,4 +67,4 @@ pub const PANIC: u32 = 0x4e9_aff0;
 /// listed, then the full key, handheld and joy dual controller reads. The
 /// patch writes a `b` into each: past the hooked function's pacibsp, or to
 /// the game's `GetNpadStates` stub for that style.
-pub const SLOTS: u32 = 56;
+pub const SLOTS: u32 = 60;

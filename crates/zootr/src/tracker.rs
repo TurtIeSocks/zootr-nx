@@ -2,8 +2,8 @@
 //! gifts by the played flag of their event, scrubs by their sold flag, cows
 //! and Gerudo thieves by their own, and Gold Skulltulas, heart pieces and
 //! the like by their per-placement flag (Bool64bitKey) that never resets.
-//! Pots, rocks, boxes and hives have one that resets, set on the break,
-//! so they don't tick yet. See `docs/research/chests.md` and
+//! Pots, rocks, boxes and hives by the seed's Bool the hook sets once
+//! their drop is picked up (`picked`). See `docs/research/chests.md` and
 //! `docs/research/tracker-flags.md`.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -17,7 +17,7 @@ use crate::generate::Spot;
 use crate::gifts::GIFTS;
 use crate::history::{Entry, Mark};
 use crate::savefile::Change;
-use crate::{cows, fortress, scrubs};
+use crate::{cows, fortress, picked, scrubs};
 
 /// Struct whose members are named by a chest's placement hash in decimal
 /// and hold its opened flag.
@@ -80,11 +80,13 @@ impl Tracker {
                 scrubs::at(spot.hash),
                 cows::flag_at(spot.hash),
                 fortress::got(&spot.vanilla, &spot.item),
+                picked::flag_at(&spot.holder, spot.hash),
             ) {
                 (Some(g), ..) => g.found(),
                 (_, Some(s), ..) => s.sold(&spot.item),
-                (_, _, Some(cow), _) => Some(cow),
-                (.., Some(thief)) => Some(thief),
+                (_, _, Some(cow), ..) => Some(cow),
+                (.., Some(thief), _) => Some(thief),
+                (.., Some(picked)) => Some(picked),
                 _ => {
                     let key = gd.has_key(spot.hash).then_some(Flag::Key(spot.hash));
                     return chests(spot.hash).map(Flag::Bool).or(key);
@@ -343,6 +345,21 @@ mod tests {
         let hash = 11142894434822030727;
         let t = Tracker::new(&gd, &[spot(hash)]).unwrap();
         let flag = cows::flag_at(hash).unwrap();
+        assert_eq!(t.flag(hash), Some(Flag::Bool(murmur3(flag.as_bytes()))));
+    }
+
+    #[test]
+    fn a_pot_ticks_once_its_drop_is_picked_up() {
+        let Some(romfs) = dev_dump() else { return };
+        let gd = GameData::load(&romfs).unwrap();
+        // Kokiri Forest's rock, whose own key resets with its area.
+        let hash = 6429280567576879719;
+        let rock = Spot {
+            holder: crate::known::actor::OBJ_LIFT_ROCK_A_01.to_string(),
+            ..spot(hash)
+        };
+        let t = Tracker::new(&gd, &[rock]).unwrap();
+        let flag = picked::flag(hash);
         assert_eq!(t.flag(hash), Some(Flag::Bool(murmur3(flag.as_bytes()))));
     }
 

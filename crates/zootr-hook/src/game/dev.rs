@@ -51,8 +51,8 @@ const CLOCK: usize = 0x510;
 /// Link's components, and the steps from them to his character
 /// controller.
 const COMPONENTS: usize = 624;
-/// Link's position.
-const POSITION: usize = 796;
+/// An actor's position, Link's and a pickup's alike.
+pub(super) const POSITION: usize = 796;
 const CONTROLLER: [usize; 4] = [80, 32, 16, 8];
 
 pub unsafe fn serve(main: usize, o: &Offsets, actor: usize) {

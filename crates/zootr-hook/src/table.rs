@@ -1,10 +1,11 @@
 //! The table the seed writes into the game: its header, the offsets of what
 //! the hook needs, the progressive lines, how a level is picked, the
-//! flags an item sets as it's found, and the menu slot Link cycles.
+//! flags an item sets as it's found, the menu slot Link cycles, and the
+//! twinned holders whose drop sets a flag as Link takes it.
 
 use crate::ui::MultiSlot;
 
-pub const MAGIC: &[u8; 4] = b"ZLT6";
+pub const MAGIC: &[u8; 4] = b"ZLT7";
 
 /// The header's flag for a seed whose bombchus need no bomb bag.
 pub const FREE_BOMBCHUS: u32 = 1;
@@ -28,6 +29,8 @@ pub struct Header {
     pub credits: u32,
     /// The size of the [`Slot`] after them, 0 for none.
     pub slot: u32,
+    /// The size of the [`Spot`]s after it.
+    pub spots: u32,
 }
 
 const _: () = assert!(cfg!(target_endian = "little"));
@@ -84,12 +87,14 @@ offsets! {
     /// A holder slot's vtable.
     slot_vtable,
     /// The hooked functions: map loaded, chest content made, pouch add,
-    /// Link's update, a pickup window opening.
+    /// Link's update, a pickup window opening, and a pickup going into
+    /// the pouch, with a window or without.
     map_loaded,
     chest_made,
     granted,
     link_update,
     picked,
+    taken,
     /// The game's own `malloc`.
     malloc,
     /// Builds an event request in place.
@@ -149,6 +154,7 @@ pub struct Table<'a> {
     lines: &'a [u8],
     credits: &'a [u8],
     pub slot: Option<Slot<'a>>,
+    spots: &'a [u8],
 }
 
 impl<'a> Table<'a> {
@@ -156,13 +162,15 @@ impl<'a> Table<'a> {
     pub fn parse(header: &'a Header, body: &'a [u8]) -> Option<Self> {
         let (lines, rest) = body.split_at_checked(header.size as usize)?;
         let (credits, rest) = rest.split_at_checked(header.credits as usize)?;
-        let slot = rest.get(..header.slot as usize)?;
+        let (slot, rest) = rest.split_at_checked(header.slot as usize)?;
+        let spots = rest.get(..header.spots as usize)?;
         (header.magic == *MAGIC).then_some(Self {
             offsets: &header.offsets,
             flags: header.flags,
             lines,
             credits,
             slot: Slot::parse(slot),
+            spots,
         })
     }
 
@@ -178,6 +186,23 @@ impl<'a> Table<'a> {
             rest = &after[len as usize + 1 + Credit::SIZE..];
         }
         None
+    }
+
+    /// The flag of the holder whose drop Link just took: `name`, lying
+    /// `at`. The nearest within [`REACH`] that drops that name, of those
+    /// not yet `picked`. Two holders dropping the same name that close
+    /// may swap ticks, which leaves Link the same item either way.
+    pub fn spot(&self, name: &[u8], at: [f32; 3], picked: impl Fn(u32) -> bool) -> Option<u32> {
+        let name = Spot::name_hash(name);
+        let (chunks, _) = self.spots.as_chunks::<{ Spot::SIZE }>();
+        chunks
+            .iter()
+            .map(Spot::read)
+            .filter(|s| s.name == name)
+            .map(|s| (s.distance2(at), s.flag))
+            .filter(|&(d, flag)| d <= REACH * REACH && !picked(flag))
+            .min_by(|a, b| a.0.total_cmp(&b.0))
+            .map(|(_, flag)| flag)
     }
 
     /// The level that drops or is owned as `name`, with its line's number
@@ -237,6 +262,60 @@ impl Credit {
         out[5..].copy_from_slice(&value.to_le_bytes());
         out
     }
+}
+
+/// How far a drop may lie from its holder, in metres: a pot thrown breaks
+/// where it lands.
+pub const REACH: f32 = 8.0;
+
+/// A twinned holder (a pot, box, rock or hive) in the table: the Bool its
+/// drop sets once taken, the drop's name by [`Spot::name_hash`], and where
+/// the holder stands, in whole metres. Little endian.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Spot {
+    pub flag: u32,
+    pub name: u16,
+    pub at: [i16; 3],
+}
+
+impl Spot {
+    const SIZE: usize = 12;
+
+    /// The low half of a name's FNV-1a.
+    pub fn name_hash(name: &[u8]) -> u16 {
+        fnv(name) as u16
+    }
+
+    fn read(&[f0, f1, f2, f3, n0, n1, x0, x1, y0, y1, z0, z1]: &[u8; Self::SIZE]) -> Self {
+        Self {
+            flag: u32::from_le_bytes([f0, f1, f2, f3]),
+            name: u16::from_le_bytes([n0, n1]),
+            at: [[x0, x1], [y0, y1], [z0, z1]].map(i16::from_le_bytes),
+        }
+    }
+
+    #[cfg(not(target_os = "none"))]
+    fn bytes(self) -> impl Iterator<Item = u8> {
+        let at = self.at.into_iter().flat_map(i16::to_le_bytes);
+        (self.flag.to_le_bytes().into_iter())
+            .chain(self.name.to_le_bytes())
+            .chain(at)
+    }
+
+    fn distance2(&self, at: [f32; 3]) -> f32 {
+        at.iter()
+            .zip(self.at)
+            .map(|(a, s)| a - f32::from(s))
+            .map(|d| d * d)
+            .sum()
+    }
+}
+
+/// FNV-1a, the hook's name hash.
+pub fn fnv(name: &[u8]) -> u32 {
+    name.iter().fold(0x811c_9dc5_u32, |h, &b| {
+        (h ^ u32::from(b)).wrapping_mul(0x0100_0193)
+    })
 }
 
 /// A line's levels, lowest first.
@@ -383,7 +462,8 @@ pub fn after_grant<'a>(
 }
 
 /// The table for `lines`, each lowest level first as (drop, pouch name),
-/// with the seed's `flags`, `credits` by name and the `slot` Link cycles.
+/// with the seed's `flags`, `credits` by name, the `slot` Link cycles and
+/// the twinned holders' `spots`.
 #[cfg(not(target_os = "none"))]
 pub fn encode(
     offsets: Offsets,
@@ -391,6 +471,7 @@ pub fn encode(
     lines: &[&[(&str, &str)]],
     credits: &[(&str, Credit)],
     slot: Option<&SlotSpec>,
+    spots: &[Spot],
 ) -> Vec<u8> {
     fn push_name(out: &mut Vec<u8>, name: &str) {
         out.push(u8::try_from(name.len()).expect("a name is under 256 bytes"));
@@ -419,7 +500,9 @@ pub fn encode(
             push_name(&mut body, name);
         }
     }
-    let words = [size, credits, body.len() - size - credits]
+    let slot = body.len() - size - credits;
+    body.extend(spots.iter().flat_map(|s| s.bytes()));
+    let words = [size, credits, slot, spots.len() * Spot::SIZE]
         .map(|n| u32::try_from(n).expect("table under 4 GB"));
     let mut out = MAGIC.to_vec();
     for v in offsets.words().into_iter().chain([flags]).chain(words) {
@@ -447,11 +530,41 @@ mod tests {
         ("Key_04", Credit::Add(0xfeed_face, 1)),
     ];
 
+    /// Two pots dropping a green rupee 3 m apart, one a stand-in further
+    /// on, and one far off.
+    const SPOTS: &[Spot] = &[
+        spot(1, "Obj_FakeGreen", [10, 0, 10]),
+        spot(2, "Obj_FakeGreen", [13, 0, 10]),
+        spot(3, "Obj_FakeStandIn_001", [16, 0, 10]),
+        spot(4, "Obj_FakeGreen", [100, 0, 10]),
+    ];
+
+    const fn spot(flag: u32, name: &str, at: [i16; 3]) -> Spot {
+        // FNV-1a's low half, by hand, since `fnv` isn't const.
+        let (b, mut h, mut i) = (name.as_bytes(), 0x811c_9dc5_u32, 0);
+        while i < b.len() {
+            h = (h ^ b[i] as u32).wrapping_mul(0x0100_0193);
+            i += 1;
+        }
+        Spot {
+            flag,
+            name: h as u16,
+            at,
+        }
+    }
+
     fn with_table<T>(f: impl FnOnce(Table) -> T) -> T {
-        let bytes = encode(offsets(), 0, &[HOOK, BAGS, GLOVES], CREDITS, Some(&SLOT));
+        let bytes = encode(
+            offsets(),
+            0,
+            &[HOOK, BAGS, GLOVES],
+            CREDITS,
+            Some(&SLOT),
+            SPOTS,
+        );
         let header = Header::read(&bytes);
         assert_eq!(
-            (header.size + header.credits + header.slot) as usize,
+            (header.size + header.credits + header.slot + header.spots) as usize,
             bytes.len() - HEADER
         );
         f(Table::parse(&header, &bytes[HEADER..]).unwrap())
@@ -536,7 +649,7 @@ mod tests {
 
     #[test]
     fn a_wrong_magic_is_no_table() {
-        let mut bytes = encode(offsets(), 0, &[HOOK], &[], None);
+        let mut bytes = encode(offsets(), 0, &[HOOK], &[], None, &[]);
         bytes[0] = b'X';
         assert!(Table::parse(&Header::read(&bytes), &bytes[HEADER..]).is_none());
     }
@@ -559,7 +672,7 @@ mod tests {
 
     #[test]
     fn a_table_cut_short_is_no_table() {
-        let bytes = encode(offsets(), 0, &[HOOK], CREDITS, Some(&SLOT));
+        let bytes = encode(offsets(), 0, &[HOOK], CREDITS, Some(&SLOT), SPOTS);
         let cut = &bytes[HEADER..bytes.len() - 1];
         assert!(Table::parse(&Header::read(&bytes), cut).is_none());
     }
@@ -586,7 +699,7 @@ mod tests {
 
     #[test]
     fn a_table_without_a_slot_has_none() {
-        let bytes = encode(offsets(), 0, &[HOOK], CREDITS, None);
+        let bytes = encode(offsets(), 0, &[HOOK], CREDITS, None, &[]);
         let header = Header::read(&bytes);
         assert!(
             Table::parse(&header, &bytes[HEADER..])
@@ -594,5 +707,36 @@ mod tests {
                 .slot
                 .is_none()
         );
+    }
+
+    fn take(name: &str, at: [f32; 3], picked: &[u32]) -> Option<u32> {
+        with_table(|t| t.spot(name.as_bytes(), at, |f| picked.contains(&f)))
+    }
+
+    #[test]
+    fn a_take_ticks_the_nearest_holder_dropping_that_name() {
+        assert_eq!(take("Obj_FakeGreen", [10.4, 0.2, 9.0], &[]), Some(1));
+        assert_eq!(take("Obj_FakeGreen", [12.0, 0.0, 10.0], &[]), Some(2));
+        assert_eq!(take("Obj_FakeStandIn_001", [10.0, 0.0, 10.0], &[]), Some(3));
+    }
+
+    #[test]
+    fn a_picked_holder_passes_the_tick_to_the_next() {
+        assert_eq!(take("Obj_FakeGreen", [10.0, 0.0, 10.0], &[1]), Some(2));
+        assert_eq!(take("Obj_FakeGreen", [10.0, 0.0, 10.0], &[1, 2]), None);
+    }
+
+    #[test]
+    fn a_take_far_from_every_holder_or_of_another_name_ticks_none() {
+        assert_eq!(take("Obj_FakeGreen", [50.0, 0.0, 10.0], &[]), None);
+        assert_eq!(take("Obj_FakeGreen", [10.0, 9.0, 10.0], &[]), None);
+        assert_eq!(take("Obj_FakeBlue", [10.0, 0.0, 10.0], &[]), None);
+        assert_eq!(take("Obj_FakeGreen", [100.0, 7.0, 13.0], &[]), Some(4));
+    }
+
+    #[test]
+    fn the_name_hash_is_fnvs_low_half() {
+        assert_eq!(Spot::name_hash(b"Obj_FakeGreen"), SPOTS[0].name);
+        assert_eq!(fnv(b""), 0x811c_9dc5);
     }
 }

@@ -49,6 +49,9 @@ pub enum Probe {
         #[arg(long)]
         member: bool,
     },
+    /// A placement's own key (GameData's Bool64bitKey entry), by its
+    /// placement hash in decimal.
+    Key { hash: u64 },
     /// An actor pack's files, or the files whose names contain `file`.
     Pack { actor: String, file: Option<String> },
     /// Each text's murmur3, the way GameData keys its names, then the
@@ -273,6 +276,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             exps,
             member,
         } => data(romfs, &key, holders, exps, member),
+        Probe::Key { hash } => key(romfs, hash),
         Probe::Pack { actor, file } => pack(romfs, &actor, file.as_deref()),
         Probe::Hash { text } => {
             text.iter().for_each(|t| {
@@ -410,6 +414,20 @@ fn print_actors(romfs: &Romfs, f: &Filter) -> Result<()> {
         println!("{line}");
     }
     eprintln!("{} placements", hits.len());
+    Ok(())
+}
+
+fn key(romfs: &Romfs, hash: u64) -> Result<()> {
+    let doc = ounce_formats::BymlDoc::parse(&romfs.read(crate::gamedata::PATH)?)?;
+    let keyed = doc.root.as_map()?["Data"].as_map()?[ounce_formats::KEYED].as_array()?;
+    let found = keyed.iter().find(|e| {
+        let h = e.as_map().ok().and_then(|m| m.get("Hash"));
+        h.and_then(|h| crate::gamedata::int(h).ok()) == Some(hash as i64)
+    });
+    match found {
+        Some(e) => println!("{e:?}"),
+        None => println!("no key {hash}"),
+    }
     Ok(())
 }
 

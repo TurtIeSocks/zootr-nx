@@ -63,6 +63,7 @@ mod names;
 pub mod nav;
 mod navi;
 mod patch;
+mod picked;
 mod pickups;
 pub mod places;
 pub mod platform;

@@ -3,7 +3,7 @@
 
 use core::{arch::asm, arch::global_asm, slice};
 
-use crate::{CAVE, Credit, Credited, HEADER, Header, LIST, List, Shared, TABLE, Table};
+use crate::{CAVE, Credit, Credited, HEADER, Header, LIST, List, Shared, TABLE, Table, fnv};
 
 mod bunny;
 mod chests;
@@ -24,8 +24,8 @@ const MAX: usize = 128;
 
 // The call sites `bl` to content_name at +0, drop_actor at +4, run_speed
 // at +24 and the controller reads to +32, +36 and +40. The hooked
-// functions `b` to +8, +12, +16, +20, +28, +44, +48 and +52 in place of
-// their pacibsp.
+// functions `b` to +8, +12, +16, +20, +28, +44, +48, +52 and +56 in place
+// of their pacibsp.
 // The opening node is in x20 at both content_name call sites.
 //
 // A function hook keeps every argument register and the link register,
@@ -111,6 +111,7 @@ global_asm!(
     "b items_built_entry",
     "b items_left_entry",
     "b ui_update_entry",
+    "b taken_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -127,6 +128,8 @@ global_asm!(
     "items_left_resume:",
     "brk #0",
     "ui_update_resume:",
+    "brk #0",
+    "taken_resume:",
     "brk #0",
     "npad_full_stub:",
     "brk #0",
@@ -148,6 +151,8 @@ global_asm!(
     "function_hook link_update, link_update_resume",
     "picked_entry:",
     "function_hook picked, picked_resume",
+    "taken_entry:",
+    "function_hook taken, taken_resume",
     "npad_full_entry:",
     "npad_read npad_full_stub",
     "npad_handheld_entry:",
@@ -182,7 +187,7 @@ fn table() -> Option<(usize, Table<'static>)> {
     // SAFETY: the cheat writes the table at `TABLE`, 8 byte aligned.
     let header = unsafe { &*((main + TABLE as usize) as *const Header) };
     let at = (header as *const Header).cast::<u8>();
-    let size = (header.size + header.credits + header.slot) as usize;
+    let size = (header.size + header.credits + header.slot + header.spots) as usize;
     let body = unsafe { slice::from_raw_parts(at.add(HEADER), size) };
     Some((main, Table::parse(header, body)?))
 }
@@ -352,10 +357,10 @@ unsafe fn credit(main: usize, table: &Table, added: &[u8], picked: bool) {
     let Some(credit) = table.credit(added) else {
         return;
     };
-    let name = added.iter().fold(0x811c_9dc5_u32, |h, &b| {
-        (h ^ u32::from(b)).wrapping_mul(0x0100_0193)
-    });
-    let note = Credited { name, picked };
+    let note = Credited {
+        name: fnv(added),
+        picked,
+    };
     if !shared(main).with(|l| l.first_credit(note)) {
         return;
     }
@@ -371,6 +376,38 @@ unsafe fn credit(main: usize, table: &Table, added: &[u8], picked: bool) {
         }
     }
 }
+
+/// Link takes a pickup into the pouch, window or not: set the flag of the
+/// twinned holder it dropped from. A repeat take opens no window, so
+/// `picked` misses it, and skips the pickup's own event too.
+///
+/// # Safety
+/// Only the hooked function's entry calls this.
+#[unsafe(no_mangle)]
+unsafe extern "C" fn taken(pouched: usize) {
+    hooked(|main, table| unsafe {
+        let Some(actor) = at(pouched, OWNER) else {
+            return;
+        };
+        let Some(name) = at(actor, ACTOR_NAME).and_then(|p| name(p as *const u8)) else {
+            return;
+        };
+        let lies = *((actor + dev::POSITION) as *const [f32; 3]);
+        let Some(gd) = dev::single(main, table.offsets.gamedata) else {
+            return;
+        };
+        // A flag missing from GameData counts as picked, so nothing sets it.
+        let picked = |flag| dev::get_bool(main, table.offsets, gd, flag) != Some(false);
+        if let Some(flag) = table.spot(name, lies, picked) {
+            dev::set_bool(main, table.offsets, gd, flag, true);
+        }
+    })
+}
+
+/// The pickup a pouch content belongs to.
+const OWNER: usize = 0x18;
+/// An actor's name.
+const ACTOR_NAME: usize = 0x260;
 
 /// Link is about to update: hold what the dev switches hold, run the app's
 /// request, if there is one, and between events forget the last credit.
