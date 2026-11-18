@@ -362,6 +362,7 @@ mod tests {
             player: 1,
             start: vec![],
             death_link: false,
+            players: BTreeMap::new(),
             placements: BTreeMap::new(),
         };
         history.add(Settings::new(), Extras::ap(ap), Label::default(), report(1));
