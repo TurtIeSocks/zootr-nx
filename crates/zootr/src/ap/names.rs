@@ -119,8 +119,20 @@ pub fn area(folder: &str) -> Result<&'static str> {
     find(AREAS, folder).with_context(|| format!("no Archipelago name for area {folder}"))
 }
 
+/// Items AP counts as another, which gives the same: the running man's
+/// Purple Rupee pays what a chest's does.
+const SAME: &[(&Name, &Name)] = &[(actor::OBJ_RUPEE_PURPLE, actor::T_BOX_RUPEE_PURPLE)];
+
+/// The item AP counts `actor` as.
+pub fn same(actor: &str) -> &str {
+    SAME.iter()
+        .find(|(a, _)| a.get() == actor)
+        .map_or(actor, |(_, to)| to.get())
+}
+
 /// The item's name: its line's with progressive items on, else its own.
 pub fn item(actor: &str, progressive: bool) -> Result<&'static str> {
+    let actor = same(actor);
     let line = progressive
         .then(|| LINES.iter().find(|l| l[0].0.get() == actor))
         .flatten();
@@ -185,4 +197,19 @@ fn title(text: &str) -> String {
             .unwrap_or_default()
     };
     text.split(' ').map(word).collect::<Vec<String>>().join(" ")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_running_man_s_purple_rupee_is_a_chest_s_to_ap() {
+        let race = item(actor::OBJ_RUPEE_PURPLE, false).unwrap();
+        assert_eq!(race, item(actor::T_BOX_RUPEE_PURPLE, false).unwrap());
+        assert_eq!(
+            same(actor::OBJ_RUPEE_PURPLE),
+            actor::T_BOX_RUPEE_PURPLE.get()
+        );
+    }
 }

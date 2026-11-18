@@ -16,6 +16,7 @@ use archipelago_rs::{self as ap, ClientStatus, ConnectionOptions, ConnectionStat
 use ounce_formats::Romfs;
 
 use super::ids::Ids;
+use super::names;
 use super::seed::Dealt;
 use super::{ApSeed, GAME, RECEIVED};
 use crate::dev::Dev;
@@ -55,7 +56,7 @@ impl Book {
             .filter_map(|&h| Some((h, ids.location_id(h)?)))
             .map(|(h, l)| Ok((h, id(l)?)))
             .collect::<Result<_>>()?;
-        let actors = (ids.actors(dealt.pool.iter().map(String::as_str)))
+        let actors = (ids.actors(dealt.pool.iter().map(|a| names::same(a))))
             .into_iter()
             .map(|(i, a)| Ok((id(i)?, a.to_owned())))
             .collect::<Result<_>>()?;
