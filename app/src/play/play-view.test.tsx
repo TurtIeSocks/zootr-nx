@@ -41,6 +41,7 @@ const seed = {
   test: false,
   plando: false,
   ap_slot: null,
+  death_link: false,
 };
 
 const ok = { status: "ok", data: null } as const;

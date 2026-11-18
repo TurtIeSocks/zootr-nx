@@ -883,6 +883,8 @@ export type Summary = {
 	plando: boolean,
 	/**  The slot, for a seed opened from an Archipelago `.apznx`. */
 	ap_slot: string | null,
+	/**  The slot plays DeathLink. */
+	death_link: boolean,
 };
 
 /**  A runner a seed installs to. Nothing here knows which runner it is. */

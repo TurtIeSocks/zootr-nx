@@ -69,6 +69,7 @@ const installed = (settings: Settings): Summary => ({
   test: false,
   plando: false,
   ap_slot: null,
+  death_link: false,
 });
 
 function show({

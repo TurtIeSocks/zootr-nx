@@ -24,6 +24,7 @@ const seed: Summary = {
   test: false,
   plando: false,
   ap_slot: "FakeSlot",
+  death_link: false,
 };
 
 function show(status: "offline" | "connected", log: string[] = []) {
