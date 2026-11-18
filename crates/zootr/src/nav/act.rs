@@ -107,7 +107,7 @@ pub fn stand(graph: &Graph, placement: &Placement, act: Act, link: [f32; 3]) -> 
 
 /// [`stand`], trying the `first` side, then `then`'s, before the others, with the side a
 /// thing to face is faced from.
-fn stand_from(
+pub(super) fn stand_from(
     graph: &Graph,
     placement: &Placement,
     act: Act,
@@ -151,7 +151,7 @@ fn within_reach(went: &Went, short: Option<f32>, reach: f32) -> bool {
 }
 
 /// How `use` acts on `placement`, or why it can't.
-fn act_of(placement: &Placement) -> Result<Act> {
+pub(super) fn act_of(placement: &Placement) -> Result<Act> {
     kinds::kind_of(&placement.name)
         .and_then(|k| k.act)
         .with_context(|| format!("{} isn't something `use` knows how to use", placement.name))
