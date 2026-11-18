@@ -509,6 +509,7 @@ mod tests {
                 settings::POTS,
                 settings::CRATES,
                 settings::ROCKS,
+                settings::GRASS,
                 settings::HIVES,
                 settings::COWS,
                 settings::SKIP_ALL,

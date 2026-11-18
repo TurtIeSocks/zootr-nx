@@ -95,6 +95,7 @@ pub const MIXES: [(&str, &[&str]); 4] = [
             settings::POTS,
             settings::CRATES,
             settings::ROCKS,
+            settings::GRASS,
             settings::HIVES,
             settings::COWS,
             settings::MERCHANTS,

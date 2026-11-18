@@ -38,6 +38,12 @@ pub const ROLL: Blow = &[("LUp", 100), ("LUp+A", 400)];
 /// or two ahead.
 pub const THROW: Blow = &[("A", 1500), ("A", PRESS)];
 
+/// A pot or grass, struck with the sword where it stands.
+const SLASH: Act = Act::Break {
+    stand: 0.7,
+    by: SWORD,
+};
+
 /// A kind of placement: the name segment that marks it, the word that
 /// shows for it and how `use` acts, when it can be used.
 #[derive(Debug, PartialEq)]
@@ -53,20 +59,16 @@ const fn kind(segment: &'static str, word: &'static str, act: Option<Act>) -> Ki
 
 /// In the order they're tried: a scrub's actor is a scrub before it
 /// is an enemy.
-const KINDS: [Kind; 17] = [
+const KINDS: [Kind; 19] = [
     kind("Door", "door", Some(Act::Through { stand: 1.0 })),
     // A chained door: A spends a key, from 0.6 m off the lock (Forest
     // Temple, Mac, 2026-11-16).
     kind("Lock", "lock", Some(Act::Face { stand: 0.6 })),
     kind("TBox", "chest", Some(Act::Face { stand: 0.8 })),
-    kind(
-        "Pot",
-        "pot",
-        Some(Act::Break {
-            stand: 0.7,
-            by: SWORD,
-        }),
-    ),
+    kind("Pot", "pot", Some(SLASH)),
+    // Hyrule Field's shrubs are named for their drop table, not as grass.
+    kind("Grass", "grass", Some(SLASH)),
+    kind("DropFixed", "grass", Some(SLASH)),
     kind(
         "Box",
         "box",
@@ -172,11 +174,13 @@ mod tests {
         assert_eq!(act(actor::NPC_MIDO), Some(Act::Face { stand: 1.2 }));
         let lock = Some(Act::Face { stand: 0.6 });
         assert_eq!(act(actor::OBJ_DOOR_CHAIN_LOCK_A_01), lock);
-        let sword = Act::Break {
-            stand: 0.7,
-            by: SWORD,
-        };
-        assert_eq!(act(actor::OBJ_POT_A_01), Some(sword));
+        assert_eq!(act(actor::OBJ_POT_A_01), Some(SLASH));
+        assert_eq!(act(actor::OBJ_PLANT_GRASS_A_03), Some(SLASH));
+        assert_eq!(
+            act(actor::LAND_KOKIRI_PLANT_A_02_DROP_FIXED_03),
+            Some(SLASH)
+        );
+        assert_eq!(act(actor::ENEMY_FLYING_POT_SPIRIT_TEMPLE), Some(SLASH));
         let roll = Act::Break {
             stand: 1.4,
             by: ROLL,
