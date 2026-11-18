@@ -115,7 +115,6 @@ fn graph_bytes(romfs: &Romfs, path: &str) -> Result<Vec<u8>> {
 /// name.
 pub(super) fn pool(romfs: &Romfs, seed: u64, untracked: bool) -> Result<()> {
     use crate::sweep::night::{self, MIXES, mix};
-    use crate::sweep::plan::Trigger;
     let dir = std::env::temp_dir().join("zootr-probe-pool");
     let (_, settings) = mix(MIXES.len() - 1);
     let places = crate::dev::places(romfs)?;
@@ -131,10 +130,7 @@ pub(super) fn pool(romfs: &Romfs, seed: u64, untracked: bool) -> Result<()> {
         return Ok(());
     }
     for p in pool {
-        let how = match &p.trigger {
-            Trigger::Skip(why) => format!("skip: {why}"),
-            t => night::kind(t).into(),
-        };
+        let how = night::how(&p.trigger);
         println!(
             "{:<20} {:<24} {how:<10} {}",
             p.spot.hash,

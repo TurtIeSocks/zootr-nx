@@ -23,6 +23,18 @@ pub enum Narrowing {
     ScrubSeed,
 }
 
+impl Narrowing {
+    /// Its number in the EIE spec's list.
+    pub fn number(self) -> u8 {
+        match self {
+            Self::Uncredited => 1,
+            Self::AsksPouch => 4,
+            Self::Minigame => 8,
+            Self::ScrubSeed => 9,
+        }
+    }
+}
+
 /// Why a check stays out of the shuffle.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum LeftOut {
@@ -36,6 +48,12 @@ pub enum LeftOut {
 
 /// What a map or compass gives depends on the dungeon it's found in.
 pub(crate) const OWN_DUNGEON: [&Name; 2] = [item::DUNGEON_MAP, item::DUNGEON_COMPASS];
+
+/// Whether `c` may hold a map or compass found in `area`: each moves only
+/// into a chest of the area it came from (EIE #3).
+pub(crate) fn holds_map_from(c: &ItemCheck, area: &str) -> bool {
+    c.area == area && !gifts::is_gift(c)
+}
 
 /// Whether `new_game` moves maps and compasses around their own dungeon.
 pub(crate) fn maps_move(new_game: &NewGame) -> bool {

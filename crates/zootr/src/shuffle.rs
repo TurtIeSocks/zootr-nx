@@ -7,7 +7,9 @@ use anyhow::{Context, Result, bail};
 use crate::checks::{Drop, ItemCheck};
 use crate::keys;
 use crate::known::item;
-use crate::narrowing::{Let, OWN_DUNGEON, allowed, asks_at, maps_move, shuffleable};
+use crate::narrowing::{
+    Let, OWN_DUNGEON, allowed, asks_at, holds_map_from, maps_move, shuffleable,
+};
 use crate::rng::Rng;
 use crate::settings::NewGame;
 use crate::starting;
@@ -71,7 +73,7 @@ pub fn own_dungeon(
     for (area, item) in moving {
         let spots: Vec<_> = chests
             .iter()
-            .filter(|c| c.area == area && !gifts::is_gift(c) && !fixed.contains_key(&c.hash))
+            .filter(|c| holds_map_from(c, area) && !fixed.contains_key(&c.hash))
             .collect();
         let spot = spots.get(rng.below(spots.len() as u64) as usize);
         let spot = spot.with_context(|| format!("no chest left in {area} for {item}"))?;

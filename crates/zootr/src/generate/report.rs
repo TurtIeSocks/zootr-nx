@@ -254,7 +254,7 @@ impl Report {
 }
 
 /// u64s as strings: JavaScript numbers lose precision past 2^53.
-pub(super) mod u64_text {
+pub(crate) mod u64_text {
     use serde::{Deserialize, Deserializer, Serializer, de::Error};
 
     pub fn serialize<S: Serializer>(n: &u64, s: S) -> Result<S::Ok, S::Error> {

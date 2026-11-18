@@ -40,6 +40,15 @@ pub enum Flag {
     Key(u64),
 }
 
+impl std::fmt::Display for Flag {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::Bool(hash) => write!(f, "#{hash:08x}"),
+            Self::Key(hash) => write!(f, "key {hash}"),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct Tracker {
     /// Spot to what's set once it's checked.

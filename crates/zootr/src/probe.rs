@@ -162,6 +162,13 @@ pub enum Probe {
         #[arg(long)]
         never: bool,
     },
+    /// The check ledger as JSON: every check with every shuffle on, dealt
+    /// or left out, with what the code knows of it. `--unknown` lists only
+    /// the left-out placements nothing explains yet.
+    Ledger {
+        #[arg(long)]
+        unknown: bool,
+    },
     /// Every spot of a seed with the sweep's widest mix, and how the sweep
     /// triggers it (open, talk, play) or why it skips it. The pool to
     /// confirm, for joining with the sweep's results by hash.
@@ -343,6 +350,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Restbl { paths } => restbl(romfs, &paths),
         Probe::Shops { seed } => shops(romfs, seed),
         Probe::Pool { seed, untracked } => pool(romfs, seed, untracked),
+        Probe::Ledger { unknown } => crate::ledger::print(romfs, unknown),
     }
 }
 
