@@ -26,6 +26,17 @@ fn guarded<T>(targets: &[Target], f: impl FnOnce() -> Result<T>) -> Result<T> {
     f()
 }
 
+/// Run `write` into a folder that's gone again after: a seed built for
+/// the history alone, which keeps what it needs to build it again.
+pub fn throwaway<T>(write: impl FnOnce(&Path) -> Result<T>) -> Result<T> {
+    static RUNS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    let run = RUNS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let dir = std::env::temp_dir().join(format!("zootr-unplaced-{}-{run}", std::process::id()));
+    let out = write(&dir);
+    std::fs::remove_dir_all(&dir).ok();
+    out
+}
+
 /// The first target whose game is open.
 pub fn running(targets: &[Target]) -> Option<&Target> {
     targets.iter().find(|t| t.running())

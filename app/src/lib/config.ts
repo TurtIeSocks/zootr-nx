@@ -65,10 +65,16 @@ export function testSummary(t: FullTest): string {
     .join(" · ");
 }
 
+/** Why no seed can be built right now, or "" when one can. Building one
+ * for History alone needs neither a target nor the game closed. */
+export function unbuildable(status: Status): string {
+  return status.game ? "" : "Set the game dump in Settings first";
+}
+
 /** Why nothing can be installed right now, or "" when something can. */
 export function blocked(status: Status, config: FullConfig): string {
   if (status.targets.some((t) => t.running)) return "Close the game first";
-  if (!status.game) return "Set the game dump in Settings first";
+  if (!status.game) return unbuildable(status);
   if (config.targets.length === 0) return "Add a target in Settings first";
   return "";
 }

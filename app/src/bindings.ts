@@ -15,10 +15,11 @@ export const commands = {
 	 */
 	setConfig: (config: Config) => typedError<string[], string>(__TAURI_INVOKE("set_config", { config })),
 	/**
-	 *  Generate and install a seed with the current settings and test setup. A
-	 *  blank seed is random. A share code brings its own settings and extras.
+	 *  Generate a seed with the current settings and test setup, and install
+	 *  it when `install`, else only add it to History. A blank seed is random.
+	 *  A share code brings its own settings and extras.
 	 */
-	generate: (seed: string | null, steps: Channel<StepEvent>) => typedError<Summary, string>(__TAURI_INVOKE("generate", { seed, steps })),
+	generate: (seed: string | null, install: boolean, steps: Channel<StepEvent>) => typedError<Summary, string>(__TAURI_INVOKE("generate", { seed, install, steps })),
 	/**
 	 *  Install one slot of an Archipelago multiworld from its `.apznx`. The
 	 *  file brings its own settings, placements and seed.
