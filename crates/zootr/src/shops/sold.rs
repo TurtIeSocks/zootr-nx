@@ -3,17 +3,22 @@
 //! slot sold. While Link shops, the keeper's own Bool is set (its flow
 //! passes it to the shop's as `GameDataName`), and GameData holds the
 //! goods-list entry of the slot he picked. So each sale first asks which
-//! keeper is talking and which entry sold, and sets that slot's Bool.
+//! keeper is talking and which entry sold, and sets that slot's Bool. A
+//! slot showing a line's level or ammo then asks which step it shows, and
+//! sets that step's Bool, so the sold slot keeps naming what it sold.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{EventKind, Flowchart, Romfs, Value};
 
 use super::Slot;
+use super::steps::{Step, stepped};
+use crate::checks::Drop;
 use crate::flows::{self, GAME_DATA, IS_BOOL, Model, Rewrites, SET_BOOL, VALUE, param, string};
 use crate::known::{Name, actor, flag, flow};
 use crate::picked;
+use crate::settings::NewGame;
 
 /// The shop flow's event counting a sale.
 const SALE: (&Name, &Name) = (
@@ -22,6 +27,8 @@ const SALE: (&Name, &Name) = (
 );
 /// The query comparing a GameData Int with its `Value`. Case 1 is equal.
 const IS_INT: &Name = flow::EVENT_QUERY_IS_GAME_DATA_INT;
+/// The query reading a BoolExp. Case 0 is true.
+const IS_EXP: &Name = flow::EVENT_QUERY_IS_GAME_DATA_BOOL_EXP;
 const EQUAL: usize = 1;
 
 /// The Bool a check slot sets when it sells.
@@ -30,7 +37,7 @@ pub fn flag(slot: &Slot) -> String {
 }
 
 /// The first `count` slots of each shop: the check slots.
-fn checks(slots: &[Slot], count: usize) -> impl Iterator<Item = &Slot> {
+pub(super) fn checks(slots: &[Slot], count: usize) -> impl Iterator<Item = &Slot> {
     slots.iter().filter(move |s| s.number <= count)
 }
 
@@ -70,10 +77,20 @@ fn talking(romfs: &Romfs, keepers: &[String]) -> Result<String> {
     Ok(found.pop_first().unwrap())
 }
 
-/// Make every sale in the shop flow set its check slot's Bool first.
-pub fn write(romfs: &Romfs, rewrites: &mut Rewrites, slots: &[Slot], count: usize) -> Result<()> {
+/// Make every sale in the shop flow set its check slot's Bool first, and
+/// the step it showed if `drops` deals it a line's level or ammo.
+pub fn write(
+    romfs: &Romfs,
+    rewrites: &mut Rewrites,
+    slots: &[Slot],
+    new_game: &NewGame,
+    drops: &HashMap<u64, Drop>,
+) -> Result<()> {
+    let steps: HashMap<u64, Vec<Step>> = (stepped(slots, drops, new_game).into_iter())
+        .map(|(slot, steps)| (slot.hash(), steps))
+        .collect();
     let mut shops: Vec<(String, Vec<&Slot>)> = Vec::new();
-    for slot in checks(slots, count) {
+    for slot in checks(slots, new_game.shop_slots) {
         match shops.iter_mut().find(|(_, s)| s[0].shop == slot.shop) {
             Some((_, s)) => s.push(slot),
             None => shops.push((talking(romfs, &slot.keepers)?, vec![slot])),
@@ -96,13 +113,27 @@ pub fn write(romfs: &Romfs, rewrites: &mut Rewrites, slots: &[Slot], count: usiz
         )?;
         for sale in sales {
             let links = flow.links_to(sale);
-            let head = ask(flow, &is_bool, &set, &shops, sale)?;
+            let head = ask(flow, &is_bool, &set, &shops, &steps, sale)?;
             links
                 .into_iter()
                 .try_for_each(|l| flow.link(l, Some(head)))?;
         }
         Ok(())
     })
+}
+
+/// Push an event setting Bool `name` true, then going to `next`.
+fn set_true(flow: &mut Flowchart, set: &Model, name: &str, next: u16) -> Result<u16> {
+    let mut params = set.params.clone();
+    flows::set(&mut params, GAME_DATA, string(name))?;
+    flows::set(&mut params, VALUE, Value::Bool(vec![true]))?;
+    let (actor, action) = flow.action(&set.actor, set.name);
+    Ok(flow.push(EventKind::Action {
+        next: Some(next),
+        actor,
+        action,
+        params,
+    }))
 }
 
 /// Push the questions run before `sale`: which keeper is talking, then
@@ -112,22 +143,28 @@ fn ask(
     is_bool: &Model,
     set: &Model,
     shops: &[(String, Vec<&Slot>)],
+    steps: &HashMap<u64, Vec<Step>>,
     sale: u16,
 ) -> Result<u16> {
     let mut head = sale;
     for (talking, slots) in shops.iter().rev() {
         let mut which = sale;
         for slot in slots.iter().rev() {
-            let mut params = set.params.clone();
-            flows::set(&mut params, GAME_DATA, string(&flag(slot)))?;
-            flows::set(&mut params, VALUE, Value::Bool(vec![true]))?;
-            let (actor, action) = flow.action(&set.actor, set.name);
-            let sold = flow.push(EventKind::Action {
-                next: Some(sale),
-                actor,
-                action,
-                params,
-            });
+            // Which step shows, if the slot has steps. One always does.
+            let mut shown = sale;
+            for step in steps.get(&slot.hash()).into_iter().flatten().rev() {
+                let set_step = set_true(flow, set, &step.sold, sale)?;
+                let mut params = is_bool.params.clone();
+                flows::set(&mut params, GAME_DATA, string(&step.shows))?;
+                let (actor, query) = flow.query(&is_bool.actor, IS_EXP);
+                shown = flow.push(EventKind::Switch {
+                    actor,
+                    query,
+                    params,
+                    cases: vec![(0, set_step), (1, shown)],
+                });
+            }
+            let sold = set_true(flow, set, &flag(slot), shown)?;
             let mut params = is_bool.params.clone();
             flows::set(&mut params, GAME_DATA, string(flag::SHOP_SELECT_ITEM_INDEX))?;
             params.push((VALUE.into(), Value::Int(vec![slot.goods_index])));
@@ -182,7 +219,11 @@ mod tests {
         let Some(romfs) = dev_dump() else { return };
         let slots = slots(&romfs).unwrap();
         let mut rewrites = Rewrites::new();
-        write(&romfs, &mut rewrites, &slots, 4).unwrap();
+        let new_game = NewGame {
+            shop_slots: 4,
+            ..NewGame::default()
+        };
+        write(&romfs, &mut rewrites, &slots, &new_game, &HashMap::new()).unwrap();
         let flow = flows::current(&romfs, &rewrites, flow::DISPLAY_SHOP).unwrap();
         let text = flows::render(&flow);
         assert_eq!(flags(&slots, 4).len(), 32);
@@ -205,5 +246,52 @@ mod tests {
                 assert!(e as usize >= vanilla.events.len(), "{link:?}");
             }
         }
+    }
+
+    #[test]
+    fn a_stepped_slots_sale_sets_the_step_it_showed() {
+        let Some(romfs) = dev_dump() else { return };
+        let slots = slots(&romfs).unwrap();
+        let slot = slots.iter().find(|s| s.number == 1).unwrap();
+        let drops = HashMap::from([(
+            slot.hash(),
+            Drop::from(crate::known::item::HOOKSHOT.to_string()),
+        )]);
+        let new_game = NewGame {
+            shop_slots: 1,
+            progressive: true,
+            ..NewGame::default()
+        };
+        let mut rewrites = Rewrites::new();
+        write(&romfs, &mut rewrites, &slots, &new_game, &drops).unwrap();
+        let flow = flows::current(&romfs, &rewrites, flow::DISPLAY_SHOP).unwrap();
+        let text = flows::render(&flow);
+        let (_, steps) = (stepped(&slots, &drops, &new_game).into_iter())
+            .find(|(s, _)| std::ptr::eq(*s, slot))
+            .unwrap();
+        assert_eq!(steps.len(), 2, "the Hookshot, then the Longshot");
+        for step in &steps {
+            assert!(text.contains(&step.shows), "{}", step.shows);
+            assert!(text.contains(&step.sold), "{}", step.sold);
+        }
+        // The slot's own Bool is set first, then its lowest step is asked.
+        let names = |e: &EventKind| match e {
+            EventKind::Action { params, .. } | EventKind::Switch { params, .. } => {
+                param(params, GAME_DATA).map(str::to_owned)
+            }
+            _ => None,
+        };
+        let sets = (flow.events.iter())
+            .find(|e| names(&e.kind).as_deref() == Some(&flag(slot)))
+            .unwrap();
+        let EventKind::Action {
+            next: Some(next), ..
+        } = sets.kind
+        else {
+            panic!("{:?}", sets.kind);
+        };
+        let asks = &flow.events[next as usize].kind;
+        assert!(matches!(asks, EventKind::Switch { .. }));
+        assert_eq!(names(asks).as_deref(), Some(steps[0].shows.as_str()));
     }
 }

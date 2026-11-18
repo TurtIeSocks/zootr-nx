@@ -346,10 +346,21 @@ fn shop_slots_are_checks_with_shopsanity_on() {
     let sold = shops(&report);
     assert_eq!(sold.len(), 32);
     assert!(sold.iter().all(|s| s.name() == s.holder));
-    let lines = crate::progressive::LINES.concat();
-    let upgrades = |s: &&Spot| lines.iter().any(|(actor, _)| **actor == s.item);
-    assert_eq!(sold.iter().filter(upgrades).count(), 0, "{sold:?}");
     let pack = |r: &str| dir.join("on/romfs/Pack/Actor").join(format!("{r}.pack.zs"));
+    // A slot dealt a line's level shows each step with a stand-in of its
+    // own (`shops::steps`).
+    let lines = crate::progressive::LINES.concat();
+    let upgrade = |s: &Spot| lines.iter().any(|(actor, _)| **actor == s.item);
+    assert!(sold.iter().any(upgrade), "seed 7 deals a shop an upgrade");
+    let steps = std::fs::read_dir(dir.join("on/romfs/Pack/Actor")).unwrap();
+    let names: Vec<_> = steps
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert!(
+        names
+            .iter()
+            .any(|n| n.starts_with("Shop_Rando_") && n.ends_with("_1.pack.zs"))
+    );
     assert!(pack("Shop_Rando_00").is_file());
     assert!(!pack("Shop_Rando_04").is_file());
     let off = shuffle(

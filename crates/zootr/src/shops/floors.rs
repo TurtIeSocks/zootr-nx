@@ -140,6 +140,8 @@ pub fn stands(item: &str) -> bool {
 }
 
 fn row(item: &str) -> Option<&'static (Name, f32, bool)> {
-    let at = FLOORS.binary_search_by_key(&hash(item), |(n, ..)| n.0).ok()?;
+    let at = FLOORS
+        .binary_search_by_key(&hash(item), |(n, ..)| n.0)
+        .ok()?;
     Some(&FLOORS[at])
 }
