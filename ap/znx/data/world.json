@@ -283,6 +283,110 @@
     {
       "at": [
         {
+          "place": "dodongos-cavern-adult",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              },
+                              {
+                                "setting": "free-bombchus"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Megaton Hammer"
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Scarecrow's Song"
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bow"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "850464708089653824",
+      "id": 133,
+      "name": "Dodongo's Cavern Upper Business Scrub Seed Chest 2",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
           "place": "fire-temple-adult",
           "rule": {
             "all": [
@@ -669,6 +773,129 @@
       "hash": "1029712040059298120",
       "id": 9,
       "name": "Ganon's Castle Lower Blue Rupee (5) Chest 3",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              },
+                              {
+                                "setting": "free-bombchus"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Megaton Hammer"
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Scarecrow's Song"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Bomb Bag"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Bombchus (5)"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "setting": "free-bombchus"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "1158729434763801603",
+      "id": 134,
+      "name": "Death Mountain Crater South Business Scrub Seed Chest",
       "unprovable": false
     },
     {
@@ -1069,6 +1296,85 @@
       "hash": "1501288453962537671",
       "id": 13,
       "name": "Spirit Temple Upper Bombchus (5) Chest",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
+          "place": "sacred-forest-meadow-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Scarecrow's Song"
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Song of Time"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "sacred-forest-meadow-child",
+          "rule": {
+            "all": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Ocarina"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Song of Time"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "1764383515296652106",
+      "id": 135,
+      "name": "Sacred Forest Meadow North Business Scrub Seed Chest",
       "unprovable": false
     },
     {
@@ -3326,6 +3632,71 @@
     {
       "at": [
         {
+          "place": "bottom-of-the-well-child",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "setting": "free-bombchus"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Magic Meter"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Lens of Truth"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "6064359710907908886",
+      "id": 136,
+      "name": "Bottom of the Well Business Scrub Seed Chest",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
           "place": "place-b13887e8-child",
           "rule": {
             "all": [
@@ -3349,6 +3720,140 @@
       "hash": "6205043616869463865",
       "id": 43,
       "name": "Gerudo Valley Northwest Red Rupee (20) Chest 2",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
+          "place": "gerudo-valley-adult",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "setting": "free-bombchus"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              },
+                              {
+                                "setting": "free-bombchus"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Megaton Hammer"
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Magic Meter"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Lens of Truth"
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 2,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "place-b13887e8-child",
+          "rule": {
+            "all": [
+              {
+                "count": 1,
+                "items": [
+                  "Magic Meter"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Lens of Truth"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "6463521162691873710",
+      "id": 137,
+      "name": "Gerudo Valley Southeast Business Scrub Seed Chest",
       "unprovable": false
     },
     {
@@ -4406,6 +4911,200 @@
     {
       "at": [
         {
+          "place": "inside-ganons-castle-adult",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Bottle"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Ruto's Letter"
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              },
+                              {
+                                "setting": "free-bombchus"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Magic Meter"
+                            ]
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Din's Fire"
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Magic Meter"
+                            ]
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bow"
+                            ]
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Fire Arrows"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 3,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Megaton Hammer"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Magic Meter"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Lens of Truth"
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Mirror Shield"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bow"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Light Arrows"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Song of Time"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "7899179288432849355",
+      "id": 138,
+      "name": "Ganon's Castle Business Scrub Seed Chest",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
           "place": "sacred-forest-meadow-adult",
           "rule": {
             "all": [
@@ -5060,6 +5759,170 @@
     {
       "at": [
         {
+          "place": "haunted-wasteland-adult",
+          "rule": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Magic Meter"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Din's Fire"
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Magic Meter"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bow"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Fire Arrows"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "haunted-wasteland-child",
+          "rule": {
+            "all": [
+              {
+                "count": 1,
+                "items": [
+                  "Magic Meter"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Din's Fire"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "8825521833684392638",
+      "id": 139,
+      "name": "Haunted Wasteland North Business Scrub Seed Chest",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
+          "place": "zora-river-adult",
+          "rule": {
+            "any": [
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "setting": "free-bombchus"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Megaton Hammer"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Bomb Bag"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Bombchus (5)"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "setting": "free-bombchus"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "8838426083116998768",
+      "id": 140,
+      "name": "Zora's River Southwest Business Scrub Seed Chest",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
           "place": "shadow-temple-adult",
           "rule": {
             "all": [
@@ -5659,6 +6522,119 @@
       "hash": "9725242744547055868",
       "id": 68,
       "name": "Kokiri Forest Mido's House Front Right Chest",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              },
+                              {
+                                "setting": "free-bombchus"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Megaton Hammer"
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "death-mountain-trail-child",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "setting": "free-bombchus"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9809508929088891725",
+      "id": 141,
+      "name": "Death Mountain Trail South Business Scrub Seed Chest",
       "unprovable": false
     },
     {
@@ -7515,6 +8491,173 @@
     {
       "at": [
         {
+          "place": "gerudo-training-ground-adult",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bow"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "all": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Bombchus (5)"
+                                ]
+                              },
+                              {
+                                "any": [
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  },
+                                  {
+                                    "setting": "free-bombchus"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Megaton Hammer"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Megaton Hammer"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Lens of Truth"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Hookshot"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Ocarina"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Scarecrow's Song"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bow"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bow"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Hookshot"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Ocarina"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Song of Time"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "11754783663699171680",
+      "id": 142,
+      "name": "Gerudo Training Ground Business Scrub Seed Chest",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
           "place": "kakariko-village-adult",
           "rule": true
         }
@@ -7764,6 +8907,110 @@
     {
       "at": [
         {
+          "place": "dodongos-cavern-adult",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              },
+                              {
+                                "setting": "free-bombchus"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Megaton Hammer"
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Scarecrow's Song"
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bow"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "12253889300578348965",
+      "id": 143,
+      "name": "Dodongo's Cavern Upper Business Scrub Seed Chest 1",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
           "place": "gerudo-fortress-adult",
           "rule": {
             "all": [
@@ -7793,6 +9040,230 @@
       "hash": "12343753510713797715",
       "id": 89,
       "name": "Gerudo's Fortress North Piece of Heart Chest",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
+          "place": "shadow-temple-adult",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              },
+                              {
+                                "setting": "free-bombchus"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Magic Meter"
+                            ]
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Din's Fire"
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Magic Meter"
+                            ]
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bow"
+                            ]
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Fire Arrows"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              },
+                              {
+                                "setting": "free-bombchus"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Megaton Hammer"
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Din's Fire"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bow"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Fire Arrows"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Magic Meter"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Lens of Truth"
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Scarecrow's Song"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "12345747231768877602",
+      "id": 144,
+      "name": "Shadow Temple Lower Business Scrub Seed Chest",
       "unprovable": false
     },
     {
@@ -10673,6 +12144,259 @@
     {
       "at": [
         {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              },
+                              {
+                                "setting": "free-bombchus"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Magic Meter"
+                            ]
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Din's Fire"
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Magic Meter"
+                            ]
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bow"
+                            ]
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Fire Arrows"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              },
+                              {
+                                "setting": "free-bombchus"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Megaton Hammer"
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Scarecrow's Song"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              },
+                              {
+                                "setting": "free-bombchus"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Din's Fire"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "setting": "free-bombchus"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "17445672702269453589",
+      "id": 145,
+      "name": "Hyrule Field West Business Scrub Seed Chest",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
           "place": "lost-woods-adult",
           "rule": {
             "any": [
@@ -11603,106 +13327,6 @@
     {
       "at": [
         {
-          "place": "dodongos-cavern-adult",
-          "rule": {
-            "all": [
-              {
-                "any": [
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
-                          },
-                          {
-                            "any": [
-                              {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
-                              },
-                              {
-                                "setting": "free-bombchus"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Megaton Hammer"
-                    ]
-                  }
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Goron Bracelet",
-                  "Progressive Strength Upgrade"
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Hookshot"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Ocarina"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Scarecrow's Song"
-                    ]
-                  }
-                ]
-              },
-              {
-                "any": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bow"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Hookshot"
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "name": "vanilla-850464708089653824"
-    },
-    {
-      "at": [
-        {
           "place": "shadow-temple-adult",
           "rule": {
             "all": [
@@ -11919,125 +13543,6 @@
         }
       ],
       "name": "vanilla-1111717451118505545"
-    },
-    {
-      "at": [
-        {
-          "place": "death-mountain-crater-adult",
-          "rule": {
-            "all": [
-              {
-                "any": [
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
-                          },
-                          {
-                            "any": [
-                              {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
-                              },
-                              {
-                                "setting": "free-bombchus"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Megaton Hammer"
-                    ]
-                  }
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Progressive Hookshot"
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Hookshot"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Ocarina"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Scarecrow's Song"
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "place": "death-mountain-crater-child",
-          "rule": {
-            "any": [
-              {
-                "count": 1,
-                "items": [
-                  "Progressive Bomb Bag"
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Bombchus (5)"
-                    ]
-                  },
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "setting": "free-bombchus"
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "name": "vanilla-1158729434763801603"
     },
     {
       "at": [
@@ -12336,81 +13841,6 @@
         }
       ],
       "name": "vanilla-1733372171176975157"
-    },
-    {
-      "at": [
-        {
-          "place": "sacred-forest-meadow-adult",
-          "rule": {
-            "all": [
-              {
-                "count": 1,
-                "items": [
-                  "Progressive Hookshot"
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Hookshot"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Ocarina"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Scarecrow's Song"
-                    ]
-                  }
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Ocarina"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Song of Time"
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "place": "sacred-forest-meadow-child",
-          "rule": {
-            "all": [
-              {
-                "count": 1,
-                "items": [
-                  "Progressive Ocarina"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Song of Time"
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "name": "vanilla-1764383515296652106"
     },
     {
       "at": [
@@ -14242,67 +15672,6 @@
     {
       "at": [
         {
-          "place": "bottom-of-the-well-child",
-          "rule": {
-            "all": [
-              {
-                "any": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bomb Bag"
-                    ]
-                  },
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Bombchus (5)"
-                        ]
-                      },
-                      {
-                        "any": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
-                          },
-                          {
-                            "setting": "free-bombchus"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Magic Meter"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Lens of Truth"
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "name": "vanilla-6064359710907908886"
-    },
-    {
-      "at": [
-        {
           "place": "forest-temple-adult",
           "rule": {
             "all": [
@@ -14377,136 +15746,6 @@
         }
       ],
       "name": "vanilla-6449977980406424425"
-    },
-    {
-      "at": [
-        {
-          "place": "gerudo-valley-adult",
-          "rule": {
-            "all": [
-              {
-                "any": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bomb Bag"
-                    ]
-                  },
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Bombchus (5)"
-                        ]
-                      },
-                      {
-                        "any": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
-                          },
-                          {
-                            "setting": "free-bombchus"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "any": [
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
-                          },
-                          {
-                            "any": [
-                              {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
-                              },
-                              {
-                                "setting": "free-bombchus"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Megaton Hammer"
-                    ]
-                  }
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Magic Meter"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Lens of Truth"
-                    ]
-                  }
-                ]
-              },
-              {
-                "count": 2,
-                "items": [
-                  "Goron Bracelet",
-                  "Progressive Strength Upgrade"
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "place": "place-b13887e8-child",
-          "rule": {
-            "all": [
-              {
-                "count": 1,
-                "items": [
-                  "Magic Meter"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Lens of Truth"
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "name": "vanilla-6463521162691873710"
     },
     {
       "at": [
@@ -14612,196 +15851,6 @@
         }
       ],
       "name": "vanilla-7535137041266964235"
-    },
-    {
-      "at": [
-        {
-          "place": "inside-ganons-castle-adult",
-          "rule": {
-            "all": [
-              {
-                "any": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Bottle"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Ruto's Letter"
-                    ]
-                  }
-                ]
-              },
-              {
-                "any": [
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
-                          },
-                          {
-                            "any": [
-                              {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
-                              },
-                              {
-                                "setting": "free-bombchus"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "any": [
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Magic Meter"
-                            ]
-                          },
-                          {
-                            "count": 1,
-                            "items": [
-                              "Din's Fire"
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Magic Meter"
-                            ]
-                          },
-                          {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bow"
-                            ]
-                          },
-                          {
-                            "count": 1,
-                            "items": [
-                              "Fire Arrows"
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "count": 3,
-                "items": [
-                  "Goron Bracelet",
-                  "Progressive Strength Upgrade"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Megaton Hammer"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Progressive Hookshot"
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Magic Meter"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Lens of Truth"
-                    ]
-                  }
-                ]
-              },
-              {
-                "any": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Mirror Shield"
-                    ]
-                  },
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Magic Meter"
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bow"
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Light Arrows"
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Ocarina"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Song of Time"
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "name": "vanilla-7899179288432849355"
     },
     {
       "at": [
@@ -15060,162 +16109,6 @@
         }
       ],
       "name": "vanilla-8579518566955184384"
-    },
-    {
-      "at": [
-        {
-          "place": "haunted-wasteland-adult",
-          "rule": {
-            "any": [
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Magic Meter"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Din's Fire"
-                    ]
-                  }
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Magic Meter"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bow"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Fire Arrows"
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "place": "haunted-wasteland-child",
-          "rule": {
-            "all": [
-              {
-                "count": 1,
-                "items": [
-                  "Magic Meter"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Din's Fire"
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "name": "vanilla-8825521833684392638"
-    },
-    {
-      "at": [
-        {
-          "place": "zora-river-adult",
-          "rule": {
-            "any": [
-              {
-                "any": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bomb Bag"
-                    ]
-                  },
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Bombchus (5)"
-                        ]
-                      },
-                      {
-                        "any": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
-                          },
-                          {
-                            "setting": "free-bombchus"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Megaton Hammer"
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "place": "zora-river-child",
-          "rule": {
-            "any": [
-              {
-                "count": 1,
-                "items": [
-                  "Progressive Bomb Bag"
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Bombchus (5)"
-                    ]
-                  },
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "setting": "free-bombchus"
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "name": "vanilla-8838426083116998768"
     },
     {
       "at": [
@@ -15607,115 +16500,6 @@
     {
       "at": [
         {
-          "place": "death-mountain-trail-adult",
-          "rule": {
-            "all": [
-              {
-                "any": [
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
-                          },
-                          {
-                            "any": [
-                              {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
-                              },
-                              {
-                                "setting": "free-bombchus"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Megaton Hammer"
-                    ]
-                  }
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Goron Bracelet",
-                  "Progressive Strength Upgrade"
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "place": "death-mountain-trail-child",
-          "rule": {
-            "all": [
-              {
-                "any": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bomb Bag"
-                    ]
-                  },
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Bombchus (5)"
-                        ]
-                      },
-                      {
-                        "any": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
-                          },
-                          {
-                            "setting": "free-bombchus"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Goron Bracelet",
-                  "Progressive Strength Upgrade"
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "name": "vanilla-9809508929088891725"
-    },
-    {
-      "at": [
-        {
           "place": "hyrule-field-child",
           "rule": {
             "all": [
@@ -16056,169 +16840,6 @@
     {
       "at": [
         {
-          "place": "gerudo-training-ground-adult",
-          "rule": {
-            "all": [
-              {
-                "any": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bow"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Hookshot"
-                    ]
-                  }
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "any": [
-                      {
-                        "any": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
-                          },
-                          {
-                            "all": [
-                              {
-                                "count": 1,
-                                "items": [
-                                  "Bombchus (5)"
-                                ]
-                              },
-                              {
-                                "any": [
-                                  {
-                                    "count": 1,
-                                    "items": [
-                                      "Progressive Bomb Bag"
-                                    ]
-                                  },
-                                  {
-                                    "setting": "free-bombchus"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Megaton Hammer"
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Megaton Hammer"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Hookshot"
-                    ]
-                  },
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Magic Meter"
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Lens of Truth"
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Hookshot"
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Ocarina"
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Scarecrow's Song"
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bow"
-                    ]
-                  },
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bow"
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Hookshot"
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Ocarina"
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Song of Time"
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "name": "vanilla-11754783663699171680"
-    },
-    {
-      "at": [
-        {
           "place": "spirit-temple-adult",
           "rule": {
             "all": [
@@ -16308,326 +16929,6 @@
         }
       ],
       "name": "vanilla-12114077686306649660"
-    },
-    {
-      "at": [
-        {
-          "place": "dodongos-cavern-adult",
-          "rule": {
-            "all": [
-              {
-                "any": [
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
-                          },
-                          {
-                            "any": [
-                              {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
-                              },
-                              {
-                                "setting": "free-bombchus"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Megaton Hammer"
-                    ]
-                  }
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Goron Bracelet",
-                  "Progressive Strength Upgrade"
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Hookshot"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Ocarina"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Scarecrow's Song"
-                    ]
-                  }
-                ]
-              },
-              {
-                "any": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bow"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Hookshot"
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "name": "vanilla-12253889300578348965"
-    },
-    {
-      "at": [
-        {
-          "place": "shadow-temple-adult",
-          "rule": {
-            "all": [
-              {
-                "any": [
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
-                          },
-                          {
-                            "any": [
-                              {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
-                              },
-                              {
-                                "setting": "free-bombchus"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "any": [
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Magic Meter"
-                            ]
-                          },
-                          {
-                            "count": 1,
-                            "items": [
-                              "Din's Fire"
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Magic Meter"
-                            ]
-                          },
-                          {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bow"
-                            ]
-                          },
-                          {
-                            "count": 1,
-                            "items": [
-                              "Fire Arrows"
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "any": [
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
-                          },
-                          {
-                            "any": [
-                              {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
-                              },
-                              {
-                                "setting": "free-bombchus"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Megaton Hammer"
-                    ]
-                  }
-                ]
-              },
-              {
-                "any": [
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Magic Meter"
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Din's Fire"
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Magic Meter"
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bow"
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Fire Arrows"
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Progressive Hookshot"
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Magic Meter"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Lens of Truth"
-                    ]
-                  }
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Hookshot"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Ocarina"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Scarecrow's Song"
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "name": "vanilla-12345747231768877602"
     },
     {
       "at": [
@@ -18377,255 +18678,6 @@
         }
       ],
       "name": "vanilla-17407066694905911064"
-    },
-    {
-      "at": [
-        {
-          "place": "hyrule-field-adult",
-          "rule": {
-            "all": [
-              {
-                "any": [
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
-                          },
-                          {
-                            "any": [
-                              {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
-                              },
-                              {
-                                "setting": "free-bombchus"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "any": [
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Magic Meter"
-                            ]
-                          },
-                          {
-                            "count": 1,
-                            "items": [
-                              "Din's Fire"
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Magic Meter"
-                            ]
-                          },
-                          {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bow"
-                            ]
-                          },
-                          {
-                            "count": 1,
-                            "items": [
-                              "Fire Arrows"
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "any": [
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
-                          },
-                          {
-                            "any": [
-                              {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
-                              },
-                              {
-                                "setting": "free-bombchus"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Megaton Hammer"
-                    ]
-                  }
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Hookshot"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Ocarina"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Scarecrow's Song"
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "place": "hyrule-field-child",
-          "rule": {
-            "all": [
-              {
-                "any": [
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
-                          },
-                          {
-                            "any": [
-                              {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
-                              },
-                              {
-                                "setting": "free-bombchus"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Magic Meter"
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Din's Fire"
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "any": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bomb Bag"
-                    ]
-                  },
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Bombchus (5)"
-                        ]
-                      },
-                      {
-                        "any": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
-                          },
-                          {
-                            "setting": "free-bombchus"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "name": "vanilla-17445672702269453589"
     },
     {
       "at": [

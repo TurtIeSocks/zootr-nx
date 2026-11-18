@@ -16,6 +16,7 @@ use crate::{gifts, places, scrubs};
 const AREAS: &[(&Name, &str)] = &[
     (flow::BOTTOM_OF_THE_WELL, "Bottom of the Well"),
     (flag::DEATH_MOUNTAIN_CRATER, "Death Mountain Crater"),
+    (flag::DEATH_MOUNTAIN_TRAIL, "Death Mountain Trail"),
     (flag::DESERT_COLOSSUS, "Desert Colossus"),
     (flag::DODONGO_CAVERN, "Dodongo's Cavern"),
     (map::DREAM_WORLD, "Dream World"),
@@ -26,6 +27,7 @@ const AREAS: &[(&Name, &str)] = &[
     (flow::GERUDO_VALLEY, "Gerudo Valley"),
     (flag::GORON_CITY, "Goron City"),
     (flag::GRAVEYARD, "Graveyard"),
+    (flag::HOUNTED_WASTELAND, "Haunted Wasteland"),
     (flag::HYRULE_FIELD, "Hyrule Field"),
     (map::ICE_CAVERN, "Ice Cavern"),
     (map::INSIDE_GANON_CASTLE, "Ganon's Castle"),
@@ -41,6 +43,7 @@ const AREAS: &[(&Name, &str)] = &[
     (map::WATER_TEMPLE, "Water Temple"),
     (flag::ZORA_DOMAIN, "Zora's Domain"),
     (flag::ZORA_FOUNTAIN, "Zora's Fountain"),
+    (flag::ZORA_RIVER, "Zora's River"),
 ];
 
 /// Each item by its actor. An upgrade line's levels are named one by one;
@@ -75,6 +78,7 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::RANGE_SLING_SHOT, "Fairy Slingshot"),
     (item::SCALE_SILVER, "Silver Scale"),
     (item::SCALE_GOLD, "Golden Scale"),
+    (item::SCRUB_BUSINESS_SEED, "Business Scrub Seed"),
     (item::SHIELD_MIRROR, "Mirror Shield"),
     (item::STICK_BAG_MEDIUM, "Deku Stick Bag (20)"),
     (item::STICK_BAG_LARGE, "Deku Stick Bag (30)"),
