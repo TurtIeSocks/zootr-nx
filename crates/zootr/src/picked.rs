@@ -236,14 +236,7 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
         };
         let mut twin = actor.clone();
         checks::gate(actor, &flag, true).with_context(|| format!("holder {hash}"))?;
-        let map = twin.as_mut_map()?;
-        map.insert("Hash".into(), Byml::U64(twin_hash));
-        if let Some(Byml::Map(phive)) = map.get_mut("Phive")
-            && let Some(Byml::Map(placement)) = phive.get_mut("Placement")
-            && placement.contains_key("ID")
-        {
-            placement.insert("ID".into(), Byml::U64(twin_hash));
-        }
+        crate::shows::rehash(&mut twin, twin_hash)?;
         checks::gate(&mut twin, &flag, false)?;
         twins.push(twin);
     }
