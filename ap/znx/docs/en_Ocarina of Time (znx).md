@@ -14,4 +14,8 @@ The default zootr-nx shuffle: the overworld's and dungeons' chests, NPC gifts an
 
 ## What does another world's item look like in this game?
 
-Playing a seed in the game isn't supported yet: the zootr-nx app can't open a `.apznx` so far. When it can, a check holding another player's item will name the player it goes to.
+A check holding another game's item shows a stand-in model coloured by the item's Archipelago class: plum for progression, slate blue for useful, cyan for filler. Traps look like filler. Its get names the item and the player it goes to. Another Ocarina of Time (znx) player's item shows as that item.
+
+## What happens when the player receives an item?
+
+The item goes straight to Link once he's in play, and the top of the screen says what it is and who sent it, like "Hookshot from Saria". Ammo and other pouch items also show their icon over Link. A progressive item names what Link actually got ("Longshot from Saria"). A big release shows 3 one by one, then a count of the rest.
