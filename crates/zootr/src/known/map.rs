@@ -33,6 +33,7 @@ pub const HOUNTED_WASTELAND_CHILD: &Name = &n!(0x52f7a509914d13b6);
 pub const HYRULE_CASTLE: &Name = &n!(0x63110091494fa838);
 pub const HYRULE_FIELD_ADULT: &Name = &n!(0xa19b5626903ea697);
 pub const HYRULE_FIELD_CHILD: &Name = &n!(0x7d0a7a6d1096efc5);
+pub const HYRULE_FIELD_LAKE_HYLIA_CHILD_PREFAB_9E98: &Name = &n!(0x36dfd20d9e9fec1f);
 pub const ICE_CAVERN: &Name = &n!(0x5492622bcb6954b9);
 pub const INSIDE_GANON_CASTLE: &Name = &n!(0x7e27f0fae8d92890);
 pub const INSIDE_JABU_JABU_BELLY: &Name = &n!(0x22a5855b4b8f52bb);

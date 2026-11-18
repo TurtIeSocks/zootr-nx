@@ -10,6 +10,11 @@
 //! It stands until its drop is picked up instead, so a drop left behind
 //! comes back.
 //!
+//! Ruto's letter, a pickup its logic module deletes once Link has the
+//! letter, is deleted by the flag instead: Link getting the letter
+//! elsewhere would take away what lies there, and getting what lies
+//! there wouldn't.
+//!
 //! A dropped pickup doesn't know its holder, so the hook's table lists each
 //! holder's [`Spot`]: its flag, what it drops and where it stands. A take
 //! sets the nearest unpicked one dropping that name.
@@ -17,21 +22,34 @@
 use std::collections::BTreeMap;
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{Byml, murmur3};
+use ounce_formats::ainb::Patch;
+use ounce_formats::{Byml, Romfs, murmur3};
 use zootr_hook::Spot;
 
-use crate::checks::{self, DROP_ACTOR, ItemCheck, TRANSLATE, hash_of, str_field, vec3};
-use crate::known::field;
-use crate::pickups::{CRATES, HIVES, Kind, POTS, ROCKS};
+use crate::checks::{self, DROP_ACTOR, GYAML, ItemCheck, TRANSLATE, hash_of, str_field, vec3};
+use crate::flows::Rewrites;
+use crate::graphs::logic;
+use crate::known::{field, flag, map};
+use crate::pickups::{CRATES, HIVES, Kind, POTS, ROCKS, RUTOS_LETTER};
 
-/// The kinds whose holders get a twin.
-const KINDS: [&Kind; 4] = [&POTS, &CRATES, &ROCKS, &HIVES];
+/// The kinds whose holders stand until picked.
+const KINDS: [&Kind; 5] = [&POTS, &CRATES, &ROCKS, &HIVES, &RUTOS_LETTER];
 
-/// A holder of a shuffled drop, and the twin that stands once it's picked.
+/// A holder of a shuffled item, standing until it's picked.
 pub struct Holder {
     pub hash: u64,
-    /// None for a holder the game takes away once crushed.
-    pub twin: Option<u64>,
+    pub after: After,
+}
+
+/// What stands in a holder's place once it's picked.
+#[derive(Debug, PartialEq)]
+pub enum After {
+    /// Its vanilla twin, placed under this hash.
+    Twin(u64),
+    /// Nothing, as the game takes it away once crushed.
+    Gone,
+    /// Nothing, as its logic module deletes it (Ruto's letter).
+    Deleted,
 }
 
 /// The seed Bool set once the drop of the holder placed as `hash` is
@@ -40,25 +58,27 @@ pub fn flag(hash: u64) -> String {
     format!("Rando_Picked_{hash}")
 }
 
-/// The flag a spot ticks by, when its holder gets a twin.
+/// The flag a spot ticks by, when its holder stands until picked.
 pub fn flag_at(holder: &str, hash: u64) -> Option<String> {
     KINDS.iter().any(|k| k.places(holder)).then(|| flag(hash))
 }
 
-/// Each holder among `pieces` that gets a twin, once each.
+/// Each holder among `pieces` that stands until picked, once each.
 pub fn holders(pieces: &[ItemCheck]) -> Vec<Holder> {
-    let gated: BTreeMap<u64, bool> = pieces
+    let after = |c: &ItemCheck| match () {
+        _ if RUTOS_LETTER.holds(c) => After::Deleted,
+        _ if c.presence.is_some() => After::Gone,
+        _ => After::Twin(crate::known::hash(&flag(c.hash))),
+    };
+    let found: BTreeMap<u64, After> = pieces
         .iter()
         .filter(|c| KINDS.iter().any(|k| k.holds(c)))
-        .map(|c| (c.hash, c.presence.is_some()))
+        .map(|c| (c.hash, after(c)))
         .collect();
-    gated
+    let holders = found
         .into_iter()
-        .map(|(hash, gated)| Holder {
-            hash,
-            twin: (!gated).then(|| crate::known::hash(&flag(hash))),
-        })
-        .collect()
+        .map(|(hash, after)| Holder { hash, after });
+    holders.collect()
 }
 
 pub fn flags(holders: &[Holder]) -> Vec<String> {
@@ -69,8 +89,38 @@ pub fn flags(holders: &[Holder]) -> Vec<String> {
 pub fn pairs(holders: &[Holder]) -> Vec<(u64, u64)> {
     holders
         .iter()
-        .filter_map(|h| Some((h.hash, h.twin?)))
+        .filter_map(|h| match h.after {
+            After::Twin(twin) => Some((h.hash, twin)),
+            _ => None,
+        })
         .collect()
+}
+
+/// Ruto's letter's logic module deletes what lies there once its flag is
+/// set, not once Link has the letter. Nothing when it isn't among
+/// `holders`.
+pub fn delete_letter(romfs: &Romfs, rewrites: &mut Rewrites, holders: &[Holder]) -> Result<()> {
+    let Some(letter) = holders.iter().find(|h| h.after == After::Deleted) else {
+        return Ok(());
+    };
+    let rel = logic(map::HYRULE_FIELD_LAKE_HYLIA_CHILD_PREFAB_9E98);
+    let mut patch = Patch::new(romfs.read(&rel)?)?;
+    let key = (
+        field::HOLD_GAME_DATA_GET_BOOL_SIMPLE,
+        field::GAME_DATA_NAME_BOOL,
+    );
+    let got = flag::GET_STONE_OF_WATER_GET_RUTO_LETTER.get();
+    let nodes = patch.graph().nodes.iter().enumerate();
+    let reads: Vec<usize> = nodes
+        .filter(|(_, n)| n.name == key.0 && n.str(key.1) == Some(got))
+        .map(|(i, _)| i)
+        .collect();
+    ensure!(!reads.is_empty(), "{rel} never reads {got}");
+    for i in reads {
+        patch.set_str(i, key.1, &flag(letter.hash))?;
+    }
+    rewrites.insert(rel, patch.into_bytes());
+    Ok(())
 }
 
 /// Place a twin beside each of `holders` in `root`, a Banc file's doc:
@@ -87,16 +137,20 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
             continue;
         };
         let flag = flag(hash);
-        let Some(twin_hash) = h.twin else {
-            let gone = actor.as_mut_map()?.remove("Presence");
-            let gone = gone.as_ref().and_then(|p| p.as_map().ok());
-            let negated = gone.and_then(|p| p.get(field::IS_NEGATION.get()));
-            ensure!(
-                negated == Some(&Byml::Bool(true)),
-                "holder {hash} stands only once something happens, so it can't take turns"
-            );
-            checks::gate(actor, &flag, true)?;
-            continue;
+        let twin_hash = match h.after {
+            After::Twin(twin) => twin,
+            After::Deleted => continue,
+            After::Gone => {
+                let gone = actor.as_mut_map()?.remove("Presence");
+                let gone = gone.as_ref().and_then(|p| p.as_map().ok());
+                let negated = gone.and_then(|p| p.get(field::IS_NEGATION.get()));
+                ensure!(
+                    negated == Some(&Byml::Bool(true)),
+                    "holder {hash} stands only once something happens, so it can't take turns"
+                );
+                checks::gate(actor, &flag, true)?;
+                continue;
+            }
         };
         let mut twin = actor.clone();
         checks::gate(actor, &flag, true).with_context(|| format!("holder {hash}"))?;
@@ -131,8 +185,9 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
 }
 
 /// Each of `holders` placed in `root`, a Banc file's doc, as the hook's
-/// table lists it. Run once the drops are written, so each names the
-/// shuffled one.
+/// table lists it: by what it drops, or what it is when it drops nothing
+/// (Ruto's letter). Run once the fields are written, so each names the
+/// shuffled item.
 pub fn spots(root: &Byml, holders: &[Holder]) -> Result<Vec<Spot>> {
     let mut out = Vec::new();
     for actor in checks::actors(root)? {
@@ -141,7 +196,8 @@ pub fn spots(root: &Byml, holders: &[Holder]) -> Result<Vec<Spot>> {
         };
         let dynamic = actor.as_map()?.get("Dynamic");
         let drop = dynamic.and_then(|d| str_field(d, DROP_ACTOR.get()));
-        let drop = drop.with_context(|| format!("holder {hash} drops nothing"))?;
+        let drop = drop.or_else(|| str_field(actor, GYAML));
+        let drop = drop.with_context(|| format!("holder {hash} is nothing"))?;
         let at = vec3(actor, TRANSLATE).with_context(|| format!("holder {hash} stands nowhere"))?;
         out.push(Spot {
             flag: murmur3(flag(hash).as_bytes()),
@@ -163,6 +219,8 @@ mod tests {
 
     /// Kokiri Forest's rock.
     const ROCK: u64 = 6429280567576879719;
+    /// Ruto's letter.
+    const LETTER: u64 = 474136620438465634;
     /// The Ice Cavern pots gone once crushed.
     const ICE_RED: u64 = 3105481948394149361;
     const ICE_BLUE: u64 = 6330430963809465220;
@@ -196,14 +254,15 @@ mod tests {
         assert!(
             holders
                 .iter()
-                .all(|h| h.twin != Some(h.hash) && h.twin != Some(0))
+                .all(|h| h.after != After::Twin(h.hash) && h.after != After::Twin(0))
         );
         let gone: Vec<u64> = holders
             .iter()
-            .filter(|h| h.twin.is_none())
+            .filter(|h| h.after == After::Gone)
             .map(|h| h.hash)
             .collect();
         assert_eq!(gone, [ICE_RED, ICE_BLUE]);
+        assert!(holders.iter().all(|h| h.after != After::Deleted));
         assert_eq!(
             flag_at(actor::OBJ_LIFT_ROCK_A_01.get(), ROCK),
             Some(flag(ROCK))
@@ -229,12 +288,9 @@ mod tests {
         assert_eq!(place(&mut doc.root, &holders).unwrap(), mine);
         let actors = checks::actors(&doc.root).unwrap();
         assert_eq!(actors.len(), before + mine);
-        let twin = holders
-            .iter()
-            .find(|h| h.hash == rock_hash)
-            .unwrap()
-            .twin
-            .unwrap();
+        let After::Twin(twin) = holders.iter().find(|h| h.hash == rock_hash).unwrap().after else {
+            panic!("the rock has no twin");
+        };
         let find = |hash| actors.iter().find(|a| hash_of(a) == Some(hash)).unwrap();
         let (held, copy) = (find(rock_hash), find(twin));
         let gate = |a| presence_of(a).unwrap();
@@ -260,7 +316,7 @@ mod tests {
         let before = checks::actors(&doc.root).unwrap().len();
         let twins = holders
             .iter()
-            .filter(|h| h.twin.is_some())
+            .filter(|h| matches!(h.after, After::Twin(_)))
             .filter(|h| {
                 pieces
                     .iter()
@@ -314,5 +370,50 @@ mod tests {
             })
             .count();
         assert_eq!(spots.len(), here);
+    }
+
+    #[test]
+    fn rutos_letter_goes_once_picked_not_once_link_has_the_letter() {
+        let Some(romfs) = dev_dump() else { return };
+        let pieces = RUTOS_LETTER.checks(&romfs).unwrap();
+        let holders = holders(&pieces);
+        assert_eq!(holders.len(), 1);
+        assert_eq!(
+            (holders[0].hash, &holders[0].after),
+            (LETTER, &After::Deleted)
+        );
+        assert_eq!(
+            flag_at(actor::OBJ_BOTTLE_LETTER.get(), LETTER),
+            Some(flag(LETTER))
+        );
+        assert!(pairs(&holders).is_empty());
+        let mut rewrites = Rewrites::new();
+        delete_letter(&romfs, &mut rewrites, &holders).unwrap();
+        let rel = logic(map::HYRULE_FIELD_LAKE_HYLIA_CHILD_PREFAB_9E98);
+        let graph = ounce_formats::ainb::Graph::parse(&rewrites[&rel]).unwrap();
+        let reads = |name: &str| {
+            let nodes = graph.nodes.iter();
+            nodes
+                .filter(|n| n.str(field::GAME_DATA_NAME_BOOL) == Some(name))
+                .count()
+        };
+        assert_eq!(reads(&flag(LETTER)), 2);
+        assert_eq!(reads(flag::GET_STONE_OF_WATER_GET_RUTO_LETTER), 0);
+        // No twin, and it lists by what it is, as it drops nothing.
+        let mut doc = checks::load_banc(&romfs, &pieces[0].file).unwrap();
+        assert_eq!(place(&mut doc.root, &holders).unwrap(), 0);
+        let field = format!("{LETTER}.{GYAML}=Obj_FakeStandIn_001");
+        checks::set_fields(&mut doc.root, &[field]).unwrap();
+        let spots = spots(&doc.root, &holders).unwrap();
+        assert_eq!(spots.len(), 1);
+        assert_eq!(spots[0].name, Spot::name_hash(b"Obj_FakeStandIn_001"));
+    }
+
+    #[test]
+    fn no_letter_no_rewrite() {
+        let Some(romfs) = dev_dump() else { return };
+        let mut rewrites = Rewrites::new();
+        delete_letter(&romfs, &mut rewrites, &[]).unwrap();
+        assert!(rewrites.is_empty());
     }
 }
