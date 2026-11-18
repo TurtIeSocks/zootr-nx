@@ -98,6 +98,7 @@ pub(super) fn flows(
     }
     if new_game.dungeon_entrances != DungeonEntrances::Off {
         blue_warps::keep_age(romfs, &mut rewrites)?;
+        entrances::reveal::flows_for(romfs, &mut rewrites, new_game.dungeon_entrances)?;
     }
     Ok((rewrites, flags))
 }
@@ -192,6 +193,7 @@ pub fn write_mod(
     if new_game.fortress_keys.moved() {
         bools.extend(fortress::flags());
     }
+    bools.extend(entrances::reveal::flags(new_game.dungeon_entrances));
     let gone = match new_game.scrubs {
         true => {
             bools.extend(scrubs::flags(drops));
@@ -294,6 +296,16 @@ pub fn write_mod(
     } else {
         None
     };
+    let blocks = match new_game.dungeon_entrances {
+        DungeonEntrances::Off => None,
+        mode => {
+            let mut blocks = entrances::Blocks::read(romfs)?;
+            let arrivals = entrances::reveal::plan(&blocks, mode);
+            entrances::reveal::events(&arrivals, &mut events)?;
+            entrances::reveal::retarget(&mut blocks, &arrivals)?;
+            Some(blocks)
+        }
+    };
     events.write(&mut builder)?;
     if new_game.shop_slots > 0 {
         fields.extend(shops::write(
@@ -364,10 +376,6 @@ pub fn write_mod(
     // A step's copy is placed with its holder's table, which goes too.
     let copied = steps.copies.iter().filter(|(of, _)| tabled.contains(of));
     tabled.extend(copied.map(|(_, copy)| *copy).collect::<Vec<_>>());
-    let blocks = match new_game.doors.is_vanilla() {
-        true => None,
-        false => Some(entrances::Blocks::read(romfs)?),
-    };
     let (mut found, mut actors) = (HashSet::new(), 0);
     let mut spots = Vec::new();
     let mut chest_events = HashMap::new();

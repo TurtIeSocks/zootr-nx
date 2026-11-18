@@ -13,6 +13,8 @@ use crate::rng::Rng;
 use crate::settings::DungeonEntrances;
 use crate::world::node_of;
 
+pub mod reveal;
+
 const DOOR_ACTOR: &Name = field::FIELD_AND_DUNGEON_ENTRANCE_EVENT_REQUEST_ACTOR;
 const DYNAMIC: &str = "Dynamic";
 
@@ -345,25 +347,23 @@ impl Blocks {
     }
 }
 
-/// Points each door in Banc `file` where `doors` says. Returns how many
-/// moved.
+/// Points each door in Banc `file` where `doors` says, with `blocks`'
+/// arrival events. Returns how many changed.
 pub fn rewrite(file: &str, root: &mut Byml, doors: &Doors, blocks: &Blocks) -> Result<usize> {
-    if doors.is_vanilla() {
-        return Ok(0);
-    }
     let node = node_of(file).0;
     let mut moved = 0;
     for actor in actors_mut(root)? {
-        let Some(role) = door_of_actor(actor).and_then(|d| role_of_door(&node, d)) else {
+        let Some(dynamic) = door_of_actor(actor) else {
             continue;
         };
-        let block = match role {
-            Role::Into(door) if doors.behind(door) != door => &blocks.into[doors.behind(door)],
-            Role::OutOf(dungeon) if doors.door_of(dungeon) != dungeon => {
-                &blocks.out_of[doors.door_of(dungeon)]
-            }
-            _ => continue,
+        let block = match role_of_door(&node, dynamic) {
+            Some(Role::Into(door)) => &blocks.into[doors.behind(door)],
+            Some(Role::OutOf(dungeon)) => &blocks.out_of[doors.door_of(dungeon)],
+            None => continue,
         };
+        if block_of(dynamic) == *block {
+            continue;
+        }
         let dynamic = (actor.as_mut_map()?)
             .get_mut(DYNAMIC)
             .context("a door with no Dynamic")?
