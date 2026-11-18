@@ -13,13 +13,13 @@ use crate::flows::Rewrites;
 use crate::hints::Hint;
 use crate::narrowing::maps_move;
 use crate::progress::Run;
-use crate::settings::{AGELESS_WEAPONS, ChestSize, NewGame, TRADE_CHAIN};
+use crate::settings::{AGELESS_WEAPONS, ChestSize, DungeonEntrances, NewGame, TRADE_CHAIN};
 use crate::{
-    ageless, ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, day_skulltulas,
-    dig, door, enemies, entrances, flags, foreign, fortress, gamedata, gerudo, gifts, held, hints,
-    ice_traps, key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups,
-    presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain,
-    twins,
+    ageless, ammo, blue_warps, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe,
+    day_skulltulas, dig, door, enemies, entrances, flags, foreign, fortress, gamedata, gerudo,
+    gifts, held, hints, ice_traps, key_tints, keys, map_copies, medallions, navi, notice, patch,
+    picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker,
+    trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -95,6 +95,9 @@ pub(super) fn flows(
         ice_traps::flow(romfs, &mut rewrites)?;
         let traps: Vec<&str> = ice_traps::actors(&new_game.foreign).collect();
         ice_traps::one_page(romfs, &mut rewrites, &traps)?;
+    }
+    if new_game.dungeon_entrances != DungeonEntrances::Off {
+        blue_warps::keep_age(romfs, &mut rewrites)?;
     }
     Ok((rewrites, flags))
 }
