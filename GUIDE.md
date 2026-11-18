@@ -49,6 +49,22 @@ The builds aren't signed yet, so macOS and Windows warn the first time:
   them.
 - Play launches the game through whichever target you pick.
 
+### Archipelago
+
+- Generate a multiworld in Archipelago with `znx.apworld` from the same
+  release. Its [setup guide](ap/znx/docs/setup_en.md) has the steps.
+- Open AP seed on the Play page installs your slot from its `.apznx`, with
+  the settings from your options file.
+- The Archipelago panel under the seed connects the running game to a room.
+  It sends your checks, gives Link what other players find for him, and
+  reports your goal. The server and password are kept for each seed.
+- An item from another world shows at the top of the screen with its
+  sender once Link is in play: "Hookshot from Saria". A big release shows
+  3, then a count of the rest.
+- A check holding another game's item shows a model coloured by its
+  Archipelago class, and its get names the player it goes to.
+- DeathLink works when your options turn it on.
+
 ### Checks
 
 - Every check in the installed seed, by area. It reads the running game
