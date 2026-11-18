@@ -5,10 +5,14 @@
 //! on its spot, standing while that step's program holds: a shop slot
 //! (`shops::steps`) or a pickup (`pickups::steps`).
 
+use std::collections::HashMap;
+
 use anyhow::Result;
 use ounce_formats::{Byml, murmur3};
 
-use crate::gamedata::{IS_GET, Op};
+use crate::checks::{self, hash_of};
+use crate::gamedata::{GameData, IS_GET, Op};
+use crate::world::Presence;
 use crate::{ammo, progressive};
 
 /// What a holder of `item` gives as Link's pouch grows, lowest first, each
@@ -101,6 +105,59 @@ pub(crate) fn rehash(actor: &mut Byml, hash: u64) -> Result<()> {
         p.insert("ID".into(), Byml::U64(hash));
     }
     Ok(())
+}
+
+/// The program `program`, also needing the holder's own gate `own`, if any.
+pub(crate) fn within(own: Option<&Presence>, program: Vec<Op>, gd: &GameData) -> Result<Vec<Op>> {
+    let Some(p) = own else {
+        return Ok(program);
+    };
+    let read = vec![Op::read(gd, &p.flag)?];
+    Ok(and(if p.negated { not(read) } else { read }, program))
+}
+
+/// Copy in each step's placement past its holder's own, `copies` by the
+/// placement each copies. Whether `root`, a map's doc, gained any.
+pub(crate) fn copy_in(root: &mut Byml, copies: &[(u64, u64)]) -> Result<bool> {
+    let Some(list) = actors(root)? else {
+        return Ok(false);
+    };
+    let mut new = Vec::new();
+    for &(of, hash) in copies {
+        if let Some(actor) = list.iter().find(|a| hash_of(a) == Some(of)) {
+            let mut copy = actor.clone();
+            rehash(&mut copy, hash)?;
+            new.push(copy);
+        }
+    }
+    let gained = !new.is_empty();
+    list.extend(new);
+    Ok(gained)
+}
+
+/// Gate each step's placement on its BoolExp, `gates` by its hash, in place
+/// of any gate it had. Whether `root`, a map's doc, changed.
+pub(crate) fn gate(root: &mut Byml, gates: &HashMap<u64, String>) -> Result<bool> {
+    let Some(list) = actors(root)? else {
+        return Ok(false);
+    };
+    let mut changed = false;
+    for actor in list.iter_mut() {
+        if let Some(gate) = hash_of(actor).and_then(|h| gates.get(&h)) {
+            actor.as_mut_map()?.remove("Presence");
+            checks::gate(actor, gate, false)?;
+            changed = true;
+        }
+    }
+    Ok(changed)
+}
+
+/// A map's placements, if it has any.
+fn actors(root: &mut Byml) -> Result<Option<&mut Vec<Byml>>> {
+    match root.as_mut_map()?.get_mut("Actors") {
+        Some(list) => Ok(Some(list.as_mut_array()?)),
+        None => Ok(None),
+    }
 }
 
 #[cfg(test)]

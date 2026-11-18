@@ -10,10 +10,10 @@ use anyhow::Result;
 use ounce_formats::Byml;
 
 use super::{Slot, dealt, sold};
-use crate::checks::{self, Drop, hash_of};
+use crate::checks::Drop;
 use crate::gamedata::{GameData, Op};
 use crate::settings::NewGame;
-use crate::shows::{and, by_name, copy_hash, not, or, rehash, steps};
+use crate::shows::{and, by_name, copy_hash, copy_in, gate, not, or, steps, within};
 
 /// One stand-in on a check slot's shelf.
 pub struct Stand<'a> {
@@ -112,13 +112,7 @@ impl<'a> Shelves<'a> {
                     let hash = copy_hash(of, k);
                     // The slot's own gate still holds: the Kokiri Shop's
                     // goods change once the Deku Tree is done.
-                    let program = match slot.presence.get(&of) {
-                        Some(p) => {
-                            let own = vec![Op::read(gd, &p.flag)?];
-                            and(if p.negated { not(own) } else { own }, program.clone())
-                        }
-                        None => program.clone(),
-                    };
+                    let program = within(slot.presence.get(&of), program.clone(), gd)?;
                     let name = format!("ZootrShelf.{hash}");
                     shelves.exps.push((name.clone(), program));
                     shelves.gates.insert(hash, name);
@@ -145,21 +139,12 @@ impl<'a> Shelves<'a> {
     /// from whoever links the slot (its keeper sells it), then gate every
     /// step's on its BoolExp. Whether `root`, a map's doc, changed.
     pub fn place(&self, root: &mut Byml) -> Result<bool> {
+        let copied = copy_in(root, &self.copies)?;
         let Some(list) = root.as_mut_map()?.get_mut("Actors") else {
             return Ok(false);
         };
-        let list = list.as_mut_array()?;
-        let mut new = Vec::new();
-        for &(of, hash) in &self.copies {
-            if let Some(actor) = list.iter().find(|a| hash_of(a) == Some(of)) {
-                let mut copy = actor.clone();
-                rehash(&mut copy, hash)?;
-                new.push(copy);
-            }
-        }
-        list.extend(new);
-        let mut changed = false;
-        for actor in list.iter_mut() {
+        let mut linked = false;
+        for actor in list.as_mut_array()?.iter_mut() {
             let mut more = Vec::new();
             for link in link_list(actor) {
                 let dst = link_dst(link);
@@ -172,17 +157,11 @@ impl<'a> Shelves<'a> {
             if !more.is_empty() {
                 let links = actor.as_mut_map()?.get_mut("Links");
                 links.expect("linked").as_mut_array()?.extend(more);
-                changed = true;
+                linked = true;
             }
         }
-        for actor in list.iter_mut() {
-            if let Some(gate) = hash_of(actor).and_then(|h| self.gates.get(&h)) {
-                actor.as_mut_map()?.remove("Presence");
-                checks::gate(actor, gate, false)?;
-                changed = true;
-            }
-        }
-        Ok(changed)
+        let gated = gate(root, &self.gates)?;
+        Ok(copied || linked || gated)
     }
 }
 
@@ -200,6 +179,7 @@ fn link_dst(link: &Byml) -> Option<u64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::checks::{self, hash_of};
     use crate::known::item;
 
     #[test]
