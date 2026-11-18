@@ -25,6 +25,7 @@ mod plan;
 mod poses;
 mod rooms;
 mod shapes;
+mod water;
 
 use formats::{ainb, byml, files, grep, pool, restbl, strings, unpack, unpacked};
 use logic::{checks, exits, gates, groups, pouch, settings, shops, tools};
@@ -226,6 +227,29 @@ pub enum Probe {
         /// A map, by its Banc param name.
         map: String,
     },
+    /// A map's waters: each body's planes, its stretches of shore and the
+    /// swims a route takes between them.
+    Water {
+        /// A map, by its Banc param name.
+        map: String,
+        /// Also draw it from above to this SVG file: the mesh shaded by
+        /// height, each water's box, its shore points and its swims.
+        #[arg(long)]
+        svg: Option<std::path::PathBuf>,
+        /// Draw only around this point X,Y,Z: faces within 8 m of its
+        /// height, waters within 4 m.
+        #[arg(long, value_parser = point, allow_hyphen_values = true)]
+        at: Option<[f32; 3]>,
+        /// How far round `--at` to draw, in m.
+        #[arg(long, default_value_t = 30.0)]
+        within: f32,
+        /// Instead, the route from this point X,Y,Z to `--to`, swims and
+        /// all.
+        #[arg(long, value_parser = point, allow_hyphen_values = true, requires = "to")]
+        from: Option<[f32; 3]>,
+        #[arg(long, value_parser = point, allow_hyphen_values = true)]
+        to: Option<[f32; 3]>,
+    },
     /// The sweep's plan for one round: each holder kind by how it'd be
     /// swept (open, talk, play, skip), and every skipped spot with why.
     Plan {
@@ -319,6 +343,19 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Files { pattern, out } => files(romfs, game, &pattern, out.as_deref()),
         Probe::Rooms { map } => rooms::rooms(romfs, game, &map),
         Probe::Climbs { map } => climbs::climbs(romfs, game, &map),
+        Probe::Water {
+            map,
+            from: Some(from),
+            to: Some(to),
+            ..
+        } => water::route(romfs, game, &map, from, to),
+        Probe::Water {
+            map,
+            svg,
+            at,
+            within,
+            ..
+        } => water::water(romfs, game, &map, svg.map(|f| (f, at, within))),
         Probe::Shapes {
             map, cross: true, ..
         } => shapes::crossings(romfs, game, &map),

@@ -12,6 +12,7 @@ use super::act;
 use super::graph::{Graph, Via};
 use super::route::{Route, Waypoint, plan};
 use super::shove::{LEVEL, Shove, rise};
+use super::water::{DASH, DASH_SPEED};
 use super::went::{Done, Gone, Reason, Went};
 use super::{CLOCKWISE, Level, heading};
 use crate::around::clockwise;
@@ -26,6 +27,15 @@ use crate::warp::{self, Side};
 pub const SPEED: f32 = 5.0;
 /// The longest a leg pushes, in s: the route is read again after it.
 const MAX_LEG: f32 = 1.5;
+/// The shortest push through water, in seconds: a stroke of 0.15 s toward
+/// a shore 0.6 m off lost to Zora's River's current, twice, and the walk
+/// gave up blocked (Mac, 2026-11-18).
+const STROKE: f32 = 0.5;
+/// How far ahead, in water, a push aims past nearer waypoints, in m: one
+/// longest push. Between pushes to a route's corners 0.2 to 1.3 m apart,
+/// Zora's River's current carried Link back as far as each push took him
+/// (Mac, 2026-11-18).
+const AHEAD: f32 = DASH_SPEED * MAX_LEG;
 /// How near a waypoint on the way counts as reached, in m.
 const REACHED: f32 = 0.5;
 /// How near in height the top or foot of a climb is to be reached, in m:
@@ -145,13 +155,36 @@ pub(super) fn lean(here: [f32; 3], to: [f32; 3]) -> f32 {
     (flat(here, to) / SPEED).min(MAX_LEG)
 }
 
+/// How fast Link goes toward a waypoint reached `via`, flat, in m a
+/// second.
+fn speed(via: Via) -> f32 {
+    match via {
+        Via::Swim(_) => DASH_SPEED,
+        _ => SPEED,
+    }
+}
+
 /// [`lean`] toward a waypoint reached `via`: up or down a climb, as long
-/// as its height takes at climbing speed.
+/// as its height takes at climbing speed, and across water at swimming
+/// speed.
 fn lean_via(here: [f32; 3], to: [f32; 3], via: Via) -> f32 {
     match via {
         Via::Climb(_) => ((to[1] - here[1]).abs() / CLIMB_SPEED).clamp(lean(here, to), MAX_LEG),
+        Via::Swim(_) => (flat(here, to) / DASH_SPEED).clamp(STROKE, MAX_LEG),
         _ => lean(here, to),
     }
+}
+
+/// The waypoint from `next` on that a push from `here` in water aims at:
+/// the last of a run within [`AHEAD`] of him, stopping before a climb.
+fn ahead(waypoints: &[Waypoint], next: usize, here: [f32; 3]) -> usize {
+    let near = |w: &Waypoint| flat(here, w.at) <= AHEAD && !matches!(w.via, Via::Climb(_));
+    let run = waypoints
+        .iter()
+        .skip(next + 1)
+        .take_while(|w| near(w))
+        .count();
+    next + run
 }
 
 /// Milliseconds in `secs`.
@@ -189,12 +222,20 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
     /// in adult Kokiri Forest sent the push and the sword away from a pot
     /// (Mac, 2026-11-14).
     pub(super) fn steer(&mut self, to: [f32; 3], ms: u64) -> Result<()> {
+        self.steer_with(to, ms, None)
+    }
+
+    /// [`Self::steer`], with `button` held along with the stick.
+    fn steer_with(&mut self, to: [f32; 3], ms: u64, button: Option<&str>) -> Result<()> {
         if !self.here {
             self.input.press("ZL")?;
             sleep(self.settle);
         }
         let direction = heading(self.sense.yaw()?, self.sense.link()?, to);
-        self.input.stick(direction, ms)?;
+        match button {
+            Some(b) => self.input.stick(&format!("{direction}+{b}"), ms)?,
+            None => self.input.stick(direction, ms)?,
+        }
         sleep(self.settle);
         Ok(())
     }
@@ -411,6 +452,9 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             }
             let here = self.sense.link()?;
             let Route { waypoints, .. } = &route;
+            if graph.in_water(here) {
+                next = ahead(waypoints, next, here);
+            }
             let Some(&Waypoint { at: target, via }) = waypoints.get(next) else {
                 return Ok((None, legs));
             };
@@ -448,6 +492,12 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
                 held = Some(next);
                 continue;
             }
+            // In water, any leg swims: Link drifts off a walk into a river's
+            // pool (Zora's River, Mac, 2026-11-18).
+            let via = match via {
+                Via::Walk | Via::Drop | Via::Step if graph.in_water(here) => Via::Swim(None),
+                via => via,
+            };
             let secs = lean_via(here, target, via);
             let down = held == Some(next) && below && missed != Some(next);
             if down {
@@ -456,7 +506,10 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
                 // 2026-11-18).
                 self.push("LDown", millis(secs))?;
             } else {
-                self.steer(target, millis(secs))?;
+                // On land X isn't a dash: held at a waterfall's lip, Link
+                // stood still there (Zora's River, Mac, 2026-11-18).
+                let dash = graph.in_water(here).then_some(DASH);
+                self.steer_with(target, millis(secs), dash)?;
             }
             legs += 1;
             let now = self.sense.link()?;
@@ -466,7 +519,7 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
                 // (Mac, 2026-11-18).
                 missed = Some(next);
             }
-            if !stuck(here, now, secs * SPEED) {
+            if !stuck(here, now, secs * speed(via)) {
                 continue;
             }
             if blocked.is_some_and(|b| flat(b, target) <= REACHED) {
@@ -555,6 +608,33 @@ mod tests {
         assert_eq!(lean_via(foot, top, Via::Walk), 0.1);
         assert!((lean_via(foot, top, Via::Climb(None)) - 1.0).abs() < 1e-6);
         assert_eq!(lean_via(foot, [0.5, 9.0, 0.0], Via::Climb(None)), MAX_LEG);
+    }
+
+    #[test]
+    fn a_push_across_water_lasts_as_long_as_swimming_there_takes() {
+        let far = [DASH_SPEED, 0.0, 0.0];
+        assert!((lean_via(ORIGIN, far, Via::Swim(None)) - 1.0).abs() < 1e-6);
+        assert!(lean_via(ORIGIN, far, Via::Walk) < 1.0);
+        assert_eq!(lean_via(ORIGIN, [0.6, 0.0, 0.0], Via::Swim(None)), STROKE);
+    }
+
+    #[test]
+    fn in_water_a_push_aims_past_the_corners_within_reach() {
+        let at = |x: f32, via| Waypoint {
+            at: [x, 0.0, 0.0],
+            via,
+        };
+        let walk = |x| at(x, Via::Walk);
+        let route = [
+            walk(0.0),
+            walk(0.5),
+            walk(1.0),
+            walk(AHEAD),
+            walk(AHEAD + 1.0),
+        ];
+        assert_eq!(ahead(&route, 1, ORIGIN), 3);
+        let climb = [walk(0.0), walk(0.5), at(1.0, Via::Climb(None)), walk(2.0)];
+        assert_eq!(ahead(&climb, 1, ORIGIN), 1);
     }
 
     #[test]
