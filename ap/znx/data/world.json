@@ -7099,6 +7099,14 @@
       "unprovable": false
     },
     {
+      "at": [],
+      "forbid": [],
+      "hash": "11582029116926037889",
+      "id": 132,
+      "name": "Gerudo Valley Running man's race's Gift",
+      "unprovable": true
+    },
+    {
       "at": [
         {
           "place": "dodongos-cavern-adult",

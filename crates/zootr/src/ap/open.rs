@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use super::GAME;
 use super::ids::Ids;
+use super::names;
 use super::seed::{Dealt, base};
 use crate::foreign::{self, Foreign};
 use crate::known::{Name, item};
@@ -155,7 +156,7 @@ impl ApSeed {
             "the seed doesn't match this version's checks: none placed at {missing:?}, unknown {extra:?}"
         );
         let ids = Ids::load()?;
-        let actors = ids.actors(dealt.pool.iter().map(String::as_str));
+        let actors = ids.actors(dealt.pool.iter().map(|a| names::same(a)));
         let actor = |id: u64| match actors.get(&id) {
             Some(a) => Ok(a.to_string()),
             None => bail!("no item has AP id {id}"),
@@ -299,13 +300,18 @@ mod tests {
         let free = Dealt::new(&romfs, &ap.full_settings()).unwrap().free;
         ap.placements = (shuffled.spots.iter())
             .filter(|s| free.contains(&s.hash))
-            .map(|s| (s.hash, Placed::Own(ids.item_id(&s.item).unwrap())))
+            .map(|s| {
+                (
+                    s.hash,
+                    Placed::Own(ids.item_id(names::same(&s.item)).unwrap()),
+                )
+            })
             .collect();
         ap.start.clear();
         let from_ap = installed(&romfs, 7, &Extras::ap(ap));
         let items = |r: &crate::generate::Report| {
             (r.spots.iter())
-                .map(|s| (s.hash, s.item.clone()))
+                .map(|s| (s.hash, names::same(&s.item).to_owned()))
                 .collect::<BTreeMap<_, _>>()
         };
         assert_eq!(items(&from_ap), items(&shuffled));

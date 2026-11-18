@@ -175,7 +175,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     events.push(json!({ "name": VICTORY, "at": goal }));
 
     let mut counts: BTreeMap<&str, (u32, &str)> = BTreeMap::new();
-    for actor in &seed.dealt.pool {
+    for actor in seed.dealt.pool.iter().map(|a| names::same(a)) {
         let name = names.item(actor)?;
         let row = counts.entry(name).or_insert((0, actor));
         ensure!(row.1 == actor, "{name} names two items");
