@@ -133,6 +133,40 @@ fn scan(romfs: &Romfs, tools: &mut Tools) -> Result<Scan> {
     Ok(s)
 }
 
+/// What the world reads from the game: the same for every seed with the
+/// same checks, so a seed that rolls new doors reads it once.
+pub struct Data<'a> {
+    tools: Tools<'a>,
+    scan: Scan,
+    alternatives: BTreeMap<String, String>,
+    exits: BTreeSet<world::Exit>,
+    gates: BTreeMap<u64, String>,
+    shop_slots: Vec<shops::Slot>,
+    cows: Vec<cows::Cow>,
+}
+
+impl<'a> Data<'a> {
+    pub fn read(romfs: &'a Romfs, checks: &[ItemCheck]) -> Result<Self> {
+        let mut tools = Tools::new(romfs);
+        let scan = scan(romfs, &mut tools)?;
+        Ok(Self {
+            tools,
+            scan,
+            alternatives: world::alternatives(romfs)?,
+            exits: world::exits(romfs)?,
+            gates: gates::gates(romfs)?,
+            shop_slots: match checks.iter().any(shops::is_shop) {
+                true => shops::slots(romfs)?,
+                false => Vec::new(),
+            },
+            cows: match checks.iter().any(cows::is_cow) {
+                true => cows::find(romfs)?,
+                false => Vec::new(),
+            },
+        })
+    }
+}
+
 /// The eras a node's places come in.
 fn eras_of(places: &BTreeSet<Place>, node: &str) -> Vec<Era> {
     places.iter().filter(|p| p.0 == node).map(|p| p.1).collect()
@@ -140,8 +174,25 @@ fn eras_of(places: &BTreeSet<Place>, node: &str) -> Vec<Era> {
 
 impl World {
     pub fn build(romfs: &Romfs, book: &Book, ctx: &Ctx, checks: &[ItemCheck]) -> Result<Self> {
-        let mut tools = Tools::new(romfs);
-        let scan = scan(romfs, &mut tools)?;
+        Self::from_data(&mut Data::read(romfs, checks)?, book, ctx, checks)
+    }
+
+    /// The world from game data read once, for `ctx`'s seed.
+    pub fn from_data(
+        data: &mut Data,
+        book: &Book,
+        ctx: &Ctx,
+        checks: &[ItemCheck],
+    ) -> Result<Self> {
+        let Data {
+            tools,
+            scan,
+            alternatives,
+            exits,
+            gates,
+            shop_slots,
+            cows,
+        } = data;
         let places: Vec<Place> = scan.places.iter().cloned().collect();
         let index: HashMap<Place, usize> = places
             .iter()
@@ -172,7 +223,6 @@ impl World {
         let rule_of =
             |from: &str, to: &str| book.exits.iter().find(|r| r.from == from && r.to == to);
         let mut ruled = HashSet::new();
-        let alternatives = world::alternatives(romfs)?;
         if let Some(stale) = book
             .alternatives
             .iter()
@@ -180,7 +230,6 @@ impl World {
         {
             bail!("{} has an alternative rule but no alternative", stale.place);
         }
-        let exits = world::exits(romfs)?;
         let role = |e: &world::Exit| entrances::role(&e.from, [e.to.as_str()], &e.to_start);
         // Where each dungeon's front exit leads in vanilla, per era.
         let out_to: HashMap<(usize, Era), &str> = (exits.iter())
@@ -189,7 +238,7 @@ impl World {
                 Role::Into(_) => None,
             })
             .collect();
-        for e in &exits {
+        for e in exits.iter() {
             // A moved door leads into the dungeon behind it, and that
             // dungeon's front exit back out of it. Each keeps the rule of
             // the vanilla exit it stands in.
@@ -286,15 +335,6 @@ impl World {
             Ok(Need::All(needs))
         };
 
-        let gates = gates::gates(romfs)?;
-        let shop_slots = match checks.iter().any(shops::is_shop) {
-            true => shops::slots(romfs)?,
-            false => Vec::new(),
-        };
-        let cows = match checks.iter().any(cows::is_cow) {
-            true => cows::find(romfs)?,
-            false => Vec::new(),
-        };
         // A boss room counts for either era once doors move, since its
         // dungeon may stand behind the other era's door. The blue warp keeps
         // Link's age (`entrances.md`, "Blue warps keep Link's age").
@@ -361,7 +401,7 @@ impl World {
                         let obstacles = obstacles_at(&place)?;
                         match gates.get(&check.hash) {
                             Some(gate) => {
-                                let gate = resolve(&switches(gate, &mut tools)?)?;
+                                let gate = resolve(&switches(gate, tools)?)?;
                                 Need::All(vec![gate, obstacles])
                             }
                             None => obstacles,
@@ -451,7 +491,7 @@ impl World {
             edges,
             locations,
             sources,
-            obstacles: scan.obstacles,
+            obstacles: scan.obstacles.clone(),
             goal,
         })
     }

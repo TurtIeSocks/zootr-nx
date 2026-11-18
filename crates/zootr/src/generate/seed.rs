@@ -8,7 +8,7 @@ use ounce_formats::Romfs;
 
 use super::{Door, Extras, Held, Report, RoundEvent, Spot, Start, write_mod};
 use crate::entrances::Doors;
-use crate::logic::{Got, World};
+use crate::logic::{Data, Got, World};
 use crate::names::Names;
 use crate::progress::{Run, Step};
 use crate::rng::Rng;
@@ -17,8 +17,11 @@ use crate::settings::{self, DungeonEntrances, Logic, NewGame, Settings};
 use crate::shuffle::{self, Fixed};
 use crate::{checks, fill, gamedata, hints, ice_traps, icons, places, steps};
 
-/// How many door layouts a seed tries before it gives up.
-const DOOR_TRIES: u32 = 10;
+/// How many door layouts a seed tries before it gives up. About one in
+/// twelve rolled layouts can be beaten (Jabu-Jabu's Belly wants a child
+/// door, the child-only doors no adult boss), so a hundred tries fail about
+/// once in five thousand seeds.
+const DOOR_TRIES: u32 = 100;
 
 /// Shuffle the chests around `fixed`, unless `new_game` keeps them vanilla,
 /// and write the mod.
@@ -45,8 +48,9 @@ pub fn shuffle(
             let book = Book::load()?;
             let shuffles = new_game.dungeon_entrances != DungeonEntrances::Off;
             let start = fill::start(&new_game);
-            let build = |new_game: &NewGame| {
-                let world = World::build(romfs, &book, &Ctx::new(new_game), &checks)?;
+            let mut data = Data::read(romfs, &checks)?;
+            let mut build = |new_game: &NewGame| {
+                let world = World::from_data(&mut data, &book, &Ctx::new(new_game), &checks)?;
                 let deal = shuffle::deal(&checks, fixed, new_game)?;
                 Ok::<_, anyhow::Error>((world, deal))
             };
@@ -325,5 +329,33 @@ mod tests {
         let game = new_game(&settings, &extras).unwrap();
         let presets = crate::presets::fields(&[crate::presets::JABU_OPEN.into()]).unwrap();
         assert_eq!(game.fields, [presets, extras.fields].concat());
+    }
+
+    /// Seeds whose first ten layouts logic couldn't beat.
+    #[test]
+    fn a_seed_rolls_doors_until_logic_can_beat_them() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let dir = std::env::temp_dir().join(format!("zootr-doors-{}", std::process::id()));
+        let settings = crate::settings::Settings::from([
+            ("shuffle-dungeon-entrances".into(), "on".into()),
+            ("open-forest".into(), true.into()),
+            ("kakariko-gate".into(), true.into()),
+        ]);
+        let new_game = NewGame::from_settings(&settings, &[]).unwrap();
+        assert_eq!(new_game.dungeon_entrances, DungeonEntrances::On);
+        for seed in [2, 3] {
+            let report = shuffle(
+                &romfs,
+                &dir,
+                seed,
+                &crate::shuffle::Fixed::new(),
+                &new_game,
+                &Run::silent(),
+            );
+            assert_eq!(report.unwrap().entrances.len(), 11, "seed {seed}");
+        }
+        std::fs::remove_dir_all(dir).unwrap();
     }
 }
