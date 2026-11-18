@@ -66,6 +66,10 @@ pub(super) fn flows(
         &new_game.on,
     )?;
     levels(romfs, drops, new_game)?.give(romfs, all, &mut rewrites)?;
+    if new_game.shop_slots > 0 {
+        let slots = shops::slots(romfs)?;
+        shops::sold::write(romfs, &mut rewrites, &slots, new_game.shop_slots)?;
+    }
     dampe::give(romfs, &mut rewrites, drops)?;
     gerudo::stand_down(romfs, &mut rewrites, drops)?;
     let model = gifts::levels::model(all)?;
@@ -146,6 +150,12 @@ pub fn write_mod(
     let picked = picked::holders(&pieces);
     let mut bools = cows::flags(&cows);
     bools.extend(picked::flags(&picked));
+    if new_game.shop_slots > 0 {
+        bools.extend(shops::sold::flags(
+            &shops::slots(romfs)?,
+            new_game.shop_slots,
+        ));
+    }
     bools.extend(gifts::flags(&new_game.on));
     bools.extend(dampe::flags(drops));
     if new_game.fortress_keys {

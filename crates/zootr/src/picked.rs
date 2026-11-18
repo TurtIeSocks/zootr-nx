@@ -74,9 +74,11 @@ pub fn shown(hash: u64) -> String {
     format!("Rando_Shown_{hash}")
 }
 
-/// The flag a spot ticks by, when its holder stands until picked.
+/// The flag a spot ticks by, when its holder stands until picked or is
+/// a shop slot (`shops::sold`).
 pub fn flag_at(holder: &str, hash: u64) -> Option<String> {
-    KINDS.iter().any(|k| k.places(holder)).then(|| flag(hash))
+    let picked = KINDS.iter().any(|k| k.places(holder));
+    (picked || crate::shops::is_holder(holder)).then(|| flag(hash))
 }
 
 /// Each holder among `pieces` that stands until picked, once each.
