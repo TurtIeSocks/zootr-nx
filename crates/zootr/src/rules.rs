@@ -14,7 +14,10 @@ use crate::settings::{self, DungeonKeys, NewGame};
 use crate::world::Era;
 
 mod lang;
+mod set;
 pub mod vocab;
+
+pub use set::{Edit, set};
 
 pub use lang::{Expr, Have, Need, parse};
 

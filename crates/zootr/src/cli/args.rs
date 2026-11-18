@@ -172,7 +172,10 @@ pub(super) enum Command {
     /// What logic reaches with every check holding its vanilla item, and
     /// with every item, plus each place's provable checks and obstacles.
     /// Takes a new game's settings, like `shuffle`.
+    #[command(args_conflicts_with_subcommands = true)]
     Logic {
+        #[command(subcommand)]
+        edit: Option<LogicCommand>,
         #[command(flatten)]
         new_game: NewGame,
     },
@@ -379,6 +382,30 @@ pub(super) enum Command {
 }
 
 /// What a harness start plays. Without either, the game's own saves.
+#[derive(Subcommand)]
+pub(super) enum LogicCommand {
+    /// Set one check's name, need or place in the rule files, keeping
+    /// comments and order. A check with no entry gets one in its area's
+    /// file. Refused, with nothing written, unless every file still loads.
+    Set {
+        hash: u64,
+        /// Shown in place of the generated name.
+        #[arg(long)]
+        name: Option<String>,
+        /// What it needs beyond reaching its place, like `child and hookshot`.
+        #[arg(long)]
+        needs: Option<String>,
+        /// The logic place Link gets it from, with `--era`.
+        #[arg(long, requires = "era")]
+        place: Option<String>,
+        #[arg(long, requires = "place", value_parser = ["child", "adult"])]
+        era: Option<String>,
+        /// The rule files to edit: a worktree's `crates/zootr/logic`.
+        #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
+        dir: PathBuf,
+    },
+}
+
 #[derive(clap::Args)]
 pub(super) struct StartArgs {
     /// Continue a kept save (`zootr save kept`). The game plays a copy, so
