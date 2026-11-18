@@ -119,11 +119,6 @@ offsets! {
     controller_vtable,
     /// Sets the speed and direction Player asks the controller for.
     run_setter,
-    /// The game's stubs for `nn::hid::GetNpadStates`, by style: full key,
-    /// handheld, joy dual.
-    npad_full,
-    npad_handheld,
-    npad_dual,
     /// The hooked functions: the Items page built (entered), the Items page
     /// left, and the UI update each frame.
     items_built,

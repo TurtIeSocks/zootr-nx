@@ -30,9 +30,12 @@ const MAX: usize = 128;
 //
 // A function hook keeps every argument register and the link register,
 // calls its handler, runs the pacibsp it replaced with the same sp, and
-// goes on through its slot at `RESUMES`, where the patch writes a `b`
-// past that pacibsp. Every branch is direct, so a build that translates
-// the game's code ahead of time can follow each one.
+// goes on through its slot at `SLOTS`, where the patch writes a `b`
+// past that pacibsp. A controller read calls the game's `GetNpadStates`
+// stub through its own slot, where the patch writes a `b` to the stub.
+// Every branch is direct, so a build that translates the game's code
+// ahead of time can follow each one: it lifts an import stub as an
+// import, never as code a pointer could reach.
 global_asm!(
     ".macro function_hook handler, resume",
     "sub sp, sp, #0xd0",
@@ -78,6 +81,19 @@ global_asm!(
     "pacibsp",
     "b \\resume",
     ".endm",
+    // A controller read: calls the game's stub through `stub`, then hands
+    // the states it wrote and their count to `npad_states`.
+    ".macro npad_read stub",
+    "stp x29, x30, [sp, #-0x20]!",
+    "mov x29, sp",
+    "str x0, [sp, #0x10]",
+    "bl \\stub",
+    "mov x1, x0",
+    "ldr x0, [sp, #0x10]",
+    "bl npad_states",
+    "ldp x29, x30, [sp], #0x20",
+    "ret",
+    ".endm",
     ".section .text.entry, \"ax\"",
     ".global entries",
     "entries:",
@@ -112,6 +128,12 @@ global_asm!(
     "brk #0",
     "ui_update_resume:",
     "brk #0",
+    "npad_full_stub:",
+    "brk #0",
+    "npad_handheld_stub:",
+    "brk #0",
+    "npad_dual_stub:",
+    "brk #0",
     ".text",
     "content_name_entry:",
     "mov x4, x20",
@@ -126,16 +148,12 @@ global_asm!(
     "function_hook link_update, link_update_resume",
     "picked_entry:",
     "function_hook picked, picked_resume",
-    // GetNpadStates takes three arguments, so x3 is free for the style.
     "npad_full_entry:",
-    "mov x3, #0",
-    "b npad_states",
+    "npad_read npad_full_stub",
     "npad_handheld_entry:",
-    "mov x3, #1",
-    "b npad_states",
+    "npad_read npad_handheld_stub",
     "npad_dual_entry:",
-    "mov x3, #2",
-    "b npad_states",
+    "npad_read npad_dual_stub",
     "items_built_entry:",
     "function_hook items_built, items_built_resume",
     "items_left_entry:",

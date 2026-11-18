@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
 use zootr_hook::{
-    BUNNY_HOOD, CAVE, Credit, LIST, Offsets, PANIC, RESUMES, Shared, TABLE, TRADE_CYCLE, encode,
+    BUNNY_HOOD, CAVE, Credit, LIST, Offsets, PANIC, SLOTS, Shared, TABLE, TRADE_CYCLE, encode,
 };
 
 use crate::known::Name;
@@ -48,9 +48,6 @@ pub const OFFSETS: Offsets = Offsets {
     move_to: 0x6b_2530,
     controller_vtable: 0x4c3_4f10,
     run_setter: 0x93_52f0,
-    npad_full: 0x3c4_2800,
-    npad_handheld: 0x3c4_2830,
-    npad_dual: 0x3c4_27f0,
     items_built: 0xa7_13b0,
     // The Items page's vtable slot 7, run as it's left or the menu closes.
     items_left: 0xa7_6770,
@@ -90,6 +87,9 @@ const RUN_CALL: (u32, u32) = (0x93_4990, 24);
 /// cycle. Rewritten only in a seed with [`TRADE_CYCLE`], with the three
 /// Items page hooks.
 const NPAD_CALLS: [(u32, u32); 3] = [(0x346_966c, 32), (0x346_9698, 36), (0x346_94f8, 40)];
+/// The game's stubs for `nn::hid::GetNpadStates` those calls go to, in
+/// the same order. The hook reaches them through its slots.
+const NPAD_STUBS: [u32; 3] = [0x3c4_2800, 0x3c4_2830, 0x3c4_27f0];
 /// Each hooked function and the entry the `b` over its `pacibsp` goes to.
 /// Link's update only runs the mailbox's requests and the dev switches, so
 /// it's hooked only for a seed with the mailbox.
@@ -156,13 +156,18 @@ fn sites() -> impl Iterator<Item = Patch> {
         })
 }
 
-/// The hook, each function hook's resume slot branching past the
-/// `pacibsp` its function gave up.
+/// Where each of the hook's slots branches, in their order: past each
+/// hooked function's `pacibsp`, then to each controller read's stub.
+fn slot_targets() -> impl Iterator<Item = u32> {
+    HOOKS.iter().map(|&(at, _)| at + 4).chain(NPAD_STUBS)
+}
+
+/// The hook, with each slot's `b` written in.
 fn hook_code() -> Vec<u8> {
     let mut code = HOOK.to_vec();
-    for (i, &(at, _)) in HOOKS.iter().enumerate() {
-        let slot = RESUMES + 4 * i as u32;
-        code[slot as usize..][..4].copy_from_slice(&branch(CAVE + slot, at + 4, false));
+    for (i, to) in slot_targets().enumerate() {
+        let slot = SLOTS + 4 * i as u32;
+        code[slot as usize..][..4].copy_from_slice(&branch(CAVE + slot, to, false));
     }
     code
 }
@@ -392,22 +397,24 @@ mod tests {
     }
 
     #[test]
-    fn each_function_hook_resumes_past_its_pacibsp() {
+    fn each_slot_branches_past_its_pacibsp_or_to_its_stub() {
         let word =
             |b: &[u8], at: u32| u32::from_le_bytes(b[at as usize..][..4].try_into().unwrap());
         let code = hook_code();
-        for (i, &(at, _)) in HOOKS.iter().enumerate() {
-            let slot = RESUMES + 4 * i as u32;
+        let resumes = HOOKS.iter().map(|&(at, _)| at + 4);
+        let targets: Vec<_> = resumes.chain(NPAD_STUBS).collect();
+        assert_eq!(targets.len(), HOOKS.len() + NPAD_CALLS.len());
+        for (i, &to) in targets.iter().enumerate() {
+            let slot = SLOTS + 4 * i as u32;
             // brk #0 until the patch fills it.
             assert_eq!(word(HOOK, slot), 0xd420_0000, "slot {i}");
-            assert_eq!(
-                code[slot as usize..][..4],
-                branch(CAVE + slot, at + 4, false)
-            );
+            assert_eq!(code[slot as usize..][..4], branch(CAVE + slot, to, false));
         }
-        assert_eq!(code[..RESUMES as usize], HOOK[..RESUMES as usize]);
-        let end = (RESUMES as usize) + 4 * HOOKS.len();
+        assert_eq!(code[..SLOTS as usize], HOOK[..SLOTS as usize]);
+        let end = SLOTS as usize + 4 * targets.len();
         assert_eq!(code[end..], HOOK[end..]);
+        // Past the last slot is code, not another slot left unfilled.
+        assert_ne!(word(HOOK, end as u32), 0xd420_0000);
     }
 
     #[test]

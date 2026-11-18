@@ -61,7 +61,9 @@ pub const LIST: u32 = 0x4e9_a4d0;
 /// Where a panic in the hook leaves its line and file, in the list page's
 /// last 16 bytes, for reading from outside when the game hangs.
 pub const PANIC: u32 = 0x4e9_aff0;
-/// Where each function hook's resume slot sits in the hook, one word each
-/// in the order the hooks are listed, right after the entries. The patch
-/// writes a `b` past the hooked function's pacibsp into each.
-pub const RESUMES: u32 = 56;
+/// Where the hook's branch slots sit, one word each right after the
+/// entries: each function hook's resume, in the order the hooks are
+/// listed, then the full key, handheld and joy dual controller reads. The
+/// patch writes a `b` into each: past the hooked function's pacibsp, or to
+/// the game's `GetNpadStates` stub for that style.
+pub const SLOTS: u32 = 56;

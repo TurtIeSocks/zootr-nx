@@ -51,36 +51,22 @@ const NPAD_STATE: usize = 0x28;
 const NPAD_BUTTONS: usize = 8;
 const NPAD_STICK_X: usize = 0x10;
 
-type GetStates = unsafe extern "C" fn(*mut u8, i32, *const u32) -> i32;
 type CellSet = unsafe extern "C" fn(usize, *const *const u8, i32, i32, i32);
 type Focus = unsafe extern "C" fn(usize, usize, usize, usize);
 type AnimFrame = unsafe extern "C" fn(usize, f32);
 type Equipped = unsafe extern "C" fn(usize, u8, u32) -> i32;
 
-/// Called in place of the controller device's `GetNpadStates` calls, with
-/// their arguments and which `style` the call reads. The newest state
-/// comes first.
+/// Called after each of the controller device's `GetNpadStates` calls,
+/// with the states it wrote and their count, which it hands back. The
+/// newest state comes first.
 ///
 /// # Safety
 /// Only the game calls this, from the rewritten call sites.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn npad_states(
-    states: *mut u8,
-    count: i32,
-    id: *const u32,
-    style: u32,
-) -> i32 {
+pub unsafe extern "C" fn npad_states(states: *mut u8, n: i32) -> i32 {
     let Some((main, table)) = table() else {
-        return 0;
+        return n;
     };
-    let o = table.offsets;
-    let stub = match style {
-        0 => o.npad_full,
-        1 => o.npad_handheld,
-        _ => o.npad_dual,
-    };
-    // SAFETY: the offsets were found in this build of `main`.
-    let n = unsafe { transmute::<usize, GetStates>(main + stub as usize)(states, count, id) };
     let Some(slot) = table.slot.filter(|_| n > 0) else {
         return n;
     };
