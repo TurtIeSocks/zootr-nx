@@ -9,7 +9,7 @@ use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 use serde::Serialize;
 
-use super::args::{DevCommand, MemCommand, Switch};
+use super::dev_args::{DevCommand, MemCommand, Switch};
 use crate::config::{Config, TestSetup};
 use crate::nav::{act, drive, shove};
 use crate::play::{self, Input};

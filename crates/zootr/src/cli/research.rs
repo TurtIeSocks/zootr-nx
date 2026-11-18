@@ -7,8 +7,9 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use ounce_formats::{Flowchart, Romfs};
 
-use super::args::NewGame;
+use super::args::{LogicCommand, NewGame};
 use crate::known::{field, flag};
+use crate::world::Era;
 use crate::{arrivals, checks, cut, cutscenes, events, fill, flags, flows, items, logic, rules};
 
 pub(super) fn cutscenes(romfs: &Romfs) -> Result<()> {
@@ -208,5 +209,34 @@ pub(super) fn logic(romfs: &Romfs, new_game: &NewGame) -> Result<()> {
             here.len()
         );
     }
+    Ok(())
+}
+
+pub(super) fn logic_set(romfs: &Romfs, cmd: LogicCommand) -> Result<()> {
+    let LogicCommand::Set {
+        hash,
+        name,
+        needs,
+        place,
+        era,
+        dir,
+    } = cmd;
+    let age = |e: &str| match e {
+        "child" => Era::Child,
+        _ => Era::Adult,
+    };
+    let edit = rules::Edit {
+        name,
+        needs,
+        place: place.zip(era.as_deref().map(age)),
+    };
+    let new = || {
+        let ledger = crate::ledger::build(romfs)?;
+        let row = (ledger.rows.into_iter())
+            .find(|r| r.hash == hash)
+            .with_context(|| format!("no check {hash} in the ledger"))?;
+        Ok((row.area, row.name))
+    };
+    println!("{}", rules::set(&dir, hash, &edit, new)?.display());
     Ok(())
 }

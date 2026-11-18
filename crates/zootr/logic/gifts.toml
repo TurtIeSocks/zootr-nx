@@ -57,7 +57,7 @@ needs = "zora-river and zeldas-lullaby and eponas-song and sarias-song and song-
 # the masks the shop lends, and each gives the Medium stick or nut bag.
 [[check]]
 hash = 9411228621880230151
-name = "Lost Woods target"
+name = "Target"
 place = "lost-woods-child"
 era = "child"
 needs = "slingshot"

@@ -21,7 +21,7 @@ pub struct PlandoCheck {
     #[cfg_attr(feature = "specta", specta(type = String))]
     pub hash: u64,
     pub area: String,
-    /// Where it is, else what it held in the vanilla game.
+    /// Its name (`Spot::name`).
     pub place: String,
     /// What it holds in the vanilla game.
     pub vanilla: String,
@@ -164,11 +164,14 @@ mod tests {
                 .all(|c| !c.area.is_empty() && !c.place.is_empty())
         );
         assert!(got.items.iter().any(|i| i.actor == item::SWORD_KOKIRI));
-        let rolling = (got.checks.iter())
-            .find(|c| c.place.ends_with("(Rolling Goron)"))
-            .expect("a check NPC gifts would deal is listed");
-        assert_eq!(rolling.area, "Goron City");
-        assert_eq!(rolling.needs.as_deref(), Some(settings::NPC_GIFTS));
+        let gift = |c: &&PlandoCheck| c.needs.as_deref() == Some(settings::NPC_GIFTS);
+        assert!(
+            got.checks
+                .iter()
+                .filter(gift)
+                .any(|c| c.area == "Goron City"),
+            "a check NPC gifts would deal is listed"
+        );
         let dealt = got.checks.iter().find(|c| c.needs.is_none()).unwrap();
         let first = dealt.hash;
         let fine = Fixed::from([(first, got.items[0].actor.clone())]);

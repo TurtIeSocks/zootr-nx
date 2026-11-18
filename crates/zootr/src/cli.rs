@@ -14,7 +14,7 @@ use crate::vision::Vision;
 use crate::{events, flows, game, generate, spawn, world};
 use args::{ApCommand, Cli, Command, DrillReport, SweepReport};
 use play::{boot_command, drill, drill_report, look, play, sweep, sweep_report};
-use research::{census, chest_events, cutscenes, flags, flow, items, logic};
+use research::{census, chest_events, cutscenes, flags, flow, items, logic, logic_set};
 use running::{ap_connect, dev, give, live, mem, set};
 use save::save_command;
 use seed::{print_written, shuffle};
@@ -23,6 +23,7 @@ use target::target_command;
 use turn::turn;
 
 pub(crate) mod args;
+mod dev_args;
 mod play;
 mod research;
 mod running;
@@ -116,7 +117,10 @@ pub fn run() -> Result<()> {
         }
         Command::Cutscenes => cutscenes(&romfs),
         Command::Items => items(&romfs),
-        Command::Logic { new_game } => logic(&romfs, &new_game),
+        Command::Logic {
+            edit: Some(edit), ..
+        } => logic_set(&romfs, edit),
+        Command::Logic { new_game, .. } => logic(&romfs, &new_game),
         Command::Flags => {
             let survey = flags(&romfs)?;
             for (flag, u) in &survey.presence {

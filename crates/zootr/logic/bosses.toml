@@ -28,7 +28,7 @@ setting = "boss-hearts"
 
 [[check]]
 hash = 18379569660496940670
-name = "Forest Temple heart container"
+name = "Heart container"
 place = "phantom-ganon-room"
 era = "adult"
 needs = "always"
@@ -36,7 +36,7 @@ setting = "boss-hearts"
 
 [[check]]
 hash = 9478330070473364248
-name = "Fire Temple heart container"
+name = "Heart container"
 place = "volvagia-room"
 era = "adult"
 needs = "always"
@@ -44,7 +44,7 @@ setting = "boss-hearts"
 
 [[check]]
 hash = 14426685265732353862
-name = "Water Temple heart container"
+name = "Heart container"
 place = "morpha-room"
 era = "adult"
 needs = "always"
@@ -52,7 +52,7 @@ setting = "boss-hearts"
 
 [[check]]
 hash = 17599164808183510748
-name = "Shadow Temple heart container"
+name = "Heart container"
 place = "bongo-bongo-room"
 era = "adult"
 needs = "always"
@@ -60,7 +60,7 @@ setting = "boss-hearts"
 
 [[check]]
 hash = 4720088048159616469
-name = "Spirit Temple heart container"
+name = "Heart container"
 place = "twinrova-room"
 era = "adult"
 needs = "always"

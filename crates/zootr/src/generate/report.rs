@@ -31,6 +31,9 @@ pub struct Spot {
     /// seeds from before it was kept.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub place: String,
+    /// Its name in the rule files, shown before `place` (`places::fill`).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub custom: String,
     /// The playthrough round that collects it, from 1, for a check logic
     /// placed whose item a rule names.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -76,12 +79,13 @@ impl Spot {
         format!("{}: {} -> {}", self.area_name, self.name(), self.item_name)
     }
 
-    /// The place, else what it held in the vanilla game.
+    /// Its name in the rule files, else the place, else what it held in
+    /// the vanilla game.
     pub fn name(&self) -> &str {
-        match self.place.as_str() {
-            "" => &self.chest_name,
-            place => place,
-        }
+        [&self.custom, &self.place, &self.chest_name]
+            .into_iter()
+            .find(|n| !n.is_empty())
+            .map_or("", String::as_str)
     }
 
     /// Readable ids for names a seed from before they were kept is missing.

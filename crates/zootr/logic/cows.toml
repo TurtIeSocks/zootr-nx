@@ -5,7 +5,7 @@
 # In the grotto on the trail, behind a rock a blast or a hammer breaks.
 [[check]]
 hash = 6253945510651149508
-name = "Death Mountain Trail grotto cow"
+name = "Grotto cow"
 needs = "eponas-song and (explosives or hammer)"
 setting = "cows"
 
@@ -13,7 +13,7 @@ setting = "cows"
 # burns.
 [[check]]
 hash = 4825657261695689152
-name = "Hyrule Field grotto cow"
+name = "Grotto cow"
 needs = "eponas-song and (explosives or hammer) and (sticks or fire)"
 setting = "cows"
 
@@ -39,13 +39,13 @@ setting = "cows"
 
 [[check]]
 hash = 11341244778524449886
-name = "Gerudo Fortress cow"
+name = "Cow"
 needs = "eponas-song"
 setting = "cows"
 
 [[check]]
 hash = 9796879244811108931
-name = "Gerudo Valley cow"
+name = "Cow"
 needs = "eponas-song"
 setting = "cows"
 

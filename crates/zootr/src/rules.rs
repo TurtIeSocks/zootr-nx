@@ -4,6 +4,7 @@
 //! [`vocab`] maps to the game's names.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::OnceLock;
 
 use anyhow::{Context, Result, bail, ensure};
 use serde::Deserialize;
@@ -13,7 +14,10 @@ use crate::settings::{self, DungeonKeys, NewGame};
 use crate::world::Era;
 
 mod lang;
+mod set;
 pub mod vocab;
+
+pub use set::{Edit, set};
 
 pub use lang::{Expr, Have, Need, parse};
 
@@ -108,8 +112,7 @@ struct RuleFile {
 #[serde(deny_unknown_fields)]
 struct CheckRule {
     hash: u64,
-    /// For people reading the file.
-    #[allow(dead_code)]
+    /// Shown in place of the generated name (`Spot::name`).
     name: String,
     needs: String,
     /// Where a check with no placement is, like a gift, or one whose
@@ -122,6 +125,7 @@ struct CheckRule {
 
 /// What a check needs beyond reaching its place.
 pub struct CheckEntry {
+    pub name: String,
     pub needs: Expr,
     /// Set for checks that aren't placed actors.
     pub place: Option<(String, Era)>,
@@ -238,6 +242,7 @@ impl Book {
             let mut needs = parse(&rule.needs)?;
             vocab::words(&mut needs)?;
             let entry = CheckEntry {
+                name: rule.name,
                 needs,
                 place,
                 optional: rule.setting.is_some(),
@@ -317,6 +322,18 @@ impl Book {
             .find(|a| a.place == map)
             .with_context(|| format!("{map} has an alternative but no rule for it"))?;
         self.need(&rule.expr, ctx)
+    }
+
+    /// A check's name in the rule files, if it has an entry.
+    pub fn name(hash: u64) -> Option<&'static str> {
+        static NAMES: OnceLock<BTreeMap<u64, String>> = OnceLock::new();
+        // The tests load every rule file, so an error here never ships.
+        let names = NAMES.get_or_init(|| {
+            Self::load()
+                .map(|b| b.checks.into_iter().map(|(h, e)| (h, e.name)).collect())
+                .unwrap_or_default()
+        });
+        names.get(&hash).map(String::as_str)
     }
 
     /// The hand-written rule for a check, if it has one.
