@@ -50,9 +50,13 @@ fn tree(v: &Byml, depth: usize) -> String {
 }
 
 /// Print a graph, one node per line.
-pub(super) fn ainb(romfs: &Romfs, path: &str) -> Result<()> {
+pub(super) fn ainb(romfs: &Romfs, path: &str, out: Option<&Path>) -> Result<()> {
     use ounce_formats::ainb::{Graph, Value};
-    let graph = Graph::parse(&graph_bytes(romfs, path)?)?;
+    let bytes = graph_bytes(romfs, path)?;
+    if let Some(out) = out {
+        return std::fs::write(out, &bytes).with_context(|| format!("writing {}", out.display()));
+    }
+    let graph = Graph::parse(&bytes)?;
     let show = |v: &Value| match v {
         Value::String(s) => format!("{s:?}"),
         Value::Pointer => "ptr".into(),
@@ -92,6 +96,10 @@ pub(super) fn ainb(romfs: &Romfs, path: &str) -> Result<()> {
 /// A graph's bytes: a romfs file, or a file inside an actor pack when the
 /// path runs through `Pack/Actor/NAME.pack.zs/`.
 fn graph_bytes(romfs: &Romfs, path: &str) -> Result<Vec<u8>> {
+    // A graph on disk, like one a seed or a tool wrote.
+    if Path::new(path).is_file() {
+        return std::fs::read(path).with_context(|| format!("reading {path}"));
+    }
     let Some((actor, inner)) = in_pack(path) else {
         let Some((pack, inner)) = path.split_once(".pack.zs/") else {
             return romfs.read(path);

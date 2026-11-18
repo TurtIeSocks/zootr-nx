@@ -75,7 +75,19 @@ pub(super) fn exits(romfs: &Romfs, node: &str) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn gates(romfs: &Romfs, trace: bool, node: Option<String>) -> Result<()> {
+pub(super) fn gates(
+    romfs: &Romfs,
+    trace: bool,
+    node: Option<String>,
+    creators: bool,
+) -> Result<()> {
+    if creators {
+        for c in crate::gates::creators(romfs)? {
+            let (hash, area, gyaml) = (c.hash, &c.area, &c.gyaml);
+            println!("{hash} {area} {gyaml} {}#{} x{}", c.graph, c.node, c.placed);
+        }
+        return Ok(());
+    }
     if let Some(node) = node {
         for g in crate::gates::trace_node(romfs, &node)? {
             println!("{} {}\n    {}", g.hash, g.area, g.expr);

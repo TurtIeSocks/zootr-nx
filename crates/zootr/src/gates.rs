@@ -203,6 +203,45 @@ pub fn trace_node(romfs: &Romfs, node: &str) -> Result<Vec<Gate>> {
     drives(romfs, node, |_| true, None)
 }
 
+/// A placement a logic node makes appear, through its create input.
+pub struct Creator {
+    pub hash: u64,
+    pub gyaml: String,
+    pub area: String,
+    /// The graph, as `Logic/` keeps it, and the node's index in it.
+    pub graph: String,
+    pub node: usize,
+    /// How many times the graph is placed, in any map.
+    pub placed: usize,
+}
+
+/// Every placement a logic node makes appear, once per graph copy.
+pub fn creators(romfs: &Romfs) -> Result<Vec<Creator>> {
+    let world = World::load(romfs)?;
+    let mut placed: HashMap<&str, usize> = HashMap::new();
+    for inst in &world.instances {
+        *placed.entry(&inst.graph).or_default() += 1;
+    }
+    let mut out = Vec::new();
+    for (i, inst) in world.instances.iter().enumerate() {
+        let nodes = world.graph(i).nodes.iter().enumerate();
+        for (n, node) in nodes.filter(|(_, n)| n.input(CREATE).is_some()) {
+            let Some(hash) = world.placement(i, node.str(field::INSTANCE_NAME)) else {
+                continue;
+            };
+            out.push(Creator {
+                hash,
+                gyaml: world.gyaml(hash).to_owned(),
+                area: world.bancs[inst.banc].area.clone(),
+                graph: inst.graph.clone(),
+                node: n,
+                placed: placed[inst.graph.as_str()],
+            });
+        }
+    }
+    Ok(out)
+}
+
 /// The areas whose sensors start each event request actor's event as Link
 /// steps in, by the request actor's placement hash.
 pub fn sensors(romfs: &Romfs) -> Result<HashMap<u64, Vec<u64>>> {
