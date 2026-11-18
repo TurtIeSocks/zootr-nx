@@ -95,6 +95,8 @@ pub(super) fn by_level(
         named.retain(|(at, _)| only.contains(at));
     }
     ensure!(!named.is_empty(), "{} never grants {item}", flow.name);
+    // A line naming the item, said before the grant, names the same level.
+    named.extend(lines::talks(flow, item).into_iter().map(|at| (at, 1)));
     for (at, after) in named {
         chain(flow, model, &ladder, at, after.min(next), item)?;
     }
@@ -191,18 +193,17 @@ fn rename(kind: &mut EventKind, from: &str, to: &str) -> Result<()> {
             .collect(),
     };
     let params = params_mut(kind);
-    let sells = param(params, NAME) == Some(from);
+    if param(params, NAME) == Some(from) {
+        // A sale shows its item.
+        sales::show(params, to);
+    }
     for key in keys {
         if param(params, key) == Some(from) {
             flows::set(params, key, string(to))?;
         }
     }
-    if sells {
-        // A sale shows its item and thanks by a line naming it.
-        sales::show(params, to);
-        lines::repoint(params, from, to)?;
-    }
-    Ok(())
+    // A talk, or a sale's thanks, by a line naming it.
+    lines::repoint(params, from, to)
 }
 
 #[cfg(test)]
