@@ -566,6 +566,14 @@ fn map(p: &Planned) -> String {
     }
 }
 
+/// How the sweep triggers a spot, or why it skips it.
+pub(crate) fn how(t: &Trigger) -> String {
+    match t {
+        Trigger::Skip(why) => format!("skip: {why}"),
+        t => kind(t).into(),
+    }
+}
+
 pub(crate) fn kind(t: &Trigger) -> &'static str {
     match t {
         Trigger::Open { .. } => "open",
