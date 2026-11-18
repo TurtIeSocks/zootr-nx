@@ -50,3 +50,52 @@ pub(crate) fn relink(patch: &mut Patch, from: (usize, &str), to: (usize, &str)) 
     let (n, input, i) = link_from(patch.graph(), from.0, from.1)?;
     patch.relink(n, &input, i, to.0, to.1)
 }
+
+#[cfg(test)]
+mod tests {
+    use ounce_formats::{files_with_suffix, par_map};
+
+    use crate::game::dev_dump;
+
+    /// The AINB writer against every graph in the game, loose and in
+    /// packs: each comes back byte for byte, and every link the writer can
+    /// make is made there the way the writer makes it.
+    #[test]
+    fn the_writer_matches_every_game_graph() {
+        let Some(romfs) = dev_dump() else { return };
+        let files = [".ainb", ".pack.zs"].map(|s| files_with_suffix(romfs.root(), s).unwrap());
+        let found = par_map(&files.concat(), |path| {
+            let rel = romfs.rel(path).unwrap();
+            let data = romfs.read(&rel).unwrap();
+            let graphs: Vec<(String, Vec<u8>)> = if rel.ends_with(".ainb") {
+                vec![(rel, data)]
+            } else {
+                let sarc = roead::sarc::Sarc::new(&data).unwrap();
+                let members = sarc.files().filter_map(|f| Some((f.name?, f.data)));
+                let graphs = members.filter(|(name, _)| name.ends_with(".ainb"));
+                graphs
+                    .map(|(name, g)| (format!("{rel}/{name}"), g.to_vec()))
+                    .collect()
+            };
+            let check = |(name, g): (String, Vec<u8>)| {
+                ounce_formats::ainb::check(&g).map_err(|e| format!("{name}: {e:#}"))
+            };
+            graphs.into_iter().map(check).collect::<Vec<_>>()
+        });
+        let results: Vec<_> = found.into_iter().flatten().collect();
+        let failed: Vec<_> = results.iter().filter_map(|r| r.as_ref().err()).collect();
+        let links: usize = results.iter().flatten().sum();
+        assert!(
+            failed.is_empty(),
+            "{} of {}: {:#?}",
+            failed.len(),
+            results.len(),
+            &failed[..failed.len().min(10)]
+        );
+        assert!(
+            results.len() > 9000 && links > 60_000,
+            "{} graphs, {links} links",
+            results.len()
+        );
+    }
+}
