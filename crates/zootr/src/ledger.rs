@@ -26,7 +26,7 @@ pub const SCHEMA: u32 = 1;
 /// and the `accounting` test fails one that adds debt.
 pub const BASELINE: Debt = Debt {
     refused: 17977,
-    left_out: 63,
+    left_out: 61,
 };
 
 /// EIE #11: the Gerudo thieves' keys, which `fortress-keys` never shuffles.
@@ -118,6 +118,7 @@ impl Why {
         match left {
             LeftOut::Narrowed(n) => Self::Eie { eie: n.number() },
             LeftOut::Setting => Self::Setting,
+            LeftOut::Maintainer => Self::Maintainer,
             LeftOut::NotAHolder => Self::Unknown,
         }
     }
