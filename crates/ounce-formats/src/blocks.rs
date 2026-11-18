@@ -1,5 +1,6 @@
 //! Texture block encoders, the few shapes a redrawn texture needs: an ASTC
-//! block of one colour or of two, and a BC4 block of up to eight values.
+//! block of one colour or of two, a BC1 block of four colours, and a BC4
+//! block of up to eight values.
 //!
 //! A two-colour ASTC block is the simplest real one: one partition, a
 //! weight per texel at the block's own size, and endpoints at full 8-bit
@@ -242,6 +243,65 @@ impl Bits {
     }
 }
 
+/// A BC1 block of 16 texels: the darkest and brightest as endpoints, and
+/// each texel's nearest of the four colours they make. With any texel
+/// mostly transparent, the three-colour mode, those texels transparent.
+pub fn bc1(texels: &[Rgba]) -> [u8; 8] {
+    let luma = |c: &Rgba| c[0] as u32 * 54 + c[1] as u32 * 183 + c[2] as u32 * 19;
+    let seen = || texels.iter().filter(|c| c[3] >= 128);
+    let (Some(lo), Some(hi)) = (
+        seen().min_by_key(|c| luma(c)),
+        seen().max_by_key(|c| luma(c)),
+    ) else {
+        // Every texel transparent: both endpoints black, every index 3.
+        return [0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff];
+    };
+    let clear = texels.iter().any(|c| c[3] < 128);
+    let (mut c0, mut c1) = (rgb565(hi), rgb565(lo));
+    // Four colours when the first endpoint is the greater, else three and
+    // transparent.
+    if (c0 < c1) != clear {
+        std::mem::swap(&mut c0, &mut c1);
+    }
+    let (a, b) = (rgb888(c0), rgb888(c1));
+    let mix = |wa: u32, wb: u32| -> [u32; 3] {
+        std::array::from_fn(|i| (wa * a[i] + wb * b[i]) / (wa + wb))
+    };
+    let palette = match c0 > c1 {
+        true => vec![a, b, mix(2, 1), mix(1, 2)],
+        false => vec![a, b, mix(1, 1)],
+    };
+    let mut indices = 0u32;
+    for (i, c) in texels.iter().enumerate() {
+        let index = match c[3] < 128 {
+            true => 3,
+            false => (0..palette.len())
+                .min_by_key(|&p| {
+                    (0..3)
+                        .map(|k| (palette[p][k] as i32 - c[k] as i32).pow(2))
+                        .sum::<i32>()
+                })
+                .expect("a palette") as u32,
+        };
+        indices |= index << (2 * i);
+    }
+    let mut out = [0; 8];
+    out[..2].copy_from_slice(&c0.to_le_bytes());
+    out[2..4].copy_from_slice(&c1.to_le_bytes());
+    out[4..].copy_from_slice(&indices.to_le_bytes());
+    out
+}
+
+fn rgb565(c: &Rgba) -> u16 {
+    let q = |v: u8, bits: u32| ((v as u32 * ((1 << bits) - 1) + 127) / 255) as u16;
+    q(c[0], 5) << 11 | q(c[1], 6) << 5 | q(c[2], 5)
+}
+
+fn rgb888(c: u16) -> [u32; 3] {
+    let (r, g, b) = ((c >> 11) as u32, (c >> 5 & 0x3f) as u32, (c & 0x1f) as u32);
+    [r * 255 / 31, g * 255 / 63, b * 255 / 31]
+}
+
 /// A BC4 block of 16 values: the darkest and brightest, and each value's
 /// nearest of the eight between them.
 pub fn bc4(values: &[u8; 16]) -> [u8; 8] {
@@ -276,6 +336,51 @@ pub fn bc4(values: &[u8; 16]) -> [u8; 8] {
 mod tests {
     use super::*;
     use texture2ddecoder as tex;
+
+    /// One BC1 block decoded to RGBA8, its three-colour mode's last
+    /// colour transparent.
+    fn decode_bc1(block: &[u8; 8]) -> Vec<Rgba> {
+        let mut px = vec![0u32; 16];
+        tex::decode_bc1a(block, 4, 4, &mut px).unwrap();
+        px.iter()
+            .map(|p| {
+                let [b, g, r, a] = p.to_le_bytes();
+                [r, g, b, a]
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_bc1_block_of_two_colours_and_a_third_between_decodes_within_565() {
+        let (dark, light) = ([40, 20, 200, 255], [220, 180, 30, 255]);
+        let third = average(&[dark, dark, light]);
+        let texels: Vec<Rgba> = (0..16).map(|i| [dark, light, third][i % 3]).collect();
+        let back = decode_bc1(&bc1(&texels));
+        assert!(worst(&back, &texels) <= 8, "{back:?}");
+    }
+
+    #[test]
+    fn a_bc1_block_keeps_its_transparent_texels_transparent() {
+        let texels: Vec<Rgba> = (0..16)
+            .map(|i| match i % 2 {
+                0 => [200, 100, 50, 255],
+                _ => [0, 0, 0, 0],
+            })
+            .collect();
+        let back = decode_bc1(&bc1(&texels));
+        assert!(
+            back.iter()
+                .zip(&texels)
+                .all(|(b, t)| (b[3] < 128) == (t[3] < 128))
+        );
+        assert!(worst(&back[..1], &texels[..1]) <= 8);
+    }
+
+    #[test]
+    fn a_bc1_block_of_one_colour_decodes_to_it() {
+        let texels = [[128, 64, 32, 255]; 16];
+        assert!(worst(&decode_bc1(&bc1(&texels)), &texels) <= 4);
+    }
 
     /// One ASTC block decoded to RGBA8.
     fn decode(block: &[u8; 16], w: usize, h: usize) -> Vec<Rgba> {
