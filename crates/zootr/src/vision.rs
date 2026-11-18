@@ -4,7 +4,7 @@
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 
 use anyhow::{Context, Result, bail, ensure};
 use clap::ValueEnum;
@@ -263,7 +263,7 @@ fn post(api: Api, url: &str, key_file: &Path, body: &Value) -> Result<Value> {
             "x-paddock-max-wait: 600s",
         ],
     };
-    let mut child = Command::new("curl")
+    let mut child = crate::platform::command("curl")
         .args([
             "-sS",
             "--max-time",

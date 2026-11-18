@@ -2,7 +2,7 @@
 //! the stick and shots are requests, each answered once it's done.
 
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
@@ -85,7 +85,7 @@ impl Input for Native {
     }
 
     fn launch(&mut self, save: Option<&Path>) -> Result<()> {
-        Command::new(&self.app)
+        crate::platform::command(&self.app)
             .args(&self.args)
             .envs(with_save(&self.env, save))
             .stdin(Stdio::null())

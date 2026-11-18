@@ -1,11 +1,54 @@
 //! What differs between macOS, Windows and Linux: per-user folders,
 //! finding a running app, and opening apps and folders.
 
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{Context, Result, anyhow, bail};
+
+/// A command for a program outside zootr. Started from the AppImage,
+/// zootr's environment points into its mount (`LD_LIBRARY_PATH` and the
+/// rest), and a child inheriting it loads zootr's libraries in place of its
+/// own: podman broke that way under a target's rebuild.
+pub fn command(program: impl AsRef<OsStr>) -> Command {
+    let mut command = Command::new(program);
+    for (key, value) in outside_appimage(std::env::vars_os()) {
+        match value {
+            Some(v) => command.env(key, v),
+            None => command.env_remove(key),
+        };
+    }
+    command
+}
+
+/// What `vars` change to for a program outside the AppImage: a value
+/// pointing into the mount (`APPDIR`) loses those entries, and goes when
+/// none are left. Outside an AppImage nothing changes.
+fn outside_appimage(
+    vars: impl IntoIterator<Item = (OsString, OsString)>,
+) -> Vec<(OsString, Option<OsString>)> {
+    let vars: Vec<_> = vars.into_iter().collect();
+    let mount = vars
+        .iter()
+        .find(|(k, _)| k == "APPDIR")
+        .and_then(|(_, v)| v.to_str());
+    let Some(mount) = mount.filter(|m| !m.is_empty()).map(str::to_owned) else {
+        return Vec::new();
+    };
+    let into_mount = |(key, value): (OsString, OsString)| {
+        let value = value.to_str().filter(|v| v.contains(&mount))?.to_owned();
+        let kept: Vec<_> = (value.split(':'))
+            .filter(|e| !e.is_empty() && !e.contains(&mount))
+            .collect();
+        Some((key, (!kept.is_empty()).then(|| kept.join(":").into())))
+    };
+    let markers = ["APPIMAGE", "ARGV0", "OWD"].map(|k| (k.into(), None));
+    vars.into_iter()
+        .filter_map(into_mount)
+        .chain(markers)
+        .collect()
+}
 
 /// A per-user folder zootr keeps its own subfolder in.
 #[derive(Clone, Copy)]
@@ -57,7 +100,7 @@ pub fn running(app: &Path) -> bool {
             special.then_some('\\').into_iter().chain([c])
         })
         .collect();
-    Command::new("pgrep")
+    command("pgrep")
         .args(["-f", &pattern])
         .stdout(Stdio::null())
         .status()
@@ -153,7 +196,7 @@ pub fn open_app(app: &Path, args: &[String], env: &[(String, String)]) -> Result
     if running(app) {
         return Ok(());
     }
-    let mut child = Command::new(app)
+    let mut child = command(app)
         .args(args)
         .envs(env.iter().map(|(k, v)| (k, v)))
         .current_dir(app.parent().unwrap_or(Path::new(".")))
@@ -179,7 +222,7 @@ pub fn reveal(path: &Path) -> Result<()> {
     if cfg!(target_os = "macos") {
         succeeded(Command::new("open").arg("-R").arg(path))
     } else {
-        succeeded(Command::new("xdg-open").arg(path.parent().unwrap_or(path)))
+        succeeded(command("xdg-open").arg(path.parent().unwrap_or(path)))
     }
 }
 
@@ -196,6 +239,25 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
+
+    #[test]
+    fn a_program_started_from_the_appimage_leaves_its_mount_behind() {
+        let vars = |pairs: &[(&str, &str)]| -> Vec<(OsString, OsString)> {
+            pairs.iter().map(|(k, v)| (k.into(), v.into())).collect()
+        };
+        let changed = outside_appimage(vars(&[
+            ("APPDIR", "/tmp/.mount_zootr-x"),
+            ("PATH", "/tmp/.mount_zootr-x/usr/bin/:/usr/bin:/bin"),
+            ("LD_LIBRARY_PATH", "/tmp/.mount_zootr-x/usr/lib/:"),
+            ("HOME", "/home/a"),
+        ]));
+        let to = |k: &str| changed.iter().find(|(c, _)| c == k).map(|(_, v)| v.clone());
+        assert_eq!(to("PATH"), Some(Some("/usr/bin:/bin".into())));
+        assert_eq!(to("LD_LIBRARY_PATH"), Some(None));
+        assert_eq!(to("APPDIR"), Some(None));
+        assert_eq!(to("HOME"), None);
+        assert!(outside_appimage(vars(&[("PATH", "/usr/bin")])).is_empty());
+    }
 
     fn at(os: &str, folder: Folder, vars: &[(&str, &str)]) -> Result<PathBuf, &'static str> {
         let vars: HashMap<_, _> = vars.iter().copied().collect();
