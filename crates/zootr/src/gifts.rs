@@ -636,8 +636,8 @@ mod tests {
             .iter()
             .position(|g| g.flow == flow::MINIGAME_HORSEBACK_ARCHERY && g.item == HEART);
         let heart = &checks()[at.unwrap()];
-        assert!(crate::shuffle::allowed(heart, item::QUIVER_MEDIUM, true));
-        assert!(crate::shuffle::allowed(heart, item::QUIVER_MEDIUM, false));
+        assert!(crate::narrowing::allowed(heart, item::QUIVER_MEDIUM, true));
+        assert!(crate::narrowing::allowed(heart, item::QUIVER_MEDIUM, false));
     }
 
     #[test]

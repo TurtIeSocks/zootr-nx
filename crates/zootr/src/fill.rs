@@ -9,11 +9,12 @@ use anyhow::{Result, bail};
 use crate::checks::ItemCheck;
 use crate::gifts;
 use crate::logic::{Play, World};
+use crate::narrowing::allowed;
 use crate::progress::Run;
 use crate::rng::Rng;
 use crate::rules::Have;
 use crate::settings::NewGame;
-use crate::shuffle::{Deal, Placement, allowed};
+use crate::shuffle::{Deal, Placement};
 
 /// Deals tried before a seed gives up.
 pub const TRIES: u64 = 20;

@@ -12,9 +12,9 @@ use super::seed::{Seed, base, open, variants};
 use super::{OPTIONS, ids::Ids, names};
 use crate::checks::ItemCheck;
 use crate::fill;
+use crate::narrowing::allowed;
 use crate::rules::{Need, vocab};
 use crate::settings::{Kind, NewGame, schema};
-use crate::shuffle::allowed;
 use crate::world::Era;
 
 /// Items that aren't progression but are worth more than filler.
