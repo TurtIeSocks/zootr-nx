@@ -364,6 +364,23 @@ mod tests {
     }
 
     #[test]
+    fn a_shop_slot_ticks_once_it_sells() {
+        let Some(romfs) = dev_dump() else { return };
+        let gd = GameData::load(&romfs).unwrap();
+        let slot = &crate::shops::slots(&romfs).unwrap()[0];
+        let shelf = Spot {
+            holder: "Kokiri Shop 1".into(),
+            ..spot(slot.hash())
+        };
+        let t = Tracker::new(&gd, &[shelf]).unwrap();
+        let flag = crate::shops::sold::flag(slot);
+        assert_eq!(
+            t.flag(slot.hash()),
+            Some(Flag::Bool(murmur3(flag.as_bytes())))
+        );
+    }
+
+    #[test]
     fn scrubs_map_to_their_sold_flags() {
         let Some(romfs) = dev_dump() else { return };
         let gd = GameData::load(&romfs).unwrap();

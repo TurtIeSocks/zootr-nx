@@ -4,6 +4,7 @@
 
 mod floors;
 mod planks;
+pub mod sold;
 
 use std::collections::HashMap;
 
