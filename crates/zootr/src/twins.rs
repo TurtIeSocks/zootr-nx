@@ -313,7 +313,8 @@ mod tests {
         let hives: Vec<u64> = (normal.iter().filter_map(checks::hash_of))
             .filter(|h| checks.iter().any(|c| c.hash == *h))
             .collect();
-        assert_eq!(hives.len(), 3);
+        // Every hive, the ones placed with no drop included.
+        assert_eq!(hives.len(), 7);
         for hash in hives {
             assert_eq!(actor(&burning, hash), actor(&normal, hash), "hive {hash}");
         }

@@ -1,4 +1,4 @@
-//! Pots, boxes, rocks and hives that drop their shuffled item until Link
+//! Pots, boxes, rocks, grass and hives that drop their shuffled item until Link
 //! picks it up, and their vanilla drop on every break after that. Each
 //! gets a vanilla twin under a new hash, placed with it. A seed Bool, set
 //! by the hook at the pickup, swaps one for the other through their
@@ -41,11 +41,22 @@ use crate::flows::Rewrites;
 use crate::gamedata::Op;
 use crate::graphs::logic;
 use crate::known::{field, flag, map};
-use crate::pickups::{CRATES, HIVES, Kind, POTS, ROCKS, RUTOS_LETTER, SKULLTULAS};
+use crate::pickups::{
+    CRATES, FLYING_POTS, GRASS, HIVES, Kind, POTS, ROCKS, RUTOS_LETTER, SKULLTULAS,
+};
 use crate::world::Presence;
 
 /// The kinds whose holders stand until picked.
-const KINDS: [&Kind; 6] = [&POTS, &CRATES, &ROCKS, &HIVES, &RUTOS_LETTER, &SKULLTULAS];
+const KINDS: [&Kind; 8] = [
+    &POTS,
+    &FLYING_POTS,
+    &CRATES,
+    &ROCKS,
+    &GRASS,
+    &HIVES,
+    &RUTOS_LETTER,
+    &SKULLTULAS,
+];
 
 /// A holder of a shuffled item, standing until it's picked.
 pub struct Holder {
@@ -332,6 +343,7 @@ mod tests {
         new_game.pots = true;
         new_game.crates = true;
         new_game.rocks = true;
+        new_game.grass = true;
         new_game.hives = true;
         new_game.skulltulas = true;
         let pieces = pickups::dealt(&romfs, &new_game).unwrap();
@@ -348,7 +360,9 @@ mod tests {
         let skulltulas = pickups::SKULLTULAS.checks(&dev_dump().unwrap()).unwrap();
         let skulltulas: BTreeSet<u64> = skulltulas.iter().map(|s| s.hash).collect();
         assert_eq!(skulltulas.len(), 100);
-        assert_eq!(holders.len(), 134 + 100);
+        // 530 pots and 23 flying ones, 44 crates, 167 rocks, 134 shrubs and
+        // 21 hives.
+        assert_eq!(holders.len(), 945 + 100);
         let killed = |h: &&Holder| matches!(h.after, After::Killed(_));
         let killed: BTreeSet<u64> = holders.iter().filter(killed).map(|h| h.hash).collect();
         assert_eq!(killed, skulltulas);
@@ -484,10 +498,9 @@ mod tests {
         let flag = flag(rock_hash);
         assert_eq!((a.flag.as_str(), a.negated), (flag.as_str(), true));
         assert_eq!((b.flag.as_str(), b.negated), (flag.as_str(), false));
-        let drop = |a: &Byml| {
-            a.as_map().unwrap()["Dynamic"].as_map().unwrap()[checks::DROP_ACTOR.get()].clone()
-        };
-        assert_eq!(drop(held), drop(copy));
+        // Its drop or its drop table, whichever it's placed with.
+        let dynamic = |a: &Byml| a.as_map().unwrap()["Dynamic"].clone();
+        assert_eq!(dynamic(held), dynamic(copy));
         let id = |a: &Byml| a.as_map().unwrap()["Phive"].as_map().unwrap()["Placement"].clone();
         assert_eq!(id(copy).as_map().unwrap()["ID"], Byml::U64(twin));
     }

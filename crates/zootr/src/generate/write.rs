@@ -177,7 +177,11 @@ pub fn write_mod(
     let made = key_tints::made(key_copies.0, key_copies.1);
     let rupees = ammo::copies(drops.values().map(|d| d.item.as_str()));
     let opened = tracker::chest_flags(&gd)?;
-    let twins = twins::find(romfs, |h| drops.contains_key(&h), opened)?;
+    // Every dealt check, a kept item's too: its map's alternative needs it.
+    let dealt: HashSet<u64> = (checks::dealt(romfs, new_game)?.iter())
+        .map(|c| c.hash)
+        .collect();
+    let twins = twins::find(romfs, |h| dealt.contains(&h), opened)?;
     let aliases = twins.iter().filter_map(twins::Twin::alias);
     let mut exps: Vec<_> = aliases
         .map(|(name, of)| (name, vec![gamedata::Op::Bool(of)]))
@@ -272,6 +276,7 @@ pub fn write_mod(
         true => &fortress::CARRYING[..],
         false => &[],
     };
+    let tabled = pickups::tabled(&pieces);
     let (mut found, mut actors) = (HashSet::new(), 0);
     let mut spots = Vec::new();
     let mut chest_events = HashMap::new();
@@ -290,6 +295,7 @@ pub fn write_mod(
         let leaves = scrubs::leaves(&doc.root, &gone)?;
         changed.extend(checks::gone_once(&mut doc.root, &leaves)?);
         changed.extend(checks::clear_drops(&mut doc.root, carried)?);
+        changed.extend(checks::clear_tables(&mut doc.root, &tabled)?);
         changed.extend(checks::set_drops(
             &mut doc.root,
             &chest_drops,

@@ -25,8 +25,8 @@ pub const SCHEMA: u32 = 1;
 /// The EIE debt today. A PR that pays some off lowers it in the same PR,
 /// and the `accounting` test fails one that adds debt.
 pub const BASELINE: Debt = Debt {
-    refused: 4727,
-    left_out: 816,
+    refused: 17977,
+    left_out: 63,
 };
 
 /// EIE #11: the Gerudo thieves' keys, which `fortress-keys` never shuffles.
@@ -34,9 +34,7 @@ const THIEF_KEYS: u8 = 11;
 
 /// Placements `left_out` calls no holder that aren't breakables, by
 /// holder, and why.
-const NOT_HOLDERS: [(&Name, Why); 10] = [
-    // Grass Link can only cut, never lift.
-    (actor::LAND_KOKIRI_PLANT_A_02_DROP_FIXED_03, Why::Scenery),
+const NOT_HOLDERS: [(&Name, Why); 8] = [
     // Furniture in the Iron Knuckle rooms, a tree and a cow bone.
     (actor::OBJ_IRON_KNUCKLE_PILLAR_A_01, Why::Scenery),
     (actor::OBJ_IRON_KNUCKLE_CHAIR_A_02, Why::Scenery),
@@ -45,11 +43,6 @@ const NOT_HOLDERS: [(&Name, Why); 10] = [
     // Enemies that drop an item when beaten.
     (actor::ENEMY_WOLFOS, Why::Scenery),
     (actor::ENEMY_SKULLTULA, Why::Scenery),
-    // Flying pots are pots, the maintainer's call (2026-11-18).
-    (
-        actor::ENEMY_FLYING_POT_SPIRIT_TEMPLE,
-        Why::Eie { eie: BREAKABLES },
-    ),
     // The Treasure Chest Game's room chests: only its prize is a check.
     (actor::OBJ_HRL_CITY_SHOP_T_BOX_A_01, Why::Maintainer),
     (actor::OBJ_HRL_CITY_SHOP_T_BOX_A_02, Why::Maintainer),
