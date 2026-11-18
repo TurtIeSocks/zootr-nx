@@ -361,6 +361,7 @@ mod tests {
             slot: "FakeSlot".into(),
             player: 1,
             start: vec![],
+            death_link: false,
             placements: BTreeMap::new(),
         };
         history.add(Settings::new(), Extras::ap(ap), Label::default(), report(1));

@@ -140,6 +140,7 @@ class ZnxWorld(World):
             "seed": self.random.getrandbits(64),
             "slot": names[self.player],
             "player": self.player,
+            "death_link": bool(self.options.death_link.value),
             # The server never sends the start inventory with our
             # items_handling, so the mod hands it over.
             "start": [

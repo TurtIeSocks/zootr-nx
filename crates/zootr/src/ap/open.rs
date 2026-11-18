@@ -36,6 +36,9 @@ pub struct ApSeed {
     /// The start inventory, as our AP item ids.
     #[serde(default)]
     pub start: Vec<u64>,
+    /// The slot's DeathLink option. Seeds from before it read as off.
+    #[serde(default)]
+    pub death_link: bool,
     /// By check hash.
     pub placements: BTreeMap<u64, Placed>,
 }
@@ -115,6 +118,8 @@ impl ApSeed {
             player: u32,
             #[serde(default)]
             start: Vec<u64>,
+            #[serde(default)]
+            death_link: bool,
         }
         let seed: SeedFile = json(&files, "seed.json")?;
         Ok(Self {
@@ -124,6 +129,7 @@ impl ApSeed {
             slot: seed.slot,
             player: seed.player,
             start: seed.start,
+            death_link: seed.death_link,
             placements: json(&files, "placements.json")?,
         })
     }
@@ -221,6 +227,8 @@ mod tests {
         let seed = ApSeed::from_zip(TWO_SLOTS).unwrap();
         assert_eq!((seed.slot.as_str(), seed.player), ("Link", 1));
         assert_eq!(seed.settings.get("open-forest"), Some(&true.into()));
+        // Written before the DeathLink option: it reads as off.
+        assert!(!seed.death_link);
         let foreign: Vec<_> = (seed.placements.values())
             .filter_map(|p| match p {
                 Placed::Foreign(f) => Some(f),
