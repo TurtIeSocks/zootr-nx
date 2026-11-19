@@ -25,6 +25,7 @@ fn exposed(settings: &Settings) -> Result<serde_json::Map<String, Value>> {
         let default = match &def.with_context(|| format!("no setting {id}"))?.kind {
             Kind::Toggle { default } => Value::Bool(*default),
             Kind::Choice { default, .. } => Value::String(default.clone()),
+            Kind::Inventory => Value::Object(Default::default()),
         };
         out.insert((*id).into(), settings.get(*id).cloned().unwrap_or(default));
     }

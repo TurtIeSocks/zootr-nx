@@ -94,7 +94,7 @@ mod shuffle;
 pub mod spawn;
 pub mod sprites;
 mod standins;
-mod starting;
+pub mod starting;
 pub mod steps;
 pub mod sweep;
 mod text;

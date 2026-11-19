@@ -112,6 +112,8 @@ function SettingControl({ def }: SettingRowProps) {
       />
     );
   }
+  // The starting inventory's grid draws under its row, on the group page.
+  if (kind.type === "inventory") return null;
   if (segmented(kind.options)) {
     return (
       <Segmented

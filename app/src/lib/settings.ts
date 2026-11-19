@@ -1,6 +1,6 @@
-import type { Choice, SettingDef } from "@/bindings";
+import type { Choice, SettingDef, StartInventory } from "@/bindings";
 import type { Settings } from "@/lib/config";
-import { LISTED } from "@/lib/format";
+import { count, LISTED } from "@/lib/format";
 
 /** Whether a setting is on: its own value or default, or its parent's. */
 export function isOn(
@@ -28,18 +28,38 @@ export function chosen(
   );
 }
 
+/** A starting inventory's words and counts, empty when unset. */
+export function startOf(value: Settings[string] | undefined): StartInventory {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (e): e is [string, number] => typeof e[1] === "number",
+    ),
+  );
+}
+
+/** How many things a starting inventory holds, each word once. */
+const held = (def: SettingDef, settings: Settings) =>
+  Object.keys(startOf(settings[def.id])).length;
+
 /** Whether a setting's own value differs from its default. */
 export function isChanged(def: SettingDef, settings: Settings): boolean {
   if (def.kind.type === "choice") {
     return chosen(def, settings)?.id !== def.kind.default;
   }
+  if (def.kind.type === "inventory") return held(def, settings) > 0;
   const value = settings[def.id];
   return typeof value === "boolean" && value !== def.kind.default;
 }
 
 /** New values by setting id. `undefined` puts a setting back to its
  * default. */
-export type Patch = Record<string, boolean | string | undefined>;
+export type Patch = Record<
+  string,
+  boolean | string | StartInventory | undefined
+>;
 
 /** `settings` with `patch` applied. */
 export function patched(settings: Settings, patch: Patch): Settings {
@@ -77,6 +97,10 @@ function changed(
       ? [`${def.label}: ${pick.label}`]
       : [];
   }
+  if (def.kind.type === "inventory") {
+    const n = held(def, settings);
+    return n > 0 ? [`${def.label}: ${count(n, "item")}`] : [];
+  }
   return isOn(def, settings, schema) && !parentOn(def, settings, schema)
     ? [def.label]
     : [];
@@ -101,6 +125,13 @@ export function summary(schema: SettingDef[], settings: Settings): string {
 /** A setting's effective value as a word: a choice's label, or on/off. */
 function shown(def: SettingDef, settings: Settings, schema: SettingDef[]) {
   if (def.kind.type === "choice") return chosen(def, settings)?.label ?? "";
+  if (def.kind.type === "inventory") {
+    const start = startOf(settings[def.id]);
+    const words = Object.entries(start).map(([w, n]) =>
+      n === 1 ? w : `${w} ×${n}`,
+    );
+    return words.length > 0 ? words.join(", ") : "nothing";
+  }
   return isOn(def, settings, schema) ? "on" : "off";
 }
 

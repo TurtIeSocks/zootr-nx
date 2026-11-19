@@ -194,6 +194,7 @@ pub(super) fn variants() -> Result<Vec<(String, Value)>> {
                 let others = options.iter().filter(|o| o.id != *default);
                 out.extend(others.map(|o| ((*id).into(), Value::String(o.id.clone()))));
             }
+            Kind::Inventory => {}
         }
     }
     Ok(out)

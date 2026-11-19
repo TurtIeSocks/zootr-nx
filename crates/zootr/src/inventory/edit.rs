@@ -117,6 +117,40 @@ impl Pouch {
         let (group, _) = self.bags.get(bag)?;
         Some(self.group_cap(group, save))
     }
+
+    /// What getting the bags in `held` fills `ammo` to: a bag bigger than
+    /// its group's first fills it to its cap (live, 2026-11-19).
+    pub fn filled(&self, ammo: &str, held: &[&str]) -> i32 {
+        let Some(Cap::Bag(group)) = self.caps.get(ammo) else {
+            return 0;
+        };
+        let caps = |bags: Vec<&(String, i32)>| -> Vec<i32> {
+            (bags.into_iter())
+                .filter(|(g, _)| g == group)
+                .map(|b| b.1)
+                .collect()
+        };
+        let first = caps(self.bags.values().collect()).into_iter().min();
+        let held = caps(held.iter().filter_map(|b| self.bags.get(*b)).collect());
+        (held.into_iter())
+            .filter(|&c| Some(c) > first)
+            .max()
+            .unwrap_or(0)
+    }
+
+    /// A pouch table of `bags` (bag, group, cap) and `counted` (item,
+    /// group), for tests.
+    #[cfg(test)]
+    pub(crate) fn of(bags: &[(&str, &str, i32)], counted: &[(&str, &str)]) -> Self {
+        Self {
+            bags: (bags.iter())
+                .map(|(b, g, n)| (b.to_string(), (g.to_string(), *n)))
+                .collect(),
+            caps: (counted.iter())
+                .map(|(a, g)| (a.to_string(), Cap::Bag(g.to_string())))
+                .collect(),
+        }
+    }
 }
 
 impl Inventory {
@@ -159,6 +193,43 @@ impl Inventory {
         let mut out = self.cell_edits(pouch, save, at, intent)?;
         out.extend(self.owning(&out, intent));
         Ok(out)
+    }
+
+    /// The edits that leave a fresh save holding `held`, each grid actor at
+    /// its count: the count or `IsGet` itself, the `IsGet` that owns a
+    /// count, and each group's cap named after the biggest bag held.
+    pub fn holding(&self, pouch: &Pouch, held: &[(&Name, i32)]) -> Result<Vec<Edit>> {
+        let mut out = Vec::new();
+        let mut bags: HashMap<&str, (&str, i32)> = HashMap::new();
+        for &(actor, n) in held {
+            let key = *self
+                .keys
+                .get(actor)
+                .with_context(|| format!("{actor} isn't in the grid"))?;
+            out.push(Edit::new(key, n.to_string()));
+            if n <= 0 {
+                continue;
+            }
+            if let Some(&flag) = self.owned.get(&key) {
+                out.push(Edit::new(flag, "true"));
+            }
+            if let Some((group, cap)) = pouch.bags.get(actor.get()) {
+                let biggest = bags.entry(group).or_insert(("", 0));
+                if *cap > biggest.1 {
+                    *biggest = (actor.get(), *cap);
+                }
+            }
+        }
+        let caps = bags
+            .into_iter()
+            .map(|(group, (bag, _))| Edit::new(Pouch::expansion(group), bag));
+        out.extend(caps);
+        Ok(out)
+    }
+
+    /// Every grid actor's count or `IsGet`, as the grid was last loaded.
+    pub fn values(&self) -> HashMap<&'static Name, i32> {
+        self.keys.keys().map(|&a| (a, self.value(a))).collect()
     }
 
     /// The `IsGet` flags kept with the pouch counts `edits` set: on for a
