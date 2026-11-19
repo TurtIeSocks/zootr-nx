@@ -118,6 +118,7 @@ pub const INIT_TALK_NAVI_HELP: &Name = &n!(0x20baf5fbbdfedbb1);
 pub const IS_GROUNDING: &Name = &n!(0x825ac80bba9129a2);
 pub const LOST_WOOD_SCRUB_FOREST_STAGE_ELDER_SKULL_MASK_FIRST: &Name = &n!(0x63b9548854fe9e73);
 pub const LOST_WOOD_SCRUB_FOREST_STAGE_ELDER_TRUE_MASK_FIRST: &Name = &n!(0x9eb110477e8c0c70);
+pub const MARKET_CHILD_FIELD_CHILD_TO_ADULT: &Name = &n!(0xddd54dceaa1ef2e9);
 pub const MEET_DEKU_TREE: &Name = &n!(0x100fd53bd0c0c074);
 pub const MINIGAME_CATCH_CUCCO: &Name = &n!(0xc5e2bdf0c118a9ab);
 pub const MINIGAME_FIND_OUT_CUCCO: &Name = &n!(0x00c8e367a927a0a1);
