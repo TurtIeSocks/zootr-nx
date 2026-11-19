@@ -8,11 +8,12 @@ use crate::starting::{self, Start};
 const VANILLA_CHESTS: &str = "vanilla-chests";
 
 /// Toggles that started a new game with items, before the starting
-/// inventory, and the words each became.
+/// inventory, and the words each became, as `--start` takes them. The
+/// Slingshot's grant came with 30 seeds.
 const STARTING: [(&str, &[&str]); 9] = [
     ("start-kokiri-sword", &["kokiri-sword"]),
     ("start-deku-shield", &["deku-shield"]),
-    ("start-slingshot", &["slingshot"]),
+    ("start-slingshot", &["slingshot", "deku-seeds=30"]),
     ("start-bomb-bag", &["bomb-bag"]),
     ("start-fairy-ocarina", &["fairy-ocarina"]),
     (
@@ -46,9 +47,10 @@ pub(crate) fn upgrade(settings: &mut Settings) {
         .collect();
     if !on.is_empty() {
         let mut start = Start::from_settings(settings).unwrap_or_default();
-        for word in on.into_iter().flatten() {
-            let held = start.0.get(*word).copied().unwrap_or(0);
-            start.0.insert((*word).into(), held.max(1));
+        for arg in on.into_iter().flatten() {
+            let (word, n) = starting::parse(arg).expect("a starting word");
+            let held = start.0.get(&word).copied().unwrap_or(0);
+            start.0.insert(word, held.max(n));
         }
         let value = serde_json::to_value(start).expect("a map");
         settings.insert(starting::SETTING.into(), value);
@@ -87,6 +89,7 @@ mod tests {
         let mut s = Settings::from([
             ("start-kokiri-sword".into(), true.into()),
             ("start-slingshot".into(), false.into()),
+            ("start-bomb-bag".into(), true.into()),
             ("warp-kit".into(), true.into()),
             ("magic".into(), true.into()),
             (starting::SETTING.into(), serde_json::json!({ "bombs": 20 })),
@@ -94,7 +97,7 @@ mod tests {
         upgrade(&mut s);
         let start = Start::from_settings(&s).unwrap();
         let words: Vec<_> = start.0.keys().map(String::as_str).collect();
-        assert_eq!(words.len(), 10, "{words:?}");
+        assert_eq!(words.len(), 11, "{words:?}");
         for w in [
             "kokiri-sword",
             "fairy-ocarina",
@@ -106,5 +109,9 @@ mod tests {
         assert_eq!(start.0["bombs"], 20);
         assert!(!words.contains(&"slingshot"));
         assert_eq!(s.len(), 1, "{s:?}");
+        let mut sling = Settings::from([("start-slingshot".into(), true.into())]);
+        upgrade(&mut sling);
+        let start = Start::from_settings(&sling).unwrap();
+        assert_eq!(start, Start::of(&["slingshot"]).with("deku-seeds", 30));
     }
 }

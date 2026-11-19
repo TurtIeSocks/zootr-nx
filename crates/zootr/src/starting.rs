@@ -156,13 +156,14 @@ pub fn swap_out<'a>(pool: &mut [&'a str], owned: &[&'a str], level: impl Fn(&'a 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::inventory::Pouch;
     use crate::known::{field, flow, item};
 
     /// What a new game starting with `words` is granted.
     fn starting(words: &[&str]) -> Vec<Grant> {
         let mut start = Start::default();
         words.iter().for_each(|w| start.add(w, 1).unwrap());
-        start.grants()
+        start.grants(&Pouch::default())
     }
 
     #[test]
@@ -195,18 +196,21 @@ mod tests {
         start.add("bombs", 20).unwrap();
         start.add("bomb-bag", 1).unwrap();
         start.add("kokiri-sword", 1).unwrap();
-        chain(&mut flow, &template, &start.grants()).unwrap();
+        let pouch = Pouch::load(&romfs).unwrap();
+        chain(&mut flow, &template, &start.grants(&pouch)).unwrap();
         let save = only(&flow, AUTOSAVE).unwrap();
         let grants = flows::running(&flow, GRANT);
-        // Pushed last to first.
-        let [sword, bombs, bag] = grants[..] else {
+        // Pushed last to first: the bag, the sword, the bombs emptied, then
+        // the bombs.
+        let [bombs, empty, sword, bag] = grants[..] else {
             panic!("{grants:?}")
         };
         let after = Flowchart::parse(&flow.to_bytes()).unwrap().unwrap();
         assert_eq!(after.links_to(bag), before.links_to(save));
-        assert_eq!(after.links_to(bombs), [ounce_formats::Link::Next(bag)]);
-        assert_eq!(after.links_to(sword), [ounce_formats::Link::Next(bombs)]);
-        assert_eq!(after.links_to(save), [ounce_formats::Link::Next(sword)]);
+        assert_eq!(after.links_to(sword), [ounce_formats::Link::Next(bag)]);
+        assert_eq!(after.links_to(empty), [ounce_formats::Link::Next(sword)]);
+        assert_eq!(after.links_to(bombs), [ounce_formats::Link::Next(empty)]);
+        assert_eq!(after.links_to(save), [ounce_formats::Link::Next(bombs)]);
         let params = |e: u16| match &after.events[e as usize].kind {
             EventKind::Action { params, .. } => params.clone(),
             _ => unreachable!(),
@@ -223,6 +227,7 @@ mod tests {
             Value::Bool(vec![true])
         ));
         assert!(has(bombs, flows::NUM, Value::Int(vec![20])));
+        assert!(has(empty, flows::NUM, Value::Int(vec![-20])));
         assert!(has(
             bag,
             field::IS_EQUIP_D_IRECT.get(),

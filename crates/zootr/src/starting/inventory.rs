@@ -22,8 +22,10 @@ use crate::value;
 /// Its setting's id.
 pub const SETTING: &str = "start-inventory";
 
-/// Heart containers, whole hearts. Health starts full.
+/// Heart containers, whole hearts.
 const HEARTS: &str = "heart-containers";
+/// The heart containers every new game has. The rest are granted.
+const BASE_HEARTS: i32 = 3;
 const RUPEE_WORD: &str = "rupees";
 
 /// Every grid actor's word, as a player would say it. Rule-file words
@@ -171,6 +173,12 @@ impl Start {
         start
     }
 
+    /// It with `n` of `word` too, a word as in a const list.
+    pub fn with(mut self, word: &str, n: i32) -> Self {
+        self.add(word, n).expect("a starting word");
+        self
+    }
+
     /// Fails on a word that isn't an item, a heart count or rupees.
     pub fn check(&self) -> Result<()> {
         let known = |w: &str| w == HEARTS || w == RUPEE_WORD || WORDS.iter().any(|(k, _)| *k == w);
@@ -207,29 +215,52 @@ impl Start {
         Ok(())
     }
 
+    /// How many of grid actor `a` it holds.
+    fn count(&self, a: &Name) -> i32 {
+        let w = WORDS.iter().find(|(_, n)| *n == a).map(|(w, _)| *w);
+        w.and_then(|w| self.0.get(w)).copied().unwrap_or(0)
+    }
+
     /// Each grid actor held and its count, in grid order.
     fn held(&self) -> Vec<(Held, i32)> {
-        let count = |a: &Name| {
-            let w = WORDS.iter().find(|(_, n)| *n == a).map(|(w, _)| *w);
-            w.and_then(|w| self.0.get(w)).copied().unwrap_or(0)
-        };
         (inventory::held().into_iter())
-            .map(|h| (h, count(h.actor)))
+            .map(|h| (h, self.count(h.actor)))
             .filter(|&(_, n)| n > 0)
             .collect()
     }
 
-    /// The opening's grants, in grid order so a bag comes before its ammo
-    /// and the Hookshot before the Longshot. What comes with an item comes
-    /// only when the grid doesn't hold it already.
-    pub fn grants(&self) -> Vec<Grant> {
+    /// The opening's grants. Items in grid order, so the Hookshot comes
+    /// before the Longshot. What comes with an item comes only when the grid
+    /// doesn't hold it already. Then each item a held bag caps, emptied and
+    /// granted its count, since a grant may have filled it (a bigger quiver
+    /// refills the arrows). Then the heart containers past a new game's.
+    pub fn grants(&self, pouch: &Pouch) -> Vec<Grant> {
         let held = self.held();
         let drops: Vec<&str> = held.iter().map(|(h, _)| drop(h.actor).get()).collect();
+        let bags: Vec<&str> = held.iter().map(|(h, _)| h.actor.get()).collect();
+        let capped = |a: &Name| pouch.held_cap(a.get(), &bags);
         let mut out = Vec::new();
-        for ((_, n), d) in held.iter().zip(&drops) {
+        for ((h, n), d) in held.iter().zip(&drops) {
+            if capped(h.actor).is_some() {
+                continue;
+            }
             let mut grants = granted(d, *n).into_iter();
             out.extend(grants.next());
             out.extend(grants.filter(|w| !drops.contains(&w.actor.as_str())));
+        }
+        for h in inventory::held().into_iter().filter(|h| h.ammo) {
+            if let Some(cap) = capped(h.actor) {
+                out.push(Grant::new(h.actor.get(), -cap));
+                let n = self.count(h.actor);
+                out.extend((n > 0).then(|| Grant::new(h.actor.get(), n)));
+            }
+        }
+        let hearts = self.0.get(HEARTS).copied().unwrap_or(BASE_HEARTS);
+        if hearts > BASE_HEARTS {
+            out.push(Grant::new(
+                actor::OBJ_HEART_CONTAINER.get(),
+                hearts - BASE_HEARTS,
+            ));
         }
         out
     }
@@ -243,18 +274,30 @@ impl Start {
             .collect()
     }
 
-    /// GameData default edits: heart containers, with health full, and
-    /// rupees.
+    /// GameData default edits for a seed: the rupees. A new game sets its
+    /// own health, so heart containers are granted.
     pub fn defaults(&self) -> Vec<String> {
-        let set = |hash: u32, n: i32| format!("#{hash:08x}={n}");
-        let mut out = Vec::new();
-        if let Some(&hearts) = self.0.get(HEARTS) {
-            out.extend([set(MAX_LIFE, hearts * 4), set(LIFE, hearts * 4)]);
-        }
-        if let Some(&rupees) = self.0.get(RUPEE_WORD) {
-            out.push(set(RUPEES, rupees));
-        }
-        out
+        let rupees = self.0.get(RUPEE_WORD);
+        (rupees.iter())
+            .map(|n| format!("#{RUPEES:08x}={n}"))
+            .collect()
+    }
+
+    /// The Status edits the panel's save takes: heart containers, with
+    /// health full, and the rupees.
+    fn status(&self) -> Vec<Edit> {
+        let hearts = self
+            .0
+            .get(HEARTS)
+            .map(|&h| [(MAX_LIFE, h * 4), (LIFE, h * 4)]);
+        let rupees = self.0.get(RUPEE_WORD).map(|&n| (RUPEES, n));
+        (hearts.into_iter().flatten().chain(rupees))
+            .map(|(hash, n)| Edit {
+                hash,
+                index: 0,
+                value: n.to_string(),
+            })
+            .collect()
     }
 }
 
@@ -315,10 +358,7 @@ pub fn open(gd: &GameData, inv: &Inventory, pouch: &Pouch, start: &Start) -> Res
         .map(|(h, n)| (h.actor, n))
         .collect();
     savefile::apply(gd, &mut edited, &inv.holding(pouch, &held)?)?;
-    let status = (start.defaults().iter())
-        .map(|e| Edit::parse(e))
-        .collect::<Result<Vec<_>>>()?;
-    savefile::apply(gd, &mut edited, &status)?;
+    savefile::apply(gd, &mut edited, &start.status())?;
     Ok(Opened {
         path: PathBuf::new(),
         stamp: 0,
@@ -463,35 +503,62 @@ mod tests {
         assert!(s.add("nope", 1).is_err());
     }
 
+    /// A pouch table with the bomb bags' group, for tests.
+    fn bombs_pouch() -> Pouch {
+        let bags = [
+            (item::BOMB_BAG_SMALL.get(), "Bomb", 20),
+            (item::BOMB_BAG_MEDIUM.get(), "Bomb", 30),
+        ];
+        Pouch::of(&bags, &[(item::BOMB.get(), "Bomb")])
+    }
+
     #[test]
-    fn grants_follow_the_grid_with_bags_before_their_ammo() {
+    fn grants_follow_the_grid_then_empty_and_fill_what_a_bag_caps() {
         needs_names!();
         let s = start(&[
             ("bombs", 20),
             ("bomb-bag", 1),
+            ("big-bomb-bag", 1),
             ("longshot", 1),
             ("hookshot", 1),
             ("kokiri-sword", 1),
+            (HEARTS, 5),
         ]);
-        let got: Vec<_> = s
-            .grants()
-            .into_iter()
+        let got: Vec<_> = (s.grants(&bombs_pouch()).into_iter())
             .map(|g| (g.actor, g.num, g.equip))
             .collect();
         let want = [
             (item::BOMB_BAG_SMALL.get(), 1, false),
-            (item::BOMB.get(), 20, false),
+            (item::BOMB_BAG_MEDIUM.get(), 1, false),
             (item::HOOKSHOT.get(), 1, false),
             (item::LONGSHOT.get(), 1, false),
             (item::SWORD_KOKIRI.get(), 1, true),
+            (item::BOMB.get(), -30, false),
+            (item::BOMB.get(), 20, false),
+            (actor::OBJ_HEART_CONTAINER.get(), 2, false),
         ];
         assert_eq!(got, want.map(|(a, n, e)| (a.to_owned(), n, e)));
     }
 
     #[test]
+    fn a_bag_held_without_its_ammo_starts_empty() {
+        needs_names!();
+        let grants = start(&[("bomb-bag", 1)]).grants(&bombs_pouch());
+        let last = grants.last().map(|g| (g.actor.as_str(), g.num));
+        assert_eq!(last, Some((item::BOMB.get(), -20)));
+        let none = start(&[(HEARTS, 3)]).grants(&bombs_pouch());
+        assert!(none.is_empty(), "{none:?}");
+    }
+
+    #[test]
     fn the_slingshot_brings_its_bag_unless_the_grid_has_one() {
         needs_names!();
-        let actors = |s: Start| s.grants().into_iter().map(|g| g.actor).collect::<Vec<_>>();
+        let actors = |s: Start| {
+            s.grants(&Pouch::default())
+                .into_iter()
+                .map(|g| g.actor)
+                .collect::<Vec<_>>()
+        };
         let alone = actors(start(&[("slingshot", 1)]));
         assert_eq!(
             alone,
@@ -533,16 +600,9 @@ mod tests {
     }
 
     #[test]
-    fn hearts_and_rupees_are_defaults_by_hash() {
+    fn rupees_are_a_default_by_hash() {
         let s = start(&[(HEARTS, 5), (RUPEE_WORD, 99)]);
-        assert_eq!(
-            s.defaults(),
-            [
-                format!("#{MAX_LIFE:08x}=20"),
-                format!("#{LIFE:08x}=20"),
-                format!("#{RUPEES:08x}=99"),
-            ]
-        );
+        assert_eq!(s.defaults(), [format!("#{RUPEES:08x}=99")]);
         assert_eq!(savefile::hash_of(&format!("#{RUPEES:08x}")), RUPEES);
     }
 

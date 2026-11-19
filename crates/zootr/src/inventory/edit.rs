@@ -111,6 +111,31 @@ impl Pouch {
             .map_or(0, |b| b.1)
     }
 
+    /// The most of `actor` the biggest of `held` lets Link hold, for an
+    /// item whose cap comes from a bag. `None` for any other item, or with
+    /// no bag of its group held.
+    pub fn held_cap(&self, actor: &str, held: &[&str]) -> Option<i32> {
+        let Some(Cap::Bag(group)) = self.caps.get(actor) else {
+            return None;
+        };
+        let bags = held.iter().filter_map(|b| self.bags.get(*b));
+        bags.filter(|(g, _)| g == group).map(|b| b.1).max()
+    }
+
+    /// A pouch table of `bags` (bag, group, cap) and `counted` (item,
+    /// group), for tests.
+    #[cfg(test)]
+    pub(crate) fn of(bags: &[(&str, &str, i32)], counted: &[(&str, &str)]) -> Self {
+        Self {
+            bags: (bags.iter())
+                .map(|(b, g, n)| (b.to_string(), (g.to_string(), *n)))
+                .collect(),
+            caps: (counted.iter())
+                .map(|(a, g)| (a.to_string(), Cap::Bag(g.to_string())))
+                .collect(),
+        }
+    }
+
     /// The cap of the group `bag` belongs to, as `save` stands: what the
     /// wallet allows, given any wallet.
     pub fn cap_of_bag(&self, bag: &str, save: &Save) -> Option<i32> {

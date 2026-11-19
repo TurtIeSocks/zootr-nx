@@ -119,16 +119,16 @@ fn grants_land_on_top_of_the_intro_skip() {
             .unwrap()
             .unwrap()
     );
-    new_game.start = starting::Start::of(&["kokiri-sword", "bomb-bag"]);
+    new_game.start = starting::Start::of(&["kokiri-sword", "boomerang"]);
     let both = parse(&flows(&new_game).unwrap().0);
     let save = crate::flows::only(&both, starting::AUTOSAVE).unwrap();
     let callers = skipped.links_to(save);
-    // The grid's order: the bag's cell comes before the sword's.
-    let [sword, bag] = crate::flows::running(&both, crate::flows::GRANT)[..] else {
+    // The grid's order: the Boomerang's cell comes before the sword's.
+    let [sword, boomerang] = crate::flows::running(&both, crate::flows::GRANT)[..] else {
         panic!("two grants")
     };
-    assert_eq!(both.links_to(bag), callers);
-    assert_eq!(both.links_to(sword), [Link::Next(bag)]);
+    assert_eq!(both.links_to(boomerang), callers);
+    assert_eq!(both.links_to(sword), [Link::Next(boomerang)]);
     assert_eq!(both.links_to(save), [Link::Next(sword)]);
     assert_eq!(both.entry_points, skipped.entry_points);
     for (i, e) in (0u16..).zip(&skipped.events) {

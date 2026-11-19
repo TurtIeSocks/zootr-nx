@@ -121,7 +121,8 @@ pub fn mix(i: usize) -> (&'static str, Settings) {
         None => (entry.to_string(), true.into()),
     };
     let mut settings: Settings = BASE.iter().chain(extra).map(set).collect();
-    let start = serde_json::to_value(starting::Start::of(&START)).expect("a map");
+    let start = starting::Start::of(&START).with("deku-seeds", 30);
+    let start = serde_json::to_value(start).expect("a map");
     settings.insert(starting::SETTING.into(), start);
     (name, settings)
 }
