@@ -14,10 +14,10 @@ use crate::hints::Hint;
 use crate::progress::Run;
 use crate::settings::{ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
-    ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, foreign,
-    fortress, gamedata, gerudo, gifts, held, hints, key_tints, keys, medallions, navi, notice,
-    patch, picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text,
-    tracker, trade_chain, twins,
+    ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, enemies, flags,
+    foreign, fortress, gamedata, gerudo, gifts, held, hints, key_tints, keys, medallions, navi,
+    notice, patch, picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps,
+    text, tracker, trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -176,6 +176,9 @@ pub fn write_mod(
     }
     bools.extend(gifts::flags(&new_game.on));
     bools.extend(dampe::flags(drops));
+    if new_game.quiet_enemies {
+        bools.push(enemies::FLAG.into());
+    }
     if new_game.fortress_keys.moved() {
         bools.extend(fortress::flags());
     }
@@ -334,6 +337,9 @@ pub fn write_mod(
         changed.extend(checks::gone_once(&mut doc.root, &gone)?);
         let leaves = scrubs::leaves(&doc.root, &gone)?;
         changed.extend(checks::gone_once(&mut doc.root, &leaves)?);
+        if new_game.quiet_enemies {
+            changed.extend(enemies::hide(&mut doc.root, &dealt)?);
+        }
         changed.extend(checks::clear_drops(&mut doc.root, carried)?);
         changed.extend(checks::clear_tables(&mut doc.root, &tabled)?);
         changed.extend(checks::set_drops(

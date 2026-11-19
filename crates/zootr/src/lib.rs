@@ -29,6 +29,7 @@ mod dampe;
 pub mod dev;
 mod dig;
 mod door;
+mod enemies;
 mod events;
 mod fill;
 mod flags;

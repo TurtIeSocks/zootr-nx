@@ -136,6 +136,7 @@ pub(crate) const PROGRESSIVE: &str = "progressive-items";
 const FREE_BOMBCHUS: &str = "free-bombchus";
 const BUNNY_HOOD: &str = "bunny-hood";
 const QUIET_NAVI: &str = "quiet-navi";
+pub(crate) const QUIET_ENEMIES: &str = "quiet-enemies";
 pub(crate) const OPEN_DOOR: &str = "open-door-of-time";
 pub(crate) const SCRUBS: &str = "scrubs";
 const SCRUB_PRICE: &str = "scrub-price";
@@ -220,7 +221,8 @@ fn toggle(
 
 /// Settings the CLI takes but the app leaves out for now. Shuffle items
 /// off undoes every other shuffle, which no one turning it off expected.
-const HIDDEN: [&str; 1] = [SHUFFLE_ITEMS];
+/// Quiet enemies is for the harness's seeds.
+const HIDDEN: [&str; 2] = [SHUFFLE_ITEMS, QUIET_ENEMIES];
 
 /// The settings the app shows.
 pub fn shown() -> Vec<SettingDef> {
@@ -489,6 +491,12 @@ pub fn schema() -> Vec<SettingDef> {
             "Navi never stops Link to talk on her own: the Lost Woods warning, dungeon and quest tips, and reminders. Hints you ask her for still work",
         ))])
         .chain([toggle(
+            QUIET_ENEMIES,
+            group::GENERAL,
+            "Quiet enemies",
+            "Enemies never show, so nothing grabs Link or knocks him back. Gold Skulltulas, scrubs, Big Poes, the Skull Kid and enemies that are checks stay. For the play harness's seeds",
+        )])
+        .chain([toggle(
             BUNNY_HOOD,
             group::GENERAL,
             "Bunny Hood speed",
@@ -573,6 +581,8 @@ pub struct NewGame {
     pub free_bombchus: bool,
     /// Navi never talks on her own.
     pub quiet_navi: bool,
+    /// Enemies never show, besides those that are checks or hold one.
+    pub quiet_enemies: bool,
     /// Link runs faster in the Bunny Hood.
     pub bunny_hood: bool,
     /// The rainbow bridge rises at six medallions.
@@ -682,6 +692,7 @@ impl NewGame {
             seed: 0,
             free_bombchus: on(FREE_BOMBCHUS),
             quiet_navi: on(QUIET_NAVI),
+            quiet_enemies: on(QUIET_ENEMIES),
             bunny_hood: on(BUNNY_HOOD),
             bridge_medallions: on(BRIDGE_MEDALLIONS),
             hints: on(HINTS),
@@ -807,6 +818,7 @@ mod tests {
                 seed: 0,
                 free_bombchus: true,
                 quiet_navi: true,
+                quiet_enemies: false,
                 bunny_hood: false,
                 bridge_medallions: false,
                 hints: false,
