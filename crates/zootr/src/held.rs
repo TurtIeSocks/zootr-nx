@@ -92,8 +92,6 @@ mod tests {
 
     const BIND: &str = "EventTriggerModelBindForItemGetDemo";
     const GRAPH: &str = "EventUniqueAin";
-    /// The pack the event graphs no actor carries itself live in.
-    const SHARED: &str = "Pack/AI.Global.Product.111.pack.zs";
     /// The system setting that calculates an actor after the rest.
     const AFTER: &str = "GameActorAfter";
 
@@ -109,7 +107,7 @@ mod tests {
         if let Some(own) = pack.raw(&file) {
             return own.to_vec();
         }
-        let shared = romfs.read(SHARED).unwrap();
+        let shared = romfs.read(crate::pickups::GLOBAL_AI).unwrap();
         Sarc::new(&shared)
             .unwrap()
             .get_data(&file)

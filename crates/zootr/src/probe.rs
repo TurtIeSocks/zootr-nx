@@ -140,6 +140,11 @@ pub enum Probe {
         /// `ActorLogicEventRequestActor`.
         #[arg(long)]
         node: Option<String>,
+        /// Instead, every placement a logic node makes appear: hash, area,
+        /// actor, the graph and node, and how many times the graph is
+        /// placed.
+        #[arg(long)]
+        creators: bool,
     },
     /// Every BYML document whose path contains this, as an indented tree,
     /// one value per line, including those inside SARC archives.
@@ -151,6 +156,9 @@ pub enum Probe {
         /// or a graph inside an actor pack as `probe grep` names it, like
         /// `Pack/Actor/NAME.pack.zs/AI/NAME.brain.root.ainb`.
         path: String,
+        /// Save the graph's raw bytes here instead of printing it.
+        #[arg(long)]
+        out: Option<std::path::PathBuf>,
     },
     /// Each check the shuffle deals: hash, era, area, name, vanilla item,
     /// and what logic says it needs there, with default settings unless
@@ -386,14 +394,18 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             Ok(())
         }
         Probe::Exits { node } => exits(romfs, &node),
-        Probe::Gates { trace, node } => gates(romfs, trace, node),
+        Probe::Gates {
+            trace,
+            node,
+            creators,
+        } => gates(romfs, trace, node, creators),
         Probe::Checks {
             area,
             settings,
             never,
         } => checks(romfs, area.as_deref(), &settings, never),
         Probe::Byml { pattern } => byml(romfs, game, &pattern),
-        Probe::Ainb { path } => ainb(romfs, &path),
+        Probe::Ainb { path, out } => ainb(romfs, &path, out.as_deref()),
         Probe::Rsdb { table, pattern } => rsdb(romfs, game, &table, &pattern),
         Probe::Tags { actors } => tags(romfs, game, &actors),
         Probe::Groups { file, logic } => groups(romfs, &file, &logic),

@@ -20,6 +20,9 @@ use crate::standins::{StandIn, Tables, item_pack};
 use crate::warp;
 use crate::world::presence_of;
 
+mod stale;
+pub mod steps;
+
 /// One kind of placed holder.
 pub struct Kind {
     /// The placed actors.
@@ -233,6 +236,8 @@ const KINDS: [&Kind; 12] = [
 /// What a thief's key check is held by, in the spoiler.
 pub const THIEF: &str = "Gerudo Thief";
 
+/// The pack of AI graphs no actor carries itself, like the drop graph.
+pub const GLOBAL_AI: &str = "Pack/AI.Global.Product.111.pack.zs";
 const DROP: &str = "Dynamic.Drop__DropActor";
 const NAME: &str = "Name";
 /// A drop that's a creature (bugs from some shrubs and a rock), not an
@@ -408,7 +413,19 @@ pub fn dealt(romfs: &Romfs, new_game: &NewGame) -> Result<Vec<ItemCheck>> {
     for (_, kind) in on.into_iter().filter(|(on, _)| *on) {
         out.extend(kind.checks(romfs)?);
     }
+    watch(romfs, &mut out)?;
     Ok(out)
+}
+
+/// Mark each of `checks` a logic module makes appear or watches.
+fn watch(romfs: &Romfs, checks: &mut [ItemCheck]) -> Result<()> {
+    let watched: HashSet<u64> = (crate::gates::creators(romfs)?.into_iter())
+        .map(|c| c.hash)
+        .collect();
+    for c in checks {
+        c.watched = watched.contains(&c.hash);
+    }
+    Ok(())
 }
 
 pub fn kind_of(check: &ItemCheck) -> Option<&'static Kind> {
@@ -418,6 +435,13 @@ pub fn kind_of(check: &ItemCheck) -> Option<&'static Kind> {
 /// Whether `check` is a placed holder's, not a chest's.
 pub fn is_pickup(check: &ItemCheck) -> bool {
     kind_of(check).is_some()
+}
+
+/// Whether `check` is a pickup that can show a line's level or ammo a step
+/// at a time ([`steps`]): one no logic module makes or watches, holding
+/// whatever it's dealt.
+pub(crate) fn steps_at(check: &ItemCheck) -> bool {
+    !check.watched && kind_of(check).is_some_and(|k| k.named.is_none())
 }
 
 /// A holder whose item changed, and the actor its placement field names.
@@ -433,17 +457,30 @@ pub struct Moved<'a> {
     pub actor: String,
     /// What a stand-in is built on.
     template: &'static str,
+    /// Which step of its holder's it is, when the holder shows one a step
+    /// at a time.
+    pub step: Option<steps::Step>,
 }
 
 impl Moved<'_> {
     /// Whether `actor` is a stand-in that has to be built.
     fn built(&self) -> bool {
-        self.actor.starts_with(NEW)
+        self.actor.starts_with(NEW) || self.actor.starts_with(stale::STEP)
     }
 }
 
-/// Every holder in `checks` whose item in `drops` isn't its own.
-pub fn moved<'a>(checks: &'a [ItemCheck], drops: &'a HashMap<u64, Drop>) -> Vec<Moved<'a>> {
+/// Every holder in `checks` whose item in `drops` isn't its own, and each
+/// step's placement past a holder's own when it shows them a step at a
+/// time.
+pub fn moved<'a>(
+    checks: &'a [ItemCheck],
+    drops: &'a HashMap<u64, Drop>,
+    progressive: bool,
+) -> Vec<Moved<'a>> {
+    let fixed: HashSet<u64> = (checks.iter())
+        .filter(|c| !steps_at(c))
+        .map(|c| c.hash)
+        .collect();
     let holders: BTreeSet<(u64, &str, &str)> = checks
         .iter()
         .filter_map(|c| Some((c.hash, c.item.as_str(), kind_of(c)?.field)))
@@ -454,15 +491,27 @@ pub fn moved<'a>(checks: &'a [ItemCheck], drops: &'a HashMap<u64, Drop>) -> Vec<
         if item == vanilla {
             continue;
         }
-        let actor = pickup_for(item, field == DROP).unwrap_or_else(|| format!("{NEW}{n:03}"));
-        out.push(Moved {
+        let at = |hash, item, actor: String, step| Moved {
             hash,
             vanilla,
             item,
             field,
             actor,
             template: template_for(field),
-        });
+            step,
+        };
+        let dropped = field == DROP;
+        let shown = (!fixed.contains(&hash)).then(|| steps::of(hash, item, progressive));
+        let Some(Some(steps)) = shown else {
+            let actor = pickup_for(item, dropped).unwrap_or_else(|| format!("{NEW}{n:03}"));
+            out.push(at(hash, item, actor, None));
+            continue;
+        };
+        for (k, (placement, shows, step)) in steps.into_iter().enumerate() {
+            let built = || format!("{}{n:03}_{k}", stale::STEP);
+            let actor = pickup_for(shows, dropped).unwrap_or_else(built);
+            out.push(at(placement, shows, actor, Some(step)));
+        }
     }
     out
 }
@@ -478,7 +527,7 @@ pub fn write(
     new_game: &NewGame,
 ) -> Result<Vec<String>> {
     let mut fields = Vec::new();
-    for m in moved(checks, drops) {
+    for m in moved(checks, drops, new_game.progressive) {
         if m.built() {
             let pickup = StandIn {
                 name: &m.actor,
@@ -676,6 +725,27 @@ mod tests {
             );
             assert!(checks.iter().all(|c| kind.item.is_none_or(|i| c.item == i)));
         }
+    }
+
+    #[test]
+    fn a_holder_a_logic_module_makes_or_watches_never_steps() {
+        let Some(romfs) = dev_dump() else { return };
+        let watched = |kind: &Kind| {
+            let mut checks = kind.checks(&romfs).unwrap();
+            watch(&romfs, &mut checks).unwrap();
+            let n = checks.iter().filter(|c| c.watched).count();
+            assert!(checks.iter().all(|c| c.watched != steps_at(c)));
+            (n, checks.len())
+        };
+        // Each boss's heart, the Fire Arrows and Ruto's letter appear once
+        // their module says so.
+        assert_eq!(watched(&BOSS_HEARTS), (8, 8));
+        assert_eq!(watched(&FIRE_ARROWS), (1, 1));
+        assert_eq!(watched(&RUTOS_LETTER), (1, 1));
+        assert_eq!(watched(&FREESTANDING).0, 0);
+        // Pots a module makes appear or watches break (respawning ones,
+        // and ones whose break starts an event).
+        assert_eq!(watched(&POTS), (61, 530));
     }
 
     #[test]

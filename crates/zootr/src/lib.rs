@@ -86,6 +86,7 @@ mod scrubs;
 pub mod settings;
 pub mod share;
 mod shops;
+mod shows;
 mod shuffle;
 pub mod spawn;
 pub mod sprites;

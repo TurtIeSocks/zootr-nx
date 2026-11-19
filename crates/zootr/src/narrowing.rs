@@ -7,7 +7,7 @@ use crate::checks::ItemCheck;
 use crate::gifts::levels;
 use crate::known::{Name, item};
 use crate::settings::{self, NewGame};
-use crate::{cows, dampe, gifts, keys, scrubs, shops};
+use crate::{cows, dampe, gifts, keys, pickups, scrubs, shops};
 
 /// One narrowing from the EIE spec's list: #1, #4 and #8.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -111,13 +111,16 @@ pub(crate) fn left_out(c: &ItemCheck, open: Let) -> Option<LeftOut> {
 /// each puts the pouch questions in front of its grant (`gifts::levels`).
 /// A prize chest is a chest to the hook, which gives a line's level there
 /// and swaps a Red Rupee copy for ammo (`ammo::line`). A shop slot shows
-/// each step on a shelf of its own (`shops::steps`).
+/// each step on a shelf of its own (`shops::steps`), and a pickup in a
+/// placement of its own (`pickups::steps`), bar one a logic module makes
+/// or watches.
 pub(crate) fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
     let picks = gifts::of(check).is_some()
         || scrubs::of(check).is_some()
         || cows::is_cow(check)
         || shops::is_shop(check)
-        || gifts::is_prize(check);
+        || gifts::is_prize(check)
+        || pickups::steps_at(check);
     !picks && levels::asks(item, progressive)
 }
 
@@ -158,6 +161,7 @@ pub(crate) mod tests {
             get_event: None,
             substitute: None,
             presence: None,
+            watched: false,
         }
     }
 
@@ -233,6 +237,35 @@ pub(crate) mod tests {
                 assert!(allowed(&slot, ammo, on), "{ammo}");
             }
         }
+    }
+
+    #[test]
+    fn a_pickup_holds_every_line_level_and_ammo_unless_logic_watches_it() {
+        needs_names!();
+        let pot = ItemCheck {
+            holder: actor::OBJ_POT_A_01.to_string(),
+            ..chest(1, "Item_A")
+        };
+        let watched = ItemCheck {
+            watched: true,
+            ..pot.clone()
+        };
+        for on in [false, true] {
+            for line in progressive::LINES {
+                for &(level, _) in line.iter() {
+                    assert!(allowed(&pot, level, on), "{level}");
+                }
+            }
+            for (ammo, _) in ammo::NEEDS {
+                assert!(allowed(&pot, ammo, on), "{ammo}");
+                assert_eq!(refusal(&watched, ammo, on), Some(Narrowing::AsksPouch));
+            }
+        }
+        assert_eq!(
+            refusal(&watched, item::HOOKSHOT, true),
+            Some(Narrowing::AsksPouch)
+        );
+        assert!(allowed(&watched, item::HOOKSHOT, false));
     }
 
     #[test]
