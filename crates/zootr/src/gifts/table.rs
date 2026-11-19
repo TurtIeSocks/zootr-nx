@@ -85,7 +85,7 @@ pub(super) const fn reward(
     }
 }
 
-pub const GIFTS: [Gift; 84] = [
+pub const GIFTS: [Gift; 86] = [
     Gift {
         flow: scene::KOKIRI_0155,
         area: flag::KOKIRI_FOREST,
@@ -196,6 +196,26 @@ pub const GIFTS: [Gift; 84] = [
         },
         setting: Some(NPC_GIFTS),
     },
+    // A Kokiri kid pays a Blue Rupee once Link has broken the ring of
+    // rocks around him, then sets his paid Bool.
+    npc(
+        actor::NPC_KOKIRI_008_CHILD,
+        flag::KOKIRI_FOREST,
+        "Kokiri rock clearing",
+        actor::OBJ_RUPEE_BLUE,
+        &[get(flow::GET_IN_EVENT_NOT_TURN)],
+        flag::KOKIRI_FOREST_NPC_KOKIRI_008_CHILD_ALREADY_PAID,
+    ),
+    // Another pays a Blue Rupee for clearing the grass in his yard, on
+    // either of his talks, each setting the same Bool.
+    npc(
+        actor::NPC_KOKIRI_005_CHILD,
+        flag::KOKIRI_FOREST,
+        "Kokiri yard weeding",
+        actor::OBJ_RUPEE_BLUE,
+        &[get(flow::GET_IN_EVENT_NOT_TURN)],
+        flag::HAVE_TALKED_SPECIAL_NPC_KOKIRI_005_CHILD_TALK_EVENT35,
+    ),
     // The running man pays a Purple Rupee for Link's first win, then sets
     // the clear Bool. Every later win pays a Red Rupee through the same
     // call, which names its own rupee, so it stays vanilla.
