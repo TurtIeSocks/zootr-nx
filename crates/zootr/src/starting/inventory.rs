@@ -22,6 +22,14 @@ use crate::value;
 /// Its setting's id.
 pub const SETTING: &str = "start-inventory";
 
+/// Removes that empty `actor` from any count up to `cap`. A remove runs
+/// only when Link holds that many, so halving removes take each count down
+/// to none.
+fn empty(actor: &str, cap: i32) -> impl Iterator<Item = Grant> + '_ {
+    let top = cap.max(1).ilog2();
+    (0..=top).rev().map(move |k| Grant::new(actor, -(1 << k)))
+}
+
 /// Heart containers, whole hearts.
 const HEARTS: &str = "heart-containers";
 /// The heart containers every new game has. The rest are granted.
@@ -232,36 +240,36 @@ impl Start {
     /// The opening's grants. Items in grid order, so the Hookshot comes
     /// before the Longshot. What comes with an item comes only when the grid
     /// doesn't hold it already. Then each item a held bag caps, emptied and
-    /// granted its count, since a grant may have filled it (a bigger quiver
-    /// refills the arrows). Then the heart containers past a new game's.
+    /// granted its count, since a grant may have filled it (the Bow comes
+    /// with 30 arrows). Then the heart containers past a new game's, one
+    /// grant each: a heart container's grant adds one whatever its count.
     pub fn grants(&self, pouch: &Pouch) -> Vec<Grant> {
         let held = self.held();
         let drops: Vec<&str> = held.iter().map(|(h, _)| drop(h.actor).get()).collect();
-        let bags: Vec<&str> = held.iter().map(|(h, _)| h.actor.get()).collect();
+        let each: Vec<Vec<Grant>> = (held.iter().zip(&drops))
+            .map(|((_, n), d)| {
+                let mut grants = granted(d, *n).into_iter();
+                let first = grants.next();
+                let rest = grants.filter(|w| !drops.contains(&w.actor.as_str()));
+                first.into_iter().chain(rest).collect()
+            })
+            .collect();
+        let bags: Vec<&str> = each.iter().flatten().map(|g| g.actor.as_str()).collect();
         let capped = |a: &Name| pouch.held_cap(a.get(), &bags);
-        let mut out = Vec::new();
-        for ((h, n), d) in held.iter().zip(&drops) {
-            if capped(h.actor).is_some() {
-                continue;
-            }
-            let mut grants = granted(d, *n).into_iter();
-            out.extend(grants.next());
-            out.extend(grants.filter(|w| !drops.contains(&w.actor.as_str())));
-        }
+        let mut out: Vec<Grant> = (held.iter().zip(&each))
+            .filter(|((h, _), _)| capped(h.actor).is_none())
+            .flat_map(|(_, g)| g.iter().cloned())
+            .collect();
         for h in inventory::held().into_iter().filter(|h| h.ammo) {
             if let Some(cap) = capped(h.actor) {
-                out.push(Grant::new(h.actor.get(), -cap));
+                out.extend(empty(h.actor.get(), cap));
                 let n = self.count(h.actor);
                 out.extend((n > 0).then(|| Grant::new(h.actor.get(), n)));
             }
         }
         let hearts = self.0.get(HEARTS).copied().unwrap_or(BASE_HEARTS);
-        if hearts > BASE_HEARTS {
-            out.push(Grant::new(
-                actor::OBJ_HEART_CONTAINER.get(),
-                hearts - BASE_HEARTS,
-            ));
-        }
+        let container = || Grant::new(actor::OBJ_HEART_CONTAINER.get(), 1);
+        out.extend((BASE_HEARTS..hearts).map(|_| container()));
         out
     }
 
@@ -533,11 +541,28 @@ mod tests {
             (item::HOOKSHOT.get(), 1, false),
             (item::LONGSHOT.get(), 1, false),
             (item::SWORD_KOKIRI.get(), 1, true),
-            (item::BOMB.get(), -30, false),
+            (item::BOMB.get(), -16, false),
+            (item::BOMB.get(), -8, false),
+            (item::BOMB.get(), -4, false),
+            (item::BOMB.get(), -2, false),
+            (item::BOMB.get(), -1, false),
             (item::BOMB.get(), 20, false),
-            (actor::OBJ_HEART_CONTAINER.get(), 2, false),
+            (actor::OBJ_HEART_CONTAINER.get(), 1, false),
+            (actor::OBJ_HEART_CONTAINER.get(), 1, false),
         ];
         assert_eq!(got, want.map(|(a, n, e)| (a.to_owned(), n, e)));
+    }
+
+    #[test]
+    fn halving_removes_empty_every_count_up_to_the_cap() {
+        for cap in [1, 20, 30, 40, 50, 99] {
+            for held in 0..=cap {
+                // A remove runs only when Link holds that many.
+                let left = (empty("FakeAmmo", cap))
+                    .fold(held, |n, g| if n + g.num >= 0 { n + g.num } else { n });
+                assert_eq!(left, 0, "cap {cap}, held {held}");
+            }
+        }
     }
 
     #[test]
@@ -545,9 +570,24 @@ mod tests {
         needs_names!();
         let grants = start(&[("bomb-bag", 1)]).grants(&bombs_pouch());
         let last = grants.last().map(|g| (g.actor.as_str(), g.num));
-        assert_eq!(last, Some((item::BOMB.get(), -20)));
+        assert_eq!(last, Some((item::BOMB.get(), -1)));
         let none = start(&[(HEARTS, 3)]).grants(&bombs_pouch());
         assert!(none.is_empty(), "{none:?}");
+    }
+
+    #[test]
+    fn a_bag_that_comes_with_an_item_caps_its_ammo() {
+        needs_names!();
+        let pouch = Pouch::of(
+            &[(item::BULLET_BAG_SMALL.get(), "Seed", 30)],
+            &[(item::DEKU_SEED.get(), "Seed")],
+        );
+        let grants = start(&[("slingshot", 1), ("deku-seeds", 15)]).grants(&pouch);
+        let seeds: Vec<_> = (grants.iter())
+            .filter(|g| g.actor == item::DEKU_SEED.get())
+            .map(|g| g.num)
+            .collect();
+        assert_eq!(seeds, [-16, -8, -4, -2, -1, 15]);
     }
 
     #[test]

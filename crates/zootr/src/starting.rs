@@ -199,23 +199,23 @@ mod tests {
         let pouch = Pouch::load(&romfs).unwrap();
         chain(&mut flow, &template, &start.grants(&pouch)).unwrap();
         let save = only(&flow, AUTOSAVE).unwrap();
-        let grants = flows::running(&flow, GRANT);
-        // Pushed last to first: the bag, the sword, the bombs emptied, then
-        // the bombs.
-        let [bombs, empty, sword, bag] = grants[..] else {
-            panic!("{grants:?}")
-        };
+        // Pushed last to first, so reversed they run in order: the bag, the
+        // sword, the bombs emptied from 16 down, then the bombs.
+        let mut run = flows::running(&flow, GRANT);
+        run.reverse();
+        assert_eq!(run.len(), 8, "{run:?}");
         let after = Flowchart::parse(&flow.to_bytes()).unwrap().unwrap();
-        assert_eq!(after.links_to(bag), before.links_to(save));
-        assert_eq!(after.links_to(sword), [ounce_formats::Link::Next(bag)]);
-        assert_eq!(after.links_to(empty), [ounce_formats::Link::Next(sword)]);
-        assert_eq!(after.links_to(bombs), [ounce_formats::Link::Next(empty)]);
-        assert_eq!(after.links_to(save), [ounce_formats::Link::Next(bombs)]);
+        assert_eq!(after.links_to(run[0]), before.links_to(save));
+        for w in run.windows(2) {
+            assert_eq!(after.links_to(w[1]), [ounce_formats::Link::Next(w[0])]);
+        }
+        assert_eq!(after.links_to(save), [ounce_formats::Link::Next(run[7])]);
         let params = |e: u16| match &after.events[e as usize].kind {
             EventKind::Action { params, .. } => params.clone(),
             _ => unreachable!(),
         };
         let has = |e: u16, key: &str, v: Value| params(e).contains(&(key.into(), v));
+        let (bag, sword) = (run[0], run[1]);
         assert!(has(
             sword,
             "Actor",
@@ -226,8 +226,8 @@ mod tests {
             field::IS_EQUIP_D_IRECT.get(),
             Value::Bool(vec![true])
         ));
-        assert!(has(bombs, flows::NUM, Value::Int(vec![20])));
-        assert!(has(empty, flows::NUM, Value::Int(vec![-20])));
+        assert!(has(run[2], flows::NUM, Value::Int(vec![-16])));
+        assert!(has(run[7], flows::NUM, Value::Int(vec![20])));
         assert!(has(
             bag,
             field::IS_EQUIP_D_IRECT.get(),
