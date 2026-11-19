@@ -356,9 +356,9 @@ pub fn write_mod(
     let (mut found, mut actors) = (HashSet::new(), 0);
     let mut spots = Vec::new();
     let mut chest_events = HashMap::new();
-    for rel in checks::banc_files(romfs)? {
+    for (rel, doc) in checks::load_bancs(romfs, checks::banc_files(romfs)?) {
         run.check()?;
-        let mut doc = checks::load_banc(romfs, &rel)?;
+        let mut doc = doc?;
         // First, so a check placed in its twin's map takes its drop below.
         let twinned = twins::place(&rel, &mut doc.root, &twins)? > 0;
         // Before the fields, so each twin keeps its holder's vanilla drop.
