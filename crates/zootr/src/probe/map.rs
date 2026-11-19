@@ -1,6 +1,7 @@
 //! A map's floor plan as JSON: its navmesh's faces by room, every placement
 //! on them, and each locked door's two rooms. The ledger draws it.
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use anyhow::{Context, Result};
@@ -8,6 +9,7 @@ use ounce_formats::{NavMesh, Romfs};
 use serde::Serialize;
 
 use super::rooms::{locked_doors, split};
+use crate::key_rooms::{self, RoomKeys};
 use crate::nav::graph::{Graph, STEP_UP};
 use crate::nav::navmesh_file;
 use crate::warp::{self, Side};
@@ -20,6 +22,8 @@ struct Plan {
     faces: Vec<Face>,
     placed: Vec<Spot>,
     doors: Vec<Door>,
+    /// `None` outside a dungeon with small keys.
+    keys: Option<RoomKeys>,
 }
 
 /// A storey: the dungeon rooms on it, lowest first, and its mean height.
@@ -121,6 +125,9 @@ fn plan(romfs: &Romfs, game: &Path, map: &str) -> Result<Plan> {
             dungeon_room: p.hash.and_then(|h| named.get(&h).copied()),
         })
         .collect();
+    let area = warp::area_of(romfs, map)?;
+    let numbered: BTreeSet<u32> = named.values().copied().collect();
+    let keys = key_rooms::rooms_of(&area, numbered);
     Ok(Plan {
         map: map.to_owned(),
         vertices: mesh.vertices.clone(),
@@ -128,6 +135,7 @@ fn plan(romfs: &Romfs, game: &Path, map: &str) -> Result<Plan> {
         faces,
         placed: spots,
         doors,
+        keys,
     })
 }
 
@@ -142,7 +150,7 @@ const LEAST: usize = 20;
 /// The storeys of each face's `(room, height)`: rooms by mean height,
 /// split where two neighbours differ by more than [`STOREY`].
 fn storeys(faces: &[(u32, f32)]) -> Vec<Floor> {
-    let mut by_room: std::collections::BTreeMap<u32, (f32, usize)> = Default::default();
+    let mut by_room: BTreeMap<u32, (f32, usize)> = BTreeMap::new();
     for &(r, y) in faces {
         let e = by_room.entry(r).or_default();
         *e = (e.0 + y, e.1 + 1);

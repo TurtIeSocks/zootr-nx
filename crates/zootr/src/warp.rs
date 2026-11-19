@@ -3,7 +3,7 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 use clap::ValueEnum;
 use ounce_formats::{Byml, Romfs};
 use serde::{Deserialize, Serialize};
@@ -168,6 +168,15 @@ pub fn rooms_in(romfs: &Romfs, map: &str) -> Result<HashMap<u64, u32>> {
         rooms.extend(named);
     }
     Ok(rooms)
+}
+
+/// The Banc folder `map` sits in, its area: Kokiri Forest's for either
+/// age's map of it.
+pub fn area_of(romfs: &Romfs, map: &str) -> Result<String> {
+    let files = banc_files(romfs)?;
+    let rel = files.iter().find(|rel| map_of(rel) == map);
+    let area = rel.and_then(|rel| rel.split('/').nth(1));
+    Ok(area.with_context(|| format!("no map {map}"))?.to_owned())
 }
 
 /// Every placement of `map`.

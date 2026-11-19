@@ -3,10 +3,11 @@
 //! keys in. A dungeon it leaves out asks for all its keys at every check,
 //! which keeps them out of their own dungeon: debt the ledger counts.
 
+use std::collections::BTreeMap;
 use std::sync::LazyLock;
 
 use anyhow::{Context, Result, ensure};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::checks::ItemCheck;
 use crate::keys;
@@ -79,18 +80,43 @@ fn load(text: &str) -> Result<Vec<(usize, Dungeon)>> {
 /// its small keys the check needs. `None` outside a dungeon with keys.
 pub fn count(check: &ItemCheck) -> Option<(usize, u32)> {
     let n = keys::dungeon_in(&check.area)?;
+    Some((n, need(n, check.room)))
+}
+
+/// How many of dungeon `n`'s small keys a check in `room` needs: all of
+/// them when the table leaves the dungeon or the room's number out.
+fn need(n: usize, room: Option<u32>) -> u32 {
     let room = |d: &Dungeon| {
-        let room = check.room?;
+        let room = room?;
         let listed = d.rooms.iter().find(|r| r.room == room);
         Some(listed.map_or(d.keys, |r| r.keys))
     };
     let tabled = TABLED.iter().find(|(m, _)| *m == n);
-    Some((
-        n,
-        tabled
-            .and_then(|(_, d)| room(d))
-            .unwrap_or(keys::copies_of(n)),
-    ))
+    tabled
+        .and_then(|(_, d)| room(d))
+        .unwrap_or(keys::copies_of(n))
+}
+
+/// A dungeon's small keys, for a map.
+#[derive(Serialize)]
+pub struct RoomKeys {
+    pub total: u32,
+    /// Whether the table counts them by room. If not, every room needs
+    /// them all.
+    pub by_room: bool,
+    /// What a check in each room needs, by room.
+    pub rooms: BTreeMap<u32, u32>,
+}
+
+/// The small keys of the dungeon `area` and what each of `rooms` needs.
+/// `None` outside a dungeon with keys.
+pub fn rooms_of(area: &str, rooms: impl IntoIterator<Item = u32>) -> Option<RoomKeys> {
+    let n = keys::dungeon_in(area)?;
+    Some(RoomKeys {
+        total: keys::copies_of(n),
+        by_room: TABLED.iter().any(|(m, _)| *m == n),
+        rooms: rooms.into_iter().map(|r| (r, need(n, Some(r)))).collect(),
+    })
 }
 
 /// Whether logic counts `check`'s keys by its room, rather than asking for
@@ -135,6 +161,15 @@ mod tests {
         assert_eq!(count(&at(well, None)), Some((1, 2)));
         assert!(by_room(&at(well, Some(1))) && !by_room(&at(well, None)));
         assert_eq!(count(&at("FakeField", Some(1))), None);
+    }
+
+    #[test]
+    fn a_map_gets_each_room_s_count_and_the_dungeon_s_total() {
+        needs_names!();
+        let well = rooms_of(flow::BOTTOM_OF_THE_WELL.get(), [1, 4]).unwrap();
+        assert_eq!((well.total, well.by_room), (2, true));
+        assert_eq!(well.rooms, BTreeMap::from([(1, 0), (4, 2)]));
+        assert!(rooms_of("FakeField", [1]).is_none());
     }
 
     #[test]
