@@ -3,6 +3,11 @@
 //! swaps its actor like any holder's). The three thieves that also carry
 //! their key as a drop lose it, so the one key a thief gives is the seed's.
 //!
+//! Her call warps the key to her as she falls, but only the key's own
+//! pickup graph can warp: a stand-in left at the key's placement, under
+//! the floor, never shows. So each moved key lies at the spot her call
+//! names instead, on the floor beside her, and shows as she falls.
+//!
 //! The flow names the key actor by its name, so each call is pointed at
 //! the actor now placed. A key showing a line a step at a time is one
 //! placement per step, so the call is copied per step, each behind its
@@ -11,10 +16,10 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use anyhow::{Context, Result, ensure};
+use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::{EventKind, Flowchart, Value};
 
-use crate::checks::{Drop, ItemCheck};
+use crate::checks::{Drop, ItemCheck, TRANSLATE};
 use crate::flows::{self, GAME_DATA, IS_BOOL, Rewrites, SET_BOOL, running, string};
 use crate::known::{Name, field, flow};
 use crate::pickups::steps;
@@ -30,6 +35,8 @@ pub const CARRYING: [u64; 3] = [
 ];
 /// The call's argument naming the key's actor.
 const KEY: &Name = flow::OBJ_SMALL_KEY;
+/// The call's argument naming the spot on the floor beside her.
+const SPOT: &Name = flow::KEY_POSITION;
 /// The query reading a BoolExp. Case 0 is true.
 const IS_EXP: &Name = flow::EVENT_QUERY_IS_GAME_DATA_BOOL_EXP;
 
@@ -155,6 +162,44 @@ pub fn give(
         }
         Ok(())
     })
+}
+
+/// The placement fields that lay each moved key, one placement per step,
+/// at the spot her call names, for the Fortress keys of `pieces` that
+/// `drops` changes (Mac, 2026-11-19).
+pub fn fields(
+    romfs: &ounce_formats::Romfs,
+    pieces: &[ItemCheck],
+    drops: &HashMap<u64, Drop>,
+    progressive: bool,
+) -> Result<Vec<String>> {
+    let flow = flows::load(romfs, FLOW)?.with_context(|| format!("{FLOW} isn't a flow"))?;
+    let mut fields = Vec::new();
+    for m in pickups::moved(pieces, drops, progressive) {
+        if !m.vanilla.starts_with(keys::FORTRESS_KEY) {
+            continue;
+        }
+        let spot = spot(&flow, m.vanilla)?;
+        let at = spot.iter().enumerate();
+        fields.extend(at.map(|(i, v)| format!("{}.{TRANSLATE}.{i}={v}", m.hash)));
+    }
+    Ok(fields)
+}
+
+/// The spot her call names for the key actor `key`.
+fn spot(flow: &Flowchart, key: &str) -> Result<[f32; 3]> {
+    let (entry, _) = thief_of(key)?;
+    let call = flow.entry_points.iter().find(|e| e.name == entry);
+    let call = call.and_then(|e| e.main);
+    let call = call.with_context(|| format!("{FLOW} has no {entry}"))?;
+    let EventKind::SubFlow { params, .. } = &flow.events[call as usize].kind else {
+        bail!("{entry} doesn't start with a call");
+    };
+    match params.iter().find(|(k, _)| k == SPOT) {
+        Some((_, Value::Float(v))) => <[f32; 3]>::try_from(v.as_slice())
+            .with_context(|| format!("{entry}'s {SPOT} isn't a point")),
+        _ => bail!("{entry}'s call names no {SPOT}"),
+    }
 }
 
 /// Name `actor` in the key argument of the call at `at`, by step `k`'s
@@ -306,6 +351,25 @@ mod tests {
         assert_eq!(joins, next, "both run the key's Bools");
         let undeclared = flows::undeclared(&flow);
         assert!(undeclared.is_empty(), "{undeclared:?}");
+    }
+
+    #[test]
+    fn each_step_of_a_moved_key_lies_where_she_falls() {
+        let Some(romfs) = dev_dump() else { return };
+        let pieces = pickups::FORTRESS_KEYS.checks(&romfs).unwrap();
+        let key = pieces.iter().find(|c| c.item.ends_with("_01")).unwrap();
+        let drops = HashMap::from([(key.hash, Drop::from(item::HOOKSHOT.to_string()))]);
+        let laid = fields(&romfs, &pieces, &drops, true).unwrap();
+        let placed = pickups::moved(&pieces, &drops, true);
+        // Her call's spot for the first key, on the floor at 102.5.
+        let spot = ["26.111", "102.5", "-67.422"];
+        let want: Vec<String> = placed
+            .iter()
+            .flat_map(|m| (0..3).map(move |i| format!("{}.{TRANSLATE}.{i}={}", m.hash, spot[i])))
+            .collect();
+        assert_eq!(laid, want, "both steps");
+        let none = fields(&romfs, &pieces, &HashMap::new(), true).unwrap();
+        assert!(none.is_empty(), "a key left in place stays put");
     }
 
     fn key_actor(n: usize) -> String {

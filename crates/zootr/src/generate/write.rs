@@ -312,6 +312,14 @@ pub fn write_mod(
         drops,
         new_game,
     )?);
+    if new_game.fortress_keys.moved() {
+        fields.extend(fortress::fields(
+            romfs,
+            &pieces,
+            drops,
+            new_game.progressive,
+        )?);
+    }
     steps.write(romfs, &mut builder)?;
     held::write(romfs, &mut builder, &mut tables)?;
     tables.write(&mut builder)?;
