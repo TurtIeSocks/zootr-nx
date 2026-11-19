@@ -27,6 +27,8 @@ pub type Settings = BTreeMap<String, Value>;
 pub mod group {
     /// Comfort and speed: nothing shuffled, nothing opened.
     pub const GENERAL: &str = "General";
+    /// Changes to how Link plays: nothing shuffled, nothing opened.
+    pub const ENHANCEMENTS: &str = "Enhancements";
     /// How items are placed, and what stands open from the start.
     pub const LOGIC: &str = "Logic & access";
     /// What a new save starts holding or having done.
@@ -40,8 +42,9 @@ pub mod group {
 }
 
 /// Every panel, in the order the app lists them.
-pub const GROUPS: [&str; 6] = [
+pub const GROUPS: [&str; 7] = [
     group::GENERAL,
+    group::ENHANCEMENTS,
     group::LOGIC,
     group::INVENTORY,
     group::SHUFFLES,
@@ -492,7 +495,7 @@ pub fn schema() -> Vec<SettingDef> {
         ))])
         .chain([toggle(
             BUNNY_HOOD,
-            group::GENERAL,
+            group::ENHANCEMENTS,
             "Bunny Hood speed",
             "Link runs half again as fast while he wears the Bunny Hood",
         )])
@@ -577,6 +580,7 @@ mod tests {
         assert_eq!(group(SHOP_SLOTS), group::SHUFFLES);
         assert_eq!(group(KEYS), group::DUNGEONS);
         assert_eq!(group(HINTS), group::GENERAL);
+        assert_eq!(group(BUNNY_HOOD), group::ENHANCEMENTS);
         assert_eq!(group(SKIP_ALL), group::CUTSCENES);
     }
 
@@ -595,6 +599,15 @@ mod tests {
                 d.description
             );
         }
+    }
+
+    #[test]
+    fn enhancements_start_off() {
+        let on = toggles_on(&Settings::new());
+        let enhancements = schema()
+            .into_iter()
+            .filter(|d| d.group == group::ENHANCEMENTS);
+        assert!(enhancements.map(|d| d.id).all(|id| !on.contains(&id)));
     }
 
     #[test]
