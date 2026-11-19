@@ -95,6 +95,38 @@ impl DungeonKeys {
     }
 }
 
+/// Where the Gerudo thieves' keys are: [`Keys`], or shuffled one by one.
+#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
+pub enum FortressKeys {
+    /// Carried by the thieves, as in the game
+    #[default]
+    Vanilla,
+    /// Held from the start, so the keys the thieves carry are checks
+    Start,
+    /// Each key on its own, at any check, and the thieves' keys are checks
+    Singles,
+}
+
+impl FortressKeys {
+    pub(super) fn label(self) -> &'static str {
+        match self {
+            Self::Vanilla => Keys::Vanilla.label(),
+            Self::Start => Keys::Start.label(),
+            Self::Singles => DungeonKeys::Singles.label(),
+        }
+    }
+
+    /// Whether the keys the thieves carry are checks.
+    pub fn moved(self) -> bool {
+        self != Self::Vanilla
+    }
+
+    /// Whether the keys come as copies the hook credits to the Fortress.
+    pub fn copies(self) -> bool {
+        self == Self::Singles
+    }
+}
+
 /// How many slots of each shop sell a check, with shopsanity on.
 #[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
 pub enum ShopSlots {

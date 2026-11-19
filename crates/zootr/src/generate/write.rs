@@ -84,7 +84,7 @@ pub(super) fn flows(
         cows::give(romfs, &mut rewrites, &cows::find(romfs)?, drops, level)?;
     }
     let pieces = pickups::dealt(romfs, new_game)?;
-    if new_game.fortress_keys {
+    if new_game.fortress_keys.moved() {
         fortress::give(romfs, &mut rewrites, &pieces, drops)?;
     }
     picked::delete_letter(romfs, &mut rewrites, &picked::holders(&pieces, drops))?;
@@ -142,10 +142,17 @@ pub fn write_mod(
         0 => Vec::new(),
         _ => vec![shops::captions(romfs, &shelves)?],
     };
-    let key_copies = (new_game.keys.copies(), boss_copies(new_game));
+    let key_copies = (
+        new_game.keys.copies(),
+        boss_copies(new_game),
+        new_game.fortress_keys.copies(),
+    );
     // First, so a copy on a shelf takes its caption from its own lines.
     copies.insert(0, foreign::captions(&new_game.foreign));
-    copies.insert(0, key_tints::captions(new_game.keys, key_copies.1));
+    copies.insert(
+        0,
+        key_tints::captions(new_game.keys, key_copies.1, key_copies.2),
+    );
     if new_game.mailbox {
         copies.push(notice::banners());
         copies.push(notice::senders(&new_game.players));
@@ -169,7 +176,7 @@ pub fn write_mod(
     }
     bools.extend(gifts::flags(&new_game.on));
     bools.extend(dampe::flags(drops));
-    if new_game.fortress_keys {
+    if new_game.fortress_keys.moved() {
         bools.extend(fortress::flags());
     }
     let gone = match new_game.scrubs {
@@ -179,7 +186,7 @@ pub fn write_mod(
         }
         false => Vec::new(),
     };
-    let made = key_tints::made(key_copies.0, key_copies.1);
+    let made = key_tints::made(key_copies.0, key_copies.1, key_copies.2);
     let rupees = ammo::copies(drops.values().map(|d| d.item.as_str()));
     let opened = tracker::chest_flags(&gd)?;
     // Every dealt check, a kept item's too: its map's alternative needs it.
@@ -246,7 +253,15 @@ pub fn write_mod(
     medallions::write(romfs, &mut builder, &mut tables, items)?;
     let flags = hook_flags(new_game);
     let bosses = boss_copies(new_game);
-    key_tints::write(romfs, &mut builder, &mut tables, bosses, new_game.keys)?;
+    let fortress = new_game.fortress_keys.copies();
+    key_tints::write(
+        romfs,
+        &mut builder,
+        &mut tables,
+        bosses,
+        new_game.keys,
+        fortress,
+    )?;
     foreign::write(romfs, &mut builder, &mut tables, &new_game.foreign)?;
     ammo::write(romfs, &mut builder, &mut tables, &rupees)?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
@@ -281,7 +296,7 @@ pub fn write_mod(
         .filter(|(h, _)| !cows.iter().any(|c| c.hash() == **h))
         .map(|(h, d)| (*h, d.clone()))
         .collect();
-    let carried = match new_game.fortress_keys {
+    let carried = match new_game.fortress_keys.moved() {
         true => &fortress::CARRYING[..],
         false => &[],
     };
@@ -367,7 +382,7 @@ pub fn write_mod(
     dig::write(romfs, &mut builder, drops, new_game)?;
     run.check()?;
     let files = builder.finish()?.len();
-    let credits = key_tints::credits(bosses, new_game.keys);
+    let credits = key_tints::credits(bosses, new_game.keys, fortress);
     let keyed: Vec<_> = (rupees.iter())
         .filter_map(|r| ammo::line(ammo::copied(r)?))
         .collect();
@@ -402,7 +417,11 @@ fn levels(
     drops: &HashMap<u64, Drop>,
     new_game: &NewGame,
 ) -> Result<chest_levels::Levels> {
-    let credits = key_tints::sets(boss_copies(new_game), new_game.keys);
+    let credits = key_tints::sets(
+        boss_copies(new_game),
+        new_game.keys,
+        new_game.fortress_keys.copies(),
+    );
     chest_levels::Levels::new(romfs, drops, new_game.progressive, credits)
 }
 

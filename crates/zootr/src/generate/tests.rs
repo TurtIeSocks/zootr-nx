@@ -466,7 +466,7 @@ fn thief_keys_are_checks_and_the_carried_ones_are_cleared_when_fortress_keys_sta
             .count()
     };
     let on = NewGame {
-        fortress_keys: true,
+        fortress_keys: crate::settings::FortressKeys::Start,
         defaults: keys::defaults(false, true),
         ..Default::default()
     };
@@ -514,6 +514,28 @@ fn thief_keys_are_checks_and_the_carried_ones_are_cleared_when_fortress_keys_sta
     assert!(thieves(&off).is_empty());
     assert!(!dir.join("off/romfs").join(&rel).is_file());
     assert_eq!(carrying(&dir.join("off")), 3);
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn fortress_keysanity_writes_its_copy_and_deals_one_for_every_thief() {
+    let Some(romfs) = crate::game::dev_dump() else {
+        return;
+    };
+    let dir = std::env::temp_dir().join(format!("zootr-fortress-singles-{}", std::process::id()));
+    let settings = Settings::from([(crate::settings::FORTRESS_KEYS.into(), "singles".into())]);
+    let new_game = NewGame::from_settings(&settings, &[]).unwrap();
+    let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
+    let copy = crate::key_tints::fortress();
+    let dealt = report.spots.iter().filter(|s| s.item == copy).count();
+    assert_eq!(dealt, 4);
+    let thieves = report.spots.iter().filter(|s| s.holder == pickups::THIEF);
+    assert_eq!(thieves.count(), 4);
+    let pack = ounce_formats::pack_file(&copy);
+    assert!(dir.join("romfs").join(pack).is_file());
+    // No key at the start: the copies fill the counter.
+    let counter = "DungeonInfo.GerudoFortress.SmallKeyNum";
+    assert!(!report.written.defaults.iter().any(|d| d.contains(counter)));
     std::fs::remove_dir_all(dir).unwrap();
 }
 

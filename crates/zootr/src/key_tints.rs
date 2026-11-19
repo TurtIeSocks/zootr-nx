@@ -134,6 +134,13 @@ pub fn boss(n: usize) -> String {
     BOSS_LOOK.name(n)
 }
 
+/// The Gerudo Fortress's key copy with Keysanity: a small key as a chest's
+/// content the game neither stores nor counts, showing the Fortress key
+/// model. The hook adds it to the Fortress counter.
+pub fn fortress() -> String {
+    ring(FORTRESS_MODEL)
+}
+
 /// The pack a ring or boss key copy is built as, the same as [`write`]
 /// writes it with `keys`, for a holder that stands in for it. `None` for any other
 /// item.
@@ -155,6 +162,9 @@ pub fn name_label(item: &str) -> Option<String> {
 
 /// The key `item` copies and the model it shows as `keys` deals it.
 fn copy_of(item: &str, keys: DungeonKeys) -> Option<(&'static Name, String)> {
+    if item == fortress() {
+        return Some((SMALL, SMALL_LOOK.name(FORTRESS_MODEL)));
+    }
     (1..=DUNGEONS.len()).find_map(|n| {
         if item == ring(n) {
             Some((SMALL, ring_model(n, keys)))
@@ -169,13 +179,13 @@ fn copy_of(item: &str, keys: DungeonKeys) -> Option<(&'static Name, String)> {
 /// The text each copy's get shows, copied from its template's and naming
 /// its dungeon: a copy answers to its own name, so the game looks its
 /// lines up under it.
-pub fn captions(keys: DungeonKeys, bosses: bool) -> Copies<'static> {
-    let new = made(keys.copies(), bosses)
+pub fn captions(keys: DungeonKeys, bosses: bool, fortress: bool) -> Copies<'static> {
+    let new = made(keys.copies(), bosses, fortress)
         .into_iter()
         .flat_map(|(copy, template, n)| {
             let lines = match template == BOSS {
                 true => &BOSS_TEXT,
-                false if keys == DungeonKeys::Singles => &SINGLE_TEXT,
+                false if keys == DungeonKeys::Singles || n == FORTRESS_MODEL => &SINGLE_TEXT,
                 false => &RING_TEXT,
             };
             TEXT_PARTS
@@ -206,16 +216,20 @@ pub fn captions(keys: DungeonKeys, bosses: bool) -> Copies<'static> {
 /// Dungeon `n`'s label in `LocationMsg/Location`. Ganon's Castle reads
 /// "Inside Ganondorf's Castle" under its own, so it takes the castle's.
 fn place(n: usize) -> &'static str {
+    if n == FORTRESS_MODEL {
+        return FORTRESS.0.get();
+    }
     match DUNGEONS[n - 1].0 {
         d if d == flag::INSIDE_GANON_CASTLE => flag::GANON_CASTLE.get(),
         d => d.get(),
     }
 }
 
-/// Each ring (with `rings`) and boss key copy (with `bosses`) the seed
-/// makes, with the game's key it copies and its dungeon's number in
-/// [`DUNGEONS`].
-pub fn made(rings: bool, bosses: bool) -> Vec<(String, &'static Name, usize)> {
+/// Each ring (with `rings`), boss key copy (with `bosses`) and the
+/// Fortress key copy (with `fortress`) the seed makes, with the game's key
+/// it copies and its dungeon's number in [`DUNGEONS`], the Fortress's after
+/// them.
+pub fn made(rings: bool, bosses: bool, fortress: bool) -> Vec<(String, &'static Name, usize)> {
     let mut made = Vec::new();
     for n in 1..=DUNGEONS.len() {
         if rings {
@@ -224,6 +238,9 @@ pub fn made(rings: bool, bosses: bool) -> Vec<(String, &'static Name, usize)> {
         if bosses && has_boss(n) {
             made.push((boss(n), BOSS, n));
         }
+    }
+    if fortress {
+        made.push((self::fortress(), SMALL, FORTRESS_MODEL));
     }
     made
 }
@@ -262,9 +279,9 @@ pub enum Sets {
 }
 
 /// What each copy sets as it's found: with `bosses` a boss key's flag, with
-/// key rings a ring's counter, full, and with Keysanity one more on a small
-/// key's counter.
-pub fn sets(bosses: bool, keys: DungeonKeys) -> Vec<(String, Sets)> {
+/// key rings a ring's counter, full, with Keysanity one more on a small
+/// key's counter, and with `fortress` one more on the Fortress's.
+pub fn sets(bosses: bool, keys: DungeonKeys, fortress: bool) -> Vec<(String, Sets)> {
     let mut out = Vec::new();
     for (i, (dungeon, small, room)) in DUNGEONS.iter().enumerate() {
         if bosses && room.is_some() {
@@ -277,18 +294,21 @@ pub fn sets(bosses: bool, keys: DungeonKeys) -> Vec<(String, Sets)> {
             DungeonKeys::Vanilla | DungeonKeys::Start => {}
         }
     }
+    if fortress {
+        out.push((self::fortress(), Sets::Add(small_flag(FORTRESS.0), 1)));
+    }
     out
 }
 
 /// [`sets`] as the hook's table names it.
-pub fn credits(bosses: bool, keys: DungeonKeys) -> Vec<(String, Credit)> {
+pub fn credits(bosses: bool, keys: DungeonKeys, fortress: bool) -> Vec<(String, Credit)> {
     let hash = |name: &str| murmur3(name.as_bytes());
     let credit = |s: Sets| match s {
         Sets::Bool(name) => Credit::Bool(hash(&name)),
         Sets::Int(name, value) => Credit::Int(hash(&name), value),
         Sets::Add(name, n) => Credit::Add(hash(&name), n),
     };
-    (sets(bosses, keys).into_iter())
+    (sets(bosses, keys, fortress).into_iter())
         .map(|(item, s)| (item, credit(s)))
         .collect()
 }
@@ -296,13 +316,14 @@ pub fn credits(bosses: bool, keys: DungeonKeys) -> Vec<(String, Credit)> {
 /// Writes each dungeon's model and actor copies, the boss key's only with
 /// `bosses`, and with `keys` dealing copies the ring: showing a ring with
 /// key rings, a single key with Keysanity. Points the Fortress keys at a
-/// model of their own.
+/// model of their own, and with `fortress` makes their copy.
 pub fn write(
     romfs: &Romfs,
     builder: &mut ModBuilder,
     tables: &mut Tables,
     bosses: bool,
     keys: DungeonKeys,
+    fortress: bool,
 ) -> Result<()> {
     let small = Host::read(romfs, &SMALL_LOOK)?;
     let boss = Host::read(romfs, &BOSS_LOOK)?;
@@ -334,21 +355,25 @@ pub fn write(
             copy(builder, tables, &boss_chest, &name, &name, true)?;
         }
     }
-    uncounted(tables, bosses, keys.copies())?;
     let name = small.paint(builder, FORTRESS_MODEL, FORTRESS_COLOUR)?;
     for k in 1..=FORTRESS.1 {
         let pack = ActorPack::load(romfs, &format!("{FORTRESS_KEY}{k:02}"))?;
         repoint(builder, &pack, &name)?;
         tables.show(&pack.name, SMALL_LOOK.host, &name)?;
     }
-    Ok(())
+    if fortress {
+        copy(builder, tables, &chest, &self::fortress(), &name, true)?;
+    }
+    uncounted(tables, bosses, keys.copies(), fortress)
 }
 
 /// Every credited copy's pouch row is a plain item. The template's deal
 /// would count a small key for the dungeon Link stands in (`SmallKey`), or
 /// keep a pickup from handing over a boss key (`NotPushToPouch`).
-fn uncounted(tables: &mut Tables, bosses: bool, rings: bool) -> Result<()> {
-    let copies: Vec<String> = made(rings, bosses).into_iter().map(|(c, ..)| c).collect();
+fn uncounted(tables: &mut Tables, bosses: bool, rings: bool, fortress: bool) -> Result<()> {
+    let copies: Vec<String> = (made(rings, bosses, fortress).into_iter())
+        .map(|(c, ..)| c)
+        .collect();
     let changed = tables.plain_deal(&copies)?;
     ensure!(
         changed == copies.len(),
@@ -491,8 +516,8 @@ mod tests {
         );
         let text = |s: &str| vec![Part::Text(s.into())];
         let (rings, singles) = (
-            captions(DungeonKeys::Rings, true),
-            captions(DungeonKeys::Singles, false),
+            captions(DungeonKeys::Rings, true, false),
+            captions(DungeonKeys::Singles, false, false),
         );
         let rels = crate::text::archives(&romfs).unwrap();
         assert_eq!(rels.len(), 16);
@@ -654,19 +679,25 @@ mod tests {
             return;
         }
         let bosses = DUNGEONS.iter().filter(|d| d.2.is_some()).count();
-        assert_eq!(credits(true, DungeonKeys::Start).len(), bosses);
-        assert_eq!(credits(false, DungeonKeys::Rings).len(), DUNGEONS.len());
-        assert!(credits(false, DungeonKeys::Vanilla).is_empty());
+        assert_eq!(credits(true, DungeonKeys::Start, false).len(), bosses);
+        assert_eq!(
+            credits(false, DungeonKeys::Rings, false).len(),
+            DUNGEONS.len()
+        );
+        assert!(credits(false, DungeonKeys::Vanilla, false).is_empty());
+        // The Fortress copy, one more on its counter, as `probe data` names it.
+        let fortress = credits(false, DungeonKeys::Vanilla, true);
+        assert_eq!(fortress, [(super::fortress(), Credit::Add(0x3a28_b6a4, 1))]);
         let forest = DUNGEONS
             .iter()
             .position(|d| d.0 == flag::FOREST_TEMPLE)
             .unwrap();
-        let credits = credits(true, DungeonKeys::Rings);
+        let credits = credits(true, DungeonKeys::Rings, false);
         let of = |name: String| credits.iter().find(|(n, _)| *n == name).map(|c| c.1);
         // The Forest Temple's, as `probe data` names them.
         assert_eq!(of(boss(forest + 1)), Some(Credit::Bool(0x4273_33a0)));
         assert_eq!(of(ring(forest + 1)), Some(Credit::Int(0x9023_7092, 5)));
-        let singles = super::credits(true, DungeonKeys::Singles);
+        let singles = super::credits(true, DungeonKeys::Singles, false);
         let one = singles
             .iter()
             .find(|(n, _)| *n == ring(forest + 1))
@@ -752,9 +783,9 @@ mod tests {
                 .join(format!("zootr-copy-pack-{}-{keys:?}", std::process::id()));
             let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
             let mut tables = Tables::load(&romfs).unwrap();
-            write(&romfs, &mut builder, &mut tables, true, keys).unwrap();
+            write(&romfs, &mut builder, &mut tables, true, keys, true).unwrap();
             builder.finish().unwrap();
-            for copy in [ring(2), boss(2)] {
+            for copy in [ring(2), boss(2), fortress()] {
                 let rel = pack_file(&copy);
                 let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
                 let bytes = romfs.dicts().decompress(&rel, &raw).unwrap();
@@ -782,7 +813,7 @@ mod tests {
             std::env::temp_dir().join(format!("zootr-key-tints-{}-{keys:?}", std::process::id()));
         let mut builder = ModBuilder::new(romfs, &dir).unwrap();
         let mut tables = Tables::load(romfs).unwrap();
-        write(romfs, &mut builder, &mut tables, true, keys).unwrap();
+        write(romfs, &mut builder, &mut tables, true, keys, false).unwrap();
         builder.finish().unwrap();
         let read = |rel: &str| {
             let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
@@ -831,7 +862,7 @@ mod tests {
                 }
             }
             copies.push((ring(n), SMALL, shown));
-            let credited = made(true, true);
+            let credited = made(true, true, false);
             for (copy, template, _) in &copies {
                 let own = credited.iter().any(|(c, ..)| c == copy);
                 let pouch = crate::standins::row(&tables.pouch, copy).unwrap();
