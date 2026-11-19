@@ -293,11 +293,13 @@ to = "gohma-room"
 added = true
 needs = "deku-shield and slingshot and (sticks or fire) and melee"
 
+# The bomb room's eye targets: the slingshot as a child, the bow as an
+# adult, or for an adult the Hover Boots or Longshot past them.
 [[exit]]
 from = "dodongos-cavern"
 to = "king-dodongo-room"
 added = true
-needs = "bombs and melee"
+needs = "bombs and melee and (slingshot or bow or hover-boots or longshot)"
 
 [[exit]]
 from = "jabu-jabu"
