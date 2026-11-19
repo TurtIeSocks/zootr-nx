@@ -8,7 +8,7 @@
 //! Forest Temple and Sheik stood on it until the Prelude of Light. Her song
 //! scene brings its own Sheik, as all her others do.
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, ensure};
 use ounce_formats::ainb::Patch;
 use ounce_formats::{Actor, EventKind, Flowchart, Params, Romfs, Value};
 
@@ -44,6 +44,19 @@ const SET_BOOL: &Name = flow::EVENT_TRIGGER_SET_GAME_DATA_BOOL;
 const PROGRESS: &Name = flow::EVENT_EXECUTE_PROGRESS_CHALLENGE_STEP;
 /// Hides the quest progress banner.
 const QUIET: &Name = field::IS_IGNORE_CHALLENGE_PROGRESS_UI;
+/// The opening leaves this quest's step to the first swap to adult: while
+/// it's under way the forest is silent, child Link included.
+const SAGE_OF_FOREST: &Name = flow::SAGE_OF_FOREST;
+/// The plain swap a sword pull runs once a game is past Rauru.
+const CHILD_TO_ADULT: &Name = flow::MARKET_CHILD_FIELD_CHILD_TO_ADULT;
+/// True once the forest sage's quest has reached Step01.
+const FOREST_STARTED: &Name = flag::SAGE_OF_FOREST_IS_AFTER_STEP01_EXP;
+const IS_EXP: (&Name, &Name) = (
+    field::GAME_DATA_ACTOR,
+    flow::EVENT_QUERY_IS_GAME_DATA_BOOL_EXP,
+);
+/// The swap's one Bool: Link is no longer a child.
+const SETS_ADULT: (&Name, &Name) = (field::GAME_DATA_ACTOR, SET_BOOL);
 /// Runs once Link has met Rauru and woken in the temple.
 const FIRST_ADULT: (&Name, &Name) = (flow::ALL_SAGE, field::MARKET_ADULT_ALL_SAGE_START);
 
@@ -109,6 +122,51 @@ fn first_adult(flow: &Flowchart) -> Result<Vec<(&Actor, &str, Params)>> {
     Ok(events)
 }
 
+/// Run `forest` (the forest sage's step) as the swap to adult makes Link an
+/// adult, while that quest hasn't reached it yet.
+fn start_forest(
+    flow: &mut Flowchart,
+    sages: &Flowchart,
+    forest: Vec<(&Actor, &str, Params)>,
+) -> Result<()> {
+    ensure!(
+        !forest.is_empty(),
+        "the first adult flow never starts the forest sage"
+    );
+    let adult = flows::only(flow, SETS_ADULT)?;
+    let callers = flow.links_to(adult);
+    let mut step = adult;
+    for (actor, action, params) in forest.into_iter().rev() {
+        let (actor, action) = flow.action(actor, action);
+        step = flow.push(EventKind::Action {
+            next: Some(step),
+            actor,
+            action,
+            params,
+        });
+    }
+    let asks = flows::switch(sages, IS_EXP).context("the first adult flow asks no BoolExp")?;
+    let asks = flows::model(sages, IS_EXP, asks)?;
+    let (actor, query) = flow.query(&asks.actor, asks.name);
+    let mut params = asks.params;
+    flows::set(
+        &mut params,
+        field::GAME_DATA_NAME,
+        flows::string(FOREST_STARTED.get()),
+    )?;
+    // Case 0 is true.
+    let ask = flow.push(EventKind::Switch {
+        actor,
+        query,
+        params,
+        cases: vec![(0, adult), (1, step)],
+    });
+    for link in callers {
+        flow.link(link, Some(ask))?;
+    }
+    Ok(())
+}
+
 /// Write the patched graphs, and replay the first adult flow at the end of
 /// the opening, so the game moves the quests itself. Returns the GameData
 /// edits a new game needs. It also needs [`MEDALLION`].
@@ -121,8 +179,15 @@ pub fn open(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<Vec<String>> {
     }
     let (name, _) = FIRST_ADULT;
     let sages = flows::load(romfs, name)?.with_context(|| format!("{name} is a timeline"))?;
+    let (forest, rest): (Vec<_>, Vec<_>) = first_adult(&sages)?.into_iter().partition(|e| {
+        e.1 == PROGRESS.get()
+            && flows::param(&e.2, field::CHALLENGE_NAME) == Some(SAGE_OF_FOREST.get())
+    });
     flows::edit(romfs, rewrites, starting::OPENING, |flow| {
-        starting::before_save(flow, first_adult(&sages)?)
+        starting::before_save(flow, rest)
+    })?;
+    flows::edit(romfs, rewrites, CHILD_TO_ADULT, |flow| {
+        start_forest(flow, &sages, forest)
     })?;
     Ok(vec![format!("{OPENED}=true")])
 }
@@ -188,12 +253,50 @@ mod tests {
         for quest in [
             (flow::ALL_SAGE, "Step01"),
             (flag::SAGE_OF_LIGHT, "Complete"),
-            (flow::SAGE_OF_FOREST, "Step01"),
         ] {
             assert!(
                 steps.contains(&(quest.0, quest.1, true)),
                 "{quest:?} not in {steps:?}"
             );
         }
+        assert!(
+            !steps.iter().any(|s| s.0 == SAGE_OF_FOREST),
+            "{steps:?} moves the forest sage on"
+        );
+    }
+
+    #[test]
+    fn the_swap_to_adult_starts_the_forest_sage_once() {
+        let Some(romfs) = dev_dump() else { return };
+        let mut rewrites = Rewrites::new();
+        open(&romfs, &mut rewrites).unwrap();
+        let flow = ounce_formats::Flowchart::parse(&rewrites[&flows::rel(CHILD_TO_ADULT)])
+            .unwrap()
+            .unwrap();
+        let adult = flows::only(&flow, SETS_ADULT).unwrap();
+        let ask = flows::switch(&flow, IS_EXP).unwrap();
+        assert!(
+            flows::reachable(&flow, CHILD_TO_ADULT)
+                .unwrap()
+                .contains(&ask)
+        );
+        let EventKind::Switch { params, cases, .. } = &flow.events[ask as usize].kind else {
+            unreachable!("a switch runs the query")
+        };
+        assert_eq!(
+            flows::param(params, field::GAME_DATA_NAME),
+            Some(FOREST_STARTED.get())
+        );
+        let (started, step) = (cases[0], cases[1]);
+        assert_eq!(started, (0, adult));
+        let EventKind::Action { next, params, .. } = &flow.events[step.1 as usize].kind else {
+            panic!("the step isn't an action")
+        };
+        assert_eq!(*next, Some(adult));
+        assert_eq!(
+            flows::param(params, field::CHALLENGE_NAME),
+            Some(SAGE_OF_FOREST.get())
+        );
+        assert_eq!(flows::param(params, field::STEP_NAME), Some("Step01"));
     }
 }

@@ -170,6 +170,7 @@ pub const ROLL_ATTACK: &Name = &n!(0x6806b40f1113d15a);
 pub const ROYAL_FAMILY_TOMB_MELODY_GET_CLEAR: &Name = &n!(0x9b0255735d25796b);
 pub const SAGE_OF_FIRE_NAVI_CRATER_TALK: &Name = &n!(0xd687953b062f5438);
 pub const SAGE_OF_FIRE_STEP02_DARUNIA_JR_FIRST_TALKED: &Name = &n!(0x1a40a7cacd50248a);
+pub const SAGE_OF_FOREST_IS_AFTER_STEP01_EXP: &Name = &n!(0x8a8c45489e94dad8);
 pub const SAGE_OF_FOREST_IS_COMPLETED_EXP: &Name = &n!(0x46ed2af273a6bacb);
 pub const SAGE_OF_LIGHT: &Name = &n!(0x562ba60fdb854434);
 pub const SAGE_OF_SPIRIT_IS_AFTER_STEP01_EXP: &Name = &n!(0x251d4c944a8a76d0);
