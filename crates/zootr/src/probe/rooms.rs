@@ -11,10 +11,10 @@ use crate::nav::{kinds, navmesh_file};
 use crate::warp::{self, Placement};
 
 /// What marks a locked door, and how far from its door it sits.
-const LOCK: &str = "DoorChainLock";
-const LOCK_REACH: f32 = 1.5;
+pub(super) const LOCK: &str = "DoorChainLock";
+pub(super) const LOCK_REACH: f32 = 1.5;
 
-fn flat(a: [f32; 3], b: [f32; 3]) -> f32 {
+pub(super) fn flat(a: [f32; 3], b: [f32; 3]) -> f32 {
     (a[0] - b[0]).hypot(a[2] - b[2])
 }
 

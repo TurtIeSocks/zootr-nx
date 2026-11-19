@@ -1,5 +1,6 @@
-//! A map's floor plan as JSON: its navmesh's faces by room, every placement
-//! on them, and each locked door's two rooms. The ledger draws it.
+//! A map's floor plan as JSON: its navmesh's faces by room and storey,
+//! every placement on them, and each lock with the rooms on either side.
+//! The ledger draws it.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -8,11 +9,11 @@ use anyhow::{Context, Result};
 use ounce_formats::{NavMesh, Romfs};
 use serde::Serialize;
 
-use super::rooms::{locked_doors, split};
+use super::rooms::{LOCK, LOCK_REACH, flat, locked_doors, split};
 use crate::key_rooms::{self, RoomKeys};
 use crate::nav::graph::{Graph, STEP_UP};
 use crate::nav::navmesh_file;
-use crate::warp::{self, Side};
+use crate::warp;
 
 #[derive(Serialize)]
 struct Plan {
@@ -21,7 +22,7 @@ struct Plan {
     floors: Vec<Floor>,
     faces: Vec<Face>,
     placed: Vec<Spot>,
-    doors: Vec<Door>,
+    locks: Vec<Lock>,
     /// `None` outside a dungeon with small keys.
     keys: Option<RoomKeys>,
 }
@@ -54,16 +55,21 @@ struct Spot {
     at: [f32; 3],
     /// Its navmesh room (`Face::room`).
     room: Option<usize>,
-    /// The dungeon room it names, which key logic counts by.
+    /// The dungeon room it names, which key logic counts by. A check
+    /// naming none needs all its dungeon's keys.
     dungeon_room: Option<u32>,
+    /// Its storey: its face's, or the one nearest its height off the mesh.
+    floor: usize,
 }
 
-/// A locked door and the rooms before and behind it.
+/// A lock: one per door side, the pair joined into one, and the dungeon
+/// rooms each side names.
 #[derive(Serialize)]
-struct Door {
-    hash: String,
+struct Lock {
+    name: String,
     at: [f32; 3],
-    rooms: [Option<usize>; 2],
+    floor: usize,
+    rooms: Vec<u32>,
 }
 
 pub(super) fn map(romfs: &Romfs, game: &Path, map: &str) -> Result<()> {
@@ -97,23 +103,37 @@ fn plan(romfs: &Romfs, game: &Path, map: &str) -> Result<Plan> {
         let by_room = r.and_then(|r| floors.iter().position(|f| f.rooms.contains(&r)));
         by_room.unwrap_or_else(|| closest(&floors, y))
     };
+    let storey: Vec<usize> = (0..mesh.faces.len())
+        .map(|f| floor_of(rooms[f], graph.centers[f][1]))
+        .collect();
+    let face_at = |at: [f32; 3]| graph.locate(at).map(|s| s.face);
+    let on_floor =
+        |at: [f32; 3]| face_at(at).map_or_else(|| closest(&floors, at[1]), |f| storey[f]);
     let faces = (0..mesh.faces.len())
         .map(|f| Face {
             ring: mesh.ring(f).iter().map(|e| e.a).collect(),
             room: roots[f],
             dungeon_room: rooms[f],
-            floor: floor_of(rooms[f], graph.centers[f][1]),
+            floor: storey[f],
         })
         .collect();
-    let doors = placed
-        .iter()
-        .filter_map(|p| Some((p, p.hash.filter(|h| locked.contains(h))?)))
-        .map(|(p, h)| Door {
-            hash: h.to_string(),
-            at: p.pose.at,
-            rooms: [Side::Front, Side::Back].map(|s| room(warp::landing_at(&p.pose, s, 1.0))),
-        })
-        .collect();
+    let mut locks: Vec<Lock> = Vec::new();
+    for p in placed.iter().filter(|p| p.name.contains(LOCK)) {
+        let side = p.hash.and_then(|h| named.get(&h).copied());
+        match locks
+            .iter_mut()
+            .find(|l| flat(l.at, p.pose.at) < LOCK_REACH)
+        {
+            Some(l) => l.rooms.extend(side.filter(|r| !l.rooms.contains(r))),
+            None => locks.push(Lock {
+                name: p.name.clone(),
+                at: p.pose.at,
+                floor: on_floor(p.pose.at),
+                rooms: side.into_iter().collect(),
+            }),
+        }
+    }
+    locks.iter_mut().for_each(|l| l.rooms.sort_unstable());
     let spots = placed
         .iter()
         .map(|p| Spot {
@@ -123,6 +143,7 @@ fn plan(romfs: &Romfs, game: &Path, map: &str) -> Result<Plan> {
             at: p.pose.at,
             room: room(p.pose.at),
             dungeon_room: p.hash.and_then(|h| named.get(&h).copied()),
+            floor: on_floor(p.pose.at),
         })
         .collect();
     let area = warp::area_of(romfs, map)?;
@@ -134,7 +155,7 @@ fn plan(romfs: &Romfs, game: &Path, map: &str) -> Result<Plan> {
         floors,
         faces,
         placed: spots,
-        doors,
+        locks,
         keys,
     })
 }
@@ -240,7 +261,16 @@ mod tests {
             return;
         };
         let plan = plan(&romfs, Path::new("../../dump/oot.nup"), FOREST_TEMPLE).unwrap();
-        assert_eq!(plan.doors.len(), 8);
+        let locks: Vec<&[u32]> = plan.locks.iter().map(|l| l.rooms.as_slice()).collect();
+        assert_eq!(
+            locks.len(),
+            6,
+            "5 small key locks and the boss's: {locks:?}"
+        );
+        assert!(
+            locks.contains(&&[0, 1][..]) && locks.contains(&&[9, 10][..]),
+            "{locks:?}"
+        );
         assert!(plan.floors.windows(2).all(|w| w[0].height < w[1].height));
         assert!(plan.faces.iter().all(|f| f.floor < plan.floors.len()));
         let chests: Vec<&Spot> = plan
