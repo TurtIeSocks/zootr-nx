@@ -300,6 +300,8 @@ mod tests {
         assert_eq!(own, placed[0].actor);
         assert!(next.is_some());
         assert_eq!(joins, next, "both run the key's Bools");
+        let undeclared = flows::undeclared(&flow);
+        assert!(undeclared.is_empty(), "{undeclared:?}");
     }
 
     fn key_actor(n: usize) -> String {
