@@ -155,24 +155,24 @@ impl<M: Memory> Dev<M> {
     pub fn slay(&self, romfs: &Romfs, target: &Target, within: f32) -> Result<Lines<Slain>> {
         let link = self.link()?;
         let all = actors::actors(&self.game, self.main)?;
-        let near = |a: &&Actor| distance(link, a.pos) <= within;
-        let picked: Vec<&Actor> = match target {
-            Target::Name(name) => all
-                .iter()
-                .filter(|a| &a.name == name)
-                .filter(near)
-                .collect(),
+        let (name, spot) = match target {
+            Target::Name(name) => (name.clone(), None),
             Target::Placement(hash) => {
                 let map = self.state()?.map;
                 let placed = (warp::placements_in(romfs, &map)?.into_iter())
                     .find(|p| p.hash == Some(*hash))
                     .with_context(|| format!("{map} has no placement {hash}"))?;
-                let off = |a: &&Actor| distance(a.pos, placed.pose.at);
-                (all.iter().filter(|a| a.name == placed.name).filter(near))
-                    .min_by(|a, b| off(a).total_cmp(&off(b)))
-                    .into_iter()
-                    .collect()
+                (placed.name, Some(placed.pose.at))
             }
+        };
+        // NPCs have a Life too, and a write leaves them at 0 until it's put back.
+        ensure!(name.starts_with(ENEMY), "{name} isn't an enemy");
+        let near = (all.iter()).filter(|a| a.name == name && distance(link, a.pos) <= within);
+        let picked: Vec<&Actor> = match spot {
+            None => near.collect(),
+            Some(at) => (near.min_by(|a, b| distance(a.pos, at).total_cmp(&distance(b.pos, at))))
+                .into_iter()
+                .collect(),
         };
         let mut lives = Vec::new();
         for a in picked {
