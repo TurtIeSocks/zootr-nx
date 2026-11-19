@@ -12,10 +12,10 @@ use ounce_formats::Romfs;
 use super::judge::{Answer, Judge, Look, TURNS};
 use super::melody;
 use super::plan::{Halt, Planned, Trigger, preset};
-use super::verdict::{Swept, Verdict};
+use super::verdict::{Kill, Swept, Verdict};
 use super::watch::{MESSAGE, Watch, got_other, named, swapped, wielded};
 use super::wield::{self, Wield};
-use crate::dev::{Dev, EVENT_PLAYING, NOT_TAKEN, Place, Request};
+use crate::dev::{Dev, EVENT_PLAYING, Fate, NOT_TAKEN, Place, Request, Target};
 use crate::gamedata::GameData;
 use crate::gear;
 use crate::gerudo;
@@ -57,6 +57,10 @@ const OCARINA: Duration = Duration::from_millis(3000);
 const STEP_IN: Duration = Duration::from_secs(5);
 /// How many beats of A `finish` presses between songs.
 const ENCORE: usize = 5;
+/// How far from the holder a spot's foes are looked for, and how long
+/// their latch gets to set once they're beaten.
+const FOES_WITHIN: f32 = 60.0;
+const LATCH: Duration = Duration::from_secs(10);
 /// How long a rolling giver may take to pass his stopping spot: a lap of
 /// the rolling Goron's track is about 19 s (Mac, 2026-11-15).
 const LAP: Duration = Duration::from_secs(45);
@@ -204,6 +208,18 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             self.play(event)?;
             self.calm()?;
         }
+        if let Trigger::Open {
+            map,
+            at,
+            foes,
+            latch,
+            ..
+        } = &p.trigger
+            && !foes.is_empty()
+            && let Some(verdict) = self.beat(p, map, *at, foes, latch, swept)?
+        {
+            return Ok(verdict);
+        }
         if pays(p) {
             live::set(
                 self.dev.game(),
@@ -295,10 +311,15 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
     /// as it spawns: the Shadow Temple scrub set after the load still shot
     /// Link, and one set all through the load sold (Mac, 2026-11-13).
     fn ready(&self, p: &Planned) -> Result<Vec<String>> {
+        self.hold(&presets(p))
+    }
+
+    /// Sets each entry, and names those that weren't set.
+    fn hold(&self, entries: &[String]) -> Result<Vec<String>> {
         let (game, global) = (self.dev.game(), self.dev.global());
         let mut cleared = vec![];
-        for entry in presets(p) {
-            let (name, value) = preset(&entry);
+        for entry in entries {
+            let (name, value) = preset(entry);
             let hash = live::hash(name)?;
             if live::read(game, self.gd, global, hash)? != value {
                 cleared.push(entry.clone());
@@ -353,11 +374,72 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         if !reload && here.map == *map && p.child.is_none_or(|c| c == here.child) {
             return Ok(());
         }
+        self.reload(p, map, &[])
+    }
+
+    /// Load `map` from its arrival point, holding the spot's [`presets`]
+    /// and `more` through the load.
+    fn reload(&mut self, p: &Planned, map: &str, more: &[String]) -> Result<()> {
         let place =
             arrival(self.places, map).with_context(|| format!("no arrival point in {map}"))?;
         self.go(place, p.child)?;
+        let held = [presets(p), more.to_vec()].concat();
         let dev = self.dev;
-        dev.land_holding(map, || self.ready(p).map(drop))
+        dev.land_holding(map, || self.hold(&held).map(drop))
+    }
+
+    /// Beat the spot's `foes` for real from `at` beside its holder, so
+    /// their own deaths run, then wait for `latch`. When a kill doesn't
+    /// take, `latch` is written and the map loaded again, as before real
+    /// kills.
+    fn beat(
+        &mut self,
+        p: &Planned,
+        map: &str,
+        at: [f32; 3],
+        foes: &[u64],
+        latch: &[String],
+        swept: &mut Swept,
+    ) -> Result<Option<Verdict>> {
+        self.calmly(|dev| dev.warp(at))?;
+        let mut died = true;
+        for &foe in foes {
+            match self
+                .dev
+                .slay(self.romfs, &Target::Placement(foe), FOES_WITHIN)
+            {
+                Ok(slain) => died &= slain.0.iter().all(|s| s.fate == Fate::Died),
+                Err(e) if gone(&e) => return Err(e),
+                Err(_) => died = false,
+            }
+        }
+        self.calm()?;
+        if !died {
+            swept.kill = Some(Kill::LatchedNotKilled);
+            self.reload(p, map, latch)?;
+            return Ok(None);
+        }
+        let start = Instant::now();
+        while start.elapsed() < LATCH {
+            if self.latched(latch)? {
+                swept.kill = Some(Kill::Killed);
+                return Ok(None);
+            }
+            sleep(BEAT);
+        }
+        Ok(Some(Verdict::DiedNoLatch(latch.join(", "))))
+    }
+
+    /// Whether every entry already holds its value.
+    fn latched(&self, entries: &[String]) -> Result<bool> {
+        let (game, global) = (self.dev.game(), self.dev.global());
+        for entry in entries {
+            let (name, value) = preset(entry);
+            if live::read(game, self.gd, global, live::hash(name)?)? != value {
+                return Ok(false);
+            }
+        }
+        Ok(true)
     }
 
     /// Where a shot of the try `name` tagged `tag` goes: `NAME-TAG.png`
@@ -883,6 +965,8 @@ mod tests {
             near: vec![],
             wield: None,
             sides: vec![],
+            foes: vec![],
+            latch: vec![],
         };
         assert!(!pays(&with(open)));
     }

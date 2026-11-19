@@ -2,13 +2,15 @@
 //! nothing grabs Link or knocks him back while the harness walks to a
 //! holder and uses it. Each enemy stays placed, since logic graphs and
 //! groups name it by hash, but it shows only once a Bool nothing sets is
-//! set. Checks, and the enemies that hold, sell or give one, stay. Spec:
-//! quiet enemies (2026-11-18).
+//! set. An enemy a check needs stays: one that holds, sells or gives a
+//! check, and one whose death a chest's gate reads, so the sweep beats it
+//! for real. Specs: quiet enemies (2026-11-18), real enemy kills
+//! (2026-11-19).
 
 use std::collections::HashSet;
 
 use anyhow::Result;
-use ounce_formats::Byml;
+use ounce_formats::{Byml, Romfs};
 
 use crate::checks::{GYAML, actors_mut, gate, hash_of, str_field};
 use crate::known::{Name, actor};
@@ -17,20 +19,22 @@ use crate::known::{Name, actor};
 pub const FLAG: &str = "ZootrQuietEnemies";
 
 /// How every enemy's actor name starts.
-const ENEMY: &str = "Enemy_";
+pub(crate) const ENEMY: &str = "Enemy_";
 
-/// Enemies that hold, sell or give a check. Each keeps its variants too,
-/// like a scrub's leaf.
+/// Enemy kinds kept whole, each with its variants (a scrub's leaf). Their
+/// checks carry no placement of theirs: a gift's, a Business Scrub's leaf,
+/// or the Gerudo thieves', whose keys the carpenters' flow moves to each
+/// thief once beaten (`fortress`).
 const KEPT: [&Name; 6] = [
+    actor::ENEMY_MIDDLE_BOSS_GERUDO_THIEF,
     actor::ENEMY_POE_BIG,
     actor::ENEMY_SCRUB_BUSINESS,
     actor::ENEMY_SCRUB_DEKU,
     actor::ENEMY_SCRUB_FOREST_STAGE,
     actor::ENEMY_SKULL_KID,
-    actor::ENEMY_SKULLTULA_GOLD,
 ];
 
-/// Whether the actor named `gyaml` is an enemy kept out.
+/// Whether the actor named `gyaml` is an enemy of no kind kept whole.
 fn quiet(gyaml: &str) -> bool {
     let kept = |k: &&Name| {
         (gyaml.strip_prefix(&***k)).is_some_and(|rest| rest.is_empty() || rest.starts_with('_'))
@@ -38,15 +42,26 @@ fn quiet(gyaml: &str) -> bool {
     gyaml.starts_with(ENEMY) && !KEPT.iter().any(kept)
 }
 
-/// Keep out each enemy in `root` that isn't one of the `checks`. Returns
-/// the hashes changed.
-pub fn hide(root: &mut Byml, checks: &HashSet<u64>) -> Result<Vec<u64>> {
+/// The enemy placements a seed keeps by hash: the `dealt` checks, every
+/// check any setting deals (a Gold Skulltula, a thief's key, a flying
+/// pot), and every enemy a chest's gate reads.
+pub fn kept(romfs: &Romfs, dealt: &HashSet<u64>) -> Result<HashSet<u64>> {
+    let mut out = dealt.clone();
+    let every = crate::settings::NewGame::from_settings(&crate::ledger::every_shuffle(), &[])?;
+    out.extend(crate::checks::dealt(romfs, &every)?.iter().map(|c| c.hash));
+    out.extend(crate::gates::enemies(romfs)?);
+    Ok(out)
+}
+
+/// Keep out each enemy in `root` that isn't one of the `kept` placements.
+/// Returns the hashes changed.
+pub fn hide(root: &mut Byml, kept: &HashSet<u64>) -> Result<Vec<u64>> {
     let mut changed = Vec::new();
     for a in actors_mut(root)? {
         let Some(hash) = hash_of(a) else {
             continue;
         };
-        if checks.contains(&hash) || !str_field(a, GYAML).is_some_and(quiet) {
+        if kept.contains(&hash) || !str_field(a, GYAML).is_some_and(quiet) {
             continue;
         }
         // Whatever it showed on before, it never shows now.
@@ -74,11 +89,12 @@ mod tests {
     #[test]
     fn plain_enemies_wait_on_the_flag_and_the_rest_stay() {
         needs_names!();
+        let thief = format!("{}_03", &**actor::ENEMY_MIDDLE_BOSS_GERUDO_THIEF);
         let mut root = room(&[
             "Enemy_FakeOcto",
-            &**actor::ENEMY_SKULLTULA_GOLD,
+            &thief,
             &**actor::ENEMY_SCRUB_BUSINESS_LEAF,
-            // A check, though an enemy.
+            // A check, or one a gate reads, though an enemy.
             &**actor::ENEMY_FLYING_POT_SPIRIT_TEMPLE,
             &**actor::ENEMY_SKULLTULA,
             "Obj_FakeCrate",
@@ -140,11 +156,67 @@ mod tests {
             of(&root, actor::ENEMY_SKULLTULA_GOLD),
         );
         assert_eq!((like_likes.len(), tokens.len()), (1, 5));
-        let hidden: HashSet<u64> = hide(&mut root, &HashSet::new())
-            .unwrap()
-            .into_iter()
-            .collect();
+        let kept = kept(&romfs, &HashSet::new()).unwrap();
+        let hidden: HashSet<u64> = hide(&mut root, &kept).unwrap().into_iter().collect();
         assert!(like_likes.is_subset(&hidden));
         assert!(tokens.is_disjoint(&hidden));
+        // The two Gibdos whose deaths raise a chest.
+        let gibdos = of(&root, actor::ENEMY_GIBDO);
+        assert!(gibdos.intersection(&kept).count() >= 2);
+        assert!(gibdos.intersection(&kept).all(|h| !hidden.contains(h)));
+    }
+
+    #[test]
+    fn the_fortress_keeps_its_four_thieves() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let kept = kept(&romfs, &HashSet::new()).unwrap();
+        let mut thieves = 0;
+        for (rel, doc) in
+            crate::checks::load_bancs(&romfs, crate::checks::banc_files(&romfs).unwrap())
+        {
+            if !rel.contains(&**map::GERUDO_FORTRESS_ADULT) {
+                continue;
+            }
+            let mut root = doc.unwrap().root;
+            let hidden: HashSet<u64> = hide(&mut root, &kept).unwrap().into_iter().collect();
+            for a in actors(&root).unwrap() {
+                let thief = str_field(a, GYAML)
+                    .is_some_and(|g| g.starts_with(&**actor::ENEMY_MIDDLE_BOSS_GERUDO_THIEF));
+                if thief {
+                    thieves += 1;
+                    assert!(!hidden.contains(&hash_of(a).unwrap()));
+                }
+            }
+        }
+        assert_eq!(thieves, 4);
+    }
+
+    #[test]
+    fn jabus_stinger_room_keeps_the_stingers_its_chest_waits_on() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        // The room 9 Stingers, whose deaths raise its chest.
+        const STINGERS: [u64; 4] = [
+            14165743011612163902,
+            5129059413688710441,
+            4039994172559959745,
+            16597078800886776025,
+        ];
+        const CHEST: u64 = 5527401621172639818;
+        let gate = crate::gates::trace(&romfs).unwrap();
+        let gate = gate.iter().find(|g| g.hash == CHEST).unwrap();
+        let read: Vec<_> = gate
+            .expr
+            .atoms()
+            .into_iter()
+            .map(|a| format!("{a:?}"))
+            .collect();
+        let kept = kept(&romfs, &HashSet::new()).unwrap();
+        for s in STINGERS {
+            assert!(kept.contains(&s), "{s} not kept; the gate reads {read:?}");
+        }
     }
 }

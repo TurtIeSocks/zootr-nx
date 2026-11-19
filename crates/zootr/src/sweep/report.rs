@@ -57,6 +57,9 @@ pub struct Sweep {
     pub kinds: BTreeMap<String, BTreeMap<String, usize>>,
     /// Rows that didn't pass, by how they ended.
     pub endings: BTreeMap<String, usize>,
+    /// Rows whose holder waits on enemies, by how they were beaten:
+    /// `latched_not_killed` is the coverage real kills still miss.
+    pub kills: BTreeMap<String, usize>,
     /// Passes out of the rows whose skills are all proven, once the drills
     /// say which are.
     pub proven: Option<Tally>,
@@ -241,6 +244,9 @@ pub fn sweep(
         if said != "pass" {
             *board.endings.entry(ending(&row)).or_default() += 1;
         }
+        if let Some(kill) = row["swept"]["kill"].as_str() {
+            *board.kills.entry(kill.to_owned()).or_default() += 1;
+        }
     }
     board
 }
@@ -318,6 +324,11 @@ impl fmt::Display for Sweep {
         sorted.sort_by(|a, b| b.1.cmp(a.1).then(a.0.cmp(b.0)));
         endings.extend(sorted.into_iter().map(|(e, n)| cells([e, n])));
         write!(f, "{}\n{}", table(&kinds), table(&endings))?;
+        if !self.kills.is_empty() {
+            let mut kills = vec![head(["foes", "rows"])];
+            kills.extend(self.kills.iter().map(|(k, n)| cells([k, n])));
+            write!(f, "\n{}", table(&kills))?;
+        }
         if let Some(tally) = self.proven {
             write!(f, "\npasses where every skill is proven: {tally}\n")?;
         }
@@ -340,6 +351,27 @@ mod tests {
             "verdict": {"verdict": verdict}, "shots": ["a.png", "b.png"], "used": used,
         });
         serde_json::json!({"round": round, "spot": {"holder": holder}, "swept": swept}).to_string()
+    }
+
+    #[test]
+    fn a_sweep_board_counts_how_foes_were_beaten() {
+        let with = |kill: &str| {
+            let mut r: Value =
+                serde_json::from_str(&row(1, "Obj_FakeChest", "pass", None)).unwrap();
+            r["swept"]["kill"] = kill.into();
+            r.to_string()
+        };
+        let rows = [with("killed"), with("latched_not_killed"), with("killed")];
+        let text = [&rows[..], &[row(1, "Obj_FakeChest", "pass", None)]]
+            .concat()
+            .join("\n");
+        let board = sweep(&text, None, None, None);
+        let want = [
+            ("killed".to_owned(), 2),
+            ("latched_not_killed".to_owned(), 1),
+        ];
+        assert_eq!(board.kills, BTreeMap::from(want));
+        assert!(board.to_string().contains("latched_not_killed  1"));
     }
 
     fn drill_row(round: u64, drill: &str, skill: &str, verdict: &str) -> String {

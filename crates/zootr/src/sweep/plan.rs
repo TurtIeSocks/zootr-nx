@@ -84,6 +84,12 @@ pub enum Trigger {
         /// Every side to use a broken holder from, best first, for when the
         /// planned one has no floor: the crater box's left lies over lava.
         sides: Vec<Side>,
+        /// The enemy placements beaten for real once landed, when beating
+        /// them is all the holder's gate waits on.
+        foes: Vec<u64>,
+        /// The values that raise the holder, held back from `ready` while
+        /// there are `foes`: written only when a kill doesn't take.
+        latch: Ready,
     },
     /// Warp near, use the holder, the judge steers the talk.
     Talk {
@@ -200,6 +206,9 @@ struct Planner<'a> {
     /// The actors each gated chest's graph reads, by placement hash: a
     /// switch a pillar may pin down.
     drivers: HashMap<u64, Vec<Name>>,
+    /// The enemy placements each gated chest waits on, when beating them
+    /// is all it waits on, by placement hash.
+    foes: HashMap<u64, Vec<u64>>,
     cows: Option<Vec<Cow>>,
     /// The sensor areas that start each request actor's event.
     sensors: Option<HashMap<u64, Vec<u64>>>,
@@ -237,6 +246,7 @@ impl<'a> Planner<'a> {
             pillars: HashMap::new(),
             breaking: HashMap::new(),
             drivers: HashMap::new(),
+            foes: HashMap::new(),
         }
     }
 }
@@ -296,6 +306,10 @@ impl Planner<'_> {
             self.drivers = (gated.iter())
                 .map(|g| (g.hash, drivers(&g.expr)))
                 .filter(|(_, d)| !d.is_empty())
+                .collect();
+            self.foes = (gated.iter())
+                .map(|g| (g.hash, g.expr.foes()))
+                .filter(|(_, f)| !f.is_empty())
                 .collect();
             let gd = self.gamedata()?;
             let raise = |g: gates::Gate| {
@@ -363,6 +377,11 @@ impl Planner<'_> {
     fn placed(&mut self, spot: &Spot) -> Result<(Trigger, Option<bool>, Side)> {
         let (raise, steps, age) = self.appear(spot.hash)?;
         let raise = [self.leaving(&raise)?, raise].concat();
+        let foes = self.foes.get(&spot.hash).cloned().unwrap_or_default();
+        let (raise, latch) = match foes.is_empty() {
+            true => (raise, vec![]),
+            false => (vec![], raise),
+        };
         self.maps(&spot.area)?;
         let maps = &self.areas[&spot.area];
         let first = age.unwrap_or(true);
@@ -418,6 +437,8 @@ impl Planner<'_> {
                         near,
                         wield,
                         sides,
+                        foes,
+                        latch,
                     },
                     true => Trigger::Talk {
                         ready: self.sellers(&map, spot.hash)?,
@@ -570,12 +591,18 @@ mod tests {
         let Some((_, _, planned)) = seed() else {
             return;
         };
-        // Dodongo's Cavern's Red Rupee chest, risen once the Lizalfos fall.
+        // Dodongo's Cavern's Red Rupee chest, risen once the Lizalfos fall:
+        // they're beaten for real, and the flag is held back for a kill
+        // that doesn't take.
         let dodongo = planned.iter().find(|p| p.spot.hash == 7764016096998075927);
-        let Some(Trigger::Open { ready, .. }) = dodongo.map(|p| &p.trigger) else {
+        let Some(Trigger::Open {
+            ready, foes, latch, ..
+        }) = dodongo.map(|p| &p.trigger)
+        else {
             panic!("{dodongo:?}");
         };
-        assert_eq!(ready, &[flag::GIMMICK_DEFEAT_ENEMY_OPEN_DODONGO_CAVE_01]);
+        assert_eq!(latch, &[flag::GIMMICK_DEFEAT_ENEMY_OPEN_DODONGO_CAVE_01]);
+        assert!(ready.is_empty() && !foes.is_empty(), "{foes:?}");
         let plain = planned.iter().filter_map(|p| match &p.trigger {
             Trigger::Open { ready, .. } => Some(ready.is_empty()),
             _ => None,

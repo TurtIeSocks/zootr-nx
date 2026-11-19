@@ -57,6 +57,8 @@ pub enum Atom {
     Actor {
         name: String,
         output: String,
+        /// The placement, when the graph names one.
+        hash: Option<u64>,
     },
     Child,
     Adult,
@@ -79,6 +81,20 @@ pub enum Atom {
     Exp(String),
     /// Something the walk doesn't read, described in one word.
     Todo(String),
+}
+
+impl Atom {
+    /// The enemy placement this reads, like a Gibdo's `Dead`.
+    pub fn foe(&self) -> Option<u64> {
+        match self {
+            Atom::Actor {
+                name,
+                hash: Some(h),
+                ..
+            } if name.starts_with(crate::enemies::ENEMY) => Some(*h),
+            _ => None,
+        }
+    }
 }
 
 /// A gate as the graphs wire it.
@@ -104,6 +120,19 @@ impl Expr {
                 v.iter().flat_map(Expr::atoms).collect()
             }
         }
+    }
+
+    /// The enemy placements this waits on, when beating them is all it
+    /// waits on: a kill alone sets its latch.
+    pub fn foes(&self) -> Vec<u64> {
+        let atoms = self.atoms();
+        let mut foes: Vec<u64> = atoms.iter().filter_map(|a| a.foe()).collect();
+        if foes.len() != atoms.len() {
+            return Vec::new();
+        }
+        foes.sort_unstable();
+        foes.dedup();
+        foes
     }
 
     /// The GameData values that open the gate when set by hand, as a
@@ -201,6 +230,16 @@ pub fn trace(romfs: &Romfs) -> Result<Vec<Gate>> {
             Some(&[CREATE, "Unlock"]),
         )
     })
+}
+
+/// Every enemy placement a chest's gate reads, like the Gibdos whose deaths
+/// raise a Shadow Temple chest. Boss heart containers' bosses aren't here.
+pub fn enemies(romfs: &Romfs) -> Result<HashSet<u64>> {
+    let traced = trace(romfs)?;
+    Ok((traced.iter())
+        .flat_map(|g| g.expr.atoms())
+        .filter_map(Atom::foe)
+        .collect())
 }
 
 /// Every boss heart container a logic graph makes appear, with what does.
@@ -703,13 +742,15 @@ impl World {
             return exists.unwrap_or(Expr::Const(true));
         }
         let instance_name = node.str(field::INSTANCE_NAME);
-        let name = match self.placement(inst, instance_name) {
+        let hash = self.placement(inst, instance_name);
+        let name = match hash {
             Some(hash) => self.gyaml(hash).to_owned(),
             None => format!("unplaced:{}", instance_name.unwrap_or(&node.name)),
         };
         let fired = Atom::Actor {
             name,
             output: out.to_owned(),
+            hash,
         };
         match exists.filter(|_| atom(&fired) != Rule::Const(true)) {
             Some(e) => Expr::And(vec![Expr::Atom(fired), e]),
@@ -743,7 +784,7 @@ impl fmt::Display for Expr {
         };
         match self {
             Expr::Const(b) => write!(f, "{b}"),
-            Expr::Atom(Atom::Actor { name, output }) => write!(f, "{name}.{output}"),
+            Expr::Atom(Atom::Actor { name, output, .. }) => write!(f, "{name}.{output}"),
             Expr::Atom(Atom::Child) => f.write_str("Childhood"),
             Expr::Atom(Atom::Adult) => f.write_str("Adulthood"),
             Expr::Atom(Atom::Flag(flag)) => write!(f, "flag({flag})"),
@@ -767,10 +808,27 @@ mod tests {
     use super::*;
     use crate::known::{actor, field, flag};
 
+    #[test]
+    fn a_gate_waits_on_foes_only_when_kills_are_all_it_reads() {
+        let foe = |hash| {
+            Expr::Atom(Atom::Actor {
+                name: "Enemy_FakeBat".into(),
+                output: "Dead".into(),
+                hash: Some(hash),
+            })
+        };
+        let both = Expr::And(vec![foe(2), foe(1), foe(2)]);
+        assert_eq!(both.foes(), [1, 2]);
+        let switched = Expr::And(vec![foe(1), actor("Obj_FakeSwitch", "On")]);
+        assert!(switched.foes().is_empty());
+        assert!(Expr::Const(true).foes().is_empty());
+    }
+
     pub(super) fn actor(name: &str, output: &str) -> Expr {
         Expr::Atom(Atom::Actor {
             name: name.into(),
             output: output.into(),
+            hash: None,
         })
     }
 
@@ -840,11 +898,11 @@ mod tests {
         const SPIRIT_BOMBCHUS: u64 = 1501288453962537671;
         let traced = trace(&romfs).unwrap();
         let jabu = traced.iter().find(|g| g.hash == JABU_BOOMERANG).unwrap();
-        let stinger = Atom::Actor {
-            name: actor::ENEMY_STINGER.to_string(),
-            output: "Dead".into(),
+        let stinger = |a: &&Atom| {
+            matches!(a, Atom::Actor { name, output, hash: Some(_) }
+                if **name == **actor::ENEMY_STINGER && output == "Dead")
         };
-        assert!(jabu.expr.atoms().contains(&&stinger));
+        assert!(jabu.expr.atoms().iter().any(stinger));
         let wired = traced.iter().filter(|g| !g.expr.atoms().is_empty());
         assert_eq!(wired.count(), 79);
 

@@ -113,6 +113,23 @@ pub(super) enum DevCommand {
     /// Drop Link's hearts to zero, as a last hit would: a bottled fairy
     /// still saves him.
     Kill,
+    /// Beat an enemy for real: its Life goes to 0, so its own death, drop
+    /// and defeat event run. A dormant one gets its Life back after 10 s.
+    Slay {
+        /// A placement hash (its live actor nearest its spot) or an actor
+        /// name (every one in reach).
+        #[arg(required_unless_present = "list")]
+        target: Option<String>,
+        /// How far from Link to look, in metres.
+        #[arg(long, default_value_t = 30.0)]
+        within: f32,
+        /// List the enemies in reach with their Life instead.
+        #[arg(long)]
+        list: bool,
+        /// One JSON array instead of lines.
+        #[arg(long)]
+        json: bool,
+    },
     /// Spring an ice trap: Link freezes once he's free to, as from a
     /// trap's get.
     Freeze,
