@@ -357,6 +357,10 @@ pub fn write_mod(
     let mut spots = Vec::new();
     let mut chest_events = HashMap::new();
     // Changed maps wait here to be serialized a batch at a time.
+    let quiet = match new_game.quiet_enemies {
+        true => Some(enemies::kept(romfs, &dealt)?),
+        false => None,
+    };
     let mut changed_maps = Vec::new();
     for (rel, doc) in checks::load_bancs(romfs, checks::banc_files(romfs)?) {
         run.check()?;
@@ -377,8 +381,8 @@ pub fn write_mod(
         changed.extend(checks::gone_once(&mut doc.root, &gone)?);
         let leaves = scrubs::leaves(&doc.root, &gone)?;
         changed.extend(checks::gone_once(&mut doc.root, &leaves)?);
-        if new_game.quiet_enemies {
-            changed.extend(enemies::hide(&mut doc.root, &dealt)?);
+        if let Some(kept) = &quiet {
+            changed.extend(enemies::hide(&mut doc.root, kept)?);
         }
         changed.extend(checks::clear_drops(&mut doc.root, carried)?);
         changed.extend(checks::clear_tables(&mut doc.root, &tabled)?);

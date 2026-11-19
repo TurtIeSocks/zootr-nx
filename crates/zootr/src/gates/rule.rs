@@ -109,8 +109,8 @@ pub(super) fn atom(a: &Atom) -> Rule {
         Atom::Todo(t) => Rule::Word(format!("todo:{t}")),
         Atom::After { name, value } => Rule::Word(format!("todo:{name}>{value}")),
         Atom::Exp(exp) => Rule::Word(format!("todo:exp:{exp}")),
-        Atom::Actor { name, output } => match output.as_str() {
-            "Dead" if name.starts_with("Enemy_") => Rule::Const(true),
+        Atom::Actor { name, output, .. } => match output.as_str() {
+            "Dead" if name.starts_with(crate::enemies::ENEMY) => Rule::Const(true),
             // A step switch reports its first press as `FirstOn`.
             _ if output == field::ON_STATE || output == field::FIRST_ON => {
                 Rule::Word(format!("switch:{name}"))

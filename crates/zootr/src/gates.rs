@@ -57,6 +57,8 @@ pub enum Atom {
     Actor {
         name: String,
         output: String,
+        /// The placement, when the graph names one.
+        hash: Option<u64>,
     },
     Child,
     Adult,
@@ -201,6 +203,24 @@ pub fn trace(romfs: &Romfs) -> Result<Vec<Gate>> {
             Some(&[CREATE, "Unlock"]),
         )
     })
+}
+
+/// Every enemy placement a chest's gate reads, like the Gibdos whose deaths
+/// raise a Shadow Temple chest. Boss heart containers' bosses aren't here.
+pub fn enemies(romfs: &Romfs) -> Result<HashSet<u64>> {
+    let read = |a: &&Atom| match a {
+        Atom::Actor {
+            name,
+            hash: Some(h),
+            ..
+        } if name.starts_with(crate::enemies::ENEMY) => Some(*h),
+        _ => None,
+    };
+    let traced = trace(romfs)?;
+    Ok((traced.iter())
+        .flat_map(|g| g.expr.atoms())
+        .filter_map(|a| read(&a))
+        .collect())
 }
 
 /// Every boss heart container a logic graph makes appear, with what does.
@@ -703,13 +723,15 @@ impl World {
             return exists.unwrap_or(Expr::Const(true));
         }
         let instance_name = node.str(field::INSTANCE_NAME);
-        let name = match self.placement(inst, instance_name) {
+        let hash = self.placement(inst, instance_name);
+        let name = match hash {
             Some(hash) => self.gyaml(hash).to_owned(),
             None => format!("unplaced:{}", instance_name.unwrap_or(&node.name)),
         };
         let fired = Atom::Actor {
             name,
             output: out.to_owned(),
+            hash,
         };
         match exists.filter(|_| atom(&fired) != Rule::Const(true)) {
             Some(e) => Expr::And(vec![Expr::Atom(fired), e]),
@@ -743,7 +765,7 @@ impl fmt::Display for Expr {
         };
         match self {
             Expr::Const(b) => write!(f, "{b}"),
-            Expr::Atom(Atom::Actor { name, output }) => write!(f, "{name}.{output}"),
+            Expr::Atom(Atom::Actor { name, output, .. }) => write!(f, "{name}.{output}"),
             Expr::Atom(Atom::Child) => f.write_str("Childhood"),
             Expr::Atom(Atom::Adult) => f.write_str("Adulthood"),
             Expr::Atom(Atom::Flag(flag)) => write!(f, "flag({flag})"),
@@ -771,6 +793,7 @@ mod tests {
         Expr::Atom(Atom::Actor {
             name: name.into(),
             output: output.into(),
+            hash: None,
         })
     }
 
@@ -840,11 +863,11 @@ mod tests {
         const SPIRIT_BOMBCHUS: u64 = 1501288453962537671;
         let traced = trace(&romfs).unwrap();
         let jabu = traced.iter().find(|g| g.hash == JABU_BOOMERANG).unwrap();
-        let stinger = Atom::Actor {
-            name: actor::ENEMY_STINGER.to_string(),
-            output: "Dead".into(),
+        let stinger = |a: &&Atom| {
+            matches!(a, Atom::Actor { name, output, hash: Some(_) }
+                if **name == **actor::ENEMY_STINGER && output == "Dead")
         };
-        assert!(jabu.expr.atoms().contains(&&stinger));
+        assert!(jabu.expr.atoms().iter().any(stinger));
         let wired = traced.iter().filter(|g| !g.expr.atoms().is_empty());
         assert_eq!(wired.count(), 79);
 
