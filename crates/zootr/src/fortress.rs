@@ -10,7 +10,7 @@
 use std::collections::HashMap;
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{EventKind, Flowchart, Value};
+use ounce_formats::{Actor, EventKind, Flowchart, Value};
 
 use crate::checks::{Drop, ItemCheck};
 use crate::flows::SET_BOOL;
@@ -136,10 +136,23 @@ fn rename(flow: &mut Flowchart, at: u16, actor: &str) -> Result<()> {
     let params = params_mut(&mut flow.events[at as usize].kind);
     let slot = params.iter_mut().find(|(k, _)| k == KEY);
     let slot = slot.with_context(|| format!("the call has no {KEY}"))?;
-    let Value::ActorId { name, .. } = &mut slot.1 else {
+    let Value::ActorId { name, secondary } = &mut slot.1 else {
         anyhow::bail!("{KEY} isn't an actor");
     };
-    *name = actor.to_owned();
+    let old = std::mem::replace(name, actor.to_owned());
+    let secondary = secondary.clone();
+    // The game finds a call's actor in the flow's table by name: a name the
+    // table lacks indexes past it and crashes as the flow loads.
+    let declared = flow
+        .actors
+        .iter()
+        .find(|a| a.name == old && a.secondary_name == secondary);
+    let template = declared.with_context(|| format!("{} doesn't declare {old}", flow.name))?;
+    let template = Actor {
+        name: actor.to_owned(),
+        ..template.clone()
+    };
+    flow.actor_like(&template);
     Ok(())
 }
 
@@ -236,6 +249,25 @@ mod tests {
             panic!("an actor")
         };
         assert_eq!(name, actor::OBJ_DUNGEON_SMALL_KEY_GERUDO_FORTRESS_02);
+        all_declared(&flow);
+    }
+
+    /// Every call naming a key actor names one the flow declares.
+    fn all_declared(flow: &Flowchart) {
+        for e in &flow.events {
+            let EventKind::SubFlow { params, .. } = &e.kind else {
+                continue;
+            };
+            let Some((_, Value::ActorId { name, secondary })) = params.iter().find(|p| p.0 == KEY)
+            else {
+                continue;
+            };
+            let same = |a: &Actor| &a.name == name && &a.secondary_name == secondary;
+            assert!(
+                flow.actors.iter().any(same),
+                "<{name} {secondary}> undeclared"
+            );
+        }
     }
 
     fn key_actor(n: usize) -> String {
