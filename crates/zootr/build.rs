@@ -45,6 +45,9 @@ fn main() {
             "zootr_hook",
         ])
         .args(["--target", TARGET, "-C", "opt-level=z", "-C", "panic=abort"])
+        // One unit, linked with `core` as one module, so code can be inlined
+        // and merged across all of it: about 2.5 KB less in the cave.
+        .args(["-C", "codegen-units=1", "-C", "lto=fat"])
         .args(["-C", "relocation-model=pic", "-C", "link-arg=-pie"])
         // Apple's ABI reserves x18 and macOS may clear it, so the PC build
         // could lose a value the hook keeps there. The flag is nightly
