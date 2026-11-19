@@ -85,8 +85,13 @@ pub static FORTRESS_COPIES: LazyLock<Vec<String>> =
     LazyLock::new(|| vec![key_tints::fortress(); FORTRESS.1 as usize]);
 
 /// Each copy `keys` and `fortress` deal takes the place of a key chest's or
-/// a thief's Red Rupee.
-pub fn deal_copies(items: &mut [&str], keys: DungeonKeys, fortress: FortressKeys) -> Result<()> {
+/// a thief's Red Rupee, but for those `placed` already holds.
+pub fn deal_copies(
+    items: &mut [&str],
+    keys: DungeonKeys,
+    fortress: FortressKeys,
+    placed: &[&str],
+) -> Result<()> {
     let copies: &[String] = match keys {
         DungeonKeys::Rings => &SHUFFLED,
         DungeonKeys::Singles => &SINGLES,
@@ -96,7 +101,12 @@ pub fn deal_copies(items: &mut [&str], keys: DungeonKeys, fortress: FortressKeys
         true => &FORTRESS_COPIES,
         false => &[],
     };
+    let mut placed = placed.to_vec();
     for key in copies.iter().chain(thieves) {
+        if let Some(i) = placed.iter().position(|p| *p == key.as_str()) {
+            placed.swap_remove(i);
+            continue;
+        }
         let rupee = items.iter().position(|i| *INSTEAD == **i);
         let rupee = rupee.context("too few key chests for the dungeons' keys")?;
         items[rupee] = key;
@@ -279,11 +289,19 @@ mod tests {
         let red = INSTEAD.get();
         let mut items = vec![red; SHUFFLED.len() + 1];
         items.push(item::HOOKSHOT.get());
-        deal_copies(&mut items, DungeonKeys::Rings, FortressKeys::Vanilla).unwrap();
+        deal_copies(&mut items, DungeonKeys::Rings, FortressKeys::Vanilla, &[]).unwrap();
         assert_eq!(items.iter().filter(|i| **i == red).count(), 1);
         assert!(SHUFFLED.iter().all(|k| items.contains(&k.as_str())));
         assert_eq!(SHUFFLED.len(), DUNGEONS.len() + 6);
-        assert!(deal_copies(&mut [red; 3], DungeonKeys::Rings, FortressKeys::Vanilla).is_err());
+        assert!(
+            deal_copies(
+                &mut [red; 3],
+                DungeonKeys::Rings,
+                FortressKeys::Vanilla,
+                &[]
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -293,7 +311,7 @@ mod tests {
         // The 37 small key chests and 6 boss key chests: every key chest.
         assert_eq!(SINGLES.len(), 37 + 6);
         let mut items = vec![red; SINGLES.len()];
-        deal_copies(&mut items, DungeonKeys::Singles, FortressKeys::Vanilla).unwrap();
+        deal_copies(&mut items, DungeonKeys::Singles, FortressKeys::Vanilla, &[]).unwrap();
         assert!(!items.contains(&red));
         let forest = DUNGEONS
             .iter()
@@ -303,7 +321,7 @@ mod tests {
         let held = items.iter().filter(|i| **i == ring).count() as u32;
         assert_eq!(held, CHEST_KEYS[forest]);
         let mut start = vec![red; 2];
-        deal_copies(&mut start, DungeonKeys::Start, FortressKeys::Start).unwrap();
+        deal_copies(&mut start, DungeonKeys::Start, FortressKeys::Start, &[]).unwrap();
         assert_eq!(start, [red; 2]);
     }
 
@@ -312,10 +330,21 @@ mod tests {
         needs_names!();
         let red = INSTEAD.get();
         let mut items = vec![red; 5];
-        deal_copies(&mut items, DungeonKeys::Vanilla, FortressKeys::Singles).unwrap();
+        deal_copies(&mut items, DungeonKeys::Vanilla, FortressKeys::Singles, &[]).unwrap();
         let copy = key_tints::fortress();
         assert_eq!(items.iter().filter(|i| **i == copy).count(), 4);
         assert_eq!(items.iter().filter(|i| **i == red).count(), 1);
+        // A copy placed by hand is one of the four.
+        let mut items = vec![red; 5];
+        let placed = [copy.as_str()];
+        deal_copies(
+            &mut items,
+            DungeonKeys::Vanilla,
+            FortressKeys::Singles,
+            &placed,
+        )
+        .unwrap();
+        assert_eq!(items.iter().filter(|i| **i == copy).count(), 3);
         assert!(is_shuffled(&copy));
         let need = Need::Items {
             actors: vec![copy],
