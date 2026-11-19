@@ -64,6 +64,7 @@ pub const EVENT_TRIGGER_SET_GAME_DATA_ENUM: &Name = &n!(0x99eab11017eb1948);
 pub const EVENT_TRIGGER_SET_GAME_DATA_INT: &Name = &n!(0xea909551c49758b6);
 pub const EVENT_TRIGGER_SET_GAME_DATA_STRING64: &Name = &n!(0x0416ced63d691922);
 pub const EVENT_TRIGGER_SET_TIME: &Name = &n!(0x0671e8bd6b62f9fb);
+pub const EVENT_TRIGGER_START_IN_GAME_BGM: &Name = &n!(0xdeb93ee7523f3498);
 pub const EVENT_WAIT: &Name = &n!(0xbb69697cdb374606);
 pub const EVENT_WAIT_CLOSE_LOADING_FADE: &Name = &n!(0xb94b8f981c295d90);
 pub const EVENT_WAIT_STABLE_NUM_DISPLAY: &Name = &n!(0xa6c26d5127743497);

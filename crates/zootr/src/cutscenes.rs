@@ -16,7 +16,7 @@ use crate::events::{self, Flows};
 use crate::flows::{self, Rewrites};
 use crate::gamedata::GameData;
 use crate::known::{Name, field, flag, flow, map, scene};
-use crate::{arrivals, checks, cut, gifts};
+use crate::{arrivals, checks, cut, gifts, starting};
 
 /// Setting id, label, and the name prefixes after `Dm_`. `SY` (system
 /// events) and `Title` (title screen demos) aren't areas.
@@ -75,6 +75,12 @@ const INTRO: [&Name; 2] = [scene::KOKIRI_0000, scene::KOKIRI_0030];
 const SARIA: [&Name; 3] = [scene::KOKIRI_0045, scene::KOKIRI_0050, scene::KOKIRI_0060];
 /// Set with Saria's played flags: her "come down" balloon otherwise.
 const SARIA_FLAGS: [&Name; 1] = [scene::KOKIRI_0050_AFTER_NEAR_END];
+/// Starts the in-game music. The forest's plays once the forest pan starts
+/// it, so with the pan skipped the opening does, just before its autosave.
+const START_MUSIC: (&Name, &Name) = (
+    field::SOUND_SYSTEM_ACTOR,
+    flow::EVENT_TRIGGER_START_IN_GAME_BGM,
+);
 /// Saria's farewell on the bridge out of the forest: her wave, a timeline,
 /// then her gift. Both start from `BRIDGE`.
 const SARIA_WAVE: &Name = scene::KOKIRI_0150;
@@ -389,6 +395,7 @@ pub fn skip(romfs: &Romfs, skips: &Skips) -> Result<(Rewrites, Vec<String>)> {
     if skips.saria {
         flags.extend(SARIA_FLAGS.iter().map(|f| format!("{f}=true")));
         bridge(romfs, &mut out)?;
+        music(romfs, &mut out)?;
     }
     if skips.great_deku {
         flags.extend(great_deku_flags());
@@ -429,6 +436,14 @@ fn bridge(romfs: &Romfs, out: &mut Rewrites) -> Result<()> {
         arrivals::swap(f, SARIA_WAVE, &played)
     })?;
     flows::edit(romfs, out, SARIA_GIFT, gifts::straight)
+}
+
+/// The opening's own music start, copied to run just before its autosave.
+fn music(romfs: &Romfs, out: &mut Rewrites) -> Result<()> {
+    flows::edit(romfs, out, starting::OPENING, |f| {
+        let start = flows::model(f, START_MUSIC, flows::only(f, START_MUSIC)?)?;
+        starting::before_save(f, vec![(&start.actor, start.name, start.params)])
+    })
 }
 
 /// `data` with every transition to one of `names` stepped over.
@@ -538,6 +553,29 @@ mod tests {
         ids.sort();
         ids.dedup();
         assert_eq!(ids.len(), AREAS.len());
+    }
+
+    #[test]
+    fn skipping_the_forest_pan_starts_the_music_before_the_opening_saves() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let skips = Skips {
+            saria: true,
+            ..Default::default()
+        };
+        let (out, _) = skip(&romfs, &skips).unwrap();
+        let opening = Flowchart::parse(&out[&flows::rel(starting::OPENING)])
+            .unwrap()
+            .unwrap();
+        let save = flows::only(&opening, starting::AUTOSAVE).unwrap();
+        let music = flows::running(&opening, START_MUSIC);
+        assert!(
+            opening
+                .links_to(save)
+                .iter()
+                .any(|l| matches!(l, Link::Next(i) if music.contains(i)))
+        );
     }
 
     #[test]

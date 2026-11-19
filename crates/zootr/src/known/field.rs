@@ -362,6 +362,7 @@ pub const SKL_ROOT: &Name = &n!(0x73c4643754c3493a);
 pub const SMALL_BAG_ACTOR: &Name = &n!(0x7ffc90c9bb8361f3);
 pub const SMALL_KEY: &Name = &n!(0x469053d10941ccfb);
 pub const SMALL_KEY_FOR_EVENT_01: &Name = &n!(0x5645fba06ae17634);
+pub const SOUND_SYSTEM_ACTOR: &Name = &n!(0xa9dff0f390e0ab42);
 pub const SPECIAL_DEAL: &Name = &n!(0x0aae338d1bb0ca86);
 pub const SPIDER_WEB: &Name = &n!(0xc7545cbe1021334e);
 pub const STEP01_NPC_HYLIA_IMPA_CHILD_TALK: &Name = &n!(0x1f45a96353cd9034);
