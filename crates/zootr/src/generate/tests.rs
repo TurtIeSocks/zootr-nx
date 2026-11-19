@@ -399,7 +399,8 @@ fn key_chests_are_checks_and_hold_no_key_only_when_keys_start() {
         &Run::silent(),
     )
     .unwrap();
-    assert_eq!(held(&report).len(), 43);
+    // The 37 small and 6 boss key chests, and the 2 loose keys.
+    assert_eq!(held(&report).len(), 45);
     assert!(report.spots.iter().all(|s| !keys::is_key(&s.item)));
     // Logic reads no key: the chests sit behind the dungeon's own obstacles.
     for s in report.spots.iter().filter(|s| keys::is_key(&s.vanilla)) {

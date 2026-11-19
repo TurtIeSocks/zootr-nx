@@ -31,11 +31,12 @@ pub const DUNGEONS: [(&Name, i32, Option<&Name>); 8] = [
     (flag::INSIDE_GANON_CASTLE, 1, Some(map::GANONDORF_STAGE)),
 ];
 
-/// How many chests hold each of [`DUNGEONS`]' small keys: its keys, less
-/// the two lying in the open (Bottom of the Well's and the Shadow
-/// Temple's). With Keysanity, each brings a copy, and logic asks for them
-/// all.
-pub const CHEST_KEYS: [u32; 8] = [1, 5, 8, 4, 4, 5, 9, 1];
+/// How many small key copies Keysanity deals dungeon `n`: one for each of
+/// its keys, the chests' and the two lying in the open (Bottom of the
+/// Well's and the Shadow Temple's), and logic asks for them all.
+fn copies_of(n: usize) -> u32 {
+    DUNGEONS[n - 1].1 as u32
+}
 
 /// The dungeon whose maps `rel`, a Banc file, is under, by its number in
 /// [`DUNGEONS`], counting from 1.
@@ -45,6 +46,25 @@ pub fn dungeon_of(rel: &str) -> Option<usize> {
         .iter()
         .position(|(d, ..)| *d == folder)
         .map(|i| i + 1)
+}
+
+/// The two keys lying in the open, by placement, and the Bool their
+/// room's logic module sets once Link takes what lies there. The module
+/// deletes the spot's actor once it's set, whatever the seed put there.
+pub const LOOSE: [(u64, &Name); 2] = [
+    (
+        17649154319341333603,
+        flag::BOTTOM_OF_THE_WELL_LEVEL_ROOM_03_GET_SMALL_KEY,
+    ),
+    (
+        12562389953863361839,
+        flag::SHADOW_TEMPLE_LEVEL_ROOM_13_GET_KEY,
+    ),
+];
+
+/// The Bool set once the loose key spot placed as `hash` is taken.
+pub fn loose_taken(hash: u64) -> Option<&'static str> {
+    LOOSE.iter().find(|(h, _)| *h == hash).map(|(_, f)| f.get())
 }
 
 /// Whether dungeon `n` has a boss key.
@@ -73,7 +93,7 @@ pub static SINGLES: LazyLock<Vec<String>> = LazyLock::new(|| {
     let n = 1..=DUNGEONS.len();
     let smalls = n.clone().flat_map(|n| {
         let ring = key_tints::ring(n);
-        (0..CHEST_KEYS[n - 1]).map(move |_| ring.clone())
+        (0..copies_of(n)).map(move |_| ring.clone())
     });
     smalls
         .chain(n.filter(|&n| has_boss(n)).map(key_tints::boss))
@@ -121,7 +141,7 @@ fn smalls(n: usize, keys: DungeonKeys) -> Option<Need> {
         DungeonKeys::Rings => Some(Need::Items { actors, count: 1 }),
         DungeonKeys::Singles => Some(Need::Items {
             actors,
-            count: CHEST_KEYS[n - 1],
+            count: copies_of(n),
         }),
         DungeonKeys::Vanilla | DungeonKeys::Start => None,
     }
@@ -308,8 +328,8 @@ mod tests {
     fn keysanity_deals_a_copy_for_every_key_chest() {
         needs_names!();
         let red = INSTEAD.get();
-        // The 37 small key chests and 6 boss key chests: every key chest.
-        assert_eq!(SINGLES.len(), 37 + 6);
+        // The 37 small key chests, the 2 loose keys and the 6 boss key chests.
+        assert_eq!(SINGLES.len(), 39 + 6);
         let mut items = vec![red; SINGLES.len()];
         deal_copies(&mut items, DungeonKeys::Singles, FortressKeys::Vanilla, &[]).unwrap();
         assert!(!items.contains(&red));
@@ -319,10 +339,34 @@ mod tests {
             .unwrap();
         let ring = key_tints::ring(forest + 1);
         let held = items.iter().filter(|i| **i == ring).count() as u32;
-        assert_eq!(held, CHEST_KEYS[forest]);
+        assert_eq!(held, copies_of(forest + 1));
         let mut start = vec![red; 2];
         deal_copies(&mut start, DungeonKeys::Start, FortressKeys::Start, &[]).unwrap();
         assert_eq!(start, [red; 2]);
+    }
+
+    #[test]
+    fn loose_keys_are_the_two_lying_and_tick_by_what_their_module_sets() {
+        needs_names!();
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let found = crate::pickups::LOOSE_KEYS.checks(&romfs).unwrap();
+        let found: std::collections::BTreeSet<u64> = found.iter().map(|c| c.hash).collect();
+        let listed = LOOSE.iter().map(|l| l.0).collect();
+        assert_eq!(found, listed);
+        let creators = crate::gates::creators(&romfs).unwrap();
+        for (hash, taken) in LOOSE {
+            let module = creators.iter().find(|c| c.hash == hash).unwrap();
+            let rel = format!("Logic/{}.ainb", module.graph);
+            let patch = ounce_formats::ainb::Patch::new(romfs.read(&rel).unwrap()).unwrap();
+            let sets = patch.graph().nodes.iter().any(|n| {
+                n.name == crate::known::field::TRIGGER_GAME_DATA_SET_BOOL_TRUE.get()
+                    && n.str(crate::known::field::GAME_DATA_NAME_BOOL) == Some(taken.get())
+            });
+            assert!(sets, "{} never sets {}", module.graph, taken.get());
+            assert_eq!(loose_taken(hash), Some(taken.get()));
+        }
     }
 
     #[test]
@@ -363,12 +407,13 @@ mod tests {
     }
 
     #[test]
-    fn chest_keys_count_each_dungeon_s_small_key_chests() {
+    fn each_dungeon_s_key_checks_match_its_copies() {
         needs_names!();
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let checks = crate::checks::all(&romfs).unwrap();
+        let mut checks = crate::checks::all(&romfs).unwrap();
+        checks.extend(crate::pickups::LOOSE_KEYS.checks(&romfs).unwrap());
         let mut seen = std::collections::HashSet::new();
         let mut counts = [0u32; 8];
         for c in checks.iter().filter(|c| c.item == SMALL.get()) {
@@ -376,7 +421,7 @@ mod tests {
                 counts[n - 1] += 1;
             }
         }
-        assert_eq!(counts, CHEST_KEYS);
+        assert_eq!(counts, std::array::from_fn(|i| copies_of(i + 1)));
     }
 
     #[test]
@@ -399,10 +444,7 @@ mod tests {
         let Need::Items { actors, count } = all else {
             panic!("{all}")
         };
-        assert_eq!(
-            (actors, count),
-            (vec![key_tints::ring(n)], CHEST_KEYS[n - 1])
-        );
+        assert_eq!((actors, count), (vec![key_tints::ring(n)], copies_of(n)));
     }
 
     #[test]
