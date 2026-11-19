@@ -2,8 +2,11 @@
 //! out the other age's swords and shields by two flags per item in its
 //! table, and that's their only limit: unset, either age equips and uses
 //! them. Tunics and boots stay as they are, since they dress adult Link's
-//! model and do nothing on a child. See the spec,
+//! model and do nothing on a child, and so do the two-handed swords, which
+//! a child equips but can't swing. See the spec,
 //! `superpowers/specs/2026-11-18-equip-any-age-design.md`.
+
+use std::collections::HashSet;
 
 use anyhow::{Result, ensure};
 use ounce_formats::{Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_file};
@@ -11,6 +14,7 @@ use roead::sarc::Sarc;
 
 use crate::game::POUCH_TABLE;
 use crate::known::{Name, field};
+use crate::standins::{POUCH_ACTOR_INFO, row_id};
 
 /// The flags, each age's.
 const AGES: [&Name; 2] = [field::IS_USABLE_CHILD, field::IS_USABLE_ADULT];
@@ -48,6 +52,42 @@ fn is_weapon(romfs: &Romfs, name: &str) -> bool {
     })
 }
 
+/// The two-handed swords' `WeaponType`. A child equips them but his
+/// animations refuse the swing (`research/two-handed-swords-child.md`).
+const TWO_HANDED: &Name = &crate::n!(0xac8f0c8c2fcaf11d);
+
+/// Each actor whose pouch row makes it a two-handed sword.
+fn two_handed(romfs: &Romfs) -> Result<HashSet<String>> {
+    let doc = BymlDoc::parse(&romfs.read(POUCH_ACTOR_INFO)?)?;
+    let is = |row: &&Byml| {
+        let kind = row
+            .as_map()
+            .ok()
+            .and_then(|m| m.get(field::WEAPON_TYPE.get()));
+        kind.and_then(|k| k.as_string().ok())
+            .is_some_and(|k| k.as_str() == TWO_HANDED.get())
+    };
+    let names: HashSet<_> = doc
+        .root
+        .as_array()?
+        .iter()
+        .filter(is)
+        .map(|r| row_id(r).to_owned())
+        .collect();
+    ensure!(
+        !names.is_empty(),
+        "no two-handed sword in {POUCH_ACTOR_INFO}"
+    );
+    Ok(names)
+}
+
+/// Whether the actor named `name` opens to both ages: a sword or shield,
+/// but not a two-handed sword.
+fn shared(romfs: &Romfs) -> Result<impl Fn(&str) -> bool + '_> {
+    let two_handed = two_handed(romfs)?;
+    Ok(move |name: &str| is_weapon(romfs, name) && !two_handed.contains(name))
+}
+
 /// Each actor on the Equipment page that `weapon` says is a sword or a
 /// shield.
 fn weapons<'a>(root: &'a mut Byml, weapon: &impl Fn(&str) -> bool) -> Result<Vec<&'a mut BymlMap>> {
@@ -67,8 +107,8 @@ fn weapons<'a>(root: &'a mut Byml, weapon: &impl Fn(&str) -> bool) -> Result<Vec
         .collect())
 }
 
-/// The table with every sword and shield usable at both ages, and how many
-/// it changed.
+/// The table with every actor `weapon` names usable at both ages, and how
+/// many it changed.
 fn unlock(table: &[u8], weapon: impl Fn(&str) -> bool) -> Result<(Vec<u8>, usize)> {
     let mut doc = BymlDoc::parse(table)?;
     let mut changed = 0;
@@ -82,9 +122,9 @@ fn unlock(table: &[u8], weapon: impl Fn(&str) -> bool) -> Result<(Vec<u8>, usize
 }
 
 /// Write the table with the Equipment page's swords and shields open to
-/// both ages.
+/// both ages, all but the two-handed swords.
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
-    let (table, changed) = unlock(&romfs.read(POUCH_TABLE)?, |n| is_weapon(romfs, n))?;
+    let (table, changed) = unlock(&romfs.read(POUCH_TABLE)?, shared(romfs)?)?;
     ensure!(
         changed > 0,
         "no sword or shield in the pause menu's table is limited to one age"
@@ -95,6 +135,7 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::known::actor;
 
     /// Each Equipment page actor in the table at `bytes`: its name and
     /// ages.
@@ -118,28 +159,46 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
+        let shared = shared(&romfs).unwrap();
         let vanilla = romfs.read(POUCH_TABLE).unwrap();
-        let (table, changed) = unlock(&vanilla, |n| is_weapon(&romfs, n)).unwrap();
+        let (table, changed) = unlock(&vanilla, &shared).unwrap();
         let (before, after) = (actors(&vanilla), actors(&table));
         assert_eq!(before.len(), after.len());
-        let mut swords_and_shields = 0;
+        let mut opened = 0;
         for ((name, was), (_, now)) in before.iter().zip(&after) {
-            match is_weapon(&romfs, name) {
+            match shared(name) {
                 true => {
-                    swords_and_shields += 1;
+                    opened += 1;
                     assert_eq!(*now, [true, true], "{name}");
                 }
-                false => assert_eq!(was, now, "{name} isn't a sword or shield"),
+                false => assert_eq!(was, now, "{name} isn't shared"),
             }
         }
-        // Biggoron's, the Giant's Knife, its broken one, Master, Kokiri,
-        // and the Mirror, Hylian and Deku Shields.
-        assert_eq!(swords_and_shields, 8);
+        // Master, Kokiri, and the Mirror, Hylian and Deku Shields.
+        assert_eq!(opened, 5);
         let limited = before
             .iter()
-            .filter(|(n, a)| is_weapon(&romfs, n) && *a != [true, true]);
+            .filter(|(n, a)| shared(n) && *a != [true, true]);
         assert_eq!(changed, limited.count());
         assert!(changed > 0);
+    }
+
+    #[test]
+    fn the_two_handed_swords_stay_adult() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let (table, _) =
+            unlock(&romfs.read(POUCH_TABLE).unwrap(), shared(&romfs).unwrap()).unwrap();
+        let two_handed = [
+            actor::WEAPON_SWORD_BIGGORON,
+            actor::WEAPON_SWORD_GIANT,
+            actor::WEAPON_SWORD_BROKEN_GIANT,
+        ];
+        for sword in two_handed {
+            let ages = actors(&table).into_iter().find(|(n, _)| n == sword.get());
+            assert_eq!(ages, Some((sword.to_string(), [false, true])), "{sword}");
+        }
     }
 
     #[test]
@@ -148,7 +207,7 @@ mod tests {
             return;
         };
         let vanilla = romfs.read(POUCH_TABLE).unwrap();
-        let (table, _) = unlock(&vanilla, |n| is_weapon(&romfs, n)).unwrap();
+        let (table, _) = unlock(&vanilla, shared(&romfs).unwrap()).unwrap();
         let mut was = BymlDoc::parse(&vanilla).unwrap().root;
         let mut now = BymlDoc::parse(&table).unwrap().root;
         for root in [&mut was, &mut now] {

@@ -402,6 +402,7 @@ pub const VOLVAGIA: &Name = &n!(0x117b8d4725d1c076);
 pub const WATER_TEMPLE_ROOM00_WATER_LEVEL: &Name = &n!(0x036018240ba8ec8d);
 pub const WATER_TEMPLE_WATER_LEVEL_CHANGE_NAVI: &Name = &n!(0x9155f7277d07d4e2);
 pub const WEAPON_PARAM: &Name = &n!(0x462f57678a10713e);
+pub const WEAPON_TYPE: &Name = &n!(0x747a178710f17c89);
 pub const WELL_KAKARIKO_SIDE: &Name = &n!(0xe862c36d86fe97de);
 pub const WINDOWHINT: &Name = &n!(0xbff63688005418c0);
 pub const WINDOWHINT_1: &Name = &n!(0x49859dbad08ad194);

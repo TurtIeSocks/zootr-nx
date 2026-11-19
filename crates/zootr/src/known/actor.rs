@@ -218,6 +218,7 @@ pub const WEAPON_SHIELD_DEKU: &Name = &n!(0x0cb109eee38cac87);
 pub const WEAPON_SHIELD_HYLIAN: &Name = &n!(0xc4aa0b8dc6dad373);
 pub const WEAPON_SHIELD_MIRROR: &Name = &n!(0x195d0b3252cf6cbb);
 pub const WEAPON_SWORD_BIGGORON: &Name = &n!(0xa905800edbc0626b);
+pub const WEAPON_SWORD_BROKEN_GIANT: &Name = &n!(0x6e9ff588196281d6);
 pub const WEAPON_SWORD_GIANT: &Name = &n!(0x3366399f30a2559d);
 pub const WEAPON_SWORD_KOKIRI: &Name = &n!(0xa3c410aa39bd8c7f);
 pub const WEAPON_SWORD_MASTER: &Name = &n!(0x85806047050c308e);
