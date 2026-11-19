@@ -7,13 +7,16 @@
 
 use std::collections::HashMap;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use ounce_formats::{Byml, murmur3};
 
 use crate::checks::{self, hash_of};
 use crate::gamedata::{GameData, IS_GET, Op};
 use crate::world::Presence;
 use crate::{ammo, progressive};
+
+/// A placement's instance name, which an event binds it by.
+const NAME: &str = "Name";
 
 /// What a holder of `item` gives as Link's pouch grows, lowest first, each
 /// with the program that's true while it's the one. `None` when it always
@@ -133,6 +136,34 @@ pub(crate) fn copy_in(root: &mut Byml, copies: &[(u64, u64)]) -> Result<bool> {
     let gained = !new.is_empty();
     list.extend(new);
     Ok(gained)
+}
+
+/// The instance name step `k`'s placement goes by, given its holder's:
+/// the holder's own for step 0.
+pub(crate) fn instance(name: &str, k: usize) -> String {
+    match k {
+        0 => name.to_owned(),
+        k => format!("{name}_Step{k}"),
+    }
+}
+
+/// Give each step's placement in `steps` (its step, by hash) its own
+/// instance name. Whether `root`, a map's doc, changed.
+pub(crate) fn name_apart(root: &mut Byml, steps: &HashMap<u64, usize>) -> Result<bool> {
+    let Some(list) = actors(root)? else {
+        return Ok(false);
+    };
+    let mut changed = false;
+    for actor in list.iter_mut() {
+        if let Some(&k) = hash_of(actor).and_then(|h| steps.get(&h)) {
+            let map = actor.as_mut_map()?;
+            let name = map.get(NAME).and_then(|n| n.as_string().ok());
+            let name = instance(name.context("a named step has no Name")?, k);
+            map.insert(NAME.into(), Byml::String(name.into()));
+            changed = true;
+        }
+    }
+    Ok(changed)
 }
 
 /// Gate each step's placement on its BoolExp, `gates` by its hash, in place

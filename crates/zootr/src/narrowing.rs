@@ -114,7 +114,7 @@ pub(crate) fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool 
         || cows::is_cow(check)
         || shops::is_shop(check)
         || gifts::is_prize(check)
-        || pickups::steps_at(check);
+        || pickups::is_pickup(check);
     !picks && levels::asks(item, progressive)
 }
 

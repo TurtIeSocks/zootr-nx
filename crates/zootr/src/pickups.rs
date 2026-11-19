@@ -468,16 +468,19 @@ pub fn kind_of(check: &ItemCheck) -> Option<&'static Kind> {
     KINDS.into_iter().find(|k| k.holds(check))
 }
 
-/// Whether `check` is a placed holder's, not a chest's.
-pub fn is_pickup(check: &ItemCheck) -> bool {
-    kind_of(check).is_some()
+/// Whether `check` is a holder its event names and puts in place, as a
+/// thief's key.
+pub fn is_named(check: &ItemCheck) -> bool {
+    kind_of(check).is_some_and(|k| k.named.is_some())
 }
 
-/// Whether `check` is a pickup that can show a line's level or ammo a step
-/// at a time ([`steps`]), holding whatever it's dealt. A logic module
-/// watching it runs each step's copy too ([`groups`], [`nodes`]).
-pub(crate) fn steps_at(check: &ItemCheck) -> bool {
-    kind_of(check).is_some_and(|k| k.named.is_none())
+/// Whether `check` is a placed holder's, not a chest's. Every one can show
+/// a line's level or ammo a step at a time ([`steps`]), holding whatever
+/// it's dealt. A logic module watching it runs each step's copy too
+/// ([`groups`], [`nodes`]), and a thief's call names each step's key
+/// (`fortress::give`).
+pub fn is_pickup(check: &ItemCheck) -> bool {
+    kind_of(check).is_some()
 }
 
 /// A holder whose item changed, and the actor its placement field names.
@@ -513,10 +516,6 @@ pub fn moved<'a>(
     drops: &'a HashMap<u64, Drop>,
     progressive: bool,
 ) -> Vec<Moved<'a>> {
-    let fixed: HashSet<u64> = (checks.iter())
-        .filter(|c| !steps_at(c))
-        .map(|c| c.hash)
-        .collect();
     let holders: BTreeSet<(u64, &str, &str)> = checks
         .iter()
         .filter_map(|c| Some((c.hash, c.item.as_str(), kind_of(c)?.field)))
@@ -537,8 +536,7 @@ pub fn moved<'a>(
             step,
         };
         let dropped = field == DROP;
-        let shown = (!fixed.contains(&hash)).then(|| steps::of(hash, item, progressive));
-        let Some(Some(steps)) = shown else {
+        let Some(steps) = steps::of(hash, item, progressive) else {
             let actor = pickup_for(item, dropped).unwrap_or_else(|| format!("{NEW}{n:03}"));
             out.push(at(hash, item, actor, None));
             continue;
@@ -772,7 +770,7 @@ mod tests {
             let mut checks = kind.checks(&romfs).unwrap();
             watch(&romfs, &mut checks).unwrap();
             let by = |w| checks.iter().filter(|c| c.watched == w).count();
-            assert!(checks.iter().all(steps_at));
+            assert!(checks.iter().all(is_pickup));
             (by(Watched::Quiet), by(Watched::Loud), checks.len())
         };
         // Each boss's heart, the Fire Arrows and Ruto's letter appear once

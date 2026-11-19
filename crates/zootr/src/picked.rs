@@ -43,18 +43,25 @@ use crate::graphs::logic;
 use crate::known::{field, flag, map};
 use crate::pickups::steps::asks;
 use crate::pickups::{
-    BOSS_HEARTS, CRATES, FIRE_ARROWS, FLYING_POTS, FREESTANDING, GRASS, HIVES, Kind, POTS, ROCKS,
-    RUTOS_LETTER, SKULLTULAS,
+    BOSS_HEARTS, CRATES, FIRE_ARROWS, FLYING_POTS, FORTRESS_KEYS, FREESTANDING, GRASS, HIVES, Kind,
+    LOOSE_KEYS, POTS, ROCKS, RUTOS_LETTER, SKULLTULAS,
 };
 use crate::world::Presence;
 
 /// Pickups lying in place, which stand until picked only when dealt what
 /// might show a step at a time. Their key tracks the rest.
-const LYING: [&Kind; 3] = [&FREESTANDING, &BOSS_HEARTS, &FIRE_ARROWS];
+const LYING: [&Kind; 5] = [
+    &FREESTANDING,
+    &BOSS_HEARTS,
+    &FIRE_ARROWS,
+    &LOOSE_KEYS,
+    &FORTRESS_KEYS,
+];
 
-/// Whether `holder`, dealt `item`, stands until picked as a lying pickup.
-fn taken(holder: &str, item: &str) -> bool {
-    LYING.iter().any(|k| k.places(holder)) && asks(item)
+/// Whether a holder that `lies` in place, dealt `item`, stands until
+/// picked.
+fn taken(lies: bool, item: &str) -> bool {
+    lies && asks(item)
 }
 
 /// The kinds whose holders stand until picked.
@@ -114,17 +121,18 @@ fn keeps_token(skulltula: bool, vanilla: &str, item: &str) -> bool {
 pub fn flag_at(spot: &crate::generate::Spot) -> Option<String> {
     let holder = spot.holder.as_str();
     let kept = keeps_token(SKULLTULAS.places(holder), &spot.vanilla, &spot.item);
-    let picked = KINDS.iter().any(|k| k.places(holder)) && !kept || taken(holder, &spot.item);
+    let lies = LYING.iter().any(|k| k.places(holder));
+    let picked = KINDS.iter().any(|k| k.places(holder)) && !kept || taken(lies, &spot.item);
     (picked || crate::shops::is_holder(holder)).then(|| flag(spot.hash))
 }
 
 /// Each holder among `pieces`, dealt `drops`, that stands until picked,
 /// once each.
 pub fn holders(pieces: &[ItemCheck], drops: &HashMap<u64, Drop>) -> Vec<Holder> {
-    let item = |c: &ItemCheck, f: fn(&str, &str) -> bool| {
-        f(&c.holder, crate::gifts::item_at(drops, c.hash, &c.item))
+    let lying = |c: &ItemCheck| {
+        let lies = LYING.iter().any(|k| k.holds(c));
+        taken(lies, crate::gifts::item_at(drops, c.hash, &c.item))
     };
-    let lying = |c: &ItemCheck| item(c, taken);
     let after = |c: &ItemCheck| match () {
         _ if RUTOS_LETTER.holds(c) => After::Deleted,
         _ if SKULLTULAS.holds(c) => After::Killed(c.presence.clone()),
@@ -332,7 +340,7 @@ mod tests {
     use crate::gamedata;
     use crate::generate::Spot as Row;
     use crate::known::Name;
-    use crate::known::actor;
+    use crate::known::{actor, item};
     use crate::pickups;
     use crate::settings::NewGame;
     use crate::world::presence_of;
@@ -413,6 +421,22 @@ mod tests {
         let skulltula = *skulltulas.first().unwrap();
         let spot = at(actor::ENEMY_SKULLTULA_GOLD, skulltula);
         assert_eq!(flag_at(&spot), Some(flag(skulltula)));
+    }
+
+    #[test]
+    fn a_key_lying_in_place_dealt_a_line_stands_until_picked() {
+        let Some(romfs) = dev_dump() else { return };
+        let mut pieces = pickups::LOOSE_KEYS.checks(&romfs).unwrap();
+        pieces.extend(pickups::FORTRESS_KEYS.checks(&romfs).unwrap());
+        let hookshot = |c: &ItemCheck| (c.hash, Drop::from(item::HOOKSHOT.to_string()));
+        let drops = pieces.iter().map(hookshot).collect();
+        let holders = holders(&pieces, &drops);
+        assert_eq!(holders.len(), 2 + 4);
+        assert!(
+            holders
+                .iter()
+                .all(|h| matches!(h.after, After::Taken(None)))
+        );
     }
 
     #[test]

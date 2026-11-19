@@ -399,9 +399,9 @@ pub fn field(arg: &str) -> Result<(u64, Vec<&str>, &str, bool)> {
 }
 
 /// Set each of `fields` on the actor it names, making any map on its path.
-/// `HASH.PATH+=AMOUNT` raises a number already there instead, a number in
-/// an array by its index (`Translate.1` is the height). Returns the hashes
-/// changed in this document.
+/// A number in an array goes by its index (`Translate.1` is the height).
+/// `HASH.PATH+=AMOUNT` raises a number already there instead. Returns the
+/// hashes changed in this document.
 pub fn set_fields(root: &mut Byml, fields: &[String]) -> Result<Vec<u64>> {
     let fields = fields
         .iter()
@@ -429,8 +429,18 @@ pub fn set_fields(root: &mut Byml, fields: &[String]) -> Result<Vec<u64>> {
                     .entry((*key).into())
                     .or_insert_with(|| Byml::Map(Default::default()));
             }
-            at.as_mut_map()?
-                .insert((*last).into(), Byml::String((*value).into()));
+            match at {
+                Byml::Array(items) => {
+                    let slot = items.get_mut(last.parse::<usize>()?);
+                    let slot = slot.with_context(|| format!("{hash} has no {}", path.join(".")))?;
+                    let number = value.parse();
+                    *slot = Byml::Float(number.with_context(|| format!("{value} isn't a number"))?);
+                }
+                map => {
+                    map.as_mut_map()?
+                        .insert((*last).into(), Byml::String((*value).into()));
+                }
+            }
             changed.push(hash);
         }
     }
@@ -569,6 +579,12 @@ mod tests {
         assert_eq!(
             vec3(&actors_mut(&mut root).unwrap()[0], TRANSLATE),
             Some([1.0, 2.25, 3.0])
+        );
+        let put = ["1.Translate.0=-4.5".to_owned()];
+        assert_eq!(set_fields(&mut root, &put).unwrap(), [1]);
+        assert_eq!(
+            vec3(&actors_mut(&mut root).unwrap()[0], TRANSLATE),
+            Some([-4.5, 2.25, 3.0])
         );
         assert_eq!(
             gyamls(&root),

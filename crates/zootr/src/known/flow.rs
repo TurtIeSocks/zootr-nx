@@ -116,6 +116,7 @@ pub const INIT_TALK: &Name = &n!(0x8badd6092a027f11);
 pub const INIT_TALK_GOSSIP_STONE: &Name = &n!(0x19bedb9e59a060ec);
 pub const INIT_TALK_NAVI_HELP: &Name = &n!(0x20baf5fbbdfedbb1);
 pub const IS_GROUNDING: &Name = &n!(0x825ac80bba9129a2);
+pub const KEY_POSITION: &Name = &n!(0x2e898ca23b0cf9cf);
 pub const LOST_WOOD_SCRUB_FOREST_STAGE_ELDER_SKULL_MASK_FIRST: &Name = &n!(0x63b9548854fe9e73);
 pub const LOST_WOOD_SCRUB_FOREST_STAGE_ELDER_TRUE_MASK_FIRST: &Name = &n!(0x9eb110477e8c0c70);
 pub const MARKET_CHILD_FIELD_CHILD_TO_ADULT: &Name = &n!(0xddd54dceaa1ef2e9);
