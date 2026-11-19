@@ -85,26 +85,46 @@ export function parentOn(
   return parent !== undefined && isOn(parent, settings, schema);
 }
 
-/** The label of a toggle that is on, or a choice off its default. */
-function changed(
+/** A setting that's on, in a summary's words: a toggle's label, or a
+ * choice's label and its pick, or an inventory's and how much it holds. */
+export interface Chip {
+  id: string;
+  label: string;
+  /** A choice's pick, or how many things an inventory holds. */
+  value?: string;
+}
+
+/** A chip as one phrase: "Label" or "Label: Pick". */
+export const chipText = ({ label, value }: Chip) =>
+  value === undefined ? label : `${label}: ${value}`;
+
+/** The chip of a toggle that is on, a choice off its default, or an
+ * inventory holding anything. A toggle
+ * its parent turns on has none: the parent stands in. */
+function chipOf(
   def: SettingDef,
   settings: Settings,
   schema: SettingDef[],
-): string[] {
+): Chip | null {
+  const { id, label } = def;
   if (def.kind.type === "choice") {
     const pick = chosen(def, settings);
     return pick && pick.id !== def.kind.default
-      ? [`${def.label}: ${pick.label}`]
-      : [];
+      ? { id, label, value: pick.label }
+      : null;
   }
   if (def.kind.type === "inventory") {
     const n = held(def, settings);
-    return n > 0 ? [`${def.label}: ${count(n, "item")}`] : [];
+    return n > 0 ? { id, label, value: count(n, "item") } : null;
   }
   return isOn(def, settings, schema) && !parentOn(def, settings, schema)
-    ? [def.label]
-    : [];
+    ? { id, label }
+    : null;
 }
+
+/** The chips of every setting in `defs` that's on. */
+const chips = (defs: SettingDef[], settings: Settings, schema: SettingDef[]) =>
+  defs.flatMap((d) => chipOf(d, settings, schema) ?? []);
 
 /** The labels of every setting that changed, or how many when it's long. A
  * parent stands in for its children. */
@@ -112,7 +132,7 @@ export function summaryParts(
   schema: SettingDef[],
   settings: Settings,
 ): string[] {
-  const on = schema.flatMap((d) => changed(d, settings, schema));
+  const on = chips(schema, settings, schema).map(chipText);
   if (on.length === 0) return ["Nothing extra"];
   return on.length > LISTED ? [`${on.length} settings on`] : on;
 }
@@ -120,6 +140,39 @@ export function summaryParts(
 /** The labels of every setting that changed, as one line. */
 export function summary(schema: SettingDef[], settings: Settings): string {
   return summaryParts(schema, settings).join(", ");
+}
+
+/** A chip marked against the settings it's compared with: `new` when they
+ * lacked it or picked otherwise (`was` holds their pick), `gone` when they
+ * had it and these don't. */
+export interface MarkedChip extends Chip {
+  mark?: "new" | "gone";
+  was?: string;
+}
+
+/** The chips of `defs` under `settings`, each marked against `base`'s, in
+ * schema order. A chip `base` had that a parent now stands in for isn't
+ * gone. Without a base, nothing is marked. */
+export function markedChips(
+  defs: SettingDef[],
+  schema: SettingDef[],
+  settings: Settings,
+  base: Settings | null,
+): MarkedChip[] {
+  return defs.flatMap((d): MarkedChip[] => {
+    const now = chipOf(d, settings, schema);
+    if (base === null) return now ? [now] : [];
+    const then = chipOf(d, base, schema);
+    if (now === null) {
+      return then && !parentOn(d, settings, schema)
+        ? [{ ...then, mark: "gone" }]
+        : [];
+    }
+    if (then === null) return [{ ...now, mark: "new" }];
+    return shown(d, base, schema) === shown(d, settings, schema)
+      ? [now]
+      : [{ ...now, mark: "new", was: then.value }];
+  });
 }
 
 /** A setting's effective value as a word: a choice's label, or on/off. */
@@ -135,16 +188,25 @@ function shown(def: SettingDef, settings: Settings, schema: SettingDef[]) {
   return isOn(def, settings, schema) ? "on" : "off";
 }
 
-/** One line per setting that differs between `before` and `after`. A parent
- * that changed stands in for its children. */
-export function settingsDiff(
+/** A setting that differs between two settings, as words. */
+export interface Change {
+  def: SettingDef;
+  before: string;
+  after: string;
+}
+
+/** Every setting that differs between `before` and `after`. A parent that
+ * changed stands in for its children. */
+export function settingsChanges(
   schema: SettingDef[],
   before: Settings,
   after: Settings,
-): string[] {
-  return schema.flatMap((d) => {
-    if (parentOn(d, before, schema) !== parentOn(d, after, schema)) return [];
-    const [a, b] = [before, after].map((s) => shown(d, s, schema));
-    return a === b ? [] : [`${d.label}: ${a} → ${b}`];
+): Change[] {
+  return schema.flatMap((def) => {
+    if (parentOn(def, before, schema) !== parentOn(def, after, schema)) {
+      return [];
+    }
+    const [a = "", b = ""] = [before, after].map((s) => shown(def, s, schema));
+    return a === b ? [] : [{ def, before: a, after: b }];
   });
 }

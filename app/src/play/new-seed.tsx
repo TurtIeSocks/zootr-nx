@@ -1,29 +1,15 @@
-import {
-  CircleAlert,
-  CircleOff,
-  Dices,
-  FlaskConical,
-  type LucideIcon,
-  Pin,
-} from "lucide-react";
-import type { ReactNode } from "react";
+import { CircleAlert, CircleOff, Dices } from "lucide-react";
 import { Callout, InlineError } from "@/components/callout";
 import { CardHeader } from "@/components/card";
-import { linkClass } from "@/components/styles";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { testSummary } from "@/lib/config";
-import { count, seedOrCode } from "@/lib/format";
-import { savedAs } from "@/lib/plando";
-import { summary } from "@/lib/settings";
+import { seedOrCode } from "@/lib/format";
+import { BuildOverview } from "@/play/build-overview";
 import { generateKey } from "@/play/generate";
 import { GenerateButton } from "@/play/generate-button";
 import { GenerateSteps } from "@/play/generate-steps";
-import { SettingsChanged } from "@/play/settings-changed";
-import { useConfig } from "@/stores/config";
 import { uninstall, useSeeds } from "@/stores/seeds";
-import { openSettings } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
 
 /** The Standard folder: generates and installs a seed from the current
@@ -44,19 +30,7 @@ export function NewSeed() {
       >
         <SeedRow />
         <GenerateSteps />
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-muted">
-          <SettingsSummary />
-          <button
-            type="button"
-            className={linkClass}
-            onClick={() => openSettings()}
-          >
-            edit
-          </button>
-          <Drift />
-        </p>
-        <Plando />
-        <TestSetup />
+        <BuildOverview />
         <Blocked />
         <InlineError error={error} />
       </div>
@@ -135,75 +109,6 @@ function VanillaButton() {
     >
       <CircleOff />
     </TipButton>
-  );
-}
-
-/** The current settings in a line. */
-function SettingsSummary() {
-  const [schema] = useConfig.usePath("schema");
-  const [settings] = useConfig.usePath("config.settings");
-  return <span>{summary(schema, settings)}</span>;
-}
-
-/** Flags settings changed since the installed seed. */
-function Drift() {
-  const [drift] = useSeeds.usePath("drift");
-  return drift.length > 0 && <SettingsChanged changes={drift} />;
-}
-
-/** Props for {@link EditCallout}. */
-interface EditCalloutProps {
-  icon: LucideIcon;
-  /** What its edit link opens, for the link's name. */
-  what: string;
-  /** The Settings page the link opens. */
-  section: string;
-  children: ReactNode;
-}
-
-/** Something Generate builds with, and a link to edit it. */
-function EditCallout({ icon, what, section, children }: EditCalloutProps) {
-  return (
-    <Callout
-      tone="info"
-      icon={icon}
-      action={
-        <button
-          type="button"
-          className={linkClass}
-          aria-label={`Edit ${what}`}
-          onClick={() => openSettings(section)}
-        >
-          edit
-        </button>
-      }
-    >
-      <span>{children}</span>
-    </Callout>
-  );
-}
-
-/** The stored test setup, while one is on. */
-function TestSetup() {
-  const [on] = useConfig.usePath("testOn");
-  const [test] = useConfig.usePath("config.test");
-  if (!on) return null;
-  return (
-    <EditCallout icon={FlaskConical} what="test setup" section="test">
-      {testSummary(test)}
-    </EditCallout>
-  );
-}
-
-/** The plando draft, while it pins anything. */
-function Plando() {
-  const pins = useConfig((s) => Object.keys(s.config.place).length);
-  const name = useConfig((s) => savedAs(s.config));
-  if (!pins) return null;
-  return (
-    <EditCallout icon={Pin} what="plando" section="plando">
-      Plando{name && ` ${name}`}: {count(pins, "check")} pinned
-    </EditCallout>
   );
 }
 

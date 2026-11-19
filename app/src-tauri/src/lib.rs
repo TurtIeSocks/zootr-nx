@@ -1,15 +1,16 @@
 //! The zootr window: Tauri commands over the `zootr` library.
 
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use anyhow::{Context, anyhow, bail};
 use generating::Generating;
+use live_tab::Live;
 use ounce_formats::Romfs;
 use serde::Serialize;
 use specta::Type;
 use tauri::ipc::Channel;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager};
 use tauri_specta::{Event as _, collect_commands, collect_events};
 use zootr::build;
 use zootr::config::{Config, Target};
@@ -20,7 +21,7 @@ use zootr::history::{History, Label, Mark, Summary, View};
 use zootr::inventory::{self, Cell, Inventory, TrackerOptions};
 use zootr::platform;
 use zootr::progress::{self, Run};
-use zootr::recorder::{self, Ask, Event, Hub, Numbered, Snapshot, Watch};
+use zootr::recorder;
 use zootr::savefile::{self, Change};
 use zootr::settings::{SettingDef, Settings};
 use zootr::share;
@@ -29,6 +30,7 @@ use zootr::tracker::{self, Row, Tracker};
 mod archipelago;
 mod dev_panel;
 mod generating;
+mod live_tab;
 mod save_editor;
 mod targets;
 mod ui;
@@ -236,6 +238,27 @@ async fn generate(
     .await
 }
 
+/// What a share code builds with, read without building it.
+#[derive(Serialize, Type)]
+struct SharedBuild {
+    settings: Settings,
+    /// How many checks its plando pins.
+    pins: usize,
+    test: zootr::config::TestSetup,
+}
+
+/// Reads a share code's settings and extras without generating a seed.
+#[tauri::command]
+#[specta::specta]
+fn share_settings(code: String) -> Res<SharedBuild> {
+    let shared = share::decode(&code).map_err(text)?;
+    Ok(SharedBuild {
+        pins: shared.extras.place.len(),
+        test: zootr::config::TestSetup::from_extras(&shared.extras),
+        settings: shared.settings,
+    })
+}
+
 /// Install one slot of an Archipelago multiworld from its `.apznx`. The
 /// file brings its own settings, placements and seed.
 #[tauri::command]
@@ -393,94 +416,6 @@ fn play(target: String) -> Res<()> {
     let t = t.clone();
     zootr::turn::plays(config.turn.clone(), move || t.running());
     Ok(())
-}
-
-/// Every Live tab event, to whichever page is listening.
-#[derive(Clone, Serialize, Type)]
-struct LiveEvent(Numbered);
-
-impl tauri_specta::Event for LiveEvent {
-    const NAME: &'static str = "live-event";
-}
-
-/// The Live tab's sessions, and the GameData names they show, loaded once.
-struct Live {
-    gd: Mutex<Option<Arc<GameData>>>,
-    hub: Arc<Hub>,
-    watch: Mutex<Option<Watch>>,
-}
-
-impl Live {
-    fn new(app: AppHandle) -> Self {
-        Self {
-            gd: Mutex::default(),
-            hub: Hub::new(move |n| {
-                if let Event::Row { change, .. } = &n.event {
-                    app.state::<Checks>().change(&app, change);
-                    app.state::<Items>().change(&app, change);
-                }
-                let _ = LiveEvent(n.clone()).emit(&app);
-            }),
-            watch: Mutex::default(),
-        }
-    }
-
-    fn gamedata(&self, config: &Config) -> anyhow::Result<Arc<GameData>> {
-        let mut gd = self.gd.lock().unwrap();
-        if gd.is_none() {
-            *gd = Some(Arc::new(recorder::gamedata(&romfs(config)?)?));
-        }
-        Ok(gd.clone().expect("just loaded"))
-    }
-
-    /// Records the picked target whenever it runs, for as long as the app
-    /// is open.
-    fn watch(&self, app: &AppHandle) -> anyhow::Result<()> {
-        let app = app.clone();
-        let gd = move || {
-            let gd = app.state::<Live>().gamedata(&Config::load()?);
-            // Ready before the first row, so no flip is missed.
-            let _ = app.state::<Checks>().state(&app);
-            let _ = app.state::<Items>().state(&app);
-            gd
-        };
-        let target = || Config::load()?.target();
-        let logs = recorder::logs()?;
-        *self.watch.lock().unwrap() = Some(Watch::start(self.hub.clone(), gd, target, logs));
-        Ok(())
-    }
-}
-
-/// Where the Live tab picks up after a reload.
-#[tauri::command]
-#[specta::specta]
-fn live_state(live: State<Live>) -> Snapshot {
-    live.hub.snapshot()
-}
-
-/// Label an unnamed value, or drop its label for an empty one.
-#[tauri::command]
-#[specta::specta]
-fn live_label(live: State<Live>, hash: u32, label: String) -> Res<()> {
-    zootr::labels::set(&zootr::labels::path().map_err(text)?, hash, &label).map_err(text)?;
-    if let Some(gd) = &*live.gd.lock().unwrap() {
-        gd.set_label(hash, &label);
-    }
-    Ok(())
-}
-
-/// Mark the session's log with what happened. Blank marks it "Mark".
-#[tauri::command]
-#[specta::specta]
-fn live_mark(live: State<Live>, what: String) -> Res<()> {
-    live.hub.ask(Ask::Mark(what)).map_err(text)
-}
-
-/// Leave a value out of the session from now on.
-#[tauri::command]
-#[specta::specta]
-fn live_mute(live: State<Live>, hash: u32) -> Res<()> {
-    live.hub.ask(Ask::Mute(hash)).map_err(text)
 }
 
 /// A spot checked or unchecked in the installed seed.
@@ -753,6 +688,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             config,
             set_config,
             generate,
+            share_settings,
             generate_ap,
             install,
             rebuild,
@@ -781,10 +717,10 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             save_editor::save_stage,
             save_editor::save_flags,
             save_editor::save_write,
-            live_state,
-            live_label,
-            live_mark,
-            live_mute,
+            live_tab::live_state,
+            live_tab::live_label,
+            live_tab::live_mark,
+            live_tab::live_mute,
             reveal_log,
             checks_state,
             checks_mark,
@@ -815,7 +751,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             ui::ui_save,
         ])
         .events(collect_events![
-            LiveEvent,
+            live_tab::LiveEvent,
             ChecksEvent,
             ItemsEvent,
             archipelago::ApEvent,
