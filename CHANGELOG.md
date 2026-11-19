@@ -1,0 +1,229 @@
+# Changelog
+
+What changed in each release of zootr-nx, newest first. Releases before
+0.5.0 have their notes on the GitHub Releases page.
+
+## [0.5.0] - 2026-11-19
+
+### Added
+
+- Zootr mem lists, searches, reads and writes the game's memory
+- The in-game UI's pure parts: input, shared slots, cycle mode
+- Link picks what the trade slot shows on the pause menu
+- The trade slot blooms while Link cycles it
+- The trade slot's border turns blue while Link cycles it
+- Leave a toggle open as a per-player setting
+- Name the small Deku Stick bundle, four chest items and the Dream World
+- Export the world graph, pool and options for Archipelago
+- The znx Archipelago world
+- Cut the trade chain's countdowns on every seed
+- The app installs a new release and restarts on it
+- Install & restart sits beside the release page and skip
+- Links in the notes, skip and install in the footer
+- Release links in the popover header, version in the sidebar
+- Deal the adult trade chain as ten checks
+- Rules for the ten trade checks
+- Copies that stand in for another player's item
+- The .apznx carries the start inventory
+- Open a .apznx and install its slot's mod
+- Open an AP seed from the Play page
+- A gift may hold what a flow-mate gives (lift narrowing 7)
+- A scrub gives an upgrade's level and ammo by what Link owns
+- Tick a Business Scrub once Link buys from it
+- A shared queue for every game, and a hold for every command
+- Play takes this machine's game in the turn queue
+- Give a progressive item at the level Link needs next
+- An AP seed carries the give branch and a received count
+- A dealt give swaps ammo for a red rupee, as a chest does
+- The client core: send checks, give received items, report the goal
+- Zootr ap connect runs the Archipelago client headless
+- Connect the installed Archipelago seed to its room from Play
+- Tick cows and the gifts whose Bool the seed adds
+- A seed Bool for each gift the game marks with nothing
+- Tick each Gerudo thief by its own key or a seed Bool
+- `join --both` waits for every game at once
+- Tick placements by their per-placement flags
+- List the per-placement flags that are set
+- Toggle for the House of Skulltula's 100-token reward
+- Cows and sales give ammo and a line's level by what Link owns
+- The running man's race as a check, with its own setting
+- Minigame prize chests hold every upgrade level
+- Generate a seed for History without installing it
+- Twin each shuffled pot, box, rock and hive with its vanilla self
+- Tick a twinned pot, box, rock or hive as Link takes its drop
+- Tick Ruto's letter's spot when Link takes what lies there
+- The spot list moves to the padding after text
+- Gold Skulltulas stand until their drop is picked up
+- A check slot sets a Bool when it sells, and the tracker ticks it
+- A BoolExp program reads other BoolExps and ORs
+- A shelf shows the upgrade level or ammo a slot gives
+- Redraw BC1 textures, and probe icons says each format
+- Another game's item shows a tinted harp by its AP class
+- Minigame prize chests hold ammo
+- Another game's item shows a Poe's spirit tinted by its class
+- Probe ledger and the accounting test
+- Read the spot list from GameData
+- Show a check's name from the rule files
+- `zootr logic set` edits one check in the rule files
+- A one-shot kill bit, and `zootr dev kill`
+- A DeathLink option, carried in the seed
+- DeathLink in the client
+- `zootr dev checked HASH` reads a check's flag live
+- Every breakable is a check (EIE #12)
+- A holder dropping bugs brings a Recovery Heart
+- Routes climb ladders and vine walls
+- Dampe's repeat prize chests are the maintainer's call (EIE #8)
+- The Business Scrub Seed chests join the shuffle (EIE #9)
+- Routes climb down ladders and vine walls
+- Seeds carry every slot's name
+- Received items show in game
+- Swim across water: routes, swimming ashore, dashing
+- A writer that can grow a graph
+- Sink to a holder under water in the Iron Boots
+- Under water, try each side of a holder in turn
+- Dive onto a holder under water with the Gold Scale
+- Find a graph's root and its first bool selector
+- A stale step drop removes itself
+- Show a line's level or ammo a step at a time
+- The Play page's folder tabs
+- One Generate & install split button
+- A seed's summary says whether its slot plays DeathLink
+- The Archipelago folder's Slot, Room and Client log
+- The hero for an installed Archipelago slot
+- History filters by kind, and drift skips an AP slot
+- The Archipelago tab says who needs what, with the apworld
+- Save znx.apworld, the copy built with this app
+- The Slot section's help trimmed, the apworld in its header
+- Steps at holders quiet logic groups watch, each copy gets its own group
+- A second code cave for code that rarely runs
+- Fortress Keysanity, the thieves' keys as copies at any check
+- An Enhancements group, with Bunny Hood speed in it
+- Equipment for both ages, unlocking the Equipment page
+- Count on Equipment for both ages, and expose it to AP
+- Quiet enemies for drill and sweep seeds
+- The two loose keys are checks whenever keys move
+- Swords and shields for both ages, tunics and boots stay adult
+- Maps and compasses as their dungeon's copies, dealt anywhere
+- Count small keys room by room, starting with the well
+- Ganon's Castle counts its one key room by room
+- Join --on GAME waits for that game alone
+- Duplicate a node and grow or swap a multi-input's sources
+- A loud-watched holder's copies get nodes of their own
+- Read a share code's settings without generating
+- The build overview on the Standard tab
+- A found ice trap freezes Link once he's free to move
+- `zootr dev freeze` springs an ice trap, and `mem` reads `main+`
+- An ice-traps setting swaps junk for traps disguised as needed items
+- The full-body ice on a freeze, fitted to child Link
+- A trap's get window shows "FOOL!" alone
+- A freeze lasts about 3 s, for the same damage
+- Two Kokiri kids' rupee rewards become checks (EIE #13)
+- Quiet mode keeps the enemies a check needs, by rule
+- Walk the live actors from the game's actor table
+- Slay an enemy for real, by placement or name
+- The thieves' keys show a line's level a step at a time
+- Storeys by room, and each face's dungeon room
+- Each dungeon room's small key count
+- Each spot's storey, and locks by the rooms they join
+
+### Fixed
+
+- A cycle starts from the choice and survives its own refresh
+- The left stick cycles the trade slot
+- A child's trade items aren't greyed in the trade slot
+- A launch makes the bridge socket's folder
+- One exit per pair of places, and no event that never happens
+- Export only what Link reaches, one spot per place, full golden settings
+- Give 14 never-reachable chests rules Link can meet
+- Biggoron's sword wants the Claim Check, which the chain gives
+- Turn updater files off with a config file, not TAURI_CONFIG
+- A version the app can't read leaves the sidebar's blank
+- Name copies through key_tints' made-item prefix
+- A sold scrub takes its leaf with it
+- A hold covers only this machine's game
+- The riddle scrub shows what it sells, at both ages
+- A session with a kept game waits for that game alone
+- Refuse to keep a folder that holds no slots
+- An Archipelago seed isn't badged as a test, and names its slot
+- Receive items despite archipelago_rs's items flags, and test a room
+- A give that fails no longer holds up sending checks
+- Rule the Spirit Temple's thirteen unruled checks
+- Link holds up an ocarina dealt to a chest
+- The ocarinas calculate in turn, so Link holds them up
+- The ocarinas turn over Link's head in a get
+- Grow the save layout for every added Bool and Int
+- Tick only by per-placement flags that never reset
+- `ap connect` renews its turn while it runs
+- Read the controller through direct branches
+- Face a person again after closing in, before A
+- A gift's line before its grant names the level it gives
+- A restore drops the stale slots at the save folder's top
+- Count the running man's Purple Rupee as a chest's
+- Only playing the game renews a hold, reading it doesn't
+- Tick a twinned holder on every take, window or not
+- A --mod-dir that is a target's mod folder needs the turn
+- Programs the AppImage starts leave its mount behind
+- The rebuild tests start their programs through platform::command
+- Set and its test read the game's own gamedata when no target is set up
+- A client pass gives every item still owed, not one
+- A Gold Skulltula keeping its own token stays vanilla
+- Let foreign.rs spell out the harp's files
+- Refuse a --setting value the setting doesn't take
+- Restore other games' items shown by class, lost in a merge
+- The spirit's glow takes its class's colour from its material
+- Count flying pots as pots (EIE #12)
+- `dev checked` says when the seed lacks a check's Bool
+- Twin a check that keeps its own item
+- Notices take over the amiibo banners
+- A burst's first notice shows while the rest are given
+- Gives wait only on a burst's first few notices
+- Browse… sized for its label, and the seed row wraps
+- Folder tabs switch without bouncing, inactive ones tucked behind
+- The carpet merchant needs the Hover Boots
+- The Graveyard south heart piece chest needs nothing
+- King Dodongo's door needs a way past the bomb room's eyes
+- A key copy placed by hand is one of the copies dealt
+- Tunics and boots stay adult with Equipment for both ages
+- Count the thieves' keys as moved, as every shuffle should
+- Only adult Link reflects light with the Mirror Shield
+- Keep the two-handed swords adult-only
+- Name the setting for one-handed swords
+- The ladder holds its turn and renews it, from any shell
+- A rupee on a shelf never warns the bag is full
+- No tutorials skips the shop roof girl's targeting stop
+- Name at most 64 ranges a mem_read_many, as Hookshot takes
+- Keep each mem_read_many under the game's 1 MB a request
+- A check slot's sign says what it sells
+- Starting inventory chips in the build overview
+- One freeze per trap, and child Link's freeze shows its ice
+- Declare the actor a thief's key call is renamed to
+- A new game no longer starts the forest sage's quest
+- The first swap to adult starts the forest sage's quest
+- Declare every actor a rewrite names, and refuse a flow that doesn't
+- Slay refuses anything that isn't an enemy
+- Slay's lines end without a blank one
+- A loose key dealt a line or ammo stands until picked
+- A thief's stepped key waits for her to fall, as the vanilla key does
+- A thief's stepped key keeps her vanilla gate
+- Give each step of a thief's key its own instance name
+- Lay a moved thief key where she falls, on the floor
+
+### Faster
+
+- Look a gift up by its hash through an index built once
+- Build our crate at opt-level 1 in dev builds too
+- Find each GameData value once, read check flags in one pass
+- Give one item a pass so the room is answered between gives
+- A lean busy look for the AP client and settle
+- Look right away when items or a DeathLink arrive
+- Keep the client log to its newest 200 lines
+- A snapshot in three requests, so the recorder stops hogging the bridge
+- Build it as one codegen unit with fat LTO, 2.5 KB smaller
+- Keep the dev panel's attached game between commands
+- Parse history.json again only once it changes
+- Keep the creators and chest gates per dump
+- Keep the placed checks and shop slots per dump
+- Skip cutscenes with the seed's flows
+- Keep the catalogue, arrivals and exits per dump
+- Parse the mod's maps a batch at a time on every core
+- Serialize the changed maps in batches on every core
