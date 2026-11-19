@@ -210,7 +210,9 @@ static GUIDES: LazyLock<[&str; 53]> = LazyLock::new(|| {
 });
 
 /// Every guide shown, and the House of Skulltula's own mark that its Echo
-/// Gem guide has been, which skips the camera move that leads into it.
+/// Gem guide has been, which skips the camera move that leads into it. The
+/// Kokiri on the shop roof stops Link for her targeting guide until her
+/// event counts as played.
 fn no_tutorials() -> Vec<String> {
     let mut edits = page_guides();
     edits.extend(all(
@@ -220,6 +222,11 @@ fn no_tutorials() -> Vec<String> {
     edits.push(format!(
         "{}=true",
         field::KAKARIKO_VILLAGE_GATHERING_TOKEN_GOLD_ACTION_GUIDE_AGONY_STONE_TRUE
+    ));
+    edits.push(format!(
+        "{}.{}=true",
+        flag::HAVE_PLAYED_EVENT,
+        flag::KOKIRI_FOREST_KOKIRI_011_STOP_IN_FRONT_OF_SHOP_00
     ));
     edits
 }
@@ -621,6 +628,11 @@ mod tests {
         assert!(has(&format!(
             "{}=true",
             field::KAKARIKO_VILLAGE_GATHERING_TOKEN_GOLD_ACTION_GUIDE_AGONY_STONE_TRUE
+        )));
+        assert!(has(&format!(
+            "{}.{}=true",
+            flag::HAVE_PLAYED_EVENT,
+            flag::KOKIRI_FOREST_KOKIRI_011_STOP_IN_FRONT_OF_SHOP_00
         )));
         assert!(has(&format!(
             "{}=false",
