@@ -56,9 +56,11 @@ const SWITCHES: dev::Switches = dev::Switches {
 /// a menu left open refuses every request after it.
 const FAILS: usize = 2;
 
-/// What every round's seed has: the test seed rules.
-const BASE: [&str; 8] = [
+/// What every round's seed has: the test seed rules, and no enemies in
+/// the harness's way.
+const BASE: [&str; 9] = [
     settings::SKIP_ALL,
+    settings::QUIET_ENEMIES,
     "open-forest",
     "kakariko-gate",
     "start-kokiri-sword",
