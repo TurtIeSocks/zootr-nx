@@ -125,45 +125,91 @@ pub fn sensor(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> R
 /// 2026-11-18). His pack carries the frozen reaction all the same.
 const CHILD: &Name = actor::PLAYER_CHILD;
 
-/// Write child Link's pack with his `Frozen` bad condition on, and the
-/// adult's effects: the frozen shell's break is only in the adult's
-/// (live, 2026-11-18).
+const ADULT: &Name = actor::PLAYER_ADULT;
+
+/// How long a freeze lasts, in frames: about 3 s, the maintainer's call
+/// after her playtest (2026-11-19). The game's is 65, about 1 s.
+const FROZEN_FRAMES: i32 = 180;
+
+/// Write both Links' packs with the longer freeze, and child Link's with
+/// his `Frozen` bad condition on and the adult's effects: the frozen
+/// shell's break is only in the adult's (live, 2026-11-18).
 pub fn thaw(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
-    let pack = ActorPack::load(romfs, CHILD)?;
-    let mut writer = pack.writer();
-    for (path, old, new) in thawed(&pack)? {
-        builder.resize(&path, old.len(), new.len())?;
-        writer.add_file(path, new);
+    for who in [CHILD, ADULT] {
+        let pack = ActorPack::load(romfs, who)?;
+        let mut writer = pack.writer();
+        for (path, old, new) in thawed(&pack)? {
+            builder.resize(&path, old.len(), new.len())?;
+            writer.add_file(path, new);
+        }
+        builder.write(&pack_file(who), &writer.to_binary())?;
     }
-    builder.write(&pack_file(CHILD), &writer.to_binary())
+    Ok(())
 }
 
 /// A file of a pack: its path, its bytes, and its bytes edited.
 type Edit = (String, Vec<u8>, Vec<u8>);
 
-/// Child Link's conditions and effects files, as [`thaw`] writes them.
-fn thawed(pack: &ActorPack) -> Result<[Edit; 2]> {
+/// Link's conditions file, and child Link's effects file, as [`thaw`]
+/// writes them.
+fn thawed(pack: &ActorPack) -> Result<Vec<Edit>> {
     let param = param(pack)?;
-    let adult = Byml::String(actor::PLAYER_ADULT.get().into());
-    Ok([
-        edited(
-            pack,
-            &param,
-            field::CONDITION_REF,
-            field::IS_ENABLE_FROZEN,
-            Byml::Bool(true),
-        )?,
-        edited(pack, &param, field::E_LINK_REF, field::USER_NAME, adult)?,
-    ])
+    let child = pack.name == CHILD.get();
+    let conditions = edited(pack, &param, field::CONDITION_REF, |game, own| {
+        longer(game, own)?;
+        if child {
+            own.insert(field::IS_ENABLE_FROZEN.get().into(), Byml::Bool(true));
+        }
+        Ok(())
+    })?;
+    let mut edits = vec![conditions];
+    if child {
+        let adult = Byml::String(ADULT.get().into());
+        edits.push(edited(pack, &param, field::E_LINK_REF, |_, own| {
+            own.insert(field::USER_NAME.get().into(), adult);
+            Ok(())
+        })?);
+    }
+    Ok(edits)
 }
 
-/// The file of `pack`'s component `at`, with `key` set to `value`.
-fn edited(pack: &ActorPack, param: &BymlMap, at: &Name, key: &Name, value: Byml) -> Result<Edit> {
-    let file = component(param, at).with_context(|| format!("child Link has no {}", at.get()))?;
+/// A freeze of [`FROZEN_FRAMES`] in `own`, with its damage ticks spread
+/// out so it hurts as often as the game's does (`game`, resolved).
+fn longer(game: &BymlMap, own: &mut BymlMap) -> Result<()> {
+    let read = |key: &Name| -> Result<i32> {
+        let value = game
+            .get(key.get())
+            .with_context(|| format!("no {}", key.get()))?;
+        Ok(value.as_int()?)
+    };
+    let (frames, interval) = (
+        read(field::FROZEN_DURATION_FRAME)?,
+        read(field::FROZEN_DAMAGE_INTERVAL)?,
+    );
+    let spread = interval * FROZEN_FRAMES / frames;
+    for (key, value) in [
+        (field::FROZEN_DURATION_FRAME, FROZEN_FRAMES),
+        (field::FROZEN_DAMAGE_INTERVAL, spread),
+    ] {
+        own.insert(key.get().into(), Byml::I32(value));
+    }
+    Ok(())
+}
+
+/// The file of `pack`'s component `at`, run through `edit` with its
+/// resolved values and its own.
+fn edited(
+    pack: &ActorPack,
+    param: &BymlMap,
+    at: &Name,
+    edit: impl FnOnce(&BymlMap, &mut BymlMap) -> Result<()>,
+) -> Result<Edit> {
+    let file =
+        component(param, at).with_context(|| format!("{} has no {}", pack.name, at.get()))?;
     let path = pack_path(&file);
     let old = raw(pack, &path)?;
     let mut doc = BymlDoc::parse(&old)?;
-    (doc.root.as_mut_map()?).insert(key.get().into(), value);
+    edit(&resolved(pack, &path)?, doc.root.as_mut_map()?)?;
     Ok((path, old, doc.to_binary()))
 }
 
@@ -476,10 +522,30 @@ mod tests {
     }
 
     #[test]
+    fn a_freeze_lasts_longer_and_hurts_as_often_at_both_ages() {
+        let Some(romfs) = dev_dump() else { return };
+        for who in [CHILD, ADULT] {
+            let pack = ActorPack::load(&romfs, who).unwrap();
+            let (path, _, new) = &thawed(&pack).unwrap()[0];
+            let game = resolved(&pack, path).unwrap();
+            let own = BymlDoc::parse(new).unwrap().root.as_map().unwrap().clone();
+            let int =
+                |map: &BymlMap, key: &Name| map.get(key.get()).unwrap().as_int::<i32>().unwrap();
+            let ticks = |map: &BymlMap| {
+                int(map, field::FROZEN_DURATION_FRAME) / int(map, field::FROZEN_DAMAGE_INTERVAL)
+            };
+            assert_eq!(int(&own, field::FROZEN_DURATION_FRAME), FROZEN_FRAMES);
+            assert!(int(&game, field::FROZEN_DURATION_FRAME) < FROZEN_FRAMES);
+            assert_eq!(ticks(&own), ticks(&game), "{}", who.get());
+        }
+    }
+
+    #[test]
     fn child_link_can_freeze_and_shows_it() {
         let Some(romfs) = dev_dump() else { return };
         let pack = ActorPack::load(&romfs, CHILD).unwrap();
-        let [(_, old, new), (_, old_fx, new_fx)] = thawed(&pack).unwrap();
+        let [(_, old, new), (_, old_fx, new_fx)] =
+            <[Edit; 2]>::try_from(thawed(&pack).unwrap()).unwrap();
         let read = |data: &[u8], key: &Name| {
             let doc = BymlDoc::parse(data).unwrap();
             doc.root.as_map().unwrap().get(key.get()).unwrap().clone()
