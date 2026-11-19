@@ -29,7 +29,7 @@ pub(super) fn flows(
     new_game: &NewGame,
     drops: &HashMap<u64, Drop>,
 ) -> Result<(Rewrites, Vec<String>)> {
-    let (mut rewrites, mut flags) = cutscenes::skip(romfs, &new_game.skips)?;
+    let (mut rewrites, mut flags) = cutscenes::skip(romfs, all, &new_game.skips)?;
     if new_game.quiet_navi {
         navi::quiet(romfs, &mut rewrites)?;
     }

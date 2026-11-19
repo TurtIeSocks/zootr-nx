@@ -861,7 +861,8 @@ mod tests {
         skips: &crate::cutscenes::Skips,
         dealt: Option<(&Name, &Name)>,
     ) -> (Rewrites, Vec<String>) {
-        let (mut rewrites, flags) = crate::cutscenes::skip(romfs, skips).unwrap();
+        let all = Flows::load(romfs).unwrap();
+        let (mut rewrites, flags) = crate::cutscenes::skip(romfs, &all, skips).unwrap();
         let drops: HashMap<u64, Drop> = dealt
             .into_iter()
             .map(|(flow, item)| {
@@ -873,7 +874,6 @@ mod tests {
                 (gift.hash(), drop)
             })
             .collect();
-        let all = Flows::load(romfs).unwrap();
         give_all(
             romfs,
             &all,

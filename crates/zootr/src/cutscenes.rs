@@ -318,16 +318,15 @@ fn played<'a>(strings: impl IntoIterator<Item = &'a str>) -> Vec<String> {
 }
 
 /// Skip what `skips` covers: the flows that start it, relinked, and the
-/// new-game flags that stop the map starting it.
-pub fn skip(romfs: &Romfs, skips: &Skips) -> Result<(Rewrites, Vec<String>)> {
+/// new-game flags that stop the map starting it. `all` is every flow.
+pub fn skip(romfs: &Romfs, all: &Flows, skips: &Skips) -> Result<(Rewrites, Vec<String>)> {
     let mut out = Rewrites::new();
     if skips.is_empty() {
         return Ok((out, vec![]));
     }
     let catalogue = Catalogue::load(romfs)?;
-    let all = Flows::load(romfs)?;
     let picked = catalogue.picked(skips);
-    let cuts = catalogue.cut(skips, &all);
+    let cuts = catalogue.cut(skips, all);
     let at_end = |n: &str| {
         [&FLAG_AT_END[..], &ZELDA, &IMPA]
             .iter()
@@ -394,10 +393,10 @@ pub fn skip(romfs: &Romfs, skips: &Skips) -> Result<(Rewrites, Vec<String>)> {
         flags.extend(great_deku_flags());
     }
     let skipped = picked.iter().copied().chain(cuts.iter().map(|(c, _)| *c));
-    flags.extend(arrivals::visits(&all, skipped.map(|c| c.name.as_str())));
+    flags.extend(arrivals::visits(all, skipped.map(|c| c.name.as_str())));
     if skips.arrivals {
         let cut_names: BTreeSet<&str> = cuts.iter().map(|(c, _)| c.name.as_str()).collect();
-        arrivals::skip(romfs, &all, &cut_names, &mut out, &mut flags)?;
+        arrivals::skip(romfs, all, &cut_names, &mut out, &mut flags)?;
     }
     flags.sort();
     flags.dedup();
@@ -511,7 +510,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let (_, flags) = skip(&romfs, &every()).unwrap();
+        let (_, flags) = skip(&romfs, &Flows::load(&romfs).unwrap(), &every()).unwrap();
         for area in [
             flag::KOKIRI_FOREST,
             flag::DEATH_MOUNTAIN_TRAIL,
@@ -520,7 +519,7 @@ mod tests {
             let visit = format!("{}.{area}=true", field::IS_VISIT_LOCATION);
             assert!(flags.contains(&visit), "{visit}");
         }
-        let (_, none) = skip(&romfs, &Skips::default()).unwrap();
+        let (_, none) = skip(&romfs, &Flows::load(&romfs).unwrap(), &Skips::default()).unwrap();
         assert!(none.is_empty());
     }
 
@@ -551,7 +550,7 @@ mod tests {
             great_deku: true,
             ..Default::default()
         };
-        let (_, flags) = skip(&romfs, &skips).unwrap();
+        let (_, flags) = skip(&romfs, &Flows::load(&romfs).unwrap(), &skips).unwrap();
         for f in [
             &format!("{}.{}=true", flag::HAVE_PLAYED_EVENT, scene::LAKE_HRL_0010),
             &format!("{}=true", flag::NPC_LAKE_HRL_0010_JUST_BEFORE_TALK),
@@ -576,7 +575,7 @@ mod tests {
             saria: true,
             ..Default::default()
         };
-        let (out, flags) = skip(&romfs, &skips).unwrap();
+        let (out, flags) = skip(&romfs, &Flows::load(&romfs).unwrap(), &skips).unwrap();
         let bridge = Flowchart::parse(&out[&flows::rel(BRIDGE)])
             .unwrap()
             .unwrap();
@@ -597,7 +596,7 @@ mod tests {
             return;
         };
         let skips = every();
-        let (out, flags) = skip(&romfs, &skips).unwrap();
+        let (out, flags) = skip(&romfs, &Flows::load(&romfs).unwrap(), &skips).unwrap();
         let rendered = |flow: &str| {
             let f = Flowchart::parse(&out[&flows::rel(flow)]).unwrap().unwrap();
             flows::render(&f)
@@ -694,7 +693,7 @@ mod tests {
             arrivals: false,
             ..every()
         };
-        let (out, flags) = skip(&romfs, &skips).unwrap();
+        let (out, flags) = skip(&romfs, &all, &skips).unwrap();
         let cuts = catalogue.cut(&skips, &all);
         assert!(cuts.len() > 60, "{}", cuts.len());
         let mut copied = 0;
@@ -743,7 +742,7 @@ mod tests {
             areas: BTreeSet::from(["goron"]),
             ..Default::default()
         };
-        let (out, flags) = skip(&romfs, &skips).unwrap();
+        let (out, flags) = skip(&romfs, &all, &skips).unwrap();
         let cuts = catalogue.cut(&skips, &all);
         let names: Vec<&str> = cuts.iter().map(|(c, _)| c.name.as_str()).collect();
         assert_eq!(
