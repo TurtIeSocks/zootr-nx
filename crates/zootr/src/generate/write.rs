@@ -89,7 +89,7 @@ pub(super) fn flows(
     }
     let pieces = pickups::dealt(romfs, new_game)?;
     if new_game.fortress_keys.moved() {
-        fortress::give(romfs, &mut rewrites, &pieces, drops)?;
+        fortress::give(romfs, &mut rewrites, &pieces, drops, new_game.progressive)?;
     }
     picked::delete_letter(romfs, &mut rewrites, &picked::holders(&pieces, drops))?;
     if ice_traps::springs(new_game) {

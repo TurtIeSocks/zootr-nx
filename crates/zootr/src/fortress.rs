@@ -4,18 +4,20 @@
 //! their key as a drop lose it, so the one key a thief gives is the seed's.
 //!
 //! The flow names the key actor by its name, so each call is pointed at
-//! the actor now placed. A key that was swapped never sets the Bool the
-//! carpenters read, so the flow sets it after the thief's call.
+//! the actor now placed. A key showing a line a step at a time is one
+//! placement per step, so the call is copied per step, each behind its
+//! step's gate. A key that was swapped never sets the Bool the carpenters
+//! read, so the flow sets it after the thief's call.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{EventKind, Flowchart, Value};
 
 use crate::checks::{Drop, ItemCheck};
-use crate::flows::SET_BOOL;
-use crate::flows::{self, Rewrites, running};
+use crate::flows::{self, GAME_DATA, IS_BOOL, Rewrites, SET_BOOL, running, string};
 use crate::known::{Name, field, flow};
+use crate::pickups::steps;
 use crate::{keys, pickups};
 
 const FLOW: &Name = flow::SAGE_OF_SPIRIT_RESCUE_CARPENTER;
@@ -28,6 +30,8 @@ pub const CARRYING: [u64; 3] = [
 ];
 /// The call's argument naming the key's actor.
 const KEY: &Name = flow::OBJ_SMALL_KEY;
+/// The query reading a BoolExp. Case 0 is true.
+const IS_EXP: &Name = flow::EVENT_QUERY_IS_GAME_DATA_BOOL_EXP;
 
 /// Whether `check` is a thief's own drop, which a seed with Fortress keys
 /// clears and checks the placed key for instead.
@@ -85,20 +89,23 @@ fn thief_of(key: &str) -> Result<(String, String)> {
     ))
 }
 
-/// Point each moved key's call at the actor now placed there, and set the
-/// key's Bool after it, for the Fortress keys of `pieces` that `drops`
-/// changes.
+/// Point each moved key's call at the actor now placed there, one call
+/// per step when it shows a line a step at a time, and set the key's Bool
+/// after it, for the Fortress keys of `pieces` that `drops` changes.
 pub fn give(
     romfs: &ounce_formats::Romfs,
     rewrites: &mut Rewrites,
     pieces: &[ItemCheck],
     drops: &HashMap<u64, Drop>,
+    progressive: bool,
 ) -> Result<()> {
-    // A thief's key never shows a step at a time, whatever the setting.
-    let moved: Vec<_> = pickups::moved(pieces, drops, false)
-        .into_iter()
-        .filter(|m| m.vanilla.starts_with(keys::FORTRESS_KEY))
-        .collect();
+    // Each key's steps, holder's own first.
+    let mut moved: BTreeMap<&str, Vec<_>> = BTreeMap::new();
+    for m in pickups::moved(pieces, drops, progressive) {
+        if m.vanilla.starts_with(keys::FORTRESS_KEY) {
+            moved.entry(m.vanilla).or_default().push(m);
+        }
+    }
     if moved.is_empty() {
         return Ok(());
     }
@@ -107,8 +114,10 @@ pub fn give(
             .first()
             .with_context(|| format!("{FLOW} sets no Bool"))?;
         let set_bool = flows::model(flow, SET_BOOL, sets)?;
-        for m in &moved {
-            let (entry, flag) = thief_of(m.vanilla)?;
+        let asks = flows::switch(flow, IS_BOOL).with_context(|| format!("{FLOW} asks no Bool"))?;
+        let is_bool = flows::model(flow, IS_BOOL, asks)?;
+        for (vanilla, placed) in &moved {
+            let (entry, flag) = thief_of(vanilla)?;
             let call = flow.entry_points.iter().find(|e| e.name == entry);
             let call = call.and_then(|e| e.main);
             let call = call.with_context(|| format!("{FLOW} has no {entry}"))?;
@@ -116,14 +125,31 @@ pub fn give(
                 matches!(flow.events[call as usize].kind, EventKind::SubFlow { .. }),
                 "{entry} doesn't start with a call"
             );
-            rename(flow, call, &m.actor)?;
-            let n = m
-                .vanilla
-                .strip_prefix(keys::FORTRESS_KEY)
-                .unwrap_or_default();
+            let into = flow.links_to(call);
+            rename(flow, call, &placed[0].actor)?;
+            let n = vanilla.strip_prefix(keys::FORTRESS_KEY).unwrap_or_default();
             // Each lands right after the call, so the key's Bool runs first.
             for flag in [gave(n), flag] {
                 flows::set_after(flow, &set_bool, call, &flag, Value::Bool(vec![true]))?;
+            }
+            // Each step past the holder's own calls with its key, joining
+            // the holder's call at its Bools.
+            let mut head = call;
+            for m in &placed[1..] {
+                let copy = flow.push(flow.events[call as usize].kind.clone());
+                rename(flow, copy, &m.actor)?;
+                let mut params = is_bool.params.clone();
+                flows::set(&mut params, GAME_DATA, string(&steps::gate(m.hash)))?;
+                let (actor, query) = flow.query(&is_bool.actor, IS_EXP);
+                head = flow.push(EventKind::Switch {
+                    actor,
+                    query,
+                    params,
+                    cases: vec![(0, copy), (1, head)],
+                });
+            }
+            for link in into {
+                flow.link(link, Some(head))?;
             }
         }
         Ok(())
@@ -141,7 +167,7 @@ mod tests {
     use super::*;
     use crate::checks::scan;
     use crate::game::dev_dump;
-    use crate::known::{actor, field, flag};
+    use crate::known::{actor, field, flag, item};
 
     #[test]
     fn four_keys_are_checks_and_three_thieves_carry_one() {
@@ -182,7 +208,7 @@ mod tests {
         let key = pieces.iter().find(|c| c.item.ends_with("_01")).unwrap();
         let drops = HashMap::from([(key.hash, Drop::from(keys::INSTEAD.to_string()))]);
         let mut rewrites = Rewrites::new();
-        give(&romfs, &mut rewrites, &pieces, &drops).unwrap();
+        give(&romfs, &mut rewrites, &pieces, &drops, false).unwrap();
         let actor = pickups::moved(&pieces, &drops, false).remove(0).actor;
         let flow = Flowchart::parse(&rewrites[&flows::rel(FLOW)])
             .unwrap()
@@ -236,6 +262,46 @@ mod tests {
         );
     }
 
+    #[test]
+    fn a_stepping_key_is_called_by_each_steps_actor_behind_its_gate() {
+        let Some(romfs) = dev_dump() else { return };
+        let pieces = pickups::FORTRESS_KEYS.checks(&romfs).unwrap();
+        let key = pieces.iter().find(|c| c.item.ends_with("_01")).unwrap();
+        let drops = HashMap::from([(key.hash, Drop::from(item::HOOKSHOT.to_string()))]);
+        let mut rewrites = Rewrites::new();
+        give(&romfs, &mut rewrites, &pieces, &drops, true).unwrap();
+        let placed = pickups::moved(&pieces, &drops, true);
+        assert_eq!(placed.len(), 2, "the Hookshot, then the Longshot");
+        let flow = Flowchart::parse(&rewrites[&flows::rel(FLOW)])
+            .unwrap()
+            .unwrap();
+        let main = flow
+            .entry_points
+            .iter()
+            .find(|e| e.name == THIEVES[0].get());
+        let at = |e: u16| &flow.events[e as usize].kind;
+        let EventKind::Switch { params, cases, .. } = at(main.unwrap().main.unwrap()) else {
+            panic!("a gate")
+        };
+        let gate = flows::param(params, flows::GAME_DATA).unwrap();
+        assert_eq!(gate, steps::gate(placed[1].hash));
+        let calls = |e: u16| {
+            let EventKind::SubFlow { params, next, .. } = at(e) else {
+                panic!("a call")
+            };
+            let Some((_, Value::ActorId { name, .. })) = params.iter().find(|p| p.0 == KEY) else {
+                panic!("an actor")
+            };
+            (name.clone(), *next)
+        };
+        let (shown, joins) = calls(cases[0].1);
+        let (own, next) = calls(cases[1].1);
+        assert_eq!(shown, placed[1].actor);
+        assert_eq!(own, placed[0].actor);
+        assert!(next.is_some());
+        assert_eq!(joins, next, "both run the key's Bools");
+    }
+
     fn key_actor(n: usize) -> String {
         format!("{}{n:02}", keys::FORTRESS_KEY)
     }
@@ -260,7 +326,7 @@ mod tests {
         let Some(romfs) = dev_dump() else { return };
         let pieces = pickups::FORTRESS_KEYS.checks(&romfs).unwrap();
         let mut rewrites = Rewrites::new();
-        give(&romfs, &mut rewrites, &pieces, &HashMap::new()).unwrap();
+        give(&romfs, &mut rewrites, &pieces, &HashMap::new(), true).unwrap();
         assert!(rewrites.is_empty());
     }
 }

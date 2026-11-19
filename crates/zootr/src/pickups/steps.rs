@@ -6,9 +6,10 @@
 //! in a loaded map swaps once Link levels up. A drop already lying removes
 //! itself ([`super::stale`]).
 //!
-//! A holder a logic module makes appear or watches can't be copied: the
-//! module makes or watches only the holder (`ItemCheck::watched`). It still
-//! refuses these items (EIE #4).
+//! A logic module that makes or watches a holder (`ItemCheck::watched`)
+//! gets its nodes copied for each step ([`super::groups`],
+//! [`super::nodes`]). A thief's call names each step's key in turn
+//! (`fortress::give`).
 
 use std::collections::HashMap;
 
@@ -37,6 +38,12 @@ pub(super) fn of(of: u64, item: &str, progressive: bool) -> Option<Vec<(u64, &'s
     let steps = shows::steps(item, progressive)?.into_iter().enumerate();
     let step = |(k, (shows, program))| (copy_hash(of, k), shows, Step { of, k, program });
     Some(steps.map(step).collect())
+}
+
+/// The BoolExp a step's placement stands by, true while it's the step its
+/// holder gives and isn't picked.
+pub(crate) fn gate(placement: u64) -> String {
+    format!("Rando_Step_{placement}")
 }
 
 /// Whether a pickup dealt `item` might show it a step at a time: ammo, or
@@ -89,7 +96,7 @@ impl Steps {
             };
             let unpicked = not(by_name(&picked::flag(step.of), Op::Bool));
             let program = shows::within(own, and(step.program.clone(), unpicked), gd)?;
-            let gate = format!("Rando_Step_{}", m.hash);
+            let gate = gate(m.hash);
             steps.exps.push((gate.clone(), program));
             steps.gates.insert(m.hash, gate);
             if step.k > 0 {
