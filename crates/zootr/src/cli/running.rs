@@ -270,6 +270,15 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             game.kill()?;
             "sent".into()
         }
+        DevCommand::Slay {
+            target,
+            within,
+            json,
+            ..
+        } => match target {
+            Some(t) => said(&game.slay(romfs, &dev::Target::parse(&t), within)?, json)?,
+            None => said(&game.foes(within)?, json)?,
+        },
         DevCommand::Freeze => match game.freeze()? {
             0 => "sent".into(),
             n => format!("sent, after {n} still waiting"),

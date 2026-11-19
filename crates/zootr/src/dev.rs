@@ -21,10 +21,12 @@ use crate::patch;
 
 mod place;
 mod setup;
+mod slay;
 
 pub use place::{Place, known, other_age, places};
 pub use setup::{Applied, Goal, Value, value};
 use setup::{Grant, grants, plan_give};
+pub use slay::{Fate, Foe, Lines, Slain, Target};
 
 /// The arrival event a teleport plays. Some areas may want their own.
 const ARRIVE: &Name = scene::SY_BANC_CHANGE_ARRIVE;
