@@ -69,6 +69,12 @@ fn holds(session: &str, look: bool) -> Result<()> {
     if !from_claude() {
         return Ok(());
     }
+    checked(session, look)
+}
+
+/// Whether `session` holds this machine's game, renewing the hold unless
+/// `look`, from any shell.
+fn checked(session: &str, look: bool) -> Result<()> {
     ensure!(
         !session.is_empty(),
         "name this Claude session: set {SESSION} (or pass --session) to the name it joined the queue with"
@@ -93,9 +99,35 @@ fn holds(session: &str, look: bool) -> Result<()> {
 /// channel closes once a renewal is refused, so the run stops rather than
 /// outlive its turn.
 pub fn kept(session: String, every: std::time::Duration) -> std::sync::mpsc::Receiver<()> {
+    keeping(every, move || hold(&session))
+}
+
+/// [`kept`] for a harness run (the drill ladder), from any shell: a
+/// systemd unit isn't Claude's shell, yet its run must hold its turn like
+/// one. Refused unless `session` holds this machine's game now.
+pub fn harness(
+    session: String,
+    every: std::time::Duration,
+) -> Result<std::sync::mpsc::Receiver<()>> {
+    checked(&session, false)?;
+    Ok(keeping(every, move || checked(&session, false)))
+}
+
+fn keeping(
+    every: std::time::Duration,
+    renew: impl FnMut() -> Result<()> + Send + 'static,
+) -> std::sync::mpsc::Receiver<()> {
     let (keep, stop) = std::sync::mpsc::channel();
-    std::thread::spawn(move || renewing(every, || hold(&session), keep));
+    std::thread::spawn(move || renewing(every, renew, keep));
     stop
+}
+
+/// Whether the run [`kept`] or [`harness`] keeps has lost its turn.
+pub fn lost(stop: &std::sync::mpsc::Receiver<()>) -> bool {
+    matches!(
+        stop.try_recv(),
+        Err(std::sync::mpsc::TryRecvError::Disconnected)
+    )
 }
 
 /// Renews every `every` until a renewal is refused, then drops `keep`.
@@ -294,6 +326,20 @@ impl std::fmt::Display for Turn {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_harness_run_names_its_session_from_any_shell() {
+        let err = harness(String::new(), std::time::Duration::ZERO).unwrap_err();
+        assert!(err.to_string().contains(SESSION), "{err:#}");
+    }
+
+    #[test]
+    fn a_run_has_lost_its_turn_once_the_keeper_lets_go() {
+        let (keep, stop) = std::sync::mpsc::channel::<()>();
+        assert!(!lost(&stop));
+        drop(keep);
+        assert!(lost(&stop));
+    }
 
     #[test]
     fn a_kept_run_stops_once_a_renewal_is_refused() {

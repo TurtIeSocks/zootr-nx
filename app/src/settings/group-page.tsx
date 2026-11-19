@@ -11,6 +11,7 @@ import { Checklist } from "@/settings/checklist";
 import { lockedBy, untested } from "@/settings/setting";
 import { LockedBy, SettingRow } from "@/settings/setting-row";
 import { SettingsSection } from "@/settings/settings-section";
+import { StartInventory } from "@/settings/start-inventory";
 import { PageHeader } from "@/shell/page-header";
 import { changeSettings, useConfig } from "@/stores/config";
 
@@ -20,13 +21,15 @@ export interface GroupPageProps {
   group: string;
 }
 
-/** One schema group, top to bottom: its settings in a card, then each
- * subgroup's toggles as a checklist. Call it inside a request, which the
+/** One schema group, top to bottom: its settings in a card, a starting
+ * inventory's grid under them, then each subgroup's toggles as a
+ * checklist. Call it inside a request, which the
  * header's reset runs in. */
 export function GroupPage({ group }: GroupPageProps) {
   const [schema] = useConfig.usePath("schema");
   const defs = schema.filter((d) => d.group === group);
   const rows = defs.filter((d) => !listed(d));
+  const grids = rows.filter((d) => d.kind.type === "inventory");
   const subgroups = [
     ...new Set(defs.flatMap((d) => (listed(d) ? [d.subgroup ?? ""] : []))),
   ];
@@ -40,6 +43,9 @@ export function GroupPage({ group }: GroupPageProps) {
           ))}
         </SettingsSection>
       )}
+      {grids.map((d) => (
+        <StartInventory key={d.id} def={d} />
+      ))}
       {subgroups.map((g) => (
         <Subgroup
           key={g}

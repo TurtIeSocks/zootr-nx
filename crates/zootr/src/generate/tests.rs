@@ -119,16 +119,17 @@ fn grants_land_on_top_of_the_intro_skip() {
             .unwrap()
             .unwrap()
     );
-    new_game.start = vec![&starting::ITEMS[0], &starting::ITEMS[3]];
+    new_game.start = starting::Start::of(&["kokiri-sword", "boomerang"]);
     let both = parse(&flows(&new_game).unwrap().0);
     let save = crate::flows::only(&both, starting::AUTOSAVE).unwrap();
     let callers = skipped.links_to(save);
-    let [bag, sword] = crate::flows::running(&both, crate::flows::GRANT)[..] else {
+    // The grid's order: the Boomerang's cell comes before the sword's.
+    let [sword, boomerang] = crate::flows::running(&both, crate::flows::GRANT)[..] else {
         panic!("two grants")
     };
-    assert_eq!(both.links_to(sword), callers);
-    assert_eq!(both.links_to(bag), [Link::Next(sword)]);
-    assert_eq!(both.links_to(save), [Link::Next(bag)]);
+    assert_eq!(both.links_to(boomerang), callers);
+    assert_eq!(both.links_to(sword), [Link::Next(boomerang)]);
+    assert_eq!(both.links_to(save), [Link::Next(sword)]);
     assert_eq!(both.entry_points, skipped.entry_points);
     for (i, e) in (0u16..).zip(&skipped.events) {
         let runs_save = callers
@@ -150,7 +151,7 @@ fn a_moved_card_and_a_started_quest_write_their_flows_with_the_rest() {
         return;
     };
     let new_game = NewGame {
-        start: vec![&starting::ITEMS[0]],
+        start: starting::Start::of(&["kokiri-sword"]),
         progress: vec![(flow::SAGE_OF_SPIRIT.to_string(), "Step02".into())],
         ..Default::default()
     };
@@ -816,15 +817,15 @@ fn a_logic_seed_lists_what_link_starts_with() {
         return;
     };
     let dir = std::env::temp_dir().join(format!("zootr-start-{}", std::process::id()));
-    let sword = &starting::ITEMS[0];
+    let sword = item::SWORD_KOKIRI.get();
     let new_game = NewGame {
-        start: vec![sword],
+        start: starting::Start::of(&["kokiri-sword"]),
         on: ["open-forest".to_owned()].into(),
         ..NewGame::default()
     };
     let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
     std::fs::remove_dir_all(dir).unwrap();
-    let held = report.start.items.iter().find(|h| h.item == sword.actor);
+    let held = report.start.items.iter().find(|h| h.item == sword);
     let held = held.expect("the starting item is listed");
     assert!(
         held.count == 1 && !held.name.starts_with("Item_"),

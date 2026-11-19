@@ -192,3 +192,39 @@ impl ScrubPrice {
         ][self as usize]
     }
 }
+
+/// How much of the seed's junk becomes ice traps.
+#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
+pub enum IceTraps {
+    /// None
+    #[default]
+    Off,
+    /// One in ten
+    Some,
+    /// Half
+    Lots,
+    /// All of it
+    Mayhem,
+}
+
+impl IceTraps {
+    pub(super) fn label(self) -> &'static str {
+        match self {
+            Self::Off => "Off",
+            Self::Some => "Some (1 in 10)",
+            Self::Lots => "Lots (half)",
+            Self::Mayhem => "Mayhem (all junk)",
+        }
+    }
+
+    /// How many of `junk` pieces become traps: a tenth and a half rounded
+    /// up, so a seed with any junk gets at least one.
+    pub fn of(self, junk: usize) -> usize {
+        match self {
+            Self::Off => 0,
+            Self::Some => junk.div_ceil(10),
+            Self::Lots => junk.div_ceil(2),
+            Self::Mayhem => junk,
+        }
+    }
+}

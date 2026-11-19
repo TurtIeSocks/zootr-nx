@@ -20,6 +20,8 @@ export const commands = {
 	 *  A share code brings its own settings and extras.
 	 */
 	generate: (seed: string | null, install: boolean, steps: Channel<StepEvent>) => typedError<Summary, string>(__TAURI_INVOKE("generate", { seed, install, steps })),
+	/**  Reads a share code's settings and extras without generating a seed. */
+	shareSettings: (code: string) => typedError<SharedBuild, string>(__TAURI_INVOKE("share_settings", { code })),
 	/**
 	 *  Install one slot of an Archipelago multiworld from its `.apznx`. The
 	 *  file brings its own settings, placements and seed.
@@ -75,6 +77,15 @@ export const commands = {
 	saveItems: (slot: number, pending: Pending) => typedError<ItemsView, string>(__TAURI_INVOKE("save_items", { slot, pending })),
 	/**  The edits a click on a grid cell makes, to add to the pending ones. */
 	saveClick: (slot: number, pending: Pending, at: number, intent: Intent) => typedError<Edit[], string>(__TAURI_INVOKE("save_click", { slot, pending, at, intent })),
+	/**
+	 *  The grid, caps and Status panel of a new game starting with `start`,
+	 *  for the settings' Inventory panel.
+	 */
+	startItems: (start: StartInventory) => typedError<ItemsView, string>(__TAURI_INVOKE("start_items", { start })),
+	/**  `start` after a click on a grid cell. */
+	startClick: (start: StartInventory, at: number, intent: Intent) => typedError<StartInventory, string>(__TAURI_INVOKE("start_click", { start, at, intent })),
+	/**  `start` after a Status field's commit. */
+	startSet: (start: StartInventory, edit: Edit) => typedError<StartInventory, string>(__TAURI_INVOKE("start_set", { start, edit })),
 	/**
 	 *  `pending` cut to the edits that change the slot, and how many things
 	 *  they change. Refuses an edit the save won't take.
@@ -524,7 +535,12 @@ export type ItemsView = {
 
 export type Kind = { type: "toggle"; default: boolean } | 
 /**  One of `options`, saved by id. */
-{ type: "choice"; default: string; options: Choice[] };
+{ type: "choice"; default: string; options: Choice[] } | 
+/**
+ *  What a new game starts holding, the save editor's grid: a
+ *  [`starting::Start`]. Unset is the game's own.
+ */
+{ type: "inventory" };
 
 /**  What a seed is for, in the player's words. Both may be blank. */
 export type Label = {
@@ -699,6 +715,14 @@ export type SettingsFile = {
 	lines?: never,
 });
 
+/**  What a share code builds with, read without building it. */
+export type SharedBuild = {
+	settings: { [key in string]: Value },
+	/**  How many checks its plando pins. */
+	pins: number,
+	test: TestSetup,
+};
+
 /**  Which side of the actor Link lands on, by its facing. */
 export type Side = "front" | "back" | "left" | "right";
 
@@ -808,6 +832,9 @@ export type Start = {
 	/**  The settings logic's rules read that are on, by label. */
 	settings: string[],
 };
+
+/**  What a new game starts holding, by word. */
+export type StartInventory = { [key in string]: number };
 
 /**  A number a row shows beside its icon. */
 export type Stat = {

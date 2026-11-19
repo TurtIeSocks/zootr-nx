@@ -140,7 +140,8 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
     // One swap over both, so a starting item leaves one spot either way.
     let mut all: Vec<_> = kept.iter().map(|c| own(c)).collect();
     all.append(&mut items);
-    starting::swap_out(&mut all, &new_game.start);
+    let owned = new_game.start.owned();
+    starting::swap_out(&mut all, &owned, level);
     let mut items = all.split_off(kept.len());
     let kept = kept.into_iter().zip(all);
     placed.extend(kept.map(|(check, item)| Placement { check, item }));
@@ -156,17 +157,24 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
 
 /// `fixed` placements first, then the deal's items at random, or left
 /// where they are in vanilla mode.
+#[cfg(test)]
 pub fn shuffle<'a>(
     checks: &'a [ItemCheck],
     seed: u64,
     fixed: &'a Fixed,
     new_game: &NewGame,
 ) -> Result<Vec<Placement<'a>>> {
+    scatter(deal(checks, fixed, new_game)?, seed, new_game)
+}
+
+/// `deal`'s placements, then its items at random, or left where they are
+/// in vanilla mode.
+pub fn scatter<'a>(deal: Deal<'a>, seed: u64, new_game: &NewGame) -> Result<Vec<Placement<'a>>> {
     let Deal {
         mut placed,
         free,
         mut items,
-    } = deal(checks, fixed, new_game)?;
+    } = deal;
     if !new_game.vanilla {
         Rng::new(seed).shuffle(&mut items);
     }
@@ -244,10 +252,10 @@ mod tests {
     use crate::narrowing::MAPS_COMPASSES;
     use crate::narrowing::tests::chest;
 
-    fn game(vanilla: bool, start: &[&'static starting::Item]) -> NewGame {
+    fn game(vanilla: bool, start: &[&str]) -> NewGame {
         NewGame {
             vanilla,
-            start: start.to_vec(),
+            start: starting::Start::of(start),
             ..Default::default()
         }
     }
@@ -413,16 +421,16 @@ mod tests {
     #[test]
     fn a_starting_item_leaves_the_pool_for_a_filler() {
         needs_names!();
-        let sword = &starting::ITEMS[0];
-        let checks = [chest(1, sword.actor), chest(2, "Item_B")];
+        let sword = item::SWORD_KOKIRI.get();
+        let checks = [chest(1, sword), chest(2, "Item_B")];
         let none = Fixed::new();
         for vanilla in [false, true] {
-            let p = shuffle(&checks, 7, &none, &game(vanilla, &[sword])).unwrap();
+            let p = shuffle(&checks, 7, &none, &game(vanilla, &["kokiri-sword"])).unwrap();
             let mut all = [holding(&p, 1), holding(&p, 2)];
             all.sort();
             assert_eq!(all, ["Item_B", starting::FILLER]);
         }
-        let p = shuffle(&checks, 7, &none, &game(true, &[sword])).unwrap();
+        let p = shuffle(&checks, 7, &none, &game(true, &["kokiri-sword"])).unwrap();
         assert_eq!(holding(&p, 1), starting::FILLER);
     }
 
@@ -430,19 +438,19 @@ mod tests {
     fn a_starting_item_outside_the_pool_changes_nothing() {
         needs_names!();
         let checks = [chest(1, "Item_A"), chest(2, "Item_B")];
-        let (shield, none) = (&starting::ITEMS[1], Fixed::new());
-        let p = shuffle(&checks, 7, &none, &game(true, &[shield])).unwrap();
+        let none = Fixed::new();
+        let p = shuffle(&checks, 7, &none, &game(true, &["deku-shield"])).unwrap();
         assert_eq!((holding(&p, 1), holding(&p, 2)), ("Item_A", "Item_B"));
     }
 
     #[test]
     fn plando_still_places_a_starting_item() {
         needs_names!();
-        let sword = &starting::ITEMS[0];
-        let checks = [chest(1, sword.actor), chest(2, "Item_B")];
-        let fixed = Fixed::from([(2, sword.actor.to_string())]);
-        let p = shuffle(&checks, 7, &fixed, &game(false, &[sword])).unwrap();
-        assert_eq!(holding(&p, 2), sword.actor);
+        let sword = item::SWORD_KOKIRI.get();
+        let checks = [chest(1, sword), chest(2, "Item_B")];
+        let fixed = Fixed::from([(2, sword.to_string())]);
+        let p = shuffle(&checks, 7, &fixed, &game(false, &["kokiri-sword"])).unwrap();
+        assert_eq!(holding(&p, 2), sword);
         assert_eq!(holding(&p, 1), "Item_B");
     }
 
@@ -514,7 +522,7 @@ mod tests {
         checks
     }
 
-    fn progressive(vanilla: bool, start: &[&'static starting::Item]) -> NewGame {
+    fn progressive(vanilla: bool, start: &[&str]) -> NewGame {
         NewGame {
             progressive: true,
             ..game(vanilla, start)
@@ -593,12 +601,12 @@ mod tests {
     #[test]
     fn kept_chests_hold_their_own_item_and_the_rest_still_deal() {
         needs_names!();
-        let sword = &starting::ITEMS[0];
+        let sword = item::SWORD_KOKIRI.get();
         let mut checks = with_gifts();
-        checks.push(chest(20, sword.actor));
+        checks.push(chest(20, sword));
         let new_game = NewGame {
             keep_chests: true,
-            ..game(false, &[sword])
+            ..game(false, &["kokiri-sword"])
         };
         let none = Fixed::new();
         let d = deal(&checks, &none, &new_game).unwrap();
@@ -612,13 +620,13 @@ mod tests {
     fn a_starting_fairy_ocarina_leaves_the_other_to_upgrade() {
         needs_names!();
         let (checks, none) = (with_gifts(), Fixed::new());
-        let fairy = &starting::ITEMS[4];
+        let fairy = item::OCARINA_FAIRY.get();
         let [saria, zelda] = [0, 1].map(|i| gifts::GIFTS[i].hash());
-        let p = shuffle(&checks, 7, &none, &progressive(true, &[fairy])).unwrap();
+        let p = shuffle(&checks, 7, &none, &progressive(true, &["fairy-ocarina"])).unwrap();
         assert_eq!(holding(&p, saria), starting::FILLER);
         assert_eq!(holding(&p, zelda), item::OCARINA_TIME);
-        let p = shuffle(&checks, 7, &none, &progressive(false, &[fairy])).unwrap();
-        let held: Vec<_> = p.iter().filter(|p| p.item == fairy.actor).collect();
+        let p = shuffle(&checks, 7, &none, &progressive(false, &["fairy-ocarina"])).unwrap();
+        let held: Vec<_> = p.iter().filter(|p| p.item == fairy).collect();
         assert_eq!(held.len(), 1, "one Fairy Ocarina left");
         assert!(p.iter().any(|p| p.item == starting::FILLER));
     }

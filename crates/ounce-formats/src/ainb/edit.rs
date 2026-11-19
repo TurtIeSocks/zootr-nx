@@ -19,14 +19,14 @@ const USES_DEFAULT: u32 = 0x80_0000;
 /// Param flags pointing into the blackboard or expressions of their file.
 const BOUND: u32 = 0xc200_0000;
 /// An output flag: something reads the output.
-const READ: u32 = 0x8000_0000;
+pub(super) const READ: u32 = 0x8000_0000;
 /// An output name's flag bits.
 const OUTPUT_FLAGS: u32 = 0xc000_0000;
 /// Where a copied child plug points until it's set.
 pub(super) const UNSET: i32 = -1;
 
 // Plug kinds.
-const GENERIC: usize = 0;
+pub(super) const GENERIC: usize = 0;
 const CHILD: usize = 2;
 const STRINGS: usize = 4;
 const INTS: usize = 5;
@@ -46,7 +46,7 @@ const INDEX: usize = 0x02;
 const ATTACHMENTS: usize = 0x04;
 const NAME: usize = 0x08;
 const EXPRESSIONS: usize = 0x18;
-const MULTI_COUNT: usize = 0x1c;
+pub(super) const MULTI_COUNT: usize = 0x1c;
 const ATTACHMENT_BASE: usize = 0x20;
 const QUERY_BASE: usize = 0x24;
 const QUERY_COUNT: usize = 0x26;
@@ -109,16 +109,16 @@ impl Table {
     }
 }
 
-fn word(bytes: &[u8], at: usize) -> u32 {
+pub(super) fn word(bytes: &[u8], at: usize) -> u32 {
     u32::from_le_bytes(bytes[at..at + 4].try_into().unwrap())
 }
 
-fn set_word(bytes: &mut [u8], at: usize, v: u32) {
+pub(super) fn set_word(bytes: &mut [u8], at: usize, v: u32) {
     bytes[at..at + 4].copy_from_slice(&v.to_le_bytes());
 }
 
 /// An input entry's source node and output, flags and value.
-fn input_fields(ty: ParamType) -> (usize, usize, usize) {
+pub(super) fn input_fields(ty: ParamType) -> (usize, usize, usize) {
     let ptr = if ty == ParamType::Pointer { 4 } else { 0 };
     (4 + ptr, 8 + ptr, 12 + ptr)
 }
@@ -187,12 +187,9 @@ impl File {
         let kind = src.kind();
         let plain = !matches!(kind, STRING_SELECTOR | EXPRESSION) && !MODULE_IO.contains(&kind);
         ensure!(plain, "can't copy node {node} of kind {kind}");
-        let extras = [ATTACHMENTS, EXPRESSIONS, EXPRESSIONS + 2, MULTI_COUNT];
+        let extras = [ATTACHMENTS, EXPRESSIONS, EXPRESSIONS + 2];
         let extra = extras.iter().any(|&at| src.u16_at(at) != 0);
-        ensure!(
-            !extra,
-            "node {node} has attachments, expressions or multi-inputs"
-        );
+        ensure!(!extra, "node {node} has attachments or expressions");
         for (k, plugs) in src.plugs.iter().enumerate() {
             let links = matches!(k, GENERIC | CHILD | STRINGS | INTS);
             ensure!(links || plugs.is_empty(), "node {node} has kind {k} plugs");
@@ -208,6 +205,7 @@ impl File {
         copy.set_u32(NAME, self.intern(from.str(src.u32_at(NAME))?));
         copy.set_u32(ATTACHMENT_BASE, 0);
         copy.set_u32(QUERY_BASE, 0);
+        copy.set_u16(MULTI_COUNT, 0);
         copy.entry[GUID..GUID + 16].copy_from_slice(&self.guid(n)?);
         for t in 0..TYPES.len() {
             for (table, range) in [
@@ -266,8 +264,6 @@ impl File {
             }
             if table == Table::Input {
                 let (source, flags, _) = input_fields(ty);
-                let node = i16::from_le_bytes([e[source], e[source + 1]]);
-                ensure!(node > MULTI, "an input with several sources");
                 e[source..source + 4].copy_from_slice(&[0xff, 0xff, 0, 0]);
                 let unlinked = word(&e, flags) | USES_DEFAULT;
                 set_word(&mut e, flags, unlinked);
@@ -308,7 +304,7 @@ impl File {
     }
 
     /// `node`'s input `name`: its type and its index in that type's table.
-    fn input(&self, node: usize, name: &str) -> Result<(usize, usize)> {
+    pub(super) fn input(&self, node: usize, name: &str) -> Result<(usize, usize)> {
         let n = self.node(node)?;
         for (t, ty) in TYPES.iter().enumerate() {
             let len = ty.input_len();
@@ -323,7 +319,7 @@ impl File {
 
     /// `node`'s type `t` output `name`: its place among the node's outputs
     /// of that type, and its index in the table.
-    fn output(&self, node: usize, t: usize, name: &str) -> Result<(usize, usize)> {
+    pub(super) fn output(&self, node: usize, t: usize, name: &str) -> Result<(usize, usize)> {
         let len = TYPES[t].output_len();
         for (k, i) in self.node(node)?.outputs(t).enumerate() {
             if self.str(word(&self.outputs[t], i * len) & !OUTPUT_FLAGS)? == name {
@@ -428,7 +424,7 @@ impl File {
     /// Adds `source` to the query nodes `reader` waits on, inserting it
     /// after the reader's own and moving the ones behind, so the game's
     /// order stays.
-    fn add_query(&mut self, reader: usize, source: usize) -> Result<()> {
+    pub(super) fn add_query(&mut self, reader: usize, source: usize) -> Result<()> {
         let place = self.nodes[..source].iter().filter(|n| n.is_query()).count();
         let place = u16::try_from(place)?;
         let node = &self.nodes[reader];
@@ -489,17 +485,39 @@ impl File {
         Ok(())
     }
 
-    /// Sets `node`'s unlinked `input` to `value`.
-    pub fn set_input(&mut self, node: usize, input: &str, value: &Value) -> Result<()> {
-        let (t, i) = self.input(node, input)?;
-        let ty = TYPES[t];
-        let raw = match (ty, value) {
+    /// `value` as a type `ty` param's word.
+    fn raw(&mut self, ty: ParamType, name: &str, value: &Value) -> Result<u32> {
+        Ok(match (ty, value) {
             (ParamType::Int, Value::Int(v)) => *v as u32,
             (ParamType::Bool, Value::Bool(v)) => *v as u32,
             (ParamType::Float, Value::Float(v)) => v.to_bits(),
             (ParamType::String, Value::String(s)) => self.intern(s),
-            _ => bail!("{input} is {ty:?}, not {value:?}"),
-        };
+            _ => bail!("{name} is {ty:?}, not {value:?}"),
+        })
+    }
+
+    /// Sets `node`'s property `name` to `value`.
+    pub fn set_property(&mut self, node: usize, name: &str, value: &Value) -> Result<()> {
+        for (t, &ty) in TYPES.iter().enumerate() {
+            let len = ty.property_len();
+            for i in self.node(node)?.properties(t) {
+                if self.str(word(&self.properties[t], i * len))? != name {
+                    continue;
+                }
+                let raw = self.raw(ty, name, value)?;
+                let at = Table::Property.flags(ty).context("no flags")? + 4;
+                set_word(&mut self.properties[t][i * len..], at, raw);
+                return Ok(());
+            }
+        }
+        bail!("node {node} has no property {name}")
+    }
+
+    /// Sets `node`'s unlinked `input` to `value`.
+    pub fn set_input(&mut self, node: usize, input: &str, value: &Value) -> Result<()> {
+        let (t, i) = self.input(node, input)?;
+        let ty = TYPES[t];
+        let raw = self.raw(ty, input, value)?;
         let (_, flags, at) = input_fields(ty);
         let len = ty.input_len();
         let e = &mut self.inputs[t][i * len..(i + 1) * len];

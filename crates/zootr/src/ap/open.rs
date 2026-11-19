@@ -12,7 +12,7 @@ use super::GAME;
 use super::ids::Ids;
 use super::names;
 use super::seed::{Dealt, base};
-use crate::foreign::{self, Foreign};
+use crate::foreign::{self, Foreign, Owner};
 use crate::known::{Name, item};
 use crate::settings::Settings;
 use crate::shuffle::Fixed;
@@ -202,8 +202,7 @@ impl ApSeed {
                 actor,
                 shows,
                 model,
-                item,
-                player,
+                owner: Owner::Player { item, player },
             })
             .collect();
         let give = self
@@ -275,7 +274,12 @@ mod tests {
             .filter(|i| foreign::is_foreign(i))
             .collect();
         assert_eq!(copies.len(), resolved.foreign.len());
-        assert!(resolved.foreign.iter().all(|f| f.player == "Zelda"));
+        assert!(
+            resolved
+                .foreign
+                .iter()
+                .all(|f| matches!(&f.owner, Owner::Player { player, .. } if player == "Zelda"))
+        );
         // Zelda's items are ours, so each copy shows the item itself.
         assert!(resolved.foreign.iter().all(|f| f.shows != STAND_IN.get()));
         assert!(resolved.foreign.iter().all(|f| f.model.is_none()));
@@ -301,7 +305,7 @@ mod tests {
             let f = resolved
                 .foreign
                 .iter()
-                .find(|f| f.item == format!("Fake {class}"));
+                .find(|f| matches!(&f.owner, Owner::Player { item, .. } if *item == format!("Fake {class}")));
             let f = f.unwrap();
             assert_eq!(f.shows, STAND_IN.get());
             f.model.clone().unwrap()

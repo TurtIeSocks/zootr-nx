@@ -1,4 +1,5 @@
 import { Dices, Loader2 } from "lucide-react";
+import { ChangeList } from "@/components/change-list";
 import { FloatingBar } from "@/components/floating-bar";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,11 +50,7 @@ export function DriftBar() {
         </PopoverTrigger>
         <PopoverContent side="top" className="text-[13px]">
           <p className="mb-1 font-medium">Changed from {from}</p>
-          <ul className="flex flex-col gap-0.5 text-ink-muted">
-            {changes.map((c) => (
-              <li key={c}>{c}</li>
-            ))}
-          </ul>
+          <ChangeList changes={changes} />
         </PopoverContent>
       </Popover>
       {blocked ? (

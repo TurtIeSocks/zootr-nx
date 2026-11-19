@@ -50,19 +50,20 @@ export const testOn = (t: FullTest) =>
   t.defaults.length > 0 ||
   t.progress.length > 0;
 
-/** A test setup in a few words: where it starts and what it adds. */
-export function testSummary(t: FullTest): string {
+/** A test setup in a few words, a phrase per part: where it starts, its
+ * items, flags and quest steps. `items` writes the items themselves, or
+ * how many. */
+export function testParts(
+  t: FullTest,
+  items = (give: string[]) =>
+    give.length > LISTED ? count(give.length, "item") : give.join(", "),
+): string[] {
   return [
     t.spawn && `starts at ${t.spawn}`,
-    t.give.length > 0 &&
-      (t.give.length > LISTED
-        ? count(t.give.length, "item")
-        : t.give.join(", ")),
+    t.give.length > 0 && items(t.give),
     t.defaults.length > 0 && count(t.defaults.length, "flag"),
     t.progress.length > 0 && count(t.progress.length, "quest step"),
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  ].filter((p): p is string => !!p);
 }
 
 /** Why no seed can be built right now, or "" when one can. Building one

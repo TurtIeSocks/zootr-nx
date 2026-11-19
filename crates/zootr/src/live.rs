@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Result, bail};
 
-use ounce_formats::{KEYED, murmur3};
+use ounce_formats::KEYED;
 
 use crate::config::Target;
 use crate::gamedata::GameData;
@@ -60,6 +60,8 @@ static TYPES: LazyLock<[Row; 21]> = LazyLock::new(|| {
         (27, field::W_STRING16_ARRAY, 0x70, List(0x50, 0x30, 0xc)),
     ]
 });
+/// Where the type tables start in the manager, and each one's size.
+const TABLES: u64 = 8;
 const TABLE: u64 = 0x60;
 /// More bytes than this in one read means the layout is off.
 const MAX: usize = 1 << 24;
@@ -75,6 +77,16 @@ pub trait Memory {
     fn read(&self, at: u64, len: usize) -> Result<Vec<u8>>;
 
     fn write(&self, at: u64, data: &[u8]) -> Result<()>;
+
+    /// Each range's bytes: over a bridge, in as few requests as it takes.
+    fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+        ranges.iter().map(|&(at, len)| self.read(at, len)).collect()
+    }
+
+    /// Where values were found, when this memory keeps them.
+    fn places(&self) -> Option<&Places> {
+        None
+    }
 
     fn u32(&self, at: u64) -> Result<u32> {
         Ok(u32::from_le_bytes(self.read(at, 4)?.try_into().unwrap()))
@@ -92,6 +104,14 @@ impl<M: Memory + ?Sized> Memory for &M {
 
     fn write(&self, at: u64, data: &[u8]) -> Result<()> {
         (**self).write(at, data)
+    }
+
+    fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+        (**self).read_many(ranges)
+    }
+
+    fn places(&self) -> Option<&Places> {
+        (**self).places()
     }
 }
 
@@ -144,6 +164,11 @@ fn manager(mem: &impl Memory, global: u64) -> Result<u64> {
     mem.u64(mem.u64(global)?)
 }
 
+/// Where `row`'s table sits in the manager.
+fn table(manager: u64, row: &Row) -> u64 {
+    manager + TABLES + TABLE * row.0
+}
+
 /// Every mapped value, in manager order, given the global from [`global`].
 pub fn snapshot(mem: &impl Memory, global: u64) -> Result<Vec<Value>> {
     values(mem, manager(mem, global)?)
@@ -173,32 +198,49 @@ fn keys_of(mem: &impl Memory, manager: u64) -> Result<BTreeSet<u64>> {
         .collect())
 }
 
+/// Every value in the type tables, in three requests over a bridge: the
+/// table headers, every map and entry list, then every value kept outside
+/// its entry.
 fn values(mem: &impl Memory, manager: u64) -> Result<Vec<Value>> {
-    let mut out = Vec::new();
-    for &(slot, kind, stride, shape) in TYPES.iter() {
-        let table = manager + 8 + TABLE * slot;
-        let count = mem.u32(table + 8)? as usize;
-        let mut hashes = vec![0; count];
-        let cap = mem.u32(table + 0x24)? as usize;
-        for pair in mem
-            .read(mem.u64(table + 0x18)?, sized(kind, cap * 8)?)?
-            .as_chunks::<8>()
-            .0
-        {
+    let slots = TYPES.iter().map(|row| row.0).max().unwrap_or(0) + 1;
+    let heads = mem.read(manager + TABLES, (TABLE * slots) as usize)?;
+    let mut lists = Vec::new();
+    for row in TYPES.iter() {
+        let &(_, kind, stride, _) = row;
+        let head = &heads[(TABLE * row.0) as usize..];
+        let (count, cap) = (word(head, 8) as usize, word(head, 0x24) as usize);
+        lists.push((quad(head, 0x18), sized(kind, cap * 8)?));
+        lists.push((quad(head, 0x10), sized(kind, count * stride)?));
+    }
+    let lists = mem.read_many(&lists)?;
+    let mut found = Vec::new();
+    for (row, [map, entries]) in TYPES.iter().zip(lists.as_chunks::<2>().0) {
+        let &(_, kind, stride, shape) = row;
+        let entries = entries.chunks_exact(stride);
+        let mut hashes = vec![0; entries.len()];
+        for pair in map.as_chunks::<8>().0 {
             let (hash, i) = (word(pair, 0), word(pair, 4) as usize);
-            if hash != 0 && i < count {
+            if hash != 0 && i < hashes.len() {
                 hashes[i] = hash;
             }
         }
-        let entries = mem.read(mem.u64(table + 0x10)?, sized(kind, count * stride)?)?;
-        for (e, hash) in entries.chunks_exact(stride).zip(hashes) {
-            if hash != 0 {
-                let items = items(mem, kind, e, shape)?;
-                out.push(Value { kind, hash, items });
-            }
+        for (e, hash) in entries.zip(hashes).filter(|(_, hash)| *hash != 0) {
+            found.push((kind, hash, e, shape, outside(kind, e, shape)?));
         }
     }
-    Ok(out)
+    let ranges: Vec<_> = (found.iter()).filter_map(|f| f.4).collect();
+    let mut kept = mem.read_many(&ranges)?.into_iter();
+    (found.into_iter())
+        .map(|(kind, hash, e, shape, at)| {
+            let bytes = if at.is_some() {
+                kept.next().unwrap_or_default()
+            } else {
+                Vec::new()
+            };
+            let items = value_of(kind, e, shape, &bytes);
+            Ok(Value { kind, hash, items })
+        })
+        .collect()
 }
 
 fn sized(kind: &str, len: usize) -> Result<usize> {
@@ -210,20 +252,31 @@ fn sized(kind: &str, len: usize) -> Result<usize> {
 
 /// The current value of entry `e`.
 fn items(mem: &impl Memory, kind: &str, e: &[u8], shape: Shape) -> Result<Vec<Vec<u8>>> {
+    let bytes = match outside(kind, e, shape)? {
+        Some((at, len)) => mem.read(at, len)?,
+        None => Vec::new(),
+    };
+    Ok(value_of(kind, e, shape, &bytes))
+}
+
+/// Where entry `e` keeps its value, when that's outside the entry.
+fn outside(kind: &str, e: &[u8], shape: Shape) -> Result<Option<(u64, usize)>> {
     Ok(match shape {
-        Inline(at, len) => vec![text(kind, &e[at..at + len])],
-        Blob(at) => {
-            let len = sized(kind, quad(e, at + 0x10) as usize)?;
-            vec![mem.read(quad(e, at + 8), len)?]
-        }
-        List(at, width, skip) => {
-            let len = sized(kind, quad(e, at) as usize * width)?;
-            mem.read(quad(e, at + 8), len)?
-                .chunks_exact(width)
-                .map(|x| text(kind, &x[skip..]))
-                .collect()
-        }
+        Inline(..) => None,
+        Blob(at) => Some((quad(e, at + 8), sized(kind, quad(e, at + 0x10) as usize)?)),
+        List(at, width, _) => Some((quad(e, at + 8), sized(kind, quad(e, at) as usize * width)?)),
     })
+}
+
+/// Entry `e`'s value, given the `bytes` that [`outside`] points at.
+fn value_of(kind: &str, e: &[u8], shape: Shape, bytes: &[u8]) -> Vec<Vec<u8>> {
+    match shape {
+        Inline(at, len) => vec![text(kind, &e[at..at + len])],
+        Blob(_) => vec![bytes.to_vec()],
+        List(_, width, skip) => (bytes.chunks_exact(width))
+            .map(|x| text(kind, &x[skip..]))
+            .collect(),
+    }
 }
 
 /// Text cut at its terminator, so leftovers past it don't count as changes.
@@ -377,6 +430,7 @@ impl Noise {
 pub struct Game {
     mem: Backend,
     global: u64,
+    places: Places,
 }
 
 /// How a [`Game`] reaches the game's memory.
@@ -403,6 +457,19 @@ impl Memory for Game {
             Backend::Mach(task) => mach::write(*task, at, data),
             Backend::Bridge(b) => b.write(at, data),
         }
+    }
+
+    fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+        match &self.mem {
+            Backend::Mach(task) => (ranges.iter())
+                .map(|&(at, len)| mach::read(*task, at, len))
+                .collect(),
+            Backend::Bridge(b) => b.read_many(ranges),
+        }
+    }
+
+    fn places(&self) -> Option<&Places> {
+        Some(&self.places)
     }
 }
 
@@ -460,6 +527,7 @@ impl Game {
         Ok(Self {
             mem: Backend::Bridge(bridge),
             global,
+            places: Places::default(),
         })
     }
 
@@ -488,6 +556,7 @@ impl Game {
                     return Ok(Self {
                         mem: Backend::Mach(task),
                         global,
+                        places: Places::default(),
                     });
                 }
             }
@@ -500,98 +569,6 @@ impl Game {
             flag::GAME_DATA
         )
     }
-}
-
-/// A table's row of [`TYPES`] and where `hash`'s entry sits in it, in any
-/// table the game keeps.
-fn find(mem: &impl Memory, global: u64, hash: u32) -> Result<Option<(&'static Row, u64)>> {
-    let manager = mem.u64(mem.u64(global)?)?;
-    for row in TYPES.iter() {
-        let (slot, kind, stride, _) = *row;
-        let table = manager + 8 + TABLE * slot;
-        let count = mem.u32(table + 8)?;
-        let cap = mem.u32(table + 0x24)? as usize;
-        let map = mem.read(mem.u64(table + 0x18)?, sized(kind, cap * 8)?)?;
-        let found = map
-            .as_chunks::<8>()
-            .0
-            .iter()
-            .find(|p| word(&p[..], 0) == hash);
-        if let Some(pair) = found {
-            let i = word(&pair[..], 4);
-            if i < count {
-                let entry = mem.u64(table + 0x10)? + u64::from(i) * stride as u64;
-                return Ok(Some((row, entry)));
-            }
-        }
-    }
-    Ok(None)
-}
-
-/// Where a value held inline keeps its current value: its type, address
-/// and width. A scalar's saved copy sits right after. See [`encode`] for
-/// what's writable.
-pub fn locate(mem: &impl Memory, global: u64, hash: u32) -> Result<(&'static str, u64, usize)> {
-    if let Some(((_, kind, _, Inline(off, len)), entry)) = find(mem, global, hash)? {
-        return Ok((kind, entry + *off as u64, *len));
-    }
-    bail!("{hash:#010x} isn't a value the game holds inline")
-}
-
-/// The most array elements [`read`] spells out.
-const SHOWN: usize = 64;
-
-/// The current value of any entry the game holds, as the Live tab shows it:
-/// an array's elements in brackets, a binary's size, a struct's members one
-/// per line, `?` for one the game doesn't hold.
-pub fn read(mem: &impl Memory, gd: &GameData, global: u64, hash: u32) -> Result<String> {
-    if gd.kind(hash) == Some("Struct") {
-        let lines: Vec<String> = gd
-            .members(hash)?
-            .into_iter()
-            .map(|(member, value)| {
-                let now = read(mem, gd, global, value).unwrap_or_else(|_| "?".into());
-                format!("{} = {now}", gd.bare(member))
-            })
-            .collect();
-        return Ok(lines.join("\n"));
-    }
-    let Some(((_, kind, stride, shape), entry)) = find(mem, global, hash)? else {
-        bail!("{hash:#010x} isn't a value the game holds");
-    };
-    let items = items(mem, kind, &mem.read(entry, *stride)?, *shape)?;
-    Ok(match *kind {
-        "Binary" => format!("{} bytes", items[0].len()),
-        k if k.ends_with("Array") => {
-            let more = items.len().saturating_sub(SHOWN);
-            let mut shown: Vec<_> = items.iter().take(SHOWN).map(|b| show(gd, k, b)).collect();
-            if more > 0 {
-                shown.push(format!("... {more} more"));
-            }
-            format!("[{}]", shown.join(", "))
-        }
-        k => show(gd, k, &items[0]),
-    })
-}
-
-/// Writes the current value, and for a scalar the copy after it, which
-/// is the one the game saves from. Data pages only.
-pub fn set(mem: &impl Memory, global: u64, hash: u32, value: &str) -> Result<()> {
-    let (kind, at, width) = locate(mem, global, hash)?;
-    let bytes = value::encode(kind, value, width)?;
-    let copies = if kind.starts_with("String") { 1 } else { 2 };
-    mem.write(at, &bytes.repeat(copies))
-}
-
-/// A GameData name's hash, or a hash as given: `0x612320f9`, or
-/// `#612320f9` as `probe data` and the live log print it.
-pub fn hash(name: &str) -> Result<u32> {
-    Ok(
-        match (name.strip_prefix("0x")).or_else(|| name.strip_prefix('#')) {
-            Some(hex) => u32::from_str_radix(hex, 16)?,
-            None => murmur3(name.as_bytes()),
-        },
-    )
 }
 
 impl Game {
@@ -623,26 +600,16 @@ impl Game {
 pub(crate) use mach::pids;
 
 mod bridge;
+mod lookup;
 mod mach;
 #[cfg(windows)]
 mod pipe;
 
 pub use bridge::{Bridge, PATIENCE, Refused};
+pub use lookup::{Places, bools, hash, locate, read, set};
 
 #[cfg(test)]
 pub(crate) mod tests {
-    #[test]
-    fn a_hash_is_taken_as_printed() {
-        let h = 0x612320f9;
-        assert_eq!(super::hash("0x612320f9").unwrap(), h);
-        assert_eq!(super::hash("#612320f9").unwrap(), h);
-        assert_eq!(
-            super::hash("IsGet.Item_X").unwrap(),
-            murmur3(b"IsGet.Item_X")
-        );
-        assert!(super::hash("#nothex").is_err());
-    }
-
     use anyhow::Context;
 
     use super::*;
@@ -742,52 +709,6 @@ pub(crate) mod tests {
     pub(crate) fn ints(values: [u32; 2]) -> Fake {
         let e = values.map(|v| entry(2, &[(0x1c, &v.to_le_bytes())]));
         game(&[(2, e.into())], &[])
-    }
-
-    #[test]
-    fn locate_finds_a_scalar_through_its_map() {
-        let mem = ints([5, 7]);
-        let (kind, at, len) = locate(&mem, 0x1000, hash(2, 1)).unwrap();
-        assert_eq!((kind, at, len), ("Int", 0x10000 + 0x28 + 0x1c, 4));
-        assert_eq!(mem.u32(at).unwrap(), 7);
-        assert!(locate(&mem, 0x1000, 0xdead).is_err());
-    }
-
-    #[test]
-    fn read_shows_any_kind_the_way_the_live_tab_does() {
-        needs_names!();
-        let gd = GameData::default();
-        let list = entry(
-            3,
-            &[
-                (0x20, &3u64.to_le_bytes()),
-                (0x28, &0x50000u64.to_le_bytes()),
-            ],
-        );
-        let items: Vec<u8> = [1i32, -2, 3]
-            .into_iter()
-            .flat_map(i32::to_le_bytes)
-            .collect();
-        let blob = entry(
-            18,
-            &[
-                (0x20, &0x60000u64.to_le_bytes()),
-                (0x28, &0x300u64.to_le_bytes()),
-            ],
-        );
-        let mem = game(
-            &[
-                (2, vec![entry(2, &[(0x1c, &(-5i32).to_le_bytes())])]),
-                (3, vec![list]),
-                (18, vec![blob]),
-            ],
-            &[(0x50000, items), (0x60000, vec![0; 0x300])],
-        );
-        let at = |slot| read(&mem, &gd, 0x1000, hash(slot, 0)).unwrap();
-        assert_eq!(at(2), "-5");
-        assert_eq!(at(3), "[1, -2, 3]");
-        assert_eq!(at(18), "768 bytes");
-        assert!(read(&mem, &gd, 0x1000, 0xdead).is_err());
     }
 
     #[test]
@@ -894,6 +815,39 @@ pub(crate) mod tests {
                 row(26, 0, field::W_STRING16, "\"Hi\" -> \"Ho\""),
             ]
         );
+    }
+
+    /// Memory that counts requests: a read, or a whole `read_many`.
+    struct Counted(Fake, std::cell::Cell<usize>);
+
+    impl Memory for Counted {
+        fn read(&self, at: u64, len: usize) -> Result<Vec<u8>> {
+            self.1.set(self.1.get() + 1);
+            self.0.read(at, len)
+        }
+
+        fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+            self.1.set(self.1.get() + 1);
+            ranges
+                .iter()
+                .map(|&(at, len)| self.0.read(at, len))
+                .collect()
+        }
+
+        fn write(&self, _: u64, _: &[u8]) -> Result<()> {
+            bail!("read only")
+        }
+    }
+
+    #[test]
+    fn a_snapshot_takes_three_requests_whatever_it_holds() {
+        let (plain, counted) = (shapes(0), Counted(shapes(0), Default::default()));
+        let manager = manager(&plain, 0x1000).unwrap();
+        let want = values(&plain, manager).unwrap();
+        assert_eq!(values(&counted, manager).unwrap(), want);
+        // The table headers, then every map and entry list, then every
+        // value kept outside its entry.
+        assert_eq!(counted.1.get(), 3);
     }
 
     /// Memory that moves to the next game on every snapshot.

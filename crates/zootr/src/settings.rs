@@ -11,12 +11,14 @@ use serde_json::Value;
 use crate::cutscenes::{AREAS, Skips};
 use crate::keys;
 use crate::presets::{self, CARPENTERS_FREED, PRESETS};
-use crate::starting::{self, ITEMS};
+use crate::starting;
 
 mod choices;
 mod new_game;
 mod upgrade;
-pub use choices::{ChestSize, DungeonKeys, FortressKeys, Keys, Logic, ScrubPrice, ShopSlots};
+pub use choices::{
+    ChestSize, DungeonKeys, FortressKeys, IceTraps, Keys, Logic, ScrubPrice, ShopSlots,
+};
 pub use new_game::NewGame;
 pub(crate) use new_game::{toggles, toggles_on};
 pub(crate) use upgrade::upgrade;
@@ -79,6 +81,9 @@ pub enum Kind {
         default: String,
         options: Vec<Choice>,
     },
+    /// What a new game starts holding, the save editor's grid: a
+    /// [`starting::Start`]. Unset is the game's own.
+    Inventory,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -167,6 +172,7 @@ pub(crate) const HIVES: &str = "hives";
 pub(crate) const COWS: &str = "cows";
 pub(crate) const KEYS: &str = "keys";
 pub(crate) const FORTRESS_KEYS: &str = "fortress-keys";
+pub(crate) const ICE_TRAPS: &str = "ice-traps";
 pub(crate) const MERCHANTS: &str = "merchants";
 pub(crate) const TRADE_CHAIN: &str = "trade-chain";
 pub(crate) const RUNNING_RACE: &str = "running-race";
@@ -281,19 +287,15 @@ pub fn schema() -> Vec<SettingDef> {
             "Reaching an area for the first time skips its camera pan. Any quest step the arrival sets still happens",
         )),
     ];
-    let start = ITEMS.iter().map(|i| SettingDef {
-        subgroup: Some(starting::SUBGROUP),
+    let start = SettingDef {
+        kind: Kind::Inventory,
         ..toggle(
-            i.id,
+            starting::SETTING,
             group::INVENTORY,
-            i.label,
-            if i.equip {
-                "A new game starts with it equipped. Wherever it's found holds a Blue Rupee instead"
-            } else {
-                "A new game starts with it. Wherever it's found holds a Blue Rupee instead"
-            },
+            "Starting inventory",
+            "What a new game starts with. Each item leaves the shuffle, and wherever it was found holds a Blue Rupee instead",
         )
-    });
+    };
     let areas = AREAS.iter().map(|(id, label, _)| SettingDef {
         subgroup: Some("By area"),
         ..cutscene(
@@ -309,6 +311,13 @@ pub fn schema() -> Vec<SettingDef> {
             "Logic",
             "Glitchless places each item where Link can reach it without that item, so a seed can always be beaten. No logic places items anywhere, so a seed may not be",
             Logic::label,
+        )])
+        .chain([choice(
+            ICE_TRAPS,
+            group::GENERAL,
+            "Ice traps",
+            "Swaps junk (rupees, ammo, recovery hearts) for ice traps. Each looks like an item logic needs until Link gets it, then says FOOL! and freezes him",
+            IceTraps::label,
         )])
         .chain([choice(
             CHEST_SIZE,
@@ -527,7 +536,7 @@ pub fn schema() -> Vec<SettingDef> {
             "Gossip stone hints",
             "Each gossip stone names where an item Link needs is hidden, without the Mask of Truth or any small talk",
         )])
-        .chain(start)
+        .chain([start])
         .chain([toggle(
             SKIP_ALL,
             group::CUTSCENES,
@@ -558,9 +567,8 @@ mod tests {
         let group = |id: &str| schema().into_iter().find(|d| d.id == id).unwrap().group;
         assert_eq!(group(CHEST_SIZE), group::GENERAL);
         assert_eq!(group("open-forest"), group::LOGIC);
-        assert_eq!(group("warp-kit"), group::INVENTORY);
-        assert_eq!(group("claim-check"), group::INVENTORY);
-        assert_eq!(group(ITEMS[0].id), group::INVENTORY);
+        assert_eq!(group("claim-check"), group::LOGIC);
+        assert_eq!(group(starting::SETTING), group::INVENTORY);
         assert_eq!(group(SHOP_SLOTS), group::SHUFFLES);
         assert_eq!(group(KEYS), group::DUNGEONS);
         assert_eq!(group(HINTS), group::GENERAL);

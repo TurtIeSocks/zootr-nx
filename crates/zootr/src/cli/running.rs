@@ -76,7 +76,7 @@ fn said<T: Display + Serialize>(report: &T, json: bool) -> Result<String> {
 }
 
 /// How often `zootr ap connect` renews its hold on the game.
-const RENEW: std::time::Duration = std::time::Duration::from_secs(5 * 60);
+pub(super) const RENEW: std::time::Duration = std::time::Duration::from_secs(5 * 60);
 
 /// `zootr ap connect`: the client core on the live game, its notes
 /// printed until the process is stopped.
@@ -270,6 +270,10 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             game.kill()?;
             "sent".into()
         }
+        DevCommand::Freeze => match game.freeze()? {
+            0 => "sent".into(),
+            n => format!("sent, after {n} still waiting"),
+        },
         DevCommand::Age => {
             let (place, done) = game.switch_age(&dev::places(romfs)?)?;
             format!("{done}, to {place}")
@@ -344,6 +348,8 @@ const CHUNK: usize = 1 << 20;
 pub(super) fn mem(cmd: MemCommand) -> Result<()> {
     use live::Memory;
     let game = attach(matches!(cmd, MemCommand::Write { .. }))?;
+    let main = game.global() - u64::from(crate::patch::OFFSETS.gamedata);
+    let address = |text: &str| address(text, main);
     match cmd {
         MemCommand::Keys => {
             for key in live::keys(&game, game.global())? {
@@ -414,9 +420,17 @@ pub(super) fn mem(cmd: MemCommand) -> Result<()> {
     Ok(())
 }
 
-fn address(text: &str) -> Result<u64> {
-    let digits = text.trim_start_matches("0x");
-    u64::from_str_radix(digits, 16).with_context(|| format!("{text} isn't a hex address"))
+/// A 0x address, or `main+0x…` for an offset into `main`, which loads at
+/// `main`.
+fn address(text: &str, main: u64) -> Result<u64> {
+    let (base, offset) = match text.strip_prefix("main+") {
+        Some(offset) => (main, offset),
+        None => (0, text),
+    };
+    let digits = offset.trim_start_matches("0x");
+    let n =
+        u64::from_str_radix(digits, 16).with_context(|| format!("{text} isn't a hex address"))?;
+    Ok(base + n)
 }
 
 /// Hex bytes, or `s:` and text.
@@ -469,6 +483,8 @@ mod tests {
         assert_eq!(bytes("0f1e").unwrap(), [0x0f, 0x1e]);
         assert_eq!(bytes("s:Ab").unwrap(), b"Ab");
         assert!(bytes("0f1").is_err());
-        assert_eq!(address("0x7f21d600e0").unwrap(), 0x007f_21d6_00e0);
+        assert_eq!(address("0x7f21d600e0", 1).unwrap(), 0x007f_21d6_00e0);
+        assert_eq!(address("main+0x10", 0x1000).unwrap(), 0x1010);
+        assert!(address("main+zz", 0x1000).is_err());
     }
 }

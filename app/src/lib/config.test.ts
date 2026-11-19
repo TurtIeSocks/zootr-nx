@@ -1,5 +1,7 @@
 import { expect, test } from "vitest";
-import { blocked, full, NO_TEST, testSummary } from "@/lib/config";
+import { blocked, type FullTest, full, NO_TEST, testParts } from "@/lib/config";
+
+const testSummary = (t: FullTest) => testParts(t).join(" · ");
 
 test("installing waits for a dump, a target and a closed game", () => {
   const config = full({ targets: [{ name: "PC", app: "/a", mod_dir: "/m" }] });

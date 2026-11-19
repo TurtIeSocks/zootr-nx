@@ -14,7 +14,8 @@ pub struct NewGame {
     pub vanilla: bool,
     /// Leave each chest's item where it is, and shuffle the other checks.
     pub keep_chests: bool,
-    pub start: Vec<&'static starting::Item>,
+    /// What the Inventory panel's grid starts Link holding.
+    pub start: starting::Start,
     /// Upgrade chests give their line's levels in order.
     pub progressive: bool,
     /// The Door of Time starts open.
@@ -49,6 +50,8 @@ pub struct NewGame {
     /// Where the thieves' keys are. Unless vanilla, the keys they carry
     /// are checks.
     pub fortress_keys: FortressKeys,
+    /// How much junk becomes ice traps.
+    pub ice_traps: IceTraps,
     /// The seed, for what's rolled while writing, like shop prices.
     pub seed: u64,
     /// Bombchus have their own cap instead of the bomb bag's.
@@ -120,9 +123,13 @@ impl NewGame {
                 "Fortress keys can't start with {CARPENTERS_FREED}: its thieves are already beaten"
             );
         }
-        let start = keys == DungeonKeys::Start;
+        let start = starting::Start::from_settings(settings)?;
         let edits = [
-            keys::defaults(start, fortress_keys == FortressKeys::Start),
+            keys::defaults(
+                keys == DungeonKeys::Start,
+                fortress_keys == FortressKeys::Start,
+            ),
+            start.defaults(),
             edits.to_vec(),
         ]
         .concat();
@@ -141,9 +148,10 @@ impl NewGame {
                     .collect(),
             },
             chest_size: chosen(settings, CHEST_SIZE),
+            ice_traps: chosen(settings, ICE_TRAPS),
             vanilla: !on(SHUFFLE_ITEMS),
             keep_chests: !on(CHESTS),
-            start: ITEMS.iter().filter(|i| on(i.id)).collect(),
+            start,
             progressive: on(PROGRESSIVE),
             open_door: on(OPEN_DOOR),
             scrubs: on(SCRUBS),
@@ -210,7 +218,7 @@ fn is_on(schema: &[SettingDef], settings: &Settings, id: &str) -> bool {
             Kind::Toggle { default } => {
                 settings.get(id).and_then(Value::as_bool).unwrap_or(default)
             }
-            Kind::Choice { .. } => false,
+            Kind::Choice { .. } | Kind::Inventory => false,
         };
         own || d.parent.is_some_and(|p| is_on(schema, settings, p))
     })
@@ -251,7 +259,7 @@ mod tests {
                 chest_size: ChestSize::Vanilla,
                 vanilla: false,
                 keep_chests: false,
-                start: vec![],
+                start: starting::Start::default(),
                 progressive: true,
                 open_door: true,
                 scrubs: true,
@@ -268,6 +276,7 @@ mod tests {
                 cows: false,
                 keys: DungeonKeys::Vanilla,
                 fortress_keys: FortressKeys::Vanilla,
+                ice_traps: IceTraps::Off,
                 seed: 0,
                 free_bombchus: true,
                 quiet_navi: true,
@@ -296,17 +305,20 @@ mod tests {
             (SKIP_INTRO.into(), false.into()),
             (SKIP_ARRIVALS.into(), false.into()),
             ("unknown".into(), true.into()),
-            ("start-bomb-bag".into(), true.into()),
-            ("start-kokiri-sword".into(), true.into()),
+            (
+                starting::SETTING.into(),
+                serde_json::json!({ "bomb-bag": 1, "kokiri-sword": 1, "rupees": 50 }),
+            ),
             (SHUFFLE_ITEMS.into(), false.into()),
             (PROGRESSIVE.into(), false.into()),
         ]);
         let game = NewGame::from_settings(&settings, &["A=1".into()]).unwrap();
-        let mut defaults = with_defaults(&["A=1"]);
+        let rupees = format!("#{:08x}=50", crate::save_editor::RUPEES);
+        let mut defaults = with_defaults(&[&rupees, "A=1"]);
         defaults.insert(0, format!("{}=true", flag::NPC_HYLIA_SOLDIER_003_GATE_OPEN));
         assert_eq!(game.defaults, defaults);
         assert!(game.skips.is_empty());
-        assert_eq!(game.start, [&ITEMS[0], &ITEMS[3]]);
+        assert_eq!(game.start.0.len(), 3);
         assert!(game.vanilla && !game.progressive);
     }
 

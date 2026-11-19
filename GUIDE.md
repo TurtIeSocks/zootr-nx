@@ -186,14 +186,11 @@ Changes to how Link plays. All start off.
 | Logic | Glitchless places each item where Link can reach it without that item, so a seed can always be beaten. No logic places items anywhere |
 | Open Door of Time | The Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time |
 | Bridge at six medallions | The rainbow bridge rises once Link holds all six medallions, without the Light Arrows first |
+| Quest progress | Start with a quest step done: Zelda met, the Door of Time open, the carpenters freed, the rainbow bridge up, the trials done, or the Claim Check |
 
 ### Inventory
 
-| Setting | What it does |
-|---|---|
-| Warp kit | A new game starts with the Fairy Ocarina and the six warp songs |
-| Starting items | A new game starts with any of the Kokiri Sword, Deku Shield, Slingshot, Bomb Bag and Fairy Ocarina. Wherever one is found holds a Blue Rupee instead. Also the Deku Nut and Stick bags |
-| Quest progress | Start with a quest step done: Zelda met, the Door of Time open, the carpenters freed, the rainbow bridge up, the trials done, the Claim Check, or the magic meter |
+The Save Editor's item grid and two of its Status fields, on a new game. Click a tile for its next tier and right click for the one before, set a count on its badge, and set the heart containers and rupees. A new game starts with whatever the grid shows. Each item it holds leaves the shuffle, and wherever it was found holds a Blue Rupee instead. Ammo counts swap nothing out. Dungeon keys, maps and compasses aren't offered here: the Dungeon keys setting covers them.
 
 ### Shuffles
 

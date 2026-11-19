@@ -123,7 +123,7 @@ pub(super) enum Command {
         /// free, never one alone.
         #[arg(long)]
         both: bool,
-        /// The game `reserve` keeps.
+        /// The game `reserve` keeps, or the one game `join` waits for.
         #[arg(long, default_value = "")]
         on: String,
     },
@@ -606,9 +606,11 @@ pub(super) struct NewGame {
     /// How big each chest is.
     #[arg(long, value_enum)]
     chest_size: Option<settings::ChestSize>,
-    /// Items a new game starts with. Repeatable.
-    #[arg(long = "start", value_name = "ITEM", value_parser = starting::parser())]
-    start: Vec<String>,
+    /// What a new game starts with, as `WORD` or `WORD=N`: `kokiri-sword`,
+    /// `longshot` (which brings the Hookshot), `bombs=20`, `heart-pieces=8`,
+    /// `heart-containers=5`, `rupees=99`. Repeatable.
+    #[arg(long = "start", value_name = "WORD[=N]", value_parser = starting::parse)]
+    start: Vec<(String, i32)>,
     /// Any app setting by id, for those without a flag of their own, e.g.
     /// `progressive-items=false`. Repeatable.
     #[arg(long = "setting", value_name = "ID=VALUE", value_parser = setting)]
@@ -636,6 +638,7 @@ pub(crate) fn setting(arg: &str) -> Result<(String, serde_json::Value)> {
                 ids.join(", ")
             );
         }
+        settings::Kind::Inventory => anyhow::bail!("{id} is set with --start"),
     }
     let value = value.parse::<bool>().map_or(value.into(), Into::into);
     Ok((id.to_owned(), value))
@@ -664,7 +667,16 @@ impl NewGame {
                 .iter()
                 .map(|s| (settings::skip_id(s), true.into())),
         );
-        out.extend(self.start.iter().map(|s| (starting::id(s), true.into())));
+        let mut start = starting::Start::default();
+        for (word, n) in &self.start {
+            start.add(word, *n).expect("--start checks its words");
+        }
+        if !start.0.is_empty() {
+            out.insert(
+                starting::SETTING.into(),
+                serde_json::to_value(start).expect("a map"),
+            );
+        }
         out.extend(self.raw.iter().cloned());
         out
     }
@@ -788,7 +800,11 @@ mod tests {
             "zootr",
             "shuffle",
             "--preset",
-            "warp-kit",
+            "kakariko-gate",
+            "--start",
+            "longshot",
+            "--start",
+            "bombs=20",
             "--keep-intro",
             "--skip",
             "owl",
@@ -811,7 +827,11 @@ mod tests {
         assert_eq!(
             s.new_game.settings(),
             Settings::from([
-                ("warp-kit".into(), true.into()),
+                ("kakariko-gate".into(), true.into()),
+                (
+                    starting::SETTING.into(),
+                    serde_json::json!({ "hookshot": 1, "longshot": 1, "bombs": 20 }),
+                ),
                 (settings::SKIP_INTRO.into(), false.into()),
                 ("skip-owl".into(), true.into()),
                 (settings::SKIP_ALL.into(), true.into()),
@@ -827,6 +847,8 @@ mod tests {
             Some(format!("{}/{}", flow::BOTTOM_OF_THE_WELL, field::WELL_KAKARIKO_SIDE).as_str())
         );
         assert_eq!(s.give, [item::GLASS_TRUTH, item::FAIRY_BLESS_MP]);
+        let bad = Cli::try_parse_from(["zootr", "shuffle", "--start", "hookshoot"]);
+        assert!(bad.is_err());
     }
 
     #[test]

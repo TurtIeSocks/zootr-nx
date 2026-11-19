@@ -4,6 +4,8 @@
 
 mod floors;
 mod planks;
+pub mod rupees;
+mod signs;
 pub mod sold;
 mod steps;
 
@@ -79,6 +81,8 @@ pub struct Slot {
     pub placements: Vec<u64>,
     /// The placements standing only on a flag, with it.
     presence: HashMap<u64, Presence>,
+    /// The sign under each placement that has one.
+    signs: HashMap<u64, u64>,
     pos: [f32; 3],
     /// From 0, across every shop, for the new actor's name.
     index: usize,
@@ -172,19 +176,22 @@ pub fn slots(romfs: &Romfs) -> Result<Vec<Slot>> {
                 pos,
                 index,
                 presence_of(actor),
+                signs::sign_of(actor),
             ));
         }
     }
     found.sort_by_key(|f| f.0);
     let mut slots: Vec<Slot> = Vec::new();
-    for (_, area, goods, hash, pos, goods_index, presence) in found {
+    for (_, area, goods, hash, pos, goods_index, presence, sign) in found {
         let same =
             |s: &&mut Slot| s.area == area && s.goods == goods && dist(s.pos, pos) < SAME_SLOT;
         let presence: HashMap<u64, Presence> = presence.map(|p| (hash, p)).into_iter().collect();
+        let signs: HashMap<u64, u64> = sign.map(|s| (hash, s)).into_iter().collect();
         match slots.iter_mut().find(same) {
             Some(slot) => {
                 slot.placements.push(hash);
                 slot.presence.extend(presence);
+                slot.signs.extend(signs);
             }
             None => slots.push(Slot {
                 area,
@@ -193,6 +200,7 @@ pub fn slots(romfs: &Romfs) -> Result<Vec<Slot>> {
                 goods,
                 placements: vec![hash],
                 presence,
+                signs,
                 pos,
                 index: 0,
                 goods_index,
@@ -391,6 +399,8 @@ pub fn write(
                 fields.push(format!("{h}.{TRANSLATE}.1+={rise}"));
             }
         }
+        let sign = signs::sign(tables, item);
+        fields.extend(stand.signs.iter().map(|h| format!("{h}.{GYAML}={sign}")));
     }
     Ok(fields)
 }
@@ -492,6 +502,19 @@ mod tests {
         assert!(slots.iter().all(|s| !s.goods.starts_with(NOT_GOODS[0])));
         let kokiri = slots.iter().filter(|s| s.area == flag::KOKIRI_FOREST);
         assert_eq!(kokiri.map(|s| s.placements.len()).sum::<usize>(), 24);
+    }
+
+    #[test]
+    fn each_slot_placement_names_a_sign_of_its_own() {
+        let Some(romfs) = dev_dump() else { return };
+        let slots = slots(&romfs).unwrap();
+        let signs: Vec<u64> = slots
+            .iter()
+            .flat_map(|s| s.signs.values().copied())
+            .collect();
+        let unique: std::collections::HashSet<_> = signs.iter().collect();
+        // Single goods (a heart, a shield, a bottle) stand on no sign.
+        assert_eq!((signs.len(), unique.len()), (51, 51));
     }
 
     #[test]
@@ -675,7 +698,16 @@ mod tests {
         let plank = planks::plank(goron.shop, goron.number).unwrap();
         assert!((plank + 0.1..plank + 0.2).contains(&rise), "{rise}");
         let rises = fields.iter().filter(|f| f.contains("+=")).count();
-        assert_eq!(fields.len() - rises, placed);
+        let signed: usize = (slots.iter().filter(|s| s.number == 1))
+            .map(|s| s.signs.len())
+            .sum();
+        assert_eq!(fields.len() - rises, placed + signed);
+        // One Hookshot: its sign goes blank.
+        assert!(!goron.signs.is_empty());
+        for sign in goron.signs.values() {
+            let blank = format!("{sign}.Gyaml={}", actor::SHOP_BOARD_BASE);
+            assert!(fields.contains(&blank), "{blank}");
+        }
 
         let rel = format!("Pack/Actor/{name}.pack.zs");
         let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();

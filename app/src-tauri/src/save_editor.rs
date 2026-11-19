@@ -16,6 +16,7 @@ use zootr::save_editor::{
     self as editor, FlagQuery, FlagsView, ItemsView, Opened, Pending, SlotRow, Staged,
 };
 use zootr::savefile::Edit;
+use zootr::starting::{self, Start};
 
 use crate::{Live, Res, blocking, romfs};
 
@@ -57,11 +58,8 @@ fn ready(app: &AppHandle, slot: u8, pending: &Pending) -> anyhow::Result<Ready> 
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn save_slots(app: AppHandle) -> Res<Vec<SlotRow>> {
-    blocking(move || {
-        let config = Config::load()?;
-        let gd = app.state::<Live>().gamedata(&config)?;
-        let layout = app.state::<Layout>().get(&gd, &config)?;
-        editor::slots(&layout.0, &config.save_dir()?)
+    with_layout(app, |_, (inv, _)| {
+        editor::slots(inv, &Config::load()?.save_dir()?)
     })
     .await
 }
@@ -102,12 +100,8 @@ pub(crate) async fn save_items(app: AppHandle, slot: u8, pending: Pending) -> Re
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn save_stage(app: AppHandle, slot: u8, pending: Pending) -> Res<Staged> {
-    blocking(move || {
-        let config = Config::load()?;
-        let gd = app.state::<Live>().gamedata(&config)?;
-        let layout = app.state::<Layout>().get(&gd, &config)?;
-        let (inv, pouch) = &*layout;
-        editor::stage(&gd, inv, pouch, &config.save_dir()?, slot, &pending)
+    with_layout(app, move |gd, (inv, pouch)| {
+        editor::stage(gd, inv, pouch, &Config::load()?.save_dir()?, slot, &pending)
     })
     .await
 }
@@ -125,6 +119,56 @@ pub(crate) async fn save_click(
     blocking(move || {
         let r = ready(&app, slot, &pending)?;
         editor::click(&r.layout.0, &r.layout.1, &r.opened, at as usize, intent)
+    })
+    .await
+}
+
+/// The grid, caps and Status panel of a new game starting with `start`,
+/// for the settings' Inventory panel.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn start_items(app: AppHandle, start: Start) -> Res<ItemsView> {
+    with_layout(app, move |gd, (inv, pouch)| {
+        starting::view(gd, inv, pouch, &start)
+    })
+    .await
+}
+
+/// `start` after a click on a grid cell.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn start_click(
+    app: AppHandle,
+    start: Start,
+    at: u32,
+    intent: Intent,
+) -> Res<Start> {
+    with_layout(app, move |gd, (inv, pouch)| {
+        starting::click(gd, inv, pouch, &start, at as usize, intent)
+    })
+    .await
+}
+
+/// `start` after a Status field's commit.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn start_set(app: AppHandle, start: Start, edit: Edit) -> Res<Start> {
+    with_layout(app, move |gd, (inv, pouch)| {
+        starting::set(gd, inv, pouch, &start, edit)
+    })
+    .await
+}
+
+/// `f` with GameData and the layout, off the main thread.
+async fn with_layout<T: Send + 'static>(
+    app: AppHandle,
+    f: impl FnOnce(&GameData, &(Inventory, Pouch)) -> anyhow::Result<T> + Send + 'static,
+) -> Res<T> {
+    blocking(move || {
+        let config = Config::load()?;
+        let gd = app.state::<Live>().gamedata(&config)?;
+        let layout = app.state::<Layout>().get(&gd, &config)?;
+        f(&gd, &layout)
     })
     .await
 }
