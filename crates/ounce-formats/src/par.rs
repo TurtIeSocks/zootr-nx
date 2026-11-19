@@ -53,7 +53,8 @@ pub fn par_batches<T: Sync, R: Send>(
     .flatten()
 }
 
-fn threads() -> usize {
+/// How many threads the parallel helpers use: one per core.
+pub fn threads() -> usize {
     std::thread::available_parallelism().map_or(1, NonZero::get)
 }
 

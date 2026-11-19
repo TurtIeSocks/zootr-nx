@@ -46,7 +46,7 @@ pub use msbt::{Msbt, Part, messages};
 pub use murmur3::murmur3;
 pub use navmesh::{Border, Edge, Face, Footing, NavMesh, closest};
 pub use pack::{ActorPack, pack_file, pack_path};
-pub use par::{par_batches, par_map};
+pub use par::{par_batches, par_map, threads};
 pub use rename::rename;
 pub use restbl::Restbl;
 pub use roead::byml::{Byml, Map as BymlMap};

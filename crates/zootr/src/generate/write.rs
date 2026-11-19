@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use anyhow::{Result, bail, ensure};
-use ounce_formats::{BymlDoc, ModBuilder, Romfs};
+use ounce_formats::{BymlDoc, ModBuilder, Romfs, par_map, threads};
 
 use super::Written;
 use crate::checks::{self, Drop};
@@ -356,6 +356,8 @@ pub fn write_mod(
     let (mut found, mut actors) = (HashSet::new(), 0);
     let mut spots = Vec::new();
     let mut chest_events = HashMap::new();
+    // Changed maps wait here to be serialized a batch at a time.
+    let mut changed_maps = Vec::new();
     for (rel, doc) in checks::load_bancs(romfs, checks::banc_files(romfs)?) {
         run.check()?;
         let mut doc = doc?;
@@ -400,11 +402,15 @@ pub fn write_mod(
             || levelled
             || !changed.is_empty()
         {
-            builder.write(&rel, &doc.to_binary())?;
             actors += changed.len();
             found.extend(changed);
+            changed_maps.push((rel, doc));
+            if changed_maps.len() >= 2 * threads() {
+                write_maps(&mut builder, &mut changed_maps)?;
+            }
         }
     }
+    write_maps(&mut builder, &mut changed_maps)?;
     wiring.write(romfs, &mut builder)?;
     for f in &fields {
         let (hash, ..) = checks::field(f)?;
@@ -446,6 +452,15 @@ pub fn write_mod(
         actors,
         files,
     })
+}
+
+/// Write each of `maps`, serialized on every core, in order, and empty it.
+fn write_maps(builder: &mut ModBuilder, maps: &mut Vec<(String, BymlDoc)>) -> Result<()> {
+    let bins = par_map(maps, |(_, doc)| doc.to_binary());
+    for ((rel, _), bin) in maps.drain(..).zip(bins) {
+        builder.write(&rel, &bin)?;
+    }
+    Ok(())
 }
 
 /// Whether a seed deals boss key copies. A copy found in a chest that runs
