@@ -38,6 +38,8 @@ for Link reaches him in game, with the sender named on screen: "Longshot
 from Saria". Hosting one takes Archipelago and `znx.apworld`, and the
 [setup guide](ap/znx/docs/setup_en.md) walks through both.
 
+![The Archipelago tab, connected to a room, with items arriving from other players](assets/archipelago.png)
+
 ## Custom models
 
 A song placed in the world shows its own medallion, in the song's colour
