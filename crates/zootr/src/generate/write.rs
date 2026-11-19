@@ -90,6 +90,8 @@ pub(super) fn flows(
     picked::delete_letter(romfs, &mut rewrites, &picked::holders(&pieces, drops))?;
     if ice_traps::springs(new_game) {
         ice_traps::flow(romfs, &mut rewrites)?;
+        let traps: Vec<&str> = ice_traps::actors(&new_game.foreign).collect();
+        ice_traps::one_page(romfs, &mut rewrites, &traps)?;
     }
     Ok((rewrites, flags))
 }

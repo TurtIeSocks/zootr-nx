@@ -4,6 +4,7 @@
 //! itself is [`freeze`], its ice [`look`].
 
 mod freeze;
+mod get;
 mod look;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -14,6 +15,7 @@ use ounce_formats::Romfs;
 use zootr_hook::Credit;
 
 pub use freeze::{event, flow, sensor, thaw};
+pub use get::one_page;
 pub use look::{FILES, look};
 
 use crate::foreign::{Foreign, Owner};
@@ -49,10 +51,14 @@ pub fn is_trap(item: &str) -> bool {
 /// Whether the seed holds any trap, so it needs the sensor, its event and
 /// the hook's freeze.
 pub fn springs(new_game: &NewGame) -> bool {
-    new_game
-        .foreign
-        .iter()
-        .any(|f| matches!(f.owner, Owner::Trap { .. }))
+    actors(&new_game.foreign).next().is_some()
+}
+
+/// Each trap's actor in `foreign`.
+pub fn actors(foreign: &[Foreign]) -> impl Iterator<Item = &str> {
+    (foreign.iter())
+        .filter(|f| matches!(f.owner, Owner::Trap { .. }))
+        .map(|f| f.actor.as_str())
 }
 
 /// The items among `items` that are junk and logic doesn't name in
@@ -149,9 +155,8 @@ pub fn disguise(
 
 /// Each trap's credit in the hook's table: a freeze.
 pub fn credits(foreign: &[Foreign]) -> Vec<(String, Credit)> {
-    (foreign.iter())
-        .filter(|f| matches!(f.owner, Owner::Trap { .. }))
-        .map(|f| (f.actor.clone(), Credit::Freeze))
+    actors(foreign)
+        .map(|a| (a.to_owned(), Credit::Freeze))
         .collect()
 }
 

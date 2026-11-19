@@ -11,6 +11,7 @@ pub const BOTTOM_OF_THE_WELL: &Name = &n!(0xab6c3eee1d36619a);
 pub const CHILD_BANC: &Name = &n!(0x1b9df7d728402c67);
 pub const CONTENT_NAME: &Name = &n!(0x3964573c75142249);
 pub const COW_GIVE_MILK_GERUDO: &Name = &n!(0x381c992c0e98d5e8);
+pub const DEFAULT_GET_MESSAGE: &Name = &n!(0x08fdc3430ecd09b1);
 pub const DEFEAT_GANON: &Name = &n!(0x0054206f58465766);
 pub const DISPLAY_GET_BY_ACTOR_NAME: &Name = &n!(0xf676f46b9b9d4fe8);
 pub const DISPLAY_ITEM_ACTOR: &Name = &n!(0x2a1ebd868f1d2a5f);
