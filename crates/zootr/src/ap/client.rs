@@ -5,7 +5,7 @@
 //! The game side is the [`Game`] trait, so the core runs against a fake in
 //! tests. [`Live`] is the real one: the Mac game or a native build's bridge.
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, TryRecvError};
 use std::thread;
@@ -499,15 +499,29 @@ impl Game for Live {
         Ok(!s.loading && !s.event)
     }
 
+    /// One read for every Bool, and the per-placement flags only when a
+    /// spot goes by one.
     fn checked(&mut self) -> Result<BTreeSet<u64>> {
         let game = self.dev.game();
-        let keys = live::keys(game, game.global())?;
-        let set = |f: Flag| match f {
-            Flag::Bool(h) => game.get(&self.gd, h).is_ok_and(|v| v == "true"),
-            Flag::Key(k) => keys.contains(&k),
+        let (mut bools, mut keyed) = (Vec::new(), false);
+        for flag in self.tracker.flags() {
+            match flag {
+                Flag::Bool(h) => bools.push(h),
+                Flag::Key(_) => keyed = true,
+            }
+        }
+        let read = live::bools(game, game.global(), &bools)?;
+        let on: HashSet<u32> = (bools.iter().zip(read))
+            .filter_map(|(&h, on)| on.then_some(h))
+            .collect();
+        let keys = match keyed {
+            true => live::keys(game, game.global())?,
+            false => BTreeSet::new(),
         };
-        let on: Vec<Flag> = self.tracker.flags().filter(|&f| set(f)).collect();
-        self.tracker.load(|f| on.contains(&f));
+        self.tracker.load(|f| match f {
+            Flag::Bool(h) => on.contains(&h),
+            Flag::Key(k) => keys.contains(&k),
+        });
         Ok(self.tracker.checked().clone())
     }
 

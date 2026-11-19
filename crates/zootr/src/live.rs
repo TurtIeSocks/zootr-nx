@@ -3,7 +3,7 @@
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::Path;
-use std::sync::LazyLock;
+use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
 use anyhow::{Result, bail};
@@ -76,6 +76,16 @@ pub trait Memory {
 
     fn write(&self, at: u64, data: &[u8]) -> Result<()>;
 
+    /// Each range's bytes: over a bridge, in as few requests as it takes.
+    fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+        ranges.iter().map(|&(at, len)| self.read(at, len)).collect()
+    }
+
+    /// Where values were found, when this memory keeps them.
+    fn places(&self) -> Option<&Places> {
+        None
+    }
+
     fn u32(&self, at: u64) -> Result<u32> {
         Ok(u32::from_le_bytes(self.read(at, 4)?.try_into().unwrap()))
     }
@@ -92,6 +102,43 @@ impl<M: Memory + ?Sized> Memory for &M {
 
     fn write(&self, at: u64, data: &[u8]) -> Result<()> {
         (**self).write(at, data)
+    }
+
+    fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+        (**self).read_many(ranges)
+    }
+
+    fn places(&self) -> Option<&Places> {
+        (**self).places()
+    }
+}
+
+/// A value's row of [`TYPES`] and its index in that table, or `None` for a
+/// hash the game doesn't hold.
+type Place = Option<(&'static Row, u32)>;
+
+/// Where each value was found, so a table's map is read once per value
+/// rather than at every read. Only while the manager stays put: a new one
+/// starts over.
+#[derive(Default)]
+pub struct Places(Mutex<(u64, HashMap<u32, Place>)>);
+
+impl Places {
+    /// The places found under `manager`.
+    fn under(&self, manager: u64) -> std::sync::MutexGuard<'_, (u64, HashMap<u32, Place>)> {
+        let mut held = self.0.lock().unwrap();
+        if held.0 != manager {
+            *held = (manager, HashMap::new());
+        }
+        held
+    }
+
+    fn get(&self, manager: u64, hash: u32) -> Option<Place> {
+        self.under(manager).1.get(&hash).copied()
+    }
+
+    fn put(&self, manager: u64, hash: u32, place: Place) {
+        self.under(manager).1.insert(hash, place);
     }
 }
 
@@ -175,8 +222,9 @@ fn keys_of(mem: &impl Memory, manager: u64) -> Result<BTreeSet<u64>> {
 
 fn values(mem: &impl Memory, manager: u64) -> Result<Vec<Value>> {
     let mut out = Vec::new();
-    for &(slot, kind, stride, shape) in TYPES.iter() {
-        let table = manager + 8 + TABLE * slot;
+    for row in TYPES.iter() {
+        let &(_, kind, stride, shape) = row;
+        let table = table(manager, row);
         let count = mem.u32(table + 8)? as usize;
         let mut hashes = vec![0; count];
         let cap = mem.u32(table + 0x24)? as usize;
@@ -377,6 +425,7 @@ impl Noise {
 pub struct Game {
     mem: Backend,
     global: u64,
+    places: Places,
 }
 
 /// How a [`Game`] reaches the game's memory.
@@ -403,6 +452,19 @@ impl Memory for Game {
             Backend::Mach(task) => mach::write(*task, at, data),
             Backend::Bridge(b) => b.write(at, data),
         }
+    }
+
+    fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+        match &self.mem {
+            Backend::Mach(task) => (ranges.iter())
+                .map(|&(at, len)| mach::read(*task, at, len))
+                .collect(),
+            Backend::Bridge(b) => b.read_many(ranges),
+        }
+    }
+
+    fn places(&self) -> Option<&Places> {
+        Some(&self.places)
     }
 }
 
@@ -460,6 +522,7 @@ impl Game {
         Ok(Self {
             mem: Backend::Bridge(bridge),
             global,
+            places: Places::default(),
         })
     }
 
@@ -488,6 +551,7 @@ impl Game {
                     return Ok(Self {
                         mem: Backend::Mach(task),
                         global,
+                        places: Places::default(),
                     });
                 }
             }
@@ -505,27 +569,77 @@ impl Game {
 /// A table's row of [`TYPES`] and where `hash`'s entry sits in it, in any
 /// table the game keeps.
 fn find(mem: &impl Memory, global: u64, hash: u32) -> Result<Option<(&'static Row, u64)>> {
-    let manager = mem.u64(mem.u64(global)?)?;
+    let manager = manager(mem, global)?;
+    let Some((row, i)) = place(mem, manager, hash)? else {
+        return Ok(None);
+    };
+    let entries = mem.u64(table(manager, row) + 0x10)?;
+    Ok(Some((row, entries + u64::from(i) * row.2 as u64)))
+}
+
+/// `hash`'s place, from [`Memory::places`] once it's been found.
+fn place(mem: &impl Memory, manager: u64, hash: u32) -> Result<Place> {
+    let Some(places) = mem.places() else {
+        return scan(mem, manager, hash);
+    };
+    if let Some(place) = places.get(manager, hash) {
+        return Ok(place);
+    }
+    let place = scan(mem, manager, hash)?;
+    places.put(manager, hash, place);
+    Ok(place)
+}
+
+fn table(manager: u64, row: &Row) -> u64 {
+    manager + 8 + TABLE * row.0
+}
+
+/// `hash`'s place, read from each table's map in turn.
+fn scan(mem: &impl Memory, manager: u64, hash: u32) -> Result<Place> {
     for row in TYPES.iter() {
-        let (slot, kind, stride, _) = *row;
-        let table = manager + 8 + TABLE * slot;
+        let table = table(manager, row);
         let count = mem.u32(table + 8)?;
         let cap = mem.u32(table + 0x24)? as usize;
-        let map = mem.read(mem.u64(table + 0x18)?, sized(kind, cap * 8)?)?;
-        let found = map
-            .as_chunks::<8>()
-            .0
-            .iter()
-            .find(|p| word(&p[..], 0) == hash);
-        if let Some(pair) = found {
-            let i = word(&pair[..], 4);
-            if i < count {
-                let entry = mem.u64(table + 0x10)? + u64::from(i) * stride as u64;
-                return Ok(Some((row, entry)));
-            }
+        let map = mem.read(mem.u64(table + 0x18)?, sized(row.1, cap * 8)?)?;
+        let found = (map.as_chunks::<8>().0.iter()).find(|p| word(&p[..], 0) == hash);
+        if let Some(i) = found.map(|p| word(&p[..], 4))
+            && i < count
+        {
+            return Ok(Some((row, i)));
         }
     }
     Ok(None)
+}
+
+/// Whether each Bool in `hashes` is true, in one read once their places
+/// are known: one request over a bridge. A hash the game doesn't hold as a
+/// Bool reads false.
+pub fn bools(mem: &impl Memory, global: u64, hashes: &[u32]) -> Result<Vec<bool>> {
+    let manager = manager(mem, global)?;
+    let bool_row = &TYPES[0];
+    let (stride, Inline(at, _)) = (bool_row.2, bool_row.3) else {
+        unreachable!("Bool is inline")
+    };
+    let mut wanted = Vec::new();
+    for (n, &hash) in hashes.iter().enumerate() {
+        if let Some((row, i)) = place(mem, manager, hash)?
+            && std::ptr::eq(row, bool_row)
+        {
+            wanted.push((n, i));
+        }
+    }
+    let mut out = vec![false; hashes.len()];
+    if wanted.is_empty() {
+        return Ok(out);
+    }
+    let entries = mem.u64(table(manager, bool_row) + 0x10)?;
+    let ranges: Vec<_> = (wanted.iter())
+        .map(|&(_, i)| (entries + u64::from(i) * stride as u64 + at as u64, 1))
+        .collect();
+    for ((n, _), b) in wanted.iter().zip(mem.read_many(&ranges)?) {
+        out[*n] = b.first().is_some_and(|&b| b != 0);
+    }
+    Ok(out)
 }
 
 /// Where a value held inline keeps its current value: its type, address
@@ -742,6 +856,86 @@ pub(crate) mod tests {
     pub(crate) fn ints(values: [u32; 2]) -> Fake {
         let e = values.map(|v| entry(2, &[(0x1c, &v.to_le_bytes())]));
         game(&[(2, e.into())], &[])
+    }
+
+    #[derive(Debug, PartialEq)]
+    enum Read {
+        One(usize),
+        /// A `read_many`, by its range count.
+        Many(usize),
+    }
+    use Read::*;
+
+    /// [`Fake`] keeping [`Places`] as a [`Game`] does, with its reads.
+    struct Kept(Fake, Places, std::cell::RefCell<Vec<Read>>);
+
+    impl Kept {
+        fn reads(&self) -> Vec<Read> {
+            self.2.take()
+        }
+    }
+
+    impl Memory for Kept {
+        fn read(&self, at: u64, len: usize) -> Result<Vec<u8>> {
+            self.2.borrow_mut().push(One(len));
+            self.0.read(at, len)
+        }
+
+        fn write(&self, _: u64, _: &[u8]) -> Result<()> {
+            bail!("read only")
+        }
+
+        fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+            self.2.borrow_mut().push(Many(ranges.len()));
+            ranges
+                .iter()
+                .map(|&(at, len)| self.0.read(at, len))
+                .collect()
+        }
+
+        fn places(&self) -> Option<&Places> {
+            Some(&self.1)
+        }
+    }
+
+    fn kept(fake: Fake) -> Kept {
+        Kept(fake, Places::default(), Default::default())
+    }
+
+    #[test]
+    fn a_kept_place_reads_no_map_again() {
+        let mem = kept(ints([5, 7]));
+        let first = locate(&mem, 0x1000, hash(2, 1)).unwrap();
+        mem.reads();
+        let (_, at, _) = locate(&mem, 0x1000, hash(2, 1)).unwrap();
+        assert_eq!(at, first.1);
+        assert_eq!(mem.u32(at).unwrap(), 7);
+        // The manager, the table's entries, then the value.
+        assert_eq!(mem.reads(), [One(8), One(8), One(8), One(4)]);
+    }
+
+    #[test]
+    fn bools_read_every_flag_in_one_request() {
+        let on = |b: u8| entry(0, &[(0x16, &[b])]);
+        let int = entry(2, &[(0x1c, &1u32.to_le_bytes())]);
+        let mem = kept(game(&[(0, vec![on(1), on(0), on(1)]), (2, vec![int])], &[]));
+        let hashes = [hash(0, 0), hash(0, 1), hash(0, 2), hash(2, 0), 0xdead];
+        let want = [true, false, true, false, false];
+        assert_eq!(bools(&mem, 0x1000, &hashes).unwrap(), want);
+        mem.reads();
+        assert_eq!(bools(&mem, 0x1000, &hashes).unwrap(), want);
+        // The manager, the Bool table's entries, then the flags at once:
+        // no map again, even for the hash the game doesn't hold.
+        assert_eq!(mem.reads(), [One(8), One(8), One(8), Many(3)]);
+    }
+
+    #[test]
+    fn a_new_manager_forgets_every_place() {
+        let places = Places::default();
+        places.put(1, 7, Some((&TYPES[0], 3)));
+        assert!(places.get(1, 7).is_some());
+        assert!(places.get(2, 7).is_none());
+        assert!(places.get(1, 7).is_none());
     }
 
     #[test]
