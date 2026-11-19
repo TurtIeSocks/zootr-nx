@@ -143,7 +143,7 @@ pub fn granted(actor: &str, num: i32) -> Vec<Grant> {
 /// What a new game starts holding, by word.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
-#[serde(transparent)]
+#[serde(transparent, rename = "StartInventory")]
 pub struct Start(pub BTreeMap<String, i32>);
 
 impl Start {

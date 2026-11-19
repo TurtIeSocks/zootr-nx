@@ -76,6 +76,15 @@ export const commands = {
 	/**  The edits a click on a grid cell makes, to add to the pending ones. */
 	saveClick: (slot: number, pending: Pending, at: number, intent: Intent) => typedError<Edit[], string>(__TAURI_INVOKE("save_click", { slot, pending, at, intent })),
 	/**
+	 *  The grid, caps and Status panel of a new game starting with `start`,
+	 *  for the settings' Inventory panel.
+	 */
+	startItems: (start: StartInventory) => typedError<ItemsView, string>(__TAURI_INVOKE("start_items", { start })),
+	/**  `start` after a click on a grid cell. */
+	startClick: (start: StartInventory, at: number, intent: Intent) => typedError<StartInventory, string>(__TAURI_INVOKE("start_click", { start, at, intent })),
+	/**  `start` after a Status field's commit. */
+	startSet: (start: StartInventory, edit: Edit) => typedError<StartInventory, string>(__TAURI_INVOKE("start_set", { start, edit })),
+	/**
 	 *  `pending` cut to the edits that change the slot, and how many things
 	 *  they change. Refuses an edit the save won't take.
 	 */
@@ -524,7 +533,12 @@ export type ItemsView = {
 
 export type Kind = { type: "toggle"; default: boolean } | 
 /**  One of `options`, saved by id. */
-{ type: "choice"; default: string; options: Choice[] };
+{ type: "choice"; default: string; options: Choice[] } | 
+/**
+ *  What a new game starts holding, the save editor's grid: a
+ *  [`starting::Start`]. Unset is the game's own.
+ */
+{ type: "inventory" };
 
 /**  What a seed is for, in the player's words. Both may be blank. */
 export type Label = {
@@ -808,6 +822,9 @@ export type Start = {
 	/**  The settings logic's rules read that are on, by label. */
 	settings: string[],
 };
+
+/**  What a new game starts holding, by word. */
+export type StartInventory = { [key in string]: number };
 
 /**  A number a row shows beside its icon. */
 export type Stat = {
