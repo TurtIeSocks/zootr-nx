@@ -75,31 +75,32 @@ pub struct Slain {
 #[serde(transparent)]
 pub struct Lines<T>(pub Vec<T>);
 
-impl fmt::Display for Lines<Foe> {
+impl<T: fmt::Display> fmt::Display for Lines<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for foe in &self.0 {
-            let Foe {
-                name,
-                distance,
-                left,
-                most,
-            } = foe;
-            writeln!(f, "{name} {distance:.1} m, life {left}/{most}")?;
-        }
-        Ok(())
+        let lines: Vec<String> = self.0.iter().map(T::to_string).collect();
+        f.write_str(&lines.join("\n"))
     }
 }
 
-impl fmt::Display for Lines<Slain> {
+impl fmt::Display for Foe {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for s in &self.0 {
-            let fate = match s.fate {
-                Fate::Died => "died",
-                Fate::NeverWoke => "never woke, life put back",
-            };
-            writeln!(f, "{} {:.1} m: {fate}", s.name, s.distance)?;
-        }
-        Ok(())
+        let Foe {
+            name,
+            distance,
+            left,
+            most,
+        } = self;
+        write!(f, "{name} {distance:.1} m, life {left}/{most}")
+    }
+}
+
+impl fmt::Display for Slain {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let fate = match self.fate {
+            Fate::Died => "died",
+            Fate::NeverWoke => "never woke, life put back",
+        };
+        write!(f, "{} {:.1} m: {fate}", self.name, self.distance)
     }
 }
 
@@ -225,6 +226,18 @@ impl<M: Memory> Dev<M> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lines_end_without_a_blank_one() {
+        let slain = |fate| Slain {
+            name: "Enemy_FakeBat".into(),
+            distance: 2.0,
+            fate,
+        };
+        let both = Lines(vec![slain(Fate::Died), slain(Fate::NeverWoke)]);
+        let want = "Enemy_FakeBat 2.0 m: died\nEnemy_FakeBat 2.0 m: never woke, life put back";
+        assert_eq!(both.to_string(), want);
+    }
 
     #[test]
     fn a_target_is_a_hash_or_a_name() {
