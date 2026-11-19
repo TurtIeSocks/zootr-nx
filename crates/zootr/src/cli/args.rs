@@ -29,6 +29,38 @@ pub(super) struct Cli {
 }
 
 /// The vision model that judges a spot, and the save each start loads.
+/// The vision model a command asks about frames.
+#[derive(Args)]
+pub(super) struct VisionArgs {
+    /// The vision model. Defaults to `claude-opus-5-5` on the Anthropic
+    /// API.
+    #[arg(long, env = "ZOOTR_VISION_MODEL")]
+    pub model: Option<String>,
+    /// Which shape the vision model's API speaks.
+    #[arg(long, env = "ZOOTR_VISION_API", value_enum, default_value_t = Api::Anthropic)]
+    pub api: Api,
+    /// The vision model's API, without `/v1/...`. Defaults to
+    /// `https://api.anthropic.com` on the Anthropic API and is required on
+    /// OpenAI's.
+    #[arg(long, env = "ZOOTR_VISION_URL")]
+    pub url: Option<String>,
+    /// A file holding the API's key, kept out of the command line.
+    #[arg(long, env = "ZOOTR_VISION_KEY_FILE")]
+    pub key_file: Option<PathBuf>,
+    /// How hard an Anthropic model thinks.
+    #[arg(long, value_enum)]
+    pub effort: Option<Effort>,
+}
+
+impl VisionArgs {
+    pub(super) fn vision(self) -> anyhow::Result<crate::vision::Vision> {
+        use anyhow::Context;
+        let key_file =
+            (self.key_file).context("--key-file or ZOOTR_VISION_KEY_FILE is required")?;
+        crate::vision::Vision::new(self.api, self.url, self.model, key_file, self.effort)
+    }
+}
+
 #[derive(Args)]
 pub(super) struct JudgeArgs {
     /// Which shape the vision model's API speaks.
@@ -298,6 +330,10 @@ pub(super) enum Command {
         /// finishes that round.
         #[arg(long = "yield", value_name = "GAME")]
         yield_to: Option<String>,
+        /// A photo pass's `photos.jsonl`: each holder is used from the side
+        /// it was framed from first, until a night learns a better one.
+        #[arg(long, value_name = "FILE")]
+        sides: Option<PathBuf>,
         #[command(flatten)]
         judge: JudgeArgs,
     },
@@ -335,24 +371,8 @@ pub(super) enum Command {
     Look {
         #[arg(required = true)]
         questions: Vec<String>,
-        /// The vision model. Defaults to `claude-opus-5-5` on the
-        /// Anthropic API.
-        #[arg(long, env = "ZOOTR_VISION_MODEL")]
-        model: Option<String>,
-        /// Which shape the vision model's API speaks.
-        #[arg(long, env = "ZOOTR_VISION_API", value_enum, default_value_t = Api::Anthropic)]
-        api: Api,
-        /// The vision model's API, without `/v1/...`. Defaults to
-        /// `https://api.anthropic.com` on the Anthropic API and is
-        /// required on OpenAI's.
-        #[arg(long, env = "ZOOTR_VISION_URL")]
-        url: Option<String>,
-        /// A file holding the API's key, kept out of the command line.
-        #[arg(long, env = "ZOOTR_VISION_KEY_FILE")]
-        key_file: PathBuf,
-        /// How hard an Anthropic model thinks.
-        #[arg(long, value_enum)]
-        effort: Option<Effort>,
+        #[command(flatten)]
+        vision: VisionArgs,
         /// Keep the frame in this folder, so it can be opened when an
         /// answer looks wrong.
         #[arg(long, value_name = "DIR")]
@@ -361,6 +381,29 @@ pub(super) enum Command {
         /// game's.
         #[arg(long, value_name = "PNG", conflicts_with = "keep")]
         frame: Option<PathBuf>,
+    },
+    /// Photograph each check as it stands, untouched, for the ledger:
+    /// Link warps beside its holder (a gift's or shop's giver) on each
+    /// side in turn until the vision model sees it. Writes `HASH.png` and
+    /// a line in `photos.jsonl` per check to `--out`, skipping checks
+    /// already there. On the running game, on Claude's turn.
+    #[command(hide = true)]
+    Photo {
+        /// Only this area's checks, by its Banc folder (`ForestTemple`).
+        #[arg(long, conflicts_with = "hash")]
+        area: Option<String>,
+        /// Only these checks, by placement hash.
+        #[arg(long, num_args = 1..)]
+        hash: Vec<u64>,
+        /// The run's folder.
+        #[arg(long, required_unless_present = "list")]
+        out: Option<PathBuf>,
+        /// Print each check's map, age and spot, a line each, without
+        /// touching the game.
+        #[arg(long)]
+        list: bool,
+        #[command(flatten)]
+        vision: VisionArgs,
     },
     /// Run a play script on the game, from `crates/zootr/play/`: its test
     /// start, its steps, a watch for stalls, and a report with screenshots

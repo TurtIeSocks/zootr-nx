@@ -23,6 +23,9 @@ pub(in crate::sweep) struct Known {
     kinds: HashSet<String>,
     /// The side Link last used a spot from when an item landed.
     sides: HashMap<u64, Side>,
+    /// The side a photo pass saw each holder from (`--sides`), tried
+    /// first where no item landed yet.
+    pub(in crate::sweep) seen: HashMap<u64, Side>,
     /// When a spot last came to nothing from each side, as the row it did
     /// in: a chest opened from behind, a keeper talked to from the wrong
     /// side of his counter.
@@ -92,7 +95,8 @@ pub(in crate::sweep) fn learn(known: &mut Known, rows: &str) {
 pub(in crate::sweep) fn at_known(p: &Planned, known: &Known) -> Planned {
     let hash = p.spot.hash;
     let missed = |s: &Side| (known.missed.get(&hash)).map_or(0, |m| m.get(s).copied().unwrap_or(0));
-    let least = warp::sides_from(p.side).min_by_key(missed);
+    let first = known.seen.get(&hash).copied().unwrap_or(p.side);
+    let least = warp::sides_from(first).min_by_key(missed);
     Planned {
         child: p.child.or_else(|| known.ages.get(&hash).copied()),
         side: (known.sides.get(&hash).copied())
@@ -266,6 +270,14 @@ mod tests {
         assert_eq!(back(6), Side::Left, "and the front came to nothing");
         assert_eq!(back(1), Side::Left, "the side it gave from still wins");
         assert_eq!(back(3), Side::Front, "round again from the longest ago");
+        known.seen = [(1, Side::Back), (4, Side::Right)].into();
+        let side = |hash| at_known(&planned(hash, Side::Front), &known).side;
+        assert_eq!(side(4), Side::Right, "never swept: where the photo saw it");
+        assert_eq!(
+            side(1),
+            Side::Left,
+            "the side it gave from beats the photo's"
+        );
     }
 
     #[test]

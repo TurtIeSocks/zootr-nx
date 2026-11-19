@@ -160,6 +160,12 @@ pub fn every_shuffle() -> Settings {
 
 /// The ledger, with every shuffle on.
 pub fn build(romfs: &Romfs) -> Result<Ledger> {
+    planned(romfs).map(|(ledger, _)| ledger)
+}
+
+/// [`build`], with the sweep's plan of each dealt check: where its giver
+/// stands, for a photo.
+pub(crate) fn planned(romfs: &Romfs) -> Result<(Ledger, Vec<crate::sweep::plan::Planned>)> {
     let new_game = NewGame::from_settings(&every_shuffle(), &[])?;
     let dealt = checks::dealt(romfs, &new_game)?;
     let fixed = Fixed::new();
@@ -212,8 +218,8 @@ pub fn build(romfs: &Romfs) -> Result<Ledger> {
         .filter(|s| free.contains(&s.hash))
         .cloned()
         .collect();
-    let sweep: BTreeMap<u64, String> = crate::sweep::plan::plan(romfs, &dealt_spots)?
-        .into_iter()
+    let planned = crate::sweep::plan::plan(romfs, &dealt_spots)?;
+    let sweep: BTreeMap<u64, String> = (planned.iter())
         .map(|p| (p.spot.hash, crate::sweep::night::how(&p.trigger)))
         .collect();
 
@@ -251,10 +257,11 @@ pub fn build(romfs: &Romfs) -> Result<Ledger> {
             sweep: sweep.get(&c.hash).cloned(),
         })
         .collect();
-    Ok(Ledger {
+    let ledger = Ledger {
         schema: SCHEMA,
         rows,
-    })
+    };
+    Ok((ledger, planned))
 }
 
 /// Prints the ledger as JSON, or with `unknown` each left-out placement

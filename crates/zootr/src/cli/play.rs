@@ -156,15 +156,61 @@ pub(super) fn look(
     Ok(())
 }
 
-/// The installed seed, as the app's history names it.
-fn seed() -> String {
-    let Ok(history) = History::load() else {
-        return "unknown, the history couldn't be read".into();
+/// `zootr photo`: each check `area` or `hashes` pick, photographed on
+/// the running game into `out`, or listed when there's no `out`.
+pub(super) fn photo(
+    romfs: &Romfs,
+    game: &Path,
+    area: Option<&str>,
+    hashes: &[u64],
+    out: Option<&Path>,
+    vision: impl FnOnce() -> Result<Vision>,
+) -> Result<()> {
+    let subjects = crate::sweep::photo::subjects(romfs, area, hashes)?;
+    ensure!(!subjects.is_empty(), "no check fits");
+    let Some(out) = out else {
+        for s in &subjects {
+            println!("{s}");
+        }
+        return Ok(());
     };
-    match history.installed.map(|id| (id, history.get(id))) {
-        Some((id, Ok(e))) if !e.label.name.is_empty() => format!("#{id}, {}", e.label.name),
-        Some((id, _)) => format!("#{id}"),
-        None => "none installed".into(),
+    let vision = &vision()?;
+    std::fs::metadata(&vision.key_file)
+        .with_context(|| format!("reading {}", vision.key_file.display()))?;
+    turn::hold(&turn::session())?;
+    std::fs::create_dir_all(out)?;
+    let config = Config::load()?;
+    let target = config.target()?;
+    let mut input = play::input(&target, config.game.as_deref())?;
+    let dev = Dev::new(Game::attach(&target)?)?;
+    let places = crate::dev::places(romfs)?;
+    let stop = turn::kept(turn::session(), super::running::RENEW);
+    let stamp = (
+        Some(env!("CARGO_PKG_VERSION").to_owned()),
+        installed().ok().flatten(),
+    );
+    crate::sweep::photo::Pass::new(&dev, &mut input, vision, romfs, game, &places, out, stamp)
+        .run(&subjects, || turn::from_claude() && turn::lost(&stop))?;
+    println!("{}", out.join(crate::sweep::photo::LINES).display());
+    Ok(())
+}
+
+/// The installed seed, as the app's history names it, if any.
+fn installed() -> Result<Option<String>> {
+    let history = History::load()?;
+    Ok(match history.installed.map(|id| (id, history.get(id))) {
+        Some((id, Ok(e))) if !e.label.name.is_empty() => Some(format!("#{id}, {}", e.label.name)),
+        Some((id, _)) => Some(format!("#{id}")),
+        None => None,
+    })
+}
+
+/// [`installed`], in words.
+fn seed() -> String {
+    match installed() {
+        Ok(Some(seed)) => seed,
+        Ok(None) => "none installed".into(),
+        Err(_) => "unknown, the history couldn't be read".into(),
     }
 }
 
@@ -221,6 +267,7 @@ fn with_night(
         only: None,
         seed: None,
         yielding: None,
+        sides: None,
     };
     go(&mut night)
 }
@@ -241,6 +288,7 @@ pub(super) fn sweep(
         Option<u64>,
     ),
     yield_to: Option<String>,
+    sides: Option<PathBuf>,
 ) -> Result<()> {
     let mix = mix.map(|name| night::pinned(&name)).transpose()?;
     let yielding = match yield_to {
@@ -263,6 +311,7 @@ pub(super) fn sweep(
         night.only = only;
         night.seed = seed;
         night.yielding = yielding;
+        night.sides = sides;
         night.run(rounds)
     })
 }

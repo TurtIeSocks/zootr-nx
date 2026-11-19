@@ -288,22 +288,9 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         calmly(|| ask(dev), || self.calm())
     }
 
-    /// Wait for no event and no load, pressing A through any text left.
+    /// [`quiet`] with this spot's game.
     fn calm(&mut self) -> Result<()> {
-        let start = Instant::now();
-        loop {
-            let s = self.dev.state()?;
-            if !s.event && !s.loading {
-                return Ok(());
-            }
-            if start.elapsed() > CALM {
-                bail!("an event from before the spot never ended");
-            }
-            if s.event {
-                self.input.press("A")?;
-            }
-            sleep(BEAT);
-        }
+        quiet(self.dev, &mut *self.input)
     }
 
     /// Sets the spot's [`presets`], and names those that weren't set.
@@ -671,15 +658,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
     /// spots waited 30 s for a teleport that never left Link's house
     /// (2026-11-14).
     fn go(&mut self, place: &Place, child: Option<bool>) -> Result<()> {
-        let start = Instant::now();
-        loop {
-            match self.calmly(|dev| dev.go_as(place, child)) {
-                Err(e) if format!("{e:#}").contains(NOT_TAKEN) && start.elapsed() < CALM => {
-                    sleep(BEAT)
-                }
-                done => return done.map(drop),
-            }
-        }
+        teleport(self.dev, &mut *self.input, place, child)
     }
 
     /// Start the event `event`, asking again until it plays: right after a
@@ -795,7 +774,42 @@ const SCENE_ON_ARRIVAL: [(&Name, &Name); 1] = [(
 
 /// Where a teleport to `map` arrives: its first arrival point that starts
 /// no scene, or its first.
-fn arrival<'a>(places: &'a BTreeSet<Place>, map: &str) -> Option<&'a Place> {
+/// Wait for no event and no load, pressing A through any text left.
+pub(super) fn quiet<I: Input>(dev: &Dev, input: &mut I) -> Result<()> {
+    let start = Instant::now();
+    loop {
+        let s = dev.state()?;
+        if !s.event && !s.loading {
+            return Ok(());
+        }
+        if start.elapsed() > CALM {
+            bail!("an event from before the spot never ended");
+        }
+        if s.event {
+            input.press("A")?;
+        }
+        sleep(BEAT);
+    }
+}
+
+/// Teleport to `place` as `child`, asking again while the game ignores it
+/// right after a load.
+pub(super) fn teleport<I: Input>(
+    dev: &Dev,
+    input: &mut I,
+    place: &Place,
+    child: Option<bool>,
+) -> Result<()> {
+    let start = Instant::now();
+    loop {
+        match calmly(|| dev.go_as(place, child), || quiet(dev, &mut *input)) {
+            Err(e) if format!("{e:#}").contains(NOT_TAKEN) && start.elapsed() < CALM => sleep(BEAT),
+            done => return done.map(drop),
+        }
+    }
+}
+
+pub(super) fn arrival<'a>(places: &'a BTreeSet<Place>, map: &str) -> Option<&'a Place> {
     let quiet =
         |pl: &&Place| !(SCENE_ON_ARRIVAL.iter()).any(|(m, s)| **m == *pl.map && **s == *pl.spot);
     let mut of = places.iter().filter(|pl| pl.map == map);

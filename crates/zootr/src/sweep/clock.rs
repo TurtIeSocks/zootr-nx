@@ -8,7 +8,7 @@ use anyhow::Result;
 use super::plan::Trigger;
 use crate::dev::{Dev, Request};
 
-const NOON: u32 = 12;
+pub(super) const NOON: u32 = 12;
 
 fn hour(trigger: &Trigger) -> Option<u32> {
     matches!(trigger, Trigger::Talk { .. }).then_some(NOON)

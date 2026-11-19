@@ -6,6 +6,7 @@ pub mod drills;
 pub mod judge;
 pub mod melody;
 pub mod night;
+pub mod photo;
 pub mod plan;
 pub mod report;
 pub mod resume;
