@@ -276,6 +276,49 @@ impl Save {
         Ok(())
     }
 
+    /// A save holding just `entries`, each `(hash, kind, data)`: a scalar's
+    /// 4 bytes, or one element of a fixed-width type that isn't an array,
+    /// like a String64. They're grouped in the game's type order, so it reads
+    /// back as a save the game wrote would.
+    pub fn build(entries: &[(u32, &str, Vec<u8>)]) -> Result<Self> {
+        let mut sorted = Vec::with_capacity(entries.len());
+        for (hash, kind, data) in entries {
+            let at = TYPES.iter().position(|t| t == kind).context("unknown save type")?;
+            ensure!(!kind.ends_with("Array"), "{kind} can't be built");
+            let w = width(kind).with_context(|| format!("{kind} can't be built"))?;
+            ensure!(data.len() == w, "a {kind} is {w} bytes, not {}", data.len());
+            sorted.push((at, *hash, data));
+        }
+        sorted.sort_by_key(|&(at, hash, _)| (at, hash));
+        let mut kinds: Vec<usize> = sorted.iter().map(|e| e.0).collect();
+        kinds.dedup();
+        let end = TABLE + (sorted.len() + kinds.len()) * 8;
+        let mut table = Vec::new();
+        let mut data = Vec::new();
+        let mut kind = None;
+        for (at, hash, bytes) in sorted {
+            if kind != Some(at) {
+                kind = Some(at);
+                table.extend(0u32.to_le_bytes());
+                table.extend((at as u32).to_le_bytes());
+            }
+            table.extend(hash.to_le_bytes());
+            match INLINE.contains(&TYPES[at]) {
+                true => table.extend_from_slice(bytes),
+                false => {
+                    table.extend(((end + data.len()) as u32).to_le_bytes());
+                    data.extend_from_slice(bytes);
+                }
+            }
+        }
+        let mut b = vec![0u8; TABLE];
+        b[..4].copy_from_slice(&MAGIC.to_le_bytes());
+        b[8..12].copy_from_slice(&(end as u32).to_le_bytes());
+        b.extend(table);
+        b.extend(data);
+        Self::parse(b)
+    }
+
     /// A save's bytes holding just these table pairs, for tests.
     #[cfg(any(test, feature = "fixture"))]
     pub fn fixture(pairs: &[(u32, u32)]) -> Vec<u8> {
@@ -317,6 +360,26 @@ mod tests {
         let s = Save::parse(b).unwrap();
         assert_eq!(s.keys(), BTreeSet::from([3, 1 << 40]));
         assert!(Save::parse(sample()).unwrap().keys().is_empty());
+    }
+
+    #[test]
+    fn built_saves_read_back_by_type_and_take_edits() {
+        let mut name = vec![0u8; 64];
+        name[..3].copy_from_slice(b"Bag");
+        let built = Save::build(&[
+            (7, "String64", name),
+            (22, "Int", 5u32.to_le_bytes().to_vec()),
+            (11, "Bool", 1u32.to_le_bytes().to_vec()),
+        ]);
+        let mut s = built.unwrap();
+        let kinds: Vec<_> = s.entries().iter().map(|e| (e.hash, e.kind)).collect();
+        assert_eq!(kinds, [(11, "Bool"), (22, "Int"), (7, "String64")]);
+        assert_eq!(s.scalar(s.get(22).unwrap()), Some(5));
+        assert_eq!(s.strings(s.get(7).unwrap()), Some(vec!["Bag".into()]));
+        s.set_scalar(22, 9).unwrap();
+        assert_eq!(s.scalar(s.get(22).unwrap()), Some(9));
+        assert!(Save::build(&[(1, "Int", vec![0; 3])]).is_err());
+        assert!(Save::build(&[(1, "IntArray", vec![0; 4])]).is_err());
     }
 
     #[test]
