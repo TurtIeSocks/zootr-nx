@@ -335,8 +335,11 @@ fn session(
                 ap::Event::Error(e) if !conn.is_disconnected() => {
                     note(Note::Trouble(e.to_string()))
                 }
+                // Something for Link: look now rather than at the next tick.
+                ap::Event::ReceivedItems(_) => next_look = Instant::now(),
                 ap::Event::DeathLink { source, cause, .. } if book.death_link => {
                     heard.push(Death { source, cause });
+                    next_look = Instant::now();
                 }
                 _ => {}
             }
