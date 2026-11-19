@@ -517,8 +517,7 @@ const GOAL_DONE: &str = "Complete";
 
 impl Game for Live {
     fn ready(&mut self) -> Result<bool> {
-        let s = self.dev.state()?;
-        Ok(!s.loading && !s.event)
+        Ok(!self.dev.busy()?)
     }
 
     /// One read for every Bool, and the per-placement flags only when a
