@@ -192,4 +192,31 @@ mod tests {
         }
         assert_eq!(thieves, 4);
     }
+
+    #[test]
+    fn jabus_stinger_room_keeps_the_stingers_its_chest_waits_on() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        // The room 9 Stingers, whose deaths raise its chest.
+        const STINGERS: [u64; 4] = [
+            14165743011612163902,
+            5129059413688710441,
+            4039994172559959745,
+            16597078800886776025,
+        ];
+        const CHEST: u64 = 5527401621172639818;
+        let gate = crate::gates::trace(&romfs).unwrap();
+        let gate = gate.iter().find(|g| g.hash == CHEST).unwrap();
+        let read: Vec<_> = gate
+            .expr
+            .atoms()
+            .into_iter()
+            .map(|a| format!("{a:?}"))
+            .collect();
+        let kept = kept(&romfs, &HashSet::new()).unwrap();
+        for s in STINGERS {
+            assert!(kept.contains(&s), "{s} not kept; the gate reads {read:?}");
+        }
+    }
 }
