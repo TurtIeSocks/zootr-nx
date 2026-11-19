@@ -118,6 +118,40 @@ impl Bridge {
             .into());
         }
     }
+
+    /// One `mem_read_many` of the ranges `part` picks, into `out`.
+    fn read_part(
+        &self,
+        ranges: &[(u64, usize)],
+        part: &[usize],
+        out: &mut [Vec<u8>],
+    ) -> Result<()> {
+        if part.is_empty() {
+            return Ok(());
+        }
+        let args: Vec<Value> = (part.iter())
+            .map(|&i| json!({"addr": address(ranges[i].0), "size": ranges[i].1}))
+            .collect();
+        let reply = self.request("mem_read_many", json!({ "ranges": args }))?;
+        let got = (reply["ranges"].as_array()).context("mem_read_many gave no ranges")?;
+        ensure!(
+            got.len() == part.len(),
+            "mem_read_many gave {} of {} ranges",
+            got.len(),
+            part.len()
+        );
+        for (&i, r) in part.iter().zip(got) {
+            let data = unhex(r["data"].as_str().unwrap_or_default())?;
+            ensure!(
+                data.len() == ranges[i].1,
+                "mem_read_many gave {} of {} bytes",
+                data.len(),
+                ranges[i].1
+            );
+            out[i] = data;
+        }
+        Ok(())
+    }
 }
 
 impl Memory for Bridge {
@@ -135,26 +169,27 @@ impl Memory for Bridge {
         Ok(out)
     }
 
-    /// Up to [`RANGES`] ranges a request, each request read in one pass so
-    /// its ranges agree with each other.
+    /// Up to [`RANGES`] ranges and [`CHUNK`] bytes a request, each request
+    /// read in one pass so its ranges agree with each other. An empty range
+    /// isn't sent, and one past the cap is read on its own.
     fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
-        let mut out = Vec::with_capacity(ranges.len());
-        for part in ranges.chunks(RANGES) {
-            let part: Vec<Value> = (part.iter())
-                .map(|&(at, len)| json!({"addr": address(at), "size": len}))
-                .collect();
-            let reply = self.request("mem_read_many", json!({ "ranges": part }))?;
-            let got = (reply["ranges"].as_array()).context("mem_read_many gave no ranges")?;
-            ensure!(
-                got.len() == part.len(),
-                "mem_read_many gave {} of {} ranges",
-                got.len(),
-                part.len()
-            );
-            for r in got {
-                out.push(unhex(r["data"].as_str().unwrap_or_default())?);
+        let mut out = vec![Vec::new(); ranges.len()];
+        let (mut part, mut bytes) = (Vec::new(), 0);
+        for (i, &(at, len)) in ranges.iter().enumerate() {
+            if len > CHUNK {
+                out[i] = self.read(at, len)?;
+                continue;
+            }
+            if part.len() == RANGES || bytes + len > CHUNK {
+                self.read_part(ranges, &part, &mut out)?;
+                (part, bytes) = (Vec::new(), 0);
+            }
+            if len > 0 {
+                part.push(i);
+                bytes += len;
             }
         }
+        self.read_part(ranges, &part, &mut out)?;
         Ok(out)
     }
 
@@ -314,6 +349,33 @@ mod tests {
         let got = game.read_many(&ranges).unwrap();
         assert_eq!(got.len(), RANGES + 1);
         assert_eq!(*sizes.lock().unwrap(), [RANGES, 1]);
+    }
+
+    #[test]
+    fn reads_many_under_the_game_s_byte_cap() {
+        let sizes = Arc::new(Mutex::new(Vec::new()));
+        let seen = sizes.clone();
+        let game = fake(move |req| {
+            let ranges = req["ranges"].as_array().unwrap();
+            let sized = |r: &Value| r["size"].as_u64().unwrap() as usize;
+            seen.lock()
+                .unwrap()
+                .push(ranges.iter().map(sized).collect::<Vec<_>>());
+            let data: Vec<_> = (ranges.iter())
+                .map(|r| json!({"data": "07".repeat(sized(r))}))
+                .collect();
+            vec![ok(req, json!({ "ranges": data }))]
+        });
+        let half = CHUNK / 2;
+        let got = game
+            .read_many(&[(0, half), (0, 0), (0, half), (0, 1)])
+            .unwrap();
+        assert_eq!(
+            got.iter().map(Vec::len).collect::<Vec<_>>(),
+            [half, 0, half, 1]
+        );
+        // An empty range isn't sent, and a request stops at the cap.
+        assert_eq!(*sizes.lock().unwrap(), [vec![half, half], vec![1]]);
     }
 
     #[test]
