@@ -156,6 +156,20 @@ pub fn linked(romfs: &Romfs, map: &str, hash: u64, named: Option<&str>) -> Resul
     Ok(vec![])
 }
 
+/// The dungeon room each placement of `map` names, by hash, for those
+/// that name one (`DefaultDungeonRoomIndex`).
+pub fn rooms_in(romfs: &Romfs, map: &str) -> Result<HashMap<u64, u32>> {
+    let mut rooms = HashMap::new();
+    for rel in banc_files(romfs)?.iter().filter(|rel| map_of(rel) == map) {
+        let doc = load_banc(romfs, rel)?;
+        let named = actors(&doc.root)?
+            .iter()
+            .filter_map(|a| Some((hash_of(a)?, crate::checks::room_of(a)?)));
+        rooms.extend(named);
+    }
+    Ok(rooms)
+}
+
 /// Every placement of `map`.
 pub fn placements_in(romfs: &Romfs, map: &str) -> Result<Vec<Placement>> {
     let mut found = placed_by_map(romfs, |rel| map_of(rel) == map)?;

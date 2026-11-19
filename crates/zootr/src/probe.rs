@@ -21,6 +21,7 @@ use crate::nav::navmesh_file;
 mod climbs;
 mod formats;
 mod logic;
+mod map;
 mod plan;
 mod poses;
 mod rooms;
@@ -213,6 +214,12 @@ pub enum Probe {
         #[arg(long, default_value_t = 0)]
         seed: u64,
     },
+    /// A map's floor plan as JSON, for the ledger to draw: its navmesh's
+    /// faces by room, every placement, and each locked door's two rooms.
+    Map {
+        /// A map, by its Banc param name.
+        map: String,
+    },
     /// A map's rooms: its navmesh's faces joined without a locked door,
     /// with the chests and locks in each.
     Rooms {
@@ -353,6 +360,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             Ok(())
         }
         Probe::Files { pattern, out } => files(romfs, game, &pattern, out.as_deref()),
+        Probe::Map { map } => map::map(romfs, game, &map),
         Probe::Rooms { map } => rooms::rooms(romfs, game, &map),
         Probe::Climbs { map } => climbs::climbs(romfs, game, &map),
         Probe::Water {
