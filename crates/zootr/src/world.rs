@@ -12,6 +12,7 @@ use ounce_formats::{Byml, BymlDoc, Romfs, files_with_suffix};
 
 use crate::checks::{self, actors, bancs, str_field};
 use crate::known::{Name, field};
+use crate::per_dump::PerDump;
 
 const EXIT_ACTOR: &Name = field::FIELD_AND_DUNGEON_ENTRANCE_EVENT_REQUEST_ACTOR;
 
@@ -90,7 +91,7 @@ pub fn presence_of(actor: &Byml) -> Option<Presence> {
 
 /// A scene transition: walking into it in `from` as `era` lands at
 /// `to_start` in `to`.
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Exit {
     pub from: String,
     pub era: Era,
@@ -103,8 +104,14 @@ pub struct Exit {
 }
 
 /// Every distinct exit. The same gate is often placed several times (wide
-/// entrances are several trigger boxes), so duplicates collapse.
+/// entrances are several trigger boxes), so duplicates collapse. Kept per
+/// dump.
 pub fn exits(romfs: &Romfs) -> Result<BTreeSet<Exit>> {
+    static KEPT: PerDump<BTreeSet<Exit>> = PerDump::new();
+    KEPT.get(romfs, || find_exits(romfs))
+}
+
+fn find_exits(romfs: &Romfs) -> Result<BTreeSet<Exit>> {
     let mut out = BTreeSet::new();
     for (file, doc) in bancs(romfs)? {
         let doc = doc?;
