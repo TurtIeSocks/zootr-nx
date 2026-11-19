@@ -6489,12 +6489,7 @@
       "at": [
         {
           "place": "graveyard-adult",
-          "rule": {
-            "count": 1,
-            "items": [
-              "Progressive Hookshot"
-            ]
-          }
+          "rule": true
         },
         {
           "place": "graveyard-child",
