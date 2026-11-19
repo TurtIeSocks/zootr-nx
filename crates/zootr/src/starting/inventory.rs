@@ -159,11 +159,11 @@ impl Start {
         Ok(start)
     }
 
-    /// A new game holding each of `words` once, for tests.
-    #[cfg(test)]
-    pub(crate) fn of(words: &[&str]) -> Self {
+    /// A new game holding each of `words` once. Each must be a word, as in
+    /// a const list.
+    pub fn of(words: &[&str]) -> Self {
         let mut start = Self::default();
-        words.iter().for_each(|w| start.add(w, 1).unwrap());
+        (words.iter()).for_each(|w| start.add(w, 1).expect("a starting word"));
         start
     }
 
