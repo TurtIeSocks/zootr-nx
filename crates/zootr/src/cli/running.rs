@@ -351,6 +351,22 @@ pub(super) fn mem(cmd: MemCommand) -> Result<()> {
     let main = game.global() - u64::from(crate::patch::OFFSETS.gamedata);
     let address = |text: &str| address(text, main);
     match cmd {
+        MemCommand::Actors { prefix } => {
+            let wanted = |name: &str| {
+                prefix.is_empty() || prefix.iter().any(|p| name.starts_with(p.as_str()))
+            };
+            for actor in live::actors::actors(&game, main)? {
+                if !wanted(&actor.name) {
+                    continue;
+                }
+                let [x, y, z] = actor.pos;
+                print!("{:#x} {} ({x:.2}, {y:.2}, {z:.2})", actor.at, actor.name);
+                if let Some(life) = actor.life(&game, main)? {
+                    print!(" life {}/{} at {:#x}", life.left, life.most, life.left_at());
+                }
+                println!();
+            }
+        }
         MemCommand::Keys => {
             for key in live::keys(&game, game.global())? {
                 println!("{key}");
