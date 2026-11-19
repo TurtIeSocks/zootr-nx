@@ -59,7 +59,7 @@ const fn kind(segment: &'static str, word: &'static str, act: Option<Act>) -> Ki
 
 /// In the order they're tried: a scrub's actor is a scrub before it
 /// is an enemy.
-const KINDS: [Kind; 23] = [
+const KINDS: [Kind; 24] = [
     kind("Door", "door", Some(Act::Through { stand: 1.0 })),
     // A chained door: A spends a key, from 0.6 m off the lock (Forest
     // Temple, Mac, 2026-11-16).
@@ -92,6 +92,9 @@ const KINDS: [Kind; 23] = [
     kind("Npc", "person", Some(Act::Face { stand: 1.2 })),
     kind("Enemy", "enemy", None),
     kind("Item", "item", Some(Act::Over)),
+    // Ruto's bottle on the lake bed: a dive onto it takes it (Mac,
+    // 2026-11-18).
+    kind("Letter", "item", Some(Act::Over)),
     kind("Container", "item", Some(Act::Face { stand: 0.5 })),
     // Before a tree: the Deku Tree's ladder is a ladder.
     kind("Ladder", "ladder", None),
@@ -226,6 +229,7 @@ mod tests {
             Some(Act::Through { stand: 1.0 })
         );
         assert_eq!(act("Item_G"), Some(Act::Over));
+        assert_eq!(act(actor::OBJ_BOTTLE_LETTER), Some(Act::Over));
         assert_eq!(act("Tree_FakeKokiri"), None);
     }
 }

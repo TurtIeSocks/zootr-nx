@@ -281,6 +281,35 @@ impl<S: Sense, I: Input> Drive<'_, S, I> {
             (_, Act::Over) if went.reason == Some(Reason::Event) => Touch::Event,
             _ => Touch::Nothing,
         };
+        self.used(placement, result, went, hearts, side, shot)
+    }
+
+    /// Hold `button` for `ms` where Link is, and watch for what it starts
+    /// on `placement`: a dive straight down onto it.
+    pub(super) fn hold_on(
+        &mut self,
+        placement: &Placement,
+        button: &str,
+        ms: u64,
+        shot: PathBuf,
+    ) -> Result<Used> {
+        let hearts = self.sense.hearts()?;
+        self.input.hold(button, ms)?;
+        let result = self.event()?;
+        self.used(placement, result, Went::here(), hearts, None, shot)
+    }
+
+    /// What came of using `placement`, with the hearts lost since Link had
+    /// `hearts`, and a frame saved as `shot`.
+    fn used(
+        &mut self,
+        placement: &Placement,
+        result: Touch,
+        went: Went,
+        hearts: i32,
+        side: Option<Side>,
+        shot: PathBuf,
+    ) -> Result<Used> {
         let lost = hearts - self.sense.hearts()?;
         Ok(Used {
             name: placement.name.clone(),

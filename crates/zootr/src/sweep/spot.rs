@@ -427,9 +427,11 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         };
         let here = here || aloft;
         for (i, &at) in spots.iter().enumerate() {
-            // Under water, Link sinks to it from the surface over it.
+            // Under water, Link uses it from the surface over it: a plane's,
+            // or wherever a warp into water put him back up.
             let over = graph.above(at);
             self.calmly(|dev| dev.warp(over.unwrap_or(at)))?;
+            let under = over.is_some() || nav::sink::floated(self.dev.link()?, at);
             if let Trigger::Open { wield: Some(w), .. } = &p.trigger {
                 self.wield(w, p, name, swept)?;
             }
@@ -438,9 +440,9 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             drive.side = p.side;
             drive.then = sides.to_vec();
             drive.here = here;
-            let used = match over {
-                Some(_) => nav::sink::touch_under(&mut drive, self.gd, &graph, holder, shot)?,
-                None => drive.touch(&graph, holder, shot)?,
+            let used = match under {
+                true => nav::sink::touch_under(&mut drive, self.gd, &graph, holder, shot)?,
+                false => drive.touch(&graph, holder, shot)?,
             };
             swept.shots.extend(used.shot.clone());
             let voided = voided(&used);

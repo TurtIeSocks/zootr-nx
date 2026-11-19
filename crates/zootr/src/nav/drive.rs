@@ -651,11 +651,14 @@ pub fn go<M: Memory, I: Input>(
     // A block can leave Link already in reach, which `use` judges itself.
     let near =
         matches!(went.result, Done::Arrived | Done::Warped) || went.reason == Some(Reason::Blocked);
+    // A warp into water no plane describes (Lake Hylia's) floats him up.
+    let under =
+        over.is_some() || (went.result == Done::Warped && super::sink::floated(dev.link()?, goal));
     let shot = act::frame(hash)?;
-    let used = match (how.then_use && near, over) {
+    let used = match (how.then_use && near, under) {
         (false, _) => None,
-        (true, None) => Some(drive.touch(&graph, placement, shot)?),
-        (true, Some(_)) => {
+        (true, false) => Some(drive.touch(&graph, placement, shot)?),
+        (true, true) => {
             let gd = GameData::load(romfs)?;
             Some(super::sink::touch_under(
                 &mut drive, &gd, &graph, placement, shot,
