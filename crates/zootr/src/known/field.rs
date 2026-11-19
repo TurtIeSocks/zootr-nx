@@ -341,6 +341,7 @@ pub const PLAY_OCARINA_FREE: &Name = &n!(0x8613491154352262);
 pub const POSE_COMMON: &Name = &n!(0x607bb7f4faa48ed8);
 pub const POSE_SHOP: &Name = &n!(0x8dbad5186b7c126d);
 pub const POUCH_ACTOR: &Name = &n!(0x897700827d97acdd);
+pub const POUCH_CATEGORY: &Name = &n!(0xd34c1de11ec04b3c);
 pub const POUCH_CONTENT_PARAM: &Name = &n!(0x3887cfb82d4eba8e);
 pub const POUCH_CONTENT_REF: &Name = &n!(0xa9531119862040d6);
 pub const POUCH_SPECIAL_DEAL: &Name = &n!(0x03919ce6cd5561c9);

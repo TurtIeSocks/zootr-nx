@@ -306,6 +306,16 @@ pub fn split(edit: &str) -> Result<(&str, &str)> {
     edit.split_once('=').context("edits look like NAME=VALUE")
 }
 
+/// The hash a `NAME` in an edit stands for: `#` and eight hex digits for a
+/// value the game doesn't name, like `PlayerStatus`'s members, else the
+/// name's own hash.
+pub fn hash_of(name: &str) -> u32 {
+    (name.strip_prefix('#'))
+        .filter(|hex| hex.len() == 8)
+        .and_then(|hex| u32::from_str_radix(hex, 16).ok())
+        .unwrap_or_else(|| murmur3(name.as_bytes()))
+}
+
 /// Apply `edits` to the save at `path`, keeping the old file next to it as a
 /// timestamped backup. Returns the edit log and the backup.
 pub(crate) fn edit(gd: &GameData, path: &Path, edits: &[String]) -> Result<(Vec<String>, PathBuf)> {
@@ -346,7 +356,7 @@ impl Edit {
     /// `NAME=VALUE`.
     pub fn parse(edit: &str) -> Result<Self> {
         let (name, text) = split(edit)?;
-        Ok(Self::new(murmur3(name.as_bytes()), text))
+        Ok(Self::new(hash_of(name), text))
     }
 }
 

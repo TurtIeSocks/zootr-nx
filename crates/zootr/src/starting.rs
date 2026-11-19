@@ -2,83 +2,17 @@
 //! first autosave, and swapped out of the shuffle pool.
 
 use anyhow::{Context, Result, bail};
-use clap::builder::{PossibleValue, PossibleValuesParser};
 use ounce_formats::{Actor, EventKind, Flowchart, Params, Romfs, Value};
 
 use crate::flows::{self, ACTOR, GRANT, Rewrites, only};
 use crate::items;
-use crate::known::{Name, actor, field, flag, flow, item, scene};
+use crate::known::{Name, actor, field, flag, flow, scene};
 use crate::steps;
 
-#[derive(Debug, PartialEq)]
-pub struct Item {
-    /// Its setting.
-    pub id: &'static str,
-    pub label: &'static str,
-    /// The actor a chest or flow already grants it as.
-    pub actor: &'static Name,
-    pub equip: bool,
-    /// Granted right after it, e.g. the Slingshot's bullet bag, which the
-    /// game's own pickup adds but a quiet grant doesn't.
-    pub with: Option<&'static Name>,
-}
-
-pub const ITEMS: [Item; 5] = [
-    Item {
-        id: "start-kokiri-sword",
-        label: "Kokiri Sword",
-        actor: item::SWORD_KOKIRI,
-        equip: true,
-        with: None,
-    },
-    Item {
-        id: "start-deku-shield",
-        label: "Deku Shield",
-        actor: actor::T_BOX_SHIELD_DEKU,
-        equip: true,
-        with: None,
-    },
-    Item {
-        id: "start-slingshot",
-        label: "Slingshot",
-        actor: item::RANGE_SLING_SHOT,
-        equip: false,
-        with: Some(item::BULLET_BAG_SMALL),
-    },
-    Item {
-        id: "start-bomb-bag",
-        label: "Bomb Bag",
-        actor: item::BOMB_BAG_SMALL,
-        equip: false,
-        with: None,
-    },
-    Item {
-        id: "start-fairy-ocarina",
-        label: "Fairy Ocarina",
-        actor: item::OCARINA_FAIRY,
-        equip: false,
-        with: None,
-    },
-];
-
-const PREFIX: &str = "start-";
-
-/// Where the app lists what a new game starts with.
-pub const SUBGROUP: &str = "Starting items";
-
-/// `--start` names: each setting id without its prefix.
-pub fn parser() -> PossibleValuesParser {
-    PossibleValuesParser::new(
-        ITEMS
-            .iter()
-            .map(|i| PossibleValue::new(&i.id[PREFIX.len()..]).help(i.label)),
-    )
-}
-
-/// The setting `--start <name>` turns on.
-pub fn id(name: &str) -> String {
-    format!("{PREFIX}{name}")
-}
+mod inventory;
+pub use inventory::{
+    Grant, SETTING, Start, WORDS, click, drop, granted, items as view, parse, set,
+};
 
 /// What a starting item's chest holds instead.
 pub const FILLER: &Name = actor::T_BOX_RUPEE_BLUE;
@@ -94,20 +28,6 @@ pub(crate) const AUTOSAVE: (&Name, &Name) = (
 /// HUD and calling Navi stay off until it does.
 pub(crate) fn navi_guide() -> String {
     format!("{}.Navi=true", flag::ACTION_GUIDE_IS_END)
-}
-
-/// Each item's grants: its actor, then what comes with it, then `give`,
-/// none of those equipped.
-fn grants<'a>(items: &[&'a Item], give: &'a [String]) -> Vec<(&'a str, bool)> {
-    items
-        .iter()
-        .flat_map(|i| {
-            [(i.actor as &str, i.equip)]
-                .into_iter()
-                .chain(i.with.map(|w| (&**w, false)))
-        })
-        .chain(give.iter().map(|g| (g.as_str(), false)))
-        .collect()
 }
 
 /// Run `events` (actor, action, params) in `flow` just before its
@@ -172,57 +92,63 @@ pub(crate) fn granting(params: &Params, actor: Value, equip: Value) -> Result<Pa
     Ok(params)
 }
 
-/// Grant `grants` (actor, equipped) in `flow` just before its autosave, in
-/// order, with `template`'s grant event as the model.
-fn chain(flow: &mut Flowchart, template: &Flowchart, grants: &[(&str, bool)]) -> Result<()> {
+/// Grant `grants` in `flow` just before its autosave, in order, with
+/// `template`'s grant event as the model.
+fn chain(flow: &mut Flowchart, template: &Flowchart, grants: &[Grant]) -> Result<()> {
     let (actor, params) = grant_event(template)?;
-    let events = grants.iter().map(|&(granted, equip)| {
-        let params = granting(
+    let events = grants.iter().map(|g| {
+        let mut params = granting(
             params,
-            Value::String(vec![granted.into()]),
-            Value::Bool(vec![equip]),
+            Value::String(vec![g.actor.clone()]),
+            Value::Bool(vec![g.equip]),
         )?;
+        flows::set(&mut params, flows::NUM, Value::Int(vec![g.num]))?;
         Ok((actor, GRANT.1.get(), params))
     });
     before_save(flow, events.collect::<Result<_>>()?)
 }
 
-/// What giving `actor` grants in a running game: the actor, equipped if it's
-/// a starting item that is, then what comes with it.
-pub fn granted(actor: &str) -> Vec<(&str, bool)> {
-    match ITEMS.iter().find(|i| i.actor == actor) {
-        Some(item) => grants(&[item], &[]),
-        None => vec![(actor, false)],
+/// `grants`, then each of `give` (pouch items by actor) not among them.
+pub fn with_gives(mut grants: Vec<Grant>, give: &[String]) -> Vec<Grant> {
+    for g in give {
+        if !grants.iter().any(|o| &o.actor == g) {
+            grants.push(Grant {
+                actor: g.clone(),
+                num: 1,
+                equip: false,
+            });
+        }
     }
+    grants
 }
 
-/// Add `items`, then `give` (pouch items by actor), to the opening flow in
-/// `rewrites`, or the game's own when no other setting rewrote it.
-pub fn grant(
-    romfs: &Romfs,
-    rewrites: &mut Rewrites,
-    items: &[&Item],
-    give: &[String],
-) -> Result<()> {
-    if items.is_empty() && give.is_empty() {
+/// Add `grants` to the opening flow in `rewrites`, or the game's own when
+/// no other setting rewrote it.
+pub fn grant(romfs: &Romfs, rewrites: &mut Rewrites, grants: &[Grant]) -> Result<()> {
+    if grants.is_empty() {
         return Ok(());
     }
-    for g in give {
-        if items::get(romfs, g)?.is_none() {
-            bail!("{g} isn't a pouch item. `zootr items` lists them");
+    for g in grants {
+        if items::get(romfs, &g.actor)?.is_none() {
+            bail!("{} isn't a pouch item. `zootr items` lists them", g.actor);
         }
     }
     let template = template(romfs)?;
     flows::edit(romfs, rewrites, OPENING, |flow| {
-        chain(flow, &template, &grants(items, give)).context("granting the starting items")
+        chain(flow, &template, grants).context("granting the starting items")
     })
 }
 
-/// Swap one copy of each of `items` in `pool` for the filler.
-pub fn swap_out(pool: &mut [&str], items: &[&Item]) {
-    for item in items {
-        if let Some(slot) = pool.iter_mut().find(|i| **i == item.actor) {
-            *slot = FILLER;
+/// Swap one copy of each of `owned` in `pool` for the filler: the item
+/// itself, else its line's level the pool holds it as.
+pub fn swap_out<'a>(pool: &mut [&'a str], owned: &[&'a str], level: impl Fn(&'a str) -> &'a str) {
+    for &item in owned {
+        let slot = match pool.iter().position(|i| *i == item) {
+            Some(at) => Some(at),
+            None => pool.iter().position(|i| *i == level(item)),
+        };
+        if let Some(at) = slot {
+            pool[at] = FILLER;
         }
     }
 }
@@ -232,17 +158,29 @@ mod tests {
     use super::*;
     use crate::known::{field, flow, item};
 
-    #[test]
-    fn every_id_takes_the_prefix() {
-        assert!(ITEMS.iter().all(|i| i.id == id(&i.id[PREFIX.len()..])));
+    /// What a new game starting with `words` is granted.
+    fn starting(words: &[&str]) -> Vec<Grant> {
+        let mut start = Start::default();
+        words.iter().for_each(|w| start.add(w, 1).unwrap());
+        start.grants(&crate::inventory::Pouch::default())
     }
 
     #[test]
-    fn swapping_leaves_a_filler_once_per_item_and_skips_missing_ones() {
+    fn swapping_leaves_a_filler_once_per_item_or_its_level_and_skips_missing_ones() {
         needs_names!();
-        let mut pool = [item::SWORD_KOKIRI, "Item_A", item::SWORD_KOKIRI];
-        swap_out(&mut pool, &[&ITEMS[0], &ITEMS[4]]);
-        assert_eq!(pool, [FILLER, "Item_A", item::SWORD_KOKIRI]);
+        let mut pool = [
+            item::SWORD_KOKIRI,
+            "Item_A",
+            item::SWORD_KOKIRI,
+            item::HOOKSHOT,
+        ];
+        let owned = [item::SWORD_KOKIRI, item::LONGSHOT, item::OCARINA_FAIRY].map(|n| n.get());
+        let level = |i: &str| match i == item::LONGSHOT.get() {
+            true => item::HOOKSHOT.get(),
+            false => "",
+        };
+        swap_out(&mut pool, &owned, level);
+        assert_eq!(pool, [FILLER, "Item_A", item::SWORD_KOKIRI, FILLER]);
     }
 
     #[test]
@@ -253,59 +191,74 @@ mod tests {
         let template = flows::load(&romfs, TEMPLATE).unwrap().unwrap();
         let before = flows::load(&romfs, OPENING).unwrap().unwrap();
         let mut flow = Flowchart::parse(&before.to_bytes()).unwrap().unwrap();
-        chain(&mut flow, &template, &grants(&[&ITEMS[0], &ITEMS[3]], &[])).unwrap();
+        let mut start = Start::default();
+        start.add("bombs", 20).unwrap();
+        start.add("bomb-bag", 1).unwrap();
+        start.add("kokiri-sword", 1).unwrap();
+        let pouch = crate::inventory::Pouch::load(&romfs).unwrap();
+        chain(&mut flow, &template, &start.grants(&pouch)).unwrap();
         let save = only(&flow, AUTOSAVE).unwrap();
-        let grants = flows::running(&flow, GRANT);
-        // Pushed last to first.
-        let [bag, sword] = grants[..] else {
-            panic!("{grants:?}")
-        };
+        // Pushed last to first, so reversed they run in order: the bag, the
+        // sword, then the bombs.
+        let mut run = flows::running(&flow, GRANT);
+        run.reverse();
+        assert_eq!(run.len(), 3, "{run:?}");
         let after = Flowchart::parse(&flow.to_bytes()).unwrap().unwrap();
-        assert_eq!(after.links_to(sword), before.links_to(save));
-        assert_eq!(after.links_to(bag), [ounce_formats::Link::Next(sword)]);
-        assert_eq!(after.links_to(save), [ounce_formats::Link::Next(bag)]);
-        let EventKind::Action { params, .. } = &after.events[sword as usize].kind else {
-            unreachable!()
+        assert_eq!(after.links_to(run[0]), before.links_to(save));
+        for w in run.windows(2) {
+            assert_eq!(after.links_to(w[1]), [ounce_formats::Link::Next(w[0])]);
+        }
+        assert_eq!(after.links_to(save), [ounce_formats::Link::Next(run[2])]);
+        let params = |e: u16| match &after.events[e as usize].kind {
+            EventKind::Action { params, .. } => params.clone(),
+            _ => unreachable!(),
         };
-        assert!(params.contains(&(
-            "Actor".into(),
-            Value::String(vec![ITEMS[0].actor.to_string()])
-        )));
-        assert!(params.contains(&(field::IS_EQUIP_D_IRECT.to_string(), Value::Bool(vec![true]))));
+        let has = |e: u16, key: &str, v: Value| params(e).contains(&(key.into(), v));
+        let (bag, sword) = (run[0], run[1]);
+        assert!(has(
+            sword,
+            "Actor",
+            Value::String(vec![item::SWORD_KOKIRI.to_string()])
+        ));
+        assert!(has(
+            sword,
+            field::IS_EQUIP_D_IRECT.get(),
+            Value::Bool(vec![true])
+        ));
+        assert!(has(run[2], flows::NUM, Value::Int(vec![20])));
+        assert!(has(
+            bag,
+            field::IS_EQUIP_D_IRECT.get(),
+            Value::Bool(vec![false])
+        ));
     }
 
     #[test]
     fn the_slingshot_brings_its_bullet_bag() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let template = flows::load(&romfs, TEMPLATE).unwrap().unwrap();
-        let mut flow = flows::load(&romfs, OPENING).unwrap().unwrap();
-        chain(&mut flow, &template, &grants(&[&ITEMS[2]], &[])).unwrap();
-        let actor = |e: u16| match &flow.events[e as usize].kind {
-            EventKind::Action { params, .. } => params.iter().find(|(k, _)| k == "Actor").cloned(),
-            _ => None,
-        };
-        let [bag, sling] = flows::running(&flow, GRANT)[..] else {
-            panic!("two grants")
-        };
-        assert_eq!(flow.links_to(bag), [ounce_formats::Link::Next(sling)]);
-        let named = |s: &str| Some(("Actor".into(), Value::String(vec![s.into()])));
-        assert_eq!(actor(sling), named(ITEMS[2].actor));
-        assert_eq!(actor(bag), named(item::BULLET_BAG_SMALL));
+        needs_names!();
+        let actors: Vec<_> = starting(&["slingshot"])
+            .into_iter()
+            .map(|g| g.actor)
+            .collect();
+        assert_eq!(
+            actors,
+            [item::RANGE_SLING_SHOT.get(), item::BULLET_BAG_SMALL.get()]
+        );
     }
 
     #[test]
-    fn given_items_come_after_the_starting_ones_unequipped() {
-        let give = ["Item_A".to_owned()];
-        assert_eq!(
-            grants(&[&ITEMS[2]], &give),
-            [
-                (&**ITEMS[2].actor, false),
-                (&**item::BULLET_BAG_SMALL, false),
-                ("Item_A", false)
-            ]
-        );
+    fn given_items_come_after_the_starting_ones_once_and_unequipped() {
+        needs_names!();
+        let give = ["Item_A".to_owned(), item::RANGE_SLING_SHOT.to_string()];
+        let actors: Vec<_> = (with_gives(starting(&["slingshot"]), &give).into_iter())
+            .map(|g| (g.actor, g.equip))
+            .collect();
+        let want = [
+            (item::RANGE_SLING_SHOT.get(), false),
+            (item::BULLET_BAG_SMALL.get(), false),
+            ("Item_A", false),
+        ];
+        assert_eq!(actors, want.map(|(a, e)| (a.to_owned(), e)));
     }
 
     #[test]
@@ -313,10 +266,20 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let err = grant(&romfs, &mut Rewrites::new(), &[], &["Item_A".into()]).unwrap_err();
+        let err = grant(
+            &romfs,
+            &mut Rewrites::new(),
+            &with_gives(vec![], &["Item_A".into()]),
+        )
+        .unwrap_err();
         assert!(err.to_string().contains("Item_A"), "{err}");
         let mut rewrites = Rewrites::new();
-        grant(&romfs, &mut rewrites, &[], &[item::GLASS_TRUTH.to_string()]).unwrap();
+        grant(
+            &romfs,
+            &mut rewrites,
+            &with_gives(vec![], &[item::GLASS_TRUTH.to_string()]),
+        )
+        .unwrap();
         assert!(rewrites.contains_key(&flows::rel(OPENING)));
     }
 

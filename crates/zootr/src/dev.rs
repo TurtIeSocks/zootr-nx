@@ -253,15 +253,26 @@ impl<M: Memory> Dev<M> {
     pub fn state(&self) -> Result<State> {
         let map = self.value(MAP)?;
         let map = map.split(|&b| b == 0).next().unwrap_or_default();
-        let slot = self.main + u64::from(patch::OFFSETS.events);
-        let events = self.game.u64(self.game.u64(slot)?)?;
         Ok(State {
             map: String::from_utf8_lossy(map).into(),
             child: self.flag(IS_CHILD)?,
             loading: self.flag(LOADING)?,
-            event: events == 0 || self.game.u64(events + PLAYING)? != 0,
+            event: self.event()?,
             switches: self.switches()?,
         })
+    }
+
+    /// Loading or in an event, so not in play: [`Dev::state`]'s two flags
+    /// without the rest, for a look made often.
+    pub fn busy(&self) -> Result<bool> {
+        Ok(self.flag(LOADING)? || self.event()?)
+    }
+
+    /// An event plays, or the event manager isn't up yet.
+    fn event(&self) -> Result<bool> {
+        let slot = self.main + u64::from(patch::OFFSETS.events);
+        let events = self.game.u64(self.game.u64(slot)?)?;
+        Ok(events == 0 || self.game.u64(events + PLAYING)? != 0)
     }
 
     /// The dev switches the hook holds.
@@ -523,8 +534,7 @@ impl<M: Memory> Dev<M> {
     /// next request isn't refused for it.
     fn settle(&self) -> Result<()> {
         std::thread::sleep(TICK);
-        wait_while(|| Ok(self.state()?.event), SETTLE, TICK)
-            .context("the request's event never ended")
+        wait_while(|| self.event(), SETTLE, TICK).context("the request's event never ended")
     }
 
     /// Run quest `challenge`'s `step` through the quest system, and wait

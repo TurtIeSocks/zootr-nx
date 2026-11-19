@@ -23,7 +23,7 @@ pub const TRIES: u64 = 20;
 /// over, and what their edits own or set.
 pub fn start(new_game: &NewGame) -> Have {
     let mut have = Have::default();
-    new_game.start.iter().for_each(|i| have.add(i.actor));
+    new_game.start.owned().into_iter().for_each(|i| have.add(i));
     new_game.give.iter().for_each(|i| have.add(i));
     for edit in &new_game.defaults {
         let Some((name, "true")) = edit.split_once('=') else {

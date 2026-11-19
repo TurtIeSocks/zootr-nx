@@ -4,6 +4,7 @@
 
 mod floors;
 mod planks;
+pub mod rupees;
 pub mod sold;
 mod steps;
 

@@ -8,7 +8,12 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { commands, type SettingDef, type Summary } from "@/bindings";
+import {
+  commands,
+  type SettingDef,
+  type StartInventory,
+  type Summary,
+} from "@/bindings";
 import { keep } from "@/lib/api";
 import { type FullConfig, full, type Settings } from "@/lib/config";
 import { SettingsView } from "@/settings/settings-view";
@@ -289,4 +294,95 @@ test("a change that fails to save says why", async () => {
   setConfig.mockResolvedValue({ status: "error", error: "Read-only file" });
   fireEvent.click(screen.getByRole("switch", { name: "Open forest" }));
   expect(await screen.findByText("Read-only file")).toBeTruthy();
+});
+
+/** The made-up grid a starting inventory draws: one Hookshot cell. */
+const startView = (tier: number) =>
+  Promise.resolve({
+    status: "ok" as const,
+    data: {
+      sections: [
+        { section: "Inventory" as const, column: 1, width: 6, shown: true },
+      ],
+      cells: [
+        {
+          section: "Inventory" as const,
+          label: "Hookshot",
+          icon: "Hookshot",
+          glyph: "unknown" as const,
+          tier,
+          tiers: 2,
+          count: null,
+          row: null,
+        },
+      ],
+      caps: [null],
+      staged: [tier > 0],
+      status: [
+        {
+          group: "Meters" as const,
+          label: "Heart containers",
+          hash: 9,
+          input: "number" as const,
+          value: "12",
+          choices: [],
+          per: 4,
+          max: 80,
+          warn: null,
+        },
+      ],
+    },
+  });
+
+const inventory: SettingDef = {
+  ...toggle("start-inventory", "Starting inventory", { group: "Inventory" }),
+  kind: { type: "inventory" },
+};
+
+test("the starting inventory draws the save editor's grid and saves each click", async () => {
+  vi.spyOn(commands, "startItems").mockImplementation((s) =>
+    startView(s.hookshot ?? 0),
+  );
+  const click = vi
+    .spyOn(commands, "startClick")
+    .mockImplementation((s, _at, intent) =>
+      Promise.resolve({
+        status: "ok" as const,
+        data: (intent === "up" && !s.hookshot
+          ? { hookshot: 1 }
+          : {}) as StartInventory,
+      }),
+    );
+  const setConfig = show({ defs: [inventory], section: "Inventory" });
+  const tile = await screen.findByRole("button", { name: /^Hookshot/ });
+  expect(screen.getByLabelText("Heart containers")).toBeTruthy();
+  fireEvent.click(tile);
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({ "start-inventory": { hookshot: 1 } }),
+  );
+  expect(click).toHaveBeenLastCalledWith({}, 0, "up");
+  await screen.findByRole("button", { name: /Hookshot.*changed/ });
+  fireEvent.contextMenu(screen.getByRole("button", { name: /^Hookshot/ }));
+  await waitFor(() => expect(saved(setConfig)).toEqual({}));
+  expect(click).toHaveBeenLastCalledWith({ hookshot: 1 }, 0, "down");
+});
+
+test("a Status field sets the starting inventory through the backend", async () => {
+  vi.spyOn(commands, "startItems").mockImplementation(() => startView(0));
+  const set = vi.spyOn(commands, "startSet").mockResolvedValue({
+    status: "ok",
+    data: { "heart-containers": 5 },
+  });
+  const setConfig = show({ defs: [inventory], section: "Inventory" });
+  const hearts = (await screen.findByLabelText(
+    "Heart containers",
+  )) as HTMLInputElement;
+  fireEvent.change(hearts, { target: { value: "5" } });
+  fireEvent.keyDown(hearts, { key: "Enter" });
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({
+      "start-inventory": { "heart-containers": 5 },
+    }),
+  );
+  expect(set).toHaveBeenCalledWith({}, { hash: 9, index: 0, value: "20" });
 });

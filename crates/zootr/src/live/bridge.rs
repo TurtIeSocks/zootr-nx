@@ -5,7 +5,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, bail, ensure};
 use serde_json::{Value, json};
 
 use super::Memory;
@@ -15,6 +15,9 @@ pub const PATIENCE: Duration = Duration::from_secs(30);
 
 /// The most one memory request moves.
 const CHUNK: usize = 1 << 20;
+/// The most ranges one `mem_read_many` may name: Hookshot refuses more
+/// (`CTL_MEM_RANGES`).
+const RANGES: usize = 64;
 
 /// The game answered a request with an error.
 #[derive(Debug)]
@@ -115,21 +118,6 @@ impl Bridge {
             .into());
         }
     }
-
-    /// Each range's bytes, read in one pass so they agree with each other.
-    pub fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
-        let ranges: Vec<Value> = ranges
-            .iter()
-            .map(|&(at, len)| json!({"addr": address(at), "size": len}))
-            .collect();
-        let reply = self.request("mem_read_many", json!({ "ranges": ranges }))?;
-        reply["ranges"]
-            .as_array()
-            .context("mem_read_many gave no ranges")?
-            .iter()
-            .map(|r| unhex(r["data"].as_str().unwrap_or_default()))
-            .collect()
-    }
 }
 
 impl Memory for Bridge {
@@ -143,6 +131,29 @@ impl Memory for Bridge {
         }
         if out.len() != len {
             bail!("read {} of {len} bytes at {at:#x}", out.len());
+        }
+        Ok(out)
+    }
+
+    /// Up to [`RANGES`] ranges a request, each request read in one pass so
+    /// its ranges agree with each other.
+    fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+        let mut out = Vec::with_capacity(ranges.len());
+        for part in ranges.chunks(RANGES) {
+            let part: Vec<Value> = (part.iter())
+                .map(|&(at, len)| json!({"addr": address(at), "size": len}))
+                .collect();
+            let reply = self.request("mem_read_many", json!({ "ranges": part }))?;
+            let got = (reply["ranges"].as_array()).context("mem_read_many gave no ranges")?;
+            ensure!(
+                got.len() == part.len(),
+                "mem_read_many gave {} of {} ranges",
+                got.len(),
+                part.len()
+            );
+            for r in got {
+                out.push(unhex(r["data"].as_str().unwrap_or_default())?);
+            }
         }
         Ok(out)
     }
@@ -190,6 +201,7 @@ type Stream = super::pipe::Pipe;
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
     use std::sync::atomic::{AtomicU32, Ordering};
     use std::thread;
 
@@ -286,6 +298,22 @@ mod tests {
         });
         let got = game.read_many(&[(0x10, 2), (0x20, 1)]).unwrap();
         assert_eq!(got, [vec![1, 2], vec![0xff]]);
+    }
+
+    #[test]
+    fn reads_many_in_requests_the_game_takes() {
+        let sizes = Arc::new(Mutex::new(Vec::new()));
+        let seen = sizes.clone();
+        let game = fake(move |req| {
+            let ranges = req["ranges"].as_array().unwrap();
+            seen.lock().unwrap().push(ranges.len());
+            let data = vec![json!({"data": "07"}); ranges.len()];
+            vec![ok(req, json!({ "ranges": data }))]
+        });
+        let ranges: Vec<_> = (0..RANGES as u64 + 1).map(|at| (at, 1)).collect();
+        let got = game.read_many(&ranges).unwrap();
+        assert_eq!(got.len(), RANGES + 1);
+        assert_eq!(*sizes.lock().unwrap(), [RANGES, 1]);
     }
 
     #[test]

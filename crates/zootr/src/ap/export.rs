@@ -263,6 +263,10 @@ fn options() -> Value {
             "kind": "choice", "default": default,
             "options": options.iter().map(|o| json!({ "id": o.id, "label": o.label })).collect::<Vec<_>>(),
         }),
+        Kind::Inventory => json!({
+            "id": d.id, "label": d.label, "description": d.description,
+            "kind": "inventory", "default": {},
+        }),
     });
     Value::Array(rows.collect())
 }

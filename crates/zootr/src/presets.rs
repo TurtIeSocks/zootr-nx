@@ -5,14 +5,12 @@ use std::sync::LazyLock;
 
 use anyhow::{Context, Result, bail};
 use clap::builder::{PossibleValue, PossibleValuesParser};
-use ounce_formats::{Byml, murmur3};
+use ounce_formats::Byml;
 
 use crate::gamedata::GameData;
 use crate::known::{Name, actor, field, flag, flow, item};
-use crate::logic::WARP_SONGS;
 use crate::savefile;
 use crate::settings::group;
-use crate::starting;
 use crate::value;
 
 /// Every flag in `names` set to `value`.
@@ -112,26 +110,6 @@ fn ganon(step: &str) -> Vec<String> {
     edits
 }
 
-/// A preset that hands over a bag, as the first nut or stick Link picks up
-/// does: its `SmallBagActor` is what sets the capacity.
-const fn bag(
-    name: &'static str,
-    label: &'static str,
-    what: &'static str,
-    give: &'static [&'static Name],
-) -> Preset {
-    Preset {
-        name,
-        label,
-        what,
-        group: group::INVENTORY,
-        subgroup: Some(starting::SUBGROUP),
-        edits: Vec::new,
-        give,
-        progress: &[],
-    }
-}
-
 /// The guide pop-ups a menu page opens the first time it fills, all off.
 fn page_guides() -> Vec<String> {
     let pages = [
@@ -210,7 +188,9 @@ static GUIDES: LazyLock<[&str; 53]> = LazyLock::new(|| {
 });
 
 /// Every guide shown, and the House of Skulltula's own mark that its Echo
-/// Gem guide has been, which skips the camera move that leads into it.
+/// Gem guide has been, which skips the camera move that leads into it. The
+/// Kokiri on the shop roof stops Link for her targeting guide until her
+/// event counts as played.
 fn no_tutorials() -> Vec<String> {
     let mut edits = page_guides();
     edits.extend(all(
@@ -221,12 +201,17 @@ fn no_tutorials() -> Vec<String> {
         "{}=true",
         field::KAKARIKO_VILLAGE_GATHERING_TOKEN_GOLD_ACTION_GUIDE_AGONY_STONE_TRUE
     ));
+    edits.push(format!(
+        "{}.{}=true",
+        flag::HAVE_PLAYED_EVENT,
+        flag::KOKIRI_FOREST_KOKIRI_011_STOP_IN_FRONT_OF_SHOP_00
+    ));
     edits
 }
 
 const LIGHT_ARROWS: &[&Name] = &[item::ARROW_LIGHT];
 
-pub const PRESETS: [Preset; 15] = [
+pub const PRESETS: [Preset; 11] = [
     Preset {
         name: "open-forest",
         label: "Open forest",
@@ -291,24 +276,10 @@ pub const PRESETS: [Preset; 15] = [
         progress: &[],
     },
     Preset {
-        name: "warp-kit",
-        label: "Warp kit",
-        what: "A new game starts with the Fairy Ocarina and the six warp songs",
-        group: group::INVENTORY,
-        subgroup: None,
-        edits: || {
-            let songs = WARP_SONGS.iter().map(|s| format!("Item_Melody_{s}"));
-            let items = songs.chain([item::OCARINA_FAIRY.to_string()]);
-            all(items.map(|i| format!("IsGet.{i}")), "true")
-        },
-        give: &[],
-        progress: &[],
-    },
-    Preset {
         name: "zelda-done",
         label: "Met Zelda",
         what: "Child Zelda met and her lullaby learned, with her letter in hand",
-        group: group::INVENTORY,
+        group: group::LOGIC,
         subgroup: QUEST,
         edits: || zelda("Step02"),
         give: &[item::ZELDA_LETTER],
@@ -318,7 +289,7 @@ pub const PRESETS: [Preset; 15] = [
         name: "door-of-time",
         label: "Door of Time open",
         what: "The three stones, the Ocarina of Time and its song, and the Door of Time open",
-        group: group::INVENTORY,
+        group: group::LOGIC,
         subgroup: QUEST,
         edits: || {
             let mut edits = zelda("Step06");
@@ -341,7 +312,7 @@ pub const PRESETS: [Preset; 15] = [
         name: CARPENTERS_FREED,
         label: "Carpenters freed",
         what: "All four carpenters freed, the membership card in hand, the guards standing down and the valley bridge up",
-        group: group::INVENTORY,
+        group: group::LOGIC,
         subgroup: QUEST,
         edits: carpenters,
         give: &[item::TOKEN_GERUDO],
@@ -351,7 +322,7 @@ pub const PRESETS: [Preset; 15] = [
         name: "rainbow-bridge",
         label: "Rainbow bridge up",
         what: "Every sage awake, the Light Arrows in hand and the bridge to Ganon's Castle up",
-        group: group::INVENTORY,
+        group: group::LOGIC,
         subgroup: QUEST,
         edits: || ganon("Step02"),
         give: LIGHT_ARROWS,
@@ -361,7 +332,7 @@ pub const PRESETS: [Preset; 15] = [
         name: "trials-done",
         label: "Trials done",
         what: "The rainbow bridge, and all six barriers in Ganon's Castle down",
-        group: group::INVENTORY,
+        group: group::LOGIC,
         subgroup: QUEST,
         edits: || {
             let mut edits = ganon("Step04");
@@ -383,7 +354,7 @@ pub const PRESETS: [Preset; 15] = [
         name: "claim-check",
         label: "Claim Check",
         what: "The trade quest's last step, with the Claim Check in hand",
-        group: group::INVENTORY,
+        group: group::LOGIC,
         subgroup: QUEST,
         edits: || {
             vec![crate::steps::at(
@@ -392,16 +363,6 @@ pub const PRESETS: [Preset; 15] = [
             )]
         },
         give: &[item::CLAIM_CHECK],
-        progress: &[],
-    },
-    Preset {
-        name: "magic",
-        label: "Magic meter",
-        what: "The Great Fairy's magic meter, handed over the way her fountain does",
-        group: group::INVENTORY,
-        subgroup: QUEST,
-        edits: Vec::new,
-        give: &[item::FAIRY_BLESS_MP],
         progress: &[],
     },
     Preset {
@@ -414,18 +375,6 @@ pub const PRESETS: [Preset; 15] = [
         give: &[],
         progress: &[],
     },
-    bag(
-        "nut-bag",
-        "Deku Nut bag",
-        "A new game starts with the 20-nut bag, which otherwise comes with the first nut picked up",
-        &[item::NUT_BAG_SMALL],
-    ),
-    bag(
-        "stick-bag",
-        "Deku Stick bag",
-        "A new game starts with the 10-stick bag, which otherwise comes with the first stick picked up",
-        &[item::STICK_BAG_SMALL],
-    ),
 ];
 
 /// For clap: each preset's name, with what it does as its help.
@@ -517,11 +466,12 @@ pub fn apply(gd: &GameData, root: &mut Byml, edits: &[String]) -> Result<Vec<Str
     let mut log = Vec::new();
     for edit in edits {
         let (name, text) = savefile::split(edit)?;
+        let hash = savefile::hash_of(name);
         let table = gd
-            .table(name)
+            .kind(hash)
             .with_context(|| format!("{name} isn't in {}", flag::GAME_DATA))?;
         let raw = value::scalar(gd, table, text).context(name.to_owned())?;
-        let hash = i64::from(murmur3(name.as_bytes()));
+        let hash = i64::from(hash);
         let entry = tables
             .get_mut(table)
             .context(table.to_owned())?
@@ -546,6 +496,7 @@ pub fn apply(gd: &GameData, root: &mut Byml, edits: &[String]) -> Result<Vec<Str
 mod tests {
     use super::*;
     use crate::known::{field, flag, flow, item};
+    use ounce_formats::murmur3;
 
     #[test]
     fn expands_presets_then_edits() {
@@ -570,22 +521,6 @@ mod tests {
             [format!("{}=true", flag::HYRULE_FIELD_ARRIVE_ENTRANCE)]
         );
         assert!(DEFAULT_ON.contains(&"clock"));
-    }
-
-    #[test]
-    fn the_nut_and_stick_presets_hand_over_the_small_bags_and_sit_with_the_starting_items() {
-        needs_names!();
-        let both = ["nut-bag".to_owned(), "stick-bag".to_owned()];
-        assert_eq!(
-            gives(&both).unwrap(),
-            [item::NUT_BAG_SMALL, item::STICK_BAG_SMALL]
-        );
-        assert!(expand(&both, &[]).unwrap().is_empty());
-        for name in &both {
-            let preset = PRESETS.iter().find(|p| p.name == name).unwrap();
-            assert_eq!(preset.subgroup, Some(starting::SUBGROUP));
-            assert!(!DEFAULT_ON.contains(&preset.name));
-        }
     }
 
     #[test]
@@ -623,6 +558,11 @@ mod tests {
             field::KAKARIKO_VILLAGE_GATHERING_TOKEN_GOLD_ACTION_GUIDE_AGONY_STONE_TRUE
         )));
         assert!(has(&format!(
+            "{}.{}=true",
+            flag::HAVE_PLAYED_EVENT,
+            flag::KOKIRI_FOREST_KOKIRI_011_STOP_IN_FRONT_OF_SHOP_00
+        )));
+        assert!(has(&format!(
             "{}=false",
             field::UI_IS_NEED_OPEN_PLUS_MENU_EQUIP_ACTION_GUIDE
         )));
@@ -655,15 +595,6 @@ mod tests {
         ours.sort_unstable();
         theirs.sort_unstable();
         assert_eq!(ours, theirs);
-    }
-
-    #[test]
-    fn warp_kit_grants_ocarina_and_songs() {
-        needs_names!();
-        let edits = expand(&["warp-kit".into()], &[]).unwrap();
-        assert_eq!(edits.len(), WARP_SONGS.len() + 1);
-        assert!(edits.contains(&format!("IsGet.{}=true", item::OCARINA_FAIRY)));
-        assert!(edits.contains(&format!("IsGet.{}=true", item::MELODY_LIGHT_PRELUDE)));
     }
 
     #[test]
@@ -704,8 +635,8 @@ mod tests {
             gives(&["rainbow-bridge".into(), "claim-check".into()]).unwrap(),
             [item::ARROW_LIGHT, item::CLAIM_CHECK]
         );
-        assert!(edits("magic").is_empty());
-        assert_eq!(gives(&["magic".into()]).unwrap(), [item::FAIRY_BLESS_MP]);
+        let quest = PRESETS.iter().filter(|p| p.subgroup == QUEST);
+        assert!(quest.clone().count() > 0 && quest.clone().all(|p| p.group == group::LOGIC));
     }
 
     #[test]
@@ -730,7 +661,7 @@ mod tests {
     #[test]
     fn a_save_is_offered_only_presets_it_can_take() {
         let names: Vec<String> = for_saves().map(|p| p.name.into()).collect();
-        assert!(!names.is_empty() && !names.iter().any(|n| n == "magic"));
+        assert!(!names.is_empty() && !names.iter().any(|n| n == "claim-check"));
         assert!(for_save(&names, &[]).is_ok());
     }
 

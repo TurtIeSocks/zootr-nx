@@ -23,6 +23,7 @@ mod status;
 pub use flags::{FlagGroup, FlagQuery, FlagRow, FlagsView, flags};
 pub(crate) use slots::STATS;
 pub use slots::{SlotRow, Stat, slots};
+pub(crate) use status::{LIFE, MAX_LIFE, RUPEES};
 pub use status::{StatusChoice, StatusField, StatusGroup, status};
 
 /// What's waiting to be saved: the presets turned on, then single edits

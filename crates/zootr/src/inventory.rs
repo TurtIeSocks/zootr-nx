@@ -281,6 +281,42 @@ const GRID: &[Slot] = &[
     slot(Medallions, "Light", &[item::MEDAL_LIGHT]),
 ];
 
+/// One actor of the grid, as a new game can start holding it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Held {
+    pub actor: &'static Name,
+    /// A count that isn't one of its cell's tiers, like the bombs a bag
+    /// holds. A count that is, like a Gold Skulltula's, is the item itself.
+    pub ammo: bool,
+}
+
+/// Every actor in the grid once, in its order: each cell's tiers lowest
+/// first, then its count.
+pub fn held() -> Vec<Held> {
+    let mut out: Vec<Held> = Vec::new();
+    for s in GRID {
+        let tiers = s.tiers.iter().map(|&actor| Held { actor, ammo: false });
+        let count =
+            (s.count.filter(|c| !s.tiers.contains(c))).map(|actor| Held { actor, ammo: true });
+        for h in tiers.chain(count) {
+            if !out.iter().any(|o| o.actor == h.actor) {
+                out.push(h);
+            }
+        }
+    }
+    out
+}
+
+/// The tiers below `actor` in its cell, which holding it holds too: none
+/// along a trade sequence, where Link holds one at a time.
+pub fn below(actor: &Name) -> Vec<&'static Name> {
+    let cell = GRID
+        .iter()
+        .find(|s| !s.exclusive && s.tiers.contains(&actor));
+    let tiers = cell.map_or(&[][..], |s| s.tiers);
+    tiers.iter().take_while(|&&t| t != actor).copied().collect()
+}
+
 /// The dungeons the Dungeons section has a row for, in game order: the
 /// `DungeonInfo` member, which is also the dungeon's Banc folder, its name,
 /// and the short name randomizer players use.

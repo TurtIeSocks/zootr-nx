@@ -27,6 +27,7 @@ use crate::play::{Input, Start, boot};
 use crate::progress::Run;
 use crate::savefile;
 use crate::settings::{self, Settings};
+use crate::starting;
 
 mod known;
 
@@ -58,16 +59,20 @@ const FAILS: usize = 2;
 
 /// What every round's seed has: the test seed rules, and no enemies in
 /// the harness's way.
-const BASE: [&str; 9] = [
+const BASE: [&str; 4] = [
     settings::SKIP_ALL,
     settings::QUIET_ENEMIES,
     "open-forest",
     "kakariko-gate",
-    "start-kokiri-sword",
-    "start-deku-shield",
-    "start-slingshot",
-    "start-bomb-bag",
-    "start-fairy-ocarina",
+];
+
+/// What every round's seed starts with, by the test seed rules.
+const START: [&str; 5] = [
+    "kokiri-sword",
+    "deku-shield",
+    "slingshot",
+    "bomb-bag",
+    "fairy-ocarina",
 ];
 
 /// The settings mixes, one a round in turn, so a failure names its mix.
@@ -115,7 +120,11 @@ pub fn mix(i: usize) -> (&'static str, Settings) {
         Some((id, value)) => (id.into(), value.into()),
         None => (entry.to_string(), true.into()),
     };
-    (name, BASE.iter().chain(extra).map(set).collect())
+    let mut settings: Settings = BASE.iter().chain(extra).map(set).collect();
+    let start = starting::Start::of(&START);
+    let start = serde_json::to_value(start).expect("a map");
+    settings.insert(starting::SETTING.into(), start);
+    (name, settings)
 }
 
 /// The place in [`MIXES`] of the mix whose name starts with `name`.

@@ -389,7 +389,7 @@ mod tests {
         };
         let second = history
             .add(
-                Settings::from([("warp-kit".into(), true.into())]),
+                Settings::from([("kakariko-gate".into(), true.into())]),
                 extras.clone(),
                 Label {
                     name: "Gifts".into(),

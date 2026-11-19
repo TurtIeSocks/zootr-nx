@@ -107,8 +107,7 @@ pub(crate) fn left_out(c: &ItemCheck, open: Let) -> Option<LeftOut> {
 /// A prize chest is a chest to the hook, which gives a line's level there
 /// and swaps a Red Rupee copy for ammo (`ammo::line`). A shop slot shows
 /// each step on a shelf of its own (`shops::steps`), and a pickup in a
-/// placement of its own (`pickups::steps`), bar one a logic module makes
-/// or watches.
+/// placement of its own (`pickups::steps`).
 pub(crate) fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
     let picks = gifts::of(check).is_some()
         || scrubs::of(check).is_some()
@@ -236,7 +235,7 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn a_pickup_holds_every_line_level_and_ammo_unless_logic_watches_it() {
+    fn a_pickup_holds_every_line_level_and_ammo_even_one_logic_watches() {
         needs_names!();
         let pot = ItemCheck {
             holder: actor::OBJ_POT_A_01.to_string(),
@@ -250,18 +249,15 @@ pub(crate) mod tests {
             for line in progressive::LINES {
                 for &(level, _) in line.iter() {
                     assert!(allowed(&pot, level, on), "{level}");
+                    assert!(allowed(&watched, level, on), "{level}");
                 }
             }
             for (ammo, _) in ammo::NEEDS {
                 assert!(allowed(&pot, ammo, on), "{ammo}");
-                assert_eq!(refusal(&watched, ammo, on), Some(Narrowing::AsksPouch));
+                assert!(allowed(&watched, ammo, on), "{ammo}");
             }
         }
-        assert_eq!(
-            refusal(&watched, item::HOOKSHOT, true),
-            Some(Narrowing::AsksPouch)
-        );
-        assert!(allowed(&watched, item::HOOKSHOT, false));
+        assert!(allowed(&watched, item::HOOKSHOT, true));
     }
 
     #[test]

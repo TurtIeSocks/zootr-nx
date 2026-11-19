@@ -240,6 +240,7 @@ pub(super) fn settings() {
             let default = match &d.kind {
                 Kind::Toggle { default } => default.to_string(),
                 Kind::Choice { default, .. } => default.clone(),
+                Kind::Inventory => "{}".into(),
             };
             let nest = [
                 d.parent.map(|p| format!("under {p}")),
