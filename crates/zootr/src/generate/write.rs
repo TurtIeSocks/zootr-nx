@@ -12,12 +12,12 @@ use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::hints::Hint;
 use crate::progress::Run;
-use crate::settings::{ChestSize, NewGame, TRADE_CHAIN};
+use crate::settings::{ChestSize, EQUIP_ANY_AGE, NewGame, TRADE_CHAIN};
 use crate::{
-    ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, foreign,
-    fortress, gamedata, gerudo, gifts, held, hints, key_tints, keys, medallions, navi, notice,
-    patch, picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text,
-    tracker, trade_chain, twins,
+    ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, equip_age,
+    flags, foreign, fortress, gamedata, gerudo, gifts, held, hints, key_tints, keys, medallions,
+    navi, notice, patch, picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting,
+    steps, text, tracker, trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -246,6 +246,9 @@ pub fn write_mod(
     // Before the stand-ins, so one holding bombchus copies the freed row.
     if new_game.free_bombchus {
         bombchus::write(&mut builder, &mut tables)?;
+    }
+    if new_game.on.contains(EQUIP_ANY_AGE) {
+        equip_age::write(romfs, &mut builder)?;
     }
     // Before the stand-ins, which copy a song's model as it's shown.
     let shown = new_game.foreign.iter().map(|f| f.shows.as_str());

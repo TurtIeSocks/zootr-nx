@@ -140,6 +140,7 @@ pub(crate) const CHESTS: &str = "chests";
 pub(crate) const PROGRESSIVE: &str = "progressive-items";
 const FREE_BOMBCHUS: &str = "free-bombchus";
 const BUNNY_HOOD: &str = "bunny-hood";
+pub(crate) const EQUIP_ANY_AGE: &str = "equip-any-age";
 const QUIET_NAVI: &str = "quiet-navi";
 pub(crate) const OPEN_DOOR: &str = "open-door-of-time";
 pub(crate) const SCRUBS: &str = "scrubs";
@@ -500,6 +501,12 @@ pub fn schema() -> Vec<SettingDef> {
             "Link runs half again as fast while he wears the Bunny Hood",
         )])
         .chain([toggle(
+            EQUIP_ANY_AGE,
+            group::ENHANCEMENTS,
+            "Equipment for both ages",
+            "Child and adult Link can both use every sword, shield, tunic and boot on the Equipment page, and logic expects them to",
+        )])
+        .chain([toggle(
             BRIDGE_MEDALLIONS,
             group::LOGIC,
             "Bridge at six medallions",
@@ -581,6 +588,7 @@ mod tests {
         assert_eq!(group(KEYS), group::DUNGEONS);
         assert_eq!(group(HINTS), group::GENERAL);
         assert_eq!(group(BUNNY_HOOD), group::ENHANCEMENTS);
+        assert_eq!(group(EQUIP_ANY_AGE), group::ENHANCEMENTS);
         assert_eq!(group(SKIP_ALL), group::CUTSCENES);
     }
 

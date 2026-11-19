@@ -9,8 +9,6 @@ use zootr_hook::ui::Age;
 
 use crate::known::{Name, flag, item};
 
-/// The pause menu's table, which the tests check the slot against.
-pub const FILES: [&str; 1] = ["UI/Pouch/PouchTable/PouchTable.game__ui__PouchTable.bgyml"];
 /// The slot's cell in the Items page's list.
 const CELL: u8 = 22;
 const CHILD: u8 = Age::Child as u8;
@@ -68,7 +66,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let doc = BymlDoc::parse(&romfs.read(FILES[0]).unwrap()).unwrap();
+        let doc = BymlDoc::parse(&romfs.read(crate::game::POUCH_TABLE).unwrap()).unwrap();
         let get = |m: &'_ Byml, key: &Name| m.as_map().unwrap().get(&**key).cloned();
         let slots = get(&doc.root, field::ITEM_ARRAY).unwrap();
         let deal = |s: &&Byml| {

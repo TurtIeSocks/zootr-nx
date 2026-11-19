@@ -175,6 +175,7 @@ Changes to how Link plays. All start off.
 | Setting | What it does |
 |---|---|
 | Bunny Hood speed | Link runs half again as fast while he wears the Bunny Hood |
+| Equipment for both ages | Child and adult Link can both use every sword, shield, tunic and boot on the Equipment page, and logic expects them to: a child with the Hover Boots counts as able to cross a gap. The Kokiri tunic stays one per age |
 
 ### Logic & access
 

@@ -29,6 +29,7 @@ mod dampe;
 pub mod dev;
 mod dig;
 mod door;
+mod equip_age;
 mod events;
 mod fill;
 mod flags;
