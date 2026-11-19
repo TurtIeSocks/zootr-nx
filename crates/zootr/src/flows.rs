@@ -192,7 +192,13 @@ pub(crate) fn params_mut(kind: &mut EventKind) -> &mut Params {
 /// actor it replaces. The game finds a call's actor in the flow's table by
 /// name: a name the table lacks indexes past it and crashes as the flow
 /// loads.
-pub(crate) fn rename_actor(flow: &mut Flowchart, at: u16, key: &str, actor: &str) -> Result<()> {
+pub(crate) fn rename_actor(
+    flow: &mut Flowchart,
+    at: u16,
+    key: &str,
+    actor: &str,
+    instance: impl FnOnce(&str) -> String,
+) -> Result<()> {
     let params = params_mut(&mut flow.events[at as usize].kind);
     let slot = params.iter_mut().find(|(k, _)| k == key);
     let slot = slot.with_context(|| format!("event {at} has no {key}"))?;
@@ -200,14 +206,16 @@ pub(crate) fn rename_actor(flow: &mut Flowchart, at: u16, key: &str, actor: &str
         bail!("{key} isn't an actor");
     };
     let old = std::mem::replace(name, actor.to_owned());
-    let secondary = secondary.clone();
+    let renamed = instance(secondary);
+    let old_secondary = std::mem::replace(secondary, renamed.clone());
     let declared = flow
         .actors
         .iter()
-        .find(|a| a.name == old && a.secondary_name == secondary);
+        .find(|a| a.name == old && a.secondary_name == old_secondary);
     let template = declared.with_context(|| format!("{} doesn't declare {old}", flow.name))?;
     let template = Actor {
         name: actor.to_owned(),
+        secondary_name: renamed,
         ..template.clone()
     };
     flow.actor_like(&template);

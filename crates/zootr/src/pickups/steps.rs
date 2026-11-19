@@ -6,9 +6,10 @@
 //! in a loaded map swaps once Link levels up. A drop already lying removes
 //! itself ([`super::stale`]).
 //!
-//! A holder a logic module makes appear or watches can't be copied: the
-//! module makes or watches only the holder (`ItemCheck::watched`). It still
-//! refuses these items (EIE #4).
+//! A logic module that makes or watches a holder (`ItemCheck::watched`)
+//! gets its nodes copied for each step ([`super::groups`],
+//! [`super::nodes`]). A thief's call names each step's key in turn
+//! (`fortress::give`).
 
 use std::collections::HashMap;
 
@@ -39,6 +40,12 @@ pub(super) fn of(of: u64, item: &str, progressive: bool) -> Option<Vec<(u64, &'s
     Some(steps.map(step).collect())
 }
 
+/// The BoolExp a step's placement stands by, true while it's the step its
+/// holder gives and isn't picked.
+pub(crate) fn gate(placement: u64) -> String {
+    format!("Rando_Step_{placement}")
+}
+
 /// Whether a pickup dealt `item` might show it a step at a time: ammo, or
 /// a line's level once progressive items are on. A lying pickup dealt one
 /// stands until picked whatever the setting (`picked::After::Taken`), so
@@ -55,6 +62,9 @@ pub struct Steps {
     pub copies: Vec<(u64, u64)>,
     /// Each step's placement's BoolExp, by its hash.
     gates: HashMap<u64, String>,
+    /// Each step past a thief's key, by its placement's hash: its own
+    /// instance name, so her call can name it apart from the key's.
+    named: HashMap<u64, usize>,
     /// Each placement's BoolExp, then each step stand-in's own.
     pub exps: Vec<(String, Vec<Op>)>,
     /// Whether a step stand-in is built, so the drop graph needs its branch.
@@ -72,6 +82,7 @@ impl Steps {
         let mut steps = Self {
             copies: Vec::new(),
             gates: HashMap::new(),
+            named: HashMap::new(),
             exps: Vec::new(),
             built: false,
         };
@@ -89,9 +100,21 @@ impl Steps {
             };
             let unpicked = not(by_name(&picked::flag(step.of), Op::Bool));
             let program = shows::within(own, and(step.program.clone(), unpicked), gd)?;
-            let gate = format!("Rando_Step_{}", m.hash);
+            let gate = gate(m.hash);
             steps.exps.push((gate.clone(), program));
-            steps.gates.insert(m.hash, gate);
+            // A thief's key keeps her vanilla gate, and her call picks the
+            // step by the BoolExp instead (`fortress::give`). Her call finds
+            // the key by its instance name, so each step goes by its own:
+            // sharing one, her warp moved a step that wasn't the one shown
+            // (Mac, 2026-11-19).
+            let named = checks
+                .iter()
+                .any(|c| c.hash == step.of && super::is_named(c));
+            if !named {
+                steps.gates.insert(m.hash, gate);
+            } else if step.k > 0 {
+                steps.named.insert(m.hash, step.k);
+            }
             if step.k > 0 {
                 steps.copies.push((step.of, m.hash));
             }
@@ -111,7 +134,8 @@ impl Steps {
     /// give each step its stand-in. Whether `root`, a map's doc, changed.
     pub fn place(&self, root: &mut Byml) -> Result<bool> {
         let copied = shows::copy_in(root, &self.copies)?;
-        Ok(shows::gate(root, &self.gates)? || copied)
+        let named = shows::name_apart(root, &self.named)?;
+        Ok(shows::gate(root, &self.gates)? || copied || named)
     }
 
     /// The drop graph's branch, when a step stand-in needs it.
@@ -130,8 +154,9 @@ mod tests {
     use super::*;
     use crate::checks::{self, hash_of};
     use crate::game::dev_dump;
+    use crate::known::field;
     use crate::known::item;
-    use crate::pickups::{FREESTANDING, Kind, POTS};
+    use crate::pickups::{FORTRESS_KEYS, FREESTANDING, Kind, POTS};
     use crate::world::presence_of;
 
     /// A Kokiri Forest pot, and the Death Mountain Crater heart piece.
@@ -223,6 +248,41 @@ mod tests {
         );
         assert_ne!(spots[0].name, spots[1].name);
         assert_eq!(spots[0].at, spots[1].at);
+    }
+
+    #[test]
+    fn a_thiefs_key_steps_stand_by_her_live_gate() {
+        let Some(romfs) = dev_dump() else { return };
+        let key = FORTRESS_KEYS.checks(&romfs).unwrap()[0].clone();
+        let vanilla = checks::load_banc(&romfs, &key.file).unwrap();
+        let actors = checks::actors(&vanilla.root).unwrap();
+        let holder = actors.iter().find(|a| hash_of(a) == Some(key.hash));
+        let own = presence_of(holder.unwrap()).unwrap().flag;
+        let (steps, root, _) = placed(&FORTRESS_KEYS, key.hash, item::HOOKSHOT);
+        for hash in [key.hash, copy_hash(key.hash, 1)] {
+            let actors = checks::actors(&root).unwrap();
+            let a = actors.iter().find(|a| hash_of(a) == Some(hash)).unwrap();
+            assert_eq!(presence_of(a).unwrap().flag, own, "{hash}");
+            let lazy = a.as_map().unwrap()["Presence"].as_map().unwrap()
+                [field::IS_CHECK_LAZY.get()]
+            .as_bool()
+            .unwrap();
+            assert!(!lazy, "{hash} isn't watched live");
+            // Her call reads the step's BoolExp before she falls.
+            let read = exp(&steps, &gate(hash));
+            let own = Op::Bool(murmur3(own.as_bytes()));
+            assert!(!read.contains(&own), "{hash} waits on her fall");
+        }
+        // Each step goes by its own name, which her call names it by.
+        let name = |root: &Byml, hash| {
+            let actors = checks::actors(root).unwrap();
+            let a = actors.iter().find(|a| hash_of(a) == Some(hash)).unwrap();
+            checks::str_field(a, "Name").unwrap().to_owned()
+        };
+        let key_name = name(&vanilla.root, key.hash);
+        assert_eq!(name(&root, key.hash), key_name);
+        let copy = copy_hash(key.hash, 1);
+        assert_eq!(name(&root, copy), shows::instance(&key_name, 1));
     }
 
     #[test]
