@@ -3,7 +3,7 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 use clap::ValueEnum;
 use ounce_formats::{Byml, Romfs};
 use serde::{Deserialize, Serialize};
@@ -154,6 +154,29 @@ pub fn linked(romfs: &Romfs, map: &str, hash: u64, named: Option<&str>) -> Resul
         return Ok(links.unwrap_or_default().iter().filter_map(dst).collect());
     }
     Ok(vec![])
+}
+
+/// The dungeon room each placement of `map` names, by hash, for those
+/// that name one (`DefaultDungeonRoomIndex`).
+pub fn rooms_in(romfs: &Romfs, map: &str) -> Result<HashMap<u64, u32>> {
+    let mut rooms = HashMap::new();
+    for rel in banc_files(romfs)?.iter().filter(|rel| map_of(rel) == map) {
+        let doc = load_banc(romfs, rel)?;
+        let named = actors(&doc.root)?
+            .iter()
+            .filter_map(|a| Some((hash_of(a)?, crate::checks::room_of(a)?)));
+        rooms.extend(named);
+    }
+    Ok(rooms)
+}
+
+/// The Banc folder `map` sits in, its area: Kokiri Forest's for either
+/// age's map of it.
+pub fn area_of(romfs: &Romfs, map: &str) -> Result<String> {
+    let files = banc_files(romfs)?;
+    let rel = files.iter().find(|rel| map_of(rel) == map);
+    let area = rel.and_then(|rel| rel.split('/').nth(1));
+    Ok(area.with_context(|| format!("no map {map}"))?.to_owned())
 }
 
 /// Every placement of `map`.
