@@ -611,6 +611,51 @@ mod tests {
     }
 
     #[test]
+    fn ageless_weapons_let_the_other_age_use_swords_and_shields() {
+        needs_names!();
+        let book = Book::load().unwrap();
+        // Whether the other age may use it with the setting on. Live: the
+        // tunics and boots do nothing on a child, and a child can't aim
+        // the Mirror Shield's reflection.
+        let cases = [
+            ("mirror-shield", "mirror-shield", Era::Adult, false),
+            ("kokiri-sword", "kokiri-sword", Era::Child, true),
+            ("deku-shield", "deku-shield-chest", Era::Child, true),
+            ("hover-boots", "hover-boots", Era::Adult, false),
+            ("iron-boots", "iron-boots", Era::Adult, false),
+            ("zora-tunic", "zora-tunic", Era::Adult, false),
+            ("goron-tunic", "goron-tunic", Era::Adult, false),
+        ];
+        for (word, item, home, shared) in cases {
+            let other = match home {
+                Era::Adult => Era::Child,
+                Era::Child => Era::Adult,
+            };
+            let held = have(&[&vocab::id(&format!("item:{item}")).unwrap()]);
+            let met =
+                |on: &[&str], era| book.resolve(word, &ctx(true, on)).unwrap().met(&held, era);
+            assert!(met(&[], home) && !met(&[], other), "{word} off");
+            let on = [settings::AGELESS_WEAPONS];
+            assert!(met(&on, home), "{word} on, at its own age");
+            assert_eq!(met(&on, other), shared, "{word} on, at the other age");
+        }
+    }
+
+    #[test]
+    fn light_needs_an_adult_with_the_mirror_shield_even_with_ageless_weapons() {
+        needs_names!();
+        let book = Book::load().unwrap();
+        let held = have(&[item::SHIELD_MIRROR]);
+        let met = |on: &[&str], era| {
+            book.resolve("light", &ctx(true, on))
+                .unwrap()
+                .met(&held, era)
+        };
+        assert!(met(&[], Era::Adult) && !met(&[], Era::Child));
+        assert!(!met(&[settings::AGELESS_WEAPONS], Era::Child));
+    }
+
+    #[test]
     fn the_well_drains_with_zeldas_lullaby() {
         needs_names!();
         let book = Book::load().unwrap();

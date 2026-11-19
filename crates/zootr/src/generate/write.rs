@@ -13,12 +13,12 @@ use crate::flows::Rewrites;
 use crate::hints::Hint;
 use crate::narrowing::maps_move;
 use crate::progress::Run;
-use crate::settings::{ChestSize, NewGame, TRADE_CHAIN};
+use crate::settings::{AGELESS_WEAPONS, ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
-    ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, enemies, flags,
-    foreign, fortress, gamedata, gerudo, gifts, held, hints, ice_traps, key_tints, keys,
-    map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs, shops,
-    spawn, standins, starting, steps, text, tracker, trade_chain, twins,
+    ageless, ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door,
+    enemies, flags, foreign, fortress, gamedata, gerudo, gifts, held, hints, ice_traps, key_tints,
+    keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs,
+    shops, spawn, standins, starting, steps, text, tracker, trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -259,6 +259,9 @@ pub fn write_mod(
     // Before the stand-ins, so one holding bombchus copies the freed row.
     if new_game.free_bombchus {
         bombchus::write(&mut builder, &mut tables)?;
+    }
+    if new_game.on.contains(AGELESS_WEAPONS) {
+        ageless::write(romfs, &mut builder)?;
     }
     // Before the stand-ins, which copy a song's model as it's shown.
     let shown = new_game.foreign.iter().map(|f| f.shows.as_str());

@@ -30,6 +30,8 @@ pub type Settings = BTreeMap<String, Value>;
 pub mod group {
     /// Comfort and speed: nothing shuffled, nothing opened.
     pub const GENERAL: &str = "General";
+    /// Changes to how Link plays: nothing shuffled, nothing opened.
+    pub const ENHANCEMENTS: &str = "Enhancements";
     /// How items are placed, and what stands open from the start.
     pub const LOGIC: &str = "Logic & access";
     /// What a new save starts holding or having done.
@@ -43,8 +45,9 @@ pub mod group {
 }
 
 /// Every panel, in the order the app lists them.
-pub const GROUPS: [&str; 6] = [
+pub const GROUPS: [&str; 7] = [
     group::GENERAL,
+    group::ENHANCEMENTS,
     group::LOGIC,
     group::INVENTORY,
     group::SHUFFLES,
@@ -143,6 +146,7 @@ pub(crate) const CHESTS: &str = "chests";
 pub(crate) const PROGRESSIVE: &str = "progressive-items";
 const FREE_BOMBCHUS: &str = "free-bombchus";
 const BUNNY_HOOD: &str = "bunny-hood";
+pub(crate) const AGELESS_WEAPONS: &str = "ageless-weapons";
 const QUIET_NAVI: &str = "quiet-navi";
 pub(crate) const QUIET_ENEMIES: &str = "quiet-enemies";
 pub(crate) const OPEN_DOOR: &str = "open-door-of-time";
@@ -510,9 +514,15 @@ pub fn schema() -> Vec<SettingDef> {
         )])
         .chain([toggle(
             BUNNY_HOOD,
-            group::GENERAL,
+            group::ENHANCEMENTS,
             "Bunny Hood speed",
             "Link runs half again as fast while he wears the Bunny Hood",
+        )])
+        .chain([toggle(
+            AGELESS_WEAPONS,
+            group::ENHANCEMENTS,
+            "One-handed swords and shields for both ages",
+            "Child and adult Link can each wield every one-handed sword and every shield, and logic expects them to. Biggoron's Sword and the Giant's Knife stay adult Link's, and only he can aim the Mirror Shield at light",
         )])
         .chain([toggle(
             BRIDGE_MEDALLIONS,
@@ -562,6 +572,8 @@ mod tests {
         assert_eq!(group(SHOP_SLOTS), group::SHUFFLES);
         assert_eq!(group(KEYS), group::DUNGEONS);
         assert_eq!(group(HINTS), group::GENERAL);
+        assert_eq!(group(BUNNY_HOOD), group::ENHANCEMENTS);
+        assert_eq!(group(AGELESS_WEAPONS), group::ENHANCEMENTS);
         assert_eq!(group(SKIP_ALL), group::CUTSCENES);
     }
 
@@ -580,6 +592,15 @@ mod tests {
                 d.description
             );
         }
+    }
+
+    #[test]
+    fn enhancements_start_off() {
+        let on = toggles_on(&Settings::new());
+        let enhancements = schema()
+            .into_iter()
+            .filter(|d| d.group == group::ENHANCEMENTS);
+        assert!(enhancements.map(|d| d.id).all(|id| !on.contains(&id)));
     }
 
     #[test]

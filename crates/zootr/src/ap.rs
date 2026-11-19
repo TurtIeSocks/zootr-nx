@@ -40,6 +40,7 @@ pub const OPTIONS: &[&str] = &[
     "chest-size",
     "quiet-navi",
     "bunny-hood",
+    "ageless-weapons",
 ];
 
 /// Where the world's data lives in the repo.

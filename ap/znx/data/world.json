@@ -10509,6 +10509,42 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-adult",
+          "rule": {
+            "all": [
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Song of Storms"
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "setting": "ageless-weapons"
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Deku Shield"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
           "place": "kokiri-forest-child",
           "rule": {
             "all": [

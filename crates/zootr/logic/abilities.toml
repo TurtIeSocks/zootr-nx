@@ -8,6 +8,11 @@ explosives = "bombs or bombchus"
 bombs = "item:bomb-bag"
 bombchus = "(item:bombchus-small or item:bombchus-medium or item:bombchus-large) and (bombs or setting:free-bombchus)"
 
+# The child swords and shield, for either age with ageless-weapons. The
+# adult ones need no word: the Mirror Shield reflects light only for adult
+# Link (a child can't aim it), and logic asks for the swords only as melee.
+child-weapon = "child or setting:ageless-weapons"
+
 hammer = "adult and item:megaton-hammer"
 goron-bracelet = "item:goron-bracelet"
 silver-gauntlets = "adult and item:silver-gauntlets"
@@ -24,11 +29,11 @@ mirror-shield = "adult and item:mirror-shield"
 fire = "(magic and item:dins-fire) or (magic and bow and item:fire-arrows)"
 bottle = "item:bottle or item:rutos-letter or item:milk"
 blue-fire = "adult and bottle"
-light = "adult and (item:mirror-shield or (magic and bow and item:light-arrows))"
+light = "mirror-shield or (magic and bow and item:light-arrows)"
 lens = "magic and item:lens-of-truth"
 
-kokiri-sword = "child and item:kokiri-sword"
-deku-shield = "child and item:deku-shield-chest"
+kokiri-sword = "child-weapon and item:kokiri-sword"
+deku-shield = "child-weapon and item:deku-shield-chest"
 # Deku Babas drop them and the Kokiri shop sells them. Only child Link
 # holds them, and they carry fire from a lit torch.
 sticks = "child"

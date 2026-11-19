@@ -166,8 +166,16 @@ Each page under Randomizer in the app's sidebar, with what every setting does.
 | Progressive items | Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size. Business scrubs, cows and the three merchants give the level too, and a scrub's offer names it. Minigame prize chests give the level too, as any chest does, and a Red Rupee in place of arrows, seeds or bombs until Link has what fires them. A shop shelf shows the level Link would get, moves up once he buys one elsewhere, and keeps the level it sold. The spoiler calls each strength level Strength |
 | Bombchus without a bomb bag | Bombchus hold up to 50 on their own, so they open the same checks bombs do |
 | Quiet Navi | Navi never stops Link to talk on her own. Hints you ask her for still work |
-| Bunny Hood speed | Link runs half again as fast while he wears the Bunny Hood |
 | Gossip stone hints | Each gossip stone names where an item Link needs is hidden, without the Mask of Truth or any small talk |
+
+### Enhancements
+
+Changes to how Link plays. All start off.
+
+| Setting | What it does |
+|---|---|
+| Bunny Hood speed | Link runs half again as fast while he wears the Bunny Hood |
+| One-handed swords and shields for both ages | Child and adult Link can each wield every one-handed sword and every shield, and logic expects them to. Biggoron's Sword, the Giant's Knife, tunics and boots stay adult Link's, and only he can aim the Mirror Shield at light |
 
 ### Logic & access
 
