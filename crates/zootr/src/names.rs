@@ -69,10 +69,12 @@ impl Names {
         Self { keys, ..self }
     }
 
-    /// Name each copy for another player by its item and player.
+    /// Name each copy: another player's by its item and player, a trap by
+    /// its disguise.
     pub fn foreign(mut self, foreign: &[crate::foreign::Foreign]) -> Self {
         for f in foreign {
-            self.items.insert(f.actor.clone(), f.name());
+            let name = f.name(|shown| self.item(shown));
+            self.items.insert(f.actor.clone(), name);
         }
         self
     }

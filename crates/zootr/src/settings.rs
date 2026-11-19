@@ -16,7 +16,9 @@ use crate::starting;
 mod choices;
 mod new_game;
 mod upgrade;
-pub use choices::{ChestSize, DungeonKeys, FortressKeys, Keys, Logic, ScrubPrice, ShopSlots};
+pub use choices::{
+    ChestSize, DungeonKeys, FortressKeys, IceTraps, Keys, Logic, ScrubPrice, ShopSlots,
+};
 pub use new_game::NewGame;
 pub(crate) use new_game::{toggles, toggles_on};
 pub(crate) use upgrade::upgrade;
@@ -166,6 +168,7 @@ pub(crate) const HIVES: &str = "hives";
 pub(crate) const COWS: &str = "cows";
 pub(crate) const KEYS: &str = "keys";
 pub(crate) const FORTRESS_KEYS: &str = "fortress-keys";
+pub(crate) const ICE_TRAPS: &str = "ice-traps";
 pub(crate) const MERCHANTS: &str = "merchants";
 pub(crate) const TRADE_CHAIN: &str = "trade-chain";
 pub(crate) const RUNNING_RACE: &str = "running-race";
@@ -304,6 +307,13 @@ pub fn schema() -> Vec<SettingDef> {
             "Logic",
             "Glitchless places each item where Link can reach it without that item, so a seed can always be beaten. No logic places items anywhere, so a seed may not be",
             Logic::label,
+        )])
+        .chain([choice(
+            ICE_TRAPS,
+            group::GENERAL,
+            "Ice traps",
+            "Swaps junk (rupees, ammo, recovery hearts) for ice traps. Each looks like an item logic needs until Link gets it, then says FOOL! and freezes him",
+            IceTraps::label,
         )])
         .chain([choice(
             CHEST_SIZE,

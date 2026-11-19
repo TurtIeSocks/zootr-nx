@@ -18,13 +18,15 @@ pub const TITLE: u64 = 0x0400_4860_24DE_C000;
 /// resource size table `Product.111`.
 pub const UPDATE: u32 = 131072;
 /// The single files zootr reads, under the romfs root: what the custom
-/// models are made from, and the pause menu's table its tests check.
+/// models are made from, the pause menu's table its tests check, and the
+/// effect file the ice traps' look fits to child Link.
 pub fn files() -> impl Iterator<Item = &'static str> {
     crate::medallions::FILES
         .into_iter()
         .chain(crate::key_tints::FILES)
         .chain(crate::foreign::FILES)
         .chain(crate::trade_slot::FILES)
+        .chain(crate::ice_traps::FILES)
 }
 
 /// What zootr reads, under the romfs root, besides [`files`].

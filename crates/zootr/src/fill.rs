@@ -206,11 +206,11 @@ mod tests {
     use crate::progress::{self, StepEvent};
     use crate::rules::{Book, Ctx};
     use crate::settings::{
-        CHESTS, DUNGEON_REWARDS, FORTRESS_KEYS, KEYS, NPC_GIFTS, OPEN_DOOR, PROGRESSIVE, SONGS,
-        Settings,
+        CHESTS, DUNGEON_REWARDS, FORTRESS_KEYS, ICE_TRAPS, KEYS, NPC_GIFTS, OPEN_DOOR, PROGRESSIVE,
+        SONGS, Settings,
     };
     use crate::shuffle::{Fixed, deal};
-    use crate::{key_tints, keys};
+    use crate::{ice_traps, key_tints, keys};
 
     /// Seeds each settings case must fill.
     const SEEDS: u64 = 200;
@@ -234,8 +234,11 @@ mod tests {
         )
         .unwrap();
         let fixed = Fixed::new();
+        let needed = world.items();
         let one = |seed: u64| {
-            let deal = deal(&checks, &fixed, &new_game).unwrap();
+            let mut deal = deal(&checks, &fixed, &new_game).unwrap();
+            let how = new_game.ice_traps;
+            crate::ice_traps::swap(&romfs, &mut deal.items, &needed, how, seed).unwrap();
             match fill(
                 &world,
                 &checks,
@@ -382,6 +385,25 @@ mod tests {
             (SONGS.into(), true.into()),
             // Rauru's is dealt only with the door closed.
             (OPEN_DOOR.into(), false.into()),
+        ]));
+    }
+
+    #[test]
+    fn seeds_with_every_junk_a_trap_reach_every_provable_check() {
+        let mayhem = || (ICE_TRAPS.into(), "mayhem".into());
+        let traps = |filled: &Filled| {
+            let traps = filled
+                .placements
+                .iter()
+                .filter(|p| ice_traps::is_trap(p.item));
+            assert!(traps.count() > 0, "traps dealt");
+        };
+        seeds_fill_and(&Settings::from([mayhem()]), traps);
+        seeds_fill(&Settings::from([
+            mayhem(),
+            (NPC_GIFTS.into(), true.into()),
+            (DUNGEON_REWARDS.into(), true.into()),
+            (SONGS.into(), true.into()),
         ]));
     }
 

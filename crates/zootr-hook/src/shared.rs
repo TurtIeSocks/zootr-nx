@@ -3,7 +3,7 @@
 //! store under a lock of its own.
 
 use core::cell::UnsafeCell;
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 
 use crate::Mailbox;
 use crate::ui::Store;
@@ -130,6 +130,15 @@ pub struct Shared {
     /// The dev switches the app turns on, see [`crate::switches`].
     pub switches: AtomicU32,
     pub ui: Locked<Store>,
+    /// Ice traps Link has got and not yet felt, see [`crate::traps`].
+    pub traps: AtomicU32,
+    /// The system counter when the last trap sprang, 0 before any.
+    pub sprung: AtomicU64,
+    /// 1 while a trap's sensor is out, until the hook takes it away.
+    pub sensing: AtomicU32,
+    /// 1 while the ice's shells hold child Link's size, see
+    /// [`crate::look`].
+    pub child_ice: AtomicU32,
 }
 
 // SAFETY: the mailbox's plain fields are only read after `asked` is.

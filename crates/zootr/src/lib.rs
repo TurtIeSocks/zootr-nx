@@ -48,6 +48,7 @@ mod graphs;
 mod held;
 pub mod hints;
 pub mod history;
+mod ice_traps;
 mod icons;
 pub mod inventory;
 pub mod items;

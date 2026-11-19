@@ -157,17 +157,24 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
 
 /// `fixed` placements first, then the deal's items at random, or left
 /// where they are in vanilla mode.
+#[cfg(test)]
 pub fn shuffle<'a>(
     checks: &'a [ItemCheck],
     seed: u64,
     fixed: &'a Fixed,
     new_game: &NewGame,
 ) -> Result<Vec<Placement<'a>>> {
+    scatter(deal(checks, fixed, new_game)?, seed, new_game)
+}
+
+/// `deal`'s placements, then its items at random, or left where they are
+/// in vanilla mode.
+pub fn scatter<'a>(deal: Deal<'a>, seed: u64, new_game: &NewGame) -> Result<Vec<Placement<'a>>> {
     let Deal {
         mut placed,
         free,
         mut items,
-    } = deal(checks, fixed, new_game)?;
+    } = deal;
     if !new_game.vanilla {
         Rng::new(seed).shuffle(&mut items);
     }

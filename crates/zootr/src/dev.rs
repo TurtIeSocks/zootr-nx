@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use serde::{Deserialize, Serialize};
-use zootr_hook::{Ask, GUARD, MAILBOX, Mailbox, NAME, Notice, Outcome, SWITCHES, switches};
+use zootr_hook::{Ask, GUARD, MAILBOX, Mailbox, NAME, Notice, Outcome, SWITCHES, switches, traps};
 
 use crate::ammo;
 use crate::checks::{Swap, flat};
@@ -293,6 +293,15 @@ impl<M: Memory> Dev<M> {
         let at = self.main + u64::from(SWITCHES);
         let word = self.game.u32(at)? | switches::KILL;
         self.game.write(at, &word.to_le_bytes())
+    }
+
+    /// Spring an ice trap on Link: he freezes once he's free to. How many
+    /// were waiting before it.
+    pub fn freeze(&self) -> Result<u32> {
+        let at = self.main + u64::from(traps::TRAPS);
+        let waiting = self.game.u32(at)?;
+        self.game.write(at, &(waiting + 1).to_le_bytes())?;
+        Ok(waiting)
     }
 
     /// Leave `request` for the hook and wait for its answer: what it did,

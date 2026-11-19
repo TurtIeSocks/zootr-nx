@@ -4,12 +4,14 @@
 use core::{arch::asm, arch::global_asm, slice};
 
 use crate::{
-    CAVE, Credit, Credited, HEADER, Header, LIST, List, Shared, TABLE, Table, fnv, nearest,
+    CAVE, Credit, Credited, DEV, HEADER, Header, LIST, List, Shared, TABLE, Table, fnv, nearest,
 };
 
 mod bunny;
 mod chests;
 mod dev;
+mod freeze;
+mod look;
 mod menu;
 mod refill;
 mod rt;
@@ -189,7 +191,7 @@ fn table() -> Option<(usize, Table<'static>)> {
     // SAFETY: the cheat writes the table at `TABLE`, 8 byte aligned.
     let header = unsafe { &*((main + TABLE as usize) as *const Header) };
     let at = (header as *const Header).cast::<u8>();
-    let size = (header.size + header.credits + header.slot) as usize;
+    let size = (header.size + header.credits + header.slot + header.look) as usize;
     let body = unsafe { slice::from_raw_parts(at.add(HEADER), size) };
     Some((main, Table::parse(header, body)?))
 }
@@ -366,6 +368,12 @@ unsafe fn credit(main: usize, table: &Table, added: &[u8], picked: bool) {
     if !shared(main).with(|l| l.first_credit(note)) {
         return;
     }
+    if credit == Credit::Freeze {
+        shared(main)
+            .traps
+            .fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+        return;
+    }
     // SAFETY: the offsets were found in this build of `main`.
     let Some(gd) = (unsafe { dev::single(main, table.offsets.gamedata) }) else {
         return;
@@ -375,6 +383,7 @@ unsafe fn credit(main: usize, table: &Table, added: &[u8], picked: bool) {
             Credit::Bool(hash) => dev::set_bool(main, table.offsets, gd, hash, true),
             Credit::Int(hash, n) => refill::set_int(gd, hash, n),
             Credit::Add(hash, n) => refill::add_int(gd, hash, n),
+            Credit::Freeze => {}
         }
     }
 }
@@ -420,8 +429,12 @@ const ACTOR_NAME: usize = 0x260;
 #[unsafe(no_mangle)]
 unsafe extern "C" fn link_update(actor: usize) {
     hooked(|main, table| unsafe {
-        refill::refill(main, &table, actor);
-        dev::serve(main, table.offsets, actor);
+        if table.flags & DEV != 0 {
+            refill::refill(main, &table, actor);
+            dev::serve(main, table.offsets, actor);
+        }
+        look::fit(main, &table);
+        freeze::freeze(main, &table, actor);
         if dev::playing(main, table.offsets) == Some(false) {
             shared(main).with(List::idle);
         }

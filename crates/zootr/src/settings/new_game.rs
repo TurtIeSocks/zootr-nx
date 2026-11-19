@@ -50,6 +50,8 @@ pub struct NewGame {
     /// Where the thieves' keys are. Unless vanilla, the keys they carry
     /// are checks.
     pub fortress_keys: FortressKeys,
+    /// How much junk becomes ice traps.
+    pub ice_traps: IceTraps,
     /// The seed, for what's rolled while writing, like shop prices.
     pub seed: u64,
     /// Bombchus have their own cap instead of the bomb bag's.
@@ -146,6 +148,7 @@ impl NewGame {
                     .collect(),
             },
             chest_size: chosen(settings, CHEST_SIZE),
+            ice_traps: chosen(settings, ICE_TRAPS),
             vanilla: !on(SHUFFLE_ITEMS),
             keep_chests: !on(CHESTS),
             start,
@@ -273,6 +276,7 @@ mod tests {
                 cows: false,
                 keys: DungeonKeys::Vanilla,
                 fortress_keys: FortressKeys::Vanilla,
+                ice_traps: IceTraps::Off,
                 seed: 0,
                 free_bombchus: true,
                 quiet_navi: true,
