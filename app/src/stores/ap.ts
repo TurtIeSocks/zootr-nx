@@ -19,6 +19,13 @@ interface Ap {
   error: string | null;
 }
 
+/** The most lines kept: as many as the client keeps (`archipelago.rs`). */
+export const KEPT = 200;
+
+/** `lines` with `line` after them, the newest {@link KEPT} of them. */
+export const appended = (lines: ApLine[], line: ApLine) =>
+  [...lines, line].slice(-KEPT);
+
 export const useAp = create<Ap>()(() => ({
   status: "offline",
   lines: [],
@@ -32,7 +39,7 @@ const started = once(async () => {
     useAp.setState((s) => ({
       status: payload.status,
       lines: payload.line
-        ? [...s.lines, { time: Date.now(), text: payload.line }]
+        ? appended(s.lines, { time: Date.now(), text: payload.line })
         : s.lines,
     })),
   );
