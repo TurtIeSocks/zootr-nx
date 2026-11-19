@@ -1,12 +1,14 @@
 import { expect, test } from "vitest";
 import type { SettingDef } from "@/bindings";
+import type { Settings } from "@/lib/config";
 import {
   chosen,
   defaults,
   isChanged,
   isOn,
+  markedChips,
   patched,
-  settingsDiff,
+  settingsChanges,
   summary,
   summaryParts,
 } from "@/lib/settings";
@@ -95,7 +97,8 @@ test("a patch sets values and puts undefined ones back to default", () => {
   expect(patched(settings, defaults([on]))).toEqual({ other: true });
 });
 
-test("a diff lists effective changes, with a parent standing in", () => {
+/** Toggles `all` (with its child `one`) and `x`, and the choice `size`. */
+function diffSchema(): SettingDef[] {
   const def = (id: string, parent: string | null = null): SettingDef => ({
     id,
     group: "g",
@@ -113,17 +116,46 @@ test("a diff lists effective changes, with a parent standing in", () => {
       options: [
         { id: "a", label: "Big" },
         { id: "b", label: "Small" },
+        { id: "c", label: "Tiny" },
       ],
     },
   };
-  const schema = [def("all"), def("one", "all"), def("x"), size];
-  expect(settingsDiff(schema, {}, { x: false, size: "a" })).toEqual([]);
-  expect(settingsDiff(schema, {}, { x: true, size: "b" })).toEqual([
+  return [def("all"), def("one", "all"), def("x"), size];
+}
+
+test("a diff lists effective changes, with a parent standing in", () => {
+  const schema = diffSchema();
+  const lines = (before: Settings, after: Settings) =>
+    settingsChanges(schema, before, after).map(
+      (c) => `${c.def.label}: ${c.before} → ${c.after}`,
+    );
+  expect(lines({}, { x: false, size: "a" })).toEqual([]);
+  expect(lines({}, { x: true, size: "b" })).toEqual([
     "X: off → on",
     "SIZE: Big → Small",
   ]);
-  expect(settingsDiff(schema, { one: true }, { all: true })).toEqual([
-    "ALL: off → on",
+  expect(lines({ one: true }, { all: true })).toEqual(["ALL: off → on"]);
+});
+
+test("chips are marked new or gone against a base", () => {
+  const schema = diffSchema();
+  const marked = (settings: Settings, base: Settings | null) =>
+    markedChips(schema, schema, settings, base);
+  expect(marked({ x: true, size: "b" }, null)).toEqual([
+    { id: "x", label: "X" },
+    { id: "size", label: "SIZE", value: "Small" },
+  ]);
+  expect(marked({ x: true, size: "c" }, { x: true, size: "b" })).toEqual([
+    { id: "x", label: "X" },
+    { id: "size", label: "SIZE", value: "Tiny", mark: "new", was: "Small" },
+  ]);
+  expect(marked({ size: "b" }, { x: true })).toEqual([
+    { id: "x", label: "X", mark: "gone" },
+    { id: "size", label: "SIZE", value: "Small", mark: "new" },
+  ]);
+  // A child its parent now covers isn't gone: the parent stands in.
+  expect(marked({ all: true }, { one: true })).toEqual([
+    { id: "all", label: "ALL", mark: "new" },
   ]);
 });
 

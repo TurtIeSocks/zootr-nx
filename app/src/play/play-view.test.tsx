@@ -99,7 +99,7 @@ const openTab = (name: string) =>
     screen.getByRole("tab", { name: new RegExp(`^${name}`) }),
   );
 
-const button = (name: string) =>
+const button = (name: string | RegExp) =>
   screen.getByRole("button", { name }) as HTMLButtonElement;
 
 /** The card or folder under the heading, such as "Installed" or "New
@@ -152,12 +152,68 @@ test("an installed seed can be taken off for a vanilla run", async () => {
   expect(uninstall).toHaveBeenCalledOnce();
 });
 
-test("settings changed since the installed seed are flagged", () => {
+test("the overview marks settings new since the installed seed", () => {
   show(seed);
-  expect(screen.queryByText("Not installed yet")).toBeNull();
+  expect(screen.getByText("Same as the installed seed")).toBeTruthy();
+  expect(screen.getByText("Defaults")).toBeTruthy();
   cleanup();
   show(seed, { x: true });
-  expect(screen.getByText("Not installed yet")).toBeTruthy();
+  expect(screen.getByText("1 change since the installed seed")).toBeTruthy();
+  const tile = button(/^g/);
+  expect(within(tile).getByText("1 on")).toBeTruthy();
+  expect(within(tile).getByText("X").parentElement?.dataset.mark).toBe("new");
+});
+
+test("a setting the installed seed had and the next won't is struck", () => {
+  show({ ...seed, settings: { x: true } });
+  const chip = within(button(/^g/)).getByText("X").parentElement;
+  expect(chip?.dataset.mark).toBe("gone");
+  expect(within(button(/^g/)).queryByText(/ on$/)).toBeNull();
+});
+
+test("with nothing installed the overview counts from the defaults", () => {
+  show(null, { x: true });
+  expect(screen.getByText("1 change from the default settings")).toBeTruthy();
+});
+
+test("Review lists the differences and puts the installed settings back", async () => {
+  const set = vi.spyOn(commands, "setConfig").mockResolvedValue({
+    status: "ok",
+    data: [],
+  });
+  backend({ installed: seed, entries: [seed] });
+  show({ ...seed, label: { name: "FakeRun" } }, { x: true });
+  fireEvent.click(button("Review"));
+  expect(await screen.findByText("Changed since FakeRun")).toBeTruthy();
+  expect(screen.getByText("off")).toBeTruthy();
+  expect(screen.getByText("on")).toBeTruthy();
+  fireEvent.click(button("Use the installed seed's settings"));
+  await waitFor(() => expect(set).toHaveBeenCalled());
+  expect(set.mock.calls[0]?.[0].settings).toEqual({});
+});
+
+test("a group tile opens its settings page", () => {
+  show(null);
+  fireEvent.click(button(/^g/));
+  expect(useUi.getState()).toMatchObject({ tab: "Settings", section: "g" });
+});
+
+test("a share code shows its own settings and leaves the person's alone", async () => {
+  const read = vi.spyOn(commands, "shareSettings").mockResolvedValue({
+    status: "ok",
+    data: { settings: { x: true }, pins: 0, test: {} },
+  });
+  show(seed);
+  act(() => useUi.setPath("newSeed.seed", "ZR1-FakeCode"));
+  expect(await screen.findByText("The code builds with")).toBeTruthy();
+  expect(read).toHaveBeenCalledWith("ZR1-FakeCode");
+  expect(screen.queryByText(/Same as/)).toBeNull();
+  const chip = within(button(/^g/)).getByText("X").parentElement;
+  expect(chip?.dataset.mark).toBeUndefined();
+  expect(screen.getAllByText("Not in this code")).toHaveLength(2);
+  fireEvent.click(button("Clear code"));
+  expect(useUi.getState().newSeed.seed).toBe("");
+  expect(screen.getByText("Same as the installed seed")).toBeTruthy();
 });
 
 test("an installed seed can be played", () => {
@@ -212,13 +268,15 @@ test("a seed built with a test setup carries a badge", () => {
   expect(screen.queryByText("test")).toBeNull();
 });
 
-test("a stored test setup shows by Generate and edits from there", () => {
+test("a stored test setup shows in the overview and opens from there", () => {
   show(null);
-  expect(screen.queryByText(/starts at/)).toBeNull();
+  expect(within(button(/^Test setup/)).getByText("Off")).toBeTruthy();
   cleanup();
   show(null, {}, { spawn: "Map/Spot", give: ["Item_A"] });
-  expect(screen.getByText("starts at Map/Spot · Item_A")).toBeTruthy();
-  fireEvent.click(button("Edit test setup"));
+  const tile = within(button(/^Test setup/));
+  expect(tile.getByText("starts at Map/Spot")).toBeTruthy();
+  expect(tile.getByText("1 item")).toBeTruthy();
+  fireEvent.click(button(/^Test setup/));
   expect(useUi.getState()).toMatchObject({ tab: "Settings", section: "test" });
 });
 
@@ -229,7 +287,7 @@ test("a plando seed carries its own badge beside a test one", () => {
   expect(screen.getAllByText("test")).toHaveLength(2);
 });
 
-test("the plando draft shows by Generate and edits from there", () => {
+test("the plando draft shows in the overview and opens from there", () => {
   show(null);
   act(() =>
     useConfig.setPath("config", {
@@ -238,8 +296,11 @@ test("the plando draft shows by Generate and edits from there", () => {
       plandos: { Hooks: { 2: "Item_C", 1: "Item_B" }, Idle: {} },
     }),
   );
-  expect(screen.getByText("Plando Hooks: 2 checks pinned")).toBeTruthy();
-  fireEvent.click(button("Edit plando"));
+  const tile = within(button(/^Plando/));
+  expect(tile.getByText("2 pinned")).toBeTruthy();
+  expect(tile.getByText("Hooks")).toBeTruthy();
+  expect(tile.getByText("2 checks pinned")).toBeTruthy();
+  fireEvent.click(button(/^Plando/));
   expect(useUi.getState()).toMatchObject({
     tab: "Settings",
     section: "plando",

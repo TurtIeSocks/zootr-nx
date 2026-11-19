@@ -15,7 +15,7 @@ import {
 } from "@/bindings";
 import { call, keep, message } from "@/lib/api";
 import { blocked, unbuildable } from "@/lib/config";
-import { settingsDiff } from "@/lib/settings";
+import { type Change, settingsChanges } from "@/lib/settings";
 import { saveConfig, useConfig } from "@/stores/config";
 import { once } from "@/stores/once";
 
@@ -70,8 +70,8 @@ interface Seeds {
   /** A target's game is running. */
   running: boolean;
   /** The settings that differ from the installed seed's, or from the
-   * defaults with none installed, one line each. */
-  drift: string[];
+   * defaults with none installed. */
+  drift: Change[];
   /** How many settings differ from each entry's, by entry id. */
   diffs: Record<number, number>;
   /** The running or last generate run's steps, or null before the first. */
@@ -113,11 +113,17 @@ function driftBase({ installed, entries }: View): Summary | null {
   return entries.find((e) => !e.ap_slot) ?? null;
 }
 
+/** The seed `drift` is measured from, or null for the defaults. */
+export const useDriftBase = () => useSeeds((s) => driftBase(s.history));
+
+/** What `drift` is measured from, as `useDriftFrom` words it. */
+export const DEFAULTS_FROM = "the default settings";
+
 /** What `drift` is measured from, for its wording. */
 export const useDriftFrom = () =>
   useSeeds((s) => {
     const base = driftBase(s.history);
-    if (!base) return "the default settings";
+    if (!base) return DEFAULTS_FROM;
     return base === s.history.installed
       ? "the installed seed"
       : "the last standard seed";
@@ -129,7 +135,7 @@ function derive() {
   const { schema, config } = useConfig.getState();
   const { status, history } = useSeeds.getState();
   const diff = (e: Summary) =>
-    settingsDiff(schema, e.settings, config.settings);
+    settingsChanges(schema, e.settings, config.settings);
   useSeeds.setPath("blocked", blocked(status, config));
   useSeeds.setPath("unbuildable", unbuildable(status));
   useSeeds.setPath(
@@ -139,7 +145,7 @@ function derive() {
   const base = driftBase(history);
   useSeeds.setPath(
     "drift",
-    keep(base ? diff(base) : settingsDiff(schema, {}, config.settings)),
+    keep(base ? diff(base) : settingsChanges(schema, {}, config.settings)),
   );
   useSeeds.setPath(
     "diffs",
@@ -339,8 +345,9 @@ export const deleteSeed = (id: number) =>
   run(() => call(commands.deleteSeed(id)));
 /** Deletes every entry but the installed one. */
 export const clearHistory = () => run(() => call(commands.clearHistory()));
-/** Makes an entry's settings the current ones. */
-export const takeSettings = (entry: Summary) =>
+/** Makes an entry's settings the current ones. `{ settings: {} }` puts
+ * them back to the defaults. */
+export const takeSettings = (entry: Pick<Summary, "settings">) =>
   run(() => saveConfig({ settings: entry.settings }));
 
 /** A target's build status, for a game that bakes the hook patch in when

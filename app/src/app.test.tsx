@@ -125,7 +125,10 @@ function sidebar() {
   render(<Sidebar />);
 }
 
-const item = (name: RegExp) => screen.getByRole("button", { name });
+/** The sidebar, whose items share names with the Play page's tiles. */
+const nav = () => within(screen.getByRole("complementary"));
+
+const item = (name: RegExp) => nav().getByRole("button", { name });
 
 test("the Live item carries a dot while recording or waiting", () => {
   useSeeds.setPath("history", { installed: seed, entries: [seed] });
@@ -280,7 +283,8 @@ test("the current page is marked", () => {
 
 test("clicking a group in the app opens its page", async () => {
   render(<App />);
-  fireEvent.click(await screen.findByRole("button", { name: /^Cutscenes/ }));
+  await screen.findByRole("complementary");
+  fireEvent.click(await nav().findByRole("button", { name: /^Cutscenes/ }));
   expect(
     await screen.findByRole("heading", { level: 1, name: "Cutscenes" }),
   ).toBeTruthy();
