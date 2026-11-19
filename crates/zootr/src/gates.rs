@@ -17,6 +17,7 @@ use ounce_formats::{Byml, Romfs};
 
 use crate::checks::{GYAML, actors, bancs, hash_of, str_field};
 use crate::known::{Name, actor, field, flag};
+use crate::per_dump::PerDump;
 
 mod rule;
 pub use rule::rule;
@@ -189,14 +190,17 @@ pub fn gates(romfs: &Romfs) -> Result<BTreeMap<u64, String>> {
 /// Every chest a logic graph drives, with what drives it, whether or not
 /// that collapses to a rule.
 pub fn trace(romfs: &Romfs) -> Result<Vec<Gate>> {
-    drives(
-        romfs,
-        TREASURE_BOX,
-        |gyaml| gyaml.starts_with(CHEST),
-        // The chest inputs a gate is read from: whether it exists, and
-        // whether it opens.
-        Some(&[CREATE, "Unlock"]),
-    )
+    static KEPT: PerDump<Vec<Gate>> = PerDump::new();
+    KEPT.get(romfs, || {
+        drives(
+            romfs,
+            TREASURE_BOX,
+            |gyaml| gyaml.starts_with(CHEST),
+            // The chest inputs a gate is read from: whether it exists, and
+            // whether it opens.
+            Some(&[CREATE, "Unlock"]),
+        )
+    })
 }
 
 /// Every boss heart container a logic graph makes appear, with what does.
@@ -211,6 +215,7 @@ pub fn trace_node(romfs: &Romfs, node: &str) -> Result<Vec<Gate>> {
 }
 
 /// A placement a logic node makes appear, through its create input.
+#[derive(Clone)]
 pub struct Creator {
     pub hash: u64,
     pub gyaml: String,
@@ -228,6 +233,11 @@ pub struct Creator {
 
 /// Every placement a logic node makes appear, once per graph copy.
 pub fn creators(romfs: &Romfs) -> Result<Vec<Creator>> {
+    static KEPT: PerDump<Vec<Creator>> = PerDump::new();
+    KEPT.get(romfs, || find_creators(romfs))
+}
+
+fn find_creators(romfs: &Romfs) -> Result<Vec<Creator>> {
     let world = World::load(romfs)?;
     let mut placed: HashMap<&str, usize> = HashMap::new();
     for inst in &world.instances {
