@@ -98,7 +98,16 @@ impl Steps {
             let program = shows::within(own, and(step.program.clone(), unpicked), gd)?;
             let gate = gate(m.hash);
             steps.exps.push((gate.clone(), program));
-            steps.gates.insert(m.hash, gate);
+            // A thief's key keeps her vanilla gate, which the game watches
+            // live and so spawns the key as she falls. A BoolExp gate is
+            // read only as the map loads. Her call picks the step by the
+            // BoolExp instead (`fortress::give`).
+            let named = checks
+                .iter()
+                .any(|c| c.hash == step.of && super::is_named(c));
+            if !named {
+                steps.gates.insert(m.hash, gate);
+            }
             if step.k > 0 {
                 steps.copies.push((step.of, m.hash));
             }
@@ -137,8 +146,9 @@ mod tests {
     use super::*;
     use crate::checks::{self, hash_of};
     use crate::game::dev_dump;
+    use crate::known::field;
     use crate::known::item;
-    use crate::pickups::{FREESTANDING, Kind, POTS};
+    use crate::pickups::{FORTRESS_KEYS, FREESTANDING, Kind, POTS};
     use crate::world::presence_of;
 
     /// A Kokiri Forest pot, and the Death Mountain Crater heart piece.
@@ -230,6 +240,31 @@ mod tests {
         );
         assert_ne!(spots[0].name, spots[1].name);
         assert_eq!(spots[0].at, spots[1].at);
+    }
+
+    #[test]
+    fn a_thiefs_key_steps_stand_by_her_live_gate() {
+        let Some(romfs) = dev_dump() else { return };
+        let key = FORTRESS_KEYS.checks(&romfs).unwrap()[0].clone();
+        let vanilla = checks::load_banc(&romfs, &key.file).unwrap();
+        let actors = checks::actors(&vanilla.root).unwrap();
+        let holder = actors.iter().find(|a| hash_of(a) == Some(key.hash));
+        let own = presence_of(holder.unwrap()).unwrap().flag;
+        let (steps, root, _) = placed(&FORTRESS_KEYS, key.hash, item::HOOKSHOT);
+        for hash in [key.hash, copy_hash(key.hash, 1)] {
+            let actors = checks::actors(&root).unwrap();
+            let a = actors.iter().find(|a| hash_of(a) == Some(hash)).unwrap();
+            assert_eq!(presence_of(a).unwrap().flag, own, "{hash}");
+            let lazy = a.as_map().unwrap()["Presence"].as_map().unwrap()
+                [field::IS_CHECK_LAZY.get()]
+            .as_bool()
+            .unwrap();
+            assert!(!lazy, "{hash} isn't watched live");
+            // Her call reads the step's BoolExp before she falls.
+            let read = exp(&steps, &gate(hash));
+            let own = Op::Bool(murmur3(own.as_bytes()));
+            assert!(!read.contains(&own), "{hash} waits on her fall");
+        }
     }
 
     #[test]

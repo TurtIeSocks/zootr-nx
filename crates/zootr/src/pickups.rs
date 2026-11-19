@@ -468,6 +468,12 @@ pub fn kind_of(check: &ItemCheck) -> Option<&'static Kind> {
     KINDS.into_iter().find(|k| k.holds(check))
 }
 
+/// Whether `check` is a holder its event names and puts in place, as a
+/// thief's key.
+pub fn is_named(check: &ItemCheck) -> bool {
+    kind_of(check).is_some_and(|k| k.named.is_some())
+}
+
 /// Whether `check` is a placed holder's, not a chest's. Every one can show
 /// a line's level or ammo a step at a time ([`steps`]), holding whatever
 /// it's dealt. A logic module watching it runs each step's copy too
