@@ -189,6 +189,10 @@ pub enum MemCommand {
         #[arg(long)]
         to: Option<String>,
     },
+    /// Live actors whose name starts with any `prefix` (all with none):
+    /// address, name, position, and for an enemy the address of the Life
+    /// it has left, which a write of 00000000 beats it by.
+    Actors { prefix: Vec<String> },
     /// The per-placement flags (Bool64bitKey) that are set, one placement
     /// hash a line.
     Keys,

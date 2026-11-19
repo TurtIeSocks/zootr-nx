@@ -599,6 +599,7 @@ impl Game {
 /// The processes started from `app`.
 pub(crate) use mach::pids;
 
+pub mod actors;
 mod bridge;
 mod lookup;
 mod mach;
@@ -614,7 +615,7 @@ pub(crate) mod tests {
 
     use super::*;
 
-    pub(crate) struct Fake(Vec<(u64, Vec<u8>)>);
+    pub(crate) struct Fake(pub(crate) Vec<(u64, Vec<u8>)>);
 
     impl Memory for Fake {
         fn read(&self, at: u64, len: usize) -> Result<Vec<u8>> {
