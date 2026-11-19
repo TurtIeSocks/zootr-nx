@@ -250,7 +250,9 @@ impl Planner<'_> {
             None if cows::is_holder(&spot.holder) => self.cow(spot)?,
             None if spot.holder.starts_with(chest())
                 || spot.holder.starts_with(scrubs::HOLDER)
-                || pickups::within_reach(&spot.holder) =>
+                || pickups::within_reach(&spot.holder)
+                // Ruto's bottle on the lake bed: a dive onto it takes it.
+                || spot.holder == **actor::OBJ_BOTTLE_LETTER =>
             {
                 let (trigger, child, landing) = self.placed(spot)?;
                 side = landing;
