@@ -157,6 +157,7 @@ pub(crate) mod tests {
             substitute: None,
             presence: None,
             watched: crate::checks::Watched::No,
+            room: None,
         }
     }
 

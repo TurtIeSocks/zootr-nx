@@ -337,7 +337,7 @@ impl World {
                     None => need,
                 };
                 let keys = [
-                    keys::dungeon_need(&check.file, ctx.keys),
+                    keys::dungeon_need(check, ctx.keys),
                     keys::fortress_need(&check.item, ctx.fortress),
                 ];
                 let need = match keys.into_iter().flatten().collect::<Vec<_>>() {

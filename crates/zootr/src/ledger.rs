@@ -25,7 +25,7 @@ pub const SCHEMA: u32 = 1;
 /// The EIE debt today. A PR that pays some off lowers it in the same PR,
 /// and the `accounting` test fails one that adds debt.
 pub const BASELINE: Debt = Debt {
-    refused: 1923,
+    refused: 1859,
     left_out: 45,
 };
 
@@ -284,9 +284,12 @@ pub fn print(romfs: &Romfs, unknown: bool) -> Result<()> {
 }
 
 /// Each item of the pool `c` refuses, and why: the shuffle's refusals,
-/// then logic's (keys kept out of their own dungeon).
+/// then logic's where it asks for all a dungeon's keys (keys kept out of
+/// their own dungeon). Counted room by room, a refusal is logic's own.
 fn refused(c: &ItemCheck, items: &BTreeSet<&str>, new_game: &NewGame) -> Vec<Refused> {
-    let need = crate::keys::dungeon_need(&c.file, new_game.keys);
+    let need = (!crate::key_rooms::by_room(c))
+        .then(|| crate::keys::dungeon_need(c, new_game.keys))
+        .flatten();
     let own_key = |item: &str| matches!(&need, Some(crate::rules::Need::Items { actors, .. }) if actors.iter().any(|a| a == item));
     (items.iter())
         .filter_map(|&item| {
@@ -370,6 +373,7 @@ fn census(romfs: &Romfs, breakable: &BTreeSet<String>) -> Result<Vec<ItemCheck>>
                     substitute: None,
                     presence: crate::world::presence_of(actor),
                     watched: crate::checks::Watched::No,
+                    room: None,
                 });
             }
         }
