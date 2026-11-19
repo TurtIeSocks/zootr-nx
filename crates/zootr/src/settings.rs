@@ -504,7 +504,7 @@ pub fn schema() -> Vec<SettingDef> {
             EQUIP_ANY_AGE,
             group::ENHANCEMENTS,
             "Equipment for both ages",
-            "Child and adult Link can both use every sword, shield, tunic and boot on the Equipment page, and logic expects them to",
+            "Child and adult Link can both use every sword and shield on the Equipment page, and logic expects them to. The tunics and boots still need adult Link",
         )])
         .chain([toggle(
             BRIDGE_MEDALLIONS,

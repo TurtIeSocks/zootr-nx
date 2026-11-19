@@ -611,19 +611,21 @@ mod tests {
     }
 
     #[test]
-    fn equip_any_age_lets_the_other_age_use_the_gear() {
+    fn equip_any_age_lets_the_other_age_use_swords_and_shields() {
         needs_names!();
         let book = Book::load().unwrap();
+        // Whether the other age may use it with the setting on: the
+        // tunics and boots don't work on a child (live, 2026-11-18).
         let cases = [
-            ("hover-boots", "hover-boots", Era::Adult),
-            ("iron-boots", "iron-boots", Era::Adult),
-            ("zora-tunic", "zora-tunic", Era::Adult),
-            ("goron-tunic", "goron-tunic", Era::Adult),
-            ("mirror-shield", "mirror-shield", Era::Adult),
-            ("kokiri-sword", "kokiri-sword", Era::Child),
-            ("deku-shield", "deku-shield-chest", Era::Child),
+            ("mirror-shield", "mirror-shield", Era::Adult, true),
+            ("kokiri-sword", "kokiri-sword", Era::Child, true),
+            ("deku-shield", "deku-shield-chest", Era::Child, true),
+            ("hover-boots", "hover-boots", Era::Adult, false),
+            ("iron-boots", "iron-boots", Era::Adult, false),
+            ("zora-tunic", "zora-tunic", Era::Adult, false),
+            ("goron-tunic", "goron-tunic", Era::Adult, false),
         ];
-        for (word, item, home) in cases {
+        for (word, item, home, shared) in cases {
             let other = match home {
                 Era::Adult => Era::Child,
                 Era::Child => Era::Adult,
@@ -633,7 +635,8 @@ mod tests {
                 |on: &[&str], era| book.resolve(word, &ctx(true, on)).unwrap().met(&held, era);
             assert!(met(&[], home) && !met(&[], other), "{word} off");
             let on = [settings::EQUIP_ANY_AGE];
-            assert!(met(&on, home) && met(&on, other), "{word} on");
+            assert!(met(&on, home), "{word} on, at its own age");
+            assert_eq!(met(&on, other), shared, "{word} on, at the other age");
         }
     }
 

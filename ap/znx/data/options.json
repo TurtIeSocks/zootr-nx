@@ -67,7 +67,7 @@
   },
   {
     "default": false,
-    "description": "Child and adult Link can both use every sword, shield, tunic and boot on the Equipment page, and logic expects them to",
+    "description": "Child and adult Link can both use every sword and shield on the Equipment page, and logic expects them to. The tunics and boots still need adult Link",
     "id": "equip-any-age",
     "kind": "toggle",
     "label": "Equipment for both ages"

@@ -20860,26 +20860,9 @@
             ]
           },
           {
-            "any": [
-              {
-                "count": 1,
-                "items": [
-                  "Progressive Slingshot"
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "setting": "equip-any-age"
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Hover Boots"
-                    ]
-                  }
-                ]
-              }
+            "count": 1,
+            "items": [
+              "Progressive Slingshot"
             ]
           }
         ]
