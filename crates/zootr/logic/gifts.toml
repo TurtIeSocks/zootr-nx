@@ -692,14 +692,15 @@ needs = "explosives or hammer"
 setting = "merchants"
 
 # The carpet merchant's first sale, 90 rupees, which every wallet holds.
-# He sits in the Wasteland before the Lens of Truth part, so reaching it
-# is enough. Bombchus stay on sale after it.
+# He sits in the Wasteland before the Lens of Truth part, and only the
+# Hover Boots reach him in the remake (the maintainer, 2026-11-18).
+# Bombchus stay on sale after it.
 [[check]]
 hash = 17038515111946271548
 name = "Carpet merchant"
 place = "haunted-wasteland-adult"
 era = "adult"
-needs = "always"
+needs = "hover-boots"
 setting = "merchants"
 
 # The bean seller's first sale, 10 rupees. Beans stay on sale after it.
