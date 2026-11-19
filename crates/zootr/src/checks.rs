@@ -55,6 +55,9 @@ pub struct ItemCheck {
     pub presence: Option<Presence>,
     /// Whether a logic module makes the placement appear or watches it.
     pub watched: Watched,
+    /// The dungeon room the placement names, if any: the room logic counts
+    /// keys for (`key_rooms`).
+    pub room: Option<u32>,
 }
 
 /// Whether a logic module makes a placement appear or watches it, and so
@@ -121,6 +124,16 @@ pub fn str_field<'a>(map: &'a Byml, key: &str) -> Option<&'a str> {
         .map(|s| s.as_str())
 }
 
+/// The dungeon room `actor` names, if it names one.
+pub fn room_of(actor: &Byml) -> Option<u32> {
+    let dynamic = actor.as_map().ok()?.get("Dynamic")?;
+    let room = dynamic
+        .as_map()
+        .ok()?
+        .get(field::DEFAULT_DUNGEON_ROOM_INDEX.get())?;
+    room.as_int::<u32>().ok()
+}
+
 pub fn hash_of(actor: &Byml) -> Option<u64> {
     actor.as_map().ok()?.get("Hash")?.as_int::<u64>().ok()
 }
@@ -138,7 +151,14 @@ pub fn flat(a: [f32; 3], b: [f32; 3]) -> f32 {
 }
 
 pub fn scan(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
+    Ok(scan_rooms(romfs)?.0)
+}
+
+/// [`scan`], and the room each placed scrub names, by its hash: a scrub
+/// drops nothing, so its check is built from a table instead.
+fn scan_rooms(romfs: &Romfs) -> Result<(Vec<ItemCheck>, HashMap<u64, u32>)> {
     let mut out = Vec::new();
+    let mut rooms = HashMap::new();
     for (file, doc) in bancs(romfs)? {
         let doc = doc?;
         for actor in actors(&doc.root)? {
@@ -146,6 +166,10 @@ pub fn scan(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
                 continue;
             };
             let Some(drop) = str_field(dynamic, DROP_ACTOR) else {
+                let scrub = hash_of(actor).filter(|h| crate::scrubs::at(*h).is_some());
+                if let (Some(hash), Some(room)) = (scrub, room_of(actor)) {
+                    rooms.insert(hash, room);
+                }
                 continue;
             };
             let substitute = str_field(dynamic, SUBSTITUTE);
@@ -163,19 +187,23 @@ pub fn scan(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
                 substitute: substitute.map(str::to_owned),
                 presence: presence_of(actor),
                 watched: Watched::No,
+                room: room_of(actor),
             });
         }
     }
-    Ok(out)
+    Ok((out, rooms))
 }
 
 /// Every check: placed actors, then gifts, then scrubs.
 pub fn all(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
     // Pickups deals the placed holders it knows, like pots, by setting.
-    let mut out = scan(romfs)?;
+    let (mut out, rooms) = scan_rooms(romfs)?;
     out.retain(|c| !crate::pickups::is_pickup(c));
     out.extend(crate::gifts::checks());
-    out.extend(crate::scrubs::checks());
+    out.extend(crate::scrubs::checks().into_iter().map(|c| ItemCheck {
+        room: rooms.get(&c.hash).copied(),
+        ..c
+    }));
     Ok(out)
 }
 

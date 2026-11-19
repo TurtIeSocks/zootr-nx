@@ -11,7 +11,8 @@ use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, ModBuilder, Romfs};
 
 use crate::checks::{
-    DROP_ACTOR, Drop, GYAML, ItemCheck, Watched, actors, banc_files, hash_of, load_bancs, str_field,
+    DROP_ACTOR, Drop, GYAML, ItemCheck, Watched, actors, banc_files, hash_of, load_bancs, room_of,
+    str_field,
 };
 use crate::gifts;
 use crate::known::{Name, actor, field as fields, item, map};
@@ -392,6 +393,7 @@ impl Kind {
                 // A named holder is there once its event has put it there,
                 // which the seed doesn't have to wait for.
                 check.presence = presence_of(actor).filter(|_| self.named.is_none());
+                check.room = room_of(actor);
                 out.push(check);
             }
         }
