@@ -161,6 +161,43 @@ impl Inventory {
         Ok(out)
     }
 
+    /// The edits that leave a fresh save holding `held`, each grid actor at
+    /// its count: the count or `IsGet` itself, the `IsGet` that owns a
+    /// count, and each group's cap named after the biggest bag held.
+    pub fn holding(&self, pouch: &Pouch, held: &[(&Name, i32)]) -> Result<Vec<Edit>> {
+        let mut out = Vec::new();
+        let mut bags: HashMap<&str, (&str, i32)> = HashMap::new();
+        for &(actor, n) in held {
+            let key = *self
+                .keys
+                .get(actor)
+                .with_context(|| format!("{actor} isn't in the grid"))?;
+            out.push(Edit::new(key, n.to_string()));
+            if n <= 0 {
+                continue;
+            }
+            if let Some(&flag) = self.owned.get(&key) {
+                out.push(Edit::new(flag, "true"));
+            }
+            if let Some((group, cap)) = pouch.bags.get(actor.get()) {
+                let biggest = bags.entry(group).or_insert(("", 0));
+                if *cap > biggest.1 {
+                    *biggest = (actor.get(), *cap);
+                }
+            }
+        }
+        let caps = bags
+            .into_iter()
+            .map(|(group, (bag, _))| Edit::new(Pouch::expansion(group), bag));
+        out.extend(caps);
+        Ok(out)
+    }
+
+    /// Every grid actor's count or `IsGet`, as the grid was last loaded.
+    pub fn values(&self) -> HashMap<&'static Name, i32> {
+        self.keys.keys().map(|&a| (a, self.value(a))).collect()
+    }
+
     /// The `IsGet` flags kept with the pouch counts `edits` set: on for a
     /// count above none, off for a tier the click takes away. A count typed
     /// down to none leaves it on, as Link still owns an empty bomb bag.

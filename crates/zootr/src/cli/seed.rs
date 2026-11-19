@@ -47,6 +47,17 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
         let default: serde_json::Value = match &def.kind {
             settings::Kind::Toggle { default } => (*default).into(),
             settings::Kind::Choice { default, .. } => default.as_str().into(),
+            settings::Kind::Inventory => {
+                let start = starting::Start::from_settings(settings).unwrap_or_default();
+                for (word, n) in &start.0 {
+                    let arg = match n {
+                        1 => word.clone(),
+                        n => format!("{word}={n}"),
+                    };
+                    flag("start", Some(arg));
+                }
+                continue;
+            }
         };
         if *value == default {
             continue;
@@ -55,9 +66,6 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
         let text = value.as_str().map_or(value.to_string(), str::to_owned);
         match id.as_str() {
             id if on && preset(id) => flag("preset", Some(id.into())),
-            id if on && starting::ITEMS.iter().any(|i| i.id == id) => {
-                flag("start", Some(id["start-".len()..].into()))
-            }
             settings::SKIP_INTRO => flag("keep-intro", None),
             settings::SKIP_ALL => flag("skip", Some("all".into())),
             id if on && id.starts_with("skip-") => flag("skip", Some(id["skip-".len()..].into())),
@@ -200,14 +208,17 @@ mod tests {
     fn a_shuffle_command_parses_back_to_its_settings_and_extras() {
         needs_names!();
         let settings = Settings::from([
-            ("warp-kit".into(), true.into()),
+            ("kakariko-gate".into(), true.into()),
             ("open-forest".into(), false.into()),
             (settings::SKIP_INTRO.into(), false.into()),
             ("skip-owl".into(), true.into()),
             (settings::CHEST_SIZE.into(), "small".into()),
             (settings::SHUFFLE_ITEMS.into(), false.into()),
             ("progressive-items".into(), false.into()),
-            ("start-bomb-bag".into(), true.into()),
+            (
+                starting::SETTING.into(),
+                serde_json::json!({ "bomb-bag": 1, "bombs": 20 }),
+            ),
             ("not-a-setting".into(), true.into()),
         ]);
         let extras = generate::Extras {

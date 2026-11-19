@@ -283,7 +283,10 @@ impl Save {
     pub fn build(entries: &[(u32, &str, Vec<u8>)]) -> Result<Self> {
         let mut sorted = Vec::with_capacity(entries.len());
         for (hash, kind, data) in entries {
-            let at = TYPES.iter().position(|t| t == kind).context("unknown save type")?;
+            let at = TYPES
+                .iter()
+                .position(|t| t == kind)
+                .context("unknown save type")?;
             ensure!(!kind.ends_with("Array"), "{kind} can't be built");
             let w = width(kind).with_context(|| format!("{kind} can't be built"))?;
             ensure!(data.len() == w, "a {kind} is {w} bytes, not {}", data.len());

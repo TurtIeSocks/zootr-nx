@@ -11,7 +11,7 @@ use serde_json::Value;
 use crate::cutscenes::{AREAS, Skips};
 use crate::keys;
 use crate::presets::{self, CARPENTERS_FREED, PRESETS};
-use crate::starting::{self, ITEMS};
+use crate::starting;
 
 mod choices;
 mod new_game;
@@ -76,6 +76,9 @@ pub enum Kind {
         default: String,
         options: Vec<Choice>,
     },
+    /// What a new game starts holding, the save editor's grid: a
+    /// [`starting::Start`]. Unset is the game's own.
+    Inventory,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -277,19 +280,15 @@ pub fn schema() -> Vec<SettingDef> {
             "Reaching an area for the first time skips its camera pan. Any quest step the arrival sets still happens",
         )),
     ];
-    let start = ITEMS.iter().map(|i| SettingDef {
-        subgroup: Some(starting::SUBGROUP),
+    let start = SettingDef {
+        kind: Kind::Inventory,
         ..toggle(
-            i.id,
+            starting::SETTING,
             group::INVENTORY,
-            i.label,
-            if i.equip {
-                "A new game starts with it equipped. Wherever it's found holds a Blue Rupee instead"
-            } else {
-                "A new game starts with it. Wherever it's found holds a Blue Rupee instead"
-            },
+            "Starting inventory",
+            "What a new game starts with. Each item leaves the shuffle, and wherever it was found holds a Blue Rupee instead",
         )
-    });
+    };
     let areas = AREAS.iter().map(|(id, label, _)| SettingDef {
         subgroup: Some("By area"),
         ..cutscene(
@@ -517,7 +516,7 @@ pub fn schema() -> Vec<SettingDef> {
             "Gossip stone hints",
             "Each gossip stone names where an item Link needs is hidden, without the Mask of Truth or any small talk",
         )])
-        .chain(start)
+        .chain([start])
         .chain([toggle(
             SKIP_ALL,
             group::CUTSCENES,
@@ -548,9 +547,8 @@ mod tests {
         let group = |id: &str| schema().into_iter().find(|d| d.id == id).unwrap().group;
         assert_eq!(group(CHEST_SIZE), group::GENERAL);
         assert_eq!(group("open-forest"), group::LOGIC);
-        assert_eq!(group("warp-kit"), group::INVENTORY);
-        assert_eq!(group("claim-check"), group::INVENTORY);
-        assert_eq!(group(ITEMS[0].id), group::INVENTORY);
+        assert_eq!(group("claim-check"), group::LOGIC);
+        assert_eq!(group(starting::SETTING), group::INVENTORY);
         assert_eq!(group(SHOP_SLOTS), group::SHUFFLES);
         assert_eq!(group(KEYS), group::DUNGEONS);
         assert_eq!(group(HINTS), group::GENERAL);

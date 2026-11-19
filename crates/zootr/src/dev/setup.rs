@@ -84,12 +84,14 @@ pub(super) enum Grant {
 pub(super) fn plan_give(gd: &GameData, actor: &str, count: i32) -> Result<Vec<Grant>> {
     ensure!(count >= 1, "a count is 1 or more");
     let stock = inventory::stock(gd, actor)?;
-    // Swords and shields have neither, and the starting items are known to
-    // grant.
+    // Swords and shields have neither, and the starting inventory's items
+    // are known to grant.
     ensure!(
         stock.is_some()
             || inventory::has_flag(gd, actor)
-            || starting::ITEMS.iter().any(|i| i.actor == actor),
+            || starting::WORDS
+                .iter()
+                .any(|(_, a)| starting::drop(a).get() == actor),
         "{actor} isn't an item Link can be given. `zootr items` lists them"
     );
     let mut jobs = grants(actor);
@@ -103,8 +105,8 @@ pub(super) fn plan_give(gd: &GameData, actor: &str, count: i32) -> Result<Vec<Gr
 
 /// The game's grants of `actor` and of what comes with it.
 pub(super) fn grants(actor: &str) -> Vec<Grant> {
-    (starting::granted(actor).into_iter())
-        .map(|(actor, equip)| Grant::Game(actor.into(), equip))
+    (starting::granted(actor, 1).into_iter())
+        .map(|g| Grant::Game(g.actor, g.equip))
         .collect()
 }
 
