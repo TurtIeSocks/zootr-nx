@@ -230,24 +230,13 @@ impl Start {
     }
 
     /// The opening's grants. Items in grid order, so the Hookshot comes
-    /// before the Longshot. What comes with an item comes only when the grid
-    /// doesn't hold it already. Then the ammo, past what a weapon brings,
-    /// once every bag is held. Then the heart containers past a new game's,
-    /// one grant each: a heart container's grant adds one whatever its count.
-    pub fn grants(&self) -> Vec<Grant> {
-        let held = self.held();
-        let drops: Vec<&str> = held.iter().map(|(h, _)| drop(h.actor).get()).collect();
-        let mut out = Vec::new();
-        for ((h, n), d) in held.iter().zip(&drops) {
-            if h.ammo {
-                continue;
-            }
-            let mut grants = granted(d, *n).into_iter();
-            out.extend(grants.next());
-            out.extend(grants.filter(|w| !drops.contains(&w.actor.as_str())));
-        }
-        for (h, n) in held.iter().filter(|(h, _)| h.ammo) {
-            let n = n - self.brought(h.actor);
+    /// before the Longshot. Then the ammo, past what its weapon and bags
+    /// bring. Then the heart containers past a new game's, one grant each: a
+    /// heart container's grant adds one whatever its count.
+    pub fn grants(&self, pouch: &Pouch) -> Vec<Grant> {
+        let mut out = self.items();
+        for (h, n) in self.held().into_iter().filter(|(h, _)| h.ammo) {
+            let n = n - self.brought(h.actor, pouch);
             out.extend((n > 0).then(|| Grant::new(h.actor.get(), n)));
         }
         let hearts = self.0.get(HEARTS).copied().unwrap_or(BASE_HEARTS);
@@ -256,21 +245,41 @@ impl Start {
         out
     }
 
-    /// The ammo `a` a held weapon brings with it.
-    fn brought(&self, a: &Name) -> i32 {
-        (BROUGHT.iter())
-            .filter(|(weapon, ammo, _)| *ammo == a && self.count(weapon) > 0)
-            .map(|(_, _, n)| n)
-            .sum()
+    /// The grants of everything but ammo, in grid order. What comes with an
+    /// item comes only when the grid doesn't hold it already.
+    fn items(&self) -> Vec<Grant> {
+        let held: Vec<_> = self.held().into_iter().filter(|(h, _)| !h.ammo).collect();
+        let drops: Vec<&str> = held.iter().map(|(h, _)| drop(h.actor).get()).collect();
+        let mut out = Vec::new();
+        for ((_, n), d) in held.iter().zip(&drops) {
+            let mut grants = granted(d, *n).into_iter();
+            out.extend(grants.next());
+            out.extend(grants.filter(|w| !drops.contains(&w.actor.as_str())));
+        }
+        out
     }
 
-    /// It holding at least the ammo each held weapon brings, as the game
-    /// gives it.
-    fn floored(mut self) -> Self {
-        for (weapon, ammo, n) in BROUGHT {
-            let word = WORDS.iter().find(|(_, a)| *a == ammo).map(|(w, _)| *w);
-            if let (true, Some(word)) = (self.count(weapon) > 0, word) {
-                let held = self.0.entry(word.to_owned()).or_default();
+    /// The ammo `a` its held weapon and bags bring: the weapon its own, a
+    /// bag past the first fills it.
+    fn brought(&self, a: &Name, pouch: &Pouch) -> i32 {
+        let items = self.items();
+        let bags: Vec<&str> = items.iter().map(|g| g.actor.as_str()).collect();
+        let weapon = (BROUGHT.iter())
+            .filter(|(weapon, ammo, _)| *ammo == a && self.count(weapon) > 0)
+            .map(|(_, _, n)| *n);
+        weapon
+            .chain([pouch.filled(a.get(), &bags)])
+            .max()
+            .unwrap_or(0)
+    }
+
+    /// It holding at least the ammo its weapons and bags bring, as the
+    /// game gives it.
+    fn floored(mut self, pouch: &Pouch) -> Self {
+        for (word, a) in WORDS {
+            let n = self.brought(a, pouch);
+            if n > 0 {
+                let held = self.0.entry((*word).to_owned()).or_default();
                 *held = (*held).max(n);
             }
         }
@@ -366,7 +375,7 @@ fn fresh(gd: &GameData, inv: &Inventory, pouch: &Pouch) -> Result<Save> {
 pub fn open(gd: &GameData, inv: &Inventory, pouch: &Pouch, start: &Start) -> Result<Opened> {
     let original = fresh(gd, inv, pouch)?;
     let mut edited = Save::parse(original.bytes().to_vec())?;
-    let start = &start.clone().floored();
+    let start = &start.clone().floored(pouch);
     let held: Vec<(&Name, i32)> = (start.held().into_iter())
         .map(|(h, n)| (h.actor, n))
         .collect();
@@ -405,7 +414,7 @@ pub fn click(
 ) -> Result<Start> {
     let opened = open(gd, inv, pouch, start)?;
     let edits = save_editor::click(inv, pouch, &opened, at, intent)?;
-    reread(gd, inv, opened, &edits)
+    reread(gd, inv, pouch, opened, &edits)
 }
 
 /// `start` after a Status field takes `edit`. Health follows the heart
@@ -421,12 +430,18 @@ pub fn set(
         bail!("a new game only starts with heart containers and rupees set");
     }
     let opened = open(gd, inv, pouch, start)?;
-    reread(gd, inv, opened, &[edit])
+    reread(gd, inv, pouch, opened, &[edit])
 }
 
 /// What `opened` holds after `edits`, as words: only what differs from a
 /// fresh save.
-fn reread(gd: &GameData, inv: &Inventory, mut opened: Opened, edits: &[Edit]) -> Result<Start> {
+fn reread(
+    gd: &GameData,
+    inv: &Inventory,
+    pouch: &Pouch,
+    mut opened: Opened,
+    edits: &[Edit],
+) -> Result<Start> {
     savefile::apply(gd, &mut opened.edited, edits)?;
     let read = |save: &Save| {
         let mut inv = inv.clone();
@@ -452,7 +467,7 @@ fn reread(gd: &GameData, inv: &Inventory, mut opened: Opened, edits: &[Edit]) ->
             out.insert(word.into(), n.unwrap_or(0) / per);
         }
     }
-    Ok(Start(out).floored())
+    Ok(Start(out).floored(pouch))
 }
 
 #[cfg(test)]
@@ -528,7 +543,7 @@ mod tests {
             ("kokiri-sword", 1),
             (HEARTS, 5),
         ]);
-        let got: Vec<_> = (s.grants().into_iter())
+        let got: Vec<_> = (s.grants(&Pouch::default()).into_iter())
             .map(|g| (g.actor, g.num, g.equip))
             .collect();
         let want = [
@@ -542,48 +557,57 @@ mod tests {
             (actor::OBJ_HEART_CONTAINER.get(), 1, false),
         ];
         assert_eq!(got, want.map(|(a, n, e)| (a.to_owned(), n, e)));
-        let none = start(&[(HEARTS, 3)]).grants();
+        let none = start(&[(HEARTS, 3)]).grants(&Pouch::default());
         assert!(none.is_empty(), "{none:?}");
     }
 
+    /// A pouch table with the quivers' group, for tests.
+    fn quivers() -> Pouch {
+        let bags = [
+            (item::QUIVER_SMALL.get(), "Arrow", 30),
+            (item::QUIVER_MEDIUM.get(), "Arrow", 40),
+        ];
+        Pouch::of(&bags, &[(item::ARROW_NORMAL.get(), "Arrow")])
+    }
+
     #[test]
-    fn ammo_is_granted_past_what_its_weapon_brings() {
+    fn ammo_is_granted_past_what_its_weapon_and_bags_bring() {
         needs_names!();
-        let arrows = |s: Start| {
-            (s.grants().into_iter())
+        let arrows = |words: &[(&str, i32)]| {
+            (start(words).grants(&quivers()).into_iter())
                 .filter(|g| g.actor == item::ARROW_NORMAL.get())
                 .map(|g| g.num)
                 .collect::<Vec<_>>()
         };
-        let quiver = [("bow", 1), ("big-quiver", 1)];
-        assert_eq!(arrows(start(&[quiver[0], quiver[1], ("arrows", 40)])), [10]);
-        assert_eq!(
-            arrows(start(&[quiver[0], quiver[1], ("arrows", 30)])),
-            [0; 0]
-        );
-        assert_eq!(arrows(start(&[("big-quiver", 1), ("arrows", 40)])), [40]);
+        // The Bow brings 30, a quiver past the first fills to its cap.
+        assert_eq!(arrows(&[("bow", 1), ("quiver", 1), ("arrows", 30)]), [0; 0]);
+        assert_eq!(arrows(&[("bow", 1), ("quiver", 1), ("arrows", 40)]), [10]);
+        let big = [("bow", 1), ("quiver", 1), ("big-quiver", 1), ("arrows", 40)];
+        assert_eq!(arrows(&big), [0; 0]);
+        assert_eq!(arrows(&[("quiver", 1), ("arrows", 20)]), [20]);
     }
 
     #[test]
-    fn a_held_weapon_shows_the_ammo_it_brings() {
+    fn the_grid_shows_the_ammo_its_weapons_and_bags_bring() {
         needs_names!();
-        let s = start(&[("slingshot", 1), ("deku-seeds", 10), ("bow", 1)]).floored();
-        assert_eq!(s.0["deku-seeds"], 30);
-        assert_eq!(s.0["arrows"], 30);
-        let more = start(&[("bow", 1), ("arrows", 40)]).floored();
-        assert_eq!(more.0["arrows"], 40);
-        assert!(
-            !start(&[("arrows", 5)])
-                .floored()
-                .0
-                .contains_key("deku-seeds")
-        );
+        let floored = |words: &[(&str, i32)]| start(words).floored(&quivers()).0;
+        let s = floored(&[("slingshot", 1), ("deku-seeds", 10), ("bow", 1)]);
+        assert_eq!((s["deku-seeds"], s["arrows"]), (30, 30));
+        assert_eq!(floored(&[("bow", 1), ("arrows", 35)])["arrows"], 35);
+        let big = floored(&[("quiver", 1), ("big-quiver", 1)]);
+        assert_eq!(big["arrows"], 40);
+        assert!(!floored(&[("quiver", 1)]).contains_key("arrows"));
     }
 
     #[test]
     fn the_slingshot_brings_its_bag_unless_the_grid_has_one() {
         needs_names!();
-        let actors = |s: Start| s.grants().into_iter().map(|g| g.actor).collect::<Vec<_>>();
+        let actors = |s: Start| {
+            s.grants(&Pouch::default())
+                .into_iter()
+                .map(|g| g.actor)
+                .collect::<Vec<_>>()
+        };
         let alone = actors(start(&[("slingshot", 1)]));
         assert_eq!(
             alone,

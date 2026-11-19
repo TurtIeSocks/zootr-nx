@@ -117,6 +117,40 @@ impl Pouch {
         let (group, _) = self.bags.get(bag)?;
         Some(self.group_cap(group, save))
     }
+
+    /// What getting the bags in `held` fills `ammo` to: a bag bigger than
+    /// its group's first fills it to its cap (live, 2026-11-19).
+    pub fn filled(&self, ammo: &str, held: &[&str]) -> i32 {
+        let Some(Cap::Bag(group)) = self.caps.get(ammo) else {
+            return 0;
+        };
+        let caps = |bags: Vec<&(String, i32)>| -> Vec<i32> {
+            (bags.into_iter())
+                .filter(|(g, _)| g == group)
+                .map(|b| b.1)
+                .collect()
+        };
+        let first = caps(self.bags.values().collect()).into_iter().min();
+        let held = caps(held.iter().filter_map(|b| self.bags.get(*b)).collect());
+        (held.into_iter())
+            .filter(|&c| Some(c) > first)
+            .max()
+            .unwrap_or(0)
+    }
+
+    /// A pouch table of `bags` (bag, group, cap) and `counted` (item,
+    /// group), for tests.
+    #[cfg(test)]
+    pub(crate) fn of(bags: &[(&str, &str, i32)], counted: &[(&str, &str)]) -> Self {
+        Self {
+            bags: (bags.iter())
+                .map(|(b, g, n)| (b.to_string(), (g.to_string(), *n)))
+                .collect(),
+            caps: (counted.iter())
+                .map(|(a, g)| (a.to_string(), Cap::Bag(g.to_string())))
+                .collect(),
+        }
+    }
 }
 
 impl Inventory {

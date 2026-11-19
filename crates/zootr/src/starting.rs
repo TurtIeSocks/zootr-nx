@@ -162,7 +162,7 @@ mod tests {
     fn starting(words: &[&str]) -> Vec<Grant> {
         let mut start = Start::default();
         words.iter().for_each(|w| start.add(w, 1).unwrap());
-        start.grants()
+        start.grants(&crate::inventory::Pouch::default())
     }
 
     #[test]
@@ -195,7 +195,8 @@ mod tests {
         start.add("bombs", 20).unwrap();
         start.add("bomb-bag", 1).unwrap();
         start.add("kokiri-sword", 1).unwrap();
-        chain(&mut flow, &template, &start.grants()).unwrap();
+        let pouch = crate::inventory::Pouch::load(&romfs).unwrap();
+        chain(&mut flow, &template, &start.grants(&pouch)).unwrap();
         let save = only(&flow, AUTOSAVE).unwrap();
         // Pushed last to first, so reversed they run in order: the bag, the
         // sword, then the bombs.
