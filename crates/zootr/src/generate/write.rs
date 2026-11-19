@@ -47,8 +47,7 @@ pub(super) fn flows(
         flags.extend(door::open(romfs, &mut rewrites)?);
         give.push(door::MEDALLION.to_string());
     }
-    let pouch = crate::inventory::Pouch::load(romfs)?;
-    let grants = starting::with_gives(new_game.start.grants(&pouch), &give);
+    let grants = starting::with_gives(new_game.start.grants(), &give);
     starting::grant(romfs, &mut rewrites, &grants)?;
     starting::replay(romfs, &mut rewrites, &new_game.progress)?;
     if new_game.mailbox {

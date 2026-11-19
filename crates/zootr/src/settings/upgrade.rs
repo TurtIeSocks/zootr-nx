@@ -8,12 +8,11 @@ use crate::starting::{self, Start};
 const VANILLA_CHESTS: &str = "vanilla-chests";
 
 /// Toggles that started a new game with items, before the starting
-/// inventory, and the words each became, as `--start` takes them. The
-/// Slingshot's grant came with 30 seeds.
+/// inventory, and the words each became, as `--start` takes them.
 const STARTING: [(&str, &[&str]); 9] = [
     ("start-kokiri-sword", &["kokiri-sword"]),
     ("start-deku-shield", &["deku-shield"]),
-    ("start-slingshot", &["slingshot", "deku-seeds=30"]),
+    ("start-slingshot", &["slingshot"]),
     ("start-bomb-bag", &["bomb-bag"]),
     ("start-fairy-ocarina", &["fairy-ocarina"]),
     (
@@ -109,9 +108,5 @@ mod tests {
         assert_eq!(start.0["bombs"], 20);
         assert!(!words.contains(&"slingshot"));
         assert_eq!(s.len(), 1, "{s:?}");
-        let mut sling = Settings::from([("start-slingshot".into(), true.into())]);
-        upgrade(&mut sling);
-        let start = Start::from_settings(&sling).unwrap();
-        assert_eq!(start, Start::of(&["slingshot"]).with("deku-seeds", 30));
     }
 }
