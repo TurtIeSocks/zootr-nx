@@ -285,6 +285,15 @@ pub fn write_mod(
         true => &fortress::CARRYING[..],
         false => &[],
     };
+    // Each copy of a holder quiet groups make or watch, its steps' and its
+    // picked twin, by the holder: the groups run it too.
+    let quiet: HashSet<u64> = (pieces.iter())
+        .filter(|p| p.watched == checks::Watched::Quiet)
+        .map(|p| p.hash)
+        .collect();
+    let mut ran = picked::pairs(&picked);
+    ran.extend(steps.copies.iter().copied());
+    ran.retain(|(of, _)| quiet.contains(of));
     let mut tabled = pickups::tabled(&pieces);
     // A step's copy is placed with its holder's table, which goes too.
     let copied = steps.copies.iter().filter(|(of, _)| tabled.contains(of));
@@ -302,6 +311,7 @@ pub fn write_mod(
         // After the twins, so each step is a copy of a holder standing until
         // picked, and before the fields, which give each step its stand-in.
         let stepped = steps.place(&mut doc.root)?;
+        let grouped = pickups::groups::copy(&mut doc.root, &ran)?;
         // Before the fields, which give each step's copy its stand-in.
         let shelved = shelves.place(&mut doc.root)?;
         let mut changed = checks::set_fields(&mut doc.root, &fields)?;
@@ -324,6 +334,7 @@ pub fn write_mod(
         if twinned
             || paired
             || stepped
+            || grouped
             || shelved
             || shrunk
             || tinted
