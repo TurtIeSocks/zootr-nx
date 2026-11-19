@@ -171,7 +171,15 @@ test("a starting inventory is changed while it holds anything", () => {
   expect(isChanged(def, two)).toBe(true);
   expect(isOn(def, two, [def])).toBe(false);
   expect(summary([def], two)).toBe("Start: 2 items");
-  expect(settingsDiff([def], {}, two)).toEqual([
-    "Start: nothing → hookshot, bombs ×20",
+  expect(settingsChanges([def], {}, two)).toMatchObject([
+    { before: "nothing", after: "hookshot, bombs ×20" },
+  ]);
+  // A swap that holds as many things is still new, and says what it was.
+  const swapped = { s0: { bow: 1, bombs: 20 } };
+  expect(markedChips([def], [def], swapped, two)).toEqual([
+    { id: "s0", label: "Start", value: "2 items", mark: "new", was: "2 items" },
+  ]);
+  expect(markedChips([def], [def], two, two)).toEqual([
+    { id: "s0", label: "Start", value: "2 items" },
   ]);
 });

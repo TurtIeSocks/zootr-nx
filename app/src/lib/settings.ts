@@ -86,11 +86,11 @@ export function parentOn(
 }
 
 /** A setting that's on, in a summary's words: a toggle's label, or a
- * choice's label and its pick. */
+ * choice's label and its pick, or an inventory's and how much it holds. */
 export interface Chip {
   id: string;
   label: string;
-  /** A choice's pick. */
+  /** A choice's pick, or how many things an inventory holds. */
   value?: string;
 }
 
@@ -98,7 +98,8 @@ export interface Chip {
 export const chipText = ({ label, value }: Chip) =>
   value === undefined ? label : `${label}: ${value}`;
 
-/** The chip of a toggle that is on, or a choice off its default. A toggle
+/** The chip of a toggle that is on, a choice off its default, or an
+ * inventory holding anything. A toggle
  * its parent turns on has none: the parent stands in. */
 function chipOf(
   def: SettingDef,
@@ -114,7 +115,7 @@ function chipOf(
   }
   if (def.kind.type === "inventory") {
     const n = held(def, settings);
-    return n > 0 ? [`${def.label}: ${count(n, "item")}`] : [];
+    return n > 0 ? { id, label, value: count(n, "item") } : null;
   }
   return isOn(def, settings, schema) && !parentOn(def, settings, schema)
     ? { id, label }
@@ -168,7 +169,7 @@ export function markedChips(
         : [];
     }
     if (then === null) return [{ ...now, mark: "new" }];
-    return then.value === now.value
+    return shown(d, base, schema) === shown(d, settings, schema)
       ? [now]
       : [{ ...now, mark: "new", was: then.value }];
   });
