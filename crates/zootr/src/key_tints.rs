@@ -149,8 +149,14 @@ pub fn copy_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<Option<
         return Ok(None);
     };
     let template = ActorPack::load(romfs, template)?;
-    let files = copied(&template, item, &model)?;
-    clone_pack(&template, item, files).map(Some)
+    own_pack(&template, item, &model).map(Some)
+}
+
+/// `template`'s pack as an own copy named `item` showing `model`, as
+/// [`copy`] writes it.
+pub(crate) fn own_pack(template: &ActorPack, item: &str, model: &str) -> Result<ActorPack> {
+    let files = copied(template, item, model)?;
+    clone_pack(template, item, files)
 }
 
 /// The label naming `item`, if it's a ring or boss key copy. Its pack
@@ -300,15 +306,22 @@ pub fn sets(bosses: bool, keys: DungeonKeys, fortress: bool) -> Vec<(String, Set
     out
 }
 
-/// [`sets`] as the hook's table names it.
+/// [`sets`] as the hook's table names it. The seed adds the map copies'
+/// (`generate::write`), so only tests ask for the keys' alone.
+#[cfg(test)]
 pub fn credits(bosses: bool, keys: DungeonKeys, fortress: bool) -> Vec<(String, Credit)> {
+    as_credits(sets(bosses, keys, fortress))
+}
+
+/// `sets` as the hook's table names it.
+pub fn as_credits(sets: Vec<(String, Sets)>) -> Vec<(String, Credit)> {
     let hash = |name: &str| murmur3(name.as_bytes());
     let credit = |s: Sets| match s {
         Sets::Bool(name) => Credit::Bool(hash(&name)),
         Sets::Int(name, value) => Credit::Int(hash(&name), value),
         Sets::Add(name, n) => Credit::Add(hash(&name), n),
     };
-    (sets(bosses, keys, fortress).into_iter())
+    (sets.into_iter())
         .map(|(item, s)| (item, credit(s)))
         .collect()
 }
@@ -384,9 +397,9 @@ fn uncounted(tables: &mut Tables, bosses: bool, rings: bool, fortress: bool) -> 
 }
 
 /// `template` copied as `name`, showing `model`, with its rows. An `own`
-/// copy answers to its own name (a ring or boss key copy the hook
-/// credits), any other to the template's, as the game's own key.
-fn copy(
+/// copy answers to its own name (a ring, boss key, map or compass copy the
+/// hook credits), any other to the template's, as the game's own key.
+pub(crate) fn copy(
     builder: &mut ModBuilder,
     tables: &mut Tables,
     template: &ActorPack,

@@ -954,7 +954,8 @@ mod tests {
             .unwrap()
             .map(|e| e.unwrap().file_name().into_string().unwrap())
             .collect();
-        let built: BTreeSet<String> = FILES.iter().map(|f| f.0.to_owned()).collect();
+        let mut built: BTreeSet<String> = FILES.iter().map(|f| f.0.to_owned()).collect();
+        built.insert(crate::key_rooms::FILE.into());
         assert_eq!(on_disk, built);
     }
 

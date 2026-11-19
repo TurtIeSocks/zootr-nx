@@ -45,16 +45,11 @@ pub enum LeftOut {
     Maintainer,
 }
 
-/// What a map or compass gives depends on the dungeon it's found in.
-pub(crate) const OWN_DUNGEON: [&Name; 2] = [item::DUNGEON_MAP, item::DUNGEON_COMPASS];
+/// The game's maps and compasses, which move as their dungeon's copies
+/// (`map_copies`).
+pub(crate) const MAPS_COMPASSES: [&Name; 2] = [item::DUNGEON_MAP, item::DUNGEON_COMPASS];
 
-/// Whether `c` may hold a map or compass found in `area`: each moves only
-/// into a chest of the area it came from (EIE #3).
-pub(crate) fn holds_map_from(c: &ItemCheck, area: &str) -> bool {
-    c.area == area && !gifts::is_gift(c)
-}
-
-/// Whether `new_game` moves maps and compasses around their own dungeon.
+/// Whether `new_game` deals maps and compasses, as copies, to any check.
 pub(crate) fn maps_move(new_game: &NewGame) -> bool {
     !new_game.vanilla && !new_game.keep_chests && new_game.on.contains(settings::MAPS_COMPASSES)
 }
@@ -90,7 +85,7 @@ pub(crate) fn left_out(c: &ItemCheck, open: Let) -> Option<LeftOut> {
     }
     // Keys moved around can soft-lock, since logic doesn't count them.
     // Keys Link starts with aren't moved: their chests bring a rupee.
-    let moves = open.maps && OWN_DUNGEON.iter().any(|d| **d == *c.item)
+    let moves = open.maps && MAPS_COMPASSES.iter().any(|d| **d == *c.item)
         || open.keys && keys::is_dungeon_key(&c.item);
     if c.item.starts_with("Item_Dungeon_") && !moves {
         return Some(LeftOut::Setting);
@@ -162,6 +157,7 @@ pub(crate) mod tests {
             substitute: None,
             presence: None,
             watched: crate::checks::Watched::No,
+            room: None,
         }
     }
 

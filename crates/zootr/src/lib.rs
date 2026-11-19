@@ -53,6 +53,7 @@ mod icons;
 pub mod inventory;
 pub mod items;
 pub mod kept;
+mod key_rooms;
 mod key_tints;
 mod keys;
 #[macro_use]
@@ -62,6 +63,7 @@ mod ledger;
 pub mod live;
 mod logic;
 pub mod look;
+mod map_copies;
 mod medallions;
 mod names;
 mod narrowing;

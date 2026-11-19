@@ -1,0 +1,34 @@
+# How many of its dungeon's small keys a check needs, by the room its
+# placement names (`DefaultDungeonRoomIndex`), with keys dealt as copies.
+#
+# Each count is the worst order Link could spend keys in: a lock needs 1
+# plus every other lock he can open without passing it, since he may have
+# spent keys there first. A room needs the smallest count over the ways
+# in, taking the largest lock along each way. `keys` is every room the
+# dungeon doesn't list.
+#
+# A dungeon left out asks for all its keys at every check (EIE row 2).
+
+# Two locks, both off the hall (room 1), each into one of the two inner
+# rooms of the hall's central block: room 5 west, room 4 east, a Gold
+# Skulltula in each. Either may take the first key. Ship's well has a
+# third lock, ours doesn't.
+[[dungeon]]
+name = "bottom-of-the-well"
+keys = 0
+rooms = [
+    { room = 4, keys = 2 },
+    { room = 5, keys = 2 },
+]
+
+# One lock, in the Light Trial, between the Lens of Truth chest's room
+# (13) and the silver rupee room (14), which leads on to room 15. Rooms
+# 12 and 13 open off the hub (room 1). Ship's Light Trial has a second
+# lock before the Triforce room, ours doesn't.
+[[dungeon]]
+name = "inside-ganon-castle"
+keys = 0
+rooms = [
+    { room = 14, keys = 1 },
+    { room = 15, keys = 1 },
+]

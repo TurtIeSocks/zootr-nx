@@ -7,10 +7,11 @@ use std::sync::LazyLock;
 use anyhow::{Context, Result};
 
 use crate::checks::ItemCheck;
-use crate::key_tints;
 use crate::known::{Name, actor, flag, flow, item, map};
+use crate::map_copies;
 use crate::rules::Need;
 use crate::settings::{DungeonKeys, FortressKeys};
+use crate::{key_rooms, key_tints};
 
 pub const SMALL: &Name = item::DUNGEON_SMALL_KEY;
 pub const BOSS: &Name = item::DUNGEON_BOSS_KEY;
@@ -34,17 +35,21 @@ pub const DUNGEONS: [(&Name, i32, Option<&Name>); 8] = [
 /// How many small key copies Keysanity deals dungeon `n`: one for each of
 /// its keys, the chests' and the two lying in the open (Bottom of the
 /// Well's and the Shadow Temple's), and logic asks for them all.
-fn copies_of(n: usize) -> u32 {
+pub(crate) fn copies_of(n: usize) -> u32 {
     DUNGEONS[n - 1].1 as u32
 }
 
 /// The dungeon whose maps `rel`, a Banc file, is under, by its number in
 /// [`DUNGEONS`], counting from 1.
 pub fn dungeon_of(rel: &str) -> Option<usize> {
-    let folder = rel.strip_prefix("Banc/")?.split('/').next()?;
+    dungeon_in(rel.strip_prefix("Banc/")?.split('/').next()?)
+}
+
+/// The dungeon `area`, a Banc folder, is, by its number in [`DUNGEONS`].
+pub fn dungeon_in(area: &str) -> Option<usize> {
     DUNGEONS
         .iter()
-        .position(|(d, ..)| *d == folder)
+        .position(|(d, ..)| *d == area)
         .map(|i| i + 1)
 }
 
@@ -81,10 +86,10 @@ pub static SHUFFLED: LazyLock<Vec<String>> = LazyLock::new(|| {
         .collect()
 });
 
-/// Whether `item` is a ring, small key or boss key copy, or the Fortress
-/// key copy, which the hook credits as Link gets it.
+/// Whether `item` is a ring, small key or boss key copy, the Fortress key
+/// copy, or a map or compass copy, which the hook credits as Link gets it.
 pub fn is_shuffled(item: &str) -> bool {
-    SHUFFLED.iter().any(|s| s == item) || item == key_tints::fortress()
+    SHUFFLED.iter().any(|s| s == item) || item == key_tints::fortress() || map_copies::is_copy(item)
 }
 
 /// With Keysanity, every small key copy, one for each key chest, and
@@ -134,24 +139,24 @@ pub fn deal_copies(
     Ok(())
 }
 
-/// Dungeon `n`'s small keys as `keys` deals them: its ring, or every copy.
-fn smalls(n: usize, keys: DungeonKeys) -> Option<Need> {
+/// `count` of dungeon `n`'s small keys as `keys` deals them: its ring, or
+/// that many copies. Nothing for none.
+fn smalls(n: usize, count: u32, keys: DungeonKeys) -> Option<Need> {
     let actors = vec![key_tints::ring(n)];
     match keys {
+        _ if count == 0 => None,
         DungeonKeys::Rings => Some(Need::Items { actors, count: 1 }),
-        DungeonKeys::Singles => Some(Need::Items {
-            actors,
-            count: copies_of(n),
-        }),
+        DungeonKeys::Singles => Some(Need::Items { actors, count }),
         DungeonKeys::Vanilla | DungeonKeys::Start => None,
     }
 }
 
-/// With keys dealt as copies, what logic adds to a check in `rel`, a Banc
-/// file: all its dungeon's small keys. Stricter than the game, which asks
-/// for them door by door, but safe in any order Link spends them.
-pub fn dungeon_need(rel: &str, keys: DungeonKeys) -> Option<Need> {
-    smalls(dungeon_of(rel)?, keys)
+/// With keys dealt as copies, what logic adds to `check`: the small keys
+/// its room needs in the worst order Link could spend them, or all its
+/// dungeon's where `key_rooms` has no count for it.
+pub fn dungeon_need(check: &ItemCheck, keys: DungeonKeys) -> Option<Need> {
+    let (n, count) = key_rooms::count(check)?;
+    smalls(n, count, keys)
 }
 
 /// With the Fortress keys dealt as copies, what logic adds to a check whose
@@ -170,7 +175,7 @@ pub fn boss_door_need(room: &str, keys: DungeonKeys) -> Option<Need> {
     let i = DUNGEONS
         .iter()
         .position(|(.., r)| r.is_some_and(|r| *r == *room))?;
-    let small = smalls(i + 1, keys)?;
+    let small = smalls(i + 1, copies_of(i + 1), keys)?;
     Some(Need::All(vec![holds(key_tints::boss(i + 1)), small]))
 }
 
@@ -178,6 +183,9 @@ pub fn boss_door_need(room: &str, keys: DungeonKeys) -> Option<Need> {
 /// `area` names one by its id. The ring copy is a single small key with
 /// Keysanity.
 pub fn copy_name(actor: &str, area: impl Fn(&str) -> String, keys: DungeonKeys) -> Option<String> {
+    if let Some(name) = map_copies::copy_name(actor, &area) {
+        return Some(name);
+    }
     if actor == key_tints::fortress() {
         return Some(format!("{} Small Key", area(FORTRESS.0)));
     }
@@ -213,11 +221,12 @@ pub fn is_key(item: &str) -> bool {
     is_dungeon_key(item) || item.starts_with(FORTRESS_KEY)
 }
 
-/// What `check` brings to the pool: its item, or `INSTEAD` for a key.
+/// What `check` brings to the pool: its item, `INSTEAD` for a key, or for
+/// a map or compass its dungeon's copy.
 pub fn pooled(check: &ItemCheck) -> &str {
     match is_key(&check.item) {
         true => INSTEAD,
-        false => &check.item,
+        false => map_copies::pooled(check).unwrap_or(&check.item),
     }
 }
 
@@ -427,12 +436,17 @@ mod tests {
     #[test]
     fn logic_asks_a_dungeon_s_checks_for_its_ring_and_its_boss_door_for_both() {
         needs_names!();
-        let forest = format!("Banc/{}/Fake.bcett.byml.zs", flag::FOREST_TEMPLE);
-        let n = dungeon_of(&forest).unwrap();
+        let at = |file: String| ItemCheck {
+            area: file.split('/').nth(1).unwrap().into(),
+            file,
+            ..crate::narrowing::tests::chest(1, "Fake_Item")
+        };
+        let forest = at(format!("Banc/{}/Fake.bcett.byml.zs", flag::FOREST_TEMPLE));
+        let n = dungeon_of(&forest.file).unwrap();
         let rings = DungeonKeys::Rings;
         let need = dungeon_need(&forest, rings).unwrap().to_string();
         assert_eq!(need, key_tints::ring(n));
-        assert!(dungeon_need("Banc/FakeField/Fake.bcett.byml.zs", rings).is_none());
+        assert!(dungeon_need(&at("Banc/FakeField/Fake.bcett.byml.zs".into()), rings).is_none());
         assert!(dungeon_need(&forest, DungeonKeys::Start).is_none());
         let door = boss_door_need(map::PHANTOM_GANON_STAGE, rings)
             .unwrap()

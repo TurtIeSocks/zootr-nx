@@ -11,13 +11,14 @@ use crate::checks::{self, Drop};
 use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::hints::Hint;
+use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::settings::{AGELESS_WEAPONS, ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
     ageless, ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door,
     enemies, flags, foreign, fortress, gamedata, gerudo, gifts, held, hints, key_tints, keys,
-    medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs, shops, spawn,
-    standins, starting, steps, text, tracker, trade_chain, twins,
+    map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs, shops,
+    spawn, standins, starting, steps, text, tracker, trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -149,10 +150,11 @@ pub fn write_mod(
     );
     // First, so a copy on a shelf takes its caption from its own lines.
     copies.insert(0, foreign::captions(&new_game.foreign));
-    copies.insert(
-        0,
-        key_tints::captions(new_game.keys, key_copies.1, key_copies.2),
-    );
+    let mut key_lines = key_tints::captions(new_game.keys, key_copies.1, key_copies.2);
+    if maps_move(new_game) {
+        key_lines.new.extend(map_copies::captions());
+    }
+    copies.insert(0, key_lines);
     if new_game.mailbox {
         copies.push(notice::banners());
         copies.push(notice::senders(&new_game.players));
@@ -268,6 +270,9 @@ pub fn write_mod(
         new_game.keys,
         fortress,
     )?;
+    if maps_move(new_game) {
+        map_copies::write(romfs, &mut builder, &mut tables)?;
+    }
     foreign::write(romfs, &mut builder, &mut tables, &new_game.foreign)?;
     ammo::write(romfs, &mut builder, &mut tables, &rupees)?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
@@ -391,7 +396,7 @@ pub fn write_mod(
     dig::write(romfs, &mut builder, drops, new_game)?;
     run.check()?;
     let files = builder.finish()?.len();
-    let credits = key_tints::credits(bosses, new_game.keys, fortress);
+    let credits = credits(new_game);
     let keyed: Vec<_> = (rupees.iter())
         .filter_map(|r| ammo::line(ammo::copied(r)?))
         .collect();
@@ -426,12 +431,23 @@ fn levels(
     drops: &HashMap<u64, Drop>,
     new_game: &NewGame,
 ) -> Result<chest_levels::Levels> {
-    let credits = key_tints::sets(
-        boss_copies(new_game),
-        new_game.keys,
-        new_game.fortress_keys.copies(),
-    );
-    chest_levels::Levels::new(romfs, drops, new_game.progressive, credits)
+    chest_levels::Levels::new(romfs, drops, new_game.progressive, sets(new_game))
+}
+
+/// What each copy `new_game` deals sets as it's found: its key copies',
+/// and with maps and compasses moving theirs.
+fn sets(new_game: &NewGame) -> Vec<(String, key_tints::Sets)> {
+    let fortress = new_game.fortress_keys.copies();
+    let mut sets = key_tints::sets(boss_copies(new_game), new_game.keys, fortress);
+    if maps_move(new_game) {
+        sets.extend(map_copies::sets());
+    }
+    sets
+}
+
+/// [`sets`] as the hook's table names it.
+fn credits(new_game: &NewGame) -> Vec<(String, zootr_hook::Credit)> {
+    key_tints::as_credits(sets(new_game))
 }
 
 /// The settings the hook acts on, as the table's flag bits. Every seed
