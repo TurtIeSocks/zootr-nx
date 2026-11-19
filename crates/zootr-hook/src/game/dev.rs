@@ -56,6 +56,10 @@ const COMPONENTS: usize = 624;
 pub(super) const POSITION: usize = 796;
 const CONTROLLER: [usize; 4] = [80, 32, 16, 8];
 
+/// Run the request the app left in the mailbox. Far code: only a dev
+/// seed calls it, and most calls find no request.
+#[inline(never)]
+#[unsafe(link_section = ".far")]
 pub unsafe fn serve(main: usize, o: &Offsets, actor: usize) {
     let mail = &shared(main).dev;
     let asked = mail.asked.load(Ordering::Acquire);

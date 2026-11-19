@@ -122,8 +122,12 @@ extern "C" fn ui_update() {
 /// item detail panel follows. One not focused never is: focusing it would
 /// put a second cursor on the page.
 ///
+/// Far code: it runs only while the Items page is up.
+///
 /// # Safety
 /// The table's offsets are this build's.
+#[inline(never)]
+#[unsafe(link_section = ".far")]
 unsafe fn show(main: usize, table: &Table) -> Option<()> {
     let slot = table.slot?;
     let ui = &shared(main).ui;
