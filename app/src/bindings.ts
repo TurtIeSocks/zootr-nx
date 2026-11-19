@@ -20,6 +20,8 @@ export const commands = {
 	 *  A share code brings its own settings and extras.
 	 */
 	generate: (seed: string | null, install: boolean, steps: Channel<StepEvent>) => typedError<Summary, string>(__TAURI_INVOKE("generate", { seed, install, steps })),
+	/**  Reads a share code's settings and extras without generating a seed. */
+	shareSettings: (code: string) => typedError<SharedBuild, string>(__TAURI_INVOKE("share_settings", { code })),
 	/**
 	 *  Install one slot of an Archipelago multiworld from its `.apznx`. The
 	 *  file brings its own settings, placements and seed.
@@ -712,6 +714,14 @@ export type SettingsFile = {
 	line: string[],
 	lines?: never,
 });
+
+/**  What a share code builds with, read without building it. */
+export type SharedBuild = {
+	settings: { [key in string]: Value },
+	/**  How many checks its plando pins. */
+	pins: number,
+	test: TestSetup,
+};
 
 /**  Which side of the actor Link lands on, by its facing. */
 export type Side = "front" | "back" | "left" | "right";

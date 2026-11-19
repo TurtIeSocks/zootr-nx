@@ -236,6 +236,27 @@ async fn generate(
     .await
 }
 
+/// What a share code builds with, read without building it.
+#[derive(Serialize, Type)]
+struct SharedBuild {
+    settings: Settings,
+    /// How many checks its plando pins.
+    pins: usize,
+    test: zootr::config::TestSetup,
+}
+
+/// Reads a share code's settings and extras without generating a seed.
+#[tauri::command]
+#[specta::specta]
+fn share_settings(code: String) -> Res<SharedBuild> {
+    let shared = share::decode(&code).map_err(text)?;
+    Ok(SharedBuild {
+        pins: shared.extras.place.len(),
+        test: zootr::config::TestSetup::from_extras(&shared.extras),
+        settings: shared.settings,
+    })
+}
+
 /// Install one slot of an Archipelago multiworld from its `.apznx`. The
 /// file brings its own settings, placements and seed.
 #[tauri::command]
@@ -753,6 +774,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             config,
             set_config,
             generate,
+            share_settings,
             generate_ap,
             install,
             rebuild,

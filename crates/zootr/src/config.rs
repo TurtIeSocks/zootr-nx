@@ -107,6 +107,18 @@ impl TestSetup {
         *self == Self::default()
     }
 
+    /// The part of a seed's extras a test setup holds: what
+    /// [`TestSetup::extras`] writes.
+    pub fn from_extras(extras: &Extras) -> Self {
+        Self {
+            spawn: extras.spawn.clone(),
+            give: extras.give.clone(),
+            defaults: extras.defaults.clone(),
+            progress: extras.progress.clone(),
+            ..Default::default()
+        }
+    }
+
     pub fn extras(&self) -> Extras {
         Extras {
             defaults: self.defaults.clone(),
@@ -627,6 +639,17 @@ mod tests {
             test.extras(),
             unchecked.extras(),
             "goals never change a seed"
+        );
+        let only_seed = TestSetup {
+            hour: None,
+            near: None,
+            side: None,
+            ..unchecked
+        };
+        assert_eq!(
+            TestSetup::from_extras(&extras),
+            only_seed,
+            "a share code's extras read back as what a seed keeps"
         );
         assert_eq!(extras.spawn, test.spawn);
         assert_eq!((extras.give, extras.defaults), (test.give, test.defaults));
