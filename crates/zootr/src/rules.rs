@@ -614,10 +614,11 @@ mod tests {
     fn ageless_weapons_let_the_other_age_use_swords_and_shields() {
         needs_names!();
         let book = Book::load().unwrap();
-        // Whether the other age may use it with the setting on: the
-        // tunics and boots don't work on a child (live, 2026-11-18).
+        // Whether the other age may use it with the setting on. Live: the
+        // tunics and boots do nothing on a child, and a child can't aim
+        // the Mirror Shield's reflection.
         let cases = [
-            ("mirror-shield", "mirror-shield", Era::Adult, true),
+            ("mirror-shield", "mirror-shield", Era::Adult, false),
             ("kokiri-sword", "kokiri-sword", Era::Child, true),
             ("deku-shield", "deku-shield-chest", Era::Child, true),
             ("hover-boots", "hover-boots", Era::Adult, false),
@@ -641,7 +642,7 @@ mod tests {
     }
 
     #[test]
-    fn light_needs_an_adult_mirror_shield_without_ageless_weapons() {
+    fn light_needs_an_adult_with_the_mirror_shield_even_with_ageless_weapons() {
         needs_names!();
         let book = Book::load().unwrap();
         let held = have(&[item::SHIELD_MIRROR]);
@@ -651,7 +652,7 @@ mod tests {
                 .met(&held, era)
         };
         assert!(met(&[], Era::Adult) && !met(&[], Era::Child));
-        assert!(met(&[settings::AGELESS_WEAPONS], Era::Child));
+        assert!(!met(&[settings::AGELESS_WEAPONS], Era::Child));
     }
 
     #[test]

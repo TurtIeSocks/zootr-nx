@@ -8,10 +8,9 @@ explosives = "bombs or bombchus"
 bombs = "item:bomb-bag"
 bombchus = "(item:bombchus-small or item:bombchus-medium or item:bombchus-large) and (bombs or setting:free-bombchus)"
 
-# Swords and shields each age wields. With ageless-weapons both ages
-# wield all of them: their age limit is the menu's alone. Tunics and boots
-# dress adult Link's model and stay adult.
-adult-weapon = "adult or setting:ageless-weapons"
+# The child swords and shield, for either age with ageless-weapons. The
+# adult ones need no word: the Mirror Shield reflects light only for adult
+# Link (a child can't aim it), and logic asks for the swords only as melee.
 child-weapon = "child or setting:ageless-weapons"
 
 hammer = "adult and item:megaton-hammer"
@@ -26,7 +25,7 @@ hookshot = "adult and item:hookshot"
 longshot = "adult and item:longshot"
 
 magic = "item:magic-meter"
-mirror-shield = "adult-weapon and item:mirror-shield"
+mirror-shield = "adult and item:mirror-shield"
 fire = "(magic and item:dins-fire) or (magic and bow and item:fire-arrows)"
 bottle = "item:bottle or item:rutos-letter or item:milk"
 blue-fire = "adult and bottle"

@@ -513,7 +513,7 @@ pub fn schema() -> Vec<SettingDef> {
             AGELESS_WEAPONS,
             group::ENHANCEMENTS,
             "Swords and shields for both ages",
-            "Child and adult Link can each wield every sword and shield, and logic expects them to",
+            "Child and adult Link can each wield every sword and shield, and logic expects them to. Only adult Link can aim the Mirror Shield at light",
         )])
         .chain([toggle(
             BRIDGE_MEDALLIONS,

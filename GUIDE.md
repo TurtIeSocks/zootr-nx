@@ -175,7 +175,7 @@ Changes to how Link plays. All start off.
 | Setting | What it does |
 |---|---|
 | Bunny Hood speed | Link runs half again as fast while he wears the Bunny Hood |
-| Swords and shields for both ages | Child and adult Link can each wield every sword and shield, and logic expects them to: a child with the Mirror Shield counts as able to reflect light. Tunics and boots still need adult Link |
+| Swords and shields for both ages | Child and adult Link can each wield every sword and shield, and logic expects them to. Only adult Link can aim the Mirror Shield at light, and tunics and boots still need adult Link |
 
 ### Logic & access
 
