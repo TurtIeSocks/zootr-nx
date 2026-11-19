@@ -15,9 +15,9 @@ pub const PATIENCE: Duration = Duration::from_secs(30);
 
 /// The most one memory request moves.
 const CHUNK: usize = 1 << 20;
-/// The most ranges one `mem_read_many` names, well inside the game's 64 KB
-/// request line.
-const RANGES: usize = 512;
+/// The most ranges one `mem_read_many` may name: Hookshot refuses more
+/// (`CTL_MEM_RANGES`).
+const RANGES: usize = 64;
 
 /// The game answered a request with an error.
 #[derive(Debug)]
