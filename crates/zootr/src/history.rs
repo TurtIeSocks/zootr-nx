@@ -1,7 +1,9 @@
 //! Every seed the app generated, kept in `history.json` beside the config.
 
 use std::collections::BTreeMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::time::SystemTime;
 
 use crate::config::Config;
 use crate::generate::{Extras, Report, Spot};
@@ -64,7 +66,7 @@ pub struct Label {
 }
 
 /// An entry without its spots, for lists.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Summary {
     pub id: u32,
@@ -88,7 +90,7 @@ pub struct Summary {
     death_link: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct View {
     installed: Option<Summary>,
@@ -123,6 +125,44 @@ impl From<&Entry> for Summary {
 
 fn path() -> Result<PathBuf> {
     Ok(Config::path()?.with_file_name("history.json"))
+}
+
+/// A file's modified time and length, or `None` when it's missing: what
+/// changes when it's written.
+type Stamp = Option<(SystemTime, u64)>;
+
+fn stamp(path: &Path) -> Result<Stamp> {
+    match std::fs::metadata(path) {
+        Ok(m) => Ok(Some((m.modified()?, m.len()))),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e).with_context(|| format!("reading {}", path.display())),
+    }
+}
+
+/// The saved history's [`View`], parsed again only once the file changes.
+/// The file holds every seed's report, megabytes of JSON, and the app's
+/// seed list polls this every few seconds.
+pub fn view() -> Result<View> {
+    static KEPT: Mutex<Option<(Stamp, View)>> = Mutex::new(None);
+    kept(&KEPT, &path()?, || Ok(History::load()?.view()))
+}
+
+/// What `load` gives for `path`, kept in `slot` until `path` changes.
+fn kept<V: Clone>(
+    slot: &Mutex<Option<(Stamp, V)>>,
+    path: &Path,
+    load: impl FnOnce() -> Result<V>,
+) -> Result<V> {
+    let now = stamp(path)?;
+    let mut slot = slot.lock().unwrap();
+    if let Some((was, v)) = slot.as_ref()
+        && *was == now
+    {
+        return Ok(v.clone());
+    }
+    let v = load()?;
+    *slot = Some((now, v.clone()));
+    Ok(v)
 }
 
 impl History {
@@ -278,6 +318,24 @@ fn now() -> u32 {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn a_kept_view_is_read_again_only_once_the_file_changes() {
+        let path = std::env::temp_dir().join(format!("zootr-kept-{}", std::process::id()));
+        std::fs::write(&path, "a").unwrap();
+        let (slot, loads) = (Mutex::new(None), Cell::new(0));
+        let load = || {
+            loads.set(loads.get() + 1);
+            Ok(loads.get())
+        };
+        assert_eq!(kept(&slot, &path, load).unwrap(), 1);
+        assert_eq!(kept(&slot, &path, load).unwrap(), 1);
+        std::fs::write(&path, "ab").unwrap();
+        assert_eq!(kept(&slot, &path, load).unwrap(), 2);
+        std::fs::remove_file(&path).unwrap();
+        assert_eq!(kept(&slot, &path, load).unwrap(), 3);
+        assert_eq!(kept(&slot, &path, load).unwrap(), 3);
+    }
+
+    #[test]
     fn installing_another_seed_restarts_its_clock() {
         let mut history = History::default();
         history.install(Some(1));
@@ -294,6 +352,8 @@ mod tests {
         let old: History = serde_json::from_str(r#"{"installed": 3, "entries": []}"#).unwrap();
         assert_eq!(old.installed_at, None);
     }
+
+    use std::cell::Cell;
 
     use super::*;
     use crate::generate::Written;
