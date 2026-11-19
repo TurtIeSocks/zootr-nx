@@ -255,11 +255,14 @@ pub fn write_mod(
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
     let levels = levels(romfs, drops, new_game)?;
     levels.events(&mut events)?;
-    if ice_traps::springs(new_game) {
+    let look = if ice_traps::springs(new_game) {
         ice_traps::event(&mut events)?;
         ice_traps::sensor(romfs, &mut builder, &mut tables)?;
         ice_traps::thaw(romfs, &mut builder)?;
-    }
+        Some(ice_traps::look(romfs, &mut builder)?)
+    } else {
+        None
+    };
     events.write(&mut builder)?;
     if new_game.shop_slots > 0 {
         fields.extend(shops::write(
@@ -388,6 +391,7 @@ pub fn write_mod(
         flags,
         &credits,
         &spots,
+        look.as_ref(),
     )?;
     Ok(Written {
         defaults,

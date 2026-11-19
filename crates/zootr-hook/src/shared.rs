@@ -136,6 +136,9 @@ pub struct Shared {
     pub sprung: AtomicU64,
     /// 1 while a trap's sensor is out, until the hook takes it away.
     pub sensing: AtomicU32,
+    /// 1 while the ice's shells hold child Link's size, see
+    /// [`crate::look`].
+    pub child_ice: AtomicU32,
 }
 
 // SAFETY: the mailbox's plain fields are only read after `asked` is.

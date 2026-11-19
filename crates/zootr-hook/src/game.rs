@@ -11,6 +11,7 @@ mod bunny;
 mod chests;
 mod dev;
 mod freeze;
+mod look;
 mod menu;
 mod refill;
 mod rt;
@@ -190,7 +191,7 @@ fn table() -> Option<(usize, Table<'static>)> {
     // SAFETY: the cheat writes the table at `TABLE`, 8 byte aligned.
     let header = unsafe { &*((main + TABLE as usize) as *const Header) };
     let at = (header as *const Header).cast::<u8>();
-    let size = (header.size + header.credits + header.slot) as usize;
+    let size = (header.size + header.credits + header.slot + header.look) as usize;
     let body = unsafe { slice::from_raw_parts(at.add(HEADER), size) };
     Some((main, Table::parse(header, body)?))
 }
@@ -432,6 +433,7 @@ unsafe extern "C" fn link_update(actor: usize) {
             refill::refill(main, &table, actor);
             dev::serve(main, table.offsets, actor);
         }
+        look::fit(main, &table);
         freeze::freeze(main, &table, actor);
         if dev::playing(main, table.offsets) == Some(false) {
             shared(main).with(List::idle);

@@ -1,9 +1,10 @@
 //! Ice traps: junk swapped for copies that pass for an item logic needs,
 //! say "FOOL!" at the get, and freeze Link. See
 //! `docs/superpowers/specs/2026-11-18-ice-traps-design.md`. The freeze
-//! itself is [`freeze`].
+//! itself is [`freeze`], its ice [`look`].
 
 mod freeze;
+mod look;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::LazyLock;
@@ -13,6 +14,7 @@ use ounce_formats::Romfs;
 use zootr_hook::Credit;
 
 pub use freeze::{event, flow, sensor, thaw};
+pub use look::{FILES, look};
 
 use crate::foreign::{Foreign, Owner};
 use crate::key_tints::MADE;

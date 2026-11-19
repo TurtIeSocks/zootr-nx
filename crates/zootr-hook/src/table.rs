@@ -3,9 +3,12 @@
 //! flags an item sets as it's found, the menu slot Link cycles, and the
 //! twinned holders whose drop sets a flag as Link takes it.
 
+use crate::look::Look;
+#[cfg(not(target_os = "none"))]
+use crate::look::LookSpec;
 use crate::ui::MultiSlot;
 
-pub const MAGIC: &[u8; 4] = b"ZLT9";
+pub const MAGIC: &[u8; 4] = b"ZLTA";
 
 /// The header's flag for a seed whose bombchus need no bomb bag.
 pub const FREE_BOMBCHUS: u32 = 1;
@@ -37,6 +40,8 @@ pub struct Header {
     pub slot: u32,
     /// How many [`Spot`]s the seed wrote to GameData.
     pub spots: u32,
+    /// The size of the [`Look`] after the slot, 0 for none.
+    pub look: u32,
 }
 
 const _: () = assert!(cfg!(target_endian = "little"));
@@ -147,6 +152,9 @@ offsets! {
     anim_frame,
     /// The item kind on a button for an age (the manager, child, 1).
     equipped,
+    /// The pointer to the effect system, which holds the effect file
+    /// the ice's [`Look`] sizes.
+    effects,
 }
 
 /// The table at `TABLE`. Each line is a level count, [`KEYED`] or not,
@@ -164,6 +172,7 @@ pub struct Table<'a> {
     pub slot: Option<Slot<'a>>,
     /// How many [`Spot`]s the seed wrote to GameData.
     pub spots: u32,
+    pub look: Option<Look<'a>>,
 }
 
 impl<'a> Table<'a> {
@@ -171,7 +180,8 @@ impl<'a> Table<'a> {
     pub fn parse(header: &'a Header, body: &'a [u8]) -> Option<Self> {
         let (lines, rest) = body.split_at_checked(header.size as usize)?;
         let (credits, rest) = rest.split_at_checked(header.credits as usize)?;
-        let slot = rest.get(..header.slot as usize)?;
+        let (slot, rest) = rest.split_at_checked(header.slot as usize)?;
+        let look = rest.get(..header.look as usize)?;
         (header.magic == *MAGIC).then_some(Self {
             offsets: &header.offsets,
             flags: header.flags,
@@ -179,6 +189,7 @@ impl<'a> Table<'a> {
             credits,
             slot: Slot::parse(slot),
             spots: header.spots,
+            look: Look::parse(look),
         })
     }
 
@@ -516,6 +527,7 @@ pub fn after_grant<'a>(
 /// by name, the `slot` Link cycles and how many holders' `spots` the seed
 /// writes to GameData.
 #[cfg(not(target_os = "none"))]
+#[allow(clippy::too_many_arguments)]
 pub fn encode(
     offsets: Offsets,
     flags: u32,
@@ -524,6 +536,7 @@ pub fn encode(
     credits: &[(&str, Credit)],
     slot: Option<&SlotSpec>,
     spots: &[Spot],
+    look: Option<&LookSpec>,
 ) -> Vec<u8> {
     fn push_name(out: &mut Vec<u8>, name: &str) {
         out.push(u8::try_from(name.len()).expect("a name is under 256 bytes"));
@@ -558,8 +571,10 @@ pub fn encode(
         }
     }
     let slot = body.len() - size - credits;
-    let words =
-        [size, credits, slot, spots.len()].map(|n| u32::try_from(n).expect("table under 4 GB"));
+    body.extend(look.map(LookSpec::bytes).unwrap_or_default());
+    let look = body.len() - size - credits - slot;
+    let words = [size, credits, slot, spots.len(), look]
+        .map(|n| u32::try_from(n).expect("table under 4 GB"));
     let mut out = MAGIC.to_vec();
     for v in offsets.words().into_iter().chain([flags]).chain(words) {
         out.extend(v.to_le_bytes());
@@ -627,10 +642,11 @@ mod tests {
             CREDITS,
             Some(&SLOT),
             SPOTS,
+            Some(&look()),
         );
         let header = Header::read(&bytes);
         assert_eq!(
-            (header.size + header.credits + header.slot) as usize,
+            (header.size + header.credits + header.slot + header.look) as usize,
             bytes.len() - HEADER
         );
         assert_eq!(header.spots as usize, SPOTS.len());
@@ -743,7 +759,7 @@ mod tests {
 
     #[test]
     fn a_wrong_magic_is_no_table() {
-        let mut bytes = encode(offsets(), 0, &[HOOK], &[], &[], None, &[]);
+        let mut bytes = encode(offsets(), 0, &[HOOK], &[], &[], None, &[], None);
         bytes[0] = b'X';
         assert!(Table::parse(&Header::read(&bytes), &bytes[HEADER..]).is_none());
     }
@@ -766,10 +782,41 @@ mod tests {
 
     #[test]
     fn a_table_cut_short_is_no_table() {
-        let bytes = encode(offsets(), 0, &[HOOK], &[], CREDITS, Some(&SLOT), SPOTS);
+        let bytes = encode(
+            offsets(),
+            0,
+            &[HOOK],
+            &[],
+            CREDITS,
+            Some(&SLOT),
+            SPOTS,
+            None,
+        );
         let header = Header::read(&bytes);
         let cut = &bytes[HEADER..bytes.len() - 1];
         assert!(Table::parse(&header, cut).is_none());
+    }
+
+    fn look() -> LookSpec {
+        let sizes = crate::look::Sizes {
+            masks: [1 << 12 | 3, 1 << 13 | 3],
+            values: [0x0100_0040, 0x6b],
+            value_at: 16,
+            count: 2,
+        };
+        LookSpec {
+            sizes,
+            records: vec![0x10, 0x30],
+        }
+    }
+
+    #[test]
+    fn the_look_reads_back_after_the_slot() {
+        with_table(|t| {
+            let read = t.look.unwrap();
+            assert_eq!(read.sizes, look().sizes);
+            assert_eq!(read.records().collect::<Vec<_>>(), [0x10, 0x30]);
+        });
     }
 
     const SLOT: SlotSpec = SlotSpec {
@@ -794,7 +841,7 @@ mod tests {
 
     #[test]
     fn a_table_without_a_slot_has_none() {
-        let bytes = encode(offsets(), 0, &[HOOK], &[], CREDITS, None, &[]);
+        let bytes = encode(offsets(), 0, &[HOOK], &[], CREDITS, None, &[], None);
         let header = Header::read(&bytes);
         assert!(
             Table::parse(&header, &bytes[HEADER..])

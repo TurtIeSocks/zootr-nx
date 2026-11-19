@@ -23,7 +23,7 @@ type SetTime = unsafe extern "C" fn(usize, u32);
 type MoveTo = unsafe extern "C" fn(usize, *const f32);
 
 /// GameData name hashes.
-const CHILD: u32 = 0xcea2_20d3;
+pub(super) const CHILD: u32 = 0xcea2_20d3;
 const LOADING: u32 = 0xef2b_60c2;
 /// Left set by an area whose exit a teleport skips, it hides the
 /// minimap.
