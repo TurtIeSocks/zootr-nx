@@ -222,7 +222,7 @@ pub struct File {
     pub(super) properties: [Vec<u8>; 6],
     pub(super) inputs: [Vec<u8>; 6],
     pub(super) outputs: [Vec<u8>; 6],
-    multi: Vec<u8>,
+    pub(super) multi: Vec<u8>,
     jumps: Vec<Vec<u8>>,
     pub(super) queries: Vec<u8>,
     exb: Option<Vec<u8>>,

@@ -14,6 +14,7 @@ use crate::reader::Reader;
 
 mod edit;
 mod file;
+mod rewire;
 
 pub use edit::check;
 pub use file::File;
