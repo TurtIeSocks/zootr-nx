@@ -103,7 +103,7 @@ pub fn by_room(check: &ItemCheck) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::flow;
+    use crate::known::{flag, flow};
 
     fn at(dungeon: &str, room: Option<u32>) -> ItemCheck {
         ItemCheck {
@@ -138,7 +138,17 @@ mod tests {
     }
 
     #[test]
-    fn the_well_s_checks_name_their_rooms() {
+    fn the_light_trial_past_its_lock_needs_ganon_s_castle_s_key() {
+        needs_names!();
+        let castle = flag::INSIDE_GANON_CASTLE.get();
+        let n = keys::dungeon_in(castle).unwrap();
+        for (room, need) in [(13, 0), (14, 1), (15, 1), (1, 0), (24, 0)] {
+            assert_eq!(count(&at(castle, Some(room))), Some((n, need)), "{room}");
+        }
+    }
+
+    #[test]
+    fn tabled_dungeons_checks_name_their_rooms() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
@@ -163,6 +173,22 @@ mod tests {
             .collect();
         assert!(inner.len() >= 3, "{}", inner.len());
         assert!(inner.iter().all(|c| count(c) == Some((1, 2))));
+        // The Light Trial's Lens chest stands before its lock.
+        assert_eq!(count(by_hash(4733634471038136588)).map(|c| c.1), Some(0));
+        let past: Vec<_> = (checks.iter())
+            .filter(|c| c.area == flag::INSIDE_GANON_CASTLE.get())
+            .filter(|c| matches!(c.room, Some(14 | 15)))
+            .collect();
+        assert!(!past.is_empty() && past.iter().all(|c| count(c).map(|c| c.1) == Some(1)));
+        // Every check in a tabled dungeon names its room, but a boss's gift.
+        let tabled = |c: &&ItemCheck| {
+            keys::dungeon_in(&c.area).is_some_and(|n| TABLED.iter().any(|(m, _)| *m == n))
+        };
+        let roomless: Vec<_> = (checks.iter().filter(tabled))
+            .filter(|c| !by_room(c) && !crate::gifts::is_gift(c))
+            .map(|c| (&c.holder, c.hash, &c.item))
+            .collect();
+        assert!(roomless.is_empty(), "{roomless:?}");
         // Every check in the well names its room.
         let roomless: Vec<_> = (checks.iter().filter(well))
             .filter(|c| !by_room(c))
