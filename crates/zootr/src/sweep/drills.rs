@@ -174,8 +174,14 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
     /// Each of `drills`, `repeat` times over, through the sweep's own setup,
     /// walk, use and judge, from the side and age earlier runs found, as the
     /// sweep goes again. Each run's rows go to [`ROWS`], tagged with the
-    /// drill and its skill.
-    pub fn ladder(&mut self, drills: &[&Drill], repeat: usize) -> Result<()> {
+    /// drill and its skill. Stops before the next drill once `turn` says
+    /// the game is no longer this run's.
+    pub fn ladder(
+        &mut self,
+        drills: &[&Drill],
+        repeat: usize,
+        turn: &std::sync::mpsc::Receiver<()>,
+    ) -> Result<()> {
         std::fs::create_dir_all(&self.dir)?;
         let places = dev::places(self.romfs)?;
         let mod_dir = &self.target.mod_dir;
@@ -203,6 +209,9 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
                 &std::fs::read_to_string(&rows).unwrap_or_default(),
             );
             for (d, p) in &drills {
+                if crate::turn::lost(turn) {
+                    bail!("the turn was lost: stopping before {}", d.name);
+                }
                 eprintln!("run {run}: {}", d.name);
                 let tag = json!({"drill": d.name, "skill": d.skill});
                 let first = night::at_known(p, &known);
