@@ -9,6 +9,7 @@ use anyhow::{Context, Result};
 use crate::checks::ItemCheck;
 use crate::key_tints;
 use crate::known::{Name, actor, flag, flow, item, map};
+use crate::map_copies;
 use crate::rules::Need;
 use crate::settings::{DungeonKeys, FortressKeys};
 
@@ -81,10 +82,10 @@ pub static SHUFFLED: LazyLock<Vec<String>> = LazyLock::new(|| {
         .collect()
 });
 
-/// Whether `item` is a ring, small key or boss key copy, or the Fortress
-/// key copy, which the hook credits as Link gets it.
+/// Whether `item` is a ring, small key or boss key copy, the Fortress key
+/// copy, or a map or compass copy, which the hook credits as Link gets it.
 pub fn is_shuffled(item: &str) -> bool {
-    SHUFFLED.iter().any(|s| s == item) || item == key_tints::fortress()
+    SHUFFLED.iter().any(|s| s == item) || item == key_tints::fortress() || map_copies::is_copy(item)
 }
 
 /// With Keysanity, every small key copy, one for each key chest, and
@@ -178,6 +179,9 @@ pub fn boss_door_need(room: &str, keys: DungeonKeys) -> Option<Need> {
 /// `area` names one by its id. The ring copy is a single small key with
 /// Keysanity.
 pub fn copy_name(actor: &str, area: impl Fn(&str) -> String, keys: DungeonKeys) -> Option<String> {
+    if let Some(name) = map_copies::copy_name(actor, &area) {
+        return Some(name);
+    }
     if actor == key_tints::fortress() {
         return Some(format!("{} Small Key", area(FORTRESS.0)));
     }
@@ -213,11 +217,12 @@ pub fn is_key(item: &str) -> bool {
     is_dungeon_key(item) || item.starts_with(FORTRESS_KEY)
 }
 
-/// What `check` brings to the pool: its item, or `INSTEAD` for a key.
+/// What `check` brings to the pool: its item, `INSTEAD` for a key, or for
+/// a map or compass its dungeon's copy.
 pub fn pooled(check: &ItemCheck) -> &str {
     match is_key(&check.item) {
         true => INSTEAD,
-        false => &check.item,
+        false => map_copies::pooled(check).unwrap_or(&check.item),
     }
 }
 

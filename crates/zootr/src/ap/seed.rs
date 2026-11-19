@@ -3,7 +3,7 @@
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-use anyhow::{Context, Result, ensure};
+use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 use serde_json::Value;
 
@@ -59,8 +59,7 @@ impl Dealt {
     pub fn new(romfs: &Romfs, settings: &Settings) -> Result<Self> {
         let new_game = NewGame::from_settings(settings, &[])?;
         let checks = checks::dealt(romfs, &new_game)?;
-        let fixed = shuffle::own_dungeon(&checks, 0, &Fixed::new(), &new_game)?;
-        ensure!(fixed.is_empty(), "these settings pin items, which AP can't");
+        let fixed = Fixed::new();
         let deal = shuffle::deal(&checks, &fixed, &new_game)?;
         let pool = deal.items.iter().map(|i| i.to_string()).collect();
         let free: BTreeSet<u64> = deal.free.iter().map(|c| c.hash).collect();
