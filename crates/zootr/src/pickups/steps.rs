@@ -62,6 +62,9 @@ pub struct Steps {
     pub copies: Vec<(u64, u64)>,
     /// Each step's placement's BoolExp, by its hash.
     gates: HashMap<u64, String>,
+    /// Each step past a thief's key, by its placement's hash: its own
+    /// instance name, so her call can name it apart from the key's.
+    named: HashMap<u64, usize>,
     /// Each placement's BoolExp, then each step stand-in's own.
     pub exps: Vec<(String, Vec<Op>)>,
     /// Whether a step stand-in is built, so the drop graph needs its branch.
@@ -79,6 +82,7 @@ impl Steps {
         let mut steps = Self {
             copies: Vec::new(),
             gates: HashMap::new(),
+            named: HashMap::new(),
             exps: Vec::new(),
             built: false,
         };
@@ -98,15 +102,18 @@ impl Steps {
             let program = shows::within(own, and(step.program.clone(), unpicked), gd)?;
             let gate = gate(m.hash);
             steps.exps.push((gate.clone(), program));
-            // A thief's key keeps her vanilla gate, which the game watches
-            // live and so spawns the key as she falls. A BoolExp gate is
-            // read only as the map loads. Her call picks the step by the
-            // BoolExp instead (`fortress::give`).
+            // A thief's key keeps her vanilla gate, and her call picks the
+            // step by the BoolExp instead (`fortress::give`). Her call finds
+            // the key by its instance name, so each step goes by its own:
+            // sharing one, her warp moved a step that wasn't the one shown
+            // (Mac, 2026-11-19).
             let named = checks
                 .iter()
                 .any(|c| c.hash == step.of && super::is_named(c));
             if !named {
                 steps.gates.insert(m.hash, gate);
+            } else if step.k > 0 {
+                steps.named.insert(m.hash, step.k);
             }
             if step.k > 0 {
                 steps.copies.push((step.of, m.hash));
@@ -127,7 +134,8 @@ impl Steps {
     /// give each step its stand-in. Whether `root`, a map's doc, changed.
     pub fn place(&self, root: &mut Byml) -> Result<bool> {
         let copied = shows::copy_in(root, &self.copies)?;
-        Ok(shows::gate(root, &self.gates)? || copied)
+        let named = shows::name_apart(root, &self.named)?;
+        Ok(shows::gate(root, &self.gates)? || copied || named)
     }
 
     /// The drop graph's branch, when a step stand-in needs it.
@@ -265,6 +273,16 @@ mod tests {
             let own = Op::Bool(murmur3(own.as_bytes()));
             assert!(!read.contains(&own), "{hash} waits on her fall");
         }
+        // Each step goes by its own name, which her call names it by.
+        let name = |root: &Byml, hash| {
+            let actors = checks::actors(root).unwrap();
+            let a = actors.iter().find(|a| hash_of(a) == Some(hash)).unwrap();
+            checks::str_field(a, "Name").unwrap().to_owned()
+        };
+        let key_name = name(&vanilla.root, key.hash);
+        assert_eq!(name(&root, key.hash), key_name);
+        let copy = copy_hash(key.hash, 1);
+        assert_eq!(name(&root, copy), shows::instance(&key_name, 1));
     }
 
     #[test]

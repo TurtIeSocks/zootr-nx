@@ -41,7 +41,7 @@ pub(super) const DISPLAY: &Name = flow::DISPLAY_ITEM_ACTOR;
 pub(super) fn show(flow: &mut Flowchart, at: u16, item: &str) -> Result<()> {
     let params = params_mut(&mut flow.events[at as usize].kind);
     match params.iter().any(|(k, _)| k == DISPLAY) {
-        true => flows::rename_actor(flow, at, DISPLAY, item),
+        true => flows::rename_actor(flow, at, DISPLAY, item, str::to_owned),
         false => Ok(()),
     }
 }

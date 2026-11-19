@@ -18,7 +18,7 @@ use crate::checks::{Drop, ItemCheck};
 use crate::flows::{self, GAME_DATA, IS_BOOL, Rewrites, SET_BOOL, running, string};
 use crate::known::{Name, field, flow};
 use crate::pickups::steps;
-use crate::{keys, pickups};
+use crate::{keys, pickups, shows};
 
 const FLOW: &Name = flow::SAGE_OF_SPIRIT_RESCUE_CARPENTER;
 /// The thieves that carry their key, by placement hash. The third carries
@@ -126,7 +126,7 @@ pub fn give(
                 "{entry} doesn't start with a call"
             );
             let into = flow.links_to(call);
-            rename(flow, call, &placed[0].actor)?;
+            rename(flow, call, &placed[0].actor, 0)?;
             let n = vanilla.strip_prefix(keys::FORTRESS_KEY).unwrap_or_default();
             // Each lands right after the call, so the key's Bool runs first.
             for flag in [gave(n), flag] {
@@ -137,7 +137,8 @@ pub fn give(
             let mut head = call;
             for m in &placed[1..] {
                 let copy = flow.push(flow.events[call as usize].kind.clone());
-                rename(flow, copy, &m.actor)?;
+                let k = m.step.as_ref().map_or(0, |s| s.k);
+                rename(flow, copy, &m.actor, k)?;
                 let mut params = is_bool.params.clone();
                 flows::set(&mut params, GAME_DATA, string(&steps::gate(m.hash)))?;
                 let (actor, query) = flow.query(&is_bool.actor, IS_EXP);
@@ -156,10 +157,10 @@ pub fn give(
     })
 }
 
-/// Name `actor` in the key argument of the call at `at`, keeping the
-/// instance name the placement still has.
-fn rename(flow: &mut Flowchart, at: u16, actor: &str) -> Result<()> {
-    flows::rename_actor(flow, at, KEY, actor)
+/// Name `actor` in the key argument of the call at `at`, by step `k`'s
+/// instance name (`shows::instance`).
+fn rename(flow: &mut Flowchart, at: u16, actor: &str, k: usize) -> Result<()> {
+    flows::rename_actor(flow, at, KEY, actor, |name| shows::instance(name, k))
 }
 
 #[cfg(test)]
@@ -289,14 +290,17 @@ mod tests {
             let EventKind::SubFlow { params, next, .. } = at(e) else {
                 panic!("a call")
             };
-            let Some((_, Value::ActorId { name, .. })) = params.iter().find(|p| p.0 == KEY) else {
+            let Some((_, Value::ActorId { name, secondary })) = params.iter().find(|p| p.0 == KEY)
+            else {
                 panic!("an actor")
             };
-            (name.clone(), *next)
+            ((name.clone(), secondary.clone()), *next)
         };
-        let (shown, joins) = calls(cases[0].1);
-        let (own, next) = calls(cases[1].1);
+        let ((shown, shown_as), joins) = calls(cases[0].1);
+        let ((own, own_as), next) = calls(cases[1].1);
         assert_eq!(shown, placed[1].actor);
+        // Each step's call names its own instance, as its placement does.
+        assert_eq!(shown_as, shows::instance(&own_as, 1));
         assert_eq!(own, placed[0].actor);
         assert!(next.is_some());
         assert_eq!(joins, next, "both run the key's Bools");
