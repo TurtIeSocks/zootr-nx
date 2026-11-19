@@ -1,4 +1,5 @@
-//! How a new game reads the settings: [`NewGame`].
+//! What a seed's settings do to a new save: [`NewGame`], read from the
+//! settings by id.
 
 use super::*;
 
@@ -54,6 +55,8 @@ pub struct NewGame {
     pub free_bombchus: bool,
     /// Navi never talks on her own.
     pub quiet_navi: bool,
+    /// Enemies never show, besides those that are checks or hold one.
+    pub quiet_enemies: bool,
     /// Link runs faster in the Bunny Hood.
     pub bunny_hood: bool,
     /// The rainbow bridge rises at six medallions.
@@ -163,6 +166,7 @@ impl NewGame {
             seed: 0,
             free_bombchus: on(FREE_BOMBCHUS),
             quiet_navi: on(QUIET_NAVI),
+            quiet_enemies: on(QUIET_ENEMIES),
             bunny_hood: on(BUNNY_HOOD),
             bridge_medallions: on(BRIDGE_MEDALLIONS),
             hints: on(HINTS),
@@ -178,6 +182,38 @@ impl NewGame {
             players: Default::default(),
         })
     }
+}
+
+/// Every toggle that's on, by id, counting parents.
+pub(crate) fn toggles_on(settings: &Settings) -> BTreeSet<String> {
+    let schema = schema();
+    schema
+        .iter()
+        .filter(|d| is_on(&schema, settings, &d.id))
+        .map(|d| d.id.clone())
+        .collect()
+}
+
+/// Every toggle's id.
+pub(crate) fn toggles() -> BTreeSet<String> {
+    schema()
+        .into_iter()
+        .filter(|d| matches!(d.kind, Kind::Toggle { .. }))
+        .map(|d| d.id)
+        .collect()
+}
+
+/// Whether setting `id` is on: its own value or default, or its parent's.
+fn is_on(schema: &[SettingDef], settings: &Settings, id: &str) -> bool {
+    schema.iter().find(|d| d.id == id).is_some_and(|d| {
+        let own = match d.kind {
+            Kind::Toggle { default } => {
+                settings.get(id).and_then(Value::as_bool).unwrap_or(default)
+            }
+            Kind::Choice { .. } => false,
+        };
+        own || d.parent.is_some_and(|p| is_on(schema, settings, p))
+    })
 }
 
 #[cfg(test)]
@@ -235,6 +271,7 @@ mod tests {
                 seed: 0,
                 free_bombchus: true,
                 quiet_navi: true,
+                quiet_enemies: false,
                 bunny_hood: false,
                 bridge_medallions: false,
                 hints: false,

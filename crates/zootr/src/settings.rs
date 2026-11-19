@@ -18,6 +18,7 @@ mod new_game;
 mod upgrade;
 pub use choices::{ChestSize, DungeonKeys, FortressKeys, Keys, Logic, ScrubPrice, ShopSlots};
 pub use new_game::NewGame;
+pub(crate) use new_game::{toggles, toggles_on};
 pub(crate) use upgrade::upgrade;
 
 /// Setting values by id. A missing id takes its default.
@@ -142,6 +143,7 @@ const FREE_BOMBCHUS: &str = "free-bombchus";
 const BUNNY_HOOD: &str = "bunny-hood";
 pub(crate) const EQUIP_ANY_AGE: &str = "equip-any-age";
 const QUIET_NAVI: &str = "quiet-navi";
+pub(crate) const QUIET_ENEMIES: &str = "quiet-enemies";
 pub(crate) const OPEN_DOOR: &str = "open-door-of-time";
 pub(crate) const SCRUBS: &str = "scrubs";
 const SCRUB_PRICE: &str = "scrub-price";
@@ -226,7 +228,8 @@ fn toggle(
 
 /// Settings the CLI takes but the app leaves out for now. Shuffle items
 /// off undoes every other shuffle, which no one turning it off expected.
-const HIDDEN: [&str; 1] = [SHUFFLE_ITEMS];
+/// Quiet enemies is for the harness's seeds.
+const HIDDEN: [&str; 2] = [SHUFFLE_ITEMS, QUIET_ENEMIES];
 
 /// The settings the app shows.
 pub fn shown() -> Vec<SettingDef> {
@@ -495,6 +498,12 @@ pub fn schema() -> Vec<SettingDef> {
             "Navi never stops Link to talk on her own: the Lost Woods warning, dungeon and quest tips, and reminders. Hints you ask her for still work",
         ))])
         .chain([toggle(
+            QUIET_ENEMIES,
+            group::GENERAL,
+            "Quiet enemies",
+            "Enemies never show, so nothing grabs Link or knocks him back. Gold Skulltulas, scrubs, Big Poes, the Skull Kid and enemies that are checks stay. For the play harness's seeds",
+        )])
+        .chain([toggle(
             BUNNY_HOOD,
             group::ENHANCEMENTS,
             "Bunny Hood speed",
@@ -531,38 +540,6 @@ pub fn schema() -> Vec<SettingDef> {
     // Stable, so each panel keeps the order the chain gives it.
     all.sort_by_key(|d| GROUPS.iter().position(|&g| g == d.group));
     all
-}
-
-/// Every toggle that's on, by id, counting parents.
-pub(crate) fn toggles_on(settings: &Settings) -> BTreeSet<String> {
-    let schema = schema();
-    schema
-        .iter()
-        .filter(|d| is_on(&schema, settings, &d.id))
-        .map(|d| d.id.clone())
-        .collect()
-}
-
-/// Every toggle's id.
-pub(crate) fn toggles() -> BTreeSet<String> {
-    schema()
-        .into_iter()
-        .filter(|d| matches!(d.kind, Kind::Toggle { .. }))
-        .map(|d| d.id)
-        .collect()
-}
-
-/// Whether setting `id` is on: its own value or default, or its parent's.
-fn is_on(schema: &[SettingDef], settings: &Settings, id: &str) -> bool {
-    schema.iter().find(|d| d.id == id).is_some_and(|d| {
-        let own = match d.kind {
-            Kind::Toggle { default } => {
-                settings.get(id).and_then(Value::as_bool).unwrap_or(default)
-            }
-            Kind::Choice { .. } => false,
-        };
-        own || d.parent.is_some_and(|p| is_on(schema, settings, p))
-    })
 }
 
 #[cfg(test)]
