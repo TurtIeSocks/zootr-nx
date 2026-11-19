@@ -512,7 +512,7 @@ pub fn schema() -> Vec<SettingDef> {
         .chain([toggle(
             AGELESS_WEAPONS,
             group::ENHANCEMENTS,
-            "Swords and shields for both ages",
+            "One-handed swords and shields for both ages",
             "Child and adult Link can each wield every one-handed sword and every shield, and logic expects them to. Biggoron's Sword and the Giant's Knife stay adult Link's, and only he can aim the Mirror Shield at light",
         )])
         .chain([toggle(

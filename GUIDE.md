@@ -175,7 +175,7 @@ Changes to how Link plays. All start off.
 | Setting | What it does |
 |---|---|
 | Bunny Hood speed | Link runs half again as fast while he wears the Bunny Hood |
-| Swords and shields for both ages | Child and adult Link can each wield every one-handed sword and every shield, and logic expects them to. Biggoron's Sword, the Giant's Knife, tunics and boots stay adult Link's, and only he can aim the Mirror Shield at light |
+| One-handed swords and shields for both ages | Child and adult Link can each wield every one-handed sword and every shield, and logic expects them to. Biggoron's Sword, the Giant's Knife, tunics and boots stay adult Link's, and only he can aim the Mirror Shield at light |
 
 ### Logic & access
 

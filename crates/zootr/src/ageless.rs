@@ -1,7 +1,7 @@
-//! Swords and shields for both ages. The pause menu's Equipment page greys
-//! out the other age's swords and shields by two flags per item in its
-//! table, and that's their only limit: unset, either age equips and uses
-//! them. Tunics and boots stay as they are, since they dress adult Link's
+//! One-handed swords and shields for both ages. The pause menu's
+//! Equipment page greys out the other age's swords and shields by two
+//! flags per item in its table, and that's their only limit: unset, either
+//! age equips and uses them. Tunics and boots stay as they are, since they dress adult Link's
 //! model and do nothing on a child, and so do the two-handed swords, which
 //! a child equips but can't swing. See the spec,
 //! `superpowers/specs/2026-11-18-equip-any-age-design.md`.
