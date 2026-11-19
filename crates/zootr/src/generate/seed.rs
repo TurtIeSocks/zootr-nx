@@ -32,7 +32,6 @@ pub fn shuffle(
     run.step(Step::Checks)?;
     let checks = checks::dealt(romfs, new_game)?;
     let logic = new_game.logic == Logic::Glitchless && !new_game.vanilla;
-    let fixed = &shuffle::own_dungeon(&checks, seed, fixed, new_game)?;
     let (placements, filled) = match logic {
         true => {
             run.step(Step::Logic)?;

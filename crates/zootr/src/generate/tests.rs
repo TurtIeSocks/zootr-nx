@@ -541,6 +541,80 @@ fn fortress_keysanity_writes_its_copy_and_deals_one_for_every_thief() {
 }
 
 #[test]
+fn maps_and_compasses_deal_their_dungeon_s_copies_anywhere_and_name_it() {
+    let Some(romfs) = crate::game::dev_dump() else {
+        return;
+    };
+    let dir = std::env::temp_dir().join(format!("zootr-map-copies-{}", std::process::id()));
+    let settings = Settings::from([(crate::settings::MAPS_COMPASSES.into(), true.into())]);
+    let new_game = NewGame::from_settings(&settings, &[]).unwrap();
+    let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
+    let copies: Vec<_> = (report.spots.iter())
+        .filter(|s| crate::map_copies::is_copy(&s.item))
+        .collect();
+    assert_eq!(copies.len(), 20);
+    let vanilla = crate::narrowing::MAPS_COMPASSES;
+    assert!(
+        !report
+            .spots
+            .iter()
+            .any(|s| vanilla.iter().any(|m| **m == *s.item))
+    );
+    let mut away = 0;
+    for s in &copies {
+        assert!(
+            dir.join("romfs")
+                .join(ounce_formats::pack_file(&s.item))
+                .is_file()
+        );
+        // Named after its own dungeon, wherever it lies.
+        assert!(
+            s.item_name.ends_with(" Map") || s.item_name.ends_with(" Compass"),
+            "{}",
+            s.item_name
+        );
+        let own = crate::map_copies::copy_name(&s.item, |id| id.to_owned()).unwrap();
+        away += usize::from(!own.starts_with(&s.area));
+    }
+    assert!(away > 0, "every copy stayed in its own dungeon");
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn a_pot_dealt_a_compass_drops_the_compass_copy_s_stand_in() {
+    let Some(romfs) = crate::game::dev_dump() else {
+        return;
+    };
+    // A Kokiri Forest pot, its vanilla drop a Blue Rupee.
+    const POT: u64 = 5133775918408786238;
+    let dir = std::env::temp_dir().join(format!("zootr-pot-compass-{}", std::process::id()));
+    let settings = Settings::from([
+        (crate::settings::MAPS_COMPASSES.into(), true.into()),
+        (crate::settings::POTS.into(), true.into()),
+    ]);
+    let new_game = NewGame::from_settings(&settings, &[]).unwrap();
+    let copies = crate::map_copies::sets().into_iter().map(|(c, _)| c);
+    let compass = copies.into_iter().find(|c| c.contains("Compass")).unwrap();
+    let fixed = Fixed::from([(POT, compass.clone())]);
+    let report = shuffle(&romfs, &dir, 7, &fixed, &new_game, &Run::silent()).unwrap();
+    let spot = report.spots.iter().find(|s| s.hash == POT).unwrap();
+    assert_eq!(spot.item, compass);
+    let rel = &format!(
+        "Banc/{0}/{1}_Dynamic.bcett.byml.zs",
+        flag::KOKIRI_FOREST,
+        crate::known::map::KOKIRI_FOREST_CHILD
+    );
+    let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
+    let doc = BymlDoc::parse(&romfs.dicts().decompress(rel, &raw).unwrap()).unwrap();
+    let actors = checks::actors(&doc.root).unwrap();
+    let pot = actors.iter().find(|a| checks::hash_of(a) == Some(POT)).unwrap();
+    let dynamic = pot.as_map().unwrap().get("Dynamic").unwrap();
+    let drop = checks::str_field(dynamic, checks::DROP_ACTOR).unwrap();
+    assert!(dir.join("romfs").join(ounce_formats::pack_file(drop)).is_file(), "{drop}");
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
 fn pickups_are_checks_with_their_options_on() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;

@@ -25,7 +25,7 @@ pub const SCHEMA: u32 = 1;
 /// The EIE debt today. A PR that pays some off lowers it in the same PR,
 /// and the `accounting` test fails one that adds debt.
 pub const BASELINE: Debt = Debt {
-    refused: 4531,
+    refused: 1923,
     left_out: 45,
 };
 
@@ -166,10 +166,6 @@ pub fn build(romfs: &Romfs) -> Result<Ledger> {
     let deal = shuffle::deal(&dealt, &fixed, &new_game)?;
     let free: BTreeSet<u64> = deal.free.iter().map(|c| c.hash).collect();
     let items: BTreeSet<&str> = deal.items.iter().copied().collect();
-    let map_areas: BTreeSet<&str> = (dealt.iter())
-        .filter(|c| narrowing::OWN_DUNGEON.iter().any(|m| **m == *c.item))
-        .map(|c| c.area.as_str())
-        .collect();
 
     let mut seen = BTreeSet::new();
     let mut rows: Vec<(&ItemCheck, Option<Why>)> = deal
@@ -248,7 +244,7 @@ pub fn build(romfs: &Romfs) -> Result<Ledger> {
             never: world.never(c.hash),
             refused: match left_out {
                 Some(_) => Vec::new(),
-                None => refused(c, &items, &map_areas, &new_game),
+                None => refused(c, &items, &new_game),
             },
             left_out,
             tracker: tracker.flag(c.hash).map(|f| f.to_string()),
@@ -288,26 +284,15 @@ pub fn print(romfs: &Romfs, unknown: bool) -> Result<()> {
 }
 
 /// Each item of the pool `c` refuses, and why: the shuffle's refusals,
-/// then logic's (keys kept out of their own dungeon), then maps and
-/// compasses, which only a chest in an area that had one holds.
-fn refused(
-    c: &ItemCheck,
-    items: &BTreeSet<&str>,
-    map_areas: &BTreeSet<&str>,
-    new_game: &NewGame,
-) -> Vec<Refused> {
+/// then logic's (keys kept out of their own dungeon).
+fn refused(c: &ItemCheck, items: &BTreeSet<&str>, new_game: &NewGame) -> Vec<Refused> {
     let need = crate::keys::dungeon_need(&c.file, new_game.keys);
     let own_key = |item: &str| matches!(&need, Some(crate::rules::Need::Items { actors, .. }) if actors.iter().any(|a| a == item));
-    let map = |item: &str| {
-        narrowing::OWN_DUNGEON.iter().any(|m| **m == *item)
-            && !map_areas.iter().any(|a| narrowing::holds_map_from(c, a))
-    };
     (items.iter())
         .filter_map(|&item| {
             let eie = match narrowing::refusal(c, item, new_game.progressive) {
                 Some(n) => n.number(),
                 None if own_key(item) => 2,
-                None if map(item) => 3,
                 None => return None,
             };
             Some(Refused {
