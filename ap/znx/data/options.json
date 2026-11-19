@@ -64,5 +64,12 @@
     "id": "bunny-hood",
     "kind": "toggle",
     "label": "Bunny Hood speed"
+  },
+  {
+    "default": false,
+    "description": "Child and adult Link can both use every sword, shield, tunic and boot on the Equipment page, and logic expects them to",
+    "id": "equip-any-age",
+    "kind": "toggle",
+    "label": "Equipment for both ages"
   }
 ]

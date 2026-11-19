@@ -8,6 +8,11 @@ explosives = "bombs or bombchus"
 bombs = "item:bomb-bag"
 bombchus = "(item:bombchus-small or item:bombchus-medium or item:bombchus-large) and (bombs or setting:free-bombchus)"
 
+# Gear the Equipment page lets each age use. With equip-any-age both ages
+# use all of it: the page's age limit is the menu's alone.
+adult-gear = "adult or setting:equip-any-age"
+child-gear = "child or setting:equip-any-age"
+
 hammer = "adult and item:megaton-hammer"
 goron-bracelet = "item:goron-bracelet"
 silver-gauntlets = "adult and item:silver-gauntlets"
@@ -20,15 +25,15 @@ hookshot = "adult and item:hookshot"
 longshot = "adult and item:longshot"
 
 magic = "item:magic-meter"
-mirror-shield = "adult and item:mirror-shield"
+mirror-shield = "adult-gear and item:mirror-shield"
 fire = "(magic and item:dins-fire) or (magic and bow and item:fire-arrows)"
 bottle = "item:bottle or item:rutos-letter or item:milk"
 blue-fire = "adult and bottle"
-light = "adult and (item:mirror-shield or (magic and bow and item:light-arrows))"
+light = "mirror-shield or (magic and bow and item:light-arrows)"
 lens = "magic and item:lens-of-truth"
 
-kokiri-sword = "child and item:kokiri-sword"
-deku-shield = "child and item:deku-shield-chest"
+kokiri-sword = "child-gear and item:kokiri-sword"
+deku-shield = "child-gear and item:deku-shield-chest"
 # Deku Babas drop them and the Kokiri shop sells them. Only child Link
 # holds them, and they carry fire from a lit torch.
 sticks = "child"
@@ -36,11 +41,11 @@ silver-scale = "item:silver-scale"
 # Past the two boulders at Zora River's mouth: blown up, broken by the
 # hammer, or skipped down the Lost Woods shortcut, which lands upriver.
 zora-river = "explosives or hammer or silver-scale"
-iron-boots = "adult and item:iron-boots"
-hover-boots = "adult and item:hover-boots"
+iron-boots = "adult-gear and item:iron-boots"
+hover-boots = "adult-gear and item:hover-boots"
 # Shops sell the pouch item, the givers hand over the pickup actor.
-zora-tunic = "adult and (item:zora-tunic or item:zora-tunic-pickup)"
-goron-tunic = "adult and (item:goron-tunic or item:goron-tunic-pickup)"
+zora-tunic = "adult-gear and (item:zora-tunic or item:zora-tunic-pickup)"
+goron-tunic = "adult-gear and (item:goron-tunic or item:goron-tunic-pickup)"
 # The crater floor past the broken bridge: Sheik and the Fire Temple door.
 # Either side of the crater ends at a gap only these cross, and Bolero of
 # Fire lands past it.

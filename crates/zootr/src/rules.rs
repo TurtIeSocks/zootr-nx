@@ -611,6 +611,47 @@ mod tests {
     }
 
     #[test]
+    fn equip_any_age_lets_the_other_age_use_the_gear() {
+        needs_names!();
+        let book = Book::load().unwrap();
+        let cases = [
+            ("hover-boots", "hover-boots", Era::Adult),
+            ("iron-boots", "iron-boots", Era::Adult),
+            ("zora-tunic", "zora-tunic", Era::Adult),
+            ("goron-tunic", "goron-tunic", Era::Adult),
+            ("mirror-shield", "mirror-shield", Era::Adult),
+            ("kokiri-sword", "kokiri-sword", Era::Child),
+            ("deku-shield", "deku-shield-chest", Era::Child),
+        ];
+        for (word, item, home) in cases {
+            let other = match home {
+                Era::Adult => Era::Child,
+                Era::Child => Era::Adult,
+            };
+            let held = have(&[&vocab::id(&format!("item:{item}")).unwrap()]);
+            let met =
+                |on: &[&str], era| book.resolve(word, &ctx(true, on)).unwrap().met(&held, era);
+            assert!(met(&[], home) && !met(&[], other), "{word} off");
+            let on = [settings::EQUIP_ANY_AGE];
+            assert!(met(&on, home) && met(&on, other), "{word} on");
+        }
+    }
+
+    #[test]
+    fn light_needs_an_adult_mirror_shield_without_equip_any_age() {
+        needs_names!();
+        let book = Book::load().unwrap();
+        let held = have(&[item::SHIELD_MIRROR]);
+        let met = |on: &[&str], era| {
+            book.resolve("light", &ctx(true, on))
+                .unwrap()
+                .met(&held, era)
+        };
+        assert!(met(&[], Era::Adult) && !met(&[], Era::Child));
+        assert!(met(&[settings::EQUIP_ANY_AGE], Era::Child));
+    }
+
+    #[test]
     fn the_well_drains_with_zeldas_lullaby() {
         needs_names!();
         let book = Book::load().unwrap();

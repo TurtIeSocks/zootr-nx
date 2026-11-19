@@ -10509,6 +10509,42 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-adult",
+          "rule": {
+            "all": [
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Song of Storms"
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "setting": "equip-any-age"
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Deku Shield"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
           "place": "kokiri-forest-child",
           "rule": {
             "all": [
@@ -20824,9 +20860,26 @@
             ]
           },
           {
-            "count": 1,
-            "items": [
-              "Progressive Slingshot"
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Slingshot"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "setting": "equip-any-age"
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Hover Boots"
+                    ]
+                  }
+                ]
+              }
             ]
           }
         ]
