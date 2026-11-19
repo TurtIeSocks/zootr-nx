@@ -25,12 +25,9 @@ pub const SCHEMA: u32 = 1;
 /// The EIE debt today. A PR that pays some off lowers it in the same PR,
 /// and the `accounting` test fails one that adds debt.
 pub const BASELINE: Debt = Debt {
-    refused: 4467,
-    left_out: 48,
+    refused: 4531,
+    left_out: 45,
 };
-
-/// EIE #11: the Gerudo thieves' keys, which `fortress-keys` never shuffles.
-const THIEF_KEYS: u8 = 11;
 
 /// Placements `left_out` calls no holder that aren't breakables, by
 /// holder, and why.
@@ -157,6 +154,7 @@ pub fn every_shuffle() -> Settings {
         .map(|d| (d.id, true.into()))
         .collect();
     out.insert(settings::KEYS.into(), "singles".into());
+    out.insert(settings::FORTRESS_KEYS.into(), "singles".into());
     out
 }
 
@@ -327,8 +325,13 @@ fn explain(c: &ItemCheck, new_game: &NewGame, breakable: &BTreeSet<String>) -> W
     if breakable.contains(&c.holder) {
         return Why::Eie { eie: BREAKABLES };
     }
+    // A thief's carried drop is the key its check deals once the
+    // thieves' keys move, and the seed clears it: no holder of its own.
     if crate::fortress::is_carried(c) {
-        return Why::Eie { eie: THIEF_KEYS };
+        return match new_game.fortress_keys.moved() {
+            true => Why::Scenery,
+            false => Why::Setting,
+        };
     }
     if gifts::of(c).is_some_and(|g| !g.dealt(&new_game.on)) {
         return Why::Setting;
@@ -450,6 +453,7 @@ mod tests {
     fn every_shuffle_moves_the_keys_and_deals_the_trade_chain() {
         let on = every_shuffle();
         assert_eq!(on.get(settings::KEYS), Some(&"singles".into()));
+        assert_eq!(on.get(settings::FORTRESS_KEYS), Some(&"singles".into()));
         assert_eq!(on.get(settings::TRADE_CHAIN), Some(&true.into()));
     }
 
