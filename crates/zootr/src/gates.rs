@@ -83,6 +83,20 @@ pub enum Atom {
     Todo(String),
 }
 
+impl Atom {
+    /// The enemy placement this reads, like a Gibdo's `Dead`.
+    pub fn foe(&self) -> Option<u64> {
+        match self {
+            Atom::Actor {
+                name,
+                hash: Some(h),
+                ..
+            } if name.starts_with(crate::enemies::ENEMY) => Some(*h),
+            _ => None,
+        }
+    }
+}
+
 /// A gate as the graphs wire it.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
@@ -106,6 +120,19 @@ impl Expr {
                 v.iter().flat_map(Expr::atoms).collect()
             }
         }
+    }
+
+    /// The enemy placements this waits on, when beating them is all it
+    /// waits on: a kill alone sets its latch.
+    pub fn foes(&self) -> Vec<u64> {
+        let atoms = self.atoms();
+        let mut foes: Vec<u64> = atoms.iter().filter_map(|a| a.foe()).collect();
+        if foes.len() != atoms.len() {
+            return Vec::new();
+        }
+        foes.sort_unstable();
+        foes.dedup();
+        foes
     }
 
     /// The GameData values that open the gate when set by hand, as a
@@ -208,18 +235,10 @@ pub fn trace(romfs: &Romfs) -> Result<Vec<Gate>> {
 /// Every enemy placement a chest's gate reads, like the Gibdos whose deaths
 /// raise a Shadow Temple chest. Boss heart containers' bosses aren't here.
 pub fn enemies(romfs: &Romfs) -> Result<HashSet<u64>> {
-    let read = |a: &&Atom| match a {
-        Atom::Actor {
-            name,
-            hash: Some(h),
-            ..
-        } if name.starts_with(crate::enemies::ENEMY) => Some(*h),
-        _ => None,
-    };
     let traced = trace(romfs)?;
     Ok((traced.iter())
         .flat_map(|g| g.expr.atoms())
-        .filter_map(|a| read(&a))
+        .filter_map(Atom::foe)
         .collect())
 }
 
@@ -788,6 +807,22 @@ impl fmt::Display for Expr {
 mod tests {
     use super::*;
     use crate::known::{actor, field, flag};
+
+    #[test]
+    fn a_gate_waits_on_foes_only_when_kills_are_all_it_reads() {
+        let foe = |hash| {
+            Expr::Atom(Atom::Actor {
+                name: "Enemy_FakeBat".into(),
+                output: "Dead".into(),
+                hash: Some(hash),
+            })
+        };
+        let both = Expr::And(vec![foe(2), foe(1), foe(2)]);
+        assert_eq!(both.foes(), [1, 2]);
+        let switched = Expr::And(vec![foe(1), actor("Obj_FakeSwitch", "On")]);
+        assert!(switched.foes().is_empty());
+        assert!(Expr::Const(true).foes().is_empty());
+    }
 
     pub(super) fn actor(name: &str, output: &str) -> Expr {
         Expr::Atom(Atom::Actor {

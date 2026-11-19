@@ -29,6 +29,9 @@ pub enum Verdict {
     Crash(String),
     /// The judge named one.
     Bug(String),
+    /// The enemies the holder's gate waits on died for real and its latch
+    /// (these values) never set: the game's own path is broken.
+    DiedNoLatch(String),
     /// The harness couldn't set the spot up. Its fault, not the game's.
     SetupFailed(String),
     /// Out of scope, or no trigger known.
@@ -54,6 +57,20 @@ pub struct Swept {
     /// How the walk to the holder and its use went, for a spot opened or
     /// talked to.
     pub used: Option<Used>,
+    /// How the enemies the holder's gate waits on were beaten, when it
+    /// waits on any.
+    pub kill: Option<Kill>,
+}
+
+/// How a spot's foes were beaten.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Kill {
+    /// For real: their deaths ran and set the latch.
+    Killed,
+    /// A kill didn't take, so the latch was written: the deaths' code
+    /// never ran.
+    LatchedNotKilled,
 }
 
 #[cfg(test)]
