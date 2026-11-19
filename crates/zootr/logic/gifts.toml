@@ -727,3 +727,23 @@ place = "gerudo-valley-adult"
 era = "adult"
 needs = "setting:carpenters-freed"
 setting = "running-race"
+
+# A Kokiri kid's Blue Rupee, once Link has broken the eight rocks around
+# him. A child lifts them bare-handed.
+[[check]]
+hash = 11131560251710515452
+name = "Kokiri rock clearing"
+place = "kokiri-forest-child"
+era = "child"
+needs = "always"
+setting = "npc-gifts"
+
+# Another Kokiri kid's Blue Rupee, for clearing his yard's grass. It can
+# be pulled up by hand as well as cut.
+[[check]]
+hash = 17867878524448700795
+name = "Kokiri yard weeding"
+place = "kokiri-forest-child"
+era = "child"
+needs = "always"
+setting = "npc-gifts"
