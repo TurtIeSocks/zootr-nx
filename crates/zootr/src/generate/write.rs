@@ -12,10 +12,10 @@ use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::hints::Hint;
 use crate::progress::Run;
-use crate::settings::{ChestSize, EQUIP_ANY_AGE, NewGame, TRADE_CHAIN};
+use crate::settings::{AGELESS_WEAPONS, ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
-    ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, enemies,
-    equip_age, flags, foreign, fortress, gamedata, gerudo, gifts, held, hints, key_tints, keys,
+    ageless, ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door,
+    enemies, flags, foreign, fortress, gamedata, gerudo, gifts, held, hints, key_tints, keys,
     medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs, shops, spawn,
     standins, starting, steps, text, tracker, trade_chain, twins,
 };
@@ -250,8 +250,8 @@ pub fn write_mod(
     if new_game.free_bombchus {
         bombchus::write(&mut builder, &mut tables)?;
     }
-    if new_game.on.contains(EQUIP_ANY_AGE) {
-        equip_age::write(romfs, &mut builder)?;
+    if new_game.on.contains(AGELESS_WEAPONS) {
+        ageless::write(romfs, &mut builder)?;
     }
     // Before the stand-ins, which copy a song's model as it's shown.
     let shown = new_game.foreign.iter().map(|f| f.shows.as_str());

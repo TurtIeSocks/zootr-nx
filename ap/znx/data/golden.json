@@ -13,9 +13,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -83,9 +83,9 @@
       121
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -181,9 +181,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -350,9 +350,9 @@
       145
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -383,9 +383,9 @@
       121
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -456,9 +456,9 @@
       121
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -580,9 +580,9 @@
       145
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -829,9 +829,9 @@
       145
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -854,9 +854,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": true,
       "open-door-of-time": false,
@@ -916,9 +916,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": true,
       "open-door-of-time": false,
@@ -1018,9 +1018,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": true,
       "open-door-of-time": false,
@@ -1156,9 +1156,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": true,
       "open-door-of-time": false,
@@ -1181,9 +1181,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": true,
@@ -1247,9 +1247,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": true,
@@ -1399,9 +1399,9 @@
       145
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": true,
@@ -1605,9 +1605,9 @@
       145
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": true,
@@ -1630,9 +1630,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": true,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -1723,9 +1723,9 @@
       145
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": true,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -1851,9 +1851,9 @@
       145
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": true,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -2016,9 +2016,9 @@
       145
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": true,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -2041,9 +2041,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -2103,9 +2103,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -2227,9 +2227,9 @@
       145
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -2365,9 +2365,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -2390,9 +2390,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "small",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -2456,9 +2456,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "small",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -2575,9 +2575,9 @@
       145
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "small",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -2734,9 +2734,9 @@
       145
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "small",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -2759,9 +2759,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -2821,9 +2821,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -2919,9 +2919,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -3089,9 +3089,9 @@
       145
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -3114,9 +3114,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": true,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -3176,9 +3176,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": true,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -3274,9 +3274,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": true,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -3443,9 +3443,9 @@
       145
     ],
     "settings": {
+      "ageless-weapons": false,
       "bunny-hood": true,
       "chest-size": "vanilla",
-      "equip-any-age": false,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -3468,9 +3468,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": true,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": true,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -3530,9 +3530,9 @@
       119
     ],
     "settings": {
+      "ageless-weapons": true,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": true,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -3639,9 +3639,9 @@
       121
     ],
     "settings": {
+      "ageless-weapons": true,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": true,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,
@@ -3798,9 +3798,9 @@
       145
     ],
     "settings": {
+      "ageless-weapons": true,
       "bunny-hood": false,
       "chest-size": "vanilla",
-      "equip-any-age": true,
       "free-bombchus": false,
       "kakariko-gate": false,
       "open-door-of-time": false,

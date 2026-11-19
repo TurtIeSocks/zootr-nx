@@ -8,12 +8,11 @@ explosives = "bombs or bombchus"
 bombs = "item:bomb-bag"
 bombchus = "(item:bombchus-small or item:bombchus-medium or item:bombchus-large) and (bombs or setting:free-bombchus)"
 
-# Gear the Equipment page lets each age use. With equip-any-age both ages
-# use every sword and shield: their age limit is the menu's alone. The
-# tunics and boots don't work on a child even then (they show and hide
-# parts of adult Link's model), so they stay adult.
-adult-gear = "adult or setting:equip-any-age"
-child-gear = "child or setting:equip-any-age"
+# Swords and shields each age wields. With ageless-weapons both ages
+# wield all of them: their age limit is the menu's alone. Tunics and boots
+# dress adult Link's model and stay adult.
+adult-weapon = "adult or setting:ageless-weapons"
+child-weapon = "child or setting:ageless-weapons"
 
 hammer = "adult and item:megaton-hammer"
 goron-bracelet = "item:goron-bracelet"
@@ -27,15 +26,15 @@ hookshot = "adult and item:hookshot"
 longshot = "adult and item:longshot"
 
 magic = "item:magic-meter"
-mirror-shield = "adult-gear and item:mirror-shield"
+mirror-shield = "adult-weapon and item:mirror-shield"
 fire = "(magic and item:dins-fire) or (magic and bow and item:fire-arrows)"
 bottle = "item:bottle or item:rutos-letter or item:milk"
 blue-fire = "adult and bottle"
 light = "mirror-shield or (magic and bow and item:light-arrows)"
 lens = "magic and item:lens-of-truth"
 
-kokiri-sword = "child-gear and item:kokiri-sword"
-deku-shield = "child-gear and item:deku-shield-chest"
+kokiri-sword = "child-weapon and item:kokiri-sword"
+deku-shield = "child-weapon and item:deku-shield-chest"
 # Deku Babas drop them and the Kokiri shop sells them. Only child Link
 # holds them, and they carry fire from a lit torch.
 sticks = "child"

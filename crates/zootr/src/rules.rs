@@ -611,7 +611,7 @@ mod tests {
     }
 
     #[test]
-    fn equip_any_age_lets_the_other_age_use_swords_and_shields() {
+    fn ageless_weapons_let_the_other_age_use_swords_and_shields() {
         needs_names!();
         let book = Book::load().unwrap();
         // Whether the other age may use it with the setting on: the
@@ -634,14 +634,14 @@ mod tests {
             let met =
                 |on: &[&str], era| book.resolve(word, &ctx(true, on)).unwrap().met(&held, era);
             assert!(met(&[], home) && !met(&[], other), "{word} off");
-            let on = [settings::EQUIP_ANY_AGE];
+            let on = [settings::AGELESS_WEAPONS];
             assert!(met(&on, home), "{word} on, at its own age");
             assert_eq!(met(&on, other), shared, "{word} on, at the other age");
         }
     }
 
     #[test]
-    fn light_needs_an_adult_mirror_shield_without_equip_any_age() {
+    fn light_needs_an_adult_mirror_shield_without_ageless_weapons() {
         needs_names!();
         let book = Book::load().unwrap();
         let held = have(&[item::SHIELD_MIRROR]);
@@ -651,7 +651,7 @@ mod tests {
                 .met(&held, era)
         };
         assert!(met(&[], Era::Adult) && !met(&[], Era::Child));
-        assert!(met(&[settings::EQUIP_ANY_AGE], Era::Child));
+        assert!(met(&[settings::AGELESS_WEAPONS], Era::Child));
     }
 
     #[test]

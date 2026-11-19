@@ -11,6 +11,7 @@ macro_rules! needs_names {
     };
 }
 
+mod ageless;
 mod ammo;
 pub mod ap;
 pub mod around;
@@ -30,7 +31,6 @@ pub mod dev;
 mod dig;
 mod door;
 mod enemies;
-mod equip_age;
 mod events;
 mod fill;
 mod flags;
