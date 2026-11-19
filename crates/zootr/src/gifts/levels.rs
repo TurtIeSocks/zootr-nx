@@ -159,9 +159,9 @@ fn chain(
         let yes = match give {
             0 => at,
             _ => {
-                let mut kind = flow.events[at as usize].kind.clone();
-                rename(&mut kind, item, line[give].0)?;
-                flow.push(kind)
+                let copy = flow.push(flow.events[at as usize].kind.clone());
+                rename(flow, copy, item, line[give].0)?;
+                copy
             }
         };
         let mut params = model.params.clone();
@@ -176,13 +176,18 @@ fn chain(
         });
     }
     if item != line[0].0.get() {
-        rename(&mut flow.events[at as usize].kind, item, line[0].0)?;
+        rename(flow, at, item, line[0].0)?;
     }
     links.into_iter().try_for_each(|l| flow.link(l, Some(head)))
 }
 
-/// Name `to` wherever `kind` names `from` as its item.
-fn rename(kind: &mut EventKind, from: &str, to: &str) -> Result<()> {
+/// Name `to` wherever event `at` names `from` as its item.
+fn rename(flow: &mut Flowchart, at: u16, from: &str, to: &str) -> Result<()> {
+    if param(params_mut(&mut flow.events[at as usize].kind), NAME) == Some(from) {
+        // A sale shows its item.
+        sales::show(flow, at, to)?;
+    }
+    let kind = &mut flow.events[at as usize].kind;
     // A chest's flow passes its item on as `ContentName`, a cow's song as
     // our own argument.
     let calls = ITEM_PARAMS.into_iter().chain([flow::CONTENT_NAME]);
@@ -193,10 +198,6 @@ fn rename(kind: &mut EventKind, from: &str, to: &str) -> Result<()> {
             .collect(),
     };
     let params = params_mut(kind);
-    if param(params, NAME) == Some(from) {
-        // A sale shows its item.
-        sales::show(params, to);
-    }
     for key in keys {
         if param(params, key) == Some(from) {
             flows::set(params, key, string(to))?;

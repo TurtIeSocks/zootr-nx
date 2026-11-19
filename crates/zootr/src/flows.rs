@@ -73,7 +73,15 @@ pub fn edit(
     f: impl FnOnce(&mut Flowchart) -> Result<()>,
 ) -> Result<()> {
     let mut flow = current(romfs, rewrites, name)?;
+    let before = undeclared(&flow);
     f(&mut flow).with_context(|| format!("editing {name}"))?;
+    let added: Vec<_> = undeclared(&flow).difference(&before).cloned().collect();
+    if !added.is_empty() {
+        bail!(
+            "{name} names actors it doesn't declare: {}",
+            added.join(", ")
+        );
+    }
     rewrites.insert(rel(name), flow.to_bytes());
     Ok(())
 }
@@ -178,6 +186,56 @@ pub(crate) fn params_mut(kind: &mut EventKind) -> &mut Params {
         | EventKind::SubFlowSwitch { params, .. } => params,
         _ => unreachable!("only actions and calls are looked up"),
     }
+}
+
+/// Name `actor` in the actor param `key` of event `at`, declared like the
+/// actor it replaces. The game finds a call's actor in the flow's table by
+/// name: a name the table lacks indexes past it and crashes as the flow
+/// loads.
+pub(crate) fn rename_actor(flow: &mut Flowchart, at: u16, key: &str, actor: &str) -> Result<()> {
+    let params = params_mut(&mut flow.events[at as usize].kind);
+    let slot = params.iter_mut().find(|(k, _)| k == key);
+    let slot = slot.with_context(|| format!("event {at} has no {key}"))?;
+    let Value::ActorId { name, secondary } = &mut slot.1 else {
+        bail!("{key} isn't an actor");
+    };
+    let old = std::mem::replace(name, actor.to_owned());
+    let secondary = secondary.clone();
+    let declared = flow
+        .actors
+        .iter()
+        .find(|a| a.name == old && a.secondary_name == secondary);
+    let template = declared.with_context(|| format!("{} doesn't declare {old}", flow.name))?;
+    let template = Actor {
+        name: actor.to_owned(),
+        ..template.clone()
+    };
+    flow.actor_like(&template);
+    Ok(())
+}
+
+/// Each actor an event's params name that `flow` doesn't declare.
+pub(crate) fn undeclared(flow: &Flowchart) -> BTreeSet<String> {
+    let declared = |name: &str, secondary: &str| {
+        flow.actors
+            .iter()
+            .any(|a| a.name == name && a.secondary_name == secondary)
+    };
+    let params = flow.events.iter().filter_map(|e| match &e.kind {
+        EventKind::Action { params, .. }
+        | EventKind::Switch { params, .. }
+        | EventKind::SubFlow { params, .. }
+        | EventKind::SubFlowSwitch { params, .. } => Some(params),
+        _ => None,
+    });
+    (params.flatten())
+        .filter_map(|(_, v)| match v {
+            Value::ActorId { name, secondary } if !declared(name, secondary) => {
+                Some(format!("<{name} {secondary}>"))
+            }
+            _ => None,
+        })
+        .collect()
 }
 
 /// The string `params` holds under `key`.
