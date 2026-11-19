@@ -126,3 +126,20 @@ test("a diff lists effective changes, with a parent standing in", () => {
     "ALL: off → on",
   ]);
 });
+
+test("a starting inventory is changed while it holds anything", () => {
+  const def: SettingDef = {
+    ...toggles(1)[0],
+    label: "Start",
+    kind: { type: "inventory" },
+  } as SettingDef;
+  expect(isChanged(def, {})).toBe(false);
+  expect(isChanged(def, { s0: {} })).toBe(false);
+  const two = { s0: { hookshot: 1, bombs: 20 } };
+  expect(isChanged(def, two)).toBe(true);
+  expect(isOn(def, two, [def])).toBe(false);
+  expect(summary([def], two)).toBe("Start: 2 items");
+  expect(settingsDiff([def], {}, two)).toEqual([
+    "Start: nothing → hookshot, bombs ×20",
+  ]);
+});

@@ -320,14 +320,18 @@ pub fn open(gd: &GameData, inv: &Inventory, pouch: &Pouch, start: &Start) -> Res
     })
 }
 
-/// The Inventory panel: the grid and the kept Status fields.
+/// The Status fields the panel keeps: the rest follow from the grid.
+const STATUS: [u32; 2] = [MAX_LIFE, RUPEES];
+
+/// The Inventory panel: the grid without its Dungeons, whose keys belong to
+/// the Dungeon keys setting, and the kept Status fields.
 pub fn items(gd: &GameData, inv: &Inventory, pouch: &Pouch, start: &Start) -> Result<ItemsView> {
-    Ok(save_editor::items(
-        gd,
-        inv,
-        pouch,
-        &open(gd, inv, pouch, start)?,
-    ))
+    let mut view = save_editor::items(gd, inv, pouch, &open(gd, inv, pouch, start)?);
+    (view.sections.iter_mut())
+        .filter(|p| p.section == inventory::Section::Dungeons)
+        .for_each(|p| p.shown = false);
+    view.status.retain(|f| STATUS.contains(&f.hash));
+    Ok(view)
 }
 
 /// `start` after a click on cell `at`.
@@ -353,7 +357,7 @@ pub fn set(
     start: &Start,
     edit: Edit,
 ) -> Result<Start> {
-    if ![MAX_LIFE, RUPEES].contains(&edit.hash) {
+    if !STATUS.contains(&edit.hash) {
         bail!("a new game only starts with heart containers and rupees set");
     }
     let opened = open(gd, inv, pouch, start)?;
@@ -570,10 +574,12 @@ mod tests {
         let view = items(&gd, &inv, &pouch, &twice).unwrap();
         assert!(view.staged[at("Hookshot")]);
         let fields: Vec<_> = view.status.iter().map(|f| f.label.as_str()).collect();
-        assert!(
-            fields.contains(&"Heart containers") && fields.contains(&"Rupees"),
-            "{fields:?}"
-        );
+        assert_eq!(fields, ["Heart containers", "Rupees"]);
+        let dungeons = view
+            .sections
+            .iter()
+            .find(|p| p.section == inventory::Section::Dungeons);
+        assert!(!dungeons.unwrap().shown);
     }
 
     #[test]
