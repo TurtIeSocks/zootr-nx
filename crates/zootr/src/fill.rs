@@ -206,8 +206,8 @@ mod tests {
     use crate::progress::{self, StepEvent};
     use crate::rules::{Book, Ctx};
     use crate::settings::{
-        CHESTS, DUNGEON_REWARDS, FORTRESS_KEYS, ICE_TRAPS, KEYS, NPC_GIFTS, OPEN_DOOR, PROGRESSIVE, SONGS,
-        Settings,
+        CHESTS, DUNGEON_REWARDS, FORTRESS_KEYS, ICE_TRAPS, KEYS, NPC_GIFTS, OPEN_DOOR, PROGRESSIVE,
+        SONGS, Settings,
     };
     use crate::shuffle::{Fixed, deal};
     use crate::{ice_traps, key_tints, keys};

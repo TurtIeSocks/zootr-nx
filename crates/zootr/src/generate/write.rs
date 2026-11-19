@@ -16,9 +16,9 @@ use crate::progress::Run;
 use crate::settings::{ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
     ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, enemies, flags,
-    foreign, fortress, gamedata, gerudo, gifts, held, hints, ice_traps, key_tints, keys, map_copies,
-    medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs, shops, spawn,
-    standins, starting, steps, text, tracker, trade_chain, twins,
+    foreign, fortress, gamedata, gerudo, gifts, held, hints, ice_traps, key_tints, keys,
+    map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs, shops,
+    spawn, standins, starting, steps, text, tracker, trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
