@@ -10,7 +10,7 @@ use crate::checks::ItemCheck;
 use crate::key_tints;
 use crate::known::{Name, actor, flag, flow, item, map};
 use crate::rules::Need;
-use crate::settings::DungeonKeys;
+use crate::settings::{DungeonKeys, FortressKeys};
 
 pub const SMALL: &Name = item::DUNGEON_SMALL_KEY;
 pub const BOSS: &Name = item::DUNGEON_BOSS_KEY;
@@ -61,10 +61,10 @@ pub static SHUFFLED: LazyLock<Vec<String>> = LazyLock::new(|| {
         .collect()
 });
 
-/// Whether `item` is a ring, small key or boss key copy, which the hook
-/// credits as Link gets it.
+/// Whether `item` is a ring, small key or boss key copy, or the Fortress
+/// key copy, which the hook credits as Link gets it.
 pub fn is_shuffled(item: &str) -> bool {
-    SHUFFLED.iter().any(|s| s == item)
+    SHUFFLED.iter().any(|s| s == item) || item == key_tints::fortress()
 }
 
 /// With Keysanity, every small key copy, one for each key chest, and
@@ -80,14 +80,23 @@ pub static SINGLES: LazyLock<Vec<String>> = LazyLock::new(|| {
         .collect()
 });
 
-/// Each copy `keys` deals takes the place of a key chest's Red Rupee.
-pub fn deal_copies(items: &mut [&str], keys: DungeonKeys) -> Result<()> {
+/// With Fortress Keysanity, the Fortress key copy, one for each thief.
+pub static FORTRESS_COPIES: LazyLock<Vec<String>> =
+    LazyLock::new(|| vec![key_tints::fortress(); FORTRESS.1 as usize]);
+
+/// Each copy `keys` and `fortress` deal takes the place of a key chest's or
+/// a thief's Red Rupee.
+pub fn deal_copies(items: &mut [&str], keys: DungeonKeys, fortress: FortressKeys) -> Result<()> {
     let copies: &[String] = match keys {
         DungeonKeys::Rings => &SHUFFLED,
         DungeonKeys::Singles => &SINGLES,
         DungeonKeys::Vanilla | DungeonKeys::Start => &[],
     };
-    for key in copies {
+    let thieves: &[String] = match fortress.copies() {
+        true => &FORTRESS_COPIES,
+        false => &[],
+    };
+    for key in copies.iter().chain(thieves) {
         let rupee = items.iter().position(|i| *INSTEAD == **i);
         let rupee = rupee.context("too few key chests for the dungeons' keys")?;
         items[rupee] = key;
@@ -115,6 +124,16 @@ pub fn dungeon_need(rel: &str, keys: DungeonKeys) -> Option<Need> {
     smalls(dungeon_of(rel)?, keys)
 }
 
+/// With the Fortress keys dealt as copies, what logic adds to a check whose
+/// vanilla item is `item`: all four for the Gerudo membership card, given
+/// once the fourth carpenter is free.
+pub fn fortress_need(item: &str, fortress: FortressKeys) -> Option<Need> {
+    (fortress.copies() && item == crate::gerudo::CARD).then(|| Need::Items {
+        actors: vec![key_tints::fortress()],
+        count: FORTRESS.1 as u32,
+    })
+}
+
 /// With keys dealt as copies, what logic adds to the way into `room`, a
 /// boss room: its dungeon's boss key and small keys.
 pub fn boss_door_need(room: &str, keys: DungeonKeys) -> Option<Need> {
@@ -129,6 +148,9 @@ pub fn boss_door_need(room: &str, keys: DungeonKeys) -> Option<Need> {
 /// `area` names one by its id. The ring copy is a single small key with
 /// Keysanity.
 pub fn copy_name(actor: &str, area: impl Fn(&str) -> String, keys: DungeonKeys) -> Option<String> {
+    if actor == key_tints::fortress() {
+        return Some(format!("{} Small Key", area(FORTRESS.0)));
+    }
     DUNGEONS.iter().enumerate().find_map(|(i, (dungeon, ..))| {
         let n = i + 1;
         let kind = match actor {
@@ -257,11 +279,11 @@ mod tests {
         let red = INSTEAD.get();
         let mut items = vec![red; SHUFFLED.len() + 1];
         items.push(item::HOOKSHOT.get());
-        deal_copies(&mut items, DungeonKeys::Rings).unwrap();
+        deal_copies(&mut items, DungeonKeys::Rings, FortressKeys::Vanilla).unwrap();
         assert_eq!(items.iter().filter(|i| **i == red).count(), 1);
         assert!(SHUFFLED.iter().all(|k| items.contains(&k.as_str())));
         assert_eq!(SHUFFLED.len(), DUNGEONS.len() + 6);
-        assert!(deal_copies(&mut [red; 3], DungeonKeys::Rings).is_err());
+        assert!(deal_copies(&mut [red; 3], DungeonKeys::Rings, FortressKeys::Vanilla).is_err());
     }
 
     #[test]
@@ -271,7 +293,7 @@ mod tests {
         // The 37 small key chests and 6 boss key chests: every key chest.
         assert_eq!(SINGLES.len(), 37 + 6);
         let mut items = vec![red; SINGLES.len()];
-        deal_copies(&mut items, DungeonKeys::Singles).unwrap();
+        deal_copies(&mut items, DungeonKeys::Singles, FortressKeys::Vanilla).unwrap();
         assert!(!items.contains(&red));
         let forest = DUNGEONS
             .iter()
@@ -281,8 +303,34 @@ mod tests {
         let held = items.iter().filter(|i| **i == ring).count() as u32;
         assert_eq!(held, CHEST_KEYS[forest]);
         let mut start = vec![red; 2];
-        deal_copies(&mut start, DungeonKeys::Start).unwrap();
+        deal_copies(&mut start, DungeonKeys::Start, FortressKeys::Start).unwrap();
         assert_eq!(start, [red; 2]);
+    }
+
+    #[test]
+    fn fortress_keysanity_deals_a_copy_for_every_thief_and_the_card_asks_for_all() {
+        needs_names!();
+        let red = INSTEAD.get();
+        let mut items = vec![red; 5];
+        deal_copies(&mut items, DungeonKeys::Vanilla, FortressKeys::Singles).unwrap();
+        let copy = key_tints::fortress();
+        assert_eq!(items.iter().filter(|i| **i == copy).count(), 4);
+        assert_eq!(items.iter().filter(|i| **i == red).count(), 1);
+        assert!(is_shuffled(&copy));
+        let need = Need::Items {
+            actors: vec![copy],
+            count: 4,
+        };
+        let card = crate::gerudo::CARD.get();
+        assert_eq!(fortress_need(card, FortressKeys::Singles), Some(need));
+        assert_eq!(fortress_need(card, FortressKeys::Start), None);
+        assert_eq!(
+            fortress_need(item::HOOKSHOT.get(), FortressKeys::Singles),
+            None
+        );
+        let area = |id: &str| format!("<{id}>");
+        let name = copy_name(&key_tints::fortress(), area, DungeonKeys::Vanilla);
+        assert_eq!(name, Some(format!("<{}> Small Key", FORTRESS.0)));
     }
 
     #[test]

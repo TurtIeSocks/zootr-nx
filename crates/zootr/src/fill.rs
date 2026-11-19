@@ -206,7 +206,8 @@ mod tests {
     use crate::progress::{self, StepEvent};
     use crate::rules::{Book, Ctx};
     use crate::settings::{
-        CHESTS, DUNGEON_REWARDS, KEYS, NPC_GIFTS, OPEN_DOOR, PROGRESSIVE, SONGS, Settings,
+        CHESTS, DUNGEON_REWARDS, FORTRESS_KEYS, KEYS, NPC_GIFTS, OPEN_DOOR, PROGRESSIVE, SONGS,
+        Settings,
     };
     use crate::shuffle::{Fixed, deal};
     use crate::{key_tints, keys};
@@ -382,6 +383,26 @@ mod tests {
             // Rauru's is dealt only with the door closed.
             (OPEN_DOOR.into(), false.into()),
         ]));
+    }
+
+    #[test]
+    fn fortress_keysanity_seeds_fill_with_no_copy_at_the_card_s_check() {
+        let fortress = || (FORTRESS_KEYS.into(), "singles".into());
+        let dealt = |filled: &Filled| {
+            let copy = key_tints::fortress();
+            let copies: Vec<_> = (filled.placements.iter())
+                .filter(|p| p.item == copy)
+                .collect();
+            assert_eq!(copies.len(), 4);
+            for p in copies {
+                assert_ne!(p.check.item, crate::gerudo::CARD.get(), "{}", p.check.hash);
+            }
+        };
+        seeds_fill_and(&Settings::from([fortress()]), dealt);
+        seeds_fill_and(
+            &Settings::from([fortress(), (NPC_GIFTS.into(), true.into())]),
+            dealt,
+        );
     }
 
     #[test]

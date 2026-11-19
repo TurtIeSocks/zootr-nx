@@ -184,7 +184,7 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
     let kept = kept.into_iter().zip(all);
     placed.extend(kept.map(|(check, item)| Placement { check, item }));
     cap_bottles(&mut items, placed.iter().map(|p| p.item));
-    keys::deal_copies(&mut items, new_game.keys)?;
+    keys::deal_copies(&mut items, new_game.keys, new_game.fortress_keys)?;
     Ok(Deal {
         placed,
         free,

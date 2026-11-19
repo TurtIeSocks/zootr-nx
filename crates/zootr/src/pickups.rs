@@ -406,7 +406,7 @@ pub fn dealt(romfs: &Romfs, new_game: &NewGame) -> Result<Vec<ItemCheck>> {
         (new_game.rocks, &ROCKS),
         (new_game.grass, &GRASS),
         (new_game.hives, &HIVES),
-        (new_game.fortress_keys, &FORTRESS_KEYS),
+        (new_game.fortress_keys.moved(), &FORTRESS_KEYS),
         (npc_gifts, &FIRE_ARROWS),
         (npc_gifts, &RUTOS_LETTER),
     ];

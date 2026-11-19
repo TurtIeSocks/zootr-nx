@@ -336,9 +336,13 @@ impl World {
                     Some(word) => Need::All(vec![need, resolve(word)?]),
                     None => need,
                 };
-                let need = match keys::dungeon_need(&check.file, ctx.keys) {
-                    Some(ring) => Need::All(vec![need, ring]),
-                    None => need,
+                let keys = [
+                    keys::dungeon_need(&check.file, ctx.keys),
+                    keys::fortress_need(&check.item, ctx.fortress),
+                ];
+                let need = match keys.into_iter().flatten().collect::<Vec<_>>() {
+                    keys if keys.is_empty() => need,
+                    keys => Need::All([vec![need], keys].concat()),
                 };
                 locations.push(Location {
                     hash: check.hash,
@@ -376,7 +380,10 @@ impl World {
                 name: s.name.clone(),
                 place: at(&s.place, s.era).with_context(|| format!("source {}", s.name))?,
                 item: s.item.clone(),
-                need: book.need(&s.expr, ctx)?,
+                need: match keys::fortress_need(&s.item, ctx.fortress) {
+                    Some(keys) => Need::All(vec![book.need(&s.expr, ctx)?, keys]),
+                    None => book.need(&s.expr, ctx)?,
+                },
             });
         }
         let trials = Ctx {
@@ -384,6 +391,7 @@ impl World {
             on: ctx.on.iter().cloned().chain([TRIALS.into()]).collect(),
             seed: ctx.seed,
             keys: ctx.keys,
+            fortress: ctx.fortress,
             open: ctx.open.iter().filter(|o| *o != TRIALS).cloned().collect(),
         };
         let mut goal = Vec::new();

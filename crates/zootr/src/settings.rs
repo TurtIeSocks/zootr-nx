@@ -15,7 +15,7 @@ use crate::starting::{self, ITEMS};
 
 mod choices;
 mod upgrade;
-pub use choices::{ChestSize, DungeonKeys, Keys, Logic, ScrubPrice, ShopSlots};
+pub use choices::{ChestSize, DungeonKeys, FortressKeys, Keys, Logic, ScrubPrice, ShopSlots};
 pub(crate) use upgrade::upgrade;
 
 /// Setting values by id. A missing id takes its default.
@@ -380,8 +380,8 @@ pub fn schema() -> Vec<SettingDef> {
             FORTRESS_KEYS,
             group::DUNGEONS,
             "Fortress keys",
-            "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. The four keys the thieves carry become checks. Can't be used with Carpenters freed, since its thieves are already beaten",
-            Keys::label,
+            "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks. Can't be used with Carpenters freed, since its thieves are already beaten",
+            FortressKeys::label,
         )])
         .chain([toggle(
             SHOPS,
@@ -564,8 +564,9 @@ pub struct NewGame {
     /// Where every dungeon's keys are. Unless vanilla, their chests are
     /// checks.
     pub keys: DungeonKeys,
-    /// The Fortress counter starts full, and the thieves' keys are checks.
-    pub fortress_keys: bool,
+    /// Where the thieves' keys are. Unless vanilla, the keys they carry
+    /// are checks.
+    pub fortress_keys: FortressKeys,
     /// The seed, for what's rolled while writing, like shop prices.
     pub seed: u64,
     /// Bombchus have their own cap instead of the bomb bag's.
@@ -629,14 +630,18 @@ impl NewGame {
                 keys.label()
             );
         }
-        let fortress_keys = chosen::<Keys>(settings, FORTRESS_KEYS) == Keys::Start;
-        if fortress_keys && picked.iter().any(|p| p == CARPENTERS_FREED) {
+        let fortress_keys = chosen::<FortressKeys>(settings, FORTRESS_KEYS);
+        if fortress_keys.moved() && picked.iter().any(|p| p == CARPENTERS_FREED) {
             bail!(
                 "Fortress keys can't start with {CARPENTERS_FREED}: its thieves are already beaten"
             );
         }
         let start = keys == DungeonKeys::Start;
-        let edits = [keys::defaults(start, fortress_keys), edits.to_vec()].concat();
+        let edits = [
+            keys::defaults(start, fortress_keys == FortressKeys::Start),
+            edits.to_vec(),
+        ]
+        .concat();
         Ok(Self {
             defaults: presets::expand(&picked, &edits)?,
             skips: Skips {
@@ -798,7 +803,7 @@ mod tests {
                 hives: false,
                 cows: false,
                 keys: DungeonKeys::Vanilla,
-                fortress_keys: false,
+                fortress_keys: FortressKeys::Vanilla,
                 seed: 0,
                 free_bombchus: true,
                 quiet_navi: true,
@@ -885,7 +890,7 @@ mod tests {
         );
         let settings = Settings::from([(FORTRESS_KEYS.into(), "start".into())]);
         let game = NewGame::from_settings(&settings, &[]).unwrap();
-        assert!(game.keys == DungeonKeys::Vanilla && game.fortress_keys);
+        assert!(game.keys == DungeonKeys::Vanilla && game.fortress_keys == FortressKeys::Start);
         assert_eq!(
             game.defaults,
             with_defaults_of(&keys::defaults(false, true), &[])
@@ -933,9 +938,23 @@ mod tests {
         settings.insert(CARPENTERS_FREED.into(), true.into());
         let err = NewGame::from_settings(&settings, &[]).unwrap_err();
         assert!(err.to_string().contains(CARPENTERS_FREED), "{err}");
+        settings.insert(FORTRESS_KEYS.into(), "singles".into());
+        assert!(NewGame::from_settings(&settings, &[]).is_err());
         settings.insert(KEYS.into(), "start".into());
         settings.insert(FORTRESS_KEYS.into(), "vanilla".into());
         assert!(NewGame::from_settings(&settings, &[]).is_ok());
+    }
+
+    #[test]
+    fn fortress_keysanity_deals_copies_and_starts_with_no_keys() {
+        let settings = Settings::from([(FORTRESS_KEYS.into(), "singles".into())]);
+        let game = NewGame::from_settings(&settings, &[]).unwrap();
+        assert_eq!(game.fortress_keys, FortressKeys::Singles);
+        assert!(game.fortress_keys.moved() && game.fortress_keys.copies());
+        assert_eq!(
+            game.defaults,
+            with_defaults_of(&keys::defaults(false, false), &[])
+        );
     }
 
     #[test]
