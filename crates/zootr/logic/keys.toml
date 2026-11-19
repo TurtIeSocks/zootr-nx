@@ -20,3 +20,15 @@ rooms = [
     { room = 4, keys = 2 },
     { room = 5, keys = 2 },
 ]
+
+# One lock, in the Light Trial, between the Lens of Truth chest's room
+# (13) and the silver rupee room (14), which leads on to room 15. Rooms
+# 12 and 13 open off the hub (room 1). Ship's Light Trial has a second
+# lock before the Triforce room, ours doesn't.
+[[dungeon]]
+name = "inside-ganon-castle"
+keys = 0
+rooms = [
+    { room = 14, keys = 1 },
+    { room = 15, keys = 1 },
+]
