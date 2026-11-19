@@ -14,6 +14,7 @@ use crate::events::Flows;
 use crate::flows::{self, Rewrites, SET_BOOL};
 use crate::gamedata::GameData;
 use crate::known::{Name, field, flag, flow, scene};
+use crate::per_dump::PerDump;
 
 pub(crate) const ENTRANCE: &Name = field::FIELD_AND_DUNGEON_ENTRANCE_EVENT_REQUEST_ACTOR;
 /// Intros a map's `EventRequestActor` starts instead of the entrance: the
@@ -65,7 +66,7 @@ pub(crate) fn requested(cutscene: &str) -> bool {
     REQUESTED.iter().any(|r| r.1 == cutscene)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Skip {
     /// Nothing in it lasts, so the new game sets this flag: the entrance's,
     /// or for a BoolExp, the played flag it reads.
@@ -77,14 +78,21 @@ pub enum Skip {
     Plays(String),
 }
 
+#[derive(Clone)]
 pub struct Arrival {
     pub event: String,
     pub flag: String,
     pub skip: Skip,
 }
 
-/// Every entrance's intro, once per event and flag.
+/// Every entrance's intro, once per event and flag, kept per dump.
+/// `flows` is every flow.
 pub fn all(romfs: &Romfs, flows: &Flows) -> Result<Vec<Arrival>> {
+    static KEPT: PerDump<Vec<Arrival>> = PerDump::new();
+    KEPT.get(romfs, || find(romfs, flows))
+}
+
+fn find(romfs: &Romfs, flows: &Flows) -> Result<Vec<Arrival>> {
     let gd = GameData::load(romfs)?;
     let mut found = BTreeSet::new();
     for (_, doc) in checks::bancs(romfs)? {

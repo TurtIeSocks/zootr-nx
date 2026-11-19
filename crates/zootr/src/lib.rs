@@ -72,6 +72,7 @@ pub mod nav;
 mod navi;
 pub mod notice;
 mod patch;
+mod per_dump;
 mod picked;
 mod pickups;
 pub mod places;

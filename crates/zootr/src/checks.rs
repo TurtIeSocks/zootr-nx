@@ -11,6 +11,7 @@ use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::{Byml, BymlDoc, BymlMap, Romfs, files_with_suffix, par_batches};
 
 use crate::known::{Name, actor, field};
+use crate::per_dump::PerDump;
 use crate::world::{Presence, presence_of};
 
 const BANC_SUFFIX: &str = ".bcett.byml.zs";
@@ -155,8 +156,14 @@ pub fn scan(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
 }
 
 /// [`scan`], and the room each placed scrub names, by its hash: a scrub
-/// drops nothing, so its check is built from a table instead.
+/// drops nothing, so its check is built from a table instead. Kept per
+/// dump: a seed asks for every check more than once.
 fn scan_rooms(romfs: &Romfs) -> Result<(Vec<ItemCheck>, HashMap<u64, u32>)> {
+    static KEPT: PerDump<(Vec<ItemCheck>, HashMap<u64, u32>)> = PerDump::new();
+    KEPT.get(romfs, || read_rooms(romfs))
+}
+
+fn read_rooms(romfs: &Romfs) -> Result<(Vec<ItemCheck>, HashMap<u64, u32>)> {
     let mut out = Vec::new();
     let mut rooms = HashMap::new();
     for (file, doc) in bancs(romfs)? {

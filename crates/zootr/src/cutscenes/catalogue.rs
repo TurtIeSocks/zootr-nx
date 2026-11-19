@@ -7,6 +7,7 @@ use anyhow::Result;
 use ounce_formats::{EventKind, Romfs};
 
 use super::*;
+use crate::per_dump::PerDump;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Tier {
@@ -24,6 +25,7 @@ impl Tier {
     }
 }
 
+#[derive(Clone)]
 pub struct Cutscene {
     pub name: String,
     pub area: Option<&'static str>,
@@ -36,10 +38,17 @@ pub struct Cutscene {
     pub flag: bool,
 }
 
+#[derive(Clone)]
 pub struct Catalogue(pub Vec<Cutscene>);
 
 impl Catalogue {
+    /// Every cutscene, kept per dump: it parses every flow and map.
     pub fn load(romfs: &Romfs) -> Result<Self> {
+        static KEPT: PerDump<Catalogue> = PerDump::new();
+        KEPT.get(romfs, || Self::read(romfs))
+    }
+
+    fn read(romfs: &Romfs) -> Result<Self> {
         let all = Flows::load(romfs)?;
         let mut callers = BTreeMap::<String, BTreeSet<String>>::new();
         // Who reads each played flag: a flow, or the map.
