@@ -233,8 +233,9 @@ mod tests {
             &Extras::default(),
             &crate::progress::Run::silent(),
         );
+        let report = report.unwrap();
         std::fs::remove_dir_all(&dir).unwrap();
-        let planned = plan(&romfs, &report.unwrap().spots).unwrap();
+        let planned = plan(&romfs, &report.spots).unwrap();
         let all: Vec<&Drill> = DRILLS.iter().collect();
         for (d, p) in matched(&all, &planned).unwrap() {
             assert!(
