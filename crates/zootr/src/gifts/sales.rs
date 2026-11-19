@@ -22,7 +22,7 @@ pub(super) fn sell(
             continue;
         }
         flows::set(params, NAME, string(item))?;
-        show(params, item);
+        show(flow, i as u16, item)?;
         sells += 1;
     }
     ensure!(
@@ -37,14 +37,12 @@ pub(super) fn sell(
 /// The param a sale shows its item by.
 pub(super) const DISPLAY: &Name = flow::DISPLAY_ITEM_ACTOR;
 
-/// Show `item` in a sale's `params`, if the sale shows its item.
-pub(super) fn show(params: &mut Params, item: &str) {
-    for (key, value) in params.iter_mut() {
-        if let Value::ActorId { name, .. } = value
-            && key == DISPLAY
-        {
-            *name = item.into();
-        }
+/// Show `item` in the sale at `at`, if the sale shows its item.
+pub(super) fn show(flow: &mut Flowchart, at: u16, item: &str) -> Result<()> {
+    let params = params_mut(&mut flow.events[at as usize].kind);
+    match params.iter().any(|(k, _)| k == DISPLAY) {
+        true => flows::rename_actor(flow, at, DISPLAY, item),
+        false => Ok(()),
     }
 }
 
