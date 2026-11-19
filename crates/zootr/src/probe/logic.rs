@@ -80,9 +80,15 @@ pub(super) fn gates(
     trace: bool,
     node: Option<String>,
     creators: bool,
+    checks: bool,
 ) -> Result<()> {
     if creators {
-        for c in crate::gates::creators(romfs)? {
+        let only: Option<std::collections::HashSet<u64>> = match checks {
+            true => Some(crate::pickups::watched(romfs)?.iter().map(|c| c.hash).collect()),
+            false => None,
+        };
+        let creators = crate::gates::creators(romfs)?.into_iter();
+        for c in creators.filter(|c| only.as_ref().is_none_or(|o| o.contains(&c.hash))) {
             let (hash, area, gyaml) = (c.hash, &c.area, &c.gyaml);
             println!("{hash} {area} {gyaml} {}#{} x{}", c.graph, c.node, c.placed);
         }

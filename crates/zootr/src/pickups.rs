@@ -428,6 +428,17 @@ fn watch(romfs: &Romfs, checks: &mut [ItemCheck]) -> Result<()> {
     Ok(())
 }
 
+/// Every pickup check of every kind a logic module makes appear or watches.
+pub fn watched(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
+    let mut checks = Vec::new();
+    for kind in KINDS {
+        checks.extend(kind.checks(romfs)?);
+    }
+    watch(romfs, &mut checks)?;
+    checks.retain(|c| c.watched);
+    Ok(checks)
+}
+
 pub fn kind_of(check: &ItemCheck) -> Option<&'static Kind> {
     KINDS.into_iter().find(|k| k.holds(check))
 }

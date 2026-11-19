@@ -145,6 +145,9 @@ pub enum Probe {
         /// placed.
         #[arg(long)]
         creators: bool,
+        /// With `--creators`, only the pickup checks.
+        #[arg(long, requires = "creators")]
+        checks: bool,
     },
     /// Every BYML document whose path contains this, as an indented tree,
     /// one value per line, including those inside SARC archives.
@@ -398,7 +401,8 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             trace,
             node,
             creators,
-        } => gates(romfs, trace, node, creators),
+            checks,
+        } => gates(romfs, trace, node, creators, checks),
         Probe::Checks {
             area,
             settings,
