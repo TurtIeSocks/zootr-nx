@@ -64,7 +64,7 @@ pub const WORDS: &[(&str, &Name)] = &[
     ("goron-bracelet", actor::ARMOR_CHILD_GAUNTLET_GORON), ("silver-gauntlets", actor::ARMOR_ADULT_GAUNTLET_SILVER),
     ("golden-gauntlets", actor::ARMOR_ADULT_GAUNTLET_GOLD),
     ("silver-scale", item::SCALE_SILVER), ("golden-scale", item::SCALE_GOLD),
-    ("child-wallet", item::WALLET_SMALL), ("adults-wallet", item::WALLET_MEDIUM), ("giants-wallet", item::WALLET_LARGE),
+    ("adults-wallet", item::WALLET_MEDIUM), ("giants-wallet", item::WALLET_LARGE),
     ("quiver", item::QUIVER_SMALL), ("big-quiver", item::QUIVER_MEDIUM), ("biggest-quiver", item::QUIVER_LARGE),
     ("bullet-bag", item::BULLET_BAG_SMALL), ("big-bullet-bag", item::BULLET_BAG_MEDIUM), ("biggest-bullet-bag", item::BULLET_BAG_LARGE),
     ("heart-pieces", actor::OBJ_HEART_PIECE),
@@ -140,6 +140,10 @@ pub fn granted(actor: &str, num: i32) -> Vec<Grant> {
     out
 }
 
+/// What every new game holds already, so no word: the child's wallet, which
+/// has no pack to grant and no place in the pool.
+const ALWAYS: [&Name; 1] = [item::WALLET_SMALL];
+
 /// What a new game starts holding, by word.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -191,7 +195,10 @@ impl Start {
                 words()
             )
         })?;
-        for lower in inventory::below(actor) {
+        for lower in inventory::below(actor)
+            .into_iter()
+            .filter(|a| !ALWAYS.contains(a))
+        {
             let w = word_of(lower)?;
             let held = self.0.entry(w.into()).or_default();
             *held = (*held).max(1);
@@ -407,13 +414,24 @@ mod tests {
     fn every_grid_actor_has_one_word_and_every_word_one_actor() {
         for h in inventory::held() {
             let n = WORDS.iter().filter(|(_, a)| *a == h.actor).count();
-            assert_eq!(n, 1, "{:?}", h.actor);
+            let want = if ALWAYS.contains(&h.actor) { 0 } else { 1 };
+            assert_eq!(n, want, "{:?}", h.actor);
         }
         let grid: Vec<_> = inventory::held().into_iter().map(|h| h.actor).collect();
         for (w, a) in WORDS {
             assert!(grid.contains(a), "{w}");
             assert_eq!(WORDS.iter().filter(|(o, _)| o == w).count(), 1, "{w}");
         }
+    }
+
+    #[test]
+    fn a_bigger_wallet_leaves_out_the_one_every_game_has() {
+        needs_names!();
+        let mut s = Start::default();
+        s.add("giants-wallet", 1).unwrap();
+        assert_eq!(s, start(&[("adults-wallet", 1), ("giants-wallet", 1)]));
+        assert!(!s.owned().contains(&item::WALLET_SMALL.get()));
+        assert!(Start::default().add("child-wallet", 1).is_err());
     }
 
     #[test]
@@ -535,7 +553,7 @@ mod tests {
         };
         for h in inventory::held() {
             let d = drop(h.actor);
-            if d == item::WALLET_SMALL {
+            if ALWAYS.contains(&d) {
                 continue;
             }
             assert!(crate::items::get(&romfs, d).unwrap().is_some(), "{d}");
