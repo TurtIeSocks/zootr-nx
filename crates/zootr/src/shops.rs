@@ -18,6 +18,7 @@ use crate::checks::{Drop, GYAML, ItemCheck, TRANSLATE, actors, bancs, hash_of, s
 use crate::gifts;
 use crate::known::{Name, actor, field, flag, item, scene};
 use crate::names::{ITEMS, name_label};
+use crate::per_dump::PerDump;
 use crate::rng::Rng;
 use crate::rules::Need;
 
@@ -70,6 +71,7 @@ const TOWNS: [(&Name, &str); 5] = [
 pub const MEDIUM_WALLET: &Name = item::WALLET_MEDIUM;
 pub const LARGE_WALLET: &Name = item::WALLET_LARGE;
 
+#[derive(Clone)]
 pub struct Slot {
     pub area: String,
     pub shop: &'static str,
@@ -149,6 +151,11 @@ fn shop_name(area: &str, goods: &[&str]) -> Result<&'static str> {
 /// Every shelf slot outside the mask shop, by shop in `SHOPS` order, each
 /// shop's in the order they become checks.
 pub fn slots(romfs: &Romfs) -> Result<Vec<Slot>> {
+    static KEPT: PerDump<Vec<Slot>> = PerDump::new();
+    KEPT.get(romfs, || find_slots(romfs))
+}
+
+fn find_slots(romfs: &Romfs) -> Result<Vec<Slot>> {
     let mut found = Vec::new();
     let mut npcs = Vec::new();
     for (file, doc) in bancs(romfs)? {
