@@ -42,6 +42,13 @@ const SET_FLAG: &Name = field::TRIGGER_GAME_DATA_SET_BOOL_TRUE;
 /// What starts an event actor's event, and with it its `Event*` outputs.
 const EVENT_TRIGGER: &Name = field::EVENT_REQUEST_TRIGGER;
 
+/// Node classes that only read state or ask for actors, so a group running
+/// nothing else is quiet: running it twice changes nothing.
+const QUIET: [&str; 3] = ["ActorLogic", "Operate", "Hold"];
+/// Words in those classes that still mark a writer: an event request, a
+/// GameData allocation, a setter.
+const LOUD: [&str; 3] = ["EventRequest", "Alloc", "Set"];
+
 /// One thing a gate reads.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Atom {
@@ -213,6 +220,10 @@ pub struct Creator {
     pub node: usize,
     /// How many times the graph is placed, in any map.
     pub placed: usize,
+    /// Whether every node its `AiGroup` runs, nested modules included, only
+    /// reads state or asks for actors, so a copy's duplicate of the group is
+    /// safe (`pickups::groups`).
+    pub quiet: bool,
 }
 
 /// Every placement a logic node makes appear, once per graph copy.
@@ -223,6 +234,11 @@ pub fn creators(romfs: &Romfs) -> Result<Vec<Creator>> {
         *placed.entry(&inst.graph).or_default() += 1;
     }
     let mut out = Vec::new();
+    let mut quiet: HashMap<(usize, usize), bool> = HashMap::new();
+    for (i, inst) in world.instances.iter().enumerate() {
+        let group = quiet.entry((inst.banc, inst.group)).or_insert(true);
+        *group &= world.graph(i).nodes.iter().all(reads_only);
+    }
     for (i, inst) in world.instances.iter().enumerate() {
         let nodes = world.graph(i).nodes.iter().enumerate();
         for (n, node) in nodes.filter(|(_, n)| n.input(CREATE).is_some()) {
@@ -236,10 +252,20 @@ pub fn creators(romfs: &Romfs) -> Result<Vec<Creator>> {
                 graph: inst.graph.clone(),
                 node: n,
                 placed: placed[inst.graph.as_str()],
+                quiet: quiet[&(inst.banc, inst.group)],
             });
         }
     }
     Ok(out)
+}
+
+/// Whether `node` only reads state or asks for actors: a module, its input
+/// or output, or a quiet class.
+fn reads_only(node: &Node) -> bool {
+    let class = node.name.as_str();
+    node.module
+        || matches!(node.kind, NodeKind::ModuleInput | NodeKind::ModuleOutput)
+        || (QUIET.iter().any(|q| class.starts_with(q)) && !LOUD.iter().any(|l| class.contains(l)))
 }
 
 /// The areas whose sensors start each event request actor's event as Link

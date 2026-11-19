@@ -11,7 +11,7 @@ use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, ModBuilder, Romfs};
 
 use crate::checks::{
-    DROP_ACTOR, Drop, GYAML, ItemCheck, actors, banc_files, hash_of, load_bancs, str_field,
+    DROP_ACTOR, Drop, GYAML, ItemCheck, Watched, actors, banc_files, hash_of, load_bancs, str_field,
 };
 use crate::gifts;
 use crate::known::{Name, actor, field as fields, item, map};
@@ -20,6 +20,7 @@ use crate::standins::{StandIn, Tables, item_pack};
 use crate::warp;
 use crate::world::presence_of;
 
+pub mod groups;
 mod stale;
 pub mod steps;
 
@@ -419,11 +420,20 @@ pub fn dealt(romfs: &Romfs, new_game: &NewGame) -> Result<Vec<ItemCheck>> {
 
 /// Mark each of `checks` a logic module makes appear or watches.
 fn watch(romfs: &Romfs, checks: &mut [ItemCheck]) -> Result<()> {
-    let watched: HashSet<u64> = (crate::gates::creators(romfs)?.into_iter())
-        .map(|c| c.hash)
-        .collect();
+    let mut watched: HashMap<u64, Watched> = HashMap::new();
+    for c in crate::gates::creators(romfs)? {
+        let by = if c.quiet {
+            Watched::Quiet
+        } else {
+            Watched::Loud
+        };
+        let was = watched.entry(c.hash).or_insert(by);
+        if by == Watched::Loud {
+            *was = by;
+        }
+    }
     for c in checks {
-        c.watched = watched.contains(&c.hash);
+        c.watched = watched.get(&c.hash).copied().unwrap_or_default();
     }
     Ok(())
 }
@@ -435,7 +445,7 @@ pub fn watched(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
         checks.extend(kind.checks(romfs)?);
     }
     watch(romfs, &mut checks)?;
-    checks.retain(|c| c.watched);
+    checks.retain(|c| c.watched != Watched::No);
     Ok(checks)
 }
 
@@ -449,10 +459,10 @@ pub fn is_pickup(check: &ItemCheck) -> bool {
 }
 
 /// Whether `check` is a pickup that can show a line's level or ammo a step
-/// at a time ([`steps`]): one no logic module makes or watches, holding
-/// whatever it's dealt.
+/// at a time ([`steps`]): one no group that writes or plays makes or
+/// watches, holding whatever it's dealt.
 pub(crate) fn steps_at(check: &ItemCheck) -> bool {
-    !check.watched && kind_of(check).is_some_and(|k| k.named.is_none())
+    check.watched != Watched::Loud && kind_of(check).is_some_and(|k| k.named.is_none())
 }
 
 /// A holder whose item changed, and the actor its placement field names.
@@ -739,24 +749,31 @@ mod tests {
     }
 
     #[test]
-    fn a_holder_a_logic_module_makes_or_watches_never_steps() {
+    fn a_holder_a_loud_group_makes_or_watches_never_steps() {
         let Some(romfs) = dev_dump() else { return };
+        // Each kind's checks quiet groups watch, then loud ones, then all.
         let watched = |kind: &Kind| {
             let mut checks = kind.checks(&romfs).unwrap();
             watch(&romfs, &mut checks).unwrap();
-            let n = checks.iter().filter(|c| c.watched).count();
-            assert!(checks.iter().all(|c| c.watched != steps_at(c)));
-            (n, checks.len())
+            let by = |w| checks.iter().filter(|c| c.watched == w).count();
+            assert!(
+                checks
+                    .iter()
+                    .all(|c| (c.watched == Watched::Loud) != steps_at(c))
+            );
+            (by(Watched::Quiet), by(Watched::Loud), checks.len())
         };
         // Each boss's heart, the Fire Arrows and Ruto's letter appear once
-        // their module says so.
-        assert_eq!(watched(&BOSS_HEARTS), (8, 8));
-        assert_eq!(watched(&FIRE_ARROWS), (1, 1));
-        assert_eq!(watched(&RUTOS_LETTER), (1, 1));
-        assert_eq!(watched(&FREESTANDING).0, 0);
-        // Pots a module makes appear or watches break (respawning ones,
-        // and ones whose break starts an event).
-        assert_eq!(watched(&POTS), (61, 530));
+        // a boss falls or a flag is set, by groups that set flags too.
+        assert_eq!(watched(&BOSS_HEARTS), (0, 8, 8));
+        assert_eq!(watched(&FIRE_ARROWS), (0, 1, 1));
+        assert_eq!(watched(&RUTOS_LETTER), (0, 1, 1));
+        assert_eq!(watched(&FREESTANDING), (0, 0, 26));
+        // The all-day, nighttime, swaying tree and broken box modules only
+        // read state and make the Skulltula and its web.
+        assert_eq!(watched(&SKULLTULAS), (101, 3, 114));
+        // Most watched pots sit in rooms whose groups set flags or play.
+        assert_eq!(watched(&POTS), (14, 47, 530));
     }
 
     #[test]

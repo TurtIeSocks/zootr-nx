@@ -161,7 +161,7 @@ pub(crate) mod tests {
             get_event: None,
             substitute: None,
             presence: None,
-            watched: false,
+            watched: crate::checks::Watched::No,
         }
     }
 
@@ -247,7 +247,7 @@ pub(crate) mod tests {
             ..chest(1, "Item_A")
         };
         let watched = ItemCheck {
-            watched: true,
+            watched: crate::checks::Watched::Loud,
             ..pot.clone()
         };
         for on in [false, true] {

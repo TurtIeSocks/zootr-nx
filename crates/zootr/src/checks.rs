@@ -53,9 +53,21 @@ pub struct ItemCheck {
     pub substitute: Option<String>,
     /// The flag the holder needs to exist at all, if any.
     pub presence: Option<Presence>,
-    /// A logic module makes the placement appear or watches it, so the
-    /// seed can't place copies of it (`pickups::steps`).
-    pub watched: bool,
+    /// Whether a logic module makes the placement appear or watches it.
+    pub watched: Watched,
+}
+
+/// Whether a logic module makes a placement appear or watches it, and so
+/// whether the seed can place copies of it (`pickups::steps`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Watched {
+    #[default]
+    No,
+    /// Only by quiet groups: each copy gets duplicates of them, which run
+    /// it as the originals run the holder (`pickups::groups`).
+    Quiet,
+    /// By a group that writes or plays, which the seed can't run twice.
+    Loud,
 }
 
 /// Every Banc file, as romfs-relative paths.
@@ -150,7 +162,7 @@ pub fn scan(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
                 get_event: str_field(dynamic, GET_EVENT).map(str::to_owned),
                 substitute: substitute.map(str::to_owned),
                 presence: presence_of(actor),
-                watched: false,
+                watched: Watched::No,
             });
         }
     }
