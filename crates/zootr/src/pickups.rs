@@ -11,7 +11,7 @@ use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, ModBuilder, Romfs};
 
 use crate::checks::{
-    DROP_ACTOR, Drop, GYAML, ItemCheck, actors, banc_files, hash_of, load_bancs, str_field,
+    DROP_ACTOR, Drop, GYAML, ItemCheck, Watched, actors, banc_files, hash_of, load_bancs, str_field,
 };
 use crate::gifts;
 use crate::known::{Name, actor, field as fields, item, map};
@@ -19,6 +19,10 @@ use crate::settings::{NPC_GIFTS, NewGame};
 use crate::standins::{StandIn, Tables, item_pack};
 use crate::warp;
 use crate::world::presence_of;
+
+pub mod groups;
+mod stale;
+pub mod steps;
 
 /// One kind of placed holder.
 pub struct Kind {
@@ -233,6 +237,8 @@ const KINDS: [&Kind; 12] = [
 /// What a thief's key check is held by, in the spoiler.
 pub const THIEF: &str = "Gerudo Thief";
 
+/// The pack of AI graphs no actor carries itself, like the drop graph.
+pub const GLOBAL_AI: &str = "Pack/AI.Global.Product.111.pack.zs";
 const DROP: &str = "Dynamic.Drop__DropActor";
 const NAME: &str = "Name";
 /// A drop that's a creature (bugs from some shrubs and a rock), not an
@@ -408,7 +414,39 @@ pub fn dealt(romfs: &Romfs, new_game: &NewGame) -> Result<Vec<ItemCheck>> {
     for (_, kind) in on.into_iter().filter(|(on, _)| *on) {
         out.extend(kind.checks(romfs)?);
     }
+    watch(romfs, &mut out)?;
     Ok(out)
+}
+
+/// Mark each of `checks` a logic module makes appear or watches.
+fn watch(romfs: &Romfs, checks: &mut [ItemCheck]) -> Result<()> {
+    let mut watched: HashMap<u64, Watched> = HashMap::new();
+    for c in crate::gates::creators(romfs)? {
+        let by = if c.quiet {
+            Watched::Quiet
+        } else {
+            Watched::Loud
+        };
+        let was = watched.entry(c.hash).or_insert(by);
+        if by == Watched::Loud {
+            *was = by;
+        }
+    }
+    for c in checks {
+        c.watched = watched.get(&c.hash).copied().unwrap_or_default();
+    }
+    Ok(())
+}
+
+/// Every pickup check of every kind a logic module makes appear or watches.
+pub fn watched(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
+    let mut checks = Vec::new();
+    for kind in KINDS {
+        checks.extend(kind.checks(romfs)?);
+    }
+    watch(romfs, &mut checks)?;
+    checks.retain(|c| c.watched != Watched::No);
+    Ok(checks)
 }
 
 pub fn kind_of(check: &ItemCheck) -> Option<&'static Kind> {
@@ -418,6 +456,13 @@ pub fn kind_of(check: &ItemCheck) -> Option<&'static Kind> {
 /// Whether `check` is a placed holder's, not a chest's.
 pub fn is_pickup(check: &ItemCheck) -> bool {
     kind_of(check).is_some()
+}
+
+/// Whether `check` is a pickup that can show a line's level or ammo a step
+/// at a time ([`steps`]): one no group that writes or plays makes or
+/// watches, holding whatever it's dealt.
+pub(crate) fn steps_at(check: &ItemCheck) -> bool {
+    check.watched != Watched::Loud && kind_of(check).is_some_and(|k| k.named.is_none())
 }
 
 /// A holder whose item changed, and the actor its placement field names.
@@ -433,17 +478,30 @@ pub struct Moved<'a> {
     pub actor: String,
     /// What a stand-in is built on.
     template: &'static str,
+    /// Which step of its holder's it is, when the holder shows one a step
+    /// at a time.
+    pub step: Option<steps::Step>,
 }
 
 impl Moved<'_> {
     /// Whether `actor` is a stand-in that has to be built.
     fn built(&self) -> bool {
-        self.actor.starts_with(NEW)
+        self.actor.starts_with(NEW) || self.actor.starts_with(stale::STEP)
     }
 }
 
-/// Every holder in `checks` whose item in `drops` isn't its own.
-pub fn moved<'a>(checks: &'a [ItemCheck], drops: &'a HashMap<u64, Drop>) -> Vec<Moved<'a>> {
+/// Every holder in `checks` whose item in `drops` isn't its own, and each
+/// step's placement past a holder's own when it shows them a step at a
+/// time.
+pub fn moved<'a>(
+    checks: &'a [ItemCheck],
+    drops: &'a HashMap<u64, Drop>,
+    progressive: bool,
+) -> Vec<Moved<'a>> {
+    let fixed: HashSet<u64> = (checks.iter())
+        .filter(|c| !steps_at(c))
+        .map(|c| c.hash)
+        .collect();
     let holders: BTreeSet<(u64, &str, &str)> = checks
         .iter()
         .filter_map(|c| Some((c.hash, c.item.as_str(), kind_of(c)?.field)))
@@ -454,15 +512,27 @@ pub fn moved<'a>(checks: &'a [ItemCheck], drops: &'a HashMap<u64, Drop>) -> Vec<
         if item == vanilla {
             continue;
         }
-        let actor = pickup_for(item, field == DROP).unwrap_or_else(|| format!("{NEW}{n:03}"));
-        out.push(Moved {
+        let at = |hash, item, actor: String, step| Moved {
             hash,
             vanilla,
             item,
             field,
             actor,
             template: template_for(field),
-        });
+            step,
+        };
+        let dropped = field == DROP;
+        let shown = (!fixed.contains(&hash)).then(|| steps::of(hash, item, progressive));
+        let Some(Some(steps)) = shown else {
+            let actor = pickup_for(item, dropped).unwrap_or_else(|| format!("{NEW}{n:03}"));
+            out.push(at(hash, item, actor, None));
+            continue;
+        };
+        for (k, (placement, shows, step)) in steps.into_iter().enumerate() {
+            let built = || format!("{}{n:03}_{k}", stale::STEP);
+            let actor = pickup_for(shows, dropped).unwrap_or_else(built);
+            out.push(at(placement, shows, actor, Some(step)));
+        }
     }
     out
 }
@@ -478,7 +548,7 @@ pub fn write(
     new_game: &NewGame,
 ) -> Result<Vec<String>> {
     let mut fields = Vec::new();
-    for m in moved(checks, drops) {
+    for m in moved(checks, drops, new_game.progressive) {
         if m.built() {
             let pickup = StandIn {
                 name: &m.actor,
@@ -676,6 +746,34 @@ mod tests {
             );
             assert!(checks.iter().all(|c| kind.item.is_none_or(|i| c.item == i)));
         }
+    }
+
+    #[test]
+    fn a_holder_a_loud_group_makes_or_watches_never_steps() {
+        let Some(romfs) = dev_dump() else { return };
+        // Each kind's checks quiet groups watch, then loud ones, then all.
+        let watched = |kind: &Kind| {
+            let mut checks = kind.checks(&romfs).unwrap();
+            watch(&romfs, &mut checks).unwrap();
+            let by = |w| checks.iter().filter(|c| c.watched == w).count();
+            assert!(
+                checks
+                    .iter()
+                    .all(|c| (c.watched == Watched::Loud) != steps_at(c))
+            );
+            (by(Watched::Quiet), by(Watched::Loud), checks.len())
+        };
+        // Each boss's heart, the Fire Arrows and Ruto's letter appear once
+        // a boss falls or a flag is set, by groups that set flags too.
+        assert_eq!(watched(&BOSS_HEARTS), (0, 8, 8));
+        assert_eq!(watched(&FIRE_ARROWS), (0, 1, 1));
+        assert_eq!(watched(&RUTOS_LETTER), (0, 1, 1));
+        assert_eq!(watched(&FREESTANDING), (0, 0, 26));
+        // The all-day, nighttime, swaying tree and broken box modules only
+        // read state and make the Skulltula and its web.
+        assert_eq!(watched(&SKULLTULAS), (101, 3, 114));
+        // Most watched pots sit in rooms whose groups set flags or play.
+        assert_eq!(watched(&POTS), (14, 47, 530));
     }
 
     #[test]

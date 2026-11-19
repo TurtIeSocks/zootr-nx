@@ -4,6 +4,14 @@ import { marked } from "marked";
 /** The repo whose releases the app watches. */
 export const RELEASES_REPO = "TurtIeSocks/zootr-nx";
 
+/** This version's `znx.apworld`, which the release attaches for hosts, or
+ * the latest release's while the version is unknown. */
+export const apworldUrl = (version: string | null) =>
+  `https://github.com/${RELEASES_REPO}/releases/${version ? `download/v${version}` : "latest/download"}/znx.apworld`;
+
+/** The Archipelago setup guide, joining and hosting. */
+export const AP_GUIDE_URL = `https://github.com/${RELEASES_REPO}/blob/main/ap/znx/docs/setup_en.md`;
+
 /** A published release, as the update notice shows it. */
 export interface Release {
   /** The tag less its `v`. */

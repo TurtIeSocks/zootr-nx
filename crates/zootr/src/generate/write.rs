@@ -16,8 +16,8 @@ use crate::settings::{ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
     ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, foreign,
     fortress, gamedata, gerudo, gifts, held, hints, ice_traps, key_tints, keys, medallions, navi,
-    patch, picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text,
-    tracker, trade_chain, twins,
+    notice, patch, picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps,
+    text, tracker, trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -149,6 +149,10 @@ pub fn write_mod(
     // First, so a copy on a shelf takes its caption from its own lines.
     copies.insert(0, foreign::captions(&new_game.foreign));
     copies.insert(0, key_tints::captions(new_game.keys, key_copies.1));
+    if new_game.mailbox {
+        copies.push(notice::banners());
+        copies.push(notice::senders(&new_game.players));
+    }
     text::write(romfs, &mut builder, &lines, &copies, hints)?;
     let cows = match new_game.cows {
         true => cows::find(romfs)?,
@@ -159,6 +163,7 @@ pub fn write_mod(
     edits.extend(new_game.defaults.iter().cloned());
     let pieces = pickups::dealt(romfs, new_game)?;
     let picked = picked::holders(&pieces, drops);
+    let steps = pickups::steps::Steps::new(&pieces, drops, new_game.progressive, &picked, &gd)?;
     let mut bools = cows::flags(&cows);
     bools.extend(picked::flags(&picked));
     if new_game.shop_slots > 0 {
@@ -191,6 +196,7 @@ pub fn write_mod(
         .collect();
     exps.extend(picked::exps(&picked));
     exps.extend(shelves.exps.iter().cloned());
+    exps.extend(steps.exps.iter().cloned());
     let mut data = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
     trade_chain::never_counting(&mut data.root)?;
     if new_game.on.contains(TRADE_CHAIN) {
@@ -200,7 +206,9 @@ pub fn write_mod(
     gamedata::add_bools(&mut data.root, &bools)?;
     gamedata::add_ints(&mut data.root, &new_game.ints)?;
     gamedata::add_exps(&mut data.root, &exps)?;
-    gamedata::add_keys(&mut data.root, &picked::pairs(&picked))?;
+    let mut keyed = picked::pairs(&picked);
+    keyed.extend(&steps.copies);
+    gamedata::add_keys(&mut data.root, &keyed)?;
     for (copy, template, _) in &made {
         let names = [copy.clone()];
         gamedata::join_structs(&mut data.root, template.get(), &names, &[gamedata::IS_GET])?;
@@ -270,6 +278,7 @@ pub fn write_mod(
         drops,
         new_game,
     )?);
+    steps.write(romfs, &mut builder)?;
     held::write(romfs, &mut builder, &mut tables)?;
     tables.write(&mut builder)?;
     // A pickup's drop is its field above, never the bare item. A cow's is
@@ -284,7 +293,19 @@ pub fn write_mod(
         true => &fortress::CARRYING[..],
         false => &[],
     };
-    let tabled = pickups::tabled(&pieces);
+    // Each copy of a holder quiet groups make or watch, its steps' and its
+    // picked twin, by the holder: the groups run it too.
+    let quiet: HashSet<u64> = (pieces.iter())
+        .filter(|p| p.watched == checks::Watched::Quiet)
+        .map(|p| p.hash)
+        .collect();
+    let mut ran = picked::pairs(&picked);
+    ran.extend(steps.copies.iter().copied());
+    ran.retain(|(of, _)| quiet.contains(of));
+    let mut tabled = pickups::tabled(&pieces);
+    // A step's copy is placed with its holder's table, which goes too.
+    let copied = steps.copies.iter().filter(|(of, _)| tabled.contains(of));
+    tabled.extend(copied.map(|(_, copy)| *copy).collect::<Vec<_>>());
     let (mut found, mut actors) = (HashSet::new(), 0);
     let mut spots = Vec::new();
     let mut chest_events = HashMap::new();
@@ -295,10 +316,14 @@ pub fn write_mod(
         let twinned = twins::place(&rel, &mut doc.root, &twins)? > 0;
         // Before the fields, so each twin keeps its holder's vanilla drop.
         let paired = picked::place(&mut doc.root, &picked)? > 0;
+        // After the twins, so each step is a copy of a holder standing until
+        // picked, and before the fields, which give each step its stand-in.
+        let stepped = steps.place(&mut doc.root)?;
+        let grouped = pickups::groups::copy(&mut doc.root, &ran)?;
         // Before the fields, which give each step's copy its stand-in.
         let shelved = shelves.place(&mut doc.root)?;
         let mut changed = checks::set_fields(&mut doc.root, &fields)?;
-        spots.extend(picked::spots(&doc.root, &picked)?);
+        spots.extend(picked::spots(&doc.root, &picked, &steps.copies)?);
         changed.extend(checks::gone_once(&mut doc.root, &gone)?);
         let leaves = scrubs::leaves(&doc.root, &gone)?;
         changed.extend(checks::gone_once(&mut doc.root, &leaves)?);
@@ -314,7 +339,16 @@ pub fn write_mod(
         let tinted = key_tints::swap(&rel, &mut doc.root, bosses)? > 0;
         // After shrinking: a shrunk chest runs the small chest's flow.
         let levelled = levels.name(romfs, &mut doc.root, &mut chest_events)? > 0;
-        if twinned || paired || shelved || shrunk || tinted || levelled || !changed.is_empty() {
+        if twinned
+            || paired
+            || stepped
+            || grouped
+            || shelved
+            || shrunk
+            || tinted
+            || levelled
+            || !changed.is_empty()
+        {
             builder.write(&rel, &doc.to_binary())?;
             actors += changed.len();
             found.extend(changed);

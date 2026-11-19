@@ -1,6 +1,5 @@
 import { Check, CircleAlert, CircleStop, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { STEPS } from "@/bindings";
 import { linkClass } from "@/components/styles";
 import { message } from "@/lib/api";
 import { useCopied } from "@/lib/use-copied";
@@ -8,6 +7,7 @@ import {
   generateLog,
   type StepRow,
   type Steps,
+  stepName,
   useSeeds,
 } from "@/stores/seeds";
 
@@ -17,12 +17,6 @@ const HINT_AFTER = 10_000;
 /** Seconds as the step list shows them. */
 const seconds = (secs: number) => `${secs.toFixed(1)} s`;
 
-/** A step's name, capitalized. */
-function stepName(row: StepRow) {
-  const name = STEPS.find((s) => s.step === row.step)?.name ?? row.step;
-  return name.charAt(0).toUpperCase() + name.slice(1);
-}
-
 /** Why a step that runs long may be slow, where something helps. */
 function hint(row: StepRow) {
   if (row.step === "dump" && row.detail.startsWith("extracting")) {
@@ -30,8 +24,9 @@ function hint(row: StepRow) {
   }
 }
 
-/** The running or last generate run's steps, under the Generate row. */
-export function GenerateSteps() {
+/** The running or last generate run's steps, in the folder that started
+ * it: Archipelago for a slot (`ap`), Standard for the rest. */
+export function GenerateSteps({ ap = false }: { ap?: boolean }) {
   const [steps] = useSeeds.usePath("steps");
   const [generating] = useSeeds.usePath("generating");
   // A rebuild's run has no log of its own.
@@ -39,6 +34,7 @@ export function GenerateSteps() {
   const [open, setOpen] = useState(false);
   // A run that failed before its first step has nothing to show.
   if (!steps || (!steps.rows.length && !generating)) return null;
+  if (!!steps.ap !== ap) return null;
   if (steps.end?.kind === "done" && !open) {
     return (
       <div className="flex items-center gap-2 text-[13px] text-ink-muted">
@@ -101,7 +97,7 @@ function StepLine({ row, failed, running }: StepLineProps) {
                 : "size-3.5 text-primary-ink"
           }
         />
-        <span>{stepName(row)}</span>
+        <span>{stepName(row.step)}</span>
         {row.detail && <span className="text-ink-muted">{row.detail}</span>}
         <span className="ml-auto font-mono text-ink-muted">
           {seconds(secs)}

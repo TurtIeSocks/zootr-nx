@@ -14,6 +14,7 @@ const badgeVariants = cva(
         info: "bg-info-soft text-info-ink",
         gold: "bg-gold-soft text-gold-ink",
         danger: "bg-danger-soft text-danger-ink",
+        ap: "bg-ap-soft text-ap-ink",
       },
       shape: {
         pill: "",

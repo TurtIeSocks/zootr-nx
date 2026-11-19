@@ -206,6 +206,11 @@ pub fn generate(
     new_game.give.extend(extras.give.iter().cloned());
     if let Some(ap) = &ap {
         new_game.foreign = ap.foreign.clone();
+        new_game.players = extras
+            .ap
+            .as_ref()
+            .map(|s| s.players.clone())
+            .unwrap_or_default();
         new_game.ints.push(crate::ap::RECEIVED.into());
         new_game.give.extend(ap.give.iter().cloned());
     }

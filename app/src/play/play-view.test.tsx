@@ -9,18 +9,23 @@ import {
 } from "@testing-library/react";
 import { act, Profiler } from "react";
 import { afterEach, expect, test, vi } from "vitest";
-import { commands, type Summary } from "@/bindings";
+import { commands, events, type Summary } from "@/bindings";
 import { type FullTest, full } from "@/lib/config";
 import { PlayView } from "@/play/play-view";
+import { stop } from "@/stores/ap";
 import { useConfig } from "@/stores/config";
 import { refresh, useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
 
 const picked = vi.fn(async () => "/seeds/AP_1_P1_Link.apznx" as string | null);
-vi.mock("@tauri-apps/plugin-dialog", () => ({ open: () => picked() }));
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  open: () => picked(),
+  save: vi.fn(),
+}));
 
 afterEach(() => {
   cleanup();
+  stop();
   vi.restoreAllMocks();
   clearMocks();
 });
@@ -39,6 +44,7 @@ const seed = {
   test: false,
   plando: false,
   ap_slot: null,
+  death_link: false,
 };
 
 const ok = { status: "ok", data: null } as const;
@@ -77,17 +83,32 @@ function show(
     installed,
     entries: [...(installed ? [installed] : []), ...older],
   });
+  useUi.setPath("play", { tab: null, history: "all" });
+  // An AP slot's page listens to the client.
+  vi.spyOn(events.apEvent, "listen").mockResolvedValue(() => {});
+  vi.spyOn(commands, "apState").mockResolvedValue({
+    status: "offline",
+    log: [],
+  });
   render(<PlayView />);
 }
+
+/** Opens the folder under the tab whose name starts with `name`. */
+const openTab = (name: string) =>
+  fireEvent.mouseDown(
+    screen.getByRole("tab", { name: new RegExp(`^${name}`) }),
+  );
 
 const button = (name: string) =>
   screen.getByRole("button", { name }) as HTMLButtonElement;
 
-/** The card under the heading, such as "Installed" or "New seed". */
+/** The card or folder under the heading, such as "Installed" or "New
+ * seed". */
 const card = (heading: string) =>
   within(
-    screen.getByRole("heading", { name: heading }).closest("section") ??
-      document.body,
+    screen
+      .getByRole("heading", { name: heading })
+      .closest("section, [role=tabpanel]") ?? document.body,
   );
 
 test("with nothing installed the game plays vanilla", () => {
@@ -99,6 +120,7 @@ test("with nothing installed the game plays vanilla", () => {
 
 test("the Installed card leaves Spoiler, copy and edit to History", () => {
   show(seed);
+  openTab("History");
   const installed = card("Installed");
   expect(installed.queryByRole("button", { name: "Spoiler" })).toBeNull();
   expect(
@@ -140,6 +162,7 @@ test("settings changed since the installed seed are flagged", () => {
 
 test("an installed seed can be played", () => {
   show(seed);
+  openTab("History");
   expect(
     screen.getAllByRole("button", { name: "Copy share code" }),
   ).toHaveLength(1);
@@ -149,6 +172,7 @@ test("an installed seed can be played", () => {
 
 test("a seed shows its icons and can't delete itself while installed", () => {
   show(seed);
+  openTab("History");
   expect(
     screen.getAllByRole("img", { name: "Sun, Moon, Sun, Key, Fish" }).length,
   ).toBe(2);
@@ -160,6 +184,7 @@ test("a seed shows its icons and can't delete itself while installed", () => {
 
 test("a seed's name and note show in history and prefill its label", async () => {
   show({ ...seed, label: { name: "Saria's Hookshot", note: "Q31\nQ32" } });
+  openTab("History");
   expect(screen.getAllByText("Saria's Hookshot")).toHaveLength(2);
   const [label] = screen.getAllByRole("button", { name: "Label seed" });
   fireEvent.click(label as HTMLElement);
@@ -173,11 +198,13 @@ test("a seed's name and note show in history and prefill its label", async () =>
 
 test("a seed's settings can be used once they differ from the current ones", () => {
   show(seed, { x: true });
+  openTab("History");
   expect(button("Use settings").getAttribute("aria-disabled")).toBeNull();
 });
 
 test("a seed built with a test setup carries a badge", () => {
   show({ ...seed, test: true });
+  openTab("History");
   // The installed card and its history row.
   expect(screen.getAllByText("test")).toHaveLength(2);
   cleanup();
@@ -197,6 +224,7 @@ test("a stored test setup shows by Generate and edits from there", () => {
 
 test("a plando seed carries its own badge beside a test one", () => {
   show({ ...seed, plando: true, test: true });
+  openTab("History");
   expect(screen.getAllByText("plando")).toHaveLength(2);
   expect(screen.getAllByText("test")).toHaveLength(2);
 });
@@ -231,6 +259,7 @@ test("deleting a seed and clearing history each ask for a second click", async (
     { ...seed, id: 2 },
     { ...seed, id: 3 },
   ]);
+  openTab("History");
   const [first] = screen.getAllByRole("button", { name: "Delete seed" });
   fireEvent.click(first as HTMLElement);
   expect(del).not.toHaveBeenCalled();
@@ -271,7 +300,8 @@ test("an AP seed installs from the .apznx picked, and a cancel does nothing", as
   });
   backend({ installed: seed, entries: [seed] });
   show(null);
-  fireEvent.click(button("Open AP seed"));
+  openTab("Archipelago");
+  fireEvent.click(button("Browse…"));
   await waitFor(() =>
     expect(generateAp).toHaveBeenCalledWith(
       "/seeds/AP_1_P1_Link.apznx",
@@ -279,7 +309,7 @@ test("an AP seed installs from the .apznx picked, and a cancel does nothing", as
     ),
   );
   picked.mockResolvedValueOnce(null);
-  fireEvent.click(button("Open AP seed"));
+  fireEvent.click(button("Browse…"));
   await waitFor(() => expect(picked).toHaveBeenCalledTimes(2));
   expect(generateAp).toHaveBeenCalledTimes(1);
 });
@@ -305,6 +335,7 @@ test("the seed typed into New seed is still there after leaving the tab", () => 
 
 test("a history poll doesn't clobber a label being typed", async () => {
   show({ ...seed, label: { name: "Old" } });
+  openTab("History");
   fireEvent.click(button("Label seed"));
   const name = (await screen.findByLabelText("Name")) as HTMLInputElement;
   fireEvent.change(name, { target: { value: "New name" } });
@@ -348,7 +379,10 @@ test("Generate only adds a seed to History while the game is open", async () => 
   expect(button("Generate & install").getAttribute("aria-disabled")).toBe(
     "true",
   );
-  fireEvent.click(button("Generate only"));
+  fireEvent.keyDown(button("More ways to generate"), { key: "Enter" });
+  fireEvent.click(
+    await screen.findByRole("menuitem", { name: /Generate only/ }),
+  );
   await waitFor(() =>
     expect(generate).toHaveBeenCalledWith(null, false, expect.anything()),
   );
@@ -364,4 +398,91 @@ test("a blocked Generate stays hoverable, says why, and generates nothing", () =
   fireEvent.click(go);
   expect(generate).not.toHaveBeenCalled();
   expect(card("New seed").getByText("Add a target first")).toBeTruthy();
+});
+
+test("Standard, Archipelago and History each open their folder", () => {
+  show(seed);
+  expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
+    "Standard",
+    "Archipelago",
+    "History1",
+  ]);
+  expect(screen.getByRole("heading", { name: "New seed" })).toBeTruthy();
+  openTab("History");
+  expect(screen.getByRole("heading", { name: "History" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "New seed" })).toBeNull();
+  expect(useUi.getState().play.tab).toBe("history");
+});
+
+test("the folder last open opens again, else the installed seed's kind", () => {
+  show(seed);
+  openTab("History");
+  cleanup();
+  render(<PlayView />);
+  expect(screen.getByRole("tab", { selected: true }).textContent).toMatch(
+    /^History/,
+  );
+  cleanup();
+  show({ ...seed, ap_slot: "FakeSlot" });
+  expect(screen.getByRole("tab", { selected: true }).textContent).toBe(
+    "Archipelago",
+  );
+});
+
+test("arrow keys move between the tabs", async () => {
+  show(seed);
+  const selected = () => screen.getByRole("tab", { selected: true });
+  const standard = screen.getByRole("tab", { name: "Standard" });
+  act(() => standard.focus());
+  fireEvent.keyDown(standard, { key: "ArrowRight" });
+  await waitFor(() => expect(selected().textContent).toBe("Archipelago"));
+  fireEvent.keyDown(selected(), { key: "End" });
+  await waitFor(() => expect(selected().textContent).toMatch(/^History/));
+});
+
+test("an installed AP slot is named by its slot, badged, and shows its room", () => {
+  show({ ...seed, ap_slot: "FakeSlot" });
+  openTab("Standard");
+  const hero = card("Installed");
+  expect(hero.getByText("FakeSlot")).toBeTruthy();
+  expect(hero.getByText("Archipelago")).toBeTruthy();
+  expect(hero.getByRole("status").textContent).toContain("No room yet");
+  fireEvent.click(hero.getByRole("button", { name: "Set up room" }));
+  expect(screen.getByRole("tab", { selected: true }).textContent).toBe(
+    "Archipelago",
+  );
+});
+
+test("a standard seed's hero has no room line", () => {
+  show(seed);
+  expect(card("Installed").queryByRole("status")).toBeNull();
+});
+
+test("History filters by kind, and a slot's row can't reuse or share its settings", () => {
+  const slot = { ...seed, id: 2, ap_slot: "FakeSlot" };
+  show(seed, {}, {}, [slot]);
+  openTab("History");
+  const history = card("History");
+  const names = () =>
+    history.getAllByRole("listitem").map((li) => li.textContent ?? "");
+  expect(names()).toHaveLength(2);
+  const [first, row] = history.getAllByRole("listitem") as [
+    HTMLElement,
+    HTMLElement,
+  ];
+  expect(row.textContent).toContain("FakeSlot");
+  expect(row.textContent).toContain("Archipelago");
+  const actions = (li: HTMLElement) =>
+    within(li)
+      .getAllByRole("button")
+      .map((b) => b.getAttribute("aria-label") ?? b.textContent);
+  expect(actions(row)).not.toContain("Use settings");
+  expect(actions(row)).not.toContain("Copy share code");
+  expect(actions(first)).toContain("Use settings");
+  fireEvent.click(history.getByRole("button", { name: "Archipelago" }));
+  expect(names()).toEqual([expect.stringContaining("FakeSlot")]);
+  expect(useUi.getState().play.history).toBe("archipelago");
+  fireEvent.click(history.getByRole("button", { name: "Standard" }));
+  expect(names()).toHaveLength(1);
+  expect(names()[0]).not.toContain("FakeSlot");
 });

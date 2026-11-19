@@ -39,8 +39,8 @@ pub mod traps;
 pub mod ui;
 
 pub use mailbox::{
-    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_NAME, Ask, GUARD, MAILBOX,
-    Mailbox, NAME, Outcome, play_event,
+    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
+    ARG_SUMMARY, Ask, GUARD, MAILBOX, Mailbox, NAME, Notice, Outcome, play_event,
 };
 pub use shared::{CHESTS, Chest, Credited, List, Shared};
 pub use switches::SWITCHES;
@@ -56,9 +56,11 @@ pub use table::{
 
 /// Where our pieces go in `main`, for game 1.1.1. The code goes over
 /// Havok's physics trace recorder, which a patch keeps from ever running,
-/// the table in the zero padding after rodata, and the chest list in the
-/// zeroed page tail after bss.
+/// the far code (link section `.far`, what rarely runs) in the zero padding after
+/// text, the table in the zero padding after rodata, and the chest list in
+/// the zeroed page tail after bss.
 pub const CAVE: u32 = 0x17f_1680;
+pub const FAR: u32 = 0x3c4_61d0;
 pub const TABLE: u32 = 0x484_c080;
 pub const LIST: u32 = 0x4e9_a4d0;
 /// Where a panic in the hook leaves its line and file, in the list page's

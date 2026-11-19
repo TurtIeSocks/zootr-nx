@@ -46,6 +46,7 @@ const FILES: &[(&str, &str)] = &[
     ("bosses.toml", include_str!("../logic/bosses.toml")),
     ("cows.toml", include_str!("../logic/cows.toml")),
     ("beans.toml", include_str!("../logic/beans.toml")),
+    ("graveyard.toml", include_str!("../logic/graveyard.toml")),
     (
         "water-temple.toml",
         include_str!("../logic/water-temple.toml"),

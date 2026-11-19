@@ -348,6 +348,7 @@ pub(crate) fn check(file: String, area: &str, hash: u64, holder: String, item: &
         get_event: None,
         substitute: None,
         presence: None,
+        watched: crate::checks::Watched::No,
     }
 }
 

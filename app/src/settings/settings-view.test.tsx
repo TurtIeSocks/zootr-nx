@@ -69,6 +69,7 @@ const installed = (settings: Settings): Summary => ({
   test: false,
   plando: false,
   ap_slot: null,
+  death_link: false,
 });
 
 function show({
@@ -76,11 +77,14 @@ function show({
   settings = {},
   section = "General",
   seed = null,
+  older = [],
 }: {
   defs?: SettingDef[];
   settings?: Settings;
   section?: string;
   seed?: Summary | null;
+  /** History's other seeds, newest first. */
+  older?: Summary[];
 } = {}) {
   const setConfig = vi
     .spyOn(commands, "setConfig")
@@ -88,7 +92,10 @@ function show({
   useConfig.setPath("schema", defs);
   useConfig.setPath("config", full({ settings }));
   useSeeds.setPath("status", { game: true, targets: [] });
-  useSeeds.setPath("history", { installed: seed, entries: [] });
+  useSeeds.setPath("history", {
+    installed: seed,
+    entries: [...(seed ? [seed] : []), ...older],
+  });
   useUi.setPath("section", section);
   render(<SettingsView />);
   return setConfig;
@@ -219,6 +226,20 @@ test("with no seed installed, the drift bar counts what differs from the default
   expect(screen.queryByText(/from the default settings/)).toBeNull();
   cleanup();
   show({ settings: { "open-forest": true } });
+  expect(screen.getByText(/from the default settings/)).toBeTruthy();
+});
+
+test("with an AP slot installed, the drift bar counts from the last standard seed", () => {
+  // The slot's own settings came with its file and never count.
+  const slot = { ...installed({}), id: 2, ap_slot: "FakeSlot" };
+  const standard = installed({ "open-forest": true });
+  show({ seed: slot, older: [standard], settings: { "open-forest": true } });
+  expect(screen.queryByText(/from the last standard seed/)).toBeNull();
+  cleanup();
+  show({ seed: slot, older: [standard] });
+  expect(screen.getByText(/from the last standard seed/)).toBeTruthy();
+  cleanup();
+  show({ seed: slot, settings: { "open-forest": true } });
   expect(screen.getByText(/from the default settings/)).toBeTruthy();
 });
 

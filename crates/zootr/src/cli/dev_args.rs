@@ -116,6 +116,24 @@ pub(super) enum DevCommand {
     /// Spring an ice trap: Link freezes once he's free to, as from a
     /// trap's get.
     Freeze,
+    /// Show a received item's notice, as the Archipelago client does:
+    /// "ITEM from SENDER" on the banner, with the popup for a pouch item.
+    /// With `--count`, the summary "+COUNT more from SENDER" instead. The
+    /// sender is a slot's stand-in, which an AP seed names.
+    Notice {
+        /// The item actor, for an item's notice.
+        #[arg(required_unless_present = "count")]
+        item: Option<String>,
+        /// The sending slot, 0 for the server.
+        #[arg(long, default_value_t = 0)]
+        from: u32,
+        /// A summary of this many.
+        #[arg(long, conflicts_with = "item")]
+        count: Option<usize>,
+        /// With `--count`, from several senders: "+COUNT more".
+        #[arg(long, requires = "count")]
+        mixed: bool,
+    },
     /// Switch age: the same map for the other age, else the Temple of Time.
     Age,
     /// Set the time of day.

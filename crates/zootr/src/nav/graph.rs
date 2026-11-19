@@ -11,6 +11,7 @@ use serde::Serialize;
 use super::climb::Climb;
 use super::kinds;
 use super::shape::Solid;
+use super::water::{Shore, Water};
 use crate::warp::{self, Placement, Side};
 
 /// The highest ledge Link pulls himself up, in m. A placeholder until it
@@ -46,8 +47,10 @@ pub enum Via {
     Door(Option<u64>),
     Drop,
     Step,
-    /// Up the ladder or climb wall placed with this hash.
+    /// Up or down the ladder or climb wall placed with this hash.
     Climb(Option<u64>),
+    /// Across the water placed with this hash.
+    Swim(Option<u64>),
 }
 
 impl fmt::Display for Via {
@@ -60,6 +63,8 @@ impl fmt::Display for Via {
             Via::Step => write!(f, "step"),
             Via::Climb(Some(hash)) => write!(f, "climb {hash}"),
             Via::Climb(None) => write!(f, "climb"),
+            Via::Swim(Some(hash)) => write!(f, "swim {hash}"),
+            Via::Swim(None) => write!(f, "swim"),
         }
     }
 }
@@ -84,6 +89,16 @@ pub struct Arc {
     pub cross: Cross,
 }
 
+/// An edge of the mesh's border: where a wall, a drop or a shore begins.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) struct Border {
+    pub face: usize,
+    /// The middle of the edge.
+    pub mid: [f32; 3],
+    /// Flat and of length 1, out of the face.
+    pub out: [f32; 2],
+}
+
 /// A spot on a face: where a point off the mesh was put.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Snap {
@@ -97,6 +112,11 @@ pub struct Graph<'a> {
     pub solids: &'a [Solid],
     pub centers: Vec<[f32; 3]>,
     pub arcs: Vec<Vec<Arc>>,
+    /// The waters a route swims, and the shore points it swims between.
+    pub waters: Vec<Water>,
+    pub shores: Vec<Shore>,
+    /// How deep water is before Link floats in it, at his age.
+    pub float: f32,
     /// The faces whose corners' bounds touch each cell, by x and z.
     cells: HashMap<(i32, i32), Vec<usize>>,
 }
@@ -127,6 +147,9 @@ impl<'a> Graph<'a> {
             mesh,
             solids: &[],
             arcs: vec![vec![]; centers.len()],
+            waters: vec![],
+            shores: vec![],
+            float: super::water::float(false),
             cells: Self::cells(mesh),
             centers,
         };
@@ -136,14 +159,13 @@ impl<'a> Graph<'a> {
         graph
     }
 
-    /// The graph with a link up each of `climbs` whose foot and top
-    /// [`Graph::climb_ends`] finds. Up only: walked off the top of the
-    /// Kokiri Forest vines, Link fell 5.7 m past them instead of taking
-    /// hold (Mac, 2026-11-18), so the way down isn't known yet.
+    /// The graph with a link both ways up each of `climbs` whose foot and
+    /// top [`Graph::climb_ends`] finds.
     pub fn with_climbs(mut self, climbs: &[Climb]) -> Self {
         for c in climbs {
             if let Ok((foot, top)) = self.climb_ends(c) {
                 self.link(foot.face, top.face, Via::Climb(c.hash), foot.at, top.at);
+                self.link(top.face, foot.face, Via::Climb(c.hash), top.at, foot.at);
             }
         }
         self
@@ -271,8 +293,22 @@ impl<'a> Graph<'a> {
     /// Add the link leaving face `from` at `leave` and arriving on face
     /// `to` at `arrive`.
     fn link(&mut self, from: usize, to: usize, via: Via, leave: [f32; 3], arrive: [f32; 3]) {
-        let cost =
-            dist(self.centers[from], leave) + dist(leave, arrive) + dist(arrive, self.centers[to]);
+        self.link_weighted(from, to, via, [leave, arrive], 1.0);
+    }
+
+    /// [`Graph::link`], each m from `leave` to `arrive` costing `weight`
+    /// m walked.
+    pub(super) fn link_weighted(
+        &mut self,
+        from: usize,
+        to: usize,
+        via: Via,
+        [leave, arrive]: [[f32; 3]; 2],
+        weight: f32,
+    ) {
+        let cost = dist(self.centers[from], leave)
+            + weight * dist(leave, arrive)
+            + dist(arrive, self.centers[to]);
         self.arcs[from].push(Arc {
             to,
             cost,
@@ -287,15 +323,33 @@ impl<'a> Graph<'a> {
     /// A drop from each border with mesh 0.5 to 3 m below past it, a step up
     /// from each with mesh 0.5 m to `step_up` above.
     fn border_arcs(&mut self, step_up: f32) {
+        for Border { face, mid, out } in self.borders() {
+            let past = [mid[0] + out[0] * LOOK, mid[1], mid[2] + out[1] * LOOK];
+            let Some(g) = self.floor(past, FLOOR.max(step_up)) else {
+                continue;
+            };
+            let rel = g.height - mid[1];
+            let via = if (-DROP_MAX..=-DROP_MIN).contains(&rel) {
+                Via::Drop
+            } else if (STEP_MIN..=step_up).contains(&rel) {
+                Via::Step
+            } else {
+                continue;
+            };
+            if g.face != face {
+                self.link(face, g.face, via, mid, [past[0], g.height, past[2]]);
+            }
+        }
+    }
+
+    /// Every edge of the mesh's border with a length.
+    pub(super) fn borders(&self) -> Vec<Border> {
         let mesh = self.mesh;
-        for f in 0..mesh.faces.len() {
-            for e in mesh.ring(f).iter().filter(|e| e.across.is_none()) {
+        let mut found = vec![];
+        for face in 0..mesh.faces.len() {
+            for e in mesh.ring(face).iter().filter(|e| e.across.is_none()) {
                 let (a, b) = (mesh.vertices[e.a], mesh.vertices[e.b]);
-                let mid = [
-                    (a[0] + b[0]) / 2.0,
-                    (a[1] + b[1]) / 2.0,
-                    (a[2] + b[2]) / 2.0,
-                ];
+                let mid: [f32; 3] = std::array::from_fn(|i| (a[i] + b[i]) / 2.0);
                 let (dx, dz) = (b[0] - a[0], b[2] - a[2]);
                 let len = dx.hypot(dz);
                 if len < 1e-4 {
@@ -303,27 +357,14 @@ impl<'a> Graph<'a> {
                 }
                 // Out of the face: the normal that points away from its center.
                 let mut out = [dz / len, -dx / len];
-                let c = self.centers[f];
+                let c = self.centers[face];
                 if out[0] * (mid[0] - c[0]) + out[1] * (mid[2] - c[2]) < 0.0 {
                     out = [-out[0], -out[1]];
                 }
-                let past = [mid[0] + out[0] * LOOK, mid[1], mid[2] + out[1] * LOOK];
-                let Some(g) = self.floor(past, FLOOR.max(step_up)) else {
-                    continue;
-                };
-                let rel = g.height - mid[1];
-                let via = if (-DROP_MAX..=-DROP_MIN).contains(&rel) {
-                    Via::Drop
-                } else if (STEP_MIN..=step_up).contains(&rel) {
-                    Via::Step
-                } else {
-                    continue;
-                };
-                if g.face != f {
-                    self.link(f, g.face, via, mid, [past[0], g.height, past[2]]);
-                }
+                found.push(Border { face, mid, out });
             }
         }
+        found
     }
 
     /// A link both ways through each door: the nearest face on each side of
@@ -422,14 +463,14 @@ mod tests {
     }
 
     #[test]
-    fn a_climb_links_the_floor_at_its_foot_up_to_the_ledge_at_its_top() {
+    fn a_climb_links_the_floor_at_its_foot_and_the_ledge_at_its_top_both_ways() {
         let m = mesh(&[
             quad(0.0, -3.0, 2.0, 0.2, 0.0),
             quad(0.0, 0.6, 2.0, 4.0, 4.0),
         ]);
         let g = Graph::build(&m, &[], STEP_UP).with_climbs(&[ladder()]);
         assert_eq!(links(&g, 0), [(1, Via::Climb(Some(9)))]);
-        assert!(links(&g, 1).is_empty());
+        assert_eq!(links(&g, 1), [(0, Via::Climb(Some(9)))]);
     }
 
     #[test]

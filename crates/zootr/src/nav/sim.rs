@@ -25,6 +25,8 @@ type Hook = Box<dyn FnMut(&mut World)>;
 pub struct World {
     pub at: [f32; 3],
     pub yaw: f32,
+    /// The heading the game keeps once it stops updating it: in water.
+    pub stale: Option<f32>,
     pub map: String,
     pub event: bool,
     /// Hearts, in quarters.
@@ -69,6 +71,7 @@ pub fn start(at: [f32; 3], yaw: f32) -> (Eyes, Hands) {
     let world = Rc::new(RefCell::new(World {
         at,
         yaw,
+        stale: None,
         map: "Test".into(),
         event: false,
         hearts: 12,
@@ -97,7 +100,8 @@ impl Sense for Eyes {
     }
 
     fn yaw(&self) -> Result<f32> {
-        Ok(self.0.borrow().yaw)
+        let world = self.0.borrow();
+        Ok(world.stale.unwrap_or(world.yaw))
     }
 
     fn state(&self) -> Result<State> {
@@ -157,6 +161,8 @@ impl Input for Hands {
         assert!(world.camera, "a push without ZL before it");
         world.camera = false;
         world.pushes.push((direction.into(), ms));
+        // A button held along with the stick (a dash) moves him no further.
+        let direction = direction.split('+').next().unwrap_or(direction);
         let eighths = CLOCKWISE.iter().position(|&d| d == direction).unwrap();
         world.yaw -= eighths as f32 * std::f32::consts::FRAC_PI_4;
         if ms > TAP {

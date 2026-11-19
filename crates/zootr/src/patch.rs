@@ -6,8 +6,8 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
 use zootr_hook::{
-    BUNNY_HOOD, CAVE, Credit, DEV, ICE_TRAPS, LIST, Offsets, PANIC, SLOTS, Shared, Spot, TABLE,
-    TRADE_CYCLE, encode,
+    BUNNY_HOOD, CAVE, Credit, DEV, FAR, ICE_TRAPS, LIST, Offsets, PANIC, SLOTS, Shared, Spot,
+    TABLE, TRADE_CYCLE, encode,
 };
 
 use crate::known::Name;
@@ -15,6 +15,8 @@ use crate::{progressive, trade_slot};
 
 /// The hook's code, built by `build.rs`.
 const HOOK: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/hook.bin"));
+/// The hook's far code, written at `FAR`.
+const FAR_CODE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/far.bin"));
 pub const OFFSETS: Offsets = Offsets {
     setter: 0xfe_3fe0,
     reader: 0xbd_1c00,
@@ -66,6 +68,8 @@ pub const OFFSETS: Offsets = Offsets {
 };
 /// Where the recorder, and the free space after rodata and bss, end.
 const CAVE_END: u32 = 0x17f_58e0;
+/// Where the padding after text, which holds the far code, ends: rodata.
+const FAR_END: u32 = 0x3c4_7000;
 const TABLE_END: u32 = 0x484_d000;
 const LIST_END: u32 = 0x4e9_b000;
 const _: () = assert!(LIST + size_of::<Shared>() as u32 <= PANIC && LIST.is_multiple_of(8));
@@ -223,6 +227,7 @@ pub fn patches<A: AsRef<str>>(
     };
     let code = fit(CAVE, hook_code(), CAVE_END, "hook")?;
     let flags = flags | if mailbox { DEV } else { 0 };
+    let far = fit(FAR, FAR_CODE.to_vec(), FAR_END, "far code")?;
     let trade = flags & TRADE_CYCLE != 0;
     let actors = trade_slot::actors();
     let slot = trade.then(|| trade_slot::spec(&actors));
@@ -248,7 +253,7 @@ pub fn patches<A: AsRef<str>>(
         at if at == OFFSETS.taken => !spots.is_empty(),
         _ => true,
     });
-    Ok([gate, code, table].into_iter().chain(sites).collect())
+    Ok([gate, code, far, table].into_iter().chain(sites).collect())
 }
 
 /// One type 0 write into `main`: 8 bytes where aligned, else 4.
@@ -397,6 +402,8 @@ fn take(path: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Range;
+
     use zootr_hook::{HEADER, Header, Table};
 
     use super::*;
@@ -445,12 +452,13 @@ mod tests {
 
     #[test]
     fn the_code_and_table_go_in_their_places_and_read_back() {
-        let [_, code, table, ..] =
+        let [_, code, far, table, ..] =
             &patches(&progressive::LINES, &[], false, 0, &[], &[]).unwrap()[..]
         else {
             panic!("patches")
         };
         assert_eq!((code.at, code.bytes.len()), (CAVE, HOOK.len()));
+        assert_eq!((far.at, &far.bytes[..FAR_CODE.len()]), (FAR, FAR_CODE));
         assert_eq!(table.at % 8, 0, "the header is read in place");
         let header = Header::read(&table.bytes);
         let lines = &table.bytes[HEADER..][..header.size as usize];
@@ -514,16 +522,30 @@ mod tests {
         // mov x18, x0 and ldrb w18, [x9, #0x12]
         assert!(x18(&0xaa00_03f2u32.to_le_bytes()).is_some());
         assert!(x18(&0x3940_4932u32.to_le_bytes()).is_some());
-        let code: usize = env!("HOOK_CODE").parse().unwrap();
-        for (i, word) in HOOK[..code].chunks(4).enumerate() {
-            assert_eq!(x18(word), None, "at {:#x}", i * 4);
+        for (at, bytes, code) in pieces() {
+            for (i, word) in bytes[..code].chunks(4).enumerate() {
+                assert_eq!(x18(word), None, "at {:#x}", at as usize + i * 4);
+            }
         }
     }
 
-    #[test]
-    fn page_relative_addresses_land_in_the_hook_at_the_cave() {
-        let word = |i: usize| u32::from_le_bytes(HOOK[i * 4..i * 4 + 4].try_into().unwrap());
+    /// Each piece of the hook: where it goes, its bytes, and how many of
+    /// them are code. The cave's strings follow its code.
+    fn pieces() -> [(u32, &'static [u8], usize); 2] {
         let code: usize = env!("HOOK_CODE").parse().unwrap();
+        [(CAVE, HOOK, code), (FAR, FAR_CODE, FAR_CODE.len())]
+    }
+
+    #[test]
+    fn page_relative_addresses_land_in_the_hook() {
+        let hook = pieces().map(|(at, bytes, _)| i64::from(at)..i64::from(at) + bytes.len() as i64);
+        for (base, bytes, code) in pieces() {
+            page_relative_addresses_land_in(&hook, base, bytes, code);
+        }
+    }
+
+    fn page_relative_addresses_land_in(hook: &[Range<i64>], base: u32, bytes: &[u8], code: usize) {
+        let word = |i: usize| u32::from_le_bytes(bytes[i * 4..i * 4 + 4].try_into().unwrap());
         for i in 0..code / 4 {
             let adrp = word(i);
             if adrp & 0x9f00_0000 != 0x9000_0000 {
@@ -531,7 +553,7 @@ mod tests {
             }
             let pages = ((adrp >> 29) & 3) | (((adrp >> 5) & 0x7ffff) << 2);
             let pages = i64::from(((pages << 11) as i32) >> 11);
-            let at = i64::from(CAVE) + i as i64 * 4;
+            let at = i64::from(base) + i as i64 * 4;
             let page = (at & !0xfff) + (pages << 12);
             // The `add` that finishes the address, from the same register.
             let rd = adrp & 0x1f;
@@ -540,11 +562,9 @@ mod tests {
                 .find(|w| w & 0xffc0_0000 == 0x9100_0000 && (w >> 5) & 0x1f == rd);
             if let Some(add) = add {
                 let target = page + i64::from((add >> 10) & 0xfff);
-                let hook = i64::from(CAVE)..i64::from(CAVE) + HOOK.len() as i64;
                 assert!(
-                    hook.contains(&target),
-                    "adrp at {:#x} to {target:#x}",
-                    i * 4
+                    hook.iter().any(|h| h.contains(&target)),
+                    "adrp at {at:#x} to {target:#x}"
                 );
             }
         }
@@ -553,8 +573,8 @@ mod tests {
     #[test]
     fn calls_and_hooks_branch_to_the_hook() {
         let p = patches(&progressive::LINES, &[], true, ALL, &[], &[SPOT]).unwrap();
-        assert_eq!(p[3..], sites().collect::<Vec<_>>());
-        let at = |i: usize| u32::from_le_bytes(p[3 + i].bytes[..].try_into().unwrap());
+        assert_eq!(p[4..], sites().collect::<Vec<_>>());
+        let at = |i: usize| u32::from_le_bytes(p[4 + i].bytes[..].try_into().unwrap());
         assert_eq!(at(0) >> 26, 0b100101, "a call stays a bl");
         assert_eq!(
             at(CALLS.len() + NPAD_CALLS.len()) >> 26,

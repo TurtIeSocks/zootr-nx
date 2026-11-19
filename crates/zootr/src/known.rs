@@ -22,6 +22,8 @@ const SOURCES: [&[&str]; 2] = [
         "Pack/Actor",
         "UI",
         "Mals/USen.Product.110.sarc.zs",
+        // The AI graphs no actor carries itself, like the drop graph.
+        crate::pickups::GLOBAL_AI,
         "Model",
         "Sequence",
     ],

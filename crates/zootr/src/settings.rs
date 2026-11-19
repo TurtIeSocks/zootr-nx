@@ -608,6 +608,9 @@ pub struct NewGame {
     pub ints: Vec<String>,
     /// The copies standing in for other players' items, in an AP seed.
     pub foreign: Vec<crate::foreign::Foreign>,
+    /// Every slot's name by number, in an AP seed, for received items'
+    /// notices.
+    pub players: std::collections::BTreeMap<u32, String>,
 }
 
 impl NewGame {
@@ -697,6 +700,7 @@ impl NewGame {
             mailbox: false,
             ints: vec![],
             foreign: vec![],
+            players: Default::default(),
         })
     }
 }
@@ -820,6 +824,7 @@ mod tests {
                 mailbox: false,
                 ints: vec![],
                 foreign: vec![],
+                players: Default::default(),
                 logic: Logic::Glitchless,
                 on: toggles_on(&Settings::new()),
             }

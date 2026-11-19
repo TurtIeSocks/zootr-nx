@@ -44,6 +44,8 @@ pub mod shape;
 pub mod shove;
 #[cfg(test)]
 mod sim;
+pub mod sink;
+pub mod water;
 pub mod went;
 
 /// The stick directions clockwise from up, an eighth of a turn apart.
@@ -61,10 +63,14 @@ const CLOCKWISE: [&str; 8] = [
 /// The stick direction, with the camera behind Link, that points him from
 /// `yaw` at `from` toward `to`, to the nearest eighth of a turn.
 pub fn heading(yaw: f32, from: [f32; 3], to: [f32; 3]) -> &'static str {
-    use std::f32::consts::FRAC_PI_4;
-    // A tap that far clockwise of up turns him that far down from `yaw`.
-    let eighths = (crate::around::clockwise(yaw, from, to) / FRAC_PI_4).round() as i32;
-    CLOCKWISE[eighths.rem_euclid(8) as usize]
+    CLOCKWISE[eighths(yaw, from, to).rem_euclid(8) as usize]
+}
+
+/// How many eighths of a turn clockwise of `yaw` Link at `from` turns to
+/// face `to`: a tap that far clockwise of up turns him that far down from
+/// `yaw`.
+pub fn eighths(yaw: f32, from: [f32; 3], to: [f32; 3]) -> i32 {
+    (crate::around::clockwise(yaw, from, to) / std::f32::consts::FRAC_PI_4).round() as i32
 }
 
 /// A map's navmesh file, decompressed, or `None` for a map whose mesh
@@ -90,24 +96,41 @@ pub fn load(romfs: &Romfs, game: &Path, map: &str) -> Result<NavMesh> {
 /// How near two poses are to be the same placement's, in m.
 const SAME: f32 = 0.01;
 
-/// A map as the tools read it: its navmesh, its placements, and the solids
-/// and climbs among them that the mesh doesn't know.
+/// A map as the tools read it: its navmesh, its placements, and the solids,
+/// climbs and waters among them that the mesh doesn't know.
 pub struct Level {
     pub map: String,
     pub mesh: NavMesh,
     pub placed: Vec<Placement>,
     pub solids: Vec<shape::Solid>,
     pub climbs: Vec<climb::Climb>,
+    /// The waters there, by the flags their presence reads.
+    pub waters: Vec<water::Water>,
+    /// Whether Link is a child there, which sets how deep he wades.
+    pub child: bool,
 }
 
 impl Level {
-    /// The map the running game is in.
+    /// The map the running game is in, its waters by the game's flags: the
+    /// Water Temple's levels.
     pub fn read<M: Memory>(dev: &Dev<M>, romfs: &Romfs, game: &Path) -> Result<Self> {
-        let map = dev.state()?.map;
-        Self::of(romfs, game, &map)
+        let state = dev.state()?;
+        let mut level = Self::of(romfs, game, &state.map)?;
+        level.child = state.child;
+        if level.placed.iter().any(|p| p.presence.is_some()) {
+            let gd = crate::gamedata::GameData::load(romfs)?;
+            let set = |flag: &str| {
+                crate::live::hash(flag)
+                    .and_then(|h| crate::live::read(dev.game(), &gd, dev.global(), h))
+                    .is_ok_and(|v| v == "true")
+            };
+            level.waters = water::waters(romfs, game, &level.placed, set)?;
+        }
+        Ok(level)
     }
 
-    /// The map `map`.
+    /// The map `map`, its waters as with no flag set, Link a child in a
+    /// child's map (`_Child`) and an adult anywhere else.
     pub fn of(romfs: &Romfs, game: &Path, map: &str) -> Result<Self> {
         let placed = warp::placements_in(romfs, map)?;
         Ok(Self {
@@ -115,6 +138,8 @@ impl Level {
             mesh: load(romfs, game, map)?,
             solids: shape::solids(romfs, &placed)?,
             climbs: climb::climbs(romfs, &placed)?,
+            waters: water::waters(romfs, game, &placed, |_| false)?,
+            child: map.ends_with("_Child"),
             placed,
         })
     }
@@ -128,13 +153,16 @@ impl Level {
             placed,
             solids: vec![],
             climbs: vec![],
+            waters: vec![],
+            child: false,
         }
     }
 
-    /// The graph of its mesh, with its doors, climbs and solids.
+    /// The graph of its mesh, with its doors, climbs, swims and solids.
     pub fn graph(&self) -> graph::Graph<'_> {
         graph::Graph::build(&self.mesh, &self.placed, graph::STEP_UP)
             .with_climbs(&self.climbs)
+            .with_swims(&self.waters, self.child)
             .with_solids(&self.solids)
     }
 

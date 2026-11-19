@@ -1,17 +1,23 @@
-import { HistoryList } from "@/play/history-list";
+import { useEffect } from "react";
 import { InstalledSeed } from "@/play/installed-seed";
 import { LabelDialog } from "@/play/label-dialog";
-import { NewSeed } from "@/play/new-seed";
+import { PlayTabs } from "@/play/play-tabs";
 import { Page } from "@/shell/page-header";
+import { init } from "@/stores/ap";
+import { useSeeds } from "@/stores/seeds";
 
-/** What's installed, a new seed, and every seed before it. */
+/** What's installed, then a folder each for a standard seed, an
+ * Archipelago slot and every seed before. */
 export function PlayView() {
+  // Only an AP slot connects to a room, so only it listens to the client.
+  const ap = useSeeds((s) => !!s.history.installed?.ap_slot);
+  useEffect(() => {
+    if (ap) void init();
+  }, [ap]);
   return (
-    // History takes the height left over and scrolls its own rows.
-    <Page className="h-full">
+    <Page>
       <InstalledSeed />
-      <NewSeed />
-      <HistoryList />
+      <PlayTabs />
       <LabelDialog />
     </Page>
   );

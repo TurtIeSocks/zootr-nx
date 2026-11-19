@@ -30,6 +30,16 @@ its settings to a friend.
 
 ![The Shuffles settings page](assets/shuffles.png)
 
+## Play a multiworld
+
+zootr-nx is an Archipelago game. Joining a friend's multiworld takes the
+file they send you: drop it in the app and connect. What your friends find
+for Link reaches him in game, with the sender named on screen: "Longshot
+from Saria". Hosting one takes Archipelago and `znx.apworld`, and the
+[setup guide](ap/znx/docs/setup_en.md) walks through both.
+
+![The Archipelago tab, connected to a room, with items arriving from other players](assets/archipelago.png)
+
 ## Custom models
 
 A song placed in the world shows its own medallion, in the song's colour
@@ -105,7 +115,8 @@ Early. Expect seeds that break and settings that change.
 - zootr reads the 1.1.1 update of the game only.
 - macOS is the main platform. Windows and Linux builds exist but are barely
   tested.
-- The tracker, the Live log and the checks list read the running game.
+- The tracker, the Live log, the checks list and the Archipelago client
+  read the running game.
   That works on macOS, and on Linux and Windows when the target has a
   `bridge`, a control socket its app opens for zootr.
 - A setting the app marks Untested hasn't been played through yet.

@@ -25,8 +25,8 @@ pub const SCHEMA: u32 = 1;
 /// The EIE debt today. A PR that pays some off lowers it in the same PR,
 /// and the `accounting` test fails one that adds debt.
 pub const BASELINE: Debt = Debt {
-    refused: 17977,
-    left_out: 63,
+    refused: 4433,
+    left_out: 48,
 };
 
 /// EIE #11: the Gerudo thieves' keys, which `fortress-keys` never shuffles.
@@ -118,6 +118,7 @@ impl Why {
         match left {
             LeftOut::Narrowed(n) => Self::Eie { eie: n.number() },
             LeftOut::Setting => Self::Setting,
+            LeftOut::Maintainer => Self::Maintainer,
             LeftOut::NotAHolder => Self::Unknown,
         }
     }
@@ -380,6 +381,7 @@ fn census(romfs: &Romfs, breakable: &BTreeSet<String>) -> Result<Vec<ItemCheck>>
                     get_event: None,
                     substitute: None,
                     presence: crate::world::presence_of(actor),
+                    watched: crate::checks::Watched::No,
                 });
             }
         }

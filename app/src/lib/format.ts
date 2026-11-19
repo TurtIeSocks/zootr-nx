@@ -1,3 +1,5 @@
+import type { Summary } from "@/bindings";
+
 /** Past this many things, a summary gives a count instead. */
 export const LISTED = 4;
 
@@ -16,6 +18,11 @@ export const isShareCode = (text: string) =>
 export function seedOrCode(text: string) {
   return isShareCode(text) ? text.trim() : text.replace(/\D/g, "");
 }
+
+/** What a seed is called: its label, else an Archipelago slot's name.
+ * Blank for an unnamed standard seed. */
+export const nameOf = (entry: Pick<Summary, "label" | "ap_slot">) =>
+  entry.label.name || entry.ap_slot || "";
 
 /** The non-blank lines of `text`, trimmed. */
 export const splitLines = (text: string) =>

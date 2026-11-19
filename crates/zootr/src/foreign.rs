@@ -132,7 +132,7 @@ pub fn name_label(item: &str) -> Option<String> {
 const LONGEST: usize = 32;
 
 /// `name` without control characters, cut to [`LONGEST`].
-fn clean(name: &str) -> String {
+pub(crate) fn clean(name: &str) -> String {
     let kept: String = name.chars().filter(|c| !c.is_control()).collect();
     let kept = kept.trim();
     match kept.chars().count() > LONGEST {

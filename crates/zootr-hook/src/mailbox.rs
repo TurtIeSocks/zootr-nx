@@ -20,6 +20,11 @@ pub const ARG_STEP_NAME: &[u8] = b"ZootrStepName\0";
 pub const ARG_GIVE: &[u8] = b"ZootrGive\0";
 pub const ARG_ACTOR: &[u8] = b"ZootrActor\0";
 pub const ARG_EQUIP: &[u8] = b"ZootrEquip\0";
+/// The arguments a notice request passes: whether it is a notice, then
+/// which banner, with the item in `ZootrActor`.
+pub const ARG_NOTICE: &[u8] = b"ZootrNotice\0";
+pub const ARG_SUMMARY: &[u8] = b"ZootrSummary\0";
+pub const ARG_MIXED: &[u8] = b"ZootrMixed\0";
 
 /// One dev request at a time, from the app to the hook. The app writes the
 /// request, then bumps `asked`. On Link's next update the hook runs it,
@@ -37,7 +42,9 @@ pub struct Mailbox {
     pub last: AtomicU64,
     pub map: [u8; NAME],
     pub spot: [u8; NAME],
-    pub arrive: [u8; NAME],
+    /// After a [`Ask::GiveLevel`], the hook writes the item it gave here,
+    /// so the app can name what Link got.
+    pub arrive: UnsafeCell<[u8; NAME]>,
     /// Where a warp puts Link.
     pub at: [f32; 3],
     /// Where Link stands, as a where request found him.
@@ -90,6 +97,22 @@ word_enum! {
         /// needs next, as a chest picks it. With `spot` naming what fires
         /// `map`, `arrive` instead until Link owns it, as a chest's swap does.
         GiveLevel = 9,
+        /// Show the banner of `hour`'s [`Notice`] for the item actor `map`,
+        /// with the popup for an item, as a seed's map change flow runs it.
+        Notice = 10,
+    }
+}
+
+word_enum! {
+    /// Which received-item banner a notice shows. Its words come from
+    /// GameData the app writes first: the item, the sender, the count.
+    Notice {
+        /// "ITEM from SENDER", with the pickup popup for `map`.
+        Item = 0,
+        /// "+COUNT more from SENDER".
+        Summary = 1,
+        /// "+COUNT more", for a burst from several senders.
+        Mixed = 2,
     }
 }
 
@@ -137,6 +160,9 @@ mod tests {
         assert_eq!(Ask::from_word(Ask::Give as u32), Some(Ask::Give));
         assert_eq!(Ask::from_word(7), Some(Ask::Warp));
         assert_eq!(Ask::from_word(8), Some(Ask::Where));
+        assert_eq!(Ask::from_word(10), Some(Ask::Notice));
+        assert_eq!(Notice::from_word(2), Some(Notice::Mixed));
+        assert_eq!(Notice::from_word(3), None);
         assert!(
             [
                 ARG_STEP,
@@ -144,7 +170,10 @@ mod tests {
                 ARG_STEP_NAME,
                 ARG_GIVE,
                 ARG_ACTOR,
-                ARG_EQUIP
+                ARG_EQUIP,
+                ARG_NOTICE,
+                ARG_SUMMARY,
+                ARG_MIXED
             ]
             .iter()
             .all(|a| a.ends_with(b"\0") && !a[..a.len() - 1].contains(&0))

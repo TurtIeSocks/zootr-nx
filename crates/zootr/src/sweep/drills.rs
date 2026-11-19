@@ -90,6 +90,7 @@ pub const DRILLS: &[Drill] = &[
     drill("gerudo valley chest", Skill::NoRoute, 13612880783193811229),
     drill("man on the roof", Skill::Climb, 9780435211847824593),
     drill("water temple red rupee", Skill::Swim, 11682974908842171598),
+    drill("ruto's letter, a dive", Skill::Swim, 474136620438465634),
     drill(
         "chest facing a wall, well",
         Skill::Chest,

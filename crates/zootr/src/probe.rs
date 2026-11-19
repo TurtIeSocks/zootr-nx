@@ -25,6 +25,7 @@ mod plan;
 mod poses;
 mod rooms;
 mod shapes;
+mod water;
 
 use formats::{ainb, byml, files, grep, pool, restbl, strings, unpack, unpacked};
 use logic::{checks, exits, gates, groups, pouch, settings, shops, tools};
@@ -139,6 +140,15 @@ pub enum Probe {
         /// `ActorLogicEventRequestActor`.
         #[arg(long)]
         node: Option<String>,
+        /// Instead, every placement a logic node makes appear: hash, area,
+        /// actor, the graph and node, how many times the graph is placed,
+        /// and whether its group is quiet (reads state and asks for actors,
+        /// nothing else).
+        #[arg(long)]
+        creators: bool,
+        /// With `--creators`, only the pickup checks.
+        #[arg(long, requires = "creators")]
+        checks: bool,
     },
     /// Every BYML document whose path contains this, as an indented tree,
     /// one value per line, including those inside SARC archives.
@@ -150,6 +160,9 @@ pub enum Probe {
         /// or a graph inside an actor pack as `probe grep` names it, like
         /// `Pack/Actor/NAME.pack.zs/AI/NAME.brain.root.ainb`.
         path: String,
+        /// Save the graph's raw bytes here instead of printing it.
+        #[arg(long)]
+        out: Option<std::path::PathBuf>,
     },
     /// Each check the shuffle deals: hash, era, area, name, vanilla item,
     /// and what logic says it needs there, with default settings unless
@@ -225,6 +238,29 @@ pub enum Probe {
     Climbs {
         /// A map, by its Banc param name.
         map: String,
+    },
+    /// A map's waters: each body's planes, its stretches of shore and the
+    /// swims a route takes between them.
+    Water {
+        /// A map, by its Banc param name.
+        map: String,
+        /// Also draw it from above to this SVG file: the mesh shaded by
+        /// height, each water's box, its shore points and its swims.
+        #[arg(long)]
+        svg: Option<std::path::PathBuf>,
+        /// Draw only around this point X,Y,Z: faces within 8 m of its
+        /// height, waters within 4 m.
+        #[arg(long, value_parser = point, allow_hyphen_values = true)]
+        at: Option<[f32; 3]>,
+        /// How far round `--at` to draw, in m.
+        #[arg(long, default_value_t = 30.0)]
+        within: f32,
+        /// Instead, the route from this point X,Y,Z to `--to`, swims and
+        /// all.
+        #[arg(long, value_parser = point, allow_hyphen_values = true, requires = "to")]
+        from: Option<[f32; 3]>,
+        #[arg(long, value_parser = point, allow_hyphen_values = true)]
+        to: Option<[f32; 3]>,
     },
     /// The sweep's plan for one round: each holder kind by how it'd be
     /// swept (open, talk, play, skip), and every skipped spot with why.
@@ -319,6 +355,19 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Files { pattern, out } => files(romfs, game, &pattern, out.as_deref()),
         Probe::Rooms { map } => rooms::rooms(romfs, game, &map),
         Probe::Climbs { map } => climbs::climbs(romfs, game, &map),
+        Probe::Water {
+            map,
+            from: Some(from),
+            to: Some(to),
+            ..
+        } => water::route(romfs, game, &map, from, to),
+        Probe::Water {
+            map,
+            svg,
+            at,
+            within,
+            ..
+        } => water::water(romfs, game, &map, svg.map(|f| (f, at, within))),
         Probe::Shapes {
             map, cross: true, ..
         } => shapes::crossings(romfs, game, &map),
@@ -349,14 +398,19 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             Ok(())
         }
         Probe::Exits { node } => exits(romfs, &node),
-        Probe::Gates { trace, node } => gates(romfs, trace, node),
+        Probe::Gates {
+            trace,
+            node,
+            creators,
+            checks,
+        } => gates(romfs, trace, node, creators, checks),
         Probe::Checks {
             area,
             settings,
             never,
         } => checks(romfs, area.as_deref(), &settings, never),
         Probe::Byml { pattern } => byml(romfs, game, &pattern),
-        Probe::Ainb { path } => ainb(romfs, &path),
+        Probe::Ainb { path, out } => ainb(romfs, &path, out.as_deref()),
         Probe::Rsdb { table, pattern } => rsdb(romfs, game, &table, &pattern),
         Probe::Tags { actors } => tags(romfs, game, &actors),
         Probe::Groups { file, logic } => groups(romfs, &file, &logic),

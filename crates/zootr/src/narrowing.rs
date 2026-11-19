@@ -7,9 +7,9 @@ use crate::checks::ItemCheck;
 use crate::gifts::levels;
 use crate::known::{Name, item};
 use crate::settings::{self, NewGame};
-use crate::{cows, gifts, keys, scrubs, shops};
+use crate::{cows, dampe, gifts, keys, pickups, scrubs, shops};
 
-/// One narrowing from the EIE spec's list: #1, #4, #8 and #9.
+/// One narrowing from the EIE spec's list: #1, #4 and #8.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Narrowing {
     /// A key copy at a holder whose get the hook can't credit.
@@ -19,8 +19,6 @@ pub enum Narrowing {
     AsksPouch,
     /// A minigame's own event picks what it gives.
     Minigame,
-    /// The remix's scrub seed, not understood yet.
-    ScrubSeed,
 }
 
 impl Narrowing {
@@ -30,7 +28,6 @@ impl Narrowing {
             Self::Uncredited => 1,
             Self::AsksPouch => 4,
             Self::Minigame => 8,
-            Self::ScrubSeed => 9,
         }
     }
 }
@@ -44,6 +41,8 @@ pub enum LeftOut {
     NotAHolder,
     /// A map, compass or key that its setting keeps where it is.
     Setting,
+    /// The maintainer's call, written in a spec.
+    Maintainer,
 }
 
 /// What a map or compass gives depends on the dungeon it's found in.
@@ -96,8 +95,8 @@ pub(crate) fn left_out(c: &ItemCheck, open: Let) -> Option<LeftOut> {
     if c.item.starts_with("Item_Dungeon_") && !moves {
         return Some(LeftOut::Setting);
     }
-    if c.item == item::SCRUB_BUSINESS_SEED {
-        return Some(LeftOut::Narrowed(Narrowing::ScrubSeed));
+    if dampe::REPEAT_CHESTS.contains(&c.hash) {
+        return Some(LeftOut::Maintainer);
     }
     // Minigame events pick the outcome themselves, bar the prize chests.
     let minigame = c
@@ -112,13 +111,16 @@ pub(crate) fn left_out(c: &ItemCheck, open: Let) -> Option<LeftOut> {
 /// each puts the pouch questions in front of its grant (`gifts::levels`).
 /// A prize chest is a chest to the hook, which gives a line's level there
 /// and swaps a Red Rupee copy for ammo (`ammo::line`). A shop slot shows
-/// each step on a shelf of its own (`shops::steps`).
+/// each step on a shelf of its own (`shops::steps`), and a pickup in a
+/// placement of its own (`pickups::steps`), bar one a logic module makes
+/// or watches.
 pub(crate) fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
     let picks = gifts::of(check).is_some()
         || scrubs::of(check).is_some()
         || cows::is_cow(check)
         || shops::is_shop(check)
-        || gifts::is_prize(check);
+        || gifts::is_prize(check)
+        || pickups::steps_at(check);
     !picks && levels::asks(item, progressive)
 }
 
@@ -159,6 +161,7 @@ pub(crate) mod tests {
             get_event: None,
             substitute: None,
             presence: None,
+            watched: crate::checks::Watched::No,
         }
     }
 
@@ -237,6 +240,35 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn a_pickup_holds_every_line_level_and_ammo_unless_logic_watches_it() {
+        needs_names!();
+        let pot = ItemCheck {
+            holder: actor::OBJ_POT_A_01.to_string(),
+            ..chest(1, "Item_A")
+        };
+        let watched = ItemCheck {
+            watched: crate::checks::Watched::Loud,
+            ..pot.clone()
+        };
+        for on in [false, true] {
+            for line in progressive::LINES {
+                for &(level, _) in line.iter() {
+                    assert!(allowed(&pot, level, on), "{level}");
+                }
+            }
+            for (ammo, _) in ammo::NEEDS {
+                assert!(allowed(&pot, ammo, on), "{ammo}");
+                assert_eq!(refusal(&watched, ammo, on), Some(Narrowing::AsksPouch));
+            }
+        }
+        assert_eq!(
+            refusal(&watched, item::HOOKSHOT, true),
+            Some(Narrowing::AsksPouch)
+        );
+        assert!(allowed(&watched, item::HOOKSHOT, false));
+    }
+
+    #[test]
     fn key_copies_go_in_chests_and_every_gift() {
         needs_names!();
         let ring = crate::key_tints::ring(1);
@@ -293,9 +325,16 @@ pub(crate) mod tests {
             why(&chest(1, item::DUNGEON_MAP.get())),
             Some(LeftOut::Setting)
         );
-        let seed = chest(1, item::SCRUB_BUSINESS_SEED.get());
-        assert_eq!(why(&seed), Some(LeftOut::Narrowed(Narrowing::ScrubSeed)));
+        // Nothing reads the Business Scrub Seed, so its chests are dealt.
+        assert_eq!(why(&chest(1, item::SCRUB_BUSINESS_SEED.get())), None);
         assert_eq!(why(&game), Some(LeftOut::Narrowed(Narrowing::Minigame)));
+        for hash in dampe::REPEAT_CHESTS {
+            let repeat = ItemCheck {
+                hash,
+                ..game.clone()
+            };
+            assert_eq!(why(&repeat), Some(LeftOut::Maintainer));
+        }
     }
 
     #[test]

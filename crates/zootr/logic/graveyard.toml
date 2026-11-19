@@ -1,0 +1,9 @@
+# Graveyard. Without a rule here a check takes every obstacle on its map,
+# and one on the adult map needs the Hookshot.
+
+# Under a grave Link pulls, at either age. The maintainer checked it on
+# vanilla (2026-11-18): nothing else is needed.
+[[check]]
+hash = 9622128545943056087
+name = "South Piece of Heart (big)"
+needs = "always"

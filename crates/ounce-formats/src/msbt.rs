@@ -147,6 +147,13 @@ impl Msbt {
         Ok(())
     }
 
+    /// Every label, in the order of their texts.
+    pub fn labels(&self) -> Result<Vec<&str>> {
+        let mut all: Vec<_> = self.buckets()?.iter().flatten().collect();
+        all.sort_by_key(|(_, i)| *i);
+        Ok(all.into_iter().map(|(label, _)| label.as_str()).collect())
+    }
+
     /// Labels outside the bucket their hash picks.
     pub fn misplaced(&self) -> Vec<&str> {
         let Ok(buckets) = self.buckets() else {
@@ -433,6 +440,7 @@ mod tests {
             ];
             msbt.set("new_one", &parts).unwrap();
             msbt.set("a", &[Part::Text("changed".into())]).unwrap();
+            assert_eq!(msbt.labels().unwrap(), ["a", "new_one"]);
             let data = msbt.to_binary();
             let back = Msbt::parse(&data).unwrap();
             assert_eq!(back.get("new_one").unwrap().unwrap(), parts);

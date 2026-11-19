@@ -5,6 +5,7 @@ const words = "Stopped: the targets are as they were";
 
 vi.mock("@tauri-apps/api/core", () => ({ Channel: class {} }));
 vi.mock("@/bindings", () => ({
+  STEPS: [],
   commands: new Proxy(
     {},
     {

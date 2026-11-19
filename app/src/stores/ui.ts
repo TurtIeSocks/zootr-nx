@@ -27,6 +27,12 @@ export const COLUMNS = { time: 48, name: 360, type: 112 };
 export type Widths = typeof COLUMNS;
 
 /** View state, kept in `ui.json` across tabs and restarts. */
+/** The Play page's folders. */
+export type PlayTab = "standard" | "archipelago" | "history";
+
+/** Which seeds History lists. */
+export type HistoryFilter = "all" | "standard" | "archipelago";
+
 export interface Ui {
   /** The view showing. */
   tab: Tab | "Settings";
@@ -56,6 +62,9 @@ export interface Ui {
   spoiler: { tab: SpoilerTab; heroOnly: boolean; query: string };
   /** The seed or share code typed into New seed. */
   newSeed: { seed: string };
+  /** The Play page's open folder, or null to pick by the installed seed,
+   * and History's filter. */
+  play: { tab: PlayTab | null; history: HistoryFilter };
   /** Each Archipelago seed's server and password, by history id. */
   ap: { rooms: Record<number, { server: string; password: string }> };
   /** The Items tab's banner about zootr-nx's own icons was dismissed. */
@@ -111,6 +120,7 @@ const INITIAL: Ui = {
   checks: { query: "", filter: "all" },
   spoiler: { tab: "spheres", heroOnly: false, query: "" },
   newSeed: { seed: "" },
+  play: { tab: null, history: "all" },
   ap: { rooms: {} },
   items: { bannerDismissed: false },
   update: { skipped: null },

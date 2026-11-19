@@ -7,8 +7,8 @@ use core::sync::atomic::Ordering;
 use super::rt::{memcpy, memset};
 use super::{at, level_for, name, owned, shared};
 use crate::{
-    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_STEP, ARG_STEP_NAME, Ask, GUARD, Mailbox,
-    NAME, Offsets, Outcome, Spot, play_event,
+    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
+    ARG_SUMMARY, Ask, GUARD, Mailbox, NAME, Notice, Offsets, Outcome, Spot, play_event,
 };
 
 type Malloc = unsafe extern "C" fn(usize) -> usize;
@@ -56,6 +56,10 @@ const COMPONENTS: usize = 624;
 pub(super) const POSITION: usize = 796;
 const CONTROLLER: [usize; 4] = [80, 32, 16, 8];
 
+/// Run the request the app left in the mailbox. Far code: only a dev
+/// seed calls it, and most calls find no request.
+#[inline(never)]
+#[unsafe(link_section = ".far")]
 pub unsafe fn serve(main: usize, o: &Offsets, actor: usize) {
     let mail = &shared(main).dev;
     let asked = mail.asked.load(Ordering::Acquire);
@@ -75,6 +79,7 @@ pub unsafe fn serve(main: usize, o: &Offsets, actor: usize) {
         Some(Ask::Play) => unsafe { play(main, o, mail, actor) },
         Some(Ask::Warp) => unsafe { warp(main, o, mail, actor) },
         Some(Ask::Where) => unsafe { locate(mail, actor) },
+        Some(Ask::Notice) => unsafe { notice(main, o, mail, actor) },
         None => Outcome::Unknown,
     };
     mail.outcome.store(outcome as u32, Ordering::Relaxed);
@@ -287,12 +292,13 @@ unsafe fn teleport(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Ou
     if last != 0 && now.wrapping_sub(last) < GUARD * rate {
         return Outcome::Soon;
     }
-    let texts = [&mail.map, &mail.spot, &mail.arrive];
+    let texts = [&mail.map, &mail.spot, unsafe { &*mail.arrive.get() }];
     let args = [
         Arg::Text(b"NextBanc\0", 0),
         Arg::Text(b"NextStartPos\0", 1),
         Arg::Text(b"BootEventName\0", 2),
         Arg::Bool(b"IsCheckAir\0", false),
+        Arg::Bool(ARG_NOTICE, false),
         Arg::Bool(ARG_GIVE, false),
         Arg::Bool(ARG_STEP, false),
     ];
@@ -309,10 +315,12 @@ unsafe fn teleport(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Ou
 /// A quest step: the same event with `ZootrStep` set, which a dev
 /// seed's flow answers by running the step, `map` the quest and
 /// `spot` its step, and ending. It changes no map, so the teleport
-/// guard doesn't apply. `ZootrGive` is asked first, so it's named false.
+/// guard doesn't apply. `ZootrNotice` and `ZootrGive` are asked first,
+/// so they're named false.
 unsafe fn step(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcome {
     let texts = [&mail.map, &mail.spot];
     let args = [
+        Arg::Bool(ARG_NOTICE, false),
         Arg::Bool(ARG_GIVE, false),
         Arg::Bool(ARG_STEP, true),
         Arg::Text(ARG_CHALLENGE, 0),
@@ -335,9 +343,33 @@ unsafe fn give(main: usize, o: &Offsets, mail: &Mailbox, actor: usize, level: bo
     };
     let texts = [item];
     let args = [
+        Arg::Bool(ARG_NOTICE, false),
         Arg::Bool(ARG_GIVE, true),
         Arg::Text(ARG_ACTOR, 0),
         Arg::Bool(ARG_EQUIP, mail.hour != 0),
+    ];
+    // Copied first: `item` may be `arrive` itself.
+    let given = *item;
+    let outcome = unsafe { request_map_change(main, o, actor, EVENT, &texts, &args) };
+    if level {
+        unsafe { *mail.arrive.get() = given };
+    }
+    outcome
+}
+
+/// A received item's notice: the same event with `ZootrNotice` set, which
+/// a seed's flow answers by showing the banner `hour` picks, and for an
+/// item the popup for the actor `map` names. Neither stops Link.
+unsafe fn notice(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcome {
+    let Some(kind) = Notice::from_word(mail.hour) else {
+        return Outcome::Unknown;
+    };
+    let texts = [&mail.map];
+    let args = [
+        Arg::Bool(ARG_NOTICE, true),
+        Arg::Text(ARG_ACTOR, 0),
+        Arg::Bool(ARG_SUMMARY, kind != Notice::Item),
+        Arg::Bool(ARG_MIXED, kind == Notice::Mixed),
     ];
     unsafe { request_map_change(main, o, actor, EVENT, &texts, &args) }
 }
@@ -363,7 +395,11 @@ unsafe fn pick<'a>(main: usize, mail: &'a Mailbox, picked: &'a mut [u8; NAME]) -
             Some((_, mut levels, _)) => levels.any(|l| owns(l.pouch)),
             None => owns(fires),
         };
-        return if has { item } else { &mail.arrive };
+        return if has {
+            item
+        } else {
+            unsafe { &*mail.arrive.get() }
+        };
     }
     let now = unsafe { name(item.as_ptr()) };
     let Some(level) = now.and_then(|now| unsafe { level_for(main, &table, now) }) else {

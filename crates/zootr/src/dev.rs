@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use serde::{Deserialize, Serialize};
-use zootr_hook::{Ask, GUARD, MAILBOX, Mailbox, NAME, Outcome, SWITCHES, switches, traps};
+use zootr_hook::{Ask, GUARD, MAILBOX, Mailbox, NAME, Notice, Outcome, SWITCHES, switches, traps};
 
 use crate::ammo;
 use crate::checks::{Swap, flat};
@@ -32,6 +32,10 @@ pub(crate) const CHILD: &str = "_Child";
 pub(crate) const ADULT: &str = "_Adult";
 /// Link's yaw (GameData, unnamed).
 const LINK_YAW: u32 = 0x1ea93bd8;
+/// The Iron Boots on (a Bool): Link sinks, and the HUD shows them. A
+/// member of `PlayerStatus` no name table names, found by putting them on
+/// from the menu (Mac, 2026-11-17).
+const BOOTS_ON: &str = "#a6719419";
 /// Link's live hearts, in quarters (`PlayerStatus.Life` is only the save's
 /// copy).
 pub(crate) const HEARTS: u32 = switches::HEARTS;
@@ -127,6 +131,9 @@ pub enum Request {
     Warp([f32; 3]),
     /// Where Link stands.
     Where,
+    /// A received item's banner, with the popup for the item actor of a
+    /// [`Notice::Item`]. Its words are GameData: see [`Dev::notice`].
+    Notice(String, Notice),
 }
 
 /// Why the hook refused a request while an event plays.
@@ -222,6 +229,11 @@ impl<M: Memory> Dev<M> {
         Ok(floats::<1>(&bytes)[0])
     }
 
+    /// Whether Link wears the Iron Boots.
+    pub fn boots(&self) -> Result<bool> {
+        self.flag(BOOTS_ON)
+    }
+
     /// Link's hearts now, in quarters.
     pub fn hearts(&self) -> Result<i32> {
         let bytes = self.value_of(HEARTS)?;
@@ -299,6 +311,7 @@ impl<M: Memory> Dev<M> {
             (Request::Step(..) | Request::Give(..) | Request::GiveLevel(..), _) => "ran",
             (Request::Warp(_), _) => "warped",
             (Request::Where, _) => "found",
+            (Request::Notice(..), _) => "shown",
             _ => "sent",
         })
     }
@@ -323,6 +336,7 @@ impl<M: Memory> Dev<M> {
             Request::Play(event) => (Ask::Play, 0, Some([&**event, "", ""])),
             Request::Warp(_) => (Ask::Warp, 0, None),
             Request::Where => (Ask::Where, 0, None),
+            Request::Notice(actor, kind) => (Ask::Notice, *kind as u32, Some([&**actor, "", ""])),
         };
         if let Some(texts) = texts {
             self.game
@@ -392,26 +406,36 @@ impl<M: Memory> Dev<M> {
     /// Give Link `count` of an item, as `zootr give` does: the game's own
     /// grant once, then the count written over its stock.
     pub fn give(&self, gd: &GameData, actor: &str, count: i32) -> Result<()> {
-        self.grant(plan_give(gd, actor, count)?, false)
+        self.grant(plan_give(gd, actor, count)?, false).map(drop)
     }
 
     /// One of an item a seed deals, as a chest gives it: a progressive
     /// line's at the level Link needs next, ammo as a red rupee until Link
     /// owns what fires it. The deal vouches for the item, so unlike
-    /// [`Dev::give`] it isn't checked against the pouch.
-    pub fn give_level(&self, actor: &str) -> Result<()> {
-        self.grant(grants(actor), true)
+    /// [`Dev::give`] it isn't checked against the pouch. Says what Link
+    /// got: the level, or the swap's item.
+    pub fn give_level(&self, actor: &str) -> Result<String> {
+        let got = self.grant(grants(actor), true)?;
+        Ok(got.unwrap_or_else(|| actor.to_owned()))
     }
 
-    fn grant(&self, jobs: Vec<Grant>, level: bool) -> Result<()> {
+    /// Run `jobs`, and say what the first game grant gave.
+    fn grant(&self, jobs: Vec<Grant>, level: bool) -> Result<Option<String>> {
+        let mut got = None;
         for job in jobs {
             match job {
                 Grant::Game(actor, equip) => {
-                    let request = match level && !equip {
+                    let leveled = level && !equip;
+                    let request = match leveled {
                         true => Request::GiveLevel(actor.clone(), ammo::swap(&actor)),
-                        false => Request::Give(actor, equip),
+                        false => Request::Give(actor.clone(), equip),
                     };
                     self.ask(&request)?;
+                    let given = match leveled {
+                        true => self.given()?,
+                        false => None,
+                    };
+                    got.get_or_insert(given.unwrap_or(actor));
                     self.settle()?;
                 }
                 Grant::Stock(hash, count) => {
@@ -419,7 +443,26 @@ impl<M: Memory> Dev<M> {
                 }
             }
         }
-        Ok(())
+        Ok(got)
+    }
+
+    /// The item a level give gave, as the hook wrote it back, or `None`
+    /// when it wrote nothing (a hook from before the write-back).
+    fn given(&self) -> Result<Option<String>> {
+        let at = self.main + u64::from(MAILBOX) + offset_of!(Mailbox, arrive) as u64;
+        let raw = self.game.read(at, NAME)?;
+        let name = raw.split(|&b| b == 0).next().unwrap_or_default();
+        Ok((!name.is_empty()).then(|| String::from_utf8_lossy(name).into_owned()))
+    }
+
+    /// Show `shown`'s banner: write the GameData its words read, then ask
+    /// the hook for it.
+    pub fn notice(&self, shown: &crate::notice::Shown) -> Result<()> {
+        for (name, value) in shown.gamedata() {
+            live::set(&self.game, self.global, live::hash(name)?, &value)?;
+        }
+        self.ask(&Request::Notice(shown.item.clone(), shown.kind))
+            .map(drop)
     }
 
     /// Wait for a teleport to land in `map` and its arrival event to end.

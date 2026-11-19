@@ -38,3 +38,4 @@ class TestOutput(ZnxTestBase):
         self.assertEqual(seed["settings"]["chest-size"], "small")
         self.assertEqual(seed["start"], [ITEM_NAME_TO_ID["Boomerang"]])
         self.assertIs(seed["death_link"], True)
+        self.assertEqual(seed["players"], {str(self.player): self.multiworld.player_name[self.player]})

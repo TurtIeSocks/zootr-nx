@@ -39,15 +39,43 @@ The builds aren't signed yet, so macOS and Windows warn the first time:
 
 ### Play
 
+- The Play page files seeds in three tabs: Standard, Archipelago and
+  History.
 - Generate a seed from your settings, from a seed number, or from a friend's
-  share code, which carries the seed and its settings together.
+  share code, which carries the seed and its settings together. Generate &
+  install (⌘↵) installs it, Generate only (⇧⌘↵) just adds it to History,
+  and the button shows each step while it runs, with Stop on hover.
 - Each seed shows as a row of icons instead of a number.
 - Every seed stays in the history with its spoiler, a name and a note, and
-  can be installed again.
+  can be installed again. History filters by Standard or Archipelago.
 - A bar flags settings you've changed since the installed seed (or from the
-  defaults, before the first seed), lists them, and makes a new seed from
+  defaults, before the first seed, or the last standard seed while an
+  Archipelago slot is installed), lists them, and makes a new seed from
   them.
 - Play launches the game through whichever target you pick.
+
+### Archipelago
+
+- Joining a friend's game needs only what the host sends: your `.apznx`
+  and the room's server. No Archipelago install.
+- Hosting needs Archipelago and `znx.apworld` from the same release. The
+  Archipelago tab's Save apworld saves the copy built with your app. The
+  [setup guide](ap/znx/docs/setup_en.md) has the steps for both.
+- The Play page's Archipelago tab installs your slot from its `.apznx`
+  (drop it on the window, or Browse…), with the settings the host
+  generated it with.
+- Its Room section connects the running game to a room. It sends your
+  checks, gives Link what other players find for him, and reports your
+  goal. The server and password are kept for each seed, and the room's
+  status shows under the installed seed from every tab.
+- Its Client log lists what was sent and received, filterable by items or
+  room notes.
+- An item from another world shows at the top of the screen with its
+  sender once Link is in play: "Hookshot from Saria". A big release shows
+  3, then a count of the rest.
+- A check holding another game's item shows a model coloured by its
+  Archipelago class, and its get names the player it goes to.
+- DeathLink works when your options turn it on.
 
 ### Checks
 

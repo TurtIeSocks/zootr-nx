@@ -39,6 +39,10 @@ pub struct ApSeed {
     /// The slot's DeathLink option. Seeds from before it read as off.
     #[serde(default)]
     pub death_link: bool,
+    /// Every slot's name, by number, to name who sends Link an item.
+    /// Seeds from before it name no one.
+    #[serde(default)]
+    pub players: BTreeMap<u32, String>,
     /// By check hash.
     pub placements: BTreeMap<u64, Placed>,
 }
@@ -120,6 +124,8 @@ impl ApSeed {
             start: Vec<u64>,
             #[serde(default)]
             death_link: bool,
+            #[serde(default)]
+            players: BTreeMap<u32, String>,
         }
         let seed: SeedFile = json(&files, "seed.json")?;
         Ok(Self {
@@ -130,6 +136,7 @@ impl ApSeed {
             player: seed.player,
             start: seed.start,
             death_link: seed.death_link,
+            players: seed.players,
             placements: json(&files, "placements.json")?,
         })
     }

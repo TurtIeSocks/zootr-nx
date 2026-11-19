@@ -141,6 +141,9 @@ class ZnxWorld(World):
             "slot": names[self.player],
             "player": self.player,
             "death_link": bool(self.options.death_link.value),
+            # Every slot by number, so the mod can name whoever sends Link
+            # an item.
+            "players": {player: names[player] for player in self.multiworld.player_ids},
             # The server never sends the start inventory with our
             # items_handling, so the mod hands it over.
             "start": [
