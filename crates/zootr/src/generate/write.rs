@@ -316,7 +316,20 @@ pub fn write_mod(
         .collect();
     let mut ran = picked::pairs(&picked);
     ran.extend(steps.copies.iter().copied());
+    // A loud holder's copies get nodes of their own instead.
+    let loud: Vec<(u64, u64)> = (ran.iter().copied())
+        .filter(|(of, _)| {
+            pieces
+                .iter()
+                .any(|p| p.hash == *of && p.watched == checks::Watched::Loud)
+        })
+        .collect();
     ran.retain(|(of, _)| quiet.contains(of));
+    let mut wiring = pickups::nodes::Wiring::default();
+    let creators = match loud.is_empty() {
+        true => HashMap::new(),
+        false => pickups::nodes::creators(romfs)?,
+    };
     let mut tabled = pickups::tabled(&pieces);
     // A step's copy is placed with its holder's table, which goes too.
     let copied = steps.copies.iter().filter(|(of, _)| tabled.contains(of));
@@ -334,7 +347,8 @@ pub fn write_mod(
         // After the twins, so each step is a copy of a holder standing until
         // picked, and before the fields, which give each step its stand-in.
         let stepped = steps.place(&mut doc.root)?;
-        let grouped = pickups::groups::copy(&mut doc.root, &ran)?;
+        let grouped = pickups::groups::copy(&mut doc.root, &ran)?
+            | wiring.refer(&mut doc.root, &loud, &creators)?;
         // Before the fields, which give each step's copy its stand-in.
         let shelved = shelves.place(&mut doc.root)?;
         let mut changed = checks::set_fields(&mut doc.root, &fields)?;
@@ -372,6 +386,7 @@ pub fn write_mod(
             found.extend(changed);
         }
     }
+    wiring.write(romfs, &mut builder)?;
     for f in &fields {
         let (hash, ..) = checks::field(f)?;
         ensure!(found.contains(&hash), "no actor with hash {hash} for {f}");

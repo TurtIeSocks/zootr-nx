@@ -22,6 +22,7 @@ use crate::warp;
 use crate::world::presence_of;
 
 pub mod groups;
+pub mod nodes;
 mod stale;
 pub mod steps;
 
@@ -473,10 +474,10 @@ pub fn is_pickup(check: &ItemCheck) -> bool {
 }
 
 /// Whether `check` is a pickup that can show a line's level or ammo a step
-/// at a time ([`steps`]): one no group that writes or plays makes or
-/// watches, holding whatever it's dealt.
+/// at a time ([`steps`]), holding whatever it's dealt. A logic module
+/// watching it runs each step's copy too ([`groups`], [`nodes`]).
 pub(crate) fn steps_at(check: &ItemCheck) -> bool {
-    check.watched != Watched::Loud && kind_of(check).is_some_and(|k| k.named.is_none())
+    kind_of(check).is_some_and(|k| k.named.is_none())
 }
 
 /// A holder whose item changed, and the actor its placement field names.
@@ -764,18 +765,14 @@ mod tests {
     }
 
     #[test]
-    fn a_holder_a_loud_group_makes_or_watches_never_steps() {
+    fn quiet_and_loud_groups_watch_holders_that_step_alike() {
         let Some(romfs) = dev_dump() else { return };
         // Each kind's checks quiet groups watch, then loud ones, then all.
         let watched = |kind: &Kind| {
             let mut checks = kind.checks(&romfs).unwrap();
             watch(&romfs, &mut checks).unwrap();
             let by = |w| checks.iter().filter(|c| c.watched == w).count();
-            assert!(
-                checks
-                    .iter()
-                    .all(|c| (c.watched == Watched::Loud) != steps_at(c))
-            );
+            assert!(checks.iter().all(steps_at));
             (by(Watched::Quiet), by(Watched::Loud), checks.len())
         };
         // Each boss's heart, the Fire Arrows and Ruto's letter appear once
