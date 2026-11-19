@@ -54,7 +54,10 @@ impl Shared {
                 note,
                 urgent,
                 both,
-            } => answer.place = Some(q.join(&session, &note, urgent, both, now())?),
+                on,
+            } => {
+                answer.place = Some(q.join(&session, &note, urgent, both, on.as_deref(), now())?)
+            }
             Ask::Wait { session } => loop {
                 let held: Vec<_> = q.holds(&session).map(|g| g.name.as_str()).collect();
                 if !held.is_empty() {
@@ -219,6 +222,7 @@ mod tests {
             note: "".into(),
             urgent: false,
             both: false,
+            on: None,
         };
         turn.ask(ask).unwrap()
     }
@@ -294,6 +298,7 @@ mod tests {
             note: "".into(),
             urgent: false,
             both: true,
+            on: None,
         };
         turn.ask(ask).unwrap();
         let wait = turn.ask(Ask::Wait {
@@ -313,12 +318,17 @@ mod tests {
         let join = r#"{"op":"join","session":"a","note":"","urgent":false}"#;
         assert!(matches!(
             serde_json::from_str(join).unwrap(),
-            Ask::Join { both: false, .. }
+            Ask::Join {
+                both: false,
+                on: None,
+                ..
+            }
         ));
         let renew: Ask = serde_json::from_str(r#"{"op":"renew","session":"a"}"#).unwrap();
         assert!(matches!(renew, Ask::Renew { here, .. } if here.is_empty()));
         let q = r#"{"games":[],"waiting":[{"session":"a","note":"","urgent":false,"since":0}]}"#;
-        assert!(!serde_json::from_str::<Queue>(q).unwrap().waiting[0].both);
+        let waiter = &serde_json::from_str::<Queue>(q).unwrap().waiting[0];
+        assert!(!waiter.both && waiter.on.is_none());
     }
 
     #[test]
