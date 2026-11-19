@@ -525,8 +525,7 @@ impl<M: Memory> Dev<M> {
     /// next request isn't refused for it.
     fn settle(&self) -> Result<()> {
         std::thread::sleep(TICK);
-        wait_while(|| self.event(), SETTLE, TICK)
-            .context("the request's event never ended")
+        wait_while(|| self.event(), SETTLE, TICK).context("the request's event never ended")
     }
 
     /// Run quest `challenge`'s `step` through the quest system, and wait
