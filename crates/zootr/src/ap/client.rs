@@ -195,20 +195,32 @@ fn give_next(
     Ok(Some((given, got)))
 }
 
-/// Give every received item still owed, each index and what Link got to
-/// `gave`, with the game: a burst's first notices show while the rest are
-/// given. A pass doesn't stop at one: over a bridge, each look between
-/// passes is slow.
-fn give_pending<G: Game>(
+/// Give the next item owed, if any, then show the notice due: between a
+/// burst's gives only its first few, so the rest aren't held up. Its index
+/// and what Link got. `sender` says who sent an index, as it's given.
+///
+/// One give a pass, so the room is answered between gives: the server
+/// drops a client that leaves its keepalive unanswered for 20 s, and a
+/// burst over a bridge takes longer than that.
+fn give_one<G: Game>(
     game: &mut G,
     book: &Book,
     received: &[i64],
-    mut gave: impl FnMut(&mut G, usize, &str) -> Result<()>,
-) -> Result<()> {
-    while let Some((index, got)) = give_next(game, book, received)? {
-        gave(game, index, &got)?;
+    notices: &mut Notices,
+    mut sender: impl FnMut(usize) -> Option<u32>,
+    now: Instant,
+) -> Result<Option<(usize, String)>> {
+    let gave = give_next(game, book, received)?;
+    match &gave {
+        Some((index, got)) => {
+            if let Some(slot) = sender(*index) {
+                notices.got(got, slot);
+            }
+            notices.look_giving(game, now)?;
+        }
+        None => drop(notices.look(game, now)?),
     }
-    Ok(())
+    Ok(gave)
 }
 
 /// Where and as whom to connect.
@@ -307,6 +319,8 @@ fn session(
     let mut heard = Vec::new();
     let mut connected = false;
     let mut next_look = Instant::now();
+    // An item may still be owed: give it on the next pass, unslept.
+    let mut owed = false;
     loop {
         if !matches!(stop.try_recv(), Err(TryRecvError::Empty)) {
             return End::Stopped;
@@ -334,9 +348,9 @@ fn session(
                     _ => End::Lost(e.to_string(), connected),
                 };
             }
-            ConnectionState::Connected(client) if Instant::now() >= next_look => {
+            ConnectionState::Connected(client) if owed || Instant::now() >= next_look => {
                 next_look = Instant::now() + LOOK;
-                tick(client, book, game, &mut ledger, &mut notices, note);
+                owed = tick(client, book, game, &mut ledger, &mut notices, note);
                 if book.death_link {
                     // The room's own bounce comes back to us too.
                     let me = client.this_player().alias().to_string();
@@ -344,13 +358,16 @@ fn session(
                     death_link(client, game, &mut deaths, &me, note);
                 }
             }
-            _ => {}
+            _ => owed = false,
         }
-        thread::sleep(POLL);
+        if !owed {
+            thread::sleep(POLL);
+        }
     }
 }
 
-/// One look, and what it sends.
+/// One look, what it sends, and the next give. True when it gave one, so
+/// another may be owed.
 fn tick(
     client: &mut ap::Client,
     book: &Book,
@@ -358,10 +375,13 @@ fn tick(
     ledger: &mut Ledger,
     notices: &mut Notices,
     note: &mut impl FnMut(Note),
-) {
+) -> bool {
     let look = match ledger.look(game) {
         Ok(look) => look,
-        Err(e) => return note(Note::Trouble(format!("{e:#}"))),
+        Err(e) => {
+            note(Note::Trouble(format!("{e:#}")));
+            return false;
+        }
     };
     let ids = book.locations(&look.send);
     if !ids.is_empty() {
@@ -385,18 +405,20 @@ fn tick(
         }
     }
     let received: Vec<i64> = found(client).map(|r| r.item().id()).collect();
-    let given = give_pending(game, book, &received, |game, index, got| {
-        if let Some(r) = found(client).nth(index) {
-            notices.got(got, r.sender().slot());
-            note(Note::Received {
-                item: r.item().name().to_string(),
-                from: r.sender().name().to_string(),
-            });
+    let sender = |index| {
+        let r = found(client).nth(index)?;
+        note(Note::Received {
+            item: r.item().name().to_string(),
+            from: r.sender().name().to_string(),
+        });
+        Some(r.sender().slot())
+    };
+    match give_one(game, book, &received, notices, sender, Instant::now()) {
+        Ok(gave) => gave.is_some(),
+        Err(e) => {
+            note(Note::Trouble(format!("{e:#}")));
+            false
         }
-        notices.look_giving(game, Instant::now()).map(drop)
-    });
-    if let Err(e) = given.and_then(|()| notices.look(game, Instant::now()).map(drop)) {
-        note(Note::Trouble(format!("{e:#}")));
     }
 }
 
@@ -649,31 +671,38 @@ pub(super) mod tests {
         );
     }
 
+    /// [`give_one`] until nothing is owed: each index given, and how many
+    /// notices had shown after each give.
+    fn give_all(game: &mut Fake, notices: &mut Notices, received: &[i64]) -> Vec<(usize, usize)> {
+        let (book, now, mut out) = (book(), Instant::now(), vec![]);
+        while let Some((i, _)) = give_one(game, &book, received, notices, |_| Some(0), now).unwrap()
+        {
+            out.push((i, game.notices.len()));
+        }
+        out
+    }
+
     #[test]
-    fn one_pass_gives_every_item_still_owed() {
-        let (mut game, book) = (Fake::default(), book());
-        let mut gave = vec![];
-        let record = |_: &mut Fake, i, _: &str| {
-            gave.push(i);
-            Ok(())
-        };
-        give_pending(&mut game, &book, &[2, 1, 2], record).unwrap();
-        assert_eq!(gave, [0, 1, 2]);
-        assert_eq!(game.given.len(), 3);
+    fn a_pass_gives_one_item_so_the_room_is_answered_between() {
+        let (mut game, book, mut notices) = (Fake::default(), book(), Notices::default());
+        let now = Instant::now();
+        let gave = give_one(&mut game, &book, &[2, 1, 2], &mut notices, |_| Some(0), now);
+        assert_eq!(gave.unwrap().map(|(i, _)| i), Some(0));
+        assert_eq!(game.given.len(), 1);
+        let given: Vec<_> = give_all(&mut game, &mut notices, &[2, 1, 2])
+            .iter()
+            .map(|g| g.0)
+            .collect();
+        assert_eq!(given, [1, 2]);
     }
 
     #[test]
     fn a_burst_shows_its_first_notice_before_the_rest_are_given() {
-        let (mut game, book, mut notices) = (Fake::default(), book(), Notices::default());
-        let now = Instant::now();
-        let mut shown_at = vec![];
-        give_pending(&mut game, &book, &[2, 1, 2], |game, _, got| {
-            notices.got(got, 0);
-            notices.look(game, now)?;
-            shown_at.push(game.notices.len());
-            Ok(())
-        })
-        .unwrap();
+        let (mut game, mut notices) = (Fake::default(), Notices::default());
+        let shown_at: Vec<_> = give_all(&mut game, &mut notices, &[2, 1, 2])
+            .iter()
+            .map(|g| g.1)
+            .collect();
         assert_eq!(
             shown_at,
             [1, 1, 1],
