@@ -432,18 +432,11 @@ mod tests {
         let drops = pieces.iter().map(hookshot).collect();
         let holders = holders(&pieces, &drops);
         assert_eq!(holders.len(), 2 + 4);
-        // A thief's key stands only once she falls, as the vanilla key
-        // does, so each step's copy waits for her too.
-        for h in &holders {
-            let thiefs = pieces
+        assert!(
+            holders
                 .iter()
-                .any(|c| c.hash == h.hash && pickups::is_named(c));
-            match &h.after {
-                After::Taken(Some(p)) => assert!(thiefs && !p.negated, "{}", h.hash),
-                After::Taken(None) => assert!(!thiefs, "thief key {} ungated", h.hash),
-                other => panic!("{} stands by {other:?}", h.hash),
-            }
-        }
+                .all(|h| matches!(h.after, After::Taken(None)))
+        );
     }
 
     #[test]

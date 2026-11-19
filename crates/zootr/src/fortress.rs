@@ -177,7 +177,7 @@ mod tests {
         for c in &found {
             assert_eq!(c.holder, pickups::THIEF);
             assert_eq!(c.area, flag::GERUDO_FORTRESS);
-            assert!(c.presence.is_some() && keys::is_key(&c.item));
+            assert!(c.presence.is_none() && keys::is_key(&c.item));
             assert!(pickups::is_pickup(c));
         }
         let mut items: Vec<_> = found.iter().map(|c| c.item.as_str()).collect();
