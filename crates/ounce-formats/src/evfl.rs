@@ -463,7 +463,7 @@ impl Flowchart {
 
     /// The index of `template`'s actor, added with `template`'s names and
     /// params if the flow lacks it.
-    fn actor_like(&mut self, template: &Actor) -> usize {
+    pub fn actor_like(&mut self, template: &Actor) -> usize {
         let same =
             |a: &Actor| a.name == template.name && a.secondary_name == template.secondary_name;
         match self.actors.iter().position(same) {
