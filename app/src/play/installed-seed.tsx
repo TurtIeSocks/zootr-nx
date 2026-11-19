@@ -4,11 +4,11 @@ import { Meter } from "@/components/meter";
 import { RequestError } from "@/components/request-error";
 import { SeedIcons } from "@/components/seed-icons";
 import { Badge } from "@/components/ui/badge";
-import { when } from "@/lib/format";
+import { nameOf, when } from "@/lib/format";
 import { RequestProvider } from "@/lib/request-provider";
 import { summaryParts } from "@/lib/settings";
-import { ApClient } from "@/play/ap-client";
 import { PlayButtonGroup } from "@/play/play-button-group";
+import { RoomStatus } from "@/play/room-status";
 import { ExtrasBadges, Name } from "@/play/seed";
 import { useConfig } from "@/stores/config";
 import { useSeeds } from "@/stores/seeds";
@@ -33,7 +33,7 @@ export function InstalledSeed() {
             </div>
             {installed ? (
               <>
-                {installed.label.name ? (
+                {nameOf(installed) ? (
                   <Name entry={installed} className="type-display-lg mt-1.5" />
                 ) : (
                   <div className="mt-2.5">
@@ -41,9 +41,7 @@ export function InstalledSeed() {
                   </div>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-ink-muted">
-                  {installed.label.name && (
-                    <SeedIcons icons={installed.icons} />
-                  )}
+                  {nameOf(installed) && <SeedIcons icons={installed.icons} />}
                   <span>{when(installed.time)}</span>
                 </div>
               </>
@@ -51,8 +49,8 @@ export function InstalledSeed() {
               <>
                 <p className="type-display-lg mt-1.5 text-ink-faint">Vanilla</p>
                 <p className="mt-1 text-[13px] text-ink-muted">
-                  No mod installed. Generate a seed below or install one from
-                  History.
+                  No mod installed. Generate a seed or open an Archipelago slot
+                  below, or install one from History.
                 </p>
               </>
             )}
@@ -61,6 +59,7 @@ export function InstalledSeed() {
             <PlayButtonGroup />
           </div>
         </div>
+        {installed?.ap_slot && <RoomStatus entry={installed} />}
         {installed && (
           <div className="flex flex-wrap items-center justify-between gap-4 border-line border-t pt-4">
             <div className="flex flex-wrap gap-1.5">
@@ -73,7 +72,6 @@ export function InstalledSeed() {
             </Meter>
           </div>
         )}
-        {installed?.ap_slot && <ApClient entry={installed} />}
         {builds.map((text) => (
           <Callout key={text} tone="gold" icon={TriangleAlert}>
             {text}

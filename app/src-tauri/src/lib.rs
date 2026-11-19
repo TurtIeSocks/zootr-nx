@@ -793,6 +793,8 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             archipelago::ap_state,
             archipelago::ap_connect,
             archipelago::ap_disconnect,
+            archipelago::apworld_bundled,
+            archipelago::save_apworld,
             dev_panel::game_options,
             dev_panel::dev_state,
             dev_panel::dev_teleport,

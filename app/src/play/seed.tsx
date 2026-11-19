@@ -1,4 +1,4 @@
-import { FlaskConical, type LucideIcon, Pin } from "lucide-react";
+import { FlaskConical, Globe, type LucideIcon, Pin } from "lucide-react";
 import type { Summary } from "@/bindings";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -6,6 +6,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { nameOf } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** Props for {@link ExtrasBadges} and {@link Name}. */
@@ -19,14 +20,15 @@ interface TipBadgeProps {
   icon: LucideIcon;
   label: string;
   tip: string;
+  variant?: "info" | "ap";
 }
 
 /** A small badge that says more on hover. */
-function TipBadge({ icon: Icon, label, tip }: TipBadgeProps) {
+function TipBadge({ icon: Icon, label, tip, variant = "info" }: TipBadgeProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge variant="info">
+        <Badge variant={variant}>
           <Icon />
           {label}
         </Badge>
@@ -40,6 +42,14 @@ function TipBadge({ icon: Icon, label, tip }: TipBadgeProps) {
 export function ExtrasBadges({ entry }: SeedProps) {
   return (
     <>
+      {entry.ap_slot && (
+        <TipBadge
+          icon={Globe}
+          label="Archipelago"
+          tip="Your slot of an Archipelago multiworld"
+          variant="ap"
+        />
+      )}
       {entry.plando && (
         <TipBadge
           icon={Pin}
@@ -60,7 +70,8 @@ export function ExtrasBadges({ entry }: SeedProps) {
 
 /** A seed's name, showing the whole name and its note on hover. */
 export function Name({ entry, className }: SeedProps) {
-  const { name, note } = entry.label;
+  const name = nameOf(entry);
+  const { note } = entry.label;
   if (!name) return null;
   return (
     <Tooltip>

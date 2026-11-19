@@ -135,3 +135,23 @@ pub(crate) fn ap_disconnect(app: AppHandle) {
     // Dropping the sender stops the client at its next look.
     app.state::<Ap>().0.lock().unwrap().0 = None;
 }
+
+/// This build's znx.apworld, or empty when it has none (see build.rs).
+const APWORLD: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/znx.apworld"));
+
+/// Whether this build carries its znx.apworld. Release builds do.
+#[tauri::command]
+#[specta::specta]
+pub(crate) fn apworld_bundled() -> bool {
+    !APWORLD.is_empty()
+}
+
+/// Saves this build's znx.apworld to `path`.
+#[tauri::command]
+#[specta::specta]
+pub(crate) fn save_apworld(path: String) -> Res<()> {
+    if APWORLD.is_empty() {
+        return Err("This build has no znx.apworld".into());
+    }
+    std::fs::write(&path, APWORLD).map_err(|e| format!("Couldn't save {path}: {e}"))
+}
