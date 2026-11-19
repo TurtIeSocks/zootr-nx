@@ -20770,9 +20770,35 @@
     {
       "from": "dodongos-cavern-adult",
       "rule": {
-        "count": 1,
-        "items": [
-          "Progressive Bomb Bag"
+        "all": [
+          {
+            "count": 1,
+            "items": [
+              "Progressive Bomb Bag"
+            ]
+          },
+          {
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Bow"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Hover Boots"
+                ]
+              },
+              {
+                "count": 2,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              }
+            ]
+          }
         ]
       },
       "to": "king-dodongo-room-adult"
@@ -20790,9 +20816,19 @@
     {
       "from": "dodongos-cavern-child",
       "rule": {
-        "count": 1,
-        "items": [
-          "Progressive Bomb Bag"
+        "all": [
+          {
+            "count": 1,
+            "items": [
+              "Progressive Bomb Bag"
+            ]
+          },
+          {
+            "count": 1,
+            "items": [
+              "Progressive Slingshot"
+            ]
+          }
         ]
       },
       "to": "king-dodongo-room-child"
