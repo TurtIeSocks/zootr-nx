@@ -9,8 +9,9 @@ use std::collections::HashMap;
 use anyhow::Result;
 use ounce_formats::Byml;
 
+use super::signs::{dst, links, relink};
 use super::{Slot, dealt, sold};
-use crate::checks::Drop;
+use crate::checks::{Drop, hash_of};
 use crate::gamedata::{GameData, Op};
 use crate::settings::NewGame;
 use crate::shows::{and, by_name, copy_hash, copy_in, gate, not, or, steps, within};
@@ -22,6 +23,8 @@ pub struct Stand<'a> {
     /// What it shows and sells.
     pub item: &'a str,
     pub placements: Vec<u64>,
+    /// The sign under each placement that has one.
+    pub signs: Vec<u64>,
 }
 
 /// One step of a slot: the BoolExp true while it's the one the slot gives,
@@ -66,8 +69,13 @@ pub struct Shelves<'a> {
     pub bools: Vec<String>,
     /// Each step's placement past a slot's own, by the placement it copies.
     copies: Vec<(u64, u64)>,
-    /// Each step's placement's BoolExp, by its hash.
+    /// Each step's placement's BoolExp, by its hash, and its sign's.
     gates: HashMap<u64, String>,
+    /// Each step's sign past a slot's own, by the sign it copies.
+    sign_copies: Vec<(u64, u64)>,
+    /// Each step's placement past a slot's own: the sign it copied, and
+    /// its own copy of it.
+    relinks: HashMap<u64, (u64, u64)>,
 }
 
 impl<'a> Shelves<'a> {
@@ -84,6 +92,8 @@ impl<'a> Shelves<'a> {
             bools: Vec::new(),
             copies: Vec::new(),
             gates: HashMap::new(),
+            sign_copies: Vec::new(),
+            relinks: HashMap::new(),
         };
         for (slot, item) in dealt(slots, new_game.shop_slots, drops) {
             shelves.sold.push(slot);
@@ -93,6 +103,9 @@ impl<'a> Shelves<'a> {
                     actor: slot.actor(),
                     item,
                     placements: slot.placements.clone(),
+                    signs: (slot.placements.iter())
+                        .filter_map(|p| slot.signs.get(p).copied())
+                        .collect(),
                 });
                 continue;
             };
@@ -107,7 +120,7 @@ impl<'a> Shelves<'a> {
                     by_name(&step.sold, Op::Bool),
                 );
                 shelves.bools.push(step.sold);
-                let mut placements = Vec::new();
+                let (mut placements, mut signs) = (Vec::new(), Vec::new());
                 for &of in &slot.placements {
                     let hash = copy_hash(of, k);
                     // The slot's own gate still holds: the Kokiri Shop's
@@ -115,6 +128,15 @@ impl<'a> Shelves<'a> {
                     let program = within(slot.presence.get(&of), program.clone(), gd)?;
                     let name = format!("ZootrShelf.{hash}");
                     shelves.exps.push((name.clone(), program));
+                    if let Some(&sign) = slot.signs.get(&of) {
+                        let copy = copy_hash(sign, k);
+                        shelves.gates.insert(copy, name.clone());
+                        if k > 0 {
+                            shelves.sign_copies.push((sign, copy));
+                            shelves.relinks.insert(hash, (sign, copy));
+                        }
+                        signs.push(copy);
+                    }
                     shelves.gates.insert(hash, name);
                     if k > 0 {
                         shelves.copies.push((of, hash));
@@ -129,6 +151,7 @@ impl<'a> Shelves<'a> {
                     },
                     item: shows,
                     placements,
+                    signs,
                 });
             }
         }
@@ -136,18 +159,23 @@ impl<'a> Shelves<'a> {
     }
 
     /// Copy in each step's placement past a slot's own, link each copy
-    /// from whoever links the slot (its keeper sells it), then gate every
-    /// step's on its BoolExp. Whether `root`, a map's doc, changed.
+    /// from whoever links the slot (its keeper sells it), give it a copy of
+    /// the slot's sign, then gate every step's, and its sign, on its
+    /// BoolExp. Whether `root`, a map's doc, changed.
     pub fn place(&self, root: &mut Byml) -> Result<bool> {
         let copied = copy_in(root, &self.copies)?;
+        let signed = copy_in(root, &self.sign_copies)?;
         let Some(list) = root.as_mut_map()?.get_mut("Actors") else {
             return Ok(false);
         };
         let mut linked = false;
         for actor in list.as_mut_array()?.iter_mut() {
             let mut more = Vec::new();
-            for link in link_list(actor) {
-                let dst = link_dst(link);
+            if let Some(&(from, to)) = hash_of(actor).and_then(|h| self.relinks.get(&h)) {
+                linked |= relink(actor, from, to)?;
+            }
+            for link in links(actor) {
+                let dst = dst(link);
                 for &(_, hash) in self.copies.iter().filter(|(of, _)| Some(*of) == dst) {
                     let mut copy = link.clone();
                     copy.as_mut_map()?.insert("Dst".into(), Byml::U64(hash));
@@ -161,19 +189,8 @@ impl<'a> Shelves<'a> {
             }
         }
         let gated = gate(root, &self.gates)?;
-        Ok(copied || linked || gated)
+        Ok(copied || signed || linked || gated)
     }
-}
-
-/// A placement's links to others.
-fn link_list(actor: &Byml) -> &[Byml] {
-    let links = actor.as_map().ok().and_then(|m| m.get("Links"));
-    links.and_then(|l| l.as_array().ok()).unwrap_or_default()
-}
-
-/// The placement a link points at.
-fn link_dst(link: &Byml) -> Option<u64> {
-    link.as_map().ok()?.get("Dst")?.as_int::<u64>().ok()
 }
 
 #[cfg(test)]
@@ -256,8 +273,8 @@ mod tests {
         // its menu can't price, name or reach it.
         let to = |dst: u64| {
             let mut by: Vec<(u64, String)> = (actors.iter())
-                .flat_map(|a| link_list(a).iter().map(move |l| (a, l)))
-                .filter(|(_, l)| link_dst(l) == Some(dst))
+                .flat_map(|a| links(a).iter().map(move |l| (a, l)))
+                .filter(|(_, l)| super::dst(l) == Some(dst))
                 .map(|(a, l)| {
                     (
                         hash_of(a).unwrap(),
@@ -270,6 +287,50 @@ mod tests {
         };
         assert!(to(*of).iter().any(|(_, name)| name == "ForSale"));
         assert_eq!(to(copy), to(*of));
+    }
+
+    #[test]
+    fn each_step_stands_on_a_sign_of_its_own_gated_like_it() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gd = GameData::load(&romfs).unwrap();
+        let slots = super::super::slots(&romfs).unwrap();
+        let slot = slots.iter().find(|s| !s.signs.is_empty()).unwrap();
+        let (&of, &sign) = slot.signs.iter().next().unwrap();
+        let drops = HashMap::from([(slot.hash(), Drop::from(item::HOOKSHOT.to_string()))]);
+        let new_game = NewGame {
+            shop_slots: 8,
+            progressive: true,
+            ..NewGame::default()
+        };
+        let shelves = Shelves::new(&slots, &drops, &new_game, &gd).unwrap();
+        let (copy, sign_copy) = (copy_hash(of, 1), copy_hash(sign, 1));
+        let mine = |s: &&Stand| std::ptr::eq(s.slot, slot);
+        let signs: Vec<_> = shelves
+            .stands
+            .iter()
+            .filter(mine)
+            .map(|s| &s.signs)
+            .collect();
+        assert!(signs[0].contains(&sign) && signs[1].contains(&sign_copy));
+
+        let (_, banc) = (crate::checks::bancs(&romfs).unwrap())
+            .map(|(f, d)| (f, d.unwrap()))
+            .find(|(_, d)| {
+                let actors = crate::checks::actors(&d.root).unwrap();
+                actors.iter().any(|a| hash_of(a) == Some(of))
+            })
+            .unwrap();
+        let mut root = banc.root;
+        assert!(shelves.place(&mut root).unwrap());
+        let actors = crate::checks::actors(&root).unwrap();
+        let placed = |h: u64| actors.iter().find(|a| hash_of(a) == Some(h)).unwrap();
+        for (goods, sign) in [(of, sign), (copy, sign_copy)] {
+            assert_eq!(super::super::signs::sign_of(placed(goods)), Some(sign));
+            let gate = crate::world::presence_of(placed(sign)).unwrap();
+            assert_eq!(gate.flag, format!("ZootrShelf.{goods}"));
+        }
     }
 
     #[test]

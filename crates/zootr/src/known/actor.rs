@@ -188,6 +188,7 @@ pub const OBJ_T_BOX_A_06: &Name = &n!(0x352f563f8a38f975);
 pub const OBJ_T_BOX_A_06_NO_BAKE: &Name = &n!(0xc9d53f70a0c8ffd8);
 pub const PLAYER_EVENT: &Name = &n!(0xba78a4f01d1912a7);
 pub const POUCH_BOMBCHU: &Name = &n!(0xd208315fb48c1849);
+pub const SHOP_BOARD_BASE: &Name = &n!(0x8ce8625641c3ad4a);
 pub const SHOP_BOMBCHU_BUNDLE_01: &Name = &n!(0xfda257c60c27572a);
 pub const SHOP_BOMBCHU_BUNDLE_02: &Name = &n!(0xfda256c60c275577);
 pub const SHOP_BOMBCHU_BUNDLE_03: &Name = &n!(0xfda255c60c2753c4);

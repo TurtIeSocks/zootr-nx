@@ -57,6 +57,7 @@ pub const BOTTLE_D: &Name = &n!(0x787a2cee17824b57);
 pub const BOTTOM_OF_THE_WELL_GET_GLASS_TRUTH: &Name = &n!(0x412b031ed9746fa0);
 pub const BOTTOM_OF_THE_WELL_LEVEL_ROOM01_WATER_LEVEL_DOWN: &Name = &n!(0x5e8bcb26b8dfc437);
 pub const BUNDLE_ACTOR: &Name = &n!(0xc713662b9f8a469a);
+pub const BUNDLE_ACTOR_NUM: &Name = &n!(0xeb580b4ffd15cb52);
 pub const BUYING_PRICE: &Name = &n!(0xf56ace1bd839a9d2);
 pub const CANNOT_USE_AMIIBO_HERE: &Name = &n!(0xca7ea55b9be24488);
 pub const CANNOT_USE_AMIIBO_TODAY: &Name = &n!(0x3422aa15f3cadb07);
