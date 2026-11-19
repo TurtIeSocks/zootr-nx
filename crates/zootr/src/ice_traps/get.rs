@@ -149,7 +149,7 @@ mod tests {
     use super::*;
     use crate::game::dev_dump;
 
-    const FAKE_TRAPS: [&str; 2] = ["Item_Rando_IceTrapFake1", "Item_Rando_IceTrapFake2"];
+    const FAKE_TRAPS: [&str; 2] = ["Item_FakeTrap1", "Item_FakeTrap2"];
 
     /// The messages `flow` shows from `start` when the window names `item`,
     /// answering each name question.
