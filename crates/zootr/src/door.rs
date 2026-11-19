@@ -44,6 +44,9 @@ const SET_BOOL: &Name = flow::EVENT_TRIGGER_SET_GAME_DATA_BOOL;
 const PROGRESS: &Name = flow::EVENT_EXECUTE_PROGRESS_CHALLENGE_STEP;
 /// Hides the quest progress banner.
 const QUIET: &Name = field::IS_IGNORE_CHALLENGE_PROGRESS_UI;
+/// Left to the first adult wake-up, which still moves it on: from the
+/// start, the child forest is silent while it's under way.
+const SAGE_OF_FOREST: &Name = flow::SAGE_OF_FOREST;
 /// Runs once Link has met Rauru and woken in the temple.
 const FIRST_ADULT: (&Name, &Name) = (flow::ALL_SAGE, field::MARKET_ADULT_ALL_SAGE_START);
 
@@ -83,7 +86,8 @@ fn sheik(data: Vec<u8>) -> Result<Vec<u8>> {
 }
 
 /// The events of the first adult flow that set a bool or reach a quest
-/// step, as (actor, action, params), with no progress banner.
+/// step other than the forest sage's, as (actor, action, params), with no
+/// progress banner.
 fn first_adult(flow: &Flowchart) -> Result<Vec<(&Actor, &str, Params)>> {
     let mut events = Vec::new();
     for e in flows::reachable(flow, FIRST_ADULT.1)? {
@@ -100,6 +104,9 @@ fn first_adult(flow: &Flowchart) -> Result<Vec<(&Actor, &str, Params)>> {
         let action = actor.actions[*action as usize].as_str();
         let mut params = params.clone();
         if action == PROGRESS {
+            if flows::param(&params, field::CHALLENGE_NAME) == Some(SAGE_OF_FOREST.get()) {
+                continue;
+            }
             flows::set(&mut params, QUIET, Value::Bool(vec![true]))?;
         } else if action != SET_BOOL {
             continue;
@@ -188,12 +195,15 @@ mod tests {
         for quest in [
             (flow::ALL_SAGE, "Step01"),
             (flag::SAGE_OF_LIGHT, "Complete"),
-            (flow::SAGE_OF_FOREST, "Step01"),
         ] {
             assert!(
                 steps.contains(&(quest.0, quest.1, true)),
                 "{quest:?} not in {steps:?}"
             );
         }
+        assert!(
+            !steps.iter().any(|s| s.0 == SAGE_OF_FOREST),
+            "{steps:?} moves the forest sage on"
+        );
     }
 }
