@@ -7,9 +7,7 @@ use anyhow::{Context, Result, bail};
 use crate::checks::{Drop, ItemCheck};
 use crate::keys;
 use crate::known::item;
-use crate::narrowing::{
-    Let, OWN_DUNGEON, allowed, asks_at, holds_map_from, maps_move, shuffleable,
-};
+use crate::narrowing::{Let, allowed, asks_at, shuffleable};
 use crate::rng::Rng;
 use crate::settings::NewGame;
 use crate::starting;
@@ -44,43 +42,6 @@ fn unique_chests(checks: &[ItemCheck], open: Let) -> Result<Vec<&ItemCheck>> {
 
 /// Plando: chest hash to the item it must hold.
 pub type Fixed = BTreeMap<u64, String>;
-
-/// `fixed`, plus each map and compass in a chest of its own dungeon picked
-/// by `seed`, when `new_game` moves them.
-pub fn own_dungeon(
-    checks: &[ItemCheck],
-    seed: u64,
-    fixed: &Fixed,
-    new_game: &NewGame,
-) -> Result<Fixed> {
-    let mut fixed = fixed.clone();
-    if !maps_move(new_game) {
-        return Ok(fixed);
-    }
-    let chests = unique_chests(
-        checks,
-        Let {
-            maps: true,
-            ..Let::of(new_game)
-        },
-    )?;
-    let moving: Vec<_> = chests
-        .iter()
-        .filter(|c| OWN_DUNGEON.iter().any(|d| **d == *c.item) && !fixed.contains_key(&c.hash))
-        .map(|c| (c.area.as_str(), c.item.clone()))
-        .collect();
-    let mut rng = Rng::new(seed.rotate_left(17));
-    for (area, item) in moving {
-        let spots: Vec<_> = chests
-            .iter()
-            .filter(|c| holds_map_from(c, area) && !fixed.contains_key(&c.hash))
-            .collect();
-        let spot = spots.get(rng.below(spots.len() as u64) as usize);
-        let spot = spot.with_context(|| format!("no chest left in {area} for {item}"))?;
-        fixed.insert(spot.hash, item);
-    }
-    Ok(fixed)
-}
 
 /// Remove one `item` from `pool`, else one `fallback`, else any item. Keeps
 /// the pool one item per free chest whatever was placed.
@@ -184,7 +145,8 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
     let kept = kept.into_iter().zip(all);
     placed.extend(kept.map(|(check, item)| Placement { check, item }));
     cap_bottles(&mut items, placed.iter().map(|p| p.item));
-    keys::deal_copies(&mut items, new_game.keys)?;
+    let fixed: Vec<_> = placed.iter().map(|p| p.item).collect();
+    keys::deal_copies(&mut items, new_game.keys, new_game.fortress_keys, &fixed)?;
     Ok(Deal {
         placed,
         free,
@@ -286,6 +248,7 @@ mod tests {
 
     use super::*;
     use crate::checks::Swap;
+    use crate::narrowing::MAPS_COMPASSES;
     use crate::narrowing::tests::chest;
 
     fn game(vanilla: bool, start: &[&'static starting::Item]) -> NewGame {
@@ -305,35 +268,40 @@ mod tests {
     }
 
     #[test]
-    fn maps_and_compasses_stay_in_their_own_dungeon() {
+    fn maps_and_compasses_move_as_their_dungeon_s_copies_to_any_chest() {
         needs_names!();
         let mut checks: Vec<_> = (1..=40).map(|h| chest(h, "Item_A")).collect();
-        checks[0].item = OWN_DUNGEON[0].to_string();
-        checks[1].item = OWN_DUNGEON[1].to_string();
-        checks
+        checks[0].item = MAPS_COMPASSES[0].to_string();
+        checks[1].item = MAPS_COMPASSES[1].to_string();
+        checks[..2]
             .iter_mut()
-            .skip(20)
-            .for_each(|c| c.area = "Other".into());
+            .for_each(|c| c.area = crate::known::flag::FOREST_TEMPLE.to_string());
         let new_game = NewGame {
             on: [settings::MAPS_COMPASSES.to_owned()].into(),
             ..game(false, &[])
         };
+        let copies = [keys::pooled(&checks[0]), keys::pooled(&checks[1])];
+        assert!(
+            copies.iter().all(|c| crate::map_copies::is_copy(c)),
+            "{copies:?}"
+        );
+        let none = Fixed::new();
         let mut moved = false;
         for seed in 0..20 {
-            let fixed = own_dungeon(&checks, seed, &Fixed::new(), &new_game).unwrap();
-            assert_eq!(fixed.len(), 2);
-            assert!(fixed.keys().all(|&h| h <= 20), "{fixed:?}");
-            let p = shuffle(&checks, seed, &fixed, &new_game).unwrap();
+            let p = shuffle(&checks, seed, &none, &new_game).unwrap();
             assert_eq!(p.len(), 40);
-            for item in OWN_DUNGEON {
-                assert_eq!(p.iter().filter(|p| p.item == item).count(), 1);
+            for copy in copies {
+                let at: Vec<_> = p.iter().filter(|p| p.item == copy).collect();
+                assert_eq!(at.len(), 1);
+                moved |= at[0].check.hash > 2;
             }
-            moved |= !fixed.contains_key(&1);
+            assert!(
+                p.iter()
+                    .all(|p| !MAPS_COMPASSES.iter().any(|m| **m == *p.item))
+            );
         }
         assert!(moved);
-        let off = own_dungeon(&checks, 7, &Fixed::new(), &game(false, &[])).unwrap();
-        assert!(off.is_empty());
-        let p = shuffle(&checks, 7, &off, &game(false, &[])).unwrap();
+        let p = shuffle(&checks, 7, &none, &game(false, &[])).unwrap();
         assert_eq!(p.len(), 38);
     }
 

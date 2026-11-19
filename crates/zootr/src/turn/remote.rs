@@ -64,6 +64,8 @@ pub enum Ask {
         urgent: bool,
         #[serde(default)]
         both: bool,
+        #[serde(default)]
+        on: Option<String>,
     },
     Wait {
         session: String,

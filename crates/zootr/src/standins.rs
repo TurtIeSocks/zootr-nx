@@ -324,6 +324,9 @@ pub(crate) fn item_pack(romfs: &Romfs, item: &str, new_game: &NewGame) -> Result
     if let Some(pack) = crate::key_tints::copy_pack(romfs, item, new_game.keys)? {
         return Ok(pack);
     }
+    if let Some(pack) = crate::map_copies::copy_pack(romfs, item)? {
+        return Ok(pack);
+    }
     match crate::foreign::pack(romfs, item, &new_game.foreign)? {
         Some(pack) => Ok(pack),
         None => ActorPack::load(romfs, item),

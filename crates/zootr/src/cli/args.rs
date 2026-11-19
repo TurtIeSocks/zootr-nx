@@ -123,7 +123,7 @@ pub(super) enum Command {
         /// free, never one alone.
         #[arg(long)]
         both: bool,
-        /// The game `reserve` keeps.
+        /// The game `reserve` keeps, or the one game `join` waits for.
         #[arg(long, default_value = "")]
         on: String,
     },

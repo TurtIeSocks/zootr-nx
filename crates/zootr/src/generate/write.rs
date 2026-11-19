@@ -11,13 +11,14 @@ use crate::checks::{self, Drop};
 use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::hints::Hint;
+use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::settings::{ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
-    ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, flags, foreign,
-    fortress, gamedata, gerudo, gifts, held, hints, ice_traps, key_tints, keys, medallions, navi,
-    notice, patch, picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps,
-    text, tracker, trade_chain, twins,
+    ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door, enemies, flags,
+    foreign, fortress, gamedata, gerudo, gifts, held, hints, ice_traps, key_tints, keys, map_copies,
+    medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs, shops, spawn,
+    standins, starting, steps, text, tracker, trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -84,7 +85,7 @@ pub(super) fn flows(
         cows::give(romfs, &mut rewrites, &cows::find(romfs)?, drops, level)?;
     }
     let pieces = pickups::dealt(romfs, new_game)?;
-    if new_game.fortress_keys {
+    if new_game.fortress_keys.moved() {
         fortress::give(romfs, &mut rewrites, &pieces, drops)?;
     }
     picked::delete_letter(romfs, &mut rewrites, &picked::holders(&pieces, drops))?;
@@ -147,10 +148,18 @@ pub fn write_mod(
         0 => Vec::new(),
         _ => vec![shops::captions(romfs, &shelves)?],
     };
-    let key_copies = (new_game.keys.copies(), boss_copies(new_game));
+    let key_copies = (
+        new_game.keys.copies(),
+        boss_copies(new_game),
+        new_game.fortress_keys.copies(),
+    );
     // First, so a copy on a shelf takes its caption from its own lines.
     copies.insert(0, foreign::captions(&new_game.foreign));
-    copies.insert(0, key_tints::captions(new_game.keys, key_copies.1));
+    let mut key_lines = key_tints::captions(new_game.keys, key_copies.1, key_copies.2);
+    if maps_move(new_game) {
+        key_lines.new.extend(map_copies::captions());
+    }
+    copies.insert(0, key_lines);
     if new_game.mailbox {
         copies.push(notice::banners());
         copies.push(notice::senders(&new_game.players));
@@ -174,7 +183,10 @@ pub fn write_mod(
     }
     bools.extend(gifts::flags(&new_game.on));
     bools.extend(dampe::flags(drops));
-    if new_game.fortress_keys {
+    if new_game.quiet_enemies {
+        bools.push(enemies::FLAG.into());
+    }
+    if new_game.fortress_keys.moved() {
         bools.extend(fortress::flags());
     }
     let gone = match new_game.scrubs {
@@ -184,7 +196,7 @@ pub fn write_mod(
         }
         false => Vec::new(),
     };
-    let made = key_tints::made(key_copies.0, key_copies.1);
+    let made = key_tints::made(key_copies.0, key_copies.1, key_copies.2);
     let rupees = ammo::copies(drops.values().map(|d| d.item.as_str()));
     let opened = tracker::chest_flags(&gd)?;
     // Every dealt check, a kept item's too: its map's alternative needs it.
@@ -251,7 +263,18 @@ pub fn write_mod(
     medallions::write(romfs, &mut builder, &mut tables, items)?;
     let flags = hook_flags(new_game);
     let bosses = boss_copies(new_game);
-    key_tints::write(romfs, &mut builder, &mut tables, bosses, new_game.keys)?;
+    let fortress = new_game.fortress_keys.copies();
+    key_tints::write(
+        romfs,
+        &mut builder,
+        &mut tables,
+        bosses,
+        new_game.keys,
+        fortress,
+    )?;
+    if maps_move(new_game) {
+        map_copies::write(romfs, &mut builder, &mut tables)?;
+    }
     foreign::write(romfs, &mut builder, &mut tables, &new_game.foreign)?;
     ammo::write(romfs, &mut builder, &mut tables, &rupees)?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
@@ -294,7 +317,7 @@ pub fn write_mod(
         .filter(|(h, _)| !cows.iter().any(|c| c.hash() == **h))
         .map(|(h, d)| (*h, d.clone()))
         .collect();
-    let carried = match new_game.fortress_keys {
+    let carried = match new_game.fortress_keys.moved() {
         true => &fortress::CARRYING[..],
         false => &[],
     };
@@ -332,6 +355,9 @@ pub fn write_mod(
         changed.extend(checks::gone_once(&mut doc.root, &gone)?);
         let leaves = scrubs::leaves(&doc.root, &gone)?;
         changed.extend(checks::gone_once(&mut doc.root, &leaves)?);
+        if new_game.quiet_enemies {
+            changed.extend(enemies::hide(&mut doc.root, &dealt)?);
+        }
         changed.extend(checks::clear_drops(&mut doc.root, carried)?);
         changed.extend(checks::clear_tables(&mut doc.root, &tabled)?);
         changed.extend(checks::set_drops(
@@ -380,8 +406,7 @@ pub fn write_mod(
     dig::write(romfs, &mut builder, drops, new_game)?;
     run.check()?;
     let files = builder.finish()?.len();
-    let mut credits = key_tints::credits(bosses, new_game.keys);
-    credits.extend(ice_traps::credits(&new_game.foreign));
+    let credits = credits(new_game);
     let keyed: Vec<_> = (rupees.iter())
         .filter_map(|r| ammo::line(ammo::copied(r)?))
         .collect();
@@ -417,8 +442,25 @@ fn levels(
     drops: &HashMap<u64, Drop>,
     new_game: &NewGame,
 ) -> Result<chest_levels::Levels> {
-    let credits = key_tints::sets(boss_copies(new_game), new_game.keys);
-    chest_levels::Levels::new(romfs, drops, new_game.progressive, credits)
+    chest_levels::Levels::new(romfs, drops, new_game.progressive, sets(new_game))
+}
+
+/// What each copy `new_game` deals sets as it's found: its key copies',
+/// and with maps and compasses moving theirs.
+fn sets(new_game: &NewGame) -> Vec<(String, key_tints::Sets)> {
+    let fortress = new_game.fortress_keys.copies();
+    let mut sets = key_tints::sets(boss_copies(new_game), new_game.keys, fortress);
+    if maps_move(new_game) {
+        sets.extend(map_copies::sets());
+    }
+    sets
+}
+
+/// [`sets`] as the hook's table names it, then each ice trap's freeze.
+fn credits(new_game: &NewGame) -> Vec<(String, zootr_hook::Credit)> {
+    let mut credits = key_tints::as_credits(sets(new_game));
+    credits.extend(ice_traps::credits(&new_game.foreign));
+    credits
 }
 
 /// The settings the hook acts on, as the table's flag bits. Every seed

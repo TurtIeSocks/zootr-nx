@@ -206,7 +206,7 @@ mod tests {
     use crate::progress::{self, StepEvent};
     use crate::rules::{Book, Ctx};
     use crate::settings::{
-        CHESTS, DUNGEON_REWARDS, ICE_TRAPS, KEYS, NPC_GIFTS, OPEN_DOOR, PROGRESSIVE, SONGS,
+        CHESTS, DUNGEON_REWARDS, FORTRESS_KEYS, ICE_TRAPS, KEYS, NPC_GIFTS, OPEN_DOOR, PROGRESSIVE, SONGS,
         Settings,
     };
     use crate::shuffle::{Fixed, deal};
@@ -408,8 +408,29 @@ mod tests {
     }
 
     #[test]
-    fn key_ring_seeds_fill_and_keep_each_ring_out_of_its_dungeon() {
+    fn fortress_keysanity_seeds_fill_with_no_copy_at_the_card_s_check() {
+        let fortress = || (FORTRESS_KEYS.into(), "singles".into());
+        let dealt = |filled: &Filled| {
+            let copy = key_tints::fortress();
+            let copies: Vec<_> = (filled.placements.iter())
+                .filter(|p| p.item == copy)
+                .collect();
+            assert_eq!(copies.len(), 4);
+            for p in copies {
+                assert_ne!(p.check.item, crate::gerudo::CARD.get(), "{}", p.check.hash);
+            }
+        };
+        seeds_fill_and(&Settings::from([fortress()]), dealt);
+        seeds_fill_and(
+            &Settings::from([fortress(), (NPC_GIFTS.into(), true.into())]),
+            dealt,
+        );
+    }
+
+    #[test]
+    fn key_ring_seeds_fill_and_keep_each_ring_out_of_the_rooms_that_need_it() {
         let rings = || (KEYS.into(), "rings".into());
+        let at_home = std::sync::atomic::AtomicU32::new(0);
         let outside = |filled: &Filled| {
             for p in filled.placements.iter() {
                 if !keys::is_shuffled(p.item) {
@@ -418,12 +439,20 @@ mod tests {
                 let chest = p.check.holder.starts_with("Obj_TBox_");
                 assert!(chest || gifts::is_gift(p.check), "{}", p.item);
                 let ring = (1..=keys::DUNGEONS.len()).find(|&n| key_tints::ring(n) == p.item);
-                if let Some(n) = ring {
-                    assert_ne!(keys::dungeon_of(&p.check.file), Some(n), "{}", p.item);
+                let Some((n, count)) = crate::key_rooms::count(p.check) else {
+                    continue;
+                };
+                if ring == Some(n) {
+                    assert_eq!(count, 0, "{} at {}", p.item, p.check.hash);
+                    at_home.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 }
             }
         };
         seeds_fill_and(&Settings::from([rings()]), outside);
+        // The well's keys can land in the well, in a room no lock closes.
+        if dev_dump().is_some() {
+            assert!(at_home.into_inner() > 0);
+        }
         seeds_fill(&Settings::from([
             rings(),
             (NPC_GIFTS.into(), true.into()),

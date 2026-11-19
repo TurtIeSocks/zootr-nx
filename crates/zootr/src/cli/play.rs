@@ -279,8 +279,9 @@ pub(super) fn drill(
     if drills.is_empty() {
         bail!("no drill fits");
     }
+    let turn = turn::harness(turn::session(), super::running::RENEW)?;
     with_night(romfs, game, judge, dir, |night| {
-        night.ladder(&drills, repeat)
+        night.ladder(&drills, repeat, &turn)
     })
 }
 

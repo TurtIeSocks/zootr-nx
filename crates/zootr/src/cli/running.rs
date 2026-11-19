@@ -76,7 +76,7 @@ fn said<T: Display + Serialize>(report: &T, json: bool) -> Result<String> {
 }
 
 /// How often `zootr ap connect` renews its hold on the game.
-const RENEW: std::time::Duration = std::time::Duration::from_secs(5 * 60);
+pub(super) const RENEW: std::time::Duration = std::time::Duration::from_secs(5 * 60);
 
 /// `zootr ap connect`: the client core on the live game, its notes
 /// printed until the process is stopped.

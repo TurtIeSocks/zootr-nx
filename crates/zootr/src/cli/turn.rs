@@ -64,6 +64,7 @@ fn queued(
                 note,
                 urgent,
                 both,
+                on: (!on.is_empty()).then_some(on),
             })?;
             println!("number {} in line", place.place.unwrap_or_default());
         }

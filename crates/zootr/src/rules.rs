@@ -10,7 +10,7 @@ use anyhow::{Context, Result, bail, ensure};
 use serde::Deserialize;
 
 use crate::progressive::LINES;
-use crate::settings::{self, DungeonKeys, NewGame};
+use crate::settings::{self, DungeonKeys, FortressKeys, NewGame};
 use crate::world::Era;
 
 mod lang;
@@ -78,6 +78,9 @@ pub struct Ctx {
     pub seed: u64,
     /// How dungeon keys are dealt: as copies, logic asks for them.
     pub keys: DungeonKeys,
+    /// How the thieves' keys are dealt: as copies, the card's check asks
+    /// for them.
+    pub fortress: FortressKeys,
     /// Toggles left open, each a [`Need::Setting`] instead of always or
     /// never. Only the Archipelago export opens any.
     pub open: BTreeSet<String>,
@@ -90,6 +93,7 @@ impl Ctx {
             on: new_game.on.clone(),
             seed: new_game.seed,
             keys: new_game.keys,
+            fortress: new_game.fortress_keys,
             open: BTreeSet::new(),
         }
     }
@@ -289,6 +293,7 @@ impl Book {
             on: BTreeSet::new(),
             seed: 0,
             keys: DungeonKeys::Vanilla,
+            fortress: FortressKeys::Vanilla,
             open: BTreeSet::new(),
         };
         for (word, expr) in &self.abilities {
@@ -456,6 +461,7 @@ mod tests {
             on: on.iter().map(|s| s.to_string()).collect(),
             seed: 0,
             keys: DungeonKeys::Vanilla,
+            fortress: FortressKeys::Vanilla,
             open: BTreeSet::new(),
         }
     }
@@ -903,7 +909,8 @@ mod tests {
             .unwrap()
             .map(|e| e.unwrap().file_name().into_string().unwrap())
             .collect();
-        let built: BTreeSet<String> = FILES.iter().map(|f| f.0.to_owned()).collect();
+        let mut built: BTreeSet<String> = FILES.iter().map(|f| f.0.to_owned()).collect();
+        built.insert(crate::key_rooms::FILE.into());
         assert_eq!(on_disk, built);
     }
 

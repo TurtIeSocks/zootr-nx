@@ -11,7 +11,8 @@ use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, ModBuilder, Romfs};
 
 use crate::checks::{
-    DROP_ACTOR, Drop, GYAML, ItemCheck, Watched, actors, banc_files, hash_of, load_bancs, str_field,
+    DROP_ACTOR, Drop, GYAML, ItemCheck, Watched, actors, banc_files, hash_of, load_bancs, room_of,
+    str_field,
 };
 use crate::gifts;
 use crate::known::{Name, actor, field as fields, item, map};
@@ -178,6 +179,16 @@ pub const FORTRESS_KEYS: Kind = Kind {
     }),
 };
 
+/// The two small keys lying in the open, Bottom of the Well's and the
+/// Shadow Temple's, checks whenever keys move as the key chests are.
+pub const LOOSE_KEYS: Kind = Kind {
+    actors: &[actor::OBJ_DUNGEON_SMALL_KEY],
+    item: Some(item::DUNGEON_SMALL_KEY),
+    field: GYAML,
+    needs: None,
+    named: None,
+};
+
 /// The Fire Arrows at Lake Hylia, a pickup a logic module spawns after the
 /// sun is shot. `logic/gifts.toml` puts them past the bow and Morpha.
 pub const FIRE_ARROWS: Kind = Kind {
@@ -210,7 +221,7 @@ fn any_holds(kinds: &[&Kind], holder: &str) -> bool {
 /// Whether the sweep takes what `holder` holds by walking up to it: a
 /// pickup lying in the open, which A takes, or one of [`BREAKABLE`].
 pub fn within_reach(holder: &str) -> bool {
-    any_holds(&[&FREESTANDING, &BOSS_HEARTS], holder) || broken(holder)
+    any_holds(&[&FREESTANDING, &BOSS_HEARTS, &LOOSE_KEYS], holder) || broken(holder)
 }
 
 /// Whether `holder` is broken for what it drops: a pot, crate, rock or
@@ -219,7 +230,7 @@ pub fn broken(holder: &str) -> bool {
     any_holds(&BREAKABLE, holder)
 }
 
-const KINDS: [&Kind; 12] = [
+const KINDS: [&Kind; 13] = [
     &FREESTANDING,
     &SKULLTULAS,
     &BOSS_HEARTS,
@@ -230,6 +241,7 @@ const KINDS: [&Kind; 12] = [
     &FLYING_POTS,
     &HIVES,
     &FORTRESS_KEYS,
+    &LOOSE_KEYS,
     &FIRE_ARROWS,
     &RUTOS_LETTER,
 ];
@@ -381,6 +393,7 @@ impl Kind {
                 // A named holder is there once its event has put it there,
                 // which the seed doesn't have to wait for.
                 check.presence = presence_of(actor).filter(|_| self.named.is_none());
+                check.room = room_of(actor);
                 out.push(check);
             }
         }
@@ -406,7 +419,8 @@ pub fn dealt(romfs: &Romfs, new_game: &NewGame) -> Result<Vec<ItemCheck>> {
         (new_game.rocks, &ROCKS),
         (new_game.grass, &GRASS),
         (new_game.hives, &HIVES),
-        (new_game.fortress_keys, &FORTRESS_KEYS),
+        (new_game.fortress_keys.moved(), &FORTRESS_KEYS),
+        (new_game.keys.moved(), &LOOSE_KEYS),
         (npc_gifts, &FIRE_ARROWS),
         (npc_gifts, &RUTOS_LETTER),
     ];
@@ -733,6 +747,7 @@ mod tests {
             (&FLYING_POTS, 23),
             (&HIVES, 21),
             (&FORTRESS_KEYS, 4),
+            (&LOOSE_KEYS, 2),
             (&FIRE_ARROWS, 1),
             (&RUTOS_LETTER, 1),
         ] {

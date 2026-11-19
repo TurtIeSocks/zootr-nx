@@ -97,7 +97,7 @@ pub fn give(
     // A thief's key never shows a step at a time, whatever the setting.
     let moved: Vec<_> = pickups::moved(pieces, drops, false)
         .into_iter()
-        .filter(|m| keys::is_key(m.vanilla))
+        .filter(|m| m.vanilla.starts_with(keys::FORTRESS_KEY))
         .collect();
     if moved.is_empty() {
         return Ok(());
