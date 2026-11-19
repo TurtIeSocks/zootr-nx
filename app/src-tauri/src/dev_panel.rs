@@ -8,9 +8,9 @@ use anyhow::Context;
 use serde::Serialize;
 use specta::Type;
 use tauri::{AppHandle, Manager};
-use zootr::config::Config;
+use zootr::config::{Config, Target};
 use zootr::dev::{self, Dev, Place};
-use zootr::live;
+use zootr::live::{self, Memory};
 use zootr::warp::{self, Side};
 
 use crate::{Live, Res, blocking, romfs};
@@ -44,9 +44,26 @@ impl Places {
     }
 }
 
-/// The running game, through the picked target.
-fn dev_game() -> anyhow::Result<Dev> {
-    Dev::new(live::Game::attach(&Config::load()?.target()?)?)
+/// The game the panel last attached to, and through which target. The
+/// panel polls every second, and attaching each time read and scanned all
+/// of `main` on the Mac, and dropped the values' kept places.
+static ATTACHED: Mutex<Option<(Target, Arc<Dev>)>> = Mutex::new(None);
+
+/// The running game, through the picked target: the one attached before
+/// while it still answers a read, or a new attach.
+fn dev_game() -> anyhow::Result<Arc<Dev>> {
+    let target = Config::load()?.target()?;
+    let mut kept = ATTACHED.lock().unwrap();
+    if let Some((was, dev)) = kept.as_ref()
+        && *was == target
+        && dev.game().u64(dev.global()).is_ok()
+    {
+        return Ok(dev.clone());
+    }
+    *kept = None;
+    let dev = Arc::new(Dev::new(live::Game::attach(&target)?)?);
+    *kept = Some((target, dev.clone()));
+    Ok(dev)
 }
 
 #[tauri::command]
@@ -117,7 +134,7 @@ pub(crate) async fn dev_actors(map: String) -> Res<Vec<DevActor>> {
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn dev_warp(actor: String, side: Side) -> Res<String> {
-    blocking(move || warp::beside(&dev_game()?, &romfs(&Config::load()?)?, &actor, side)).await
+    blocking(move || warp::beside(&*dev_game()?, &romfs(&Config::load()?)?, &actor, side)).await
 }
 
 /// Switch age, and say where Link lands.
@@ -167,8 +184,8 @@ pub(crate) async fn dev_value(app: AppHandle, name: String) -> Res<dev::Value> {
     blocking(move || {
         let config = Config::load()?;
         let gd = app.state::<Live>().gamedata(&config)?;
-        let game = (config.target().ok()).and_then(|t| live::Game::attach(&t).ok());
-        dev::value(&gd, name.trim(), game.as_ref())
+        let dev = dev_game().ok();
+        dev::value(&gd, name.trim(), dev.as_deref().map(Dev::game))
     })
     .await
 }

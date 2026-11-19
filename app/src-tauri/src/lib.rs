@@ -17,7 +17,7 @@ use zootr::config::{Config, Target};
 use zootr::gamedata::GameData;
 use zootr::generate::plando::PlandoOptions;
 use zootr::generate::{self, RoundEvent, Spot, Start};
-use zootr::history::{History, Label, Mark, Summary, View};
+use zootr::history::{self, History, Label, Mark, Summary, View};
 use zootr::inventory::{self, Cell, Inventory, TrackerOptions};
 use zootr::platform;
 use zootr::progress::{self, Run};
@@ -347,7 +347,7 @@ async fn uninstall() -> Res<()> {
 #[tauri::command]
 #[specta::specta]
 fn history() -> Res<View> {
-    History::load().map(|h| h.view()).map_err(text)
+    history::view().map_err(text)
 }
 
 /// Change history and save it.
