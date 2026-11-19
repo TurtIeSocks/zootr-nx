@@ -305,6 +305,9 @@ impl World {
                 bail!("check {} ({}) has no place", check.hash, check.holder);
             }
             let presence = match &check.presence {
+                // A named holder is there once its event has put it there,
+                // which the seed doesn't have to wait for.
+                _ if pickups::is_named(check) => Need::Always,
                 Some(p) if !p.negated => Need::Flag(p.flag.clone()),
                 _ => Need::Always,
             };

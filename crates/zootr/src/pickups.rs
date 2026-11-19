@@ -391,9 +391,7 @@ impl Kind {
                 let hash = hash_of(actor).context("actor without Hash")?;
                 let area = file.split('/').nth(1).unwrap_or("?");
                 let mut check = gifts::check(file.clone(), area, hash, holder.into(), item);
-                // A named holder is there once its event has put it there,
-                // which the seed doesn't have to wait for.
-                check.presence = presence_of(actor).filter(|_| self.named.is_none());
+                check.presence = presence_of(actor);
                 check.room = room_of(actor);
                 out.push(check);
             }
@@ -466,6 +464,12 @@ pub fn watched(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
 
 pub fn kind_of(check: &ItemCheck) -> Option<&'static Kind> {
     KINDS.into_iter().find(|k| k.holds(check))
+}
+
+/// Whether `check` is a holder its event names and puts in place, as a
+/// thief's key: its presence is that event's flag.
+pub fn is_named(check: &ItemCheck) -> bool {
+    kind_of(check).is_some_and(|k| k.named.is_some())
 }
 
 /// Whether `check` is a placed holder's, not a chest's. Every one can show
