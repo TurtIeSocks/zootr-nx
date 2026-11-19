@@ -70,6 +70,7 @@ pub(super) fn flows(
     if new_game.shop_slots > 0 {
         let slots = shops::slots(romfs)?;
         shops::sold::write(romfs, &mut rewrites, &slots, new_game, drops)?;
+        shops::rupees::write(romfs, &mut rewrites)?;
     }
     dampe::give(romfs, &mut rewrites, drops)?;
     gerudo::stand_down(romfs, &mut rewrites, drops)?;
