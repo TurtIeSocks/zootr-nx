@@ -159,10 +159,8 @@ test("a changed setting can be reset, alone or with its group", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Reset Open forest" }));
   expect(saved(onChange)).toEqual({ "chest-size": "all small", other: 1 });
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Reset 1 change" }),
-  );
-  expect(saved(onChange)).toEqual({ other: 1 });
+  fireEvent.click(screen.getByRole("button", { name: "Reset to defaults" }));
+  await waitFor(() => expect(saved(onChange)).toEqual({ other: 1 }));
   expect(screen.queryByRole("button", { name: "Reset Skip the intro" })).toBe(
     null,
   );
@@ -288,6 +286,56 @@ test("a checklist item shows the dot when it differs from the installed seed", (
     within(screen.getByText(label).closest("label") as HTMLElement);
   expect(item("Kokiri Forest").queryByLabelText("changed")).not.toBeNull();
   expect(item("Hyrule Field").queryByLabelText("changed")).toBeNull();
+});
+
+/** The header action named `name`. */
+const action = (name: string) => screen.getByRole("button", { name });
+
+test("Reset to defaults says why while nothing differs from them", () => {
+  const onChange = show();
+  const reset = action("Reset to defaults");
+  expect(reset.getAttribute("aria-disabled")).toBe("true");
+  fireEvent.click(reset);
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test("Enable all and Disable all write only what changes, skipping locked toggles", async () => {
+  const onChange = show({
+    defs: cutscenes,
+    section: "Cutscenes",
+    settings: { [all]: true, kokiri: true },
+  });
+  // The owl and the lake are on because of their parent: left alone.
+  fireEvent.click(action("Enable all"));
+  await waitFor(() =>
+    expect(saved(onChange)).toEqual({ [all]: true, kokiri: true, field: true }),
+  );
+  cleanup();
+  const again = show({
+    defs: cutscenes,
+    section: "Cutscenes",
+    settings: { [all]: true, kokiri: true },
+  });
+  fireEvent.click(action("Disable all"));
+  await waitFor(() =>
+    expect(saved(again)).toEqual({ [all]: false, kokiri: false }),
+  );
+});
+
+test("Enable all says why when every toggle is already on", () => {
+  show({
+    defs: cutscenes,
+    section: "Cutscenes",
+    settings: { [all]: true, kokiri: true, field: true },
+  });
+  expect(action("Enable all").getAttribute("aria-disabled")).toBe("true");
+  expect(action("Disable all").getAttribute("aria-disabled")).toBeNull();
+});
+
+test("a page with no toggles has only Reset to defaults", () => {
+  show({ defs: [choice("chest-size", "Chest size", ["Vanilla", "Big"])] });
+  expect(screen.queryByRole("button", { name: "Enable all" })).toBeNull();
+  expect(action("Reset to defaults")).toBeTruthy();
 });
 
 test("an open checklist is still open after leaving the page", () => {
