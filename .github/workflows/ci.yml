@@ -55,9 +55,10 @@ jobs:
         run: cargo clippy --all-targets -- -D warnings
 
       # Unit and integration tests, without the doctests, which are very
-      # slow. Tests that need the game skip themselves without dump/oot.nup.
+      # slow. Tests that need the game skip themselves without dump/oot.nup,
+      # so cargo-ci.toml builds our crates unoptimised.
       - name: cargo test
-        run: cargo test --workspace --lib --bins --tests
+        run: cargo test --workspace --lib --bins --tests --config .github/cargo-ci.toml
 
   # The tests that need the game dump, which skip themselves above. They run
   # on our own runner, which holds the dump. Never on a fork's code: this

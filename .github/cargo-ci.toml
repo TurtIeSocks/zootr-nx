@@ -1,0 +1,16 @@
+# Cargo settings for CI's hosted runners, passed with `--config`.
+#
+# Cargo.toml optimises our own crates in the dev profile for the tests
+# that read the game dump. Those skip on a runner without the dump, so
+# there the optimising only slows the build: unoptimised, our crates'
+# test build took 14 s against 36 s, and the tests 3 s either way.
+# The dump tests job leaves this out.
+
+[profile.dev.package.zootr]
+opt-level = 0
+
+[profile.dev.package.ounce-formats]
+opt-level = 0
+
+[profile.dev.package.nup-format]
+opt-level = 0
