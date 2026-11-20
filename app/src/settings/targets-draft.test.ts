@@ -2,11 +2,14 @@ import { expect, test } from "vitest";
 import {
   BLANK,
   isSaved,
+  namesVariable,
   problem,
   toDraft,
   toTarget,
+  VARIABLES,
   withTarget,
 } from "@/settings/targets-draft";
+import { rust } from "@/test/rust";
 
 const fake = { name: "FakeTarget", app: "/a", mod_dir: "/m" };
 
@@ -80,4 +83,18 @@ test("problem names the first thing stopping a save", () => {
   expect(problem([{ ...ok, harness_env: "S={bridge}" }])).toMatch(
     /control socket/,
   );
+});
+
+test("Variables lists exactly the variables the code fills", () => {
+  const filled = [
+    "config.rs",
+    "config/settings_file.rs",
+    "config/rebuild.rs",
+  ].flatMap((f) => [...rust(f).matchAll(/"(\{[a-z]+\})"/g)].map((m) => m[1]));
+  expect(new Set(filled)).toEqual(new Set(VARIABLES.map((v) => v.name)));
+});
+
+test("a draft names a variable when any of its fields holds one", () => {
+  expect(namesVariable(toDraft(fake))).toBe(false);
+  expect(namesVariable({ ...toDraft(fake), env: "SOCK={bridge}" })).toBe(true);
 });

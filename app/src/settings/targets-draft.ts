@@ -99,61 +99,77 @@ export interface DraftField {
   multiline?: boolean;
 }
 
-/** The fields each target card shows, in order. */
+/** The fields each target card always shows, in order. */
 export const FIELDS: DraftField[] = [
-  { key: "name", label: "Name", hint: "Shown in the Play picker" },
-  {
-    key: "app",
-    label: "App",
-    hint: "What Play opens",
-    pick: "file",
-  },
-  {
-    key: "args",
-    label: "Launch arguments (optional)",
-    hint: "-g {game}: {game} becomes your game dump",
-  },
+  { key: "name", label: "Name", hint: "Shown in Play's picker" },
+  { key: "app", label: "App", hint: "What Play opens", pick: "file" },
   {
     key: "mod_dir",
     help: "mod-folder",
     label: "Mod folder",
-    hint: "The folder the game loads this mod from. Install writes romfs/ here",
+    hint: "The folder the game loads this mod from",
     pick: "folder",
   },
   {
     key: "save_dir",
     label: "Save folder (optional)",
-    hint: "The folder holding slot_00, slot_01 and so on",
+    hint: "Where the game keeps its saves. The Save Editor and Items read them here",
     pick: "folder",
+  },
+];
+
+/** The fields under a card's Advanced section, in order. */
+export const ADVANCED_FIELDS: DraftField[] = [
+  {
+    key: "args",
+    help: "variables",
+    label: "Launch arguments (optional)",
+    hint: "Extra arguments, for apps that take the game on the command line",
   },
   {
     key: "line_file",
     label: "Settings file (optional)",
-    hint: "For targets that read the mod path from a settings file",
+    hint: "For apps that read the mod path from their own settings file: Install writes the lines below into it",
     pick: "file",
   },
   {
     key: "lines",
+    help: "variables",
     label: "Settings lines (optional)",
-    hint: "One KEY=VALUE per line. {romfs} becomes the mod's romfs folder, {cheats} its cheat folder, {control} the control file",
+    hint: "One KEY=VALUE per line",
     multiline: true,
   },
   {
     key: "bridge",
     help: "control-socket",
     label: "Control socket (optional)",
-    hint: "For targets with a control socket: live reads and dev tools go through it",
+    hint: "A socket the target opens for zootr",
   },
   {
     key: "env",
+    help: "variables",
     label: "Environment (optional)",
-    hint: "One NAME=VALUE per line, set when Play starts the app. {bridge} becomes the control socket",
+    hint: "One NAME=VALUE per line, set when Play starts the app",
     multiline: true,
   },
   {
+    key: "rebuild_command",
+    help: "variables",
+    label: "Rebuild command (optional)",
+    hint: "For apps that build the mod into the game: what to run after Install, one argument per line",
+    multiline: true,
+  },
+  {
+    key: "manifest",
+    label: "Patch list (optional)",
+    hint: "The build's exefs_patches.txt, when it isn't in the game folder that holds the mod folder",
+    pick: "file",
+  },
+  {
     key: "harness_env",
+    help: "variables",
     label: "Harness environment (optional)",
-    hint: "One NAME=VALUE per line, added when an agent's play harness starts the app, never Play. {save} becomes the run's save folder",
+    hint: "One NAME=VALUE per line, for scripted play only, never Play",
     multiline: true,
   },
   {
@@ -164,22 +180,46 @@ export const FIELDS: DraftField[] = [
   },
 ];
 
-/** The fields of a game that bakes the mods' exefs patches in when it's
- * built, in their own section. */
-export const BUILD_FIELDS: DraftField[] = [
+/** One variable a target field can name, and what it becomes. */
+export interface Variable {
+  name: string;
+  /** The fields it works in. */
+  in: string;
+  becomes: string;
+}
+
+/** Every variable zootr fills in a target's fields. */
+export const VARIABLES: Variable[] = [
   {
-    key: "rebuild_command",
-    label: "Rebuild command (optional)",
-    hint: "One argument per line: what rebuilds the game. {game} becomes your game dump",
-    multiline: true,
+    name: "{game}",
+    in: "Launch arguments, Rebuild command",
+    becomes: "Your game dump",
   },
   {
-    key: "manifest",
-    label: "Patch list (optional)",
-    hint: "The build's exefs_patches.txt, when it isn't in the game folder that holds the mod folder",
-    pick: "file",
+    name: "{romfs}",
+    in: "Settings lines",
+    becomes: "The mod's game files, in the mod folder",
+  },
+  {
+    name: "{cheats}",
+    in: "Settings lines",
+    becomes:
+      "The mod's cheat folder, in the mod folder. Naming it tells zootr the app loads the cheat file",
+  },
+  { name: "{bridge}", in: "Environment", becomes: "The control socket" },
+  { name: "{control}", in: "Settings lines", becomes: "The control file" },
+  {
+    name: "{save}",
+    in: "Harness environment",
+    becomes: "The run's own save folder",
   },
 ];
+
+/** Whether a draft names any variable, so Variables opens for it. */
+export const namesVariable = (draft: Draft) =>
+  [...FIELDS, ...ADVANCED_FIELDS].some((f) =>
+    VARIABLES.some((v) => String(draft[f.key]).includes(v.name)),
+  );
 
 /** Why the drafts can't be saved as they are, or "" when they can. */
 export function problem(drafts: Draft[]): string {

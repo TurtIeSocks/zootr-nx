@@ -105,6 +105,13 @@ export const TOPICS = {
     ],
     link: { label: "Open Live", to: { tab: "Live" } },
   },
+  variables: {
+    title: "Variables",
+    body: [
+      "A word in braces, like {game}, becomes a path when zootr uses the field.",
+      "Variables, at the foot of this page, lists them all.",
+    ],
+  },
   checks: {
     title: "Checks",
     body: [
