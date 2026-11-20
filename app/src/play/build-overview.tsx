@@ -13,7 +13,6 @@ import { commands, type SharedBuild } from "@/bindings";
 import { Callout, InlineError } from "@/components/callout";
 import { ChangeList } from "@/components/change-list";
 import { linkClass } from "@/components/styles";
-import { Tip } from "@/components/tip";
 import { ChangedDot } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -258,36 +257,34 @@ interface TileProps {
 /** A group or extra at a glance. A click opens its page. */
 function Tile({ icon: Icon, name, meta, section, off, children }: TileProps) {
   return (
-    <Tip tip={`Open ${name}`}>
-      <button
-        type="button"
-        onClick={() => openSettings(section)}
-        className="group flex min-h-[92px] cursor-pointer flex-col gap-2 rounded-md border border-line bg-surface p-3 text-left outline-none transition-colors duration-(--duration-fast) ease-out hover:border-line-strong hover:bg-surface-hover focus-visible:border-focus focus-visible:shadow-[0_0_0_1px_var(--focus)]"
+    <button
+      type="button"
+      onClick={() => openSettings(section)}
+      className="group flex min-h-[92px] cursor-pointer flex-col gap-2 rounded-md border border-line bg-surface p-3 text-left outline-none transition-colors duration-(--duration-fast) ease-out hover:border-line-strong hover:bg-surface-hover focus-visible:border-focus focus-visible:shadow-[0_0_0_1px_var(--focus)]"
+    >
+      <span
+        className={cn(
+          "flex w-full items-center gap-2 font-semibold text-[13px] text-ink",
+          off && "font-medium text-ink-muted",
+        )}
       >
-        <span
+        <Icon className="size-[15px] shrink-0 text-ink-muted" />
+        {name}
+        {meta && (
+          <span className="ml-auto font-[450] text-[12px] text-ink-faint tabular-nums">
+            {meta}
+          </span>
+        )}
+        <ChevronRight
+          aria-hidden
           className={cn(
-            "flex w-full items-center gap-2 font-semibold text-[13px] text-ink",
-            off && "font-medium text-ink-muted",
+            "-ml-1 size-3.5 shrink-0 text-ink-faint opacity-0 transition-opacity duration-(--duration-fast) group-hover:opacity-100 group-focus-visible:opacity-100",
+            !meta && "ml-auto",
           )}
-        >
-          <Icon className="size-[15px] shrink-0 text-ink-muted" />
-          {name}
-          {meta && (
-            <span className="ml-auto font-[450] text-[12px] text-ink-faint tabular-nums">
-              {meta}
-            </span>
-          )}
-          <ChevronRight
-            aria-hidden
-            className={cn(
-              "-ml-1 size-3.5 shrink-0 text-ink-faint opacity-0 transition-opacity duration-(--duration-fast) group-hover:opacity-100 group-focus-visible:opacity-100",
-              !meta && "ml-auto",
-            )}
-          />
-        </span>
-        {children}
-      </button>
-    </Tip>
+        />
+      </span>
+      {children}
+    </button>
   );
 }
 

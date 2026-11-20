@@ -20,7 +20,9 @@ export interface TipProps {
   children: ReactElement;
 }
 
-/** The app's one hover hint. */
+/** The app's one hover hint. It says what the element doesn't already
+ * show (an icon's meaning, a cut-off text in full, a shortcut, why it's
+ * disabled), never its own label again. */
 export function Tip({ tip, wrap, children }: TipProps) {
   if (tip == null || tip === "") return children;
   return (
