@@ -322,7 +322,6 @@
   --animate-flash: zx-flash var(--duration-flash) var(--ease-in);
   --animate-gain: zx-gain 600ms var(--ease-spring);
   --animate-rise: zx-rise var(--duration-slow) var(--ease-out);
-  --animate-beckon: zx-beckon 900ms var(--ease-out) 3;
 
   @keyframes zx-ping {
     0% {
@@ -346,14 +345,6 @@
     }
     60% {
       transform: scale(1.12);
-    }
-  }
-  @keyframes zx-beckon {
-    from {
-      box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 55%, transparent);
-    }
-    to {
-      box-shadow: 0 0 0 10px transparent;
     }
   }
   @keyframes zx-rise {

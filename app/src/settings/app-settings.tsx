@@ -1,5 +1,5 @@
 import { Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { InlineError } from "@/components/callout";
 import { Card } from "@/components/card";
 import { Field } from "@/components/field";
@@ -13,19 +13,15 @@ import {
 } from "@/components/ui/tooltip";
 import type { FullConfig } from "@/lib/config";
 import { useRequestState } from "@/lib/request";
-import { cn } from "@/lib/utils";
 import { Row } from "@/settings/row";
 import { SettingsSection } from "@/settings/settings-section";
 import { PageHeader } from "@/shell/page-header";
-import { saveConfig, useConfig, useDevTools } from "@/stores/config";
-import { useShell } from "@/stores/shell";
+import { saveConfig, useConfig } from "@/stores/config";
 
-/** The app's own settings, apart from the randomizer's. Each part starts
- * again when what it shows changes: the field when a dump is saved, the dev
- * panel toggle's pulse at each new `shell.beckon`. */
+/** The app's own settings, apart from the randomizer's. The dump field
+ * starts again when a dump is saved. */
 export function AppSettings() {
   const [game] = useConfig.usePath("config.game");
-  const [beckon] = useShell.usePath("beckon");
   return (
     <>
       <PageHeader title="Settings" />
@@ -33,7 +29,6 @@ export function AppSettings() {
       <GameAssets />
       <UpdateCheck />
       <DevTools />
-      <DevPanel key={beckon} />
     </>
   );
 }
@@ -123,32 +118,6 @@ function DevTools() {
       checked={checked}
       change={(on) => ({ dev_tools: on })}
     />
-  );
-}
-
-/** The dev panel toggle, with developer tools on. Beckoned, it scrolls
- * into view and pulses. */
-function DevPanel() {
-  const tools = useDevTools();
-  const [checked] = useConfig.usePath("config.dev_panel");
-  const [beckon] = useShell.usePath("beckon");
-  const beckoned = beckon > 0;
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (beckoned)
-      ref.current?.scrollIntoView?.({ behavior: "smooth", block: "center" });
-  }, [beckoned]);
-  if (!tools) return null;
-  return (
-    <div ref={ref} className={cn("rounded-lg", beckoned && "animate-beckon")}>
-      <SwitchRow
-        id="dev-panel"
-        label="Dev panel"
-        description="Seeds you install carry the dev panel's hook, and the sidebar's wrench opens the panel. Takes effect at the next install, then restart the game."
-        checked={checked}
-        change={(on) => ({ dev_panel: on })}
-      />
-    </div>
   );
 }
 

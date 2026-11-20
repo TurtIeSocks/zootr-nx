@@ -51,9 +51,7 @@ pub(super) fn flows(
     let grants = starting::with_gives(new_game.start.grants(&pouch), &give);
     starting::grant(romfs, &mut rewrites, &grants)?;
     starting::replay(romfs, &mut rewrites, &new_game.progress)?;
-    if new_game.mailbox {
-        steps::dev_branch(romfs, &mut rewrites)?;
-    }
+    steps::dev_branch(romfs, &mut rewrites)?;
     if let Some(spawn) = &new_game.spawn {
         spawn::warp(romfs, &mut rewrites, spawn)?;
     }
@@ -153,7 +151,7 @@ pub fn write_mod(
     };
     let key_copies = (
         new_game.keys.copies(),
-        boss_copies(new_game),
+        BOSS_COPIES,
         new_game.fortress_keys.copies(),
     );
     // First, so a copy on a shelf takes its caption from its own lines.
@@ -163,10 +161,8 @@ pub fn write_mod(
         key_lines.new.extend(map_copies::captions());
     }
     copies.insert(0, key_lines);
-    if new_game.mailbox {
-        copies.push(notice::banners());
-        copies.push(notice::senders(&new_game.players));
-    }
+    copies.push(notice::banners());
+    copies.push(notice::senders(&new_game.players));
     text::write(romfs, &mut builder, &lines, &copies, hints)?;
     let cows = match new_game.cows {
         true => cows::find(romfs)?,
@@ -268,7 +264,7 @@ pub fn write_mod(
     let items = drops.values().map(|d| d.item.as_str()).chain(shown);
     medallions::write(romfs, &mut builder, &mut tables, items)?;
     let flags = hook_flags(new_game);
-    let bosses = boss_copies(new_game);
+    let bosses = BOSS_COPIES;
     let fortress = new_game.fortress_keys.copies();
     key_tints::write(
         romfs,
@@ -456,7 +452,6 @@ pub fn write_mod(
         mod_dir,
         new_game.progressive,
         &keyed,
-        new_game.mailbox,
         flags,
         &credits,
         &spots,
@@ -478,14 +473,9 @@ fn write_maps(builder: &mut ModBuilder, maps: &mut Vec<(String, BymlDoc)>) -> Re
     Ok(())
 }
 
-/// Whether a seed deals boss key copies. A copy found in a chest that runs
-/// a scene of its own is credited by the hook, so without it the boss key
-/// stays as it is. Key rings and Keysanity deal them, and bring the hook
-/// along.
-fn boss_copies(new_game: &NewGame) -> bool {
-    let hooked = patch::hooked(new_game.progressive, new_game.mailbox, hook_flags(new_game));
-    new_game.keys.copies() || hooked
-}
+/// Every seed deals boss key copies. A copy found in a chest that runs a
+/// scene of its own is credited by the hook, which every seed carries.
+const BOSS_COPIES: bool = true;
 
 /// The items `drops` give through a chest's own copy of its event.
 fn levels(
@@ -500,7 +490,7 @@ fn levels(
 /// and with maps and compasses moving theirs.
 fn sets(new_game: &NewGame) -> Vec<(String, key_tints::Sets)> {
     let fortress = new_game.fortress_keys.copies();
-    let mut sets = key_tints::sets(boss_copies(new_game), new_game.keys, fortress);
+    let mut sets = key_tints::sets(BOSS_COPIES, new_game.keys, fortress);
     if maps_move(new_game) {
         sets.extend(map_copies::sets());
     }

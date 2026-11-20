@@ -184,11 +184,9 @@ fn need(world: &World, hash: u64) -> (String, Vec<String>) {
 
 /// The new game `settings` start, with what `extras` adds on top. The
 /// extras' fields and gifts join the presets' own, never replace them.
-fn new_game(settings: &Settings, extras: &Extras, ap: bool) -> Result<NewGame> {
+fn new_game(settings: &Settings, extras: &Extras) -> Result<NewGame> {
     let mut new_game = NewGame {
         spawn: extras.spawn.clone(),
-        // The client gives through it.
-        mailbox: extras.dev_panel || ap,
         ..NewGame::from_settings(settings, &extras.defaults)?
     };
     new_game.fields.extend(extras.fields.iter().cloned());
@@ -209,7 +207,7 @@ pub fn generate(
         ap.is_none() || extras.place.is_empty(),
         "an Archipelago seed places every item itself"
     );
-    let mut new_game = new_game(settings, extras, ap.is_some())?;
+    let mut new_game = new_game(settings, extras)?;
     if let Some(ap) = &ap {
         new_game.foreign = ap.foreign.clone();
         new_game.players = extras
@@ -253,7 +251,7 @@ mod tests {
             fields: vec!["1.FakeField=1".into()],
             ..Extras::default()
         };
-        let game = new_game(&settings, &extras, false).unwrap();
+        let game = new_game(&settings, &extras).unwrap();
         let presets = crate::presets::fields(&[crate::presets::JABU_OPEN.into()]).unwrap();
         assert_eq!(game.fields, [presets, extras.fields].concat());
     }

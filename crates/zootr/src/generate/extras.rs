@@ -30,10 +30,6 @@ pub struct Extras {
     /// An Archipelago seed: its placements stand in for the shuffle.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ap: Option<ApSeed>,
-    /// Install the dev panel's hook. It follows the config at each install
-    /// rather than the seed, so it's never kept.
-    #[serde(skip)]
-    pub dev_panel: bool,
     /// From before Shuffle items was a setting. History moves it there on
     /// load, and it's never written.
     #[serde(skip_serializing)]

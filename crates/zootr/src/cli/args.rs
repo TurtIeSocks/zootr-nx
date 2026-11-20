@@ -262,9 +262,8 @@ pub(super) enum Command {
     /// Shuffle the items and write the seed as a mod.
     Shuffle(Shuffle),
     /// Give Link an item in the running game, by its actor name, with
-    /// the game's own grant, run by our hook on Link's next update. Needs a
-    /// seed installed with `dev_panel` on in the config. The menu shows it
-    /// the next time it opens. Needs macOS or a target with a bridge.
+    /// the game's own grant, run by our hook on Link's next update. The
+    /// menu shows it the next time it opens. Needs macOS or a target with a bridge.
     Give {
         actor: String,
         /// How many, for items with a count.
@@ -288,7 +287,7 @@ pub(super) enum Command {
     #[command(subcommand)]
     Target(TargetCommand),
     /// Dev panel requests for the running game, run by our hook on Link's
-    /// next update. Needs a seed installed with `dev_panel` on in the config.
+    /// next update.
     #[command(subcommand)]
     Dev(DevCommand),
     /// Sweep every spot of new seeds, round after round,

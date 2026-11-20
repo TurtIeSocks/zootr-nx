@@ -8,8 +8,7 @@ use anyhow::{Context, Result, ensure};
 pub use zootr_hook::OFFSETS;
 use zootr_hook::look::LookSpec;
 use zootr_hook::{
-    BUNNY_HOOD, CAVE, Credit, DEV, FAR, LIST, PANIC, SLOTS, Shared, Spot, TABLE, TRADE_CYCLE,
-    encode,
+    CAVE, Credit, DEV, FAR, LIST, PANIC, SLOTS, Shared, Spot, TABLE, TRADE_CYCLE, encode,
 };
 
 use crate::known::Name;
@@ -176,13 +175,12 @@ fn table_writes(Patch { at, mut bytes }: Patch) -> [Patch; 2] {
 }
 
 /// The gate, the hook, its table for `lines`, the [`zootr_hook::KEYED`]
-/// lines `keyed`, `flags` (with [`DEV`] for `mailbox`), `credits` and
-/// `spots`, then the calls and function hooks that reach it, every one in
-/// every seed.
+/// lines `keyed`, `flags` (with [`DEV`] always, so the mailbox answers in
+/// every seed), `credits` and `spots`, then the calls and function hooks
+/// that reach it, every one in every seed.
 pub fn patches<A: AsRef<str>>(
     lines: &[&[(A, A)]],
     keyed: &[Vec<(String, String)>],
-    mailbox: bool,
     flags: u32,
     credits: &[(&str, Credit)],
     spots: &[Spot],
@@ -196,7 +194,7 @@ pub fn patches<A: AsRef<str>>(
         .map(|l| l.iter().map(|(a, b)| (a.as_str(), b.as_str())).collect())
         .collect();
     let keyed: Vec<&[(&str, &str)]> = keyed.iter().map(Vec::as_slice).collect();
-    let flags = flags | if mailbox { DEV } else { 0 };
+    let flags = flags | DEV;
     let actors = trade_slot::actors();
     let slot = (flags & TRADE_CYCLE != 0).then(|| trade_slot::spec(&actors));
     let table = encode(flags, &lines, &keyed, credits, slot.as_ref(), spots, look);
@@ -289,40 +287,27 @@ fn outputs(mod_dir: &Path) -> [(PathBuf, Writer); 2] {
     [(path(mod_dir), cheat), (exefs(mod_dir), pchtxt)]
 }
 
-/// Whether a seed with these settings runs the hook.
-pub fn hooked(progressive: bool, mailbox: bool, flags: u32) -> bool {
-    progressive || mailbox || flags & (BUNNY_HOOD | TRADE_CYCLE) != 0
-}
-
-/// Write the cheat and exefs patch when [`hooked`], else take ours away.
-/// `mailbox` adds the mailbox's hook, the hood the run's call, and without
-/// `progressive` the table has no lines but the `keyed` ones (a prize
-/// chest's ammo). `credits` are what items set as they're found, by name,
-/// `spots` the twinned holders whose drops set a flag as they're taken
-/// (GameData holds them, the table their count), and a seed with any of
-/// these runs the hook too.
-#[allow(clippy::too_many_arguments)]
+/// Write the cheat and exefs patch. Without `progressive` the table has
+/// no lines but the `keyed` ones (a prize chest's ammo). `credits` are
+/// what items set as they're found, by name, `spots` the twinned holders
+/// whose drops set a flag as they're taken (GameData holds them, the
+/// table their count).
 pub fn install(
     mod_dir: &Path,
     progressive: bool,
     keyed: &[Vec<(String, String)>],
-    mailbox: bool,
     flags: u32,
     credits: &[(String, Credit)],
     spots: &[Spot],
     look: Option<&LookSpec>,
 ) -> Result<()> {
-    let any = !keyed.is_empty() || !credits.is_empty() || !spots.is_empty();
-    if !hooked(progressive, mailbox, flags) && !any {
-        return remove(mod_dir);
-    }
     let lines: &[&[(&Name, &Name)]] = if progressive {
         &progressive::LINES
     } else {
         &[]
     };
     let credits: Vec<_> = credits.iter().map(|(n, c)| (n.as_str(), *c)).collect();
-    let patches = patches(lines, keyed, mailbox, flags, &credits, spots, look)?;
+    let patches = patches(lines, keyed, flags, &credits, spots, look)?;
     for (path, write) in outputs(mod_dir) {
         std::fs::create_dir_all(path.parent().unwrap())?;
         std::fs::write(&path, write(&patches))
@@ -401,7 +386,7 @@ fn take(path: &Path) -> Result<()> {
 mod tests {
     use std::ops::Range;
 
-    use zootr_hook::{FREE_BOMBCHUS, HEADER, Header, ICE_TRAPS, MAGIC, Table};
+    use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS, HEADER, Header, ICE_TRAPS, MAGIC, Table};
 
     use super::*;
 
@@ -432,15 +417,7 @@ mod tests {
         ] {
             let credits = crate::key_tints::credits(true, keys, true);
             let credits: Vec<_> = credits.iter().map(|(n, c)| (n.as_str(), *c)).collect();
-            let p = patches(
-                &progressive::LINES,
-                &keyed,
-                true,
-                ALL,
-                &credits,
-                &[SPOT],
-                None,
-            );
+            let p = patches(&progressive::LINES, &keyed, ALL, &credits, &[SPOT], None);
             assert!(p.is_ok(), "{keys:?}: {}", p.unwrap_err());
         }
     }
@@ -455,31 +432,25 @@ mod tests {
     #[test]
     fn every_seed_writes_the_same_code_whatever_its_settings() {
         let code = code_patches().unwrap();
-        for (dev, flags, spots) in [
-            (false, 0, &[][..]),
-            (true, 0, &[]),
-            (false, ALL | ICE_TRAPS | FREE_BOMBCHUS, &[SPOT]),
-            (true, ALL | ICE_TRAPS, &[SPOT]),
-        ] {
-            let p = patches(&progressive::LINES, &[], dev, flags, &[], spots, None).unwrap();
-            assert_eq!(without_table(p), code, "{dev} {flags}");
+        for (flags, spots) in [(0, &[][..]), (ALL | ICE_TRAPS | FREE_BOMBCHUS, &[SPOT])] {
+            let p = patches(&progressive::LINES, &[], flags, &[], spots, None).unwrap();
+            assert_eq!(without_table(p), code, "{flags}");
         }
-        let exefs = |dev| {
-            let dir =
-                std::env::temp_dir().join(format!("zootr-split-{}-{dev}", std::process::id()));
-            install(&dir, true, &[], dev, ALL, &[], &[], None).unwrap();
-            split(&dir).unwrap();
-            let text = std::fs::read_to_string(exefs(&dir)).unwrap();
-            std::fs::remove_dir_all(dir).unwrap();
-            text
-        };
-        assert_eq!(exefs(false), exefs(true), "the dev panel on and off");
+    }
+
+    #[test]
+    fn every_seed_s_table_answers_the_mailbox() {
+        let p = patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap();
+        let magic = p.iter().find(|p| p.at == TABLE).unwrap();
+        let body = p.iter().find(|p| p.at == TABLE + 4).unwrap();
+        let header = Header::read(&[&magic.bytes[..], &body.bytes].concat());
+        assert_ne!(header.flags & DEV, 0);
     }
 
     #[test]
     fn the_code_and_table_go_in_their_places_and_read_back() {
         let [_, code, far, body, magic, ..] =
-            &patches(&progressive::LINES, &[], false, 0, &[], &[], None).unwrap()[..]
+            &patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap()[..]
         else {
             panic!("patches")
         };
@@ -527,7 +498,7 @@ mod tests {
 
     #[test]
     fn the_gate_skips_the_recorder() {
-        let gate = &patches(&progressive::LINES, &[], false, 0, &[], &[], None).unwrap()[0];
+        let gate = &patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap()[0];
         assert_eq!(gate.at, 0x17d_59bc);
         // b 0x17d59c4
         assert_eq!(gate.bytes, 0x1400_0002u32.to_le_bytes());
@@ -600,7 +571,7 @@ mod tests {
 
     #[test]
     fn calls_and_hooks_branch_to_the_hook() {
-        let p = patches(&progressive::LINES, &[], true, ALL, &[], &[SPOT], None).unwrap();
+        let p = patches(&progressive::LINES, &[], ALL, &[], &[SPOT], None).unwrap();
         assert_eq!(p[5..], sites().collect::<Vec<_>>());
         let at = |i: usize| u32::from_le_bytes(p[5 + i].bytes[..].try_into().unwrap());
         assert_eq!(at(0) >> 26, 0b100101, "a call stays a bl");
@@ -622,7 +593,7 @@ mod tests {
     fn a_table_too_big_for_the_space_is_refused() {
         let name = "Item_".repeat(40);
         let big = vec![(name.as_str(), name.as_str()); 20];
-        assert!(patches(&[&big], &[], false, 0, &[], &[], None).is_err());
+        assert!(patches(&[&big], &[], 0, &[], &[], None).is_err());
     }
 
     #[test]
@@ -644,8 +615,7 @@ mod tests {
              08000000 00000018 0F0E0D0C 0B0A0908\n\
              04000000 0000002C 04030201\n\n"
         );
-        let text =
-            cheat(&patches(&progressive::LINES, &[], true, ALL, &[], &[SPOT], None).unwrap());
+        let text = cheat(&patches(&progressive::LINES, &[], ALL, &[], &[SPOT], None).unwrap());
         let cheats: Vec<_> = text.split("\n\n").filter(|c| !c.is_empty()).collect();
         let total = cheats.len();
         for (i, c) in cheats.iter().enumerate() {
@@ -692,18 +662,18 @@ mod tests {
     }
 
     #[test]
-    fn install_writes_or_takes_away_only_ours() {
+    fn install_writes_and_remove_takes_away_only_ours() {
         let dir = std::env::temp_dir().join(format!("zootr-patch-{}", std::process::id()));
         let other = dir.join("cheats/OTHER.txt");
         std::fs::create_dir_all(other.parent().unwrap()).unwrap();
         std::fs::write(&other, "").unwrap();
-        install(&dir, true, &[], false, 0, &[], &[], None).unwrap();
+        install(&dir, true, &[], 0, &[], &[], None).unwrap();
         assert!(
             std::fs::read_to_string(path(&dir))
                 .unwrap()
                 .starts_with("{zootr 1/")
         );
-        install(&dir, false, &[], true, 0, &[], &[], None).unwrap();
+        install(&dir, false, &[], 0, &[], &[], None).unwrap();
         let dev = std::fs::read_to_string(path(&dir)).unwrap();
         assert!(
             dev.contains(&format!("{:08X}", OFFSETS.link_update)),
@@ -715,21 +685,20 @@ mod tests {
                 .unwrap()
                 .contains(&format!("{:08X} ", OFFSETS.link_update))
         );
-        install(&dir, false, &[], false, BUNNY_HOOD, &[], &[], None).unwrap();
+        install(&dir, false, &[], BUNNY_HOOD, &[], &[], None).unwrap();
         let hood = std::fs::read_to_string(path(&dir)).unwrap();
         assert!(hood.contains(&format!("{:08X}", RUN_CALL.0)), "{hood}");
-        install(&dir, false, &[], false, 0, &[], &[], None).unwrap();
+        remove(&dir).unwrap();
         assert!(!path(&dir).exists() && !exefs.exists());
         assert!(other.exists());
-        remove(&dir).unwrap();
         std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
     fn the_split_leaves_the_code_to_the_exefs_patch_and_the_table_to_the_cheat() {
         let dir = std::env::temp_dir().join(format!("zootr-split-{}", std::process::id()));
-        install(&dir, true, &[], true, ALL, &[], &[SPOT], None).unwrap();
-        let whole = patches(&progressive::LINES, &[], true, ALL, &[], &[SPOT], None).unwrap();
+        install(&dir, true, &[], ALL, &[], &[SPOT], None).unwrap();
+        let whole = patches(&progressive::LINES, &[], ALL, &[], &[SPOT], None).unwrap();
         split(&dir).unwrap();
         let exefs = std::fs::read_to_string(exefs(&dir)).unwrap();
         assert_eq!(exefs, pchtxt(&code_patches().unwrap()));

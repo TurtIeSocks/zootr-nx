@@ -108,6 +108,7 @@ vi.mock("@/bindings", () => ({
         data: { cells: [], options: { sections: [] } },
       }),
     itemsIcons: () => Promise.resolve({ status: "ok", data: null }),
+    devPopOut: vi.fn(() => Promise.resolve({ status: "ok", data: null })),
   },
 }));
 
@@ -264,27 +265,12 @@ test("without developer tools the sidebar has no Test setup or dev panel", () =>
   expect(nav().queryByRole("button", { name: /^Dev panel/ })).toBeNull();
 });
 
-test("the dev panel button is greyed with the setting off, never disabled", () => {
-  useConfig.setPath("config.dev_tools", true);
+test("the dev panel button shows with developer tools and opens the panel", () => {
   sidebar();
-  const wrench = item(/^Dev panel/);
-  expect(wrench.classList.contains("opacity-45")).toBe(true);
-  expect(wrench.getAttribute("aria-disabled")).toBeNull();
-  fireEvent.click(wrench);
-  expect(useShell.getState().beckon).toBeGreaterThan(0);
-  act(() => useConfig.setPath("config.dev_panel", true));
-  expect(wrench.classList.contains("opacity-45")).toBe(false);
-});
-
-test("with the dev panel off, its button opens Settings at the toggle", async () => {
-  backend.config = { ...CONFIG, dev_tools: true };
-  render(<App />);
-  fireEvent.click(await screen.findByRole("button", { name: "Dev panel" }));
-  expect(
-    await screen.findByRole("heading", { level: 1, name: "Settings" }),
-  ).toBeTruthy();
-  const toggle = screen.getByRole("switch", { name: "Dev panel" });
-  expect(toggle.closest(".animate-beckon")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /^Dev panel/ })).toBeNull();
+  act(() => useConfig.setPath("config.dev_tools", true));
+  fireEvent.click(item(/^Dev panel/));
+  expect(commands.devPopOut).toHaveBeenCalled();
 });
 
 test("the current page is marked", () => {

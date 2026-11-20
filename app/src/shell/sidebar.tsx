@@ -230,15 +230,13 @@ function Version() {
   );
 }
 
-/** Opens the dev panel. Greyed while the setting is off. */
+/** Opens the dev panel. */
 function DevButton() {
-  const [dev] = useConfig.usePath("config.dev_panel");
   return (
     <TipButton
       label="Dev panel"
       variant="ghost"
-      tip={dev ? "Dev panel" : "The dev panel is off. Click to turn it on"}
-      className={cn(!dev && "opacity-45")}
+      tip="Dev panel"
       onClick={openDev}
     >
       <Wrench />

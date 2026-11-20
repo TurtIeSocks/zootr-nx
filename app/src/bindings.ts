@@ -290,17 +290,12 @@ export type Config = {
 	/**  Plandos kept by name, to load into `place`. */
 	plandos?: { [key in string]: { [key in string]: string } },
 	/**
-	 *  The app shows its developer tools: the dev panel switch, Test
-	 *  setup, and the targets' scripted-play fields. Off, a hidden test
-	 *  setup leaves seeds alone. The dev panel's hook doesn't follow it,
-	 *  so hiding the tools never changes the hook patch.
+	 *  The app shows its developer tools: the dev panel, Test setup, and
+	 *  the targets' scripted-play fields. Off, a hidden test setup leaves
+	 *  seeds alone. Every seed carries the dev panel's hook either way, so
+	 *  hiding the tools never changes the hook patch.
 	 */
 	dev_tools?: boolean,
-	/**
-	 *  Seeds install the dev panel's hook, and the app's Dev button opens
-	 *  the panel.
-	 */
-	dev_panel?: boolean,
 	/**
 	 *  Draw item icons from the game dump. zootr-nx ships none of the
 	 *  game's art, so it's off until the person turns it on.

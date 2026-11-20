@@ -52,11 +52,9 @@ impl Generating {
         });
         *self.log.lock().unwrap() = run.log().map(Into::into);
         *self.stop.lock().unwrap() = Some(run.stopper());
-        let mut extras = extras.clone();
-        extras.dev_panel = config.dev_panel;
         let report = zootr::game::prepare(game, &run).and_then(|romfs| {
             let write =
-                |d: &std::path::Path| generate::generate(&romfs, d, seed, settings, &extras, &run);
+                |d: &std::path::Path| generate::generate(&romfs, d, seed, settings, extras, &run);
             match install {
                 true => generate::install(&config.targets, &run, write),
                 false => generate::throwaway(write),

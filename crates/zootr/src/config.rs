@@ -53,14 +53,11 @@ pub struct Config {
     /// it's left out of the UI's config.
     #[cfg_attr(feature = "specta", specta(skip))]
     pub tracker: TrackerOptions,
-    /// The app shows its developer tools: the dev panel switch, Test
-    /// setup, and the targets' scripted-play fields. Off, a hidden test
-    /// setup leaves seeds alone. The dev panel's hook doesn't follow it,
-    /// so hiding the tools never changes the hook patch.
+    /// The app shows its developer tools: the dev panel, Test setup, and
+    /// the targets' scripted-play fields. Off, a hidden test setup leaves
+    /// seeds alone. Every seed carries the dev panel's hook either way, so
+    /// hiding the tools never changes the hook patch.
     pub dev_tools: bool,
-    /// Seeds install the dev panel's hook, and the app's Dev button opens
-    /// the panel.
-    pub dev_panel: bool,
     /// The turn queue: where it is and the games it hands out.
     #[cfg_attr(feature = "specta", specta(skip))]
     #[serde(skip_serializing_if = "crate::turn::TurnConfig::is_unset")]
@@ -491,7 +488,8 @@ impl Config {
             obj.entry("game").or_insert(romfs);
         }
         // From before developer tools had a switch: whoever used one keeps
-        // them. An empty test setup isn't written, so being there means set.
+        // them. `dev_panel` was the dev panel's own switch, since dropped.
+        // An empty test setup isn't written, so being there means set.
         if let Some(obj) = json.as_object_mut()
             && !obj.contains_key("dev_tools")
         {
@@ -752,7 +750,6 @@ mod tests {
     #[test]
     fn a_hidden_test_setup_leaves_seeds_alone() {
         let mut config = Config {
-            dev_panel: true,
             test: TestSetup {
                 give: vec!["FakeItem".into()],
                 ..Default::default()
