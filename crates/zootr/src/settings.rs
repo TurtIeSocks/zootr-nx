@@ -10,7 +10,7 @@ use serde_json::Value;
 
 use crate::cutscenes::{AREAS, Skips};
 use crate::keys;
-use crate::presets::{self, CARPENTERS_FREED, PRESETS};
+use crate::presets::{self, CARPENTERS_FAST, CARPENTERS_FREED, PRESETS};
 use crate::starting;
 
 mod choices;

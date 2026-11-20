@@ -288,12 +288,13 @@ era = "adult"
 item = "item:goron-tunic-pickup"
 needs = "explosives"
 
+# As its gift check says.
 [[source]]
 name = "Gerudo Membership Card"
 place = "gerudo-fortress-adult"
 era = "adult"
 item = "item:gerudo-card"
-needs = "hookshot"
+needs = "hookshot or setting:carpenters-fast"
 
 # The Kokiri shop.
 [[source]]

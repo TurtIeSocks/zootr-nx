@@ -19860,9 +19860,16 @@
         {
           "place": "gerudo-fortress-adult",
           "rule": {
-            "count": 1,
-            "items": [
-              "Progressive Hookshot"
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              },
+              {
+                "setting": "carpenters-fast"
+              }
             ]
           }
         }

@@ -463,12 +463,15 @@ place = "market-adult"
 era = "adult"
 needs = "beat:bongo-bongo and beat:twinrova"
 
+# Once the fourth carpenter is free. Reaching every cell takes the
+# Hookshot. With Gerudo Fortress fast, one carpenter counts as four, and
+# the first cell opens off the fortress floor.
 [[check]]
 hash = 18277160726242923509
 name = "Gerudo membership card"
 place = "gerudo-fortress-adult"
 era = "adult"
-needs = "hookshot"
+needs = "hookshot or setting:carpenters-fast"
 
 # Dampe's dig at night, a lottery of 10 rupees a go. The piece's Bool
 # stops it coming up twice, so enough digs always get it.
