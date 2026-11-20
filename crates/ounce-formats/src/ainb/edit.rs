@@ -404,6 +404,54 @@ impl File {
         self.add_plug(plug)
     }
 
+    /// Points `parent`'s child plug on `from` at `to` instead.
+    pub fn repoint_child(&mut self, parent: usize, from: usize, to: usize) -> Result<()> {
+        ensure!(to < self.nodes.len(), "no node {to}");
+        let node = self
+            .nodes
+            .get_mut(parent)
+            .with_context(|| format!("no node {parent}"))?;
+        let plugs = &mut node.plugs[CHILD];
+        let plug = (plugs.iter_mut()).find(|r| word(r, 0) == from as u32);
+        set_word(
+            plug.with_context(|| format!("#{parent} has no child #{from}"))?,
+            0,
+            to as u32,
+        );
+        Ok(())
+    }
+
+    /// Cuts the link into `reader`'s `input`, which reads `value` from then
+    /// on: what `link` does, undone. A query source stays among the
+    /// reader's queries.
+    pub fn unlink(&mut self, reader: usize, input: &str, value: &Value) -> Result<()> {
+        let (t, i) = self.input(reader, input)?;
+        let ty = TYPES[t];
+        let raw = self.raw(ty, input, value)?;
+        let (at, flags, value_at) = input_fields(ty);
+        let len = ty.input_len();
+        let e = &self.inputs[t][i * len..(i + 1) * len];
+        let source = i16::from_le_bytes([e[at], e[at + 1]]);
+        let k = i16::from_le_bytes([e[at + 2], e[at + 3]]);
+        ensure!(source >= 0, "{input} has no single source");
+        let (source, k) = (source as usize, usize::try_from(k)?);
+        let o = (self.node(source)?.outputs(t).nth(k)).context("no such output")?;
+        let output = self.str(word(&self.outputs[t], o * ty.output_len()) & !OUTPUT_FLAGS)?;
+        let output = output.to_owned();
+        let plug = self.link_plug(reader, ty, input, source, &output)?;
+        let name = self.intern(plug.name);
+        let records = &mut self.nodes[plug.holder].plugs[plug.kind];
+        let held = records.len();
+        records.retain(|r| !(word(r, 4) == name && word(r, 0) == plug.target as u32));
+        ensure!(records.len() < held, "{input} carries no plug");
+        let e = &mut self.inputs[t][i * len..(i + 1) * len];
+        e[at..at + 4].copy_from_slice(&[0xff, 0xff, 0, 0]);
+        let unlinked = word(e, flags) | USES_DEFAULT;
+        set_word(e, flags, unlinked);
+        set_word(e, value_at, raw);
+        Ok(())
+    }
+
     /// Adds `plug` unless its holder has it. A pointer output keeps the one
     /// plug it has, whichever reader that points at.
     fn add_plug(&mut self, plug: Plug) -> Result<()> {
@@ -789,6 +837,31 @@ mod tests {
         odd.nodes[0].set_u16(0, USER);
         odd.nodes[0].set_u16(ATTACHMENTS, 1);
         assert!(f.copy_node(&odd, 0).is_err());
+    }
+
+    #[test]
+    fn a_repointed_child_runs_the_other_node() {
+        let mut f = game();
+        f.repoint_child(4, 3, 7).unwrap();
+        assert_eq!(
+            plug(&f, 4, CHILD).iter().map(|p| p.0).collect::<Vec<_>>(),
+            [7, 3]
+        );
+        assert!(f.repoint_child(4, 6, 7).is_err());
+    }
+
+    #[test]
+    fn an_unlinked_input_reads_its_value_and_loses_its_plug() {
+        let mut f = game();
+        f.unlink(4, "Input", &Value::Bool(true)).unwrap();
+        assert!(plug(&f, 4, GENERIC).is_empty());
+        assert_eq!(plug(&f, 4, CHILD).len(), 2);
+        let bytes = f.to_bytes().unwrap();
+        assert_eq!(check(&bytes).unwrap(), 2);
+        let input = &crate::ainb::Graph::parse(&bytes).unwrap().nodes[4].inputs[0];
+        assert!(input.sources.is_empty());
+        assert_eq!(input.value, Value::Bool(true));
+        assert!(f.unlink(4, "Input", &Value::Bool(true)).is_err());
     }
 
     #[test]
