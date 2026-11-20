@@ -42,6 +42,7 @@ import { RequestProvider } from "@/lib/request-provider";
 import { cn } from "@/lib/utils";
 import { Page } from "@/shell/page-header";
 import { mark, useChecks } from "@/stores/checks";
+import { useDevTools } from "@/stores/config";
 import { label } from "@/stores/live";
 import { closeCheckText, openCheckText, useShell } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
@@ -192,6 +193,7 @@ const cell = "h-8.5 border-line border-t px-3 align-middle";
 /** A check's row, with its own request for marking it: one mark at a
  * time, and why one failed shown in the row. */
 function CheckRow({ row }: RowProps) {
+  const devTools = useDevTools();
   const done = isDone(row);
   return (
     <RequestProvider>
@@ -208,7 +210,7 @@ function CheckRow({ row }: RowProps) {
             <Circle className="size-4 text-control-border" aria-hidden />
           )}
         </td>
-        <Tip tip={`${row.spot.holder} ${row.spot.hash}`}>
+        <Tip tip={devTools && `${row.spot.holder} ${row.spot.hash}`}>
           <td
             className={cn(cell, done && "line-through decoration-line-strong")}
           >

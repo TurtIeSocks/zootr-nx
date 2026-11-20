@@ -101,7 +101,7 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
 pub(super) fn shuffle(game: &Path, args: Shuffle) -> Result<()> {
     let seed = args.seed.unwrap_or_else(generate::time_seed);
     let extras = generate::Extras {
-        dev_panel: Config::load()?.dev_panel,
+        dev_panel: Config::load()?.dev_hook(),
         ..args.extras()
     };
     install(game, seed, args.settings(), extras, args.install)
@@ -111,7 +111,7 @@ pub(super) fn shuffle(game: &Path, args: Shuffle) -> Result<()> {
 pub(super) fn ap_open(game: &Path, file: &Path, args: Install) -> Result<()> {
     let ap = crate::ap::ApSeed::read(file)?;
     let extras = generate::Extras {
-        dev_panel: Config::load()?.dev_panel,
+        dev_panel: Config::load()?.dev_hook(),
         ..generate::Extras::ap(ap.clone())
     };
     install(game, ap.seed, ap.full_settings(), extras, args)

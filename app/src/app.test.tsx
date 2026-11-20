@@ -48,10 +48,13 @@ const seed: Summary = {
   share: "",
 };
 
+/** The config each test starts from. */
+const CONFIG: Config = {
+  targets: [{ name: "Emu", app: "/a.app", mod_dir: "/m" }],
+};
+
 const backend = {
-  config: {
-    targets: [{ name: "Emu", app: "/a.app", mod_dir: "/m" }],
-  } as Config,
+  config: CONFIG,
   installed: null as Summary | null,
   running: false,
 };
@@ -110,6 +113,7 @@ vi.mock("@/bindings", () => ({
 
 afterEach(() => {
   cleanup();
+  backend.config = CONFIG;
   backend.installed = null;
   backend.running = false;
   useUi.setPath("tab", "Play");
@@ -238,6 +242,7 @@ test("the Spoiler tab says so with no seed installed", async () => {
 test("each schema group is an item, marked when it holds changes", () => {
   useSeeds.setPath("history", { installed: seed, entries: [seed] });
   useChecks.setState((c) => ({ ...c, id: 7, done: 41, total: 112 }));
+  useConfig.setPath("config.dev_tools", true);
   useConfig.setPath("config.test.spawn", "Map/Spot");
   sidebar();
   const nav = screen.getByRole("navigation");
@@ -252,7 +257,15 @@ test("each schema group is an item, marked when it holds changes", () => {
   });
 });
 
+test("without developer tools the sidebar has no Test setup or dev panel", () => {
+  useConfig.setPath("config.dev_tools", false);
+  sidebar();
+  expect(nav().queryByRole("button", { name: /^Test setup/ })).toBeNull();
+  expect(nav().queryByRole("button", { name: /^Dev panel/ })).toBeNull();
+});
+
 test("the dev panel button is greyed with the setting off, never disabled", () => {
+  useConfig.setPath("config.dev_tools", true);
   sidebar();
   const wrench = item(/^Dev panel/);
   expect(wrench.classList.contains("opacity-45")).toBe(true);
@@ -264,6 +277,7 @@ test("the dev panel button is greyed with the setting off, never disabled", () =
 });
 
 test("with the dev panel off, its button opens Settings at the toggle", async () => {
+  backend.config = { ...CONFIG, dev_tools: true };
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: "Dev panel" }));
   expect(

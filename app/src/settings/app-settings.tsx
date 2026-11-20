@@ -11,12 +11,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { FullConfig } from "@/lib/config";
 import { useRequestState } from "@/lib/request";
 import { cn } from "@/lib/utils";
 import { Row } from "@/settings/row";
 import { SettingsSection } from "@/settings/settings-section";
 import { PageHeader } from "@/shell/page-header";
-import { saveConfig, useConfig } from "@/stores/config";
+import { saveConfig, useConfig, useDevTools } from "@/stores/config";
 import { useShell } from "@/stores/shell";
 
 /** The app's own settings, apart from the randomizer's. Each part starts
@@ -30,8 +31,9 @@ export function AppSettings() {
       <PageHeader title="Settings" />
       <GameDump key={game} />
       <GameAssets />
-      <DevPanel key={beckon} />
       <UpdateCheck />
+      <DevTools />
+      <DevPanel key={beckon} />
     </>
   );
 }
@@ -72,37 +74,80 @@ function GameAssets() {
   );
 }
 
-/** The dev panel toggle. Beckoned, it scrolls into view and pulses. */
+/** Props for {@link SwitchRow}. */
+interface SwitchRowProps {
+  id: string;
+  label: string;
+  description: string;
+  checked: boolean;
+  /** The config change turning it `on` or off saves. */
+  change: (on: boolean) => Partial<FullConfig>;
+}
+
+/** A row whose switch saves one app setting, saying why if it can't. */
+function SwitchRow({
+  id,
+  label,
+  description,
+  checked,
+  change,
+}: SwitchRowProps) {
+  const save = useRequestState();
+  return (
+    <SettingsSection>
+      <Row
+        id={id}
+        label={label}
+        description={description}
+        under={<InlineError error={save.error} />}
+      >
+        <Switch
+          id={id}
+          checked={checked}
+          disabled={save.busy}
+          onCheckedChange={(on) => save.run(() => saveConfig(change(on)))}
+        />
+      </Row>
+    </SettingsSection>
+  );
+}
+
+/** Shows or hides everything only developers need. */
+function DevTools() {
+  const [checked] = useConfig.usePath("config.dev_tools");
+  return (
+    <SwitchRow
+      id="dev-tools"
+      label="Developer tools"
+      description="Shows the dev panel, Test setup and the targets' fields for scripted play. Off, a hidden setup leaves your seeds alone."
+      checked={checked}
+      change={(on) => ({ dev_tools: on })}
+    />
+  );
+}
+
+/** The dev panel toggle, with developer tools on. Beckoned, it scrolls
+ * into view and pulses. */
 function DevPanel() {
+  const tools = useDevTools();
   const [checked] = useConfig.usePath("config.dev_panel");
   const [beckon] = useShell.usePath("beckon");
   const beckoned = beckon > 0;
-  const save = useRequestState();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (beckoned)
       ref.current?.scrollIntoView?.({ behavior: "smooth", block: "center" });
   }, [beckoned]);
-
+  if (!tools) return null;
   return (
     <div ref={ref} className={cn("rounded-lg", beckoned && "animate-beckon")}>
-      <SettingsSection>
-        <Row
-          id="dev-panel"
-          label="Dev panel"
-          description="Seeds you install carry the dev panel's hook, and the sidebar's wrench opens the panel. Takes effect at the next install, then restart the game."
-          under={<InlineError error={save.error} />}
-        >
-          <Switch
-            id="dev-panel"
-            checked={checked}
-            disabled={save.busy}
-            onCheckedChange={(on) =>
-              save.run(() => saveConfig({ dev_panel: on }))
-            }
-          />
-        </Row>
-      </SettingsSection>
+      <SwitchRow
+        id="dev-panel"
+        label="Dev panel"
+        description="Seeds you install carry the dev panel's hook, and the sidebar's wrench opens the panel. Takes effect at the next install, then restart the game."
+        checked={checked}
+        change={(on) => ({ dev_panel: on })}
+      />
     </div>
   );
 }
@@ -110,25 +155,14 @@ function DevPanel() {
 /** Whether the app asks GitHub for a newer release. */
 function UpdateCheck() {
   const [off] = useConfig.usePath("config.no_update_check");
-  const save = useRequestState();
   return (
-    <SettingsSection>
-      <Row
-        id="update-check"
-        label="Check for updates"
-        description="Asks GitHub for the latest release at launch and every 6 hours, and the sidebar says when a newer one is out. Off, the app never contacts GitHub."
-        under={<InlineError error={save.error} />}
-      >
-        <Switch
-          id="update-check"
-          checked={!off}
-          disabled={save.busy}
-          onCheckedChange={(on) =>
-            save.run(() => saveConfig({ no_update_check: !on }))
-          }
-        />
-      </Row>
-    </SettingsSection>
+    <SwitchRow
+      id="update-check"
+      label="Check for updates"
+      description="Asks GitHub for the latest release at launch and every 6 hours, and the sidebar says when a newer one is out. Off, the app never contacts GitHub."
+      checked={!off}
+      change={(on) => ({ no_update_check: !on })}
+    />
   );
 }
 

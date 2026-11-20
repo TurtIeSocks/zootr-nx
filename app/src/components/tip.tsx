@@ -24,7 +24,7 @@ export interface TipProps {
  * show (an icon's meaning, a cut-off text in full, a shortcut, why it's
  * disabled), never its own label again. */
 export function Tip({ tip, wrap, children }: TipProps) {
-  if (tip == null || tip === "") return children;
+  if (tip == null || tip === false || tip === "") return children;
   return (
     <Tooltip delayDuration={TIP_MS}>
       <TooltipTrigger asChild>

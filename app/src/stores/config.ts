@@ -4,7 +4,7 @@ import { commands, type SettingDef } from "@/bindings";
 import { call, keep, message } from "@/lib/api";
 import { type FullConfig, full, testOn } from "@/lib/config";
 import { isChanged, type Patch, patched } from "@/lib/settings";
-import { ownPane } from "@/shell/nav";
+import { ownPane, shows } from "@/shell/nav";
 import { once } from "@/stores/once";
 import { useUi } from "@/stores/ui";
 
@@ -58,16 +58,21 @@ function derive() {
     ),
   }));
   useConfig.setPath("groups", keep(groups));
-  useConfig.setPath("testOn", testOn(config.test));
+  // A hidden test setup doesn't reach seeds, so it isn't on either.
+  useConfig.setPath("testOn", config.dev_tools && testOn(config.test));
   const { section } = useUi.getState();
   const gone =
-    groups.length > 0 &&
-    !ownPane(section) &&
-    !groups.some((g) => g.name === section);
+    (groups.length > 0 &&
+      !ownPane(section) &&
+      !groups.some((g) => g.name === section)) ||
+    !shows(section, config.dev_tools);
   if (gone) useUi.setPath("section", groups[0]?.name ?? "settings");
 }
 useConfig.subscribePath("schema", derive);
 useConfig.subscribePath("config", derive);
+
+/** Whether developer tools show. */
+export const useDevTools = () => useConfig((s) => s.config.dev_tools);
 
 /** Reads the config again. An unchanged one keeps its identity, so open
  * forms keep their edits. */

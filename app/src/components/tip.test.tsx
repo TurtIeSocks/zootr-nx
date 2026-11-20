@@ -58,9 +58,9 @@ test("a tip shows on focus and says what it was given", async () => {
   );
 });
 
-test("an empty tip leaves the child alone", () => {
+test.each(["", false])("an empty tip (%j) leaves the child alone", (tip) => {
   render(
-    <Tip tip="">
+    <Tip tip={tip}>
       <span>FoT</span>
     </Tip>,
   );

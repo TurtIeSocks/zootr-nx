@@ -304,3 +304,17 @@ test("a target using an advanced field or a variable opens both", () => {
   expect(variables.closest("details")?.open).toBe(true);
   expect(screen.getByText("{game}")).toBeTruthy();
 });
+
+test("scripted-play fields and their variables show only with developer tools", () => {
+  const scripted = () => [
+    screen.queryByLabelText("Harness environment (optional)"),
+    screen.queryByLabelText("Control file (optional)"),
+    screen.queryByText("{save}"),
+    screen.queryByText("{control}"),
+  ];
+  show();
+  expect(scripted()).toEqual([null, null, null, null]);
+  expect(screen.getByLabelText("Rebuild command (optional)")).toBeTruthy();
+  act(() => useConfig.setPath("config.dev_tools", true));
+  expect(scripted().every(Boolean)).toBe(true);
+});

@@ -290,8 +290,14 @@ export type Config = {
 	/**  Plandos kept by name, to load into `place`. */
 	plandos?: { [key in string]: { [key in string]: string } },
 	/**
+	 *  The app shows its developer tools: the dev panel switch, Test
+	 *  setup, and the targets' scripted-play fields. Off, the hidden ones
+	 *  leave seeds alone too.
+	 */
+	dev_tools?: boolean,
+	/**
 	 *  Seeds install the dev panel's hook, and the app's Dev button opens
-	 *  the panel.
+	 *  the panel. Only while `dev_tools` is on: see [`Config::dev_hook`].
 	 */
 	dev_panel?: boolean,
 	/**

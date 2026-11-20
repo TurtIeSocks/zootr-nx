@@ -53,8 +53,12 @@ pub struct Config {
     /// it's left out of the UI's config.
     #[cfg_attr(feature = "specta", specta(skip))]
     pub tracker: TrackerOptions,
+    /// The app shows its developer tools: the dev panel switch, Test
+    /// setup, and the targets' scripted-play fields. Off, the hidden ones
+    /// leave seeds alone too.
+    pub dev_tools: bool,
     /// Seeds install the dev panel's hook, and the app's Dev button opens
-    /// the panel.
+    /// the panel. Only while `dev_tools` is on: see [`Config::dev_hook`].
     pub dev_panel: bool,
     /// The turn queue: where it is and the games it hands out.
     #[cfg_attr(feature = "specta", specta(skip))]
@@ -445,13 +449,23 @@ fn reject_unknown(json: &serde_json::Value, known: &[&str], what: &str) -> Resul
 }
 
 impl Config {
-    /// What Generate builds with besides the settings: the test setup and
-    /// the plando draft.
+    /// What Generate builds with besides the settings: the test setup,
+    /// while developer tools show it, and the plando draft.
     pub fn extras(&self) -> Extras {
+        let test = match self.dev_tools {
+            true => self.test.extras(),
+            false => Extras::default(),
+        };
         Extras {
             place: self.place.clone(),
-            ..self.test.extras()
+            ..test
         }
+    }
+
+    /// Whether seeds carry the dev panel's hook: its switch is on, and
+    /// shown.
+    pub fn dev_hook(&self) -> bool {
+        self.dev_tools && self.dev_panel
     }
 
     pub fn path() -> Result<PathBuf> {
@@ -480,6 +494,16 @@ impl Config {
             && let Some(romfs) = obj.remove("romfs")
         {
             obj.entry("game").or_insert(romfs);
+        }
+        // From before developer tools had a switch: whoever used one keeps
+        // them. An empty test setup isn't written, so being there means set.
+        if let Some(obj) = json.as_object_mut()
+            && !obj.contains_key("dev_tools")
+        {
+            let used = obj.get("dev_panel") == Some(&serde_json::Value::Bool(true))
+                || obj.contains_key("test")
+                || obj.contains_key("saved_tests");
+            obj.insert("dev_tools".into(), used.into());
         }
         let mut config: Self = serde_json::from_value(json)?;
         crate::settings::upgrade(&mut config.settings);
@@ -537,6 +561,7 @@ mod tests {
         needs_names!();
         let fixed = Fixed::from([(u64::MAX, item::HOOKSHOT.to_string())]);
         let mut config = Config {
+            dev_tools: true,
             test: TestSetup {
                 give: vec![item::BOMB.to_string()],
                 ..Default::default()
@@ -727,6 +752,34 @@ mod tests {
         );
         let old = Config::parse(br#"{"romfs": "/dump/romfs"}"#).unwrap();
         assert_eq!(old.game.as_deref(), Some(Path::new("/dump/romfs")));
+    }
+
+    #[test]
+    fn hidden_developer_tools_leave_seeds_alone() {
+        let mut config = Config {
+            dev_panel: true,
+            test: TestSetup {
+                give: vec!["FakeItem".into()],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert!(config.extras().give.is_empty());
+        assert!(!config.dev_hook());
+        config.dev_tools = true;
+        assert_eq!(config.extras().give, ["FakeItem"]);
+        assert!(config.dev_hook());
+    }
+
+    #[test]
+    fn configs_from_before_the_switch_keep_tools_they_used() {
+        let tools = |json: &str| Config::parse(json.as_bytes()).unwrap().dev_tools;
+        assert!(!tools("{}"));
+        assert!(!tools(r#"{"dev_panel": false}"#));
+        assert!(tools(r#"{"dev_panel": true}"#));
+        assert!(tools(r#"{"test": {"give": ["FakeItem"]}}"#));
+        assert!(tools(r#"{"saved_tests": {"FakeTest": {}}}"#));
+        assert!(!tools(r#"{"dev_tools": false, "dev_panel": true}"#));
     }
 
     const PRESET: &str = r#"{

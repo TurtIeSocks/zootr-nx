@@ -65,6 +65,7 @@ function show(
   settings = {},
   test: Partial<FullTest> = {},
   older: Summary[] = [],
+  devTools = false,
 ) {
   useConfig.setPath("schema", [
     {
@@ -77,7 +78,10 @@ function show(
       subgroup: null,
     },
   ]);
-  useConfig.setPath("config", full({ targets: [target], settings, test }));
+  useConfig.setPath(
+    "config",
+    full({ targets: [target], settings, test, dev_tools: devTools }),
+  );
   useSeeds.setPath("status", { game: true, targets: [] });
   useSeeds.setPath("history", {
     installed,
@@ -210,7 +214,8 @@ test("a share code shows its own settings and leaves the person's alone", async 
   expect(screen.queryByText(/Same as/)).toBeNull();
   const chip = within(button(/^g/)).getByText("X").parentElement;
   expect(chip?.dataset.mark).toBeUndefined();
-  expect(screen.getAllByText("Not in this code")).toHaveLength(2);
+  // Plando only: Test setup hides with developer tools off.
+  expect(screen.getAllByText("Not in this code")).toHaveLength(1);
   fireEvent.click(button("Clear code"));
   expect(useUi.getState().newSeed.seed).toBe("");
   expect(screen.getByText("Same as the installed seed")).toBeTruthy();
@@ -268,11 +273,17 @@ test("a seed built with a test setup carries a badge", () => {
   expect(screen.queryByText("test")).toBeNull();
 });
 
+test("without developer tools the overview has no Test setup tile", () => {
+  show(null, {}, { spawn: "Map/Spot" });
+  expect(screen.queryByRole("button", { name: /^Test setup/ })).toBeNull();
+  expect(button(/^Plando/)).toBeTruthy();
+});
+
 test("a stored test setup shows in the overview and opens from there", () => {
-  show(null);
+  show(null, {}, {}, [], true);
   expect(within(button(/^Test setup/)).getByText("Off")).toBeTruthy();
   cleanup();
-  show(null, {}, { spawn: "Map/Spot", give: ["Item_A"] });
+  show(null, {}, { spawn: "Map/Spot", give: ["Item_A"] }, [], true);
   const tile = within(button(/^Test setup/));
   expect(tile.getByText("starts at Map/Spot")).toBeTruthy();
   expect(tile.getByText("1 item")).toBeTruthy();

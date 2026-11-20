@@ -83,6 +83,7 @@ function show({
   section = "General",
   seed = null,
   older = [],
+  devTools = false,
 }: {
   defs?: SettingDef[];
   settings?: Settings;
@@ -90,12 +91,13 @@ function show({
   seed?: Summary | null;
   /** History's other seeds, newest first. */
   older?: Summary[];
+  devTools?: boolean;
 } = {}) {
   const setConfig = vi
     .spyOn(commands, "setConfig")
     .mockResolvedValue({ status: "ok", data: [] });
   useConfig.setPath("schema", defs);
-  useConfig.setPath("config", full({ settings }));
+  useConfig.setPath("config", full({ settings, dev_tools: devTools }));
   useSeeds.setPath("status", { game: true, targets: [] });
   useSeeds.setPath("history", {
     installed: seed,
@@ -261,11 +263,11 @@ test("an open checklist is still open after leaving the page", () => {
 });
 
 test("the test setup form keeps its edits until the saved setup changes", () => {
-  show({ section: "test" });
+  show({ section: "test", devTools: true });
   const spawn = () => screen.getByLabelText("Spawn") as HTMLInputElement;
   fireEvent.change(spawn(), { target: { value: "Map/Spot" } });
   // A reload that reads the same config changes nothing.
-  act(() => useConfig.setPath("config", keep(full({}))));
+  act(() => useConfig.setPath("config", keep(full({ dev_tools: true }))));
   expect(spawn().value).toBe("Map/Spot");
   act(() =>
     useConfig.setPath("config.test", (t) => ({ ...t, expect: "a lens" })),
@@ -385,4 +387,12 @@ test("a Status field sets the starting inventory through the backend", async () 
     }),
   );
   expect(set).toHaveBeenCalledWith({}, { hash: 9, index: 0, value: "20" });
+});
+
+test("turning developer tools off on Test setup leaves for the first group", () => {
+  show({ section: "test", devTools: true });
+  expect(screen.getByLabelText("Spawn")).toBeTruthy();
+  act(() => useConfig.setPath("config.dev_tools", false));
+  expect(useUi.getState().section).toBe("General");
+  expect(screen.queryByLabelText("Spawn")).toBeNull();
 });
