@@ -168,6 +168,33 @@ test("a changed setting can be reset, alone or with its group", async () => {
   );
 });
 
+/** Whether the row named `label` shows the change dot. */
+const dotted = (label: string) =>
+  within(
+    screen.getByText(label, { selector: "label" }).parentElement as HTMLElement,
+  ).queryByLabelText("changed") !== null;
+
+test("dots mark what differs from the installed seed, not the defaults", () => {
+  show({
+    settings: { "open-forest": true, "chest-size": "all small" },
+    seed: installed({ "open-forest": true }),
+  });
+  expect(dotted("Chest size")).toBe(true);
+  expect(dotted("Open forest")).toBe(false);
+});
+
+test("the row reset puts the installed seed's value back", () => {
+  const onChange = show({
+    settings: { "chest-size": "all small" },
+    seed: installed({ "chest-size": "all small", "open-forest": true }),
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Reset Open forest" }));
+  expect(saved(onChange)).toEqual({
+    "chest-size": "all small",
+    "open-forest": true,
+  });
+});
+
 const cutscene = (
   id: string,
   label: string,
@@ -248,6 +275,19 @@ test("with an AP slot installed, the drift bar counts from the last standard see
   cleanup();
   show({ seed: slot, settings: { "open-forest": true } });
   expect(screen.getByText(/from the default settings/)).toBeTruthy();
+});
+
+test("a checklist item shows the dot when it differs from the installed seed", () => {
+  show({
+    defs: cutscenes,
+    section: "Cutscenes",
+    settings: { kokiri: true, field: true },
+    seed: installed({ field: true }),
+  });
+  const item = (label: string) =>
+    within(screen.getByText(label).closest("label") as HTMLElement);
+  expect(item("Kokiri Forest").queryByLabelText("changed")).not.toBeNull();
+  expect(item("Hyrule Field").queryByLabelText("changed")).toBeNull();
 });
 
 test("an open checklist is still open after leaving the page", () => {

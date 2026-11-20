@@ -15,6 +15,7 @@ import { SettingsSection } from "@/settings/settings-section";
 import { StartInventory } from "@/settings/start-inventory";
 import { PageHeader } from "@/shell/page-header";
 import { changeSettings, useConfig } from "@/stores/config";
+import { useSeeds } from "@/stores/seeds";
 
 /** Props for {@link GroupPage}. */
 export interface GroupPageProps {
@@ -115,6 +116,9 @@ function SubgroupList({ title, defs }: SubgroupProps) {
       defs.map((d) => lockedBy(d, s.schema, s.config.settings)),
     ),
   );
+  const drifted = useSeeds(
+    useShallow((s) => defs.map((d) => s.drift.some((c) => c.def.id === d.id))),
+  );
   const shared = new Set(defs.map((d) => d.description)).size === 1;
   const parents = [...new Set(locks.flatMap((p) => p ?? []))];
   return (
@@ -137,6 +141,7 @@ function SubgroupList({ title, defs }: SubgroupProps) {
           description: shared ? undefined : description || undefined,
           tags: isUntested && <UntestedBadge />,
           on: on[i] ?? false,
+          changed: drifted[i],
           locked: locks[i] !== undefined,
         };
       })}

@@ -1,5 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { type ReactNode, useId } from "react";
+import { ChangedDot } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,9 @@ export interface ChecklistItem {
   /** Badges and pips at the trailing edge. */
   tags?: ReactNode;
   on: boolean;
+  /** Marks the item with the gold dot: it differs from what drift
+   * measures from. */
+  changed?: boolean;
   /** Forced on, and why. */
   locked?: boolean;
 }
@@ -133,6 +137,11 @@ function Item({ item, onChange }: ItemProps) {
       />
       <span className="min-w-0 flex-1">
         <span id={name}>{item.label}</span>
+        {item.changed && (
+          <span role="img" aria-label="changed" className="ml-1.5">
+            <ChangedDot />
+          </span>
+        )}
         {item.description && (
           <span className="block text-ink-faint text-xs">
             {item.description}
