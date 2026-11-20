@@ -3,7 +3,7 @@
 //! and `zootr ap connect`, which only start it and show its notes.
 //!
 //! The game side is the [`Game`] trait, so the core runs against a fake in
-//! tests. [`Live`] is the real one: the Mac game or a native build's bridge.
+//! tests. [`Live`] is the real one: the target's game, read directly or through its bridge.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::Arc;

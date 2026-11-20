@@ -25,8 +25,8 @@ pub use report::Report;
 pub use run::{Run, run, session};
 pub use script::{Kind, Launch, Script, Step};
 
-/// The target's game as an [`Input`]: the native build when the target
-/// has a bridge, else the Mac game. `game` is the dump `{game}` names.
+/// The target's game as an [`Input`]: through its bridge when the target
+/// has one, else read directly. `game` is the dump `{game}` names.
 pub fn input(target: &Target, game: Option<&Path>) -> Result<Box<dyn Input>> {
     let (app, args, env) = (
         target.app.clone(),

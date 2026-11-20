@@ -1,4 +1,4 @@
-//! A night of rounds on the native build: shuffle a mix, install it, start
+//! A night of rounds on a target with a bridge: shuffle a mix, install it, start
 //! the game, sweep every spot, append the results, and go again.
 
 use std::collections::BTreeSet;

@@ -28,7 +28,7 @@ pub const LOOK: Duration = Duration::from_secs(2);
 const TITLE: Duration = Duration::from_secs(42);
 /// Run folders kept under `boot/`.
 const KEEP: usize = 10;
-/// The Mac runner's shader cache, which it keeps beside the save folder
+/// The target's shader cache, which it keeps beside the save folder
 /// it's given. A run folder links them to the shared ones, or every run
 /// compiles every shader from nothing.
 const SHADER_CACHE: [&str; 2] = ["pso_archive", "pso_user.tsv"];
@@ -375,14 +375,14 @@ mod tests {
         write(saves.join("slot_00/progress.sav"), "played");
         write(saves.join("slot_02/progress.sav"), "autosave");
         write(saves.join("option.sav"), "stray");
-        write(saves.join("cache/keep"), "the runner's own");
+        write(saves.join("cache/keep"), "the target's own");
         restore(&kept, &saves).unwrap();
         let read = |rel: &str| std::fs::read_to_string(saves.join(rel)).ok();
         assert_eq!(read("slot_00/progress.sav").as_deref(), Some("start"));
         assert_eq!(read("account.sav").as_deref(), Some("account"));
         assert!(!saves.join("slot_02").exists());
         assert_eq!(read("option.sav"), None);
-        assert_eq!(read("cache/keep").as_deref(), Some("the runner's own"));
+        assert_eq!(read("cache/keep").as_deref(), Some("the target's own"));
         std::fs::remove_dir_all(root).unwrap();
     }
 
@@ -394,20 +394,20 @@ mod tests {
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::fs::write(path, text).unwrap();
         };
-        write(kept.join("runner/save/p/slot_00/progress.sav"), "start");
-        write(saves.join("runner/save/p/slot_00/progress.sav"), "played");
-        write(saves.join("runner/save/p/slot_03/progress.sav"), "autosave");
-        write(saves.join("runner/save/p/stray.sav"), "stray");
-        write(saves.join("containers/keep"), "the runner's own");
+        write(kept.join("target/save/p/slot_00/progress.sav"), "start");
+        write(saves.join("target/save/p/slot_00/progress.sav"), "played");
+        write(saves.join("target/save/p/slot_03/progress.sav"), "autosave");
+        write(saves.join("target/save/p/stray.sav"), "stray");
+        write(saves.join("containers/keep"), "the target's own");
         restore(&kept, &saves).unwrap();
         let read = |rel: &str| std::fs::read_to_string(saves.join(rel)).ok();
         assert_eq!(
-            read("runner/save/p/slot_00/progress.sav").as_deref(),
+            read("target/save/p/slot_00/progress.sav").as_deref(),
             Some("start")
         );
-        assert!(!saves.join("runner/save/p/slot_03").exists());
-        assert_eq!(read("runner/save/p/stray.sav"), None);
-        assert_eq!(read("containers/keep").as_deref(), Some("the runner's own"));
+        assert!(!saves.join("target/save/p/slot_03").exists());
+        assert_eq!(read("target/save/p/stray.sav"), None);
+        assert_eq!(read("containers/keep").as_deref(), Some("the target's own"));
         std::fs::remove_dir_all(root).unwrap();
     }
 }

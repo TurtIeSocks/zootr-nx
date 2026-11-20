@@ -102,7 +102,7 @@ fn clear(dir: &Path) -> Result<()> {
 }
 
 impl<'a> ModBuilder<'a> {
-    /// `mod_dir` is the folder a runner loads as a mod, holding `romfs/`.
+    /// `mod_dir` is the folder the game loads as a mod, holding `romfs/`.
     /// `finish` replaces it whole, so stale files from an earlier seed can't
     /// leak in.
     pub fn new(romfs: &'a Romfs, mod_dir: &Path) -> Result<Self> {

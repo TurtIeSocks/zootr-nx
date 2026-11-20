@@ -1,4 +1,4 @@
-//! The Mac game's memory through Mach, and a stub elsewhere.
+//! The game's memory read directly through Mach, and a stub elsewhere.
 
 #[cfg(target_os = "macos")]
 mod imp {

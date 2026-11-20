@@ -43,7 +43,7 @@ fn pouch_param() -> String {
         field::POUCH_CONTENT_PARAM
     )
 }
-/// As many as the PC build allows. The dev switches hold them here too.
+/// As many as the game allows. The dev switches hold them here too.
 const CAP: i32 = zootr_hook::switches::FREE_BOMBCHUS_CAP;
 
 /// Cap `map` by `CAP` instead of the bomb bag.

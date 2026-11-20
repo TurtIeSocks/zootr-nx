@@ -1,4 +1,4 @@
-//! [`Input`] for the native build, through its control socket: presses,
+//! [`Input`] for a target with a bridge, through its control socket: presses,
 //! the stick and shots are requests, each answered once it's done.
 
 use std::path::{Path, PathBuf};
@@ -17,7 +17,7 @@ use crate::live::{Bridge, PATIENCE};
 /// frames.
 const FPS: u64 = 60;
 
-/// The native build started from `app` with `args` and `env`, driven
+/// The target's game started from `app` with `args` and `env`, driven
 /// through the socket at `socket`.
 pub struct Native {
     app: PathBuf,

@@ -555,7 +555,7 @@ impl<'a, I: Input> Pass<'a, I> {
         self.dev.warp(at)?;
         // The adult sinks in his boots. The child can't wear them (and a
         // Link sent to a check by hand keeps his own gear), and a held A
-        // didn't dive him on the native build (other machine,
+        // didn't dive him on the bridge target (other machine,
         // 2026-11-19): he stays afloat and the camera looks down into the
         // water at the holder, clear enough to tell what's there.
         let mut afloat = false;

@@ -1,5 +1,5 @@
-//! `zootr play`: a script run on the game, on the Mac or the native build.
-//! `zootr sweep`: a night of rounds on the native build.
+//! `zootr play`: a script run on the game, on the target's game.
+//! `zootr sweep`: a night of rounds on a target with a bridge.
 //! `zootr drill`: the harness ladder, and both scoreboards.
 
 use std::path::{Path, PathBuf};

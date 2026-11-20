@@ -1,4 +1,4 @@
-//! The bridge on Windows: the runner's named pipe. Windows runs blocking
+//! The bridge on Windows: the target's named pipe. Windows runs blocking
 //! reads and writes on one pipe handle one at a time, so a read that waits
 //! inside the system would hold up the next request. A read here peeks
 //! until bytes are there, and only then takes them.
@@ -26,9 +26,9 @@ unsafe extern "system" {
 }
 
 const PREFIX: &str = r"\\.\pipe\";
-/// The runner closed its end.
+/// The target closed its end.
 const ERROR_BROKEN_PIPE: i32 = 109;
-/// Every instance has a client: the runner is making the next one.
+/// Every instance has a client: the target is making the next one.
 const ERROR_PIPE_BUSY: i32 = 231;
 /// How long a connect waits for a free instance.
 const BUSY_WAIT_MS: u32 = 2000;
@@ -36,7 +36,7 @@ const BUSY_WAIT_MS: u32 = 2000;
 /// usually lands within it, and the system's sleeps are coarse.
 const SPIN: Duration = Duration::from_millis(2);
 
-/// `path` as a pipe's full name. The runner prefixes a bare name the same
+/// `path` as a pipe's full name. The target prefixes a bare name the same
 /// way, so either spelling in the target reaches the same pipe.
 pub fn name(path: &Path) -> String {
     let path = path.to_string_lossy();
@@ -46,7 +46,7 @@ pub fn name(path: &Path) -> String {
     }
 }
 
-/// One end of the runner's pipe, read and written like a socket.
+/// One end of the target's pipe, read and written like a socket.
 pub struct Pipe {
     file: File,
     timeout: Cell<Option<Duration>>,
@@ -83,7 +83,7 @@ impl Pipe {
         Ok(())
     }
 
-    /// How many bytes wait in the pipe, or `None` once the runner closed it.
+    /// How many bytes wait in the pipe, or `None` once the target closed it.
     fn waiting(&self) -> io::Result<Option<usize>> {
         let mut available = 0;
         let handle = self.file.as_raw_handle();
@@ -166,7 +166,7 @@ pub(super) mod tests {
     const PIPE_ACCESS_DUPLEX: u32 = 3;
     const ERROR_PIPE_CONNECTED: i32 = 535;
 
-    /// The server end of a fresh byte pipe, the way the runner makes it.
+    /// The server end of a fresh byte pipe, the way the target makes it.
     pub struct Server(File);
 
     pub fn serve(name: &str) -> Server {
