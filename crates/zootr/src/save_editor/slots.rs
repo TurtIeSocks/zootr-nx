@@ -80,7 +80,7 @@ fn row(inv: &Inventory, dir: &Path, slot: u8) -> SlotRow {
     };
     match savefile::load(&path) {
         Ok(save) => summarise(&mut row, inv, &save),
-        Err(e) => row.error = Some(format!("{e:#}")),
+        Err(e) => row.error = Some(crate::plain::shown(&e)),
     }
     row
 }

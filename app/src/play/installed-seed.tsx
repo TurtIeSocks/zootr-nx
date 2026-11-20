@@ -1,5 +1,5 @@
 import { TriangleAlert } from "lucide-react";
-import { Callout } from "@/components/callout";
+import { Callout, ErrorWords } from "@/components/callout";
 import { Help } from "@/components/help";
 import { Meter } from "@/components/meter";
 import { RequestError } from "@/components/request-error";
@@ -78,7 +78,7 @@ export function InstalledSeed() {
         )}
         {builds.map((text) => (
           <Callout key={text} tone="gold" icon={TriangleAlert}>
-            {text}
+            <ErrorWords text={text} />
           </Callout>
         ))}
         <RequestError />

@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { errorParts } from "@/lib/api";
 
 /** Props for {@link RebuildDialog}. */
 interface RebuildDialogProps {
@@ -38,10 +39,10 @@ export function RebuildDialog({
         <DialogHeader>
           <DialogTitle>Rebuild {name} first?</DialogTitle>
           <DialogDescription>
-            {build?.text}.{" "}
+            {build?.text && errorParts(build.text).said}.{" "}
             {build?.command
-              ? "Until it's rebuilt, the game runs an older hook."
-              : "Until it's rebuilt by hand, the game runs an older hook."}
+              ? "Until it's rebuilt, some of the randomizer's changes may not work."
+              : "Until it's rebuilt by hand, some of the randomizer's changes may not work."}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

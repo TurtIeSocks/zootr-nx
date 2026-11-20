@@ -24,6 +24,12 @@ pub enum Next<G> {
     Retry(String),
 }
 
+/// Why Live follows autosaves: this build can't read the game itself.
+pub const AUTOSAVES: &str = "Following your autosaves, since the app can't read the game live here";
+/// Why Live waits: no live reads, and no save folder to follow instead.
+pub const NO_LIVE: &str =
+    "The app can't read the game live here. Set the target's save folder to follow its autosaves";
+
 /// Live reads if attaching worked. Only a build that isn't signed, or a
 /// target off macOS without a bridge, can't attach at all, so that falls back to autosaves, and
 /// anything else is retried.
@@ -31,8 +37,8 @@ pub fn decide<G>(attach: Result<G>, saves: Option<PathBuf>) -> Next<G> {
     match attach {
         Ok(g) => Next::Record(Pick::Live(g), None),
         Err(e) if e.is::<NotSigned>() || e.is::<Unsupported>() => match saves {
-            Some(dir) => Next::Record(Pick::Saves(dir), Some(why(&e))),
-            None => Next::Wait(why(&e)),
+            Some(dir) => Next::Record(Pick::Saves(dir), Some(AUTOSAVES.into())),
+            None => Next::Wait(NO_LIVE.into()),
         },
         Err(e) => Next::Retry(why(&e)),
     }
@@ -187,14 +193,19 @@ mod tests {
         assert!(matches!(saves, Next::Record(Pick::Saves(d), Some(_)) if d == dir));
         assert!(matches!(decide(unsigned(), None), Next::Wait(_)));
         let elsewhere = decide::<u8>(Err(Unsupported.into()), Some(dir.clone()));
+        assert!(matches!(elsewhere, Next::Record(Pick::Saves(_), Some(why)) if why == AUTOSAVES));
         assert!(
-            matches!(elsewhere, Next::Record(Pick::Saves(_), Some(why)) if why == "live reads need macOS, or a target with a bridge")
+            matches!(decide::<u8>(Err(Unsupported.into()), None), Next::Wait(why) if why == NO_LIVE)
         );
         let booting = decide::<u8>(
             Err(anyhow::anyhow!("no {}\nyet", flag::GAME_DATA)),
-            Some(dir),
+            Some(dir.clone()),
         );
         assert!(matches!(booting, Next::Retry(why) if why == format!("no {}", flag::GAME_DATA)));
+        let said = anyhow::anyhow!("raw").context(crate::plain::Plain(live::STARTING.into()));
+        assert!(
+            matches!(decide::<u8>(Err(said), Some(dir)), Next::Retry(why) if why == live::STARTING)
+        );
     }
 
     #[test]

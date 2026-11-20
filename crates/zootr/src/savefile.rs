@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::config::Config;
 use crate::gamedata::GameData;
 use crate::known::field;
+use crate::plain::Plain;
 use crate::{generate, value};
 
 /// Slot `n`'s save under a save folder.
@@ -30,7 +31,11 @@ pub fn path(slot: &str) -> Result<PathBuf> {
 
 /// The slots under `dir` that hold a save.
 pub fn slots(dir: &Path) -> Result<Vec<u8>> {
-    let entries = std::fs::read_dir(dir).with_context(|| format!("reading {}", dir.display()))?;
+    let entries = std::fs::read_dir(dir)
+        .with_context(|| format!("reading {}", dir.display()))
+        .context(Plain(
+            "The save folder couldn't be read. Check the target's save folder".into(),
+        ))?;
     let mut slots: Vec<u8> = entries
         .filter_map(|e| {
             e.ok()?
@@ -47,7 +52,10 @@ pub fn slots(dir: &Path) -> Result<Vec<u8>> {
 }
 
 pub fn load(path: &Path) -> Result<Save> {
-    Save::parse(std::fs::read(path).with_context(|| format!("reading {}", path.display()))?)
+    let read = std::fs::read(path).with_context(|| format!("reading {}", path.display()));
+    read.and_then(Save::parse).context(Plain(
+        "This save couldn't be read. It may be damaged, or from another version of the game".into(),
+    ))
 }
 
 /// A GameData `DefaultValue` as the raw bits a save would hold.

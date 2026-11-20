@@ -278,8 +278,12 @@ fn closing(running: impl Fn() -> bool) -> bool {
 }
 
 /// The first line of an error, for a status line.
+/// What Live shows for `e`: its player wording, or its first line.
 fn why(e: &anyhow::Error) -> String {
-    e.to_string().lines().next().unwrap_or_default().into()
+    match crate::plain::split(e) {
+        Some((plain, _)) => plain.into(),
+        None => e.to_string().lines().next().unwrap_or_default().into(),
+    }
 }
 
 /// The game's GameData names, which take a while to gather.

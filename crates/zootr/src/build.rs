@@ -12,11 +12,12 @@ use std::sync::Mutex;
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use serde::Serialize;
 
 use crate::config::Target;
 use crate::patch;
+use crate::plain::{DETAILS, Plain};
 use crate::progress::{Run, Step, StepEvent};
 
 /// 32-bit FNV-1a, the hash a manifest gives each patch file.
@@ -78,14 +79,12 @@ impl Status {
     pub fn text(&self, name: &str) -> Option<String> {
         match self {
             Status::Current => None,
-            Status::Stale => Some(format!(
-                "{name} needs a rebuild: its hook patch changed since the last build"
-            )),
+            Status::Stale => Some(format!("{name} needs a rebuild before you play")),
             Status::Refused { note } => Some(format!(
-                "{name}'s last build refused the hook patch: {note}"
+                "{name}'s last build didn't take the randomizer's changes{DETAILS}{note}"
             )),
             Status::Unrecorded => Some(format!(
-                "{name}'s build doesn't record its patches, so it may not load them. Rebuild it with a version that applies code patches"
+                "{name}'s build may not load the randomizer's changes. Update it, then rebuild"
             )),
         }
     }
@@ -170,21 +169,28 @@ pub fn rebuild(target: &Target, game: Option<&Path>, run: &Run) -> Result<Status
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .with_context(|| format!("starting {program}"))?;
+        .with_context(|| format!("starting {program}"))
+        .context(Plain(format!(
+            "Couldn't start {name}'s rebuild command. Check it on the Targets page"
+        )))?;
     let Some(exit) = watch(child, run)? else {
         return Err(run.check().unwrap_err().context(
             "Stopped the rebuild before it finished, so rebuild the game before playing it",
         ));
     };
     if !exit.success() {
-        bail!("{name}'s rebuild command failed ({exit})");
+        let raw = anyhow!("{name}'s rebuild command failed ({exit})");
+        return Err(raw.context(Plain(format!("{name}'s rebuild failed"))));
     }
     match status(target).unwrap_or(Status::Unrecorded) {
         Status::Current => Ok(Status::Current),
-        Status::Stale => bail!(
+        Status::Stale => Err(anyhow!(
             "{name}'s rebuild command finished, but the build still doesn't have the installed hook patch: the command didn't build the game folder {} is in",
             target.manifest().unwrap_or_default().display()
-        ),
+        )
+        .context(Plain(format!(
+            "{name}'s rebuild finished, but the game still doesn't have the randomizer's changes. Check that the rebuild command builds the game the mod folder belongs to"
+        )))),
         other => bail!("{}", other.text(name).unwrap_or_default()),
     }
 }
@@ -410,10 +416,7 @@ mod tests {
         );
         assert!(refused.stale());
         let text = refused.text("FakeBuild").unwrap();
-        assert!(
-            text.contains("refused the hook patch: fake reason"),
-            "{text}"
-        );
+        assert!(text.ends_with(&format!("{DETAILS}fake reason")), "{text}");
         assert_eq!(Status::Current.text("FakeBuild"), None);
         std::fs::remove_dir_all(dir).unwrap();
     }
@@ -468,14 +471,23 @@ mod tests {
         install(&t);
         manifest(&dir, "zootr", 0, "code");
         let t = rebuilt_by(&t, "exit 0".into());
-        let err = rebuild(&t, None, &Run::silent()).unwrap_err().to_string();
-        assert!(err.contains("didn't build the game folder"), "{err}");
+        let err = rebuild(&t, None, &Run::silent()).unwrap_err();
+        assert!(
+            format!("{err:#}").contains("didn't build the game folder"),
+            "{err:#}"
+        );
+        assert!(
+            err.to_string().contains("'s rebuild finished, but"),
+            "{err}"
+        );
         assert_eq!(status(&t), Some(Status::Stale));
         let failed = rebuilt_by(&t, "exit 3".into());
-        let err = rebuild(&failed, None, &Run::silent())
-            .unwrap_err()
-            .to_string();
-        assert!(err.contains("rebuild command failed"), "{err}");
+        let err = rebuild(&failed, None, &Run::silent()).unwrap_err();
+        assert!(
+            format!("{err:#}").contains("rebuild command failed"),
+            "{err:#}"
+        );
+        assert!(err.to_string().ends_with("'s rebuild failed"), "{err}");
         let none = Target {
             rebuild: Some(Rebuild::default()),
             ..t.clone()
