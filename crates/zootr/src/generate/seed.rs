@@ -182,6 +182,20 @@ fn need(world: &World, hash: u64) -> (String, Vec<String>) {
     (text, items.into_iter().map(str::to_owned).collect())
 }
 
+/// The new game `settings` start, with what `extras` adds on top. The
+/// extras' fields and gifts join the presets' own, never replace them.
+fn new_game(settings: &Settings, extras: &Extras, ap: bool) -> Result<NewGame> {
+    let mut new_game = NewGame {
+        spawn: extras.spawn.clone(),
+        // The client gives through it.
+        mailbox: extras.dev_panel || ap,
+        ..NewGame::from_settings(settings, &extras.defaults)?
+    };
+    new_game.fields.extend(extras.fields.iter().cloned());
+    new_game.give.extend(extras.give.iter().cloned());
+    Ok(new_game)
+}
+
 pub fn generate(
     romfs: &Romfs,
     mod_dir: &Path,
@@ -195,14 +209,7 @@ pub fn generate(
         ap.is_none() || extras.place.is_empty(),
         "an Archipelago seed places every item itself"
     );
-    let mut new_game = NewGame {
-        spawn: extras.spawn.clone(),
-        fields: extras.fields.clone(),
-        // The client gives through it.
-        mailbox: extras.dev_panel || ap.is_some(),
-        ..NewGame::from_settings(settings, &extras.defaults)?
-    };
-    new_game.give.extend(extras.give.iter().cloned());
+    let mut new_game = new_game(settings, extras, ap.is_some())?;
     if let Some(ap) = &ap {
         new_game.foreign = ap.foreign.clone();
         new_game.players = extras
@@ -232,4 +239,22 @@ pub fn time_seed() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_nanos() as u64)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extra_fields_join_the_presets_fields() {
+        needs_names!();
+        let settings = Settings::from([(crate::presets::JABU_OPEN.into(), true.into())]);
+        let extras = Extras {
+            fields: vec!["1.FakeField=1".into()],
+            ..Extras::default()
+        };
+        let game = new_game(&settings, &extras, false).unwrap();
+        let presets = crate::presets::fields(&[crate::presets::JABU_OPEN.into()]).unwrap();
+        assert_eq!(game.fields, [presets, extras.fields].concat());
+    }
 }

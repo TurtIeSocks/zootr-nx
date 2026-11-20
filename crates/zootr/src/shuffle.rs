@@ -11,7 +11,7 @@ use crate::narrowing::{Let, allowed, asks_at, shuffleable};
 use crate::rng::Rng;
 use crate::settings::NewGame;
 use crate::starting;
-use crate::{ammo, cows, gifts, progressive};
+use crate::{ammo, cows, gifts, presets, progressive};
 
 /// One shuffled chest, for the spoiler log.
 #[derive(Clone, Copy)]
@@ -142,6 +142,13 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
     all.append(&mut items);
     let owned = new_game.start.owned();
     starting::swap_out(&mut all, &owned, level);
+    if new_game.on.contains(presets::KING_ZORA_MOVED) {
+        // Nothing reads the letter once King Zora has moved, so it's dealt
+        // as the bottle it comes in, as Ship does.
+        for i in all.iter_mut().filter(|i| **i == &**item::BOTTLE_LETTER) {
+            *i = &**item::BOTTLE;
+        }
+    }
     let mut items = all.split_off(kept.len());
     let kept = kept.into_iter().zip(all);
     placed.extend(kept.map(|(check, item)| Placement { check, item }));
@@ -693,5 +700,22 @@ mod tests {
         let fixed = Fixed::from([(0, cows::VANILLA.to_string())]);
         let dealt = deal(&checks, &fixed, &game(false, &[])).unwrap();
         assert_eq!(count(&dealt, cows::VANILLA), 1, "a plando milk counts too");
+    }
+
+    #[test]
+    fn king_zora_moved_deals_the_letter_as_an_empty_bottle() {
+        needs_names!();
+        let checks = [chest(1, item::BOTTLE_LETTER), chest(2, "Item_A")];
+        let none = Fixed::new();
+        let count = |d: &Deal, i: &str| d.items.iter().filter(|&&x| x == i).count();
+        let dealt = deal(&checks, &none, &game(false, &[])).unwrap();
+        assert_eq!(count(&dealt, item::BOTTLE_LETTER), 1);
+        let moved = NewGame {
+            on: [presets::KING_ZORA_MOVED.to_owned()].into(),
+            ..game(false, &[])
+        };
+        let dealt = deal(&checks, &none, &moved).unwrap();
+        assert_eq!(count(&dealt, item::BOTTLE_LETTER), 0);
+        assert_eq!(count(&dealt, item::BOTTLE), 1);
     }
 }

@@ -948,6 +948,60 @@ mod tests {
     }
 
     #[test]
+    fn each_zora_preset_opens_its_way_without_the_item() {
+        needs_names!();
+        let book = Book::load().unwrap();
+        let exit = |from: &str, to: &str| {
+            let (from, to) = (vocab::node(from).unwrap(), vocab::node(to).unwrap());
+            book.exits.iter().find(|e| e.from == from && e.to == to)
+        };
+        let lullaby: &[&str] = &[item::OCARINA_FAIRY, item::MELODY_ZELDA_LULLABY];
+        let ways: [(&str, &str, &str, &[&str], Era); 4] = [
+            (
+                "zora-domain-child",
+                "zora-fountain-child",
+                "king-zora-moved",
+                &[item::BOTTLE_LETTER],
+                Era::Child,
+            ),
+            (
+                "zora-fountain-child",
+                "jabu-jabu",
+                "jabu-open",
+                &[item::BOTTLE],
+                Era::Child,
+            ),
+            (
+                "zora-river-child",
+                "zora-domain-child",
+                "open-waterfall",
+                lullaby,
+                Era::Child,
+            ),
+            (
+                "zora-river-adult",
+                "zora-domain-adult",
+                "open-waterfall",
+                lullaby,
+                Era::Adult,
+            ),
+        ];
+        for (from, to, setting, item, era) in ways {
+            let expr = &exit(from, to).unwrap().expr;
+            let need = |on: &[&str]| book.need(expr, &ctx(true, on)).unwrap();
+            assert!(need(&[setting]).met(&have(&[]), era), "{setting}");
+            assert!(!need(&[]).met(&have(&[]), era), "{from} without {setting}");
+            assert!(need(&[]).met(&have(item), era), "{from} with {item:?}");
+        }
+        // Only the child map walls King Zora off.
+        let fountain = map::ZORA_FOUNTAIN_ADULT.get();
+        assert!(
+            !book.exits.iter().any(|e| e.to == fountain),
+            "adult fountain"
+        );
+    }
+
+    #[test]
     fn every_file_in_logic_is_built_in() {
         let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/logic");
         let on_disk: BTreeSet<String> = std::fs::read_dir(dir)

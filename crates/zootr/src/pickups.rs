@@ -423,7 +423,12 @@ pub fn dealt(romfs: &Romfs, new_game: &NewGame) -> Result<Vec<ItemCheck>> {
         (new_game.fortress_keys.moved(), &FORTRESS_KEYS),
         (new_game.keys.moved(), &LOOSE_KEYS),
         (npc_gifts, &FIRE_ARROWS),
-        (npc_gifts, &RUTOS_LETTER),
+        // With King Zora moved, the letter is dealt as a bottle, so its
+        // spot always deals, or it would hand over a letter nobody reads.
+        (
+            npc_gifts || new_game.on.contains(crate::presets::KING_ZORA_MOVED),
+            &RUTOS_LETTER,
+        ),
     ];
     let mut out = Vec::new();
     for (_, kind) in on.into_iter().filter(|(on, _)| *on) {
@@ -603,6 +608,23 @@ pub fn tabled(checks: &[ItemCheck]) -> HashSet<u64> {
 mod tests {
     use super::*;
     use crate::known::{actor, field, item};
+
+    #[test]
+    fn king_zora_moved_deals_the_letter_spot_without_npc_gifts() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let letters = |new_game: &NewGame| {
+            let dealt = dealt(&romfs, new_game).unwrap();
+            dealt.iter().filter(|c| RUTOS_LETTER.holds(c)).count()
+        };
+        assert_eq!(letters(&NewGame::default()), 0);
+        let moved = NewGame {
+            on: [crate::presets::KING_ZORA_MOVED.to_owned()].into(),
+            ..NewGame::default()
+        };
+        assert_eq!(letters(&moved), 1);
+    }
 
     #[test]
     fn a_chest_rupee_drops_as_the_floor_rupee_and_a_major_item_as_a_stand_in() {
