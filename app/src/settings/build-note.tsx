@@ -1,8 +1,9 @@
 import { CircleStop, Hammer, TriangleAlert } from "lucide-react";
 import type { BuildStatus } from "@/bindings";
-import { Callout, InlineError } from "@/components/callout";
+import { Callout, ErrorWords, InlineError } from "@/components/callout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { errorParts } from "@/lib/api";
 import { useRequestState } from "@/lib/request";
 import { GenerateSteps } from "@/play/generate-steps";
 import {
@@ -22,9 +23,18 @@ const BADGES: Record<
 > = {
   current: { label: "Build current", variant: "green" },
   stale: { label: "Needs a rebuild", variant: "gold" },
-  refused: { label: "Hook patch refused", variant: "danger" },
-  unrecorded: { label: "Patches unrecorded", variant: "gold" },
+  refused: { label: "Build refused", variant: "danger" },
+  unrecorded: { label: "Build too old", variant: "gold" },
 };
+
+/** `text`, saying how to rebuild `byHand` before its details. */
+function withHint(text: string, byHand: boolean) {
+  const { said, details } = errorParts(text);
+  const hint = byHand
+    ? ". Rebuild it by hand, or give it a rebuild command below to rebuild it from here"
+    : "";
+  return [said + hint, details].filter(Boolean).join("\n\n");
+}
 
 /** A saved target's build status, for a game that bakes the hook patch in
  * when it's built: a badge, Rebuild when it has a command, what's wrong,
@@ -68,9 +78,7 @@ export function BuildNote({ name }: { name: string }) {
           tone={build.status.kind === "refused" ? "danger" : "gold"}
           icon={TriangleAlert}
         >
-          {build.text}
-          {byHand &&
-            ". Rebuild it by hand, or give it a rebuild command below to rebuild it from here"}
+          <ErrorWords text={withHint(build.text, byHand)} />
         </Callout>
       )}
       {rebuilt === name && <GenerateSteps />}

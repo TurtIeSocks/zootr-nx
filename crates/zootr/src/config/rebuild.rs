@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use anyhow::{Result, bail};
+use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
 
 use super::Target;
@@ -49,7 +49,8 @@ impl Target {
             .map(|a| match game {
                 _ if !a.contains("{game}") => Ok(a.clone()),
                 Some(g) => Ok(a.replace("{game}", &g.to_string_lossy())),
-                None => bail!("{} needs {{game}}: set the game dump first", self.name),
+                None => Err(anyhow!("{} needs {{game}}", self.name)
+                    .context(crate::plain::Plain("Choose your game dump first".into()))),
             })
             .collect()
     }
@@ -94,12 +95,7 @@ mod tests {
         assert_eq!(t.manifest().unwrap(), Path::new("/home/me/g/list.txt"));
         let args = t.rebuild_args(Some(Path::new("/d/oot.nup"))).unwrap();
         assert_eq!(args.unwrap(), ["make", "--dump", "/d/oot.nup"]);
-        assert!(
-            t.rebuild_args(None)
-                .unwrap_err()
-                .to_string()
-                .contains("{game}")
-        );
+        assert!(format!("{:#}", t.rebuild_args(None).unwrap_err()).contains("{game}"));
         let typo = r#"{"name": "a", "app": "/a", "mod_dir": "/m", "rebuild": {"comand": []}}"#;
         let err = Target::import_at(typo, None).unwrap_err().to_string();
         assert!(err.contains("comand"), "{err}");

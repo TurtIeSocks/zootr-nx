@@ -48,25 +48,22 @@ export function Callout({
   );
 }
 
-/** Props for {@link InlineError}. */
-interface InlineErrorProps {
-  error?: string;
-  className?: string;
+/** Props for {@link ErrorWords}. */
+interface ErrorWordsProps {
+  /** What a player reads, then a blank line and the details, if any. */
+  text: string;
+  /** Before the words on their line, like an icon. */
+  lead?: ReactNode;
 }
 
-/** What failed, under the control that failed, with its details behind a
- * toggle when it has any. Nothing when there's no error. */
-export function InlineError({ error, className }: InlineErrorProps) {
+/** A message's words, with its details behind a toggle when it has any. */
+export function ErrorWords({ text, lead }: ErrorWordsProps) {
   const [open, setOpen] = useState(false);
-  if (!error) return null;
-  const { said, details } = errorParts(error);
+  const { said, details } = errorParts(text);
   return (
-    <div
-      role="alert"
-      className={cn("text-[12.5px] text-danger-ink", className)}
-    >
+    <>
       <p className="flex items-center gap-1.5">
-        <CircleAlert className="size-3.5 shrink-0" />
+        {lead}
         <span className="min-w-0">{said}</span>
         {details && (
           <button
@@ -80,10 +77,33 @@ export function InlineError({ error, className }: InlineErrorProps) {
         )}
       </p>
       {details && open && (
-        <p className="mt-1 select-text whitespace-pre-wrap break-words pl-5 font-mono text-[11.5px] text-ink-muted">
+        <p className="mt-1 select-text whitespace-pre-wrap break-words font-mono text-[11.5px] text-ink-muted">
           {details}
         </p>
       )}
+    </>
+  );
+}
+
+/** Props for {@link InlineError}. */
+interface InlineErrorProps {
+  error?: string;
+  className?: string;
+}
+
+/** What failed, under the control that failed. Nothing when there's no
+ * error. */
+export function InlineError({ error, className }: InlineErrorProps) {
+  if (!error) return null;
+  return (
+    <div
+      role="alert"
+      className={cn("text-[12.5px] text-danger-ink", className)}
+    >
+      <ErrorWords
+        text={error}
+        lead={<CircleAlert className="size-3.5 shrink-0" />}
+      />
     </div>
   );
 }

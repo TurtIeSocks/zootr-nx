@@ -95,7 +95,10 @@ impl Bridge {
             let read = conn.lines.read_line(&mut text);
             match read {
                 Ok(0) => bail!("the game closed the bridge"),
-                Err(e) if is_timeout(&e) => bail!("the game didn't answer {cmd} in {within:?}"),
+                Err(e) if is_timeout(&e) => {
+                    let raw = anyhow::anyhow!("the game didn't answer {cmd} in {within:?}");
+                    return Err(raw.context(crate::plain::Plain(super::SLOW.into())));
+                }
                 Err(e) => return Err(e.into()),
                 Ok(_) => {}
             }
@@ -408,7 +411,11 @@ mod tests {
         let err = game
             .ask("status", Value::Null, Duration::from_millis(50))
             .unwrap_err();
-        assert!(err.to_string().contains("didn't answer status"), "{err}");
+        assert!(
+            format!("{err:#}").contains("didn't answer status"),
+            "{err:#}"
+        );
+        assert_eq!(err.to_string(), super::super::SLOW);
     }
 
     #[test]

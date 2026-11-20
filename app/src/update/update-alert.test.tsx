@@ -127,9 +127,10 @@ test("a failed install says so and keeps the release page", async () => {
   vi.mocked(install).mockRejectedValue("signature mismatch");
   await openSettled();
   await act(async () => fireEvent.click(installButton() as HTMLElement));
-  expect(
-    screen.getByText(/The update failed: signature mismatch/),
-  ).toBeTruthy();
+  expect(screen.getByText(/The update didn't install/)).toBeTruthy();
+  expect(screen.queryByText("signature mismatch")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Details" }));
+  expect(screen.getByText("signature mismatch")).toBeTruthy();
   expect(installButton()).toHaveProperty("disabled", false);
   expect(screen.getByRole("link", { name: "Release page" })).toBeTruthy();
 });

@@ -2,6 +2,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { ArrowUpRight, CircleArrowUp } from "lucide-react";
 import { type MouseEvent, useEffect, useMemo, useState } from "react";
+import { InlineError } from "@/components/callout";
 import { Tip } from "@/components/tip";
 import { Button } from "@/components/ui/button";
 import {
@@ -115,11 +116,13 @@ function InstallStatus({ update, progress, error, running }: InstallState) {
           />
         </div>
       )}
-      {error && (
-        <p className="text-danger-ink text-xs">
-          The update failed: {error}. Try the release page.
-        </p>
-      )}
+      <InlineError
+        error={
+          error
+            ? `The update didn't install. Try again, or download it from the release page\n\n${error}`
+            : undefined
+        }
+      />
     </>
   );
 }

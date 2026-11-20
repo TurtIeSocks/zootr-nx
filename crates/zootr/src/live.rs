@@ -6,7 +6,7 @@ use std::path::Path;
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
-use anyhow::{Result, bail};
+use anyhow::{Result, anyhow, bail};
 
 use ounce_formats::KEYED;
 
@@ -509,12 +509,22 @@ impl std::fmt::Display for Unsupported {
 
 impl std::error::Error for Unsupported {}
 
+/// What Live says while the game is up but can't be read yet.
+pub const STARTING: &str = "Waiting for the game to finish starting";
+/// What Live says while the game doesn't answer in time.
+pub const SLOW: &str = "The game isn't answering yet";
+
+/// `raw`, under Live's word for a game still starting.
+fn starting(raw: anyhow::Error) -> anyhow::Error {
+    raw.context(crate::plain::Plain(STARTING.into()))
+}
+
 impl Game {
     /// The target's running game: through its bridge when it has one,
     /// else among the processes started from its app.
     pub fn attach(target: &Target) -> Result<Self> {
         match &target.bridge {
-            Some(socket) => Self::over(Bridge::connect(socket)?),
+            Some(socket) => Self::over(Bridge::connect(socket).map_err(starting)?),
             None => Self::find(&target.app),
         }
     }
@@ -534,7 +544,10 @@ impl Game {
     fn find(app: &Path) -> Result<Self> {
         let pids = mach::pids(app)?;
         if pids.is_empty() {
-            bail!("the game isn't running from {}", app.display());
+            return Err(starting(anyhow!(
+                "the game isn't running from {}",
+                app.display()
+            )));
         }
         // The game runs as two processes, and the OS may refuse one of them
         // while the other, the one holding GameData, lets this build in.
@@ -564,10 +577,10 @@ impl Game {
         if let Some(pid) = refused {
             return Err(NotSigned { pid }.into());
         }
-        bail!(
+        Err(starting(anyhow!(
             "{} wasn't found in the game; is this the 1.1.1 update?",
             flag::GAME_DATA
-        )
+        )))
     }
 }
 

@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ItemIcon, Tile } from "@/items/tile";
+import { errorParts } from "@/lib/api";
 import { ago, count } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { pickSlot, usePendingCount } from "@/save/tabs";
@@ -113,7 +114,7 @@ function SlotButton({ row, picked, onPick }: SlotButtonProps) {
       <span className="w-14 font-semibold">Slot {row.slot}</span>
       <span className="w-16 text-ink-muted">{ago(row.stamp)}</span>
       {row.error ? (
-        <span className="text-danger-ink">{row.error}</span>
+        <SlotError error={row.error} />
       ) : (
         <span className="flex flex-1 gap-4">
           {row.child !== null && <span>{row.child ? "Child" : "Adult"}</span>}
@@ -161,4 +162,11 @@ function Gems({ cells }: { cells: Cell[] }) {
       ))}
     </span>
   );
+}
+
+/** Why a slot couldn't be read, its details on hover. */
+function SlotError({ error }: { error: string }) {
+  const { said, details } = errorParts(error);
+  const words = <span className="text-danger-ink">{said}</span>;
+  return details ? <Tip tip={details}>{words}</Tip> : words;
 }
