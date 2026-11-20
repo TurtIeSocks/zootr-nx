@@ -1,6 +1,12 @@
-import { ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  RotateCcw,
+  TriangleAlert,
+} from "lucide-react";
 import { useState } from "react";
 import type { FlagGroup, FlagRow, FlagsView, Info } from "@/bindings";
+import { Callout } from "@/components/callout";
 import { Card } from "@/components/card";
 import { divided, fieldClass } from "@/components/styles";
 import { Tip } from "@/components/tip";
@@ -25,6 +31,10 @@ interface FlagsTabProps {
 export function FlagsTab({ view }: FlagsTabProps) {
   return (
     <div className="flex flex-col gap-3">
+      <Callout tone="gold" icon={TriangleAlert}>
+        Flags go straight into the save, unchecked. A wrong value can stall a
+        quest, so change only what you know.
+      </Callout>
       <FlagFilters kinds={view.kinds} />
       {view.groups.length === 0 ? (
         <p className="text-ink-muted text-xs">Nothing matches</p>
