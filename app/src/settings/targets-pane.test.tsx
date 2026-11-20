@@ -48,7 +48,7 @@ const saving = {
   notes: [] as string[],
   after: undefined as FullConfig | undefined,
 };
-const setConfig = vi.fn(async () => {
+const setConfig = vi.fn(async (_config?: FullConfig) => {
   await saving.hold;
   return { status: "ok", data: saving.notes };
 });
@@ -62,7 +62,7 @@ vi.mock("@/bindings", () => ({
     exportTarget: (name: string) => exportTarget(name),
     saveTarget: (name: string, file: string) => saveTarget(name, file),
     readTargetFile: (file: string) => readTargetFile(file),
-    setConfig: () => setConfig(),
+    setConfig: (c: FullConfig) => setConfig(c),
     config: () => Promise.resolve({ status: "ok", data: saving.after }),
   },
 }));
@@ -314,7 +314,39 @@ test("scripted-play fields and their variables show only with developer tools", 
   ];
   show();
   expect(scripted()).toEqual([null, null, null, null]);
-  expect(screen.getByLabelText("Rebuild command (optional)")).toBeTruthy();
   act(() => useConfig.setPath("config.dev_tools", true));
   expect(scripted().every(Boolean)).toBe(true);
+});
+
+test("the rebuild fields show only with developer tools, and a saved one survives hidden", async () => {
+  const rebuild = () => [
+    screen.queryByLabelText("Rebuild command (optional)"),
+    screen.queryByLabelText("Patch list (optional)"),
+  ];
+  useConfig.setPath(
+    "config",
+    full({
+      targets: [
+        {
+          name: "FakeTarget",
+          app: "/a",
+          mod_dir: "/m",
+          rebuild: { command: ["make"], manifest: "/p.txt" },
+        },
+      ],
+    }),
+  );
+  render(<TargetsPane />);
+  expect(rebuild()).toEqual([null, null]);
+  expect(screen.getByText("Launch arguments", { selector: "td" })).toBeTruthy();
+  rename("FakeTarget2");
+  fireEvent.click(button("Save targets"));
+  await waitFor(() => expect(setConfig).toHaveBeenCalled());
+  expect(setConfig.mock.calls[0]?.[0]?.targets[0]?.rebuild).toEqual({
+    command: ["make"],
+    manifest: "/p.txt",
+  });
+  act(() => useConfig.setPath("config.dev_tools", true));
+  expect(rebuild().every(Boolean)).toBe(true);
+  expect(screen.getByText("Launch arguments, Rebuild command")).toBeTruthy();
 });

@@ -162,6 +162,7 @@ export const ADVANCED_FIELDS: DraftField[] = [
   },
   {
     key: "rebuild_command",
+    dev: true,
     help: "variables",
     label: "Rebuild command (optional)",
     hint: "For apps that build the mod into the game: what to run after Install, one argument per line",
@@ -169,6 +170,7 @@ export const ADVANCED_FIELDS: DraftField[] = [
   },
   {
     key: "manifest",
+    dev: true,
     label: "Patch list (optional)",
     hint: "The build's exefs_patches.txt, when it isn't in the game folder that holds the mod folder",
     pick: "file",
@@ -195,6 +197,8 @@ export interface Variable {
   name: string;
   /** The fields it works in. */
   in: string;
+  /** More fields it works in, named only with developer tools on. */
+  devIn?: string;
   becomes: string;
   /** Works only in fields developer tools show. */
   dev?: boolean;
@@ -204,7 +208,8 @@ export interface Variable {
 export const VARIABLES: Variable[] = [
   {
     name: "{game}",
-    in: "Launch arguments, Rebuild command",
+    in: "Launch arguments",
+    devIn: "Rebuild command",
     becomes: "Your game dump",
   },
   {
@@ -232,6 +237,10 @@ export const VARIABLES: Variable[] = [
     dev: true,
   },
 ];
+
+/** The fields a variable works in, as listed with developer tools on or off. */
+export const worksIn = (v: Variable, devTools: boolean) =>
+  [v.in, devTools && v.devIn].filter(Boolean).join(", ");
 
 /** Whether a draft names any variable, so Variables opens for it. */
 export const namesVariable = (draft: Draft) =>
