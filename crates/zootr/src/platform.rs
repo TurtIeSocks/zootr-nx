@@ -88,11 +88,14 @@ fn locate(
     Ok(base.join("zootr"))
 }
 
-/// Whether a process was started from `app`'s path.
+/// Whether a process was started from `app`'s path: its command line opens
+/// with the path (the app, or a file inside a .app), or with a shell and
+/// then the path (a script target). A process that only mentions the path
+/// later on, like a shell command naming it, isn't the app.
 #[cfg(unix)]
 pub fn running(app: &Path) -> bool {
     use std::process::Stdio;
-    let pattern: String = app
+    let path: String = app
         .to_string_lossy()
         .chars()
         .flat_map(|c| {
@@ -100,6 +103,7 @@ pub fn running(app: &Path) -> bool {
             special.then_some('\\').into_iter().chain([c])
         })
         .collect();
+    let pattern = format!("^([^ ]+ )?{path}(/| |$)");
     command("pgrep")
         .args(["-f", &pattern])
         .stdout(Stdio::null())
@@ -266,6 +270,38 @@ mod tests {
 
     fn path(parts: &[&str]) -> PathBuf {
         parts.iter().collect()
+    }
+
+    /// A process counts only when it is the app, or a shell running it, never
+    /// one that merely names the path (a command line mentioning it).
+    #[cfg(unix)]
+    #[test]
+    fn running_is_the_app_not_a_mention_of_it() {
+        use std::os::unix::fs::PermissionsExt;
+        use std::process::Command;
+        let dir = std::env::temp_dir().join(format!("zootr-running-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let app = dir.join("Fake App.sh");
+        std::fs::write(&app, "#!/bin/sh\nsleep 5\n").unwrap();
+        std::fs::set_permissions(&app, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let pause = || std::thread::sleep(std::time::Duration::from_millis(300));
+
+        let quoted = format!("sleep 5; true # \"{}\"", app.display());
+        let mut mention = Command::new("sh").args(["-c", &quoted]).spawn().unwrap();
+        pause();
+        let mentioned = running(&app);
+        mention.kill().ok();
+        mention.wait().ok();
+
+        let mut real = Command::new(&app).spawn().unwrap();
+        pause();
+        let started = running(&app);
+        real.kill().ok();
+        real.wait().ok();
+        std::fs::remove_dir_all(&dir).ok();
+
+        assert!(!mentioned, "a shell naming the path isn't the app");
+        assert!(started, "the app, run through its shell, is");
     }
 
     /// Play starts the app with the target's env, which is how a target
