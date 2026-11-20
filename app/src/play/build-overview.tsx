@@ -255,7 +255,7 @@ function Tile({ icon: Icon, name, meta, section, off, children }: TileProps) {
     <button
       type="button"
       onClick={() => openSettings(section)}
-      className="group flex min-h-[92px] cursor-pointer flex-col gap-2 rounded-md border border-line bg-surface p-3 text-left outline-none transition-colors duration-(--duration-fast) ease-out hover:border-line-strong hover:bg-surface-hover focus-visible:border-focus focus-visible:shadow-[0_0_0_1px_var(--focus)]"
+      className="group flex min-h-[92px] min-w-0 cursor-pointer flex-col gap-2 rounded-md border border-line bg-surface p-3 text-left outline-none transition-colors duration-(--duration-fast) ease-out hover:border-line-strong hover:bg-surface-hover focus-visible:border-focus focus-visible:shadow-[0_0_0_1px_var(--focus)]"
     >
       <span
         className={cn(
@@ -321,13 +321,13 @@ function ChipView({ chip }: { chip: MarkedChip }) {
     <span
       data-mark={mark}
       className={cn(
-        "inline-flex h-[22px] items-center gap-[5px] whitespace-nowrap rounded-sm bg-surface-sunken px-2 text-[12px] text-ink leading-none",
+        "inline-flex min-h-[22px] max-w-full items-center gap-[5px] rounded-sm bg-surface-sunken px-2 py-[5px] text-[12px] text-ink leading-[14px]",
         mark === "new" && "bg-gold-soft text-gold-ink",
         mark === "gone" &&
           "bg-transparent text-ink-faint line-through decoration-ink-faint shadow-[inset_0_0_0_1px_var(--line-strong)]",
       )}
     >
-      {mark === "new" && <ChangedDot className="size-[5px]" />}
+      {mark === "new" && <ChangedDot className="size-[5px] shrink-0" />}
       <span>
         {label}
         {value !== undefined && ":"}
