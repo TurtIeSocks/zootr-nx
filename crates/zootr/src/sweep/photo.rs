@@ -33,6 +33,10 @@ const NIGHT: u32 = 22;
 /// How long the right stick raises the camera over a child afloat, in ms,
 /// to look down into the water.
 const LOOK_DOWN: u64 = 800;
+/// A frame Hob scores this well ends a check's tries. Stopping at the first
+/// such frame halved the tries of the vanilla pass's first 541 checks
+/// (4.5 to 2.3 each); a later 5 was given up on 99 of them.
+const GOOD: u32 = 4;
 /// How far under an air landing a floor is looked for, in m.
 const DROP: f32 = 12.0;
 /// A holder this far over Link is looked up at, in m.
@@ -545,6 +549,9 @@ impl<'a, I: Input> Pass<'a, I> {
                 best = Some(points);
                 std::fs::rename(&trying, &frame)?;
                 (line.side, line.step) = (Some(side), step);
+            }
+            if points >= GOOD {
+                break;
             }
         }
         let _ = std::fs::remove_file(&trying);
