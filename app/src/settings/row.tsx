@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import { Help } from "@/components/help";
 import { Badge, ChangedDot } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import type { TopicId } from "@/help/topics";
 import { cn } from "@/lib/utils";
 import { untested } from "@/settings/setting";
 
@@ -9,6 +11,8 @@ export interface RowProps {
   /** The control's id. The label is `${id}-label`. */
   id: string;
   label: string;
+  /** A help bubble beside the label. */
+  help?: TopicId;
   /** Its "Untested." prefix becomes a badge. */
   description: string;
   /** Marks the row with the gold dot. */
@@ -25,6 +29,7 @@ export interface RowProps {
 export function Row({
   id,
   label,
+  help,
   description,
   changed,
   locked,
@@ -47,6 +52,7 @@ export function Row({
           >
             {label}
           </Label>
+          {help && <Help topic={help} />}
           {isUntested && <Badge variant="gold">Untested</Badge>}
         </div>
         {text && (

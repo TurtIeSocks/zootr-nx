@@ -119,7 +119,6 @@ export function SeedIcons({ icons, size = "md" }: SeedIconsProps) {
             // Icons can repeat, so only the position is unique.
             // biome-ignore lint/suspicious/noArrayIndexKey: a fixed-length row
             key={i}
-            title={name}
             className={cn(
               "grid place-items-center [&>svg]:stroke-2",
               SIZES[size],

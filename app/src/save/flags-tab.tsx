@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { FlagGroup, FlagRow, FlagsView, Info } from "@/bindings";
 import { Card } from "@/components/card";
 import { divided, fieldClass } from "@/components/styles";
+import { Tip } from "@/components/tip";
 import { ChangedDot } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -166,12 +167,14 @@ function Row({ row }: { row: FlagRow }) {
   return (
     <div className="flex flex-col gap-1 py-1 pr-3 pl-9 text-[13px]">
       <div className="flex items-center gap-3">
-        <span className="min-w-0 flex-1 truncate font-mono" title={row.name}>
-          {row.name}
-          {row.label && (
-            <span className="ml-2 font-sans text-ink-muted">{row.label}</span>
-          )}
-        </span>
+        <Tip tip={row.name}>
+          <span className="min-w-0 flex-1 truncate font-mono">
+            {row.name}
+            {row.label && (
+              <span className="ml-2 font-sans text-ink-muted">{row.label}</span>
+            )}
+          </span>
+        </Tip>
         {row.staged && (
           <>
             <ChangedDot className="size-2" />
@@ -197,16 +200,17 @@ function Row({ row }: { row: FlagRow }) {
             />
           )}
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={`Reset ${row.name}`}
-          title={`Back to ${row.default}`}
-          className={cn(!resettable && "invisible")}
-          onClick={() => row.default !== null && edit(0)(row.default)}
-        >
-          <RotateCcw />
-        </Button>
+        <Tip tip={`Back to ${row.default}`}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Reset ${row.name}`}
+            className={cn(!resettable && "invisible")}
+            onClick={() => row.default !== null && edit(0)(row.default)}
+          >
+            <RotateCcw />
+          </Button>
+        </Tip>
       </div>
       {array && open && (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2 pl-4">

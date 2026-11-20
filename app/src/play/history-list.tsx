@@ -11,6 +11,7 @@ import type { Summary } from "@/bindings";
 import { CardHeader } from "@/components/card";
 import { CopySeed, SeedIcons } from "@/components/seed-icons";
 import { divided } from "@/components/styles";
+import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,14 +39,11 @@ import { type HistoryFilter, useUi } from "@/stores/ui";
 function ClearHistory() {
   const { armed, ...handlers } = useArmed(clearHistory);
   return (
-    <Button
-      variant={armed ? "destructive" : "ghost"}
-      size="sm"
-      title="Delete every seed except the installed one"
-      {...handlers}
-    >
-      {armed ? "Really clear?" : "Clear"}
-    </Button>
+    <Tip tip="Delete every seed except the installed one">
+      <Button variant={armed ? "destructive" : "ghost"} size="sm" {...handlers}>
+        {armed ? "Really clear?" : "Clear"}
+      </Button>
+    </Tip>
   );
 }
 

@@ -5,6 +5,7 @@ import { InlineError } from "@/components/callout";
 import { Card } from "@/components/card";
 import { Field } from "@/components/field";
 import { RequestError } from "@/components/request-error";
+import { Tip } from "@/components/tip";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Input } from "@/components/ui/input";
@@ -204,24 +205,28 @@ function SetupActions() {
       >
         Clear
       </Button>
-      <Button
-        variant="ghost"
-        disabled={!unchanged || busy}
-        title={
+      <Tip
+        wrap
+        tip={
           unchanged
             ? "The zootr shuffle command for your settings and this setup"
             : "Save first"
         }
-        onClick={() =>
-          run(async () => {
-            const line = await call(commands.shuffleCommand());
-            await navigator.clipboard.writeText(line);
-            flash("command");
-          })
-        }
       >
-        {copied ? "Copied" : "Copy as CLI"}
-      </Button>
+        <Button
+          variant="ghost"
+          disabled={!unchanged || busy}
+          onClick={() =>
+            run(async () => {
+              const line = await call(commands.shuffleCommand());
+              await navigator.clipboard.writeText(line);
+              flash("command");
+            })
+          }
+        >
+          {copied ? "Copied" : "Copy as CLI"}
+        </Button>
+      </Tip>
     </>
   );
 }

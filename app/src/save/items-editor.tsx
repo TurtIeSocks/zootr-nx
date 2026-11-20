@@ -12,6 +12,7 @@ import type {
 } from "@/bindings";
 import { InlineError } from "@/components/callout";
 import { Card } from "@/components/card";
+import { Tip } from "@/components/tip";
 import { ChangedDot } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -149,20 +150,23 @@ function EditTile({ cell, cap, staged, onClick }: EditTileProps) {
   const absent = cell.tiers === 0;
   return (
     <div className="relative">
-      <button
-        type="button"
-        disabled={absent}
-        title={`${cell.label}: click for the next, right click for the one before`}
-        className="rounded-sm transition-colors duration-(--duration-fast) hover:bg-surface-sunken disabled:pointer-events-none"
-        onClick={() => onClick("up")}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          onClick("down");
-        }}
+      <Tip
+        tip={`${cell.label}: click for the next, right click for the one before`}
       >
-        <Tile cell={cell} size={SIZE} ink={INK} noCount />
-        {staged && <span className="sr-only"> (changed)</span>}
-      </button>
+        <button
+          type="button"
+          disabled={absent}
+          className="rounded-sm transition-colors duration-(--duration-fast) hover:bg-surface-sunken disabled:pointer-events-none"
+          onClick={() => onClick("up")}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            onClick("down");
+          }}
+        >
+          <Tile cell={cell} size={SIZE} ink={INK} noCount />
+          {staged && <span className="sr-only"> (changed)</span>}
+        </button>
+      </Tip>
       {cell.count !== null && cell.tier > 0 && (
         <CountButton cell={cell} cap={cap} onCount={onClick} />
       )}

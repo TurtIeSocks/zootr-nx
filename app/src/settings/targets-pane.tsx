@@ -93,7 +93,8 @@ function TargetsForm({ notes, onSaved }: TargetsFormProps) {
     <>
       <PageHeader
         title="Targets"
-        description="A target is an app that runs the game with a mod folder. Install writes the seed to every target."
+        help="target"
+        description="Where you play: what Play opens, and the folder the game loads mods from. Install writes the seed to every target."
         actions={
           <>
             <Button
@@ -260,9 +261,9 @@ interface TargetFieldProps {
 /** A labelled field: a path with Browse, the settings lines, or a line of
  * text. */
 function TargetField({ id, field, value, onChange }: TargetFieldProps) {
-  const { key, label, hint, pick, multiline } = field;
+  const { key, label, help, hint, pick, multiline } = field;
   return (
-    <Field id={id} label={label}>
+    <Field id={id} label={label} help={help} hint={hint}>
       {pick ? (
         <PathInput
           id={id}

@@ -171,7 +171,8 @@ test("a dungeon's row fills from the backend, names its dungeon and fades what i
     const grid = row.querySelector(".grid");
     expect(grid?.children).toHaveLength(6);
     expect(grid?.children[0]?.textContent).toBe("DT");
-    expect(within(row).getByText("FoT").getAttribute("title")).toBe(
+    fireEvent.focus(within(row).getByText("FoT"));
+    expect((await screen.findByRole("tooltip")).textContent).toBe(
       "Forest Temple",
     );
     // A dungeon without the item still draws it, fainter than missing.

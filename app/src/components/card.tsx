@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Help } from "@/components/help";
+import type { TopicId } from "@/help/topics";
 import { cn } from "@/lib/utils";
 
 /** Props for {@link Card}. */
@@ -31,12 +33,15 @@ export function Card({ className, children, ...header }: CardProps) {
 export interface CardHeaderProps
   extends Omit<CardProps, "className" | "children" | "title"> {
   title: ReactNode;
+  /** A help bubble beside the title. */
+  help?: TopicId;
 }
 
 /** A card's title, description, and trailing meta and action. A folder's
  * sections use it too. */
 export function CardHeader({
   title,
+  help,
   description,
   meta,
   action,
@@ -44,9 +49,12 @@ export function CardHeader({
   return (
     <div className="flex items-start justify-between gap-4 px-4 pt-4 pb-2">
       <div className="min-w-0">
-        <h2 className="font-semibold text-[15px] leading-[22px] tracking-[-0.005em]">
-          {title}
-        </h2>
+        <div className="flex items-center gap-1.5">
+          <h2 className="font-semibold text-[15px] leading-[22px] tracking-[-0.005em]">
+            {title}
+          </h2>
+          {help && <Help topic={help} />}
+        </div>
         {description && (
           <p className="mt-0.5 text-[13px] text-ink-muted leading-[18px]">
             {description}

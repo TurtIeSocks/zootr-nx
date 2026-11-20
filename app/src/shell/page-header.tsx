@@ -1,5 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
+import { Help } from "@/components/help";
+import type { TopicId } from "@/help/topics";
 import { cn } from "@/lib/utils";
 import { crumbs } from "@/shell/nav";
 import { useUi } from "@/stores/ui";
@@ -36,17 +38,27 @@ export function Topbar() {
 /** Props for {@link PageHeader}. */
 interface PageHeaderProps {
   title: string;
+  /** A help bubble beside the title. */
+  help?: TopicId;
   description?: ReactNode;
   actions?: ReactNode;
 }
 
 /** A page's title, its one-line description and actions at the trailing
  * edge. */
-export function PageHeader({ title, description, actions }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  help,
+  description,
+  actions,
+}: PageHeaderProps) {
   return (
     <header className="flex items-end justify-between gap-6 pt-2 pb-1">
       <div className="min-w-0">
-        <h1 className="type-display text-ink">{title}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="type-display text-ink">{title}</h1>
+          {help && <Help topic={help} />}
+        </div>
         {description && (
           <p className="mt-1 max-w-[60ch] text-[13px] text-ink-muted leading-[18px]">
             {description}

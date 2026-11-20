@@ -6,6 +6,7 @@ import { Card } from "@/components/card";
 import { Field } from "@/components/field";
 import { NameField } from "@/components/name-field";
 import { RequestError } from "@/components/request-error";
+import { Tip } from "@/components/tip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -441,16 +442,18 @@ function Placements({ plando, options }: PlacementsProps) {
               return (
                 <tr key={hash} className="hover:bg-surface-hover">
                   <td>{check?.area ?? "—"}</td>
-                  <td title={hash}>
-                    {label}
-                    {options && (!check || check.needs) && (
-                      <Badge variant="gold" className="ml-2">
-                        {check?.needs
-                          ? `Needs ${setting(check.needs)}`
-                          : "Not dealt with these settings"}
-                      </Badge>
-                    )}
-                  </td>
+                  <Tip tip={hash}>
+                    <td>
+                      {label}
+                      {options && (!check || check.needs) && (
+                        <Badge variant="gold" className="ml-2">
+                          {check?.needs
+                            ? `Needs ${setting(check.needs)}`
+                            : "Not dealt with these settings"}
+                        </Badge>
+                      )}
+                    </td>
+                  </Tip>
                   <td className="text-ink-muted">{check?.vanilla ?? "—"}</td>
                   <td className="font-medium">{item}</td>
                   <td className="w-px">

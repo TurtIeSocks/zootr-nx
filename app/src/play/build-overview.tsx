@@ -259,7 +259,6 @@ function Tile({ icon: Icon, name, meta, section, off, children }: TileProps) {
   return (
     <button
       type="button"
-      title={`Open ${name}`}
       onClick={() => openSettings(section)}
       className="group flex min-h-[92px] cursor-pointer flex-col gap-2 rounded-md border border-line bg-surface p-3 text-left outline-none transition-colors duration-(--duration-fast) ease-out hover:border-line-strong hover:bg-surface-hover focus-visible:border-focus focus-visible:shadow-[0_0_0_1px_var(--focus)]"
     >

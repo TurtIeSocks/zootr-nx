@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { Tip } from "@/components/tip";
 import { cn } from "@/lib/utils";
 
 /** A kind of element worth pointing at when it's scrolled out of view. */
@@ -132,28 +133,29 @@ function EdgeButton({ side, marks, onClick }: EdgeButtonProps) {
         "from-surface from-30% via-surface/70 to-transparent",
       )}
     >
-      <button
-        type="button"
-        aria-label={label.join(", ")}
-        title={label.join(", ")}
-        onClick={onClick}
-        className="pointer-events-auto relative flex size-8 cursor-pointer items-center justify-center rounded-full border border-line bg-surface-raised text-ink-muted shadow-md transition-colors duration-(--duration-fast) hover:text-ink [&>svg]:size-4"
-      >
-        <Icon />
-        {marks.length > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex gap-0.5">
-            {marks.map((m) => (
-              <i
-                key={m.label}
-                className={cn(
-                  "size-2 rounded-full ring-2 ring-surface",
-                  m.className,
-                )}
-              />
-            ))}
-          </span>
-        )}
-      </button>
+      <Tip tip={label.join(", ")}>
+        <button
+          type="button"
+          aria-label={label.join(", ")}
+          onClick={onClick}
+          className="pointer-events-auto relative flex size-8 cursor-pointer items-center justify-center rounded-full border border-line bg-surface-raised text-ink-muted shadow-md transition-colors duration-(--duration-fast) hover:text-ink [&>svg]:size-4"
+        >
+          <Icon />
+          {marks.length > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex gap-0.5">
+              {marks.map((m) => (
+                <i
+                  key={m.label}
+                  className={cn(
+                    "size-2 rounded-full ring-2 ring-surface",
+                    m.className,
+                  )}
+                />
+              ))}
+            </span>
+          )}
+        </button>
+      </Tip>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode, useState } from "react";
 import type { Cell, DungeonRow, Glyph, Placement } from "@/bindings";
+import { Tip } from "@/components/tip";
 import { fallbackIcon } from "@/items/fallback-icons";
 import { iconUrl } from "@/items/icons";
 import { BADGE, TITLES } from "@/items/layout";
@@ -52,30 +53,31 @@ export function Tile({
   const missing = cell.tier === 0;
   const tier = cell.section === "Upgrades" && cell.tiers > 1 && !missing;
   return (
-    <div
-      role="img"
-      aria-label={
-        absent
-          ? `${cell.label} (not in this dungeon)`
-          : missing
-            ? `${cell.label} (missing)`
-            : cell.label
-      }
-      title={cell.label}
-      className={cn(
-        "relative flex items-center justify-center transition-[opacity,filter] duration-(--duration-base)",
-        absent ? "opacity-12 grayscale" : missing && "opacity-28 grayscale",
-        className,
-      )}
-      style={{ width: size, height: size }}
-      onAnimationEnd={onAnimationEnd}
-    >
-      <ItemIcon icon={cell.icon} glyph={cell.glyph} ink={ink} />
-      {!noCount && cell.count !== null && !missing && (
-        <span className={BADGE}>{cell.count}</span>
-      )}
-      {tier && <Tier cell={cell} />}
-    </div>
+    <Tip tip={cell.label}>
+      <div
+        role="img"
+        aria-label={
+          absent
+            ? `${cell.label} (not in this dungeon)`
+            : missing
+              ? `${cell.label} (missing)`
+              : cell.label
+        }
+        className={cn(
+          "relative flex items-center justify-center transition-[opacity,filter] duration-(--duration-base)",
+          absent ? "opacity-12 grayscale" : missing && "opacity-28 grayscale",
+          className,
+        )}
+        style={{ width: size, height: size }}
+        onAnimationEnd={onAnimationEnd}
+      >
+        <ItemIcon icon={cell.icon} glyph={cell.glyph} ink={ink} />
+        {!noCount && cell.count !== null && !missing && (
+          <span className={BADGE}>{cell.count}</span>
+        )}
+        {tier && <Tier cell={cell} />}
+      </div>
+    </Tip>
   );
 }
 
@@ -170,15 +172,16 @@ export function SectionGrid({
  * tiles already name it, so screen readers skip it. */
 function RowLabel({ row, ink }: { row: DungeonRow; ink: string }) {
   return (
-    <span
-      aria-hidden
-      title={row.name}
-      className={cn(
-        "self-center pr-1 font-semibold text-[10.5px] leading-3.5 tracking-[0.04em] opacity-80",
-        ink,
-      )}
-    >
-      {row.short}
-    </span>
+    <Tip tip={row.name}>
+      <span
+        aria-hidden
+        className={cn(
+          "self-center pr-1 font-semibold text-[10.5px] leading-3.5 tracking-[0.04em] opacity-80",
+          ink,
+        )}
+      >
+        {row.short}
+      </span>
+    </Tip>
   );
 }

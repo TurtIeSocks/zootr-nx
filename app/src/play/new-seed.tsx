@@ -1,6 +1,7 @@
 import { CircleAlert, CircleOff, Dices } from "lucide-react";
 import { Callout, InlineError } from "@/components/callout";
 import { CardHeader } from "@/components/card";
+import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,20 +72,21 @@ function SeedInput() {
 /** Rolls a random seed into the input. */
 function RollButton() {
   return (
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      className="-translate-y-1/2 absolute top-1/2 right-1.5"
-      title="Roll a seed"
-      onClick={() =>
-        useUi.setPath(
-          "newSeed.seed",
-          String(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)),
-        )
-      }
-    >
-      <Dices />
-    </Button>
+    <Tip tip="Roll a seed">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="-translate-y-1/2 absolute top-1/2 right-1.5"
+        onClick={() =>
+          useUi.setPath(
+            "newSeed.seed",
+            String(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)),
+          )
+        }
+      >
+        <Dices />
+      </Button>
+    </Tip>
   );
 }
 

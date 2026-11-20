@@ -18,6 +18,7 @@ import {
 } from "react";
 import { commands } from "@/bindings";
 import { InlineError } from "@/components/callout";
+import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -84,9 +85,9 @@ function SourceNote() {
       <span className="font-medium text-sm">{WATCHING[st.state]}</span>
       {on && s?.source === "Saves" && <Badge variant="info">Autosaves</Badge>}
       {on && unsaved !== "" && (
-        <Badge variant="danger" title={unsaved}>
-          Not saved to a file
-        </Badge>
+        <Tip tip={unsaved}>
+          <Badge variant="danger">Not saved to a file</Badge>
+        </Tip>
       )}
       {reason && (
         <span className="truncate text-[13px] text-ink-faint">{reason}</span>
@@ -223,17 +224,14 @@ function MarkButton() {
   }, [on]);
   return (
     <Popover open={open && on} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled={!on}
-          title={on ? "Mark what happened (M)" : "Marks need a recording"}
-        >
-          <Flag />
-          Mark
-        </Button>
-      </PopoverTrigger>
+      <Tip wrap tip={on ? "Mark what happened (M)" : "Marks need a recording"}>
+        <PopoverTrigger asChild>
+          <Button size="sm" variant="ghost" disabled={!on}>
+            <Flag />
+            Mark
+          </Button>
+        </PopoverTrigger>
+      </Tip>
       <PopoverContent align="end" className="w-72 p-2">
         <MarkForm onDone={() => setOpen(false)} />
       </PopoverContent>

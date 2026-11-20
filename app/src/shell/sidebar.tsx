@@ -1,6 +1,7 @@
 import { type LucideIcon, Wrench } from "lucide-react";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
 import { Badge, ChangedDot } from "@/components/ui/badge";
 import { MAC } from "@/lib/platform";
@@ -178,9 +179,9 @@ function PlandoOn() {
   const pins = useConfig((s) => Object.keys(s.config.place).length);
   return (
     pins > 0 && (
-      <Badge variant="info" title={`${pins} pinned`}>
-        {pins}
-      </Badge>
+      <Tip tip={`${pins} pinned`}>
+        <Badge variant="info">{pins}</Badge>
+      </Tip>
     )
   );
 }
