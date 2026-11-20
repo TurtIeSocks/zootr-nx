@@ -8,15 +8,16 @@ public until you publish the draft.
 
 | Platform | Runner | App bundles | CLI |
 |---|---|---|---|
-| macOS, Apple silicon | `macos-latest` | `.app` (as `.app.tar.gz`), `.dmg` | `zootr-<tag>-macos-arm64.tar.gz` |
-| Windows, x86_64 | `windows-latest` | NSIS `-setup.exe`, `.msi` | `zootr-<tag>-windows-x86_64.zip` |
-| Linux, x86_64 | `ubuntu-24.04` | `.deb`, `.AppImage`, `.rpm` | `zootr-<tag>-linux-x86_64.tar.gz` |
+| macOS, Apple silicon | `macos-latest` | `zootr-nx-macos-arm64.dmg`, `.app.tar.gz` (the updater's) | `zootr-macos-arm64.tar.gz` |
+| Windows, x86_64 | `windows-latest` | `zootr-nx-windows-x86_64-setup.exe` (NSIS), `.msi` | `zootr-windows-x86_64.zip` |
+| Linux, x86_64 | `ubuntu-24.04` | `zootr-nx-linux-x86_64.AppImage`, `.deb`, `.rpm` | `zootr-linux-x86_64.tar.gz` |
 
 The app is built by `tauri-apps/tauri-action`, with every bundle Tauri makes
-for the platform (`bundle.targets` is `"all"`). Each bundle the updater
-installs also gets a `.sig`, and the draft gets `latest.json`, the feed
-installed apps read (see "Updater key"). The CLI is the `zootr` binary
-from `crates/zootr`, built after the app with
+for the platform (`bundle.targets` is `"all"`). File names leave out the
+version, so `releases/latest/download/NAME` always finds the newest (the
+README links them). The draft gets `latest.json`, the feed installed apps
+read, which carries each update's signature (see "Updater key"). The
+CLI is the `zootr` binary from `crates/zootr`, built after the app with
 `cargo build --release -p zootr -p zootr-app --bin zootr` so it reuses the
 app's compiled crates. On macOS
 it gets an ad-hoc signature with `crates/zootr/live.entitlements`, like

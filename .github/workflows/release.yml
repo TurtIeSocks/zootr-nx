@@ -218,6 +218,13 @@ jobs:
           # doesn't turn them off: the CLI still asks for the key.
           args: --runner cargo ${{ env.TAGGED != 'true' && '--config src-tauri/no-updater.conf.json' || '' }}
           releaseId: ${{ needs.draft.outputs.id }}
+          # Names without the version, so the README can link each OS's
+          # file under releases/latest/download. The matrix name, not
+          # tauri-action's [arch], which spells one arch three ways: the
+          # app and the CLI then share one name per OS. The .sig files go:
+          # latest.json carries each signature, and nothing else reads them.
+          releaseAssetNamePattern: "[name]-${{ matrix.name }}[setup][ext]"
+          uploadUpdaterSignatures: false
 
       # After the app, and naming its package too, so cargo picks the
       # features the app build used for the crates they share. Built
@@ -237,7 +244,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          NAME: zootr-${{ inputs.tag || github.ref_name }}-${{ matrix.name }}
+          NAME: zootr-${{ matrix.name }}
         run: |
           cd target/release
           if [ "$RUNNER_OS" = Windows ]; then

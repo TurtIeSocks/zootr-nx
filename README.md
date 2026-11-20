@@ -96,8 +96,12 @@ a flag does.
 
 ## Get started
 
-1. Download the app for your system from the
-   [Releases page](https://github.com/TurtIeSocks/zootr-nx/releases).
+1. Download the app for your system:
+   - macOS (Apple silicon): [zootr-nx-macos-arm64.dmg](https://github.com/TurtIeSocks/zootr-nx/releases/latest/download/zootr-nx-macos-arm64.dmg)
+   - Windows: [zootr-nx-windows-x86_64-setup.exe](https://github.com/TurtIeSocks/zootr-nx/releases/latest/download/zootr-nx-windows-x86_64-setup.exe)
+   - Linux: [zootr-nx-linux-x86_64.AppImage](https://github.com/TurtIeSocks/zootr-nx/releases/latest/download/zootr-nx-linux-x86_64.AppImage),
+     or the `.deb` or `.rpm` from the
+     [Releases page](https://github.com/TurtIeSocks/zootr-nx/releases/latest)
 2. Point it at your own dump of the game with the 1.1.1 update.
 3. Add a target: the app that runs the game and the mod folder it loads.
 4. Generate a seed and press Play.
