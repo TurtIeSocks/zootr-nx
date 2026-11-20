@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ChecksView } from "@/checks/checks-view";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { LoadGate } from "@/components/load-gate";
@@ -13,12 +13,12 @@ import { SettingsView } from "@/settings/settings-view";
 import { crumbs, type Tab } from "@/shell/nav";
 import { Topbar } from "@/shell/page-header";
 import { Sidebar } from "@/shell/sidebar";
+import { Welcome } from "@/shell/welcome";
 import { init as initChecks } from "@/stores/checks";
 import { init as initConfig, useConfig } from "@/stores/config";
 import { init as initItems } from "@/stores/items";
 import { init as initLive } from "@/stores/live";
 import { init as initSeeds, useSeeds } from "@/stores/seeds";
-import { openTargetsIfNone } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
 import { init as initUpdate } from "@/stores/update";
 
@@ -36,14 +36,13 @@ const VIEWS: Record<Tab | "Settings", () => React.JSX.Element> = {
 /** Views that fill the window and scroll their own rows. */
 const FILLS: (Tab | "Settings")[] = ["Checks", "Items", "Live", "Spoiler"];
 
-/** Starts every store the main window reads, and the update check. A first
- * run with no targets opens Settings at Targets. */
+/** Starts every store the main window reads, and the update check. */
 function start() {
   void initLive();
   void initSeeds();
   void initChecks();
   void initItems();
-  void initConfig().then(openTargetsIfNone);
+  void initConfig();
   void initUpdate();
 }
 
@@ -56,9 +55,21 @@ export function App() {
   useEffect(start, []);
   return (
     <LoadGate loaded={config && seeds} error={error ?? failed}>
-      <Shell />
+      <First />
     </LoadGate>
   );
+}
+
+/** The welcome screen on a first launch (no game dump, no target), until
+ * it's done or skipped, then the app. Decided once at load, so saving the
+ * dump on the welcome screen doesn't end it. */
+function First() {
+  const [first] = useState(() => {
+    const { config } = useConfig.getState();
+    return !config.game && config.targets.length === 0;
+  });
+  const [done] = useUi.usePath("welcome.done");
+  return first && !done ? <Welcome /> : <Shell />;
 }
 
 /** The sidebar, the top bar and the tab's view, with History's spoiler

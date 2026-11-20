@@ -1,10 +1,10 @@
 import { Check, Loader2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { commands, type PlandoCheck, type PlandoOptions } from "@/bindings";
-import { InlineError } from "@/components/callout";
 import { Card } from "@/components/card";
 import { Field } from "@/components/field";
 import { NameField } from "@/components/name-field";
+import { DumpError } from "@/components/needs-dump";
 import { RequestError } from "@/components/request-error";
 import { Tip } from "@/components/tip";
 import { Badge } from "@/components/ui/badge";
@@ -294,7 +294,7 @@ function Draft() {
           <AddRow options={options} loading={loading} />
         </div>
       </Card>
-      <InlineError error={error ?? options?.error ?? undefined} />
+      <DumpError error={error ?? options?.error ?? undefined} />
       <Placements plando={pins} options={options} />
     </>
   );

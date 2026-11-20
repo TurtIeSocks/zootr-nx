@@ -1,9 +1,9 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 import { commands } from "@/bindings";
-import { InlineError } from "@/components/callout";
 import { Card } from "@/components/card";
 import { Field } from "@/components/field";
+import { DumpError } from "@/components/needs-dump";
 import { RequestError } from "@/components/request-error";
 import { Tip } from "@/components/tip";
 import { Button } from "@/components/ui/button";
@@ -53,7 +53,7 @@ export function TestPane() {
           description="Generate starts every new game here, holding these items, until you clear it. Seeds built with it show a test badge in the history."
           actions={<SetupActions />}
         />
-        <InlineError
+        <DumpError
           error={options.status === "error" ? options.error : undefined}
         />
         <SavedSetups />

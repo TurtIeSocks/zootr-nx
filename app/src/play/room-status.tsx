@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { reconnecting, refusal } from "@/play/ap-lines";
 import { connect, disconnect, useAp } from "@/stores/ap";
+import { useLive } from "@/stores/live";
 import { useUi } from "@/stores/ui";
 
 /** The room's dot: hollow while there's no connection. */
@@ -39,6 +40,8 @@ export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
     <span className="font-mono text-[12.5px] text-ink-muted">{server}</span>
   );
   const go = () => void connect(entry.id);
+  // The client reaches the room through the running game.
+  const playing = useLive((s) => s.status.state !== "Waiting");
 
   if (status === "connected") {
     return (
@@ -89,9 +92,13 @@ export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
     );
   }
   return (
-    <Strip dot="off" action={<Act primary label="Connect" onClick={go} />}>
+    <Strip
+      dot="off"
+      action={<Act primary label="Connect" onClick={go} disabled={!playing} />}
+    >
       <b className="font-semibold">Not connected</b>
       {addr}
+      {!playing && <span className="text-ink-muted">Start the game first</span>}
     </Strip>
   );
 }
@@ -149,13 +156,14 @@ interface ActProps {
   onClick: () => void;
   primary?: boolean;
   ghost?: boolean;
+  disabled?: boolean;
 }
 
 /** The room line's one action. */
-function Act({ label, onClick, primary, ghost }: ActProps) {
+function Act({ label, onClick, primary, ghost, disabled }: ActProps) {
   const variant = primary ? "default" : ghost ? "ghost" : "secondary";
   return (
-    <Button size="sm" variant={variant} onClick={onClick}>
+    <Button size="sm" variant={variant} onClick={onClick} disabled={disabled}>
       {label}
     </Button>
   );

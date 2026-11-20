@@ -14,7 +14,7 @@ import {
   type View,
 } from "@/bindings";
 import { call, keep, message } from "@/lib/api";
-import { blocked, unbuildable } from "@/lib/config";
+import { blocked, noDump, unbuildable } from "@/lib/config";
 import { type Change, settingsChanges } from "@/lib/settings";
 import { saveConfig, useConfig } from "@/stores/config";
 import { once } from "@/stores/once";
@@ -137,7 +137,7 @@ function derive() {
   const diff = (e: Summary) =>
     settingsChanges(schema, e.settings, config.settings);
   useSeeds.setPath("blocked", blocked(status, config));
-  useSeeds.setPath("unbuildable", unbuildable(status));
+  useSeeds.setPath("unbuildable", unbuildable(status, config));
   useSeeds.setPath(
     "running",
     status.targets.some((t) => t.running),
@@ -363,4 +363,11 @@ export const stale = (build: Build | null | undefined) =>
 export async function label(id: number, label: Label) {
   await call(commands.labelSeed(id, label));
   await refresh();
+}
+
+/** Why there's no game dump to read, or "" when there is one. */
+export function useNoDump(): string {
+  const status = useSeeds((s) => s.status);
+  const config = useConfig((s) => s.config);
+  return noDump(status, config);
 }

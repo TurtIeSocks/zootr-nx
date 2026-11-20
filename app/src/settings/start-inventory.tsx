@@ -5,7 +5,7 @@ import {
   type SettingDef,
   type StartInventory as Start,
 } from "@/bindings";
-import { InlineError } from "@/components/callout";
+import { DumpError } from "@/components/needs-dump";
 import { call } from "@/lib/api";
 import type { Settings } from "@/lib/config";
 import { startOf } from "@/lib/settings";
@@ -32,7 +32,7 @@ export function StartInventory({ def }: StartInventoryProps) {
     const empty = Object.keys(next).length === 0;
     await changeSettings({ [def.id]: empty ? undefined : next });
   };
-  if (view.status === "error") return <InlineError error={view.error} />;
+  if (view.status === "error") return <DumpError error={view.error} />;
   if (view.status === "loading") {
     return <Loader2 className="size-4 animate-spin text-ink-muted" />;
   }

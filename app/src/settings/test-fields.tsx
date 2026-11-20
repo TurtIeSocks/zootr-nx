@@ -151,7 +151,9 @@ export function ItemsField() {
           id="test-item"
           label="Items"
           placeholder={
-            options.status === "ok" ? "an item's name" : "Reading the game…"
+            options.status === "loading"
+              ? "Reading the game…"
+              : "an item's name"
           }
           names={listed(options, "items")}
           value={item}
