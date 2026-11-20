@@ -33,6 +33,12 @@ const NIGHT: u32 = 22;
 /// How long the right stick raises the camera over a child afloat, in ms,
 /// to look down into the water.
 const LOOK_DOWN: u64 = 800;
+/// How far under an air landing a floor is looked for, in m.
+const DROP: f32 = 12.0;
+/// A holder this far over Link is looked up at, in m.
+const HIGH: f32 = 2.0;
+/// How long the right stick tilts the camera up at a high holder, in ms.
+const LOOK_UP: u64 = 800;
 /// How much farther each step back stands from the holder.
 const STEP: f32 = 3.0;
 /// Steps back tried after the first ring of sides.
@@ -449,8 +455,16 @@ impl<'a, I: Input> Pass<'a, I> {
             .clone();
             let graph = level.graph();
             let pose = warp::facing(&holder.name, &holder.pose);
+            // A landing in the air (a Skulltula over a door) drops to the
+            // floor under it: warped there, Link fell onto the holder.
             let at = |&(side, step): &(Side, u32)| {
-                warp::landing_at(&pose, side, warp::AHEAD + step as f32 * STEP)
+                let at = warp::landing_at(&pose, side, warp::AHEAD + step as f32 * STEP);
+                match graph.floor(at, UNDERFOOT) {
+                    Some(_) => at,
+                    None => (graph.floor(at, DROP))
+                        .filter(|f| f.height < at[1])
+                        .map_or(at, |f| [at[0], f.height, at[2]]),
+                }
             };
             let mut tries: Vec<_> = tries().into_iter().map(|t| (t, at(&t))).collect();
             // Each ring's floored landings first.
@@ -622,6 +636,8 @@ impl<'a, I: Input> Pass<'a, I> {
         }
         if afloat {
             self.input.hold("RDown", LOOK_DOWN)?;
+        } else if face[1] - at[1] > HIGH {
+            self.input.hold("RUp", LOOK_UP)?;
         }
         sleep(SETTLE);
         Ok(())
