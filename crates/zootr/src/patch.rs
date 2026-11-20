@@ -1,6 +1,6 @@
 //! Our code in the game: the hook from `zootr-hook` and its table, written
-//! into `main` by a cheat file. Offsets are game 1.1.1's, see
-//! `docs/research/binary.md`.
+//! into `main` by a cheat file, an exefs patch, and an IPS for a Switch.
+//! Offsets are game 1.1.1's, see `docs/research/binary.md`.
 
 use std::path::{Path, PathBuf};
 
@@ -245,16 +245,31 @@ pub fn cheat(patches: &[Patch]) -> String {
     out
 }
 
+/// `main`'s build ID in hex, trailing zeros left out: how an exefs patch
+/// names the build it fits.
+fn build_id() -> String {
+    let used = BUILD_ID.iter().rposition(|&b| b != 0).map_or(0, |i| i + 1);
+    BUILD_ID[..used]
+        .iter()
+        .map(|b| format!("{b:02X}"))
+        .collect()
+}
+
+/// The NSO header before `main`'s image, which exefs patch offsets count.
+const NSO_HEADER: u32 = 0x100;
+/// The most bytes one IPS record holds. Its size field is 2 bytes, and a
+/// size of 0 means a run, so no record is empty.
+const IPS_RECORD: usize = 0xffff;
+const IPS_END: &[u8; 4] = b"EEOF";
+// A record at the offset `EEOF` would read as the end.
+const _: () = assert!(NSO_HEADER + LIST_END < u32::from_be_bytes(*IPS_END));
+
 /// IPSwitch text writing `patches`, for loaders that patch `main` as it
 /// loads (targets that take no code cheats). Offsets
 /// count from `main`'s image, past its NSO header.
 pub fn pchtxt(patches: &[Patch]) -> String {
-    let used = BUILD_ID.iter().rposition(|&b| b != 0).map_or(0, |i| i + 1);
-    let id: String = BUILD_ID[..used]
-        .iter()
-        .map(|b| format!("{b:02X}"))
-        .collect();
-    let mut out = format!("@nsobid-{id}\n@flag offset_shift 0x100\n\n@enabled\n");
+    let id = build_id();
+    let mut out = format!("@nsobid-{id}\n@flag offset_shift {NSO_HEADER:#x}\n\n@enabled\n");
     for p in patches {
         for (i, chunk) in p.bytes.chunks(64).enumerate() {
             let hex: String = chunk.iter().map(|b| format!("{b:02X}")).collect();
@@ -262,6 +277,24 @@ pub fn pchtxt(patches: &[Patch]) -> String {
         }
     }
     out + "@stop\n"
+}
+
+/// IPS32 writing `patches`, the same bytes as [`pchtxt`], for a Switch
+/// running Atmosphère, whose loader applies it as `main` loads: code and
+/// table both, since its cheats hold 0x400 words in all. Offsets count
+/// the NSO header. See `docs/research/console.md`.
+pub fn ips(patches: &[Patch]) -> Vec<u8> {
+    let mut out = b"IPS32".to_vec();
+    for p in patches {
+        for (i, chunk) in p.bytes.chunks(IPS_RECORD).enumerate() {
+            let at = NSO_HEADER + p.at + (IPS_RECORD * i) as u32;
+            out.extend(at.to_be_bytes());
+            out.extend((chunk.len() as u16).to_be_bytes());
+            out.extend(chunk);
+        }
+    }
+    out.extend(IPS_END);
+    out
 }
 
 /// Where a mod folder's cheat goes, named for the build it fits.
@@ -278,16 +311,27 @@ pub fn exefs(mod_dir: &Path) -> PathBuf {
 /// The exefs patch's file name.
 pub const EXEFS: &str = "zootr.pchtxt";
 
-/// Writes patches as one file's text.
-type Writer = fn(&[Patch]) -> String;
-
-/// Our files in a mod folder and how each writes the patches: the cheat,
-/// and the same bytes as an exefs patch.
-fn outputs(mod_dir: &Path) -> [(PathBuf, Writer); 2] {
-    [(path(mod_dir), cheat), (exefs(mod_dir), pchtxt)]
+/// Where a mod folder's IPS goes: the path Atmosphère reads under
+/// `atmosphere/`, named for the build. No loader we run reads it, so
+/// nothing applies the patch twice and no built game sees the table.
+pub fn ips_path(mod_dir: &Path) -> PathBuf {
+    (mod_dir.join("exefs_patches/zootr")).join(format!("{}.ips", build_id()))
 }
 
-/// Write the cheat and exefs patch. Without `progressive` the table has
+/// Writes patches as one file's bytes.
+type Writer = fn(&[Patch]) -> Vec<u8>;
+
+/// Our files in a mod folder and how each writes the patches: the cheat,
+/// and the same bytes as an exefs patch and an IPS.
+fn outputs(mod_dir: &Path) -> [(PathBuf, Writer); 3] {
+    [
+        (path(mod_dir), |p| cheat(p).into_bytes()),
+        (exefs(mod_dir), |p| pchtxt(p).into_bytes()),
+        (ips_path(mod_dir), ips),
+    ]
+}
+
+/// Write the cheat, exefs patch and IPS. Without `progressive` the table has
 /// no lines but the `keyed` ones (a prize chest's ammo). `credits` are
 /// what items set as they're found, by name, `spots` the twinned holders
 /// whose drops set a flag as they're taken (GameData holds them, the
@@ -384,6 +428,7 @@ fn take(path: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
     use std::ops::Range;
 
     use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS, HEADER, Header, ICE_TRAPS, MAGIC, Table};
@@ -643,6 +688,101 @@ mod tests {
         assert_eq!(lines[5..], ["017D59FC 4041", "@stop"]);
     }
 
+    /// An IPS32 file's records, as `(offset, bytes)`.
+    fn ips_records(ips: &[u8]) -> Vec<(u32, Vec<u8>)> {
+        assert_eq!(ips[..5], *b"IPS32");
+        let (mut at, mut out) = (5, vec![]);
+        while ips[at..at + 4] != *b"EEOF" {
+            let offset = u32::from_be_bytes(ips[at..at + 4].try_into().unwrap());
+            let size = u16::from_be_bytes(ips[at + 4..at + 6].try_into().unwrap()) as usize;
+            out.push((offset, ips[at + 6..at + 6 + size].to_vec()));
+            at += 6 + size;
+        }
+        assert_eq!(at + 4, ips.len(), "nothing after EEOF");
+        out
+    }
+
+    /// Every byte `writes` puts in `main`'s image, by its offset.
+    fn bytes_at(writes: impl IntoIterator<Item = (u32, Vec<u8>)>) -> BTreeMap<u32, u8> {
+        let mut out = BTreeMap::new();
+        for (at, bytes) in writes {
+            out.extend((at..).zip(bytes));
+        }
+        out
+    }
+
+    #[test]
+    fn the_ips_counts_the_nso_header_big_endian() {
+        let p = [Patch {
+            at: 0x17d_59bc,
+            bytes: vec![1, 2, 3, 4],
+        }];
+        let mut want = b"IPS32".to_vec();
+        want.extend([0x01, 0x7d, 0x5a, 0xbc, 0x00, 0x04, 1, 2, 3, 4]);
+        want.extend(b"EEOF");
+        assert_eq!(ips(&p), want);
+    }
+
+    #[test]
+    fn a_patch_past_a_record_splits_and_no_record_is_empty() {
+        let p = [
+            Patch {
+                at: 0x1000,
+                bytes: (0..0x2_0002).map(|i| i as u8).collect(),
+            },
+            Patch {
+                at: 0x9_0000,
+                bytes: vec![],
+            },
+        ];
+        let records = ips_records(&ips(&p));
+        let sizes: Vec<_> = records.iter().map(|(_, b)| b.len()).collect();
+        assert_eq!(sizes, [0xffff, 0xffff, 4]);
+        let offsets: Vec<_> = records.iter().map(|(at, _)| *at).collect();
+        assert_eq!(offsets, [0x1100, 0x1100 + 0xffff, 0x1100 + 0x1_fffe]);
+        let back: Vec<u8> = records.into_iter().flat_map(|(_, b)| b).collect();
+        assert_eq!(back, p[0].bytes);
+    }
+
+    #[test]
+    fn the_ips_writes_what_the_exefs_patch_writes() {
+        let p = patches(&progressive::LINES, &[], ALL, &[], &[SPOT], None).unwrap();
+        let ips = ips_records(&ips(&p)).into_iter();
+        let ips = bytes_at(ips.map(|(at, b)| (at - 0x100, b)));
+        let text = pchtxt(&p);
+        let pchtxt = bytes_at(text.lines().filter_map(|l| {
+            let (at, hex) = l.split_once(' ')?;
+            let at = u32::from_str_radix(at, 16).ok()?;
+            let bytes = (0..hex.len()).step_by(2);
+            Some((
+                at,
+                bytes
+                    .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
+                    .collect(),
+            ))
+        }));
+        assert!(
+            ips.keys().any(|at| (TABLE..TABLE_END).contains(at)),
+            "the table"
+        );
+        assert_eq!(ips, pchtxt);
+    }
+
+    #[test]
+    fn the_ips_is_named_as_atmosphere_reads_it() {
+        let at = ips_path(Path::new("m"));
+        assert!(at.starts_with("m/exefs_patches/zootr"), "{}", at.display());
+        let name = at.file_name().unwrap().to_str().unwrap();
+        assert_eq!(name, "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348.ips");
+        // Atmosphère's rule: hex, an even length, at most a whole ID's.
+        let id = name.strip_suffix(".ips").unwrap();
+        assert!(
+            id.len().is_multiple_of(2)
+                && id.len() <= 64
+                && id.chars().all(|c| c.is_ascii_hexdigit())
+        );
+    }
+
     #[test]
     fn the_build_id_is_the_dumps() {
         let dump = Path::new("../../dump/oot.nup");
@@ -688,8 +828,9 @@ mod tests {
         install(&dir, false, &[], BUNNY_HOOD, &[], &[], None).unwrap();
         let hood = std::fs::read_to_string(path(&dir)).unwrap();
         assert!(hood.contains(&format!("{:08X}", RUN_CALL.0)), "{hood}");
+        assert!(std::fs::read(ips_path(&dir)).unwrap().starts_with(b"IPS32"));
         remove(&dir).unwrap();
-        assert!(!path(&dir).exists() && !exefs.exists());
+        assert!(!path(&dir).exists() && !exefs.exists() && !ips_path(&dir).exists());
         assert!(other.exists());
         std::fs::remove_dir_all(dir).unwrap();
     }
@@ -700,6 +841,11 @@ mod tests {
         install(&dir, true, &[], ALL, &[], &[SPOT], None).unwrap();
         let whole = patches(&progressive::LINES, &[], ALL, &[], &[SPOT], None).unwrap();
         split(&dir).unwrap();
+        assert_eq!(
+            std::fs::read(ips_path(&dir)).unwrap(),
+            ips(&whole),
+            "the IPS keeps it all"
+        );
         let exefs = std::fs::read_to_string(exefs(&dir)).unwrap();
         assert_eq!(exefs, pchtxt(&code_patches().unwrap()));
         let cheat = std::fs::read_to_string(path(&dir)).unwrap();

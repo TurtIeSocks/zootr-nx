@@ -231,6 +231,7 @@ mod tests {
             rebuild: None,
         };
         let has = |m: &str| crate::patch::path(&dir.join(m)).exists();
+        let ips = |m: &str| crate::patch::ips_path(&dir.join(m)).is_file();
         // Either way round: a folder written first without a reader still
         // hands the cheat to the copy that has one.
         for order in [["reads", "not"], ["not", "reads"]] {
@@ -248,6 +249,10 @@ mod tests {
             })
             .unwrap();
             assert!(has("reads") && !has("not"), "{order:?}");
+            assert!(
+                ips("reads") && ips("not"),
+                "{order:?}: every folder has the IPS"
+            );
             assert!(dir.join("not/exefs/zootr.pchtxt").is_file());
         }
         // A game that builds the exefs patch in gets it without the table,
@@ -264,7 +269,7 @@ mod tests {
         let exefs = std::fs::read_to_string(dir.join("built/exefs/zootr.pchtxt")).unwrap();
         let code = crate::patch::code_patches().unwrap();
         assert_eq!(exefs, crate::patch::pchtxt(&code));
-        assert!(has("built"));
+        assert!(has("built") && ips("built"));
         std::fs::remove_dir_all(dir).unwrap();
     }
 
