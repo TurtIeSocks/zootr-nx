@@ -14,10 +14,16 @@ import { Switch } from "@/components/ui/switch";
 import type { TopicId } from "@/help/topics";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
-import { chosen, isChanged, isOn } from "@/lib/settings";
+import { chosen, isOn, type Patch } from "@/lib/settings";
 import { Row } from "@/settings/row";
 import { controlId, labelId, segmented, useLockedBy } from "@/settings/setting";
 import { changeSettings, useConfig } from "@/stores/config";
+import {
+  DEFAULTS_FROM,
+  useDrifted,
+  useDriftFrom,
+  useDriftSettings,
+} from "@/stores/seeds";
 
 /** Props for {@link SettingRow}. */
 export interface SettingRowProps {
@@ -59,8 +65,7 @@ const SETTING_HELP: Partial<Record<string, { help: TopicId }>> = {
 /** The row around a setting's control, inside its request. */
 function SettingRowFrame({ def }: SettingRowProps) {
   const parent = useLockedBy(def);
-  const own = useConfig((s) => isChanged(def, s.config.settings));
-  const changed = !parent && own;
+  const changed = useDrifted(def.id);
   return (
     <Row
       id={controlId(def)}
@@ -82,16 +87,22 @@ function SettingRowFrame({ def }: SettingRowProps) {
   );
 }
 
-/** Puts a changed setting back to its default. Shows on hover or focus. */
+/** Puts a setting back to what drift measures from: the installed seed's
+ * value, or its default. Shows on hover or focus. */
 function ResetSetting({ def }: SettingRowProps) {
   const { run } = useRequest();
+  const base = useDriftSettings();
+  const from = useDriftFrom();
+  const value = base[def.id] as Patch[string];
   return (
     <span className="opacity-0 transition-opacity duration-(--duration-fast) focus-within:opacity-100 group-hover/row:opacity-100">
       <TipButton
         label={`Reset ${def.label}`}
-        tip="Back to its default"
+        tip={
+          from === DEFAULTS_FROM ? "Back to its default" : `Back to ${from}'s`
+        }
         variant="ghost"
-        onClick={() => run(() => changeSettings({ [def.id]: undefined }))}
+        onClick={() => run(() => changeSettings({ [def.id]: value }))}
       >
         <RotateCcw />
       </TipButton>

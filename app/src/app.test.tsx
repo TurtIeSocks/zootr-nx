@@ -122,13 +122,17 @@ afterEach(() => {
   useUi.setPath("getStarted.dismissed", false);
 });
 
-/** The sidebar over stores holding two groups, the first changed. */
+/** The sidebar over stores holding two groups, the first drifted. */
 function sidebar() {
-  useConfig.setPath("groups", [
-    { name: "General", changed: true },
-    { name: "Cutscenes", changed: false },
-  ]);
+  useConfig.setPath("groups", [{ name: "General" }, { name: "Cutscenes" }]);
   useSeeds.setPath("status", { game: true, targets: [] });
+  useSeeds.setPath("drift", [
+    {
+      def: toggle("fake-speed", "General"),
+      before: "off",
+      after: "on",
+    },
+  ]);
   render(<Sidebar />);
 }
 

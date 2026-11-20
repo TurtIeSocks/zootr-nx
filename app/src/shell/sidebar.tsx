@@ -22,7 +22,7 @@ import { LiveDot, StatusPill } from "@/shell/status-pill";
 import { useChecks } from "@/stores/checks";
 import { useConfig, useDevTools } from "@/stores/config";
 import { useLive } from "@/stores/live";
-import { useSeeds } from "@/stores/seeds";
+import { useGroupDrifted, useSeeds } from "@/stores/seeds";
 import { openDev, openSettings } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
 import { useUpdate } from "@/stores/update";
@@ -160,20 +160,21 @@ function RunGroup() {
 /** The schema's groups in order, each marked when it holds a change. */
 function Groups() {
   const [groups] = useConfig.usePath("groups");
-  return groups.map((g) => (
-    <SectionItem
-      key={g.name}
-      section={g.name}
-      label={g.name}
-      icon={groupIcon(g.name)}
-    >
-      {g.changed && (
+  return groups.map((g) => <GroupItem key={g.name} name={g.name} />);
+}
+
+/** A group's item, dotted while it holds a setting in the drift list. */
+function GroupItem({ name }: { name: string }) {
+  const drifted = useGroupDrifted(name);
+  return (
+    <SectionItem section={name} label={name} icon={groupIcon(name)}>
+      {drifted && (
         <span role="img" aria-label="changed">
           <ChangedDot />
         </span>
       )}
     </SectionItem>
-  ));
+  );
 }
 
 /** How many checks the next seed pins, when it pins any. */

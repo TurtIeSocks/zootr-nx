@@ -48,7 +48,8 @@ function Badge({
   );
 }
 
-/** The 6px gold dot: changed from default, and nothing else. */
+/** The 6px gold dot: differs from what drift measures from (the
+ * installed seed, or the defaults), and nothing else. */
 function ChangedDot({ className }: { className?: string }) {
   return (
     <span

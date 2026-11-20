@@ -14,7 +14,7 @@ import {
   type View,
 } from "@/bindings";
 import { call, keep, message } from "@/lib/api";
-import { blocked, noDump, unbuildable } from "@/lib/config";
+import { blocked, noDump, type Settings, unbuildable } from "@/lib/config";
 import { type Change, settingsChanges } from "@/lib/settings";
 import { saveConfig, useConfig } from "@/stores/config";
 import { once } from "@/stores/once";
@@ -119,6 +119,21 @@ export const useDriftBase = () => useSeeds((s) => driftBase(s.history));
 /** Whether the target named `name` is running. */
 export const useTargetRunning = (name: string | undefined) =>
   useSeeds((s) => s.status.targets.some((t) => t.name === name && t.running));
+
+/** No settings: the defaults, as a base that keeps its identity. */
+const NONE: Settings = {};
+
+/** The settings `drift` is measured from, `{}` for the defaults. */
+export const useDriftSettings = () =>
+  useSeeds((s) => driftBase(s.history)?.settings ?? NONE);
+
+/** Whether setting `id` is in `drift`: what a change dot marks. */
+export const useDrifted = (id: string) =>
+  useSeeds((s) => s.drift.some((c) => c.def.id === id));
+
+/** Whether group `name` holds a setting in `drift`. */
+export const useGroupDrifted = (name: string) =>
+  useSeeds((s) => s.drift.some((c) => c.def.group === name));
 
 /** What `drift` is measured from, as `useDriftFrom` words it. */
 export const DEFAULTS_FROM = "the default settings";

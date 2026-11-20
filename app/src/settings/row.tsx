@@ -51,7 +51,11 @@ export function Row({
     <div className="group/row relative grid min-h-15 grid-cols-[minmax(0,1fr)_auto] items-center gap-6 rounded-md p-3 transition-colors duration-(--duration-fast) ease-out hover:bg-surface-hover">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          {changed && <ChangedDot className="-ml-3.5" />}
+          {changed && (
+            <span role="img" aria-label="changed" className="-ml-3.5 flex">
+              <ChangedDot />
+            </span>
+          )}
           <Label
             id={`${id}-label`}
             htmlFor={id}
