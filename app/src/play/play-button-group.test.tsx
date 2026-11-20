@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -146,4 +147,35 @@ test("a rebuild that leaves the build stale shows why and doesn't play", async (
   const play = rebuildAndPlay({ status: "error", error: still });
   expect(await screen.findByText(still)).toBeTruthy();
   expect(play).not.toHaveBeenCalled();
+});
+
+/** FakeOne and FakeTwo, with FakeOne's game running. */
+function oneRunning() {
+  useSeeds.setPath("status", {
+    game: true,
+    targets: ["FakeOne", "FakeTwo"].map((name) => ({
+      name,
+      app: true,
+      mod_dir: true,
+      running: name === "FakeOne",
+    })),
+  });
+}
+
+test("Play says why it can't start a target already running", () => {
+  const play = vi.spyOn(commands, "play");
+  oneRunning();
+  show("FakeOne", "FakeTwo");
+  const button = screen.getByRole("button", { name: "Play FakeOne" });
+  expect(button.getAttribute("aria-disabled")).toBe("true");
+  fireEvent.click(button);
+  expect(play).not.toHaveBeenCalled();
+});
+
+test("another target still plays while one runs", () => {
+  oneRunning();
+  show("FakeOne", "FakeTwo");
+  act(() => useConfig.setPath("config.picked", "FakeTwo"));
+  const button = screen.getByRole("button", { name: "Play FakeTwo" });
+  expect(button.getAttribute("aria-disabled")).toBeNull();
 });

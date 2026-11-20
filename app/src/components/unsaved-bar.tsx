@@ -1,6 +1,7 @@
 import { InlineError } from "@/components/callout";
 import { FloatingBar } from "@/components/floating-bar";
 import { Button } from "@/components/ui/button";
+import { WhyButton } from "@/components/why-button";
 
 /** Props for {@link UnsavedBar}. */
 interface UnsavedBarProps {
@@ -12,6 +13,8 @@ interface UnsavedBarProps {
   busy: boolean;
   /** The Save button's text, naming what it saves. */
   saveLabel: string;
+  /** Why Save can't act now, if it can't. */
+  why?: string;
   onDiscard: () => void;
   onSave: () => void;
 }
@@ -23,6 +26,7 @@ export function UnsavedBar({
   error,
   busy,
   saveLabel,
+  why,
   onDiscard,
   onSave,
 }: UnsavedBarProps) {
@@ -33,9 +37,9 @@ export function UnsavedBar({
       <Button variant="ghost" disabled={busy} onClick={onDiscard}>
         Discard
       </Button>
-      <Button disabled={busy} onClick={onSave}>
+      <WhyButton disabled={busy} why={why} onClick={onSave}>
         {saveLabel}
-      </Button>
+      </WhyButton>
     </FloatingBar>
   );
 }

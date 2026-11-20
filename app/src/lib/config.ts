@@ -81,9 +81,12 @@ export function noDump(status: Status, config: FullConfig): string {
  * for History alone needs neither a target nor the game closed. */
 export const unbuildable = noDump;
 
+/** Why a control that writes the game's files can't act while it runs. */
+export const CLOSE_GAME = "Close the game first";
+
 /** Why nothing can be installed right now, or "" when something can. */
 export function blocked(status: Status, config: FullConfig): string {
-  if (status.targets.some((t) => t.running)) return "Close the game first";
+  if (status.targets.some((t) => t.running)) return CLOSE_GAME;
   if (!status.game) return noDump(status, config);
   if (config.targets.length === 0) return NEED_TARGET;
   return "";

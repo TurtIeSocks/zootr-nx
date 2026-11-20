@@ -13,6 +13,7 @@ import { linkClass } from "@/components/styles";
 import { Segmented } from "@/components/ui/segmented";
 import { UnsavedBar } from "@/components/unsaved-bar";
 import { call } from "@/lib/api";
+import { CLOSE_GAME } from "@/lib/config";
 import { count } from "@/lib/format";
 import { useRequestState } from "@/lib/request";
 import { type Loaded, useLoad } from "@/lib/use-load";
@@ -28,6 +29,7 @@ import {
   usePendingCount,
 } from "@/save/tabs";
 import { Page, PageHeader } from "@/shell/page-header";
+import { useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
 
 const TABS: { id: SaveTab; label: string }[] = [
@@ -192,6 +194,7 @@ function SaveBar({ onSaved, onReload }: SaveBarProps) {
   const save = useRequestState();
   const [stale, setStale] = useState<number>();
   const n = usePendingCount();
+  const [running] = useSeeds.usePath("running");
   if (n === 0 || slot === null) return null;
   const write = () =>
     save.run(async () => {
@@ -232,6 +235,7 @@ function SaveBar({ onSaved, onReload }: SaveBarProps) {
         error={save.error}
         busy={save.busy}
         saveLabel="Save"
+        why={running ? `${CLOSE_GAME}: it writes over its saves` : undefined}
         onDiscard={discard}
         onSave={write}
       />
