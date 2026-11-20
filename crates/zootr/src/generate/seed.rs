@@ -18,10 +18,11 @@ use crate::shuffle::{self, Fixed};
 use crate::{checks, fill, gamedata, hints, ice_traps, icons, places, steps};
 
 /// How many door layouts a seed tries before it gives up. About one in
-/// twelve rolled layouts can be beaten (Jabu-Jabu's Belly wants a child
-/// door, the child-only doors no adult boss), so a hundred tries fail about
-/// once in five thousand seeds.
-const DOOR_TRIES: u32 = 100;
+/// twelve rolled layouts can be beaten with Ganon's Castle in place
+/// (Jabu-Jabu's Belly wants a child door, the child-only doors no adult
+/// boss; `probe doors` counts them), so two hundred tries fail about once in
+/// seventeen million seeds.
+const DOOR_TRIES: u32 = 200;
 
 /// Shuffle the chests around `fixed`, unless `new_game` keeps them vanilla,
 /// and write the mod.
