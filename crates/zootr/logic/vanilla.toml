@@ -393,3 +393,8 @@ place = "zora-river-child"
 era = "child"
 item = "item:magic-bean"
 needs = "zora-river"
+
+[[check]]
+hash = 2014780391754316762
+name = "Upper Courtyard Token"
+needs = "adult and hookshot and ocarina and scarecrow"
