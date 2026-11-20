@@ -34,6 +34,7 @@ lens = "magic and item:lens-of-truth"
 
 kokiri-sword = "child-weapon and item:kokiri-sword"
 deku-shield = "child-weapon and item:deku-shield-chest"
+hylian-shield = "adult and item:hylian-shield-chest"
 # Deku Babas drop them and the Kokiri shop sells them. Only child Link
 # holds them, and they carry fire from a lit torch.
 sticks = "child"

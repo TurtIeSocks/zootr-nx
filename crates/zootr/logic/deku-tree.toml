@@ -7,11 +7,11 @@ name = "Lower Three Deku Sticks"
 needs = "always"
 
 # The room's door opens once the Deku Scrub is beaten, by sending its nut
-# back with the shield.
+# back with the shield, the Hylian Shield for adult Link.
 [[check]]
 hash = 821372075822700622
 name = "Upper Fairy Slingshot"
-needs = "deku-shield"
+needs = "deku-shield or hylian-shield"
 
 [[check]]
 hash = 13027331340815880287

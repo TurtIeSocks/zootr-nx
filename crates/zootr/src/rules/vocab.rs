@@ -43,6 +43,7 @@ pub const ITEMS: &[(&str, &Name)] = &[
     ("goron-tunic-pickup", actor::OBJ_ARMOR_GORON),
     ("hookshot", item::HOOKSHOT),
     ("hover-boots", item::HOVER_BOOT),
+    ("hylian-shield-chest", actor::T_BOX_SHIELD_HYLIAN),
     ("iron-boots", item::HEAVY_BOOT),
     ("kokiri-emerald", item::STONE_FOREST),
     ("kokiri-sword", item::SWORD_KOKIRI),

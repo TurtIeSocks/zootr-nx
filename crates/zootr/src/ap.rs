@@ -37,6 +37,7 @@ pub const OPTIONS: &[&str] = &[
     "open-door-of-time",
     "jabu-open",
     "open-waterfall",
+    "adult-deku-tree",
     "free-bombchus",
     "skip-cutscenes",
     "chest-size",

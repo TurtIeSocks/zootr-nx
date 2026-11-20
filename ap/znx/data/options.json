@@ -35,6 +35,13 @@
     "label": "Zora's River waterfall open"
   },
   {
+    "default": false,
+    "description": "The debris in front of the Deku Tree's mouth is gone, so adult Link walks in and out",
+    "id": "adult-deku-tree",
+    "kind": "toggle",
+    "label": "Adult Deku Tree"
+  },
+  {
     "default": true,
     "description": "Bombchus hold up to 50 on their own, so they open the same checks bombs do without waiting on the bag",
     "id": "free-bombchus",

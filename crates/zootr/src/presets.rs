@@ -270,7 +270,39 @@ fn jabu_arrival() -> Vec<String> {
     .into()
 }
 
-pub const PRESETS: [Preset; 15] = [
+/// The preset whose Deku Tree takes adult Link in.
+pub const ADULT_DEKU_TREE: &str = "adult-deku-tree";
+
+/// The debris the adult Kokiri Forest piles in front of the Deku Tree's
+/// mouth, which the child map doesn't have. Their collision is baked into
+/// the map's physics, so moving one leaves it behind. Kept from spawning,
+/// the game drops it with them.
+const DEKU_TREE_DEBRIS: [u64; 8] = [
+    // The invisible collision the adult tree stands on: the root top that
+    // walls Link in when he leaves the tree.
+    1873139170811345887,
+    // Two mossy rocks, three fallen props and a stump.
+    15123958794573127274,
+    3018160259590756533,
+    3542030604015290706,
+    16680444440944320445,
+    14042205327208366681,
+    3365184451401579984,
+    // A ground piece that rested on the props, left floating without them.
+    4492590912570771242,
+];
+
+/// Each piece of [`DEKU_TREE_DEBRIS`] spawns only for child Link. Its map
+/// is adult-only, so never.
+fn deku_tree_clear() -> Vec<String> {
+    let child = flag::SEQUENCE_IS_CHILDHOOD;
+    DEKU_TREE_DEBRIS
+        .iter()
+        .map(|h| format!("{h}.Presence.{}={child}", field::FLAG_NAME))
+        .collect()
+}
+
+pub const PRESETS: [Preset; 16] = [
     Preset {
         name: "open-forest",
         label: "Open forest",
@@ -359,6 +391,17 @@ pub const PRESETS: [Preset; 15] = [
         give: &[],
         progress: &[],
         fields: Vec::new,
+    },
+    Preset {
+        name: ADULT_DEKU_TREE,
+        label: "Adult Deku Tree",
+        what: "The debris in front of the Deku Tree's mouth is gone, so adult Link walks in and out",
+        group: group::LOGIC,
+        subgroup: None,
+        edits: Vec::new,
+        give: &[],
+        progress: &[],
+        fields: deku_tree_clear,
     },
     Preset {
         name: "menus",
@@ -859,6 +902,34 @@ mod tests {
         for name in [KING_ZORA_MOVED, JABU_OPEN, "open-waterfall"] {
             assert_eq!(group(name), group::LOGIC, "{name}");
         }
+    }
+
+    #[test]
+    fn the_adult_deku_tree_gates_off_only_the_adult_forests_debris() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let fields = fields(&[ADULT_DEKU_TREE.into()]).unwrap();
+        let forest = crate::checks::banc_files(&romfs).unwrap();
+        let forest = forest.into_iter().filter(|f| f.contains("/KokiriForest_"));
+        let (mut adult, mut child) = (Vec::new(), Vec::new());
+        for (rel, doc) in crate::checks::load_bancs(&romfs, forest.collect()) {
+            let changed = crate::checks::set_fields(&mut doc.unwrap().root, &fields).unwrap();
+            match rel.contains("_Adult_") {
+                true => adult.extend(changed),
+                false => child.extend(changed),
+            }
+        }
+        adult.sort();
+        let mut debris = DEKU_TREE_DEBRIS.to_vec();
+        debris.sort();
+        assert_eq!(adult, debris);
+        assert!(child.is_empty(), "{child:?}");
+        assert!(
+            PRESETS
+                .iter()
+                .any(|p| p.name == ADULT_DEKU_TREE && p.group == group::LOGIC)
+        );
     }
 
     #[test]

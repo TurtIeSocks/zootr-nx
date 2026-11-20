@@ -17,11 +17,12 @@ from = "kokiri-forest-child"
 to = "deku-tree"
 needs = "setting:open-forest or (kokiri-sword and deku-shield)"
 
-# The tree is dead by then.
+# The tree is dead by then, and debris blocks its mouth unless the setting
+# clears it.
 [[exit]]
 from = "kokiri-forest-adult"
 to = "deku-tree"
-needs = "child"
+needs = "setting:adult-deku-tree"
 
 # Lost Woods
 
@@ -277,12 +278,16 @@ needs = "lens"
 # not bombchus, Barinade the slingshot, Phantom Ganon the Song of Time and
 # Morpha Zelda's Lullaby. Bongo Bongo needs no longshot once keys are
 # `always`. Zelda's Lullaby brings the ocarina with it.
+#
+# Each door's tools carry their era, so a dungeon open to the other era
+# asks that era for them. Only Gohma's has a way for both: adult Link sends
+# the nuts back off the Hylian Shield and shoots the eye with the Bow.
 
 [[exit]]
 from = "deku-tree"
 to = "gohma-room"
 added = true
-needs = "deku-shield and slingshot and (sticks or fire) and melee"
+needs = "((deku-shield and slingshot) or (hylian-shield and bow)) and (sticks or fire) and melee"
 
 # The bomb room's eye targets: the slingshot as a child, the bow as an
 # adult, or for an adult the Hover Boots or Longshot past them.

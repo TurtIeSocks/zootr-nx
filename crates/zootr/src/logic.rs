@@ -729,6 +729,63 @@ mod tests {
         assert!(three, "never burning");
     }
 
+    /// The vanilla world with `on` set, and a finder for its places.
+    fn world(romfs: &Romfs, on: &[&str]) -> World {
+        let book = crate::rules::Book::load().unwrap();
+        let new_game = crate::settings::NewGame {
+            on: on.iter().map(|s| s.to_string()).collect(),
+            ..Default::default()
+        };
+        let checks = checks::dealt(romfs, &new_game).unwrap();
+        World::build(romfs, &book, &Ctx::new(&new_game), &checks).unwrap()
+    }
+
+    /// The edges from `from` to `to`, both as adult Link.
+    fn adult_edges<'a>(world: &'a World, from: &Name, to: &Name) -> Vec<&'a Edge> {
+        let at =
+            |node: &Name| (world.places.iter()).position(|p| p == &(node.to_string(), Era::Adult));
+        let (from, to) = (at(from), at(to));
+        (world.edges.iter())
+            .filter(|e| e.from == from && Some(e.to) == to)
+            .collect()
+    }
+
+    #[test]
+    fn adult_link_walks_into_the_deku_tree_only_with_its_setting() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let way = |on: &[&str]| {
+            let world = world(&romfs, on);
+            let edges = adult_edges(&world, map::KOKIRI_FOREST_ADULT, map::INSIDE_THE_DEKU_TREE);
+            edges
+                .iter()
+                .any(|e| e.need.met(&Have::default(), Era::Adult))
+        };
+        assert!(way(&[crate::presets::ADULT_DEKU_TREE]));
+        assert!(!way(&[]));
+    }
+
+    #[test]
+    fn adult_link_opens_gohmas_door_with_the_hylian_shield_and_bow() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let world = world(&romfs, &[]);
+        let doors = adult_edges(&world, map::INSIDE_THE_DEKU_TREE, map::GOHMA_STAGE);
+        let mut have = Have::default();
+        for item in [
+            "item:hylian-shield-chest",
+            "item:dins-fire",
+            "item:magic-meter",
+        ] {
+            have.add(&crate::rules::vocab::id(item).unwrap());
+        }
+        assert!(!doors.iter().any(|d| d.need.met(&have, Era::Adult)));
+        have.add(&crate::rules::vocab::id("item:bow").unwrap());
+        assert!(doors.iter().any(|d| d.need.met(&have, Era::Adult)));
+    }
+
     #[test]
     fn switches_take_their_tool() {
         let Some(romfs) = crate::game::dev_dump() else {
