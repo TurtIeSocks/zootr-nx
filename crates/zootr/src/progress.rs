@@ -250,7 +250,7 @@ impl Run {
                     took_off: s.took_off,
                 },
                 None => End::Failed {
-                    error: format!("{e:#}"),
+                    error: crate::plain::shown(e),
                 },
             },
         };

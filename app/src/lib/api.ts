@@ -21,3 +21,11 @@ export const keep =
 export function message(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
+
+/** An error's two parts: what a player reads, and the details under it
+ * (after a blank line), which only some errors carry. */
+export function errorParts(error: string): { said: string; details?: string } {
+  const at = error.indexOf("\n\n");
+  if (at < 0) return { said: error };
+  return { said: error.slice(0, at), details: error.slice(at + 2) };
+}

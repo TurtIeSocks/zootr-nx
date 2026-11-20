@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { InlineError } from "@/components/callout";
 import { cn } from "@/lib/utils";
 
 /** Props for {@link LoadGate}. */
@@ -22,8 +23,12 @@ export function LoadGate({
 }: LoadGateProps) {
   if (loaded) return children;
   return (
-    <p className={cn("py-12 text-center text-ink-muted", className)}>
-      {error ?? "Loading…"}
-    </p>
+    <div className={cn("py-12 text-center text-ink-muted", className)}>
+      {error ? (
+        <InlineError error={error} className="mx-auto w-fit text-left" />
+      ) : (
+        "Loading…"
+      )}
+    </div>
   );
 }

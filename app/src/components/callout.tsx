@@ -1,5 +1,6 @@
 import { CircleAlert, type LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
+import { errorParts } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const TONES = {
@@ -53,20 +54,36 @@ interface InlineErrorProps {
   className?: string;
 }
 
-/** What failed, under the control that failed. Nothing when there's no
- * error. */
+/** What failed, under the control that failed, with its details behind a
+ * toggle when it has any. Nothing when there's no error. */
 export function InlineError({ error, className }: InlineErrorProps) {
+  const [open, setOpen] = useState(false);
   if (!error) return null;
+  const { said, details } = errorParts(error);
   return (
-    <p
+    <div
       role="alert"
-      className={cn(
-        "flex items-center gap-1.5 text-[12.5px] text-danger-ink",
-        className,
-      )}
+      className={cn("text-[12.5px] text-danger-ink", className)}
     >
-      <CircleAlert className="size-3.5 shrink-0" />
-      {error}
-    </p>
+      <p className="flex items-center gap-1.5">
+        <CircleAlert className="size-3.5 shrink-0" />
+        <span className="min-w-0">{said}</span>
+        {details && (
+          <button
+            type="button"
+            aria-expanded={open}
+            className="ml-1 shrink-0 cursor-pointer text-ink-muted underline underline-offset-2"
+            onClick={() => setOpen(!open)}
+          >
+            Details
+          </button>
+        )}
+      </p>
+      {details && open && (
+        <p className="mt-1 select-text whitespace-pre-wrap break-words pl-5 font-mono text-[11.5px] text-ink-muted">
+          {details}
+        </p>
+      )}
+    </div>
   );
 }

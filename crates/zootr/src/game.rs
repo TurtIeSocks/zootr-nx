@@ -5,10 +5,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use nup_format::{Kind, Node, Nup};
 use ounce_formats::{Romfs, files_with_suffix, murmur3};
 
+use crate::plain::Plain;
 use crate::platform::{Folder, user_dir};
 use crate::progress::{Run, Step};
 
@@ -61,6 +62,35 @@ pub fn cache() -> Result<PathBuf> {
     }
 }
 
+/// Why a dump can't be read, each with one sentence a player can act on.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum BadDump {
+    Missing,
+    NotAPackage,
+    NotTheGame,
+    NoUpdate,
+}
+
+impl BadDump {
+    pub const fn words(self) -> &'static str {
+        match self {
+            Self::Missing => "There's no file at that path. Check it, or choose the file again",
+            Self::NotAPackage => {
+                "That file isn't a game package, or it's damaged. Choose the .nup of your copy of the game"
+            }
+            Self::NotTheGame => {
+                "That isn't Ocarina of Time. Choose the .nup of your copy of the game, or a folder of its extracted romfs"
+            }
+            Self::NoUpdate => "That dump doesn't include the 1.1.1 update. Choose one that does",
+        }
+    }
+
+    /// `raw`, the developer's account, under this kind's words.
+    fn with(self, raw: anyhow::Error) -> anyhow::Error {
+        raw.context(Plain(self.words().into()))
+    }
+}
+
 /// The update's romfs. The base isn't read: the update's romfs is complete,
 /// and the base's files carry older versions in their names.
 fn romfs(nup: &Nup) -> Result<nup_format::Dir> {
@@ -68,23 +98,44 @@ fn romfs(nup: &Nup) -> Result<nup_format::Dir> {
         .packages()
         .iter()
         .find(|p| p.kind == Kind::Update && p.title_id == TITLE | 0x800 && p.version == UPDATE);
-    match found.and_then(|p| p.romfs) {
-        Some(d) => Ok(d),
-        None => bail!(
-            "this dump has no 1.1.1 update of Ocarina of Time (title {:016X}, version {UPDATE})",
-            TITLE | 0x800
-        ),
+    if let Some(d) = found.and_then(|p| p.romfs) {
+        return Ok(d);
     }
+    let ours = nup.packages().iter().any(|p| p.title_id & !0x800 == TITLE);
+    let kind = if ours {
+        BadDump::NoUpdate
+    } else {
+        BadDump::NotTheGame
+    };
+    Err(kind.with(anyhow!(
+        "this dump has no 1.1.1 update of Ocarina of Time (title {:016X}, version {UPDATE})",
+        TITLE | 0x800
+    )))
 }
 
 fn open(path: &Path) -> Result<Nup> {
-    Nup::open(path).with_context(|| format!("opening {}", path.display()))
+    Nup::open(path).map_err(|e| {
+        let kind = match &e {
+            _ if !path.exists() => Some(BadDump::Missing),
+            nup_format::Error::Io(io) if io.kind() != std::io::ErrorKind::UnexpectedEof => None,
+            _ => Some(BadDump::NotAPackage),
+        };
+        let raw = anyhow::Error::from(e).context(format!("opening {}", path.display()));
+        match kind {
+            Some(kind) => kind.with(raw),
+            None => raw,
+        }
+    })
 }
 
 /// The romfs folder for `path`: a folder as is, a `.nup` extracted into the
 /// cache first.
 pub fn folder(path: &Path, run: &Run) -> Result<PathBuf> {
     if path.is_dir() {
+        if !path.join("Pack").is_dir() {
+            let raw = anyhow!("{} has no Pack folder", path.display());
+            return Err(BadDump::NotTheGame.with(raw));
+        }
         run.detail("a folder");
         return Ok(path.into());
     }
@@ -321,6 +372,56 @@ mod tests {
             .to_string();
         assert!(err.contains("1.1.1"), "{err}");
         assert!(prepare(&path, &Run::silent()).is_err());
+    }
+
+    /// The kind of dump problem `path` reads as.
+    fn kind(path: &Path) -> Option<&'static str> {
+        let e = folder(path, &Run::silent()).unwrap_err();
+        let plain = crate::plain::split(&e).map(|(p, _)| p.to_owned())?;
+        [
+            BadDump::Missing,
+            BadDump::NotAPackage,
+            BadDump::NotTheGame,
+            BadDump::NoUpdate,
+        ]
+        .into_iter()
+        .map(BadDump::words)
+        .find(|w| *w == plain)
+    }
+
+    #[test]
+    fn says_why_a_dump_cant_be_read() {
+        let dir = scratch("kinds");
+        assert_eq!(kind(&dir.join("gone.nup")), Some(BadDump::Missing.words()));
+
+        let junk = dir.join("junk.nup");
+        fs::write(&junk, b"not a container at all, just some words").unwrap();
+        assert_eq!(kind(&junk), Some(BadDump::NotAPackage.words()));
+        fs::write(&junk, b"").unwrap();
+        assert_eq!(kind(&junk), Some(BadDump::NotAPackage.words()));
+
+        let other = dir.join("other.nup");
+        let files: &[(&str, &[u8])] = &[("romfs/a.bin", b"a")];
+        let package = |kind, title_id| Package {
+            kind,
+            version: UPDATE,
+            title_id,
+            files,
+        };
+        fs::write(&other, build(&[package(0, 0x0100_0000_0000_0000)])).unwrap();
+        assert_eq!(kind(&other), Some(BadDump::NotTheGame.words()));
+
+        let base = dir.join("base.nup");
+        fs::write(&base, build(&[package(0, TITLE)])).unwrap();
+        assert_eq!(kind(&base), Some(BadDump::NoUpdate.words()));
+        let (newer, _) = dump("newer", UPDATE + 1);
+        assert_eq!(kind(&newer), Some(BadDump::NoUpdate.words()));
+
+        let romfs = dir.join("romfs");
+        fs::create_dir_all(&romfs).unwrap();
+        assert_eq!(kind(&romfs), Some(BadDump::NotTheGame.words()));
+        fs::create_dir_all(romfs.join("Pack")).unwrap();
+        assert!(folder(&romfs, &Run::silent()).is_ok());
     }
 
     #[test]
