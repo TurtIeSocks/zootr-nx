@@ -1,7 +1,8 @@
-//! The table the seed writes into the game: its header, the offsets of what
-//! the hook needs, the progressive lines, how a level is picked, the
-//! flags an item sets as it's found, the menu slot Link cycles, and the
-//! twinned holders whose drop sets a flag as Link takes it.
+//! The table the seed writes into the game: its header, the progressive
+//! lines, how a level is picked, the flags an item sets as it's found, the
+//! menu slot Link cycles, and the twinned holders whose drop sets a flag as
+//! Link takes it. The hook only reads it: a cheat that writes it many
+//! times a second would put back anything the hook wrote.
 
 use crate::look::Look;
 #[cfg(not(target_os = "none"))]
@@ -29,7 +30,6 @@ pub const HEADER: usize = size_of::<Header>();
 #[derive(Clone, Copy, Debug)]
 pub struct Header {
     pub magic: [u8; 4],
-    pub offsets: Offsets,
     /// The seed's settings the hook acts on, like [`FREE_BOMBCHUS`].
     pub flags: u32,
     /// The size of the lines that follow.
@@ -46,7 +46,26 @@ pub struct Header {
 
 const _: () = assert!(cfg!(target_endian = "little"));
 
+/// What the header's magic says is at `TABLE`.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Found {
+    /// Zero: no table written yet, so every hook leaves the game as it is.
+    Nothing,
+    Table,
+    /// Anything else: a broken install.
+    Broken,
+}
+
 impl Header {
+    /// What the magic says is here.
+    pub fn found(&self) -> Found {
+        match self.magic {
+            [0, 0, 0, 0] => Found::Nothing,
+            m if m == *MAGIC => Found::Table,
+            _ => Found::Broken,
+        }
+    }
+
     /// A copy of the header at the start of `bytes`.
     pub fn read(bytes: &[u8]) -> Self {
         assert!(bytes.len() >= HEADER);
@@ -55,106 +74,84 @@ impl Header {
     }
 }
 
-macro_rules! offsets {
-    ($($(#[doc = $doc:literal])* $field:ident,)*) => {
-        /// Where the game keeps what the hook needs, relative to `main`.
-        #[repr(C)]
-        #[derive(Clone, Copy, Debug, PartialEq)]
-        pub struct Offsets {
-            $($(#[doc = $doc])* pub $field: u32,)*
-        }
-
-        #[cfg(not(target_os = "none"))]
-        impl Offsets {
-            const COUNT: usize = [$(stringify!($field)),*].len();
-
-            fn words(self) -> [u32; Self::COUNT] {
-                [$(self.$field),*]
-            }
-
-            #[cfg(test)]
-            fn from_words([$($field),*]: [u32; Self::COUNT]) -> Self {
-                Self { $($field),* }
-            }
-        }
-    };
-}
-
-offsets! {
+/// Where the game keeps what the hook needs, relative to `main`.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Offsets {
     /// The event argument setter `content_name` wraps.
-    setter,
+    pub setter: u32,
     /// The drop reader `drop_actor` wraps.
-    reader,
+    pub reader: u32,
     /// The pouch count query.
-    count,
+    pub count: u32,
     /// The pointer to the pouch manager.
-    manager,
+    pub manager: u32,
     /// The name hash an `ActorHolder` keys its slots by.
-    hash,
+    pub hash: u32,
     /// Requests a holder slot's actor be deleted.
-    delete,
+    pub delete: u32,
     /// Creates an actor in a holder slot.
-    create,
+    pub create: u32,
     /// A holder slot's vtable.
-    slot_vtable,
+    pub slot_vtable: u32,
     /// The hooked functions: map loaded, chest content made, pouch add,
     /// Link's update, a pickup window opening, and a pickup going into
     /// the pouch, with a window or without.
-    map_loaded,
-    chest_made,
-    granted,
-    link_update,
-    picked,
-    taken,
+    pub map_loaded: u32,
+    pub chest_made: u32,
+    pub granted: u32,
+    pub link_update: u32,
+    pub picked: u32,
+    pub taken: u32,
     /// The game's own `malloc`.
-    malloc,
+    pub malloc: u32,
     /// Builds an event request in place.
-    make_arg,
+    pub make_arg: u32,
     /// Asks the event manager to start a request.
-    request,
+    pub request: u32,
     /// Sets and releases the actor links a request holds.
-    set_link,
-    release_link,
+    pub set_link: u32,
+    pub release_link: u32,
     /// What an empty actor link points at.
-    link_empty,
+    pub link_empty: u32,
     /// GameData's Bool getter and setter, and its UInt64 getter, by name
     /// hash.
-    get_bool,
-    set_bool,
-    get_u64,
+    pub get_bool: u32,
+    pub set_bool: u32,
+    pub get_u64: u32,
     /// The pointers to the event manager, GameData and the world.
-    events,
-    gamedata,
-    world,
+    pub events: u32,
+    pub gamedata: u32,
+    pub world: u32,
     /// Sets the world clock, in seconds since midnight.
-    set_time,
+    pub set_time: u32,
     /// The player actor's vtable, and its movement component's.
-    player_vtable,
-    move_vtable,
+    pub player_vtable: u32,
+    pub move_vtable: u32,
     /// Moves a character controller to a point, and the vtable of Link's
     /// controller, which holds it.
-    move_to,
-    controller_vtable,
+    pub move_to: u32,
+    pub controller_vtable: u32,
     /// Sets the speed and direction Player asks the controller for.
-    run_setter,
+    pub run_setter: u32,
     /// The hooked functions: the Items page built (entered), the Items page
     /// left, and the UI update each frame.
-    items_built,
-    items_left,
-    ui_update,
+    pub items_built: u32,
+    pub items_left: u32,
+    pub ui_update: u32,
     /// Sets an Items page cell's actor, and a cell button's unfocus and
     /// focus, which refresh the item detail panel.
-    cell_set,
-    unfocus,
-    focus,
+    pub cell_set: u32,
+    pub unfocus: u32,
+    pub focus: u32,
     /// Seeks a layout animation to a frame, which colours an Items page
     /// cell's icon: usable, or on a button.
-    anim_frame,
+    pub anim_frame: u32,
     /// The item kind on a button for an age (the manager, child, 1).
-    equipped,
+    pub equipped: u32,
     /// The pointer to the effect system, which holds the effect file
     /// the ice's [`Look`] sizes.
-    effects,
+    pub effects: u32,
 }
 
 /// The table at `TABLE`. Each line is a level count, [`KEYED`] or not,
@@ -165,7 +162,7 @@ offsets! {
 /// find sets. A chest's flow credits a dungeon item by its exact name, so a
 /// copy of one is credited here.
 pub struct Table<'a> {
-    pub offsets: &'a Offsets,
+    pub offsets: &'static Offsets,
     pub flags: u32,
     lines: &'a [u8],
     credits: &'a [u8],
@@ -183,7 +180,7 @@ impl<'a> Table<'a> {
         let (slot, rest) = rest.split_at_checked(header.slot as usize)?;
         let look = rest.get(..header.look as usize)?;
         (header.magic == *MAGIC).then_some(Self {
-            offsets: &header.offsets,
+            offsets: &crate::OFFSETS,
             flags: header.flags,
             lines,
             credits,
@@ -529,7 +526,6 @@ pub fn after_grant<'a>(
 #[cfg(not(target_os = "none"))]
 #[allow(clippy::too_many_arguments)]
 pub fn encode(
-    offsets: Offsets,
     flags: u32,
     lines: &[&[(&str, &str)]],
     keyed: &[&[(&str, &str)]],
@@ -576,7 +572,7 @@ pub fn encode(
     let words = [size, credits, slot, spots.len(), look]
         .map(|n| u32::try_from(n).expect("table under 4 GB"));
     let mut out = MAGIC.to_vec();
-    for v in offsets.words().into_iter().chain([flags]).chain(words) {
+    for v in [flags].into_iter().chain(words) {
         out.extend(v.to_le_bytes());
     }
     out.extend(body);
@@ -587,9 +583,6 @@ pub fn encode(
 mod tests {
     use super::*;
 
-    fn offsets() -> Offsets {
-        Offsets::from_words(core::array::from_fn(|i| i as u32 + 1))
-    }
     const BAGS: &[(&str, &str)] = &[("Bag_S", "Bag_S"), ("Bag_M", "Bag_M"), ("Bag_L", "Bag_L")];
     const HOOK: &[(&str, &str)] = &[("Hook", "Hook"), ("Long", "Long")];
     /// Owned under another name.
@@ -635,7 +628,6 @@ mod tests {
 
     fn with_table<T>(f: impl FnOnce(Table) -> T) -> T {
         let bytes = encode(
-            offsets(),
             0,
             &[HOOK, BAGS, GLOVES],
             &[SEEDS],
@@ -664,7 +656,6 @@ mod tests {
     #[test]
     fn the_table_round_trips() {
         with_table(|t| {
-            assert_eq!(*t.offsets, offsets());
             let (_, gloves, _) = t.find(b"Glove_G").unwrap();
             let gloves: Vec<_> = gloves.collect();
             let level = |drop, pouch| Level { drop, pouch };
@@ -759,7 +750,7 @@ mod tests {
 
     #[test]
     fn a_wrong_magic_is_no_table() {
-        let mut bytes = encode(offsets(), 0, &[HOOK], &[], &[], None, &[], None);
+        let mut bytes = encode(0, &[HOOK], &[], &[], None, &[], None);
         bytes[0] = b'X';
         assert!(Table::parse(&Header::read(&bytes), &bytes[HEADER..]).is_none());
     }
@@ -781,17 +772,18 @@ mod tests {
     }
 
     #[test]
+    fn a_zero_magic_is_nothing_ours_a_table_and_any_other_broken() {
+        let mut bytes = encode(0, &[HOOK], &[], &[], None, &[], None);
+        assert_eq!(Header::read(&bytes).found(), Found::Table);
+        bytes[..4].copy_from_slice(&[0; 4]);
+        assert_eq!(Header::read(&bytes).found(), Found::Nothing);
+        bytes[0] = b'X';
+        assert_eq!(Header::read(&bytes).found(), Found::Broken);
+    }
+
+    #[test]
     fn a_table_cut_short_is_no_table() {
-        let bytes = encode(
-            offsets(),
-            0,
-            &[HOOK],
-            &[],
-            CREDITS,
-            Some(&SLOT),
-            SPOTS,
-            None,
-        );
+        let bytes = encode(0, &[HOOK], &[], CREDITS, Some(&SLOT), SPOTS, None);
         let header = Header::read(&bytes);
         let cut = &bytes[HEADER..bytes.len() - 1];
         assert!(Table::parse(&header, cut).is_none());
@@ -841,7 +833,7 @@ mod tests {
 
     #[test]
     fn a_table_without_a_slot_has_none() {
-        let bytes = encode(offsets(), 0, &[HOOK], &[], CREDITS, None, &[], None);
+        let bytes = encode(0, &[HOOK], &[], CREDITS, None, &[], None);
         let header = Header::read(&bytes);
         assert!(
             Table::parse(&header, &bytes[HEADER..])

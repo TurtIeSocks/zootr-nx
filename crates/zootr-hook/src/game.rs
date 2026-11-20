@@ -4,7 +4,8 @@
 use core::{arch::asm, arch::global_asm, slice};
 
 use crate::{
-    CAVE, Credit, Credited, DEV, HEADER, Header, LIST, List, Shared, TABLE, Table, fnv, nearest,
+    CAVE, Credit, Credited, DEV, Found, HEADER, Header, ICE_TRAPS, LIST, List, OFFSETS, Shared,
+    TABLE, Table, fnv, nearest,
 };
 
 mod bunny;
@@ -185,24 +186,34 @@ fn main() -> usize {
     start - CAVE as usize
 }
 
-/// `main` and the table, or `None` on a bad magic.
+/// `main` and the table, or `None` before one is written: the patch that
+/// builds the hook into the game leaves the table to a cheat, which may
+/// land after the hook first runs. With none, every hook leaves the game
+/// as it is. Any other magic, or a table that doesn't parse, is a broken
+/// install, and stops the game.
 fn table() -> Option<(usize, Table<'static>)> {
     let main = main();
-    // SAFETY: the cheat writes the table at `TABLE`, 8 byte aligned.
+    // SAFETY: `TABLE` is zero padding the cheat writes, 8 byte aligned.
     let header = unsafe { &*((main + TABLE as usize) as *const Header) };
+    match header.found() {
+        Found::Nothing => return None,
+        Found::Broken => rt::stop(b"BADTABLE"),
+        Found::Table => {}
+    }
     let at = (header as *const Header).cast::<u8>();
     let size = (header.size + header.credits + header.slot + header.look) as usize;
     let body = unsafe { slice::from_raw_parts(at.add(HEADER), size) };
-    Some((main, Table::parse(header, body)?))
+    match Table::parse(header, body) {
+        Some(table) => Some((main, table)),
+        None => rt::stop(b"BADTABLE"),
+    }
 }
 
-/// Run `f` for a function hook. The cheat writes the table with the
-/// hooks, so a bad magic means the patch itself is broken.
+/// Run `f` for a function hook, unless there's no table yet.
 fn hooked(f: impl FnOnce(usize, &Table)) {
-    let Some((main, table)) = table() else {
-        rt::stop(b"BADTABLE")
-    };
-    f(main, &table);
+    if let Some((main, table)) = table() {
+        f(main, &table);
+    }
 }
 
 /// The chest list.
@@ -248,12 +259,14 @@ pub unsafe extern "C" fn content_name(
     _: usize,
     node: usize,
 ) {
-    let Some((main, table)) = table() else {
-        return;
-    };
+    let table = table();
+    let main = main();
     // SAFETY: the offsets were found in this build of `main`.
     unsafe {
-        let setter: Setter = core::mem::transmute(main + table.offsets.setter as usize);
+        let setter: Setter = core::mem::transmute(main + OFFSETS.setter as usize);
+        let Some((_, table)) = table else {
+            return setter(request, key, value);
+        };
         let give = if name(*key).is_some_and(|k| *k == *KEY) {
             if let Some(actor) = at(node, 8).and_then(|n| at(n, 8)) {
                 shared(main).with(|l| l.opened(actor));
@@ -280,15 +293,14 @@ pub unsafe extern "C" fn drop_actor(
     a2: usize,
     a3: usize,
 ) -> usize {
-    let Some((main, table)) = table() else {
-        return 0;
-    };
     // SAFETY: the offsets were found in this build of `main`.
     unsafe {
-        if let Some(value) = drop_value(placement as usize) {
+        if let Some((main, table)) = table()
+            && let Some(value) = drop_value(placement as usize)
+        {
             rewrite(main, &table, value);
         }
-        let reader: Reader = core::mem::transmute(main + table.offsets.reader as usize);
+        let reader: Reader = core::mem::transmute(main() + OFFSETS.reader as usize);
         reader(out, placement, a2, a3)
     }
 }
@@ -397,6 +409,9 @@ unsafe fn credit(main: usize, table: &Table, added: &[u8], picked: bool) {
 #[unsafe(no_mangle)]
 unsafe extern "C" fn taken(pouched: usize) {
     hooked(|main, table| unsafe {
+        if table.spots == 0 {
+            return;
+        }
         let Some(actor) = at(pouched, OWNER) else {
             return;
         };
@@ -433,8 +448,10 @@ unsafe extern "C" fn link_update(actor: usize) {
             refill::refill(main, &table, actor);
             dev::serve(main, table.offsets, actor);
         }
-        look::fit(main, &table);
-        freeze::freeze(main, &table, actor);
+        if table.flags & ICE_TRAPS != 0 {
+            look::fit(main, &table);
+            freeze::freeze(main, &table, actor);
+        }
         if dev::playing(main, table.offsets) == Some(false) {
             shared(main).with(List::idle);
         }
