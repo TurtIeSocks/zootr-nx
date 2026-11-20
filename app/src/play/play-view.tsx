@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { GetStarted } from "@/play/get-started";
 import { InstalledSeed } from "@/play/installed-seed";
 import { LabelDialog } from "@/play/label-dialog";
 import { PlayTabs } from "@/play/play-tabs";
@@ -16,6 +17,7 @@ export function PlayView() {
   }, [ap]);
   return (
     <Page>
+      <GetStarted />
       <InstalledSeed />
       <PlayTabs />
       <LabelDialog />

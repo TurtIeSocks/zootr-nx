@@ -69,6 +69,10 @@ export interface Ui {
   ap: { rooms: Record<number, { server: string; password: string }> };
   /** The Items tab's banner about zootr-nx's own icons was dismissed. */
   items: { bannerDismissed: boolean };
+  /** The first-launch welcome screen was finished or skipped. */
+  welcome: { done: boolean };
+  /** Play's Get started card was dismissed. */
+  getStarted: { dismissed: boolean };
   /** The release the update notice was told to skip. */
   update: { skipped: string | null };
   /** The checklists open on the settings pages, by title. */
@@ -123,6 +127,8 @@ const INITIAL: Ui = {
   play: { tab: null, history: "all" },
   ap: { rooms: {} },
   items: { bannerDismissed: false },
+  welcome: { done: false },
+  getStarted: { dismissed: false },
   update: { skipped: null },
   settings: { open: [] },
   save: {

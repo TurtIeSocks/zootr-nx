@@ -1,10 +1,5 @@
-import { Loader2 } from "lucide-react";
-import { useState } from "react";
 import { InlineError } from "@/components/callout";
 import { Card } from "@/components/card";
-import { Field } from "@/components/field";
-import { PathInput } from "@/components/path-input";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
@@ -13,6 +8,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { FullConfig } from "@/lib/config";
 import { useRequestState } from "@/lib/request";
+import { GameDump } from "@/settings/game-dump";
 import { Row } from "@/settings/row";
 import { SettingsSection } from "@/settings/settings-section";
 import { PageHeader } from "@/shell/page-header";
@@ -25,7 +21,11 @@ export function AppSettings() {
   return (
     <>
       <PageHeader title="Settings" />
-      <GameDump key={game} />
+      <Card>
+        <div className="p-4">
+          <GameDump key={game} />
+        </div>
+      </Card>
       <GameAssets />
       <UpdateCheck />
       <DevTools />
@@ -132,46 +132,5 @@ function UpdateCheck() {
       checked={!off}
       change={(on) => ({ no_update_check: !on })}
     />
-  );
-}
-
-/** The game dump's path. Starts from the saved one; Save extracts it. */
-function GameDump() {
-  const [saved] = useConfig.usePath("config.game");
-  const [game, setGame] = useState(saved ?? "");
-  const save = useRequestState();
-
-  return (
-    <Card>
-      <div className="flex flex-col gap-1.5 p-4">
-        <Field
-          id="game"
-          label="Game dump"
-          help="game-dump"
-          hint="The .nup of your own copy of the game, with the 1.1.1 update. Save extracts the files zootr reads into a cache, which takes a few seconds the first time. A folder of already extracted romfs works too: paste its path."
-        >
-          <div className="flex gap-2">
-            <PathInput
-              id="game"
-              pick="file"
-              extensions={["nup"]}
-              placeholder="/path/to/oot.nup"
-              value={game}
-              onChange={setGame}
-            />
-            <Button
-              onClick={() =>
-                save.run(() => saveConfig({ game: game.trim() || null }))
-              }
-              disabled={save.busy || game === (saved ?? "")}
-            >
-              {save.busy && <Loader2 className="animate-spin" />}
-              {save.busy ? "Extracting" : "Save"}
-            </Button>
-          </div>
-        </Field>
-        <InlineError error={save.error} />
-      </div>
-    </Card>
   );
 }

@@ -1,5 +1,14 @@
 import { expect, test } from "vitest";
-import { blocked, type FullTest, full, NO_TEST, testParts } from "@/lib/config";
+import {
+  blocked,
+  DUMP_GONE,
+  type FullTest,
+  full,
+  NEED_DUMP,
+  NEED_TARGET,
+  NO_TEST,
+  testParts,
+} from "@/lib/config";
 
 const testSummary = (t: FullTest) => testParts(t).join(" · ");
 
@@ -8,10 +17,11 @@ test("installing waits for a dump, a target and a closed game", () => {
   const target = { name: "PC", app: true, mod_dir: true, running: false };
   const status = { game: true, targets: [target] };
   expect(blocked(status, config)).toBe("");
-  expect(blocked({ ...status, game: false }, config)).toBe(
-    "Set the game dump in Settings first",
-  );
-  expect(blocked(status, full({}))).toBe("Add a target in Settings first");
+  expect(blocked({ ...status, game: false }, config)).toBe(NEED_DUMP);
+  expect(
+    blocked({ ...status, game: false }, { ...config, game: "/gone.nup" }),
+  ).toBe(DUMP_GONE);
+  expect(blocked(status, full({}))).toBe(NEED_TARGET);
   expect(
     blocked({ ...status, targets: [{ ...target, running: true }] }, config),
   ).toBe("Close the game first");

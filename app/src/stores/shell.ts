@@ -3,6 +3,7 @@ import { dotPath } from "zustand-dot";
 import { commands, type Summary } from "@/bindings";
 import type { Edit } from "@/checks/rows";
 import { call } from "@/lib/api";
+import { DUMP_GONE, NEED_DUMP, NEED_TARGET } from "@/lib/config";
 import type { Section, Tab } from "@/shell/nav";
 import { useConfig } from "@/stores/config";
 import { useUi } from "@/stores/ui";
@@ -42,11 +43,20 @@ export function go(place: Place) {
   useUi.setPath("tab", place.tab);
 }
 
-/** Opens Settings at Targets when there are none, since nothing can be
- * installed without one. */
-export function openTargetsIfNone() {
-  const { loaded, config } = useConfig.getState();
-  if (loaded && config.targets.length === 0) openSettings("targets");
+/** Opens Settings with the game dump field focused. */
+export function openDumpField() {
+  openSettings("settings");
+  // The page draws on the next frame.
+  setTimeout(() => document.getElementById("game")?.focus(), 50);
+}
+
+/** Opens where `why`, a reason nothing can be built or installed, is fixed.
+ * False for a reason no page fixes. */
+export function fix(why: string): boolean {
+  if (why === NEED_DUMP || why === DUMP_GONE) openDumpField();
+  else if (why === NEED_TARGET) openSettings("targets");
+  else return false;
+  return true;
 }
 
 /** Opens the dev panel in its own window. */

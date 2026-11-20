@@ -11,6 +11,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { type ApStatus, commands, type Summary } from "@/bindings";
 import { ArchipelagoPanel } from "@/play/archipelago-panel";
 import { useAp } from "@/stores/ap";
+import { useLive } from "@/stores/live";
 import { useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
 import { useUpdate } from "@/stores/update";
@@ -57,6 +58,7 @@ function show(
   { installed = slot as Summary | null, server = "" } = {},
 ) {
   useSeeds.setPath("status", { game: true, targets: [] });
+  useLive.setPath("status", { state: "Attaching", reason: "" });
   useSeeds.setPath("history", {
     installed,
     entries: installed ? [installed] : [],
@@ -109,6 +111,14 @@ test("no room yet points at the server, then connects to the one typed", async (
   await waitFor(() =>
     expect(connect).toHaveBeenCalledWith("localhost:38281", null),
   );
+});
+
+test("Connect waits for the game", () => {
+  show("offline", [], { server: "localhost:38281" });
+  act(() => useLive.setPath("status", { state: "Waiting", reason: null }));
+  const status = screen.getByRole("status");
+  expect(status.textContent).toContain("Start the game first");
+  expect(button("Connect").disabled).toBe(true);
 });
 
 test("connected, the fields lock and Disconnect leaves", () => {

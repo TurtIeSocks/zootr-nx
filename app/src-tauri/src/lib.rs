@@ -412,7 +412,7 @@ fn play(target: String) -> Res<()> {
     let args = t.launch_args(config.game.as_deref()).map_err(text)?;
     let env = t.launch_env().map_err(text)?;
     platform::open_game(&t.app, &args, &env, t.control.as_deref())
-        .map_err(|_| format!("Couldn't open {}", t.app.display()))?;
+        .map_err(|e| format!("Couldn't open {}: {e:#}", t.app.display()))?;
     let t = t.clone();
     zootr::turn::plays(config.turn.clone(), move || t.running());
     Ok(())

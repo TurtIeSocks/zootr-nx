@@ -14,6 +14,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { generate, useDriftFrom, useSeeds } from "@/stores/seeds";
+import { fix } from "@/stores/shell";
 
 /** Floats at the foot of a settings page while the settings differ from the
  * installed seed's (the defaults with none installed), with what differs
@@ -28,7 +29,7 @@ export function DriftBar() {
     <Button
       aria-disabled={!!blocked || undefined}
       disabled={busy}
-      onClick={blocked ? undefined : () => generate(null)}
+      onClick={() => (blocked ? fix(blocked) : generate(null))}
     >
       {busy ? <Loader2 className="animate-spin" /> : <Dices />}
       Generate & install

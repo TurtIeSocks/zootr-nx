@@ -8,7 +8,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
-import { commands } from "@/bindings";
+import { commands, type TargetStatus } from "@/bindings";
 import { Callout } from "@/components/callout";
 import { Card } from "@/components/card";
 import { Field } from "@/components/field";
@@ -42,6 +42,7 @@ import {
 } from "@/settings/targets-draft";
 import { PageHeader } from "@/shell/page-header";
 import { saveConfig, useConfig, useDevTools } from "@/stores/config";
+import { useSeeds } from "@/stores/seeds";
 
 /** The apps that run the game, edited together and saved at once. Saved
  * targets that change start the form again; a reload of the same ones keeps
@@ -206,6 +207,7 @@ function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
   const { copied, flash } = useCopied();
   const saved = isSaved(targets, draft);
   const name = draft.name.trim();
+  const found = useSeeds((s) => s.status.targets.find((t) => t.name === name));
   // Read once, so clearing the fields doesn't close the section on them.
   const [advancedOpen] = useState(() =>
     advanced.some((f) => draft[f.key] !== ""),
@@ -271,6 +273,7 @@ function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
             id={`${id}-${field.key}`}
             field={field}
             value={draft[field.key]}
+            warn={saved ? missing(found, field.key) : undefined}
             onChange={(value) => onChange({ [field.key]: value })}
           />
         ))}
@@ -293,20 +296,37 @@ function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
   );
 }
 
+/** What a saved target's `key` field names that status didn't find, if
+ * anything. */
+function missing(found: TargetStatus | undefined, key: string) {
+  if (!found) return undefined;
+  if (key === "app" && !found.app) return "App not found";
+  if (key === "mod_dir" && !found.mod_dir) return "Mod folder not found";
+  return undefined;
+}
+
 /** Props for {@link TargetField}. */
 interface TargetFieldProps {
   id: string;
   field: DraftField;
   value: string;
+  /** Replaces the hint while set. */
+  warn?: string;
   onChange: (value: string) => void;
 }
 
 /** A labelled field: a path with Browse, the settings lines, or a line of
  * text. */
-function TargetField({ id, field, value, onChange }: TargetFieldProps) {
+export function TargetField({
+  id,
+  field,
+  value,
+  warn,
+  onChange,
+}: TargetFieldProps) {
   const { key, label, help, hint, pick, multiline } = field;
   return (
-    <Field id={id} label={label} help={help} hint={hint}>
+    <Field id={id} label={label} help={help} hint={hint} warn={warn}>
       {pick ? (
         <PathInput id={id} pick={pick} value={value} onChange={onChange} />
       ) : multiline ? (

@@ -1,6 +1,7 @@
 import { CircleAlert, CircleOff, Dices } from "lucide-react";
 import { Callout, InlineError } from "@/components/callout";
 import { CardHeader } from "@/components/card";
+import { FixLink } from "@/components/fix-link";
 import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
@@ -122,7 +123,7 @@ function Blocked() {
   if (!blocked || busy) return null;
   return (
     <Callout tone="gold" icon={CircleAlert}>
-      {blocked}
+      <FixLink why={blocked} />
     </Callout>
   );
 }

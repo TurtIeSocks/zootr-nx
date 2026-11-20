@@ -118,6 +118,8 @@ afterEach(() => {
   backend.installed = null;
   backend.running = false;
   useUi.setPath("tab", "Play");
+  useUi.setPath("welcome.done", false);
+  useUi.setPath("getStarted.dismissed", false);
 });
 
 /** The sidebar over stores holding two groups, the first changed. */
@@ -291,10 +293,25 @@ test("clicking a group in the app opens its page", async () => {
   expect(item(/^Cutscenes/).getAttribute("aria-current")).toBe("page");
 });
 
-test("with no targets the app opens on Targets", async () => {
+test("a first launch shows the welcome, and Skip lands on Play for good", async () => {
   backend.config = {};
   render(<App />);
-  expect(
-    await screen.findByRole("heading", { level: 1, name: "Targets" }),
-  ).toBeTruthy();
+  const welcome = { level: 1, name: "Welcome to zootr-nx" } as const;
+  expect(await screen.findByRole("heading", welcome)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+  expect(screen.queryByRole("heading", welcome)).toBeNull();
+  expect(useUi.getState().tab).toBe("Play");
+  cleanup();
+  render(<App />);
+  expect(await screen.findByText("Get started")).toBeTruthy();
+  expect(screen.queryByRole("heading", welcome)).toBeNull();
+});
+
+test("Play shows Get started with no seed installed, ticking what's done", async () => {
+  render(<App />);
+  expect(await screen.findByText("Get started")).toBeTruthy();
+  // The mock's status has a dump, and the config a target.
+  expect(screen.getAllByLabelText("done")).toHaveLength(2);
+  fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+  expect(screen.queryByText("Get started")).toBeNull();
 });
