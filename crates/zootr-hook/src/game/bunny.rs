@@ -1,12 +1,13 @@
 //! The Bunny Hood setting: Link runs half again as fast while he wears
 //! it. The run node asks the character controller for its speed each
-//! frame through one call, which the patch sends here, only in a seed
-//! with the setting. Rolls, stops and the rest ask from other calls and
+//! frame through one call, which the patch sends here in every seed, and
+//! only a seed with the setting changes the speed. Rolls, stops and the rest ask from other calls and
 //! stay as they are.
 
 use core::mem::transmute;
 
-use super::{at, table};
+use super::{at, main, table};
+use crate::{BUNNY_HOOD, OFFSETS};
 
 /// How much faster, Ship of Harkinian's factor.
 const FAST: f32 = 1.5;
@@ -28,16 +29,14 @@ type Setter = unsafe extern "C" fn(usize, *const f32, f32);
 /// Only the game calls this, from the rewritten call site.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn run_speed(state: usize, dir: *const f32, speed: f32) {
-    let Some((main, table)) = table() else {
-        return;
-    };
-    let speed = match unsafe { wears_hood(state) } {
+    let on = table().is_some_and(|(_, t)| t.flags & BUNNY_HOOD != 0);
+    let speed = match on && unsafe { wears_hood(state) } {
         true => speed * FAST,
         false => speed,
     };
     // SAFETY: the offset was found in this build of `main`.
     unsafe {
-        let setter: Setter = transmute(main + table.offsets.run_setter as usize);
+        let setter: Setter = transmute(main() + OFFSETS.run_setter as usize);
         setter(state, dir, speed)
     }
 }

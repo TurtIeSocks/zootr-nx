@@ -5,10 +5,11 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
+pub use zootr_hook::OFFSETS;
 use zootr_hook::look::LookSpec;
 use zootr_hook::{
-    BUNNY_HOOD, CAVE, Credit, DEV, FAR, ICE_TRAPS, LIST, Offsets, PANIC, SLOTS, Shared, Spot,
-    TABLE, TRADE_CYCLE, encode,
+    BUNNY_HOOD, CAVE, Credit, DEV, FAR, LIST, PANIC, SLOTS, Shared, Spot, TABLE, TRADE_CYCLE,
+    encode,
 };
 
 use crate::known::Name;
@@ -18,56 +19,6 @@ use crate::{progressive, trade_slot};
 const HOOK: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/hook.bin"));
 /// The hook's far code, written at `FAR`.
 const FAR_CODE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/far.bin"));
-pub const OFFSETS: Offsets = Offsets {
-    setter: 0xfe_3fe0,
-    reader: 0xbd_1c00,
-    count: 0x59_63e0,
-    manager: 0x4e7_8e28,
-    hash: 0x17_39e0,
-    delete: 0xe9_1290,
-    create: 0xc1_7400,
-    slot_vtable: 0x4b4_69a0,
-    map_loaded: 0x108_3e20,
-    chest_made: 0xd2_72f0,
-    granted: 0x110_d570,
-    link_update: 0x2c2_15e0,
-    // `OneShotRequestOpenPickUpWindow`'s run.
-    picked: 0x101_55d0,
-    // Puts a pickup's content in the pouch, on every take: from the
-    // pickup's own event (`OneShotPouchContentPushToPouchOwnInEvent`) or,
-    // with no window, straight from the touch.
-    taken: 0xc6_f620,
-    malloc: 0x14c_6c90,
-    make_arg: 0xd7_9f10,
-    request: 0xd7_a820,
-    set_link: 0x2b_c440,
-    release_link: 0x20_b6f0,
-    link_empty: 0x497_4b20,
-    get_bool: 0x20_d9c0,
-    set_bool: 0x68_2b20,
-    get_u64: 0x57_a380,
-    events: 0x4c7_e090,
-    gamedata: 0x4c7_e180,
-    // The slot the game's own set-time node reads. The one at 0x4c7_e878
-    // also has a clock-like object at +0x510, and nothing reads that one.
-    world: 0x4c7_e898,
-    set_time: 0x345_22d0,
-    player_vtable: 0x4b2_5e18,
-    move_vtable: 0x4b4_c460,
-    move_to: 0x6b_2530,
-    controller_vtable: 0x4c3_4f10,
-    run_setter: 0x93_52f0,
-    items_built: 0xa7_13b0,
-    // The Items page's vtable slot 7, run as it's left or the menu closes.
-    items_left: 0xa7_6770,
-    ui_update: 0x6e_6be0,
-    cell_set: 0xa7_3060,
-    unfocus: 0xab_5080,
-    focus: 0xab_4ec0,
-    anim_frame: 0x2d_2d90,
-    equipped: 0x17_b6e0,
-    effects: 0x4e8_40e0,
-};
 /// Where the recorder, and the free space after rodata and bss, end.
 const CAVE_END: u32 = 0x17f_58e0;
 /// Where the padding after text, which holds the far code, ends: rodata.
@@ -91,20 +42,19 @@ const CALLS: [(u32, u32); 4] = [
     (0x2ef_4888, 4),
 ];
 /// The run node's call to the speed setter and the hook entry it goes to,
-/// `run_speed`, which scales the speed in the Bunny Hood. Rewritten only
-/// in a seed with the setting.
+/// `run_speed`, which scales the speed in the Bunny Hood in a seed with
+/// the setting.
 const RUN_CALL: (u32, u32) = (0x93_4990, 24);
 /// The controller device's three `GetNpadStates` calls (full key,
 /// handheld, joy dual) and their hook entries, which run the trade slot's
-/// cycle. Rewritten only in a seed with [`TRADE_CYCLE`], with the three
-/// Items page hooks.
+/// cycle with the three Items page hooks, in a seed with [`TRADE_CYCLE`].
 const NPAD_CALLS: [(u32, u32); 3] = [(0x346_966c, 32), (0x346_9698, 36), (0x346_94f8, 40)];
 /// The game's stubs for `nn::hid::GetNpadStates` those calls go to, in
 /// the same order. The hook reaches them through its slots.
 const NPAD_STUBS: [u32; 3] = [0x3c4_2800, 0x3c4_2830, 0x3c4_27f0];
 /// Each hooked function and the entry the `b` over its `pacibsp` goes to.
-/// Link's update only runs the mailbox's requests and the dev switches, so
-/// it's hooked only for a seed with the mailbox.
+/// Link's update runs the mailbox's requests and the dev switches in a
+/// seed with [`DEV`], and springs ice traps.
 const HOOKS: &[(u32, u32)] = &[
     (OFFSETS.map_loaded, 8),
     (OFFSETS.chest_made, 12),
@@ -115,15 +65,6 @@ const HOOKS: &[(u32, u32)] = &[
     (OFFSETS.items_left, 48),
     (OFFSETS.ui_update, 52),
     (OFFSETS.taken, 56),
-];
-/// The sites only a seed with [`TRADE_CYCLE`] gets.
-const TRADE_SITES: [u32; 6] = [
-    NPAD_CALLS[0].0,
-    NPAD_CALLS[1].0,
-    NPAD_CALLS[2].0,
-    OFFSETS.items_built,
-    OFFSETS.items_left,
-    OFFSETS.ui_update,
 ];
 /// `main`'s build ID, as its NSO header's 32 byte field holds it. Its first
 /// 8 bytes name the cheat file and the rest, trailing zeros left out, the
@@ -190,12 +131,54 @@ pub fn site(at: u32) -> Option<Vec<u8>> {
     sites().find(|p| p.at == at).map(|p| p.bytes)
 }
 
+/// `bytes` at `at`, padded to a word, or an error past `end`.
+fn fit(at: u32, mut bytes: Vec<u8>, end: u32, what: &str) -> Result<Patch> {
+    // Writes go a word at a time.
+    bytes.resize(bytes.len().next_multiple_of(4), 0);
+    let free = (end - at) as usize;
+    ensure!(
+        bytes.len() <= free,
+        "the {what} needs {} bytes, {free} are free",
+        bytes.len()
+    );
+    Ok(Patch { at, bytes })
+}
+
+/// The gate, the hook and its far code.
+fn code() -> Result<[Patch; 3]> {
+    let gate = Patch {
+        at: GATE.0,
+        bytes: branch(GATE.0, GATE.1, false).to_vec(),
+    };
+    let code = fit(CAVE, hook_code(), CAVE_END, "hook")?;
+    let far = fit(FAR, FAR_CODE.to_vec(), FAR_END, "far code")?;
+    Ok([gate, code, far])
+}
+
+/// The gate, the hook, its far code and every call site: the same for
+/// every seed, since each hook entry checks its own setting in the table.
+/// A game that builds the exefs patch in rebuilds only when this changes.
+pub fn code_patches() -> Result<Vec<Patch>> {
+    Ok(code()?.into_iter().chain(sites()).collect())
+}
+
+/// The table's writes: its body, then its magic, so a table caught
+/// halfway never parses.
+fn table_writes(Patch { at, mut bytes }: Patch) -> [Patch; 2] {
+    let body = bytes.split_off(4);
+    [
+        Patch {
+            at: at + 4,
+            bytes: body,
+        },
+        Patch { at, bytes },
+    ]
+}
+
 /// The gate, the hook, its table for `lines`, the [`zootr_hook::KEYED`]
-/// lines `keyed`, `flags`, `credits` and `spots`, then the calls and
-/// function hooks that reach it. Link's update
-/// is among them only with `mailbox`, the run's call only with
-/// [`BUNNY_HOOD`] in `flags`, the trade slot's sites, with its slot in the
-/// table, only with [`TRADE_CYCLE`], and the pouch push only with `spots`.
+/// lines `keyed`, `flags` (with [`DEV`] for `mailbox`), `credits` and
+/// `spots`, then the calls and function hooks that reach it, every one in
+/// every seed.
 pub fn patches<A: AsRef<str>>(
     lines: &[&[(A, A)]],
     keyed: &[Vec<(String, String)>],
@@ -213,51 +196,15 @@ pub fn patches<A: AsRef<str>>(
         .map(|l| l.iter().map(|(a, b)| (a.as_str(), b.as_str())).collect())
         .collect();
     let keyed: Vec<&[(&str, &str)]> = keyed.iter().map(Vec::as_slice).collect();
-    let fit = |at: u32, mut bytes: Vec<u8>, end: u32, what: &str| {
-        // Writes go a word at a time.
-        bytes.resize(bytes.len().next_multiple_of(4), 0);
-        let free = (end - at) as usize;
-        ensure!(
-            bytes.len() <= free,
-            "the {what} needs {} bytes, {free} are free",
-            bytes.len()
-        );
-        Ok(Patch { at, bytes })
-    };
-    let gate = Patch {
-        at: GATE.0,
-        bytes: branch(GATE.0, GATE.1, false).to_vec(),
-    };
-    let code = fit(CAVE, hook_code(), CAVE_END, "hook")?;
     let flags = flags | if mailbox { DEV } else { 0 };
-    let far = fit(FAR, FAR_CODE.to_vec(), FAR_END, "far code")?;
-    let trade = flags & TRADE_CYCLE != 0;
     let actors = trade_slot::actors();
-    let slot = trade.then(|| trade_slot::spec(&actors));
-    let table = fit(
-        TABLE,
-        encode(
-            OFFSETS,
-            flags,
-            &lines,
-            &keyed,
-            credits,
-            slot.as_ref(),
-            spots,
-            look,
-        ),
-        TABLE_END,
-        "table",
-    )?;
-    let bunny = flags & BUNNY_HOOD != 0;
-    let sites = sites().filter(|p| match p.at {
-        at if at == OFFSETS.link_update => flags & (DEV | ICE_TRAPS) != 0,
-        at if at == RUN_CALL.0 => bunny,
-        at if TRADE_SITES.contains(&at) => trade,
-        at if at == OFFSETS.taken => !spots.is_empty(),
-        _ => true,
-    });
-    Ok([gate, code, far, table].into_iter().chain(sites).collect())
+    let slot = (flags & TRADE_CYCLE != 0).then(|| trade_slot::spec(&actors));
+    let table = encode(flags, &lines, &keyed, credits, slot.as_ref(), spots, look);
+    let table = fit(TABLE, table, TABLE_END, "table")?;
+    Ok((code()?.into_iter())
+        .chain(table_writes(table))
+        .chain(sites())
+        .collect())
 }
 
 /// One type 0 write into `main`: 8 bytes where aligned, else 4.
@@ -384,6 +331,50 @@ pub fn install(
     Ok(())
 }
 
+/// Rewrite `mod_dir`'s patches for a game that builds the exefs patch in:
+/// the exefs patch keeps [`code_patches`], the same for every seed, and
+/// the cheat writes the table alone, as data the game reads as it runs. A
+/// folder with no patch of ours stays as it is.
+pub fn split(mod_dir: &Path) -> Result<()> {
+    let Ok(text) = std::fs::read_to_string(exefs(mod_dir)) else {
+        return Ok(());
+    };
+    let table = table_of(&text)?;
+    std::fs::write(exefs(mod_dir), pchtxt(&code_patches()?))?;
+    std::fs::write(path(mod_dir), cheat(&table_writes(table)))?;
+    Ok(())
+}
+
+/// The table an exefs patch writes, from its lines between `TABLE` and
+/// `TABLE_END`.
+fn table_of(pchtxt: &str) -> Result<Patch> {
+    let mut lines = Vec::new();
+    for (at, hex) in pchtxt.lines().filter_map(|l| l.split_once(' ')) {
+        let Ok(at) = u32::from_str_radix(at, 16) else {
+            continue;
+        };
+        if (TABLE..TABLE_END).contains(&at) {
+            let bytes = (0..hex.len())
+                .step_by(2)
+                .map(|i| u8::from_str_radix(hex.get(i..i + 2)?, 16).ok())
+                .collect::<Option<Vec<u8>>>()
+                .context("a table line that isn't hex")?;
+            lines.push((at, bytes));
+        }
+    }
+    lines.sort_by_key(|l| l.0);
+    let mut bytes = Vec::new();
+    for (at, line) in lines {
+        ensure!(
+            at == TABLE + bytes.len() as u32,
+            "a gap in the table's lines"
+        );
+        bytes.extend(line);
+    }
+    ensure!(!bytes.is_empty(), "an exefs patch with no table");
+    Ok(Patch { at: TABLE, bytes })
+}
+
 /// Take our cheat and exefs patch off `mod_dir`, leaving any others.
 pub fn remove(mod_dir: &Path) -> Result<()> {
     outputs(mod_dir).iter().try_for_each(|(path, _)| take(path))
@@ -410,7 +401,7 @@ fn take(path: &Path) -> Result<()> {
 mod tests {
     use std::ops::Range;
 
-    use zootr_hook::{HEADER, Header, Table};
+    use zootr_hook::{FREE_BOMBCHUS, HEADER, Header, ICE_TRAPS, MAGIC, Table};
 
     use super::*;
 
@@ -454,30 +445,53 @@ mod tests {
         }
     }
 
+    /// `patches` without its table's two writes.
+    fn without_table(p: Vec<Patch>) -> Vec<Patch> {
+        p.into_iter()
+            .filter(|p| !(TABLE..TABLE_END).contains(&p.at))
+            .collect()
+    }
+
     #[test]
-    fn the_take_is_hooked_only_with_spots() {
-        let at = |spots: &[Spot], at| {
-            let p = patches(&progressive::LINES, &[], false, 0, &[], spots, None).unwrap();
-            p.iter().any(|p| p.at == at)
+    fn every_seed_writes_the_same_code_whatever_its_settings() {
+        let code = code_patches().unwrap();
+        for (dev, flags, spots) in [
+            (false, 0, &[][..]),
+            (true, 0, &[]),
+            (false, ALL | ICE_TRAPS | FREE_BOMBCHUS, &[SPOT]),
+            (true, ALL | ICE_TRAPS, &[SPOT]),
+        ] {
+            let p = patches(&progressive::LINES, &[], dev, flags, &[], spots, None).unwrap();
+            assert_eq!(without_table(p), code, "{dev} {flags}");
+        }
+        let exefs = |dev| {
+            let dir =
+                std::env::temp_dir().join(format!("zootr-split-{}-{dev}", std::process::id()));
+            install(&dir, true, &[], dev, ALL, &[], &[], None).unwrap();
+            split(&dir).unwrap();
+            let text = std::fs::read_to_string(exefs(&dir)).unwrap();
+            std::fs::remove_dir_all(dir).unwrap();
+            text
         };
-        assert!(!at(&[], OFFSETS.taken));
-        assert!(at(&[SPOT], OFFSETS.taken));
+        assert_eq!(exefs(false), exefs(true), "the dev panel on and off");
     }
 
     #[test]
     fn the_code_and_table_go_in_their_places_and_read_back() {
-        let [_, code, far, table, ..] =
+        let [_, code, far, body, magic, ..] =
             &patches(&progressive::LINES, &[], false, 0, &[], &[], None).unwrap()[..]
         else {
             panic!("patches")
         };
         assert_eq!((code.at, code.bytes.len()), (CAVE, HOOK.len()));
         assert_eq!((far.at, &far.bytes[..FAR_CODE.len()]), (FAR, FAR_CODE));
-        assert_eq!(table.at % 8, 0, "the header is read in place");
-        let header = Header::read(&table.bytes);
-        let lines = &table.bytes[HEADER..][..header.size as usize];
+        assert_eq!((magic.at, &magic.bytes[..]), (TABLE, &MAGIC[..]));
+        assert_eq!(magic.at % 8, 0, "the header is read in place");
+        assert_eq!(body.at, TABLE + 4);
+        let bytes = [&magic.bytes[..], &body.bytes].concat();
+        let header = Header::read(&bytes);
+        let lines = &bytes[HEADER..][..header.size as usize];
         let table = Table::parse(&header, lines).unwrap();
-        assert_eq!(*table.offsets, OFFSETS);
         for line in progressive::LINES {
             let (_, read, _) = table.find(line[1].0.as_bytes()).unwrap();
             let read: Vec<_> = read.collect();
@@ -587,8 +601,8 @@ mod tests {
     #[test]
     fn calls_and_hooks_branch_to_the_hook() {
         let p = patches(&progressive::LINES, &[], true, ALL, &[], &[SPOT], None).unwrap();
-        assert_eq!(p[4..], sites().collect::<Vec<_>>());
-        let at = |i: usize| u32::from_le_bytes(p[4 + i].bytes[..].try_into().unwrap());
+        assert_eq!(p[5..], sites().collect::<Vec<_>>());
+        let at = |i: usize| u32::from_le_bytes(p[5 + i].bytes[..].try_into().unwrap());
         assert_eq!(at(0) >> 26, 0b100101, "a call stays a bl");
         assert_eq!(
             at(CALLS.len() + NPAD_CALLS.len()) >> 26,
@@ -602,26 +616,6 @@ mod tests {
         assert_eq!(branch(0x104, 0x100, true), 0x97ff_ffffu32.to_le_bytes());
         assert_eq!(branch(0x100, 0x108, false), 0x1400_0002u32.to_le_bytes());
         assert!(std::panic::catch_unwind(|| branch(0, 1 << 27, true)).is_err());
-    }
-
-    #[test]
-    fn link_s_update_needs_dev_or_traps_the_run_call_the_hood_and_the_trade_sites_their_flag() {
-        let all = patches(&progressive::LINES, &[], true, ALL, &[], &[], None).unwrap();
-        for (dev, flags, gone) in [
-            (false, ALL, vec![OFFSETS.link_update]),
-            (true, TRADE_CYCLE, vec![RUN_CALL.0]),
-            (false, TRADE_CYCLE, vec![OFFSETS.link_update, RUN_CALL.0]),
-            (true, BUNNY_HOOD, TRADE_SITES.to_vec()),
-            (
-                false,
-                ICE_TRAPS,
-                vec![RUN_CALL.0].into_iter().chain(TRADE_SITES).collect(),
-            ),
-        ] {
-            let some = patches(&progressive::LINES, &[], dev, flags, &[], &[], None).unwrap();
-            assert_eq!(some.len(), all.len() - gone.len(), "{dev} {flags}");
-            assert!(some.iter().all(|p| !gone.contains(&p.at)), "{dev} {flags}");
-        }
     }
 
     #[test]
@@ -729,5 +723,27 @@ mod tests {
         assert!(other.exists());
         remove(&dir).unwrap();
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn the_split_leaves_the_code_to_the_exefs_patch_and_the_table_to_the_cheat() {
+        let dir = std::env::temp_dir().join(format!("zootr-split-{}", std::process::id()));
+        install(&dir, true, &[], true, ALL, &[], &[SPOT], None).unwrap();
+        let whole = patches(&progressive::LINES, &[], true, ALL, &[], &[SPOT], None).unwrap();
+        split(&dir).unwrap();
+        let exefs = std::fs::read_to_string(exefs(&dir)).unwrap();
+        assert_eq!(exefs, pchtxt(&code_patches().unwrap()));
+        let cheat = std::fs::read_to_string(path(&dir)).unwrap();
+        assert_eq!(cheat, self::cheat(&whole[3..5]));
+        let addrs: Vec<u32> = (cheat.lines())
+            .filter(|l| l.starts_with('0'))
+            .filter_map(|l| l.split(' ').nth(1))
+            .map(|a| u32::from_str_radix(a, 16).unwrap())
+            .collect();
+        assert!(addrs.iter().all(|a| (TABLE..TABLE_END).contains(a)));
+        assert_eq!(addrs.last(), Some(&TABLE), "the magic goes last");
+        std::fs::remove_dir_all(&dir).unwrap();
+        split(&dir).unwrap();
+        assert!(!dir.exists(), "no patch, nothing written");
     }
 }

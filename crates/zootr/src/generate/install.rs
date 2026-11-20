@@ -44,7 +44,8 @@ pub fn running(targets: &[Target]) -> Option<&Target> {
 
 /// Run `write` once per distinct mod folder, then write each target's
 /// settings line. A folder no target reads the cheat from keeps only the
-/// exefs patch. Refuses while another install runs or any target's game
+/// exefs patch, or, for a game that builds that in, splits it (see
+/// [`patch::split`]). Refuses while another install runs or any target's game
 /// is open. Returns what the last `write` did.
 ///
 /// A stop before any folder's mod is replaced changes nothing. After, the
@@ -69,8 +70,13 @@ pub fn install<T>(
                 copy_mod(&first.mod_dir, &t.mod_dir)?;
             }
             for t in &folders {
-                if !(targets.iter()).any(|o| o.mod_dir == t.mod_dir && o.reads_cheats()) {
-                    patch::remove_cheat(&t.mod_dir)?;
+                let here = || targets.iter().filter(|o| o.mod_dir == t.mod_dir);
+                if here().any(Target::reads_cheats) {
+                    continue;
+                }
+                match here().any(|o| o.rebuild.is_some()) {
+                    true => patch::split(&t.mod_dir)?,
+                    false => patch::remove_cheat(&t.mod_dir)?,
                 }
             }
             run.step(Step::Installing)?;
@@ -244,6 +250,21 @@ mod tests {
             assert!(has("reads") && !has("not"), "{order:?}");
             assert!(dir.join("not/exefs/zootr.pchtxt").is_file());
         }
+        // A game that builds the exefs patch in gets it without the table,
+        // which comes as a cheat.
+        let _ = std::fs::remove_dir_all(&dir);
+        let built = Target {
+            rebuild: Some(crate::config::Rebuild::default()),
+            ..target("built", "R={romfs}")
+        };
+        install(&[built], &Run::silent(), |d| {
+            crate::patch::install(d, true, &[], false, 0, &[], &[], None)
+        })
+        .unwrap();
+        let exefs = std::fs::read_to_string(dir.join("built/exefs/zootr.pchtxt")).unwrap();
+        let code = crate::patch::code_patches().unwrap();
+        assert_eq!(exefs, crate::patch::pchtxt(&code));
+        assert!(has("built"));
         std::fs::remove_dir_all(dir).unwrap();
     }
 
