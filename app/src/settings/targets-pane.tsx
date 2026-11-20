@@ -94,7 +94,7 @@ function TargetsForm({ notes, onSaved }: TargetsFormProps) {
       <PageHeader
         title="Targets"
         help="target"
-        description="A target is an app that runs the game with a mod folder. Install writes the seed to every target."
+        description="Where you play: what Play opens, and the folder the game loads mods from. Install writes the seed to every target."
         actions={
           <>
             <Button
