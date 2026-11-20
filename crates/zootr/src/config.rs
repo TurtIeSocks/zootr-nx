@@ -54,11 +54,12 @@ pub struct Config {
     #[cfg_attr(feature = "specta", specta(skip))]
     pub tracker: TrackerOptions,
     /// The app shows its developer tools: the dev panel switch, Test
-    /// setup, and the targets' scripted-play fields. Off, the hidden ones
-    /// leave seeds alone too.
+    /// setup, and the targets' scripted-play fields. Off, a hidden test
+    /// setup leaves seeds alone. The dev panel's hook doesn't follow it,
+    /// so hiding the tools never changes the hook patch.
     pub dev_tools: bool,
     /// Seeds install the dev panel's hook, and the app's Dev button opens
-    /// the panel. Only while `dev_tools` is on: see [`Config::dev_hook`].
+    /// the panel.
     pub dev_panel: bool,
     /// The turn queue: where it is and the games it hands out.
     #[cfg_attr(feature = "specta", specta(skip))]
@@ -462,12 +463,6 @@ impl Config {
         }
     }
 
-    /// Whether seeds carry the dev panel's hook: its switch is on, and
-    /// shown.
-    pub fn dev_hook(&self) -> bool {
-        self.dev_tools && self.dev_panel
-    }
-
     pub fn path() -> Result<PathBuf> {
         if let Some(p) = std::env::var_os(ENV) {
             return Ok(p.into());
@@ -755,7 +750,7 @@ mod tests {
     }
 
     #[test]
-    fn hidden_developer_tools_leave_seeds_alone() {
+    fn a_hidden_test_setup_leaves_seeds_alone() {
         let mut config = Config {
             dev_panel: true,
             test: TestSetup {
@@ -765,10 +760,8 @@ mod tests {
             ..Default::default()
         };
         assert!(config.extras().give.is_empty());
-        assert!(!config.dev_hook());
         config.dev_tools = true;
         assert_eq!(config.extras().give, ["FakeItem"]);
-        assert!(config.dev_hook());
     }
 
     #[test]
