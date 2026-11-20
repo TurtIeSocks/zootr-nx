@@ -16,7 +16,7 @@ use crate::live::Memory;
 use crate::world::{Presence, presence_of};
 
 /// How far from the actor, and above where it stands, Link lands.
-const AHEAD: f32 = 2.0;
+pub const AHEAD: f32 = 2.0;
 const LIFT: f32 = 0.5;
 
 /// Which side of the actor Link lands on, by its facing.

@@ -208,6 +208,9 @@ pub struct Night<'a, I, J> {
     /// The turn queue to step aside for between spots. `None` sweeps on
     /// regardless.
     pub yielding: Option<Yielding>,
+    /// A photo pass's `photos.jsonl`: the side each holder was seen from,
+    /// tried first.
+    pub sides: Option<PathBuf>,
 }
 
 /// How a round ended.
@@ -482,6 +485,9 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             .filter_map(|f| std::fs::read_to_string(f).ok())
         {
             learn(&mut known, &rows);
+        }
+        if let Some(file) = &self.sides {
+            known.seen = super::photo::sides(file);
         }
         known
     }

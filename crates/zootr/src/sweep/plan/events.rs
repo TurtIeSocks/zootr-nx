@@ -135,10 +135,14 @@ static HALTED: LazyLock<[Halted; 1]> = LazyLock::new(|| {
     )]
 });
 
+/// The [`DRAWN`] row of `gift`, if it has one.
+fn drawn(gift: &Gift) -> Option<&'static (&'static Name, &'static Name, &'static str)> {
+    (DRAWN.iter()).find(|(by, ..)| gift.caller() == Some(by) || gift.flow == *by)
+}
+
 impl Planner<'_> {
     pub(super) fn gift(&mut self, gift: &Gift) -> Result<(Trigger, Option<bool>)> {
-        let drawn = (DRAWN.iter()).find(|(by, ..)| gift.caller() == Some(by) || gift.flow == *by);
-        if let Some(&(_, giver, button)) = drawn {
+        if let Some(&(_, giver, button)) = drawn(gift) {
             return self.talk(gift, giver, Some(button));
         }
         if gift.item.starts_with("Item_Melody_") || gift.giver.contains("Great Fairy") {
@@ -231,6 +235,26 @@ impl Planner<'_> {
             at: Some(warp::landing(&pose, Side::Front)),
         };
         Ok((trigger, child))
+    }
+
+    /// Where `gift`'s giver stands in its area: the NPC [`DRAWN`] draws,
+    /// the one its flow is named for, else the first its flow binds that
+    /// the area places (Anju for her cuccos). Asked of any gift, planned
+    /// or not.
+    pub(super) fn standing(&mut self, gift: &Gift) -> Result<Option<(String, Pose)>> {
+        let drawn = drawn(gift).map(|&(_, giver, _)| giver.to_string());
+        let flow = crate::flows::load(self.romfs, gift.flow).ok().flatten();
+        let bound = (flow.into_iter()).flat_map(|f| f.actors.into_iter().map(|a| a.name));
+        let named = drawn
+            .into_iter()
+            .chain([gift.flow.to_string()])
+            .chain(bound);
+        for giver in named.filter(|n| n.starts_with(NPC)) {
+            if let Some(found) = self.giver(&giver, gift.area)? {
+                return Ok(Some(found));
+            }
+        }
+        Ok(None)
     }
 
     /// The map that places `giver` in `area`, and where.

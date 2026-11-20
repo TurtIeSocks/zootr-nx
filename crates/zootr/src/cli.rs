@@ -10,10 +10,9 @@ use clap::Parser;
 
 use crate::config::Config;
 use crate::progress::Run;
-use crate::vision::Vision;
 use crate::{events, flows, game, generate, spawn, world};
 use args::{ApCommand, Cli, Command, DrillReport, SweepReport};
-use play::{boot_command, drill, drill_report, look, play, sweep, sweep_report};
+use play::{boot_command, drill, drill_report, look, photo, play, sweep, sweep_report};
 use research::{census, chest_events, cutscenes, flags, flow, items, logic, logic_set};
 use running::{ap_connect, dev, give, live, mem, set};
 use save::save_command;
@@ -170,16 +169,41 @@ pub fn run() -> Result<()> {
         Command::Mem(cmd) => mem(cmd),
         Command::Look {
             questions,
-            model,
-            api,
-            url,
-            key_file,
-            effort,
+            vision,
             keep,
             frame,
+        } => look(
+            &vision.vision()?,
+            &questions,
+            keep.as_deref(),
+            frame.as_deref(),
+        ),
+        Command::Photo {
+            area,
+            hash,
+            out,
+            list,
+            go,
+            side,
+            step,
+            here,
+            orbit,
+            raise,
+            day_skulltulas,
+            vision,
         } => {
-            let vision = Vision::new(api, url, model, key_file, effort)?;
-            look(&vision, &questions, keep.as_deref(), frame.as_deref())
+            use crate::sweep::photo::Mode;
+            let (area, out) = (area.as_deref(), out.as_deref().filter(|_| !list));
+            let swing = crate::sweep::photo::Swing { orbit, raise };
+            let mode = match (go, here) {
+                (true, _) => Mode::Go(side.map(|s| (s, step))),
+                (_, true) => Mode::Here,
+                _ => Mode::Pass,
+            };
+            let look = (swing, day_skulltulas);
+            photo(&romfs, &path, (area, &hash), (out, mode), look, || {
+                vision.vision()
+            })
         }
         Command::Play {
             script,
@@ -205,6 +229,7 @@ pub fn run() -> Result<()> {
             only,
             seed,
             yield_to,
+            sides,
             judge,
             ..
         } => sweep(
@@ -214,6 +239,7 @@ pub fn run() -> Result<()> {
             out,
             (rounds, limit, mix, only, seed),
             yield_to,
+            sides,
         ),
         Command::Drill {
             report: Some(DrillReport::Report { out }),

@@ -191,6 +191,19 @@ pub fn plan(romfs: &Romfs, spots: &[Spot]) -> Result<Vec<Planned>> {
     spots.iter().map(|s| planner.spot(s)).collect()
 }
 
+/// Where each gift's giver stands, by check hash: its map and spot. A
+/// gift no one stands for, as a song's or a boss's, has none.
+pub fn givers(romfs: &Romfs) -> Result<HashMap<u64, (String, [f32; 3])>> {
+    let mut planner = Planner::new(romfs, BTreeSet::new());
+    let mut found = HashMap::new();
+    for gift in GIFTS.iter() {
+        if let Some((map, pose)) = planner.standing(gift)? {
+            found.insert(gift.hash(), (map, pose.at));
+        }
+    }
+    Ok(found)
+}
+
 /// What planning has read so far, each part when first asked for.
 struct Planner<'a> {
     romfs: &'a Romfs,

@@ -116,7 +116,7 @@ fn each_side<M: Memory, I: Input>(
 }
 
 /// Wait for Link to stop sinking, at most [`SINKING`].
-fn land(sense: &impl Sense) -> Result<()> {
+pub(crate) fn land(sense: &impl Sense) -> Result<()> {
     let start = Instant::now();
     let mut was = sense.link()?[1];
     while start.elapsed() < SINKING {
