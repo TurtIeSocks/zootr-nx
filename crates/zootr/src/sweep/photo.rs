@@ -18,7 +18,7 @@ use super::plan::{Planned, Steps, Trigger, preset};
 use super::spot::{arrival, gone, presets, quiet, teleport};
 use crate::dev::{Dev, Place, Request};
 use crate::gamedata::GameData;
-use crate::known::{actor, item};
+use crate::known::actor;
 use crate::ledger::{self, Why};
 use crate::live;
 use crate::look::look_at;
@@ -30,6 +30,9 @@ use crate::warp::{self, Placement, Side};
 
 /// The hour a Gold Skulltula is shot at: they come out at night.
 const NIGHT: u32 = 22;
+/// How long the right stick raises the camera over a child afloat, in ms,
+/// to look down into the water.
+const LOOK_DOWN: u64 = 800;
 /// How much farther each step back stands from the holder.
 const STEP: f32 = 3.0;
 /// Steps back tried after the first ring of sides.
@@ -599,15 +602,16 @@ impl<'a, I: Input> Pass<'a, I> {
     fn stand(&mut self, at: [f32; 3], face: [f32; 3]) -> Result<()> {
         quiet(self.dev, self.input)?;
         self.dev.warp(at)?;
+        // The adult sinks in his boots. The child can't wear them, and a
+        // held A didn't dive him on the native build (other machine,
+        // 2026-11-19): he stays afloat and the camera looks down into the
+        // water at the holder, clear enough to tell what's there.
+        let mut afloat = false;
         if crate::nav::sink::floated(self.dev.link()?, at) {
-            let booted = self
-                .here
-                .as_ref()
-                .is_some_and(|(_, child, ..)| *child == Some(false));
-            if !booted {
-                return self.dive(at);
+            afloat = !(self.here.as_ref()).is_some_and(|(_, child, ..)| *child == Some(false));
+            if !afloat {
+                crate::nav::sink::land(self.dev)?;
             }
-            crate::nav::sink::land(self.dev)?;
         }
         self.clear()?;
         Drive::new(self.dev, &mut *self.input).face(face)?;
@@ -616,20 +620,11 @@ impl<'a, I: Input> Pass<'a, I> {
         for (stick, ms) in self.swing.pushes() {
             self.input.hold(stick, ms)?;
         }
+        if afloat {
+            self.input.hold("RDown", LOOK_DOWN)?;
+        }
         sleep(SETTLE);
         Ok(())
-    }
-
-    /// The child floats over `at` and can't wear the Iron Boots: he dives
-    /// with the Gold Scale to just over it, and the frame is taken as he
-    /// turns back up. `at` stands beside the holder, so he doesn't take it.
-    fn dive(&mut self, at: [f32; 3]) -> Result<()> {
-        let dev = self.dev;
-        dev.give(&self.gd, item::SCALE_GOLD, 1)?;
-        self.input.press("ZL")?;
-        sleep(SETTLE);
-        let deep = dev.link()?[1] - at[1];
-        self.input.hold("A", crate::nav::sink::diving(deep))
     }
 }
 
