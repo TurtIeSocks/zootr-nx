@@ -304,12 +304,7 @@ function TargetField({ id, field, value, onChange }: TargetFieldProps) {
   return (
     <Field id={id} label={label} help={help} hint={hint}>
       {pick ? (
-        <PathInput
-          id={id}
-          pick={pick}
-          value={value}
-          onChange={onChange}
-        />
+        <PathInput id={id} pick={pick} value={value} onChange={onChange} />
       ) : multiline ? (
         <Textarea
           id={id}
