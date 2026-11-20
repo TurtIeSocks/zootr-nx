@@ -44,7 +44,7 @@ pub struct Preset {
 pub const CARPENTERS_FREED: &str = "carpenters-freed";
 
 /// Presets a new game takes unless turned off.
-pub const DEFAULT_ON: [&str; 2] = ["menus", "clock"];
+pub const DEFAULT_ON: [&str; 3] = ["menus", "clock", "no-pickup-texts"];
 
 const QUEST: Option<&str> = Some("Quest progress");
 const STONES: [&Name; 3] = [
@@ -553,6 +553,7 @@ mod tests {
         assert_eq!(edits.len(), PICKUPS.len());
         assert!(edits.contains(&format!("IsGet.{}=true", actor::OBJ_HEART)));
         assert!(edits.iter().all(|e| !e.contains("Item_")));
+        assert!(DEFAULT_ON.contains(&"no-pickup-texts"));
     }
 
     #[test]
