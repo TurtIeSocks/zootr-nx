@@ -144,6 +144,7 @@ function GameDump() {
         <Field
           id="game"
           label="Game dump"
+          help="game-dump"
           hint="The .nup of your own copy of the game, with the 1.1.1 update. Save extracts the files zootr reads into a cache, which takes a few seconds the first time. A folder of already extracted romfs works too: paste its path."
         >
           <div className="flex gap-2">

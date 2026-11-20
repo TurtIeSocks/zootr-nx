@@ -3,7 +3,7 @@ import { dotPath } from "zustand-dot";
 import { commands, type Summary } from "@/bindings";
 import type { Edit } from "@/checks/rows";
 import { call } from "@/lib/api";
-import type { Section } from "@/shell/nav";
+import type { Section, Tab } from "@/shell/nav";
 import { useConfig } from "@/stores/config";
 import { useUi } from "@/stores/ui";
 
@@ -35,6 +35,15 @@ export function openSettings(section?: Section) {
   );
   useUi.setPath("tab", "Settings");
   useShell.setPath("beckon", 0);
+}
+
+/** A place in the app a link can open: a settings section or a tab. */
+export type Place = { section: Section } | { tab: Tab };
+
+/** Opens `place`, the way the sidebar does. */
+export function go(place: Place) {
+  if ("section" in place) return openSettings(place.section);
+  useUi.setPath("tab", place.tab);
 }
 
 /** Opens Settings at Targets when there are none, since nothing can be

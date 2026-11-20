@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { InlineError } from "@/components/callout";
+import { Help } from "@/components/help";
 import { Label } from "@/components/ui/label";
+import type { TopicId } from "@/help/topics";
 
 /** Props for {@link Field}. */
 export interface FieldProps {
@@ -9,6 +11,8 @@ export interface FieldProps {
   /** The label's own id, for a control that names itself by it. */
   labelId?: string;
   label: string;
+  /** A help bubble beside the label. */
+  help?: TopicId;
   /** A line under the control. */
   hint?: string;
   /** Replaces the hint, as an error, while set. */
@@ -22,15 +26,19 @@ export function Field({
   id,
   labelId,
   label,
+  help,
   hint,
   warn,
   children,
 }: FieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label id={labelId} htmlFor={id}>
-        {label}
-      </Label>
+      <div className="flex items-center gap-1.5">
+        <Label id={labelId} htmlFor={id}>
+          {label}
+        </Label>
+        {help && <Help topic={help} />}
+      </div>
       {children}
       {warn ? (
         <InlineError error={warn} />

@@ -1,4 +1,5 @@
 import type { Target } from "@/bindings";
+import type { TopicId } from "@/help/topics";
 import { splitLines } from "@/lib/format";
 
 /** A target as the form edits it: every field a string. */
@@ -90,6 +91,8 @@ export interface DraftField {
   label: string;
   /** The placeholder: what goes there. */
   hint: string;
+  /** A help bubble beside the label. */
+  help?: TopicId;
   /** What its Browse button picks, if it has one. */
   pick?: "folder" | "file";
   /** One entry per line. */
@@ -112,6 +115,7 @@ export const FIELDS: DraftField[] = [
   },
   {
     key: "mod_dir",
+    help: "mod-folder",
     label: "Mod folder",
     hint: "The folder the game loads this mod from. Install writes romfs/ here",
     pick: "folder",
@@ -136,6 +140,7 @@ export const FIELDS: DraftField[] = [
   },
   {
     key: "bridge",
+    help: "control-socket",
     label: "Control socket (optional)",
     hint: "For targets with a control socket: live reads and dev tools go through it",
   },
