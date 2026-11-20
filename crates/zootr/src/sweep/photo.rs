@@ -287,6 +287,11 @@ fn tries() -> Vec<(Side, u32)> {
 
 /// How far round Link the pass beats enemies before a shot.
 const CLEAR: f32 = 20.0;
+/// How close a foe that never woke must be for a second try once the
+/// camera has swung, in metres.
+const NEAR: f32 = 8.0;
+/// How many times a clear looks again for foes a death spawned.
+const ROUNDS: usize = 3;
 
 /// Whether the pass beats the enemy named `name` before a shot: one a
 /// quiet seed would hide, kept only for a chest's gate. Never a holder (a
@@ -695,21 +700,36 @@ impl<'a, I: Input> Pass<'a, I> {
     /// Beat each enemy near Link that a quiet seed keeps only for a gate,
     /// so none knocks him down, breaks a pot or stands in the frame. Its
     /// death raises its gate's chest, as the chest's own photo does.
-    fn clear(&mut self) -> Result<()> {
+    ///
+    /// Looks again after each round, for what a death spawns (a
+    /// Floormaster's three little hands). One that never woke is skipped
+    /// for the rest of the map, as each try costs 10 s, unless `wake` and
+    /// it's within [`NEAR`]: one that rises as Link arrives (a Stalfos) is
+    /// up by the time the camera has swung.
+    fn clear(&mut self, wake: bool) -> Result<()> {
         let map = self.dev.state()?.map;
-        let names: BTreeSet<String> = (self.dev.foes(CLEAR)?.0.into_iter())
-            .map(|f| f.name)
-            .filter(|n| foe(n) && !self.asleep.contains(&(map.clone(), n.clone())))
-            .collect();
-        for name in names {
-            let target = crate::dev::Target::Name(name.clone());
-            match self.dev.slay(self.romfs, &target, CLEAR) {
-                Ok(slain) => {
-                    if !slain.0.iter().any(|s| s.fate == crate::dev::Fate::Died) {
+        let mut tried = HashSet::new();
+        for _ in 0..ROUNDS {
+            let asleep: HashSet<&str> = (self.asleep.iter())
+                .filter(|(m, _)| *m == map)
+                .map(|(_, n)| n.as_str())
+                .collect();
+            let names = targets(&self.dev.foes(CLEAR)?.0, &asleep, &tried, wake);
+            if names.is_empty() {
+                break;
+            }
+            for name in names {
+                tried.insert(name.clone());
+                let target = crate::dev::Target::Name(name.clone());
+                match self.dev.slay(self.romfs, &target, CLEAR) {
+                    Ok(slain) if slain.0.iter().any(|s| s.fate == crate::dev::Fate::Died) => {
+                        self.asleep.remove(&(map.clone(), name));
+                    }
+                    Ok(_) => {
                         self.asleep.insert((map.clone(), name));
                     }
+                    Err(e) => eprintln!("  {name}: {e:#}"),
                 }
-                Err(e) => eprintln!("  {name}: {e:#}"),
             }
         }
         quiet(self.dev, self.input)
@@ -733,7 +753,7 @@ impl<'a, I: Input> Pass<'a, I> {
                 crate::nav::sink::land(self.dev)?;
             }
         }
-        self.clear()?;
+        self.clear(false)?;
         Drive::new(self.dev, &mut *self.input).face(face)?;
         self.input.press("ZL")?;
         sleep(SETTLE);
@@ -745,9 +765,26 @@ impl<'a, I: Input> Pass<'a, I> {
         } else if face[1] - at[1] > HIGH {
             self.input.hold("RUp", LOOK_UP)?;
         }
+        self.clear(true)?;
         sleep(SETTLE);
         Ok(())
     }
+}
+
+/// The foes in `foes` for [`Pass::clear`] to slay this round: each quiet
+/// kind not `tried` yet this clear, and not `asleep` in the map unless
+/// `wake` and it's within [`NEAR`].
+fn targets(
+    foes: &[crate::dev::Foe],
+    asleep: &HashSet<&str>,
+    tried: &HashSet<String>,
+    wake: bool,
+) -> BTreeSet<String> {
+    (foes.iter())
+        .filter(|f| foe(&f.name) && !tried.contains(&f.name))
+        .filter(|f| !asleep.contains(f.name.as_str()) || (wake && f.distance <= NEAR))
+        .map(|f| f.name.clone())
+        .collect()
 }
 
 /// The landing at `pick` (a side and steps back) among `tries`, or the
@@ -791,6 +828,29 @@ fn score_of(answer: &serde_json::Value) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_clear_slays_what_a_death_spawns_and_wakes_only_near_sleepers() {
+        let f = |name: &str, distance| crate::dev::Foe {
+            name: name.into(),
+            distance,
+            left: 1,
+            most: 1,
+        };
+        let (near, far) = ("Enemy_FakeStalfos", "Enemy_FakeKeese");
+        let foes = [f(near, 3.0), f(far, 15.0), f("Enemy_FakeHand_Little", 2.0)];
+        let asleep: HashSet<&str> = [near, far].into();
+        let tried: HashSet<String> = HashSet::new();
+        let names = |wake| {
+            targets(&foes, &asleep, &tried, wake)
+                .into_iter()
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(names(false), ["Enemy_FakeHand_Little"]);
+        assert_eq!(names(true), ["Enemy_FakeHand_Little", near]);
+        let tried: HashSet<String> = ["Enemy_FakeHand_Little".to_string()].into();
+        assert!(targets(&foes, &asleep, &tried, false).is_empty());
+    }
 
     #[test]
     fn going_stands_at_the_picked_side_else_the_first_tried() {
