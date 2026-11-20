@@ -239,10 +239,23 @@ fn map_for<'a>(maps: impl Iterator<Item = &'a str>, child: Option<bool>) -> Opti
 
 /// Each try's side and steps back: every side at the usual distance, then
 /// each again a step farther.
+/// The farther ring first, for the room around the holder; the near one
+/// when nothing from afar shows it.
 fn tries() -> Vec<(Side, u32)> {
     (0..=STEPS)
+        .rev()
         .flat_map(|step| warp::sides_from(Side::Front).map(move |side| (side, step)))
         .collect()
+}
+
+/// How far round Link the pass beats enemies before a shot.
+const CLEAR: f32 = 20.0;
+
+/// Whether the pass beats the enemy named `name` before a shot: one a
+/// quiet seed would hide, kept only for a chest's gate. Never a holder (a
+/// Gold Skulltula, a scrub, a thief), whose death would spend its check.
+fn foe(name: &str) -> bool {
+    crate::enemies::quiet(name) && !nightly(name)
 }
 
 /// Whether `name` is a Gold Skulltula, which comes out only at night.
@@ -302,6 +315,8 @@ pub struct Pass<'a, I> {
     pub seed: Option<String>,
     pub swing: Swing,
     levels: HashMap<String, Level>,
+    /// Enemies of each map that never woke to a beating, not tried again.
+    asleep: HashSet<(String, String)>,
     /// The line of each placement shot so far, for a shop's other slots.
     shot: HashMap<u64, Line>,
     /// The map, age, hour and held values Link is in.
@@ -336,6 +351,7 @@ impl<'a, I: Input> Pass<'a, I> {
             seed,
             swing: Swing { orbit: 0, raise: 0 },
             levels: HashMap::new(),
+            asleep: HashSet::new(),
             shot,
             here: None,
         }
@@ -517,11 +533,35 @@ impl<'a, I: Input> Pass<'a, I> {
         Ok(())
     }
 
-    /// Warp Link to `at`, turn him to `face`, put the camera behind him,
-    /// then swing it off his back.
+    /// Beat each enemy near Link that a quiet seed keeps only for a gate,
+    /// so none knocks him down, breaks a pot or stands in the frame. Its
+    /// death raises its gate's chest, as the chest's own photo does.
+    fn clear(&mut self) -> Result<()> {
+        let map = self.dev.state()?.map;
+        let names: BTreeSet<String> = (self.dev.foes(CLEAR)?.0.into_iter())
+            .map(|f| f.name)
+            .filter(|n| foe(n) && !self.asleep.contains(&(map.clone(), n.clone())))
+            .collect();
+        for name in names {
+            let target = crate::dev::Target::Name(name.clone());
+            match self.dev.slay(self.romfs, &target, CLEAR) {
+                Ok(slain) => {
+                    if !slain.0.iter().any(|s| s.fate == crate::dev::Fate::Died) {
+                        self.asleep.insert((map.clone(), name));
+                    }
+                }
+                Err(e) => eprintln!("  {name}: {e:#}"),
+            }
+        }
+        quiet(self.dev, self.input)
+    }
+
+    /// Warp Link to `at`, beat the enemies round him, turn him to `face`,
+    /// put the camera behind him, then swing it off his back.
     fn stand(&mut self, at: [f32; 3], face: [f32; 3]) -> Result<()> {
         quiet(self.dev, self.input)?;
         self.dev.warp(at)?;
+        self.clear()?;
         Drive::new(self.dev, &mut *self.input).face(face)?;
         self.input.press("ZL")?;
         sleep(SETTLE);
@@ -551,8 +591,8 @@ mod tests {
     fn every_side_is_tried_then_each_a_step_back() {
         use Side::*;
         let t = tries();
-        assert_eq!(t[..4], [(Front, 0), (Left, 0), (Right, 0), (Back, 0)]);
-        assert_eq!(t[4..], [(Front, 1), (Left, 1), (Right, 1), (Back, 1)]);
+        assert_eq!(t[..4], [(Front, 1), (Left, 1), (Right, 1), (Back, 1)]);
+        assert_eq!(t[4..], [(Front, 0), (Left, 0), (Right, 0), (Back, 0)]);
     }
 
     #[test]
@@ -627,6 +667,14 @@ mod tests {
         let pushes = |orbit, raise| Swing { orbit, raise }.pushes().collect::<Vec<_>>();
         assert_eq!(pushes(300, -100), [("RLeft", 300), ("RUp", 100)]);
         assert_eq!(pushes(-200, 0), [("RRight", 200)]);
+    }
+
+    #[test]
+    fn the_pass_beats_only_enemies_no_check_holds() {
+        assert!(foe("Enemy_FakeStalfos"));
+        assert!(!foe(actor::ENEMY_SKULLTULA_GOLD));
+        assert!(!foe(actor::ENEMY_SCRUB_BUSINESS));
+        assert!(!foe(actor::OBJ_POT_A_02));
     }
 
     #[test]

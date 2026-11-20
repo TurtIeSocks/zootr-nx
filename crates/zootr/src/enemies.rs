@@ -35,7 +35,7 @@ const KEPT: [&Name; 6] = [
 ];
 
 /// Whether the actor named `gyaml` is an enemy of no kind kept whole.
-fn quiet(gyaml: &str) -> bool {
+pub(crate) fn quiet(gyaml: &str) -> bool {
     let kept = |k: &&Name| {
         (gyaml.strip_prefix(&***k)).is_some_and(|rest| rest.is_empty() || rest.starts_with('_'))
     };
