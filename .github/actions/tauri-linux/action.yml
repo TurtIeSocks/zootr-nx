@@ -1,0 +1,59 @@
+name: Tauri's Linux libraries
+description: Installs the system libraries Tauri builds against, keeping the downloaded packages in the Actions cache. The Ubuntu mirror sometimes serves them at under 100 kB/s, which stretched this install from 40 s to 14 minutes.
+
+inputs:
+  extra:
+    description: More packages to install, space separated
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    # A new key each week picks up new package versions. The restore key
+    # falls back to the last week's packages, so only changed ones download.
+    - name: Name the package cache
+      id: key
+      shell: bash
+      env:
+        PACKAGES: libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev ${{ inputs.extra }}
+      run: |
+        prefix="apt-$ImageOS-$(echo "$PACKAGES" | sha256sum | cut -c1-12)-"
+        {
+          echo "packages=$PACKAGES"
+          echo "prefix=$prefix"
+          echo "key=$prefix$(date +%G-W%V)"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Restore the downloaded packages
+      id: restore
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/apt-archives
+        key: ${{ steps.key.outputs.key }}
+        restore-keys: ${{ steps.key.outputs.prefix }}
+
+    # autoclean drops the packages the mirror no longer has, so last week's
+    # versions don't pile up in the cache. The man page index rebuild after
+    # an install is skipped: nothing here reads man pages.
+    - name: Install the libraries
+      shell: bash
+      env:
+        PACKAGES: ${{ steps.key.outputs.packages }}
+      run: |
+        archives="$HOME/apt-archives"
+        mkdir -p "$archives/partial"
+        sudo rm -f /var/lib/man-db/auto-update
+        sudo apt-get update
+        sudo apt-get install -y -o Dir::Cache::Archives="$archives" $PACKAGES
+        sudo apt-get autoclean -o Dir::Cache::Archives="$archives"
+        sudo rm -rf "$archives/partial" "$archives/lock"
+        sudo chown -R "$(id -u):$(id -g)" "$archives"
+
+    # Only main saves, like the Rust cache: a branch can read main's caches
+    # but not another branch's, so a branch's copy only takes up space.
+    - name: Save the downloaded packages
+      if: steps.restore.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/apt-archives
+        key: ${{ steps.key.outputs.key }}

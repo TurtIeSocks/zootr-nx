@@ -34,9 +34,7 @@ jobs:
       # zootr-app is a workspace member, so clippy and the tests build Tauri.
       - name: Install Tauri's Linux libraries
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+        uses: ./.github/actions/tauri-linux
 
       # Reads rust-toolchain.toml: the pinned channel, rustfmt, clippy and
       # the hook's aarch64-unknown-none target.
