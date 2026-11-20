@@ -21,6 +21,20 @@
     "label": "Open Door of Time"
   },
   {
+    "default": false,
+    "description": "Jabu-Jabu's mouth is open, so child Link walks in without giving him a fish",
+    "id": "jabu-open",
+    "kind": "toggle",
+    "label": "Jabu-Jabu open"
+  },
+  {
+    "default": false,
+    "description": "The waterfall at the end of Zora's River already stands split, so Link reaches Zora's Domain without Zelda's Lullaby",
+    "id": "open-waterfall",
+    "kind": "toggle",
+    "label": "Zora's River waterfall open"
+  },
+  {
     "default": true,
     "description": "Bombchus hold up to 50 on their own, so they open the same checks bombs do without waiting on the bag",
     "id": "free-bombchus",

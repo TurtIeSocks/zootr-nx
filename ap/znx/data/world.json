@@ -10790,7 +10790,7 @@
     {
       "at": [
         {
-          "place": "zora-fountain-adult",
+          "place": "place-242a1105-adult",
           "rule": {
             "all": [
               {
@@ -21731,7 +21731,7 @@
     {
       "from": "ice-cavern-adult",
       "rule": true,
-      "to": "zora-fountain-adult"
+      "to": "place-242a1105-adult"
     },
     {
       "from": "inside-ganons-castle-adult",
@@ -22314,6 +22314,31 @@
       "to": "anywhere-adult"
     },
     {
+      "from": "place-242a1105-adult",
+      "rule": true,
+      "to": "anywhere-adult"
+    },
+    {
+      "from": "place-242a1105-adult",
+      "rule": true,
+      "to": "ice-cavern-adult"
+    },
+    {
+      "from": "place-242a1105-adult",
+      "rule": true,
+      "to": "zora-domain-adult"
+    },
+    {
+      "from": "place-242a1105-adult",
+      "rule": {
+        "count": 1,
+        "items": [
+          "Beat Morpha"
+        ]
+      },
+      "to": "zora-domain-adult-alternative-adult"
+    },
+    {
       "from": "place-b13887e8-child",
       "rule": true,
       "to": "anywhere-child"
@@ -22716,13 +22741,8 @@
     },
     {
       "from": "zora-domain-adult",
-      "rule": {
-        "count": 1,
-        "items": [
-          "Ruto's Letter"
-        ]
-      },
-      "to": "zora-fountain-adult"
+      "rule": true,
+      "to": "place-242a1105-adult"
     },
     {
       "from": "zora-domain-adult",
@@ -22746,13 +22766,8 @@
     },
     {
       "from": "zora-domain-adult-alternative-adult",
-      "rule": {
-        "count": 1,
-        "items": [
-          "Ruto's Letter"
-        ]
-      },
-      "to": "zora-fountain-adult"
+      "rule": true,
+      "to": "place-242a1105-adult"
     },
     {
       "from": "zora-domain-adult-alternative-adult",
@@ -22790,31 +22805,6 @@
       "to": "zora-river-child"
     },
     {
-      "from": "zora-fountain-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "zora-fountain-adult",
-      "rule": true,
-      "to": "ice-cavern-adult"
-    },
-    {
-      "from": "zora-fountain-adult",
-      "rule": true,
-      "to": "zora-domain-adult"
-    },
-    {
-      "from": "zora-fountain-adult",
-      "rule": {
-        "count": 1,
-        "items": [
-          "Beat Morpha"
-        ]
-      },
-      "to": "zora-domain-adult-alternative-adult"
-    },
-    {
       "from": "zora-fountain-child",
       "rule": true,
       "to": "anywhere-child"
@@ -22824,15 +22814,22 @@
       "rule": {
         "any": [
           {
-            "count": 1,
-            "items": [
-              "Bottle"
-            ]
+            "setting": "jabu-open"
           },
           {
-            "count": 1,
-            "items": [
-              "Ruto's Letter"
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Bottle"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Ruto's Letter"
+                ]
+              }
             ]
           }
         ]
@@ -22867,27 +22864,10 @@
     {
       "from": "zora-river-adult",
       "rule": {
-        "all": [
+        "any": [
           {
-            "count": 1,
-            "items": [
-              "Progressive Ocarina"
-            ]
+            "setting": "open-waterfall"
           },
-          {
-            "count": 1,
-            "items": [
-              "Zelda's Lullaby"
-            ]
-          }
-        ]
-      },
-      "to": "zora-domain-adult"
-    },
-    {
-      "from": "zora-river-adult",
-      "rule": {
-        "all": [
           {
             "all": [
               {
@@ -22900,6 +22880,37 @@
                 "count": 1,
                 "items": [
                   "Zelda's Lullaby"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "to": "zora-domain-adult"
+    },
+    {
+      "from": "zora-river-adult",
+      "rule": {
+        "all": [
+          {
+            "any": [
+              {
+                "setting": "open-waterfall"
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Zelda's Lullaby"
+                    ]
+                  }
                 ]
               }
             ]
@@ -22937,17 +22948,24 @@
     {
       "from": "zora-river-child",
       "rule": {
-        "all": [
+        "any": [
           {
-            "count": 1,
-            "items": [
-              "Progressive Ocarina"
-            ]
+            "setting": "open-waterfall"
           },
           {
-            "count": 1,
-            "items": [
-              "Zelda's Lullaby"
+            "all": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Ocarina"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Zelda's Lullaby"
+                ]
+              }
             ]
           }
         ]
@@ -23013,7 +23031,7 @@
     "zora-domain-adult",
     "zora-domain-adult-alternative-adult",
     "zora-domain-child",
-    "zora-fountain-adult",
+    "place-242a1105-adult",
     "zora-fountain-child",
     "zora-river-adult",
     "zora-river-child",

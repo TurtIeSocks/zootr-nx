@@ -35,6 +35,8 @@ pub const OPTIONS: &[&str] = &[
     "open-forest",
     "kakariko-gate",
     "open-door-of-time",
+    "jabu-open",
+    "open-waterfall",
     "free-bombchus",
     "skip-cutscenes",
     "chest-size",

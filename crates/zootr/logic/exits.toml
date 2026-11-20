@@ -178,12 +178,12 @@ needs = "crater-floor"
 [[exit]]
 from = "zora-river-child"
 to = "zora-domain-child"
-needs = "zeldas-lullaby"
+needs = "setting:open-waterfall or zeldas-lullaby"
 
 [[exit]]
 from = "zora-river-adult"
 to = "zora-domain-adult"
-needs = "zeldas-lullaby"
+needs = "setting:open-waterfall or zeldas-lullaby"
 
 # Lake Hylia's underwater tunnel.
 [[exit]]
@@ -211,27 +211,18 @@ from = "zora-domain-adult-alternative"
 to = "hyrule-field-adult"
 needs = "silver-scale"
 
-# King Zora moves for Ruto's letter.
+# King Zora moves for Ruto's letter. Only the child map walls him off: the
+# adult map has nothing at his spot, so adult walks by with or without it.
 [[exit]]
 from = "zora-domain-child"
 to = "zora-fountain-child"
-needs = "item:rutos-letter"
-
-[[exit]]
-from = "zora-domain-adult"
-to = "zora-fountain-adult"
-needs = "item:rutos-letter"
-
-[[exit]]
-from = "zora-domain-adult-alternative"
-to = "zora-fountain-adult"
-needs = "item:rutos-letter"
+needs = "setting:king-zora-moved or item:rutos-letter"
 
 # Jabu-Jabu opens for a fish.
 [[exit]]
 from = "zora-fountain-child"
 to = "jabu-jabu"
-needs = "bottle"
+needs = "setting:jabu-open or bottle"
 
 [[exit]]
 from = "hyrule-field-child"

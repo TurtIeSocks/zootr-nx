@@ -107,6 +107,7 @@ pub const GET_POUCH_CONTENT_BY_ACTOR_NAME: &Name = &n!(0x9976dc651cae39f4);
 pub const GET_STONE_OF_FIRE: &Name = &n!(0x9fec5f1e8a3e9e64);
 pub const GET_STONE_OF_FOREST: &Name = &n!(0x6ecebaec2da6d6f9);
 pub const GET_STONE_OF_WATER: &Name = &n!(0xd363d41ece07362f);
+pub const GET_STONE_OF_WATER_ARRIVE_JABU_JABU_BELLY: &Name = &n!(0x0ab8408689c85fc5);
 pub const GOSSIP_STONE: &Name = &n!(0x0fb50bb156e177ed);
 pub const GOTO_HYRULE_CASTLE: &Name = &n!(0x73360f174db8871a);
 pub const HINT_DUNGEON_TUTORIAL_EVENT: &Name = &n!(0x7e1d9f52b19166d7);

@@ -38,6 +38,17 @@ pub struct Preset {
     /// Quest steps a new game's opening moves on, as `(challenge, step)`.
     /// A save edit can't: the challenge system keeps its own state.
     pub progress: &'static [(&'static Name, &'static str)],
+    /// Placement fields the seed's maps take, as `HASH.PATH=VALUE`. A save
+    /// edit can't: they live in the seed.
+    fields: fn() -> Vec<String>,
+}
+
+impl Preset {
+    /// Whether only a new game can take it: it hands over items, moves a
+    /// quest on or edits the seed's maps.
+    fn new_only(&self) -> bool {
+        !self.give.is_empty() || !self.progress.is_empty() || !(self.fields)().is_empty()
+    }
 }
 
 /// The preset whose four carpenters are already freed.
@@ -236,7 +247,30 @@ fn no_pickup_texts() -> Vec<String> {
 
 const LIGHT_ARROWS: &[&Name] = &[item::ARROW_LIGHT];
 
-pub const PRESETS: [Preset; 12] = [
+/// The preset whose King Zora already stands aside.
+pub const KING_ZORA_MOVED: &str = "king-zora-moved";
+
+/// The preset whose Jabu-Jabu takes Link in without a fish.
+pub const JABU_OPEN: &str = "jabu-open";
+
+/// Jabu-Jabu's mouth, the door into his belly in child Zora's Fountain.
+const JABU_MOUTH: u64 = 4228704915231375030;
+
+/// The mouth door's first arrival runs what the fish's map change boots:
+/// the only event that moves the water stone quest to `Step09`, which
+/// Ruto's schedules and the belly's rooms wait on.
+fn jabu_arrival() -> Vec<String> {
+    let event = flow::GET_STONE_OF_WATER_ARRIVE_JABU_JABU_BELLY;
+    let played = format!("{}.{event}", flag::HAVE_PLAYED_EVENT);
+    [
+        (field::INIT_EVENT_NAME, event.to_string()),
+        (field::INIT_EVENT_FLAG, played),
+    ]
+    .map(|(k, v)| format!("{JABU_MOUTH}.{}.{k}={v}", field::DYNAMIC))
+    .into()
+}
+
+pub const PRESETS: [Preset; 15] = [
     Preset {
         name: "open-forest",
         label: "Open forest",
@@ -245,6 +279,7 @@ pub const PRESETS: [Preset; 12] = [
         subgroup: None,
         give: &[],
         progress: &[],
+        fields: Vec::new,
         edits: || {
             all(
                 [
@@ -265,6 +300,65 @@ pub const PRESETS: [Preset; 12] = [
         edits: || all([flag::NPC_HYLIA_SOLDIER_003_GATE_OPEN], "true"),
         give: &[],
         progress: &[],
+        fields: Vec::new,
+    },
+    Preset {
+        name: KING_ZORA_MOVED,
+        label: "King Zora moved",
+        what: "King Zora has read Ruto's letter and stands aside for child Link, as he does once he's shown it. Ruto's Letter becomes an empty bottle, shuffled from its spot at the bottom of the lake",
+        group: group::LOGIC,
+        subgroup: None,
+        // Showing him the letter moves the quest on, then plays the scene
+        // whose played flag hides the air wall beside him. The quest step
+        // is what moves him aside. The domain's first arrival from the
+        // river sets an earlier step, so it counts as played too.
+        edits: || {
+            all(
+                [
+                    flag::HAVE_PLAYED_EVENT_DM_ZORA_0000,
+                    flag::HAVE_PLAYED_EVENT_DM_ZORA_0010,
+                ],
+                "true",
+            )
+        },
+        give: &[],
+        progress: &[(flow::GET_STONE_OF_WATER, "Step07")],
+        fields: Vec::new,
+    },
+    Preset {
+        name: JABU_OPEN,
+        label: "Jabu-Jabu open",
+        what: "Jabu-Jabu's mouth is open, so child Link walks in without giving him a fish",
+        group: group::LOGIC,
+        subgroup: None,
+        edits: || {
+            all(
+                [flag::JAB_JAB_OPENED_MOUTH, flag::GAVE_FISH_TO_JAB_JAB],
+                "true",
+            )
+        },
+        give: &[],
+        progress: &[],
+        fields: jabu_arrival,
+    },
+    Preset {
+        name: "open-waterfall",
+        label: "Zora's River waterfall open",
+        what: "The waterfall at the end of Zora's River already stands split, so Link reaches Zora's Domain without Zelda's Lullaby",
+        group: group::LOGIC,
+        subgroup: None,
+        edits: || {
+            all(
+                [
+                    flag::ZORARIVER_THE_WATERFALLSPLITS,
+                    flag::ZORARIVER_THE_WATERFALLSPLITS_ADULT,
+                ],
+                "true",
+            )
+        },
+        give: &[],
+        progress: &[],
+        fields: Vec::new,
     },
     Preset {
         name: "menus",
@@ -287,6 +381,7 @@ pub const PRESETS: [Preset; 12] = [
         },
         give: &[],
         progress: &[],
+        fields: Vec::new,
     },
     Preset {
         name: "clock",
@@ -299,6 +394,7 @@ pub const PRESETS: [Preset; 12] = [
         edits: || all([flag::HYRULE_FIELD_ARRIVE_ENTRANCE], "true"),
         give: &[],
         progress: &[],
+        fields: Vec::new,
     },
     Preset {
         name: "zelda-done",
@@ -309,6 +405,7 @@ pub const PRESETS: [Preset; 12] = [
         edits: || zelda("Step02"),
         give: &[item::ZELDA_LETTER],
         progress: &[],
+        fields: Vec::new,
     },
     Preset {
         name: "door-of-time",
@@ -332,6 +429,7 @@ pub const PRESETS: [Preset; 12] = [
             item::OCARINA_TIME,
         ],
         progress: &[],
+        fields: Vec::new,
     },
     Preset {
         name: CARPENTERS_FREED,
@@ -342,6 +440,7 @@ pub const PRESETS: [Preset; 12] = [
         edits: carpenters,
         give: &[item::TOKEN_GERUDO],
         progress: &[(flow::SAGE_OF_SPIRIT, "Step02")],
+        fields: Vec::new,
     },
     Preset {
         name: "rainbow-bridge",
@@ -352,6 +451,7 @@ pub const PRESETS: [Preset; 12] = [
         edits: || ganon("Step02"),
         give: LIGHT_ARROWS,
         progress: &[],
+        fields: Vec::new,
     },
     Preset {
         name: "trials-done",
@@ -374,6 +474,7 @@ pub const PRESETS: [Preset; 12] = [
         },
         give: LIGHT_ARROWS,
         progress: &[],
+        fields: Vec::new,
     },
     Preset {
         name: "claim-check",
@@ -389,6 +490,7 @@ pub const PRESETS: [Preset; 12] = [
         },
         give: &[item::CLAIM_CHECK],
         progress: &[],
+        fields: Vec::new,
     },
     Preset {
         name: "no-tutorials",
@@ -399,6 +501,7 @@ pub const PRESETS: [Preset; 12] = [
         edits: no_tutorials,
         give: &[],
         progress: &[],
+        fields: Vec::new,
     },
     Preset {
         name: "no-pickup-texts",
@@ -409,6 +512,7 @@ pub const PRESETS: [Preset; 12] = [
         edits: no_pickup_texts,
         give: &[],
         progress: &[],
+        fields: Vec::new,
     },
 ];
 
@@ -424,9 +528,7 @@ pub fn parser() -> PossibleValuesParser {
 /// The presets an existing save can take: those handing over no items and
 /// moving no quest.
 pub fn for_saves() -> impl Iterator<Item = &'static Preset> {
-    PRESETS
-        .iter()
-        .filter(|p| p.give.is_empty() && p.progress.is_empty())
+    PRESETS.iter().filter(|p| !p.new_only())
 }
 
 /// The presets `names` stand for.
@@ -465,12 +567,17 @@ pub fn progress(presets: &[String]) -> Result<Vec<(String, String)>> {
         .collect())
 }
 
+/// Every placement field `presets` set in the seed's maps.
+pub fn fields(presets: &[String]) -> Result<Vec<String>> {
+    Ok(find(presets)?.iter().flat_map(|p| (p.fields)()).collect())
+}
+
 /// [`expand`] for an existing save, which can't be handed items or have its
 /// quests moved.
 pub fn for_save(presets: &[String], edits: &[String]) -> Result<Vec<String>> {
-    let new_only = |p: &&&Preset| !p.give.is_empty() || !p.progress.is_empty();
-    if let Some(p) = find(presets)?.iter().find(new_only) {
+    if let Some(p) = find(presets)?.iter().find(|p| p.new_only()) {
         let what = match p.give.is_empty() {
+            true if p.progress.is_empty() => "edits the seed's maps".to_owned(),
             true => "moves a quest on".to_owned(),
             false => format!(
                 "hands over {}",
@@ -722,5 +829,42 @@ mod tests {
         let err = for_save(&["carpenters-freed".into()], &[]).unwrap_err();
         assert!(err.to_string().contains("carpenters-freed"), "{err}");
         assert!(for_save(&["nope".into()], &[]).is_err());
+    }
+
+    #[test]
+    fn the_zora_presets_copy_what_their_events_set() {
+        needs_names!();
+        let edits = |p: &str| expand(&[p.into()], &[]).unwrap();
+        let on = |f: &Name| format!("{f}=true");
+        assert_eq!(
+            edits(KING_ZORA_MOVED),
+            [
+                on(flag::HAVE_PLAYED_EVENT_DM_ZORA_0000),
+                on(flag::HAVE_PLAYED_EVENT_DM_ZORA_0010)
+            ]
+        );
+        assert_eq!(
+            progress(&[KING_ZORA_MOVED.into()]).unwrap(),
+            [(flow::GET_STONE_OF_WATER.to_string(), "Step07".to_owned())]
+        );
+        assert!(edits(JABU_OPEN).contains(&on(flag::JAB_JAB_OPENED_MOUTH)));
+        let door = fields(&[JABU_OPEN.into()]).unwrap();
+        assert_eq!(door.len(), 2);
+        assert!(
+            door.iter()
+                .all(|f| f.starts_with(&format!("{JABU_MOUTH}.")))
+        );
+        assert!(fields(&["open-waterfall".into()]).unwrap().is_empty());
+        let group = |n: &str| PRESETS.iter().find(|p| p.name == n).unwrap().group;
+        for name in [KING_ZORA_MOVED, JABU_OPEN, "open-waterfall"] {
+            assert_eq!(group(name), group::LOGIC, "{name}");
+        }
+    }
+
+    #[test]
+    fn a_save_refuses_a_preset_that_edits_the_maps() {
+        let err = for_save(&[JABU_OPEN.into()], &[]).unwrap_err().to_string();
+        assert!(err.contains("edits the seed's maps"), "{err}");
+        assert!(for_save(&["open-waterfall".into()], &[]).is_ok());
     }
 }

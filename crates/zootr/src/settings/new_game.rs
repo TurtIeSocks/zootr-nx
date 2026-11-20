@@ -186,7 +186,7 @@ impl NewGame {
             give: presets::gives(&picked)?,
             progress: presets::progress(&picked)?,
             spawn: None,
-            fields: vec![],
+            fields: presets::fields(&picked)?,
             mailbox: false,
             ints: vec![],
             foreign: vec![],

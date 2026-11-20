@@ -8,7 +8,8 @@
 
 use anyhow::{Result, bail};
 
-use super::{BEAT, Expr, ITEM_PREFIXES};
+use super::Expr;
+use super::item::{BEAT, ITEM_PREFIXES};
 use crate::known::{Name, actor, field, item, map};
 
 /// `item:<word>`: an actor Link holds, or a pickup that stands for one.
@@ -177,7 +178,6 @@ pub const PLACES: &[(&str, &Name)] = &[
         map::ZORA_DOMAIN_ADULT_ALTERNATIVE,
     ),
     ("zora-domain-child", map::ZORA_DOMAIN_CHILD),
-    ("zora-fountain-adult", map::ZORA_FOUNTAIN_ADULT),
     ("zora-fountain-child", map::ZORA_FOUNTAIN_CHILD),
     ("zora-river-adult", map::ZORA_RIVER_ADULT),
     ("zora-river-child", map::ZORA_RIVER_CHILD),
