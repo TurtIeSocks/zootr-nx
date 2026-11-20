@@ -146,8 +146,9 @@ jobs:
         with:
           prefix-key: release
           # Only main's cache is any use to the next tag. A release called
-          # from main runs on main's ref too, and leaves the cache alone.
-          save-if: ${{ github.ref == 'refs/heads/main' && env.TAGGED != 'true' }}
+          # from main runs on main's ref too, so it saves as well: that keeps
+          # the cache warm for the next tag even if the weekly run's was evicted.
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
