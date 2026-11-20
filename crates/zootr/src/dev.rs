@@ -26,6 +26,7 @@ mod slay;
 pub use place::{Place, known, other_age, places};
 pub use setup::{Applied, Goal, Value, value};
 use setup::{Grant, grants, plan_give};
+pub(crate) use slay::distance;
 pub use slay::{Fate, Foe, Lines, Slain, Target};
 
 /// The arrival event a teleport plays. Some areas may want their own.
