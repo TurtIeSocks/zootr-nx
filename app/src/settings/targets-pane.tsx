@@ -39,6 +39,7 @@ import {
   toTarget,
   VARIABLES,
   withTarget,
+  worksIn,
 } from "@/settings/targets-draft";
 import { PageHeader } from "@/shell/page-header";
 import { saveConfig, useConfig, useDevTools } from "@/stores/config";
@@ -174,7 +175,9 @@ function VariablesCard({ open }: { open: boolean }) {
             {shown(VARIABLES, devTools).map((v) => (
               <tr key={v.name} className="border-line border-t align-top">
                 <td className="type-mono py-1.5 pr-4">{v.name}</td>
-                <td className="py-1.5 pr-4 text-ink-muted">{v.in}</td>
+                <td className="py-1.5 pr-4 text-ink-muted">
+                  {worksIn(v, devTools)}
+                </td>
                 <td className="py-1.5 text-ink-muted">{v.becomes}</td>
               </tr>
             ))}
