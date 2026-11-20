@@ -203,7 +203,7 @@ impl<M: Memory> Dev<M> {
         let want = patch::site(at).context("Link's update has no hook site")?;
         ensure!(
             game.read(main + u64::from(at), want.len())? == want,
-            "the dev panel's hook isn't in the game. Turn on the dev panel in Settings, reinstall the seed, then restart the game"
+            "the dev panel's hook isn't in the game. Reinstall the seed, then restart the game"
         );
         Ok(Self { game, global, main })
     }

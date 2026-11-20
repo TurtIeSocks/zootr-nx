@@ -172,11 +172,14 @@ pub fn pool(
     settings: &Settings,
     places: &BTreeSet<dev::Place>,
 ) -> Result<Vec<Planned>> {
-    let extras = Extras {
-        dev_panel: true,
-        ..Default::default()
-    };
-    let report = generate::generate(romfs, mod_dir, seed, settings, &extras, &Run::silent())?;
+    let report = generate::generate(
+        romfs,
+        mod_dir,
+        seed,
+        settings,
+        &Extras::default(),
+        &Run::silent(),
+    )?;
     let mut planned = plan(romfs, &report.spots)?;
     skip_unreachable(&mut planned, places);
     Ok(planned)

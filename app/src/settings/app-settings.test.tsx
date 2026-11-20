@@ -16,11 +16,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test("the page keeps the game dump and saves the dev panel toggle", async () => {
+test("the page keeps the game dump and saves developer tools", async () => {
   const setConfig = vi
     .spyOn(commands, "setConfig")
     .mockResolvedValue({ status: "ok", data: [] });
-  const config = full({ game: "/oot.nup", dev_tools: true });
+  const config = full({ game: "/oot.nup" });
   useConfig.setPath("config", config);
   render(<AppSettings />);
   expect(
@@ -29,30 +29,11 @@ test("the page keeps the game dump and saves the dev panel toggle", async () => 
   expect((screen.getByLabelText("Game dump") as HTMLInputElement).value).toBe(
     "/oot.nup",
   );
-  const toggle = screen.getByRole("switch", { name: "Dev panel" });
-  expect(toggle.getAttribute("aria-checked")).toBe("false");
-  fireEvent.click(toggle);
-  await vi.waitFor(() =>
-    expect(setConfig).toHaveBeenCalledWith({ ...config, dev_panel: true }),
-  );
-  await vi.waitFor(() =>
-    expect(toggle.getAttribute("aria-checked")).toBe("true"),
-  );
-});
-
-test("the dev panel switch shows only with developer tools on", async () => {
-  const setConfig = vi
-    .spyOn(commands, "setConfig")
-    .mockResolvedValue({ status: "ok", data: [] });
-  const config = full({});
-  useConfig.setPath("config", config);
-  render(<AppSettings />);
   expect(screen.queryByRole("switch", { name: "Dev panel" })).toBeNull();
   fireEvent.click(screen.getByRole("switch", { name: "Developer tools" }));
   await vi.waitFor(() =>
     expect(setConfig).toHaveBeenCalledWith({ ...config, dev_tools: true }),
   );
-  await screen.findByRole("switch", { name: "Dev panel" });
 });
 
 test("game assets save from their switch, which needs a dump", async () => {

@@ -34,7 +34,6 @@ export const full = (c: Config): FullConfig => ({
   targets: [],
   picked: null,
   dev_tools: false,
-  dev_panel: false,
   game_assets: false,
   no_update_check: false,
   ...c,

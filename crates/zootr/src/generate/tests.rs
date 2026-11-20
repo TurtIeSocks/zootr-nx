@@ -181,26 +181,18 @@ fn a_seed_with_only_quest_steps_still_counts_as_a_test() {
 }
 
 #[test]
-fn the_dev_branches_are_written_only_with_the_mailbox() {
+fn every_seed_gets_the_dev_branches() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
     let all = Flows::load(&romfs).unwrap();
     let banc = crate::flows::rel(scene::SY_BANC_CHANGE_GO);
-    for mailbox in [false, true] {
-        let new_game = NewGame {
-            mailbox,
-            ..Default::default()
-        };
-        let (rewrites, _) = flows(&romfs, &all, &new_game, &HashMap::new()).unwrap();
-        let give = zootr_hook::ARG_GIVE;
-        let has = |b: &[u8]| b.windows(give.len()).any(|w| w == give);
-        assert_eq!(
-            has(&rewrites[&banc]),
-            mailbox,
-            "every seed checks the card there"
-        );
-    }
+    let (rewrites, _) = flows(&romfs, &all, &NewGame::default(), &HashMap::new()).unwrap();
+    let give = zootr_hook::ARG_GIVE;
+    assert!(
+        rewrites[&banc].windows(give.len()).any(|w| w == give),
+        "every seed checks the card there"
+    );
 }
 
 #[test]

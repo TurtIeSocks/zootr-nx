@@ -9,9 +9,6 @@ import { useUi } from "@/stores/ui";
 
 /** The main window's moments: what's open, and what was sent where. */
 interface Shell {
-  /** When the off dev panel button last sent Settings to the toggle, or
-   * 0. A new one scrolls to the toggle and pulses it. */
-  beckon: number;
   /** The seed whose spoiler History opened, as it was when clicked. */
   spoiler?: Summary;
   /** The installed seed whose spoiler was revealed. */
@@ -25,7 +22,7 @@ interface Shell {
 }
 
 /** The shell store. Not saved: every launch starts with nothing open. */
-export const useShell = create<Shell>()(dotPath((): Shell => ({ beckon: 0 })));
+export const useShell = create<Shell>()(dotPath((): Shell => ({})));
 
 /** Opens Settings at `section`, or at the first settings group. */
 export function openSettings(section?: Section) {
@@ -34,7 +31,6 @@ export function openSettings(section?: Section) {
     section ?? useConfig.getState().groups[0]?.name ?? "settings",
   );
   useUi.setPath("tab", "Settings");
-  useShell.setPath("beckon", 0);
 }
 
 /** A place in the app a link can open: a settings section or a tab. */
@@ -53,14 +49,8 @@ export function openTargetsIfNone() {
   if (loaded && config.targets.length === 0) openSettings("targets");
 }
 
-/** Opens the dev panel, or with it off, sends Settings to its toggle. */
-export function openDev() {
-  if (useConfig.getState().config.dev_panel) {
-    return call(commands.devPopOut());
-  }
-  openSettings("settings");
-  useShell.setPath("beckon", Date.now());
-}
+/** Opens the dev panel in its own window. */
+export const openDev = () => call(commands.devPopOut());
 
 /** Opens the spoiler of History's `entry`, as it is now, in a dialog. */
 export const openSpoiler = (entry: Summary) =>
