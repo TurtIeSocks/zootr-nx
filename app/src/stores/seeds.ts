@@ -15,6 +15,7 @@ import {
 } from "@/bindings";
 import { call, keep, message } from "@/lib/api";
 import { blocked, noDump, type Settings, unbuildable } from "@/lib/config";
+import { count } from "@/lib/format";
 import { type Change, settingsChanges } from "@/lib/settings";
 import { saveConfig, useConfig } from "@/stores/config";
 import { once } from "@/stores/once";
@@ -137,6 +138,21 @@ export const useGroupDrifted = (name: string) =>
 
 /** What `drift` is measured from, as `useDriftFrom` words it. */
 export const DEFAULTS_FROM = "the default settings";
+
+/** "since" a seed, "from" the defaults. */
+export const driftSince = (from: string) =>
+  from === DEFAULTS_FROM ? "from" : "since";
+
+/** How many changes, and from what: "3 changes since the installed seed". */
+export const driftWords = (n: number, from: string) =>
+  `${count(n, "change")} ${driftSince(from)} ${from}`;
+
+/** The drift count in words, as the drift bar and Play's pill say it. */
+export const useDriftWords = () =>
+  driftWords(
+    useSeeds((s) => s.drift.length),
+    useDriftFrom(),
+  );
 
 /** What `drift` is measured from, for its wording. */
 export const useDriftFrom = () =>

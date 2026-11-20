@@ -244,10 +244,10 @@ test("a subgroup is a closed checklist with its count", async () => {
 
 test("the drift bar counts what differs from the installed seed", () => {
   show({ seed: installed({}) });
-  expect(screen.queryByText(/from the installed seed/)).toBeNull();
+  expect(screen.queryByText(/since the installed seed/)).toBeNull();
   cleanup();
   show({ seed: installed({}), settings: { "open-forest": true } });
-  expect(screen.getByText(/from the installed seed/)).toBeTruthy();
+  expect(screen.getByText("1 change since the installed seed")).toBeTruthy();
   expect(
     screen.getByRole("button", { name: "Generate & install" }),
   ).toBeTruthy();
@@ -258,7 +258,7 @@ test("with no seed installed, the drift bar counts what differs from the default
   expect(screen.queryByText(/from the default settings/)).toBeNull();
   cleanup();
   show({ settings: { "open-forest": true } });
-  expect(screen.getByText(/from the default settings/)).toBeTruthy();
+  expect(screen.getByText("1 change from the default settings")).toBeTruthy();
 });
 
 test("with an AP slot installed, the drift bar counts from the last standard seed", () => {
@@ -266,10 +266,10 @@ test("with an AP slot installed, the drift bar counts from the last standard see
   const slot = { ...installed({}), id: 2, ap_slot: "FakeSlot" };
   const standard = installed({ "open-forest": true });
   show({ seed: slot, older: [standard], settings: { "open-forest": true } });
-  expect(screen.queryByText(/from the last standard seed/)).toBeNull();
+  expect(screen.queryByText(/since the last standard seed/)).toBeNull();
   cleanup();
   show({ seed: slot, older: [standard] });
-  expect(screen.getByText(/from the last standard seed/)).toBeTruthy();
+  expect(screen.getByText(/since the last standard seed/)).toBeTruthy();
   cleanup();
   show({ seed: slot, settings: { "open-forest": true } });
   expect(screen.getByText(/from the default settings/)).toBeTruthy();
@@ -336,6 +336,39 @@ test("a page with no toggles has only Reset to defaults", () => {
   show({ defs: [choice("chest-size", "Chest size", ["Vanilla", "Big"])] });
   expect(screen.queryByRole("button", { name: "Enable all" })).toBeNull();
   expect(action("Reset to defaults")).toBeTruthy();
+});
+
+test("the drift bar shows on every settings page, the same as on a group", () => {
+  for (const section of ["settings", "targets", "plando", "test"]) {
+    show({ section, devTools: true, settings: { "open-forest": true } });
+    expect(screen.getByText("1 change from the default settings")).toBeTruthy();
+    cleanup();
+  }
+});
+
+test("Review lists the changes and puts the base's settings back", async () => {
+  const onChange = show({
+    seed: installed({ "chest-size": "all small" }),
+    settings: { "open-forest": true, "chest-size": "all small" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Review" }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: /Use the installed seed's/ }),
+  );
+  await waitFor(() =>
+    expect(saved(onChange)).toEqual({ "chest-size": "all small" }),
+  );
+});
+
+test("a page's unsaved bar takes the drift bar's place while it shows", () => {
+  show({ section: "test", devTools: true, settings: { "open-forest": true } });
+  fireEvent.change(screen.getByLabelText("Spawn"), {
+    target: { value: "Map/Spot" },
+  });
+  expect(screen.getByText("Unsaved changes to the test setup")).toBeTruthy();
+  expect(screen.queryByText(/1 change from/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+  expect(screen.getByText("1 change from the default settings")).toBeTruthy();
 });
 
 test("an open checklist is still open after leaving the page", () => {
