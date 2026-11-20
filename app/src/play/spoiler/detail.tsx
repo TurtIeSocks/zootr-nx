@@ -1,3 +1,4 @@
+import { Tip } from "@/components/tip";
 import { HeroStar } from "@/play/spoiler/icons";
 import { PickButton } from "@/play/spoiler/pick-button";
 import { areaOf, itemOf, placeOf, rule } from "@/play/spoiler/rows";
@@ -28,16 +29,19 @@ export function Detail() {
                 // biome-ignore lint/suspicious/noArrayIndexKey: the parts never reorder
                 <span key={i}>{p.text}</span>
               ) : p.giver ? (
-                <PickButton
+                <Tip
                   // biome-ignore lint/suspicious/noArrayIndexKey: an item can repeat
                   key={i}
-                  hash={p.giver.hash}
-                  className="font-medium text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink"
-                  title={`${areaOf(p.giver)} · ${placeOf(p.giver)}`}
+                  tip={`${areaOf(p.giver)} · ${placeOf(p.giver)}`}
                 >
-                  {p.name}
-                  {p.giver.round != null && ` (round ${p.giver.round})`}
-                </PickButton>
+                  <PickButton
+                    hash={p.giver.hash}
+                    className="font-medium text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink"
+                  >
+                    {p.name}
+                    {p.giver.round != null && ` (round ${p.giver.round})`}
+                  </PickButton>
+                </Tip>
               ) : (
                 // biome-ignore lint/suspicious/noArrayIndexKey: an item can repeat
                 <span key={i} className="font-medium text-ink">

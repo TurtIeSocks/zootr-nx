@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { Tip } from "@/components/tip";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { HeroStar } from "@/play/spoiler/icons";
@@ -66,20 +67,22 @@ export function ChecksTab() {
                   )}
                 >
                   <td>{areaOf(s)}</td>
-                  <td title={`${s.holder} ${s.hash}`}>
-                    <PickButton
-                      hash={s.hash}
-                      className="text-left text-ink-muted hover:text-ink"
-                    >
-                      {placeOf(s)}
-                    </PickButton>
-                  </td>
+                  <Tip tip={`${s.holder} ${s.hash}`}>
+                    <td>
+                      <PickButton
+                        hash={s.hash}
+                        className="text-left text-ink-muted hover:text-ink"
+                      >
+                        {placeOf(s)}
+                      </PickButton>
+                    </td>
+                  </Tip>
                   <td className="font-medium">{itemOf(s)}</td>
                   <td className="text-ink-muted tabular-nums">{s.round}</td>
                   <td>{s.hero && <HeroStar />}</td>
-                  <td className="max-w-80 truncate text-ink-muted" title={text}>
-                    {text}
-                  </td>
+                  <Tip tip={text}>
+                    <td className="max-w-80 truncate text-ink-muted">{text}</td>
+                  </Tip>
                 </tr>
               );
             })}

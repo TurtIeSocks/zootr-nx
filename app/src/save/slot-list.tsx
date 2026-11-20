@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Cell, SlotRow, Stat } from "@/bindings";
+import { Tip } from "@/components/tip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -131,22 +132,23 @@ function SlotButton({ row, picked, onPick }: SlotButtonProps) {
 /** A number beside its icon, both greyed at none. */
 function StatIcon({ stat }: { stat: Stat }) {
   return (
-    <span
-      title={stat.label}
-      className={cn(
-        "flex items-center gap-1 tabular-nums",
-        stat.value === 0 && "opacity-28 grayscale",
-      )}
-    >
+    <Tip tip={stat.label}>
       <span
-        className="flex items-center justify-center"
-        style={{ width: GEM, height: GEM }}
+        className={cn(
+          "flex items-center gap-1 tabular-nums",
+          stat.value === 0 && "opacity-28 grayscale",
+        )}
       >
-        <ItemIcon icon={stat.icon} glyph={stat.glyph} ink="text-ink" />
+        <span
+          className="flex items-center justify-center"
+          style={{ width: GEM, height: GEM }}
+        >
+          <ItemIcon icon={stat.icon} glyph={stat.glyph} ink="text-ink" />
+        </span>
+        {(stat.value / stat.per).toLocaleString()}
+        <span className="sr-only"> {stat.label}</span>
       </span>
-      {(stat.value / stat.per).toLocaleString()}
-      <span className="sr-only"> {stat.label}</span>
-    </span>
+    </Tip>
   );
 }
 

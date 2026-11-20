@@ -14,6 +14,7 @@ import { LoadGate } from "@/components/load-gate";
 import { Meter } from "@/components/meter";
 import { RequestError } from "@/components/request-error";
 import { SaveFooter } from "@/components/save-footer";
+import { Tip } from "@/components/tip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -206,12 +207,13 @@ function CheckRow({ row }: RowProps) {
             <Circle className="size-4 text-control-border" aria-hidden />
           )}
         </td>
-        <td
-          className={cn(cell, done && "line-through decoration-line-strong")}
-          title={`${row.spot.holder} ${row.spot.hash}`}
-        >
-          {nameOf(row)}
-        </td>
+        <Tip tip={`${row.spot.holder} ${row.spot.hash}`}>
+          <td
+            className={cn(cell, done && "line-through decoration-line-strong")}
+          >
+            {nameOf(row)}
+          </td>
+        </Tip>
         <td className={cell}>
           {row.checked ? (
             row.spot.item_name || row.spot.item

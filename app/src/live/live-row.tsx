@@ -7,6 +7,7 @@ import {
 } from "react";
 import type { Change } from "@/bindings";
 import { InlineError } from "@/components/callout";
+import { Tip } from "@/components/tip";
 import { Input } from "@/components/ui/input";
 import { useRequest, useRequestState } from "@/lib/request";
 import { useCopied } from "@/lib/use-copied";
@@ -177,12 +178,11 @@ function ChangeText({ change, count }: ChangeTextProps) {
         </>
       )}
       {count && (
-        <span
-          title={`${count} changes in a row`}
-          className="ml-2 rounded-xs bg-surface-sunken px-1 text-ink-muted"
-        >
-          ×{count}
-        </span>
+        <Tip tip={`${count} changes in a row`}>
+          <span className="ml-2 rounded-xs bg-surface-sunken px-1 text-ink-muted">
+            ×{count}
+          </span>
+        </Tip>
       )}
     </span>
   );
@@ -216,14 +216,15 @@ export function LiveRow({ row, fresh, selected, pointer }: LiveRowProps) {
       {editing ? (
         <LabelInput change={c} onDone={() => setEditing(false)} />
       ) : unnamed(c) ? (
-        <button
-          type="button"
-          title="Label this value"
-          className="cursor-pointer truncate text-left text-ink-muted hover:underline"
-          onClick={() => setEditing(true)}
-        >
-          <RowName row={row} />
-        </button>
+        <Tip tip="Label this value">
+          <button
+            type="button"
+            className="cursor-pointer truncate text-left text-ink-muted hover:underline"
+            onClick={() => setEditing(true)}
+          >
+            <RowName row={row} />
+          </button>
+        </Tip>
       ) : (
         <span className="truncate">
           <RowName row={row} />
@@ -278,15 +279,16 @@ interface RowButtonProps {
 /** A small icon button among a row's actions. */
 function RowButton({ label, onClick, children }: RowButtonProps) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className="grid size-5 cursor-pointer place-items-center rounded-xs text-ink-faint outline-none hover:bg-surface hover:text-ink focus-visible:ring-2 focus-visible:ring-focus [&_svg]:size-3.5"
-    >
-      {children}
-    </button>
+    <Tip tip={label}>
+      <button
+        type="button"
+        aria-label={label}
+        onClick={onClick}
+        className="grid size-5 cursor-pointer place-items-center rounded-xs text-ink-faint outline-none hover:bg-surface hover:text-ink focus-visible:ring-2 focus-visible:ring-focus [&_svg]:size-3.5"
+      >
+        {children}
+      </button>
+    </Tip>
   );
 }
 

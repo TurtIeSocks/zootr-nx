@@ -1,4 +1,5 @@
 import { Moon, Sun, SunMoon } from "lucide-react";
+import { Tip } from "@/components/tip";
 import { Button } from "@/components/ui/button";
 import { THEMES } from "@/lib/theme";
 import { useUi } from "@/stores/ui";
@@ -11,14 +12,15 @@ export function ThemeToggle() {
   const next = () =>
     setTheme(THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length] ?? theme);
   return (
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      onClick={next}
-      aria-label={`Theme: ${theme}`}
-      title={`Theme: ${theme}`}
-    >
-      <Icon />
-    </Button>
+    <Tip tip={`Theme: ${theme}`}>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={next}
+        aria-label={`Theme: ${theme}`}
+      >
+        <Icon />
+      </Button>
+    </Tip>
   );
 }

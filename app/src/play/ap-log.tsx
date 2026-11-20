@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { CardHeader } from "@/components/card";
+import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
@@ -161,9 +162,11 @@ function Row({ line }: { line: ApLine }) {
     >
       <span className="text-ink-faint tabular-nums">{clock(line.time)}</span>
       <Icon />
-      <span className="truncate" title={line.text}>
-        <Words kind={kind} text={line.text} />
-      </span>
+      <Tip tip={line.text}>
+        <span className="truncate">
+          <Words kind={kind} text={line.text} />
+        </span>
+      </Tip>
     </li>
   );
 }

@@ -1,6 +1,7 @@
 import { Skull } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Summary } from "@/bindings";
+import { Tip } from "@/components/tip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -98,10 +99,12 @@ export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
 /** The DeathLink mark, for a slot that plays it. */
 export function DeathLinkBadge() {
   return (
-    <Badge variant="danger" shape="square" title="This slot plays DeathLink">
-      <Skull />
-      DeathLink
-    </Badge>
+    <Tip tip="This slot plays DeathLink">
+      <Badge variant="danger" shape="square">
+        <Skull />
+        DeathLink
+      </Badge>
+    </Tip>
   );
 }
 

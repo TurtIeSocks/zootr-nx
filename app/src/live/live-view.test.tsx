@@ -141,19 +141,19 @@ test("rows show their time, and Quiet hides unnamed values", async () => {
 test("an unnamed row takes a label: Enter saves, Esc cancels", async () => {
   await recording();
   fireEvent.click(screen.getByRole("button", { name: "All" }));
-  fireEvent.click(screen.getByTitle("Label this value"));
+  fireEvent.click(screen.getByRole("button", { name: /^#e573f564/ }));
   const input = screen.getByLabelText("Label");
   fireEvent.change(input, { target: { value: "gate" } });
   fireEvent.keyDown(input, { key: "Escape" });
   expect(liveLabel).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByTitle("Label this value"));
+  fireEvent.click(screen.getByRole("button", { name: /^#e573f564/ }));
   fireEvent.change(screen.getByLabelText("Label"), {
     target: { value: "gate" },
   });
   fireEvent.keyDown(screen.getByLabelText("Label"), { key: "Enter" });
   await waitFor(() => screen.getByText("gate"));
   expect(liveLabel).toHaveBeenCalledWith(0xe573f564, "gate");
-  fireEvent.click(screen.getByTitle("Label this value"));
+  fireEvent.click(screen.getByRole("button", { name: /^#e573f564/ }));
   fireEvent.change(screen.getByLabelText("Label"), { target: { value: "" } });
   fireEvent.keyDown(screen.getByLabelText("Label"), { key: "Enter" });
   await waitFor(() => expect(screen.queryByText("gate")).toBeNull());
@@ -167,7 +167,7 @@ test("a failed label keeps the input open with the error", async () => {
   } as never);
   await recording();
   fireEvent.click(screen.getByRole("button", { name: "All" }));
-  fireEvent.click(screen.getByTitle("Label this value"));
+  fireEvent.click(screen.getByRole("button", { name: /^#e573f564/ }));
   fireEvent.keyDown(screen.getByLabelText("Label"), { key: "Enter" });
   await waitFor(() => screen.getByText("disk full"));
   expect(screen.getByLabelText("Label")).toBeTruthy();

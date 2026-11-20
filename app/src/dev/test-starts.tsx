@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { commands, type Goal } from "@/bindings";
+import { Tip } from "@/components/tip";
 import { Button } from "@/components/ui/button";
 import { DevSection } from "@/dev/section";
 import { call } from "@/lib/api";
@@ -54,16 +55,17 @@ function Setup({ name }: SetupProps) {
   return (
     <li className="flex items-start justify-between gap-2">
       <details className="min-w-0 flex-1 text-[13px]">
-        <summary
-          className={cn(
-            "flex items-center gap-1.5 truncate",
-            detail ? "cursor-pointer" : "list-none",
-          )}
-          title={goals.map((g) => `${g.name}=${g.want}`).join("\n")}
-        >
-          {goals.length > 0 && <Tick goals={goals} held={before} />}
-          <span className="truncate">{name}</span>
-        </summary>
+        <Tip tip={goals.map((g) => `${g.name}=${g.want}`).join("\n")}>
+          <summary
+            className={cn(
+              "flex items-center gap-1.5 truncate",
+              detail ? "cursor-pointer" : "list-none",
+            )}
+          >
+            {goals.length > 0 && <Tick goals={goals} held={before} />}
+            <span className="truncate">{name}</span>
+          </summary>
+        </Tip>
         {detail && (
           <ul className="mt-1 ml-4.5 flex flex-col gap-0.5 text-xs">
             {goals.map((g) => (

@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import type { ComponentProps } from "react";
 import type { Summary } from "@/bindings";
+import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
 import type { Button } from "@/components/ui/button";
 import { useCopied } from "@/lib/use-copied";
@@ -115,19 +116,22 @@ export function SeedIcons({ icons, size = "md" }: SeedIconsProps) {
       {icons.map((name, i) => {
         const [Icon, hue] = ICONS[name] ?? [CircleHelpIcon];
         return (
-          <span
+          <Tip
             // Icons can repeat, so only the position is unique.
             // biome-ignore lint/suspicious/noArrayIndexKey: a fixed-length row
             key={i}
-            title={name}
-            className={cn(
-              "grid place-items-center [&>svg]:stroke-2",
-              SIZES[size],
-              hue ? HUES[hue] : "bg-surface-sunken text-ink-muted",
-            )}
+            tip={name}
           >
-            <Icon />
-          </span>
+            <span
+              className={cn(
+                "grid place-items-center [&>svg]:stroke-2",
+                SIZES[size],
+                hue ? HUES[hue] : "bg-surface-sunken text-ink-muted",
+              )}
+            >
+              <Icon />
+            </span>
+          </Tip>
         );
       })}
     </span>
