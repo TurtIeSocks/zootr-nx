@@ -17,6 +17,7 @@ use super::clock::NOON;
 use super::plan::{Planned, Steps, Trigger, preset};
 use super::spot::{arrival, gone, presets, quiet, teleport};
 use crate::dev::{Dev, Place, Request};
+use crate::gamedata::GameData;
 use crate::known::actor;
 use crate::ledger::{self, Why};
 use crate::live;
@@ -318,6 +319,8 @@ pub struct Pass<'a, I> {
     shot: HashMap<u64, Line>,
     /// The map, age, hour and held values Link is in.
     here: Option<(String, Option<bool>, u32, Vec<String>)>,
+    /// GameData, for the gives that put gear on, loaded on first use.
+    gd: Option<GameData>,
 }
 
 impl<'a, I: Input> Pass<'a, I> {
@@ -351,6 +354,7 @@ impl<'a, I: Input> Pass<'a, I> {
             asleep: HashSet::new(),
             shot,
             here: None,
+            gd: None,
         }
     }
 
@@ -554,6 +558,16 @@ impl<'a, I: Input> Pass<'a, I> {
         hold()?;
         teleport(dev, self.input, place, child)?;
         dev.land_holding(map, hold)?;
+        // The adult wears the Zora Tunic and Iron Boots all through a map,
+        // so a warp into water sinks him to the holder rather than floating
+        // him over it. On land they only slow a walk the pass never takes.
+        if child == Some(false) {
+            if self.gd.is_none() {
+                self.gd = Some(GameData::load(self.romfs)?);
+            }
+            let gd = self.gd.as_ref().context("no GameData")?;
+            crate::gear::wear(dev, gd, &mut *self.input, true)?;
+        }
         self.here = Some(want);
         Ok(())
     }
@@ -586,6 +600,9 @@ impl<'a, I: Input> Pass<'a, I> {
     fn stand(&mut self, at: [f32; 3], face: [f32; 3]) -> Result<()> {
         quiet(self.dev, self.input)?;
         self.dev.warp(at)?;
+        if crate::nav::sink::floated(self.dev.link()?, at) {
+            crate::nav::sink::land(self.dev)?;
+        }
         self.clear()?;
         Drive::new(self.dev, &mut *self.input).face(face)?;
         self.input.press("ZL")?;
