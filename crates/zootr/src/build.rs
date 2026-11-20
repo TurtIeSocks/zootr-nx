@@ -109,6 +109,13 @@ pub fn status(target: &Target) -> Option<Status> {
         .find(|l| Some(l.mod_name.as_str()) == name.as_deref() && l.file == patch::EXEFS);
     let installed = std::fs::read(patch::exefs(&target.mod_dir)).ok();
     let installed = installed.map(|b| format!("{:08x}", fnv1a(&b)));
+    // With no patch installed, a build of today's code patch plays
+    // vanilla: with no table, every hook passes through.
+    let installed = installed.or_else(|| {
+        ours.as_ref()?;
+        let code = patch::pchtxt(&patch::code_patches().ok()?);
+        Some(format!("{:08x}", fnv1a(code.as_bytes())))
+    });
     Some(match (ours, installed) {
         (Some(l), _) if l.kind == UNSUPPORTED => Status::Refused { note: l.note },
         (None, None) => Status::Current,
@@ -375,7 +382,19 @@ mod tests {
         assert_eq!(status(&t), Some(Status::Stale), "patch changed");
         install(&t);
         patch::remove(&t.mod_dir).unwrap();
-        assert_eq!(status(&t), Some(Status::Stale), "patch removed, line left");
+        assert_eq!(
+            status(&t),
+            Some(Status::Stale),
+            "patch removed, an old build"
+        );
+        let code = patch::pchtxt(&patch::code_patches().unwrap());
+        manifest(&dir, "zootr", fnv1a(code.as_bytes()), "code");
+        assert_eq!(
+            status(&t),
+            Some(Status::Current),
+            "patch removed, today's code built"
+        );
+        manifest(&dir, "zootr", fnv1a(PATCH), "code");
 
         install(&t);
         manifest(&dir, "zootr-old", fnv1a(PATCH), "code");
