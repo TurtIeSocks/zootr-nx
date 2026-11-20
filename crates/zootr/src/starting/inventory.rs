@@ -106,6 +106,29 @@ const DROPS: &[(&Name, &Name)] = &[
     (field::BOTTLE_D, item::BOTTLE),
 ];
 
+/// Ammo whose first pickup also gives its bag, with that bag's tiers. A
+/// bag held from the start marks its ammo got, or the menu hides the slot
+/// and the first pickup shows its first-time text, as though no bag were
+/// held.
+const BAGGED: [(&Name, [&Name; 3]); 2] = [
+    (
+        item::DEKU_NUT,
+        [
+            item::NUT_BAG_SMALL,
+            item::NUT_BAG_MEDIUM,
+            item::NUT_BAG_LARGE,
+        ],
+    ),
+    (
+        item::DEKU_STICK,
+        [
+            item::STICK_BAG_SMALL,
+            item::STICK_BAG_MEDIUM,
+            item::STICK_BAG_LARGE,
+        ],
+    ),
+];
+
 /// Granted equipped: the sword and shield a child carries.
 const EQUIPPED: [&Name; 2] = [item::SWORD_KOKIRI, actor::T_BOX_SHIELD_DEKU];
 
@@ -295,12 +318,17 @@ impl Start {
             .collect()
     }
 
-    /// GameData default edits for a seed: the rupees. A new game sets its
-    /// own health, so heart containers are granted.
+    /// GameData default edits for a seed: the rupees, and the ammo a held
+    /// bag marks got (`BAGGED`). A new game sets its own health, so heart
+    /// containers are granted.
     pub fn defaults(&self) -> Vec<String> {
         let rupees = self.0.get(RUPEE_WORD);
+        let bagged = (BAGGED.iter())
+            .filter(|(_, bags)| bags.iter().any(|b| self.count(b) > 0))
+            .map(|(ammo, _)| format!("IsGet.{ammo}=true"));
         (rupees.iter())
             .map(|n| format!("#{RUPEES:08x}={n}"))
+            .chain(bagged)
             .collect()
     }
 
@@ -653,6 +681,20 @@ mod tests {
         let s = start(&[(HEARTS, 5), (RUPEE_WORD, 99)]);
         assert_eq!(s.defaults(), [format!("#{RUPEES:08x}=99")]);
         assert_eq!(savefile::hash_of(&format!("#{RUPEES:08x}")), RUPEES);
+    }
+
+    #[test]
+    fn a_starting_nut_or_stick_bag_marks_its_ammo_got() {
+        let got = |a: &Name| format!("IsGet.{a}=true");
+        assert!(
+            start(&[("nut-bag", 1)])
+                .defaults()
+                .contains(&got(item::DEKU_NUT))
+        );
+        let big = start(&[("big-stick-bag", 1)]).defaults();
+        assert!(big.contains(&got(item::DEKU_STICK)));
+        assert!(!big.contains(&got(item::DEKU_NUT)));
+        assert!(start(&[("bomb-bag", 1)]).defaults().is_empty());
     }
 
     #[test]
