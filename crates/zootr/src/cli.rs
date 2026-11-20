@@ -185,11 +185,14 @@ pub fn run() -> Result<()> {
             list,
             orbit,
             raise,
+            every,
             vision,
         } => {
             let (area, out) = (area.as_deref(), out.as_deref().filter(|_| !list));
             let swing = crate::sweep::photo::Swing { orbit, raise };
-            photo(&romfs, &path, (area, &hash), out, swing, || vision.vision())
+            photo(&romfs, &path, (area, &hash), out, (swing, every), || {
+                vision.vision()
+            })
         }
         Command::Play {
             script,

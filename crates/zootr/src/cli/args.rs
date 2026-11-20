@@ -411,6 +411,10 @@ pub(super) enum Command {
         /// (negative: up).
         #[arg(long, default_value_t = 300, allow_hyphen_values = true)]
         raise: i64,
+        /// Shoot from every spot and keep the best wide and close frame,
+        /// scored by Hob, with every frame and score kept beside them.
+        #[arg(long)]
+        every: bool,
         #[command(flatten)]
         vision: VisionArgs,
     },

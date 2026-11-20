@@ -314,6 +314,9 @@ pub struct Pass<'a, I> {
     pub build: Option<String>,
     pub seed: Option<String>,
     pub swing: Swing,
+    /// Shoot every spot and keep the best wide and close frame, scored
+    /// by Hob, instead of the first spot Hob sees the holder from.
+    pub every: bool,
     levels: HashMap<String, Level>,
     /// Enemies of each map that never woke to a beating, not tried again.
     asleep: HashSet<(String, String)>,
@@ -350,6 +353,7 @@ impl<'a, I: Input> Pass<'a, I> {
             build,
             seed,
             swing: Swing { orbit: 0, raise: 0 },
+            every: false,
             levels: HashMap::new(),
             asleep: HashSet::new(),
             shot,
@@ -478,6 +482,9 @@ impl<'a, I: Input> Pass<'a, I> {
             self.frame(s.hash),
             self.out.join(format!("{}-try.png", s.hash)),
         );
+        if self.every {
+            return self.survey(s, &holder, tries, line);
+        }
         let mut stood = false;
         for ((side, step), at) in tries {
             if self.stand(at, holder.pose.at).is_err() {
@@ -505,6 +512,72 @@ impl<'a, I: Input> Pass<'a, I> {
         if let Some(h) = holder.hash.filter(|_| stood) {
             self.shot.insert(h, line.clone());
         }
+        Ok(line)
+    }
+
+    /// Shoot `s` from every spot in `tries`, Hob scoring each frame, and
+    /// keep the best from the far ring as `HASH.png` and the best from the
+    /// near one as `HASH-close.png`. Each frame stays as `HASH-SIDE-STEP.png`
+    /// and its scores go to `survey.jsonl`, for comparing by eye.
+    fn survey(
+        &mut self,
+        s: &Subject,
+        holder: &Placement,
+        tries: Vec<((Side, u32), [f32; 3])>,
+        mut line: Line,
+    ) -> Result<Line> {
+        let seen = format!(
+            "Can you clearly see a {} in this picture? Say no if unsure or if it's only Link.",
+            s.what
+        );
+        let score = format!(
+            "From 1 to 5, how good a photo is this of the {}: 1 if it's hidden or tiny, 5 if it's big, clear and the room around it shows too? Answer with the number only?:",
+            s.what
+        );
+        let questions = [seen.clone(), score.clone()];
+        let mut best: [Option<(u32, Side)>; 2] = [None, None];
+        let mut log = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(self.out.join("survey.jsonl"))?;
+        for ((side, step), at) in tries {
+            if self.stand(at, holder.pose.at).is_err() {
+                continue;
+            }
+            let side_name = format!("{side:?}").to_lowercase();
+            let frame = self.out.join(format!("{}-{side_name}-{step}.png", s.hash));
+            self.input.shot(&frame)?;
+            let looked = look_at(self.vision, &frame, &questions)?;
+            let yes = looked.answers[&seen].as_bool() == Some(true);
+            let points = (looked.answers[&score].as_str())
+                .and_then(|t| t.trim().chars().find(char::is_ascii_digit))
+                .and_then(|c| c.to_digit(10))
+                .unwrap_or(0);
+            let entry = serde_json::json!({
+                "hash": s.hash.to_string(), "side": side_name, "step": step, "seen": yes, "score": points,
+            });
+            writeln!(log, "{entry}")?;
+            let ring = usize::from(step == 0);
+            let points = if yes { points } else { 0 };
+            if best[ring].is_none_or(|(p, _)| points > p) {
+                best[ring] = Some((points, side));
+                let name = if ring == 0 {
+                    self.frame(s.hash)
+                } else {
+                    self.out.join(format!("{}-close.png", s.hash))
+                };
+                std::fs::copy(&frame, name)?;
+                if ring == 0 {
+                    (line.side, line.step) = (Some(side), step);
+                }
+            }
+        }
+        line.verdict = match best {
+            [None, None] => "no spot",
+            _ if best.iter().flatten().any(|(p, _)| *p > 0) => "framed",
+            _ => "best effort",
+        }
+        .into();
         Ok(line)
     }
 
