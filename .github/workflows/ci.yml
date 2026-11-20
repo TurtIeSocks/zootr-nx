@@ -34,16 +34,19 @@ jobs:
       # zootr-app is a workspace member, so clippy and the tests build Tauri.
       - name: Install Tauri's Linux libraries
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+        uses: ./.github/actions/tauri-linux
 
       # Reads rust-toolchain.toml: the pinned channel, rustfmt, clippy and
       # the hook's aarch64-unknown-none target.
       - name: Install the pinned toolchain
         run: rustup toolchain install
 
+      # Only main saves. A branch reads main's cache but not another
+      # branch's, so its own copy (about 650 MB an OS) only crowded main's
+      # out of the 10 GB the repo gets.
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: cargo fmt
         run: cargo fmt --check
@@ -52,9 +55,10 @@ jobs:
         run: cargo clippy --all-targets -- -D warnings
 
       # Unit and integration tests, without the doctests, which are very
-      # slow. Tests that need the game skip themselves without dump/oot.nup.
+      # slow. Tests that need the game skip themselves without dump/oot.nup,
+      # so cargo-ci.toml builds our crates unoptimised.
       - name: cargo test
-        run: cargo test --workspace --lib --bins --tests
+        run: cargo test --workspace --lib --bins --tests --config .github/cargo-ci.toml
 
   # The tests that need the game dump, which skip themselves above. They run
   # on our own runner, which holds the dump. Never on a fork's code: this
