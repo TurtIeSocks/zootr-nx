@@ -14,11 +14,12 @@ use ounce_formats::Romfs;
 use serde::{Deserialize, Serialize};
 
 use super::clock::NOON;
-use super::plan::Trigger;
-use super::spot::{arrival, gone, quiet, teleport};
+use super::plan::{Planned, Steps, Trigger, preset};
+use super::spot::{arrival, gone, presets, quiet, teleport};
 use crate::dev::{Dev, Place, Request};
 use crate::known::actor;
 use crate::ledger::{self, Why};
+use crate::live;
 use crate::look::look_at;
 use crate::nav::drive::Drive;
 use crate::nav::{Level, kinds};
@@ -49,6 +50,33 @@ pub enum Spot {
     At([f32; 3]),
 }
 
+/// What a check's holder needs to be there, untouched: a `NoBake` chest
+/// raised, a keeper out. The sweep's plan of it, without the use.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Prep {
+    /// GameData values held through the load, as `NAME=VALUE`.
+    pub ready: Vec<String>,
+    /// Quest steps run through the quest system before the teleport.
+    pub steps: Steps,
+}
+
+impl Prep {
+    /// The prep of `p`: its presets, and the values held back for its foes
+    /// (no foe is beaten here).
+    fn of(p: &Planned) -> Self {
+        let mut ready = presets(p);
+        let mut steps = vec![];
+        if let Trigger::Open {
+            latch, steps: s, ..
+        } = &p.trigger
+        {
+            ready.extend(latch.iter().cloned());
+            steps.clone_from(s);
+        }
+        Self { ready, steps }
+    }
+}
+
 /// One check to photograph.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Subject {
@@ -56,6 +84,9 @@ pub struct Subject {
     pub child: Option<bool>,
     /// Its map and spot, or none to stand beside.
     pub at: Option<(String, Spot)>,
+    /// What Hob looks for: `chest`, `person`, `heart container`.
+    pub what: String,
+    pub prep: Prep,
 }
 
 /// One check's photo, as the ledger's `photos/index.json` keeps it.
@@ -107,6 +138,9 @@ impl std::fmt::Display for Subject {
 /// grouped by map so each map loads once.
 pub fn subjects(romfs: &Romfs, area: Option<&str>, hashes: &[u64]) -> Result<Vec<Subject>> {
     let (ledger, planned) = ledger::planned(romfs)?;
+    let preps: HashMap<u64, Prep> = (planned.iter())
+        .map(|p| (p.spot.hash, Prep::of(p)))
+        .collect();
     let talks: HashMap<u64, (String, [f32; 3])> = (planned.into_iter())
         .filter_map(|p| match p.trigger {
             Trigger::Talk { map, face, .. } => Some((p.spot.hash, (map, face))),
@@ -137,10 +171,16 @@ pub fn subjects(romfs: &Romfs, area: Option<&str>, hashes: &[u64]) -> Result<Vec
             _ => placed.or(talk),
         };
         let child = (at.as_ref().and_then(|(map, _)| warp::era(map))).or(child);
+        let what = match &at {
+            Some((_, Spot::At(_))) if !r.holder.contains("Cow") => "person".into(),
+            _ => what(&r.holder, &r.name),
+        };
         out.push(Subject {
             hash: r.hash,
             child,
             at,
+            what,
+            prep: preps.get(&r.hash).cloned().unwrap_or_default(),
         });
     }
     out.sort_by(|a, b| {
@@ -183,14 +223,18 @@ fn nightly(name: &str) -> bool {
     name.starts_with(&**actor::ENEMY_SKULLTULA_GOLD)
 }
 
-/// What Hob looks for in the frame.
-fn what(name: &str) -> &'static str {
-    if nightly(name) {
-        "Gold Skulltula"
-    } else if name.contains("Cow") {
-        "cow"
+/// What Hob looks for in the frame of `holder`, the check named `name`:
+/// its kind, or the item itself when it stands alone (a heart container).
+fn what(holder: &str, name: &str) -> String {
+    if nightly(holder) {
+        "Gold Skulltula".into()
+    } else if holder.contains("Cow") {
+        "cow".into()
     } else {
-        kinds::word(name).unwrap_or("item")
+        match kinds::word(holder) {
+            Some("item") | None => name.to_lowercase(),
+            Some(word) => word.into(),
+        }
     }
 }
 
@@ -232,8 +276,8 @@ pub struct Pass<'a, I> {
     levels: HashMap<String, Level>,
     /// The line of each placement shot so far, for a shop's other slots.
     shot: HashMap<u64, Line>,
-    /// The map, age and hour Link is in.
-    here: Option<(String, Option<bool>, u32)>,
+    /// The map, age, hour and held values Link is in.
+    here: Option<(String, Option<bool>, u32, Vec<String>)>,
 }
 
 impl<'a, I: Input> Pass<'a, I> {
@@ -374,10 +418,10 @@ impl<'a, I: Input> Pass<'a, I> {
                 ..line
             });
         }
-        self.arrive(map, s.child, if night { NIGHT } else { NOON })?;
+        self.arrive(map, s.child, if night { NIGHT } else { NOON }, &s.prep)?;
         let question = format!(
-            "Is a {} in plain view, not hidden behind Link or a wall?",
-            what(&holder.name)
+            "Can you clearly see a {} in this picture? Say no if unsure or if it's only Link.",
+            s.what
         );
         let (frame, trying) = (
             self.frame(s.hash),
@@ -413,20 +457,27 @@ impl<'a, I: Input> Pass<'a, I> {
         Ok(line)
     }
 
-    /// Load `map` as `child` at `hour`, unless Link is there already.
-    fn arrive(&mut self, map: &str, child: Option<bool>, hour: u32) -> Result<()> {
-        let want = (map.to_owned(), child, hour);
+    /// Load `map` as `child` at `hour` with `prep` held, unless Link is
+    /// there already.
+    fn arrive(&mut self, map: &str, child: Option<bool>, hour: u32, prep: &Prep) -> Result<()> {
+        let want = (map.to_owned(), child, hour, prep.ready.clone());
         if self.here.as_ref() == Some(&want) {
             return Ok(());
         }
         self.here = None;
         quiet(self.dev, self.input)?;
+        for (challenge, step) in &prep.steps {
+            self.dev.step(challenge, step)?;
+        }
         // Before the teleport, which spawns who's out at that hour.
         self.dev.ask(&Request::Time(hour))?;
         let place =
             arrival(self.places, map).with_context(|| format!("no arrival point in {map}"))?;
-        teleport(self.dev, self.input, place, child)?;
-        self.dev.land(map)?;
+        let dev = self.dev;
+        let hold = || hold(dev, &prep.ready);
+        hold()?;
+        teleport(dev, self.input, place, child)?;
+        dev.land_holding(map, hold)?;
         self.here = Some(want);
         Ok(())
     }
@@ -440,6 +491,16 @@ impl<'a, I: Input> Pass<'a, I> {
         sleep(SETTLE);
         Ok(())
     }
+}
+
+/// Write each `NAME=VALUE` of `entries`: a load clears some, so it's
+/// written again all through one.
+fn hold(dev: &Dev, entries: &[String]) -> Result<()> {
+    for entry in entries {
+        let (name, value) = preset(entry);
+        live::set(dev.game(), dev.global(), live::hash(name)?, value)?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -523,11 +584,11 @@ mod tests {
 
     #[test]
     fn hob_looks_for_what_the_holder_is() {
-        assert_eq!(
-            what(&format!("{}_01", &**actor::ENEMY_SKULLTULA_GOLD)),
-            "Gold Skulltula"
-        );
-        assert_eq!(what(actor::OBJ_T_BOX_A_01), "chest");
+        let gold = format!("{}_01", &**actor::ENEMY_SKULLTULA_GOLD);
+        assert_eq!(what(&gold, "Gold Skulltula"), "Gold Skulltula");
+        assert_eq!(what(actor::OBJ_T_BOX_A_01, "Small Key"), "chest");
+        let heart = what(actor::OBJ_HEART_CONTAINER, "Heart container");
+        assert_eq!(heart, "heart container");
     }
 
     #[test]

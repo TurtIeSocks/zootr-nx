@@ -99,7 +99,7 @@ fn steps(p: &Planned) -> &[(String, String)] {
     }
 }
 
-fn presets(p: &Planned) -> Vec<String> {
+pub(super) fn presets(p: &Planned) -> Vec<String> {
     let (ready, quests) = match &p.trigger {
         Trigger::Open { ready, steps, .. }
         | Trigger::Talk { ready, steps, .. }
