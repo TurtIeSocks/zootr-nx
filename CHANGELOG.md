@@ -3,6 +3,35 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.6.0] - 2026-11-20
+
+### Added
+
+- Stable file names, linked from the README
+- Unlink an input back to a value, and repoint a child
+- Gold Skulltulas by day
+- Photograph every check untouched for the ledger
+- Swing the camera off Link's back, and keep him alive
+- Default the camera swing to 200 ms around, 300 ms up
+- A survey mode that shoots every spot and keeps the best two
+- Shoot close-ups first and keep the frame Hob scores best
+- Wear the Iron Boots as the adult, so underwater checks sink
+- Dive the child to underwater checks, and shoot Gold Skulltulas at noon on a day seed
+- Stop a check's tries at the first frame Hob scores 4 or more
+- Keep every try's frame in tries/
+- --go to stand at a check, --here to shoot it by hand
+
+### Fixed
+
+- One name per OS for the app files and the CLI
+- Raise each holder before its photo, and ask Hob by name
+- Beat gate-only enemies before a shot, and stand back first
+- Read Hob's survey score when it comes back as a number
+- The child looks down into the water instead of diving
+- Drop a landing in the air to the floor, and look up at a high holder
+- --go keeps Link's gear and turns infinite health on
+- Clear foes a death spawns and ones that rise as Link lands
+
 ## [0.5.0] - 2026-11-19
 
 ### Added
