@@ -352,3 +352,63 @@ needs = "beat:phantom-ganon and beat:volvagia and beat:morpha"
 [[alternative]]
 place = "zora-domain-adult"
 needs = "beat:morpha"
+
+# Inside each dungeon. A door's rule above holds at the door. Once doors
+# shuffle, a door adds what the dungeon behind it needs inside, which that
+# dungeon's own door had covered. A dungeon whose rules were written for one
+# era names that era until its other era is audited.
+
+# Both eras audited, adult since the Adult Deku Tree setting.
+[[inside]]
+place = "deku-tree"
+needs = "always"
+
+# Both eras walk in from the trail.
+[[inside]]
+place = "dodongos-cavern"
+needs = "always"
+
+# Only a child walks in, and its tentacles take the Boomerang.
+[[inside]]
+place = "jabu-jabu"
+needs = "child"
+
+[[inside]]
+place = "forest-temple"
+needs = "adult"
+
+# The heat: the crater's tunic.
+[[inside]]
+place = "fire-temple"
+needs = "goron-tunic"
+
+# Flooded: the lake bottom's boots and tunic.
+[[inside]]
+place = "water-temple"
+needs = "iron-boots and zora-tunic"
+
+[[inside]]
+place = "shadow-temple"
+needs = "adult"
+
+# Its rules name each era's side.
+[[inside]]
+place = "spirit-temple"
+needs = "always"
+
+# Both eras audited: the crawl holes name child.
+[[inside]]
+place = "bottom-of-the-well"
+needs = "always"
+
+[[inside]]
+place = "ice-cavern"
+needs = "adult"
+
+[[inside]]
+place = "gerudo-training-ground"
+needs = "adult"
+
+[[inside]]
+place = "inside-ganons-castle"
+needs = "adult"

@@ -120,7 +120,9 @@ struct RuleFile {
     #[serde(default)]
     source: Vec<SourceRule>,
     #[serde(default)]
-    alternative: Vec<AlternativeRule>,
+    alternative: Vec<PlaceRule>,
+    #[serde(default)]
+    inside: Vec<PlaceRule>,
 }
 
 #[derive(Deserialize)]
@@ -162,11 +164,12 @@ pub struct ExitRule {
     pub expr: Expr,
 }
 
-/// What makes the game load a map's `_Alternative` copy in its place. The
-/// game's own gate is a flag logic can't evaluate.
+/// A rule about one place: what makes the game load its `_Alternative`
+/// copy (the game's own gate is a flag logic can't evaluate), or what a
+/// dungeon needs inside.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct AlternativeRule {
+pub struct PlaceRule {
     pub place: String,
     needs: String,
     #[serde(skip, default = "always")]
@@ -195,7 +198,8 @@ pub struct Book {
     abilities: BTreeMap<String, Expr>,
     checks: BTreeMap<u64, CheckEntry>,
     pub exits: Vec<ExitRule>,
-    pub alternatives: Vec<AlternativeRule>,
+    pub alternatives: Vec<PlaceRule>,
+    insides: Vec<PlaceRule>,
     pub sources: Vec<SourceRule>,
     toggles: BTreeSet<String>,
 }
@@ -223,6 +227,7 @@ impl Book {
             checks: BTreeMap::new(),
             exits: Vec::new(),
             alternatives: Vec::new(),
+            insides: Vec::new(),
             sources: Vec::new(),
             toggles: settings::toggles(),
         };
@@ -275,16 +280,21 @@ impl Book {
             vocab::words(&mut exit.expr)?;
             self.exits.push(exit);
         }
-        for mut alt in file.alternative {
-            alt.place = vocab::node(&alt.place)?;
-            alt.expr = parse(&alt.needs)?;
-            vocab::words(&mut alt.expr)?;
-            ensure!(
-                !self.alternatives.iter().any(|a| a.place == alt.place),
-                "{} has two alternative rules",
-                alt.place
-            );
-            self.alternatives.push(alt);
+        for (rules, list, kind) in [
+            (file.alternative, &mut self.alternatives, "alternative"),
+            (file.inside, &mut self.insides, "inside"),
+        ] {
+            for mut rule in rules {
+                rule.place = vocab::node(&rule.place)?;
+                rule.expr = parse(&rule.needs)?;
+                vocab::words(&mut rule.expr)?;
+                ensure!(
+                    !list.iter().any(|a| a.place == rule.place),
+                    "{} has two {kind} rules",
+                    rule.place
+                );
+                list.push(rule);
+            }
         }
         for mut source in file.source {
             source.place = vocab::node(&source.place)?;
@@ -323,11 +333,24 @@ impl Book {
             self.need(&alt.expr, &ctx)
                 .with_context(|| format!("alternative to {}", alt.place))?;
         }
+        for inside in &self.insides {
+            self.need(&inside.expr, &ctx)
+                .with_context(|| format!("inside {}", inside.place))?;
+        }
         for source in &self.sources {
             self.need(&source.expr, &ctx)
                 .with_context(|| format!("source {}", source.name))?;
         }
         Ok(())
+    }
+
+    /// What being inside the dungeon at `node` needs, resolved. Every
+    /// dungeon has a rule: a moved door carries it along.
+    pub fn inside(&self, node: &str, ctx: &Ctx) -> Result<Need> {
+        let rule = (self.insides.iter())
+            .find(|r| r.place == node)
+            .with_context(|| format!("{node} has no inside rule"))?;
+        self.need(&rule.expr, ctx)
     }
 
     /// What loads `map`'s alternative, resolved. Every alternative the
