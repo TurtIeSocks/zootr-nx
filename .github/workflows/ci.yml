@@ -41,7 +41,12 @@ jobs:
       - name: Install the pinned toolchain
         run: rustup toolchain install
 
+      # Only main saves. A branch reads main's cache but not another
+      # branch's, so its own copy (about 650 MB an OS) only crowded main's
+      # out of the 10 GB the repo gets.
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: cargo fmt
         run: cargo fmt --check
