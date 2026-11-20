@@ -113,9 +113,9 @@ fn tries() -> Vec<(Side, u32)> {
 
 /// How far round Link the pass beats enemies before a shot.
 const CLEAR: f32 = 20.0;
-/// How close a foe that never woke must be for a second try once the
-/// camera has swung, in metres.
-const NEAR: f32 = 8.0;
+/// How far a foe must move from where the last look saw it to count as
+/// awake, in metres.
+const MOVED: f32 = 0.5;
 /// How many times a clear looks again for foes a death spawned.
 const ROUNDS: usize = 3;
 
@@ -154,6 +154,8 @@ pub struct Pass<'a, I> {
     levels: HashMap<String, Level>,
     /// Enemies of each map that never woke to a beating, not tried again.
     asleep: HashSet<(String, String)>,
+    /// Each foe near Link and where it was at the last look.
+    seen: Vec<(String, [f32; 3])>,
     /// The line of each placement shot so far, for a shop's other slots.
     shot: HashMap<u64, Line>,
     /// The map, age, hour and held values Link is in.
@@ -191,6 +193,7 @@ impl<'a, I: Input> Pass<'a, I> {
             swing: Swing { orbit: 0, raise: 0 },
             levels: HashMap::new(),
             asleep: HashSet::new(),
+            seen: Vec::new(),
             shot,
             here: None,
             gd: GameData::load(romfs)?,
@@ -427,6 +430,7 @@ impl<'a, I: Input> Pass<'a, I> {
             }
             let side_name = format!("{side:?}").to_lowercase();
             let trying = tried.join(format!("{}-{side_name}-{step}.png", s.hash));
+            self.watch()?;
             self.input.shot(&trying)?;
             let looked = look_at(vision, &trying, &questions)?;
             let yes = looked.answers[&seen].as_bool() == Some(true);
@@ -491,10 +495,9 @@ impl<'a, I: Input> Pass<'a, I> {
     ///
     /// Looks again after each round, for what a death spawns (a
     /// Floormaster's three little hands). One that never woke is skipped
-    /// for the rest of the map, as each try costs 10 s, unless `wake` and
-    /// it's within [`NEAR`]: one that rises as Link arrives (a Stalfos) is
-    /// up by the time the camera has swung.
-    fn clear(&mut self, wake: bool) -> Result<()> {
+    /// for the rest of the map, as each try costs 10 s: [`Pass::watch`]
+    /// catches it once it's up. Ends by noting where each foe is.
+    fn clear(&mut self) -> Result<()> {
         let map = self.dev.state()?.map;
         let mut tried = HashSet::new();
         for _ in 0..ROUNDS {
@@ -502,7 +505,7 @@ impl<'a, I: Input> Pass<'a, I> {
                 .filter(|(m, _)| *m == map)
                 .map(|(_, n)| n.as_str())
                 .collect();
-            let names = targets(&self.dev.foes(CLEAR)?.0, &asleep, &tried, wake);
+            let names = targets(&self.dev.foes(CLEAR)?.0, &asleep, &tried);
             if names.is_empty() {
                 break;
             }
@@ -520,7 +523,29 @@ impl<'a, I: Input> Pass<'a, I> {
                 }
             }
         }
-        quiet(self.dev, self.input)
+        quiet(self.dev, self.input)?;
+        self.seen = seen(&self.dev.foes(CLEAR)?.0);
+        Ok(())
+    }
+
+    /// Beat each foe that woke since the last look: one new, or moved from
+    /// where it was. A Stalfos on the upper floor of the Forest Temple's
+    /// room stands still until Link comes near, and `slay` can't beat it
+    /// before (Mac, 2026-11-20). One look when nothing moved.
+    fn watch(&mut self) -> Result<()> {
+        let woke = woken(&self.dev.foes(CLEAR)?.0, &self.seen);
+        for (name, at) in &woke {
+            let target = crate::dev::Target::At(name.clone(), *at);
+            match self.dev.slay(self.romfs, &target, CLEAR) {
+                Ok(slain) => eprintln!("  woke: {slain}"),
+                Err(e) => eprintln!("  {target}: {e:#}"),
+            }
+        }
+        if !woke.is_empty() {
+            quiet(self.dev, self.input)?;
+        }
+        self.seen = seen(&self.dev.foes(CLEAR)?.0);
+        Ok(())
     }
 
     /// Warp Link to `at`, beat the enemies round him, turn him to `face`,
@@ -541,8 +566,9 @@ impl<'a, I: Input> Pass<'a, I> {
                 crate::nav::sink::land(self.dev)?;
             }
         }
-        self.clear(false)?;
+        self.clear()?;
         Drive::new(self.dev, &mut *self.input).face(face)?;
+        self.watch()?;
         self.input.press("ZL")?;
         sleep(SETTLE);
         for (stick, ms) in self.swing.pushes() {
@@ -553,25 +579,43 @@ impl<'a, I: Input> Pass<'a, I> {
         } else if face[1] - at[1] > HIGH {
             self.input.hold("RUp", LOOK_UP)?;
         }
-        self.clear(true)?;
+        self.watch()?;
         sleep(SETTLE);
         Ok(())
     }
 }
 
 /// The foes in `foes` for [`Pass::clear`] to slay this round: each quiet
-/// kind not `tried` yet this clear, and not `asleep` in the map unless
-/// `wake` and it's within [`NEAR`].
+/// kind not `tried` yet this clear, and not `asleep` in the map.
 fn targets(
     foes: &[crate::dev::Foe],
     asleep: &HashSet<&str>,
     tried: &HashSet<String>,
-    wake: bool,
 ) -> BTreeSet<String> {
     (foes.iter())
         .filter(|f| foe(&f.name) && !tried.contains(&f.name))
-        .filter(|f| !asleep.contains(f.name.as_str()) || (wake && f.distance <= NEAR))
+        .filter(|f| !asleep.contains(f.name.as_str()))
         .map(|f| f.name.clone())
+        .collect()
+}
+
+/// Where each quiet foe in `foes` is, for [`woken`] to compare against.
+fn seen(foes: &[crate::dev::Foe]) -> Vec<(String, [f32; 3])> {
+    (foes.iter())
+        .filter(|f| foe(&f.name))
+        .map(|f| (f.name.clone(), f.at))
+        .collect()
+}
+
+/// Each quiet foe in `foes` that woke since `seen` was taken: none of its
+/// name was within [`MOVED`] of where it is now. One at Life 0 is dying.
+fn woken(foes: &[crate::dev::Foe], seen: &[(String, [f32; 3])]) -> Vec<(String, [f32; 3])> {
+    let was = |f: &crate::dev::Foe| {
+        (seen.iter()).any(|(n, at)| *n == f.name && crate::dev::distance(*at, f.at) <= MOVED)
+    };
+    (foes.iter())
+        .filter(|f| foe(&f.name) && f.left > 0 && !was(f))
+        .map(|f| (f.name.clone(), f.at))
         .collect()
 }
 
@@ -607,27 +651,46 @@ fn score_of(answer: &serde_json::Value) -> u32 {
 mod tests {
     use super::*;
 
-    #[test]
-    fn a_clear_slays_what_a_death_spawns_and_wakes_only_near_sleepers() {
-        let f = |name: &str, distance| crate::dev::Foe {
+    fn fake(name: &str, at: [f32; 3], left: i32) -> crate::dev::Foe {
+        crate::dev::Foe {
             name: name.into(),
-            distance,
-            left: 1,
-            most: 1,
-        };
-        let (near, far) = ("Enemy_FakeStalfos", "Enemy_FakeKeese");
-        let foes = [f(near, 3.0), f(far, 15.0), f("Enemy_FakeHand_Little", 2.0)];
-        let asleep: HashSet<&str> = [near, far].into();
-        let tried: HashSet<String> = HashSet::new();
-        let names = |wake| {
-            targets(&foes, &asleep, &tried, wake)
+            distance: 0.0,
+            at,
+            left,
+            most: 18,
+        }
+    }
+
+    #[test]
+    fn a_clear_slays_what_a_death_spawns_and_skips_sleepers() {
+        let (sleeper, hand) = ("Enemy_FakeStalfos", "Enemy_FakeHand_Little");
+        let foes = [fake(sleeper, [0.0; 3], 18), fake(hand, [1.0, 0.0, 0.0], 4)];
+        let asleep: HashSet<&str> = [sleeper].into();
+        let names = |tried: &HashSet<String>| {
+            targets(&foes, &asleep, tried)
                 .into_iter()
                 .collect::<Vec<_>>()
         };
-        assert_eq!(names(false), ["Enemy_FakeHand_Little"]);
-        assert_eq!(names(true), ["Enemy_FakeHand_Little", near]);
-        let tried: HashSet<String> = ["Enemy_FakeHand_Little".to_string()].into();
-        assert!(targets(&foes, &asleep, &tried, false).is_empty());
+        assert_eq!(names(&HashSet::new()), [hand]);
+        assert!(names(&[hand.to_string()].into()).is_empty());
+    }
+
+    #[test]
+    fn a_foe_woke_when_it_moved_or_came_new_and_isnt_dying() {
+        let still = fake("Enemy_FakeStalfos", [0.0, 114.5, -57.2], 18);
+        let up = fake("Enemy_FakeStalfos", [4.7, 114.6, -57.9], 18);
+        let dying = fake("Enemy_FakeStalfos", [-4.6, 105.5, -55.0], 0);
+        let new = fake("Enemy_FakeKeese", [2.0, 106.0, -50.0], 1);
+        let seen = vec![
+            ("Enemy_FakeStalfos".to_string(), [0.0, 114.5, -57.2]),
+            ("Enemy_FakeStalfos".to_string(), [6.9, 114.5, -59.1]),
+        ];
+        let woke = woken(&[still, up, dying, new], &seen);
+        let names: Vec<_> = woke.iter().map(|(n, at)| (n.as_str(), at[0])).collect();
+        assert_eq!(
+            names,
+            [("Enemy_FakeStalfos", 4.7), ("Enemy_FakeKeese", 2.0)]
+        );
     }
 
     #[test]

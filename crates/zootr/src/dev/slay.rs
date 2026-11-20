@@ -26,6 +26,8 @@ const TICK: Duration = Duration::from_millis(250);
 pub enum Target {
     Placement(u64),
     Name(String),
+    /// The actor of a name nearest a point: one seen there just now.
+    At(String, [f32; 3]),
 }
 
 impl Target {
@@ -40,6 +42,7 @@ impl fmt::Display for Target {
         match self {
             Self::Placement(h) => write!(f, "placement {h}"),
             Self::Name(n) => f.write_str(n),
+            Self::At(n, [x, y, z]) => write!(f, "{n} at {x:.1},{y:.1},{z:.1}"),
         }
     }
 }
@@ -49,6 +52,8 @@ impl fmt::Display for Target {
 pub struct Foe {
     pub name: String,
     pub distance: f32,
+    /// Where it is now.
+    pub at: [f32; 3],
     pub left: i32,
     pub most: i32,
 }
@@ -87,10 +92,14 @@ impl fmt::Display for Foe {
         let Foe {
             name,
             distance,
+            at: [x, y, z],
             left,
             most,
         } = self;
-        write!(f, "{name} {distance:.1} m, life {left}/{most}")
+        write!(
+            f,
+            "{name} {distance:.1} m at {x:.1},{y:.1},{z:.1}, life {left}/{most}"
+        )
     }
 }
 
@@ -124,7 +133,7 @@ fn look(alive: bool, event: bool, life: Option<Life>) -> Look {
     }
 }
 
-fn distance(a: [f32; 3], b: [f32; 3]) -> f32 {
+pub(crate) fn distance(a: [f32; 3], b: [f32; 3]) -> f32 {
     (0..3).map(|i| (a[i] - b[i]).powi(2)).sum::<f32>().sqrt()
 }
 
@@ -142,6 +151,7 @@ impl<M: Memory> Dev<M> {
                 found.push(Foe {
                     name: a.name,
                     distance: d,
+                    at: a.pos,
                     left,
                     most,
                 });
@@ -152,12 +162,14 @@ impl<M: Memory> Dev<M> {
     }
 
     /// Beat `target` within `within` of Link: a placement's actor (the
-    /// nearest of its name to its spot), or every actor of a name.
+    /// nearest of its name to its spot), the one nearest a point, or every
+    /// actor of a name.
     pub fn slay(&self, romfs: &Romfs, target: &Target, within: f32) -> Result<Lines<Slain>> {
         let link = self.link()?;
         let all = actors::actors(&self.game, self.main)?;
         let (name, spot) = match target {
             Target::Name(name) => (name.clone(), None),
+            Target::At(name, at) => (name.clone(), Some(*at)),
             Target::Placement(hash) => {
                 let map = self.state()?.map;
                 let placed = (warp::placements_in(romfs, &map)?.into_iter())
