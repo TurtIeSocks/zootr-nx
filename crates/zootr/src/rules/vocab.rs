@@ -8,7 +8,8 @@
 
 use anyhow::{Result, bail};
 
-use super::{BEAT, Expr, ITEM_PREFIXES};
+use super::Expr;
+use super::item::{BEAT, ITEM_PREFIXES};
 use crate::known::{Name, actor, field, item, map};
 
 /// `item:<word>`: an actor Link holds, or a pickup that stands for one.

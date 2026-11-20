@@ -9,10 +9,10 @@ use std::sync::OnceLock;
 use anyhow::{Context, Result, bail, ensure};
 use serde::Deserialize;
 
-use crate::progressive::LINES;
 use crate::settings::{self, DungeonKeys, FortressKeys, NewGame};
 use crate::world::Era;
 
+mod item;
 mod lang;
 mod set;
 pub mod vocab;
@@ -61,13 +61,6 @@ const FILES: &[(&str, &str)] = &[
     ),
     ("grottos.toml", include_str!("../logic/grottos.toml")),
 ];
-
-/// The game's own words naming an item actor start with one of these.
-/// Rule files use `item:` words, so only code writes these.
-const ITEM_PREFIXES: &[&str] = &["Item_", "TBox_", "Armor_", "Obj_"];
-/// A boss defeat's id starts with this. Only a vanilla source gives one,
-/// and Link holds it like an item.
-const BEAT: &str = "Beat_";
 
 /// What a seed's rules resolve against.
 pub struct Ctx {
@@ -382,11 +375,8 @@ impl Book {
     }
 
     fn word(&self, word: &str, ctx: &Ctx) -> Result<Need> {
-        if ITEM_PREFIXES.iter().any(|p| word.starts_with(p)) {
-            return item(word, ctx.progressive);
-        }
-        if word.len() > BEAT.len() && word.starts_with(BEAT) {
-            return item(word, false);
+        if let Some(need) = item::word(word, ctx.progressive) {
+            return need;
         }
         Ok(match word {
             "always" => Need::Always,
@@ -411,38 +401,6 @@ impl Book {
             },
         })
     }
-}
-
-/// An item's name or `name*n`. In an upgrade line, `n` counts levels from
-/// the name: with progressive items any of the line's items count, without
-/// them it names the level itself.
-fn item(word: &str, progressive: bool) -> Result<Need> {
-    let (actor, n) = match word.split_once('*') {
-        Some((actor, n)) => (actor, n.parse::<u32>().ok().filter(|&n| n > 0)),
-        None => (word, Some(1)),
-    };
-    let n = n.with_context(|| format!("bad count in `{word}`"))?;
-    let Some((line, at)) = LINES.iter().find_map(|l| {
-        l.iter()
-            .position(|&(drop, _)| drop == actor)
-            .map(|i| (l, i))
-    }) else {
-        return Ok(Need::Items {
-            actors: vec![actor.into()],
-            count: n,
-        });
-    };
-    let level = at + n as usize;
-    ensure!(level <= line.len(), "`{word}` is past the end of its line");
-    let (levels, count) = match progressive {
-        true => (&line[..], level),
-        // Owning a higher level does everything a lower one does.
-        false => (&line[level - 1..], 1),
-    };
-    Ok(Need::Items {
-        actors: levels.iter().map(|&(drop, _)| drop.to_string()).collect(),
-        count: count as u32,
-    })
 }
 
 #[cfg(test)]
@@ -470,26 +428,6 @@ mod tests {
         let mut have = Have::default();
         items.iter().for_each(|i| have.add(i));
         have
-    }
-
-    #[test]
-    fn line_counts_follow_progressive_items() {
-        needs_names!();
-        let book = Book::load().unwrap();
-        let on = ctx(true, &[]);
-        let off = ctx(false, &[]);
-        let longshot = |c: &Ctx| book.resolve(&format!("{}*2", item::HOOKSHOT), c).unwrap();
-
-        assert!(!longshot(&on).met(&have(&[item::HOOKSHOT]), Era::Adult));
-        assert!(longshot(&on).met(&have(&[item::HOOKSHOT, item::LONGSHOT]), Era::Adult));
-        assert!(longshot(&on).met(&have(&[item::LONGSHOT, item::LONGSHOT]), Era::Adult));
-        assert_eq!(longshot(&on), book.resolve(item::LONGSHOT, &on).unwrap());
-
-        assert!(!longshot(&off).met(&have(&[item::HOOKSHOT, item::HOOKSHOT]), Era::Adult));
-        assert!(longshot(&off).met(&have(&[item::LONGSHOT]), Era::Adult));
-
-        assert!(book.resolve(&format!("{}*3", item::HOOKSHOT), &on).is_err());
-        assert!(book.resolve(&format!("{}*0", item::HOOKSHOT), &on).is_err());
     }
 
     #[test]
@@ -1037,7 +975,7 @@ mod tests {
         needs.iter().for_each(|n| n.items(&mut used));
         let missing: Vec<_> = used
             .iter()
-            .filter(|a| !known.contains(**a) && !a.starts_with(BEAT))
+            .filter(|a| !known.contains(**a) && !a.starts_with(super::item::BEAT))
             .collect();
         assert!(missing.is_empty(), "not items: {missing:?}");
     }
