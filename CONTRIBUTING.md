@@ -9,18 +9,18 @@ Read the rules first. A pull request that breaks one can't be merged.
   assets pulled from them. zootr reads the player's own dump at runtime.
   Tests that need the game read it the same way.
 - `dump/` and `re/` are ignored by git and stay local. Don't force-add them.
-- No emulator names. Don't name any emulator or runner in code, comments,
-  docs, tests, commit messages or pull requests. Where the code needs one,
-  say "the PC build" or "the emulator target". A target is configured by the
-  user and nothing in the repo knows which one it is.
+- No target names. Don't name any app that runs the game, in code,
+  comments, docs, tests, commit messages or pull requests. Where the code
+  needs one, say "the target", or "a target with a bridge". A target is
+  configured by the user and nothing in the repo knows which one it is.
+  Write as if the game runs on its own console.
 - Game names go through `known::*` consts (`n!(0x…)`) or the logic
   vocabulary words, never as text. That covers actor, item, flag, map and
   scene names, in code, comments and tests, and in the app, where a cell
   draws a glyph the Rust side picks. `zootr probe hash NAME`
   prints the `n!(0x…)` to paste. A test that needs a made-up name uses
   one like `Item_A`. The guard test in `known/guard.rs` enforces this.
-- No help obtaining emulators, firmware, keys or dumps, in issues or
-  anywhere else.
+- No help obtaining the game or dumps, in issues or anywhere else.
 - Tests skip without a dump. A test that needs the game gets it from
   `crate::game::dev_dump()` and returns early when that's `None`:
 
