@@ -21,6 +21,7 @@ export function NewSeed() {
     <>
       <CardHeader
         title="New seed"
+        help="seed"
         description="Built from your current settings, or a share code's, and installed to every target"
       />
       {/* ⌘↵ and ⇧⌘↵ work from anywhere in the folder. */}

@@ -1,10 +1,20 @@
 import type { ReactNode } from "react";
 import { Help } from "@/components/help";
+import { Tip } from "@/components/tip";
 import { Badge, ChangedDot } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import type { TopicId } from "@/help/topics";
+import type { HelpTopic } from "@/help/topics";
 import { cn } from "@/lib/utils";
 import { untested } from "@/settings/setting";
+
+/** Marks a setting not yet played through. */
+export function UntestedBadge() {
+  return (
+    <Tip tip="Not played through yet, so it may misbehave">
+      <Badge variant="gold">Untested</Badge>
+    </Tip>
+  );
+}
 
 /** Props for {@link Row}. */
 export interface RowProps {
@@ -12,7 +22,7 @@ export interface RowProps {
   id: string;
   label: string;
   /** A help bubble beside the label. */
-  help?: TopicId;
+  help?: HelpTopic;
   /** Its "Untested." prefix becomes a badge. */
   description: string;
   /** Marks the row with the gold dot. */
@@ -53,7 +63,7 @@ export function Row({
             {label}
           </Label>
           {help && <Help topic={help} />}
-          {isUntested && <Badge variant="gold">Untested</Badge>}
+          {isUntested && <UntestedBadge />}
         </div>
         {text && (
           <p className="mt-0.5 max-w-[62ch] text-pretty text-[13px] text-ink-muted leading-[18px]">

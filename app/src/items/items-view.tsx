@@ -2,6 +2,7 @@ import { ExternalLink, Eye, Info, LoaderCircle, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { commands, type IconSize } from "@/bindings";
 import { Callout, InlineError } from "@/components/callout";
+import { Help } from "@/components/help";
 import { LoadGate } from "@/components/load-gate";
 import { linkClass } from "@/components/styles";
 import { TipButton } from "@/components/tip-button";
@@ -103,14 +104,18 @@ function PopOutButton() {
   const popOut = useRequestState();
   return (
     <div className="flex flex-col gap-2">
-      <Button
-        variant="secondary"
-        disabled={popOut.busy}
-        onClick={() => popOut.run(() => call(commands.itemsPopOut()))}
-      >
-        <ExternalLink />
-        Pop out
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="secondary"
+          className="flex-1"
+          disabled={popOut.busy}
+          onClick={() => popOut.run(() => call(commands.itemsPopOut()))}
+        >
+          <ExternalLink />
+          Pop out
+        </Button>
+        <Help topic="items" />
+      </div>
       <InlineError error={popOut.error} />
     </div>
   );

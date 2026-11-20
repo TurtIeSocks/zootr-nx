@@ -11,6 +11,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { commands, type SharedBuild } from "@/bindings";
 import { Callout, InlineError } from "@/components/callout";
 import { ChangeList } from "@/components/change-list";
+import { Help } from "@/components/help";
 import { linkClass } from "@/components/styles";
 import { ChangedDot } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,7 +70,10 @@ function OwnOverview() {
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-2">
-        <p className="type-overline mr-auto">Builds with</p>
+        <div className="mr-auto flex items-center gap-1.5">
+          <p className="type-overline">Builds with</p>
+          <Help topic="builds-with" />
+        </div>
         <DriftPill />
       </div>
       <Tiles

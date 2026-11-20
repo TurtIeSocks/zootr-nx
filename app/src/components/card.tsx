@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Help } from "@/components/help";
-import type { TopicId } from "@/help/topics";
+import type { HelpTopic } from "@/help/topics";
 import { cn } from "@/lib/utils";
 
 /** Props for {@link Card}. */
@@ -34,7 +34,7 @@ export interface CardHeaderProps
   extends Omit<CardProps, "className" | "children" | "title"> {
   title: ReactNode;
   /** A help bubble beside the title. */
-  help?: TopicId;
+  help?: HelpTopic;
 }
 
 /** A card's title, description, and trailing meta and action. A folder's

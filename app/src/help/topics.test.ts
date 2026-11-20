@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { TOPICS } from "@/help/topics";
+import { GROUP_HELP, TOPICS } from "@/help/topics";
+import { rust } from "@/test/rust";
 import { SOURCES } from "@/test/sources";
 
 /** Every `help="…"`, `help: "…"` and `topic="…"` in the code. */
@@ -27,4 +28,13 @@ test("topics speak plainly: one to three sentences, no developer words", () => {
     expect(t.body.length, id).toBeGreaterThanOrEqual(1);
     expect(t.body.length, id).toBeLessThanOrEqual(3);
   }
+});
+
+test("every settings group has its page bubble", () => {
+  const mod = /pub mod group \{([^}]*)\}/.exec(rust("settings.rs"))?.[1] ?? "";
+  const groups = [...mod.matchAll(/&str = "([^"]+)"/g)].map((m) => m[1]);
+  expect(groups.length).toBeGreaterThan(5);
+  expect(groups.filter((g) => !Object.hasOwn(GROUP_HELP, g ?? ""))).toEqual([]);
+  for (const [g, t] of Object.entries(GROUP_HELP))
+    expect({ g, word: DEV_WORDS.exec(t.body.join(" "))?.[0] }).toEqual({ g });
 });

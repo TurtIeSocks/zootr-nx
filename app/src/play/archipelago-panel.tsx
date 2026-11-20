@@ -33,6 +33,7 @@ export function ArchipelagoPanel() {
       <section className="border-line border-t">
         <CardHeader
           title="Room"
+          help="ap-room"
           description={
             slot
               ? `Where ${slot.ap_slot} plays. Kept with this seed.`
@@ -75,7 +76,11 @@ function Slot({ slot }: { slot: string | null }) {
   const apworld = useApworld();
   return (
     <section>
-      <CardHeader title="Slot" action={<ForHosts apworld={apworld} />} />
+      <CardHeader
+        title="Slot"
+        help="ap-slot"
+        action={<ForHosts apworld={apworld} />}
+      />
       <div className="flex flex-col gap-3 px-4 pb-4">
         <div
           data-over={over}

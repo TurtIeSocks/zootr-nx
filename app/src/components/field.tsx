@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { InlineError } from "@/components/callout";
 import { Help } from "@/components/help";
 import { Label } from "@/components/ui/label";
-import type { TopicId } from "@/help/topics";
+import type { HelpTopic } from "@/help/topics";
 
 /** Props for {@link Field}. */
 export interface FieldProps {
@@ -12,7 +12,7 @@ export interface FieldProps {
   labelId?: string;
   label: string;
   /** A help bubble beside the label. */
-  help?: TopicId;
+  help?: HelpTopic;
   /** A line under the control. */
   hint?: string;
   /** Replaces the hint, as an error, while set. */

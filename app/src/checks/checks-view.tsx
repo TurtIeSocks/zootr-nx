@@ -10,6 +10,7 @@ import {
   nameOf,
 } from "@/checks/rows";
 import { InlineError } from "@/components/callout";
+import { Help } from "@/components/help";
 import { LoadGate } from "@/components/load-gate";
 import { Meter } from "@/components/meter";
 import { RequestError } from "@/components/request-error";
@@ -343,6 +344,9 @@ function Checks() {
           <FilterPicker />
           <Done />
           <Query />
+          <span className="ml-auto flex">
+            <Help topic="checks" />
+          </span>
         </div>
         <InlineError error={error} className="px-3 pt-2" />
         <div className="min-h-0 flex-1 overflow-auto">

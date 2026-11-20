@@ -1,5 +1,6 @@
 import { TriangleAlert } from "lucide-react";
 import { Callout } from "@/components/callout";
+import { Help } from "@/components/help";
 import { Meter } from "@/components/meter";
 import { RequestError } from "@/components/request-error";
 import { SeedIcons } from "@/components/seed-icons";
@@ -28,7 +29,10 @@ export function InstalledSeed() {
         <div className="flex flex-wrap items-center gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex h-5 items-center gap-2">
-              <h2 className="type-overline">Installed</h2>
+              <div className="flex items-center gap-1.5">
+                <h2 className="type-overline">Installed</h2>
+                <Help topic="installed" />
+              </div>
               {installed && <ExtrasBadges entry={installed} />}
             </div>
             {installed ? (

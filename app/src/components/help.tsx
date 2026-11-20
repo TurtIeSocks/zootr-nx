@@ -6,7 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { TOPICS, type TopicId } from "@/help/topics";
+import { type HelpTopic, TOPICS, type Topic } from "@/help/topics";
 import { go } from "@/stores/shell";
 
 /** How long the pointer rests before the card opens, and how long it
@@ -16,7 +16,7 @@ const CLOSE_MS = 150;
 
 /** Props for {@link Help}. */
 export interface HelpProps {
-  topic: TopicId;
+  topic: HelpTopic;
 }
 
 /** A small "?" beside a label that explains it. Resting the pointer opens
@@ -24,7 +24,7 @@ export interface HelpProps {
  * clicked. A click or Enter pins it open until Escape, a click outside or
  * a second click. Opening never takes focus. */
 export function Help({ topic }: HelpProps) {
-  const t = TOPICS[topic];
+  const t: Topic = typeof topic === "string" ? TOPICS[topic] : topic;
   const [open, setOpen] = useState(false);
   const pinned = useRef(false);
   const timer = useRef<number>(undefined);
@@ -78,14 +78,14 @@ export function Help({ topic }: HelpProps) {
             {line}
           </p>
         ))}
-        {"link" in t && (
+        {t.link && (
           <Button
             variant="ghost"
             size="sm"
             className="mt-2 -ml-2"
             onClick={() => {
               close();
-              go(t.link.to);
+              if (t.link) go(t.link.to);
             }}
           >
             {t.link.label}
