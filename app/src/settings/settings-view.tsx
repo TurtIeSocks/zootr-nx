@@ -16,7 +16,12 @@ import { useUi } from "@/stores/ui";
 /** A settings group's page, or one of the app's panes, in the page frame. */
 export function SettingsView() {
   const [section] = useUi.usePath("section");
-  return <Page>{PANES[section] ?? <Group group={section} />}</Page>;
+  return (
+    <Page>
+      {PANES[section] ?? <Group group={section} />}
+      <DriftBar />
+    </Page>
+  );
 }
 
 /** The app's own panes, by section. Any other section is a schema group. */
@@ -39,14 +44,12 @@ interface GroupProps {
   group: string;
 }
 
-/** A schema group's page, then why its reset or a seed action failed, then
- * the drift bar. */
+/** A schema group's page, then why its reset or a seed action failed. */
 function Group({ group }: GroupProps) {
   return (
     <RequestProvider>
       <GroupPage group={group} />
       <GroupError />
-      <Drift />
     </RequestProvider>
   );
 }
@@ -56,10 +59,4 @@ function GroupError() {
   const { error } = useRequest();
   const [failed] = useSeeds.usePath("error");
   return <InlineError error={error ?? failed} />;
-}
-
-/** The drift bar, while the settings differ from the installed seed's. */
-function Drift() {
-  const drifted = useSeeds((s) => s.drift.length > 0);
-  return drifted && <DriftBar />;
 }

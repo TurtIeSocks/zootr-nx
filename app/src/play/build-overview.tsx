@@ -4,22 +4,15 @@ import {
   FlaskConical,
   type LucideIcon,
   Pin,
-  RotateCcw,
   Share2,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { commands, type SharedBuild } from "@/bindings";
 import { Callout, InlineError } from "@/components/callout";
-import { ChangeList } from "@/components/change-list";
+import { DriftReview, driftWords } from "@/components/drift-review";
 import { Help } from "@/components/help";
 import { linkClass } from "@/components/styles";
 import { ChangedDot } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Tooltip,
   TooltipContent,
@@ -33,19 +26,13 @@ import {
   testOn,
   testParts,
 } from "@/lib/config";
-import { count, isShareCode, nameOf } from "@/lib/format";
+import { count, isShareCode } from "@/lib/format";
 import { savedAs } from "@/lib/plando";
 import { type MarkedChip, markedChips } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { groupIcon, type Section, shows } from "@/shell/nav";
 import { useConfig, useDevTools } from "@/stores/config";
-import {
-  DEFAULTS_FROM,
-  takeSettings,
-  useDriftBase,
-  useDriftFrom,
-  useSeeds,
-} from "@/stores/seeds";
+import { useDriftBase, useDriftFrom, useSeeds } from "@/stores/seeds";
 import { openSettings } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
 
@@ -363,9 +350,6 @@ function ChipView({ chip }: { chip: MarkedChip }) {
   );
 }
 
-/** "since" a seed, "from" the defaults. */
-const since = (from: string) => (from === DEFAULTS_FROM ? "from" : "since");
-
 /** How many settings differ from what drift measures from, with Review, or
  * that nothing does. */
 function DriftPill() {
@@ -384,53 +368,15 @@ function DriftPill() {
   return (
     <span className={cn(pill, "bg-gold-soft pr-1 pl-2 text-gold-ink")}>
       <ChangedDot />
-      {count(drift.length, "change")} {since(from)} {from}
-      <Review />
-    </span>
-  );
-}
-
-/** Every difference by group, and a way back to what drift measures
- * from. */
-function Review() {
-  const [open, setOpen] = useState(false);
-  const [drift] = useSeeds.usePath("drift");
-  const base = useDriftBase();
-  const from = useDriftFrom();
-  const restore =
-    from === DEFAULTS_FROM
-      ? "Use the default settings"
-      : `Use ${from}'s settings`;
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+      {driftWords(drift.length, from)}
+      <DriftReview>
         <button
           type="button"
           className="h-5 cursor-pointer rounded-full px-2 text-gold-ink hover:bg-gold-ink/10 aria-expanded:bg-gold-ink/10"
         >
           Review
         </button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-[360px] p-3">
-        <p className="type-overline pb-1">
-          Changed {since(from)} {(base && nameOf(base)) || from}
-        </p>
-        <ChangeList changes={drift} />
-        <div className="-mx-3 my-2.5 h-px bg-line" />
-        <div className="flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setOpen(false);
-              takeSettings(base ?? { settings: {} });
-            }}
-          >
-            <RotateCcw />
-            {restore}
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+      </DriftReview>
+    </span>
   );
 }
