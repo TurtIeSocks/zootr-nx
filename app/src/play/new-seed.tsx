@@ -6,6 +6,7 @@ import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CLOSE_GAME } from "@/lib/config";
 import { seedOrCode } from "@/lib/format";
 import { BuildOverview } from "@/play/build-overview";
 import { generateKey } from "@/play/generate";
@@ -101,11 +102,7 @@ function VanillaButton() {
   return (
     <TipButton
       label="Vanilla"
-      tip={
-        running
-          ? "Close the game first"
-          : "Take the mod off to play the game vanilla"
-      }
+      tip={running ? CLOSE_GAME : "Take the mod off to play the game vanilla"}
       variant="secondary"
       size="icon-lg"
       disabled={busy || running}

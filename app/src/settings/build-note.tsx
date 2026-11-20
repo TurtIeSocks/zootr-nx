@@ -3,6 +3,7 @@ import type { BuildStatus } from "@/bindings";
 import { Callout, ErrorWords, InlineError } from "@/components/callout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { WhyButton } from "@/components/why-button";
 import { errorParts } from "@/lib/api";
 import { useRequestState } from "@/lib/request";
 import { GenerateSteps } from "@/play/generate-steps";
@@ -12,6 +13,7 @@ import {
   stopGenerate,
   useBuild,
   useSeeds,
+  useTargetRunning,
 } from "@/stores/seeds";
 
 type Kind = BuildStatus["kind"];
@@ -45,6 +47,7 @@ export function BuildNote({ name }: { name: string }) {
   const [generating] = useSeeds.usePath("generating");
   const [stopping] = useSeeds.usePath("stopping");
   const request = useRequestState();
+  const running = useTargetRunning(name);
   if (!build) return null;
   const { label, variant } = BADGES[build.status.kind];
   const byHand = stale(build) && !build.command;
@@ -53,14 +56,15 @@ export function BuildNote({ name }: { name: string }) {
       <div className="flex items-center gap-2">
         <Badge variant={variant}>{label}</Badge>
         {build.command && (
-          <Button
+          <WhyButton
             size="sm"
             variant="secondary"
             disabled={generating || request.busy}
+            why={running && `Close ${name} first`}
             onClick={() => request.run(() => rebuild(name))}
           >
             <Hammer /> Rebuild
-          </Button>
+          </WhyButton>
         )}
         {generating && rebuilt === name && (
           <Button

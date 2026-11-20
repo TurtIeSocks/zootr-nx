@@ -10,6 +10,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { WhyButton } from "@/components/why-button";
+import { CLOSE_GAME } from "@/lib/config";
 import { useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
 import { skip, useUpdate } from "@/stores/update";
@@ -88,21 +90,23 @@ type InstallState = ReturnType<typeof useInstall>;
 function InstallButton({ update, progress, running, go }: InstallState) {
   if (!update) return null;
   return (
-    <Button size="sm" disabled={running || progress !== null} onClick={go}>
+    <WhyButton
+      size="sm"
+      disabled={progress !== null}
+      why={running && CLOSE_GAME}
+      onClick={go}
+    >
       {progress ? "Installing…" : "Install & restart"}
-    </Button>
+    </WhyButton>
   );
 }
 
 /** What holds the install back, how far it got, or why it failed. */
-function InstallStatus({ update, progress, error, running }: InstallState) {
+function InstallStatus({ update, progress, error }: InstallState) {
   if (!update) return null;
   const share = progress?.total ? progress.done / progress.total : null;
   return (
     <>
-      {running && !progress && (
-        <p className="text-ink-faint text-xs">Close the game to update</p>
-      )}
       {progress && (
         <div
           role="progressbar"

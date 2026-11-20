@@ -233,12 +233,10 @@ test("a save that moves a mod folder says so, and shows the folder it saved", as
 });
 
 /** Shows the pane with FakeTarget's game built as `build` says. */
-function showBuilt(build: Build) {
+function showBuilt(build: Build, running = false) {
   useSeeds.setPath("status", {
     game: true,
-    targets: [
-      { name: "FakeTarget", app: true, mod_dir: true, running: false, build },
-    ],
+    targets: [{ name: "FakeTarget", app: true, mod_dir: true, running, build }],
   });
   show();
 }
@@ -252,6 +250,11 @@ test("a stale build shows its badge, what's wrong and Rebuild", () => {
   expect(screen.getByText(stale)).toBeTruthy();
   expect(button("Rebuild").disabled).toBe(false);
   expect(screen.queryByText(/Rebuild it by hand/)).toBeNull();
+});
+
+test("Rebuild waits while the target's game runs", () => {
+  showBuilt({ status: { kind: "stale" }, text: stale, command: true }, true);
+  expect(button("Rebuild").getAttribute("aria-disabled")).toBe("true");
 });
 
 test("a stale build with no command says to rebuild it by hand", () => {

@@ -8,11 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { WhyButton } from "@/components/why-button";
 import { generate, useDriftFrom, useSeeds } from "@/stores/seeds";
 import { fix } from "@/stores/shell";
 
@@ -25,16 +21,7 @@ export function DriftBar() {
   const [busy] = useSeeds.usePath("busy");
   const from = useDriftFrom();
   const n = changes.length;
-  const generateButton = (
-    <Button
-      aria-disabled={!!blocked || undefined}
-      disabled={busy}
-      onClick={() => (blocked ? fix(blocked) : generate(null))}
-    >
-      {busy ? <Loader2 className="animate-spin" /> : <Dices />}
-      Generate & install
-    </Button>
-  );
+
   return (
     <FloatingBar
       message={
@@ -55,14 +42,15 @@ export function DriftBar() {
           <ChangeList changes={changes} />
         </PopoverContent>
       </Popover>
-      {blocked ? (
-        <Tooltip>
-          <TooltipTrigger asChild>{generateButton}</TooltipTrigger>
-          <TooltipContent>{blocked}</TooltipContent>
-        </Tooltip>
-      ) : (
-        generateButton
-      )}
+      <WhyButton
+        disabled={busy}
+        why={blocked}
+        onWhy={() => fix(blocked)}
+        onClick={() => generate(null)}
+      >
+        {busy ? <Loader2 className="animate-spin" /> : <Dices />}
+        Generate & install
+      </WhyButton>
     </FloatingBar>
   );
 }

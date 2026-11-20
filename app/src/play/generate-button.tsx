@@ -18,14 +18,11 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { WhyButton } from "@/components/why-button";
 import { MAC } from "@/lib/platform";
 import { generateTyped } from "@/play/generate";
 import { stepName, stopGenerate, useSeeds } from "@/stores/seeds";
+import { fix } from "@/stores/shell";
 
 /** The modifier key the shortcuts take, as the menu writes it. */
 const MOD = MAC ? "⌘" : "Ctrl+";
@@ -77,21 +74,17 @@ function Install() {
   const [blocked] = useSeeds.usePath("blocked");
   const [busy] = useSeeds.usePath("busy");
   return (
-    <Tooltip open={blocked ? undefined : false}>
-      <TooltipTrigger asChild>
-        <Button
-          size="lg"
-          className="min-w-[228px]"
-          disabled={busy}
-          aria-disabled={!!blocked || undefined}
-          onClick={() => generateTyped(true, blocked)}
-        >
-          {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-          Generate & install
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{blocked}</TooltipContent>
-    </Tooltip>
+    <WhyButton
+      size="lg"
+      className="min-w-[228px]"
+      disabled={busy}
+      why={blocked}
+      onWhy={() => fix(blocked)}
+      onClick={() => generateTyped(true, blocked)}
+    >
+      {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
+      Generate & install
+    </WhyButton>
   );
 }
 

@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
-import { Tip } from "@/components/tip";
-import { Button } from "@/components/ui/button";
+import type { Button } from "@/components/ui/button";
+import { WhyButton } from "@/components/why-button";
 
 /** Props for {@link TipButton}. */
 export interface TipButtonProps
@@ -34,19 +34,18 @@ export function TipButton({
   className,
 }: TipButtonProps) {
   return (
-    <Tip tip={tip}>
-      <Button
-        variant={variant}
-        size={size}
-        className={className}
-        aria-label={label}
-        aria-disabled={disabled || undefined}
-        aria-pressed={pressed}
-        onClick={disabled ? undefined : onClick}
-        onBlur={onBlur}
-      >
-        {children}
-      </Button>
-    </Tip>
+    <WhyButton
+      variant={variant}
+      size={size}
+      className={className}
+      aria-label={label}
+      aria-pressed={pressed}
+      why={disabled ? tip : undefined}
+      tip={tip}
+      onClick={onClick}
+      onBlur={onBlur}
+    >
+      {children}
+    </WhyButton>
   );
 }
