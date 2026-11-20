@@ -33,6 +33,8 @@ const NIGHT: u32 = 22;
 /// How long the right stick raises the camera over a child afloat, in ms,
 /// to look down into the water.
 const LOOK_DOWN: u64 = 800;
+/// The run's folder of every try's frame, `HASH-SIDE-STEP.png`.
+const TRIES: &str = "tries";
 /// A frame Hob scores this well ends a check's tries. Stopping at the first
 /// such frame halved the tries of the vanilla pass's first 541 checks
 /// (4.5 to 2.3 each); a later 5 was given up on 99 of them.
@@ -519,10 +521,11 @@ impl<'a, I: Input> Pass<'a, I> {
             s.what
         );
         let questions = [seen.clone(), score.clone()];
-        let (frame, trying) = (
-            self.frame(s.hash),
-            self.out.join(format!("{}-try.png", s.hash)),
-        );
+        let frame = self.frame(s.hash);
+        // Every try's frame is kept, for the maintainer to pick from where
+        // Hob's score passed a good view by.
+        let tried = self.out.join(TRIES);
+        std::fs::create_dir_all(&tried)?;
         let mut log = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
@@ -535,11 +538,12 @@ impl<'a, I: Input> Pass<'a, I> {
             if self.stand(at, holder.pose.at).is_err() {
                 continue;
             }
+            let side_name = format!("{side:?}").to_lowercase();
+            let trying = tried.join(format!("{}-{side_name}-{step}.png", s.hash));
             self.input.shot(&trying)?;
             let looked = look_at(self.vision, &trying, &questions)?;
             let yes = looked.answers[&seen].as_bool() == Some(true);
             let points = score_of(&looked.answers[&score]);
-            let side_name = format!("{side:?}").to_lowercase();
             let entry = serde_json::json!({
                 "hash": s.hash.to_string(), "side": side_name, "step": step, "seen": yes, "score": points,
             });
@@ -547,14 +551,13 @@ impl<'a, I: Input> Pass<'a, I> {
             let points = if yes { points.max(1) } else { 0 };
             if best.is_none_or(|p| points > p) {
                 best = Some(points);
-                std::fs::rename(&trying, &frame)?;
+                std::fs::copy(&trying, &frame)?;
                 (line.side, line.step) = (Some(side), step);
             }
             if points >= GOOD {
                 break;
             }
         }
-        let _ = std::fs::remove_file(&trying);
         line.verdict = match best {
             None => "no spot",
             Some(0) => "best effort",
