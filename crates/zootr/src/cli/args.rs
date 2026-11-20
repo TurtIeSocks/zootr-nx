@@ -405,11 +405,11 @@ pub(super) enum Command {
         /// Swing the camera around Link before each shot, in ms of the
         /// right stick held left (negative: right), so he isn't in front
         /// of the holder.
-        #[arg(long, default_value_t = 0, allow_hyphen_values = true)]
+        #[arg(long, default_value_t = 200, allow_hyphen_values = true)]
         orbit: i64,
         /// Raise the camera over Link, in ms of the right stick held down
         /// (negative: up).
-        #[arg(long, default_value_t = 0, allow_hyphen_values = true)]
+        #[arg(long, default_value_t = 300, allow_hyphen_values = true)]
         raise: i64,
         #[command(flatten)]
         vision: VisionArgs,
