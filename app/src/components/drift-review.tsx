@@ -7,28 +7,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { count, nameOf } from "@/lib/format";
+import { nameOf } from "@/lib/format";
 import {
   DEFAULTS_FROM,
+  driftSince,
   takeSettings,
   useDriftBase,
   useDriftFrom,
   useSeeds,
 } from "@/stores/seeds";
-
-/** "since" a seed, "from" the defaults. */
-const since = (from: string) => (from === DEFAULTS_FROM ? "from" : "since");
-
-/** How many changes, and from what: "3 changes since the installed seed". */
-export function driftWords(n: number, from: string) {
-  return `${count(n, "change")} ${since(from)} ${from}`;
-}
-
-/** The drift count in words, as the drift bar and Play's pill say it. */
-export function useDriftWords() {
-  const n = useSeeds((s) => s.drift.length);
-  return driftWords(n, useDriftFrom());
-}
 
 /** Props for {@link DriftReview}. */
 interface DriftReviewProps {
@@ -54,7 +41,7 @@ export function DriftReview({ children, side }: DriftReviewProps) {
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align="end" side={side} className="w-[360px] p-3">
         <p className="type-overline pb-1">
-          Changed {since(from)} {(base && nameOf(base)) || from}
+          Changed {driftSince(from)} {(base && nameOf(base)) || from}
         </p>
         <ChangeList changes={drift} />
         <div className="-mx-3 my-2.5 h-px bg-line" />

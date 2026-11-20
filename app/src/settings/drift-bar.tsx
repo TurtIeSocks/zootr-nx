@@ -1,10 +1,10 @@
 import { Dices, Loader2 } from "lucide-react";
-import { DriftReview, useDriftWords } from "@/components/drift-review";
+import { DriftReview } from "@/components/drift-review";
 import { FloatingBar } from "@/components/floating-bar";
 import { Help } from "@/components/help";
 import { Button } from "@/components/ui/button";
 import { WhyButton } from "@/components/why-button";
-import { generate, useSeeds } from "@/stores/seeds";
+import { generate, useDriftWords, useSeeds } from "@/stores/seeds";
 import { fix, useShell } from "@/stores/shell";
 
 /** Floats at the foot of every settings page while the settings differ

@@ -9,7 +9,7 @@ import {
 import { type ReactNode, useEffect, useState } from "react";
 import { commands, type SharedBuild } from "@/bindings";
 import { Callout, InlineError } from "@/components/callout";
-import { DriftReview, driftWords } from "@/components/drift-review";
+import { DriftReview } from "@/components/drift-review";
 import { Help } from "@/components/help";
 import { linkClass } from "@/components/styles";
 import { ChangedDot } from "@/components/ui/badge";
@@ -32,7 +32,12 @@ import { type MarkedChip, markedChips } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { groupIcon, type Section, shows } from "@/shell/nav";
 import { useConfig, useDevTools } from "@/stores/config";
-import { useDriftBase, useDriftFrom, useSeeds } from "@/stores/seeds";
+import {
+  driftWords,
+  useDriftBase,
+  useDriftFrom,
+  useSeeds,
+} from "@/stores/seeds";
 import { openSettings } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
 
