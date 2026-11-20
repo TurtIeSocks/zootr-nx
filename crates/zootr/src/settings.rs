@@ -146,6 +146,7 @@ pub(crate) const CHESTS: &str = "chests";
 pub(crate) const PROGRESSIVE: &str = "progressive-items";
 const FREE_BOMBCHUS: &str = "free-bombchus";
 const BUNNY_HOOD: &str = "bunny-hood";
+const DAY_SKULLTULAS: &str = "day-skulltulas";
 pub(crate) const AGELESS_WEAPONS: &str = "ageless-weapons";
 const QUIET_NAVI: &str = "quiet-navi";
 pub(crate) const QUIET_ENEMIES: &str = "quiet-enemies";
@@ -517,6 +518,12 @@ pub fn schema() -> Vec<SettingDef> {
             group::ENHANCEMENTS,
             "Bunny Hood speed",
             "Link runs half again as fast while he wears the Bunny Hood",
+        )])
+        .chain([toggle(
+            DAY_SKULLTULAS,
+            group::ENHANCEMENTS,
+            "Gold Skulltulas by day",
+            "Gold Skulltulas that only come out at night show at any hour",
         )])
         .chain([toggle(
             AGELESS_WEAPONS,

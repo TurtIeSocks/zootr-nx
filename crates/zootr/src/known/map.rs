@@ -23,6 +23,7 @@ pub const GANON_CASTLE: &Name = &n!(0xf8105d1095601878);
 pub const GERUDO_FORTRESS_ADULT: &Name = &n!(0x6dec0bdd68ff8f74);
 pub const GERUDO_TRAINING_GROUND: &Name = &n!(0xdc3d6e0cec5d0018);
 pub const GERUDO_VALLEY_ADULT: &Name = &n!(0x7ca3e2a427c73cad);
+pub const GIMMICK_NIGHTTIME_SKULLTULA_GOLD_APPEAR_05A9: &Name = &n!(0xba33f21cf60935c1);
 pub const GOHMA_STAGE: &Name = &n!(0x30ce997363c88783);
 pub const GORON_CITY_ADULT: &Name = &n!(0xb654b6139e0eb236);
 pub const GORON_CITY_CHILD: &Name = &n!(0x719f8144a9a0c0f0);
