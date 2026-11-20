@@ -333,6 +333,7 @@ mod tests {
 
     #[test]
     fn hob_looks_for_what_the_holder_is() {
+        needs_names!();
         let gold = format!("{}_01", &**actor::ENEMY_SKULLTULA_GOLD);
         assert_eq!(what(&gold, "Gold Skulltula"), "Gold Skulltula");
         assert_eq!(what(actor::OBJ_T_BOX_A_01, "Small Key"), "chest");
