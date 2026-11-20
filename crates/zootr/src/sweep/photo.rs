@@ -35,6 +35,33 @@ const STEP: f32 = 3.0;
 const STEPS: u32 = 1;
 /// How long the camera gets to swing behind Link after ZL.
 const SETTLE: Duration = Duration::from_millis(800);
+
+/// How the camera swings off Link's back before a shot, so he isn't
+/// standing in front of the holder: the right stick held for a time.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Swing {
+    /// Around Link, in ms of the stick held left (right when negative).
+    pub orbit: i64,
+    /// Up over him, in ms of the stick held down (up when negative).
+    pub raise: i64,
+}
+
+impl Swing {
+    /// Each push it makes: the right stick's direction and for how long.
+    fn pushes(self) -> impl Iterator<Item = (&'static str, u64)> {
+        let push = |ms: i64, plus, minus| match ms {
+            0 => None,
+            ms if ms > 0 => Some((plus, ms.unsigned_abs())),
+            ms => Some((minus, ms.unsigned_abs())),
+        };
+        [
+            push(self.orbit, "RLeft", "RRight"),
+            push(self.raise, "RDown", "RUp"),
+        ]
+        .into_iter()
+        .flatten()
+    }
+}
 /// How far below a landing the floor may be for it to count as floored.
 const UNDERFOOT: f32 = 1.0;
 /// The run's photo lines, one per check.
@@ -273,6 +300,7 @@ pub struct Pass<'a, I> {
     pub out: &'a Path,
     pub build: Option<String>,
     pub seed: Option<String>,
+    pub swing: Swing,
     levels: HashMap<String, Level>,
     /// The line of each placement shot so far, for a shop's other slots.
     shot: HashMap<u64, Line>,
@@ -306,6 +334,7 @@ impl<'a, I: Input> Pass<'a, I> {
             out,
             build,
             seed,
+            swing: Swing { orbit: 0, raise: 0 },
             levels: HashMap::new(),
             shot,
             here: None,
@@ -316,6 +345,12 @@ impl<'a, I: Input> Pass<'a, I> {
     /// early once `stop` says so. A check whose setup fails gets no line,
     /// so the next run tries it again.
     pub fn run(&mut self, subjects: &[Subject], stop: impl Fn() -> bool) -> Result<()> {
+        // Nothing left in the seed may wear Link down mid-run.
+        let switches = self.dev.switches()?;
+        self.dev.set_switches(crate::dev::Switches {
+            health: true,
+            ..switches
+        })?;
         let done = done(self.out);
         let left: Vec<&Subject> = subjects
             .iter()
@@ -482,12 +517,17 @@ impl<'a, I: Input> Pass<'a, I> {
         Ok(())
     }
 
-    /// Warp Link to `at`, turn him to `face` and the camera behind him.
+    /// Warp Link to `at`, turn him to `face`, put the camera behind him,
+    /// then swing it off his back.
     fn stand(&mut self, at: [f32; 3], face: [f32; 3]) -> Result<()> {
         quiet(self.dev, self.input)?;
         self.dev.warp(at)?;
         Drive::new(self.dev, &mut *self.input).face(face)?;
         self.input.press("ZL")?;
+        sleep(SETTLE);
+        for (stick, ms) in self.swing.pushes() {
+            self.input.hold(stick, ms)?;
+        }
         sleep(SETTLE);
         Ok(())
     }
@@ -580,6 +620,13 @@ mod tests {
         let json = serde_json::to_value(&line).unwrap();
         assert_eq!(json["side"], "left");
         assert_eq!(line.subject(), Some(9));
+    }
+
+    #[test]
+    fn a_swing_pushes_the_right_stick_each_way() {
+        let pushes = |orbit, raise| Swing { orbit, raise }.pushes().collect::<Vec<_>>();
+        assert_eq!(pushes(300, -100), [("RLeft", 300), ("RUp", 100)]);
+        assert_eq!(pushes(-200, 0), [("RRight", 200)]);
     }
 
     #[test]

@@ -161,9 +161,9 @@ pub(super) fn look(
 pub(super) fn photo(
     romfs: &Romfs,
     game: &Path,
-    area: Option<&str>,
-    hashes: &[u64],
+    (area, hashes): (Option<&str>, &[u64]),
     out: Option<&Path>,
+    swing: crate::sweep::photo::Swing,
     vision: impl FnOnce() -> Result<Vision>,
 ) -> Result<()> {
     let subjects = crate::sweep::photo::subjects(romfs, area, hashes)?;
@@ -189,8 +189,10 @@ pub(super) fn photo(
         Some(env!("CARGO_PKG_VERSION").to_owned()),
         installed().ok().flatten(),
     );
-    crate::sweep::photo::Pass::new(&dev, &mut input, vision, romfs, game, &places, out, stamp)
-        .run(&subjects, || turn::from_claude() && turn::lost(&stop))?;
+    let mut pass =
+        crate::sweep::photo::Pass::new(&dev, &mut input, vision, romfs, game, &places, out, stamp);
+    pass.swing = swing;
+    pass.run(&subjects, || turn::from_claude() && turn::lost(&stop))?;
     println!("{}", out.join(crate::sweep::photo::LINES).display());
     Ok(())
 }
