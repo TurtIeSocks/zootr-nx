@@ -183,15 +183,27 @@ pub fn run() -> Result<()> {
             hash,
             out,
             list,
+            go,
+            side,
+            step,
+            here,
             orbit,
             raise,
             day_skulltulas,
             vision,
         } => {
+            use crate::sweep::photo::Mode;
             let (area, out) = (area.as_deref(), out.as_deref().filter(|_| !list));
             let swing = crate::sweep::photo::Swing { orbit, raise };
+            let mode = match (go, here) {
+                (true, _) => Mode::Go(side.map(|s| (s, step))),
+                (_, true) => Mode::Here,
+                _ => Mode::Pass,
+            };
             let look = (swing, day_skulltulas);
-            photo(&romfs, &path, (area, &hash), out, look, || vision.vision())
+            photo(&romfs, &path, (area, &hash), (out, mode), look, || {
+                vision.vision()
+            })
         }
         Command::Play {
             script,

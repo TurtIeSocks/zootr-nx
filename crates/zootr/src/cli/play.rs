@@ -157,26 +157,41 @@ pub(super) fn look(
 }
 
 /// `zootr photo`: each check `area` or `hashes` pick, photographed on
-/// the running game into `out`, or listed when there's no `out`.
+/// the running game into `out` (or listed when a pass has no `out`), or
+/// the one check gone to or shot by hand, as `mode` says.
 pub(super) fn photo(
     romfs: &Romfs,
     game: &Path,
     (area, hashes): (Option<&str>, &[u64]),
-    out: Option<&Path>,
+    (out, mode): (Option<&Path>, crate::sweep::photo::Mode),
     (swing, day_skulltulas): (crate::sweep::photo::Swing, bool),
     vision: impl FnOnce() -> Result<Vision>,
 ) -> Result<()> {
+    use crate::sweep::photo::Mode;
     let subjects = crate::sweep::photo::subjects(romfs, area, hashes)?;
     ensure!(!subjects.is_empty(), "no check fits");
-    let Some(out) = out else {
-        for s in &subjects {
-            println!("{s}");
+    if mode != Mode::Pass {
+        ensure!(hashes.len() == 1, "--go and --here take one --hash");
+    }
+    let scratch = std::env::temp_dir().join("zootr-photo-go");
+    let out = match (out, mode) {
+        (Some(out), _) => out,
+        (None, Mode::Go(_)) => scratch.as_path(),
+        (None, _) => {
+            for s in &subjects {
+                println!("{s}");
+            }
+            return Ok(());
         }
-        return Ok(());
     };
-    let vision = &vision()?;
-    std::fs::metadata(&vision.key_file)
-        .with_context(|| format!("reading {}", vision.key_file.display()))?;
+    let vision = match mode {
+        Mode::Pass => Some(vision()?),
+        _ => None,
+    };
+    if let Some(v) = &vision {
+        std::fs::metadata(&v.key_file)
+            .with_context(|| format!("reading {}", v.key_file.display()))?;
+    }
     turn::hold(&turn::session())?;
     std::fs::create_dir_all(out)?;
     let config = Config::load()?;
@@ -189,12 +204,22 @@ pub(super) fn photo(
         Some(env!("CARGO_PKG_VERSION").to_owned()),
         installed().ok().flatten(),
     );
+    let vision = vision.as_ref();
     let mut pass =
         crate::sweep::photo::Pass::new(&dev, &mut input, vision, romfs, game, &places, out, stamp)?;
     pass.swing = swing;
     pass.day_skulltulas = day_skulltulas;
-    pass.run(&subjects, || turn::from_claude() && turn::lost(&stop))?;
-    println!("{}", out.join(crate::sweep::photo::LINES).display());
+    match mode {
+        Mode::Pass => {
+            pass.run(&subjects, || turn::from_claude() && turn::lost(&stop))?;
+            println!("{}", out.join(crate::sweep::photo::LINES).display());
+        }
+        Mode::Go(pick) => println!("{}", pass.go(&subjects[0], pick)?),
+        Mode::Here => {
+            let line = pass.here(&subjects[0])?;
+            println!("{}", out.join(format!("{}.png", line.hash)).display());
+        }
+    }
     Ok(())
 }
 

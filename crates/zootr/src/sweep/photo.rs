@@ -132,6 +132,30 @@ pub struct Subject {
     pub prep: Prep,
 }
 
+/// The verdict of a photo the maintainer took by hand.
+pub const BY_HAND: &str = "by hand";
+
+/// What the pass decides about a check before standing anywhere.
+struct Setup {
+    map: String,
+    holder: Placement,
+    /// Each landing, by side and steps back, in the order tried.
+    tries: Vec<((Side, u32), [f32; 3])>,
+    hour: u32,
+    line: Line,
+}
+
+/// What `zootr photo` does with its checks.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Mode {
+    /// Hob photographs each.
+    Pass,
+    /// Take Link to the one check, at a side and steps back if given.
+    Go(Option<(Side, u32)>),
+    /// Take the current picture as the one check's photo.
+    Here,
+}
+
 /// One check's photo, as the ledger's `photos/index.json` keeps it.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Line {
@@ -143,8 +167,8 @@ pub struct Line {
     pub side: Option<Side>,
     /// How many steps back from that side.
     pub step: u32,
-    /// `framed`, `best effort` (no side passed, the first frame kept) or
-    /// `no spot`.
+    /// `framed`, `best effort` (no side passed, the first frame kept),
+    /// `no spot` or [`BY_HAND`].
     pub verdict: String,
     /// The placement photographed in the check's place: a gift's giver.
     pub giver: Option<String>,
@@ -318,7 +342,8 @@ pub fn sides(file: &Path) -> HashMap<u64, Side> {
 pub struct Pass<'a, I> {
     pub dev: &'a Dev,
     pub input: &'a mut I,
-    pub vision: &'a Vision,
+    /// Hob, for a pass. Going to a check or shooting by hand needs none.
+    pub vision: Option<&'a Vision>,
     pub romfs: &'a Romfs,
     /// The game dump, for each map's navmesh.
     pub game: &'a Path,
@@ -345,7 +370,7 @@ impl<'a, I: Input> Pass<'a, I> {
     pub fn new(
         dev: &'a Dev,
         input: &'a mut I,
-        vision: &'a Vision,
+        vision: Option<&'a Vision>,
         romfs: &'a Romfs,
         game: &'a Path,
         places: &'a BTreeSet<Place>,
@@ -447,10 +472,12 @@ impl<'a, I: Input> Pass<'a, I> {
         Ok(&self.levels[map])
     }
 
-    /// Photograph `s` from the side Hob scores best.
-    fn shoot(&mut self, s: &Subject) -> Result<Line> {
+    /// What shooting `s` needs, or none when it has no spot to stand
+    /// beside: its map, holder, landings in the order tried, and its line
+    /// so far (hour, giver).
+    fn setup(&mut self, s: &Subject) -> Result<Option<Setup>> {
         let Some((map, spot)) = &s.at else {
-            return Ok(self.line(s, "no spot"));
+            return Ok(None);
         };
         let (holder, tries) = {
             let level = self.level(map)?;
@@ -485,6 +512,28 @@ impl<'a, I: Input> Pass<'a, I> {
                 .flatten(),
             ..self.line(s, "best effort")
         };
+        let hour = if night { NIGHT } else { NOON };
+        Ok(Some(Setup {
+            map: map.clone(),
+            holder,
+            tries,
+            hour,
+            line,
+        }))
+    }
+
+    /// Photograph `s` from the side Hob scores best.
+    fn shoot(&mut self, s: &Subject) -> Result<Line> {
+        let Some(Setup {
+            map,
+            holder,
+            tries,
+            hour,
+            line,
+        }) = self.setup(s)?
+        else {
+            return Ok(self.line(s, "no spot"));
+        };
         if let Some(earlier) = holder.hash.and_then(|h| self.shot.get(&h)) {
             std::fs::copy(self.frame(earlier.hash.parse()?), self.frame(s.hash))?;
             return Ok(Line {
@@ -494,11 +543,44 @@ impl<'a, I: Input> Pass<'a, I> {
                 ..line
             });
         }
-        self.arrive(map, s.child, if night { NIGHT } else { NOON }, &s.prep)?;
+        self.arrive(&map, s.child, hour, &s.prep)?;
         let line = self.survey(s, &holder, tries, line)?;
         if let Some(h) = holder.hash.filter(|_| line.side.is_some()) {
             self.shot.insert(h, line.clone());
         }
+        Ok(line)
+    }
+
+    /// Take Link to `s` as the pass would shoot it: its age, hour and prep,
+    /// standing at `pick` (a side and steps back, where Hob's best frame
+    /// was) or else the first landing tried. Says where he stands.
+    pub fn go(&mut self, s: &Subject, pick: Option<(Side, u32)>) -> Result<String> {
+        let Setup {
+            map,
+            holder,
+            tries,
+            hour,
+            ..
+        } = self
+            .setup(s)?
+            .context("this check has no spot to stand beside")?;
+        let ((side, step), at) = landing(&tries, pick)?;
+        self.arrive(&map, s.child, hour, &s.prep)?;
+        self.stand(at, holder.pose.at)?;
+        let side = format!("{side:?}").to_lowercase();
+        Ok(format!("in {map}, {side} side, {step} steps back"))
+    }
+
+    /// Take the game's picture now as `s`'s photo, shot by hand: its line
+    /// says [`BY_HAND`] and no side. Link isn't moved.
+    pub fn here(&mut self, s: &Subject) -> Result<Line> {
+        let line = by_hand(match self.setup(s)? {
+            Some(setup) => setup.line,
+            None => self.line(s, BY_HAND),
+        });
+        let frame = self.frame(s.hash);
+        self.input.shot(&frame)?;
+        self.append(&line)?;
         Ok(line)
     }
 
@@ -521,6 +603,7 @@ impl<'a, I: Input> Pass<'a, I> {
             s.what
         );
         let questions = [seen.clone(), score.clone()];
+        let vision = self.vision.context("a pass needs Hob's vision settings")?;
         let frame = self.frame(s.hash);
         // Every try's frame is kept, for the maintainer to pick from where
         // Hob's score passed a good view by.
@@ -541,7 +624,7 @@ impl<'a, I: Input> Pass<'a, I> {
             let side_name = format!("{side:?}").to_lowercase();
             let trying = tried.join(format!("{}-{side_name}-{step}.png", s.hash));
             self.input.shot(&trying)?;
-            let looked = look_at(self.vision, &trying, &questions)?;
+            let looked = look_at(vision, &trying, &questions)?;
             let yes = looked.answers[&seen].as_bool() == Some(true);
             let points = score_of(&looked.answers[&score]);
             let entry = serde_json::json!({
@@ -654,6 +737,27 @@ impl<'a, I: Input> Pass<'a, I> {
     }
 }
 
+/// The landing at `pick` (a side and steps back) among `tries`, or the
+/// first tried.
+fn landing(
+    tries: &[((Side, u32), [f32; 3])],
+    pick: Option<(Side, u32)>,
+) -> Result<((Side, u32), [f32; 3])> {
+    (tries.iter().copied())
+        .find(|(t, _)| pick.is_none_or(|p| *t == p))
+        .context("no such side and step")
+}
+
+/// `line` as a photo shot by hand: [`BY_HAND`], with no side.
+fn by_hand(line: Line) -> Line {
+    Line {
+        verdict: BY_HAND.into(),
+        side: None,
+        step: 0,
+        ..line
+    }
+}
+
 /// Write each `NAME=VALUE` of `entries`: a load clears some, so it's
 /// written again all through one.
 fn hold(dev: &Dev, entries: &[String]) -> Result<()> {
@@ -674,6 +778,40 @@ fn score_of(answer: &serde_json::Value) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn going_stands_at_the_picked_side_else_the_first_tried() {
+        let tries = [
+            ((Side::Front, 0), [1.0, 0.0, 0.0]),
+            ((Side::Left, 0), [2.0, 0.0, 0.0]),
+            ((Side::Left, 1), [3.0, 0.0, 0.0]),
+        ];
+        assert_eq!(landing(&tries, None).unwrap().1, [1.0, 0.0, 0.0]);
+        assert_eq!(
+            landing(&tries, Some((Side::Left, 1))).unwrap().1,
+            [3.0, 0.0, 0.0]
+        );
+        assert!(landing(&tries, Some((Side::Back, 0))).is_err());
+    }
+
+    #[test]
+    fn a_hand_shot_says_so_and_has_no_side() {
+        let line = Line {
+            hash: "1".into(),
+            map: Some("FakeHill_Child".into()),
+            time: Some("night".into()),
+            side: Some(Side::Left),
+            step: 1,
+            verdict: "best effort".into(),
+            ..Line::default()
+        };
+        let hand = by_hand(line.clone());
+        assert_eq!(
+            (hand.verdict.as_str(), hand.side, hand.step),
+            (BY_HAND, None, 0)
+        );
+        assert_eq!((hand.map, hand.time), (line.map, line.time));
+    }
 
     #[test]
     fn a_score_reads_as_a_number_or_in_words() {

@@ -396,8 +396,23 @@ pub(super) enum Command {
         #[arg(long, num_args = 1..)]
         hash: Vec<u64>,
         /// The run's folder.
-        #[arg(long, required_unless_present = "list")]
+        #[arg(long, required_unless_present_any = ["list", "go"])]
         out: Option<PathBuf>,
+        /// Take Link to the one `--hash` as the pass would shoot it (age,
+        /// hour, prep), standing beside its holder, with no frame.
+        #[arg(long, conflicts_with_all = ["here", "list", "area"])]
+        go: bool,
+        /// With `--go`: stand on this side of the holder (where Hob's best
+        /// frame was).
+        #[arg(long, requires = "go")]
+        side: Option<crate::warp::Side>,
+        /// With `--side`: this many steps back.
+        #[arg(long, requires = "side", default_value_t = 0)]
+        step: u32,
+        /// Take the game's current picture as the one `--hash`'s photo,
+        /// shot by hand, into `--out`.
+        #[arg(long, conflicts_with_all = ["list", "area"])]
+        here: bool,
         /// Print each check's map, age and spot, a line each, without
         /// touching the game.
         #[arg(long)]
@@ -922,5 +937,15 @@ mod tests {
         assert!(error.contains("true or false"), "{error}");
         assert!(setting("keys=singles").is_ok());
         assert!(setting("chests=false").is_ok());
+    }
+
+    #[test]
+    fn photo_goes_or_shoots_by_hand_but_not_both() {
+        let parse = |line: &str| Cli::try_parse_from(line.split(' '));
+        assert!(parse("zootr photo --hash 1 --go --side left --step 1").is_ok());
+        assert!(parse("zootr photo --hash 1 --here --out x").is_ok());
+        assert!(parse("zootr photo --hash 1 --go --here --out x").is_err());
+        assert!(parse("zootr photo --hash 1 --side left --out x").is_err());
+        assert!(parse("zootr photo --hash 1 --here").is_err());
     }
 }
