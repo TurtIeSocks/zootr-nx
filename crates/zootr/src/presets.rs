@@ -213,8 +213,9 @@ fn no_tutorials() -> Vec<String> {
 /// recovery heart!"). Each one's `IsGet` only marks that text shown: the
 /// `Item_` drops (a Deku nut, a bomb) are left out, as theirs is owning
 /// the item.
-const PICKUPS: [&Name; 12] = [
+const PICKUPS: [&Name; 13] = [
     actor::OBJ_HEART,
+    actor::OBJ_FAIRY,
     actor::OBJ_RUPEE_GREEN,
     actor::OBJ_RUPEE_BLUE,
     actor::OBJ_RUPEE_RED,
@@ -402,7 +403,7 @@ pub const PRESETS: [Preset; 12] = [
     Preset {
         name: "no-pickup-texts",
         label: "No pickup texts",
-        what: "Recovery hearts, rupees, magic jars, arrows and Deku seeds count as picked up before, so the first one doesn't stop Link with its get text",
+        what: "Recovery hearts, fairies, rupees, magic jars, arrows and Deku seeds count as picked up before, so the first one doesn't stop Link with its get text",
         group: group::GENERAL,
         subgroup: None,
         edits: no_pickup_texts,
