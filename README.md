@@ -97,9 +97,9 @@ a flag does.
 ## Get started
 
 1. Download the app for your system:
-   - macOS (Apple silicon): [zootr-nx-aarch64.dmg](https://github.com/TurtIeSocks/zootr-nx/releases/latest/download/zootr-nx-aarch64.dmg)
-   - Windows: [zootr-nx-x64-setup.exe](https://github.com/TurtIeSocks/zootr-nx/releases/latest/download/zootr-nx-x64-setup.exe)
-   - Linux: [zootr-nx-amd64.AppImage](https://github.com/TurtIeSocks/zootr-nx/releases/latest/download/zootr-nx-amd64.AppImage),
+   - macOS (Apple silicon): [zootr-nx-macos-arm64.dmg](https://github.com/TurtIeSocks/zootr-nx/releases/latest/download/zootr-nx-macos-arm64.dmg)
+   - Windows: [zootr-nx-windows-x86_64-setup.exe](https://github.com/TurtIeSocks/zootr-nx/releases/latest/download/zootr-nx-windows-x86_64-setup.exe)
+   - Linux: [zootr-nx-linux-x86_64.AppImage](https://github.com/TurtIeSocks/zootr-nx/releases/latest/download/zootr-nx-linux-x86_64.AppImage),
      or the `.deb` or `.rpm` from the
      [Releases page](https://github.com/TurtIeSocks/zootr-nx/releases/latest)
 2. Point it at your own dump of the game with the 1.1.1 update.

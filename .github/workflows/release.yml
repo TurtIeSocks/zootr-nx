@@ -219,10 +219,11 @@ jobs:
           args: --runner cargo ${{ env.TAGGED != 'true' && '--config src-tauri/no-updater.conf.json' || '' }}
           releaseId: ${{ needs.draft.outputs.id }}
           # Names without the version, so the README can link each OS's
-          # file under releases/latest/download. One arch per OS, so the
-          # extension tells them apart. The .sig files go: latest.json
-          # carries each signature, and nothing else reads them.
-          releaseAssetNamePattern: "[name]-[arch][setup][ext]"
+          # file under releases/latest/download. The matrix name, not
+          # tauri-action's [arch], which spells one arch three ways: the
+          # app and the CLI then share one name per OS. The .sig files go:
+          # latest.json carries each signature, and nothing else reads them.
+          releaseAssetNamePattern: "[name]-${{ matrix.name }}[setup][ext]"
           uploadUpdaterSignatures: false
 
       # After the app, and naming its package too, so cargo picks the

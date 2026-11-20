@@ -8,9 +8,9 @@ public until you publish the draft.
 
 | Platform | Runner | App bundles | CLI |
 |---|---|---|---|
-| macOS, Apple silicon | `macos-latest` | `zootr-nx-aarch64.dmg`, `.app.tar.gz` (the updater's) | `zootr-macos-arm64.tar.gz` |
-| Windows, x86_64 | `windows-latest` | `zootr-nx-x64-setup.exe` (NSIS), `zootr-nx-x64.msi` | `zootr-windows-x86_64.zip` |
-| Linux, x86_64 | `ubuntu-24.04` | `zootr-nx-amd64.AppImage`, `.deb`, `zootr-nx-x86_64.rpm` | `zootr-linux-x86_64.tar.gz` |
+| macOS, Apple silicon | `macos-latest` | `zootr-nx-macos-arm64.dmg`, `.app.tar.gz` (the updater's) | `zootr-macos-arm64.tar.gz` |
+| Windows, x86_64 | `windows-latest` | `zootr-nx-windows-x86_64-setup.exe` (NSIS), `.msi` | `zootr-windows-x86_64.zip` |
+| Linux, x86_64 | `ubuntu-24.04` | `zootr-nx-linux-x86_64.AppImage`, `.deb`, `.rpm` | `zootr-linux-x86_64.tar.gz` |
 
 The app is built by `tauri-apps/tauri-action`, with every bundle Tauri makes
 for the platform (`bundle.targets` is `"all"`). File names leave out the
