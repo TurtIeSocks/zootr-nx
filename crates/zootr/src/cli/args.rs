@@ -411,6 +411,10 @@ pub(super) enum Command {
         /// (negative: up).
         #[arg(long, default_value_t = 300, allow_hyphen_values = true)]
         raise: i64,
+        /// The installed seed has the day-skulltulas setting: shoot every
+        /// Gold Skulltula at noon.
+        #[arg(long)]
+        day_skulltulas: bool,
         #[command(flatten)]
         vision: VisionArgs,
     },

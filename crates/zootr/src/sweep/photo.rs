@@ -18,7 +18,7 @@ use super::plan::{Planned, Steps, Trigger, preset};
 use super::spot::{arrival, gone, presets, quiet, teleport};
 use crate::dev::{Dev, Place, Request};
 use crate::gamedata::GameData;
-use crate::known::actor;
+use crate::known::{actor, item};
 use crate::ledger::{self, Why};
 use crate::live;
 use crate::look::look_at;
@@ -312,6 +312,8 @@ pub struct Pass<'a, I> {
     pub build: Option<String>,
     pub seed: Option<String>,
     pub swing: Swing,
+    /// The seed brings Gold Skulltulas out by day: shoot them at noon.
+    pub day_skulltulas: bool,
     levels: HashMap<String, Level>,
     /// Enemies of each map that never woke to a beating, not tried again.
     asleep: HashSet<(String, String)>,
@@ -319,8 +321,8 @@ pub struct Pass<'a, I> {
     shot: HashMap<u64, Line>,
     /// The map, age, hour and held values Link is in.
     here: Option<(String, Option<bool>, u32, Vec<String>)>,
-    /// GameData, for the gives that put gear on, loaded on first use.
-    gd: Option<GameData>,
+    /// GameData, for the gives that put gear on and the Gold Scale.
+    gd: GameData,
 }
 
 impl<'a, I: Input> Pass<'a, I> {
@@ -334,12 +336,12 @@ impl<'a, I: Input> Pass<'a, I> {
         places: &'a BTreeSet<Place>,
         out: &'a Path,
         (build, seed): (Option<String>, Option<String>),
-    ) -> Self {
+    ) -> Result<Self> {
         let shot = (done(out).into_values())
             .filter(|l| l.verdict != "no spot")
             .filter_map(|l| Some((l.subject()?, l)))
             .collect();
-        Self {
+        Ok(Self {
             dev,
             input,
             vision,
@@ -354,8 +356,9 @@ impl<'a, I: Input> Pass<'a, I> {
             asleep: HashSet::new(),
             shot,
             here: None,
-            gd: None,
-        }
+            gd: GameData::load(romfs)?,
+            day_skulltulas: false,
+        })
     }
 
     /// Photograph each of `subjects` not in the run's lines yet, stopping
@@ -451,7 +454,7 @@ impl<'a, I: Input> Pass<'a, I> {
             tries.sort_by_key(|((_, step), at)| (*step, graph.floor(*at, UNDERFOOT).is_none()));
             (holder, tries)
         };
-        let night = nightly(&holder.name);
+        let night = !self.day_skulltulas && nightly(&holder.name);
         let line = Line {
             time: Some(if night { "night" } else { "day" }.into()),
             giver: (holder.hash != Some(s.hash))
@@ -562,11 +565,7 @@ impl<'a, I: Input> Pass<'a, I> {
         // so a warp into water sinks him to the holder rather than floating
         // him over it. On land they only slow a walk the pass never takes.
         if child == Some(false) {
-            if self.gd.is_none() {
-                self.gd = Some(GameData::load(self.romfs)?);
-            }
-            let gd = self.gd.as_ref().context("no GameData")?;
-            crate::gear::wear(dev, gd, &mut *self.input, true)?;
+            crate::gear::wear(dev, &self.gd, &mut *self.input, true)?;
         }
         self.here = Some(want);
         Ok(())
@@ -601,6 +600,13 @@ impl<'a, I: Input> Pass<'a, I> {
         quiet(self.dev, self.input)?;
         self.dev.warp(at)?;
         if crate::nav::sink::floated(self.dev.link()?, at) {
+            let booted = self
+                .here
+                .as_ref()
+                .is_some_and(|(_, child, ..)| *child == Some(false));
+            if !booted {
+                return self.dive(at);
+            }
             crate::nav::sink::land(self.dev)?;
         }
         self.clear()?;
@@ -612,6 +618,18 @@ impl<'a, I: Input> Pass<'a, I> {
         }
         sleep(SETTLE);
         Ok(())
+    }
+
+    /// The child floats over `at` and can't wear the Iron Boots: he dives
+    /// with the Gold Scale to just over it, and the frame is taken as he
+    /// turns back up. `at` stands beside the holder, so he doesn't take it.
+    fn dive(&mut self, at: [f32; 3]) -> Result<()> {
+        let dev = self.dev;
+        dev.give(&self.gd, item::SCALE_GOLD, 1)?;
+        self.input.press("ZL")?;
+        sleep(SETTLE);
+        let deep = dev.link()?[1] - at[1];
+        self.input.hold("A", crate::nav::sink::diving(deep))
     }
 }
 

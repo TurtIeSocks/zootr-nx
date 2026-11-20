@@ -38,6 +38,18 @@ const DIVE: f32 = 9.0;
 /// most, and a second to take what he lands on. From 4.9 m over Ruto's
 /// bottle he dived and took it within the first read (Mac, 2026-11-18).
 const DIVING: u64 = 5500;
+/// How fast Link sinks in a dive, in m/s.
+const DIVE_SPEED: f32 = 2.1;
+/// How far over a spot a dive stops, in m.
+const DIVE_SHORT: f32 = 0.5;
+
+/// How long A is held for a dive `deep` m down to stop just over its spot,
+/// at most [`DIVING`].
+pub(crate) fn diving(deep: f32) -> u64 {
+    let ms = ((deep - DIVE_SHORT).max(0.0) / DIVE_SPEED * 1000.0) as u64;
+    ms.min(DIVING)
+}
+
 /// Link floats over a spot he was warped to once he stands this much
 /// higher, in m: the game puts a warp into water back on its surface
 /// (Mac, 2026-11-18). Lake Hylia's water is no plane, so this is how a
@@ -133,6 +145,13 @@ pub(crate) fn land(sense: &impl Sense) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_dive_stops_short_of_its_spot_within_the_scale_s_reach() {
+        assert_eq!(diving(0.3), 0);
+        assert_eq!(diving(4.7), 2000);
+        assert_eq!(diving(40.0), DIVING);
+    }
 
     #[test]
     fn a_warp_into_water_floats_link_up_over_its_spot() {
