@@ -34,13 +34,14 @@ import {
   isSaved,
   namesVariable,
   problem,
+  shown,
   toDraft,
   toTarget,
   VARIABLES,
   withTarget,
 } from "@/settings/targets-draft";
 import { PageHeader } from "@/shell/page-header";
-import { saveConfig, useConfig } from "@/stores/config";
+import { saveConfig, useConfig, useDevTools } from "@/stores/config";
 
 /** The apps that run the game, edited together and saved at once. Saved
  * targets that change start the form again; a reload of the same ones keeps
@@ -151,6 +152,7 @@ function TargetsForm({ notes, onSaved }: TargetsFormProps) {
 /** Every variable a field can name, at the foot of the page: open while
  * a target names one. */
 function VariablesCard({ open }: { open: boolean }) {
+  const devTools = useDevTools();
   // Read once, so typing a variable doesn't spring it open.
   const [initial] = useState(open);
   return (
@@ -168,7 +170,7 @@ function VariablesCard({ open }: { open: boolean }) {
             </tr>
           </thead>
           <tbody>
-            {VARIABLES.map((v) => (
+            {shown(VARIABLES, devTools).map((v) => (
               <tr key={v.name} className="border-line border-t align-top">
                 <td className="type-mono py-1.5 pr-4">{v.name}</td>
                 <td className="py-1.5 pr-4 text-ink-muted">{v.in}</td>
@@ -197,6 +199,8 @@ interface TargetCardProps {
 
 /** One target's fields, with Copy and Download once it's saved, and Remove. */
 function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
+  const devTools = useDevTools();
+  const advanced = shown(ADVANCED_FIELDS, devTools);
   const [targets] = useConfig.usePath("config.targets");
   const { run } = useRequest();
   const { copied, flash } = useCopied();
@@ -204,7 +208,7 @@ function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
   const name = draft.name.trim();
   // Read once, so clearing the fields doesn't close the section on them.
   const [advancedOpen] = useState(() =>
-    ADVANCED_FIELDS.some((f) => draft[f.key] !== ""),
+    advanced.some((f) => draft[f.key] !== ""),
   );
   const copy = () =>
     run(async () => {
@@ -273,7 +277,7 @@ function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
         <details className="text-[13px]" open={advancedOpen}>
           <summary className="cursor-pointer text-ink-muted">Advanced</summary>
           <div className="grid gap-4 pt-3">
-            {ADVANCED_FIELDS.map((field) => (
+            {advanced.map((field) => (
               <TargetField
                 key={field.key}
                 id={`${id}-${field.key}`}

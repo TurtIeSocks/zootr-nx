@@ -37,8 +37,8 @@ import { count, isShareCode, nameOf } from "@/lib/format";
 import { savedAs } from "@/lib/plando";
 import { type MarkedChip, markedChips } from "@/lib/settings";
 import { cn } from "@/lib/utils";
-import { groupIcon, type Section } from "@/shell/nav";
-import { useConfig } from "@/stores/config";
+import { groupIcon, type Section, shows } from "@/shell/nav";
+import { useConfig, useDevTools } from "@/stores/config";
 import {
   DEFAULTS_FROM,
   takeSettings,
@@ -64,6 +64,7 @@ export function BuildOverview() {
 function OwnOverview() {
   const [settings] = useConfig.usePath("config.settings");
   const [test] = useConfig.usePath("config.test");
+  const devTools = useDevTools();
   const pins = useConfig((s) => Object.keys(s.config.place).length);
   const name = useConfig((s) => savedAs(s.config));
   const base = useDriftBase();
@@ -80,7 +81,7 @@ function OwnOverview() {
         settings={settings}
         base={base?.settings ?? {}}
         plando={plandoView(pins, name)}
-        test={testView(test)}
+        test={devTools ? testView(test) : null}
       />
     </div>
   );
@@ -193,10 +194,14 @@ interface TilesProps {
 function Tiles({ settings, base, plando, test, off }: TilesProps) {
   const [schema] = useConfig.usePath("schema");
   const [groups] = useConfig.usePath("groups");
-  const extras: [string, Section, LucideIcon, ExtraView | null][] = [
-    ["Plando", "plando", Pin, plando],
-    ["Test setup", "test", FlaskConical, test],
-  ];
+  const devTools = useDevTools();
+  // A build that carried a test setup shows it with the tools off too.
+  const extras = (
+    [
+      ["Plando", "plando", Pin, plando],
+      ["Test setup", "test", FlaskConical, test],
+    ] satisfies [string, Section, LucideIcon, ExtraView | null][]
+  ).filter(([, section, , view]) => view || shows(section, devTools));
   return (
     <div className="grid grid-cols-3 gap-2">
       {groups.map(({ name }) => {

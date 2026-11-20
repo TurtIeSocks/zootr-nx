@@ -59,6 +59,13 @@ export const RANDOMIZER_PANES: [Section, string, LucideIcon][] = [
   ["plando", "Plando", Pin],
 ];
 
+/** Panes only developer tools show. */
+const DEV_PANES: ReadonlySet<Section> = new Set(["test"]);
+
+/** Whether `section` shows, with developer tools on or off. */
+export const shows = (section: Section, devTools: boolean) =>
+  devTools || !DEV_PANES.has(section);
+
 export const appPane = (section: Section) =>
   APP_PANES.find(([id]) => id === section);
 

@@ -89,7 +89,7 @@ export const isEdited = (targets: Target[], drafts: Draft[]) =>
 export interface DraftField {
   key: keyof Draft;
   label: string;
-  /** The placeholder: what goes there. */
+  /** What goes there, said under the field. */
   hint: string;
   /** A help bubble beside the label. */
   help?: TopicId;
@@ -97,7 +97,15 @@ export interface DraftField {
   pick?: "folder" | "file";
   /** One entry per line. */
   multiline?: boolean;
+  /** Shown only with developer tools on. */
+  dev?: boolean;
 }
+
+/** The entries of `list` that show, with developer tools on or off. */
+export const shown = <T extends { dev?: boolean }>(
+  list: T[],
+  devTools: boolean,
+) => list.filter((x) => devTools || !x.dev);
 
 /** The fields each target card always shows, in order. */
 export const FIELDS: DraftField[] = [
@@ -167,6 +175,7 @@ export const ADVANCED_FIELDS: DraftField[] = [
   },
   {
     key: "harness_env",
+    dev: true,
     help: "variables",
     label: "Harness environment (optional)",
     hint: "One NAME=VALUE per line, for scripted play only, never Play",
@@ -174,6 +183,7 @@ export const ADVANCED_FIELDS: DraftField[] = [
   },
   {
     key: "control",
+    dev: true,
     label: "Control file (optional)",
     hint: "A file the game reads input lines from, for scripted play",
     pick: "file",
@@ -186,6 +196,8 @@ export interface Variable {
   /** The fields it works in. */
   in: string;
   becomes: string;
+  /** Works only in fields developer tools show. */
+  dev?: boolean;
 }
 
 /** Every variable zootr fills in a target's fields. */
@@ -207,11 +219,17 @@ export const VARIABLES: Variable[] = [
       "The mod's cheat folder, in the mod folder. Naming it tells zootr the app loads the cheat file",
   },
   { name: "{bridge}", in: "Environment", becomes: "The control socket" },
-  { name: "{control}", in: "Settings lines", becomes: "The control file" },
+  {
+    name: "{control}",
+    in: "Settings lines",
+    becomes: "The control file",
+    dev: true,
+  },
   {
     name: "{save}",
     in: "Harness environment",
     becomes: "The run's own save folder",
+    dev: true,
   },
 ];
 

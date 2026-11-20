@@ -13,11 +13,13 @@ import {
   search,
 } from "@/play/spoiler/rows";
 import { useSpoiler } from "@/play/spoiler/spoiler-context";
+import { useDevTools } from "@/stores/config";
 import { useUi } from "@/stores/ui";
 
 /** Every check and what it holds, searchable, then the checks that hold
  * filler until logic can show a way in. */
 export function ChecksTab() {
+  const devTools = useDevTools();
   const {
     spoiler: { spots, unprovable, start },
     picked,
@@ -67,7 +69,7 @@ export function ChecksTab() {
                   )}
                 >
                   <td>{areaOf(s)}</td>
-                  <Tip tip={`${s.holder} ${s.hash}`}>
+                  <Tip tip={devTools && `${s.holder} ${s.hash}`}>
                     <td>
                       <PickButton
                         hash={s.hash}

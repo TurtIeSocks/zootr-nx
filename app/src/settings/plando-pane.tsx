@@ -45,7 +45,7 @@ import {
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
 import { PageHeader } from "@/shell/page-header";
-import { saveConfig, useConfig } from "@/stores/config";
+import { saveConfig, useConfig, useDevTools } from "@/stores/config";
 
 /** The plando draft the next seed gets, and the saved plandos to load into
  * it or keep it as. */
@@ -392,6 +392,7 @@ interface PlacementsProps {
 /** What the plando pins, by area then check. A check these settings don't
  * deal says so. */
 function Placements({ plando, options }: PlacementsProps) {
+  const devTools = useDevTools();
   const store = useStore();
   const { busy } = useRequest();
   const setting = useSettingLabel();
@@ -443,7 +444,7 @@ function Placements({ plando, options }: PlacementsProps) {
               return (
                 <tr key={hash} className="hover:bg-surface-hover">
                   <td>{check?.area ?? "—"}</td>
-                  <Tip tip={hash}>
+                  <Tip tip={devTools && hash}>
                     <td>
                       {label}
                       {options && (!check || check.needs) && (

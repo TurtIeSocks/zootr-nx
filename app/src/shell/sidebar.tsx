@@ -13,13 +13,14 @@ import {
   RANDOMIZER_PANES,
   RUN_TABS,
   type Section,
+  shows,
   type Tab,
   TOP_TABS,
   tabLabel,
 } from "@/shell/nav";
 import { LiveDot, StatusPill } from "@/shell/status-pill";
 import { useChecks } from "@/stores/checks";
-import { useConfig } from "@/stores/config";
+import { useConfig, useDevTools } from "@/stores/config";
 import { useLive } from "@/stores/live";
 import { useSeeds } from "@/stores/seeds";
 import { openDev, openSettings } from "@/stores/shell";
@@ -247,6 +248,7 @@ function DevButton() {
 
 /** The app's only navigation, running the window's full height. */
 export function Sidebar() {
+  const devTools = useDevTools();
   return (
     <aside className="flex min-h-0 flex-col border-line border-r bg-sidebar">
       <div
@@ -275,11 +277,13 @@ export function Sidebar() {
           ))}
         </NavGroup>
         <NavGroup title="App">
-          {APP_PANES.map(([id, label, icon]) => (
-            <SectionItem key={id} section={id} label={label} icon={icon}>
-              {id === "test" && <TestOn />}
-            </SectionItem>
-          ))}
+          {APP_PANES.filter(([id]) => shows(id, devTools)).map(
+            ([id, label, icon]) => (
+              <SectionItem key={id} section={id} label={label} icon={icon}>
+                {id === "test" && <TestOn />}
+              </SectionItem>
+            ),
+          )}
         </NavGroup>
       </nav>
       <div className="flex shrink-0 flex-col gap-2 border-line border-t p-3">
@@ -287,7 +291,7 @@ export function Sidebar() {
         <StatusPills />
         <div className="flex items-center gap-1.5">
           <Version />
-          <DevButton />
+          {devTools && <DevButton />}
           <ThemeToggle />
         </div>
       </div>
