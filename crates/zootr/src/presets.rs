@@ -44,7 +44,7 @@ pub struct Preset {
 pub const CARPENTERS_FREED: &str = "carpenters-freed";
 
 /// Presets a new game takes unless turned off.
-pub const DEFAULT_ON: [&str; 2] = ["menus", "clock"];
+pub const DEFAULT_ON: [&str; 3] = ["menus", "clock", "no-pickup-texts"];
 
 const QUEST: Option<&str> = Some("Quest progress");
 const STONES: [&Name; 3] = [
@@ -209,9 +209,33 @@ fn no_tutorials() -> Vec<String> {
     edits
 }
 
+/// The drops whose first pickup stops Link with a get text ("You got a
+/// recovery heart!"). Each one's `IsGet` only marks that text shown: the
+/// `Item_` drops (a Deku nut, a bomb) are left out, as theirs is owning
+/// the item.
+const PICKUPS: [&Name; 12] = [
+    actor::OBJ_HEART,
+    actor::OBJ_RUPEE_GREEN,
+    actor::OBJ_RUPEE_BLUE,
+    actor::OBJ_RUPEE_RED,
+    actor::OBJ_RUPEE_PURPLE,
+    actor::OBJ_RUPEE_GOLD,
+    actor::OBJ_MAGIC_JAR_SMALL,
+    actor::OBJ_MAGIC_JAR_LARGE,
+    actor::OBJ_ARROW_BUNDLE_SMALL,
+    actor::OBJ_ARROW_BUNDLE_MEDIUM,
+    actor::OBJ_ARROW_BUNDLE_LARGE,
+    actor::OBJ_DEKU_SEED,
+];
+
+/// Every drop in [`PICKUPS`] counts as picked up before.
+fn no_pickup_texts() -> Vec<String> {
+    all(PICKUPS.map(|p| format!("IsGet.{p}")), "true")
+}
+
 const LIGHT_ARROWS: &[&Name] = &[item::ARROW_LIGHT];
 
-pub const PRESETS: [Preset; 11] = [
+pub const PRESETS: [Preset; 12] = [
     Preset {
         name: "open-forest",
         label: "Open forest",
@@ -375,6 +399,16 @@ pub const PRESETS: [Preset; 11] = [
         give: &[],
         progress: &[],
     },
+    Preset {
+        name: "no-pickup-texts",
+        label: "No pickup texts",
+        what: "Recovery hearts, rupees, magic jars, arrows and Deku seeds count as picked up before, so the first one doesn't stop Link with its get text",
+        group: group::GENERAL,
+        subgroup: None,
+        edits: no_pickup_texts,
+        give: &[],
+        progress: &[],
+    },
 ];
 
 /// For clap: each preset's name, with what it does as its help.
@@ -511,6 +545,15 @@ mod tests {
         );
         assert_eq!(edits.last().unwrap(), "X=1");
         assert!(expand(&["nope".into()], &[]).is_err());
+    }
+
+    #[test]
+    fn the_pickup_preset_marks_each_drop_got_and_no_item() {
+        let edits = expand(&["no-pickup-texts".into()], &[]).unwrap();
+        assert_eq!(edits.len(), PICKUPS.len());
+        assert!(edits.contains(&format!("IsGet.{}=true", actor::OBJ_HEART)));
+        assert!(edits.iter().all(|e| !e.contains("Item_")));
+        assert!(DEFAULT_ON.contains(&"no-pickup-texts"));
     }
 
     #[test]
