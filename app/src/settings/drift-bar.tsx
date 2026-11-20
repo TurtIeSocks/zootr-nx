@@ -1,6 +1,7 @@
 import { Dices, Loader2 } from "lucide-react";
 import { ChangeList } from "@/components/change-list";
 import { FloatingBar } from "@/components/floating-bar";
+import { Help } from "@/components/help";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -40,7 +41,7 @@ export function DriftBar() {
           <b className="font-semibold">
             {n} setting{n === 1 ? "" : "s"}
           </b>{" "}
-          {n === 1 ? "differs" : "differ"} from {from}
+          {n === 1 ? "differs" : "differ"} from {from} <Help topic="drift" />
         </p>
       }
     >

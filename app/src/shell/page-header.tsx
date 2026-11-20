@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import { Help } from "@/components/help";
-import type { TopicId } from "@/help/topics";
+import type { HelpTopic } from "@/help/topics";
 import { cn } from "@/lib/utils";
 import { crumbs } from "@/shell/nav";
 import { useUi } from "@/stores/ui";
@@ -39,7 +39,7 @@ export function Topbar() {
 interface PageHeaderProps {
   title: string;
   /** A help bubble beside the title. */
-  help?: TopicId;
+  help?: HelpTopic;
   description?: ReactNode;
   actions?: ReactNode;
 }

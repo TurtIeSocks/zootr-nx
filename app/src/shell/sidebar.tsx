@@ -1,5 +1,6 @@
 import { type LucideIcon, Wrench } from "lucide-react";
 import type { ReactNode } from "react";
+import { Help } from "@/components/help";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
@@ -211,6 +212,9 @@ function StatusPills() {
           {t.running && <span className="text-ink-faint"> running</span>}
         </StatusPill>
       ))}
+      <span className="flex h-6 items-center">
+        <Help topic="status" />
+      </span>
     </div>
   );
 }

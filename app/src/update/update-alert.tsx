@@ -2,6 +2,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { ArrowUpRight, CircleArrowUp } from "lucide-react";
 import { type MouseEvent, useEffect, useMemo, useState } from "react";
+import { Tip } from "@/components/tip";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -176,9 +177,11 @@ function ReleaseCard({ release, onSkip }: ReleaseCardProps) {
       <Notes md={release.notes} />
       <div className="flex flex-col gap-1.5 border-line border-t px-4 py-2.5">
         <div className="flex justify-between gap-2">
-          <Button size="sm" variant="ghost" onClick={onSkip}>
-            Skip this version
-          </Button>
+          <Tip tip="Hides this version until the next release">
+            <Button size="sm" variant="ghost" onClick={onSkip}>
+              Skip this version
+            </Button>
+          </Tip>
           <InstallButton {...install} />
         </div>
         <InstallStatus {...install} />

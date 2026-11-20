@@ -25,16 +25,18 @@ import { useCopied } from "@/lib/use-copied";
 import { BuildNote } from "@/settings/build-note";
 import { ImportTargetDialog } from "@/settings/import-target-dialog";
 import {
+  ADVANCED_FIELDS,
   BLANK,
-  BUILD_FIELDS,
   type Draft,
   type DraftField,
   FIELDS,
   isEdited,
   isSaved,
+  namesVariable,
   problem,
   toDraft,
   toTarget,
+  VARIABLES,
   withTarget,
 } from "@/settings/targets-draft";
 import { PageHeader } from "@/shell/page-header";
@@ -128,6 +130,7 @@ function TargetsForm({ notes, onSaved }: TargetsFormProps) {
           onRemove={() => setDrafts((ds) => ds.filter((_, j) => j !== i))}
         />
       ))}
+      <VariablesCard open={drafts.some(namesVariable)} />
       {isEdited(targets, drafts) && (
         <UnsavedBar
           message="Unsaved changes to targets"
@@ -142,6 +145,44 @@ function TargetsForm({ notes, onSaved }: TargetsFormProps) {
         />
       )}
     </>
+  );
+}
+
+/** Every variable a field can name, at the foot of the page: open while
+ * a target names one. */
+function VariablesCard({ open }: { open: boolean }) {
+  // Read once, so typing a variable doesn't spring it open.
+  const [initial] = useState(open);
+  return (
+    <Card>
+      <details open={initial} className="px-4 py-3 text-[13px]">
+        <summary className="cursor-pointer font-semibold text-[15px] text-ink">
+          Variables
+        </summary>
+        <table className="mt-3 w-full text-left">
+          <thead className="text-ink-faint text-xs">
+            <tr>
+              <th className="pb-1.5 font-medium">Variable</th>
+              <th className="pb-1.5 font-medium">Works in</th>
+              <th className="pb-1.5 font-medium">Becomes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {VARIABLES.map((v) => (
+              <tr key={v.name} className="border-line border-t align-top">
+                <td className="type-mono py-1.5 pr-4">{v.name}</td>
+                <td className="py-1.5 pr-4 text-ink-muted">{v.in}</td>
+                <td className="py-1.5 text-ink-muted">{v.becomes}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-3 text-ink-muted">
+          A ~ at the start of a path becomes your home folder, so a target
+          shared from another computer works on yours.
+        </p>
+      </details>
+    </Card>
   );
 }
 
@@ -162,8 +203,8 @@ function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
   const saved = isSaved(targets, draft);
   const name = draft.name.trim();
   // Read once, so clearing the fields doesn't close the section on them.
-  const [buildOpen] = useState(() =>
-    Boolean(draft.rebuild_command || draft.manifest),
+  const [advancedOpen] = useState(() =>
+    ADVANCED_FIELDS.some((f) => draft[f.key] !== ""),
   );
   const copy = () =>
     run(async () => {
@@ -229,12 +270,10 @@ function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
             onChange={(value) => onChange({ [field.key]: value })}
           />
         ))}
-        <details className="text-[13px]" open={buildOpen}>
-          <summary className="cursor-pointer text-ink-muted">
-            Applies patches at build time
-          </summary>
+        <details className="text-[13px]" open={advancedOpen}>
+          <summary className="cursor-pointer text-ink-muted">Advanced</summary>
           <div className="grid gap-4 pt-3">
-            {BUILD_FIELDS.map((field) => (
+            {ADVANCED_FIELDS.map((field) => (
               <TargetField
                 key={field.key}
                 id={`${id}-${field.key}`}
@@ -265,18 +304,11 @@ function TargetField({ id, field, value, onChange }: TargetFieldProps) {
   return (
     <Field id={id} label={label} help={help} hint={hint}>
       {pick ? (
-        <PathInput
-          id={id}
-          pick={pick}
-          placeholder={hint}
-          value={value}
-          onChange={onChange}
-        />
+        <PathInput id={id} pick={pick} value={value} onChange={onChange} />
       ) : multiline ? (
         <Textarea
           id={id}
           className="type-mono"
-          placeholder={hint}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -284,7 +316,6 @@ function TargetField({ id, field, value, onChange }: TargetFieldProps) {
         <Input
           id={id}
           className={key === "name" ? "" : "type-mono"}
-          placeholder={hint}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />

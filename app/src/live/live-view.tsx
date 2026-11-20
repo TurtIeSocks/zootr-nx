@@ -18,6 +18,7 @@ import {
 } from "react";
 import { commands } from "@/bindings";
 import { InlineError } from "@/components/callout";
+import { Help } from "@/components/help";
 import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +84,7 @@ function SourceNote() {
     <div className="flex min-w-0 items-center gap-2">
       <LiveDot state={st.state} />
       <span className="font-medium text-sm">{WATCHING[st.state]}</span>
+      <Help topic="live-status" />
       {on && s?.source === "Saves" && <Badge variant="info">Autosaves</Badge>}
       {on && unsaved !== "" && (
         <Tip tip={unsaved}>
@@ -224,7 +226,14 @@ function MarkButton() {
   }, [on]);
   return (
     <Popover open={open && on} onOpenChange={setOpen}>
-      <Tip wrap tip={on ? "Mark what happened (M)" : "Marks need a recording"}>
+      <Tip
+        wrap
+        tip={
+          on
+            ? "Drops a note in the log at this moment (M)"
+            : "Marks need a recording"
+        }
+      >
         <PopoverTrigger asChild>
           <Button size="sm" variant="ghost" disabled={!on}>
             <Flag />

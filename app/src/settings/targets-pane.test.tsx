@@ -275,3 +275,32 @@ test("Stop shows while this target rebuilds and stops it", () => {
   expect(stopGenerate).toHaveBeenCalledOnce();
   expect(button("Stopping").disabled).toBe(true);
 });
+
+test("a card shows four fields, the rest under a closed Advanced", () => {
+  show();
+  const advanced = screen.getByText("Advanced").closest("details");
+  expect(advanced?.open).toBe(false);
+  for (const label of ["Name", "App", "Mod folder", "Save folder (optional)"])
+    expect(advanced?.contains(screen.getByLabelText(label))).toBe(false);
+  expect(
+    advanced?.contains(screen.getByLabelText("Launch arguments (optional)")),
+  ).toBe(true);
+  expect(screen.getByRole("button", { name: "About Targets" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "About Mod folder" })).toBeTruthy();
+});
+
+test("a target using an advanced field or a variable opens both", () => {
+  useConfig.setPath(
+    "config",
+    full({
+      targets: [
+        { name: "FakeTarget", app: "/a", mod_dir: "/m", env: ["S={bridge}"] },
+      ],
+    }),
+  );
+  render(<TargetsPane />);
+  expect(screen.getByText("Advanced").closest("details")?.open).toBe(true);
+  const variables = screen.getByText("Variables", { selector: "summary" });
+  expect(variables.closest("details")?.open).toBe(true);
+  expect(screen.getByText("{game}")).toBeTruthy();
+});

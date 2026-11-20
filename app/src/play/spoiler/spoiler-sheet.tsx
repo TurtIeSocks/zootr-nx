@@ -3,6 +3,7 @@ import { useState } from "react";
 import { commands } from "@/bindings";
 import { InlineError } from "@/components/callout";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { Help } from "@/components/help";
 import { type EdgeMark, ScrollEdges } from "@/components/scroll-edges";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -167,7 +168,10 @@ function TabBar() {
     );
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <Segmented options={TABS} value={tab} onValueChange={setTab} />
+      <div className="flex items-center gap-2">
+        <Segmented options={TABS} value={tab} onValueChange={setTab} />
+        <Help topic="spoiler" />
+      </div>
       {tab === "spheres" && (
         // biome-ignore lint/a11y/noLabelWithoutControl: the checkbox inside is the control
         <label className="ml-auto flex cursor-pointer items-center gap-2 text-[13px]">

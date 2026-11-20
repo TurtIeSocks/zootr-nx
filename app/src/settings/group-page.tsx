@@ -2,12 +2,13 @@ import { RotateCcw } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import type { SettingDef } from "@/bindings";
 import { RequestError } from "@/components/request-error";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { GROUP_HELP } from "@/help/topics";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
 import { defaults, isChanged, isOn } from "@/lib/settings";
 import { Checklist } from "@/settings/checklist";
+import { UntestedBadge } from "@/settings/row";
 import { lockedBy, untested } from "@/settings/setting";
 import { LockedBy, SettingRow } from "@/settings/setting-row";
 import { SettingsSection } from "@/settings/settings-section";
@@ -35,7 +36,11 @@ export function GroupPage({ group }: GroupPageProps) {
   ];
   return (
     <>
-      <PageHeader title={group} actions={<ResetGroup defs={defs} />} />
+      <PageHeader
+        title={group}
+        help={GROUP_HELP[group]}
+        actions={<ResetGroup defs={defs} />}
+      />
       {rows.length > 0 && (
         <SettingsSection>
           {rows.map((d) => (
@@ -130,7 +135,7 @@ function SubgroupList({ title, defs }: SubgroupProps) {
           id: d.id,
           label: d.label,
           description: shared ? undefined : description || undefined,
-          tags: isUntested && <Badge variant="gold">Untested</Badge>,
+          tags: isUntested && <UntestedBadge />,
           on: on[i] ?? false,
           locked: locks[i] !== undefined,
         };

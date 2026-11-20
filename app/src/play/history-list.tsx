@@ -143,6 +143,7 @@ export function HistoryList() {
     <>
       <CardHeader
         title="History"
+        help="history"
         meta={n > 0 && `${n} seed${n === 1 ? "" : "s"}`}
         action={
           <div className="flex items-center gap-2">
