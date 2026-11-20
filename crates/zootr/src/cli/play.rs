@@ -163,7 +163,7 @@ pub(super) fn photo(
     game: &Path,
     (area, hashes): (Option<&str>, &[u64]),
     out: Option<&Path>,
-    (swing, every): (crate::sweep::photo::Swing, bool),
+    swing: crate::sweep::photo::Swing,
     vision: impl FnOnce() -> Result<Vision>,
 ) -> Result<()> {
     let subjects = crate::sweep::photo::subjects(romfs, area, hashes)?;
@@ -191,7 +191,7 @@ pub(super) fn photo(
     );
     let mut pass =
         crate::sweep::photo::Pass::new(&dev, &mut input, vision, romfs, game, &places, out, stamp);
-    (pass.swing, pass.every) = (swing, every);
+    pass.swing = swing;
     pass.run(&subjects, || turn::from_claude() && turn::lost(&stop))?;
     println!("{}", out.join(crate::sweep::photo::LINES).display());
     Ok(())

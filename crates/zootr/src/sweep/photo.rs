@@ -238,12 +238,9 @@ fn map_for<'a>(maps: impl Iterator<Item = &'a str>, child: Option<bool>) -> Opti
 }
 
 /// Each try's side and steps back: every side at the usual distance, then
-/// each again a step farther.
-/// The farther ring first, for the room around the holder; the near one
-/// when nothing from afar shows it.
+/// each again a step farther, for when nothing close shows the holder.
 fn tries() -> Vec<(Side, u32)> {
     (0..=STEPS)
-        .rev()
         .flat_map(|step| warp::sides_from(Side::Front).map(move |side| (side, step)))
         .collect()
 }
@@ -314,9 +311,6 @@ pub struct Pass<'a, I> {
     pub build: Option<String>,
     pub seed: Option<String>,
     pub swing: Swing,
-    /// Shoot every spot and keep the best wide and close frame, scored
-    /// by Hob, instead of the first spot Hob sees the holder from.
-    pub every: bool,
     levels: HashMap<String, Level>,
     /// Enemies of each map that never woke to a beating, not tried again.
     asleep: HashSet<(String, String)>,
@@ -353,7 +347,6 @@ impl<'a, I: Input> Pass<'a, I> {
             build,
             seed,
             swing: Swing { orbit: 0, raise: 0 },
-            every: false,
             levels: HashMap::new(),
             asleep: HashSet::new(),
             shot,
@@ -432,8 +425,7 @@ impl<'a, I: Input> Pass<'a, I> {
         Ok(&self.levels[map])
     }
 
-    /// Photograph `s`: from the first side Hob sees its holder from, or the
-    /// first side Link stood on.
+    /// Photograph `s` from the side Hob scores best.
     fn shoot(&mut self, s: &Subject) -> Result<Line> {
         let Some((map, spot)) = &s.at else {
             return Ok(self.line(s, "no spot"));
@@ -450,14 +442,13 @@ impl<'a, I: Input> Pass<'a, I> {
             let at = |&(side, step): &(Side, u32)| {
                 warp::landing_at(&pose, side, warp::AHEAD + step as f32 * STEP)
             };
-            let (mut floored, bare): (Vec<_>, Vec<_>) = (tries().into_iter())
-                .map(|t| (t, at(&t)))
-                .partition(|(_, at)| graph.floor(*at, UNDERFOOT).is_some());
-            floored.extend(bare);
-            (holder, floored)
+            let mut tries: Vec<_> = tries().into_iter().map(|t| (t, at(&t))).collect();
+            // Each ring's floored landings first.
+            tries.sort_by_key(|((_, step), at)| (*step, graph.floor(*at, UNDERFOOT).is_none()));
+            (holder, tries)
         };
         let night = nightly(&holder.name);
-        let mut line = Line {
+        let line = Line {
             time: Some(if night { "night" } else { "day" }.into()),
             giver: (holder.hash != Some(s.hash))
                 .then(|| holder.hash.map(|h| h.to_string()))
@@ -474,51 +465,16 @@ impl<'a, I: Input> Pass<'a, I> {
             });
         }
         self.arrive(map, s.child, if night { NIGHT } else { NOON }, &s.prep)?;
-        let question = format!(
-            "Can you clearly see a {} in this picture? Say no if unsure or if it's only Link.",
-            s.what
-        );
-        let (frame, trying) = (
-            self.frame(s.hash),
-            self.out.join(format!("{}-try.png", s.hash)),
-        );
-        if self.every {
-            return self.survey(s, &holder, tries, line);
-        }
-        let mut stood = false;
-        for ((side, step), at) in tries {
-            if self.stand(at, holder.pose.at).is_err() {
-                continue;
-            }
-            self.input.shot(&trying)?;
-            let seen = look_at(self.vision, &trying, std::slice::from_ref(&question))?.answers
-                [&question]
-                .as_bool()
-                == Some(true);
-            if !stood || seen {
-                std::fs::rename(&trying, &frame)?;
-                (line.side, line.step) = (Some(side), step);
-            }
-            stood = true;
-            if seen {
-                line.verdict = "framed".into();
-                break;
-            }
-        }
-        let _ = std::fs::remove_file(&trying);
-        if !stood {
-            line.verdict = "no spot".into();
-        }
-        if let Some(h) = holder.hash.filter(|_| stood) {
+        let line = self.survey(s, &holder, tries, line)?;
+        if let Some(h) = holder.hash.filter(|_| line.side.is_some()) {
             self.shot.insert(h, line.clone());
         }
         Ok(line)
     }
 
-    /// Shoot `s` from every spot in `tries`, Hob scoring each frame, and
-    /// keep the best from the far ring as `HASH.png` and the best from the
-    /// near one as `HASH-close.png`. Each frame stays as `HASH-SIDE-STEP.png`
-    /// and its scores go to `survey.jsonl`, for comparing by eye.
+    /// Shoot `s` from each spot of the near ring, Hob scoring each frame,
+    /// and keep the best as `HASH.png`. The far ring only when nothing near
+    /// shows the holder. Each frame's answers go to `survey.jsonl`.
     fn survey(
         &mut self,
         s: &Subject,
@@ -535,44 +491,43 @@ impl<'a, I: Input> Pass<'a, I> {
             s.what
         );
         let questions = [seen.clone(), score.clone()];
-        let mut best: [Option<(u32, Side)>; 2] = [None, None];
+        let (frame, trying) = (
+            self.frame(s.hash),
+            self.out.join(format!("{}-try.png", s.hash)),
+        );
         let mut log = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
             .open(self.out.join("survey.jsonl"))?;
+        let mut best: Option<u32> = None;
         for ((side, step), at) in tries {
+            if step > 0 && best.is_some_and(|p| p > 0) {
+                break;
+            }
             if self.stand(at, holder.pose.at).is_err() {
                 continue;
             }
-            let side_name = format!("{side:?}").to_lowercase();
-            let frame = self.out.join(format!("{}-{side_name}-{step}.png", s.hash));
-            self.input.shot(&frame)?;
-            let looked = look_at(self.vision, &frame, &questions)?;
+            self.input.shot(&trying)?;
+            let looked = look_at(self.vision, &trying, &questions)?;
             let yes = looked.answers[&seen].as_bool() == Some(true);
             let points = score_of(&looked.answers[&score]);
+            let side_name = format!("{side:?}").to_lowercase();
             let entry = serde_json::json!({
                 "hash": s.hash.to_string(), "side": side_name, "step": step, "seen": yes, "score": points,
             });
             writeln!(log, "{entry}")?;
-            let ring = usize::from(step == 0);
-            let points = if yes { points } else { 0 };
-            if best[ring].is_none_or(|(p, _)| points > p) {
-                best[ring] = Some((points, side));
-                let name = if ring == 0 {
-                    self.frame(s.hash)
-                } else {
-                    self.out.join(format!("{}-close.png", s.hash))
-                };
-                std::fs::copy(&frame, name)?;
-                if ring == 0 {
-                    (line.side, line.step) = (Some(side), step);
-                }
+            let points = if yes { points.max(1) } else { 0 };
+            if best.is_none_or(|p| points > p) {
+                best = Some(points);
+                std::fs::rename(&trying, &frame)?;
+                (line.side, line.step) = (Some(side), step);
             }
         }
+        let _ = std::fs::remove_file(&trying);
         line.verdict = match best {
-            [None, None] => "no spot",
-            _ if best.iter().flatten().any(|(p, _)| *p > 0) => "framed",
-            _ => "best effort",
+            None => "no spot",
+            Some(0) => "best effort",
+            Some(_) => "framed",
         }
         .into();
         Ok(line)
@@ -681,8 +636,8 @@ mod tests {
     fn every_side_is_tried_then_each_a_step_back() {
         use Side::*;
         let t = tries();
-        assert_eq!(t[..4], [(Front, 1), (Left, 1), (Right, 1), (Back, 1)]);
-        assert_eq!(t[4..], [(Front, 0), (Left, 0), (Right, 0), (Back, 0)]);
+        assert_eq!(t[..4], [(Front, 0), (Left, 0), (Right, 0), (Back, 0)]);
+        assert_eq!(t[4..], [(Front, 1), (Left, 1), (Right, 1), (Back, 1)]);
     }
 
     #[test]
