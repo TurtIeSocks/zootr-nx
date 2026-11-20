@@ -1,12 +1,12 @@
 # Room 1's lower level stays underwater until Zelda's Lullaby is played at
 # the Triforce point in it, which sets its water-stopped flag and drains
-# it.
+# it. Link reaches it through a crawl hole, so only as a child.
 [[check]]
 hash = 12988877782812797760
 name = "Lower Blue Rupee 1"
-needs = "zeldas-lullaby"
+needs = "child and zeldas-lullaby"
 
 [[check]]
 hash = 5429815628949128345
 name = "Lower Blue Rupee 2"
-needs = "zeldas-lullaby"
+needs = "child and zeldas-lullaby"
