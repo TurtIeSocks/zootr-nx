@@ -11,7 +11,7 @@ use serde_json::Value;
 use crate::cutscenes::{AREAS, Skips};
 use crate::entrances::Doors;
 use crate::keys;
-use crate::presets::{self, CARPENTERS_FREED, PRESETS};
+use crate::presets::{self, ADULT_DEKU_TREE, CARPENTERS_FREED, PRESETS};
 use crate::starting;
 
 mod choices;
@@ -409,7 +409,7 @@ pub fn schema() -> Vec<SettingDef> {
             DUNGEON_ENTRANCES,
             group::DUNGEONS,
             "Dungeon entrances",
-            "Each dungeon's front door leads into another dungeon, and its way out leads back to that door. On swaps the eleven dungeons. With Ganon's Castle, its door joins them, and Ganondorf waits wherever it leads. A door keeps what it needs to open, whatever is behind it. Blue warps still go where they always do",
+            "Each dungeon's front door leads into another dungeon, and its way out leads back to that door. On swaps the eleven dungeons. With Ganon's Castle, its door joins them, and Ganondorf waits wherever it leads. A door keeps what it needs to open, whatever is behind it. The Deku Tree lets adult Link in, and blue warps lead where they always do at Link's own age",
             DungeonEntrances::label,
         )])
         .chain([toggle(

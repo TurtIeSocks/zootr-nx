@@ -107,7 +107,10 @@ impl NewGame {
     /// `settings`, then `edits` (`NAME=VALUE`) on top.
     pub fn from_settings(settings: &Settings, edits: &[String]) -> Result<Self> {
         let schema = schema();
-        let on = |id: &str| is_on(&schema, settings, id);
+        let dungeon_entrances = chosen::<DungeonEntrances>(settings, DUNGEON_ENTRANCES);
+        // Any door can lead adult Link to the Deku Tree, so its debris goes.
+        let forced = (dungeon_entrances != DungeonEntrances::Off).then_some(ADULT_DEKU_TREE);
+        let on = |id: &str| is_on(&schema, settings, id) || forced == Some(id);
         let picked: Vec<String> = PRESETS
             .iter()
             .filter(|p| on(p.name))
@@ -170,7 +173,7 @@ impl NewGame {
             cows: on(COWS),
             keys,
             fortress_keys,
-            dungeon_entrances: chosen(settings, DUNGEON_ENTRANCES),
+            dungeon_entrances,
             door_pins: vec![],
             doors: Doors::default(),
             shop_slots: match on(SHOPS) {
@@ -186,7 +189,9 @@ impl NewGame {
             bridge_medallions: on(BRIDGE_MEDALLIONS),
             hints: on(HINTS),
             logic: chosen(settings, LOGIC),
-            on: toggles_on(settings),
+            on: (toggles_on(settings).into_iter())
+                .chain(forced.map(String::from))
+                .collect(),
             give: presets::gives(&picked)?,
             progress: presets::progress(&picked)?,
             spawn: None,
@@ -398,6 +403,21 @@ mod tests {
         assert_eq!(default, "vanilla");
         let ids: Vec<_> = options.iter().map(|o| o.id.as_str()).collect();
         assert_eq!(ids, ["vanilla", "start", "rings", "singles"]);
+    }
+
+    #[test]
+    fn shuffled_doors_clear_the_adult_deku_trees_debris() {
+        needs_names!();
+        let preset = presets::fields(&[ADULT_DEKU_TREE.into()]).unwrap();
+        let off = NewGame::from_settings(&Settings::new(), &[]).unwrap();
+        assert!(!off.on.contains(ADULT_DEKU_TREE));
+        assert!(!preset.iter().all(|f| off.fields.contains(f)));
+        for mode in ["on", "on-ganon"] {
+            let settings = Settings::from([(DUNGEON_ENTRANCES.into(), mode.into())]);
+            let on = NewGame::from_settings(&settings, &[]).unwrap();
+            assert!(on.on.contains(ADULT_DEKU_TREE), "{mode}");
+            assert!(preset.iter().all(|f| on.fields.contains(f)), "{mode}");
+        }
     }
 
     #[test]
