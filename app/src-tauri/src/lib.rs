@@ -42,7 +42,7 @@ const BINDINGS: &str = "../src/bindings.ts";
 type Res<T> = Result<T, String>;
 
 fn text(e: anyhow::Error) -> String {
-    format!("{e:#}")
+    zootr::plain::shown(&e)
 }
 
 #[derive(Serialize, Type)]

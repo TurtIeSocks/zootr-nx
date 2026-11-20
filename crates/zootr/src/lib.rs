@@ -77,6 +77,7 @@ mod per_dump;
 mod picked;
 mod pickups;
 pub mod places;
+pub mod plain;
 pub mod platform;
 pub mod play;
 pub mod presets;
