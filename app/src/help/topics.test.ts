@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
-import { SOURCES } from "@/test/sources";
 import { TOPICS } from "@/help/topics";
+import { SOURCES } from "@/test/sources";
 
 /** Every `help="…"`, `help: "…"` and `topic="…"` in the code. */
 const named = Object.values(SOURCES).flatMap((text) =>
