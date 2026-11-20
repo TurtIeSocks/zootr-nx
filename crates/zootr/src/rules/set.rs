@@ -8,7 +8,8 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 
-use super::{Book, FILES};
+use super::Book;
+use super::files::FILES;
 use crate::world::Era;
 
 /// What `logic set` changes. `None` leaves a field as it is.
