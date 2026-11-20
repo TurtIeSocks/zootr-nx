@@ -549,10 +549,7 @@ impl<'a, I: Input> Pass<'a, I> {
             self.input.shot(&frame)?;
             let looked = look_at(self.vision, &frame, &questions)?;
             let yes = looked.answers[&seen].as_bool() == Some(true);
-            let points = (looked.answers[&score].as_str())
-                .and_then(|t| t.trim().chars().find(char::is_ascii_digit))
-                .and_then(|c| c.to_digit(10))
-                .unwrap_or(0);
+            let points = score_of(&looked.answers[&score]);
             let entry = serde_json::json!({
                 "hash": s.hash.to_string(), "side": side_name, "step": step, "seen": yes, "score": points,
             });
@@ -656,9 +653,29 @@ fn hold(dev: &Dev, entries: &[String]) -> Result<()> {
     Ok(())
 }
 
+/// Hob's 1 to 5 score, given as a number or in words, or 0 for none.
+fn score_of(answer: &serde_json::Value) -> u32 {
+    let text = answer.to_string();
+    let digit = text.chars().find(char::is_ascii_digit);
+    digit.and_then(|c| c.to_digit(10)).unwrap_or(0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_score_reads_as_a_number_or_in_words() {
+        use serde_json::json;
+        let scores = [
+            json!(4),
+            json!("5"),
+            json!(" 3."),
+            json!(null),
+            json!("none"),
+        ];
+        assert_eq!(scores.map(|s| score_of(&s)), [4, 5, 3, 0, 0]);
+    }
 
     #[test]
     fn every_side_is_tried_then_each_a_step_back() {
