@@ -27,6 +27,7 @@ mod cows;
 mod cut;
 pub mod cutscenes;
 mod dampe;
+mod day_skulltulas;
 pub mod dev;
 mod dig;
 mod door;

@@ -62,6 +62,8 @@ pub struct NewGame {
     pub quiet_enemies: bool,
     /// Link runs faster in the Bunny Hood.
     pub bunny_hood: bool,
+    /// Night-only Gold Skulltulas show by day too.
+    pub day_skulltulas: bool,
     /// The rainbow bridge rises at six medallions.
     pub bridge_medallions: bool,
     /// Gossip stones name where needed items are.
@@ -176,6 +178,7 @@ impl NewGame {
             quiet_navi: on(QUIET_NAVI),
             quiet_enemies: on(QUIET_ENEMIES),
             bunny_hood: on(BUNNY_HOOD),
+            day_skulltulas: on(DAY_SKULLTULAS),
             bridge_medallions: on(BRIDGE_MEDALLIONS),
             hints: on(HINTS),
             logic: chosen(settings, LOGIC),
@@ -282,6 +285,7 @@ mod tests {
                 quiet_navi: true,
                 quiet_enemies: false,
                 bunny_hood: false,
+                day_skulltulas: false,
                 bridge_medallions: false,
                 hints: false,
                 spawn: None,

@@ -9,12 +9,20 @@ use roead::sarc::Sarc;
 
 use crate::items::scalar;
 
-pub(super) fn byml(romfs: &Romfs, game: &Path, pattern: &str) -> Result<()> {
-    unpacked(romfs, game, pattern, |path, data, _| {
+pub(super) fn byml(romfs: &Romfs, game: &Path, pattern: &str, file: bool) -> Result<()> {
+    let show = |path: &str, data: &[u8]| {
         if let Ok(doc) = ounce_formats::BymlDoc::parse(data) {
             println!("{path}");
             print!("{}", tree(&doc.root, 1));
         }
+    };
+    if file {
+        let data = std::fs::read(pattern).with_context(|| format!("reading {pattern}"))?;
+        show(pattern, &romfs.dicts().decompress(pattern, &data)?);
+        return Ok(());
+    }
+    unpacked(romfs, game, pattern, |path, data, _| {
+        show(path, data);
         Ok(())
     })
 }
@@ -57,6 +65,7 @@ pub(super) fn ainb(romfs: &Romfs, path: &str, out: Option<&Path>) -> Result<()> 
         return std::fs::write(out, &bytes).with_context(|| format!("writing {}", out.display()));
     }
     let graph = Graph::parse(&bytes)?;
+    let file = ounce_formats::ainb::File::parse(&bytes)?;
     let show = |v: &Value| match v {
         Value::String(s) => format!("{s:?}"),
         Value::Pointer => "ptr".into(),
@@ -82,8 +91,15 @@ pub(super) fn ainb(romfs: &Romfs, path: &str, out: Option<&Path>) -> Result<()> 
             });
         let all: Vec<_> = props.chain(inputs).collect();
         let outputs: Vec<_> = node.outputs.iter().map(|o| o.name.as_str()).collect();
+        let children: Vec<_> = (file.children(i)?.into_iter())
+            .map(|(plug, to)| format!("{plug}:#{to}"))
+            .collect();
+        let children = match children.is_empty() {
+            true => String::new(),
+            false => format!(" => {}", children.join(" ")),
+        };
         println!(
-            "#{i} {:?} {} {} -> {}",
+            "#{i} {:?} {} {} -> {}{children}",
             node.kind,
             node.name,
             all.join(" "),

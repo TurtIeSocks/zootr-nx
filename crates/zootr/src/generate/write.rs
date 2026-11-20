@@ -15,10 +15,10 @@ use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::settings::{AGELESS_WEAPONS, ChestSize, NewGame, TRADE_CHAIN};
 use crate::{
-    ageless, ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, dig, door,
-    enemies, flags, foreign, fortress, gamedata, gerudo, gifts, held, hints, ice_traps, key_tints,
-    keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs,
-    shops, spawn, standins, starting, steps, text, tracker, trade_chain, twins,
+    ageless, ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, day_skulltulas,
+    dig, door, enemies, flags, foreign, fortress, gamedata, gerudo, gifts, held, hints, ice_traps,
+    key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb,
+    scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -303,6 +303,9 @@ pub fn write_mod(
             &shelves,
             new_game,
         )?);
+    }
+    if new_game.day_skulltulas {
+        day_skulltulas::write(romfs, &mut builder)?;
     }
     fields.extend(pickups::write(
         romfs,
