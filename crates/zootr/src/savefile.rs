@@ -241,6 +241,13 @@ pub fn newest(dir: &Path) -> Result<Option<PathBuf>> {
     Ok(files(dir)?.into_iter().max_by_key(modified))
 }
 
+/// The slot under `dir` written last, if it was written at or after
+/// `since` (the installed seed's install time): an older one belongs to
+/// another seed.
+pub fn newest_since(dir: &Path, since: Option<u32>) -> Result<Option<PathBuf>> {
+    Ok(newest(dir)?.filter(|s| written_since(s, since)))
+}
+
 /// Whether `path` was written at or after `since`, in Unix seconds. With no
 /// time, every save counts.
 pub fn written_since(path: &Path, since: Option<u32>) -> bool {
@@ -419,6 +426,22 @@ mod tests {
         assert!(written_since(&save, Some(now - 60)));
         assert!(!written_since(&save, Some(now + 60)));
         assert!(!written_since(&dir.join("gone.sav"), Some(0)));
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn the_newest_save_counts_only_once_played_since_the_install() {
+        let dir = std::env::temp_dir().join(format!("zootr-newest-{}", std::process::id()));
+        let save = slot_file(&dir, 1);
+        std::fs::create_dir_all(save.parent().unwrap()).unwrap();
+        std::fs::write(&save, b"save").unwrap();
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as u32;
+        assert_eq!(newest_since(&dir, None).unwrap(), Some(save.clone()));
+        assert_eq!(newest_since(&dir, Some(now - 60)).unwrap(), Some(save));
+        assert_eq!(newest_since(&dir, Some(now + 60)).unwrap(), None);
         std::fs::remove_dir_all(dir).unwrap();
     }
 
