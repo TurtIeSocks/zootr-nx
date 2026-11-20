@@ -42,6 +42,13 @@
     "label": "Adult Deku Tree"
   },
   {
+    "default": false,
+    "description": "Freeing any one carpenter frees all four and earns the membership card. The other thieves still guard their cells",
+    "id": "carpenters-fast",
+    "kind": "toggle",
+    "label": "Gerudo Fortress fast"
+  },
+  {
     "default": true,
     "description": "Bombchus hold up to 50 on their own, so they open the same checks bombs do without waiting on the bag",
     "id": "free-bombchus",

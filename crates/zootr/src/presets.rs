@@ -53,6 +53,8 @@ impl Preset {
 
 /// The preset whose four carpenters are already freed.
 pub const CARPENTERS_FREED: &str = "carpenters-freed";
+/// The preset whose first carpenter freed counts as all four.
+pub const CARPENTERS_FAST: &str = "carpenters-fast";
 
 /// Presets a new game takes unless turned off.
 pub const DEFAULT_ON: [&str; 3] = ["menus", "clock", "no-pickup-texts"];
@@ -105,6 +107,22 @@ fn carpenters() -> Vec<String> {
         "true",
     ));
     edits
+}
+
+/// Three carpenters counted as freed, so freeing any one plays the clear
+/// event that frees all four (`gerudo::clear_once`). Every cell still
+/// holds its carpenter, behind her thief.
+fn carpenters_fast() -> Vec<String> {
+    vec![
+        format!(
+            "{}=3",
+            field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED
+        ),
+        format!(
+            "{}=1",
+            field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED_02
+        ),
+    ]
 }
 
 /// Every sage awake and the rainbow bridge up, with Ganon's quest at `step`.
@@ -302,7 +320,7 @@ fn deku_tree_clear() -> Vec<String> {
         .collect()
 }
 
-pub const PRESETS: [Preset; 16] = [
+pub const PRESETS: [Preset; 17] = [
     Preset {
         name: "open-forest",
         label: "Open forest",
@@ -483,6 +501,17 @@ pub const PRESETS: [Preset; 16] = [
         edits: carpenters,
         give: &[item::TOKEN_GERUDO],
         progress: &[(flow::SAGE_OF_SPIRIT, "Step02")],
+        fields: Vec::new,
+    },
+    Preset {
+        name: CARPENTERS_FAST,
+        label: "Gerudo Fortress fast",
+        what: "Freeing any one carpenter frees all four and earns the membership card. The other thieves still guard their cells",
+        group: group::LOGIC,
+        subgroup: QUEST,
+        edits: carpenters_fast,
+        give: &[],
+        progress: &[],
         fields: Vec::new,
     },
     Preset {
@@ -831,6 +860,17 @@ mod tests {
         );
         let quest = PRESETS.iter().filter(|p| p.subgroup == QUEST);
         assert!(quest.clone().count() > 0 && quest.clone().all(|p| p.group == group::LOGIC));
+    }
+
+    #[test]
+    fn fast_carpenters_count_three_freed_and_take_a_save() {
+        let edits = expand(&[CARPENTERS_FAST.into()], &[]).unwrap();
+        let helped = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED;
+        let left = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED_02;
+        assert_eq!(edits, [format!("{helped}=3"), format!("{left}=1")]);
+        assert!(for_save(&[CARPENTERS_FAST.into()], &[]).is_ok());
+        let fast = PRESETS.iter().find(|p| p.name == CARPENTERS_FAST).unwrap();
+        assert_eq!((fast.group, fast.subgroup), (group::LOGIC, QUEST));
     }
 
     #[test]
