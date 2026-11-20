@@ -6,7 +6,6 @@ import {
   Pin,
   RotateCcw,
   Share2,
-  SlidersHorizontal,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { commands, type SharedBuild } from "@/bindings";
@@ -72,10 +71,6 @@ function OwnOverview() {
       <div className="flex items-center gap-2">
         <p className="type-overline mr-auto">Builds with</p>
         <DriftPill />
-        <Button variant="ghost" size="sm" onClick={() => openSettings()}>
-          <SlidersHorizontal />
-          Edit settings
-        </Button>
       </div>
       <Tiles
         settings={settings}
