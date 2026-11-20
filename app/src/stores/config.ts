@@ -3,16 +3,15 @@ import { dotPath } from "zustand-dot";
 import { commands, type SettingDef } from "@/bindings";
 import { call, keep, message } from "@/lib/api";
 import { type FullConfig, full, testOn } from "@/lib/config";
-import { isChanged, type Patch, patched } from "@/lib/settings";
+import { type Patch, patched } from "@/lib/settings";
 import { ownPane, shows } from "@/shell/nav";
 import { once } from "@/stores/once";
 import { useUi } from "@/stores/ui";
 
-/** A schema group, and whether it holds a change. */
+/** A schema group. Its change dot reads the drift list
+ * (`useGroupDrifted`). */
 export interface Group {
   name: string;
-  /** A setting in it differs from its default. */
-  changed: boolean;
 }
 
 /** The randomizer's settings schema and the saved config. `saved_tests` and
@@ -53,9 +52,6 @@ function derive() {
   const { schema, config } = useConfig.getState();
   const groups = [...new Set(schema.map((d) => d.group))].map((name) => ({
     name,
-    changed: schema.some(
-      (d) => d.group === name && isChanged(d, config.settings),
-    ),
   }));
   useConfig.setPath("groups", keep(groups));
   // A hidden test setup doesn't reach seeds, so it isn't on either.

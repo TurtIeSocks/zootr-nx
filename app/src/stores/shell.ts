@@ -20,6 +20,8 @@ interface Shell {
   /** The check whose note or name is being edited. Kept by hash, so the
    * dialog follows the row through a reload and outlives its filter. */
   checkText?: { hash: string; edit: Edit };
+  /** How many unsaved bars show. The drift bar steps aside for them. */
+  unsaved?: number;
 }
 
 /** The shell store. Not saved: every launch starts with nothing open. */
@@ -57,6 +59,13 @@ export function fix(why: string): boolean {
   else if (why === NEED_TARGET) openSettings("targets");
   else return false;
   return true;
+}
+
+/** Counts an unsaved bar in while it shows, so the drift bar steps aside.
+ * Returns the effect's cleanup, which counts it back out. */
+export function claimFoot() {
+  useShell.setPath("unsaved", (n = 0) => n + 1);
+  return () => useShell.setPath("unsaved", (n = 0) => n - 1);
 }
 
 /** Opens the dev panel in its own window. */

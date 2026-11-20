@@ -159,13 +159,38 @@ test("a changed setting can be reset, alone or with its group", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Reset Open forest" }));
   expect(saved(onChange)).toEqual({ "chest-size": "all small", other: 1 });
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Reset 1 change" }),
-  );
-  expect(saved(onChange)).toEqual({ other: 1 });
+  fireEvent.click(screen.getByRole("button", { name: "Reset to defaults" }));
+  await waitFor(() => expect(saved(onChange)).toEqual({ other: 1 }));
   expect(screen.queryByRole("button", { name: "Reset Skip the intro" })).toBe(
     null,
   );
+});
+
+/** Whether the row named `label` shows the change dot. */
+const dotted = (label: string) =>
+  within(
+    screen.getByText(label, { selector: "label" }).parentElement as HTMLElement,
+  ).queryByLabelText("changed") !== null;
+
+test("dots mark what differs from the installed seed, not the defaults", () => {
+  show({
+    settings: { "open-forest": true, "chest-size": "all small" },
+    seed: installed({ "open-forest": true }),
+  });
+  expect(dotted("Chest size")).toBe(true);
+  expect(dotted("Open forest")).toBe(false);
+});
+
+test("the row reset puts the installed seed's value back", () => {
+  const onChange = show({
+    settings: { "chest-size": "all small" },
+    seed: installed({ "chest-size": "all small", "open-forest": true }),
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Reset Open forest" }));
+  expect(saved(onChange)).toEqual({
+    "chest-size": "all small",
+    "open-forest": true,
+  });
 });
 
 const cutscene = (
@@ -219,10 +244,10 @@ test("a subgroup is a closed checklist with its count", async () => {
 
 test("the drift bar counts what differs from the installed seed", () => {
   show({ seed: installed({}) });
-  expect(screen.queryByText(/from the installed seed/)).toBeNull();
+  expect(screen.queryByText(/since the installed seed/)).toBeNull();
   cleanup();
   show({ seed: installed({}), settings: { "open-forest": true } });
-  expect(screen.getByText(/from the installed seed/)).toBeTruthy();
+  expect(screen.getByText("1 change since the installed seed")).toBeTruthy();
   expect(
     screen.getByRole("button", { name: "Generate & install" }),
   ).toBeTruthy();
@@ -233,7 +258,7 @@ test("with no seed installed, the drift bar counts what differs from the default
   expect(screen.queryByText(/from the default settings/)).toBeNull();
   cleanup();
   show({ settings: { "open-forest": true } });
-  expect(screen.getByText(/from the default settings/)).toBeTruthy();
+  expect(screen.getByText("1 change from the default settings")).toBeTruthy();
 });
 
 test("with an AP slot installed, the drift bar counts from the last standard seed", () => {
@@ -241,13 +266,109 @@ test("with an AP slot installed, the drift bar counts from the last standard see
   const slot = { ...installed({}), id: 2, ap_slot: "FakeSlot" };
   const standard = installed({ "open-forest": true });
   show({ seed: slot, older: [standard], settings: { "open-forest": true } });
-  expect(screen.queryByText(/from the last standard seed/)).toBeNull();
+  expect(screen.queryByText(/since the last standard seed/)).toBeNull();
   cleanup();
   show({ seed: slot, older: [standard] });
-  expect(screen.getByText(/from the last standard seed/)).toBeTruthy();
+  expect(screen.getByText(/since the last standard seed/)).toBeTruthy();
   cleanup();
   show({ seed: slot, settings: { "open-forest": true } });
   expect(screen.getByText(/from the default settings/)).toBeTruthy();
+});
+
+test("a checklist item shows the dot when it differs from the installed seed", () => {
+  show({
+    defs: cutscenes,
+    section: "Cutscenes",
+    settings: { kokiri: true, field: true },
+    seed: installed({ field: true }),
+  });
+  const item = (label: string) =>
+    within(screen.getByText(label).closest("label") as HTMLElement);
+  expect(item("Kokiri Forest").queryByLabelText("changed")).not.toBeNull();
+  expect(item("Hyrule Field").queryByLabelText("changed")).toBeNull();
+});
+
+/** The header action named `name`. */
+const action = (name: string) => screen.getByRole("button", { name });
+
+test("Reset to defaults says why while nothing differs from them", () => {
+  const onChange = show();
+  const reset = action("Reset to defaults");
+  expect(reset.getAttribute("aria-disabled")).toBe("true");
+  fireEvent.click(reset);
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test("Enable all and Disable all write only what changes, skipping locked toggles", async () => {
+  const onChange = show({
+    defs: cutscenes,
+    section: "Cutscenes",
+    settings: { [all]: true, kokiri: true },
+  });
+  // The owl and the lake are on because of their parent: left alone.
+  fireEvent.click(action("Enable all"));
+  await waitFor(() =>
+    expect(saved(onChange)).toEqual({ [all]: true, kokiri: true, field: true }),
+  );
+  cleanup();
+  const again = show({
+    defs: cutscenes,
+    section: "Cutscenes",
+    settings: { [all]: true, kokiri: true },
+  });
+  fireEvent.click(action("Disable all"));
+  await waitFor(() =>
+    expect(saved(again)).toEqual({ [all]: false, kokiri: false }),
+  );
+});
+
+test("Enable all says why when every toggle is already on", () => {
+  show({
+    defs: cutscenes,
+    section: "Cutscenes",
+    settings: { [all]: true, kokiri: true, field: true },
+  });
+  expect(action("Enable all").getAttribute("aria-disabled")).toBe("true");
+  expect(action("Disable all").getAttribute("aria-disabled")).toBeNull();
+});
+
+test("a page with no toggles has only Reset to defaults", () => {
+  show({ defs: [choice("chest-size", "Chest size", ["Vanilla", "Big"])] });
+  expect(screen.queryByRole("button", { name: "Enable all" })).toBeNull();
+  expect(action("Reset to defaults")).toBeTruthy();
+});
+
+test("the drift bar shows on every settings page, the same as on a group", () => {
+  for (const section of ["settings", "targets", "plando", "test"]) {
+    show({ section, devTools: true, settings: { "open-forest": true } });
+    expect(screen.getByText("1 change from the default settings")).toBeTruthy();
+    cleanup();
+  }
+});
+
+test("Review lists the changes and puts the base's settings back", async () => {
+  const onChange = show({
+    seed: installed({ "chest-size": "all small" }),
+    settings: { "open-forest": true, "chest-size": "all small" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Review" }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: /Use the installed seed's/ }),
+  );
+  await waitFor(() =>
+    expect(saved(onChange)).toEqual({ "chest-size": "all small" }),
+  );
+});
+
+test("a page's unsaved bar takes the drift bar's place while it shows", () => {
+  show({ section: "test", devTools: true, settings: { "open-forest": true } });
+  fireEvent.change(screen.getByLabelText("Spawn"), {
+    target: { value: "Map/Spot" },
+  });
+  expect(screen.getByText("Unsaved changes to the test setup")).toBeTruthy();
+  expect(screen.queryByText(/1 change from/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+  expect(screen.getByText("1 change from the default settings")).toBeTruthy();
 });
 
 test("an open checklist is still open after leaving the page", () => {

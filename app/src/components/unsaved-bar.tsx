@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { InlineError } from "@/components/callout";
 import { FloatingBar } from "@/components/floating-bar";
 import { Button } from "@/components/ui/button";
 import { WhyButton } from "@/components/why-button";
+import { claimFoot } from "@/stores/shell";
 
 /** Props for {@link UnsavedBar}. */
 interface UnsavedBarProps {
@@ -30,6 +32,7 @@ export function UnsavedBar({
   onDiscard,
   onSave,
 }: UnsavedBarProps) {
+  useEffect(claimFoot, []);
   return (
     <FloatingBar
       message={error ? <InlineError error={error} /> : <p>{message}</p>}

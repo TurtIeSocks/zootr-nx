@@ -75,6 +75,27 @@ export function patched(settings: Settings, patch: Patch): Settings {
 export const defaults = (defs: SettingDef[]): Patch =>
   Object.fromEntries(defs.map((d) => [d.id, undefined]));
 
+/** A patch turning every toggle of `defs` on (or off), leaving out one a
+ * parent forces on and one already there. Empty when nothing would
+ * change. */
+export function setToggles(
+  defs: SettingDef[],
+  schema: SettingDef[],
+  settings: Settings,
+  on: boolean,
+): Patch {
+  return Object.fromEntries(
+    defs
+      .filter(
+        (d) =>
+          d.kind.type === "toggle" &&
+          !parentOn(d, settings, schema) &&
+          isOn(d, settings, schema) !== on,
+      )
+      .map((d) => [d.id, on]),
+  );
+}
+
 /** Whether a setting is forced on by its parent. */
 export function parentOn(
   def: SettingDef,

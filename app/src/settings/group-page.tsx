@@ -1,12 +1,18 @@
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, ToggleLeft, ToggleRight } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import type { SettingDef } from "@/bindings";
 import { RequestError } from "@/components/request-error";
-import { Button } from "@/components/ui/button";
+import { WhyButton } from "@/components/why-button";
 import { GROUP_HELP } from "@/help/topics";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
-import { defaults, isChanged, isOn } from "@/lib/settings";
+import {
+  defaults,
+  isChanged,
+  isOn,
+  type Patch,
+  setToggles,
+} from "@/lib/settings";
 import { Checklist } from "@/settings/checklist";
 import { UntestedBadge } from "@/settings/row";
 import { lockedBy, untested } from "@/settings/setting";
@@ -15,6 +21,7 @@ import { SettingsSection } from "@/settings/settings-section";
 import { StartInventory } from "@/settings/start-inventory";
 import { PageHeader } from "@/shell/page-header";
 import { changeSettings, useConfig } from "@/stores/config";
+import { useSeeds } from "@/stores/seeds";
 
 /** Props for {@link GroupPage}. */
 export interface GroupPageProps {
@@ -39,7 +46,7 @@ export function GroupPage({ group }: GroupPageProps) {
       <PageHeader
         title={group}
         help={GROUP_HELP[group]}
-        actions={<ResetGroup defs={defs} />}
+        actions={<GroupActions defs={defs} />}
       />
       {rows.length > 0 && (
         <SettingsSection>
@@ -70,24 +77,53 @@ interface DefsProps {
   defs: SettingDef[];
 }
 
-/** Puts every changed setting of a group back to its default. Nothing while
- * none is changed. */
-function ResetGroup({ defs }: DefsProps) {
+/** The page's actions: Enable all and Disable all on a page with toggles,
+ * and Reset to defaults. Each says why when it would change nothing. */
+function GroupActions({ defs }: DefsProps) {
   const { run } = useRequest();
-  const changed = useConfig(
-    (s) => defs.filter((d) => isChanged(d, s.config.settings)).length,
-  );
-  if (changed === 0) return null;
+  const [schema] = useConfig.usePath("schema");
+  const [settings] = useConfig.usePath("config.settings");
+  const set = (patch: Patch) => () => run(() => changeSettings(patch));
+  const enable = setToggles(defs, schema, settings, true);
+  const disable = setToggles(defs, schema, settings, false);
+  const changed = defs.some((d) => isChanged(d, settings));
+  const toggles = defs.some((d) => d.kind.type === "toggle");
   return (
-    <Button
-      variant="ghost"
-      onClick={() => run(() => changeSettings(defaults(defs)))}
-    >
-      <RotateCcw />
-      Reset {changed} change{changed === 1 ? "" : "s"}
-    </Button>
+    <>
+      {toggles && (
+        <>
+          <WhyButton
+            variant="ghost"
+            why={empty(enable) && "Every toggle here is already on"}
+            onClick={set(enable)}
+          >
+            <ToggleRight />
+            Enable all
+          </WhyButton>
+          <WhyButton
+            variant="ghost"
+            why={empty(disable) && "Every toggle here is already off"}
+            onClick={set(disable)}
+          >
+            <ToggleLeft />
+            Disable all
+          </WhyButton>
+        </>
+      )}
+      <WhyButton
+        variant="ghost"
+        why={!changed && "Already the defaults"}
+        onClick={set(defaults(defs))}
+      >
+        <RotateCcw />
+        Reset to defaults
+      </WhyButton>
+    </>
   );
 }
+
+/** Whether a patch changes nothing. */
+const empty = (patch: Patch) => Object.keys(patch).length === 0;
 
 /** Props for {@link Subgroup}. */
 interface SubgroupProps extends DefsProps {
@@ -115,6 +151,9 @@ function SubgroupList({ title, defs }: SubgroupProps) {
       defs.map((d) => lockedBy(d, s.schema, s.config.settings)),
     ),
   );
+  const drifted = useSeeds(
+    useShallow((s) => defs.map((d) => s.drift.some((c) => c.def.id === d.id))),
+  );
   const shared = new Set(defs.map((d) => d.description)).size === 1;
   const parents = [...new Set(locks.flatMap((p) => p ?? []))];
   return (
@@ -137,6 +176,7 @@ function SubgroupList({ title, defs }: SubgroupProps) {
           description: shared ? undefined : description || undefined,
           tags: isUntested && <UntestedBadge />,
           on: on[i] ?? false,
+          changed: drifted[i],
           locked: locks[i] !== undefined,
         };
       })}

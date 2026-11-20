@@ -1,47 +1,38 @@
 import { Dices, Loader2 } from "lucide-react";
-import { ChangeList } from "@/components/change-list";
+import { DriftReview } from "@/components/drift-review";
 import { FloatingBar } from "@/components/floating-bar";
 import { Help } from "@/components/help";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { WhyButton } from "@/components/why-button";
-import { generate, useDriftFrom, useSeeds } from "@/stores/seeds";
-import { fix } from "@/stores/shell";
+import { generate, useDriftWords, useSeeds } from "@/stores/seeds";
+import { fix, useShell } from "@/stores/shell";
 
-/** Floats at the foot of a settings page while the settings differ from the
- * installed seed's (the defaults with none installed), with what differs
- * and a way to make a seed from them. */
+/** Floats at the foot of every settings page while the settings differ
+ * from the installed seed's (the defaults with none installed), with what
+ * differs and a way to make a seed from them. A page's own unsaved bar
+ * takes its place while it shows. */
 export function DriftBar() {
-  const [changes] = useSeeds.usePath("drift");
+  const drifted = useSeeds((s) => s.drift.length > 0);
+  const unsaved = useShell((s) => (s.unsaved ?? 0) > 0);
+  return drifted && !unsaved && <Bar />;
+}
+
+/** The bar itself: the count, Review and Generate & install. */
+function Bar() {
   const [blocked] = useSeeds.usePath("blocked");
   const [busy] = useSeeds.usePath("busy");
-  const from = useDriftFrom();
-  const n = changes.length;
-
   return (
     <FloatingBar
       message={
         <p>
-          <b className="font-semibold">
-            {n} setting{n === 1 ? "" : "s"}
-          </b>{" "}
-          {n === 1 ? "differs" : "differ"} from {from} <Help topic="drift" />
+          <b className="font-semibold">{useDriftWords()}</b>{" "}
+          <Help topic="drift" />
         </p>
       }
     >
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="ghost">Review</Button>
-        </PopoverTrigger>
-        <PopoverContent side="top" className="text-[13px]">
-          <p className="mb-1 font-medium">Changed from {from}</p>
-          <ChangeList changes={changes} />
-        </PopoverContent>
-      </Popover>
+      <DriftReview side="top">
+        <Button variant="ghost">Review</Button>
+      </DriftReview>
       <WhyButton
         disabled={busy}
         why={blocked}
