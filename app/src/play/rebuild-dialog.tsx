@@ -8,7 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { WhyButton } from "@/components/why-button";
 import { errorParts } from "@/lib/api";
+import { useTargetRunning } from "@/stores/seeds";
 
 /** Props for {@link RebuildDialog}. */
 interface RebuildDialogProps {
@@ -29,6 +31,7 @@ export function RebuildDialog({
   onRebuild,
   onPlay,
 }: RebuildDialogProps) {
+  const running = useTargetRunning(name);
   const then = (f: () => void) => () => {
     onClose();
     f();
@@ -49,11 +52,20 @@ export function RebuildDialog({
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="secondary" onClick={then(onPlay)}>
+          <WhyButton
+            variant="secondary"
+            why={running && `${name} is already running`}
+            onClick={then(onPlay)}
+          >
             Play anyway
-          </Button>
+          </WhyButton>
           {build?.command && (
-            <Button onClick={then(onRebuild)}>Rebuild and play</Button>
+            <WhyButton
+              why={running && `Close ${name} first`}
+              onClick={then(onRebuild)}
+            >
+              Rebuild and play
+            </WhyButton>
           )}
         </DialogFooter>
       </DialogContent>

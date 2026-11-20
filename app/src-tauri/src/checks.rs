@@ -80,9 +80,7 @@ impl Checks {
             let mut t = Tracker::new(&gd, &report.spots)?.with_doors(&report.entrances);
             // Only a save played since this seed went in: an older one
             // holds another seed's checks.
-            let save = savefile::newest(&config.save_dir()?)?
-                .filter(|s| savefile::written_since(s, history.installed_at));
-            if let Some(save) = save {
+            if let Some(save) = savefile::newest_since(&config.save_dir()?, history.installed_at)? {
                 t.load(tracker::in_save(&savefile::load(&save)?));
             }
             *tracker = Some((id, t));

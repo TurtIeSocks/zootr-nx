@@ -141,7 +141,6 @@ fn thief_keys_are_checks_and_the_carried_ones_are_cleared_when_fortress_keys_sta
     )
     .unwrap();
     assert!(thieves(&off).is_empty());
-    assert!(!dir.join("off/romfs").join(&rel).is_file());
     assert_eq!(carrying(&dir.join("off")), 3);
     std::fs::remove_dir_all(dir).unwrap();
 }

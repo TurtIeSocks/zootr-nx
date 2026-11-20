@@ -116,6 +116,10 @@ function driftBase({ installed, entries }: View): Summary | null {
 /** The seed `drift` is measured from, or null for the defaults. */
 export const useDriftBase = () => useSeeds((s) => driftBase(s.history));
 
+/** Whether the target named `name` is running. */
+export const useTargetRunning = (name: string | undefined) =>
+  useSeeds((s) => s.status.targets.some((t) => t.name === name && t.running));
+
 /** What `drift` is measured from, as `useDriftFrom` words it. */
 export const DEFAULTS_FROM = "the default settings";
 

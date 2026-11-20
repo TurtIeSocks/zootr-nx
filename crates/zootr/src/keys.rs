@@ -9,7 +9,8 @@ use anyhow::{Context, Result};
 use crate::checks::ItemCheck;
 use crate::known::{Name, actor, flag, flow, item, map};
 use crate::map_copies;
-use crate::rules::Need;
+use crate::presets::CARPENTERS_FAST;
+use crate::rules::{Ctx, Need};
 use crate::settings::{DungeonKeys, FortressKeys};
 use crate::{key_rooms, key_tints};
 
@@ -160,12 +161,17 @@ pub fn dungeon_need(check: &ItemCheck, keys: DungeonKeys) -> Option<Need> {
 }
 
 /// With the Fortress keys dealt as copies, what logic adds to a check whose
-/// vanilla item is `item`: all four for the Gerudo membership card, given
-/// once the fourth carpenter is free.
-pub fn fortress_need(item: &str, fortress: FortressKeys) -> Option<Need> {
-    (fortress.copies() && item == crate::gerudo::CARD).then(|| Need::Items {
+/// vanilla item is `item`: for the Gerudo membership card, given once the
+/// fourth carpenter is free, all four keys, or one with Gerudo Fortress
+/// fast.
+pub fn fortress_need(item: &str, ctx: &Ctx) -> Option<Need> {
+    let copies = |count| Need::Items {
         actors: vec![key_tints::fortress()],
-        count: FORTRESS.1 as u32,
+        count,
+    };
+    (ctx.fortress.copies() && item == crate::gerudo::CARD).then(|| {
+        let fast = Need::All(vec![ctx.setting(CARPENTERS_FAST), copies(1)]);
+        Need::Any(vec![fast, copies(FORTRESS.1 as u32)])
     })
 }
 
@@ -399,17 +405,29 @@ mod tests {
         .unwrap();
         assert_eq!(items.iter().filter(|i| **i == copy).count(), 3);
         assert!(is_shuffled(&copy));
-        let need = Need::Items {
-            actors: vec![copy],
-            count: 4,
+        let ctx = |fortress_keys, on: &[&str]| {
+            Ctx::new(&crate::settings::NewGame {
+                fortress_keys,
+                on: on.iter().map(|s| s.to_string()).collect(),
+                ..Default::default()
+            })
         };
         let card = crate::gerudo::CARD.get();
-        assert_eq!(fortress_need(card, FortressKeys::Singles), Some(need));
-        assert_eq!(fortress_need(card, FortressKeys::Start), None);
-        assert_eq!(
-            fortress_need(item::HOOKSHOT.get(), FortressKeys::Singles),
-            None
-        );
+        let keysanity = ctx(FortressKeys::Singles, &[]);
+        let fast = ctx(FortressKeys::Singles, &[CARPENTERS_FAST]);
+        let held = |n: usize| {
+            let mut have = crate::rules::Have::default();
+            (0..n).for_each(|_| have.add(&copy));
+            have
+        };
+        let met = |ctx: &Ctx, n| {
+            let need = fortress_need(card, ctx).unwrap();
+            need.met(&held(n), crate::world::Era::Adult)
+        };
+        assert!(!met(&keysanity, 3) && met(&keysanity, 4));
+        assert!(!met(&fast, 0) && met(&fast, 1));
+        assert_eq!(fortress_need(card, &ctx(FortressKeys::Start, &[])), None);
+        assert_eq!(fortress_need(item::HOOKSHOT.get(), &keysanity), None);
         let area = |id: &str| format!("<{id}>");
         let name = copy_name(&key_tints::fortress(), area, DungeonKeys::Vanilla);
         assert_eq!(name, Some(format!("<{}> Small Key", FORTRESS.0)));

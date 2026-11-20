@@ -166,6 +166,49 @@ fn at_map_change(flow: &mut Flowchart, models: &Models) -> Result<()> {
     flow.link(Link::Entry(entry), Some(head))
 }
 
+/// The rescue flow, which counts the carpenters freed.
+const RESCUE: &Name = flow::SAGE_OF_SPIRIT_RESCUE_CARPENTER;
+const IS_INT: (&Name, &Name) = (field::GAME_DATA_ACTOR, flow::EVENT_QUERY_IS_GAME_DATA_INT);
+const HELPED: &Name = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED;
+/// An Int query's answers: below, at or above its `Value`.
+const AT: u32 = 1;
+const ABOVE: u32 = 2;
+
+/// The rescue flow's ask of `HELPED` against `value`.
+fn asks_helped(flow: &Flowchart, value: i32) -> Option<u16> {
+    running(flow, IS_INT).into_iter().find(|&e| {
+        let EventKind::Switch { params, .. } = &flow.events[e as usize].kind else {
+            return false;
+        };
+        let at = params.iter().find(|(k, _)| k == flows::VALUE);
+        flows::param(params, flows::GAME_DATA) == Some(HELPED.get())
+            && at.is_some_and(|(_, v)| *v == Value::Int(vec![value]))
+    })
+}
+
+/// The four carpenters' clear event plays once the count is past three.
+/// Play it only at four, so a count started at three (Gerudo Fortress
+/// fast) plays it on the first rescue and never again. Without that the
+/// count never passes four, so this changes nothing.
+pub fn clear_once(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
+    flows::edit(romfs, rewrites, RESCUE, |flow| {
+        let past = asks_helped(flow, 3).with_context(|| format!("{RESCUE} never counts to 3"))?;
+        let EventKind::Switch { cases, .. } = &flow.events[past as usize].kind else {
+            unreachable!("asks_helped finds switches");
+        };
+        let i = cases.iter().position(|(c, _)| *c == ABOVE);
+        let i = i.with_context(|| format!("{RESCUE} does nothing past 3"))?;
+        let clear = cases[i].1;
+        let mut four = flow.events[past as usize].kind.clone();
+        if let EventKind::Switch { params, cases, .. } = &mut four {
+            set(params, flows::VALUE, Value::Int(vec![4]))?;
+            *cases = vec![(AT, clear)];
+        }
+        let four = flow.push(four);
+        flow.link(Link::Branch(past, i), Some(four))
+    })
+}
+
 /// Check at every map change, and after the grant flows if `drops` moves
 /// the card, so any way of getting it stands the guards down.
 pub fn stand_down(
@@ -195,6 +238,33 @@ mod tests {
     use crate::steps::QUIET;
 
     const ELSEWHERE: u64 = 1;
+
+    #[test]
+    fn the_clear_event_plays_only_at_four_carpenters() {
+        let Some(romfs) = dev_dump() else {
+            return;
+        };
+        let mut rewrites = Rewrites::new();
+        clear_once(&romfs, &mut rewrites).unwrap();
+        let flow = flows::current(&romfs, &rewrites, RESCUE).unwrap();
+        let cases = |e: u16| match &flow.events[e as usize].kind {
+            EventKind::Switch { cases, .. } => cases.clone(),
+            _ => panic!("{e} isn't a switch"),
+        };
+        let past = asks_helped(&flow, 3).unwrap();
+        let four = asks_helped(&flow, 4).unwrap();
+        assert!(cases(past).contains(&(ABOVE, four)));
+        let [(AT, clear)] = cases(four)[..] else {
+            panic!("{:?}", cases(four));
+        };
+        let EventKind::Action { params, .. } = &flow.events[clear as usize].kind else {
+            panic!("{clear} isn't an action");
+        };
+        assert_eq!(
+            flows::param(params, "EventName"),
+            Some(flow::MEET_FOUR_CARPENTER_CLEAR_EVENT.get())
+        );
+    }
 
     #[test]
     fn the_card_is_given_only_where_the_guards_watch() {

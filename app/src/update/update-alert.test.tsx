@@ -118,8 +118,10 @@ test("a running game holds the install", async () => {
   vi.mocked(installable).mockResolvedValue(UPDATE);
   useSeeds.setPath("running", true);
   await openSettled();
-  expect(installButton()).toHaveProperty("disabled", true);
-  expect(screen.getByText("Close the game to update")).toBeTruthy();
+  const button = installButton() as HTMLElement;
+  expect(button.getAttribute("aria-disabled")).toBe("true");
+  await act(async () => fireEvent.click(button));
+  expect(install).not.toHaveBeenCalled();
 });
 
 test("a failed install says so and keeps the release page", async () => {

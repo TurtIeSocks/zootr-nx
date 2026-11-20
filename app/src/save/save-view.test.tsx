@@ -16,6 +16,7 @@ import type {
   SlotRow,
 } from "@/bindings";
 import { SaveView } from "@/save/save-view";
+import { useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
 
 const ok = <T,>(data: T) => Promise.resolve({ status: "ok" as const, data });
@@ -257,6 +258,17 @@ test("a flag row stages its value, and Save writes what's pending", async () => 
   expect(saveWrite.mock.calls[0]?.[2]).toBe(2_000);
   await waitFor(() => expect(screen.getByText(/Backup at b.bak/)).toBeTruthy());
   expect(useUi.getPath("save.edits")).toEqual([]);
+});
+
+test("Save waits while the game runs", async () => {
+  useSeeds.setPath("running", true);
+  await open();
+  fireEvent.click(tile("Hookshot"));
+  const save = await screen.findByRole("button", { name: "Save" });
+  expect(save.getAttribute("aria-disabled")).toBe("true");
+  fireEvent.click(save);
+  expect(saveWrite).not.toHaveBeenCalled();
+  useSeeds.setPath("running", false);
 });
 
 test("Discard drops what's pending", async () => {

@@ -116,6 +116,7 @@ impl NewGame {
             .filter(|p| on(p.name))
             .map(|p| p.name.to_owned())
             .collect();
+        let has = |name: &str| picked.iter().any(|p| p == name);
         let keys = chosen::<DungeonKeys>(settings, KEYS);
         if keys.copies() && !on(SHUFFLE_ITEMS) {
             bail!(
@@ -124,9 +125,14 @@ impl NewGame {
             );
         }
         let fortress_keys = chosen::<FortressKeys>(settings, FORTRESS_KEYS);
-        if fortress_keys.moved() && picked.iter().any(|p| p == CARPENTERS_FREED) {
+        if fortress_keys.moved() && has(CARPENTERS_FREED) {
             bail!(
                 "Fortress keys can't start with {CARPENTERS_FREED}: its thieves are already beaten"
+            );
+        }
+        if has(CARPENTERS_FAST) && has(CARPENTERS_FREED) {
+            bail!(
+                "{CARPENTERS_FAST} can't start with {CARPENTERS_FREED}: both count the carpenters"
             );
         }
         let start = starting::Start::from_settings(settings)?;
@@ -418,6 +424,19 @@ mod tests {
             assert!(on.on.contains(ADULT_DEKU_TREE), "{mode}");
             assert!(preset.iter().all(|f| on.fields.contains(f)), "{mode}");
         }
+    }
+
+    #[test]
+    fn fast_carpenters_are_refused_with_freed_ones_but_not_with_fortress_keys() {
+        let mut settings = Settings::from([
+            (CARPENTERS_FAST.into(), true.into()),
+            (FORTRESS_KEYS.into(), "singles".into()),
+        ]);
+        assert!(NewGame::from_settings(&settings, &[]).is_ok());
+        settings.insert(FORTRESS_KEYS.into(), "vanilla".into());
+        settings.insert(CARPENTERS_FREED.into(), true.into());
+        let err = NewGame::from_settings(&settings, &[]).unwrap_err();
+        assert!(err.to_string().contains(CARPENTERS_FAST), "{err}");
     }
 
     #[test]

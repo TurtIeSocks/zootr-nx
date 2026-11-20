@@ -285,8 +285,14 @@ fn record(
     extras: generate::Extras,
     install: bool,
 ) -> anyhow::Result<Summary> {
-    let report = (app.state::<Generating>()).build(steps, seed, &settings, &extras, install)?;
-    History::record(settings, extras, Label::default(), report, install)
+    let built = (app.state::<Generating>()).build(steps, seed, &settings, &extras, install);
+    let summary =
+        built.and_then(|r| History::record(settings, extras, Label::default(), r, install));
+    // A stopped install that took the mod off changed it too.
+    if install {
+        app.state::<Items>().emit(app);
+    }
+    summary
 }
 
 /// What the plando draft can pick from with the current settings, and why
@@ -317,7 +323,9 @@ async fn install(app: AppHandle, id: u32, steps: Channel<progress::StepEvent>) -
             true,
         )?;
         history.install(Some(id));
-        history.save()
+        history.save()?;
+        app.state::<Items>().emit(&app);
+        Ok(())
     })
     .await
 }
@@ -334,12 +342,14 @@ async fn rebuild(app: AppHandle, name: String, steps: Channel<progress::StepEven
 /// Take the mod off every target so the game runs vanilla.
 #[tauri::command]
 #[specta::specta]
-async fn uninstall() -> Res<()> {
-    blocking(|| {
+async fn uninstall(app: AppHandle) -> Res<()> {
+    blocking(move || {
         generate::uninstall(&Config::load()?.targets)?;
         let mut history = History::load()?;
         history.install(None);
-        history.save()
+        history.save()?;
+        app.state::<Items>().emit(&app);
+        Ok(())
     })
     .await
 }
@@ -437,31 +447,34 @@ impl tauri_specta::Event for ItemsEvent {
     const NAME: &'static str = "items-event";
 }
 
-/// What Link has, from the last save and then the watcher's rows.
+/// What Link has, from the last save played since the installed seed went
+/// in and then the watcher's rows. Kept with that install time, so a new
+/// install starts it over.
 #[derive(Default)]
-struct Items(Mutex<Option<Inventory>>);
+struct Items(Mutex<Option<(Option<u32>, Inventory)>>);
 
 impl Items {
     fn state(&self, app: &AppHandle) -> anyhow::Result<ItemsState> {
         let config = Config::load()?;
+        let since = History::load()?.installed_at;
         let mut items = self.0.lock().unwrap();
-        if items.is_none() {
+        if items.as_ref().is_none_or(|(at, _)| *at != since) {
             let gd = app.state::<Live>().gamedata(&config)?;
             let mut inv = Inventory::new(&gd, &romfs(&config)?)?;
-            if let Some(save) = savefile::newest(&config.save_dir()?)? {
+            if let Some(save) = savefile::newest_since(&config.save_dir()?, since)? {
                 inv.load(inventory::in_save(&savefile::load(&save)?));
             }
-            *items = Some(inv);
+            *items = Some((since, inv));
         }
         Ok(ItemsState {
-            cells: items.as_ref().expect("just built").cells(),
+            cells: items.as_ref().expect("just built").1.cells(),
             game_art: game_art(&config),
             options: config.tracker.tidy(),
         })
     }
 
     fn change(&self, app: &AppHandle, change: &Change) {
-        let changed = (self.0.lock().unwrap().as_mut()).is_some_and(|inv| inv.change(change));
+        let changed = (self.0.lock().unwrap().as_mut()).is_some_and(|(_, inv)| inv.change(change));
         if changed {
             self.emit(app);
         }

@@ -11,7 +11,7 @@ use serde_json::Value;
 use crate::cutscenes::{AREAS, Skips};
 use crate::entrances::Doors;
 use crate::keys;
-use crate::presets::{self, ADULT_DEKU_TREE, CARPENTERS_FREED, PRESETS};
+use crate::presets::{self, ADULT_DEKU_TREE, CARPENTERS_FAST, CARPENTERS_FREED, PRESETS};
 use crate::starting;
 
 mod choices;

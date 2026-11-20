@@ -83,6 +83,18 @@ pub struct Ctx {
 }
 
 impl Ctx {
+    /// Toggle `id`: met when on, unmet when off, left to the player when
+    /// open.
+    pub fn setting(&self, id: &str) -> Need {
+        if self.open.contains(id) {
+            Need::Setting(id.into())
+        } else if self.on.contains(id) {
+            Need::Always
+        } else {
+            Need::Never
+        }
+    }
+
     pub fn new(new_game: &NewGame) -> Self {
         Self {
             progressive: new_game.progressive,
@@ -391,13 +403,7 @@ impl Book {
             _ => match word.split_once(':') {
                 Some(("setting", id)) => {
                     ensure!(self.toggles.contains(id), "no toggle `{id}`");
-                    if ctx.open.contains(id) {
-                        Need::Setting(id.into())
-                    } else if ctx.on.contains(id) {
-                        Need::Always
-                    } else {
-                        Need::Never
-                    }
+                    ctx.setting(id)
                 }
                 Some(("flag", name)) if !name.is_empty() => Need::Flag(name.into()),
                 // Something logic can't read yet, or a GameData enum it

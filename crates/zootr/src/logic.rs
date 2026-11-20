@@ -418,7 +418,7 @@ impl World {
                 };
                 let keys = [
                     keys::dungeon_need(check, ctx.keys),
-                    keys::fortress_need(&check.item, ctx.fortress),
+                    keys::fortress_need(&check.item, ctx),
                 ];
                 let need = match keys.into_iter().flatten().collect::<Vec<_>>() {
                     keys if keys.is_empty() => need,
@@ -463,7 +463,7 @@ impl World {
                 name: s.name.clone(),
                 places,
                 item: s.item.clone(),
-                need: match keys::fortress_need(&s.item, ctx.fortress) {
+                need: match keys::fortress_need(&s.item, ctx) {
                     Some(keys) => Need::All(vec![book.need(&s.expr, ctx)?, keys]),
                     None => book.need(&s.expr, ctx)?,
                 },
@@ -961,6 +961,22 @@ mod tests {
         assert!(!doors.iter().any(|d| d.need.met(&have, Era::Adult)));
         have.add(&crate::rules::vocab::id("item:bow").unwrap());
         assert!(doors.iter().any(|d| d.need.met(&have, Era::Adult)));
+    }
+
+    #[test]
+    fn gerudo_fortress_fast_gives_the_card_without_the_hookshot() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let fast = crate::presets::CARPENTERS_FAST;
+        let card = crate::gerudo::CARD.get();
+        let source = |on: &[&str]| {
+            let world = world(&romfs, on);
+            let s = world.sources.iter().find(|s| s.item == card).unwrap();
+            s.need.met(&Have::default(), Era::Adult)
+        };
+        assert!(source(&[fast]));
+        assert!(!source(&[]));
     }
 
     #[test]
