@@ -130,7 +130,7 @@ impl TestSetup {
     }
 }
 
-/// A runner a seed installs to. Nothing here knows which runner it is.
+/// Where a seed installs and the game runs. Nothing here knows which one it is.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Target {
@@ -156,7 +156,7 @@ pub struct Target {
     /// settings line names it with `{control}`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub control: Option<PathBuf>,
-    /// The native build's control socket. With it, live reads, dev tools
+    /// The target's control socket. With it, live reads, dev tools
     /// and the play harness go through the socket.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bridge: Option<PathBuf>,
@@ -730,22 +730,22 @@ mod tests {
     }
 
     const PRESET: &str = r#"{
-        "name": "My runner",
-        "app": "~/Games/runner/game",
-        "mod_dir": "~/Games/runner/mods/zootr",
-        "settings_file": { "file": "~/Games/runner/env.txt", "lines": ["{switch}={romfs}"] },
-        "save_dir": "~/Games/runner/save"
+        "name": "My target",
+        "app": "~/Games/target/game",
+        "mod_dir": "~/Games/target/mods/zootr",
+        "settings_file": { "file": "~/Games/target/env.txt", "lines": ["{switch}={romfs}"] },
+        "save_dir": "~/Games/target/save"
     }"#;
 
     #[test]
     fn import_expands_a_leading_tilde_only() {
         let home = Path::new("/home/me");
         let t = Target::import_at(PRESET, Some(home)).unwrap();
-        assert_eq!(t.app, Path::new("/home/me/Games/runner/game"));
-        assert_eq!(t.mod_dir, Path::new("/home/me/Games/runner/mods/zootr"));
-        assert_eq!(t.save_dir.unwrap(), Path::new("/home/me/Games/runner/save"));
+        assert_eq!(t.app, Path::new("/home/me/Games/target/game"));
+        assert_eq!(t.mod_dir, Path::new("/home/me/Games/target/mods/zootr"));
+        assert_eq!(t.save_dir.unwrap(), Path::new("/home/me/Games/target/save"));
         let file = t.settings_file.unwrap();
-        assert_eq!(file.file, Path::new("/home/me/Games/runner/env.txt"));
+        assert_eq!(file.file, Path::new("/home/me/Games/target/env.txt"));
         assert_eq!(file.lines, ["{switch}={romfs}"]);
         let t =
             Target::import_at(r#"{"name":"a","app":"~","mod_dir":"/x/~/y"}"#, Some(home)).unwrap();
@@ -867,7 +867,7 @@ mod tests {
         let mut out = t.clone();
         out.map_paths(|p| collapse_home(p, home));
         let json = serde_json::to_string(&out).unwrap();
-        assert!(json.contains("\"~/Games/runner/game\""), "{json}");
+        assert!(json.contains("\"~/Games/target/game\""), "{json}");
         assert!(!json.contains("/home/me"), "{json}");
         assert_eq!(
             collapse_home(Path::new("/home/mex/a"), home),
@@ -885,10 +885,10 @@ mod tests {
     #[test]
     fn a_taken_name_gets_a_number() {
         let mut config = Config::default();
-        let t = target("Runner", None);
-        assert_eq!(config.add_imported(t.clone()), "Runner");
-        assert_eq!(config.add_imported(t.clone()), "Runner 2");
-        assert_eq!(config.add_imported(t), "Runner 3");
+        let t = target("FakeTarget", None);
+        assert_eq!(config.add_imported(t.clone()), "FakeTarget");
+        assert_eq!(config.add_imported(t.clone()), "FakeTarget 2");
+        assert_eq!(config.add_imported(t), "FakeTarget 3");
         assert_eq!(config.targets.len(), 3);
     }
 }

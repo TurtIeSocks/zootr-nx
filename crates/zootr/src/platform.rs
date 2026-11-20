@@ -268,7 +268,7 @@ mod tests {
         parts.iter().collect()
     }
 
-    /// Play starts the app with the target's env, which is how a runner
+    /// Play starts the app with the target's env, which is how a target
     /// learns its control socket.
     #[cfg(target_os = "linux")]
     #[test]
@@ -276,7 +276,7 @@ mod tests {
         use std::os::unix::fs::PermissionsExt;
         let dir = std::env::temp_dir().join(format!("zootr-open-env-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        let app = dir.join("runner.sh");
+        let app = dir.join("target.sh");
         let out = dir.join("out.txt");
         std::fs::write(
             &app,

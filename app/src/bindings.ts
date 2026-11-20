@@ -918,7 +918,7 @@ export type Summary = {
 	death_link: boolean,
 };
 
-/**  A runner a seed installs to. Nothing here knows which runner it is. */
+/**  Where a seed installs and the game runs. Nothing here knows which one it is. */
 export type Target = {
 	name: string,
 	/**  What Play opens, and whose process means the game is running. */
@@ -935,7 +935,7 @@ export type Target = {
 	 */
 	control?: string | null,
 	/**
-	 *  The native build's control socket. With it, live reads, dev tools
+	 *  The target's control socket. With it, live reads, dev tools
 	 *  and the play harness go through the socket.
 	 */
 	bridge?: string | null,

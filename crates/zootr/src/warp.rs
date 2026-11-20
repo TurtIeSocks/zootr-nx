@@ -273,7 +273,7 @@ pub fn placed<'a>(found: &'a BTreeMap<String, Pose>, map: &str, actor: &str) -> 
 /// forward is local `+Z` turned by its angles, X then Y then Z, flattened
 /// to the ground. The game turns the other way from the textbook: a
 /// quarter turn about `+Y` swings `+Z` to `-X` (chests turned that way
-/// open only from there, on the native build). Left is a quarter turn from it, right handed with `+Y`
+/// open only from there, on the bridge target). Left is a quarter turn from it, right handed with `+Y`
 /// up. One facing straight up or down lands on the spot itself.
 pub fn landing(pose: &Pose, side: Side) -> [f32; 3] {
     landing_at(pose, side, AHEAD)

@@ -85,7 +85,7 @@ impl Status {
                 "{name}'s last build refused the hook patch: {note}"
             )),
             Status::Unrecorded => Some(format!(
-                "{name}'s build doesn't record its patches, so it may not load them. Rebuild it with a Hookshot that has ExeFS patch support"
+                "{name}'s build doesn't record its patches, so it may not load them. Rebuild it with a version that applies code patches"
             )),
         }
     }

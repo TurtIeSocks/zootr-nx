@@ -63,7 +63,7 @@ mod tests {
     #[test]
     fn an_older_config_without_rebuild_loads() {
         let json =
-            r#"{"targets": [{"name": "FakeRunner", "app": "/a", "mod_dir": "/g/mods/zootr"}]}"#;
+            r#"{"targets": [{"name": "FakeTarget", "app": "/a", "mod_dir": "/g/mods/zootr"}]}"#;
         let config = Config::parse(json.as_bytes()).unwrap();
         let t = &config.targets[0];
         assert_eq!(t.rebuild, None);
@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn the_default_manifest_is_two_above_the_mod_folder() {
-        let json = r#"{"name": "FakeRunner", "app": "/a", "mod_dir": "/g/mods/zootr"}"#;
+        let json = r#"{"name": "FakeTarget", "app": "/a", "mod_dir": "/g/mods/zootr"}"#;
         let mut t = Target::import_at(json, None).unwrap();
         assert_eq!(t.manifest().unwrap(), Path::new("/g/exefs_patches.txt"));
         t.rebuild = Some(Rebuild {
@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     fn a_preset_rebuild_fills_in_the_game_and_expands_its_manifest() {
-        let json = r#"{"name": "FakeRunner", "app": "/a", "mod_dir": "/m",
+        let json = r#"{"name": "FakeTarget", "app": "/a", "mod_dir": "/m",
             "rebuild": {"command": ["make", "--dump", "{game}"], "manifest": "~/g/list.txt"}}"#;
         let t = Target::import_at(json, Some(Path::new("/home/me"))).unwrap();
         assert_eq!(t.manifest().unwrap(), Path::new("/home/me/g/list.txt"));

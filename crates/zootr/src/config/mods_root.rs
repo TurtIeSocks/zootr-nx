@@ -1,5 +1,5 @@
-//! A mod folder set to the folder an emulator keeps every mod for the game
-//! in. Emulators load a mod from a named folder inside that one, so install
+//! A mod folder set to the folder a target keeps every mod for the game
+//! in. Such targets load a mod from a named folder inside that one, so install
 //! writes into a folder of its own there instead.
 
 use super::{Config, Target};
@@ -51,7 +51,7 @@ mod tests {
 
     fn target(mod_dir: &Path) -> Target {
         Target {
-            name: "FakeRunner".into(),
+            name: "FakeTarget".into(),
             app: "/nowhere/app".into(),
             mod_dir: mod_dir.into(),
             settings_file: None,
@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn an_older_config_loads_fixed() {
-        let json = r#"{"targets": [{"name": "FakeRunner", "app": "/a", "mod_dir": "/m/0400486024DEC000"}]}"#;
+        let json = r#"{"targets": [{"name": "FakeTarget", "app": "/a", "mod_dir": "/m/0400486024DEC000"}]}"#;
         let config = Config::parse(json.as_bytes()).unwrap();
         assert_eq!(
             config.targets[0].mod_dir,

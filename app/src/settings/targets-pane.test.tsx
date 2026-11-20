@@ -18,7 +18,7 @@ const importTarget = vi.fn((text: string) =>
   text.startsWith("{")
     ? Promise.resolve({
         status: "ok",
-        data: { name: "Runner", app: "/a", mod_dir: "/m" },
+        data: { name: "FakeTarget", app: "/a", mod_dir: "/m" },
       })
     : Promise.resolve({ status: "error", error: 'unknown key "bad"' }),
 );
@@ -30,11 +30,11 @@ const saveTarget = vi.fn((_name: string, _file: string) =>
   Promise.resolve({ status: "ok", data: null }),
 );
 const readTargetFile = vi.fn((_file: string) =>
-  Promise.resolve({ status: "ok", data: '{"name":"Runner"}' }),
+  Promise.resolve({ status: "ok", data: '{"name":"FakeTarget"}' }),
 );
 const dialog = {
-  save: vi.fn(async () => "/shared/Runner.json" as string | null),
-  open: vi.fn(async () => "/shared/Runner.json" as string | null),
+  save: vi.fn(async () => "/shared/FakeTarget.json" as string | null),
+  open: vi.fn(async () => "/shared/FakeTarget.json" as string | null),
 };
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   save: () => dialog.save(),
@@ -74,7 +74,7 @@ afterEach(() => {
 });
 
 const config = full({
-  targets: [{ name: "Runner", app: "/a", mod_dir: "/m" }],
+  targets: [{ name: "FakeTarget", app: "/a", mod_dir: "/m" }],
 });
 
 function show() {
@@ -85,7 +85,8 @@ function show() {
 const button = (name: string) =>
   screen.getByRole("button", { name }) as HTMLButtonElement;
 
-const nameField = () => screen.getByDisplayValue(/^Runner/) as HTMLInputElement;
+const nameField = () =>
+  screen.getByDisplayValue(/^FakeTarget/) as HTMLInputElement;
 
 const rename = (value: string) =>
   fireEvent.change(nameField(), { target: { value } });
@@ -94,12 +95,12 @@ test("imports pasted text as a new draft with its name made unique", async () =>
   show();
   fireEvent.click(button("Import"));
   fireEvent.change(screen.getByLabelText("Target"), {
-    target: { value: '{"name":"Runner"}' },
+    target: { value: '{"name":"FakeTarget"}' },
   });
   fireEvent.click(
     screen.getByRole("button", { name: "Import", hidden: false }),
   );
-  await waitFor(() => expect(screen.getByText("Runner 2")).toBeTruthy());
+  await waitFor(() => expect(screen.getByText("FakeTarget 2")).toBeTruthy());
 });
 
 test("an import error shows in the dialog and adds nothing", async () => {
@@ -113,7 +114,7 @@ test("an import error shows in the dialog and adds nothing", async () => {
   await waitFor(() =>
     expect(screen.getByText(/unknown key "bad"/)).toBeTruthy(),
   );
-  expect(screen.queryByText("Runner 2")).toBeNull();
+  expect(screen.queryByText("FakeTarget 2")).toBeNull();
 });
 
 test("copy puts the saved target's export on the clipboard", async () => {
@@ -122,38 +123,40 @@ test("copy puts the saved target's export on the clipboard", async () => {
   show();
   fireEvent.click(button("Copy"));
   await waitFor(() =>
-    expect(writeText).toHaveBeenCalledWith("preset of Runner"),
+    expect(writeText).toHaveBeenCalledWith("preset of FakeTarget"),
   );
 });
 
 test("a reload with the same targets keeps the form's edits, new ones reset it", () => {
   show();
-  rename("Runner edited");
+  rename("FakeTarget edited");
   act(() => useConfig.setPath("config", keep(full({ ...config }))));
-  expect(nameField().value).toBe("Runner edited");
+  expect(nameField().value).toBe("FakeTarget edited");
   act(() =>
     useConfig.setPath(
       "config",
-      keep(full({ targets: [{ name: "Runner", app: "/b", mod_dir: "/m" }] })),
+      keep(
+        full({ targets: [{ name: "FakeTarget", app: "/b", mod_dir: "/m" }] }),
+      ),
     ),
   );
-  expect(nameField().value).toBe("Runner");
+  expect(nameField().value).toBe("FakeTarget");
 });
 
 test("Save floats in a bar only while the targets have unsaved edits", () => {
   show();
   expect(screen.queryByRole("button", { name: "Save targets" })).toBeNull();
-  rename("Runner edited");
+  rename("FakeTarget edited");
   expect(screen.getByText("Unsaved changes to targets")).toBeTruthy();
-  rename("Runner");
+  rename("FakeTarget");
   expect(screen.queryByRole("button", { name: "Save targets" })).toBeNull();
 });
 
 test("Discard puts the saved targets back", () => {
   show();
-  rename("Runner edited");
+  rename("FakeTarget edited");
   fireEvent.click(button("Discard"));
-  expect(nameField().value).toBe("Runner");
+  expect(nameField().value).toBe("FakeTarget");
   expect(screen.queryByRole("button", { name: "Discard" })).toBeNull();
 });
 
@@ -169,7 +172,7 @@ test("a second Save while one runs is ignored, and the bar goes once saved", asy
   let finish = () => {};
   saving.hold = new Promise((resolve) => (finish = resolve));
   show();
-  rename("Runner edited");
+  rename("FakeTarget edited");
   fireEvent.click(button("Save targets"));
   fireEvent.click(button("Save targets"));
   expect(setConfig).toHaveBeenCalledTimes(1);
@@ -178,7 +181,7 @@ test("a second Save while one runs is ignored, and the bar goes once saved", asy
   await waitFor(() =>
     expect(screen.queryByRole("button", { name: "Save targets" })).toBeNull(),
   );
-  expect(nameField().value).toBe("Runner edited");
+  expect(nameField().value).toBe("FakeTarget edited");
   saving.hold = undefined;
 });
 
@@ -186,7 +189,10 @@ test("Download writes the saved target to the file picked", async () => {
   show();
   fireEvent.click(button("Download"));
   await waitFor(() =>
-    expect(saveTarget).toHaveBeenCalledWith("Runner", "/shared/Runner.json"),
+    expect(saveTarget).toHaveBeenCalledWith(
+      "FakeTarget",
+      "/shared/FakeTarget.json",
+    ),
   );
 });
 
@@ -204,21 +210,21 @@ test("Import opens a file into the text box to check before importing", async ()
   fireEvent.click(button("Open a file"));
   await waitFor(() =>
     expect((screen.getByLabelText("Target") as HTMLTextAreaElement).value).toBe(
-      '{"name":"Runner"}',
+      '{"name":"FakeTarget"}',
     ),
   );
-  expect(readTargetFile).toHaveBeenCalledWith("/shared/Runner.json");
+  expect(readTargetFile).toHaveBeenCalledWith("/shared/FakeTarget.json");
 });
 
 test("a save that moves a mod folder says so, and shows the folder it saved", async () => {
   const moved = "/m/0400486024DEC000/zootr";
-  const note = `Runner: installs into ${moved}`;
+  const note = `FakeTarget: installs into ${moved}`;
   saving.notes = [note];
   saving.after = full({
-    targets: [{ name: "Runner", app: "/a", mod_dir: moved }],
+    targets: [{ name: "FakeTarget", app: "/a", mod_dir: moved }],
   });
   show();
-  rename("Runner edited");
+  rename("FakeTarget edited");
   fireEvent.click(button("Save targets"));
   await waitFor(() => expect(screen.getByText(note)).toBeTruthy());
   expect(screen.getByDisplayValue(moved)).toBeTruthy();
@@ -226,19 +232,19 @@ test("a save that moves a mod folder says so, and shows the folder it saved", as
   saving.after = undefined;
 });
 
-/** Shows the pane with Runner's game built as `build` says. */
+/** Shows the pane with FakeTarget's game built as `build` says. */
 function showBuilt(build: Build) {
   useSeeds.setPath("status", {
     game: true,
     targets: [
-      { name: "Runner", app: true, mod_dir: true, running: false, build },
+      { name: "FakeTarget", app: true, mod_dir: true, running: false, build },
     ],
   });
   show();
 }
 
 const stale =
-  "Runner needs a rebuild: its hook patch changed since the last build";
+  "FakeTarget needs a rebuild: its hook patch changed since the last build";
 
 test("a stale build shows its badge, what's wrong and Rebuild", () => {
   showBuilt({ status: { kind: "stale" }, text: stale, command: true });
@@ -262,7 +268,7 @@ test("a current build only shows its badge", () => {
 
 test("Stop shows while this target rebuilds and stops it", () => {
   useSeeds.setPath("generating", true);
-  useSeeds.setPath("rebuilt", "Runner");
+  useSeeds.setPath("rebuilt", "FakeTarget");
   showBuilt({ status: { kind: "stale" }, text: stale, command: true });
   expect(button("Rebuild").disabled).toBe(true);
   fireEvent.click(button("Stop"));

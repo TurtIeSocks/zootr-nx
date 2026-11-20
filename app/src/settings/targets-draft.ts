@@ -102,7 +102,7 @@ export const FIELDS: DraftField[] = [
   {
     key: "app",
     label: "App",
-    hint: "What Play opens, e.g. /Applications/Some Runner.app",
+    hint: "What Play opens",
     pick: "file",
   },
   {
@@ -113,7 +113,7 @@ export const FIELDS: DraftField[] = [
   {
     key: "mod_dir",
     label: "Mod folder",
-    hint: "The folder the runner loads as a mod. Install writes romfs/ here",
+    hint: "The folder the game loads this mod from. Install writes romfs/ here",
     pick: "folder",
   },
   {
@@ -125,7 +125,7 @@ export const FIELDS: DraftField[] = [
   {
     key: "line_file",
     label: "Settings file (optional)",
-    hint: "For runners that read the mod path from a settings file",
+    hint: "For targets that read the mod path from a settings file",
     pick: "file",
   },
   {
@@ -137,7 +137,7 @@ export const FIELDS: DraftField[] = [
   {
     key: "bridge",
     label: "Control socket (optional)",
-    hint: "For runners with a control socket: live reads and dev tools go through it",
+    hint: "For targets with a control socket: live reads and dev tools go through it",
   },
   {
     key: "env",

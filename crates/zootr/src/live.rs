@@ -1,4 +1,4 @@
-//! GameData values read and written live in the running PC build, from
+//! GameData values read and written live in the running game, from
 //! outside the game. Plain memory access, no hooks. Layout in `docs/research/live-flags.md`.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -71,7 +71,7 @@ pub const TICK: Duration = Duration::from_millis(100);
 pub const BURST: u32 = 5;
 pub const WINDOW: Duration = Duration::from_secs(10);
 
-/// A running game's memory: the Mac game through Mach, or another
+/// A running game's memory: read directly through Mach, or another
 /// backend.
 pub trait Memory {
     fn read(&self, at: u64, len: usize) -> Result<Vec<u8>>;
@@ -435,13 +435,13 @@ pub struct Game {
 
 /// How a [`Game`] reaches the game's memory.
 enum Backend {
-    /// The Mac game's task.
+    /// The game's task, read directly.
     Mach(u32),
-    /// The native build's control socket.
+    /// The target's control socket.
     Bridge(Bridge),
 }
 
-/// Where the native build loads the game's `main`.
+/// Where a target with a bridge loads the game's `main`.
 pub const NATIVE_MAIN: u64 = 0x8002_0000;
 
 impl Memory for Game {
@@ -519,7 +519,7 @@ impl Game {
         }
     }
 
-    /// The native build behind `bridge`, whose GameData global sits at a
+    /// The game behind `bridge`, whose GameData global sits at a
     /// fixed offset from `main`.
     pub fn over(bridge: Bridge) -> Result<Self> {
         let global = NATIVE_MAIN + u64::from(OFFSETS.gamedata);
@@ -587,7 +587,7 @@ impl Game {
     }
 
     /// The game's mapped regions: start, size and protection (read 1,
-    /// write 2, execute 4). The Mac game only.
+    /// write 2, execute 4). Read directly only.
     pub fn regions(&self) -> Result<Vec<(u64, usize, i32)>> {
         match &self.mem {
             Backend::Mach(task) => Ok(mach::regions(*task)),

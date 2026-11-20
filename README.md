@@ -12,9 +12,9 @@ the result as a mod.
   need your own legally obtained copy of the game, dumped from your own
   console. zootr reads your dump at runtime and never distributes anything
   from it.
-- No emulation help. The project doesn't provide, link to or support
-  obtaining emulators, firmware, keys or game dumps, and won't answer
-  questions about them. Issues and discussions asking for them get closed.
+- No help getting the game. The project doesn't provide, link to or
+  support obtaining game files or dumps, and won't answer questions about
+  them. Issues and discussions asking for them get closed.
 - Not affiliated with or endorsed by Nintendo or the Ocarina of Time
   Randomizer project.
   Nintendo, Nintendo Switch 2, The Legend of Zelda and Ocarina of Time are
@@ -121,8 +121,8 @@ Early. Expect seeds that break and settings that change.
   tested.
 - The tracker, the Live log, the checks list and the Archipelago client
   read the running game.
-  That works on macOS, and on Linux and Windows when the target has a
-  `bridge`, a control socket its app opens for zootr.
+  That needs a target zootr can read the running game from, such as one
+  with a `bridge`, a control socket it opens for zootr.
 - A setting the app marks Untested hasn't been played through yet.
 - The logic is still primitive and needs more testing. A seed can still
   ask for something Link can't reach.

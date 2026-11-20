@@ -49,7 +49,7 @@ fn main() {
         // and merged across all of it: about 2.5 KB less in the cave.
         .args(["-C", "codegen-units=1", "-C", "lto=fat"])
         .args(["-C", "relocation-model=pic", "-C", "link-arg=-pie"])
-        // Apple's ABI reserves x18 and macOS may clear it, so the PC build
+        // Apple's ABI reserves x18 and macOS may clear it, so the game
         // could lose a value the hook keeps there. The flag is nightly
         // only, so this one call is let through on the pinned stable.
         // Prebuilt `core` wasn't built with it, hence the mismatch allow.

@@ -301,7 +301,7 @@ pub fn cheat(patches: &[Patch]) -> String {
 }
 
 /// IPSwitch text writing `patches`, for loaders that patch `main` as it
-/// loads (emulators, and recompilers that take no code cheats). Offsets
+/// loads (targets that take no code cheats). Offsets
 /// count from `main`'s image, past its NSO header.
 pub fn pchtxt(patches: &[Patch]) -> String {
     let used = BUILD_ID.iter().rposition(|&b| b != 0).map_or(0, |i| i + 1);

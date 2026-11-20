@@ -1,4 +1,4 @@
-//! The native build's control socket: one JSON line a request, its reply matched by `id`.
+//! The target's control socket: one JSON line a request, its reply matched by `id`.
 
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
@@ -15,8 +15,7 @@ pub const PATIENCE: Duration = Duration::from_secs(30);
 
 /// The most one memory request moves.
 const CHUNK: usize = 1 << 20;
-/// The most ranges one `mem_read_many` may name: Hookshot refuses more
-/// (`CTL_MEM_RANGES`).
+/// The most ranges one `mem_read_many` may name: the target refuses more.
 const RANGES: usize = 64;
 
 /// The game answered a request with an error.
@@ -40,7 +39,7 @@ impl std::fmt::Display for Refused {
 
 impl std::error::Error for Refused {}
 
-/// A connection to the running native build.
+/// A connection to the running game.
 pub struct Bridge {
     conn: Mutex<Conn>,
 }

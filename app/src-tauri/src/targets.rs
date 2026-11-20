@@ -63,7 +63,7 @@ mod tests {
     fn a_preset_file_reads_and_a_huge_one_is_refused() {
         let dir = std::env::temp_dir().join(format!("zootr-targets-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        let small = dir.join("runner.json");
+        let small = dir.join("target.json");
         std::fs::write(&small, "{}").unwrap();
         assert_eq!(read_preset(&small).unwrap(), "{}");
         let huge = dir.join("game.nup");

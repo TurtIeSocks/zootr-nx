@@ -1,4 +1,4 @@
-//! The overnight sweep: every spot of a seed triggered on the native build,
+//! The overnight sweep: every spot of a seed triggered on a target with a bridge,
 //! each given a verdict, round after round.
 
 mod clock;

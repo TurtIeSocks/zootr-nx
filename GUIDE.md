@@ -33,7 +33,7 @@ The builds aren't signed yet, so macOS and Windows warn the first time:
 | Shuffle | Moves items to new places, from chests out to whatever the Shuffles and Dungeons settings add, with glitchless logic so the seed can be beaten |
 | Generate | Writes a mod folder with only the game files it changed, a code patch for progressive items, and a spoiler log |
 | Install | Writes the mod into each target's mod folder, plus any settings lines the target needs to load it |
-| Track | Watches the running game and ticks off checks and items as Link finds them. On macOS, or any system when the target has a `bridge` |
+| Track | Watches the running game and ticks off checks and items as Link finds them, on a target zootr can read the game from (see `bridge`) |
 
 ## Features
 
@@ -297,8 +297,8 @@ cargo run -p zootr -- --game path/to/oot.nup shuffle --help
 | `extract` | Extract the files zootr reads into the cache and print where |
 | `target` | Add a target from a shared preset, or print one to share |
 | `save` | Read, compare or edit a save slot by flag name |
-| `live` | Print game values as the running game changes them (macOS) |
-| `give`, `set` | Give Link an item (with the game's own grant, needs the dev panel seed) or write one value in the running game (macOS) |
+| `live` | Print game values as the running game changes them |
+| `give`, `set` | Give Link an item (with the game's own grant, needs the dev panel seed) or write one value in the running game |
 | `census`, `items`, `flags`, `flag`, `exits`, `spawns`, `cutscenes`, `chest-events`, `effects`, `flow`, `logic`, `probe` | Research: questions about the game's data |
 | `selftest` | Round-trip the game's files through the format code |
 | `set-drop` | Make one placed actor drop a different item |

@@ -8,11 +8,11 @@ import {
   withTarget,
 } from "@/settings/targets-draft";
 
-const runner = { name: "Runner", app: "/a", mod_dir: "/m" };
+const fake = { name: "FakeTarget", app: "/a", mod_dir: "/m" };
 
 test("a draft saves back as the target it came from, blanks left out", () => {
-  expect(toTarget(toDraft(runner))).toEqual({
-    ...runner,
+  expect(toTarget(toDraft(fake))).toEqual({
+    ...fake,
     args: [],
     save_dir: null,
     settings_file: null,
@@ -26,7 +26,7 @@ test("a draft saves back as the target it came from, blanks left out", () => {
 
 test("a rebuild command keeps one argument per line", () => {
   const baked = {
-    ...runner,
+    ...fake,
     rebuild: {
       command: ["bash", "-c", "make game --update"],
       manifest: "/g/exefs_patches.txt",
@@ -43,7 +43,7 @@ test("a rebuild command keeps one argument per line", () => {
 
 test("a bridge and its env lines save back as they were", () => {
   const native = {
-    ...runner,
+    ...fake,
     bridge: "/run/c.sock",
     env: ["SOCK={bridge}", "MEM=rw"],
     harness_env: ["SAVES={save}", "FPS=30"],
@@ -52,19 +52,23 @@ test("a bridge and its env lines save back as they were", () => {
 });
 
 test("an added target is numbered past the names taken", () => {
-  const drafts = withTarget(withTarget([toDraft(runner)], runner), runner);
-  expect(drafts.map((d) => d.name)).toEqual(["Runner", "Runner 2", "Runner 3"]);
+  const drafts = withTarget(withTarget([toDraft(fake)], fake), fake);
+  expect(drafts.map((d) => d.name)).toEqual([
+    "FakeTarget",
+    "FakeTarget 2",
+    "FakeTarget 3",
+  ]);
 });
 
 test("a draft is saved only while it matches its saved target", () => {
-  const draft = toDraft(runner);
-  expect(isSaved([runner], draft)).toBe(true);
-  expect(isSaved([runner], { ...draft, app: "/b" })).toBe(false);
+  const draft = toDraft(fake);
+  expect(isSaved([fake], draft)).toBe(true);
+  expect(isSaved([fake], { ...draft, app: "/b" })).toBe(false);
   expect(isSaved([], draft)).toBe(false);
 });
 
 test("problem names the first thing stopping a save", () => {
-  const ok = toDraft(runner);
+  const ok = toDraft(fake);
   expect(problem([ok])).toBe("");
   expect(problem([BLANK])).toMatch(/needs a name/);
   expect(problem([ok, ok])).toBe("Target names must differ");

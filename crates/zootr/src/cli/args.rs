@@ -281,7 +281,7 @@ pub(super) enum Command {
         value: String,
     },
     /// Read, search and write the running game's memory, for finding
-    /// where the game keeps something. The Mac game only.
+    /// where the game keeps something. A game read directly only.
     #[command(subcommand)]
     Mem(MemCommand),
     /// Add a target from a shared preset, or print one to share.
@@ -366,7 +366,7 @@ pub(super) enum Command {
     /// Ask a vision model questions about the game's picture, all at once,
     /// and print the answers as one JSON object. A question is yes or no,
     /// or asks for words when it ends in `?:`. The frame comes from the
-    /// target's game, the native build when it has a bridge.
+    /// target's game, through its bridge when it has one.
     #[command(hide = true)]
     Look {
         #[arg(required = true)]
