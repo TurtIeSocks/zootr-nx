@@ -354,6 +354,10 @@ pub struct Pass<'a, I> {
     pub swing: Swing,
     /// The seed brings Gold Skulltulas out by day: shoot them at noon.
     pub day_skulltulas: bool,
+    /// The adult puts on the Zora Tunic and Iron Boots after each arrival,
+    /// to sink to an underwater holder. Going to a check leaves his gear
+    /// alone: the menu presses stick on the Mac.
+    pub dress: bool,
     levels: HashMap<String, Level>,
     /// Enemies of each map that never woke to a beating, not tried again.
     asleep: HashSet<(String, String)>,
@@ -398,6 +402,7 @@ impl<'a, I: Input> Pass<'a, I> {
             here: None,
             gd: GameData::load(romfs)?,
             day_skulltulas: false,
+            dress: true,
         })
     }
 
@@ -405,12 +410,7 @@ impl<'a, I: Input> Pass<'a, I> {
     /// early once `stop` says so. A check whose setup fails gets no line,
     /// so the next run tries it again.
     pub fn run(&mut self, subjects: &[Subject], stop: impl Fn() -> bool) -> Result<()> {
-        // Nothing left in the seed may wear Link down mid-run.
-        let switches = self.dev.switches()?;
-        self.dev.set_switches(crate::dev::Switches {
-            health: true,
-            ..switches
-        })?;
+        self.endure()?;
         let done = done(self.out);
         let left: Vec<&Subject> = subjects
             .iter()
@@ -551,6 +551,15 @@ impl<'a, I: Input> Pass<'a, I> {
         Ok(line)
     }
 
+    /// Turn infinite health on: nothing in the seed may wear Link down.
+    fn endure(&self) -> Result<()> {
+        let switches = self.dev.switches()?;
+        self.dev.set_switches(crate::dev::Switches {
+            health: true,
+            ..switches
+        })
+    }
+
     /// Take Link to `s` as the pass would shoot it: its age, hour and prep,
     /// standing at `pick` (a side and steps back, where Hob's best frame
     /// was) or else the first landing tried. Says where he stands.
@@ -565,6 +574,8 @@ impl<'a, I: Input> Pass<'a, I> {
             .setup(s)?
             .context("this check has no spot to stand beside")?;
         let ((side, step), at) = landing(&tries, pick)?;
+        self.endure()?;
+        self.dress = false;
         self.arrive(&map, s.child, hour, &s.prep)?;
         self.stand(at, holder.pose.at)?;
         let side = format!("{side:?}").to_lowercase();
@@ -674,7 +685,7 @@ impl<'a, I: Input> Pass<'a, I> {
         // The adult wears the Zora Tunic and Iron Boots all through a map,
         // so a warp into water sinks him to the holder rather than floating
         // him over it. On land they only slow a walk the pass never takes.
-        if child == Some(false) {
+        if self.dress && child == Some(false) {
             crate::gear::wear(dev, &self.gd, &mut *self.input, true)?;
         }
         self.here = Some(want);
@@ -709,13 +720,15 @@ impl<'a, I: Input> Pass<'a, I> {
     fn stand(&mut self, at: [f32; 3], face: [f32; 3]) -> Result<()> {
         quiet(self.dev, self.input)?;
         self.dev.warp(at)?;
-        // The adult sinks in his boots. The child can't wear them, and a
-        // held A didn't dive him on the native build (other machine,
+        // The adult sinks in his boots. The child can't wear them (and a
+        // Link sent to a check by hand keeps his own gear), and a held A
+        // didn't dive him on the native build (other machine,
         // 2026-11-19): he stays afloat and the camera looks down into the
         // water at the holder, clear enough to tell what's there.
         let mut afloat = false;
         if crate::nav::sink::floated(self.dev.link()?, at) {
-            afloat = !(self.here.as_ref()).is_some_and(|(_, child, ..)| *child == Some(false));
+            let adult = (self.here.as_ref()).is_some_and(|(_, child, ..)| *child == Some(false));
+            afloat = !(adult && self.dress);
             if !afloat {
                 crate::nav::sink::land(self.dev)?;
             }
