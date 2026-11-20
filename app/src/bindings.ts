@@ -291,13 +291,14 @@ export type Config = {
 	plandos?: { [key in string]: { [key in string]: string } },
 	/**
 	 *  The app shows its developer tools: the dev panel switch, Test
-	 *  setup, and the targets' scripted-play fields. Off, the hidden ones
-	 *  leave seeds alone too.
+	 *  setup, and the targets' scripted-play fields. Off, a hidden test
+	 *  setup leaves seeds alone. The dev panel's hook doesn't follow it,
+	 *  so hiding the tools never changes the hook patch.
 	 */
 	dev_tools?: boolean,
 	/**
 	 *  Seeds install the dev panel's hook, and the app's Dev button opens
-	 *  the panel. Only while `dev_tools` is on: see [`Config::dev_hook`].
+	 *  the panel.
 	 */
 	dev_panel?: boolean,
 	/**
