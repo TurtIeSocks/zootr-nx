@@ -9,12 +9,20 @@ use roead::sarc::Sarc;
 
 use crate::items::scalar;
 
-pub(super) fn byml(romfs: &Romfs, game: &Path, pattern: &str) -> Result<()> {
-    unpacked(romfs, game, pattern, |path, data, _| {
+pub(super) fn byml(romfs: &Romfs, game: &Path, pattern: &str, file: bool) -> Result<()> {
+    let show = |path: &str, data: &[u8]| {
         if let Ok(doc) = ounce_formats::BymlDoc::parse(data) {
             println!("{path}");
             print!("{}", tree(&doc.root, 1));
         }
+    };
+    if file {
+        let data = std::fs::read(pattern).with_context(|| format!("reading {pattern}"))?;
+        show(pattern, &romfs.dicts().decompress(pattern, &data)?);
+        return Ok(());
+    }
+    unpacked(romfs, game, pattern, |path, data, _| {
+        show(path, data);
         Ok(())
     })
 }

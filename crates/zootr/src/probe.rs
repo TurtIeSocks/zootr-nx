@@ -153,7 +153,14 @@ pub enum Probe {
     },
     /// Every BYML document whose path contains this, as an indented tree,
     /// one value per line, including those inside SARC archives.
-    Byml { pattern: String },
+    Byml {
+        pattern: String,
+        /// The pattern is a file on disk instead, like a seed's
+        /// `romfs/Banc/...`: what a seed wrote, where the dump has the
+        /// vanilla one.
+        #[arg(long)]
+        file: bool,
+    },
     /// A logic or AI graph, one node per line: index, class, values, and
     /// where each linked input comes from.
     Ainb {
@@ -417,7 +424,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             settings,
             never,
         } => checks(romfs, area.as_deref(), &settings, never),
-        Probe::Byml { pattern } => byml(romfs, game, &pattern),
+        Probe::Byml { pattern, file } => byml(romfs, game, &pattern, file),
         Probe::Ainb { path, out } => ainb(romfs, &path, out.as_deref()),
         Probe::Rsdb { table, pattern } => rsdb(romfs, game, &table, &pattern),
         Probe::Tags { actors } => tags(romfs, game, &actors),
