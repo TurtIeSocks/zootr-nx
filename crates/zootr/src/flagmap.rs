@@ -20,7 +20,6 @@ use crate::gates;
 use crate::known::{field, flag};
 
 mod actors;
-mod asks;
 mod flows;
 mod query;
 mod scene;
@@ -43,8 +42,6 @@ pub enum Kind {
     Actor,
     /// An AINB node class: game code a graph runs.
     Class,
-    /// Something game code asks that no data holds: the clock, age.
-    Game,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
@@ -61,8 +58,6 @@ pub enum Link {
     Has,
     /// A class's answer going into a graph that runs it.
     Uses,
-    /// What a class asks (the asks table).
-    Asks,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -116,7 +111,6 @@ impl Kind {
             Kind::Placement => "placement",
             Kind::Actor => "actor",
             Kind::Class => "class",
-            Kind::Game => "game",
         }
     }
 }

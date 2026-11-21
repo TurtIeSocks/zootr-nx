@@ -1,27 +1,23 @@
 //! The flag map's data tables: each row of the pouch's actor table, and
 //! each actor on a page of the pause menu's pouch table, is a state its
 //! actor has. A field naming another actor's param links the row to that
-//! actor, and a row with one age's field of a pair and not the other's is
-//! asked by `age`: the Iron Boots' `AdultEquipment` with no
+//! actor. A row with a field for one age and not the same field for the
+//! other says so in its detail: the Iron Boots' `AdultEquipment` with no
 //! `ChildEquipment`, their menu entry's `IsUsableAdult` with no
 //! `IsUsableChild`.
 
 use anyhow::Result;
 use ounce_formats::{Byml, BymlDoc, BymlMap, Romfs};
 
-use super::asks::Game;
 use super::{Graph, Kind, Link};
 use crate::game::POUCH_TABLE;
 use crate::items::show;
-use crate::known::{Name, field};
+use crate::known::field;
 use crate::rsdb::ROW_ID;
 use crate::standins::{POUCH_ACTOR_INFO, row_id};
 
-/// Each table's (child, adult) field pairs.
-const AGES: [(&Name, &Name); 2] = [
-    (field::CHILD_EQUIPMENT, field::ADULT_EQUIPMENT),
-    (field::IS_USABLE_CHILD, field::IS_USABLE_ADULT),
-];
+/// The words in a field's name that say which age it's for.
+const AGES: [(&str, &str); 2] = [("Child", "Adult"), ("Adult", "Child")];
 
 /// How a field names an actor: by its param file.
 const PARAM: (&str, &str) = ("Work/Actor/", ".engine__actor__ActorParam.gyml");
@@ -59,8 +55,7 @@ pub(super) fn add(g: &mut Graph, romfs: &Romfs) -> Result<()> {
     Ok(())
 }
 
-/// One row: a state `actor` has, the actors its fields name, and `age`
-/// when it opens to one age only.
+/// One row: a state `actor` has, and the actors its fields name.
 fn row(g: &mut Graph, (table, file): (&str, &str), actor: &str, map: &BymlMap) {
     if actor.is_empty() {
         return;
@@ -68,7 +63,12 @@ fn row(g: &mut Graph, (table, file): (&str, &str), actor: &str, map: &BymlMap) {
     let mut fields = map.clone();
     fields.remove(ROW_ID);
     let state = g.node(Kind::State, &format!("{table}.{actor}"), || {
-        Some(format!("row of {table}: {}", show(&Byml::Map(fields))))
+        let only = one_age(map).into_iter().map(|o| format!("; {o}"));
+        let only: String = only.collect();
+        Some(format!(
+            "row of {table}: {}{only}",
+            show(&Byml::Map(fields))
+        ))
     });
     let owner = g.node(Kind::Actor, actor, || None);
     g.edge(owner, state, Link::Has, table.to_owned(), file, None);
@@ -84,28 +84,31 @@ fn row(g: &mut Graph, (table, file): (&str, &str), actor: &str, map: &BymlMap) {
         let to = g.node(Kind::Actor, &name, || None);
         g.edge(state, to, Link::Has, key, file, None);
     }
-    for (child, adult) in AGES {
-        let label = match (map.contains_key(child.get()), map.contains_key(adult.get())) {
-            (true, false) => format!("child only: {child}, no {adult}"),
-            (false, true) => format!("adult only: {adult}, no {child}"),
-            _ => continue,
-        };
-        let age = g.node(Kind::Game, Game::Age.word(), || None);
-        g.edge(age, state, Link::Asks, label, file, None);
-    }
+}
+
+/// Each field the row has for one age only, as "adult only:
+/// AdultEquipment, no ChildEquipment".
+fn one_age(map: &BymlMap) -> Vec<String> {
+    let mut only: Vec<_> = (map.keys())
+        .flat_map(|key| AGES.map(|(this, other)| (key, this, other)))
+        .filter(|(key, this, _)| key.contains(this))
+        .map(|(key, this, other)| (key, this, key.replace(this, other)))
+        .filter(|(_, _, twin)| !map.contains_key(twin.as_str()))
+        .map(|(key, this, twin)| format!("{} only: {key}, no {twin}", this.to_lowercase()))
+        .collect();
+    only.sort();
+    only
 }
 
 #[cfg(test)]
 mod tests {
     use super::super::Graph;
-    use super::Game;
-    use crate::known::{actor, field};
+    use crate::known::{Name, actor, field};
 
-    /// From the Iron Boots: their pouch rows, the adult-only fields that
-    /// keep a child out of them, and the game code that checks and changes
-    /// boots, child Link's own boots change included.
+    /// From the Iron Boots: their pouch row, the worn actor, its menu
+    /// entry, and the adult-only fields that keep a child out of them.
     #[test]
-    fn the_iron_boots_reach_their_rows_their_age_limits_and_boot_code() {
+    fn the_iron_boots_reach_their_rows_and_age_limits() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
@@ -118,37 +121,26 @@ mod tests {
         let info = find(format!("state:{}.{boots}", super::POUCH_INFO_NAME));
         let menu = find(format!("state:{}.{armor}", super::POUCH_TABLE_NAME));
         assert!(path(item, info) && path(info, worn) && path(worn, menu));
-        let age = find(format!("game:{}", Game::Age.word()));
-        let asked = |state: usize, field: &crate::known::Name| {
-            g.ins[state].iter().any(|&e| {
-                let e = &g.edges[e];
-                e.from == age && e.label.starts_with("adult only") && e.label.contains(field.get())
-            })
+        let says = |state: usize, adult: &Name, child: &Name| {
+            let detail = g.nodes[state].detail.as_deref().unwrap_or_default();
+            detail.contains(&format!("adult only: {adult}, no {child}"))
         };
-        assert!(
-            asked(info, field::ADULT_EQUIPMENT),
-            "pouch row isn't adult only"
-        );
-        assert!(
-            asked(menu, field::IS_USABLE_ADULT),
-            "menu entry isn't adult only"
-        );
-        let down = g.walk(item, super::super::Dir::Down, 3, None);
-        let limits = down
-            .edges
-            .iter()
-            .filter(|l| l.from.id == format!("game:{}", Game::Age.word()));
-        assert_eq!(
-            limits.count(),
-            2,
-            "down from the boots shows both age limits"
-        );
-        let change = find(format!("class:{}", field::EXECUTE_PLAYER_BOOTS_CHANGE));
-        let child = &**actor::PLAYER_CHILD;
-        let child = find(format!(
-            "graph:{child}/{}.action.bootschange.module",
-            actor::PLAYER
-        ));
-        assert!(path(worn, change) && path(worn, child));
+        let (adult, child) = (field::ADULT_EQUIPMENT, field::CHILD_EQUIPMENT);
+        assert!(says(info, adult, child), "pouch row isn't adult only");
+        let (adult, child) = (field::IS_USABLE_ADULT, field::IS_USABLE_CHILD);
+        assert!(says(menu, adult, child), "menu entry isn't adult only");
+    }
+
+    #[test]
+    fn a_field_for_one_age_says_so() {
+        let mut map = ounce_formats::BymlMap::default();
+        let both = [field::CHILD_EQUIPMENT, field::ADULT_EQUIPMENT];
+        let keys = both.iter().chain([field::IS_USABLE_ADULT].iter());
+        for key in keys.map(|f| f.get()).chain(["FakePrice"]) {
+            map.insert(key.into(), ounce_formats::Byml::Bool(true));
+        }
+        let (adult, child) = (field::IS_USABLE_ADULT, field::IS_USABLE_CHILD);
+        let want = format!("adult only: {adult}, no {child}");
+        assert_eq!(super::one_age(&map), [want]);
     }
 }

@@ -198,7 +198,6 @@ pub const OBJ_T_BOX_A_02_NO_BAKE: &Name = &n!(0x35b9ca57a26db824);
 pub const OBJ_T_BOX_A_03: &Name = &n!(0x352f513f8a38f0f6);
 pub const OBJ_T_BOX_A_06: &Name = &n!(0x352f563f8a38f975);
 pub const OBJ_T_BOX_A_06_NO_BAKE: &Name = &n!(0xc9d53f70a0c8ffd8);
-pub const PLAYER: &Name = &n!(0x333dc56ddffd8ea0);
 pub const PLAYER_ADULT: &Name = &n!(0xbb99778f6c7d0697);
 pub const PLAYER_CHILD: &Name = &n!(0x97089bd5ecd54fc5);
 pub const PLAYER_EVENT: &Name = &n!(0xba78a4f01d1912a7);

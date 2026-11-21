@@ -1,7 +1,6 @@
 //! The flag map's edges from actor AI: every AINB in every actor pack. An
 //! actor has its graphs; each graph reads and writes GameData, runs its
-//! modules and uses node classes as a level's logic graph does. The
-//! `asks` table links each class it knows to what the class asks.
+//! modules and uses node classes as a level's logic graph does.
 
 use std::collections::{HashMap, HashSet};
 
@@ -10,7 +9,6 @@ use ounce_formats::ainb::Graph as Ainb;
 use ounce_formats::{Romfs, files_with_suffix, par_map};
 use roead::sarc::Sarc;
 
-use super::asks::{ABOUT, ASKS, Game};
 use super::{Graph, Kind, Link, scene};
 use crate::gamedata::GameData;
 
@@ -64,7 +62,6 @@ pub(super) fn add(g: &mut Graph, romfs: &Romfs, gd: &GameData) -> Result<HashMap
             kept.insert(file, ainb);
         }
     }
-    asks(g);
     Ok(kept)
 }
 
@@ -74,59 +71,32 @@ fn stem(file: &str) -> String {
     name.trim_end_matches(AINB).to_owned()
 }
 
-/// Each class the table knows, linked from what it asks.
-fn asks(g: &mut Graph) {
-    for game in Game::ALL {
-        g.node(Kind::Game, game.word(), || None);
-    }
-    let games = ASKS
-        .iter()
-        .map(|&(class, game)| (class, Kind::Game, game.word()));
-    let actors = ABOUT
-        .iter()
-        .map(|&(class, actor)| (class, Kind::Actor, actor.get()));
-    for (class, kind, asked) in games.chain(actors) {
-        let Some(&class) = g.ids.get(&format!("class:{class}")) else {
-            continue;
-        };
-        let asked = g.node(kind, asked, || None);
-        g.edge(asked, class, Link::Asks, String::new(), "asks table", None);
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::super::Graph;
-    use super::Game;
     use crate::known::{actor, field, map};
 
-    /// Gold Skulltulas by day had three blockers. Each is reachable from
-    /// the clock and from the Gold Skulltula: the night module that
-    /// deletes it, its own graph's day question, and its emit timer.
+    /// Gold Skulltulas by day had three blockers, each connected to the
+    /// Gold Skulltula: the night module that places it, its own graph,
+    /// and the day question and emit timer that graph runs.
     #[test]
-    fn the_clock_reaches_all_three_gold_skulltula_blockers() {
+    fn the_gold_skulltula_reaches_all_three_blockers() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
         let g = Graph::build(&romfs).unwrap();
         let find = |id: String| g.find(&id).unwrap_or_else(|e| panic!("{e:#}"));
         let path = |a: usize, b: usize| !g.trace(a, b).paths.is_empty();
-        let clock = find(format!("game:{}", Game::Clock.word()));
         let gold = &**actor::ENEMY_SKULLTULA_GOLD;
         let skulltula = find(format!("actor:{gold}"));
         let night = &**map::GIMMICK_NIGHTTIME_SKULLTULA_GOLD_APPEAR_05A9;
         let night = find(format!("graph:{night}.logic.module"));
-        assert!(
-            path(clock, night) && path(night, skulltula),
-            "the night module"
-        );
+        assert!(path(night, skulltula), "the night module");
         let own = find(format!("graph:{gold}/{gold}.utility.root"));
+        assert!(path(skulltula, own), "its own graph");
         let day = find(format!("class:{}", field::QUERY_TIME_DIVISION));
-        assert!(
-            path(clock, day) && path(day, own) && path(skulltula, own),
-            "its day question"
-        );
+        assert!(path(day, own), "its day question");
         let timer = find(format!("class:{}", field::EXECUTE_SKULLTULA_GOLD_EMIT_TIME));
-        assert!(path(clock, timer) && path(timer, own), "its emit timer");
+        assert!(path(timer, own), "its emit timer");
     }
 }
