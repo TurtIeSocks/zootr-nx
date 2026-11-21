@@ -48,6 +48,7 @@ pub const ENEMY_WOLFOS: &Name = &n!(0x636dd97f3bfd147e);
 pub const FLD_OBJ_AIR_WALL_CLIMB_PLAYER: &Name = &n!(0xb0b0727daf45bb36);
 pub const FLD_OBJ_AIR_WALL_HIT_ONLY_BOMB: &Name = &n!(0x66eef45805bd5bfd);
 pub const FLD_OBJ_AIR_WALL_HOOKSHOT: &Name = &n!(0xaebe49c25cf6dfe9);
+pub const ITEM_HEAVY_BOOT: &Name = &n!(0xd28909d34d8315b2);
 pub const LAND_DEKU_SPIDER_WEB_PROP_A_05: &Name = &n!(0x22e8eb063838b031);
 pub const LAND_IVY_CLIMBABLE_A_01: &Name = &n!(0x2971070cf63987dc);
 pub const LAND_KOKIRI_CLIFF_E_05: &Name = &n!(0xf2a2c4256d082e77);

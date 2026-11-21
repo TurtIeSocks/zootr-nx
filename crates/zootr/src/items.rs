@@ -60,6 +60,23 @@ pub fn scalar(v: &Byml) -> String {
     }
 }
 
+/// A value on one line: maps as `{k: v}` in key order, arrays as `[..]`.
+pub fn show(v: &Byml) -> String {
+    match v {
+        Byml::Map(m) => {
+            let mut pairs: Vec<_> = m.iter().collect();
+            pairs.sort_by_key(|(k, _)| k.as_str());
+            let pairs: Vec<_> = pairs
+                .iter()
+                .map(|(k, v)| format!("{k}: {}", show(v)))
+                .collect();
+            format!("{{{}}}", pairs.join(", "))
+        }
+        Byml::Array(a) => format!("[{}]", a.iter().map(show).collect::<Vec<_>>().join(", ")),
+        other => scalar(other),
+    }
+}
+
 /// `Components.<key>`, the usual way one param file points at another.
 pub(crate) fn component<'a>(map: &'a BymlMap, key: &str) -> Option<&'a str> {
     map.get("Components")?
@@ -123,5 +140,18 @@ pub fn get(romfs: &Romfs, actor: &str) -> Result<Option<Item>> {
     {
         true => load(romfs, actor),
         false => Ok(None),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shows_maps_in_key_order_on_one_line() {
+        let mut m = ounce_formats::BymlMap::default();
+        m.insert("b".into(), Byml::I32(2));
+        m.insert("a".into(), Byml::Array(vec![Byml::Bool(true)]));
+        assert_eq!(show(&Byml::Map(m)), "{a: [true], b: 2}");
     }
 }
