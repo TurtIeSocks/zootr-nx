@@ -264,7 +264,7 @@ test("a list section is a checklist with its count, open until closed", async ()
     section: "Cutscenes",
     settings: { kokiri: true },
   });
-  const head = screen.getByRole("button", { name: /By area/ });
+  const head = screen.getByRole("button", { name: /^By area/ });
   expect(head.getAttribute("aria-expanded")).toBe("true");
   expect(within(head).getByText("1 of 3 on")).toBeTruthy();
   fireEvent.click(head);
@@ -276,7 +276,7 @@ test("a list section is a checklist with its count, open until closed", async ()
   fireEvent.click(field);
   expect(saved(onChange)).toEqual({ kokiri: true, field: true });
   await waitFor(() => expect(within(head).getByText("2 of 3 on")).toBeTruthy());
-  fireEvent.click(screen.getByRole("button", { name: "All" }));
+  fireEvent.click(screen.getByRole("button", { name: "All in By area" }));
   expect(saved(onChange)).toEqual({ kokiri: true, field: true, lake: true });
 });
 
@@ -372,7 +372,7 @@ test("Enable all says why when every toggle is already on", () => {
 
 test("a section of rows heads itself with its description and count", () => {
   show({ settings: { "open-forest": true } });
-  const head = screen.getByRole("button", { name: /Fake section/ });
+  const head = screen.getByRole("button", { name: /^Fake section/ });
   expect(within(head).getByText("Fake about")).toBeTruthy();
   // Open forest on, Skip the intro on by default, Menus open off.
   expect(within(head).getByText("2 of 3 on")).toBeTruthy();
@@ -386,8 +386,29 @@ test("a section with no toggles counts what's off its defaults", () => {
     ],
     settings: { age: "adult" },
   });
-  const head = screen.getByRole("button", { name: /Fake section/ });
+  const head = screen.getByRole("button", { name: /^Fake section/ });
   expect(within(head).getByText("1 of 2 changed")).toBeTruthy();
+});
+
+test("a section of rows turns its toggles all on or all off", async () => {
+  const setConfig = show({ settings: { "open-forest": true } });
+  fireEvent.click(screen.getByRole("button", { name: "All in Fake section" }));
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({ "open-forest": true, menus: true }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "None in Fake section" }));
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({
+      "open-forest": false,
+      "skip-intro": false,
+      menus: false,
+    }),
+  );
+});
+
+test("a section with no toggles has no All or None", () => {
+  show({ defs: [choice("chest-size", "Chest size", ["Vanilla", "Big"])] });
+  expect(screen.queryByRole("button", { name: /^All/ })).toBeNull();
 });
 
 test("a page with no toggles has only Reset to defaults", () => {
@@ -437,7 +458,7 @@ test("a closed section is still closed after leaving the page", () => {
   const expanded = (name: RegExp) =>
     screen.getByRole("button", { name }).getAttribute("aria-expanded");
   expect(expanded(/^Cutscenes/)).toBe("false");
-  expect(expanded(/By area/)).toBe("true");
+  expect(expanded(/^By area/)).toBe("true");
 });
 
 test("the test setup form keeps its edits until the saved setup changes", () => {
@@ -459,13 +480,13 @@ test("a locked checklist item stays put, and None leaves it on", () => {
     section: "Cutscenes",
     settings: { [all]: true, kokiri: true },
   });
-  const head = screen.getByRole("button", { name: /By area/ });
+  const head = screen.getByRole("button", { name: /^By area/ });
   expect(within(head).getByText("2 of 3 on")).toBeTruthy();
   fireEvent.click(head);
   const lake = screen.getByRole("checkbox", { name: "Lake Hylia" });
   expect(lake.getAttribute("aria-checked")).toBe("true");
   expect(lake.hasAttribute("disabled")).toBe(true);
-  fireEvent.click(screen.getByRole("button", { name: "None" }));
+  fireEvent.click(screen.getByRole("button", { name: "None in By area" }));
   expect(saved(onChange)).toEqual({ [all]: true, kokiri: false, field: false });
 });
 

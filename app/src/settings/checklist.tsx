@@ -56,14 +56,7 @@ export function Checklist({
     onChange(Object.fromEntries(free.map((i) => [i.id, on])));
   return (
     <Fold id={id} title={title} description={description} meta={meta}>
-      <div className="flex items-center gap-1 pr-4 pb-2 pl-9">
-        <Button variant="ghost" size="sm" onClick={() => all(true)}>
-          All
-        </Button>
-        <Button variant="ghost" size="sm" onClick={() => all(false)}>
-          None
-        </Button>
-      </div>
+      <AllNone of={title} onPick={all} />
       {note && <div className="pr-4 pb-2 pl-11 empty:hidden">{note}</div>}
       <div
         className={cn(
@@ -80,6 +73,33 @@ export function Checklist({
         ))}
       </div>
     </Fold>
+  );
+}
+
+/** Props for {@link AllNone}. */
+export interface AllNoneProps {
+  /** The section's title, which each button's name ends with. */
+  of: string;
+  /** Turns the section's toggles on, or off. */
+  onPick: (on: boolean) => void;
+}
+
+/** All and None, under a section's header. */
+export function AllNone({ of, onPick }: AllNoneProps) {
+  return (
+    <div className="flex items-center gap-1 pr-4 pb-2 pl-9">
+      {(["All", "None"] as const).map((word) => (
+        <Button
+          key={word}
+          variant="ghost"
+          size="sm"
+          aria-label={`${word} in ${of}`}
+          onClick={() => onPick(word === "All")}
+        >
+          {word}
+        </Button>
+      ))}
+    </div>
   );
 }
 

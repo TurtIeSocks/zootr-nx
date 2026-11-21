@@ -16,7 +16,7 @@ import {
   tally,
 } from "@/lib/settings";
 import { cn } from "@/lib/utils";
-import { Checklist } from "@/settings/checklist";
+import { AllNone, Checklist } from "@/settings/checklist";
 import { Fold } from "@/settings/fold";
 import { UntestedBadge } from "@/settings/row";
 import { lockedBy, untested } from "@/settings/setting";
@@ -134,10 +134,19 @@ const useHeader = (defs: SettingDef[]) => ({
   meta: useConfig((s) => tally(defs, s.config.settings, s.schema)),
 });
 
-/** A section's settings, one row each. */
+/** A section's settings, one row each, with All and None while it holds
+ * toggles. */
 function Rows({ id, title, defs }: SectionProps) {
+  const { run } = useRequest();
+  const toggles = defs.some((d) => d.kind.type === "toggle");
+  const pick = (on: boolean) => {
+    const { schema, config } = useConfig.getState();
+    const patch = setToggles(defs, schema, config.settings, on);
+    run(() => changeSettings(patch));
+  };
   return (
     <Fold id={id} title={title} {...useHeader(defs)}>
+      {toggles && <AllNone of={title} onPick={pick} />}
       <div className={cn("px-1 pb-1", divided)}>
         {defs.map((d) => (
           <SettingRow key={d.id} def={d} />
