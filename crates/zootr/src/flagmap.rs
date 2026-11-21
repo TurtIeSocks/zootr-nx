@@ -218,6 +218,60 @@ impl Graph {
     }
 }
 
+/// One state's value in the running game, or why there's none.
+#[derive(Serialize)]
+pub struct Live {
+    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct Values {
+    pub values: Vec<Live>,
+}
+
+/// Each state's value, read by GameData hash. A state is its id, its
+/// name or its `#hash`. Needs no graph, so it answers a poll fast.
+pub fn live(nodes: &[String], read: impl Fn(u32) -> Result<String>) -> Values {
+    let one = |node: &str| -> Result<String> {
+        let name = node.strip_prefix("state:").unwrap_or(node);
+        if name.contains(':') {
+            bail!("{node} isn't a state");
+        }
+        read(crate::live::hash(name)?)
+    };
+    let values = (nodes.iter())
+        .map(|n| match one(n) {
+            Ok(v) => Live {
+                id: n.clone(),
+                value: Some(v),
+                error: None,
+            },
+            Err(e) => Live {
+                id: n.clone(),
+                value: None,
+                error: Some(e.to_string()),
+            },
+        })
+        .collect();
+    Values { values }
+}
+
+impl std::fmt::Display for Values {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        for v in &self.values {
+            match (&v.value, &v.error) {
+                (Some(value), _) => writeln!(f, "{} = {value}", v.id)?,
+                (_, error) => writeln!(f, "{}: {}", v.id, error.as_deref().unwrap_or("?"))?,
+            }
+        }
+        Ok(())
+    }
+}
+
 /// A state's table, default and save slot, as `probe data` reads them.
 fn detail(gd: &GameData, hash: u32) -> Option<String> {
     let info = gd.info(&format!("0x{hash:08x}")).ok()?;
@@ -233,4 +287,34 @@ fn detail(gd: &GameData, hash: u32) -> Option<String> {
             .map(|s| format!("save {s}")),
     );
     Some(parts.join(", "))
+}
+
+#[cfg(test)]
+mod tests {
+    use ounce_formats::murmur3;
+
+    use super::live;
+
+    #[test]
+    fn live_reads_a_state_by_id_name_or_hash_and_refuses_an_event() {
+        let want = murmur3(b"FakeDoor_Opened");
+        let read = |h: u32| match h == want {
+            true => Ok("true".to_string()),
+            false => anyhow::bail!("no value"),
+        };
+        let nodes = [
+            "state:FakeDoor_Opened",
+            "FakeDoor_Opened",
+            &format!("#{want:08x}"),
+            "event:FakeFlow/FakeEntry",
+        ];
+        let got = live(&nodes.map(str::to_owned), read).values;
+        assert!(got[..3].iter().all(|v| v.value.as_deref() == Some("true")));
+        assert!(
+            got[3]
+                .error
+                .as_deref()
+                .is_some_and(|e| e.contains("isn't a state"))
+        );
+    }
 }
