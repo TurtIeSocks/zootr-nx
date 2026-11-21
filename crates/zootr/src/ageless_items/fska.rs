@@ -36,6 +36,10 @@ const HAS_TRANSLATION: u32 = 1 << 5;
 const TRANSLATION_CURVES: u32 = 13;
 /// A curve's size and fields: what it animates, its scale and offset.
 const CURVE: usize = 0x30;
+const FRAMES: usize = 0x00;
+const KEYS: usize = 0x08;
+const CURVE_FLAGS: usize = 0x10;
+const KEY_COUNT: usize = 0x12;
 const TARGET: usize = 0x14;
 const SCALE: usize = 0x24;
 /// The curve targets of the translation's X, Y and Z.
@@ -57,6 +61,10 @@ fn u32_at(d: &[u8], at: usize) -> Option<u32> {
 
 fn offset_at(d: &[u8], at: usize) -> Option<usize> {
     usize::try_from(u64::from_le_bytes(d.get(at..at + 8)?.try_into().ok()?)).ok()
+}
+
+fn put_offset(d: &mut [u8], at: usize, value: usize) {
+    d[at..at + 8].copy_from_slice(&(value as u64).to_le_bytes());
 }
 
 fn floats_at<const N: usize>(d: &[u8], at: usize) -> Option<[f32; N]> {
@@ -225,27 +233,150 @@ pub fn resize(archive: &mut [u8], target: &[u8]) -> Result<Resized> {
     })
 }
 
-/// Each clip's name in the archive.
-pub fn clips(d: &[u8]) -> impl Iterator<Item = &str> {
-    (animations(d).into_iter()).filter_map(|(at, _, _)| string_at(d, offset_at(d, at + NAME)?))
+/// Each clip in the archive: its name, and where its header is.
+pub fn clips(d: &[u8]) -> impl Iterator<Item = (&str, usize)> {
+    (animations(d).into_iter())
+        .filter_map(|(at, _, _)| Some((string_at(d, offset_at(d, at + NAME)?)?, at)))
 }
 
 /// Hide each clip `hidden` names, so a lookup by name never finds it here:
 /// its name, which the clip and the archive's index share, starts with
 /// [`HIDDEN`] instead. How many it hid.
-pub fn hide(archive: &mut [u8], hidden: &HashSet<String>) -> usize {
+pub fn hide(archive: &mut [u8], hidden: impl Fn(&str) -> bool) -> usize {
     let names: Vec<usize> = (animations(archive).into_iter())
         .filter_map(|(at, _, _)| {
             let name = offset_at(archive, at + NAME)?;
-            hidden
-                .contains(string_at(archive, name)?)
-                .then_some(name + 2)
+            hidden(string_at(archive, name)?).then_some(name + 2)
         })
         .collect();
     for &at in &names {
         archive[at] = HIDDEN;
     }
     names.len()
+}
+
+/// The curves of the clip whose header is at `at`, each with its bone.
+fn curves(d: &[u8], at: usize) -> impl Iterator<Item = (&str, usize)> {
+    let tracks = offset_at(d, at + TRACKS).unwrap_or(0);
+    let count = u32_at(d, at + TRACK_COUNT).map_or(0, |c| (c & 0xffff) as usize);
+    (0..count)
+        .filter_map(move |i| track(d, tracks + i * TRACK))
+        .flat_map(|t| (0..t.curve_count).map(move |j| (t.name, t.curves + j * CURVE)))
+}
+
+/// The clip's root curves, the motion of where its body stands, by target.
+fn roots(d: &[u8], at: usize) -> HashMap<u32, usize> {
+    (curves(d, at).filter(|&(bone, _)| bone == field::ROOT.get()))
+        .filter_map(|(_, c)| Some((u32_at(d, c + TARGET)?, c)))
+        .collect()
+}
+
+/// Where a curve's frames and its keys sit, and how many bytes each takes.
+fn spans(d: &[u8], c: usize) -> Option<[(usize, usize); 2]> {
+    let flags = usize::from(u16_at(d, c + CURVE_FLAGS)?);
+    let n = usize::from(u16_at(d, c + KEY_COUNT)?);
+    let frame = [4, 2, 1].get(flags & 3)?;
+    let key = [4, 2, 1].get(flags >> 2 & 3)?;
+    // Cubic keys take four values, linear two, the rest one.
+    let per = [4, 2].get(flags >> 4 & 7).unwrap_or(&1);
+    Some([
+        (offset_at(d, c + FRAMES)?, n * frame),
+        (offset_at(d, c + KEYS)?, n * per * key),
+    ])
+}
+
+/// The bytes only hidden clips' curves use, free for other curves' data,
+/// as runs from start to end.
+fn room(d: &[u8]) -> Vec<(usize, usize)> {
+    const FREE: u8 = 1;
+    const USED: u8 = 2;
+    let mut marks = vec![0u8; d.len()];
+    for (at, _, _) in animations(d) {
+        let mark = match offset_at(d, at + NAME).and_then(|n| d.get(n + 2)) {
+            Some(&HIDDEN) => FREE,
+            _ => USED,
+        };
+        for (at, len) in curves(d, at).filter_map(|(_, c)| spans(d, c)).flatten() {
+            for m in marks.get_mut(at..at + len).into_iter().flatten() {
+                *m = (*m).max(mark);
+            }
+        }
+    }
+    let mut runs = vec![];
+    let mut start = None;
+    for (i, &m) in marks.iter().chain([&0]).enumerate() {
+        match (m == FREE, start) {
+            (true, None) => start = Some(i),
+            (false, Some(s)) => {
+                runs.push((s, i));
+                start = None;
+            }
+            _ => {}
+        }
+    }
+    runs
+}
+
+/// Take `len` bytes, 8-aligned, from the first run of `room` they fit in.
+fn take(room: &mut [(usize, usize)], len: usize) -> Option<usize> {
+    room.iter_mut().find_map(|(start, end)| {
+        let at = start.next_multiple_of(8);
+        (at + len <= *end).then(|| {
+            *start = at + len;
+            at
+        })
+    })
+}
+
+/// Give each clip that `base` pairs with a clip of the Link's own (the
+/// archive it's in, and where its header is) that clip's root curves,
+/// copied, data and all, into the room hidden clips left. A lent item
+/// clip's root, scaled from the other Link's, keeps the other Link's
+/// timing: his body drifts from where he stands and the camera trails
+/// him. How many clips.
+pub fn rooted<'a>(
+    archive: &mut [u8],
+    base: impl Fn(&str) -> Option<(&'a [u8], usize)>,
+) -> Result<usize> {
+    let mut room = room(archive);
+    let paired: Vec<(usize, &[u8], usize)> = (clips(archive))
+        .filter_map(|(name, at)| base(name).map(|(own, from)| (at, own, from)))
+        .collect();
+    for &(at, own, from) in &paired {
+        let mine = roots(archive, at);
+        for (target, theirs) in roots(own, from) {
+            let Some(&to) = mine.get(&target) else {
+                continue;
+            };
+            let spans = spans(own, theirs).context("a root curve doesn't read")?;
+            let mut put = [0; 2];
+            for (slot, (src, len)) in put.iter_mut().zip(spans) {
+                *slot = take(&mut room, len).context("no room left for a root curve")?;
+                archive[*slot..*slot + len].copy_from_slice(&own[src..src + len]);
+            }
+            archive[to + CURVE_FLAGS..to + CURVE]
+                .copy_from_slice(&own[theirs + CURVE_FLAGS..theirs + CURVE]);
+            put_offset(archive, to + FRAMES, put[0]);
+            put_offset(archive, to + KEYS, put[1]);
+        }
+    }
+    Ok(paired.len())
+}
+
+/// Each root curve of the clip at `at`, by target: its fields past the
+/// pointers, its frames and its keys.
+#[cfg(test)]
+pub fn root_bytes(d: &[u8], at: usize) -> HashMap<u32, [Vec<u8>; 3]> {
+    (roots(d, at).into_iter())
+        .map(|(target, c)| {
+            let [(f, fl), (k, kl)] = spans(d, c).unwrap();
+            let fields = d[c + CURVE_FLAGS..c + CURVE].to_vec();
+            (
+                target,
+                [fields, d[f..f + fl].to_vec(), d[k..k + kl].to_vec()],
+            )
+        })
+        .collect()
 }
 
 /// Rename the archive `from` to `to`, a name of the same length, wherever

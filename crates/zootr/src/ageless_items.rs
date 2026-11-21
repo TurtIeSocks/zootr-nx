@@ -19,7 +19,7 @@
 //! [`SLACK`]. Without it, only one borrowed actor is made, and the
 //! animation file's parse runs out of room and crashes the game at load.
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_file};
@@ -73,6 +73,9 @@ struct Link {
     from: &'static Name,
     /// The other Link's holder rows, by key.
     holds: &'static [&'static Name],
+    /// The words the borrowed items' clips carry in their names: the long
+    /// roll with the hook is the plain long roll's name with `_Hook` added.
+    words: &'static [&'static str],
     archives: &'static [Archive],
 }
 
@@ -80,6 +83,7 @@ const CHILD: Link = Link {
     who: actor::PLAYER_CHILD,
     from: actor::PLAYER_ADULT,
     holds: &[item::HOOKSHOT, item::LONGSHOT],
+    words: &["Hook"],
     // Every one of the adult's: a held item's clips are spread over all
     // five (the Hook's draw in 01, lock-on in 02, its shots in 02_H, poses
     // and rolls in 03, waits in 04). A state whose clip is missing plays
@@ -118,6 +122,7 @@ const ADULT: Link = Link {
     who: actor::PLAYER_ADULT,
     from: actor::PLAYER_CHILD,
     holds: &[item::DEKU_STICK],
+    words: &["DekuStick", "Boomerang"],
     // Every one of the child's, as for the child.
     archives: &[
         Archive {
@@ -176,20 +181,47 @@ impl Link {
     }
 
     /// `archive`'s model as this Link has it, and its name: resized to
-    /// his skeleton, each clip of his `own` hidden, and renamed. Its events
-    /// are the original's.
-    fn lent(
-        &self,
-        romfs: &Romfs,
-        archive: &Archive,
-        own: &HashSet<String>,
-    ) -> Result<(String, Vec<u8>)> {
+    /// his skeleton, each clip of his `own` hidden, each item clip given
+    /// the root of his plain one, and renamed. Its events are the
+    /// original's.
+    fn lent(&self, romfs: &Romfs, archive: &Archive, own: &Own) -> Result<(String, Vec<u8>)> {
         let (name, from) = (self.renamed(archive)?, archive.from.get());
         let mut bytes = romfs.read(&model(from))?;
         fska::resize(&mut bytes, &romfs.read(&model(archive.skeleton))?)?;
-        fska::hide(&mut bytes, own);
+        fska::hide(&mut bytes, |clip| own.clips.contains_key(clip));
+        fska::rooted(&mut bytes, |clip| own.plain(self, clip))?;
         fska::rename(&mut bytes, from, &name)?;
         Ok((name, bytes))
+    }
+}
+
+/// A Link's own archives, and each clip in them: the archive, and where
+/// the clip's header is.
+struct Own {
+    archives: Vec<Vec<u8>>,
+    clips: HashMap<String, (usize, usize)>,
+}
+
+impl Own {
+    /// Read the archives `pack` plays.
+    fn read(romfs: &Romfs, pack: &ActorPack) -> Result<Self> {
+        let archives: Vec<Vec<u8>> = (own_archives(pack)?.iter())
+            .map(|name| romfs.read(&model(name)))
+            .collect::<Result<_>>()?;
+        let clips = (archives.iter().enumerate())
+            .flat_map(|(i, d)| fska::clips(d).map(move |(clip, at)| (clip.to_string(), (i, at))))
+            .collect();
+        Ok(Self { archives, clips })
+    }
+
+    /// The plain clip `link` has for the item clip `clip`, its item word
+    /// left out: its archive, and where its header is.
+    fn plain(&self, link: &Link, clip: &str) -> Option<(&[u8], usize)> {
+        link.words.iter().find_map(|word| {
+            let plain = clip.replacen(&format!("_{word}"), "", 1);
+            let &(i, at) = self.clips.get(&plain).filter(|_| plain != clip)?;
+            Some((&self.archives[i][..], at))
+        })
     }
 }
 
@@ -201,7 +233,7 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     for link in &LINKS {
         let pack = ActorPack::from_bytes(link.who, builder.read(&pack_file(link.who))?)?;
         let lender = ActorPack::load(romfs, link.from)?;
-        let own = own_clips(romfs, &pack)?;
+        let own = Own::read(romfs, &pack)?;
         let mut writer = pack.writer();
         for (path, old, new, slack) in borrowed(link, &pack, &lender)? {
             builder.resize(&path, old.len(), new.len() + slack)?;
@@ -216,17 +248,6 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
         }
     }
     Ok(())
-}
-
-/// Every clip in the archives `pack` plays. A lent clip of the same name
-/// would play in its place, its resized root moving the body away from
-/// where Link stands, so the camera trails him.
-fn own_clips(romfs: &Romfs, pack: &ActorPack) -> Result<HashSet<String>> {
-    let mut clips = HashSet::new();
-    for name in own_archives(pack)? {
-        clips.extend(fska::clips(&romfs.read(&model(&name))?).map(String::from));
-    }
-    Ok(clips)
 }
 
 /// The archives `pack` plays, by name.
@@ -370,6 +391,7 @@ fn own_array<'a>(m: &'a mut BymlMap, key: &Name) -> Result<&'a mut Vec<Byml>> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
 
     use super::*;
     use crate::game::dev_dump;
@@ -513,22 +535,47 @@ mod tests {
     fn a_lent_archive_hides_every_clip_its_link_has_and_keeps_the_rest() {
         let Some(romfs) = dev_dump() else { return };
         for link in &LINKS {
-            let own = own_clips(&romfs, &ActorPack::load(&romfs, link.who).unwrap()).unwrap();
+            let mine = Own::read(&romfs, &ActorPack::load(&romfs, link.who).unwrap()).unwrap();
+            let own = &mine.clips;
             assert!(own.len() > 1000, "{}: {} clips", link.who, own.len());
             for archive in link.archives {
                 let shipped = romfs.read(&model(archive.from)).unwrap();
-                let shipped: Vec<&str> = fska::clips(&shipped).collect();
-                let (_, lent) = link.lent(&romfs, archive, &own).unwrap();
-                let lent: Vec<&str> = fska::clips(&lent).collect();
+                let shipped: Vec<&str> = fska::clips(&shipped).map(|(c, _)| c).collect();
+                let (_, lent) = link.lent(&romfs, archive, &mine).unwrap();
+                let lent: Vec<&str> = fska::clips(&lent).map(|(c, _)| c).collect();
                 assert_eq!(lent.len(), shipped.len());
                 for (was, now) in shipped.iter().zip(&lent) {
-                    match own.contains(*was) {
+                    match own.contains_key(*was) {
                         true => assert_eq!(now.as_bytes()[0], b'~', "{was}"),
                         false => assert_eq!(was, now),
                     }
                 }
-                assert!(lent.iter().all(|c| !own.contains(*c)));
+                assert!(lent.iter().all(|c| !own.contains_key(*c)));
             }
+        }
+    }
+
+    #[test]
+    fn a_lent_item_clip_moves_as_its_links_plain_one() {
+        let Some(romfs) = dev_dump() else { return };
+        for link in &LINKS {
+            let own = Own::read(&romfs, &ActorPack::load(&romfs, link.who).unwrap()).unwrap();
+            let mut rooted = 0;
+            for archive in link.archives {
+                let (_, lent) = link.lent(&romfs, archive, &own).unwrap();
+                for (clip, at) in fska::clips(&lent) {
+                    let Some((plain, from)) = own.plain(link, clip) else {
+                        continue;
+                    };
+                    let (mine, theirs) =
+                        (fska::root_bytes(&lent, at), fska::root_bytes(plain, from));
+                    if !theirs.is_empty() {
+                        assert_eq!(mine, theirs, "{clip}");
+                        rooted += 1;
+                    }
+                }
+            }
+            assert!(rooted >= 18, "{}: {rooted}", link.who);
         }
     }
 
