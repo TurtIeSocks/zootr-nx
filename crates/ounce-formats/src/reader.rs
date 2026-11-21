@@ -19,6 +19,12 @@ impl<'a> Reader<'a> {
     pub(crate) fn u32(&self, at: usize) -> Result<u32> {
         Ok(u32::from_le_bytes(self.bytes(at, 4)?.try_into()?))
     }
+    pub(crate) fn i32(&self, at: usize) -> Result<i32> {
+        Ok(i32::from_le_bytes(self.bytes(at, 4)?.try_into()?))
+    }
+    pub(crate) fn u64(&self, at: usize) -> Result<u64> {
+        Ok(u64::from_le_bytes(self.bytes(at, 8)?.try_into()?))
+    }
     pub(crate) fn f32(&self, at: usize) -> Result<f32> {
         Ok(f32::from_le_bytes(self.bytes(at, 4)?.try_into()?))
     }

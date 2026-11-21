@@ -15,6 +15,8 @@
 //!   skeleton and renamed, beside his own.
 //! - Child Link takes the adult's effects, where the Hammer's dust and
 //!   camera shake are.
+//! - Child Link's sounds gain the Hammer's calls, and he loads the adult's
+//!   sound bank, which holds the slam's clang ([`sounds`]).
 //!
 //! The holder, shooter and animation files size their work from their
 //! RESTBL entry, and each row costs more than its bytes, so each gets
@@ -32,8 +34,9 @@ use crate::standins::{Edit, component_edited};
 
 mod files;
 mod fska;
+mod sounds;
 
-pub use files::FILES;
+pub use files::{BANKS, FILES, SOUNDS};
 
 /// The pause menu's items opened to both ages.
 const ITEMS: [&Name; 5] = [
@@ -229,7 +232,7 @@ impl Own {
 }
 
 /// Write the setting's files: the pause menu's table, both Links' packs,
-/// and the borrowed archives.
+/// the borrowed archives and the child's sounds.
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     let table = opened(&builder.read(POUCH_TABLE)?)?;
     builder.write(POUCH_TABLE, &table)?;
@@ -250,7 +253,7 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
             builder.add(&events(&name), &romfs.read(&events(from))?, &events(from))?;
         }
     }
-    Ok(())
+    sounds::write(builder)
 }
 
 /// The archives `pack` plays, by name.
@@ -534,6 +537,7 @@ mod tests {
                 ]);
             }
         }
+        read.extend([SOUNDS, BANKS].map(String::from));
         let files: HashSet<&str> = FILES.into_iter().collect();
         let read: HashSet<&str> = read.iter().map(String::as_str).collect();
         assert_eq!(read, files);
