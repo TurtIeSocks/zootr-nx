@@ -17,8 +17,8 @@ use crate::progress::Run;
 use crate::progressive::Lines;
 use crate::settings::Bombchus;
 use crate::settings::{AGELESS_WEAPONS, ChestSize, DungeonEntrances, NewGame, TRADE_CHAIN};
-use crate::world::Era;
 use crate::starter_bags;
+use crate::world::Era;
 use crate::{
     adult_jabu, ageless, ammo, blue_warps, bombchus, bombs, bridge, chest_levels, cows, cutscenes,
     dampe, day_skulltulas, dig, door, enemies, entrances, flags, foreign, fortress, gamedata,
