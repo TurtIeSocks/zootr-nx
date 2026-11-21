@@ -63,6 +63,7 @@ pub const GORON_CITY_ADULT: &Name = &n!(0xb654b6139e0eb236);
 pub const GORON_CITY_BOMB_HITS_GORON006: &Name = &n!(0x9e71019b47198b35);
 pub const GORON_CITY_GET_BOMB_BAG_FROM_GORON006: &Name = &n!(0x6cdf35800436610c);
 pub const GORON_CITY_STOP_GORON006: &Name = &n!(0x0bb5074ce80301a3);
+pub const GORON_LARGE_POT_IS_GET_HEART_PIECE: &Name = &n!(0xd3d29dd50d89fa45);
 pub const GOTO_HYRULE_CASTLE_MEET_ZELDA: &Name = &n!(0x19547774e974bd98);
 pub const GRAVEYARD: &Name = &n!(0xbbcf79155c0b6226);
 pub const GRAVE_YARD_DIGGING_HOLE_TOUR_DROP_HEART_PIECE: &Name = &n!(0x45b3e9e4f0fdf99d);

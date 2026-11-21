@@ -52,6 +52,7 @@ mod gear;
 pub mod generate;
 mod gerudo;
 mod gifts;
+mod goron_pot;
 mod grant;
 mod graphs;
 mod held;

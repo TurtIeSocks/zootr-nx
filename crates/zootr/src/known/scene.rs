@@ -65,6 +65,7 @@ pub const GORON_0020: &Name = &n!(0x002451ec7e756e0f);
 pub const GORON_0025: &Name = &n!(0x00244cec7e756590);
 pub const GORON_0028: &Name = &n!(0x002459ec7e757ba7);
 pub const GORON_0030: &Name = &n!(0x0020cbec7e725486);
+pub const GORON_0045: &Name = &n!(0x000fd0ec7e63e9d2);
 pub const GRAVEYARD_0000: &Name = &n!(0xf006bd5032ab7141);
 pub const GRAVEYARD_0010: &Name = &n!(0xf003375032a857b8);
 pub const GRAVEYARD_0030: &Name = &n!(0xf009c35032adb14a);

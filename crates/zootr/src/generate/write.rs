@@ -25,9 +25,9 @@ use crate::world::Era;
 use crate::{
     adult_jabu, ageless, ageless_items, ammo, blue_warps, bombchus, bombs, bridge, chest_levels,
     cows, cutscenes, dampe, day_skulltulas, dig, door, enemies, entrances, flags, foreign,
-    fortress, gamedata, gerudo, gifts, held, hints, ice_traps, jabu_mood, jabu_mouth, key_tints,
-    keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs,
-    shops, spawn, standins, starting, steps, text, tracker, trade_chain, twins,
+    fortress, gamedata, gerudo, gifts, goron_pot, held, hints, ice_traps, jabu_mood, jabu_mouth,
+    key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb,
+    scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -99,6 +99,9 @@ pub(super) fn flows(
         shops::rupees::write(romfs, &mut rewrites)?;
     }
     dampe::give(romfs, &mut rewrites, drops)?;
+    if new_game.freestanding {
+        goron_pot::rename(romfs, &mut rewrites, drops)?;
+    }
     gerudo::stand_down(romfs, &mut rewrites, drops)?;
     gerudo::clear_once(romfs, &mut rewrites)?;
     let model = gifts::levels::model(all)?;
@@ -389,13 +392,17 @@ pub fn write_mod(
     }
     steps.write(romfs, &mut builder)?;
     held::write(romfs, &mut builder, &mut tables)?;
+    if new_game.freestanding {
+        goron_pot::write(romfs, &mut builder, &mut tables, drops, new_game)?;
+    }
     tables.write(&mut builder)?;
     // A pickup's drop is its field above, never the bare item. A cow's is
-    // its flow's grant.
+    // its flow's grant, the Goron pot's its held stand-in.
     let chest_drops: HashMap<u64, Drop> = drops
         .iter()
         .filter(|(h, _)| !pieces.iter().any(|p| p.hash == **h))
         .filter(|(h, _)| !cows.iter().any(|c| c.hash() == **h))
+        .filter(|(h, _)| **h != goron_pot::HASH)
         .map(|(h, d)| (*h, d.clone()))
         .collect();
     let carried = match new_game.fortress_keys.moved() {
@@ -513,6 +520,7 @@ pub fn write_mod(
             || scrubs::SCRUBS.iter().any(|s| s.hash() == *h)
             || pieces.iter().any(|p| p.hash == *h)
             || cows.iter().any(|c| c.hash() == *h)
+            || *h == goron_pot::HASH
     };
     if let Some(missing) = drops.keys().find(|h| !found.contains(*h) && !gift(h)) {
         bail!("no actor with hash {missing} has a {}", checks::DROP_ACTOR);
