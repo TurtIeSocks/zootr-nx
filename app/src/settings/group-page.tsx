@@ -2,6 +2,7 @@ import { RotateCcw, ToggleLeft, ToggleRight } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import type { SettingDef } from "@/bindings";
 import { RequestError } from "@/components/request-error";
+import { divided } from "@/components/styles";
 import { WhyButton } from "@/components/why-button";
 import { GROUP_HELP } from "@/help/topics";
 import { useRequest } from "@/lib/request";
@@ -13,11 +14,12 @@ import {
   type Patch,
   setToggles,
 } from "@/lib/settings";
+import { cn } from "@/lib/utils";
 import { Checklist } from "@/settings/checklist";
+import { Fold } from "@/settings/fold";
 import { UntestedBadge } from "@/settings/row";
 import { lockedBy, untested } from "@/settings/setting";
 import { LockedBy, SettingRow } from "@/settings/setting-row";
-import { SettingsSection } from "@/settings/settings-section";
 import { StartInventory } from "@/settings/start-inventory";
 import { PageHeader } from "@/shell/page-header";
 import { changeSettings, useConfig } from "@/stores/config";
@@ -29,18 +31,16 @@ export interface GroupPageProps {
   group: string;
 }
 
-/** One schema group, top to bottom: its settings in a card, a starting
- * inventory's grid under them, then each subgroup's toggles as a
- * checklist. Call it inside a request, which the
- * header's reset runs in. */
+/** One schema group, top to bottom: a starting inventory's grid, then each
+ * section of its settings, a checklist or a card of rows, in the order its
+ * settings first reach them. Call it inside a request, which the header's
+ * reset runs in. */
 export function GroupPage({ group }: GroupPageProps) {
   const [schema] = useConfig.usePath("schema");
   const defs = schema.filter((d) => d.group === group);
-  const rows = defs.filter((d) => !listed(d));
-  const grids = rows.filter((d) => d.kind.type === "inventory");
-  const subgroups = [
-    ...new Set(defs.flatMap((d) => (listed(d) ? [d.subgroup ?? ""] : []))),
-  ];
+  const grids = defs.filter((d) => d.kind.type === "inventory");
+  const rest = defs.filter((d) => d.kind.type !== "inventory");
+  const sections = [...new Set(rest.map((d) => d.section))];
   return (
     <>
       <PageHeader
@@ -48,31 +48,26 @@ export function GroupPage({ group }: GroupPageProps) {
         help={GROUP_HELP[group]}
         actions={<GroupActions defs={defs} />}
       />
-      {rows.length > 0 && (
-        <SettingsSection>
-          {rows.map((d) => (
-            <SettingRow key={d.id} def={d} />
-          ))}
-        </SettingsSection>
-      )}
       {grids.map((d) => (
         <StartInventory key={d.id} def={d} />
       ))}
-      {subgroups.map((g) => (
-        <Subgroup
-          key={g}
-          title={g}
-          defs={defs.filter((d) => listed(d) && d.subgroup === g)}
-        />
-      ))}
+      {sections.map((title) => {
+        const inside = rest.filter((d) => d.section === title);
+        const props = { id: `${group}/${title}`, defs: inside };
+        return inside.every(listed) ? (
+          <Subgroup key={title} title={title} {...props} />
+        ) : (
+          <Rows key={title} title={title} {...props} />
+        );
+      })}
     </>
   );
 }
 
-/** Whether a setting is listed in its subgroup's checklist, not a row. */
-const listed = (d: SettingDef) => d.subgroup && d.kind.type === "toggle";
+/** Whether a setting is listed in its section's checklist, not a row. */
+const listed = (d: SettingDef) => d.list && d.kind.type === "toggle";
 
-/** Props for {@link ResetGroup} and {@link Subgroup}. */
+/** Props for {@link GroupActions} and the sections. */
 interface DefsProps {
   defs: SettingDef[];
 }
@@ -125,14 +120,29 @@ function GroupActions({ defs }: DefsProps) {
 /** Whether a patch changes nothing. */
 const empty = (patch: Patch) => Object.keys(patch).length === 0;
 
-/** Props for {@link Subgroup}. */
-interface SubgroupProps extends DefsProps {
+/** Props for {@link Rows} and {@link Subgroup}. */
+interface SectionProps extends DefsProps {
+  /** Keys whether it's open. */
+  id: string;
   title: string;
 }
 
-/** A subgroup's toggles as one checklist, whose changes save one at a time.
+/** A section's settings, one row each. */
+function Rows({ id, title, defs }: SectionProps) {
+  return (
+    <Fold id={id} title={title}>
+      <div className={cn("px-1 pb-1", divided)}>
+        {defs.map((d) => (
+          <SettingRow key={d.id} def={d} />
+        ))}
+      </div>
+    </Fold>
+  );
+}
+
+/** A section's toggles as one checklist, whose changes save one at a time.
  * A description every item shares shows once, under the title. */
-function Subgroup(props: SubgroupProps) {
+function Subgroup(props: SectionProps) {
   return (
     <RequestProvider>
       <SubgroupList {...props} />
@@ -140,8 +150,8 @@ function Subgroup(props: SubgroupProps) {
   );
 }
 
-/** The checklist of a subgroup, inside its request. */
-function SubgroupList({ title, defs }: SubgroupProps) {
+/** The checklist of a section, inside its request. */
+function SubgroupList({ id, title, defs }: SectionProps) {
   const { run } = useRequest();
   const on = useConfig(
     useShallow((s) => defs.map((d) => isOn(d, s.config.settings, s.schema))),
@@ -158,6 +168,7 @@ function SubgroupList({ title, defs }: SubgroupProps) {
   const parents = [...new Set(locks.flatMap((p) => p ?? []))];
   return (
     <Checklist
+      id={id}
       title={title}
       description={shared ? defs[0]?.description : undefined}
       note={

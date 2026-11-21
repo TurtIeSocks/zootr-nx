@@ -24,7 +24,8 @@ const toggles = (n: number): SettingDef[] =>
     description: "",
     kind: { type: "toggle", default: true },
     parent: null,
-    subgroup: null,
+    section: "Fake section",
+    list: false,
   }));
 
 test("lists a few settings and counts many", () => {
@@ -48,7 +49,8 @@ test("a parent turns its children on and stands in for them", () => {
     description: "",
     kind: { type: "toggle", default: false },
     parent,
-    subgroup: null,
+    section: "Fake section",
+    list: false,
   });
   const child = off("s1", "s0");
   const schema = [off("s0", null), child, off("s2", "s0")];
@@ -105,7 +107,8 @@ test("a choice is summed up only off its default", () => {
       ],
     },
     parent: null,
-    subgroup: null,
+    section: "Fake section",
+    list: false,
   };
   expect(summary([size], {})).toBe("Nothing extra");
   expect(summary([size], { size: "small" })).toBe("Size: Small");
@@ -141,7 +144,8 @@ function diffSchema(): SettingDef[] {
     description: "",
     kind: { type: "toggle", default: false },
     parent,
-    subgroup: null,
+    section: "Fake section",
+    list: false,
   });
   const size: SettingDef = {
     ...def("size"),

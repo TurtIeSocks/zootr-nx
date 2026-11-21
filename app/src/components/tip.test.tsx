@@ -11,10 +11,12 @@ const OWN_TITLE = new Set([
   "CardHeader",
   "Checklist",
   "DevCard",
+  "Fold",
   "GroupHead",
   "NavGroup",
   "PageHeader",
   "PlaceGroup",
+  "Rows",
   "Setting",
   "Subgroup",
 ]);

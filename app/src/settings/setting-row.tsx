@@ -11,7 +11,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import type { TopicId } from "@/help/topics";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
 import { chosen, isOn, type Patch } from "@/lib/settings";
@@ -57,11 +56,6 @@ export function LockedBy({ parent }: LockedByProps) {
   );
 }
 
-/** The settings whose rows carry a bubble, by id. */
-const SETTING_HELP: Partial<Record<string, { help: TopicId }>> = {
-  "start-inventory": { help: "starting-inventory" },
-};
-
 /** The row around a setting's control, inside its request. */
 function SettingRowFrame({ def }: SettingRowProps) {
   const parent = useLockedBy(def);
@@ -70,7 +64,6 @@ function SettingRowFrame({ def }: SettingRowProps) {
     <Row
       id={controlId(def)}
       label={def.label}
-      help={SETTING_HELP[def.id]?.help}
       description={def.description}
       changed={changed}
       locked={parent !== undefined}
@@ -130,7 +123,7 @@ function SettingControl({ def }: SettingRowProps) {
       />
     );
   }
-  // The starting inventory's grid draws under its row, on the group page.
+  // The starting inventory's grid draws on its own, on the group page.
   if (kind.type === "inventory") return null;
   if (segmented(kind.options)) {
     return (

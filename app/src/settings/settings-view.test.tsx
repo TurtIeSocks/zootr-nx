@@ -37,7 +37,8 @@ const toggle = (
   description: "",
   kind: { type: "toggle", default: false },
   parent: null,
-  subgroup: null,
+  section: "Fake section",
+  list: false,
   ...patch,
 });
 
@@ -205,8 +206,14 @@ const cutscene = (
   id: string,
   label: string,
   parent: string | null,
-  subgroup: string | null = null,
-) => toggle(id, label, { group: "Cutscenes", parent, subgroup });
+  section: string | null = null,
+) =>
+  toggle(id, label, {
+    group: "Cutscenes",
+    parent,
+    section: section ?? "Cutscenes",
+    list: section !== null,
+  });
 
 const all = "skip-cutscenes";
 const cutscenes = [
@@ -231,15 +238,18 @@ test("a child of an on parent is locked, with the reason", () => {
   ).toBe(false);
 });
 
-test("a subgroup is a closed checklist with its count", async () => {
+test("a list section is a checklist with its count, open until closed", async () => {
   const onChange = show({
     defs: cutscenes,
     section: "Cutscenes",
     settings: { kokiri: true },
   });
   const head = screen.getByRole("button", { name: /By area/ });
-  expect(head.getAttribute("aria-expanded")).toBe("false");
+  expect(head.getAttribute("aria-expanded")).toBe("true");
   expect(within(head).getByText("1 of 3 on")).toBeTruthy();
+  fireEvent.click(head);
+  expect(head.getAttribute("aria-expanded")).toBe("false");
+  expect(useUi.getState().settings.closed).toEqual(["Cutscenes/By area"]);
   fireEvent.click(head);
   expect(head.getAttribute("aria-expanded")).toBe("true");
   const field = screen.getByRole("checkbox", { name: "Hyrule Field" });
@@ -379,16 +389,15 @@ test("a page's unsaved bar takes the drift bar's place while it shows", () => {
   expect(screen.getByText("1 change from the default settings")).toBeTruthy();
 });
 
-test("an open checklist is still open after leaving the page", () => {
+test("a closed section is still closed after leaving the page", () => {
   show({ defs: cutscenes, section: "Cutscenes" });
-  fireEvent.click(screen.getByRole("button", { name: /By area/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^Cutscenes/ }));
   cleanup();
   show({ defs: cutscenes, section: "Cutscenes" });
-  expect(
-    screen
-      .getByRole("button", { name: /By area/ })
-      .getAttribute("aria-expanded"),
-  ).toBe("true");
+  const expanded = (name: RegExp) =>
+    screen.getByRole("button", { name }).getAttribute("aria-expanded");
+  expect(expanded(/^Cutscenes/)).toBe("false");
+  expect(expanded(/By area/)).toBe("true");
 });
 
 test("the test setup form keeps its edits until the saved setup changes", () => {

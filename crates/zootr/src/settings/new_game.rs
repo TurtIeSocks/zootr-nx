@@ -400,7 +400,7 @@ mod tests {
     }
 
     #[test]
-    fn a_quest_preset_hands_over_its_items_from_its_own_subgroup() {
+    fn a_quest_preset_hands_over_its_items_from_its_own_section() {
         needs_names!();
         let settings = Settings::from([("claim-check".into(), true.into())]);
         let game = NewGame::from_settings(&settings, &[]).unwrap();
@@ -413,7 +413,7 @@ mod tests {
             .into_iter()
             .find(|d| d.id == "claim-check")
             .unwrap();
-        assert_eq!(def.subgroup, Some("Quest progress"));
+        assert_eq!(def.section, crate::settings::place::QUEST.section);
     }
 
     #[test]
