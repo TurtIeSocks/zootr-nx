@@ -19,16 +19,21 @@ struct Ammo {
     slot: &'static str,
     param: &'static Name,
     packs: &'static [&'static Name],
-    /// The Small bag, which has no get of its own, and the Medium one,
-    /// whose get it takes.
-    bags: [&'static Name; 2],
+    /// The Small bag, which has no get of its own, then the bags whose
+    /// packs carry its param as their parent's: the Medium, whose get it
+    /// takes, and the Large.
+    bags: [&'static Name; 3],
 }
 
 const NUTS: Ammo = Ammo {
     slot: "DekuNut",
     param: item::DEKU_NUT,
     packs: &[item::DEKU_NUT, actor::OBJ_DEKU_NUT, actor::POUCH_DEKU_NUT],
-    bags: [item::NUT_BAG_SMALL, item::NUT_BAG_MEDIUM],
+    bags: [
+        item::NUT_BAG_SMALL,
+        item::NUT_BAG_MEDIUM,
+        item::NUT_BAG_LARGE,
+    ],
 };
 const STICKS: Ammo = Ammo {
     slot: "DekuStick",
@@ -40,7 +45,11 @@ const STICKS: Ammo = Ammo {
         actor::SHOP_DEKU_STICK,
         actor::WEAPON_DEKU_STICK,
     ],
-    bags: [item::STICK_BAG_SMALL, item::STICK_BAG_MEDIUM],
+    bags: [
+        item::STICK_BAG_SMALL,
+        item::STICK_BAG_MEDIUM,
+        item::STICK_BAG_LARGE,
+    ],
 };
 
 /// The components a get plays: its scene, the animation set it runs and
@@ -70,8 +79,15 @@ fn keep_bag(map: &mut BymlMap) {
 
 /// `small`'s pack rewritten in place with `medium`'s get: its scene and
 /// animation set as they are, and an animation param of its own naming
-/// `small`'s model animation where `medium`'s names its own.
-fn take_get(builder: &mut ModBuilder, small: &ActorPack, medium: &ActorPack) -> Result<()> {
+/// `small`'s model animation where `medium`'s names its own. `medium` and
+/// `large` carry `small`'s param as their parent's, and the game keeps
+/// whichever copy loads first: theirs get the same rewrite, or a Small
+/// bag loading after them overflows the components it read from theirs.
+fn take_get(
+    builder: &mut ModBuilder,
+    small: &ActorPack,
+    [medium, large]: [&ActorPack; 2],
+) -> Result<()> {
     let actor_at = actor_path(&small.name);
     let actor_raw = raw(small, &actor_at)?;
     let actor_doc = BymlDoc::parse(&actor_raw)?;
@@ -97,15 +113,27 @@ fn take_get(builder: &mut ModBuilder, small: &ActorPack, medium: &ActorPack) -> 
     actor = with_ref(&actor, ANIMATION, &anim_at)?;
     let anim = doc(anim, &anim_doc).to_binary();
     builder.add_entry(&anim_at, &anim_like, anim_raw.len(), anim.len())?;
-    writer.add_file(anim_at, anim);
+    writer.add_file(anim_at.clone(), anim.clone());
     for key in &GET_REFS[..1] {
         let at = path_of(medium, key)?;
         writer.add_file(at.clone(), raw(medium, &at)?);
     }
     let actor = doc(actor, &actor_doc).to_binary();
     builder.resize(&actor_at, actor_raw.len(), actor.len())?;
-    writer.add_file(actor_at, actor);
-    builder.write(&pack_file(&small.name), &writer.to_binary())
+    writer.add_file(actor_at.clone(), actor.clone());
+    builder.write(&pack_file(&small.name), &writer.to_binary())?;
+    for heir in [medium, large] {
+        ensure!(
+            heir.raw(&actor_at).is_some(),
+            "{} doesn't carry {actor_at}",
+            heir.name
+        );
+        let mut writer = heir.writer();
+        writer.add_file(actor_at.clone(), actor.clone());
+        writer.add_file(anim_at.clone(), anim.clone());
+        builder.write(&pack_file(&heir.name), &writer.to_binary())?;
+    }
+    Ok(())
 }
 
 /// Swap every string `from` in `byml` for `to`. Returns how many.
@@ -127,8 +155,8 @@ fn swap_strings(map: &mut BymlMap, from: &str, to: &str) -> usize {
 impl Ammo {
     /// Give the Small bag the Medium one's get.
     fn take_get(&self, romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
-        let [small, medium] = self.bags.map(|b| ActorPack::load(romfs, b));
-        take_get(builder, &small?, &medium?)
+        let [small, medium, large] = self.bags.map(|b| ActorPack::load(romfs, b));
+        take_get(builder, &small?, [&medium?, &large?])
     }
 
     /// Make every row and param of this ammo keep its bag.
@@ -361,6 +389,16 @@ mod tests {
         let names = format!("{:?}", anim);
         assert!(names.contains(&format!("{small}_Animation")), "{names}");
         assert!(pack.raw(&path_of(&pack, GET_REFS[0]).unwrap()).is_some());
+        // The game keeps one copy of a param by its path, whichever pack
+        // loads it first: every bag above the Small carries the same one.
+        let own = actor_path(small);
+        for heir in &NUTS.bags[1..] {
+            let file = ounce_formats::pack_file(heir);
+            let raw = std::fs::read(dir.join("romfs").join(&file)).unwrap();
+            let data = romfs.dicts().decompress(&file, &raw).unwrap();
+            let heir = ActorPack::from_bytes(heir, data).unwrap();
+            assert_eq!(heir.raw(&own), pack.raw(&own), "{}", heir.name);
+        }
         std::fs::remove_dir_all(dir).ok();
     }
 
