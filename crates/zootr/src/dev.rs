@@ -411,10 +411,12 @@ impl<M: Memory> Dev<M> {
         Ok(done)
     }
 
-    /// Switch age, landing where [`other_age`] says.
+    /// Switch age, landing where [`other_age`] says. A spot no exit arrives
+    /// at is refused: the game would sit on a black screen.
     pub fn switch_age(&self, places: &BTreeSet<Place>) -> Result<(Place, &'static str)> {
         let State { map, child, .. } = self.state()?;
         let place = other_age(&map, child, places);
+        known(&place, places)?;
         let done = self.ask(&Request::Age(place.clone()))?;
         Ok((place, done))
     }
