@@ -1,4 +1,5 @@
-//! The rainbow bridge at six medallions, or open. See
+//! The rainbow bridge at six medallions, or open, and Ganon's trials done.
+//! See
 //! `docs/superpowers/specs/2026-11-12-win-conditions-design.md` and
 //! `docs/superpowers/specs/2026-11-21-basic-win-condition-design.md`.
 
@@ -28,6 +29,25 @@ pub fn open() -> Vec<String> {
         field::GANON_CASTLE_ADULT_FIELD_RAINBOW
     )]
 }
+/// The six trials in Ganon's Castle, as their barrier flags name them.
+const TRIALS: [&str; 6] = ["Light", "Forest", "Water", "Shadow", "Fire", "Spirit"];
+
+/// Every barrier in Ganon's Castle down from the start: what the six
+/// barrier scenes leave set, played and removed each, none left and all
+/// clear. Nothing else: no Ganon step, no bridge.
+pub fn trials_done() -> Vec<String> {
+    let mut edits = vec![
+        format!("{}=0", field::INSIDE_GANON_CASTLE_DUNGEON_BARRIER_COUNT),
+        format!("{}=true", field::INSIDE_GANON_CASTLE_IS_ALL_BARRIER_CLEAR),
+    ];
+    for trial in TRIALS {
+        let removed = format!("InsideGanonCastle_Dungeon_BarrierRemove_{trial}");
+        edits.push(format!("{}.{removed}=true", flag::HAVE_PLAYED_EVENT));
+        edits.push(format!("{removed}=true"));
+    }
+    edits
+}
+
 pub const MEDALLIONS: [&Name; 6] = [
     item::MEDAL_FOREST,
     item::MEDAL_FIRE,
@@ -123,11 +143,12 @@ mod tests {
     }
 
     #[test]
-    fn the_open_bridge_sets_a_flag_the_game_has() {
+    fn open_and_done_set_flags_the_game_has() {
         let Some(romfs) = dev_dump() else { return };
         let gd = GameData::load(&romfs).unwrap();
         let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH).unwrap()).unwrap();
         crate::presets::apply(&gd, &mut doc.root, &open()).unwrap();
+        crate::presets::apply(&gd, &mut doc.root, &trials_done()).unwrap();
     }
 
     /// The edited BoolExp, rendered the way `probe data` shows it.
