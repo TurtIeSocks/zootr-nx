@@ -144,11 +144,14 @@ test("a two-option choice is a segmented control", () => {
   expect(saved(onChange)).toEqual({ "chest-size": "all small" });
 });
 
-test("a five-option choice is a select", () => {
-  show();
+test("a choice of three or more is a select", () => {
+  const ages = choice("age", "Age", ["Child", "Adult", "Random"]);
+  show({ defs: [...schema, ages] });
   const hints = screen.getByRole("combobox", { name: "Gossip stones" });
   expect(hints.textContent).toContain("None");
   expect(screen.queryByRole("group", { name: "Gossip stones" })).toBeNull();
+  expect(screen.getByRole("combobox", { name: "Age" })).toBeTruthy();
+  expect(screen.queryByRole("group", { name: "Age" })).toBeNull();
 });
 
 test("an untested description becomes a badge", () => {

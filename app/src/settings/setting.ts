@@ -29,8 +29,9 @@ export const controlId = (def: SettingDef) => `setting-${def.id}`;
  * own. */
 export const labelId = (def: SettingDef) => `${controlId(def)}-label`;
 
-/** At most this many options show in place, side by side. */
-const SEGMENTS = 3;
+/** At most this many options show in place, side by side. More take a
+ * select. */
+const SEGMENTS = 2;
 /** The longest option label that still fits side by side. */
 const SEGMENT_LABEL = 14;
 
