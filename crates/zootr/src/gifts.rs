@@ -6,6 +6,7 @@ mod found;
 mod later;
 pub(crate) mod levels;
 mod lines;
+mod pocket;
 mod potion;
 pub(crate) use potion::DONE as BOTTLE_TUTORIAL_DONE;
 mod rewrite;
@@ -18,10 +19,12 @@ pub use cutscene::straight;
 pub use found::flags;
 pub(crate) use later::scene_marks;
 pub use lines::lines;
+pub use pocket::pocket;
 pub use table::GIFTS;
 
 use cutscene::{cut, stay};
 use later::{grant_after, silence_calls};
+use pocket::grant_before_save;
 use rewrite::*;
 use sales::sell;
 
@@ -269,12 +272,10 @@ impl Gift {
         }
     }
 
-    /// Whether a new game with `on` deals it: its setting is on, it's not
-    /// Rauru's with the Door of Time open, and it's not the 100-token
-    /// reward with that one turned off.
+    /// Whether a new game with `on` deals it: its setting is on, and it's
+    /// not the 100-token reward with that one turned off.
     pub fn dealt(&self, on: &BTreeSet<String>) -> bool {
         self.setting().is_none_or(|s| on.contains(s))
-            && !(self.flow == RAURU && on.contains(OPEN_DOOR))
             && !(self.is_hundred_tokens() && !on.contains(HUNDRED_TOKENS))
     }
 
@@ -460,6 +461,12 @@ pub fn give_all(
     let mut taken: HashMap<&str, BTreeSet<u16>> = HashMap::new();
     for gift in &GIFTS {
         let item = item_at(drops, gift.hash(), gift.item);
+        let pocket = gift.pocket(on);
+        let leveled = levels::needs(gift, item, progressive);
+        let item = match pocket && leveled {
+            true => pocket::level(romfs, rewrites, item)?,
+            false => item,
+        };
         let mine = taken.entry(gift.flow.get()).or_default();
         if let Some(line) = picked(gift.item).filter(|_| item != gift.item) {
             flows::edit(romfs, rewrites, gift.flow, |f| {
@@ -472,10 +479,10 @@ pub fn give_all(
         {
             flows::edit(romfs, rewrites, gift.flow, free)?;
         }
-        let lost = gift.skipped(rewrites)?;
+        let lost = pocket || gift.skipped(rewrites)?;
         let given = item != gift.item || matches!(gift.how, How::Cut { .. }) || lost;
         let took = match (given, &gift.how) {
-            (true, _) => give(romfs, flows, rewrites, gift, item, mine)
+            (true, _) => give(romfs, flows, rewrites, gift, item, mine, lost, pocket)
                 .with_context(|| format!("{} giving {item}", gift.giver))?,
             (false, How::Calls { call, .. }) => {
                 let flow = flows::current(romfs, rewrites, gift.flow)?;
@@ -485,10 +492,9 @@ pub fn give_all(
         };
         mine.extend(&took);
         marks.mark(romfs, rewrites, gift, &took, on)?;
-        if levels::needs(gift, item, progressive) {
+        if leveled && !pocket {
             // The grant moved to the caller when its scene can't play.
-            let later = given && matches!(gift.how, How::Later { .. });
-            let at = gift.caller().filter(|_| lost || later);
+            let at = given.then(|| gift.moved_to(lost, pocket)).flatten();
             let only = (at.is_none() && !took.is_empty()).then_some(took);
             by_level.insert((at.unwrap_or(gift.flow), item, only));
             if let How::Added { also } = gift.how {
@@ -526,6 +532,7 @@ pub fn give_all(
 
 /// Rewrite `gift` to give `item`, leaving alone the events of its flow
 /// another gift has `taken`. Returns the events of its flow that give it.
+#[allow(clippy::too_many_arguments)]
 fn give(
     romfs: &Romfs,
     flows: &Flows,
@@ -533,10 +540,11 @@ fn give(
     gift: &Gift,
     item: &str,
     taken: &BTreeSet<u16>,
+    lost: bool,
+    pocket: bool,
 ) -> Result<Vec<u16>> {
     let mut back = None;
     let mut took = Vec::new();
-    let lost = gift.skipped(rewrites)?;
     // A scene that never plays has nothing to cut or silence.
     if !lost {
         flows::edit(romfs, rewrites, gift.flow, |flow| match gift.how {
@@ -564,12 +572,10 @@ fn give(
             flows::edit(romfs, rewrites, SIMPLE_SHOP, shop)?;
         }
     }
-    if let Some(caller) = gift
-        .caller()
-        .filter(|_| lost || matches!(gift.how, How::Later { .. }))
-    {
-        flows::edit(romfs, rewrites, caller, |f| {
-            grant_after(f, flows, gift.flow, item)
+    if let Some(to) = gift.moved_to(lost, pocket) {
+        flows::edit(romfs, rewrites, to, |f| match pocket {
+            true => grant_before_save(f, flows, item),
+            false => grant_after(f, flows, gift.flow, item),
         })?;
     }
     if let Some((callee, entry)) = back {
@@ -649,15 +655,6 @@ mod tests {
         let heart = &checks()[at.unwrap()];
         assert!(crate::narrowing::allowed(heart, item::QUIVER_MEDIUM, true));
         assert!(crate::narrowing::allowed(heart, item::QUIVER_MEDIUM, false));
-    }
-
-    #[test]
-    pub(super) fn rauru_is_dealt_only_with_the_door_closed() {
-        let rauru = GIFTS.iter().find(|g| g.flow == RAURU).unwrap();
-        let on = |ids: &[&str]| ids.iter().map(|&i| i.to_owned()).collect();
-        assert!(rauru.dealt(&on(&[DUNGEON_REWARDS])));
-        assert!(!rauru.dealt(&on(&[DUNGEON_REWARDS, OPEN_DOOR])));
-        assert!(!rauru.dealt(&on(&[])));
     }
 
     #[test]

@@ -43,13 +43,13 @@ pub(super) fn flows(
     }
     flags.push(starting::navi_guide());
     trade_chain::cut_timers(romfs, &mut rewrites)?;
-    let mut give = new_game.give.clone();
+    // Rauru's gift, the Light Medallion or what was dealt there, comes in
+    // the opening with the door open: `gifts::give_all`.
     if new_game.open_door {
         flags.extend(door::open(romfs, &mut rewrites)?);
-        give.push(door::MEDALLION.to_string());
     }
     let pouch = crate::inventory::Pouch::load(romfs)?;
-    let grants = starting::with_gives(new_game.start.grants(&pouch), &give);
+    let grants = starting::with_gives(new_game.start.grants(&pouch), &new_game.give);
     starting::grant(romfs, &mut rewrites, &grants)?;
     starting::replay(romfs, &mut rewrites, &new_game.progress)?;
     steps::dev_branch(romfs, &mut rewrites)?;

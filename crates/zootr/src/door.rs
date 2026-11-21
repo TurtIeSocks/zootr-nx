@@ -14,13 +14,11 @@ use ounce_formats::{Actor, EventKind, Flowchart, Params, Romfs, Value};
 
 use crate::flows::{self, Rewrites};
 use crate::graphs::{logic, node, relink};
-use crate::known::{Name, field, flag, flow, item, map};
+use crate::known::{Name, field, flag, flow, map};
 use crate::starting;
 
 /// Set when the door opens. A new game starts with it.
 pub const OPENED: &Name = flag::MARKET_CHILD_TIME_TEMPLE_DOOR_OPENED;
-/// What Rauru gives.
-pub const MEDALLION: &Name = item::MEDAL_LIGHT;
 const DOOR: &Name = map::MARKET_COMMON_F252;
 const PEDESTAL: &Name = map::MARKET_ADULT_PREFAB_89DA;
 const SHEIK: &Name = map::MARKET_ADULT_PREFAB_7F43;
@@ -169,7 +167,7 @@ fn start_forest(
 
 /// Write the patched graphs, and replay the first adult flow at the end of
 /// the opening, so the game moves the quests itself. Returns the GameData
-/// edits a new game needs. It also needs [`MEDALLION`].
+/// edits a new game needs. Rauru's gift is `gifts::give_all`'s, Link's Pocket.
 pub fn open(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<Vec<String>> {
     let graphs: [(&Name, Edit); 3] = [(DOOR, door), (PEDESTAL, pedestal), (SHEIK, sheik)];
     for (name, patch) in graphs {

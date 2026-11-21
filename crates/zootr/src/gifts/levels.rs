@@ -78,6 +78,17 @@ fn ladder(item: &str) -> Option<(Vec<(&'static Name, &'static Name)>, usize)> {
     ))
 }
 
+/// What a chain for `item` would give a Link who owns `owned`: the level
+/// after the highest owned, or for ammo the highest step.
+pub(super) fn owned_level<'a>(item: &'a str, owned: &BTreeSet<String>) -> &'a str {
+    let Some((ladder, next)) = ladder(item) else {
+        return item;
+    };
+    let has = |(_, own): &(&Name, &Name)| owned.contains(own.get());
+    let at = ladder.iter().rposition(has).map_or(0, |i| i + next);
+    ladder[at.min(ladder.len() - 1)].0.get()
+}
+
 /// Put a chain in front of each event of `flow` granting or showing `item`,
 /// ammo or a level of a line. A grant of a level gives the one after the
 /// highest Link owns, the top once he owns it. A grant of ammo, and a get
@@ -212,6 +223,20 @@ mod tests {
     use super::*;
     use crate::gifts::tests::*;
     use crate::known::item;
+
+    #[test]
+    fn an_owned_level_is_the_next_one_up_to_the_top() {
+        needs_names!();
+        let owned = |names: &[&Name]| names.iter().map(|n| n.to_string()).collect();
+        let (hook, long) = (item::HOOKSHOT, item::LONGSHOT);
+        assert_eq!(owned_level(hook, &owned(&[])), hook.get());
+        assert_eq!(owned_level(hook, &owned(&[hook])), long.get());
+        assert_eq!(owned_level(hook, &owned(&[long])), long.get());
+        assert_eq!(
+            owned_level("Item_FakeRupee", &owned(&[hook])),
+            "Item_FakeRupee"
+        );
+    }
 
     /// Each gift `pick` finds dealt `dealt`, with progressive items on, and
     /// the flow its grant ends up in.

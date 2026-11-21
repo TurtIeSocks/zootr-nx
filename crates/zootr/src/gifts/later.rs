@@ -87,8 +87,7 @@ pub(super) fn grant_after(
         "{} never marks {scene}",
         flow.name
     );
-    let chart = |name: &str| flows.0.get(name).with_context(|| format!("no {name} flow"));
-    let inline = grant::Models::of(chart(starting::TEMPLATE)?, chart(grant::POUCH)?);
+    let inline = models(flows)?;
     for (at, fade) in plays
         .into_iter()
         .map(|at| (at, false))
@@ -104,6 +103,15 @@ pub(super) fn grant_after(
         flow.link(Link::Next(at), Some(first))?;
     }
     Ok(())
+}
+
+/// The inline grant's models, from `flows`.
+pub(super) fn models(flows: &Flows) -> Result<grant::Models<'_>> {
+    let chart = |name: &str| flows.0.get(name).with_context(|| format!("no {name} flow"));
+    Ok(grant::Models::of(
+        chart(starting::TEMPLATE)?,
+        chart(grant::POUCH)?,
+    ))
 }
 
 #[cfg(test)]
@@ -133,6 +141,8 @@ mod tests {
             zelda,
             item::MEDAL_FIRE,
             &BTreeSet::new(),
+            false,
+            false,
         )
         .unwrap();
         let parse = |name: &str| {
