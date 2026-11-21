@@ -28,7 +28,7 @@ mod rooms;
 mod shapes;
 mod water;
 
-use formats::{ainb, byml, files, grep, pool, restbl, strings, unpack, unpacked};
+use formats::{ainb, ainbs, byml, files, grep, pool, restbl, strings, unpack, unpacked};
 use logic::{checks, doors, exits, gates, groups, pouch, settings, shops, tools};
 
 #[derive(Subcommand)]
@@ -181,6 +181,9 @@ pub enum Probe {
         #[arg(long)]
         out: Option<std::path::PathBuf>,
     },
+    /// Every logic and AI graph the AINB reader can't parse, with why,
+    /// grouped by the failing node's class.
+    Ainbs,
     /// Each check the shuffle deals: hash, era, area, name, vanilla item,
     /// and what logic says it needs there, with default settings unless
     /// `--setting` says otherwise.
@@ -450,6 +453,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Doors { rolls, settings } => doors(romfs, rolls, &settings),
         Probe::Byml { pattern, file } => byml(romfs, game, &pattern, file),
         Probe::Ainb { path, out } => ainb(romfs, &path, out.as_deref()),
+        Probe::Ainbs => ainbs(romfs),
         Probe::Rsdb { table, pattern } => rsdb(romfs, game, &table, &pattern),
         Probe::Tags { actors } => tags(romfs, game, &actors),
         Probe::Groups { file, logic } => groups(romfs, &file, &logic),

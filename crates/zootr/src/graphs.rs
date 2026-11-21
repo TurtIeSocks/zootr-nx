@@ -90,8 +90,8 @@ mod tests {
 
     use crate::game::dev_dump;
 
-    /// The AINB writer against every graph in the game, loose and in
-    /// packs: each comes back byte for byte, and every link the writer can
+    /// The AINB reader and writer against every graph in the game, loose
+    /// and in packs: each reads, comes back byte for byte, and every link the writer can
     /// make is made there the way the writer makes it.
     #[test]
     fn the_writer_matches_every_game_graph() {
@@ -111,7 +111,9 @@ mod tests {
                     .collect()
             };
             let check = |(name, g): (String, Vec<u8>)| {
-                ounce_formats::ainb::check(&g).map_err(|e| format!("{name}: {e:#}"))
+                let read = ounce_formats::ainb::Graph::parse(&g).map(|_| ());
+                (read.and_then(|()| ounce_formats::ainb::check(&g)))
+                    .map_err(|e| format!("{name}: {e:#}"))
             };
             graphs.into_iter().map(check).collect::<Vec<_>>()
         });
