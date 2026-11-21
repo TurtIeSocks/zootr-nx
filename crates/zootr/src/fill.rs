@@ -212,8 +212,8 @@ mod tests {
     use crate::progress::{self, StepEvent};
     use crate::rules::{Book, Ctx};
     use crate::settings::{
-        CHESTS, DUNGEON_REWARDS, FORTRESS_KEYS, ICE_TRAPS, KEYS, NPC_GIFTS, OPEN_DOOR, PROGRESSIVE,
-        SONGS, Settings,
+        CHESTS, DOOR_OF_TIME, DUNGEON_REWARDS, FORTRESS_KEYS, ICE_TRAPS, KEYS, NPC_GIFTS,
+        PROGRESSIVE, SONGS, Settings,
     };
     use crate::shuffle::{Fixed, deal};
     use crate::{ice_traps, key_tints, keys};
@@ -380,7 +380,7 @@ mod tests {
 
     #[test]
     fn closed_door_seeds_reach_every_provable_check() {
-        seeds_fill(&Settings::from([(OPEN_DOOR.into(), false.into())]));
+        seeds_fill(&Settings::from([(DOOR_OF_TIME.into(), "closed".into())]));
     }
 
     #[test]

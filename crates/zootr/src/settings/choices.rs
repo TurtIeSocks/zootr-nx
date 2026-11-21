@@ -281,7 +281,8 @@ impl DungeonEntrances {
     }
 }
 
-/// What a choice's pick turns on: toggles, then start inventory words.
+/// What a choice's pick turns on: toggles and other choices' picks (as
+/// `id=option`), then start inventory words.
 pub(super) type Forces = (&'static [&'static str], &'static [&'static str]);
 const NOTHING: Forces = (&[], &[]);
 
@@ -311,7 +312,7 @@ impl StartingAge {
     /// His sword is the pedestal's gift, given in the opening.
     pub(super) fn forces(self) -> Forces {
         match self {
-            Self::Adult => (&[super::OPEN_DOOR, crate::presets::OPEN_FOREST], &[]),
+            Self::Adult => (&[super::DOOR_OPEN, crate::presets::OPEN_FOREST], &[]),
             Self::Child | Self::Random => NOTHING,
         }
     }
@@ -388,6 +389,25 @@ impl Trials {
         match self {
             Self::AllSix => "All Six",
             Self::Done => "Done",
+        }
+    }
+}
+
+/// Whether the Door of Time stands open from the start.
+#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
+pub enum DoorOfTime {
+    /// Opened as in the game, with the stones, the Ocarina of Time and its song
+    Closed,
+    /// Open from the start
+    #[default]
+    Open,
+}
+
+impl DoorOfTime {
+    pub(super) fn label(self) -> &'static str {
+        match self {
+            Self::Closed => "Closed",
+            Self::Open => "Open",
         }
     }
 }

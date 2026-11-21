@@ -19,14 +19,14 @@ mod layout;
 mod new_game;
 mod upgrade;
 pub use choices::{
-    AdultJabu, Bombchus, Bridge, ChestSize, DungeonEntrances, DungeonKeys, FortressKeys, IceTraps,
-    Keys, Logic, ScrubPrice, ShopSlots, StartingAge, Trials,
+    AdultJabu, Bombchus, Bridge, ChestSize, DoorOfTime, DungeonEntrances, DungeonKeys,
+    FortressKeys, IceTraps, Keys, Logic, ScrubPrice, ShopSlots, StartingAge, Trials,
 };
 pub use layout::{GROUPS, Place, group, place};
 pub use new_game::NewGame;
 pub(crate) use new_game::value_word;
 pub(crate) use new_game::{toggles, toggles_on};
-pub(crate) use upgrade::{OLD_PRESETS, OLD_TOGGLES, renamed, upgrade};
+pub(crate) use upgrade::{OLD_PRESETS, OLD_TOGGLES, renamed, renamed_as, upgrade};
 
 /// Setting values by id. A missing id takes its default.
 pub type Settings = BTreeMap<String, Value>;
@@ -76,7 +76,8 @@ pub enum Kind {
 pub struct Choice {
     pub id: String,
     pub label: &'static str,
-    /// Toggles this pick turns on, shown locked.
+    /// Toggles this pick turns on, and other choices' picks it makes as
+    /// `id=option`, shown locked.
     pub forces: Vec<&'static str>,
     /// Start inventory words this pick gives, shown held.
     pub starts: Vec<&'static str>,
@@ -153,6 +154,17 @@ pub(crate) fn forced(
     (toggles, starts)
 }
 
+/// `settings` with each choice a pick forces set to the forced option.
+pub(crate) fn with_picks(schema: &[SettingDef], settings: &Settings) -> Settings {
+    let mut out = settings.clone();
+    for word in forced(schema, settings).0 {
+        if let Some((id, option)) = word.split_once('=') {
+            out.insert(id.into(), option.into());
+        }
+    }
+    out
+}
+
 /// `settings` with a random starting age rolled from `seed`, and whether
 /// it was.
 pub fn roll_age(settings: &Settings, seed: u64) -> (Settings, bool) {
@@ -195,7 +207,10 @@ pub(crate) const AGELESS_ITEMS: &str = "ageless-items";
 pub(crate) const MAGIC_WITH_FIRST_ITEM: &str = "magic-with-first-item";
 const QUIET_NAVI: &str = "quiet-navi";
 pub(crate) const QUIET_ENEMIES: &str = "quiet-enemies";
-pub(crate) const OPEN_DOOR: &str = "open-door-of-time";
+pub(crate) const DOOR_OF_TIME: &str = "door-of-time";
+/// The rule word for [`DOOR_OF_TIME`] open ([`value_word`]), which Starting
+/// Age's Adult also forces.
+pub(crate) const DOOR_OPEN: &str = "door-of-time=open";
 pub(crate) const STARTING_AGE: &str = "starting-age";
 pub(crate) const SCRUBS: &str = "scrubs";
 const SCRUB_PRICE: &str = "scrub-price";
@@ -421,12 +436,13 @@ pub fn schema() -> Vec<SettingDef> {
             ),
             StartingAge::forces,
         )])
-        .chain([default_on(toggle(
-                OPEN_DOOR,
-                place::RULES,
-                "Open Door of Time",
-                "The Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, whose gift comes at the start, and can put the sword back any time",
-            ))])
+        .chain([choice(
+            DOOR_OF_TIME,
+            place::OPEN_AREAS,
+            "Door of Time",
+            "With Open, the Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, whose gift comes at the start, and can put the sword back any time. With Closed, it opens as in the game, once Link holds the three stones and the Ocarina of Time and plays the Song of Time",
+            DoorOfTime::label,
+        )])
         .chain([default_on(toggle(
                 SCRUBS,
                 place::CHECKS,

@@ -83,7 +83,7 @@ needs = "hookshot"
 from = "market-child"
 to = "market-adult"
 added = true
-needs = "setting:open-door-of-time or (beat:gohma and beat:king-dodongo and beat:barinade and item:ocarina-of-time and song-of-time)"
+needs = "setting:door-of-time=open or (beat:gohma and beat:king-dodongo and beat:barinade and item:ocarina-of-time and song-of-time)"
 
 [[exit]]
 from = "market-adult"

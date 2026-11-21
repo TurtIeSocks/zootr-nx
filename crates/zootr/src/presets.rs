@@ -57,12 +57,6 @@ pub const CARPENTERS_FAST: &str = "carpenters-fast";
 /// Presets a new game takes unless turned off.
 pub const DEFAULT_ON: [&str; 4] = ["menus", "clock", "no-tutorials", "no-pickup-texts"];
 
-const STONES: [&Name; 3] = [
-    flow::GET_STONE_OF_FOREST,
-    flow::GET_STONE_OF_FIRE,
-    flow::GET_STONE_OF_WATER,
-];
-
 /// Zelda met and her lullaby learned, with the Door of Time quest at `door`.
 fn zelda(door: &str) -> Vec<String> {
     let mut edits = lit(&[
@@ -303,7 +297,7 @@ fn deku_tree_clear() -> Vec<String> {
         .collect()
 }
 
-pub const PRESETS: [Preset; 15] = [
+pub const PRESETS: [Preset; 14] = [
     Preset {
         name: OPEN_FOREST,
         label: "Open Forest",
@@ -441,29 +435,6 @@ pub const PRESETS: [Preset; 15] = [
         place: place::QUEST,
         edits: || zelda("Step02"),
         give: &[item::ZELDA_LETTER],
-        progress: &[],
-        fields: Vec::new,
-    },
-    Preset {
-        name: "door-of-time",
-        label: "Door of Time Open",
-        what: "The three stones, the Ocarina of Time and its song, and the Door of Time open",
-        place: place::QUEST,
-        edits: || {
-            let mut edits = zelda("Step06");
-            edits.extend(all(STONES.map(crate::steps::saved), "Complete"));
-            edits.extend(lit(&[
-                &format!("IsGet.{}=true", item::MELODY_TIME_SONG),
-                &format!("{}=true", flag::MARKET_CHILD_TIME_TEMPLE_DOOR_OPENED),
-            ]));
-            edits
-        },
-        give: &[
-            item::STONE_FOREST,
-            item::STONE_FIRE,
-            item::STONE_WATER,
-            item::OCARINA_TIME,
-        ],
         progress: &[],
         fields: Vec::new,
     },
@@ -787,7 +758,6 @@ mod tests {
     fn quest_presets_land_on_their_step() {
         needs_names!();
         let edits = |p: &str| expand(&[p.into()], &[]).unwrap();
-        assert!(edits("door-of-time").contains(&crate::steps::at(flow::DOOR_OF_TIME, "Step06")));
         assert_eq!(
             edits("carpenters-freed")
                 .iter()
@@ -796,14 +766,8 @@ mod tests {
             4
         );
         assert_eq!(
-            gives(&["door-of-time".into(), "claim-check".into()]).unwrap(),
-            [
-                item::STONE_FOREST,
-                item::STONE_FIRE,
-                item::STONE_WATER,
-                item::OCARINA_TIME,
-                item::CLAIM_CHECK
-            ]
+            gives(&["zelda-done".into(), "claim-check".into()]).unwrap(),
+            [item::ZELDA_LETTER, item::CLAIM_CHECK]
         );
         assert!(PRESETS.iter().any(|p| p.place == place::QUEST));
     }

@@ -861,7 +861,7 @@ pub(super) mod tests {
             }
             world.play(&crate::fill::start(&new_game), &placed).reached
         };
-        let (door, forest) = (crate::settings::OPEN_DOOR, crate::presets::OPEN_FOREST);
+        let (door, forest) = (crate::settings::DOOR_OPEN, crate::presets::OPEN_FOREST);
         let shuffle = crate::settings::MASTER_SWORD;
         let off = reached(&[door, forest], None);
         // Dealt its own sword, the pedestal adds itself and nothing more.
@@ -883,7 +883,7 @@ pub(super) mod tests {
         };
         let rauru = |on: &[&str]| {
             let world = world(&romfs, on);
-            let hash = gifts::pocket(&[crate::settings::OPEN_DOOR.to_string()].into()).unwrap();
+            let hash = gifts::pocket(&[crate::settings::DOOR_OPEN.to_string()].into()).unwrap();
             let at = |l: &Location| world.places[l.place].clone();
             (world.locations.iter())
                 .filter(|l| l.hash == hash)
@@ -891,7 +891,7 @@ pub(super) mod tests {
                 .collect::<Vec<_>>()
         };
         let rewards = crate::settings::DUNGEON_REWARDS;
-        let open = rauru(&[rewards, crate::settings::OPEN_DOOR]);
+        let open = rauru(&[rewards, crate::settings::DOOR_OPEN]);
         assert_eq!(open, [start_of(Era::Child)]);
         let closed = rauru(&[rewards]);
         assert_eq!(closed, [(map::MARKET_ADULT.to_string(), Era::Adult)]);

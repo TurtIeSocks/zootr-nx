@@ -12,7 +12,7 @@ pub fn pocket(on: &BTreeSet<String>) -> Option<u64> {
 impl Gift {
     /// Whether it's Link's Pocket in a new game with `on`.
     pub(super) fn pocket(&self, on: &BTreeSet<String>) -> bool {
-        self.flow == RAURU && on.contains(OPEN_DOOR)
+        self.flow == RAURU && on.contains(DOOR_OPEN)
     }
 
     /// Where its grant moves when its scene can't play (`lost`) or comes
@@ -73,9 +73,9 @@ mod tests {
     fn rauru_is_dealt_with_rewards_and_pocketed_with_the_door_open() {
         let rauru = rauru();
         assert!(rauru.dealt(&on(&[DUNGEON_REWARDS])));
-        assert!(rauru.dealt(&on(&[DUNGEON_REWARDS, OPEN_DOOR])));
+        assert!(rauru.dealt(&on(&[DUNGEON_REWARDS, DOOR_OPEN])));
         assert!(!rauru.dealt(&on(&[])));
-        assert_eq!(pocket(&on(&[OPEN_DOOR])), Some(rauru.hash()));
+        assert_eq!(pocket(&on(&[DOOR_OPEN])), Some(rauru.hash()));
         assert_eq!(pocket(&on(&[DUNGEON_REWARDS])), None);
     }
 
@@ -121,10 +121,10 @@ mod tests {
                     _ => false,
                 })
         };
-        let dealt = opening(&[DUNGEON_REWARDS, OPEN_DOOR], Some(item::HOOKSHOT)).unwrap();
+        let dealt = opening(&[DUNGEON_REWARDS, DOOR_OPEN], Some(item::HOOKSHOT)).unwrap();
         assert!(granted_before_save(&dealt, item::HOOKSHOT));
         assert!(!flows::render(&dealt).contains(item::MEDAL_LIGHT.get()));
-        let undealt = opening(&[OPEN_DOOR], None).unwrap();
+        let undealt = opening(&[DOOR_OPEN], None).unwrap();
         assert!(granted_before_save(&undealt, item::MEDAL_LIGHT));
         let closed = opening(&[DUNGEON_REWARDS], Some(item::HOOKSHOT));
         assert!(closed.is_none_or(|f| !flows::render(&f).contains(item::HOOKSHOT.get())));
@@ -142,7 +142,7 @@ mod tests {
         let pouch = crate::inventory::Pouch::load(&romfs).unwrap();
         starting::grant(&romfs, &mut rewrites, &start.grants(&pouch)).unwrap();
         let drops = [(rauru().hash(), Drop::from(item::HOOKSHOT.to_string()))].into();
-        let on = on(&[DUNGEON_REWARDS, OPEN_DOOR]);
+        let on = on(&[DUNGEON_REWARDS, DOOR_OPEN]);
         give_all(
             &romfs,
             &all,

@@ -37,7 +37,7 @@ impl Gift {
 /// moved to the swap by the open door.
 pub(super) fn flag(on: &BTreeSet<String>) -> Option<String> {
     let gift = GIFTS.iter().find(|g| g.is_pedestal())?;
-    (gift.dealt(on) || on.contains(OPEN_DOOR)).then(|| GOT.into())
+    (gift.dealt(on) || on.contains(DOOR_OPEN)).then(|| GOT.into())
 }
 
 /// What the pedestal gives in a seed dealt `drops`.
@@ -262,11 +262,11 @@ mod tests {
     #[test]
     fn the_pedestal_is_dealt_with_the_setting_and_marks_itself() {
         assert!(pedestal().dealt(&on(&[MASTER_SWORD])));
-        assert!(!pedestal().dealt(&on(&[OPEN_DOOR])));
+        assert!(!pedestal().dealt(&on(&[DOOR_OPEN])));
         assert_eq!(pedestal().found().as_deref(), Some(GOT));
         assert_eq!(flag(&on(&[])), None);
         assert_eq!(flag(&on(&[MASTER_SWORD])).as_deref(), Some(GOT));
-        assert_eq!(flag(&on(&[OPEN_DOOR])).as_deref(), Some(GOT));
+        assert_eq!(flag(&on(&[DOOR_OPEN])).as_deref(), Some(GOT));
     }
 
     #[test]
@@ -287,7 +287,7 @@ mod tests {
 
     #[test]
     fn the_open_door_swap_gives_it_once_and_an_adult_start_in_the_opening() {
-        let Some(child) = given(&[MASTER_SWORD, OPEN_DOOR], Some(item::HOOKSHOT), false) else {
+        let Some(child) = given(&[MASTER_SWORD, DOOR_OPEN], Some(item::HOOKSHOT), false) else {
             return;
         };
         let swap = flows::render(&written(&child, SWAP));
@@ -295,18 +295,18 @@ mod tests {
         let asks = |l: &str| l.contains(IS_BOOL.1.get()) && l.contains(GOT);
         assert!(swap.lines().any(asks));
         assert!(!has(&child, starting::OPENING, item::HOOKSHOT.get()));
-        let adult = given(&[MASTER_SWORD, OPEN_DOOR], Some(item::HOOKSHOT), true).unwrap();
+        let adult = given(&[MASTER_SWORD, DOOR_OPEN], Some(item::HOOKSHOT), true).unwrap();
         assert!(has(&adult, starting::OPENING, item::HOOKSHOT.get()));
         assert!(has(&adult, starting::OPENING, GOT));
         // Undealt, the swap gives the sword itself.
-        let off = given(&[OPEN_DOOR], None, false).unwrap();
+        let off = given(&[DOOR_OPEN], None, false).unwrap();
         assert!(has(&off, SWAP, SWORD.get()));
         assert!(!has(&off, GEAR, IN_POUCH.1.get()));
     }
 
     #[test]
     fn only_the_shuffle_asks_the_pouch_before_equipping_the_sword() {
-        let Some(on) = given(&[MASTER_SWORD, OPEN_DOOR], None, false) else {
+        let Some(on) = given(&[MASTER_SWORD, DOOR_OPEN], None, false) else {
             return;
         };
         let gear = flows::render(&written(&on, GEAR));
@@ -315,7 +315,7 @@ mod tests {
         // The wake-up scene asks before handing him the sword.
         let wake = flows::render(&written(&on, WAKE));
         assert!(wake.lines().any(asks));
-        let off = given(&[OPEN_DOOR], None, false).unwrap();
+        let off = given(&[DOOR_OPEN], None, false).unwrap();
         assert!(!has(&off, WAKE, IN_POUCH.1.get()));
         assert_eq!(gives(&HashMap::new()), SWORD.get());
     }

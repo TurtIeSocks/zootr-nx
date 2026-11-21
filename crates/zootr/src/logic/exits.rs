@@ -141,7 +141,7 @@ pub(super) mod tests {
     use crate::known::{Name, actor, map};
     use crate::presets::JABU_OPEN;
     use crate::rules::{Ctx, Have};
-    use crate::settings::{AdultJabu, DungeonEntrances, NewGame, OPEN_DOOR};
+    use crate::settings::{AdultJabu, DOOR_OPEN, DungeonEntrances, NewGame};
     use crate::world::Era;
 
     /// A world whose dungeon doors shuffle, with `doors` rolled.
@@ -221,7 +221,7 @@ pub(super) mod tests {
             dungeon_entrances: DungeonEntrances::On,
             doors,
             adult_jabu,
-            on: [JABU_OPEN.into(), OPEN_DOOR.into(), bridge, chus].into(),
+            on: [JABU_OPEN.into(), DOOR_OPEN.into(), bridge, chus].into(),
             ..Default::default()
         }
     }

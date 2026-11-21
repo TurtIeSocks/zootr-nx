@@ -45,9 +45,10 @@ pub(crate) fn setting(arg: &str) -> Result<(String, serde_json::Value)> {
     let (id, value) = savefile::split(arg)?;
     // An old toggle id, read as the setting it became.
     if settings::OLD_TOGGLES.contains(&id) {
-        let new = settings::renamed(id).expect("an old toggle has a new form");
         let on = value.parse::<bool>();
         let on = on.with_context(|| format!("{id} is true or false, not {value}"))?;
+        let new = settings::renamed_as(id, on).or_else(|| settings::renamed(id));
+        let new = new.expect("an old toggle has a new form");
         eprintln!("--setting {id} is now {new}");
         return Ok((id.to_owned(), on.into()));
     }
@@ -156,6 +157,22 @@ mod tests {
         };
         let err = presets::for_save(&["trials-done".into()], &[]).unwrap_err();
         assert!(err.to_string().contains("ganons-trials=done"), "{err}");
+    }
+
+    #[test]
+    fn the_old_door_names_become_the_door_of_time() {
+        let settings = |extra: &[&str]| {
+            let args = [&["zootr"], extra].concat();
+            Flags::try_parse_from(args).unwrap().new_game.settings()
+        };
+        let is = |v: &str| Settings::from([(settings::DOOR_OF_TIME.into(), v.into())]);
+        assert_eq!(settings(&["--preset", "door-of-time"]), is("open"));
+        let closed = settings(&["--setting", "open-door-of-time=false"]);
+        assert_eq!(closed, is("closed"));
+        assert_eq!(
+            settings(&["--setting", "door-of-time=closed"]),
+            is("closed")
+        );
     }
 
     #[test]

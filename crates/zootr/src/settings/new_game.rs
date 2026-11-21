@@ -123,6 +123,7 @@ impl NewGame {
     /// `settings`, then `edits` (`NAME=VALUE`) on top.
     pub fn from_settings(settings: &Settings, edits: &[String]) -> Result<Self> {
         let schema = schema();
+        let settings = &super::with_picks(&schema, settings);
         let dungeon_entrances = chosen::<DungeonEntrances>(settings, DUNGEON_ENTRANCES);
         let on = |id: &str| is_on(&schema, settings, id);
         let picked: Vec<String> = PRESETS
@@ -194,7 +195,7 @@ impl NewGame {
             keep_chests: !on(CHESTS),
             start,
             progressive: on(PROGRESSIVE),
-            open_door: on(OPEN_DOOR),
+            open_door: chosen::<DoorOfTime>(settings, DOOR_OF_TIME) == DoorOfTime::Open,
             scrubs: on(SCRUBS),
             scrub_price: chosen::<ScrubPrice>(settings, SCRUB_PRICE).rupees(),
             freestanding: on(FREESTANDING),
@@ -250,6 +251,7 @@ impl NewGame {
 /// value as rules name it ([`value_word`]).
 pub(crate) fn toggles_on(settings: &Settings) -> BTreeSet<String> {
     let schema = schema();
+    let settings = &super::with_picks(&schema, settings);
     let on = (schema.iter())
         .filter(|d| is_on(&schema, settings, &d.id))
         .map(|d| d.id.clone());
@@ -557,15 +559,16 @@ mod tests {
         let new_game = NewGame::from_settings(&adult, &[]).unwrap();
         assert_eq!(new_game.age, Era::Adult);
         assert!(new_game.open_door);
-        let opened = [OPEN_DOOR, presets::OPEN_FOREST];
+        let opened = [DOOR_OPEN, presets::OPEN_FOREST];
         assert!(opened.iter().all(|id| new_game.on.contains(*id)));
         // The pedestal's gift gives it in the opening (`gifts::pedestal`).
         assert!(!new_game.start.holds("master-sword"));
         let closed = Settings::from([
             (STARTING_AGE.into(), "adult".into()),
-            (OPEN_DOOR.into(), false.into()),
+            (DOOR_OF_TIME.into(), "closed".into()),
         ]);
-        assert!(NewGame::from_settings(&closed, &[]).unwrap().open_door);
+        let closed = NewGame::from_settings(&closed, &[]).unwrap();
+        assert!(closed.open_door && closed.on.contains(DOOR_OPEN));
         let child = NewGame::from_settings(&Settings::new(), &[]).unwrap();
         assert_eq!(child.age, Era::Child);
         assert!(!child.on.contains(presets::OPEN_FOREST));

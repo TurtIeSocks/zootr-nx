@@ -3,7 +3,8 @@
 use serde_json::Value;
 
 use super::{
-    BOMBCHUS, BRIDGE, Bombchus, Bridge, SHUFFLE_ITEMS, Settings, TRIALS, Trials, choice_id,
+    BOMBCHUS, BRIDGE, Bombchus, Bridge, DOOR_OF_TIME, DoorOfTime, SHUFFLE_ITEMS, Settings, TRIALS,
+    Trials, choice_id,
 };
 use crate::starting::{self, Start};
 
@@ -26,25 +27,55 @@ const BRIDGE_UP: &str = BRIDGE;
 /// The preset that brought every barrier down, before [`TRIALS`].
 const TRIALS_DONE: &str = "trials-done";
 
+/// The preset that opened the Door of Time and gave the stones, the
+/// Ocarina of Time and the Song of Time, saved as `true` under the id
+/// [`DOOR_OF_TIME`] took over. Its gifts are dropped.
+const DOOR_UP: &str = DOOR_OF_TIME;
+
+/// The toggle that opened the Door of Time, on by default, before
+/// [`DOOR_OF_TIME`] chose Open or Closed.
+const OPEN_DOOR: &str = "open-door-of-time";
+
 /// Presets the CLI still takes by their old names, and toggles by their
 /// old ids: see [`renamed`].
-pub(crate) const OLD_PRESETS: [&str; 2] = [BRIDGE_UP, TRIALS_DONE];
-pub(crate) const OLD_TOGGLES: [&str; 1] = [BRIDGE_MEDALLIONS];
+pub(crate) const OLD_PRESETS: [&str; 3] = [BRIDGE_UP, TRIALS_DONE, DOOR_UP];
+pub(crate) const OLD_TOGGLES: [&str; 2] = [BRIDGE_MEDALLIONS, OPEN_DOOR];
 
-/// The choice old preset or toggle `old` became when on, as setting id and
-/// option.
-fn became(old: &str) -> Option<(&'static str, String)> {
-    match old {
-        BRIDGE_UP => Some((BRIDGE, choice_id(Bridge::Open))),
-        BRIDGE_MEDALLIONS => Some((BRIDGE, choice_id(Bridge::SixMedallions))),
-        TRIALS_DONE => Some((TRIALS, choice_id(Trials::Done))),
+/// Each old preset and toggle, in the order the upgrade reads them: where
+/// two set one choice, the first wins.
+const OLD: [&str; 5] = [
+    BRIDGE_UP,
+    BRIDGE_MEDALLIONS,
+    TRIALS_DONE,
+    DOOR_UP,
+    OPEN_DOOR,
+];
+
+/// The choice old preset or toggle `old` became, as setting id and option,
+/// when it was `on`. Most leave nothing when off.
+fn became(old: &str, on: bool) -> Option<(&'static str, String)> {
+    let door = |open| match open {
+        true => DoorOfTime::Open,
+        false => DoorOfTime::Closed,
+    };
+    match (old, on) {
+        (BRIDGE_UP, true) => Some((BRIDGE, choice_id(Bridge::Open))),
+        (BRIDGE_MEDALLIONS, true) => Some((BRIDGE, choice_id(Bridge::SixMedallions))),
+        (TRIALS_DONE, true) => Some((TRIALS, choice_id(Trials::Done))),
+        (DOOR_UP, true) => Some((DOOR_OF_TIME, choice_id(DoorOfTime::Open))),
+        (OPEN_DOOR, on) => Some((DOOR_OF_TIME, choice_id(door(on)))),
         _ => None,
     }
 }
 
 /// What old preset or toggle `old` on is now, as the CLI takes it.
 pub(crate) fn renamed(old: &str) -> Option<String> {
-    became(old).map(|(id, value)| format!("--setting {id}={value}"))
+    renamed_as(old, true)
+}
+
+/// What old preset or toggle `old` set to `on` is now, as the CLI takes it.
+pub(crate) fn renamed_as(old: &str, on: bool) -> Option<String> {
+    became(old, on).map(|(id, value)| format!("--setting {id}={value}"))
 }
 
 /// Toggles that started a new game with items, before the starting
@@ -88,15 +119,14 @@ pub(crate) fn upgrade(settings: &mut Settings) {
         };
         (settings.entry(BOMBCHUS.into())).or_insert(choice_id(chosen).into());
     }
-    // The bridge preset first: it won over the toggle.
-    for old in [BRIDGE_UP, BRIDGE_MEDALLIONS, TRIALS_DONE] {
+    // A preset first: it won over the toggle.
+    for old in OLD {
         // A choice's value is a string, so only a `true` or `false` is old.
         if !settings.get(old).is_some_and(Value::is_boolean) {
             continue;
         }
         let on = settings.remove(old) == Some(true.into());
-        let (id, value) = became(old).expect("an old name");
-        if on {
+        if let Some((id, value)) = became(old, on) {
             settings.entry(id.into()).or_insert(value.into());
         }
     }
@@ -166,6 +196,33 @@ mod tests {
             "--setting ganons-trials=done"
         );
         assert_eq!(renamed("open-forest"), None);
+    }
+
+    #[test]
+    fn the_door_toggle_and_preset_become_the_door_of_time() {
+        let up = |old: &[(&str, bool)]| {
+            let mut s: Settings = (old.iter())
+                .map(|&(id, on)| (id.to_owned(), on.into()))
+                .collect();
+            upgrade(&mut s);
+            s
+        };
+        let door = |v: &str| Settings::from([(DOOR_OF_TIME.into(), v.into())]);
+        assert_eq!(up(&[(OPEN_DOOR, true)]), door("open"));
+        assert_eq!(up(&[(OPEN_DOOR, false)]), door("closed"));
+        assert_eq!(up(&[(DOOR_UP, true)]), door("open"));
+        // The preset opened the door whatever the toggle said.
+        assert_eq!(up(&[(DOOR_UP, true), (OPEN_DOOR, false)]), door("open"));
+        assert_eq!(up(&[(DOOR_UP, false), (OPEN_DOOR, false)]), door("closed"));
+        assert_eq!(up(&[(DOOR_UP, false)]), Settings::new());
+        let mut current = door("closed");
+        upgrade(&mut current);
+        assert_eq!(current, door("closed"));
+        assert_eq!(
+            renamed_as(OPEN_DOOR, false).unwrap(),
+            "--setting door-of-time=closed"
+        );
+        assert_eq!(renamed(DOOR_UP).unwrap(), "--setting door-of-time=open");
     }
 
     #[test]
