@@ -6,14 +6,23 @@ use std::path::Path;
 use anyhow::{Result, ensure};
 use ounce_formats::Romfs;
 
-use super::{Extras, Held, Report, RoundEvent, Spot, Start, write_mod};
-use crate::logic::{Got, World};
+use super::{Door, Extras, Held, Report, RoundEvent, Spot, Start, write_mod};
+use crate::entrances::Doors;
+use crate::logic::{Data, Got, World};
 use crate::names::Names;
 use crate::progress::{Run, Step};
+use crate::rng::Rng;
 use crate::rules::{self, Book, Ctx, Have, Need};
-use crate::settings::{self, Logic, NewGame, Settings};
+use crate::settings::{self, DungeonEntrances, Logic, NewGame, Settings};
 use crate::shuffle::{self, Fixed};
 use crate::{checks, fill, gamedata, hints, ice_traps, icons, places, steps};
+
+/// How many door layouts a seed tries before it gives up. About one in
+/// twelve rolled layouts can be beaten with Ganon's Castle in place
+/// (Jabu-Jabu's Belly wants a child door, the child-only doors no adult
+/// boss; `probe doors` counts them), so two hundred tries fail about once in
+/// seventeen million seeds.
+const DOOR_TRIES: u32 = 200;
 
 /// Shuffle the chests around `fixed`, unless `new_game` keeps them vanilla,
 /// and write the mod.
@@ -25,37 +34,84 @@ pub fn shuffle(
     new_game: &NewGame,
     run: &Run,
 ) -> Result<Report> {
-    let new_game = &NewGame {
+    let mut doors = Rng::new(seed.rotate_left(29));
+    let roll = |rng: &mut Rng| Doors::roll(new_game.dungeon_entrances, &new_game.door_pins, rng);
+    let mut new_game = NewGame {
         seed,
+        doors: roll(&mut doors)?,
         ..new_game.clone()
     };
     run.step(Step::Checks)?;
-    let checks = checks::dealt(romfs, new_game)?;
+    let checks = checks::dealt(romfs, &new_game)?;
     let logic = new_game.logic == Logic::Glitchless && !new_game.vanilla;
-    let mut deal = shuffle::deal(&checks, fixed, new_game)?;
     let (mut placements, filled) = match logic {
         true => {
-            run.step(Step::Logic)?;
-            let ctx = Ctx::new(new_game);
-            let world = World::build(romfs, &Book::load()?, &ctx, &checks)?;
-            run.step(Step::Placing)?;
-            let needed = world.items();
-            ice_traps::swap(romfs, &mut deal.items, &needed, new_game.ice_traps, seed)?;
-            let filled = fill::fill(&world, &checks, deal, seed, new_game, run)?;
-            (filled.placements.clone(), Some((world, filled)))
+            let book = Book::load()?;
+            let shuffles = new_game.dungeon_entrances != DungeonEntrances::Off;
+            let start = fill::start(&new_game);
+            let mut data = Data::read(romfs, &checks)?;
+            let mut build = |new_game: &NewGame| {
+                let world = World::from_data(&mut data, &book, &Ctx::new(new_game), &checks)?;
+                let deal = shuffle::deal(&checks, fixed, new_game)?;
+                Ok::<_, anyhow::Error>((world, deal))
+            };
+            // Whether vanilla doors leave the seed beatable, asked once.
+            let mut vanilla = None;
+            let mut tries = 1;
+            loop {
+                run.step(Step::Logic)?;
+                let (world, mut deal) = build(&new_game)?;
+                let mut reroll = shuffles && !fill::beatable(&world, &checks, &deal, &start);
+                if reroll && vanilla.is_none() {
+                    let doors = NewGame {
+                        doors: Doors::default(),
+                        ..new_game.clone()
+                    };
+                    let (world, deal) = build(&doors)?;
+                    vanilla = Some(fill::beatable(&world, &checks, &deal, &start));
+                }
+                reroll &= vanilla == Some(true);
+                run.step(Step::Placing)?;
+                let filled = match reroll {
+                    true => None,
+                    false => {
+                        let needed = world.items();
+                        ice_traps::swap(romfs, &mut deal.items, &needed, new_game.ice_traps, seed)?;
+                        match fill::fill(&world, &checks, deal, seed, &new_game, run) {
+                            Ok(filled) => Some(filled),
+                            Err(e) if !shuffles || tries == DOOR_TRIES => return Err(e),
+                            Err(_) => None,
+                        }
+                    }
+                };
+                if let Some(filled) = filled {
+                    break (filled.placements.clone(), Some((world, filled)));
+                }
+                // A layout logic can't beat, like the Water Temple behind
+                // Jabu-Jabu's child-only door, rolls new doors.
+                ensure!(
+                    shuffles && tries < DOOR_TRIES,
+                    "no door layout logic can beat in {DOOR_TRIES} tries"
+                );
+                run.check()?;
+                tries += 1;
+                new_game.doors = roll(&mut doors)?;
+            }
         }
         false => {
             run.step(Step::Placing)?;
+            let mut deal = shuffle::deal(&checks, fixed, &new_game)?;
             let none = BTreeSet::new();
             ice_traps::swap(romfs, &mut deal.items, &none, new_game.ice_traps, seed)?;
-            (shuffle::scatter(deal, seed, new_game)?, None)
+            (shuffle::scatter(deal, seed, &new_game)?, None)
         }
     };
     let needed = filled.as_ref().map(|(world, _)| world.items());
     let traps = ice_traps::disguise(romfs, &mut placements, needed.as_ref(), seed)?;
+    let foreign = [new_game.foreign.clone(), traps].concat();
     let new_game = &NewGame {
-        foreign: [new_game.foreign.clone(), traps].concat(),
-        ..new_game.clone()
+        foreign,
+        ..new_game
     };
     let drops = shuffle::drops(&checks, &placements);
     let have = fill::start(new_game);
@@ -100,7 +156,22 @@ pub fn shuffle(
         playthrough: vec![],
         unprovable,
         start: start(&have, new_game, &names),
+        entrances: entrances(new_game),
     })
+}
+
+/// Each door the seed shuffles, with the dungeon behind it.
+fn entrances(new_game: &NewGame) -> Vec<Door> {
+    let doors = new_game.doors.shuffled(new_game.dungeon_entrances);
+    doors
+        .map(|(door, dungeon)| Door {
+            id: door.id.into(),
+            area: door.door.into(),
+            vanilla: door.label.into(),
+            dungeon: dungeon.id.into(),
+            dungeon_name: dungeon.label.into(),
+        })
+        .collect()
 }
 
 /// What logic starts Link with, named: `have`'s items, and the settings
@@ -187,6 +258,7 @@ fn need(world: &World, hash: u64) -> (String, Vec<String>) {
 fn new_game(settings: &Settings, extras: &Extras) -> Result<NewGame> {
     let mut new_game = NewGame {
         spawn: extras.spawn.clone(),
+        door_pins: extras.doors.clone(),
         ..NewGame::from_settings(settings, &extras.defaults)?
     };
     new_game.fields.extend(extras.fields.iter().cloned());
@@ -208,6 +280,10 @@ pub fn generate(
         "an Archipelago seed places every item itself"
     );
     let mut new_game = new_game(settings, extras)?;
+    ensure!(
+        ap.is_none() || new_game.dungeon_entrances == DungeonEntrances::Off,
+        "an Archipelago seed can't shuffle dungeon entrances yet"
+    );
     if let Some(ap) = &ap {
         new_game.foreign = ap.foreign.clone();
         new_game.players = extras
@@ -254,5 +330,33 @@ mod tests {
         let game = new_game(&settings, &extras).unwrap();
         let presets = crate::presets::fields(&[crate::presets::JABU_OPEN.into()]).unwrap();
         assert_eq!(game.fields, [presets, extras.fields].concat());
+    }
+
+    /// Seeds whose first ten layouts logic couldn't beat.
+    #[test]
+    fn a_seed_rolls_doors_until_logic_can_beat_them() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let dir = std::env::temp_dir().join(format!("zootr-doors-{}", std::process::id()));
+        let settings = crate::settings::Settings::from([
+            ("shuffle-dungeon-entrances".into(), "on".into()),
+            ("open-forest".into(), true.into()),
+            ("kakariko-gate".into(), true.into()),
+        ]);
+        let new_game = NewGame::from_settings(&settings, &[]).unwrap();
+        assert_eq!(new_game.dungeon_entrances, DungeonEntrances::On);
+        for seed in [2, 3] {
+            let report = shuffle(
+                &romfs,
+                &dir,
+                seed,
+                &crate::shuffle::Fixed::new(),
+                &new_game,
+                &Run::silent(),
+            );
+            assert_eq!(report.unwrap().entrances.len(), 11, "seed {seed}");
+        }
+        std::fs::remove_dir_all(dir).unwrap();
     }
 }

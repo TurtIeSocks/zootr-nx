@@ -244,7 +244,7 @@ mod tests {
     use std::collections::BTreeSet;
 
     use super::*;
-    use crate::rules::FILES;
+    use crate::rules::files::FILES;
 
     type Table = &'static [(&'static str, &'static Name)];
 

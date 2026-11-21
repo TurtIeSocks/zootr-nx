@@ -27,6 +27,9 @@ pub struct Extras {
     /// Placement fields set by hand, as `HASH.PATH=VALUE`.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub fields: Vec<String>,
+    /// Dungeon doors pinned by hand, as `DOOR=DUNGEON`.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub doors: Vec<String>,
     /// An Archipelago seed: its placements stand in for the shuffle.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ap: Option<ApSeed>,

@@ -112,6 +112,8 @@ export const commands = {
 	checksState: () => typedError<ChecksState, string>(__TAURI_INVOKE("checks_state")),
 	/**  Mark a check in a seed, or clear its mark. */
 	checksMark: (id: number, hash: string, mark: Mark | null) => typedError<null, string>(__TAURI_INVOKE("checks_mark", { id, hash, mark })),
+	/**  Guess the dungeon behind a seed's shuffled door, or clear the guess. */
+	checksPick: (id: number, door: string, dungeon: string | null) => typedError<null, string>(__TAURI_INVOKE("checks_pick", { id, door, dungeon })),
 	itemsState: () => typedError<ItemsState, string>(__TAURI_INVOKE("items_state")),
 	itemsOptions: (options: TrackerOptions) => typedError<null, string>(__TAURI_INVOKE("items_options", { options })),
 	/**  Resolves once the icons are built, so the grid can say it's waiting. */
@@ -171,6 +173,7 @@ export const commands = {
 export const events = {
 	apEvent: makeEvent<ApEvent, ApEvent>("ap-event"),
 	checksEvent: makeEvent<ChecksEvent, ChecksEvent>("checks-event"),
+	doorsEvent: makeEvent<DoorsEvent, DoorsEvent>("doors-event"),
 	itemsEvent: makeEvent<ItemsEvent, ItemsEvent>("items-event"),
 	liveEvent: makeEvent<LiveEvent, LiveEvent>("live-event"),
 	uiShared: makeEvent<UiShared, UiShared>("ui-shared"),
@@ -260,6 +263,8 @@ export type ChecksState = {
 	/**  The installed seed's history entry, if one is installed. */
 	id: number | null,
 	rows: Row[],
+	/**  Its shuffled doors, none with the setting off. */
+	doors: DoorRow[],
 };
 
 export type Choice = {
@@ -353,6 +358,40 @@ export type DevValue = {
 	 *  so it's set through the values it reads.
 	 */
 	expr: string | null,
+};
+
+/**  A dungeon door and the dungeon behind it. */
+export type Door = {
+	/**  The door, by `--door`'s id: the dungeon behind it in vanilla. */
+	id: string,
+	/**  Where the door stands, by name. */
+	area: string,
+	/**  The dungeon behind it in vanilla, by name. */
+	vanilla: string,
+	/**  The dungeon behind it in this seed: its id, then its name. */
+	dungeon: string,
+	dungeon_name: string,
+};
+
+/**  One shuffled door on the Checks tab. */
+export type DoorRow = {
+	/**
+	 *  The door, by `--door`'s id: the dungeon behind it in vanilla. The
+	 *  doors' ids are also every dungeon a door can lead to.
+	 */
+	id: string,
+	name: string,
+	/**  The dungeon behind it in vanilla, by name, labelling `id`. */
+	vanilla: string,
+	/**  The dungeon behind it by id, once Link has been through. */
+	found: string | null,
+	/**  The player's guess, by id, until the door is revealed. */
+	pick: string | null,
+};
+
+/**  The installed seed's doors, once one is revealed or hidden again. */
+export type DoorsEvent = {
+	doors: DoorRow[],
 };
 
 /**  The dungeon a row of the Dungeons section is for. */
@@ -764,6 +803,7 @@ export type Spoiler = {
 	events: RoundEvent[],
 	unprovable: string[],
 	start: Start,
+	entrances: Door[],
 };
 
 /**  One chest in a seed. */

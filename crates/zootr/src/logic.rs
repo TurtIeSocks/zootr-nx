@@ -8,11 +8,14 @@ use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::Romfs;
 
 use crate::checks::{self, ItemCheck, actors, bancs, hash_of, str_field};
+use crate::entrances::DUNGEONS;
 use crate::known::{Name, flag, item, map};
 use crate::rules::{Book, Ctx, Have, Need};
 use crate::tools::Tools;
 use crate::world::{self, Era, node_of};
 use crate::{cows, gates, gifts, keys, pickups, scrubs, shops};
+
+mod exits;
 
 pub type Place = (String, Era);
 
@@ -55,7 +58,8 @@ pub struct Location {
 /// An item Link gets outside the shuffle.
 pub struct Source {
     pub name: String,
-    pub place: usize,
+    /// Reaching any one of them is enough.
+    pub places: Vec<usize>,
     pub item: String,
     pub need: Need,
 }
@@ -131,6 +135,40 @@ fn scan(romfs: &Romfs, tools: &mut Tools) -> Result<Scan> {
     Ok(s)
 }
 
+/// What the world reads from the game: the same for every seed with the
+/// same checks, so a seed that rolls new doors reads it once.
+pub struct Data<'a> {
+    tools: Tools<'a>,
+    scan: Scan,
+    alternatives: BTreeMap<String, String>,
+    exits: BTreeSet<world::Exit>,
+    gates: BTreeMap<u64, String>,
+    shop_slots: Vec<shops::Slot>,
+    cows: Vec<cows::Cow>,
+}
+
+impl<'a> Data<'a> {
+    pub fn read(romfs: &'a Romfs, checks: &[ItemCheck]) -> Result<Self> {
+        let mut tools = Tools::new(romfs);
+        let scan = scan(romfs, &mut tools)?;
+        Ok(Self {
+            tools,
+            scan,
+            alternatives: world::alternatives(romfs)?,
+            exits: world::exits(romfs)?,
+            gates: gates::gates(romfs)?,
+            shop_slots: match checks.iter().any(shops::is_shop) {
+                true => shops::slots(romfs)?,
+                false => Vec::new(),
+            },
+            cows: match checks.iter().any(cows::is_cow) {
+                true => cows::find(romfs)?,
+                false => Vec::new(),
+            },
+        })
+    }
+}
+
 /// The eras a node's places come in.
 fn eras_of(places: &BTreeSet<Place>, node: &str) -> Vec<Era> {
     places.iter().filter(|p| p.0 == node).map(|p| p.1).collect()
@@ -138,8 +176,25 @@ fn eras_of(places: &BTreeSet<Place>, node: &str) -> Vec<Era> {
 
 impl World {
     pub fn build(romfs: &Romfs, book: &Book, ctx: &Ctx, checks: &[ItemCheck]) -> Result<Self> {
-        let mut tools = Tools::new(romfs);
-        let scan = scan(romfs, &mut tools)?;
+        Self::from_data(&mut Data::read(romfs, checks)?, book, ctx, checks)
+    }
+
+    /// The world from game data read once, for `ctx`'s seed.
+    pub fn from_data(
+        data: &mut Data,
+        book: &Book,
+        ctx: &Ctx,
+        checks: &[ItemCheck],
+    ) -> Result<Self> {
+        let Data {
+            tools,
+            scan,
+            alternatives,
+            exits,
+            gates,
+            shop_slots,
+            cows,
+        } = data;
         let places: Vec<Place> = scan.places.iter().cloned().collect();
         let index: HashMap<Place, usize> = places
             .iter()
@@ -166,79 +221,7 @@ impl World {
             });
         }
 
-        // Exits the data has, each with its rule if the files give one.
-        let rule_of =
-            |from: &str, to: &str| book.exits.iter().find(|r| r.from == from && r.to == to);
-        let mut ruled = HashSet::new();
-        let alternatives = world::alternatives(romfs)?;
-        if let Some(stale) = book
-            .alternatives
-            .iter()
-            .find(|a| !alternatives.contains_key(&a.place))
-        {
-            bail!("{} has an alternative rule but no alternative", stale.place);
-        }
-        for e in world::exits(romfs)? {
-            let mut need = match e.presence.as_str() {
-                // Flags only ever get set, so an exit open while one is unset
-                // stays open.
-                "-" => Need::Always,
-                flag if flag.starts_with('!') => Need::Always,
-                flag => Need::Flag(flag.into()),
-            };
-            if let Some(rule) = rule_of(&e.from, &e.to) {
-                ruled.insert((rule.from.as_str(), rule.to.as_str()));
-                need = Need::All(vec![need, book.need(&rule.expr, ctx)?]);
-            }
-            // A dungeon's copy for an era its exit's map doesn't have, like
-            // child Link leaving Ganon's Castle for the adult Market.
-            let (Ok(from), Ok(to)) = (at(&e.from, e.era), at(&e.to, e.era)) else {
-                continue;
-            };
-            // Once its rule holds the game loads the _Alternative map instead.
-            if alternatives.contains_key(&e.to) {
-                edges.push(Edge {
-                    from: Some(from),
-                    to: at(&format!("{}_Alternative", e.to), e.era)?,
-                    need: Need::All(vec![need.clone(), book.alternative(&e.to, ctx)?]),
-                });
-            }
-            edges.push(Edge {
-                from: Some(from),
-                to,
-                need,
-            });
-        }
-        for rule in &book.exits {
-            if ruled.contains(&(rule.from.as_str(), rule.to.as_str())) {
-                ensure!(
-                    !rule.added,
-                    "{} to {} is in the data, so not added",
-                    rule.from,
-                    rule.to
-                );
-                continue;
-            }
-            ensure!(rule.added, "no exit from {} to {}", rule.from, rule.to);
-            let mut need = book.need(&rule.expr, ctx)?;
-            if let Some(keys) = keys::boss_door_need(&rule.to, ctx.keys) {
-                need = Need::All(vec![need, keys]);
-            }
-            let to_eras = eras_of(&scan.places, &rule.to);
-            for era in eras_of(&scan.places, &rule.from) {
-                let to_era = match to_eras.contains(&era) {
-                    true => era,
-                    false => *to_eras
-                        .first()
-                        .with_context(|| format!("no place {}", rule.to))?,
-                };
-                edges.push(Edge {
-                    from: Some(at(&rule.from, era)?),
-                    to: at(&rule.to, to_era)?,
-                    need: need.clone(),
-                });
-            }
-        }
+        edges.extend(exits::edges(book, ctx, scan, alternatives, exits, &at)?);
 
         // What each place's obstacles need. A map for one era drops the
         // obstacles only the other era clears.
@@ -261,14 +244,20 @@ impl World {
             Ok(Need::All(needs))
         };
 
-        let gates = gates::gates(romfs)?;
-        let shop_slots = match checks.iter().any(shops::is_shop) {
-            true => shops::slots(romfs)?,
-            false => Vec::new(),
+        // A boss room counts for either era once doors move, since its
+        // dungeon may stand behind the other era's door. The blue warp keeps
+        // Link's age (`entrances.md`, "Blue warps keep Link's age").
+        let boss_rooms: HashSet<&str> = match ctx.doors {
+            Some(_) => DUNGEONS
+                .iter()
+                .filter_map(|d| d.boss)
+                .map(|b| &**b)
+                .collect(),
+            None => HashSet::new(),
         };
-        let cows = match checks.iter().any(cows::is_cow) {
-            true => cows::find(romfs)?,
-            false => Vec::new(),
+        let pinned = |node: &str, era: Era| match boss_rooms.contains(node) {
+            true => eras_of(&scan.places, node),
+            false => vec![era],
         };
         let mut locations = Vec::new();
         let mut seen = HashSet::new();
@@ -279,7 +268,7 @@ impl World {
             let rule = book.check(check.hash);
             let mut where_: Vec<Place> = Vec::new();
             if let Some((node, era)) = rule.and_then(|r| r.place.clone()) {
-                where_.push((node, era));
+                where_.extend(pinned(&node, era).into_iter().map(|e| (node.clone(), e)));
             } else if check.file.starts_with("Banc/") {
                 let (node, eras) = node_of(&check.file);
                 where_.extend(eras.into_iter().map(|e| (node.clone(), e)));
@@ -321,7 +310,7 @@ impl World {
                         let obstacles = obstacles_at(&place)?;
                         match gates.get(&check.hash) {
                             Some(gate) => {
-                                let gate = resolve(&switches(gate, &mut tools)?)?;
+                                let gate = resolve(&switches(gate, tools)?)?;
                                 Need::All(vec![gate, obstacles])
                             }
                             None => obstacles,
@@ -376,9 +365,12 @@ impl World {
             if stood_for.contains(&(s.place.as_str(), s.item.as_str())) {
                 continue;
             }
+            let places = (pinned(&s.place, s.era).into_iter())
+                .map(|era| at(&s.place, era).with_context(|| format!("source {}", s.name)))
+                .collect::<Result<_>>()?;
             sources.push(Source {
                 name: s.name.clone(),
-                place: at(&s.place, s.era).with_context(|| format!("source {}", s.name))?,
+                places,
                 item: s.item.clone(),
                 need: match keys::fortress_need(&s.item, ctx) {
                     Some(keys) => Need::All(vec![book.need(&s.expr, ctx)?, keys]),
@@ -393,6 +385,7 @@ impl World {
             keys: ctx.keys,
             fortress: ctx.fortress,
             open: ctx.open.iter().filter(|o| *o != TRIALS).cloned().collect(),
+            doors: ctx.doors.clone(),
         };
         let mut goal = Vec::new();
         for rule in book.exits.iter().filter(|r| r.to == GOAL) {
@@ -407,7 +400,7 @@ impl World {
             edges,
             locations,
             sources,
-            obstacles: scan.obstacles,
+            obstacles: scan.obstacles.clone(),
             goal,
         })
     }
@@ -485,7 +478,8 @@ impl World {
                 }
             }
             for (i, s) in self.sources.iter().enumerate() {
-                if !sourced[i] && seen[s.place] && s.need.met(&have, self.places[s.place].1) {
+                let here = |&p: &usize| seen[p] && s.need.met(&have, self.places[p].1);
+                if !sourced[i] && s.places.iter().any(here) {
                     sourced[i] = true;
                     round.push(Got::Source(i));
                 }
@@ -586,7 +580,9 @@ fn switches(rule: &str, tools: &mut Tools) -> Result<String> {
 
 #[cfg(test)]
 mod tests {
+    use super::exits::tests::shuffled;
     use super::*;
+    use crate::entrances::Doors;
     use crate::known::{actor, map};
 
     #[test]
@@ -693,6 +689,27 @@ mod tests {
         assert!(bridge.iter().all(|n| !n.contains(bags)), "{bridge:?}");
         let grotto = need(2214083465643671502);
         assert!(grotto.iter().all(|n| n.contains(bags)), "{grotto:?}");
+    }
+
+    #[test]
+    fn a_boss_counts_for_either_era_while_doors_shuffle() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gohma = |world: &World| {
+            let beat = crate::rules::vocab::id("beat:gohma").unwrap();
+            let source = world.sources.iter().find(|s| s.item == beat).unwrap();
+            let mut eras: Vec<Era> = source.places.iter().map(|&p| world.places[p].1).collect();
+            eras.sort();
+            eras
+        };
+        let new_game = crate::settings::NewGame::default();
+        let checks = checks::dealt(&romfs, &new_game).unwrap();
+        let book = crate::rules::Book::load().unwrap();
+        let off = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
+        assert_eq!(gohma(&off), [Era::Child]);
+        let on = shuffled(&romfs, Doors::default(), &[]);
+        assert_eq!(gohma(&on), [Era::Child, Era::Adult]);
     }
 
     #[test]

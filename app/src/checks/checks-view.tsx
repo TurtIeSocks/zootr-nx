@@ -1,6 +1,7 @@
 import { Circle, CircleCheck, Ellipsis, Search } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import type { Row } from "@/bindings";
+import { EntranceRows } from "@/checks/entrance-rows";
 import {
   type Area,
   areas,
@@ -306,13 +307,14 @@ function Query() {
   );
 }
 
-/** The shown checks, by area. */
+/** The shuffled doors, then the shown checks by area. */
 function Areas() {
   const [rows] = useChecks.usePath("rows");
   const [query] = useUi.usePath("checks.query");
   const [filter] = useUi.usePath("checks.filter");
   return (
     <table className="w-full border-separate border-spacing-0 text-[13px]">
+      <EntranceRows />
       {areas(rows, query, filter).map((a) => (
         <AreaRows key={a.name} area={a} />
       ))}

@@ -29,7 +29,7 @@ mod shapes;
 mod water;
 
 use formats::{ainb, byml, files, grep, pool, restbl, strings, unpack, unpacked};
-use logic::{checks, exits, gates, groups, pouch, settings, shops, tools};
+use logic::{checks, doors, exits, gates, groups, pouch, settings, shops, tools};
 
 #[derive(Subcommand)]
 pub enum Probe {
@@ -187,6 +187,16 @@ pub enum Probe {
         /// age: its odd cases, from a wrong-age rule to a plain `never`.
         #[arg(long)]
         never: bool,
+    },
+    /// How many rolled dungeon door layouts logic can beat, and how often a
+    /// seed's hundred tries would all fail. Doors shuffle `on` unless a
+    /// `--setting` says otherwise.
+    Doors {
+        #[arg(long, default_value_t = 200)]
+        rolls: u32,
+        /// A setting by id, as `shuffle` takes it. Repeatable.
+        #[arg(long = "setting", value_name = "ID=VALUE", value_parser = crate::cli::args::setting)]
+        settings: Vec<(String, serde_json::Value)>,
     },
     /// The check ledger as JSON: every check with every shuffle on, dealt
     /// or left out, with what the code knows of it. `--unknown` lists only
@@ -424,6 +434,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             settings,
             never,
         } => checks(romfs, area.as_deref(), &settings, never),
+        Probe::Doors { rolls, settings } => doors(romfs, rolls, &settings),
         Probe::Byml { pattern, file } => byml(romfs, game, &pattern, file),
         Probe::Ainb { path, out } => ainb(romfs, &path, out.as_deref()),
         Probe::Rsdb { table, pattern } => rsdb(romfs, game, &table, &pattern),

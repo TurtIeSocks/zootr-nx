@@ -59,6 +59,7 @@ export const seed = (): Spoiler => ({
     items: [{ item: "Item_H", name: "Fairy Ocarina", count: 1 }],
     settings: ["Open Forest"],
   },
+  entrances: [],
 });
 
 /** The same seed as saved before spots kept their logic. */
@@ -70,4 +71,5 @@ export const oldSeed = (): Spoiler => ({
   events: [],
   unprovable: [],
   start: { items: [], settings: [] },
+  entrances: [],
 });

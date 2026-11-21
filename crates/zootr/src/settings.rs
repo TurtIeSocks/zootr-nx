@@ -9,15 +9,17 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::cutscenes::{AREAS, Skips};
+use crate::entrances::Doors;
 use crate::keys;
-use crate::presets::{self, CARPENTERS_FAST, CARPENTERS_FREED, PRESETS};
+use crate::presets::{self, ADULT_DEKU_TREE, CARPENTERS_FAST, CARPENTERS_FREED, PRESETS};
 use crate::starting;
 
 mod choices;
 mod new_game;
 mod upgrade;
 pub use choices::{
-    ChestSize, DungeonKeys, FortressKeys, IceTraps, Keys, Logic, ScrubPrice, ShopSlots,
+    ChestSize, DungeonEntrances, DungeonKeys, FortressKeys, IceTraps, Keys, Logic, ScrubPrice,
+    ShopSlots,
 };
 pub use new_game::NewGame;
 pub(crate) use new_game::{toggles, toggles_on};
@@ -174,6 +176,7 @@ pub(crate) const COWS: &str = "cows";
 pub(crate) const KEYS: &str = "keys";
 pub(crate) const FORTRESS_KEYS: &str = "fortress-keys";
 pub(crate) const ICE_TRAPS: &str = "ice-traps";
+pub(crate) const DUNGEON_ENTRANCES: &str = "shuffle-dungeon-entrances";
 pub(crate) const MERCHANTS: &str = "merchants";
 pub(crate) const TRADE_CHAIN: &str = "trade-chain";
 pub(crate) const RUNNING_RACE: &str = "running-race";
@@ -401,6 +404,13 @@ pub fn schema() -> Vec<SettingDef> {
             "Fortress keys",
             "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks. Can't be used with Carpenters freed, since its thieves are already beaten",
             FortressKeys::label,
+        )])
+        .chain([choice(
+            DUNGEON_ENTRANCES,
+            group::DUNGEONS,
+            "Dungeon entrances",
+            "Each dungeon's front door leads into another dungeon, and its way out leads back to that door. On swaps the eleven dungeons. With Ganon's Castle, its door joins them, and Ganondorf waits wherever it leads. A door keeps what it needs to open, whatever is behind it. The Deku Tree lets adult Link in, and blue warps lead where they always do at Link's own age",
+            DungeonEntrances::label,
         )])
         .chain([toggle(
             SHOPS,

@@ -13,12 +13,13 @@ use crate::flows::Rewrites;
 use crate::hints::Hint;
 use crate::narrowing::maps_move;
 use crate::progress::Run;
-use crate::settings::{AGELESS_WEAPONS, ChestSize, NewGame, TRADE_CHAIN};
+use crate::settings::{AGELESS_WEAPONS, ChestSize, DungeonEntrances, NewGame, TRADE_CHAIN};
 use crate::{
-    ageless, ammo, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe, day_skulltulas,
-    dig, door, enemies, flags, foreign, fortress, gamedata, gerudo, gifts, held, hints, ice_traps,
-    key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb,
-    scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain, twins,
+    ageless, ammo, blue_warps, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe,
+    day_skulltulas, dig, door, enemies, entrances, flags, foreign, fortress, gamedata, gerudo,
+    gifts, held, hints, ice_traps, key_tints, keys, map_copies, medallions, navi, notice, patch,
+    picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker,
+    trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -95,6 +96,10 @@ pub(super) fn flows(
         ice_traps::flow(romfs, &mut rewrites)?;
         let traps: Vec<&str> = ice_traps::actors(&new_game.foreign).collect();
         ice_traps::one_page(romfs, &mut rewrites, &traps)?;
+    }
+    if new_game.dungeon_entrances != DungeonEntrances::Off {
+        blue_warps::keep_age(romfs, &mut rewrites)?;
+        entrances::reveal::flows_for(romfs, &mut rewrites, new_game.dungeon_entrances)?;
     }
     Ok((rewrites, flags))
 }
@@ -189,6 +194,7 @@ pub fn write_mod(
     if new_game.fortress_keys.moved() {
         bools.extend(fortress::flags());
     }
+    bools.extend(entrances::reveal::flags(new_game.dungeon_entrances));
     let gone = match new_game.scrubs {
         true => {
             bools.extend(scrubs::flags(drops));
@@ -290,6 +296,16 @@ pub fn write_mod(
         Some(ice_traps::look(romfs, &mut builder)?)
     } else {
         None
+    };
+    let blocks = match new_game.dungeon_entrances {
+        DungeonEntrances::Off => None,
+        mode => {
+            let mut blocks = entrances::Blocks::read(romfs)?;
+            let arrivals = entrances::reveal::plan(&blocks, mode);
+            entrances::reveal::events(&arrivals, &mut events)?;
+            entrances::reveal::retarget(&mut blocks, &arrivals)?;
+            Some(blocks)
+        }
     };
     events.write(&mut builder)?;
     if new_game.shop_slots > 0 {
@@ -404,6 +420,10 @@ pub fn write_mod(
         let tinted = key_tints::swap(&rel, &mut doc.root, bosses)? > 0;
         // After shrinking: a shrunk chest runs the small chest's flow.
         let levelled = levels.name(romfs, &mut doc.root, &mut chest_events)? > 0;
+        let doors = match &blocks {
+            Some(b) => entrances::rewrite(&rel, &mut doc.root, &new_game.doors, b)? > 0,
+            None => false,
+        };
         if twinned
             || paired
             || stepped
@@ -412,6 +432,7 @@ pub fn write_mod(
             || shrunk
             || tinted
             || levelled
+            || doors
             || !changed.is_empty()
         {
             actors += changed.len();

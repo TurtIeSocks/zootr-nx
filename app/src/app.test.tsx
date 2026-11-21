@@ -63,6 +63,7 @@ vi.mock("@/bindings", () => ({
   events: {
     liveEvent: { listen: () => Promise.resolve(() => {}) },
     checksEvent: { listen: () => Promise.resolve(() => {}) },
+    doorsEvent: { listen: () => Promise.resolve(() => {}) },
     itemsEvent: { listen: () => Promise.resolve(() => {}) },
   },
   commands: {
@@ -90,7 +91,7 @@ vi.mock("@/bindings", () => ({
     spoiler: vi.fn(() =>
       Promise.resolve({
         status: "ok",
-        data: { spots: [], events: [], unprovable: [] },
+        data: { spots: [], events: [], unprovable: [], entrances: [] },
       }),
     ),
     liveState: () =>
@@ -101,7 +102,10 @@ vi.mock("@/bindings", () => ({
         next: 0,
       }),
     checksState: () =>
-      Promise.resolve({ status: "ok", data: { id: null, rows: [] } }),
+      Promise.resolve({
+        status: "ok",
+        data: { id: null, rows: [], doors: [] },
+      }),
     itemsState: () =>
       Promise.resolve({
         status: "ok",

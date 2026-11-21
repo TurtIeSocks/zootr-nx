@@ -7,11 +7,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::OnceLock;
 
 use anyhow::{Context, Result, bail, ensure};
-use serde::Deserialize;
 
-use crate::settings::{self, DungeonKeys, FortressKeys, NewGame};
+use crate::entrances::Doors;
+use crate::settings::{DungeonEntrances, DungeonKeys, FortressKeys, NewGame};
 use crate::world::Era;
 
+mod files;
 mod item;
 mod lang;
 mod set;
@@ -19,48 +20,8 @@ pub mod vocab;
 
 pub use set::{Edit, set};
 
+pub use files::{ExitRule, PlaceRule, SourceRule, settings_read};
 pub use lang::{Expr, Have, Need, parse};
-
-const ABILITIES: &str = "abilities.toml";
-
-/// Every rule file, by name. A test keeps this in step with `logic/`.
-const FILES: &[(&str, &str)] = &[
-    (ABILITIES, include_str!("../logic/abilities.toml")),
-    ("exits.toml", include_str!("../logic/exits.toml")),
-    ("gifts.toml", include_str!("../logic/gifts.toml")),
-    (
-        "bottom-of-the-well.toml",
-        include_str!("../logic/bottom-of-the-well.toml"),
-    ),
-    ("deku-tree.toml", include_str!("../logic/deku-tree.toml")),
-    (
-        "kokiri-forest.toml",
-        include_str!("../logic/kokiri-forest.toml"),
-    ),
-    (
-        "hyrule-field.toml",
-        include_str!("../logic/hyrule-field.toml"),
-    ),
-    ("lost-woods.toml", include_str!("../logic/lost-woods.toml")),
-    ("vanilla.toml", include_str!("../logic/vanilla.toml")),
-    ("bosses.toml", include_str!("../logic/bosses.toml")),
-    ("cows.toml", include_str!("../logic/cows.toml")),
-    ("beans.toml", include_str!("../logic/beans.toml")),
-    ("graveyard.toml", include_str!("../logic/graveyard.toml")),
-    (
-        "water-temple.toml",
-        include_str!("../logic/water-temple.toml"),
-    ),
-    (
-        "spirit-temple.toml",
-        include_str!("../logic/spirit-temple.toml"),
-    ),
-    (
-        "ganons-castle.toml",
-        include_str!("../logic/ganons-castle.toml"),
-    ),
-    ("grottos.toml", include_str!("../logic/grottos.toml")),
-];
 
 /// What a seed's rules resolve against.
 pub struct Ctx {
@@ -77,6 +38,8 @@ pub struct Ctx {
     /// Toggles left open, each a [`Need::Setting`] instead of always or
     /// never. Only the Archipelago export opens any.
     pub open: BTreeSet<String>,
+    /// Where each dungeon door leads, while dungeon entrances shuffle.
+    pub doors: Option<Doors>,
 }
 
 impl Ctx {
@@ -100,37 +63,10 @@ impl Ctx {
             keys: new_game.keys,
             fortress: new_game.fortress_keys,
             open: BTreeSet::new(),
+            doors: (new_game.dungeon_entrances != DungeonEntrances::Off)
+                .then(|| new_game.doors.clone()),
         }
     }
-}
-
-/// Any rule file but `abilities.toml`.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct RuleFile {
-    #[serde(default)]
-    check: Vec<CheckRule>,
-    #[serde(default)]
-    exit: Vec<ExitRule>,
-    #[serde(default)]
-    source: Vec<SourceRule>,
-    #[serde(default)]
-    alternative: Vec<AlternativeRule>,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct CheckRule {
-    hash: u64,
-    /// Shown in place of the generated name (`Spot::name`).
-    name: String,
-    needs: String,
-    /// Where a check with no placement is, like a gift, or one whose
-    /// placement isn't where Link gets it.
-    place: Option<String>,
-    era: Option<Era>,
-    /// The setting that deals the check, so it may not be dealt.
-    setting: Option<String>,
 }
 
 /// What a check needs beyond reaching its place.
@@ -143,185 +79,25 @@ pub struct CheckEntry {
     pub optional: bool,
 }
 
-/// What an exit between two maps needs. One the game's data doesn't have,
-/// like a boss door, says it's `added`.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ExitRule {
-    pub from: String,
-    pub to: String,
-    #[serde(default)]
-    pub added: bool,
-    pub needs: String,
-    #[serde(skip, default = "always")]
-    pub expr: Expr,
-}
-
-/// What makes the game load a map's `_Alternative` copy in its place. The
-/// game's own gate is a flag logic can't evaluate.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AlternativeRule {
-    pub place: String,
-    needs: String,
-    #[serde(skip, default = "always")]
-    pub expr: Expr,
-}
-
-/// Where Link gets an item that isn't shuffled yet.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct SourceRule {
-    pub name: String,
-    pub place: String,
-    pub era: Era,
-    pub item: String,
-    needs: String,
-    #[serde(skip, default = "always")]
-    pub expr: Expr,
-}
-
-fn always() -> Expr {
-    Expr::Word("always".into())
-}
-
 /// Every rule file, parsed and checked.
 pub struct Book {
     abilities: BTreeMap<String, Expr>,
     checks: BTreeMap<u64, CheckEntry>,
     pub exits: Vec<ExitRule>,
-    pub alternatives: Vec<AlternativeRule>,
+    pub alternatives: Vec<PlaceRule>,
+    insides: Vec<PlaceRule>,
     pub sources: Vec<SourceRule>,
     toggles: BTreeSet<String>,
 }
 
-/// The settings the rule files read, by id.
-pub fn settings_read() -> BTreeSet<String> {
-    let word = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == ':';
-    FILES
-        .iter()
-        .flat_map(|(_, text)| text.split(move |c: char| !word(c)))
-        .filter_map(|w| w.strip_prefix("setting:"))
-        .filter(|id| !id.is_empty())
-        .map(String::from)
-        .collect()
-}
-
 impl Book {
-    pub fn load() -> Result<Self> {
-        Self::from_files(FILES)
-    }
-
-    fn from_files(files: &[(&str, &str)]) -> Result<Self> {
-        let mut book = Book {
-            abilities: BTreeMap::new(),
-            checks: BTreeMap::new(),
-            exits: Vec::new(),
-            alternatives: Vec::new(),
-            sources: Vec::new(),
-            toggles: settings::toggles(),
-        };
-        for &(name, text) in files {
-            book.add(name, text)
-                .with_context(|| format!("logic/{name}"))?;
-        }
-        book.validate()?;
-        Ok(book)
-    }
-
-    fn add(&mut self, name: &str, text: &str) -> Result<()> {
-        if name == ABILITIES {
-            let table: BTreeMap<String, String> = toml::from_str(text)?;
-            for (word, rule) in table {
-                let mut expr = parse(&rule)?;
-                vocab::words(&mut expr)?;
-                self.abilities.insert(word, expr);
-            }
-            return Ok(());
-        }
-        let file: RuleFile = toml::from_str(text)?;
-        for rule in file.check {
-            let place = match (rule.place, rule.era) {
-                (Some(place), Some(era)) => Some((vocab::node(&place)?, era)),
-                (None, None) => None,
-                _ => bail!(
-                    "check {} needs both a place and an era, or neither",
-                    rule.hash
-                ),
-            };
-            let mut needs = parse(&rule.needs)?;
-            vocab::words(&mut needs)?;
-            let entry = CheckEntry {
-                name: rule.name,
-                needs,
-                place,
-                optional: rule.setting.is_some(),
-            };
-            ensure!(
-                self.checks.insert(rule.hash, entry).is_none(),
-                "check {} has two rules",
-                rule.hash
-            );
-        }
-        for mut exit in file.exit {
-            exit.from = vocab::node(&exit.from)?;
-            exit.to = vocab::node(&exit.to)?;
-            exit.expr = parse(&exit.needs)?;
-            vocab::words(&mut exit.expr)?;
-            self.exits.push(exit);
-        }
-        for mut alt in file.alternative {
-            alt.place = vocab::node(&alt.place)?;
-            alt.expr = parse(&alt.needs)?;
-            vocab::words(&mut alt.expr)?;
-            ensure!(
-                !self.alternatives.iter().any(|a| a.place == alt.place),
-                "{} has two alternative rules",
-                alt.place
-            );
-            self.alternatives.push(alt);
-        }
-        for mut source in file.source {
-            source.place = vocab::node(&source.place)?;
-            source.item = vocab::id(&source.item)?;
-            source.expr = parse(&source.needs)?;
-            vocab::words(&mut source.expr)?;
-            self.sources.push(source);
-        }
-        Ok(())
-    }
-
-    /// Resolves every rule once, so an unknown word or a loop fails at load.
-    fn validate(&self) -> Result<()> {
-        let ctx = Ctx {
-            progressive: true,
-            on: BTreeSet::new(),
-            seed: 0,
-            keys: DungeonKeys::Vanilla,
-            fortress: FortressKeys::Vanilla,
-            open: BTreeSet::new(),
-        };
-        for (word, expr) in &self.abilities {
-            self.need(expr, &ctx)
-                .with_context(|| format!("ability `{word}`"))?;
-        }
-        for (hash, entry) in &self.checks {
-            self.need(&entry.needs, &ctx)
-                .with_context(|| format!("check {hash}"))?;
-        }
-        for exit in &self.exits {
-            self.need(&exit.expr, &ctx)
-                .with_context(|| format!("exit {} to {}", exit.from, exit.to))?;
-        }
-        for alt in &self.alternatives {
-            self.need(&alt.expr, &ctx)
-                .with_context(|| format!("alternative to {}", alt.place))?;
-        }
-        for source in &self.sources {
-            self.need(&source.expr, &ctx)
-                .with_context(|| format!("source {}", source.name))?;
-        }
-        Ok(())
+    /// What being inside the dungeon at `node` needs, resolved. Every
+    /// dungeon has a rule: a moved door carries it along.
+    pub fn inside(&self, node: &str, ctx: &Ctx) -> Result<Need> {
+        let rule = (self.insides.iter())
+            .find(|r| r.place == node)
+            .with_context(|| format!("{node} has no inside rule"))?;
+        self.need(&rule.expr, ctx)
     }
 
     /// What loads `map`'s alternative, resolved. Every alternative the
@@ -411,8 +187,10 @@ impl Book {
 
 #[cfg(test)]
 mod tests {
+    use super::files::ABILITIES;
     use super::*;
     use crate::known::{actor, item, map};
+    use crate::settings;
 
     /// The id of a boss defeat, by its word.
     fn beat(word: &str) -> String {
@@ -427,6 +205,7 @@ mod tests {
             keys: DungeonKeys::Vanilla,
             fortress: FortressKeys::Vanilla,
             open: BTreeSet::new(),
+            doors: None,
         }
     }
 
@@ -502,21 +281,6 @@ mod tests {
     }
 
     #[test]
-    fn files_fail_loudly() {
-        let abilities = (ABILITIES, "a = \"b\"\nb = \"a\"");
-        assert!(Book::from_files(&[abilities]).is_err());
-        let unknown = (ABILITIES, "a = \"item:hookshot or strength\"");
-        assert!(Book::from_files(&[unknown]).is_err());
-        let written = (ABILITIES, "a = \"Item_A\"");
-        assert!(Book::from_files(&[written]).is_err());
-        let twice = "[[check]]\nhash = 1\nname = \"x\"\nneeds = \"child\"\n";
-        let ok = (ABILITIES, "");
-        assert!(Book::from_files(&[ok, ("A.toml", twice), ("B.toml", twice)]).is_err());
-        assert!(Book::from_files(&[ok, ("A.toml", "[[check]]\nhash = 1\n")]).is_err());
-        assert!(Book::from_files(&[ok, ("A.toml", twice)]).is_ok());
-    }
-
-    #[test]
     fn an_alternative_takes_its_one_rule() {
         let ok = (ABILITIES, "");
         let rule = "[[alternative]]\nplace = \"zora-domain-adult\"\nneeds = \"beat:morpha\"\n";
@@ -530,28 +294,6 @@ mod tests {
         // The game swapping a map with no rule would hide a check from logic.
         assert!(book.alternative(map::KAKARIKO_VILLAGE_ADULT, &c).is_err());
         assert!(Book::from_files(&[ok, ("a.toml", rule), ("b.toml", rule)]).is_err());
-    }
-
-    #[test]
-    fn an_unknown_word_names_itself_and_its_file() {
-        let ok = (ABILITIES, "");
-        let bad_item = (ABILITIES, "a = \"item:no-such\"");
-        let bad_place = "[[exit]]\nfrom = \"nowhere\"\nto = \"deku-tree\"\nneeds = \"child\"\n";
-        let bad_source = "[[source]]\nname = \"x\"\nplace = \"deku-tree\"\nera = \"child\"\nitem = \"beat:no-such\"\nneeds = \"always\"\n";
-        let cases = [
-            (vec![bad_item], "item:no-such", "logic/abilities.toml"),
-            (vec![ok, ("a.toml", bad_place)], "nowhere", "logic/a.toml"),
-            (
-                vec![ok, ("b.toml", bad_source)],
-                "beat:no-such",
-                "logic/b.toml",
-            ),
-        ];
-        for (files, word, file) in cases {
-            let err = Book::from_files(&files).err().unwrap();
-            let err = format!("{err:#}");
-            assert!(err.contains(word) && err.contains(file), "{err}");
-        }
     }
 
     #[test]
@@ -885,13 +627,6 @@ mod tests {
     }
 
     #[test]
-    fn the_settings_rules_read_are_toggles() {
-        let read = settings_read();
-        assert!(read.contains("open-forest") && read.contains("kakariko-gate"));
-        assert!(read.is_subset(&settings::toggles()), "{read:?}");
-    }
-
-    #[test]
     fn each_zora_preset_opens_its_way_without_the_item() {
         needs_names!();
         let book = Book::load().unwrap();
@@ -943,18 +678,6 @@ mod tests {
             !book.exits.iter().any(|e| e.to == fountain),
             "adult fountain"
         );
-    }
-
-    #[test]
-    fn every_file_in_logic_is_built_in() {
-        let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/logic");
-        let on_disk: BTreeSet<String> = std::fs::read_dir(dir)
-            .unwrap()
-            .map(|e| e.unwrap().file_name().into_string().unwrap())
-            .collect();
-        let mut built: BTreeSet<String> = FILES.iter().map(|f| f.0.to_owned()).collect();
-        built.insert(crate::key_rooms::FILE.into());
-        assert_eq!(on_disk, built);
     }
 
     #[test]

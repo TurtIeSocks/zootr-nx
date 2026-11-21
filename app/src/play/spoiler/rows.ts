@@ -1,11 +1,14 @@
-import type { Held, Spoiler, Spot } from "@/bindings";
+import type { Door, Held, Spoiler, Spot } from "@/bindings";
 
 /** The spoiler's views. */
-export type SpoilerTab = "spheres" | "hero" | "checks";
+export type SpoilerTab = "spheres" | "hero" | "checks" | "entrances";
 
 /** A spot's area by name. History fills the names in for every seed; the
  * ids only satisfy types. */
 export const areaOf = (s: Spot) => s.area_name || s.area;
+
+/** A door by where it stands and the dungeon behind it in vanilla. */
+export const doorName = (d: Door) => `${d.area}, ${d.vanilla} door`;
 /** A spot's place by name, or its chest's, or its vanilla id. */
 export const placeOf = (s: Spot) => s.place || s.chest_name || s.vanilla;
 /** What a spot holds, by name. */

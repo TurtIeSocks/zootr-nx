@@ -375,6 +375,30 @@ mod tests {
     }
 
     #[test]
+    fn a_seed_from_ap_refuses_shuffled_dungeon_entrances() {
+        let Some(romfs) = dev_dump() else { return };
+        let ap = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        let mut settings = ap.full_settings();
+        let on = serde_json::Value::String("on".into());
+        settings.insert(crate::settings::DUNGEON_ENTRANCES.into(), on);
+        let dir = std::env::temp_dir().join(format!("zootr-ap-doors-{}", std::process::id()));
+        let refused = generate(
+            &romfs,
+            &dir,
+            ap.seed,
+            &settings,
+            &Extras::ap(ap),
+            &Run::silent(),
+        );
+        let refused = refused.unwrap_err().to_string();
+        assert!(
+            refused.contains("can't shuffle dungeon entrances"),
+            "{refused}"
+        );
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
     fn a_seed_missing_a_check_is_refused() {
         let Some(romfs) = dev_dump() else { return };
         let mut seed = ApSeed::from_zip(TWO_SLOTS).unwrap();

@@ -11,7 +11,8 @@ use zootr::config::Config;
 use zootr::gamedata::GameData;
 use zootr::recorder::{self, Ask, Event, Hub, Numbered, Snapshot, Watch};
 
-use crate::{Checks, Items, Res, romfs, text};
+use crate::checks::Checks;
+use crate::{Items, Res, romfs, text};
 
 /// Every Live tab event, to whichever page is listening.
 #[derive(Clone, Serialize, Type)]

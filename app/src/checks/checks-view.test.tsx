@@ -7,7 +7,14 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import type { ChecksEvent, ChecksState, Mark, Summary } from "@/bindings";
+import type {
+  ChecksEvent,
+  ChecksState,
+  DoorRow,
+  DoorsEvent,
+  Mark,
+  Summary,
+} from "@/bindings";
 import { ChecksView } from "@/checks/checks-view";
 import { row } from "@/checks/fixture";
 import { init } from "@/stores/checks";
@@ -25,6 +32,9 @@ const ok = (data: unknown): Promise<Ok> =>
 
 const backend = {
   listener: undefined as ((e: { payload: ChecksEvent }) => void) | undefined,
+  doorsListener: undefined as
+    | ((e: { payload: DoorsEvent }) => void)
+    | undefined,
   state: {
     id: 7,
     rows: [
@@ -32,6 +42,7 @@ const backend = {
       row("2", "Kokiri Forest", "Back left", { checked: true, flag: 2 }),
       row("3", "Kokiri Forest", "Grotto", { flag: null }),
     ],
+    doors: [],
   } as ChecksState,
   send(payload: ChecksEvent) {
     act(() => backend.listener?.({ payload }));
@@ -50,6 +61,11 @@ const checksMark = vi.fn(
   > => Promise.resolve({ status: "ok", data: null }),
 );
 
+const checksPick = vi.fn(
+  (_id: number, _door: string, _dungeon: string | null) =>
+    Promise.resolve({ status: "ok", data: null }),
+);
+
 const liveLabel = vi.fn((_hash: number, _label: string) =>
   Promise.resolve({ status: "ok", data: null }),
 );
@@ -62,11 +78,19 @@ vi.mock("@/bindings", () => ({
         return Promise.resolve(() => {});
       },
     },
+    doorsEvent: {
+      listen: (cb: (e: { payload: DoorsEvent }) => void) => {
+        backend.doorsListener = cb;
+        return Promise.resolve(() => {});
+      },
+    },
   },
   commands: {
     checksState: () => checksState(),
     checksMark: (id: number, hash: string, mark: Mark | null) =>
       checksMark(id, hash, mark),
+    checksPick: (id: number, door: string, dungeon: string | null) =>
+      checksPick(id, door, dungeon),
     liveLabel: (hash: number, label: string) => liveLabel(hash, label),
   },
 }));
@@ -181,7 +205,7 @@ test("a new seed loads its checks, keeping the old ones until they come", async 
   await act(async () =>
     send({
       status: "ok",
-      data: { id: 8, rows: [row("9", "Lost Woods", "Skull kid")] },
+      data: { id: 8, rows: [row("9", "Lost Woods", "Skull kid")], doors: [] },
     }),
   );
   expect(screen.getByText("Skull kid")).toBeTruthy();
@@ -223,4 +247,65 @@ test("a note being typed stays open when its check ticks out of the filter", asy
   expect((screen.getByLabelText("Note") as HTMLInputElement).value).toBe(
     "under the sign",
   );
+});
+
+/** A shuffled door for tests, hidden and unpicked unless `patch` says. */
+const door = (id: string, vanilla: string, patch: Partial<DoorRow> = {}) => ({
+  id,
+  name: `FakeArea, ${vanilla} door`,
+  vanilla,
+  found: null,
+  pick: null,
+  ...patch,
+});
+
+test("doors show ? until found, a pick until then, and found over a pick", async () => {
+  backend.state = {
+    ...backend.state,
+    doors: [
+      door("deku-tree", "Deku Tree"),
+      door("fire-temple", "Fire Temple", { pick: "deku-tree" }),
+    ],
+  };
+  await show();
+  expect(await screen.findByText("Entrances")).toBeTruthy();
+  expect(screen.getByText("0/2")).toBeTruthy();
+  expect(screen.getByText("?")).toBeTruthy();
+  // The pick names its dungeon by its vanilla door.
+  const rows = screen.getAllByRole("row");
+  expect(
+    rows.some((r) => r.textContent?.includes("Fire Temple doorDeku Tree")),
+  ).toBe(true);
+  act(() =>
+    backend.doorsListener?.({
+      payload: {
+        doors: [
+          door("deku-tree", "Deku Tree", { found: "fire-temple" }),
+          door("fire-temple", "Fire Temple", { pick: "deku-tree" }),
+        ],
+      },
+    }),
+  );
+  expect(await screen.findByText("1/2")).toBeTruthy();
+  expect(screen.queryByText("?")).toBeNull();
+  expect(screen.queryByLabelText("Pick FakeArea, Deku Tree door")).toBeNull();
+  backend.state = { ...backend.state, doors: [] };
+});
+
+test("a pick is saved on the seed and shown", async () => {
+  backend.state = {
+    ...backend.state,
+    doors: [door("deku-tree", "Deku Tree"), door("fire-temple", "Fire Temple")],
+  };
+  await show();
+  fireEvent.pointerDown(
+    await screen.findByLabelText("Pick FakeArea, Deku Tree door"),
+    { button: 0, ctrlKey: false },
+  );
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Fire Temple" }));
+  await waitFor(() =>
+    expect(checksPick).toHaveBeenCalledWith(7, "deku-tree", "fire-temple"),
+  );
+  await waitFor(() => expect(screen.getAllByText("?")).toHaveLength(1));
+  backend.state = { ...backend.state, doors: [] };
 });

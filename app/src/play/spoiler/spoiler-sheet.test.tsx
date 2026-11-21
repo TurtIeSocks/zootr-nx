@@ -228,3 +228,30 @@ test("a slow load for a seed no longer shown is dropped", async () => {
   expect(screen.queryByText(/predates/)).toBeNull();
   expect(screen.getByRole("button", { name: "Spheres" })).toBeTruthy();
 });
+
+test("Entrances lists each shuffled door, and shows only when doors move", async () => {
+  const door = (area: string, vanilla: string, dungeon: string) => ({
+    id: vanilla,
+    area,
+    vanilla,
+    dungeon,
+    dungeon_name: dungeon,
+  });
+  await open();
+  expect(screen.queryByRole("button", { name: "Entrances" })).toBeNull();
+  cleanup();
+  const sheet = await open({
+    ...seed(),
+    entrances: [
+      door("Kokiri Forest", "Deku Tree", "Fire Temple"),
+      door("Death Mountain Crater", "Fire Temple", "Deku Tree"),
+    ],
+  });
+  fireEvent.click(tab("Entrances"));
+  const list = within(sheet.getByRole("list", { name: "Entrances" }));
+  const row = list.getByText("Kokiri Forest, Deku Tree door").closest("li");
+  expect(within(row as HTMLElement).getByText("Fire Temple")).toBeTruthy();
+  expect(
+    list.getByText("Death Mountain Crater, Fire Temple door"),
+  ).toBeTruthy();
+});

@@ -19,6 +19,7 @@ import { call } from "@/lib/api";
 import { useLoad } from "@/lib/use-load";
 import { ChecksTab } from "@/play/spoiler/checks-tab";
 import { Detail } from "@/play/spoiler/detail";
+import { EntrancesTab } from "@/play/spoiler/entrances-tab";
 import { HeroTab } from "@/play/spoiler/hero-tab";
 import { hasLogic, type SpoilerTab } from "@/play/spoiler/rows";
 import { SpheresTab } from "@/play/spoiler/spheres-tab";
@@ -38,11 +39,15 @@ const TABS: { id: SpoilerTab; label: string }[] = [
   { id: "checks", label: "All checks" },
 ];
 
+/** The tab a seed with shuffled doors adds. */
+const ENTRANCES = { id: "entrances", label: "Entrances" } as const;
+
 /** The tab bodies by tab. */
 const PANELS: Record<SpoilerTab, () => React.JSX.Element> = {
   spheres: SpheresTab,
   hero: HeroTab,
   checks: ChecksTab,
+  entrances: EntrancesTab,
 };
 
 /** Glowing cards scrolled out of view, as dots on the scroll edges. */
@@ -169,7 +174,11 @@ function TabBar() {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <div className="flex items-center gap-2">
-        <Segmented options={TABS} value={tab} onValueChange={setTab} />
+        <Segmented
+          options={spoiler.entrances.length ? [...TABS, ENTRANCES] : TABS}
+          value={tab}
+          onValueChange={setTab}
+        />
         <Help topic="spoiler" />
       </div>
       {tab === "spheres" && (

@@ -181,6 +181,50 @@ pub(super) fn tools(romfs: &Romfs, filter: &Filter) -> Result<()> {
 
 /// Each dealt check with what logic says it needs, one line per era, or
 /// with `never` only those no age can get.
+pub(super) fn doors(
+    romfs: &Romfs,
+    rolls: u32,
+    settings: &[(String, serde_json::Value)],
+) -> Result<()> {
+    use crate::settings::{DungeonEntrances, NewGame, Settings};
+    let mut settings: Settings = settings.iter().cloned().collect();
+    (settings.entry("shuffle-dungeon-entrances".into())).or_insert("on".into());
+    let new_game = NewGame::from_settings(&settings, &[])?;
+    anyhow::ensure!(
+        new_game.dungeon_entrances != DungeonEntrances::Off,
+        "doors don't shuffle"
+    );
+    let checks = crate::checks::dealt(romfs, &new_game)?;
+    let book = crate::rules::Book::load()?;
+    let start = crate::fill::start(&new_game);
+    let mut data = crate::logic::Data::read(romfs, &checks)?;
+    let fixed = crate::shuffle::Fixed::new();
+    let mut rng = crate::rng::Rng::new(1);
+    let mut beaten = 0;
+    for _ in 0..rolls {
+        let doors = crate::entrances::Doors::roll(
+            new_game.dungeon_entrances,
+            &new_game.door_pins,
+            &mut rng,
+        )?;
+        let new_game = NewGame {
+            doors,
+            ..new_game.clone()
+        };
+        let ctx = crate::rules::Ctx::new(&new_game);
+        let world = crate::logic::World::from_data(&mut data, &book, &ctx, &checks)?;
+        let deal = crate::shuffle::deal(&checks, &fixed, &new_game)?;
+        beaten += u32::from(crate::fill::beatable(&world, &checks, &deal, &start));
+    }
+    let odds = f64::from(beaten) / f64::from(rolls);
+    println!(
+        "{beaten}/{rolls} layouts beatable ({:.1}%), so a hundred tries all fail for {:.3}% of seeds",
+        odds * 100.0,
+        (1.0 - odds).powi(100) * 100.0
+    );
+    Ok(())
+}
+
 pub(super) fn checks(
     romfs: &Romfs,
     area: Option<&str>,
