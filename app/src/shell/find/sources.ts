@@ -1,11 +1,11 @@
 import {
   CircleStop,
+  History,
   ListChecks,
   ListPlus,
   type LucideIcon,
   Play,
   RefreshCw,
-  ScrollText,
   Sparkles,
   SunMoon,
 } from "lucide-react";
@@ -237,7 +237,7 @@ export function seeds(entries: Summary[]): Hit[] {
       key: String(e.id),
       trail: ["History"],
       title: nameOf(e) || `Seed ${e.seed}`,
-      icon: ScrollText,
+      icon: History,
       body: [`#${e.id}`, e.label.note].filter(Boolean).join(" · "),
       run: () => openSeed(e.id, useUi.getPath("play.history"), !!e.ap_slot),
     }),

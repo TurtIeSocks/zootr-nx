@@ -1,4 +1,4 @@
-import { Loader2, ScrollText } from "lucide-react";
+import { Loader2, Newspaper } from "lucide-react";
 import { useEffect, useState } from "react";
 import { InlineError } from "@/components/callout";
 import { TipButton } from "@/components/tip-button";
@@ -28,7 +28,7 @@ export function ChangelogButton() {
         variant="ghost"
         onClick={() => setOpen(true)}
       >
-        <ScrollText />
+        <Newspaper />
       </TipButton>
       <DialogContent className="flex max-h-[80vh] max-w-[min(640px,calc(100%-4rem))] flex-col">
         <DialogHeader>
