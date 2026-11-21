@@ -214,6 +214,11 @@ impl Start {
         Ok(())
     }
 
+    /// Whether `word` is held at all.
+    pub fn holds(&self, word: &str) -> bool {
+        self.0.get(word).is_some_and(|&n| n > 0)
+    }
+
     /// `word` held `n` times: every tier below it too, as a click does.
     pub fn add(&mut self, word: &str, n: i32) -> Result<()> {
         if word == HEARTS || word == RUPEE_WORD {

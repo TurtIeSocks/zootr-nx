@@ -40,6 +40,8 @@ pub struct Ctx {
     pub open: BTreeSet<String>,
     /// Where each dungeon door leads, while dungeon entrances shuffle.
     pub doors: Option<Doors>,
+    /// Link's age on a new file.
+    pub age: Era,
 }
 
 impl Ctx {
@@ -65,6 +67,7 @@ impl Ctx {
             open: BTreeSet::new(),
             doors: (new_game.dungeon_entrances != DungeonEntrances::Off)
                 .then(|| new_game.doors.clone()),
+            age: new_game.age,
         }
     }
 }
@@ -206,6 +209,7 @@ mod tests {
             fortress: FortressKeys::Vanilla,
             open: BTreeSet::new(),
             doors: None,
+            age: Era::Child,
         }
     }
 

@@ -2,13 +2,13 @@ import type { Choice, SettingDef, StartInventory } from "@/bindings";
 import type { Settings } from "@/lib/config";
 import { count, LISTED } from "@/lib/format";
 
-/** Whether a setting is on: its own value or default, or its parent's. */
+/** Whether a setting is on: its own value or default, or forced on. */
 export function isOn(
   def: SettingDef,
   settings: Settings,
   schema: SettingDef[],
 ): boolean {
-  if (parentOn(def, settings, schema)) return true;
+  if (forcedOn(def, settings, schema)) return true;
   const value = settings[def.id];
   if (def.kind.type !== "toggle") return false;
   return typeof value === "boolean" ? value : def.kind.default;
@@ -89,21 +89,48 @@ export function setToggles(
       .filter(
         (d) =>
           d.kind.type === "toggle" &&
-          !parentOn(d, settings, schema) &&
+          !forcedOn(d, settings, schema) &&
           isOn(d, settings, schema) !== on,
       )
       .map((d) => [d.id, on]),
   );
 }
 
-/** Whether a setting is forced on by its parent. */
-export function parentOn(
+/** The setting forcing `def` on, if one is: its parent while that's on,
+ * or a choice whose pick forces it. */
+export function forcer(
   def: SettingDef,
   settings: Settings,
   schema: SettingDef[],
-): boolean {
+): SettingDef | undefined {
   const parent = schema.find((d) => d.id === def.parent);
-  return parent !== undefined && isOn(parent, settings, schema);
+  if (parent !== undefined && isOn(parent, settings, schema)) return parent;
+  return schema.find((d) => chosen(d, settings)?.forces.includes(def.id));
+}
+
+/** Whether a setting is forced on, by its parent or a choice's pick. */
+export const forcedOn = (
+  def: SettingDef,
+  settings: Settings,
+  schema: SettingDef[],
+) => forcer(def, settings, schema) !== undefined;
+
+/** The choices whose picks give start inventory words, each with them. */
+export const startForcers = (schema: SettingDef[], settings: Settings) =>
+  schema.flatMap((def) => {
+    const words = chosen(def, settings)?.starts ?? [];
+    return words.length > 0 ? [{ def, words }] : [];
+  });
+
+/** `start` holding each of `words` at least once. */
+export function withForced(
+  start: StartInventory,
+  words: string[],
+): StartInventory {
+  return Object.fromEntries([
+    ...words.map((w) => [w, 1] as const),
+    ...Object.entries(start),
+  ]);
 }
 
 /** A setting that's on, in a summary's words: a toggle's label, or a
@@ -138,7 +165,7 @@ function chipOf(
     const n = held(def, settings);
     return n > 0 ? { id, label, value: count(n, "item") } : null;
   }
-  return isOn(def, settings, schema) && !parentOn(def, settings, schema)
+  return isOn(def, settings, schema) && !forcedOn(def, settings, schema)
     ? { id, label }
     : null;
 }
@@ -185,7 +212,7 @@ export function markedChips(
     if (base === null) return now ? [now] : [];
     const then = chipOf(d, base, schema);
     if (now === null) {
-      return then && !parentOn(d, settings, schema)
+      return then && !forcedOn(d, settings, schema)
         ? [{ ...then, mark: "gone" }]
         : [];
     }
@@ -224,7 +251,7 @@ export function settingsChanges(
   after: Settings,
 ): Change[] {
   return schema.flatMap((def) => {
-    if (parentOn(def, before, schema) !== parentOn(def, after, schema)) {
+    if (forcedOn(def, before, schema) !== forcedOn(def, after, schema)) {
       return [];
     }
     const [a = "", b = ""] = [before, after].map((s) => shown(def, s, schema));

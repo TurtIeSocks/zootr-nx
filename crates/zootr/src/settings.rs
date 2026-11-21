@@ -11,7 +11,7 @@ use serde_json::Value;
 use crate::cutscenes::{AREAS, Skips};
 use crate::entrances::Doors;
 use crate::keys;
-use crate::presets::{self, ADULT_DEKU_TREE, CARPENTERS_FAST, CARPENTERS_FREED, PRESETS};
+use crate::presets::{self, CARPENTERS_FAST, CARPENTERS_FREED, PRESETS};
 use crate::starting;
 
 mod choices;
@@ -19,7 +19,7 @@ mod new_game;
 mod upgrade;
 pub use choices::{
     ChestSize, DungeonEntrances, DungeonKeys, FortressKeys, IceTraps, Keys, Logic, ScrubPrice,
-    ShopSlots,
+    ShopSlots, StartingAge,
 };
 pub use new_game::NewGame;
 pub(crate) use new_game::{toggles, toggles_on};
@@ -93,6 +93,10 @@ pub enum Kind {
 pub struct Choice {
     pub id: String,
     pub label: &'static str,
+    /// Toggles this pick turns on, shown locked.
+    pub forces: Vec<&'static str>,
+    /// Start inventory words this pick gives, shown held.
+    pub starts: Vec<&'static str>,
 }
 
 /// The id a choice is saved as, its clap name.
@@ -115,6 +119,8 @@ fn choice<T: ValueEnum + Copy + Default>(
         .map(|&v| Choice {
             id: choice_id(v),
             label: labels(v),
+            forces: Vec::new(),
+            starts: Vec::new(),
         })
         .collect();
     SettingDef {
@@ -124,6 +130,56 @@ fn choice<T: ValueEnum + Copy + Default>(
         },
         ..toggle(id, group, label, description)
     }
+}
+
+/// `def`, a choice of `T`, with what each pick `forces` on.
+fn forcing<T: ValueEnum>(mut def: SettingDef, forces: fn(T) -> choices::Forces) -> SettingDef {
+    if let Kind::Choice { options, .. } = &mut def.kind {
+        for o in options {
+            let (toggles, starts) = forces(T::from_str(&o.id, false).expect("its own id"));
+            o.forces = toggles.to_vec();
+            o.starts = starts.to_vec();
+        }
+    }
+    def
+}
+
+/// What the picks in `settings` force on: toggle ids, then start words.
+pub(crate) fn forced(
+    schema: &[SettingDef],
+    settings: &Settings,
+) -> (Vec<&'static str>, Vec<&'static str>) {
+    let picks = schema.iter().filter_map(|d| match &d.kind {
+        Kind::Choice { default, options } => {
+            let id = settings
+                .get(&d.id)
+                .and_then(Value::as_str)
+                .unwrap_or(default);
+            options
+                .iter()
+                .find(|o| o.id == id)
+                .or_else(|| options.iter().find(|o| &o.id == default))
+        }
+        _ => None,
+    });
+    let (mut toggles, mut starts) = (Vec::new(), Vec::new());
+    for pick in picks {
+        toggles.extend(&pick.forces);
+        starts.extend(&pick.starts);
+    }
+    (toggles, starts)
+}
+
+/// `settings` with a random starting age rolled from `seed`, and whether
+/// it was.
+pub fn roll_age(settings: &Settings, seed: u64) -> (Settings, bool) {
+    let age = chosen::<StartingAge>(settings, STARTING_AGE);
+    let mut rolled = settings.clone();
+    if age == StartingAge::Random {
+        let id = choice_id(age.resolve(seed));
+        rolled.insert(STARTING_AGE.into(), Value::String(id));
+    }
+    (rolled, age == StartingAge::Random)
 }
 
 /// A choice's value, or its default when unset or unknown.
@@ -153,6 +209,7 @@ pub(crate) const AGELESS_WEAPONS: &str = "ageless-weapons";
 const QUIET_NAVI: &str = "quiet-navi";
 pub(crate) const QUIET_ENEMIES: &str = "quiet-enemies";
 pub(crate) const OPEN_DOOR: &str = "open-door-of-time";
+pub(crate) const STARTING_AGE: &str = "starting-age";
 pub(crate) const SCRUBS: &str = "scrubs";
 const SCRUB_PRICE: &str = "scrub-price";
 pub(crate) const NPC_GIFTS: &str = "npc-gifts";
@@ -342,6 +399,16 @@ pub fn schema() -> Vec<SettingDef> {
             "Chests",
             "Each chest is a check. Off, a chest holds what it always does and the other checks shuffle among themselves, though a starting item's chest holds a Blue Rupee",
         ))])
+        .chain([forcing(
+            choice(
+                STARTING_AGE,
+                group::LOGIC,
+                "Starting age",
+                "How old Link is on a new file. Adult wakes in the Temple of Time with the Master Sword, and opens the Door of Time and the forest, so he can go back to child and walk out. Random rolls one from the seed",
+                StartingAge::label,
+            ),
+            StartingAge::forces,
+        )])
         .chain([default_on(toggle(
                 OPEN_DOOR,
                 group::LOGIC,
@@ -405,12 +472,15 @@ pub fn schema() -> Vec<SettingDef> {
             "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks. Can't be used with Carpenters freed, since its thieves are already beaten",
             FortressKeys::label,
         )])
-        .chain([choice(
-            DUNGEON_ENTRANCES,
-            group::DUNGEONS,
-            "Dungeon entrances",
-            "Each dungeon's front door leads into another dungeon, and its way out leads back to that door. On swaps the eleven dungeons. With Ganon's Castle, its door joins them, and Ganondorf waits wherever it leads. A door keeps what it needs to open, whatever is behind it. The Deku Tree lets adult Link in, and blue warps lead where they always do at Link's own age",
-            DungeonEntrances::label,
+        .chain([forcing(
+            choice(
+                DUNGEON_ENTRANCES,
+                group::DUNGEONS,
+                "Dungeon entrances",
+                "Each dungeon's front door leads into another dungeon, and its way out leads back to that door. On swaps the eleven dungeons. With Ganon's Castle, its door joins them, and Ganondorf waits wherever it leads. A door keeps what it needs to open, whatever is behind it. The Deku Tree lets adult Link in, and blue warps lead where they always do at Link's own age",
+                DungeonEntrances::label,
+            ),
+            DungeonEntrances::forces,
         )])
         .chain([toggle(
             SHOPS,

@@ -1,6 +1,6 @@
 import type { Choice, SettingDef } from "@/bindings";
 import type { Settings } from "@/lib/config";
-import { parentOn } from "@/lib/settings";
+import { forcer } from "@/lib/settings";
 import { useConfig } from "@/stores/config";
 
 /** How a description of a setting nobody has tested yet starts. */
@@ -12,17 +12,14 @@ export const untested = (description: string): [boolean, string] =>
     ? [true, description.slice(UNTESTED.length)]
     : [false, description];
 
-/** The parent forcing a setting on, if one is. */
+/** The setting forcing `def` on, if one is. */
 export const lockedBy = (
   def: SettingDef,
   schema: SettingDef[],
   settings: Settings,
-) =>
-  parentOn(def, settings, schema)
-    ? schema.find((d) => d.id === def.parent)
-    : undefined;
+) => forcer(def, settings, schema);
 
-/** The parent forcing `def` on, if one is, kept up to date. */
+/** The setting forcing `def` on, if one is, kept up to date. */
 export const useLockedBy = (def: SettingDef) =>
   useConfig((s) => lockedBy(def, s.schema, s.config.settings));
 

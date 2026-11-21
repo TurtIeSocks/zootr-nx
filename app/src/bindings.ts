@@ -270,6 +270,10 @@ export type ChecksState = {
 export type Choice = {
 	id: string,
 	label: string,
+	/**  Toggles this pick turns on, shown locked. */
+	forces: string[],
+	/**  Start inventory words this pick gives, shown held. */
+	starts: string[],
 };
 
 export type Config = {

@@ -2,6 +2,7 @@
 //! settings by id.
 
 use super::*;
+use crate::world::Era;
 
 /// How a new save starts: GameData default edits, the cutscenes skipped,
 /// the chests and the starting items.
@@ -60,6 +61,10 @@ pub struct NewGame {
     pub doors: Doors,
     /// The seed, for what's rolled while writing, like shop prices.
     pub seed: u64,
+    /// Link's age on a new file, random already rolled.
+    pub age: Era,
+    /// Whether `age` was rolled.
+    pub random_age: bool,
     /// Bombchus have their own cap instead of the bomb bag's.
     pub free_bombchus: bool,
     /// Navi never talks on her own.
@@ -108,9 +113,7 @@ impl NewGame {
     pub fn from_settings(settings: &Settings, edits: &[String]) -> Result<Self> {
         let schema = schema();
         let dungeon_entrances = chosen::<DungeonEntrances>(settings, DUNGEON_ENTRANCES);
-        // Any door can lead adult Link to the Deku Tree, so its debris goes.
-        let forced = (dungeon_entrances != DungeonEntrances::Off).then_some(ADULT_DEKU_TREE);
-        let on = |id: &str| is_on(&schema, settings, id) || forced == Some(id);
+        let on = |id: &str| is_on(&schema, settings, id);
         let picked: Vec<String> = PRESETS
             .iter()
             .filter(|p| on(p.name))
@@ -135,7 +138,12 @@ impl NewGame {
                 "{CARPENTERS_FAST} can't start with {CARPENTERS_FREED}: both count the carpenters"
             );
         }
-        let start = starting::Start::from_settings(settings)?;
+        let mut start = starting::Start::from_settings(settings)?;
+        for word in super::forced(&schema, settings).1 {
+            if !start.holds(word) {
+                start.add(word, 1)?;
+            }
+        }
         let edits = [
             keys::defaults(
                 keys == DungeonKeys::Start,
@@ -187,6 +195,11 @@ impl NewGame {
                 false => 0,
             },
             seed: 0,
+            age: match chosen::<StartingAge>(settings, STARTING_AGE) {
+                StartingAge::Adult => Era::Adult,
+                StartingAge::Child | StartingAge::Random => Era::Child,
+            },
+            random_age: false,
             free_bombchus: on(FREE_BOMBCHUS),
             quiet_navi: on(QUIET_NAVI),
             quiet_enemies: on(QUIET_ENEMIES),
@@ -195,9 +208,7 @@ impl NewGame {
             bridge_medallions: on(BRIDGE_MEDALLIONS),
             hints: on(HINTS),
             logic: chosen(settings, LOGIC),
-            on: (toggles_on(settings).into_iter())
-                .chain(forced.map(String::from))
-                .collect(),
+            on: toggles_on(settings),
             give: presets::gives(&picked)?,
             progress: presets::progress(&picked)?,
             spawn: None,
@@ -238,6 +249,7 @@ fn is_on(schema: &[SettingDef], settings: &Settings, id: &str) -> bool {
             Kind::Choice { .. } | Kind::Inventory => false,
         };
         own || d.parent.is_some_and(|p| is_on(schema, settings, p))
+            || super::forced(schema, settings).0.contains(&id)
     })
 }
 
@@ -245,6 +257,7 @@ fn is_on(schema: &[SettingDef], settings: &Settings, id: &str) -> bool {
 mod tests {
     use super::*;
     use crate::known::{flag, item};
+    use crate::presets::ADULT_DEKU_TREE;
 
     /// What the default-on presets add, then `edits`.
     fn with_defaults(edits: &[&str]) -> Vec<String> {
@@ -298,6 +311,8 @@ mod tests {
                 door_pins: vec![],
                 doors: Doors::default(),
                 seed: 0,
+                age: Era::Child,
+                random_age: false,
                 free_bombchus: true,
                 quiet_navi: true,
                 quiet_enemies: false,
@@ -409,6 +424,41 @@ mod tests {
         assert_eq!(default, "vanilla");
         let ids: Vec<_> = options.iter().map(|o| o.id.as_str()).collect();
         assert_eq!(ids, ["vanilla", "start", "rings", "singles"]);
+    }
+
+    #[test]
+    fn adult_opens_the_door_and_the_forest_and_holds_the_master_sword() {
+        let adult = Settings::from([(STARTING_AGE.into(), "adult".into())]);
+        let new_game = NewGame::from_settings(&adult, &[]).unwrap();
+        assert_eq!(new_game.age, Era::Adult);
+        assert!(new_game.open_door);
+        let opened = [OPEN_DOOR, presets::OPEN_FOREST];
+        assert!(opened.iter().all(|id| new_game.on.contains(*id)));
+        assert!(new_game.start.holds("master-sword"));
+        let closed = Settings::from([
+            (STARTING_AGE.into(), "adult".into()),
+            (OPEN_DOOR.into(), false.into()),
+        ]);
+        assert!(NewGame::from_settings(&closed, &[]).unwrap().open_door);
+        let child = NewGame::from_settings(&Settings::new(), &[]).unwrap();
+        assert_eq!(child.age, Era::Child);
+        assert!(!child.on.contains(presets::OPEN_FOREST));
+        assert!(!child.start.holds("master-sword"));
+    }
+
+    #[test]
+    fn a_random_age_rolls_the_same_for_a_seed_and_both_turn_up() {
+        let random = Settings::from([(STARTING_AGE.into(), "random".into())]);
+        let age = |seed| {
+            let (settings, rolled) = super::super::roll_age(&random, seed);
+            assert!(rolled);
+            NewGame::from_settings(&settings, &[]).unwrap().age
+        };
+        let ages: BTreeSet<_> = (0..64).map(age).collect();
+        assert_eq!(ages, [Era::Child, Era::Adult].into());
+        assert!((0..16).all(|seed| age(seed) == age(seed)));
+        let (_, rolled) = super::super::roll_age(&Settings::new(), 3);
+        assert!(!rolled);
     }
 
     #[test]

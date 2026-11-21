@@ -14,6 +14,7 @@ use crate::hints::Hint;
 use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::settings::{AGELESS_WEAPONS, ChestSize, DungeonEntrances, NewGame, TRADE_CHAIN};
+use crate::world::Era;
 use crate::{
     ageless, ammo, blue_warps, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe,
     day_skulltulas, dig, door, enemies, entrances, flags, foreign, fortress, gamedata, gerudo,
@@ -46,7 +47,11 @@ pub(super) fn flows(
     // Rauru's gift, the Light Medallion or what was dealt there, comes in
     // the opening with the door open: `gifts::give_all`.
     if new_game.open_door {
-        flags.extend(door::open(romfs, &mut rewrites)?);
+        flags.extend(door::open(
+            romfs,
+            &mut rewrites,
+            new_game.age == Era::Adult,
+        )?);
     }
     let pouch = crate::inventory::Pouch::load(romfs)?;
     let grants = starting::with_gives(new_game.start.grants(&pouch), &new_game.give);
@@ -55,6 +60,9 @@ pub(super) fn flows(
     steps::dev_branch(romfs, &mut rewrites)?;
     if let Some(spawn) = &new_game.spawn {
         spawn::warp(romfs, &mut rewrites, spawn)?;
+    }
+    if new_game.age == Era::Adult {
+        spawn::adult(romfs, &mut rewrites)?;
     }
     if new_game.on.contains(TRADE_CHAIN) {
         trade_chain::deal(romfs, &mut rewrites, drops)?;

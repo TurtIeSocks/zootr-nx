@@ -168,7 +168,9 @@ fn start_forest(
 /// Write the patched graphs, and replay the first adult flow at the end of
 /// the opening, so the game moves the quests itself. Returns the GameData
 /// edits a new game needs. Rauru's gift is `gifts::give_all`'s, Link's Pocket.
-pub fn open(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<Vec<String>> {
+/// An `adult` start grows up right after the opening, so the forest sage's
+/// step comes in the opening too, where it would wait for the first swap.
+pub fn open(romfs: &Romfs, rewrites: &mut Rewrites, adult: bool) -> Result<Vec<String>> {
     let graphs: [(&Name, Edit); 3] = [(DOOR, door), (PEDESTAL, pedestal), (SHEIK, sheik)];
     for (name, patch) in graphs {
         let rel = logic(name);
@@ -181,8 +183,12 @@ pub fn open(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<Vec<String>> {
         e.1 == PROGRESS.get()
             && flows::param(&e.2, field::CHALLENGE_NAME) == Some(SAGE_OF_FOREST.get())
     });
+    let opening = match adult {
+        true => [rest, forest.clone()].concat(),
+        false => rest,
+    };
     flows::edit(romfs, rewrites, starting::OPENING, |flow| {
-        starting::before_save(flow, rest)
+        starting::before_save(flow, opening)
     })?;
     flows::edit(romfs, rewrites, CHILD_TO_ADULT, |flow| {
         start_forest(flow, &sages, forest)
@@ -230,8 +236,15 @@ mod tests {
     #[test]
     fn a_new_game_starts_past_rauru() {
         let Some(romfs) = dev_dump() else { return };
+        for adult in [false, true] {
+            starts_past_rauru(&romfs, adult);
+        }
+    }
+
+    /// The opening's quest steps, with the forest sage's only for `adult`.
+    fn starts_past_rauru(romfs: &Romfs, adult: bool) {
         let mut rewrites = Rewrites::new();
-        open(&romfs, &mut rewrites).unwrap();
+        open(romfs, &mut rewrites, adult).unwrap();
         let flow = ounce_formats::Flowchart::parse(&rewrites[&flows::rel(starting::OPENING)])
             .unwrap()
             .unwrap();
@@ -257,9 +270,10 @@ mod tests {
                 "{quest:?} not in {steps:?}"
             );
         }
-        assert!(
-            !steps.iter().any(|s| s.0 == SAGE_OF_FOREST),
-            "{steps:?} moves the forest sage on"
+        assert_eq!(
+            steps.iter().any(|s| s.0 == SAGE_OF_FOREST),
+            adult,
+            "{steps:?} moves the forest sage on, adult {adult}"
         );
     }
 
@@ -267,7 +281,7 @@ mod tests {
     fn the_swap_to_adult_starts_the_forest_sage_once() {
         let Some(romfs) = dev_dump() else { return };
         let mut rewrites = Rewrites::new();
-        open(&romfs, &mut rewrites).unwrap();
+        open(&romfs, &mut rewrites, false).unwrap();
         let flow = ounce_formats::Flowchart::parse(&rewrites[&flows::rel(CHILD_TO_ADULT)])
             .unwrap()
             .unwrap();

@@ -16,9 +16,10 @@ use crate::per_dump::PerDump;
 
 const EXIT_ACTOR: &Name = field::FIELD_AND_DUNGEON_ENTRANCE_EVENT_REQUEST_ACTOR;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Era {
+    #[default]
     Child,
     Adult,
 }

@@ -156,7 +156,8 @@ pub(super) fn logic(romfs: &Romfs, new_game: &NewGame) -> Result<()> {
     let all = world.play(&fill::everything(&start, pool), &vanilla);
     let (reach, reach_all) = (world.reach(&play.have), world.reach(&all.have));
     let total: HashSet<u64> = world.locations.iter().map(|l| l.hash).collect();
-    println!("start {} {}", logic::START.0, logic::START.1);
+    let (node, age) = logic::start_of(new_game.age);
+    println!("start {node} {age}");
     println!(
         "{:<8} {:>7} {:>10} {:>6}",
         "", "vanilla", "every item", "total"

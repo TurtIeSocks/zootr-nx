@@ -46,7 +46,12 @@ const choice = (id: string, label: string, options: string[]): SettingDef => ({
   kind: {
     type: "choice",
     default: options[0]?.toLowerCase() ?? "",
-    options: options.map((o) => ({ id: o.toLowerCase(), label: o })),
+    options: options.map((o) => ({
+      id: o.toLowerCase(),
+      label: o,
+      forces: [],
+      starts: [],
+    })),
   },
 });
 
