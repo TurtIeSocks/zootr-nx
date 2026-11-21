@@ -771,6 +771,8 @@ export type SettingDef = {
 	requires: string | null,
 	/**  The section of its panel it sits in. */
 	section: string,
+	/**  The line under that section's title: see [`Place::about`]. */
+	section_about: string,
 	/**  Its section is a checklist: see [`Place::list`]. */
 	list: boolean,
 };

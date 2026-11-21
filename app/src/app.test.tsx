@@ -31,6 +31,7 @@ const toggle = (id: string, group: string): SettingDef => ({
   parent: null,
   requires: null,
   section: "Fake section",
+  section_about: "Fake about",
   list: false,
 });
 

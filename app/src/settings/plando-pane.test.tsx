@@ -81,6 +81,7 @@ function show(config: FullConfig) {
       parent: null,
       requires: null,
       section: "Fake section",
+      section_about: "Fake about",
       list: false,
     },
   ]);

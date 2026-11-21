@@ -42,6 +42,7 @@ test("a saved section whose panel is gone opens the first panel", () => {
     parent: null,
     requires: null,
     section: "Fake section",
+    section_about: "Fake about",
     list: false,
   });
   useUi.setPath("section", "Hints");

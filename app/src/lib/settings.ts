@@ -54,6 +54,22 @@ export function isChanged(def: SettingDef, settings: Settings): boolean {
   return typeof value === "boolean" && value !== def.kind.default;
 }
 
+/** A section's count for its header: how many of its toggles are on, or
+ * with none, how many of its settings are off their defaults. */
+export function tally(
+  defs: SettingDef[],
+  settings: Settings,
+  schema: SettingDef[],
+): string {
+  const toggles = defs.filter((d) => d.kind.type === "toggle");
+  if (toggles.length === 0) {
+    const changed = defs.filter((d) => isChanged(d, settings));
+    return `${changed.length} of ${defs.length} changed`;
+  }
+  const on = toggles.filter((d) => isOn(d, settings, schema));
+  return `${on.length} of ${toggles.length} on`;
+}
+
 /** New values by setting id. `undefined` puts a setting back to its
  * default. */
 export type Patch = Record<

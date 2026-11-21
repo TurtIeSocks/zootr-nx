@@ -13,6 +13,7 @@ import {
   isOn,
   type Patch,
   setToggles,
+  tally,
 } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { Checklist } from "@/settings/checklist";
@@ -127,10 +128,16 @@ interface SectionProps extends DefsProps {
   title: string;
 }
 
+/** A section's description and count, kept up to date. */
+const useHeader = (defs: SettingDef[]) => ({
+  description: defs[0]?.section_about,
+  meta: useConfig((s) => tally(defs, s.config.settings, s.schema)),
+});
+
 /** A section's settings, one row each. */
 function Rows({ id, title, defs }: SectionProps) {
   return (
-    <Fold id={id} title={title}>
+    <Fold id={id} title={title} {...useHeader(defs)}>
       <div className={cn("px-1 pb-1", divided)}>
         {defs.map((d) => (
           <SettingRow key={d.id} def={d} />
@@ -141,7 +148,7 @@ function Rows({ id, title, defs }: SectionProps) {
 }
 
 /** A section's toggles as one checklist, whose changes save one at a time.
- * A description every item shares shows once, under the title. */
+ * An item's description that every item shares is left out. */
 function Subgroup(props: SectionProps) {
   return (
     <RequestProvider>
@@ -164,13 +171,14 @@ function SubgroupList({ id, title, defs }: SectionProps) {
   const drifted = useSeeds(
     useShallow((s) => defs.map((d) => s.drift.some((c) => c.def.id === d.id))),
   );
+  const header = useHeader(defs);
   const shared = new Set(defs.map((d) => d.description)).size === 1;
   const parents = [...new Set(locks.flatMap((p) => p ?? []))];
   return (
     <Checklist
       id={id}
       title={title}
-      description={shared ? defs[0]?.description : undefined}
+      {...header}
       note={
         <>
           {parents.map((p) => (

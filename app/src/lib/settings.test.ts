@@ -27,6 +27,7 @@ const toggles = (n: number): SettingDef[] =>
     parent: null,
     requires: null,
     section: "Fake section",
+    section_about: "Fake about",
     list: false,
   }));
 
@@ -53,6 +54,7 @@ test("a parent turns its children on and stands in for them", () => {
     parent,
     requires: null,
     section: "Fake section",
+    section_about: "Fake about",
     list: false,
   });
   const child = off("s1", "s0");
@@ -123,6 +125,7 @@ test("a choice is summed up only off its default", () => {
     parent: null,
     requires: null,
     section: "Fake section",
+    section_about: "Fake about",
     list: false,
   };
   expect(summary([size], {})).toBe("Nothing extra");
@@ -161,6 +164,7 @@ function diffSchema(): SettingDef[] {
     parent,
     requires: null,
     section: "Fake section",
+    section_about: "Fake about",
     list: false,
   });
   const size: SettingDef = {

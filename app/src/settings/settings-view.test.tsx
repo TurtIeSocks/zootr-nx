@@ -39,6 +39,7 @@ const toggle = (
   parent: null,
   requires: null,
   section: "Fake section",
+  section_about: "Fake about",
   list: false,
   ...patch,
 });
@@ -367,6 +368,26 @@ test("Enable all says why when every toggle is already on", () => {
   });
   expect(action("Enable all").getAttribute("aria-disabled")).toBe("true");
   expect(action("Disable all").getAttribute("aria-disabled")).toBeNull();
+});
+
+test("a section of rows heads itself with its description and count", () => {
+  show({ settings: { "open-forest": true } });
+  const head = screen.getByRole("button", { name: /Fake section/ });
+  expect(within(head).getByText("Fake about")).toBeTruthy();
+  // Open forest on, Skip the intro on by default, Menus open off.
+  expect(within(head).getByText("2 of 3 on")).toBeTruthy();
+});
+
+test("a section with no toggles counts what's off its defaults", () => {
+  show({
+    defs: [
+      choice("chest-size", "Chest size", ["Vanilla", "Big"]),
+      choice("age", "Age", ["Child", "Adult", "Random"]),
+    ],
+    settings: { age: "adult" },
+  });
+  const head = screen.getByRole("button", { name: /Fake section/ });
+  expect(within(head).getByText("1 of 2 changed")).toBeTruthy();
 });
 
 test("a page with no toggles has only Reset to defaults", () => {

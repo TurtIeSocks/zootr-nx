@@ -31,6 +31,9 @@ export interface ChecklistProps {
   id: string;
   title: string;
   description?: string;
+  /** The count at the header's trailing edge, kept visible while it's
+   * closed. */
+  meta: string;
   /** Lines under the tools, such as why items are locked. */
   note?: ReactNode;
   items: ChecklistItem[];
@@ -38,12 +41,12 @@ export interface ChecklistProps {
   onChange: (changes: Record<string, boolean>) => void;
 }
 
-/** Many on/off items of one kind in a section of their own. The count
- * keeps the state visible while it's closed. */
+/** Many on/off items of one kind in a section of their own. */
 export function Checklist({
   id,
   title,
   description,
+  meta,
   note,
   items,
   onChange,
@@ -52,12 +55,7 @@ export function Checklist({
   const all = (on: boolean) =>
     onChange(Object.fromEntries(free.map((i) => [i.id, on])));
   return (
-    <Fold
-      id={id}
-      title={title}
-      description={description}
-      meta={`${items.filter((i) => i.on).length} of ${items.length} on`}
-    >
+    <Fold id={id} title={title} description={description} meta={meta}>
       <div className="flex items-center gap-1 pr-4 pb-2 pl-9">
         <Button variant="ghost" size="sm" onClick={() => all(true)}>
           All
