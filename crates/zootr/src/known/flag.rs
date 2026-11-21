@@ -53,6 +53,7 @@ pub const GERUDO_VALLEY: &Name = &n!(0xa8a77c83dbec2e72);
 pub const GET_MAGIC_BEAN_AFTER: &Name = &n!(0x67dff28962ba768c);
 pub const GET_STONE_OF_FIRE_ARRIVE_FROM_KOKIRI: &Name = &n!(0x4ca60f9fb34057f5);
 pub const GET_STONE_OF_WATER_GET_RUTO_LETTER: &Name = &n!(0xfac7543529a401b4);
+pub const GET_STONE_OF_WATER_IS_AFTER_STEP14_EXP: &Name = &n!(0xd1293959926958d8);
 pub const GET_TYPE: &Name = &n!(0x85e21f218449ba2f);
 pub const GHOST_SHOP_COUPON_NUM: &Name = &n!(0x8626a74ca144f41d);
 pub const GIMMICK_DEFEAT_ENEMY_OPEN_DODONGO_CAVE_01: &Name = &n!(0x2a59bffb86e2b97d);

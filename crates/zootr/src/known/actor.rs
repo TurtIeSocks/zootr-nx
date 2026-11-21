@@ -86,6 +86,7 @@ pub const NPC_HYLIA_MALON_CHILD: &Name = &n!(0x39b51ad30daf2215);
 pub const NPC_HYLIA_TALON_ADULT: &Name = &n!(0x70d649be38e43ad8);
 pub const NPC_HYLIA_TALON_ADULT_KAKARIKO: &Name = &n!(0x4dbab69ac848978e);
 pub const NPC_HYLIA_ZELDA_CHILD: &Name = &n!(0x6226d3629e8de2da);
+pub const NPC_JABU_JABU: &Name = &n!(0x36f1240f84f8e4fd);
 pub const NPC_KAEPORA_LAKE_HYLIA: &Name = &n!(0x9ac553a5b3a4a769);
 pub const NPC_KOKIRI_005_CHILD: &Name = &n!(0x526d4b72b3e2087b);
 pub const NPC_KOKIRI_008_CHILD: &Name = &n!(0xfb4b244a1e49073c);
