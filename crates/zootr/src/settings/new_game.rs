@@ -55,6 +55,8 @@ pub struct NewGame {
     pub ice_traps: IceTraps,
     /// Which dungeon doors swap.
     pub dungeon_entrances: DungeonEntrances,
+    /// When Jabu-Jabu waits in the adult fountain.
+    pub adult_jabu: AdultJabu,
     /// Doors pinned by hand for a test, as `DOOR=DUNGEON`.
     pub door_pins: Vec<String>,
     /// Which dungeon is behind each door, rolled with the seed.
@@ -188,6 +190,7 @@ impl NewGame {
             keys,
             fortress_keys,
             dungeon_entrances,
+            adult_jabu: chosen::<AdultJabu>(settings, ADULT_JABU),
             door_pins: vec![],
             doors: Doors::default(),
             shop_slots: match on(SHOPS) {
@@ -308,6 +311,7 @@ mod tests {
                 fortress_keys: FortressKeys::Vanilla,
                 ice_traps: IceTraps::Off,
                 dungeon_entrances: DungeonEntrances::Off,
+                adult_jabu: AdultJabu::Off,
                 door_pins: vec![],
                 doors: Doors::default(),
                 seed: 0,

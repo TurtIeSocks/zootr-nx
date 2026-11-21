@@ -7,9 +7,9 @@ use anyhow::{Context, Result, bail, ensure};
 
 use super::{Edge, Scan, eras_of};
 use crate::entrances::{self, DUNGEONS, Role};
-use crate::keys;
 use crate::rules::{Book, Ctx, Need};
 use crate::world::{self, Era};
+use crate::{adult_jabu, keys};
 
 /// Every exit's edge, for `ctx`'s seed. `at` finds a place's index.
 pub(super) fn edges(
@@ -39,16 +39,21 @@ pub(super) fn edges(
             Role::Into(_) => None,
         })
         .collect();
-    for e in exits.iter() {
+    let adult_jabu = adult_jabu::door();
+    for e in exits.iter().chain([&adult_jabu]) {
         // A moved door leads into the dungeon behind it, and that
         // dungeon's front exit back out of it. Each keeps the rule of
         // the vanilla exit it stands in, and a door adds what the dungeon
         // behind it needs inside, which its own door's rule had covered.
+        let into = |dungeon: usize| -> Result<_> {
+            let node = &**DUNGEONS[dungeon].node;
+            Ok((node, Some(book.inside(node, ctx)?)))
+        };
         let (to, inside) = match (&ctx.doors, role(e)) {
-            (Some(doors), Some(Role::Into(door))) => {
-                let node = &**DUNGEONS[doors.behind(door)].node;
-                (node, Some(book.inside(node, ctx)?))
-            }
+            (Some(doors), Some(Role::Into(door))) => into(doors.behind(door))?,
+            // No rule of the adult fountain's copied door ever covered
+            // Jabu's inside, so it adds it with doors in place too.
+            (None, Some(Role::Into(door))) if std::ptr::eq(e, &adult_jabu) => into(door)?,
             (Some(doors), Some(Role::OutOf(dungeon))) => {
                 match out_to.get(&(doors.door_of(dungeon), e.era)) {
                     Some(to) => (*to, None),
@@ -134,8 +139,9 @@ pub(super) mod tests {
     use crate::checks;
     use crate::entrances::Doors;
     use crate::known::{Name, actor, map};
+    use crate::presets::JABU_OPEN;
     use crate::rules::{Ctx, Have};
-    use crate::settings::DungeonEntrances;
+    use crate::settings::{AdultJabu, DungeonEntrances, NewGame, OPEN_DOOR};
     use crate::world::Era;
 
     /// A world whose dungeon doors shuffle, with `doors` rolled.
@@ -191,28 +197,64 @@ pub(super) mod tests {
         assert!(!needs(&moved, adult_deku, crater).is_empty());
     }
 
+    /// Whether logic beats the seed `new_game` with every item the checks
+    /// hold, as fill gets them: the rewards stay with their bosses.
+    fn beaten(romfs: &Romfs, new_game: &NewGame) -> bool {
+        let checks = checks::dealt(romfs, new_game).unwrap();
+        let book = crate::rules::Book::load().unwrap();
+        let world = World::build(romfs, &book, &Ctx::new(new_game), &checks).unwrap();
+        let pool = checks.iter().map(|c| c.item.as_str());
+        let all = crate::fill::everything(&crate::fill::start(new_game), pool);
+        world.beaten(&world.play(&all, &HashMap::new()).have)
+    }
+
+    /// Doors shuffled as `doors`, Jabu-Jabu's mouth and the Door of Time
+    /// open (so the Zora's Sapphire inside Jabu never holds adult back), and
+    /// `adult_jabu`.
+    fn jabu_seed(doors: Doors, adult_jabu: AdultJabu) -> NewGame {
+        NewGame {
+            dungeon_entrances: DungeonEntrances::On,
+            doors,
+            adult_jabu,
+            on: [JABU_OPEN, OPEN_DOOR].map(String::from).into(),
+            ..Default::default()
+        }
+    }
+
     #[test]
-    fn the_water_temple_behind_jabu_jabus_door_cant_be_beaten() {
+    fn the_water_temple_behind_jabu_jabus_door_needs_adult_jabu_jabu() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let beaten = |doors: Doors| {
-            let new_game = crate::settings::NewGame {
-                dungeon_entrances: DungeonEntrances::On,
-                doors,
-                ..Default::default()
-            };
-            let checks = checks::dealt(&romfs, &new_game).unwrap();
-            let book = crate::rules::Book::load().unwrap();
-            let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
-            // Every item the checks hold, as fill gets them: the rewards
-            // stay with their bosses.
-            let pool = checks.iter().map(|c| c.item.as_str());
-            let all = crate::fill::everything(&crate::fill::start(&new_game), pool);
-            world.beaten(&world.play(&all, &HashMap::new()).have)
+        // Jabu-Jabu stays child Link's, behind Dodongo's Cavern's door, so
+        // his Barinade still gives the Song of Time its third stone.
+        let water = || Doors::cycled(&["jabu-jabu", "water-temple", "dodongos-cavern"]);
+        assert!(beaten(&romfs, &jabu_seed(Doors::default(), AdultJabu::Off)));
+        assert!(!beaten(&romfs, &jabu_seed(water(), AdultJabu::Off)));
+        assert!(beaten(&romfs, &jabu_seed(water(), AdultJabu::Always)));
+        // Morpha waits in the Water Temple, behind the door he'd open.
+        assert!(!beaten(&romfs, &jabu_seed(water(), AdultJabu::AfterMorpha)));
+    }
+
+    #[test]
+    fn adult_jabu_jabu_keeps_jabus_own_checks_childs() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
         };
-        assert!(beaten(Doors::default()));
-        assert!(!beaten(Doors::swapped("jabu-jabu", "water-temple")));
+        let new_game = NewGame {
+            dungeon_entrances: DungeonEntrances::Off,
+            ..jabu_seed(Doors::default(), AdultJabu::Always)
+        };
+        let checks = checks::dealt(&romfs, &new_game).unwrap();
+        let book = crate::rules::Book::load().unwrap();
+        let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
+        let fountain = (map::ZORA_FOUNTAIN_ADULT, Era::Adult);
+        let jabu = (map::INSIDE_JABU_JABU_BELLY, Era::Adult);
+        let [door] = &needs(&world, fountain, jabu)[..] else {
+            panic!("one adult door into Jabu-Jabu");
+        };
+        // Its tentacles take child Link's Boomerang.
+        assert!(door.contains("child"), "{door}");
     }
 
     #[test]

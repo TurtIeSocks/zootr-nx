@@ -248,8 +248,18 @@ impl Doors {
     /// Dungeons `a` and `b` swapped, and nothing else.
     #[cfg(test)]
     pub(crate) fn swapped(a: &str, b: &str) -> Self {
+        Self::cycled(&[a, b])
+    }
+
+    /// Each of `dungeons`' doors leading into the next one's dungeon, the
+    /// last into the first's, and nothing else.
+    #[cfg(test)]
+    pub(crate) fn cycled(dungeons: &[&str]) -> Self {
         let mut doors = Self::default();
-        doors.0.swap(index(a).unwrap(), index(b).unwrap());
+        let ring: Vec<usize> = dungeons.iter().map(|d| index(d).unwrap()).collect();
+        for (i, &door) in ring.iter().enumerate() {
+            doors.0[door] = ring[(i + 1) % ring.len()];
+        }
         doors
     }
 }

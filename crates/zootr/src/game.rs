@@ -36,16 +36,17 @@ pub fn files() -> impl Iterator<Item = &'static str> {
 }
 
 /// What zootr reads, under the romfs root, besides [`files`].
-pub const SUBTREES: [&str; 9] = [
-    "Banc",            // actor placement: chests, pots, freestanding items
-    "GameData",        // save flag table
-    "Pack",            // actor packs and the zstd dictionaries
-    "System/Resource", // RESTBL
-    "Mals",            // message text
-    "Event/EventFlow", // cutscenes and NPC gifts
-    "Logic",           // logic graphs: what makes a chest appear or unlock
-    "RSDB",            // per-actor tables, for the actors shopsanity adds
-    "Sequence",        // menu graphs: the flags a menu reads, like the tapestry's
+pub const SUBTREES: [&str; 10] = [
+    "Banc",                     // actor placement: chests, pots, freestanding items
+    "GameData",                 // save flag table
+    "Pack",                     // actor packs and the zstd dictionaries
+    "System/Resource",          // RESTBL
+    "Mals",                     // message text
+    "Event/EventFlow",          // cutscenes and NPC gifts
+    "Logic",                    // logic graphs: what makes a chest appear or unlock
+    "RSDB",                     // per-actor tables, for the actors shopsanity adds
+    "Sequence",                 // menu graphs: the flags a menu reads, like the tapestry's
+    crate::adult_jabu::FOLIAGE, // the fountain's moss and plants, stripped under adult Jabu
 ];
 
 /// Overrides where extracted dumps are cached.

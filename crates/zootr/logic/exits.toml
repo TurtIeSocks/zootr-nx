@@ -225,6 +225,13 @@ from = "zora-fountain-child"
 to = "jabu-jabu"
 needs = "setting:jabu-open or bottle"
 
+# The Adult Jabu-Jabu setting copies him into the frozen fountain. Whether
+# a fish opens his mouth for adult isn't tested, so only the preset counts.
+[[exit]]
+from = "zora-fountain-adult"
+to = "jabu-jabu"
+needs = "adult-jabu-jabu and setting:jabu-open"
+
 [[exit]]
 from = "hyrule-field-child"
 to = "water-temple"

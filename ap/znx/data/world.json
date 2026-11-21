@@ -10790,7 +10790,7 @@
     {
       "at": [
         {
-          "place": "place-242a1105-adult",
+          "place": "zora-fountain-adult",
           "rule": {
             "all": [
               {
@@ -21738,7 +21738,7 @@
     {
       "from": "ice-cavern-adult",
       "rule": true,
-      "to": "place-242a1105-adult"
+      "to": "zora-fountain-adult"
     },
     {
       "from": "inside-ganons-castle-adult",
@@ -22321,31 +22321,6 @@
       "to": "anywhere-adult"
     },
     {
-      "from": "place-242a1105-adult",
-      "rule": true,
-      "to": "anywhere-adult"
-    },
-    {
-      "from": "place-242a1105-adult",
-      "rule": true,
-      "to": "ice-cavern-adult"
-    },
-    {
-      "from": "place-242a1105-adult",
-      "rule": true,
-      "to": "zora-domain-adult"
-    },
-    {
-      "from": "place-242a1105-adult",
-      "rule": {
-        "count": 1,
-        "items": [
-          "Beat Morpha"
-        ]
-      },
-      "to": "zora-domain-adult-alternative-adult"
-    },
-    {
       "from": "place-b13887e8-child",
       "rule": true,
       "to": "anywhere-child"
@@ -22749,7 +22724,7 @@
     {
       "from": "zora-domain-adult",
       "rule": true,
-      "to": "place-242a1105-adult"
+      "to": "zora-fountain-adult"
     },
     {
       "from": "zora-domain-adult",
@@ -22774,7 +22749,7 @@
     {
       "from": "zora-domain-adult-alternative-adult",
       "rule": true,
-      "to": "place-242a1105-adult"
+      "to": "zora-fountain-adult"
     },
     {
       "from": "zora-domain-adult-alternative-adult",
@@ -22810,6 +22785,31 @@
       "from": "zora-domain-child",
       "rule": true,
       "to": "zora-river-child"
+    },
+    {
+      "from": "zora-fountain-adult",
+      "rule": true,
+      "to": "anywhere-adult"
+    },
+    {
+      "from": "zora-fountain-adult",
+      "rule": true,
+      "to": "ice-cavern-adult"
+    },
+    {
+      "from": "zora-fountain-adult",
+      "rule": true,
+      "to": "zora-domain-adult"
+    },
+    {
+      "from": "zora-fountain-adult",
+      "rule": {
+        "count": 1,
+        "items": [
+          "Beat Morpha"
+        ]
+      },
+      "to": "zora-domain-adult-alternative-adult"
     },
     {
       "from": "zora-fountain-child",
@@ -23038,7 +23038,7 @@
     "zora-domain-adult",
     "zora-domain-adult-alternative-adult",
     "zora-domain-child",
-    "place-242a1105-adult",
+    "zora-fountain-adult",
     "zora-fountain-child",
     "zora-river-adult",
     "zora-river-child",

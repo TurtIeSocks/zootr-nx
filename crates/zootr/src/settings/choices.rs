@@ -229,6 +229,28 @@ impl IceTraps {
     }
 }
 
+/// When Jabu-Jabu waits in the adult fountain.
+#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
+pub enum AdultJabu {
+    /// Never: the adult fountain has no Jabu
+    #[default]
+    Off,
+    /// From the start
+    Always,
+    /// Once the Water sage is done, after Morpha
+    AfterMorpha,
+}
+
+impl AdultJabu {
+    pub(super) fn label(self) -> &'static str {
+        match self {
+            Self::Off => "Off",
+            Self::Always => "Always",
+            Self::AfterMorpha => "After Morpha",
+        }
+    }
+}
+
 /// Which dungeon doors lead to another dungeon.
 #[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
 pub enum DungeonEntrances {

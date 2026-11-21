@@ -217,10 +217,11 @@ pub(super) fn doors(
         beaten += u32::from(crate::fill::beatable(&world, &checks, &deal, &start));
     }
     let odds = f64::from(beaten) / f64::from(rolls);
+    let tries = crate::generate::DOOR_TRIES;
     println!(
-        "{beaten}/{rolls} layouts beatable ({:.1}%), so a hundred tries all fail for {:.3}% of seeds",
+        "{beaten}/{rolls} layouts beatable ({:.1}%), so a seed's {tries} tries all fail for {:.1e} of seeds",
         odds * 100.0,
-        (1.0 - odds).powi(100) * 100.0
+        (1.0 - odds).powi(tries as i32)
     );
     Ok(())
 }

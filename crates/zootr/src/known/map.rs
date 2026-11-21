@@ -70,5 +70,6 @@ pub const ZORA_DOMAIN_ADULT_ALTERNATIVE: &Name = &n!(0x0ff368836010dd74);
 pub const ZORA_DOMAIN_CHILD: &Name = &n!(0x85f93a95fa34d18a);
 pub const ZORA_FOUNTAIN_ADULT: &Name = &n!(0x242a11053b08a668);
 pub const ZORA_FOUNTAIN_CHILD: &Name = &n!(0xe43d8b79f10300ae);
+pub const ZORA_FOUNTAIN_CHILD_PREFAB_41C4: &Name = &n!(0x98fc693e2a6c28f2);
 pub const ZORA_RIVER_ADULT: &Name = &n!(0x1aabcbde46dd7294);
 pub const ZORA_RIVER_CHILD: &Name = &n!(0x17e087d328e4027a);

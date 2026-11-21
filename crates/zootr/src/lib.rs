@@ -11,6 +11,7 @@ macro_rules! needs_names {
     };
 }
 
+mod adult_jabu;
 mod ageless;
 mod ammo;
 pub mod ap;
@@ -38,6 +39,7 @@ mod events;
 mod fill;
 mod flags;
 mod flows;
+mod foliage;
 mod foreign;
 mod fortress;
 pub mod game;
@@ -56,6 +58,8 @@ mod ice_traps;
 mod icons;
 pub mod inventory;
 pub mod items;
+mod jabu_mood;
+mod jabu_mouth;
 pub mod kept;
 mod key_rooms;
 mod key_tints;

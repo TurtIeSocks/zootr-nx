@@ -9,6 +9,7 @@ mod install;
 pub mod plando;
 mod report;
 mod seed;
+pub(crate) use seed::DOOR_TRIES;
 mod write;
 
 #[cfg(test)]

@@ -400,6 +400,7 @@ impl World {
             open: ctx.open.iter().filter(|o| *o != TRIALS).cloned().collect(),
             doors: ctx.doors.clone(),
             age: ctx.age,
+            adult_jabu: ctx.adult_jabu,
         };
         let mut goal = Vec::new();
         for rule in book.exits.iter().filter(|r| r.to == GOAL) {
