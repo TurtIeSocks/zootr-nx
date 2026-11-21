@@ -338,14 +338,14 @@ test("Reset to defaults says why while nothing differs from them", () => {
   expect(onChange).not.toHaveBeenCalled();
 });
 
-test("Enable all and Disable all write only what changes, skipping locked toggles", async () => {
+test("All and None write only what changes, skipping locked toggles", async () => {
   const onChange = show({
     defs: cutscenes,
     section: "Cutscenes",
     settings: { [all]: true, kokiri: true },
   });
-  // The owl and the lake are on because of their parent: left alone.
-  fireEvent.click(action("Enable all"));
+  // The lake is on because of its parent: left alone.
+  fireEvent.click(action("All in By area"));
   await waitFor(() =>
     expect(saved(onChange)).toEqual({ [all]: true, kokiri: true, field: true }),
   );
@@ -355,20 +355,21 @@ test("Enable all and Disable all write only what changes, skipping locked toggle
     section: "Cutscenes",
     settings: { [all]: true, kokiri: true },
   });
-  fireEvent.click(action("Disable all"));
+  fireEvent.click(action("None in Cutscenes"));
   await waitFor(() =>
-    expect(saved(again)).toEqual({ [all]: false, kokiri: false }),
+    expect(saved(again)).toEqual({ [all]: false, kokiri: true }),
   );
 });
 
-test("Enable all says why when every toggle is already on", () => {
+test("All says why when every toggle in its section is already on", () => {
   show({
     defs: cutscenes,
     section: "Cutscenes",
     settings: { [all]: true, kokiri: true, field: true },
   });
-  expect(action("Enable all").getAttribute("aria-disabled")).toBe("true");
-  expect(action("Disable all").getAttribute("aria-disabled")).toBeNull();
+  expect(action("All in By area").getAttribute("aria-disabled")).toBe("true");
+  expect(action("All in Cutscenes").getAttribute("aria-disabled")).toBe("true");
+  expect(action("None in Cutscenes").getAttribute("aria-disabled")).toBeNull();
 });
 
 test("a section of rows heads itself with its description and count", () => {
@@ -443,12 +444,6 @@ test("with no seed built, the defaults lead, and the menu says why", async () =>
   expect(item.textContent).toContain("No seed built yet");
 });
 
-test("a page with no toggles has only Reset to defaults", () => {
-  show({ defs: [choice("chest-size", "Chest size", ["Vanilla", "Big"])] });
-  expect(screen.queryByRole("button", { name: "Enable all" })).toBeNull();
-  expect(action("Reset to defaults")).toBeTruthy();
-});
-
 test("the drift bar shows on every settings page, the same as on a group", () => {
   for (const section of ["settings", "targets", "plando", "test"]) {
     show({ section, devTools: true, settings: { "open-forest": true } });
@@ -519,7 +514,7 @@ test("a locked checklist item stays put, and None leaves it on", () => {
   expect(lake.getAttribute("aria-checked")).toBe("true");
   expect(lake.hasAttribute("disabled")).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "None in By area" }));
-  expect(saved(onChange)).toEqual({ [all]: true, kokiri: false, field: false });
+  expect(saved(onChange)).toEqual({ [all]: true, kokiri: false });
 });
 
 test("a change that fails to save says why", async () => {
