@@ -25,6 +25,7 @@ import { useGroupDrifted, useSeeds } from "@/stores/seeds";
 import { openDev, openSettings } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
 import { useUpdate } from "@/stores/update";
+import { CheckButton } from "@/update/check-button";
 import { UpdateAlert } from "@/update/update-alert";
 
 /** Props for {@link NavItem}. */
@@ -286,6 +287,7 @@ export function Sidebar() {
         <StatusPills />
         <div className="flex items-center gap-1.5">
           <Version />
+          <CheckButton />
           {devTools && <DevButton />}
           <ThemeToggle />
         </div>

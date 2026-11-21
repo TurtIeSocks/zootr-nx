@@ -2,7 +2,8 @@ import { getVersion } from "@tauri-apps/api/app";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { full } from "@/lib/config";
 import { useConfig } from "@/stores/config";
-import { init, stop, useUpdate } from "@/stores/update";
+import { useUi } from "@/stores/ui";
+import { checkNow, init, stop, useUpdate } from "@/stores/update";
 
 vi.mock("@tauri-apps/api/app", () => ({
   getVersion: vi.fn(async () => "0.1.0"),
@@ -76,4 +77,22 @@ test("turning the switch off hides the notice", async () => {
   await init();
   useConfig.setPath("config", full({ no_update_check: true }));
   await vi.waitFor(() => expect(useUpdate.getState().latest).toBeNull());
+});
+
+test("a check you ask for runs with checks off, and shows a skipped release", async () => {
+  useConfig.setPath("config", full({ no_update_check: true }));
+  await init();
+  useUi.setPath("update.skipped", "0.2.0");
+  expect(await checkNow()).toBe("newer");
+  expect(useUpdate.getState().latest?.version).toBe("0.2.0");
+  expect(useUi.getState().update.skipped).toBeNull();
+});
+
+test("a check you ask for says when it's up to date or can't reach GitHub", async () => {
+  await init();
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(release("v0.1.0")));
+  expect(await checkNow()).toBe("current");
+  vi.spyOn(console, "debug").mockImplementation(() => {});
+  vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
+  expect(await checkNow()).toBe("failed");
 });
