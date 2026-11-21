@@ -6,7 +6,6 @@ import {
   MapPin,
   Variable,
 } from "lucide-react";
-import { useEffect } from "react";
 import { useDev } from "@/stores/dev";
 import { type DevTab, useUi } from "@/stores/ui";
 
@@ -30,15 +29,5 @@ export function openTab(tab: DevTab) {
   useDev.setPath("browsing", true);
 }
 
-/** Opens Find anything on ⌘K, anywhere in the window. */
-export function usePaletteKey() {
-  useEffect(() => {
-    const key = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "k") return;
-      e.preventDefault();
-      useDev.setPath("palette", true);
-    };
-    window.addEventListener("keydown", key);
-    return () => window.removeEventListener("keydown", key);
-  }, []);
-}
+/** Opens Find anything. */
+export const openPalette = () => useDev.setPath("palette", true);

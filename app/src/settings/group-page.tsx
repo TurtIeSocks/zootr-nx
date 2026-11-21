@@ -11,7 +11,7 @@ import { AllNone, Checklist } from "@/settings/checklist";
 import { Fold } from "@/settings/fold";
 import { ResetButton } from "@/settings/reset-button";
 import { UntestedBadge } from "@/settings/row";
-import { lockedBy, untested } from "@/settings/setting";
+import { controlId, lockedBy, untested } from "@/settings/setting";
 import { LockedBy, SettingRow } from "@/settings/setting-row";
 import { StartInventory } from "@/settings/start-inventory";
 import { PageHeader } from "@/shell/page-header";
@@ -151,6 +151,7 @@ function SubgroupList({ id, title, defs }: SectionProps) {
         const [isUntested, description] = untested(d.description);
         return {
           id: d.id,
+          control: controlId(d),
           label: d.label,
           description: shared ? undefined : description || undefined,
           tags: isUntested && <UntestedBadge />,

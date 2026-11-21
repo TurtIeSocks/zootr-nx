@@ -4,6 +4,8 @@ import {
   Castle,
   FlaskConical,
   Gamepad2,
+  Globe,
+  History,
   Lightbulb,
   ListChecks,
   type LucideIcon,
@@ -20,6 +22,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import type { PlayTab } from "@/stores/ui";
+
 /** The views that aren't settings. */
 export type Tab = "Play" | "Save" | "Checks" | "Items" | "Live" | "Spoiler";
 
@@ -34,6 +38,16 @@ export const TOP_TABS: [Tab, LucideIcon][] = [
   ["Play", Gamepad2],
   ["Save", Save],
 ];
+
+/** The Play page's folders, in order: each one's label and icon. */
+export const PLAY_FOLDERS: Record<
+  PlayTab,
+  { label: string; icon: LucideIcon }
+> = {
+  standard: { label: "Standard", icon: Sparkles },
+  archipelago: { label: "Archipelago", icon: Globe },
+  history: { label: "History", icon: History },
+};
 
 /** The installed seed's views, under Current run. */
 export const RUN_TABS: [Tab, LucideIcon][] = [

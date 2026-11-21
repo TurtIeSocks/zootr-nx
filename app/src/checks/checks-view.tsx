@@ -41,6 +41,7 @@ import {
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
 import { cn } from "@/lib/utils";
+import { rowId } from "@/shell/find/reveal";
 import { Page } from "@/shell/page-header";
 import { mark, useChecks } from "@/stores/checks";
 import { useDevTools } from "@/stores/config";
@@ -199,6 +200,8 @@ function CheckRow({ row }: RowProps) {
   return (
     <RequestProvider>
       <tr
+        id={rowId.check(row.spot.hash)}
+        data-reveal
         className={cn(
           "transition-colors duration-(--duration-fast) hover:bg-surface-hover",
           done && "text-ink-faint",

@@ -1,9 +1,10 @@
 import { type ComponentType, useEffect } from "react";
+import { usePaletteKey } from "@/components/palette/use-palette-key";
 import { Activity } from "@/dev/activity";
 import { ActorsTab, LiveReads } from "@/dev/actors-tab";
 import { GiveTab } from "@/dev/give-tab";
 import { Header } from "@/dev/header";
-import { PANEL, tabId, usePaletteKey } from "@/dev/nav";
+import { openPalette, PANEL, tabId } from "@/dev/nav";
 import { NotRunning } from "@/dev/not-running";
 import { Palette } from "@/dev/palette";
 import { Tabs } from "@/dev/tabs";
@@ -29,7 +30,7 @@ export function DevWindow() {
   useEffect(() => {
     void init();
   }, []);
-  usePaletteKey();
+  usePaletteKey(openPalette);
 
   return (
     <div className="relative flex h-full flex-col bg-canvas text-ink">

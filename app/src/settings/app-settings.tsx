@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { FullConfig } from "@/lib/config";
 import { useRequestState } from "@/lib/request";
+import { APP_FIELDS, type AppField } from "@/settings/app-fields";
 import { GameDump } from "@/settings/game-dump";
 import { Row } from "@/settings/row";
 import { SettingsSection } from "@/settings/settings-section";
@@ -43,9 +44,7 @@ function GameAssets() {
   return (
     <SettingsSection>
       <Row
-        id="game-assets"
-        label="Icons from the game dump"
-        description="Draws the item tracker's icons from your own copy of the game instead of zootr-nx's. zootr-nx doesn't include any of the game's art: the icons are read from your game dump, on this computer"
+        {...APP_FIELDS.gameAssets}
         under={<InlineError error={save.error} />}
       >
         <Tooltip open={dump ? false : undefined}>
@@ -53,7 +52,7 @@ function GameAssets() {
             {/* A disabled switch takes no hover, so its wrapper says why. */}
             <span tabIndex={dump ? undefined : 0}>
               <Switch
-                id="game-assets"
+                id={APP_FIELDS.gameAssets.id}
                 checked={checked}
                 disabled={!dump || save.busy}
                 onCheckedChange={(on) =>
@@ -71,33 +70,20 @@ function GameAssets() {
 
 /** Props for {@link SwitchRow}. */
 interface SwitchRowProps {
-  id: string;
-  label: string;
-  description: string;
+  field: AppField;
   checked: boolean;
   /** The config change turning it `on` or off saves. */
   change: (on: boolean) => Partial<FullConfig>;
 }
 
 /** A row whose switch saves one app setting, saying why if it can't. */
-function SwitchRow({
-  id,
-  label,
-  description,
-  checked,
-  change,
-}: SwitchRowProps) {
+function SwitchRow({ field, checked, change }: SwitchRowProps) {
   const save = useRequestState();
   return (
     <SettingsSection>
-      <Row
-        id={id}
-        label={label}
-        description={description}
-        under={<InlineError error={save.error} />}
-      >
+      <Row {...field} under={<InlineError error={save.error} />}>
         <Switch
-          id={id}
+          id={field.id}
           checked={checked}
           disabled={save.busy}
           onCheckedChange={(on) => save.run(() => saveConfig(change(on)))}
@@ -112,9 +98,7 @@ function DevTools() {
   const [checked] = useConfig.usePath("config.dev_tools");
   return (
     <SwitchRow
-      id="dev-tools"
-      label="Developer tools"
-      description="Shows the dev panel, Test setup and the targets' fields for scripted play. Off, a hidden setup leaves your seeds alone."
+      field={APP_FIELDS.devTools}
       checked={checked}
       change={(on) => ({ dev_tools: on })}
     />
@@ -126,9 +110,7 @@ function UpdateCheck() {
   const [off] = useConfig.usePath("config.no_update_check");
   return (
     <SwitchRow
-      id="update-check"
-      label="Check for updates"
-      description="Asks GitHub for the latest release at launch and every 6 hours, and the sidebar says when a newer one is out. Off, the app never contacts GitHub."
+      field={APP_FIELDS.updateCheck}
       checked={!off}
       change={(on) => ({ no_update_check: !on })}
     />

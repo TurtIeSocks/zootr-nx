@@ -9,6 +9,8 @@ import { Fold } from "@/settings/fold";
 export interface ChecklistItem {
   /** What the change patch keys it by. */
   id: string;
+  /** The checkbox's id, which the search reveals. */
+  control?: string;
   label: string;
   /** A line under the label. */
   description?: string;
@@ -130,12 +132,14 @@ function Item({ item, onChange }: ItemProps) {
     // Clicking anywhere on the row toggles the checkbox it wraps.
     // biome-ignore lint/a11y/noLabelWithoutControl: the Radix checkbox inside is a button, which a label can wrap
     <label
+      data-reveal
       className={cn(
         "flex min-h-9 items-center gap-3 rounded-sm px-2 py-1.5 text-[13px] leading-[18px] transition-colors duration-(--duration-fast) hover:bg-surface-hover",
         item.locked ? "text-ink-muted" : "cursor-pointer",
       )}
     >
       <Checkbox
+        id={item.control}
         aria-labelledby={name}
         checked={item.on}
         disabled={item.locked}
