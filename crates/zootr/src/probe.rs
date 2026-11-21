@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, ensure};
 use clap::Subcommand;
 use ounce_formats::{
-    ActorPack, Byml, NavMesh, Romfs, Tagfile, files_with_suffix, messages, murmur3,
+    ActorPack, Byml, NavMesh, Romfs, Tagfile, files_with_suffix, messages, murmur3, pack_file,
 };
 use roead::sarc::Sarc;
 
@@ -60,7 +60,13 @@ pub enum Probe {
     /// for the save layout).
     Tables { table: Option<String> },
     /// An actor pack's files, or the files whose names contain `file`.
-    Pack { actor: String, file: Option<String> },
+    Pack {
+        actor: String,
+        file: Option<String>,
+        /// Read the pack a seed wrote into this mod folder instead.
+        #[arg(long)]
+        mod_dir: Option<PathBuf>,
+    },
     /// Each text's murmur3, the way GameData keys its names, then the
     /// `n!(0x…)` that names it in our source (`known::hash`).
     Hash { text: Vec<String> },
@@ -363,7 +369,11 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         } => data(romfs, &key, holders, exps, member),
         Probe::Key { hash } => key(romfs, hash),
         Probe::Tables { table } => crate::gamedata::print_tables(romfs, table.as_deref()),
-        Probe::Pack { actor, file } => pack(romfs, &actor, file.as_deref()),
+        Probe::Pack {
+            actor,
+            file,
+            mod_dir,
+        } => pack(romfs, &actor, file.as_deref(), mod_dir.as_deref()),
         Probe::Hash { text } => {
             text.iter().for_each(|t| {
                 let (data, ours) = (murmur3(t.as_bytes()), crate::known::hash(t));
@@ -594,8 +604,16 @@ fn data(romfs: &Romfs, key: &str, holders: bool, exps: bool, member: bool) -> Re
     Ok(())
 }
 
-fn pack(romfs: &Romfs, actor: &str, file: Option<&str>) -> Result<()> {
-    let pack = ActorPack::load(romfs, actor)?;
+fn pack(romfs: &Romfs, actor: &str, file: Option<&str>, mod_dir: Option<&Path>) -> Result<()> {
+    let pack = match mod_dir {
+        None => ActorPack::load(romfs, actor)?,
+        Some(dir) => {
+            let rel = pack_file(actor);
+            let at = dir.join("romfs").join(&rel);
+            let raw = std::fs::read(&at).with_context(|| format!("reading {}", at.display()))?;
+            ActorPack::from_bytes(actor, romfs.dicts().decompress(&rel, &raw)?)?
+        }
+    };
     for name in pack.files() {
         match file {
             None => println!("{name}"),
