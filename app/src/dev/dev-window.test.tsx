@@ -151,6 +151,8 @@ vi.mock("@/bindings", () => ({
     devTeleport: (p: string) => devTeleport(p),
     devActors: (m: string) => devActors(m),
     devWarp: (a: string, s: string) => devWarp(a, s),
+    devNearby: () => ok([]),
+    devHide: (h: string[]) => ok(h),
     devApply: (n: string) => devApply(n),
     devValue: (n: string) => devValue(n),
     devSet: (n: string, v: string) => devSet(n, v),
@@ -283,7 +285,8 @@ test("without a map the actors tab waits for one", async () => {
   game.state = undefined;
   render(<DevWindow />);
   fireEvent.click(await screen.findByRole("button", { name: "Actors" }));
-  expect(screen.getByText("Waiting for the map")).toBeTruthy();
+  const teleport = screen.getByRole("region", { name: "Teleport" });
+  expect(within(teleport).getByText("Waiting for the map")).toBeTruthy();
   expect(devActors).not.toHaveBeenCalled();
 });
 

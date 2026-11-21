@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { dotPath } from "zustand-dot";
 import {
   commands,
+  type DevNear,
   type DevState,
   type DevSwitches,
   type GameOptions,
@@ -19,6 +20,21 @@ const POLL_MS = 1000;
 interface Game {
   state?: DevState;
   error?: string;
+}
+
+/** Live actors' last read: the live placed actors by distance from Link
+ * then, kept in that order until the next read. */
+export type LiveRead =
+  | { status: "loading" }
+  | { status: "ok"; map: string; list: DevNear[] }
+  | { status: "error"; error: string };
+
+/** An actor Live actors hid, hidden again after each load of its map. */
+export interface HiddenActor {
+  hash: string;
+  actor: string;
+  label: string | null;
+  map: string;
 }
 
 /** The dev panel's window: the game, reread every second, and what it
@@ -45,6 +61,14 @@ interface Dev {
   };
   /** The GameData value picked in Set. */
   gameValue: string;
+  /** Live actors: none of it kept once the app closes. */
+  live: {
+    read: LiveRead;
+    hidden: HiddenActor[];
+    /** Read again every few seconds as Link moves. */
+    follow: boolean;
+    query: string;
+  };
   /** The window floats over the game. */
   pinned: boolean;
 }
@@ -55,6 +79,12 @@ export const useDev = create<Dev>()(
       game: {},
       ready: false,
       gameValue: "",
+      live: {
+        read: { status: "loading" },
+        hidden: [],
+        follow: false,
+        query: "",
+      },
       options: { places: [], spawns: [], items: [], names: [], quests: {} },
       tests: { setups: {}, goals: {}, holds: {} },
       pinned: true,
