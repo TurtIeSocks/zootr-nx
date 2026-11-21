@@ -13,9 +13,9 @@ use super::{Boot, Input};
 use crate::config::with_save;
 use crate::live::{Bridge, PATIENCE};
 
-/// The game's frames a second, for turning a hold's milliseconds into
-/// frames.
-const FPS: u64 = 60;
+/// The game's frames a second when its status doesn't say: a hold's
+/// milliseconds are turned into its frames.
+const FPS: f64 = 60.0;
 
 /// The target's game started from `app` with `args` and `env`, driven
 /// through the socket at `socket`.
@@ -25,6 +25,8 @@ pub struct Native {
     env: Vec<(String, String)>,
     socket: PathBuf,
     bridge: Option<Bridge>,
+    /// The game's frame rate, read once: a low-heat run plays at 30.
+    fps: Option<f64>,
 }
 
 impl Native {
@@ -40,6 +42,7 @@ impl Native {
             env,
             socket,
             bridge: None,
+            fps: None,
         }
     }
 
@@ -66,11 +69,20 @@ impl Native {
     pub fn status(&mut self) -> Result<Value> {
         self.send("status", Value::Null, Duration::ZERO)
     }
+
+    /// `ms` as the game's frames at its own rate.
+    fn frames(&mut self, ms: u64) -> Result<u64> {
+        if self.fps.is_none() {
+            let fps = self.status()?["fps"].as_f64().filter(|f| *f >= 1.0);
+            self.fps = Some(fps.map_or(FPS, f64::round));
+        }
+        Ok(frames(ms, self.fps.unwrap_or(FPS)))
+    }
 }
 
-/// `ms` as game frames, at least one.
-fn frames(ms: u64) -> u64 {
-    (ms * FPS).div_ceil(1000).max(1)
+/// `ms` as frames at `fps`, at least one.
+fn frames(ms: u64, fps: f64) -> u64 {
+    ((ms as f64 * fps / 1000.0).ceil() as u64).max(1)
 }
 
 /// Our button names as the socket spells them: `A+LUp` is `A+LUP`.
@@ -101,7 +113,7 @@ impl Input for Native {
     }
 
     fn hold(&mut self, button: &str, ms: u64) -> Result<()> {
-        let args = json!({"buttons": buttons(button)?, "frames": frames(ms)});
+        let args = json!({"buttons": buttons(button)?, "frames": self.frames(ms)?});
         self.send("press", args, Duration::from_millis(ms))
             .map(drop)
     }
@@ -122,7 +134,7 @@ impl Input for Native {
         }
         let (names, secs) = line.split_once('~').unwrap_or((line, "0.15"));
         let secs: f64 = secs.parse().with_context(|| format!("{line}: no hold"))?;
-        let frames = frames((secs * 1000.0) as u64);
+        let frames = self.frames((secs * 1000.0) as u64)?;
         let args = json!({"buttons": buttons(names)?, "frames": frames, "wait": false});
         self.send("press", args, Duration::ZERO).map(drop)
     }
@@ -186,6 +198,8 @@ mod tests {
             req
         };
         game.press("A").unwrap();
+        // The first hold reads the frame rate: the fake says none, so 60.
+        assert_eq!(next(), json!({"cmd": "status"}));
         assert_eq!(next(), json!({"cmd": "press", "buttons": "A", "frames": 9}));
         game.hold("ZL+A", 1000).unwrap();
         assert_eq!(
@@ -224,9 +238,8 @@ mod tests {
 
     #[test]
     fn holds_round_up_to_whole_frames() {
-        assert_eq!(
-            (frames(0), frames(16), frames(17), frames(150)),
-            (1, 1, 2, 9)
-        );
+        let at60 = |ms| frames(ms, 60.0);
+        assert_eq!((at60(0), at60(16), at60(17), at60(150)), (1, 1, 2, 9));
+        assert_eq!((frames(150, 30.0), frames(2000, 30.0)), (5, 60));
     }
 }

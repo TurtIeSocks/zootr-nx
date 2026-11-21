@@ -94,8 +94,10 @@ pub struct Traced {
     /// His highest above the start, and his lowest below it.
     pub rise: f32,
     pub fall: f32,
-    /// How far he got, flat, and when, before he first fell `OFF` below
-    /// his start height. `None` when he never did.
+    /// The last sample before he first fell `OFF` below his start height,
+    /// and how far out, flat, he crossed that height: between that sample
+    /// and the next, as the reads are a tenth of a second apart. `None`
+    /// when he never fell.
     pub level: Option<Sample>,
     pub level_flat: Option<f32>,
     /// The frames saved, by when they were asked for.
@@ -113,6 +115,14 @@ impl Traced {
         let heights = samples.iter().map(|s| s.at[1] - y0);
         let off = samples.iter().position(|s| s.at[1] < y0 - OFF);
         let level = off.map(|i| samples[i.saturating_sub(1)]);
+        let crossed = off.map(|i| {
+            let (a, b) = (samples[i.saturating_sub(1)].at, samples[i].at);
+            let f = match a[1] - b[1] {
+                d if d > 0.0 => ((a[1] - (y0 - OFF)) / d).clamp(0.0, 1.0),
+                _ => 0.0,
+            };
+            [0, 1, 2].map(|k| a[k] + (b[k] - a[k]) * f)
+        });
         Ok(Traced {
             steps: steps.iter().map(Step::to_string).collect(),
             start: first.at,
@@ -121,7 +131,7 @@ impl Traced {
             farthest: (samples.iter().map(|s| flat(first.at, s.at))).fold(0.0, f32::max),
             rise: heights.clone().fold(0.0, f32::max),
             fall: -heights.fold(0.0, f32::min),
-            level_flat: level.map(|s| flat(first.at, s.at)),
+            level_flat: crossed.map(|at| flat(first.at, at)),
             level,
             shots,
             samples,
@@ -251,7 +261,7 @@ mod tests {
         ];
         let t = Traced::of(&[], samples, vec![]).unwrap();
         assert_eq!(t.level, Some(at(1.0, 4.0, 9.9)));
-        assert_eq!(t.level_flat, Some(4.0));
+        assert_eq!(t.level_flat, Some(4.5));
         assert!((t.rise - 0.1).abs() < 1e-4 && (t.fall - 2.0).abs() < 1e-4);
         assert_eq!((t.flat, t.farthest), (5.5, 5.5));
     }
