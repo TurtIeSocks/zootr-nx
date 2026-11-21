@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   fetchLatest,
+  fetchReleases,
   newer,
   notesHtml,
+  PAGE,
   stripChangelog,
 } from "@/update/release";
 
@@ -106,5 +108,42 @@ describe("fetchLatest", () => {
     quiet();
     answer({ ok: true, json: async () => ({ message: "rate limited" }) });
     expect(await fetchLatest("o/r")).toBeNull();
+  });
+});
+
+describe("fetchReleases", () => {
+  const tag = (t: string, more: object = {}) => ({
+    tag_name: t,
+    html_url: `https://github.com/o/r/releases/tag/${t}`,
+    ...more,
+  });
+
+  it("asks for one page and leaves out drafts and prereleases", async () => {
+    const list = [
+      tag("v0.3.0", { draft: true }),
+      tag("v0.2.1", { prerelease: true }),
+      tag("v0.2.0"),
+      tag("v0.1.0"),
+    ];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => list }),
+    );
+    const got = await fetchReleases("o/r", 2);
+    expect(got.map((r) => r.version)).toEqual(["0.2.0", "0.1.0"]);
+    expect(fetch).toHaveBeenCalledWith(
+      `https://api.github.com/repos/o/r/releases?per_page=${PAGE}&page=2`,
+      expect.anything(),
+    );
+  });
+
+  it("throws when GitHub refuses", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue({ ok: false, status: 403, json: async () => ({}) }),
+    );
+    await expect(fetchReleases("o/r", 1)).rejects.toThrow("403");
   });
 });

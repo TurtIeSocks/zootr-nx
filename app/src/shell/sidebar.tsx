@@ -25,6 +25,7 @@ import { useGroupDrifted, useSeeds } from "@/stores/seeds";
 import { openDev, openSettings } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
 import { useUpdate } from "@/stores/update";
+import { ChangelogButton } from "@/update/changelog";
 import { CheckButton } from "@/update/check-button";
 import { UpdateAlert } from "@/update/update-alert";
 
@@ -288,6 +289,7 @@ export function Sidebar() {
         <div className="flex items-center gap-1.5">
           <Version />
           <CheckButton />
+          <ChangelogButton />
           {devTools && <DevButton />}
           <ThemeToggle />
         </div>

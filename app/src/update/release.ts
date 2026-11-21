@@ -46,30 +46,65 @@ const CHANGELOG_LINE = /^\s*\**full changelog\**:?\**\s*\S+\s*$/gim;
 export const stripChangelog = (md: string) =>
   md.replace(CHANGELOG_LINE, "").trim();
 
+/** GitHub's release `r` of `repo` as the app shows it. Throws on
+ * anything that isn't one. */
+function toRelease(repo: string, r: unknown): Release {
+  const o = r as Record<string, unknown> | null;
+  if (typeof o?.tag_name !== "string" || typeof o?.html_url !== "string")
+    throw new Error("Not a release");
+  return {
+    version: o.tag_name.replace(/^v/, ""),
+    url: o.html_url,
+    changelog: `https://github.com/${repo}/blob/main/CHANGELOG.md`,
+    notes: typeof o.body === "string" ? stripChangelog(o.body) : "",
+    published: typeof o.published_at === "string" ? o.published_at : "",
+  };
+}
+
+/** GitHub's answer at `path` of `repo`'s API, as JSON. Throws when it
+ * fails. */
+async function ask(repo: string, path: string): Promise<unknown> {
+  const res = await fetch(`https://api.github.com/repos/${repo}/${path}`, {
+    headers: { Accept: "application/vnd.github+json" },
+  });
+  if (!res.ok) throw new Error(`GitHub answered ${res.status}`);
+  return res.json();
+}
+
 /** The latest published release of `repo`, or null when there's none or
  * the check fails. Drafts and prereleases never count. */
 export async function fetchLatest(repo: string): Promise<Release | null> {
   try {
-    const res = await fetch(
-      `https://api.github.com/repos/${repo}/releases/latest`,
-      { headers: { Accept: "application/vnd.github+json" } },
-    );
-    if (!res.ok) throw new Error(`GitHub answered ${res.status}`);
-    const r = await res.json();
-    if (typeof r?.tag_name !== "string" || typeof r?.html_url !== "string")
-      throw new Error("Not a release");
-    return {
-      version: r.tag_name.replace(/^v/, ""),
-      url: r.html_url,
-      changelog: `https://github.com/${repo}/blob/main/CHANGELOG.md`,
-      notes: typeof r.body === "string" ? stripChangelog(r.body) : "",
-      published: typeof r.published_at === "string" ? r.published_at : "",
-    };
+    return toRelease(repo, await ask(repo, "releases/latest"));
   } catch (e) {
     console.debug("Couldn't check for updates", e);
     return null;
   }
 }
+
+/** How many releases one page of the changelog holds. */
+export const PAGE = 10;
+
+/** Page `page` (from 1) of `repo`'s published releases, newest first.
+ * Drafts and prereleases are left out. Throws when the request fails. */
+export async function fetchReleases(
+  repo: string,
+  page: number,
+): Promise<Release[]> {
+  const list = await ask(repo, `releases?per_page=${PAGE}&page=${page}`);
+  if (!Array.isArray(list)) throw new Error("Not a list of releases");
+  return list
+    .filter((r) => !r?.draft && !r?.prerelease)
+    .map((r) => toRelease(repo, r));
+}
+
+/** An ISO 8601 date, as "Nov 21, 2026". */
+export const day = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 
 /** Release notes as safe HTML. PR titles land in generated notes, and the
  * webview can call every app command, so this is the only way release
