@@ -192,15 +192,34 @@ test("after a map load it hides the map's listed actors again, retrying ones not
 
   onMap("FakeHill_Child");
   await vi.advanceTimersByTimeAsync(0);
-  expect(devHide).toHaveBeenLastCalledWith(["1", "3"], true);
+  // The read hides what it lists, the re-hide tries what's left.
+  expect(devHide.mock.calls).toEqual([
+    [["1", "3"], true],
+    [["3"], true],
+  ]);
 
   world.live.add("3");
   await vi.advanceTimersByTimeAsync(RETRY_MS);
   expect(devHide).toHaveBeenLastCalledWith(["3"], true);
   await vi.advanceTimersByTimeAsync(RETRY_MS * 5);
-  expect(devHide).toHaveBeenCalledTimes(2);
+  expect(devHide).toHaveBeenCalledTimes(3);
   expect(row(/Obj_FakeRock/).getAttribute("aria-pressed")).toBe("true");
   expect(row(/#2/).getAttribute("aria-pressed")).toBe("true");
+});
+
+test("a read hides again a listed actor made again with no map load", async () => {
+  render(<LiveActors />);
+  await within(await list()).findByText("Obj_FakeRock");
+  fireEvent.click(row(/Obj_FakeRock/));
+  await vi.waitFor(() =>
+    expect(row(/Obj_FakeRock/).getAttribute("aria-pressed")).toBe("true"),
+  );
+  // Link walks out of the room and back in: the rock is made again, shown.
+  devHide.mockClear();
+  fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+  await vi.waitFor(() => expect(devHide).toHaveBeenCalledWith(["1"], true));
+  expect(row(/Obj_FakeRock/).getAttribute("aria-pressed")).toBe("true");
+  expect(row(/#2/).getAttribute("aria-pressed")).toBe("false");
 });
 
 test("a re-hide gives up after its retries and stops once Link leaves", async () => {

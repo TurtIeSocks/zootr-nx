@@ -14,7 +14,8 @@ export const RETRY_MS = 1000;
 /** Reads so far, so a read a later one overtook is dropped. */
 let reads = 0;
 
-/** Reads the live actors again, nearest Link first, or why they can't be. */
+/** Reads the live actors again, nearest Link first, or why they can't be,
+ * and hides again the listed ones it finds shown. */
 export async function readLive(): Promise<void> {
   const map = useDev.getPath("game.state.map");
   if (!map) return;
@@ -25,7 +26,28 @@ export async function readLive(): Promise<void> {
   } catch (e) {
     read = { status: "error", error: message(e) };
   }
-  if (mine === reads) useDev.setPath("live.read", read);
+  if (mine !== reads) return;
+  useDev.setPath("live.read", read);
+  if (read.status === "ok") await hideAgain(read.map, read.list);
+}
+
+/** Hides again the listed actors of `map` found shown: made again since
+ * their hide, as Link walks back into a room of the same map. */
+async function hideAgain(map: string, list: DevNear[]): Promise<void> {
+  const listed = new Set(
+    useDev
+      .getPath("live.hidden")
+      .filter((h) => h.map === map)
+      .map((h) => h.hash),
+  );
+  const shown = list
+    .filter((n) => n.hidden === "shown" && listed.has(n.hash))
+    .map((n) => n.hash);
+  if (shown.length === 0) return;
+  const found = await call(commands.devHide(shown, true)).catch(
+    () => [] as string[],
+  );
+  mark(found, "ours");
 }
 
 /** Marks these placements' rows as `hidden`, leaving the order alone. */
@@ -92,17 +114,23 @@ async function rehide(map: string): Promise<void> {
   for (let tries = 0; pending.length > 0 && tries <= RETRIES; tries++) {
     if (tries > 0) await wait(RETRY_MS);
     if (useDev.getPath("game.state.map") !== map) return;
-    // One shown from the strip meanwhile is no longer wanted.
+    // One shown from the strip meanwhile is no longer wanted, and one a
+    // read hid again needs nothing more.
     const listed = new Set(useDev.getPath("live.hidden").map((h) => h.hash));
-    const hashes = pending.map((h) => h.hash).filter((h) => listed.has(h));
+    const read = useDev.getPath("live.read");
+    const ours = new Set(
+      read.status === "ok"
+        ? read.list.filter((n) => n.hidden === "ours").map((n) => n.hash)
+        : [],
+    );
+    pending = pending.filter((h) => listed.has(h.hash) && !ours.has(h.hash));
+    const hashes = pending.map((h) => h.hash);
     if (hashes.length === 0) return;
     const found = await call(commands.devHide(hashes, true)).catch(
       () => [] as string[],
     );
     mark(found, "ours");
-    pending = pending.filter(
-      (h) => listed.has(h.hash) && !found.includes(h.hash),
-    );
+    pending = pending.filter((h) => !found.includes(h.hash));
   }
 }
 
