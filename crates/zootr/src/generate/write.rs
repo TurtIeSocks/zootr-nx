@@ -463,6 +463,7 @@ pub fn write_mod(
     }
     write_maps(&mut builder, &mut changed_maps)?;
     adult_jabu::arrival(romfs, &mut builder, new_game.adult_jabu)?;
+    adult_jabu::strip_foliage(romfs, &mut builder, new_game.adult_jabu)?;
     wiring.write(romfs, &mut builder)?;
     for f in &fields {
         let (hash, ..) = checks::field(f)?;
