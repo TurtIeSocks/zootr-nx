@@ -452,6 +452,46 @@ mod tests {
         assert_eq!(on.get(settings::TRADE_CHAIN), Some(&true.into()));
     }
 
+    /// With no logic, every dungeon's small key copies land in their own
+    /// dungeon, and key copies land in every kind of holder: logic is all
+    /// that keeps them out (EIE row 2).
+    #[test]
+    fn with_no_logic_small_keys_land_anywhere() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let new_game = NewGame {
+            logic: settings::Logic::NoLogic,
+            ..NewGame::from_settings(&every_shuffle(), &[]).unwrap()
+        };
+        let dealt = checks::dealt(&romfs, &new_game).unwrap();
+        let fixed = Fixed::new();
+        let rings: Vec<_> = (1..=crate::keys::DUNGEONS.len())
+            .map(crate::key_tints::ring)
+            .collect();
+        let (mut home, mut kinds) = (BTreeSet::new(), BTreeSet::new());
+        for seed in 0..30 {
+            let deal = shuffle::deal(&dealt, &fixed, &new_game).unwrap();
+            for p in shuffle::scatter(deal, seed, &new_game).unwrap() {
+                let Some(n) = rings.iter().position(|r| *r == p.item) else {
+                    continue;
+                };
+                if crate::keys::dungeon_in(&p.check.area) == Some(n + 1) {
+                    home.insert(n + 1);
+                }
+                kinds.insert(kind(p.check));
+            }
+        }
+        assert_eq!(
+            home.len(),
+            rings.len(),
+            "dungeons whose keys came home: {home:?}"
+        );
+        for k in ["chest", "pickup", "gift", "scrub", "shop", "cow", "prize"] {
+            assert!(kinds.contains(k), "no small key in a {k}: {kinds:?}");
+        }
+    }
+
     /// The ledger's three rules: every dealt check ticks on the tracker,
     /// every left-out placement has a reason, and the EIE debt is the
     /// baseline, so paying some off lowers the baseline in the same PR.
