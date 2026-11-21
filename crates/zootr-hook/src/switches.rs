@@ -34,19 +34,20 @@ pub enum Cap {
     Bag(u32, [i32; 3]),
     /// A fixed number.
     Fixed(i32),
-    /// Bombchus: the bomb bag's, or [`FREE_BOMBCHUS_CAP`] in a seed that
-    /// frees them.
+    /// Bombchus: the bomb bag's, [`FREE_BOMBCHUS_CAP`] in a seed that
+    /// frees them, or the Bombchu Bag's in a seed that has them.
     Bombchus,
 }
 
 /// What a seed with free bombchus caps them at.
-pub const FREE_BOMBCHUS_CAP: i32 = 50;
+pub const FREE_BOMBCHUS_CAP: i32 = 40;
 
 impl Cap {
     /// This cap in a seed with the table's `flags`: only bombchus change.
     pub fn in_seed(self, flags: u32) -> Self {
         match self {
             Self::Bombchus if flags & crate::FREE_BOMBCHUS != 0 => Self::Fixed(FREE_BOMBCHUS_CAP),
+            Self::Bombchus if flags & crate::BOMBCHU_BAG != 0 => Self::Bag(BOMBCHU_SLOT, BOMBS),
             Self::Bombchus => Self::Bag(BOMB_BAG, BOMBS),
             cap => cap,
         }
@@ -55,6 +56,9 @@ impl Cap {
 
 /// The bomb bag's expansion value, which bombs and bombchus share.
 const BOMB_BAG: u32 = 0xa835_e3b0;
+/// The saved Bombchu slot entry (the current expansion actor for Bombchus),
+/// which a seed with Bombchu Bags adds.
+pub const BOMBCHU_SLOT: u32 = 0x9b12_34e0;
 
 /// A GameData Int a switch holds at its cap. Link keeps his own meters
 /// and copies them to GameData every frame, so those are held at the
@@ -242,6 +246,8 @@ mod tests {
         let free = crate::FREE_BOMBCHUS;
         assert_eq!(Cap::Bombchus.in_seed(free), Cap::Fixed(FREE_BOMBCHUS_CAP));
         assert_eq!(Cap::Int(7).in_seed(free), Cap::Int(7));
+        let bags = crate::BOMBCHU_BAG;
+        assert_eq!(Cap::Bombchus.in_seed(bags), Cap::Bag(BOMBCHU_SLOT, BOMBS));
     }
 
     #[test]

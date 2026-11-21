@@ -82,7 +82,7 @@ pub(super) fn seller(item: &str) -> String {
 
 /// The seller lines the edited scrubs need, one per item and per step a
 /// sale of it can give by what Link owns.
-pub fn lines(drops: &HashMap<u64, Drop>) -> Lines<'_> {
+pub fn lines(drops: &HashMap<u64, Drop>, seed: crate::progressive::Lines) -> Lines<'_> {
     let mut new: Vec<(String, &str)> = Vec::new();
     let mut add = |item| {
         if new.iter().all(|(_, i)| *i != item) {
@@ -91,7 +91,7 @@ pub fn lines(drops: &HashMap<u64, Drop>) -> Lines<'_> {
     };
     for (_, item) in edits(drops) {
         add(item);
-        for step in levels::steps(item) {
+        for step in levels::steps(item, seed) {
             add(step);
         }
     }

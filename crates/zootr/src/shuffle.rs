@@ -8,8 +8,10 @@ use crate::checks::{Drop, ItemCheck};
 use crate::keys;
 use crate::known::item;
 use crate::narrowing::{Let, allowed, asks_at, shuffleable};
+use crate::progressive::Lines;
 use crate::rng::Rng;
 use crate::settings::NewGame;
+use crate::starter_bags;
 use crate::starting;
 use crate::{ammo, cows, gifts, presets, progressive};
 
@@ -90,8 +92,9 @@ pub struct Deal<'a> {
 
 /// `fixed` placements, and the free checks with the items to deal them.
 pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -> Result<Deal<'a>> {
+    let lines = progressive::Lines::of(new_game);
     let level = |item: &'a str| match new_game.progressive {
-        true => progressive::first(item),
+        true => lines.first(item),
         false => item,
     };
     let mut placed = Vec::new();
@@ -137,6 +140,11 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
     } else {
         items.iter_mut().for_each(|i| *i = level(i));
     }
+    let added: Vec<_> = starter_bags::added(new_game)
+        .into_iter()
+        .map(level)
+        .collect();
+    starter_bags::swap_in(&mut items, &added);
     // One swap over both, so a starting item leaves one spot either way.
     let mut all: Vec<_> = kept.iter().map(|c| own(c)).collect();
     all.append(&mut items);
@@ -219,8 +227,8 @@ fn trade(dealt: &mut [Placement], progressive: bool) -> Result<()> {
 
 /// What a chest holding `item` drops. The one place a drop is decided.
 /// Lines need nothing here: the hook upgrades them in the game.
-pub fn drop(item: &str) -> Drop {
-    match ammo::swap(item) {
+pub fn drop(item: &str, lines: Lines) -> Drop {
+    match ammo::swap(item, lines) {
         Some(swap) => Drop {
             item: ammo::WITHOUT.to_string(),
             swap: Some(swap),
@@ -231,14 +239,16 @@ pub fn drop(item: &str) -> Drop {
 
 /// The drops a mod has to write, shuffled or not: chests whose item
 /// changed, whose drop swaps, or whose vanilla swap needs clearing.
-pub fn drops(checks: &[ItemCheck], placements: &[Placement]) -> HashMap<u64, Drop> {
+pub fn drops(checks: &[ItemCheck], placements: &[Placement], lines: Lines) -> HashMap<u64, Drop> {
     let write = |c: &ItemCheck, item: &str| {
         let d = match gifts::is_gift(c) {
             // A minigame's chest can't be a substitute chest.
-            true if gifts::is_prize(c) => Drop::from(ammo::copy(item).unwrap_or(item.to_owned())),
+            true if gifts::is_prize(c) => {
+                Drop::from(ammo::copy(item, lines).unwrap_or(item.to_owned()))
+            }
             // The deal keeps swaps off gifts.
             true => Drop::from(item.to_owned()),
-            false => drop(item),
+            false => drop(item, lines),
         };
         let write = d.swap.is_some() || item != c.item || c.substitute.is_some();
         write.then_some((c.hash, d))
@@ -362,13 +372,13 @@ mod tests {
             ..game(false, &[])
         };
         let p = shuffle(&checks, 7, &none, &on).unwrap();
-        let d = drops(&checks, &p);
+        let d = drops(&checks, &p, Lines::default());
         for (hash, item) in [(3, keys::SMALL), (4, keys::BOSS)] {
             let now = holding(&p, hash);
             assert_eq!(d.contains_key(&hash), now != item);
         }
         let p = shuffle(&checks, 7, &none, &game(false, &[])).unwrap();
-        assert!(drops(&checks, &p).is_empty());
+        assert!(drops(&checks, &p, Lines::default()).is_empty());
     }
 
     /// A minigame's chest can't turn into a substitute one, so it drops
@@ -385,8 +395,9 @@ mod tests {
                 check: &prize,
                 item: ammo,
             }];
-            let drops = drops(std::slice::from_ref(&prize), &placed);
-            let want = Drop::from(ammo::copy(ammo).unwrap());
+            let lines = Lines::widest(false);
+            let drops = drops(std::slice::from_ref(&prize), &placed, lines);
+            let want = Drop::from(ammo::copy(ammo, lines).unwrap());
             assert_eq!(drops.get(&prize.hash), Some(&want), "{ammo}");
         }
     }
@@ -500,7 +511,7 @@ mod tests {
         let checks = [chest(1, long), chest(2, "Item_B"), race];
         let p = shuffle(&checks, 7, &none, &game(true, &[])).unwrap();
         assert!(p.iter().all(|p| p.check.hash != 3));
-        assert!(drops(&checks, &p).is_empty());
+        assert!(drops(&checks, &p, Lines::default()).is_empty());
     }
 
     /// Two plain chests, a line, bombs, and both gifts.
@@ -540,7 +551,10 @@ mod tests {
     fn gifts_hold_an_item_that_asks_only_when_they_give_by_level() {
         needs_names!();
         let (checks, none) = (with_scrubs(), Fixed::new());
-        let mut pool: Vec<_> = checks.iter().map(|c| progressive::first(&c.item)).collect();
+        let mut pool: Vec<_> = checks
+            .iter()
+            .map(|c| progressive::Lines::default().first(&c.item))
+            .collect();
         pool.sort();
         for seed in 0..200 {
             let p = shuffle(&checks, seed, &none, &progressive(false, &[])).unwrap();
@@ -601,7 +615,7 @@ mod tests {
         for gift in &gifts::GIFTS {
             assert_eq!(holding(&p, gift.hash()), gift.item);
         }
-        let d = drops(&checks, &p);
+        let d = drops(&checks, &p, Lines::default());
         assert!(gifts::GIFTS.iter().all(|g| !d.contains_key(&g.hash())));
     }
 
@@ -648,7 +662,7 @@ mod tests {
         let (checks, none) = ([owned, chest(2, "Item_B")], Fixed::new());
         let p = shuffle(&checks, 7, &none, &game(true, &[])).unwrap();
         assert_eq!(p.len(), 2);
-        let d = drops(&checks, &p);
+        let d = drops(&checks, &p, Lines::default());
         assert_eq!(d, HashMap::from([(1, Drop::from("Item_A".to_owned()))]));
     }
 
@@ -662,14 +676,14 @@ mod tests {
             then: bombs,
         };
         assert_eq!(
-            drop(bombs),
+            drop(bombs, Lines::default()),
             Drop {
                 item: ammo::WITHOUT.to_string(),
                 swap: Some(swap)
             }
         );
         for item in [hook, "Item_A"] {
-            assert_eq!(drop(item), Drop::from(item.to_owned()));
+            assert_eq!(drop(item, Lines::default()), Drop::from(item.to_owned()));
         }
     }
 
@@ -679,8 +693,8 @@ mod tests {
         let (bombs, none) = (ammo::NEEDS[0].0, Fixed::new());
         let checks = [chest(1, bombs), chest(2, "Item_B")];
         let p = shuffle(&checks, 7, &none, &game(true, &[])).unwrap();
-        let d = drops(&checks, &p);
-        assert_eq!(d, HashMap::from([(1, drop(bombs))]));
+        let d = drops(&checks, &p, Lines::default());
+        assert_eq!(d, HashMap::from([(1, drop(bombs, Lines::default()))]));
         assert_eq!(d[&1].item, ammo::WITHOUT);
     }
 

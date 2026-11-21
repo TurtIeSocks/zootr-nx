@@ -1,11 +1,15 @@
 //! Settings saved by older versions, read as the current ones.
 
-use super::{SHUFFLE_ITEMS, Settings};
+use super::{BOMBCHUS, Bombchus, SHUFFLE_ITEMS, Settings, choice_id};
 use crate::starting::{self, Start};
 
 /// The toggle that left every item in place, before it became
 /// [`SHUFFLE_ITEMS`] with the opposite sense.
 const VANILLA_CHESTS: &str = "vanilla-chests";
+
+/// The toggle that gave bombchus their own cap, before [`BOMBCHUS`] chose
+/// between that, the bomb bag's and Bombchu Bags.
+const FREE_BOMBCHUS: &str = "free-bombchus";
 
 /// Toggles that started a new game with items, before the starting
 /// inventory, and the words each became, as `--start` takes them.
@@ -41,6 +45,13 @@ pub(crate) fn upgrade(settings: &mut Settings) {
             .entry(SHUFFLE_ITEMS.into())
             .or_insert(shuffled.into());
     }
+    if let Some(free) = settings.remove(FREE_BOMBCHUS) {
+        let chosen = match free == true {
+            true => Bombchus::Free,
+            false => Bombchus::BombBag,
+        };
+        (settings.entry(BOMBCHUS.into())).or_insert(choice_id(chosen).into());
+    }
     let on: Vec<&[&str]> = (STARTING.iter())
         .filter_map(|(id, words)| (settings.remove(*id)? == true).then_some(*words))
         .collect();
@@ -59,6 +70,18 @@ pub(crate) fn upgrade(settings: &mut Settings) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn free_bombchus_becomes_the_bombchus_choice() {
+        let up = |free: bool| {
+            let mut s = Settings::from([(FREE_BOMBCHUS.into(), free.into())]);
+            upgrade(&mut s);
+            s
+        };
+        let chosen = |v: &str| Settings::from([(BOMBCHUS.into(), v.into())]);
+        assert_eq!(up(true), chosen("free"));
+        assert_eq!(up(false), chosen("bomb-bag"));
+    }
 
     #[test]
     fn vanilla_chests_become_shuffle_items_the_other_way_round() {

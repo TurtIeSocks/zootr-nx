@@ -446,7 +446,11 @@ pub(crate) fn pointed(
 /// A copy's files: `template`'s actor showing `model`, as [`pointed`], and
 /// its own pouch content naming the copy. Left naming the template, the
 /// pouch would hand over the game's key from any holder that resolves it.
-fn copied(template: &ActorPack, name: &str, model: &str) -> Result<Vec<(String, BymlDoc, String)>> {
+pub(crate) fn copied(
+    template: &ActorPack,
+    name: &str,
+    model: &str,
+) -> Result<Vec<(String, BymlDoc, String)>> {
     let [(actor_at, actor, actor_like), info] = pointed(template, name, model)?;
     let pouch_like = path_of(template, POUCH)?;
     let pouch_at = renamed(&pouch_like, name);

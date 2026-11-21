@@ -34,7 +34,11 @@ pub struct Step {
 
 /// Each step of a holder placed as `of` dealt `item`: its placement, what
 /// it shows, and which step it is. `None` when it always gives `item`.
-pub(super) fn of(of: u64, item: &str, progressive: bool) -> Option<Vec<(u64, &'static str, Step)>> {
+pub(super) fn of(
+    of: u64,
+    item: &str,
+    progressive: crate::progressive::Lines,
+) -> Option<Vec<(u64, &'static str, Step)>> {
     let steps = shows::steps(item, progressive)?.into_iter().enumerate();
     let step = |(k, (shows, program))| (copy_hash(of, k), shows, Step { of, k, program });
     Some(steps.map(step).collect())
@@ -51,7 +55,7 @@ pub(crate) fn gate(placement: u64) -> String {
 /// stands until picked whatever the setting (`picked::After::Taken`), so
 /// the tracker can tell by the spot alone.
 pub(crate) fn asks(item: &str) -> bool {
-    crate::gifts::levels::asks(item, true)
+    crate::gifts::levels::asks(item, crate::progressive::Lines::widest(true))
 }
 
 /// Every stepped holder's placements: each copy, and the BoolExp each
@@ -75,7 +79,7 @@ impl Steps {
     pub fn new(
         checks: &[ItemCheck],
         drops: &HashMap<u64, Drop>,
-        progressive: bool,
+        progressive: crate::progressive::Lines,
         holders: &[Holder],
         gd: &GameData,
     ) -> Result<Self> {
@@ -173,13 +177,21 @@ mod tests {
             .collect();
         let drops = HashMap::from([(hash, Drop::from(item.to_string()))]);
         let holders = picked::holders(&checks, &drops);
-        let steps = Steps::new(&checks, &drops, true, &holders, &gd).unwrap();
+        let steps = Steps::new(
+            &checks,
+            &drops,
+            crate::progressive::Lines::climbing(),
+            &holders,
+            &gd,
+        )
+        .unwrap();
         let mut doc = checks::load_banc(&romfs, &checks[0].file).unwrap();
         picked::place(&mut doc.root, &holders).unwrap();
         assert!(steps.place(&mut doc.root).unwrap());
-        let fields: Vec<String> = (moved(&checks, &drops, true).iter())
-            .map(|m| format!("{}.{}={}", m.hash, m.field, m.actor))
-            .collect();
+        let fields: Vec<String> = (moved(&checks, &drops, crate::progressive::Lines::climbing())
+            .iter())
+        .map(|m| format!("{}.{}={}", m.hash, m.field, m.actor))
+        .collect();
         checks::set_fields(&mut doc.root, &fields).unwrap();
         let spots = picked::spots(&doc.root, &holders, &steps.copies).unwrap();
         (steps, doc.root, spots)
@@ -235,7 +247,11 @@ mod tests {
             assert!(exp(&steps, gate).ends_with(&[picked, Op::Not, Op::And]));
         }
         // Each stand-in's drop stays only while it's the one the pot gives.
-        let shows = |level: usize| shows::steps(item::HOOKSHOT, true).unwrap()[level].1.clone();
+        let shows = |level: usize| {
+            shows::steps(item::HOOKSHOT, crate::progressive::Lines::climbing()).unwrap()[level]
+                .1
+                .clone()
+        };
         assert_eq!(exp(&steps, &stale::exp(&hookshot)), shows(0));
         assert_eq!(exp(&steps, &stale::exp(&longshot)), shows(1));
         assert!(steps.built);

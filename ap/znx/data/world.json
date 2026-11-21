@@ -69,13 +69,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -222,13 +229,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -307,13 +321,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -411,13 +432,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -541,13 +569,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -624,13 +659,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -802,13 +844,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -876,13 +925,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -925,13 +981,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -1004,13 +1067,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -1085,13 +1155,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -1153,13 +1230,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -1216,13 +1300,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -1404,13 +1495,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -1549,13 +1647,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -1593,13 +1698,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -1660,13 +1772,20 @@
                               {
                                 "any": [
                                   {
-                                    "count": 1,
-                                    "items": [
-                                      "Progressive Bomb Bag"
-                                    ]
+                                    "setting": "bombchus=free"
                                   },
                                   {
-                                    "setting": "free-bombchus"
+                                    "all": [
+                                      {
+                                        "setting": "bombchus=bomb-bag"
+                                      },
+                                      {
+                                        "count": 1,
+                                        "items": [
+                                          "Progressive Bomb Bag"
+                                        ]
+                                      }
+                                    ]
                                   }
                                 ]
                               }
@@ -1809,13 +1928,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -1862,13 +1988,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -1907,13 +2040,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -1977,13 +2117,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -2056,13 +2203,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -2128,13 +2282,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -2179,13 +2340,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -2279,13 +2447,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -2358,13 +2533,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -2503,13 +2685,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -2650,13 +2839,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -2718,13 +2914,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -2822,13 +3025,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -2866,13 +3076,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -2933,13 +3150,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -3001,13 +3225,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -3059,13 +3290,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -3385,13 +3623,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -3464,13 +3709,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -3654,13 +3906,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -3747,13 +4006,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -3782,13 +4048,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -3931,13 +4204,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -4122,13 +4402,20 @@
                               {
                                 "any": [
                                   {
-                                    "count": 1,
-                                    "items": [
-                                      "Progressive Bomb Bag"
-                                    ]
+                                    "setting": "bombchus=free"
                                   },
                                   {
-                                    "setting": "free-bombchus"
+                                    "all": [
+                                      {
+                                        "setting": "bombchus=bomb-bag"
+                                      },
+                                      {
+                                        "count": 1,
+                                        "items": [
+                                          "Progressive Bomb Bag"
+                                        ]
+                                      }
+                                    ]
                                   }
                                 ]
                               }
@@ -4201,13 +4488,20 @@
                               {
                                 "any": [
                                   {
-                                    "count": 1,
-                                    "items": [
-                                      "Progressive Bomb Bag"
-                                    ]
+                                    "setting": "bombchus=free"
                                   },
                                   {
-                                    "setting": "free-bombchus"
+                                    "all": [
+                                      {
+                                        "setting": "bombchus=bomb-bag"
+                                      },
+                                      {
+                                        "count": 1,
+                                        "items": [
+                                          "Progressive Bomb Bag"
+                                        ]
+                                      }
+                                    ]
                                   }
                                 ]
                               }
@@ -4293,13 +4587,20 @@
                               {
                                 "any": [
                                   {
-                                    "count": 1,
-                                    "items": [
-                                      "Progressive Bomb Bag"
-                                    ]
+                                    "setting": "bombchus=free"
                                   },
                                   {
-                                    "setting": "free-bombchus"
+                                    "all": [
+                                      {
+                                        "setting": "bombchus=bomb-bag"
+                                      },
+                                      {
+                                        "count": 1,
+                                        "items": [
+                                          "Progressive Bomb Bag"
+                                        ]
+                                      }
+                                    ]
                                   }
                                 ]
                               }
@@ -4344,13 +4645,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -4413,13 +4721,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -4541,13 +4856,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -4719,13 +5041,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -4831,13 +5160,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -4951,13 +5287,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -5176,13 +5519,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -5323,13 +5673,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -5427,13 +5784,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -5506,13 +5870,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -5651,13 +6022,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -5854,13 +6232,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -5898,13 +6283,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -5947,13 +6339,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -6026,13 +6425,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -6169,13 +6575,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -6316,13 +6729,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -6360,13 +6780,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -6414,13 +6841,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -6546,13 +6980,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -6601,13 +7042,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -6659,13 +7107,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -6738,13 +7193,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -6883,13 +7345,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -6962,13 +7431,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -7051,13 +7527,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -7117,13 +7600,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -7196,13 +7686,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -7341,13 +7838,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -7420,13 +7924,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -7492,13 +8003,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -7543,13 +8061,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -7594,13 +8119,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -7741,13 +8273,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -7903,13 +8442,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -8091,13 +8637,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -8195,13 +8748,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -8298,13 +8858,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -8443,13 +9010,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -8528,13 +9102,20 @@
                               {
                                 "any": [
                                   {
-                                    "count": 1,
-                                    "items": [
-                                      "Progressive Bomb Bag"
-                                    ]
+                                    "setting": "bombchus=free"
                                   },
                                   {
-                                    "setting": "free-bombchus"
+                                    "all": [
+                                      {
+                                        "setting": "bombchus=bomb-bag"
+                                      },
+                                      {
+                                        "count": 1,
+                                        "items": [
+                                          "Progressive Bomb Bag"
+                                        ]
+                                      }
+                                    ]
                                   }
                                 ]
                               }
@@ -8690,13 +9271,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -8822,13 +9410,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -8926,13 +9521,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -9064,13 +9666,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -9143,13 +9752,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -9318,13 +9934,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -9369,13 +9992,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -9512,13 +10142,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -9547,13 +10184,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -9634,13 +10278,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -9728,13 +10379,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -9811,13 +10469,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -10005,13 +10670,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -10183,13 +10855,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -10262,13 +10941,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -10407,13 +11093,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -10475,13 +11168,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -10623,13 +11323,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -10859,13 +11566,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -10989,13 +11703,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -11024,13 +11745,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -11233,13 +11961,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -11379,13 +12114,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -11446,13 +12188,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -11497,13 +12246,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -11627,13 +12383,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -11805,13 +12568,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -11937,13 +12707,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -12016,13 +12793,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -12097,13 +12881,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -12148,13 +12939,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -12199,13 +12997,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -12278,13 +13083,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -12350,13 +13162,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -12401,13 +13220,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -12450,13 +13276,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -12494,13 +13327,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -12559,13 +13399,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -12735,13 +13582,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -12770,13 +13624,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -12871,13 +13732,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -12990,13 +13858,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -13166,13 +14041,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -13201,13 +14083,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -13285,13 +14174,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -13382,13 +14278,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -13461,13 +14364,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -13680,13 +14590,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -13759,13 +14676,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -13909,13 +14833,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -14093,13 +15024,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -14330,13 +15268,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -14482,13 +15427,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -14646,13 +15598,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -14824,13 +15783,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -14967,13 +15933,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -15110,13 +16083,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -15331,13 +16311,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -15507,13 +16494,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -15586,13 +16580,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -15910,13 +16911,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -16008,13 +17016,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -16071,13 +17086,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -16168,13 +17190,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -16247,13 +17276,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -16388,13 +17424,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -16483,13 +17526,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -16555,13 +17605,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -16606,13 +17663,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -16653,13 +17717,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -16796,13 +17867,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -16900,13 +17978,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -16997,13 +18082,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -17140,13 +18232,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -17219,13 +18318,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -17439,13 +18545,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -17616,13 +18729,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -17704,13 +18824,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -17933,13 +19060,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -18008,13 +19142,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -18107,13 +19248,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -18206,13 +19354,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -18305,13 +19460,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -18449,13 +19611,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -18621,13 +19790,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -18737,13 +19913,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -18837,13 +20020,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -18916,13 +20106,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -19057,13 +20254,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -19636,13 +20840,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -19697,13 +20908,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -19837,13 +21055,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -20036,13 +21261,20 @@
                           {
                             "any": [
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
-                                ]
+                                "setting": "bombchus=free"
                               },
                               {
-                                "setting": "free-bombchus"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
+                                ]
                               }
                             ]
                           }
@@ -20089,13 +21321,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -20511,13 +21750,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -20558,13 +21804,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -20651,13 +21904,20 @@
               {
                 "any": [
                   {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bomb Bag"
-                    ]
+                    "setting": "bombchus=free"
                   },
                   {
-                    "setting": "free-bombchus"
+                    "all": [
+                      {
+                        "setting": "bombchus=bomb-bag"
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      }
+                    ]
                   }
                 ]
               }
@@ -20690,13 +21950,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -20928,13 +22195,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -21145,13 +22419,20 @@
               {
                 "any": [
                   {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bomb Bag"
-                    ]
+                    "setting": "bombchus=free"
                   },
                   {
-                    "setting": "free-bombchus"
+                    "all": [
+                      {
+                        "setting": "bombchus=bomb-bag"
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bomb Bag"
+                        ]
+                      }
+                    ]
                   }
                 ]
               }
@@ -21191,13 +22472,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -21234,13 +22522,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -21313,13 +22608,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -21346,13 +22648,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -21981,13 +23290,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -22024,13 +23340,20 @@
                       {
                         "any": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bomb Bag"
-                            ]
+                            "setting": "bombchus=free"
                           },
                           {
-                            "setting": "free-bombchus"
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -22098,13 +23421,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -22131,13 +23461,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -22416,13 +23753,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }
@@ -22520,13 +23864,20 @@
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
+                        "setting": "bombchus=free"
                       },
                       {
-                        "setting": "free-bombchus"
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
                       }
                     ]
                   }

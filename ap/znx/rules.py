@@ -11,11 +11,23 @@ from BaseClasses import CollectionState
 Rule = Callable[[CollectionState], bool]
 
 
+def held(word: str, settings: dict) -> bool:
+    """A setting word: a toggle's id, or `id=value` for a choice's option
+    or a toggle's `on` or `off`."""
+    setting, _, value = word.partition("=")
+    current = settings[setting]
+    if not value:
+        return bool(current)
+    if isinstance(current, bool):
+        return current == (value == "on")
+    return current == value
+
+
 def fold(tree, settings: dict):
     if isinstance(tree, bool):
         return tree
     if "setting" in tree:
-        return bool(settings[tree["setting"]])
+        return held(tree["setting"], settings)
     for key, absorbs in (("all", False), ("any", True)):
         if key in tree:
             parts = [fold(part, settings) for part in tree[key]]

@@ -128,13 +128,15 @@ fn always() -> Expr {
     Expr::Word("always".into())
 }
 
-/// The settings the rule files read, by id.
+/// The settings the rule files read, by id: `setting:bombchus=free` reads
+/// `bombchus`.
 pub fn settings_read() -> BTreeSet<String> {
-    let word = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == ':';
+    let word = |c: char| c.is_ascii_alphanumeric() || matches!(c, '-' | ':' | '=');
     FILES
         .iter()
         .flat_map(|(_, text)| text.split(move |c: char| !word(c)))
         .filter_map(|w| w.strip_prefix("setting:"))
+        .map(|w| w.split_once('=').map_or(w, |(id, _)| id))
         .filter(|id| !id.is_empty())
         .map(String::from)
         .collect()
@@ -234,6 +236,7 @@ impl Book {
     fn validate(&self) -> Result<()> {
         let ctx = Ctx {
             progressive: true,
+            lines: Default::default(),
             on: BTreeSet::new(),
             seed: 0,
             keys: DungeonKeys::Vanilla,
@@ -316,10 +319,17 @@ mod tests {
     }
 
     #[test]
-    fn the_settings_rules_read_are_toggles() {
+    fn the_settings_rules_read_are_settings() {
         let read = settings_read();
         assert!(read.contains("open-forest") && read.contains("kakariko-gate"));
-        assert!(read.is_subset(&settings::toggles()), "{read:?}");
+        assert!(read.contains("bombchus"), "a choice is read by its id");
+        let words = settings::toggles();
+        let known = |id: &String| {
+            words
+                .iter()
+                .any(|w| w == id || w.starts_with(&format!("{id}=")))
+        };
+        assert!(read.iter().all(known), "{read:?}");
     }
 
     #[test]

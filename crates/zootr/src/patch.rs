@@ -11,7 +11,6 @@ use zootr_hook::{
     CAVE, Credit, DEV, FAR, LIST, PANIC, SLOTS, Shared, Spot, TABLE, TRADE_CYCLE, encode,
 };
 
-use crate::known::Name;
 use crate::{progressive, trade_slot};
 
 /// The hook's code, built by `build.rs`.
@@ -345,20 +344,19 @@ fn outputs(mod_dir: &Path) -> [(PathBuf, Writer); 3] {
 /// table their count).
 pub fn install(
     mod_dir: &Path,
-    progressive: bool,
+    progressive: progressive::Lines,
     keyed: &[Vec<(String, String)>],
     flags: u32,
     credits: &[(String, Credit)],
     spots: &[Spot],
     look: Option<&LookSpec>,
 ) -> Result<()> {
-    let lines: &[&[(&Name, &Name)]] = if progressive {
-        &progressive::LINES
-    } else {
-        &[]
+    let lines: Vec<_> = match progressive.progressive {
+        true => progressive.all().collect(),
+        false => Vec::new(),
     };
     let credits: Vec<_> = credits.iter().map(|(n, c)| (n.as_str(), *c)).collect();
-    let patches = patches(lines, keyed, flags, &credits, spots, look)?;
+    let patches = patches(&lines, keyed, flags, &credits, spots, look)?;
     for (path, write) in outputs(mod_dir) {
         std::fs::create_dir_all(path.parent().unwrap())?;
         std::fs::write(&path, write(&patches))
@@ -454,14 +452,18 @@ mod tests {
     #[test]
     fn the_fullest_table_fits() {
         use crate::settings::DungeonKeys;
-        // Every ammo kind's, more than the three prize chests can hold.
-        // Their names come from the dump.
-        let keyed: Vec<_> = match crate::game::dev_dump() {
+        // The longest ammo lines, one for each prize chest. Their names
+        // come from the dump.
+        let mut keyed: Vec<_> = match crate::game::dev_dump() {
             Some(_) => (crate::ammo::NEEDS.iter())
                 .map(|(a, _)| crate::ammo::line(a).unwrap())
                 .collect(),
             None => Vec::new(),
         };
+        let size =
+            |l: &Vec<(String, String)>| -> usize { l.iter().map(|(a, b)| a.len() + b.len()).sum() };
+        keyed.sort_by_key(|l| std::cmp::Reverse(size(l)));
+        keyed.truncate(crate::gifts::PRIZE_CHESTS.len());
         for keys in [
             DungeonKeys::Vanilla,
             DungeonKeys::Rings,
@@ -827,13 +829,22 @@ mod tests {
         let other = dir.join("cheats/OTHER.txt");
         std::fs::create_dir_all(other.parent().unwrap()).unwrap();
         std::fs::write(&other, "").unwrap();
-        install(&dir, true, &[], 0, &[], &[], None).unwrap();
+        install(
+            &dir,
+            crate::progressive::Lines::climbing(),
+            &[],
+            0,
+            &[],
+            &[],
+            None,
+        )
+        .unwrap();
         assert!(
             std::fs::read_to_string(path(&dir))
                 .unwrap()
                 .starts_with("{zootr 1/")
         );
-        install(&dir, false, &[], 0, &[], &[], None).unwrap();
+        install(&dir, Default::default(), &[], 0, &[], &[], None).unwrap();
         let dev = std::fs::read_to_string(path(&dir)).unwrap();
         assert!(
             dev.contains(&format!("{:08X}", OFFSETS.link_update)),
@@ -845,7 +856,7 @@ mod tests {
                 .unwrap()
                 .contains(&format!("{:08X} ", OFFSETS.link_update))
         );
-        install(&dir, false, &[], BUNNY_HOOD, &[], &[], None).unwrap();
+        install(&dir, Default::default(), &[], BUNNY_HOOD, &[], &[], None).unwrap();
         let hood = std::fs::read_to_string(path(&dir)).unwrap();
         assert!(hood.contains(&format!("{:08X}", RUN_CALL.0)), "{hood}");
         assert!(std::fs::read(ips_path(&dir)).unwrap().starts_with(b"IPS32"));
@@ -858,8 +869,10 @@ mod tests {
     #[test]
     fn the_split_leaves_the_code_to_the_exefs_patch_and_the_table_to_the_cheat() {
         let dir = std::env::temp_dir().join(format!("zootr-split-{}", std::process::id()));
-        install(&dir, true, &[], ALL, &[], &[SPOT], None).unwrap();
-        let whole = patches(&progressive::LINES, &[], ALL, &[], &[SPOT], None).unwrap();
+        let lines = progressive::Lines::climbing();
+        install(&dir, lines, &[], ALL, &[], &[SPOT], None).unwrap();
+        let lines: Vec<_> = lines.all().collect();
+        let whole = patches(&lines, &[], ALL, &[], &[SPOT], None).unwrap();
         split(&dir).unwrap();
         assert_eq!(
             std::fs::read(ips_path(&dir)).unwrap(),

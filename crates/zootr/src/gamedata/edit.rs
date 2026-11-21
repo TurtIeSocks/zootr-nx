@@ -39,7 +39,7 @@ pub fn add_keys(root: &mut Byml, twins: &[(u64, u64)]) -> Result<usize> {
         }
     }
     // A save keeps each key that's set, 8 bytes each.
-    grow_saves(root, 0, n)?;
+    grow_saves(root, 0, n, 0)?;
     Ok(n)
 }
 
@@ -89,7 +89,24 @@ pub fn add_u64s(root: &mut Byml, values: &[(u32, u64)]) -> Result<()> {
     Ok(())
 }
 
-/// False or 0, typed as `like`.
+/// [`add_bools`] for the `String64` table, defaulting to empty. Each copies
+/// the first String64 the save keeps, as it keeps a bag's size (the Deku
+/// Nut slot's current expansion actor).
+pub fn add_string64s(root: &mut Byml, names: &[String]) -> Result<()> {
+    let kept = |e: &BymlMap| {
+        e.get(&**field::RESET_TYPE_VALUE)
+            .is_some_and(|v| int(v).ok() == Some(KEPT))
+    };
+    add(root, STRING64, names, kept)
+}
+
+/// The GameData table of 64-byte strings.
+const STRING64: &str = "String64";
+
+/// The bytes a save keeps for a String64's text, after its table pair.
+const STRING64_TEXT: i64 = 64;
+
+/// False, 0 or empty, typed as `like`.
 fn zero(like: Option<&Byml>) -> Option<Byml> {
     Some(match like? {
         Byml::Bool(_) => Byml::Bool(false),
@@ -97,6 +114,7 @@ fn zero(like: Option<&Byml>) -> Option<Byml> {
         Byml::U32(_) => Byml::U32(0),
         Byml::I64(_) => Byml::I64(0),
         Byml::U64(_) => Byml::U64(0),
+        Byml::String(_) => Byml::String("".into()),
         _ => return None,
     })
 }
@@ -129,35 +147,47 @@ fn add(
         let mut entry = template.clone();
         entry.insert("Hash".into(), typed(template.get("Hash"), hash)?);
         let value = zero(template.get(&**field::DEFAULT_VALUE))
-            .with_context(|| format!("a {kind}'s default isn't a Bool or an integer"))?;
+            .with_context(|| format!("a {kind}'s default isn't a Bool, an integer or a string"))?;
         entry.insert(field::DEFAULT_VALUE.to_string().into(), value);
         entries.push(Byml::Map(entry));
     }
-    grow_saves(root, file, names.len())
+    let text = match kind == STRING64 {
+        true => STRING64_TEXT,
+        false => 0,
+    };
+    grow_saves(root, file, names.len(), text)
 }
 
 /// The bytes one entry takes in a save's table: its hash, then its value
 /// or where its value is.
 const SAVE_PAIR: i64 = 8;
 
-/// Make room for `n` more entries in save file `file`'s table. The game
+/// Make room for `n` more entries in save file `file`'s table, each with
+/// `text` bytes of value after the table (a String64's text). The game
 /// lays a save out by these sizes, so left alone the longer table runs
 /// into the values after it and clobbers the first arrays there.
-fn grow_saves(root: &mut Byml, file: i64, n: usize) -> Result<()> {
-    let grow = n as i64 * SAVE_PAIR;
+fn grow_saves(root: &mut Byml, file: i64, n: usize, text: i64) -> Result<()> {
+    let table = n as i64 * SAVE_PAIR;
+    let size = table + n as i64 * text;
     let meta = (root.as_mut_map()?)
         .get_mut(&**field::META_DATA)
         .context(field::META_DATA)?
         .as_mut_map()?;
-    for key in [field::ALL_DATA_SAVE_OFFSET, field::ALL_DATA_SAVE_SIZE] {
-        bump(meta.get_mut(&**key).context(key)?, grow)?;
+    for (key, by) in [
+        (field::ALL_DATA_SAVE_OFFSET, table),
+        (field::ALL_DATA_SAVE_SIZE, size),
+    ] {
+        bump(meta.get_mut(&**key).context(key)?, by)?;
     }
     let Ok(file) = usize::try_from(file) else {
         return Ok(());
     };
-    for key in [field::SAVE_DATA_OFFSET_POS, field::SAVE_DATA_SIZE] {
+    for (key, by) in [
+        (field::SAVE_DATA_OFFSET_POS, table),
+        (field::SAVE_DATA_SIZE, size),
+    ] {
         let sizes = meta.get_mut(&**key).context(key)?.as_mut_array()?;
-        bump(sizes.get_mut(file).context(key)?, grow)?;
+        bump(sizes.get_mut(file).context(key)?, by)?;
     }
     Ok(())
 }
@@ -243,7 +273,8 @@ pub fn add_exps(root: &mut Byml, exps: &[(String, Vec<Op>)]) -> Result<()> {
 /// finds an item's entries through these member lists, and an item with
 /// none can't be taken from the floor. A value is named `S.NAME` after
 /// the one `S.LIKE` names `like`'s, for each `S` in `prefixes`, else after
-/// the Struct's hash. Only Bool values are copied.
+/// the Struct's hash. Only Bool values are copied: a Struct whose value
+/// for `like` is a count (the bomb bags are in two) is left alone.
 pub fn join_structs(
     root: &mut Byml,
     like: &str,
@@ -268,10 +299,9 @@ pub fn join_structs(
         };
         let member = member.as_map()?.clone();
         let value = int(&member["Value"])? as u32;
-        ensure!(
-            bools.contains(&value),
-            "{like}'s value in Struct #{struct_hash:08x} isn't a Bool"
-        );
+        if !bools.contains(&value) {
+            continue;
+        }
         let prefix = prefixes
             .iter()
             .find(|p| murmur3(format!("{p}.{like}").as_bytes()) == value)
@@ -620,5 +650,26 @@ mod tests {
         add_ints(&mut doc.root, &["FakeInt_00".to_owned()]).unwrap();
         let back = BymlDoc::parse(&doc.to_binary()).unwrap();
         assert_eq!(layout(&back.root), before.map(|n| n + 3 * SAVE_PAIR));
+    }
+
+    #[test]
+    fn a_string_grows_the_table_by_its_pair_and_the_save_by_its_text_too() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut doc = BymlDoc::parse(&romfs.read(PATH).unwrap()).unwrap();
+        let [table, size, all_table, all_size] = layout(&doc.root);
+        add_string64s(&mut doc.root, &["FakeString_00".to_owned()]).unwrap();
+        let back = BymlDoc::parse(&doc.to_binary()).unwrap();
+        let (pair, whole) = (SAVE_PAIR, SAVE_PAIR + STRING64_TEXT);
+        let grown = [
+            table + pair,
+            size + whole,
+            all_table + pair,
+            all_size + whole,
+        ];
+        assert_eq!(layout(&back.root), grown);
+        let gd = GameData::parse(&back.to_binary()).unwrap();
+        assert_eq!(gd.kind(murmur3(b"FakeString_00")), Some(STRING64));
     }
 }

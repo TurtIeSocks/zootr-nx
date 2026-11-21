@@ -322,7 +322,10 @@ fn give_all(
     let model = levels::model(&crate::events::Flows::load(romfs).unwrap()).unwrap();
     let level = levels::Level {
         model: &model,
-        progressive,
+        lines: crate::progressive::Lines {
+            progressive,
+            ..Default::default()
+        },
     };
     give(romfs, rewrites, cows, drops, level).unwrap();
 }

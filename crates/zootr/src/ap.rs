@@ -39,13 +39,34 @@ pub const OPTIONS: &[&str] = &[
     "open-waterfall",
     "adult-deku-tree",
     "carpenters-fast",
-    "free-bombchus",
+    "bombchus",
     "skip-cutscenes",
     "chest-size",
     "quiet-navi",
     "bunny-hood",
     "ageless-weapons",
 ];
+
+/// Choice options the world leaves out, each as setting id, option and
+/// the sentence of the setting's description that offers it: Bombchu Bags
+/// join the pool, which the world's pool doesn't hold.
+const HELD: &[(&str, &str, &str)] = &[(
+    "bombchus",
+    "bag",
+    " Or three Bombchu Bags in the pool, holding 20, 30 and 40, and none until the first",
+)];
+
+/// Whether the world offers `option` of choice `id`.
+fn offers(id: &str, option: &str) -> bool {
+    !HELD.iter().any(|h| (h.0, h.1) == (id, option))
+}
+
+/// Setting `id`'s description, less what offers options the world leaves
+/// out.
+fn described(id: &str, description: &str) -> String {
+    let held = HELD.iter().filter(|h| h.0 == id);
+    held.fold(description.to_owned(), |d, h| d.replace(h.2, ""))
+}
 
 /// Where the world's data lives in the repo.
 pub fn data_dir() -> PathBuf {
@@ -65,7 +86,22 @@ pub fn write(romfs: &Romfs, dir: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::data_dir;
+    use super::{HELD, data_dir, described};
+
+    /// Each held sentence is still in its setting's text, so the world's
+    /// copy never offers an option it leaves out.
+    #[test]
+    fn a_held_option_leaves_the_worlds_description() {
+        let defs = crate::settings::schema();
+        for (id, option, sentence) in HELD {
+            let def = defs.iter().find(|d| d.id == *id).unwrap();
+            assert!(def.description.contains(sentence), "{id}");
+            assert!(
+                !described(id, def.description).contains(sentence),
+                "{id}={option}"
+            );
+        }
+    }
 
     #[test]
     fn the_world_version_is_the_app_version() {

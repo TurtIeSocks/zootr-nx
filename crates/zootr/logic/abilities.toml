@@ -6,7 +6,9 @@
 
 explosives = "bombs or bombchus"
 bombs = "item:bomb-bag"
-bombchus = "(item:bombchus-small or item:bombchus-medium or item:bombchus-large) and (bombs or setting:free-bombchus)"
+# The bombchus setting picks what caps them: the bomb bag's, their own, or a
+# Bombchu Bag found in the pool.
+bombchus = "(item:bombchus-small or item:bombchus-medium or item:bombchus-large) and (setting:bombchus=free or (setting:bombchus=bomb-bag and bombs) or item:bombchu-bag)"
 
 # The child swords and shield, for either age with ageless-weapons. The
 # adult ones need no word: the Mirror Shield reflects light only for adult
@@ -36,8 +38,9 @@ kokiri-sword = "child-weapon and item:kokiri-sword"
 deku-shield = "child-weapon and item:deku-shield-chest"
 hylian-shield = "adult and item:hylian-shield-chest"
 # Deku Babas drop them and the Kokiri shop sells them. Only child Link
-# holds them, and they carry fire from a lit torch.
-sticks = "child"
+# holds them, and they carry fire from a lit torch. A shuffled stick bag
+# must be found first: unshuffled, the first stick brings it.
+sticks = "child and (setting:shuffle-stick-bag=off or item:stick-bag)"
 silver-scale = "item:silver-scale"
 # Past the two boulders at Zora River's mouth: blown up, broken by the
 # hammer, or skipped down the Lost Woods shortcut, which lands upriver.

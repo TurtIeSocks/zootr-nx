@@ -452,6 +452,10 @@ pub fn give_all(
     progressive: bool,
     on: &BTreeSet<String>,
 ) -> Result<()> {
+    let lines = crate::progressive::Lines {
+        progressive,
+        ..crate::progressive::Lines::of_on(on)
+    };
     let mut marks = found::Marks::default();
     // Chained once every gift is renamed: a chain names other levels, maybe
     // another gift's own item in the same flow.
@@ -462,9 +466,9 @@ pub fn give_all(
     for gift in &GIFTS {
         let item = item_at(drops, gift.hash(), gift.item);
         let pocket = gift.pocket(on);
-        let leveled = levels::needs(gift, item, progressive);
+        let leveled = levels::needs(gift, item, lines);
         let item = match pocket && leveled {
-            true => pocket::level(romfs, rewrites, item)?,
+            true => pocket::level(romfs, rewrites, item, lines)?,
             false => item,
         };
         let mine = taken.entry(gift.flow.get()).or_default();
@@ -521,7 +525,7 @@ pub fn give_all(
         let model = levels::model(flows)?;
         for (flow, item, only) in by_level {
             flows::edit(romfs, rewrites, flow, |f| {
-                levels::by_level(f, &model, item, only.as_deref())
+                levels::by_level(f, &model, item, only.as_deref(), lines)
             })
             .with_context(|| format!("{flow} giving {item} by level"))?;
         }

@@ -329,3 +329,25 @@ impl StartingAge {
         }
     }
 }
+
+/// What caps the Bombchus Link can hold.
+#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
+pub enum Bombchus {
+    /// The bomb bag's cap, as in the game
+    BombBag,
+    /// Their own cap, the Biggest Bomb Bag's
+    #[default]
+    Free,
+    /// Three Bombchu Bags in the pool, each a size up
+    Bag,
+}
+
+impl Bombchus {
+    pub(super) fn label(self) -> &'static str {
+        match self {
+            Self::BombBag => "The bomb bag's",
+            Self::Free => "Their own, 40",
+            Self::Bag => "Bombchu Bags",
+        }
+    }
+}

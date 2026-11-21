@@ -43,7 +43,7 @@ fn written(at: &[(usize, impl AsRef<str>)]) -> Option<(Flowchart, Flowchart)> {
     let model = model(&romfs);
     let level = Level {
         model: &model,
-        progressive: true,
+        lines: crate::progressive::Lines::climbing(),
     };
     write(&romfs, &mut rewrites, &drops(at), PRICE_SET, level).unwrap();
     Some((before, parse(&rewrites[&flows::rel(FLOW)])))
@@ -557,7 +557,7 @@ fn riddle(item: &str) -> Option<Flowchart> {
     let model = model(&romfs);
     let level = Level {
         model: &model,
-        progressive: true,
+        lines: crate::progressive::Lines::climbing(),
     };
     secret(&mut flow, item, PRICE_SET, level).unwrap();
     Some(flow)
@@ -649,7 +649,7 @@ fn each_item_sold_gets_one_line() {
         (HF_HEART, item::HAMMER),
     ];
     let drops = drops(&at);
-    let lines = lines(&drops);
+    let lines = lines(&drops, Default::default());
     let items: Vec<&str> = lines.new.iter().map(|(_, i)| *i).collect();
     assert_eq!(items, ["Item_L", item::HAMMER, RED]);
     assert_eq!(
@@ -657,7 +657,7 @@ fn each_item_sold_gets_one_line() {
         seller(item::HAMMER)
     );
     assert!(
-        super::lines(&HashMap::new())
+        super::lines(&HashMap::new(), Default::default())
             .new
             .iter()
             .all(|(_, i)| *i == RED)
@@ -808,7 +808,7 @@ fn a_scrub_dealt_the_hookshot_offers_and_sells_the_step_link_owns() {
     let both = [item::HOOKSHOT, item::LONGSHOT].map(|i| (i.to_string(), seller(i)));
     assert_eq!(sales_from(&after, ask), both);
     let dealt = drops(&[(KOKIRI, item::HOOKSHOT)]);
-    let lines = lines(&dealt);
+    let lines = lines(&dealt, Default::default());
     for i in [item::HOOKSHOT, item::LONGSHOT] {
         assert!(lines.new.iter().any(|(_, l)| *l == i.get()), "{i}");
     }

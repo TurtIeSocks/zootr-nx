@@ -493,7 +493,7 @@ mod tests {
             &crate::progress::Run::silent(),
         )
         .unwrap();
-        let lines = scrubs::lines(&drops);
+        let lines = scrubs::lines(&drops, Default::default());
         let (label, _) = lines.new.iter().find(|(_, i)| *i == copy).unwrap();
         let rel = archives(&romfs)
             .unwrap()
@@ -559,7 +559,7 @@ mod tests {
         let Some(romfs) = dev_dump() else { return };
         let drops = hammer_at_kokiri();
         let dir = scrub_mod(&romfs, &drops, "kokiri");
-        let lines = scrubs::lines(&drops);
+        let lines = scrubs::lines(&drops, Default::default());
         hammer_named(&romfs, &dir, &lines);
         std::fs::remove_dir_all(dir).unwrap();
     }
@@ -601,8 +601,8 @@ mod tests {
             &crate::progress::Run::silent(),
         )
         .unwrap();
-        let mut lines = crate::gifts::lines(&drops, false);
-        lines.push(scrubs::lines(&drops));
+        let mut lines = crate::gifts::lines(&drops, Default::default());
+        lines.push(scrubs::lines(&drops, Default::default()));
         assert_eq!(lines.len(), 2);
         let rel = archives(&romfs)
             .unwrap()
@@ -643,7 +643,7 @@ mod tests {
             &crate::progress::Run::silent(),
         )
         .unwrap();
-        let lines = crate::gifts::lines(&drops, false);
+        let lines = crate::gifts::lines(&drops, Default::default());
         let [l] = &lines[..] else {
             panic!("{} lines", lines.len())
         };
@@ -667,7 +667,7 @@ mod tests {
     fn only_languages_without_item_names_fall_back() {
         let Some(romfs) = dev_dump() else { return };
         let drops = hammer_at_kokiri();
-        let lines = scrubs::lines(&drops);
+        let lines = scrubs::lines(&drops, Default::default());
         let items = lines.new.iter().map(|(_, i)| *i).chain([lines.like.1]);
         let labels = name_labels(&romfs, items).unwrap();
         let mut fell_back = Vec::new();

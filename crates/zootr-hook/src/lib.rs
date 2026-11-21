@@ -50,9 +50,9 @@ pub use table::SlotSpec;
 #[cfg(not(target_os = "none"))]
 pub use table::encode;
 pub use table::{
-    BUNNY_HOOD, Credit, DEV, FREE_BOMBCHUS, Found, HEADER, Header, ICE_TRAPS, Level, Levels, MAGIC,
-    Offsets, REACH, SPOT_KEY, Slot, Spot, TRADE_CYCLE, Table, after_grant, fnv, nearest, pick,
-    pick_with,
+    BOMBCHU_BAG, BUNNY_HOOD, Credit, DEV, FREE_BOMBCHUS, Found, HEADER, Header, ICE_TRAPS, Level,
+    Levels, MAGIC, Offsets, REACH, SPOT_KEY, Slot, Spot, TRADE_CYCLE, Table, after_grant, fnv,
+    nearest, pick, pick_with,
 };
 
 /// Where our pieces go in `main`, for game 1.1.1. The code goes over

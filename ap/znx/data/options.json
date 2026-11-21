@@ -49,11 +49,21 @@
     "label": "Gerudo Fortress fast"
   },
   {
-    "default": true,
-    "description": "Bombchus hold up to 50 on their own, so they open the same checks bombs do without waiting on the bag",
-    "id": "free-bombchus",
-    "kind": "toggle",
-    "label": "Bombchus without a bomb bag"
+    "default": "free",
+    "description": "What caps the Bombchus Link holds. The bomb bag's, as in the game. Their own cap of 40, so they open the same checks bombs do without waiting on the bag.",
+    "id": "bombchus",
+    "kind": "choice",
+    "label": "Bombchus",
+    "options": [
+      {
+        "id": "bomb-bag",
+        "label": "The bomb bag's"
+      },
+      {
+        "id": "free",
+        "label": "Their own, 40"
+      }
+    ]
   },
   {
     "default": false,

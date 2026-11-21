@@ -737,7 +737,7 @@ fn a_pickup_holding_a_major_item_drops_its_stand_in() {
     let new_game = NewGame {
         pots: true,
         skulltulas: true,
-        free_bombchus: true,
+        bombchus: crate::settings::Bombchus::Free,
         ..Default::default()
     };
     let pot = &pickups::POTS.checks(&romfs).unwrap()[0];

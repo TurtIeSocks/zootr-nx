@@ -7,6 +7,7 @@
 use super::*;
 use crate::flows::Model;
 use crate::known::Name;
+use crate::progressive::Lines;
 use crate::{ammo, progressive};
 
 /// The pouch question every chain asks, as the archery flow asks it.
@@ -23,15 +24,15 @@ pub(crate) fn model(flows: &Flows) -> Result<Model> {
 #[derive(Clone, Copy)]
 pub(crate) struct Level<'a> {
     pub model: &'a Model,
-    pub progressive: bool,
+    pub lines: Lines,
 }
 
 impl Level<'_> {
     /// Put the pouch questions in front of the call `at` of `flow` giving
     /// `item`, if what it gives depends on what Link owns.
     pub(crate) fn chain(self, flow: &mut Flowchart, item: &str, at: u16) -> Result<()> {
-        match asks(item, self.progressive) {
-            true => by_level_at(flow, self.model, item, at),
+        match asks(item, self.lines) {
+            true => by_level_at(flow, self.model, item, at, self.lines),
             false => Ok(()),
         }
     }
@@ -39,23 +40,23 @@ impl Level<'_> {
 
 /// Whether what `item` gives depends on what Link owns: ammo without what
 /// fires it, or a line's level with progressive items on.
-pub(crate) fn asks(item: &str, progressive: bool) -> bool {
-    ammo::swap(item).is_some() || progressive && progressive::in_line(item)
+pub(crate) fn asks(item: &str, lines: Lines) -> bool {
+    ammo::need(item, lines).is_some() || lines.climbs(item).is_some()
 }
 
 /// Whether `gift`, dealt `item`, needs a chain: ammo, or a level of a line
 /// with progressive items on, unless the game already picks its level.
 /// A sale's chain goes in front of its call into the shared shop flow,
 /// which hands over the `ActorName` it's passed.
-pub(super) fn needs(gift: &Gift, item: &str, progressive: bool) -> bool {
+pub(super) fn needs(gift: &Gift, item: &str, lines: Lines) -> bool {
     let picks = item == gift.item.get() && picked(item).is_some();
-    let level = progressive && progressive::in_line(item) && !picks;
-    level || ammo::swap(item).is_some()
+    let level = lines.climbs(item).is_some() && !picks;
+    level || ammo::need(item, lines).is_some()
 }
 
 /// Every item a chain for `item` can give, lowest first.
-pub(crate) fn steps(item: &str) -> impl Iterator<Item = &'static str> + use<> {
-    let ladder = ladder(item).map(|(l, _)| l).unwrap_or_default();
+pub(crate) fn steps(item: &str, lines: Lines) -> impl Iterator<Item = &'static str> + use<> {
+    let ladder = ladder(item, lines).map(|(l, _)| l).unwrap_or_default();
     ladder.into_iter().map(|(give, _)| give.get())
 }
 
@@ -64,9 +65,9 @@ pub(crate) fn steps(item: &str) -> impl Iterator<Item = &'static str> + use<> {
 /// grant gives. A line's level gives the next level. Ammo steps from
 /// [`ammo::WITHOUT`] to itself, once per level of what fires it, and gives
 /// the highest step.
-fn ladder(item: &str) -> Option<(Vec<(&'static Name, &'static Name)>, usize)> {
-    let Some(&(ammo, fires)) = ammo::NEEDS.iter().find(|(a, _)| *a == item) else {
-        return progressive::line(item).map(|l| (l.to_vec(), 1));
+fn ladder(item: &str, lines: Lines) -> Option<(Vec<(&'static Name, &'static Name)>, usize)> {
+    let Some((ammo, fires)) = ammo::need(item, lines) else {
+        return lines.line(item).map(|l| (l.to_vec(), 1));
     };
     let fired = progressive::line(fires).map_or(vec![(fires, fires)], <[_]>::to_vec);
     let steps = fired.into_iter().map(|(_, pouch)| (ammo, pouch));
@@ -80,8 +81,8 @@ fn ladder(item: &str) -> Option<(Vec<(&'static Name, &'static Name)>, usize)> {
 
 /// What a chain for `item` would give a Link who owns `owned`: the level
 /// after the highest owned, or for ammo the highest step.
-pub(super) fn owned_level<'a>(item: &'a str, owned: &BTreeSet<String>) -> &'a str {
-    let Some((ladder, next)) = ladder(item) else {
+pub(super) fn owned_level<'a>(item: &'a str, owned: &BTreeSet<String>, lines: Lines) -> &'a str {
+    let Some((ladder, next)) = ladder(item, lines) else {
         return item;
     };
     let has = |(_, own): &(&Name, &Name)| owned.contains(own.get());
@@ -99,8 +100,9 @@ pub(super) fn by_level(
     model: &Model,
     item: &str,
     only: Option<&[u16]>,
+    lines: Lines,
 ) -> Result<()> {
-    let (ladder, next) = ladder(item).with_context(|| format!("{item} gives by nothing"))?;
+    let (ladder, next) = ladder(item, lines).with_context(|| format!("{item} gives by nothing"))?;
     let mut named = events(flow, item);
     if let Some(only) = only {
         named.retain(|(at, _)| only.contains(at));
@@ -116,8 +118,14 @@ pub(super) fn by_level(
 
 /// Put a chain in front of the call `at` of `flow`, which gives `item`, so
 /// it gives the level after the highest Link owns.
-pub(crate) fn by_level_at(flow: &mut Flowchart, model: &Model, item: &str, at: u16) -> Result<()> {
-    let (ladder, next) = ladder(item).with_context(|| format!("{item} gives by nothing"))?;
+pub(crate) fn by_level_at(
+    flow: &mut Flowchart,
+    model: &Model,
+    item: &str,
+    at: u16,
+    lines: Lines,
+) -> Result<()> {
+    let (ladder, next) = ladder(item, lines).with_context(|| format!("{item} gives by nothing"))?;
     chain(flow, model, &ladder, at, next, item)
 }
 
@@ -229,11 +237,20 @@ mod tests {
         needs_names!();
         let owned = |names: &[&Name]| names.iter().map(|n| n.to_string()).collect();
         let (hook, long) = (item::HOOKSHOT, item::LONGSHOT);
-        assert_eq!(owned_level(hook, &owned(&[])), hook.get());
-        assert_eq!(owned_level(hook, &owned(&[hook])), long.get());
-        assert_eq!(owned_level(hook, &owned(&[long])), long.get());
         assert_eq!(
-            owned_level("Item_FakeRupee", &owned(&[hook])),
+            owned_level(hook, &owned(&[]), Lines::climbing()),
+            hook.get()
+        );
+        assert_eq!(
+            owned_level(hook, &owned(&[hook]), Lines::climbing()),
+            long.get()
+        );
+        assert_eq!(
+            owned_level(hook, &owned(&[long]), Lines::climbing()),
+            long.get()
+        );
+        assert_eq!(
+            owned_level("Item_FakeRupee", &owned(&[hook]), Lines::climbing()),
             "Item_FakeRupee"
         );
     }
@@ -344,7 +361,7 @@ mod tests {
     #[test]
     fn ammo_steps_from_the_rupee_through_every_level_that_fires_it() {
         needs_names!();
-        let (bombs, next) = ladder(item::BOMB_BUNDLE_SMALL).unwrap();
+        let (bombs, next) = ladder(item::BOMB_BUNDLE_SMALL, Lines::default()).unwrap();
         let pouches: Vec<&str> = bombs.iter().map(|(_, p)| p.get()).collect();
         let bags = [
             item::BOMB_BAG_SMALL,
@@ -356,7 +373,7 @@ mod tests {
             (bombs[0].0, bombs[1].0, next),
             (ammo::WITHOUT, item::BOMB_BUNDLE_SMALL, 0)
         );
-        assert_eq!(ladder(item::HOOKSHOT).unwrap().1, 1);
+        assert_eq!(ladder(item::HOOKSHOT, Lines::default()).unwrap().1, 1);
     }
 
     #[test]

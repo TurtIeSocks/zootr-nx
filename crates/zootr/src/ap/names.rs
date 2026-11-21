@@ -9,7 +9,7 @@ use ounce_formats::Romfs;
 use crate::checks::ItemCheck;
 use crate::generate::Spot;
 use crate::known::{Name, actor, flag, flow, item, map};
-use crate::progressive::LINES;
+use crate::progressive::Lines;
 use crate::{gifts, places, scrubs};
 
 /// Each area by its folder.
@@ -137,8 +137,9 @@ pub fn same(actor: &str) -> &str {
 /// The item's name: its line's with progressive items on, else its own.
 pub fn item(actor: &str, progressive: bool) -> Result<&'static str> {
     let actor = same(actor);
+    // The world never shuffles a starter bag, so its lines are the game's.
     let line = progressive
-        .then(|| LINES.iter().find(|l| l[0].0.get() == actor))
+        .then(|| Lines::default().all().find(|l| l[0].0.get() == actor))
         .flatten();
     let name = match line {
         Some(_) => find(PROGRESSIVE, actor),

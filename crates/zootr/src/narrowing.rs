@@ -115,7 +115,7 @@ pub(crate) fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool 
         || shops::is_shop(check)
         || gifts::is_prize(check)
         || pickups::is_pickup(check);
-    !picks && levels::asks(item, progressive)
+    !picks && levels::asks(item, crate::progressive::Lines::widest(progressive))
 }
 
 /// Whether `check` may hold `item`: a gift can't hold one that asks. A

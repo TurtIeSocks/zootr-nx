@@ -519,7 +519,7 @@ impl Moved<'_> {
 pub fn moved<'a>(
     checks: &'a [ItemCheck],
     drops: &'a HashMap<u64, Drop>,
-    progressive: bool,
+    progressive: crate::progressive::Lines,
 ) -> Vec<Moved<'a>> {
     let holders: BTreeSet<(u64, &str, &str)> = checks
         .iter()
@@ -566,7 +566,7 @@ pub fn write(
     new_game: &NewGame,
 ) -> Result<Vec<String>> {
     let mut fields = Vec::new();
-    for m in moved(checks, drops, new_game.progressive) {
+    for m in moved(checks, drops, crate::progressive::Lines::of(new_game)) {
         if m.built() {
             let pickup = StandIn {
                 name: &m.actor,

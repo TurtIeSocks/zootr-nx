@@ -104,7 +104,7 @@ pub fn give(
     rewrites: &mut Rewrites,
     pieces: &[ItemCheck],
     drops: &HashMap<u64, Drop>,
-    progressive: bool,
+    progressive: crate::progressive::Lines,
 ) -> Result<()> {
     // Each key's steps, holder's own first.
     let mut moved: BTreeMap<&str, Vec<_>> = BTreeMap::new();
@@ -171,7 +171,7 @@ pub fn fields(
     romfs: &ounce_formats::Romfs,
     pieces: &[ItemCheck],
     drops: &HashMap<u64, Drop>,
-    progressive: bool,
+    progressive: crate::progressive::Lines,
 ) -> Result<Vec<String>> {
     let flow = flows::load(romfs, FLOW)?.with_context(|| format!("{FLOW} isn't a flow"))?;
     let mut fields = Vec::new();
@@ -254,8 +254,10 @@ mod tests {
         let key = pieces.iter().find(|c| c.item.ends_with("_01")).unwrap();
         let drops = HashMap::from([(key.hash, Drop::from(keys::INSTEAD.to_string()))]);
         let mut rewrites = Rewrites::new();
-        give(&romfs, &mut rewrites, &pieces, &drops, false).unwrap();
-        let actor = pickups::moved(&pieces, &drops, false).remove(0).actor;
+        give(&romfs, &mut rewrites, &pieces, &drops, Default::default()).unwrap();
+        let actor = pickups::moved(&pieces, &drops, Default::default())
+            .remove(0)
+            .actor;
         let flow = Flowchart::parse(&rewrites[&flows::rel(FLOW)])
             .unwrap()
             .unwrap();
@@ -315,8 +317,15 @@ mod tests {
         let key = pieces.iter().find(|c| c.item.ends_with("_01")).unwrap();
         let drops = HashMap::from([(key.hash, Drop::from(item::HOOKSHOT.to_string()))]);
         let mut rewrites = Rewrites::new();
-        give(&romfs, &mut rewrites, &pieces, &drops, true).unwrap();
-        let placed = pickups::moved(&pieces, &drops, true);
+        give(
+            &romfs,
+            &mut rewrites,
+            &pieces,
+            &drops,
+            crate::progressive::Lines::climbing(),
+        )
+        .unwrap();
+        let placed = pickups::moved(&pieces, &drops, crate::progressive::Lines::climbing());
         assert_eq!(placed.len(), 2, "the Hookshot, then the Longshot");
         let flow = Flowchart::parse(&rewrites[&flows::rel(FLOW)])
             .unwrap()
@@ -359,8 +368,14 @@ mod tests {
         let pieces = pickups::FORTRESS_KEYS.checks(&romfs).unwrap();
         let key = pieces.iter().find(|c| c.item.ends_with("_01")).unwrap();
         let drops = HashMap::from([(key.hash, Drop::from(item::HOOKSHOT.to_string()))]);
-        let laid = fields(&romfs, &pieces, &drops, true).unwrap();
-        let placed = pickups::moved(&pieces, &drops, true);
+        let laid = fields(
+            &romfs,
+            &pieces,
+            &drops,
+            crate::progressive::Lines::climbing(),
+        )
+        .unwrap();
+        let placed = pickups::moved(&pieces, &drops, crate::progressive::Lines::climbing());
         // Her call's spot for the first key, on the floor at 102.5.
         let spot = ["26.111", "102.5", "-67.422"];
         let want: Vec<String> = placed
@@ -368,7 +383,13 @@ mod tests {
             .flat_map(|m| (0..3).map(move |i| format!("{}.{TRANSLATE}.{i}={}", m.hash, spot[i])))
             .collect();
         assert_eq!(laid, want, "both steps");
-        let none = fields(&romfs, &pieces, &HashMap::new(), true).unwrap();
+        let none = fields(
+            &romfs,
+            &pieces,
+            &HashMap::new(),
+            crate::progressive::Lines::climbing(),
+        )
+        .unwrap();
         assert!(none.is_empty(), "a key left in place stays put");
     }
 
@@ -396,7 +417,14 @@ mod tests {
         let Some(romfs) = dev_dump() else { return };
         let pieces = pickups::FORTRESS_KEYS.checks(&romfs).unwrap();
         let mut rewrites = Rewrites::new();
-        give(&romfs, &mut rewrites, &pieces, &HashMap::new(), true).unwrap();
+        give(
+            &romfs,
+            &mut rewrites,
+            &pieces,
+            &HashMap::new(),
+            crate::progressive::Lines::climbing(),
+        )
+        .unwrap();
         assert!(rewrites.is_empty());
     }
 }
