@@ -162,18 +162,19 @@ fn thawed(pack: &ActorPack) -> Result<Vec<Edit>> {
     })?;
     let mut edits = vec![conditions];
     if child {
-        let adult = Byml::String(ADULT.get().into());
-        edits.push(component_edited(
-            pack,
-            &param,
-            field::E_LINK_REF,
-            |_, own| {
-                own.insert(field::USER_NAME.get().into(), adult);
-                Ok(())
-            },
-        )?);
+        edits.push(adult_effects(pack, &param)?);
     }
     Ok(edits)
+}
+
+/// Child Link's effects file with the adult's effects: the frozen shell's
+/// break, and the Megaton Hammer's dust and shake (items for both ages).
+pub(crate) fn adult_effects(pack: &ActorPack, param: &BymlMap) -> Result<Edit> {
+    let adult = Byml::String(ADULT.get().into());
+    component_edited(pack, param, field::E_LINK_REF, |_, own| {
+        own.insert(field::USER_NAME.get().into(), adult);
+        Ok(())
+    })
 }
 
 /// A freeze of [`FROZEN_FRAMES`] in `own`, with its damage ticks spread

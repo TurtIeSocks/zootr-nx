@@ -14,6 +14,7 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::Romfs;
 use zootr_hook::Credit;
 
+pub(crate) use freeze::adult_effects;
 pub use freeze::{event, flow, sensor, thaw};
 pub use get::one_page;
 pub use look::{FILES, look};
