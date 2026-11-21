@@ -788,7 +788,7 @@ pub fn schema() -> Vec<SettingDef> {
         )])
         .chain([toggle(
             MAGIC_WITH_FIRST_ITEM,
-            group::SHUFFLES,
+            place::ITEM_POOL,
             "Magic comes with the first magic item",
             "The first spell, magic arrow, Lens of Truth or Improved Spin Link finds turns the magic meter on, as in the game. Off, only a Magic Meter or Doubled Magic does, and a Magic Meter joins the pool",
         )])
