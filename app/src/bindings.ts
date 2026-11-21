@@ -764,6 +764,11 @@ export type SettingDef = {
 	kind: Kind,
 	/**  When the parent is on, this one is too, whatever its own value. */
 	parent: string | null,
+	/**
+	 *  The toggle that must be on for this one to do anything. While it's
+	 *  off, the app greys this one out.
+	 */
+	requires: string | null,
 	/**  The section of its panel it sits in. */
 	section: string,
 	/**  Its section is a checklist: see [`Place::list`]. */

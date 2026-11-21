@@ -290,6 +290,7 @@ pub(super) fn settings() {
             let nest = [
                 d.parent.map(|p| format!("under {p}")),
                 Some(format!("in {}", d.section)),
+                d.requires.map(|r| format!("needs {r}")),
             ]
             .into_iter()
             .flatten()

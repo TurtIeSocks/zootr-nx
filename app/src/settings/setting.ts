@@ -1,6 +1,6 @@
 import type { Choice, SettingDef } from "@/bindings";
 import type { Settings } from "@/lib/config";
-import { forcer } from "@/lib/settings";
+import { forcer, unmet } from "@/lib/settings";
 import { useConfig } from "@/stores/config";
 
 /** How a description of a setting nobody has tested yet starts. */
@@ -22,6 +22,10 @@ export const lockedBy = (
 /** The setting forcing `def` on, if one is, kept up to date. */
 export const useLockedBy = (def: SettingDef) =>
   useConfig((s) => lockedBy(def, s.schema, s.config.settings));
+
+/** The toggle `def` needs on, while it's off, kept up to date. */
+export const useUnmet = (def: SettingDef) =>
+  useConfig((s) => unmet(def, s.config.settings, s.schema));
 
 /** The id of a setting's control. */
 export const controlId = (def: SettingDef) => `setting-${def.id}`;

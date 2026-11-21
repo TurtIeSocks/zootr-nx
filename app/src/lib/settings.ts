@@ -108,6 +108,16 @@ export function forcer(
   return schema.find((d) => chosen(d, settings)?.forces.includes(def.id));
 }
 
+/** The toggle `def` needs on to do anything, while it's off. */
+export function unmet(
+  def: SettingDef,
+  settings: Settings,
+  schema: SettingDef[],
+): SettingDef | undefined {
+  const needed = schema.find((d) => d.id === def.requires);
+  return needed && !isOn(needed, settings, schema) ? needed : undefined;
+}
+
 /** Whether a setting is forced on, by its parent or a choice's pick. */
 export const forcedOn = (
   def: SettingDef,
@@ -147,14 +157,16 @@ export const chipText = ({ label, value }: Chip) =>
   value === undefined ? label : `${label}: ${value}`;
 
 /** The chip of a toggle that is on, a choice off its default, or an
- * inventory holding anything. A toggle
- * its parent turns on has none: the parent stands in. */
+ * inventory holding anything. A toggle its parent turns on has none: the
+ * parent stands in. Nor does a setting whose needed toggle is off, since
+ * it does nothing. */
 function chipOf(
   def: SettingDef,
   settings: Settings,
   schema: SettingDef[],
 ): Chip | null {
   const { id, label } = def;
+  if (unmet(def, settings, schema)) return null;
   if (def.kind.type === "choice") {
     const pick = chosen(def, settings);
     return pick && pick.id !== def.kind.default

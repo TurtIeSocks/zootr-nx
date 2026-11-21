@@ -133,6 +133,9 @@ pub struct SettingDef {
     pub kind: Kind,
     /// When the parent is on, this one is too, whatever its own value.
     pub parent: Option<&'static str>,
+    /// The toggle that must be on for this one to do anything. While it's
+    /// off, the app greys this one out.
+    pub requires: Option<&'static str>,
     /// The section of its panel it sits in.
     pub section: &'static str,
     /// Its section is a checklist: see [`Place::list`].
@@ -361,8 +364,17 @@ fn toggle(
         description,
         kind: Kind::Toggle { default: false },
         parent: None,
+        requires: None,
         section: place.section,
         list: place.list,
+    }
+}
+
+/// `def`, doing nothing unless toggle `id` is on.
+fn requires(id: &'static str, def: SettingDef) -> SettingDef {
+    SettingDef {
+        requires: Some(id),
+        ..def
     }
 }
 
@@ -503,25 +515,25 @@ pub fn schema() -> Vec<SettingDef> {
                 "Business scrubs",
                 "Every Business Scrub outside the Dream World sells a check once. Scrubs that sold ammo on repeat sell their one item and leave",
             ))])
-        .chain([choice(
+        .chain([requires(SCRUBS, choice(
             SCRUB_PRICE,
             place::CHECKS,
             "Scrub price",
             "What every Business Scrub asks for its check, with Business scrubs on",
             ScrubPrice::label,
-        )])
+        ))])
         .chain([toggle(
                 NPC_GIFTS,
                 place::CHECKS,
                 "NPC gifts",
                 "What people hand over becomes a check: their gifts, minigame prizes, the House of Skulltula's rewards and the Great Fairies' upgrades",
             )])
-        .chain([toggle(
+        .chain([requires(NPC_GIFTS, toggle(
                 HUNDRED_TOKENS,
                 place::CHECKS,
                 "100-token reward",
                 "With NPC gifts on, the House of Skulltula's reward for all 100 tokens is a check too. Off, it pays its Gold Rupee as always, and logic never sends Link for all 100",
-            )])
+            ))])
         .chain([toggle(
                 DUNGEON_REWARDS,
                 place::REWARDS,
@@ -570,13 +582,13 @@ pub fn schema() -> Vec<SettingDef> {
             "Shopsanity",
             "Shelf slots in the eight shops sell checks, each once, at a random price. Prices over 99 rupees need a bigger wallet in logic",
         )])
-        .chain([choice(
+        .chain([requires(SHOPS, choice(
             SHOP_SLOTS,
             place::CHECKS,
             "Shop slots",
             "How many slots of each shop sell a check with Shopsanity on. The rest sell what they always did",
             ShopSlots::label,
-        )])
+        ))])
         .chain([toggle(
             FREESTANDING,
             place::CHECKS,
@@ -787,6 +799,25 @@ mod tests {
             // A checklist holds only toggles.
             assert!(!d.list || matches!(d.kind, Kind::Toggle { .. }), "{}", d.id);
         }
+    }
+
+    #[test]
+    fn a_setting_that_needs_another_names_a_toggle() {
+        let schema = schema();
+        let toggle =
+            |id: &str| (schema.iter()).any(|d| d.id == id && matches!(d.kind, Kind::Toggle { .. }));
+        let needs: Vec<_> = (schema.iter())
+            .filter_map(|d| d.requires.map(|r| (d.id.as_str(), r)))
+            .collect();
+        assert_eq!(
+            needs,
+            [
+                (SCRUB_PRICE, SCRUBS),
+                (HUNDRED_TOKENS, NPC_GIFTS),
+                (SHOP_SLOTS, SHOPS)
+            ]
+        );
+        assert!(needs.iter().all(|(_, r)| toggle(r)));
     }
 
     #[test]

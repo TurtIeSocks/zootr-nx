@@ -29,6 +29,7 @@ const toggle = (id: string, group: string): SettingDef => ({
   description: "",
   kind: { type: "toggle", default: false },
   parent: null,
+  requires: null,
   section: "Fake section",
   list: false,
 });

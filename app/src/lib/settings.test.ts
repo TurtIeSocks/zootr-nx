@@ -13,6 +13,7 @@ import {
   startForcers,
   summary,
   summaryParts,
+  unmet,
   withForced,
 } from "@/lib/settings";
 
@@ -24,6 +25,7 @@ const toggles = (n: number): SettingDef[] =>
     description: "",
     kind: { type: "toggle", default: true },
     parent: null,
+    requires: null,
     section: "Fake section",
     list: false,
   }));
@@ -49,6 +51,7 @@ test("a parent turns its children on and stands in for them", () => {
     description: "",
     kind: { type: "toggle", default: false },
     parent,
+    requires: null,
     section: "Fake section",
     list: false,
   });
@@ -92,6 +95,17 @@ test("a choice's pick forces toggles on and gives start words", () => {
   });
 });
 
+test("a setting is left out while the toggle it needs is off", () => {
+  const [s0, s1] = toggles(2) as [SettingDef, SettingDef];
+  const gifts: SettingDef = { ...s0, kind: { type: "toggle", default: false } };
+  const reward: SettingDef = { ...s1, requires: gifts.id };
+  const schema = [gifts, reward];
+  expect(unmet(reward, {}, schema)?.id).toBe(gifts.id);
+  expect(summary(schema, {})).toBe("Nothing extra");
+  expect(unmet(reward, { s0: true }, schema)).toBeUndefined();
+  expect(summary(schema, { s0: true })).toBe("S0, S1");
+});
+
 test("a choice is summed up only off its default", () => {
   const size: SettingDef = {
     id: "size",
@@ -107,6 +121,7 @@ test("a choice is summed up only off its default", () => {
       ],
     },
     parent: null,
+    requires: null,
     section: "Fake section",
     list: false,
   };
@@ -144,6 +159,7 @@ function diffSchema(): SettingDef[] {
     description: "",
     kind: { type: "toggle", default: false },
     parent,
+    requires: null,
     section: "Fake section",
     list: false,
   });

@@ -37,6 +37,7 @@ const toggle = (
   description: "",
   kind: { type: "toggle", default: false },
   parent: null,
+  requires: null,
   section: "Fake section",
   list: false,
   ...patch,
@@ -153,6 +154,24 @@ test("a choice of three or more is a select", () => {
   expect(screen.queryByRole("group", { name: "Gossip stones" })).toBeNull();
   expect(screen.getByRole("combobox", { name: "Age" })).toBeTruthy();
   expect(screen.queryByRole("group", { name: "Age" })).toBeNull();
+});
+
+test("a setting greys out while the toggle it needs is off", () => {
+  const shops = toggle("shops", "Shopsanity");
+  const slots = {
+    ...choice("slots", "Shop slots", ["One", "All"]),
+    requires: "shops",
+  };
+  show({ defs: [shops, slots] });
+  const one = () => screen.getByRole("button", { name: "One" });
+  expect(one().hasAttribute("disabled")).toBe(true);
+  expect(screen.getByText(/Needs/).textContent).toBe(
+    "Needs Shopsanity on first",
+  );
+  cleanup();
+  show({ defs: [shops, slots], settings: { shops: true } });
+  expect(one().hasAttribute("disabled")).toBe(false);
+  expect(screen.queryByText(/Needs/)).toBeNull();
 });
 
 test("an untested description becomes a badge", () => {

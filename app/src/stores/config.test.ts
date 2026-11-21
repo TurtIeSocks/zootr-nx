@@ -40,6 +40,7 @@ test("a saved section whose panel is gone opens the first panel", () => {
     description: "",
     kind: { type: "toggle", default: false },
     parent: null,
+    requires: null,
     section: "Fake section",
     list: false,
   });
