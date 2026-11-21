@@ -118,7 +118,10 @@ pub(crate) fn step_over(flow: &mut Flowchart, e: u16) -> Result<()> {
     for link in flow.links_to(e) {
         let to = match (link, next) {
             (Link::Branch(..), None) => Some(ending(flow).with_context(|| {
-                format!("a case of {} runs event {e} last, and nothing ends quietly", flow.name)
+                format!(
+                    "a case of {} runs event {e} last, and nothing ends quietly",
+                    flow.name
+                )
             })?),
             _ => next,
         };

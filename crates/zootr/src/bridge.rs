@@ -70,7 +70,10 @@ pub fn keep_step(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
                         _ => false,
                     }
             });
-        flows::step_over(flow, step01.context("the Light Arrows scene sets no Step01")?)
+        flows::step_over(
+            flow,
+            step01.context("the Light Arrows scene sets no Step01")?,
+        )
     })
 }
 

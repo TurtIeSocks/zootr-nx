@@ -304,11 +304,19 @@ mod tests {
         let all = Flows::load(&romfs).unwrap();
         let fire = flow::GET_STONE_OF_FIRE.to_string();
         let mut rewrites = Rewrites::new();
-        hold(&romfs, &mut rewrites, &all, &[(fire.clone(), "DeathMtTrailIn".into())]).unwrap();
+        hold(
+            &romfs,
+            &mut rewrites,
+            &all,
+            &[(fire.clone(), "DeathMtTrailIn".into())],
+        )
+        .unwrap();
         let earlier = ["Ready", "KakarikoVillageNpc", "KakarikoVillageLetter"].map(String::from);
         let sets = |flow: &Flowchart, steps: &[String]| {
             let reached = reached(flow);
-            rewinds(flow, &fire, steps).iter().any(|e| reached.contains(e))
+            rewinds(flow, &fire, steps)
+                .iter()
+                .any(|e| reached.contains(e))
         };
         // Impa's send-off moved it back before.
         assert!(sets(&all.0[&**flow::DOOR_OF_TIME], &earlier));
@@ -318,7 +326,11 @@ mod tests {
         }
         let door = after(flow::DOOR_OF_TIME);
         // Its own step, the Door of Time's, stays.
-        assert!(running(&door, PROGRESS).iter().any(|e| reached(&door).contains(e)));
+        assert!(
+            running(&door, PROGRESS)
+                .iter()
+                .any(|e| reached(&door).contains(e))
+        );
         // The trail's arrival still moves it on.
         let trail = ["DeathMtTrailNpc".to_owned()];
         assert!(sets(&after(&fire), &trail));
