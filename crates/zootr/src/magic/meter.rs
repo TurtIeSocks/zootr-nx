@@ -124,6 +124,7 @@ mod tests {
 
     #[test]
     fn it_is_ours_and_its_model_as_long_as_doubled_magics() {
+        needs_names!();
         assert!(NAME.starts_with(MADE));
         assert_eq!(model().len(), LIKE.get().len());
     }
