@@ -15,7 +15,7 @@ use crate::{flows, rsdb};
 
 /// Actions that change the value they name. Every other action or query
 /// naming GameData reads it.
-const WRITERS: [&str; 4] = ["Set", "AddOrSub", "Reset", "Toggle"];
+pub(super) const WRITERS: [&str; 4] = ["Set", "AddOrSub", "Reset", "Toggle"];
 /// The names actions share in front.
 const PREFIXES: [&str; 3] = ["EventTrigger", "EventQuery", "Event"];
 

@@ -241,6 +241,10 @@ impl Graph {
             .with_context(|| format!("no edge #{edge}"))?;
         let line = self.line(e, None).to_string();
         let cited = match (e.at, &self.flows, &self.gamedata) {
+            (Some(at), ..) if self.scene.contains_key(&e.file) => {
+                let graph = &self.scene[&e.file];
+                crate::graphs::node_line(at.into(), &graph.nodes[usize::from(at)])
+            }
             (Some(at), Some(flows), _) => {
                 let chart = flows.0.get(&e.file).context("flow not loaded")?;
                 let want = format!("#{at} ");
@@ -301,6 +305,8 @@ fn link_word(link: Link) -> &'static str {
         Link::Writes => "writes",
         Link::Reads => "read by",
         Link::Runs => "runs",
+        Link::Drives => "drives",
+        Link::Places => "places",
     }
 }
 
