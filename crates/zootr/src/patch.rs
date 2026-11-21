@@ -29,6 +29,13 @@ const _: () = assert!(PANIC + 16 == LIST_END);
 /// The physics step's `cbz` over the call into Havok's trace recorder, and
 /// where it skips to. Made a `b`, the recorder never runs and holds `CAVE`.
 const GATE: (u32, u32) = (0x17d_59bc, 0x17d_59c4);
+/// Link's "can he catch the Boomerang" check's `tbz` into its child test
+/// (the age override, then `PlayerGameParam.IsChild`), and where it skips
+/// to: whether the Boomerang is back. Made a `b`, the adult catches it as
+/// the child does, and every selector that asks gets the same answer.
+const CATCH: (u32, u32) = (0x41_0250, 0x41_0258);
+/// The `b`s written over the game's own code, each `(at, to)`.
+const SKIPS: [(u32, u32); 2] = [GATE, CATCH];
 /// Each call site and the hook entry its `bl` goes to, as an offset into
 /// the hook. The event request's string argument calls, where an opening
 /// chest sets its `ContentName`, go to `content_name`. The drop reader's
@@ -143,18 +150,18 @@ fn fit(at: u32, mut bytes: Vec<u8>, end: u32, what: &str) -> Result<Patch> {
     Ok(Patch { at, bytes })
 }
 
-/// The gate, the hook and its far code.
-fn code() -> Result<[Patch; 3]> {
-    let gate = Patch {
-        at: GATE.0,
-        bytes: branch(GATE.0, GATE.1, false).to_vec(),
-    };
+/// The skips, the hook and its far code.
+fn code() -> Result<Vec<Patch>> {
+    let skips = SKIPS.map(|(at, to)| Patch {
+        at,
+        bytes: branch(at, to, false).to_vec(),
+    });
     let code = fit(CAVE, hook_code(), CAVE_END, "hook")?;
     let far = fit(FAR, FAR_CODE.to_vec(), FAR_END, "far code")?;
-    Ok([gate, code, far])
+    Ok(skips.into_iter().chain([code, far]).collect())
 }
 
-/// The gate, the hook, its far code and every call site: the same for
+/// The skips, the hook, its far code and every call site: the same for
 /// every seed, since each hook entry checks its own setting in the table.
 /// A game that builds the exefs patch in rebuilds only when this changes.
 pub fn code_patches() -> Result<Vec<Patch>> {
@@ -174,7 +181,7 @@ fn table_writes(Patch { at, mut bytes }: Patch) -> [Patch; 2] {
     ]
 }
 
-/// The gate, the hook, its table for `lines`, the [`zootr_hook::KEYED`]
+/// The skips, the hook, its table for `lines`, the [`zootr_hook::KEYED`]
 /// lines `keyed`, `flags` (with [`DEV`] always, so the mailbox answers in
 /// every seed), `credits` and `spots`, then the calls and function hooks
 /// that reach it, every one in every seed.
@@ -467,6 +474,12 @@ mod tests {
         }
     }
 
+    /// Where the table's two writes start in `patches`: after the skips,
+    /// the hook and its far code.
+    const TABLE_AT: usize = SKIPS.len() + 2;
+    /// Where the sites start in `patches`, after the table.
+    const SITES_AT: usize = TABLE_AT + 2;
+
     /// `patches` without its table's two writes.
     fn without_table(p: Vec<Patch>) -> Vec<Patch> {
         p.into_iter()
@@ -494,9 +507,8 @@ mod tests {
 
     #[test]
     fn the_code_and_table_go_in_their_places_and_read_back() {
-        let [_, code, far, body, magic, ..] =
-            &patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap()[..]
-        else {
+        let p = patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap();
+        let [code, far, body, magic, ..] = &p[SKIPS.len()..] else {
             panic!("patches")
         };
         assert_eq!((code.at, code.bytes.len()), (CAVE, HOOK.len()));
@@ -547,6 +559,14 @@ mod tests {
         assert_eq!(gate.at, 0x17d_59bc);
         // b 0x17d59c4
         assert_eq!(gate.bytes, 0x1400_0002u32.to_le_bytes());
+    }
+
+    #[test]
+    fn the_catch_skips_the_child_test() {
+        let catch = &patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap()[1];
+        assert_eq!(catch.at, 0x41_0250);
+        // b 0x410258, over tbz w9, #8, 0x4102f0
+        assert_eq!(catch.bytes, 0x1400_0002u32.to_le_bytes());
     }
 
     #[test]
@@ -617,8 +637,8 @@ mod tests {
     #[test]
     fn calls_and_hooks_branch_to_the_hook() {
         let p = patches(&progressive::LINES, &[], ALL, &[], &[SPOT], None).unwrap();
-        assert_eq!(p[5..], sites().collect::<Vec<_>>());
-        let at = |i: usize| u32::from_le_bytes(p[5 + i].bytes[..].try_into().unwrap());
+        assert_eq!(p[SITES_AT..], sites().collect::<Vec<_>>());
+        let at = |i: usize| u32::from_le_bytes(p[SITES_AT + i].bytes[..].try_into().unwrap());
         assert_eq!(at(0) >> 26, 0b100101, "a call stays a bl");
         assert_eq!(
             at(CALLS.len() + NPAD_CALLS.len()) >> 26,
@@ -849,7 +869,7 @@ mod tests {
         let exefs = std::fs::read_to_string(exefs(&dir)).unwrap();
         assert_eq!(exefs, pchtxt(&code_patches().unwrap()));
         let cheat = std::fs::read_to_string(path(&dir)).unwrap();
-        assert_eq!(cheat, self::cheat(&whole[3..5]));
+        assert_eq!(cheat, self::cheat(&whole[TABLE_AT..SITES_AT]));
         let addrs: Vec<u32> = (cheat.lines())
             .filter(|l| l.starts_with('0'))
             .filter_map(|l| l.split(' ').nth(1))
