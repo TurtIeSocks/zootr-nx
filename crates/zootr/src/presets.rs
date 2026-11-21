@@ -347,7 +347,9 @@ pub const PRESETS: [Preset; 17] = [
         place: place::OPEN_AREAS,
         edits: || all([flag::NPC_HYLIA_SOLDIER_003_GATE_OPEN], "true"),
         give: &[],
-        progress: &[],
+        // The step the letter moves it to: the trail's Goron and the one at
+        // Darunia's door each talk only at their own step.
+        progress: &[(flow::GET_STONE_OF_FIRE, "DeathMtTrailIn")],
         fields: Vec::new,
     },
     Preset {
@@ -890,7 +892,8 @@ mod tests {
             err.contains("claim-check") && err.contains(&**item::CLAIM_CHECK),
             "{err}"
         );
-        assert_eq!(for_save(&["kakariko-gate".into()], &[]).unwrap().len(), 1);
+        let err = for_save(&["kakariko-gate".into()], &[]).unwrap_err();
+        assert!(err.to_string().contains("moves a quest on"), "{err}");
         let err = for_save(&["carpenters-freed".into()], &[]).unwrap_err();
         assert!(err.to_string().contains("carpenters-freed"), "{err}");
         assert!(for_save(&["nope".into()], &[]).is_err());

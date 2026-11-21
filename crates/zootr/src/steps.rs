@@ -17,6 +17,7 @@ use zootr_hook::{
 };
 
 use crate::checks::str_field;
+use crate::events::Flows;
 use crate::flows::{self, Model, Rewrites, running, set, switch};
 use crate::gamedata::GameData;
 use crate::known::{Name, field, flag, flow, scene};
@@ -186,6 +187,57 @@ fn grant(flow: &mut Flowchart, template: &Flowchart, equip: bool) -> Result<u16>
     }))
 }
 
+/// Keep each quest `progress` moves on from moving back: every event that
+/// moves one to an earlier step is stepped over. A step moves back as
+/// readily as forward: Impa's send-off sets the Fire quest to
+/// `KakarikoVillageNpc`, two steps before the trail the gate preset opens.
+pub fn hold(
+    romfs: &Romfs,
+    rewrites: &mut Rewrites,
+    all: &Flows,
+    progress: &[(String, String)],
+) -> Result<()> {
+    if progress.is_empty() {
+        return Ok(());
+    }
+    let gd = GameData::load(romfs)?;
+    for (challenge, step) in progress {
+        let steps = (gd.enum_values(&format!("{SAVED}{challenge}")))
+            .with_context(|| format!("{challenge} isn't a quest"))?;
+        let at = (steps.iter().position(|s| s == step))
+            .with_context(|| format!("{step} isn't a step of {challenge}"))?;
+        let rewinds = |flow: &Flowchart| rewinds(flow, challenge, &steps[..at]);
+        let mut names: Vec<&String> = (all.0.iter())
+            .filter(|(_, flow)| !rewinds(flow).is_empty())
+            .map(|(name, _)| name)
+            .collect();
+        names.sort();
+        for name in names {
+            flows::edit(romfs, rewrites, name, |flow| {
+                rewinds(flow)
+                    .into_iter()
+                    .try_for_each(|e| flows::step_over(flow, e))
+            })?;
+        }
+    }
+    Ok(())
+}
+
+/// `flow`'s events moving `challenge` to one of `earlier`.
+fn rewinds(flow: &Flowchart, challenge: &str, earlier: &[String]) -> Vec<u16> {
+    running(flow, PROGRESS)
+        .into_iter()
+        .filter(|&e| match &flow.events[e as usize].kind {
+            EventKind::Action { params, .. } => {
+                flows::param(params, field::CHALLENGE_NAME) == Some(challenge)
+                    && flows::param(params, field::STEP_NAME)
+                        .is_some_and(|s| earlier.iter().any(|b| b == s))
+            }
+            _ => false,
+        })
+        .collect()
+}
+
 /// The map change flow's entry the game starts, and its first event.
 pub(crate) fn entry(flow: &Flowchart) -> Result<(usize, u16)> {
     let entry = (flow.entry_points.iter())
@@ -232,10 +284,45 @@ fn branch(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use super::*;
     use crate::game::dev_dump;
     use crate::known::{actor, field, flow};
     use zootr_hook::Notice;
+
+    /// Every event any of `flow`'s entries reaches.
+    fn reached(flow: &Flowchart) -> BTreeSet<u16> {
+        (flow.entry_points.iter())
+            .flat_map(|e| flows::reachable_from(flow, e.main))
+            .collect()
+    }
+
+    #[test]
+    fn a_quest_the_opening_moves_on_never_moves_back() {
+        let Some(romfs) = dev_dump() else { return };
+        let all = Flows::load(&romfs).unwrap();
+        let fire = flow::GET_STONE_OF_FIRE.to_string();
+        let mut rewrites = Rewrites::new();
+        hold(&romfs, &mut rewrites, &all, &[(fire.clone(), "DeathMtTrailIn".into())]).unwrap();
+        let earlier = ["Ready", "KakarikoVillageNpc", "KakarikoVillageLetter"].map(String::from);
+        let sets = |flow: &Flowchart, steps: &[String]| {
+            let reached = reached(flow);
+            rewinds(flow, &fire, steps).iter().any(|e| reached.contains(e))
+        };
+        // Impa's send-off moved it back before.
+        assert!(sets(&all.0[&**flow::DOOR_OF_TIME], &earlier));
+        let after = |name: &str| flows::current(&romfs, &rewrites, name).unwrap();
+        for name in all.0.keys() {
+            assert!(!sets(&after(name), &earlier), "{name} still moves it back");
+        }
+        let door = after(flow::DOOR_OF_TIME);
+        // Its own step, the Door of Time's, stays.
+        assert!(running(&door, PROGRESS).iter().any(|e| reached(&door).contains(e)));
+        // The trail's arrival still moves it on.
+        let trail = ["DeathMtTrailNpc".to_owned()];
+        assert!(sets(&after(&fire), &trail));
+    }
 
     #[test]
     fn a_line_is_a_challenge_and_a_step() {

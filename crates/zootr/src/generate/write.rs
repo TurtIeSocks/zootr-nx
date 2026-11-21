@@ -67,6 +67,7 @@ pub(super) fn flows(
     let grants = starting::with_gives(new_game.start.grants(&pouch), &new_game.give);
     starting::grant(romfs, &mut rewrites, &grants)?;
     starting::replay(romfs, &mut rewrites, &new_game.progress)?;
+    steps::hold(romfs, &mut rewrites, all, &new_game.progress)?;
     steps::dev_branch(romfs, &mut rewrites)?;
     if let Some(spawn) = &new_game.spawn {
         spawn::warp(romfs, &mut rewrites, spawn)?;
