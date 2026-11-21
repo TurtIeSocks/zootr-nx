@@ -38,6 +38,7 @@ mod enemies;
 mod entrances;
 mod events;
 mod fill;
+mod flagmap;
 mod flags;
 mod flows;
 mod foliage;

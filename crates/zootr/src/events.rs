@@ -36,7 +36,7 @@ pub fn saves(_actor: &str, action: &str) -> bool {
 }
 
 /// Params on these actions name other flows to run.
-const FOLLOW: &[(&Name, &Name)] = &[
+pub(crate) const FOLLOW: &[(&Name, &Name)] = &[
     (flow::EVENT_TRANSITION, flow::EVENT_NAME),
     (flow::EVENT_RESERVE_BANC_CHANGE, field::BOOT_EVENT_NAME),
 ];
@@ -72,6 +72,11 @@ impl Flows {
             }
         }
         Ok(Self(map, rsdb::events(romfs)?))
+    }
+
+    /// Every event the game starts by name, and what it runs.
+    pub fn rows(&self) -> &BTreeMap<String, rsdb::Runs> {
+        &self.1
     }
 
     fn has_entry(&self, flow: &str, entry: &str) -> bool {

@@ -23,6 +23,7 @@ use turn::turn;
 
 pub(crate) mod args;
 mod dev_args;
+mod flagmap;
 mod play;
 mod research;
 mod running;
@@ -137,6 +138,7 @@ pub fn run() -> Result<()> {
             println!("{}", flags(&romfs)?.describe(&name)?);
             Ok(())
         }
+        Command::Flagmap { json, query } => flagmap::flagmap(&romfs, query, json),
         Command::Flow { name, mod_dir } => match flow(&romfs, &name, mod_dir.as_deref())? {
             Some(flow) => {
                 print!("{}", flows::render(&flow));

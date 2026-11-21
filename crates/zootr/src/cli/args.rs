@@ -201,6 +201,15 @@ pub(super) enum Command {
         /// Flag name, as the game spells it.
         name: String,
     },
+    /// The flag map: GameData entries and the events that write, read and
+    /// run them, built from the dump.
+    Flagmap {
+        /// One JSON object instead of lines.
+        #[arg(long, global = true)]
+        json: bool,
+        #[command(subcommand)]
+        query: super::flagmap::FlagmapQuery,
+    },
     /// What logic reaches with every check holding its vanilla item, and
     /// with every item, plus each place's provable checks and obstacles.
     /// Takes a new game's settings, like `shuffle`.

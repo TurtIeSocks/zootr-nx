@@ -70,6 +70,8 @@ fn learn(gd: &mut GameData, s: &str) {
     gd.learn(s);
     // Quest step enums are named after their challenge.
     gd.learn(&format!("Step_{s}"));
+    // The game sets an event's played flag, named after the event.
+    gd.learn(&format!("{}.{s}", flag::HAVE_PLAYED_EVENT));
 }
 
 impl Survey {
@@ -99,8 +101,12 @@ impl Survey {
             gamedata.learn(&format!("IsGet.{}", actor.trim_end_matches(ACTORS.1)));
         }
         let mut setters = BTreeMap::<String, BTreeSet<String>>::new();
+        flows
+            .rows()
+            .keys()
+            .for_each(|row| learn(&mut gamedata, row));
         for (name, chart) in &flows.0 {
-            gamedata.learn(&format!("{}.{name}", flag::HAVE_PLAYED_EVENT));
+            learn(&mut gamedata, name);
             flows::strings(chart)
                 .into_iter()
                 .for_each(|s| learn(&mut gamedata, s));
