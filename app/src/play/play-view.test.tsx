@@ -338,6 +338,7 @@ test("deleting a seed and clearing history each ask for a second click", async (
   const [first] = screen.getAllByRole("button", { name: "Delete seed" });
   fireEvent.click(first as HTMLElement);
   expect(del).not.toHaveBeenCalled();
+  expect((first as HTMLElement).textContent).toBe("Really delete?");
   fireEvent.click(first as HTMLElement);
   await waitFor(() => expect(del).toHaveBeenCalledWith(2));
   fireEvent.click(button("Clear"));

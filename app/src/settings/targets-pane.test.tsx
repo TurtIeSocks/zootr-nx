@@ -156,6 +156,8 @@ test("Discard puts the saved targets back", () => {
   show();
   rename("FakeTarget edited");
   fireEvent.click(button("Discard"));
+  expect(nameField().value).toBe("FakeTarget edited");
+  fireEvent.click(button("Really discard?"));
   expect(nameField().value).toBe("FakeTarget");
   expect(screen.queryByRole("button", { name: "Discard" })).toBeNull();
 });

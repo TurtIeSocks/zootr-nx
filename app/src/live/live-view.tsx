@@ -17,6 +17,7 @@ import {
   useState,
 } from "react";
 import { commands } from "@/bindings";
+import { ArmedButton } from "@/components/armed-button";
 import { InlineError } from "@/components/callout";
 import { Help } from "@/components/help";
 import { Tip } from "@/components/tip";
@@ -424,16 +425,18 @@ export function LiveView() {
               <FoldButton />
               <MutedCount />
               <MarkButton />
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  clear();
-                  selection.clear();
-                }}
-              >
-                Clear
-              </Button>
+              <Tip tip="Clear every line">
+                <ArmedButton
+                  size="sm"
+                  verb="clear"
+                  onAct={() => {
+                    clear();
+                    selection.clear();
+                  }}
+                >
+                  Clear
+                </ArmedButton>
+              </Tip>
               <CopyButton
                 lines={lines}
                 selecting={selecting}

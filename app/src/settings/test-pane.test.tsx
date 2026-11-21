@@ -132,6 +132,8 @@ test("the bar floats only while the form differs, and Discard puts the saved set
   expect(screen.queryByText("Unsaved changes to the test setup")).toBeNull();
   fireEvent.click(button("Remove Item_B"));
   fireEvent.click(button("Discard"));
+  expect(screen.queryByText("Item_B")).toBeNull();
+  fireEvent.click(button("Really discard?"));
   expect(screen.getByText("Item_B")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Discard" })).toBeNull();
 });
@@ -157,6 +159,8 @@ test("quest steps alone make a setup that clears and saves", async () => {
   });
   await waitFor(() => expect(button("Clear").disabled).toBe(false));
   fireEvent.click(button("Clear"));
+  expect(onChange).not.toHaveBeenLastCalledWith({ ...config, test: NO_TEST });
+  fireEvent.click(button("Really clear?"));
   expect(onChange).toHaveBeenLastCalledWith({ ...config, test: NO_TEST });
   expect(screen.queryByText("FakeCastle=Step02")).toBeNull();
 });
@@ -205,6 +209,8 @@ test("clear empties a stored setup and removing an item drops it", async () => {
   fireEvent.click(button("Remove Item_B"));
   expect(screen.queryByText("Item_B")).toBeNull();
   fireEvent.click(button("Clear"));
+  expect(onChange).not.toHaveBeenCalled();
+  fireEvent.click(button("Really clear?"));
   expect(onChange).toHaveBeenCalledWith({
     ...config,
     test: NO_TEST,
@@ -234,6 +240,13 @@ test("saves a setup by name, switches to one and deletes one", async () => {
     }),
   );
   await waitFor(() => expect(button("Delete Well").disabled).toBe(false));
+  fireEvent.click(button("Delete Well"));
+  expect(button("Delete Well").textContent).toBe("Really delete?");
+  expect(onChange).toHaveBeenLastCalledWith({
+    ...config,
+    test: grave,
+    saved_tests: { Well: well, Grave: grave },
+  });
   fireEvent.click(button("Delete Well"));
   await waitFor(() =>
     expect(onChange).toHaveBeenLastCalledWith({

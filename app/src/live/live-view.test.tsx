@@ -406,3 +406,11 @@ test("a row's Mute asks the session to mute its value", async () => {
   expect(screen.queryByText("PlayerStatus.CurrentRupee")).toBeNull();
   expect(screen.getByText("1 muted")).toBeTruthy();
 });
+
+test("Clear asks for a second click before it empties the log", async () => {
+  await recording();
+  fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+  expect(screen.getByText("PlayerStatus.CurrentRupee")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Really clear?" }));
+  expect(screen.queryByText("PlayerStatus.CurrentRupee")).toBeNull();
+});

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
+import { ArmedButton } from "@/components/armed-button";
 import { InlineError } from "@/components/callout";
 import { FloatingBar } from "@/components/floating-bar";
-import { Button } from "@/components/ui/button";
 import { WhyButton } from "@/components/why-button";
 import { claimFoot } from "@/stores/shell";
 
@@ -37,9 +37,9 @@ export function UnsavedBar({
     <FloatingBar
       message={error ? <InlineError error={error} /> : <p>{message}</p>}
     >
-      <Button variant="ghost" disabled={busy} onClick={onDiscard}>
+      <ArmedButton verb="discard" disabled={busy} onAct={onDiscard}>
         Discard
-      </Button>
+      </ArmedButton>
       <WhyButton disabled={busy} why={why} onClick={onSave}>
         {saveLabel}
       </WhyButton>

@@ -520,6 +520,8 @@ test("a page's unsaved bar takes the drift bar's place while it shows", () => {
   expect(screen.getByText("Unsaved changes to the test setup")).toBeTruthy();
   expect(screen.queryByText(/1 change from/)).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+  expect(screen.getByText("Unsaved changes to the test setup")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Really discard?" }));
   expect(screen.getByText("1 change from the default settings")).toBeTruthy();
 });
 

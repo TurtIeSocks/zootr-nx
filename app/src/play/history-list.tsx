@@ -93,10 +93,11 @@ function DeleteSeed({ id, installed }: DeleteSeedProps) {
             : "Delete this seed"
       }
       variant={armed ? "destructive" : "ghost"}
+      size={armed ? "sm" : "icon-sm"}
       disabled={busy || installed}
       {...handlers}
     >
-      <Trash2 />
+      {armed ? "Really delete?" : <Trash2 />}
     </TipButton>
   );
 }

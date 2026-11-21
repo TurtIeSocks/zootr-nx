@@ -315,6 +315,8 @@ test("Discard drops what's pending", async () => {
   fireEvent.click(tile("Hookshot"));
   await waitFor(() => expect(useUi.getPath("save.edits")).toHaveLength(1));
   fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+  expect(useUi.getPath("save.edits")).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "Really discard?" }));
   expect(useUi.getPath("save.edits")).toEqual([]);
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 });

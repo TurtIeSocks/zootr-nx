@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 import { commands } from "@/bindings";
+import { ArmedButton } from "@/components/armed-button";
 import { Card } from "@/components/card";
 import { Field } from "@/components/field";
 import { DumpError } from "@/components/needs-dump";
@@ -143,15 +144,16 @@ function SavedSetups() {
                   >
                     {n}
                   </Button>
-                  <Button
+                  <ArmedButton
                     size="icon-sm"
                     variant="secondary"
+                    verb="delete"
                     aria-label={`Delete ${n}`}
                     disabled={busy}
-                    onClick={() => forget(n)}
+                    onAct={() => forget(n)}
                   >
                     <X />
-                  </Button>
+                  </ArmedButton>
                 </ButtonGroup>
               ))}
             </div>
@@ -198,13 +200,14 @@ function SetupActions() {
 
   return (
     <>
-      <Button
+      <ArmedButton
         variant="secondary"
-        onClick={clear}
+        verb="clear"
+        onAct={clear}
         disabled={busy || !testOn(current)}
       >
         Clear
-      </Button>
+      </ArmedButton>
       <Tip
         wrap
         tip={
