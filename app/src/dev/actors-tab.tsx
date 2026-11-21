@@ -133,6 +133,7 @@ function LiveControls() {
         placeholder="Search nearby actors"
         value={query}
         onChange={setQuery}
+        className="flex-1"
       />
       <Switch id="live-follow" checked={follow} onCheckedChange={setFollow} />
       <Label htmlFor="live-follow" className="text-xs">

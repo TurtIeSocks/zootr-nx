@@ -50,14 +50,16 @@ export function SearchField({
   placeholder,
   value,
   onChange,
+  className,
 }: {
   label: string;
   placeholder: string;
   value: string;
   onChange: (v: string) => void;
+  className?: string;
 }) {
   return (
-    <div className="relative min-w-0 flex-1">
+    <div className={cn("relative min-w-0", className)}>
       <Search
         aria-hidden
         className="pointer-events-none absolute top-2 left-2.5 size-4 text-ink-faint"
