@@ -1,10 +1,18 @@
-//! The archives items for both ages reads, as text.
+//! The files items for both ages reads, as text.
 
-/// The archives the setting reads, which the dump's cache extracts
-/// besides its folders: each borrowed archive's model and events, and the
-/// models of each Link's own archives, whose clips a borrowed one hides.
+/// Every actor's sounds, by sound user.
+pub const SOUNDS: &str = "SLink2/slink2.Product.111.bslnk.zs";
+/// The sound banks each actor loads.
+pub const BANKS: &str = "Sound/ResourceListPack/BarslistPack.Product.111.byml.zs";
+
+/// The files the setting reads, which the dump's cache extracts besides
+/// its folders: each borrowed archive's model and events, the models of
+/// each Link's own archives, whose clips a borrowed one hides, and the
+/// sound files the child's Hammer sounds edit.
 // Text: the extract runs before a dump is open, so no name can be read.
-pub const FILES: [&str; 23] = [
+pub const FILES: [&str; 25] = [
+    SOUNDS,
+    BANKS,
     "Model/Player_Adult_01_Animation.anim.bfres.zs",
     "AnimationEvent/Animation/Player_Adult_01_Animation.anim.baev.zs",
     "Model/Player_Adult_02_Animation.anim.bfres.zs",

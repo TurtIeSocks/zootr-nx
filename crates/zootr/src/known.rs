@@ -26,6 +26,9 @@ const SOURCES: [&[&str]; 2] = [
         crate::pickups::GLOBAL_AI,
         "Model",
         "Sequence",
+        // The sound calls and banks the child's Hammer sounds name.
+        crate::ageless_items::SOUNDS,
+        crate::ageless_items::BANKS,
     ],
 ];
 

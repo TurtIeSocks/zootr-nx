@@ -28,6 +28,7 @@ mod sarc;
 mod save;
 mod tagfile;
 mod walk;
+mod xlink;
 mod zs;
 
 pub use bfres::{
@@ -55,4 +56,7 @@ pub use sarc::replace_file;
 pub use save::{Entry as SaveEntry, KEYED, Save, width as save_width};
 pub use tagfile::{Field, Item, Obj, Tagfile, Type};
 pub use walk::files_with_suffix;
+pub use xlink::{
+    call_names as xlink_calls, copy_call as xlink_copy_call, tree_names as xlink_tree,
+};
 pub use zs::{Dicts, frame_dict_id};

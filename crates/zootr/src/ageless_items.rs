@@ -1,7 +1,7 @@
 //! Items for both ages: each Link uses items only the other uses in the
-//! game. Child Link takes the Hookshot and Longshot, adult Link the Deku
-//! Sticks and the Boomerang. The rest of the spec's items join once they
-//! work (`superpowers/specs/2026-11-21-ageless-items-design.md`).
+//! game. Child Link takes the Megaton Hammer, Hookshot and Longshot, adult
+//! Link the Deku Sticks and the Boomerang. The rest of the spec's items
+//! join once they work (`superpowers/specs/2026-11-21-ageless-items-design.md`).
 //!
 //! Each gate is data, and each Link's state machine already has every
 //! item's branches:
@@ -13,6 +13,10 @@
 //!   child, the Boomerang for the adult.
 //! - Link's animations gain the other Link's archives, resized to his
 //!   skeleton and renamed, beside his own.
+//! - Child Link takes the adult's effects, where the Hammer's dust and
+//!   camera shake are.
+//! - Child Link's sounds gain the Hammer's calls, and he loads the adult's
+//!   sound bank, which holds the slam's clang ([`sounds`]).
 //!
 //! The holder, shooter and animation files size their work from their
 //! RESTBL entry, and each row costs more than its bytes, so each gets
@@ -30,11 +34,13 @@ use crate::standins::{Edit, component_edited};
 
 mod files;
 mod fska;
+mod sounds;
 
-pub use files::FILES;
+pub use files::{BANKS, FILES, SOUNDS};
 
 /// The pause menu's items opened to both ages.
-const ITEMS: [&Name; 4] = [
+const ITEMS: [&Name; 5] = [
+    item::HAMMER,
     item::HOOKSHOT,
     item::LONGSHOT,
     item::DEKU_STICK,
@@ -82,8 +88,8 @@ struct Link {
 const CHILD: Link = Link {
     who: actor::PLAYER_CHILD,
     from: actor::PLAYER_ADULT,
-    holds: &[item::HOOKSHOT, item::LONGSHOT],
-    words: &["Hook"],
+    holds: &[item::HAMMER, item::HOOKSHOT, item::LONGSHOT],
+    words: &["Hook", "Hammer"],
     // Every one of the adult's: a held item's clips are spread over all
     // five (the Hook's draw in 01, lock-on in 02, its shots in 02_H, poses
     // and rolls in 03, waits in 04). A state whose clip is missing plays
@@ -226,7 +232,7 @@ impl Own {
 }
 
 /// Write the setting's files: the pause menu's table, both Links' packs,
-/// and the borrowed archives.
+/// the borrowed archives and the child's sounds.
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     let table = opened(&builder.read(POUCH_TABLE)?)?;
     builder.write(POUCH_TABLE, &table)?;
@@ -247,7 +253,7 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
             builder.add(&events(&name), &romfs.read(&events(from))?, &events(from))?;
         }
     }
-    Ok(())
+    sounds::write(builder)
 }
 
 /// The archives `pack` plays, by name.
@@ -346,7 +352,12 @@ fn borrowed(link: &Link, pack: &ActorPack, lender: &ActorPack) -> Result<Vec<Bor
         Ok(())
     })?;
     let roomy = |(path, old, new): Edit| (path, old, new, SLACK);
-    Ok(vec![roomy(holder), roomy(shooter), roomy(animations)])
+    let mut edits = vec![roomy(holder), roomy(shooter), roomy(animations)];
+    if link.who == CHILD.who {
+        let (path, old, new) = crate::ice_traps::adult_effects(pack, &param)?;
+        edits.push((path, old, new, 0));
+    }
+    Ok(edits)
 }
 
 /// The actor a shooter row makes.
@@ -526,6 +537,7 @@ mod tests {
                 ]);
             }
         }
+        read.extend([SOUNDS, BANKS].map(String::from));
         let files: HashSet<&str> = FILES.into_iter().collect();
         let read: HashSet<&str> = read.iter().map(String::as_str).collect();
         assert_eq!(read, files);
@@ -579,6 +591,26 @@ mod tests {
         }
     }
 
+    fn effects_user(pack: &ActorPack) -> String {
+        let effects = file(pack, field::E_LINK_REF);
+        effects[field::USER_NAME.get()]
+            .as_string()
+            .unwrap()
+            .to_string()
+    }
+
+    #[test]
+    fn child_link_takes_the_adults_effects_and_the_adult_keeps_his() {
+        let Some(romfs) = dev_dump() else { return };
+        let child = borrowing(&romfs, &CHILD);
+        assert_eq!(effects_user(&child), actor::PLAYER_ADULT.get());
+        let shipped = ActorPack::load(&romfs, ADULT.who).unwrap();
+        assert_eq!(
+            effects_user(&borrowing(&romfs, &ADULT)),
+            effects_user(&shipped)
+        );
+    }
+
     #[test]
     fn with_ice_traps_too_child_link_keeps_both_settings_edits() {
         let Some(romfs) = dev_dump() else { return };
@@ -594,6 +626,7 @@ mod tests {
         let conditions = file(&child, field::CONDITION_REF);
         let frozen = conditions.get(field::IS_ENABLE_FROZEN.get());
         assert_eq!(frozen, Some(&Byml::Bool(true)), "the ice traps'");
+        assert_eq!(effects_user(&child), actor::PLAYER_ADULT.get(), "both");
         drop(builder);
         let _ = std::fs::remove_dir_all(dir.with_file_name(format!(
             ".{}.part",
