@@ -797,7 +797,7 @@ pub fn schema() -> Vec<SettingDef> {
             AGELESS_ITEMS,
             place::GAMEPLAY,
             "Items for Both Ages",
-            "Untested. Child Link can use the Megaton Hammer, Hookshot and Longshot, and adult Link Deku Sticks and the Boomerang. Logic still expects each at its own age",
+            "Untested. Child Link can use the Megaton Hammer, Hookshot, Longshot, Bow and magic arrows, and adult Link Deku Sticks and the Boomerang. Logic still expects each at its own age",
         )])
         .chain([toggle(
             BRIDGE_MEDALLIONS,

@@ -106,6 +106,12 @@ pub struct Offsets {
     pub link_update: u32,
     pub picked: u32,
     pub taken: u32,
+    /// The hooked nock, then the drawn bow's component, its projectile's
+    /// name, and the copy of that name into a fixed string.
+    pub nock: u32,
+    pub drawn_bow: u32,
+    pub shootable: u32,
+    pub name_copy: u32,
     /// The game's own `malloc`.
     pub malloc: u32,
     /// Builds an event request in place.

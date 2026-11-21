@@ -8,6 +8,7 @@ use crate::{
     TABLE, Table, fnv, nearest,
 };
 
+mod arrows;
 mod bunny;
 mod chests;
 mod dev;
@@ -29,7 +30,7 @@ const MAX: usize = 128;
 
 // The call sites `bl` to content_name at +0, drop_actor at +4, run_speed
 // at +24 and the controller reads to +32, +36 and +40. The hooked
-// functions `b` to +8, +12, +16, +20, +28, +44, +48, +52 and +56 in place
+// functions `b` to +8, +12, +16, +20, +28, +44, +48, +52, +56 and +60 in place
 // of their pacibsp.
 // The opening node is in x20 at both content_name call sites.
 //
@@ -117,6 +118,7 @@ global_asm!(
     "b items_left_entry",
     "b ui_update_entry",
     "b taken_entry",
+    "b nocked_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -135,6 +137,8 @@ global_asm!(
     "ui_update_resume:",
     "brk #0",
     "taken_resume:",
+    "brk #0",
+    "nocked_resume:",
     "brk #0",
     "npad_full_stub:",
     "brk #0",
@@ -158,6 +162,8 @@ global_asm!(
     "function_hook picked, picked_resume",
     "taken_entry:",
     "function_hook taken, taken_resume",
+    "nocked_entry:",
+    "function_hook nocked, nocked_resume",
     "npad_full_entry:",
     "npad_read npad_full_stub",
     "npad_handheld_entry:",
@@ -303,6 +309,16 @@ pub unsafe extern "C" fn drop_actor(
         let reader: Reader = core::mem::transmute(main() + OFFSETS.reader as usize);
         reader(out, placement, a2, a3)
     }
+}
+
+/// Link is about to nock an arrow or seed with `user`, his EquipmentUser
+/// component: he nocks the drawn bow's own.
+///
+/// # Safety
+/// Only the hooked function's entry calls this.
+#[unsafe(no_mangle)]
+unsafe extern "C" fn nocked(user: usize) {
+    hooked(|main, _| unsafe { arrows::nocked(main, user) })
 }
 
 /// A map has started loading: its chests come next.

@@ -1,6 +1,6 @@
 //! Items for both ages: each Link uses items only the other uses in the
-//! game. Child Link takes the Megaton Hammer, Hookshot and Longshot, adult
-//! Link the Deku Sticks and the Boomerang. The rest of the spec's items
+//! game. Child Link takes the Megaton Hammer, Hookshot, Longshot, Bow and
+//! magic arrows, adult Link the Deku Sticks and the Boomerang. The rest of the spec's items
 //! join once they work (`superpowers/specs/2026-11-21-ageless-items-design.md`).
 //!
 //! Each gate is data, and each Link's state machine already has every
@@ -15,6 +15,8 @@
 //!   skeleton and renamed, beside his own.
 //! - Child Link takes the adult's effects, where the Hammer's dust and
 //!   camera shake are.
+//! - The hook's nock gives Link the drawn bow's projectile, so the child's
+//!   Bow fires arrows, not his seeds (`zootr-hook`, `game/arrows.rs`).
 //! - Child Link's sounds gain the Hammer's calls, and he loads the adult's
 //!   sound bank, which holds the slam's clang ([`sounds`]).
 //!
@@ -39,7 +41,16 @@ mod sounds;
 pub use files::{BANKS, FILES, SOUNDS};
 
 /// The pause menu's items opened to both ages.
-const ITEMS: [&Name; 5] = [
+const ITEMS: [&Name; 13] = [
+    // The Bow's four slots, each an arrow row and a loaded bow row.
+    item::ARROW_NORMAL,
+    actor::WEAPON_RANGE_BOW,
+    item::ARROW_FIRE,
+    actor::POUCH_RANGE_BOW_AND_ARROW_FIRE,
+    item::ARROW_ICE,
+    actor::POUCH_RANGE_BOW_AND_ARROW_ICE,
+    item::ARROW_LIGHT,
+    actor::POUCH_RANGE_BOW_AND_ARROW_LIGHT,
     item::HAMMER,
     item::HOOKSHOT,
     item::LONGSHOT,
@@ -88,8 +99,13 @@ struct Link {
 const CHILD: Link = Link {
     who: actor::PLAYER_CHILD,
     from: actor::PLAYER_ADULT,
-    holds: &[item::HAMMER, item::HOOKSHOT, item::LONGSHOT],
-    words: &["Hook", "Hammer"],
+    holds: &[
+        item::HAMMER,
+        item::HOOKSHOT,
+        item::LONGSHOT,
+        actor::WEAPON_RANGE_BOW,
+    ],
+    words: &["Hook", "Hammer", "Bow"],
     // Every one of the adult's: a held item's clips are spread over all
     // five (the Hook's draw in 01, lock-on in 02, its shots in 02_H, poses
     // and rolls in 03, waits in 04). A state whose clip is missing plays

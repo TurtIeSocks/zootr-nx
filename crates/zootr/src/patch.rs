@@ -59,7 +59,8 @@ const NPAD_CALLS: [(u32, u32); 3] = [(0x346_966c, 32), (0x346_9698, 36), (0x346_
 const NPAD_STUBS: [u32; 3] = [0x3c4_2800, 0x3c4_2830, 0x3c4_27f0];
 /// Each hooked function and the entry the `b` over its `pacibsp` goes to.
 /// Link's update runs the mailbox's requests and the dev switches in a
-/// seed with [`DEV`], and springs ice traps.
+/// seed with [`DEV`], and springs ice traps. The nock sets Link's
+/// projectile to the drawn bow's, so a child Bow fires arrows.
 const HOOKS: &[(u32, u32)] = &[
     (OFFSETS.map_loaded, 8),
     (OFFSETS.chest_made, 12),
@@ -70,6 +71,7 @@ const HOOKS: &[(u32, u32)] = &[
     (OFFSETS.items_left, 48),
     (OFFSETS.ui_update, 52),
     (OFFSETS.taken, 56),
+    (OFFSETS.nock, 60),
 ];
 /// `main`'s build ID, as its NSO header's 32 byte field holds it. Its first
 /// 8 bytes name the cheat file and the rest, trailing zeros left out, the
