@@ -21,18 +21,18 @@ const NAME: &str = "Name";
 /// What a holder of `item` gives as Link's pouch grows, lowest first, each
 /// with the program that's true while it's the one. `None` when it always
 /// gives `item`.
-pub(crate) fn steps(item: &str, progressive: bool) -> Option<Vec<(&'static str, Vec<Op>)>> {
-    if let Some(&(bundle, fires)) = ammo::NEEDS.iter().find(|(a, _)| *a == item) {
+pub(crate) fn steps(
+    item: &str,
+    progressive: progressive::Lines,
+) -> Option<Vec<(&'static str, Vec<Op>)>> {
+    if let Some((bundle, fires)) = ammo::need(item, progressive) {
         let owns = any(ammo::pouches(fires).map(owned));
         return Some(vec![
             (ammo::WITHOUT.get(), not(owns.clone())),
             (bundle.get(), owns),
         ]);
     }
-    if !progressive {
-        return None;
-    }
-    let line = progressive::line(item)?;
+    let line = progressive.climbs(item)?;
     let owns: Vec<_> = line.iter().map(|(_, pouch)| owned(pouch.get())).collect();
     let top = line.len() - 1;
     let program = |k: usize| match k {
@@ -222,7 +222,11 @@ mod tests {
     }
 
     fn shown(item: &str, progressive: bool) -> Vec<(&'static str, String)> {
-        let steps = steps(item, progressive).unwrap();
+        let lines = progressive::Lines {
+            progressive,
+            ..Default::default()
+        };
+        let steps = steps(item, lines).unwrap();
         steps.into_iter().map(|(s, p)| (s, read(&p))).collect()
     }
 
@@ -292,8 +296,14 @@ mod tests {
         let Some(_) = crate::game::dev_dump() else {
             return;
         };
-        assert!(steps(item::LONGSHOT.get(), false).is_none());
-        assert!(steps(item::HOVER_BOOT.get(), true).is_none());
+        assert!(steps(item::LONGSHOT.get(), Default::default()).is_none());
+        assert!(
+            steps(
+                item::HOVER_BOOT.get(),
+                crate::progressive::Lines::climbing()
+            )
+            .is_none()
+        );
     }
 
     #[test]
@@ -304,7 +314,8 @@ mod tests {
         let gd = GameData::load(&romfs).unwrap();
         let lines = progressive::LINES.iter().flat_map(|l| l.iter());
         let fired = ammo::NEEDS.iter().flat_map(|(_, f)| ammo::pouches(f));
-        for pouch in lines.map(|(_, p)| p.get()).chain(fired) {
+        let made = |p: &&str| !crate::bombchu_bags::BAGS.contains(p);
+        for pouch in lines.map(|(_, p)| p.get()).chain(fired).filter(made) {
             let name = format!("{IS_GET}.{pouch}");
             assert_eq!(Op::read(&gd, &name).ok(), owned(pouch).pop(), "{name}");
         }

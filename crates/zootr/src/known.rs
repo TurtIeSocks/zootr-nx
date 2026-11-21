@@ -73,10 +73,16 @@ pub fn found(root: &Path) {
 }
 
 /// The name hashed `hash`, reading each tier of [`SOURCES`] on first use
-/// until one has it. `None` before any dump is found, or when none has it.
+/// until one has it. Our own actors ([`OURS`]) answer without a dump. `None` before any dump is found, or when none has it.
+/// Names of our own actors, which no dump holds.
+const OURS: &[&str] = &crate::bombchu_bags::BAGS;
+
 fn lookup(hash: u64) -> Option<&'static str> {
     if hash == self::hash("") {
         return Some("");
+    }
+    if let Some(ours) = OURS.iter().find(|n| self::hash(n) == hash) {
+        return Some(ours);
     }
     #[cfg(test)]
     if ROOT.get().is_none() {
@@ -97,7 +103,7 @@ fn lookup(hash: u64) -> Option<&'static str> {
 /// Whether `text` is, exactly, a name in the dump. `false` without a dump.
 #[cfg(test)]
 pub(crate) fn is_dump_name(text: &str) -> bool {
-    lookup(hash(text)) == Some(text)
+    !OURS.contains(&text) && lookup(hash(text)) == Some(text)
 }
 
 /// Tier `tier`'s names by hash. Read from the dump the first time, which

@@ -23,6 +23,9 @@ pub const ICE_TRAPS: u32 = 8;
 /// The header's flag for a seed carrying the mailbox: the app's requests
 /// and the dev switches, held on Link's update.
 pub const DEV: u32 = 16;
+/// The header's flag for a seed whose bombchus need a Bombchu Bag, which
+/// sets their own expansion value.
+pub const BOMBCHU_BAG: u32 = 32;
 pub const HEADER: usize = size_of::<Header>();
 
 /// The table's start, little endian like the game.

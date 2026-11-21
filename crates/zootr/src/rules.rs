@@ -26,6 +26,8 @@ pub use lang::{Expr, Have, Need, parse};
 /// What a seed's rules resolve against.
 pub struct Ctx {
     pub progressive: bool,
+    /// The levels the seed's upgrade lines hold.
+    pub lines: crate::progressive::Lines,
     /// Toggles that are on.
     pub on: BTreeSet<String>,
     /// For what's rolled per seed, like shop prices.
@@ -63,6 +65,7 @@ impl Ctx {
     pub fn new(new_game: &NewGame) -> Self {
         Self {
             progressive: new_game.progressive,
+            lines: crate::progressive::Lines::of(new_game),
             on: new_game.on.clone(),
             seed: new_game.seed,
             keys: new_game.keys,
@@ -170,7 +173,7 @@ impl Book {
     }
 
     fn word(&self, word: &str, ctx: &Ctx) -> Result<Need> {
-        if let Some(need) = item::word(word, ctx.progressive) {
+        if let Some(need) = item::word(word, ctx.progressive, ctx.lines) {
             return need;
         }
         Ok(match word {
@@ -212,6 +215,7 @@ mod tests {
     fn ctx(progressive: bool, on: &[&str]) -> Ctx {
         Ctx {
             progressive,
+            lines: Default::default(),
             on: on.iter().map(|s| s.to_string()).collect(),
             seed: 0,
             keys: DungeonKeys::Vanilla,
@@ -285,12 +289,27 @@ mod tests {
         needs_names!();
         let book = Book::load().unwrap();
         let chus: &[&str] = &[item::BOMBCHU_BUNDLE_SMALL];
-        let off = book.resolve("bombchus", &ctx(true, &[])).unwrap();
-        let on = book
-            .resolve("bombchus", &ctx(true, &["free-bombchus"]))
-            .unwrap();
-        assert!(!off.met(&have(chus), Era::Child));
-        assert!(on.met(&have(chus), Era::Child));
+        let bag = &[chus[0], crate::bombchu_bags::SMALL.get()];
+        let bombs = &[chus[0], item::BOMB_BAG_SMALL.get()];
+        let chus_in = |mode: &str| book.resolve("bombchus", &ctx(true, &[mode])).unwrap();
+        let (bomb_bag, free, bags) = (
+            chus_in("bombchus=bomb-bag"),
+            chus_in("bombchus=free"),
+            chus_in("bombchus=bag"),
+        );
+        assert!(!bomb_bag.met(&have(chus), Era::Child));
+        assert!(bomb_bag.met(&have(bombs), Era::Child));
+        assert!(free.met(&have(chus), Era::Child));
+        assert!(!bags.met(&have(bombs), Era::Child));
+        assert!(bags.met(&have(bag), Era::Child));
+        let sticks = |on: &[&str], items: &[&str]| {
+            let need = book.resolve("sticks", &ctx(true, on)).unwrap();
+            need.met(&have(items), Era::Child)
+        };
+        let bag = item::STICK_BAG_SMALL.get();
+        assert!(sticks(&["shuffle-stick-bag=off"], &[]));
+        assert!(!sticks(&["shuffle-stick-bag=on"], &[]));
+        assert!(sticks(&["shuffle-stick-bag=on"], &[bag]));
         assert!(
             book.resolve("setting:no-such-toggle", &ctx(true, &[]))
                 .is_err()
@@ -477,7 +496,7 @@ mod tests {
     fn each_minigame_prize_needs_what_its_game_does() {
         needs_names!();
         let book = Book::load().unwrap();
-        let c = ctx(true, &[]);
+        let c = ctx(true, &["bombchus=bomb-bag"]);
         let (bag, bow) = (item::BOMBCHU_BUNDLE_SMALL, item::RANGE_BOW);
         let (sling, gerudo) = (item::RANGE_SLING_SHOT, item::TOKEN_GERUDO);
         let (letter, saria) = (item::ZELDA_LETTER, item::MELODY_SARIA_SONG);
@@ -721,6 +740,7 @@ mod tests {
             .unwrap()
             .into_iter()
             .map(|i| i.actor)
+            .chain(crate::bombchu_bags::BAGS.map(String::from))
             .collect();
         let book = Book::load().unwrap();
         let c = ctx(true, &[]);

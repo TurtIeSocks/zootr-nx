@@ -24,8 +24,9 @@ const OWN_EXAMPLES: [&str; 1] = ["crates/zootr/src/known/guard.rs"];
 /// Files that hold a name as text because nothing can read it from the
 /// dump there: the hook runs inside the game, and the extract runs before
 /// a dump is open.
-const NO_DUMP: [&str; 5] = [
+const NO_DUMP: [&str; 6] = [
     "crates/zootr-hook/src/game/dev.rs",
+    "crates/zootr/src/bombchu_bags/look.rs",
     "crates/zootr/src/foreign.rs",
     "crates/zootr/src/key_tints.rs",
     "crates/zootr/src/medallions.rs",
@@ -46,7 +47,8 @@ fn is_name(word: &str) -> bool {
 }
 
 /// The game names in `line`, as written. A part marked `Fake`
-/// (`Item_FakeBow`) makes a test's name read as made up.
+/// (`Item_FakeBow`) makes a test's name read as made up, and one marked
+/// `Rando` names an actor of our own.
 fn names_in(line: &str) -> Vec<String> {
     let word = |c: char| c.is_ascii_alphanumeric() || c == '_';
     let mut found = Vec::new();
@@ -60,7 +62,8 @@ fn names_in(line: &str) -> Vec<String> {
                 continue;
             }
             let end = rest.find(|c: char| !word(c)).unwrap_or(rest.len());
-            let made_up = rest[..end].split('_').any(|p| p.starts_with("Fake"));
+            let made_up =
+                (rest[..end].split('_')).any(|p| p.starts_with("Fake") || p.starts_with("Rando"));
             if is_name(&rest[..end]) && !made_up {
                 found.push(format!("{prefix}_{}", &rest[..end]));
             }
@@ -191,6 +194,7 @@ fn a_game_shaped_name_is_found_and_a_fixture_is_not() {
         "Mt_Item_FakeMedal_Forest",
         "Objective_FakeThing",
         "Item_FakeBow",
+        "Item_RandoFakeBag_Small",
         "Obj_FakeHeart_Piece",
         "Item_",
         "Obj_lower",

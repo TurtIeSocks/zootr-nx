@@ -3,7 +3,7 @@
 //! built from the player's dump when a seed is written. Nothing from the
 //! game is committed.
 
-mod paint;
+pub(crate) mod paint;
 
 use std::sync::LazyLock;
 

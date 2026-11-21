@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 
 use super::rule::{Rules, any};
 use super::seed::{Seed, base, open, variants};
-use super::{OPTIONS, ids::Ids, names};
+use super::{OPTIONS, described, ids::Ids, names, offers};
 use crate::checks::ItemCheck;
 use crate::fill;
 use crate::narrowing::allowed;
@@ -259,9 +259,12 @@ fn options() -> Value {
             "kind": "toggle", "default": default,
         }),
         Kind::Choice { default, options } => json!({
-            "id": d.id, "label": d.label, "description": d.description,
+            "id": d.id, "label": d.label, "description": described(&d.id, d.description),
             "kind": "choice", "default": default,
-            "options": options.iter().map(|o| json!({ "id": o.id, "label": o.label })).collect::<Vec<_>>(),
+            "options": (options.iter())
+                .filter(|o| offers(&d.id, &o.id))
+                .map(|o| json!({ "id": o.id, "label": o.label }))
+                .collect::<Vec<_>>(),
         }),
         Kind::Inventory => json!({
             "id": d.id, "label": d.label, "description": d.description,

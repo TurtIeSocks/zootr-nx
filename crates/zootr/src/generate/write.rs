@@ -7,13 +7,17 @@ use anyhow::{Result, bail, ensure};
 use ounce_formats::{BymlDoc, ModBuilder, Romfs, par_map, threads};
 
 use super::Written;
+use crate::bombchu_bags;
 use crate::checks::{self, Drop};
 use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::hints::Hint;
 use crate::narrowing::maps_move;
 use crate::progress::Run;
+use crate::progressive::Lines;
+use crate::settings::Bombchus;
 use crate::settings::{AGELESS_WEAPONS, ChestSize, DungeonEntrances, NewGame, TRADE_CHAIN};
+use crate::starter_bags;
 use crate::world::Era;
 use crate::{
     adult_jabu, ageless, ammo, blue_warps, bombchus, bombs, bridge, chest_levels, cows, cutscenes,
@@ -72,7 +76,7 @@ pub(super) fn flows(
         all,
         &mut rewrites,
         drops,
-        new_game.progressive,
+        Lines::of(new_game),
         &new_game.on,
     )?;
     levels(romfs, drops, new_game)?.give(romfs, all, &mut rewrites)?;
@@ -87,7 +91,7 @@ pub(super) fn flows(
     let model = gifts::levels::model(all)?;
     let level = gifts::levels::Level {
         model: &model,
-        progressive: new_game.progressive,
+        lines: Lines::of(new_game),
     };
     if new_game.scrubs {
         scrubs::write(romfs, &mut rewrites, drops, new_game.scrub_price, level)?;
@@ -97,7 +101,7 @@ pub(super) fn flows(
     }
     let pieces = pickups::dealt(romfs, new_game)?;
     if new_game.fortress_keys.moved() {
-        fortress::give(romfs, &mut rewrites, &pieces, drops, new_game.progressive)?;
+        fortress::give(romfs, &mut rewrites, &pieces, drops, Lines::of(new_game))?;
     }
     picked::delete_letter(romfs, &mut rewrites, &picked::holders(&pieces, drops))?;
     if ice_traps::springs(new_game) {
@@ -134,11 +138,12 @@ pub fn write_mod(
                 .into_iter()
                 .chain(d.swap.iter().flat_map(|s| [s.check, s.then]))
         })
-        // Key copies, Red Rupee copies, other players' items and ice traps
-        // are written with the mod.
+        // Key copies, Red Rupee copies, other players' items, ice traps and
+        // Bombchu Bags are written with the mod.
         .find(|i| {
             !keys::is_shuffled(i)
                 && !foreign::is_copy(i)
+                && !bombchu_bags::BAGS.contains(i)
                 && ammo::copied(i).is_none()
                 && !romfs.root().join(flags::actor_pack(i)).is_file()
         })
@@ -153,8 +158,8 @@ pub fn write_mod(
             builder.write(&to, data)?;
         }
     }
-    let mut lines = gifts::lines(drops, new_game.progressive);
-    lines.push(scrubs::lines(drops));
+    let mut lines = gifts::lines(drops, Lines::of(new_game));
+    lines.push(scrubs::lines(drops, Lines::of(new_game)));
     lines.extend(scrubs::sold_out(drops));
     let gd = gamedata::GameData::load(romfs)?;
     let slots = match new_game.shop_slots {
@@ -178,6 +183,7 @@ pub fn write_mod(
         key_lines.new.extend(map_copies::captions());
     }
     copies.insert(0, key_lines);
+    copies.push(starter_bags::captions(new_game));
     copies.push(notice::banners());
     copies.push(notice::senders(&new_game.players));
     text::write(romfs, &mut builder, &lines, &copies, hints)?;
@@ -190,7 +196,7 @@ pub fn write_mod(
     edits.extend(new_game.defaults.iter().cloned());
     let pieces = pickups::dealt(romfs, new_game)?;
     let picked = picked::holders(&pieces, drops);
-    let steps = pickups::steps::Steps::new(&pieces, drops, new_game.progressive, &picked, &gd)?;
+    let steps = pickups::steps::Steps::new(&pieces, drops, Lines::of(new_game), &picked, &gd)?;
     let mut bools = cows::flags(&cows);
     bools.extend(picked::flags(&picked));
     if new_game.shop_slots > 0 {
@@ -245,6 +251,9 @@ pub fn write_mod(
         let names = [copy.clone()];
         gamedata::join_structs(&mut data.root, template.get(), &names, &[gamedata::IS_GET])?;
     }
+    if new_game.bombchus == Bombchus::Bag {
+        bombchu_bags::game_data(&mut data.root)?;
+    }
     let names: Vec<String> = new_game.foreign.iter().map(|f| f.actor.clone()).collect();
     if !names.is_empty() {
         gamedata::join_structs(
@@ -271,10 +280,13 @@ pub fn write_mod(
     }
     fields.extend(cows::fields(&cows));
     let mut tables = standins::Tables::load(romfs)?;
-    // Before the stand-ins, so one holding bombchus copies the freed row.
-    if new_game.free_bombchus {
-        bombchus::write(&mut builder, &mut tables)?;
+    // Before the stand-ins, so one holding bombchus copies the freed row,
+    // and one holding nuts or sticks the row that keeps its bag.
+    bombchus::write(&mut builder, &mut tables, new_game.bombchus)?;
+    if new_game.bombchus == Bombchus::Bag {
+        bombchu_bags::write(romfs, &mut builder, &mut tables)?;
     }
+    starter_bags::write(romfs, new_game, &mut builder, &mut tables)?;
     if new_game.on.contains(AGELESS_WEAPONS) {
         ageless::write(romfs, &mut builder)?;
     }
@@ -348,7 +360,7 @@ pub fn write_mod(
             romfs,
             &pieces,
             drops,
-            new_game.progressive,
+            Lines::of(new_game),
         )?);
     }
     steps.write(romfs, &mut builder)?;
@@ -494,7 +506,7 @@ pub fn write_mod(
         .collect();
     patch::install(
         mod_dir,
-        new_game.progressive,
+        Lines::of(new_game),
         &keyed,
         flags,
         &credits,
@@ -527,7 +539,7 @@ fn levels(
     drops: &HashMap<u64, Drop>,
     new_game: &NewGame,
 ) -> Result<chest_levels::Levels> {
-    chest_levels::Levels::new(romfs, drops, new_game.progressive, sets(new_game))
+    chest_levels::Levels::new(romfs, drops, Lines::of(new_game), sets(new_game))
 }
 
 /// What each copy `new_game` deals sets as it's found: its key copies',
@@ -552,7 +564,11 @@ fn credits(new_game: &NewGame) -> Vec<(String, zootr_hook::Credit)> {
 /// lets Link pick what the trade slot shows.
 fn hook_flags(new_game: &NewGame) -> u32 {
     [
-        (new_game.free_bombchus, zootr_hook::FREE_BOMBCHUS),
+        (
+            new_game.bombchus == Bombchus::Free,
+            zootr_hook::FREE_BOMBCHUS,
+        ),
+        (new_game.bombchus == Bombchus::Bag, zootr_hook::BOMBCHU_BAG),
         (new_game.bunny_hood, zootr_hook::BUNNY_HOOD),
         (ice_traps::springs(new_game), zootr_hook::ICE_TRAPS),
         (true, zootr_hook::TRADE_CYCLE),
@@ -570,9 +586,9 @@ mod tests {
     #[test]
     fn each_hook_setting_sets_its_own_bit() {
         assert_eq!(FREE_BOMBCHUS & BUNNY_HOOD & TRADE_CYCLE, 0);
-        let flags = |free_bombchus, bunny_hood| {
+        let flags = |free: bool, bunny_hood| {
             hook_flags(&NewGame {
-                free_bombchus,
+                bombchus: [Bombchus::BombBag, Bombchus::Free][usize::from(free)],
                 bunny_hood,
                 ..Default::default()
             })

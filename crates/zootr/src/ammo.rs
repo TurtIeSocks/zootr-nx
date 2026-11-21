@@ -3,32 +3,44 @@
 use anyhow::Result;
 use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs};
 
+use crate::bombchu_bags;
 use crate::checks::Swap;
 use crate::key_tints::MADE;
 use crate::known::{Name, actor, item};
-use crate::progressive;
+use crate::progressive::{self, Lines};
 use crate::standins::{Tables, actor_path, raw, write_clone};
 
-/// Each resource and what fires it.
-pub const NEEDS: [(&Name, &Name); 5] = [
+/// Each resource and what fires it. A starter bag's rows count only in a
+/// seed that shuffles the bag ([`need`]).
+pub const NEEDS: [(&Name, &Name); 11] = [
     (item::BOMB_BUNDLE_SMALL, item::BOMB_BAG_SMALL),
     (actor::T_BOX_ARROW_BUNDLE_SMALL, item::RANGE_BOW),
     (actor::T_BOX_ARROW_BUNDLE_MEDIUM, item::RANGE_BOW),
     (actor::T_BOX_ARROW_BUNDLE_LARGE, item::RANGE_BOW),
     (actor::T_BOX_DEKU_SEED_BUNDLE, item::RANGE_SLING_SHOT),
+    (actor::T_BOX_DEKU_NUT_BUNDLE, item::NUT_BAG_SMALL),
+    (item::DEKU_STICK_BUNDLE_SMALL, item::STICK_BAG_SMALL),
+    (actor::OBJ_DEKU_STICK, item::STICK_BAG_SMALL),
+    (item::BOMBCHU_BUNDLE_SMALL, bombchu_bags::SMALL),
+    (item::BOMBCHU_BUNDLE_MEDIUM, bombchu_bags::SMALL),
+    (item::BOMBCHU_BUNDLE_LARGE, bombchu_bags::SMALL),
 ];
 /// Given instead until then, as the Gerudo Training Ground's chests do.
 pub const WITHOUT: &Name = actor::T_BOX_RUPEE_RED;
 
+/// `item`'s row, if it's a resource `lines`' seed holds back: one whose
+/// firing item the seed has ([`Lines::has`]).
+pub fn need(item: &str, lines: Lines) -> Option<(&'static Name, &'static Name)> {
+    let row = NEEDS.iter().find(|(i, _)| *i == item)?;
+    lines.has(row.1).then_some(*row)
+}
+
 /// A chest holding `item` drops it once Link has what it needs.
-pub fn swap(item: &str) -> Option<Swap> {
-    NEEDS
-        .iter()
-        .find(|(i, _)| *i == item)
-        .map(|&(then, check)| Swap {
-            check: check.get(),
-            then: then.get(),
-        })
+pub fn swap(item: &str, lines: Lines) -> Option<Swap> {
+    need(item, lines).map(|(then, check)| Swap {
+        check: check.get(),
+        then: then.get(),
+    })
 }
 
 /// The pouch names owning any of which means owning `fires`: its line's,
@@ -46,7 +58,8 @@ const COPY: &str = "Ammo";
 /// a minigame being no substitute chest. The hook swaps it for `item` once
 /// Link owns what fires it ([`line`]). As long as `item`'s name, since the
 /// hook writes the swap over the drop's string.
-pub fn copy(item: &str) -> Option<String> {
+pub fn copy(item: &str, lines: Lines) -> Option<String> {
+    need(item, lines)?;
     let k = NEEDS.iter().position(|(a, _)| *a == item)?;
     let base = format!("{MADE}{COPY}");
     let width = item.len().saturating_sub(base.len()).max(1);
@@ -57,7 +70,7 @@ pub fn copy(item: &str) -> Option<String> {
 pub fn copied(name: &str) -> Option<&'static str> {
     let of = NEEDS
         .iter()
-        .find(|(a, _)| copy(a).is_some_and(|c| c == name));
+        .find(|(a, _)| copy(a, Lines::widest(false)).is_some_and(|c| c == name));
     of.map(|(a, _)| a.get())
 }
 
@@ -67,7 +80,10 @@ pub fn copied(name: &str) -> Option<&'static str> {
 pub fn line(item: &str) -> Option<Vec<(String, String)>> {
     let &(bundle, fires) = NEEDS.iter().find(|(a, _)| *a == item)?;
     let fired: Vec<_> = pouches(fires.get()).collect();
-    let bottom = (copy(item)?, fired.first()?.to_string());
+    let bottom = (
+        copy(item, Lines::widest(false))?,
+        fired.first()?.to_string(),
+    );
     let levels = fired.iter().map(|p| (bundle.to_string(), p.to_string()));
     Some([bottom].into_iter().chain(levels).collect())
 }
@@ -119,7 +135,10 @@ mod tests {
         let Some(_) = crate::game::dev_dump() else {
             return;
         };
-        let copies: Vec<_> = NEEDS.iter().map(|(a, _)| copy(a).unwrap()).collect();
+        let copies: Vec<_> = NEEDS
+            .iter()
+            .map(|(a, _)| copy(a, Lines::widest(false)).unwrap())
+            .collect();
         for ((ammo, _), c) in NEEDS.iter().zip(&copies) {
             assert!(c.len() >= ammo.len(), "{c} for {ammo}");
             assert_eq!(copied(c), Some(ammo.get()));
@@ -127,7 +146,7 @@ mod tests {
         let unique: std::collections::HashSet<_> = copies.iter().collect();
         assert_eq!(unique.len(), copies.len());
         assert_eq!(copied(WITHOUT.get()), None);
-        assert_eq!(copy(item::HOOKSHOT.get()), None);
+        assert_eq!(copy(item::HOOKSHOT.get(), Lines::widest(false)), None);
     }
 
     #[test]
@@ -139,7 +158,10 @@ mod tests {
         let line = line(arrows).unwrap();
         let bows: Vec<_> = pouches(item::RANGE_BOW.get()).collect();
         assert!(bows.len() > 1, "the bow's line");
-        assert_eq!(line[0], (copy(arrows).unwrap(), bows[0].to_owned()));
+        assert_eq!(
+            line[0],
+            (copy(arrows, Lines::default()).unwrap(), bows[0].to_owned())
+        );
         let rest: Vec<_> = line[1..]
             .iter()
             .map(|(d, p)| (d.as_str(), p.as_str()))
@@ -149,15 +171,41 @@ mod tests {
         assert_eq!(super::line(item::HOOKSHOT.get()), None);
     }
 
-    /// The swap turns the holder into a substitute chest, which would
-    /// break a pot.
     #[test]
-    fn every_vanilla_resource_sits_in_a_chest() {
+    fn a_bags_ammo_waits_for_the_bag_only_where_the_bag_is_shuffled() {
+        needs_names!();
+        let rows = [
+            (actor::T_BOX_DEKU_NUT_BUNDLE, item::NUT_BAG_SMALL),
+            (item::DEKU_STICK_BUNDLE_SMALL, item::STICK_BAG_SMALL),
+            (item::BOMBCHU_BUNDLE_MEDIUM, bombchu_bags::SMALL),
+        ];
+        for (ammo, bag) in rows {
+            assert_eq!(need(ammo, Lines::default()), None, "{ammo}");
+            assert_eq!(need(ammo, Lines::widest(false)), Some((ammo, bag)));
+        }
+        let nuts = Lines {
+            nut_bag: true,
+            ..Lines::default()
+        };
+        assert!(need(rows[0].0, nuts).is_some() && need(rows[1].0, nuts).is_none());
+        // Arrows wait for the bow in every seed.
+        assert!(need(actor::T_BOX_ARROW_BUNDLE_SMALL, Lines::default()).is_some());
+    }
+
+    /// The swap turns the holder into a substitute chest, which would
+    /// break a pot. A gift (a pot's pickup among them) keeps its item and
+    /// steps by what Link owns instead (`shuffle::drops`).
+    #[test]
+    fn every_vanilla_resource_outside_a_gift_sits_in_a_chest() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
         let checks = crate::checks::scan(&romfs).unwrap();
-        let held: Vec<_> = checks.iter().filter(|c| swap(&c.item).is_some()).collect();
+        let held: Vec<_> = checks
+            .iter()
+            .filter(|c| swap(&c.item, Lines::widest(false)).is_some())
+            .filter(|c| !crate::gifts::is_gift(c))
+            .collect();
         assert!(!held.is_empty());
         for c in held {
             assert!(

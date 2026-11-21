@@ -16,6 +16,7 @@ use crate::known::{Name, actor, field, item, map};
 pub const ITEMS: &[(&str, &Name)] = &[
     ("bolero-of-fire", item::MELODY_FIRE_BOLERO),
     ("bomb-bag", item::BOMB_BAG_SMALL),
+    ("bombchu-bag", crate::bombchu_bags::SMALL),
     ("bombchus-large", item::BOMBCHU_BUNDLE_LARGE),
     ("bombchus-medium", item::BOMBCHU_BUNDLE_MEDIUM),
     ("bombchus-small", item::BOMBCHU_BUNDLE_SMALL),
@@ -77,6 +78,7 @@ pub const ITEMS: &[(&str, &Name)] = &[
     ("song-of-storms", item::MELODY_STORM_SONG),
     ("song-of-time", item::MELODY_TIME_SONG),
     ("spirit-medallion", item::MEDAL_SPIRIT),
+    ("stick-bag", item::STICK_BAG_SMALL),
     ("suns-song", item::MELODY_SUN_SONG),
     ("water-medallion", item::MEDAL_WATER),
     ("weird-egg", item::WEIRD_EGG),

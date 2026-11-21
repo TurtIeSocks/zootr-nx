@@ -51,8 +51,12 @@ pub(super) fn stepped<'a>(
     new_game: &NewGame,
 ) -> Vec<(&'a Slot, Vec<Step>)> {
     let dealt = dealt(slots, new_game.shop_slots, drops);
-    let counted =
-        dealt.filter_map(|(slot, item)| Some((slot, steps(item, new_game.progressive)?.len())));
+    let counted = dealt.filter_map(|(slot, item)| {
+        Some((
+            slot,
+            steps(item, crate::progressive::Lines::of(new_game))?.len(),
+        ))
+    });
     counted
         .map(|(slot, n)| (slot, (0..n).map(|k| Step::of(slot, k)).collect()))
         .collect()
@@ -97,7 +101,7 @@ impl<'a> Shelves<'a> {
         };
         for (slot, item) in dealt(slots, new_game.shop_slots, drops) {
             shelves.sold.push(slot);
-            let Some(steps) = steps(item, new_game.progressive) else {
+            let Some(steps) = steps(item, crate::progressive::Lines::of(new_game)) else {
                 shelves.stands.push(Stand {
                     slot,
                     actor: slot.actor(),

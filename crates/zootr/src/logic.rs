@@ -393,6 +393,7 @@ impl World {
         }
         let trials = Ctx {
             progressive: ctx.progressive,
+            lines: ctx.lines,
             on: ctx.on.iter().cloned().chain([TRIALS.into()]).collect(),
             seed: ctx.seed,
             keys: ctx.keys,

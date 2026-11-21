@@ -142,7 +142,7 @@ mod tests {
                 &flows,
                 &mut rewrites,
                 &drops,
-                false,
+                crate::progressive::Lines::default(),
                 &Default::default(),
             )
             .unwrap();

@@ -114,7 +114,11 @@ pub fn shuffle(
         foreign,
         ..new_game
     };
-    let drops = shuffle::drops(&checks, &placements);
+    let drops = shuffle::drops(
+        &checks,
+        &placements,
+        crate::progressive::Lines::of(new_game),
+    );
     let have = fill::start(new_game);
     let actors = placements
         .iter()

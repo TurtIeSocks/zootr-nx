@@ -77,8 +77,19 @@ impl Host {
 
     /// Model `n`, its albedo tinted `tint`. Returns its name.
     pub(crate) fn paint(&self, builder: &mut ModBuilder, n: usize, tint: Colour) -> Result<String> {
+        self.paint_with(builder, n, &|rgba| self::tint(rgba, tint))
+    }
+
+    /// Model `n`, its albedo's first level painted by `albedo`. Returns its
+    /// name.
+    pub(crate) fn paint_with(
+        &self,
+        builder: &mut ModBuilder,
+        n: usize,
+        albedo: Albedo,
+    ) -> Result<String> {
         let name = self.look.name(n);
-        self.write_as(builder, &name, &self.model, tint, false)?;
+        self.write_with(builder, &name, &self.model, albedo, false)?;
         Ok(name)
     }
 
@@ -93,6 +104,18 @@ impl Host {
         tint: Colour,
         ring: bool,
     ) -> Result<()> {
+        self.write_with(builder, name, model, &|rgba| self::tint(rgba, tint), ring)
+    }
+
+    /// [`Self::write_as`] with the albedo painted by `albedo`.
+    pub(crate) fn write_with(
+        &self,
+        builder: &mut ModBuilder,
+        name: &str,
+        model: &[u8],
+        albedo: Albedo,
+        ring: bool,
+    ) -> Result<()> {
         let (look, host) = (self.look, self.look.host);
         builder.add(
             &model_path(name),
@@ -101,18 +124,26 @@ impl Host {
         )?;
         let copies = look.textures(name).into_iter().map(|(_, path)| path);
         for ((kind, like, data, top), path) in self.textures.iter().zip(copies) {
-            let data = texture(&rename(data, host, name)?, top, kind, tint, ring)?;
+            let data = texture(&rename(data, host, name)?, top, kind, albedo, ring)?;
             builder.add(&path, &data, like)?;
         }
         Ok(())
     }
 }
 
-/// A texture of `kind`, `top` its first level decoded: an albedo's first level in `colour`, each texel
-/// scaled by its brightness, so the metal maps keep the shine and a
-/// coloured albedo (the boss key's gold) takes the colour as cleanly as a
-/// grey one. With `ring`, any kind with the ring's iron and gold corner.
-fn texture(data: &[u8], top: &Texture, kind: &str, colour: Colour, ring: bool) -> Result<Vec<u8>> {
+/// Paints an albedo's first level, its texels RGBA.
+pub(crate) type Albedo<'a> = &'a dyn Fn(&mut [u8]);
+
+/// A texture of `kind`, `top` its first level decoded: an albedo's first
+/// level painted by `albedo`, the other maps kept, so the metal maps keep
+/// the shine. With `ring`, any kind with the ring's iron and gold corner.
+fn texture(
+    data: &[u8],
+    top: &Texture,
+    kind: &str,
+    albedo_paint: Albedo,
+    ring: bool,
+) -> Result<Vec<u8>> {
     let albedo = kind == "Alb";
     if !albedo && !ring {
         return Ok(data.to_vec());
@@ -120,7 +151,7 @@ fn texture(data: &[u8], top: &Texture, kind: &str, colour: Colour, ring: bool) -
     let mut t = top.clone();
     let key = t.rgba.clone();
     if albedo {
-        tint(&mut t.rgba, colour);
+        albedo_paint(&mut t.rgba);
     }
     if ring {
         rings::paint(&mut t, &key, kind)?;
@@ -129,6 +160,8 @@ fn texture(data: &[u8], top: &Texture, kind: &str, colour: Colour, ring: bool) -
     redraw(data, &t.rgba, |x, y| !albedo && !rings::painted(w, h, x, y))
 }
 
+/// Each texel in `colour`, scaled by its brightness, so a coloured
+/// albedo (the boss key's gold) takes the colour as cleanly as a grey one.
 fn tint(rgba: &mut [u8], colour: Colour) {
     for px in rgba.chunks_mut(4) {
         let luma = luma(px);

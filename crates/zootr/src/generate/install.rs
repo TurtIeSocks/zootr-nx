@@ -138,7 +138,16 @@ mod tests {
         let mod_dir = dir.join("mod");
         std::fs::create_dir_all(mod_dir.join("romfs/Pack")).unwrap();
         std::fs::write(mod_dir.join("spoiler.txt"), "").unwrap();
-        crate::patch::install(&mod_dir, true, &[], 0, &[], &[], None).unwrap();
+        crate::patch::install(
+            &mod_dir,
+            crate::progressive::Lines::climbing(),
+            &[],
+            0,
+            &[],
+            &[],
+            None,
+        )
+        .unwrap();
         let env = dir.join("env.txt");
         std::fs::write(&env, "A=1\nKEY=x\n").unwrap();
         let target = |line| Target {
@@ -245,7 +254,15 @@ mod tests {
             };
             let targets = order.map(|m| target(m, line(m)));
             install(&targets, &Run::silent(), |d| {
-                crate::patch::install(d, true, &[], 0, &[], &[], None)
+                crate::patch::install(
+                    d,
+                    crate::progressive::Lines::climbing(),
+                    &[],
+                    0,
+                    &[],
+                    &[],
+                    None,
+                )
             })
             .unwrap();
             assert!(has("reads") && !has("not"), "{order:?}");
@@ -263,7 +280,15 @@ mod tests {
             ..target("built", "R={romfs}")
         };
         install(&[built], &Run::silent(), |d| {
-            crate::patch::install(d, true, &[], 0, &[], &[], None)
+            crate::patch::install(
+                d,
+                crate::progressive::Lines::climbing(),
+                &[],
+                0,
+                &[],
+                &[],
+                None,
+            )
         })
         .unwrap();
         let exefs = std::fs::read_to_string(dir.join("built/exefs/zootr.pchtxt")).unwrap();

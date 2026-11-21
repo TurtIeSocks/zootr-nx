@@ -19,7 +19,7 @@ use crate::flows::{self, Model, Rewrites};
 use crate::gifts::levels;
 use crate::key_tints::Sets;
 use crate::known::{Name, field, flow};
-use crate::progressive;
+use crate::progressive::Lines;
 use crate::rsdb::{self, Events, Runs};
 
 /// The chest flows.
@@ -73,6 +73,7 @@ enum Gives {
 pub struct Levels {
     items: BTreeMap<String, Gives>,
     bases: Vec<Base>,
+    lines: Lines,
 }
 
 impl Levels {
@@ -81,7 +82,7 @@ impl Levels {
     pub fn new(
         romfs: &Romfs,
         drops: &HashMap<u64, Drop>,
-        progressive: bool,
+        progressive: Lines,
         credits: Vec<(String, Sets)>,
     ) -> Result<Self> {
         // An add stays the hook's alone: it credits the copy from any holder,
@@ -94,7 +95,7 @@ impl Levels {
         for item in drops.values().map(|d| &d.item) {
             let gives = match credits.remove(item) {
                 Some(sets) => Some(Gives::Credit(sets)),
-                None => (progressive && progressive::in_line(item)).then_some(Gives::Level),
+                None => progressive.climbs(item).map(|_| Gives::Level),
             };
             if let Some(g) = gives {
                 items.entry(item.clone()).or_insert(g);
@@ -104,7 +105,12 @@ impl Levels {
             true => vec![],
             false => bases(&rsdb::events(romfs)?),
         };
-        Ok(Self { items, bases })
+        let lines = progressive;
+        Ok(Self {
+            items,
+            bases,
+            lines,
+        })
     }
 
     /// Add each copy to its chest flow.
@@ -119,7 +125,7 @@ impl Levels {
         for base in &self.bases {
             for (item, gives) in &self.items {
                 flows::edit(romfs, rewrites, &base.flow, |f| {
-                    entry(f, &models, base, item, gives)
+                    entry(f, &models, base, item, gives, self.lines)
                 })
                 .with_context(|| format!("{} giving {item}", base.event))?;
             }
@@ -211,7 +217,14 @@ pub(crate) fn setter(romfs: &Romfs) -> Result<Model> {
 /// Add to chest flow `f` the copy of `base` giving `item`: its entry,
 /// whose call to `Success_` names `item`, behind the pouch questions for a
 /// level or followed by the credit for a key.
-fn entry(f: &mut Flowchart, models: &Models, base: &Base, item: &str, gives: &Gives) -> Result<()> {
+fn entry(
+    f: &mut Flowchart,
+    models: &Models,
+    base: &Base,
+    item: &str,
+    gives: &Gives,
+    lines: Lines,
+) -> Result<()> {
     let copied = flows::copy_entry(f, &base.entry, &event(&base.event, item))?;
     let mut calls = copied.into_values().filter(|&e| {
         matches!(&f.events[e as usize].kind, EventKind::SubFlow { entry_point, .. }
@@ -222,7 +235,7 @@ fn entry(f: &mut Flowchart, models: &Models, base: &Base, item: &str, gives: &Gi
     let call = flows::params_mut(&mut f.events[at as usize].kind);
     flows::set(call, flow::CONTENT_NAME, flows::string(item))?;
     match gives {
-        Gives::Level => levels::by_level_at(f, &models.level, item, at),
+        Gives::Level => levels::by_level_at(f, &models.level, item, at, lines),
         Gives::Credit(Sets::Bool(name)) => {
             flows::set_after(f, &models.set_bool, at, name, Value::Bool(vec![true]))
         }
@@ -275,7 +288,7 @@ mod tests {
         Levels::new(
             romfs,
             &drops,
-            true,
+            Lines::climbing(),
             crate::key_tints::sets(true, DungeonKeys::Rings, false),
         )
         .unwrap()
@@ -290,7 +303,7 @@ mod tests {
         let drops = (1..)
             .zip(&sets)
             .map(|(n, (key, _))| (n, Drop::from(key.clone())));
-        let levels = Levels::new(&romfs, &drops.collect(), false, sets.clone()).unwrap();
+        let levels = Levels::new(&romfs, &drops.collect(), Lines::default(), sets.clone()).unwrap();
         for (key, s) in &sets {
             let added = matches!(s, Sets::Add(..));
             assert_eq!(levels.items.contains_key(key), !added, "{key}");
@@ -443,7 +456,7 @@ mod tests {
             return;
         };
         let drops = HashMap::from([(1, Drop::from(item::HOOKSHOT.to_string()))]);
-        let off = Levels::new(&romfs, &drops, false, vec![]).unwrap();
+        let off = Levels::new(&romfs, &drops, Lines::default(), vec![]).unwrap();
         assert!(off.items.is_empty() && off.bases.is_empty());
         assert_eq!(
             hookshot(&romfs).items.get(item::HOOKSHOT.get()),

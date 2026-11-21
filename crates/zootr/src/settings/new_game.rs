@@ -67,8 +67,12 @@ pub struct NewGame {
     pub age: Era,
     /// Whether `age` was rolled.
     pub random_age: bool,
-    /// Bombchus have their own cap instead of the bomb bag's.
-    pub free_bombchus: bool,
+    /// What caps Bombchus.
+    pub bombchus: Bombchus,
+    /// The Small Nut Bag is in the pool, and nuts need a bag.
+    pub shuffle_nut_bag: bool,
+    /// The Small Stick Bag is in the pool, and sticks need a bag.
+    pub shuffle_stick_bag: bool,
     /// Navi never talks on her own.
     pub quiet_navi: bool,
     /// Enemies never show, besides those that are checks or hold one.
@@ -203,7 +207,9 @@ impl NewGame {
                 StartingAge::Child | StartingAge::Random => Era::Child,
             },
             random_age: false,
-            free_bombchus: on(FREE_BOMBCHUS),
+            bombchus: chosen(settings, BOMBCHUS),
+            shuffle_nut_bag: on(SHUFFLE_NUT_BAG),
+            shuffle_stick_bag: on(SHUFFLE_STICK_BAG),
             quiet_navi: on(QUIET_NAVI),
             quiet_enemies: on(QUIET_ENEMIES),
             bunny_hood: on(BUNNY_HOOD),
@@ -223,23 +229,53 @@ impl NewGame {
     }
 }
 
-/// Every toggle that's on, by id, counting parents.
+/// Every toggle that's on, by id, counting parents, and each setting's
+/// value as rules name it ([`value_word`]).
 pub(crate) fn toggles_on(settings: &Settings) -> BTreeSet<String> {
     let schema = schema();
-    schema
-        .iter()
+    let on = (schema.iter())
         .filter(|d| is_on(&schema, settings, &d.id))
-        .map(|d| d.id.clone())
-        .collect()
+        .map(|d| d.id.clone());
+    let values = (schema.iter()).filter_map(|d| {
+        let value = match &d.kind {
+            Kind::Toggle { .. } => [OFF, ON][usize::from(is_on(&schema, settings, &d.id))],
+            Kind::Choice { default, options } => (settings.get(&d.id))
+                .and_then(Value::as_str)
+                .filter(|v| options.iter().any(|o| o.id == *v))
+                .unwrap_or(default),
+            Kind::Inventory => return None,
+        };
+        Some(value_word(&d.id, value))
+    });
+    on.chain(values).collect()
 }
 
-/// Every toggle's id.
+/// A toggle's value words.
+const ON: &str = "on";
+const OFF: &str = "off";
+
+/// How rules name setting `id` holding `value`: `id=value`, a choice's
+/// option or a toggle's `on` or `off`.
+pub(crate) fn value_word(id: &str, value: &str) -> String {
+    format!("{id}={value}")
+}
+
+/// Every word a rule may read after `setting:`: each toggle's id, and each
+/// setting's values ([`value_word`]).
 pub(crate) fn toggles() -> BTreeSet<String> {
-    schema()
-        .into_iter()
-        .filter(|d| matches!(d.kind, Kind::Toggle { .. }))
-        .map(|d| d.id)
-        .collect()
+    let words = schema().into_iter().flat_map(|d| {
+        let values: Vec<String> = match &d.kind {
+            Kind::Toggle { .. } => {
+                vec![d.id.clone(), value_word(&d.id, ON), value_word(&d.id, OFF)]
+            }
+            Kind::Choice { options, .. } => {
+                (options.iter()).map(|o| value_word(&d.id, &o.id)).collect()
+            }
+            Kind::Inventory => vec![],
+        };
+        values
+    });
+    words.collect()
 }
 
 /// Whether setting `id` is on: its own value or default, or its parent's.
@@ -317,7 +353,9 @@ mod tests {
                 seed: 0,
                 age: Era::Child,
                 random_age: false,
-                free_bombchus: true,
+                bombchus: Bombchus::Free,
+                shuffle_nut_bag: false,
+                shuffle_stick_bag: false,
                 quiet_navi: true,
                 quiet_enemies: false,
                 bunny_hood: false,

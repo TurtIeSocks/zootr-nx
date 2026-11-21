@@ -7,12 +7,12 @@ use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 use serde_json::Value;
 
-use super::OPTIONS;
+use super::{OPTIONS, offers};
 use crate::checks::{self, ItemCheck};
 use crate::fill;
 use crate::logic::{Got, Play, World};
 use crate::rules::{Book, Ctx, Have};
-use crate::settings::{Kind, NewGame, Settings, schema};
+use crate::settings::{Kind, NewGame, Settings, schema, value_word};
 use crate::shuffle::{self, Fixed};
 
 /// What Link reaches holding everything. The rest never happens, so the
@@ -191,7 +191,7 @@ pub(super) fn variants() -> Result<Vec<(String, Value)>> {
             Kind::Choice {
                 default, options, ..
             } => {
-                let others = options.iter().filter(|o| o.id != *default);
+                let others = (options.iter()).filter(|o| o.id != *default && offers(id, &o.id));
                 out.extend(others.map(|o| ((*id).into(), Value::String(o.id.clone()))));
             }
             Kind::Inventory => {}
@@ -200,9 +200,29 @@ pub(super) fn variants() -> Result<Vec<(String, Value)>> {
     Ok(out)
 }
 
-/// The exposed ids that are toggles, which rules can read.
+/// The setting words of the exposed options, which rules can read: each
+/// toggle's id and its `on` and `off`, each choice's offered options.
 pub(super) fn open() -> BTreeSet<String> {
-    base().into_keys().collect()
+    let defs = schema();
+    let mut out = BTreeSet::new();
+    for def in OPTIONS
+        .iter()
+        .filter_map(|id| defs.iter().find(|d| d.id == *id))
+    {
+        let id = def.id.as_str();
+        match &def.kind {
+            Kind::Toggle { .. } => {
+                out.insert(id.to_owned());
+                out.extend(["on", "off"].map(|v| value_word(id, v)));
+            }
+            Kind::Choice { options, .. } => {
+                let offered = options.iter().filter(|o| offers(id, &o.id));
+                out.extend(offered.map(|o| value_word(id, &o.id)));
+            }
+            Kind::Inventory => {}
+        }
+    }
+    out
 }
 
 #[cfg(test)]

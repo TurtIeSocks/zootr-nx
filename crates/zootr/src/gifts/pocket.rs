@@ -28,7 +28,12 @@ impl Gift {
 /// The level of `item` Link's Pocket gives: the opening can't ask the pouch
 /// right after its own grants (it still reads them as missing), so the
 /// level comes from what the opening grants before it.
-pub(super) fn level<'a>(romfs: &Romfs, rewrites: &Rewrites, item: &'a str) -> Result<&'a str> {
+pub(super) fn level<'a>(
+    romfs: &Romfs,
+    rewrites: &Rewrites,
+    item: &'a str,
+    lines: crate::progressive::Lines,
+) -> Result<&'a str> {
     let opening = flows::current(romfs, rewrites, starting::OPENING)?;
     let owned = (flows::running(&opening, GRANT).into_iter())
         .filter_map(|at| match &opening.events[at as usize].kind {
@@ -36,7 +41,7 @@ pub(super) fn level<'a>(romfs: &Romfs, rewrites: &Rewrites, item: &'a str) -> Re
             _ => None,
         })
         .collect();
-    Ok(levels::owned_level(item, &owned))
+    Ok(levels::owned_level(item, &owned, lines))
 }
 
 /// Grant `item` in the opening just before its autosave, then show the get
@@ -85,7 +90,15 @@ mod tests {
                 .map(|i| (rauru().hash(), Drop::from(i.to_string())))
                 .collect();
             let mut rewrites = Rewrites::default();
-            give_all(&romfs, &all, &mut rewrites, &drops, false, &on(ids)).unwrap();
+            give_all(
+                &romfs,
+                &all,
+                &mut rewrites,
+                &drops,
+                crate::progressive::Lines::default(),
+                &on(ids),
+            )
+            .unwrap();
             let rel = flows::rel(starting::OPENING);
             rewrites
                 .contains_key(&rel)
@@ -130,7 +143,15 @@ mod tests {
         starting::grant(&romfs, &mut rewrites, &start.grants(&pouch)).unwrap();
         let drops = [(rauru().hash(), Drop::from(item::HOOKSHOT.to_string()))].into();
         let on = on(&[DUNGEON_REWARDS, OPEN_DOOR]);
-        give_all(&romfs, &all, &mut rewrites, &drops, true, &on).unwrap();
+        give_all(
+            &romfs,
+            &all,
+            &mut rewrites,
+            &drops,
+            crate::progressive::Lines::climbing(),
+            &on,
+        )
+        .unwrap();
         let render = flows::render(&written(&rewrites, starting::OPENING));
         assert_eq!(render.matches(item::LONGSHOT.get()).count(), 1);
         assert!(!render.contains("EventQueryIsExistInPouch"));

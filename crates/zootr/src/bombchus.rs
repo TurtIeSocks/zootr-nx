@@ -1,14 +1,17 @@
 //! Bombchus without a bomb bag. Their pouch param caps them by the bag
 //! (`MaxNumGameData: Bomb`), so none can be held until it's found. Swapping
 //! that for a fixed cap, as magic beans and skulltula tokens have, frees
-//! them. The pouch table (`PouchActorInfo`) repeats the cap per row, so its
+//! them. With Bombchu Bags, the cap is their own slot that each bag sets,
+//! as the nut bags set Deku Nuts'. The pouch table (`PouchActorInfo`) repeats the cap per row, so its
 //! bombchu rows get the same swap, through the stand-ins' `Tables`: writing
 //! the table on its own once dropped every stand-in's pouch row.
 
 use anyhow::{Result, ensure};
 
+use crate::bombchu_bags;
 use crate::known::{Name, actor, field, item};
-use crate::standins::Tables;
+use crate::settings::Bombchus;
+use crate::standins::{Tables, pouch_actor};
 use ounce_formats::{Byml, BymlDoc, BymlMap, ModBuilder};
 
 /// Every pack carrying a copy of the param. Each gets the edit, so it holds
@@ -53,11 +56,34 @@ fn cap(map: &mut BymlMap) {
     map.insert(field::FIXED_MAX_NUM.to_string().into(), Byml::I32(CAP));
 }
 
-/// The param, capped by `CAP` instead of the bomb bag.
-fn free(param: &[u8]) -> Result<Vec<u8>> {
+/// Cap `map` by the Bombchu Bags' slot instead of the bomb bag.
+fn bagged(map: &mut BymlMap) {
+    let slot = Byml::String(bombchu_bags::SLOT.into());
+    map.insert(field::MAX_NUM_GAME_DATA.to_string().into(), slot);
+    let bag = pouch_actor(bombchu_bags::SMALL);
+    map.insert(field::SMALL_BAG_ACTOR.to_string().into(), bag);
+}
+
+/// How `bombchus` caps them in place of the bomb bag, if it does.
+fn capping(bombchus: Bombchus) -> Option<fn(&mut BymlMap)> {
+    match bombchus {
+        Bombchus::BombBag => None,
+        Bombchus::Free => Some(cap),
+        Bombchus::Bag => Some(bagged),
+    }
+}
+
+/// The param, capped by `edit` instead of the bomb bag.
+fn recap(param: &[u8], edit: fn(&mut BymlMap)) -> Result<Vec<u8>> {
     let mut doc = BymlDoc::parse(param)?;
-    cap(doc.root.as_mut_map()?);
+    edit(doc.root.as_mut_map()?);
     Ok(doc.to_binary())
+}
+
+/// The param, capped by `CAP` instead of the bomb bag.
+#[cfg(test)]
+fn free(param: &[u8]) -> Result<Vec<u8>> {
+    recap(param, cap)
 }
 
 /// Whether a `PouchActorInfo` row is a bombchu, or a bundle of them, that
@@ -72,25 +98,28 @@ fn capped_by_bag(row: &BymlMap) -> bool {
         && (is("__RowId", item::BOMBCHU) || is(field::BUNDLE_ACTOR, &actor_param()))
 }
 
-/// Free every bombchu row of the pouch table.
-fn free_rows(tables: &mut Tables) -> Result<usize> {
+/// Recap every bombchu row of the pouch table with `edit`.
+fn recap_rows(tables: &mut Tables, edit: fn(&mut BymlMap)) -> Result<usize> {
     tables.edit_pouch(|row| {
         let hit = capped_by_bag(row);
         if hit {
-            cap(row);
+            edit(row);
         }
         hit
     })
 }
 
-/// Write every pack with the freed param, and free the pouch table's rows
-/// for `tables` to write.
-pub fn write(builder: &mut ModBuilder, tables: &mut Tables) -> Result<()> {
+/// Write every pack with the param capped as `bombchus` says, and the
+/// pouch table's rows likewise for `tables` to write.
+pub fn write(builder: &mut ModBuilder, tables: &mut Tables, bombchus: Bombchus) -> Result<()> {
+    let Some(edit) = capping(bombchus) else {
+        return Ok(());
+    };
     ensure!(
-        free_rows(tables)? > 0,
+        recap_rows(tables, edit)? > 0,
         "no bombchu row in the pouch table is capped by the bomb bag"
     );
-    builder.edit_param(&PACKS.map(|p| &**p), &pouch_param(), free)
+    builder.edit_param(&PACKS.map(|p| &**p), &pouch_param(), |p| recap(p, edit))
 }
 
 #[cfg(test)]
@@ -131,7 +160,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-chus-{}", std::process::id()));
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let mut tables = Tables::load(&romfs).unwrap();
-        write(&mut builder, &mut tables).unwrap();
+        write(&mut builder, &mut tables, Bombchus::Free).unwrap();
         tables.write(&mut builder).unwrap();
         assert_eq!(builder.finish().unwrap().len(), PACKS.len() + 4);
         for pack in PACKS {
@@ -182,7 +211,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-chus-rows-{}", std::process::id()));
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let mut tables = Tables::load(&romfs).unwrap();
-        assert_eq!(free_rows(&mut tables).unwrap(), 2);
+        assert_eq!(recap_rows(&mut tables, cap).unwrap(), 2);
         tables.write(&mut builder).unwrap();
         let written = builder.finish().unwrap();
         assert!(written.iter().any(|f| f == POUCH_ACTOR_INFO));

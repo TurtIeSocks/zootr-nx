@@ -11,6 +11,7 @@ use super::{GIFTS, Gift, NAME, item_at, levels};
 use crate::checks::Drop;
 use crate::flows::{self, Rewrites, param, params_mut, string};
 use crate::known::{Name, actor, field, flow, item};
+use crate::progressive;
 use crate::text::Lines;
 
 /// Each line, as its gift's flow, its message file, its label and the item
@@ -109,11 +110,14 @@ pub(super) fn talks(flow: &Flowchart, item: &str) -> Vec<u16> {
 
 /// The copies the dealt gifts' lines need, one message file each: one
 /// naming each item the gift can give, every level of a chain by level.
-pub fn lines(drops: &HashMap<u64, Drop>, progressive: bool) -> Vec<Lines<'_>> {
+pub fn lines(drops: &HashMap<u64, Drop>, progressive: progressive::Lines) -> Vec<Lines<'_>> {
     dealt(drops)
         .map(|d| {
             let chained = levels::needs(d.gift, d.item, progressive);
-            let steps = chained.then(|| levels::steps(d.item)).into_iter().flatten();
+            let steps = chained
+                .then(|| levels::steps(d.item, progressive))
+                .into_iter()
+                .flatten();
             let mut items: Vec<&str> = steps.collect();
             if !items.contains(&d.item) {
                 items.push(d.item);
@@ -199,7 +203,10 @@ mod tests {
             &Flows::load(&romfs).unwrap(),
             &mut rewrites,
             drops,
-            progressive,
+            crate::progressive::Lines {
+                progressive,
+                ..Default::default()
+            },
             &Default::default(),
         )
         .unwrap();
@@ -244,7 +251,7 @@ mod tests {
             let copy = copy(file, line, level);
             assert!(said.contains(&copy), "{copy} not in {said:?}");
         }
-        let written = &lines(&drops, true)[0].new;
+        let written = &lines(&drops, crate::progressive::Lines::climbing())[0].new;
         let named: Vec<&str> = written.iter().map(|(_, i)| *i).collect();
         assert_eq!(named, [item::HOOKSHOT.get(), item::LONGSHOT.get()]);
     }
@@ -264,7 +271,7 @@ mod tests {
             &Flows::load(&romfs).unwrap(),
             &mut rewrites,
             &drops,
-            false,
+            crate::progressive::Lines::default(),
             &Default::default(),
         )
         .unwrap();
@@ -297,6 +304,6 @@ mod tests {
         }
         let said = says(&HashMap::new());
         assert!(said.contains(&format!("{}:{}", NAMED[0].1, NAMED[0].2)));
-        assert!(lines(&HashMap::new(), true).is_empty());
+        assert!(lines(&HashMap::new(), crate::progressive::Lines::climbing()).is_empty());
     }
 }

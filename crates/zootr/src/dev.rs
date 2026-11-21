@@ -443,7 +443,10 @@ impl<M: Memory> Dev<M> {
                 Grant::Game(actor, equip) => {
                     let leveled = level && !equip;
                     let request = match leveled {
-                        true => Request::GiveLevel(actor.clone(), ammo::swap(&actor)),
+                        true => Request::GiveLevel(
+                            actor.clone(),
+                            ammo::swap(&actor, Default::default()),
+                        ),
                         false => Request::Give(actor.clone(), equip),
                     };
                     self.ask(&request)?;

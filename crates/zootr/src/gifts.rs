@@ -449,7 +449,7 @@ pub fn give_all(
     flows: &Flows,
     rewrites: &mut Rewrites,
     drops: &HashMap<u64, Drop>,
-    progressive: bool,
+    lines: crate::progressive::Lines,
     on: &BTreeSet<String>,
 ) -> Result<()> {
     let mut marks = found::Marks::default();
@@ -462,9 +462,9 @@ pub fn give_all(
     for gift in &GIFTS {
         let item = item_at(drops, gift.hash(), gift.item);
         let pocket = gift.pocket(on);
-        let leveled = levels::needs(gift, item, progressive);
+        let leveled = levels::needs(gift, item, lines);
         let item = match pocket && leveled {
-            true => pocket::level(romfs, rewrites, item)?,
+            true => pocket::level(romfs, rewrites, item, lines)?,
             false => item,
         };
         let mine = taken.entry(gift.flow.get()).or_default();
@@ -492,7 +492,11 @@ pub fn give_all(
         };
         mine.extend(&took);
         marks.mark(romfs, rewrites, gift, &took, on)?;
-        if leveled && !pocket {
+        // A sale that isn't a check this seed sells the game's own goods,
+        // and its pouch question holds ammo without a bag like a full
+        // pouch (the carpet merchant's Bombchus).
+        let shop = matches!(gift.how, How::Sale { .. }) && !drops.contains_key(&gift.hash());
+        if leveled && !pocket && !shop {
             // The grant moved to the caller when its scene can't play.
             let at = given.then(|| gift.moved_to(lost, pocket)).flatten();
             let only = (at.is_none() && !took.is_empty()).then_some(took);
@@ -521,7 +525,7 @@ pub fn give_all(
         let model = levels::model(flows)?;
         for (flow, item, only) in by_level {
             flows::edit(romfs, rewrites, flow, |f| {
-                levels::by_level(f, &model, item, only.as_deref())
+                levels::by_level(f, &model, item, only.as_deref(), lines)
             })
             .with_context(|| format!("{flow} giving {item} by level"))?;
         }
@@ -876,7 +880,7 @@ mod tests {
             &all,
             &mut rewrites,
             &drops,
-            false,
+            crate::progressive::Lines::default(),
             &Default::default(),
         )
         .unwrap();
@@ -907,7 +911,7 @@ mod tests {
             all,
             &mut rewrites,
             &drops,
-            false,
+            crate::progressive::Lines::default(),
             &Default::default(),
         )
         .unwrap();

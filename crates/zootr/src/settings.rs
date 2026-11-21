@@ -18,10 +18,11 @@ mod choices;
 mod new_game;
 mod upgrade;
 pub use choices::{
-    AdultJabu, ChestSize, DungeonEntrances, DungeonKeys, FortressKeys, IceTraps, Keys, Logic,
-    ScrubPrice, ShopSlots, StartingAge,
+    AdultJabu, Bombchus, ChestSize, DungeonEntrances, DungeonKeys, FortressKeys, IceTraps, Keys,
+    Logic, ScrubPrice, ShopSlots, StartingAge,
 };
 pub use new_game::NewGame;
+pub(crate) use new_game::value_word;
 pub(crate) use new_game::{toggles, toggles_on};
 pub(crate) use upgrade::upgrade;
 
@@ -202,7 +203,9 @@ pub(crate) const LOGIC: &str = "logic";
 pub(crate) const SHUFFLE_ITEMS: &str = "shuffle-items";
 pub(crate) const CHESTS: &str = "chests";
 pub(crate) const PROGRESSIVE: &str = "progressive-items";
-const FREE_BOMBCHUS: &str = "free-bombchus";
+pub(crate) const BOMBCHUS: &str = "bombchus";
+pub(crate) const SHUFFLE_NUT_BAG: &str = "shuffle-nut-bag";
+pub(crate) const SHUFFLE_STICK_BAG: &str = "shuffle-stick-bag";
 const BUNNY_HOOD: &str = "bunny-hood";
 const DAY_SKULLTULAS: &str = "day-skulltulas";
 pub(crate) const AGELESS_WEAPONS: &str = "ageless-weapons";
@@ -583,12 +586,27 @@ pub fn schema() -> Vec<SettingDef> {
                 "Progressive items",
                 "Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size",
             ))])
-        .chain([default_on(toggle(
-                FREE_BOMBCHUS,
+        .chain([choice(
+            BOMBCHUS,
+            group::GENERAL,
+            "Bombchus",
+            "What caps the Bombchus Link holds. The bomb bag's, as in the game. Their own cap of 40, so they open the same checks bombs do without waiting on the bag. Or three Bombchu Bags in the pool, holding 20, 30 and 40, and none until the first",
+            Bombchus::label,
+        )])
+        .chain([
+            toggle(
+                SHUFFLE_NUT_BAG,
                 group::GENERAL,
-                "Bombchus without a bomb bag",
-                "Bombchus hold up to 50 on their own, so they open the same checks bombs do without waiting on the bag",
-            ))])
+                "Shuffle the nut bag",
+                "The Small Nut Bag is an item in the pool, and Link holds no Deku Nuts until he finds it. Off, the first nut he picks up brings it, as in the game",
+            ),
+            toggle(
+                SHUFFLE_STICK_BAG,
+                group::GENERAL,
+                "Shuffle the stick bag",
+                "The Small Stick Bag is an item in the pool, and Link holds no Deku Sticks until he finds it. Off, the first stick he picks up brings it, as in the game",
+            ),
+        ])
         .chain([default_on(toggle(
             QUIET_NAVI,
             group::GENERAL,
