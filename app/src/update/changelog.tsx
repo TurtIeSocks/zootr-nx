@@ -52,6 +52,9 @@ function Releases() {
   const [list, setList] = useState<Release[]>([]);
   const [status, setStatus] = useState<Status>("loading");
   const [error, setError] = useState<string>();
+  // Counts the retries of a failed page, which refetch it.
+  const [tries, setTries] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fetches again on a retry
   useEffect(() => {
     let live = true;
     setStatus("loading");
@@ -70,7 +73,7 @@ function Releases() {
     return () => {
       live = false;
     };
-  }, [pages]);
+  }, [pages, tries]);
   return (
     <div className="-mx-5 min-h-0 flex-1 overflow-auto border-line border-t px-5">
       <div className="flex flex-col gap-2 pt-4">
@@ -91,9 +94,16 @@ function Releases() {
           <p className="text-ink-muted text-sm">No releases yet</p>
         )}
         {status === "error" && (
-          <InlineError
-            error={`Couldn't reach GitHub. Try again later\n\n${error}`}
-          />
+          <div className="flex flex-col items-center gap-2">
+            <InlineError error={`Couldn't reach GitHub\n\n${error}`} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setTries(tries + 1)}
+            >
+              Try again
+            </Button>
+          </div>
         )}
       </div>
     </div>

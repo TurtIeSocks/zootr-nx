@@ -14,6 +14,7 @@ import { InlineError } from "@/components/callout";
 import { Help } from "@/components/help";
 import { LoadGate } from "@/components/load-gate";
 import { Meter } from "@/components/meter";
+import { NoSeed } from "@/components/no-seed";
 import { RequestError } from "@/components/request-error";
 import { SaveFooter } from "@/components/save-footer";
 import { Tip } from "@/components/tip";
@@ -256,7 +257,7 @@ function AreaRows({ area }: AreaRowsProps) {
       <tr>
         <th
           colSpan={5}
-          className="sticky top-0 z-1 border-line-strong border-t bg-surface px-3 pt-3 pb-2 text-left font-normal group-first/area:border-t-0"
+          className="sticky top-8 z-1 border-line-strong border-t bg-surface px-3 pt-3 pb-2 text-left font-normal group-first/area:border-t-0"
         >
           <div className="flex items-center gap-3">
             <span className="font-semibold text-[13.5px]">{area.name}</span>
@@ -310,6 +311,27 @@ function Query() {
   );
 }
 
+/** The columns' names, pinned over the rows. The area headings pin just
+ * below, at `top-8`. */
+function Columns() {
+  const head = "sticky top-0 z-2 h-8 border-line border-b bg-surface px-3";
+  return (
+    <thead>
+      <tr className="text-left font-medium text-ink-muted text-xs">
+        <th className={cn(head, "w-10 pr-0")}>
+          <span className="sr-only">Done</span>
+        </th>
+        <th className={head}>Name</th>
+        <th className={head}>Contents</th>
+        <th className={head}>Note</th>
+        <th className={cn(head, "w-12")}>
+          <span className="sr-only">Actions</span>
+        </th>
+      </tr>
+    </thead>
+  );
+}
+
 /** The shuffled doors, then the shown checks by area. */
 function Areas() {
   const [rows] = useChecks.usePath("rows");
@@ -317,6 +339,7 @@ function Areas() {
   const [filter] = useUi.usePath("checks.filter");
   return (
     <table className="w-full border-separate border-spacing-0 text-[13px]">
+      <Columns />
       <EntranceRows />
       {areas(rows, query, filter).map((a) => (
         <AreaRows key={a.name} area={a} />
@@ -336,14 +359,11 @@ export function ChecksView() {
   );
 }
 
-/** The loaded checks, or a line saying no seed is installed. */
+/** The loaded checks, or where to make a seed when none is installed. */
 function Checks() {
   const installed = useChecks((s) => s.id !== null);
   const [error] = useChecks.usePath("error");
-  if (!installed)
-    return (
-      <p className="py-12 text-center text-ink-muted">No seed is installed</p>
-    );
+  if (!installed) return <NoSeed />;
   return (
     <Page wide className="min-h-0 flex-1">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-xs">

@@ -1,5 +1,5 @@
 import { Gamepad2, Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { WhyButton } from "@/components/why-button";
 import { play } from "@/dev/requests";
 import { useDev } from "@/stores/dev";
 
@@ -19,15 +19,15 @@ export function NotRunning() {
         still show their lists.
       </p>
       {target && (
-        <Button
+        <WhyButton
           variant="secondary"
           className="mt-1"
-          disabled={!!running}
+          why={running && `Wait for ${running.what} to finish`}
           onClick={() => void play(target)}
         >
           <Play />
           Play {target}
-        </Button>
+        </WhyButton>
       )}
     </div>
   );

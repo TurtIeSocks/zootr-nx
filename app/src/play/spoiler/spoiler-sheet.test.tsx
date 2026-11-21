@@ -47,6 +47,18 @@ const tab = (name: string) => screen.getByRole("button", { name });
 const detail = () =>
   within(screen.getByRole("region", { name: "Check detail" }));
 
+test("while the spoiler loads, the panel says so", async () => {
+  let finish: (s: Spoiler) => void = () => {};
+  backend.load = () => new Promise((resolve) => (finish = resolve));
+  useShell.setPath("spoiler", entry);
+  render(<SpoilerSheet />);
+  const sheet = within(await screen.findByRole("dialog"));
+  expect(sheet.getByText("Loading…")).toBeTruthy();
+  await act(async () => finish(seed()));
+  expect(await sheet.findByText("Round 4")).toBeTruthy();
+  expect(sheet.queryByText("Loading…")).toBeNull();
+});
+
 test("Spheres shows a column a round, and picking a card links its rule", async () => {
   const sheet = await open();
   await sheet.findByText("Round 4");
