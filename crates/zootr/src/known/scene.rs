@@ -182,6 +182,7 @@ pub const SY_OCARINA: &Name = &n!(0x314aa1de0ea6e059);
 pub const SY_TREASUREBOX: &Name = &n!(0x85cd7501a6a3cdee);
 pub const TIME_TEMPLE_0000: &Name = &n!(0xd73b95687be08ce0);
 pub const TIME_TEMPLE_0020: &Name = &n!(0xd74221687be5e672);
+pub const TIME_TEMPLE_0040: &Name = &n!(0xd7492d687bec1984);
 pub const TIME_TEMPLE_0055: &Name = &n!(0xd74cae687bef2a8e);
 pub const TIME_TEMPLE_0065: &Name = &n!(0xd7501e687bf21eb5);
 pub const TIME_TEMPLE_0075: &Name = &n!(0xd7531a687bf44dc0);

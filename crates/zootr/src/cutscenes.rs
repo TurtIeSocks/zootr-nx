@@ -136,8 +136,15 @@ const INTRO_GUARDS: [&Name; 2] = [arrivals::ENTRANCE, map::LOCATION_AREA];
 /// and `scene::TIME_TEMPLE_0020` the end of the Door of Time's discovery flow, which
 /// finds the Master Sword. A new game that sets their flag stops the trigger,
 /// and that whole flow with it. So each transition to one sets the flag
-/// instead, where the cutscene would have ended.
-const FLAG_AT_END: [&Name; 2] = [scene::HRL_FIELD_0010, scene::TIME_TEMPLE_0020];
+/// instead, where the cutscene would have ended. `scene::TIME_TEMPLE_0040`,
+/// the first pull, is the same in a flow: set at the start, its flag sent
+/// every pull of a closed door's sword to the plain swap, past Rauru and the
+/// sword's grant.
+const FLAG_AT_END: [&Name; 3] = [
+    scene::HRL_FIELD_0010,
+    scene::TIME_TEMPLE_0020,
+    scene::TIME_TEMPLE_0040,
+];
 /// Meeting Zelda in the castle courtyard, which the castle's meet-Zelda flow
 /// chains five scene changes for. Any one skipped, or the movie among them
 /// left, froze the game on a white screen, and the third, `0050`, is where
@@ -628,16 +635,19 @@ mod tests {
             scene::HRL_FIELD_0010
         )));
         let door = rendered(flow::DOOR_OF_TIME);
-        assert!(!door.contains(&format!(
-            r#"{}="{}""#,
-            flow::EVENT_NAME,
-            scene::TIME_TEMPLE_0020
-        )));
-        assert!(door.contains(&format!(
-            r#"{}="{PLAYED}.{}" Index=-1 Value=true"#,
-            field::GAME_DATA_NAME,
-            scene::TIME_TEMPLE_0020
-        )));
+        for n in [scene::TIME_TEMPLE_0020, scene::TIME_TEMPLE_0040] {
+            let plays = format!(r#"{}="{n}""#, flow::EVENT_NAME);
+            let transition = flow::EVENT_TRANSITION.get();
+            assert!(
+                !door
+                    .lines()
+                    .any(|l| l.contains(transition) && l.contains(&plays))
+            );
+            assert!(door.contains(&format!(
+                r#"{}="{PLAYED}.{n}" Index=-1 Value=true"#,
+                field::GAME_DATA_NAME,
+            )));
+        }
         // Everything else skipped still sets its flag.
         assert!(flags.contains(&format!("{PLAYED}.{}=true", scene::HRL_FIELD_0000)));
     }
