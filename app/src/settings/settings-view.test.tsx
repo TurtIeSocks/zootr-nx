@@ -24,6 +24,7 @@ import { useUi } from "@/stores/ui";
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  useUi.setPath("settings.reset", "defaults");
 });
 
 const toggle = (
@@ -327,7 +328,7 @@ test("a checklist item shows the dot when it differs from the installed seed", (
 });
 
 /** The header action named `name`. */
-const action = (name: string) => screen.getByRole("button", { name });
+const action = (name: string | RegExp) => screen.getByRole("button", { name });
 
 test("Reset to defaults says why while nothing differs from them", () => {
   const onChange = show();
@@ -409,6 +410,39 @@ test("a section of rows turns its toggles all on or all off", async () => {
 test("a section with no toggles has no All or None", () => {
   show({ defs: [choice("chest-size", "Chest size", ["Vanilla", "Big"])] });
   expect(screen.queryByRole("button", { name: /^All/ })).toBeNull();
+});
+
+/** Opens the reset's menu and picks `name`. */
+async function pickReset(name: RegExp) {
+  fireEvent.keyDown(action("More ways to reset"), { key: "Enter" });
+  fireEvent.click(await screen.findByRole("menuitem", { name }));
+}
+
+test("Reset to last seed puts the seed's values back, and leads after", async () => {
+  const setConfig = show({
+    settings: { "open-forest": true, "chest-size": "all small" },
+    seed: installed({ "chest-size": "all small", menus: true }),
+  });
+  await pickReset(/Reset to last seed/);
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({
+      "chest-size": "all small",
+      menus: true,
+    }),
+  );
+  expect(useUi.getState().settings.reset).toBe("seed");
+  expect(action(/^Reset to last seed/)).toBeTruthy();
+});
+
+test("Reset to last seed says why with no seed built", async () => {
+  useUi.setPath("settings.reset", "seed");
+  show({ settings: { "open-forest": true } });
+  expect(action(/^Reset to last seed/).getAttribute("aria-disabled")).toBe(
+    "true",
+  );
+  fireEvent.keyDown(action("More ways to reset"), { key: "Enter" });
+  const item = await screen.findByRole("menuitem", { name: /last seed/ });
+  expect(item.textContent).toContain("No seed built yet");
 });
 
 test("a page with no toggles has only Reset to defaults", () => {

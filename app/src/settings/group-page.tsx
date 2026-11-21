@@ -1,4 +1,4 @@
-import { RotateCcw, ToggleLeft, ToggleRight } from "lucide-react";
+import { ToggleLeft, ToggleRight } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import type { SettingDef } from "@/bindings";
 import { RequestError } from "@/components/request-error";
@@ -7,17 +7,11 @@ import { WhyButton } from "@/components/why-button";
 import { GROUP_HELP } from "@/help/topics";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
-import {
-  defaults,
-  isChanged,
-  isOn,
-  type Patch,
-  setToggles,
-  tally,
-} from "@/lib/settings";
+import { isOn, type Patch, setToggles, tally } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { AllNone, Checklist } from "@/settings/checklist";
 import { Fold } from "@/settings/fold";
+import { ResetButton } from "@/settings/reset-button";
 import { UntestedBadge } from "@/settings/row";
 import { lockedBy, untested } from "@/settings/setting";
 import { LockedBy, SettingRow } from "@/settings/setting-row";
@@ -74,7 +68,8 @@ interface DefsProps {
 }
 
 /** The page's actions: Enable all and Disable all on a page with toggles,
- * and Reset to defaults. Each says why when it would change nothing. */
+ * and the reset, to the defaults or the last seed. Each says why when it
+ * would change nothing. */
 function GroupActions({ defs }: DefsProps) {
   const { run } = useRequest();
   const [schema] = useConfig.usePath("schema");
@@ -82,7 +77,6 @@ function GroupActions({ defs }: DefsProps) {
   const set = (patch: Patch) => () => run(() => changeSettings(patch));
   const enable = setToggles(defs, schema, settings, true);
   const disable = setToggles(defs, schema, settings, false);
-  const changed = defs.some((d) => isChanged(d, settings));
   const toggles = defs.some((d) => d.kind.type === "toggle");
   return (
     <>
@@ -106,14 +100,7 @@ function GroupActions({ defs }: DefsProps) {
           </WhyButton>
         </>
       )}
-      <WhyButton
-        variant="ghost"
-        why={!changed && "Already the defaults"}
-        onClick={set(defaults(defs))}
-      >
-        <RotateCcw />
-        Reset to defaults
-      </WhyButton>
+      <ResetButton defs={defs} />
     </>
   );
 }
