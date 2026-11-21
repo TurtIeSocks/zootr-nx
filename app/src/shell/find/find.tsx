@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { commands } from "@/bindings";
-import { Palette } from "@/components/palette/palette";
+import { Palette, type PaletteGroup } from "@/components/palette/palette";
 import { usePaletteKey } from "@/components/palette/use-palette-key";
 import { message } from "@/lib/api";
 import { NEED_TARGET } from "@/lib/config";
@@ -135,11 +135,17 @@ export function Find() {
 
 function FindDialog() {
   const [query, setQuery] = useState("");
+  const [scope, setScope] = useState<PaletteGroup>();
   /** What a run that's still open says, by hit id. */
   const [said, setSaid] = useState<Record<string, string>>({});
   const hits = useHits();
   const [recent] = useUi.usePath("find.recent");
-  const found = query.trim() ? search(hits, query) : recents(hits, recent);
+  // A scope with nothing typed lists its whole group.
+  const found = query.trim()
+    ? search(hits, query)
+    : scope
+      ? hits
+      : recents(hits, recent);
   const items = found.map((h) => (said[h.id] ? { ...h, body: said[h.id] } : h));
 
   const run = (h: Hit) => {
@@ -166,6 +172,8 @@ function FindDialog() {
       hint="Type to find a page, setting, seed, check or action"
       query={query}
       onQuery={setQuery}
+      scope={scope}
+      onScope={setScope}
       groups={ALL_GROUPS}
       items={items}
       cap={PER_GROUP}

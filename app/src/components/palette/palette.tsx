@@ -1,4 +1,4 @@
-import { type LucideIcon, Search } from "lucide-react";
+import { type LucideIcon, Search, X } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { Marked } from "@/components/palette/marked";
 import { words as wordsOf } from "@/lib/matching";
@@ -43,8 +43,13 @@ export interface PaletteProps<T extends PaletteItem> {
   groups: PaletteGroup[];
   /** The results, in each group's order. */
   items: T[];
-  /** The most each group shows. Past it, a line counts the rest. */
+  /** The most each group shows while others show too. Past it, a line
+   * counts the rest. */
   cap?: number;
+  /** The one group shown, as a chip before the field. */
+  scope?: PaletteGroup;
+  /** Sets or clears the scope. Given, a group's "+N more" scopes to it. */
+  onScope?: (group: PaletteGroup | undefined) => void;
   /** Said with nothing typed and nothing to show. */
   hint: string;
   onRun: (item: T) => void;
@@ -67,17 +72,21 @@ interface Shown<T> {
   more: number;
 }
 
-/** Each group with items, capped. */
+/** Each group with items, capped while more than one has any. */
 function shownBy<T extends PaletteItem>(
   groups: PaletteGroup[],
   items: T[],
   cap: number,
 ): Shown<T>[] {
-  return groups.flatMap((group) => {
-    const all = items.filter((i) => i.group === group.id);
-    if (all.length === 0) return [];
-    return [{ group, items: all.slice(0, cap), more: all.length - cap }];
-  });
+  const all = groups
+    .map((group) => ({ group, all: items.filter((i) => i.group === group.id) }))
+    .filter((g) => g.all.length > 0);
+  const most = all.length > 1 ? cap : Number.POSITIVE_INFINITY;
+  return all.map(({ group, all }) => ({
+    group,
+    items: all.slice(0, most),
+    more: all.length - most,
+  }));
 }
 
 /** A search over grouped results: ↑↓ move, ↵ runs the highlighted one,
@@ -91,6 +100,8 @@ export function Palette<T extends PaletteItem>({
   groups,
   items,
   cap = Number.POSITIVE_INFINITY,
+  scope,
+  onScope,
   hint,
   onRun,
   onClose,
@@ -100,17 +111,22 @@ export function Palette<T extends PaletteItem>({
   className,
   panelClassName,
 }: PaletteProps<T>) {
-  // The highlight starts again with each query.
-  const [sel, setSel] = useState({ query, at: 0 });
-  const shown = shownBy(groups, items, cap);
+  // The highlight starts again with each query or scope.
+  const key = `${scope?.id ?? ""}\n${query}`;
+  const [sel, setSel] = useState({ key, at: 0 });
+  const shown = shownBy(
+    scope ? [scope] : groups,
+    scope ? items.filter((i) => i.group === scope.id) : items,
+    cap,
+  );
   const flat = shown.flatMap((s) => s.items);
-  const at = Math.min(sel.query === query ? sel.at : 0, flat.length - 1);
-  const setAt = (i: number) => setSel({ query, at: i });
+  const at = Math.min(sel.key === key ? sel.at : 0, flat.length - 1);
+  const setAt = (i: number) => setSel({ key, at: i });
   // From the latest highlight, so presses faster than a render all count.
   const step = (by: number) =>
     setSel((s) => {
-      const from = s.query === query ? s.at : 0;
-      return { query, at: Math.max(0, Math.min(from + by, flat.length - 1)) };
+      const from = s.key === key ? s.at : 0;
+      return { key, at: Math.max(0, Math.min(from + by, flat.length - 1)) };
     });
   const hit = flat[at];
 
@@ -119,6 +135,7 @@ export function Palette<T extends PaletteItem>({
     else if (e.key === "ArrowUp") step(-1);
     else if (e.key === "Enter") hit && onRun(hit);
     else if (e.key === "Escape") onClose();
+    else if (e.key === "Backspace" && scope && !query) onScope?.(undefined);
     else if (!onKey?.(e.key, hit)) return;
     e.preventDefault();
   };
@@ -140,6 +157,20 @@ export function Palette<T extends PaletteItem>({
       >
         <div className="flex items-center gap-2 border-line border-b px-3">
           <Search aria-hidden className="size-4 text-ink-faint" />
+          {scope && (
+            <span className="flex shrink-0 items-center gap-0.5 rounded bg-primary-soft py-0.5 pr-0.5 pl-1.5 text-[12px] text-primary-ink">
+              <span data-scope>{scope.title}</span>
+              <button
+                type="button"
+                aria-label="Search everything"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => onScope?.(undefined)}
+                className="cursor-pointer rounded p-0.5 hover:bg-surface-hover"
+              >
+                <X aria-hidden className="size-3" />
+              </button>
+            </span>
+          )}
           <input
             // biome-ignore lint/a11y/noAutofocus: the palette opens to type in
             autoFocus
@@ -165,6 +196,7 @@ export function Palette<T extends PaletteItem>({
                 active={hit}
                 onHover={(item) => setAt(flat.indexOf(item))}
                 onRun={onRun}
+                onMore={onScope && (() => onScope(s.group))}
               />
             ))}
           </div>
@@ -182,6 +214,8 @@ interface GroupProps<T> {
   active: T | undefined;
   onHover: (item: T) => void;
   onRun: (item: T) => void;
+  /** Shows the rest: a click on the "+N more" line. */
+  onMore?: () => void;
 }
 
 /** A group's heading, its items, and how many it leaves out. */
@@ -191,6 +225,7 @@ function Group<T extends PaletteItem>({
   active,
   onHover,
   onRun,
+  onMore,
 }: GroupProps<T>) {
   return (
     <div>
@@ -210,11 +245,22 @@ function Group<T extends PaletteItem>({
           </li>
         ))}
       </ul>
-      {more > 0 && (
-        <p className="px-4 pt-0.5 pb-1 text-[12px] text-ink-faint">
-          +{more} more
-        </p>
-      )}
+      {more > 0 &&
+        (onMore ? (
+          <button
+            type="button"
+            tabIndex={-1}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={onMore}
+            className="mx-1 cursor-pointer rounded px-3 pt-0.5 pb-1 text-[12px] text-ink-faint hover:text-ink"
+          >
+            +{more} more
+          </button>
+        ) : (
+          <p className="px-4 pt-0.5 pb-1 text-[12px] text-ink-faint">
+            +{more} more
+          </p>
+        ))}
     </div>
   );
 }

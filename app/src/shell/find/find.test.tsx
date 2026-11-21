@@ -87,6 +87,20 @@ test("with nothing typed it lists the recent picks still there", () => {
   ]);
 });
 
+test("+N more scopes to its group, which with nothing typed lists it all", () => {
+  useUi.setPath("find.recent", [{ group: "pages", key: "Save" }]);
+  renderApp();
+  const field = find("e");
+  expect(screen.getByRole("list", { name: "Settings" })).toBeTruthy();
+  const [pagesMore] = screen.getAllByRole("button", { name: /^\+\d+ more$/ });
+  fireEvent.click(pagesMore as HTMLElement);
+  expect(screen.queryByRole("list", { name: "Settings" })).toBeNull();
+  fireEvent.change(field, { target: { value: "" } });
+  expect(screen.queryByRole("list", { name: "Recent" })).toBeNull();
+  const pages = within(screen.getByRole("list", { name: "Pages" }));
+  expect(pages.getAllByRole("button").length).toBeGreaterThan(5);
+});
+
 test("Enter on a setting opens its closed section and focuses it", async () => {
   useUi.setPath("settings.closed", ["Shuffles/Fake section"]);
   renderApp();

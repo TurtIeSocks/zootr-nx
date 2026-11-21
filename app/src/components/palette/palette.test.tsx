@@ -8,7 +8,11 @@ import {
 import { Box } from "lucide-react";
 import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
-import { Palette, type PaletteItem } from "@/components/palette/palette";
+import {
+  Palette,
+  type PaletteGroup,
+  type PaletteItem,
+} from "@/components/palette/palette";
 
 afterEach(cleanup);
 
@@ -32,6 +36,7 @@ function Harness({
   onClose?: () => void;
 }) {
   const [query, setQuery] = useState("");
+  const [scope, setScope] = useState<PaletteGroup>();
   return (
     <Palette
       label="Search"
@@ -39,6 +44,8 @@ function Harness({
       hint="Type something"
       query={query}
       onQuery={setQuery}
+      scope={scope}
+      onScope={setScope}
       groups={GROUPS}
       items={items}
       cap={2}
@@ -84,6 +91,45 @@ test("groups list in order, capped, counting the rest", () => {
     "Alpha",
     "Beta",
   ]);
+});
+
+const rows = (name: string) =>
+  within(screen.getByRole("list", { name }))
+    .getAllByRole("button")
+    .map((b) => b.textContent);
+
+test("a lone group shows every row, past the cap", () => {
+  render(
+    <Harness items={[item("a1", "a"), item("a2", "a"), item("a3", "a")]} />,
+  );
+  expect(rows("Alpha")).toEqual(["a1", "a2", "a3"]);
+  expect(screen.queryByText(/more/)).toBeNull();
+});
+
+test("+N more scopes to its group behind a chip, which Backspace or its x clears", () => {
+  render(
+    <Harness
+      items={[
+        item("a1", "a"),
+        item("a2", "a"),
+        item("a3", "a"),
+        item("b1", "b"),
+      ]}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "+1 more" }));
+  expect(screen.getByText("Alpha", { selector: "[data-scope]" })).toBeTruthy();
+  expect(rows("Alpha")).toEqual(["a1", "a2", "a3"]);
+  expect(screen.queryByRole("list", { name: "Beta" })).toBeNull();
+  fireEvent.keyDown(field(), { key: "Backspace" });
+  expect(screen.getByRole("list", { name: "Beta" })).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("button", { name: "+1 more" }));
+  type("a");
+  fireEvent.keyDown(field(), { key: "Backspace" });
+  expect(screen.queryByRole("list", { name: "Beta" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Search everything" }));
+  expect(screen.getByRole("list", { name: "Beta" })).toBeTruthy();
 });
 
 test("arrows move over the shown rows only; Enter runs; Esc closes", () => {
