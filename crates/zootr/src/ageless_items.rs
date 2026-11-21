@@ -15,8 +15,10 @@
 //!   skeleton and renamed, beside his own.
 //! - Child Link's effects are the adult's: the Hammer's dust and shake.
 //!
-//! The holder and shooter files size their work from their RESTBL entry,
-//! so each gets [`SLACK`]: without it, only one borrowed actor is made.
+//! The holder, shooter and animation files size their work from their
+//! RESTBL entry, and each row costs more than its bytes, so each gets
+//! [`SLACK`]. Without it, only one borrowed actor is made, and the
+//! animation file's parse runs out of room and crashes the game at load.
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_file};
@@ -39,9 +41,8 @@ const ITEMS: [&Name; 5] = [
     item::BOOMERANG,
 ];
 
-/// RESTBL room past a holder or shooter file's new size: with it, every
-/// borrowed actor is made at load, where `resize` alone made one
-/// (research note, "The multi-copy limit was the RESTBL").
+/// RESTBL room past a holder, shooter or animation file's new size (research
+/// note, "The multi-copy limit was the RESTBL").
 const SLACK: usize = 64 << 10;
 
 /// The age word in a grown copy of a child archive's name, as long as
@@ -261,10 +262,10 @@ fn borrowed(link: &Link, pack: &ActorPack, lender: &ActorPack) -> Result<Vec<Bor
         Ok(())
     })?;
     let roomy = |(path, old, new): Edit| (path, old, new, SLACK);
-    let tight = |(path, old, new): Edit| (path, old, new, 0);
-    let mut edits = vec![roomy(holder), roomy(shooter), tight(animations)];
+    let mut edits = vec![roomy(holder), roomy(shooter), roomy(animations)];
     if link.who == CHILD.who {
-        edits.push(tight(crate::ice_traps::adult_effects(pack)?));
+        let (path, old, new) = crate::ice_traps::adult_effects(pack)?;
+        edits.push((path, old, new, 0));
     }
     Ok(edits)
 }
