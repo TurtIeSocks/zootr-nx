@@ -708,6 +708,14 @@ pub(super) struct NewGame {
 /// takes: an unknown choice would quietly read as the default.
 pub(crate) fn setting(arg: &str) -> Result<(String, serde_json::Value)> {
     let (id, value) = savefile::split(arg)?;
+    // An old toggle id, read as the setting it became.
+    if settings::OLD_TOGGLES.contains(&id) {
+        let new = settings::renamed(id).expect("an old toggle has a new form");
+        let on = value.parse::<bool>();
+        let on = on.with_context(|| format!("{id} is true or false, not {value}"))?;
+        eprintln!("--setting {id} is now {new}");
+        return Ok((id.to_owned(), on.into()));
+    }
     let schema = settings::schema();
     let def = schema.iter().find(|def| def.id == id);
     let def = def.with_context(|| format!("no setting is called {id}"))?;
@@ -764,6 +772,8 @@ impl NewGame {
             );
         }
         out.extend(self.raw.iter().cloned());
+        // Old preset names and toggle ids, as the settings they became.
+        settings::upgrade(&mut out);
         out
     }
 
@@ -949,6 +959,36 @@ mod tests {
         assert_eq!(s.give, [item::GLASS_TRUTH, item::FAIRY_BLESS_MP]);
         let bad = Cli::try_parse_from(["zootr", "shuffle", "--start", "hookshoot"]);
         assert!(bad.is_err());
+    }
+
+    #[test]
+    fn the_old_bridge_and_trials_names_become_the_win_condition() {
+        let settings = |extra: &[&str]| {
+            let args = [&["zootr", "shuffle"], extra].concat();
+            let Command::Shuffle(s) = Cli::try_parse_from(args).unwrap().command else {
+                panic!()
+            };
+            s.new_game.settings()
+        };
+        let is = |id: &str, v: &str| Settings::from([(id.into(), v.into())]);
+        let bridge = settings::BRIDGE;
+        assert_eq!(
+            settings(&["--preset", "rainbow-bridge"]),
+            is(bridge, "open")
+        );
+        let trials = settings(&["--preset", "trials-done"]);
+        assert_eq!(trials, is(settings::TRIALS, "done"));
+        let six = settings(&["--setting", "bridge-medallions=true"]);
+        assert_eq!(six, is(bridge, "six-medallions"));
+        assert!(setting("bridge-medallions=maybe").is_err());
+        let open = settings(&["--setting", "rainbow-bridge=open"]);
+        assert_eq!(open, is(bridge, "open"));
+        let save = ["zootr", "save", "set", "1", "--preset", "trials-done"];
+        let Command::Save(_) = Cli::try_parse_from(save).unwrap().command else {
+            panic!()
+        };
+        let err = presets::for_save(&["trials-done".into()], &[]).unwrap_err();
+        assert!(err.to_string().contains("ganons-trials=done"), "{err}");
     }
 
     #[test]

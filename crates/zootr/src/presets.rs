@@ -4,7 +4,7 @@
 use std::sync::LazyLock;
 
 use anyhow::{Context, Result, bail};
-use clap::builder::{PossibleValue, PossibleValuesParser};
+use clap::builder::{PossibleValue, PossibleValuesParser, TypedValueParser};
 use ounce_formats::Byml;
 
 use crate::gamedata::GameData;
@@ -522,13 +522,17 @@ pub const PRESETS: [Preset; 15] = [
     },
 ];
 
-/// For clap: each preset's name, with what it does as its help.
-pub fn parser() -> PossibleValuesParser {
-    PossibleValuesParser::new(
-        PRESETS
-            .iter()
-            .map(|p| PossibleValue::new(p.name).help(p.what)),
-    )
+/// For clap: each preset's name, with what it does as its help. An old
+/// name that became a setting still parses, and says its new form.
+pub fn parser() -> impl TypedValueParser<Value = String> {
+    let old = crate::settings::OLD_PRESETS.map(|n| PossibleValue::new(n).hide(true));
+    let names = (PRESETS.iter()).map(|p| PossibleValue::new(p.name).help(p.what));
+    PossibleValuesParser::new(names.chain(old)).map(|name| {
+        if let Some(new) = crate::settings::renamed(&name) {
+            eprintln!("--preset {name} is now {new}");
+        }
+        name
+    })
 }
 
 /// The presets an existing save can take: those handing over no items and
@@ -542,10 +546,12 @@ fn find(names: &[String]) -> Result<Vec<&'static Preset>> {
     names
         .iter()
         .map(|n| {
-            PRESETS
-                .iter()
-                .find(|p| p.name == n)
-                .with_context(|| format!("no preset {n}"))
+            PRESETS.iter().find(|p| p.name == n).with_context(|| {
+                match crate::settings::renamed(n) {
+                    Some(new) => format!("{n} is now `{new}`, for a new game"),
+                    None => format!("no preset {n}"),
+                }
+            })
         })
         .collect()
 }

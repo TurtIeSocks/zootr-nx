@@ -24,7 +24,7 @@ pub use choices::{
 pub use new_game::NewGame;
 pub(crate) use new_game::value_word;
 pub(crate) use new_game::{toggles, toggles_on};
-pub(crate) use upgrade::upgrade;
+pub(crate) use upgrade::{OLD_PRESETS, OLD_TOGGLES, renamed, upgrade};
 
 /// Setting values by id. A missing id takes its default.
 pub type Settings = BTreeMap<String, Value>;
