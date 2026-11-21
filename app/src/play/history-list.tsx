@@ -16,11 +16,6 @@ import { TipButton } from "@/components/tip-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { nameOf, when } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ExtrasBadges, Name } from "@/play/seed";
@@ -61,7 +56,7 @@ function InstallSeed({ id }: SeedActionProps) {
   return (
     <TipButton
       label="Install"
-      tip={blocked || "Install this seed"}
+      tip={blocked || "Install this seed to every target"}
       size="sm"
       disabled={busy || !!blocked}
       onClick={() => install(id)}
@@ -105,17 +100,12 @@ function DeleteSeed({ id, installed }: DeleteSeedProps) {
 /** Stays visible on the installed row, where Install would be. */
 function InstalledMark() {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge asChild variant="green" className="cursor-default">
-          <button type="button" aria-disabled="true">
-            <CircleCheck />
-            Installed
-          </button>
-        </Badge>
-      </TooltipTrigger>
-      <TooltipContent>This seed is installed</TooltipContent>
-    </Tooltip>
+    <Badge asChild variant="green" className="cursor-default">
+      <button type="button" aria-disabled="true">
+        <CircleCheck />
+        Installed
+      </button>
+    </Badge>
   );
 }
 
@@ -232,7 +222,7 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
         )}
         <TipButton
           label="Spoiler Log"
-          tip="Read what this seed holds"
+          tip="Spoiler Log"
           variant="ghost"
           onClick={() => openSpoiler(e)}
         >
