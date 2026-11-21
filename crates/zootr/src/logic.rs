@@ -406,7 +406,11 @@ impl World {
         };
         let mut goal = Vec::new();
         for rule in book.exits.iter().filter(|r| r.to == GOAL) {
-            let need = book.need(&rule.expr, &trials)?;
+            let mut need = book.need(&rule.expr, &trials)?;
+            // The tower's boss key door, as on the exit's own edge.
+            if let Some(keys) = keys::boss_door_need(&rule.to, ctx.keys) {
+                need = Need::All(vec![need, keys]);
+            }
             for era in eras_of(&scan.places, &rule.from) {
                 goal.push((at(&rule.from, era)?, need.clone()));
             }
@@ -998,6 +1002,29 @@ mod tests {
         };
         assert_eq!(tower("done"), (true, true));
         assert!(!tower("all-six").0);
+    }
+
+    #[test]
+    fn ganondorf_waits_for_ganons_castle_boss_key() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let book = crate::rules::Book::load().unwrap();
+        let new_game = crate::settings::NewGame::rings();
+        let checks = checks::dealt(&romfs, &new_game).unwrap();
+        let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
+        let n = keys::dungeon_in(flag::INSIDE_GANON_CASTLE).unwrap();
+        let mut have = holding(&[
+            "item:magic-meter",
+            "item:bow",
+            "item:light-arrows",
+            "item:master-sword",
+        ]);
+        have.add(&crate::key_tints::ring(n));
+        let beaten = |have: &Have| world.goal().iter().any(|(_, n)| n.met(have, Era::Adult));
+        assert!(!beaten(&have));
+        have.add(&crate::key_tints::boss(n));
+        assert!(beaten(&have));
     }
 
     #[test]
