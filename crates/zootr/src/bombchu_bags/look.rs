@@ -3,7 +3,7 @@
 //! spell the files out, since they're extracted before a dump's names can
 //! be read.
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::collections::BTreeMap;
 
 use ounce_formats::{
@@ -14,7 +14,8 @@ use ounce_formats::{
 use super::BOMB_BAGS;
 use crate::key_tints::paint::{Host, Look};
 use crate::known::Name;
-use crate::medallions::{Colour, model_path};
+use crate::medallions::model_path;
+use crate::medallions::paint::{self, Band, Hues};
 
 /// The files [`LOOKS`] are made from, spelled out like
 /// [`crate::key_tints::FILES`]: extracted before a dump's names are read.
@@ -52,8 +53,8 @@ pub const FILES: [&str; 31] = [
     "Tex/Mt_Item_Bombchu_Rgh.bntx.zs",
 ];
 
-/// Each bag's look: its bomb bag's model and textures, the albedo in
-/// [`BLUE`]. A copy's name is as long as its host's (`paint::Look`), so the
+/// Each bag's look: its bomb bag's model and textures, the albedo in the
+/// Bombchu's colours ([`colours`]). A copy's name is as long as its host's (`paint::Look`), so the
 /// Medium's prefix is a letter longer.
 static LOOKS: [Look; 3] = [
     look(BOMB_BAGS[0], "Item_RandoChuBag"),
@@ -61,9 +62,33 @@ static LOOKS: [Look; 3] = [
     look(BOMB_BAGS[2], "Item_RandoChuBag"),
 ];
 
-/// The Bombchu's own blue, so a bag reads as theirs and never as a bomb
-/// bag.
-const BLUE: Colour = [70, 70, 220];
+/// The bag's leather and its blue patch, as hues, each worn in a part of
+/// the Bombchu's colours: the leather in its body's navy, the patch in its
+/// belly's gold. The red stripes, the chain and the trim keep theirs, as a
+/// Bombchu has red and metal too (the maintainer's call, 2026-11-21:
+/// "whichever looks most like a bombchu", over all-over blue).
+const LEATHER: Hues = (12.0 / 360.0, 40.0 / 360.0);
+const PATCH: Hues = (200.0 / 360.0, 290.0 / 360.0);
+/// The Bombchu albedo's navy and gold, as hues.
+const NAVY: Hues = (200.0 / 360.0, 270.0 / 360.0);
+const GOLD: Hues = (35.0 / 360.0, 70.0 / 360.0);
+
+/// Each bag band and the colour it moves to, read from the Bombchu's
+/// albedo.
+fn colours(romfs: &Romfs) -> Result<[Band; 2]> {
+    let chu = top_level(&romfs.read(&textures(CHU_TEXTURES, "Alb"))?)?;
+    let like = |hues| paint::mean(&chu.rgba, hues).context("the Bombchu lacks a colour");
+    Ok([
+        Band {
+            hues: LEATHER,
+            to: like(NAVY)?,
+        },
+        Band {
+            hues: PATCH,
+            to: like(GOLD)?,
+        },
+    ])
+}
 
 const fn look(host: &'static Name, copy: &'static str) -> Look {
     Look {
@@ -85,11 +110,13 @@ pub(super) fn model(at: usize) -> String {
 /// showing a bomb read as a bomb bag.
 pub(super) fn paint(romfs: &Romfs, builder: &mut ModBuilder, at: usize) -> Result<String> {
     let host = Host::read(romfs, &LOOKS[at])?;
+    let bands = colours(romfs)?;
+    let albedo = |rgba: &mut [u8]| paint::shift(rgba, &bands);
     if at != 0 {
-        return host.paint(builder, at + 1, BLUE);
+        return host.paint_with(builder, at + 1, &albedo);
     }
     let name = model(at);
-    host.write_as(builder, &name, &chus(romfs, &host.model)?, BLUE, false)?;
+    host.write_with(builder, &name, &chus(romfs, &host.model)?, &albedo, false)?;
     for kind in KINDS {
         let like = textures(BOMB, kind);
         let bomb = romfs.read(&like)?;
@@ -301,6 +328,35 @@ mod tests {
             }
         }
         assert!(ours.windows(OURS.len()).any(|w| w == OURS.as_bytes()));
+    }
+
+    /// Each bag's leather wears the Bombchu's navy, none of it left tan.
+    #[test]
+    fn each_bag_wears_the_bombchus_colours() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let bands = colours(&romfs).unwrap();
+        let chu = top_level(&romfs.read(&textures(CHU_TEXTURES, "Alb")).unwrap()).unwrap();
+        let navy = paint::mean(&chu.rgba, NAVY).unwrap();
+        for look in &LOOKS {
+            let path = format!("Tex/Mt_{}_Alb.bntx.zs", look.host);
+            let before = top_level(&romfs.read(&path).unwrap()).unwrap().rgba;
+            let mut rgba = before.clone();
+            paint::shift(&mut rgba, &bands);
+            let leather = |px: &[u8]| paint::mean(px, LEATHER).is_some();
+            let moved = (before.chunks(4).zip(rgba.chunks(4))).filter(|(was, _)| leather(was));
+            let (n, still) = moved.fold((0, 0), |(n, s), (_, now)| {
+                (n + 1, s + leather(now) as usize)
+            });
+            assert!(
+                n > 0 && still == 0,
+                "{}: {still} of {n} still tan",
+                look.host
+            );
+            let (h, _, _) = paint::mean(&rgba, NAVY).unwrap();
+            assert!((h - navy.0).abs() < 0.02, "{}: {h}", look.host);
+        }
     }
 
     /// A painted copy keeps every offset of its host's model.
