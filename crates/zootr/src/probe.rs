@@ -74,7 +74,13 @@ pub enum Probe {
     },
     /// What each kind of hit does to an enemy: its Life, each damage type's
     /// multiplier (0 is immune), and its exceptions, named.
-    Hurts { actors: Vec<String> },
+    Hurts {
+        actors: Vec<String>,
+        /// Every enemy placed in banc files containing this too, like a
+        /// dungeon's name.
+        #[arg(long)]
+        map: Option<String>,
+    },
     /// Each text's murmur3, the way GameData keys its names, then the
     /// `n!(0x…)` that names it in our source (`known::hash`).
     Hash { text: Vec<String> },
@@ -384,7 +390,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Key { hash } => key(romfs, hash),
         Probe::Tables { table } => crate::gamedata::print_tables(romfs, table.as_deref()),
         Probe::Arsenal { grep } => arsenal::arsenal(romfs, grep.as_deref()),
-        Probe::Hurts { actors } => hurts::print(romfs, &actors),
+        Probe::Hurts { actors, map } => hurts::print(romfs, &actors, map),
         Probe::Pack {
             actor,
             file,

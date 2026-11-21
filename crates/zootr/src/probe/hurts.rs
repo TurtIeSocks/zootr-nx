@@ -1,6 +1,8 @@
 //! `probe hurts`: what each kind of hit does to an enemy, from its damage
 //! table, with the damage types named. Which of Link's weapons beat it.
 
+use std::collections::BTreeSet;
+
 use anyhow::{Context, Result};
 use ounce_formats::murmur3;
 use ounce_formats::{ActorPack, Byml, Romfs};
@@ -123,8 +125,22 @@ fn hurts(romfs: &Romfs, actor: &str) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn print(romfs: &Romfs, actors: &[String]) -> Result<()> {
-    actors.iter().try_for_each(|a| hurts(romfs, a))
+/// An enemy's name starts with this.
+const ENEMY: &str = "Enemy_";
+
+/// `actors`, then every enemy placed in `map`'s files, each once.
+pub(super) fn print(romfs: &Romfs, actors: &[String], map: Option<String>) -> Result<()> {
+    let mut all: BTreeSet<String> = actors.iter().cloned().collect();
+    if let Some(file) = map {
+        let filter = super::Filter {
+            gyaml: Some(ENEMY.into()),
+            file: Some(file),
+            ..Default::default()
+        };
+        let hits = super::hits(romfs, &filter)?.into_iter().map(|h| h.gyaml);
+        all.extend(hits.filter(|g| g.starts_with(ENEMY)));
+    }
+    all.iter().try_for_each(|a| hurts(romfs, a))
 }
 
 #[cfg(test)]
