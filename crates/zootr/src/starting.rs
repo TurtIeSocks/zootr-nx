@@ -129,7 +129,7 @@ pub fn grant(romfs: &Romfs, rewrites: &mut Rewrites, grants: &[Grant]) -> Result
         return Ok(());
     }
     for g in grants {
-        if items::get(romfs, &g.actor)?.is_none() {
+        if items::get(romfs, &g.actor)?.is_none() && !crate::known::is_ours(&g.actor) {
             bail!("{} isn't a pouch item. `zootr items` lists them", g.actor);
         }
     }
