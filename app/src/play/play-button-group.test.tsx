@@ -9,11 +9,12 @@ import {
 import { afterEach, expect, test, vi } from "vitest";
 import { type Build, commands } from "@/bindings";
 import { RequestError } from "@/components/request-error";
-import { full } from "@/lib/config";
+import { full, NEED_TARGET } from "@/lib/config";
 import { RequestProvider } from "@/lib/request-provider";
 import { PlayButtonGroup } from "@/play/play-button-group";
 import { useConfig } from "@/stores/config";
 import { useSeeds } from "@/stores/seeds";
+import { useUi } from "@/stores/ui";
 
 // The step log's channel, which needs the app's window.
 vi.mock("@tauri-apps/api/core", () => ({
@@ -45,13 +46,21 @@ function show(...names: string[]) {
 
 const menu = () => screen.queryByRole("button", { name: "Pick a target" });
 
-test("with no target, only a disabled Play shows", () => {
+test("with no target, only a Play that says why shows", async () => {
+  const play = vi.spyOn(commands, "play");
   show();
-  expect(
-    (screen.getByRole("button", { name: /^Play/ }) as HTMLButtonElement)
-      .disabled,
-  ).toBe(true);
+  const button = screen.getByRole("button", { name: "Play" });
+  expect(button.getAttribute("aria-disabled")).toBe("true");
   expect(menu()).toBeNull();
+  // Focus shows its tip, which says what's missing.
+  fireEvent.focus(button);
+  expect((await screen.findByRole("tooltip")).textContent).toBe(NEED_TARGET);
+  // A click opens where a target is added, and plays nothing.
+  useUi.setPath("tab", "Play");
+  fireEvent.click(button);
+  expect(play).not.toHaveBeenCalled();
+  expect(useUi.getState().tab).toBe("Settings");
+  expect(useUi.getState().section).toBe("targets");
 });
 
 test("with one target, only Play shows", () => {

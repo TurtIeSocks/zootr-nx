@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { area } from "@/dev/areas";
 import { InfinitySwitches } from "@/dev/infinity-switches";
+import { openPalette } from "@/dev/nav";
 import { call } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { pin, send, useCanSend, useDev } from "@/stores/dev";
@@ -23,7 +24,7 @@ export function Header() {
             size="icon-sm"
             variant="ghost"
             aria-label="Find anything"
-            onClick={() => useDev.setPath("palette", true)}
+            onClick={openPalette}
           >
             <Search />
           </Button>

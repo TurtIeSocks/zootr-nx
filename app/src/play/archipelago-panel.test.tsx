@@ -247,6 +247,21 @@ test("an .apznx dropped on the window installs that slot", async () => {
   );
 });
 
+test("an .apznx dropped while an install is blocked says why, and installs nothing", async () => {
+  mockIPC(() => {});
+  const install = vi.spyOn(commands, "generateAp");
+  show("offline");
+  act(() => useSeeds.setState({ blocked: "Close the game first" }));
+  act(() => drops.send({ type: "drop", paths: ["/fake/FakeSlot.apznx"] }));
+  expect((await screen.findByRole("alert")).textContent).toContain(
+    "The file wasn't opened. Close the game first",
+  );
+  expect(install).not.toHaveBeenCalled();
+  // It goes once nothing blocks.
+  act(() => useSeeds.setState({ blocked: "" }));
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
 test("a build without the apworld opens the release's, and a player is told what to ask for", async () => {
   vi.spyOn(commands, "apworldBundled").mockResolvedValue(false);
   useUpdate.setPath("current", "1.2.3");

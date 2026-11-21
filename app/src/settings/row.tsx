@@ -48,7 +48,10 @@ export function Row({
 }: RowProps) {
   const [isUntested, text] = untested(description);
   return (
-    <div className="group/row relative grid min-h-15 grid-cols-[minmax(0,1fr)_auto] items-center gap-6 rounded-md p-3 transition-colors duration-(--duration-fast) ease-out hover:bg-surface-hover">
+    <div
+      data-reveal
+      className="group/row relative grid min-h-15 grid-cols-[minmax(0,1fr)_auto] items-center gap-6 rounded-md p-3 transition-colors duration-(--duration-fast) ease-out hover:bg-surface-hover"
+    >
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           {changed && (

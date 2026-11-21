@@ -4,6 +4,7 @@ import { commands } from "@/bindings";
 import { InlineError } from "@/components/callout";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Help } from "@/components/help";
+import { Loading } from "@/components/load-gate";
 import { type EdgeMark, ScrollEdges } from "@/components/scroll-edges";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -142,7 +143,7 @@ interface SpoilerBodyProps {
 export function SpoilerBody({ id }: SpoilerBodyProps) {
   const loaded = useLoad(loadSpoiler, id);
   const [picked, pick] = useState<string>();
-  if (loaded.status === "loading") return null;
+  if (loaded.status === "loading") return <Loading />;
   if (loaded.status === "error")
     return <InlineError error={loaded.error} className="px-5 py-3" />;
   return (

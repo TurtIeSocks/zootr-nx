@@ -5,6 +5,7 @@ import { Field } from "@/components/field";
 import { PathInput } from "@/components/path-input";
 import { Button } from "@/components/ui/button";
 import { useRequestState } from "@/lib/request";
+import { APP_FIELDS } from "@/settings/app-fields";
 import { saveConfig, useConfig } from "@/stores/config";
 import { useNoDump } from "@/stores/seeds";
 
@@ -12,6 +13,8 @@ import { useNoDump } from "@/stores/seeds";
  * extracts it. Under it, whether the saved dump is ready, gone, or why
  * the last Save failed. Keyed by the saved path, it starts again on each
  * save. */
+const FIELD = APP_FIELDS.game;
+
 export function GameDump() {
   const [saved] = useConfig.usePath("config.game");
   const [game, setGame] = useState(saved ?? "");
@@ -19,14 +22,14 @@ export function GameDump() {
   return (
     <div className="flex flex-col gap-1.5">
       <Field
-        id="game"
-        label="Game dump"
-        help="game-dump"
-        hint="The .nup of your own copy of the game, with the 1.1.1 update. Save extracts the files zootr reads into a cache, which takes a few seconds the first time. A folder of already extracted romfs works too: paste its path."
+        id={FIELD.id}
+        label={FIELD.label}
+        help={FIELD.help}
+        hint={FIELD.description}
       >
         <div className="flex gap-2">
           <PathInput
-            id="game"
+            id={FIELD.id}
             pick="file"
             extensions={["nup"]}
             placeholder="/path/to/oot.nup"

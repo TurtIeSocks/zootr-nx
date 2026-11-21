@@ -32,7 +32,7 @@ export function Field({
   children,
 }: FieldProps) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div data-reveal className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">
         <Label id={labelId} htmlFor={id}>
           {label}

@@ -61,3 +61,20 @@ test("the changelog says when it can't reach GitHub", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Changelog" }));
   expect(await screen.findByText(/Couldn't reach GitHub/)).toBeTruthy();
 });
+
+test("a failed fetch can be tried again", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("offline"))
+      .mockResolvedValueOnce(page(releases(20, 2))),
+  );
+  render(<ChangelogButton />);
+  fireEvent.click(screen.getByRole("button", { name: "Changelog" }));
+  await screen.findByText(/Couldn't reach GitHub/);
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  expect(await screen.findByText("notes for 0.20.0")).toBeTruthy();
+  expect(screen.queryByText(/Couldn't reach GitHub/)).toBeNull();
+  expect(fetch).toHaveBeenCalledTimes(2);
+});

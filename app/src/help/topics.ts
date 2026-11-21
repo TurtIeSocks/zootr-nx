@@ -6,6 +6,9 @@ export interface Topic {
   /** One to three short sentences, one per entry. */
   body: string[];
   link?: { label: string; to: Place };
+  /** The page it sits on, which the search shows it under. A field's
+   * topic is named by the field instead. */
+  at?: Place;
 }
 
 /** Every help text the app shows, by topic id. Plain words only: no
@@ -21,6 +24,7 @@ export const TOPICS = {
   },
   seed: {
     title: "Seeds",
+    at: { tab: "Play", folder: "standard" },
     body: [
       "The same seed and settings always make the same game.",
       "Paste a friend's share code here to build exactly their seed.",
@@ -28,24 +32,28 @@ export const TOPICS = {
   },
   "builds-with": {
     title: "Builds with",
+    at: { tab: "Play", folder: "standard" },
     body: [
       "The settings the next seed uses, a tile per group. Gold marks what changed since the installed seed.",
     ],
   },
   installed: {
     title: "Installed",
+    at: { tab: "Play" },
     body: [
       "The seed in the game now. The meter counts the chests this seed gave a different item.",
     ],
   },
   history: {
     title: "History",
+    at: { tab: "Play", folder: "history" },
     body: [
       "Every seed you've made, newest first. Install any of them again, or open its spoiler.",
     ],
   },
   "ap-slot": {
     title: "Slot",
+    at: { tab: "Play", folder: "archipelago" },
     body: [
       "Your slot's file (.apznx) comes from whoever hosts the multiworld.",
       "Open it here, Install, start the game, then Connect.",
@@ -53,12 +61,14 @@ export const TOPICS = {
   },
   "ap-room": {
     title: "Room",
+    at: { tab: "Play", folder: "archipelago" },
     body: [
       "The server address and password come from whoever hosts. Your slot name is in the slot file.",
     ],
   },
   spoiler: {
     title: "Spoiler",
+    at: { tab: "Spoiler" },
     body: [
       "Spheres shows what you can reach in turn, each column opening the next. Way of the Hero (★) marks what the game can't be finished without.",
       "Pick a check: what it needs glows gold, dashed when one of several will do, and what it opens glows blue.",
@@ -72,6 +82,7 @@ export const TOPICS = {
   },
   plando: {
     title: "Plando",
+    at: { section: "plando" },
     body: [
       "Pin an item to a check, and the shuffle leaves it there.",
       "A check is any place that can hold an item.",
@@ -79,6 +90,7 @@ export const TOPICS = {
   },
   target: {
     title: "Targets",
+    at: { section: "targets" },
     body: [
       "One is enough to play.",
       "Import adds a target someone shared with you, and the copy button on a card shares yours.",
@@ -97,6 +109,7 @@ export const TOPICS = {
   },
   variables: {
     title: "Variables",
+    at: { section: "targets" },
     body: [
       "A word in braces, like {game}, becomes a path when zootr uses the field.",
       "Variables, at the foot of this page, lists them all.",
@@ -104,6 +117,7 @@ export const TOPICS = {
   },
   checks: {
     title: "Checks",
+    at: { tab: "Checks" },
     body: [
       "They tick as you play, while the game is running.",
       "Hidden ones show once the game reports them, untracked ones never tick. Skip counts a check as done.",
@@ -111,6 +125,7 @@ export const TOPICS = {
   },
   items: {
     title: "Items",
+    at: { tab: "Items" },
     body: [
       "Faded is missing, pips show an upgrade's level, a number counts.",
       "Pop out keeps the grid in its own window beside the game.",
@@ -118,6 +133,7 @@ export const TOPICS = {
   },
   "live-status": {
     title: "Live",
+    at: { tab: "Live" },
     body: [
       "Live follows the game while it runs. Nothing ticks while it's closed.",
       "With autosaves only, changes show each time the game saves.",
@@ -125,6 +141,7 @@ export const TOPICS = {
   },
   "save-editor": {
     title: "Save Editor",
+    at: { tab: "Save" },
     body: [
       "Close the game first: it writes over its saves as it plays.",
       "On Items, click raises, right-click or Backspace lowers. Presets wait for Save.",

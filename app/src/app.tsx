@@ -10,6 +10,7 @@ import { SpoilerSheet } from "@/play/spoiler/spoiler-sheet";
 import { SpoilerView } from "@/play/spoiler/spoiler-view";
 import { SaveView } from "@/save/save-view";
 import { SettingsView } from "@/settings/settings-view";
+import { Find } from "@/shell/find/find";
 import { crumbs, type Tab } from "@/shell/nav";
 import { Topbar } from "@/shell/page-header";
 import { Sidebar } from "@/shell/sidebar";
@@ -98,6 +99,7 @@ function Shell() {
         </div>
       </main>
       <SpoilerSheet />
+      <Find />
     </div>
   );
 }

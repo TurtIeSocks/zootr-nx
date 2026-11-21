@@ -14,8 +14,10 @@ export type Edit = "Note" | "Name";
 
 /** The user's label, else the place, else what it held. History fills the
  * names in for every seed; the ids only satisfy types. */
-export const nameOf = (r: Row) =>
-  r.label || r.spot.place || r.spot.chest_name || r.spot.vanilla;
+export const nameOf = (r: Row) => r.label || placeOf(r);
+/** The place, else what it held: the name without the user's label. */
+export const placeOf = (r: Row) =>
+  r.spot.place || r.spot.chest_name || r.spot.vanilla;
 /** The row's area by name. */
 export const areaOf = (r: Row) => r.spot.area_name || r.spot.area;
 
