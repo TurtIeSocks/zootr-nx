@@ -173,6 +173,7 @@ mod tests {
 
     #[test]
     fn a_bags_ammo_waits_for_the_bag_only_where_the_bag_is_shuffled() {
+        needs_names!();
         let rows = [
             (actor::T_BOX_DEKU_NUT_BUNDLE, item::NUT_BAG_SMALL),
             (item::DEKU_STICK_BUNDLE_SMALL, item::STICK_BAG_SMALL),
