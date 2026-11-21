@@ -32,7 +32,8 @@ pub fn start_of(age: Era) -> Place {
 /// Where the seed is beaten: Ganondorf's stage.
 pub const GOAL: &Name = map::GANONDORF_STAGE;
 
-/// The trials aren't modelled, so the goal counts them done.
+/// What the six trials need isn't modelled yet, so the goal counts them
+/// done, whatever Ganon's Trials says.
 const TRIALS: &str = "ganons-trials=done";
 
 /// What every Business Scrub wants before it sells.
@@ -936,6 +937,67 @@ mod tests {
         };
         assert!(source(&[fast]));
         assert!(!source(&[]));
+    }
+
+    /// `words` held, by their rule words.
+    fn holding(words: &[&str]) -> Have {
+        let mut have = Have::default();
+        for word in words {
+            have.add(&crate::rules::vocab::id(word).unwrap());
+        }
+        have
+    }
+
+    #[test]
+    fn the_bridge_needs_what_its_setting_says() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let bosses = holding(&["beat:bongo-bongo", "beat:twinrova"]);
+        let medallions = holding(&[
+            "item:forest-medallion",
+            "item:fire-medallion",
+            "item:water-medallion",
+            "item:shadow-medallion",
+            "item:spirit-medallion",
+            "item:light-medallion",
+        ]);
+        let up = |bridge: &str, have: &Have| {
+            let on = crate::settings::value_word(crate::settings::BRIDGE, bridge);
+            let world = world(&romfs, &[&on]);
+            let edges = adult_edges(&world, map::MARKET_ADULT, map::GANON_CASTLE);
+            assert!(!edges.is_empty());
+            edges.iter().any(|e| e.need.met(have, Era::Adult))
+        };
+        let none = Have::default();
+        assert!(up("vanilla", &bosses));
+        assert!(!up("vanilla", &medallions) && !up("vanilla", &none));
+        assert!(up("six-medallions", &medallions));
+        assert!(!up("six-medallions", &bosses) && !up("six-medallions", &none));
+        assert!(up("open", &none));
+    }
+
+    #[test]
+    fn trials_done_open_the_tower_with_the_climb_alone() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let climb = holding(&[
+            "item:magic-meter",
+            "item:bow",
+            "item:light-arrows",
+            "item:master-sword",
+        ]);
+        let tower = |trials: &str| {
+            let on = crate::settings::value_word(crate::settings::TRIALS, trials);
+            let world = world(&romfs, &[&on]);
+            let edges = adult_edges(&world, map::INSIDE_GANON_CASTLE, GOAL);
+            assert!(!edges.is_empty());
+            let goal = world.goal().iter().any(|(_, n)| n.met(&climb, Era::Adult));
+            (edges.iter().any(|e| e.need.met(&climb, Era::Adult)), goal)
+        };
+        assert_eq!(tower("done"), (true, true));
+        assert!(!tower("all-six").0);
     }
 
     #[test]

@@ -779,15 +779,13 @@ fn a_logic_seed_keeps_each_spots_round_hero_and_rule() {
         return;
     };
     let dir = std::env::temp_dir().join(format!("zootr-logic-{}", std::process::id()));
-    let report = shuffle(
-        &romfs,
-        &dir,
-        7,
-        &Fixed::new(),
-        &NewGame::default(),
-        &Run::silent(),
-    )
-    .unwrap();
+    // The game's own bridge, which a hand-built new game holds no word for.
+    let bridge = crate::settings::value_word(crate::settings::BRIDGE, "vanilla");
+    let new_game = NewGame {
+        on: [bridge].into(),
+        ..Default::default()
+    };
+    let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
     std::fs::remove_dir_all(dir).unwrap();
     let rounds: HashSet<u16> = (report.spots.iter().filter_map(|s| s.round))
         .chain(report.events.iter().map(|e| e.round))

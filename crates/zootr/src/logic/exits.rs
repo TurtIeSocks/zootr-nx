@@ -212,13 +212,14 @@ pub(super) mod tests {
 
     /// Doors shuffled as `doors`, Jabu-Jabu's mouth and the Door of Time
     /// open (so the Zora's Sapphire inside Jabu never holds adult back), and
-    /// `adult_jabu`.
+    /// `adult_jabu`. The bridge is the game's own.
     fn jabu_seed(doors: Doors, adult_jabu: AdultJabu) -> NewGame {
+        let bridge = crate::settings::value_word(crate::settings::BRIDGE, "vanilla");
         NewGame {
             dungeon_entrances: DungeonEntrances::On,
             doors,
             adult_jabu,
-            on: [JABU_OPEN, OPEN_DOOR].map(String::from).into(),
+            on: [JABU_OPEN.into(), OPEN_DOOR.into(), bridge].into(),
             ..Default::default()
         }
     }

@@ -91,10 +91,13 @@ to = "market-child"
 added = true
 needs = "always"
 
+# The rainbow bridge, by the Rainbow Bridge setting. Vanilla arms it with
+# Zelda's Light Arrows scene, so it needs what the Light Arrows check does.
+# Six Medallions needs all six. Open stands from the start.
 [[exit]]
 from = "market-adult"
 to = "ganons-castle"
-needs = "setting:rainbow-bridge=open or (item:forest-medallion and item:fire-medallion and item:water-medallion and item:shadow-medallion and item:spirit-medallion and item:light-medallion and beat:bongo-bongo and beat:twinrova)"
+needs = "setting:rainbow-bridge=open or (setting:rainbow-bridge=six-medallions and item:forest-medallion and item:fire-medallion and item:water-medallion and item:shadow-medallion and item:spirit-medallion and item:light-medallion) or (setting:rainbow-bridge=vanilla and beat:bongo-bongo and beat:twinrova)"
 
 # Kakariko and the graveyard
 
@@ -340,6 +343,9 @@ to = "twinrova-room"
 added = true
 needs = "silver-gauntlets and mirror-shield and hookshot and explosives and lens and bow and zeldas-lullaby and item:requiem-of-spirit and (adult-sword or hammer)"
 
+# The climb to Ganondorf, open once the trials are done. With Ganon's
+# Trials on All Six the goal counts them done (`logic::TRIALS`): what
+# each trial needs isn't written yet.
 [[exit]]
 from = "inside-ganons-castle"
 to = "ganondorf-room"
