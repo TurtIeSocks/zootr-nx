@@ -316,6 +316,7 @@ pub const LOGIC_DELETE: &Name = &n!(0x95262d5805e9a8d5);
 pub const MAINTAIN_PERFORMANCE_STATE: &Name = &n!(0x495048d316415f07);
 pub const MARKET_ADULT_ALL_SAGE_START: &Name = &n!(0x2627ace92db26e21);
 pub const MARKET_ADULT_FIELD_GET_ARROW_LIGHT: &Name = &n!(0xa3d920887d2f9e11);
+pub const MARKET_ENTRANCE: &Name = &n!(0x561a05dc9774b4a8);
 pub const MAX_NUM_GAME_DATA: &Name = &n!(0x29a7491c221ebabd);
 pub const MEDAL_BASE_MT_ITEM_MEDAL_FOREST: &Name = &n!(0xf58b7dceb9f2e749);
 pub const MESSAGE_ID: &Name = &n!(0xecbc593771cca929);

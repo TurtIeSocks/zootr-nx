@@ -9,12 +9,13 @@ use ounce_formats::Romfs;
 use serde::Serialize;
 
 use super::{ADULT, CHILD};
-use crate::known::{Name, flag};
+use crate::known::{Name, field};
 use crate::world;
 
 /// Where an age switch lands when the map has no version for the other
-/// age: the Temple of Time, where Prelude of Light arrives.
-const FALLBACK: (&str, &Name) = ("Market", flag::LIGHT_PRELUDE);
+/// age: the Market's entrance, an arrival point at both ages. Prelude of
+/// Light's spot isn't one, and left a black screen.
+const FALLBACK: (&str, &Name) = ("Market", field::MARKET_ENTRANCE);
 
 /// A map and an arrival point in it, written `MAP/SPOT`.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
@@ -99,7 +100,7 @@ pub fn other_age(map: &str, child: bool, places: &BTreeSet<Place>) -> Place {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::{field, map};
+    use crate::known::{flag, map};
 
     fn place(text: &str) -> Place {
         Place::parse(text).unwrap()
@@ -175,7 +176,7 @@ mod tests {
     }
 
     #[test]
-    fn switching_age_keeps_the_map_or_goes_to_the_temple() {
+    fn switching_age_keeps_the_map_or_goes_to_the_market() {
         needs_names!();
         let places = BTreeSet::from([
             place(&format!(
@@ -200,11 +201,31 @@ mod tests {
         );
         assert_eq!(
             other_age(flag::KAKARIKO_VILLAGE_ADULT, false, &places),
-            place(&format!("{}/{}", flag::MARKET_CHILD, flag::LIGHT_PRELUDE))
+            place(&format!(
+                "{}/{}",
+                flag::MARKET_CHILD,
+                field::MARKET_ENTRANCE
+            ))
         );
         assert_eq!(
             other_age(flag::WATER_TEMPLE, false, &places),
-            place(&format!("{}/{}", flag::MARKET_CHILD, flag::LIGHT_PRELUDE))
+            place(&format!(
+                "{}/{}",
+                flag::MARKET_CHILD,
+                field::MARKET_ENTRANCE
+            ))
         );
+    }
+
+    #[test]
+    fn switching_age_from_a_dungeon_lands_where_an_exit_arrives() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let places = places(&romfs).unwrap();
+        for child in [true, false] {
+            let to = other_age(flag::WATER_TEMPLE, child, &places);
+            known(&to, &places).unwrap();
+        }
     }
 }
