@@ -28,6 +28,34 @@ pub const DEFAULT: [&str; 1] = ["master-sword"];
 /// The `--start` word for starting with nothing, not [`DEFAULT`].
 pub const NONE: &str = "none";
 
+/// The `--start` word for all of Link's gear at its top tier, full ammo,
+/// every song and twenty hearts: the kit room logic is measured with.
+pub const ARSENAL: &str = "arsenal";
+
+/// What [`ARSENAL`] holds, by word and count.
+#[rustfmt::skip]
+const KIT: &[(&str, i32)] = &[
+    ("kokiri-sword", 1), ("master-sword", 1), ("biggorons-sword", 1),
+    ("deku-shield", 1), ("hylian-shield", 1), ("mirror-shield", 1),
+    ("goron-tunic", 1), ("zora-tunic", 1), ("iron-boots", 1), ("hover-boots", 1),
+    ("golden-gauntlets", 1), ("golden-scale", 1),
+    ("bow", 1), ("biggest-quiver", 1), ("arrows", 50),
+    ("fire-arrows", 1), ("ice-arrows", 1), ("light-arrows", 1),
+    ("slingshot", 1), ("biggest-bullet-bag", 1), ("deku-seeds", 50),
+    ("biggest-bomb-bag", 1), ("bombs", 40), ("bombchus", 20),
+    ("biggest-stick-bag", 1), ("deku-sticks", 30), ("biggest-nut-bag", 1), ("deku-nuts", 40),
+    ("longshot", 1), ("boomerang", 1), ("megaton-hammer", 1), ("lens-of-truth", 1),
+    ("dins-fire", 1), ("farores-wind", 1), ("nayrus-love", 1), ("double-magic", 1),
+    ("ocarina-of-time", 1), ("magic-beans", 10),
+    ("bottle-1", 1), ("bottle-2", 1), ("bottle-3", 1), ("bottle-4", 1),
+    ("bunny-hood", 1), ("mask-of-truth", 1),
+    ("stone-of-agony", 1), ("gerudo-card", 1), ("double-defense", 1),
+    ("giants-wallet", 1), ("rupees", 500), ("heart-containers", 20),
+    ("zeldas-lullaby", 1), ("eponas-song", 1), ("sarias-song", 1), ("suns-song", 1),
+    ("song-of-time", 1), ("song-of-storms", 1), ("minuet-of-forest", 1), ("bolero-of-fire", 1),
+    ("serenade-of-water", 1), ("requiem-of-spirit", 1), ("nocturne-of-shadow", 1), ("prelude-of-light", 1),
+];
+
 /// The ammo a weapon's grant brings with it, which no remove takes back.
 const BROUGHT: [(&Name, &Name, i32); 2] = [
     (actor::WEAPON_RANGE_BOW, item::ARROW_NORMAL, 30),
@@ -228,6 +256,9 @@ impl Start {
 
     /// `word` held `n` times: every tier below it too, as a click does.
     pub fn add(&mut self, word: &str, n: i32) -> Result<()> {
+        if word == ARSENAL {
+            return KIT.iter().try_for_each(|&(w, n)| self.add(w, n));
+        }
         if word == HEARTS || word == RUPEE_WORD {
             self.0.insert(word.into(), n);
             return Ok(());
@@ -377,7 +408,7 @@ pub fn parse(arg: &str) -> Result<(String, i32)> {
 
 /// Every word `--start` takes.
 pub fn words() -> String {
-    let all = (WORDS.iter().map(|(w, _)| *w)).chain([HEARTS, RUPEE_WORD, NONE]);
+    let all = (WORDS.iter().map(|(w, _)| *w)).chain([HEARTS, RUPEE_WORD, NONE, ARSENAL]);
     all.collect::<Vec<_>>().join(", ")
 }
 
@@ -543,6 +574,28 @@ mod tests {
         assert_eq!(s, start(&[("adults-wallet", 1), ("giants-wallet", 1)]));
         assert!(!s.owned().contains(&item::WALLET_SMALL.get()));
         assert!(Start::default().add("child-wallet", 1).is_err());
+    }
+
+    #[test]
+    fn the_arsenal_holds_every_kit_word_and_no_word_of_its_own() {
+        needs_names!();
+        let mut s = Start::default();
+        s.add(ARSENAL, 1).unwrap();
+        s.check().unwrap();
+        assert!(!s.holds(ARSENAL));
+        for &(w, n) in KIT {
+            assert_eq!(s.0.get(w), Some(&n), "{w}");
+        }
+        // A top tier brings the tiers below it.
+        for w in [
+            "hookshot",
+            "silver-gauntlets",
+            "goron-bracelet",
+            "silver-scale",
+        ] {
+            assert!(s.holds(w), "{w}");
+        }
+        assert_eq!(parse(ARSENAL).unwrap(), (ARSENAL.into(), 1));
     }
 
     #[test]

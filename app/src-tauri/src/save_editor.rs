@@ -159,6 +159,16 @@ pub(crate) async fn start_set(app: AppHandle, start: Start, edit: Edit) -> Res<S
     .await
 }
 
+/// `start` holding all of Link's gear too (`--start arsenal`).
+#[tauri::command]
+#[specta::specta]
+pub(crate) fn start_arsenal(mut start: Start) -> Res<Start> {
+    start
+        .add(starting::ARSENAL, 1)
+        .map_err(|e| format!("{e:#}"))?;
+    Ok(start)
+}
+
 /// `f` with GameData and the layout, off the main thread.
 async fn with_layout<T: Send + 'static>(
     app: AppHandle,

@@ -82,6 +82,8 @@ export const commands = {
 	 *  for the settings' Inventory panel.
 	 */
 	startItems: (start: StartInventory) => typedError<ItemsView, string>(__TAURI_INVOKE("start_items", { start })),
+	/**  `start` holding all of Link's gear too (`--start arsenal`). */
+	startArsenal: (start: StartInventory) => typedError<StartInventory, string>(__TAURI_INVOKE("start_arsenal", { start })),
 	/**  `start` after a click on a grid cell. */
 	startClick: (start: StartInventory, at: number, intent: Intent) => typedError<StartInventory, string>(__TAURI_INVOKE("start_click", { start, at, intent })),
 	/**  `start` after a Status field's commit. */

@@ -45,6 +45,7 @@ pub mod shove;
 #[cfg(test)]
 mod sim;
 pub mod sink;
+pub mod trace;
 pub mod water;
 pub mod went;
 

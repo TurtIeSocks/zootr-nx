@@ -19,7 +19,7 @@ mod watch;
 
 pub use boot::Start;
 pub use input::{Boot, Input, PRESS};
-pub use mac::Mac;
+pub use mac::{Mac, line};
 pub use native::Native;
 pub use report::Report;
 pub use run::{Run, run, session};

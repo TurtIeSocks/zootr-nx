@@ -8,6 +8,8 @@ import {
   type StartInventory as Start,
 } from "@/bindings";
 import { DumpError } from "@/components/needs-dump";
+import { Tip } from "@/components/tip";
+import { Button } from "@/components/ui/button";
 import { call } from "@/lib/api";
 import { sameStart, startForcers, startOf, withForced } from "@/lib/settings";
 import { useLoad } from "@/lib/use-load";
@@ -61,6 +63,17 @@ export function StartInventory({ def }: StartInventoryProps) {
   }
   return (
     <div className="flex flex-col gap-1">
+      <div className="flex justify-end">
+        <Tip tip="Every piece of gear at its top tier, full ammo, every song and twenty hearts">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={async () => save(await call(commands.startArsenal(now())))}
+          >
+            Full Arsenal
+          </Button>
+        </Tip>
+      </div>
       <ItemsEditor
         view={view.data}
         onClick={async (at: number, intent: Intent) =>

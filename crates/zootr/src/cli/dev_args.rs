@@ -92,6 +92,24 @@ pub(super) enum DevCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Play control lines back to back (`LUp~1.2`, `LUp+A~0.2`, `wait~0.5`,
+    /// `shot`) while reading where Link stands every frame, then say how
+    /// far he went, how high and low, and how far he got before he fell
+    /// below his start height. With `--out`, saves the frames and
+    /// `trace.json` there.
+    Trace {
+        #[arg(required = true, value_parser = crate::nav::trace::Step::parse)]
+        steps: Vec<crate::nav::trace::Step>,
+        /// Seconds to keep reading after the last step.
+        #[arg(long, default_value_t = crate::nav::trace::SETTLE)]
+        settle: f32,
+        /// The folder for the frames and `trace.json`.
+        #[arg(long)]
+        out: Option<std::path::PathBuf>,
+        /// One JSON object instead of lines.
+        #[arg(long)]
+        json: bool,
+    },
     /// Walk to where a placed actor of the current map is used from, face
     /// it, then press A, or for a door walk through. Says `event`,
     /// `entered` or `nothing`, and where a frame of the game was saved.
