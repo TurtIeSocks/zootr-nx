@@ -22,8 +22,8 @@ pub const PAGE: u32 = 200;
 pub struct FlagQuery {
     /// Matched against the name, the hash in hex and any label.
     pub search: String,
-    /// Only values of this type.
-    pub kind: Option<String>,
+    /// Only values of these types, every type when empty.
+    pub kinds: Vec<String>,
     /// Only values that differ from what a new game starts with.
     pub changed: bool,
     /// Only values the pending edits change.
@@ -104,7 +104,7 @@ pub fn flags(gd: &GameData, save: &Save, staged: &HashSet<u32>, q: &FlagQuery) -
         let name = gd.bare(e.hash);
         let label = gd.label(e.hash);
         let changed = savefile::changed(gd, save, e);
-        let wanted = q.kind.as_deref().is_none_or(|k| k == e.kind)
+        let wanted = (q.kinds.is_empty() || q.kinds.iter().any(|k| k == e.kind))
             && (!q.changed || changed)
             && (!q.staged || staged.contains(&e.hash))
             && hits(&e, &name, label.as_deref());
@@ -225,10 +225,17 @@ mod tests {
         assert_eq!(ask(all.clone()), [11, 12, 21, 22]);
         assert_eq!(
             ask(FlagQuery {
-                kind: Some("Int".into()),
+                kinds: vec!["Int".into()],
                 ..all.clone()
             }),
             [21, 22]
+        );
+        assert_eq!(
+            ask(FlagQuery {
+                kinds: vec!["Bool".into(), "Int".into()],
+                ..all.clone()
+            }),
+            [11, 12, 21, 22]
         );
         assert_eq!(
             ask(FlagQuery {

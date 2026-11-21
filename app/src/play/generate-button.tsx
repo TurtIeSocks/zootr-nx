@@ -19,13 +19,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { WhyButton } from "@/components/why-button";
-import { MAC } from "@/lib/platform";
+import { MOD } from "@/lib/platform";
 import { generateTyped } from "@/play/generate";
 import { stepName, stopGenerate, useSeeds } from "@/stores/seeds";
 import { fix } from "@/stores/shell";
-
-/** The modifier key the shortcuts take, as the menu writes it. */
-const MOD = MAC ? "⌘" : "Ctrl+";
 
 /** Generate & install, with Generate only behind its chevron, the same
  * shape as Play. While a seed generates, it shows the step and turns into

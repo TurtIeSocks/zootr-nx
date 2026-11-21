@@ -132,7 +132,7 @@ test("rows show their time, and Quiet hides unnamed values", async () => {
   expect(screen.queryByText("#e573f564")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "All" }));
   expect(screen.getByText("#e573f564")).toBeTruthy();
-  fireEvent.change(screen.getByLabelText("Filter"), {
+  fireEvent.change(screen.getByLabelText("Filter lines"), {
     target: { value: "rupee" },
   });
   expect(screen.queryByText("#e573f564")).toBeNull();
@@ -234,12 +234,12 @@ test("a change draws as old, an arrow, then new", async () => {
 test("Quiet and the filter are still set after leaving the tab", async () => {
   await recording();
   fireEvent.click(screen.getByRole("button", { name: "All" }));
-  fireEvent.change(screen.getByLabelText("Filter"), {
+  fireEvent.change(screen.getByLabelText("Filter lines"), {
     target: { value: "e573" },
   });
   cleanup();
   render(<LiveView />);
-  expect(screen.getByLabelText("Filter")).toHaveProperty("value", "e573");
+  expect(screen.getByLabelText("Filter lines")).toHaveProperty("value", "e573");
   expect(screen.getByText("#e573f564")).toBeTruthy();
 });
 
@@ -385,7 +385,7 @@ test("Mark, or M, marks the log with what happened while recording", async () =>
   await waitFor(() =>
     expect(screen.queryByLabelText("What happened?")).toBeNull(),
   );
-  fireEvent.keyDown(screen.getByLabelText("Filter"), { key: "m" });
+  fireEvent.keyDown(screen.getByLabelText("Filter lines"), { key: "m" });
   expect(screen.queryByLabelText("What happened?")).toBeNull();
   fireEvent.keyDown(document.body, { key: "m" });
   expect(await screen.findByLabelText("What happened?")).toBeTruthy();

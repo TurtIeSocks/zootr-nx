@@ -282,6 +282,23 @@ test("a flag row stages its value, and Save writes what's pending", async () => 
   expect(useUi.getPath("save.edits")).toEqual([]);
 });
 
+test("the Flags tab says types in plain words and filters by them", async () => {
+  await open();
+  fireEvent.click(screen.getByRole("button", { name: "Flags" }));
+  expect(
+    await screen.findByLabelText("Filter flags by name, hash or label"),
+  ).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Type"), {
+    target: { value: "On/Off" },
+  });
+  await waitFor(() =>
+    expect(saveFlags.mock.lastCall?.[2].kinds).toEqual(["Bool"]),
+  );
+  fireEvent.click(await screen.findByRole("button", { name: /FakeHill/ }));
+  await screen.findByRole("switch", { name: "FakeHill_Door" });
+  expect(screen.getAllByText("On/Off")).toHaveLength(2);
+});
+
 test("Save waits while the game runs", async () => {
   useSeeds.setPath("running", true);
   await open();

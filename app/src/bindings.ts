@@ -461,8 +461,8 @@ export type FlagGroup = {
 export type FlagQuery = {
 	/**  Matched against the name, the hash in hex and any label. */
 	search: string,
-	/**  Only values of this type. */
-	kind: string | null,
+	/**  Only values of these types, every type when empty. */
+	kinds: string[],
 	/**  Only values that differ from what a new game starts with. */
 	changed: boolean,
 	/**  Only values the pending edits change. */

@@ -15,8 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { kindOptions, kindWord } from "@/save/flag-kinds";
 import { StagedInput } from "@/save/staged-input";
 import { stage } from "@/save/tabs";
+import { useDevTools } from "@/stores/config";
 import { useUi } from "@/stores/ui";
 
 /** Rows an open group adds with each Show more, as Rust pages them. */
@@ -54,14 +56,17 @@ export function FlagsTab({ view }: FlagsTabProps) {
 /** Search, the type, and the Changed and Staged filters. */
 function FlagFilters({ kinds }: { kinds: string[] }) {
   const [search, setSearch] = useUi.usePath("save.flags.search");
-  const [kind, setKind] = useUi.usePath("save.flags.kind");
+  const [picked, setPicked] = useUi.usePath("save.flags.kinds");
+  const dev = useDevTools();
+  const options = kindOptions(kinds, dev);
+  const word = picked[0] && kindWord(picked[0], dev);
   const [changed, setChanged] = useUi.usePath("save.flags.changed");
   const [staged, setStaged] = useUi.usePath("save.flags.staged");
   return (
     <div className="flex items-center gap-3">
       <Input
-        aria-label="Search"
-        placeholder="Search a name, hash or label"
+        aria-label="Filter flags by name, hash or label"
+        placeholder="Filter flags by name, hash or label"
         className="flex-1"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -69,13 +74,15 @@ function FlagFilters({ kinds }: { kinds: string[] }) {
       <select
         aria-label="Type"
         className={cn(fieldClass, "h-8 w-32 px-2")}
-        value={kind ?? ""}
-        onChange={(e) => setKind(e.target.value || null)}
+        value={word ?? ""}
+        onChange={(e) =>
+          setPicked(options.find((o) => o.word === e.target.value)?.kinds ?? [])
+        }
       >
-        <option value="">Every type</option>
-        {kinds.map((k) => (
-          <option key={k} value={k}>
-            {k}
+        <option value="">Every Type</option>
+        {options.map((o) => (
+          <option key={o.word} value={o.word}>
+            {o.word}
           </option>
         ))}
       </select>
@@ -169,6 +176,7 @@ const infoOf = (row: FlagRow): Info => ({
  * an array once opened. */
 function Row({ row }: { row: FlagRow }) {
   const [open, setOpenRow] = useState(false);
+  const dev = useDevTools();
   const array = row.kind.endsWith("Array");
   const edit = (index: number) => (value: string) =>
     stage([{ hash: row.hash, index, value }]);
@@ -191,7 +199,9 @@ function Row({ row }: { row: FlagRow }) {
             <span className="sr-only">Staged</span>
           </>
         )}
-        <span className="w-24 shrink-0 text-ink-muted text-xs">{row.kind}</span>
+        <span className="w-24 shrink-0 text-ink-muted text-xs">
+          {kindWord(row.kind, dev)}
+        </span>
         <div className="w-56 shrink-0">
           {row.values.length === 0 ? (
             <span className="text-ink-muted text-xs">
