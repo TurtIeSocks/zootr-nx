@@ -113,6 +113,19 @@ test("arrows move over the shown rows only; Enter runs; Esc closes", () => {
   expect(onClose).toHaveBeenCalled();
 });
 
+test("the arrows scroll the row they reach into view", () => {
+  // jsdom has no scrollIntoView.
+  const seen: string[] = [];
+  HTMLElement.prototype.scrollIntoView = function (this: HTMLElement) {
+    seen.push(this.textContent ?? "");
+  };
+  render(<Harness items={[item("a1", "a"), item("a2", "a")]} />);
+  fireEvent.keyDown(field(), { key: "ArrowDown" });
+  expect(seen.at(-1)).toBe("a2");
+  // @ts-expect-error put jsdom back as it was
+  delete HTMLElement.prototype.scrollIntoView;
+});
+
 test("hovering a row highlights it, and a new query starts at the top", () => {
   render(<Harness items={[item("a1", "a"), item("a2", "a")]} />);
   fireEvent.mouseMove(screen.getByRole("button", { name: "a2" }));

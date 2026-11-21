@@ -1,5 +1,5 @@
 import { type LucideIcon, Search } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Marked } from "@/components/palette/marked";
 import { words as wordsOf } from "@/lib/matching";
 import { cn } from "@/lib/utils";
@@ -106,11 +106,17 @@ export function Palette<T extends PaletteItem>({
   const flat = shown.flatMap((s) => s.items);
   const at = Math.min(sel.query === query ? sel.at : 0, flat.length - 1);
   const setAt = (i: number) => setSel({ query, at: i });
+  // From the latest highlight, so presses faster than a render all count.
+  const step = (by: number) =>
+    setSel((s) => {
+      const from = s.query === query ? s.at : 0;
+      return { query, at: Math.max(0, Math.min(from + by, flat.length - 1)) };
+    });
   const hit = flat[at];
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") setAt(Math.min(at + 1, flat.length - 1));
-    else if (e.key === "ArrowUp") setAt(Math.max(at - 1, 0));
+    if (e.key === "ArrowDown") step(1);
+    else if (e.key === "ArrowUp") step(-1);
     else if (e.key === "Enter") hit && onRun(hit);
     else if (e.key === "Escape") onClose();
     else if (!onKey?.(e.key, hit)) return;
@@ -225,8 +231,14 @@ interface RowProps {
 /** One result: its trail and title, and its line under them. */
 function Row({ item, words, current, onHover, onRun }: RowProps) {
   const { icon: Icon, trail, title, body } = item;
+  const ref = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    // The arrows can walk past the list's fold. Optional: jsdom lacks it.
+    if (current) ref.current?.scrollIntoView?.({ block: "nearest" });
+  }, [current]);
   return (
     <button
+      ref={ref}
       type="button"
       tabIndex={-1}
       aria-current={current}
