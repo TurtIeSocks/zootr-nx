@@ -149,9 +149,7 @@ pub fn copy_pack(romfs: &Romfs, item: &str) -> Result<Option<ActorPack>> {
 /// its pouch count, and the saved slot naming the bag Link holds.
 pub fn game_data(root: &mut Byml) -> Result<()> {
     for (bag, like) in BAGS.iter().zip(BOMB_BAGS) {
-        let names = [bag.to_string()];
-        gamedata::join_structs(root, like.get(), &names, &[gamedata::IS_GET])?;
-        gamedata::copy_member(root, COUNTS, like.get(), bag, &format!("{bag}.Count"))?;
+        gamedata::copy_item(root, like.get(), bag)?;
     }
     gamedata::add_string64s(root, &[slot_entry()])?;
     let cap = format!("{}.{SLOT}", field::MAX_NUM_GAME_DATA);
@@ -163,12 +161,6 @@ pub fn game_data(root: &mut Byml) -> Result<()> {
 /// the bag in the slot. A slot with no member gets neither, so Link holds
 /// none of its ammo and a chest of it gives a Red Rupee.
 const CAPS: u32 = 0xf80f8077;
-
-/// The Struct of pouch counts, a member per item naming a Struct of its
-/// saved count. The game's pouch count reads it, and the hook asks that
-/// count whether Link holds each level of a line: a bag with none reads as
-/// never held, so every Bombchu Bag chest gave the Small.
-const COUNTS: u32 = 0x3da094e3;
 
 /// Each Bombchu Bag, its model, its pouch row and the bomb bags it takes
 /// Bombchus from, for `tables` to write. Each bag shows its bomb bag's
@@ -305,8 +297,11 @@ mod tests {
         assert_eq!(slot, zootr_hook::switches::BOMBCHU_SLOT);
         assert_eq!(gd.kind(slot), Some("String64"));
         // The pouch count the hook asks whether Link holds a bag.
-        let counts: std::collections::HashMap<u32, u32> =
-            gd.members(COUNTS).unwrap().into_iter().collect();
+        let counts: std::collections::HashMap<u32, u32> = gd
+            .members(gamedata::POUCH_COUNTS)
+            .unwrap()
+            .into_iter()
+            .collect();
         let mut seen = std::collections::HashSet::new();
         for bag in BAGS {
             let count = counts[&ounce_formats::murmur3(bag.as_bytes())];
