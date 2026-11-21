@@ -269,10 +269,12 @@ mod tests {
     use crate::narrowing::MAPS_COMPASSES;
     use crate::narrowing::tests::chest;
 
+    /// The game's own magic, so the pool holds only the checks' items.
     fn game(vanilla: bool, start: &[&str]) -> NewGame {
         NewGame {
             vanilla,
             start: starting::Start::of(start),
+            magic_with_first_item: true,
             ..Default::default()
         }
     }

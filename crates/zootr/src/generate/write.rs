@@ -17,9 +17,7 @@ use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::progressive::Lines;
 use crate::settings::Bombchus;
-use crate::settings::{
-    AGELESS_WEAPONS, ChestSize, DungeonEntrances, MAGIC_APART, NewGame, TRADE_CHAIN,
-};
+use crate::settings::{AGELESS_WEAPONS, ChestSize, DungeonEntrances, NewGame, TRADE_CHAIN};
 use crate::starter_bags;
 use crate::world::Era;
 use crate::{
@@ -49,7 +47,7 @@ pub(super) fn flows(
     if new_game.hints {
         hints::quiet(romfs, &mut rewrites)?;
     }
-    if new_game.on.contains(MAGIC_APART) {
+    if !new_game.magic_with_first_item {
         crate::magic::quiet(romfs, &mut rewrites)?;
     }
     flags.push(starting::navi_guide());
@@ -156,7 +154,7 @@ pub fn write_mod(
         .find(|i| {
             !keys::is_shuffled(i)
                 && !foreign::is_copy(i)
-                && !bombchu_bags::BAGS.contains(i)
+                && !crate::known::is_ours(i)
                 && ammo::copied(i).is_none()
                 && !romfs.root().join(flags::actor_pack(i)).is_file()
         })
@@ -267,6 +265,7 @@ pub fn write_mod(
     if new_game.bombchus == Bombchus::Bag {
         bombchu_bags::game_data(&mut data.root)?;
     }
+    crate::magic::meter::game_data(&mut data.root)?;
     let names: Vec<String> = new_game.foreign.iter().map(|f| f.actor.clone()).collect();
     if !names.is_empty() {
         gamedata::join_structs(
@@ -301,9 +300,12 @@ pub fn write_mod(
     }
     starter_bags::write(romfs, new_game, &mut builder, &mut tables)?;
     // Before the stand-ins, so one copying a magic item copies it apart.
-    if new_game.on.contains(MAGIC_APART) {
-        crate::magic::write(&mut tables)?;
-    }
+    crate::magic::write(
+        romfs,
+        &mut builder,
+        &mut tables,
+        !new_game.magic_with_first_item,
+    )?;
     if new_game.on.contains(AGELESS_WEAPONS) {
         ageless::write(romfs, &mut builder)?;
     }

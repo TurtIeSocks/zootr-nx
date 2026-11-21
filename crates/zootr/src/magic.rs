@@ -1,13 +1,18 @@
 //! Magic apart from the items that spend it. In the game every magic item
 //! (Din's Fire, Farore's Wind, Nayru's Love, the Lens of Truth, the magic
 //! arrows, even the plain bow's pouch row) turns the magic meter on as it's
-//! got, through its pouch row. With magic apart only the meter's own rows
-//! raise it. Research: `research/magic-meter.md`.
+//! got, through its pouch row. With magic apart (the setting "magic comes
+//! with the first magic item" off) only a Magic Meter ([`meter`]) or
+//! Doubled Magic raises it. Improved Spin's wave never spends magic, so it
+//! loses the meter too. Research: `research/magic-meter.md`.
+
+mod look;
+pub mod meter;
 
 use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::BymlMap;
 use ounce_formats::EventKind;
-use ounce_formats::Romfs;
+use ounce_formats::{ModBuilder, Romfs};
 
 use crate::flows::{self, GAME_DATA, Rewrites, param};
 use crate::known::{field, flag, flow, scene};
@@ -19,27 +24,43 @@ const RAISES_METER: &str = "MPMaxUP";
 /// The meter's size a row sets.
 const SIZE: &str = "MPMax";
 
-/// A pouch row's special deal, which names the meter's own rows (the
-/// gifts and their pouch twins) whatever they're called.
+/// A pouch row's special deal, which names Doubled Magic's rows (the gift
+/// and its pouch twin) whatever they're called. Improved Spin's
+/// `FairyBlessMP` rows aren't the meter's.
 const DEAL: &str = "PouchSpecialDeal";
-const METER_DEALS: [&str; 2] = ["FairyBlessMP", "FairyBlessMPDouble"];
+const METER_DEAL: &str = "FairyBlessMPDouble";
 
 fn text<'a>(row: &'a BymlMap, key: &str) -> Option<&'a str> {
     row.get(key)?.as_string().ok().map(|s| s.as_str())
 }
 
 fn is_meter(row: &BymlMap) -> bool {
-    text(row, DEAL).is_some_and(|d| METER_DEALS.contains(&d))
+    text(row, DEAL) == Some(METER_DEAL)
 }
 
 fn raises_meter(row: &BymlMap) -> bool {
     text(row, ABILITY) == Some(RAISES_METER)
 }
 
-/// Take the meter off every pouch row but the meter's own. Run before the
-/// stand-ins, so a copy of a magic item copies it apart. Returns the rows
-/// changed.
-pub fn write(tables: &mut Tables) -> Result<Vec<String>> {
+/// With magic `apart`, take the meter off every pouch row but Doubled
+/// Magic's. Then add the Magic Meter, which every seed has, so starting
+/// with it works either way. Run before the stand-ins, so a copy of a
+/// magic item copies it apart.
+pub fn write(
+    romfs: &Romfs,
+    builder: &mut ModBuilder,
+    tables: &mut Tables,
+    apart: bool,
+) -> Result<()> {
+    if apart {
+        strip(tables)?;
+    }
+    meter::write(romfs, builder, tables)
+}
+
+/// Take the meter off every pouch row but Doubled Magic's. Returns the
+/// rows changed.
+fn strip(tables: &mut Tables) -> Result<Vec<String>> {
     let mut stripped = Vec::new();
     tables.edit_pouch(|row| {
         if !raises_meter(row) || is_meter(row) {
@@ -105,21 +126,23 @@ mod tests {
     use super::*;
     use crate::known::item;
 
-    /// The items that are the meter: single, then double.
-    const METER: [&crate::known::Name; 2] = [item::FAIRY_BLESS_MP, item::FAIRY_BLESS_MP_DOUBLE];
-
     #[test]
-    fn only_the_meter_raises_the_meter() {
+    fn only_the_meter_items_raise_the_meter() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
+        let dir = std::env::temp_dir().join(format!("zootr-magic-{}", std::process::id()));
+        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let mut tables = Tables::load(&romfs).unwrap();
-        let stripped = write(&mut tables).unwrap();
+        let stripped = strip(&mut tables).unwrap();
+        meter::write(&romfs, &mut builder, &mut tables).unwrap();
         for magic in [
             item::DIN_FIRE,
             item::FARORE_WIND,
             item::NAYRU_LOVE,
             item::GLASS_TRUTH,
+            item::ARROW_FIRE,
+            item::FAIRY_BLESS_MP,
         ] {
             assert!(
                 stripped.iter().any(|s| s == magic.get()),
@@ -132,24 +155,27 @@ mod tests {
             .edit_pouch(|row| {
                 if raises_meter(row) {
                     let name = text(row, crate::rsdb::ROW_ID).unwrap().to_owned();
-                    raising.push((name, is_meter(row)));
+                    let size = row[SIZE].as_i32().unwrap();
+                    raising.push((name, text(row, DEAL).unwrap().to_owned(), size));
                 }
                 false
             })
             .unwrap();
-        assert!(raising.iter().all(|(_, meter)| *meter), "{raising:?}");
-        for m in METER {
-            assert!(
-                raising.iter().any(|(r, _)| r == m.get()),
-                "{} lost the meter",
-                m.get()
-            );
-        }
-        assert_eq!(
-            raising.len(),
-            4,
-            "the meter's gifts and pouch twins: {raising:?}"
+        // Doubled Magic's gift and pouch twin, and the Magic Meter.
+        assert_eq!(raising.len(), 3, "{raising:?}");
+        let double = item::FAIRY_BLESS_MP_DOUBLE.get();
+        assert!(
+            raising
+                .iter()
+                .any(|(r, d, n)| r == double && d == METER_DEAL && *n == 48)
         );
+        let single = (
+            meter::NAME.to_owned(),
+            crate::standins::PLAIN_DEAL.to_owned(),
+            24,
+        );
+        assert!(raising.contains(&single), "{raising:?}");
+        std::fs::remove_dir_all(dir).ok();
     }
 
     /// Each "is the meter empty?" switch, as rendered, in `name`.

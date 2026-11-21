@@ -215,7 +215,7 @@ pub fn write(
 /// the bag whose lines it's copied from in every language and its own
 /// lines: name (none keeps the game's), get and caption.
 type GetText = (&'static Name, &'static Name, [Option<&'static str>; 3]);
-const GET_TEXT: [GetText; 5] = [
+const GET_TEXT: [GetText; 6] = [
     (
         item::NUT_BAG_SMALL,
         item::NUT_BAG_MEDIUM,
@@ -261,24 +261,36 @@ const GET_TEXT: [GetText; 5] = [
             Some("You can carry a ton of bombchus now! This bag fits up to 40 of them."),
         ],
     ),
+    (
+        crate::magic::meter::METER,
+        item::FAIRY_BLESS_MP_DOUBLE,
+        [
+            Some("Magic Meter"),
+            Some("You got a magic meter!"),
+            Some("Now you can use magic! Spells and magic items draw on this meter."),
+        ],
+    ),
 ];
 
 /// The bags whose get text a seed writes.
 #[cfg(test)]
-pub const GET_TEXTS: [&Name; 5] = [
+pub const GET_TEXTS: [&Name; 6] = [
     GET_TEXT[0].0,
     GET_TEXT[1].0,
     GET_TEXT[2].0,
     GET_TEXT[3].0,
     GET_TEXT[4].0,
+    GET_TEXT[5].0,
 ];
 
-/// The get text of each bag `new_game` adds, which the game lacks.
+/// The get text of each bag `new_game` adds, which the game lacks, and the
+/// Magic Meter's, which every seed has.
 pub fn captions(new_game: &NewGame) -> Copies<'static> {
     let added = added(new_game);
+    let meter = crate::magic::meter::NAME;
     let bags = GET_TEXT
         .iter()
-        .filter(|(bag, ..)| added.contains(&bag.get()));
+        .filter(|(bag, ..)| added.contains(&bag.get()) || bag.get() == meter);
     let new = bags
         .flat_map(|(bag, like, lines)| {
             let parts = TEXT_PARTS.iter().zip(lines);
@@ -297,7 +309,9 @@ pub fn captions(new_game: &NewGame) -> Copies<'static> {
     }
 }
 
-/// The bags `new_game` adds to the pool, each taking a junk item's place.
+/// The items `new_game` adds to the pool, each taking a junk item's place:
+/// the bags it shuffles, and the Magic Meter when magic doesn't come with
+/// the first magic item.
 pub fn added(new_game: &NewGame) -> Vec<&'static str> {
     let nut = new_game.shuffle_nut_bag.then(|| item::NUT_BAG_SMALL.get());
     let stick = new_game
@@ -307,9 +321,11 @@ pub fn added(new_game: &NewGame) -> Vec<&'static str> {
         Bombchus::Bag => &bombchu_bags::BAGS[..],
         _ => &[],
     };
+    let meter = (!new_game.magic_with_first_item).then_some(crate::magic::meter::NAME);
     nut.into_iter()
         .chain(stick)
         .chain(bombchus.iter().copied())
+        .chain(meter)
         .collect()
 }
 
@@ -339,9 +355,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn each_setting_adds_its_bags() {
+    fn each_setting_adds_its_items() {
         needs_names!();
-        assert!(added(&NewGame::default()).is_empty());
+        let meter = crate::magic::meter::NAME;
+        assert_eq!(added(&NewGame::default()), [meter]);
+        let game = NewGame {
+            magic_with_first_item: true,
+            ..Default::default()
+        };
+        assert!(added(&game).is_empty());
         let all = NewGame {
             shuffle_nut_bag: true,
             shuffle_stick_bag: true,
@@ -350,6 +372,7 @@ mod tests {
         };
         let mut want = vec![item::NUT_BAG_SMALL.get(), item::STICK_BAG_SMALL.get()];
         want.extend(bombchu_bags::BAGS);
+        want.push(meter);
         assert_eq!(added(&all), want);
     }
 
@@ -423,22 +446,28 @@ mod tests {
     #[test]
     fn each_added_bag_gets_its_missing_lines_and_keeps_the_rest() {
         needs_names!();
-        assert!(captions(&NewGame::default()).new.is_empty());
+        let game = NewGame {
+            magic_with_first_item: true,
+            ..Default::default()
+        };
+        let meter = crate::magic::meter::NAME;
+        let labels: Vec<_> = (captions(&game).new.into_iter()).map(|l| l.label).collect();
+        assert_eq!(labels, TEXT_PARTS.map(|p| format!("{meter}{p}")));
         let nuts = NewGame {
             shuffle_nut_bag: true,
-            ..Default::default()
+            ..game.clone()
         };
         let labels: Vec<_> = captions(&nuts).new.into_iter().map(|l| l.label).collect();
         let bag = item::NUT_BAG_SMALL;
         assert_eq!(
-            labels,
+            labels[..2],
             [format!("{bag}_GetMessage"), format!("{bag}_GetCaption")]
         );
         let chus = NewGame {
             bombchus: Bombchus::Bag,
-            ..Default::default()
+            ..game
         };
-        assert_eq!(captions(&chus).new.len(), 9);
+        assert_eq!(captions(&chus).new.len(), 9 + 3);
     }
 
     #[test]
