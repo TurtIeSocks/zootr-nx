@@ -43,9 +43,10 @@ const ITEMS: [&Name; 4] = [
 /// note, "The multi-copy limit was the RESTBL").
 const SLACK: usize = 64 << 10;
 
-/// The age word in a grown copy of a child archive's name, as long as
-/// either Link's.
+/// The age words in a grown copy of a child archive's name and a shrunk
+/// copy of an adult one, as long as either Link's.
 const GROWN: &str = "Grown";
+const SMALL: &str = "Small";
 
 /// An archive a Link borrows from the other: `from`, resized to the
 /// skeleton the other Link's archive `skeleton` has, renamed with `word`
@@ -58,9 +59,10 @@ struct Archive {
 
 /// The age word a borrowed archive's name takes.
 enum Word {
-    /// The borrowing Link's own: the adult's archive shrunk is the child's.
+    /// The borrowing Link's own, for an archive he has no copy of.
     Own,
-    Grown,
+    /// Another, beside his own archive of the same number.
+    Other(&'static str),
 }
 
 /// What one Link borrows from the other.
@@ -76,12 +78,37 @@ const CHILD: Link = Link {
     who: actor::PLAYER_CHILD,
     from: actor::PLAYER_ADULT,
     holds: &[item::HOOKSHOT, item::LONGSHOT],
-    // The Hook's 87 clips.
-    archives: &[Archive {
-        from: field::PLAYER_ADULT_02_H_ANIMATION,
-        skeleton: field::PLAYER_CHILD_01_ANIMATION,
-        word: Word::Own,
-    }],
+    // Every one of the adult's: a held item's clips are spread over all
+    // five (the Hook's draw in 01, lock-on in 02, its shots in 02_H, poses
+    // and rolls in 03, waits in 04). A state whose clip is missing plays
+    // nothing, and Link twitches.
+    archives: &[
+        Archive {
+            from: field::PLAYER_ADULT_01_ANIMATION,
+            skeleton: field::PLAYER_CHILD_01_ANIMATION,
+            word: Word::Other(SMALL),
+        },
+        Archive {
+            from: field::PLAYER_ADULT_02_ANIMATION,
+            skeleton: field::PLAYER_CHILD_01_ANIMATION,
+            word: Word::Other(SMALL),
+        },
+        Archive {
+            from: field::PLAYER_ADULT_02_H_ANIMATION,
+            skeleton: field::PLAYER_CHILD_01_ANIMATION,
+            word: Word::Own,
+        },
+        Archive {
+            from: field::PLAYER_ADULT_03_ANIMATION,
+            skeleton: field::PLAYER_CHILD_01_ANIMATION,
+            word: Word::Other(SMALL),
+        },
+        Archive {
+            from: field::PLAYER_ADULT_04_ANIMATION,
+            skeleton: field::PLAYER_CHILD_01_ANIMATION,
+            word: Word::Other(SMALL),
+        },
+    ],
 };
 
 /// The Boomerang is a projectile, so only the Deku Stick is held.
@@ -89,22 +116,27 @@ const ADULT: Link = Link {
     who: actor::PLAYER_ADULT,
     from: actor::PLAYER_CHILD,
     holds: &[item::DEKU_STICK],
-    // The Boomerang's 11 clips and the Deku Stick's 85, over three.
+    // Every one of the child's, as for the child.
     archives: &[
         Archive {
             from: field::PLAYER_CHILD_01_ANIMATION,
             skeleton: field::PLAYER_ADULT_02_H_ANIMATION,
-            word: Word::Grown,
+            word: Word::Other(GROWN),
+        },
+        Archive {
+            from: field::PLAYER_CHILD_02_ANIMATION,
+            skeleton: field::PLAYER_ADULT_02_H_ANIMATION,
+            word: Word::Other(GROWN),
         },
         Archive {
             from: field::PLAYER_CHILD_03_ANIMATION,
             skeleton: field::PLAYER_ADULT_02_H_ANIMATION,
-            word: Word::Grown,
+            word: Word::Other(GROWN),
         },
         Archive {
             from: field::PLAYER_CHILD_04_ANIMATION,
             skeleton: field::PLAYER_ADULT_02_H_ANIMATION,
-            word: Word::Grown,
+            word: Word::Other(GROWN),
         },
     ],
 };
@@ -130,7 +162,7 @@ impl Link {
     fn renamed(&self, archive: &Archive) -> Result<String> {
         let word = match archive.word {
             Word::Own => age(self.who),
-            Word::Grown => GROWN,
+            Word::Other(word) => word,
         };
         let from = archive.from.get();
         let name = from.replacen(age(self.from), word, 1);
