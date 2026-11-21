@@ -21826,6 +21826,179 @@
           "rule": {
             "all": [
               {
+                "all": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Hover Boots"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "all": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Ocarina"
+                                ]
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Song of Time"
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Hookshot"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Magic Meter"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bow"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Din's Fire"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Fire Arrows"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bottle"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Ruto's Letter"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Megaton Hammer"
+                    ]
+                  },
+                  {
+                    "count": 3,
+                    "items": [
+                      "Goron Bracelet",
+                      "Progressive Strength Upgrade"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bow"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Lens of Truth"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Hover Boots"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Mirror Shield"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "setting": "bombchus=free"
+                          },
+                          {
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "count": 2,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  }
+                ]
+              },
+              {
                 "count": 1,
                 "items": [
                   "Magic Meter"

@@ -32,10 +32,6 @@ pub fn start_of(age: Era) -> Place {
 /// Where the seed is beaten: Ganondorf's stage.
 pub const GOAL: &Name = map::GANONDORF_STAGE;
 
-/// What the six trials need isn't modelled yet, so the goal counts them
-/// done, whatever Ganon's Trials says.
-const TRIALS: &str = "ganons-trials=done";
-
 /// What every Business Scrub wants before it sells.
 const STUN_SCRUB: &str = "stun-scrub";
 
@@ -80,7 +76,7 @@ pub struct World {
     pub sources: Vec<Source>,
     /// Obstacle counts by tool, per node.
     pub obstacles: BTreeMap<String, BTreeMap<String, usize>>,
-    /// Each exit into `GOAL`: its place and what it needs with the trials done.
+    /// Each exit into `GOAL`: its place and what it needs.
     goal: Vec<(usize, Need)>,
     /// Where the new file starts.
     start: Place,
@@ -392,21 +388,9 @@ impl World {
                 },
             });
         }
-        let trials = Ctx {
-            progressive: ctx.progressive,
-            lines: ctx.lines,
-            on: ctx.on.iter().cloned().chain([TRIALS.into()]).collect(),
-            seed: ctx.seed,
-            keys: ctx.keys,
-            fortress: ctx.fortress,
-            open: ctx.open.iter().filter(|o| *o != TRIALS).cloned().collect(),
-            doors: ctx.doors.clone(),
-            age: ctx.age,
-            adult_jabu: ctx.adult_jabu,
-        };
         let mut goal = Vec::new();
         for rule in book.exits.iter().filter(|r| r.to == GOAL) {
-            let mut need = book.need(&rule.expr, &trials)?;
+            let mut need = book.need(&rule.expr, ctx)?;
             // The tower's boss key door, as on the exit's own edge.
             if let Some(keys) = keys::boss_door_need(&rule.to, ctx.keys) {
                 need = Need::All(vec![need, keys]);
@@ -427,8 +411,7 @@ impl World {
         })
     }
 
-    /// Each exit into `GOAL`: its place and what it needs, the trials
-    /// counted done.
+    /// Each exit into `GOAL`: its place and what it needs.
     pub fn goal(&self) -> &[(usize, Need)] {
         &self.goal
     }
@@ -540,7 +523,7 @@ impl World {
         reached.map(|(p, _)| p).collect()
     }
 
-    /// Whether Link reaches Ganondorf with `have`, the trials counted done.
+    /// Whether Link reaches Ganondorf with `have`.
     pub fn beaten(&self, have: &Have) -> bool {
         let seen = self.seen(have);
         let era = |p: usize| self.places[p].1;
@@ -982,26 +965,56 @@ mod tests {
     }
 
     #[test]
-    fn trials_done_open_the_tower_with_the_climb_alone() {
+    fn all_six_trials_need_each_trials_items_and_done_only_the_climb() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let climb = holding(&[
+        let climb = [
             "item:magic-meter",
             "item:bow",
             "item:light-arrows",
             "item:master-sword",
-        ]);
-        let tower = |trials: &str| {
+        ];
+        // One way through each trial: Forest and Shadow share the Hover
+        // Boots, Shadow, Fire and Light the Golden Gauntlets, Spirit and
+        // Light the Hookshot. The Forest wants Din's Fire or Fire Arrows.
+        let trials = [
+            "item:hover-boots",
+            "item:dins-fire",
+            "item:bottle",
+            "item:megaton-hammer",
+            "item:golden-gauntlets",
+            "item:lens-of-truth",
+            "item:hookshot",
+            "item:mirror-shield",
+            "item:bombchus-small",
+            "item:longshot",
+        ];
+        // Bombchus at their default cap, as a new game's settings have it.
+        let chus = crate::settings::value_word(crate::settings::BOMBCHUS, "free");
+        let tower = |trials: &str, have: &Have| {
             let on = crate::settings::value_word(crate::settings::TRIALS, trials);
-            let world = world(&romfs, &[&on]);
+            let world = world(&romfs, &[&on, &chus]);
             let edges = adult_edges(&world, map::INSIDE_GANON_CASTLE, GOAL);
             assert!(!edges.is_empty());
-            let goal = world.goal().iter().any(|(_, n)| n.met(&climb, Era::Adult));
-            (edges.iter().any(|e| e.need.met(&climb, Era::Adult)), goal)
+            let goal = world.goal().iter().any(|(_, n)| n.met(have, Era::Adult));
+            (edges.iter().any(|e| e.need.met(have, Era::Adult)), goal)
         };
-        assert_eq!(tower("done"), (true, true));
-        assert!(!tower("all-six").0);
+        assert_eq!(tower("done", &holding(&climb)), (true, true));
+        assert_eq!(tower("all-six", &holding(&climb)), (false, false));
+        let all = [&climb[..], &trials[..]].concat();
+        assert_eq!(tower("all-six", &holding(&all)), (true, true));
+        // The Longshot is a Hookshot too, so the Hookshot goes with it.
+        let hooks = ["item:hookshot", "item:longshot"];
+        let drops = (trials.iter().filter(|i| **i != hooks[0])).map(std::slice::from_ref);
+        for drop in drops.chain([&hooks[..]]) {
+            let less: Vec<&str> = all.iter().copied().filter(|i| !drop.contains(i)).collect();
+            assert_eq!(
+                tower("all-six", &holding(&less)),
+                (false, false),
+                "{drop:?}"
+            );
+        }
     }
 
     #[test]
@@ -1010,21 +1023,33 @@ mod tests {
             return;
         };
         let book = crate::rules::Book::load().unwrap();
-        let new_game = crate::settings::NewGame::rings();
+        // The trials done, so the climb is all the rest the goal needs.
+        let done = crate::settings::value_word(crate::settings::TRIALS, "done");
+        let new_game = crate::settings::NewGame {
+            on: [done].into(),
+            ..crate::settings::NewGame::rings()
+        };
         let checks = checks::dealt(&romfs, &new_game).unwrap();
         let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
         let n = keys::dungeon_in(flag::INSIDE_GANON_CASTLE).unwrap();
-        let mut have = holding(&[
-            "item:magic-meter",
-            "item:bow",
-            "item:light-arrows",
-            "item:master-sword",
-        ]);
-        have.add(&crate::key_tints::ring(n));
-        let beaten = |have: &Have| world.goal().iter().any(|(_, n)| n.met(have, Era::Adult));
-        assert!(!beaten(&have));
-        have.add(&crate::key_tints::boss(n));
-        assert!(beaten(&have));
+        let climb = || {
+            holding(&[
+                "item:magic-meter",
+                "item:bow",
+                "item:light-arrows",
+                "item:master-sword",
+            ])
+        };
+        let beaten = |keys: &[String]| {
+            let mut have = climb();
+            keys.iter().for_each(|k| have.add(k));
+            world.goal().iter().any(|(_, n)| n.met(&have, Era::Adult))
+        };
+        let (boss, ring) = (crate::key_tints::boss(n), crate::key_tints::ring(n));
+        assert!(beaten(&[boss.clone(), ring.clone()]));
+        assert!(!beaten(&[ring]), "the tower's boss key door");
+        // The castle's one small key, for the Light trial's door.
+        assert!(!beaten(&[boss]), "the Light trial's small key door");
     }
 
     #[test]

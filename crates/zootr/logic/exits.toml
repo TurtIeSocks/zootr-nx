@@ -343,14 +343,24 @@ to = "twinrova-room"
 added = true
 needs = "silver-gauntlets and mirror-shield and hookshot and explosives and lens and bow and zeldas-lullaby and item:requiem-of-spirit and (adult-sword or hammer)"
 
-# The climb to Ganondorf, open once the trials are done. With Ganon's
-# Trials on All Six the goal counts them done (`logic::TRIALS`): what
-# each trial needs isn't written yet.
+# The climb to Ganondorf, past the six trials' barrier. With Ganon's
+# Trials on Done the barrier is down. On All Six, coarsely, the room asks
+# for every trial's tools at once, with the Light Arrows for each barrier
+# in the climb:
+# - Forest: the Hover Boots, or the Song of Time block and Hookshot, and
+#   magic, the Bow and Din's Fire or Fire Arrows
+# - Water: blue fire for the red ice and the hammer for the rusted switch
+# - Shadow: the Golden Gauntlets, Bow, Lens of Truth and Hover Boots
+# - Spirit: the Hookshot, the Mirror Shield for the sun switches and
+#   Bombchus
+# - Fire: the Golden Gauntlets and Longshot
+# - Light: the Golden Gauntlets and Hookshot, and the castle's one small
+#   key, which the boss key door's need deals with keys as copies
 [[exit]]
 from = "inside-ganons-castle"
 to = "ganondorf-room"
 added = true
-needs = "setting:ganons-trials=done and magic and bow and item:light-arrows and master-sword"
+needs = "(setting:ganons-trials=done or ((hover-boots or (song-of-time and hookshot)) and magic and bow and (item:dins-fire or item:fire-arrows) and blue-fire and hammer and gold-gauntlets and bow and lens and hover-boots and hookshot and mirror-shield and bombchus and longshot)) and magic and bow and item:light-arrows and master-sword"
 
 # Maps the game swaps for their `_Alternative` copy once a sage is done,
 # for good. The game's own gate is a flag logic can't read, so each

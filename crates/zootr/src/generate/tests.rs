@@ -779,10 +779,12 @@ fn a_logic_seed_keeps_each_spots_round_hero_and_rule() {
         return;
     };
     let dir = std::env::temp_dir().join(format!("zootr-logic-{}", std::process::id()));
-    // The game's own bridge, which a hand-built new game holds no word for.
+    // The game's own bridge and Bombchus' default cap (for the Spirit
+    // trial), which a hand-built new game holds no word for.
     let bridge = crate::settings::value_word(crate::settings::BRIDGE, "vanilla");
+    let chus = crate::settings::value_word(crate::settings::BOMBCHUS, "free");
     let new_game = NewGame {
-        on: [bridge].into(),
+        on: [bridge, chus].into(),
         ..Default::default()
     };
     let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
