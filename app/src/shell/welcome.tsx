@@ -3,6 +3,7 @@ import { useState } from "react";
 import { InlineError } from "@/components/callout";
 import { Card } from "@/components/card";
 import { Button } from "@/components/ui/button";
+import { WhyButton } from "@/components/why-button";
 import { MAC } from "@/lib/platform";
 import { useRequestState } from "@/lib/request";
 import { cn } from "@/lib/utils";
@@ -28,8 +29,8 @@ export function Welcome() {
   const [game] = useConfig.usePath("config.game");
   const [draft, setDraft] = useState(BLANK);
   const save = useRequestState();
-  const dump = !useNoDump();
-  const target = !problem([draft]);
+  // Each missing thing, one to a line in the tip.
+  const why = [useNoDump(), problem([draft])].filter(Boolean).join("\n");
   const done = () =>
     save.run(async () => {
       const t = toTarget(draft);
@@ -86,14 +87,10 @@ export function Welcome() {
           </Card>
           <InlineError error={save.error} />
           <div className="flex justify-end">
-            <Button
-              size="lg"
-              disabled={!dump || !target || save.busy}
-              onClick={done}
-            >
+            <WhyButton size="lg" disabled={save.busy} why={why} onClick={done}>
               {save.busy && <Loader2 className="animate-spin" />}
               Done
-            </Button>
+            </WhyButton>
           </div>
         </div>
       </main>
