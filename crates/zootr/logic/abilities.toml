@@ -26,7 +26,11 @@ boomerang = "child and item:boomerang"
 hookshot = "adult and item:hookshot"
 longshot = "adult and item:longshot"
 
-magic = "item:magic-meter"
+# Any item whose pouch row turns the meter on in the game. With the setting
+# "magic comes with the first magic item" off, only a Magic Meter or
+# Doubled Magic does.
+magic-item = "item:dins-fire or item:farores-wind or item:nayrus-love or item:lens-of-truth or item:fire-arrows or item:ice-arrows or item:light-arrows or item:improved-spin"
+magic = "item:magic-meter or item:double-magic or (setting:magic-with-first-item and magic-item)"
 mirror-shield = "adult and item:mirror-shield"
 fire = "(magic and item:dins-fire) or (magic and bow and item:fire-arrows)"
 bottle = "item:bottle or item:rutos-letter or item:milk"

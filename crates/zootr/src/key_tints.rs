@@ -39,6 +39,7 @@ const SMALL_LOOK: Look = Look {
     kinds: &["Alb", "AO", "Mtl", "Nrm", "Rgh"],
     others: &[],
     copy: "Obj_Rando_SmallKey",
+    matte: false,
 };
 /// The boss key's. Its gem glows from its own emissive map, left red so a
 /// boss key still reads as one.
@@ -48,6 +49,7 @@ const BOSS_LOOK: Look = Look {
     kinds: &["Alb", "AO", "Emc", "Inner_Nrm", "Mtl", "Nrm", "Rgh"],
     others: &[],
     copy: "Item_Rando_BossKey",
+    matte: false,
 };
 /// A key ring's: the small key's textures with a plain metal corner, on a
 /// model of the dungeon's keys around a hoop.

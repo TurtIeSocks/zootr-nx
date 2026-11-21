@@ -328,6 +328,19 @@ pub fn join_structs(
     add_bools(root, &values)
 }
 
+/// The Struct of pouch counts, a member per item naming a Struct of its
+/// saved count. The game's pouch count reads it, and the hook asks that
+/// count whether Link holds each level of a line: an item with none reads
+/// as never held, so every Bombchu Bag chest gave the Small.
+pub const POUCH_COUNTS: u32 = 0x3da094e3;
+
+/// An item of our own, `name`, saved as `like` is: its `IsGet` and the
+/// rest of `like`'s Bool entries, and its pouch count.
+pub fn copy_item(root: &mut Byml, like: &str, name: &str) -> Result<()> {
+    join_structs(root, like, &[name.to_owned()], &[IS_GET])?;
+    copy_member(root, POUCH_COUNTS, like, name, &format!("{name}.Count"))
+}
+
 /// Give Struct `of` a member `name` like its member `like`: the member's
 /// value a copy of `like`'s entry, named `value`, kept in the save the same
 /// way. The Struct of ammo caps holds one saved Int per pouch slot, and a
@@ -662,7 +675,7 @@ mod tests {
             return;
         };
         let mut doc = BymlDoc::parse(&romfs.read(PATH).unwrap()).unwrap();
-        let (counts, like) = (0x3da094e3, crate::known::item::BOMB_BAG_SMALL.get());
+        let (counts, like) = (POUCH_COUNTS, crate::known::item::BOMB_BAG_SMALL.get());
         let size = |root: &Byml| {
             int(&root.as_map().unwrap()[field::META_DATA.get()]
                 .as_map()

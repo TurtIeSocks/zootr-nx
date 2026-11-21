@@ -7,14 +7,17 @@
 //! setting shuffles them, so a seed's own [`Lines`] drops them then. The
 //! quiver and bullet bag lines start at the bow and slingshot, since the
 //! Small levels have no get text and a chest giving one hangs the game.
+//! The magic line starts at our Magic Meter, which only seeds where magic
+//! doesn't come with the first magic item have.
 use crate::bombchu_bags;
 use crate::known::{Name, actor, item};
+use crate::magic::meter;
 use crate::settings::{Bombchus, NewGame};
 
 /// Each line lowest level first: the actor a chest drops, then the pouch
 /// name Link owns it as. Every level any seed has: [`Lines`] says which
 /// one seed has.
-pub const LINES: [&[(&Name, &Name)]; 11] = [
+pub const LINES: [&[(&Name, &Name)]; 12] = [
     &[same(item::HOOKSHOT), same(item::LONGSHOT)],
     &[
         (item::GAUNTLET_GORON, actor::ARMOR_CHILD_GAUNTLET_GORON),
@@ -54,27 +57,34 @@ pub const LINES: [&[(&Name, &Name)]; 11] = [
         same(bombchu_bags::MEDIUM),
         same(bombchu_bags::LARGE),
     ],
+    &[same(meter::METER), same(item::FAIRY_BLESS_MP_DOUBLE)],
 ];
 
 /// One level of a line: the actor a chest drops, then its pouch name.
 pub type Level = (&'static Name, &'static Name);
 
 /// The levels a seed's lines hold: [`LINES`] less the small nut or stick
-/// bag the first nut or stick brings, and less the Bombchu Bags in a seed
-/// without them. With `progressive` on, a holder of any level gives the
+/// bag the first nut or stick brings, less the Bombchu Bags in a seed
+/// without them, and less the Magic Meter where magic comes with the first
+/// magic item. With `progressive` on, a holder of any level gives the
 /// next one Link doesn't have.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Lines {
     pub nut_bag: bool,
     pub stick_bag: bool,
     pub bombchu_bags: bool,
+    pub magic_meter: bool,
     pub progressive: bool,
 }
 
 impl Default for Lines {
-    /// The game's own: no bag shuffled.
+    /// The game's own: no bag shuffled, and magic with the first magic
+    /// item, so no Magic Meter.
     fn default() -> Self {
-        Self::of(&NewGame::default())
+        Self::of(&NewGame {
+            magic_with_first_item: true,
+            ..Default::default()
+        })
     }
 }
 
@@ -84,6 +94,7 @@ impl Lines {
             nut_bag: new_game.shuffle_nut_bag,
             stick_bag: new_game.shuffle_stick_bag,
             bombchu_bags: new_game.bombchus == Bombchus::Bag,
+            magic_meter: !new_game.magic_with_first_item,
             progressive: new_game.progressive,
         }
     }
@@ -95,6 +106,7 @@ impl Lines {
             nut_bag: true,
             stick_bag: true,
             bombchu_bags: true,
+            magic_meter: true,
             progressive,
         }
     }
@@ -117,7 +129,8 @@ impl Lines {
     fn trim(self, line: &'static [Level]) -> Option<&'static [Level]> {
         let first = line[0].0;
         let unshuffled = (first == item::NUT_BAG_SMALL && !self.nut_bag)
-            || (first == item::STICK_BAG_SMALL && !self.stick_bag);
+            || (first == item::STICK_BAG_SMALL && !self.stick_bag)
+            || (first == meter::METER && !self.magic_meter);
         let gone = first == bombchu_bags::SMALL && !self.bombchu_bags;
         (!gone).then_some(&line[usize::from(unshuffled)..])
     }
@@ -245,7 +258,7 @@ mod tests {
             return;
         };
         let levels = LINES.iter().flat_map(|l| l.iter());
-        for &(drop, _) in levels.filter(|(d, _)| !bombchu_bags::BAGS.contains(&d.get())) {
+        for &(drop, _) in levels.filter(|(d, _)| !crate::known::is_ours(d.get())) {
             assert!(
                 romfs.read(&format!("Pack/Actor/{drop}.pack.zs")).is_ok(),
                 "{drop}"

@@ -98,6 +98,11 @@ fn build(romfs: &Romfs, game: &Path, part: &Path) -> Result<()> {
             write(part, name, decode(&data).first())?;
         }
     }
+    // The Magic Meter is ours: its icon is painted, as the seed paints it.
+    if wanted.contains(crate::magic::meter::NAME) {
+        let icon = crate::magic::meter::icon(romfs)?;
+        write(part, crate::magic::meter::NAME, Some(&icon))?;
+    }
     for (path, data) in game::search(game, LAYOUT)? {
         let data = romfs.dicts().decompress(&path, &data)?;
         let renamed = |tex: &str| RENAMES.iter().find(|(t, _)| *t == tex).map(|r| r.1);

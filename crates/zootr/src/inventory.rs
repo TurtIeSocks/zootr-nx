@@ -254,7 +254,9 @@ const GRID: &[Slot] = &[
     slot(Upgrades, "Stick Capacity", &[item::STICK_BAG_SMALL, item::STICK_BAG_MEDIUM, item::STICK_BAG_LARGE]),
     slot(Upgrades, "Nut Capacity", &[item::NUT_BAG_SMALL, item::NUT_BAG_MEDIUM, item::NUT_BAG_LARGE]),
     Slot { count: Some(actor::OBJ_HEART_PIECE), ..slot(Quest, "Heart Pieces", &[actor::OBJ_HEART_PIECE]) },
-    slot(Quest, "Magic", &[item::FAIRY_BLESS_MP, item::FAIRY_BLESS_MP_DOUBLE]),
+    slot(Quest, "Magic", &[crate::magic::meter::METER, item::FAIRY_BLESS_MP_DOUBLE]),
+    slot(Quest, "Improved Spin", &[item::FAIRY_BLESS_MP]),
+    slot(Quest, "Double Defense", &[item::FAIRY_BLESS_DEFENSE_DOUBLE]),
     slot(Quest, "Gerudo Card", &[item::TOKEN_GERUDO]),
     slot(Quest, "Stone of Agony", &[item::AGONY_STONE]),
     Slot { count: Some(item::TOKEN_GOLD), ..slot(Quest, "Gold Skulltulas", &[item::TOKEN_GOLD]) },
@@ -871,8 +873,9 @@ pub(super) mod tests {
         };
         let gd = GameData::load(&romfs).unwrap();
         let inv = Inventory::new(&gd, &romfs).unwrap();
+        // Ours are added with the seed.
         let missing: Vec<_> = (inv.keys.iter())
-            .filter(|(_, k)| gd.entry(**k).is_none())
+            .filter(|(a, k)| gd.entry(**k).is_none() && !crate::known::is_ours(a))
             .map(|(a, _)| *a)
             .collect();
         assert!(

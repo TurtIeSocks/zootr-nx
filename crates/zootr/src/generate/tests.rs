@@ -163,7 +163,13 @@ fn a_moved_card_and_a_started_quest_write_their_flows_with_the_rest() {
         let flow = Flowchart::parse(data).unwrap().unwrap();
         assert_eq!(Flowchart::parse(&flow.to_bytes()).unwrap().unwrap(), flow);
     }
-    let (rewrites, _) = flows(&romfs, &all, &NewGame::default(), &HashMap::new()).unwrap();
+    // Magic apart rewrites the get window's meter check, so a plain seed
+    // here keeps the game's meter.
+    let plain = NewGame {
+        magic_with_first_item: true,
+        ..Default::default()
+    };
+    let (rewrites, _) = flows(&romfs, &all, &plain, &HashMap::new()).unwrap();
     assert!(!rewrites.contains_key(&crate::flows::rel(flow::GET_POUCH_CONTENT)));
 }
 

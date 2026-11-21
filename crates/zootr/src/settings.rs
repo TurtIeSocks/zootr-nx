@@ -335,6 +335,7 @@ pub(crate) const SHUFFLE_STICK_BAG: &str = "shuffle-stick-bag";
 const BUNNY_HOOD: &str = "bunny-hood";
 const DAY_SKULLTULAS: &str = "day-skulltulas";
 pub(crate) const AGELESS_WEAPONS: &str = "ageless-weapons";
+pub(crate) const MAGIC_WITH_FIRST_ITEM: &str = "magic-with-first-item";
 const QUIET_NAVI: &str = "quiet-navi";
 pub(crate) const QUIET_ENEMIES: &str = "quiet-enemies";
 pub(crate) const OPEN_DOOR: &str = "open-door-of-time";
@@ -784,6 +785,12 @@ pub fn schema() -> Vec<SettingDef> {
             place::GAMEPLAY,
             "One-handed swords and shields for both ages",
             "Child and adult Link can each wield every one-handed sword and every shield, and logic expects them to. Biggoron's Sword and the Giant's Knife stay adult Link's, and only he can aim the Mirror Shield at light",
+        )])
+        .chain([toggle(
+            MAGIC_WITH_FIRST_ITEM,
+            place::ITEM_POOL,
+            "Magic comes with the first magic item",
+            "The first spell, magic arrow, Lens of Truth or Improved Spin Link finds turns the magic meter on, as in the game. Off, only a Magic Meter or Doubled Magic does, and a Magic Meter joins the pool",
         )])
         .chain([toggle(
             BRIDGE_MEDALLIONS,

@@ -52,7 +52,15 @@ impl Rules<'_> {
                 self.used.extend(names.iter().cloned());
                 json!({ "items": names, "count": count - held })
             }
-            Need::All(needs) => all(needs.iter().map(|n| self.rule(n, era)).collect()),
+            Need::All(needs) => {
+                // An item under a false `all` is never needed.
+                let used = self.used.clone();
+                let rule = all(needs.iter().map(|n| self.rule(n, era)).collect());
+                if rule == Value::Bool(false) {
+                    self.used = used;
+                }
+                rule
+            }
             Need::Any(needs) => any(needs.iter().map(|n| self.rule(n, era)).collect()),
         }
     }
@@ -77,10 +85,18 @@ pub(super) fn any(rules: Vec<Value>) -> Value {
     if rules.contains(&Value::Bool(true)) {
         return true.into();
     }
-    let mut rest: Vec<Value> = rules
-        .into_iter()
-        .filter(|r| *r != Value::Bool(false))
-        .collect();
+    let mut rest: Vec<Value> = Vec::new();
+    for r in rules.into_iter().filter(|r| *r != Value::Bool(false)) {
+        // Of two counts of the same items, the smaller is enough.
+        let same = rest
+            .iter_mut()
+            .find(|o| o.get("items").is_some() && o.get("items") == r.get("items"));
+        match same {
+            Some(o) if o["count"].as_u64() > r["count"].as_u64() => *o = r,
+            Some(_) => {}
+            None => rest.push(r),
+        }
+    }
     match rest.len() {
         0 => false.into(),
         1 => rest.remove(0),
@@ -101,5 +117,12 @@ mod tests {
         assert_eq!(any(vec![true.into(), item.clone()]), Value::Bool(true));
         assert_eq!(all(vec![]), Value::Bool(true));
         assert_eq!(any(vec![]), Value::Bool(false));
+    }
+
+    #[test]
+    fn any_keeps_the_smaller_count_of_the_same_items() {
+        let n = |count: u32| json!({ "items": ["Magic Meter"], "count": count });
+        assert_eq!(any(vec![n(2), n(1)]), n(1));
+        assert_eq!(any(vec![n(1), n(2)]), n(1));
     }
 }

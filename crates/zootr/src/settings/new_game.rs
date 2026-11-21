@@ -73,6 +73,9 @@ pub struct NewGame {
     pub shuffle_nut_bag: bool,
     /// The Small Stick Bag is in the pool, and sticks need a bag.
     pub shuffle_stick_bag: bool,
+    /// Any magic item turns the meter on, as in the game. Off, only the
+    /// meter items do, and a Magic Meter is in the pool.
+    pub magic_with_first_item: bool,
     /// Navi never talks on her own.
     pub quiet_navi: bool,
     /// Enemies never show, besides those that are checks or hold one.
@@ -210,6 +213,7 @@ impl NewGame {
             bombchus: chosen(settings, BOMBCHUS),
             shuffle_nut_bag: on(SHUFFLE_NUT_BAG),
             shuffle_stick_bag: on(SHUFFLE_STICK_BAG),
+            magic_with_first_item: on(MAGIC_WITH_FIRST_ITEM),
             quiet_navi: on(QUIET_NAVI),
             quiet_enemies: on(QUIET_ENEMIES),
             bunny_hood: on(BUNNY_HOOD),
@@ -356,6 +360,7 @@ mod tests {
                 bombchus: Bombchus::Free,
                 shuffle_nut_bag: false,
                 shuffle_stick_bag: false,
+                magic_with_first_item: false,
                 quiet_navi: true,
                 quiet_enemies: false,
                 bunny_hood: false,

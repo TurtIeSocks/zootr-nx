@@ -82,7 +82,8 @@ pub const WORDS: &[(&str, &Name)] = &[
     ("quiver", item::QUIVER_SMALL), ("big-quiver", item::QUIVER_MEDIUM), ("biggest-quiver", item::QUIVER_LARGE),
     ("bullet-bag", item::BULLET_BAG_SMALL), ("big-bullet-bag", item::BULLET_BAG_MEDIUM), ("biggest-bullet-bag", item::BULLET_BAG_LARGE),
     ("heart-pieces", actor::OBJ_HEART_PIECE),
-    ("magic-meter", item::FAIRY_BLESS_MP), ("double-magic", item::FAIRY_BLESS_MP_DOUBLE),
+    ("magic-meter", crate::magic::meter::METER), ("double-magic", item::FAIRY_BLESS_MP_DOUBLE),
+    ("improved-spin", item::FAIRY_BLESS_MP), ("double-defense", item::FAIRY_BLESS_DEFENSE_DOUBLE),
     ("gerudo-card", item::TOKEN_GERUDO), ("stone-of-agony", item::AGONY_STONE),
     ("gold-skulltula-tokens", item::TOKEN_GOLD),
     ("zeldas-lullaby", item::MELODY_ZELDA_LULLABY), ("eponas-song", item::MELODY_EPONA_SONG),
@@ -720,7 +721,7 @@ mod tests {
         };
         for h in inventory::held() {
             let d = drop(h.actor);
-            if ALWAYS.contains(&d) {
+            if ALWAYS.contains(&d) || crate::known::is_ours(d) {
                 continue;
             }
             assert!(crate::items::get(&romfs, d).unwrap().is_some(), "{d}");

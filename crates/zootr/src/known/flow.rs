@@ -174,7 +174,8 @@ pub const SUB_EVENT_GET_SWORD_BIG_GORON: &Name = &n!(0xf0811cd102e65d92);
 pub const SUB_PLAY_OCARINA_SEQUENCE_FAIRY_FOUNTAIN: &Name = &n!(0x6fda61bc03484766);
 pub const SUCCESS: &Name = &n!(0x92a0d19a28995530);
 pub const SUCCESS_: &Name = &n!(0xc09997f2fc8c2b9d);
-/// The chest flows, `Dm_` dropped as in `scene.rs`.
+/// The get and chest flows, `Dm_` dropped as in `scene.rs`.
+pub const SY_GET: &Name = &n!(0xa27ad0f8bec63ef4);
 pub const SY_TREASUREBOX: &Name = &n!(0x85cd7501a6a3cdee);
 pub const SY_TREASUREBOX_SMALL: &Name = &n!(0xff3b32cb74e4e36d);
 pub const TAKEN_REWARD_ACTOR: &Name = &n!(0xe8a27a54ec0a6f8c);

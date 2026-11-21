@@ -70,7 +70,7 @@
     "name": "Hover Boots"
   },
   {
-    "class": "progression",
+    "class": "useful",
     "id": 14,
     "name": "Hylian Shield"
   },
@@ -98,6 +98,11 @@
     "class": "filler",
     "id": 19,
     "name": "Magic Jar"
+  },
+  {
+    "class": "progression",
+    "id": 34,
+    "name": "Magic Meter"
   },
   {
     "class": "progression",

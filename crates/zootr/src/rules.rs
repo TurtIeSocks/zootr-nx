@@ -548,7 +548,7 @@ mod tests {
         let c = ctx(true, &[]);
         let chest = |hash| book.need(&book.check(hash).unwrap().needs, &c).unwrap();
         let [treasure, hookshot, heart] = crate::gifts::PRIZE_CHESTS.map(chest);
-        let lens: [&str; 2] = [item::FAIRY_BLESS_MP, item::GLASS_TRUTH];
+        let lens: [&str; 2] = [crate::magic::meter::NAME, item::GLASS_TRUTH];
         assert!(treasure.met(&have(&lens), Era::Child));
         assert!(!treasure.met(&have(&lens[..1]), Era::Child));
         assert!(!treasure.met(&have(&[]), Era::Child));
@@ -740,7 +740,7 @@ mod tests {
             .unwrap()
             .into_iter()
             .map(|i| i.actor)
-            .chain(crate::bombchu_bags::BAGS.map(String::from))
+            .chain(crate::known::ours().map(String::from))
             .collect();
         let book = Book::load().unwrap();
         let c = ctx(true, &[]);
