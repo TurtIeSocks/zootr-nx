@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type {
   Cell,
   Edit,
@@ -43,6 +43,20 @@ const SIDE: Section[] = ["Dungeons"];
 /** The panel's groups, in order. */
 const GROUPS: StatusGroup[] = ["Meters", "Gear", "Age", "Counters"];
 
+/** The cells with any label that repeats numbered in order ("Bottle 1",
+ * "Bottle 2"), so each tile's button has a name of its own. */
+function numbered(cells: Cell[]): Cell[] {
+  const total = new Map<string, number>();
+  for (const { label } of cells) total.set(label, (total.get(label) ?? 0) + 1);
+  const seen = new Map<string, number>();
+  return cells.map((cell) => {
+    if ((total.get(cell.label) ?? 0) < 2) return cell;
+    const n = (seen.get(cell.label) ?? 0) + 1;
+    seen.set(cell.label, n);
+    return { ...cell, label: `${cell.label} ${n}` };
+  });
+}
+
 /** Props for {@link ItemsEditor}. */
 export interface ItemsEditorProps {
   view: ItemsView;
@@ -57,6 +71,10 @@ export interface ItemsEditorProps {
  * settings' starting inventory both draw it. */
 export function ItemsEditor({ view, onClick, onStatus }: ItemsEditorProps) {
   const [error, setError] = useState<string>();
+  const named = useMemo(
+    () => ({ ...view, cells: numbered(view.cells) }),
+    [view],
+  );
   const side = view.sections.filter((p) => p.shown && SIDE.includes(p.section));
   const click = (at: number, intent: Intent) => {
     setError(undefined);
@@ -74,14 +92,14 @@ export function ItemsEditor({ view, onClick, onStatus }: ItemsEditorProps) {
             {main(view.sections).map((column) => (
               <Column
                 key={column[0]?.section}
-                view={view}
+                view={named}
                 placements={column}
                 onClick={click}
               />
             ))}
           </div>
           {side.length > 0 && (
-            <Column view={view} placements={side} onClick={click} />
+            <Column view={named} placements={side} onClick={click} />
           )}
         </div>
       </Card>
