@@ -1,6 +1,7 @@
 import {
   CircleStop,
   ListChecks,
+  ListPlus,
   type LucideIcon,
   Play,
   RefreshCw,
@@ -319,7 +320,7 @@ export function actions(s: ActionState): Hit[] {
       key: "generate",
       trail: ["Action"],
       title: "Generate only",
-      icon: ScrollText,
+      icon: ListPlus,
       body: "Adds a seed to History without installing",
       why: waiting || s.unbuildable,
       run: () => {

@@ -1,9 +1,9 @@
 import {
   ChevronDownIcon,
   CircleStop,
+  ListPlus,
   Loader2,
   type LucideIcon,
-  ScrollText,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,7 @@ export function GenerateButton() {
           />
           <Way
             install={false}
-            icon={ScrollText}
+            icon={ListPlus}
             label="Generate only"
             line="Adds it to History without installing"
             keys={`⇧${MOD}↵`}

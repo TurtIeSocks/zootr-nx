@@ -20,6 +20,7 @@ import {
   Shuffle,
   SlidersHorizontal,
   Sparkles,
+  Swords,
 } from "lucide-react";
 
 import type { PlayTab } from "@/stores/ui";
@@ -47,7 +48,7 @@ export const PLAY_FOLDERS: Record<
   PlayTab,
   { label: string; icon: LucideIcon }
 > = {
-  standard: { label: "Standard", icon: Sparkles },
+  standard: { label: "Standard", icon: Swords },
   archipelago: { label: "Archipelago", icon: Globe },
   history: { label: "History", icon: History },
 };
