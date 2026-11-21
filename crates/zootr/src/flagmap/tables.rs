@@ -134,13 +134,10 @@ mod tests {
     #[test]
     fn a_field_for_one_age_says_so() {
         let mut map = ounce_formats::BymlMap::default();
-        let both = [field::CHILD_EQUIPMENT, field::ADULT_EQUIPMENT];
-        let keys = both.iter().chain([field::IS_USABLE_ADULT].iter());
-        for key in keys.map(|f| f.get()).chain(["FakePrice"]) {
+        for key in ["FakeChildGear", "FakeAdultGear", "IsFakeAdult", "FakePrice"] {
             map.insert(key.into(), ounce_formats::Byml::Bool(true));
         }
-        let (adult, child) = (field::IS_USABLE_ADULT, field::IS_USABLE_CHILD);
-        let want = format!("adult only: {adult}, no {child}");
+        let want = "adult only: IsFakeAdult, no IsFakeChild";
         assert_eq!(super::one_age(&map), [want]);
     }
 }
