@@ -162,9 +162,20 @@ fn into_play(
     (limit, tick): (Duration, Duration),
 ) -> Result<()> {
     let start = Instant::now();
+    let mut seen = false;
     loop {
         ensure!(start.elapsed() <= limit, "the game never reached play");
         sleep(tick);
+        // Once up, a game that's gone has crashed or quit: waiting out the
+        // limit would only hide it.
+        match input.running() {
+            true => seen = true,
+            false if seen => bail!(
+                "the game quit before play{}",
+                input.crash().map(|c| format!(": {c}")).unwrap_or_default()
+            ),
+            false => {}
+        }
         let boot = match input.boot() {
             Ok(Some(boot)) => boot,
             Ok(None) => look(start.elapsed()),
@@ -250,11 +261,18 @@ mod tests {
     struct Fake {
         presses: Vec<String>,
         launches: u32,
+        /// How many more times it reads as running, once launched.
+        up: Cell<u32>,
     }
 
     impl Input for Fake {
         fn running(&self) -> bool {
-            false
+            let up = self.up.get();
+            self.up.set(up.saturating_sub(1));
+            up > 0
+        }
+        fn crash(&self) -> Option<String> {
+            Some("CRASH sig=11".into())
         }
         fn launch(&mut self, _: Option<&Path>) -> Result<()> {
             self.launches += 1;
@@ -333,6 +351,18 @@ mod tests {
         let err = into_play(&mut game, |_| Boot::Starting, QUICK).unwrap_err();
         assert!(err.to_string().contains("never reached play"), "{err}");
         assert!(game.presses.is_empty());
+    }
+
+    /// Boxed, as the CLI hands it over.
+    #[test]
+    fn a_game_that_dies_before_play_stops_the_start_with_its_crash() {
+        let mut game: Box<dyn Input> = Box::new(Fake {
+            up: Cell::new(2),
+            ..Fake::default()
+        });
+        let long = (Duration::from_secs(60), Duration::ZERO);
+        let err = into_play(&mut game, |_| Boot::Starting, long).unwrap_err();
+        assert_eq!(err.to_string(), "the game quit before play: CRASH sig=11");
     }
 
     #[test]

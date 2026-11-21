@@ -35,7 +35,10 @@ pub fn input(target: &Target, game: Option<&Path>) -> Result<Box<dyn Input>> {
     );
     Ok(match &target.bridge {
         Some(socket) => Box::new(Native::new(app, args, env, socket.clone())),
-        None => Box::new(Mac::new(app, args, env, target.control.clone())),
+        None => {
+            let log = target.save_dir.as_deref().and_then(mac::log_beside);
+            Box::new(Mac::new(app, args, env, target.control.clone()).logging(log))
+        }
     })
 }
 

@@ -45,6 +45,8 @@ pub struct Mac {
     args: Vec<String>,
     env: Vec<(String, String)>,
     control: Option<PathBuf>,
+    /// The game's own log, where it writes how a run ended.
+    log: Option<PathBuf>,
 }
 
 impl Mac {
@@ -59,7 +61,13 @@ impl Mac {
             args,
             env,
             control,
+            log: None,
         }
+    }
+
+    /// This game, reading how a run ended from `log`.
+    pub fn logging(self, log: Option<PathBuf>) -> Self {
+        Self { log, ..self }
     }
 
     fn control(&self) -> Result<&Path> {
@@ -120,9 +128,48 @@ pub fn stick(direction: &str) -> String {
     parts.collect::<Vec<_>>().join("+")
 }
 
+/// The log a Mac app keeps beside the game's saves at `save`
+/// (`Library/Application Support/<app>/<title>/save`): by the platform's
+/// layout, `Library/Logs/<app>/<title>.log`.
+pub fn log_beside(save: &Path) -> Option<PathBuf> {
+    let title = save.parent()?;
+    let app = title.parent()?;
+    let support = app.parent()?;
+    if support.file_name()? != "Application Support" {
+        return None;
+    }
+    let name = format!("{}.log", title.file_name()?.to_str()?);
+    Some(
+        support
+            .parent()?
+            .join("Logs")
+            .join(app.file_name()?)
+            .join(name),
+    )
+}
+
+/// The lines of the game's log that say how its run ended: its
+/// crash line, then the launcher's exit code.
+fn crash_lines(log: &str) -> Option<String> {
+    let last = |text| log.lines().rev().find(|l| l.contains(text));
+    let (crash, exit) = (last("] CRASH "), last("host exited"));
+    let lines: Vec<_> = [crash, exit].into_iter().flatten().map(str::trim).collect();
+    (!lines.is_empty()).then(|| lines.join("; "))
+}
+
 impl Input for Mac {
     fn running(&self) -> bool {
         platform::running(&self.app)
+    }
+
+    fn crash(&self) -> Option<String> {
+        let log = self.log.as_ref()?;
+        // The host flushes its log as it goes, a moment after it's gone.
+        let found = (0..10).find_map(|try_| {
+            std::thread::sleep(Duration::from_millis(500 * u64::from(try_ > 0)));
+            crash_lines(&String::from_utf8_lossy(&std::fs::read(log).ok()?))
+        })?;
+        Some(format!("{found} (log: {})", log.display()))
     }
 
     fn launch(&mut self, save: Option<&Path>) -> Result<()> {
@@ -209,6 +256,26 @@ impl Input for Mac {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_log_sits_in_logs_beside_the_saves() {
+        let save = Path::new("/h/Library/Application Support/FakeRunner/0100/save");
+        assert_eq!(
+            log_beside(save).unwrap(),
+            Path::new("/h/Library/Logs/FakeRunner/0100.log")
+        );
+        assert_eq!(log_beside(Path::new("/h/Games/FakeRunner/0100/save")), None);
+    }
+
+    #[test]
+    fn a_crash_reads_as_its_crash_line_and_exit() {
+        let log = "[dm] frame\n[dm] CRASH sig=11 addr=0 pc=main+0x10\nx0=1\nlauncher: the host exited with 139\n";
+        assert_eq!(
+            crash_lines(log).unwrap(),
+            "[dm] CRASH sig=11 addr=0 pc=main+0x10; launcher: the host exited with 139"
+        );
+        assert_eq!(crash_lines("[dm] frame\n"), None);
+    }
 
     fn scratch(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!("zootr-play-{}-{name}", std::process::id()));
