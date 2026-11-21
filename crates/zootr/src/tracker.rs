@@ -266,7 +266,7 @@ mod tests {
     use super::*;
     use crate::game::dev_dump;
     use crate::gifts;
-    use crate::settings::{MERCHANTS, NPC_GIFTS, TRADE_CHAIN};
+    use crate::settings::{MASTER_SWORD, MERCHANTS, NPC_GIFTS, TRADE_CHAIN};
 
     /// Mido's House, front left to far right, and each chest's flag.
     const MIDO: [(u64, u32); 4] = [
@@ -452,7 +452,9 @@ mod tests {
         for (h, f) in MIDO {
             assert_eq!(t.flags[&h], Flag::Bool(f));
         }
-        let on = [MERCHANTS, NPC_GIFTS, TRADE_CHAIN].map(String::from).into();
+        let on = [MERCHANTS, NPC_GIFTS, TRADE_CHAIN, MASTER_SWORD]
+            .map(String::from)
+            .into();
         let added = gifts::flags(&on);
         for (g, found) in GIFTS.iter().filter_map(|g| Some((g, g.found()?))) {
             let f = t.flags[&g.hash()];

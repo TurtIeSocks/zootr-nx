@@ -314,7 +314,7 @@ needs = "boomerang and slingshot and melee"
 from = "forest-temple"
 to = "phantom-ganon-room"
 added = true
-needs = "bow and hookshot and goron-bracelet and song-of-time"
+needs = "bow and hookshot and goron-bracelet and song-of-time and adult-sword"
 
 [[exit]]
 from = "fire-temple"
@@ -326,25 +326,25 @@ needs = "hammer and goron-tunic and goron-bracelet and explosives"
 from = "water-temple"
 to = "morpha-room"
 added = true
-needs = "longshot and iron-boots and zora-tunic and zeldas-lullaby and (bow or fire)"
+needs = "longshot and iron-boots and zora-tunic and zeldas-lullaby and (bow or fire) and (adult-sword or hammer)"
 
 [[exit]]
 from = "shadow-temple"
 to = "bongo-bongo-room"
 added = true
-needs = "lens and hover-boots and bow and explosives and zeldas-lullaby and hookshot and goron-bracelet"
+needs = "lens and hover-boots and bow and explosives and zeldas-lullaby and hookshot and goron-bracelet and adult-sword"
 
 [[exit]]
 from = "spirit-temple"
 to = "twinrova-room"
 added = true
-needs = "silver-gauntlets and mirror-shield and hookshot and explosives and lens and bow and zeldas-lullaby and item:requiem-of-spirit"
+needs = "silver-gauntlets and mirror-shield and hookshot and explosives and lens and bow and zeldas-lullaby and item:requiem-of-spirit and (adult-sword or hammer)"
 
 [[exit]]
 from = "inside-ganons-castle"
 to = "ganondorf-room"
 added = true
-needs = "setting:trials-done and magic and bow and item:light-arrows"
+needs = "setting:trials-done and magic and bow and item:light-arrows and master-sword"
 
 # Maps the game swaps for their `_Alternative` copy once a sage is done,
 # for good. The game's own gate is a flag logic can't read, so each

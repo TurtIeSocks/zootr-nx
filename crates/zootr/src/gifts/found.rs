@@ -16,6 +16,9 @@ impl Gift {
         if let Some((.., own)) = OWN.iter().find(|(flow, ..)| *flow == self.flow) {
             return Some((*own).into());
         }
+        if self.is_pedestal() {
+            return Some(pedestal::GOT.into());
+        }
         if let Some(added) = self.added() {
             return Some(added);
         }
@@ -58,7 +61,7 @@ pub fn flags(on: &BTreeSet<String>) -> Vec<String> {
         .filter(|(_, setting, _)| on.contains(*setting))
         .map(|(.., flag)| (*flag).into());
     let added = GIFTS.iter().filter(|g| g.dealt(on)).filter_map(Gift::added);
-    own.chain(added).collect()
+    own.chain(added).chain(pedestal::flag(on)).collect()
 }
 
 /// Sets each dealt gift's added Bool right after its grants, sharing one

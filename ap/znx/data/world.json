@@ -29,7 +29,46 @@
       "at": [
         {
           "place": "kokiri-forest-adult",
-          "rule": true
+          "rule": {
+            "any": [
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Master Sword"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "setting": "ageless-weapons"
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Kokiri Sword"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "setting": "ageless-weapons"
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Deku Shield"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
         },
         {
           "place": "kokiri-forest-child",
@@ -1320,6 +1359,29 @@
                     ]
                   }
                 ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Master Sword"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "setting": "ageless-weapons"
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Kokiri Sword"
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }
@@ -1627,37 +1689,41 @@
         {
           "place": "lost-woods-adult",
           "rule": {
-            "any": [
+            "all": [
               {
                 "any": [
                   {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bomb Bag"
-                    ]
-                  },
-                  {
-                    "all": [
+                    "any": [
                       {
                         "count": 1,
                         "items": [
-                          "Bombchus (5)"
+                          "Progressive Bomb Bag"
                         ]
                       },
                       {
-                        "any": [
+                        "all": [
                           {
-                            "setting": "bombchus=free"
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
                           },
                           {
-                            "all": [
+                            "any": [
                               {
-                                "setting": "bombchus=bomb-bag"
+                                "setting": "bombchus=free"
                               },
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
                                 ]
                               }
                             ]
@@ -1665,13 +1731,53 @@
                         ]
                       }
                     ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Megaton Hammer"
+                    ]
                   }
                 ]
               },
               {
-                "count": 1,
-                "items": [
-                  "Megaton Hammer"
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Master Sword"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "setting": "ageless-weapons"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Kokiri Sword"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "setting": "ageless-weapons"
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Deku Shield"
+                        ]
+                      }
+                    ]
+                  }
                 ]
               }
             ]
@@ -3005,37 +3111,41 @@
         {
           "place": "lost-woods-adult",
           "rule": {
-            "any": [
+            "all": [
               {
                 "any": [
                   {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bomb Bag"
-                    ]
-                  },
-                  {
-                    "all": [
+                    "any": [
                       {
                         "count": 1,
                         "items": [
-                          "Bombchus (5)"
+                          "Progressive Bomb Bag"
                         ]
                       },
                       {
-                        "any": [
+                        "all": [
                           {
-                            "setting": "bombchus=free"
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
                           },
                           {
-                            "all": [
+                            "any": [
                               {
-                                "setting": "bombchus=bomb-bag"
+                                "setting": "bombchus=free"
                               },
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
                                 ]
                               }
                             ]
@@ -3043,13 +3153,53 @@
                         ]
                       }
                     ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Megaton Hammer"
+                    ]
                   }
                 ]
               },
               {
-                "count": 1,
-                "items": [
-                  "Megaton Hammer"
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Master Sword"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "setting": "ageless-weapons"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Kokiri Sword"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "setting": "ageless-weapons"
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Deku Shield"
+                        ]
+                      }
+                    ]
+                  }
                 ]
               }
             ]
@@ -3529,7 +3679,46 @@
       "at": [
         {
           "place": "lost-woods-adult",
-          "rule": true
+          "rule": {
+            "any": [
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Master Sword"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "setting": "ageless-weapons"
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Kokiri Sword"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "setting": "ageless-weapons"
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Deku Shield"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
         },
         {
           "place": "lost-woods-child",
@@ -3841,15 +4030,42 @@
           "rule": {
             "all": [
               {
-                "count": 1,
-                "items": [
-                  "Progressive Ocarina"
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Song of Storms"
+                    ]
+                  }
                 ]
               },
               {
-                "count": 1,
-                "items": [
-                  "Song of Storms"
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Master Sword"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "setting": "ageless-weapons"
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Kokiri Sword"
+                        ]
+                      }
+                    ]
+                  }
                 ]
               }
             ]
@@ -4701,37 +4917,41 @@
           "rule": {
             "all": [
               {
-                "any": [
+                "all": [
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
+                        "any": [
                           {
                             "count": 1,
                             "items": [
-                              "Bombchus (5)"
+                              "Progressive Bomb Bag"
                             ]
                           },
                           {
-                            "any": [
+                            "all": [
                               {
-                                "setting": "bombchus=free"
+                                "count": 1,
+                                "items": [
+                                  "Bombchus (5)"
+                                ]
                               },
                               {
-                                "all": [
+                                "any": [
                                   {
-                                    "setting": "bombchus=bomb-bag"
+                                    "setting": "bombchus=free"
                                   },
                                   {
-                                    "count": 1,
-                                    "items": [
-                                      "Progressive Bomb Bag"
+                                    "all": [
+                                      {
+                                        "setting": "bombchus=bomb-bag"
+                                      },
+                                      {
+                                        "count": 1,
+                                        "items": [
+                                          "Progressive Bomb Bag"
+                                        ]
+                                      }
                                     ]
                                   }
                                 ]
@@ -4739,42 +4959,58 @@
                             ]
                           }
                         ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Megaton Hammer"
+                        ]
                       }
                     ]
                   },
                   {
                     "count": 1,
                     "items": [
-                      "Megaton Hammer"
-                    ]
-                  }
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Goron Bracelet",
-                  "Progressive Strength Upgrade"
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Hookshot"
+                      "Goron Bracelet",
+                      "Progressive Strength Upgrade"
                     ]
                   },
                   {
-                    "count": 1,
-                    "items": [
-                      "Progressive Ocarina"
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Hookshot"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Ocarina"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Scarecrow's Song"
+                        ]
+                      }
                     ]
                   },
                   {
-                    "count": 1,
-                    "items": [
-                      "Scarecrow's Song"
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bow"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Hookshot"
+                        ]
+                      }
                     ]
                   }
                 ]
@@ -4782,15 +5018,39 @@
               {
                 "any": [
                   {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bow"
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Master Sword"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "setting": "ageless-weapons"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Kokiri Sword"
+                            ]
+                          }
+                        ]
+                      }
                     ]
                   },
                   {
-                    "count": 1,
-                    "items": [
-                      "Progressive Hookshot"
+                    "all": [
+                      {
+                        "setting": "ageless-weapons"
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Deku Shield"
+                        ]
+                      }
                     ]
                   }
                 ]
@@ -5452,15 +5712,42 @@
           "rule": {
             "all": [
               {
-                "count": 1,
-                "items": [
-                  "Progressive Ocarina"
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Ocarina"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Song of Storms"
+                    ]
+                  }
                 ]
               },
               {
-                "count": 1,
-                "items": [
-                  "Song of Storms"
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Master Sword"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "setting": "ageless-weapons"
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Kokiri Sword"
+                        ]
+                      }
+                    ]
+                  }
                 ]
               }
             ]
@@ -5764,43 +6051,139 @@
           "rule": {
             "all": [
               {
-                "any": [
+                "all": [
                   {
                     "any": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
+                        "any": [
                           {
                             "count": 1,
                             "items": [
-                              "Bombchus (5)"
+                              "Progressive Bomb Bag"
                             ]
                           },
                           {
-                            "any": [
+                            "all": [
                               {
-                                "setting": "bombchus=free"
+                                "count": 1,
+                                "items": [
+                                  "Bombchus (5)"
+                                ]
                               },
                               {
-                                "all": [
+                                "any": [
                                   {
-                                    "setting": "bombchus=bomb-bag"
+                                    "setting": "bombchus=free"
                                   },
                                   {
-                                    "count": 1,
-                                    "items": [
-                                      "Progressive Bomb Bag"
+                                    "all": [
+                                      {
+                                        "setting": "bombchus=bomb-bag"
+                                      },
+                                      {
+                                        "count": 1,
+                                        "items": [
+                                          "Progressive Bomb Bag"
+                                        ]
+                                      }
                                     ]
                                   }
                                 ]
                               }
                             ]
                           }
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "all": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Magic Meter"
+                                ]
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Din's Fire"
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "all": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Magic Meter"
+                                ]
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bow"
+                                ]
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Fire Arrows"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "all": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Bombchus (5)"
+                                ]
+                              },
+                              {
+                                "any": [
+                                  {
+                                    "setting": "bombchus=free"
+                                  },
+                                  {
+                                    "all": [
+                                      {
+                                        "setting": "bombchus=bomb-bag"
+                                      },
+                                      {
+                                        "count": 1,
+                                        "items": [
+                                          "Progressive Bomb Bag"
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Megaton Hammer"
                         ]
                       }
                     ]
@@ -5846,6 +6229,50 @@
                         ]
                       }
                     ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Hookshot"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Lens of Truth"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Hookshot"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Ocarina"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Scarecrow's Song"
+                        ]
+                      }
+                    ]
                   }
                 ]
               },
@@ -5856,35 +6283,18 @@
                       {
                         "count": 1,
                         "items": [
-                          "Progressive Bomb Bag"
+                          "Master Sword"
                         ]
                       },
                       {
                         "all": [
                           {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
+                            "setting": "ageless-weapons"
                           },
                           {
-                            "any": [
-                              {
-                                "setting": "bombchus=free"
-                              },
-                              {
-                                "all": [
-                                  {
-                                    "setting": "bombchus=bomb-bag"
-                                  },
-                                  {
-                                    "count": 1,
-                                    "items": [
-                                      "Progressive Bomb Bag"
-                                    ]
-                                  }
-                                ]
-                              }
+                            "count": 1,
+                            "items": [
+                              "Kokiri Sword"
                             ]
                           }
                         ]
@@ -5892,95 +6302,16 @@
                     ]
                   },
                   {
-                    "count": 1,
-                    "items": [
-                      "Megaton Hammer"
-                    ]
-                  }
-                ]
-              },
-              {
-                "any": [
-                  {
                     "all": [
                       {
-                        "count": 1,
-                        "items": [
-                          "Magic Meter"
-                        ]
+                        "setting": "ageless-weapons"
                       },
                       {
                         "count": 1,
                         "items": [
-                          "Din's Fire"
+                          "Deku Shield"
                         ]
                       }
-                    ]
-                  },
-                  {
-                    "all": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Magic Meter"
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bow"
-                        ]
-                      },
-                      {
-                        "count": 1,
-                        "items": [
-                          "Fire Arrows"
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Progressive Hookshot"
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Magic Meter"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Lens of Truth"
-                    ]
-                  }
-                ]
-              },
-              {
-                "all": [
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Hookshot"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Progressive Ocarina"
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Scarecrow's Song"
                     ]
                   }
                 ]
@@ -6709,37 +7040,41 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "any": [
+            "all": [
               {
                 "any": [
                   {
-                    "count": 1,
-                    "items": [
-                      "Progressive Bomb Bag"
-                    ]
-                  },
-                  {
-                    "all": [
+                    "any": [
                       {
                         "count": 1,
                         "items": [
-                          "Bombchus (5)"
+                          "Progressive Bomb Bag"
                         ]
                       },
                       {
-                        "any": [
+                        "all": [
                           {
-                            "setting": "bombchus=free"
+                            "count": 1,
+                            "items": [
+                              "Bombchus (5)"
+                            ]
                           },
                           {
-                            "all": [
+                            "any": [
                               {
-                                "setting": "bombchus=bomb-bag"
+                                "setting": "bombchus=free"
                               },
                               {
-                                "count": 1,
-                                "items": [
-                                  "Progressive Bomb Bag"
+                                "all": [
+                                  {
+                                    "setting": "bombchus=bomb-bag"
+                                  },
+                                  {
+                                    "count": 1,
+                                    "items": [
+                                      "Progressive Bomb Bag"
+                                    ]
+                                  }
                                 ]
                               }
                             ]
@@ -6747,13 +7082,36 @@
                         ]
                       }
                     ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Megaton Hammer"
+                    ]
                   }
                 ]
               },
               {
-                "count": 1,
-                "items": [
-                  "Megaton Hammer"
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Master Sword"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "setting": "ageless-weapons"
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Kokiri Sword"
+                        ]
+                      }
+                    ]
+                  }
                 ]
               }
             ]
@@ -6893,9 +7251,36 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "count": 1,
-            "items": [
-              "Progressive Hookshot"
+            "all": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Master Sword"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "setting": "ageless-weapons"
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Kokiri Sword"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
             ]
           }
         }
@@ -7818,159 +8203,203 @@
           "rule": {
             "all": [
               {
-                "any": [
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
-                          },
-                          {
-                            "any": [
-                              {
-                                "setting": "bombchus=free"
-                              },
-                              {
-                                "all": [
-                                  {
-                                    "setting": "bombchus=bomb-bag"
-                                  },
-                                  {
-                                    "count": 1,
-                                    "items": [
-                                      "Progressive Bomb Bag"
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "any": [
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Magic Meter"
-                            ]
-                          },
-                          {
-                            "count": 1,
-                            "items": [
-                              "Din's Fire"
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Magic Meter"
-                            ]
-                          },
-                          {
-                            "count": 1,
-                            "items": [
-                              "Progressive Bow"
-                            ]
-                          },
-                          {
-                            "count": 1,
-                            "items": [
-                              "Fire Arrows"
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "any": [
-                  {
-                    "any": [
-                      {
-                        "count": 1,
-                        "items": [
-                          "Progressive Bomb Bag"
-                        ]
-                      },
-                      {
-                        "all": [
-                          {
-                            "count": 1,
-                            "items": [
-                              "Bombchus (5)"
-                            ]
-                          },
-                          {
-                            "any": [
-                              {
-                                "setting": "bombchus=free"
-                              },
-                              {
-                                "all": [
-                                  {
-                                    "setting": "bombchus=bomb-bag"
-                                  },
-                                  {
-                                    "count": 1,
-                                    "items": [
-                                      "Progressive Bomb Bag"
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "count": 1,
-                    "items": [
-                      "Megaton Hammer"
-                    ]
-                  }
-                ]
-              },
-              {
                 "all": [
                   {
-                    "count": 1,
-                    "items": [
-                      "Progressive Hookshot"
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "all": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Bombchus (5)"
+                                ]
+                              },
+                              {
+                                "any": [
+                                  {
+                                    "setting": "bombchus=free"
+                                  },
+                                  {
+                                    "all": [
+                                      {
+                                        "setting": "bombchus=bomb-bag"
+                                      },
+                                      {
+                                        "count": 1,
+                                        "items": [
+                                          "Progressive Bomb Bag"
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "all": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Magic Meter"
+                                ]
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Din's Fire"
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "all": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Magic Meter"
+                                ]
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bow"
+                                ]
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Fire Arrows"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
                     ]
                   },
                   {
-                    "count": 1,
-                    "items": [
-                      "Progressive Ocarina"
+                    "any": [
+                      {
+                        "any": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          },
+                          {
+                            "all": [
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Bombchus (5)"
+                                ]
+                              },
+                              {
+                                "any": [
+                                  {
+                                    "setting": "bombchus=free"
+                                  },
+                                  {
+                                    "all": [
+                                      {
+                                        "setting": "bombchus=bomb-bag"
+                                      },
+                                      {
+                                        "count": 1,
+                                        "items": [
+                                          "Progressive Bomb Bag"
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Megaton Hammer"
+                        ]
+                      }
                     ]
                   },
                   {
-                    "count": 1,
-                    "items": [
-                      "Scarecrow's Song"
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Hookshot"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Ocarina"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Scarecrow's Song"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "any": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Master Sword"
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "setting": "ageless-weapons"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Kokiri Sword"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "setting": "ageless-weapons"
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Deku Shield"
+                        ]
+                      }
                     ]
                   }
                 ]
@@ -8494,9 +8923,36 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "count": 1,
-            "items": [
-              "Progressive Hookshot"
+            "all": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Master Sword"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "setting": "ageless-weapons"
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Kokiri Sword"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
             ]
           }
         }
@@ -20417,6 +20873,15 @@
     {
       "at": [
         {
+          "place": "market-adult",
+          "rule": true
+        }
+      ],
+      "name": "Master Sword"
+    },
+    {
+      "at": [
+        {
           "place": "gohma-room-child",
           "rule": true
         }
@@ -21377,6 +21842,12 @@
                 "items": [
                   "Light Arrows"
                 ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Master Sword"
+                ]
               }
             ]
           }
@@ -22092,6 +22563,29 @@
               {
                 "count": 1,
                 "items": [
+                  "Master Sword"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "setting": "ageless-weapons"
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Kokiri Sword"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "count": 1,
+                "items": [
                   "Progressive Bow"
                 ]
               },
@@ -22262,6 +22756,12 @@
                   "Song of Time"
                 ]
               }
+            ]
+          },
+          {
+            "count": 1,
+            "items": [
+              "Master Sword"
             ]
           }
         ]
@@ -23802,6 +24302,12 @@
               "Goron Bracelet",
               "Progressive Strength Upgrade"
             ]
+          },
+          {
+            "count": 1,
+            "items": [
+              "Master Sword"
+            ]
           }
         ]
       },
@@ -23928,6 +24434,22 @@
             "items": [
               "Requiem of Spirit"
             ]
+          },
+          {
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Master Sword"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Megaton Hammer"
+                ]
+              }
+            ]
           }
         ]
       },
@@ -24049,6 +24571,22 @@
                       }
                     ]
                   }
+                ]
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Master Sword"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Megaton Hammer"
                 ]
               }
             ]

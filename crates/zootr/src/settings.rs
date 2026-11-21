@@ -241,6 +241,7 @@ pub(crate) const ADULT_JABU: &str = "adult-jabu-jabu";
 pub(crate) const MERCHANTS: &str = "merchants";
 pub(crate) const TRADE_CHAIN: &str = "trade-chain";
 pub(crate) const RUNNING_RACE: &str = "running-race";
+pub(crate) const MASTER_SWORD: &str = "master-sword-shuffle";
 
 /// The setting `--skip <name>` turns on: `all`, a named one or an area.
 pub(crate) fn skip_id(name: &str) -> String {
@@ -529,6 +530,12 @@ pub fn schema() -> Vec<SettingDef> {
             group::SHUFFLES,
             "Adult trade quest",
             "Each trade on the way to Biggoron's sword becomes a check, from Anju's Pocket Egg to Biggoron's Claim Check, and the ten trade items join the pool. Showing an item to the one who wants it gives that check, whatever order Link finds them in. Grog or Fado waits at the stump by which item Link holds. The Pocket Cucco still hatches from the egg",
+        )])
+        .chain([toggle(
+            MASTER_SWORD,
+            group::SHUFFLES,
+            "Master Sword",
+            "The pedestal holds an item from the pool, and the Master Sword can turn up anywhere. Pulling or returning the sword still travels through time without it. Adult Link without it has no sword",
         )])
         .chain([default_on(toggle(
             RUNNING_RACE,

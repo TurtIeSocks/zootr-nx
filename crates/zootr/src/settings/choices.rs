@@ -308,12 +308,10 @@ impl StartingAge {
 
     /// Adult goes back to child at the pedestal, which only the open door
     /// swaps at once, and a child sent back mustn't be shut in the forest.
+    /// His sword is the pedestal's gift, given in the opening.
     pub(super) fn forces(self) -> Forces {
         match self {
-            Self::Adult => (
-                &[super::OPEN_DOOR, crate::presets::OPEN_FOREST],
-                &["master-sword"],
-            ),
+            Self::Adult => (&[super::OPEN_DOOR, crate::presets::OPEN_FOREST], &[]),
             Self::Child | Self::Random => NOTHING,
         }
     }

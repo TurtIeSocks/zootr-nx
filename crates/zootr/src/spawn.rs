@@ -130,7 +130,8 @@ fn event<'a>(
 /// and he wakes in the Temple of Time. The swap itself can't be called from
 /// the opening (spike: nothing ran), and played from the forest it never
 /// left. The forest sage's quest starts in the opening (`door::open`).
-pub fn adult(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
+/// Without the `sword` (Master Sword shuffle), his sword slot stays empty.
+pub fn adult(romfs: &Romfs, rewrites: &mut Rewrites, sword: bool) -> Result<()> {
     let load =
         |name: &Name| flows::load(romfs, name)?.with_context(|| format!("{name} is a timeline"));
     let (gear, swap) = (load(GEAR)?, load(CHILD_TO_ADULT)?);
@@ -162,7 +163,11 @@ pub fn adult(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
         copy(flag::PLAYER_STATUS_ANOTHER_ERA_EQUIP_WEAPON)?,
         set(
             flag::PLAYER_STATUS_EQUIP_WEAPON,
-            actor::WEAPON_SWORD_MASTER.get(),
+            if sword {
+                actor::WEAPON_SWORD_MASTER.get()
+            } else {
+                ""
+            },
         )?,
         copy(flag::PLAYER_STATUS_ANOTHER_ERA_EQUIP_SHIELD)?,
         set(flag::PLAYER_STATUS_EQUIP_SHIELD, "")?,
@@ -241,11 +246,16 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let mut rewrites = Rewrites::new();
-        adult(&romfs, &mut rewrites).unwrap();
-        let flow = Flowchart::parse(&rewrites[&flows::rel(OPENING)])
-            .unwrap()
-            .unwrap();
+        let opening = |sword: bool| {
+            let mut rewrites = Rewrites::new();
+            adult(&romfs, &mut rewrites, sword).unwrap();
+            Flowchart::parse(&rewrites[&flows::rel(OPENING)])
+                .unwrap()
+                .unwrap()
+        };
+        let swordless = flows::render(&opening(false));
+        assert!(!swordless.contains(actor::WEAPON_SWORD_MASTER.get()));
+        let flow = opening(true);
         let mut at = only(&flow, AUTOSAVE).unwrap();
         let mut after = Vec::new();
         while let EventKind::Action {

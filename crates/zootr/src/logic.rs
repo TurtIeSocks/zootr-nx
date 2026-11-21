@@ -816,6 +816,45 @@ mod tests {
     }
 
     #[test]
+    fn only_a_shuffled_master_sword_can_keep_adult_bosses_out_of_reach() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let book = crate::rules::Book::load().unwrap();
+        let pedestal = crate::known::hash(crate::known::flow::DOOR_OF_TIME.get());
+        let reached = |on: &[&str], swap: Option<&str>| {
+            let new_game = crate::settings::NewGame {
+                on: on.iter().map(|s| s.to_string()).collect(),
+                ..Default::default()
+            };
+            let checks = checks::dealt(&romfs, &new_game).unwrap();
+            let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
+            let mut placed: HashMap<u64, &str> =
+                checks.iter().map(|c| (c.hash, c.item.as_str())).collect();
+            if let Some(item) = swap {
+                assert!(
+                    placed.insert(pedestal, item).is_some(),
+                    "the pedestal is dealt"
+                );
+            }
+            world.play(&crate::fill::start(&new_game), &placed).reached
+        };
+        let (door, forest) = (crate::settings::OPEN_DOOR, crate::presets::OPEN_FOREST);
+        let shuffle = crate::settings::MASTER_SWORD;
+        let off = reached(&[door, forest], None);
+        // Dealt its own sword, the pedestal adds itself and nothing more.
+        assert_eq!(reached(&[door, forest, shuffle], None).len(), off.len() + 1);
+        let green = Some(actor::OBJ_RUPEE_GREEN.get());
+        let swordless = reached(&[door, forest, shuffle], green);
+        assert!(
+            swordless.len() < off.len(),
+            "{} of {}",
+            swordless.len(),
+            off.len()
+        );
+    }
+
+    #[test]
     fn links_pocket_sits_at_the_start_with_the_door_open() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
@@ -874,6 +913,7 @@ mod tests {
             "item:hylian-shield-chest",
             "item:dins-fire",
             "item:magic-meter",
+            "item:master-sword",
         ] {
             have.add(&crate::rules::vocab::id(item).unwrap());
         }
