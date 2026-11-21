@@ -1,12 +1,14 @@
 //! Items for both ages: each Link uses items only the other uses in the
-//! game. Child Link takes the Megaton Hammer, Hookshot, Longshot, Bow and
-//! magic arrows, adult Link the Deku Sticks and the Boomerang. The rest of the spec's items
+//! game. Child Link takes the Megaton Hammer, Hookshot, Longshot, Bow,
+//! magic arrows and the two-handed swords, adult Link the Deku Sticks and the Boomerang. The rest of the spec's items
 //! join once they work (`superpowers/specs/2026-11-21-ageless-items-design.md`).
 //!
 //! Each gate is data, and each Link's state machine already has every
 //! item's branches:
 //!
-//! - The pause menu's table lets the item be equipped at both ages.
+//! - The pause menu's table lets the item be equipped at both ages. The
+//!   two-handed swords' rows are opened by [`crate::ageless`], whose own
+//!   setting leaves them out.
 //! - Link's holder makes the item's actor at load. Only an actor made
 //!   there can be drawn.
 //! - Link's shooter makes the other Link's projectiles: the hooks for the
@@ -19,8 +21,9 @@
 //!   Bow fires arrows, not his seeds (`zootr-hook`, `game/arrows.rs`).
 //! - Child Link aims the Bow with its own clips, not the Slingshot's
 //!   ([`aim`]).
-//! - Child Link's sounds gain the Hammer's calls, and he loads the adult's
-//!   sound bank, which holds the slam's clang ([`sounds`]).
+//! - Each Link's sounds gain the calls of what he borrows: the child's the
+//!   Hammer's and the yells of the adult's two-handed swings, the adult's
+//!   the Boomerang's. Each loads the other's sound bank ([`sounds`]).
 //!
 //! The holder, shooter and animation files size their work from their
 //! RESTBL entry, and each row costs more than its bytes, so each gets
@@ -254,6 +257,7 @@ impl Own {
 /// the borrowed archives, the child's graph and his sounds.
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     let table = opened(&builder.read(POUCH_TABLE)?)?;
+    let table = crate::ageless::two_handed_opened(romfs, &table)?;
     builder.write(POUCH_TABLE, &table)?;
     for link in &LINKS {
         let pack = ActorPack::from_bytes(link.who, builder.read(&pack_file(link.who))?)?;
