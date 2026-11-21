@@ -684,7 +684,8 @@ pub(super) struct NewGame {
     chest_size: Option<settings::ChestSize>,
     /// What a new game starts with, as `WORD` or `WORD=N`: `kokiri-sword`,
     /// `longshot` (which brings the Hookshot), `bombs=20`, `heart-pieces=8`,
-    /// `heart-containers=5`, `rupees=99`. Repeatable.
+    /// `heart-containers=5`, `rupees=99`. Repeatable. Without it, a new game
+    /// starts with the Master Sword, and `none` starts it with nothing.
     #[arg(long = "start", value_name = "WORD[=N]", value_parser = starting::parse)]
     start: Vec<(String, i32)>,
     /// Any app setting by id, for those without a flag of their own, e.g.
@@ -714,7 +715,7 @@ pub(crate) fn setting(arg: &str) -> Result<(String, serde_json::Value)> {
                 ids.join(", ")
             );
         }
-        settings::Kind::Inventory => anyhow::bail!("{id} is set with --start"),
+        settings::Kind::Inventory { .. } => anyhow::bail!("{id} is set with --start"),
     }
     let value = value.parse::<bool>().map_or(value.into(), Into::into);
     Ok((id.to_owned(), value))
@@ -744,10 +745,10 @@ impl NewGame {
                 .map(|s| (settings::skip_id(s), true.into())),
         );
         let mut start = starting::Start::default();
-        for (word, n) in &self.start {
+        for (word, n) in self.start.iter().filter(|(w, _)| w != starting::NONE) {
             start.add(word, *n).expect("--start checks its words");
         }
-        if !start.0.is_empty() {
+        if !self.start.is_empty() {
             out.insert(
                 starting::SETTING.into(),
                 serde_json::to_value(start).expect("a map"),
@@ -868,6 +869,19 @@ mod tests {
         assert!(!is_mod_dir(&scratch, mods));
         assert!(!is_mod_dir(&dir.join("never-made"), mods));
         std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn start_none_starts_with_nothing_and_no_start_leaves_the_default() {
+        let start = |extra: &[&str]| {
+            let args = [&["zootr", "shuffle"], extra].concat();
+            let Command::Shuffle(s) = Cli::try_parse_from(args).unwrap().command else {
+                panic!()
+            };
+            s.new_game.settings().get(starting::SETTING).cloned()
+        };
+        assert_eq!(start(&[]), None);
+        assert_eq!(start(&["--start", "none"]), Some(serde_json::json!({})));
     }
 
     #[test]

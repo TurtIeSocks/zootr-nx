@@ -22,6 +22,12 @@ use crate::value;
 /// Its setting's id.
 pub const SETTING: &str = "start-inventory";
 
+/// What a new game starts with while the setting is unset.
+pub const DEFAULT: [&str; 1] = ["master-sword"];
+
+/// The `--start` word for starting with nothing, not [`DEFAULT`].
+pub const NONE: &str = "none";
+
 /// The ammo a weapon's grant brings with it, which no remove takes back.
 const BROUGHT: [(&Name, &Name, i32); 2] = [
     (actor::WEAPON_RANGE_BOW, item::ARROW_NORMAL, 30),
@@ -182,13 +188,13 @@ const ALWAYS: [&Name; 1] = [item::WALLET_SMALL];
 pub struct Start(pub BTreeMap<String, i32>);
 
 impl Start {
-    /// The setting's value, empty when unset.
+    /// The setting's value, [`DEFAULT`] when unset.
     pub fn from_settings(settings: &Settings) -> Result<Self> {
         let start: Self = match settings.get(SETTING) {
             Some(v) => {
                 serde_json::from_value(v.clone()).context("reading the starting inventory")?
             }
-            None => Self::default(),
+            None => Self::of(&DEFAULT),
         };
         start.check()?;
         Ok(start)
@@ -357,6 +363,9 @@ impl Start {
 
 /// `--start`'s `WORD[=N]`: a word it takes, and how many, 1 unless said.
 pub fn parse(arg: &str) -> Result<(String, i32)> {
+    if arg == NONE {
+        return Ok((NONE.into(), 0));
+    }
     let (word, n) = match arg.split_once('=') {
         Some((w, n)) => (w, n.parse().with_context(|| format!("{n} isn't a count"))?),
         None => (arg, 1),
@@ -367,7 +376,7 @@ pub fn parse(arg: &str) -> Result<(String, i32)> {
 
 /// Every word `--start` takes.
 pub fn words() -> String {
-    let all = WORDS.iter().map(|(w, _)| *w).chain([HEARTS, RUPEE_WORD]);
+    let all = (WORDS.iter().map(|(w, _)| *w)).chain([HEARTS, RUPEE_WORD, NONE]);
     all.collect::<Vec<_>>().join(", ")
 }
 
@@ -544,8 +553,10 @@ mod tests {
         assert!(Start::from_settings(&settings).is_err());
         assert_eq!(
             Start::from_settings(&Settings::new()).unwrap(),
-            Start::default()
+            Start::of(&DEFAULT)
         );
+        let none = Settings::from([(SETTING.into(), serde_json::json!({}))]);
+        assert_eq!(Start::from_settings(&none).unwrap(), Start::default());
     }
 
     #[test]

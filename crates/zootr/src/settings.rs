@@ -209,8 +209,10 @@ pub enum Kind {
         options: Vec<Choice>,
     },
     /// What a new game starts holding, the save editor's grid: a
-    /// [`starting::Start`]. Unset is the game's own.
-    Inventory,
+    /// [`starting::Start`].
+    Inventory {
+        default: starting::Start,
+    },
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -491,7 +493,9 @@ pub fn schema() -> Vec<SettingDef> {
         )),
     ];
     let start = SettingDef {
-        kind: Kind::Inventory,
+        kind: Kind::Inventory {
+            default: starting::Start::of(&starting::DEFAULT),
+        },
         ..toggle(
             starting::SETTING,
             place::START,

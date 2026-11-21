@@ -516,7 +516,7 @@ const startView = (tier: number) =>
 
 const inventory: SettingDef = {
   ...toggle("start-inventory", "Starting inventory", { group: "Inventory" }),
-  kind: { type: "inventory" },
+  kind: { type: "inventory", default: {} },
 };
 
 test("the starting inventory draws the save editor's grid and saves each click", async () => {
@@ -544,6 +544,28 @@ test("the starting inventory draws the save editor's grid and saves each click",
   await screen.findByRole("button", { name: /Hookshot.*changed/ });
   fireEvent.contextMenu(screen.getByRole("button", { name: /^Hookshot/ }));
   await waitFor(() => expect(saved(setConfig)).toEqual({}));
+  expect(click).toHaveBeenLastCalledWith({ hookshot: 1 }, 0, "down");
+});
+
+test("a default starting inventory emptied saves as empty, not unset", async () => {
+  vi.spyOn(commands, "startItems").mockImplementation((s) =>
+    startView(s.hookshot ?? 0),
+  );
+  const click = vi.spyOn(commands, "startClick").mockResolvedValue({
+    status: "ok",
+    data: {},
+  });
+  const sword = {
+    ...inventory,
+    kind: { type: "inventory", default: { hookshot: 1 } },
+  } as SettingDef;
+  const setConfig = show({ defs: [sword], section: "Inventory" });
+  fireEvent.contextMenu(
+    await screen.findByRole("button", { name: /^Hookshot/ }),
+  );
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({ "start-inventory": {} }),
+  );
   expect(click).toHaveBeenLastCalledWith({ hookshot: 1 }, 0, "down");
 });
 

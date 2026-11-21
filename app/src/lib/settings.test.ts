@@ -11,6 +11,7 @@ import {
   patched,
   settingsChanges,
   startForcers,
+  startOf,
   summary,
   summaryParts,
   unmet,
@@ -218,11 +219,11 @@ test("chips are marked new or gone against a base", () => {
   ]);
 });
 
-test("a starting inventory is changed while it holds anything", () => {
+test("a starting inventory is changed while it differs from its default", () => {
   const def: SettingDef = {
     ...toggles(1)[0],
     label: "Start",
-    kind: { type: "inventory" },
+    kind: { type: "inventory", default: {} },
   } as SettingDef;
   expect(isChanged(def, {})).toBe(false);
   expect(isChanged(def, { s0: {} })).toBe(false);
@@ -241,4 +242,17 @@ test("a starting inventory is changed while it holds anything", () => {
   expect(markedChips([def], [def], two, two)).toEqual([
     { id: "s0", label: "Start", value: "2 items" },
   ]);
+});
+
+test("an unset starting inventory holds its default, and emptied it's changed", () => {
+  const def: SettingDef = {
+    ...toggles(1)[0],
+    label: "Start",
+    kind: { type: "inventory", default: { "master-sword": 1 } },
+  } as SettingDef;
+  expect(startOf(def, {})).toEqual({ "master-sword": 1 });
+  expect(isChanged(def, {})).toBe(false);
+  expect(isChanged(def, { s0: { "master-sword": 1 } })).toBe(false);
+  expect(isChanged(def, { s0: {} })).toBe(true);
+  expect(summary([def], {})).toBe("Start: 1 item");
 });

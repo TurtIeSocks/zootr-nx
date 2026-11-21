@@ -28,10 +28,11 @@ export function chosen(
   );
 }
 
-/** A starting inventory's words and counts, empty when unset. */
-export function startOf(value: Settings[string] | undefined): StartInventory {
+/** A starting inventory's words and counts, its default when unset. */
+export function startOf(def: SettingDef, settings: Settings): StartInventory {
+  const value = settings[def.id];
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return {};
+    return def.kind.type === "inventory" ? def.kind.default : {};
   }
   return Object.fromEntries(
     Object.entries(value).filter(
@@ -40,16 +41,26 @@ export function startOf(value: Settings[string] | undefined): StartInventory {
   );
 }
 
+/** Whether two starting inventories hold the same, in any order. */
+export function sameStart(a: StartInventory, b: StartInventory): boolean {
+  const words = Object.keys(a);
+  return (
+    words.length === Object.keys(b).length && words.every((w) => a[w] === b[w])
+  );
+}
+
 /** How many things a starting inventory holds, each word once. */
 const held = (def: SettingDef, settings: Settings) =>
-  Object.keys(startOf(settings[def.id])).length;
+  Object.keys(startOf(def, settings)).length;
 
 /** Whether a setting's own value differs from its default. */
 export function isChanged(def: SettingDef, settings: Settings): boolean {
   if (def.kind.type === "choice") {
     return chosen(def, settings)?.id !== def.kind.default;
   }
-  if (def.kind.type === "inventory") return held(def, settings) > 0;
+  if (def.kind.type === "inventory") {
+    return !sameStart(startOf(def, settings), def.kind.default);
+  }
   const value = settings[def.id];
   return typeof value === "boolean" && value !== def.kind.default;
 }
@@ -255,7 +266,7 @@ export function markedChips(
 function shown(def: SettingDef, settings: Settings, schema: SettingDef[]) {
   if (def.kind.type === "choice") return chosen(def, settings)?.label ?? "";
   if (def.kind.type === "inventory") {
-    const start = startOf(settings[def.id]);
+    const start = startOf(def, settings);
     const words = Object.entries(start).map(([w, n]) =>
       n === 1 ? w : `${w} ×${n}`,
     );

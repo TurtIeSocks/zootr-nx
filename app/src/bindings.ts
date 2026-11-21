@@ -611,9 +611,9 @@ export type Kind = { type: "toggle"; default: boolean } |
 { type: "choice"; default: string; options: Choice[] } | 
 /**
  *  What a new game starts holding, the save editor's grid: a
- *  [`starting::Start`]. Unset is the game's own.
+ *  [`starting::Start`].
  */
-{ type: "inventory" };
+{ type: "inventory"; default: StartInventory };
 
 /**  What a seed is for, in the player's words. Both may be blank. */
 export type Label = {
