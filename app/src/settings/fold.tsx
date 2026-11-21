@@ -1,36 +1,48 @@
 import { ChevronRight } from "lucide-react";
-import { type ReactNode, useId } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { cn } from "@/lib/utils";
 import { setSectionOpen, useUi } from "@/stores/ui";
 
-/** Props for {@link Fold}. */
-export interface FoldProps {
-  /** Keys whether it's open, across restarts. */
-  id: string;
-  title: string;
+/** Props for {@link Disclosure}. */
+export interface DisclosureProps {
+  title: ReactNode;
   description?: string;
   /** Quiet text at the header's trailing edge, such as a count. */
   meta?: ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Leaves the body out until it first opens. */
+  lazy?: boolean;
   children: ReactNode;
 }
 
-/** A settings page's section: a card that opens and closes from its
- * header. Each starts open, and stays as it was left. */
-export function Fold({ id, title, description, meta, children }: FoldProps) {
-  const open = useUi((s) => !s.settings.closed.includes(id));
+/** A card that opens and closes from its header. */
+export function Disclosure({
+  title,
+  description,
+  meta,
+  open,
+  onOpenChange,
+  lazy = false,
+  children,
+}: DisclosureProps) {
   const body = useId();
+  const [opened, setOpened] = useState(open);
+  if (open && !opened) setOpened(true);
   return (
     <section className="rounded-lg border border-line bg-surface shadow-xs">
       <button
         type="button"
         aria-expanded={open}
         aria-controls={body}
-        onClick={() => setSectionOpen(id, !open)}
+        onClick={() => onOpenChange(!open)}
         className="group/head flex w-full cursor-pointer items-center gap-2 rounded-lg py-3 pr-3 pl-4 text-left transition-colors duration-(--duration-fast) ease-out hover:bg-surface-hover"
       >
         <ChevronRight className="size-4 shrink-0 text-ink-faint transition-transform duration-(--duration-base) ease-out group-aria-expanded/head:rotate-90" />
         <span className="min-w-0 flex-1">
-          <span className="font-medium text-sm">{title}</span>
+          <span className="flex items-center gap-2 font-medium text-sm">
+            {title}
+          </span>
           {description && (
             <span className="block text-ink-muted text-xs">{description}</span>
           )}
@@ -48,8 +60,31 @@ export function Fold({ id, title, description, meta, children }: FoldProps) {
           open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
       >
-        <div className="min-h-0 overflow-hidden">{children}</div>
+        <div className="min-h-0 overflow-hidden">
+          {(opened || !lazy) && children}
+        </div>
       </div>
     </section>
+  );
+}
+
+/** Props for {@link Fold}. */
+export interface FoldProps
+  extends Omit<DisclosureProps, "open" | "onOpenChange" | "lazy"> {
+  /** Keys whether it's open, across restarts. */
+  id: string;
+  title: string;
+}
+
+/** A settings page's section. Each starts open, and stays as it was
+ * left. */
+export function Fold({ id, ...props }: FoldProps) {
+  const open = useUi((s) => !s.settings.closed.includes(id));
+  return (
+    <Disclosure
+      open={open}
+      onOpenChange={(open) => setSectionOpen(id, open)}
+      {...props}
+    />
   );
 }

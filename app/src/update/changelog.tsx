@@ -11,12 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Disclosure } from "@/settings/fold";
 import { askedRepo, useUpdate } from "@/stores/update";
 import { Notes, ReleaseLink } from "@/update/notes";
 import { day, fetchReleases, PAGE, type Release } from "@/update/release";
 
-/** Opens every release's notes, newest first. Nothing is fetched until it
- * opens. */
+/** Opens every release, newest first, each a fold of its notes with only
+ * the newest open. Nothing is fetched until it opens. */
 export function ChangelogButton() {
   const [open, setOpen] = useState(false);
   return (
@@ -72,9 +73,11 @@ function Releases() {
   }, [pages]);
   return (
     <div className="-mx-5 min-h-0 flex-1 overflow-auto border-line border-t px-5">
-      {list.map((r) => (
-        <ReleaseNotes key={r.version} release={r} />
-      ))}
+      <div className="flex flex-col gap-2 pt-4">
+        {list.map((r, i) => (
+          <ReleaseNotes key={r.version} release={r} newest={i === 0} />
+        ))}
+      </div>
       <div className="flex justify-center py-4">
         {status === "loading" && (
           <Loader2 className="size-4 animate-spin text-ink-muted" />
@@ -100,22 +103,34 @@ function Releases() {
 /** Props for {@link ReleaseNotes}. */
 interface ReleaseNotesProps {
   release: Release;
+  /** Opens at the start. The rest start closed. */
+  newest: boolean;
 }
 
-/** One release: its version, date and page, then its notes. */
-function ReleaseNotes({ release }: ReleaseNotesProps) {
+/** One release, a fold headed by its version and date. Its notes render
+ * once it first opens. */
+function ReleaseNotes({ release, newest }: ReleaseNotesProps) {
   const [current] = useUpdate.usePath("current");
+  const [open, setOpen] = useState(newest);
   return (
-    <article className="border-line border-b py-4 last-of-type:border-b-0">
-      <div className="flex items-center gap-2">
-        <h3 className="font-medium text-sm">v{release.version}</h3>
-        {release.version === current && <Badge variant="info">Installed</Badge>}
-        <span className="ml-auto flex items-center gap-3 text-ink-faint text-xs">
-          {release.published && day(release.published)}
-          <ReleaseLink href={release.url}>Release page</ReleaseLink>
-        </span>
+    <Disclosure
+      title={
+        <>
+          v{release.version}
+          {release.version === current && (
+            <Badge variant="info">Installed</Badge>
+          )}
+        </>
+      }
+      meta={release.published && day(release.published)}
+      open={open}
+      onOpenChange={setOpen}
+      lazy
+    >
+      <div className="pr-4 pb-4 pl-10">
+        <ReleaseLink href={release.url}>Release page</ReleaseLink>
+        <Notes md={release.notes} className="pt-1.5" />
       </div>
-      <Notes md={release.notes} className="pt-1.5" />
-    </article>
+    </Disclosure>
   );
 }
