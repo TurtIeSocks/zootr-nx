@@ -52,7 +52,7 @@ const GEAR: &[(&str, &Name, &str)] = &[
 
 /// The file in `pack` under `folder`, its own when the folder holds a
 /// base file too.
-fn file(pack: &ActorPack, name: &str, folder: &str) -> Option<String> {
+pub(super) fn file(pack: &ActorPack, name: &str, folder: &str) -> Option<String> {
     let under = format!("{folder}/");
     let hits: Vec<String> = (pack.files().into_iter())
         .filter(|f| f.contains(&under))
