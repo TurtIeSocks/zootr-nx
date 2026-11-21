@@ -27,7 +27,7 @@ interface TipBadgeProps {
 function TipBadge({ icon: Icon, label, tip, variant = "info" }: TipBadgeProps) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
+      <TooltipTrigger asChild tabIndex={0}>
         <Badge variant={variant}>
           <Icon />
           {label}
@@ -75,7 +75,7 @@ export function Name({ entry, className }: SeedProps) {
   if (!name) return null;
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
+      <TooltipTrigger asChild tabIndex={0}>
         <p className={cn("truncate", className)}>{name}</p>
       </TooltipTrigger>
       <TooltipContent side="bottom" align="start">

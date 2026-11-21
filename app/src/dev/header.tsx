@@ -64,7 +64,7 @@ function Where() {
   if (!state)
     return (
       <div className="min-w-0 flex-1">
-        <Tip tip={error}>
+        <Tip focusable tip={error}>
           <p className={title}>
             <Dot on={false} />
             {error ? "Game not running" : "Looking for the game"}

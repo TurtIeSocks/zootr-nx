@@ -106,7 +106,7 @@ export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
 /** The DeathLink mark, for a slot that plays it. */
 export function DeathLinkBadge() {
   return (
-    <Tip tip="Your deaths reach the others, and theirs reach you">
+    <Tip focusable tip="Your deaths reach the others, and theirs reach you">
       <Badge variant="danger" shape="square">
         <Skull />
         DeathLink

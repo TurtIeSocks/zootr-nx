@@ -10,7 +10,7 @@ import { untested } from "@/settings/setting";
 /** Marks a setting not yet played through. */
 export function UntestedBadge() {
   return (
-    <Tip tip="Not played through yet, so it may misbehave">
+    <Tip focusable tip="Not played through yet, so it may misbehave">
       <Badge variant="gold">Untested</Badge>
     </Tip>
   );

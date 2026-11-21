@@ -87,7 +87,7 @@ function SourceNote() {
       <Help topic="live-status" />
       {on && s?.source === "Saves" && <Badge variant="info">Autosaves</Badge>}
       {on && unsaved !== "" && (
-        <Tip tip={unsaved}>
+        <Tip focusable tip={unsaved}>
           <Badge variant="danger">Not saved to a file</Badge>
         </Tip>
       )}
@@ -105,7 +105,7 @@ function MutedCount() {
   const more = muted.length - LISTED;
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
+      <TooltipTrigger asChild tabIndex={0}>
         <span className="cursor-default whitespace-nowrap text-ink-faint text-xs">
           {muted.length} muted
         </span>
