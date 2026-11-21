@@ -810,7 +810,7 @@ pub fn schema() -> Vec<SettingDef> {
             BRIDGE,
             place::WIN_CONDITION,
             "Rainbow Bridge",
-            "Untested. What raises the bridge to Ganon's Castle. With Vanilla, Link walks onto the ledge once Zelda has given him the Light Arrows, as in the game. With Six Medallions, it rises once he holds all six, without the Light Arrows first. With Open, the bridge stands from the start",
+            "What raises the bridge to Ganon's Castle. With Vanilla, Link walks onto the ledge once Zelda has given him the Light Arrows, as in the game. With Six Medallions, it rises once he holds all six, without the Light Arrows first. With Open, the bridge stands from the start",
             Bridge::label,
         )])
         .chain([choice(
