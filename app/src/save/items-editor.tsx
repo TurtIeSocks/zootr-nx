@@ -67,7 +67,7 @@ export interface ItemsEditorProps {
 }
 
 /** Link's status, then his items as the tracker lays them out. A click on
- * a tile goes up a tier, a right click down. The Save page and the
+ * a tile goes up a tier, a right click or Backspace down. The Save page and the
  * settings' starting inventory both draw it. */
 export function ItemsEditor({ view, onClick, onStatus }: ItemsEditorProps) {
   const [error, setError] = useState<string>();
@@ -169,7 +169,7 @@ function EditTile({ cell, cap, staged, onClick }: EditTileProps) {
   return (
     <div className="relative">
       <Tip
-        tip={`${cell.label}: click for the next, right click for the one before`}
+        tip={`${cell.label}: click for the next, right click or Backspace for the one before`}
       >
         <button
           type="button"
@@ -177,6 +177,13 @@ function EditTile({ cell, cap, staged, onClick }: EditTileProps) {
           className="rounded-sm transition-colors duration-(--duration-fast) hover:bg-surface-sunken disabled:pointer-events-none"
           onClick={() => onClick("up")}
           onContextMenu={(e) => {
+            e.preventDefault();
+            onClick("down");
+          }}
+          // The menu key and Shift+F10 only raise a context menu on some
+          // platforms (a Mac has neither), so a key of our own goes down.
+          onKeyDown={(e) => {
+            if (e.key !== "Backspace") return;
             e.preventDefault();
             onClick("down");
           }}

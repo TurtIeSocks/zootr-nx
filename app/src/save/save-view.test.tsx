@@ -216,6 +216,16 @@ test("a click goes up a tier and the tile shows a dot, and a right click back un
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 });
 
+test("Backspace on a focused tile goes down a tier, as a right click does", async () => {
+  await open();
+  fireEvent.click(tile("Hookshot"));
+  await waitFor(() => expect(useUi.getPath("save.edits")).toHaveLength(1));
+  fireEvent.keyDown(tile("Hookshot"), { key: "Backspace" });
+  await waitFor(() => expect(useUi.getPath("save.edits")).toEqual([]));
+  fireEvent.keyDown(tile("Hookshot"), { key: "Enter" });
+  expect(useUi.getPath("save.edits")).toEqual([]);
+});
+
 test("tiles that share a label get a number, so each button has its own name", async () => {
   await open();
   expect(screen.getByRole("button", { name: /^Bottle 1/ })).toBeTruthy();
