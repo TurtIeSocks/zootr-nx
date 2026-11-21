@@ -143,6 +143,7 @@ pub const ENTRANCE_POS: &Name = &n!(0x5f02292fc20e9023);
 pub const ENTRY_POINT_NAME: &Name = &n!(0x6eca8548eb0b1580);
 pub const ENUM_ARRAY: &Name = &n!(0xc8583bc3672cb73d);
 pub const ENUM_NAME: &Name = &n!(0xb526a750e44e4883);
+pub const EQUIPMENT_ACTOR_NAME: &Name = &n!(0x39dc9b2d4f7b3f5f);
 pub const EQUIPMENT_ARRAY: &Name = &n!(0x8a62f6ca3a10ad74);
 pub const EQUIPMENT_MENU: &Name = &n!(0x010ae31927a20c28);
 pub const EQUIPMENT_MENU_FOR_BOOT: &Name = &n!(0x21ec90d1f669886b);
