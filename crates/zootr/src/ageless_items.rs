@@ -1,7 +1,7 @@
 //! Items for both ages: each Link uses items only the other uses in the
-//! game. Child Link takes the Megaton Hammer, Hookshot and Longshot, adult
-//! Link the Deku Sticks and the Boomerang. The rest of the spec's items
-//! join once they work (`superpowers/specs/2026-11-21-ageless-items-design.md`).
+//! game. Child Link takes the Hookshot and Longshot, adult Link the Deku
+//! Sticks and the Boomerang. The rest of the spec's items join once they
+//! work (`superpowers/specs/2026-11-21-ageless-items-design.md`).
 //!
 //! Each gate is data, and each Link's state machine already has every
 //! item's branches:
@@ -13,7 +13,6 @@
 //!   child, the Boomerang for the adult.
 //! - Link's animations gain the other Link's archives, resized to his
 //!   skeleton and renamed, beside his own.
-//! - Child Link's effects are the adult's: the Hammer's dust and shake.
 //!
 //! The holder, shooter and animation files size their work from their
 //! RESTBL entry, and each row costs more than its bytes, so each gets
@@ -33,8 +32,7 @@ mod fska;
 pub use files::FILES;
 
 /// The pause menu's items opened to both ages.
-const ITEMS: [&Name; 5] = [
-    item::HAMMER,
+const ITEMS: [&Name; 4] = [
     item::HOOKSHOT,
     item::LONGSHOT,
     item::DEKU_STICK,
@@ -77,8 +75,8 @@ struct Link {
 const CHILD: Link = Link {
     who: actor::PLAYER_CHILD,
     from: actor::PLAYER_ADULT,
-    holds: &[item::HAMMER, item::HOOKSHOT, item::LONGSHOT],
-    // The Hammer's 30 clips and the Hook's 87.
+    holds: &[item::HOOKSHOT, item::LONGSHOT],
+    // The Hook's 87 clips.
     archives: &[Archive {
         from: field::PLAYER_ADULT_02_H_ANIMATION,
         skeleton: field::PLAYER_CHILD_01_ANIMATION,
@@ -215,7 +213,7 @@ fn opened(bytes: &[u8]) -> Result<Vec<u8>> {
 type Borrowed = (String, Vec<u8>, Vec<u8>, usize);
 
 /// `pack`'s files, as `link` borrows from `lender`: its holder, shooter
-/// and animations, and the child's effects.
+/// and animations.
 fn borrowed(link: &Link, pack: &ActorPack, lender: &ActorPack) -> Result<Vec<Borrowed>> {
     let param = param(pack)?;
     let theirs = |key: &Name| -> Result<BymlMap> {
@@ -262,12 +260,7 @@ fn borrowed(link: &Link, pack: &ActorPack, lender: &ActorPack) -> Result<Vec<Bor
         Ok(())
     })?;
     let roomy = |(path, old, new): Edit| (path, old, new, SLACK);
-    let mut edits = vec![roomy(holder), roomy(shooter), roomy(animations)];
-    if link.who == CHILD.who {
-        let (path, old, new) = crate::ice_traps::adult_effects(pack)?;
-        edits.push((path, old, new, 0));
-    }
-    Ok(edits)
+    Ok(vec![roomy(holder), roomy(shooter), roomy(animations)])
 }
 
 /// The actor a shooter row makes.
@@ -406,7 +399,7 @@ mod tests {
     }
 
     #[test]
-    fn each_link_plays_the_lent_archives_and_the_child_the_adult_s_effects() {
+    fn each_link_plays_the_lent_archives() {
         let Some(romfs) = dev_dump() else { return };
         for link in &LINKS {
             let pack = borrowing(&romfs, link);
@@ -424,10 +417,6 @@ mod tests {
                 .map(|a| link.renamed(a).unwrap())
                 .collect();
             assert_eq!(names, want);
-            // The adult's own effects user is already his.
-            let effects = file(&pack, field::E_LINK_REF);
-            let user = effects[field::USER_NAME.get()].as_string().unwrap();
-            assert_eq!(user.as_str(), actor::PLAYER_ADULT.get(), "{}", link.who);
         }
     }
 
@@ -465,7 +454,7 @@ mod tests {
         let child = ActorPack::from_bytes(CHILD.who, child).unwrap();
         let holder = file(&child, field::ACTOR_HOLDER_REF);
         let holds = map(&holder, field::ACTOR_HOLD_SETTINGS).unwrap();
-        assert!(holds.contains_key(item::HAMMER.get()), "ours");
+        assert!(holds.contains_key(item::HOOKSHOT.get()), "ours");
         let conditions = file(&child, field::CONDITION_REF);
         let frozen = conditions.get(field::IS_ENABLE_FROZEN.get());
         assert_eq!(frozen, Some(&Byml::Bool(true)), "the ice traps'");
