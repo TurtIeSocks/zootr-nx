@@ -328,6 +328,64 @@ pub fn join_structs(
     add_bools(root, &values)
 }
 
+/// Give Struct `of` a member `name` like its member `like`: the member's
+/// value a copy of `like`'s entry, named `value`, kept in the save the same
+/// way. The Struct of ammo caps holds one saved Int per pouch slot, and a
+/// slot without one keeps no cap.
+pub fn copy_member(root: &mut Byml, of: u32, like: &str, name: &str, value: &str) -> Result<()> {
+    let members = table(root, "Struct")?
+        .iter_mut()
+        .find(|s| has_hash(s, of))
+        .with_context(|| format!("no Struct {of:#010x}"))?
+        .as_mut_map()?
+        .get_mut(field::DEFAULT_VALUE.get())
+        .context("a Struct with no members")?
+        .as_mut_array()?;
+    let mut member = (members.iter())
+        .find(|m| has_hash(m, murmur3(like.as_bytes())))
+        .with_context(|| format!("{like} isn't in Struct {of:#010x}"))?
+        .as_map()?
+        .clone();
+    let was = int(&member["Value"])? as u32;
+    let hash = murmur3(value.as_bytes());
+    member.insert(
+        "Hash".into(),
+        typed(member.get("Hash"), murmur3(name.as_bytes()))?,
+    );
+    member.insert("Value".into(), typed(member.get("Value"), hash)?);
+    members.push(Byml::Map(member));
+    let data = root
+        .as_mut_map()?
+        .get_mut("Data")
+        .context("no Data")?
+        .as_mut_map()?;
+    let (kind, entries) = (data.iter_mut())
+        .filter(|(kind, _)| kind.as_str() != KEYED)
+        .find_map(|(kind, list)| {
+            let list = list.as_mut_array().ok()?;
+            list.iter()
+                .any(|e| has_hash(e, was))
+                .then(|| (kind.to_string(), list))
+        })
+        .with_context(|| format!("no entry {was:#010x}"))?;
+    let mut entry = (entries.iter().find(|e| has_hash(e, was)))
+        .context("the entry went missing")?
+        .as_map()?
+        .clone();
+    ensure!(
+        !entries.iter().any(|e| has_hash(e, hash)),
+        "{} already has {value}",
+        flag::GAME_DATA
+    );
+    entry.insert("Hash".into(), typed(entry.get("Hash"), hash)?);
+    let file = int(entry
+        .get(&**field::SAVE_FILE_INDEX)
+        .context(field::SAVE_FILE_INDEX)?)?;
+    entries.push(Byml::Map(entry));
+    let text = if kind == STRING64 { STRING64_TEXT } else { 0 };
+    grow_saves(root, file, 1, text)
+}
+
 /// BoolExp opcodes, as [`GameData::render`] reads them.
 pub(crate) mod op {
     pub const BOOL: i64 = 0;
@@ -537,6 +595,35 @@ mod tests {
             ours.expr(&name).unwrap(),
             Some(format!("{bool_name} || !{exp_name}"))
         );
+    }
+
+    #[test]
+    fn a_copied_member_has_a_saved_entry_of_its_own_like_its_likes() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut doc = BymlDoc::parse(&romfs.read(PATH).unwrap()).unwrap();
+        let caps = 0xf80f8077;
+        let before = GameData::parse(&doc.to_binary()).unwrap();
+        let size = |root: &Byml| {
+            int(&root.as_map().unwrap()[field::META_DATA.get()]
+                .as_map()
+                .unwrap()[field::ALL_DATA_SAVE_SIZE.get()])
+            .unwrap()
+        };
+        let was = size(&doc.root);
+        copy_member(&mut doc.root, caps, "DekuNut", "FakeAmmo", "FakeAmmo.Cap").unwrap();
+        assert_eq!(size(&doc.root), was + SAVE_PAIR);
+        let after = GameData::parse(&doc.to_binary()).unwrap();
+        let members: HashMap<u32, u32> = after.members(caps).unwrap().into_iter().collect();
+        let nut = members[&murmur3(b"DekuNut")];
+        assert_eq!(members[&murmur3(b"FakeAmmo")], murmur3(b"FakeAmmo.Cap"));
+        let info = |gd: &GameData, hash: u32| gd.entry(hash).unwrap().as_map().unwrap().clone();
+        let (ours, theirs) = (info(&after, murmur3(b"FakeAmmo.Cap")), info(&after, nut));
+        for key in [field::SAVE_FILE_INDEX.get(), field::RESET_TYPE_VALUE.get()] {
+            assert_eq!(ours[key], theirs[key]);
+        }
+        assert_eq!(after.kind(murmur3(b"FakeAmmo.Cap")), before.kind(nut));
     }
 
     #[test]

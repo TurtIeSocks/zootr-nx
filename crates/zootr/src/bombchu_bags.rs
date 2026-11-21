@@ -152,8 +152,16 @@ pub fn game_data(root: &mut Byml) -> Result<()> {
         let names = [bag.to_string()];
         gamedata::join_structs(root, like.get(), &names, &[gamedata::IS_GET])?;
     }
-    gamedata::add_string64s(root, &[slot_entry()])
+    gamedata::add_string64s(root, &[slot_entry()])?;
+    let cap = format!("{}.{SLOT}", field::MAX_NUM_GAME_DATA);
+    gamedata::copy_member(root, CAPS, "DekuNut", SLOT, &cap)
 }
+
+/// The Struct of saved ammo caps, a member per pouch slot (a row's
+/// `MaxNumGameData`). A bag's get sets its slot's cap there, then names
+/// the bag in the slot. A slot with no member gets neither, so Link holds
+/// none of its ammo and a chest of it gives a Red Rupee.
+const CAPS: u32 = 0xf80f8077;
 
 /// Each Bombchu Bag, its model, its pouch row and the bomb bags it takes
 /// Bombchus from, for `tables` to write. Each bag shows its bomb bag's
