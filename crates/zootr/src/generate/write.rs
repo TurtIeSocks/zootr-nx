@@ -17,7 +17,9 @@ use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::progressive::Lines;
 use crate::settings::Bombchus;
-use crate::settings::{AGELESS_WEAPONS, ChestSize, DungeonEntrances, NewGame, TRADE_CHAIN};
+use crate::settings::{
+    AGELESS_WEAPONS, ChestSize, DungeonEntrances, MAGIC_APART, NewGame, TRADE_CHAIN,
+};
 use crate::starter_bags;
 use crate::world::Era;
 use crate::{
@@ -46,6 +48,9 @@ pub(super) fn flows(
     }
     if new_game.hints {
         hints::quiet(romfs, &mut rewrites)?;
+    }
+    if new_game.on.contains(MAGIC_APART) {
+        crate::magic::quiet(romfs, &mut rewrites)?;
     }
     flags.push(starting::navi_guide());
     trade_chain::cut_timers(romfs, &mut rewrites)?;
@@ -295,6 +300,10 @@ pub fn write_mod(
         bombchu_bags::write(romfs, &mut builder, &mut tables)?;
     }
     starter_bags::write(romfs, new_game, &mut builder, &mut tables)?;
+    // Before the stand-ins, so one copying a magic item copies it apart.
+    if new_game.on.contains(MAGIC_APART) {
+        crate::magic::write(&mut tables)?;
+    }
     if new_game.on.contains(AGELESS_WEAPONS) {
         ageless::write(romfs, &mut builder)?;
     }

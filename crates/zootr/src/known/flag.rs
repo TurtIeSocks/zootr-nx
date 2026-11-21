@@ -172,6 +172,7 @@ pub const NPC_SKULL_KID_CHILD_IS_GET_HEART_PIECE: &Name = &n!(0x75ed7ebc72c68196
 pub const PLAYER_STATUS_ANOTHER_ERA_EQUIP_SHIELD: &Name = &n!(0x369bf7581cb3534c);
 pub const PLAYER_STATUS_ANOTHER_ERA_EQUIP_WEAPON: &Name = &n!(0x7a2df2e7fb1c8085);
 pub const PLAYER_STATUS_CURRENT_RUPEE: &Name = &n!(0xfa71109e696f5faa);
+pub const PLAYER_STATUS_MP_MAX: &Name = &n!(0x42fb0184586a2f85);
 pub const PLAYER_STATUS_EQUIP_SHIELD: &Name = &n!(0x6efdfb064a0a59a9);
 pub const PLAYER_STATUS_EQUIP_WEAPON: &Name = &n!(0xae8b4cbc151f0704);
 pub const RED_ICE: &Name = &n!(0xf2a885c541d4e653);

@@ -149,6 +149,7 @@ pub const NPC_HYLIA_TALON_ADULT_SHOW_POCKET_CUCCO: &Name = &n!(0x873c51db3e5d4be
 pub const NPC_HYLIA_TALON_ADULT_SHOW_POCKET_CUCCO_LON_LON: &Name = &n!(0x9b70b8afef5a8468);
 pub const OBJ_SMALL_KEY: &Name = &n!(0x24413f1128c89db5);
 pub const OPENING_EVENT: &Name = &n!(0xf87607ce40ecc835);
+pub const OPEN_GET_WINDOW_RELEASE_MAGIC: &Name = &n!(0x8ac98bfab2bf7ed8);
 pub const PAYMENT_MESSAGE_ID: &Name = &n!(0x9ae00d4939c05824);
 pub const REPLACE_EQUIPMENT_FOR_ERA_CHANGE: &Name = &n!(0x541c61b65314665e);
 pub const REVEIVE_ITEM: &Name = &n!(0xbcc4c76e9338d5f2);
