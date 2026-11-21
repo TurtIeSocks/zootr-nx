@@ -68,7 +68,7 @@ fn input() -> Result<Box<dyn Input>> {
 }
 
 /// A report as lines, or as one JSON object with `json`.
-fn said<T: Display + Serialize>(report: &T, json: bool) -> Result<String> {
+pub(super) fn said<T: Display + Serialize>(report: &T, json: bool) -> Result<String> {
     Ok(match json {
         true => serde_json::to_string(report)?,
         false => report.to_string(),

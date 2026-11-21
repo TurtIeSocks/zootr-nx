@@ -406,6 +406,37 @@ impl GameData {
             .collect()
     }
 
+    /// Every entry's hash, in no order.
+    pub fn hashes(&self) -> impl Iterator<Item = u32> + '_ {
+        self.entries.keys().copied()
+    }
+
+    /// The entries BoolExp `hash` reads, without its constants, or none
+    /// for any other kind of entry.
+    pub fn exp_inputs(&self, hash: u32) -> Vec<u32> {
+        let Some(values) = (self.entries.get(&hash))
+            .filter(|(t, _)| t == BOOL_EXP)
+            .and_then(|(_, e)| e.as_map().ok()?.get("Values")?.as_array().ok())
+        else {
+            return Vec::new();
+        };
+        let mut inputs: Vec<u32> = values
+            .iter()
+            .filter_map(|ins| {
+                let ins = ins.as_array().ok()?;
+                // 2 and 16 complete a comparison with a constant.
+                match int(ins.first()?).ok()? {
+                    2 | 16 => None,
+                    _ => Some(int(ins.get(1)?).ok()? as u32),
+                }
+            })
+            .filter(|h| self.entries.contains_key(h))
+            .collect();
+        inputs.sort_unstable();
+        inputs.dedup();
+        inputs
+    }
+
     /// Every BoolExp, rendered, so a bad opcode shows up in selftest.
     pub fn check_all(&self) -> Result<usize> {
         let mut n = 0;

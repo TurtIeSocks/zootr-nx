@@ -448,7 +448,7 @@ pub(crate) fn is_local(flow: &Flowchart, callee: &str) -> bool {
 
 /// The events an event runs next, not following calls into other entry
 /// points.
-fn successors(kind: &EventKind) -> Vec<u16> {
+pub(crate) fn successors(kind: &EventKind) -> Vec<u16> {
     match kind {
         EventKind::Action { next, .. }
         | EventKind::Join { next }
