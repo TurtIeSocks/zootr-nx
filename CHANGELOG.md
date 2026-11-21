@@ -3,6 +3,85 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.7.0] - 2026-11-21
+
+### Added
+
+- Watch for foes that wake during a shot and slay them
+- No-pickup-texts, so a first recovery heart or rupee doesn't stop Link
+- No-pickup-texts on by default
+- One Tip for every hover hint
+- Help bubbles, from one catalog of topics
+- Explain the app's pages with help bubbles and tips
+- Tuck rare fields under Advanced, list the variables
+- A developer tools switch that hidden tools obey
+- Hide developer tools behind the new switch
+- Warn that the Flags tab edits the save directly
+- One code patch for every seed, the table as a cheat
+- King Zora moved, Jabu-Jabu open and the Zora's River waterfall open
+- A welcome screen, a Get started card, and stuck states that point the way
+- Rebuild command and patch list are developer-only fields
+- An IPS of the whole patch for a Switch running Atmosphère
+- A bad game dump says what's wrong in one sentence, with the raw error behind Details
+- Live, builds, Rebuild, the update and the Save Editor say what's wrong in player words
+- Adult Deku Tree, the debris at its mouth gone
+- Shuffle which dungeon each dungeon door leads to
+- Follow shuffled dungeon doors
+- List each shuffled dungeon door
+- Blue warps keep Link's age while doors shuffle
+- Each dungeon sets its own Bool as Link arrives
+- Reveal each shuffled door as Link goes through it
+- Shuffled doors clear the adult Deku Tree's debris
+- Gerudo Fortress fast, one carpenter counts as four
+- A starting nut or stick bag shows its slot from the start
+- Controls that can't act while the game runs say why instead of failing
+- Change dots mark drift from the installed seed, not changes from the defaults
+- Enable all, Disable all and Reset to defaults on each settings group page
+- One drift bar on every settings page, worded and reviewed like Play's pill
+- Gohma counts for adult Link, and his blue warp keeps adult Link adult
+- Link's Pocket, Rauru's check given in the opening with the Door of Time open
+- The adult catches the Boomerang
+- Starting age, child, adult or random
+- Hide a live actor's model, and read each actor's placement
+- `dev nearby` and `dev hide`
+- `dev_nearby` and `dev_hide` commands
+- Live actors section in the dev panel
+- Every read hides again a listed actor found shown
+- Adult Jabu-Jabu, off, always or after Morpha
+- Jabu moves off the ice path, and what he'd swallow makes room
+- Adult Jabu is sick while the fountain is frozen, happy once it thaws
+- Dev panel redesign: fixed header, five tabs, activity line
+- Starter bags, the nut, stick and Bombchu bags in the pool
+- Bombchu Bags show their bomb bag in the Bombchu's blue
+- Read a shape's attributes and bones, and replace a mesh part by part
+- The Small Bombchu Bag holds Bombchus, not bombs
+- The bags wear the Bombchu's navy and gold, not one blue
+- The Small bag gets the red stripes the Medium and Large have
+
+### Fixed
+
+- No-pickup-texts covers the fairy too
+- Name no target in what the app shows
+- Describe a target as where you play
+- Drop tips that only repeat what's shown
+- Let the dev panel's hook follow its own switch again
+- A removed patch on a build of today's code reads as current
+- A target runs only when its app does, not when a command names it
+- A moved door takes its dungeon's first-arrival scene
+- Read the game once and try up to 100 door layouts
+- Items shows only a save played since the installed seed went in
+- A moved door carries what its dungeon needs inside
+- Two hundred door tries, so a seed almost never runs out
+- Drift words live in the seeds store, so the review file exports components only
+- An actor no placement made has no hash
+- Jabu opens his mouth the first time Link swims up
+- The place search no longer stretches down the Warp tab
+- Whole seeds with the bags shuffled write again
+- The Medium and Large bags carry the Small's rewritten param
+- Size the Small bag's rewritten param like the Medium's
+- Give the Bombchu slot a saved cap, so a bag get fills it
+- Give each Bombchu Bag a pouch count, so the next chest gives the next bag
+
 ## [0.6.0] - 2026-11-20
 
 ### Added
