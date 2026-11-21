@@ -46,11 +46,11 @@ pub mod group {
 
 /// Every panel, in the order the app lists them.
 pub const GROUPS: [&str; 5] = [
-    group::ENHANCEMENTS,
     group::LOGIC,
-    group::INVENTORY,
     group::SHUFFLES,
     group::DUNGEONS,
+    group::ENHANCEMENTS,
+    group::INVENTORY,
 ];
 
 /// Where a setting shows: its panel, and the section of that panel.
@@ -157,14 +157,9 @@ pub mod place {
 
     /// Every section, in the order the app shows them.
     pub const ALL: [Place; 15] = [
-        COMFORT,
-        GAMEPLAY,
-        CUTSCENES,
-        CUTSCENE_AREAS,
         RULES,
         OPEN_AREAS,
         QUEST,
-        START,
         CHECKS,
         BREAKABLES,
         ITEM_POOL,
@@ -172,6 +167,11 @@ pub mod place {
         REWARDS,
         KEYS,
         ENTRANCES,
+        COMFORT,
+        GAMEPLAY,
+        CUTSCENES,
+        CUTSCENE_AREAS,
+        START,
     ];
 }
 
