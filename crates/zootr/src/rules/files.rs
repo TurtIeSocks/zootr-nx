@@ -241,6 +241,7 @@ impl Book {
             open: BTreeSet::new(),
             doors: None,
             age: crate::world::Era::Child,
+            adult_jabu: settings::AdultJabu::Off,
         };
         for (word, expr) in &self.abilities {
             self.need(expr, &ctx)

@@ -182,6 +182,7 @@ pub const SAGE_OF_FOREST_IS_AFTER_STEP01_EXP: &Name = &n!(0x8a8c45489e94dad8);
 pub const SAGE_OF_FOREST_IS_COMPLETED_EXP: &Name = &n!(0x46ed2af273a6bacb);
 pub const SAGE_OF_LIGHT: &Name = &n!(0x562ba60fdb854434);
 pub const SAGE_OF_SPIRIT_IS_AFTER_STEP01_EXP: &Name = &n!(0x251d4c944a8a76d0);
+pub const SAGE_OF_WATER_IS_COMPLETED_EXP: &Name = &n!(0x3a2a99364d0381ed);
 pub const SAGE_ROOM: &Name = &n!(0x13f00c7a43fc73b2);
 pub const SARIA_SONG: &Name = &n!(0xc301b3a33ababf22);
 pub const SCRUB_BUSINESS_BUY_SUCCESS: &Name = &n!(0xd6d75a225d1c78f8);

@@ -18,8 +18,8 @@ mod choices;
 mod new_game;
 mod upgrade;
 pub use choices::{
-    ChestSize, DungeonEntrances, DungeonKeys, FortressKeys, IceTraps, Keys, Logic, ScrubPrice,
-    ShopSlots, StartingAge,
+    AdultJabu, ChestSize, DungeonEntrances, DungeonKeys, FortressKeys, IceTraps, Keys, Logic,
+    ScrubPrice, ShopSlots, StartingAge,
 };
 pub use new_game::NewGame;
 pub(crate) use new_game::{toggles, toggles_on};
@@ -234,6 +234,7 @@ pub(crate) const KEYS: &str = "keys";
 pub(crate) const FORTRESS_KEYS: &str = "fortress-keys";
 pub(crate) const ICE_TRAPS: &str = "ice-traps";
 pub(crate) const DUNGEON_ENTRANCES: &str = "shuffle-dungeon-entrances";
+pub(crate) const ADULT_JABU: &str = "adult-jabu-jabu";
 pub(crate) const MERCHANTS: &str = "merchants";
 pub(crate) const TRADE_CHAIN: &str = "trade-chain";
 pub(crate) const RUNNING_RACE: &str = "running-race";
@@ -372,6 +373,13 @@ pub fn schema() -> Vec<SettingDef> {
             "Logic",
             "Glitchless places each item where Link can reach it without that item, so a seed can always be beaten. No logic places items anywhere, so a seed may not be",
             Logic::label,
+        )])
+        .chain([choice(
+            ADULT_JABU,
+            group::LOGIC,
+            "Adult Jabu-Jabu",
+            "Jabu-Jabu waits in the frozen fountain for adult Link too, from the start or once the Water sage is done. Adult Link walks in when his mouth is open (the Jabu-Jabu open preset), but only child Link's Boomerang beats the tentacles and Barinade. With dungeon entrances shuffled, his door leads wherever it leads for child Link",
+            AdultJabu::label,
         )])
         .chain([choice(
             ICE_TRAPS,

@@ -11,6 +11,7 @@ macro_rules! needs_names {
     };
 }
 
+mod adult_jabu;
 mod ageless;
 mod ammo;
 pub mod ap;

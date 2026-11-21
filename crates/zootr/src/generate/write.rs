@@ -16,11 +16,11 @@ use crate::progress::Run;
 use crate::settings::{AGELESS_WEAPONS, ChestSize, DungeonEntrances, NewGame, TRADE_CHAIN};
 use crate::world::Era;
 use crate::{
-    ageless, ammo, blue_warps, bombchus, bombs, bridge, chest_levels, cows, cutscenes, dampe,
-    day_skulltulas, dig, door, enemies, entrances, flags, foreign, fortress, gamedata, gerudo,
-    gifts, held, hints, ice_traps, key_tints, keys, map_copies, medallions, navi, notice, patch,
-    picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker,
-    trade_chain, twins,
+    adult_jabu, ageless, ammo, blue_warps, bombchus, bombs, bridge, chest_levels, cows, cutscenes,
+    dampe, day_skulltulas, dig, door, enemies, entrances, flags, foreign, fortress, gamedata,
+    gerudo, gifts, held, hints, ice_traps, key_tints, keys, map_copies, medallions, navi, notice,
+    patch, picked, pickups, presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text,
+    tracker, trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -400,6 +400,9 @@ pub fn write_mod(
     for (rel, doc) in checks::load_bancs(romfs, checks::banc_files(romfs)?) {
         run.check()?;
         let mut doc = doc?;
+        // Before every edit below, so Jabu's copies in the adult fountain
+        // take the same fields and door rewrite as the child's.
+        let jabu = adult_jabu::copy(romfs, &rel, &mut doc.root, new_game.adult_jabu)?;
         // First, so a check placed in its twin's map takes its drop below.
         let twinned = twins::place(&rel, &mut doc.root, &twins)? > 0;
         // Before the fields, so each twin keeps its holder's vanilla drop.
@@ -435,7 +438,8 @@ pub fn write_mod(
             Some(b) => entrances::rewrite(&rel, &mut doc.root, &new_game.doors, b)? > 0,
             None => false,
         };
-        if twinned
+        if jabu
+            || twinned
             || paired
             || stepped
             || grouped
@@ -455,6 +459,7 @@ pub fn write_mod(
         }
     }
     write_maps(&mut builder, &mut changed_maps)?;
+    adult_jabu::arrival(romfs, &mut builder, new_game.adult_jabu)?;
     wiring.write(romfs, &mut builder)?;
     for f in &fields {
         let (hash, ..) = checks::field(f)?;

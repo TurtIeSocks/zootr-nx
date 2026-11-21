@@ -179,6 +179,7 @@ pub const PLACES: &[(&str, &Name)] = &[
         map::ZORA_DOMAIN_ADULT_ALTERNATIVE,
     ),
     ("zora-domain-child", map::ZORA_DOMAIN_CHILD),
+    ("zora-fountain-adult", map::ZORA_FOUNTAIN_ADULT),
     ("zora-fountain-child", map::ZORA_FOUNTAIN_CHILD),
     ("zora-river-adult", map::ZORA_RIVER_ADULT),
     ("zora-river-child", map::ZORA_RIVER_CHILD),

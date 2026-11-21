@@ -9,7 +9,7 @@ use std::sync::OnceLock;
 use anyhow::{Context, Result, bail, ensure};
 
 use crate::entrances::Doors;
-use crate::settings::{DungeonEntrances, DungeonKeys, FortressKeys, NewGame};
+use crate::settings::{AdultJabu, DungeonEntrances, DungeonKeys, FortressKeys, NewGame};
 use crate::world::Era;
 
 mod files;
@@ -42,6 +42,9 @@ pub struct Ctx {
     pub doors: Option<Doors>,
     /// Link's age on a new file.
     pub age: Era,
+    /// When Jabu-Jabu waits in the adult fountain, read by the word
+    /// `adult-jabu-jabu`.
+    pub adult_jabu: AdultJabu,
 }
 
 impl Ctx {
@@ -68,6 +71,7 @@ impl Ctx {
             doors: (new_game.dungeon_entrances != DungeonEntrances::Off)
                 .then(|| new_game.doors.clone()),
             age: new_game.age,
+            adult_jabu: new_game.adult_jabu,
         }
     }
 }
@@ -173,6 +177,11 @@ impl Book {
             "always" => Need::Always,
             "child" => Need::Era(Era::Child),
             "adult" => Need::Era(Era::Adult),
+            "adult-jabu-jabu" => match ctx.adult_jabu {
+                AdultJabu::Off => Need::Never,
+                AdultJabu::Always => Need::Always,
+                AdultJabu::AfterMorpha => return self.resolve(&vocab::id("beat:morpha")?, ctx),
+            },
             _ => match word.split_once(':') {
                 Some(("setting", id)) => {
                     ensure!(self.toggles.contains(id), "no toggle `{id}`");
@@ -210,6 +219,7 @@ mod tests {
             open: BTreeSet::new(),
             doors: None,
             age: Era::Child,
+            adult_jabu: AdultJabu::Off,
         }
     }
 
@@ -250,6 +260,24 @@ mod tests {
         let bottle = book.resolve("bottle", &ctx(true, &[])).unwrap();
         assert!(bottle.met(&have(&[item::BOTTLE_MILK]), Era::Child));
         assert!(!bottle.met(&have(&[]), Era::Child));
+    }
+
+    #[test]
+    fn adult_jabu_jabu_reads_its_mode() {
+        needs_names!();
+        let book = Book::load().unwrap();
+        let word = |mode| {
+            let ctx = Ctx {
+                adult_jabu: mode,
+                ..ctx(true, &[])
+            };
+            book.resolve("adult-jabu-jabu", &ctx).unwrap()
+        };
+        assert!(matches!(word(AdultJabu::Off), Need::Never));
+        assert!(matches!(word(AdultJabu::Always), Need::Always));
+        let morpha = beat("morpha");
+        assert!(word(AdultJabu::AfterMorpha).met(&have(&[&morpha]), Era::Adult));
+        assert!(!word(AdultJabu::AfterMorpha).met(&have(&[]), Era::Adult));
     }
 
     #[test]
