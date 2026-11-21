@@ -16,6 +16,20 @@ const GEAR: &Name = flow::REPLACE_EQUIPMENT_FOR_ERA_CHANGE;
 const SWORD: &Name = actor::WEAPON_SWORD_MASTER;
 /// Set once the pedestal's gift is given.
 pub(crate) const GOT: &str = "Randomizer_MasterSwordPedestal";
+/// The pulls that change Link's age.
+const PULLS: [&Name; 3] = [FLOW, SWAP, flow::MARKET_ADULT_FIELD_ADULT_TO_CHILD];
+/// Re-dress the player from his gear and wait for it, as the boss rush
+/// does after it changes his gear.
+const DRESS: [(&Name, &Name); 2] = [
+    (
+        field::UI_SYSTEM_ACTOR,
+        flow::EVENT_TRIGGER_SYNC_PLAYER_EQUIPMENT_AND_POUCH,
+    ),
+    (
+        actor::PLAYER_EVENT,
+        flow::EVENT_WAIT_CREATION_FINISHED_EQUIPMENT,
+    ),
+];
 const SET_STRING: (&Name, &Name) = (
     field::GAME_DATA_ACTOR,
     flow::EVENT_TRIGGER_SET_GAME_DATA_STRING64,
@@ -178,12 +192,119 @@ pub(super) fn swordless(flow: &mut Flowchart) -> Result<()> {
     relink(flow, set, callers, ask)
 }
 
+/// Once a pull flips Link's age, the player re-dresses from his gear. The
+/// grab puts the Master Sword in his hand outside any flow, and neither an
+/// empty sword slot nor re-dressing takes it away: a swordless adult kept
+/// swinging it until a reload (spike). So with the slot empty and no Master
+/// Sword in the pouch, it's taken from his hand as Ganon does.
+fn redressed(flow: &mut Flowchart, dress: &Dress) -> Result<()> {
+    let ages: Vec<u16> = (flows::events(flow, flows::SET_BOOL).into_iter())
+        .filter(|(_, p)| param(p, GAME_DATA) == Some(flag::SEQUENCE_IS_CHILDHOOD.get()))
+        .map(|(e, _)| e)
+        .collect();
+    ensure!(!ages.is_empty(), "{} never changes Link's age", flow.name);
+    for at in ages {
+        let EventKind::Action { next, .. } = flow.events[at as usize].kind else {
+            unreachable!("a setter is an action");
+        };
+        let next = next.with_context(|| format!("{} ends at its age", flow.name))?;
+        let remove = push(flow, &dress.remove, Ok(next));
+        // Case 0 is held.
+        let held = push(flow, &dress.held, Err(vec![(0, next), (1, remove)]));
+        // Case 0 is empty.
+        let empty = push(flow, &dress.empty, Err(vec![(0, held), (1, next)]));
+        let mut then = empty;
+        for m in dress.sync.iter().rev() {
+            then = push(flow, m, Ok(then));
+        }
+        if let EventKind::Action { next, .. } = &mut flow.events[at as usize].kind {
+            *next = Some(then);
+        }
+    }
+    Ok(())
+}
+
+/// Push `m` as an action going on to `Ok(next)`, or a switch on `Err(cases)`.
+fn push(flow: &mut Flowchart, m: &Model, to: std::result::Result<u16, Vec<(u32, u16)>>) -> u16 {
+    let params = m.params.clone();
+    let kind = match to {
+        Ok(next) => {
+            let (actor, action) = flow.action(&m.actor, m.name);
+            EventKind::Action {
+                next: Some(next),
+                actor,
+                action,
+                params,
+            }
+        }
+        Err(cases) => {
+            let (actor, query) = flow.query(&m.actor, m.name);
+            EventKind::Switch {
+                actor,
+                query,
+                params,
+                cases,
+            }
+        }
+    };
+    flow.push(kind)
+}
+
+/// The events a pull re-dresses Link with: the boss rush's,
+/// then the equipment swap's own questions and Ganon's taking the sword.
+struct Dress {
+    sync: Vec<Model>,
+    empty: Model,
+    held: Model,
+    remove: Model,
+}
+
+const IS_EMPTY: (&Name, &Name) = (
+    field::GAME_DATA_ACTOR,
+    flow::EVENT_QUERY_IS_EMPTY_GAME_DATA_STRING64,
+);
+const REMOVE: (&Name, &Name) = (
+    field::POUCH_SYSTEM_ACTOR,
+    flow::EVENT_TRIGGER_REMOVE_WEAPON_KEEP_SHEATH,
+);
+
+/// The first event in `name` that runs or asks `what`, as a model.
+fn first(romfs: &Romfs, name: &Name, what: (&Name, &Name)) -> Result<Model> {
+    let f = flows::load(romfs, name)?.with_context(|| format!("{name} is a timeline"))?;
+    let at = (flows::running(&f, what).first().copied())
+        .or_else(|| flows::switch(&f, what))
+        .with_context(|| format!("{name} never runs {}", what.1))?;
+    flows::model(&f, what, at)
+}
+
+fn dress(romfs: &Romfs) -> Result<Dress> {
+    let sync = (DRESS.iter()).map(|&what| first(romfs, flow::NPC_DREAM, what));
+    let mut empty = first(romfs, GEAR, IS_EMPTY)?;
+    flows::set(
+        &mut empty.params,
+        GAME_DATA,
+        string(flag::PLAYER_STATUS_EQUIP_WEAPON.get()),
+    )?;
+    let mut held = first(romfs, GEAR, IN_POUCH)?;
+    flows::set(&mut held.params, ACTOR, string(SWORD.get()))?;
+    let remove = first(romfs, flow::DEFEAT_GANON, REMOVE)?;
+    ensure!(param(&remove.params, ACTOR) == Some(SWORD.get()));
+    Ok(Dress {
+        sync: sync.collect::<Result<_>>()?,
+        empty,
+        held,
+        remove,
+    })
+}
+
 /// The edits Master Sword shuffle makes to every pull.
 pub(super) fn shuffle(romfs: &Romfs, rewrites: &mut Rewrites, on: &BTreeSet<String>) -> Result<()> {
-    match on.contains(MASTER_SWORD) {
-        true => flows::edit(romfs, rewrites, GEAR, swordless),
-        false => Ok(()),
+    if !on.contains(MASTER_SWORD) {
+        return Ok(());
     }
+    flows::edit(romfs, rewrites, GEAR, swordless)?;
+    let dress = dress(romfs)?;
+    (PULLS.iter()).try_for_each(|pull| flows::edit(romfs, rewrites, pull, |f| redressed(f, &dress)))
 }
 
 #[cfg(test)]
@@ -270,6 +391,14 @@ mod tests {
         let gear = flows::render(&written(&on, GEAR));
         let asks = |l: &str| l.contains(IN_POUCH.1.get()) && l.contains(SWORD.get());
         assert!(gear.lines().any(asks));
+        // Every pull re-dresses Link once his age flips.
+        for pull in PULLS {
+            assert!(has(&on, pull, DRESS[0].1.get()), "{pull}");
+        }
+        let off = given(&[OPEN_DOOR], None, false).unwrap();
+        assert!(PULLS.iter().all(|pull| !has(&off, pull, DRESS[0].1.get())));
+        let swap = flows::render(&written(&on, SWAP));
+        assert!(swap.contains(REMOVE.1.get()) && swap.contains(IS_EMPTY.1.get()));
         assert_eq!(gives(&HashMap::new()), SWORD.get());
     }
 }
