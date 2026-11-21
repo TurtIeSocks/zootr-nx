@@ -70,14 +70,10 @@ pub fn keep_step(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
                         _ => false,
                     }
             });
-        let step01 = step01.context("the Light Arrows scene sets no Step01")?;
-        let EventKind::Action { next, .. } = flow.events[step01 as usize].kind else {
-            unreachable!("running only finds actions")
-        };
-        for link in flow.links_to(step01) {
-            flow.link(link, next)?;
-        }
-        Ok(())
+        flows::step_over(
+            flow,
+            step01.context("the Light Arrows scene sets no Step01")?,
+        )
     })
 }
 

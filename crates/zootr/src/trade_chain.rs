@@ -149,13 +149,7 @@ fn skip_cojiro(flow: &mut Flowchart) -> Result<()> {
     let [call] = calls[..] else {
         anyhow::bail!("{} hands Cojiro over {} times", flow.name, calls.len());
     };
-    let EventKind::SubFlow { next, .. } = flow.events[call as usize].kind else {
-        unreachable!("filtered to calls");
-    };
-    for link in flow.links_to(call) {
-        flow.link(link, next)?;
-    }
-    Ok(())
+    flows::step_over(flow, call)
 }
 
 /// `entry` first asks whether [`TALON_GAVE`] is set. If not, it sets it,

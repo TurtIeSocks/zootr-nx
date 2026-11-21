@@ -108,6 +108,28 @@ pub(crate) fn ending(flow: &Flowchart) -> Option<u16> {
     })
 }
 
+/// Step over event `e`, an action or a call: whatever led to it goes on to
+/// what follows it. A case it ended goes to [`ending`].
+pub(crate) fn step_over(flow: &mut Flowchart, e: u16) -> Result<()> {
+    let next = match flow.events[e as usize].kind {
+        EventKind::Action { next, .. } | EventKind::SubFlow { next, .. } => next,
+        _ => bail!("event {e} of {} is neither an action nor a call", flow.name),
+    };
+    for link in flow.links_to(e) {
+        let to = match (link, next) {
+            (Link::Branch(..), None) => Some(ending(flow).with_context(|| {
+                format!(
+                    "a case of {} runs event {e} last, and nothing ends quietly",
+                    flow.name
+                )
+            })?),
+            _ => next,
+        };
+        flow.link(link, to)?;
+    }
+    Ok(())
+}
+
 /// Adds or removes a pouch item, e.g. Saria's ocarina.
 pub(crate) const GRANT: (&Name, &Name) = (
     field::POUCH_SYSTEM_ACTOR,
