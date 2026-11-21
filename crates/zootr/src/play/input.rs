@@ -49,6 +49,12 @@ pub trait Input {
         Ok(())
     }
 
+    /// What the game's own log says ended its last run (a crash line),
+    /// when this input keeps one.
+    fn crash(&self) -> Option<String> {
+        None
+    }
+
     /// Quit the game, if it runs.
     fn quit(&mut self) -> Result<()> {
         Ok(())
@@ -92,6 +98,10 @@ impl<I: Input + ?Sized> Input for Box<I> {
 
     fn dump(&mut self) -> Result<()> {
         (**self).dump()
+    }
+
+    fn crash(&self) -> Option<String> {
+        (**self).crash()
     }
 
     fn quit(&mut self) -> Result<()> {
