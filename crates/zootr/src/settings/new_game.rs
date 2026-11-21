@@ -51,6 +51,8 @@ pub struct NewGame {
     /// Where the thieves' keys are. Unless vanilla, the keys they carry
     /// are checks.
     pub fortress_keys: FortressKeys,
+    /// How the fortress carpenters start.
+    pub gerudo_fortress: GerudoFortress,
     /// How much junk becomes ice traps.
     pub ice_traps: IceTraps,
     /// Which dungeon doors swap.
@@ -131,7 +133,6 @@ impl NewGame {
             .filter(|p| on(p.name))
             .map(|p| p.name.to_owned())
             .collect();
-        let has = |name: &str| picked.iter().any(|p| p == name);
         let keys = chosen::<DungeonKeys>(settings, KEYS);
         if keys.copies() && !on(SHUFFLE_ITEMS) {
             bail!(
@@ -140,14 +141,10 @@ impl NewGame {
             );
         }
         let fortress_keys = chosen::<FortressKeys>(settings, FORTRESS_KEYS);
-        if fortress_keys.moved() && has(CARPENTERS_FREED) {
+        let gerudo_fortress = chosen::<GerudoFortress>(settings, GERUDO_FORTRESS);
+        if fortress_keys.moved() && gerudo_fortress == GerudoFortress::Freed {
             bail!(
-                "Fortress keys can't start with {CARPENTERS_FREED}: its thieves are already beaten"
-            );
-        }
-        if has(CARPENTERS_FAST) && has(CARPENTERS_FREED) {
-            bail!(
-                "{CARPENTERS_FAST} can't start with {CARPENTERS_FREED}: both count the carpenters"
+                "Fortress keys can't start with {FORTRESS_FREED}: its thieves are already beaten"
             );
         }
         let bridge = chosen::<Bridge>(settings, BRIDGE);
@@ -171,6 +168,11 @@ impl NewGame {
             match trials {
                 Trials::Done => crate::bridge::trials_done(),
                 Trials::AllSix => vec![],
+            },
+            match gerudo_fortress {
+                GerudoFortress::Normal => vec![],
+                GerudoFortress::Fast => crate::gerudo::fast(),
+                GerudoFortress::Freed => crate::gerudo::freed(),
             },
             edits.to_vec(),
         ]
@@ -209,6 +211,7 @@ impl NewGame {
             cows: on(COWS),
             keys,
             fortress_keys,
+            gerudo_fortress,
             dungeon_entrances,
             adult_jabu: chosen::<AdultJabu>(settings, ADULT_JABU),
             door_pins: vec![],
@@ -236,8 +239,22 @@ impl NewGame {
             hints: on(HINTS),
             logic: chosen(settings, LOGIC),
             on: toggles_on(settings),
-            give: presets::gives(&picked)?,
-            progress: presets::progress(&picked)?,
+            give: [
+                presets::gives(&picked)?,
+                match gerudo_fortress {
+                    GerudoFortress::Freed => vec![crate::gerudo::CARD.to_string()],
+                    GerudoFortress::Normal | GerudoFortress::Fast => vec![],
+                },
+            ]
+            .concat(),
+            progress: [
+                presets::progress(&picked)?,
+                match gerudo_fortress {
+                    GerudoFortress::Freed => vec![crate::gerudo::freed_step()],
+                    GerudoFortress::Normal | GerudoFortress::Fast => vec![],
+                },
+            ]
+            .concat(),
             spawn: None,
             fields: presets::fields(&picked)?,
             ints: vec![],
@@ -364,6 +381,7 @@ mod tests {
                 cows: false,
                 keys: DungeonKeys::Vanilla,
                 fortress_keys: FortressKeys::Vanilla,
+                gerudo_fortress: GerudoFortress::Normal,
                 ice_traps: IceTraps::Off,
                 dungeon_entrances: DungeonEntrances::Off,
                 adult_jabu: AdultJabu::Off,
@@ -605,30 +623,48 @@ mod tests {
     }
 
     #[test]
-    fn fast_carpenters_are_refused_with_freed_ones_but_not_with_fortress_keys() {
-        let mut settings = Settings::from([
-            (CARPENTERS_FAST.into(), true.into()),
-            (FORTRESS_KEYS.into(), "singles".into()),
-        ]);
-        assert!(NewGame::from_settings(&settings, &[]).is_ok());
-        settings.insert(FORTRESS_KEYS.into(), "vanilla".into());
-        settings.insert(CARPENTERS_FREED.into(), true.into());
-        let err = NewGame::from_settings(&settings, &[]).unwrap_err();
-        assert!(err.to_string().contains(CARPENTERS_FAST), "{err}");
+    fn fortress_keys_are_refused_with_the_carpenters_freed_but_not_fast() {
+        let fortress = |keys: &str, carpenters: &str| {
+            let settings = Settings::from([
+                (FORTRESS_KEYS.into(), keys.into()),
+                (GERUDO_FORTRESS.into(), carpenters.into()),
+            ]);
+            NewGame::from_settings(&settings, &[])
+        };
+        assert!(fortress("singles", "fast").is_ok());
+        assert!(fortress("start", "normal").is_ok());
+        let err = fortress("start", "freed").unwrap_err();
+        assert!(err.to_string().contains(FORTRESS_FREED), "{err}");
+        assert!(fortress("singles", "freed").is_err());
+        assert!(fortress("vanilla", "freed").is_ok());
     }
 
     #[test]
-    fn fortress_keys_are_refused_with_carpenters_freed() {
-        let mut settings = Settings::from([(FORTRESS_KEYS.into(), "start".into())]);
-        assert!(NewGame::from_settings(&settings, &[]).is_ok());
-        settings.insert(CARPENTERS_FREED.into(), true.into());
-        let err = NewGame::from_settings(&settings, &[]).unwrap_err();
-        assert!(err.to_string().contains(CARPENTERS_FREED), "{err}");
-        settings.insert(FORTRESS_KEYS.into(), "singles".into());
-        assert!(NewGame::from_settings(&settings, &[]).is_err());
-        settings.insert(KEYS.into(), "start".into());
-        settings.insert(FORTRESS_KEYS.into(), "vanilla".into());
-        assert!(NewGame::from_settings(&settings, &[]).is_ok());
+    fn the_gerudo_fortress_choice_writes_its_edits_and_moves_the_quest_only_when_freed() {
+        needs_names!();
+        let game = |carpenters: &str| {
+            let settings = Settings::from([(GERUDO_FORTRESS.into(), carpenters.into())]);
+            NewGame::from_settings(&settings, &[]).unwrap()
+        };
+        let normal = game("normal");
+        assert_eq!(normal.gerudo_fortress, GerudoFortress::Normal);
+        assert!(normal.progress.is_empty() && normal.give.is_empty());
+        let fast = game("fast");
+        assert!(
+            crate::gerudo::fast()
+                .iter()
+                .all(|e| fast.defaults.contains(e))
+        );
+        assert!(fast.progress.is_empty() && fast.give.is_empty());
+        assert!(fast.on.contains(FORTRESS_FAST));
+        let freed = game("freed");
+        assert!(
+            crate::gerudo::freed()
+                .iter()
+                .all(|e| freed.defaults.contains(e))
+        );
+        assert_eq!(freed.progress, [crate::gerudo::freed_step()]);
+        assert!(freed.on.contains(FORTRESS_FREED) && !freed.on.contains(FORTRESS_FAST));
     }
 
     #[test]

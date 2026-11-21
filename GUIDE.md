@@ -187,7 +187,8 @@ Changes to how Link plays. All start off.
 | Door of Time | Open, the default, has the door standing open from the start, so Link can grow up without the stones or the Song of Time. Closed opens it as in the game |
 | Rainbow bridge | Vanilla raises the bridge once Zelda has given Link the Light Arrows. Six medallions raises it once he holds all six. Open has it standing from the start |
 | Ganon's trials | All six, or done: every barrier in Ganon's Castle down from the start |
-| Quest progress | Start with a quest step done: Zelda met, the carpenters freed, or the Claim Check |
+| Gerudo Fortress | Normal has Link free all four carpenters. Fast frees all four with the first. Freed starts with them free, the membership card in hand and the valley bridge up |
+| Quest progress | Start with a quest step done: Zelda met, or the Claim Check |
 
 ### Inventory
 

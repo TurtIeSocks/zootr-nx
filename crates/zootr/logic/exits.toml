@@ -250,7 +250,7 @@ needs = "iron-boots and zora-tunic and hookshot"
 [[exit]]
 from = "gerudo-valley-adult"
 to = "gerudo-fortress-adult"
-needs = "setting:carpenters-freed or longshot or eponas-song"
+needs = "setting:gerudo-fortress=freed or longshot or eponas-song"
 
 [[exit]]
 from = "gerudo-fortress-adult"

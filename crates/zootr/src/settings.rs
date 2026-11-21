@@ -11,7 +11,7 @@ use serde_json::Value;
 use crate::cutscenes::{AREAS, Skips};
 use crate::entrances::Doors;
 use crate::keys;
-use crate::presets::{self, CARPENTERS_FAST, CARPENTERS_FREED, PRESETS};
+use crate::presets::{self, PRESETS};
 use crate::starting;
 
 mod choices;
@@ -20,7 +20,8 @@ mod new_game;
 mod upgrade;
 pub use choices::{
     AdultJabu, Bombchus, Bridge, ChestSize, DoorOfTime, DungeonEntrances, DungeonKeys,
-    FortressKeys, IceTraps, Keys, Logic, ScrubPrice, ShopSlots, StartingAge, Trials,
+    FortressKeys, GerudoFortress, IceTraps, Keys, Logic, ScrubPrice, ShopSlots, StartingAge,
+    Trials,
 };
 pub use layout::{GROUPS, Place, group, place};
 pub use new_game::NewGame;
@@ -212,6 +213,10 @@ pub(crate) const DOOR_OF_TIME: &str = "door-of-time";
 /// Age's Adult also forces.
 pub(crate) const DOOR_OPEN: &str = "door-of-time=open";
 pub(crate) const STARTING_AGE: &str = "starting-age";
+pub(crate) const GERUDO_FORTRESS: &str = "gerudo-fortress";
+/// The rule words for [`GERUDO_FORTRESS`] Fast and Freed ([`value_word`]).
+pub(crate) const FORTRESS_FAST: &str = "gerudo-fortress=fast";
+pub(crate) const FORTRESS_FREED: &str = "gerudo-fortress=freed";
 pub(crate) const SCRUBS: &str = "scrubs";
 const SCRUB_PRICE: &str = "scrub-price";
 pub(crate) const NPC_GIFTS: &str = "npc-gifts";
@@ -437,6 +442,13 @@ pub fn schema() -> Vec<SettingDef> {
             StartingAge::forces,
         )])
         .chain([choice(
+            GERUDO_FORTRESS,
+            place::RULES,
+            "Gerudo Fortress",
+            "How the four carpenters in the Gerudo Fortress start. With Normal, Link frees all four, as in the game. With Fast, freeing any one frees all four and earns the membership card, and the other thieves still guard their cells. With Freed, all four are free from the start, with the membership card in hand, the guards standing down and the valley bridge up. Fortress Keys can't be used with Freed, since its thieves are already beaten",
+            GerudoFortress::label,
+        )])
+        .chain([choice(
             DOOR_OF_TIME,
             place::OPEN_AREAS,
             "Door of Time",
@@ -497,7 +509,7 @@ pub fn schema() -> Vec<SettingDef> {
             FORTRESS_KEYS,
             place::KEYS,
             "Fortress Keys",
-            "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks. Can't be used with Carpenters freed, since its thieves are already beaten",
+            "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks. Can't be used with Gerudo Fortress Freed, since its thieves are already beaten",
             FortressKeys::label,
         )])
         .chain([forcing(
@@ -557,7 +569,7 @@ pub fn schema() -> Vec<SettingDef> {
             RUNNING_RACE,
             place::CHECKS,
             "Running Man's Race",
-            "The running man's prize for Link's first win becomes a check. Later wins still pay a Red Rupee. Logic expects it only with Carpenters freed, since he offers the race once the valley bridge is fixed",
+            "The running man's prize for Link's first win becomes a check. Later wins still pay a Red Rupee. Logic expects it only with Gerudo Fortress Freed, since he offers the race once the valley bridge is fixed",
         )])
         .chain([toggle(
             SKULLTULAS,

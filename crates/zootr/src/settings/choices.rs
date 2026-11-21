@@ -411,3 +411,25 @@ impl DoorOfTime {
         }
     }
 }
+
+/// How the Gerudo Fortress carpenters start.
+#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
+pub enum GerudoFortress {
+    /// Link frees all four, as in the game
+    #[default]
+    Normal,
+    /// Freeing any one frees all four
+    Fast,
+    /// All four free from the start
+    Freed,
+}
+
+impl GerudoFortress {
+    pub(super) fn label(self) -> &'static str {
+        match self {
+            Self::Normal => "Normal",
+            Self::Fast => "Fast",
+            Self::Freed => "Freed",
+        }
+    }
+}

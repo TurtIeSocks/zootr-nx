@@ -3,8 +3,8 @@
 use serde_json::Value;
 
 use super::{
-    BOMBCHUS, BRIDGE, Bombchus, Bridge, DOOR_OF_TIME, DoorOfTime, SHUFFLE_ITEMS, Settings, TRIALS,
-    Trials, choice_id,
+    BOMBCHUS, BRIDGE, Bombchus, Bridge, DOOR_OF_TIME, DoorOfTime, GERUDO_FORTRESS, GerudoFortress,
+    SHUFFLE_ITEMS, Settings, TRIALS, Trials, choice_id,
 };
 use crate::starting::{self, Start};
 
@@ -36,19 +36,32 @@ const DOOR_UP: &str = DOOR_OF_TIME;
 /// [`DOOR_OF_TIME`] chose Open or Closed.
 const OPEN_DOOR: &str = "open-door-of-time";
 
+/// The presets that freed the four carpenters, and that counted the first
+/// as all four, before [`GERUDO_FORTRESS`].
+const CARPENTERS_FREED: &str = "carpenters-freed";
+const CARPENTERS_FAST: &str = "carpenters-fast";
+
 /// Presets the CLI still takes by their old names, and toggles by their
 /// old ids: see [`renamed`].
-pub(crate) const OLD_PRESETS: [&str; 3] = [BRIDGE_UP, TRIALS_DONE, DOOR_UP];
+pub(crate) const OLD_PRESETS: [&str; 5] = [
+    BRIDGE_UP,
+    TRIALS_DONE,
+    DOOR_UP,
+    CARPENTERS_FREED,
+    CARPENTERS_FAST,
+];
 pub(crate) const OLD_TOGGLES: [&str; 2] = [BRIDGE_MEDALLIONS, OPEN_DOOR];
 
 /// Each old preset and toggle, in the order the upgrade reads them: where
 /// two set one choice, the first wins.
-const OLD: [&str; 5] = [
+const OLD: [&str; 7] = [
     BRIDGE_UP,
     BRIDGE_MEDALLIONS,
     TRIALS_DONE,
     DOOR_UP,
     OPEN_DOOR,
+    CARPENTERS_FREED,
+    CARPENTERS_FAST,
 ];
 
 /// The choice old preset or toggle `old` became, as setting id and option,
@@ -64,6 +77,8 @@ fn became(old: &str, on: bool) -> Option<(&'static str, String)> {
         (TRIALS_DONE, true) => Some((TRIALS, choice_id(Trials::Done))),
         (DOOR_UP, true) => Some((DOOR_OF_TIME, choice_id(DoorOfTime::Open))),
         (OPEN_DOOR, on) => Some((DOOR_OF_TIME, choice_id(door(on)))),
+        (CARPENTERS_FREED, true) => Some((GERUDO_FORTRESS, choice_id(GerudoFortress::Freed))),
+        (CARPENTERS_FAST, true) => Some((GERUDO_FORTRESS, choice_id(GerudoFortress::Fast))),
         _ => None,
     }
 }
@@ -223,6 +238,29 @@ mod tests {
             "--setting door-of-time=closed"
         );
         assert_eq!(renamed(DOOR_UP).unwrap(), "--setting door-of-time=open");
+    }
+
+    #[test]
+    fn the_carpenter_presets_become_the_gerudo_fortress() {
+        let up = |old: &[(&str, bool)]| {
+            let mut s: Settings = (old.iter())
+                .map(|&(id, on)| (id.to_owned(), on.into()))
+                .collect();
+            upgrade(&mut s);
+            s
+        };
+        let fortress = |v: &str| Settings::from([(GERUDO_FORTRESS.into(), v.into())]);
+        assert_eq!(up(&[(CARPENTERS_FREED, true)]), fortress("freed"));
+        assert_eq!(up(&[(CARPENTERS_FAST, true)]), fortress("fast"));
+        // Freed wins over Fast.
+        let both = up(&[(CARPENTERS_FAST, true), (CARPENTERS_FREED, true)]);
+        assert_eq!(both, fortress("freed"));
+        let off = up(&[(CARPENTERS_FAST, false), (CARPENTERS_FREED, false)]);
+        assert_eq!(off, Settings::new());
+        assert_eq!(
+            renamed(CARPENTERS_FREED).unwrap(),
+            "--setting gerudo-fortress=freed"
+        );
     }
 
     #[test]

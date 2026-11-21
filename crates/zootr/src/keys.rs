@@ -9,8 +9,8 @@ use anyhow::{Context, Result};
 use crate::checks::ItemCheck;
 use crate::known::{Name, actor, flag, flow, item, map};
 use crate::map_copies;
-use crate::presets::CARPENTERS_FAST;
 use crate::rules::{Ctx, Need};
+use crate::settings::FORTRESS_FAST;
 use crate::settings::{DungeonKeys, FortressKeys};
 use crate::{key_rooms, key_tints};
 
@@ -170,7 +170,7 @@ pub fn fortress_need(item: &str, ctx: &Ctx) -> Option<Need> {
         count,
     };
     (ctx.fortress.copies() && item == crate::gerudo::CARD).then(|| {
-        let fast = Need::All(vec![ctx.setting(CARPENTERS_FAST), copies(1)]);
+        let fast = Need::All(vec![ctx.setting(FORTRESS_FAST), copies(1)]);
         Need::Any(vec![fast, copies(FORTRESS.1 as u32)])
     })
 }
@@ -414,7 +414,7 @@ mod tests {
         };
         let card = crate::gerudo::CARD.get();
         let keysanity = ctx(FortressKeys::Singles, &[]);
-        let fast = ctx(FortressKeys::Singles, &[CARPENTERS_FAST]);
+        let fast = ctx(FortressKeys::Singles, &[FORTRESS_FAST]);
         let held = |n: usize| {
             let mut have = crate::rules::Have::default();
             (0..n).for_each(|_| have.add(&copy));

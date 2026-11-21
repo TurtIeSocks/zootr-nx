@@ -480,7 +480,7 @@ hash = 18277160726242923509
 name = "Gerudo membership card"
 place = "gerudo-fortress-adult"
 era = "adult"
-needs = "hookshot or setting:carpenters-fast"
+needs = "hookshot or setting:gerudo-fortress=fast"
 
 # Dampe's dig at night, a lottery of 10 rupees a go. The piece's Bool
 # stops it coming up twice, so enough digs always get it.
@@ -657,7 +657,7 @@ hash = 7003280842759835681
 name = "Carpenter boss: Poacher's Saw"
 place = "gerudo-valley-adult"
 era = "adult"
-needs = "item:poachers-saw and (setting:carpenters-freed or longshot or eponas-song)"
+needs = "item:poachers-saw and (setting:gerudo-fortress=freed or longshot or eponas-song)"
 
 # Biggoron at the summit, shown the Broken Sword.
 [[check]]
@@ -730,14 +730,14 @@ setting = "merchants"
 # Spirit quest is past its first step, when the valley bridge is fixed.
 # Crossing the gap with the Longshot or Epona doesn't move the quest, so
 # the bridge rule isn't enough, and logic doesn't track freeing the
-# carpenters in play: only the preset proves it. Winning asks for no item
-# until a real run is timed against his 2:18.
+# carpenters in play: only Gerudo Fortress Freed proves it. Winning asks
+# for no item until a real run is timed against his 2:18.
 [[check]]
 hash = 11582029116926037889
 name = "Running man's race"
 place = "gerudo-valley-adult"
 era = "adult"
-needs = "setting:carpenters-freed"
+needs = "setting:gerudo-fortress=freed"
 setting = "running-race"
 
 # A Kokiri kid's Blue Rupee, once Link has broken the eight rocks around

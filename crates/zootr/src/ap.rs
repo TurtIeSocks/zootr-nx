@@ -38,7 +38,7 @@ pub const OPTIONS: &[&str] = &[
     "jabu-open",
     "open-waterfall",
     "adult-deku-tree",
-    "carpenters-fast",
+    "gerudo-fortress",
     "bombchus",
     "skip-cutscenes",
     "chest-size",
@@ -49,12 +49,20 @@ pub const OPTIONS: &[&str] = &[
 
 /// Choice options the world leaves out, each as setting id, option and
 /// the sentence of the setting's description that offers it: Bombchu Bags
-/// join the pool, which the world's pool doesn't hold.
-const HELD: &[(&str, &str, &str)] = &[(
-    "bombchus",
-    "bag",
-    " Or three Bombchu Bags in the pool, holding 20, 30 and 40, and none until the first",
-)];
+/// join the pool, which the world's pool doesn't hold, and Gerudo Fortress
+/// Freed starts Link with the membership card its check holds.
+const HELD: &[(&str, &str, &str)] = &[
+    (
+        "bombchus",
+        "bag",
+        " Or three Bombchu Bags in the pool, holding 20, 30 and 40, and none until the first",
+    ),
+    (
+        "gerudo-fortress",
+        "freed",
+        " With Freed, all four are free from the start, with the membership card in hand, the guards standing down and the valley bridge up. Fortress Keys can't be used with Freed, since its thieves are already beaten",
+    ),
+];
 
 /// Whether the world offers `option` of choice `id`.
 fn offers(id: &str, option: &str) -> bool {

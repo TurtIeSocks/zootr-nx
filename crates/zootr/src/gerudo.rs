@@ -20,6 +20,7 @@ use crate::checks::Drop;
 use crate::flows::{self, GRANT, IS_BOOL, Model, Rewrites, running, set, string, switch};
 use crate::gifts::GIFTS;
 use crate::known::{Name, field, flag, flow, item, scene};
+use crate::presets::{all, lit};
 use crate::steps;
 
 /// What the Gerudo give.
@@ -51,6 +52,62 @@ const GRANTERS: [&Name; 3] = [
 pub fn guard_card(area: &str, steps: &[(String, String)]) -> Option<&'static Name> {
     let own = steps.iter().any(|(c, _)| *c == **CHALLENGE);
     (!own && GUARDED.iter().any(|g| **g == *area)).then_some(CARD)
+}
+
+/// Gerudo Fortress Freed's edits: the four carpenters freed and their
+/// guards beaten. The quest step isn't here: the opening moves it
+/// ([`FREED_STEP`]), as freeing the carpenters does, so the fortress guards
+/// stand down with it.
+pub fn freed() -> Vec<String> {
+    let mut edits = lit(&[
+        &format!(
+            "{}=false",
+            field::GERUDO_FORTRESS_NPC_GERUDO_001_IS_IN_FIRST_PLACE
+        ),
+        &format!(
+            "{}=4",
+            field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED
+        ),
+    ]);
+    let cells = (13..=16).flat_map(|n| {
+        ["DestroyGerudoThief", "IsAfterHelpCarpenter"]
+            .map(|what| format!("GerudoFortress_{what}_Npc_Hylia_0{n}_Adult"))
+    });
+    edits.extend(all(cells, "true"));
+    edits.extend(all(
+        [
+            flag::GERUDO_FORTRESS_WARP_POINT01_CLEAR_EVENT,
+            flag::GERUDO_FORTRESS_WARP_POINT02_CLEAR_EVENT,
+            flag::GERUDO_FORTRESS_WARP_POINT03_CLEAR_EVENT,
+            flag::GERUDO_FORTRESS_WARP_POINT04_CLEAR_EVENT,
+        ]
+        .map(|f| f.to_string()),
+        "true",
+    ));
+    edits
+}
+
+/// The quest step Gerudo Fortress Freed's opening moves on, as
+/// `(challenge, step)`.
+pub fn freed_step() -> (String, String) {
+    (CHALLENGE.to_string(), STAND_DOWN.to_owned())
+}
+
+/// Gerudo Fortress Fast's edits: three carpenters counted as freed, so
+/// freeing any one plays the clear event that frees all four
+/// ([`clear_once`]). Every cell still holds its carpenter, behind her
+/// thief.
+pub fn fast() -> Vec<String> {
+    vec![
+        format!(
+            "{}=3",
+            field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED
+        ),
+        format!(
+            "{}=1",
+            field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED_02
+        ),
+    ]
 }
 
 /// The shapes the hook copies from the quest's own flow.
@@ -238,6 +295,46 @@ mod tests {
     use crate::steps::QUIET;
 
     const ELSEWHERE: u64 = 1;
+
+    #[test]
+    fn fast_counts_three_carpenters_freed() {
+        let helped = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED;
+        let left = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED_02;
+        assert_eq!(fast(), [format!("{helped}=3"), format!("{left}=1")]);
+    }
+
+    #[test]
+    fn the_fortress_edits_apply_to_the_game() {
+        let Some(romfs) = dev_dump() else {
+            return;
+        };
+        let gd = crate::gamedata::GameData::load(&romfs).unwrap();
+        let mut doc =
+            ounce_formats::BymlDoc::parse(&romfs.read(crate::gamedata::PATH).unwrap()).unwrap();
+        for edits in [freed(), fast()] {
+            crate::presets::apply(&gd, &mut doc.root, &edits).unwrap();
+        }
+    }
+
+    #[test]
+    fn freed_frees_four_and_leaves_the_quest_to_the_opening() {
+        let edits = freed();
+        assert!(edits.contains(&format!(
+            "{}=false",
+            field::GERUDO_FORTRESS_NPC_GERUDO_001_IS_IN_FIRST_PLACE
+        )));
+        let freed_cells = edits.iter().filter(|e| e.contains("IsAfterHelpCarpenter"));
+        assert_eq!(freed_cells.count(), 4);
+        assert!(
+            !edits
+                .iter()
+                .any(|e| e.starts_with(&**flag::STEP_SAGE_OF_SPIRIT))
+        );
+        assert_eq!(
+            freed_step(),
+            (flow::SAGE_OF_SPIRIT.to_string(), "Step02".to_owned())
+        );
+    }
 
     #[test]
     fn the_clear_event_plays_only_at_four_carpenters() {

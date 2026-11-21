@@ -21617,7 +21617,7 @@
                 ]
               },
               {
-                "setting": "carpenters-fast"
+                "setting": "gerudo-fortress=fast"
               }
             ]
           }
@@ -24293,7 +24293,7 @@
       "rule": {
         "any": [
           {
-            "setting": "open-door-of-time"
+            "setting": "door-of-time=open"
           },
           {
             "all": [

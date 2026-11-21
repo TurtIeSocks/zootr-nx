@@ -14,12 +14,15 @@ use crate::settings::{Place, place};
 use crate::value;
 
 /// Every flag in `names` set to `value`.
-fn all(names: impl IntoIterator<Item = impl std::fmt::Display>, value: &str) -> Vec<String> {
+pub(crate) fn all(
+    names: impl IntoIterator<Item = impl std::fmt::Display>,
+    value: &str,
+) -> Vec<String> {
     names.into_iter().map(|n| format!("{n}={value}")).collect()
 }
 
 /// `edits` as owned strings.
-fn lit(edits: &[&str]) -> Vec<String> {
+pub(crate) fn lit(edits: &[&str]) -> Vec<String> {
     edits.iter().map(|&e| e.into()).collect()
 }
 
@@ -49,11 +52,6 @@ impl Preset {
     }
 }
 
-/// The preset whose four carpenters are already freed.
-pub const CARPENTERS_FREED: &str = "carpenters-freed";
-/// The preset whose first carpenter freed counts as all four.
-pub const CARPENTERS_FAST: &str = "carpenters-fast";
-
 /// Presets a new game takes unless turned off.
 pub const DEFAULT_ON: [&str; 4] = ["menus", "clock", "no-tutorials", "no-pickup-texts"];
 
@@ -65,54 +63,6 @@ fn zelda(door: &str) -> Vec<String> {
     ]);
     edits.push(crate::steps::at(flow::DOOR_OF_TIME, door));
     edits
-}
-
-/// The four carpenters freed and their guards beaten. The quest step isn't
-/// here: the opening moves it, as freeing the carpenters does, so the
-/// fortress guards stand down with it.
-fn carpenters() -> Vec<String> {
-    let mut edits = lit(&[
-        &format!(
-            "{}=false",
-            field::GERUDO_FORTRESS_NPC_GERUDO_001_IS_IN_FIRST_PLACE
-        ),
-        &format!(
-            "{}=4",
-            field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED
-        ),
-    ]);
-    let cells = (13..=16).flat_map(|n| {
-        ["DestroyGerudoThief", "IsAfterHelpCarpenter"]
-            .map(|what| format!("GerudoFortress_{what}_Npc_Hylia_0{n}_Adult"))
-    });
-    edits.extend(all(cells, "true"));
-    edits.extend(all(
-        [
-            flag::GERUDO_FORTRESS_WARP_POINT01_CLEAR_EVENT,
-            flag::GERUDO_FORTRESS_WARP_POINT02_CLEAR_EVENT,
-            flag::GERUDO_FORTRESS_WARP_POINT03_CLEAR_EVENT,
-            flag::GERUDO_FORTRESS_WARP_POINT04_CLEAR_EVENT,
-        ]
-        .map(|f| f.to_string()),
-        "true",
-    ));
-    edits
-}
-
-/// Three carpenters counted as freed, so freeing any one plays the clear
-/// event that frees all four (`gerudo::clear_once`). Every cell still
-/// holds its carpenter, behind her thief.
-fn carpenters_fast() -> Vec<String> {
-    vec![
-        format!(
-            "{}=3",
-            field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED
-        ),
-        format!(
-            "{}=1",
-            field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED_02
-        ),
-    ]
 }
 
 /// The guide pop-ups a menu page opens the first time it fills, all off.
@@ -297,7 +247,7 @@ fn deku_tree_clear() -> Vec<String> {
         .collect()
 }
 
-pub const PRESETS: [Preset; 14] = [
+pub const PRESETS: [Preset; 12] = [
     Preset {
         name: OPEN_FOREST,
         label: "Open Forest",
@@ -435,26 +385,6 @@ pub const PRESETS: [Preset; 14] = [
         place: place::QUEST,
         edits: || zelda("Step02"),
         give: &[item::ZELDA_LETTER],
-        progress: &[],
-        fields: Vec::new,
-    },
-    Preset {
-        name: CARPENTERS_FREED,
-        label: "Carpenters Freed",
-        what: "All four carpenters freed, the membership card in hand, the guards standing down and the valley bridge up",
-        place: place::QUEST,
-        edits: carpenters,
-        give: &[item::TOKEN_GERUDO],
-        progress: &[(flow::SAGE_OF_SPIRIT, "Step02")],
-        fields: Vec::new,
-    },
-    Preset {
-        name: CARPENTERS_FAST,
-        label: "Gerudo Fortress Fast",
-        what: "Freeing any one carpenter frees all four and earns the membership card. The other thieves still guard their cells",
-        place: place::QUEST,
-        edits: carpenters_fast,
-        give: &[],
         progress: &[],
         fields: Vec::new,
     },
@@ -757,49 +687,11 @@ mod tests {
     #[test]
     fn quest_presets_land_on_their_step() {
         needs_names!();
-        let edits = |p: &str| expand(&[p.into()], &[]).unwrap();
-        assert_eq!(
-            edits("carpenters-freed")
-                .iter()
-                .filter(|e| e.contains("IsAfterHelpCarpenter"))
-                .count(),
-            4
-        );
         assert_eq!(
             gives(&["zelda-done".into(), "claim-check".into()]).unwrap(),
             [item::ZELDA_LETTER, item::CLAIM_CHECK]
         );
         assert!(PRESETS.iter().any(|p| p.place == place::QUEST));
-    }
-
-    #[test]
-    fn fast_carpenters_count_three_freed_and_take_a_save() {
-        let edits = expand(&[CARPENTERS_FAST.into()], &[]).unwrap();
-        let helped = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED;
-        let left = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED_02;
-        assert_eq!(edits, [format!("{helped}=3"), format!("{left}=1")]);
-        assert!(for_save(&[CARPENTERS_FAST.into()], &[]).is_ok());
-        let fast = PRESETS.iter().find(|p| p.name == CARPENTERS_FAST).unwrap();
-        assert_eq!(fast.place, place::QUEST);
-    }
-
-    #[test]
-    fn freed_carpenters_move_the_quest_in_the_opening_not_in_the_save() {
-        let edits = expand(&["carpenters-freed".into()], &[]).unwrap();
-        assert!(edits.contains(&format!(
-            "{}=false",
-            field::GERUDO_FORTRESS_NPC_GERUDO_001_IS_IN_FIRST_PLACE
-        )));
-        assert!(
-            !edits
-                .iter()
-                .any(|e| e.starts_with(&**flag::STEP_SAGE_OF_SPIRIT))
-        );
-        assert_eq!(
-            progress(&["carpenters-freed".into(), "open-forest".into()]).unwrap(),
-            [(flow::SAGE_OF_SPIRIT.to_string(), "Step02".to_owned())]
-        );
-        assert!(progress(&["open-forest".into()]).unwrap().is_empty());
     }
 
     #[test]
@@ -820,8 +712,6 @@ mod tests {
         );
         let err = for_save(&["kakariko-gate".into()], &[]).unwrap_err();
         assert!(err.to_string().contains("moves a quest on"), "{err}");
-        let err = for_save(&["carpenters-freed".into()], &[]).unwrap_err();
-        assert!(err.to_string().contains("carpenters-freed"), "{err}");
         assert!(for_save(&["nope".into()], &[]).is_err());
     }
 

@@ -160,7 +160,7 @@ mod tests {
     }
 
     #[test]
-    fn the_old_door_names_become_the_door_of_time() {
+    fn the_old_door_and_carpenter_names_become_their_choices() {
         let settings = |extra: &[&str]| {
             let args = [&["zootr"], extra].concat();
             Flags::try_parse_from(args).unwrap().new_game.settings()

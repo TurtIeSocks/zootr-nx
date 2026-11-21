@@ -949,7 +949,7 @@ pub(super) mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let fast = crate::presets::CARPENTERS_FAST;
+        let fast = crate::settings::FORTRESS_FAST;
         let card = crate::gerudo::CARD.get();
         let source = |on: &[&str]| {
             let world = world(&romfs, on);
