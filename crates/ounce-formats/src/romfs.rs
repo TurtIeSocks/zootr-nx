@@ -131,9 +131,26 @@ impl<'a> ModBuilder<'a> {
         })
     }
 
-    /// Write a changed file, given its decompressed contents.
+    /// A file's decompressed contents as this mod has them so far: the
+    /// last written, else the game's. Two edits of one file (both Links'
+    /// packs, the pause menu's table) build on each other this way, in
+    /// whichever order they run.
+    pub fn read(&self, rel: &str) -> Result<Vec<u8>> {
+        if let Some((_, contents)) = self.pending.iter().rev().find(|(r, _)| r == rel) {
+            return Ok(contents.clone());
+        }
+        if !self.written.iter().any(|w| w == rel) {
+            return self.romfs.read(rel);
+        }
+        let path = self.staging.join("romfs").join(rel);
+        let raw = std::fs::read(&path).with_context(|| format!("reading {}", path.display()))?;
+        self.romfs.dicts().decompress(rel, &raw)
+    }
+
+    /// Write a changed file, given its decompressed contents. Its RESTBL
+    /// entry grows from what [`Self::read`] had.
     pub fn write(&mut self, rel: &str, contents: &[u8]) -> Result<()> {
-        let old_size = self.romfs.read(rel)?.len();
+        let old_size = self.read(rel)?.len();
         self.restbl.resize(rel, old_size, contents.len())?;
         self.put(rel, contents)?;
         self.written.push(rel.to_owned());
@@ -185,8 +202,7 @@ impl<'a> ModBuilder<'a> {
         let mut sizes = None;
         for pack in packs {
             let rel = pack_file(pack);
-            let sarc =
-                Sarc::new(self.romfs.read(&rel)?).with_context(|| format!("reading {rel}"))?;
+            let sarc = Sarc::new(self.read(&rel)?).with_context(|| format!("reading {rel}"))?;
             let old = (sarc.get_data(param)).with_context(|| format!("{rel} has no {param}"))?;
             let new = edit(old)?;
             sizes = Some((old.len(), new.len()));

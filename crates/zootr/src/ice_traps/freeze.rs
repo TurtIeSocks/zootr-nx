@@ -16,8 +16,8 @@ use crate::flows::{self, Rewrites, set, string};
 use crate::known::{Name, actor, field, flow, scene};
 use crate::rsdb::Events;
 use crate::standins::{
-    COMPONENTS, Tables, actor_path, component, components, doc, path_of, raw, reference, renamed,
-    resolved,
+    COMPONENTS, Edit, Tables, actor_path, component, component_edited, components, doc, path_of,
+    raw, reference, renamed, resolved,
 };
 
 /// The sensor a trap's event makes is the Song of the Sun's, remade.
@@ -133,10 +133,11 @@ const FROZEN_FRAMES: i32 = 180;
 
 /// Write both Links' packs with the longer freeze, and child Link's with
 /// his `Frozen` bad condition on and the adult's effects: the frozen
-/// shell's break is only in the adult's (live, 2026-11-18).
-pub fn thaw(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
+/// shell's break is only in the adult's (live, 2026-11-18). Each pack as
+/// the mod has it so far, which items for both ages may have written.
+pub fn thaw(builder: &mut ModBuilder) -> Result<()> {
     for who in [CHILD, ADULT] {
-        let pack = ActorPack::load(romfs, who)?;
+        let pack = ActorPack::from_bytes(who, builder.read(&pack_file(who))?)?;
         let mut writer = pack.writer();
         for (path, old, new) in thawed(&pack)? {
             builder.resize(&path, old.len(), new.len())?;
@@ -147,15 +148,12 @@ pub fn thaw(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     Ok(())
 }
 
-/// A file of a pack: its path, its bytes, and its bytes edited.
-type Edit = (String, Vec<u8>, Vec<u8>);
-
 /// Link's conditions file, and child Link's effects file, as [`thaw`]
 /// writes them.
 fn thawed(pack: &ActorPack) -> Result<Vec<Edit>> {
     let param = param(pack)?;
     let child = pack.name == CHILD.get();
-    let conditions = edited(pack, &param, field::CONDITION_REF, |game, own| {
+    let conditions = component_edited(pack, &param, field::CONDITION_REF, |game, own| {
         longer(game, own)?;
         if child {
             own.insert(field::IS_ENABLE_FROZEN.get().into(), Byml::Bool(true));
@@ -164,13 +162,20 @@ fn thawed(pack: &ActorPack) -> Result<Vec<Edit>> {
     })?;
     let mut edits = vec![conditions];
     if child {
-        let adult = Byml::String(ADULT.get().into());
-        edits.push(edited(pack, &param, field::E_LINK_REF, |_, own| {
-            own.insert(field::USER_NAME.get().into(), adult);
-            Ok(())
-        })?);
+        edits.push(adult_effects(pack)?);
     }
     Ok(edits)
+}
+
+/// Child Link's effects file with the adult's effects user: the frozen
+/// shell's break, and the Megaton Hammer's dust and shake, are only in
+/// the adult's (live, 2026-11-18 and 2026-11-20).
+pub(crate) fn adult_effects(child: &ActorPack) -> Result<Edit> {
+    let adult = Byml::String(ADULT.get().into());
+    component_edited(child, &param(child)?, field::E_LINK_REF, |_, own| {
+        own.insert(field::USER_NAME.get().into(), adult);
+        Ok(())
+    })
 }
 
 /// A freeze of [`FROZEN_FRAMES`] in `own`, with its damage ticks spread
@@ -194,23 +199,6 @@ fn longer(game: &BymlMap, own: &mut BymlMap) -> Result<()> {
         own.insert(key.get().into(), Byml::I32(value));
     }
     Ok(())
-}
-
-/// The file of `pack`'s component `at`, run through `edit` with its
-/// resolved values and its own.
-fn edited(
-    pack: &ActorPack,
-    param: &BymlMap,
-    at: &Name,
-    edit: impl FnOnce(&BymlMap, &mut BymlMap) -> Result<()>,
-) -> Result<Edit> {
-    let file =
-        component(param, at).with_context(|| format!("{} has no {}", pack.name, at.get()))?;
-    let path = pack_path(&file);
-    let old = raw(pack, &path)?;
-    let mut doc = BymlDoc::parse(&old)?;
-    edit(&resolved(pack, &path)?, doc.root.as_mut_map()?)?;
-    Ok((path, old, doc.to_binary()))
 }
 
 fn remade(romfs: &Romfs) -> Result<Remade> {

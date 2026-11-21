@@ -233,6 +233,26 @@ pub(crate) fn raw(pack: &ActorPack, path: &str) -> Result<Vec<u8>> {
         .to_vec())
 }
 
+/// A file of a pack: its path, its bytes, and its bytes edited.
+pub(crate) type Edit = (String, Vec<u8>, Vec<u8>);
+
+/// The file of `pack`'s component `at`, run through `edit` with its
+/// resolved values and its own.
+pub(crate) fn component_edited(
+    pack: &ActorPack,
+    param: &BymlMap,
+    at: &Name,
+    edit: impl FnOnce(&BymlMap, &mut BymlMap) -> Result<()>,
+) -> Result<Edit> {
+    let file =
+        component(param, at).with_context(|| format!("{} has no {}", pack.name, at.get()))?;
+    let path = pack_path(&file);
+    let old = raw(pack, &path)?;
+    let mut doc = BymlDoc::parse(&old)?;
+    edit(&resolved(pack, &path)?, doc.root.as_mut_map()?)?;
+    Ok((path, old, doc.to_binary()))
+}
+
 /// A pouch content's `PouchActor`, naming actor `name`.
 pub(crate) fn pouch_actor(name: &str) -> Byml {
     Byml::String(format!("Work/Actor/{name}.engine__actor__ActorParam.gyml").into())

@@ -324,7 +324,7 @@ pub fn write_mod(
     let look = if ice_traps::springs(new_game) {
         ice_traps::event(&mut events)?;
         ice_traps::sensor(romfs, &mut builder, &mut tables)?;
-        ice_traps::thaw(romfs, &mut builder)?;
+        ice_traps::thaw(&mut builder)?;
         Some(ice_traps::look(romfs, &mut builder)?)
     } else {
         None
