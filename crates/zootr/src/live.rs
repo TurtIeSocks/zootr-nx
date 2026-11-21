@@ -628,24 +628,40 @@ pub(crate) mod tests {
 
     use super::*;
 
-    pub(crate) struct Fake(pub(crate) Vec<(u64, Vec<u8>)>);
+    /// Memory in mapped blocks, each a start and its bytes.
+    pub(crate) struct Fake(std::cell::RefCell<Vec<(u64, Vec<u8>)>>);
+
+    impl Fake {
+        pub(crate) fn new(blocks: Vec<(u64, Vec<u8>)>) -> Self {
+            Self(std::cell::RefCell::new(blocks))
+        }
+
+        /// The block holding `at`, and how far into it `at` is.
+        fn find<T>(&self, at: u64, f: impl FnOnce(&mut Vec<u8>, usize) -> Result<T>) -> Result<T> {
+            let mut blocks = self.0.borrow_mut();
+            let (start, bytes) = (blocks.iter_mut())
+                .find(|(s, b)| (*s..*s + b.len() as u64).contains(&at))
+                .context("unmapped")?;
+            let from = (at - *start) as usize;
+            f(bytes, from)
+        }
+    }
 
     impl Memory for Fake {
         fn read(&self, at: u64, len: usize) -> Result<Vec<u8>> {
             if len == 0 {
                 return Ok(Vec::new());
             }
-            let (start, bytes) = self
-                .0
-                .iter()
-                .find(|(s, b)| (*s..*s + b.len() as u64).contains(&at))
-                .context("unmapped")?;
-            let from = (at - start) as usize;
-            Ok(bytes.get(from..from + len).context("short")?.to_vec())
+            self.find(at, |bytes, from| {
+                Ok(bytes.get(from..from + len).context("short")?.to_vec())
+            })
         }
 
-        fn write(&self, _: u64, _: &[u8]) -> Result<()> {
-            bail!("read only")
+        fn write(&self, at: u64, data: &[u8]) -> Result<()> {
+            self.find(at, |bytes, from| {
+                (bytes.get_mut(from..from + data.len()).context("short")?).copy_from_slice(data);
+                Ok(())
+            })
         }
     }
 
@@ -703,7 +719,7 @@ pub(crate) mod tests {
         mem.push((0x3000, manager));
         mem.push((at, entries.collect()));
         mem.extend(heap.iter().cloned());
-        Fake(mem)
+        Fake::new(mem)
     }
 
     pub(crate) fn hash(slot: u64, i: u32) -> u32 {
