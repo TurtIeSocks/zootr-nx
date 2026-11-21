@@ -40,7 +40,7 @@ test("the changelog fetches nothing until opened, then a page at a time", async 
   expect(fetch).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Changelog" }));
   expect(await screen.findByText("notes for 0.20.0")).toBeTruthy();
-  expect(screen.getByText("Installed")).toBeTruthy();
+  expect(screen.getByText("Current Version")).toBeTruthy();
   // Only the newest opens, and the rest render their notes once opened.
   expect(screen.queryByText("notes for 0.19.0")).toBeNull();
   const older = screen.getByRole("button", { name: /v0\.19\.0/ });

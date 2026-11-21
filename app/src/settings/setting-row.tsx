@@ -117,7 +117,9 @@ function ResetSetting({ def }: SettingRowProps) {
       <TipButton
         label={`Reset ${def.label}`}
         tip={
-          from === DEFAULTS_FROM ? "Back to its default" : `Back to ${from}'s value`
+          from === DEFAULTS_FROM
+            ? "Back to its default"
+            : `Back to ${from}'s value`
         }
         variant="ghost"
         onClick={() => run(() => changeSettings({ [def.id]: value }))}

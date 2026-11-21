@@ -79,7 +79,7 @@ export function SpoilerSheet() {
     >
       <DialogContent className="flex h-[85vh] max-w-[min(1200px,calc(100%-4rem))] flex-col">
         <DialogHeader>
-          <DialogTitle>Spoiler</DialogTitle>
+          <DialogTitle>Spoiler Log</DialogTitle>
           <DialogDescription>
             Seed <span className="font-mono text-ink">{entry?.seed}</span>
           </DialogDescription>
@@ -87,7 +87,7 @@ export function SpoilerSheet() {
         <div className="-mx-5 -mb-5 flex min-h-0 flex-1 flex-col border-line border-t">
           {/* Another seed starts a fresh load and pick. */}
           {entry && (
-            <ErrorBoundary label="The spoiler" resetKey={entry.id}>
+            <ErrorBoundary label="The Spoiler Log" resetKey={entry.id}>
               <CoveredSpoiler id={entry.id} />
             </ErrorBoundary>
           )}
@@ -122,10 +122,10 @@ function Cover({ onReveal }: CoverProps) {
       <EyeOff className="size-6 text-ink-faint" />
       <h2 className="font-semibold text-[15px]">Hidden while you play</h2>
       <p className="max-w-[44ch] text-[13px] text-ink-muted">
-        The spoiler shows where every item is. Reveal it if you're stuck, or
+        The Spoiler Log shows where every item is. Reveal it if you're stuck, or
         when you're done.
       </p>
-      <Button onClick={onReveal}>Reveal spoiler</Button>
+      <Button onClick={onReveal}>Reveal Spoiler Log</Button>
     </div>
   );
 }

@@ -28,7 +28,10 @@ import type { PlayTab } from "@/stores/ui";
 export type Tab = "Play" | "Save" | "Checks" | "Items" | "Live" | "Spoiler";
 
 /** A tab's name where it isn't its id. */
-const TAB_LABELS: Partial<Record<Tab, string>> = { Save: "Save Editor" };
+const TAB_LABELS: Partial<Record<Tab, string>> = {
+  Save: "Save Editor",
+  Spoiler: "Spoiler Log",
+};
 
 /** What the sidebar and breadcrumb call `tab`. */
 export const tabLabel = (tab: Tab) => TAB_LABELS[tab] ?? tab;
@@ -49,7 +52,7 @@ export const PLAY_FOLDERS: Record<
   history: { label: "History", icon: History },
 };
 
-/** The installed seed's views, under Current run. */
+/** The installed seed's views, under Installed Seed. */
 export const RUN_TABS: [Tab, LucideIcon][] = [
   ["Checks", ListChecks],
   ["Items", Backpack],

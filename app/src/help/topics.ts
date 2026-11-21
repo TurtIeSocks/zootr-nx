@@ -48,7 +48,7 @@ export const TOPICS = {
     title: "History",
     at: { tab: "Play", folder: "history" },
     body: [
-      "Every seed you've made, newest first. Install any of them again, or open its spoiler.",
+      "Every seed you've made, newest first. Install any of them again, or open its Spoiler Log.",
     ],
   },
   "ap-slot": {
@@ -67,7 +67,7 @@ export const TOPICS = {
     ],
   },
   spoiler: {
-    title: "Spoiler",
+    title: "Spoiler Log",
     at: { tab: "Spoiler" },
     body: [
       "Spheres shows what you can reach in turn, each column opening the next. Way of the Hero (★) marks what the game can't be finished without.",

@@ -230,8 +230,8 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
           </TipButton>
         )}
         <TipButton
-          label="Spoiler"
-          tip="Spoiler Log"
+          label="Spoiler Log"
+          tip="Read what this seed holds"
           variant="ghost"
           onClick={() => openSpoiler(e)}
         >

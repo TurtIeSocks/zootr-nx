@@ -42,13 +42,13 @@ export function NewSeed() {
   );
 }
 
-/** The seed to generate with Roll inside it, Vanilla once something is
+/** The seed to generate with Roll inside it, Uninstall once something is
  * installed, and Generate. */
 function SeedRow() {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <SeedInput />
-      <VanillaButton />
+      <UninstallButton />
       <GenerateButton />
     </div>
   );
@@ -95,15 +95,15 @@ function RollButton() {
 }
 
 /** Takes the mod off, once one is installed and the game is closed. */
-function VanillaButton() {
+function UninstallButton() {
   const installed = useSeeds((s) => s.history.installed !== null);
   const [busy] = useSeeds.usePath("busy");
   const [running] = useSeeds.usePath("running");
   if (!installed) return null;
   return (
     <TipButton
-      label="Vanilla"
-      tip={running ? CLOSE_GAME : "Take the mod off to play the game vanilla"}
+      label="Uninstall"
+      tip={running ? CLOSE_GAME : "Take the mod off so the game plays vanilla"}
       variant="secondary"
       size="icon-lg"
       disabled={busy || running}

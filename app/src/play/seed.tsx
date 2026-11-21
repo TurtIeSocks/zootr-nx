@@ -53,14 +53,14 @@ export function ExtrasBadges({ entry }: SeedProps) {
       {entry.plando && (
         <TipBadge
           icon={Pin}
-          label="plando"
+          label="Plando"
           tip="Built with a plando: items pinned to checks"
         />
       )}
       {entry.test && (
         <TipBadge
           icon={FlaskConical}
-          label="test"
+          label="Test"
           tip="Built with a test setup: a spawn, items or new-game flags"
         />
       )}

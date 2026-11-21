@@ -122,29 +122,29 @@ test("with nothing installed the game plays vanilla", () => {
   show(null);
   expect(screen.getByText("Vanilla")).toBeTruthy();
   expect(button("Play Emu").disabled).toBe(false);
-  expect(screen.queryByRole("button", { name: "Vanilla" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Uninstall" })).toBeNull();
 });
 
-test("the Installed card leaves Spoiler, copy and edit to History", () => {
+test("the Installed card leaves Spoiler Log, copy and edit to History", () => {
   show(seed);
   openTab("History");
   const installed = card("Installed");
-  expect(installed.queryByRole("button", { name: "Spoiler" })).toBeNull();
+  expect(installed.queryByRole("button", { name: "Spoiler Log" })).toBeNull();
   expect(
     installed.queryByRole("button", { name: "Copy share code" }),
   ).toBeNull();
   expect(installed.queryByRole("button", { name: "Label seed" })).toBeNull();
-  expect(installed.queryByRole("button", { name: "Vanilla" })).toBeNull();
+  expect(installed.queryByRole("button", { name: "Uninstall" })).toBeNull();
   const history = card("History");
-  expect(history.getByRole("button", { name: "Spoiler" })).toBeTruthy();
+  expect(history.getByRole("button", { name: "Spoiler Log" })).toBeTruthy();
   expect(history.getByRole("button", { name: "Copy share code" })).toBeTruthy();
   expect(history.getByRole("button", { name: "Label seed" })).toBeTruthy();
 });
 
-test("the vanilla button lives in New seed", () => {
+test("the Uninstall button lives in New seed", () => {
   show(seed);
   expect(
-    card("New seed").getByRole("button", { name: "Vanilla" }),
+    card("New seed").getByRole("button", { name: "Uninstall" }),
   ).toBeTruthy();
 });
 
@@ -152,20 +152,20 @@ test("an installed seed can be taken off for a vanilla run", async () => {
   const uninstall = vi.spyOn(commands, "uninstall").mockResolvedValue(ok);
   backend({ installed: null, entries: [seed] });
   show(seed);
-  fireEvent.click(card("New seed").getByRole("button", { name: "Vanilla" }));
+  fireEvent.click(card("New seed").getByRole("button", { name: "Uninstall" }));
   await waitFor(() =>
     expect(card("Installed").getByText("Vanilla")).toBeTruthy(),
   );
   expect(uninstall).toHaveBeenCalledOnce();
 });
 
-test("the overview marks settings new since the installed seed", () => {
+test("the overview marks settings new since the last seed", () => {
   show(seed);
-  expect(screen.getByText("Same as the installed seed")).toBeTruthy();
+  expect(screen.getByText("Same as the last seed")).toBeTruthy();
   expect(screen.getByText("Defaults")).toBeTruthy();
   cleanup();
   show(seed, { x: true });
-  expect(screen.getByText("1 change since the installed seed")).toBeTruthy();
+  expect(screen.getByText("1 change since the last seed")).toBeTruthy();
   const tile = button(/^g/);
   expect(within(tile).getByText("1 on")).toBeTruthy();
   expect(within(tile).getByText("X").parentElement?.dataset.mark).toBe("new");
@@ -194,7 +194,7 @@ test("Review lists the differences and puts the installed settings back", async 
   expect(await screen.findByText("Changed since FakeRun")).toBeTruthy();
   expect(screen.getByText("off")).toBeTruthy();
   expect(screen.getByText("on")).toBeTruthy();
-  fireEvent.click(button("Use the installed seed's settings"));
+  fireEvent.click(button("Use the last seed's settings"));
   await waitFor(() => expect(set).toHaveBeenCalled());
   expect(set.mock.calls[0]?.[0].settings).toEqual({});
 });
@@ -221,7 +221,7 @@ test("a share code shows its own settings and leaves the person's alone", async 
   expect(screen.getAllByText("Not in this code")).toHaveLength(1);
   fireEvent.click(button("Clear code"));
   expect(useUi.getState().newSeed.seed).toBe("");
-  expect(screen.getByText("Same as the installed seed")).toBeTruthy();
+  expect(screen.getByText("Same as the last seed")).toBeTruthy();
 });
 
 test("an installed seed can be played", () => {
@@ -270,10 +270,10 @@ test("a seed built with a test setup carries a badge", () => {
   show({ ...seed, test: true });
   openTab("History");
   // The installed card and its history row.
-  expect(screen.getAllByText("test")).toHaveLength(2);
+  expect(screen.getAllByText("Test")).toHaveLength(2);
   cleanup();
   show(seed);
-  expect(screen.queryByText("test")).toBeNull();
+  expect(screen.queryByText("Test")).toBeNull();
 });
 
 test("without developer tools the overview has no Test setup tile", () => {
@@ -297,8 +297,8 @@ test("a stored test setup shows in the overview and opens from there", () => {
 test("a plando seed carries its own badge beside a test one", () => {
   show({ ...seed, plando: true, test: true });
   openTab("History");
-  expect(screen.getAllByText("plando")).toHaveLength(2);
-  expect(screen.getAllByText("test")).toHaveLength(2);
+  expect(screen.getAllByText("Plando")).toHaveLength(2);
+  expect(screen.getAllByText("Test")).toHaveLength(2);
 });
 
 test("the plando draft shows in the overview and opens from there", () => {

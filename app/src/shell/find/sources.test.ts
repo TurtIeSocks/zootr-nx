@@ -113,7 +113,7 @@ test("pages the sidebar hides stay hidden", () => {
   expect(titles(true, true)).toContain("Test setup");
   expect(titles(false, false)).not.toContain("Checks");
   expect(titles(false, true)).toEqual(
-    expect.arrayContaining(["Checks", "Items", "Live", "Spoiler"]),
+    expect.arrayContaining(["Checks", "Items", "Live", "Spoiler Log"]),
   );
 });
 

@@ -216,7 +216,7 @@ export function LiveRow({ row, fresh, selected, pointer }: LiveRowProps) {
       {editing ? (
         <LabelInput change={c} onDone={() => setEditing(false)} />
       ) : unnamed(c) ? (
-        <Tip tip="Label this value">
+        <Tip tip="Rename this value">
           <button
             type="button"
             className="cursor-pointer truncate text-left text-ink-muted hover:underline"

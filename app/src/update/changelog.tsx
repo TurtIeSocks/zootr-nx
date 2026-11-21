@@ -128,7 +128,7 @@ function ReleaseNotes({ release, newest }: ReleaseNotesProps) {
         <>
           v{release.version}
           {release.version === current && (
-            <Badge variant="info">Installed</Badge>
+            <Badge variant="info">Current Version</Badge>
           )}
         </>
       }

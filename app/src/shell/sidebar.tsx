@@ -150,7 +150,7 @@ function RunGroup() {
   const installed = useSeeds((s) => s.history.installed !== null);
   if (!installed) return null;
   return (
-    <NavGroup title="Current run">
+    <NavGroup title="Installed Seed">
       {RUN_TABS.map(([t, icon]) => (
         <TabItem key={t} tab={t} icon={icon} />
       ))}
