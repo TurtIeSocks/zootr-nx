@@ -248,7 +248,7 @@ const dotted = (label: string) =>
     screen.getByText(label, { selector: "label" }).parentElement as HTMLElement,
   ).queryByLabelText("changed") !== null;
 
-test("dots mark what differs from the installed seed, not the defaults", () => {
+test("dots mark what differs from the last seed, not the defaults", () => {
   show({
     settings: { "open-forest": true, "chest-size": "all small" },
     seed: installed({ "open-forest": true }),
@@ -257,7 +257,7 @@ test("dots mark what differs from the installed seed, not the defaults", () => {
   expect(dotted("Open forest")).toBe(false);
 });
 
-test("the row reset puts the installed seed's value back", () => {
+test("the row reset puts the last seed's value back", () => {
   const onChange = show({
     settings: { "chest-size": "all small" },
     seed: installed({ "chest-size": "all small", "open-forest": true }),
@@ -327,12 +327,12 @@ test("a list section is a checklist with its count, open until closed", async ()
   expect(saved(onChange)).toEqual({ kokiri: true, field: true, lake: true });
 });
 
-test("the drift bar counts what differs from the installed seed", () => {
+test("the drift bar counts what differs from the last seed", () => {
   show({ seed: installed({}) });
-  expect(screen.queryByText(/since the installed seed/)).toBeNull();
+  expect(screen.queryByText(/since the last seed/)).toBeNull();
   cleanup();
   show({ seed: installed({}), settings: { "open-forest": true } });
-  expect(screen.getByText("1 change since the installed seed")).toBeTruthy();
+  expect(screen.getByText("1 change since the last seed")).toBeTruthy();
   expect(
     screen.getByRole("button", { name: "Generate & install" }),
   ).toBeTruthy();
@@ -351,16 +351,16 @@ test("with an AP slot installed, the drift bar counts from the last standard see
   const slot = { ...installed({}), id: 2, ap_slot: "FakeSlot" };
   const standard = installed({ "open-forest": true });
   show({ seed: slot, older: [standard], settings: { "open-forest": true } });
-  expect(screen.queryByText(/since the last standard seed/)).toBeNull();
+  expect(screen.queryByText(/since the last seed/)).toBeNull();
   cleanup();
   show({ seed: slot, older: [standard] });
-  expect(screen.getByText(/since the last standard seed/)).toBeTruthy();
+  expect(screen.getByText(/since the last seed/)).toBeTruthy();
   cleanup();
   show({ seed: slot, settings: { "open-forest": true } });
   expect(screen.getByText(/from the default settings/)).toBeTruthy();
 });
 
-test("a checklist item shows the dot when it differs from the installed seed", () => {
+test("a checklist item shows the dot when it differs from the last seed", () => {
   show({
     defs: cutscenes,
     section: "Cutscenes",
@@ -505,7 +505,7 @@ test("Review lists the changes and puts the base's settings back", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Review" }));
   fireEvent.click(
-    await screen.findByRole("button", { name: /Use the installed seed's/ }),
+    await screen.findByRole("button", { name: /Use the last seed's/ }),
   );
   await waitFor(() =>
     expect(saved(onChange)).toEqual({ "chest-size": "all small" }),

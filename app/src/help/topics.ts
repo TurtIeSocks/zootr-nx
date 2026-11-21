@@ -34,7 +34,7 @@ export const TOPICS = {
     title: "Builds with",
     at: { tab: "Play", folder: "standard" },
     body: [
-      "The settings the next seed uses, a tile per group. Gold marks what changed since the installed seed.",
+      "The settings the next seed uses, a tile per group. Gold marks what changed since the last seed.",
     ],
   },
   installed: {
@@ -78,6 +78,7 @@ export const TOPICS = {
     title: "Changes",
     body: [
       "Settings save as you change them. The game changes only when you Generate & install.",
+      "Changes count from the last seed you made. An Archipelago slot doesn't count.",
     ],
   },
   plando: {
