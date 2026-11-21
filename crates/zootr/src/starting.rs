@@ -12,7 +12,7 @@ use crate::steps;
 mod inventory;
 pub use inventory::{
     ARSENAL, DEFAULT, Grant, NONE, SETTING, Start, WORDS, click, drop, granted, items as view,
-    parse, set,
+    onto, parse, set,
 };
 
 /// What a starting item's chest holds instead.

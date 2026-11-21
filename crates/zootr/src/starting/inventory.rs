@@ -463,6 +463,34 @@ pub fn open(gd: &GameData, inv: &Inventory, pouch: &Pouch, start: &Start) -> Res
     })
 }
 
+/// Make `save` hold `start` on top of what it has: its grid at `start`'s
+/// counts, the ammo its bags mark got, then the heart containers with
+/// health full, and the rupees. Each change as `name: old -> new`. An item
+/// of our own (the Magic Meter) is in a save only once a seed has added it:
+/// without it, it's named as skipped.
+pub fn onto(
+    gd: &GameData,
+    inv: &Inventory,
+    pouch: &Pouch,
+    save: &mut Save,
+    start: &Start,
+) -> Result<Vec<String>> {
+    let start = start.clone().floored(pouch);
+    let held: Vec<(&Name, i32)> = (start.held().into_iter())
+        .map(|(h, n)| (h.actor, n))
+        .collect();
+    let mut edits = inv.holding(pouch, &held)?;
+    for d in start.defaults() {
+        edits.push(Edit::parse(&d)?);
+    }
+    edits.extend(start.status());
+    let (kept, lacked): (Vec<Edit>, Vec<Edit>) =
+        edits.into_iter().partition(|e| save.get(e.hash).is_some());
+    let mut log = savefile::apply(gd, save, &kept)?;
+    log.extend((lacked.iter()).map(|e| format!("{}: not in this save, skipped", gd.name(e.hash))));
+    Ok(log)
+}
+
 /// The Status fields the panel keeps: the rest follow from the grid.
 const STATUS: [u32; 2] = [MAX_LIFE, RUPEES];
 
@@ -787,6 +815,29 @@ mod tests {
         let gd = GameData::load(&romfs).unwrap();
         let inv = Inventory::new(&gd, &romfs).unwrap();
         Some((gd, inv, Pouch::load(&romfs).unwrap()))
+    }
+
+    #[test]
+    fn the_arsenal_onto_a_save_reads_back_as_the_arsenal() {
+        needs_names!();
+        let Some((gd, inv, pouch)) = layout() else {
+            return;
+        };
+        let mut kit = Start::default();
+        kit.add(ARSENAL, 1).unwrap();
+        let mut save = fresh(&gd, &inv, &pouch).unwrap();
+        let original = Save::parse(save.bytes().to_vec()).unwrap();
+        onto(&gd, &inv, &pouch, &mut save, &kit).unwrap();
+        let opened = Opened {
+            path: PathBuf::new(),
+            stamp: 0,
+            original,
+            edited: save,
+        };
+        let read = reread(&gd, &inv, &pouch, opened, &[]).unwrap();
+        let mut want = kit.clone().floored(&pouch);
+        want.0.remove("magic-meter");
+        assert_eq!(read, want);
     }
 
     #[test]

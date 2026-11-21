@@ -9,7 +9,8 @@ use ounce_formats::Romfs;
 use super::args::SaveCommand;
 use super::running::{named, stamp};
 use crate::config::Config;
-use crate::{kept, presets, recorder, savefile};
+use crate::inventory::{Inventory, Pouch};
+use crate::{kept, presets, recorder, savefile, starting};
 
 /// An entry's values as one column, `?` for types this tool can't read.
 pub(super) fn save_command(romfs: &Romfs, cmd: SaveCommand) -> Result<()> {
@@ -75,6 +76,18 @@ pub(super) fn save_command(romfs: &Romfs, cmd: SaveCommand) -> Result<()> {
             let (log, backup) = savefile::edit(&gd, &savefile::path(&slot)?, &edits)?;
             log.iter().for_each(|l| println!("{l}"));
             println!("backup at {}", backup.display());
+        }
+        SaveCommand::Give { slot, words } => {
+            let mut start = starting::Start::default();
+            for (word, n) in words.iter().filter(|(w, _)| w != starting::NONE) {
+                start.add(word, *n)?;
+            }
+            let (inv, pouch) = (Inventory::new(&gd, romfs)?, Pouch::load(romfs)?);
+            let path = savefile::path(&slot)?;
+            let mut save = savefile::load(&path)?;
+            let log = starting::onto(&gd, &inv, &pouch, &mut save, &start)?;
+            log.iter().for_each(|l| println!("{l}"));
+            println!("backup at {}", savefile::write(&path, &save)?.display());
         }
     }
     Ok(())
