@@ -1,7 +1,7 @@
 import { type ReactNode, useId } from "react";
 import { ChangedDot } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { WhyButton } from "@/components/why-button";
 import { cn } from "@/lib/utils";
 import { Fold } from "@/settings/fold";
 
@@ -51,19 +51,17 @@ export function Checklist({
   items,
   onChange,
 }: ChecklistProps) {
-  const free = items.filter((i) => !i.locked);
-  const all = (on: boolean) =>
-    onChange(Object.fromEntries(free.map((i) => [i.id, on])));
+  /** The items All (or None) would flip: free ones not there yet. */
+  const flips = (on: boolean) => items.filter((i) => !i.locked && i.on !== on);
   return (
     <Fold id={id} title={title} description={description} meta={meta}>
-      <div className="flex items-center gap-1 pr-4 pb-2 pl-9">
-        <Button variant="ghost" size="sm" onClick={() => all(true)}>
-          All
-        </Button>
-        <Button variant="ghost" size="sm" onClick={() => all(false)}>
-          None
-        </Button>
-      </div>
+      <AllNone
+        of={title}
+        would={(on) => flips(on).length > 0}
+        onPick={(on) =>
+          onChange(Object.fromEntries(flips(on).map((i) => [i.id, on])))
+        }
+      />
       {note && <div className="pr-4 pb-2 pl-11 empty:hidden">{note}</div>}
       <div
         className={cn(
@@ -80,6 +78,42 @@ export function Checklist({
         ))}
       </div>
     </Fold>
+  );
+}
+
+/** Props for {@link AllNone}. */
+export interface AllNoneProps {
+  /** The section's title, which each button's name ends with. */
+  of: string;
+  /** Whether turning the section's toggles on (or off) changes any. */
+  would: (on: boolean) => boolean;
+  /** Turns the section's toggles on, or off. */
+  onPick: (on: boolean) => void;
+}
+
+/** All and None, under a section's header. Each says why when every
+ * toggle it would change is already there, or held by a parent. */
+export function AllNone({ of, would, onPick }: AllNoneProps) {
+  return (
+    <div className="flex items-center gap-1 pr-4 pb-2 pl-9">
+      {(["All", "None"] as const).map((word) => {
+        const on = word === "All";
+        return (
+          <WhyButton
+            key={word}
+            variant="ghost"
+            size="sm"
+            aria-label={`${word} in ${of}`}
+            why={
+              !would(on) && `Every toggle here is already ${on ? "on" : "off"}`
+            }
+            onClick={() => onPick(on)}
+          >
+            {word}
+          </WhyButton>
+        );
+      })}
+    </div>
   );
 }
 

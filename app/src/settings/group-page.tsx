@@ -1,23 +1,15 @@
-import { RotateCcw, ToggleLeft, ToggleRight } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import type { SettingDef } from "@/bindings";
 import { RequestError } from "@/components/request-error";
 import { divided } from "@/components/styles";
-import { WhyButton } from "@/components/why-button";
 import { GROUP_HELP } from "@/help/topics";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
-import {
-  defaults,
-  isChanged,
-  isOn,
-  type Patch,
-  setToggles,
-  tally,
-} from "@/lib/settings";
+import { isOn, type Patch, setToggles, tally } from "@/lib/settings";
 import { cn } from "@/lib/utils";
-import { Checklist } from "@/settings/checklist";
+import { AllNone, Checklist } from "@/settings/checklist";
 import { Fold } from "@/settings/fold";
+import { ResetButton } from "@/settings/reset-button";
 import { UntestedBadge } from "@/settings/row";
 import { lockedBy, untested } from "@/settings/setting";
 import { LockedBy, SettingRow } from "@/settings/setting-row";
@@ -47,7 +39,7 @@ export function GroupPage({ group }: GroupPageProps) {
       <PageHeader
         title={group}
         help={GROUP_HELP[group]}
-        actions={<GroupActions defs={defs} />}
+        actions={<ResetButton defs={defs} />}
       />
       {grids.map((d) => (
         <StartInventory key={d.id} def={d} />
@@ -68,54 +60,9 @@ export function GroupPage({ group }: GroupPageProps) {
 /** Whether a setting is listed in its section's checklist, not a row. */
 const listed = (d: SettingDef) => d.list && d.kind.type === "toggle";
 
-/** Props for {@link GroupActions} and the sections. */
+/** Props for the sections. */
 interface DefsProps {
   defs: SettingDef[];
-}
-
-/** The page's actions: Enable all and Disable all on a page with toggles,
- * and Reset to defaults. Each says why when it would change nothing. */
-function GroupActions({ defs }: DefsProps) {
-  const { run } = useRequest();
-  const [schema] = useConfig.usePath("schema");
-  const [settings] = useConfig.usePath("config.settings");
-  const set = (patch: Patch) => () => run(() => changeSettings(patch));
-  const enable = setToggles(defs, schema, settings, true);
-  const disable = setToggles(defs, schema, settings, false);
-  const changed = defs.some((d) => isChanged(d, settings));
-  const toggles = defs.some((d) => d.kind.type === "toggle");
-  return (
-    <>
-      {toggles && (
-        <>
-          <WhyButton
-            variant="ghost"
-            why={empty(enable) && "Every toggle here is already on"}
-            onClick={set(enable)}
-          >
-            <ToggleRight />
-            Enable all
-          </WhyButton>
-          <WhyButton
-            variant="ghost"
-            why={empty(disable) && "Every toggle here is already off"}
-            onClick={set(disable)}
-          >
-            <ToggleLeft />
-            Disable all
-          </WhyButton>
-        </>
-      )}
-      <WhyButton
-        variant="ghost"
-        why={!changed && "Already the defaults"}
-        onClick={set(defaults(defs))}
-      >
-        <RotateCcw />
-        Reset to defaults
-      </WhyButton>
-    </>
-  );
 }
 
 /** Whether a patch changes nothing. */
@@ -134,10 +81,23 @@ const useHeader = (defs: SettingDef[]) => ({
   meta: useConfig((s) => tally(defs, s.config.settings, s.schema)),
 });
 
-/** A section's settings, one row each. */
+/** A section's settings, one row each, with All and None while it holds
+ * toggles. */
 function Rows({ id, title, defs }: SectionProps) {
+  const { run } = useRequest();
+  const toggles = defs.some((d) => d.kind.type === "toggle");
+  const [schema] = useConfig.usePath("schema");
+  const [settings] = useConfig.usePath("config.settings");
+  const patch = (on: boolean) => setToggles(defs, schema, settings, on);
   return (
     <Fold id={id} title={title} {...useHeader(defs)}>
+      {toggles && (
+        <AllNone
+          of={title}
+          would={(on) => !empty(patch(on))}
+          onPick={(on) => run(() => changeSettings(patch(on)))}
+        />
+      )}
       <div className={cn("px-1 pb-1", divided)}>
         {defs.map((d) => (
           <SettingRow key={d.id} def={d} />

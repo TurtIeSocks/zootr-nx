@@ -84,8 +84,9 @@ export interface Ui {
   getStarted: { dismissed: boolean };
   /** The release the update notice was told to skip. */
   update: { skipped: string | null };
-  /** The sections closed on the settings pages, by `group/section`. */
-  settings: { closed: string[] };
+  /** The sections closed on the settings pages, by `group/section`, and
+   * the reset a page's split button leads with: the one used last. */
+  settings: { closed: string[]; reset: ResetTo };
   /** The Save page: the slot, its tab, what's pending and the Flags
    * tab's query. */
   save: {
@@ -153,7 +154,7 @@ const INITIAL: Ui = {
   welcome: { done: false },
   getStarted: { dismissed: false },
   update: { skipped: null },
-  settings: { closed: [] },
+  settings: { closed: [], reset: "defaults" },
   save: {
     slot: null,
     stamp: null,
@@ -361,6 +362,10 @@ export function remember<T>(
 }
 
 /** Opens or closes a settings page's section, by its id. */
+/** What a settings page's reset puts back: the defaults, or the seed
+ * drift measures from. */
+export type ResetTo = "defaults" | "seed";
+
 export const setSectionOpen = (id: string, open: boolean) =>
   useUi.setPath("settings.closed", (c) =>
     open ? c.filter((t) => t !== id) : [...c, id],

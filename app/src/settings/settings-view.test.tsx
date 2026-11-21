@@ -24,6 +24,7 @@ import { useUi } from "@/stores/ui";
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  useUi.setPath("settings.reset", "defaults");
 });
 
 const toggle = (
@@ -264,7 +265,7 @@ test("a list section is a checklist with its count, open until closed", async ()
     section: "Cutscenes",
     settings: { kokiri: true },
   });
-  const head = screen.getByRole("button", { name: /By area/ });
+  const head = screen.getByRole("button", { name: /^By area/ });
   expect(head.getAttribute("aria-expanded")).toBe("true");
   expect(within(head).getByText("1 of 3 on")).toBeTruthy();
   fireEvent.click(head);
@@ -276,7 +277,7 @@ test("a list section is a checklist with its count, open until closed", async ()
   fireEvent.click(field);
   expect(saved(onChange)).toEqual({ kokiri: true, field: true });
   await waitFor(() => expect(within(head).getByText("2 of 3 on")).toBeTruthy());
-  fireEvent.click(screen.getByRole("button", { name: "All" }));
+  fireEvent.click(screen.getByRole("button", { name: "All in By area" }));
   expect(saved(onChange)).toEqual({ kokiri: true, field: true, lake: true });
 });
 
@@ -327,7 +328,7 @@ test("a checklist item shows the dot when it differs from the installed seed", (
 });
 
 /** The header action named `name`. */
-const action = (name: string) => screen.getByRole("button", { name });
+const action = (name: string | RegExp) => screen.getByRole("button", { name });
 
 test("Reset to defaults says why while nothing differs from them", () => {
   const onChange = show();
@@ -337,14 +338,14 @@ test("Reset to defaults says why while nothing differs from them", () => {
   expect(onChange).not.toHaveBeenCalled();
 });
 
-test("Enable all and Disable all write only what changes, skipping locked toggles", async () => {
+test("All and None write only what changes, skipping locked toggles", async () => {
   const onChange = show({
     defs: cutscenes,
     section: "Cutscenes",
     settings: { [all]: true, kokiri: true },
   });
-  // The owl and the lake are on because of their parent: left alone.
-  fireEvent.click(action("Enable all"));
+  // The lake is on because of its parent: left alone.
+  fireEvent.click(action("All in By area"));
   await waitFor(() =>
     expect(saved(onChange)).toEqual({ [all]: true, kokiri: true, field: true }),
   );
@@ -354,25 +355,26 @@ test("Enable all and Disable all write only what changes, skipping locked toggle
     section: "Cutscenes",
     settings: { [all]: true, kokiri: true },
   });
-  fireEvent.click(action("Disable all"));
+  fireEvent.click(action("None in Cutscenes"));
   await waitFor(() =>
-    expect(saved(again)).toEqual({ [all]: false, kokiri: false }),
+    expect(saved(again)).toEqual({ [all]: false, kokiri: true }),
   );
 });
 
-test("Enable all says why when every toggle is already on", () => {
+test("All says why when every toggle in its section is already on", () => {
   show({
     defs: cutscenes,
     section: "Cutscenes",
     settings: { [all]: true, kokiri: true, field: true },
   });
-  expect(action("Enable all").getAttribute("aria-disabled")).toBe("true");
-  expect(action("Disable all").getAttribute("aria-disabled")).toBeNull();
+  expect(action("All in By area").getAttribute("aria-disabled")).toBe("true");
+  expect(action("All in Cutscenes").getAttribute("aria-disabled")).toBe("true");
+  expect(action("None in Cutscenes").getAttribute("aria-disabled")).toBeNull();
 });
 
 test("a section of rows heads itself with its description and count", () => {
   show({ settings: { "open-forest": true } });
-  const head = screen.getByRole("button", { name: /Fake section/ });
+  const head = screen.getByRole("button", { name: /^Fake section/ });
   expect(within(head).getByText("Fake about")).toBeTruthy();
   // Open forest on, Skip the intro on by default, Menus open off.
   expect(within(head).getByText("2 of 3 on")).toBeTruthy();
@@ -386,14 +388,60 @@ test("a section with no toggles counts what's off its defaults", () => {
     ],
     settings: { age: "adult" },
   });
-  const head = screen.getByRole("button", { name: /Fake section/ });
-  expect(within(head).getByText("1 of 2 changed")).toBeTruthy();
+  const head = screen.getByRole("button", { name: /^Fake section/ });
+  expect(within(head).getByText("1 of 2 off default")).toBeTruthy();
 });
 
-test("a page with no toggles has only Reset to defaults", () => {
+test("a section of rows turns its toggles all on or all off", async () => {
+  const setConfig = show({ settings: { "open-forest": true } });
+  fireEvent.click(screen.getByRole("button", { name: "All in Fake section" }));
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({ "open-forest": true, menus: true }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "None in Fake section" }));
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({
+      "open-forest": false,
+      "skip-intro": false,
+      menus: false,
+    }),
+  );
+});
+
+test("a section with no toggles has no All or None", () => {
   show({ defs: [choice("chest-size", "Chest size", ["Vanilla", "Big"])] });
-  expect(screen.queryByRole("button", { name: "Enable all" })).toBeNull();
-  expect(action("Reset to defaults")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /^All/ })).toBeNull();
+});
+
+/** Opens the reset's menu and picks `name`. */
+async function pickReset(name: RegExp) {
+  fireEvent.keyDown(action("More ways to reset"), { key: "Enter" });
+  fireEvent.click(await screen.findByRole("menuitem", { name }));
+}
+
+test("Reset to last seed puts the seed's values back, and leads after", async () => {
+  const setConfig = show({
+    settings: { "open-forest": true, "chest-size": "all small" },
+    seed: installed({ "chest-size": "all small", menus: true }),
+  });
+  await pickReset(/Reset to last seed/);
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({
+      "chest-size": "all small",
+      menus: true,
+    }),
+  );
+  expect(useUi.getState().settings.reset).toBe("seed");
+  expect(action(/^Reset to last seed/)).toBeTruthy();
+});
+
+test("with no seed built, the defaults lead, and the menu says why", async () => {
+  useUi.setPath("settings.reset", "seed");
+  show({ settings: { "open-forest": true } });
+  expect(action(/^Reset to defaults/).getAttribute("aria-disabled")).toBeNull();
+  fireEvent.keyDown(action("More ways to reset"), { key: "Enter" });
+  const item = await screen.findByRole("menuitem", { name: /last seed/ });
+  expect(item.textContent).toContain("No seed built yet");
 });
 
 test("the drift bar shows on every settings page, the same as on a group", () => {
@@ -437,7 +485,7 @@ test("a closed section is still closed after leaving the page", () => {
   const expanded = (name: RegExp) =>
     screen.getByRole("button", { name }).getAttribute("aria-expanded");
   expect(expanded(/^Cutscenes/)).toBe("false");
-  expect(expanded(/By area/)).toBe("true");
+  expect(expanded(/^By area/)).toBe("true");
 });
 
 test("the test setup form keeps its edits until the saved setup changes", () => {
@@ -459,14 +507,14 @@ test("a locked checklist item stays put, and None leaves it on", () => {
     section: "Cutscenes",
     settings: { [all]: true, kokiri: true },
   });
-  const head = screen.getByRole("button", { name: /By area/ });
+  const head = screen.getByRole("button", { name: /^By area/ });
   expect(within(head).getByText("2 of 3 on")).toBeTruthy();
   fireEvent.click(head);
   const lake = screen.getByRole("checkbox", { name: "Lake Hylia" });
   expect(lake.getAttribute("aria-checked")).toBe("true");
   expect(lake.hasAttribute("disabled")).toBe(true);
-  fireEvent.click(screen.getByRole("button", { name: "None" }));
-  expect(saved(onChange)).toEqual({ [all]: true, kokiri: false, field: false });
+  fireEvent.click(screen.getByRole("button", { name: "None in By area" }));
+  expect(saved(onChange)).toEqual({ [all]: true, kokiri: false });
 });
 
 test("a change that fails to save says why", async () => {
