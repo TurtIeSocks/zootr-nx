@@ -19,6 +19,8 @@
 //! [`SLACK`]. Without it, only one borrowed actor is made, and the
 //! animation file's parse runs out of room and crashes the game at load.
 
+use std::collections::HashSet;
+
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_file};
 
@@ -174,11 +176,18 @@ impl Link {
     }
 
     /// `archive`'s model as this Link has it, and its name: resized to
-    /// his skeleton and renamed. Its events are the original's.
-    fn lent(&self, romfs: &Romfs, archive: &Archive) -> Result<(String, Vec<u8>)> {
+    /// his skeleton, each clip of his `own` hidden, and renamed. Its events
+    /// are the original's.
+    fn lent(
+        &self,
+        romfs: &Romfs,
+        archive: &Archive,
+        own: &HashSet<String>,
+    ) -> Result<(String, Vec<u8>)> {
         let (name, from) = (self.renamed(archive)?, archive.from.get());
         let mut bytes = romfs.read(&model(from))?;
         fska::resize(&mut bytes, &romfs.read(&model(archive.skeleton))?)?;
+        fska::hide(&mut bytes, own);
         fska::rename(&mut bytes, from, &name)?;
         Ok((name, bytes))
     }
@@ -192,6 +201,7 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     for link in &LINKS {
         let pack = ActorPack::from_bytes(link.who, builder.read(&pack_file(link.who))?)?;
         let lender = ActorPack::load(romfs, link.from)?;
+        let own = own_clips(romfs, &pack)?;
         let mut writer = pack.writer();
         for (path, old, new, slack) in borrowed(link, &pack, &lender)? {
             builder.resize(&path, old.len(), new.len() + slack)?;
@@ -199,13 +209,36 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
         }
         builder.write(&pack_file(link.who), &writer.to_binary())?;
         for archive in link.archives {
-            let (name, bytes) = link.lent(romfs, archive)?;
+            let (name, bytes) = link.lent(romfs, archive, &own)?;
             let from = archive.from.get();
             builder.add(&model(&name), &bytes, &model(from))?;
             builder.add(&events(&name), &romfs.read(&events(from))?, &events(from))?;
         }
     }
     Ok(())
+}
+
+/// Every clip in the archives `pack` plays. A lent clip of the same name
+/// would play in its place, its resized root moving the body away from
+/// where Link stands, so the camera trails him.
+fn own_clips(romfs: &Romfs, pack: &ActorPack) -> Result<HashSet<String>> {
+    let mut clips = HashSet::new();
+    for name in own_archives(pack)? {
+        clips.extend(fska::clips(&romfs.read(&model(&name))?).map(String::from));
+    }
+    Ok(clips)
+}
+
+/// The archives `pack` plays, by name.
+fn own_archives(pack: &ActorPack) -> Result<Vec<String>> {
+    let animations = crate::standins::resolved(pack, &component_path(pack, field::ANIMATION_REF)?)?;
+    (array(&animations, field::ANIMATION_RESOURCES)?.iter())
+        .map(|archive| {
+            let name = (archive.as_map()?.get(field::MODEL_PROJECT_NAME.get()))
+                .with_context(|| format!("an archive of {} has no name", pack.name))?;
+            Ok(name.as_string()?.to_string())
+        })
+        .collect()
 }
 
 /// The pause menu's table at `bytes` with each of [`ITEMS`] usable at both
@@ -337,7 +370,6 @@ fn own_array<'a>(m: &'a mut BymlMap, key: &Name) -> Result<&'a mut Vec<Byml>> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
 
     use super::*;
     use crate::game::dev_dump;
@@ -458,6 +490,8 @@ mod tests {
         let mut names = HashSet::new();
         let mut read = vec![];
         for link in &LINKS {
+            let pack = ActorPack::load(&romfs, link.who).unwrap();
+            read.extend(own_archives(&pack).unwrap().iter().map(|a| model(a)));
             for archive in link.archives {
                 let name = link.renamed(archive).unwrap();
                 assert_eq!(name.len(), archive.from.len());
@@ -473,6 +507,29 @@ mod tests {
         let files: HashSet<&str> = FILES.into_iter().collect();
         let read: HashSet<&str> = read.iter().map(String::as_str).collect();
         assert_eq!(read, files);
+    }
+
+    #[test]
+    fn a_lent_archive_hides_every_clip_its_link_has_and_keeps_the_rest() {
+        let Some(romfs) = dev_dump() else { return };
+        for link in &LINKS {
+            let own = own_clips(&romfs, &ActorPack::load(&romfs, link.who).unwrap()).unwrap();
+            assert!(own.len() > 1000, "{}: {} clips", link.who, own.len());
+            for archive in link.archives {
+                let shipped = romfs.read(&model(archive.from)).unwrap();
+                let shipped: Vec<&str> = fska::clips(&shipped).collect();
+                let (_, lent) = link.lent(&romfs, archive, &own).unwrap();
+                let lent: Vec<&str> = fska::clips(&lent).collect();
+                assert_eq!(lent.len(), shipped.len());
+                for (was, now) in shipped.iter().zip(&lent) {
+                    match own.contains(*was) {
+                        true => assert_eq!(now.as_bytes()[0], b'~', "{was}"),
+                        false => assert_eq!(was, now),
+                    }
+                }
+                assert!(lent.iter().all(|c| !own.contains(*c)));
+            }
+        }
     }
 
     #[test]

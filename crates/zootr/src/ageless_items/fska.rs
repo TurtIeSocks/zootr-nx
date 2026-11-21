@@ -44,6 +44,8 @@ const TRANSLATIONS: [u32; 3] = [0x10, 0x14, 0x18];
 const WEAPON: &str = "Weapon";
 /// Shorter than this, a length is no length.
 const TINY: f64 = 1e-4;
+/// The first letter of a hidden clip's name. No clip's name starts so.
+const HIDDEN: u8 = b'~';
 
 fn u16_at(d: &[u8], at: usize) -> Option<u16> {
     Some(u16::from_le_bytes(d.get(at..at + 2)?.try_into().ok()?))
@@ -221,6 +223,29 @@ pub fn resize(archive: &mut [u8], target: &[u8]) -> Result<Resized> {
         bones,
         curves,
     })
+}
+
+/// Each clip's name in the archive.
+pub fn clips(d: &[u8]) -> impl Iterator<Item = &str> {
+    (animations(d).into_iter()).filter_map(|(at, _, _)| string_at(d, offset_at(d, at + NAME)?))
+}
+
+/// Hide each clip `hidden` names, so a lookup by name never finds it here:
+/// its name, which the clip and the archive's index share, starts with
+/// [`HIDDEN`] instead. How many it hid.
+pub fn hide(archive: &mut [u8], hidden: &HashSet<String>) -> usize {
+    let names: Vec<usize> = (animations(archive).into_iter())
+        .filter_map(|(at, _, _)| {
+            let name = offset_at(archive, at + NAME)?;
+            hidden
+                .contains(string_at(archive, name)?)
+                .then_some(name + 2)
+        })
+        .collect();
+    for &at in &names {
+        archive[at] = HIDDEN;
+    }
+    names.len()
 }
 
 /// Rename the archive `from` to `to`, a name of the same length, wherever
