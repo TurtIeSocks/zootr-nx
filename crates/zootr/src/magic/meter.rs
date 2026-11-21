@@ -31,25 +31,21 @@ static LOOK: Look = Look {
     kinds: &["Alb", "AO", "Mtl", "Nrm", "Rgh", "Thc", "Trs"],
     others: &[],
     copy: "Item_Rando_MagicMeter_",
+    matte: true,
 };
 
 /// The gold and bark of the sigil and wreath, as hues. The leaves are
 /// green already and keep theirs.
 const GOLD: Hues = (10.0 / 360.0, 65.0 / 360.0);
-/// The magic meter's green, as a hue.
-const GREEN: f32 = 120.0 / 360.0;
+/// The magic meter's green, as hue, saturation and value. Saturated: the
+/// sigil is metal, so its colour reaches the eye as reflected light, and
+/// the gold's own pale saturation read as gold under a chest's beam (live).
+const GREEN: (f32, f32, f32) = (125.0 / 360.0, 0.85, 0.7);
 
 /// `rgba`'s gold moved to the meter's green, its grain kept.
 pub fn paint(rgba: &mut [u8]) {
-    if let Some((_, s, v)) = paint::mean(rgba, GOLD) {
-        paint::shift(
-            rgba,
-            &[Band {
-                hues: GOLD,
-                to: (GREEN, s, v),
-            }],
-        );
-    }
+    let to = GREEN;
+    paint::shift(rgba, &[Band { hues: GOLD, to }]);
 }
 
 /// The copy's icon, decoded: Doubled Magic's painted green.
@@ -132,6 +128,31 @@ mod tests {
         assert_eq!(model().len(), LIKE.get().len());
     }
 
+    /// The copy is matte, so the green shows instead of the room it
+    /// would reflect, and the host keeps its metal.
+    #[test]
+    fn the_copy_has_no_metal() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let dir = std::env::temp_dir().join(format!("zootr-meter-{}", std::process::id()));
+        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+        let mut tables = Tables::load(&romfs).unwrap();
+        write(&romfs, &mut builder, &mut tables).unwrap();
+        builder.finish().unwrap();
+        let metal = |data: &[u8]| {
+            let t = top_level(data).unwrap();
+            t.rgba.chunks(4).map(|px| px[0]).max().unwrap()
+        };
+        let host = FILES[3];
+        let copy = host.replace(LIKE.get(), &model());
+        let written = std::fs::read(dir.join("romfs").join(&copy)).unwrap();
+        let written = romfs.dicts().decompress(&copy, &written).unwrap();
+        assert_eq!(metal(&written), 0);
+        assert!(metal(&romfs.read(host).unwrap()) > 0);
+        std::fs::remove_dir_all(dir).ok();
+    }
+
     /// The sigil's and wreath's gold turns green, in the model and icon.
     #[test]
     fn the_gold_turns_green() {
@@ -143,6 +164,9 @@ mod tests {
         assert!(paint::mean(&rgba, GOLD).is_some());
         paint(&mut rgba);
         assert!(paint::mean(&rgba, GOLD).is_none(), "gold left");
+        let green = (GREEN.0 - 0.05, GREEN.0 + 0.05);
+        let (_, s, _) = paint::mean(&rgba, green).unwrap();
+        assert!(s > 0.7, "a pale green, {s}");
         let icon = icon(&romfs).unwrap();
         assert!(
             paint::mean(&icon.rgba, GOLD).is_none(),

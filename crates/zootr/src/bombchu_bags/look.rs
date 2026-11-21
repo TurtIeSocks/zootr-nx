@@ -123,6 +123,7 @@ const fn look(host: &'static Name, copy: &'static str) -> Look {
         kinds: &["Alb", "AO", "Mtl", "Nrm", "Rgh"],
         others: &[],
         copy,
+        matte: false,
     }
 }
 
