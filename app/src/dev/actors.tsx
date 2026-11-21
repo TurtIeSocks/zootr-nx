@@ -2,6 +2,7 @@ import { commands, type DevActor } from "@/bindings";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Segmented } from "@/components/ui/segmented";
+import { tag } from "@/dev/tag";
 import { useActors } from "@/dev/use-actors";
 import { call } from "@/lib/api";
 import { useRequest } from "@/lib/request";
@@ -42,7 +43,7 @@ function TeleportSides() {
 }
 
 /** Its children, once the game says which map Link is on. */
-function MapGate({ children }: React.PropsWithChildren) {
+export function MapGate({ children }: React.PropsWithChildren) {
   const [map] = useDev.usePath("game.state.map");
 
   if (!map) {
@@ -101,14 +102,6 @@ function ActorsStatusGate() {
       <ActorButton placed={placed} tag={tag(actors.list, placed)} />
     </li>
   ));
-}
-
-/** What tells `placed` from its actor's other placements in `list`: its own
- * name, else its place among them. None when the actor is placed once. */
-function tag(list: DevActor[], placed: DevActor): string | null {
-  const same = list.filter((p) => p.actor === placed.actor);
-  if (same.length === 1) return null;
-  return placed.label ?? `#${same.indexOf(placed) + 1}`;
 }
 
 /** Warps Link beside `placed` on the picked side, `tag` telling it from
