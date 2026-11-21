@@ -235,6 +235,9 @@ function CheckRow({ row }: RowProps) {
           ) : (
             row.mark?.text
           )}
+          {row.spot.given && !row.mark && (
+            <Badge shape="square">Given at Start</Badge>
+          )}
           <RequestError />
         </td>
         <td className={cn(cell, "w-12 text-right")}>

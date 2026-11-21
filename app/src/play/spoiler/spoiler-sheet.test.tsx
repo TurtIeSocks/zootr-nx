@@ -190,6 +190,20 @@ test("All Checks has the round, the star and the rule, then the filler", async (
   ).toBeTruthy();
 });
 
+test("All Checks marks a check the opening gives", async () => {
+  const given = seed();
+  given.spots = given.spots.map((s) =>
+    s.chest_name === "Grotto" ? { ...s, given: true } : s,
+  );
+  const sheet = await open(given);
+  await sheet.findByText("Round 4");
+  fireEvent.click(tab("All Checks"));
+  const row = sheet.getByText("Grotto").closest("tr") as HTMLElement;
+  expect(within(row).getByText("(given at start)")).toBeTruthy();
+  const map = sheet.getByText("Map").closest("tr") as HTMLElement;
+  expect(within(map).queryByText("(given at start)")).toBeNull();
+});
+
 test("a seed from before the logic fields shows only its checks, with a note", async () => {
   const sheet = await open(oldSeed());
   await sheet.findByText(/predates/);

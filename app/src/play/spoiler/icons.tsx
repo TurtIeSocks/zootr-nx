@@ -40,3 +40,9 @@ export function HeroStar({ className }: HeroStarProps) {
     />
   );
 }
+
+/** "(given at start)" after the item of a check the opening gives, as a
+ * setting keeps its scene from playing. */
+export function GivenAtStart() {
+  return <span className="font-normal text-ink-faint"> (given at start)</span>;
+}

@@ -882,3 +882,23 @@ fn a_seed_with_every_starter_bag_writes() {
     assert!(dealt(item::NUT_BAG_SMALL.get()) && dealt(item::STICK_BAG_SMALL.get()));
     std::fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn a_met_zelda_seed_marks_her_three_checks_given_at_start() {
+    let Some(romfs) = crate::game::dev_dump() else {
+        return;
+    };
+    use crate::settings::{MET_ZELDA, NPC_GIFTS, SONGS, Settings};
+    let dir = std::env::temp_dir().join(format!("zootr-met-zelda-{}", std::process::id()));
+    let settings = Settings::from([MET_ZELDA, NPC_GIFTS, SONGS].map(|id| (id.into(), true.into())));
+    let new_game = NewGame::from_settings(&settings, &[]).unwrap();
+    let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
+    std::fs::remove_dir_all(dir).unwrap();
+    let given: Vec<&Spot> = report.spots.iter().filter(|s| s.given).collect();
+    assert_eq!(given.len(), 3, "{given:?}");
+    let letter = item::ZELDA_LETTER.get();
+    assert_eq!(given.iter().filter(|s| s.item == letter).count(), 1);
+    assert_eq!(report.spots.iter().filter(|s| s.item == letter).count(), 1);
+    assert!(report.spots.iter().all(|s| s.item != item::WEIRD_EGG.get()));
+    assert!(report.spoiler(&[]).contains(" (given at start)\n"));
+}

@@ -2,7 +2,7 @@ import { Search } from "lucide-react";
 import { Tip } from "@/components/tip";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { HeroStar } from "@/play/spoiler/icons";
+import { GivenAtStart, HeroStar } from "@/play/spoiler/icons";
 import { PickButton } from "@/play/spoiler/pick-button";
 import {
   areaOf,
@@ -79,7 +79,10 @@ export function ChecksTab() {
                       </PickButton>
                     </td>
                   </Tip>
-                  <td className="font-medium">{itemOf(s)}</td>
+                  <td className="font-medium">
+                    {itemOf(s)}
+                    {s.given && <GivenAtStart />}
+                  </td>
                   <td className="text-ink-muted tabular-nums">{s.round}</td>
                   <td>{s.hero && <HeroStar />}</td>
                   <Tip tip={text}>

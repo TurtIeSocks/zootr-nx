@@ -279,7 +279,10 @@ export type ChecksState = {
 export type Choice = {
 	id: string,
 	label: string,
-	/**  Toggles this pick turns on, shown locked. */
+	/**
+	 *  Toggles this pick turns on, and other choices' picks it makes as
+	 *  `id=option`, shown locked.
+	 */
 	forces: string[],
 	/**  Start inventory words this pick gives, shown held. */
 	starts: string[],
@@ -891,6 +894,11 @@ export type Spot = {
 	 *  only an adult. `None` for both, or when logic can't tell.
 	 */
 	child?: boolean | null,
+	/**
+	 *  Given in the opening, as a setting keeps its scene from playing
+	 *  (`gifts::pocket`).
+	 */
+	given?: boolean,
 };
 
 /**

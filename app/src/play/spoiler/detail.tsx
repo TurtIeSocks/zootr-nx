@@ -1,5 +1,5 @@
 import { Tip } from "@/components/tip";
-import { HeroStar } from "@/play/spoiler/icons";
+import { GivenAtStart, HeroStar } from "@/play/spoiler/icons";
 import { PickButton } from "@/play/spoiler/pick-button";
 import { areaOf, itemOf, placeOf, rule } from "@/play/spoiler/rows";
 import { useSpoiler } from "@/play/spoiler/spoiler-context";
@@ -18,6 +18,7 @@ export function Detail() {
     >
       <p className="flex items-center gap-1.5 font-medium">
         {areaOf(spot)} · {placeOf(spot)} → {itemOf(spot)}
+        {spot.given && <GivenAtStart />}
         {spot.hero && <HeroStar />}
       </p>
       <p className="mt-1 text-ink-muted">

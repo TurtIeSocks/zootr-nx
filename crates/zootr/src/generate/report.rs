@@ -52,6 +52,10 @@ pub struct Spot {
     /// only an adult. `None` for both, or when logic can't tell.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub child: Option<bool>,
+    /// Given in the opening, as a setting keeps its scene from playing
+    /// (`gifts::pocket`).
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub given: bool,
 }
 
 fn is_false(b: &bool) -> bool {
@@ -76,7 +80,16 @@ impl Spot {
 
     /// `Area: place -> item`.
     fn line(&self) -> String {
-        format!("{}: {} -> {}", self.area_name, self.name(), self.item_name)
+        format!("{}: {} -> {}", self.area_name, self.name(), self.got())
+    }
+
+    /// Its item's name, then "(given at start)" for a check the opening
+    /// gives.
+    fn got(&self) -> String {
+        match self.given {
+            true => format!("{} (given at start)", self.item_name),
+            false => self.item_name.clone(),
+        }
     }
 
     /// Its name in the rule files, else the place, else what it held in
@@ -240,7 +253,7 @@ impl Report {
                 area = Some(&s.area_name);
                 out += &format!("\n{}\n", s.area_name);
             }
-            out += &format!("  {:<width$}  -> {}\n", s.name(), s.item_name);
+            out += &format!("  {:<width$}  -> {}\n", s.name(), s.got());
         }
         let way = self.way();
         if !way.is_empty() {
@@ -393,13 +406,16 @@ mod tests {
                     place: "North Bow (big)".into(),
                     ..spot("Field", "Bow (big)", "Sword")
                 },
-                spot("Lake", "Map", "Map"),
+                Spot {
+                    given: true,
+                    ..spot("Lake", "Map", "Map")
+                },
             ],
             ..report()
         };
         assert_eq!(
             report.spoiler(&["Sun".into(), "Moon".into()]),
-            "seed 7\nicons Sun · Moon\n\nField\n  Sword            -> Bow\n  North Bow (big)  -> Sword\n\nLake\n  Map              -> Map\n"
+            "seed 7\nicons Sun · Moon\n\nField\n  Sword            -> Bow\n  North Bow (big)  -> Sword\n\nLake\n  Map              -> Map (given at start)\n"
         );
     }
 
