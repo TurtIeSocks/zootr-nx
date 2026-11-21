@@ -128,7 +128,8 @@ pub fn actors(mem: &impl Memory, main: u64) -> Result<Vec<Actor>> {
                 at,
                 b,
                 String::from_utf8_lossy(name).into_owned(),
-                ptr(hash),
+                // All ones marks a record no placement made.
+                ptr(hash).filter(|&h| h != u64::MAX),
                 ptr(model),
             ))
         })
@@ -278,14 +279,14 @@ mod tests {
             put(&mut h, p - heap + LEFT, &18_i32.to_le_bytes());
             put(&mut h, p - heap + MOST, &18_i32.to_le_bytes());
         }
-        // The enemy came from a placement and has a model; the rock neither.
-        let (record, model) = (heap + 0xb200, heap + 0xb400);
-        put(
-            &mut h,
-            thief - heap + PLACEMENT as u64,
-            &record.to_le_bytes(),
-        );
-        put(&mut h, record - heap + HASH, &HASHED.to_le_bytes());
+        // The enemy came from a placement and has a model. The rock has
+        // neither: its record holds no placement's hash, as a system
+        // actor's or a held item's does.
+        let (record, unplaced, model) = (heap + 0xb200, heap + 0xb300, heap + 0xb400);
+        for (a, r, hash) in [(thief, record, HASHED), (rock, unplaced, u64::MAX)] {
+            put(&mut h, a - heap + PLACEMENT as u64, &r.to_le_bytes());
+            put(&mut h, r - heap + HASH, &hash.to_le_bytes());
+        }
         put(&mut h, block - heap + MODEL, &model.to_le_bytes());
         let mem = Fake::new(vec![(main + CAPACITY, statics), (header, table), (heap, h)]);
         let mut found = actors(&mem, main).unwrap();
