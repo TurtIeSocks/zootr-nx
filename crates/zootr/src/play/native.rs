@@ -116,6 +116,17 @@ impl Input for Native {
             .map(drop)
     }
 
+    fn queue(&mut self, line: &str) -> Result<()> {
+        if let Some(to) = line.strip_prefix("shot ") {
+            return self.shot(Path::new(to));
+        }
+        let (names, secs) = line.split_once('~').unwrap_or((line, "0.15"));
+        let secs: f64 = secs.parse().with_context(|| format!("{line}: no hold"))?;
+        let frames = frames((secs * 1000.0) as u64);
+        let args = json!({"buttons": buttons(names)?, "frames": frames, "wait": false});
+        self.send("press", args, Duration::ZERO).map(drop)
+    }
+
     fn quit(&mut self) -> Result<()> {
         // A game already gone answers nothing, which is as good.
         let _ = self.send("quit", Value::Null, Duration::ZERO);
@@ -185,6 +196,11 @@ mod tests {
         assert_eq!(
             next(),
             json!({"cmd": "press", "buttons": "LDOWN+LLEFT", "frames": 30})
+        );
+        game.queue("LUp+A~0.5").unwrap();
+        assert_eq!(
+            next(),
+            json!({"cmd": "press", "buttons": "LUP+A", "frames": 30, "wait": false})
         );
         game.shot(Path::new("/s/one.png")).unwrap();
         assert_eq!(next(), json!({"cmd": "shot", "path": "/s/one.png"}));
