@@ -75,7 +75,7 @@ export function tally(
   const toggles = defs.filter((d) => d.kind.type === "toggle");
   if (toggles.length === 0) {
     const changed = defs.filter((d) => isChanged(d, settings));
-    return `${changed.length} of ${defs.length} changed`;
+    return `${changed.length} of ${defs.length} off default`;
   }
   const on = toggles.filter((d) => isOn(d, settings, schema));
   return `${on.length} of ${toggles.length} on`;

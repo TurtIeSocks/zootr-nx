@@ -389,7 +389,7 @@ test("a section with no toggles counts what's off its defaults", () => {
     settings: { age: "adult" },
   });
   const head = screen.getByRole("button", { name: /^Fake section/ });
-  expect(within(head).getByText("1 of 2 changed")).toBeTruthy();
+  expect(within(head).getByText("1 of 2 off default")).toBeTruthy();
 });
 
 test("a section of rows turns its toggles all on or all off", async () => {
