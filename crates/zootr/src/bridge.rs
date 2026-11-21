@@ -1,5 +1,6 @@
-//! The rainbow bridge at six medallions. See
-//! `docs/superpowers/specs/2026-11-12-win-conditions-design.md`.
+//! The rainbow bridge at six medallions, or open. See
+//! `docs/superpowers/specs/2026-11-12-win-conditions-design.md` and
+//! `docs/superpowers/specs/2026-11-21-basic-win-condition-design.md`.
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{Byml, EventKind, Romfs, murmur3};
@@ -16,6 +17,16 @@ const ARMED_UNTIL: &Name = flag::DEFEAT_GANON_IS_AFTER_STEP01_EXP;
 /// are in.
 pub fn start() -> String {
     crate::steps::at(flow::DEFEAT_GANON, "Step01")
+}
+/// The bridge up from the start: the walk-in scene counts as played, which
+/// the bridge's module ORs into creating the bridge. Nothing else: no Light
+/// Arrows, no sages, no Ganon step.
+pub fn open() -> Vec<String> {
+    vec![format!(
+        "{}.{}=true",
+        flag::HAVE_PLAYED_EVENT,
+        field::GANON_CASTLE_ADULT_FIELD_RAINBOW
+    )]
 }
 pub const MEDALLIONS: [&Name; 6] = [
     item::MEDAL_FOREST,
@@ -109,6 +120,14 @@ mod tests {
             );
         }
         assert!(text.contains("|| !("), "{text}");
+    }
+
+    #[test]
+    fn the_open_bridge_sets_a_flag_the_game_has() {
+        let Some(romfs) = dev_dump() else { return };
+        let gd = GameData::load(&romfs).unwrap();
+        let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH).unwrap()).unwrap();
+        crate::presets::apply(&gd, &mut doc.root, &open()).unwrap();
     }
 
     /// The edited BoolExp, rendered the way `probe data` shows it.
