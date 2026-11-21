@@ -4,10 +4,10 @@
 use std::collections::BTreeSet;
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{EventKind, Flowchart, Link, Params, Romfs, Value};
+use ounce_formats::{Actor, EventKind, Flowchart, Link, Params, Romfs, Value};
 
 use crate::flows::{self, Rewrites, only};
-use crate::known::{Name, field, flow, scene};
+use crate::known::{Name, actor, field, flag, flow, scene};
 use crate::starting::{AUTOSAVE, OPENING};
 use crate::world;
 
@@ -16,6 +16,10 @@ const BANC_CHANGE: (&Name, &Name) = (field::GAME_SYSTEM_ACTOR, flow::EVENT_RESER
 /// The warp songs, whose map change is the model.
 const TEMPLATE: &Name = scene::SY_OCARINA;
 const ADULT: &str = "_Adult";
+/// The pedestal's plain swap to adult.
+const CHILD_TO_ADULT: &Name = flow::MARKET_CHILD_FIELD_CHILD_TO_ADULT;
+/// The swap's trade of each age's weapon and shield.
+const GEAR: &Name = flow::REPLACE_EQUIPMENT_FOR_ERA_CHANGE;
 
 /// `params`' `key` when it's a plain string, not an argument.
 fn text<'a>(params: &'a Params, key: &str) -> Option<&'a str> {
@@ -71,18 +75,109 @@ fn chain(flow: &mut Flowchart, template: &Flowchart, map: &str, spot: &str) -> R
         flows::set(&mut params, key, Value::String(vec![value.into()]))?;
     }
     flows::set(&mut params, field::IS_ITEM_WARP, Value::Bool(vec![false]))?;
-    let (actor, action) = flow.action(template.actor_of(*actor), BANC_CHANGE.1);
+    let event = (template.actor_of(*actor), BANC_CHANGE.1.get(), params);
+    after_save(flow, vec![event])
+}
+
+/// Run `events` (actor, action, params) in `flow` right after its
+/// autosave, in order.
+fn after_save(flow: &mut Flowchart, events: Vec<(&Actor, &str, Params)>) -> Result<()> {
     let save = only(flow, AUTOSAVE)?;
-    let EventKind::Action { next, .. } = flow.events[save as usize].kind else {
+    let EventKind::Action { mut next, .. } = flow.events[save as usize].kind else {
         unreachable!("only finds actions");
     };
-    let warp = flow.push(EventKind::Action {
-        next,
-        actor,
-        action,
-        params,
-    });
-    flow.link(Link::Next(save), Some(warp))
+    for (actor, action, params) in events.into_iter().rev() {
+        let (actor, action) = flow.action(actor, action);
+        next = Some(flow.push(EventKind::Action {
+            next,
+            actor,
+            action,
+            params,
+        }));
+    }
+    flow.link(Link::Next(save), next)
+}
+
+/// `flow`'s first `action` whose `key` reads `value`, as a copy.
+fn event<'a>(
+    flow: &'a Flowchart,
+    action: &Name,
+    (key, value): (&Name, &str),
+) -> Result<(&'a Actor, &'a str, Params)> {
+    flow.events
+        .iter()
+        .find_map(|e| {
+            let EventKind::Action {
+                actor,
+                action: a,
+                params,
+                ..
+            } = &e.kind
+            else {
+                return None;
+            };
+            let actor = flow.actor_of(*actor);
+            let name = actor.actions[*a as usize].as_str();
+            (name == action.get() && text(params, key) == Some(value))
+                .then(|| (actor, name, params.clone()))
+        })
+        .with_context(|| format!("no {action} with {key} {value}"))
+}
+
+/// Start a new game adult. Once the opening has autosaved, it does what the
+/// pedestal's swap does on a first trip, step by step: each age's weapon
+/// and shield trade places with the Master Sword equipped, Link grows up,
+/// and he wakes in the Temple of Time. The swap itself can't be called from
+/// the opening (spike: nothing ran), and played from the forest it never
+/// left. The forest sage's quest starts in the opening (`door::open`).
+pub fn adult(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
+    let load =
+        |name: &Name| flows::load(romfs, name)?.with_context(|| format!("{name} is a timeline"));
+    let (gear, swap) = (load(GEAR)?, load(CHILD_TO_ADULT)?);
+    let copy = |to: &Name| {
+        event(
+            &gear,
+            flow::EVENT_TRIGGER_COPY_GAME_DATA_STRING64,
+            (field::DST_GAME_DATA_NAME, to.get()),
+        )
+    };
+    let set = |name: &Name, value: &str| -> Result<_> {
+        let (actor, action, mut params) = event(
+            &gear,
+            flow::EVENT_TRIGGER_SET_GAME_DATA_STRING64,
+            (
+                field::GAME_DATA_NAME,
+                flag::PLAYER_STATUS_ANOTHER_ERA_EQUIP_WEAPON.get(),
+            ),
+        )?;
+        flows::set(
+            &mut params,
+            field::GAME_DATA_NAME,
+            flows::string(name.get()),
+        )?;
+        flows::set(&mut params, field::VALUE, flows::string(value))?;
+        Ok((actor, action, params))
+    };
+    let events = vec![
+        copy(flag::PLAYER_STATUS_ANOTHER_ERA_EQUIP_WEAPON)?,
+        set(
+            flag::PLAYER_STATUS_EQUIP_WEAPON,
+            actor::WEAPON_SWORD_MASTER.get(),
+        )?,
+        copy(flag::PLAYER_STATUS_ANOTHER_ERA_EQUIP_SHIELD)?,
+        set(flag::PLAYER_STATUS_EQUIP_SHIELD, "")?,
+        event(
+            &swap,
+            flow::EVENT_TRIGGER_SET_GAME_DATA_BOOL,
+            (field::GAME_DATA_NAME, flag::SEQUENCE_IS_CHILDHOOD.get()),
+        )?,
+        event(
+            &swap,
+            BANC_CHANGE.1,
+            (field::BOOT_EVENT_NAME, scene::TIME_TEMPLE_0085.get()),
+        )?,
+    ];
+    flows::edit(romfs, rewrites, OPENING, |flow| after_save(flow, events))
 }
 
 /// Start a new game at `spawn` (`MAP/SPOT`), editing the opening flow in
@@ -139,6 +234,57 @@ mod tests {
             Some(flag::SHADOW_NOCTURNE.get())
         );
         assert_eq!(text(params, field::BOOT_EVENT_NAME), Some(""));
+    }
+
+    #[test]
+    fn an_adult_start_swaps_gear_grows_up_and_wakes_in_the_temple() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut rewrites = Rewrites::new();
+        adult(&romfs, &mut rewrites).unwrap();
+        let flow = Flowchart::parse(&rewrites[&flows::rel(OPENING)])
+            .unwrap()
+            .unwrap();
+        let mut at = only(&flow, AUTOSAVE).unwrap();
+        let mut after = Vec::new();
+        while let EventKind::Action {
+            next: Some(next), ..
+        } = flow.events[at as usize].kind
+        {
+            at = next;
+            let EventKind::Action {
+                actor,
+                action,
+                params,
+                ..
+            } = &flow.events[at as usize].kind
+            else {
+                panic!("a call follows the autosave")
+            };
+            let name = flow.actor_of(*actor).actions[*action as usize].as_str();
+            after.push((name, params.clone()));
+        }
+        let names: Vec<&str> = after.iter().map(|(n, _)| *n).collect();
+        let (copy, set) = (
+            flow::EVENT_TRIGGER_COPY_GAME_DATA_STRING64.get(),
+            flow::EVENT_TRIGGER_SET_GAME_DATA_STRING64.get(),
+        );
+        let bool_ = flow::EVENT_TRIGGER_SET_GAME_DATA_BOOL.get();
+        assert_eq!(names, [copy, set, copy, set, bool_, BANC_CHANGE.1.get()]);
+        let read = |i: usize, key: &Name| text(&after[i].1, key).map(str::to_owned);
+        let equip = flag::PLAYER_STATUS_EQUIP_WEAPON.get().to_owned();
+        assert_eq!(read(1, field::GAME_DATA_NAME), Some(equip));
+        assert_eq!(
+            read(1, field::VALUE).as_deref(),
+            Some(actor::WEAPON_SWORD_MASTER.get())
+        );
+        let childhood = flag::SEQUENCE_IS_CHILDHOOD.get().to_owned();
+        assert_eq!(read(4, field::GAME_DATA_NAME), Some(childhood));
+        assert_eq!(
+            read(5, field::NEXT_BANC).as_deref(),
+            Some(map::MARKET_ADULT.get())
+        );
     }
 
     #[test]

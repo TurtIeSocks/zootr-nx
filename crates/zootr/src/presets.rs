@@ -288,6 +288,9 @@ fn jabu_arrival() -> Vec<String> {
     .into()
 }
 
+/// The preset that opens the forest.
+pub const OPEN_FOREST: &str = "open-forest";
+
 /// The preset whose Deku Tree takes adult Link in.
 pub const ADULT_DEKU_TREE: &str = "adult-deku-tree";
 
@@ -322,7 +325,7 @@ fn deku_tree_clear() -> Vec<String> {
 
 pub const PRESETS: [Preset; 17] = [
     Preset {
-        name: "open-forest",
+        name: OPEN_FOREST,
         label: "Open forest",
         what: "Mido and the forest exit stop blocking Link, as child or adult",
         group: group::LOGIC,

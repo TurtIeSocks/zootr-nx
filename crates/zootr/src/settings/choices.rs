@@ -249,4 +249,61 @@ impl DungeonEntrances {
             Self::OnGanon => "On, with Ganon's Castle",
         }
     }
+
+    /// Any door can lead adult Link to the Deku Tree, so its debris goes.
+    pub(super) fn forces(self) -> Forces {
+        match self {
+            Self::Off => NOTHING,
+            Self::On | Self::OnGanon => (&[crate::presets::ADULT_DEKU_TREE], &[]),
+        }
+    }
+}
+
+/// What a choice's pick turns on: toggles, then start inventory words.
+pub(super) type Forces = (&'static [&'static str], &'static [&'static str]);
+const NOTHING: Forces = (&[], &[]);
+
+/// How old Link is on a new file.
+#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
+pub enum StartingAge {
+    /// A child in Link's house, as the game starts
+    #[default]
+    Child,
+    /// An adult in the Temple of Time, holding the Master Sword
+    Adult,
+    /// Child or adult, rolled from the seed
+    Random,
+}
+
+impl StartingAge {
+    pub(super) fn label(self) -> &'static str {
+        match self {
+            Self::Child => "Child",
+            Self::Adult => "Adult",
+            Self::Random => "Random",
+        }
+    }
+
+    /// Adult goes back to child at the pedestal, which only the open door
+    /// swaps at once, and a child sent back mustn't be shut in the forest.
+    pub(super) fn forces(self) -> Forces {
+        match self {
+            Self::Adult => (
+                &[super::OPEN_DOOR, crate::presets::OPEN_FOREST],
+                &["master-sword"],
+            ),
+            Self::Child | Self::Random => NOTHING,
+        }
+    }
+
+    /// `self` with random rolled from `seed`.
+    pub fn resolve(self, seed: u64) -> Self {
+        match self {
+            Self::Random => match crate::rng::Rng::new(seed.rotate_left(17)).below(2) {
+                0 => Self::Child,
+                _ => Self::Adult,
+            },
+            age => age,
+        }
+    }
 }

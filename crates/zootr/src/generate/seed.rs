@@ -15,6 +15,7 @@ use crate::rng::Rng;
 use crate::rules::{self, Book, Ctx, Have, Need};
 use crate::settings::{self, DungeonEntrances, Logic, NewGame, Settings};
 use crate::shuffle::{self, Fixed};
+use crate::world::Era;
 use crate::{checks, fill, gamedata, hints, ice_traps, icons, places, steps};
 
 /// How many door layouts a seed tries before it gives up. About one in
@@ -191,8 +192,19 @@ fn start(have: &Have, new_game: &NewGame, names: &Names) -> Start {
         .map(|d| d.label.to_owned());
     Start {
         items,
-        settings: on.collect(),
+        settings: age(new_game).into_iter().chain(on).collect(),
     }
+}
+
+/// The starting age in the spoiler's words, when it isn't a plain child.
+fn age(new_game: &NewGame) -> Option<String> {
+    let label = match new_game.age {
+        Era::Child => "Child",
+        Era::Adult => "Adult",
+    };
+    let random = if new_game.random_age { " (random)" } else { "" };
+    (new_game.age == Era::Adult || new_game.random_age)
+        .then(|| format!("Starting age: {label}{random}"))
 }
 
 /// Number the playthrough's rounds that collect a source or a check whose
@@ -254,13 +266,20 @@ fn need(world: &World, hash: u64) -> (String, Vec<String>) {
 }
 
 /// The new game `settings` start, with what `extras` adds on top. The
-/// extras' fields and gifts join the presets' own, never replace them.
-fn new_game(settings: &Settings, extras: &Extras) -> Result<NewGame> {
+/// extras' fields and gifts join the presets' own, never replace them. A
+/// random age is rolled from `seed` first, so it forces what its pick does.
+fn new_game(settings: &Settings, extras: &Extras, seed: u64) -> Result<NewGame> {
+    let (settings, random_age) = settings::roll_age(settings, seed);
     let mut new_game = NewGame {
         spawn: extras.spawn.clone(),
         door_pins: extras.doors.clone(),
-        ..NewGame::from_settings(settings, &extras.defaults)?
+        random_age,
+        ..NewGame::from_settings(&settings, &extras.defaults)?
     };
+    ensure!(
+        new_game.age == Era::Child || new_game.spawn.is_none(),
+        "an adult start can't take --spawn: spawns are child maps"
+    );
     new_game.fields.extend(extras.fields.iter().cloned());
     new_game.give.extend(extras.give.iter().cloned());
     Ok(new_game)
@@ -279,10 +298,14 @@ pub fn generate(
         ap.is_none() || extras.place.is_empty(),
         "an Archipelago seed places every item itself"
     );
-    let mut new_game = new_game(settings, extras)?;
+    let mut new_game = new_game(settings, extras, seed)?;
     ensure!(
         ap.is_none() || new_game.dungeon_entrances == DungeonEntrances::Off,
         "an Archipelago seed can't shuffle dungeon entrances yet"
+    );
+    ensure!(
+        ap.is_none() || new_game.age == Era::Child,
+        "an Archipelago seed starts as child for now"
     );
     if let Some(ap) = &ap {
         new_game.foreign = ap.foreign.clone();
@@ -327,9 +350,20 @@ mod tests {
             fields: vec!["1.FakeField=1".into()],
             ..Extras::default()
         };
-        let game = new_game(&settings, &extras).unwrap();
+        let game = new_game(&settings, &extras, 0).unwrap();
         let presets = crate::presets::fields(&[crate::presets::JABU_OPEN.into()]).unwrap();
         assert_eq!(game.fields, [presets, extras.fields].concat());
+    }
+
+    #[test]
+    fn an_adult_start_refuses_a_spawn() {
+        let settings = Settings::from([(settings::STARTING_AGE.into(), "adult".into())]);
+        let extras = Extras {
+            spawn: Some("FakeMap_Child/FakeSpot".into()),
+            ..Extras::default()
+        };
+        let err = new_game(&settings, &extras, 0).unwrap_err();
+        assert!(err.to_string().contains("--spawn"), "{err}");
     }
 
     /// Seeds whose first ten layouts logic couldn't beat.

@@ -19,7 +19,15 @@ mod exits;
 
 pub type Place = (String, Era);
 
-pub const START: (&Name, Era) = (map::KOKIRI_FOREST_CHILD, Era::Child);
+/// Where a new file starts at `age`: the child forest, or adult in the
+/// Temple of Time, which sits in the adult market.
+pub fn start_of(age: Era) -> Place {
+    let node = match age {
+        Era::Child => map::KOKIRI_FOREST_CHILD,
+        Era::Adult => map::MARKET_ADULT,
+    };
+    (node.to_string(), age)
+}
 
 /// Where the seed is beaten: Ganondorf's stage.
 pub const GOAL: &Name = map::GANONDORF_STAGE;
@@ -73,6 +81,8 @@ pub struct World {
     pub obstacles: BTreeMap<String, BTreeMap<String, usize>>,
     /// Each exit into `GOAL`: its place and what it needs with the trials done.
     goal: Vec<(usize, Need)>,
+    /// Where the new file starts.
+    start: Place,
 }
 
 /// Something collected in a playthrough.
@@ -269,7 +279,7 @@ impl World {
             let rule = book.check(check.hash);
             let mut where_: Vec<Place> = Vec::new();
             if pocket == Some(check.hash) {
-                where_.push((START.0.to_string(), START.1));
+                where_.push(start_of(ctx.age));
             } else if let Some((node, era)) = rule.and_then(|r| r.place.clone()) {
                 where_.extend(pinned(&node, era).into_iter().map(|e| (node.clone(), e)));
             } else if check.file.starts_with("Banc/") {
@@ -389,6 +399,7 @@ impl World {
             fortress: ctx.fortress,
             open: ctx.open.iter().filter(|o| *o != TRIALS).cloned().collect(),
             doors: ctx.doors.clone(),
+            age: ctx.age,
         };
         let mut goal = Vec::new();
         for rule in book.exits.iter().filter(|r| r.to == GOAL) {
@@ -405,6 +416,7 @@ impl World {
             sources,
             obstacles: scan.obstacles.clone(),
             goal,
+            start: start_of(ctx.age),
         })
     }
 
@@ -415,8 +427,10 @@ impl World {
     }
 
     pub fn start(&self) -> usize {
-        let start = (START.0.to_string(), START.1);
-        self.places.iter().position(|p| *p == start).unwrap_or(0)
+        self.places
+            .iter()
+            .position(|p| *p == self.start)
+            .unwrap_or(0)
     }
 
     /// Every item actor any rule here mentions.
@@ -774,6 +788,32 @@ mod tests {
     }
 
     #[test]
+    fn an_adult_start_reaches_what_a_child_start_does() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let book = crate::rules::Book::load().unwrap();
+        let reached = |pick: (&str, serde_json::Value)| {
+            let pick = (pick.0.to_string(), pick.1);
+            let settings = crate::settings::Settings::from([pick]);
+            let new_game = crate::settings::NewGame::from_settings(&settings, &[]).unwrap();
+            let checks = checks::dealt(&romfs, &new_game).unwrap();
+            let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
+            let vanilla = checks.iter().map(|c| (c.hash, c.item.as_str())).collect();
+            let play = world.play(&crate::fill::start(&new_game), &vanilla);
+            (world.places[world.start()].clone(), play.reached)
+        };
+        let (start, adult) = reached((crate::settings::STARTING_AGE, "adult".into()));
+        assert_eq!(start, start_of(Era::Adult));
+        assert_eq!(start.0, map::MARKET_ADULT.get());
+        // Adult forces open forest, so the child start gets it too.
+        let (start, child) = reached((crate::presets::OPEN_FOREST, true.into()));
+        assert_eq!(start, start_of(Era::Child));
+        assert!(!adult.is_empty());
+        assert_eq!(adult, child);
+    }
+
+    #[test]
     fn links_pocket_sits_at_the_start_with_the_door_open() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
@@ -789,7 +829,7 @@ mod tests {
         };
         let rewards = crate::settings::DUNGEON_REWARDS;
         let open = rauru(&[rewards, crate::settings::OPEN_DOOR]);
-        assert_eq!(open, [(START.0.to_string(), START.1)]);
+        assert_eq!(open, [start_of(Era::Child)]);
         let closed = rauru(&[rewards]);
         assert_eq!(closed, [(map::MARKET_ADULT.to_string(), Era::Adult)]);
     }

@@ -240,6 +240,7 @@ impl Book {
             fortress: FortressKeys::Vanilla,
             open: BTreeSet::new(),
             doors: None,
+            age: crate::world::Era::Child,
         };
         for (word, expr) in &self.abilities {
             self.need(expr, &ctx)

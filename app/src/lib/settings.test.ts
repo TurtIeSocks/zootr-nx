@@ -4,13 +4,16 @@ import type { Settings } from "@/lib/config";
 import {
   chosen,
   defaults,
+  forcer,
   isChanged,
   isOn,
   markedChips,
   patched,
   settingsChanges,
+  startForcers,
   summary,
   summaryParts,
+  withForced,
 } from "@/lib/settings";
 
 const toggles = (n: number): SettingDef[] =>
@@ -55,6 +58,38 @@ test("a parent turns its children on and stands in for them", () => {
   expect(summary(schema, { s2: true })).toBe("S2");
 });
 
+test("a choice's pick forces toggles on and gives start words", () => {
+  const [base] = toggles(1) as [SettingDef];
+  const door: SettingDef = { ...base, id: "door", label: "Door" };
+  const age: SettingDef = {
+    ...base,
+    id: "age",
+    label: "Age",
+    kind: {
+      type: "choice",
+      default: "child",
+      options: [
+        { id: "child", label: "Child", forces: [], starts: [] },
+        { id: "adult", label: "Adult", forces: ["door"], starts: ["sword"] },
+      ],
+    },
+  };
+  const schema = [age, door];
+  expect(forcer(door, { door: false }, schema)).toBeUndefined();
+  expect(isOn(door, { door: false }, schema)).toBe(false);
+  const adult = { age: "adult", door: false };
+  expect(forcer(door, adult, schema)).toBe(age);
+  expect(isOn(door, adult, schema)).toBe(true);
+  expect(summary(schema, adult)).toBe("Age: Adult");
+  expect(startForcers(schema, adult)).toEqual([{ def: age, words: ["sword"] }]);
+  expect(startForcers(schema, {})).toEqual([]);
+  expect(withForced({ sword: 2, bow: 1 }, ["sword", "hook"])).toEqual({
+    sword: 2,
+    bow: 1,
+    hook: 1,
+  });
+});
+
 test("a choice is summed up only off its default", () => {
   const size: SettingDef = {
     id: "size",
@@ -65,8 +100,8 @@ test("a choice is summed up only off its default", () => {
       type: "choice",
       default: "big",
       options: [
-        { id: "big", label: "Big" },
-        { id: "small", label: "Small" },
+        { id: "big", label: "Big", forces: [], starts: [] },
+        { id: "small", label: "Small", forces: [], starts: [] },
       ],
     },
     parent: null,
@@ -114,9 +149,9 @@ function diffSchema(): SettingDef[] {
       type: "choice",
       default: "a",
       options: [
-        { id: "a", label: "Big" },
-        { id: "b", label: "Small" },
-        { id: "c", label: "Tiny" },
+        { id: "a", label: "Big", forces: [], starts: [] },
+        { id: "b", label: "Small", forces: [], starts: [] },
+        { id: "c", label: "Tiny", forces: [], starts: [] },
       ],
     },
   };
