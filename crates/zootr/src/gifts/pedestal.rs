@@ -241,7 +241,16 @@ mod tests {
             .map(|i| (pedestal().hash(), Drop::from(i.to_string())))
             .collect();
         let mut rewrites = Rewrites::default();
-        give_all_aged(&romfs, &all, &mut rewrites, &drops, false, &on(ids), adult).unwrap();
+        give_all_aged(
+            &romfs,
+            &all,
+            &mut rewrites,
+            &drops,
+            Default::default(),
+            &on(ids),
+            adult,
+        )
+        .unwrap();
         Some(rewrites)
     }
 
