@@ -607,7 +607,7 @@ fn the_medallion_bridge_starts_armed_and_keeps_its_step() {
     };
     let dir = std::env::temp_dir().join(format!("zootr-bridge-gen-{}", std::process::id()));
     let on = NewGame {
-        bridge_medallions: true,
+        bridge: crate::settings::Bridge::SixMedallions,
         ..Default::default()
     };
     let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &on, &Run::silent()).unwrap();

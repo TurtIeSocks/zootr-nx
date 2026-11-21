@@ -84,8 +84,10 @@ pub struct NewGame {
     pub bunny_hood: bool,
     /// Night-only Gold Skulltulas show by day too.
     pub day_skulltulas: bool,
-    /// The rainbow bridge rises at six medallions.
-    pub bridge_medallions: bool,
+    /// What raises the rainbow bridge.
+    pub bridge: Bridge,
+    /// Whether Ganon's trials stand or start done.
+    pub trials: Trials,
     /// Gossip stones name where needed items are.
     pub hints: bool,
     pub logic: Logic,
@@ -218,7 +220,8 @@ impl NewGame {
             quiet_enemies: on(QUIET_ENEMIES),
             bunny_hood: on(BUNNY_HOOD),
             day_skulltulas: on(DAY_SKULLTULAS),
-            bridge_medallions: on(BRIDGE_MEDALLIONS),
+            bridge: chosen(settings, BRIDGE),
+            trials: chosen(settings, TRIALS),
             hints: on(HINTS),
             logic: chosen(settings, LOGIC),
             on: toggles_on(settings),
@@ -365,7 +368,8 @@ mod tests {
                 quiet_enemies: false,
                 bunny_hood: false,
                 day_skulltulas: false,
-                bridge_medallions: false,
+                bridge: Bridge::Vanilla,
+                trials: Trials::AllSix,
                 hints: false,
                 spawn: None,
                 fields: vec![],

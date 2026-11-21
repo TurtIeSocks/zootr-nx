@@ -185,8 +185,9 @@ Changes to how Link plays. All start off.
 | Open Kakariko gate | The Death Mountain trail is open from the start |
 | Logic | Glitchless places each item where Link can reach it without that item, so a seed can always be beaten. No logic places items anywhere |
 | Open Door of Time | The Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time |
-| Bridge at six medallions | The rainbow bridge rises once Link holds all six medallions, without the Light Arrows first |
-| Quest progress | Start with a quest step done: Zelda met, the Door of Time open, the carpenters freed, the rainbow bridge up, the trials done, or the Claim Check |
+| Rainbow bridge | Vanilla raises the bridge once Zelda has given Link the Light Arrows. Six medallions raises it once he holds all six. Open has it standing from the start |
+| Ganon's trials | All six, or done: every barrier in Ganon's Castle down from the start |
+| Quest progress | Start with a quest step done: Zelda met, the Door of Time open, the carpenters freed, or the Claim Check |
 
 ### Inventory
 

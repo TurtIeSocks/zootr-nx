@@ -62,7 +62,6 @@ const STONES: [&Name; 3] = [
     flow::GET_STONE_OF_FIRE,
     flow::GET_STONE_OF_WATER,
 ];
-const TRIALS: [&str; 6] = ["Light", "Forest", "Water", "Shadow", "Fire", "Spirit"];
 
 /// Zelda met and her lullaby learned, with the Door of Time quest at `door`.
 fn zelda(door: &str) -> Vec<String> {
@@ -120,20 +119,6 @@ fn carpenters_fast() -> Vec<String> {
             field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED_02
         ),
     ]
-}
-
-/// Every sage awake and the rainbow bridge up, with Ganon's quest at `step`.
-fn ganon(step: &str) -> Vec<String> {
-    let mut edits = lit(&[
-        &crate::steps::at(flow::ALL_SAGE, "Complete"),
-        &format!(
-            "{}.{}=true",
-            flag::HAVE_PLAYED_EVENT,
-            field::GANON_CASTLE_ADULT_FIELD_RAINBOW
-        ),
-    ]);
-    edits.push(crate::steps::at(flow::DEFEAT_GANON, step));
-    edits
 }
 
 /// The guide pop-ups a menu page opens the first time it fills, all off.
@@ -260,8 +245,6 @@ fn no_pickup_texts() -> Vec<String> {
     all(PICKUPS.map(|p| format!("IsGet.{p}")), "true")
 }
 
-const LIGHT_ARROWS: &[&Name] = &[item::ARROW_LIGHT];
-
 /// The preset whose King Zora already stands aside.
 pub const KING_ZORA_MOVED: &str = "king-zora-moved";
 
@@ -320,7 +303,7 @@ fn deku_tree_clear() -> Vec<String> {
         .collect()
 }
 
-pub const PRESETS: [Preset; 17] = [
+pub const PRESETS: [Preset; 15] = [
     Preset {
         name: OPEN_FOREST,
         label: "Open Forest",
@@ -499,38 +482,6 @@ pub const PRESETS: [Preset; 17] = [
         place: place::QUEST,
         edits: carpenters_fast,
         give: &[],
-        progress: &[],
-        fields: Vec::new,
-    },
-    Preset {
-        name: "rainbow-bridge",
-        label: "Rainbow Bridge Up",
-        what: "Every sage awake, the Light Arrows in hand and the bridge to Ganon's Castle up",
-        place: place::QUEST,
-        edits: || ganon("Step02"),
-        give: LIGHT_ARROWS,
-        progress: &[],
-        fields: Vec::new,
-    },
-    Preset {
-        name: "trials-done",
-        label: "Trials Done",
-        what: "The rainbow bridge, and all six barriers in Ganon's Castle down",
-        place: place::QUEST,
-        edits: || {
-            let mut edits = ganon("Step04");
-            edits.extend(lit(&[
-                &format!("{}=0", field::INSIDE_GANON_CASTLE_DUNGEON_BARRIER_COUNT),
-                &format!("{}=true", field::INSIDE_GANON_CASTLE_IS_ALL_BARRIER_CLEAR),
-            ]));
-            let removed = TRIALS.iter().flat_map(|t| {
-                let flag = format!("InsideGanonCastle_Dungeon_BarrierRemove_{t}");
-                [format!("{}.{flag}", flag::HAVE_PLAYED_EVENT), flag]
-            });
-            edits.extend(all(removed, "true"));
-            edits
-        },
-        give: LIGHT_ARROWS,
         progress: &[],
         fields: Vec::new,
     },
@@ -829,7 +780,6 @@ mod tests {
         needs_names!();
         let edits = |p: &str| expand(&[p.into()], &[]).unwrap();
         assert!(edits("door-of-time").contains(&crate::steps::at(flow::DOOR_OF_TIME, "Step06")));
-        assert!(edits("trials-done").contains(&crate::steps::at(flow::DEFEAT_GANON, "Step04")));
         assert_eq!(
             edits("carpenters-freed")
                 .iter()
@@ -838,8 +788,14 @@ mod tests {
             4
         );
         assert_eq!(
-            gives(&["rainbow-bridge".into(), "claim-check".into()]).unwrap(),
-            [item::ARROW_LIGHT, item::CLAIM_CHECK]
+            gives(&["door-of-time".into(), "claim-check".into()]).unwrap(),
+            [
+                item::STONE_FOREST,
+                item::STONE_FIRE,
+                item::STONE_WATER,
+                item::OCARINA_TIME,
+                item::CLAIM_CHECK
+            ]
         );
         assert!(PRESETS.iter().any(|p| p.place == place::QUEST));
     }

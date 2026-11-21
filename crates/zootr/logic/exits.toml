@@ -94,7 +94,7 @@ needs = "always"
 [[exit]]
 from = "market-adult"
 to = "ganons-castle"
-needs = "setting:rainbow-bridge or (item:forest-medallion and item:fire-medallion and item:water-medallion and item:shadow-medallion and item:spirit-medallion and item:light-medallion and beat:bongo-bongo and beat:twinrova)"
+needs = "setting:rainbow-bridge=open or (item:forest-medallion and item:fire-medallion and item:water-medallion and item:shadow-medallion and item:spirit-medallion and item:light-medallion and beat:bongo-bongo and beat:twinrova)"
 
 # Kakariko and the graveyard
 
@@ -344,7 +344,7 @@ needs = "silver-gauntlets and mirror-shield and hookshot and explosives and lens
 from = "inside-ganons-castle"
 to = "ganondorf-room"
 added = true
-needs = "setting:trials-done and magic and bow and item:light-arrows and master-sword"
+needs = "setting:ganons-trials=done and magic and bow and item:light-arrows and master-sword"
 
 # Maps the game swaps for their `_Alternative` copy once a sage is done,
 # for good. The game's own gate is a flag logic can't read, so each

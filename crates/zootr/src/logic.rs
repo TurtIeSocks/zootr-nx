@@ -33,7 +33,7 @@ pub fn start_of(age: Era) -> Place {
 pub const GOAL: &Name = map::GANONDORF_STAGE;
 
 /// The trials aren't modelled, so the goal counts them done.
-const TRIALS: &str = "trials-done";
+const TRIALS: &str = "ganons-trials=done";
 
 /// What every Business Scrub wants before it sells.
 const STUN_SCRUB: &str = "stun-scrub";
