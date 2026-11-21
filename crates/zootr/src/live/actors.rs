@@ -55,6 +55,7 @@ pub struct Actor {
 
 /// Whether an actor's model is hidden, and by whom.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(rename_all = "lowercase")]
 pub enum Hidden {
     #[default]

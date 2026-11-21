@@ -139,6 +139,13 @@ export const commands = {
 	devActors: (map: string) => typedError<DevActor[], string>(__TAURI_INVOKE("dev_actors", { map })),
 	/**  Warp Link to `side` of a placed actor of the map he's in. */
 	devWarp: (actor: string, side: Side) => typedError<string, string>(__TAURI_INVOKE("dev_warp", { actor, side })),
+	/**  The live actors placements made, nearest Link first. */
+	devNearby: () => typedError<DevNear[], string>(__TAURI_INVOKE("dev_nearby")),
+	/**
+	 *  Hide the live actors of these placements, or show them again. Answers
+	 *  the hashes that had one.
+	 */
+	devHide: (hashes: string[], on: boolean) => typedError<string[], string>(__TAURI_INVOKE("dev_hide", { hashes, on })),
 	/**  Switch age, and say where Link lands. */
 	devAge: () => typedError<string, string>(__TAURI_INVOKE("dev_age")),
 	devGive: (item: string, count: number) => typedError<string, string>(__TAURI_INVOKE("dev_give", { item, count })),
@@ -320,6 +327,20 @@ export type DevActor = {
 	hash: string,
 	/**  Its own `Name`, telling it from the actor's other placements. */
 	label: string | null,
+};
+
+/**  A live actor a placement made, for the panel's Live actors. */
+export type DevNear = {
+	/**  The placement's hash, as text: a u64 doesn't fit a JS number. */
+	hash: string,
+	actor: string,
+	/**
+	 *  The placement's own `Name`, when the map's files have it: an actor
+	 *  a seed adds has none.
+	 */
+	label: string | null,
+	distance: number | null,
+	hidden: Hidden,
 };
 
 /**
@@ -513,6 +534,13 @@ export type Held = {
 	name: string,
 	count: number,
 };
+
+/**  Whether an actor's model is hidden, and by whom. */
+export type Hidden = "shown" | 
+/**  By [`hide`]. */
+"ours" | 
+/**  By the game itself (an actor waiting on a scene). */
+"game";
 
 export type IconSize = "Small" | "Medium" | "Large";
 
