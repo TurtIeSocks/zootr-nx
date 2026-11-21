@@ -469,14 +469,15 @@ mod tests {
     }
 
     #[test]
-    fn adult_opens_the_door_and_the_forest_and_holds_the_master_sword() {
+    fn adult_opens_the_door_and_the_forest_and_leaves_the_sword_to_the_pedestal() {
         let adult = Settings::from([(STARTING_AGE.into(), "adult".into())]);
         let new_game = NewGame::from_settings(&adult, &[]).unwrap();
         assert_eq!(new_game.age, Era::Adult);
         assert!(new_game.open_door);
         let opened = [OPEN_DOOR, presets::OPEN_FOREST];
         assert!(opened.iter().all(|id| new_game.on.contains(*id)));
-        assert!(new_game.start.holds("master-sword"));
+        // The pedestal's gift gives it in the opening (`gifts::pedestal`).
+        assert!(!new_game.start.holds("master-sword"));
         let closed = Settings::from([
             (STARTING_AGE.into(), "adult".into()),
             (OPEN_DOOR.into(), false.into()),
@@ -485,7 +486,6 @@ mod tests {
         let child = NewGame::from_settings(&Settings::new(), &[]).unwrap();
         assert_eq!(child.age, Era::Child);
         assert!(!child.on.contains(presets::OPEN_FOREST));
-        assert!(!child.start.holds("master-sword"));
     }
 
     #[test]

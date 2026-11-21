@@ -86,9 +86,14 @@ digging = "always"
 # Many Gold Skulltulas sit up a wall, and which ones isn't read yet, so
 # logic wants a way to reach every one.
 gold-skulltula = "boomerang or hookshot"
-# A weapon that hurts a boss up close. The adult always has the Master
-# Sword, and Ship's boss rules want a blade or a stick, not any damage.
-melee = "adult or kokiri-sword or sticks"
+# The Master Sword. With Master Sword shuffle off, the pedestal gives it
+# to every adult (a vanilla source at the Temple of Time).
+master-sword = "adult and item:master-sword"
+# Ship's `CanUseSword` for adult. The Giant's Knife breaks, so it's out.
+adult-sword = "master-sword or (adult and item:biggorons-sword)"
+# A weapon that hurts a boss up close. Ship's boss rules want a blade or a
+# stick, not any damage.
+melee = "adult-sword or kokiri-sword or sticks"
 # A Business Scrub sells only once stunned: hit with a weapon, or its
 # nut sent back off a shield.
 stun-scrub = "melee or deku-shield or slingshot or boomerang"

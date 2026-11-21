@@ -85,7 +85,7 @@ pub(super) const fn reward(
     }
 }
 
-pub const GIFTS: [Gift; 86] = [
+pub const GIFTS: [Gift; 87] = [
     Gift {
         flow: scene::KOKIRI_0155,
         area: flag::KOKIRI_FOREST,
@@ -425,6 +425,14 @@ pub const GIFTS: [Gift; 86] = [
         item::MEDAL_LIGHT,
         SCENE_PLAYED,
     ),
+    Gift {
+        flow: super::pedestal::FLOW,
+        area: flag::MARKET,
+        giver: "Master Sword pedestal",
+        item: actor::WEAPON_SWORD_MASTER,
+        how: How::Pedestal,
+        setting: Some(MASTER_SWORD),
+    },
     npc(
         flow::GATHERING_TOKEN_GOLD,
         flag::KAKARIKO_VILLAGE,

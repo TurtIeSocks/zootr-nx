@@ -61,6 +61,15 @@ era = "adult"
 item = "beat:twinrova"
 needs = "always"
 
+# The pedestal's Master Sword, the first time adult Link wakes in the
+# Temple of Time. A dealt pedestal check takes its place.
+[[source]]
+name = "Master Sword"
+place = "market-adult"
+era = "adult"
+item = "item:master-sword"
+needs = "always"
+
 # Spiritual Stones and medallions. Boss doors are in `exits.toml`.
 
 [[source]]

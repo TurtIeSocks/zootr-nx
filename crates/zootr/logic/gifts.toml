@@ -302,6 +302,15 @@ place = "market-adult"
 era = "adult"
 needs = "always"
 
+# The Master Sword pedestal, dealt with Master Sword shuffle: the first
+# pull, which wakes Link adult in the Temple of Time.
+[[check]]
+hash = 6465850391777915933
+name = "Master Sword pedestal"
+place = "market-adult"
+era = "adult"
+needs = "always"
+
 # Songs, dealt only with the setting on. Each is where its vanilla source
 # is and needs what it does, since the scene that teaches it starts the
 # same way.

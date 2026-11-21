@@ -6,6 +6,7 @@ mod found;
 mod later;
 pub(crate) mod levels;
 mod lines;
+mod pedestal;
 mod pocket;
 mod potion;
 pub(crate) use potion::DONE as BOTTLE_TUTORIAL_DONE;
@@ -19,6 +20,7 @@ pub use cutscene::straight;
 pub use found::flags;
 pub(crate) use later::scene_marks;
 pub use lines::lines;
+pub use pedestal::gives as pedestal_gives;
 pub use pocket::pocket;
 pub use table::GIFTS;
 
@@ -43,8 +45,8 @@ use crate::flows::{
 };
 use crate::known::{Name, actor, field, flag, flow, item, scene};
 use crate::settings::{
-    DUNGEON_REWARDS, HUNDRED_TOKENS, MERCHANTS, NPC_GIFTS, OPEN_DOOR, RUNNING_RACE, SONGS,
-    TRADE_CHAIN,
+    DUNGEON_REWARDS, HUNDRED_TOKENS, MASTER_SWORD, MERCHANTS, NPC_GIFTS, OPEN_DOOR, RUNNING_RACE,
+    SONGS, TRADE_CHAIN,
 };
 use crate::{cows, dampe, grant, pickups, scrubs, shops, starting};
 
@@ -94,6 +96,9 @@ pub enum How {
     /// item, to the giver's flow and to each flow in `also`, where the same
     /// giver stands in another place.
     Added { also: &'static [&'static Name] },
+    /// The Master Sword pedestal (`pedestal`): the first pull's grant, or
+    /// the swap's or the opening's once the door is open.
+    Pedestal,
     Sale {
         call: &'static [Call],
         sold: &'static Name,
@@ -289,10 +294,20 @@ impl Gift {
     pub(crate) fn caller(&self) -> Option<&'static str> {
         match self.how {
             How::Later { caller, .. } => Some(caller.get()),
+            How::Pedestal => Some(pedestal::caller()),
             _ => SKIPPED_IN
                 .iter()
                 .find(|s| s.0 == self.flow)
                 .map(|s| s.1.get()),
+        }
+    }
+
+    /// Whether its own grant can't run: the pedestal's with the door open,
+    /// or a scene a cutscene skip cut.
+    fn lost(&self, on: &BTreeSet<String>, rewrites: &Rewrites) -> Result<bool> {
+        match self.how {
+            How::Pedestal => Ok(on.contains(OPEN_DOOR)),
+            _ => self.skipped(rewrites),
         }
     }
 
@@ -441,9 +456,8 @@ const UNSTUCK: [(&Name, Edit); 3] = [
     ),
 ];
 
-/// Write each gift whose item changed, and Zelda's always, so her lesson
-/// never plays without an ocarina. Biggoron never makes Link wait, sword
-/// moved or not. Every Great Fairy opens in any order.
+/// [`give_all_aged`] for a child start.
+#[cfg(test)]
 pub fn give_all(
     romfs: &Romfs,
     flows: &Flows,
@@ -451,6 +465,22 @@ pub fn give_all(
     drops: &HashMap<u64, Drop>,
     lines: crate::progressive::Lines,
     on: &BTreeSet<String>,
+) -> Result<()> {
+    give_all_aged(romfs, flows, rewrites, drops, lines, on, false)
+}
+
+/// Write each gift whose item changed, and Zelda's always, so her lesson
+/// never plays without an ocarina. Biggoron never makes Link wait, sword
+/// moved or not. Every Great Fairy opens in any order. A new game that
+/// starts `adult` gets the pedestal's gift in its opening.
+pub fn give_all_aged(
+    romfs: &Romfs,
+    flows: &Flows,
+    rewrites: &mut Rewrites,
+    drops: &HashMap<u64, Drop>,
+    lines: crate::progressive::Lines,
+    on: &BTreeSet<String>,
+    adult: bool,
 ) -> Result<()> {
     let mut marks = found::Marks::default();
     // Chained once every gift is renamed: a chain names other levels, maybe
@@ -461,7 +491,7 @@ pub fn give_all(
     let mut taken: HashMap<&str, BTreeSet<u16>> = HashMap::new();
     for gift in &GIFTS {
         let item = item_at(drops, gift.hash(), gift.item);
-        let pocket = gift.pocket(on);
+        let pocket = gift.pocket(on) || (adult && gift.is_pedestal());
         let leveled = levels::needs(gift, item, lines);
         let item = match pocket && leveled {
             true => pocket::level(romfs, rewrites, item, lines)?,
@@ -479,7 +509,7 @@ pub fn give_all(
         {
             flows::edit(romfs, rewrites, gift.flow, free)?;
         }
-        let lost = pocket || gift.skipped(rewrites)?;
+        let lost = pocket || gift.lost(on, rewrites)?;
         let given = item != gift.item || matches!(gift.how, How::Cut { .. }) || lost;
         let took = match (given, &gift.how) {
             (true, _) => give(romfs, flows, rewrites, gift, item, mine, lost, pocket)
@@ -530,6 +560,7 @@ pub fn give_all(
             .with_context(|| format!("{flow} giving {item} by level"))?;
         }
     }
+    pedestal::shuffle(romfs, rewrites, on)?;
     flows::edit(romfs, rewrites, BIGGORON, waited)?;
     flows::edit(romfs, rewrites, FOUNTAIN, ungated)
 }
@@ -562,6 +593,7 @@ fn give(
             }
             How::Later { call, .. } => silence_calls(flow, call, gift.item),
             How::Added { .. } => Ok(()),
+            How::Pedestal => pedestal::in_draw(romfs, flow, flows, item).map(|g| took = vec![g]),
             How::Sale {
                 call,
                 sold,
@@ -577,9 +609,13 @@ fn give(
         }
     }
     if let Some(to) = gift.moved_to(lost, pocket) {
-        flows::edit(romfs, rewrites, to, |f| match pocket {
-            true => grant_before_save(f, flows, item),
-            false => grant_after(f, flows, gift.flow, item),
+        flows::edit(romfs, rewrites, to, |f| {
+            match (gift.is_pedestal(), pocket) {
+                (true, true) => pedestal::in_opening(romfs, f, flows, item),
+                (true, false) => pedestal::in_swap(romfs, f, flows, item),
+                (false, true) => grant_before_save(f, flows, item),
+                (false, false) => grant_after(f, flows, gift.flow, item),
+            }
         })?;
     }
     if let Some((callee, entry)) = back {

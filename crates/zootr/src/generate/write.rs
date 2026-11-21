@@ -12,6 +12,7 @@ use crate::checks::{self, Drop};
 use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::hints::Hint;
+use crate::known::actor;
 use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::progressive::Lines;
@@ -66,18 +67,25 @@ pub(super) fn flows(
         spawn::warp(romfs, &mut rewrites, spawn)?;
     }
     if new_game.age == Era::Adult {
-        spawn::adult(romfs, &mut rewrites)?;
+        // The pedestal's gift comes in the opening (`gifts`), so he wakes
+        // with the Master Sword only when it gives the sword or he started
+        // with it.
+        let sword = actor::WEAPON_SWORD_MASTER.get();
+        let sword =
+            gifts::pedestal_gives(drops) == sword || new_game.start.owned().contains(&sword);
+        spawn::adult(romfs, &mut rewrites, sword)?;
     }
     if new_game.on.contains(TRADE_CHAIN) {
         trade_chain::deal(romfs, &mut rewrites, drops)?;
     }
-    gifts::give_all(
+    gifts::give_all_aged(
         romfs,
         all,
         &mut rewrites,
         drops,
         Lines::of(new_game),
         &new_game.on,
+        new_game.age == Era::Adult,
     )?;
     levels(romfs, drops, new_game)?.give(romfs, all, &mut rewrites)?;
     if new_game.shop_slots > 0 {

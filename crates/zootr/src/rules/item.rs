@@ -8,7 +8,7 @@ use crate::progressive::Lines;
 
 /// The game's own words naming an item actor start with one of these.
 /// Rule files use `item:` words, so only code writes these.
-pub(super) const ITEM_PREFIXES: &[&str] = &["Item_", "TBox_", "Armor_", "Obj_"];
+pub(super) const ITEM_PREFIXES: &[&str] = &["Item_", "TBox_", "Armor_", "Obj_", "Weapon_"];
 /// A boss defeat's id starts with this. Only a vanilla source gives one,
 /// and Link holds it like an item.
 pub(super) const BEAT: &str = "Beat_";
