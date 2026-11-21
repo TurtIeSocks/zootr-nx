@@ -3,6 +3,73 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.8.0] - 2026-11-21
+
+### Added
+
+- Master Sword shuffle
+- A file written twice builds on its first write
+- Child Link uses the Hammer and hooks, adult Link Deku Sticks and the Boomerang
+- A choice of three or more options is a select
+- Every setting sits in a named section that folds
+- No tutorials on by default, the running race and 100-token reward off
+- A setting that needs another greys out until it's on
+- A button to check for updates now
+- A changelog of every release, loaded as you read
+- Every section's header gives its description and count
+- Logic & access leads the pages, Inventory closes them
+- Each release in the changelog is a fold, only the newest open
+- A new game starts with the Master Sword by default
+- Zootr flagmap, a graph of the game's state (phase 1: event flows)
+- All and None in every section with toggles
+- A page's reset goes to the defaults or the last seed
+- Zootr flagmap live, the running game's value of each state
+- A search at the top of every page, docs-site style
+- The search scopes to a group, and a lone group shows it all
+- A setting that takes the magic meter off the magic items
+- With magic apart, no meter check thinks a magic item brings the meter
+- A Magic Meter item, and magic apart from the magic items by default
+- The tracker and starting items get the magic line and both fairy powers
+- The Archipelago world gets the Magic Meter
+- Every destructive button asks for a second click
+- Scene logic, phase 3: graphs, placements and actors
+- Actor AI and the asks table, phase 4
+
+### Fixed
+
+- Take the forced Master Sword from a swordless Link after a pull
+- The wake-up scene hands a swordless adult no Master Sword
+- A skipped first pull still runs the closed door's first-pull path
+- The animation file gets the same RESTBL slack
+- The Megaton Hammer waits for its own change
+- Each Link borrows every one of the other's animation archives
+- A lent archive hides every clip its Link already has
+- A lent item clip moves as its Link's plain one
+- Drop the help bubble beside the sidebar's status pills
+- With no seed built, the page reset leads with the defaults
+- A section without toggles counts what's "off default"
+- The palette's arrows scroll the list and never lose a press
+- Done says what is still missing
+- Show "Loading…" while the spoiler loads
+- Name the table's columns, and point the empty state to Play
+- A toggle with an unmet requirement shows off
+- The changelog can retry a failed fetch
+- A choice with an unmet requirement shows no pick
+- The Magic Meter's sigil reads green, not gold
+- The magic setting sits in the Item pool section
+- Name the roll button
+- Give same-named buttons names of their own
+- Lower an item's tier from the keyboard
+- Let a keyboard reach a badge's tooltip
+- Drift always measures from "the last seed"
+- One name for the mod, values, spoiler, badges and tabs
+- One Filter box, plain flag types, the platform copy key
+- Generate only adds to History, Standard gets a sword
+- Tooltips say what a button does, not its label
+- Title Case for names, buttons and menu items
+- The changelog and find's seed results leave the spoiler's icon
+- Read links the game converts across types
+
 ## [0.7.0] - 2026-11-21
 
 ### Added
