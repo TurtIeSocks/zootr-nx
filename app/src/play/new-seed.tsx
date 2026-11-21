@@ -79,6 +79,7 @@ function RollButton() {
       <Button
         variant="ghost"
         size="icon-sm"
+        aria-label="Roll a seed"
         className="-translate-y-1/2 absolute top-1/2 right-1.5"
         onClick={() =>
           useUi.setPath(
