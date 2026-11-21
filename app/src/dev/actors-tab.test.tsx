@@ -8,9 +8,11 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { DevNear, DevState } from "@/bindings";
-import { LiveActors } from "@/dev/live-actors";
+import { Activity } from "@/dev/activity";
+import { ActorsTab, LiveReads } from "@/dev/actors-tab";
 import { FOLLOW_MS, RETRY_MS } from "@/dev/use-live-actors";
 import { useDev } from "@/stores/dev";
+import { useUi } from "@/stores/ui";
 
 type Result<T> = { status: "ok"; data: T };
 const ok = <T,>(data: T): Promise<Result<T>> =>
@@ -34,12 +36,28 @@ const devHide = vi.fn((hashes: string[], _on: boolean) =>
   ok(hashes.filter((h) => world.live.has(h))),
 );
 
+const devWarp = vi.fn((hash: string, side: string) =>
+  ok(`warped beside ${hash} ${side}`),
+);
+
 vi.mock("@/bindings", () => ({
   commands: {
     devNearby: () => devNearby(),
     devHide: (h: string[], on: boolean) => devHide(h, on),
+    devWarp: (h: string, s: string) => devWarp(h, s),
+    devActors: () => ok([{ actor: "Obj_FakeRock", hash: "1", label: null }]),
   },
 }));
+
+/** The Actors tab as the window holds it: its reads, and the activity
+ * line its results land in. */
+const liveActors = (
+  <>
+    <LiveReads />
+    <ActorsTab />
+    <Activity />
+  </>
+);
 
 const state = (map: string, loading = false): DevState => ({
   map,
@@ -70,6 +88,8 @@ beforeEach(() => {
     query: "",
   });
   useDev.setPath("game", { state: state("FakeHill_Child") });
+  useDev.setPath("activity", { log: [], running: null });
+  useUi.setPath("dev.actors.tab", "nearby");
 });
 
 afterEach(() => {
@@ -79,14 +99,17 @@ afterEach(() => {
 });
 
 const list = () => screen.findByRole("list", { name: /^Live actors in/ });
-const row = (name: RegExp) =>
-  within(screen.getByRole("list", { name: /^Live actors in/ })).getByRole(
-    "button",
-    { name },
-  );
+/** A row's hide toggle: the button of its row that's pressed or not. */
+const row = (name: RegExp) => {
+  const found = within(screen.getByRole("list", { name: /^Live actors in/ }))
+    .getAllByRole("button", { name })
+    .find((b) => b.hasAttribute("aria-pressed"));
+  if (!found) throw new Error(`no row for ${name}`);
+  return found;
+};
 
 test("lists the live actors nearest first, the game's hidden ones untoggled", async () => {
-  render(<LiveActors />);
+  render(liveActors);
   const rows = within(await list()).findAllByRole("listitem");
   const text = (await rows).map((r) => r.textContent);
   expect(text).toEqual([
@@ -100,14 +123,16 @@ test("lists the live actors nearest first, the game's hidden ones untoggled", as
 });
 
 test("a click hides the actor, listing it in the strip, and again shows it", async () => {
-  render(<LiveActors />);
+  render(liveActors);
   await within(await list()).findByText("Obj_FakeRock");
   fireEvent.click(row(/Obj_FakeRock/));
   await vi.waitFor(() =>
     expect(row(/Obj_FakeRock/).getAttribute("aria-pressed")).toBe("true"),
   );
   expect(devHide).toHaveBeenCalledWith(["1"], true);
-  expect(screen.getByRole("status").textContent).toBe("hid Obj_FakeRock");
+  expect(screen.getByRole("status").textContent).toBe(
+    "Hid Obj_FakeRock in FakeHill_Child",
+  );
   const strip = screen.getByRole("list", { name: "Hidden actors" });
   expect(within(strip).getByText("Obj_FakeRock")).toBeTruthy();
   expect(useDev.getPath("live.hidden")).toEqual([
@@ -123,18 +148,18 @@ test("a click hides the actor, listing it in the strip, and again shows it", asy
 });
 
 test("an actor gone since the read says so and stays off the strip", async () => {
-  render(<LiveActors />);
+  render(liveActors);
   await within(await list()).findByText("Obj_FakeRock");
   world.live.delete("1");
   fireEvent.click(row(/Obj_FakeRock/));
-  expect((await screen.findByRole("alert")).textContent).toMatch(
-    "Obj_FakeRock isn't live anymore",
+  expect((await screen.findByRole("alert")).textContent).toBe(
+    "Couldn't hide Obj_FakeRock: Obj_FakeRock isn't live anymore. Refresh the list",
   );
   expect(useDev.getPath("live.hidden")).toEqual([]);
 });
 
 test("a chip's × shows its actor, and Show all shows the rest", async () => {
-  render(<LiveActors />);
+  render(liveActors);
   await within(await list()).findByText("Obj_FakeRock");
   for (const name of [/Obj_FakeRock/, /FakeIvy_000/, /#2/]) {
     fireEvent.click(row(name));
@@ -162,7 +187,7 @@ test("a chip's × shows its actor, and Show all shows the rest", async () => {
 });
 
 test("the search narrows the rows, keeping their order and tags", async () => {
-  render(<LiveActors />);
+  render(liveActors);
   await within(await list()).findByText("Obj_FakeRock");
   fireEvent.change(
     screen.getByRole("textbox", { name: "Search live actors" }),
@@ -186,7 +211,7 @@ test("after a map load it hides the map's listed actors again, retrying ones not
   ]);
   world.live = new Set(["1"]);
   onMap("FakeHill_Child", true);
-  render(<LiveActors />);
+  render(liveActors);
   await vi.advanceTimersByTimeAsync(0);
   expect(devHide).not.toHaveBeenCalled();
 
@@ -208,7 +233,7 @@ test("after a map load it hides the map's listed actors again, retrying ones not
 });
 
 test("a read hides again a listed actor made again with no map load", async () => {
-  render(<LiveActors />);
+  render(liveActors);
   await within(await list()).findByText("Obj_FakeRock");
   fireEvent.click(row(/Obj_FakeRock/));
   await vi.waitFor(() =>
@@ -227,7 +252,7 @@ test("a re-hide gives up after its retries and stops once Link leaves", async ()
   useDev.setPath("live.hidden", [
     { hash: "7", actor: "Obj_FakeLate", label: null, map: "FakeHill_Child" },
   ]);
-  render(<LiveActors />);
+  render(liveActors);
   await vi.advanceTimersByTimeAsync(RETRY_MS * 10);
   expect(devHide).toHaveBeenCalledTimes(5);
 
@@ -247,7 +272,7 @@ test("a re-hide gives up after its retries and stops once Link leaves", async ()
 
 test("Follow reads again every few seconds, only while on", async () => {
   vi.useFakeTimers();
-  render(<LiveActors />);
+  render(liveActors);
   await vi.advanceTimersByTimeAsync(FOLLOW_MS * 3);
   expect(devNearby).toHaveBeenCalledTimes(1);
 
@@ -261,11 +286,48 @@ test("Follow reads again every few seconds, only while on", async () => {
 });
 
 test("Refresh reads again in the new order", async () => {
-  render(<LiveActors />);
+  render(liveActors);
   await within(await list()).findByText("Obj_FakeRock");
   world.list = [near("Npc_FakeNew", "5", 0.5), ...world.list];
   fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
   const first = await within(await list()).findByText("Npc_FakeNew");
   expect(first).toBeTruthy();
   expect(devNearby).toHaveBeenCalledTimes(2);
+});
+
+test("a row's Warp beside warps to it on the side picked in Warp", async () => {
+  render(liveActors);
+  await within(await list()).findByText("Obj_FakeRock");
+  fireEvent.click(
+    screen.getByRole("button", { name: "Warp beside Land_FakeIvy #2" }),
+  );
+  expect(devWarp).toHaveBeenCalledWith("3", "front");
+  expect((await screen.findByRole("status")).textContent).toBe(
+    "warped beside 3 front",
+  );
+});
+
+test("a hidden row is struck through, and the list says when it was read", async () => {
+  render(liveActors);
+  await within(await list()).findByText("Obj_FakeRock");
+  expect(screen.getByText(/^read/).textContent).toBe("read now");
+  fireEvent.click(row(/Obj_FakeRock/));
+  await vi.waitFor(() =>
+    expect(
+      within(screen.getByRole("list", { name: /^Live actors in/ })).getByText(
+        "Obj_FakeRock",
+      ).className,
+    ).toContain("line-through"),
+  );
+});
+
+test("All in map lists the map's placements, each a warp away", async () => {
+  render(liveActors);
+  fireEvent.click(screen.getByRole("button", { name: "All in map" }));
+  const all = await screen.findByRole("list", {
+    name: "Actors in FakeHill_Child",
+  });
+  expect(
+    await within(all).findByRole("button", { name: "Obj_FakeRock" }),
+  ).toBeTruthy();
 });

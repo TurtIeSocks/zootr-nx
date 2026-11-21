@@ -13,6 +13,8 @@ interface Props<T extends BaseOption>
   onValueChange: (id: T["id"]) => void;
   /** Stretch to the container with equal segments. */
   full?: boolean;
+  /** Every option can't be picked. */
+  disabled?: boolean;
 }
 
 /** Two to four short options, the picked one riding a sliding indicator.
@@ -22,6 +24,7 @@ export function Segmented<T extends BaseOption>({
   value,
   onValueChange,
   full,
+  disabled,
   className,
   ...props
 }: Props<T>) {
@@ -72,9 +75,10 @@ export function Segmented<T extends BaseOption>({
           key={`${o.id}`}
           type="button"
           aria-pressed={o.id === value}
+          disabled={disabled}
           onClick={() => onValueChange(o.id)}
           className={cn(
-            "relative z-1 h-6.5 cursor-pointer whitespace-nowrap rounded-sm px-3 font-medium text-[12.5px] text-ink-muted transition-colors duration-(--duration-fast) ease-out hover:text-ink aria-pressed:text-ink",
+            "relative z-1 h-6.5 cursor-pointer whitespace-nowrap rounded-sm px-3 font-medium text-[12.5px] text-ink-muted transition-colors duration-(--duration-fast) ease-out enabled:hover:text-ink aria-pressed:text-ink disabled:cursor-not-allowed disabled:opacity-45",
             full && "flex-1",
           )}
         >

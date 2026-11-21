@@ -33,6 +33,15 @@ export type PlayTab = "standard" | "archipelago" | "history";
 /** Which seeds History lists. */
 export type HistoryFilter = "all" | "standard" | "archipelago";
 
+/** The dev panel's tabs. */
+export type DevTab = "warp" | "actors" | "give" | "values" | "tests";
+
+/** A give the dev panel repeats: the item and how many. */
+export interface DevGive {
+  item: string;
+  count: number;
+}
+
 export interface Ui {
   /** The view showing. */
   tab: Tab | "Settings";
@@ -93,7 +102,9 @@ export interface Ui {
   };
   /** The dev panel's picks and drafts. */
   dev: {
-    /** Teleport's tab, each tab's search, and the side to warp to. */
+    /** The open tab. */
+    tab: DevTab;
+    /** Warp's tab, each tab's search, and the side to warp to. */
     teleport: {
       tab: "places" | "actors";
       places: string;
@@ -106,6 +117,18 @@ export interface Ui {
     set: { name: string };
     /** The quest and step picked in Quest step. */
     quest: { challenge: string; step: string };
+    /** Actors' tab. */
+    actors: { tab: "nearby" | "all" };
+    /** The places starred, `MAP/SPOT`, in the order starred. */
+    starred: string[];
+    /** What was done lately, newest first, for one-click repeats. */
+    recent: {
+      /** Places warped to. */
+      places: string[];
+      gives: DevGive[];
+      /** GameData names set, with the value set. */
+      values: { name: string; value: string }[];
+    };
   };
 }
 
@@ -141,10 +164,14 @@ const INITIAL: Ui = {
     flags: { search: "", kind: null, changed: true, staged: false, open: {} },
   },
   dev: {
+    tab: "warp",
     teleport: { tab: "places", places: "", actors: "", side: "front" },
     give: { item: "", count: 1 },
     set: { name: "" },
     quest: { challenge: "", step: "" },
+    actors: { tab: "nearby" },
+    starred: [],
+    recent: { places: [], gives: [], values: [] },
   },
 };
 
@@ -316,6 +343,17 @@ export function init(): Promise<void> {
     await getCurrentWindow().onCloseRequested(file.flush);
   })();
   return loading;
+}
+
+/** `list` with `item` first and any equal one dropped, at most `max`
+ * long: a recents list. */
+export function remember<T>(
+  list: T[],
+  item: T,
+  max: number,
+  same: (a: T, b: T) => boolean = (a, b) => a === b,
+): T[] {
+  return [item, ...list.filter((x) => !same(x, item))].slice(0, max);
 }
 
 /** Opens or closes a settings checklist, by its title. */

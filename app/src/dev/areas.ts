@@ -26,24 +26,35 @@ export function mapAge(map: string): "child" | "adult" | undefined {
   return age === "Child" ? "child" : "adult";
 }
 
-/** The spots for Link's age, both ages when it's unknown, grouped by area
- * in order. The query matches the area or the spot, any case. */
+/** The spots of `places` for Link's age, both ages when it's unknown, in
+ * their order. The query matches the area or the spot, any case. */
+export function spots(
+  places: string[],
+  child: boolean | undefined,
+  query: string,
+): Spot[] {
+  const want = child === undefined ? undefined : child ? "child" : "adult";
+  const q = query.trim().toLowerCase();
+  return places.flatMap((place) => {
+    const [map, spot] = place.split("/");
+    if (!map || !spot) return [];
+    const age = mapAge(map);
+    if (want && age && age !== want) return [];
+    if (q && !`${area(map)}/${spot}`.toLowerCase().includes(q)) return [];
+    return [{ place, map, spot }];
+  });
+}
+
+/** `spots`, grouped by area, the areas sorted. */
 export function areas(
   places: string[],
   child: boolean | undefined,
   query: string,
 ): Area[] {
-  const want = child === undefined ? undefined : child ? "child" : "adult";
-  const q = query.trim().toLowerCase();
   const byArea = new Map<string, Spot[]>();
-  for (const place of places) {
-    const [map, spot] = place.split("/");
-    if (!map || !spot) continue;
-    const age = mapAge(map);
-    if (want && age && age !== want) continue;
-    const name = area(map);
-    if (q && !`${name}/${spot}`.toLowerCase().includes(q)) continue;
-    byArea.set(name, [...(byArea.get(name) ?? []), { place, map, spot }]);
+  for (const s of spots(places, child, query)) {
+    const name = area(s.map);
+    byArea.set(name, [...(byArea.get(name) ?? []), s]);
   }
   return [...byArea]
     .sort(([a], [b]) => a.localeCompare(b))

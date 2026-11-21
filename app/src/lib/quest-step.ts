@@ -13,3 +13,6 @@ export function stepOf(quests: Quests, pick: QuestStep): string {
   const steps = quests[pick.challenge.trim()] ?? [];
   return steps.includes(pick.step) ? pick.step : (steps[0] ?? "");
 }
+
+/** What a quest's saved step is named after: `Step_` and the quest. */
+export const SAVED = "Step_";

@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { commands, type DevNear } from "@/bindings";
 import { tag } from "@/dev/tag";
 import { call, message } from "@/lib/api";
+import { count } from "@/lib/format";
 import { type HiddenActor, type LiveRead, useDev } from "@/stores/dev";
 
 /** How often Follow reads again. */
@@ -22,7 +23,12 @@ export async function readLive(): Promise<void> {
   const mine = ++reads;
   let read: LiveRead;
   try {
-    read = { status: "ok", map, list: await call(commands.devNearby()) };
+    read = {
+      status: "ok",
+      map,
+      list: await call(commands.devNearby()),
+      at: Date.now(),
+    };
   } catch (e) {
     read = { status: "error", error: message(e) };
   }
@@ -66,8 +72,17 @@ function without(hashes: string[]): HiddenActor[] {
   return useDev.getPath("live.hidden").filter((h) => !hashes.includes(h.hash));
 }
 
-/** Hides `near`'s model, or shows it again, keeping the hidden list. */
-export async function toggle(near: DevNear, map: string): Promise<string> {
+/** An actor and what tells it from others of its name. */
+const named = (actor: string, tag: string | null) =>
+  tag ? `${actor} ${tag}` : actor;
+
+/** Hides `near`'s model, or shows it again, keeping the hidden list.
+ * `tag` tells it from others of its name in what it says. */
+export async function toggle(
+  near: DevNear,
+  map: string,
+  tag: string | null,
+): Promise<string> {
   const on = near.hidden === "shown";
   const found = await call(commands.devHide([near.hash], on));
   if (!found.includes(near.hash)) {
@@ -80,7 +95,7 @@ export async function toggle(near: DevNear, map: string): Promise<string> {
     "live.hidden",
     on ? [...rest, { hash, actor, label, map }] : rest,
   );
-  return `${on ? "hid" : "showed"} ${actor}`;
+  return `${on ? "Hid" : "Showed"} ${named(actor, tag)} in ${map}`;
 }
 
 /** Shows these hidden actors again, those on Link's map in the game, and
@@ -93,16 +108,19 @@ async function show(gone: HiddenActor[]): Promise<void> {
 }
 
 /** Shows one hidden actor again. */
-export async function showOne(hidden: HiddenActor): Promise<string> {
+export async function showOne(
+  hidden: HiddenActor,
+  tag: string | null,
+): Promise<string> {
   await show([hidden]);
-  return `showed ${hidden.actor}`;
+  return `Showed ${named(hidden.actor, tag)} in ${hidden.map}`;
 }
 
 /** Shows every hidden actor again. */
 export async function showAll(): Promise<string> {
   const all = useDev.getPath("live.hidden");
   await show(all);
-  return `showed ${all.length}`;
+  return `Showed ${count(all.length, "actor")}`;
 }
 
 const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
@@ -134,9 +152,9 @@ async function rehide(map: string): Promise<void> {
   }
 }
 
-/** Reads once the section shows and after each finished map load, hiding
+/** Reads once the window shows and after each finished map load, hiding
  * the map's listed actors again, and every `FOLLOW_MS` while Follow is on.
- * Call once, from the section. */
+ * Call once, from the window, so a load hides them again on any tab. */
 export function useLiveReads() {
   const [map] = useDev.usePath("game.state.map");
   const [loading] = useDev.usePath("game.state.loading");
@@ -164,7 +182,7 @@ export interface LiveRow {
 /** The last read, its rows matching the search, in distance order. Tags
  * count over every row, so a search keeps each one's `#n`. */
 export function useLiveRows():
-  | { status: "ok"; map: string; rows: LiveRow[] }
+  | { status: "ok"; map: string; rows: LiveRow[]; at: number }
   | Exclude<LiveRead, { status: "ok" }> {
   const [read] = useDev.usePath("live.read");
   const [query] = useDev.usePath("live.query");
@@ -177,7 +195,7 @@ export function useLiveRows():
       .filter(({ near }) =>
         [near.actor, near.label ?? ""].some((t) => t.toLowerCase().includes(q)),
       );
-    return { status: "ok", map: read.map, rows };
+    return { status: "ok", map: read.map, rows, at: read.at };
   }, [read, query]);
 }
 
