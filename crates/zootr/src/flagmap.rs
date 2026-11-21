@@ -19,6 +19,8 @@ use crate::gamedata::{self, GameData};
 use crate::gates;
 use crate::known::{field, flag};
 
+mod actors;
+mod asks;
 mod flows;
 mod query;
 mod scene;
@@ -38,6 +40,10 @@ pub enum Kind {
     Placement,
     /// An actor, by name.
     Actor,
+    /// An AINB node class: game code a graph runs.
+    Class,
+    /// Something game code asks that no data holds: the clock, age.
+    Game,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
@@ -50,6 +56,12 @@ pub enum Link {
     Drives,
     /// A graph placing an actor.
     Places,
+    /// An actor's own graph, from its pack.
+    Has,
+    /// A class's answer going into a graph that runs it.
+    Uses,
+    /// What a class asks (the asks table).
+    Asks,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -88,6 +100,8 @@ pub struct Graph {
     /// What builds the graph's sources need: flows to print a cited event.
     flows: Option<Flows>,
     gamedata: Option<GameData>,
+    /// Graphs the AINB reader can't parse yet, left out.
+    unread: Vec<String>,
     /// The scene graphs, to print a cited node.
     scene: HashMap<String, ounce_formats::ainb::Graph>,
 }
@@ -100,6 +114,8 @@ impl Kind {
             Kind::Graph => "graph",
             Kind::Placement => "placement",
             Kind::Actor => "actor",
+            Kind::Class => "class",
+            Kind::Game => "game",
         }
     }
 }
@@ -134,6 +150,8 @@ impl Graph {
         g.scene = (wiring.graphs.into_iter())
             .map(|(name, graph)| (gates::path(&name), graph))
             .collect();
+        let packs = actors::add(&mut g, romfs, &gamedata)?;
+        g.scene.extend(packs);
         g.flows = Some(flows);
         g.gamedata = Some(gamedata);
         Ok(g)

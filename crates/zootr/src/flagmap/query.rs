@@ -13,6 +13,8 @@ use crate::flows;
 
 /// Edges a report lists before it says how many more there are.
 pub const CAP: usize = 50;
+/// Classes `stats` lists that the asks table doesn't cover.
+const UNASKED: usize = 20;
 /// Shortest paths `trace` lists.
 const PATHS: usize = 5;
 
@@ -69,6 +71,10 @@ pub struct Stats {
     pub unresolved: usize,
     /// Edges by what they do, most first.
     pub labels: Vec<(String, usize)>,
+    /// Graphs the AINB reader can't parse yet, left out.
+    pub unread: usize,
+    /// The node classes graphs use most that the asks table doesn't cover.
+    pub unasked: Vec<(String, usize)>,
 }
 
 impl Graph {
@@ -289,6 +295,17 @@ impl Graph {
         }
         let mut labels: Vec<_> = labels.into_iter().collect();
         labels.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+        let asked = |i: usize| {
+            self.ins[i]
+                .iter()
+                .any(|&e| self.edges[e].link == Link::Asks)
+        };
+        let mut unasked: Vec<_> = (0..self.nodes.len())
+            .filter(|&i| self.nodes[i].kind == Kind::Class && !asked(i))
+            .map(|i| (self.nodes[i].name.clone(), self.outs[i].len()))
+            .collect();
+        unasked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+        unasked.truncate(UNASKED);
         Stats {
             nodes,
             edges,
@@ -296,6 +313,8 @@ impl Graph {
             unlinked,
             unresolved,
             labels,
+            unread: self.unread.len(),
+            unasked,
         }
     }
 }
@@ -307,6 +326,9 @@ fn link_word(link: Link) -> &'static str {
         Link::Runs => "runs",
         Link::Drives => "drives",
         Link::Places => "places",
+        Link::Has => "has",
+        Link::Uses => "used by",
+        Link::Asks => "asked by",
     }
 }
 
@@ -391,6 +413,11 @@ impl fmt::Display for Stats {
             "states: {} unnamed, {} unlinked, {} unresolved arguments",
             self.unnamed, self.unlinked, self.unresolved
         )?;
+        writeln!(f, "graphs the reader can't parse yet: {}", self.unread)?;
+        writeln!(f, "classes most used that the asks table doesn't cover:")?;
+        for (class, graphs) in &self.unasked {
+            writeln!(f, "  {graphs:>6} {class}")?;
+        }
         writeln!(f, "edges by action:")?;
         self.labels
             .iter()

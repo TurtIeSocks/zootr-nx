@@ -6,18 +6,24 @@
 
 use std::collections::HashSet;
 
-use ounce_formats::ainb::{Graph as Ainb, Node as AinbNode, Value};
+use ounce_formats::ainb::{Graph as Ainb, Node as AinbNode, NodeKind, Value};
 
 use super::{Graph, Kind, Link};
 use crate::gamedata::GameData;
 use crate::gates::{Wiring, path};
 use crate::known::field;
 
+/// The boolean classes a graph computes with (`OperateAND` and kin).
+const OPERATE: &str = "Operate";
+
 pub(super) fn add(g: &mut Graph, wiring: &Wiring, gd: &GameData) {
     let mut names: Vec<&String> = wiring.graphs.keys().collect();
     names.sort();
     for name in names {
-        own(g, name, &wiring.graphs[name], gd);
+        let graph = g.node(Kind::Graph, name, || None);
+        own(g, graph, &path(name), &wiring.graphs[name], gd, |child| {
+            child.to_owned()
+        });
     }
     let (mut driven, mut placed_actors) = (HashSet::new(), HashSet::new());
     for placed in &wiring.placed {
@@ -48,28 +54,45 @@ pub(super) fn add(g: &mut Graph, wiring: &Wiring, gd: &GameData) {
 }
 
 /// A graph's own edges, the same in every copy: the GameData it reads and
-/// writes, and the modules it runs.
-fn own(g: &mut Graph, name: &str, ainb: &Ainb, gd: &GameData) {
-    let (graph, file) = (g.node(Kind::Graph, name, || None), path(name));
+/// writes, the modules it runs (named by `module`), and the node classes
+/// it uses.
+pub(super) fn own(
+    g: &mut Graph,
+    graph: usize,
+    file: &str,
+    ainb: &Ainb,
+    gd: &GameData,
+    module: impl Fn(&str) -> String,
+) {
+    let mut classes = HashSet::new();
     for (n, node) in ainb.nodes.iter().enumerate() {
         let at = Some(n as u16);
         if node.module {
-            let child = g.node(Kind::Graph, &node.name, || None);
-            g.edge(graph, child, Link::Runs, "module".into(), &file, at);
+            let child = g.node(Kind::Graph, &module(&node.name), || None);
+            g.edge(graph, child, Link::Runs, "module".into(), file, at);
             let read = read_back(ainb, n);
             if !read.is_empty() {
-                g.edge(child, graph, Link::Reads, read.join(", "), &file, at);
+                g.edge(child, graph, Link::Reads, read.join(", "), file, at);
             }
+        } else if asks_anything(node) && classes.insert(&node.name) {
+            let class = g.node(Kind::Class, &node.name, || None);
+            g.edge(class, graph, Link::Uses, String::new(), file, at);
         }
         for (key, flag) in game_data(node) {
             let state = g.state(gd, flag);
             let label = node.name.clone();
             match writes(&node.name, key) {
-                true => g.edge(graph, state, Link::Writes, label, &file, at),
-                false => g.edge(state, graph, Link::Reads, label, &file, at),
+                true => g.edge(graph, state, Link::Writes, label, file, at),
+                false => g.edge(state, graph, Link::Reads, label, file, at),
             }
         }
     }
+}
+
+/// Whether a node's class is game code worth a `class` node: one the game
+/// defines, not a boolean the graph does itself.
+fn asks_anything(node: &AinbNode) -> bool {
+    node.kind == NodeKind::UserDefined && !node.name.starts_with(OPERATE)
 }
 
 /// Each GameData name a node holds, in a property or a constant input,
