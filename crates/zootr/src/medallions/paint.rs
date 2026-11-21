@@ -86,6 +86,15 @@ pub fn shift(rgba: &mut [u8], bands: &[Band]) {
     }
 }
 
+/// Each texel of `from` in `hues` drawn over `rgba`'s, the two one size.
+pub fn copy(rgba: &mut [u8], from: &[u8], hues: Hues) {
+    for (px, src) in rgba.chunks_mut(4).zip(from.chunks(4)) {
+        if in_band(src, hues).is_some() {
+            px.copy_from_slice(src);
+        }
+    }
+}
+
 /// The icon on the face, `colour` lightened, over the face dimmed.
 pub fn paint_icon(t: &mut Texture, icon: &Texture, colour: Colour) {
     let glyph = colour.map(|c| c / 2 + 128);
@@ -256,6 +265,14 @@ mod tests {
         assert!(light.2 > dark.2, "the lighter tan stays the lighter");
         assert_eq!(rgba[8..], before[8..], "the grey and the red keep theirs");
         assert!(rgba.chunks(4).all(|px| px[3] == 9));
+    }
+
+    #[test]
+    fn a_copy_draws_only_the_band() {
+        let mut rgba = [[200, 120, 40, 255], [200, 120, 40, 255]].concat();
+        let from = [[220, 30, 30, 200], [128, 128, 128, 255]].concat();
+        copy(&mut rgba, &from, (0.0, 12.0 / 360.0));
+        assert_eq!(rgba, [[220, 30, 30, 200], [200, 120, 40, 255]].concat());
     }
 
     #[test]

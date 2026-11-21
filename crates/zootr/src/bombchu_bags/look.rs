@@ -73,6 +73,32 @@ const PATCH: Hues = (200.0 / 360.0, 290.0 / 360.0);
 const NAVY: Hues = (200.0 / 360.0, 270.0 / 360.0);
 const GOLD: Hues = (35.0 / 360.0, 70.0 / 360.0);
 
+/// The Medium and Large bags' red stripes, as hues either side of 0. The
+/// Small bomb bag has plain straps where they run, its albedo laid out as
+/// the Medium's, so the Small Bombchu Bag takes the Medium's stripes (the
+/// maintainer's call, 2026-11-21).
+const RED: [Hues; 2] = [(0.0, 11.9 / 360.0), (345.0 / 360.0, 1.0)];
+
+/// Bag `at`'s albedo paint: on the Small, the Medium's red stripes, then
+/// on every bag the Bombchu's colours.
+fn albedo(romfs: &Romfs, at: usize) -> Result<impl Fn(&mut [u8])> {
+    let bands = colours(romfs)?;
+    let stripes = match at {
+        0 => {
+            let alb = |at: usize| format!("Tex/Mt_{}_Alb.bntx.zs", LOOKS[at].host);
+            let small = top_level(&romfs.read(&alb(0))?)?;
+            Some(resample(&romfs.read(&alb(1))?, small.width, small.height)?)
+        }
+        _ => None,
+    };
+    Ok(move |rgba: &mut [u8]| {
+        for (from, hues) in stripes.iter().flat_map(|s| RED.map(|h| (s, h))) {
+            paint::copy(rgba, from, hues);
+        }
+        paint::shift(rgba, &bands);
+    })
+}
+
 /// Each bag band and the colour it moves to, read from the Bombchu's
 /// albedo.
 fn colours(romfs: &Romfs) -> Result<[Band; 2]> {
@@ -110,8 +136,7 @@ pub(super) fn model(at: usize) -> String {
 /// showing a bomb read as a bomb bag.
 pub(super) fn paint(romfs: &Romfs, builder: &mut ModBuilder, at: usize) -> Result<String> {
     let host = Host::read(romfs, &LOOKS[at])?;
-    let bands = colours(romfs)?;
-    let albedo = |rgba: &mut [u8]| paint::shift(rgba, &bands);
+    let albedo = albedo(romfs, at)?;
     if at != 0 {
         return host.paint_with(builder, at + 1, &albedo);
     }
@@ -330,20 +355,29 @@ mod tests {
         assert!(ours.windows(OURS.len()).any(|w| w == OURS.as_bytes()));
     }
 
-    /// Each bag's leather wears the Bombchu's navy, none of it left tan.
+    /// Each bag's leather wears the Bombchu's navy, none of it left tan,
+    /// and each has the red stripes.
     #[test]
     fn each_bag_wears_the_bombchus_colours() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let bands = colours(&romfs).unwrap();
         let chu = top_level(&romfs.read(&textures(CHU_TEXTURES, "Alb")).unwrap()).unwrap();
         let navy = paint::mean(&chu.rgba, NAVY).unwrap();
-        for look in &LOOKS {
+        let alb = |at: usize| format!("Tex/Mt_{}_Alb.bntx.zs", LOOKS[at].host);
+        let red = |px: &[u8]| RED.iter().any(|&h| paint::mean(px, h).is_some());
+        let medium = top_level(&romfs.read(&alb(1)).unwrap()).unwrap().rgba;
+        for (at, look) in LOOKS.iter().enumerate() {
             let path = format!("Tex/Mt_{}_Alb.bntx.zs", look.host);
             let before = top_level(&romfs.read(&path).unwrap()).unwrap().rgba;
             let mut rgba = before.clone();
-            paint::shift(&mut rgba, &bands);
+            albedo(&romfs, at).unwrap()(&mut rgba);
+            // The Small's plain straps take the Medium's red stripes.
+            let stripes = if at == 0 { &medium } else { &before };
+            let lost = (stripes.chunks(4).zip(rgba.chunks(4)))
+                .filter(|(stripe, now)| red(stripe) && !red(now))
+                .count();
+            assert_eq!(lost, 0, "{}", look.host);
             let leather = |px: &[u8]| paint::mean(px, LEATHER).is_some();
             let moved = (before.chunks(4).zip(rgba.chunks(4))).filter(|(was, _)| leather(was));
             let (n, still) = moved.fold((0, 0), |(n, s), (_, now)| {
