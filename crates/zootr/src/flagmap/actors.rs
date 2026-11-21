@@ -10,7 +10,7 @@ use ounce_formats::ainb::Graph as Ainb;
 use ounce_formats::{Romfs, files_with_suffix, par_map};
 use roead::sarc::Sarc;
 
-use super::asks::{ASKS, Game};
+use super::asks::{ABOUT, ASKS, Game};
 use super::{Graph, Kind, Link, scene};
 use crate::gamedata::GameData;
 
@@ -79,12 +79,18 @@ fn asks(g: &mut Graph) {
     for game in Game::ALL {
         g.node(Kind::Game, game.word(), || None);
     }
-    for (class, game) in ASKS {
+    let games = ASKS
+        .iter()
+        .map(|&(class, game)| (class, Kind::Game, game.word()));
+    let actors = ABOUT
+        .iter()
+        .map(|&(class, actor)| (class, Kind::Actor, actor.get()));
+    for (class, kind, asked) in games.chain(actors) {
         let Some(&class) = g.ids.get(&format!("class:{class}")) else {
             continue;
         };
-        let game = g.node(Kind::Game, game.word(), || None);
-        g.edge(game, class, Link::Asks, String::new(), "asks table", None);
+        let asked = g.node(kind, asked, || None);
+        g.edge(asked, class, Link::Asks, String::new(), "asks table", None);
     }
 }
 
