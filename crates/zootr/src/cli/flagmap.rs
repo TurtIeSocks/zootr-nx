@@ -4,8 +4,8 @@ use anyhow::Result;
 use clap::Subcommand;
 use ounce_formats::Romfs;
 
-use super::running::said;
-use crate::flagmap::{Dir, Graph, Kind};
+use super::running::{attach, installed_gamedata, said};
+use crate::flagmap::{self, Dir, Graph, Kind};
 
 /// Each query takes a node as its id (`state:NAME`, `event:FLOW/ENTRY`),
 /// its name, a `#hash`, or text only one node's name holds.
@@ -52,9 +52,19 @@ pub enum FlagmapQuery {
     Source { edge: String },
     /// Node and edge counts, and what the extractors don't cover yet.
     Stats,
+    /// The running game's values of these states. Reads only, on the
+    /// session's turn: it never takes or renews one.
+    Live { nodes: Vec<String> },
 }
 
 pub(super) fn flagmap(romfs: &Romfs, query: FlagmapQuery, json: bool) -> Result<()> {
+    if let FlagmapQuery::Live { nodes } = query {
+        let gd = installed_gamedata(romfs)?;
+        let game = attach(false)?;
+        let values = flagmap::live(&nodes, |hash| game.get(&gd, hash));
+        println!("{}", said(&values, json)?.trim_end());
+        return Ok(());
+    }
     let g = Graph::build(romfs)?;
     let out = match query {
         FlagmapQuery::Search { text, kind } => said(&g.found(&text, kind), json)?,
@@ -76,6 +86,7 @@ pub(super) fn flagmap(romfs: &Romfs, query: FlagmapQuery, json: bool) -> Result<
             }
         }
         FlagmapQuery::Stats => said(&g.stats(), json)?,
+        FlagmapQuery::Live { .. } => unreachable!("answered without the graph"),
     };
     println!("{}", out.trim_end());
     Ok(())
