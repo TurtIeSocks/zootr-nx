@@ -346,7 +346,7 @@ pub fn schema() -> Vec<SettingDef> {
                 OPEN_DOOR,
                 group::LOGIC,
                 "Open Door of Time",
-                "The Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, starts with the Light Medallion, and can put the sword back any time",
+                "The Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, whose gift comes at the start, and can put the sword back any time",
             ))])
         .chain([default_on(toggle(
                 SCRUBS,

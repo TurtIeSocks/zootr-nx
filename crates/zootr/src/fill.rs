@@ -389,8 +389,6 @@ mod tests {
             (NPC_GIFTS.into(), true.into()),
             (DUNGEON_REWARDS.into(), true.into()),
             (SONGS.into(), true.into()),
-            // Rauru's is dealt only with the door closed.
-            (OPEN_DOOR.into(), false.into()),
         ]));
     }
 

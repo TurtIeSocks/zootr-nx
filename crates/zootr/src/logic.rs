@@ -259,6 +259,7 @@ impl World {
             true => eras_of(&scan.places, node),
             false => vec![era],
         };
+        let pocket = gifts::pocket(&ctx.on);
         let mut locations = Vec::new();
         let mut seen = HashSet::new();
         for check in checks {
@@ -267,7 +268,9 @@ impl World {
             }
             let rule = book.check(check.hash);
             let mut where_: Vec<Place> = Vec::new();
-            if let Some((node, era)) = rule.and_then(|r| r.place.clone()) {
+            if pocket == Some(check.hash) {
+                where_.push((START.0.to_string(), START.1));
+            } else if let Some((node, era)) = rule.and_then(|r| r.place.clone()) {
                 where_.extend(pinned(&node, era).into_iter().map(|e| (node.clone(), e)));
             } else if check.file.starts_with("Banc/") {
                 let (node, eras) = node_of(&check.file);
@@ -768,6 +771,27 @@ mod tests {
         };
         let checks = checks::dealt(romfs, &new_game).unwrap();
         World::build(romfs, &book, &Ctx::new(&new_game), &checks).unwrap()
+    }
+
+    #[test]
+    fn links_pocket_sits_at_the_start_with_the_door_open() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let rauru = |on: &[&str]| {
+            let world = world(&romfs, on);
+            let hash = gifts::pocket(&[crate::settings::OPEN_DOOR.to_string()].into()).unwrap();
+            let at = |l: &Location| world.places[l.place].clone();
+            (world.locations.iter())
+                .filter(|l| l.hash == hash)
+                .map(at)
+                .collect::<Vec<_>>()
+        };
+        let rewards = crate::settings::DUNGEON_REWARDS;
+        let open = rauru(&[rewards, crate::settings::OPEN_DOOR]);
+        assert_eq!(open, [(START.0.to_string(), START.1)]);
+        let closed = rauru(&[rewards]);
+        assert_eq!(closed, [(map::MARKET_ADULT.to_string(), Era::Adult)]);
     }
 
     /// The edges from `from` to `to`, both as adult Link.

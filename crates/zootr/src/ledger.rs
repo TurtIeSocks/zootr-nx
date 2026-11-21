@@ -103,8 +103,7 @@ pub enum Why {
     Scenery,
     /// The maintainer's call, written in a spec.
     Maintainer,
-    /// A setting the player picks: a check kind off, or the Door of Time
-    /// open, which skips Rauru's scene.
+    /// A setting the player picks: a check kind off.
     Setting,
     /// Nothing explains it yet: the `accounting` test fails on one.
     Unknown,
