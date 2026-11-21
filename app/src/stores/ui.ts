@@ -84,8 +84,8 @@ export interface Ui {
   getStarted: { dismissed: boolean };
   /** The release the update notice was told to skip. */
   update: { skipped: string | null };
-  /** The checklists open on the settings pages, by title. */
-  settings: { open: string[] };
+  /** The sections closed on the settings pages, by `group/section`. */
+  settings: { closed: string[] };
   /** The Save page: the slot, its tab, what's pending and the Flags
    * tab's query. */
   save: {
@@ -153,7 +153,7 @@ const INITIAL: Ui = {
   welcome: { done: false },
   getStarted: { dismissed: false },
   update: { skipped: null },
-  settings: { open: [] },
+  settings: { closed: [] },
   save: {
     slot: null,
     stamp: null,
@@ -180,7 +180,11 @@ const SHARED = ["theme"] as const satisfies (keyof Ui)[];
 
 /** Each step upgrades a saved shape one version. A changed shape adds one. */
 type Upgrade = (saved: Record<string, unknown>) => Record<string, unknown>;
-const UPGRADES: Upgrade[] = [];
+const UPGRADES: Upgrade[] = [
+  // Settings checklists started closed, kept by `open`. Every section now
+  // starts open, kept by `closed`.
+  (saved) => ({ ...saved, settings: { closed: [] } }),
+];
 
 type Saved = StorageValue<Ui>;
 /** At most one write this often, so typing saves once a beat. */
@@ -356,8 +360,8 @@ export function remember<T>(
   return [item, ...list.filter((x) => !same(x, item))].slice(0, max);
 }
 
-/** Opens or closes a settings checklist, by its title. */
-export const setChecklistOpen = (title: string, open: boolean) =>
-  useUi.setPath("settings.open", (o) =>
-    open ? [...o, title] : o.filter((t) => t !== title),
+/** Opens or closes a settings page's section, by its id. */
+export const setSectionOpen = (id: string, open: boolean) =>
+  useUi.setPath("settings.closed", (c) =>
+    open ? c.filter((t) => t !== id) : [...c, id],
   );

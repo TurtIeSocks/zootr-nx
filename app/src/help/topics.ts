@@ -12,12 +12,6 @@ export interface Topic {
  * target named, nothing on getting the game, and nothing the element
  * beside it already says. */
 export const TOPICS = {
-  status: {
-    title: "Ready to play",
-    body: [
-      "The game dump and each target. Red means zootr can't find it: click it to fix the path.",
-    ],
-  },
   "game-dump": {
     title: "Game dump",
     body: [
@@ -75,10 +69,6 @@ export const TOPICS = {
     body: [
       "Settings save as you change them. The game changes only when you Generate & install.",
     ],
-  },
-  "starting-inventory": {
-    title: "Starting inventory",
-    body: ["Click an item to raise it, right-click to lower it."],
   },
   plando: {
     title: "Plando",
@@ -150,14 +140,11 @@ export type HelpTopic = TopicId | Topic;
 
 /** Each settings group's page bubble, by group name. */
 export const GROUP_HELP: Record<string, Topic> = {
-  General: {
-    title: "General",
-    body: ["Comfort and speed. Nothing here shuffles items or opens areas."],
-  },
   Enhancements: {
     title: "Enhancements",
     body: [
-      "Changes to how Link plays. Nothing here shuffles items or opens areas.",
+      "Comfort, cutscene skips and changes to how Link plays. Nothing here shuffles items or opens areas.",
+      "Cutscenes that give an item or move Link always play.",
     ],
   },
   "Logic & access": {
@@ -166,18 +153,17 @@ export const GROUP_HELP: Record<string, Topic> = {
   },
   Inventory: {
     title: "Inventory",
-    body: ["What a new save starts holding or having done."],
+    body: [
+      "What a new game starts with. Each item leaves the shuffle, and its spot holds a Blue Rupee instead.",
+      "Click an item to raise it, right-click to lower it.",
+    ],
   },
   Shuffles: {
     title: "Shuffles",
-    body: ["Which places become checks: each one can hold any item."],
+    body: ["Which places become checks, what the item pool holds, and hints."],
   },
   Dungeons: {
     title: "Dungeons",
     body: ["What a dungeon or its boss gives, and where its keys go."],
-  },
-  Cutscenes: {
-    title: "Cutscenes",
-    body: ["Ones that give an item or move Link always play."],
   },
 };

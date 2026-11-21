@@ -33,7 +33,7 @@ test("topics speak plainly: one to three sentences, no developer words", () => {
 test("every settings group has its page bubble", () => {
   const mod = /pub mod group \{([^}]*)\}/.exec(rust("settings.rs"))?.[1] ?? "";
   const groups = [...mod.matchAll(/&str = "([^"]+)"/g)].map((m) => m[1]);
-  expect(groups.length).toBeGreaterThan(5);
+  expect(groups.length).toBeGreaterThan(3);
   expect(groups.filter((g) => !Object.hasOwn(GROUP_HELP, g ?? ""))).toEqual([]);
   for (const [g, t] of Object.entries(GROUP_HELP))
     expect({ g, word: DEV_WORDS.exec(t.body.join(" "))?.[0] }).toEqual({ g });

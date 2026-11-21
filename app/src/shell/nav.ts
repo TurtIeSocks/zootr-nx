@@ -2,7 +2,6 @@ import {
   Activity,
   Backpack,
   Castle,
-  Clapperboard,
   FlaskConical,
   Gamepad2,
   Lightbulb,
@@ -75,8 +74,7 @@ export const ownPane = (section: Section) =>
 
 /** Groups the schema has, or may grow. Any other group gets `Settings2`. */
 const GROUP_ICONS: Record<string, LucideIcon> = {
-  General: SlidersHorizontal,
-  Cutscenes: Clapperboard,
+  Enhancements: SlidersHorizontal,
   "Logic & access": Route,
   Inventory: Package,
   Shuffles: Shuffle,

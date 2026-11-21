@@ -12,8 +12,9 @@ use crate::checks::{self, ItemCheck};
 use crate::fill;
 use crate::logic::{Got, Play, World};
 use crate::rules::{Book, Ctx, Have};
-use crate::settings::{Kind, NewGame, Settings, schema, value_word};
+use crate::settings::{Kind, NewGame, RUNNING_RACE, Settings, schema, value_word};
 use crate::shuffle::{self, Fixed};
+use crate::starting;
 
 /// What Link reaches holding everything. The rest never happens, so the
 /// export leaves it out.
@@ -163,10 +164,20 @@ impl Seed {
     }
 }
 
-/// The base settings: every exposed toggle off.
+/// Settings the world holds at their own value, whatever the app's
+/// default, so a seed from an older world still opens: the running man's
+/// race is a location those worlds hold, and Link starts with nothing.
+fn pinned() -> Settings {
+    Settings::from([
+        (RUNNING_RACE.into(), Value::Bool(true)),
+        (starting::SETTING.into(), Value::Object(Default::default())),
+    ])
+}
+
+/// The base settings: the pinned ones, then every exposed toggle off.
 pub(super) fn base() -> Settings {
     let defs = schema();
-    let mut s = Settings::new();
+    let mut s = pinned();
     for id in OPTIONS {
         if let Some(d) = defs.iter().find(|d| d.id == *id)
             && let Kind::Toggle { .. } = d.kind
@@ -194,7 +205,7 @@ pub(super) fn variants() -> Result<Vec<(String, Value)>> {
                 let others = (options.iter()).filter(|o| o.id != *default && offers(id, &o.id));
                 out.extend(others.map(|o| ((*id).into(), Value::String(o.id.clone()))));
             }
-            Kind::Inventory => {}
+            Kind::Inventory { .. } => {}
         }
     }
     Ok(out)
@@ -219,7 +230,7 @@ pub(super) fn open() -> BTreeSet<String> {
                 let offered = options.iter().filter(|o| offers(id, &o.id));
                 out.extend(offered.map(|o| value_word(id, &o.id)));
             }
-            Kind::Inventory => {}
+            Kind::Inventory { .. } => {}
         }
     }
     out

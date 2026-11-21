@@ -9,7 +9,7 @@ import {
 } from "@/bindings";
 import { DumpError } from "@/components/needs-dump";
 import { call } from "@/lib/api";
-import { startForcers, startOf, withForced } from "@/lib/settings";
+import { sameStart, startForcers, startOf, withForced } from "@/lib/settings";
 import { useLoad } from "@/lib/use-load";
 import { ItemsEditor } from "@/save/items-editor";
 import { LockedBy } from "@/settings/setting-row";
@@ -38,15 +38,22 @@ export function StartInventory({ def }: StartInventoryProps) {
       .join(" "),
   );
   const shownStart = useMemo(
-    () => withForced(startOf(value), forced.split(" ").filter(Boolean)),
-    [value, forced],
+    () =>
+      withForced(
+        startOf(def, value === undefined ? {} : { [def.id]: value }),
+        forced.split(" ").filter(Boolean),
+      ),
+    [def, value, forced],
   );
   const view = useLoad(loadItems, shownStart, true);
   /** The setting as it stands now, read at the moment of a change. */
-  const now = () => startOf(useConfig.getState().config.settings[def.id]);
+  const now = () => startOf(def, useConfig.getState().config.settings);
+  /** Saves `next`, or unsets it at the default. Emptied, it saves `{}`,
+   * since unset is the default. */
   const save = async (next: Start) => {
-    const empty = Object.keys(next).length === 0;
-    await changeSettings({ [def.id]: empty ? undefined : next });
+    const kept =
+      def.kind.type === "inventory" && sameStart(next, def.kind.default);
+    await changeSettings({ [def.id]: kept ? undefined : next });
   };
   if (view.status === "error") return <DumpError error={view.error} />;
   if (view.status === "loading") {

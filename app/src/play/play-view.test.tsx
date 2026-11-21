@@ -75,7 +75,10 @@ function show(
       description: "",
       kind: { type: "toggle", default: false },
       parent: null,
-      subgroup: null,
+      requires: null,
+      section: "Fake section",
+      section_about: "Fake about",
+      list: false,
     },
   ]);
   useConfig.setPath(

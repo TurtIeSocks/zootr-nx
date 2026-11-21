@@ -29,7 +29,10 @@ const toggle = (id: string, group: string): SettingDef => ({
   description: "",
   kind: { type: "toggle", default: false },
   parent: null,
-  subgroup: null,
+  requires: null,
+  section: "Fake section",
+  section_about: "Fake about",
+  list: false,
 });
 
 const seed: Summary = {

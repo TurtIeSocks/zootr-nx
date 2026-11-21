@@ -611,9 +611,9 @@ export type Kind = { type: "toggle"; default: boolean } |
 { type: "choice"; default: string; options: Choice[] } | 
 /**
  *  What a new game starts holding, the save editor's grid: a
- *  [`starting::Start`]. Unset is the game's own.
+ *  [`starting::Start`].
  */
-{ type: "inventory" };
+{ type: "inventory"; default: StartInventory };
 
 /**  What a seed is for, in the player's words. Both may be blank. */
 export type Label = {
@@ -764,8 +764,17 @@ export type SettingDef = {
 	kind: Kind,
 	/**  When the parent is on, this one is too, whatever its own value. */
 	parent: string | null,
-	/**  Settings sharing one sit together in a list that starts closed. */
-	subgroup: string | null,
+	/**
+	 *  The toggle that must be on for this one to do anything. While it's
+	 *  off, the app greys this one out.
+	 */
+	requires: string | null,
+	/**  The section of its panel it sits in. */
+	section: string,
+	/**  The line under that section's title: see [`Place::about`]. */
+	section_about: string,
+	/**  Its section is a checklist: see [`Place::list`]. */
+	list: boolean,
 };
 
 export type SettingsFile = {

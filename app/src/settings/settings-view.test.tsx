@@ -37,7 +37,10 @@ const toggle = (
   description: "",
   kind: { type: "toggle", default: false },
   parent: null,
-  subgroup: null,
+  requires: null,
+  section: "Fake section",
+  section_about: "Fake about",
+  list: false,
   ...patch,
 });
 
@@ -144,11 +147,32 @@ test("a two-option choice is a segmented control", () => {
   expect(saved(onChange)).toEqual({ "chest-size": "all small" });
 });
 
-test("a five-option choice is a select", () => {
-  show();
+test("a choice of three or more is a select", () => {
+  const ages = choice("age", "Age", ["Child", "Adult", "Random"]);
+  show({ defs: [...schema, ages] });
   const hints = screen.getByRole("combobox", { name: "Gossip stones" });
   expect(hints.textContent).toContain("None");
   expect(screen.queryByRole("group", { name: "Gossip stones" })).toBeNull();
+  expect(screen.getByRole("combobox", { name: "Age" })).toBeTruthy();
+  expect(screen.queryByRole("group", { name: "Age" })).toBeNull();
+});
+
+test("a setting greys out while the toggle it needs is off", () => {
+  const shops = toggle("shops", "Shopsanity");
+  const slots = {
+    ...choice("slots", "Shop slots", ["One", "All"]),
+    requires: "shops",
+  };
+  show({ defs: [shops, slots] });
+  const one = () => screen.getByRole("button", { name: "One" });
+  expect(one().hasAttribute("disabled")).toBe(true);
+  expect(screen.getByText(/Needs/).textContent).toBe(
+    "Needs Shopsanity on first",
+  );
+  cleanup();
+  show({ defs: [shops, slots], settings: { shops: true } });
+  expect(one().hasAttribute("disabled")).toBe(false);
+  expect(screen.queryByText(/Needs/)).toBeNull();
 });
 
 test("an untested description becomes a badge", () => {
@@ -202,8 +226,14 @@ const cutscene = (
   id: string,
   label: string,
   parent: string | null,
-  subgroup: string | null = null,
-) => toggle(id, label, { group: "Cutscenes", parent, subgroup });
+  section: string | null = null,
+) =>
+  toggle(id, label, {
+    group: "Cutscenes",
+    parent,
+    section: section ?? "Cutscenes",
+    list: section !== null,
+  });
 
 const all = "skip-cutscenes";
 const cutscenes = [
@@ -228,15 +258,18 @@ test("a child of an on parent is locked, with the reason", () => {
   ).toBe(false);
 });
 
-test("a subgroup is a closed checklist with its count", async () => {
+test("a list section is a checklist with its count, open until closed", async () => {
   const onChange = show({
     defs: cutscenes,
     section: "Cutscenes",
     settings: { kokiri: true },
   });
   const head = screen.getByRole("button", { name: /By area/ });
-  expect(head.getAttribute("aria-expanded")).toBe("false");
+  expect(head.getAttribute("aria-expanded")).toBe("true");
   expect(within(head).getByText("1 of 3 on")).toBeTruthy();
+  fireEvent.click(head);
+  expect(head.getAttribute("aria-expanded")).toBe("false");
+  expect(useUi.getState().settings.closed).toEqual(["Cutscenes/By area"]);
   fireEvent.click(head);
   expect(head.getAttribute("aria-expanded")).toBe("true");
   const field = screen.getByRole("checkbox", { name: "Hyrule Field" });
@@ -337,6 +370,26 @@ test("Enable all says why when every toggle is already on", () => {
   expect(action("Disable all").getAttribute("aria-disabled")).toBeNull();
 });
 
+test("a section of rows heads itself with its description and count", () => {
+  show({ settings: { "open-forest": true } });
+  const head = screen.getByRole("button", { name: /Fake section/ });
+  expect(within(head).getByText("Fake about")).toBeTruthy();
+  // Open forest on, Skip the intro on by default, Menus open off.
+  expect(within(head).getByText("2 of 3 on")).toBeTruthy();
+});
+
+test("a section with no toggles counts what's off its defaults", () => {
+  show({
+    defs: [
+      choice("chest-size", "Chest size", ["Vanilla", "Big"]),
+      choice("age", "Age", ["Child", "Adult", "Random"]),
+    ],
+    settings: { age: "adult" },
+  });
+  const head = screen.getByRole("button", { name: /Fake section/ });
+  expect(within(head).getByText("1 of 2 changed")).toBeTruthy();
+});
+
 test("a page with no toggles has only Reset to defaults", () => {
   show({ defs: [choice("chest-size", "Chest size", ["Vanilla", "Big"])] });
   expect(screen.queryByRole("button", { name: "Enable all" })).toBeNull();
@@ -376,16 +429,15 @@ test("a page's unsaved bar takes the drift bar's place while it shows", () => {
   expect(screen.getByText("1 change from the default settings")).toBeTruthy();
 });
 
-test("an open checklist is still open after leaving the page", () => {
+test("a closed section is still closed after leaving the page", () => {
   show({ defs: cutscenes, section: "Cutscenes" });
-  fireEvent.click(screen.getByRole("button", { name: /By area/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^Cutscenes/ }));
   cleanup();
   show({ defs: cutscenes, section: "Cutscenes" });
-  expect(
-    screen
-      .getByRole("button", { name: /By area/ })
-      .getAttribute("aria-expanded"),
-  ).toBe("true");
+  const expanded = (name: RegExp) =>
+    screen.getByRole("button", { name }).getAttribute("aria-expanded");
+  expect(expanded(/^Cutscenes/)).toBe("false");
+  expect(expanded(/By area/)).toBe("true");
 });
 
 test("the test setup form keeps its edits until the saved setup changes", () => {
@@ -464,7 +516,7 @@ const startView = (tier: number) =>
 
 const inventory: SettingDef = {
   ...toggle("start-inventory", "Starting inventory", { group: "Inventory" }),
-  kind: { type: "inventory" },
+  kind: { type: "inventory", default: {} },
 };
 
 test("the starting inventory draws the save editor's grid and saves each click", async () => {
@@ -492,6 +544,28 @@ test("the starting inventory draws the save editor's grid and saves each click",
   await screen.findByRole("button", { name: /Hookshot.*changed/ });
   fireEvent.contextMenu(screen.getByRole("button", { name: /^Hookshot/ }));
   await waitFor(() => expect(saved(setConfig)).toEqual({}));
+  expect(click).toHaveBeenLastCalledWith({ hookshot: 1 }, 0, "down");
+});
+
+test("a default starting inventory emptied saves as empty, not unset", async () => {
+  vi.spyOn(commands, "startItems").mockImplementation((s) =>
+    startView(s.hookshot ?? 0),
+  );
+  const click = vi.spyOn(commands, "startClick").mockResolvedValue({
+    status: "ok",
+    data: {},
+  });
+  const sword = {
+    ...inventory,
+    kind: { type: "inventory", default: { hookshot: 1 } },
+  } as SettingDef;
+  const setConfig = show({ defs: [sword], section: "Inventory" });
+  fireEvent.contextMenu(
+    await screen.findByRole("button", { name: /^Hookshot/ }),
+  );
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({ "start-inventory": {} }),
+  );
   expect(click).toHaveBeenLastCalledWith({ hookshot: 1 }, 0, "down");
 });
 

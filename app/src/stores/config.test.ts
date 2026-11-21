@@ -40,7 +40,10 @@ test("a saved section whose panel is gone opens the first panel", () => {
     description: "",
     kind: { type: "toggle", default: false },
     parent: null,
-    subgroup: null,
+    requires: null,
+    section: "Fake section",
+    section_about: "Fake about",
+    list: false,
   });
   useUi.setPath("section", "Hints");
   useConfig.setPath("schema", [def("a", "General"), def("b", "Cutscenes")]);
