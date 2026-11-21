@@ -106,7 +106,10 @@ pub enum Probe {
     /// gives each bone at its first frame.
     Poses { path: String },
     /// Each shape in the models whose path contains this: the lowest and
-    /// highest corner of its vertices as stored, before any pose.
+    /// highest corner of its vertices as stored, before any pose, and each
+    /// level of detail's vertex and triangle counts, and its attributes
+    /// (`same` when every vertex holds the same bytes). A texture's size and
+    /// format, and whether `redraw` can write it.
     /// How far below its origin each pool item's model reaches on a
     /// shelf, in the pose it plays there: the source of `shops/floors.rs`.
     Floors,

@@ -102,6 +102,67 @@ pub fn edit_vertices(
     Ok(out)
 }
 
+/// One attribute of a shape's vertices: its name (`_p0`, `_u1`, `_i0`),
+/// format, where it sits in each vertex, and whether its bytes differ
+/// between vertices.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Attribute {
+    pub name: String,
+    pub format: u32,
+    pub offset: usize,
+    pub varies: bool,
+}
+
+/// The attributes of the shape named `shape`, in its buffer's order.
+pub fn attributes(data: &[u8], shape: &str) -> Result<Vec<Attribute>> {
+    let buffer = Buffer::find(data, shape)?;
+    let count = data[buffer.vertex + VERTEX_ATTRIBUTE_COUNT] as usize;
+    let mut found: Vec<Attribute> = (0..count)
+        .map(|i| {
+            let a = buffer.attributes + 16 * i;
+            let name = pool_string(data, u64_at(data, a)?).context("an attribute with no name")?;
+            Ok(Attribute {
+                name: String::from_utf8_lossy(name).into(),
+                format: u32_at(data, a + 8)? as u32,
+                offset: u16::from_le_bytes([data[a + 12], data[a + 13]]) as usize,
+                varies: false,
+            })
+        })
+        .collect::<Result<_>>()?;
+    found.sort_by_key(|a| a.offset);
+    let ends: Vec<usize> = (found.iter().skip(1).map(|a| a.offset))
+        .chain([buffer.stride])
+        .collect();
+    let vertex = |i: usize| &data[buffer.start + buffer.stride * i..][..buffer.stride];
+    for (a, end) in found.iter_mut().zip(ends) {
+        let bytes = |i| &vertex(i)[a.offset..end];
+        a.varies = (1..buffer.count).any(|i| bytes(i) != bytes(0));
+    }
+    Ok(found)
+}
+
+/// Each vertex's bone, its `_i0` bytes read little-endian, in its
+/// buffer's order: a rigid shape's parts each follow one.
+pub fn bones(data: &[u8], shape: &str) -> Result<Vec<u32>> {
+    let buffer = Buffer::find(data, shape)?;
+    let found = attributes(data, shape)?;
+    let at = found
+        .iter()
+        .position(|a| a.name == "_i0")
+        .with_context(|| format!("{shape}: no _i0"))?;
+    let start = found[at].offset;
+    let end = found
+        .get(at + 1)
+        .map_or(buffer.stride, |a| a.offset)
+        .min(start + 4);
+    Ok((0..buffer.count)
+        .map(|i| {
+            let raw = &data[buffer.start + buffer.stride * i + start..][..end - start];
+            raw.iter().rev().fold(0, |n, &b| n << 8 | u32::from(b))
+        })
+        .collect())
+}
+
 /// One level of detail of a shape: its vertices, and its triangles as
 /// indices into them.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -135,6 +196,43 @@ pub fn lods(data: &[u8], shape: &str) -> Result<Vec<Lod>> {
 /// beyond [`Vertex`]'s (its bone) are the shape's, which every vertex
 /// must share.
 pub fn replace_mesh(data: &[u8], shape: &str, lods: &[Lod]) -> Result<Vec<u8>> {
+    let template = Layout::find(data, shape)?.template(data)?;
+    replace(data, shape, lods, |_, _| Ok(template.clone()))
+}
+
+/// [`replace_mesh`] for a shape whose vertices don't all share their other
+/// attributes (several parts, each on its own bone): new vertex `j` of
+/// level `i` takes every attribute beyond [`Vertex`]'s from the shape's
+/// vertex `like[i][j]`, counted through its whole buffer.
+pub fn replace_mesh_like(
+    data: &[u8],
+    shape: &str,
+    lods: &[Lod],
+    like: &[Vec<usize>],
+) -> Result<Vec<u8>> {
+    let layout = Layout::find(data, shape)?;
+    ensure!(
+        like.len() == lods.len()
+            && like
+                .iter()
+                .zip(lods)
+                .all(|(l, lod)| l.len() == lod.vertices.len()),
+        "{shape}: a like for each new vertex"
+    );
+    replace(data, shape, lods, |i, j| {
+        let k = like[i][j];
+        ensure!(k < layout.count, "{shape}: no vertex {k}");
+        Ok(data[layout.start + layout.stride * k..][..layout.stride].to_vec())
+    })
+}
+
+/// [`replace_mesh`], new vertex `j` of level `i` starting from `rest(i, j)`.
+fn replace(
+    data: &[u8],
+    shape: &str,
+    lods: &[Lod],
+    rest: impl Fn(usize, usize) -> Result<Vec<u8>>,
+) -> Result<Vec<u8>> {
     let layout = Layout::find(data, shape)?;
     let at = shape_at(data, shape)?;
     let meshes = Mesh::all(data, at)?;
@@ -144,7 +242,6 @@ pub fn replace_mesh(data: &[u8], shape: &str, lods: &[Lod]) -> Result<Vec<u8>> {
         meshes.len(),
         lods.len()
     );
-    let template = layout.template(data)?;
     let (info, pool, size) = pool(data)?;
     let end = pool + size;
 
@@ -168,10 +265,12 @@ pub fn replace_mesh(data: &[u8], shape: &str, lods: &[Lod]) -> Result<Vec<u8>> {
     pad(&mut added, BUFFER_ALIGN);
     let start = size + added.len();
     let vertices: Vec<&Vertex> = lods.iter().flat_map(|l| &l.vertices).collect();
-    for v in &vertices {
-        let mut raw = template.clone();
-        layout.write_at(&mut raw, 0, v)?;
-        added.extend(raw);
+    for (i, lod) in lods.iter().enumerate() {
+        for (j, v) in lod.vertices.iter().enumerate() {
+            let mut raw = rest(i, j)?;
+            layout.write_at(&mut raw, 0, v)?;
+            added.extend(raw);
+        }
     }
     pad(&mut added, POOL_ALIGN);
     let growth = added.len();

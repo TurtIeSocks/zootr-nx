@@ -49,6 +49,17 @@ pub(super) fn bounds(romfs: &Romfs, game: &Path, path: &str, pose: Option<&[f32]
     });
     unpacked(romfs, game, path, |path, data, _| {
         println!("{path}");
+        if path.contains(".bntx") {
+            let (top, format) = (
+                ounce_formats::top_level(data)?,
+                ounce_formats::format(data)?,
+            );
+            let redraws = ounce_formats::redraws(format);
+            println!(
+                "  {} {}x{} format {format:#x} redraws {redraws}",
+                top.name, top.width, top.height
+            );
+        }
         for shape in ounce_formats::shape_names(data) {
             let points = ounce_formats::positions(data, &shape)?;
             let mut lo = [f32::MAX; 3];
@@ -60,6 +71,21 @@ pub(super) fn bounds(romfs: &Romfs, game: &Path, path: &str, pose: Option<&[f32]
                 }
             }
             println!("  {shape} {lo:.3?} {hi:.3?}");
+            match ounce_formats::lods(data, &shape) {
+                Ok(lods) => {
+                    let each = lods
+                        .iter()
+                        .map(|l| format!("{}v/{}t", l.vertices.len(), l.indices.len() / 3));
+                    println!("    lods {}", each.collect::<Vec<_>>().join(" "));
+                }
+                Err(e) => println!("    lods: {e}"),
+            }
+            let attributes = ounce_formats::attributes(data, &shape)?;
+            let each = attributes.iter().map(|a| {
+                let varies = if a.varies { "" } else { " same" };
+                format!("{}@{} {:#x}{varies}", a.name, a.offset, a.format)
+            });
+            println!("    attributes {}", each.collect::<Vec<_>>().join(", "));
             if let Some(pose) = &pose {
                 println!("    posed lowest {:.3}", lowest(&points, pose));
             }
