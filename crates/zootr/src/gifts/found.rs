@@ -115,7 +115,18 @@ mod tests {
         let rotated = (0..added.len()).map(|i| (next(i).0, Drop::from(next(i).1.to_string())));
         for (drops, progressive) in [(HashMap::new(), false), (rotated.collect(), true)] {
             let mut rewrites = Rewrites::default();
-            give_all(&romfs, &all, &mut rewrites, &drops, progressive, &on).unwrap();
+            give_all(
+                &romfs,
+                &all,
+                &mut rewrites,
+                &drops,
+                crate::progressive::Lines {
+                    progressive,
+                    ..Default::default()
+                },
+                &on,
+            )
+            .unwrap();
             for gift in &added {
                 let flag = gift.added().unwrap();
                 let flow = flows::render(&written(&rewrites, gift.flow));
@@ -128,7 +139,7 @@ mod tests {
             &all,
             &mut rewrites,
             &HashMap::new(),
-            false,
+            crate::progressive::Lines::default(),
             &Default::default(),
         )
         .unwrap();

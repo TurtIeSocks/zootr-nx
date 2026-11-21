@@ -9,10 +9,7 @@
 //! Small levels have no get text and a chest giving one hangs the game.
 use crate::bombchu_bags;
 use crate::known::{Name, actor, item};
-use crate::settings::{
-    BOMBCHUS, Bombchus, NewGame, PROGRESSIVE, SHUFFLE_NUT_BAG, SHUFFLE_STICK_BAG, value_word,
-};
-use std::collections::BTreeSet;
+use crate::settings::{Bombchus, NewGame};
 
 /// Each line lowest level first: the actor a chest drops, then the pouch
 /// name Link owns it as. Every level any seed has: [`Lines`] says which
@@ -108,17 +105,6 @@ impl Lines {
         Self {
             progressive: true,
             ..Self::default()
-        }
-    }
-
-    /// The lines of a seed whose settings words are `on` (`NewGame::on`).
-    pub fn of_on(on: &BTreeSet<String>) -> Self {
-        let has = |id, value| on.contains(&value_word(id, value));
-        Self {
-            nut_bag: has(SHUFFLE_NUT_BAG, "on"),
-            stick_bag: has(SHUFFLE_STICK_BAG, "on"),
-            bombchu_bags: has(BOMBCHUS, "bag"),
-            progressive: on.contains(PROGRESSIVE),
         }
     }
 

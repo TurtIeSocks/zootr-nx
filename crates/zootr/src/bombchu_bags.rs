@@ -129,6 +129,13 @@ fn files(template: &ActorPack, name: &str, model: &str) -> Result<Vec<(String, B
     Ok(files)
 }
 
+/// The label naming `item`, if it's a Bombchu Bag: its pack lives only in
+/// the seed, and it answers to its own name.
+pub fn name_label(item: &str) -> Option<String> {
+    BAGS.contains(&item)
+        .then(|| format!("{item}{}", key_tints::TEXT_PARTS[0]))
+}
+
 /// `item`'s pack if it's a Bombchu Bag, built as [`write`] writes it.
 pub fn copy_pack(romfs: &Romfs, item: &str) -> Result<Option<ActorPack>> {
     let Some(at) = BAGS.iter().position(|b| *b == item) else {

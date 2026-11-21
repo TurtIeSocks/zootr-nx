@@ -203,7 +203,10 @@ mod tests {
             &Flows::load(&romfs).unwrap(),
             &mut rewrites,
             drops,
-            progressive,
+            crate::progressive::Lines {
+                progressive,
+                ..Default::default()
+            },
             &Default::default(),
         )
         .unwrap();
@@ -268,7 +271,7 @@ mod tests {
             &Flows::load(&romfs).unwrap(),
             &mut rewrites,
             &drops,
-            false,
+            crate::progressive::Lines::default(),
             &Default::default(),
         )
         .unwrap();

@@ -127,7 +127,8 @@ pub fn pretty(id: &str) -> String {
 pub(crate) fn name_label(romfs: &Romfs, actor: &str) -> Result<Option<String>> {
     let copy = (crate::key_tints::name_label(actor))
         .or_else(|| crate::map_copies::name_label(actor))
-        .or_else(|| crate::foreign::name_label(actor));
+        .or_else(|| crate::foreign::name_label(actor))
+        .or_else(|| crate::bombchu_bags::name_label(actor));
     if let Some(label) = copy {
         return Ok(Some(label));
     }

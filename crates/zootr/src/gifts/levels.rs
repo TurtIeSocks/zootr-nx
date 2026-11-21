@@ -272,7 +272,7 @@ mod tests {
             &flows,
             &mut rewrites,
             &drops,
-            true,
+            crate::progressive::Lines::climbing(),
             &Default::default(),
         )
         .unwrap();
@@ -432,7 +432,7 @@ mod tests {
             &flows,
             &mut rewrites,
             &drops,
-            true,
+            crate::progressive::Lines::climbing(),
             &Default::default(),
         )
         .unwrap();

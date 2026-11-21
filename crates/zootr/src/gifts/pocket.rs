@@ -90,7 +90,15 @@ mod tests {
                 .map(|i| (rauru().hash(), Drop::from(i.to_string())))
                 .collect();
             let mut rewrites = Rewrites::default();
-            give_all(&romfs, &all, &mut rewrites, &drops, false, &on(ids)).unwrap();
+            give_all(
+                &romfs,
+                &all,
+                &mut rewrites,
+                &drops,
+                crate::progressive::Lines::default(),
+                &on(ids),
+            )
+            .unwrap();
             let rel = flows::rel(starting::OPENING);
             rewrites
                 .contains_key(&rel)
@@ -135,7 +143,15 @@ mod tests {
         starting::grant(&romfs, &mut rewrites, &start.grants(&pouch)).unwrap();
         let drops = [(rauru().hash(), Drop::from(item::HOOKSHOT.to_string()))].into();
         let on = on(&[DUNGEON_REWARDS, OPEN_DOOR]);
-        give_all(&romfs, &all, &mut rewrites, &drops, true, &on).unwrap();
+        give_all(
+            &romfs,
+            &all,
+            &mut rewrites,
+            &drops,
+            crate::progressive::Lines::climbing(),
+            &on,
+        )
+        .unwrap();
         let render = flows::render(&written(&rewrites, starting::OPENING));
         assert_eq!(render.matches(item::LONGSHOT.get()).count(), 1);
         assert!(!render.contains("EventQueryIsExistInPouch"));

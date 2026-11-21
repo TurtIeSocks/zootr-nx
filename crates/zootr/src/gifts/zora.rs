@@ -59,7 +59,7 @@ mod tests {
             &Flows::load(romfs).unwrap(),
             &mut rewrites,
             &drops,
-            false,
+            crate::progressive::Lines::default(),
             &Default::default(),
         )
         .unwrap();

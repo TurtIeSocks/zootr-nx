@@ -449,13 +449,9 @@ pub fn give_all(
     flows: &Flows,
     rewrites: &mut Rewrites,
     drops: &HashMap<u64, Drop>,
-    progressive: bool,
+    lines: crate::progressive::Lines,
     on: &BTreeSet<String>,
 ) -> Result<()> {
-    let lines = crate::progressive::Lines {
-        progressive,
-        ..crate::progressive::Lines::of_on(on)
-    };
     let mut marks = found::Marks::default();
     // Chained once every gift is renamed: a chain names other levels, maybe
     // another gift's own item in the same flow.
@@ -496,7 +492,11 @@ pub fn give_all(
         };
         mine.extend(&took);
         marks.mark(romfs, rewrites, gift, &took, on)?;
-        if leveled && !pocket {
+        // A sale that isn't a check this seed sells the game's own goods,
+        // and its pouch question holds ammo without a bag like a full
+        // pouch (the carpet merchant's Bombchus).
+        let shop = matches!(gift.how, How::Sale { .. }) && !drops.contains_key(&gift.hash());
+        if leveled && !pocket && !shop {
             // The grant moved to the caller when its scene can't play.
             let at = given.then(|| gift.moved_to(lost, pocket)).flatten();
             let only = (at.is_none() && !took.is_empty()).then_some(took);
@@ -880,7 +880,7 @@ mod tests {
             &all,
             &mut rewrites,
             &drops,
-            false,
+            crate::progressive::Lines::default(),
             &Default::default(),
         )
         .unwrap();
@@ -911,7 +911,7 @@ mod tests {
             all,
             &mut rewrites,
             &drops,
-            false,
+            crate::progressive::Lines::default(),
             &Default::default(),
         )
         .unwrap();

@@ -76,7 +76,7 @@ pub(super) fn flows(
         all,
         &mut rewrites,
         drops,
-        new_game.progressive,
+        Lines::of(new_game),
         &new_game.on,
     )?;
     levels(romfs, drops, new_game)?.give(romfs, all, &mut rewrites)?;
@@ -138,11 +138,12 @@ pub fn write_mod(
                 .into_iter()
                 .chain(d.swap.iter().flat_map(|s| [s.check, s.then]))
         })
-        // Key copies, Red Rupee copies, other players' items and ice traps
-        // are written with the mod.
+        // Key copies, Red Rupee copies, other players' items, ice traps and
+        // Bombchu Bags are written with the mod.
         .find(|i| {
             !keys::is_shuffled(i)
                 && !foreign::is_copy(i)
+                && !bombchu_bags::BAGS.contains(i)
                 && ammo::copied(i).is_none()
                 && !romfs.root().join(flags::actor_pack(i)).is_file()
         })

@@ -842,3 +842,37 @@ fn blue_warps_keep_age_with_the_adult_deku_tree() {
     new_game.on.insert(crate::presets::ADULT_DEKU_TREE.into());
     assert_ne!(warp(&new_game), off);
 }
+
+/// Every bag in the pool, with the carpet merchant's sale a check holding
+/// his own Bombchus, and not a check, where his shop sells them: each whole
+/// seed writes.
+#[test]
+fn a_seed_with_every_starter_bag_writes() {
+    let Some(romfs) = crate::game::dev_dump() else {
+        return;
+    };
+    let dir = std::env::temp_dir().join(format!("zootr-bags-{}", std::process::id()));
+    let carpet = (gifts::GIFTS.iter())
+        .find(|g| g.flow == actor::NPC_HYLIA_044_ADULT)
+        .unwrap();
+    let new_game = NewGame {
+        bombchus: crate::settings::Bombchus::Bag,
+        shuffle_nut_bag: true,
+        shuffle_stick_bag: true,
+        on: carpet.setting().into_iter().map(String::from).collect(),
+        ..Default::default()
+    };
+    let own = Fixed::from([(carpet.hash(), carpet.item.to_string())]);
+    let unsold = NewGame {
+        on: Default::default(),
+        ..new_game.clone()
+    };
+    shuffle(&romfs, &dir, 7, &Fixed::new(), &unsold, &Run::silent()).unwrap();
+    let report = shuffle(&romfs, &dir, 7, &own, &new_game, &Run::silent()).unwrap();
+    let dealt = |item: &str| report.spots.iter().any(|s| s.item == item);
+    for bag in crate::bombchu_bags::BAGS {
+        assert!(dealt(bag), "{bag}");
+    }
+    assert!(dealt(item::NUT_BAG_SMALL.get()) && dealt(item::STICK_BAG_SMALL.get()));
+    std::fs::remove_dir_all(dir).unwrap();
+}
