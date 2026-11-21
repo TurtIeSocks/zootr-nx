@@ -27,7 +27,7 @@ pub use layout::{GROUPS, Place, group, place};
 pub use new_game::NewGame;
 pub(crate) use new_game::value_word;
 pub(crate) use new_game::{toggles, toggles_on};
-pub(crate) use upgrade::{OLD_PRESETS, OLD_TOGGLES, renamed, renamed_as, upgrade};
+pub(crate) use upgrade::{OLD_PRESETS, OLD_TOGGLES, dropped, renamed, renamed_as, upgrade};
 
 /// Setting values by id. A missing id takes its default.
 pub type Settings = BTreeMap<String, Value>;
@@ -741,7 +741,7 @@ mod tests {
         let is = |p: Place| (p.group, p.section);
         assert_eq!(at(CHEST_SIZE), is(place::COMFORT));
         assert_eq!(at("open-forest"), is(place::OPEN_AREAS));
-        assert_eq!(at("claim-check"), is(place::QUEST));
+        assert_eq!(at("zelda-done"), is(place::QUEST));
         assert_eq!(at(starting::SETTING), is(place::START));
         assert_eq!(at(SHOP_SLOTS), is(place::CHECKS));
         assert_eq!(at(ICE_TRAPS), is(place::CHECKS));

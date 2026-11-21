@@ -331,7 +331,7 @@ fn is_on(schema: &[SettingDef], settings: &Settings, id: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::{flag, item};
+    use crate::known::flag;
     use crate::presets::ADULT_DEKU_TREE;
 
     /// What the default-on presets add, then `edits`.
@@ -436,23 +436,6 @@ mod tests {
         assert!(game.skips.is_empty());
         assert_eq!(game.start.0.len(), 3);
         assert!(game.vanilla && !game.progressive);
-    }
-
-    #[test]
-    fn a_quest_preset_hands_over_its_items_from_its_own_section() {
-        needs_names!();
-        let settings = Settings::from([("claim-check".into(), true.into())]);
-        let game = NewGame::from_settings(&settings, &[]).unwrap();
-        assert_eq!(game.give, [item::CLAIM_CHECK]);
-        assert!(game.defaults.contains(&crate::steps::at(
-            crate::known::flow::SUB_EVENT_GET_SWORD_BIG_GORON,
-            "Step11"
-        )));
-        let def = schema()
-            .into_iter()
-            .find(|d| d.id == "claim-check")
-            .unwrap();
-        assert_eq!(def.section, crate::settings::place::QUEST.section);
     }
 
     /// The defaults `settings` add over a new game's own.

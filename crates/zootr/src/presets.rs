@@ -247,7 +247,7 @@ fn deku_tree_clear() -> Vec<String> {
         .collect()
 }
 
-pub const PRESETS: [Preset; 12] = [
+pub const PRESETS: [Preset; 11] = [
     Preset {
         name: OPEN_FOREST,
         label: "Open Forest",
@@ -389,21 +389,6 @@ pub const PRESETS: [Preset; 12] = [
         fields: Vec::new,
     },
     Preset {
-        name: "claim-check",
-        label: "Claim Check",
-        what: "The trade quest's last step, with the Claim Check in hand",
-        place: place::QUEST,
-        edits: || {
-            vec![crate::steps::at(
-                flow::SUB_EVENT_GET_SWORD_BIG_GORON,
-                "Step11",
-            )]
-        },
-        give: &[item::CLAIM_CHECK],
-        progress: &[],
-        fields: Vec::new,
-    },
-    Preset {
         name: "no-tutorials",
         label: "No Tutorials",
         what: "Every guide screen counts as already shown, so none pops up the first time, such as the Echo Gem's in the House of Skulltula. The Great Fairy's guide still shows",
@@ -434,6 +419,9 @@ pub fn parser() -> impl TypedValueParser<Value = String> {
         if let Some(new) = crate::settings::renamed(&name) {
             eprintln!("--preset {name} is now {new}");
         }
+        if let Some(why) = crate::settings::dropped(&name) {
+            eprintln!("--preset {name} is gone: {why}");
+        }
         name
     })
 }
@@ -450,9 +438,10 @@ fn find(names: &[String]) -> Result<Vec<&'static Preset>> {
         .iter()
         .map(|n| {
             PRESETS.iter().find(|p| p.name == n).with_context(|| {
-                match crate::settings::renamed(n) {
-                    Some(new) => format!("{n} is now `{new}`, for a new game"),
-                    None => format!("no preset {n}"),
+                match (crate::settings::renamed(n), crate::settings::dropped(n)) {
+                    (Some(new), _) => format!("{n} is now `{new}`, for a new game"),
+                    (None, Some(why)) => format!("{n} is gone: {why}"),
+                    (None, None) => format!("no preset {n}"),
                 }
             })
         })
@@ -688,8 +677,8 @@ mod tests {
     fn quest_presets_land_on_their_step() {
         needs_names!();
         assert_eq!(
-            gives(&["zelda-done".into(), "claim-check".into()]).unwrap(),
-            [item::ZELDA_LETTER, item::CLAIM_CHECK]
+            gives(&["zelda-done".into(), "open-forest".into()]).unwrap(),
+            [item::ZELDA_LETTER]
         );
         assert!(PRESETS.iter().any(|p| p.place == place::QUEST));
     }
@@ -697,17 +686,17 @@ mod tests {
     #[test]
     fn a_save_is_offered_only_presets_it_can_take() {
         let names: Vec<String> = for_saves().map(|p| p.name.into()).collect();
-        assert!(!names.is_empty() && !names.iter().any(|n| n == "claim-check"));
+        assert!(!names.is_empty() && !names.iter().any(|n| n == "zelda-done"));
         assert!(for_save(&names, &[]).is_ok());
     }
 
     #[test]
     fn a_save_refuses_presets_that_hand_over_items() {
-        let err = for_save(&["open-forest".into(), "claim-check".into()], &[])
+        let err = for_save(&["open-forest".into(), "zelda-done".into()], &[])
             .unwrap_err()
             .to_string();
         assert!(
-            err.contains("claim-check") && err.contains(&**item::CLAIM_CHECK),
+            err.contains("zelda-done") && err.contains(&**item::ZELDA_LETTER),
             "{err}"
         );
         let err = for_save(&["kakariko-gate".into()], &[]).unwrap_err();

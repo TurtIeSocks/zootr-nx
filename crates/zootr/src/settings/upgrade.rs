@@ -41,14 +41,20 @@ const OPEN_DOOR: &str = "open-door-of-time";
 const CARPENTERS_FREED: &str = "carpenters-freed";
 const CARPENTERS_FAST: &str = "carpenters-fast";
 
+/// The preset that started the trade quest at its last step with the
+/// Claim Check in hand, for early debugging. Dropped, as the pool holds
+/// the Claim Check.
+const CLAIM_CHECK: &str = "claim-check";
+
 /// Presets the CLI still takes by their old names, and toggles by their
-/// old ids: see [`renamed`].
-pub(crate) const OLD_PRESETS: [&str; 5] = [
+/// old ids: see [`renamed`] and [`dropped`].
+pub(crate) const OLD_PRESETS: [&str; 6] = [
     BRIDGE_UP,
     TRIALS_DONE,
     DOOR_UP,
     CARPENTERS_FREED,
     CARPENTERS_FAST,
+    CLAIM_CHECK,
 ];
 pub(crate) const OLD_TOGGLES: [&str; 2] = [BRIDGE_MEDALLIONS, OPEN_DOOR];
 
@@ -81,6 +87,11 @@ fn became(old: &str, on: bool) -> Option<(&'static str, String)> {
         (CARPENTERS_FAST, true) => Some((GERUDO_FORTRESS, choice_id(GerudoFortress::Fast))),
         _ => None,
     }
+}
+
+/// Why old preset `old` became nothing, for the one line the CLI prints.
+pub(crate) fn dropped(old: &str) -> Option<&'static str> {
+    (old == CLAIM_CHECK).then_some("the Claim Check comes from the pool, so nothing replaces it")
 }
 
 /// What old preset or toggle `old` on is now, as the CLI takes it.
@@ -144,6 +155,9 @@ pub(crate) fn upgrade(settings: &mut Settings) {
         if let Some((id, value)) = became(old, on) {
             settings.entry(id.into()).or_insert(value.into());
         }
+    }
+    if settings.get(CLAIM_CHECK).is_some_and(Value::is_boolean) {
+        settings.remove(CLAIM_CHECK);
     }
     let on: Vec<&[&str]> = (STARTING.iter())
         .filter_map(|(id, words)| (settings.remove(*id)? == true).then_some(*words))
@@ -261,6 +275,18 @@ mod tests {
             renamed(CARPENTERS_FREED).unwrap(),
             "--setting gerudo-fortress=freed"
         );
+    }
+
+    #[test]
+    fn the_claim_check_preset_goes_with_a_note() {
+        for on in [true, false] {
+            let mut s = Settings::from([(CLAIM_CHECK.into(), on.into())]);
+            upgrade(&mut s);
+            assert_eq!(s, Settings::new());
+        }
+        assert_eq!(renamed(CLAIM_CHECK), None);
+        assert!(dropped(CLAIM_CHECK).unwrap().contains("pool"));
+        assert_eq!(dropped(BRIDGE_UP), None);
     }
 
     #[test]
