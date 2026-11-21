@@ -825,3 +825,20 @@ fn a_logic_seed_lists_what_link_starts_with() {
     );
     assert!(report.start.settings.iter().any(|s| s.contains("orest")));
 }
+
+#[test]
+fn blue_warps_keep_age_with_the_adult_deku_tree() {
+    let Some(romfs) = crate::game::dev_dump() else {
+        return;
+    };
+    let all = Flows::load(&romfs).unwrap();
+    let rel = crate::flows::rel(crate::blue_warps::FLOW);
+    let warp = |new_game: &NewGame| {
+        let (rewrites, _) = flows(&romfs, &all, new_game, &HashMap::new()).unwrap();
+        rewrites.get(&rel).cloned()
+    };
+    let mut new_game = NewGame::default();
+    let off = warp(&new_game);
+    new_game.on.insert(crate::presets::ADULT_DEKU_TREE.into());
+    assert_ne!(warp(&new_game), off);
+}

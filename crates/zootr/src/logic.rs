@@ -245,16 +245,16 @@ impl World {
         };
 
         // A boss room counts for either era once doors move, since its
-        // dungeon may stand behind the other era's door. The blue warp keeps
-        // Link's age (`entrances.md`, "Blue warps keep Link's age").
-        let boss_rooms: HashSet<&str> = match ctx.doors {
-            Some(_) => DUNGEONS
-                .iter()
-                .filter_map(|d| d.boss)
-                .map(|b| &**b)
-                .collect(),
-            None => HashSet::new(),
-        };
+        // dungeon may stand behind the other era's door. Gohma's always does:
+        // adult Link reaches her only through a door that asks for the adult
+        // Deku Tree, and both eras' rules inside are audited. The blue warp
+        // keeps Link's age (`entrances.md`, "Blue warps keep Link's age").
+        let boss_rooms: HashSet<&str> = DUNGEONS
+            .iter()
+            .filter(|d| ctx.doors.is_some() || d.node == map::INSIDE_THE_DEKU_TREE)
+            .filter_map(|d| d.boss)
+            .map(|b| &**b)
+            .collect();
         let pinned = |node: &str, era: Era| match boss_rooms.contains(node) {
             true => eras_of(&scan.places, node),
             false => vec![era],
@@ -696,8 +696,8 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let gohma = |world: &World| {
-            let beat = crate::rules::vocab::id("beat:gohma").unwrap();
+        let barinade = |world: &World| {
+            let beat = crate::rules::vocab::id("beat:barinade").unwrap();
             let source = world.sources.iter().find(|s| s.item == beat).unwrap();
             let mut eras: Vec<Era> = source.places.iter().map(|&p| world.places[p].1).collect();
             eras.sort();
@@ -707,9 +707,22 @@ mod tests {
         let checks = checks::dealt(&romfs, &new_game).unwrap();
         let book = crate::rules::Book::load().unwrap();
         let off = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
-        assert_eq!(gohma(&off), [Era::Child]);
+        assert_eq!(barinade(&off), [Era::Child]);
         let on = shuffled(&romfs, Doors::default(), &[]);
-        assert_eq!(gohma(&on), [Era::Child, Era::Adult]);
+        assert_eq!(barinade(&on), [Era::Child, Era::Adult]);
+    }
+
+    #[test]
+    fn gohma_counts_for_either_era() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let world = world(&romfs, &[]);
+        let beat = crate::rules::vocab::id("beat:gohma").unwrap();
+        let source = world.sources.iter().find(|s| s.item == beat).unwrap();
+        let mut eras: Vec<Era> = source.places.iter().map(|&p| world.places[p].1).collect();
+        eras.sort();
+        assert_eq!(eras, [Era::Child, Era::Adult]);
     }
 
     #[test]

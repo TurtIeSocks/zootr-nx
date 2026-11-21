@@ -97,8 +97,11 @@ pub(super) fn flows(
         let traps: Vec<&str> = ice_traps::actors(&new_game.foreign).collect();
         ice_traps::one_page(romfs, &mut rewrites, &traps)?;
     }
-    if new_game.dungeon_entrances != DungeonEntrances::Off {
+    // Shuffled doors turn the adult Deku Tree on, so this covers them too.
+    if new_game.on.contains(presets::ADULT_DEKU_TREE) {
         blue_warps::keep_age(romfs, &mut rewrites)?;
+    }
+    if new_game.dungeon_entrances != DungeonEntrances::Off {
         entrances::reveal::flows_for(romfs, &mut rewrites, new_game.dungeon_entrances)?;
     }
     Ok((rewrites, flags))
