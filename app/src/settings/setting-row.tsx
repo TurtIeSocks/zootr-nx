@@ -143,7 +143,9 @@ function SettingControl({ def }: SettingRowProps) {
     return (
       <Switch
         id={controlId(def)}
-        checked={on}
+        // Unmet, it does nothing, so it shows off while its stored value
+        // waits for the toggle it needs.
+        checked={on && !off}
         disabled={locked || off}
         onCheckedChange={set}
       />

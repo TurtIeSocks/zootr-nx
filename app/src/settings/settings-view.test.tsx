@@ -176,6 +176,22 @@ test("a setting greys out while the toggle it needs is off", () => {
   expect(screen.queryByText(/Needs/)).toBeNull();
 });
 
+test("a toggle whose requirement is unmet shows off, and keeps its value", () => {
+  const shops = toggle("shops", "Shopsanity");
+  const prices = { ...toggle("prices", "Cheap prices"), requires: "shops" };
+  const settings = { prices: true };
+  const cheap = () => screen.getByRole("switch", { name: "Cheap prices" });
+  show({ defs: [shops, prices], settings });
+  expect(cheap().getAttribute("aria-checked")).toBe("false");
+  expect(cheap().hasAttribute("disabled")).toBe(true);
+  expect(useConfig.getState().config.settings.prices).toBe(true);
+  cleanup();
+  // With Shopsanity on, the stored value is back.
+  show({ defs: [shops, prices], settings: { ...settings, shops: true } });
+  expect(cheap().getAttribute("aria-checked")).toBe("true");
+  expect(cheap().hasAttribute("disabled")).toBe(false);
+});
+
 test("an untested description becomes a badge", () => {
   show();
   expect(screen.getByText("Untested")).toBeTruthy();
