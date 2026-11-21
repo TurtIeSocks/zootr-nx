@@ -23,7 +23,7 @@ use crate::{checks, fill, gamedata, hints, ice_traps, icons, places, steps};
 /// (Jabu-Jabu's Belly wants a child door, the child-only doors no adult
 /// boss; `probe doors` counts them), so two hundred tries fail about once in
 /// seventeen million seeds.
-const DOOR_TRIES: u32 = 200;
+pub(crate) const DOOR_TRIES: u32 = 200;
 
 /// Shuffle the chests around `fixed`, unless `new_game` keeps them vanilla,
 /// and write the mod.

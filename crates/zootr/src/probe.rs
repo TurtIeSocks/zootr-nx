@@ -189,7 +189,7 @@ pub enum Probe {
         never: bool,
     },
     /// How many rolled dungeon door layouts logic can beat, and how often a
-    /// seed's hundred tries would all fail. Doors shuffle `on` unless a
+    /// seed's tries would all fail. Doors shuffle `on` unless a
     /// `--setting` says otherwise.
     Doors {
         #[arg(long, default_value_t = 200)]
