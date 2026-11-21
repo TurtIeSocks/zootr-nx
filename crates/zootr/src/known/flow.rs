@@ -149,7 +149,6 @@ pub const NPC_HYLIA_TALON_ADULT_SHOW_POCKET_CUCCO: &Name = &n!(0x873c51db3e5d4be
 pub const NPC_HYLIA_TALON_ADULT_SHOW_POCKET_CUCCO_LON_LON: &Name = &n!(0x9b70b8afef5a8468);
 pub const OBJ_SMALL_KEY: &Name = &n!(0x24413f1128c89db5);
 pub const OPENING_EVENT: &Name = &n!(0xf87607ce40ecc835);
-pub const OPEN_GET_WINDOW_RELEASE_MAGIC: &Name = &n!(0x8ac98bfab2bf7ed8);
 pub const PAYMENT_MESSAGE_ID: &Name = &n!(0x9ae00d4939c05824);
 pub const REPLACE_EQUIPMENT_FOR_ERA_CHANGE: &Name = &n!(0x541c61b65314665e);
 pub const REVEIVE_ITEM: &Name = &n!(0xbcc4c76e9338d5f2);
@@ -174,7 +173,8 @@ pub const SUB_EVENT_GET_SWORD_BIG_GORON: &Name = &n!(0xf0811cd102e65d92);
 pub const SUB_PLAY_OCARINA_SEQUENCE_FAIRY_FOUNTAIN: &Name = &n!(0x6fda61bc03484766);
 pub const SUCCESS: &Name = &n!(0x92a0d19a28995530);
 pub const SUCCESS_: &Name = &n!(0xc09997f2fc8c2b9d);
-/// The chest flows, `Dm_` dropped as in `scene.rs`.
+/// The get and chest flows, `Dm_` dropped as in `scene.rs`.
+pub const SY_GET: &Name = &n!(0xa27ad0f8bec63ef4);
 pub const SY_TREASUREBOX: &Name = &n!(0x85cd7501a6a3cdee);
 pub const SY_TREASUREBOX_SMALL: &Name = &n!(0xff3b32cb74e4e36d);
 pub const TAKEN_REWARD_ACTOR: &Name = &n!(0xe8a27a54ec0a6f8c);

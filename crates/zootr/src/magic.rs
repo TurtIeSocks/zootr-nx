@@ -10,7 +10,7 @@ use ounce_formats::EventKind;
 use ounce_formats::Romfs;
 
 use crate::flows::{self, GAME_DATA, Rewrites, param};
-use crate::known::{field, flag, flow};
+use crate::known::{field, flag, flow, scene};
 use crate::standins::Tables;
 
 /// A pouch row's ability, and the value that raises the meter.
@@ -58,38 +58,47 @@ pub fn write(tables: &mut Tables) -> Result<Vec<String>> {
     Ok(stripped)
 }
 
-/// The spells' get window ends on a page saying magic was unleashed while
-/// Link has no meter, since in the game the spell is about to give him one.
-/// With magic apart it never does, so the page goes: the switch asking
-/// whether the meter is empty loses its "less" and "equal" cases and ends
-/// as it does on "greater".
+/// The flows that ask whether the meter is empty, since in the game a
+/// magic item is about to give Link one: the spells' get window ("Your
+/// magic power has been unleashed!"), a chest's and a gift's meter-born
+/// animation, and Din's fountain, which plays it around Din's Fire.
+const ASK_EMPTY: [&crate::known::Name; 3] = [
+    flow::GET_POUCH_CONTENT,
+    flow::SY_GET,
+    scene::FAIRY_FOUNTAIN_DIN,
+];
+
+/// With magic apart the item never gives a meter, so every "is the meter
+/// empty?" switch goes where "greater" goes (an end where it has none).
 pub fn quiet(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
-    flows::edit(romfs, rewrites, flow::GET_POUCH_CONTENT, |f| {
-        let window = flows::reachable(f, flow::OPEN_GET_WINDOW_RELEASE_MAGIC)?;
-        let asks = flows::events(
-            f,
-            (field::GAME_DATA_ACTOR, flow::EVENT_QUERY_IS_GAME_DATA_INT),
-        );
-        let empty: Vec<u16> = (asks.into_iter())
-            .filter(|(i, p)| {
-                window.contains(i) && param(p, GAME_DATA) == Some(flag::PLAYER_STATUS_MP_MAX)
-            })
+    for name in ASK_EMPTY {
+        flows::edit(romfs, rewrites, name, |f| {
+            let asks = (flows::events(
+                f,
+                (field::GAME_DATA_ACTOR, flow::EVENT_QUERY_IS_GAME_DATA_INT),
+            ))
+            .into_iter()
+            .filter(|(_, p)| param(p, GAME_DATA) == Some(flag::PLAYER_STATUS_MP_MAX))
             .map(|(i, _)| i)
-            .collect();
-        let [at] = empty[..] else {
-            bail!(
-                "the window asks whether the meter is empty {} times",
-                empty.len()
-            );
-        };
-        let event = f.events.get_mut(at as usize).context("no such event")?;
-        let EventKind::Switch { cases, .. } = &mut event.kind else {
-            bail!("event {at} isn't a switch");
-        };
-        cases.clear();
-        Ok(())
-    })
+            .collect::<Vec<_>>();
+            ensure!(!asks.is_empty(), "{} never asks about the meter", f.name);
+            for at in asks {
+                let event = f.events.get_mut(at as usize).context("no such event")?;
+                let EventKind::Switch { cases, .. } = &mut event.kind else {
+                    bail!("{} event {at} isn't a switch", f.name);
+                };
+                // An int switch with no case for its answer ends.
+                let greater = cases.iter().find(|(k, _)| *k == GREATER).map(|c| c.1);
+                *cases = greater.map_or_else(Vec::new, |to| vec![(0, to), (1, to), (GREATER, to)]);
+            }
+            Ok(())
+        })?;
+    }
+    Ok(())
 }
+
+/// An int query's answer when the value is above the one asked.
+const GREATER: u32 = 2;
 
 #[cfg(test)]
 mod tests {
@@ -143,26 +152,49 @@ mod tests {
         );
     }
 
+    /// Each "is the meter empty?" switch, as rendered, in `name`.
+    fn asks(romfs: &Romfs, rewrites: &Rewrites, name: &crate::known::Name) -> Vec<String> {
+        let f = flows::current(romfs, rewrites, name).unwrap();
+        let needle = format!("\"{}\"", flag::PLAYER_STATUS_MP_MAX.get());
+        (flows::render(&f).lines())
+            .filter(|l| l.contains(&needle))
+            .map(str::to_owned)
+            .collect()
+    }
+
+    /// The events a rendered switch goes to, by answer.
+    fn ways(line: &str) -> Vec<&str> {
+        line.split(' ')
+            .filter_map(|w| w.split_once(":#"))
+            .map(|(_, to)| to)
+            .collect()
+    }
+
     #[test]
-    fn the_spells_window_never_says_magic_was_unleashed() {
+    fn nothing_says_magic_was_unleashed() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let asks = |rewrites: &Rewrites| {
-            let f = flows::current(&romfs, rewrites, flow::GET_POUCH_CONTENT).unwrap();
-            let needle = format!("\"{}\"", flag::PLAYER_STATUS_MP_MAX.get());
-            let window = flows::reachable(&f, flow::OPEN_GET_WINDOW_RELEASE_MAGIC).unwrap();
-            (flows::render(&f).lines())
-                .filter(|l| l.contains(&needle))
-                .find(|l| window.iter().any(|i| l.starts_with(&format!("#{i} "))))
-                .unwrap()
-                .to_owned()
-        };
         let mut rewrites = Rewrites::new();
-        let was = asks(&rewrites);
+        let was: Vec<_> = ASK_EMPTY
+            .iter()
+            .map(|n| asks(&romfs, &rewrites, n))
+            .collect();
         quiet(&romfs, &mut rewrites).unwrap();
-        let now = asks(&rewrites);
-        assert!(was.contains("? 0:#") && was.contains(" 1:#"), "{was}");
-        assert!(!now.contains(":#"), "{now}");
+        for (name, was) in ASK_EMPTY.iter().zip(was) {
+            let now = asks(&romfs, &rewrites, name);
+            assert_eq!(now.len(), was.len(), "{}", name.get());
+            for (was, now) in was.iter().zip(&now) {
+                // Empty once led somewhere else: the get window's page, the
+                // meter-born animation, Din's no-meter path.
+                assert!(was.contains(" 0:#"), "{was}");
+                let ways = ways(now);
+                assert!(ways.windows(2).all(|w| w[0] == w[1]), "{now}");
+                assert!(ways.is_empty() || ways.len() == 3, "{now}");
+            }
+        }
+        // Din's fountain still goes on to its gift.
+        let din = asks(&romfs, &rewrites, scene::FAIRY_FOUNTAIN_DIN);
+        assert!(din.iter().all(|l| ways(l).len() == 3), "{din:?}");
     }
 }
