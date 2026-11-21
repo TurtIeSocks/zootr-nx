@@ -24,6 +24,7 @@ import { useUi } from "@/stores/ui";
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  useUi.setPath("settings.reset", "defaults");
 });
 
 const toggle = (
@@ -37,7 +38,10 @@ const toggle = (
   description: "",
   kind: { type: "toggle", default: false },
   parent: null,
-  subgroup: null,
+  requires: null,
+  section: "Fake section",
+  section_about: "Fake about",
+  list: false,
   ...patch,
 });
 
@@ -144,11 +148,78 @@ test("a two-option choice is a segmented control", () => {
   expect(saved(onChange)).toEqual({ "chest-size": "all small" });
 });
 
-test("a five-option choice is a select", () => {
-  show();
+test("a choice of three or more is a select", () => {
+  const ages = choice("age", "Age", ["Child", "Adult", "Random"]);
+  show({ defs: [...schema, ages] });
   const hints = screen.getByRole("combobox", { name: "Gossip stones" });
   expect(hints.textContent).toContain("None");
   expect(screen.queryByRole("group", { name: "Gossip stones" })).toBeNull();
+  expect(screen.getByRole("combobox", { name: "Age" })).toBeTruthy();
+  expect(screen.queryByRole("group", { name: "Age" })).toBeNull();
+});
+
+test("a setting greys out while the toggle it needs is off", () => {
+  const shops = toggle("shops", "Shopsanity");
+  const slots = {
+    ...choice("slots", "Shop slots", ["One", "All"]),
+    requires: "shops",
+  };
+  show({ defs: [shops, slots] });
+  const one = () => screen.getByRole("button", { name: "One" });
+  expect(one().hasAttribute("disabled")).toBe(true);
+  expect(screen.getByText(/Needs/).textContent).toBe(
+    "Needs Shopsanity on first",
+  );
+  cleanup();
+  show({ defs: [shops, slots], settings: { shops: true } });
+  expect(one().hasAttribute("disabled")).toBe(false);
+  expect(screen.queryByText(/Needs/)).toBeNull();
+});
+
+test("a toggle whose requirement is unmet shows off, and keeps its value", () => {
+  const shops = toggle("shops", "Shopsanity");
+  const prices = { ...toggle("prices", "Cheap prices"), requires: "shops" };
+  const settings = { prices: true };
+  const cheap = () => screen.getByRole("switch", { name: "Cheap prices" });
+  show({ defs: [shops, prices], settings });
+  expect(cheap().getAttribute("aria-checked")).toBe("false");
+  expect(cheap().hasAttribute("disabled")).toBe(true);
+  expect(useConfig.getState().config.settings.prices).toBe(true);
+  cleanup();
+  // With Shopsanity on, the stored value is back.
+  show({ defs: [shops, prices], settings: { ...settings, shops: true } });
+  expect(cheap().getAttribute("aria-checked")).toBe("true");
+  expect(cheap().hasAttribute("disabled")).toBe(false);
+});
+
+test("a choice whose requirement is unmet shows no pick, and keeps its value", () => {
+  const shops = toggle("shops", "Shopsanity");
+  const size = {
+    ...choice("size", "Size", ["Small", "Big"]),
+    requires: "shops",
+  };
+  const hints = {
+    ...choice("hints", "Gossip stones", [
+      "None",
+      "Way",
+      "Items",
+      "Junk",
+      "All",
+    ]),
+    requires: "shops",
+  };
+  const settings = { size: "big", hints: "items" };
+  show({ defs: [shops, size, hints], settings });
+  const big = () => screen.getByRole("button", { name: "Big" });
+  const select = () => screen.getByRole("combobox");
+  expect(big().getAttribute("aria-pressed")).toBe("false");
+  expect(select().textContent).toBe("Off");
+  expect(useConfig.getState().config.settings).toMatchObject(settings);
+  cleanup();
+  // With Shopsanity on, the stored picks are back.
+  show({ defs: [shops, size, hints], settings: { ...settings, shops: true } });
+  expect(big().getAttribute("aria-pressed")).toBe("true");
+  expect(select().textContent).toBe("Items");
 });
 
 test("an untested description becomes a badge", () => {
@@ -164,7 +235,7 @@ test("a changed setting can be reset, alone or with its group", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Reset Open forest" }));
   expect(saved(onChange)).toEqual({ "chest-size": "all small", other: 1 });
-  fireEvent.click(screen.getByRole("button", { name: "Reset to defaults" }));
+  fireEvent.click(screen.getByRole("button", { name: "Reset to Defaults" }));
   await waitFor(() => expect(saved(onChange)).toEqual({ other: 1 }));
   expect(screen.queryByRole("button", { name: "Reset Skip the intro" })).toBe(
     null,
@@ -177,7 +248,7 @@ const dotted = (label: string) =>
     screen.getByText(label, { selector: "label" }).parentElement as HTMLElement,
   ).queryByLabelText("changed") !== null;
 
-test("dots mark what differs from the installed seed, not the defaults", () => {
+test("dots mark what differs from the last seed, not the defaults", () => {
   show({
     settings: { "open-forest": true, "chest-size": "all small" },
     seed: installed({ "open-forest": true }),
@@ -186,7 +257,7 @@ test("dots mark what differs from the installed seed, not the defaults", () => {
   expect(dotted("Open forest")).toBe(false);
 });
 
-test("the row reset puts the installed seed's value back", () => {
+test("the row reset puts the last seed's value back", () => {
   const onChange = show({
     settings: { "chest-size": "all small" },
     seed: installed({ "chest-size": "all small", "open-forest": true }),
@@ -202,8 +273,14 @@ const cutscene = (
   id: string,
   label: string,
   parent: string | null,
-  subgroup: string | null = null,
-) => toggle(id, label, { group: "Cutscenes", parent, subgroup });
+  section: string | null = null,
+) =>
+  toggle(id, label, {
+    group: "Cutscenes",
+    parent,
+    section: section ?? "Cutscenes",
+    list: section !== null,
+  });
 
 const all = "skip-cutscenes";
 const cutscenes = [
@@ -228,33 +305,36 @@ test("a child of an on parent is locked, with the reason", () => {
   ).toBe(false);
 });
 
-test("a subgroup is a closed checklist with its count", async () => {
+test("a list section is a checklist with its count, open until closed", async () => {
   const onChange = show({
     defs: cutscenes,
     section: "Cutscenes",
     settings: { kokiri: true },
   });
-  const head = screen.getByRole("button", { name: /By area/ });
-  expect(head.getAttribute("aria-expanded")).toBe("false");
+  const head = screen.getByRole("button", { name: /^By area/ });
+  expect(head.getAttribute("aria-expanded")).toBe("true");
   expect(within(head).getByText("1 of 3 on")).toBeTruthy();
+  fireEvent.click(head);
+  expect(head.getAttribute("aria-expanded")).toBe("false");
+  expect(useUi.getState().settings.closed).toEqual(["Cutscenes/By area"]);
   fireEvent.click(head);
   expect(head.getAttribute("aria-expanded")).toBe("true");
   const field = screen.getByRole("checkbox", { name: "Hyrule Field" });
   fireEvent.click(field);
   expect(saved(onChange)).toEqual({ kokiri: true, field: true });
   await waitFor(() => expect(within(head).getByText("2 of 3 on")).toBeTruthy());
-  fireEvent.click(screen.getByRole("button", { name: "All" }));
+  fireEvent.click(screen.getByRole("button", { name: "All in By area" }));
   expect(saved(onChange)).toEqual({ kokiri: true, field: true, lake: true });
 });
 
-test("the drift bar counts what differs from the installed seed", () => {
+test("the drift bar counts what differs from the last seed", () => {
   show({ seed: installed({}) });
-  expect(screen.queryByText(/since the installed seed/)).toBeNull();
+  expect(screen.queryByText(/since the last seed/)).toBeNull();
   cleanup();
   show({ seed: installed({}), settings: { "open-forest": true } });
-  expect(screen.getByText("1 change since the installed seed")).toBeTruthy();
+  expect(screen.getByText("1 change since the last seed")).toBeTruthy();
   expect(
-    screen.getByRole("button", { name: "Generate & install" }),
+    screen.getByRole("button", { name: "Generate & Install" }),
   ).toBeTruthy();
 });
 
@@ -271,16 +351,16 @@ test("with an AP slot installed, the drift bar counts from the last standard see
   const slot = { ...installed({}), id: 2, ap_slot: "FakeSlot" };
   const standard = installed({ "open-forest": true });
   show({ seed: slot, older: [standard], settings: { "open-forest": true } });
-  expect(screen.queryByText(/since the last standard seed/)).toBeNull();
+  expect(screen.queryByText(/since the last seed/)).toBeNull();
   cleanup();
   show({ seed: slot, older: [standard] });
-  expect(screen.getByText(/since the last standard seed/)).toBeTruthy();
+  expect(screen.getByText(/since the last seed/)).toBeTruthy();
   cleanup();
   show({ seed: slot, settings: { "open-forest": true } });
   expect(screen.getByText(/from the default settings/)).toBeTruthy();
 });
 
-test("a checklist item shows the dot when it differs from the installed seed", () => {
+test("a checklist item shows the dot when it differs from the last seed", () => {
   show({
     defs: cutscenes,
     section: "Cutscenes",
@@ -294,24 +374,24 @@ test("a checklist item shows the dot when it differs from the installed seed", (
 });
 
 /** The header action named `name`. */
-const action = (name: string) => screen.getByRole("button", { name });
+const action = (name: string | RegExp) => screen.getByRole("button", { name });
 
-test("Reset to defaults says why while nothing differs from them", () => {
+test("Reset to Defaults says why while nothing differs from them", () => {
   const onChange = show();
-  const reset = action("Reset to defaults");
+  const reset = action("Reset to Defaults");
   expect(reset.getAttribute("aria-disabled")).toBe("true");
   fireEvent.click(reset);
   expect(onChange).not.toHaveBeenCalled();
 });
 
-test("Enable all and Disable all write only what changes, skipping locked toggles", async () => {
+test("All and None write only what changes, skipping locked toggles", async () => {
   const onChange = show({
     defs: cutscenes,
     section: "Cutscenes",
     settings: { [all]: true, kokiri: true },
   });
-  // The owl and the lake are on because of their parent: left alone.
-  fireEvent.click(action("Enable all"));
+  // The lake is on because of its parent: left alone.
+  fireEvent.click(action("All in By area"));
   await waitFor(() =>
     expect(saved(onChange)).toEqual({ [all]: true, kokiri: true, field: true }),
   );
@@ -321,26 +401,93 @@ test("Enable all and Disable all write only what changes, skipping locked toggle
     section: "Cutscenes",
     settings: { [all]: true, kokiri: true },
   });
-  fireEvent.click(action("Disable all"));
+  fireEvent.click(action("None in Cutscenes"));
   await waitFor(() =>
-    expect(saved(again)).toEqual({ [all]: false, kokiri: false }),
+    expect(saved(again)).toEqual({ [all]: false, kokiri: true }),
   );
 });
 
-test("Enable all says why when every toggle is already on", () => {
+test("All says why when every toggle in its section is already on", () => {
   show({
     defs: cutscenes,
     section: "Cutscenes",
     settings: { [all]: true, kokiri: true, field: true },
   });
-  expect(action("Enable all").getAttribute("aria-disabled")).toBe("true");
-  expect(action("Disable all").getAttribute("aria-disabled")).toBeNull();
+  expect(action("All in By area").getAttribute("aria-disabled")).toBe("true");
+  expect(action("All in Cutscenes").getAttribute("aria-disabled")).toBe("true");
+  expect(action("None in Cutscenes").getAttribute("aria-disabled")).toBeNull();
 });
 
-test("a page with no toggles has only Reset to defaults", () => {
+test("a section of rows heads itself with its description and count", () => {
+  show({ settings: { "open-forest": true } });
+  const head = screen.getByRole("button", { name: /^Fake section/ });
+  expect(within(head).getByText("Fake about")).toBeTruthy();
+  // Open forest on, Skip the intro on by default, Menus open off.
+  expect(within(head).getByText("2 of 3 on")).toBeTruthy();
+});
+
+test("a section with no toggles counts what's off its defaults", () => {
+  show({
+    defs: [
+      choice("chest-size", "Chest size", ["Vanilla", "Big"]),
+      choice("age", "Age", ["Child", "Adult", "Random"]),
+    ],
+    settings: { age: "adult" },
+  });
+  const head = screen.getByRole("button", { name: /^Fake section/ });
+  expect(within(head).getByText("1 of 2 off default")).toBeTruthy();
+});
+
+test("a section of rows turns its toggles all on or all off", async () => {
+  const setConfig = show({ settings: { "open-forest": true } });
+  fireEvent.click(screen.getByRole("button", { name: "All in Fake section" }));
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({ "open-forest": true, menus: true }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "None in Fake section" }));
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({
+      "open-forest": false,
+      "skip-intro": false,
+      menus: false,
+    }),
+  );
+});
+
+test("a section with no toggles has no All or None", () => {
   show({ defs: [choice("chest-size", "Chest size", ["Vanilla", "Big"])] });
-  expect(screen.queryByRole("button", { name: "Enable all" })).toBeNull();
-  expect(action("Reset to defaults")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /^All/ })).toBeNull();
+});
+
+/** Opens the reset's menu and picks `name`. */
+async function pickReset(name: RegExp) {
+  fireEvent.keyDown(action("More ways to reset"), { key: "Enter" });
+  fireEvent.click(await screen.findByRole("menuitem", { name }));
+}
+
+test("Reset to Last Seed puts the seed's values back, and leads after", async () => {
+  const setConfig = show({
+    settings: { "open-forest": true, "chest-size": "all small" },
+    seed: installed({ "chest-size": "all small", menus: true }),
+  });
+  await pickReset(/Reset to Last Seed/);
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({
+      "chest-size": "all small",
+      menus: true,
+    }),
+  );
+  expect(useUi.getState().settings.reset).toBe("seed");
+  expect(action(/^Reset to Last Seed/)).toBeTruthy();
+});
+
+test("with no seed built, the defaults lead, and the menu says why", async () => {
+  useUi.setPath("settings.reset", "seed");
+  show({ settings: { "open-forest": true } });
+  expect(action(/^Reset to Defaults/).getAttribute("aria-disabled")).toBeNull();
+  fireEvent.keyDown(action("More ways to reset"), { key: "Enter" });
+  const item = await screen.findByRole("menuitem", { name: /Last Seed/ });
+  expect(item.textContent).toContain("No seed built yet");
 });
 
 test("the drift bar shows on every settings page, the same as on a group", () => {
@@ -358,7 +505,7 @@ test("Review lists the changes and puts the base's settings back", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Review" }));
   fireEvent.click(
-    await screen.findByRole("button", { name: /Use the installed seed's/ }),
+    await screen.findByRole("button", { name: /Use the Last Seed's/ }),
   );
   await waitFor(() =>
     expect(saved(onChange)).toEqual({ "chest-size": "all small" }),
@@ -373,19 +520,20 @@ test("a page's unsaved bar takes the drift bar's place while it shows", () => {
   expect(screen.getByText("Unsaved changes to the test setup")).toBeTruthy();
   expect(screen.queryByText(/1 change from/)).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+  expect(screen.getByText("Unsaved changes to the test setup")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Really discard?" }));
   expect(screen.getByText("1 change from the default settings")).toBeTruthy();
 });
 
-test("an open checklist is still open after leaving the page", () => {
+test("a closed section is still closed after leaving the page", () => {
   show({ defs: cutscenes, section: "Cutscenes" });
-  fireEvent.click(screen.getByRole("button", { name: /By area/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^Cutscenes/ }));
   cleanup();
   show({ defs: cutscenes, section: "Cutscenes" });
-  expect(
-    screen
-      .getByRole("button", { name: /By area/ })
-      .getAttribute("aria-expanded"),
-  ).toBe("true");
+  const expanded = (name: RegExp) =>
+    screen.getByRole("button", { name }).getAttribute("aria-expanded");
+  expect(expanded(/^Cutscenes/)).toBe("false");
+  expect(expanded(/^By area/)).toBe("true");
 });
 
 test("the test setup form keeps its edits until the saved setup changes", () => {
@@ -407,14 +555,14 @@ test("a locked checklist item stays put, and None leaves it on", () => {
     section: "Cutscenes",
     settings: { [all]: true, kokiri: true },
   });
-  const head = screen.getByRole("button", { name: /By area/ });
+  const head = screen.getByRole("button", { name: /^By area/ });
   expect(within(head).getByText("2 of 3 on")).toBeTruthy();
   fireEvent.click(head);
   const lake = screen.getByRole("checkbox", { name: "Lake Hylia" });
   expect(lake.getAttribute("aria-checked")).toBe("true");
   expect(lake.hasAttribute("disabled")).toBe(true);
-  fireEvent.click(screen.getByRole("button", { name: "None" }));
-  expect(saved(onChange)).toEqual({ [all]: true, kokiri: false, field: false });
+  fireEvent.click(screen.getByRole("button", { name: "None in By area" }));
+  expect(saved(onChange)).toEqual({ [all]: true, kokiri: false });
 });
 
 test("a change that fails to save says why", async () => {
@@ -464,7 +612,7 @@ const startView = (tier: number) =>
 
 const inventory: SettingDef = {
   ...toggle("start-inventory", "Starting inventory", { group: "Inventory" }),
-  kind: { type: "inventory" },
+  kind: { type: "inventory", default: {} },
 };
 
 test("the starting inventory draws the save editor's grid and saves each click", async () => {
@@ -492,6 +640,28 @@ test("the starting inventory draws the save editor's grid and saves each click",
   await screen.findByRole("button", { name: /Hookshot.*changed/ });
   fireEvent.contextMenu(screen.getByRole("button", { name: /^Hookshot/ }));
   await waitFor(() => expect(saved(setConfig)).toEqual({}));
+  expect(click).toHaveBeenLastCalledWith({ hookshot: 1 }, 0, "down");
+});
+
+test("a default starting inventory emptied saves as empty, not unset", async () => {
+  vi.spyOn(commands, "startItems").mockImplementation((s) =>
+    startView(s.hookshot ?? 0),
+  );
+  const click = vi.spyOn(commands, "startClick").mockResolvedValue({
+    status: "ok",
+    data: {},
+  });
+  const sword = {
+    ...inventory,
+    kind: { type: "inventory", default: { hookshot: 1 } },
+  } as SettingDef;
+  const setConfig = show({ defs: [sword], section: "Inventory" });
+  fireEvent.contextMenu(
+    await screen.findByRole("button", { name: /^Hookshot/ }),
+  );
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({ "start-inventory": {} }),
+  );
   expect(click).toHaveBeenLastCalledWith({ hookshot: 1 }, 0, "down");
 });
 

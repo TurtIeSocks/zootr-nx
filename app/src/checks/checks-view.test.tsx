@@ -17,7 +17,7 @@ import type {
 } from "@/bindings";
 import { ChecksView } from "@/checks/checks-view";
 import { row } from "@/checks/fixture";
-import { init } from "@/stores/checks";
+import { init, useChecks } from "@/stores/checks";
 import { label } from "@/stores/live";
 import { useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
@@ -101,6 +101,16 @@ async function show() {
   await act(init);
   render(<ChecksView />);
 }
+
+test("the table names its columns", async () => {
+  await show();
+  await screen.findByText("Kokiri Forest");
+  const names = screen
+    .getAllByRole("columnheader")
+    .map((h) => h.textContent)
+    .slice(0, 5);
+  expect(names).toEqual(["Done", "Name", "Contents", "Note", "Actions"]);
+});
 
 test("items stay hidden until checked, and a flip shows them", async () => {
   await show();
@@ -308,4 +318,14 @@ test("a pick is saved on the seed and shown", async () => {
   );
   await waitFor(() => expect(screen.getAllByText("?")).toHaveLength(1));
   backend.state = { ...backend.state, doors: [] };
+});
+
+// Last, since it leaves the store without a seed.
+test("with no seed installed, it points to Play", async () => {
+  useChecks.setState({ loaded: true, id: null });
+  useUi.setPath("tab", "Checks");
+  render(<ChecksView />);
+  expect(screen.getByText("No seed is installed")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Go to Play" }));
+  expect(useUi.getState().tab).toBe("Play");
 });

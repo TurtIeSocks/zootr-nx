@@ -266,9 +266,9 @@ fn options() -> Value {
                 .map(|o| json!({ "id": o.id, "label": o.label }))
                 .collect::<Vec<_>>(),
         }),
-        Kind::Inventory => json!({
+        Kind::Inventory { default } => json!({
             "id": d.id, "label": d.label, "description": d.description,
-            "kind": "inventory", "default": {},
+            "kind": "inventory", "default": default,
         }),
     });
     Value::Array(rows.collect())

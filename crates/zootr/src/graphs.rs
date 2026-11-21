@@ -1,10 +1,43 @@
 //! Edits to AINB logic graphs (`Logic/*.logic.module.ainb`): find a node by
-//! a string it holds, and move what reads one output onto another.
+//! a string it holds, and move what reads one output onto another. Also
+//! prints a node the way `probe ainb` does.
 
 use anyhow::{Context, Result};
-use ounce_formats::ainb::{Graph, Patch};
+use ounce_formats::ainb::{Graph, Node, Patch, Value};
 
 use crate::known::Name;
+
+/// Node `i` on one line: index, kind, class, values, where each linked
+/// input comes from, and its outputs.
+pub(crate) fn node_line(i: usize, node: &Node) -> String {
+    let show = |v: &Value| match v {
+        Value::String(s) => format!("{s:?}"),
+        Value::Pointer => "ptr".into(),
+        v => format!("{v:?}"),
+    };
+    let props = (node.properties.iter()).map(|(n, v)| format!("{n}={}", show(v)));
+    let inputs = node
+        .inputs
+        .iter()
+        .map(|input| match input.sources.as_slice() {
+            [] => format!("{}={}", input.name, show(&input.value)),
+            links => {
+                let from: Vec<_> = (links.iter())
+                    .map(|l| format!("#{}.{}", l.node, l.output))
+                    .collect();
+                format!("{}<-{}", input.name, from.join("|"))
+            }
+        });
+    let all: Vec<_> = props.chain(inputs).collect();
+    let outputs: Vec<_> = node.outputs.iter().map(|o| o.name.as_str()).collect();
+    format!(
+        "#{i} {:?} {} {} -> {}",
+        node.kind,
+        node.name,
+        all.join(" "),
+        outputs.join(",")
+    )
+}
 
 /// The romfs path of logic module `name`.
 pub(crate) fn logic(name: &Name) -> String {
@@ -57,8 +90,8 @@ mod tests {
 
     use crate::game::dev_dump;
 
-    /// The AINB writer against every graph in the game, loose and in
-    /// packs: each comes back byte for byte, and every link the writer can
+    /// The AINB reader and writer against every graph in the game, loose
+    /// and in packs: each reads, comes back byte for byte, and every link the writer can
     /// make is made there the way the writer makes it.
     #[test]
     fn the_writer_matches_every_game_graph() {
@@ -78,7 +111,9 @@ mod tests {
                     .collect()
             };
             let check = |(name, g): (String, Vec<u8>)| {
-                ounce_formats::ainb::check(&g).map_err(|e| format!("{name}: {e:#}"))
+                let read = ounce_formats::ainb::Graph::parse(&g).map(|_| ());
+                (read.and_then(|()| ounce_formats::ainb::check(&g)))
+                    .map_err(|e| format!("{name}: {e:#}"))
             };
             graphs.into_iter().map(check).collect::<Vec<_>>()
         });

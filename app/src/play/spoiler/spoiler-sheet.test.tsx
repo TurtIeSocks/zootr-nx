@@ -47,6 +47,18 @@ const tab = (name: string) => screen.getByRole("button", { name });
 const detail = () =>
   within(screen.getByRole("region", { name: "Check detail" }));
 
+test("while the spoiler loads, the panel says so", async () => {
+  let finish: (s: Spoiler) => void = () => {};
+  backend.load = () => new Promise((resolve) => (finish = resolve));
+  useShell.setPath("spoiler", entry);
+  render(<SpoilerSheet />);
+  const sheet = within(await screen.findByRole("dialog"));
+  expect(sheet.getByText("Loading…")).toBeTruthy();
+  await act(async () => finish(seed()));
+  expect(await sheet.findByText("Round 4")).toBeTruthy();
+  expect(sheet.queryByText("Loading…")).toBeNull();
+});
+
 test("Spheres shows a column a round, and picking a card links its rule", async () => {
   const sheet = await open();
   await sheet.findByText("Round 4");
@@ -136,7 +148,7 @@ test("Spheres keeps only the Way of the Hero with the toggle on", async () => {
   const sheet = await open();
   await sheet.findByText("Round 4");
   fireEvent.click(
-    sheet.getByRole("checkbox", { name: "Way of the Hero only" }),
+    sheet.getByRole("checkbox", { name: "Way of the Hero Only" }),
   );
   expect(sheet.queryByText("Round 4")).toBeNull();
   expect(sheet.queryByText("Fairy Bow")).toBeNull();
@@ -156,10 +168,10 @@ test("Way of the Hero lists its checks by area with their rounds", async () => {
   expect(detail().getByText(/Hyrule Castle · Courtyard/)).toBeTruthy();
 });
 
-test("All checks has the round, the star and the rule, then the filler", async () => {
+test("All Checks has the round, the star and the rule, then the filler", async () => {
   const sheet = await open();
   await sheet.findByText("Round 4");
-  fireEvent.click(tab("All checks"));
+  fireEvent.click(tab("All Checks"));
   const row = sheet.getByText("Map").closest("tr") as HTMLElement;
   expect(within(row).getByText("2")).toBeTruthy();
   expect(within(row).getByLabelText("Way of the Hero")).toBeTruthy();
@@ -190,9 +202,9 @@ test("the tab, the hero filter and the search are kept for the next spoiler", as
   const sheet = await open();
   await sheet.findByText("Round 4");
   fireEvent.click(
-    sheet.getByRole("checkbox", { name: "Way of the Hero only" }),
+    sheet.getByRole("checkbox", { name: "Way of the Hero Only" }),
   );
-  fireEvent.click(tab("All checks"));
+  fireEvent.click(tab("All Checks"));
   fireEvent.change(sheet.getByPlaceholderText("Search areas and items"), {
     target: { value: "bow" },
   });
@@ -203,7 +215,7 @@ test("the tab, the hero filter and the search are kept for the next spoiler", as
   cleanup();
 
   const again = await open();
-  expect(tab("All checks").getAttribute("aria-pressed")).toBe("true");
+  expect(tab("All Checks").getAttribute("aria-pressed")).toBe("true");
   expect(
     (again.getByPlaceholderText("Search areas and items") as HTMLInputElement)
       .value,

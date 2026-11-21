@@ -1,8 +1,8 @@
-import { Globe, History, Sparkles } from "lucide-react";
 import { FolderTabs } from "@/components/folder-tabs";
 import { ArchipelagoPanel } from "@/play/archipelago-panel";
 import { HistoryList } from "@/play/history-list";
 import { NewSeed } from "@/play/new-seed";
+import { PLAY_FOLDERS } from "@/shell/nav";
 import { useAp } from "@/stores/ap";
 import { useSeeds } from "@/stores/seeds";
 import { type PlayTab, useUi } from "@/stores/ui";
@@ -28,14 +28,12 @@ export function PlayTabs() {
       tabs={[
         {
           id: "standard",
-          label: "Standard",
-          icon: Sparkles,
+          ...PLAY_FOLDERS.standard,
           panel: <NewSeed />,
         },
         {
           id: "archipelago",
-          label: "Archipelago",
-          icon: Globe,
+          ...PLAY_FOLDERS.archipelago,
           meta: connected && (
             <span
               role="img"
@@ -47,8 +45,7 @@ export function PlayTabs() {
         },
         {
           id: "history",
-          label: "History",
-          icon: History,
+          ...PLAY_FOLDERS.history,
           meta: n > 0 && (
             <span className="font-[450] text-ink-faint text-xs tabular-nums">
               {n}

@@ -44,7 +44,7 @@ function PickMenu({ door, doors }: DoorProps) {
         ))}
         {door.pick && (
           <DropdownMenuItem onSelect={() => choose(null)}>
-            Clear pick
+            Clear Pick
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>
@@ -102,7 +102,7 @@ export function EntranceRows() {
       <tr>
         <th
           colSpan={5}
-          className="sticky top-0 z-1 bg-surface px-3 pt-3 pb-2 text-left font-normal"
+          className="sticky top-8 z-1 bg-surface px-3 pt-3 pb-2 text-left font-normal"
         >
           <div className="flex items-center gap-3">
             <span className="font-semibold text-[13.5px]">Entrances</span>

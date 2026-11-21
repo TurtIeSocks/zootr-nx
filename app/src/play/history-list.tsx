@@ -16,15 +16,11 @@ import { TipButton } from "@/components/tip-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { nameOf, when } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ExtrasBadges, Name } from "@/play/seed";
 import { useArmed } from "@/play/use-armed";
+import { rowId } from "@/shell/find/reveal";
 import {
   clearHistory,
   deleteSeed,
@@ -60,7 +56,7 @@ function InstallSeed({ id }: SeedActionProps) {
   return (
     <TipButton
       label="Install"
-      tip={blocked || "Install this seed"}
+      tip={blocked || "Install this seed to every target"}
       size="sm"
       disabled={busy || !!blocked}
       onClick={() => install(id)}
@@ -92,10 +88,11 @@ function DeleteSeed({ id, installed }: DeleteSeedProps) {
             : "Delete this seed"
       }
       variant={armed ? "destructive" : "ghost"}
+      size={armed ? "sm" : "icon-sm"}
       disabled={busy || installed}
       {...handlers}
     >
-      <Trash2 />
+      {armed ? "Really delete?" : <Trash2 />}
     </TipButton>
   );
 }
@@ -103,17 +100,12 @@ function DeleteSeed({ id, installed }: DeleteSeedProps) {
 /** Stays visible on the installed row, where Install would be. */
 function InstalledMark() {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge asChild variant="green" className="cursor-default">
-          <button type="button" aria-disabled="true">
-            <CircleCheck />
-            Installed
-          </button>
-        </Badge>
-      </TooltipTrigger>
-      <TooltipContent>This seed is installed</TooltipContent>
-    </Tooltip>
+    <Badge asChild variant="green" className="cursor-default">
+      <button type="button" aria-disabled="true">
+        <CircleCheck />
+        Installed
+      </button>
+    </Badge>
   );
 }
 
@@ -186,7 +178,11 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
   const [differs] = useSeeds.usePath(`diffs.${e.id}`, 0);
   const isInstalled = e.id === installedId;
   return (
-    <li className="group/row relative flex min-h-14 items-center gap-3 rounded-md px-3 py-2 transition-colors duration-(--duration-fast) focus-within:bg-surface-hover hover:bg-surface-hover">
+    <li
+      id={rowId.seed(e.id)}
+      data-reveal
+      className="group/row relative flex min-h-14 items-center gap-3 rounded-md px-3 py-2 transition-colors duration-(--duration-fast) focus-within:bg-surface-hover hover:bg-surface-hover"
+    >
       <SeedIcons icons={e.icons} size="sm" />
       <div className="min-w-0 flex-1">
         {nameOf(e) ? (
@@ -225,7 +221,7 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
           </TipButton>
         )}
         <TipButton
-          label="Spoiler"
+          label="Spoiler Log"
           tip="Spoiler Log"
           variant="ghost"
           onClick={() => openSpoiler(e)}

@@ -11,7 +11,7 @@ use crate::steps;
 
 mod inventory;
 pub use inventory::{
-    Grant, SETTING, Start, WORDS, click, drop, granted, items as view, parse, set,
+    DEFAULT, Grant, NONE, SETTING, Start, WORDS, click, drop, granted, items as view, parse, set,
 };
 
 /// What a starting item's chest holds instead.
@@ -129,7 +129,7 @@ pub fn grant(romfs: &Romfs, rewrites: &mut Rewrites, grants: &[Grant]) -> Result
         return Ok(());
     }
     for g in grants {
-        if items::get(romfs, &g.actor)?.is_none() {
+        if items::get(romfs, &g.actor)?.is_none() && !crate::known::is_ours(&g.actor) {
             bail!("{} isn't a pouch item. `zootr items` lists them", g.actor);
         }
     }

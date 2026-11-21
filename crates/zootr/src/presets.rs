@@ -10,7 +10,7 @@ use ounce_formats::Byml;
 use crate::gamedata::GameData;
 use crate::known::{Name, actor, field, flag, flow, item};
 use crate::savefile;
-use crate::settings::group;
+use crate::settings::{Place, place};
 use crate::value;
 
 /// Every flag in `names` set to `value`.
@@ -27,10 +27,8 @@ pub struct Preset {
     pub name: &'static str,
     pub label: &'static str,
     pub what: &'static str,
-    /// The settings panel it sits on.
-    pub group: &'static str,
-    /// The checklist it sits in on that panel, if any.
-    pub subgroup: Option<&'static str>,
+    /// Where the settings show it.
+    pub place: Place,
     /// Its `NAME=VALUE` edits.
     edits: fn() -> Vec<String>,
     /// Pouch items a new game is handed, by actor. A save can't take these.
@@ -57,9 +55,8 @@ pub const CARPENTERS_FREED: &str = "carpenters-freed";
 pub const CARPENTERS_FAST: &str = "carpenters-fast";
 
 /// Presets a new game takes unless turned off.
-pub const DEFAULT_ON: [&str; 3] = ["menus", "clock", "no-pickup-texts"];
+pub const DEFAULT_ON: [&str; 4] = ["menus", "clock", "no-tutorials", "no-pickup-texts"];
 
-const QUEST: Option<&str> = Some("Quest progress");
 const STONES: [&Name; 3] = [
     flow::GET_STONE_OF_FOREST,
     flow::GET_STONE_OF_FIRE,
@@ -326,10 +323,9 @@ fn deku_tree_clear() -> Vec<String> {
 pub const PRESETS: [Preset; 17] = [
     Preset {
         name: OPEN_FOREST,
-        label: "Open forest",
+        label: "Open Forest",
         what: "Mido and the forest exit stop blocking Link, as child or adult",
-        group: group::LOGIC,
-        subgroup: None,
+        place: place::OPEN_AREAS,
         give: &[],
         progress: &[],
         fields: Vec::new,
@@ -346,10 +342,9 @@ pub const PRESETS: [Preset; 17] = [
     },
     Preset {
         name: "kakariko-gate",
-        label: "Open Kakariko gate",
+        label: "Open Kakariko Gate",
         what: "The Kakariko gate guard has already seen Zelda's letter, so the Death Mountain trail is open from the start",
-        group: group::LOGIC,
-        subgroup: None,
+        place: place::OPEN_AREAS,
         edits: || all([flag::NPC_HYLIA_SOLDIER_003_GATE_OPEN], "true"),
         give: &[],
         progress: &[],
@@ -357,10 +352,9 @@ pub const PRESETS: [Preset; 17] = [
     },
     Preset {
         name: KING_ZORA_MOVED,
-        label: "King Zora moved",
+        label: "King Zora Moved",
         what: "King Zora has read Ruto's letter and stands aside for child Link, as he does once he's shown it. Ruto's Letter becomes an empty bottle, shuffled from its spot at the bottom of the lake",
-        group: group::LOGIC,
-        subgroup: None,
+        place: place::OPEN_AREAS,
         // Showing him the letter moves the quest on, then plays the scene
         // whose played flag hides the air wall beside him. The quest step
         // is what moves him aside. The domain's first arrival from the
@@ -380,10 +374,9 @@ pub const PRESETS: [Preset; 17] = [
     },
     Preset {
         name: JABU_OPEN,
-        label: "Jabu-Jabu open",
+        label: "Jabu-Jabu Open",
         what: "Jabu-Jabu's mouth is open, so child Link walks in without giving him a fish",
-        group: group::LOGIC,
-        subgroup: None,
+        place: place::OPEN_AREAS,
         edits: || {
             all(
                 [flag::JAB_JAB_OPENED_MOUTH, flag::GAVE_FISH_TO_JAB_JAB],
@@ -396,10 +389,9 @@ pub const PRESETS: [Preset; 17] = [
     },
     Preset {
         name: "open-waterfall",
-        label: "Zora's River waterfall open",
+        label: "Zora's River Waterfall Open",
         what: "The waterfall at the end of Zora's River already stands split, so Link reaches Zora's Domain without Zelda's Lullaby",
-        group: group::LOGIC,
-        subgroup: None,
+        place: place::OPEN_AREAS,
         edits: || {
             all(
                 [
@@ -417,8 +409,7 @@ pub const PRESETS: [Preset; 17] = [
         name: ADULT_DEKU_TREE,
         label: "Adult Deku Tree",
         what: "The debris in front of the Deku Tree's mouth is gone, so adult Link walks in and out",
-        group: group::LOGIC,
-        subgroup: None,
+        place: place::OPEN_AREAS,
         edits: Vec::new,
         give: &[],
         progress: &[],
@@ -426,10 +417,9 @@ pub const PRESETS: [Preset; 17] = [
     },
     Preset {
         name: "menus",
-        label: "Menus open",
+        label: "Menus Open",
         what: "Menu pages skip their guide pop-up the first time they fill, and the challenge tapestry is open from the start, without the reveal it plays the first time it opens",
-        group: group::GENERAL,
-        subgroup: None,
+        place: place::COMFORT,
         // The tapestry's menu graph (`Sequence/ChallengeLog`) plays its
         // first-time reveal while the second flag reads false.
         edits: || {
@@ -449,10 +439,9 @@ pub const PRESETS: [Preset; 17] = [
     },
     Preset {
         name: "clock",
-        label: "Clock runs",
+        label: "Clock Runs",
         what: "Time passes from the start, as it does once Link first walks into Hyrule Field. Off, the clock waits for the field, even in a seed that starts past it",
-        group: group::GENERAL,
-        subgroup: None,
+        place: place::COMFORT,
         // The field's first arrival sets it. The game's clock reads it by
         // hash, so nothing in the data names it as the gate.
         edits: || all([flag::HYRULE_FIELD_ARRIVE_ENTRANCE], "true"),
@@ -464,8 +453,7 @@ pub const PRESETS: [Preset; 17] = [
         name: "zelda-done",
         label: "Met Zelda",
         what: "Child Zelda met and her lullaby learned, with her letter in hand",
-        group: group::LOGIC,
-        subgroup: QUEST,
+        place: place::QUEST,
         edits: || zelda("Step02"),
         give: &[item::ZELDA_LETTER],
         progress: &[],
@@ -473,10 +461,9 @@ pub const PRESETS: [Preset; 17] = [
     },
     Preset {
         name: "door-of-time",
-        label: "Door of Time open",
+        label: "Door of Time Open",
         what: "The three stones, the Ocarina of Time and its song, and the Door of Time open",
-        group: group::LOGIC,
-        subgroup: QUEST,
+        place: place::QUEST,
         edits: || {
             let mut edits = zelda("Step06");
             edits.extend(all(STONES.map(crate::steps::saved), "Complete"));
@@ -497,10 +484,9 @@ pub const PRESETS: [Preset; 17] = [
     },
     Preset {
         name: CARPENTERS_FREED,
-        label: "Carpenters freed",
+        label: "Carpenters Freed",
         what: "All four carpenters freed, the membership card in hand, the guards standing down and the valley bridge up",
-        group: group::LOGIC,
-        subgroup: QUEST,
+        place: place::QUEST,
         edits: carpenters,
         give: &[item::TOKEN_GERUDO],
         progress: &[(flow::SAGE_OF_SPIRIT, "Step02")],
@@ -508,10 +494,9 @@ pub const PRESETS: [Preset; 17] = [
     },
     Preset {
         name: CARPENTERS_FAST,
-        label: "Gerudo Fortress fast",
+        label: "Gerudo Fortress Fast",
         what: "Freeing any one carpenter frees all four and earns the membership card. The other thieves still guard their cells",
-        group: group::LOGIC,
-        subgroup: QUEST,
+        place: place::QUEST,
         edits: carpenters_fast,
         give: &[],
         progress: &[],
@@ -519,10 +504,9 @@ pub const PRESETS: [Preset; 17] = [
     },
     Preset {
         name: "rainbow-bridge",
-        label: "Rainbow bridge up",
+        label: "Rainbow Bridge Up",
         what: "Every sage awake, the Light Arrows in hand and the bridge to Ganon's Castle up",
-        group: group::LOGIC,
-        subgroup: QUEST,
+        place: place::QUEST,
         edits: || ganon("Step02"),
         give: LIGHT_ARROWS,
         progress: &[],
@@ -530,10 +514,9 @@ pub const PRESETS: [Preset; 17] = [
     },
     Preset {
         name: "trials-done",
-        label: "Trials done",
+        label: "Trials Done",
         what: "The rainbow bridge, and all six barriers in Ganon's Castle down",
-        group: group::LOGIC,
-        subgroup: QUEST,
+        place: place::QUEST,
         edits: || {
             let mut edits = ganon("Step04");
             edits.extend(lit(&[
@@ -555,8 +538,7 @@ pub const PRESETS: [Preset; 17] = [
         name: "claim-check",
         label: "Claim Check",
         what: "The trade quest's last step, with the Claim Check in hand",
-        group: group::LOGIC,
-        subgroup: QUEST,
+        place: place::QUEST,
         edits: || {
             vec![crate::steps::at(
                 flow::SUB_EVENT_GET_SWORD_BIG_GORON,
@@ -569,10 +551,9 @@ pub const PRESETS: [Preset; 17] = [
     },
     Preset {
         name: "no-tutorials",
-        label: "No tutorials",
+        label: "No Tutorials",
         what: "Every guide screen counts as already shown, so none pops up the first time, such as the Echo Gem's in the House of Skulltula. The Great Fairy's guide still shows",
-        group: group::GENERAL,
-        subgroup: None,
+        place: place::COMFORT,
         edits: no_tutorials,
         give: &[],
         progress: &[],
@@ -580,10 +561,9 @@ pub const PRESETS: [Preset; 17] = [
     },
     Preset {
         name: "no-pickup-texts",
-        label: "No pickup texts",
+        label: "No Pickup Texts",
         what: "Recovery hearts, fairies, rupees, magic jars, arrows and Deku seeds count as picked up before, so the first one doesn't stop Link with its get text",
-        group: group::GENERAL,
-        subgroup: None,
+        place: place::COMFORT,
         edits: no_pickup_texts,
         give: &[],
         progress: &[],
@@ -800,7 +780,7 @@ mod tests {
             "{}=true",
             field::UI_IS_FINISH_CHALLENGE_MENU_OPEN_EVENT
         )));
-        assert!(!DEFAULT_ON.contains(&"no-tutorials"));
+        assert!(DEFAULT_ON.contains(&"no-tutorials"));
     }
 
     #[test]
@@ -861,8 +841,7 @@ mod tests {
             gives(&["rainbow-bridge".into(), "claim-check".into()]).unwrap(),
             [item::ARROW_LIGHT, item::CLAIM_CHECK]
         );
-        let quest = PRESETS.iter().filter(|p| p.subgroup == QUEST);
-        assert!(quest.clone().count() > 0 && quest.clone().all(|p| p.group == group::LOGIC));
+        assert!(PRESETS.iter().any(|p| p.place == place::QUEST));
     }
 
     #[test]
@@ -873,7 +852,7 @@ mod tests {
         assert_eq!(edits, [format!("{helped}=3"), format!("{left}=1")]);
         assert!(for_save(&[CARPENTERS_FAST.into()], &[]).is_ok());
         let fast = PRESETS.iter().find(|p| p.name == CARPENTERS_FAST).unwrap();
-        assert_eq!((fast.group, fast.subgroup), (group::LOGIC, QUEST));
+        assert_eq!(fast.place, place::QUEST);
     }
 
     #[test]
@@ -941,9 +920,9 @@ mod tests {
                 .all(|f| f.starts_with(&format!("{JABU_MOUTH}.")))
         );
         assert!(fields(&["open-waterfall".into()]).unwrap().is_empty());
-        let group = |n: &str| PRESETS.iter().find(|p| p.name == n).unwrap().group;
+        let place = |n: &str| PRESETS.iter().find(|p| p.name == n).unwrap().place;
         for name in [KING_ZORA_MOVED, JABU_OPEN, "open-waterfall"] {
-            assert_eq!(group(name), group::LOGIC, "{name}");
+            assert_eq!(place(name), place::OPEN_AREAS, "{name}");
         }
     }
 
@@ -971,7 +950,7 @@ mod tests {
         assert!(
             PRESETS
                 .iter()
-                .any(|p| p.name == ADULT_DEKU_TREE && p.group == group::LOGIC)
+                .any(|p| p.name == ADULT_DEKU_TREE && p.place == place::OPEN_AREAS)
         );
     }
 

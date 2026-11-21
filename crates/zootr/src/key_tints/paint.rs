@@ -22,6 +22,10 @@ pub(crate) struct Look {
     /// the kind after the last `_`.
     pub(crate) others: &'static [&'static str],
     pub(crate) copy: &'static str,
+    /// The copy's metal map cleared, so its painted albedo shows as its
+    /// own colour. A metal reflects the room around it, which drowns a
+    /// painted colour (the Magic Meter's sigil stayed gold, live).
+    pub(crate) matte: bool,
 }
 
 impl Look {
@@ -124,7 +128,8 @@ impl Host {
         )?;
         let copies = look.textures(name).into_iter().map(|(_, path)| path);
         for ((kind, like, data, top), path) in self.textures.iter().zip(copies) {
-            let data = texture(&rename(data, host, name)?, top, kind, albedo, ring)?;
+            let matte = look.matte && *kind == METAL;
+            let data = texture(&rename(data, host, name)?, top, kind, albedo, ring, matte)?;
             builder.add(&path, &data, like)?;
         }
         Ok(())
@@ -134,30 +139,39 @@ impl Host {
 /// Paints an albedo's first level, its texels RGBA.
 pub(crate) type Albedo<'a> = &'a dyn Fn(&mut [u8]);
 
+/// The metal map's kind. Its red channel is how metal each texel is.
+const METAL: &str = "Mtl";
+
 /// A texture of `kind`, `top` its first level decoded: an albedo's first
 /// level painted by `albedo`, the other maps kept, so the metal maps keep
 /// the shine. With `ring`, any kind with the ring's iron and gold corner.
+/// `matte`, a metal map with no metal left.
 fn texture(
     data: &[u8],
     top: &Texture,
     kind: &str,
     albedo_paint: Albedo,
     ring: bool,
+    matte: bool,
 ) -> Result<Vec<u8>> {
-    let albedo = kind == "Alb";
-    if !albedo && !ring {
+    // Every texel redrawn: the albedo, or a metal map made matte.
+    let whole = kind == "Alb" || matte;
+    if !whole && !ring {
         return Ok(data.to_vec());
     }
     let mut t = top.clone();
     let key = t.rgba.clone();
-    if albedo {
+    if kind == "Alb" {
         albedo_paint(&mut t.rgba);
+    }
+    if matte {
+        t.rgba.chunks_mut(4).for_each(|px| px[0] = 0);
     }
     if ring {
         rings::paint(&mut t, &key, kind)?;
     }
     let (w, h) = (t.width, t.height);
-    redraw(data, &t.rgba, |x, y| !albedo && !rings::painted(w, h, x, y))
+    redraw(data, &t.rgba, |x, y| !whole && !rings::painted(w, h, x, y))
 }
 
 /// Each texel in `colour`, scaled by its brightness, so a coloured

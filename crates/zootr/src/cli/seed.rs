@@ -47,8 +47,14 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
         let default: serde_json::Value = match &def.kind {
             settings::Kind::Toggle { default } => (*default).into(),
             settings::Kind::Choice { default, .. } => default.as_str().into(),
-            settings::Kind::Inventory => {
+            settings::Kind::Inventory { default } => {
                 let start = starting::Start::from_settings(settings).unwrap_or_default();
+                if start == *default {
+                    continue;
+                }
+                if start.0.is_empty() {
+                    flag("start", Some(starting::NONE.into()));
+                }
                 for (word, n) in &start.0 {
                     let arg = match n {
                         1 => word.clone(),

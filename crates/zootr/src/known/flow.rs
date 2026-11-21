@@ -35,6 +35,7 @@ pub const EVENT_QUERY_CAN_ADD_TO_PORCH_BY_GAME_DATA: &Name = &n!(0x965530404a334
 pub const EVENT_QUERY_CHECK_ELAPSED_TIME: &Name = &n!(0x82226b5c68a5d18c);
 pub const EVENT_QUERY_CHECK_IS_GET: &Name = &n!(0x8e463c6b231de4d5);
 pub const EVENT_QUERY_CHECK_LOSE_MONEY_IF_SELL_SOME: &Name = &n!(0x1037e8eac7dbe341);
+pub const EVENT_QUERY_HAVE_PLAYED_EVENT: &Name = &n!(0x488823d702f69ff0);
 pub const EVENT_QUERY_IS_ANY_BOTTLE_EMPTY: &Name = &n!(0x453a1d1bd54ac2ea);
 pub const EVENT_QUERY_IS_BOOL: &Name = &n!(0x155279201a4eaa4d);
 pub const EVENT_QUERY_IS_EVENT_SKIPED_MOST_RECENT: &Name = &n!(0x15fc832b9f124499);
@@ -173,7 +174,8 @@ pub const SUB_EVENT_GET_SWORD_BIG_GORON: &Name = &n!(0xf0811cd102e65d92);
 pub const SUB_PLAY_OCARINA_SEQUENCE_FAIRY_FOUNTAIN: &Name = &n!(0x6fda61bc03484766);
 pub const SUCCESS: &Name = &n!(0x92a0d19a28995530);
 pub const SUCCESS_: &Name = &n!(0xc09997f2fc8c2b9d);
-/// The chest flows, `Dm_` dropped as in `scene.rs`.
+/// The get and chest flows, `Dm_` dropped as in `scene.rs`.
+pub const SY_GET: &Name = &n!(0xa27ad0f8bec63ef4);
 pub const SY_TREASUREBOX: &Name = &n!(0x85cd7501a6a3cdee);
 pub const SY_TREASUREBOX_SMALL: &Name = &n!(0xff3b32cb74e4e36d);
 pub const TAKEN_REWARD_ACTOR: &Name = &n!(0xe8a27a54ec0a6f8c);

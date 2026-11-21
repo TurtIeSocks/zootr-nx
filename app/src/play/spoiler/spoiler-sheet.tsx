@@ -4,6 +4,7 @@ import { commands } from "@/bindings";
 import { InlineError } from "@/components/callout";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Help } from "@/components/help";
+import { Loading } from "@/components/load-gate";
 import { type EdgeMark, ScrollEdges } from "@/components/scroll-edges";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,7 +37,7 @@ import { useUi } from "@/stores/ui";
 const TABS: { id: SpoilerTab; label: string }[] = [
   { id: "spheres", label: "Spheres" },
   { id: "hero", label: "Way of the Hero" },
-  { id: "checks", label: "All checks" },
+  { id: "checks", label: "All Checks" },
 ];
 
 /** The tab a seed with shuffled doors adds. */
@@ -78,7 +79,7 @@ export function SpoilerSheet() {
     >
       <DialogContent className="flex h-[85vh] max-w-[min(1200px,calc(100%-4rem))] flex-col">
         <DialogHeader>
-          <DialogTitle>Spoiler</DialogTitle>
+          <DialogTitle>Spoiler Log</DialogTitle>
           <DialogDescription>
             Seed <span className="font-mono text-ink">{entry?.seed}</span>
           </DialogDescription>
@@ -86,7 +87,7 @@ export function SpoilerSheet() {
         <div className="-mx-5 -mb-5 flex min-h-0 flex-1 flex-col border-line border-t">
           {/* Another seed starts a fresh load and pick. */}
           {entry && (
-            <ErrorBoundary label="The spoiler" resetKey={entry.id}>
+            <ErrorBoundary label="The Spoiler Log" resetKey={entry.id}>
               <CoveredSpoiler id={entry.id} />
             </ErrorBoundary>
           )}
@@ -121,10 +122,10 @@ function Cover({ onReveal }: CoverProps) {
       <EyeOff className="size-6 text-ink-faint" />
       <h2 className="font-semibold text-[15px]">Hidden while you play</h2>
       <p className="max-w-[44ch] text-[13px] text-ink-muted">
-        The spoiler shows where every item is. Reveal it if you're stuck, or
+        The Spoiler Log shows where every item is. Reveal it if you're stuck, or
         when you're done.
       </p>
-      <Button onClick={onReveal}>Reveal spoiler</Button>
+      <Button onClick={onReveal}>Reveal Spoiler Log</Button>
     </div>
   );
 }
@@ -142,7 +143,7 @@ interface SpoilerBodyProps {
 export function SpoilerBody({ id }: SpoilerBodyProps) {
   const loaded = useLoad(loadSpoiler, id);
   const [picked, pick] = useState<string>();
-  if (loaded.status === "loading") return null;
+  if (loaded.status === "loading") return <Loading />;
   if (loaded.status === "error")
     return <InlineError error={loaded.error} className="px-5 py-3" />;
   return (
@@ -188,7 +189,7 @@ function TabBar() {
             checked={heroOnly}
             onCheckedChange={(on) => setHeroOnly(on === true)}
           />
-          Way of the Hero only
+          Way of the Hero Only
         </label>
       )}
     </div>

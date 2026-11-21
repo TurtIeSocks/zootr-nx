@@ -73,7 +73,7 @@ export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
   }
   if (status === "refused") {
     return (
-      <Strip dot="bad" bad action={<Act label="Try again" onClick={go} />}>
+      <Strip dot="bad" bad action={<Act label="Try Again" onClick={go} />}>
         <span>
           <b className="font-semibold">Refused:</b> {refusal(lines, slot)}
         </span>
@@ -83,7 +83,7 @@ export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
   if (!server) {
     const setUp = onSetUp ?? (() => useUi.setPath("play.tab", "archipelago"));
     return (
-      <Strip dot="off" action={<Act label="Set up room" onClick={setUp} />}>
+      <Strip dot="off" action={<Act label="Set Up Room" onClick={setUp} />}>
         <b className="font-semibold">No room yet</b>
         <span className="text-ink-muted">
           Add the server in the Archipelago tab
@@ -106,7 +106,7 @@ export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
 /** The DeathLink mark, for a slot that plays it. */
 export function DeathLinkBadge() {
   return (
-    <Tip tip="Your deaths reach the others, and theirs reach you">
+    <Tip focusable tip="Your deaths reach the others, and theirs reach you">
       <Badge variant="danger" shape="square">
         <Skull />
         DeathLink

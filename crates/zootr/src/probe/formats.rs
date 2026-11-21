@@ -59,38 +59,14 @@ fn tree(v: &Byml, depth: usize) -> String {
 
 /// Print a graph, one node per line.
 pub(super) fn ainb(romfs: &Romfs, path: &str, out: Option<&Path>) -> Result<()> {
-    use ounce_formats::ainb::{Graph, Value};
+    use ounce_formats::ainb::Graph;
     let bytes = graph_bytes(romfs, path)?;
     if let Some(out) = out {
         return std::fs::write(out, &bytes).with_context(|| format!("writing {}", out.display()));
     }
     let graph = Graph::parse(&bytes)?;
     let file = ounce_formats::ainb::File::parse(&bytes)?;
-    let show = |v: &Value| match v {
-        Value::String(s) => format!("{s:?}"),
-        Value::Pointer => "ptr".into(),
-        v => format!("{v:?}"),
-    };
     for (i, node) in graph.nodes.iter().enumerate() {
-        let props = node
-            .properties
-            .iter()
-            .map(|(n, v)| format!("{n}={}", show(v)));
-        let inputs = node
-            .inputs
-            .iter()
-            .map(|input| match input.sources.as_slice() {
-                [] => format!("{}={}", input.name, show(&input.value)),
-                links => {
-                    let from: Vec<_> = links
-                        .iter()
-                        .map(|l| format!("#{}.{}", l.node, l.output))
-                        .collect();
-                    format!("{}<-{}", input.name, from.join("|"))
-                }
-            });
-        let all: Vec<_> = props.chain(inputs).collect();
-        let outputs: Vec<_> = node.outputs.iter().map(|o| o.name.as_str()).collect();
         let children: Vec<_> = (file.children(i)?.into_iter())
             .map(|(plug, to)| format!("{plug}:#{to}"))
             .collect();
@@ -98,13 +74,76 @@ pub(super) fn ainb(romfs: &Romfs, path: &str, out: Option<&Path>) -> Result<()> 
             true => String::new(),
             false => format!(" => {}", children.join(" ")),
         };
-        println!(
-            "#{i} {:?} {} {} -> {}{children}",
-            node.kind,
-            node.name,
-            all.join(" "),
-            outputs.join(",")
-        );
+        println!("{}{children}", crate::graphs::node_line(i, node));
+    }
+    Ok(())
+}
+
+/// Every graph the AINB reader can't parse, loose and in packs, counted
+/// by its first error line with one example each, and how many links it
+/// reads without knowing their output (`?N`).
+pub(super) fn ainbs(romfs: &Romfs) -> Result<()> {
+    use ounce_formats::{files_with_suffix, par_map};
+    let mut files = files_with_suffix(romfs.root(), ".ainb")?;
+    files.extend(files_with_suffix(romfs.root(), ".pack.zs")?);
+    let unknown = std::sync::atomic::AtomicUsize::new(0);
+    let failed: Vec<(String, String)> = par_map(&files, |path| {
+        let Ok(rel) = romfs.rel(path) else {
+            return Vec::new();
+        };
+        let Ok(data) = romfs.read(&rel) else {
+            return Vec::new();
+        };
+        let graphs: Vec<(String, Vec<u8>)> = match rel.ends_with(".ainb") {
+            true => vec![(rel, data)],
+            false => match Sarc::new(&data) {
+                Ok(sarc) => (sarc.files())
+                    .filter_map(|f| Some((f.name?, f.data)))
+                    .filter(|(name, _)| name.ends_with(".ainb"))
+                    .map(|(name, g)| (format!("{rel}/{name}"), g.to_vec()))
+                    .collect(),
+                Err(_) => Vec::new(),
+            },
+        };
+        (graphs.into_iter())
+            .filter_map(|(name, g)| match ounce_formats::ainb::Graph::parse(&g) {
+                Ok(g) => {
+                    let links = g
+                        .nodes
+                        .iter()
+                        .flat_map(|n| &n.inputs)
+                        .flat_map(|i| &i.sources);
+                    let n = links.filter(|l| l.output.starts_with('?')).count();
+                    unknown.fetch_add(n, std::sync::atomic::Ordering::Relaxed);
+                    None
+                }
+                Err(e) => Some((format!("{e:#}"), name)),
+            })
+            .collect()
+    })
+    .into_iter()
+    .flatten()
+    .collect();
+    let mut by: std::collections::BTreeMap<String, (usize, String)> = Default::default();
+    for (why, name) in &failed {
+        let key = why.split(" from ").next().unwrap_or(why);
+        let key = key
+            .split_whitespace()
+            .filter(|w| !w.contains('.'))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let e = by.entry(key).or_insert((0, format!("{name}: {why}")));
+        e.0 += 1;
+    }
+    let mut rows: Vec<_> = by.into_iter().collect();
+    rows.sort_by_key(|r| std::cmp::Reverse(r.1.0));
+    println!("{} graphs fail", failed.len());
+    println!(
+        "{} links reach an output the reader can't name (?N)",
+        unknown.into_inner()
+    );
+    for (key, (count, example)) in rows {
+        println!("{count:>6} {key}\n         e.g. {example}");
     }
     Ok(())
 }

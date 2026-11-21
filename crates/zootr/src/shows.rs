@@ -314,7 +314,7 @@ mod tests {
         let gd = GameData::load(&romfs).unwrap();
         let lines = progressive::LINES.iter().flat_map(|l| l.iter());
         let fired = ammo::NEEDS.iter().flat_map(|(_, f)| ammo::pouches(f));
-        let made = |p: &&str| !crate::bombchu_bags::BAGS.contains(p);
+        let made = |p: &&str| !crate::known::is_ours(p);
         for pouch in lines.map(|(_, p)| p.get()).chain(fired).filter(made) {
             let name = format!("{IS_GET}.{pouch}");
             assert_eq!(Op::read(&gd, &name).ok(), owned(pouch).pop(), "{name}");

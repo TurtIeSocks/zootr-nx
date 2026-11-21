@@ -50,7 +50,7 @@ pub(super) fn live(romfs: &Romfs, grep: Option<String>, all: bool, only_named: b
 
 /// The target's running game, on this session's turn. Only a command
 /// that `plays` it renews the turn: one that only reads lets it lapse.
-fn attach(plays: bool) -> Result<live::Game> {
+pub(super) fn attach(plays: bool) -> Result<live::Game> {
     let session = crate::turn::session();
     match plays {
         true => crate::turn::hold(&session)?,
@@ -68,7 +68,7 @@ fn input() -> Result<Box<dyn Input>> {
 }
 
 /// A report as lines, or as one JSON object with `json`.
-fn said<T: Display + Serialize>(report: &T, json: bool) -> Result<String> {
+pub(super) fn said<T: Display + Serialize>(report: &T, json: bool) -> Result<String> {
     Ok(match json {
         true => serde_json::to_string(report)?,
         false => report.to_string(),
@@ -115,7 +115,7 @@ pub(super) fn give(romfs: &Romfs, actor: &str, count: i32) -> Result<()> {
 /// adds, else the game's own.
 /// The installed seed's gamedata, or the game's own when there's no target
 /// or the target has no seed installed.
-fn installed_gamedata(romfs: &Romfs) -> Result<gamedata::GameData> {
+pub(super) fn installed_gamedata(romfs: &Romfs) -> Result<gamedata::GameData> {
     let installed = Config::load()
         .and_then(|c| Ok(c.target()?.mod_dir.join("romfs").join(gamedata::PATH)))
         .and_then(|file| Ok(std::fs::read(file)?));

@@ -29,7 +29,7 @@ export function TestsTab() {
       )}
       {names?.length === 0 && (
         <p className="py-2 text-center text-[13px] text-ink-faint">
-          Save a test setup in Settings → Test setup to list it here
+          Save a test setup in Settings → Test Setup to list it here
         </p>
       )}
     </div>
@@ -41,7 +41,7 @@ interface SetupProps {
   name: string;
 }
 
-/** A setup: its met goals of all, name and Apply now, then its goals as
+/** A setup: its met goals of all, name and Apply Now, then its goals as
  * the game holds them and what to expect. */
 function Setup({ name }: SetupProps) {
   const goals = useGoals(name);
@@ -62,7 +62,7 @@ function Setup({ name }: SetupProps) {
           disabled={!can}
           onClick={() => void apply(name)}
         >
-          Apply now
+          Apply Now
         </Button>
       </div>
       {(goals.length > 0 || expect) && (

@@ -15,7 +15,7 @@ fakeGame();
 test("a saved setup applies live, its lines in the entry", async () => {
   await renderReady();
   await openTab("Tests");
-  fireEvent.click(screen.getByRole("button", { name: "Apply now" }));
+  fireEvent.click(screen.getByRole("button", { name: "Apply Now" }));
   expect(devApply).toHaveBeenCalledWith("Well");
   expect((await screen.findByRole("status")).textContent).toBe(
     "Applied Well\ngave Item_A\nsent to X/Y",
@@ -37,7 +37,7 @@ test("a setup counts its met goals, marking ones held before Apply", async () =>
   expect(screen.getByText("a lens")).toBeTruthy();
 
   devApply.mockReturnValueOnce(ok({ done: ["sent to X/Y"], held: ["Seen"] }));
-  fireEvent.click(screen.getByRole("button", { name: "Apply now" }));
+  fireEvent.click(screen.getByRole("button", { name: "Apply Now" }));
   expect((await screen.findByRole("status")).textContent).toBe(
     "Applied Well\nsent to X/Y\nSeen held before Apply",
   );
@@ -57,7 +57,7 @@ test("a setup shows its goals from the config before the game answers", async ()
   expect(await screen.findByLabelText("Goals open")).toBeTruthy();
   expect(screen.getByText(/IsGet.Item_B=true/)).toBeTruthy();
   expect(
-    screen.getByRole("button", { name: "Apply now" }).hasAttribute("disabled"),
+    screen.getByRole("button", { name: "Apply Now" }).hasAttribute("disabled"),
   ).toBe(true);
 });
 
@@ -72,7 +72,7 @@ test("a setup whose name holds a dot still shows its goals and holds", async () 
   expect(screen.getByText("a lens")).toBeTruthy();
 
   devApply.mockReturnValueOnce(ok({ done: [], held: ["Seen"] }));
-  fireEvent.click(screen.getByRole("button", { name: "Apply now" }));
+  fireEvent.click(screen.getByRole("button", { name: "Apply Now" }));
   expect(devApply).toHaveBeenCalledWith("Well v1.2");
   expect(await screen.findByText("(held before Apply)")).toBeTruthy();
 });

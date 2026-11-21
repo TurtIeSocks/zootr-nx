@@ -56,6 +56,7 @@ pub(crate) const CLASS_LOOK: Look = Look {
     kinds: &["Alb", "AO", "Emm", "Gn0", "Nrm", "Rgh"],
     others: &["{}_Body_Gn0"],
     copy: "Obj_RandoAp_",
+    matte: false,
 };
 /// The spirit's glow colours, by their names' hashes: the flame's own, and
 /// the lighter one round it. The flame's is purple until a Poe's colour

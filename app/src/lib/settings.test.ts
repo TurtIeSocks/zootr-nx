@@ -11,8 +11,10 @@ import {
   patched,
   settingsChanges,
   startForcers,
+  startOf,
   summary,
   summaryParts,
+  unmet,
   withForced,
 } from "@/lib/settings";
 
@@ -24,7 +26,10 @@ const toggles = (n: number): SettingDef[] =>
     description: "",
     kind: { type: "toggle", default: true },
     parent: null,
-    subgroup: null,
+    requires: null,
+    section: "Fake section",
+    section_about: "Fake about",
+    list: false,
   }));
 
 test("lists a few settings and counts many", () => {
@@ -48,7 +53,10 @@ test("a parent turns its children on and stands in for them", () => {
     description: "",
     kind: { type: "toggle", default: false },
     parent,
-    subgroup: null,
+    requires: null,
+    section: "Fake section",
+    section_about: "Fake about",
+    list: false,
   });
   const child = off("s1", "s0");
   const schema = [off("s0", null), child, off("s2", "s0")];
@@ -90,6 +98,17 @@ test("a choice's pick forces toggles on and gives start words", () => {
   });
 });
 
+test("a setting is left out while the toggle it needs is off", () => {
+  const [s0, s1] = toggles(2) as [SettingDef, SettingDef];
+  const gifts: SettingDef = { ...s0, kind: { type: "toggle", default: false } };
+  const reward: SettingDef = { ...s1, requires: gifts.id };
+  const schema = [gifts, reward];
+  expect(unmet(reward, {}, schema)?.id).toBe(gifts.id);
+  expect(summary(schema, {})).toBe("Nothing extra");
+  expect(unmet(reward, { s0: true }, schema)).toBeUndefined();
+  expect(summary(schema, { s0: true })).toBe("S0, S1");
+});
+
 test("a choice is summed up only off its default", () => {
   const size: SettingDef = {
     id: "size",
@@ -105,7 +124,10 @@ test("a choice is summed up only off its default", () => {
       ],
     },
     parent: null,
-    subgroup: null,
+    requires: null,
+    section: "Fake section",
+    section_about: "Fake about",
+    list: false,
   };
   expect(summary([size], {})).toBe("Nothing extra");
   expect(summary([size], { size: "small" })).toBe("Size: Small");
@@ -141,7 +163,10 @@ function diffSchema(): SettingDef[] {
     description: "",
     kind: { type: "toggle", default: false },
     parent,
-    subgroup: null,
+    requires: null,
+    section: "Fake section",
+    section_about: "Fake about",
+    list: false,
   });
   const size: SettingDef = {
     ...def("size"),
@@ -194,11 +219,11 @@ test("chips are marked new or gone against a base", () => {
   ]);
 });
 
-test("a starting inventory is changed while it holds anything", () => {
+test("a starting inventory is changed while it differs from its default", () => {
   const def: SettingDef = {
     ...toggles(1)[0],
     label: "Start",
-    kind: { type: "inventory" },
+    kind: { type: "inventory", default: {} },
   } as SettingDef;
   expect(isChanged(def, {})).toBe(false);
   expect(isChanged(def, { s0: {} })).toBe(false);
@@ -217,4 +242,17 @@ test("a starting inventory is changed while it holds anything", () => {
   expect(markedChips([def], [def], two, two)).toEqual([
     { id: "s0", label: "Start", value: "2 items" },
   ]);
+});
+
+test("an unset starting inventory holds its default, and emptied it's changed", () => {
+  const def: SettingDef = {
+    ...toggles(1)[0],
+    label: "Start",
+    kind: { type: "inventory", default: { "master-sword": 1 } },
+  } as SettingDef;
+  expect(startOf(def, {})).toEqual({ "master-sword": 1 });
+  expect(isChanged(def, {})).toBe(false);
+  expect(isChanged(def, { s0: { "master-sword": 1 } })).toBe(false);
+  expect(isChanged(def, { s0: {} })).toBe(true);
+  expect(summary([def], {})).toBe("Start: 1 item");
 });

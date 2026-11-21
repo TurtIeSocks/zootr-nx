@@ -48,7 +48,7 @@
     "item": "Gold Rupee (200)"
   },
   {
-    "count": 6,
+    "count": 5,
     "item": "Green Rupee (1)"
   },
   {
@@ -78,6 +78,10 @@
   {
     "count": 1,
     "item": "Magic Jar"
+  },
+  {
+    "count": 1,
+    "item": "Magic Meter"
   },
   {
     "count": 1,

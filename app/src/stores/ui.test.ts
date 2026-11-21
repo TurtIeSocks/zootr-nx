@@ -152,7 +152,7 @@ test("the backend keeps the theme in the shared part and lays it over the window
   });
   expect(await backend.getItem("ui")).toEqual({
     state: { theme: "light" },
-    version: 0,
+    version: 1,
   });
 });
 

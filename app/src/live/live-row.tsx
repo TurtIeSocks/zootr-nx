@@ -178,7 +178,7 @@ function ChangeText({ change, count }: ChangeTextProps) {
         </>
       )}
       {count && (
-        <Tip tip={`${count} changes in a row`}>
+        <Tip focusable tip={`${count} changes in a row`}>
           <span className="ml-2 rounded-xs bg-surface-sunken px-1 text-ink-muted">
             ×{count}
           </span>
@@ -216,7 +216,7 @@ export function LiveRow({ row, fresh, selected, pointer }: LiveRowProps) {
       {editing ? (
         <LabelInput change={c} onDone={() => setEditing(false)} />
       ) : unnamed(c) ? (
-        <Tip tip="Label this value">
+        <Tip tip="Rename this value">
           <button
             type="button"
             className="cursor-pointer truncate text-left text-ink-muted hover:underline"
@@ -304,7 +304,7 @@ function RowName({ row }: RowNameProps) {
     <>
       {row.save && (
         <span className="mr-1.5 rounded-xs bg-surface-sunken px-1 text-ink-muted">
-          save
+          Save
         </span>
       )}
       {c.name}

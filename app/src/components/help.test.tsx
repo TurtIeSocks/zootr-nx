@@ -15,8 +15,8 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const icon = () => screen.getByRole("button", { name: "About Control socket" });
-const card = () => screen.queryByText("Control socket", { selector: "p" });
+const icon = () => screen.getByRole("button", { name: "About Control Socket" });
+const card = () => screen.queryByText("Control Socket", { selector: "p" });
 const wait = (ms: number) => act(() => vi.advanceTimersByTime(ms));
 
 test("resting on the icon opens the card, which stays while it's hovered", async () => {

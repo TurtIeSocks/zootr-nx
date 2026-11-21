@@ -6,7 +6,7 @@ import { call } from "@/lib/api";
 import { DUMP_GONE, NEED_DUMP, NEED_TARGET } from "@/lib/config";
 import type { Section, Tab } from "@/shell/nav";
 import { useConfig } from "@/stores/config";
-import { useUi } from "@/stores/ui";
+import { type PlayTab, useUi } from "@/stores/ui";
 
 /** The main window's moments: what's open, and what was sent where. */
 interface Shell {
@@ -22,6 +22,8 @@ interface Shell {
   checkText?: { hash: string; edit: Edit };
   /** How many unsaved bars show. The drift bar steps aside for them. */
   unsaved?: number;
+  /** The search over the whole app is open. */
+  find?: boolean;
 }
 
 /** The shell store. Not saved: every launch starts with nothing open. */
@@ -36,12 +38,14 @@ export function openSettings(section?: Section) {
   useUi.setPath("tab", "Settings");
 }
 
-/** A place in the app a link can open: a settings section or a tab. */
-export type Place = { section: Section } | { tab: Tab };
+/** A place in the app a link can open: a settings section, or a tab and,
+ * on Play, one of its folders. */
+export type Place = { section: Section } | { tab: Tab; folder?: PlayTab };
 
 /** Opens `place`, the way the sidebar does. */
 export function go(place: Place) {
   if ("section" in place) return openSettings(place.section);
+  if (place.folder) useUi.setPath("play.tab", place.folder);
   useUi.setPath("tab", place.tab);
 }
 

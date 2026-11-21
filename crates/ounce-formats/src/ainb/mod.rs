@@ -8,7 +8,7 @@
 //! offset into the pool. Properties and parameters live in per-type tables,
 //! and a node holds a base index and count into each.
 
-use anyhow::{Result, bail, ensure};
+use anyhow::{Context, Result, bail, ensure};
 
 use crate::reader::Reader;
 
@@ -304,20 +304,32 @@ impl Graph {
                 let resolved = sources
                     .into_iter()
                     .map(|(node, output)| {
-                        let name = nodes
-                            .get(node)
-                            .and_then(|src| src.outputs.iter().filter(|o| o.ty == ty).nth(output))
-                            .map(|o| o.name.clone());
-                        match name {
-                            Some(output) => Ok(Link { node, output }),
-                            None => anyhow::bail!("link to missing output {node}.{output}"),
-                        }
+                        let src = nodes.get(node).context("link to a missing node")?;
+                        let output = linked_output(src, ty, output);
+                        Ok(Link { node, output })
                     })
                     .collect::<Result<Vec<_>>>()?;
                 nodes[n].inputs[input].sources = resolved;
             }
         }
         Ok(Self { nodes })
+    }
+}
+
+/// The output a link from `src` reaches: its `output`th output of the
+/// input's type `ty`, or, for a link the game converts across types (a
+/// Float read from a Vec3), its `output`th of the one type that has one.
+/// When several types do, which one the game means isn't read yet (it's in
+/// the graph's expressions), so the output is named `?N`.
+fn linked_output(src: &Node, ty: ParamType, output: usize) -> String {
+    let nth = |t: ParamType| src.outputs.iter().filter(|o| o.ty == t).nth(output);
+    if let Some(o) = nth(ty) {
+        return o.name.clone();
+    }
+    let mut others = TYPES.iter().filter_map(|&t| nth(t));
+    match (others.next(), others.next()) {
+        (Some(o), None) => o.name.clone(),
+        _ => format!("?{output}"),
     }
 }
 
@@ -475,6 +487,42 @@ fn string(r: &Reader, at: usize) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A node with one output per `(name, type)`.
+    fn outputs(outs: &[(&str, ParamType)]) -> Node {
+        Node {
+            kind: NodeKind::UserDefined,
+            name: "FakeQuery".into(),
+            module: false,
+            properties: Vec::new(),
+            properties_at: Vec::new(),
+            inputs: Vec::new(),
+            outputs: (outs.iter())
+                .map(|&(name, ty)| Output {
+                    name: name.into(),
+                    ty,
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn a_link_reaches_its_types_output_then_the_one_type_that_has_it() {
+        use ParamType::{Bool, Float, Int, Vec3};
+        let src = outputs(&[
+            ("Count", Int),
+            ("Far", Float),
+            ("Near", Float),
+            ("At", Vec3),
+        ]);
+        assert_eq!(linked_output(&src, Float, 1), "Near");
+        // A Float read from the only Vec3: the game converts it.
+        let gravity = outputs(&[("Vector", Vec3)]);
+        assert_eq!(linked_output(&gravity, Float, 0), "Vector");
+        // A Bool from output 0, which Int, Float and Vec3 all have.
+        assert_eq!(linked_output(&src, Bool, 0), "?0");
+        assert_eq!(linked_output(&src, Bool, 1), "Near");
+    }
 
     const BOOL: usize = 1;
     const STRING: usize = 3;

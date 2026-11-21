@@ -102,7 +102,7 @@ test("no room yet points at the server, then connects to the one typed", async (
     .mockResolvedValue({ status: "ok", data: null });
   show("offline");
   expect(screen.getByRole("status").textContent).toContain("No room yet");
-  fireEvent.click(button("Set up room"));
+  fireEvent.click(button("Set Up Room"));
   expect(document.activeElement).toBe(field("Server"));
   fireEvent.change(field("Server"), { target: { value: "localhost:38281" } });
   expect(useUi.getState().ap.rooms[slot.id]?.server).toBe("localhost:38281");
@@ -157,9 +157,9 @@ test("a refusal reads as a sentence and Try again connects", async () => {
     { server: "localhost:38281" },
   );
   expect(screen.getByRole("status").textContent).toBe(
-    "Refused: The password is wrong or missing.Try again",
+    "Refused: The password is wrong or missing.Try Again",
   );
-  fireEvent.click(button("Try again"));
+  fireEvent.click(button("Try Again"));
   await waitFor(() => expect(connect).toHaveBeenCalledOnce());
 });
 
@@ -194,7 +194,7 @@ test("each log line gets its kind, and the filter keeps its own", () => {
     "something broke",
   ]);
   const kinds = () =>
-    [...screen.getByRole("list", { name: "Client log" }).children].map(
+    [...screen.getByRole("list", { name: "Client Log" }).children].map(
       (li) => (li as HTMLElement).dataset.kind,
     );
   expect(kinds()).toEqual([
@@ -247,6 +247,21 @@ test("an .apznx dropped on the window installs that slot", async () => {
   );
 });
 
+test("an .apznx dropped while an install is blocked says why, and installs nothing", async () => {
+  mockIPC(() => {});
+  const install = vi.spyOn(commands, "generateAp");
+  show("offline");
+  act(() => useSeeds.setState({ blocked: "Close the game first" }));
+  act(() => drops.send({ type: "drop", paths: ["/fake/FakeSlot.apznx"] }));
+  expect((await screen.findByRole("alert")).textContent).toContain(
+    "The file wasn't opened. Close the game first",
+  );
+  expect(install).not.toHaveBeenCalled();
+  // It goes once nothing blocks.
+  act(() => useSeeds.setState({ blocked: "" }));
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
 test("a build without the apworld opens the release's, and a player is told what to ask for", async () => {
   vi.spyOn(commands, "apworldBundled").mockResolvedValue(false);
   useUpdate.setPath("current", "1.2.3");
@@ -257,7 +272,7 @@ test("a build without the apworld opens the release's, and a player is told what
   expect(opened).toHaveBeenLastCalledWith(
     "https://github.com/TurtIeSocks/zootr-nx/releases/download/v1.2.3/znx.apworld",
   );
-  fireEvent.click(button("Setup guide"));
+  fireEvent.click(button("Setup Guide"));
   expect(opened).toHaveBeenLastCalledWith(
     expect.stringMatching(/ap\/znx\/docs\/setup_en\.md$/),
   );

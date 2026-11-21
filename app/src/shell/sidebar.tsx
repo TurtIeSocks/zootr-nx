@@ -1,6 +1,5 @@
 import { type LucideIcon, Wrench } from "lucide-react";
 import type { ReactNode } from "react";
-import { Help } from "@/components/help";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
@@ -26,6 +25,8 @@ import { useGroupDrifted, useSeeds } from "@/stores/seeds";
 import { openDev, openSettings } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
 import { useUpdate } from "@/stores/update";
+import { ChangelogButton } from "@/update/changelog";
+import { CheckButton } from "@/update/check-button";
 import { UpdateAlert } from "@/update/update-alert";
 
 /** Props for {@link NavItem}. */
@@ -149,7 +150,7 @@ function RunGroup() {
   const installed = useSeeds((s) => s.history.installed !== null);
   if (!installed) return null;
   return (
-    <NavGroup title="Current run">
+    <NavGroup title="Installed Seed">
       {RUN_TABS.map(([t, icon]) => (
         <TabItem key={t} tab={t} icon={icon} />
       ))}
@@ -182,7 +183,7 @@ function PlandoOn() {
   const pins = useConfig((s) => Object.keys(s.config.place).length);
   return (
     pins > 0 && (
-      <Tip tip={`${pins} pinned`}>
+      <Tip focusable tip={`${pins} pinned`}>
         <Badge variant="info">{pins}</Badge>
       </Tip>
     )
@@ -200,7 +201,7 @@ function StatusPills() {
   return (
     <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
       <StatusPill found={status.game} onClick={() => openSettings("settings")}>
-        {status.game ? "Game dump" : "Game dump missing"}
+        {status.game ? "Game Dump" : "Game Dump Missing"}
       </StatusPill>
       {status.targets.map((t) => (
         <StatusPill
@@ -214,9 +215,6 @@ function StatusPills() {
           {t.running && <span className="text-ink-faint"> running</span>}
         </StatusPill>
       ))}
-      <span className="flex h-6 items-center">
-        <Help topic="status" />
-      </span>
     </div>
   );
 }
@@ -290,6 +288,8 @@ export function Sidebar() {
         <StatusPills />
         <div className="flex items-center gap-1.5">
           <Version />
+          <CheckButton />
+          <ChangelogButton />
           {devTools && <DevButton />}
           <ThemeToggle />
         </div>

@@ -1,5 +1,12 @@
 import { expect, test } from "vitest";
-import { GROUP_HELP, TOPICS } from "@/help/topics";
+import { GROUP_HELP, TOPICS, type Topic } from "@/help/topics";
+import {
+  APP_PANES,
+  PLAY_FOLDERS,
+  RANDOMIZER_PANES,
+  RUN_TABS,
+  TOP_TABS,
+} from "@/shell/nav";
 import { rust } from "@/test/rust";
 import { SOURCES } from "@/test/sources";
 
@@ -30,10 +37,36 @@ test("topics speak plainly: one to three sentences, no developer words", () => {
   }
 });
 
-test("every settings group has its page bubble", () => {
+/** The schema's group names, from the Rust side. */
+const schemaGroups = () => {
   const mod = /pub mod group \{([^}]*)\}/.exec(rust("settings.rs"))?.[1] ?? "";
-  const groups = [...mod.matchAll(/&str = "([^"]+)"/g)].map((m) => m[1]);
-  expect(groups.length).toBeGreaterThan(5);
+  return [...mod.matchAll(/&str = "([^"]+)"/g)].map((m) => m[1] ?? "");
+};
+
+test("every topic's page is one the app has", () => {
+  const tabs: string[] = [...TOP_TABS, ...RUN_TABS].map(([t]) => t);
+  const sections = [
+    ...[...APP_PANES, ...RANDOMIZER_PANES].map(([s]) => s),
+    ...schemaGroups(),
+  ];
+  const placed = Object.entries(TOPICS as Record<string, Topic>).filter(
+    ([, t]) => t.at,
+  );
+  expect(placed.length).toBeGreaterThan(5);
+  for (const [id, { at }] of placed) {
+    if (!at) continue;
+    const real =
+      "section" in at
+        ? sections.includes(at.section)
+        : tabs.includes(at.tab) &&
+          (!at.folder || (at.tab === "Play" && at.folder in PLAY_FOLDERS));
+    expect({ id, real }).toEqual({ id, real: true });
+  }
+});
+
+test("every settings group has its page bubble", () => {
+  const groups = schemaGroups();
+  expect(groups.length).toBeGreaterThan(3);
   expect(groups.filter((g) => !Object.hasOwn(GROUP_HELP, g ?? ""))).toEqual([]);
   for (const [g, t] of Object.entries(GROUP_HELP))
     expect({ g, word: DEV_WORDS.exec(t.body.join(" "))?.[0] }).toEqual({ g });

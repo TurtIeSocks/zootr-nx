@@ -20,8 +20,10 @@ use crate::known::{Name, actor, field, flag};
 use crate::per_dump::PerDump;
 
 mod rule;
+mod wiring;
 pub use rule::rule;
 use rule::{Rule, atom};
+pub use wiring::{Placed, Wiring, path, wiring};
 
 const LOGIC: &str = "Logic";
 const CHEST: &str = "Obj_TBox_";

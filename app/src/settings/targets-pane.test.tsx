@@ -121,7 +121,7 @@ test("copy puts the saved target's export on the clipboard", async () => {
   const writeText = vi.fn(() => Promise.resolve());
   Object.assign(navigator, { clipboard: { writeText } });
   show();
-  fireEvent.click(button("Copy"));
+  fireEvent.click(button("Copy FakeTarget"));
   await waitFor(() =>
     expect(writeText).toHaveBeenCalledWith("preset of FakeTarget"),
   );
@@ -145,17 +145,19 @@ test("a reload with the same targets keeps the form's edits, new ones reset it",
 
 test("Save floats in a bar only while the targets have unsaved edits", () => {
   show();
-  expect(screen.queryByRole("button", { name: "Save targets" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Save Targets" })).toBeNull();
   rename("FakeTarget edited");
   expect(screen.getByText("Unsaved changes to targets")).toBeTruthy();
   rename("FakeTarget");
-  expect(screen.queryByRole("button", { name: "Save targets" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Save Targets" })).toBeNull();
 });
 
 test("Discard puts the saved targets back", () => {
   show();
   rename("FakeTarget edited");
   fireEvent.click(button("Discard"));
+  expect(nameField().value).toBe("FakeTarget edited");
+  fireEvent.click(button("Really discard?"));
   expect(nameField().value).toBe("FakeTarget");
   expect(screen.queryByRole("button", { name: "Discard" })).toBeNull();
 });
@@ -163,7 +165,7 @@ test("Discard puts the saved targets back", () => {
 test("an invalid draft says why in the bar", () => {
   show();
   rename("");
-  fireEvent.click(button("Save targets"));
+  fireEvent.click(button("Save Targets"));
   expect(screen.getByRole("alert")).toBeTruthy();
   expect(setConfig).not.toHaveBeenCalled();
 });
@@ -173,13 +175,13 @@ test("a second Save while one runs is ignored, and the bar goes once saved", asy
   saving.hold = new Promise((resolve) => (finish = resolve));
   show();
   rename("FakeTarget edited");
-  fireEvent.click(button("Save targets"));
-  fireEvent.click(button("Save targets"));
+  fireEvent.click(button("Save Targets"));
+  fireEvent.click(button("Save Targets"));
   expect(setConfig).toHaveBeenCalledTimes(1);
-  expect(button("Save targets").disabled).toBe(true);
+  expect(button("Save Targets").disabled).toBe(true);
   await act(async () => finish());
   await waitFor(() =>
-    expect(screen.queryByRole("button", { name: "Save targets" })).toBeNull(),
+    expect(screen.queryByRole("button", { name: "Save Targets" })).toBeNull(),
   );
   expect(nameField().value).toBe("FakeTarget edited");
   saving.hold = undefined;
@@ -187,7 +189,7 @@ test("a second Save while one runs is ignored, and the bar goes once saved", asy
 
 test("Download writes the saved target to the file picked", async () => {
   show();
-  fireEvent.click(button("Download"));
+  fireEvent.click(button("Download FakeTarget"));
   await waitFor(() =>
     expect(saveTarget).toHaveBeenCalledWith(
       "FakeTarget",
@@ -199,7 +201,7 @@ test("Download writes the saved target to the file picked", async () => {
 test("Download does nothing when the picker is cancelled", async () => {
   dialog.save.mockResolvedValueOnce(null);
   show();
-  fireEvent.click(button("Download"));
+  fireEvent.click(button("Download FakeTarget"));
   await waitFor(() => expect(dialog.save).toHaveBeenCalled());
   expect(saveTarget).not.toHaveBeenCalled();
 });
@@ -207,7 +209,7 @@ test("Download does nothing when the picker is cancelled", async () => {
 test("Import opens a file into the text box to check before importing", async () => {
   show();
   fireEvent.click(button("Import"));
-  fireEvent.click(button("Open a file"));
+  fireEvent.click(button("Open a File"));
   await waitFor(() =>
     expect((screen.getByLabelText("Target") as HTMLTextAreaElement).value).toBe(
       '{"name":"FakeTarget"}',
@@ -225,7 +227,7 @@ test("a save that moves a mod folder says so, and shows the folder it saved", as
   });
   show();
   rename("FakeTarget edited");
-  fireEvent.click(button("Save targets"));
+  fireEvent.click(button("Save Targets"));
   await waitFor(() => expect(screen.getByText(note)).toBeTruthy());
   expect(screen.getByDisplayValue(moved)).toBeTruthy();
   saving.notes = [];
@@ -246,7 +248,7 @@ const stale =
 
 test("a stale build shows its badge, what's wrong and Rebuild", () => {
   showBuilt({ status: { kind: "stale" }, text: stale, command: true });
-  expect(screen.getByText("Needs a rebuild")).toBeTruthy();
+  expect(screen.getByText("Needs a Rebuild")).toBeTruthy();
   expect(screen.getByText(stale)).toBeTruthy();
   expect(button("Rebuild").disabled).toBe(false);
   expect(screen.queryByText(/Rebuild it by hand/)).toBeNull();
@@ -265,7 +267,7 @@ test("a stale build with no command says to rebuild it by hand", () => {
 
 test("a current build only shows its badge", () => {
   showBuilt({ status: { kind: "current" }, text: null, command: true });
-  expect(screen.getByText("Build current")).toBeTruthy();
+  expect(screen.getByText("Build Current")).toBeTruthy();
   expect(screen.queryByText(stale)).toBeNull();
 });
 
@@ -283,13 +285,13 @@ test("a card shows four fields, the rest under a closed Advanced", () => {
   show();
   const advanced = screen.getByText("Advanced").closest("details");
   expect(advanced?.open).toBe(false);
-  for (const label of ["Name", "App", "Mod folder", "Save folder (optional)"])
+  for (const label of ["Name", "App", "Mod Folder", "Save Folder (Optional)"])
     expect(advanced?.contains(screen.getByLabelText(label))).toBe(false);
   expect(
-    advanced?.contains(screen.getByLabelText("Launch arguments (optional)")),
+    advanced?.contains(screen.getByLabelText("Launch Arguments (Optional)")),
   ).toBe(true);
   expect(screen.getByRole("button", { name: "About Targets" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "About Mod folder" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "About Mod Folder" })).toBeTruthy();
 });
 
 test("a target using an advanced field or a variable opens both", () => {
@@ -310,8 +312,8 @@ test("a target using an advanced field or a variable opens both", () => {
 
 test("scripted-play fields and their variables show only with developer tools", () => {
   const scripted = () => [
-    screen.queryByLabelText("Harness environment (optional)"),
-    screen.queryByLabelText("Control file (optional)"),
+    screen.queryByLabelText("Harness Environment (Optional)"),
+    screen.queryByLabelText("Control File (Optional)"),
     screen.queryByText("{save}"),
     screen.queryByText("{control}"),
   ];
@@ -323,8 +325,8 @@ test("scripted-play fields and their variables show only with developer tools", 
 
 test("the rebuild fields show only with developer tools, and a saved one survives hidden", async () => {
   const rebuild = () => [
-    screen.queryByLabelText("Rebuild command (optional)"),
-    screen.queryByLabelText("Patch list (optional)"),
+    screen.queryByLabelText("Rebuild Command (Optional)"),
+    screen.queryByLabelText("Patch List (Optional)"),
   ];
   useConfig.setPath(
     "config",
@@ -341,9 +343,9 @@ test("the rebuild fields show only with developer tools, and a saved one survive
   );
   render(<TargetsPane />);
   expect(rebuild()).toEqual([null, null]);
-  expect(screen.getByText("Launch arguments", { selector: "td" })).toBeTruthy();
+  expect(screen.getByText("Launch Arguments", { selector: "td" })).toBeTruthy();
   rename("FakeTarget2");
-  fireEvent.click(button("Save targets"));
+  fireEvent.click(button("Save Targets"));
   await waitFor(() => expect(setConfig).toHaveBeenCalled());
   expect(setConfig.mock.calls[0]?.[0]?.targets[0]?.rebuild).toEqual({
     command: ["make"],
@@ -351,5 +353,25 @@ test("the rebuild fields show only with developer tools, and a saved one survive
   });
   act(() => useConfig.setPath("config.dev_tools", true));
   expect(rebuild().every(Boolean)).toBe(true);
-  expect(screen.getByText("Launch arguments, Rebuild command")).toBeTruthy();
+  expect(screen.getByText("Launch Arguments, Rebuild Command")).toBeTruthy();
+});
+
+test("each card's Copy, Download and Remove are named after its target", () => {
+  useConfig.setPath(
+    "config",
+    full({
+      targets: [
+        { name: "FakeTarget", app: "/a", mod_dir: "/m" },
+        { name: "FakeOther", app: "/b", mod_dir: "/n" },
+      ],
+    }),
+  );
+  render(<TargetsPane />);
+  for (const verb of ["Copy", "Download", "Remove"]) {
+    for (const name of ["FakeTarget", "FakeOther"]) {
+      expect(button(`${verb} ${name}`)).toBeTruthy();
+    }
+  }
+  fireEvent.click(button("Add a Target"));
+  expect(button("Remove New Target")).toBeTruthy();
 });

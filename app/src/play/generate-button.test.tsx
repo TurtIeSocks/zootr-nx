@@ -46,12 +46,12 @@ async function pick(name: RegExp) {
 test("the button installs, and the menu's Generate only doesn't", async () => {
   const generate = spyGenerate();
   render(<GenerateButton />);
-  fireEvent.click(button(/Generate & install/));
+  fireEvent.click(button(/Generate & Install/));
   await waitFor(() =>
     expect(generate).toHaveBeenLastCalledWith(null, true, expect.anything()),
   );
   await waitFor(() => expect(useSeeds.getState().busy).toBe(false));
-  await pick(/Generate only/);
+  await pick(/Generate Only/);
   await waitFor(() =>
     expect(generate).toHaveBeenLastCalledWith(null, false, expect.anything()),
   );
@@ -83,18 +83,18 @@ test("each part keeps its own blocked reason", async () => {
   const generate = spyGenerate();
   useSeeds.setState({ blocked: "Close the game first", unbuildable: "" });
   render(<GenerateButton />);
-  const go = button(/Generate & install/);
+  const go = button(/Generate & Install/);
   expect(go.getAttribute("aria-disabled")).toBe("true");
   expect(go.disabled).toBe(false);
   fireEvent.click(go);
   expect(generate).not.toHaveBeenCalled();
   fireEvent.keyDown(button("More ways to generate"), { key: "Enter" });
   const install = await screen.findByRole("menuitem", {
-    name: /Generate & install/,
+    name: /Generate & Install/,
   });
   expect(install.textContent).toContain("Close the game first");
   expect(install.getAttribute("aria-disabled")).toBe("true");
-  const only = screen.getByRole("menuitem", { name: /Generate only/ });
+  const only = screen.getByRole("menuitem", { name: /Generate Only/ });
   expect(only.getAttribute("aria-disabled")).toBeNull();
 });
 

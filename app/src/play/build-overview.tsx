@@ -64,7 +64,7 @@ function OwnOverview() {
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-2">
         <div className="mr-auto flex items-center gap-1.5">
-          <p className="type-overline">Builds with</p>
+          <p className="type-overline">Builds With</p>
           <Help topic="builds-with" />
         </div>
         <DriftPill />
@@ -98,7 +98,7 @@ function CodeOverview({ code }: CodeOverviewProps) {
             className={linkClass}
             onClick={() => useUi.setPath("newSeed.seed", "")}
           >
-            Clear code
+            Clear Code
           </button>
         }
       >
@@ -110,7 +110,7 @@ function CodeOverview({ code }: CodeOverviewProps) {
       ) : (
         read.build && (
           <>
-            <p className="type-overline">The code builds with</p>
+            <p className="type-overline">The Code Builds With</p>
             <Tiles
               settings={read.build.settings}
               base={null}
@@ -191,7 +191,7 @@ function Tiles({ settings, base, plando, test, off }: TilesProps) {
   const extras = (
     [
       ["Plando", "plando", Pin, plando],
-      ["Test setup", "test", FlaskConical, test],
+      ["Test Setup", "test", FlaskConical, test],
     ] satisfies [string, Section, LucideIcon, ExtraView | null][]
   ).filter(([, section, , view]) => view || shows(section, devTools));
   return (
@@ -349,7 +349,9 @@ function ChipView({ chip }: { chip: MarkedChip }) {
   if (was === undefined) return body;
   return (
     <Tooltip>
-      <TooltipTrigger asChild>{body}</TooltipTrigger>
+      <TooltipTrigger asChild tabIndex={0}>
+        {body}
+      </TooltipTrigger>
       <TooltipContent>Was {was}</TooltipContent>
     </Tooltip>
   );

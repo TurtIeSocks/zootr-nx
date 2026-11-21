@@ -245,10 +245,10 @@ needs = "zeldas-lullaby and sarias-song"
 
 # The Great Fairy by Hyrule Castle.
 [[source]]
-name = "Magic Meter"
+name = "Improved Spin"
 place = "hyrule-castle"
 era = "child"
-item = "item:magic-meter"
+item = "item:improved-spin"
 needs = "explosives and zeldas-lullaby"
 
 # The Great Fairy at the top of Death Mountain.

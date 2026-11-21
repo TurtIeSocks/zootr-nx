@@ -1,7 +1,7 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import { DevWindow } from "@/dev/dev-window";
-import { send } from "@/stores/dev";
+import { send, useDev } from "@/stores/dev";
 import * as fake from "@/test/dev-game";
 import { fakeGame, openTab } from "@/test/dev-window";
 
@@ -38,6 +38,22 @@ test("Play starts the picked target", async () => {
   expect((await screen.findByRole("status")).textContent).toBe(
     "Started FakeNative",
   );
+});
+
+test("Play says why it waits while a request runs", async () => {
+  await stopped();
+  act(() =>
+    useDev.setPath("activity.running", { kind: "give", what: "give Item_A" }),
+  );
+  const button = screen.getByRole("button", { name: "Play FakeNative" });
+  expect(button.getAttribute("aria-disabled")).toBe("true");
+  fireEvent.focus(button);
+  expect((await screen.findByRole("tooltip")).textContent).toBe(
+    "Wait for give Item_A to finish",
+  );
+  fireEvent.click(button);
+  expect(fake.play).not.toHaveBeenCalled();
+  act(() => useDev.setPath("activity.running", null));
 });
 
 test("Play leaves a stale build to the main window", async () => {

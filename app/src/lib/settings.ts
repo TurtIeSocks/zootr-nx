@@ -28,10 +28,11 @@ export function chosen(
   );
 }
 
-/** A starting inventory's words and counts, empty when unset. */
-export function startOf(value: Settings[string] | undefined): StartInventory {
+/** A starting inventory's words and counts, its default when unset. */
+export function startOf(def: SettingDef, settings: Settings): StartInventory {
+  const value = settings[def.id];
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return {};
+    return def.kind.type === "inventory" ? def.kind.default : {};
   }
   return Object.fromEntries(
     Object.entries(value).filter(
@@ -40,18 +41,44 @@ export function startOf(value: Settings[string] | undefined): StartInventory {
   );
 }
 
+/** Whether two starting inventories hold the same, in any order. */
+export function sameStart(a: StartInventory, b: StartInventory): boolean {
+  const words = Object.keys(a);
+  return (
+    words.length === Object.keys(b).length && words.every((w) => a[w] === b[w])
+  );
+}
+
 /** How many things a starting inventory holds, each word once. */
 const held = (def: SettingDef, settings: Settings) =>
-  Object.keys(startOf(settings[def.id])).length;
+  Object.keys(startOf(def, settings)).length;
 
 /** Whether a setting's own value differs from its default. */
 export function isChanged(def: SettingDef, settings: Settings): boolean {
   if (def.kind.type === "choice") {
     return chosen(def, settings)?.id !== def.kind.default;
   }
-  if (def.kind.type === "inventory") return held(def, settings) > 0;
+  if (def.kind.type === "inventory") {
+    return !sameStart(startOf(def, settings), def.kind.default);
+  }
   const value = settings[def.id];
   return typeof value === "boolean" && value !== def.kind.default;
+}
+
+/** A section's count for its header: how many of its toggles are on, or
+ * with none, how many of its settings are off their defaults. */
+export function tally(
+  defs: SettingDef[],
+  settings: Settings,
+  schema: SettingDef[],
+): string {
+  const toggles = defs.filter((d) => d.kind.type === "toggle");
+  if (toggles.length === 0) {
+    const changed = defs.filter((d) => isChanged(d, settings));
+    return `${changed.length} of ${defs.length} off default`;
+  }
+  const on = toggles.filter((d) => isOn(d, settings, schema));
+  return `${on.length} of ${toggles.length} on`;
 }
 
 /** New values by setting id. `undefined` puts a setting back to its
@@ -108,6 +135,16 @@ export function forcer(
   return schema.find((d) => chosen(d, settings)?.forces.includes(def.id));
 }
 
+/** The toggle `def` needs on to do anything, while it's off. */
+export function unmet(
+  def: SettingDef,
+  settings: Settings,
+  schema: SettingDef[],
+): SettingDef | undefined {
+  const needed = schema.find((d) => d.id === def.requires);
+  return needed && !isOn(needed, settings, schema) ? needed : undefined;
+}
+
 /** Whether a setting is forced on, by its parent or a choice's pick. */
 export const forcedOn = (
   def: SettingDef,
@@ -147,14 +184,16 @@ export const chipText = ({ label, value }: Chip) =>
   value === undefined ? label : `${label}: ${value}`;
 
 /** The chip of a toggle that is on, a choice off its default, or an
- * inventory holding anything. A toggle
- * its parent turns on has none: the parent stands in. */
+ * inventory holding anything. A toggle its parent turns on has none: the
+ * parent stands in. Nor does a setting whose needed toggle is off, since
+ * it does nothing. */
 function chipOf(
   def: SettingDef,
   settings: Settings,
   schema: SettingDef[],
 ): Chip | null {
   const { id, label } = def;
+  if (unmet(def, settings, schema)) return null;
   if (def.kind.type === "choice") {
     const pick = chosen(def, settings);
     return pick && pick.id !== def.kind.default
@@ -227,7 +266,7 @@ export function markedChips(
 function shown(def: SettingDef, settings: Settings, schema: SettingDef[]) {
   if (def.kind.type === "choice") return chosen(def, settings)?.label ?? "";
   if (def.kind.type === "inventory") {
-    const start = startOf(settings[def.id]);
+    const start = startOf(def, settings);
     const words = Object.entries(start).map(([w, n]) =>
       n === 1 ? w : `${w} ×${n}`,
     );

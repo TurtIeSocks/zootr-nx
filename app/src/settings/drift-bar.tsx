@@ -17,7 +17,7 @@ export function DriftBar() {
   return drifted && !unsaved && <Bar />;
 }
 
-/** The bar itself: the count, Review and Generate & install. */
+/** The bar itself: the count, Review and Generate & Install. */
 function Bar() {
   const [blocked] = useSeeds.usePath("blocked");
   const [busy] = useSeeds.usePath("busy");
@@ -40,7 +40,7 @@ function Bar() {
         onClick={() => generate(null)}
       >
         {busy ? <Loader2 className="animate-spin" /> : <Dices />}
-        Generate & install
+        Generate & Install
       </WhyButton>
     </FloatingBar>
   );

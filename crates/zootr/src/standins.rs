@@ -12,7 +12,6 @@ use crate::settings::NewGame;
 
 mod tables;
 
-#[cfg(test)]
 pub(crate) use tables::PLAIN_DEAL;
 pub use tables::Tables;
 use tables::number;
@@ -348,6 +347,9 @@ pub(crate) fn item_pack(romfs: &Romfs, item: &str, new_game: &NewGame) -> Result
         return Ok(pack);
     }
     if let Some(pack) = crate::bombchu_bags::copy_pack(romfs, item)? {
+        return Ok(pack);
+    }
+    if let Some(pack) = crate::magic::meter::copy_pack(romfs, item)? {
         return Ok(pack);
     }
     match crate::foreign::pack(romfs, item, &new_game.foreign)? {

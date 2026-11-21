@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 import { commands } from "@/bindings";
+import { ArmedButton } from "@/components/armed-button";
 import { Card } from "@/components/card";
 import { Field } from "@/components/field";
 import { DumpError } from "@/components/needs-dump";
@@ -49,7 +50,7 @@ export function TestPane() {
     <TestFormContext value={{ form, set, options }}>
       <RequestProvider>
         <PageHeader
-          title="Test setup"
+          title="Test Setup"
           description="Generate starts every new game here, holding these items, until you clear it. Seeds built with it show a test badge in the history."
           actions={<SetupActions />}
         />
@@ -64,7 +65,7 @@ export function TestPane() {
             <ItemsField />
             <RowsField
               name="defaults"
-              label="New-game flags"
+              label="New-Game Flags"
               noun="flag"
               placeholder="Name=value"
               hint="GameData values a new game starts with, on top of the presets"
@@ -128,7 +129,7 @@ function SavedSetups() {
       <div className="p-4">
         <Field
           id="test-name"
-          label="Saved setups"
+          label="Saved Setups"
           hint="Click one to use it. Save as keeps the fields below under a name, replacing one with the same name"
         >
           {saved.length > 0 && (
@@ -143,15 +144,16 @@ function SavedSetups() {
                   >
                     {n}
                   </Button>
-                  <Button
+                  <ArmedButton
                     size="icon-sm"
                     variant="secondary"
+                    verb="delete"
                     aria-label={`Delete ${n}`}
                     disabled={busy}
-                    onClick={() => forget(n)}
+                    onAct={() => forget(n)}
                   >
                     <X />
-                  </Button>
+                  </ArmedButton>
                 </ButtonGroup>
               ))}
             </div>
@@ -173,7 +175,7 @@ function SavedSetups() {
                 }))
               }
             >
-              Save as
+              Save As
             </Button>
           </div>
         </Field>
@@ -198,13 +200,14 @@ function SetupActions() {
 
   return (
     <>
-      <Button
+      <ArmedButton
         variant="secondary"
-        onClick={clear}
+        verb="clear"
+        onAct={clear}
         disabled={busy || !testOn(current)}
       >
         Clear
-      </Button>
+      </ArmedButton>
       <Tip
         wrap
         tip={
@@ -245,7 +248,7 @@ function SaveBar() {
       message="Unsaved changes to the test setup"
       error={error}
       busy={busy}
-      saveLabel="Save setup"
+      saveLabel="Save Setup"
       onDiscard={() => set(toForm(current))}
       onSave={() => store({ test: fromForm(form) })}
     />

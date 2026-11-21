@@ -77,9 +77,11 @@ const saveItems = vi.fn(
       cells: [
         cell("Hookshot", { tier, tiers: 2 }),
         cell("Bombs", { tier: 1, count: Number(last(edits, COUNT, "5")) }),
+        cell("Bottle", { tier: 1 }),
+        cell("Bottle", { tier: 0 }),
       ],
-      caps: [null, 20],
-      staged: [edits.some((e) => e.hash === HOOK), false],
+      caps: [null, 20, null, null],
+      staged: [edits.some((e) => e.hash === HOOK), false, false, false],
       status: [
         {
           group: "Meters",
@@ -214,6 +216,26 @@ test("a click goes up a tier and the tile shows a dot, and a right click back un
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 });
 
+test("Backspace on a focused tile goes down a tier, as a right click does", async () => {
+  await open();
+  fireEvent.click(tile("Hookshot"));
+  await waitFor(() => expect(useUi.getPath("save.edits")).toHaveLength(1));
+  fireEvent.keyDown(tile("Hookshot"), { key: "Backspace" });
+  await waitFor(() => expect(useUi.getPath("save.edits")).toEqual([]));
+  fireEvent.keyDown(tile("Hookshot"), { key: "Enter" });
+  expect(useUi.getPath("save.edits")).toEqual([]);
+});
+
+test("tiles that share a label get a number, so each button has its own name", async () => {
+  await open();
+  expect(screen.getByRole("button", { name: /^Bottle 1/ })).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: /^Bottle 2 \(missing\)/ }),
+  ).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /^Bottle \(/ })).toBeNull();
+  expect(screen.getByRole("button", { name: /^Hookshot/ })).toBeTruthy();
+});
+
 test("the count opens a field that stages how many", async () => {
   await open();
   fireEvent.click(screen.getByRole("button", { name: "Bombs: 5" }));
@@ -260,6 +282,23 @@ test("a flag row stages its value, and Save writes what's pending", async () => 
   expect(useUi.getPath("save.edits")).toEqual([]);
 });
 
+test("the Flags tab says types in plain words and filters by them", async () => {
+  await open();
+  fireEvent.click(screen.getByRole("button", { name: "Flags" }));
+  expect(
+    await screen.findByLabelText("Filter flags by name, hash or label"),
+  ).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Type"), {
+    target: { value: "On/Off" },
+  });
+  await waitFor(() =>
+    expect(saveFlags.mock.lastCall?.[2].kinds).toEqual(["Bool"]),
+  );
+  fireEvent.click(await screen.findByRole("button", { name: /FakeHill/ }));
+  await screen.findByRole("switch", { name: "FakeHill_Door" });
+  expect(screen.getAllByText("On/Off")).toHaveLength(2);
+});
+
 test("Save waits while the game runs", async () => {
   useSeeds.setPath("running", true);
   await open();
@@ -276,6 +315,8 @@ test("Discard drops what's pending", async () => {
   fireEvent.click(tile("Hookshot"));
   await waitFor(() => expect(useUi.getPath("save.edits")).toHaveLength(1));
   fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+  expect(useUi.getPath("save.edits")).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "Really discard?" }));
   expect(useUi.getPath("save.edits")).toEqual([]);
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 });
@@ -299,11 +340,11 @@ test("switching slots with edits pending asks first", async () => {
   await waitFor(() => expect(useUi.getPath("save.edits")).toHaveLength(1));
   fireEvent.click(screen.getByRole("radio", { name: /Slot 0/ }));
   expect(await screen.findByText("Discard 1 change?")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
+  fireEvent.click(screen.getByRole("button", { name: "Keep Editing" }));
   expect(useUi.getPath("save.slot")).toBe(2);
   fireEvent.click(screen.getByRole("radio", { name: /Slot 0/ }));
   fireEvent.click(
-    await screen.findByRole("button", { name: "Discard and switch" }),
+    await screen.findByRole("button", { name: "Discard and Switch" }),
   );
   expect(useUi.getPath("save.slot")).toBe(0);
   expect(useUi.getPath("save.edits")).toEqual([]);

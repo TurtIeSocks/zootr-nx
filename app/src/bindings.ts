@@ -461,8 +461,8 @@ export type FlagGroup = {
 export type FlagQuery = {
 	/**  Matched against the name, the hash in hex and any label. */
 	search: string,
-	/**  Only values of this type. */
-	kind: string | null,
+	/**  Only values of these types, every type when empty. */
+	kinds: string[],
 	/**  Only values that differ from what a new game starts with. */
 	changed: boolean,
 	/**  Only values the pending edits change. */
@@ -519,7 +519,7 @@ export type GameOptions = {
  *  What a cell draws when the game's art is off. Tiers share one, as the
  *  swords and the three wallets do.
  */
-export type Glyph = "sticks" | "nuts" | "bombs" | "bombchus" | "bow" | "slingshot" | "ocarina" | "hookshot" | "boomerang" | "beans" | "lens" | "hammer" | "fire-arrow" | "fire-medallion" | "ice-arrow" | "light-arrow" | "light-medallion" | "dins-fire" | "farores-wind" | "nayrus-love" | "bottle" | "egg" | "cucco" | "letter" | "mask" | "truth-mask" | "mushroom" | "saw" | "sword" | "prescription" | "frog" | "eye-drops" | "claim-check" | "shield" | "tunic" | "iron-boots" | "hover-boots" | "gauntlets" | "scale" | "wallet" | "bomb-bag" | "quiver" | "bullet-bag" | "heart-piece" | "heart" | "rupee" | "magic" | "gerudo-card" | "agony-stone" | "skulltula" | "song" | "stone" | "forest-medallion" | "water-medallion" | "spirit-medallion" | "shadow-medallion" | "small-key" | "boss-key" | "map" | "compass" | "unknown";
+export type Glyph = "sticks" | "nuts" | "bombs" | "bombchus" | "bow" | "slingshot" | "ocarina" | "hookshot" | "boomerang" | "beans" | "lens" | "hammer" | "fire-arrow" | "fire-medallion" | "ice-arrow" | "light-arrow" | "light-medallion" | "dins-fire" | "farores-wind" | "nayrus-love" | "bottle" | "egg" | "cucco" | "letter" | "mask" | "truth-mask" | "mushroom" | "saw" | "sword" | "prescription" | "frog" | "eye-drops" | "claim-check" | "shield" | "tunic" | "iron-boots" | "hover-boots" | "gauntlets" | "scale" | "wallet" | "bomb-bag" | "quiver" | "bullet-bag" | "heart-piece" | "heart" | "rupee" | "magic" | "spin" | "defense" | "gerudo-card" | "agony-stone" | "skulltula" | "song" | "stone" | "forest-medallion" | "water-medallion" | "spirit-medallion" | "shadow-medallion" | "small-key" | "boss-key" | "map" | "compass" | "unknown";
 
 /**  One of a test setup's goals, read from the game. */
 export type Goal = {
@@ -611,9 +611,9 @@ export type Kind = { type: "toggle"; default: boolean } |
 { type: "choice"; default: string; options: Choice[] } | 
 /**
  *  What a new game starts holding, the save editor's grid: a
- *  [`starting::Start`]. Unset is the game's own.
+ *  [`starting::Start`].
  */
-{ type: "inventory" };
+{ type: "inventory"; default: StartInventory };
 
 /**  What a seed is for, in the player's words. Both may be blank. */
 export type Label = {
@@ -764,8 +764,17 @@ export type SettingDef = {
 	kind: Kind,
 	/**  When the parent is on, this one is too, whatever its own value. */
 	parent: string | null,
-	/**  Settings sharing one sit together in a list that starts closed. */
-	subgroup: string | null,
+	/**
+	 *  The toggle that must be on for this one to do anything. While it's
+	 *  off, the app greys this one out.
+	 */
+	requires: string | null,
+	/**  The section of its panel it sits in. */
+	section: string,
+	/**  The line under that section's title: see [`Place::about`]. */
+	section_about: string,
+	/**  Its section is a checklist: see [`Place::list`]. */
+	list: boolean,
 };
 
 export type SettingsFile = {

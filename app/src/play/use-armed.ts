@@ -6,7 +6,10 @@ export function useArmed(act: () => void) {
   const [armed, setArmed] = useState(false);
   return {
     armed,
-    onClick: () => (armed ? act() : setArmed(true)),
+    onClick: () => {
+      setArmed(!armed);
+      if (armed) act();
+    },
     onBlur: () => setArmed(false),
   };
 }

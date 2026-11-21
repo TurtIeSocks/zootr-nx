@@ -1,9 +1,9 @@
 import {
   ChevronDownIcon,
   CircleStop,
+  ListPlus,
   Loader2,
   type LucideIcon,
-  ScrollText,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,15 +19,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { WhyButton } from "@/components/why-button";
-import { MAC } from "@/lib/platform";
+import { MOD } from "@/lib/platform";
 import { generateTyped } from "@/play/generate";
 import { stepName, stopGenerate, useSeeds } from "@/stores/seeds";
 import { fix } from "@/stores/shell";
 
-/** The modifier key the shortcuts take, as the menu writes it. */
-const MOD = MAC ? "⌘" : "Ctrl+";
-
-/** Generate & install, with Generate only behind its chevron, the same
+/** Generate & Install, with Generate only behind its chevron, the same
  * shape as Play. While a seed generates, it shows the step and turns into
  * Stop on hover. */
 export function GenerateButton() {
@@ -51,14 +48,14 @@ export function GenerateButton() {
           <Way
             install
             icon={Sparkles}
-            label="Generate & install"
+            label="Generate & Install"
             line="Builds it and installs it to every target"
             keys={`${MOD}↵`}
           />
           <Way
             install={false}
-            icon={ScrollText}
-            label="Generate only"
+            icon={ListPlus}
+            label="Generate Only"
             line="Adds it to History without installing"
             keys={`⇧${MOD}↵`}
           />
@@ -83,7 +80,7 @@ function Install() {
       onClick={() => generateTyped(true, blocked)}
     >
       {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-      Generate & install
+      Generate & Install
     </WhyButton>
   );
 }

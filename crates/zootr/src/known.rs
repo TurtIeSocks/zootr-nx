@@ -75,7 +75,23 @@ pub fn found(root: &Path) {
 /// The name hashed `hash`, reading each tier of [`SOURCES`] on first use
 /// until one has it. Our own actors ([`OURS`]) answer without a dump. `None` before any dump is found, or when none has it.
 /// Names of our own actors, which no dump holds.
-const OURS: &[&str] = &crate::bombchu_bags::BAGS;
+const OURS: [&str; 4] = [
+    crate::bombchu_bags::BAGS[0],
+    crate::bombchu_bags::BAGS[1],
+    crate::bombchu_bags::BAGS[2],
+    crate::magic::meter::NAME,
+];
+
+/// Whether `name` is an item of our own, which no dump holds: its pack,
+/// rows and save entries are written with the seed.
+pub fn is_ours(name: &str) -> bool {
+    OURS.contains(&name)
+}
+
+/// Every item of our own.
+pub fn ours() -> impl Iterator<Item = &'static str> {
+    OURS.into_iter()
+}
 
 fn lookup(hash: u64) -> Option<&'static str> {
     if hash == self::hash("") {

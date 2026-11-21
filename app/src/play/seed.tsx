@@ -27,7 +27,7 @@ interface TipBadgeProps {
 function TipBadge({ icon: Icon, label, tip, variant = "info" }: TipBadgeProps) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
+      <TooltipTrigger asChild tabIndex={0}>
         <Badge variant={variant}>
           <Icon />
           {label}
@@ -53,14 +53,14 @@ export function ExtrasBadges({ entry }: SeedProps) {
       {entry.plando && (
         <TipBadge
           icon={Pin}
-          label="plando"
+          label="Plando"
           tip="Built with a plando: items pinned to checks"
         />
       )}
       {entry.test && (
         <TipBadge
           icon={FlaskConical}
-          label="test"
+          label="Test"
           tip="Built with a test setup: a spawn, items or new-game flags"
         />
       )}
@@ -75,7 +75,7 @@ export function Name({ entry, className }: SeedProps) {
   if (!name) return null;
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
+      <TooltipTrigger asChild tabIndex={0}>
         <p className={cn("truncate", className)}>{name}</p>
       </TooltipTrigger>
       <TooltipContent side="bottom" align="start">

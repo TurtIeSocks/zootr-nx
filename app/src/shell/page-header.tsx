@@ -3,10 +3,12 @@ import { Fragment, type ReactNode } from "react";
 import { Help } from "@/components/help";
 import type { HelpTopic } from "@/help/topics";
 import { cn } from "@/lib/utils";
+import { FindButton } from "@/shell/find/find-button";
 import { crumbs } from "@/shell/nav";
 import { useUi } from "@/stores/ui";
 
-/** The content's drag band, as tall as the title bar, with the breadcrumb. */
+/** The content's drag band, as tall as the title bar: the breadcrumb, and
+ * the search centred. */
 export function Topbar() {
   const [tab] = useUi.usePath("tab");
   const [section] = useUi.usePath("section");
@@ -14,7 +16,7 @@ export function Topbar() {
   return (
     <div
       data-tauri-drag-region
-      className="flex h-(--titlebar) shrink-0 items-center gap-2 pr-4 pl-8"
+      className="grid h-(--titlebar) shrink-0 grid-cols-[1fr_minmax(200px,360px)_1fr] items-center gap-4 pr-4 pl-8"
     >
       <p
         data-tauri-drag-region
@@ -31,6 +33,7 @@ export function Topbar() {
           </Fragment>
         ))}
       </p>
+      <FindButton />
     </div>
   );
 }

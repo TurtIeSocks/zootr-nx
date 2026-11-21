@@ -34,6 +34,26 @@ export function repo(): string | null {
   return import.meta.env.DEV ? null : RELEASES_REPO;
 }
 
+/** The repo a check you ask for goes to: `VITE_UPDATE_REPO` when set,
+ * else the real one, in dev too. */
+export const askedRepo = () =>
+  import.meta.env.VITE_UPDATE_REPO || RELEASES_REPO;
+
+/** What a check you asked for found. */
+export type Checked = "newer" | "current" | "failed";
+
+/** Asks GitHub for the latest release now, even with checks off. A newer
+ * one shows in the sidebar, even one skipped before. */
+export async function checkNow(): Promise<Checked> {
+  const latest = await fetchLatest(askedRepo());
+  const { current } = useUpdate.getState();
+  if (!latest) return "failed";
+  if (!current || !newer(current, latest.version)) return "current";
+  useUi.setPath("update.skipped", null);
+  useUpdate.setPath("latest", latest);
+  return "newer";
+}
+
 /** Asks GitHub for the latest release, unless checks are off. */
 async function check() {
   const from = repo();

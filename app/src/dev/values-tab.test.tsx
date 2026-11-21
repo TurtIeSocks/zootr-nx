@@ -15,7 +15,7 @@ fakeGame();
 /** Types a name into Values and waits for its field, which `ready` says
  * is the one for that name. */
 async function pick(name: string, ready: (field: HTMLElement) => boolean) {
-  const field = await screen.findByRole("textbox", { name: "GameData name" });
+  const field = await screen.findByRole("textbox", { name: "GameData Name" });
   fireEvent.change(field, { target: { value: name } });
   await vi.waitFor(() =>
     expect(ready(screen.getByLabelText("Value"))).toBe(true),
@@ -70,7 +70,7 @@ test("picking a name shows its type, default and live value, in a field for its 
 
 test("the name field suggests names, Enter picking the first", async () => {
   await onValues();
-  const name = screen.getByRole("textbox", { name: "GameData name" });
+  const name = screen.getByRole("textbox", { name: "GameData Name" });
   fireEvent.change(name, { target: { value: "child" } });
   fireEvent.keyDown(name, { key: "Enter" });
   expect((name as HTMLInputElement).value).toBe("FakeFlag_IsChild");
@@ -103,7 +103,7 @@ test("Set sends the picked value, reads it again, and heads Recent", async () =>
   const recent = screen.getByRole("list", { name: "Recent values" });
   expect(within(recent).getByText("Complete")).toBeTruthy();
 
-  fireEvent.change(screen.getByRole("textbox", { name: "GameData name" }), {
+  fireEvent.change(screen.getByRole("textbox", { name: "GameData Name" }), {
     target: { value: "" },
   });
   fireEvent.click(within(recent).getByRole("button"));
@@ -126,7 +126,7 @@ test("a refused value shows the reason and an unknown name shows why", async () 
     "Couldn't set PlayerStatus.CurrentRupee: Step1 isn't a value of the name",
   );
   expect(useUi.getPath("dev.recent.values")).toEqual([]);
-  fireEvent.change(screen.getByRole("textbox", { name: "GameData name" }), {
+  fireEvent.change(screen.getByRole("textbox", { name: "GameData Name" }), {
     target: { value: "0xdeadbeef" },
   });
   expect(await screen.findByText("no entry named 0xdeadbeef")).toBeTruthy();
@@ -134,11 +134,11 @@ test("a refused value shows the reason and an unknown name shows why", async () 
 
 test("a formula shows how it's worked out, its names loading each to set", async () => {
   await onValues();
-  fireEvent.change(screen.getByRole("textbox", { name: "GameData name" }), {
+  fireEvent.change(screen.getByRole("textbox", { name: "GameData Name" }), {
     target: { value: "Flag_A_Exp" },
   });
   const card = await screen.findByRole("region", {
-    name: "Worked out, not stored",
+    name: "Worked Out, Not Stored",
   });
   expect(within(card).getByText(/set those instead/)).toBeTruthy();
   expect(screen.queryByLabelText("Value")).toBeNull();
@@ -155,7 +155,7 @@ test("a formula shows how it's worked out, its names loading each to set", async
     ),
   );
   expect(
-    screen.queryByRole("region", { name: "Worked out, not stored" }),
+    screen.queryByRole("region", { name: "Worked Out, Not Stored" }),
   ).toBeNull();
 });
 
@@ -163,7 +163,7 @@ test("a saved step says it leaves the quest, and picks the quest in Give", async
   await onValues();
   await pick("Step_A", isSelect);
   expect(await screen.findByText(/leaves the quest where it was/)).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Move the quest" }));
+  fireEvent.click(screen.getByRole("button", { name: "Move the Quest" }));
   expect(useUi.getPath("dev.quest")).toEqual({
     challenge: "A",
     step: "Step01",

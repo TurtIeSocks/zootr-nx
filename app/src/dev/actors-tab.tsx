@@ -27,7 +27,7 @@ import { useUi } from "@/stores/ui";
 /** Actors' tabs. */
 const TABS: { id: "nearby" | "all"; label: string }[] = [
   { id: "nearby", label: "Nearby" },
-  { id: "all", label: "All in map" },
+  { id: "all", label: "All in Map" },
 ];
 
 /** The live actors nearest Link, each one's model hidden or shown with a
@@ -87,7 +87,7 @@ function HiddenCard() {
           disabled={!can}
           onClick={() => send("hide", "show every hidden actor", showAll)}
         >
-          Show all
+          Show All
         </Button>
       </div>
     </DevCard>
@@ -155,7 +155,7 @@ function LiveList() {
       <div className="sticky top-0 z-1 flex items-center bg-surface pr-1">
         <div className="min-w-0 flex-1">
           <GroupHead
-            title="Nearest first"
+            title="Nearest First"
             count={
               live.status === "ok" ? (
                 <span className="normal-case tracking-normal">

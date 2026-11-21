@@ -42,6 +42,12 @@ export interface DevGive {
   count: number;
 }
 
+/** A search result opened, by its group and its key in that group. */
+export interface Found {
+  group: string;
+  key: string;
+}
+
 export interface Ui {
   /** The view showing. */
   tab: Tab | "Settings";
@@ -84,8 +90,11 @@ export interface Ui {
   getStarted: { dismissed: boolean };
   /** The release the update notice was told to skip. */
   update: { skipped: string | null };
-  /** The checklists open on the settings pages, by title. */
-  settings: { open: string[] };
+  /** The sections closed on the settings pages, by `group/section`, and
+   * the reset a page's split button leads with: the one used last. */
+  settings: { closed: string[]; reset: ResetTo };
+  /** The search's last results opened, newest first. */
+  find: { recent: Found[] };
   /** The Save page: the slot, its tab, what's pending and the Flags
    * tab's query. */
   save: {
@@ -153,7 +162,8 @@ const INITIAL: Ui = {
   welcome: { done: false },
   getStarted: { dismissed: false },
   update: { skipped: null },
-  settings: { open: [] },
+  settings: { closed: [], reset: "defaults" },
+  find: { recent: [] },
   save: {
     slot: null,
     stamp: null,
@@ -161,7 +171,7 @@ const INITIAL: Ui = {
     presets: [],
     edits: [],
     changes: 0,
-    flags: { search: "", kind: null, changed: true, staged: false, open: {} },
+    flags: { search: "", kinds: [], changed: true, staged: false, open: {} },
   },
   dev: {
     tab: "warp",
@@ -180,7 +190,11 @@ const SHARED = ["theme"] as const satisfies (keyof Ui)[];
 
 /** Each step upgrades a saved shape one version. A changed shape adds one. */
 type Upgrade = (saved: Record<string, unknown>) => Record<string, unknown>;
-const UPGRADES: Upgrade[] = [];
+const UPGRADES: Upgrade[] = [
+  // Settings checklists started closed, kept by `open`. Every section now
+  // starts open, kept by `closed`.
+  (saved) => ({ ...saved, settings: { closed: [] } }),
+];
 
 type Saved = StorageValue<Ui>;
 /** At most one write this often, so typing saves once a beat. */
@@ -356,8 +370,19 @@ export function remember<T>(
   return [item, ...list.filter((x) => !same(x, item))].slice(0, max);
 }
 
-/** Opens or closes a settings checklist, by its title. */
-export const setChecklistOpen = (title: string, open: boolean) =>
-  useUi.setPath("settings.open", (o) =>
-    open ? [...o, title] : o.filter((t) => t !== title),
+/** Opens or closes a settings page's section, by its id. */
+/** What a settings page's reset puts back: the defaults, or the seed
+ * drift measures from. */
+export type ResetTo = "defaults" | "seed";
+
+export const setSectionOpen = (id: string, open: boolean) =>
+  useUi.setPath("settings.closed", (c) =>
+    open ? c.filter((t) => t !== id) : [...c, id],
+  );
+
+/** Steps the theme on: system, light, dark, round again. */
+export const nextTheme = () =>
+  useUi.setPath(
+    "theme",
+    (t) => THEMES[(THEMES.indexOf(t) + 1) % THEMES.length] ?? t,
   );

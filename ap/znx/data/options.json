@@ -4,14 +4,14 @@
     "description": "Mido and the forest exit stop blocking Link, as child or adult",
     "id": "open-forest",
     "kind": "toggle",
-    "label": "Open forest"
+    "label": "Open Forest"
   },
   {
     "default": false,
     "description": "The Kakariko gate guard has already seen Zelda's letter, so the Death Mountain trail is open from the start",
     "id": "kakariko-gate",
     "kind": "toggle",
-    "label": "Open Kakariko gate"
+    "label": "Open Kakariko Gate"
   },
   {
     "default": true,
@@ -25,14 +25,14 @@
     "description": "Jabu-Jabu's mouth is open, so child Link walks in without giving him a fish",
     "id": "jabu-open",
     "kind": "toggle",
-    "label": "Jabu-Jabu open"
+    "label": "Jabu-Jabu Open"
   },
   {
     "default": false,
     "description": "The waterfall at the end of Zora's River already stands split, so Link reaches Zora's Domain without Zelda's Lullaby",
     "id": "open-waterfall",
     "kind": "toggle",
-    "label": "Zora's River waterfall open"
+    "label": "Zora's River Waterfall Open"
   },
   {
     "default": false,
@@ -46,7 +46,7 @@
     "description": "Freeing any one carpenter frees all four and earns the membership card. The other thieves still guard their cells",
     "id": "carpenters-fast",
     "kind": "toggle",
-    "label": "Gerudo Fortress fast"
+    "label": "Gerudo Fortress Fast"
   },
   {
     "default": "free",
@@ -70,14 +70,14 @@
     "description": "Turns on every skip below. Cutscenes that give an item, set a flag or move Link still play",
     "id": "skip-cutscenes",
     "kind": "toggle",
-    "label": "Skip all cutscenes"
+    "label": "Skip All Cutscenes"
   },
   {
     "default": "vanilla",
     "description": "All small makes every chest a small one, which opens without the big chest's long animation. What a chest holds doesn't change",
     "id": "chest-size",
     "kind": "choice",
-    "label": "Chest size",
+    "label": "Chest Size",
     "options": [
       {
         "id": "vanilla",
@@ -101,13 +101,13 @@
     "description": "Link runs half again as fast while he wears the Bunny Hood",
     "id": "bunny-hood",
     "kind": "toggle",
-    "label": "Bunny Hood speed"
+    "label": "Bunny Hood Speed"
   },
   {
     "default": false,
     "description": "Child and adult Link can each wield every one-handed sword and every shield, and logic expects them to. Biggoron's Sword and the Giant's Knife stay adult Link's, and only he can aim the Mirror Shield at light",
     "id": "ageless-weapons",
     "kind": "toggle",
-    "label": "One-handed swords and shields for both ages"
+    "label": "One-Handed Swords and Shields for Both Ages"
   }
 ]

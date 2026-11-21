@@ -198,12 +198,14 @@ pub(super) mod tests {
     }
 
     /// Whether logic beats the seed `new_game` with every item the checks
-    /// hold, as fill gets them: the rewards stay with their bosses.
+    /// hold and the setting adds, as fill gets them: the rewards stay with
+    /// their bosses.
     fn beaten(romfs: &Romfs, new_game: &NewGame) -> bool {
         let checks = checks::dealt(romfs, new_game).unwrap();
         let book = crate::rules::Book::load().unwrap();
         let world = World::build(romfs, &book, &Ctx::new(new_game), &checks).unwrap();
-        let pool = checks.iter().map(|c| c.item.as_str());
+        let added = crate::starter_bags::added(new_game);
+        let pool = checks.iter().map(|c| c.item.as_str()).chain(added);
         let all = crate::fill::everything(&crate::fill::start(new_game), pool);
         world.beaten(&world.play(&all, &HashMap::new()).have)
     }

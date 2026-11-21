@@ -61,7 +61,7 @@ pub const AREAS: [(&str, &str, &[&str]); 27] = [
         "Ganon's Castle",
         &["GanonCastle", "InsideGanonCastle", "FinalBattle"],
     ),
-    ("songs", "Learning songs", &["MelodyGet"]),
+    ("songs", "Learning Songs", &["MelodyGet"]),
     ("fairies", "Great Fairies", &["FairyFountain"]),
     ("sages", "Sages", &["Awake", "SageRoom"]),
     ("ending", "Ending", &["Ending", "StaffCredit"]),

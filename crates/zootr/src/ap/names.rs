@@ -68,6 +68,7 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::HOOKSHOT, "Hookshot"),
     (item::HOVER_BOOT, "Hover Boots"),
     (item::LONGSHOT, "Longshot"),
+    (crate::magic::meter::METER, "Magic Meter"),
     (item::NUT_BAG_MEDIUM, "Deku Nut Bag (30)"),
     (item::NUT_BAG_LARGE, "Deku Nut Bag (40)"),
     (item::OCARINA_FAIRY, "Fairy Ocarina"),

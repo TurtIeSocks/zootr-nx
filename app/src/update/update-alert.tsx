@@ -1,7 +1,6 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
 import type { Update } from "@tauri-apps/plugin-updater";
-import { ArrowUpRight, CircleArrowUp } from "lucide-react";
-import { type MouseEvent, useEffect, useMemo, useState } from "react";
+import { CircleArrowUp } from "lucide-react";
+import { useEffect, useState } from "react";
 import { InlineError } from "@/components/callout";
 import { Tip } from "@/components/tip";
 import { Button } from "@/components/ui/button";
@@ -16,47 +15,8 @@ import { useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
 import { skip, useUpdate } from "@/stores/update";
 import { install, installable, type Progress } from "@/update/install";
-import { notesHtml, type Release } from "@/update/release";
-
-/** Markdown's elements, styled for the popover. */
-const NOTES =
-  "max-h-80 overflow-auto px-4 py-5 [&>:first-child]:mt-0 text-ink-muted text-sm leading-relaxed [&_a]:text-primary-ink [&_a]:underline [&_code]:font-mono [&_code]:text-[12px] [&_:is(h1,h2,h3,h4,h5,h6)]:mt-2 [&_:is(h1,h2,h3,h4,h5,h6)]:font-medium [&_:is(h1,h2,h3,h4,h5,h6)]:text-ink [&_li+li]:mt-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-1.5 [&_ul]:list-disc [&_ul]:pl-5";
-
-/** Opens a link from the notes in the browser, never in the webview. */
-function follow(e: MouseEvent) {
-  const a = (e.target as Element).closest("a");
-  if (!a) return;
-  e.preventDefault();
-  if (a.protocol === "https:") void openUrl(a.href);
-}
-
-/** Props for {@link Notes}. */
-interface NotesProps {
-  md: string;
-}
-
-/** A release's notes, sanitized by {@link notesHtml}. */
-function Notes({ md }: NotesProps) {
-  const html = useMemo(() => notesHtml(md), [md]);
-  if (!html.trim()) return null;
-  return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: clicks bubble up from the links inside, which take focus and keys themselves.
-    // biome-ignore lint/a11y/useKeyWithClickEvents: as above.
-    <div
-      className={NOTES}
-      onClick={follow}
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: notesHtml sanitizes with DOMPurify.
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
-  );
-}
-
-const day = (iso: string) =>
-  new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+import { Notes, ReleaseLink } from "@/update/notes";
+import { day, type Release } from "@/update/release";
 
 /** Install & restart, once the updater can install `version`. Held while
  * a game runs: the restart would drop its bridge and tracker. */
@@ -96,7 +56,7 @@ function InstallButton({ update, progress, running, go }: InstallState) {
       why={running && CLOSE_GAME}
       onClick={go}
     >
-      {progress ? "Installing…" : "Install & restart"}
+      {progress ? "Installing…" : "Install & Restart"}
     </WhyButton>
   );
 }
@@ -131,29 +91,6 @@ function InstallStatus({ update, progress, error }: InstallState) {
   );
 }
 
-/** Props for {@link ReleaseLink}. */
-interface ReleaseLinkProps {
-  href: string;
-  children: string;
-}
-
-/** A link beside the release's name, opened in the browser. */
-function ReleaseLink({ href, children }: ReleaseLinkProps) {
-  return (
-    <a
-      href={href}
-      className="inline-flex items-center gap-0.5 hover:text-ink hover:underline"
-      onClick={(e) => {
-        e.preventDefault();
-        void openUrl(href);
-      }}
-    >
-      {children}
-      <ArrowUpRight className="size-3" />
-    </a>
-  );
-}
-
 /** Props for {@link ReleaseCard}. */
 interface ReleaseCardProps {
   release: Release;
@@ -178,15 +115,15 @@ function ReleaseCard({ release, onSkip }: ReleaseCardProps) {
         </div>
         <div className="flex flex-col items-end gap-0.5 text-ink-faint text-xs">
           <ReleaseLink href={release.changelog}>Changelog</ReleaseLink>
-          <ReleaseLink href={release.url}>Release page</ReleaseLink>
+          <ReleaseLink href={release.url}>Release Page</ReleaseLink>
         </div>
       </div>
-      <Notes md={release.notes} />
+      <Notes md={release.notes} className="max-h-80 overflow-auto px-4 py-5" />
       <div className="flex flex-col gap-1.5 border-line border-t px-4 py-2.5">
         <div className="flex justify-between gap-2">
           <Tip tip="Hides this version until the next release">
             <Button size="sm" variant="ghost" onClick={onSkip}>
-              Skip this version
+              Skip This Version
             </Button>
           </Tip>
           <InstallButton {...install} />
@@ -209,7 +146,7 @@ export function UpdateAlert() {
       <PopoverTrigger asChild>
         <Button variant="soft" size="sm" className="w-full justify-start">
           <CircleArrowUp className="size-3.5" />
-          Update available
+          Update Available
           <span className="ml-auto font-mono">v{latest.version}</span>
         </Button>
       </PopoverTrigger>

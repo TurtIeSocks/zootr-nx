@@ -73,6 +73,9 @@ pub struct NewGame {
     pub shuffle_nut_bag: bool,
     /// The Small Stick Bag is in the pool, and sticks need a bag.
     pub shuffle_stick_bag: bool,
+    /// Any magic item turns the meter on, as in the game. Off, only the
+    /// meter items do, and a Magic Meter is in the pool.
+    pub magic_with_first_item: bool,
     /// Navi never talks on her own.
     pub quiet_navi: bool,
     /// Enemies never show, besides those that are checks or hold one.
@@ -210,6 +213,7 @@ impl NewGame {
             bombchus: chosen(settings, BOMBCHUS),
             shuffle_nut_bag: on(SHUFFLE_NUT_BAG),
             shuffle_stick_bag: on(SHUFFLE_STICK_BAG),
+            magic_with_first_item: on(MAGIC_WITH_FIRST_ITEM),
             quiet_navi: on(QUIET_NAVI),
             quiet_enemies: on(QUIET_ENEMIES),
             bunny_hood: on(BUNNY_HOOD),
@@ -243,7 +247,7 @@ pub(crate) fn toggles_on(settings: &Settings) -> BTreeSet<String> {
                 .and_then(Value::as_str)
                 .filter(|v| options.iter().any(|o| o.id == *v))
                 .unwrap_or(default),
-            Kind::Inventory => return None,
+            Kind::Inventory { .. } => return None,
         };
         Some(value_word(&d.id, value))
     });
@@ -271,7 +275,7 @@ pub(crate) fn toggles() -> BTreeSet<String> {
             Kind::Choice { options, .. } => {
                 (options.iter()).map(|o| value_word(&d.id, &o.id)).collect()
             }
-            Kind::Inventory => vec![],
+            Kind::Inventory { .. } => vec![],
         };
         values
     });
@@ -285,7 +289,7 @@ fn is_on(schema: &[SettingDef], settings: &Settings, id: &str) -> bool {
             Kind::Toggle { default } => {
                 settings.get(id).and_then(Value::as_bool).unwrap_or(default)
             }
-            Kind::Choice { .. } | Kind::Inventory => false,
+            Kind::Choice { .. } | Kind::Inventory { .. } => false,
         };
         own || d.parent.is_some_and(|p| is_on(schema, settings, p))
             || super::forced(schema, settings).0.contains(&id)
@@ -328,7 +332,7 @@ mod tests {
                 chest_size: ChestSize::Vanilla,
                 vanilla: false,
                 keep_chests: false,
-                start: starting::Start::default(),
+                start: starting::Start::of(&starting::DEFAULT),
                 progressive: true,
                 open_door: true,
                 scrubs: true,
@@ -356,6 +360,7 @@ mod tests {
                 bombchus: Bombchus::Free,
                 shuffle_nut_bag: false,
                 shuffle_stick_bag: false,
+                magic_with_first_item: false,
                 quiet_navi: true,
                 quiet_enemies: false,
                 bunny_hood: false,
@@ -400,7 +405,7 @@ mod tests {
     }
 
     #[test]
-    fn a_quest_preset_hands_over_its_items_from_its_own_subgroup() {
+    fn a_quest_preset_hands_over_its_items_from_its_own_section() {
         needs_names!();
         let settings = Settings::from([("claim-check".into(), true.into())]);
         let game = NewGame::from_settings(&settings, &[]).unwrap();
@@ -413,7 +418,7 @@ mod tests {
             .into_iter()
             .find(|d| d.id == "claim-check")
             .unwrap();
-        assert_eq!(def.subgroup, Some("Quest progress"));
+        assert_eq!(def.section, crate::settings::place::QUEST.section);
     }
 
     #[test]
@@ -470,7 +475,10 @@ mod tests {
 
     #[test]
     fn adult_opens_the_door_and_the_forest_and_leaves_the_sword_to_the_pedestal() {
-        let adult = Settings::from([(STARTING_AGE.into(), "adult".into())]);
+        let adult = Settings::from([
+            (STARTING_AGE.into(), "adult".into()),
+            (starting::SETTING.into(), serde_json::json!({})),
+        ]);
         let new_game = NewGame::from_settings(&adult, &[]).unwrap();
         assert_eq!(new_game.age, Era::Adult);
         assert!(new_game.open_door);

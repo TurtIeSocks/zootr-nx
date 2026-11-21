@@ -285,11 +285,12 @@ pub(super) fn settings() {
             let default = match &d.kind {
                 Kind::Toggle { default } => default.to_string(),
                 Kind::Choice { default, .. } => default.clone(),
-                Kind::Inventory => "{}".into(),
+                Kind::Inventory { .. } => "{}".into(),
             };
             let nest = [
                 d.parent.map(|p| format!("under {p}")),
-                d.subgroup.map(|s| format!("in {s}")),
+                Some(format!("in {}", d.section)),
+                d.requires.map(|r| format!("needs {r}")),
             ]
             .into_iter()
             .flatten()

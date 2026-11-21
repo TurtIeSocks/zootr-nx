@@ -31,32 +31,149 @@ pub type Settings = BTreeMap<String, Value>;
 
 /// The settings panels, by name.
 pub mod group {
-    /// Comfort and speed: nothing shuffled, nothing opened.
-    pub const GENERAL: &str = "General";
-    /// Changes to how Link plays: nothing shuffled, nothing opened.
-    pub const ENHANCEMENTS: &str = "Enhancements";
     /// How items are placed, and what stands open from the start.
-    pub const LOGIC: &str = "Logic & access";
-    /// What a new save starts holding or having done.
-    pub const INVENTORY: &str = "Inventory";
-    /// Which places become checks.
+    pub const LOGIC: &str = "Logic & Access";
+    /// Which places become checks, and what the pool holds.
     pub const SHUFFLES: &str = "Shuffles";
     /// What a dungeon or its boss gives, and its keys.
     pub const DUNGEONS: &str = "Dungeons";
-    /// Which cutscenes play.
-    pub const CUTSCENES: &str = "Cutscenes";
+    /// Changes to how Link plays and what plays out: nothing shuffled,
+    /// nothing opened.
+    pub const ENHANCEMENTS: &str = "Enhancements";
+    /// What a new save starts holding or having done.
+    pub const INVENTORY: &str = "Inventory";
 }
 
 /// Every panel, in the order the app lists them.
-pub const GROUPS: [&str; 7] = [
-    group::GENERAL,
-    group::ENHANCEMENTS,
+pub const GROUPS: [&str; 5] = [
     group::LOGIC,
-    group::INVENTORY,
     group::SHUFFLES,
     group::DUNGEONS,
-    group::CUTSCENES,
+    group::ENHANCEMENTS,
+    group::INVENTORY,
 ];
+
+/// Where a setting shows: its panel, and the section of that panel.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Place {
+    pub group: &'static str,
+    pub section: &'static str,
+    /// A line under the section's title.
+    pub about: &'static str,
+    /// The section's toggles show as one checklist, not a row each.
+    pub list: bool,
+}
+
+/// Every section, by panel.
+pub mod place {
+    use super::{Place, group};
+
+    const fn rows(group: &'static str, section: &'static str, about: &'static str) -> Place {
+        Place {
+            group,
+            section,
+            about,
+            list: false,
+        }
+    }
+
+    const fn list(group: &'static str, section: &'static str, about: &'static str) -> Place {
+        Place {
+            group,
+            section,
+            about,
+            list: true,
+        }
+    }
+
+    pub const RULES: Place = rows(
+        group::LOGIC,
+        "Rules",
+        "How items are placed and how the game is won",
+    );
+    pub const OPEN_AREAS: Place = rows(
+        group::LOGIC,
+        "Open Areas",
+        "What stands open from the start",
+    );
+    pub const QUEST: Place = list(
+        group::LOGIC,
+        "Quest Progress",
+        "Story steps a new game starts with done",
+    );
+    pub const CHECKS: Place = rows(
+        group::SHUFFLES,
+        "Checks",
+        "Which places and people give a check",
+    );
+    pub const BREAKABLES: Place = rows(
+        group::SHUFFLES,
+        "Breakables",
+        "Things Link breaks or cuts that give a check once",
+    );
+    pub const ITEM_POOL: Place = rows(
+        group::SHUFFLES,
+        "Item Pool",
+        "Items that join the pool or change how it gives them",
+    );
+    pub const HINTS: Place = rows(group::SHUFFLES, "Hints", "What gossip stones tell Link");
+    pub const REWARDS: Place = rows(group::DUNGEONS, "Rewards", "What bosses and dungeons give");
+    pub const KEYS: Place = rows(
+        group::DUNGEONS,
+        "Keys",
+        "Where small keys, boss keys and the fortress keys can land",
+    );
+    pub const ENTRANCES: Place = rows(
+        group::DUNGEONS,
+        "Entrances",
+        "Where each dungeon's door leads",
+    );
+    pub const COMFORT: Place = rows(
+        group::ENHANCEMENTS,
+        "Comfort",
+        "Fewer stops, pop-ups and waits",
+    );
+    pub const GAMEPLAY: Place = rows(
+        group::ENHANCEMENTS,
+        "Gameplay",
+        "Changes to what Link can do",
+    );
+    pub const CUTSCENES: Place = rows(
+        group::ENHANCEMENTS,
+        "Cutscenes",
+        "Skip the cutscenes that only play, all at once or by name",
+    );
+    pub const CUTSCENE_AREAS: Place = list(
+        group::ENHANCEMENTS,
+        "Cutscenes by Area",
+        "Every cutscene in an area that only plays, changing nothing",
+    );
+    /// The grid, which draws on its own rather than as a section.
+    pub const START: Place = rows(
+        group::INVENTORY,
+        "Starting Inventory",
+        "What a new game starts with",
+    );
+
+    /// Every section, in the order the app shows them.
+    pub const ALL: [Place; 15] = [
+        RULES,
+        OPEN_AREAS,
+        QUEST,
+        CHECKS,
+        BREAKABLES,
+        ITEM_POOL,
+        HINTS,
+        REWARDS,
+        KEYS,
+        ENTRANCES,
+        COMFORT,
+        GAMEPLAY,
+        CUTSCENES,
+        CUTSCENE_AREAS,
+        START,
+    ];
+}
 
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -68,8 +185,15 @@ pub struct SettingDef {
     pub kind: Kind,
     /// When the parent is on, this one is too, whatever its own value.
     pub parent: Option<&'static str>,
-    /// Settings sharing one sit together in a list that starts closed.
-    pub subgroup: Option<&'static str>,
+    /// The toggle that must be on for this one to do anything. While it's
+    /// off, the app greys this one out.
+    pub requires: Option<&'static str>,
+    /// The section of its panel it sits in.
+    pub section: &'static str,
+    /// The line under that section's title: see [`Place::about`].
+    pub section_about: &'static str,
+    /// Its section is a checklist: see [`Place::list`].
+    pub list: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -85,8 +209,10 @@ pub enum Kind {
         options: Vec<Choice>,
     },
     /// What a new game starts holding, the save editor's grid: a
-    /// [`starting::Start`]. Unset is the game's own.
-    Inventory,
+    /// [`starting::Start`].
+    Inventory {
+        default: starting::Start,
+    },
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -110,7 +236,7 @@ pub(crate) fn choice_id(value: impl ValueEnum) -> String {
 
 fn choice<T: ValueEnum + Copy + Default>(
     id: impl Into<String>,
-    group: &'static str,
+    place: Place,
     label: &'static str,
     description: &'static str,
     labels: fn(T) -> &'static str,
@@ -129,7 +255,7 @@ fn choice<T: ValueEnum + Copy + Default>(
             default: choice_id(T::default()),
             options,
         },
-        ..toggle(id, group, label, description)
+        ..toggle(id, place, label, description)
     }
 }
 
@@ -210,6 +336,7 @@ const BUNNY_HOOD: &str = "bunny-hood";
 const DAY_SKULLTULAS: &str = "day-skulltulas";
 pub(crate) const AGELESS_WEAPONS: &str = "ageless-weapons";
 pub(crate) const AGELESS_ITEMS: &str = "ageless-items";
+pub(crate) const MAGIC_WITH_FIRST_ITEM: &str = "magic-with-first-item";
 const QUIET_NAVI: &str = "quiet-navi";
 pub(crate) const QUIET_ENEMIES: &str = "quiet-enemies";
 pub(crate) const OPEN_DOOR: &str = "open-door-of-time";
@@ -284,18 +411,29 @@ fn default_on(def: SettingDef) -> SettingDef {
 
 fn toggle(
     id: impl Into<String>,
-    group: &'static str,
+    place: Place,
     label: &'static str,
     description: &'static str,
 ) -> SettingDef {
     SettingDef {
         id: id.into(),
-        group,
+        group: place.group,
         label,
         description,
         kind: Kind::Toggle { default: false },
         parent: None,
-        subgroup: None,
+        requires: None,
+        section: place.section,
+        section_about: place.about,
+        list: place.list,
+    }
+}
+
+/// `def`, doing nothing unless toggle `id` is on.
+fn requires(id: &'static str, def: SettingDef) -> SettingDef {
+    SettingDef {
+        requires: Some(id),
+        ..def
     }
 }
 
@@ -314,109 +452,113 @@ pub fn shown() -> Vec<SettingDef> {
 
 pub fn schema() -> Vec<SettingDef> {
     let preset_defs = PRESETS.iter().map(|p| {
-        let def = SettingDef {
-            subgroup: p.subgroup,
-            ..toggle(p.name, p.group, p.label, p.what)
-        };
+        let def = toggle(p.name, p.place, p.label, p.what);
         match presets::DEFAULT_ON.contains(&p.name) {
             true => default_on(def),
             false => def,
         }
     });
-    let cutscene = |id: String, label, description| SettingDef {
+    let cutscene = |id: String, place, label, description| SettingDef {
         parent: Some(SKIP_ALL),
-        ..toggle(id, group::CUTSCENES, label, description)
+        ..toggle(id, place, label, description)
     };
     let named = [
         default_on(cutscene(
             SKIP_INTRO.into(),
-            "Skip the intro",
+            place::CUTSCENES,
+            "Skip the Intro",
             "A new game starts with Link in control, without the opening movie and Navi's wake-up",
         )),
         cutscene(
             SKIP_SARIA.into(),
-            "Skip Saria's greeting",
+            place::CUTSCENES,
+            "Skip Saria's Greeting",
             "Link leaves his house without the forest pan or Saria running up to greet him",
         ),
         cutscene(
             SKIP_OWL.into(),
+            place::CUTSCENES,
             "Skip Kaepora Gaebora",
             "The owl never stops Link to talk. His rides go too",
         ),
         cutscene(
             SKIP_GREAT_DEKU.into(),
-            "Skip meeting the Great Deku Tree",
+            place::CUTSCENES,
+            "Skip Meeting the Great Deku Tree",
             "His mouth is open from the start, and the forest quest is where his talk leaves it",
         ),
         default_on(cutscene(
             SKIP_ARRIVALS.into(),
-            "Skip area intros",
+            place::CUTSCENES,
+            "Skip Area Intros",
             "Reaching an area for the first time skips its camera pan. Any quest step the arrival sets still happens",
         )),
     ];
     let start = SettingDef {
-        kind: Kind::Inventory,
+        kind: Kind::Inventory {
+            default: starting::Start::of(&starting::DEFAULT),
+        },
         ..toggle(
             starting::SETTING,
-            group::INVENTORY,
-            "Starting inventory",
+            place::START,
+            "Starting Inventory",
             "What a new game starts with. Each item leaves the shuffle, and wherever it was found holds a Blue Rupee instead",
         )
     };
-    let areas = AREAS.iter().map(|(id, label, _)| SettingDef {
-        subgroup: Some("By area"),
-        ..cutscene(
+    let areas = AREAS.iter().map(|(id, label, _)| {
+        cutscene(
             skip_id(id),
+            place::CUTSCENE_AREAS,
             label,
-            "Every cutscene here that only plays, changing nothing",
+            place::CUTSCENE_AREAS.about,
         )
     });
     let mut all = preset_defs
         .chain([choice(
             LOGIC,
-            group::LOGIC,
+            place::RULES,
             "Logic",
             "Glitchless places each item where Link can reach it without that item, so a seed can always be beaten. No logic places items anywhere, so a seed may not be",
             Logic::label,
         )])
         .chain([choice(
             ADULT_JABU,
-            group::LOGIC,
+            place::OPEN_AREAS,
             "Adult Jabu-Jabu",
             "Jabu-Jabu waits in the frozen fountain for adult Link too, from the start or once the Water sage is done. Adult Link walks in when his mouth is open (the Jabu-Jabu open preset), but only child Link's Boomerang beats the tentacles and Barinade. With dungeon entrances shuffled, his door leads wherever it leads for child Link",
             AdultJabu::label,
         )])
         .chain([choice(
             ICE_TRAPS,
-            group::GENERAL,
-            "Ice traps",
+            place::CHECKS,
+            "Ice Traps",
             "Swaps junk (rupees, ammo, recovery hearts) for ice traps. Each looks like an item logic needs until Link gets it, then says FOOL! and freezes him",
             IceTraps::label,
         )])
         .chain([choice(
             CHEST_SIZE,
-            group::GENERAL,
-            "Chest size",
+            place::COMFORT,
+            "Chest Size",
             "All small makes every chest a small one, which opens without the big chest's long animation. What a chest holds doesn't change",
             ChestSize::label,
         )])
         .chain([default_on(toggle(
             SHUFFLE_ITEMS,
-            group::SHUFFLES,
-            "Shuffle items",
+            place::CHECKS,
+            "Shuffle Items",
             "Every check gives a shuffled item. Off, each gives what it always does, though a starting item's spot still holds a Blue Rupee",
         ))])
         .chain([default_on(toggle(
             CHESTS,
-            group::SHUFFLES,
+            place::CHECKS,
             "Chests",
             "Each chest is a check. Off, a chest holds what it always does and the other checks shuffle among themselves, though a starting item's chest holds a Blue Rupee",
         ))])
         .chain([forcing(
             choice(
                 STARTING_AGE,
-                group::LOGIC,
-                "Starting age",
+                place::RULES,
+                "Starting Age",
                 "How old Link is on a new file. Adult wakes in the Temple of Time with the Master Sword, and opens the Door of Time and the forest, so he can go back to child and walk out. Random rolls one from the seed",
                 StartingAge::label,
             ),
@@ -424,72 +566,72 @@ pub fn schema() -> Vec<SettingDef> {
         )])
         .chain([default_on(toggle(
                 OPEN_DOOR,
-                group::LOGIC,
+                place::RULES,
                 "Open Door of Time",
                 "The Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, whose gift comes at the start, and can put the sword back any time",
             ))])
         .chain([default_on(toggle(
                 SCRUBS,
-                group::SHUFFLES,
-                "Business scrubs",
+                place::CHECKS,
+                "Business Scrubs",
                 "Every Business Scrub outside the Dream World sells a check once. Scrubs that sold ammo on repeat sell their one item and leave",
             ))])
-        .chain([choice(
+        .chain([requires(SCRUBS, choice(
             SCRUB_PRICE,
-            group::SHUFFLES,
-            "Scrub price",
+            place::CHECKS,
+            "Scrub Price",
             "What every Business Scrub asks for its check, with Business scrubs on",
             ScrubPrice::label,
-        )])
+        ))])
         .chain([toggle(
                 NPC_GIFTS,
-                group::SHUFFLES,
-                "NPC gifts",
+                place::CHECKS,
+                "NPC Gifts",
                 "What people hand over becomes a check: their gifts, minigame prizes, the House of Skulltula's rewards and the Great Fairies' upgrades",
             )])
-        .chain([default_on(toggle(
+        .chain([requires(NPC_GIFTS, toggle(
                 HUNDRED_TOKENS,
-                group::SHUFFLES,
-                "100-token reward",
+                place::CHECKS,
+                "100-Token Reward",
                 "With NPC gifts on, the House of Skulltula's reward for all 100 tokens is a check too. Off, it pays its Gold Rupee as always, and logic never sends Link for all 100",
             ))])
         .chain([toggle(
                 DUNGEON_REWARDS,
-                group::DUNGEONS,
-                "Dungeon rewards",
+                place::REWARDS,
+                "Dungeon Rewards",
                 "The Spiritual Stones and five medallions become checks, given by the scene after each boss. Light stays with Rauru",
             )])
         .chain([toggle(
                 SONGS,
-                group::SHUFFLES,
+                place::CHECKS,
                 "Songs",
                 "Ten songs become checks, given without the lesson: Zelda's Lullaby, Epona's Song, Saria's Song, the Song of Storms and Sheik's six. The Sun's Song, the Song of Time and the Scarecrow's Song stay where they are",
             )])
         .chain([toggle(
             MAPS_COMPASSES,
-            group::DUNGEONS,
-            "Maps and compasses",
+            place::REWARDS,
+            "Maps and Compasses",
             "Each dungeon's map and compass turn up in a random chest of that dungeon. Keys stay where they are",
         )])
         .chain([choice(
             KEYS,
-            group::DUNGEONS,
+            place::KEYS,
             "Keys",
             "With Start, Link holds every dungeon's small keys and boss key from the start. With Key rings, each dungeon's small keys come as one ring that opens all its small-key doors. With Keysanity, each small key comes on its own. Rings, small keys and boss keys turn up in random chests and gifts, never in their own dungeon. The 43 chests that held a key become checks. With Start each brings a Red Rupee to the pool. With Key rings, one of a dungeon's rupees becomes its ring and another its boss key. The two keys lying in the open stay where they are",
             DungeonKeys::label,
         )])
         .chain([choice(
             FORTRESS_KEYS,
-            group::DUNGEONS,
-            "Fortress keys",
+            place::KEYS,
+            "Fortress Keys",
             "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks. Can't be used with Carpenters freed, since its thieves are already beaten",
             FortressKeys::label,
         )])
         .chain([forcing(
             choice(
                 DUNGEON_ENTRANCES,
-                group::DUNGEONS,
-                "Dungeon entrances",
+                place::ENTRANCES,
+                "Dungeon Entrances",
                 "Each dungeon's front door leads into another dungeon, and its way out leads back to that door. On swaps the eleven dungeons. With Ganon's Castle, its door joins them, and Ganondorf waits wherever it leads. A door keeps what it needs to open, whatever is behind it. The Deku Tree lets adult Link in, and blue warps lead where they always do at Link's own age",
                 DungeonEntrances::label,
             ),
@@ -497,106 +639,106 @@ pub fn schema() -> Vec<SettingDef> {
         )])
         .chain([toggle(
             SHOPS,
-            group::SHUFFLES,
+            place::CHECKS,
             "Shopsanity",
             "Shelf slots in the eight shops sell checks, each once, at a random price. Prices over 99 rupees need a bigger wallet in logic",
         )])
-        .chain([choice(
+        .chain([requires(SHOPS, choice(
             SHOP_SLOTS,
-            group::SHUFFLES,
-            "Shop slots",
+            place::CHECKS,
+            "Shop Slots",
             "How many slots of each shop sell a check with Shopsanity on. The rest sell what they always did",
             ShopSlots::label,
-        )])
+        ))])
         .chain([toggle(
             FREESTANDING,
-            group::SHUFFLES,
-            "Freestanding heart pieces",
+            place::CHECKS,
+            "Freestanding Heart Pieces",
             "The fourteen heart pieces lying out in the world are checks. One that holds something else shows it, spinning where the piece was",
         )])
         .chain([toggle(
             COWS,
-            group::SHUFFLES,
+            place::CHECKS,
             "Cows",
             "Each of the eight cows gives a check once, for Epona's Song. After that it gives milk, which still needs a bottle",
         )])
         .chain([toggle(
             MERCHANTS,
-            group::SHUFFLES,
+            place::CHECKS,
             "Merchants",
             "People who sell one thing sell a check once, for the price of the thing: Medigoron's Giant's Knife, the carpet merchant's Bombchus, and the bean seller's first bean. Bombchus and beans stay on sale after that",
         )])
         .chain([toggle(
             TRADE_CHAIN,
-            group::SHUFFLES,
-            "Adult trade quest",
+            place::CHECKS,
+            "Adult Trade Quest",
             "Each trade on the way to Biggoron's sword becomes a check, from Anju's Pocket Egg to Biggoron's Claim Check, and the ten trade items join the pool. Showing an item to the one who wants it gives that check, whatever order Link finds them in. Grog or Fado waits at the stump by which item Link holds. The Pocket Cucco still hatches from the egg",
         )])
         .chain([toggle(
             MASTER_SWORD,
-            group::SHUFFLES,
+            place::CHECKS,
             "Master Sword",
             "The pedestal holds an item from the pool, and the Master Sword can turn up anywhere. Pulling or returning the sword still travels through time without it. Adult Link without it has no sword",
         )])
-        .chain([default_on(toggle(
+        .chain([toggle(
             RUNNING_RACE,
-            group::SHUFFLES,
-            "Running man's race",
+            place::CHECKS,
+            "Running Man's Race",
             "The running man's prize for Link's first win becomes a check. Later wins still pay a Red Rupee. Logic expects it only with Carpenters freed, since he offers the race once the valley bridge is fixed",
-        ))])
+        )])
         .chain([toggle(
             SKULLTULAS,
-            group::SHUFFLES,
+            place::CHECKS,
             "Gold Skulltulas",
             "Each of the 100 Gold Skulltulas drops a check when killed. A token for each goes in the pool, so the House of Skulltula still counts them. Logic wants the Boomerang or Hookshot for every one",
         )])
         .chain([toggle(
             BOSS_HEARTS,
-            group::DUNGEONS,
-            "Boss heart containers",
+            place::REWARDS,
+            "Boss Heart Containers",
             "The heart container each of the eight bosses leaves behind is a check",
         )])
         .chain([
             toggle(
                 POTS,
-                group::SHUFFLES,
+                place::BREAKABLES,
                 "Pots",
                 "Each pot is a check, flying pots included. One placed with no drop of its own brings a Recovery Heart, a Deku Stick and the like to the pool. A broken pot may come back when the area reloads, so its item may too",
             ),
             toggle(
                 CRATES,
-                group::SHUFFLES,
+                place::BREAKABLES,
                 "Crates",
                 "Each wooden crate is a check. Link breaks a big one by rolling into it",
             ),
             toggle(
                 ROCKS,
-                group::SHUFFLES,
+                place::BREAKABLES,
                 "Rocks",
                 "Each small rock is a check. Link lifts and throws one to break it",
             ),
             toggle(
                 GRASS,
-                group::SHUFFLES,
+                place::BREAKABLES,
                 "Grass",
                 "Each grass shrub Link can cut or lift is a check, like those outside Saria's house",
             ),
             toggle(
                 HIVES,
-                group::SHUFFLES,
+                place::BREAKABLES,
                 "Beehives",
                 "Each of Kakariko's beehives is a check. Anything thrown or shot but a slingshot seed knocks one down",
             ),
         ])
         .chain([default_on(toggle(
                 PROGRESSIVE,
-                group::GENERAL,
-                "Progressive items",
+                place::ITEM_POOL,
+                "Progressive Items",
                 "Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size",
             ))])
         .chain([choice(
             BOMBCHUS,
-            group::GENERAL,
+            place::ITEM_POOL,
             "Bombchus",
             "What caps the Bombchus Link holds. The bomb bag's, as in the game. Their own cap of 40, so they open the same checks bombs do without waiting on the bag. Or three Bombchu Bags in the pool, holding 20, 30 and 40, and none until the first",
             Bombchus::label,
@@ -604,77 +746,85 @@ pub fn schema() -> Vec<SettingDef> {
         .chain([
             toggle(
                 SHUFFLE_NUT_BAG,
-                group::GENERAL,
-                "Shuffle the nut bag",
+                place::ITEM_POOL,
+                "Shuffle the Nut Bag",
                 "The Small Nut Bag is an item in the pool, and Link holds no Deku Nuts until he finds it. Off, the first nut he picks up brings it, as in the game",
             ),
             toggle(
                 SHUFFLE_STICK_BAG,
-                group::GENERAL,
-                "Shuffle the stick bag",
+                place::ITEM_POOL,
+                "Shuffle the Stick Bag",
                 "The Small Stick Bag is an item in the pool, and Link holds no Deku Sticks until he finds it. Off, the first stick he picks up brings it, as in the game",
             ),
         ])
         .chain([default_on(toggle(
             QUIET_NAVI,
-            group::GENERAL,
+            place::COMFORT,
             "Quiet Navi",
             "Navi never stops Link to talk on her own: the Lost Woods warning, dungeon and quest tips, and reminders. Hints you ask her for still work",
         ))])
         .chain([toggle(
             QUIET_ENEMIES,
-            group::GENERAL,
-            "Quiet enemies",
+            place::COMFORT,
+            "Quiet Enemies",
             "Enemies never show, so nothing grabs Link or knocks him back. Gold Skulltulas, scrubs, Big Poes, the Skull Kid and enemies that are checks stay. For the play harness's seeds",
         )])
         .chain([toggle(
             BUNNY_HOOD,
-            group::ENHANCEMENTS,
-            "Bunny Hood speed",
+            place::GAMEPLAY,
+            "Bunny Hood Speed",
             "Link runs half again as fast while he wears the Bunny Hood",
         )])
         .chain([toggle(
             DAY_SKULLTULAS,
-            group::ENHANCEMENTS,
-            "Gold Skulltulas by day",
+            place::GAMEPLAY,
+            "Gold Skulltulas by Day",
             "Gold Skulltulas that only come out at night show at any hour",
         )])
         .chain([toggle(
             AGELESS_WEAPONS,
-            group::ENHANCEMENTS,
-            "One-handed swords and shields for both ages",
+            place::GAMEPLAY,
+            "One-Handed Swords and Shields for Both Ages",
             "Child and adult Link can each wield every one-handed sword and every shield, and logic expects them to. Biggoron's Sword and the Giant's Knife stay adult Link's, and only he can aim the Mirror Shield at light",
         )])
         .chain([toggle(
+            MAGIC_WITH_FIRST_ITEM,
+            place::ITEM_POOL,
+            "Magic Comes with the First Magic Item",
+            "The first spell, magic arrow, Lens of Truth or Improved Spin Link finds turns the magic meter on, as in the game. Off, only a Magic Meter or Doubled Magic does, and a Magic Meter joins the pool",
+        )])
+        .chain([toggle(
             AGELESS_ITEMS,
-            group::ENHANCEMENTS,
-            "Items for both ages",
+            place::GAMEPLAY,
+            "Items for Both Ages",
             "Untested. Child Link can use the Hookshot and Longshot, and adult Link Deku Sticks and the Boomerang. Logic still expects each at its own age",
         )])
         .chain([toggle(
             BRIDGE_MEDALLIONS,
-            group::LOGIC,
-            "Bridge at six medallions",
+            place::RULES,
+            "Bridge at Six Medallions",
             "The rainbow bridge to Ganon's Castle rises once Link holds all six medallions, without the Light Arrows from Zelda first",
         )])
         .chain([toggle(
             HINTS,
-            group::GENERAL,
-            "Gossip stone hints",
+            place::HINTS,
+            "Gossip Stone Hints",
             "Each gossip stone names where an item Link needs is hidden, without the Mask of Truth or any small talk",
         )])
         .chain([start])
         .chain([toggle(
             SKIP_ALL,
-            group::CUTSCENES,
-            "Skip all cutscenes",
+            place::CUTSCENES,
+            "Skip All Cutscenes",
             "Turns on every skip below. Cutscenes that give an item, set a flag or move Link still play",
         )])
         .chain(named)
         .chain(areas)
         .collect::<Vec<_>>();
-    // Stable, so each panel keeps the order the chain gives it.
-    all.sort_by_key(|d| GROUPS.iter().position(|&g| g == d.group));
+    // Stable, so each section keeps the order the chain gives it.
+    all.sort_by_key(|d| {
+        (place::ALL.iter()).position(|p| p.group == d.group && p.section == d.section)
+    });
     all
 }
 
@@ -690,19 +840,66 @@ mod tests {
     }
 
     #[test]
-    fn each_setting_sits_on_its_panel() {
-        let group = |id: &str| schema().into_iter().find(|d| d.id == id).unwrap().group;
-        assert_eq!(group(CHEST_SIZE), group::GENERAL);
-        assert_eq!(group("open-forest"), group::LOGIC);
-        assert_eq!(group("claim-check"), group::LOGIC);
-        assert_eq!(group(starting::SETTING), group::INVENTORY);
-        assert_eq!(group(SHOP_SLOTS), group::SHUFFLES);
-        assert_eq!(group(KEYS), group::DUNGEONS);
-        assert_eq!(group(HINTS), group::GENERAL);
-        assert_eq!(group(BUNNY_HOOD), group::ENHANCEMENTS);
-        assert_eq!(group(AGELESS_WEAPONS), group::ENHANCEMENTS);
-        assert_eq!(group(AGELESS_ITEMS), group::ENHANCEMENTS);
-        assert_eq!(group(SKIP_ALL), group::CUTSCENES);
+    fn each_setting_sits_in_its_section() {
+        let at = |id: &str| {
+            let d = schema().into_iter().find(|d| d.id == id).unwrap();
+            (d.group, d.section)
+        };
+        let is = |p: Place| (p.group, p.section);
+        assert_eq!(at(CHEST_SIZE), is(place::COMFORT));
+        assert_eq!(at("open-forest"), is(place::OPEN_AREAS));
+        assert_eq!(at("claim-check"), is(place::QUEST));
+        assert_eq!(at(starting::SETTING), is(place::START));
+        assert_eq!(at(SHOP_SLOTS), is(place::CHECKS));
+        assert_eq!(at(ICE_TRAPS), is(place::CHECKS));
+        assert_eq!(at(PROGRESSIVE), is(place::ITEM_POOL));
+        assert_eq!(at(HINTS), is(place::HINTS));
+        assert_eq!(at(KEYS), is(place::KEYS));
+        assert_eq!(at(BUNNY_HOOD), is(place::GAMEPLAY));
+        assert_eq!(at(AGELESS_ITEMS), is(place::GAMEPLAY));
+        assert_eq!(at(SKIP_ALL), is(place::CUTSCENES));
+    }
+
+    #[test]
+    fn every_section_is_on_a_panel_and_each_setting_in_a_section() {
+        assert!(place::ALL.iter().all(|p| GROUPS.contains(&p.group)));
+        for d in schema() {
+            let p = Place {
+                group: d.group,
+                section: d.section,
+                about: d.section_about,
+                list: d.list,
+            };
+            assert!(place::ALL.contains(&p), "{}", d.id);
+            // A checklist holds only toggles.
+            assert!(!d.list || matches!(d.kind, Kind::Toggle { .. }), "{}", d.id);
+        }
+    }
+
+    #[test]
+    fn a_setting_that_needs_another_names_a_toggle() {
+        let schema = schema();
+        let toggle =
+            |id: &str| (schema.iter()).any(|d| d.id == id && matches!(d.kind, Kind::Toggle { .. }));
+        let needs: Vec<_> = (schema.iter())
+            .filter_map(|d| d.requires.map(|r| (d.id.as_str(), r)))
+            .collect();
+        assert_eq!(
+            needs,
+            [
+                (SCRUB_PRICE, SCRUBS),
+                (HUNDRED_TOKENS, NPC_GIFTS),
+                (SHOP_SLOTS, SHOPS)
+            ]
+        );
+        assert!(needs.iter().all(|(_, r)| toggle(r)));
+    }
+
+    #[test]
+    fn the_running_race_and_the_hundred_token_reward_start_off() {
+        let on = toggles_on(&Settings::new());
+        assert!(!on.contains(RUNNING_RACE));
+        assert!(!on.contains(HUNDRED_TOKENS));
     }
 
     #[test]
@@ -720,15 +917,6 @@ mod tests {
                 d.description
             );
         }
-    }
-
-    #[test]
-    fn enhancements_start_off() {
-        let on = toggles_on(&Settings::new());
-        let enhancements = schema()
-            .into_iter()
-            .filter(|d| d.group == group::ENHANCEMENTS);
-        assert!(enhancements.map(|d| d.id).all(|id| !on.contains(&id)));
     }
 
     #[test]

@@ -60,11 +60,15 @@ export function ArchipelagoPanel() {
 function Slot({ slot }: { slot: string | null }) {
   const [busy] = useSeeds.usePath("busy");
   const [blocked] = useSeeds.usePath("blocked");
+  const why = blocked || (busy ? "A seed is already being made" : "");
+  // A drop that was turned away, whose reason shows while it still holds.
+  const [refused, setRefused] = useState(false);
   const open = useCallback(
     (path: string) => {
-      if (!busy && !blocked) void generateAp(path);
+      setRefused(!!why);
+      if (!why) void generateAp(path);
     },
-    [busy, blocked],
+    [why],
   );
   const over = useApznxDrop(open);
   const browse = async () => {
@@ -108,6 +112,9 @@ function Slot({ slot }: { slot: string | null }) {
             Browse…
           </TipButton>
         </div>
+        {refused && why && (
+          <InlineError error={`The file wasn't opened. ${why}`} />
+        )}
         <GenerateSteps ap />
         <p className="text-[12.5px] text-ink-muted leading-[17px]">
           Your host sends your .apznx and the room's server.{" "}
@@ -116,7 +123,7 @@ function Slot({ slot }: { slot: string | null }) {
             className={linkClass}
             onClick={() => void openUrl(AP_GUIDE_URL)}
           >
-            Setup guide
+            Setup Guide
           </button>
         </p>
         <InlineError error={apworld.error} />

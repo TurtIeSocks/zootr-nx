@@ -1,4 +1,4 @@
-import { Link2, RotateCcw } from "lucide-react";
+import { Link2, Lock, RotateCcw } from "lucide-react";
 import type { SettingDef } from "@/bindings";
 import { RequestError } from "@/components/request-error";
 import { TipButton } from "@/components/tip-button";
@@ -11,12 +11,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import type { TopicId } from "@/help/topics";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
 import { chosen, isOn, type Patch } from "@/lib/settings";
 import { Row } from "@/settings/row";
-import { controlId, labelId, segmented, useLockedBy } from "@/settings/setting";
+import {
+  controlId,
+  labelId,
+  segmented,
+  useLockedBy,
+  useUnmet,
+} from "@/settings/setting";
 import { changeSettings, useConfig } from "@/stores/config";
 import {
   DEFAULTS_FROM,
@@ -57,26 +62,39 @@ export function LockedBy({ parent }: LockedByProps) {
   );
 }
 
-/** The settings whose rows carry a bubble, by id. */
-const SETTING_HELP: Partial<Record<string, { help: TopicId }>> = {
-  "start-inventory": { help: "starting-inventory" },
-};
+/** Props for {@link Needs}. */
+interface NeedsProps {
+  /** The toggle that must be on first. */
+  needed: SettingDef;
+}
+
+/** "Needs Other on first", under a setting that does nothing yet. */
+function Needs({ needed }: NeedsProps) {
+  return (
+    <p className="mt-1.5 flex items-center gap-1 text-ink-faint text-xs">
+      <Lock className="size-3" />
+      Needs <b className="font-medium text-ink-muted">{needed.label}</b> on
+      first
+    </p>
+  );
+}
 
 /** The row around a setting's control, inside its request. */
 function SettingRowFrame({ def }: SettingRowProps) {
   const parent = useLockedBy(def);
+  const needed = useUnmet(def);
   const changed = useDrifted(def.id);
   return (
     <Row
       id={controlId(def)}
       label={def.label}
-      help={SETTING_HELP[def.id]?.help}
       description={def.description}
       changed={changed}
-      locked={parent !== undefined}
+      locked={parent !== undefined || needed !== undefined}
       under={
         <>
           {parent && <LockedBy parent={parent} />}
+          {needed && <Needs needed={needed} />}
           <RequestError className="mt-1.5" />
         </>
       }
@@ -87,7 +105,7 @@ function SettingRowFrame({ def }: SettingRowProps) {
   );
 }
 
-/** Puts a setting back to what drift measures from: the installed seed's
+/** Puts a setting back to what drift measures from: the last seed's
  * value, or its default. Shows on hover or focus. */
 function ResetSetting({ def }: SettingRowProps) {
   const { run } = useRequest();
@@ -99,7 +117,9 @@ function ResetSetting({ def }: SettingRowProps) {
       <TipButton
         label={`Reset ${def.label}`}
         tip={
-          from === DEFAULTS_FROM ? "Back to its default" : `Back to ${from}'s`
+          from === DEFAULTS_FROM
+            ? "Back to its default"
+            : `Back to ${from}'s value`
         }
         variant="ghost"
         onClick={() => run(() => changeSettings({ [def.id]: value }))}
@@ -117,6 +137,10 @@ function SettingControl({ def }: SettingRowProps) {
   const on = useConfig((s) => isOn(def, s.config.settings, s.schema));
   const value = useConfig((s) => chosen(def, s.config.settings)?.id);
   const locked = useLockedBy(def) !== undefined;
+  const off = useUnmet(def) !== undefined;
+  // Unmet, a setting does nothing, so it shows off (no pick for a choice)
+  // while its stored value waits for the setting it needs.
+  const shown = off ? undefined : value;
   const set = (value: boolean | string) =>
     run(() => changeSettings({ [def.id]: value }));
   const { kind } = def;
@@ -124,28 +148,29 @@ function SettingControl({ def }: SettingRowProps) {
     return (
       <Switch
         id={controlId(def)}
-        checked={on}
-        disabled={locked}
+        checked={on && !off}
+        disabled={locked || off}
         onCheckedChange={set}
       />
     );
   }
-  // The starting inventory's grid draws under its row, on the group page.
+  // The starting inventory's grid draws on its own, on the group page.
   if (kind.type === "inventory") return null;
   if (segmented(kind.options)) {
     return (
       <Segmented
         aria-labelledby={labelId(def)}
         options={kind.options}
-        value={value}
+        value={shown}
+        disabled={off}
         onValueChange={set}
       />
     );
   }
   return (
-    <Select value={value} onValueChange={set}>
+    <Select value={shown ?? ""} disabled={off} onValueChange={set}>
       <SelectTrigger id={controlId(def)}>
-        <SelectValue />
+        <SelectValue placeholder="Off" />
       </SelectTrigger>
       <SelectContent>
         {kind.options.map((o) => (
