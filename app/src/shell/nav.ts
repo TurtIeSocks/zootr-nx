@@ -1,7 +1,6 @@
 import {
   Activity,
   Backpack,
-  Castle,
   FlaskConical,
   Gamepad2,
   Globe,
@@ -96,7 +95,6 @@ const GROUP_ICONS: Record<string, LucideIcon> = {
   "Logic & Access": Route,
   Inventory: Package,
   Shuffles: Shuffle,
-  Dungeons: Castle,
   Hints: Lightbulb,
   Tricks: Sparkles,
 };

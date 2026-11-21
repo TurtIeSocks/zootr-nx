@@ -2,12 +2,12 @@
 
 /// The settings panels, by name.
 pub mod group {
-    /// How items are placed, and what stands open from the start.
+    /// How items are placed, how the story starts, what stands open and
+    /// where doors lead.
     pub const LOGIC: &str = "Logic & Access";
-    /// Which places become checks, and what the pool holds.
+    /// Which places become checks, what the pool holds, and what dungeons
+    /// give.
     pub const SHUFFLES: &str = "Shuffles";
-    /// What a dungeon or its boss gives, and its keys.
-    pub const DUNGEONS: &str = "Dungeons";
     /// Changes to how Link plays and what plays out: nothing shuffled,
     /// nothing opened.
     pub const ENHANCEMENTS: &str = "Enhancements";
@@ -16,10 +16,9 @@ pub mod group {
 }
 
 /// Every panel, in the order the app lists them.
-pub const GROUPS: [&str; 5] = [
+pub const GROUPS: [&str; 4] = [
     group::LOGIC,
     group::SHUFFLES,
-    group::DUNGEONS,
     group::ENHANCEMENTS,
     group::INVENTORY,
 ];
@@ -57,26 +56,22 @@ pub mod place {
         }
     }
 
-    pub const RULES: Place = rows(
+    pub const LOGIC: Place = rows(
         group::LOGIC,
-        "Rules",
-        "How items are placed and how the game is won",
+        "Logic",
+        "How items are placed and where Link's story starts",
     );
     pub const WIN_CONDITION: Place = rows(
         group::LOGIC,
         "Win Condition",
         "What stands between Link and Ganondorf",
     );
-    pub const OPEN_AREAS: Place = rows(
+    pub const AREA_ACCESS: Place = rows(
         group::LOGIC,
-        "Open Areas",
-        "What stands open from the start",
+        "Area Access",
+        "What stands open from the start, and at which age",
     );
-    pub const QUEST: Place = list(
-        group::LOGIC,
-        "Quest Progress",
-        "Story steps a new game starts with done",
-    );
+    pub const ENTRANCES: Place = rows(group::LOGIC, "Entrances", "Where each dungeon's door leads");
     pub const CHECKS: Place = rows(
         group::SHUFFLES,
         "Checks",
@@ -92,18 +87,12 @@ pub mod place {
         "Item Pool",
         "Items that join the pool or change how it gives them",
     );
+    pub const DUNGEONS: Place = rows(
+        group::SHUFFLES,
+        "Dungeons",
+        "What bosses and dungeons give, and where keys can land",
+    );
     pub const HINTS: Place = rows(group::SHUFFLES, "Hints", "What gossip stones tell Link");
-    pub const REWARDS: Place = rows(group::DUNGEONS, "Rewards", "What bosses and dungeons give");
-    pub const KEYS: Place = rows(
-        group::DUNGEONS,
-        "Keys",
-        "Where small keys, boss keys and the fortress keys can land",
-    );
-    pub const ENTRANCES: Place = rows(
-        group::DUNGEONS,
-        "Entrances",
-        "Where each dungeon's door leads",
-    );
     pub const COMFORT: Place = rows(
         group::ENHANCEMENTS,
         "Comfort",
@@ -132,18 +121,16 @@ pub mod place {
     );
 
     /// Every section, in the order the app shows them.
-    pub const ALL: [Place; 16] = [
-        RULES,
+    pub const ALL: [Place; 14] = [
+        LOGIC,
         WIN_CONDITION,
-        OPEN_AREAS,
-        QUEST,
+        AREA_ACCESS,
+        ENTRANCES,
         CHECKS,
         BREAKABLES,
         ITEM_POOL,
+        DUNGEONS,
         HINTS,
-        REWARDS,
-        KEYS,
-        ENTRANCES,
         COMFORT,
         GAMEPLAY,
         CUTSCENES,

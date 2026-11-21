@@ -167,7 +167,9 @@ export const GROUP_HELP: Record<string, Topic> = {
   },
   "Logic & Access": {
     title: "Logic & Access",
-    body: ["How items are placed, and what stands open from the start."],
+    body: [
+      "How items are placed, where Link's story starts, what stands open from the start and where each dungeon's door leads.",
+    ],
   },
   Inventory: {
     title: "Inventory",
@@ -178,10 +180,8 @@ export const GROUP_HELP: Record<string, Topic> = {
   },
   Shuffles: {
     title: "Shuffles",
-    body: ["Which places become checks, what the item pool holds, and hints."],
-  },
-  Dungeons: {
-    title: "Dungeons",
-    body: ["What a dungeon or its boss gives, and where its keys go."],
+    body: [
+      "Which places become checks, what the item pool holds, what dungeons give and where their keys go, and hints.",
+    ],
   },
 };

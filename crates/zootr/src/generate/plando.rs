@@ -114,7 +114,7 @@ fn skipped(
     let on = settings::toggles_on(settings);
     let off: Vec<_> = (settings::schema().into_iter())
         .filter(|d| matches!(d.kind, settings::Kind::Toggle { .. }))
-        .filter(|d| [group::SHUFFLES, group::DUNGEONS].contains(&d.group))
+        .filter(|d| d.group == group::SHUFFLES)
         .filter(|d| !on.contains(&d.id))
         .map(|d| d.id)
         .collect();

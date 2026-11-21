@@ -394,14 +394,14 @@ pub fn schema() -> Vec<SettingDef> {
     let mut all = preset_defs
         .chain([choice(
             LOGIC,
-            place::RULES,
+            place::LOGIC,
             "Logic",
             "Glitchless places each item where Link can reach it without that item, so a seed can always be beaten. No logic places items anywhere, so a seed may not be",
             Logic::label,
         )])
         .chain([choice(
             ADULT_JABU,
-            place::OPEN_AREAS,
+            place::AREA_ACCESS,
             "Adult Jabu-Jabu",
             "Jabu-Jabu waits in the frozen fountain for adult Link too, from the start or once the Water sage is done. Adult Link walks in when his mouth is open (the Jabu-Jabu open preset), but only child Link's Boomerang beats the tentacles and Barinade. With dungeon entrances shuffled, his door leads wherever it leads for child Link",
             AdultJabu::label,
@@ -435,7 +435,7 @@ pub fn schema() -> Vec<SettingDef> {
         .chain([forcing(
             choice(
                 STARTING_AGE,
-                place::RULES,
+                place::LOGIC,
                 "Starting Age",
                 "How old Link is on a new file. Adult wakes in the Temple of Time with the Master Sword, and opens the Door of Time and the forest, so he can go back to child and walk out. Random rolls one from the seed",
                 StartingAge::label,
@@ -444,20 +444,20 @@ pub fn schema() -> Vec<SettingDef> {
         )])
         .chain([choice(
             GERUDO_FORTRESS,
-            place::RULES,
+            place::LOGIC,
             "Gerudo Fortress",
             "How the four carpenters in the Gerudo Fortress start. With Normal, Link frees all four, as in the game. With Fast, freeing any one frees all four and earns the membership card, and the other thieves still guard their cells. With Freed, all four are free from the start, with the membership card in hand, the guards standing down and the valley bridge up. Fortress Keys can't be used with Freed, since its thieves are already beaten",
             GerudoFortress::label,
         )])
         .chain([toggle(
             MET_ZELDA,
-            place::RULES,
+            place::LOGIC,
             "Met Zelda",
             "Link starts having met Zelda, with her letter in hand and her lullaby learned, and Talon and Malon back at Lon Lon Ranch. Her letter's check holds the letter, and whatever Impa's and Malon's checks hold comes at the start. The pool holds no second letter and no Weird Egg",
         )])
         .chain([choice(
             DOOR_OF_TIME,
-            place::OPEN_AREAS,
+            place::AREA_ACCESS,
             "Door of Time",
             "With Open, the Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, whose gift comes at the start, and can put the sword back any time. With Closed, it opens as in the game, once Link holds the three stones and the Ocarina of Time and plays the Song of Time",
             DoorOfTime::label,
@@ -489,7 +489,7 @@ pub fn schema() -> Vec<SettingDef> {
             ))])
         .chain([toggle(
                 DUNGEON_REWARDS,
-                place::REWARDS,
+                place::DUNGEONS,
                 "Dungeon Rewards",
                 "The Spiritual Stones and five medallions become checks, given by the scene after each boss. Light stays with Rauru",
             )])
@@ -501,20 +501,20 @@ pub fn schema() -> Vec<SettingDef> {
             )])
         .chain([toggle(
             MAPS_COMPASSES,
-            place::REWARDS,
+            place::DUNGEONS,
             "Maps and Compasses",
             "Each dungeon's map and compass turn up in a random chest of that dungeon. Keys stay where they are",
         )])
         .chain([choice(
             KEYS,
-            place::KEYS,
+            place::DUNGEONS,
             "Keys",
             "With Start, Link holds every dungeon's small keys and boss key from the start. With Key rings, each dungeon's small keys come as one ring that opens all its small-key doors. With Keysanity, each small key comes on its own. Rings, small keys and boss keys turn up in random chests and gifts, never in their own dungeon. The 43 chests that held a key become checks. With Start each brings a Red Rupee to the pool. With Key rings, one of a dungeon's rupees becomes its ring and another its boss key. The two keys lying in the open stay where they are",
             DungeonKeys::label,
         )])
         .chain([choice(
             FORTRESS_KEYS,
-            place::KEYS,
+            place::DUNGEONS,
             "Fortress Keys",
             "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks. Can't be used with Gerudo Fortress Freed, since its thieves are already beaten",
             FortressKeys::label,
@@ -586,7 +586,7 @@ pub fn schema() -> Vec<SettingDef> {
         )])
         .chain([toggle(
             BOSS_HEARTS,
-            place::REWARDS,
+            place::DUNGEONS,
             "Boss Heart Containers",
             "The heart container each of the eight bosses leaves behind is a check",
         )])
@@ -721,12 +721,34 @@ pub fn schema() -> Vec<SettingDef> {
         .chain(named)
         .chain(areas)
         .collect::<Vec<_>>();
-    // Stable, so each section keeps the order the chain gives it.
+    // Stable, so each section keeps the order the chain gives it, bar
+    // those `ORDER` lists.
     all.sort_by_key(|d| {
-        (place::ALL.iter()).position(|p| p.group == d.group && p.section == d.section)
+        let section = place::ALL
+            .iter()
+            .position(|p| p.group == d.group && p.section == d.section);
+        (section, ORDER.iter().position(|id| *id == d.id))
     });
     all
 }
+
+/// The rows of the sections that mix presets and settings, or settings
+/// from far apart in [`schema`], in the order they show.
+const ORDER: [&str; 13] = [
+    presets::OPEN_FOREST,
+    presets::KAKARIKO_GATE,
+    presets::KING_ZORA_MOVED,
+    presets::JABU_OPEN,
+    ADULT_JABU,
+    presets::OPEN_WATERFALL,
+    presets::ADULT_DEKU_TREE,
+    DOOR_OF_TIME,
+    DUNGEON_REWARDS,
+    MAPS_COMPASSES,
+    BOSS_HEARTS,
+    KEYS,
+    FORTRESS_KEYS,
+];
 
 #[cfg(test)]
 mod tests {
@@ -747,19 +769,33 @@ mod tests {
         };
         let is = |p: Place| (p.group, p.section);
         assert_eq!(at(CHEST_SIZE), is(place::COMFORT));
-        assert_eq!(at("open-forest"), is(place::OPEN_AREAS));
-        assert_eq!(at(MET_ZELDA), is(place::RULES));
         assert_eq!(at(starting::SETTING), is(place::START));
         assert_eq!(at(SHOP_SLOTS), is(place::CHECKS));
         assert_eq!(at(ICE_TRAPS), is(place::CHECKS));
         assert_eq!(at(PROGRESSIVE), is(place::ITEM_POOL));
         assert_eq!(at(HINTS), is(place::HINTS));
-        assert_eq!(at(KEYS), is(place::KEYS));
         assert_eq!(at(BUNNY_HOOD), is(place::GAMEPLAY));
         assert_eq!(at(AGELESS_ITEMS), is(place::GAMEPLAY));
         assert_eq!(at(SKIP_ALL), is(place::CUTSCENES));
-        assert_eq!(at(BRIDGE), is(place::WIN_CONDITION));
-        assert_eq!(at(TRIALS), is(place::WIN_CONDITION));
+        assert_eq!(at(DUNGEON_ENTRANCES), is(place::ENTRANCES));
+        // The Logic & Access sections and Shuffles' Dungeons, row by row.
+        let rows = |p: Place| {
+            (schema().into_iter())
+                .filter(|d| (d.group, d.section) == is(p))
+                .map(|d| d.id)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            rows(place::LOGIC),
+            [LOGIC, STARTING_AGE, GERUDO_FORTRESS, MET_ZELDA]
+        );
+        assert_eq!(rows(place::WIN_CONDITION), [BRIDGE, TRIALS]);
+        assert_eq!(rows(place::AREA_ACCESS), ORDER[..8]);
+        assert_eq!(rows(place::DUNGEONS), ORDER[8..]);
+        assert_eq!(rows(place::ENTRANCES), [DUNGEON_ENTRANCES]);
+        assert_eq!(place::ENTRANCES.group, group::LOGIC);
+        assert_eq!(place::DUNGEONS.group, group::SHUFFLES);
+        assert!(!GROUPS.contains(&"Dungeons"));
     }
 
     #[test]

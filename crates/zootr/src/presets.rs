@@ -217,6 +217,9 @@ fn jabu_arrival() -> Vec<String> {
 
 /// The preset that opens the forest.
 pub const OPEN_FOREST: &str = "open-forest";
+/// The presets that open the Kakariko gate and the Zora's River waterfall.
+pub const KAKARIKO_GATE: &str = "kakariko-gate";
+pub const OPEN_WATERFALL: &str = "open-waterfall";
 
 /// The preset whose Deku Tree takes adult Link in.
 pub const ADULT_DEKU_TREE: &str = "adult-deku-tree";
@@ -255,7 +258,7 @@ pub const PRESETS: [Preset; 10] = [
         name: OPEN_FOREST,
         label: "Open Forest",
         what: "Mido and the forest exit stop blocking Link, as child or adult",
-        place: place::OPEN_AREAS,
+        place: place::AREA_ACCESS,
         give: &[],
         progress: &[],
         fields: Vec::new,
@@ -271,10 +274,10 @@ pub const PRESETS: [Preset; 10] = [
         },
     },
     Preset {
-        name: "kakariko-gate",
+        name: KAKARIKO_GATE,
         label: "Open Kakariko Gate",
         what: "The Kakariko gate guard has already seen Zelda's letter, so the Death Mountain trail is open from the start",
-        place: place::OPEN_AREAS,
+        place: place::AREA_ACCESS,
         edits: || all([flag::NPC_HYLIA_SOLDIER_003_GATE_OPEN], "true"),
         give: &[],
         // The step the letter moves it to: the trail's Goron and the one at
@@ -286,7 +289,7 @@ pub const PRESETS: [Preset; 10] = [
         name: KING_ZORA_MOVED,
         label: "King Zora Moved",
         what: "King Zora has read Ruto's letter and stands aside for child Link, as he does once he's shown it. Ruto's Letter becomes an empty bottle, shuffled from its spot at the bottom of the lake",
-        place: place::OPEN_AREAS,
+        place: place::AREA_ACCESS,
         // Showing him the letter moves the quest on, then plays the scene
         // whose played flag hides the air wall beside him. The quest step
         // is what moves him aside. The domain's first arrival from the
@@ -308,7 +311,7 @@ pub const PRESETS: [Preset; 10] = [
         name: JABU_OPEN,
         label: "Jabu-Jabu Open",
         what: "Jabu-Jabu's mouth is open, so child Link walks in without giving him a fish",
-        place: place::OPEN_AREAS,
+        place: place::AREA_ACCESS,
         edits: || {
             all(
                 [flag::JAB_JAB_OPENED_MOUTH, flag::GAVE_FISH_TO_JAB_JAB],
@@ -320,10 +323,10 @@ pub const PRESETS: [Preset; 10] = [
         fields: jabu_arrival,
     },
     Preset {
-        name: "open-waterfall",
+        name: OPEN_WATERFALL,
         label: "Zora's River Waterfall Open",
         what: "The waterfall at the end of Zora's River already stands split, so Link reaches Zora's Domain without Zelda's Lullaby",
-        place: place::OPEN_AREAS,
+        place: place::AREA_ACCESS,
         edits: || {
             all(
                 [
@@ -341,7 +344,7 @@ pub const PRESETS: [Preset; 10] = [
         name: ADULT_DEKU_TREE,
         label: "Adult Deku Tree",
         what: "The debris in front of the Deku Tree's mouth is gone, so adult Link walks in and out",
-        place: place::OPEN_AREAS,
+        place: place::AREA_ACCESS,
         edits: Vec::new,
         give: &[],
         progress: &[],
@@ -720,7 +723,7 @@ mod tests {
         assert!(fields(&["open-waterfall".into()]).unwrap().is_empty());
         let place = |n: &str| PRESETS.iter().find(|p| p.name == n).unwrap().place;
         for name in [KING_ZORA_MOVED, JABU_OPEN, "open-waterfall"] {
-            assert_eq!(place(name), place::OPEN_AREAS, "{name}");
+            assert_eq!(place(name), place::AREA_ACCESS, "{name}");
         }
     }
 
@@ -748,7 +751,7 @@ mod tests {
         assert!(
             PRESETS
                 .iter()
-                .any(|p| p.name == ADULT_DEKU_TREE && p.place == place::OPEN_AREAS)
+                .any(|p| p.name == ADULT_DEKU_TREE && p.place == place::AREA_ACCESS)
         );
     }
 

@@ -39,7 +39,8 @@ test("topics speak plainly: one to three sentences, no developer words", () => {
 
 /** The schema's group names, from the Rust side. */
 const schemaGroups = () => {
-  const mod = /pub mod group \{([^}]*)\}/.exec(rust("settings.rs"))?.[1] ?? "";
+  const mod =
+    /pub mod group \{([^}]*)\}/.exec(rust("settings/layout.rs"))?.[1] ?? "";
   return [...mod.matchAll(/&str = "([^"]+)"/g)].map((m) => m[1] ?? "");
 };
 
