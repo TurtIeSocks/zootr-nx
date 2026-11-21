@@ -136,6 +136,9 @@ function SettingControl({ def }: SettingRowProps) {
   const value = useConfig((s) => chosen(def, s.config.settings)?.id);
   const locked = useLockedBy(def) !== undefined;
   const off = useUnmet(def) !== undefined;
+  // Unmet, a setting does nothing, so it shows off (no pick for a choice)
+  // while its stored value waits for the setting it needs.
+  const shown = off ? undefined : value;
   const set = (value: boolean | string) =>
     run(() => changeSettings({ [def.id]: value }));
   const { kind } = def;
@@ -143,8 +146,6 @@ function SettingControl({ def }: SettingRowProps) {
     return (
       <Switch
         id={controlId(def)}
-        // Unmet, it does nothing, so it shows off while its stored value
-        // waits for the toggle it needs.
         checked={on && !off}
         disabled={locked || off}
         onCheckedChange={set}
@@ -158,16 +159,16 @@ function SettingControl({ def }: SettingRowProps) {
       <Segmented
         aria-labelledby={labelId(def)}
         options={kind.options}
-        value={value}
+        value={shown}
         disabled={off}
         onValueChange={set}
       />
     );
   }
   return (
-    <Select value={value} disabled={off} onValueChange={set}>
+    <Select value={shown ?? ""} disabled={off} onValueChange={set}>
       <SelectTrigger id={controlId(def)}>
-        <SelectValue />
+        <SelectValue placeholder="Off" />
       </SelectTrigger>
       <SelectContent>
         {kind.options.map((o) => (

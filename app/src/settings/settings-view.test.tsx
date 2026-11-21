@@ -192,6 +192,36 @@ test("a toggle whose requirement is unmet shows off, and keeps its value", () =>
   expect(cheap().hasAttribute("disabled")).toBe(false);
 });
 
+test("a choice whose requirement is unmet shows no pick, and keeps its value", () => {
+  const shops = toggle("shops", "Shopsanity");
+  const size = {
+    ...choice("size", "Size", ["Small", "Big"]),
+    requires: "shops",
+  };
+  const hints = {
+    ...choice("hints", "Gossip stones", [
+      "None",
+      "Way",
+      "Items",
+      "Junk",
+      "All",
+    ]),
+    requires: "shops",
+  };
+  const settings = { size: "big", hints: "items" };
+  show({ defs: [shops, size, hints], settings });
+  const big = () => screen.getByRole("button", { name: "Big" });
+  const select = () => screen.getByRole("combobox");
+  expect(big().getAttribute("aria-pressed")).toBe("false");
+  expect(select().textContent).toBe("Off");
+  expect(useConfig.getState().config.settings).toMatchObject(settings);
+  cleanup();
+  // With Shopsanity on, the stored picks are back.
+  show({ defs: [shops, size, hints], settings: { ...settings, shops: true } });
+  expect(big().getAttribute("aria-pressed")).toBe("true");
+  expect(select().textContent).toBe("Items");
+});
+
 test("an untested description becomes a badge", () => {
   show();
   expect(screen.getByText("Untested")).toBeTruthy();
