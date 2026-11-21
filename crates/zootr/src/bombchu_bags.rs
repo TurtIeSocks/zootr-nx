@@ -5,8 +5,9 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_path};
 
 use crate::gamedata;
-use crate::key_tints;
+use crate::key_tints::{self, paint::Host, paint::Look};
 use crate::known::{Name, field, hash, item};
+use crate::medallions::Colour;
 use crate::standins::{
     TABLE, Tables, clone_pack, component, doc, path_of, pouch_actor, raw, renamed, resolved,
     with_ref, write_clone,
@@ -29,6 +30,57 @@ const BOMB_BAGS: [&Name; 3] = [
     item::BOMB_BAG_MEDIUM,
     item::BOMB_BAG_LARGE,
 ];
+
+/// The files [`LOOKS`] are made from, spelled out like
+/// [`key_tints::FILES`]: extracted before a dump's names are read.
+pub const FILES: [&str; 18] = [
+    "Model/Item_BombBag_Small.Item_BombBag_Small.bfres.zs",
+    "Tex/Mt_Item_BombBag_Small_Alb.bntx.zs",
+    "Tex/Mt_Item_BombBag_Small_AO.bntx.zs",
+    "Tex/Mt_Item_BombBag_Small_Mtl.bntx.zs",
+    "Tex/Mt_Item_BombBag_Small_Nrm.bntx.zs",
+    "Tex/Mt_Item_BombBag_Small_Rgh.bntx.zs",
+    "Model/Item_BombBag_Medium.Item_BombBag_Medium.bfres.zs",
+    "Tex/Mt_Item_BombBag_Medium_Alb.bntx.zs",
+    "Tex/Mt_Item_BombBag_Medium_AO.bntx.zs",
+    "Tex/Mt_Item_BombBag_Medium_Mtl.bntx.zs",
+    "Tex/Mt_Item_BombBag_Medium_Nrm.bntx.zs",
+    "Tex/Mt_Item_BombBag_Medium_Rgh.bntx.zs",
+    "Model/Item_BombBag_Large.Item_BombBag_Large.bfres.zs",
+    "Tex/Mt_Item_BombBag_Large_Alb.bntx.zs",
+    "Tex/Mt_Item_BombBag_Large_AO.bntx.zs",
+    "Tex/Mt_Item_BombBag_Large_Mtl.bntx.zs",
+    "Tex/Mt_Item_BombBag_Large_Nrm.bntx.zs",
+    "Tex/Mt_Item_BombBag_Large_Rgh.bntx.zs",
+];
+
+/// Each bag's look: its bomb bag's model and textures, the albedo in
+/// [`BLUE`]. A copy's name is as long as its host's (`paint::Look`), so the
+/// Medium's prefix is a letter longer.
+static LOOKS: [Look; 3] = [
+    look(item::BOMB_BAG_SMALL, "Item_RandoChuBag"),
+    look(item::BOMB_BAG_MEDIUM, "Item_Rando_ChuBag"),
+    look(item::BOMB_BAG_LARGE, "Item_RandoChuBag"),
+];
+
+/// The Bombchu's own blue, so a bag reads as theirs and never as a bomb
+/// bag.
+const BLUE: Colour = [70, 70, 220];
+
+const fn look(host: &'static Name, copy: &'static str) -> Look {
+    Look {
+        host,
+        material: None,
+        kinds: &["Alb", "AO", "Mtl", "Nrm", "Rgh"],
+        others: &[],
+        copy,
+    }
+}
+
+/// Bag `at`'s model, counting from 0.
+fn model(at: usize) -> String {
+    LOOKS[at].name(at + 1)
+}
 
 /// The pouch slot a Bombchu Bag sets and Bombchus are capped by, as the
 /// nut bags set `DekuNut`. The game names the save entry holding the bag
@@ -114,10 +166,11 @@ fn expansion(template: &ActorPack, name: &str) -> Result<[(String, BymlDoc, Stri
     ])
 }
 
-/// `name`'s files over `template`'s pack: its own actor, model info and
-/// pouch content as a key ring's, and its own expansion.
-fn files(template: &ActorPack, name: &str) -> Result<Vec<(String, BymlDoc, String)>> {
-    let mut files = key_tints::copied(template, name, &template.name)?;
+/// `name`'s files over `template`'s pack: its own actor, model info
+/// (showing `model`) and pouch content as a key ring's, and its own
+/// expansion.
+fn files(template: &ActorPack, name: &str, model: &str) -> Result<Vec<(String, BymlDoc, String)>> {
+    let mut files = key_tints::copied(template, name, model)?;
     let [table, expansion] = expansion(template, name)?;
     let (_, actor, _) = files.first_mut().context("no actor")?;
     *actor = doc(with_ref(actor.root.as_map()?, TABLE, &table.0)?, actor);
@@ -131,7 +184,7 @@ pub fn copy_pack(romfs: &Romfs, item: &str) -> Result<Option<ActorPack>> {
         return Ok(None);
     };
     let template = ActorPack::load(romfs, BOMB_BAGS[at])?;
-    clone_pack(&template, item, files(&template, item)?).map(Some)
+    clone_pack(&template, item, files(&template, item, &model(at))?).map(Some)
 }
 
 /// Each bag's GameData: its `IsGet` and the rest of the bomb bag's entries,
@@ -144,15 +197,17 @@ pub fn game_data(root: &mut Byml) -> Result<()> {
     gamedata::add_string64s(root, &[slot_entry()])
 }
 
-/// Each Bombchu Bag, its pouch row and the bomb bags it takes Bombchus
-/// from, for `tables` to write. Each bag shows its bomb bag's model.
+/// Each Bombchu Bag, its model, its pouch row and the bomb bags it takes
+/// Bombchus from, for `tables` to write. Each bag shows its bomb bag's
+/// model in the Bombchu's blue.
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Result<()> {
-    for (bag, like) in BAGS.iter().zip(BOMB_BAGS) {
+    for (at, (bag, like)) in BAGS.iter().zip(BOMB_BAGS).enumerate() {
+        let model = Host::read(romfs, &LOOKS[at])?.paint(builder, at + 1, BLUE)?;
         let template = ActorPack::load(romfs, like)?;
-        write_clone(builder, &template, bag, files(&template, bag)?)?;
+        write_clone(builder, &template, bag, files(&template, bag, &model)?)?;
         tables.copy_item(bag, like)?;
         tables.name_itself(bag)?;
-        tables.show(bag, like, like)?;
+        tables.show(bag, like, &model)?;
     }
     let mut failed = None;
     let rows = tables.edit_pouch(|row| {
@@ -224,7 +279,12 @@ mod tests {
         };
         let pouch = BymlDoc::parse(&read(POUCH_ACTOR_INFO)).unwrap();
         let chu = pouch_actor(item::BOMBCHU).as_string().unwrap().to_string();
-        for (bag, like) in BAGS.iter().zip(BOMB_BAGS) {
+        for (at, (bag, like)) in BAGS.iter().zip(BOMB_BAGS).enumerate() {
+            let model = model(at);
+            let painted = dir
+                .join("romfs")
+                .join(crate::medallions::model_path(&model));
+            assert!(painted.exists(), "{model}");
             let own = row(&pouch, bag);
             assert_eq!(listed(own), std::slice::from_ref(&chu), "{bag}");
             let slot = own[&**field::MAX_NUM_GAME_DATA].as_string().unwrap();
@@ -271,6 +331,22 @@ mod tests {
         let slot = ounce_formats::murmur3(slot_entry().as_bytes());
         assert_eq!(slot, zootr_hook::switches::BOMBCHU_SLOT);
         assert_eq!(gd.kind(slot), Some("String64"));
+    }
+
+    #[test]
+    fn the_extracted_files_are_the_looks() {
+        needs_names!();
+        let files: Vec<_> = LOOKS.iter().flat_map(Look::files).collect();
+        assert_eq!(files, FILES);
+    }
+
+    /// A painted copy keeps every offset of its host's model.
+    #[test]
+    fn each_model_is_named_as_long_as_its_bomb_bags() {
+        needs_names!();
+        for (at, look) in LOOKS.iter().enumerate() {
+            assert_eq!(model(at).len(), look.host.get().len(), "{}", model(at));
+        }
     }
 
     #[test]

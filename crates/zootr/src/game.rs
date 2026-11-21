@@ -30,6 +30,7 @@ pub fn files() -> impl Iterator<Item = &'static str> {
     crate::medallions::FILES
         .into_iter()
         .chain(crate::key_tints::FILES)
+        .chain(crate::bombchu_bags::FILES)
         .chain(crate::foreign::FILES)
         .chain([POUCH_TABLE])
         .chain(crate::ice_traps::FILES)
