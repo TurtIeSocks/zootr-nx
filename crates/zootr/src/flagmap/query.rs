@@ -170,6 +170,16 @@ impl Graph {
         seen[node] = true;
         let (mut todo, mut edges) = (VecDeque::from([(node, 0)]), Vec::new());
         while let Some((n, d)) = todo.pop_front() {
+            // What game code asks of a node limits it (a row's age), so
+            // down shows it, even at the last depth, without walking on to
+            // the game's other askers.
+            if matches!(dir, Dir::Down) {
+                let asks = (self.ins[n].iter()).filter(|&&e| {
+                    let e = &self.edges[e];
+                    e.link == Link::Asks && !seen[e.from]
+                });
+                edges.extend(asks.map(|&e| (e, Some(d + 1))));
+            }
             if d == depth {
                 continue;
             }

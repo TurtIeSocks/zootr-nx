@@ -24,6 +24,7 @@ mod asks;
 mod flows;
 mod query;
 mod scene;
+mod tables;
 
 pub use query::*;
 
@@ -152,6 +153,7 @@ impl Graph {
             .collect();
         let packs = actors::add(&mut g, romfs, &gamedata)?;
         g.scene.extend(packs);
+        tables::add(&mut g, romfs)?;
         g.flows = Some(flows);
         g.gamedata = Some(gamedata);
         Ok(g)
