@@ -59,38 +59,14 @@ fn tree(v: &Byml, depth: usize) -> String {
 
 /// Print a graph, one node per line.
 pub(super) fn ainb(romfs: &Romfs, path: &str, out: Option<&Path>) -> Result<()> {
-    use ounce_formats::ainb::{Graph, Value};
+    use ounce_formats::ainb::Graph;
     let bytes = graph_bytes(romfs, path)?;
     if let Some(out) = out {
         return std::fs::write(out, &bytes).with_context(|| format!("writing {}", out.display()));
     }
     let graph = Graph::parse(&bytes)?;
     let file = ounce_formats::ainb::File::parse(&bytes)?;
-    let show = |v: &Value| match v {
-        Value::String(s) => format!("{s:?}"),
-        Value::Pointer => "ptr".into(),
-        v => format!("{v:?}"),
-    };
     for (i, node) in graph.nodes.iter().enumerate() {
-        let props = node
-            .properties
-            .iter()
-            .map(|(n, v)| format!("{n}={}", show(v)));
-        let inputs = node
-            .inputs
-            .iter()
-            .map(|input| match input.sources.as_slice() {
-                [] => format!("{}={}", input.name, show(&input.value)),
-                links => {
-                    let from: Vec<_> = links
-                        .iter()
-                        .map(|l| format!("#{}.{}", l.node, l.output))
-                        .collect();
-                    format!("{}<-{}", input.name, from.join("|"))
-                }
-            });
-        let all: Vec<_> = props.chain(inputs).collect();
-        let outputs: Vec<_> = node.outputs.iter().map(|o| o.name.as_str()).collect();
         let children: Vec<_> = (file.children(i)?.into_iter())
             .map(|(plug, to)| format!("{plug}:#{to}"))
             .collect();
@@ -98,13 +74,7 @@ pub(super) fn ainb(romfs: &Romfs, path: &str, out: Option<&Path>) -> Result<()> 
             true => String::new(),
             false => format!(" => {}", children.join(" ")),
         };
-        println!(
-            "#{i} {:?} {} {} -> {}{children}",
-            node.kind,
-            node.name,
-            all.join(" "),
-            outputs.join(",")
-        );
+        println!("{}{children}", crate::graphs::node_line(i, node));
     }
     Ok(())
 }

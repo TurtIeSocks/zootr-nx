@@ -1,10 +1,43 @@
 //! Edits to AINB logic graphs (`Logic/*.logic.module.ainb`): find a node by
-//! a string it holds, and move what reads one output onto another.
+//! a string it holds, and move what reads one output onto another. Also
+//! prints a node the way `probe ainb` does.
 
 use anyhow::{Context, Result};
-use ounce_formats::ainb::{Graph, Patch};
+use ounce_formats::ainb::{Graph, Node, Patch, Value};
 
 use crate::known::Name;
+
+/// Node `i` on one line: index, kind, class, values, where each linked
+/// input comes from, and its outputs.
+pub(crate) fn node_line(i: usize, node: &Node) -> String {
+    let show = |v: &Value| match v {
+        Value::String(s) => format!("{s:?}"),
+        Value::Pointer => "ptr".into(),
+        v => format!("{v:?}"),
+    };
+    let props = (node.properties.iter()).map(|(n, v)| format!("{n}={}", show(v)));
+    let inputs = node
+        .inputs
+        .iter()
+        .map(|input| match input.sources.as_slice() {
+            [] => format!("{}={}", input.name, show(&input.value)),
+            links => {
+                let from: Vec<_> = (links.iter())
+                    .map(|l| format!("#{}.{}", l.node, l.output))
+                    .collect();
+                format!("{}<-{}", input.name, from.join("|"))
+            }
+        });
+    let all: Vec<_> = props.chain(inputs).collect();
+    let outputs: Vec<_> = node.outputs.iter().map(|o| o.name.as_str()).collect();
+    format!(
+        "#{i} {:?} {} {} -> {}",
+        node.kind,
+        node.name,
+        all.join(" "),
+        outputs.join(",")
+    )
+}
 
 /// The romfs path of logic module `name`.
 pub(crate) fn logic(name: &Name) -> String {

@@ -16,10 +16,12 @@ use serde::Serialize;
 use crate::events::Flows;
 use crate::flags::Survey;
 use crate::gamedata::{self, GameData};
+use crate::gates;
 use crate::known::{field, flag};
 
 mod flows;
 mod query;
+mod scene;
 
 pub use query::*;
 
@@ -30,6 +32,12 @@ pub enum Kind {
     State,
     /// A flow's entry point.
     Event,
+    /// A logic graph a level places.
+    Graph,
+    /// A placed actor, by hash.
+    Placement,
+    /// An actor, by name.
+    Actor,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
@@ -38,6 +46,10 @@ pub enum Link {
     Writes,
     Reads,
     Runs,
+    /// A graph wiring a placement's inputs: whether it exists, opens.
+    Drives,
+    /// A graph placing an actor.
+    Places,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -76,6 +88,8 @@ pub struct Graph {
     /// What builds the graph's sources need: flows to print a cited event.
     flows: Option<Flows>,
     gamedata: Option<GameData>,
+    /// The scene graphs, to print a cited node.
+    scene: HashMap<String, ounce_formats::ainb::Graph>,
 }
 
 impl Kind {
@@ -83,6 +97,9 @@ impl Kind {
         match self {
             Kind::State => "state",
             Kind::Event => "event",
+            Kind::Graph => "graph",
+            Kind::Placement => "placement",
+            Kind::Actor => "actor",
         }
     }
 }
@@ -112,6 +129,11 @@ impl Graph {
             }
         }
         flows::add(&mut g, &flows, &gamedata);
+        let wiring = gates::wiring(romfs)?;
+        scene::add(&mut g, &wiring, &gamedata);
+        g.scene = (wiring.graphs.into_iter())
+            .map(|(name, graph)| (gates::path(&name), graph))
+            .collect();
         g.flows = Some(flows);
         g.gamedata = Some(gamedata);
         Ok(g)
