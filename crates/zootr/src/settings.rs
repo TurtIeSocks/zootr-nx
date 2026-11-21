@@ -209,6 +209,7 @@ pub(crate) const SHUFFLE_STICK_BAG: &str = "shuffle-stick-bag";
 const BUNNY_HOOD: &str = "bunny-hood";
 const DAY_SKULLTULAS: &str = "day-skulltulas";
 pub(crate) const AGELESS_WEAPONS: &str = "ageless-weapons";
+pub(crate) const AGELESS_ITEMS: &str = "ageless-items";
 const QUIET_NAVI: &str = "quiet-navi";
 pub(crate) const QUIET_ENEMIES: &str = "quiet-enemies";
 pub(crate) const OPEN_DOOR: &str = "open-door-of-time";
@@ -645,6 +646,12 @@ pub fn schema() -> Vec<SettingDef> {
             "Child and adult Link can each wield every one-handed sword and every shield, and logic expects them to. Biggoron's Sword and the Giant's Knife stay adult Link's, and only he can aim the Mirror Shield at light",
         )])
         .chain([toggle(
+            AGELESS_ITEMS,
+            group::ENHANCEMENTS,
+            "Items for both ages",
+            "Untested. Child Link can use the Megaton Hammer, Hookshot and Longshot, and adult Link Deku Sticks and the Boomerang. Logic still expects each at its own age",
+        )])
+        .chain([toggle(
             BRIDGE_MEDALLIONS,
             group::LOGIC,
             "Bridge at six medallions",
@@ -694,6 +701,7 @@ mod tests {
         assert_eq!(group(HINTS), group::GENERAL);
         assert_eq!(group(BUNNY_HOOD), group::ENHANCEMENTS);
         assert_eq!(group(AGELESS_WEAPONS), group::ENHANCEMENTS);
+        assert_eq!(group(AGELESS_ITEMS), group::ENHANCEMENTS);
         assert_eq!(group(SKIP_ALL), group::CUTSCENES);
     }
 

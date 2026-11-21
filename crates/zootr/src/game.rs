@@ -24,8 +24,9 @@ pub const UPDATE: u32 = 131072;
 pub const POUCH_TABLE: &str = "UI/Pouch/PouchTable/PouchTable.game__ui__PouchTable.bgyml";
 
 /// The single files zootr reads, under the romfs root: what the custom
-/// models are made from, the pause menu's table, and the effect file the
-/// ice traps' look fits to child Link.
+/// models are made from, the pause menu's table, the effect file the
+/// ice traps' look fits to child Link, and the animation archives items
+/// for both ages lends each Link.
 pub fn files() -> impl Iterator<Item = &'static str> {
     crate::medallions::FILES
         .into_iter()
@@ -34,6 +35,7 @@ pub fn files() -> impl Iterator<Item = &'static str> {
         .chain(crate::foreign::FILES)
         .chain([POUCH_TABLE])
         .chain(crate::ice_traps::FILES)
+        .chain(crate::ageless_items::FILES)
 }
 
 /// What zootr reads, under the romfs root, besides [`files`].

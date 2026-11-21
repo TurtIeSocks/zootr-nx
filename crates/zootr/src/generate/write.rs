@@ -17,15 +17,17 @@ use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::progressive::Lines;
 use crate::settings::Bombchus;
-use crate::settings::{AGELESS_WEAPONS, ChestSize, DungeonEntrances, NewGame, TRADE_CHAIN};
+use crate::settings::{
+    AGELESS_ITEMS, AGELESS_WEAPONS, ChestSize, DungeonEntrances, NewGame, TRADE_CHAIN,
+};
 use crate::starter_bags;
 use crate::world::Era;
 use crate::{
-    adult_jabu, ageless, ammo, blue_warps, bombchus, bombs, bridge, chest_levels, cows, cutscenes,
-    dampe, day_skulltulas, dig, door, enemies, entrances, flags, foreign, fortress, gamedata,
-    gerudo, gifts, held, hints, ice_traps, jabu_mood, jabu_mouth, key_tints, keys, map_copies,
-    medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs, shops, spawn,
-    standins, starting, steps, text, tracker, trade_chain, twins,
+    adult_jabu, ageless, ageless_items, ammo, blue_warps, bombchus, bombs, bridge, chest_levels,
+    cows, cutscenes, dampe, day_skulltulas, dig, door, enemies, entrances, flags, foreign,
+    fortress, gamedata, gerudo, gifts, held, hints, ice_traps, jabu_mood, jabu_mouth, key_tints,
+    keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs,
+    shops, spawn, standins, starting, steps, text, tracker, trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -297,6 +299,9 @@ pub fn write_mod(
     starter_bags::write(romfs, new_game, &mut builder, &mut tables)?;
     if new_game.on.contains(AGELESS_WEAPONS) {
         ageless::write(romfs, &mut builder)?;
+    }
+    if new_game.on.contains(AGELESS_ITEMS) {
+        ageless_items::write(romfs, &mut builder)?;
     }
     // Before the stand-ins, which copy a song's model as it's shown.
     let shown = new_game.foreign.iter().map(|f| f.shows.as_str());
