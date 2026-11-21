@@ -119,7 +119,12 @@ fn take_get(
         writer.add_file(at.clone(), raw(medium, &at)?);
     }
     let actor = doc(actor, &actor_doc).to_binary();
-    builder.resize(&actor_at, actor_raw.len(), actor.len())?;
+    // Each component costs the game more than its bytes: sized by its
+    // bytes alone, the param's table didn't fit and the game crashed
+    // loading a chest holding the bag. The Medium's has the same parts.
+    let like = actor_path(&medium.name);
+    let like_size = raw(medium, &like)?.len();
+    builder.resize_like(&actor_at, actor_raw.len(), actor.len(), &like, like_size)?;
     writer.add_file(actor_at.clone(), actor.clone());
     builder.write(&pack_file(&small.name), &writer.to_binary())?;
     for heir in [medium, large] {
@@ -399,6 +404,19 @@ mod tests {
             let heir = ActorPack::from_bytes(heir, data).unwrap();
             assert_eq!(heir.raw(&own), pack.raw(&own), "{}", heir.name);
         }
+        // Sized by its bytes alone, the game crashed loading a chest
+        // holding the bag: past its bytes, it costs what the Medium's does.
+        let table = romfs.restbl_rel().unwrap();
+        let written = std::fs::read(dir.join("romfs").join(&table)).unwrap();
+        let written = romfs.dicts().decompress(&table, &written).unwrap();
+        let restbl = ounce_formats::Restbl::parse(&written).unwrap();
+        let medium = ActorPack::load(&romfs, NUTS.bags[1]).unwrap();
+        let over = |name, size: usize| {
+            restbl.get(&actor_path(name)).unwrap() as usize - size.next_multiple_of(32)
+        };
+        let small_size = pack.raw(&own).unwrap().len();
+        let medium_size = medium.raw(&actor_path(NUTS.bags[1])).unwrap().len();
+        assert!(over(small, small_size) >= over(NUTS.bags[1], medium_size));
         std::fs::remove_dir_all(dir).ok();
     }
 
