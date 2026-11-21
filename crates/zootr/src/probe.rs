@@ -18,6 +18,7 @@ use crate::known::flag;
 use crate::names::TEXT;
 use crate::nav::navmesh_file;
 
+mod arsenal;
 mod climbs;
 mod formats;
 mod logic;
@@ -59,6 +60,9 @@ pub enum Probe {
     /// lists them, or with `table` that table's first entries (`MetaData`
     /// for the save layout).
     Tables { table: Option<String> },
+    /// How Link moves and how far his gear reaches: his numbers, adult
+    /// beside child, then each piece of gear's, keys containing `grep`.
+    Arsenal { grep: Option<String> },
     /// An actor pack's files, or the files whose names contain `file`.
     Pack {
         actor: String,
@@ -375,6 +379,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         } => data(romfs, &key, holders, exps, member),
         Probe::Key { hash } => key(romfs, hash),
         Probe::Tables { table } => crate::gamedata::print_tables(romfs, table.as_deref()),
+        Probe::Arsenal { grep } => arsenal::arsenal(romfs, grep.as_deref()),
         Probe::Pack {
             actor,
             file,

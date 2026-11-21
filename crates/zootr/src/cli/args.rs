@@ -672,6 +672,15 @@ pub(super) enum SaveCommand {
         #[arg(long = "preset", value_parser = presets::parser())]
         presets: Vec<String>,
     },
+    /// Give a save items as `--start` names them (`longshot`, `bombs=20`,
+    /// or `arsenal` for all of Link's gear), on top of what it holds.
+    /// Close the game first. The old file is kept next to it as a
+    /// timestamped backup.
+    Give {
+        slot: String,
+        #[arg(required = true, value_name = "WORD[=N]", value_parser = crate::starting::parse)]
+        words: Vec<(String, i32)>,
+    },
 }
 
 fn field(arg: &str) -> Result<String> {

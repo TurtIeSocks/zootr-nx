@@ -230,6 +230,15 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             &shove::moved(&game, &mut input()?, romfs, game_path, hour, secs)?,
             json,
         )?,
+        DevCommand::Trace {
+            steps,
+            settle,
+            out,
+            json,
+        } => said(
+            &crate::nav::trace::trace(&game, &mut input()?, &steps, settle, out.as_deref())?,
+            json,
+        )?,
         DevCommand::Use { hash, json } => said(
             &act::used(&game, &mut input()?, romfs, game_path, hash)?,
             json,

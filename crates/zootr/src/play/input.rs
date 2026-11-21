@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 
 /// How long a press holds its button, in milliseconds.
 pub const PRESS: u64 = 150;
@@ -43,6 +43,12 @@ pub trait Input {
 
     /// A PNG of the game's picture, written to `to`.
     fn shot(&mut self, to: &Path) -> Result<()>;
+
+    /// Leave one control line (`LUp~0.5`, `shot PATH`) and return at once,
+    /// without waiting out its hold.
+    fn queue(&mut self, line: &str) -> Result<()> {
+        bail!("this game takes no control lines, so can't take {line}")
+    }
 
     /// Ask the game to log what it's stuck on, after a stall.
     fn dump(&mut self) -> Result<()> {
@@ -94,6 +100,10 @@ impl<I: Input + ?Sized> Input for Box<I> {
 
     fn shot(&mut self, to: &Path) -> Result<()> {
         (**self).shot(to)
+    }
+
+    fn queue(&mut self, line: &str) -> Result<()> {
+        (**self).queue(line)
     }
 
     fn dump(&mut self) -> Result<()> {
