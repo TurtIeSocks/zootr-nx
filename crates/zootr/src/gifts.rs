@@ -631,9 +631,8 @@ mod tests {
         assert_eq!(dealt(&[NPC_GIFTS, HUNDRED_TOKENS]), house.len());
         assert_eq!(dealt(&[NPC_GIFTS]), house.len() - 1);
         assert_eq!(dealt(&[HUNDRED_TOKENS]), 0);
-        // On unless turned off, so an older seed's settings deal it as before.
         let defaults = crate::settings::toggles_on(&Default::default());
-        assert!(defaults.contains(HUNDRED_TOKENS));
+        assert!(!defaults.contains(HUNDRED_TOKENS));
     }
 
     #[test]

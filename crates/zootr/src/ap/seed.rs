@@ -12,7 +12,7 @@ use crate::checks::{self, ItemCheck};
 use crate::fill;
 use crate::logic::{Got, Play, World};
 use crate::rules::{Book, Ctx, Have};
-use crate::settings::{Kind, NewGame, Settings, schema, value_word};
+use crate::settings::{Kind, NewGame, RUNNING_RACE, Settings, schema, value_word};
 use crate::shuffle::{self, Fixed};
 
 /// What Link reaches holding everything. The rest never happens, so the
@@ -163,10 +163,17 @@ impl Seed {
     }
 }
 
-/// The base settings: every exposed toggle off.
+/// Settings the world holds at their own value, whatever the app's
+/// default: the running man's race is a location older worlds already
+/// hold, so a seed from one still opens.
+const PINNED: [(&str, bool); 1] = [(RUNNING_RACE, true)];
+
+/// The base settings: the pinned ones, then every exposed toggle off.
 pub(super) fn base() -> Settings {
     let defs = schema();
-    let mut s = Settings::new();
+    let mut s: Settings = (PINNED.iter())
+        .map(|&(id, on)| (id.into(), Value::Bool(on)))
+        .collect();
     for id in OPTIONS {
         if let Some(d) = defs.iter().find(|d| d.id == *id)
             && let Kind::Toggle { .. } = d.kind

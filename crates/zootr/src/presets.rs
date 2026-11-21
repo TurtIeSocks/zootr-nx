@@ -55,7 +55,7 @@ pub const CARPENTERS_FREED: &str = "carpenters-freed";
 pub const CARPENTERS_FAST: &str = "carpenters-fast";
 
 /// Presets a new game takes unless turned off.
-pub const DEFAULT_ON: [&str; 3] = ["menus", "clock", "no-pickup-texts"];
+pub const DEFAULT_ON: [&str; 4] = ["menus", "clock", "no-tutorials", "no-pickup-texts"];
 
 const STONES: [&Name; 3] = [
     flow::GET_STONE_OF_FOREST,
@@ -780,7 +780,7 @@ mod tests {
             "{}=true",
             field::UI_IS_FINISH_CHALLENGE_MENU_OPEN_EVENT
         )));
-        assert!(!DEFAULT_ON.contains(&"no-tutorials"));
+        assert!(DEFAULT_ON.contains(&"no-tutorials"));
     }
 
     #[test]

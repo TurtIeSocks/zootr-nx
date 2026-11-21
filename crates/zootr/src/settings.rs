@@ -516,12 +516,12 @@ pub fn schema() -> Vec<SettingDef> {
                 "NPC gifts",
                 "What people hand over becomes a check: their gifts, minigame prizes, the House of Skulltula's rewards and the Great Fairies' upgrades",
             )])
-        .chain([default_on(toggle(
+        .chain([toggle(
                 HUNDRED_TOKENS,
                 place::CHECKS,
                 "100-token reward",
                 "With NPC gifts on, the House of Skulltula's reward for all 100 tokens is a check too. Off, it pays its Gold Rupee as always, and logic never sends Link for all 100",
-            ))])
+            )])
         .chain([toggle(
                 DUNGEON_REWARDS,
                 place::REWARDS,
@@ -607,12 +607,12 @@ pub fn schema() -> Vec<SettingDef> {
             "Master Sword",
             "The pedestal holds an item from the pool, and the Master Sword can turn up anywhere. Pulling or returning the sword still travels through time without it. Adult Link without it has no sword",
         )])
-        .chain([default_on(toggle(
+        .chain([toggle(
             RUNNING_RACE,
             place::CHECKS,
             "Running man's race",
             "The running man's prize for Link's first win becomes a check. Later wins still pay a Red Rupee. Logic expects it only with Carpenters freed, since he offers the race once the valley bridge is fixed",
-        ))])
+        )])
         .chain([toggle(
             SKULLTULAS,
             place::CHECKS,
@@ -787,6 +787,13 @@ mod tests {
             // A checklist holds only toggles.
             assert!(!d.list || matches!(d.kind, Kind::Toggle { .. }), "{}", d.id);
         }
+    }
+
+    #[test]
+    fn the_running_race_and_the_hundred_token_reward_start_off() {
+        let on = toggles_on(&Settings::new());
+        assert!(!on.contains(RUNNING_RACE));
+        assert!(!on.contains(HUNDRED_TOKENS));
     }
 
     #[test]
