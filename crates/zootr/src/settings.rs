@@ -335,6 +335,7 @@ pub(crate) const SHUFFLE_STICK_BAG: &str = "shuffle-stick-bag";
 const BUNNY_HOOD: &str = "bunny-hood";
 const DAY_SKULLTULAS: &str = "day-skulltulas";
 pub(crate) const AGELESS_WEAPONS: &str = "ageless-weapons";
+pub(crate) const AGELESS_ITEMS: &str = "ageless-items";
 pub(crate) const MAGIC_WITH_FIRST_ITEM: &str = "magic-with-first-item";
 const QUIET_NAVI: &str = "quiet-navi";
 pub(crate) const QUIET_ENEMIES: &str = "quiet-enemies";
@@ -793,6 +794,12 @@ pub fn schema() -> Vec<SettingDef> {
             "The first spell, magic arrow, Lens of Truth or Improved Spin Link finds turns the magic meter on, as in the game. Off, only a Magic Meter or Doubled Magic does, and a Magic Meter joins the pool",
         )])
         .chain([toggle(
+            AGELESS_ITEMS,
+            place::GAMEPLAY,
+            "Items for Both Ages",
+            "Untested. Child Link can use the Hookshot and Longshot, and adult Link Deku Sticks and the Boomerang. Logic still expects each at its own age",
+        )])
+        .chain([toggle(
             BRIDGE_MEDALLIONS,
             place::RULES,
             "Bridge at Six Medallions",
@@ -849,6 +856,7 @@ mod tests {
         assert_eq!(at(HINTS), is(place::HINTS));
         assert_eq!(at(KEYS), is(place::KEYS));
         assert_eq!(at(BUNNY_HOOD), is(place::GAMEPLAY));
+        assert_eq!(at(AGELESS_ITEMS), is(place::GAMEPLAY));
         assert_eq!(at(SKIP_ALL), is(place::CUTSCENES));
     }
 

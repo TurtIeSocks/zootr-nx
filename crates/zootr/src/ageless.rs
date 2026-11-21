@@ -124,7 +124,7 @@ fn unlock(table: &[u8], weapon: impl Fn(&str) -> bool) -> Result<(Vec<u8>, usize
 /// Write the table with the Equipment page's swords and shields open to
 /// both ages, all but the two-handed swords.
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
-    let (table, changed) = unlock(&romfs.read(POUCH_TABLE)?, shared(romfs)?)?;
+    let (table, changed) = unlock(&builder.read(POUCH_TABLE)?, shared(romfs)?)?;
     ensure!(
         changed > 0,
         "no sword or shield in the pause menu's table is limited to one age"
