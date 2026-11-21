@@ -112,6 +112,8 @@ pub struct Offsets {
     pub drawn_bow: u32,
     pub shootable: u32,
     pub name_copy: u32,
+    /// The hooked out of ammo handler, which picks the empty message.
+    pub emptied: u32,
     /// The game's own `malloc`.
     pub malloc: u32,
     /// Builds an event request in place.

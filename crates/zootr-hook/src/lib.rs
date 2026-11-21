@@ -72,7 +72,11 @@ pub const PANIC: u32 = 0x4e9_aff0;
 /// listed, then the full key, handheld and joy dual controller reads. The
 /// patch writes a `b` into each: past the hooked function's pacibsp, or to
 /// the game's `GetNpadStates` stub for that style.
-pub const SLOTS: u32 = 64;
+pub const SLOTS: u32 = 68;
+
+/// The Deku Seed's name hash, the projectile an
+/// empty bow says "no Deku seeds" for. Every other one says "no arrows".
+pub const DEKU_SEED: u32 = 0xdc49_1eef;
 
 /// Where the game keeps what the hook needs in `main` 1.1.1, the same in
 /// every seed, so the hook calls through them with no table yet. See
@@ -102,6 +106,8 @@ pub const OFFSETS: Offsets = Offsets {
     drawn_bow: 0x2e0_0870,
     shootable: 0x2d0_9f60,
     name_copy: 0x2b_5480,
+    // The Bow node's out of ammo handler (`ExecutePlayerBow`).
+    emptied: 0x279_a7a0,
     malloc: 0x14c_6c90,
     make_arg: 0xd7_9f10,
     request: 0xd7_a820,

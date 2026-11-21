@@ -30,8 +30,8 @@ const MAX: usize = 128;
 
 // The call sites `bl` to content_name at +0, drop_actor at +4, run_speed
 // at +24 and the controller reads to +32, +36 and +40. The hooked
-// functions `b` to +8, +12, +16, +20, +28, +44, +48, +52, +56 and +60 in place
-// of their pacibsp.
+// functions `b` to +8, +12, +16, +20, +28, +44, +48, +52, +56, +60 and +64
+// in place of their pacibsp.
 // The opening node is in x20 at both content_name call sites.
 //
 // A function hook keeps every argument register and the link register,
@@ -70,14 +70,17 @@ global_asm!(
     ".endm",
     // A hook that runs its handler after the function returns, for a
     // function called with no stack arguments: it calls the function
-    // through the pacibsp and slot, keeps its result, and then returns
-    // to the function's caller.
+    // through the pacibsp and slot, keeps its result, hands the handler
+    // that result and the function's first argument, and then returns to
+    // the function's caller.
     ".macro function_hook_after handler, resume",
     "stp x29, x30, [sp, #-0x30]!",
     "mov x29, sp",
+    "str x0, [sp, #0x18]",
     "bl 1f",
     "str x0, [sp, #0x10]",
     "str q0, [sp, #0x20]",
+    "ldr x1, [sp, #0x18]",
     "bl \\handler",
     "ldr q0, [sp, #0x20]",
     "ldr x0, [sp, #0x10]",
@@ -119,6 +122,7 @@ global_asm!(
     "b ui_update_entry",
     "b taken_entry",
     "b nocked_entry",
+    "b emptied_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -139,6 +143,8 @@ global_asm!(
     "taken_resume:",
     "brk #0",
     "nocked_resume:",
+    "brk #0",
+    "emptied_resume:",
     "brk #0",
     "npad_full_stub:",
     "brk #0",
@@ -164,6 +170,8 @@ global_asm!(
     "function_hook taken, taken_resume",
     "nocked_entry:",
     "function_hook nocked, nocked_resume",
+    "emptied_entry:",
+    "function_hook_after emptied, emptied_resume",
     "npad_full_entry:",
     "npad_read npad_full_stub",
     "npad_handheld_entry:",
@@ -319,6 +327,13 @@ pub unsafe extern "C" fn drop_actor(
 #[unsafe(no_mangle)]
 unsafe extern "C" fn nocked(user: usize) {
     hooked(|main, _| unsafe { arrows::nocked(main, user) })
+}
+
+/// Link drew a bow with no ammo, and the game picked its message by his
+/// age. Only the hooked function's return reaches this.
+#[unsafe(no_mangle)]
+unsafe extern "C" fn emptied(_: usize, node: usize) {
+    hooked(|main, _| unsafe { arrows::emptied(main, node) })
 }
 
 /// A map has started loading: its chests come next.
