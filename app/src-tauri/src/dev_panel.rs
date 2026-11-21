@@ -10,6 +10,7 @@ use specta::Type;
 use tauri::{AppHandle, Manager};
 use zootr::config::{Config, Target};
 use zootr::dev::{self, Dev, Place};
+use zootr::live::actors::Hidden;
 use zootr::live::{self, Memory};
 use zootr::warp::{self, Side};
 
@@ -135,6 +136,62 @@ pub(crate) async fn dev_actors(map: String) -> Res<Vec<DevActor>> {
 #[specta::specta]
 pub(crate) async fn dev_warp(actor: String, side: Side) -> Res<String> {
     blocking(move || warp::beside(&*dev_game()?, &romfs(&Config::load()?)?, &actor, side)).await
+}
+
+/// A live actor a placement made, for the panel's Live actors.
+#[derive(Serialize, Type)]
+pub(crate) struct DevNear {
+    /// The placement's hash, as text: a u64 doesn't fit a JS number.
+    hash: String,
+    actor: String,
+    /// The placement's own `Name`, when the map's files have it: an actor
+    /// a seed adds has none.
+    label: Option<String>,
+    distance: f32,
+    hidden: Hidden,
+}
+
+/// The live actors placements made, nearest Link first.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_nearby() -> Res<Vec<DevNear>> {
+    blocking(move || {
+        let dev = dev_game()?;
+        let near = dev.nearby()?.0;
+        let placed = warp::actors_in(&romfs(&Config::load()?)?, &dev.state()?.map)?;
+        let labels: BTreeMap<u64, String> = (placed.into_iter())
+            .filter_map(|p| Some((p.hash?, p.label?)))
+            .collect();
+        Ok(near
+            .into_iter()
+            .map(|n| DevNear {
+                hash: n.hash.to_string(),
+                label: labels.get(&n.hash).cloned(),
+                actor: n.name,
+                distance: n.distance,
+                hidden: n.hidden,
+            })
+            .collect())
+    })
+    .await
+}
+
+/// Hide the live actors of these placements, or show them again. Answers
+/// the hashes that had one.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_hide(hashes: Vec<String>, on: bool) -> Res<Vec<String>> {
+    blocking(move || {
+        let hashes = (hashes.iter())
+            .map(|h| {
+                h.parse()
+                    .with_context(|| format!("{h} isn't a placement hash"))
+            })
+            .collect::<anyhow::Result<Vec<u64>>>()?;
+        let found = dev_game()?.hide(&hashes, on)?;
+        Ok(found.into_iter().map(|h| h.to_string()).collect())
+    })
+    .await
 }
 
 /// Switch age, and say where Link lands.

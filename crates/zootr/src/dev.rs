@@ -1,8 +1,8 @@
 //! The dev panel's commands for the running game. A teleport, an age
 //! switch, the time of day, a quest step, an item to give, an event to
 //! start and a warp beside an actor are left in the hook's mailbox, which runs them on Link's next
-//! update (see `zootr_hook::Mailbox`). The state and set are plain reads and writes
-//! through [`live`].
+//! update (see `zootr_hook::Mailbox`). The state, set and an actor's hide are plain reads and
+//! writes through [`live`].
 
 use std::collections::BTreeSet;
 use std::mem::offset_of;
@@ -19,10 +19,12 @@ use crate::known::{Name, flag, scene};
 use crate::live::{self, Game, Memory};
 use crate::patch;
 
+mod hide;
 mod place;
 mod setup;
 mod slay;
 
+pub use hide::Near;
 pub use place::{Place, known, other_age, places};
 pub use setup::{Applied, Goal, Value, value};
 use setup::{Grant, grants, plan_give};

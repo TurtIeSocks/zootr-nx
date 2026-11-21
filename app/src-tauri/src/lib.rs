@@ -661,6 +661,8 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             dev_panel::dev_teleport,
             dev_panel::dev_actors,
             dev_panel::dev_warp,
+            dev_panel::dev_nearby,
+            dev_panel::dev_hide,
             dev_panel::dev_age,
             dev_panel::dev_give,
             dev_panel::dev_step,
