@@ -16,10 +16,10 @@ use crate::known::actor;
 use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::progressive::Lines;
-use crate::settings::Bombchus;
 use crate::settings::{
     AGELESS_ITEMS, AGELESS_WEAPONS, ChestSize, DungeonEntrances, NewGame, TRADE_CHAIN,
 };
+use crate::settings::{Bombchus, Bridge};
 use crate::starter_bags;
 use crate::world::Era;
 use crate::{
@@ -42,7 +42,7 @@ pub(super) fn flows(
     if new_game.quiet_navi {
         navi::quiet(romfs, &mut rewrites)?;
     }
-    if new_game.bridge_medallions {
+    if new_game.bridge == Bridge::SixMedallions {
         bridge::keep_step(romfs, &mut rewrites)?;
         flags.push(bridge::start());
     }
@@ -281,7 +281,7 @@ pub fn write_mod(
             &[gamedata::IS_GET],
         )?;
     }
-    if new_game.bridge_medallions {
+    if new_game.bridge == Bridge::SixMedallions {
         bridge::need_medallions(&mut data.root)?;
     }
     let mut posed = HashMap::new();

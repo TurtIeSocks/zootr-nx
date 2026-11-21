@@ -607,7 +607,7 @@ fn the_medallion_bridge_starts_armed_and_keeps_its_step() {
     };
     let dir = std::env::temp_dir().join(format!("zootr-bridge-gen-{}", std::process::id()));
     let on = NewGame {
-        bridge_medallions: true,
+        bridge: crate::settings::Bridge::SixMedallions,
         ..Default::default()
     };
     let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &on, &Run::silent()).unwrap();
@@ -779,15 +779,15 @@ fn a_logic_seed_keeps_each_spots_round_hero_and_rule() {
         return;
     };
     let dir = std::env::temp_dir().join(format!("zootr-logic-{}", std::process::id()));
-    let report = shuffle(
-        &romfs,
-        &dir,
-        7,
-        &Fixed::new(),
-        &NewGame::default(),
-        &Run::silent(),
-    )
-    .unwrap();
+    // The game's own bridge and Bombchus' default cap (for the Spirit
+    // trial), which a hand-built new game holds no word for.
+    let bridge = crate::settings::value_word(crate::settings::BRIDGE, "vanilla");
+    let chus = crate::settings::value_word(crate::settings::BOMBCHUS, "free");
+    let new_game = NewGame {
+        on: [bridge, chus].into(),
+        ..Default::default()
+    };
+    let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
     std::fs::remove_dir_all(dir).unwrap();
     let rounds: HashSet<u16> = (report.spots.iter().filter_map(|s| s.round))
         .chain(report.events.iter().map(|e| e.round))

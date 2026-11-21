@@ -84,8 +84,10 @@ pub struct NewGame {
     pub bunny_hood: bool,
     /// Night-only Gold Skulltulas show by day too.
     pub day_skulltulas: bool,
-    /// The rainbow bridge rises at six medallions.
-    pub bridge_medallions: bool,
+    /// What raises the rainbow bridge.
+    pub bridge: Bridge,
+    /// Whether Ganon's trials stand or start done.
+    pub trials: Trials,
     /// Gossip stones name where needed items are.
     pub hints: bool,
     pub logic: Logic,
@@ -147,6 +149,8 @@ impl NewGame {
                 "{CARPENTERS_FAST} can't start with {CARPENTERS_FREED}: both count the carpenters"
             );
         }
+        let bridge = chosen::<Bridge>(settings, BRIDGE);
+        let trials = chosen::<Trials>(settings, TRIALS);
         let mut start = starting::Start::from_settings(settings)?;
         for word in super::forced(&schema, settings).1 {
             if !start.holds(word) {
@@ -159,6 +163,14 @@ impl NewGame {
                 fortress_keys == FortressKeys::Start,
             ),
             start.defaults(),
+            match bridge {
+                Bridge::Open => crate::bridge::open(),
+                Bridge::Vanilla | Bridge::SixMedallions => vec![],
+            },
+            match trials {
+                Trials::Done => crate::bridge::trials_done(),
+                Trials::AllSix => vec![],
+            },
             edits.to_vec(),
         ]
         .concat();
@@ -218,7 +230,8 @@ impl NewGame {
             quiet_enemies: on(QUIET_ENEMIES),
             bunny_hood: on(BUNNY_HOOD),
             day_skulltulas: on(DAY_SKULLTULAS),
-            bridge_medallions: on(BRIDGE_MEDALLIONS),
+            bridge,
+            trials,
             hints: on(HINTS),
             logic: chosen(settings, LOGIC),
             on: toggles_on(settings),
@@ -365,7 +378,8 @@ mod tests {
                 quiet_enemies: false,
                 bunny_hood: false,
                 day_skulltulas: false,
-                bridge_medallions: false,
+                bridge: Bridge::Vanilla,
+                trials: Trials::AllSix,
                 hints: false,
                 spawn: None,
                 fields: vec![],
@@ -419,6 +433,67 @@ mod tests {
             .find(|d| d.id == "claim-check")
             .unwrap();
         assert_eq!(def.section, crate::settings::place::QUEST.section);
+    }
+
+    /// The defaults `settings` add over a new game's own.
+    fn added(settings: &Settings) -> (NewGame, Vec<String>) {
+        let base = NewGame::from_settings(&Settings::new(), &[]).unwrap();
+        let game = NewGame::from_settings(settings, &[]).unwrap();
+        let added = (game.defaults.iter())
+            .filter(|d| !base.defaults.contains(d))
+            .cloned()
+            .collect();
+        (game, added)
+    }
+
+    /// Whether `edit` moves a quest step of `challenge`.
+    fn steps(edit: &str, challenge: &crate::known::Name) -> bool {
+        edit.starts_with(&format!("{}=", crate::steps::saved(challenge)))
+    }
+
+    #[test]
+    fn an_open_bridge_writes_only_the_played_flag() {
+        needs_names!();
+        let open = Settings::from([(BRIDGE.into(), "open".into())]);
+        let (game, added) = added(&open);
+        let played = format!(
+            "{}.{}=true",
+            flag::HAVE_PLAYED_EVENT,
+            crate::known::field::GANON_CASTLE_ADULT_FIELD_RAINBOW
+        );
+        assert_eq!(added, [played]);
+        assert_eq!(game.bridge, Bridge::Open);
+        assert!(game.give.is_empty() && game.progress.is_empty());
+        for quest in [
+            crate::known::flow::ALL_SAGE,
+            crate::known::flow::DEFEAT_GANON,
+        ] {
+            assert!(!game.defaults.iter().any(|d| steps(d, quest)), "{quest}");
+        }
+    }
+
+    #[test]
+    fn trials_done_write_only_the_barrier_state() {
+        needs_names!();
+        let done = Settings::from([(TRIALS.into(), "done".into())]);
+        let (game, added) = added(&done);
+        let field = crate::known::field::INSIDE_GANON_CASTLE_DUNGEON_BARRIER_COUNT;
+        assert!(added.contains(&format!("{field}=0")));
+        let clear = crate::known::field::INSIDE_GANON_CASTLE_IS_ALL_BARRIER_CLEAR;
+        assert!(added.contains(&format!("{clear}=true")));
+        for trial in ["Light", "Forest", "Water", "Shadow", "Fire", "Spirit"] {
+            let removed = format!("InsideGanonCastle_Dungeon_BarrierRemove_{trial}");
+            let played = format!("{}.{removed}=true", flag::HAVE_PLAYED_EVENT);
+            assert!(added.contains(&played), "{trial}");
+            assert!(added.contains(&format!("{removed}=true")), "{trial}");
+        }
+        assert_eq!(added.len(), 14, "{added:?}");
+        assert_eq!(game.trials, Trials::Done);
+        assert!(game.give.is_empty() && game.progress.is_empty());
+        let quest = crate::known::flow::DEFEAT_GANON;
+        assert!(!game.defaults.iter().any(|d| steps(d, quest)));
+        let bridge = crate::known::field::GANON_CASTLE_ADULT_FIELD_RAINBOW;
+        assert!(!game.defaults.iter().any(|d| d.contains(&**bridge)));
     }
 
     #[test]

@@ -1,6 +1,10 @@
 //! Settings saved by older versions, read as the current ones.
 
-use super::{BOMBCHUS, Bombchus, SHUFFLE_ITEMS, Settings, choice_id};
+use serde_json::Value;
+
+use super::{
+    BOMBCHUS, BRIDGE, Bombchus, Bridge, SHUFFLE_ITEMS, Settings, TRIALS, Trials, choice_id,
+};
 use crate::starting::{self, Start};
 
 /// The toggle that left every item in place, before it became
@@ -10,6 +14,38 @@ const VANILLA_CHESTS: &str = "vanilla-chests";
 /// The toggle that gave bombchus their own cap, before [`BOMBCHUS`] chose
 /// between that, the bomb bag's and Bombchu Bags.
 const FREE_BOMBCHUS: &str = "free-bombchus";
+
+/// The toggle that raised the bridge at six medallions, before [`BRIDGE`]
+/// chose how the bridge rises.
+const BRIDGE_MEDALLIONS: &str = "bridge-medallions";
+
+/// The preset that put the bridge up, saved as `true` under the id
+/// [`BRIDGE`] took over.
+const BRIDGE_UP: &str = BRIDGE;
+
+/// The preset that brought every barrier down, before [`TRIALS`].
+const TRIALS_DONE: &str = "trials-done";
+
+/// Presets the CLI still takes by their old names, and toggles by their
+/// old ids: see [`renamed`].
+pub(crate) const OLD_PRESETS: [&str; 2] = [BRIDGE_UP, TRIALS_DONE];
+pub(crate) const OLD_TOGGLES: [&str; 1] = [BRIDGE_MEDALLIONS];
+
+/// The choice old preset or toggle `old` became when on, as setting id and
+/// option.
+fn became(old: &str) -> Option<(&'static str, String)> {
+    match old {
+        BRIDGE_UP => Some((BRIDGE, choice_id(Bridge::Open))),
+        BRIDGE_MEDALLIONS => Some((BRIDGE, choice_id(Bridge::SixMedallions))),
+        TRIALS_DONE => Some((TRIALS, choice_id(Trials::Done))),
+        _ => None,
+    }
+}
+
+/// What old preset or toggle `old` on is now, as the CLI takes it.
+pub(crate) fn renamed(old: &str) -> Option<String> {
+    became(old).map(|(id, value)| format!("--setting {id}={value}"))
+}
 
 /// Toggles that started a new game with items, before the starting
 /// inventory, and the words each became, as `--start` takes them.
@@ -52,6 +88,18 @@ pub(crate) fn upgrade(settings: &mut Settings) {
         };
         (settings.entry(BOMBCHUS.into())).or_insert(choice_id(chosen).into());
     }
+    // The bridge preset first: it won over the toggle.
+    for old in [BRIDGE_UP, BRIDGE_MEDALLIONS, TRIALS_DONE] {
+        // A choice's value is a string, so only a `true` or `false` is old.
+        if !settings.get(old).is_some_and(Value::is_boolean) {
+            continue;
+        }
+        let on = settings.remove(old) == Some(true.into());
+        let (id, value) = became(old).expect("an old name");
+        if on {
+            settings.entry(id.into()).or_insert(value.into());
+        }
+    }
     let on: Vec<&[&str]> = (STARTING.iter())
         .filter_map(|(id, words)| (settings.remove(*id)? == true).then_some(*words))
         .collect();
@@ -70,6 +118,55 @@ pub(crate) fn upgrade(settings: &mut Settings) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_bridge_toggle_and_the_quest_presets_become_the_win_condition() {
+        let up = |old: &[(&str, bool)]| {
+            let mut s: Settings = (old.iter())
+                .map(|&(id, on)| (id.to_owned(), on.into()))
+                .collect();
+            upgrade(&mut s);
+            s
+        };
+        let is = |new: &[(&str, &str)]| -> Settings {
+            (new.iter())
+                .map(|&(id, v)| (id.to_owned(), v.into()))
+                .collect()
+        };
+        let six = (BRIDGE, "six-medallions");
+        let open = (BRIDGE, "open");
+        let done = (TRIALS, "done");
+        assert_eq!(up(&[(BRIDGE_MEDALLIONS, true)]), is(&[six]));
+        assert_eq!(up(&[(BRIDGE, true)]), is(&[open]));
+        // The preset went after the toggle's edits, so it won.
+        assert_eq!(
+            up(&[(BRIDGE, true), (BRIDGE_MEDALLIONS, true)]),
+            is(&[open])
+        );
+        // The trials leave the bridge as it was: the game's own if unset.
+        assert_eq!(up(&[(TRIALS_DONE, true)]), is(&[done]));
+        let both = up(&[(TRIALS_DONE, true), (BRIDGE_MEDALLIONS, true)]);
+        assert_eq!(both, is(&[six, done]));
+        let off = [
+            (BRIDGE_MEDALLIONS, false),
+            (BRIDGE, false),
+            (TRIALS_DONE, false),
+        ];
+        assert_eq!(up(&off), Settings::new());
+        let mut current = is(&[open, done]);
+        upgrade(&mut current);
+        assert_eq!(current, is(&[open, done]));
+        assert_eq!(
+            renamed(BRIDGE_MEDALLIONS).unwrap(),
+            "--setting rainbow-bridge=six-medallions"
+        );
+        assert_eq!(renamed(BRIDGE).unwrap(), "--setting rainbow-bridge=open");
+        assert_eq!(
+            renamed(TRIALS_DONE).unwrap(),
+            "--setting ganons-trials=done"
+        );
+        assert_eq!(renamed("open-forest"), None);
+    }
 
     #[test]
     fn free_bombchus_becomes_the_bombchus_choice() {

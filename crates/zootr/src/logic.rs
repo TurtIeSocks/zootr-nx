@@ -16,6 +16,7 @@ use crate::world::{self, Era, node_of};
 use crate::{cows, gates, gifts, keys, pickups, scrubs, shops};
 
 mod exits;
+mod goal;
 
 pub type Place = (String, Era);
 
@@ -28,12 +29,6 @@ pub fn start_of(age: Era) -> Place {
     };
     (node.to_string(), age)
 }
-
-/// Where the seed is beaten: Ganondorf's stage.
-pub const GOAL: &Name = map::GANONDORF_STAGE;
-
-/// The trials aren't modelled, so the goal counts them done.
-const TRIALS: &str = "trials-done";
 
 /// What every Business Scrub wants before it sells.
 const STUN_SCRUB: &str = "stun-scrub";
@@ -79,7 +74,7 @@ pub struct World {
     pub sources: Vec<Source>,
     /// Obstacle counts by tool, per node.
     pub obstacles: BTreeMap<String, BTreeMap<String, usize>>,
-    /// Each exit into `GOAL`: its place and what it needs with the trials done.
+    /// Each exit into `GOAL`: its place and what it needs.
     goal: Vec<(usize, Need)>,
     /// Where the new file starts.
     start: Place,
@@ -391,26 +386,7 @@ impl World {
                 },
             });
         }
-        let trials = Ctx {
-            progressive: ctx.progressive,
-            lines: ctx.lines,
-            on: ctx.on.iter().cloned().chain([TRIALS.into()]).collect(),
-            seed: ctx.seed,
-            keys: ctx.keys,
-            fortress: ctx.fortress,
-            open: ctx.open.iter().filter(|o| *o != TRIALS).cloned().collect(),
-            doors: ctx.doors.clone(),
-            age: ctx.age,
-            adult_jabu: ctx.adult_jabu,
-        };
-        let mut goal = Vec::new();
-        for rule in book.exits.iter().filter(|r| r.to == GOAL) {
-            let need = book.need(&rule.expr, &trials)?;
-            for era in eras_of(&scan.places, &rule.from) {
-                goal.push((at(&rule.from, era)?, need.clone()));
-            }
-        }
-        ensure!(!goal.is_empty(), "no exit into {GOAL}");
+        let goal = goal::exits(book, ctx, scan, &at)?;
         Ok(Self {
             places,
             edges,
@@ -420,12 +396,6 @@ impl World {
             goal,
             start: start_of(ctx.age),
         })
-    }
-
-    /// Each exit into `GOAL`: its place and what it needs, the trials
-    /// counted done.
-    pub fn goal(&self) -> &[(usize, Need)] {
-        &self.goal
     }
 
     pub fn start(&self) -> usize {
@@ -535,15 +505,6 @@ impl World {
         reached.map(|(p, _)| p).collect()
     }
 
-    /// Whether Link reaches Ganondorf with `have`, the trials counted done.
-    pub fn beaten(&self, have: &Have) -> bool {
-        let seen = self.seen(have);
-        let era = |p: usize| self.places[p].1;
-        self.goal
-            .iter()
-            .any(|(p, need)| seen[*p] && need.met(have, era(*p)))
-    }
-
     /// Whether only a child (`Some(true)`) or only an adult can get the
     /// check at `hash`: the eras of its copies whose rule anything could
     /// meet there. `None` when both can, or logic can't tell.
@@ -598,7 +559,7 @@ fn switches(rule: &str, tools: &mut Tools) -> Result<String> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::exits::tests::shuffled;
     use super::*;
     use crate::entrances::Doors;
@@ -779,7 +740,7 @@ mod tests {
     }
 
     /// The vanilla world with `on` set, and a finder for its places.
-    fn world(romfs: &Romfs, on: &[&str]) -> World {
+    pub(super) fn world(romfs: &Romfs, on: &[&str]) -> World {
         let book = crate::rules::Book::load().unwrap();
         let new_game = crate::settings::NewGame {
             on: on.iter().map(|s| s.to_string()).collect(),
@@ -876,7 +837,7 @@ mod tests {
     }
 
     /// The edges from `from` to `to`, both as adult Link.
-    fn adult_edges<'a>(world: &'a World, from: &Name, to: &Name) -> Vec<&'a Edge> {
+    pub(super) fn adult_edges<'a>(world: &'a World, from: &Name, to: &Name) -> Vec<&'a Edge> {
         let at =
             |node: &Name| (world.places.iter()).position(|p| p == &(node.to_string(), Era::Adult));
         let (from, to) = (at(from), at(to));
