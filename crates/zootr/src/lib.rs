@@ -57,6 +57,7 @@ mod ice_traps;
 mod icons;
 pub mod inventory;
 pub mod items;
+mod jabu_mouth;
 pub mod kept;
 mod key_rooms;
 mod key_tints;
