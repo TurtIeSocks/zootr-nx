@@ -188,7 +188,7 @@ Changes to how Link plays. All start off.
 | Rainbow bridge | Vanilla raises the bridge once Zelda has given Link the Light Arrows. Six medallions raises it once he holds all six. Open has it standing from the start |
 | Ganon's trials | All six, or done: every barrier in Ganon's Castle down from the start |
 | Gerudo Fortress | Normal has Link free all four carpenters. Fast frees all four with the first. Freed starts with them free, the membership card in hand and the valley bridge up |
-| Quest progress | Start with a quest step done: Zelda met |
+| Met Zelda | Start with Zelda met: her letter in hand, her lullaby learned and Talon and Malon at the ranch. Impa's and Malon's checks come at the start |
 
 ### Inventory
 

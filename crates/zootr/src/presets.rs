@@ -55,14 +55,17 @@ impl Preset {
 /// Presets a new game takes unless turned off.
 pub const DEFAULT_ON: [&str; 4] = ["menus", "clock", "no-tutorials", "no-pickup-texts"];
 
-/// Zelda met and her lullaby learned, with the Door of Time quest at `door`.
-fn zelda(door: &str) -> Vec<String> {
-    let mut edits = lit(&[
-        &crate::steps::at(flow::GOTO_HYRULE_CASTLE, "Complete"),
-        &format!("IsGet.{}=true", item::MELODY_ZELDA_LULLABY),
-    ]);
-    edits.push(crate::steps::at(flow::DOOR_OF_TIME, door));
-    edits
+/// Met Zelda's edits: Zelda met and her lullaby learned, with the Door of
+/// Time quest at its second step. Her quest at its end puts Talon and
+/// Malon at the ranch, and the played flag of the scene where Link wakes
+/// Talon sends away the Talon asleep at the castle.
+pub(crate) fn met_zelda() -> Vec<String> {
+    vec![
+        crate::steps::at(flow::GOTO_HYRULE_CASTLE, "Complete"),
+        format!("IsGet.{}=true", item::MELODY_ZELDA_LULLABY),
+        crate::steps::at(flow::DOOR_OF_TIME, "Step02"),
+        format!("{}=true", flag::HAVE_PLAYED_EVENT_DM_HRL_CASTLE_0020),
+    ]
 }
 
 /// The guide pop-ups a menu page opens the first time it fills, all off.
@@ -247,7 +250,7 @@ fn deku_tree_clear() -> Vec<String> {
         .collect()
 }
 
-pub const PRESETS: [Preset; 11] = [
+pub const PRESETS: [Preset; 10] = [
     Preset {
         name: OPEN_FOREST,
         label: "Open Forest",
@@ -375,16 +378,6 @@ pub const PRESETS: [Preset; 11] = [
         // hash, so nothing in the data names it as the gate.
         edits: || all([flag::HYRULE_FIELD_ARRIVE_ENTRANCE], "true"),
         give: &[],
-        progress: &[],
-        fields: Vec::new,
-    },
-    Preset {
-        name: "zelda-done",
-        label: "Met Zelda",
-        what: "Child Zelda met and her lullaby learned, with her letter in hand",
-        place: place::QUEST,
-        edits: || zelda("Step02"),
-        give: &[item::ZELDA_LETTER],
         progress: &[],
         fields: Vec::new,
     },
@@ -541,7 +534,7 @@ pub fn apply(gd: &GameData, root: &mut Byml, edits: &[String]) -> Result<Vec<Str
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::{field, flag, flow, item};
+    use crate::known::{field, flag, flow};
     use ounce_formats::murmur3;
 
     #[test]
@@ -674,34 +667,31 @@ mod tests {
     }
 
     #[test]
-    fn quest_presets_land_on_their_step() {
-        needs_names!();
-        assert_eq!(
-            gives(&["zelda-done".into(), "open-forest".into()]).unwrap(),
-            [item::ZELDA_LETTER]
-        );
-        assert!(PRESETS.iter().any(|p| p.place == place::QUEST));
-    }
-
-    #[test]
     fn a_save_is_offered_only_presets_it_can_take() {
         let names: Vec<String> = for_saves().map(|p| p.name.into()).collect();
-        assert!(!names.is_empty() && !names.iter().any(|n| n == "zelda-done"));
+        assert!(!names.is_empty() && !names.iter().any(|n| n == "kakariko-gate"));
         assert!(for_save(&names, &[]).is_ok());
     }
 
     #[test]
-    fn a_save_refuses_presets_that_hand_over_items() {
-        let err = for_save(&["open-forest".into(), "zelda-done".into()], &[])
-            .unwrap_err()
-            .to_string();
-        assert!(
-            err.contains("zelda-done") && err.contains(&**item::ZELDA_LETTER),
-            "{err}"
-        );
-        let err = for_save(&["kakariko-gate".into()], &[]).unwrap_err();
+    fn a_save_refuses_presets_that_move_a_quest() {
+        let err = for_save(&["open-forest".into(), "kakariko-gate".into()], &[]).unwrap_err();
         assert!(err.to_string().contains("moves a quest on"), "{err}");
         assert!(for_save(&["nope".into()], &[]).is_err());
+    }
+
+    #[test]
+    fn met_zelda_sends_the_castle_talon_away() {
+        needs_names!();
+        let woken = format!("{}=true", flag::HAVE_PLAYED_EVENT_DM_HRL_CASTLE_0020);
+        assert!(met_zelda().contains(&woken));
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gd = GameData::load(&romfs).unwrap();
+        let mut doc =
+            ounce_formats::BymlDoc::parse(&romfs.read(crate::gamedata::PATH).unwrap()).unwrap();
+        apply(&gd, &mut doc.root, &met_zelda()).unwrap();
     }
 
     #[test]

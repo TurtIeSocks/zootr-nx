@@ -160,7 +160,7 @@ mod tests {
     }
 
     #[test]
-    fn the_old_door_and_carpenter_names_become_their_choices() {
+    fn the_old_preset_and_toggle_names_become_their_settings() {
         let settings = |extra: &[&str]| {
             let args = [&["zootr"], extra].concat();
             Flags::try_parse_from(args).unwrap().new_game.settings()
@@ -173,6 +173,18 @@ mod tests {
             settings(&["--setting", "door-of-time=closed"]),
             is("closed")
         );
+        let fortress = |v: &str| Settings::from([(settings::GERUDO_FORTRESS.into(), v.into())]);
+        let both = [
+            "--preset",
+            "carpenters-fast",
+            "--preset",
+            "carpenters-freed",
+        ];
+        assert_eq!(settings(&both), fortress("freed"));
+        assert_eq!(settings(&["--preset", "carpenters-fast"]), fortress("fast"));
+        assert_eq!(settings(&["--preset", "claim-check"]), Settings::new());
+        let met = Settings::from([(settings::MET_ZELDA.into(), true.into())]);
+        assert_eq!(settings(&["--preset", "zelda-done"]), met);
     }
 
     #[test]

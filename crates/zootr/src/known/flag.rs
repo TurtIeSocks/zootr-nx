@@ -77,6 +77,7 @@ pub const HAVE_PLAYED_EVENT_DM_FAIRY_FOUNTAIN_WISDOM: &Name = &n!(0x58a39ecda4aa
 pub const HAVE_PLAYED_EVENT_DM_GANON_CASTLE_0000: &Name = &n!(0x39fabb79107fd1be);
 pub const HAVE_PLAYED_EVENT_DM_GORON_0030: &Name = &n!(0x2297aa4da518f8ef);
 pub const HAVE_PLAYED_EVENT_DM_HRL_CASTLE_0005: &Name = &n!(0xff98bdd77999045e);
+pub const HAVE_PLAYED_EVENT_DM_HRL_CASTLE_0020: &Name = &n!(0xff9faed7799f098f);
 pub const HAVE_PLAYED_EVENT_DM_ZORA_0000: &Name = &n!(0x28433c989282028d);
 pub const HAVE_PLAYED_EVENT_DM_ZORA_0010: &Name = &n!(0x283fb698927ee904);
 pub const HAVE_READ_HRL_FIELD_NOTE11: &Name = &n!(0x89f3ad248e6d3fd0);

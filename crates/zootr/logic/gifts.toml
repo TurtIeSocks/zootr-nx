@@ -590,7 +590,8 @@ name = "Dampe's race: second prize"
 needs = "adult"
 
 # Talon's cucco game, in the ranch the game counts as Hyrule Field. He
-# runs it only once the cucco has woken him in the castle courtyard.
+# runs it only once the cucco has woken him in the castle courtyard, or
+# Met Zelda starts him woken.
 [[check]]
 hash = 14014730143884270499
 name = "Talon's cuccos"

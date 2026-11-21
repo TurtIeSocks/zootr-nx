@@ -174,6 +174,10 @@ impl NewGame {
                 GerudoFortress::Fast => crate::gerudo::fast(),
                 GerudoFortress::Freed => crate::gerudo::freed(),
             },
+            match on(MET_ZELDA) {
+                true => presets::met_zelda(),
+                false => vec![],
+            },
             edits.to_vec(),
         ]
         .concat();
@@ -239,14 +243,7 @@ impl NewGame {
             hints: on(HINTS),
             logic: chosen(settings, LOGIC),
             on: toggles_on(settings),
-            give: [
-                presets::gives(&picked)?,
-                match gerudo_fortress {
-                    GerudoFortress::Freed => vec![crate::gerudo::CARD.to_string()],
-                    GerudoFortress::Normal | GerudoFortress::Fast => vec![],
-                },
-            ]
-            .concat(),
+            give: presets::gives(&picked)?,
             progress: [
                 presets::progress(&picked)?,
                 match gerudo_fortress {

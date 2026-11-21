@@ -23,7 +23,7 @@ pub(crate) use later::scene_marks;
 pub use lines::lines;
 pub use lookup::*;
 pub use pedestal::gives as pedestal_gives;
-pub use pocket::pocket;
+pub use pocket::{pinned, pocket};
 pub use table::GIFTS;
 
 use cutscene::{cut, stay};

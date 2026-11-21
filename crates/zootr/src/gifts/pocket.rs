@@ -1,18 +1,56 @@
-//! Link's Pocket: with the Door of Time open, Rauru's scene never plays, so
-//! the opening gives his check, as Ship does.
+//! Checks the opening gives, for scenes a new game's settings never let
+//! play. Link's Pocket: with the Door of Time open, Rauru's scene never
+//! plays, so the opening gives his check, as Ship does. Met Zelda gives
+//! Zelda's letter, Impa's and Malon's checks the same way, and Gerudo
+//! Fortress Freed the membership card's.
 
 use super::*;
+use crate::settings::{FORTRESS_FREED, MET_ZELDA};
 use later::models;
 
-/// The check a new game with `on` gives in its opening.
-pub fn pocket(on: &BTreeSet<String>) -> Option<u64> {
-    GIFTS.iter().find(|g| g.pocket(on)).map(Gift::hash)
+/// The checks a new game with `on` gives in its opening.
+pub fn pocket(on: &BTreeSet<String>) -> BTreeSet<u64> {
+    GIFTS
+        .iter()
+        .filter(|g| g.pocket(on))
+        .map(Gift::hash)
+        .collect()
 }
 
+/// The checks a new game with `on` pins to their own item, by hash: the
+/// story items its settings start Link with, so the pool holds no second.
+pub fn pinned(on: &BTreeSet<String>) -> Vec<(u64, &'static str)> {
+    let pin = |flow: &Name, setting: &str| {
+        let gift = GIFTS.iter().find(|g| g.flow == flow)?;
+        on.contains(setting).then(|| (gift.hash(), gift.item.get()))
+    };
+    [(ZELDA, MET_ZELDA), (CARD, FORTRESS_FREED)]
+        .into_iter()
+        .filter_map(|(flow, setting)| pin(flow, setting))
+        .collect()
+}
+
+/// The scenes of Zelda's letter, Impa's lullaby, Malon's Weird Egg and the
+/// Gerudo membership card.
+const ZELDA: &Name = scene::HRL_CASTLE_0050;
+const IMPA: &Name = scene::MELODY_GET_ZELDA;
+const MALON: &Name = flow::GOTO_HYRULE_CASTLE;
+const CARD: &Name = scene::GERUDO_0025;
+
 impl Gift {
-    /// Whether it's Link's Pocket in a new game with `on`.
+    /// Whether the opening gives it in a new game with `on`. A pinned
+    /// check's is given dealt or not, as its scene never plays; Impa's and
+    /// Malon's only when dealt, as Met Zelda gives the lullaby and leaves
+    /// no need for the egg.
     pub(super) fn pocket(&self, on: &BTreeSet<String>) -> bool {
-        self.flow == RAURU && on.contains(DOOR_OPEN)
+        let met = on.contains(MET_ZELDA);
+        match self.flow {
+            f if f == RAURU => on.contains(DOOR_OPEN),
+            f if f == ZELDA => met,
+            f if f == IMPA || f == MALON => met && self.dealt(on),
+            f if f == CARD => on.contains(FORTRESS_FREED),
+            _ => false,
+        }
     }
 
     /// Where its grant moves when its scene can't play (`lost`) or comes
@@ -75,8 +113,33 @@ mod tests {
         assert!(rauru.dealt(&on(&[DUNGEON_REWARDS])));
         assert!(rauru.dealt(&on(&[DUNGEON_REWARDS, DOOR_OPEN])));
         assert!(!rauru.dealt(&on(&[])));
-        assert_eq!(pocket(&on(&[DOOR_OPEN])), Some(rauru.hash()));
-        assert_eq!(pocket(&on(&[DUNGEON_REWARDS])), None);
+        assert_eq!(pocket(&on(&[DOOR_OPEN])), [rauru.hash()].into());
+        assert_eq!(pocket(&on(&[DUNGEON_REWARDS])), BTreeSet::new());
+    }
+
+    fn hash_of(flow: &Name) -> u64 {
+        GIFTS.iter().find(|g| g.flow == flow).unwrap().hash()
+    }
+
+    #[test]
+    fn met_zelda_pockets_her_letter_and_the_dealt_impa_and_malon() {
+        let met = pocket(&on(&[MET_ZELDA]));
+        assert_eq!(met, [hash_of(ZELDA)].into());
+        let dealt = pocket(&on(&[MET_ZELDA, NPC_GIFTS, SONGS]));
+        let all = [ZELDA, IMPA, MALON].map(hash_of).into();
+        assert_eq!(dealt, all);
+        assert_eq!(pocket(&on(&[NPC_GIFTS, SONGS])), BTreeSet::new());
+        let letter = item::ZELDA_LETTER.get();
+        assert_eq!(pinned(&on(&[MET_ZELDA])), [(hash_of(ZELDA), letter)]);
+    }
+
+    #[test]
+    fn gerudo_fortress_freed_pockets_and_pins_the_card() {
+        let freed = on(&[FORTRESS_FREED, NPC_GIFTS]);
+        assert_eq!(pocket(&freed), [hash_of(CARD)].into());
+        let card = item::TOKEN_GERUDO.get();
+        assert_eq!(pinned(&freed), [(hash_of(CARD), card)]);
+        assert!(pinned(&on(&[crate::settings::FORTRESS_FAST])).is_empty());
     }
 
     #[test]
@@ -128,6 +191,29 @@ mod tests {
         assert!(granted_before_save(&undealt, item::MEDAL_LIGHT));
         let closed = opening(&[DUNGEON_REWARDS], Some(item::HOOKSHOT));
         assert!(closed.is_none_or(|f| !flows::render(&f).contains(item::HOOKSHOT.get())));
+    }
+
+    #[test]
+    fn met_zelda_grants_the_items_at_impa_s_and_malon_s_checks_before_the_save() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let all = Flows::load(&romfs).unwrap();
+        let drops = [
+            (hash_of(IMPA), Drop::from(item::HOOKSHOT.to_string())),
+            (hash_of(MALON), Drop::from(item::RANGE_BOW.to_string())),
+            (hash_of(ZELDA), Drop::from(item::ZELDA_LETTER.to_string())),
+        ]
+        .into();
+        let mut rewrites = Rewrites::default();
+        let on = on(&[MET_ZELDA, NPC_GIFTS, SONGS]);
+        let lines = crate::progressive::Lines::default();
+        give_all(&romfs, &all, &mut rewrites, &drops, lines, &on).unwrap();
+        let opening = flows::render(&written(&rewrites, starting::OPENING));
+        for got in [item::HOOKSHOT, item::RANGE_BOW, item::ZELDA_LETTER] {
+            assert!(opening.contains(got.get()), "{got}");
+        }
+        assert!(!opening.contains(item::WEIRD_EGG.get()));
     }
 
     #[test]

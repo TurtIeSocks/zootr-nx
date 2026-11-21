@@ -214,6 +214,7 @@ pub(crate) const DOOR_OF_TIME: &str = "door-of-time";
 pub(crate) const DOOR_OPEN: &str = "door-of-time=open";
 pub(crate) const STARTING_AGE: &str = "starting-age";
 pub(crate) const GERUDO_FORTRESS: &str = "gerudo-fortress";
+pub(crate) const MET_ZELDA: &str = "met-zelda";
 /// The rule words for [`GERUDO_FORTRESS`] Fast and Freed ([`value_word`]).
 pub(crate) const FORTRESS_FAST: &str = "gerudo-fortress=fast";
 pub(crate) const FORTRESS_FREED: &str = "gerudo-fortress=freed";
@@ -447,6 +448,12 @@ pub fn schema() -> Vec<SettingDef> {
             "Gerudo Fortress",
             "How the four carpenters in the Gerudo Fortress start. With Normal, Link frees all four, as in the game. With Fast, freeing any one frees all four and earns the membership card, and the other thieves still guard their cells. With Freed, all four are free from the start, with the membership card in hand, the guards standing down and the valley bridge up. Fortress Keys can't be used with Freed, since its thieves are already beaten",
             GerudoFortress::label,
+        )])
+        .chain([toggle(
+            MET_ZELDA,
+            place::RULES,
+            "Met Zelda",
+            "Link starts having met Zelda, with her letter in hand and her lullaby learned, and Talon and Malon back at Lon Lon Ranch. Her letter's check holds the letter, and whatever Impa's and Malon's checks hold comes at the start. The pool holds no second letter and no Weird Egg",
         )])
         .chain([choice(
             DOOR_OF_TIME,
@@ -741,7 +748,7 @@ mod tests {
         let is = |p: Place| (p.group, p.section);
         assert_eq!(at(CHEST_SIZE), is(place::COMFORT));
         assert_eq!(at("open-forest"), is(place::OPEN_AREAS));
-        assert_eq!(at("zelda-done"), is(place::QUEST));
+        assert_eq!(at(MET_ZELDA), is(place::RULES));
         assert_eq!(at(starting::SETTING), is(place::START));
         assert_eq!(at(SHOP_SLOTS), is(place::CHECKS));
         assert_eq!(at(ICE_TRAPS), is(place::CHECKS));
