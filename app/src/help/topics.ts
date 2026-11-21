@@ -12,12 +12,6 @@ export interface Topic {
  * target named, nothing on getting the game, and nothing the element
  * beside it already says. */
 export const TOPICS = {
-  status: {
-    title: "Ready to play",
-    body: [
-      "The game dump and each target. Red means zootr can't find it: click it to fix the path.",
-    ],
-  },
   "game-dump": {
     title: "Game dump",
     body: [
