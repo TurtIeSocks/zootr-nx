@@ -51,6 +51,10 @@ pub struct SettingDef {
     pub section_about: &'static str,
     /// Its section is a checklist: see [`Place::list`].
     pub list: bool,
+    /// Start inventory words a value gives outside the start inventory, as
+    /// `(value, words)`: a toggle's `on`, else an option's id. The grid
+    /// shows them locked: see [`GIVES`].
+    pub gives: Vec<(String, Vec<&'static str>)>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -304,6 +308,7 @@ fn toggle(
         section: place.section,
         section_about: place.about,
         list: place.list,
+        gives: Vec::new(),
     }
 }
 
@@ -721,6 +726,9 @@ pub fn schema() -> Vec<SettingDef> {
         .chain(named)
         .chain(areas)
         .collect::<Vec<_>>();
+    for d in &mut all {
+        d.gives = gives(d);
+    }
     // Stable, so each section keeps the order the chain gives it, bar
     // those `ORDER` lists.
     all.sort_by_key(|d| {
@@ -730,6 +738,34 @@ pub fn schema() -> Vec<SettingDef> {
         (section, ORDER.iter().position(|id| *id == d.id))
     });
     all
+}
+
+/// The items a setting's value starts Link with by its own path, not the
+/// start inventory, as rule word ([`value_word`], or a toggle's id) and
+/// start words: Met Zelda's letter and lullaby, and Gerudo Fortress
+/// Freed's membership card.
+const GIVES: [(&str, &[&str]); 2] = [
+    (MET_ZELDA, &["zeldas-letter", "zeldas-lullaby"]),
+    (FORTRESS_FREED, &["gerudo-card"]),
+];
+
+/// `def`'s [`SettingDef::gives`], from [`GIVES`].
+fn gives(def: &SettingDef) -> Vec<(String, Vec<&'static str>)> {
+    let values: Vec<String> = match &def.kind {
+        Kind::Toggle { .. } => vec![new_game::ON.into()],
+        Kind::Choice { options, .. } => options.iter().map(|o| o.id.clone()).collect(),
+        Kind::Inventory { .. } => vec![],
+    };
+    let word = |value: &str| match def.kind {
+        Kind::Toggle { .. } => def.id.clone(),
+        _ => value_word(&def.id, value),
+    };
+    (values.into_iter())
+        .filter_map(|v| {
+            let (_, words) = GIVES.iter().find(|(w, _)| *w == word(&v))?;
+            Some((v, words.to_vec()))
+        })
+        .collect()
 }
 
 /// The rows of the sections that mix presets and settings, or settings
@@ -759,6 +795,23 @@ mod tests {
         let mut groups: Vec<&str> = schema().iter().map(|d| d.group).collect();
         groups.dedup();
         assert_eq!(groups, GROUPS);
+    }
+
+    #[test]
+    fn met_zelda_and_freed_carpenters_give_their_items_locked() {
+        let gives = |id: &str| schema().into_iter().find(|d| d.id == id).unwrap().gives;
+        let met = vec![("on".to_owned(), vec!["zeldas-letter", "zeldas-lullaby"])];
+        assert_eq!(gives(MET_ZELDA), met);
+        let freed = vec![("freed".to_owned(), vec!["gerudo-card"])];
+        assert_eq!(gives(GERUDO_FORTRESS), freed);
+        let given: usize = schema().iter().map(|d| d.gives.len()).sum();
+        assert_eq!(given, GIVES.len());
+        for (_, words) in GIVES {
+            assert!(
+                words.iter().all(|w| starting::parse(w).is_ok()),
+                "{words:?}"
+            );
+        }
     }
 
     #[test]

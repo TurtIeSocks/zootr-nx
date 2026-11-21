@@ -284,7 +284,7 @@ pub(crate) fn toggles_on(settings: &Settings) -> BTreeSet<String> {
 }
 
 /// A toggle's value words.
-const ON: &str = "on";
+pub(super) const ON: &str = "on";
 const OFF: &str = "off";
 
 /// How rules name setting `id` holding `value`: `id=value`, a choice's

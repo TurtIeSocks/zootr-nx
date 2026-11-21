@@ -70,6 +70,10 @@ pub struct ItemsView {
     /// Whether a pending edit changes each cell.
     pub staged: Vec<bool>,
     pub status: Vec<StatusField>,
+    /// Which of the starting inventory's givers gives each cell, by index,
+    /// in `cells`' order: a setting's item a click leaves alone. Empty on
+    /// the Save page.
+    pub locked: Vec<Option<u32>>,
 }
 
 /// The Items tab for `opened`, read with the grid `inv`.
@@ -85,6 +89,7 @@ pub fn items(gd: &GameData, inv: &Inventory, pouch: &Pouch, opened: &Opened) -> 
             .map(|hs| hs.iter().any(|h| staged.contains(h)))
             .collect(),
         status: status(gd, pouch, &opened.edited),
+        locked: Vec::new(),
     }
 }
 

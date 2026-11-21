@@ -177,6 +177,22 @@ export const startForcers = (schema: SettingDef[], settings: Settings) =>
     return words.length > 0 ? [{ def, words }] : [];
   });
 
+/** Each setting whose value gives items by its own path, not the start
+ * inventory, with its name for the grid's lock ("Met Zelda", "Gerudo
+ * Fortress: Freed") and the start words it gives. */
+export const startGivers = (schema: SettingDef[], settings: Settings) =>
+  schema.flatMap((def) => {
+    const pick = chosen(def, settings);
+    const value =
+      def.kind.type === "toggle"
+        ? isOn(def, settings, schema) && "on"
+        : pick?.id;
+    const words = def.gives.find(([v]) => v === value)?.[1] ?? [];
+    if (words.length === 0) return [];
+    const name = pick ? `${def.label}: ${pick.label}` : def.label;
+    return [{ def, name, words }];
+  });
+
 /** `start` holding each of `words` at least once. */
 export function withForced(
   start: StartInventory,

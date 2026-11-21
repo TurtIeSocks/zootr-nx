@@ -79,6 +79,7 @@ function show(
       section: "Fake section",
       section_about: "Fake about",
       list: false,
+      gives: [],
     },
   ]);
   useConfig.setPath(

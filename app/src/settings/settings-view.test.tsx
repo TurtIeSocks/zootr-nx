@@ -42,6 +42,7 @@ const toggle = (
   section: "Fake section",
   section_about: "Fake about",
   list: false,
+  gives: [],
   ...patch,
 });
 
@@ -594,6 +595,7 @@ const startView = (tier: number) =>
       ],
       caps: [null],
       staged: [tier > 0],
+      locked: [],
       status: [
         {
           group: "Meters" as const,
@@ -663,6 +665,34 @@ test("a default starting inventory emptied saves as empty, not unset", async () 
     expect(saved(setConfig)).toEqual({ "start-inventory": {} }),
   );
   expect(click).toHaveBeenLastCalledWith({ hookshot: 1 }, 0, "down");
+});
+
+test("an item a setting gives shows locked, naming it, and a click does nothing", async () => {
+  const met = toggle("fake-met", "Met Fake", {
+    gives: [["on", ["hookshot"]]],
+  });
+  const load = vi
+    .spyOn(commands, "startItems")
+    .mockImplementation((_s, given) =>
+      startView(given.length).then((v) => ({
+        ...v,
+        data: { ...v.data, locked: given.length > 0 ? [0] : [null] },
+      })),
+    );
+  const click = vi.spyOn(commands, "startClick");
+  const setConfig = show({
+    defs: [met, inventory],
+    settings: { "fake-met": true },
+    section: "Inventory",
+  });
+  const tile = await screen.findByRole("button", {
+    name: "Hookshot, from Met Fake",
+  });
+  expect(load).toHaveBeenLastCalledWith({}, [["hookshot"]]);
+  fireEvent.click(tile);
+  fireEvent.contextMenu(tile);
+  expect(click).not.toHaveBeenCalled();
+  expect(setConfig).not.toHaveBeenCalled();
 });
 
 test("a Status field sets the starting inventory through the backend", async () => {

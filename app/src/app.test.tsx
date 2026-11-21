@@ -33,6 +33,7 @@ const toggle = (id: string, group: string): SettingDef => ({
   section: "Fake section",
   section_about: "Fake about",
   list: false,
+  gives: [],
 });
 
 const seed: Summary = {

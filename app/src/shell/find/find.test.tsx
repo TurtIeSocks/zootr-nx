@@ -33,6 +33,7 @@ const cows: SettingDef = {
   section: "Fake section",
   section_about: "",
   list: false,
+  gives: [],
 };
 
 /** The top bar, the settings page while it's open, and the search. */

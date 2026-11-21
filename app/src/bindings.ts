@@ -79,11 +79,10 @@ export const commands = {
 	saveClick: (slot: number, pending: Pending, at: number, intent: Intent) => typedError<Edit[], string>(__TAURI_INVOKE("save_click", { slot, pending, at, intent })),
 	/**
 	 *  The grid, caps and Status panel of a new game starting with `start`,
-	 *  for the settings' Inventory panel.
+	 *  for the settings' Inventory panel, with the words each setting in
+	 *  `given` gives shown held and locked.
 	 */
-	startItems: (start: StartInventory) => typedError<ItemsView, string>(__TAURI_INVOKE("start_items", { start })),
-	/**  `start` holding all of Link's gear too (`--start arsenal`). */
-	startArsenal: (start: StartInventory) => typedError<StartInventory, string>(__TAURI_INVOKE("start_arsenal", { start })),
+	startItems: (start: StartInventory, given: string[][]) => typedError<ItemsView, string>(__TAURI_INVOKE("start_items", { start, given })),
 	/**  `start` after a click on a grid cell. */
 	startClick: (start: StartInventory, at: number, intent: Intent) => typedError<StartInventory, string>(__TAURI_INVOKE("start_click", { start, at, intent })),
 	/**  `start` after a Status field's commit. */
@@ -609,6 +608,12 @@ export type ItemsView = {
 	/**  Whether a pending edit changes each cell. */
 	staged: boolean[],
 	status: StatusField[],
+	/**
+	 *  Which of the starting inventory's givers gives each cell, by index,
+	 *  in `cells`' order: a setting's item a click leaves alone. Empty on
+	 *  the Save page.
+	 */
+	locked: (number | null)[],
 };
 
 export type Kind = { type: "toggle"; default: boolean } | 
@@ -780,6 +785,12 @@ export type SettingDef = {
 	section_about: string,
 	/**  Its section is a checklist: see [`Place::list`]. */
 	list: boolean,
+	/**
+	 *  Start inventory words a value gives outside the start inventory, as
+	 *  `(value, words)`: a toggle's `on`, else an option's id. The grid
+	 *  shows them locked: see [`GIVES`].
+	 */
+	gives: ([string, string[]])[],
 };
 
 export type SettingsFile = {

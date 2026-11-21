@@ -83,6 +83,7 @@ function show(config: FullConfig) {
       section: "Fake section",
       section_about: "Fake about",
       list: false,
+      gives: [],
     },
   ]);
   useConfig.setPath("config", config);
