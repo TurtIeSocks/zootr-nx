@@ -1,18 +1,24 @@
 //! How a Bombchu Bag looks: its bomb bag's model painted the Bombchu's
-//! blue. The guard lets this file spell the files out, since they're
-//! extracted before a dump's names can be read.
+//! blue, and the Small's bomb drawn as a Bombchu. The guard lets this file
+//! spell the files out, since they're extracted before a dump's names can
+//! be read.
 
 use anyhow::Result;
-use ounce_formats::{ModBuilder, Romfs};
+use std::collections::BTreeMap;
+
+use ounce_formats::{
+    Lod, ModBuilder, Romfs, Vertex, bones, format, lods, pack, positions, redraw, rename,
+    replace_mesh_like, top_level, unpack,
+};
 
 use super::BOMB_BAGS;
 use crate::key_tints::paint::{Host, Look};
 use crate::known::Name;
-use crate::medallions::Colour;
+use crate::medallions::{Colour, model_path};
 
 /// The files [`LOOKS`] are made from, spelled out like
 /// [`crate::key_tints::FILES`]: extracted before a dump's names are read.
-pub const FILES: [&str; 18] = [
+pub const FILES: [&str; 31] = [
     "Model/Item_BombBag_Small.Item_BombBag_Small.bfres.zs",
     "Tex/Mt_Item_BombBag_Small_Alb.bntx.zs",
     "Tex/Mt_Item_BombBag_Small_AO.bntx.zs",
@@ -31,6 +37,19 @@ pub const FILES: [&str; 18] = [
     "Tex/Mt_Item_BombBag_Large_Mtl.bntx.zs",
     "Tex/Mt_Item_BombBag_Large_Nrm.bntx.zs",
     "Tex/Mt_Item_BombBag_Large_Rgh.bntx.zs",
+    "Model/Item_Bombchu.Item_Bombchu.bfres.zs",
+    "Tex/Mt_Obj_Bomb_AO.bntx.zs",
+    "Tex/Mt_Obj_Bomb_Alb.bntx.zs",
+    "Tex/Mt_Obj_Bomb_Emm.bntx.zs",
+    "Tex/Mt_Obj_Bomb_Mtl.bntx.zs",
+    "Tex/Mt_Obj_Bomb_Nrm.bntx.zs",
+    "Tex/Mt_Obj_Bomb_Rgh.bntx.zs",
+    "Tex/Mt_Item_Bombchu_AO.bntx.zs",
+    "Tex/Mt_Item_Bombchu_Alb.bntx.zs",
+    "Tex/Mt_Item_Bombchu_Emm.bntx.zs",
+    "Tex/Mt_Item_Bombchu_Mtl.bntx.zs",
+    "Tex/Mt_Item_Bombchu_Nrm.bntx.zs",
+    "Tex/Mt_Item_Bombchu_Rgh.bntx.zs",
 ];
 
 /// Each bag's look: its bomb bag's model and textures, the albedo in
@@ -61,20 +80,227 @@ pub(super) fn model(at: usize) -> String {
     LOOKS[at].name(at + 1)
 }
 
-/// Writes bag `at`'s painted model. Returns its name.
+/// Writes bag `at`'s painted model. Returns its name. The Small's bomb is
+/// a Bombchu (the maintainer's call, 2026-11-20): a bag of Bombchus
+/// showing a bomb read as a bomb bag.
 pub(super) fn paint(romfs: &Romfs, builder: &mut ModBuilder, at: usize) -> Result<String> {
-    Host::read(romfs, &LOOKS[at])?.paint(builder, at + 1, BLUE)
+    let host = Host::read(romfs, &LOOKS[at])?;
+    if at != 0 {
+        return host.paint(builder, at + 1, BLUE);
+    }
+    let name = model(at);
+    host.write_as(builder, &name, &chus(romfs, &host.model)?, BLUE, false)?;
+    for kind in KINDS {
+        let like = textures(BOMB, kind);
+        let bomb = romfs.read(&like)?;
+        let size = top_level(&bomb)?;
+        let chu = romfs.read(&textures(CHU_TEXTURES, kind))?;
+        let rgba = resample(&chu, size.width, size.height)?;
+        let copy = redraw(&rename(&bomb, BOMB, OURS)?, &rgba, |_, _| false)?;
+        builder.add(&textures(OURS, kind), &copy, &like)?;
+    }
+    Ok(name)
+}
+
+/// The Small bag's bomb and its cap, each drawn as a part of the Bombchu.
+const SWAPS: [(&str, &str); 2] = [
+    ("Bomb_2__Mt_Obj_Bomb", "Body__Mt_Item_Bombchu"),
+    ("Metal_1_1__Mt_Obj_Bomb_Metal", "Beard__Mt_Item_Bombchu_Mtl"),
+];
+const CHU: &str = "Item_Bombchu";
+/// The bomb's textures' prefix, and the copies' as long, so the bag's
+/// model names them in the same bytes. The copies are the bomb's files
+/// redrawn with the Bombchu's texels: its own are named longer.
+const BOMB: &str = "Mt_Obj_Bomb";
+const OURS: &str = "Mt_RandoChu";
+const CHU_TEXTURES: &str = "Mt_Item_Bombchu";
+const KINDS: [&str; 6] = ["AO", "Alb", "Emm", "Mtl", "Nrm", "Rgh"];
+/// How far the Bombchu's nose is raised out of the bag, in radians.
+const RAISE: f32 = 50.0 * std::f32::consts::PI / 180.0;
+
+fn textures(prefix: &str, kind: &str) -> String {
+    format!("Tex/{prefix}_{kind}.bntx.zs")
+}
+
+/// The Small bag's model `bag` with each bomb a Bombchu on its bone, nose
+/// raised and fitted to where the bomb and its fuse stood, drawn from
+/// textures named [`OURS`]. The bombs share one shape and one cap shape,
+/// each bomb's vertices on a bone of its own.
+fn chus(romfs: &Romfs, bag: &[u8]) -> Result<Vec<u8>> {
+    let chu = romfs.read(&model_path(CHU))?;
+    let parts = (SWAPS.iter())
+        .map(|(_, part)| lods(&chu, part))
+        .collect::<Result<Vec<_>>>()?;
+    let raised: Vec<[f32; 3]> = (parts.iter())
+        .flat_map(|p| p[0].vertices.iter().map(|v| raise(v.position)))
+        .collect();
+    let raised = bounds(&raised);
+    let mut bombs: BTreeMap<u32, Bomb> = BTreeMap::new();
+    for (s, (shape, _)) in SWAPS.iter().enumerate() {
+        let each = bones(bag, shape)?.into_iter().zip(positions(bag, shape)?);
+        for (k, (bone, p)) in each.enumerate() {
+            let (points, first) = bombs.entry(bone).or_default();
+            points.push(p);
+            first[s].get_or_insert(k);
+        }
+    }
+    let mut model = bag.to_vec();
+    for (s, ((shape, _), part)) in SWAPS.iter().zip(&parts).enumerate() {
+        let n = lods(&model, shape)?.len();
+        let mut levels = Vec::new();
+        let mut like = Vec::new();
+        for i in 0..n {
+            let mut level = Lod::default();
+            let mut from = Vec::new();
+            for (points, first) in bombs.values() {
+                let Some(k) = first[s] else { continue };
+                let one = Fit::new(&raised, &bounds(points)).lod(&part[i * part.len() / n]);
+                let base = level.vertices.len() as u16;
+                level.indices.extend(one.indices.iter().map(|x| x + base));
+                from.extend(std::iter::repeat_n(k, one.vertices.len()));
+                level.vertices.extend(one.vertices);
+            }
+            levels.push(level);
+            like.push(from);
+        }
+        model = replace_mesh_like(&model, shape, &levels, &like)?;
+    }
+    for kind in KINDS {
+        model = rename(&model, &format!("{BOMB}_{kind}"), &format!("{OURS}_{kind}"))?;
+    }
+    Ok(model)
+}
+
+/// One bomb: its points through both shapes, and its first vertex in each.
+type Bomb = (Vec<[f32; 3]>, [Option<usize>; 2]);
+
+fn raise(p: [f32; 3]) -> [f32; 3] {
+    let (sin, cos) = RAISE.sin_cos();
+    [p[0], p[1] * cos + p[2] * sin, p[2] * cos - p[1] * sin]
+}
+
+/// The lowest and highest corner of `points`.
+fn bounds(points: &[[f32; 3]]) -> ([f32; 3], [f32; 3]) {
+    let mut lo = [f32::MAX; 3];
+    let mut hi = [f32::MIN; 3];
+    for p in points {
+        for i in 0..3 {
+            lo[i] = lo[i].min(p[i]);
+            hi[i] = hi[i].max(p[i]);
+        }
+    }
+    (lo, hi)
+}
+
+/// Raised Bombchu space to the bomb's: as big as fits where the bomb
+/// stood, standing on its bottom, centred on it across.
+struct Fit {
+    scale: f32,
+    offset: [f32; 3],
+}
+
+impl Fit {
+    fn new((lo, hi): &([f32; 3], [f32; 3]), (to_lo, to_hi): &([f32; 3], [f32; 3])) -> Self {
+        let scale = (0..3)
+            .map(|i| (to_hi[i] - to_lo[i]) / (hi[i] - lo[i]))
+            .fold(f32::MAX, f32::min);
+        let mid = |l: f32, h: f32| (l + h) / 2.0;
+        let offset = [
+            mid(to_lo[0], to_hi[0]) - mid(lo[0], hi[0]) * scale,
+            to_lo[1] - lo[1] * scale,
+            mid(to_lo[2], to_hi[2]) - mid(lo[2], hi[2]) * scale,
+        ];
+        Self { scale, offset }
+    }
+
+    fn lod(&self, lod: &Lod) -> Lod {
+        let turn = |packed: u32| {
+            let [x, y, z, w] = unpack(packed);
+            let [x, y, z] = raise([x, y, z]);
+            pack([x, y, z, w])
+        };
+        let vertices = (lod.vertices.iter())
+            .map(|v| {
+                let p = raise(v.position);
+                Vertex {
+                    position: std::array::from_fn(|i| p[i] * self.scale + self.offset[i]),
+                    normal: turn(v.normal),
+                    tangent: turn(v.tangent),
+                    ..*v
+                }
+            })
+            .collect();
+        Lod {
+            vertices,
+            indices: lod.indices.clone(),
+        }
+    }
+}
+
+/// Texture file `data`'s first level, resampled to `w` by `h` (nearest),
+/// grey where it holds only red (BC4).
+fn resample(data: &[u8], w: usize, h: usize) -> Result<Vec<u8>> {
+    let top = top_level(data)?;
+    let red_only = format(data)? >> 8 == 0x1d;
+    let mut out = Vec::with_capacity(w * h * 4);
+    for y in 0..h {
+        for x in 0..w {
+            let (sx, sy) = (x * top.width / w, y * top.height / h);
+            let at = 4 * (sy * top.width + sx);
+            let mut px: [u8; 4] = top.rgba[at..at + 4].try_into()?;
+            if red_only {
+                px = [px[0], px[0], px[0], 255];
+            }
+            out.extend_from_slice(&px);
+        }
+    }
+    Ok(out)
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use super::*;
 
     #[test]
     fn the_extracted_files_are_the_looks() {
         needs_names!();
-        let files: Vec<_> = LOOKS.iter().flat_map(Look::files).collect();
+        let mut files: Vec<_> = LOOKS.iter().flat_map(Look::files).collect();
+        files.push(model_path(CHU));
+        for prefix in [BOMB, CHU_TEXTURES] {
+            files.extend(KINDS.map(|k| textures(prefix, k)));
+        }
         assert_eq!(files, FILES);
+    }
+
+    /// The Small's bomb and cap draw the Bombchu's body and beard, finest
+    /// level alike, inside where the bomb stood.
+    #[test]
+    fn the_small_bags_bomb_is_a_bombchu() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let bag = romfs.read(&model_path(LOOKS[0].host)).unwrap();
+        let chu = romfs.read(&model_path(CHU)).unwrap();
+        let ours = chus(&romfs, &bag).unwrap();
+        let (lo, hi) = bounds(&SWAPS.map(|(s, _)| positions(&bag, s).unwrap()).concat());
+        for (shape, part) in SWAPS {
+            let drawn = lods(&ours, shape).unwrap();
+            assert_eq!(drawn.len(), lods(&bag, shape).unwrap().len());
+            let bombs: BTreeSet<u32> = bones(&bag, shape).unwrap().into_iter().collect();
+            let one = lods(&chu, part).unwrap()[0].indices.len();
+            assert_eq!(drawn[0].indices.len(), one * bombs.len());
+            let drawn_bones: BTreeSet<u32> = bones(&ours, shape).unwrap().into_iter().collect();
+            assert_eq!(drawn_bones, bombs);
+            for p in positions(&ours, shape).unwrap() {
+                assert!(
+                    (0..3).all(|i| p[i] >= lo[i] - 0.01 && p[i] <= hi[i] + 0.01),
+                    "{p:?}"
+                );
+            }
+        }
+        assert!(ours.windows(OURS.len()).any(|w| w == OURS.as_bytes()));
     }
 
     /// A painted copy keeps every offset of its host's model.
