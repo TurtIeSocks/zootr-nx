@@ -10354,7 +10354,66 @@
       "at": [
         {
           "place": "deku-tree-child",
-          "rule": true
+          "rule": {
+            "any": [
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "setting": "bombchus=free"
+                          },
+                          {
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Magic Meter"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Din's Fire"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
         }
       ],
       "forbid": [],
