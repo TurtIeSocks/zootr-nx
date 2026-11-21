@@ -678,7 +678,7 @@ pub(super) enum SaveCommand {
     /// timestamped backup.
     Give {
         slot: String,
-        #[arg(required = true, value_name = "WORD[=N]", value_parser = starting::parse)]
+        #[arg(required = true, value_name = "WORD[=N]", value_parser = crate::starting::parse)]
         words: Vec<(String, i32)>,
     },
 }
