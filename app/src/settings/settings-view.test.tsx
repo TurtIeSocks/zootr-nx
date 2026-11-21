@@ -235,7 +235,7 @@ test("a changed setting can be reset, alone or with its group", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Reset Open forest" }));
   expect(saved(onChange)).toEqual({ "chest-size": "all small", other: 1 });
-  fireEvent.click(screen.getByRole("button", { name: "Reset to defaults" }));
+  fireEvent.click(screen.getByRole("button", { name: "Reset to Defaults" }));
   await waitFor(() => expect(saved(onChange)).toEqual({ other: 1 }));
   expect(screen.queryByRole("button", { name: "Reset Skip the intro" })).toBe(
     null,
@@ -334,7 +334,7 @@ test("the drift bar counts what differs from the last seed", () => {
   show({ seed: installed({}), settings: { "open-forest": true } });
   expect(screen.getByText("1 change since the last seed")).toBeTruthy();
   expect(
-    screen.getByRole("button", { name: "Generate & install" }),
+    screen.getByRole("button", { name: "Generate & Install" }),
   ).toBeTruthy();
 });
 
@@ -376,9 +376,9 @@ test("a checklist item shows the dot when it differs from the last seed", () => 
 /** The header action named `name`. */
 const action = (name: string | RegExp) => screen.getByRole("button", { name });
 
-test("Reset to defaults says why while nothing differs from them", () => {
+test("Reset to Defaults says why while nothing differs from them", () => {
   const onChange = show();
-  const reset = action("Reset to defaults");
+  const reset = action("Reset to Defaults");
   expect(reset.getAttribute("aria-disabled")).toBe("true");
   fireEvent.click(reset);
   expect(onChange).not.toHaveBeenCalled();
@@ -465,12 +465,12 @@ async function pickReset(name: RegExp) {
   fireEvent.click(await screen.findByRole("menuitem", { name }));
 }
 
-test("Reset to last seed puts the seed's values back, and leads after", async () => {
+test("Reset to Last Seed puts the seed's values back, and leads after", async () => {
   const setConfig = show({
     settings: { "open-forest": true, "chest-size": "all small" },
     seed: installed({ "chest-size": "all small", menus: true }),
   });
-  await pickReset(/Reset to last seed/);
+  await pickReset(/Reset to Last Seed/);
   await waitFor(() =>
     expect(saved(setConfig)).toEqual({
       "chest-size": "all small",
@@ -478,15 +478,15 @@ test("Reset to last seed puts the seed's values back, and leads after", async ()
     }),
   );
   expect(useUi.getState().settings.reset).toBe("seed");
-  expect(action(/^Reset to last seed/)).toBeTruthy();
+  expect(action(/^Reset to Last Seed/)).toBeTruthy();
 });
 
 test("with no seed built, the defaults lead, and the menu says why", async () => {
   useUi.setPath("settings.reset", "seed");
   show({ settings: { "open-forest": true } });
-  expect(action(/^Reset to defaults/).getAttribute("aria-disabled")).toBeNull();
+  expect(action(/^Reset to Defaults/).getAttribute("aria-disabled")).toBeNull();
   fireEvent.keyDown(action("More ways to reset"), { key: "Enter" });
-  const item = await screen.findByRole("menuitem", { name: /last seed/ });
+  const item = await screen.findByRole("menuitem", { name: /Last Seed/ });
   expect(item.textContent).toContain("No seed built yet");
 });
 
@@ -505,7 +505,7 @@ test("Review lists the changes and puts the base's settings back", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Review" }));
   fireEvent.click(
-    await screen.findByRole("button", { name: /Use the last seed's/ }),
+    await screen.findByRole("button", { name: /Use the Last Seed's/ }),
   );
   await waitFor(() =>
     expect(saved(onChange)).toEqual({ "chest-size": "all small" }),

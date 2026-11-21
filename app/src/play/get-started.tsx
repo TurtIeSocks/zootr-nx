@@ -29,12 +29,12 @@ export function GetStarted() {
       done: target,
       open: () => openSettings("targets"),
     },
-    { label: "Generate & install a seed", done: false },
+    { label: "Generate & Install a seed", done: false },
     { label: "Press Play and start a new file", done: false },
   ];
   return (
     <Card
-      title="Get started"
+      title="Get Started"
       action={
         <TipButton
           label="Dismiss"

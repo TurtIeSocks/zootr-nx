@@ -87,7 +87,7 @@ function Releases() {
         )}
         {status === "more" && (
           <Button variant="ghost" size="sm" onClick={() => setPages(pages + 1)}>
-            Load older releases
+            Load Older Releases
           </Button>
         )}
         {status === "end" && list.length === 0 && (
@@ -101,7 +101,7 @@ function Releases() {
               size="sm"
               onClick={() => setTries(tries + 1)}
             >
-              Try again
+              Try Again
             </Button>
           </div>
         )}
@@ -138,7 +138,7 @@ function ReleaseNotes({ release, newest }: ReleaseNotesProps) {
       lazy
     >
       <div className="pr-4 pb-4 pl-10">
-        <ReleaseLink href={release.url}>Release page</ReleaseLink>
+        <ReleaseLink href={release.url}>Release Page</ReleaseLink>
         <Notes md={release.notes} className="pt-1.5" />
       </div>
     </Disclosure>

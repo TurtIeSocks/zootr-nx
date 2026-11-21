@@ -133,7 +133,7 @@ function Saved() {
       <div className="p-4">
         <Field
           id="plando-saved"
-          label="Saved plandos"
+          label="Saved Plandos"
           hint="Picking one loads its pins below, replacing them. Save keeps the pins below under the name, replacing a saved plando with that name"
         >
           <Select
@@ -233,7 +233,7 @@ function ReplaceDialog({
     <Dialog open={picked !== null} onOpenChange={(o) => !o && onCancel()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Replace the unsaved pins?</DialogTitle>
+          <DialogTitle>Replace the Unsaved Pins?</DialogTitle>
           <DialogDescription>
             Loading {picked} replaces the {count(pins, "pin")} below. Save them
             first to keep them.
@@ -332,7 +332,7 @@ function AddRow({ options, loading }: AddRowProps) {
   return (
     <div className="flex flex-col gap-1.5">
       <p className="font-medium text-[13px] text-ink leading-[18px]">
-        Pin an item
+        Pin an Item
       </p>
       <div className="flex gap-2">
         <NameField

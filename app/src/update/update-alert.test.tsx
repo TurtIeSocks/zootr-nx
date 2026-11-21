@@ -42,7 +42,7 @@ afterEach(() => {
 });
 
 const open = () =>
-  fireEvent.click(screen.getByRole("button", { name: /Update available/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Update Available/ }));
 
 test("nothing shows without a newer release", () => {
   useUpdate.setState({ latest: null });
@@ -63,7 +63,7 @@ test("the popover shows the notes and opens the release page", () => {
   expect(screen.getByText("zootr-nx v0.2.0")).toBeTruthy();
   expect(screen.getByText("Published Nov 14, 2026")).toBeTruthy();
   expect(screen.getByRole("heading", { name: "What's Changed" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("link", { name: "Release page" }));
+  fireEvent.click(screen.getByRole("link", { name: "Release Page" }));
   expect(openUrl).toHaveBeenCalledWith(RELEASE.url);
   fireEvent.click(screen.getByRole("link", { name: "Changelog" }));
   expect(openUrl).toHaveBeenCalledWith(RELEASE.changelog);
@@ -76,12 +76,12 @@ test("a link in the notes opens in the browser", () => {
   expect(openUrl).toHaveBeenCalledWith("https://github.com/o/r/pull/12");
 });
 
-test("Skip this version hides it", () => {
+test("Skip This Version hides it", () => {
   render(<UpdateAlert />);
   open();
-  fireEvent.click(screen.getByRole("button", { name: "Skip this version" }));
+  fireEvent.click(screen.getByRole("button", { name: "Skip This Version" }));
   expect(useUi.getState().update.skipped).toBe("0.2.0");
-  expect(screen.queryByRole("button", { name: /Update available/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Update Available/ })).toBeNull();
 });
 
 /** Opens the popover and lets the updater check settle. */
@@ -92,16 +92,16 @@ const openSettled = async () => {
 };
 
 const installButton = () =>
-  screen.queryByRole("button", { name: "Install & restart" });
+  screen.queryByRole("button", { name: "Install & Restart" });
 
 test("no install without an update the updater can install", async () => {
   await openSettled();
   expect(installable).toHaveBeenCalledWith("0.2.0");
   expect(installButton()).toBeNull();
-  expect(screen.getByRole("link", { name: "Release page" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Release Page" })).toBeTruthy();
 });
 
-test("Install & restart installs the update", async () => {
+test("Install & Restart installs the update", async () => {
   vi.mocked(installable).mockResolvedValue(UPDATE);
   vi.mocked(install).mockReturnValue(new Promise(() => {}));
   await openSettled();
@@ -134,5 +134,5 @@ test("a failed install says so and keeps the release page", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Details" }));
   expect(screen.getByText("signature mismatch")).toBeTruthy();
   expect(installButton()).toHaveProperty("disabled", false);
-  expect(screen.getByRole("link", { name: "Release page" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Release Page" })).toBeTruthy();
 });

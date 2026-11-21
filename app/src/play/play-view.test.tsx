@@ -144,7 +144,7 @@ test("the Installed card leaves Spoiler Log, copy and edit to History", () => {
 test("the Uninstall button lives in New seed", () => {
   show(seed);
   expect(
-    card("New seed").getByRole("button", { name: "Uninstall" }),
+    card("New Seed").getByRole("button", { name: "Uninstall" }),
   ).toBeTruthy();
 });
 
@@ -152,7 +152,7 @@ test("an installed seed can be taken off for a vanilla run", async () => {
   const uninstall = vi.spyOn(commands, "uninstall").mockResolvedValue(ok);
   backend({ installed: null, entries: [seed] });
   show(seed);
-  fireEvent.click(card("New seed").getByRole("button", { name: "Uninstall" }));
+  fireEvent.click(card("New Seed").getByRole("button", { name: "Uninstall" }));
   await waitFor(() =>
     expect(card("Installed").getByText("Vanilla")).toBeTruthy(),
   );
@@ -194,7 +194,7 @@ test("Review lists the differences and puts the installed settings back", async 
   expect(await screen.findByText("Changed since FakeRun")).toBeTruthy();
   expect(screen.getByText("off")).toBeTruthy();
   expect(screen.getByText("on")).toBeTruthy();
-  fireEvent.click(button("Use the last seed's settings"));
+  fireEvent.click(button("Use the Last Seed's Settings"));
   await waitFor(() => expect(set).toHaveBeenCalled());
   expect(set.mock.calls[0]?.[0].settings).toEqual({});
 });
@@ -212,14 +212,14 @@ test("a share code shows its own settings and leaves the person's alone", async 
   });
   show(seed);
   act(() => useUi.setPath("newSeed.seed", "ZR1-FakeCode"));
-  expect(await screen.findByText("The code builds with")).toBeTruthy();
+  expect(await screen.findByText("The Code Builds With")).toBeTruthy();
   expect(read).toHaveBeenCalledWith("ZR1-FakeCode");
   expect(screen.queryByText(/Same as/)).toBeNull();
   const chip = within(button(/^g/)).getByText("X").parentElement;
   expect(chip?.dataset.mark).toBeUndefined();
   // Plando only: Test setup hides with developer tools off.
   expect(screen.getAllByText("Not in this code")).toHaveLength(1);
-  fireEvent.click(button("Clear code"));
+  fireEvent.click(button("Clear Code"));
   expect(useUi.getState().newSeed.seed).toBe("");
   expect(screen.getByText("Same as the last seed")).toBeTruthy();
 });
@@ -278,19 +278,19 @@ test("a seed built with a test setup carries a badge", () => {
 
 test("without developer tools the overview has no Test setup tile", () => {
   show(null, {}, { spawn: "Map/Spot" });
-  expect(screen.queryByRole("button", { name: /^Test setup/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Test Setup/ })).toBeNull();
   expect(button(/^Plando/)).toBeTruthy();
 });
 
 test("a stored test setup shows in the overview and opens from there", () => {
   show(null, {}, {}, [], true);
-  expect(within(button(/^Test setup/)).getByText("Off")).toBeTruthy();
+  expect(within(button(/^Test Setup/)).getByText("Off")).toBeTruthy();
   cleanup();
   show(null, {}, { spawn: "Map/Spot", give: ["Item_A"] }, [], true);
-  const tile = within(button(/^Test setup/));
+  const tile = within(button(/^Test Setup/));
   expect(tile.getByText("starts at Map/Spot")).toBeTruthy();
   expect(tile.getByText("1 item")).toBeTruthy();
-  fireEvent.click(button(/^Test setup/));
+  fireEvent.click(button(/^Test Setup/));
   expect(useUi.getState()).toMatchObject({ tab: "Settings", section: "test" });
 });
 
@@ -356,7 +356,7 @@ test("a pasted share code goes to Generate whole, a seed as digits", async () =>
   show(null);
   const box = screen.getByRole("textbox", { name: "Seed or share code" });
   fireEvent.change(box, { target: { value: " ZR1-ab_c-9 " } });
-  fireEvent.click(button("Generate & install"));
+  fireEvent.click(button("Generate & Install"));
   await waitFor(() =>
     expect(generate).toHaveBeenCalledWith(
       "ZR1-ab_c-9",
@@ -453,7 +453,7 @@ test("a poll that finds nothing new renders nothing", async () => {
   expect(commits).not.toHaveBeenCalled();
 });
 
-test("Generate only adds a seed to History while the game is open", async () => {
+test("Generate Only adds a seed to History while the game is open", async () => {
   mockIPC(() => {});
   const generate = vi.spyOn(commands, "generate").mockResolvedValue({
     status: "ok",
@@ -462,12 +462,12 @@ test("Generate only adds a seed to History while the game is open", async () => 
   backend({ installed: seed, entries: [seed] });
   show(null);
   act(() => useSeeds.setPath("blocked", "Close the game first"));
-  expect(button("Generate & install").getAttribute("aria-disabled")).toBe(
+  expect(button("Generate & Install").getAttribute("aria-disabled")).toBe(
     "true",
   );
   fireEvent.keyDown(button("More ways to generate"), { key: "Enter" });
   fireEvent.click(
-    await screen.findByRole("menuitem", { name: /Generate only/ }),
+    await screen.findByRole("menuitem", { name: /Generate Only/ }),
   );
   await waitFor(() =>
     expect(generate).toHaveBeenCalledWith(null, false, expect.anything()),
@@ -477,13 +477,13 @@ test("Generate only adds a seed to History while the game is open", async () => 
 test("a blocked Generate stays hoverable, says why, and generates nothing", () => {
   const generate = vi.spyOn(commands, "generate");
   show(null);
-  act(() => useSeeds.setPath("blocked", "Add a target first"));
-  const go = button("Generate & install");
+  act(() => useSeeds.setPath("blocked", "Add a Target first"));
+  const go = button("Generate & Install");
   expect(go.getAttribute("aria-disabled")).toBe("true");
   expect(go.disabled).toBe(false);
   fireEvent.click(go);
   expect(generate).not.toHaveBeenCalled();
-  expect(card("New seed").getByText("Add a target first")).toBeTruthy();
+  expect(card("New Seed").getByText("Add a Target first")).toBeTruthy();
 });
 
 test("Standard, Archipelago and History each open their folder", () => {
@@ -493,10 +493,10 @@ test("Standard, Archipelago and History each open their folder", () => {
     "Archipelago",
     "History1",
   ]);
-  expect(screen.getByRole("heading", { name: "New seed" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "New Seed" })).toBeTruthy();
   openTab("History");
   expect(screen.getByRole("heading", { name: "History" })).toBeTruthy();
-  expect(screen.queryByRole("heading", { name: "New seed" })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "New Seed" })).toBeNull();
   expect(useUi.getState().play.tab).toBe("history");
 });
 
@@ -533,7 +533,7 @@ test("an installed AP slot is named by its slot, badged, and shows its room", ()
   expect(hero.getByText("FakeSlot")).toBeTruthy();
   expect(hero.getByText("Archipelago")).toBeTruthy();
   expect(hero.getByRole("status").textContent).toContain("No room yet");
-  fireEvent.click(hero.getByRole("button", { name: "Set up room" }));
+  fireEvent.click(hero.getByRole("button", { name: "Set Up Room" }));
   expect(screen.getByRole("tab", { selected: true }).textContent).toBe(
     "Archipelago",
   );

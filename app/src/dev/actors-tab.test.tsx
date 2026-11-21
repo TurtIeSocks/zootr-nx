@@ -178,7 +178,7 @@ test("a chip's × shows its actor, and Show all shows the rest", async () => {
   );
   expect(devHide).toHaveBeenLastCalledWith(["1"], false);
 
-  fireEvent.click(screen.getByRole("button", { name: "Show all" }));
+  fireEvent.click(screen.getByRole("button", { name: "Show All" }));
   await vi.waitFor(() =>
     expect(screen.queryByRole("list", { name: "Hidden actors" })).toBeNull(),
   );
@@ -321,9 +321,9 @@ test("a hidden row is struck through, and the list says when it was read", async
   );
 });
 
-test("All in map lists the map's placements, each a warp away", async () => {
+test("All in Map lists the map's placements, each a warp away", async () => {
   render(liveActors);
-  fireEvent.click(screen.getByRole("button", { name: "All in map" }));
+  fireEvent.click(screen.getByRole("button", { name: "All in Map" }));
   const all = await screen.findByRole("list", {
     name: "Actors in FakeHill_Child",
   });

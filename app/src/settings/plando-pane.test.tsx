@@ -194,7 +194,7 @@ test("loading over unsaved pins asks first", async () => {
     }),
   );
   pick("B");
-  expect(await screen.findByText("Replace the unsaved pins?")).toBeTruthy();
+  expect(await screen.findByText("Replace the Unsaved Pins?")).toBeTruthy();
   fireEvent.click(button("Cancel"));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(setConfig).not.toHaveBeenCalled();

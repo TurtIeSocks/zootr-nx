@@ -18,7 +18,7 @@ import { useUi } from "@/stores/ui";
 /** Warp's tabs. */
 const TABS: { id: "places" | "actors"; label: string }[] = [
   { id: "places", label: "Places" },
-  { id: "actors", label: "Actors in map" },
+  { id: "actors", label: "Actors in Map" },
 ];
 
 /** Teleport to an arrival point, or warp beside an actor of the map. */

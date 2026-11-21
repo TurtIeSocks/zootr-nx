@@ -56,7 +56,7 @@ function InstallButton({ update, progress, running, go }: InstallState) {
       why={running && CLOSE_GAME}
       onClick={go}
     >
-      {progress ? "Installing…" : "Install & restart"}
+      {progress ? "Installing…" : "Install & Restart"}
     </WhyButton>
   );
 }
@@ -115,7 +115,7 @@ function ReleaseCard({ release, onSkip }: ReleaseCardProps) {
         </div>
         <div className="flex flex-col items-end gap-0.5 text-ink-faint text-xs">
           <ReleaseLink href={release.changelog}>Changelog</ReleaseLink>
-          <ReleaseLink href={release.url}>Release page</ReleaseLink>
+          <ReleaseLink href={release.url}>Release Page</ReleaseLink>
         </div>
       </div>
       <Notes md={release.notes} className="max-h-80 overflow-auto px-4 py-5" />
@@ -123,7 +123,7 @@ function ReleaseCard({ release, onSkip }: ReleaseCardProps) {
         <div className="flex justify-between gap-2">
           <Tip tip="Hides this version until the next release">
             <Button size="sm" variant="ghost" onClick={onSkip}>
-              Skip this version
+              Skip This Version
             </Button>
           </Tip>
           <InstallButton {...install} />
@@ -146,7 +146,7 @@ export function UpdateAlert() {
       <PopoverTrigger asChild>
         <Button variant="soft" size="sm" className="w-full justify-start">
           <CircleArrowUp className="size-3.5" />
-          Update available
+          Update Available
           <span className="ml-auto font-mono">v{latest.version}</span>
         </Button>
       </PopoverTrigger>

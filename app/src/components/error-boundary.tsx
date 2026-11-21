@@ -97,14 +97,14 @@ function CrashNotice({
       </pre>
       <div className="flex gap-2">
         <Button size="sm" onClick={onRetry}>
-          Try again
+          Try Again
         </Button>
         <Button
           size="sm"
           variant="secondary"
           onClick={() => void navigator.clipboard?.writeText(details)}
         >
-          Copy details
+          Copy Details
         </Button>
       </div>
     </div>

@@ -201,7 +201,7 @@ function StatusPills() {
   return (
     <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
       <StatusPill found={status.game} onClick={() => openSettings("settings")}>
-        {status.game ? "Game dump" : "Game dump missing"}
+        {status.game ? "Game Dump" : "Game Dump Missing"}
       </StatusPill>
       {status.targets.map((t) => (
         <StatusPill

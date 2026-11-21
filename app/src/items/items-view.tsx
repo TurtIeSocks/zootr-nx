@@ -28,7 +28,7 @@ const SIZES: { id: IconSize; label: string }[] = (
   ["Small", "Medium", "Large"] as const
 ).map((s) => ({ id: s, label: s }));
 
-/** The Items tab: the grid, its options and the Pop out button. */
+/** The Items tab: the grid, its options and the Pop Out button. */
 export function ItemsView() {
   const [loaded] = useItems.usePath("loaded");
   const [error] = useItems.usePath("error");
@@ -112,7 +112,7 @@ function PopOutButton() {
           onClick={() => popOut.run(() => call(commands.itemsPopOut()))}
         >
           <ExternalLink />
-          Pop out
+          Pop Out
         </Button>
         <Help topic="items" />
       </div>

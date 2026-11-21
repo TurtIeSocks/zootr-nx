@@ -71,7 +71,7 @@ export function SlotList({ rows }: SlotListProps) {
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAsking(undefined)}>
-              Keep editing
+              Keep Editing
             </Button>
             <Button
               onClick={() => {
@@ -79,7 +79,7 @@ export function SlotList({ rows }: SlotListProps) {
                 setAsking(undefined);
               }}
             >
-              Discard and switch
+              Discard and Switch
             </Button>
           </DialogFooter>
         </DialogContent>

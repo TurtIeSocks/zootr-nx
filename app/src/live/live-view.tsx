@@ -90,7 +90,7 @@ function SourceNote() {
       {on && s?.source === "Saves" && <Badge variant="info">Autosaves</Badge>}
       {on && unsaved !== "" && (
         <Tip focusable tip={unsaved}>
-          <Badge variant="danger">Not saved to a file</Badge>
+          <Badge variant="danger">Not Saved to a File</Badge>
         </Tip>
       )}
       {reason && (
@@ -186,7 +186,7 @@ function TypesMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto">
-        <DropdownMenuLabel>Show these types</DropdownMenuLabel>
+        <DropdownMenuLabel>Show These Types</DropdownMenuLabel>
         {kinds.map((kind) => (
           <DropdownMenuCheckboxItem
             key={kind}

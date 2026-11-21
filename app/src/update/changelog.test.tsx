@@ -47,11 +47,11 @@ test("the changelog fetches nothing until opened, then a page at a time", async 
   expect(older.getAttribute("aria-expanded")).toBe("false");
   fireEvent.click(older);
   expect(screen.getByText("notes for 0.19.0")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Load older releases" }));
+  fireEvent.click(screen.getByRole("button", { name: "Load Older Releases" }));
   expect(await screen.findByRole("button", { name: /v0\.9\.0/ })).toBeTruthy();
   expect(fetch).toHaveBeenCalledTimes(2);
   expect(
-    screen.queryByRole("button", { name: "Load older releases" }),
+    screen.queryByRole("button", { name: "Load Older Releases" }),
   ).toBeNull();
 });
 
@@ -73,7 +73,7 @@ test("a failed fetch can be tried again", async () => {
   render(<ChangelogButton />);
   fireEvent.click(screen.getByRole("button", { name: "Changelog" }));
   await screen.findByText(/Couldn't reach GitHub/);
-  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
   expect(await screen.findByText("notes for 0.20.0")).toBeTruthy();
   expect(screen.queryByText(/Couldn't reach GitHub/)).toBeNull();
   expect(fetch).toHaveBeenCalledTimes(2);

@@ -340,11 +340,11 @@ test("switching slots with edits pending asks first", async () => {
   await waitFor(() => expect(useUi.getPath("save.edits")).toHaveLength(1));
   fireEvent.click(screen.getByRole("radio", { name: /Slot 0/ }));
   expect(await screen.findByText("Discard 1 change?")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
+  fireEvent.click(screen.getByRole("button", { name: "Keep Editing" }));
   expect(useUi.getPath("save.slot")).toBe(2);
   fireEvent.click(screen.getByRole("radio", { name: /Slot 0/ }));
   fireEvent.click(
-    await screen.findByRole("button", { name: "Discard and switch" }),
+    await screen.findByRole("button", { name: "Discard and Switch" }),
   );
   expect(useUi.getPath("save.slot")).toBe(0);
   expect(useUi.getPath("save.edits")).toEqual([]);

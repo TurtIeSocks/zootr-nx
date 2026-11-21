@@ -24,7 +24,7 @@ import { generateTyped } from "@/play/generate";
 import { stepName, stopGenerate, useSeeds } from "@/stores/seeds";
 import { fix } from "@/stores/shell";
 
-/** Generate & install, with Generate only behind its chevron, the same
+/** Generate & Install, with Generate only behind its chevron, the same
  * shape as Play. While a seed generates, it shows the step and turns into
  * Stop on hover. */
 export function GenerateButton() {
@@ -48,14 +48,14 @@ export function GenerateButton() {
           <Way
             install
             icon={Sparkles}
-            label="Generate & install"
+            label="Generate & Install"
             line="Builds it and installs it to every target"
             keys={`${MOD}↵`}
           />
           <Way
             install={false}
             icon={ListPlus}
-            label="Generate only"
+            label="Generate Only"
             line="Adds it to History without installing"
             keys={`⇧${MOD}↵`}
           />
@@ -80,7 +80,7 @@ function Install() {
       onClick={() => generateTyped(true, blocked)}
     >
       {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-      Generate & install
+      Generate & Install
     </WhyButton>
   );
 }

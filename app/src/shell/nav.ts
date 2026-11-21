@@ -68,7 +68,7 @@ export type Section = string;
 export const APP_PANES: [Section, string, LucideIcon][] = [
   ["settings", "Settings", Settings],
   ["targets", "Targets", MonitorPlay],
-  ["test", "Test setup", FlaskConical],
+  ["test", "Test Setup", FlaskConical],
 ];
 
 /** The randomizer's own panes, after the schema's groups. */
@@ -93,7 +93,7 @@ export const ownPane = (section: Section) =>
 /** Groups the schema has, or may grow. Any other group gets `Settings2`. */
 const GROUP_ICONS: Record<string, LucideIcon> = {
   Enhancements: SlidersHorizontal,
-  "Logic & access": Route,
+  "Logic & Access": Route,
   Inventory: Package,
   Shuffles: Shuffle,
   Dungeons: Castle,

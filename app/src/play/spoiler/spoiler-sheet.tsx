@@ -37,7 +37,7 @@ import { useUi } from "@/stores/ui";
 const TABS: { id: SpoilerTab; label: string }[] = [
   { id: "spheres", label: "Spheres" },
   { id: "hero", label: "Way of the Hero" },
-  { id: "checks", label: "All checks" },
+  { id: "checks", label: "All Checks" },
 ];
 
 /** The tab a seed with shuffled doors adds. */
@@ -189,7 +189,7 @@ function TabBar() {
             checked={heroOnly}
             onCheckedChange={(on) => setHeroOnly(on === true)}
           />
-          Way of the Hero only
+          Way of the Hero Only
         </label>
       )}
     </div>

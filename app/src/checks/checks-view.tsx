@@ -168,7 +168,7 @@ function MarkMenu({ row }: RowProps) {
         )}
         {row.mark && (
           <DropdownMenuItem onSelect={() => setMark(null)}>
-            Clear mark
+            Clear Mark
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

@@ -32,7 +32,7 @@ pub type Settings = BTreeMap<String, Value>;
 /// The settings panels, by name.
 pub mod group {
     /// How items are placed, and what stands open from the start.
-    pub const LOGIC: &str = "Logic & access";
+    pub const LOGIC: &str = "Logic & Access";
     /// Which places become checks, and what the pool holds.
     pub const SHUFFLES: &str = "Shuffles";
     /// What a dungeon or its boss gives, and its keys.
@@ -93,12 +93,12 @@ pub mod place {
     );
     pub const OPEN_AREAS: Place = rows(
         group::LOGIC,
-        "Open areas",
+        "Open Areas",
         "What stands open from the start",
     );
     pub const QUEST: Place = list(
         group::LOGIC,
-        "Quest progress",
+        "Quest Progress",
         "Story steps a new game starts with done",
     );
     pub const CHECKS: Place = rows(
@@ -113,7 +113,7 @@ pub mod place {
     );
     pub const ITEM_POOL: Place = rows(
         group::SHUFFLES,
-        "Item pool",
+        "Item Pool",
         "Items that join the pool or change how it gives them",
     );
     pub const HINTS: Place = rows(group::SHUFFLES, "Hints", "What gossip stones tell Link");
@@ -145,13 +145,13 @@ pub mod place {
     );
     pub const CUTSCENE_AREAS: Place = list(
         group::ENHANCEMENTS,
-        "Cutscenes by area",
+        "Cutscenes by Area",
         "Every cutscene in an area that only plays, changing nothing",
     );
     /// The grid, which draws on its own rather than as a section.
     pub const START: Place = rows(
         group::INVENTORY,
-        "Starting inventory",
+        "Starting Inventory",
         "What a new game starts with",
     );
 
@@ -465,13 +465,13 @@ pub fn schema() -> Vec<SettingDef> {
         default_on(cutscene(
             SKIP_INTRO.into(),
             place::CUTSCENES,
-            "Skip the intro",
+            "Skip the Intro",
             "A new game starts with Link in control, without the opening movie and Navi's wake-up",
         )),
         cutscene(
             SKIP_SARIA.into(),
             place::CUTSCENES,
-            "Skip Saria's greeting",
+            "Skip Saria's Greeting",
             "Link leaves his house without the forest pan or Saria running up to greet him",
         ),
         cutscene(
@@ -483,13 +483,13 @@ pub fn schema() -> Vec<SettingDef> {
         cutscene(
             SKIP_GREAT_DEKU.into(),
             place::CUTSCENES,
-            "Skip meeting the Great Deku Tree",
+            "Skip Meeting the Great Deku Tree",
             "His mouth is open from the start, and the forest quest is where his talk leaves it",
         ),
         default_on(cutscene(
             SKIP_ARRIVALS.into(),
             place::CUTSCENES,
-            "Skip area intros",
+            "Skip Area Intros",
             "Reaching an area for the first time skips its camera pan. Any quest step the arrival sets still happens",
         )),
     ];
@@ -500,7 +500,7 @@ pub fn schema() -> Vec<SettingDef> {
         ..toggle(
             starting::SETTING,
             place::START,
-            "Starting inventory",
+            "Starting Inventory",
             "What a new game starts with. Each item leaves the shuffle, and wherever it was found holds a Blue Rupee instead",
         )
     };
@@ -530,21 +530,21 @@ pub fn schema() -> Vec<SettingDef> {
         .chain([choice(
             ICE_TRAPS,
             place::CHECKS,
-            "Ice traps",
+            "Ice Traps",
             "Swaps junk (rupees, ammo, recovery hearts) for ice traps. Each looks like an item logic needs until Link gets it, then says FOOL! and freezes him",
             IceTraps::label,
         )])
         .chain([choice(
             CHEST_SIZE,
             place::COMFORT,
-            "Chest size",
+            "Chest Size",
             "All small makes every chest a small one, which opens without the big chest's long animation. What a chest holds doesn't change",
             ChestSize::label,
         )])
         .chain([default_on(toggle(
             SHUFFLE_ITEMS,
             place::CHECKS,
-            "Shuffle items",
+            "Shuffle Items",
             "Every check gives a shuffled item. Off, each gives what it always does, though a starting item's spot still holds a Blue Rupee",
         ))])
         .chain([default_on(toggle(
@@ -557,7 +557,7 @@ pub fn schema() -> Vec<SettingDef> {
             choice(
                 STARTING_AGE,
                 place::RULES,
-                "Starting age",
+                "Starting Age",
                 "How old Link is on a new file. Adult wakes in the Temple of Time with the Master Sword, and opens the Door of Time and the forest, so he can go back to child and walk out. Random rolls one from the seed",
                 StartingAge::label,
             ),
@@ -572,32 +572,32 @@ pub fn schema() -> Vec<SettingDef> {
         .chain([default_on(toggle(
                 SCRUBS,
                 place::CHECKS,
-                "Business scrubs",
+                "Business Scrubs",
                 "Every Business Scrub outside the Dream World sells a check once. Scrubs that sold ammo on repeat sell their one item and leave",
             ))])
         .chain([requires(SCRUBS, choice(
             SCRUB_PRICE,
             place::CHECKS,
-            "Scrub price",
+            "Scrub Price",
             "What every Business Scrub asks for its check, with Business scrubs on",
             ScrubPrice::label,
         ))])
         .chain([toggle(
                 NPC_GIFTS,
                 place::CHECKS,
-                "NPC gifts",
+                "NPC Gifts",
                 "What people hand over becomes a check: their gifts, minigame prizes, the House of Skulltula's rewards and the Great Fairies' upgrades",
             )])
         .chain([requires(NPC_GIFTS, toggle(
                 HUNDRED_TOKENS,
                 place::CHECKS,
-                "100-token reward",
+                "100-Token Reward",
                 "With NPC gifts on, the House of Skulltula's reward for all 100 tokens is a check too. Off, it pays its Gold Rupee as always, and logic never sends Link for all 100",
             ))])
         .chain([toggle(
                 DUNGEON_REWARDS,
                 place::REWARDS,
-                "Dungeon rewards",
+                "Dungeon Rewards",
                 "The Spiritual Stones and five medallions become checks, given by the scene after each boss. Light stays with Rauru",
             )])
         .chain([toggle(
@@ -609,7 +609,7 @@ pub fn schema() -> Vec<SettingDef> {
         .chain([toggle(
             MAPS_COMPASSES,
             place::REWARDS,
-            "Maps and compasses",
+            "Maps and Compasses",
             "Each dungeon's map and compass turn up in a random chest of that dungeon. Keys stay where they are",
         )])
         .chain([choice(
@@ -622,7 +622,7 @@ pub fn schema() -> Vec<SettingDef> {
         .chain([choice(
             FORTRESS_KEYS,
             place::KEYS,
-            "Fortress keys",
+            "Fortress Keys",
             "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks. Can't be used with Carpenters freed, since its thieves are already beaten",
             FortressKeys::label,
         )])
@@ -630,7 +630,7 @@ pub fn schema() -> Vec<SettingDef> {
             choice(
                 DUNGEON_ENTRANCES,
                 place::ENTRANCES,
-                "Dungeon entrances",
+                "Dungeon Entrances",
                 "Each dungeon's front door leads into another dungeon, and its way out leads back to that door. On swaps the eleven dungeons. With Ganon's Castle, its door joins them, and Ganondorf waits wherever it leads. A door keeps what it needs to open, whatever is behind it. The Deku Tree lets adult Link in, and blue warps lead where they always do at Link's own age",
                 DungeonEntrances::label,
             ),
@@ -645,14 +645,14 @@ pub fn schema() -> Vec<SettingDef> {
         .chain([requires(SHOPS, choice(
             SHOP_SLOTS,
             place::CHECKS,
-            "Shop slots",
+            "Shop Slots",
             "How many slots of each shop sell a check with Shopsanity on. The rest sell what they always did",
             ShopSlots::label,
         ))])
         .chain([toggle(
             FREESTANDING,
             place::CHECKS,
-            "Freestanding heart pieces",
+            "Freestanding Heart Pieces",
             "The fourteen heart pieces lying out in the world are checks. One that holds something else shows it, spinning where the piece was",
         )])
         .chain([toggle(
@@ -670,7 +670,7 @@ pub fn schema() -> Vec<SettingDef> {
         .chain([toggle(
             TRADE_CHAIN,
             place::CHECKS,
-            "Adult trade quest",
+            "Adult Trade Quest",
             "Each trade on the way to Biggoron's sword becomes a check, from Anju's Pocket Egg to Biggoron's Claim Check, and the ten trade items join the pool. Showing an item to the one who wants it gives that check, whatever order Link finds them in. Grog or Fado waits at the stump by which item Link holds. The Pocket Cucco still hatches from the egg",
         )])
         .chain([toggle(
@@ -682,7 +682,7 @@ pub fn schema() -> Vec<SettingDef> {
         .chain([toggle(
             RUNNING_RACE,
             place::CHECKS,
-            "Running man's race",
+            "Running Man's Race",
             "The running man's prize for Link's first win becomes a check. Later wins still pay a Red Rupee. Logic expects it only with Carpenters freed, since he offers the race once the valley bridge is fixed",
         )])
         .chain([toggle(
@@ -694,7 +694,7 @@ pub fn schema() -> Vec<SettingDef> {
         .chain([toggle(
             BOSS_HEARTS,
             place::REWARDS,
-            "Boss heart containers",
+            "Boss Heart Containers",
             "The heart container each of the eight bosses leaves behind is a check",
         )])
         .chain([
@@ -732,7 +732,7 @@ pub fn schema() -> Vec<SettingDef> {
         .chain([default_on(toggle(
                 PROGRESSIVE,
                 place::ITEM_POOL,
-                "Progressive items",
+                "Progressive Items",
                 "Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size",
             ))])
         .chain([choice(
@@ -746,13 +746,13 @@ pub fn schema() -> Vec<SettingDef> {
             toggle(
                 SHUFFLE_NUT_BAG,
                 place::ITEM_POOL,
-                "Shuffle the nut bag",
+                "Shuffle the Nut Bag",
                 "The Small Nut Bag is an item in the pool, and Link holds no Deku Nuts until he finds it. Off, the first nut he picks up brings it, as in the game",
             ),
             toggle(
                 SHUFFLE_STICK_BAG,
                 place::ITEM_POOL,
-                "Shuffle the stick bag",
+                "Shuffle the Stick Bag",
                 "The Small Stick Bag is an item in the pool, and Link holds no Deku Sticks until he finds it. Off, the first stick he picks up brings it, as in the game",
             ),
         ])
@@ -765,50 +765,50 @@ pub fn schema() -> Vec<SettingDef> {
         .chain([toggle(
             QUIET_ENEMIES,
             place::COMFORT,
-            "Quiet enemies",
+            "Quiet Enemies",
             "Enemies never show, so nothing grabs Link or knocks him back. Gold Skulltulas, scrubs, Big Poes, the Skull Kid and enemies that are checks stay. For the play harness's seeds",
         )])
         .chain([toggle(
             BUNNY_HOOD,
             place::GAMEPLAY,
-            "Bunny Hood speed",
+            "Bunny Hood Speed",
             "Link runs half again as fast while he wears the Bunny Hood",
         )])
         .chain([toggle(
             DAY_SKULLTULAS,
             place::GAMEPLAY,
-            "Gold Skulltulas by day",
+            "Gold Skulltulas by Day",
             "Gold Skulltulas that only come out at night show at any hour",
         )])
         .chain([toggle(
             AGELESS_WEAPONS,
             place::GAMEPLAY,
-            "One-handed swords and shields for both ages",
+            "One-Handed Swords and Shields for Both Ages",
             "Child and adult Link can each wield every one-handed sword and every shield, and logic expects them to. Biggoron's Sword and the Giant's Knife stay adult Link's, and only he can aim the Mirror Shield at light",
         )])
         .chain([toggle(
             MAGIC_WITH_FIRST_ITEM,
             place::ITEM_POOL,
-            "Magic comes with the first magic item",
+            "Magic Comes with the First Magic Item",
             "The first spell, magic arrow, Lens of Truth or Improved Spin Link finds turns the magic meter on, as in the game. Off, only a Magic Meter or Doubled Magic does, and a Magic Meter joins the pool",
         )])
         .chain([toggle(
             BRIDGE_MEDALLIONS,
             place::RULES,
-            "Bridge at six medallions",
+            "Bridge at Six Medallions",
             "The rainbow bridge to Ganon's Castle rises once Link holds all six medallions, without the Light Arrows from Zelda first",
         )])
         .chain([toggle(
             HINTS,
             place::HINTS,
-            "Gossip stone hints",
+            "Gossip Stone Hints",
             "Each gossip stone names where an item Link needs is hidden, without the Mask of Truth or any small talk",
         )])
         .chain([start])
         .chain([toggle(
             SKIP_ALL,
             place::CUTSCENES,
-            "Skip all cutscenes",
+            "Skip All Cutscenes",
             "Turns on every skip below. Cutscenes that give an item, set a flag or move Link still play",
         )])
         .chain(named)

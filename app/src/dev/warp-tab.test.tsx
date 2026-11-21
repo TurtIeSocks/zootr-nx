@@ -112,9 +112,9 @@ test("a warp that works heads Recent, with no repeats and at most five", async (
   expect(useUi.getPath("dev.recent.places")).toEqual(before);
 });
 
-test("Actors in map lists the map's actors, and search narrows them", async () => {
+test("Actors in Map lists the map's actors, and search narrows them", async () => {
   await renderReady();
-  fireEvent.click(screen.getByRole("button", { name: "Actors in map" }));
+  fireEvent.click(screen.getByRole("button", { name: "Actors in Map" }));
   const list = await screen.findByRole("list", {
     name: "Actors in FakeHill_Child",
   });
@@ -131,7 +131,7 @@ test("Actors in map lists the map's actors, and search narrows them", async () =
 
 test("a click on an actor warps to the picked side", async () => {
   await renderReady();
-  fireEvent.click(screen.getByRole("button", { name: "Actors in map" }));
+  fireEvent.click(screen.getByRole("button", { name: "Actors in Map" }));
   const npc = await screen.findByRole("button", { name: "Npc_A" });
   fireEvent.click(screen.getByRole("button", { name: "Back" }));
   fireEvent.click(npc);
@@ -155,7 +155,7 @@ test("the picked tabs and searches are kept in the view", async () => {
   fireEvent.change(screen.getByRole("textbox", { name: "Search places" }), {
     target: { value: "gate" },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Actors in map" }));
+  fireEvent.click(screen.getByRole("button", { name: "Actors in Map" }));
   fireEvent.click(screen.getByRole("tab", { name: "Tests" }));
   cleanup();
   render(<DevWindow />);

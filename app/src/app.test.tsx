@@ -267,7 +267,7 @@ test("each schema group is an item, marked when it holds changes", () => {
   expect(within(item(/^Checks/)).getByText("41/112")).toBeTruthy();
   expect(within(item(/^General/)).getByLabelText("changed")).toBeTruthy();
   expect(within(item(/^Cutscenes/)).queryByLabelText("changed")).toBeNull();
-  expect(within(item(/^Test setup/)).getByText("On")).toBeTruthy();
+  expect(within(item(/^Test Setup/)).getByText("On")).toBeTruthy();
   fireEvent.click(within(nav).getByRole("button", { name: /^Cutscenes/ }));
   expect(useUi.getState()).toMatchObject({
     tab: "Settings",
@@ -278,7 +278,7 @@ test("each schema group is an item, marked when it holds changes", () => {
 test("without developer tools the sidebar has no Test setup or dev panel", () => {
   useConfig.setPath("config.dev_tools", false);
   sidebar();
-  expect(nav().queryByRole("button", { name: /^Test setup/ })).toBeNull();
+  expect(nav().queryByRole("button", { name: /^Test Setup/ })).toBeNull();
   expect(nav().queryByRole("button", { name: /^Dev panel/ })).toBeNull();
 });
 
@@ -318,15 +318,15 @@ test("a first launch shows the welcome, and Skip lands on Play for good", async 
   expect(useUi.getState().tab).toBe("Play");
   cleanup();
   render(<App />);
-  expect(await screen.findByText("Get started")).toBeTruthy();
+  expect(await screen.findByText("Get Started")).toBeTruthy();
   expect(screen.queryByRole("heading", welcome)).toBeNull();
 });
 
 test("Play shows Get started with no seed installed, ticking what's done", async () => {
   render(<App />);
-  expect(await screen.findByText("Get started")).toBeTruthy();
+  expect(await screen.findByText("Get Started")).toBeTruthy();
   // The mock's status has a dump, and the config a target.
   expect(screen.getAllByLabelText("done")).toHaveLength(2);
   fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
-  expect(screen.queryByText("Get started")).toBeNull();
+  expect(screen.queryByText("Get Started")).toBeNull();
 });

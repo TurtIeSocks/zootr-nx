@@ -32,14 +32,14 @@ test("a view that throws shows what broke instead of a blank window", () => {
   expect(alert.textContent).toContain("spots is null");
 });
 
-test("Try again draws the view again", () => {
+test("Try Again draws the view again", () => {
   render(
     <ErrorBoundary label="Spoiler">
       <Fragile />
     </ErrorBoundary>,
   );
   broken = false;
-  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
   expect(screen.getByText("Fine now")).toBeTruthy();
 });
 
@@ -59,7 +59,7 @@ test("moving to another view clears the problem", () => {
   expect(screen.getByText("Fine now")).toBeTruthy();
 });
 
-test("Copy details puts the error on the clipboard", async () => {
+test("Copy Details puts the error on the clipboard", async () => {
   const writeText = vi.fn(() => Promise.resolve());
   Object.assign(navigator, { clipboard: { writeText } });
   render(
@@ -67,7 +67,7 @@ test("Copy details puts the error on the clipboard", async () => {
       <Fragile />
     </ErrorBoundary>,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Copy details" }));
+  fireEvent.click(screen.getByRole("button", { name: "Copy Details" }));
   expect(writeText).toHaveBeenCalledWith(
     expect.stringContaining("Spoiler: Error: spots is null"),
   );

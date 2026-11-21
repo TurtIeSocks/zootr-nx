@@ -35,14 +35,14 @@ test("a running step spins beside the finished ones", () => {
   expect(screen.getByText("Reading checks")).toBeTruthy();
   expect(label("Running")).toBeTruthy();
   expect(screen.queryByText("Building logic")).toBeNull();
-  expect(screen.queryByText("Copy log")).toBeNull();
+  expect(screen.queryByText("Copy Log")).toBeNull();
 });
 
 test("a finished run is one line until Details opens its steps", () => {
   show({ ...running, end: { kind: "done" }, secs: 5.3 }, false);
   expect(screen.getByText(/Generated in 5.3 s/)).toBeTruthy();
   expect(screen.queryByText("Reading the dump")).toBeNull();
-  expect(screen.getByText("Copy log")).toBeTruthy();
+  expect(screen.getByText("Copy Log")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Details" }));
   expect(screen.getByText("Reading the dump")).toBeTruthy();
 });
@@ -52,7 +52,7 @@ test("a failed run marks the step it failed in", () => {
   show({ ...running, end: error }, false);
   expect(label("Failed")).toBeTruthy();
   expect(label("Running")).toBeNull();
-  expect(screen.getByText("Copy log")).toBeTruthy();
+  expect(screen.getByText("Copy Log")).toBeTruthy();
 });
 
 test("a stopped run says what the targets hold", () => {
@@ -60,7 +60,7 @@ test("a stopped run says what the targets hold", () => {
   const stopped = "Stopped: the targets are as they were";
   show({ ...running, end, stopped }, false);
   expect(screen.getByText(stopped)).toBeTruthy();
-  expect(screen.getByText("Copy log")).toBeTruthy();
+  expect(screen.getByText("Copy Log")).toBeTruthy();
 });
 
 test("a finished rebuild says so and has no log to copy", () => {
@@ -69,6 +69,6 @@ test("a finished rebuild says so and has no log to copy", () => {
   const rebuilt = rows.reduce(stepped, { rows: [], end: null, secs: 0 });
   show({ ...rebuilt, end: { kind: "done" }, secs: 840 }, false);
   expect(screen.getByText(/Rebuilt in 840.0 s/)).toBeTruthy();
-  expect(screen.queryByText("Copy log")).toBeNull();
+  expect(screen.queryByText("Copy Log")).toBeNull();
   useSeeds.setPath("rebuilt", null);
 });

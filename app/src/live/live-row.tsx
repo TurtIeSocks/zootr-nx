@@ -304,7 +304,7 @@ function RowName({ row }: RowNameProps) {
     <>
       {row.save && (
         <span className="mr-1.5 rounded-xs bg-surface-sunken px-1 text-ink-muted">
-          save
+          Save
         </span>
       )}
       {c.name}

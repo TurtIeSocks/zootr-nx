@@ -22,7 +22,7 @@ export function NewSeed() {
   return (
     <>
       <CardHeader
-        title="New seed"
+        title="New Seed"
         help="seed"
         description="Built from your current settings, or a share code's, and installed to every target"
       />
