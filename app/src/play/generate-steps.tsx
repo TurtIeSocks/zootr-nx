@@ -146,7 +146,7 @@ function CopyLog() {
   };
   return (
     <button type="button" className={`${linkClass} ml-auto`} onClick={copy}>
-      {copied ? "Copied" : "Copy log"}
+      {copied ? "Copied" : "Copy Log"}
     </button>
   );
 }

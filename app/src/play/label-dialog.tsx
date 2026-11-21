@@ -25,7 +25,7 @@ export function LabelDialog() {
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Label seed</DialogTitle>
+          <DialogTitle>Label Seed</DialogTitle>
           <DialogDescription>
             Seed <span className="font-mono text-ink">{entry?.seed}</span>
           </DialogDescription>

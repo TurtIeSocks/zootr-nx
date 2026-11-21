@@ -23,10 +23,10 @@ const BADGES: Record<
   Kind,
   { label: string; variant: "green" | "gold" | "danger" }
 > = {
-  current: { label: "Build current", variant: "green" },
-  stale: { label: "Needs a rebuild", variant: "gold" },
-  refused: { label: "Build refused", variant: "danger" },
-  unrecorded: { label: "Build too old", variant: "gold" },
+  current: { label: "Build Current", variant: "green" },
+  stale: { label: "Needs a Rebuild", variant: "gold" },
+  refused: { label: "Build Refused", variant: "danger" },
+  unrecorded: { label: "Build Too Old", variant: "gold" },
 };
 
 /** `text`, saying how to rebuild `byHand` before its details. */

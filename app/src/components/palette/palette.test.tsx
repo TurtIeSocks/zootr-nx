@@ -185,7 +185,7 @@ test("a row shows its trail, its title and its line, every word bolded", () => {
     <Harness
       items={[
         item("x", "a", {
-          title: "Mod folder",
+          title: "Mod Folder",
           trail: ["App", "Targets"],
           body: "Check this folder first",
         }),
@@ -193,9 +193,9 @@ test("a row shows its trail, its title and its line, every word bolded", () => {
     />,
   );
   type("folder app");
-  const row = screen.getByRole("button", { name: /Mod folder/ });
+  const row = screen.getByRole("button", { name: /Mod Folder/ });
   expect(row.textContent).toBe(
-    "App › Targets › Mod folderCheck this folder first",
+    "App › Targets › Mod FolderCheck this folder first",
   );
   expect(
     within(row)

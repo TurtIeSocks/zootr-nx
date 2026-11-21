@@ -49,7 +49,7 @@ test("Done waits for a dump and a target, then saves the target on Play", async 
   render(<Welcome />);
   type("Name", "PC");
   type("App", "/a.app");
-  type("Mod folder", "/m");
+  type("Mod Folder", "/m");
   expect(held()).toBe(true);
 
   useConfig.setPath("config.game", "/oot.nup");

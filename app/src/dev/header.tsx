@@ -93,7 +93,7 @@ function Where() {
             Loading
           </Badge>
         ) : (
-          state.event && <Badge variant="gold">Event playing</Badge>
+          state.event && <Badge variant="gold">Event Playing</Badge>
         )}
       </p>
     </div>

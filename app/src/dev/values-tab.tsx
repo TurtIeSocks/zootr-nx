@@ -48,7 +48,7 @@ function GameDataCard({ value: shown }: { value: Shown }) {
               <dd className="type-mono break-all">
                 {value.info.default ?? "—"}
               </dd>
-              <dt className="text-ink-faint">Game holds</dt>
+              <dt className="text-ink-faint">Game Holds</dt>
               <dd className="type-mono break-all">{value.live ?? "—"}</dd>
             </>
           )}
@@ -95,7 +95,7 @@ function Formula({ expr }: { expr: string }) {
   });
   return (
     <DevCard
-      title="Worked out, not stored"
+      title="Worked Out, Not Stored"
       icon={Sigma}
       meta="set the values in it"
     >
@@ -168,7 +168,7 @@ function SavedStep({ name }: { name: string }) {
           openTab("give");
         }}
       >
-        Move the quest
+        Move the Quest
       </button>
     </p>
   );
@@ -215,7 +215,7 @@ function ValueSelect() {
 
   return (
     <NameField
-      label="GameData name"
+      label="GameData Name"
       names={names}
       value={name}
       onChange={setName}

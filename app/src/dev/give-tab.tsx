@@ -143,7 +143,7 @@ function QuestStepCard() {
 
   return (
     <DevCard
-      title="Quest step"
+      title="Quest Step"
       icon={Signpost}
       meta="through the game's quest system"
     >
@@ -207,7 +207,7 @@ function SavedCopy({ challenge, round }: { challenge: string; round: number }) {
 
   return (
     <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 text-[12.5px]">
-      <dt className="text-ink-faint">Saved copy</dt>
+      <dt className="text-ink-faint">Saved Copy</dt>
       <dd className="type-mono truncate">
         {name} = {held?.name === name ? held.text : "…"}
       </dd>

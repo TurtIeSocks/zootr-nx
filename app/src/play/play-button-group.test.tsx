@@ -97,10 +97,10 @@ test("Play on a stale target asks first, and Play anyway starts it", () => {
   show("FakeOne");
   fireEvent.click(screen.getByRole("button", { name: "Play FakeOne" }));
   expect(screen.getByText("Rebuild FakeOne first?")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Rebuild and play" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Rebuild and Play" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
   expect(play).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Play anyway" }));
+  fireEvent.click(screen.getByRole("button", { name: "Play Anyway" }));
   expect(play).toHaveBeenCalledWith("FakeOne");
   expect(screen.queryByText("Rebuild FakeOne first?")).toBeNull();
 });
@@ -140,11 +140,11 @@ function rebuildAndPlay(
   });
   show("FakeOne");
   fireEvent.click(screen.getByRole("button", { name: "Play FakeOne" }));
-  fireEvent.click(screen.getByRole("button", { name: "Rebuild and play" }));
+  fireEvent.click(screen.getByRole("button", { name: "Rebuild and Play" }));
   return play;
 }
 
-test("Rebuild and play starts the game once the build is current", async () => {
+test("Rebuild and Play starts the game once the build is current", async () => {
   const play = rebuildAndPlay({ status: "ok", data: null });
   await waitFor(() => expect(play).toHaveBeenCalledWith("FakeOne"));
   expect(commands.rebuild).toHaveBeenCalledWith("FakeOne", expect.anything());

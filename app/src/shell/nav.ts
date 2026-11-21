@@ -20,6 +20,7 @@ import {
   Shuffle,
   SlidersHorizontal,
   Sparkles,
+  Swords,
 } from "lucide-react";
 
 import type { PlayTab } from "@/stores/ui";
@@ -28,7 +29,10 @@ import type { PlayTab } from "@/stores/ui";
 export type Tab = "Play" | "Save" | "Checks" | "Items" | "Live" | "Spoiler";
 
 /** A tab's name where it isn't its id. */
-const TAB_LABELS: Partial<Record<Tab, string>> = { Save: "Save Editor" };
+const TAB_LABELS: Partial<Record<Tab, string>> = {
+  Save: "Save Editor",
+  Spoiler: "Spoiler Log",
+};
 
 /** What the sidebar and breadcrumb call `tab`. */
 export const tabLabel = (tab: Tab) => TAB_LABELS[tab] ?? tab;
@@ -44,12 +48,12 @@ export const PLAY_FOLDERS: Record<
   PlayTab,
   { label: string; icon: LucideIcon }
 > = {
-  standard: { label: "Standard", icon: Sparkles },
+  standard: { label: "Standard", icon: Swords },
   archipelago: { label: "Archipelago", icon: Globe },
   history: { label: "History", icon: History },
 };
 
-/** The installed seed's views, under Current run. */
+/** The installed seed's views, under Installed Seed. */
 export const RUN_TABS: [Tab, LucideIcon][] = [
   ["Checks", ListChecks],
   ["Items", Backpack],
@@ -64,7 +68,7 @@ export type Section = string;
 export const APP_PANES: [Section, string, LucideIcon][] = [
   ["settings", "Settings", Settings],
   ["targets", "Targets", MonitorPlay],
-  ["test", "Test setup", FlaskConical],
+  ["test", "Test Setup", FlaskConical],
 ];
 
 /** The randomizer's own panes, after the schema's groups. */
@@ -89,7 +93,7 @@ export const ownPane = (section: Section) =>
 /** Groups the schema has, or may grow. Any other group gets `Settings2`. */
 const GROUP_ICONS: Record<string, LucideIcon> = {
   Enhancements: SlidersHorizontal,
-  "Logic & access": Route,
+  "Logic & Access": Route,
   Inventory: Package,
   Shuffles: Shuffle,
   Dungeons: Castle,

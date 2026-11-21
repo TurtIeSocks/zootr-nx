@@ -34,8 +34,8 @@ export function DriftReview({ children, side }: DriftReviewProps) {
   const from = useDriftFrom();
   const restore =
     from === DEFAULTS_FROM
-      ? "Use the default settings"
-      : `Use ${from}'s settings`;
+      ? "Use the Default Settings"
+      : "Use the Last Seed's Settings";
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>

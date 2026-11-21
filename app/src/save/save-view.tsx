@@ -33,7 +33,7 @@ import { useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
 
 const TABS: { id: SaveTab; label: string }[] = [
-  { id: "items", label: "Items" },
+  { id: "items", label: "Inventory" },
   { id: "flags", label: "Flags" },
   { id: "presets", label: "Presets" },
 ];

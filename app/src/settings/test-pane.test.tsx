@@ -91,7 +91,7 @@ test("saves a spawn, known items, flags and goals as the test setup", async () =
   await waitFor(() =>
     expect(screen.getByPlaceholderText("an item's name")).toBeTruthy(),
   );
-  expect(screen.queryByRole("button", { name: "Save setup" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Save Setup" })).toBeNull();
   type("Spawn", "FakeGrave_Child/Spot_A");
   type("Near", " Npc_A ");
   fireEvent.click(button("Back"));
@@ -100,13 +100,13 @@ test("saves a spawn, known items, flags and goals as the test setup", async () =
   expect(button("Add item").disabled).toBe(true);
   type("Items", "Item_A");
   fireEvent.click(button("Add item"));
-  add("New-game flags", "flag", "A=1");
-  add("New-game flags", "flag", " B=2 ");
-  add("Quest steps", "quest step", "FakeSage=Step02");
-  add("Quest steps", "quest step", "FakeCastle=Step02");
+  add("New-Game Flags", "flag", "A=1");
+  add("New-Game Flags", "flag", " B=2 ");
+  add("Quest Steps", "quest step", "FakeSage=Step02");
+  add("Quest Steps", "quest step", "FakeCastle=Step02");
   add("Goals", "goal", "C=true");
   type("Expect", " a lens ");
-  fireEvent.click(button("Save setup"));
+  fireEvent.click(button("Save Setup"));
   expect(onChange).toHaveBeenCalledWith({
     ...full({}),
     test: {
@@ -132,6 +132,8 @@ test("the bar floats only while the form differs, and Discard puts the saved set
   expect(screen.queryByText("Unsaved changes to the test setup")).toBeNull();
   fireEvent.click(button("Remove Item_B"));
   fireEvent.click(button("Discard"));
+  expect(screen.queryByText("Item_B")).toBeNull();
+  fireEvent.click(button("Really discard?"));
   expect(screen.getByText("Item_B")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Discard" })).toBeNull();
 });
@@ -139,9 +141,9 @@ test("the bar floats only while the form differs, and Discard puts the saved set
 test("the bar goes once the setup is saved", async () => {
   show();
   type("Spawn", "FakeGrave_Child/Spot_A");
-  fireEvent.click(button("Save setup"));
+  fireEvent.click(button("Save Setup"));
   await waitFor(() =>
-    expect(screen.queryByRole("button", { name: "Save setup" })).toBeNull(),
+    expect(screen.queryByRole("button", { name: "Save Setup" })).toBeNull(),
   );
 });
 
@@ -149,14 +151,16 @@ test("quest steps alone make a setup that clears and saves", async () => {
   const config = full({ test: { progress: ["FakeSage=Step02"] } });
   const onChange = show(config);
   fireEvent.click(button("Remove FakeSage=Step02"));
-  add("Quest steps", "quest step", "FakeCastle=Step02");
-  fireEvent.click(button("Save setup"));
+  add("Quest Steps", "quest step", "FakeCastle=Step02");
+  fireEvent.click(button("Save Setup"));
   expect(onChange).toHaveBeenLastCalledWith({
     ...config,
     test: { ...config.test, progress: ["FakeCastle=Step02"] },
   });
   await waitFor(() => expect(button("Clear").disabled).toBe(false));
   fireEvent.click(button("Clear"));
+  expect(onChange).not.toHaveBeenLastCalledWith({ ...config, test: NO_TEST });
+  fireEvent.click(button("Really clear?"));
   expect(onChange).toHaveBeenLastCalledWith({ ...config, test: NO_TEST });
   expect(screen.queryByText("FakeCastle=Step02")).toBeNull();
 });
@@ -166,8 +170,8 @@ test("a known quest offers its steps, starting at a new game's", async () => {
   await waitFor(() =>
     expect(screen.getByPlaceholderText("an item's name")).toBeTruthy(),
   );
-  type("Quest steps", "FakeSage");
-  const select = () => screen.getByLabelText("Quest steps value");
+  type("Quest Steps", "FakeSage");
+  const select = () => screen.getByLabelText("Quest Steps value");
   await waitFor(() => expect(select().tagName).toBe("SELECT"));
   const step = select() as HTMLSelectElement;
   // Pinned like the text field it replaces, so the name keeps the row.
@@ -176,7 +180,7 @@ test("a known quest offers its steps, starting at a new game's", async () => {
   fireEvent.change(step, { target: { value: "Step02" } });
   fireEvent.click(button("Add quest step"));
   expect(screen.getByText("FakeSage=Step02")).toBeTruthy();
-  type("Quest steps", "NoSuchQuest");
+  type("Quest Steps", "NoSuchQuest");
   expect(screen.getByText(/no quest by that name/)).toBeTruthy();
 });
 
@@ -205,6 +209,8 @@ test("clear empties a stored setup and removing an item drops it", async () => {
   fireEvent.click(button("Remove Item_B"));
   expect(screen.queryByText("Item_B")).toBeNull();
   fireEvent.click(button("Clear"));
+  expect(onChange).not.toHaveBeenCalled();
+  fireEvent.click(button("Really clear?"));
   expect(onChange).toHaveBeenCalledWith({
     ...config,
     test: NO_TEST,
@@ -218,13 +224,13 @@ test("saves a setup by name, switches to one and deletes one", async () => {
   });
   const config = full({ saved_tests: { Well: well } });
   const onChange = show(config);
-  expect(button("Save as").disabled).toBe(true);
+  expect(button("Save As").disabled).toBe(true);
   fireEvent.click(button("Well"));
   expect(onChange).toHaveBeenLastCalledWith({ ...config, test: well });
   type("Spawn", "FakeGrave_Child/Spot_A");
-  type("Saved setups", " Grave ");
-  await waitFor(() => expect(button("Save as").disabled).toBe(false));
-  fireEvent.click(button("Save as"));
+  type("Saved Setups", " Grave ");
+  await waitFor(() => expect(button("Save As").disabled).toBe(false));
+  fireEvent.click(button("Save As"));
   const grave = fullTest({ spawn: "FakeGrave_Child/Spot_A" });
   await waitFor(() =>
     expect(onChange).toHaveBeenLastCalledWith({
@@ -234,6 +240,13 @@ test("saves a setup by name, switches to one and deletes one", async () => {
     }),
   );
   await waitFor(() => expect(button("Delete Well").disabled).toBe(false));
+  fireEvent.click(button("Delete Well"));
+  expect(button("Delete Well").textContent).toBe("Really delete?");
+  expect(onChange).toHaveBeenLastCalledWith({
+    ...config,
+    test: grave,
+    saved_tests: { Well: well, Grave: grave },
+  });
   fireEvent.click(button("Delete Well"));
   await waitFor(() =>
     expect(onChange).toHaveBeenLastCalledWith({

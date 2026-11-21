@@ -44,7 +44,7 @@ function PickMenu({ door, doors }: DoorProps) {
         ))}
         {door.pick && (
           <DropdownMenuItem onSelect={() => choose(null)}>
-            Clear pick
+            Clear Pick
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

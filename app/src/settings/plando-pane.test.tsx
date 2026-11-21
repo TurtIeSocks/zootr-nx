@@ -194,7 +194,7 @@ test("loading over unsaved pins asks first", async () => {
     }),
   );
   pick("B");
-  expect(await screen.findByText("Replace the unsaved pins?")).toBeTruthy();
+  expect(await screen.findByText("Replace the Unsaved Pins?")).toBeTruthy();
   fireEvent.click(button("Cancel"));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(setConfig).not.toHaveBeenCalled();
@@ -211,10 +211,14 @@ test("Delete drops the named saved plando and Clear empties the draft", async ()
     }),
   );
   fireEvent.click(button("Delete"));
+  expect(saved()).toBeUndefined();
+  fireEvent.click(button("Really delete?"));
   await waitFor(() => expect(saved()?.plandos).toEqual({}));
   expect(saved()?.place).toEqual({ 11: "Item_B" });
   expect(await screen.findByText(/Not saved/)).toBeTruthy();
   fireEvent.click(button("Clear"));
+  expect(saved()?.place).toEqual({ 11: "Item_B" });
+  fireEvent.click(button("Really clear?"));
   await waitFor(() => expect(saved()?.place).toEqual({}));
   expect(await screen.findByText(/No pins/)).toBeTruthy();
 });

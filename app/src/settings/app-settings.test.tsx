@@ -26,11 +26,11 @@ test("the page keeps the game dump and saves developer tools", async () => {
   expect(
     screen.getByRole("heading", { level: 1, name: "Settings" }),
   ).toBeTruthy();
-  expect((screen.getByLabelText("Game dump") as HTMLInputElement).value).toBe(
+  expect((screen.getByLabelText("Game Dump") as HTMLInputElement).value).toBe(
     "/oot.nup",
   );
   expect(screen.queryByRole("switch", { name: "Dev panel" })).toBeNull();
-  fireEvent.click(screen.getByRole("switch", { name: "Developer tools" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Developer Tools" }));
   await vi.waitFor(() =>
     expect(setConfig).toHaveBeenCalledWith({ ...config, dev_tools: true }),
   );
@@ -42,7 +42,7 @@ test("game assets save from their switch, which needs a dump", async () => {
     .mockResolvedValue({ status: "ok", data: [] });
   useConfig.setPath("config", full({}));
   render(<AppSettings />);
-  const name = "Icons from the game dump";
+  const name = "Icons from the Game Dump";
   expect(
     screen.getByText(/doesn't include any of the game's art/),
   ).toBeTruthy();
@@ -62,7 +62,7 @@ test("game assets save from their switch, which needs a dump", async () => {
 test("a newly saved game dump resets the field to it", () => {
   useConfig.setPath("config", full({ game: "/oot.nup" }));
   render(<AppSettings />);
-  const dump = () => screen.getByLabelText("Game dump") as HTMLInputElement;
+  const dump = () => screen.getByLabelText("Game Dump") as HTMLInputElement;
   fireEvent.change(dump(), { target: { value: "/typed.nup" } });
   act(() => useConfig.setPath("config.game", "/other.nup"));
   expect(dump().value).toBe("/other.nup");
@@ -75,7 +75,7 @@ test("the update check switch saves its inverse", async () => {
   const config = full({});
   useConfig.setPath("config", config);
   render(<AppSettings />);
-  const toggle = screen.getByRole("switch", { name: "Check for updates" });
+  const toggle = screen.getByRole("switch", { name: "Check for Updates" });
   expect(toggle.getAttribute("aria-checked")).toBe("true");
   fireEvent.click(toggle);
   await vi.waitFor(() =>

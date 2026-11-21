@@ -150,7 +150,7 @@ function RunGroup() {
   const installed = useSeeds((s) => s.history.installed !== null);
   if (!installed) return null;
   return (
-    <NavGroup title="Current run">
+    <NavGroup title="Installed Seed">
       {RUN_TABS.map(([t, icon]) => (
         <TabItem key={t} tab={t} icon={icon} />
       ))}
@@ -201,7 +201,7 @@ function StatusPills() {
   return (
     <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
       <StatusPill found={status.game} onClick={() => openSettings("settings")}>
-        {status.game ? "Game dump" : "Game dump missing"}
+        {status.game ? "Game Dump" : "Game Dump Missing"}
       </StatusPill>
       {status.targets.map((t) => (
         <StatusPill

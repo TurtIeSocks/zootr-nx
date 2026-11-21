@@ -109,11 +109,11 @@ test("pages carry their trail, and the topics on them as their line", () => {
 test("pages the sidebar hides stay hidden", () => {
   const titles = (devTools: boolean, installed: boolean) =>
     pages([], devTools, installed).map((h) => h.title);
-  expect(titles(false, true)).not.toContain("Test setup");
-  expect(titles(true, true)).toContain("Test setup");
+  expect(titles(false, true)).not.toContain("Test Setup");
+  expect(titles(true, true)).toContain("Test Setup");
   expect(titles(false, false)).not.toContain("Checks");
   expect(titles(false, true)).toEqual(
-    expect.arrayContaining(["Checks", "Items", "Live", "Spoiler"]),
+    expect.arrayContaining(["Checks", "Items", "Live", "Spoiler Log"]),
   );
 });
 
@@ -123,7 +123,7 @@ test("settings: the schema's by group, the app's and the targets' fields", () =>
     trail: ["Randomizer", "Shuffles"],
     body: "Each fake cow gives an item.",
   });
-  expect(titled(hits, "Mod folder")).toMatchObject({
+  expect(titled(hits, "Mod Folder")).toMatchObject({
     trail: ["App", "Targets"],
     body: said("mod-folder"),
   });
@@ -136,7 +136,7 @@ test("settings: the schema's by group, the app's and the targets' fields", () =>
   );
   // A field only developers see.
   const dev = (on: boolean) =>
-    settings([], on).some((h) => h.title.startsWith("Control file"));
+    settings([], on).some((h) => h.title.startsWith("Control File"));
   expect([dev(false), dev(true)]).toEqual([false, true]);
 });
 
@@ -151,15 +151,15 @@ test("opening a setting opens its page and its closed section", () => {
 
 test("a blocked action greys out and says why; Stop shows only while generating", () => {
   const hits = actions({ ...STATE, blocked: "Choose your game dump first" });
-  expect(titled(hits, "Generate & install")).toMatchObject({
+  expect(titled(hits, "Generate & Install")).toMatchObject({
     muted: true,
     body: "Choose your game dump first",
   });
-  expect(titled(hits, "Generate only")?.muted).toBe(false);
-  expect(titled(hits, "Stop generating")).toBeUndefined();
+  expect(titled(hits, "Generate Only")?.muted).toBe(false);
+  expect(titled(hits, "Stop Generating")).toBeUndefined();
   const busy = actions({ ...STATE, generating: true });
-  expect(titled(busy, "Generate only")?.body).toBe("A seed is generating");
-  expect(titled(busy, "Stop generating")).toBeTruthy();
+  expect(titled(busy, "Generate Only")?.body).toBe("A seed is generating");
+  expect(titled(busy, "Stop Generating")).toBeTruthy();
 });
 
 test("Play names its target, and a stale game opens Play to ask", () => {
@@ -198,7 +198,7 @@ test("seeds by name and note, checks by place and label", () => {
 
 test("search wants every word in any order, title hits first", () => {
   const hits = settings([], true);
-  expect(search(hits, "folder mod")[0]?.title).toBe("Mod folder");
+  expect(search(hits, "folder mod")[0]?.title).toBe("Mod Folder");
   expect(search(hits, "")).toEqual([]);
   // The label matches on its line, the other in its title, which wins.
   const byBody = search(

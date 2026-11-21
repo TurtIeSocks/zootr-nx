@@ -1,4 +1,4 @@
-import { Loader2, ScrollText } from "lucide-react";
+import { Loader2, Newspaper } from "lucide-react";
 import { useEffect, useState } from "react";
 import { InlineError } from "@/components/callout";
 import { TipButton } from "@/components/tip-button";
@@ -28,7 +28,7 @@ export function ChangelogButton() {
         variant="ghost"
         onClick={() => setOpen(true)}
       >
-        <ScrollText />
+        <Newspaper />
       </TipButton>
       <DialogContent className="flex max-h-[80vh] max-w-[min(640px,calc(100%-4rem))] flex-col">
         <DialogHeader>
@@ -87,7 +87,7 @@ function Releases() {
         )}
         {status === "more" && (
           <Button variant="ghost" size="sm" onClick={() => setPages(pages + 1)}>
-            Load older releases
+            Load Older Releases
           </Button>
         )}
         {status === "end" && list.length === 0 && (
@@ -101,7 +101,7 @@ function Releases() {
               size="sm"
               onClick={() => setTries(tries + 1)}
             >
-              Try again
+              Try Again
             </Button>
           </div>
         )}
@@ -128,7 +128,7 @@ function ReleaseNotes({ release, newest }: ReleaseNotesProps) {
         <>
           v{release.version}
           {release.version === current && (
-            <Badge variant="info">Installed</Badge>
+            <Badge variant="info">Current Version</Badge>
           )}
         </>
       }
@@ -138,7 +138,7 @@ function ReleaseNotes({ release, newest }: ReleaseNotesProps) {
       lazy
     >
       <div className="pr-4 pb-4 pl-10">
-        <ReleaseLink href={release.url}>Release page</ReleaseLink>
+        <ReleaseLink href={release.url}>Release Page</ReleaseLink>
         <Notes md={release.notes} className="pt-1.5" />
       </div>
     </Disclosure>

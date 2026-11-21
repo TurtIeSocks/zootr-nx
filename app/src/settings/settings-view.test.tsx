@@ -235,7 +235,7 @@ test("a changed setting can be reset, alone or with its group", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Reset Open forest" }));
   expect(saved(onChange)).toEqual({ "chest-size": "all small", other: 1 });
-  fireEvent.click(screen.getByRole("button", { name: "Reset to defaults" }));
+  fireEvent.click(screen.getByRole("button", { name: "Reset to Defaults" }));
   await waitFor(() => expect(saved(onChange)).toEqual({ other: 1 }));
   expect(screen.queryByRole("button", { name: "Reset Skip the intro" })).toBe(
     null,
@@ -248,7 +248,7 @@ const dotted = (label: string) =>
     screen.getByText(label, { selector: "label" }).parentElement as HTMLElement,
   ).queryByLabelText("changed") !== null;
 
-test("dots mark what differs from the installed seed, not the defaults", () => {
+test("dots mark what differs from the last seed, not the defaults", () => {
   show({
     settings: { "open-forest": true, "chest-size": "all small" },
     seed: installed({ "open-forest": true }),
@@ -257,7 +257,7 @@ test("dots mark what differs from the installed seed, not the defaults", () => {
   expect(dotted("Open forest")).toBe(false);
 });
 
-test("the row reset puts the installed seed's value back", () => {
+test("the row reset puts the last seed's value back", () => {
   const onChange = show({
     settings: { "chest-size": "all small" },
     seed: installed({ "chest-size": "all small", "open-forest": true }),
@@ -327,14 +327,14 @@ test("a list section is a checklist with its count, open until closed", async ()
   expect(saved(onChange)).toEqual({ kokiri: true, field: true, lake: true });
 });
 
-test("the drift bar counts what differs from the installed seed", () => {
+test("the drift bar counts what differs from the last seed", () => {
   show({ seed: installed({}) });
-  expect(screen.queryByText(/since the installed seed/)).toBeNull();
+  expect(screen.queryByText(/since the last seed/)).toBeNull();
   cleanup();
   show({ seed: installed({}), settings: { "open-forest": true } });
-  expect(screen.getByText("1 change since the installed seed")).toBeTruthy();
+  expect(screen.getByText("1 change since the last seed")).toBeTruthy();
   expect(
-    screen.getByRole("button", { name: "Generate & install" }),
+    screen.getByRole("button", { name: "Generate & Install" }),
   ).toBeTruthy();
 });
 
@@ -351,16 +351,16 @@ test("with an AP slot installed, the drift bar counts from the last standard see
   const slot = { ...installed({}), id: 2, ap_slot: "FakeSlot" };
   const standard = installed({ "open-forest": true });
   show({ seed: slot, older: [standard], settings: { "open-forest": true } });
-  expect(screen.queryByText(/since the last standard seed/)).toBeNull();
+  expect(screen.queryByText(/since the last seed/)).toBeNull();
   cleanup();
   show({ seed: slot, older: [standard] });
-  expect(screen.getByText(/since the last standard seed/)).toBeTruthy();
+  expect(screen.getByText(/since the last seed/)).toBeTruthy();
   cleanup();
   show({ seed: slot, settings: { "open-forest": true } });
   expect(screen.getByText(/from the default settings/)).toBeTruthy();
 });
 
-test("a checklist item shows the dot when it differs from the installed seed", () => {
+test("a checklist item shows the dot when it differs from the last seed", () => {
   show({
     defs: cutscenes,
     section: "Cutscenes",
@@ -376,9 +376,9 @@ test("a checklist item shows the dot when it differs from the installed seed", (
 /** The header action named `name`. */
 const action = (name: string | RegExp) => screen.getByRole("button", { name });
 
-test("Reset to defaults says why while nothing differs from them", () => {
+test("Reset to Defaults says why while nothing differs from them", () => {
   const onChange = show();
-  const reset = action("Reset to defaults");
+  const reset = action("Reset to Defaults");
   expect(reset.getAttribute("aria-disabled")).toBe("true");
   fireEvent.click(reset);
   expect(onChange).not.toHaveBeenCalled();
@@ -465,12 +465,12 @@ async function pickReset(name: RegExp) {
   fireEvent.click(await screen.findByRole("menuitem", { name }));
 }
 
-test("Reset to last seed puts the seed's values back, and leads after", async () => {
+test("Reset to Last Seed puts the seed's values back, and leads after", async () => {
   const setConfig = show({
     settings: { "open-forest": true, "chest-size": "all small" },
     seed: installed({ "chest-size": "all small", menus: true }),
   });
-  await pickReset(/Reset to last seed/);
+  await pickReset(/Reset to Last Seed/);
   await waitFor(() =>
     expect(saved(setConfig)).toEqual({
       "chest-size": "all small",
@@ -478,15 +478,15 @@ test("Reset to last seed puts the seed's values back, and leads after", async ()
     }),
   );
   expect(useUi.getState().settings.reset).toBe("seed");
-  expect(action(/^Reset to last seed/)).toBeTruthy();
+  expect(action(/^Reset to Last Seed/)).toBeTruthy();
 });
 
 test("with no seed built, the defaults lead, and the menu says why", async () => {
   useUi.setPath("settings.reset", "seed");
   show({ settings: { "open-forest": true } });
-  expect(action(/^Reset to defaults/).getAttribute("aria-disabled")).toBeNull();
+  expect(action(/^Reset to Defaults/).getAttribute("aria-disabled")).toBeNull();
   fireEvent.keyDown(action("More ways to reset"), { key: "Enter" });
-  const item = await screen.findByRole("menuitem", { name: /last seed/ });
+  const item = await screen.findByRole("menuitem", { name: /Last Seed/ });
   expect(item.textContent).toContain("No seed built yet");
 });
 
@@ -505,7 +505,7 @@ test("Review lists the changes and puts the base's settings back", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Review" }));
   fireEvent.click(
-    await screen.findByRole("button", { name: /Use the installed seed's/ }),
+    await screen.findByRole("button", { name: /Use the Last Seed's/ }),
   );
   await waitFor(() =>
     expect(saved(onChange)).toEqual({ "chest-size": "all small" }),
@@ -520,6 +520,8 @@ test("a page's unsaved bar takes the drift bar's place while it shows", () => {
   expect(screen.getByText("Unsaved changes to the test setup")).toBeTruthy();
   expect(screen.queryByText(/1 change from/)).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+  expect(screen.getByText("Unsaved changes to the test setup")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Really discard?" }));
   expect(screen.getByText("1 change from the default settings")).toBeTruthy();
 });
 

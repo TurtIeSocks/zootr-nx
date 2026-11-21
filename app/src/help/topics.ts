@@ -16,7 +16,7 @@ export interface Topic {
  * beside it already says. */
 export const TOPICS = {
   "game-dump": {
-    title: "Game dump",
+    title: "Game Dump",
     body: [
       "Your own copy of the game, with the 1.1.1 update.",
       "zootr reads it to build each seed and never changes it.",
@@ -31,10 +31,10 @@ export const TOPICS = {
     ],
   },
   "builds-with": {
-    title: "Builds with",
+    title: "Builds With",
     at: { tab: "Play", folder: "standard" },
     body: [
-      "The settings the next seed uses, a tile per group. Gold marks what changed since the installed seed.",
+      "The settings the next seed uses, a tile per group. Gold marks what changed since the last seed.",
     ],
   },
   installed: {
@@ -48,7 +48,7 @@ export const TOPICS = {
     title: "History",
     at: { tab: "Play", folder: "history" },
     body: [
-      "Every seed you've made, newest first. Install any of them again, or open its spoiler.",
+      "Every seed you've made, newest first. Install any of them again, or open its Spoiler Log.",
     ],
   },
   "ap-slot": {
@@ -67,7 +67,7 @@ export const TOPICS = {
     ],
   },
   spoiler: {
-    title: "Spoiler",
+    title: "Spoiler Log",
     at: { tab: "Spoiler" },
     body: [
       "Spheres shows what you can reach in turn, each column opening the next. Way of the Hero (★) marks what the game can't be finished without.",
@@ -77,7 +77,8 @@ export const TOPICS = {
   drift: {
     title: "Changes",
     body: [
-      "Settings save as you change them. The game changes only when you Generate & install.",
+      "Settings save as you change them. The game changes only when you Generate & Install.",
+      "Changes count from the last seed you made. An Archipelago slot doesn't count.",
     ],
   },
   plando: {
@@ -97,11 +98,11 @@ export const TOPICS = {
     ],
   },
   "mod-folder": {
-    title: "Mod folder",
+    title: "Mod Folder",
     body: ["If a seed doesn't show up in game, check this folder first."],
   },
   "control-socket": {
-    title: "Control socket",
+    title: "Control Socket",
     body: [
       "Lets Checks, Items and Live follow the running game, on a target that offers one.",
     ],
@@ -164,8 +165,8 @@ export const GROUP_HELP: Record<string, Topic> = {
       "Cutscenes that give an item or move Link always play.",
     ],
   },
-  "Logic & access": {
-    title: "Logic & access",
+  "Logic & Access": {
+    title: "Logic & Access",
     body: ["How items are placed, and what stands open from the start."],
   },
   Inventory: {

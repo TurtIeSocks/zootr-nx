@@ -53,7 +53,7 @@ test("a loading map and a playing event show as a badge", async () => {
     useDev.setPath("game.state.loading", false);
     useDev.setPath("game.state.event", true);
   });
-  expect(within(where()).getByText("Event playing")).toBeTruthy();
+  expect(within(where()).getByText("Event Playing")).toBeTruthy();
 });
 
 test("the age picker shows Link's age and sends dev_age only for the other", async () => {

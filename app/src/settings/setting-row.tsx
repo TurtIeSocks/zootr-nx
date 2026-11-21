@@ -105,7 +105,7 @@ function SettingRowFrame({ def }: SettingRowProps) {
   );
 }
 
-/** Puts a setting back to what drift measures from: the installed seed's
+/** Puts a setting back to what drift measures from: the last seed's
  * value, or its default. Shows on hover or focus. */
 function ResetSetting({ def }: SettingRowProps) {
   const { run } = useRequest();
@@ -117,7 +117,9 @@ function ResetSetting({ def }: SettingRowProps) {
       <TipButton
         label={`Reset ${def.label}`}
         tip={
-          from === DEFAULTS_FROM ? "Back to its default" : `Back to ${from}'s`
+          from === DEFAULTS_FROM
+            ? "Back to its default"
+            : `Back to ${from}'s value`
         }
         variant="ghost"
         onClick={() => run(() => changeSettings({ [def.id]: value }))}

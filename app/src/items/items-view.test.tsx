@@ -375,6 +375,6 @@ test("an option changed just before leaving the tab is still saved", async () =>
 test("says why the tracker couldn't pop out", async () => {
   backend.popOutFail = "No window";
   showItems();
-  fireEvent.click(await screen.findByRole("button", { name: "Pop out" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Pop Out" }));
   expect(await screen.findByText("No window")).toBeTruthy();
 });

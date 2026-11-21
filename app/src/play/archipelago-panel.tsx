@@ -123,7 +123,7 @@ function Slot({ slot }: { slot: string | null }) {
             className={linkClass}
             onClick={() => void openUrl(AP_GUIDE_URL)}
           >
-            Setup guide
+            Setup Guide
           </button>
         </p>
         <InlineError error={apworld.error} />

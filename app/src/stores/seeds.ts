@@ -143,7 +143,7 @@ export const DEFAULTS_FROM = "the default settings";
 export const driftSince = (from: string) =>
   from === DEFAULTS_FROM ? "from" : "since";
 
-/** How many changes, and from what: "3 changes since the installed seed". */
+/** How many changes, and from what: "3 changes since the last seed". */
 export const driftWords = (n: number, from: string) =>
   `${count(n, "change")} ${driftSince(from)} ${from}`;
 
@@ -156,13 +156,7 @@ export const useDriftWords = () =>
 
 /** What `drift` is measured from, for its wording. */
 export const useDriftFrom = () =>
-  useSeeds((s) => {
-    const base = driftBase(s.history);
-    if (!base) return DEFAULTS_FROM;
-    return base === s.history.installed
-      ? "the installed seed"
-      : "the last standard seed";
-  });
+  useSeeds((s) => (driftBase(s.history) ? "the last seed" : DEFAULTS_FROM));
 
 /** Works out `blocked`, `running`, `drift` and `diffs` from status,
  * history and the config. */

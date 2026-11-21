@@ -292,7 +292,7 @@ export function QuestStepsField() {
   const add = useAddRow("progress", line, whole || !!step, () =>
     setPick({ challenge: "", step: "" }),
   );
-  const label = "Quest steps";
+  const label = "Quest Steps";
   const known = Object.keys(quests);
   return (
     <Field

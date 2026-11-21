@@ -22,8 +22,8 @@ const entry = {
 } as unknown as Summary;
 
 test.each([
-  ["plando", "Built with a plando: items pinned to checks"],
-  ["test", "Built with a test setup: a spawn, items or new-game flags"],
+  ["Plando", "Built with a plando: items pinned to checks"],
+  ["Test", "Built with a test setup: a spawn, items or new-game flags"],
 ])("the %s badge takes focus and opens its tip", async (label, tip) => {
   render(<ExtrasBadges entry={entry} />);
   const badge = screen.getByText(label);

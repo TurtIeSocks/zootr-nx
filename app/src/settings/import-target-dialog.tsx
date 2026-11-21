@@ -36,7 +36,7 @@ export function ImportTargetDialog({ onImport }: ImportTargetDialogProps) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Import a target</DialogTitle>
+          <DialogTitle>Import a Target</DialogTitle>
           <DialogDescription>
             Paste a target someone shared, or open its file. It is added as a
             new target for you to check, then save.
@@ -89,7 +89,7 @@ function ImportForm({ onImport }: ImportTargetDialogProps) {
           disabled={action.busy}
           onClick={openFile}
         >
-          <FileUp /> Open a file
+          <FileUp /> Open a File
         </Button>
         <DialogClose asChild>
           <Button type="button" variant="ghost">

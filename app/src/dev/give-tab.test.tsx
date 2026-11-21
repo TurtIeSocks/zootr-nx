@@ -95,7 +95,7 @@ test("a recent give repeats with its count, the last three kept", async () => {
   expect(useUi.getPath("dev.recent.gives")).toHaveLength(3);
 });
 
-test("Quest step moves the picked quest, and shows its saved copy before and after", async () => {
+test("Quest Step moves the picked quest, and shows its saved copy before and after", async () => {
   await renderReady();
   await openTab("Give");
   const quest = screen.getByRole("textbox", { name: "Quest" });

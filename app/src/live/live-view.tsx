@@ -17,6 +17,7 @@ import {
   useState,
 } from "react";
 import { commands } from "@/bindings";
+import { ArmedButton } from "@/components/armed-button";
 import { InlineError } from "@/components/callout";
 import { Help } from "@/components/help";
 import { Tip } from "@/components/tip";
@@ -43,6 +44,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { call } from "@/lib/api";
+import { MOD } from "@/lib/platform";
 import { useRequest, useRequestState } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
 import { useCopied } from "@/lib/use-copied";
@@ -88,7 +90,7 @@ function SourceNote() {
       {on && s?.source === "Saves" && <Badge variant="info">Autosaves</Badge>}
       {on && unsaved !== "" && (
         <Tip focusable tip={unsaved}>
-          <Badge variant="danger">Not saved to a file</Badge>
+          <Badge variant="danger">Not Saved to a File</Badge>
         </Tip>
       )}
       {reason && (
@@ -145,8 +147,8 @@ function GrepInput() {
     <div className="relative w-44">
       <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-ink-faint" />
       <Input
-        aria-label="Filter"
-        placeholder="Filter"
+        aria-label="Filter lines"
+        placeholder="Filter lines"
         className="h-7 pl-8"
         value={grep}
         onChange={(e) => setGrep(e.target.value)}
@@ -184,7 +186,7 @@ function TypesMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto">
-        <DropdownMenuLabel>Show these types</DropdownMenuLabel>
+        <DropdownMenuLabel>Show These Types</DropdownMenuLabel>
         {kinds.map((kind) => (
           <DropdownMenuCheckboxItem
             key={kind}
@@ -319,7 +321,7 @@ function CopyButton({ lines, selecting, copied, onCopy }: CopyButtonProps) {
   return (
     <TipButton
       label={label}
-      tip={copied ? "Copied" : `Copy ${what}, one line each (⌘C)`}
+      tip={copied ? "Copied" : `Copy ${what}, one line each (${MOD}C)`}
       variant="ghost"
       disabled={n === 0}
       onClick={onCopy}
@@ -423,16 +425,18 @@ export function LiveView() {
               <FoldButton />
               <MutedCount />
               <MarkButton />
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  clear();
-                  selection.clear();
-                }}
-              >
-                Clear
-              </Button>
+              <Tip tip="Clear every line">
+                <ArmedButton
+                  size="sm"
+                  verb="clear"
+                  onAct={() => {
+                    clear();
+                    selection.clear();
+                  }}
+                >
+                  Clear
+                </ArmedButton>
+              </Tip>
               <CopyButton
                 lines={lines}
                 selecting={selecting}

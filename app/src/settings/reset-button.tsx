@@ -55,14 +55,14 @@ export function ResetButton({ defs }: ResetButtonProps) {
   const resets: Record<ResetTo, Reset> = {
     defaults: {
       icon: RotateCcw,
-      label: "Reset to defaults",
+      label: "Reset to Defaults",
       line: "Every setting here back to its default",
       patch: defaults(defs),
       why: !changed && "Already the defaults",
     },
     seed: {
       icon: History,
-      label: "Reset to last seed",
+      label: "Reset to Last Seed",
       line: "Every setting here as the last seed had it",
       patch: Object.fromEntries(
         defs.map((d) => [d.id, base?.settings[d.id] as Patch[string]]),
@@ -76,7 +76,7 @@ export function ResetButton({ defs }: ResetButtonProps) {
     setLead(to);
     run(() => changeSettings(resets[to].patch));
   };
-  // With no seed built, Reset to last seed can't act at all, so the
+  // With no seed built, Reset to Last Seed can't act at all, so the
   // defaults lead until there's one.
   const shown: ResetTo = lead === "seed" && !base ? "defaults" : lead;
   const led = resets[shown];

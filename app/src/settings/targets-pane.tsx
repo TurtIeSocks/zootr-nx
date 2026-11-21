@@ -106,7 +106,7 @@ function TargetsForm({ notes, onSaved }: TargetsFormProps) {
               variant="secondary"
               onClick={() => setDrafts((ds) => [...ds, BLANK])}
             >
-              <Plus /> Add a target
+              <Plus /> Add a Target
             </Button>
             <ImportTargetDialog
               onImport={(t) => setDrafts((ds) => withTarget(ds, t))}
@@ -139,7 +139,7 @@ function TargetsForm({ notes, onSaved }: TargetsFormProps) {
           message="Unsaved changes to targets"
           error={invalid || error}
           busy={busy}
-          saveLabel="Save targets"
+          saveLabel="Save Targets"
           onDiscard={() => {
             setInvalid("");
             setDrafts(targets.map(toDraft));
@@ -210,7 +210,7 @@ function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
   const { copied, flash } = useCopied();
   const saved = isSaved(targets, draft);
   const name = draft.name.trim();
-  const title = draft.name || "New target";
+  const title = draft.name || "New Target";
   const found = useSeeds((s) => s.status.targets.find((t) => t.name === name));
   // Read once, so clearing the fields doesn't close the section on them.
   const [advancedOpen] = useState(() =>

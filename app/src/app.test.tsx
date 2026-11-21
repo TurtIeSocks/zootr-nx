@@ -171,37 +171,37 @@ test("Play sits alone above the run group, which holds the seed's views", () => 
   sidebar();
   const nav = screen.getByRole("navigation");
   expect(nav.querySelector("button")?.textContent).toBe("Play");
-  expect(runItems("Current run")).toEqual([
+  expect(runItems("Installed Seed")).toEqual([
     "Checks",
     "Items",
     "Live",
-    "Spoiler",
+    "Spoiler Log",
   ]);
 });
 
 test("the run group is the current run whether or not the game runs", () => {
   useSeeds.setPath("history", { installed: seed, entries: [seed] });
   sidebar();
-  expect(runItems("Current run")).toHaveLength(4);
+  expect(runItems("Installed Seed")).toHaveLength(4);
   act(() => useSeeds.setPath("running", true));
-  expect(runItems("Current run")).toHaveLength(4);
+  expect(runItems("Installed Seed")).toHaveLength(4);
 });
 
 test("the run group is hidden with no seed installed", () => {
   sidebar();
-  expect(screen.queryByText("Current run")).toBeNull();
-  for (const name of [/^Checks/, /^Items/, /^Live/, /^Spoiler/])
+  expect(screen.queryByText("Installed Seed")).toBeNull();
+  for (const name of [/^Checks/, /^Items/, /^Live/, /^Spoiler Log/])
     expect(screen.queryByRole("button", { name })).toBeNull();
   act(() => useSeeds.setPath("history", { installed: seed, entries: [seed] }));
-  expect(runItems("Current run")).toHaveLength(4);
+  expect(runItems("Installed Seed")).toHaveLength(4);
 });
 
-test("the Spoiler item opens the Spoiler tab", () => {
+test("the Spoiler Log item opens the Spoiler tab", () => {
   useSeeds.setPath("history", { installed: seed, entries: [seed] });
   sidebar();
-  fireEvent.click(item(/^Spoiler/));
+  fireEvent.click(item(/^Spoiler Log/));
   expect(useUi.getState().tab).toBe("Spoiler");
-  expect(item(/^Spoiler/).getAttribute("aria-current")).toBe("page");
+  expect(item(/^Spoiler Log/).getAttribute("aria-current")).toBe("page");
   expect(useShell.getState().spoiler).toBeUndefined();
 });
 
@@ -209,9 +209,9 @@ test("the Spoiler tab shows the installed seed's spoiler inline once revealed", 
   backend.installed = seed;
   render(<App />);
   const nav = await screen.findByRole("navigation");
-  fireEvent.click(within(nav).getByRole("button", { name: /^Spoiler/ }));
+  fireEvent.click(within(nav).getByRole("button", { name: /^Spoiler Log/ }));
   fireEvent.click(
-    await screen.findByRole("button", { name: "Reveal spoiler" }),
+    await screen.findByRole("button", { name: "Reveal Spoiler Log" }),
   );
   expect(await screen.findByText(/only its checks show/)).toBeTruthy();
   expect(screen.queryByRole("dialog")).toBeNull();
@@ -226,7 +226,7 @@ test("History's spoiler of the installed seed is covered too", async () => {
   act(() => openSpoiler(seed));
   const dialog = await screen.findByRole("dialog");
   expect(
-    within(dialog).getByRole("button", { name: "Reveal spoiler" }),
+    within(dialog).getByRole("button", { name: "Reveal Spoiler Log" }),
   ).toBeTruthy();
   expect(commands.spoiler).not.toHaveBeenCalled();
 });
@@ -237,14 +237,18 @@ test("while the game runs, the Spoiler tab stays covered until revealed", async 
   backend.running = true;
   useUi.setPath("tab", "Spoiler");
   render(<App />);
-  const reveal = await screen.findByRole("button", { name: "Reveal spoiler" });
+  const reveal = await screen.findByRole("button", {
+    name: "Reveal Spoiler Log",
+  });
   expect(commands.spoiler).not.toHaveBeenCalled();
   fireEvent.click(reveal);
   expect(await screen.findByText(/only its checks show/)).toBeTruthy();
   // It stays revealed for this seed when the tab opens again.
   act(() => useUi.setPath("tab", "Checks"));
   act(() => useUi.setPath("tab", "Spoiler"));
-  expect(screen.queryByRole("button", { name: "Reveal spoiler" })).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Reveal Spoiler Log" }),
+  ).toBeNull();
 });
 
 test("the Spoiler tab says so with no seed installed", async () => {
@@ -263,7 +267,7 @@ test("each schema group is an item, marked when it holds changes", () => {
   expect(within(item(/^Checks/)).getByText("41/112")).toBeTruthy();
   expect(within(item(/^General/)).getByLabelText("changed")).toBeTruthy();
   expect(within(item(/^Cutscenes/)).queryByLabelText("changed")).toBeNull();
-  expect(within(item(/^Test setup/)).getByText("On")).toBeTruthy();
+  expect(within(item(/^Test Setup/)).getByText("On")).toBeTruthy();
   fireEvent.click(within(nav).getByRole("button", { name: /^Cutscenes/ }));
   expect(useUi.getState()).toMatchObject({
     tab: "Settings",
@@ -274,7 +278,7 @@ test("each schema group is an item, marked when it holds changes", () => {
 test("without developer tools the sidebar has no Test setup or dev panel", () => {
   useConfig.setPath("config.dev_tools", false);
   sidebar();
-  expect(nav().queryByRole("button", { name: /^Test setup/ })).toBeNull();
+  expect(nav().queryByRole("button", { name: /^Test Setup/ })).toBeNull();
   expect(nav().queryByRole("button", { name: /^Dev panel/ })).toBeNull();
 });
 
@@ -314,15 +318,15 @@ test("a first launch shows the welcome, and Skip lands on Play for good", async 
   expect(useUi.getState().tab).toBe("Play");
   cleanup();
   render(<App />);
-  expect(await screen.findByText("Get started")).toBeTruthy();
+  expect(await screen.findByText("Get Started")).toBeTruthy();
   expect(screen.queryByRole("heading", welcome)).toBeNull();
 });
 
 test("Play shows Get started with no seed installed, ticking what's done", async () => {
   render(<App />);
-  expect(await screen.findByText("Get started")).toBeTruthy();
+  expect(await screen.findByText("Get Started")).toBeTruthy();
   // The mock's status has a dump, and the config a target.
   expect(screen.getAllByLabelText("done")).toHaveLength(2);
   fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
-  expect(screen.queryByText("Get started")).toBeNull();
+  expect(screen.queryByText("Get Started")).toBeNull();
 });

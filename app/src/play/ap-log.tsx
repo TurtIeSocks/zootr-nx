@@ -83,7 +83,7 @@ export function ApLog() {
   return (
     <section className="border-line border-t">
       <CardHeader
-        title="Client log"
+        title="Client Log"
         action={
           <div className="flex items-center gap-2">
             <Segmented
@@ -109,7 +109,7 @@ export function ApLog() {
         <div className="relative">
           <ol
             ref={list}
-            aria-label="Client log"
+            aria-label="Client Log"
             className="max-h-[248px] overflow-auto pt-1 pb-2 font-mono text-[12px] leading-[18px]"
             onScroll={(e) => {
               const el = e.currentTarget;
@@ -131,7 +131,7 @@ export function ApLog() {
               className="-translate-x-1/2 absolute bottom-2 left-1/2"
               onClick={() => setFollowing(true)}
             >
-              Jump to latest
+              Jump to Latest
             </Button>
           )}
         </div>

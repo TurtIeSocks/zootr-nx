@@ -171,7 +171,7 @@ const INITIAL: Ui = {
     presets: [],
     edits: [],
     changes: 0,
-    flags: { search: "", kind: null, changed: true, staged: false, open: {} },
+    flags: { search: "", kinds: [], changed: true, staged: false, open: {} },
   },
   dev: {
     tab: "warp",

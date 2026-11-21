@@ -1,6 +1,7 @@
 import { Check, Loader2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { commands, type PlandoCheck, type PlandoOptions } from "@/bindings";
+import { ArmedButton } from "@/components/armed-button";
 import { Card } from "@/components/card";
 import { Field } from "@/components/field";
 import { NameField } from "@/components/name-field";
@@ -132,7 +133,7 @@ function Saved() {
       <div className="p-4">
         <Field
           id="plando-saved"
-          label="Saved plandos"
+          label="Saved Plandos"
           hint="Picking one loads its pins below, replacing them. Save keeps the pins below under the name, replacing a saved plando with that name"
         >
           <Select
@@ -175,16 +176,17 @@ function Saved() {
               {busy && <Loader2 className="animate-spin" />}
               Save
             </Button>
-            <Button
+            <ArmedButton
               variant="secondary"
+              verb="delete"
               disabled={busy || !kept}
-              onClick={() => {
+              onAct={() => {
                 setName("");
                 void store(remove(typed));
               }}
             >
               Delete
-            </Button>
+            </ArmedButton>
           </div>
           <p className="flex items-center gap-1 text-ink-muted text-xs">
             {empty ? (
@@ -231,7 +233,7 @@ function ReplaceDialog({
     <Dialog open={picked !== null} onOpenChange={(o) => !o && onCancel()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Replace the unsaved pins?</DialogTitle>
+          <DialogTitle>Replace the Unsaved Pins?</DialogTitle>
           <DialogDescription>
             Loading {picked} replaces the {count(pins, "pin")} below. Save them
             first to keep them.
@@ -330,7 +332,7 @@ function AddRow({ options, loading }: AddRowProps) {
   return (
     <div className="flex flex-col gap-1.5">
       <p className="font-medium text-[13px] text-ink leading-[18px]">
-        Pin an item
+        Pin an Item
       </p>
       <div className="flex gap-2">
         <NameField
@@ -411,14 +413,14 @@ function Placements({ plando, options }: PlacementsProps) {
       title="Pinned"
       meta={count(rows.length, "check")}
       action={
-        <Button
+        <ArmedButton
           size="sm"
-          variant="ghost"
+          verb="clear"
           disabled={busy || rows.length === 0}
-          onClick={() => store(clear())}
+          onAct={() => store(clear())}
         >
           Clear
-        </Button>
+        </ArmedButton>
       }
     >
       {rows.length === 0 ? (

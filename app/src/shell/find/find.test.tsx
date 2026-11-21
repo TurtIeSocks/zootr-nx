@@ -116,7 +116,7 @@ test("Enter on a setting opens its closed section and focuses it", async () => {
   ]);
 });
 
-test("Check for updates stays open and says what it found", async () => {
+test("Check for Updates stays open and says what it found", async () => {
   renderApp();
   // The App setting of that name lists first, under Settings.
   find("updates");
