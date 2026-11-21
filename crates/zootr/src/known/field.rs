@@ -393,6 +393,7 @@ pub const POUCH_SPECIAL_DEAL: &Name = &n!(0x03919ce6cd5561c9);
 pub const POUCH_SYSTEM_ACTOR: &Name = &n!(0x9795e937b0305e92);
 pub const PRE_ACTOR_RENDER_INFO_HEAP_SIZE: &Name = &n!(0xc4c6851dc6ca5260);
 pub const PRICE_PARAM: &Name = &n!(0x69fa96a1450978db);
+pub const PRIZE_HEART_PIECE: &Name = &n!(0x565e07537305470e);
 pub const QUERY_DEATH_IS_DEAD: &Name = &n!(0xe14aa752bb3001fd);
 pub const QUERY_GENERIC_CONCAT_STRING: &Name = &n!(0x47afd07cff25998d);
 pub const QUERY_GENERIC_GET_ACTOR_NAME: &Name = &n!(0x0a4500a5255539e2);

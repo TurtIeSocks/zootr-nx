@@ -107,14 +107,17 @@ pub(crate) fn left_out(c: &ItemCheck, open: Let) -> Option<LeftOut> {
 /// A prize chest is a chest to the hook, which gives a line's level there
 /// and swaps a Red Rupee copy for ammo (`ammo::line`). A shop slot shows
 /// each step on a shelf of its own (`shops::steps`), and a pickup in a
-/// placement of its own (`pickups::steps`).
+/// placement of its own (`pickups::steps`). The Goron pot shows a line's
+/// first step until the hook picks it (`goron_pot`): refusing it there
+/// would narrow EIE.
 pub(crate) fn asks_at(check: &ItemCheck, item: &str, progressive: bool) -> bool {
     let picks = gifts::of(check).is_some()
         || scrubs::of(check).is_some()
         || cows::is_cow(check)
         || shops::is_shop(check)
         || gifts::is_prize(check)
-        || pickups::is_pickup(check);
+        || pickups::is_pickup(check)
+        || crate::goron_pot::is_pot(check);
     !picks && levels::asks(item, crate::progressive::Lines::widest(progressive))
 }
 

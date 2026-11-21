@@ -64,7 +64,7 @@ pub(crate) fn is_prize(check: &ItemCheck) -> bool {
 }
 
 /// Saria's and Zelda's, every business scrub's, shop slot's, cow's and
-/// minigame prize chest's.
+/// minigame prize chest's, and the Goron pot's.
 pub fn is_gift(check: &ItemCheck) -> bool {
     of(check).is_some()
         || is_prize(check)
@@ -72,6 +72,7 @@ pub fn is_gift(check: &ItemCheck) -> bool {
         || shops::is_shop(check)
         || pickups::is_pickup(check)
         || cows::is_cow(check)
+        || crate::goron_pot::is_pot(check)
 }
 
 /// Whether `holder` is a gift's: a giver's name, a scrub's, a shop slot's,
@@ -82,4 +83,5 @@ pub fn is_giver(holder: &str) -> bool {
         || shops::is_holder(holder)
         || cows::is_holder(holder)
         || holder == pickups::THIEF
+        || crate::goron_pot::is_holder(holder)
 }

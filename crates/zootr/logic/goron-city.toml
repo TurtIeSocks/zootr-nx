@@ -1,0 +1,10 @@
+# Goron City. Rules from the original game, on the playtest list.
+
+# The spinning pot's heart piece, dealt with the freestanding setting
+# (`goron_pot.rs`). A bomb or bombchu, or a bomb flower, lights it. Din's
+# Fire and a lit Deku Stick are untested.
+[[check]]
+hash = 14691060592470890818
+name = "Spinning pot heart piece"
+needs = "child and (explosives or goron-bracelet)"
+setting = "freestanding"

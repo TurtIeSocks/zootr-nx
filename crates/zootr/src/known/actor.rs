@@ -132,6 +132,7 @@ pub const OBJ_FIRE_TEMPLE_HAMMER_SLIP_PILLAR_A_01: &Name = &n!(0x59a9fa1b7a50323
 pub const OBJ_GANON_CASTLE_BROKEN_RUBBLE_A_01: &Name = &n!(0xfaa6e3d03beb7dc2);
 pub const OBJ_GERUDO_COW_BONE_DECORATION_B_01: &Name = &n!(0xa113276a1a159068);
 pub const OBJ_GERUDO_VALLEY_HEART_PIECE: &Name = &n!(0xcecbcef2aa2dc7ba);
+pub const OBJ_GORON_CITY_LARGE_POT_A_01: &Name = &n!(0xadd67d0f22f2caa8);
 pub const OBJ_HEART: &Name = &n!(0x5f426a1d6b4f7cb5);
 pub const OBJ_HEART_CONTAINER: &Name = &n!(0xd6f5074e0792c98d);
 pub const OBJ_HEART_PIECE: &Name = &n!(0x2f0e1097bc8fb730);

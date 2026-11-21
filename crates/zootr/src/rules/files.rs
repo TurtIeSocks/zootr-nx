@@ -38,6 +38,10 @@ pub(super) const FILES: &[(&str, &str)] = &[
     ("bosses.toml", include_str!("../../logic/bosses.toml")),
     ("cows.toml", include_str!("../../logic/cows.toml")),
     ("beans.toml", include_str!("../../logic/beans.toml")),
+    (
+        "goron-city.toml",
+        include_str!("../../logic/goron-city.toml"),
+    ),
     ("graveyard.toml", include_str!("../../logic/graveyard.toml")),
     (
         "water-temple.toml",

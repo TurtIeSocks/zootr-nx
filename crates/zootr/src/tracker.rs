@@ -19,7 +19,7 @@ use crate::generate::{Door, Spot};
 use crate::gifts::GIFTS;
 use crate::history::{Entry, Mark};
 use crate::savefile::Change;
-use crate::{cows, fortress, keys, picked, scrubs};
+use crate::{cows, fortress, goron_pot, keys, picked, scrubs};
 
 /// Struct whose members are named by a chest's placement hash in decimal
 /// and hold its opened flag.
@@ -112,7 +112,7 @@ impl Tracker {
             let name = match (
                 GIFTS.iter().find(|g| g.hash() == spot.hash),
                 scrubs::at(spot.hash),
-                cows::flag_at(spot.hash),
+                cows::flag_at(spot.hash).or_else(|| goron_pot::flag_at(spot.hash)),
                 fortress::got(&spot.vanilla, &spot.item),
                 picked::flag_at(spot),
                 keys::loose_taken(spot.hash),

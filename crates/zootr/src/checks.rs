@@ -236,6 +236,9 @@ pub fn dealt_of(
     }
     out.retain(|c| !(new_game.fortress_keys.moved() && crate::fortress::is_carried(c)));
     out.extend(crate::pickups::dealt(romfs, new_game)?);
+    if new_game.freestanding {
+        out.push(crate::goron_pot::check());
+    }
     out.extend(crate::cows::dealt(romfs, new_game.cows)?);
     Ok(out)
 }
