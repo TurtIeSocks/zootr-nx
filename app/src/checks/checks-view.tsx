@@ -182,7 +182,7 @@ function Unseen({ row }: RowProps) {
   if (row.flag !== null) return <span className={unseen}>hidden</span>;
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
+      <TooltipTrigger asChild tabIndex={0}>
         <span className={cn(unseen, "cursor-default")}>untracked</span>
       </TooltipTrigger>
       <TooltipContent>Its flag isn't known, so it never ticks</TooltipContent>

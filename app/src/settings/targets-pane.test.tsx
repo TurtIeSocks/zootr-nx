@@ -121,7 +121,7 @@ test("copy puts the saved target's export on the clipboard", async () => {
   const writeText = vi.fn(() => Promise.resolve());
   Object.assign(navigator, { clipboard: { writeText } });
   show();
-  fireEvent.click(button("Copy"));
+  fireEvent.click(button("Copy FakeTarget"));
   await waitFor(() =>
     expect(writeText).toHaveBeenCalledWith("preset of FakeTarget"),
   );
@@ -187,7 +187,7 @@ test("a second Save while one runs is ignored, and the bar goes once saved", asy
 
 test("Download writes the saved target to the file picked", async () => {
   show();
-  fireEvent.click(button("Download"));
+  fireEvent.click(button("Download FakeTarget"));
   await waitFor(() =>
     expect(saveTarget).toHaveBeenCalledWith(
       "FakeTarget",
@@ -199,7 +199,7 @@ test("Download writes the saved target to the file picked", async () => {
 test("Download does nothing when the picker is cancelled", async () => {
   dialog.save.mockResolvedValueOnce(null);
   show();
-  fireEvent.click(button("Download"));
+  fireEvent.click(button("Download FakeTarget"));
   await waitFor(() => expect(dialog.save).toHaveBeenCalled());
   expect(saveTarget).not.toHaveBeenCalled();
 });
@@ -352,4 +352,24 @@ test("the rebuild fields show only with developer tools, and a saved one survive
   act(() => useConfig.setPath("config.dev_tools", true));
   expect(rebuild().every(Boolean)).toBe(true);
   expect(screen.getByText("Launch arguments, Rebuild command")).toBeTruthy();
+});
+
+test("each card's Copy, Download and Remove are named after its target", () => {
+  useConfig.setPath(
+    "config",
+    full({
+      targets: [
+        { name: "FakeTarget", app: "/a", mod_dir: "/m" },
+        { name: "FakeOther", app: "/b", mod_dir: "/n" },
+      ],
+    }),
+  );
+  render(<TargetsPane />);
+  for (const verb of ["Copy", "Download", "Remove"]) {
+    for (const name of ["FakeTarget", "FakeOther"]) {
+      expect(button(`${verb} ${name}`)).toBeTruthy();
+    }
+  }
+  fireEvent.click(button("Add a target"));
+  expect(button("Remove New target")).toBeTruthy();
 });

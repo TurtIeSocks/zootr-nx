@@ -144,7 +144,7 @@ export const TOPICS = {
     at: { tab: "Save" },
     body: [
       "Close the game first: it writes over its saves as it plays.",
-      "On Items, click raises and right-click lowers. Presets wait for Save.",
+      "On Items, click raises, right-click or Backspace lowers. Presets wait for Save.",
     ],
   },
 } satisfies Record<string, Topic>;
@@ -172,7 +172,7 @@ export const GROUP_HELP: Record<string, Topic> = {
     title: "Inventory",
     body: [
       "What a new game starts with. Each item leaves the shuffle, and its spot holds a Blue Rupee instead.",
-      "Click an item to raise it, right-click to lower it.",
+      "Click an item to raise it, right-click or Backspace to lower it.",
     ],
   },
   Shuffles: {

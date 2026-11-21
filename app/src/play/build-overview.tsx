@@ -349,7 +349,9 @@ function ChipView({ chip }: { chip: MarkedChip }) {
   if (was === undefined) return body;
   return (
     <Tooltip>
-      <TooltipTrigger asChild>{body}</TooltipTrigger>
+      <TooltipTrigger asChild tabIndex={0}>
+        {body}
+      </TooltipTrigger>
       <TooltipContent>Was {was}</TooltipContent>
     </Tooltip>
   );

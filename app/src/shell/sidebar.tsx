@@ -183,7 +183,7 @@ function PlandoOn() {
   const pins = useConfig((s) => Object.keys(s.config.place).length);
   return (
     pins > 0 && (
-      <Tip tip={`${pins} pinned`}>
+      <Tip focusable tip={`${pins} pinned`}>
         <Badge variant="info">{pins}</Badge>
       </Tip>
     )

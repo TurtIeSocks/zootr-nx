@@ -77,9 +77,11 @@ const saveItems = vi.fn(
       cells: [
         cell("Hookshot", { tier, tiers: 2 }),
         cell("Bombs", { tier: 1, count: Number(last(edits, COUNT, "5")) }),
+        cell("Bottle", { tier: 1 }),
+        cell("Bottle", { tier: 0 }),
       ],
-      caps: [null, 20],
-      staged: [edits.some((e) => e.hash === HOOK), false],
+      caps: [null, 20, null, null],
+      staged: [edits.some((e) => e.hash === HOOK), false, false, false],
       status: [
         {
           group: "Meters",
@@ -212,6 +214,26 @@ test("a click goes up a tier and the tile shows a dot, and a right click back un
   fireEvent.contextMenu(tile("Hookshot"));
   await waitFor(() => expect(useUi.getPath("save.edits")).toEqual([]));
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+});
+
+test("Backspace on a focused tile goes down a tier, as a right click does", async () => {
+  await open();
+  fireEvent.click(tile("Hookshot"));
+  await waitFor(() => expect(useUi.getPath("save.edits")).toHaveLength(1));
+  fireEvent.keyDown(tile("Hookshot"), { key: "Backspace" });
+  await waitFor(() => expect(useUi.getPath("save.edits")).toEqual([]));
+  fireEvent.keyDown(tile("Hookshot"), { key: "Enter" });
+  expect(useUi.getPath("save.edits")).toEqual([]);
+});
+
+test("tiles that share a label get a number, so each button has its own name", async () => {
+  await open();
+  expect(screen.getByRole("button", { name: /^Bottle 1/ })).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: /^Bottle 2 \(missing\)/ }),
+  ).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /^Bottle \(/ })).toBeNull();
+  expect(screen.getByRole("button", { name: /^Hookshot/ })).toBeTruthy();
 });
 
 test("the count opens a field that stages how many", async () => {

@@ -83,7 +83,7 @@ test("with nothing typed it lists the recent picks still there", () => {
   find("");
   const recent = within(screen.getByRole("list", { name: "Recent" }));
   expect(recent.getAllByRole("button").map((b) => b.textContent)).toEqual([
-    "Save EditorClose the game first: it writes over its saves as it plays. On Items, click raises and right-click lowers. Presets wait for Save.",
+    "Save EditorClose the game first: it writes over its saves as it plays. On Items, click raises, right-click or Backspace lowers. Presets wait for Save.",
   ]);
 });
 

@@ -367,6 +367,16 @@ test("a pasted share code goes to Generate whole, a seed as digits", async () =>
   expect((box as HTMLInputElement).value).toBe("1234");
 });
 
+test("the dice button is named and rolls a seed into the input", () => {
+  show(null);
+  const box = screen.getByRole("textbox", {
+    name: "Seed or share code",
+  }) as HTMLInputElement;
+  expect(box.value).toBe("");
+  fireEvent.click(button("Roll a seed"));
+  expect(box.value).toMatch(/^\d+$/);
+});
+
 test("an AP seed installs from the .apznx picked, and a cancel does nothing", async () => {
   mockIPC(() => {});
   const generateAp = vi.spyOn(commands, "generateAp").mockResolvedValue({

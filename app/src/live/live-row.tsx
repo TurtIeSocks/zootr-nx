@@ -178,7 +178,7 @@ function ChangeText({ change, count }: ChangeTextProps) {
         </>
       )}
       {count && (
-        <Tip tip={`${count} changes in a row`}>
+        <Tip focusable tip={`${count} changes in a row`}>
           <span className="ml-2 rounded-xs bg-surface-sunken px-1 text-ink-muted">
             ×{count}
           </span>

@@ -72,3 +72,31 @@ test.each(["", false])("an empty tip (%j) leaves the child alone", (tip) => {
   fireEvent.focus(screen.getByText("FoT"));
   expect(screen.getByText("FoT").getAttribute("data-state")).toBeNull();
 });
+
+test("a focusable tip makes its child a tab stop that opens the tip", async () => {
+  render(
+    <>
+      <Tip tip="Plain">
+        <span>Plain badge</span>
+      </Tip>
+      <Tip focusable tip="Forest Temple">
+        <span>FoT</span>
+      </Tip>
+    </>,
+  );
+  expect((screen.getByText("FoT") as HTMLElement).tabIndex).toBe(0);
+  expect((screen.getByText("Plain badge") as HTMLElement).tabIndex).toBe(-1);
+  screen.getByText("FoT").focus();
+  expect((await screen.findByRole("tooltip")).textContent).toBe(
+    "Forest Temple",
+  );
+});
+
+test("an empty focusable tip adds no tab stop", () => {
+  render(
+    <Tip focusable tip="">
+      <span>FoT</span>
+    </Tip>,
+  );
+  expect((screen.getByText("FoT") as HTMLElement).tabIndex).toBe(-1);
+});
