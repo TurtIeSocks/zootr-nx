@@ -40,8 +40,8 @@ interface Reset {
 }
 
 /** A page's settings back to their defaults or to the last seed's, the
- * one used last leading and the other a click away in its menu. The last
- * seed is the one drift measures from. */
+ * one used last leading (the defaults while there's no seed) and the other
+ * a click away in its menu. The last seed is the one drift measures from. */
 export function ResetButton({ defs }: ResetButtonProps) {
   const { run } = useRequest();
   const [lead, setLead] = useUi.usePath("settings.reset");
@@ -76,10 +76,13 @@ export function ResetButton({ defs }: ResetButtonProps) {
     setLead(to);
     run(() => changeSettings(resets[to].patch));
   };
-  const led = resets[lead];
+  // With no seed built, Reset to last seed can't act at all, so the
+  // defaults lead until there's one.
+  const shown: ResetTo = lead === "seed" && !base ? "defaults" : lead;
+  const led = resets[shown];
   return (
     <ButtonGroup>
-      <WhyButton variant="ghost" why={led.why} onClick={() => use(lead)}>
+      <WhyButton variant="ghost" why={led.why} onClick={() => use(shown)}>
         <led.icon />
         {led.label}
       </WhyButton>

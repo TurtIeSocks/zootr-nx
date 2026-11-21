@@ -434,12 +434,10 @@ test("Reset to last seed puts the seed's values back, and leads after", async ()
   expect(action(/^Reset to last seed/)).toBeTruthy();
 });
 
-test("Reset to last seed says why with no seed built", async () => {
+test("with no seed built, the defaults lead, and the menu says why", async () => {
   useUi.setPath("settings.reset", "seed");
   show({ settings: { "open-forest": true } });
-  expect(action(/^Reset to last seed/).getAttribute("aria-disabled")).toBe(
-    "true",
-  );
+  expect(action(/^Reset to defaults/).getAttribute("aria-disabled")).toBeNull();
   fireEvent.keyDown(action("More ways to reset"), { key: "Enter" });
   const item = await screen.findByRole("menuitem", { name: /last seed/ });
   expect(item.textContent).toContain("No seed built yet");
