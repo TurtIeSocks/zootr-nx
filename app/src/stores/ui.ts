@@ -42,6 +42,12 @@ export interface DevGive {
   count: number;
 }
 
+/** A search result opened, by its group and its key in that group. */
+export interface Found {
+  group: string;
+  key: string;
+}
+
 export interface Ui {
   /** The view showing. */
   tab: Tab | "Settings";
@@ -87,6 +93,8 @@ export interface Ui {
   /** The sections closed on the settings pages, by `group/section`, and
    * the reset a page's split button leads with: the one used last. */
   settings: { closed: string[]; reset: ResetTo };
+  /** The search's last results opened, newest first. */
+  find: { recent: Found[] };
   /** The Save page: the slot, its tab, what's pending and the Flags
    * tab's query. */
   save: {
@@ -155,6 +163,7 @@ const INITIAL: Ui = {
   getStarted: { dismissed: false },
   update: { skipped: null },
   settings: { closed: [], reset: "defaults" },
+  find: { recent: [] },
   save: {
     slot: null,
     stamp: null,
@@ -369,4 +378,11 @@ export type ResetTo = "defaults" | "seed";
 export const setSectionOpen = (id: string, open: boolean) =>
   useUi.setPath("settings.closed", (c) =>
     open ? c.filter((t) => t !== id) : [...c, id],
+  );
+
+/** Steps the theme on: system, light, dark, round again. */
+export const nextTheme = () =>
+  useUi.setPath(
+    "theme",
+    (t) => THEMES[(THEMES.indexOf(t) + 1) % THEMES.length] ?? t,
   );

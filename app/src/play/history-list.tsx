@@ -25,6 +25,7 @@ import { nameOf, when } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ExtrasBadges, Name } from "@/play/seed";
 import { useArmed } from "@/play/use-armed";
+import { rowId } from "@/shell/find/reveal";
 import {
   clearHistory,
   deleteSeed,
@@ -186,7 +187,11 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
   const [differs] = useSeeds.usePath(`diffs.${e.id}`, 0);
   const isInstalled = e.id === installedId;
   return (
-    <li className="group/row relative flex min-h-14 items-center gap-3 rounded-md px-3 py-2 transition-colors duration-(--duration-fast) focus-within:bg-surface-hover hover:bg-surface-hover">
+    <li
+      id={rowId.seed(e.id)}
+      data-reveal
+      className="group/row relative flex min-h-14 items-center gap-3 rounded-md px-3 py-2 transition-colors duration-(--duration-fast) focus-within:bg-surface-hover hover:bg-surface-hover"
+    >
       <SeedIcons icons={e.icons} size="sm" />
       <div className="min-w-0 flex-1">
         {nameOf(e) ? (
