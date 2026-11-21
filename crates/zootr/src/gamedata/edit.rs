@@ -347,13 +347,21 @@ pub fn copy_member(root: &mut Byml, of: u32, like: &str, name: &str, value: &str
         .as_map()?
         .clone();
     let was = int(&member["Value"])? as u32;
-    let hash = murmur3(value.as_bytes());
     member.insert(
         "Hash".into(),
         typed(member.get("Hash"), murmur3(name.as_bytes()))?,
     );
+    let hash = murmur3(value.as_bytes());
     member.insert("Value".into(), typed(member.get("Value"), hash)?);
     members.push(Byml::Map(member));
+    copy_entry(root, was, value)
+}
+
+/// Copy entry `was` as `name`. A Struct's copy points at copies of its
+/// members' entries, each named `name.` and its member's hash, so no two
+/// items share a count. Only a saved entry takes room in the save.
+fn copy_entry(root: &mut Byml, was: u32, name: &str) -> Result<()> {
+    let hash = murmur3(name.as_bytes());
     let data = root
         .as_mut_map()?
         .get_mut("Data")
@@ -374,16 +382,38 @@ pub fn copy_member(root: &mut Byml, of: u32, like: &str, name: &str, value: &str
         .clone();
     ensure!(
         !entries.iter().any(|e| has_hash(e, hash)),
-        "{} already has {value}",
+        "{} already has {name}",
         flag::GAME_DATA
     );
     entry.insert("Hash".into(), typed(entry.get("Hash"), hash)?);
+    let mut inner = Vec::new();
+    if kind == "Struct" {
+        let members = (entry.get_mut(field::DEFAULT_VALUE.get()))
+            .context("a Struct with no members")?
+            .as_mut_array()?;
+        for m in members.iter_mut() {
+            let m = m.as_mut_map()?;
+            let key = int(&m["Hash"])? as u32;
+            let child = format!("{name}.{key:08x}");
+            inner.push((int(&m["Value"])? as u32, child.clone()));
+            m.insert(
+                "Value".into(),
+                typed(m.get("Value"), murmur3(child.as_bytes()))?,
+            );
+        }
+    }
     let file = int(entry
         .get(&**field::SAVE_FILE_INDEX)
         .context(field::SAVE_FILE_INDEX)?)?;
     entries.push(Byml::Map(entry));
-    let text = if kind == STRING64 { STRING64_TEXT } else { 0 };
-    grow_saves(root, file, 1, text)
+    if file >= 0 {
+        let text = if kind == STRING64 { STRING64_TEXT } else { 0 };
+        grow_saves(root, file, 1, text)?;
+    }
+    for (was, child) in inner {
+        copy_entry(root, was, &child)?;
+    }
+    Ok(())
 }
 
 /// BoolExp opcodes, as [`GameData::render`] reads them.
@@ -624,6 +654,44 @@ mod tests {
             assert_eq!(ours[key], theirs[key]);
         }
         assert_eq!(after.kind(murmur3(b"FakeAmmo.Cap")), before.kind(nut));
+    }
+
+    #[test]
+    fn a_copied_struct_member_points_at_saved_entries_of_its_own() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut doc = BymlDoc::parse(&romfs.read(PATH).unwrap()).unwrap();
+        let (counts, like) = (0x3da094e3, crate::known::item::BOMB_BAG_SMALL.get());
+        let size = |root: &Byml| {
+            int(&root.as_map().unwrap()[field::META_DATA.get()]
+                .as_map()
+                .unwrap()[field::ALL_DATA_SAVE_SIZE.get()])
+            .unwrap()
+        };
+        let was = size(&doc.root);
+        copy_member(&mut doc.root, counts, like, "FakeBag", "FakeBag.Count").unwrap();
+        // The Struct isn't saved, the Int it names is.
+        assert_eq!(size(&doc.root), was + SAVE_PAIR);
+        let gd = GameData::parse(&doc.to_binary()).unwrap();
+        let of = |name: &[u8]| {
+            let members: HashMap<u32, u32> = gd.members(counts).unwrap().into_iter().collect();
+            let inner = members[&murmur3(name)];
+            assert_eq!(gd.kind(inner), Some("Struct"));
+            gd.members(inner).unwrap()
+        };
+        let (ours, theirs) = (of(b"FakeBag"), of(like.as_bytes()));
+        assert_eq!(ours.len(), theirs.len());
+        for ((key, mine), (their_key, its)) in ours.into_iter().zip(theirs) {
+            assert_eq!(key, their_key);
+            assert_ne!(mine, its);
+            assert_eq!(gd.kind(mine), gd.kind(its));
+            let info = |hash| gd.entry(hash).unwrap().as_map().unwrap().clone();
+            assert_eq!(
+                info(mine)[field::SAVE_FILE_INDEX.get()],
+                info(its)[field::SAVE_FILE_INDEX.get()]
+            );
+        }
     }
 
     #[test]
