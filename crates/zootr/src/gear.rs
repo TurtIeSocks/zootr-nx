@@ -57,7 +57,7 @@ pub fn equip<M: Memory, I: Input>(
     dev: &Dev<M>,
     gd: &GameData,
     input: &mut I,
-    item: &Name,
+    item: &str,
 ) -> Result<()> {
     dev.give(gd, item, 1)?;
     for (button, wait) in EQUIP {

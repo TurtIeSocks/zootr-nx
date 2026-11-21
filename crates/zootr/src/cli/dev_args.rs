@@ -110,6 +110,10 @@ pub(super) enum DevCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Put an item on ZR, or gear (boots, a tunic) on or off, through the
+    /// menu: the item is given once more, so the menu opens on it, then A.
+    /// Names as `give` takes them.
+    Equip { item: String },
     /// Walk to where a placed actor of the current map is used from, face
     /// it, then press A, or for a door walk through. Says `event`,
     /// `entered` or `nothing`, and where a frame of the game was saved.
