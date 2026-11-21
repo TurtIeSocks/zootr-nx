@@ -164,6 +164,7 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             | DevCommand::Scene { .. }
             | DevCommand::Go { plan: true, .. }
             | DevCommand::Checked { .. }
+            | DevCommand::Nearby { .. }
     );
     let game = Dev::new(attach(!reads)?)?;
     let said = match cmd {
@@ -279,6 +280,27 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             Some(t) => said(&game.slay(romfs, &dev::Target::parse(&t), within)?, json)?,
             None => said(&game.foes(within)?, json)?,
         },
+        DevCommand::Nearby { grep, limit, json } => {
+            let mut near = game.nearby()?;
+            if let Some(text) = grep {
+                near.0.retain(|n| n.name.contains(&text));
+            }
+            near.0.truncate(limit);
+            said(&near, json)?
+        }
+        DevCommand::Hide { hashes, show } => {
+            let found = game.hide(&hashes, !show)?;
+            let missing: Vec<String> = (hashes.iter())
+                .filter(|h| !found.contains(h))
+                .map(u64::to_string)
+                .collect();
+            let done = if show { "showed" } else { "hid" };
+            let mut lines = vec![format!("{done} {} of {}", found.len(), hashes.len())];
+            if !missing.is_empty() {
+                lines.push(format!("not live: {}", missing.join(" ")));
+            }
+            lines.join("\n")
+        }
         DevCommand::Freeze => match game.freeze()? {
             0 => "sent".into(),
             n => format!("sent, after {n} still waiting"),

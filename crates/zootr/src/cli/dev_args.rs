@@ -130,6 +130,29 @@ pub(super) enum DevCommand {
         #[arg(long)]
         json: bool,
     },
+    /// The live actors placements made, nearest Link first, with their
+    /// placement hashes and whether each is hidden.
+    Nearby {
+        /// Only names holding this text.
+        #[arg(long)]
+        grep: Option<String>,
+        /// How many to list.
+        #[arg(long, default_value_t = 30)]
+        limit: usize,
+        /// One JSON array instead of lines.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Hide the model of each placement's live actor, with no reload.
+    /// Collision stays, and a map load shows it again.
+    Hide {
+        /// Placement hashes (`dev nearby` lists them).
+        #[arg(required = true)]
+        hashes: Vec<u64>,
+        /// Show them again instead.
+        #[arg(long)]
+        show: bool,
+    },
     /// Spring an ice trap: Link freezes once he's free to, as from a
     /// trap's get.
     Freeze,
