@@ -338,6 +338,30 @@ pub fn used<M: Memory, I: Input>(
     Drive::new(dev, input).touch(&graph, placement, frame(hash)?)
 }
 
+/// Turn Link toward `at`, then ZL, so the camera sits behind him (or
+/// locks on, where `at` is a target) and a shot or a throw goes its way.
+/// Whether he faces it.
+fn aim<S: Sense, I: Input>(drive: &mut Drive<S, I>, at: [f32; 3]) -> Result<bool> {
+    let faced = drive.face(at)?;
+    drive.input.press("ZL")?;
+    Ok(faced)
+}
+
+/// [`aim`] at the placed actor `hash` of the current map: whether Link
+/// faces it, and how far off it is, flat.
+pub fn faced<M: Memory, I: Input>(
+    dev: &Dev<M>,
+    input: &mut I,
+    romfs: &Romfs,
+    game: &Path,
+    hash: u64,
+) -> Result<(bool, f32)> {
+    let level = Level::read(dev, romfs, game)?;
+    let at = level.placement(hash)?.pose.at;
+    let faced = aim(&mut Drive::new(dev, input), at)?;
+    Ok((faced, crate::checks::flat(dev.link()?, at)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -374,6 +398,18 @@ mod tests {
             .touch(&graph, thing, PathBuf::from("frames/use-77.png"))
             .unwrap();
         (used, eyes)
+    }
+
+    #[test]
+    fn aiming_turns_link_to_the_thing_then_presses_zl() {
+        let (eyes, mut hands) = sim::start([2.0, 0.0, 2.0], 0.0);
+        let mut drive = sim::drive(&eyes, &mut hands);
+        // Off to his side, a quarter turn from where he faces.
+        assert!(aim(&mut drive, [10.0, 0.0, 2.0]).unwrap());
+        assert_eq!(
+            eyes.0.borrow().presses.last().map(String::as_str),
+            Some("ZL")
+        );
     }
 
     /// An A press starts an event when Link faces -Z.
