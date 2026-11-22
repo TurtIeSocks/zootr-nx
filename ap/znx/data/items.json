@@ -65,9 +65,24 @@
     "name": "Bottle with Milk"
   },
   {
+    "class": "progression",
+    "id": 68,
+    "name": "Broken Goron's Sword"
+  },
+  {
     "class": "filler",
     "id": 33,
     "name": "Business Scrub Seed"
+  },
+  {
+    "class": "progression",
+    "id": 69,
+    "name": "Claim Check"
+  },
+  {
+    "class": "progression",
+    "id": 70,
+    "name": "Cojiro"
   },
   {
     "class": "filler",
@@ -100,6 +115,16 @@
     "name": "Epona's Song"
   },
   {
+    "class": "progression",
+    "id": 71,
+    "name": "Eye Drops"
+  },
+  {
+    "class": "progression",
+    "id": 72,
+    "name": "Eyeball Frog"
+  },
+  {
     "class": "filler",
     "id": 44,
     "name": "Farore's Wind"
@@ -116,8 +141,18 @@
   },
   {
     "class": "filler",
+    "id": 73,
+    "name": "Giant's Knife"
+  },
+  {
+    "class": "filler",
     "id": 11,
     "name": "Gold Rupee (200)"
+  },
+  {
+    "class": "progression",
+    "id": 74,
+    "name": "Gold Skulltula Token"
   },
   {
     "class": "progression",
@@ -128,6 +163,11 @@
     "class": "filler",
     "id": 12,
     "name": "Green Rupee (1)"
+  },
+  {
+    "class": "filler",
+    "id": 75,
+    "name": "Heart Container"
   },
   {
     "class": "progression",
@@ -170,6 +210,11 @@
     "name": "Light Arrows"
   },
   {
+    "class": "progression",
+    "id": 76,
+    "name": "Magic Bean"
+  },
+  {
     "class": "filler",
     "id": 19,
     "name": "Magic Jar"
@@ -178,6 +223,11 @@
     "class": "progression",
     "id": 34,
     "name": "Magic Meter"
+  },
+  {
+    "class": "progression",
+    "id": 77,
+    "name": "Master Sword"
   },
   {
     "class": "progression",
@@ -205,14 +255,39 @@
     "name": "Nocturne of Shadow"
   },
   {
+    "class": "progression",
+    "id": 78,
+    "name": "Odd Mushroom"
+  },
+  {
+    "class": "progression",
+    "id": 79,
+    "name": "Odd Potion"
+  },
+  {
     "class": "useful",
     "id": 22,
     "name": "Piece of Heart"
   },
   {
     "class": "progression",
+    "id": 80,
+    "name": "Poacher's Saw"
+  },
+  {
+    "class": "progression",
+    "id": 81,
+    "name": "Pocket Egg"
+  },
+  {
+    "class": "progression",
     "id": 53,
     "name": "Prelude of Light"
+  },
+  {
+    "class": "progression",
+    "id": 82,
+    "name": "Prescription"
   },
   {
     "class": "progression",

@@ -25,6 +25,9 @@ pub struct Domain {
 #[derive(Clone, Debug)]
 pub struct Variant {
     pub overlay: Settings,
+    /// The settings that pick this variant out: its overlay, less the
+    /// base values a parent's group came along with.
+    pub key: Settings,
     /// Index into the variants, or `None` for the base.
     pub from: Option<usize>,
 }
@@ -32,7 +35,7 @@ pub struct Variant {
 impl Variant {
     /// Whether `settings` match this variant.
     fn holds(&self, settings: &BTreeMap<&str, &Value>) -> bool {
-        (self.overlay.iter()).all(|(k, v)| settings.get(k.as_str()) == Some(&v))
+        (self.key.iter()).all(|(k, v)| settings.get(k.as_str()) == Some(&v))
     }
 }
 
@@ -55,7 +58,7 @@ pub fn steps(domains: &[Domain], variants: &[Variant], counts: &Counts) -> Vec<(
     // Only the options of variants that change the row matter.
     let touched: Vec<&Domain> = (domains.iter())
         .filter(|d| {
-            (variants.iter().zip(&deltas)).any(|(v, d2)| *d2 != 0 && v.overlay.contains_key(&d.id))
+            (variants.iter().zip(&deltas)).any(|(v, d2)| *d2 != 0 && v.key.contains_key(&d.id))
         })
         .collect();
     let count = |at: &[usize]| -> i64 {
@@ -243,6 +246,7 @@ mod tests {
         let domains = [toggle("songs")];
         let variants = [Variant {
             overlay: on(&[("songs", true.into())]),
+            key: on(&[("songs", true.into())]),
             from: None,
         }];
         let counts = Counts {
@@ -260,6 +264,7 @@ mod tests {
         let domains = [toggle("npc-gifts")];
         let variants = [Variant {
             overlay: on(&[("npc-gifts", true.into())]),
+            key: on(&[("npc-gifts", true.into())]),
             from: None,
         }];
         let counts = Counts {
@@ -276,10 +281,12 @@ mod tests {
         let variants = [
             Variant {
                 overlay: on(&[("a", true.into())]),
+                key: on(&[("a", true.into())]),
                 from: None,
             },
             Variant {
                 overlay: on(&[("b", true.into())]),
+                key: on(&[("b", true.into())]),
                 from: None,
             },
         ];
@@ -316,6 +323,7 @@ mod tests {
         let domains = [toggle("npc-gifts"), fortress];
         let joint = |gifts: bool, f: &str| Variant {
             overlay: on(&[("npc-gifts", gifts.into()), ("gerudo-fortress", f.into())]),
+            key: on(&[("npc-gifts", gifts.into()), ("gerudo-fortress", f.into())]),
             from: None,
         };
         let variants = [
