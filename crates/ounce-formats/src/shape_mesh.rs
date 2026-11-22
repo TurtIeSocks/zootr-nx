@@ -4,7 +4,9 @@
 //!
 //! Its first item is an `hknpMeshShape` split into geometry sections. A
 //! section keeps each vertex as three `u16`s counted from the section's
-//! offset, both in the shape's `bitScale16Inv` units. Its primitives are
+//! offset, both in the shape's `bitScale16Inv` units, or, when its offset
+//! is `i32::MAX` on every axis, as three plain `f32`s: a section too big to
+//! count in `u16`s (15 of the game's 5,877 meshes have one). Its primitives are
 //! four indices into the section's vertices: a quad, or a triangle when
 //! the last two match. The layout follows the EPD ZeldaMods wiki's Bphsh
 //! page (Havok 2023.2); this game's 2025.2 files name the same fields.
@@ -23,6 +25,10 @@ pub struct ShapeMesh {
 
 /// Bytes per vertex: three `u16`s.
 const VERTEX: usize = 6;
+/// Bytes per vertex in a section of plain floats: three `f32`s.
+const PLAIN: usize = 12;
+/// The offset that marks a section of plain floats.
+const UNPACKED: [i32; 3] = [i32::MAX; 3];
 
 impl ShapeMesh {
     pub fn parse(bytes: &[u8]) -> Result<Self> {
@@ -41,11 +47,22 @@ impl ShapeMesh {
         for section in mesh.rel_array("geometrySections")? {
             let base = out.vertices.len();
             let offset: [i32; 3] = section.field("sectionOffset")?.ints()?;
-            for v in section.rel_bytes("vertexBuffer")?.as_chunks::<VERTEX>().0 {
-                out.vertices.push(std::array::from_fn(|i| {
-                    let q = u16::from_le_bytes([v[2 * i], v[2 * i + 1]]);
-                    (offset[i] + i32::from(q)) as f32 * scale[i]
-                }));
+            let buffer = section.rel_bytes("vertexBuffer")?;
+            if offset == UNPACKED {
+                out.vertices
+                    .extend(buffer.as_chunks::<PLAIN>().0.iter().map(|v| {
+                        std::array::from_fn(|i| {
+                            f32::from_le_bytes(std::array::from_fn(|b| v[4 * i + b]))
+                        })
+                    }));
+            } else {
+                out.vertices
+                    .extend(buffer.as_chunks::<VERTEX>().0.iter().map(|v| {
+                        std::array::from_fn(|i| {
+                            let q = u16::from_le_bytes([v[2 * i], v[2 * i + 1]]);
+                            (offset[i] + i32::from(q)) as f32 * scale[i]
+                        })
+                    }));
             }
             for p in section.rel_array("primitives")? {
                 let ids = p.bytes(4)?;
