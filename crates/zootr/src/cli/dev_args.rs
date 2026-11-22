@@ -305,7 +305,7 @@ pub enum MemCommand {
     },
     /// Ranges read together over and over, each pass that differs from the
     /// last printed with its time: catches states one frame long, which a
-    /// `read` a process misses.
+    /// single `read` misses.
     Watch {
         /// `ADDR:LEN` ranges, each a 0x address or `main+0x…`.
         #[arg(required = true)]
