@@ -153,6 +153,15 @@ pub enum Probe {
     /// unset) and the rule file's need. Warp songs' pads are `StartPos`
     /// actors named after the song (`probe actors --gyaml StartPos`).
     Exits { node: String },
+    /// The calls in a sound user (named for its actor), in order, or those
+    /// whose name contains `grep`, any case.
+    Calls {
+        user: String,
+        grep: Option<String>,
+        /// Instead, this call and every call under it.
+        #[arg(long)]
+        tree: Option<String>,
+    },
     /// Each chest a logic graph gates: placement hash, area and rule.
     Gates {
         /// Every chest a graph drives, gated or not, with the wiring
@@ -455,6 +464,20 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             Ok(())
         }
         Probe::Exits { node } => exits(romfs, &node),
+        Probe::Calls { user, grep, tree } => {
+            let file = romfs.read(crate::ageless_items::SOUNDS)?;
+            let grep = grep.unwrap_or_default().to_lowercase();
+            let names = match tree {
+                Some(key) => ounce_formats::xlink_tree(&file, &user, &key)?,
+                None => ounce_formats::xlink_calls(&file, &user)?,
+            };
+            for name in names {
+                if name.to_lowercase().contains(&grep) {
+                    println!("{name}");
+                }
+            }
+            Ok(())
+        }
         Probe::Gates {
             trace,
             node,

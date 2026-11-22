@@ -1,11 +1,16 @@
-//! The child's Hammer sounds. The swing's state machine plays the yells by
-//! name and the slam's code plays its ground shock wave, through Link's
-//! sound user. The child's has neither, so his swing was silent.
+//! The borrowed items' sounds. Link's sound user plays them by name: the
+//! Hammer's yells from its swing's state machine, its ground shock wave
+//! and the Boomerang's throw and catch from code. Each Link's user lacks
+//! the other's, so the child's swing and the adult's Boomerang were
+//! silent.
 //!
-//! His user gains each as a copy of a call a Link has: the yells from his
-//! own heavy sword swing, the slam's tree (the clang and the splashes in
-//! water, lava and bog) from the adult's. The clang's audio is only in the
-//! adult's sound bank, so the child loads that bank beside his own.
+//! Each user gains them as copies of calls a Link has: the child's yells
+//! from his own heavy sword swing, the slam's tree (the clang and the
+//! splashes in water, lava and bog) from the adult's, the adult's
+//! Boomerang throw and catch from the child's, and its throw yells from
+//! his own Deku Nut throw (the child's are in the child's voice). Each
+//! item's audio is only in its own Link's sound bank, so each Link loads
+//! the other's beside his own.
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{Byml, BymlDoc, ModBuilder, xlink_copy_call};
@@ -13,35 +18,82 @@ use ounce_formats::{Byml, BymlDoc, ModBuilder, xlink_copy_call};
 use super::files::{BANKS, SOUNDS};
 use crate::known::{Name, actor, field};
 
-/// The calls the child gains: each name, and the user and call it copies.
-const GAINED: [(&Name, &Name, &Name); 4] = [
+/// The calls each Link gains: his user, each call's name, and the user and
+/// call it copies.
+const GAINED: [(&Name, &Name, &Name, &Name); 10] = [
     (
+        actor::PLAYER_CHILD,
         field::HAMMER_01,
         actor::PLAYER_CHILD,
         field::SWORD_ATTACK_B_01,
     ),
     (
+        actor::PLAYER_CHILD,
         field::HAMMER_02,
         actor::PLAYER_CHILD,
         field::SWORD_ATTACK_B_02,
     ),
     (
+        actor::PLAYER_CHILD,
         field::HAMMER_03,
         actor::PLAYER_CHILD,
         field::SWORD_ATTACK_B_03,
     ),
     (
+        actor::PLAYER_CHILD,
         field::SHOCK_WAVE_GROUND,
         actor::PLAYER_ADULT,
         field::SHOCK_WAVE_GROUND,
     ),
+    (
+        actor::PLAYER_ADULT,
+        field::BOOMERANG_THROW,
+        actor::PLAYER_CHILD,
+        field::BOOMERANG_THROW,
+    ),
+    (
+        actor::PLAYER_ADULT,
+        field::BOOMERANG_CATCH,
+        actor::PLAYER_CHILD,
+        field::BOOMERANG_CATCH,
+    ),
+    (
+        actor::PLAYER_ADULT,
+        field::BOOMERANG_CATCH_NO_HAND,
+        actor::PLAYER_CHILD,
+        field::BOOMERANG_CATCH_NO_HAND,
+    ),
+    (
+        actor::PLAYER_ADULT,
+        field::BOOMERANG_01,
+        actor::PLAYER_ADULT,
+        field::THROWING_NUTS_01,
+    ),
+    (
+        actor::PLAYER_ADULT,
+        field::BOOMERANG_02,
+        actor::PLAYER_ADULT,
+        field::THROWING_NUTS_02,
+    ),
+    (
+        actor::PLAYER_ADULT,
+        field::BOOMERANG_03,
+        actor::PLAYER_ADULT,
+        field::THROWING_NUTS_03,
+    ),
 ];
 
-/// The bank and the sound choice the slam's clang needs: which of the
-/// clang's recordings plays for the ground under it.
-const LOADED: [(&Name, &Name); 2] = [
-    (field::BARS, field::PLAYER_ADULT_BARS),
-    (field::CHOICE_ASSET, field::HAMMER_GROUND_HIT_CHOICE),
+/// The banks and sound choices each Link loads beside his own: the
+/// other's bank, and the choice of the slam's clang recording for the
+/// ground under it.
+const LOADED: [(&Name, &Name, &Name); 3] = [
+    (actor::PLAYER_CHILD, field::BARS, field::PLAYER_ADULT_BARS),
+    (
+        actor::PLAYER_CHILD,
+        field::CHOICE_ASSET,
+        field::HAMMER_GROUND_HIT_CHOICE,
+    ),
+    (actor::PLAYER_ADULT, field::BARS, field::PLAYER_CHILD_BARS),
 ];
 
 pub(super) fn write(builder: &mut ModBuilder) -> Result<()> {
@@ -51,33 +103,30 @@ pub(super) fn write(builder: &mut ModBuilder) -> Result<()> {
     builder.write(BANKS, &banks)
 }
 
-/// The sound users at `bytes` with the child's [`GAINED`] calls.
+/// The sound users at `bytes` with each Link's [`GAINED`] calls.
 fn called(bytes: &[u8]) -> Result<Vec<u8>> {
     GAINED
         .iter()
-        .try_fold(bytes.to_vec(), |file, (name, from, call)| {
-            xlink_copy_call(&file, from, call, actor::PLAYER_CHILD, name)
+        .try_fold(bytes.to_vec(), |file, (link, name, from, call)| {
+            xlink_copy_call(&file, from, call, link, name)
         })
 }
 
-/// The bank list at `bytes` with the child loading [`LOADED`] too.
+/// The bank list at `bytes` with each Link loading his [`LOADED`] too.
 fn banked(bytes: &[u8]) -> Result<Vec<u8>> {
     let mut doc = BymlDoc::parse(bytes)?;
     let table = (doc.root.as_mut_map()?.get_mut(field::BARSLIST_TABLE.get()))
-        .with_context(|| format!("no {}", field::BARSLIST_TABLE))?;
-    let child = (table.as_mut_map()?.get_mut(actor::PLAYER_CHILD.get()))
-        .with_context(|| format!("no {} banks", actor::PLAYER_CHILD))?
+        .with_context(|| format!("no {}", field::BARSLIST_TABLE))?
         .as_mut_map()?;
-    for (key, file) in LOADED {
-        let Some(Byml::Array(list)) = child.get_mut(key.get()) else {
-            anyhow::bail!("{} has no {key}", actor::PLAYER_CHILD);
+    for (link, key, file) in LOADED {
+        let banks = (table.get_mut(link.get()))
+            .with_context(|| format!("no {link} banks"))?
+            .as_mut_map()?;
+        let Some(Byml::Array(list)) = banks.get_mut(key.get()) else {
+            anyhow::bail!("{link} has no {key}");
         };
         let file = Byml::String(file.get().into());
-        ensure!(
-            !list.contains(&file),
-            "{} already loads it",
-            actor::PLAYER_CHILD
-        );
+        ensure!(!list.contains(&file), "{link} already loads it");
         list.push(file);
     }
     Ok(doc.to_binary())
@@ -90,7 +139,7 @@ mod tests {
     use ounce_formats::{xlink_calls, xlink_tree};
 
     #[test]
-    fn the_child_gains_the_hammers_calls_and_every_user_keeps_its_own() {
+    fn each_link_gains_the_others_calls_and_keeps_his_own() {
         let Some(romfs) = dev_dump() else { return };
         let shipped = romfs.read(SOUNDS).unwrap();
         let ours = called(&shipped).unwrap();
@@ -116,10 +165,30 @@ mod tests {
             slam
         );
         // The adult's user lies after the child's, so its offsets moved.
-        assert_eq!(
+        let (was, now) = (
+            xlink_calls(&shipped, adult).unwrap(),
             xlink_calls(&ours, adult).unwrap(),
-            xlink_calls(&shipped, adult).unwrap()
         );
+        assert_eq!(now[..was.len()], was[..], "his own calls stay too");
+        let mut gained = vec![];
+        for call in [
+            field::BOOMERANG_THROW,
+            field::BOOMERANG_CATCH,
+            field::BOOMERANG_CATCH_NO_HAND,
+        ] {
+            let tree = xlink_tree(&shipped, child, call).unwrap();
+            assert_eq!(xlink_tree(&ours, adult, call).unwrap(), tree);
+            gained.extend(tree);
+        }
+        gained.extend(
+            [
+                field::BOOMERANG_01,
+                field::BOOMERANG_02,
+                field::BOOMERANG_03,
+            ]
+            .map(|n| n.get()),
+        );
+        assert_eq!(now[was.len()..], gained[..]);
         assert_eq!(
             xlink_tree(&ours, adult, field::SHOCK_WAVE_GROUND).unwrap(),
             slam
@@ -127,7 +196,7 @@ mod tests {
     }
 
     #[test]
-    fn the_child_loads_the_adults_bank_and_the_clangs_choice() {
+    fn each_link_loads_the_others_bank_and_the_child_the_clangs_choice() {
         let Some(romfs) = dev_dump() else { return };
         let shipped = romfs.read(BANKS).unwrap();
         let ours = BymlDoc::parse(&banked(&shipped).unwrap()).unwrap();
@@ -143,16 +212,18 @@ mod tests {
                 .map(|b| b.as_string().unwrap().to_string())
                 .collect()
         };
-        for (key, file) in LOADED {
-            let mut want = banks(&shipped, actor::PLAYER_CHILD, key);
+        for (link, key, file) in LOADED {
+            let mut want = banks(&shipped, link, key);
             want.push(file.get().into());
-            assert_eq!(banks(&ours, actor::PLAYER_CHILD, key), want);
-            let adult = banks(&shipped, actor::PLAYER_ADULT, key);
+            assert_eq!(banks(&ours, link, key), want);
+            let other = match link == actor::PLAYER_CHILD {
+                true => actor::PLAYER_ADULT,
+                false => actor::PLAYER_CHILD,
+            };
             assert!(
-                adult.contains(&file.get().to_string()),
-                "the adult loads it"
+                banks(&shipped, other, key).contains(&file.get().to_string()),
+                "the other Link loads {file}"
             );
-            assert_eq!(banks(&ours, actor::PLAYER_ADULT, key), adult);
         }
     }
 }
