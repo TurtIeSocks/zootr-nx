@@ -48,3 +48,33 @@ evidence = [
 value = 5.2
 drop = 4.65
 evidence = ["measured: jump at the edge (child-edge-jump-1.08, child-edge-jump-1.00)"]
+
+# How far each weapon reaches from Link, in m, read from its own
+# parameters. Glitchless logic counts a target up to `margin` of it.
+[range.slingshot]
+value = 20.0
+evidence = ["static: the slingshot's BowParam Range 20"]
+
+[range.bow]
+value = 20.0
+evidence = ["static: the bow's BowParam Range 20"]
+
+[range.boomerang]
+value = 10.0
+evidence = ["static: the boomerang's Range 10 (ExtendRange 13, ShortRange 9)"]
+
+[range.hookshot]
+value = 10.0
+evidence = ["static: the hookshot's HookshotParam Range 10"]
+
+[range.longshot]
+value = 20.0
+evidence = ["static: the longshot's HookshotParam Range 20"]
+
+# The fire field's radius: a 1 m sphere scaled to 3, then 4 more.
+[range.dins-fire]
+value = 7.0
+evidence = [
+    "static: DinFireParam FirstFireScale 3, SecondAddScale 4, on a 1 m sphere",
+    "playtest 2026-11-22, the maintainer: misses the Deku basement vine gold skulltula 7.7 m up",
+]

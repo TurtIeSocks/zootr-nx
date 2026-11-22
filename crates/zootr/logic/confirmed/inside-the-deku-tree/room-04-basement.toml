@@ -1,0 +1,23 @@
+# Settled by playtest. Overrides baseline/ by key.
+room = 4
+name = "Basement"
+
+# On the ivy that climbs to the lobby, 7.7 m over the basement floor. Its
+# token falls to the floor at the ivy's foot, so the hit is the check.
+[[check]]
+hash = 16101480770659370603
+name = "Basement Gold Skulltula 1"
+needs = "slingshot or bow or boomerang or hookshot"
+why = "7.7 m up the ivy: a ranged weapon hits it from the floor, Din's Fire falls short"
+evidence = [
+    "playtest 2026-11-22, the maintainer: Din's Fire doesn't reach it",
+    "derived before the playtest from its height and each weapon's range, every verdict held (research/room-science.md)",
+]
+
+[[knowledge]]
+check = 16101480770659370603
+why = "bombchus sent up the ivy (one landed after about 30), or a bomb dropped from the lobby, held to time its fuse"
+evidence = [
+    "playtest 2026-11-22, the maintainer: bombchus killed it after about 30",
+    "playtest 2026-11-22, the maintainer: a bomb dropped from the lobby hit it",
+]

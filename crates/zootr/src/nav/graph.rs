@@ -178,10 +178,10 @@ impl<'a> Graph<'a> {
     /// middle for the foot and above it for the top.
     pub fn climb_ends(&self, c: &Climb) -> std::result::Result<(Snap, Snap), &'static str> {
         let middle = (c.foot[1] + c.top[1]) / 2.0;
-        let foot = (self.nearest(c.foot, CLIMB_REACH, |q| q[1] <= middle))
+        let foot = (self.nearest(c.foot, CLIMB_REACH, |_, q| q[1] <= middle))
             .ok_or("no floor at its foot")?;
-        let top =
-            (self.nearest(c.top, CLIMB_REACH, |q| q[1] >= middle)).ok_or("no floor at its top")?;
+        let top = (self.nearest(c.top, CLIMB_REACH, |_, q| q[1] >= middle))
+            .ok_or("no floor at its top")?;
         if top.face == foot.face || top.at[1] - foot.at[1] < STEP_MIN {
             return Err("its top is no higher than its foot");
         }
@@ -249,9 +249,14 @@ impl<'a> Graph<'a> {
             .footing_among(self.faces_near(p[0], p[2], 0.0), p, reach)
     }
 
-    /// The spot of the mesh nearest `p` within `reach`, among those `keep`
-    /// allows.
-    fn nearest(&self, p: [f32; 3], reach: f32, keep: impl Fn([f32; 3]) -> bool) -> Option<Snap> {
+    /// The spot of the mesh's edges nearest `p` within `reach`, among
+    /// those `keep` allows by face and spot.
+    fn nearest(
+        &self,
+        p: [f32; 3],
+        reach: f32,
+        keep: impl Fn(usize, [f32; 3]) -> bool,
+    ) -> Option<Snap> {
         let mesh = self.mesh;
         (self.faces_near(p[0], p[2], reach).into_iter())
             .flat_map(|f| {
@@ -259,9 +264,31 @@ impl<'a> Graph<'a> {
                     .iter()
                     .map(move |e| (f, closest(mesh.vertices[e.a], mesh.vertices[e.b], p)))
             })
-            .filter(|&(_, at)| dist(at, p) <= reach && keep(at))
+            .filter(|&(f, at)| dist(at, p) <= reach && keep(f, at))
             .min_by(|a, b| dist(a.1, p).total_cmp(&dist(b.1, p)))
             .map(|(face, at)| Snap { face, at })
+    }
+
+    /// The floor spot nearest `p` within `reach`, on a face `keep` allows:
+    /// straight under it, or else the nearest edge.
+    pub fn nearest_floor(
+        &self,
+        p: [f32; 3],
+        reach: f32,
+        keep: impl Fn(usize) -> bool,
+    ) -> Option<Snap> {
+        let under = (self.faces_near(p[0], p[2], 0.0).into_iter())
+            .filter(|&f| keep(f))
+            .filter_map(|face| {
+                let height = self.mesh.height_on(face, p[0], p[2])?;
+                (height <= p[1] && p[1] - height <= reach).then_some(Snap {
+                    face,
+                    at: [p[0], height, p[2]],
+                })
+            })
+            .max_by(|a, b| a.at[1].total_cmp(&b.at[1]));
+        let edge = self.nearest(p, reach, |f, _| keep(f));
+        (under.into_iter().chain(edge)).min_by(|a, b| dist(a.at, p).total_cmp(&dist(b.at, p)))
     }
 
     /// Where `p` stands on the mesh, or the nearest face within 1.5 m of
@@ -272,7 +299,7 @@ impl<'a> Graph<'a> {
                 face: f.face,
                 at: [p[0], f.height, p[2]],
             }),
-            None => self.nearest(p, SNAP, |_| true),
+            None => self.nearest(p, SNAP, |_, _| true),
         }
     }
 
@@ -436,7 +463,7 @@ impl<'a> Graph<'a> {
             let facing = [ahead_x - x, ahead_z - z];
             let side = |sign: f32| {
                 let keep =
-                    |q: [f32; 3]| sign * ((q[0] - x) * facing[0] + (q[2] - z) * facing[1]) > 0.0;
+                    |_, q: [f32; 3]| sign * ((q[0] - x) * facing[0] + (q[2] - z) * facing[1]) > 0.0;
                 self.nearest([x, y, z], DOOR_REACH, keep)
             };
             let (Some(front), Some(back)) = (side(1.0), side(-1.0)) else {
@@ -610,5 +637,23 @@ mod tests {
         let off = g.locate([3.0, 5.0, 1.0]).unwrap();
         assert_eq!((off.face, off.at), (0, [2.0, 5.0, 1.0]));
         assert_eq!(g.locate([4.0, 5.0, 1.0]), None);
+    }
+
+    #[test]
+    fn the_nearest_floor_is_straight_under_or_else_the_nearest_edge_of_a_kept_face() {
+        let m = mesh(&[quad(0.0, 0.0, 2.0, 2.0, 0.0), quad(4.0, 0.0, 6.0, 2.0, 3.0)]);
+        let g = Graph::build(&m, &[], step_up());
+        let first = |f: usize| f == 0;
+        assert_eq!(
+            g.nearest_floor([1.0, 8.0, 1.0], 20.0, first).unwrap().at,
+            [1.0, 0.0, 1.0]
+        );
+        assert_eq!(
+            g.nearest_floor([3.0, 8.0, 1.0], 20.0, first).unwrap().at,
+            [2.0, 0.0, 1.0]
+        );
+        let higher = g.nearest_floor([5.0, 8.0, 1.0], 20.0, |_| true).unwrap();
+        assert_eq!((higher.face, higher.at), (1, [5.0, 3.0, 1.0]));
+        assert!(g.nearest_floor([1.0, 8.0, 1.0], 5.0, first).is_none());
     }
 }

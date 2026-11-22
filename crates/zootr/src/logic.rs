@@ -373,8 +373,11 @@ impl World {
                         }
                     }
                 };
+                // A room rule measured what hits a gold skulltula, which the
+                // kind's blanket word would only narrow.
                 let kind = match scrubs::of(check) {
                     Some(_) => Some(STUN_SCRUB),
+                    None if rule.is_some_and(|r| r.room) => None,
                     None => pickups::kind_of(check).and_then(|k| k.needs),
                 };
                 let need = match kind {

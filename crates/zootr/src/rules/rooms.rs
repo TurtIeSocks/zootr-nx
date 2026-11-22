@@ -131,16 +131,36 @@ impl Flag {
     }
 }
 
-/// A route between the margin and the limit, for a later logic tier.
-/// Logic ignores it.
+/// A way past the margin, for a later logic tier: a route to a room
+/// (`to` and `via`), or another way to get a check (`check`). Logic
+/// ignores it.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Knowledge {
-    pub to: u32,
-    pub via: Via,
+    pub to: Option<u32>,
+    pub via: Option<Via>,
+    pub check: Option<u64>,
     pub why: String,
     #[serde(default)]
     pub evidence: Vec<String>,
+}
+
+impl Knowledge {
+    /// What it leads to, as the audit says it.
+    pub fn what(&self) -> String {
+        match (self.to, self.via, self.check) {
+            (Some(to), Some(via), None) => format!("to {to} ({})", via.word()),
+            (None, None, Some(check)) => format!("check {check}"),
+            _ => "a route (to, via) or a check, not both".into(),
+        }
+    }
+
+    fn shaped(&self) -> Result<()> {
+        let route = self.to.is_some() && self.via.is_some() && self.check.is_none();
+        let check = self.to.is_none() && self.via.is_none() && self.check.is_some();
+        ensure!(route || check, "knowledge needs `to` and `via`, or `check`");
+        Ok(())
+    }
 }
 
 /// An exit or a spot Link lands on, keyed by [`spot`].
@@ -204,7 +224,7 @@ impl Entry for Spot {
 
 impl Entry for Knowledge {
     fn key(&self) -> String {
-        format!("knowledge to {} by {:?}", self.to, self.via)
+        format!("knowledge {}", self.what())
     }
     fn evidence(&self) -> &[String] {
         &self.evidence
@@ -286,6 +306,24 @@ pub(super) fn overlay<T: Entry>(base: &mut [T], confirmed: Vec<T>) -> Result<()>
     Ok(())
 }
 
+/// Knowledge only comes from playtests, so a confirmed file adds it.
+fn add(base: &mut Vec<Knowledge>, confirmed: Vec<Knowledge>) -> Result<()> {
+    for k in confirmed {
+        ensure!(
+            !k.evidence.is_empty(),
+            "confirmed {} has no evidence",
+            k.key()
+        );
+        ensure!(
+            base.iter().all(|b| b.key() != k.key()),
+            "two entries for {}",
+            k.key()
+        );
+        base.push(k);
+    }
+    Ok(())
+}
+
 pub(super) fn rule(needs: &str) -> Result<Expr> {
     let mut expr = parse(needs)?;
     vocab::words(&mut expr)?;
@@ -309,6 +347,9 @@ pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
             unique(&file.check)?;
             unique(&file.flag)?;
             unique(&file.knowledge)?;
+            for k in &file.knowledge {
+                k.shaped().with_context(|| k.key())?;
+            }
             for l in &mut file.link {
                 l.expr = rule(&l.needs).with_context(|| l.key())?;
             }
@@ -337,7 +378,7 @@ pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
             overlay(&mut base.link, file.link)?;
             overlay(&mut base.check, file.check)?;
             overlay(&mut base.flag, file.flag)?;
-            overlay(&mut base.knowledge, file.knowledge)?;
+            add(&mut base.knowledge, file.knowledge)?;
             overlay(&mut base.exit, file.exit)?;
             overlay(&mut base.arrival, file.arrival)
         };
@@ -451,6 +492,38 @@ mod tests {
         let (base, conf) = (at("baseline"), at("confirmed"));
         let err = load(&[(&base, BASE), (&conf, &bare)]).unwrap_err();
         assert!(format!("{err:#}").contains("no evidence"), "{err:#}");
+    }
+
+    #[test]
+    fn confirmed_knowledge_adds_a_route_or_a_check_with_evidence() {
+        let known = r#"
+            room = 4
+            name = "Room04"
+            [[knowledge]]
+            check = 1
+            why = "fake bombchus up the wall"
+            evidence = ["fake-playtest"]
+            [[knowledge]]
+            to = 0
+            via = "jump"
+            why = "fake long jump"
+            evidence = ["fake-trace"]
+        "#;
+        let (base, conf) = (at("baseline"), at("confirmed"));
+        let rooms = load(&[(&base, BASE), (&conf, known)]).unwrap();
+        let what: Vec<String> = rooms[0]
+            .file
+            .knowledge
+            .iter()
+            .map(Knowledge::what)
+            .collect();
+        assert_eq!(what, ["check 1", "to 0 (jump)"]);
+        let bare = known.replace("evidence = [\"fake-playtest\"]", "");
+        let err = load(&[(&base, BASE), (&conf, &bare)]).unwrap_err();
+        assert!(format!("{err:#}").contains("no evidence"), "{err:#}");
+        let both = known.replace("check = 1", "check = 1\nto = 0");
+        let err = load(&[(&base, BASE), (&conf, &both)]).unwrap_err();
+        assert!(format!("{err:#}").contains("or `check`"), "{err:#}");
     }
 
     #[test]
