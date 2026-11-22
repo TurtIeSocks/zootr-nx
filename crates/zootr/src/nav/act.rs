@@ -347,17 +347,22 @@ fn aim<S: Sense, I: Input>(drive: &mut Drive<S, I>, at: [f32; 3]) -> Result<bool
     Ok(faced)
 }
 
-/// [`aim`] at the placed actor `hash` of the current map: whether Link
-/// faces it, and how far off it is, flat.
+/// [`aim`] at `target`, a spot `x,y,z` or the placement hash of an actor
+/// of the current map: whether Link faces it, and how far off it is, flat.
 pub fn faced<M: Memory, I: Input>(
     dev: &Dev<M>,
     input: &mut I,
     romfs: &Romfs,
     game: &Path,
-    hash: u64,
+    target: &str,
 ) -> Result<(bool, f32)> {
-    let level = Level::read(dev, romfs, game)?;
-    let at = level.placement(hash)?.pose.at;
+    let at = match crate::warp::point(target) {
+        Some(at) => at,
+        None => {
+            let hash = target.parse().context("a placement hash or a spot x,y,z")?;
+            Level::read(dev, romfs, game)?.placement(hash)?.pose.at
+        }
+    };
     let faced = aim(&mut Drive::new(dev, input), at)?;
     Ok((faced, crate::checks::flat(dev.link()?, at)))
 }
