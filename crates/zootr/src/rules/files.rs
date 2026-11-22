@@ -155,8 +155,8 @@ impl Book {
         Self::from_parts(files, &[])
     }
 
-    /// The book from rule files and room files. A room file's check takes
-    /// the place of a hand rule for it, which is kept for the audit.
+    /// The book from rule files and room files. A live room file's check
+    /// takes the place of a hand rule for it, which is kept for the audit.
     pub(super) fn from_parts(files: &[(&str, &str)], room_files: &[(&str, &str)]) -> Result<Self> {
         let mut book = Book {
             abilities: BTreeMap::new(),
@@ -176,7 +176,8 @@ impl Book {
         }
         book.rooms = rooms::load(room_files)?;
         book.kinds = kinds::load(room_files)?;
-        for check in book.rooms.iter().flat_map(|r| &r.file.check) {
+        let live = book.rooms.iter().filter(|r| r.live);
+        for check in live.flat_map(|r| &r.file.check) {
             let entry = CheckEntry {
                 name: check.name.clone(),
                 needs: check.expr.clone(),
@@ -287,7 +288,8 @@ impl Book {
         for room in &self.rooms {
             let flags = room.file.flag.iter().map(|f| (&f.expr, f.name.as_str()));
             let links = room.file.link.iter().map(|l| (&l.expr, "a link"));
-            for (expr, what) in flags.chain(links) {
+            let checks = room.file.check.iter().map(|c| (&c.expr, c.name.as_str()));
+            for (expr, what) in flags.chain(links).chain(checks) {
                 self.need(expr, &ctx)
                     .with_context(|| format!("room {} of {}: {what}", room.file.room, room.node))?;
             }

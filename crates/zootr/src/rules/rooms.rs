@@ -190,12 +190,20 @@ impl Entry for Knowledge {
     }
 }
 
+/// The dungeons whose room files drive logic, by folder. A dungeon joins
+/// once room places are in the solver and its pilot has settled its audit
+/// (room reach spec, build steps 4 and 6). Until then its room files are
+/// derived, loaded and checked, and logic keeps its hand rules.
+pub const LIVE: &[&str] = &[];
+
 /// One room, its confirmed entries laid over its baseline.
 #[derive(Debug)]
 pub struct Room {
     /// The dungeon's node in the world graph.
     pub node: String,
     pub file: RoomFile,
+    /// Whether its dungeon is in [`LIVE`].
+    pub live: bool,
 }
 
 /// A dungeon's folder name: its map's name in kebab case.
@@ -313,7 +321,11 @@ pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
         lay().with_context(at)?;
     }
     let rooms: Vec<Room> = (rooms.into_iter())
-        .map(|((node, _), file)| Room { node, file })
+        .map(|((node, _), file)| Room {
+            live: LIVE.contains(&folder(&node).as_str()),
+            node,
+            file,
+        })
         .collect();
     let mut checks = BTreeSet::new();
     for c in rooms.iter().flat_map(|r| &r.file.check) {
@@ -443,6 +455,20 @@ mod tests {
         assert_eq!(rooms[0].file.room, 4);
         let twice = load(&[(&named, BASE), (&at("baseline"), BASE)]).unwrap_err();
         assert!(format!("{twice:#}").contains("second file"), "{twice:#}");
+    }
+
+    #[test]
+    fn a_room_check_waits_for_its_dungeon_to_go_live() {
+        needs_names!();
+        let book =
+            super::super::Book::from_parts(super::super::files::FILES, &[(&at("baseline"), BASE)])
+                .unwrap();
+        assert!(!book.rooms[0].live, "no dungeon is live yet");
+        let hand = super::super::Book::from_files(super::super::files::FILES).unwrap();
+        assert_eq!(
+            book.checks().map(|(h, _)| h).collect::<Vec<_>>(),
+            hand.checks().map(|(h, _)| h).collect::<Vec<_>>(),
+        );
     }
 
     #[test]

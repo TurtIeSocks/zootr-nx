@@ -12,7 +12,7 @@ mod death;
 mod export;
 mod golden;
 mod ids;
-mod names;
+pub(crate) mod names;
 mod notice;
 mod open;
 mod rule;

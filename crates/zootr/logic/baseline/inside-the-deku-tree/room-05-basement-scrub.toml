@@ -6,8 +6,7 @@ name = "Basement Scrub"
 to = 4
 needs = "always"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 01 7888713446031546640 opens on a flag, not found yet"
-guess = true
+why = "walk, 1 edges"
 
 [[link]]
 to = 4
@@ -20,8 +19,7 @@ guess = true
 to = 6
 needs = "always"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 01 15855065730333870421 opens on a flag, not found yet"
-guess = true
+why = "walk, 1 edges"
 
 [[link]]
 to = 6
@@ -29,3 +27,9 @@ needs = "always"
 via = "jump"
 why = "level gap 4.2 to 4.8 m: level jump not measured"
 guess = true
+
+[[flag]]
+hash = 0xc90d4ed1
+name = "Inside The Deku Tree Room F Cleared"
+needs = "slingshot or bow or boomerang or hookshot"
+why = "Eye Switch A 02 sets it (1): slingshot or bow or boomerang or hookshot"

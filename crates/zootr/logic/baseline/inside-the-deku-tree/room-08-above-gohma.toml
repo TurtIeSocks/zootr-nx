@@ -6,8 +6,7 @@ name = "Above Gohma"
 to = 7
 needs = "always"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 01 2821367699546364013 opens on a flag, not found yet"
-guess = true
+why = "walk, 1 edges"
 
 [[link]]
 to = 7

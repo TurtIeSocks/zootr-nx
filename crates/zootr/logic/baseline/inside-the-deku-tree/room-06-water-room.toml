@@ -6,22 +6,20 @@ name = "Water Room"
 to = 5
 needs = "always"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 01 15855065730333870421 opens on a flag, not found yet"
-guess = true
+why = "walk, 1 edges"
 
 [[link]]
 to = 5
-needs = "always"
+needs = "flag:#c90d4ed1"
 via = "jump"
-why = "level gap 2.0 to 5.0 m: level jump not measured; Switch Shutter A 02 4516839470990929285 opens on a flag, not found yet; Switch Shutter A 02 5330171711635485670 opens on a flag, not found yet; Switch Shutter A 01 15855065730333870421 opens on a flag, not found yet"
+why = "level gap 2.0 to 5.0 m: level jump not measured; Switch Shutter A 02 4516839470990929285 shut until flag #c90d4ed1"
 guess = true
 
 [[link]]
 to = 7
 needs = "always"
 via = "walk"
-why = "walk, 3 edges; Switch Shutter A 02 3110078652090200091 opens on a flag, not found yet; Switch Shutter A 01 5024342326168565885 opens on a flag, not found yet; Switch Shutter A 02 5845251992307848764 opens on a flag, not found yet"
-guess = true
+why = "walk, 3 edges"
 
 [[link]]
 to = 9
