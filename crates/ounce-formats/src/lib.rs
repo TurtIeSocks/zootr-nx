@@ -60,6 +60,7 @@ pub use shape_mesh::ShapeMesh;
 pub use tagfile::{Field, Item, Obj, Tagfile, Type};
 pub use walk::files_with_suffix;
 pub use xlink::{
-    call_names as xlink_calls, copy_call as xlink_copy_call, tree_names as xlink_tree,
+    add_case as xlink_add_case, call_names as xlink_calls, child_names as xlink_children,
+    copy_call as xlink_copy_call, tree_names as xlink_tree, trigger_names as xlink_triggers,
 };
 pub use zs::{Dicts, frame_dict_id};

@@ -18,8 +18,10 @@ use crate::{arrivals, gifts};
 /// A scene's entry point, which every call into its sub-flows comes from.
 const ENTRY: &Name = flag::ENTRY_POINT0;
 /// Actions copied into a caller as they are.
-const COPIED: [&Name; 5] = [
+const COPIED: [&Name; 7] = [
     flow::EVENT_TRIGGER_SET_GAME_DATA_BOOL,
+    flow::EVENT_TRIGGER_SET_GAME_DATA_STRING64,
+    flow::EVENT_TRIGGER_COPY_GAME_DATA_STRING64,
     flow::EVENT_TRIGGER_SET_GAME_DATA_INT,
     flow::EVENT_TRIGGER_ADD_OR_SUB_GAME_DATA_INT,
     flow::EVENT_EXECUTE_PROGRESS_CHALLENGE_STEP,

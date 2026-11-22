@@ -6,6 +6,7 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_file};
 
 use crate::bombchu_bags;
+use crate::checks::swap_strings;
 use crate::key_tints::{POUCH_TEXT, TEXT_PARTS};
 use crate::known::{Name, actor, field, item};
 use crate::settings::{Bombchus, NewGame};
@@ -139,22 +140,6 @@ fn take_get(
         builder.write(&pack_file(&heir.name), &writer.to_binary())?;
     }
     Ok(())
-}
-
-/// Swap every string `from` in `byml` for `to`. Returns how many.
-fn swap_strings(map: &mut BymlMap, from: &str, to: &str) -> usize {
-    fn walk(b: &mut Byml, from: &str, to: &str) -> usize {
-        match b {
-            Byml::String(s) if s.as_str() == from => {
-                *s = to.into();
-                1
-            }
-            Byml::Map(m) => m.values_mut().map(|v| walk(v, from, to)).sum(),
-            Byml::Array(a) => a.iter_mut().map(|v| walk(v, from, to)).sum(),
-            _ => 0,
-        }
-    }
-    map.values_mut().map(|v| walk(v, from, to)).sum()
 }
 
 impl Ammo {

@@ -292,7 +292,7 @@ pub enum StartingAge {
     /// A child in Link's house, as the game starts
     #[default]
     Child,
-    /// An adult in the Temple of Time, holding the Master Sword
+    /// An adult in the Temple of Time
     Adult,
     /// Child or adult, rolled from the seed
     Random,
@@ -309,11 +309,11 @@ impl StartingAge {
 
     /// Adult goes back to child at the pedestal, which only the open door
     /// swaps at once, and a child sent back mustn't be shut in the forest.
-    /// His sword is the pedestal's gift, given in the opening.
+    /// Random may roll adult, so it forces the same, shown before the roll.
     pub(super) fn forces(self) -> Forces {
         match self {
-            Self::Adult => (&[super::DOOR_OPEN, crate::presets::OPEN_FOREST], &[]),
-            Self::Child | Self::Random => NOTHING,
+            Self::Adult | Self::Random => (&[super::DOOR_OPEN, crate::presets::OPEN_FOREST], &[]),
+            Self::Child => NOTHING,
         }
     }
 

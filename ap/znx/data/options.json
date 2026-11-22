@@ -80,6 +80,20 @@
     ]
   },
   {
+    "default": false,
+    "description": "What people hand over becomes a check: their gifts, minigame prizes, the House of Skulltula's rewards and the Great Fairies' upgrades",
+    "id": "npc-gifts",
+    "kind": "toggle",
+    "label": "NPC Gifts"
+  },
+  {
+    "default": false,
+    "description": "Twelve songs become checks, given without the lesson: Zelda's Lullaby, Epona's Song, Saria's Song, the Sun's Song, the Song of Time, the Song of Storms and Sheik's six. The Scarecrow's Song stays where it is",
+    "id": "songs",
+    "kind": "toggle",
+    "label": "Songs"
+  },
+  {
     "default": "free",
     "description": "What caps the Bombchus Link holds. The bomb bag's, as in the game. Their own cap of 40, so they open the same checks bombs do without waiting on the bag.",
     "id": "bombchus",

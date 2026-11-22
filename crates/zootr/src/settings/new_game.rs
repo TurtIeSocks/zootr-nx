@@ -554,7 +554,7 @@ mod tests {
         assert!(new_game.open_door);
         let opened = [DOOR_OPEN, presets::OPEN_FOREST];
         assert!(opened.iter().all(|id| new_game.on.contains(*id)));
-        // The pedestal's gift gives it in the opening (`gifts::pedestal`).
+        // Only the start inventory gives it: the pedestal waits for a pull.
         assert!(!new_game.start.holds("master-sword"));
         let closed = Settings::from([
             (STARTING_AGE.into(), "adult".into()),
@@ -577,6 +577,18 @@ mod tests {
         };
         let ages: BTreeSet<_> = (0..64).map(age).collect();
         assert_eq!(ages, [Era::Child, Era::Adult].into());
+        // Whichever it rolls, the door and the forest open, as the app
+        // showed before the roll.
+        let opened = [DOOR_OPEN, presets::OPEN_FOREST];
+        for seed in 0..16 {
+            let (settings, _) = super::super::roll_age(&random, seed);
+            let new_game = NewGame::from_settings(&settings, &[]).unwrap();
+            assert!(new_game.open_door, "seed {seed}");
+            assert!(
+                opened.iter().all(|id| new_game.on.contains(*id)),
+                "seed {seed}"
+            );
+        }
         assert!((0..16).all(|seed| age(seed) == age(seed)));
         let (_, rolled) = super::super::roll_age(&Settings::new(), 3);
         assert!(!rolled);

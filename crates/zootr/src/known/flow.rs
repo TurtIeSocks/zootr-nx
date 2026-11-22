@@ -3,6 +3,7 @@
 use super::Name;
 
 pub const ACTION_GUIDE: &Name = &n!(0x392b72507298e81d);
+pub const ADULT_BANC: &Name = &n!(0xa84c6f496ff53865);
 pub const ALL_SAGE: &Name = &n!(0x1129ba42a64e65ac);
 pub const BIG_GORON_TIMER_STEP04: &Name = &n!(0x77f6c3c81f2bc7e2);
 pub const BIG_GORON_TIMER_STEP09: &Name = &n!(0x77f6c8c81f2bd061);
@@ -52,6 +53,7 @@ pub const EVENT_RESERVE_BANC_CHANGE: &Name = &n!(0xec063570bb26d2af);
 pub const EVENT_SCRUB_BUSINESS_WRITE_GAME_DATA_BANC_ITEM_NAME: &Name = &n!(0x95f4f089c2ede18f);
 pub const EVENT_TALK: &Name = &n!(0x0a42f49982fbd9ad);
 pub const EVENT_TALK_WITH_INSTANCE_NAME_LABEL: &Name = &n!(0x3226e7e41129c915);
+pub const EVENT_TERRAIN_PIN_RESOURCE: &Name = &n!(0x8c6a78d572ba5103);
 pub const EVENT_TRANSITION: &Name = &n!(0xb0f28e5bbb7bcfd0);
 pub const EVENT_TRIGGER_ADD_GAME_DATA_INT_TO_RUPEE: &Name = &n!(0x62d1a8f91fca0b63);
 pub const EVENT_TRIGGER_ADD_OR_REMOVE_POUCH_CONTENT: &Name = &n!(0x78fb919e283023b9);
@@ -59,6 +61,7 @@ pub const EVENT_TRIGGER_ADD_OR_SUB_GAME_DATA_INT: &Name = &n!(0xbf8cada070659150
 pub const EVENT_TRIGGER_ADD_SHOP_ITEM_SOLD_NUM: &Name = &n!(0xdb002c53d933966b);
 pub const EVENT_TRIGGER_BANC_REQUEST_BEFOREHAND_LOAD: &Name = &n!(0xf1eeba0aaef6a81e);
 pub const EVENT_TRIGGER_COPY_GAME_DATA_STRING64: &Name = &n!(0x045bb6bcfe074421);
+pub const EVENT_TRIGGER_NAVI_WARP_TO_TARGET_POS_AND_ROT: &Name = &n!(0x48bbd5f86526cf29);
 pub const EVENT_TRIGGER_OPEN_LOCATION_UI: &Name = &n!(0xe7fcd27d9f1318a8);
 pub const EVENT_TRIGGER_REQUEST_AUTO_SAVE: &Name = &n!(0xd19e47842a286e5c);
 pub const EVENT_TRIGGER_REQUEST_CREATE_CONDITION_SENSOR: &Name = &n!(0xe38ed616ea6b3ef9);
@@ -75,6 +78,7 @@ pub const EVENT_TRIGGER_SET_TIME: &Name = &n!(0x0671e8bd6b62f9fb);
 pub const EVENT_WAIT: &Name = &n!(0xbb69697cdb374606);
 pub const EVENT_WAIT_CLOSE_LOADING_FADE: &Name = &n!(0xb94b8f981c295d90);
 pub const EVENT_WAIT_STABLE_NUM_DISPLAY: &Name = &n!(0xa6c26d5127743497);
+pub const EVENT_WARP_TO_TARGET_POS_AND_ROT: &Name = &n!(0x0e9b575452561a3f);
 pub const EVENT_WORLD_MANAGER_CONTROLLER: &Name = &n!(0xe102e2091d662c54);
 pub const FIELD_PLANT_MAGIC_BEAN: &Name = &n!(0x9f60899b332cebc6);
 pub const FIRST_TIME_BLOCK: &Name = &n!(0x9412ed97ab3d9c69);

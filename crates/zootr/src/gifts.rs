@@ -22,7 +22,6 @@ pub use found::flags;
 pub(crate) use later::scene_marks;
 pub use lines::lines;
 pub use lookup::*;
-pub use pedestal::gives as pedestal_gives;
 pub use pocket::{pinned, pocket};
 pub use table::GIFTS;
 
@@ -376,8 +375,9 @@ const UNSTUCK: [(&Name, Edit); 3] = [
     ),
 ];
 
-/// [`give_all_aged`] for a child start.
-#[cfg(test)]
+/// Write each gift whose item changed, and Zelda's always, so her lesson
+/// never plays without an ocarina. Biggoron never makes Link wait, sword
+/// moved or not. Every Great Fairy opens in any order.
 pub fn give_all(
     romfs: &Romfs,
     flows: &Flows,
@@ -385,22 +385,6 @@ pub fn give_all(
     drops: &HashMap<u64, Drop>,
     lines: crate::progressive::Lines,
     on: &BTreeSet<String>,
-) -> Result<()> {
-    give_all_aged(romfs, flows, rewrites, drops, lines, on, false)
-}
-
-/// Write each gift whose item changed, and Zelda's always, so her lesson
-/// never plays without an ocarina. Biggoron never makes Link wait, sword
-/// moved or not. Every Great Fairy opens in any order. A new game that
-/// starts `adult` gets the pedestal's gift in its opening.
-pub fn give_all_aged(
-    romfs: &Romfs,
-    flows: &Flows,
-    rewrites: &mut Rewrites,
-    drops: &HashMap<u64, Drop>,
-    lines: crate::progressive::Lines,
-    on: &BTreeSet<String>,
-    adult: bool,
 ) -> Result<()> {
     let mut marks = found::Marks::default();
     // Chained once every gift is renamed: a chain names other levels, maybe
@@ -411,7 +395,7 @@ pub fn give_all_aged(
     let mut taken: HashMap<&str, BTreeSet<u16>> = HashMap::new();
     for gift in &GIFTS {
         let item = item_at(drops, gift.hash(), gift.item);
-        let pocket = gift.pocket(on) || (adult && gift.is_pedestal());
+        let pocket = gift.pocket(on);
         let leveled = levels::needs(gift, item, lines);
         let item = match pocket && leveled {
             true => pocket::level(romfs, rewrites, item, lines)?,
@@ -531,8 +515,7 @@ fn give(
     if let Some(to) = gift.moved_to(lost, pocket) {
         flows::edit(romfs, rewrites, to, |f| {
             match (gift.is_pedestal(), pocket) {
-                (true, true) => pedestal::in_opening(romfs, f, flows, item),
-                (true, false) => pedestal::in_swap(romfs, f, flows, item),
+                (true, _) => pedestal::in_swap(romfs, f, flows, item),
                 (false, true) => grant_before_save(f, flows, item),
                 (false, false) => grant_after(f, flows, gift.flow, item),
             }

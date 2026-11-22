@@ -1,23 +1,24 @@
-//! Where a new game starts, for setting up a test: once the opening has
-//! autosaved, it sends Link to a map and spot the game already uses.
+//! Where a new game starts. The sequence graph boots a new file into a
+//! map and spot (`FirstBancParam`, then the opening's map load), so the
+//! file starts there, at that map's age, with no warp after the opening.
 
 use std::collections::BTreeSet;
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{Actor, EventKind, Flowchart, Link, Params, Romfs, Value};
+use ounce_formats::ainb::Patch;
+use ounce_formats::{Actor, EventKind, Flowchart, Params, Romfs, Value};
 
-use crate::flows::{self, Rewrites, only};
-use crate::known::{Name, actor, field, flag, flow, scene};
-use crate::starting::{AUTOSAVE, OPENING};
+use crate::flows::{self, Rewrites};
+use crate::known::{Name, actor, field, flag, flow, map, scene};
+use crate::starting::{self, OPENING};
 use crate::world;
 
-/// Loads a map and puts Link at a named spot in it.
-const BANC_CHANGE: (&Name, &Name) = (field::GAME_SYSTEM_ACTOR, flow::EVENT_RESERVE_BANC_CHANGE);
-/// The warp songs, whose map change is the model.
-const TEMPLATE: &Name = scene::SY_OCARINA;
 const ADULT: &str = "_Adult";
-/// The pedestal's plain swap to adult.
-const CHILD_TO_ADULT: &Name = flow::MARKET_CHILD_FIELD_CHILD_TO_ADULT;
+/// Where an adult start wakes: the Prelude of Light's arrival in the
+/// Temple of Time, as Ship's.
+pub const ADULT_START: (&Name, &Name) = (map::MARKET_ADULT, flag::LIGHT_PRELUDE);
+/// The map a new file boots into.
+const FIRST: &Name = map::KOKIRI_FOREST_CHILD;
 /// The swap's trade of each age's weapon and shield.
 const GEAR: &Name = flow::REPLACE_EQUIPMENT_FOR_ERA_CHANGE;
 
@@ -29,8 +30,8 @@ fn text<'a>(params: &'a Params, key: &str) -> Option<&'a str> {
     }
 }
 
-/// Every child `MAP/SPOT` a spawn can name: where scene exits arrive, and
-/// where flows send Link (warp pads, blue warps).
+/// Every `MAP/SPOT` a spawn can name: where scene exits arrive, and where
+/// flows send Link (warp pads, blue warps).
 pub fn destinations(romfs: &Romfs) -> Result<BTreeSet<String>> {
     let mut out: BTreeSet<String> = world::exits(romfs)?
         .into_iter()
@@ -47,55 +48,17 @@ pub fn destinations(romfs: &Romfs) -> Result<BTreeSet<String>> {
             else {
                 continue;
             };
-            let map = text(params, field::NEXT_BANC).or_else(|| text(params, flow::CHILD_BANC));
-            if let (Some(map), Some(spot)) = (map, text(params, field::NEXT_START_POS)) {
+            let Some(spot) = text(params, field::NEXT_START_POS) else {
+                continue;
+            };
+            let maps = [field::NEXT_BANC, flow::CHILD_BANC, flow::ADULT_BANC];
+            for map in maps.into_iter().filter_map(|k| text(params, k)) {
                 out.insert(format!("{map}/{spot}"));
             }
         }
     }
-    out.retain(|d| !d.ends_with('/') && !d.contains(&format!("{ADULT}/")));
+    out.retain(|d| !d.ends_with('/'));
     Ok(out)
-}
-
-/// Send Link to `map`/`spot` right after `flow`'s autosave, with
-/// `template`'s map change as the model.
-fn chain(flow: &mut Flowchart, template: &Flowchart, map: &str, spot: &str) -> Result<()> {
-    let model = *flows::running(template, BANC_CHANGE)
-        .first()
-        .context("no map change to copy")?;
-    let EventKind::Action { actor, params, .. } = &template.events[model as usize].kind else {
-        unreachable!("running finds actions");
-    };
-    let mut params = params.clone();
-    for (key, value) in [
-        (field::NEXT_BANC, map),
-        (field::NEXT_START_POS, spot),
-        (field::BOOT_EVENT_NAME, ""),
-    ] {
-        flows::set(&mut params, key, Value::String(vec![value.into()]))?;
-    }
-    flows::set(&mut params, field::IS_ITEM_WARP, Value::Bool(vec![false]))?;
-    let event = (template.actor_of(*actor), BANC_CHANGE.1.get(), params);
-    after_save(flow, vec![event])
-}
-
-/// Run `events` (actor, action, params) in `flow` right after its
-/// autosave, in order.
-fn after_save(flow: &mut Flowchart, events: Vec<(&Actor, &str, Params)>) -> Result<()> {
-    let save = only(flow, AUTOSAVE)?;
-    let EventKind::Action { mut next, .. } = flow.events[save as usize].kind else {
-        unreachable!("only finds actions");
-    };
-    for (actor, action, params) in events.into_iter().rev() {
-        let (actor, action) = flow.action(actor, action);
-        next = Some(flow.push(EventKind::Action {
-            next,
-            actor,
-            action,
-            params,
-        }));
-    }
-    flow.link(Link::Next(save), next)
 }
 
 /// `flow`'s first `action` whose `key` reads `value`, as a copy.
@@ -124,25 +87,63 @@ fn event<'a>(
         .with_context(|| format!("no {action} with {key} {value}"))
 }
 
-/// Start a new game adult. Once the opening has autosaved, it does what the
-/// pedestal's swap does on a first trip, step by step: each age's weapon
-/// and shield trade places with the Master Sword equipped, Link grows up,
-/// and he wakes in the Temple of Time. The swap itself can't be called from
-/// the opening (spike: nothing ran), and played from the forest it never
-/// left. The forest sage's quest starts in the opening (`door::open`).
-/// Without the `sword` (Master Sword shuffle), his sword slot stays empty.
-pub fn adult(romfs: &Romfs, rewrites: &mut Rewrites, sword: bool) -> Result<()> {
-    let load =
-        |name: &Name| flows::load(romfs, name)?.with_context(|| format!("{name} is a timeline"));
-    let (gear, swap) = (load(GEAR)?, load(CHILD_TO_ADULT)?);
-    let copy = |to: &Name| {
-        event(
-            &gear,
-            flow::EVENT_TRIGGER_COPY_GAME_DATA_STRING64,
-            (field::DST_GAME_DATA_NAME, to.get()),
-        )
+/// The opening's events set in Kokiri Forest: its terrain, and the
+/// camera's and Navi's spots there.
+const KOKIRI: [(&Name, &Name); 4] = [
+    (
+        field::TERRAIN_SYSTEM_ACTOR,
+        flow::EVENT_TERRAIN_PIN_RESOURCE,
+    ),
+    (flow::EVENT_CAMERA, flow::EVENT_MOVE_TO_TARGET_POS_CAMERA),
+    (actor::NPC_NAVI, flow::EVENT_WARP_TO_TARGET_POS_AND_ROT),
+    (
+        actor::NPC_NAVI,
+        flow::EVENT_TRIGGER_NAVI_WARP_TO_TARGET_POS_AND_ROT,
+    ),
+];
+
+/// Step over the opening's Kokiri Forest events, for a boot elsewhere.
+fn away(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
+    flows::edit(romfs, rewrites, OPENING, |flow| {
+        for what in KOKIRI {
+            for e in flows::running(flow, what) {
+                flows::step_over(flow, e)?;
+            }
+        }
+        Ok(())
+    })
+}
+
+/// Before the opening's autosave, equip each age's gear from the start
+/// inventory (`owned`), as the pedestal's swap leaves it on a first trip:
+/// child's Kokiri Sword and shield, adult's Master Sword only when held,
+/// and no adult shield.
+fn adult_gear(romfs: &Romfs, rewrites: &mut Rewrites, owned: &[&str]) -> Result<()> {
+    let gear = flows::load(romfs, GEAR)?.with_context(|| format!("{GEAR} is a timeline"))?;
+    // Adult Link never equips child gear, so a grant can't fill the slots.
+    // The start inventory names each item as it drops, the slots as held.
+    let first = |names: &[&'static Name]| {
+        let held = names
+            .iter()
+            .find(|&&n| owned.contains(&starting::drop(n).get()));
+        held.map_or("", |n| n.get())
     };
-    let set = |name: &Name, value: &str| -> Result<_> {
+    let slots = [
+        (
+            flag::PLAYER_STATUS_ANOTHER_ERA_EQUIP_WEAPON,
+            first(&[actor::WEAPON_SWORD_KOKIRI]),
+        ),
+        (
+            flag::PLAYER_STATUS_ANOTHER_ERA_EQUIP_SHIELD,
+            first(&[actor::WEAPON_SHIELD_DEKU, actor::WEAPON_SHIELD_HYLIAN]),
+        ),
+        (
+            flag::PLAYER_STATUS_EQUIP_WEAPON,
+            first(&[actor::WEAPON_SWORD_MASTER]),
+        ),
+        (flag::PLAYER_STATUS_EQUIP_SHIELD, ""),
+    ];
+    let set = |(name, value): (&Name, &str)| -> Result<_> {
         let (actor, action, mut params) = event(
             &gear,
             flow::EVENT_TRIGGER_SET_GAME_DATA_STRING64,
@@ -159,178 +160,221 @@ pub fn adult(romfs: &Romfs, rewrites: &mut Rewrites, sword: bool) -> Result<()> 
         flows::set(&mut params, field::VALUE, flows::string(value))?;
         Ok((actor, action, params))
     };
-    let events = vec![
-        copy(flag::PLAYER_STATUS_ANOTHER_ERA_EQUIP_WEAPON)?,
-        set(
-            flag::PLAYER_STATUS_EQUIP_WEAPON,
-            if sword {
-                actor::WEAPON_SWORD_MASTER.get()
-            } else {
-                ""
-            },
-        )?,
-        copy(flag::PLAYER_STATUS_ANOTHER_ERA_EQUIP_SHIELD)?,
-        set(flag::PLAYER_STATUS_EQUIP_SHIELD, "")?,
-        event(
-            &swap,
-            flow::EVENT_TRIGGER_SET_GAME_DATA_BOOL,
-            (field::GAME_DATA_NAME, flag::SEQUENCE_IS_CHILDHOOD.get()),
-        )?,
-        event(
-            &swap,
-            BANC_CHANGE.1,
-            (field::BOOT_EVENT_NAME, scene::TIME_TEMPLE_0085.get()),
-        )?,
-    ];
-    flows::edit(romfs, rewrites, OPENING, |flow| after_save(flow, events))
+    let events = slots.into_iter().map(set).collect::<Result<Vec<_>>>()?;
+    flows::edit(romfs, rewrites, OPENING, |flow| {
+        starting::before_save(flow, events)
+    })
 }
 
-/// Start a new game at `spawn` (`MAP/SPOT`), editing the opening flow in
-/// `rewrites`.
-pub fn warp(romfs: &Romfs, rewrites: &mut Rewrites, spawn: &str) -> Result<()> {
-    let (map, spot) = spawn.split_once('/').context("a spawn is MAP/SPOT")?;
+/// A sequence graph's path.
+fn sequence(name: &Name, kind: &str) -> String {
+    format!("Sequence/{name}.{kind}.ainb")
+}
+
+/// The first node in `graph` named `name`.
+fn named(patch: &Patch, name: &Name) -> Result<usize> {
+    (patch.graph().nodes.iter())
+        .position(|n| n.name == name.get())
+        .with_context(|| format!("no {name} node"))
+}
+
+/// Patch the sequence graphs so a new file boots into `map` at `spot`.
+fn first_map(romfs: &Romfs, rewrites: &mut Rewrites, map: &str, spot: &str) -> Result<()> {
+    let rel = sequence(field::FORMAL_SEQUENCE, "root");
+    let mut root = Patch::new(romfs.read(&rel)?)?;
+    let title = named(&root, field::TITLE_MODULE)?;
+    let param = (root.graph().nodes[title].str(field::FIRST_BANC_PARAM)).with_context(|| {
+        format!(
+            "{} reads no {}",
+            field::TITLE_MODULE,
+            field::FIRST_BANC_PARAM
+        )
+    })?;
     ensure!(
-        !map.ends_with(ADULT),
-        "{map} is an adult map, and only child spawns work for now"
+        param.contains(FIRST.get()),
+        "the first map is no longer {FIRST}"
     );
+    let param = param.replacen(FIRST.get(), map, 1);
+    root.set_str(title, field::FIRST_BANC_PARAM, &param)?;
+    rewrites.insert(rel, root.into_bytes());
+    let rel = sequence(field::OPENING, "module");
+    let mut opening = Patch::new(romfs.read(&rel)?)?;
+    let load = named(&opening, field::CHANGE_BANC_MODULE)?;
+    opening.set_bool(load, field::IS_OVERRIDE_TRAVERSE_BASE_POS, true)?;
+    opening.set_str(load, field::OVERRIDE_TRAVERSE_START_POS_NAME, spot)?;
+    rewrites.insert(rel, opening.into_bytes());
+    Ok(())
+}
+
+/// Start a new game at `spawn` (`MAP/SPOT`): the file boots there, adult
+/// on an adult map, geared from the start inventory (`owned`).
+/// Returns the GameData edits it needs.
+pub fn boot(
+    romfs: &Romfs,
+    rewrites: &mut Rewrites,
+    spawn: &str,
+    owned: &[&str],
+) -> Result<Vec<String>> {
+    let (map, spot) = spawn.split_once('/').context("a spawn is MAP/SPOT")?;
     ensure!(
         destinations(romfs)?.contains(spawn),
         "the game never sends Link to {spawn}. `zootr spawns` lists where it does"
     );
-    let template = flows::load(romfs, TEMPLATE)?.context("the ocarina flow is a timeline")?;
-    flows::edit(romfs, rewrites, OPENING, |flow| {
-        chain(flow, &template, map, spot).context("sending Link to the spawn")
-    })
+    first_map(romfs, rewrites, map, spot)?;
+    if map != FIRST.get() {
+        away(romfs, rewrites)?;
+    }
+    if !map.ends_with(ADULT) {
+        return Ok(vec![]);
+    }
+    adult_gear(romfs, rewrites, owned)?;
+    // Child Link first stands in the Temple after a swap, never through its
+    // door, so the scene of his first entry would fire on his way out.
+    let entered = format!("{}.{}", flag::HAVE_PLAYED_EVENT, scene::TIME_TEMPLE_0000);
+    Ok(vec![
+        format!("{}=false", flag::SEQUENCE_IS_CHILDHOOD),
+        format!("{entered}=true"),
+    ])
+}
+
+/// `MAP/SPOT` of [`ADULT_START`].
+pub fn adult_start() -> String {
+    format!("{}/{}", ADULT_START.0, ADULT_START.1)
 }
 
 #[cfg(test)]
 mod tests {
+    use ounce_formats::ainb::Graph;
+
     use super::*;
-    use crate::known::{field, flag, map};
+    use crate::known::field;
+
+    /// A spawn's rewrites and GameData edits, for a start holding `owned`.
+    fn booted(romfs: &Romfs, spawn: &str, owned: &[&str]) -> (Rewrites, Vec<String>) {
+        let mut rewrites = Rewrites::new();
+        let flags = boot(romfs, &mut rewrites, spawn, owned).unwrap();
+        (rewrites, flags)
+    }
+
+    /// The patched node `name` of sequence graph `rel`.
+    fn node<'a>(graph: &'a Graph, name: &Name) -> &'a ounce_formats::ainb::Node {
+        graph.nodes.iter().find(|n| n.name == name.get()).unwrap()
+    }
 
     #[test]
-    fn the_map_change_follows_the_autosave() {
+    fn a_spawn_boots_the_new_file_into_its_map_and_spot() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let template = flows::load(&romfs, TEMPLATE).unwrap().unwrap();
-        let mut flow = flows::load(&romfs, OPENING).unwrap().unwrap();
-        chain(
-            &mut flow,
-            &template,
-            map::GRAVEYARD_CHILD,
-            flag::SHADOW_NOCTURNE,
-        )
-        .unwrap();
-        let after = Flowchart::parse(&flow.to_bytes()).unwrap().unwrap();
-        let save = only(&after, AUTOSAVE).unwrap();
-        let warp = only(&after, BANC_CHANGE).unwrap();
-        assert_eq!(after.links_to(warp), [Link::Next(save)]);
-        let EventKind::Action { next, params, .. } = &after.events[warp as usize].kind else {
-            unreachable!()
-        };
-        assert_eq!(*next, None);
+        let spawn = format!("{}/{}", map::GRAVEYARD_CHILD, flag::SHADOW_NOCTURNE);
+        let (rewrites, flags) = booted(&romfs, &spawn, &[]);
+        let root = Graph::parse(&rewrites[&sequence(field::FORMAL_SEQUENCE, "root")]).unwrap();
+        let first = node(&root, field::TITLE_MODULE)
+            .str(field::FIRST_BANC_PARAM)
+            .unwrap();
+        assert!(first.contains(map::GRAVEYARD_CHILD.get()) && !first.contains(FIRST.get()));
+        let opening = Graph::parse(&rewrites[&sequence(field::OPENING, "module")]).unwrap();
+        let load = node(&opening, field::CHANGE_BANC_MODULE);
         assert_eq!(
-            text(params, field::NEXT_BANC),
-            Some(map::GRAVEYARD_CHILD.get())
+            load.value(field::IS_OVERRIDE_TRAVERSE_BASE_POS),
+            Some(&ounce_formats::ainb::Value::Bool(true))
         );
         assert_eq!(
-            text(params, field::NEXT_START_POS),
+            load.str(field::OVERRIDE_TRAVERSE_START_POS_NAME),
             Some(flag::SHADOW_NOCTURNE.get())
         );
-        assert_eq!(text(params, field::BOOT_EVENT_NAME), Some(""));
+        // A child map leaves age and gear alone, and the opening keeps
+        // nothing set in Kokiri Forest.
+        assert!(flags.is_empty());
+        let flow = Flowchart::parse(&rewrites[&flows::rel(OPENING)]);
+        let flow = flow.unwrap().unwrap();
+        let rendered = flows::render(&flow);
+        assert!(!rendered.contains(flag::PLAYER_STATUS_EQUIP_WEAPON.get()));
+        let start = flow
+            .entry_points
+            .iter()
+            .map(|e| flows::reachable(&flow, &e.name));
+        let reached: BTreeSet<u16> = start.flat_map(|r| r.unwrap()).collect();
+        for what in KOKIRI {
+            assert!(
+                flows::running(&flow, what)
+                    .iter()
+                    .all(|e| !reached.contains(e))
+            );
+        }
     }
 
     #[test]
-    fn an_adult_start_swaps_gear_grows_up_and_wakes_in_the_temple() {
+    fn an_adult_boot_is_adult_and_geared_from_the_start_inventory() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let opening = |sword: bool| {
-            let mut rewrites = Rewrites::new();
-            adult(&romfs, &mut rewrites, sword).unwrap();
-            Flowchart::parse(&rewrites[&flows::rel(OPENING)])
-                .unwrap()
-                .unwrap()
+        let opening = |owned: &[&'static Name]| {
+            let owned: Vec<_> = owned.iter().map(|&n| starting::drop(n).get()).collect();
+            let (rewrites, flags) = booted(&romfs, &adult_start(), &owned);
+            let entered = format!("{}.{}", flag::HAVE_PLAYED_EVENT, scene::TIME_TEMPLE_0000);
+            let edits = [
+                format!("{}=false", flag::SEQUENCE_IS_CHILDHOOD),
+                format!("{entered}=true"),
+            ];
+            assert_eq!(flags, edits);
+            let flow = Flowchart::parse(&rewrites[&flows::rel(OPENING)]);
+            flow.unwrap().unwrap()
         };
-        let swordless = flows::render(&opening(false));
-        assert!(!swordless.contains(actor::WEAPON_SWORD_MASTER.get()));
-        let flow = opening(true);
-        let mut at = only(&flow, AUTOSAVE).unwrap();
-        let mut after = Vec::new();
-        while let EventKind::Action {
-            next: Some(next), ..
-        } = flow.events[at as usize].kind
-        {
-            at = next;
-            let EventKind::Action {
-                actor,
-                action,
-                params,
-                ..
-            } = &flow.events[at as usize].kind
-            else {
-                panic!("a call follows the autosave")
+        // Each slot's value, from the event that sets it.
+        let slots = |flow: &Flowchart| -> Vec<String> {
+            let rendered = flows::render(flow);
+            let slot = |name: &Name| {
+                let named = format!("{}=\"{}\"", field::GAME_DATA_NAME, name.get());
+                let line = rendered.lines().find(|l| l.contains(&named)).unwrap();
+                let value = line.split(&format!("{}=\"", field::VALUE)).nth(1).unwrap();
+                value.split('"').next().unwrap().to_string()
             };
-            let name = flow.actor_of(*actor).actions[*action as usize].as_str();
-            after.push((name, params.clone()));
-        }
-        let names: Vec<&str> = after.iter().map(|(n, _)| *n).collect();
-        let (copy, set) = (
-            flow::EVENT_TRIGGER_COPY_GAME_DATA_STRING64.get(),
-            flow::EVENT_TRIGGER_SET_GAME_DATA_STRING64.get(),
-        );
-        let bool_ = flow::EVENT_TRIGGER_SET_GAME_DATA_BOOL.get();
-        assert_eq!(names, [copy, set, copy, set, bool_, BANC_CHANGE.1.get()]);
-        let read = |i: usize, key: &Name| text(&after[i].1, key).map(str::to_owned);
-        let equip = flag::PLAYER_STATUS_EQUIP_WEAPON.get().to_owned();
-        assert_eq!(read(1, field::GAME_DATA_NAME), Some(equip));
-        assert_eq!(
-            read(1, field::VALUE).as_deref(),
-            Some(actor::WEAPON_SWORD_MASTER.get())
-        );
-        let childhood = flag::SEQUENCE_IS_CHILDHOOD.get().to_owned();
-        assert_eq!(read(4, field::GAME_DATA_NAME), Some(childhood));
-        assert_eq!(
-            read(5, field::NEXT_BANC).as_deref(),
-            Some(map::MARKET_ADULT.get())
-        );
+            [
+                flag::PLAYER_STATUS_ANOTHER_ERA_EQUIP_WEAPON,
+                flag::PLAYER_STATUS_ANOTHER_ERA_EQUIP_SHIELD,
+                flag::PLAYER_STATUS_EQUIP_WEAPON,
+                flag::PLAYER_STATUS_EQUIP_SHIELD,
+            ]
+            .map(slot)
+            .to_vec()
+        };
+        let bare = opening(&[]);
+        assert_eq!(slots(&bare), ["", "", "", ""]);
+        // The gear is set before the autosave, and the save ends it.
+        let save = flows::only(&bare, starting::AUTOSAVE).unwrap();
+        let EventKind::Action { next, .. } = bare.events[save as usize].kind else {
+            unreachable!()
+        };
+        assert_eq!(next, None);
+        let geared = opening(&[
+            actor::WEAPON_SWORD_KOKIRI,
+            actor::WEAPON_SHIELD_HYLIAN,
+            actor::WEAPON_SHIELD_DEKU,
+            actor::WEAPON_SWORD_MASTER,
+        ]);
+        let held = [
+            actor::WEAPON_SWORD_KOKIRI.get(),
+            actor::WEAPON_SHIELD_DEKU.get(),
+            actor::WEAPON_SWORD_MASTER.get(),
+            "",
+        ];
+        assert_eq!(slots(&geared), held);
     }
 
     #[test]
-    fn only_known_child_spots_are_taken() {
+    fn only_spots_the_game_uses_are_taken() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
         let known = destinations(&romfs).unwrap();
-        assert!(known.contains(&format!(
-            "{}/{}",
-            map::GRAVEYARD_CHILD,
-            flag::SHADOW_NOCTURNE
-        )));
-        assert!(!known.iter().any(|d| d.contains(ADULT)));
+        assert!(known.contains(&adult_start()));
         let refused = |spawn: &str| {
-            warp(&romfs, &mut Rewrites::new(), spawn)
+            boot(&romfs, &mut Rewrites::new(), spawn, &[])
                 .unwrap_err()
                 .to_string()
         };
-        assert!(
-            refused(&format!(
-                "{}/{}",
-                field::GRAVEYARD_ADULT,
-                flag::SHADOW_NOCTURNE
-            ))
-            .contains("adult")
-        );
         assert!(refused(&format!("{}/Nowhere", map::GRAVEYARD_CHILD)).contains("never sends"));
-        assert!(refused(map::GRAVEYARD_CHILD).contains("MAP/SPOT"));
-        let mut rewrites = Rewrites::new();
-        warp(
-            &romfs,
-            &mut rewrites,
-            &format!("{}/{}", map::GRAVEYARD_CHILD, flag::SHADOW_NOCTURNE),
-        )
-        .unwrap();
-        assert!(rewrites.contains_key(&flows::rel(OPENING)));
+        assert!(refused(map::GRAVEYARD_CHILD.get()).contains("MAP/SPOT"));
     }
 }

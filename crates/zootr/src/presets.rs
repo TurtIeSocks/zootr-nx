@@ -1,6 +1,7 @@
 //! New-game presets: GameData defaults a fresh save starts from, or edits
 //! applied to an existing save.
 
+use std::collections::BTreeSet;
 use std::sync::LazyLock;
 
 use anyhow::{Context, Result, bail};
@@ -450,6 +451,16 @@ pub fn expand(presets: &[String], edits: &[String]) -> Result<Vec<String>> {
     Ok(out)
 }
 
+/// The label of a preset in `on` that hands a new game `item` or marks
+/// it held.
+pub fn holding(on: &BTreeSet<String>, item: &str) -> Option<&'static str> {
+    let held = format!("IsGet.{item}=true");
+    (PRESETS.iter())
+        .filter(|p| on.contains(p.name))
+        .find(|p| p.give.iter().any(|g| g.get() == item) || (p.edits)().contains(&held))
+        .map(|p| p.label)
+}
+
 /// Every item `presets` hand a new game.
 pub fn gives(presets: &[String]) -> Result<Vec<String>> {
     Ok(find(presets)?
@@ -561,6 +572,15 @@ mod tests {
         assert!(edits.contains(&format!("IsGet.{}=true", actor::OBJ_HEART)));
         assert!(edits.iter().all(|e| !e.contains("Item_")));
         assert!(DEFAULT_ON.contains(&"no-pickup-texts"));
+    }
+
+    #[test]
+    fn a_drop_the_pickup_preset_marks_names_it_only_while_it_is_on() {
+        let heart = actor::OBJ_HEART.get();
+        let on = BTreeSet::from(["no-pickup-texts".to_owned()]);
+        assert_eq!(holding(&on, heart), Some("No Pickup Texts"));
+        assert_eq!(holding(&BTreeSet::new(), heart), None);
+        assert_eq!(holding(&on, "Item_FakeSword"), None);
     }
 
     #[test]

@@ -2,13 +2,12 @@
 //! option and seeded handfuls of the pool, which checks Rust logic reaches.
 
 use anyhow::{Context, Result};
-use ounce_formats::Romfs;
 use serde_json::{Value, json};
 
 use super::OPTIONS;
 use super::export::Namer;
 use super::ids::Ids;
-use super::seed::{Seed, base, variants};
+use super::seed::Seed;
 use crate::rng::Rng;
 use crate::settings::{Kind, Settings, schema};
 
@@ -32,18 +31,12 @@ fn exposed(settings: &Settings) -> Result<serde_json::Map<String, Value>> {
     Ok(out)
 }
 
-pub fn golden(romfs: &Romfs, base_seed: &Seed, names: &Namer, ids: &Ids) -> Result<Value> {
-    let mut cases = vec![base()];
-    for (id, value) in variants()? {
-        let mut s = base();
-        s.insert(id, value);
-        cases.push(s);
-    }
+/// Each of `seeds` built with its `settings` set.
+pub fn golden(settings: &[Settings], seeds: &[Seed], names: &Namer, ids: &Ids) -> Result<Value> {
     let mut out = Vec::new();
-    for (n, settings) in cases.into_iter().enumerate() {
-        let seed = Seed::build(romfs, &settings, &Default::default())?;
+    for (n, (settings, seed)) in settings.iter().zip(seeds).enumerate() {
         for share in SHARES {
-            let mut pool = base_seed.dealt.pool.clone();
+            let mut pool = seed.dealt.pool.clone();
             Rng::new((n * OF + share) as u64).shuffle(&mut pool);
             pool.truncate(pool.len() * share / OF);
             let mut have = seed.start.clone();
@@ -60,7 +53,7 @@ pub fn golden(romfs: &Romfs, base_seed: &Seed, names: &Namer, ids: &Ids) -> Resu
                 .map(|a| names.item(a))
                 .collect::<Result<Vec<_>>>()?;
             out.push(json!({
-                "settings": exposed(&settings)?,
+                "settings": exposed(settings)?,
                 "items": items,
                 "reachable": reachable,
             }));

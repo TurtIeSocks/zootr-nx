@@ -1,6 +1,7 @@
 //! The words the rule files use for the game's own names. Each word maps
 //! to a `known` const, so no rule file spells a name out: `item:kokiri-sword`
-//! is an item, `beat:gohma` a boss defeat, and a place is its node's word.
+//! is an item, `beat:gohma` a boss defeat, `event:carpenters-freed` a story
+//! event, and a place is its node's word.
 //! A word the table lacks is an error naming the word.
 //!
 //! Words are lowercase and hyphenated, as a player would say them. A place
@@ -9,8 +10,8 @@
 use anyhow::{Result, bail};
 
 use super::Expr;
-use super::item::{BEAT, ITEM_PREFIXES};
-use crate::known::{Name, actor, field, item, map};
+use super::item::{BEAT, EVENT, ITEM_PREFIXES, held};
+use crate::known::{Name, actor, field, flow, item, map};
 
 /// `item:<word>`: an actor Link holds, or a pickup that stands for one.
 pub const ITEMS: &[(&str, &Name)] = &[
@@ -108,6 +109,10 @@ pub const BEATS: &[(&str, &Name)] = &[
     ("twinrova", field::TWINROVA),
     ("volvagia", field::VOLVAGIA),
 ];
+
+/// `event:<word>`: a story event, held like an item. The const names the
+/// event, and the item is `EVENT` and that name.
+pub const EVENTS: &[(&str, &Name)] = &[("carpenters-freed", flow::MEET_FOUR_CARPENTER_CLEAR_EVENT)];
 
 /// A place node. A word with no era is a dungeon or a boss room.
 pub const PLACES: &[(&str, &Name)] = &[
@@ -211,8 +216,9 @@ pub fn place_word(node: &str) -> Option<&'static str> {
     PLACES.iter().find(|(_, n)| **n == *node).map(|(w, _)| *w)
 }
 
-/// What an `item:` or `beat:` word stands for, any `*n` count kept. The
-/// item behind a beat is `BEAT` and the boss's name.
+/// What an `item:`, `beat:` or `event:` word stands for, any `*n` count
+/// kept. The item behind a beat is `BEAT` and the boss's name, and behind
+/// an event `EVENT` and the event's.
 pub fn id(word: &str) -> Result<String> {
     let (base, count) = match word.split_once('*') {
         Some((base, n)) => (base, format!("*{n}")),
@@ -221,6 +227,7 @@ pub fn id(word: &str) -> Result<String> {
     let id = match base.split_once(':') {
         Some(("item", w)) => find(ITEMS, w).map(|n| n.get().to_owned()),
         Some(("beat", w)) => find(BEATS, w).map(|n| format!("{BEAT}{}", n.get())),
+        Some(("event", w)) => find(EVENTS, w).map(|n| format!("{EVENT}{}", n.get())),
         _ => None,
     };
     match id {
@@ -235,11 +242,12 @@ pub fn words(expr: &mut Expr) -> Result<()> {
     match expr {
         Expr::All(exprs) | Expr::Any(exprs) => exprs.iter_mut().try_for_each(words),
         Expr::Word(word) => {
-            let friendly = word.starts_with("item:") || word.starts_with("beat:");
-            let written_out = ITEM_PREFIXES.iter().any(|p| word.starts_with(p))
-                || (word.len() > BEAT.len() && word.starts_with(BEAT));
+            let friendly = ["item:", "beat:", "event:"]
+                .iter()
+                .any(|k| word.starts_with(k));
+            let written_out = ITEM_PREFIXES.iter().any(|p| word.starts_with(p)) || held(word);
             if written_out {
-                bail!("`{word}` names the game: use an `item:` or `beat:` word");
+                bail!("`{word}` names the game: use an `item:`, `beat:` or `event:` word");
             }
             if friendly {
                 *word = id(word)?;
@@ -258,8 +266,13 @@ mod tests {
 
     type Table = &'static [(&'static str, &'static Name)];
 
-    fn every_table() -> [(&'static str, Table); 3] {
-        [("item", ITEMS), ("beat", BEATS), ("place", PLACES)]
+    fn every_table() -> [(&'static str, Table); 4] {
+        [
+            ("item", ITEMS),
+            ("beat", BEATS),
+            ("event", EVENTS),
+            ("place", PLACES),
+        ]
     }
 
     #[test]

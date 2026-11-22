@@ -141,17 +141,20 @@ pub fn grant(romfs: &Romfs, rewrites: &mut Rewrites, grants: &[Grant]) -> Result
 }
 
 /// Swap one copy of each of `owned` in `pool` for the filler: the item
-/// itself, else its line's level the pool holds it as.
-pub fn swap_out<'a>(pool: &mut [&'a str], owned: &[&'a str], level: impl Fn(&'a str) -> &'a str) {
-    for &item in owned {
-        let slot = match pool.iter().position(|i| *i == item) {
-            Some(at) => Some(at),
-            None => pool.iter().position(|i| *i == level(item)),
-        };
-        if let Some(at) = slot {
-            pool[at] = FILLER;
-        }
-    }
+/// itself, else its line's level the pool holds it as. Returns the slot
+/// each of `owned` left, `None` for one the pool doesn't hold.
+pub fn swap_out<'a>(
+    pool: &mut [&'a str],
+    owned: &[&'a str],
+    level: impl Fn(&'a str) -> &'a str,
+) -> Vec<Option<usize>> {
+    let swap = |pool: &mut [&'a str], item: &'a str| {
+        let at = (pool.iter().position(|i| *i == item))
+            .or_else(|| pool.iter().position(|i| *i == level(item)))?;
+        pool[at] = FILLER;
+        Some(at)
+    };
+    owned.iter().map(|&item| swap(pool, item)).collect()
 }
 
 #[cfg(test)]
@@ -180,8 +183,9 @@ mod tests {
             true => item::HOOKSHOT.get(),
             false => "",
         };
-        swap_out(&mut pool, &owned, level);
+        let slots = swap_out(&mut pool, &owned, level);
         assert_eq!(pool, [FILLER, "Item_A", item::SWORD_KOKIRI, FILLER]);
+        assert_eq!(slots, [Some(0), Some(3), None]);
     }
 
     #[test]

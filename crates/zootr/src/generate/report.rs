@@ -227,6 +227,14 @@ pub struct Held {
     pub item: String,
     pub name: String,
     pub count: u32,
+    /// The checks, by hash, whose pool slots its copies left.
+    #[serde(default, with = "u64_text::many")]
+    #[cfg_attr(feature = "specta", specta(type = Vec<String>))]
+    pub from: Vec<u64>,
+    /// Where the copies no check gave came from (a preset's label, the
+    /// starting inventory), when there are any.
+    #[serde(default)]
+    pub via: Option<String>,
 }
 
 impl Report {
@@ -314,6 +322,25 @@ pub(crate) mod u64_text {
     pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<u64, D::Error> {
         String::deserialize(d)?.parse().map_err(D::Error::custom)
     }
+
+    /// The same for a list of them.
+    pub mod many {
+        use serde::ser::SerializeSeq;
+        use serde::{Deserialize, Deserializer, Serializer, de::Error};
+
+        pub fn serialize<S: Serializer>(ns: &[u64], s: S) -> Result<S::Ok, S::Error> {
+            let mut seq = s.serialize_seq(Some(ns.len()))?;
+            ns.iter()
+                .try_for_each(|n| seq.serialize_element(&n.to_string()))?;
+            seq.end()
+        }
+
+        pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<u64>, D::Error> {
+            (Vec::<String>::deserialize(d)?.iter())
+                .map(|n| n.parse().map_err(D::Error::custom))
+                .collect()
+        }
+    }
 }
 
 #[cfg(test)]
@@ -376,6 +403,23 @@ mod tests {
             report.spoiler(&[]),
             "seed 7\nicons \n\nEntrances\n  Kokiri Forest, Deku Tree door            -> Fire Temple\n  Death Mountain Crater, Fire Temple door  -> Deku Tree\n"
         );
+    }
+
+    #[test]
+    fn a_start_item_keeps_its_checks_as_text_and_loads_from_before_them() {
+        let held = Held {
+            item: "Item_A".into(),
+            name: "A".into(),
+            count: 1,
+            from: vec![u64::MAX],
+            via: None,
+        };
+        let json = serde_json::to_value(&held).unwrap();
+        assert_eq!(json["from"], serde_json::json!([u64::MAX.to_string()]));
+        assert_eq!(serde_json::from_value::<Held>(json).unwrap(), held);
+        let old = serde_json::json!({ "item": "Item_A", "name": "A", "count": 1 });
+        let old = serde_json::from_value::<Held>(old).unwrap();
+        assert!(old.from.is_empty() && old.via.is_none());
     }
 
     #[test]

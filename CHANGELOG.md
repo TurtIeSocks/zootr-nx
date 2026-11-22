@@ -3,6 +3,57 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.9.0] - 2026-11-22
+
+### Added
+
+- The child Bow fires arrows, magic arrows too
+- An empty bow says the ammo its own projectile uses
+- The child Bow's button guide says Shoot Arrow
+- Offer Met Zelda in the AP world
+- Deku Tree room B's scrub, settled by playtest
+- Din's Fire also gets room B's scrub out of the ground
+- A bomb also gets room B's scrub out of the ground
+- An age switch lands at the arrival point nearest Link
+- Offer Gerudo Fortress Freed in the AP world
+- The adult Boomerang's throw and catch sounds
+- Knowledge entries can name a check
+- Each weapon's range, Din's Fire's radius among them
+- Gold skulltulas get room checks from their height
+- A live room's gold skulltula takes its room rule alone
+- Child Link swings the two-handed swords, with his own yells
+- Read the Havok meshes level pieces collide with
+- The valley bridge and its neighbours follow the carpenters
+- The running man's race needs the carpenters freed
+- Boot an adult start and --spawn straight into their map
+- Each Start item says where it came from
+- Each Link draws and puts away the other's items with their sounds
+- Watch ranges for one-frame states, and find without a region list
+- The adult Slingshot, aimed with its own clips
+- Songs and NPC Gifts join the Archipelago world through when rows
+
+### Fixed
+
+- The child aims the Bow with the Bow's clips
+- The Deku Seed hash test needs the dump's names
+- A check the options shut off gets filler, not a free spot
+- Add the reach module the last commit named
+- The child's two-handed rolls move as his own
+- Lend each Link the other's Cba archive, so a two-handed tap swings
+- Each Link keeps his own eyelids in the clips he borrows
+- A climb down into water reaches the water's shore
+- Copy another slot's Magic Meter or boss key
+- Read mesh sections stored as plain floats
+- An adult start holds the Master Sword only from its start inventory
+- Size each carpenter's rescue schedule like his Step01 one
+- Number assets over fixed-size call chunks
+- The Songs description names all twelve songs
+- Copy String64 sets and copies into a cut scene's caller
+- An adult boot marks the Temple of Time as entered
+- Leave a nested module's holders out of copy wiring
+- Filler name without options, dump job runs only the export's slow test
+- The client sends the checks a seed hands over at the start
+
 ## [0.8.0] - 2026-11-22
 
 ### Added

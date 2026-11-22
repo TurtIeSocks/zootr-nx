@@ -138,6 +138,22 @@ test("Spheres starts with what Link has before round 1", async () => {
   expect(start.getByText("Open Forest")).toBeTruthy();
 });
 
+test("a Start item names the checks and the preset it came from", async () => {
+  const spoiler = seed();
+  spoiler.start.items.push(
+    { item: "Item_D", name: "Megaton Hammer", count: 2, from: ["6"] },
+    { item: "Obj_A", name: "Fairy", count: 1, via: "No Pickup Texts" },
+  );
+  const sheet = await open(spoiler);
+  const start = within(await sheet.findByRole("list", { name: "Start" }));
+  const item = (name: string) =>
+    within(start.getByText(name).closest("li") as HTMLElement);
+  expect(item("Megaton Hammer").getByText("Lost Woods · Bridge")).toBeTruthy();
+  expect(item("Fairy").getByText("No Pickup Texts")).toBeTruthy();
+  // A seed from before they were kept shows the item alone.
+  expect(item("Fairy Ocarina").queryByText(/·/)).toBeNull();
+});
+
 test("a seed from before the start was kept has no Start column", async () => {
   const sheet = await open({ ...seed(), start: { items: [], settings: [] } });
   await sheet.findByText("Round 4");

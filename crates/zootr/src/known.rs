@@ -131,7 +131,7 @@ pub(crate) fn is_dump_name(text: &str) -> bool {
 /// into them, so adding either reads them again.
 fn load(root: &Path, tier: usize) -> Result<HashMap<u64, &'static str>> {
     // Bump `STEMS` when what `read` takes from a file changes.
-    const STEMS: &str = "|parts|heads";
+    const STEMS: &str = "|parts|heads|tails";
     let files: Vec<&str> = crate::game::files().collect();
     let sources = hash(&[SOURCES[tier].join("|"), STEMS.into(), files.join("|")].concat());
     let file = crate::game::cached(root, "names")?.join(format!("tier{tier}-{sources:016x}.txt"));
@@ -181,7 +181,8 @@ fn read(romfs: &Romfs, sources: &[&str]) -> Result<String> {
                 .and_then(|f| f.to_str())
                 .unwrap_or_default();
             let mine = file.split('.').filter(|s| s.len() >= 4);
-            for word in mine.chain(words(&data)).filter(|w| seen.insert(hash(w))) {
+            let all = mine.chain(words(&data)).chain(tailed(&data));
+            for word in all.filter(|w| seen.insert(hash(w))) {
                 names += word;
                 names.push('\n');
             }
@@ -200,6 +201,20 @@ fn words(data: &[u8]) -> impl Iterator<Item = &str> {
         .flat_map(|w| [Some(w), w.split_once('.').map(|(head, _)| head)])
         .flatten()
         .filter(|w| w.len() >= 4)
+}
+
+/// The runs that start as a name and go on in other scripts, kept whole:
+/// the sound calls named for items in Japanese (`Equip_` and the item).
+/// Each is valid UTF-8 up to its end; [`words`] still gives its ASCII
+/// head on its own.
+fn tailed(data: &[u8]) -> impl Iterator<Item = &str> {
+    data.split(|&b| !(b.is_ascii_alphanumeric() || b >= 0x80 || b == b'_'))
+        .filter(|s| s.len() >= 4 && s[0].is_ascii_alphabetic() && !s.is_ascii())
+        .filter_map(|s| match std::str::from_utf8(s) {
+            Ok(w) => Some(w),
+            Err(e) => std::str::from_utf8(&s[..e.valid_up_to()]).ok(),
+        })
+        .filter(|w| !w.is_ascii())
 }
 
 impl Name {
@@ -316,6 +331,21 @@ mod tests {
         let owned = "Npc_N".to_owned();
         assert!(navi == *"Npc_N" && "Npc_N" == navi && owned == navi);
         assert!(navi != *"Npc_S");
+    }
+
+    #[test]
+    fn a_name_going_on_in_another_script_is_read_whole_beside_its_head() {
+        let data = "\0Fake_ナイフ\0FakeA_01\0Ok\0".as_bytes();
+        let mut cut = data.to_vec();
+        cut.extend("FakeB_ナ".as_bytes());
+        cut.extend(b"\xe5\xb7\0");
+        assert_eq!(tailed(data).collect::<Vec<_>>(), ["Fake_ナイフ"]);
+        assert_eq!(
+            tailed(&cut).last(),
+            Some("FakeB_ナ"),
+            "a broken tail is cut"
+        );
+        assert!(words(data).any(|w| w == "Fake_"), "its head still counts");
     }
 
     #[test]

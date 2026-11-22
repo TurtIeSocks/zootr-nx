@@ -303,6 +303,17 @@ pub enum MemCommand {
         #[arg(default_value_t = 64)]
         len: usize,
     },
+    /// Ranges read together over and over, each pass that differs from the
+    /// last printed with its time: catches states one frame long, which a
+    /// single `read` misses.
+    Watch {
+        /// `ADDR:LEN` ranges, each a 0x address or `main+0x…`.
+        #[arg(required = true)]
+        ranges: Vec<String>,
+        /// How long to watch.
+        #[arg(long, default_value_t = 3.0)]
+        secs: f64,
+    },
     /// A cheat table search for the 4-byte values that follow a state of
     /// the game (a prompt shown or not): snap writable memory in one
     /// state, then the other, then again in either until few are left.

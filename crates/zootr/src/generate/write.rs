@@ -12,7 +12,6 @@ use crate::checks::{self, Drop};
 use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::hints::Hint;
-use crate::known::actor;
 use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::progressive::Lines;
@@ -23,11 +22,12 @@ use crate::settings::{Bombchus, Bridge};
 use crate::starter_bags;
 use crate::world::Era;
 use crate::{
-    adult_jabu, ageless, ageless_items, ammo, blue_warps, bombchus, bombs, bridge, chest_levels,
-    cows, cutscenes, dampe, day_skulltulas, dig, door, enemies, entrances, flags, foreign,
-    fortress, gamedata, gerudo, gifts, goron_pot, held, hints, ice_traps, jabu_mood, jabu_mouth,
-    key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb,
-    scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain, twins,
+    adult_jabu, ageless, ageless_items, ammo, blue_warps, bombchus, bombs, bridge, carpenters,
+    chest_levels, cows, cutscenes, dampe, day_skulltulas, dig, door, enemies, entrances, flags,
+    foreign, fortress, gamedata, gerudo, gifts, goron_pot, held, hints, ice_traps, jabu_mood,
+    jabu_mouth, key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups,
+    presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain,
+    twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -38,7 +38,12 @@ pub(super) fn flows(
     new_game: &NewGame,
     drops: &HashMap<u64, Drop>,
 ) -> Result<(Rewrites, Vec<String>)> {
-    let (mut rewrites, mut flags) = cutscenes::skip(romfs, all, &new_game.skips)?;
+    // The opening movie and Navi's wake-up play in Kokiri Forest only.
+    let skips = cutscenes::Skips {
+        intro: new_game.skips.intro || boot(new_game).is_some(),
+        ..new_game.skips.clone()
+    };
+    let (mut rewrites, mut flags) = cutscenes::skip(romfs, all, &skips)?;
     if new_game.quiet_navi {
         navi::quiet(romfs, &mut rewrites)?;
     }
@@ -69,29 +74,20 @@ pub(super) fn flows(
     starting::replay(romfs, &mut rewrites, &new_game.progress)?;
     steps::hold(romfs, &mut rewrites, all, &new_game.progress)?;
     steps::dev_branch(romfs, &mut rewrites)?;
-    if let Some(spawn) = &new_game.spawn {
-        spawn::warp(romfs, &mut rewrites, spawn)?;
-    }
-    if new_game.age == Era::Adult {
-        // The pedestal's gift comes in the opening (`gifts`), so he wakes
-        // with the Master Sword only when it gives the sword or he started
-        // with it.
-        let sword = actor::WEAPON_SWORD_MASTER.get();
-        let sword =
-            gifts::pedestal_gives(drops) == sword || new_game.start.owned().contains(&sword);
-        spawn::adult(romfs, &mut rewrites, sword)?;
+    if let Some(spawn) = boot(new_game) {
+        let owned = new_game.start.owned();
+        flags.extend(spawn::boot(romfs, &mut rewrites, &spawn, &owned)?);
     }
     if new_game.on.contains(TRADE_CHAIN) {
         trade_chain::deal(romfs, &mut rewrites, drops)?;
     }
-    gifts::give_all_aged(
+    gifts::give_all(
         romfs,
         all,
         &mut rewrites,
         drops,
         Lines::of(new_game),
         &new_game.on,
-        new_game.age == Era::Adult,
     )?;
     levels(romfs, drops, new_game)?.give(romfs, all, &mut rewrites)?;
     if new_game.shop_slots > 0 {
@@ -104,6 +100,7 @@ pub(super) fn flows(
         goron_pot::rename(romfs, &mut rewrites, drops)?;
     }
     gerudo::stand_down(romfs, &mut rewrites, drops)?;
+    carpenters::flows(romfs, &mut rewrites)?;
     gerudo::clear_once(romfs, &mut rewrites)?;
     gerudo::rescue_once(romfs, &mut rewrites)?;
     let model = gifts::levels::model(all)?;
@@ -135,6 +132,12 @@ pub(super) fn flows(
         entrances::reveal::flows_for(romfs, &mut rewrites, new_game.dungeon_entrances)?;
     }
     Ok((rewrites, flags))
+}
+
+/// Where `new_game` boots other than Link's house, as `MAP/SPOT`: the
+/// spawn, else the adult start's.
+fn boot(new_game: &NewGame) -> Option<String> {
+    (new_game.spawn.clone()).or_else(|| (new_game.age == Era::Adult).then(spawn::adult_start))
 }
 
 /// Apply `drops` (actor hash -> drop) to every Banc file, `new_game` to
@@ -253,6 +256,7 @@ pub fn write_mod(
     exps.extend(shelves.exps.iter().cloned());
     exps.extend(steps.exps.iter().cloned());
     exps.extend(jabu_mood::exps(&gd, new_game.adult_jabu)?);
+    exps.extend(carpenters::exps(&gd)?);
     let mut data = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
     trade_chain::never_counting(&mut data.root)?;
     if new_game.on.contains(TRADE_CHAIN) {
@@ -452,6 +456,7 @@ pub fn write_mod(
         false => None,
     };
     let mut changed_maps = Vec::new();
+    let mut valley = 0;
     for (rel, doc) in checks::load_bancs(romfs, checks::banc_files(romfs)?) {
         run.check()?;
         let mut doc = doc?;
@@ -489,6 +494,8 @@ pub fn write_mod(
         let tinted = key_tints::swap(&rel, &mut doc.root, bosses)? > 0;
         // After shrinking: a shrunk chest runs the small chest's flow.
         let levelled = levels.name(romfs, &mut doc.root, &mut chest_events)? > 0;
+        let bridged = carpenters::banc(&rel, &mut doc.root)?;
+        valley += bridged;
         let doors = match &blocks {
             Some(b) => entrances::rewrite(&rel, &mut doc.root, &new_game.doors, b)? > 0,
             None => false,
@@ -503,6 +510,7 @@ pub fn write_mod(
             || tinted
             || levelled
             || doors
+            || bridged > 0
             || !changed.is_empty()
         {
             actors += changed.len();
@@ -514,6 +522,8 @@ pub fn write_mod(
         }
     }
     write_maps(&mut builder, &mut changed_maps)?;
+    carpenters::check_banc(valley)?;
+    carpenters::write(romfs, &mut builder)?;
     adult_jabu::arrival(romfs, &mut builder, new_game.adult_jabu)?;
     adult_jabu::strip_foliage(romfs, &mut builder, new_game.adult_jabu)?;
     jabu_mood::write(romfs, &mut builder, new_game.adult_jabu)?;
@@ -621,7 +631,40 @@ fn hook_flags(new_game: &NewGame) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::known::actor;
     use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS, TRADE_CYCLE};
+
+    #[test]
+    fn an_adult_start_holds_the_master_sword_only_from_the_start_inventory() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let all = Flows::load(&romfs).unwrap();
+        let sword = actor::WEAPON_SWORD_MASTER.get();
+        let opening = |start: serde_json::Value| {
+            let settings = crate::settings::Settings::from([
+                (crate::settings::STARTING_AGE.into(), "adult".into()),
+                (starting::SETTING.into(), start),
+            ]);
+            let new_game = NewGame::from_settings(&settings, &[]).unwrap();
+            let (rewrites, _) = flows(&romfs, &all, &new_game, &HashMap::new()).unwrap();
+            let rendered = |name: &crate::known::Name| {
+                let flow = ounce_formats::Flowchart::parse(&rewrites[&crate::flows::rel(name)]);
+                crate::flows::render(&flow.unwrap().unwrap())
+            };
+            (
+                rendered(starting::OPENING),
+                rendered(crate::known::flow::MARKET_CHILD_FIELD_CHILD_TO_ADULT),
+            )
+        };
+        // Without it, the opening never names it: the pedestal's swap
+        // gives it on his first pull back to adult.
+        let (without, swap) = opening(serde_json::json!({}));
+        assert!(!without.contains(sword));
+        assert!(swap.contains(sword));
+        let (with, _) = opening(serde_json::json!({ "master-sword": 1 }));
+        assert!(with.contains(sword));
+    }
 
     #[test]
     fn each_hook_setting_sets_its_own_bit() {

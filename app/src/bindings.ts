@@ -543,6 +543,13 @@ export type Held = {
 	item: string,
 	name: string,
 	count: number,
+	/**  The checks, by hash, whose pool slots its copies left. */
+	from?: string[],
+	/**
+	 *  Where the copies no check gave came from (a preset's label, the
+	 *  starting inventory), when there are any.
+	 */
+	via?: string | null,
 };
 
 /**  Whether an actor's model is hidden, and by whom. */
