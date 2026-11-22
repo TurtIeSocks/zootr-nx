@@ -19,8 +19,8 @@
 //!   camera shake are.
 //! - The hook's nock gives Link the drawn bow's projectile, so the child's
 //!   Bow fires arrows, not his seeds (`zootr-hook`, `game/arrows.rs`).
-//! - Child Link aims the Bow with its own clips, not the Slingshot's
-//!   ([`aim`]).
+//! - Each Link aims the Bow with the Bow's clips and the Slingshot with
+//!   the Slingshot's ([`aim`]).
 //! - Each Link's sounds gain the calls of what he borrows: the child's the
 //!   Hammer's and the yells of the adult's two-handed swings, the adult's
 //!   the Boomerang's. Each loads the other's sound bank ([`sounds`]).
@@ -47,7 +47,7 @@ mod sounds;
 pub use files::{BANKS, FILES, SOUNDS};
 
 /// The pause menu's items opened to both ages.
-const ITEMS: [&Name; 13] = [
+const ITEMS: [&Name; 15] = [
     // The Bow's four slots, each an arrow row and a loaded bow row.
     item::ARROW_NORMAL,
     actor::WEAPON_RANGE_BOW,
@@ -62,6 +62,8 @@ const ITEMS: [&Name; 13] = [
     item::LONGSHOT,
     item::DEKU_STICK,
     item::BOOMERANG,
+    item::DEKU_SEED,
+    actor::WEAPON_RANGE_SLING_SHOT,
 ];
 
 /// RESTBL room past a holder, shooter or animation file's new size (research
@@ -157,8 +159,8 @@ const CHILD: Link = Link {
 const ADULT: Link = Link {
     who: actor::PLAYER_ADULT,
     from: actor::PLAYER_CHILD,
-    holds: &[item::DEKU_STICK],
-    words: &["DekuStick", "Boomerang"],
+    holds: &[item::DEKU_STICK, actor::WEAPON_RANGE_SLING_SHOT],
+    words: &["DekuStick", "Boomerang", "Sling"],
     // Every one of the child's, as for the child.
     archives: &[
         Archive {
@@ -290,7 +292,9 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
             builder.add(&events(&name), &romfs.read(&events(from))?, &events(from))?;
         }
     }
-    builder.write(files::GRAPH, &aim::aimed(&builder.read(files::GRAPH)?)?)?;
+    for graph in files::GRAPHS {
+        builder.write(graph, &aim::aimed(&builder.read(graph)?)?)?;
+    }
     sounds::write(builder)
 }
 
@@ -592,7 +596,8 @@ mod tests {
                 ]);
             }
         }
-        read.extend([SOUNDS, BANKS, files::GRAPH].map(String::from));
+        read.extend([SOUNDS, BANKS].map(String::from));
+        read.extend(files::GRAPHS.map(String::from));
         let files: HashSet<&str> = FILES.into_iter().collect();
         let read: HashSet<&str> = read.iter().map(String::as_str).collect();
         assert_eq!(read, files);
