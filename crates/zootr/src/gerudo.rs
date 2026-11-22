@@ -13,7 +13,7 @@
 
 use std::collections::HashMap;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::{EventKind, Flowchart, Link, Params, Romfs, Value};
 
 use crate::checks::Drop;
@@ -56,7 +56,7 @@ pub fn guard_card(area: &str, steps: &[(String, String)]) -> Option<&'static Nam
 
 /// Gerudo Fortress Freed's edits: the four carpenters freed and their
 /// guards beaten. The quest step isn't here: the opening moves it
-/// ([`FREED_STEP`]), as freeing the carpenters does, so the fortress guards
+/// ([`freed_step`]), as freeing the carpenters does, so the fortress guards
 /// stand down with it.
 pub fn freed() -> Vec<String> {
     let mut edits = lit(&[
@@ -243,6 +243,74 @@ fn asks_helped(flow: &Flowchart, value: i32) -> Option<u16> {
     })
 }
 
+/// The cell doors' flow: each carpenter's entry ducks the music, opens her
+/// door, counts her freed and plays her thanks.
+const DOORS: &Name = flow::COMMON_DUNGEON_OPEN_DOOR_CHAIN_LOCK_MOVE;
+
+/// Each carpenter's door entry, and the Bool her cell's logic sets once
+/// her door has opened, which Gerudo Fortress Freed sets from the start.
+const CELLS: [(&Name, &Name); 4] = [
+    (
+        flow::GERUDO_FORTRESS_OPEN_DOOR_CHAIN_LOCK_NPC_HYLIA_013,
+        flag::GERUDO_FORTRESS_IS_AFTER_HELP_CARPENTER_NPC_HYLIA_013_ADULT,
+    ),
+    (
+        flow::GERUDO_FORTRESS_OPEN_DOOR_CHAIN_LOCK_NPC_HYLIA_014,
+        flag::GERUDO_FORTRESS_IS_AFTER_HELP_CARPENTER_NPC_HYLIA_014_ADULT,
+    ),
+    (
+        flow::GERUDO_FORTRESS_OPEN_DOOR_CHAIN_LOCK_NPC_HYLIA_015,
+        flag::GERUDO_FORTRESS_IS_AFTER_HELP_CARPENTER_NPC_HYLIA_015_ADULT,
+    ),
+    (
+        flow::GERUDO_FORTRESS_OPEN_DOOR_CHAIN_LOCK_NPC_HYLIA_016,
+        flag::GERUDO_FORTRESS_IS_AFTER_HELP_CARPENTER_NPC_HYLIA_016_ADULT,
+    ),
+];
+
+/// A cell door that opens on a carpenter already freed only opens: her
+/// count and her thanks are skipped, so beating her thief under Gerudo
+/// Fortress Freed never frees her twice. Each entry first asks her freed
+/// Bool, true going to a copy of the door's own call that ends there.
+/// Until her door first opens the Bool is false, so a rescue in play runs
+/// as in the game.
+pub fn rescue_once(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
+    let models = Models::load(romfs)?;
+    flows::edit(romfs, rewrites, DOORS, |flow| {
+        for (entry, freed) in CELLS {
+            let at = flow.entry_points.iter().position(|e| e.name == *entry);
+            let at = at.with_context(|| format!("{DOORS} has no {entry}"))?;
+            let start = flow.entry_points[at].main;
+            let start = start.with_context(|| format!("{entry} runs nothing"))?;
+            // The ducking, then the call that opens her door.
+            let EventKind::Action {
+                next: Some(open), ..
+            } = flow.events[start as usize].kind
+            else {
+                bail!("{entry} doesn't start with an action");
+            };
+            let mut only = flow.events[open as usize].kind.clone();
+            let EventKind::SubFlow { next, .. } = &mut only else {
+                bail!("{entry} doesn't open her door with a call");
+            };
+            ensure!(next.is_some(), "{entry} ends at her door");
+            *next = None;
+            let only = flow.push(only);
+            let (actor, query) = flow.query(&models.is_bool.actor, models.is_bool.name);
+            let params = Models::asking(&models.is_bool, freed.get())?;
+            // Case 0 is true.
+            let ask = flow.push(EventKind::Switch {
+                actor,
+                query,
+                params,
+                cases: vec![(0, only), (1, start)],
+            });
+            flow.entry_points[at].main = Some(ask);
+        }
+        Ok(())
+    })
+}
+
 /// The four carpenters' clear event plays once the count is past three.
 /// Play it only at four, so a count started at three (Gerudo Fortress
 /// fast) plays it on the first rescue and never again. Without that the
@@ -361,6 +429,60 @@ mod tests {
             flows::param(params, "EventName"),
             Some(flow::MEET_FOUR_CARPENTER_CLEAR_EVENT.get())
         );
+    }
+
+    #[test]
+    fn a_cell_door_on_a_freed_carpenter_only_opens() {
+        let Some(romfs) = dev_dump() else {
+            return;
+        };
+        let before = flows::load(&romfs, DOORS).unwrap().unwrap();
+        let mut rewrites = Rewrites::new();
+        rescue_once(&romfs, &mut rewrites).unwrap();
+        let flow = flows::current(&romfs, &rewrites, DOORS).unwrap();
+        let main = |f: &Flowchart, entry: &Name| {
+            let e = f.entry_points.iter().find(|e| e.name == *entry);
+            e.unwrap().main.unwrap()
+        };
+        for (n, (entry, freed)) in CELLS.into_iter().enumerate() {
+            let start = main(&before, entry);
+            let EventKind::Switch { params, cases, .. } =
+                &flow.events[main(&flow, entry) as usize].kind
+            else {
+                panic!("{n} doesn't ask first");
+            };
+            assert_eq!(
+                flows::param(params, flows::GAME_DATA.get()),
+                Some(freed.get())
+            );
+            let [(0, only), (1, rescue)] = cases[..] else {
+                panic!("{cases:?}");
+            };
+            assert_eq!(rescue, start, "not freed, her rescue runs as before");
+            // Freed: the door's own call, then nothing.
+            let EventKind::Action {
+                next: Some(open), ..
+            } = flow.events[start as usize].kind
+            else {
+                panic!("{n} starts with no action");
+            };
+            let (EventKind::SubFlow { next: None, .. }, EventKind::SubFlow { next: Some(_), .. }) = (
+                &flow.events[only as usize].kind,
+                &flow.events[open as usize].kind,
+            ) else {
+                panic!("{n}'s freed branch isn't the door's call alone");
+            };
+            let call = |e: u16| match &flow.events[e as usize].kind {
+                EventKind::SubFlow {
+                    flowchart,
+                    entry_point,
+                    params,
+                    ..
+                } => (flowchart.clone(), entry_point.clone(), params.clone()),
+                _ => unreachable!(),
+            };
+            assert_eq!(call(only), call(open));
+        }
     }
 
     #[test]
