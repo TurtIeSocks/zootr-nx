@@ -26,6 +26,7 @@ pub(super) enum DevCommand {
     /// name or its placement hash from `probe actors`, or onto a spot
     /// given as `x,y,z`.
     Warp {
+        #[arg(allow_hyphen_values = true)]
         actor: String,
         /// Which side of the actor to land on.
         #[arg(long, value_enum, default_value_t)]
@@ -110,6 +111,35 @@ pub(super) enum DevCommand {
         #[arg(long)]
         json: bool,
     },
+    /// A running jump across a gap, from its near edge `from` to its far
+    /// edge `to` (each `x,y,z`, as `logic derive` prints them): warp `run`
+    /// m behind `from`, run at `to`, steering by where Link goes (no ZL,
+    /// so nothing near gets locked onto), and X as he's due `past` m
+    /// beyond `from`. Says whether he made it, where X went in, and the
+    /// trace.
+    Leap {
+        #[arg(allow_hyphen_values = true)]
+        from: String,
+        #[arg(allow_hyphen_values = true)]
+        to: String,
+        /// How far behind the near edge the run starts, in m: Link reaches
+        /// his full 4.5 m/s after about 3.
+        #[arg(long, default_value_t = 3.0)]
+        run: f32,
+        /// How far past the near edge X goes in, in m: where the real lip
+        /// sits past the navmesh's edge. Negative jumps early.
+        #[arg(long, default_value_t = 0.0, allow_hyphen_values = true)]
+        past: f32,
+        /// Seconds to keep reading after the jump.
+        #[arg(long, default_value_t = crate::nav::trace::SETTLE)]
+        settle: f32,
+        /// The folder for `trace.json`.
+        #[arg(long)]
+        out: Option<std::path::PathBuf>,
+        /// One JSON object instead of lines.
+        #[arg(long)]
+        json: bool,
+    },
     /// Put an item on ZR, or gear (boots, a tunic) on or off, through the
     /// menu: the item is given once more, so the menu opens on it, then A.
     /// Names as `give` takes them.
@@ -118,7 +148,10 @@ pub(super) enum DevCommand {
     /// placement hash, or a spot given as `x,y,z`, then ZL, for aiming: a
     /// slingshot shot, a bomb throw or a run then goes its way. Says
     /// whether he faces it and how far off it is.
-    Face { target: String },
+    Face {
+        #[arg(allow_hyphen_values = true)]
+        target: String,
+    },
     /// Walk to where a placed actor of the current map is used from, face
     /// it, then press A, or for a door walk through. Says `event`,
     /// `entered` or `nothing`, and where a frame of the game was saved.
