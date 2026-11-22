@@ -9,7 +9,8 @@
 //! names (`TST1`), their templates (`TNA1`), field names (`FST1`) and the
 //! type bodies (`TBDY`). `INDX` holds the items (`ITEM`): each a type, an
 //! offset into `DATA` and a count. A pointer or array in `DATA` stores the
-//! index of the item it points at in its first four bytes.
+//! index of the item it points at in its first four bytes. A relative
+//! array (`hkRelArrayView`, `hkRelArray`) stores an offset from itself.
 
 use anyhow::{Context, Result, bail, ensure};
 
@@ -325,6 +326,60 @@ impl<'a> Obj<'a> {
         }
         let len = self.file.items.get(index).map_or(0, |i| i.count);
         (0..len).map(|i| self.file.item(index, i)).collect()
+    }
+
+    /// The values of the relative array field `name` (an `hkRelArrayView`
+    /// or `hkRelArray`). Its offset counts from the field itself, and its
+    /// element type is its `tT` template.
+    pub fn rel_array(&self, name: &str) -> Result<Vec<Obj<'a>>> {
+        let (ty, at, len) = self.rel(name)?;
+        let size = self.file.size(ty);
+        Ok((0..len)
+            .map(|i| Obj {
+                file: self.file,
+                ty,
+                at: at + i * size,
+            })
+            .collect())
+    }
+
+    /// The bytes of the relative array field `name`, like a vertex buffer
+    /// typed as `hkUint8`.
+    pub fn rel_bytes(&self, name: &str) -> Result<&'a [u8]> {
+        let (ty, at, len) = self.rel(name)?;
+        self.r().bytes(at, len * self.file.size(ty))
+    }
+
+    /// The element type, start and length of the relative array `name`.
+    fn rel(&self, name: &str) -> Result<(usize, usize, usize)> {
+        let f = self.field(name)?;
+        let ty = (self.file.types[f.ty].templates.iter())
+            .find(|(t, _)| t == "tT")
+            .with_context(|| format!("{name} has no element type"))?
+            .1;
+        let offset = match self.file.size(f.field("offset")?.ty) {
+            8 => f.r().u64(f.at)? as i64,
+            _ => f.r().i32(f.at)? as i64,
+        };
+        let len = f.field("size")?.i32()?;
+        ensure!(len >= 0, "{name} holds {len} values");
+        let at = usize::try_from(f.at as i64 + offset)
+            .with_context(|| format!("{name} points before the data"))?;
+        Ok((ty, at, len as usize))
+    }
+
+    /// `n` bytes from here.
+    pub fn bytes(&self, n: usize) -> Result<&'a [u8]> {
+        self.r().bytes(self.at, n)
+    }
+
+    /// `n` ints from here, like a `T[N]` of them.
+    pub fn ints<const N: usize>(&self) -> Result<[i32; N]> {
+        let mut out = [0; N];
+        for (i, v) in out.iter_mut().enumerate() {
+            *v = self.r().i32(self.at + 4 * i)?;
+        }
+        Ok(out)
     }
 
     /// An `hkStringPtr`: the item it points at, as text.

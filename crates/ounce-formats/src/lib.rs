@@ -3,7 +3,7 @@
 //! The engine is the one Tears of the Kingdom ships on: files are zstd
 //! frames compressed against one of four dictionaries, BYML v7 documents,
 //! BFEVFL event flows, AINB node graphs, SARC actor packs, MSBT text, BNTX
-//! textures, Havok tagfiles inside Phive physics files, a RESTBL size table that must cover every file the game
+//! textures, Havok tagfiles inside Phive physics files (navmeshes and shape meshes), a RESTBL size table that must cover every file the game
 //! loads, and the save files GameData describes.
 
 pub mod ainb;
@@ -27,6 +27,7 @@ mod restbl;
 mod romfs;
 mod sarc;
 mod save;
+mod shape_mesh;
 mod tagfile;
 mod walk;
 mod xlink;
@@ -55,6 +56,7 @@ pub use roead::byml::{Byml, Map as BymlMap};
 pub use romfs::{ModBuilder, Romfs, copy_mod};
 pub use sarc::replace_file;
 pub use save::{Entry as SaveEntry, KEYED, Save, width as save_width};
+pub use shape_mesh::ShapeMesh;
 pub use tagfile::{Field, Item, Obj, Tagfile, Type};
 pub use walk::files_with_suffix;
 pub use xlink::{

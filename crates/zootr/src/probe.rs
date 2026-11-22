@@ -97,6 +97,10 @@ pub enum Probe {
         #[arg(long)]
         out: Option<PathBuf>,
     },
+    /// A shape's Havok mesh by its name, like
+    /// `<piece>__Airwall`: vertex and triangle counts and its
+    /// bounds in the actor's space.
+    Mesh { name: String },
     /// Writes the files whose path contains this to `--out`, decompressed
     /// and with SARC archives opened into folders, for `rg` and `ls`.
     Unpack {
@@ -418,6 +422,20 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             Ok(())
         }
         Probe::Files { pattern, out } => files(romfs, game, &pattern, out.as_deref()),
+        Probe::Mesh { name } => {
+            let mesh = crate::nav::mesh::mesh(romfs, game, &name)?
+                .with_context(|| format!("the dump has no mesh {name}"))?;
+            let xyz = |p: [f32; 3]| format!("{:.3},{:.3},{:.3}", p[0], p[1], p[2]);
+            let (lo, hi) = mesh.bounds().context("the mesh has no vertices")?;
+            println!(
+                "{} vertices, {} triangles, from {} to {}",
+                mesh.vertices.len(),
+                mesh.triangles.len(),
+                xyz(lo),
+                xyz(hi)
+            );
+            Ok(())
+        }
         Probe::Map { map } => map::map(romfs, game, &map),
         Probe::Rooms { map } => rooms::rooms(romfs, game, &map),
         Probe::Climbs { map } => climbs::climbs(romfs, game, &map),
