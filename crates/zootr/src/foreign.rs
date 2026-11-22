@@ -18,9 +18,10 @@ use crate::key_tints::{MADE, POUCH_TEXT, TEXT_PARTS, pointed};
 use crate::keys::SMALL;
 use crate::known::{actor, field};
 use crate::medallions::Colour;
+use crate::settings::DungeonKeys;
 use crate::standins::{
-    POUCH, POUCH_ACTOR, Tables, actor_path, doc, path_of, pouch_actor, raw, renamed, resolved,
-    with_ref,
+    POUCH, POUCH_ACTOR, Tables, actor_path, doc, made_pack, path_of, pouch_actor, raw, renamed,
+    resolved, with_ref,
 };
 use crate::text::{Copies, CopyLine, Says};
 
@@ -205,11 +206,17 @@ pub fn captions(foreign: &[Foreign]) -> Copies<'static> {
 }
 
 /// The copy's pack, built from the dump, if `item` is one of `foreign`.
-pub fn pack(romfs: &Romfs, item: &str, foreign: &[Foreign]) -> Result<Option<ActorPack>> {
+/// `keys` is the seed's, which a key copy it shows is built with.
+pub fn pack(
+    romfs: &Romfs,
+    item: &str,
+    foreign: &[Foreign],
+    keys: DungeonKeys,
+) -> Result<Option<ActorPack>> {
     let Some(f) = foreign.iter().find(|f| f.actor == item) else {
         return Ok(None);
     };
-    let built = Built::new(romfs, f)?;
+    let built = Built::new(romfs, f, keys)?;
     Ok(Some(ActorPack::from_bytes(item, built.pack()?)?))
 }
 
@@ -225,8 +232,11 @@ struct Built<'a> {
 }
 
 impl<'a> Built<'a> {
-    fn new(romfs: &Romfs, foreign: &'a Foreign) -> Result<Self> {
-        let shown = ActorPack::load(romfs, &foreign.shows)?;
+    fn new(romfs: &Romfs, foreign: &'a Foreign, keys: DungeonKeys) -> Result<Self> {
+        let shown = match made_pack(romfs, &foreign.shows, keys)? {
+            Some(made) => made,
+            None => ActorPack::load(romfs, &foreign.shows)?,
+        };
         let key = ActorPack::load(romfs, SMALL)?;
         let name = foreign.actor.as_str();
         let pouch_like = path_of(&key, POUCH)?;
@@ -293,6 +303,7 @@ pub fn write(
     builder: &mut ModBuilder,
     tables: &mut Tables,
     foreign: &[Foreign],
+    keys: DungeonKeys,
 ) -> Result<()> {
     if foreign.iter().any(|f| f.model.is_some()) {
         let host = Host::read(romfs, &CLASS_LOOK)?;
@@ -302,7 +313,7 @@ pub fn write(
         }
     }
     for f in foreign {
-        Built::new(romfs, f)?.write(builder)?;
+        Built::new(romfs, f, keys)?.write(builder)?;
         tables.copy(&f.actor, &f.shows)?;
         tables.copy_pouch(&f.actor, SMALL)?;
         tables.name_itself(&f.actor)?;
@@ -324,6 +335,7 @@ pub fn write(
 mod tests {
     use super::*;
     use crate::game::dev_dump;
+    use crate::key_tints;
     use crate::known::{field, flag, item};
     use crate::medallions::model_path;
     use crate::standins::{PLAIN_DEAL, row};
@@ -371,7 +383,14 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-foreign-class-{}", std::process::id()));
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let mut tables = Tables::load(&romfs).unwrap();
-        write(&romfs, &mut builder, &mut tables, &foreign).unwrap();
+        write(
+            &romfs,
+            &mut builder,
+            &mut tables,
+            &foreign,
+            DungeonKeys::default(),
+        )
+        .unwrap();
         builder.finish().unwrap();
         let painted: Vec<bool> = (1..=CLASSES.len())
             .map(|n| {
@@ -383,7 +402,9 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
         assert_eq!(painted, [true; 3]);
 
-        let built = pack(&romfs, &foreign[0].actor, &foreign).unwrap().unwrap();
+        let built = pack(&romfs, &foreign[0].actor, &foreign, DungeonKeys::default())
+            .unwrap()
+            .unwrap();
         let info = path_of(&built, crate::standins::MODEL).unwrap();
         let info = resolved(&built, &info).unwrap();
         let shows = info.get(field::FMDB_NAME.get()).unwrap();
@@ -421,7 +442,14 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-foreign-{}", std::process::id()));
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let mut tables = Tables::load(&romfs).unwrap();
-        write(&romfs, &mut builder, &mut tables, &foreign).unwrap();
+        write(
+            &romfs,
+            &mut builder,
+            &mut tables,
+            &foreign,
+            DungeonKeys::default(),
+        )
+        .unwrap();
         builder.finish().unwrap();
         let copy = &foreign[0].actor;
 
@@ -430,7 +458,9 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
         let bytes = romfs.dicts().decompress(&rel, &raw).unwrap();
         let written = ActorPack::from_bytes(copy, bytes.to_vec()).unwrap();
-        let built = pack(&romfs, copy, &foreign).unwrap().unwrap();
+        let built = pack(&romfs, copy, &foreign, DungeonKeys::default())
+            .unwrap()
+            .unwrap();
         assert_eq!(built.files(), written.files());
         // The shown item's model, the small key's pouch content naming the copy.
         let shown = ActorPack::load(&romfs, item::HOOKSHOT).unwrap();
@@ -445,6 +475,38 @@ mod tests {
         let actor = row(&tables.actor, copy).unwrap();
         let called = actor.get(flag::ACTOR_NAME.get()).unwrap();
         assert_eq!(called.as_string().unwrap(), copy);
+    }
+
+    #[test]
+    fn a_copy_of_an_item_the_seed_builds_shows_its_model() {
+        let Some(romfs) = dev_dump() else { return };
+        let keys = DungeonKeys::default();
+        let boss = (1..).find(|&n| crate::keys::has_boss(n)).unwrap();
+        let made = [crate::magic::meter::NAME.to_owned(), key_tints::boss(boss)];
+        let foreign: Vec<Foreign> = (made.into_iter().enumerate())
+            .map(|(n, shows)| Foreign {
+                shows,
+                actor: actor(n + 1),
+                ..hookshot_for("Player2")
+            })
+            .collect();
+        let dir = std::env::temp_dir().join(format!("zootr-foreign-made-{}", std::process::id()));
+        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+        let mut tables = Tables::load(&romfs).unwrap();
+        crate::magic::meter::write(&romfs, &mut builder, &mut tables).unwrap();
+        key_tints::write(&romfs, &mut builder, &mut tables, true, keys, false).unwrap();
+        write(&romfs, &mut builder, &mut tables, &foreign, keys).unwrap();
+        builder.finish().unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
+        let shows = |p: &ActorPack| {
+            let info = resolved(p, &path_of(p, crate::standins::MODEL).unwrap()).unwrap();
+            info.get(field::FMDB_NAME.get()).unwrap().clone()
+        };
+        for f in &foreign {
+            let built = pack(&romfs, &f.actor, &foreign, keys).unwrap().unwrap();
+            let made = made_pack(&romfs, &f.shows, keys).unwrap().unwrap();
+            assert_eq!(shows(&built), shows(&made), "{}", f.shows);
+        }
     }
 
     #[test]

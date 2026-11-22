@@ -337,7 +337,13 @@ pub fn write_mod(
     if maps_move(new_game) {
         map_copies::write(romfs, &mut builder, &mut tables)?;
     }
-    foreign::write(romfs, &mut builder, &mut tables, &new_game.foreign)?;
+    foreign::write(
+        romfs,
+        &mut builder,
+        &mut tables,
+        &new_game.foreign,
+        new_game.keys,
+    )?;
     ammo::write(romfs, &mut builder, &mut tables, &rupees)?;
     cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
     let levels = levels(romfs, drops, new_game)?;
