@@ -32,6 +32,7 @@ mod cut;
 pub mod cutscenes;
 mod dampe;
 mod day_skulltulas;
+mod derive;
 pub mod dev;
 mod dig;
 mod door;

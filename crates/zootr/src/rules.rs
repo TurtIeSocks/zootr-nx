@@ -14,6 +14,7 @@ use crate::world::Era;
 
 mod files;
 mod item;
+pub mod kinds;
 mod lang;
 pub mod rooms;
 mod set;
@@ -101,6 +102,8 @@ pub struct Book {
     toggles: BTreeSet<String>,
     /// The room files, confirmed over baseline.
     pub rooms: Vec<rooms::Room>,
+    /// The object kinds, confirmed over baseline.
+    pub kinds: Vec<kinds::Kind>,
     /// The hand rules room files took the place of, for the audit.
     pub hand: BTreeMap<u64, CheckEntry>,
 }
