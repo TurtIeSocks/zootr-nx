@@ -3,6 +3,126 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.8.0] - 2026-11-22
+
+### Added
+
+- Master Sword shuffle
+- A file written twice builds on its first write
+- Child Link uses the Hammer and hooks, adult Link Deku Sticks and the Boomerang
+- A choice of three or more options is a select
+- Every setting sits in a named section that folds
+- No tutorials on by default, the running race and 100-token reward off
+- A setting that needs another greys out until it's on
+- A button to check for updates now
+- A changelog of every release, loaded as you read
+- Every section's header gives its description and count
+- Logic & access leads the pages, Inventory closes them
+- Each release in the changelog is a fold, only the newest open
+- A new game starts with the Master Sword by default
+- Zootr flagmap, a graph of the game's state (phase 1: event flows)
+- All and None in every section with toggles
+- A page's reset goes to the defaults or the last seed
+- Zootr flagmap live, the running game's value of each state
+- A search at the top of every page, docs-site style
+- The search scopes to a group, and a lone group shows it all
+- A setting that takes the magic meter off the magic items
+- With magic apart, no meter check thinks a magic item brings the meter
+- A Magic Meter item, and magic apart from the magic items by default
+- The tracker and starting items get the magic line and both fairy powers
+- The Archipelago world gets the Magic Meter
+- Every destructive button asks for a second click
+- Scene logic, phase 3: graphs, placements and actors
+- Actor AI and the asks table, phase 4
+- Pouch tables as states, phase 5
+- Only what the dump holds, no hand tables
+- The spinning pot's heart piece is a check (EIE)
+- Child Link uses the Megaton Hammer
+- The child's Hammer yell and slam clang
+- A Win Condition section with Rainbow Bridge and Ganon's Trials
+- An Open rainbow bridge that sets only the walk-in played flag
+- Ganon's Trials Done sets only the barrier state
+- The rainbow bridge by its setting, the tower by Ganon's Trials
+- Read the old bridge and trials names as the Win Condition
+- Ganon's Trials All Six asks for every trial's tools
+- Rainbow Bridge is tested
+- Trace, the arsenal probe and a full-gear start for measuring room logic
+- Save give puts --start words onto a save
+- Equip puts an item on ZR, or gear on or off
+- Link's reach comes from logic/limits.toml, measured or read from his parameters
+- Room files, confirmed over baseline, and flags the solver gains
+- Zootr logic derive --kinds catalogs every dungeon object kind
+- Dev face turns Link to a placement, then ZL, for aiming
+- Zootr logic derive DUNGEON writes its room files and links
+- Room checks and flags wait for their dungeon to go live
+- Room files get their checks, and shutters their flags
+- Zootr logic audit lists the room files' playtest queue
+- Room files hold their exits and arrival spots
+- A live dungeon's rooms are places of their own
+- Say where each jump link is narrowest
+- Face turns Link toward a spot as well as an actor
+- A cheat table search for the values that follow a state
+- A Door of Time choice, Closed or Open
+- A Gerudo Fortress choice, Normal, Fast or Freed
+- Drop the Claim Check preset
+- A Met Zelda toggle, with the story checks given at start
+- Mark the checks the opening gives as given at start
+- Reshuffle Logic & Access and fold Dungeons into Shuffles
+- Lock the starting inventory tiles a setting gives
+- Freed leaves the thieves standing, so Fortress Keys goes with it
+- Met Zelda takes Zelda's Lullaby out of the pool
+- Setting captions link to the settings they name
+- Leap runs a jump across a gap and times X by where Link is
+- Leap reports run speed and air, from a 3 m run-up
+- A measured child level jump settles the Deku Tree's gaps
+- A placement plays the event its params name, so derive finds room clears
+
+### Fixed
+
+- Take the forced Master Sword from a swordless Link after a pull
+- The wake-up scene hands a swordless adult no Master Sword
+- A skipped first pull still runs the closed door's first-pull path
+- The animation file gets the same RESTBL slack
+- The Megaton Hammer waits for its own change
+- Each Link borrows every one of the other's animation archives
+- A lent archive hides every clip its Link already has
+- A lent item clip moves as its Link's plain one
+- Drop the help bubble beside the sidebar's status pills
+- With no seed built, the page reset leads with the defaults
+- A section without toggles counts what's "off default"
+- The palette's arrows scroll the list and never lose a press
+- Done says what is still missing
+- Show "Loading…" while the spoiler loads
+- Name the table's columns, and point the empty state to Play
+- A toggle with an unmet requirement shows off
+- The changelog can retry a failed fetch
+- A choice with an unmet requirement shows no pick
+- The Magic Meter's sigil reads green, not gold
+- The magic setting sits in the Item pool section
+- Name the roll button
+- Give same-named buttons names of their own
+- Lower an item's tier from the keyboard
+- Let a keyboard reach a badge's tooltip
+- Drift always measures from "the last seed"
+- One name for the mod, values, spoiler, badges and tabs
+- One Filter box, plain flag types, the platform copy key
+- Generate only adds to History, Standard gets a sword
+- Tooltips say what a button does, not its label
+- Title Case for names, buttons and menu items
+- The changelog and find's seed results leave the spoiler's icon
+- Read links the game converts across types
+- An age switch with no other-age map lands at the Market entrance
+- The Kakariko gate preset moves the Fire quest past the letter
+- Beating Ganondorf needs Ganon's Castle's boss key
+- Save give names starting by its path, as main moved its import
+- The Deku Tree's Lower Three Deku Sticks needs explosives or fire
+- A cell door on a freed carpenter only opens
+- The world holds the places any one option opens
+- Met Zelda leaves Zelda's Lullaby to Impa's check
+- Plainer wording for what Met Zelda takes out of the pool
+- Drop the item import Met Zelda's lullaby edit used
+- Leap steers by where Link goes, never ZL
+
 ## [0.7.0] - 2026-11-21
 
 ### Added
