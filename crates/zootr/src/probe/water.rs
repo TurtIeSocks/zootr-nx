@@ -7,7 +7,7 @@ use anyhow::Result;
 use ounce_formats::Romfs;
 
 use crate::nav::Level;
-use crate::nav::graph::{Graph, STEP_UP};
+use crate::nav::graph::{Graph, step_up};
 use crate::nav::water::{NoSwim, bodies};
 
 /// Prints each body of water in `map`: its planes with their surface,
@@ -60,7 +60,7 @@ pub fn water(
     }
     let swum = crossings.iter().filter(|c| c.not.is_none()).count();
     println!("{swum} of {} crossings swim", crossings.len());
-    let dry = Graph::build(&level.mesh, &level.placed, STEP_UP).with_climbs(&level.climbs);
+    let dry = Graph::build(&level.mesh, &level.placed, step_up()).with_climbs(&level.climbs);
     println!(
         "islands of 20 faces or more: {} without swims, {} with",
         islands(&dry),

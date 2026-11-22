@@ -14,7 +14,7 @@ use super::shape::inside;
 /// corners, in m.
 const MARGIN: f32 = 0.1;
 /// A solid whose top is at most this above the floor is walked over, in
-/// m. A placeholder like `STEP_UP`, until measured live.
+/// m. A placeholder like `step_up()`, until measured live.
 const STEP_OVER: f32 = 0.2;
 /// How tall Link is, in m: a solid wholly higher above the floor than
 /// this is walked under. A placeholder until measured live.
@@ -230,7 +230,7 @@ mod tests {
     use crate::known::map;
     use crate::nav::Level;
     use crate::nav::fixture::{mesh, quad};
-    use crate::nav::graph::STEP_UP;
+    use crate::nav::graph::step_up;
     use crate::nav::route::{Route, plan};
     use crate::nav::shape::Solid;
 
@@ -247,7 +247,7 @@ mod tests {
     /// The route over a 10 by 4 m floor with `solids` on it.
     fn route(solids: &[Solid], from: [f32; 3], to: [f32; 3]) -> Route {
         let floor = mesh(&[quad(0.0, 0.0, 10.0, 4.0, 0.0)]);
-        let graph = Graph::build(&floor, &[], STEP_UP).with_solids(solids);
+        let graph = Graph::build(&floor, &[], step_up()).with_solids(solids);
         plan(&graph, from, to).unwrap()
     }
 
@@ -335,7 +335,7 @@ mod tests {
         let n = sign.ring.len() as f32;
         let [x, z] = (sign.ring.iter()).fold([0.0, 0.0], |m, c| [m[0] + c[0] / n, m[1] + c[1] / n]);
         let girth = level.mesh.erosion;
-        let bare = Graph::build(&level.mesh, &level.placed, STEP_UP);
+        let bare = Graph::build(&level.mesh, &level.placed, step_up());
         let graph = level.graph();
         for [dx, dz] in [[2.5, 0.0], [0.0, 2.5]] {
             let (from, to) = ([x - dx, sign.low, z - dz], [x + dx, sign.low, z + dz]);

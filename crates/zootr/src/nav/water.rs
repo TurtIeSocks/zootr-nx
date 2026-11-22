@@ -492,7 +492,7 @@ mod tests {
                 .any(|w| matches!(w.via, Via::Swim(Some(_)))),
             "{route:?}"
         );
-        let dry = Graph::build(&level.mesh, &level.placed, super::super::graph::STEP_UP);
+        let dry = Graph::build(&level.mesh, &level.placed, super::super::graph::step_up());
         assert!(crate::nav::route::plan(&dry, bank, stone).is_err());
     }
 
@@ -553,7 +553,7 @@ mod tests {
     fn a_spot_deeper_than_link_floats_is_sunk_to_from_the_surface_over_it() {
         let w = Water::of(&placed([0.0, 20.0, 0.0], 0.0, [1.0; 3]), TILE);
         let mesh = crate::nav::fixture::mesh(&[]);
-        let graph = Graph::build(&mesh, &[], crate::nav::graph::STEP_UP).with_swims(&[w], false);
+        let graph = Graph::build(&mesh, &[], crate::nav::graph::step_up()).with_swims(&[w], false);
         assert_eq!(graph.above([1.0, 12.0, 2.0]), Some([1.0, 20.0, 2.0]));
         assert_eq!(graph.above([1.0, 19.0, 2.0]), None, "he floats there");
         assert_eq!(graph.above([1.0, 8.0, 2.0]), None, "under its depth");

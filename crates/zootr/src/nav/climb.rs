@@ -146,7 +146,7 @@ mod tests {
     use std::f32::consts::FRAC_PI_2;
 
     use super::*;
-    use crate::nav::graph::{Graph, STEP_UP, Via};
+    use crate::nav::graph::{Graph, Via, step_up};
     use crate::warp::Pose;
 
     fn placed(at: [f32; 3], rotate: [f32; 3]) -> Placement {
@@ -230,7 +230,7 @@ mod tests {
         let route = crate::nav::route::plan(&graph, foot.at, top.at).unwrap();
         let vias: Vec<Via> = route.waypoints.iter().map(|w| w.via).collect();
         assert!(vias.contains(&Via::Climb(Some(hash))), "{route:?}");
-        let bare = Graph::build(&level.mesh, &level.placed, STEP_UP).with_solids(&level.solids);
+        let bare = Graph::build(&level.mesh, &level.placed, step_up()).with_solids(&level.solids);
         if let Ok(round) = crate::nav::route::plan(&bare, foot.at, top.at) {
             assert!(round.length > route.length + 10.0, "{round:?}");
         }

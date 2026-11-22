@@ -1,0 +1,39 @@
+# How far Link reaches, for the nav graph and the room logic derived from
+# it (room reach spec). Every value is measured or read from Link's own
+# parameters (`zootr probe arsenal`), and its evidence says which: a
+# measured value names its `dev trace` runs, written up in the room
+# science notes.
+
+# Glitchless logic counts a move only up to this share of its limit.
+# Moves past it are knowledge routes.
+margin = 0.85
+
+# The highest ledge Link gets onto from the floor below, in m.
+[child.step-up]
+value = 0.99
+evidence = ["static: StartJumpClamberHeight 0.99"]
+
+[adult.step-up]
+value = 1.29
+evidence = [
+    "measured: runs onto a 1.29 m block without A (adult-cal2, adult-edge-pilot4), a lower bound",
+]
+
+# The deepest drop that lands without a hard landing, in m.
+[child.drop]
+value = 5.0
+evidence = [
+    "static: LargeLandHeight 5",
+    "measured: runs off a 4.65 m ledge and lands running (child-edge-run1, child-edge-run2)",
+]
+
+[adult.drop]
+value = 5.0
+evidence = ["static: LargeLandHeight 5"]
+
+# How far past a ledge's edge a running jump lands, in m, for a drop of
+# `drop` m.
+[child.edge-jump]
+value = 5.2
+drop = 4.65
+evidence = ["measured: jump at the edge (child-edge-jump-1.08, child-edge-jump-1.00)"]
