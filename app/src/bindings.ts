@@ -83,6 +83,8 @@ export const commands = {
 	 *  `given` gives shown held and locked.
 	 */
 	startItems: (start: StartInventory, given: string[][]) => typedError<ItemsView, string>(__TAURI_INVOKE("start_items", { start, given })),
+	/**  `start` holding all of Link's gear too (`--start arsenal`). */
+	startArsenal: (start: StartInventory) => typedError<StartInventory, string>(__TAURI_INVOKE("start_arsenal", { start })),
 	/**  `start` after a click on a grid cell. */
 	startClick: (start: StartInventory, at: number, intent: Intent) => typedError<StartInventory, string>(__TAURI_INVOKE("start_click", { start, at, intent })),
 	/**  `start` after a Status field's commit. */
