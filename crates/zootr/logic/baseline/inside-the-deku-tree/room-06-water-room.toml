@@ -4,6 +4,12 @@ name = "Water Room"
 
 [[link]]
 to = 5
+needs = "flag:#c90d4ed1"
+via = "walk"
+why = "walk, 1 edges; Switch Shutter A 02 4516839470990929285 shut until flag #c90d4ed1; Switch Shutter A 01 15855065730333870421 shut until flag #c90d4ed1"
+
+[[link]]
+to = 7
 needs = "always"
 via = "walk"
 why = "walk, 1 edges"
@@ -11,5 +17,5 @@ why = "walk, 1 edges"
 [[link]]
 to = 7
 needs = "always"
-via = "walk"
-why = "walk, 2 edges"
+via = "jump"
+why = "level gap 2.2 m: within a running jump (2.7 m)"

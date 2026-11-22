@@ -4,9 +4,9 @@ name = "Gohma Room"
 
 [[link]]
 to = 9
-needs = "flag:#d2f46f66"
+needs = "always"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 02 7338135400039561278 shut until flag #d2f46f66"
+why = "walk, 1 edges"
 
 [[exit]]
 hash = 0xcdbcd52f

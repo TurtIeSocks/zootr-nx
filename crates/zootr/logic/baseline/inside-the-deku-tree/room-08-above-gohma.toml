@@ -3,10 +3,16 @@ room = 8
 name = "Above Gohma"
 
 [[link]]
-to = 7
+to = 4
 needs = "always"
 via = "walk"
 why = "walk, 1 edges"
+
+[[link]]
+to = 7
+needs = "flag:#f85ceb3f"
+via = "walk"
+why = "walk, 1 edges; Switch Shutter A 01 2821367699546364013 shut until flag #f85ceb3f"
 
 [[check]]
 hash = 17501688996789643983
