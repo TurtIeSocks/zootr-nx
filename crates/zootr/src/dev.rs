@@ -9,6 +9,7 @@ use std::mem::offset_of;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
+use ounce_formats::Romfs;
 use serde::{Deserialize, Serialize};
 use zootr_hook::{Ask, GUARD, MAILBOX, Mailbox, NAME, Notice, Outcome, SWITCHES, switches, traps};
 
@@ -25,7 +26,7 @@ mod setup;
 mod slay;
 
 pub use hide::Near;
-pub use place::{Place, known, other_age, places};
+pub use place::{Place, known, other_age, places, spots, twin};
 pub use setup::{Applied, Goal, Value, value};
 use setup::{Grant, grants, plan_give};
 pub(crate) use slay::distance;
@@ -411,11 +412,20 @@ impl<M: Memory> Dev<M> {
         Ok(done)
     }
 
-    /// Switch age, landing where [`other_age`] says. A spot no exit arrives
-    /// at is refused: the game would sit on a black screen.
-    pub fn switch_age(&self, places: &BTreeSet<Place>) -> Result<(Place, &'static str)> {
+    /// Switch age, landing where [`other_age`] says: the arrival point
+    /// nearest Link. A spot no exit arrives at is refused: the game would
+    /// sit on a black screen.
+    pub fn switch_age(
+        &self,
+        romfs: &Romfs,
+        places: &BTreeSet<Place>,
+    ) -> Result<(Place, &'static str)> {
         let State { map, child, .. } = self.state()?;
-        let place = other_age(&map, child, places);
+        let spots = match twin(&map, child) {
+            Some(twin) => spots(romfs, &twin)?,
+            None => Default::default(),
+        };
+        let place = other_age(&map, child, places, self.link()?, &spots);
         known(&place, places)?;
         let done = self.ask(&Request::Age(place.clone()))?;
         Ok((place, done))
