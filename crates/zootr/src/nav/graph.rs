@@ -9,6 +9,7 @@ use ounce_formats::{Footing, NavMesh, closest};
 use serde::Serialize;
 
 use super::climb::Climb;
+use super::crawl::Crawl;
 use super::kinds;
 use super::limits::limits;
 use super::mesh::{Wall, Walls};
@@ -34,6 +35,9 @@ const DOOR_REACH: f32 = 2.5;
 /// keeps off the wall a climb stands on, and a vine can hang down past the
 /// ledge it starts from (Kokiri Forest's, 2.9 m).
 const CLIMB_REACH: f32 = 3.5;
+/// How far from a crawl's anchor the floor at its end may be, in m: the
+/// navmesh stops short of the hole.
+const CRAWL_REACH: f32 = 2.0;
 /// How far off the mesh a start or goal snaps to the nearest face.
 const SNAP: f32 = 1.5;
 /// How far from a point's height the floor under it may be.
@@ -54,6 +58,11 @@ const LEDGE_MAX: f32 = 2.0;
 const LEDGE_STEP: f32 = 0.05;
 /// Link's body radius, which clears the ledge before he falls.
 const RADIUS: f32 = 0.3;
+/// How far over a water's surface a swimmer's head is, in m.
+const HEAD: f32 = 0.3;
+/// How far out from each shore a swim's line is tested, in m: the shore
+/// point sits on land, past its edge.
+const SHORE_OFF: f32 = 1.0;
 
 /// Whether a path over the floor through `path` meets one of `walls` at
 /// any of `heights`.
@@ -75,6 +84,9 @@ pub enum Via {
     Step,
     /// Up or down the ladder or climb wall placed with this hash.
     Climb(Option<u64>),
+    /// Through the crawl hole whose first anchor has this hash: a child
+    /// only.
+    Crawl(Option<u64>),
     /// Across the water placed with this hash.
     Swim(Option<u64>),
 }
@@ -89,6 +101,8 @@ impl fmt::Display for Via {
             Via::Step => write!(f, "step"),
             Via::Climb(Some(hash)) => write!(f, "climb {hash}"),
             Via::Climb(None) => write!(f, "climb"),
+            Via::Crawl(Some(hash)) => write!(f, "crawl {hash}"),
+            Via::Crawl(None) => write!(f, "crawl"),
             Via::Swim(Some(hash)) => write!(f, "swim {hash}"),
             Via::Swim(None) => write!(f, "swim"),
         }
@@ -200,6 +214,21 @@ impl<'a> Graph<'a> {
                 self.link(top.face, foot.face, Via::Climb(c.hash), top.at, foot.at);
             }
         }
+        self.climbs_into_water();
+        self
+    }
+
+    /// The graph with a link both ways through each of `crawls` with floor
+    /// at both ends, within [`CRAWL_REACH`] of its anchor and level with it.
+    pub fn with_crawls(mut self, crawls: &[Crawl]) -> Self {
+        for c in crawls {
+            let end =
+                |p: [f32; 3]| self.nearest(p, CRAWL_REACH, |_, q| (q[1] - p[1]).abs() < STEP_MIN);
+            if let (Some(a), Some(b)) = (end(c.ends[0]), end(c.ends[1])) {
+                self.link(a.face, b.face, Via::Crawl(c.hash), a.at, b.at);
+                self.link(b.face, a.face, Via::Crawl(c.hash), b.at, a.at);
+            }
+        }
         self
     }
 
@@ -208,7 +237,11 @@ impl<'a> Graph<'a> {
     /// middle for the foot and above it for the top.
     pub fn climb_ends(&self, c: &Climb) -> std::result::Result<(Snap, Snap), &'static str> {
         let middle = (c.foot[1] + c.top[1]) / 2.0;
-        let foot = (self.nearest(c.foot, CLIMB_REACH, |_, q| q[1] <= middle))
+        // Floor under the sheet Link swims on is the pool's bed, not where he
+        // grabs on, unless the mesh has no sheet there.
+        let low = |q: [f32; 3]| q[1] <= middle;
+        let foot = (self.nearest(c.foot, CLIMB_REACH, |_, q| low(q) && !self.sunk(q)))
+            .or_else(|| self.nearest(c.foot, CLIMB_REACH, |_, q| low(q)))
             .ok_or("no floor at its foot")?;
         let top = (self.nearest(c.top, CLIMB_REACH, |_, q| q[1] >= middle))
             .ok_or("no floor at its top")?;
@@ -224,14 +257,19 @@ impl<'a> Graph<'a> {
     /// through.
     pub fn with_walls(mut self, walls: &'a Walls) -> Self {
         (self.walls, self.solid) = (&walls.air, &walls.solid);
-        if walls.air.is_empty() {
-            return self;
-        }
         for f in 0..self.arcs.len() {
             let from = self.centers[f];
             let mut arcs = std::mem::take(&mut self.arcs[f]);
             arcs.retain(|arc| {
                 let path = match arc.cross {
+                    // A swim crosses open water: a wall standing out of it
+                    // over the line between the shores stops it. Tested at
+                    // a swimmer's head, off the shores' own edges.
+                    Cross::Link {
+                        via: Via::Swim(h),
+                        from,
+                        to,
+                    } => return !self.swim_walled(h, from, to),
                     Cross::Edge([a, b]) => {
                         vec![
                             from,
@@ -251,6 +289,31 @@ impl<'a> Graph<'a> {
             self.arcs[f] = arcs;
         }
         self
+    }
+
+    /// Whether a wall stands over the water `hash` between shores `a` and
+    /// `b`, at a swimmer's head and [`SHORE_OFF`] out from each.
+    fn swim_walled(&self, hash: Option<u64>, a: [f32; 3], b: [f32; 3]) -> bool {
+        let Some(w) = self
+            .waters
+            .iter()
+            .find(|w| w.hash == hash && hash.is_some())
+        else {
+            return false;
+        };
+        let len = dist([a[0], 0.0, a[2]], [b[0], 0.0, b[2]]);
+        if len <= 2.0 * SHORE_OFF {
+            return false;
+        }
+        let at = |t: f32| {
+            [
+                a[0] + (b[0] - a[0]) * t,
+                w.surface + HEAD,
+                a[2] + (b[2] - a[2]) * t,
+            ]
+        };
+        let (s, e) = (at(SHORE_OFF / len), at(1.0 - SHORE_OFF / len));
+        (self.walls.iter().chain(self.solid)).any(|wall| wall.crosses(s, e))
     }
 
     /// Whether an invisible wall stands on the way from floor `a` to floor

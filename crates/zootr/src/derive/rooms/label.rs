@@ -80,7 +80,17 @@ pub(super) fn label(
                 }
             ) {
                 let (a, b) = path_of(graph, from, arc);
-                join(from, arc.to, !blocked(a, b));
+                // A crawl may join two rooms (the basement's has a room
+                // change at each mouth), so a room crosses one only to floor
+                // no placement reached first, like floor between obstacles.
+                let crawl = matches!(
+                    arc.cross,
+                    Cross::Link {
+                        via: Via::Crawl(_),
+                        ..
+                    }
+                );
+                join(from, arc.to, !crawl && !blocked(a, b));
             }
         }
     }
@@ -89,11 +99,12 @@ pub(super) fn label(
     }
     let mut best: Vec<Option<(f32, u32)>> = vec![None; n];
     let mut heap = BinaryHeap::new();
-    for p in placed {
-        let Some(&room) = p.hash.and_then(|h| rooms.get(&h)) else {
-            continue;
-        };
-        let Some(snap) = graph.locate(p.pose.at) else {
+    let seeds: Vec<([f32; 3], u32)> = (placed.iter())
+        .filter_map(|p| Some((p.pose.at, *rooms.get(&p.hash?)?)))
+        .collect();
+    for at in doorway_seeds(graph, &seeds) {
+        let (at, room) = at;
+        let Some(snap) = graph.locate(at) else {
             continue;
         };
         let d = dist(snap.at, graph.centers[snap.face]);
@@ -117,6 +128,41 @@ pub(super) fn label(
         room: best.into_iter().map(|b| b.map(|(_, r)| r)).collect(),
         part: parts(&near),
     }
+}
+
+/// How far past its doorway a door leaf seeds its room, in m: the game's
+/// room change volumes stand about that far out from a shutter.
+const DOORWAY_OUT: f32 = 1.0;
+
+/// `seeds` with each one on a doorway moved to its own side. Placements of
+/// two rooms on one face are a door's leaves (a Deku shutter's carry the
+/// room on each side), so each moves [`DOORWAY_OUT`] further along the line
+/// from the other rooms' leaves to it.
+fn doorway_seeds(graph: &Graph, seeds: &[([f32; 3], u32)]) -> Vec<([f32; 3], u32)> {
+    let face: Vec<Option<usize>> = seeds
+        .iter()
+        .map(|(at, _)| graph.locate(*at).map(|s| s.face))
+        .collect();
+    (seeds.iter().enumerate())
+        .map(|(i, &(at, room))| {
+            let others: Vec<[f32; 3]> = (0..seeds.len())
+                .filter(|&j| face[j].is_some() && face[j] == face[i] && seeds[j].1 != room)
+                .map(|j| seeds[j].0)
+                .collect();
+            if others.is_empty() {
+                return (at, room);
+            }
+            let n = others.len() as f32;
+            let mid: [f32; 3] =
+                std::array::from_fn(|k| others.iter().map(|o| o[k]).sum::<f32>() / n);
+            let away = [at[0] - mid[0], 0.0, at[2] - mid[2]];
+            let len = dist(away, [0.0; 3]).max(f32::EPSILON);
+            (
+                std::array::from_fn(|k| at[k] + away[k] / len * DOORWAY_OUT),
+                room,
+            )
+        })
+        .collect()
 }
 
 /// Each face's part: the faces `near` joins, numbered by their first face.

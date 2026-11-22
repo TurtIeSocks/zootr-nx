@@ -65,6 +65,8 @@ const TRIES: usize = 64;
 /// How far over a water's surface Link may be and still be in it, in m:
 /// he swims with his head above it.
 const IN: f32 = 1.0;
+/// How far off Link's float depth the navmesh's swim sheet may lie, in m.
+const SHEET: f32 = 0.05;
 
 /// A placed water plane, in the world.
 #[derive(Clone, Debug, PartialEq)]
@@ -298,15 +300,15 @@ impl Graph<'_> {
                 }
             }
         }
-        self.climbs_into_water();
         self
     }
 
     /// A climb down into water lands Link in it, not on the floor under
     /// it: he swims ashore from the surface over its foot. Each such climb
     /// also links its top and that shore, both ways. The Deku Tree's ivy
-    /// ends in a pool 2.9 m deep, whose floor touches nothing else.
-    fn climbs_into_water(&mut self) {
+    /// ends in a pool 2.9 m deep, whose floor touches nothing else, or on
+    /// the sheet a child swims on over it. Run once the climbs are in.
+    pub(super) fn climbs_into_water(&mut self) {
         let mut wet = vec![];
         for (top, arcs) in self.arcs.iter().enumerate() {
             for arc in arcs {
@@ -318,7 +320,8 @@ impl Graph<'_> {
                 else {
                     continue;
                 };
-                let Some(surface) = (to[1] < from[1]).then(|| self.above(to)).flatten() else {
+                let into = to[1] < from[1] && (self.deep(to) || self.above(to).is_some());
+                let Some(surface) = into.then(|| self.surface_over(to)).flatten() else {
                     continue;
                 };
                 if let Some((shore, _)) = self.ashore(surface) {
@@ -390,11 +393,27 @@ impl Graph<'_> {
             })
     }
 
-    /// Whether floor `p` lies under any water the graph knows, however
-    /// shallow: Link wades or swims there.
-    pub fn wet(&self, p: [f32; 3]) -> bool {
-        (self.waters.iter())
-            .any(|w| w.covers(p[0], p[2]) && (w.surface - w.depth - IN..w.surface).contains(&p[1]))
+    /// Whether Link at `p` on the mesh swims: water over it his float
+    /// depth deep or more. The navmesh lays a sheet over swum water at
+    /// that depth (the Deku Tree basement pool: 0.80 m under its surface,
+    /// with no floor under it within 1 m).
+    pub fn deep(&self, p: [f32; 3]) -> bool {
+        self.under(p, self.float - SHEET)
+    }
+
+    /// Whether `p` lies under the sheet Link swims on, where he can't be
+    /// without diving.
+    pub fn sunk(&self, p: [f32; 3]) -> bool {
+        self.under(p, self.float + SHEET)
+    }
+
+    /// Whether `p` lies at least `depth` under a water's surface.
+    fn under(&self, p: [f32; 3], depth: f32) -> bool {
+        (self.waters.iter()).any(|w| {
+            w.covers(p[0], p[2])
+                && (w.surface - w.depth - IN..w.surface).contains(&p[1])
+                && w.surface - p[1] >= depth
+        })
     }
 
     /// The spot on the surface over `p`, when `p` lies under a water the
@@ -406,6 +425,14 @@ impl Graph<'_> {
                 && (w.surface - w.depth - IN..w.surface - self.float).contains(&p[1])
         };
         let w = self.waters.iter().find(under)?;
+        Some([p[0], w.surface, p[2]])
+    }
+
+    /// The spot on the surface of the water `p` lies in.
+    fn surface_over(&self, p: [f32; 3]) -> Option<[f32; 3]> {
+        let w = (self.waters.iter()).find(|w| {
+            w.covers(p[0], p[2]) && (w.surface - w.depth - IN..w.surface).contains(&p[1])
+        })?;
         Some([p[0], w.surface, p[2]])
     }
 
@@ -554,7 +581,8 @@ mod tests {
     }
 
     /// The ivy from the Deku Tree's lobby ends in the basement's pool,
-    /// where the maintainer swam (2026-11-22): it reaches the pool's shore.
+    /// where the maintainer swam (2026-11-22): a child climbs down onto
+    /// the sheet he swims on, and swims from there to the shore.
     #[test]
     fn a_climb_down_into_water_reaches_its_shore() {
         let Some(romfs) = crate::game::dev_dump() else {
@@ -562,7 +590,8 @@ mod tests {
         };
         let game = std::path::Path::new("../../dump/oot.nup");
         let deku = crate::known::map::INSIDE_THE_DEKU_TREE.get();
-        let level = crate::nav::Level::of(&romfs, game, deku).unwrap();
+        let mut level = crate::nav::Level::of(&romfs, game, deku).unwrap();
+        level.child = true;
         let graph = level.graph();
         let ivy = Via::Climb(Some(14670770652390206064));
         let downs: Vec<[f32; 3]> = (graph.arcs.iter().flatten())
@@ -572,13 +601,14 @@ mod tests {
             })
             .collect();
         assert!(
-            graph.above(downs[0]).is_some(),
-            "its foot is under the pool: {downs:?}"
+            graph.deep(downs[0]),
+            "its foot is in the pool, on the sheet a child swims: {downs:?}"
         );
+        // From the sheet he swims to the pool's shore.
+        let near = |s: &&Shore| crate::nav::graph::dist(s.at, downs[0]) < 15.0;
         assert!(
-            downs
-                .iter()
-                .any(|d| graph.above(*d).is_none() && graph.shores.iter().any(|s| s.at == *d)),
+            (graph.shores.iter().filter(near))
+                .any(|s| crate::nav::route::plan(&graph, downs[0], s.at).is_ok()),
             "{downs:?}"
         );
     }

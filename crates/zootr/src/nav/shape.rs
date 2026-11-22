@@ -218,7 +218,7 @@ pub fn inside(ring: &[[f32; 2]], p: [f32; 2]) -> bool {
 
 /// The rotation by `Rotate` angles X, Y, Z, in radians: about X first,
 /// then Y, then Z, each counterclockwise looking down its axis.
-fn rotation([x, y, z]: [f32; 3]) -> [[f32; 3]; 3] {
+pub(super) fn rotation([x, y, z]: [f32; 3]) -> [[f32; 3]; 3] {
     let (sx, cx) = x.sin_cos();
     let (sy, cy) = y.sin_cos();
     let (sz, cz) = z.sin_cos();

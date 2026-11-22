@@ -18,6 +18,7 @@ pub const ARMOR_CHILD_MASK_SKULL: &Name = &n!(0x1ba289f6141931d8);
 pub const ARMOR_CHILD_MASK_SPOOKY: &Name = &n!(0x0ec5d0f98ebc25ee);
 pub const ARMOR_CHILD_MASK_TRUTH: &Name = &n!(0x719b099f323734b0);
 pub const ARMOR_GLASS_TRUTH: &Name = &n!(0x7b6014f78c115778);
+pub const CRAWL_ANCHOR: &Name = &n!(0x740479aa4fc860d1);
 pub const DROP_KEEP_AWAY_AREA_T_BOX_A_01: &Name = &n!(0x2cef47d0007beafc);
 pub const ENEMY_DEKUBABA_WITHERED: &Name = &n!(0xfe1b1c4372d29b66);
 pub const ENEMY_FLYING_POT_ICE_CAVERN: &Name = &n!(0x0e1b4dc513779a53);

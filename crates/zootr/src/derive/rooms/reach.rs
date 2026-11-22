@@ -12,9 +12,6 @@ pub(super) const REACH_MAX: f32 = 30.0;
 /// which no playtest has settled, so its rule is a guess there.
 const SKULLTULA_LOW: f32 = 2.5;
 
-/// Din's Fire, by its `limits.toml` name.
-const DINS: &str = "dins-fire";
-
 /// What hits a gold skulltula from its room's floor.
 pub(super) struct Reach {
     pub needs: String,
@@ -39,15 +36,7 @@ pub(super) fn skulltula_reach(
         return far(format!("no floor of its room within {REACH_MAX} m"));
     };
     let d = dist(floor.at, at);
-    // Din's Fire hits nothing from water: its hit test counts the water
-    // and starts at Link's feet (the maintainer's playtest, 2026-11-22,
-    // missed from the shallows 5.6 m under one).
-    let dry = graph.nearest_floor(at, REACH_MAX, |f| stands(f) && !graph.wet(graph.centers[f]));
-    let dins = dry.is_some_and(|f| limits().reaching(dist(f.at, at)).contains(&DINS));
-    let mut words: Vec<_> = (limits().reaching(d).into_iter())
-        .filter(|w| *w != DINS)
-        .collect();
-    words.extend(dins.then_some(DINS));
+    let words = limits().reaching(d);
     if words.is_empty() {
         return far(format!("{d:.1} m from its room's floor, past every weapon"));
     }

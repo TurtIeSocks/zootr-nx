@@ -60,6 +60,9 @@ const SHUTTER: &str = "ActorLogicShutter";
 
 /// How far round an obstacle's collision a path still meets it, in m.
 const ON: f32 = 0.5;
+/// How near an obstacle stands to a locked one to share its locks, in m: a
+/// Deku shutter's leaves stand 0.4 m out from its frame.
+const WITH: f32 = 1.0;
 /// How far apart a path's samples are, in m.
 const STEP: f32 = 0.25;
 
@@ -110,6 +113,7 @@ fn via_of(via: Via) -> (rooms::Via, Option<u64>) {
         Via::Drop => (rooms::Via::Drop, None),
         Via::Step => (rooms::Via::Step, None),
         Via::Climb(h) => (rooms::Via::Climb, h),
+        Via::Crawl(h) => (rooms::Via::Crawl, h),
         Via::Swim(h) => (rooms::Via::Swim, h),
     }
 }
@@ -212,7 +216,10 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
     let mut floored = BTreeSet::new();
     let (mut faces, mut unplaced) = (0, 0);
     for map in maps(romfs, dungeon)? {
-        let level = Level::of(romfs, game, &map)?;
+        let mut level = Level::of(romfs, game, &map)?;
+        // The pilot derives the child: how deep he wades, his crawls. The
+        // spec's adult pass comes later, with age in `needs`.
+        level.child = true;
         let graph = level.graph();
         let rooms_of = crate::warp::rooms_in(romfs, &map)?;
         numbered.extend(rooms_of.values().copied());
@@ -307,7 +314,8 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
             locks_in(&gate.expr, &mut found);
             for (name, mut setters) in found {
                 // No graph sets it: a placement may, playing an event.
-                if setters.is_empty() {
+                let played = setters.is_empty();
+                if played {
                     let placed = flagmap.played_by(&name).into_iter();
                     setters.extend(placed.filter(|h| level.placement(*h).is_ok()));
                 }
@@ -327,12 +335,33 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                     name: name.clone(),
                     setters,
                     named,
+                    played,
                 };
                 let kinds: Vec<&Kind> = (lock.setters.iter())
                     .filter_map(|h| kind_at(level.placement(*h).ok()?))
                     .collect();
                 flags.entry(name).or_insert((lock.clone(), kinds));
                 locks.entry(gate.hash).or_default().push(lock);
+            }
+        }
+        // A shutter's leaves wait on its flags, but its frame carries none:
+        // an obstacle with no locks of its own shares a locked one's that
+        // stands with it.
+        for (h, _, _) in &obstacles {
+            let Ok(p) = level.placement(*h) else { continue };
+            if locks.contains_key(h) {
+                continue;
+            }
+            let shared: Vec<Lock> = (locks.iter())
+                .filter(|(g, _)| {
+                    level
+                        .placement(**g)
+                        .is_ok_and(|q| dist(q.pose.at, p.pose.at) < WITH)
+                })
+                .flat_map(|(_, l)| l.iter().cloned())
+                .collect();
+            if !shared.is_empty() {
+                locks.insert(*h, shared);
             }
         }
         let mut note = |a: usize,
@@ -386,8 +415,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
         // Floor Link shoots from: its room's main part, out of water too
         // deep to stand in. The rest is out of bounds or swum.
         let stands = |f: usize| {
-            room[f].and_then(main) == Some(labels.part[f])
-                && graph.above(graph.centers[f]).is_none()
+            room[f].and_then(main) == Some(labels.part[f]) && !graph.deep(graph.centers[f])
         };
         // Each check: what stands between it and its room's main part.
         for check in checks.iter().filter(|c| c.room.is_some()) {
@@ -600,6 +628,9 @@ fn link(
     };
     let mut guess = false;
     let mut needs: Vec<String> = vec![];
+    if via == rooms::Via::Crawl {
+        needs.push("child".to_owned());
+    }
     for (h, k) in &s.on {
         if k.uses != "always" {
             write!(why, "; {} {h}: {}", k.name, k.uses).unwrap();
