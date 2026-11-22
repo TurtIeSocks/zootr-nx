@@ -32,10 +32,11 @@ pub(super) fn uvs(
             let read = || -> Result<_> {
                 let uv = attribute(data, &shape, "_u0")?;
                 let normal = attribute(data, &shape, "_n0")?;
-                Ok((uv, normal, triangles(data, &shape)?))
+                let position = attribute(data, &shape, "_p0")?;
+                Ok((uv, normal, position, triangles(data, &shape)?))
             };
             // A shape drawn without a texture (a fade) has no UVs.
-            let (uv, normal, tris) = match read() {
+            let (uv, normal, position, tris) = match read() {
                 Ok(r) => r,
                 Err(e) => {
                     println!("{model}__{shape}: {e:#}");
@@ -44,6 +45,7 @@ pub(super) fn uvs(
             };
             let mut rgba = vec![0u8; SIDE * SIDE * 4];
             let (mut lo, mut hi) = ([f32::MAX; 2], [f32::MIN; 2]);
+            let mut stretch = Stretch::default();
             for tri in tris.as_chunks::<3>().0 {
                 let at = [tri[0], tri[1], tri[2]].map(|i| [uv[i][0], uv[i][1]]);
                 for p in &at {
@@ -52,6 +54,7 @@ pub(super) fn uvs(
                         hi[k] = hi[k].max(p[k]);
                     }
                 }
+                stretch.add(tri.map(|i| position[i]), at);
                 let n = normal[tri[0]];
                 fill(&mut rgba, at, facing([n[0], n[1], n[2]]));
             }
@@ -67,16 +70,58 @@ pub(super) fn uvs(
                 crate::sprites::png(&picture)?,
             )?;
             println!(
-                "{name}: {} triangles, u {:.3}..{:.3}, v {:.3}..{:.3}",
+                "{name}: {} triangles, u {:.3}..{:.3}, v {:.3}..{:.3}, {:.3} m per u, {:.3} m per v",
                 tris.len() / 3,
                 lo[0],
                 hi[0],
                 lo[1],
-                hi[1]
+                hi[1],
+                stretch.per(0),
+                stretch.per(1),
             );
         }
         Ok(())
     })
+}
+
+/// How far a step along u or v goes on the model, in metres: each
+/// triangle's own, weighted by its area.
+#[derive(Default)]
+struct Stretch {
+    sum: [f32; 2],
+    area: f32,
+}
+
+impl Stretch {
+    fn add(&mut self, p: [[f32; 4]; 3], uv: [[f32; 2]; 3]) {
+        let sub = |a: [f32; 4], b: [f32; 4]| [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+        let (e1, e2) = (sub(p[1], p[0]), sub(p[2], p[0]));
+        let (d1, d2) = (
+            [uv[1][0] - uv[0][0], uv[1][1] - uv[0][1]],
+            [uv[2][0] - uv[0][0], uv[2][1] - uv[0][1]],
+        );
+        let det = d1[0] * d2[1] - d2[0] * d1[1];
+        if det.abs() < 1e-9 {
+            return;
+        }
+        // The model's direction along u and along v: [e1 e2] times the
+        // inverse of [d1 d2].
+        let along = |a: f32, b: f32| [0, 1, 2].map(|k| (e1[k] * a + e2[k] * b) / det);
+        let length = |v: [f32; 3]| (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
+        let cross = [
+            e1[1] * e2[2] - e1[2] * e2[1],
+            e1[2] * e2[0] - e1[0] * e2[2],
+            e1[0] * e2[1] - e1[1] * e2[0],
+        ];
+        let area = length(cross) / 2.0;
+        self.sum[0] += area * length(along(d2[1], -d1[1]));
+        self.sum[1] += area * length(along(-d2[0], d1[0]));
+        self.area += area;
+    }
+
+    fn per(&self, axis: usize) -> f32 {
+        self.sum[axis] / self.area.max(f32::MIN_POSITIVE)
+    }
 }
 
 /// The colour of a face whose normal is `n`.

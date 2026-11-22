@@ -123,10 +123,17 @@ impl Tables {
 
     /// `name`'s row names `model`, its own fields otherwise kept.
     pub(crate) fn point(&mut self, name: &str, model: &str) -> Result<()> {
+        self.point_at(name, model, model)
+    }
+
+    /// `name`'s row names `fmdb` in model project `project`.
+    pub(crate) fn point_at(&mut self, name: &str, project: &str, fmdb: &str) -> Result<()> {
         let mut actor = row(&self.actor, name)?;
-        for field in [field::FMDB_NAME, field::MODEL_PROJECT_NAME] {
-            actor.insert(field.get().into(), Byml::String(model.into()));
-        }
+        actor.insert(field::FMDB_NAME.get().into(), Byml::String(fmdb.into()));
+        actor.insert(
+            field::MODEL_PROJECT_NAME.get().into(),
+            Byml::String(project.into()),
+        );
         self.replace(name, actor)
     }
 

@@ -215,7 +215,8 @@ pub fn delete_letter(romfs: &Romfs, rewrites: &mut Rewrites, holders: &[Holder])
 
 /// Place a twin beside each of `holders` in `root`, a Banc file's doc:
 /// a copy as it is now, under the twin's hash, standing once the flag is
-/// set, while the holder stands until then. Run before the holder's drop
+/// set, while the holder stands until then, as its marked copy when it's
+/// a breakable that's marked (`marks`). Run before the holder's drop
 /// changes, so the twin keeps the vanilla one. Returns how many holders
 /// it changed.
 pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
@@ -241,6 +242,7 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
                     "holder {hash} stands only once something happens, so it can't take turns"
                 );
                 checks::gate(actor, &flag, true)?;
+                crate::marks::mark(actor)?;
                 gated += 1;
                 continue;
             }
@@ -264,6 +266,7 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
         };
         let mut twin = actor.clone();
         checks::gate(actor, &flag, true).with_context(|| format!("holder {hash}"))?;
+        crate::marks::mark(actor)?;
         crate::shows::rehash(&mut twin, twin_hash)?;
         checks::gate(&mut twin, &flag, false)?;
         twins.push(twin);

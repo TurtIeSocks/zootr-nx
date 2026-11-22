@@ -147,6 +147,9 @@ pub enum Probe {
     /// (X red, Y green, Z blue, dark for the negative way), with each
     /// shape's UV bounds. Shows where a face lands on its textures.
     Uvs { pattern: String, out: PathBuf },
+    /// Paints each albedo a marked breakable shows while it holds a check
+    /// and writes it to `out` as PNG, as a seed paints it.
+    Marks { out: PathBuf },
     /// A save's pouch: each actor's `StockNum` and `IsGet`, where either
     /// is set. A slot number or a path to a `progress.sav`.
     Pouch {
@@ -477,6 +480,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Floors => poses::floors(romfs, game),
         Probe::Icons { pattern, out } => icons(romfs, game, &pattern, &out),
         Probe::Uvs { pattern, out } => uvs::uvs(romfs, game, &pattern, &out),
+        Probe::Marks { out } => crate::marks::preview(romfs, &out),
         Probe::Pouch { slot, all } => pouch(romfs, &slot, all),
         Probe::Places { filter } => {
             let filter = filter.unwrap_or_default().to_lowercase();

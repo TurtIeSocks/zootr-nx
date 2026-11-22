@@ -37,6 +37,7 @@ pub fn files() -> impl Iterator<Item = &'static str> {
         .chain([POUCH_TABLE])
         .chain(crate::ice_traps::FILES)
         .chain(crate::ageless_items::FILES)
+        .chain(crate::marks::FILES)
 }
 
 /// What zootr reads, under the romfs root, besides [`files`].

@@ -70,7 +70,12 @@ const COLOURS: [(&Name, Colour); 12] = [
 ];
 
 pub(crate) fn model_path(name: &str) -> String {
-    format!("Model/{name}.{name}.bfres.zs")
+    model_file(name, name)
+}
+
+/// Model `fmdb`'s file in model project `project`.
+pub(crate) fn model_file(project: &str, fmdb: &str) -> String {
+    format!("Model/{project}.{fmdb}.bfres.zs")
 }
 
 pub(crate) fn texture_path(name: &str, kind: &str) -> String {

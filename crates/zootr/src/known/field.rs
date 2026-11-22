@@ -441,6 +441,7 @@ pub const QUERY_GENERIC_STRING_STARTS_WITH: &Name = &n!(0xcba9989d44104624);
 pub const QUERY_GET_NON_STRUCT_GAME_DATA_BOOL_EXP: &Name = &n!(0x5aeee04ada4a2782);
 pub const QUERY_TIME_DIVISION: &Name = &n!(0x56bf1c044d878d55);
 pub const RADIUS: &Name = &n!(0x8afc8c5aafb392d3);
+pub const RANK_TABLE: &Name = &n!(0xbf1475ac464c1279);
 pub const RAW_VALUES: &Name = &n!(0x29c5aada74b85d37);
 pub const REPLACE_EVENT_PARAM: &Name = &n!(0xe08156e591409a0e);
 pub const REQUEST_DEATH_IF_BURNED: &Name = &n!(0x893124ea51729f6f);

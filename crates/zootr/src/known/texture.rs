@@ -1,0 +1,13 @@
+//! Textures, by the name a model's material samples them as.
+
+use super::Name;
+
+pub const ROCK_POT_A_02_ALB: &Name = &n!(0x95d93ecec4fe5e41);
+pub const ROCK_POT_A_03_ALB: &Name = &n!(0x398f48a06048255e);
+pub const ROCK_POT_A_04_ALB: &Name = &n!(0xb5bd1ca407da7f23);
+pub const ROCK_POT_A_05_ALB: &Name = &n!(0x5741dcb64cf98748);
+pub const ROCK_POT_A_06_ALB: &Name = &n!(0x21a7b687ff5256cd);
+pub const ROCK_POT_A_07_ALB: &Name = &n!(0x6adf48ad5bfc878a);
+pub const ROCK_POT_A_08_ALB: &Name = &n!(0xea819a9b77ed49ef);
+pub const ROCK_POT_A_ALB: &Name = &n!(0x67b045cfad375b92);
+pub const TRI_FORCE_MARK_GRAVEYARD_ASSETS_A_ALB: &Name = &n!(0x7a9c8437548abfc8);
