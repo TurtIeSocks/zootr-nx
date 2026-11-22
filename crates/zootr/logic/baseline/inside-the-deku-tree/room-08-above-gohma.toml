@@ -7,3 +7,10 @@ to = 7
 needs = "always"
 via = "walk"
 why = "walk, 1 edges"
+
+[[check]]
+hash = 17501688996789643983
+name = "Above Gohma Gold Skulltula"
+needs = "slingshot or bow or boomerang or hookshot or dins-fire"
+why = "on a wall of room 11, which has no floor; 4.3 m from its room's floor, in each one's range"
+guess = true

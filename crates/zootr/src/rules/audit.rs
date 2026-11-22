@@ -184,9 +184,14 @@ mod tests {
             sticks.ways_in
         );
         // A measured level jump settles every gap: what's left to guess
-        // is how a room gets cleared.
+        // is how a room gets cleared, and gold skulltulas a sword may
+        // reach or seen from another room.
         assert!(!deku.guess.is_empty());
-        assert!(deku.guess.iter().all(|g| g.what.contains("Cleared")));
+        assert!(
+            (deku.guess.iter()).all(|g| g.what.contains("Cleared") || g.what.contains("Skulltula")),
+            "{:?}",
+            deku.guess.iter().map(|g| &g.what).collect::<Vec<_>>()
+        );
         assert!(deku.to_string().contains("disagree ("));
     }
 }

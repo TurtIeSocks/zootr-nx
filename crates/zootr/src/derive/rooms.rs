@@ -14,7 +14,7 @@ use ounce_formats::{Romfs, murmur3};
 use crate::entrances::Dungeon;
 use crate::known::{field, flag};
 use crate::nav::Level;
-use crate::nav::graph::{Cross, Via, dist};
+use crate::nav::graph::{Cross, Graph, Via, dist};
 use crate::nav::limits::limits;
 use crate::nav::shape::{Solid, parts_of};
 use crate::rules::Book;
@@ -115,7 +115,8 @@ fn via_of(via: Via) -> (rooms::Via, Option<u64>) {
 /// A check as a room file writes it.
 struct CheckOut {
     hash: u64,
-    name: String,
+    /// `None` names it by its room: a gold skulltula nothing else names.
+    name: Option<String>,
     needs: String,
     why: String,
     guess: bool,
@@ -157,6 +158,51 @@ fn maps(romfs: &Romfs, dungeon: &Dungeon) -> Result<BTreeSet<String>> {
         .collect())
 }
 
+/// How far from a gold skulltula derive looks for floor: past the longest
+/// range.
+const REACH_MAX: f32 = 30.0;
+
+/// Below this height a sword or a bomb may hit a gold skulltula too,
+/// which no playtest has settled, so its rule is a guess there.
+const SKULLTULA_LOW: f32 = 2.5;
+
+/// What hits a gold skulltula from its room's floor.
+struct Reach {
+    needs: String,
+    why: String,
+    guess: bool,
+}
+
+/// The weapons whose range reaches the gold skulltula at `at` from the
+/// nearest floor of room `r`. Its token falls to the floor, so the hit
+/// is the whole check.
+fn skulltula_reach(graph: &Graph, room: &[Option<u32>], r: u32, at: [f32; 3]) -> Reach {
+    let far = |why: String| Reach {
+        needs: "gold-skulltula".into(),
+        why,
+        guess: true,
+    };
+    let Some(floor) = graph.nearest_floor(at, REACH_MAX, |f| room[f] == Some(r)) else {
+        return far(format!("no floor of its room within {REACH_MAX} m"));
+    };
+    let d = dist(floor.at, at);
+    let words = limits().reaching(d);
+    if words.is_empty() {
+        return far(format!("{d:.1} m from its room's floor, past every weapon"));
+    }
+    let needs = words.join(" or ");
+    let mut why = format!("{d:.1} m from its room's floor, in each one's range");
+    let low = d < SKULLTULA_LOW;
+    if low {
+        why.push_str("; a sword or a bomb may too, untested");
+    }
+    Reach {
+        needs,
+        why,
+        guess: low,
+    }
+}
+
 /// `uses` joined: each kept once, more than one in brackets with `and`.
 fn all_of(uses: &[&str]) -> String {
     let mut kept: Vec<&str> = vec![];
@@ -184,7 +230,9 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
     let jump = limits().level_jump();
     let shutters = crate::gates::trace_node(romfs, SHUTTER)?;
     let flagmap = crate::flagmap::Graph::build(romfs)?;
-    let checks = crate::checks::all(romfs)?;
+    let mut checks = crate::checks::all(romfs)?;
+    // Gold skulltulas are pickups, which `all` leaves to their setting.
+    checks.extend(crate::pickups::SKULLTULAS.checks(romfs)?);
     // Named one at a time: an item Archipelago has no name for fails only its own.
     let named: HashMap<u64, String> = (checks.iter())
         .filter_map(|c| {
@@ -383,19 +431,30 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
             let Ok(holder) = level.placement(check.hash) else {
                 continue;
             };
-            let Some(r) = check.room else { continue };
-            if !floored.contains(&r) && main(r).is_none() {
-                roomless.push(check.hash);
-                continue;
-            }
+            let Some(mut r) = check.room else { continue };
             let at = holder.pose.at;
+            let skulltula = crate::pickups::SKULLTULAS.holds(check);
+            let mut walled = None;
+            if !floored.contains(&r) && main(r).is_none() {
+                // A gold skulltula on a floorless room's wall is hit from
+                // the floor nearest it, whichever room that is.
+                let near = skulltula
+                    .then(|| graph.nearest_floor(at, REACH_MAX, |f| room[f].is_some()))
+                    .flatten();
+                let Some(near) = near.and_then(|n| room[n.face]) else {
+                    roomless.push(check.hash);
+                    continue;
+                };
+                walled = Some(r);
+                r = near;
+            }
             let nearest = (0..room.len())
                 .filter(|&f| room[f] == Some(r) && Some(labels.part[f]) == main(r))
                 .min_by(|&a, &b| dist(graph.centers[a], at).total_cmp(&dist(graph.centers[b], at)));
             let blocking = nearest
                 .map(|f| on(at, graph.centers[f]))
                 .unwrap_or_default();
-            let uses: Vec<&str> = blocking.iter().map(|(_, k)| k.uses.as_str()).collect();
+            let mut uses: Vec<&str> = blocking.iter().map(|(_, k)| k.uses.as_str()).collect();
             let mut why = match &blocking[..] {
                 [] => "in reach from its room".to_owned(),
                 _ => (blocking.iter())
@@ -404,18 +463,31 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                     .join("; "),
             };
             let mut guess = blocking.iter().any(|(_, k)| k.guess);
+            let reach = skulltula.then(|| skulltula_reach(&graph, room, r, at));
+            if let Some(reach) = &reach {
+                uses.push(&reach.needs);
+                why = match blocking.is_empty() {
+                    true => reach.why.clone(),
+                    false => format!("{why}; {}", reach.why),
+                };
+                guess |= reach.guess;
+            }
+            if let Some(w) = walled {
+                why = format!("on a wall of room {w}, which has no floor; {why}");
+                guess = true;
+            }
             if nearest.is_none() {
                 why = "its room has no floor to reach it from".into();
                 guess = true;
             }
             let name = (book.check(check.hash).map(|c| c.name.clone()))
                 .or_else(|| named.get(&check.hash).cloned())
-                .unwrap_or_else(|| match check.holder.contains("TBox") {
-                    true => format!(
+                .or_else(|| match check.holder.contains("TBox") {
+                    true => Some(format!(
                         "{} Chest",
                         super::words(check.item.trim_start_matches("Item_"))
-                    ),
-                    false => super::words(&check.holder),
+                    )),
+                    false => reach.is_none().then(|| super::words(&check.holder)),
                 });
             checks_out.entry(r).or_default().push(CheckOut {
                 hash: check.hash,
@@ -472,10 +544,19 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
         }
         let mut here = checks_out.remove(&room).unwrap_or_default();
         here.sort_by_key(|c| c.hash);
+        let unnamed = here.iter().filter(|c| c.name.is_none()).count();
+        let mut nth = 0;
         for c in here {
+            let name = c.name.unwrap_or_else(|| {
+                nth += 1;
+                match unnamed {
+                    1 => format!("{words} Gold Skulltula"),
+                    _ => format!("{words} Gold Skulltula {nth}"),
+                }
+            });
             let fields = [
                 ("hash", c.hash.to_string()),
-                ("name", q(&c.name)),
+                ("name", q(&name)),
                 ("needs", q(&c.needs)),
                 ("why", q(&c.why)),
             ];
@@ -642,6 +723,7 @@ mod tests {
         );
         // Every room the game numbers has floor but the Skulltula alcove,
         // whose Skulltulas hang on a wall, and nearly every face has a room.
+        // Its gold skulltula is hit from the floor nearest it.
         assert_eq!(fresh.floorless, [11]);
         assert!(fresh.roomless.is_empty(), "{:?}", fresh.roomless);
         assert!(fresh.exitless.is_empty(), "{:?}", fresh.exitless);

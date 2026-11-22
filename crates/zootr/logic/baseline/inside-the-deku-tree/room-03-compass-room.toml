@@ -31,3 +31,10 @@ hash = 11368028582977069031
 name = "Upper Three Deku Nuts 2"
 needs = "always"
 why = "in reach from its room"
+
+[[check]]
+hash = 13609975487234437568
+name = "Compass Room Gold Skulltula"
+needs = "slingshot or bow or boomerang or hookshot or dins-fire"
+why = "0.8 m from its room's floor, in each one's range; a sword or a bomb may too, untested"
+guess = true
