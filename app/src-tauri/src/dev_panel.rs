@@ -199,8 +199,9 @@ pub(crate) async fn dev_hide(hashes: Vec<String>, on: bool) -> Res<Vec<String>> 
 #[specta::specta]
 pub(crate) async fn dev_age(app: AppHandle) -> Res<String> {
     blocking(move || {
-        let places = app.state::<Places>().get(&Config::load()?)?;
-        let (place, done) = dev_game()?.switch_age(&places)?;
+        let config = Config::load()?;
+        let places = app.state::<Places>().get(&config)?;
+        let (place, done) = dev_game()?.switch_age(&romfs(&config)?, &places)?;
         Ok(format!("{done}, to {place}"))
     })
     .await
