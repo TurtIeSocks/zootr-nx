@@ -75,6 +75,7 @@ pub mod known;
 pub mod labels;
 mod ledger;
 pub mod live;
+pub mod logging;
 mod logic;
 pub mod look;
 mod magic;

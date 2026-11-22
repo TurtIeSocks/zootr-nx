@@ -37,6 +37,7 @@ mod turn;
 pub use seed::shuffle_command;
 
 pub fn run() -> Result<()> {
+    crate::logging::to_stderr();
     let cli = Cli::parse();
     if let Command::Turn {
         to,

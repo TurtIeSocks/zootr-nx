@@ -6210,6 +6210,7 @@ dependencies = [
  "clap",
  "flate2",
  "jiff",
+ "log",
  "memchr",
  "nup-format",
  "ounce-formats",
@@ -6231,6 +6232,8 @@ name = "zootr-app"
 version = "0.9.0"
 dependencies = [
  "anyhow",
+ "jiff",
+ "log",
  "ounce-formats",
  "serde",
  "serde_json",
