@@ -157,6 +157,21 @@ impl<'a> ModBuilder<'a> {
         Ok(())
     }
 
+    /// Write a changed file that took on parts of `like`, a shipped file of
+    /// its type `like_size` bytes: its entry grows by its bytes, and to at
+    /// least `like`'s at its new size, since each part costs the game more
+    /// than its bytes.
+    pub fn write_like(
+        &mut self,
+        rel: &str,
+        contents: &[u8],
+        like: &str,
+        like_size: usize,
+    ) -> Result<()> {
+        self.write(rel, contents)?;
+        self.floor(rel, like, like_size, contents.len())
+    }
+
     /// Write a file the game doesn't ship, its RESTBL entry sized from
     /// `like`, a file of the same type the game ships or this mod adds.
     pub fn add(&mut self, rel: &str, contents: &[u8], like: &str) -> Result<()> {
@@ -186,6 +201,12 @@ impl<'a> ModBuilder<'a> {
         like_size: usize,
     ) -> Result<()> {
         self.restbl.resize(path, old_size, new_size)?;
+        self.floor(path, like, like_size, new_size)
+    }
+
+    /// Raise `path`'s entry to at least what `like`, `like_size` bytes,
+    /// would need at `new_size`.
+    fn floor(&mut self, path: &str, like: &str, like_size: usize, new_size: usize) -> Result<()> {
         let floor = self.restbl.like(like, like_size, new_size)?;
         self.restbl.raise(path, floor)
     }

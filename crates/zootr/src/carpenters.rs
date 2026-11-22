@@ -133,11 +133,13 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     let quest = Sarc::new(&quest)?;
     for carpenter in CARPENTERS {
         let path = schedule(carpenter);
-        let step = rescue(carpenter);
+        let like = rescue(carpenter);
         let step = quest
-            .get_data(&step)
-            .with_context(|| format!("no {step}"))?;
-        builder.write(&path, &rescued(&romfs.read(&path)?, step)?)?;
+            .get_data(&like)
+            .with_context(|| format!("no {like}"))?;
+        // Sized by its bytes alone, the fortress crashed loading him.
+        let new = rescued(&romfs.read(&path)?, step)?;
+        builder.write_like(&path, &new, &like, step.len())?;
     }
     Ok(())
 }
@@ -262,6 +264,19 @@ mod tests {
         // The module, the navmesh, the head carpenter, the map, four rescues
         // and the size table.
         assert_eq!(builder.finish().unwrap().len(), 9);
+        // Sized by its bytes alone, the fortress crashed: each rescue costs
+        // at least what his Step01 schedule does.
+        let table = romfs.restbl_rel().unwrap();
+        let written = std::fs::read(dir.join("romfs").join(&table)).unwrap();
+        let written = romfs.dicts().decompress(&table, &written).unwrap();
+        let restbl = ounce_formats::Restbl::parse(&written).unwrap();
+        for carpenter in CARPENTERS {
+            let (own, step) = (
+                restbl.get(&schedule(carpenter)),
+                restbl.get(&rescue(carpenter)),
+            );
+            assert!(own.unwrap() >= step.unwrap(), "{carpenter}");
+        }
         std::fs::remove_dir_all(dir).unwrap();
     }
 
