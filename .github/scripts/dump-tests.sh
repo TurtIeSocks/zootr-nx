@@ -11,6 +11,17 @@ if [ ! -f /dump/oot.nup ]; then
   exit 1
 fi
 
+# One run at a time: the box has two slots and every run shares /cache. A
+# build script another run compiled points at that run's checkout, which is
+# gone once it ends. A lock, not a concurrency group: a group cancels all
+# but one pending job, and this check is required. Held until the script
+# exits.
+exec 9>/cache/dump-tests.lock
+if ! flock -n 9; then
+  echo "another dump run holds the cache, waiting for it"
+  flock 9
+fi
+
 # The build cache grows with every toolchain and dependency bump.
 if [ -d "$CARGO_TARGET_DIR" ] && [ "$(du -s --block-size=1G "$CARGO_TARGET_DIR" | cut -f1)" -gt 15 ]; then
   echo "build cache over 15 GB, wiping it"
