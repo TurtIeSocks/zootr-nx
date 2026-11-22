@@ -39,15 +39,15 @@ const CARD: &Name = scene::GERUDO_0025;
 
 impl Gift {
     /// Whether the opening gives it in a new game with `on`. A pinned
-    /// check's is given dealt or not, as its scene never plays; Impa's and
-    /// Malon's only when dealt, as Met Zelda gives the lullaby and leaves
-    /// no need for the egg.
+    /// check's and Impa's are given dealt or not, as their scenes never
+    /// play (Impa's holds the lullaby with Songs off). Malon's only when
+    /// dealt, as Met Zelda leaves no need for the egg.
     pub(super) fn pocket(&self, on: &BTreeSet<String>) -> bool {
         let met = on.contains(MET_ZELDA);
         match self.flow {
             f if f == RAURU => on.contains(DOOR_OPEN),
-            f if f == ZELDA => met,
-            f if f == IMPA || f == MALON => met && self.dealt(on),
+            f if f == ZELDA || f == IMPA => met,
+            f if f == MALON => met && self.dealt(on),
             f if f == CARD => on.contains(FORTRESS_FREED),
             _ => false,
         }
@@ -122,9 +122,9 @@ mod tests {
     }
 
     #[test]
-    fn met_zelda_pockets_her_letter_and_the_dealt_impa_and_malon() {
+    fn met_zelda_pockets_her_letter_impa_and_the_dealt_malon() {
         let met = pocket(&on(&[MET_ZELDA]));
-        assert_eq!(met, [hash_of(ZELDA)].into());
+        assert_eq!(met, [ZELDA, IMPA].map(hash_of).into());
         let dealt = pocket(&on(&[MET_ZELDA, NPC_GIFTS, SONGS]));
         let all = [ZELDA, IMPA, MALON].map(hash_of).into();
         assert_eq!(dealt, all);
@@ -214,6 +214,13 @@ mod tests {
             assert!(opening.contains(got.get()), "{got}");
         }
         assert!(!opening.contains(item::WEIRD_EGG.get()));
+        // With Songs off, Impa's check grants its own lullaby.
+        let mut rewrites = Rewrites::default();
+        let drops = [(hash_of(ZELDA), Drop::from(item::ZELDA_LETTER.to_string()))].into();
+        let met = [MET_ZELDA.to_owned()].into();
+        give_all(&romfs, &all, &mut rewrites, &drops, lines, &met).unwrap();
+        let opening = flows::render(&written(&rewrites, starting::OPENING));
+        assert!(opening.contains(item::MELODY_ZELDA_LULLABY.get()));
     }
 
     #[test]

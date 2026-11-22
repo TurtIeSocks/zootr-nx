@@ -458,7 +458,7 @@ pub fn schema() -> Vec<SettingDef> {
             MET_ZELDA,
             place::LOGIC,
             "Met Zelda",
-            "Link starts having met Zelda, with her letter in hand and her lullaby learned, and Talon and Malon back at Lon Lon Ranch. Her letter's check holds the letter, and whatever Impa's and Malon's checks hold comes at the start. The pool holds no second letter, no Weird Egg and, with Songs on, no Zelda's Lullaby",
+            "Link starts having met Zelda, with her letter in hand, and Talon and Malon back at Lon Lon Ranch. Her letter's check holds the letter. Impa's check comes at the start (Zelda's Lullaby, unless Songs are shuffled), and Malon's does too when NPC gifts are shuffled. The pool holds no second letter and no Weird Egg",
         )])
         .chain([choice(
             DOOR_OF_TIME,
@@ -742,10 +742,10 @@ pub fn schema() -> Vec<SettingDef> {
 
 /// The items a setting's value starts Link with by its own path, not the
 /// start inventory, as rule word ([`value_word`], or a toggle's id) and
-/// start words: Met Zelda's letter and lullaby, and Gerudo Fortress
+/// start words: Met Zelda's letter, and Gerudo Fortress
 /// Freed's membership card.
 const GIVES: [(&str, &[&str]); 2] = [
-    (MET_ZELDA, &["zeldas-letter", "zeldas-lullaby"]),
+    (MET_ZELDA, &["zeldas-letter"]),
     (FORTRESS_FREED, &["gerudo-card"]),
 ];
 
@@ -800,7 +800,7 @@ mod tests {
     #[test]
     fn met_zelda_and_freed_carpenters_give_their_items_locked() {
         let gives = |id: &str| schema().into_iter().find(|d| d.id == id).unwrap().gives;
-        let met = vec![("on".to_owned(), vec!["zeldas-letter", "zeldas-lullaby"])];
+        let met = vec![("on".to_owned(), vec!["zeldas-letter"])];
         assert_eq!(gives(MET_ZELDA), met);
         let freed = vec![("freed".to_owned(), vec!["gerudo-card"])];
         assert_eq!(gives(GERUDO_FORTRESS), freed);

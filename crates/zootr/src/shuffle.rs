@@ -165,9 +165,8 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
     all.append(&mut items);
     let mut owned = new_game.start.owned();
     if new_game.on.contains(MET_ZELDA) {
-        // Met Zelda leaves nothing for the egg to wake, and teaches the
-        // lullaby, so with Songs on its copy leaves the pool.
-        owned.extend([item::WEIRD_EGG.get(), item::MELODY_ZELDA_LULLABY.get()]);
+        // Met Zelda leaves nothing for the egg to wake.
+        owned.push(item::WEIRD_EGG.get());
     }
     starting::swap_out(&mut all, &owned, level);
     if new_game.on.contains(presets::KING_ZORA_MOVED) {
@@ -756,7 +755,7 @@ mod tests {
     }
 
     #[test]
-    fn met_zelda_pins_the_letter_and_deals_no_egg_and_no_lullaby() {
+    fn met_zelda_pins_the_letter_and_deals_no_egg() {
         needs_names!();
         let checks = with_gifts();
         let none = Fixed::new();
@@ -774,11 +773,9 @@ mod tests {
             );
             assert_eq!(count(&p, item::ZELDA_LETTER), 1, "seed {seed}");
             assert_eq!(count(&p, item::WEIRD_EGG), 0, "seed {seed}");
-            assert_eq!(count(&p, item::MELODY_ZELDA_LULLABY), 0, "seed {seed}");
         }
         let p = shuffle(&checks, 0, &none, &game(false, &[])).unwrap();
         assert_eq!(count(&p, item::WEIRD_EGG), 1);
-        assert_eq!(count(&p, item::MELODY_ZELDA_LULLABY), 1);
         // A plando can't put anything else at the letter's check.
         let hook = Fixed::from([(hash(item::ZELDA_LETTER), line(0)[0].0.to_string())]);
         assert!(deal(&checks, &hook, &met).is_err());

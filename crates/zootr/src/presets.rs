@@ -55,14 +55,13 @@ impl Preset {
 /// Presets a new game takes unless turned off.
 pub const DEFAULT_ON: [&str; 4] = ["menus", "clock", "no-tutorials", "no-pickup-texts"];
 
-/// Met Zelda's edits: Zelda met and her lullaby learned, with the Door of
-/// Time quest at its second step. Her quest at its end puts Talon and
+/// Met Zelda's edits: Zelda met, with the Door of Time quest at its second
+/// step. The lullaby comes from Impa's check, which the opening gives. Her quest at its end puts Talon and
 /// Malon at the ranch, and the played flag of the scene where Link wakes
 /// Talon sends away the Talon asleep at the castle.
 pub(crate) fn met_zelda() -> Vec<String> {
     vec![
         crate::steps::at(flow::GOTO_HYRULE_CASTLE, "Complete"),
-        format!("IsGet.{}=true", item::MELODY_ZELDA_LULLABY),
         crate::steps::at(flow::DOOR_OF_TIME, "Step02"),
         format!("{}=true", flag::HAVE_PLAYED_EVENT_DM_HRL_CASTLE_0020),
     ]
