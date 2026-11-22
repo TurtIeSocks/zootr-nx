@@ -22,7 +22,7 @@
       "forbid": [],
       "hash": "129299066248871900",
       "id": 1,
-      "name": "Kokiri Forest Saria's Gift",
+      "name": "Kokiri Forest Saria",
       "unprovable": false
     },
     {
@@ -2145,7 +2145,7 @@
       "forbid": [],
       "hash": "887949387241974339",
       "id": 147,
-      "name": "Kakariko Village Kakariko shooting gallery's Gift",
+      "name": "Kakariko Village Shooting Gallery",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -2166,7 +2166,7 @@
       "forbid": [],
       "hash": "909723496375037131",
       "id": 148,
-      "name": "Kakariko Village House of Skulltula: 20's Gift",
+      "name": "Kakariko Village House of Skulltula: 20",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -3495,7 +3495,7 @@
       "forbid": [],
       "hash": "1215836471142643217",
       "id": 209,
-      "name": "Death Mountain Trail Biggoron: Broken Sword's Gift",
+      "name": "Death Mountain Trail Biggoron: Broken Sword",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -3532,7 +3532,7 @@
       "forbid": [],
       "hash": "1221457217093522685",
       "id": 196,
-      "name": "Ice Cavern Sheik in the Ice Cavern's Gift",
+      "name": "Ice Cavern Sheik",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -3618,7 +3618,7 @@
       "forbid": [],
       "hash": "1482054428421877865",
       "id": 149,
-      "name": "Zora's Domain King Zora's Gift",
+      "name": "Zora's Domain King Zora",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -3996,7 +3996,7 @@
       "forbid": [],
       "hash": "1822814056923789762",
       "id": 210,
-      "name": "Zora's Domain King Zora: Prescription's Gift",
+      "name": "Zora's Domain King Zora: Prescription",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -5081,7 +5081,7 @@
       "forbid": [],
       "hash": "2241127569139982769",
       "id": 150,
-      "name": "Goron City Rolling Goron's Gift",
+      "name": "Goron City Rolling Goron",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -5821,7 +5821,7 @@
       "forbid": [],
       "hash": "2613616008539497854",
       "id": 219,
-      "name": "Zora's River Bean seller's Gift",
+      "name": "Zora's River Bean Seller",
       "unprovable": false,
       "when": {
         "setting": "merchants"
@@ -6802,7 +6802,7 @@
       "forbid": [],
       "hash": "3291474312194526326",
       "id": 151,
-      "name": "Zora's Fountain Great Fairy of Farore's Gift",
+      "name": "Zora's Fountain Great Fairy of Farore",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -6863,7 +6863,7 @@
       "forbid": [],
       "hash": "3350061319058231770",
       "id": 197,
-      "name": "Sacred Forest Meadow Saria in the Meadow's Gift",
+      "name": "Sacred Forest Meadow Saria",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -7179,7 +7179,7 @@
       "forbid": [],
       "hash": "3701241424386675305",
       "id": 198,
-      "name": "Hyrule Field Zelda's song's Gift",
+      "name": "Hyrule Field Zelda's Song",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -7913,7 +7913,7 @@
       "forbid": [],
       "hash": "3994987831222113762",
       "id": 211,
-      "name": "Kakariko Village Granny: Odd Mushroom's Gift",
+      "name": "Kakariko Village Granny: Odd Mushroom",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -8123,7 +8123,7 @@
       "forbid": [],
       "hash": "4233716466148257051",
       "id": 199,
-      "name": "Sacred Forest Meadow Sheik in the Meadow's Gift",
+      "name": "Sacred Forest Meadow Sheik",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -8407,7 +8407,7 @@
       "forbid": [],
       "hash": "4353811140173259339",
       "id": 152,
-      "name": "Lost Woods Deku Theater: Mask of Truth's Gift",
+      "name": "Lost Woods Deku Theater: Mask of Truth",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -8739,7 +8739,7 @@
       "forbid": [],
       "hash": "4405219083245412012",
       "id": 153,
-      "name": "Kakariko Village House of Skulltula: 40's Gift",
+      "name": "Kakariko Village House of Skulltula: 40",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -8930,7 +8930,7 @@
       "forbid": [],
       "hash": "4522352553331655338",
       "id": 208,
-      "name": "Kakariko Village House of Skulltula: 100's Gift",
+      "name": "Kakariko Village House of Skulltula: 100",
       "unprovable": true,
       "when": {
         "all": [
@@ -9130,7 +9130,7 @@
       "forbid": [],
       "hash": "4575241808838949671",
       "id": 154,
-      "name": "Hyrule Castle Zelda's letter's Gift",
+      "name": "Hyrule Castle Zelda's Letter",
       "unprovable": false,
       "when": {
         "all": [
@@ -9189,7 +9189,7 @@
       "forbid": [],
       "hash": "4624030970593856299",
       "id": 200,
-      "name": "Kakariko Village Windmill Man's Gift",
+      "name": "Kakariko Village Windmill Man",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -9548,7 +9548,7 @@
       "forbid": [],
       "hash": "4829374028878320404",
       "id": 212,
-      "name": "Kakariko Village Anju as adult's Gift",
+      "name": "Kakariko Village Anju as Adult",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -9569,7 +9569,7 @@
       "forbid": [],
       "hash": "4830705234802295701",
       "id": 213,
-      "name": "Lost Woods Grog: Cojiro's Gift",
+      "name": "Lost Woods Grog: Cojiro",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -9819,7 +9819,7 @@
       "forbid": [],
       "hash": "5229953148841764865",
       "id": 156,
-      "name": "Zora's River Frogs' Ocarina Game's Gift",
+      "name": "Zora's River Frogs' Ocarina Game",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -10338,7 +10338,7 @@
       "forbid": [],
       "hash": "5600989862490052494",
       "id": 214,
-      "name": "Kakariko Village Talon: Pocket Cucco's Gift",
+      "name": "Kakariko Village Talon: Pocket Cucco",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -10889,7 +10889,7 @@
       "forbid": [],
       "hash": "5955961334009237089",
       "id": 201,
-      "name": "Hyrule Field Malon's Gift",
+      "name": "Hyrule Field Malon",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -11415,7 +11415,7 @@
       "forbid": [],
       "hash": "6465850391777915933",
       "id": 222,
-      "name": "Market Master Sword pedestal's Gift",
+      "name": "Market Master Sword Pedestal",
       "unprovable": false,
       "when": {
         "setting": "master-sword-shuffle"
@@ -12429,7 +12429,7 @@
       "forbid": [],
       "hash": "7003280842759835681",
       "id": 215,
-      "name": "Gerudo Valley Carpenter boss: Poacher's Saw's Gift",
+      "name": "Gerudo Valley Carpenter Boss: Poacher's Saw",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -12562,7 +12562,7 @@
       "forbid": [],
       "hash": "7117313034680832833",
       "id": 157,
-      "name": "Desert Colossus Great Fairy of Nayru's Gift",
+      "name": "Desert Colossus Great Fairy of Nayru",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -12578,7 +12578,7 @@
       "forbid": [],
       "hash": "7148370261830864548",
       "id": 158,
-      "name": "Market Potion shop bottle's Gift",
+      "name": "Market Potion Shop Bottle",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -13580,7 +13580,7 @@
       "forbid": [],
       "hash": "7517995748820283814",
       "id": 202,
-      "name": "Death Mountain Crater Sheik in the Crater's Gift",
+      "name": "Death Mountain Crater Sheik",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -13748,7 +13748,7 @@
       "forbid": [],
       "hash": "7533377855264181032",
       "id": 159,
-      "name": "Death Mountain Crater Great Fairy of Wisdom's Gift",
+      "name": "Death Mountain Crater Great Fairy of Wisdom",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -13772,7 +13772,7 @@
       "forbid": [],
       "hash": "7640046613117969341",
       "id": 160,
-      "name": "Zora's Domain Diving game's Gift",
+      "name": "Zora's Domain Diving Game",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -14207,7 +14207,7 @@
       "forbid": [],
       "hash": "7968474297316728619",
       "id": 161,
-      "name": "Lost Woods Skull Kid's Gift",
+      "name": "Lost Woods Skull Kid",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -14270,7 +14270,7 @@
       "forbid": [],
       "hash": "7975754981590731986",
       "id": 162,
-      "name": "Market Poe collector's Gift",
+      "name": "Market Poe Collector",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -14479,7 +14479,7 @@
       "forbid": [],
       "hash": "8052831843135618910",
       "id": 163,
-      "name": "Market Bombchu bowling: third prize's Gift",
+      "name": "Market Bombchu Bowling: Third Prize",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -14570,7 +14570,7 @@
       "forbid": [],
       "hash": "8102167512715863528",
       "id": 164,
-      "name": "Hyrule Castle Great Fairy of Power's Gift",
+      "name": "Hyrule Castle Great Fairy of Power",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -15077,7 +15077,7 @@
       "forbid": [],
       "hash": "8480443483483791996",
       "id": 216,
-      "name": "Death Mountain Trail Biggoron: Eye Drops's Gift",
+      "name": "Death Mountain Trail Biggoron: Eye Drops",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -16038,7 +16038,7 @@
       "forbid": [],
       "hash": "8748954161277078873",
       "id": 165,
-      "name": "Market Bombchu bowling: second prize's Gift",
+      "name": "Market Bombchu Bowling: Second Prize",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -17454,7 +17454,7 @@
       "forbid": [],
       "hash": "9060474567289915003",
       "id": 166,
-      "name": "Kakariko Village House of Skulltula: 10's Gift",
+      "name": "Kakariko Village House of Skulltula: 10",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -18301,7 +18301,7 @@
       "forbid": [],
       "hash": "9279441469018472147",
       "id": 203,
-      "name": "Graveyard Royal Family's Tomb's Gift",
+      "name": "Graveyard Royal Family's Tomb",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -18426,7 +18426,7 @@
       "forbid": [],
       "hash": "9411228621880230151",
       "id": 167,
-      "name": "Lost Woods Lost Woods target's Gift",
+      "name": "Lost Woods Target",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -18517,7 +18517,7 @@
       "forbid": [],
       "hash": "9443244066451772166",
       "id": 168,
-      "name": "Gerudo's Fortress Horseback archery's Gift",
+      "name": "Gerudo's Fortress Horseback Archery",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -18554,7 +18554,7 @@
       "forbid": [],
       "hash": "9447699849637278794",
       "id": 204,
-      "name": "Kakariko Village Sheik in Kakariko's Gift",
+      "name": "Kakariko Village Sheik",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -18689,7 +18689,7 @@
       "forbid": [],
       "hash": "9485640170203711850",
       "id": 205,
-      "name": "Hyrule Castle Impa's Gift",
+      "name": "Hyrule Castle Impa",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -19216,7 +19216,7 @@
       "forbid": [],
       "hash": "9780435211847824593",
       "id": 169,
-      "name": "Kakariko Village Man on the Roof's Gift",
+      "name": "Kakariko Village Man on the Roof",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -20094,7 +20094,7 @@
       "forbid": [],
       "hash": "9935389509796719985",
       "id": 170,
-      "name": "Market Bombchu bowling: first prize's Gift",
+      "name": "Market Bombchu Bowling: First Prize",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -20343,7 +20343,7 @@
       "forbid": [],
       "hash": "10103296210716215394",
       "id": 217,
-      "name": "Lost Woods Fado: Odd Powder's Gift",
+      "name": "Lost Woods Fado: Odd Powder",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -20562,7 +20562,7 @@
       "forbid": [],
       "hash": "10198943489153675532",
       "id": 171,
-      "name": "Death Mountain Trail Great Fairy of Din's Gift",
+      "name": "Death Mountain Trail Great Fairy of Din",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -21738,7 +21738,7 @@
       "forbid": [],
       "hash": "10465703333688921274",
       "id": 172,
-      "name": "Outside Ganon's Castle Great Fairy of Courage's Gift",
+      "name": "Outside Ganon's Castle Great Fairy of Courage",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -21817,7 +21817,7 @@
       "forbid": [],
       "hash": "10551859442360452256",
       "id": 173,
-      "name": "Hyrule Castle Weird Egg's Gift",
+      "name": "Hyrule Castle Weird Egg",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -22267,7 +22267,7 @@
       "forbid": [],
       "hash": "10888561858771484232",
       "id": 174,
-      "name": "Hyrule Field Lake Scientist's Gift",
+      "name": "Hyrule Field Lake Scientist",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -22289,7 +22289,7 @@
       "forbid": [],
       "hash": "10902337446962469519",
       "id": 175,
-      "name": "Lost Woods Deku Theater: Skull Mask's Gift",
+      "name": "Lost Woods Deku Theater: Skull Mask",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -23050,7 +23050,7 @@
       "forbid": [],
       "hash": "11131560251710515452",
       "id": 176,
-      "name": "Kokiri Forest Kokiri rock clearing's Gift",
+      "name": "Kokiri Forest Rock Clearing",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -23320,7 +23320,7 @@
       "forbid": [],
       "hash": "11342286987436207867",
       "id": 177,
-      "name": "Market Richard's Owner's Gift",
+      "name": "Market Richard's Owner",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -23492,7 +23492,7 @@
       "forbid": [],
       "hash": "11346219189188191312",
       "id": 178,
-      "name": "Zora's River Frogs' Songs's Gift",
+      "name": "Zora's River Frogs' Songs",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -23530,7 +23530,7 @@
       "forbid": [],
       "hash": "11445577403649451289",
       "id": 179,
-      "name": "Kakariko Village House of Skulltula: 50's Gift",
+      "name": "Kakariko Village House of Skulltula: 50",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -23835,7 +23835,7 @@
       "forbid": [],
       "hash": "11485802066891699092",
       "id": 180,
-      "name": "Hyrule Field Fishing as an adult's Gift",
+      "name": "Hyrule Field Fishing as an Adult",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -24226,7 +24226,7 @@
       "forbid": [],
       "hash": "11582029116926037889",
       "id": 132,
-      "name": "Gerudo Valley Running man's race's Gift",
+      "name": "Gerudo Valley Running Man's Race",
       "unprovable": false
     },
     {
@@ -26466,7 +26466,7 @@
       "forbid": [],
       "hash": "12555045194845838033",
       "id": 181,
-      "name": "Market Market shooting gallery's Gift",
+      "name": "Market Shooting Gallery",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -26482,7 +26482,7 @@
       "forbid": [],
       "hash": "12611601700011014094",
       "id": 182,
-      "name": "Hyrule Field Fishing as a child's Gift",
+      "name": "Hyrule Field Fishing as a Child",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -27268,7 +27268,7 @@
       "forbid": [],
       "hash": "13001102097072792655",
       "id": 183,
-      "name": "Goron City Link the Goron's Gift",
+      "name": "Goron City Link the Goron",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -27593,7 +27593,7 @@
       "forbid": [],
       "hash": "13557807086646791370",
       "id": 184,
-      "name": "Lost Woods Skull Kid's Memory Game's Gift",
+      "name": "Lost Woods Skull Kid's Memory Game",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -28236,7 +28236,7 @@
       "forbid": [],
       "hash": "13737156624680648007",
       "id": 185,
-      "name": "Market Light Arrows's Gift",
+      "name": "Market Light Arrows",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -28593,7 +28593,7 @@
       "forbid": [],
       "hash": "14014730143884270499",
       "id": 186,
-      "name": "Hyrule Field Talon's cuccos's Gift",
+      "name": "Hyrule Field Talon's Cuccos",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -29322,7 +29322,7 @@
       "forbid": [],
       "hash": "14512106089570646515",
       "id": 187,
-      "name": "Gerudo's Fortress Horseback archery: quiver's Gift",
+      "name": "Gerudo's Fortress Horseback Archery: Quiver",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -30638,7 +30638,7 @@
       "forbid": [],
       "hash": "15019753598795808613",
       "id": 206,
-      "name": "Market Sheik at the Temple of Time's Gift",
+      "name": "Market Sheik at the Temple of Time",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -31763,7 +31763,7 @@
       "forbid": [],
       "hash": "15692166203658509037",
       "id": 188,
-      "name": "Kakariko Village Anju's Gift",
+      "name": "Kakariko Village Anju",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -32360,7 +32360,7 @@
       "forbid": [],
       "hash": "16028206441208456211",
       "id": 114,
-      "name": "Hyrule Field Zelda's Gift",
+      "name": "Hyrule Field Zelda",
       "unprovable": false
     },
     {
@@ -32850,7 +32850,7 @@
       "forbid": [],
       "hash": "16284910007420782019",
       "id": 189,
-      "name": "Kakariko Village House of Skulltula: 30's Gift",
+      "name": "Kakariko Village House of Skulltula: 30",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -33293,7 +33293,7 @@
       "forbid": [],
       "hash": "16722769607033707959",
       "id": 220,
-      "name": "Goron City Medigoron's Gift",
+      "name": "Goron City Medigoron",
       "unprovable": false,
       "when": {
         "setting": "merchants"
@@ -34456,7 +34456,7 @@
       "forbid": [],
       "hash": "17038515111946271548",
       "id": 221,
-      "name": "Haunted Wasteland Carpet merchant's Gift",
+      "name": "Haunted Wasteland Carpet Merchant",
       "unprovable": false,
       "when": {
         "setting": "merchants"
@@ -34493,7 +34493,7 @@
       "forbid": [],
       "hash": "17185284981648881289",
       "id": 207,
-      "name": "Desert Colossus Sheik at the Colossus's Gift",
+      "name": "Desert Colossus Sheik",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -34584,7 +34584,7 @@
       "forbid": [],
       "hash": "17308229828817913695",
       "id": 190,
-      "name": "Goron City Darunia's Gift",
+      "name": "Goron City Darunia",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -35512,7 +35512,7 @@
       "forbid": [],
       "hash": "17580352713807808478",
       "id": 191,
-      "name": "Death Mountain Trail Biggoron's Gift",
+      "name": "Death Mountain Trail Biggoron",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -36171,7 +36171,7 @@
       "forbid": [],
       "hash": "17867878524448700795",
       "id": 192,
-      "name": "Kokiri Forest Kokiri yard weeding's Gift",
+      "name": "Kokiri Forest Yard Weeding",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -36231,7 +36231,7 @@
       "forbid": [],
       "hash": "17953588650051017776",
       "id": 193,
-      "name": "Graveyard Dampe's dig's Gift",
+      "name": "Graveyard Dampe's Dig",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -36773,7 +36773,7 @@
       "forbid": [],
       "hash": "18277160726242923509",
       "id": 194,
-      "name": "Gerudo's Fortress Gerudo membership card's Gift",
+      "name": "Gerudo's Fortress Membership Card",
       "unprovable": false,
       "when": {
         "all": [
@@ -37208,7 +37208,7 @@
       "forbid": [],
       "hash": "18434302011375146275",
       "id": 218,
-      "name": "Hyrule Field Lake Scientist: Eyeball Frog's Gift",
+      "name": "Hyrule Field Lake Scientist: Eyeball Frog",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -37271,7 +37271,7 @@
       "forbid": [],
       "hash": "18439654067606795684",
       "id": 195,
-      "name": "Market Poe collector: 1000 points's Gift",
+      "name": "Market Poe Collector: 1000 Points",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
