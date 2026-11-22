@@ -123,6 +123,15 @@ test("items stay hidden until checked, and a flip shows them", async () => {
   expect(screen.getByText("2/3")).toBeTruthy();
 });
 
+test("a check the opening gives says so in its note", async () => {
+  const rows = backend.state.rows;
+  const given = row("1", "Kokiri Forest", "Front left");
+  backend.state.rows = [{ ...given, spot: { ...given.spot, given: true } }];
+  await show();
+  expect(await screen.findByText("Given at Start")).toBeTruthy();
+  backend.state.rows = rows;
+});
+
 test("the filter shows what's left, then only marked checks", async () => {
   await show();
   await screen.findByText("Kokiri Forest");

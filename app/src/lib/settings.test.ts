@@ -4,6 +4,7 @@ import type { Settings } from "@/lib/config";
 import {
   chosen,
   defaults,
+  forcedPick,
   forcer,
   isChanged,
   isOn,
@@ -11,6 +12,7 @@ import {
   patched,
   settingsChanges,
   startForcers,
+  startGivers,
   startOf,
   summary,
   summaryParts,
@@ -30,6 +32,7 @@ const toggles = (n: number): SettingDef[] =>
     section: "Fake section",
     section_about: "Fake about",
     list: false,
+    gives: [],
   }));
 
 test("lists a few settings and counts many", () => {
@@ -57,6 +60,7 @@ test("a parent turns its children on and stands in for them", () => {
     section: "Fake section",
     section_about: "Fake about",
     list: false,
+    gives: [],
   });
   const child = off("s1", "s0");
   const schema = [off("s0", null), child, off("s2", "s0")];
@@ -91,6 +95,36 @@ test("a choice's pick forces toggles on and gives start words", () => {
   expect(summary(schema, adult)).toBe("Age: Adult");
   expect(startForcers(schema, adult)).toEqual([{ def: age, words: ["sword"] }]);
   expect(startForcers(schema, {})).toEqual([]);
+  const gate: SettingDef = {
+    ...base,
+    id: "gate",
+    label: "Gate",
+    kind: {
+      type: "choice",
+      default: "open",
+      options: [
+        { id: "shut", label: "Shut", forces: [], starts: [] },
+        { id: "open", label: "Open", forces: [], starts: [] },
+      ],
+    },
+  };
+  const opens: SettingDef = {
+    ...age,
+    kind: {
+      type: "choice",
+      default: "child",
+      options: [
+        { id: "child", label: "Child", forces: [], starts: [] },
+        { id: "adult", label: "Adult", forces: ["gate=open"], starts: [] },
+      ],
+    },
+  };
+  const gated = [opens, gate];
+  const shut = { age: "adult", gate: "shut" };
+  expect(forcer(gate, shut, gated)).toBe(opens);
+  expect(forcedPick(gate, shut, gated)?.id).toBe("open");
+  expect(forcedPick(gate, { gate: "shut" }, gated)).toBeUndefined();
+  expect(summary(gated, shut)).toBe("Age: Adult");
   expect(withForced({ sword: 2, bow: 1 }, ["sword", "hook"])).toEqual({
     sword: 2,
     bow: 1,
@@ -128,6 +162,7 @@ test("a choice is summed up only off its default", () => {
     section: "Fake section",
     section_about: "Fake about",
     list: false,
+    gives: [],
   };
   expect(summary([size], {})).toBe("Nothing extra");
   expect(summary([size], { size: "small" })).toBe("Size: Small");
@@ -167,6 +202,7 @@ function diffSchema(): SettingDef[] {
     section: "Fake section",
     section_about: "Fake about",
     list: false,
+    gives: [],
   });
   const size: SettingDef = {
     ...def("size"),
@@ -255,4 +291,35 @@ test("an unset starting inventory holds its default, and emptied it's changed", 
   expect(isChanged(def, { s0: { "master-sword": 1 } })).toBe(false);
   expect(isChanged(def, { s0: {} })).toBe(true);
   expect(summary([def], {})).toBe("Start: 1 item");
+});
+
+test("a setting's value names what it gives the grid", () => {
+  const met = {
+    ...toggles(1)[0],
+    kind: { type: "toggle", default: false },
+    id: "fake-met",
+    label: "Met Fake",
+    gives: [["on", ["zeldas-letter"]]],
+  } as SettingDef;
+  const fort = {
+    ...met,
+    id: "fake-fort",
+    label: "Fake Fort",
+    kind: {
+      type: "choice",
+      default: "normal",
+      options: [
+        { id: "normal", label: "Normal", forces: [], starts: [] },
+        { id: "freed", label: "Freed", forces: [], starts: [] },
+      ],
+    },
+    gives: [["freed", ["gerudo-card"]]],
+  } as SettingDef;
+  const schema = [met, fort];
+  expect(startGivers(schema, {})).toEqual([]);
+  const given = startGivers(schema, { "fake-met": true, "fake-fort": "freed" });
+  expect(given.map((g) => [g.name, g.words])).toEqual([
+    ["Met Fake", ["zeldas-letter"]],
+    ["Fake Fort: Freed", ["gerudo-card"]],
+  ]);
 });

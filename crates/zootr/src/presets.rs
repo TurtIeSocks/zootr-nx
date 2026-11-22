@@ -8,18 +8,21 @@ use clap::builder::{PossibleValue, PossibleValuesParser, TypedValueParser};
 use ounce_formats::Byml;
 
 use crate::gamedata::GameData;
-use crate::known::{Name, actor, field, flag, flow, item};
+use crate::known::{Name, actor, field, flag, flow};
 use crate::savefile;
 use crate::settings::{Place, place};
 use crate::value;
 
 /// Every flag in `names` set to `value`.
-fn all(names: impl IntoIterator<Item = impl std::fmt::Display>, value: &str) -> Vec<String> {
+pub(crate) fn all(
+    names: impl IntoIterator<Item = impl std::fmt::Display>,
+    value: &str,
+) -> Vec<String> {
     names.into_iter().map(|n| format!("{n}={value}")).collect()
 }
 
 /// `edits` as owned strings.
-fn lit(edits: &[&str]) -> Vec<String> {
+pub(crate) fn lit(edits: &[&str]) -> Vec<String> {
     edits.iter().map(|&e| e.into()).collect()
 }
 
@@ -49,75 +52,18 @@ impl Preset {
     }
 }
 
-/// The preset whose four carpenters are already freed.
-pub const CARPENTERS_FREED: &str = "carpenters-freed";
-/// The preset whose first carpenter freed counts as all four.
-pub const CARPENTERS_FAST: &str = "carpenters-fast";
-
 /// Presets a new game takes unless turned off.
 pub const DEFAULT_ON: [&str; 4] = ["menus", "clock", "no-tutorials", "no-pickup-texts"];
 
-const STONES: [&Name; 3] = [
-    flow::GET_STONE_OF_FOREST,
-    flow::GET_STONE_OF_FIRE,
-    flow::GET_STONE_OF_WATER,
-];
-
-/// Zelda met and her lullaby learned, with the Door of Time quest at `door`.
-fn zelda(door: &str) -> Vec<String> {
-    let mut edits = lit(&[
-        &crate::steps::at(flow::GOTO_HYRULE_CASTLE, "Complete"),
-        &format!("IsGet.{}=true", item::MELODY_ZELDA_LULLABY),
-    ]);
-    edits.push(crate::steps::at(flow::DOOR_OF_TIME, door));
-    edits
-}
-
-/// The four carpenters freed and their guards beaten. The quest step isn't
-/// here: the opening moves it, as freeing the carpenters does, so the
-/// fortress guards stand down with it.
-fn carpenters() -> Vec<String> {
-    let mut edits = lit(&[
-        &format!(
-            "{}=false",
-            field::GERUDO_FORTRESS_NPC_GERUDO_001_IS_IN_FIRST_PLACE
-        ),
-        &format!(
-            "{}=4",
-            field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED
-        ),
-    ]);
-    let cells = (13..=16).flat_map(|n| {
-        ["DestroyGerudoThief", "IsAfterHelpCarpenter"]
-            .map(|what| format!("GerudoFortress_{what}_Npc_Hylia_0{n}_Adult"))
-    });
-    edits.extend(all(cells, "true"));
-    edits.extend(all(
-        [
-            flag::GERUDO_FORTRESS_WARP_POINT01_CLEAR_EVENT,
-            flag::GERUDO_FORTRESS_WARP_POINT02_CLEAR_EVENT,
-            flag::GERUDO_FORTRESS_WARP_POINT03_CLEAR_EVENT,
-            flag::GERUDO_FORTRESS_WARP_POINT04_CLEAR_EVENT,
-        ]
-        .map(|f| f.to_string()),
-        "true",
-    ));
-    edits
-}
-
-/// Three carpenters counted as freed, so freeing any one plays the clear
-/// event that frees all four (`gerudo::clear_once`). Every cell still
-/// holds its carpenter, behind her thief.
-fn carpenters_fast() -> Vec<String> {
+/// Met Zelda's edits: Zelda met, with the Door of Time quest at its second
+/// step. The lullaby comes from Impa's check, which the opening gives. Her quest at its end puts Talon and
+/// Malon at the ranch, and the played flag of the scene where Link wakes
+/// Talon sends away the Talon asleep at the castle.
+pub(crate) fn met_zelda() -> Vec<String> {
     vec![
-        format!(
-            "{}=3",
-            field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED
-        ),
-        format!(
-            "{}=1",
-            field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED_02
-        ),
+        crate::steps::at(flow::GOTO_HYRULE_CASTLE, "Complete"),
+        crate::steps::at(flow::DOOR_OF_TIME, "Step02"),
+        format!("{}=true", flag::HAVE_PLAYED_EVENT_DM_HRL_CASTLE_0020),
     ]
 }
 
@@ -270,6 +216,9 @@ fn jabu_arrival() -> Vec<String> {
 
 /// The preset that opens the forest.
 pub const OPEN_FOREST: &str = "open-forest";
+/// The presets that open the Kakariko gate and the Zora's River waterfall.
+pub const KAKARIKO_GATE: &str = "kakariko-gate";
+pub const OPEN_WATERFALL: &str = "open-waterfall";
 
 /// The preset whose Deku Tree takes adult Link in.
 pub const ADULT_DEKU_TREE: &str = "adult-deku-tree";
@@ -303,12 +252,12 @@ fn deku_tree_clear() -> Vec<String> {
         .collect()
 }
 
-pub const PRESETS: [Preset; 15] = [
+pub const PRESETS: [Preset; 10] = [
     Preset {
         name: OPEN_FOREST,
         label: "Open Forest",
         what: "Mido and the forest exit stop blocking Link, as child or adult",
-        place: place::OPEN_AREAS,
+        place: place::AREA_ACCESS,
         give: &[],
         progress: &[],
         fields: Vec::new,
@@ -324,10 +273,10 @@ pub const PRESETS: [Preset; 15] = [
         },
     },
     Preset {
-        name: "kakariko-gate",
+        name: KAKARIKO_GATE,
         label: "Open Kakariko Gate",
         what: "The Kakariko gate guard has already seen Zelda's letter, so the Death Mountain trail is open from the start",
-        place: place::OPEN_AREAS,
+        place: place::AREA_ACCESS,
         edits: || all([flag::NPC_HYLIA_SOLDIER_003_GATE_OPEN], "true"),
         give: &[],
         // The step the letter moves it to: the trail's Goron and the one at
@@ -339,7 +288,7 @@ pub const PRESETS: [Preset; 15] = [
         name: KING_ZORA_MOVED,
         label: "King Zora Moved",
         what: "King Zora has read Ruto's letter and stands aside for child Link, as he does once he's shown it. Ruto's Letter becomes an empty bottle, shuffled from its spot at the bottom of the lake",
-        place: place::OPEN_AREAS,
+        place: place::AREA_ACCESS,
         // Showing him the letter moves the quest on, then plays the scene
         // whose played flag hides the air wall beside him. The quest step
         // is what moves him aside. The domain's first arrival from the
@@ -361,7 +310,7 @@ pub const PRESETS: [Preset; 15] = [
         name: JABU_OPEN,
         label: "Jabu-Jabu Open",
         what: "Jabu-Jabu's mouth is open, so child Link walks in without giving him a fish",
-        place: place::OPEN_AREAS,
+        place: place::AREA_ACCESS,
         edits: || {
             all(
                 [flag::JAB_JAB_OPENED_MOUTH, flag::GAVE_FISH_TO_JAB_JAB],
@@ -373,10 +322,10 @@ pub const PRESETS: [Preset; 15] = [
         fields: jabu_arrival,
     },
     Preset {
-        name: "open-waterfall",
+        name: OPEN_WATERFALL,
         label: "Zora's River Waterfall Open",
         what: "The waterfall at the end of Zora's River already stands split, so Link reaches Zora's Domain without Zelda's Lullaby",
-        place: place::OPEN_AREAS,
+        place: place::AREA_ACCESS,
         edits: || {
             all(
                 [
@@ -394,7 +343,7 @@ pub const PRESETS: [Preset; 15] = [
         name: ADULT_DEKU_TREE,
         label: "Adult Deku Tree",
         what: "The debris in front of the Deku Tree's mouth is gone, so adult Link walks in and out",
-        place: place::OPEN_AREAS,
+        place: place::AREA_ACCESS,
         edits: Vec::new,
         give: &[],
         progress: &[],
@@ -435,74 +384,6 @@ pub const PRESETS: [Preset; 15] = [
         fields: Vec::new,
     },
     Preset {
-        name: "zelda-done",
-        label: "Met Zelda",
-        what: "Child Zelda met and her lullaby learned, with her letter in hand",
-        place: place::QUEST,
-        edits: || zelda("Step02"),
-        give: &[item::ZELDA_LETTER],
-        progress: &[],
-        fields: Vec::new,
-    },
-    Preset {
-        name: "door-of-time",
-        label: "Door of Time Open",
-        what: "The three stones, the Ocarina of Time and its song, and the Door of Time open",
-        place: place::QUEST,
-        edits: || {
-            let mut edits = zelda("Step06");
-            edits.extend(all(STONES.map(crate::steps::saved), "Complete"));
-            edits.extend(lit(&[
-                &format!("IsGet.{}=true", item::MELODY_TIME_SONG),
-                &format!("{}=true", flag::MARKET_CHILD_TIME_TEMPLE_DOOR_OPENED),
-            ]));
-            edits
-        },
-        give: &[
-            item::STONE_FOREST,
-            item::STONE_FIRE,
-            item::STONE_WATER,
-            item::OCARINA_TIME,
-        ],
-        progress: &[],
-        fields: Vec::new,
-    },
-    Preset {
-        name: CARPENTERS_FREED,
-        label: "Carpenters Freed",
-        what: "All four carpenters freed, the membership card in hand, the guards standing down and the valley bridge up",
-        place: place::QUEST,
-        edits: carpenters,
-        give: &[item::TOKEN_GERUDO],
-        progress: &[(flow::SAGE_OF_SPIRIT, "Step02")],
-        fields: Vec::new,
-    },
-    Preset {
-        name: CARPENTERS_FAST,
-        label: "Gerudo Fortress Fast",
-        what: "Freeing any one carpenter frees all four and earns the membership card. The other thieves still guard their cells",
-        place: place::QUEST,
-        edits: carpenters_fast,
-        give: &[],
-        progress: &[],
-        fields: Vec::new,
-    },
-    Preset {
-        name: "claim-check",
-        label: "Claim Check",
-        what: "The trade quest's last step, with the Claim Check in hand",
-        place: place::QUEST,
-        edits: || {
-            vec![crate::steps::at(
-                flow::SUB_EVENT_GET_SWORD_BIG_GORON,
-                "Step11",
-            )]
-        },
-        give: &[item::CLAIM_CHECK],
-        progress: &[],
-        fields: Vec::new,
-    },
-    Preset {
         name: "no-tutorials",
         label: "No Tutorials",
         what: "Every guide screen counts as already shown, so none pops up the first time, such as the Echo Gem's in the House of Skulltula. The Great Fairy's guide still shows",
@@ -533,6 +414,9 @@ pub fn parser() -> impl TypedValueParser<Value = String> {
         if let Some(new) = crate::settings::renamed(&name) {
             eprintln!("--preset {name} is now {new}");
         }
+        if let Some(why) = crate::settings::dropped(&name) {
+            eprintln!("--preset {name} is gone: {why}");
+        }
         name
     })
 }
@@ -549,9 +433,10 @@ fn find(names: &[String]) -> Result<Vec<&'static Preset>> {
         .iter()
         .map(|n| {
             PRESETS.iter().find(|p| p.name == n).with_context(|| {
-                match crate::settings::renamed(n) {
-                    Some(new) => format!("{n} is now `{new}`, for a new game"),
-                    None => format!("no preset {n}"),
+                match (crate::settings::renamed(n), crate::settings::dropped(n)) {
+                    (Some(new), _) => format!("{n} is now `{new}`, for a new game"),
+                    (None, Some(why)) => format!("{n} is gone: {why}"),
+                    (None, None) => format!("no preset {n}"),
                 }
             })
         })
@@ -651,7 +536,7 @@ pub fn apply(gd: &GameData, root: &mut Byml, edits: &[String]) -> Result<Vec<Str
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::{field, flag, flow, item};
+    use crate::known::{field, flag, flow};
     use ounce_formats::murmur3;
 
     #[test]
@@ -784,81 +669,31 @@ mod tests {
     }
 
     #[test]
-    fn quest_presets_land_on_their_step() {
-        needs_names!();
-        let edits = |p: &str| expand(&[p.into()], &[]).unwrap();
-        assert!(edits("door-of-time").contains(&crate::steps::at(flow::DOOR_OF_TIME, "Step06")));
-        assert_eq!(
-            edits("carpenters-freed")
-                .iter()
-                .filter(|e| e.contains("IsAfterHelpCarpenter"))
-                .count(),
-            4
-        );
-        assert_eq!(
-            gives(&["door-of-time".into(), "claim-check".into()]).unwrap(),
-            [
-                item::STONE_FOREST,
-                item::STONE_FIRE,
-                item::STONE_WATER,
-                item::OCARINA_TIME,
-                item::CLAIM_CHECK
-            ]
-        );
-        assert!(PRESETS.iter().any(|p| p.place == place::QUEST));
-    }
-
-    #[test]
-    fn fast_carpenters_count_three_freed_and_take_a_save() {
-        let edits = expand(&[CARPENTERS_FAST.into()], &[]).unwrap();
-        let helped = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED;
-        let left = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED_02;
-        assert_eq!(edits, [format!("{helped}=3"), format!("{left}=1")]);
-        assert!(for_save(&[CARPENTERS_FAST.into()], &[]).is_ok());
-        let fast = PRESETS.iter().find(|p| p.name == CARPENTERS_FAST).unwrap();
-        assert_eq!(fast.place, place::QUEST);
-    }
-
-    #[test]
-    fn freed_carpenters_move_the_quest_in_the_opening_not_in_the_save() {
-        let edits = expand(&["carpenters-freed".into()], &[]).unwrap();
-        assert!(edits.contains(&format!(
-            "{}=false",
-            field::GERUDO_FORTRESS_NPC_GERUDO_001_IS_IN_FIRST_PLACE
-        )));
-        assert!(
-            !edits
-                .iter()
-                .any(|e| e.starts_with(&**flag::STEP_SAGE_OF_SPIRIT))
-        );
-        assert_eq!(
-            progress(&["carpenters-freed".into(), "open-forest".into()]).unwrap(),
-            [(flow::SAGE_OF_SPIRIT.to_string(), "Step02".to_owned())]
-        );
-        assert!(progress(&["open-forest".into()]).unwrap().is_empty());
-    }
-
-    #[test]
     fn a_save_is_offered_only_presets_it_can_take() {
         let names: Vec<String> = for_saves().map(|p| p.name.into()).collect();
-        assert!(!names.is_empty() && !names.iter().any(|n| n == "claim-check"));
+        assert!(!names.is_empty() && !names.iter().any(|n| n == "kakariko-gate"));
         assert!(for_save(&names, &[]).is_ok());
     }
 
     #[test]
-    fn a_save_refuses_presets_that_hand_over_items() {
-        let err = for_save(&["open-forest".into(), "claim-check".into()], &[])
-            .unwrap_err()
-            .to_string();
-        assert!(
-            err.contains("claim-check") && err.contains(&**item::CLAIM_CHECK),
-            "{err}"
-        );
-        let err = for_save(&["kakariko-gate".into()], &[]).unwrap_err();
+    fn a_save_refuses_presets_that_move_a_quest() {
+        let err = for_save(&["open-forest".into(), "kakariko-gate".into()], &[]).unwrap_err();
         assert!(err.to_string().contains("moves a quest on"), "{err}");
-        let err = for_save(&["carpenters-freed".into()], &[]).unwrap_err();
-        assert!(err.to_string().contains("carpenters-freed"), "{err}");
         assert!(for_save(&["nope".into()], &[]).is_err());
+    }
+
+    #[test]
+    fn met_zelda_sends_the_castle_talon_away() {
+        needs_names!();
+        let woken = format!("{}=true", flag::HAVE_PLAYED_EVENT_DM_HRL_CASTLE_0020);
+        assert!(met_zelda().contains(&woken));
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gd = GameData::load(&romfs).unwrap();
+        let mut doc =
+            ounce_formats::BymlDoc::parse(&romfs.read(crate::gamedata::PATH).unwrap()).unwrap();
+        apply(&gd, &mut doc.root, &met_zelda()).unwrap();
     }
 
     #[test]
@@ -887,7 +722,7 @@ mod tests {
         assert!(fields(&["open-waterfall".into()]).unwrap().is_empty());
         let place = |n: &str| PRESETS.iter().find(|p| p.name == n).unwrap().place;
         for name in [KING_ZORA_MOVED, JABU_OPEN, "open-waterfall"] {
-            assert_eq!(place(name), place::OPEN_AREAS, "{name}");
+            assert_eq!(place(name), place::AREA_ACCESS, "{name}");
         }
     }
 
@@ -915,7 +750,7 @@ mod tests {
         assert!(
             PRESETS
                 .iter()
-                .any(|p| p.name == ADULT_DEKU_TREE && p.place == place::OPEN_AREAS)
+                .any(|p| p.name == ADULT_DEKU_TREE && p.place == place::AREA_ACCESS)
         );
     }
 

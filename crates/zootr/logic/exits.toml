@@ -83,7 +83,7 @@ needs = "hookshot"
 from = "market-child"
 to = "market-adult"
 added = true
-needs = "setting:open-door-of-time or (beat:gohma and beat:king-dodongo and beat:barinade and item:ocarina-of-time and song-of-time)"
+needs = "setting:door-of-time=open or (beat:gohma and beat:king-dodongo and beat:barinade and item:ocarina-of-time and song-of-time)"
 
 [[exit]]
 from = "market-adult"
@@ -250,7 +250,7 @@ needs = "iron-boots and zora-tunic and hookshot"
 [[exit]]
 from = "gerudo-valley-adult"
 to = "gerudo-fortress-adult"
-needs = "setting:carpenters-freed or longshot or eponas-song"
+needs = "setting:gerudo-fortress=freed or longshot or eponas-song"
 
 [[exit]]
 from = "gerudo-fortress-adult"

@@ -14,11 +14,21 @@
     "label": "Open Kakariko Gate"
   },
   {
-    "default": true,
-    "description": "The Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, whose gift comes at the start, and can put the sword back any time",
-    "id": "open-door-of-time",
-    "kind": "toggle",
-    "label": "Open Door of Time"
+    "default": "open",
+    "description": "With Open, the Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, whose gift comes at the start, and can put the sword back any time. With Closed, it opens as in the game, once Link holds the three stones and the Ocarina of Time and plays the Song of Time",
+    "id": "door-of-time",
+    "kind": "choice",
+    "label": "Door of Time",
+    "options": [
+      {
+        "id": "closed",
+        "label": "Closed"
+      },
+      {
+        "id": "open",
+        "label": "Open"
+      }
+    ]
   },
   {
     "default": false,
@@ -42,11 +52,21 @@
     "label": "Adult Deku Tree"
   },
   {
-    "default": false,
-    "description": "Freeing any one carpenter frees all four and earns the membership card. The other thieves still guard their cells",
-    "id": "carpenters-fast",
-    "kind": "toggle",
-    "label": "Gerudo Fortress Fast"
+    "default": "normal",
+    "description": "How the four carpenters in the Gerudo Fortress start. With Normal, Link frees all four, as in the game. With Fast, freeing any one frees all four and earns the membership card, and the other thieves still guard their cells.",
+    "id": "gerudo-fortress",
+    "kind": "choice",
+    "label": "Gerudo Fortress",
+    "options": [
+      {
+        "id": "normal",
+        "label": "Normal"
+      },
+      {
+        "id": "fast",
+        "label": "Fast"
+      }
+    ]
   },
   {
     "default": "free",

@@ -44,6 +44,7 @@ test("a saved section whose panel is gone opens the first panel", () => {
     section: "Fake section",
     section_about: "Fake about",
     list: false,
+    gives: [],
   });
   useUi.setPath("section", "Hints");
   useConfig.setPath("schema", [def("a", "General"), def("b", "Cutscenes")]);

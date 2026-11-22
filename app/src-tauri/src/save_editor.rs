@@ -124,12 +124,17 @@ pub(crate) async fn save_click(
 }
 
 /// The grid, caps and Status panel of a new game starting with `start`,
-/// for the settings' Inventory panel.
+/// for the settings' Inventory panel, with the words each setting in
+/// `given` gives shown held and locked.
 #[tauri::command]
 #[specta::specta]
-pub(crate) async fn start_items(app: AppHandle, start: Start) -> Res<ItemsView> {
+pub(crate) async fn start_items(
+    app: AppHandle,
+    start: Start,
+    given: Vec<Vec<String>>,
+) -> Res<ItemsView> {
     with_layout(app, move |gd, (inv, pouch)| {
-        starting::view(gd, inv, pouch, &start)
+        starting::view(gd, inv, pouch, &start, &given)
     })
     .await
 }

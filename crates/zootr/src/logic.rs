@@ -315,7 +315,7 @@ impl World {
             }
             let rule = book.check(check.hash);
             let mut where_: Vec<Place> = Vec::new();
-            if pocket == Some(check.hash) {
+            if pocket.contains(&check.hash) {
                 where_.push(start_of(ctx.age));
             } else if let Some((room, node)) = rooms.check(check.hash) {
                 where_.extend(
@@ -389,10 +389,15 @@ impl World {
                     keys if keys.is_empty() => need,
                     keys => Need::All([vec![need], keys].concat()),
                 };
+                // The opening gives a pocketed check, whatever its scene needs.
+                let need = match pocket.contains(&check.hash) {
+                    true => Need::Always,
+                    false => Need::All(vec![presence.clone(), cost.clone(), need]),
+                };
                 locations.push(Location {
                     hash: check.hash,
                     place: at(&place.0, place.1)?,
-                    need: Need::All(vec![presence.clone(), cost.clone(), need]),
+                    need,
                 });
             }
         }
@@ -710,7 +715,7 @@ pub(super) mod tests {
             }
             world.play(&crate::fill::start(&new_game), &placed).reached
         };
-        let (door, forest) = (crate::settings::OPEN_DOOR, crate::presets::OPEN_FOREST);
+        let (door, forest) = (crate::settings::DOOR_OPEN, crate::presets::OPEN_FOREST);
         let shuffle = crate::settings::MASTER_SWORD;
         let off = reached(&[door, forest], None);
         // Dealt its own sword, the pedestal adds itself and nothing more.
@@ -732,7 +737,8 @@ pub(super) mod tests {
         };
         let rauru = |on: &[&str]| {
             let world = world(&romfs, on);
-            let hash = gifts::pocket(&[crate::settings::OPEN_DOOR.to_string()].into()).unwrap();
+            let pocket = gifts::pocket(&[crate::settings::DOOR_OPEN.to_string()].into());
+            let hash = pocket.into_iter().next().unwrap();
             let at = |l: &Location| world.places[l.place].clone();
             (world.locations.iter())
                 .filter(|l| l.hash == hash)
@@ -740,7 +746,7 @@ pub(super) mod tests {
                 .collect::<Vec<_>>()
         };
         let rewards = crate::settings::DUNGEON_REWARDS;
-        let open = rauru(&[rewards, crate::settings::OPEN_DOOR]);
+        let open = rauru(&[rewards, crate::settings::DOOR_OPEN]);
         assert_eq!(open, [start_of(Era::Child)]);
         let closed = rauru(&[rewards]);
         assert_eq!(closed, [(map::MARKET_ADULT.to_string(), Era::Adult)]);
@@ -798,7 +804,7 @@ pub(super) mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let fast = crate::presets::CARPENTERS_FAST;
+        let fast = crate::settings::FORTRESS_FAST;
         let card = crate::gerudo::CARD.get();
         let source = |on: &[&str]| {
             let world = world(&romfs, on);
@@ -807,6 +813,60 @@ pub(super) mod tests {
         };
         assert!(source(&[fast]));
         assert!(!source(&[]));
+    }
+
+    #[test]
+    fn met_zelda_gives_her_three_checks_at_the_start_and_wakes_talon() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        use crate::settings::{MET_ZELDA, NPC_GIFTS, SONGS};
+        let on = [MET_ZELDA, NPC_GIFTS, SONGS];
+        let met = world(&romfs, &on);
+        let pocket = gifts::pocket(&on.map(str::to_owned).into());
+        assert_eq!(pocket.len(), 3);
+        for hash in pocket {
+            let at: Vec<_> = (met.locations.iter())
+                .filter(|l| l.hash == hash)
+                .map(|l| {
+                    (
+                        met.places[l.place].clone(),
+                        l.need.met(&Have::default(), Era::Child),
+                    )
+                })
+                .collect();
+            assert_eq!(at, [(start_of(Era::Child), true)], "{hash}");
+        }
+        // Talon's cuccos and the courtyard need no egg under Met Zelda.
+        const TALON: u64 = 14014730143884270499;
+        let talon = |world: &World| {
+            let l = world.locations.iter().find(|l| l.hash == TALON).unwrap();
+            l.need.met(&Have::default(), Era::Child)
+        };
+        assert!(talon(&met));
+        assert!(!talon(&world(&romfs, &[NPC_GIFTS, SONGS])));
+    }
+
+    #[test]
+    fn gerudo_fortress_freed_gives_the_card_at_the_start() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        use crate::settings::{FORTRESS_FREED, NPC_GIFTS};
+        let on = [FORTRESS_FREED, NPC_GIFTS];
+        let freed = world(&romfs, &on);
+        let card = gifts::pocket(&on.map(str::to_owned).into());
+        let card = card.into_iter().next().unwrap();
+        let at: Vec<_> = (freed.locations.iter())
+            .filter(|l| l.hash == card)
+            .map(|l| {
+                (
+                    freed.places[l.place].clone(),
+                    l.need.met(&Have::default(), Era::Child),
+                )
+            })
+            .collect();
+        assert_eq!(at, [(start_of(Era::Child), true)]);
     }
 
     #[test]

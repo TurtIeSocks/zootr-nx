@@ -28,6 +28,27 @@ pub(super) struct Everything {
 }
 
 impl Everything {
+    /// What the base reaches, and what any one exposed option's value
+    /// reaches beside it. Play leaves an open setting unmet, so a place only
+    /// that setting lets Link into would drop out of the export: the dead
+    /// tree under Adult Deku Tree. Each value is played as set, with the
+    /// other options still open.
+    pub fn any_option(romfs: &Romfs, base_seed: &Seed) -> Result<Self> {
+        let mut reach = base_seed.everything();
+        for (id, value) in variants()? {
+            let mut s = base();
+            s.insert(id.clone(), value);
+            let prefix = value_word(&id, "");
+            let mut open = open();
+            open.retain(|w| *w != id && !w.starts_with(&prefix));
+            let other = Seed::build(romfs, &s, &open)?.everything();
+            reach.checks.extend(other.checks);
+            reach.sources.extend(other.sources);
+            reach.places.extend(other.places);
+        }
+        Ok(reach)
+    }
+
     #[cfg(test)]
     fn covers(&self, other: &Self) -> bool {
         self.checks.is_superset(&other.checks)
@@ -263,6 +284,23 @@ mod tests {
             }
         }
         assert_eq!(changed, Vec::<String>::new());
+    }
+
+    #[test]
+    fn the_export_holds_what_any_option_lets_link_reach() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let base_seed = Seed::build(&romfs, &base(), &open()).unwrap();
+        let reach = Everything::any_option(&romfs, &base_seed).unwrap();
+        assert!(reach.covers(&base_seed.everything()));
+        for (id, value) in variants().unwrap() {
+            let mut s = base();
+            s.insert(id.clone(), value.clone());
+            let seed = Seed::build(&romfs, &s, &Default::default()).unwrap();
+            assert_eq!(seed.world.places, base_seed.world.places, "{id} = {value}");
+            assert!(reach.covers(&seed.everything()), "{id} = {value}");
+        }
     }
 
     #[test]

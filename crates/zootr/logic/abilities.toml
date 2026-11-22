@@ -61,7 +61,8 @@ crater-floor = "goron-tunic and (hookshot or hover-boots or (ocarina and item:bo
 
 # Hyrule Castle's courtyard, past Talon asleep by the crates. Only the cucco
 # that hatches from the Weird Egg wakes him, and an egg from anywhere hatches.
-courtyard = "item:weird-egg"
+# Met Zelda starts with him woken and gone.
+courtyard = "setting:met-zelda or item:weird-egg"
 
 ocarina = "item:fairy-ocarina"
 zeldas-lullaby = "ocarina and item:zeldas-lullaby"

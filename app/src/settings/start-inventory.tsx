@@ -11,7 +11,13 @@ import { DumpError } from "@/components/needs-dump";
 import { Tip } from "@/components/tip";
 import { Button } from "@/components/ui/button";
 import { call } from "@/lib/api";
-import { sameStart, startForcers, startOf, withForced } from "@/lib/settings";
+import {
+  sameStart,
+  startForcers,
+  startGivers,
+  startOf,
+  withForced,
+} from "@/lib/settings";
 import { useLoad } from "@/lib/use-load";
 import { ItemsEditor } from "@/save/items-editor";
 import { LockedBy } from "@/settings/setting-row";
@@ -22,11 +28,20 @@ export interface StartInventoryProps {
   def: SettingDef;
 }
 
-const loadItems = (start: Start) => call(commands.startItems(start));
+/** What the grid loads: the start, and the words each giver gives. */
+interface Load {
+  start: Start;
+  given: string[][];
+}
+
+const loadItems = ({ start, given }: Load) =>
+  call(commands.startItems(start, given));
 
 /** The starting inventory as the Save page's grid and Status fields, on a
  * new game. Each click saves the setting. What a choice's pick gives shows
- * held, with the choice named under the grid. */
+ * held, with the choice named under the grid. What a setting gives by its
+ * own path shows held and locked, naming the setting, and stays out of the
+ * setting's count. */
 export function StartInventory({ def }: StartInventoryProps) {
   const value = useConfig((s) => s.config.settings[def.id]);
   const forcers = useConfig(
@@ -39,15 +54,27 @@ export function StartInventory({ def }: StartInventoryProps) {
       .flatMap((f) => f.words)
       .join(" "),
   );
-  const shownStart = useMemo(
-    () =>
-      withForced(
+  const givers = useConfig(
+    useShallow((s) =>
+      startGivers(s.schema, s.config.settings).map((g) => g.name),
+    ),
+  );
+  const given = useConfig((s) =>
+    JSON.stringify(
+      startGivers(s.schema, s.config.settings).map((g) => g.words),
+    ),
+  );
+  const load = useMemo(
+    () => ({
+      start: withForced(
         startOf(def, value === undefined ? {} : { [def.id]: value }),
         forced.split(" ").filter(Boolean),
       ),
-    [def, value, forced],
+      given: JSON.parse(given) as string[][],
+    }),
+    [def, value, forced, given],
   );
-  const view = useLoad(loadItems, shownStart, true);
+  const view = useLoad(loadItems, load, true);
   /** The setting as it stands now, read at the moment of a change. */
   const now = () => startOf(def, useConfig.getState().config.settings);
   /** Saves `next`, or unsets it at the default. Emptied, it saves `{}`,
@@ -76,6 +103,7 @@ export function StartInventory({ def }: StartInventoryProps) {
       </div>
       <ItemsEditor
         view={view.data}
+        lockedBy={givers}
         onClick={async (at: number, intent: Intent) =>
           save(await call(commands.startClick(now(), at, intent)))
         }

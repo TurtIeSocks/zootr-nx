@@ -495,9 +495,40 @@ pub fn onto(
 const STATUS: [u32; 2] = [MAX_LIFE, RUPEES];
 
 /// The Inventory panel: the grid without its Dungeons, whose keys belong to
-/// the Dungeon keys setting, and the kept Status fields.
-pub fn items(gd: &GameData, inv: &Inventory, pouch: &Pouch, start: &Start) -> Result<ItemsView> {
-    let mut view = save_editor::items(gd, inv, pouch, &open(gd, inv, pouch, start)?);
+/// the Dungeon keys setting, and the kept Status fields. `given` holds the
+/// words each setting gives outside `start`: they show held, each cell
+/// locked to the first that gives it.
+pub fn items(
+    gd: &GameData,
+    inv: &Inventory,
+    pouch: &Pouch,
+    start: &Start,
+    given: &[Vec<String>],
+) -> Result<ItemsView> {
+    let mut shown = start.clone();
+    for word in given.iter().flatten() {
+        if !shown.holds(word) {
+            shown.add(word, 1)?;
+        }
+    }
+    let grid = |start: &Start| -> Result<Vec<u8>> {
+        let view = save_editor::items(gd, inv, pouch, &open(gd, inv, pouch, start)?);
+        Ok(view.cells.iter().map(|c| c.tier).collect())
+    };
+    let bare = grid(&Start::default())?;
+    let mut giving = Vec::new();
+    for words in given {
+        let mut alone = Start::default();
+        words.iter().try_for_each(|w| alone.add(w, 1))?;
+        giving.push(grid(&alone)?);
+    }
+    let mut view = save_editor::items(gd, inv, pouch, &open(gd, inv, pouch, &shown)?);
+    view.locked = (0..view.cells.len())
+        .map(|at| {
+            let gives = |tiers: &Vec<u8>| tiers[at] > bare[at];
+            giving.iter().position(gives).map(|i| i as u32)
+        })
+        .collect();
     (view.sections.iter_mut())
         .filter(|p| p.section == inventory::Section::Dungeons)
         .for_each(|p| p.shown = false);
@@ -861,8 +892,9 @@ mod tests {
         assert_eq!(twice, start(&[("hookshot", 1), ("longshot", 1)]));
         let back = click(&gd, &inv, &pouch, &twice, at("Hookshot"), Intent::Up).unwrap();
         assert_eq!(back, Start::default());
-        let view = items(&gd, &inv, &pouch, &twice).unwrap();
+        let view = items(&gd, &inv, &pouch, &twice, &[]).unwrap();
         assert!(view.staged[at("Hookshot")]);
+        assert!(view.locked.iter().all(Option::is_none));
         let fields: Vec<_> = view.status.iter().map(|f| f.label.as_str()).collect();
         assert_eq!(fields, ["Heart containers", "Rupees"]);
         let dungeons = view
@@ -870,6 +902,33 @@ mod tests {
             .iter()
             .find(|p| p.section == inventory::Section::Dungeons);
         assert!(!dungeons.unwrap().shown);
+    }
+
+    #[test]
+    fn a_setting_s_items_show_held_and_locked_to_it() {
+        let Some((gd, inv, pouch)) = layout() else {
+            return;
+        };
+        let given = [
+            vec!["zeldas-letter".to_owned(), "zeldas-lullaby".to_owned()],
+            vec!["gerudo-card".to_owned()],
+        ];
+        let view = items(&gd, &inv, &pouch, &Start::default(), &given).unwrap();
+        let locked_to = |giver: u32| {
+            (view.locked.iter().enumerate())
+                .filter(|(_, l)| **l == Some(giver))
+                .map(|(at, _)| at)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(locked_to(0).len(), 2);
+        assert_eq!(locked_to(1).len(), 1);
+        assert!((locked_to(0).into_iter().chain(locked_to(1))).all(|at| view.cells[at].tier > 0));
+        let hookshot = view
+            .cells
+            .iter()
+            .position(|c| c.label == "Hookshot")
+            .unwrap();
+        assert_eq!(view.locked[hookshot], None);
     }
 
     #[test]

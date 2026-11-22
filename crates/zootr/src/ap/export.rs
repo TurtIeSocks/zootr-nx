@@ -8,7 +8,7 @@ use ounce_formats::Romfs;
 use serde_json::{Value, json};
 
 use super::rule::{Rules, any};
-use super::seed::{Seed, base, open, variants};
+use super::seed::{Everything, Seed, base, open, variants};
 use super::{OPTIONS, described, ids::Ids, names, offers};
 use crate::checks::ItemCheck;
 use crate::fill;
@@ -77,7 +77,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         used: BTreeSet::new(),
     };
     // What Link reaches holding everything. The rest never happens.
-    let reach = seed.everything();
+    let reach = Everything::any_option(romfs, &seed)?;
     let era = |i: usize| w.places[i].1;
     // Where something is: one spot per place, any of its needs there.
     let at = |rules: &mut Rules, spots: Vec<(usize, &Need)>| {

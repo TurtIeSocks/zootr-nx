@@ -105,6 +105,7 @@ pub(super) fn flows(
     }
     gerudo::stand_down(romfs, &mut rewrites, drops)?;
     gerudo::clear_once(romfs, &mut rewrites)?;
+    gerudo::rescue_once(romfs, &mut rewrites)?;
     let model = gifts::levels::model(all)?;
     let level = gifts::levels::Level {
         model: &model,

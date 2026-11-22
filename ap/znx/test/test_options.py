@@ -16,3 +16,20 @@ for entry in OPTIONS:
     for value in other_values(entry):
         name = f"Test_{attr(entry['id'])}_{value}"
         globals()[name] = type(name, (ZnxTestBase,), {"options": {attr(entry["id"]): value}})
+
+
+class TestDeadTreeOnlyWithAdultDekuTree(ZnxTestBase):
+    """A place only an option opens is a region only with that option."""
+
+    def test_no_way_in_no_region(self) -> None:
+        names = {region.name for region in self.multiworld.get_regions(self.player)}
+        self.assertNotIn("deku-tree-adult", names)
+        self.assertIn("deku-tree-child", names)
+
+
+class TestDeadTreeWithAdultDekuTree(ZnxTestBase):
+    options = {"adult_deku_tree": True}
+
+    def test_a_way_in_a_region(self) -> None:
+        names = {region.name for region in self.multiworld.get_regions(self.player)}
+        self.assertIn("deku-tree-adult", names)

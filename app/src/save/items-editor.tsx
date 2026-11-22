@@ -1,3 +1,4 @@
+import { Lock } from "lucide-react";
 import { useMemo, useState } from "react";
 import type {
   Cell,
@@ -64,12 +65,20 @@ export interface ItemsEditorProps {
   onClick: (at: number, intent: Intent) => Promise<void>;
   /** Takes a Status field's new value. A throw shows under the field. */
   onStatus: (edit: Edit) => Promise<void>;
+  /** The names of the settings `view.locked` indexes, for a locked tile's
+   * tooltip. */
+  lockedBy?: string[];
 }
 
 /** Link's status, then his items as the tracker lays them out. A click on
  * a tile goes up a tier, a right click or Backspace down. The Save page and the
  * settings' starting inventory both draw it. */
-export function ItemsEditor({ view, onClick, onStatus }: ItemsEditorProps) {
+export function ItemsEditor({
+  view,
+  onClick,
+  onStatus,
+  lockedBy = [],
+}: ItemsEditorProps) {
   const [error, setError] = useState<string>();
   const named = useMemo(
     () => ({ ...view, cells: numbered(view.cells) }),
@@ -95,11 +104,17 @@ export function ItemsEditor({ view, onClick, onStatus }: ItemsEditorProps) {
                 view={named}
                 placements={column}
                 onClick={click}
+                lockedBy={lockedBy}
               />
             ))}
           </div>
           {side.length > 0 && (
-            <Column view={named} placements={side} onClick={click} />
+            <Column
+              view={named}
+              placements={side}
+              onClick={click}
+              lockedBy={lockedBy}
+            />
           )}
         </div>
       </Card>
@@ -124,10 +139,11 @@ interface ColumnProps {
   view: ItemsView;
   placements: Placement[];
   onClick: (at: number, intent: Intent) => void;
+  lockedBy: string[];
 }
 
 /** Sections stacked top to bottom, their tiles as buttons. */
-function Column({ view, placements, onClick }: ColumnProps) {
+function Column({ view, placements, onClick, lockedBy }: ColumnProps) {
   return (
     <div className="flex flex-col gap-5">
       {placements.map((placement) => (
@@ -138,17 +154,52 @@ function Column({ view, placements, onClick }: ColumnProps) {
             size={SIZE}
             ink={INK}
           >
-            {(cell, at) => (
-              <EditTile
-                cell={cell}
-                cap={view.caps[at] ?? null}
-                staged={view.staged[at] ?? false}
-                onClick={(intent) => onClick(at, intent)}
-              />
-            )}
+            {(cell, at) => {
+              const giver = view.locked[at];
+              if (giver != null)
+                return <LockedTile cell={cell} by={lockedBy[giver] ?? ""} />;
+              return (
+                <EditTile
+                  cell={cell}
+                  cap={view.caps[at] ?? null}
+                  staged={view.staged[at] ?? false}
+                  onClick={(intent) => onClick(at, intent)}
+                />
+              );
+            }}
           </SectionGrid>
         </section>
       ))}
+    </div>
+  );
+}
+
+/** Props for {@link LockedTile}. */
+interface LockedTileProps {
+  cell: Cell;
+  /** The setting that gives it. */
+  by: string;
+}
+
+/** A tile a setting gives: held, with a lock, and a click does nothing.
+ * The tooltip names the setting to turn off. */
+function LockedTile({ cell, by }: LockedTileProps) {
+  return (
+    <div className="relative">
+      <Tip tip={`From ${by}`}>
+        <button
+          type="button"
+          aria-disabled
+          aria-label={`${cell.label}, from ${by}`}
+          className="cursor-default rounded-sm"
+        >
+          <Tile cell={cell} size={SIZE} ink={INK} noCount />
+        </button>
+      </Tip>
+      <Lock
+        aria-hidden
+        className="absolute right-0 bottom-0 size-3 rounded-sm bg-surface p-px text-ink-muted"
+      />
     </div>
   );
 }

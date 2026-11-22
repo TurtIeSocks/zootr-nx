@@ -3,7 +3,8 @@
 use serde_json::Value;
 
 use super::{
-    BOMBCHUS, BRIDGE, Bombchus, Bridge, SHUFFLE_ITEMS, Settings, TRIALS, Trials, choice_id,
+    BOMBCHUS, BRIDGE, Bombchus, Bridge, DOOR_OF_TIME, DoorOfTime, GERUDO_FORTRESS, GerudoFortress,
+    MET_ZELDA, SHUFFLE_ITEMS, Settings, TRIALS, Trials, choice_id,
 };
 use crate::starting::{self, Start};
 
@@ -26,25 +27,91 @@ const BRIDGE_UP: &str = BRIDGE;
 /// The preset that brought every barrier down, before [`TRIALS`].
 const TRIALS_DONE: &str = "trials-done";
 
-/// Presets the CLI still takes by their old names, and toggles by their
-/// old ids: see [`renamed`].
-pub(crate) const OLD_PRESETS: [&str; 2] = [BRIDGE_UP, TRIALS_DONE];
-pub(crate) const OLD_TOGGLES: [&str; 1] = [BRIDGE_MEDALLIONS];
+/// The preset that opened the Door of Time and gave the stones, the
+/// Ocarina of Time and the Song of Time, saved as `true` under the id
+/// [`DOOR_OF_TIME`] took over. Its gifts are dropped.
+const DOOR_UP: &str = DOOR_OF_TIME;
 
-/// The choice old preset or toggle `old` became when on, as setting id and
-/// option.
-fn became(old: &str) -> Option<(&'static str, String)> {
-    match old {
-        BRIDGE_UP => Some((BRIDGE, choice_id(Bridge::Open))),
-        BRIDGE_MEDALLIONS => Some((BRIDGE, choice_id(Bridge::SixMedallions))),
-        TRIALS_DONE => Some((TRIALS, choice_id(Trials::Done))),
+/// The toggle that opened the Door of Time, on by default, before
+/// [`DOOR_OF_TIME`] chose Open or Closed.
+const OPEN_DOOR: &str = "open-door-of-time";
+
+/// The presets that freed the four carpenters, and that counted the first
+/// as all four, before [`GERUDO_FORTRESS`].
+const CARPENTERS_FREED: &str = "carpenters-freed";
+const CARPENTERS_FAST: &str = "carpenters-fast";
+
+/// The preset that started the trade quest at its last step with the
+/// Claim Check in hand, for early debugging. Dropped, as the pool holds
+/// the Claim Check.
+const CLAIM_CHECK: &str = "claim-check";
+
+/// The preset that started with Zelda met, before [`MET_ZELDA`].
+const ZELDA_DONE: &str = "zelda-done";
+
+/// Presets the CLI still takes by their old names, and toggles by their
+/// old ids: see [`renamed`] and [`dropped`].
+pub(crate) const OLD_PRESETS: [&str; 7] = [
+    BRIDGE_UP,
+    ZELDA_DONE,
+    TRIALS_DONE,
+    DOOR_UP,
+    CARPENTERS_FREED,
+    CARPENTERS_FAST,
+    CLAIM_CHECK,
+];
+pub(crate) const OLD_TOGGLES: [&str; 2] = [BRIDGE_MEDALLIONS, OPEN_DOOR];
+
+/// Each old preset and toggle, in the order the upgrade reads them: where
+/// two set one choice, the first wins.
+const OLD: [&str; 8] = [
+    BRIDGE_UP,
+    ZELDA_DONE,
+    BRIDGE_MEDALLIONS,
+    TRIALS_DONE,
+    DOOR_UP,
+    OPEN_DOOR,
+    CARPENTERS_FREED,
+    CARPENTERS_FAST,
+];
+
+/// The setting old preset or toggle `old` became, as setting id and value,
+/// when it was `on`. Most leave nothing when off.
+fn became(old: &str, on: bool) -> Option<(&'static str, Value)> {
+    let door = |open| match open {
+        true => DoorOfTime::Open,
+        false => DoorOfTime::Closed,
+    };
+    let chose = |id, option: String| Some((id, Value::from(option)));
+    match (old, on) {
+        (ZELDA_DONE, true) => Some((MET_ZELDA, true.into())),
+        (BRIDGE_UP, true) => chose(BRIDGE, choice_id(Bridge::Open)),
+        (BRIDGE_MEDALLIONS, true) => chose(BRIDGE, choice_id(Bridge::SixMedallions)),
+        (TRIALS_DONE, true) => chose(TRIALS, choice_id(Trials::Done)),
+        (DOOR_UP, true) => chose(DOOR_OF_TIME, choice_id(DoorOfTime::Open)),
+        (OPEN_DOOR, on) => chose(DOOR_OF_TIME, choice_id(door(on))),
+        (CARPENTERS_FREED, true) => chose(GERUDO_FORTRESS, choice_id(GerudoFortress::Freed)),
+        (CARPENTERS_FAST, true) => chose(GERUDO_FORTRESS, choice_id(GerudoFortress::Fast)),
         _ => None,
     }
 }
 
+/// Why old preset `old` became nothing, for the one line the CLI prints.
+pub(crate) fn dropped(old: &str) -> Option<&'static str> {
+    (old == CLAIM_CHECK).then_some("the Claim Check comes from the pool, so nothing replaces it")
+}
+
 /// What old preset or toggle `old` on is now, as the CLI takes it.
 pub(crate) fn renamed(old: &str) -> Option<String> {
-    became(old).map(|(id, value)| format!("--setting {id}={value}"))
+    renamed_as(old, true)
+}
+
+/// What old preset or toggle `old` set to `on` is now, as the CLI takes it.
+pub(crate) fn renamed_as(old: &str, on: bool) -> Option<String> {
+    became(old, on).map(|(id, value)| match value.as_str() {
+        Some(option) => format!("--setting {id}={option}"),
+        None => format!("--setting {id}={value}"),
+    })
 }
 
 /// Toggles that started a new game with items, before the starting
@@ -88,17 +155,19 @@ pub(crate) fn upgrade(settings: &mut Settings) {
         };
         (settings.entry(BOMBCHUS.into())).or_insert(choice_id(chosen).into());
     }
-    // The bridge preset first: it won over the toggle.
-    for old in [BRIDGE_UP, BRIDGE_MEDALLIONS, TRIALS_DONE] {
+    // A preset first: it won over the toggle.
+    for old in OLD {
         // A choice's value is a string, so only a `true` or `false` is old.
         if !settings.get(old).is_some_and(Value::is_boolean) {
             continue;
         }
         let on = settings.remove(old) == Some(true.into());
-        let (id, value) = became(old).expect("an old name");
-        if on {
-            settings.entry(id.into()).or_insert(value.into());
+        if let Some((id, value)) = became(old, on) {
+            settings.entry(id.into()).or_insert(value);
         }
+    }
+    if settings.get(CLAIM_CHECK).is_some_and(Value::is_boolean) {
+        settings.remove(CLAIM_CHECK);
     }
     let on: Vec<&[&str]> = (STARTING.iter())
         .filter_map(|(id, words)| (settings.remove(*id)? == true).then_some(*words))
@@ -166,6 +235,79 @@ mod tests {
             "--setting ganons-trials=done"
         );
         assert_eq!(renamed("open-forest"), None);
+    }
+
+    #[test]
+    fn the_door_toggle_and_preset_become_the_door_of_time() {
+        let up = |old: &[(&str, bool)]| {
+            let mut s: Settings = (old.iter())
+                .map(|&(id, on)| (id.to_owned(), on.into()))
+                .collect();
+            upgrade(&mut s);
+            s
+        };
+        let door = |v: &str| Settings::from([(DOOR_OF_TIME.into(), v.into())]);
+        assert_eq!(up(&[(OPEN_DOOR, true)]), door("open"));
+        assert_eq!(up(&[(OPEN_DOOR, false)]), door("closed"));
+        assert_eq!(up(&[(DOOR_UP, true)]), door("open"));
+        // The preset opened the door whatever the toggle said.
+        assert_eq!(up(&[(DOOR_UP, true), (OPEN_DOOR, false)]), door("open"));
+        assert_eq!(up(&[(DOOR_UP, false), (OPEN_DOOR, false)]), door("closed"));
+        assert_eq!(up(&[(DOOR_UP, false)]), Settings::new());
+        let mut current = door("closed");
+        upgrade(&mut current);
+        assert_eq!(current, door("closed"));
+        assert_eq!(
+            renamed_as(OPEN_DOOR, false).unwrap(),
+            "--setting door-of-time=closed"
+        );
+        assert_eq!(renamed(DOOR_UP).unwrap(), "--setting door-of-time=open");
+    }
+
+    #[test]
+    fn the_carpenter_presets_become_the_gerudo_fortress() {
+        let up = |old: &[(&str, bool)]| {
+            let mut s: Settings = (old.iter())
+                .map(|&(id, on)| (id.to_owned(), on.into()))
+                .collect();
+            upgrade(&mut s);
+            s
+        };
+        let fortress = |v: &str| Settings::from([(GERUDO_FORTRESS.into(), v.into())]);
+        assert_eq!(up(&[(CARPENTERS_FREED, true)]), fortress("freed"));
+        assert_eq!(up(&[(CARPENTERS_FAST, true)]), fortress("fast"));
+        // Freed wins over Fast.
+        let both = up(&[(CARPENTERS_FAST, true), (CARPENTERS_FREED, true)]);
+        assert_eq!(both, fortress("freed"));
+        let off = up(&[(CARPENTERS_FAST, false), (CARPENTERS_FREED, false)]);
+        assert_eq!(off, Settings::new());
+        assert_eq!(
+            renamed(CARPENTERS_FREED).unwrap(),
+            "--setting gerudo-fortress=freed"
+        );
+    }
+
+    #[test]
+    fn the_zelda_preset_becomes_met_zelda() {
+        let mut s = Settings::from([(ZELDA_DONE.into(), true.into())]);
+        upgrade(&mut s);
+        assert_eq!(s, Settings::from([(MET_ZELDA.into(), true.into())]));
+        let mut off = Settings::from([(ZELDA_DONE.into(), false.into())]);
+        upgrade(&mut off);
+        assert_eq!(off, Settings::new());
+        assert_eq!(renamed(ZELDA_DONE).unwrap(), "--setting met-zelda=true");
+    }
+
+    #[test]
+    fn the_claim_check_preset_goes_with_a_note() {
+        for on in [true, false] {
+            let mut s = Settings::from([(CLAIM_CHECK.into(), on.into())]);
+            upgrade(&mut s);
+            assert_eq!(s, Settings::new());
+        }
+        assert_eq!(renamed(CLAIM_CHECK), None);
+        assert!(dropped(CLAIM_CHECK).unwrap().contains("pool"));
+        assert_eq!(dropped(BRIDGE_UP), None);
     }
 
     #[test]

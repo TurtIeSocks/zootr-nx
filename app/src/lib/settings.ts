@@ -124,7 +124,7 @@ export function setToggles(
 }
 
 /** The setting forcing `def` on, if one is: its parent while that's on,
- * or a choice whose pick forces it. */
+ * or a choice whose pick forces it, or forces one of its options. */
 export function forcer(
   def: SettingDef,
   settings: Settings,
@@ -132,7 +132,25 @@ export function forcer(
 ): SettingDef | undefined {
   const parent = schema.find((d) => d.id === def.parent);
   if (parent !== undefined && isOn(parent, settings, schema)) return parent;
-  return schema.find((d) => chosen(d, settings)?.forces.includes(def.id));
+  const forces = (word: string) =>
+    word === def.id || word.startsWith(`${def.id}=`);
+  return schema.find((d) => chosen(d, settings)?.forces.some(forces));
+}
+
+/** The option of choice `def` another choice's pick forces, as `id=option`
+ * in its `forces`, if one does. */
+export function forcedPick(
+  def: SettingDef,
+  settings: Settings,
+  schema: SettingDef[],
+): Choice | undefined {
+  if (def.kind.type !== "choice") return undefined;
+  const prefix = `${def.id}=`;
+  const word = schema
+    .flatMap((d) => chosen(d, settings)?.forces ?? [])
+    .find((w) => w.startsWith(prefix));
+  const id = word?.slice(prefix.length);
+  return def.kind.options.find((o) => o.id === id);
 }
 
 /** The toggle `def` needs on to do anything, while it's off. */
@@ -157,6 +175,22 @@ export const startForcers = (schema: SettingDef[], settings: Settings) =>
   schema.flatMap((def) => {
     const words = chosen(def, settings)?.starts ?? [];
     return words.length > 0 ? [{ def, words }] : [];
+  });
+
+/** Each setting whose value gives items by its own path, not the start
+ * inventory, with its name for the grid's lock ("Met Zelda", "Gerudo
+ * Fortress: Freed") and the start words it gives. */
+export const startGivers = (schema: SettingDef[], settings: Settings) =>
+  schema.flatMap((def) => {
+    const pick = chosen(def, settings);
+    const value =
+      def.kind.type === "toggle"
+        ? isOn(def, settings, schema) && "on"
+        : pick?.id;
+    const words = def.gives.find(([v]) => v === value)?.[1] ?? [];
+    if (words.length === 0) return [];
+    const name = pick ? `${def.label}: ${pick.label}` : def.label;
+    return [{ def, name, words }];
   });
 
 /** `start` holding each of `words` at least once. */
@@ -195,6 +229,8 @@ function chipOf(
   const { id, label } = def;
   if (unmet(def, settings, schema)) return null;
   if (def.kind.type === "choice") {
+    // A forced pick has none: the choice forcing it stands in.
+    if (forcedPick(def, settings, schema)) return null;
     const pick = chosen(def, settings);
     return pick && pick.id !== def.kind.default
       ? { id, label, value: pick.label }

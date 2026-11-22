@@ -325,6 +325,32 @@
               "Deku Shield"
             ]
           }
+        },
+        {
+          "place": "deku-tree-adult",
+          "rule": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "setting": "ageless-weapons"
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Deku Shield"
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Hylian Shield"
+                ]
+              }
+            ]
+          }
         }
       ],
       "forbid": [],
@@ -9050,6 +9076,10 @@
         {
           "place": "deku-tree-child",
           "rule": true
+        },
+        {
+          "place": "deku-tree-adult",
+          "rule": true
         }
       ],
       "forbid": [],
@@ -10414,6 +10444,95 @@
               }
             ]
           }
+        },
+        {
+          "place": "deku-tree-adult",
+          "rule": {
+            "any": [
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bomb Bag"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Bombchus (5)"
+                        ]
+                      },
+                      {
+                        "any": [
+                          {
+                            "setting": "bombchus=free"
+                          },
+                          {
+                            "all": [
+                              {
+                                "setting": "bombchus=bomb-bag"
+                              },
+                              {
+                                "count": 1,
+                                "items": [
+                                  "Progressive Bomb Bag"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Din's Fire"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "count": 1,
+                        "items": [
+                          "Magic Meter"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Bow"
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Fire Arrows"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
         }
       ],
       "forbid": [],
@@ -10610,6 +10729,10 @@
       "at": [
         {
           "place": "deku-tree-child",
+          "rule": true
+        },
+        {
+          "place": "deku-tree-adult",
           "rule": true
         }
       ],
@@ -20862,6 +20985,10 @@
         {
           "place": "gohma-room-child",
           "rule": true
+        },
+        {
+          "place": "gohma-room-adult",
+          "rule": true
         }
       ],
       "name": "Beat Gohma"
@@ -20942,6 +21069,10 @@
       "at": [
         {
           "place": "gohma-room-child",
+          "rule": true
+        },
+        {
+          "place": "gohma-room-adult",
           "rule": true
         }
       ],
@@ -21617,7 +21748,7 @@
                 ]
               },
               {
-                "setting": "carpenters-fast"
+                "setting": "gerudo-fortress=fast"
               }
             ]
           }
@@ -22696,6 +22827,105 @@
       "to": "kakariko-village-child"
     },
     {
+      "from": "deku-tree-adult",
+      "rule": true,
+      "to": "anywhere-adult"
+    },
+    {
+      "from": "deku-tree-adult",
+      "rule": {
+        "all": [
+          {
+            "all": [
+              {
+                "count": 1,
+                "items": [
+                  "Hylian Shield"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Bow"
+                ]
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Magic Meter"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Din's Fire"
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Magic Meter"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Progressive Bow"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Fire Arrows"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Master Sword"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "setting": "ageless-weapons"
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Kokiri Sword"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "to": "gohma-room-adult"
+    },
+    {
+      "from": "deku-tree-adult",
+      "rule": true,
+      "to": "kokiri-forest-adult"
+    },
+    {
       "from": "deku-tree-child",
       "rule": true,
       "to": "anywhere-child"
@@ -23006,6 +23236,11 @@
       "to": "sacred-forest-meadow-adult"
     },
     {
+      "from": "ganondorf-room-adult",
+      "rule": true,
+      "to": "anywhere-adult"
+    },
+    {
       "from": "ganons-castle-adult",
       "rule": true,
       "to": "anywhere-adult"
@@ -23119,6 +23354,11 @@
       "from": "gerudo-valley-adult",
       "rule": true,
       "to": "hyrule-field-adult"
+    },
+    {
+      "from": "gohma-room-adult",
+      "rule": true,
+      "to": "anywhere-adult"
     },
     {
       "from": "gohma-room-child",
@@ -23788,6 +24028,211 @@
     },
     {
       "from": "inside-ganons-castle-adult",
+      "rule": {
+        "all": [
+          {
+            "all": [
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Hover Boots"
+                    ]
+                  },
+                  {
+                    "all": [
+                      {
+                        "all": [
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Ocarina"
+                            ]
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Song of Time"
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "count": 1,
+                        "items": [
+                          "Progressive Hookshot"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Magic Meter"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Bow"
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Din's Fire"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Fire Arrows"
+                    ]
+                  }
+                ]
+              },
+              {
+                "any": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Bottle"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Ruto's Letter"
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Megaton Hammer"
+                ]
+              },
+              {
+                "count": 3,
+                "items": [
+                  "Goron Bracelet",
+                  "Progressive Strength Upgrade"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Bow"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Magic Meter"
+                    ]
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Lens of Truth"
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Hover Boots"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Mirror Shield"
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "count": 1,
+                    "items": [
+                      "Bombchus (5)"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "setting": "bombchus=free"
+                      },
+                      {
+                        "all": [
+                          {
+                            "setting": "bombchus=bomb-bag"
+                          },
+                          {
+                            "count": 1,
+                            "items": [
+                              "Progressive Bomb Bag"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 2,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              }
+            ]
+          },
+          {
+            "count": 1,
+            "items": [
+              "Magic Meter"
+            ]
+          },
+          {
+            "count": 1,
+            "items": [
+              "Progressive Bow"
+            ]
+          },
+          {
+            "count": 1,
+            "items": [
+              "Light Arrows"
+            ]
+          },
+          {
+            "count": 1,
+            "items": [
+              "Master Sword"
+            ]
+          }
+        ]
+      },
+      "to": "ganondorf-room-adult"
+    },
+    {
+      "from": "inside-ganons-castle-adult",
       "rule": true,
       "to": "ganons-castle-adult"
     },
@@ -23927,6 +24372,13 @@
       "from": "kokiri-forest-adult",
       "rule": true,
       "to": "anywhere-adult"
+    },
+    {
+      "from": "kokiri-forest-adult",
+      "rule": {
+        "setting": "adult-deku-tree"
+      },
+      "to": "deku-tree-adult"
     },
     {
       "from": "kokiri-forest-adult",
@@ -24293,7 +24745,7 @@
       "rule": {
         "any": [
           {
-            "setting": "open-door-of-time"
+            "setting": "door-of-time=open"
           },
           {
             "all": [
@@ -25083,11 +25535,13 @@
     "fire-temple-adult",
     "forest-temple-adult",
     "ganons-castle-adult",
+    "ganondorf-room-adult",
     "gerudo-fortress-adult",
     "gerudo-training-ground-adult",
     "gerudo-valley-adult",
     "place-b13887e8-child",
     "gohma-room-child",
+    "gohma-room-adult",
     "goron-city-adult",
     "goron-city-child",
     "graveyard-adult",
@@ -25101,6 +25555,7 @@
     "inside-ganons-castle-adult",
     "jabu-jabu-child",
     "deku-tree-child",
+    "deku-tree-adult",
     "kakariko-village-adult",
     "kakariko-village-adult-alternative-adult",
     "kakariko-village-child",

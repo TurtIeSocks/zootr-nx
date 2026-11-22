@@ -303,7 +303,7 @@ name = "Gerudo Membership Card"
 place = "gerudo-fortress-adult"
 era = "adult"
 item = "item:gerudo-card"
-needs = "hookshot or setting:carpenters-fast"
+needs = "hookshot or setting:gerudo-fortress=fast"
 
 # The Kokiri shop.
 [[source]]
@@ -354,7 +354,7 @@ name = "Claim Check"
 place = "death-mountain-trail-adult"
 era = "adult"
 item = "item:claim-check"
-needs = "(zeldas-lullaby or silver-scale) and (blue-fire or beat:morpha) and (setting:carpenters-freed or longshot or eponas-song) and (explosives or hammer)"
+needs = "(zeldas-lullaby or silver-scale) and (blue-fire or beat:morpha) and (setting:gerudo-fortress=freed or longshot or eponas-song) and (explosives or hammer)"
 
 # The bean seller, past the boulders at the river's mouth.
 [[source]]

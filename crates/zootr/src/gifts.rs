@@ -23,7 +23,7 @@ pub(crate) use later::scene_marks;
 pub use lines::lines;
 pub use lookup::*;
 pub use pedestal::gives as pedestal_gives;
-pub use pocket::pocket;
+pub use pocket::{pinned, pocket};
 pub use table::GIFTS;
 
 use cutscene::{cut, stay};
@@ -47,7 +47,7 @@ use crate::flows::{
 };
 use crate::known::{Name, actor, field, flag, flow, item, scene};
 use crate::settings::{
-    DUNGEON_REWARDS, HUNDRED_TOKENS, MASTER_SWORD, MERCHANTS, NPC_GIFTS, OPEN_DOOR, RUNNING_RACE,
+    DOOR_OPEN, DUNGEON_REWARDS, HUNDRED_TOKENS, MASTER_SWORD, MERCHANTS, NPC_GIFTS, RUNNING_RACE,
     SONGS, TRADE_CHAIN,
 };
 use crate::{cows, dampe, grant, pickups, scrubs, shops, starting};
@@ -308,7 +308,7 @@ impl Gift {
     /// or a scene a cutscene skip cut.
     fn lost(&self, on: &BTreeSet<String>, rewrites: &Rewrites) -> Result<bool> {
         match self.how {
-            How::Pedestal => Ok(on.contains(OPEN_DOOR)),
+            How::Pedestal => Ok(on.contains(DOOR_OPEN)),
             _ => self.skipped(rewrites),
         }
     }

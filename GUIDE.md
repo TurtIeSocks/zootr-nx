@@ -30,7 +30,7 @@ The builds aren't signed yet, so macOS and Windows warn the first time:
 
 | Step | What happens |
 |---|---|
-| Shuffle | Moves items to new places, from chests out to whatever the Shuffles and Dungeons settings add, with glitchless logic so the seed can be beaten |
+| Shuffle | Moves items to new places, from chests out to whatever the Shuffles settings add, with glitchless logic so the seed can be beaten |
 | Generate | Writes a mod folder with only the game files it changed, a code patch for progressive items, and a spoiler log |
 | Install | Writes the mod into each target's mod folder, plus any settings lines the target needs to load it |
 | Track | Watches the running game and ticks off checks and items as Link finds them, on a target zootr can read the game from (see `bridge`) |
@@ -179,15 +179,18 @@ Changes to how Link plays. All start off.
 
 ### Logic & access
 
+Its sections are Logic, Win Condition, Area Access and Entrances.
+
 | Setting | What it does |
 |---|---|
-| Open forest | Mido and the forest exit stop blocking Link, as child or adult |
-| Open Kakariko gate | The Death Mountain trail is open from the start |
 | Logic | Glitchless places each item where Link can reach it without that item, so a seed can always be beaten. No logic places items anywhere |
-| Open Door of Time | The Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time |
+| Gerudo Fortress | Normal has Link free all four carpenters. Fast frees all four with the first. Freed starts with them free, the membership card in hand and the valley bridge up. Their thieves still stand, and beating one frees no one twice |
+| Met Zelda | Start with Zelda met: her letter in hand, her lullaby learned and Talon and Malon at the ranch. Impa's and Malon's checks come at the start |
 | Rainbow bridge | Vanilla raises the bridge once Zelda has given Link the Light Arrows. Six medallions raises it once he holds all six. Open has it standing from the start |
 | Ganon's trials | All six, or done: every barrier in Ganon's Castle down from the start |
-| Quest progress | Start with a quest step done: Zelda met, the Door of Time open, the carpenters freed, or the Claim Check |
+| Open forest | Mido and the forest exit stop blocking Link, as child or adult |
+| Open Kakariko gate | The Death Mountain trail is open from the start |
+| Door of Time | Open, the default, has the door standing open from the start, so Link can grow up without the stones or the Song of Time. Closed opens it as in the game |
 
 ### Inventory
 
@@ -213,13 +216,15 @@ The Save Editor's item grid and two of its Status fields, on a new game. Click a
 
 ### Dungeons
 
+A section of the Shuffles page.
+
 | Setting | What it does |
 |---|---|
 | Dungeon rewards | The Spiritual Stones and five medallions become checks. Light stays with Rauru |
 | Maps and compasses | Each dungeon's map and compass turn up in a random chest of that dungeon |
+| Boss heart containers | The heart container each of the eight bosses leaves behind is a check |
 | Keys | Start with every dungeon's small keys and boss key, and their 43 chests become checks |
 | Fortress keys | Start with the four Gerudo Fortress keys, and the keys the thieves carry become checks |
-| Boss heart containers | The heart container each of the eight bosses leaves behind is a check |
 
 ### Cutscenes
 

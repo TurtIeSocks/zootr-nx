@@ -13,7 +13,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
-import { chosen, isOn, type Patch } from "@/lib/settings";
+import { chosen, forcedPick, isOn, type Patch } from "@/lib/settings";
 import { Row } from "@/settings/row";
 import {
   controlId,
@@ -50,14 +50,18 @@ export function SettingRow({ def }: SettingRowProps) {
 export interface LockedByProps {
   /** The setting that forces this one on. */
   parent: SettingDef;
+  /** The option it forces, for a choice. */
+  pick?: string;
 }
 
-/** "On because of Parent", under a locked setting. */
-export function LockedBy({ parent }: LockedByProps) {
+/** "On because of Parent", or "Pick because of Parent" for a choice, under
+ * a locked setting. */
+export function LockedBy({ parent, pick }: LockedByProps) {
   return (
     <p className="mt-1.5 flex items-center gap-1 text-ink-faint text-xs">
       <Link2 className="size-3" />
-      On because of <b className="font-medium text-ink-muted">{parent.label}</b>
+      {pick ?? "On"} because of{" "}
+      <b className="font-medium text-ink-muted">{parent.label}</b>
     </p>
   );
 }
@@ -82,6 +86,9 @@ function Needs({ needed }: NeedsProps) {
 /** The row around a setting's control, inside its request. */
 function SettingRowFrame({ def }: SettingRowProps) {
   const parent = useLockedBy(def);
+  const pick = useConfig(
+    (s) => forcedPick(def, s.config.settings, s.schema)?.label,
+  );
   const needed = useUnmet(def);
   const changed = useDrifted(def.id);
   return (
@@ -93,7 +100,7 @@ function SettingRowFrame({ def }: SettingRowProps) {
       locked={parent !== undefined || needed !== undefined}
       under={
         <>
-          {parent && <LockedBy parent={parent} />}
+          {parent && <LockedBy parent={parent} pick={pick} />}
           {needed && <Needs needed={needed} />}
           <RequestError className="mt-1.5" />
         </>
@@ -137,10 +144,14 @@ function SettingControl({ def }: SettingRowProps) {
   const on = useConfig((s) => isOn(def, s.config.settings, s.schema));
   const value = useConfig((s) => chosen(def, s.config.settings)?.id);
   const locked = useLockedBy(def) !== undefined;
+  const forced = useConfig(
+    (s) => forcedPick(def, s.config.settings, s.schema)?.id,
+  );
   const off = useUnmet(def) !== undefined;
   // Unmet, a setting does nothing, so it shows off (no pick for a choice)
-  // while its stored value waits for the setting it needs.
-  const shown = off ? undefined : value;
+  // while its stored value waits for the setting it needs. Forced, it
+  // shows the forced pick.
+  const shown = forced ?? (off ? undefined : value);
   const set = (value: boolean | string) =>
     run(() => changeSettings({ [def.id]: value }));
   const { kind } = def;
@@ -162,13 +173,13 @@ function SettingControl({ def }: SettingRowProps) {
         aria-labelledby={labelId(def)}
         options={kind.options}
         value={shown}
-        disabled={off}
+        disabled={off || locked}
         onValueChange={set}
       />
     );
   }
   return (
-    <Select value={shown ?? ""} disabled={off} onValueChange={set}>
+    <Select value={shown ?? ""} disabled={off || locked} onValueChange={set}>
       <SelectTrigger id={controlId(def)}>
         <SelectValue placeholder="Off" />
       </SelectTrigger>

@@ -11,175 +11,26 @@ use serde_json::Value;
 use crate::cutscenes::{AREAS, Skips};
 use crate::entrances::Doors;
 use crate::keys;
-use crate::presets::{self, CARPENTERS_FAST, CARPENTERS_FREED, PRESETS};
+use crate::presets::{self, PRESETS};
 use crate::starting;
 
 mod choices;
+mod layout;
 mod new_game;
 mod upgrade;
 pub use choices::{
-    AdultJabu, Bombchus, Bridge, ChestSize, DungeonEntrances, DungeonKeys, FortressKeys, IceTraps,
-    Keys, Logic, ScrubPrice, ShopSlots, StartingAge, Trials,
+    AdultJabu, Bombchus, Bridge, ChestSize, DoorOfTime, DungeonEntrances, DungeonKeys,
+    FortressKeys, GerudoFortress, IceTraps, Keys, Logic, ScrubPrice, ShopSlots, StartingAge,
+    Trials,
 };
+pub use layout::{GROUPS, Place, group, place};
 pub use new_game::NewGame;
 pub(crate) use new_game::value_word;
 pub(crate) use new_game::{toggles, toggles_on};
-pub(crate) use upgrade::{OLD_PRESETS, OLD_TOGGLES, renamed, upgrade};
+pub(crate) use upgrade::{OLD_PRESETS, OLD_TOGGLES, dropped, renamed, renamed_as, upgrade};
 
 /// Setting values by id. A missing id takes its default.
 pub type Settings = BTreeMap<String, Value>;
-
-/// The settings panels, by name.
-pub mod group {
-    /// How items are placed, and what stands open from the start.
-    pub const LOGIC: &str = "Logic & Access";
-    /// Which places become checks, and what the pool holds.
-    pub const SHUFFLES: &str = "Shuffles";
-    /// What a dungeon or its boss gives, and its keys.
-    pub const DUNGEONS: &str = "Dungeons";
-    /// Changes to how Link plays and what plays out: nothing shuffled,
-    /// nothing opened.
-    pub const ENHANCEMENTS: &str = "Enhancements";
-    /// What a new save starts holding or having done.
-    pub const INVENTORY: &str = "Inventory";
-}
-
-/// Every panel, in the order the app lists them.
-pub const GROUPS: [&str; 5] = [
-    group::LOGIC,
-    group::SHUFFLES,
-    group::DUNGEONS,
-    group::ENHANCEMENTS,
-    group::INVENTORY,
-];
-
-/// Where a setting shows: its panel, and the section of that panel.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Place {
-    pub group: &'static str,
-    pub section: &'static str,
-    /// A line under the section's title.
-    pub about: &'static str,
-    /// The section's toggles show as one checklist, not a row each.
-    pub list: bool,
-}
-
-/// Every section, by panel.
-pub mod place {
-    use super::{Place, group};
-
-    const fn rows(group: &'static str, section: &'static str, about: &'static str) -> Place {
-        Place {
-            group,
-            section,
-            about,
-            list: false,
-        }
-    }
-
-    const fn list(group: &'static str, section: &'static str, about: &'static str) -> Place {
-        Place {
-            group,
-            section,
-            about,
-            list: true,
-        }
-    }
-
-    pub const RULES: Place = rows(
-        group::LOGIC,
-        "Rules",
-        "How items are placed and how the game is won",
-    );
-    pub const WIN_CONDITION: Place = rows(
-        group::LOGIC,
-        "Win Condition",
-        "What stands between Link and Ganondorf",
-    );
-    pub const OPEN_AREAS: Place = rows(
-        group::LOGIC,
-        "Open Areas",
-        "What stands open from the start",
-    );
-    pub const QUEST: Place = list(
-        group::LOGIC,
-        "Quest Progress",
-        "Story steps a new game starts with done",
-    );
-    pub const CHECKS: Place = rows(
-        group::SHUFFLES,
-        "Checks",
-        "Which places and people give a check",
-    );
-    pub const BREAKABLES: Place = rows(
-        group::SHUFFLES,
-        "Breakables",
-        "Things Link breaks or cuts that give a check once",
-    );
-    pub const ITEM_POOL: Place = rows(
-        group::SHUFFLES,
-        "Item Pool",
-        "Items that join the pool or change how it gives them",
-    );
-    pub const HINTS: Place = rows(group::SHUFFLES, "Hints", "What gossip stones tell Link");
-    pub const REWARDS: Place = rows(group::DUNGEONS, "Rewards", "What bosses and dungeons give");
-    pub const KEYS: Place = rows(
-        group::DUNGEONS,
-        "Keys",
-        "Where small keys, boss keys and the fortress keys can land",
-    );
-    pub const ENTRANCES: Place = rows(
-        group::DUNGEONS,
-        "Entrances",
-        "Where each dungeon's door leads",
-    );
-    pub const COMFORT: Place = rows(
-        group::ENHANCEMENTS,
-        "Comfort",
-        "Fewer stops, pop-ups and waits",
-    );
-    pub const GAMEPLAY: Place = rows(
-        group::ENHANCEMENTS,
-        "Gameplay",
-        "Changes to what Link can do",
-    );
-    pub const CUTSCENES: Place = rows(
-        group::ENHANCEMENTS,
-        "Cutscenes",
-        "Skip the cutscenes that only play, all at once or by name",
-    );
-    pub const CUTSCENE_AREAS: Place = list(
-        group::ENHANCEMENTS,
-        "Cutscenes by Area",
-        "Every cutscene in an area that only plays, changing nothing",
-    );
-    /// The grid, which draws on its own rather than as a section.
-    pub const START: Place = rows(
-        group::INVENTORY,
-        "Starting Inventory",
-        "What a new game starts with",
-    );
-
-    /// Every section, in the order the app shows them.
-    pub const ALL: [Place; 16] = [
-        RULES,
-        WIN_CONDITION,
-        OPEN_AREAS,
-        QUEST,
-        CHECKS,
-        BREAKABLES,
-        ITEM_POOL,
-        HINTS,
-        REWARDS,
-        KEYS,
-        ENTRANCES,
-        COMFORT,
-        GAMEPLAY,
-        CUTSCENES,
-        CUTSCENE_AREAS,
-        START,
-    ];
-}
 
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -200,6 +51,10 @@ pub struct SettingDef {
     pub section_about: &'static str,
     /// Its section is a checklist: see [`Place::list`].
     pub list: bool,
+    /// Start inventory words a value gives outside the start inventory, as
+    /// `(value, words)`: a toggle's `on`, else an option's id. The grid
+    /// shows them locked: see [`GIVES`].
+    pub gives: Vec<(String, Vec<&'static str>)>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -226,7 +81,8 @@ pub enum Kind {
 pub struct Choice {
     pub id: String,
     pub label: &'static str,
-    /// Toggles this pick turns on, shown locked.
+    /// Toggles this pick turns on, and other choices' picks it makes as
+    /// `id=option`, shown locked.
     pub forces: Vec<&'static str>,
     /// Start inventory words this pick gives, shown held.
     pub starts: Vec<&'static str>,
@@ -303,6 +159,17 @@ pub(crate) fn forced(
     (toggles, starts)
 }
 
+/// `settings` with each choice a pick forces set to the forced option.
+pub(crate) fn with_picks(schema: &[SettingDef], settings: &Settings) -> Settings {
+    let mut out = settings.clone();
+    for word in forced(schema, settings).0 {
+        if let Some((id, option)) = word.split_once('=') {
+            out.insert(id.into(), option.into());
+        }
+    }
+    out
+}
+
 /// `settings` with a random starting age rolled from `seed`, and whether
 /// it was.
 pub fn roll_age(settings: &Settings, seed: u64) -> (Settings, bool) {
@@ -345,8 +212,16 @@ pub(crate) const AGELESS_ITEMS: &str = "ageless-items";
 pub(crate) const MAGIC_WITH_FIRST_ITEM: &str = "magic-with-first-item";
 const QUIET_NAVI: &str = "quiet-navi";
 pub(crate) const QUIET_ENEMIES: &str = "quiet-enemies";
-pub(crate) const OPEN_DOOR: &str = "open-door-of-time";
+pub(crate) const DOOR_OF_TIME: &str = "door-of-time";
+/// The rule word for [`DOOR_OF_TIME`] open ([`value_word`]), which Starting
+/// Age's Adult also forces.
+pub(crate) const DOOR_OPEN: &str = "door-of-time=open";
 pub(crate) const STARTING_AGE: &str = "starting-age";
+pub(crate) const GERUDO_FORTRESS: &str = "gerudo-fortress";
+pub(crate) const MET_ZELDA: &str = "met-zelda";
+/// The rule words for [`GERUDO_FORTRESS`] Fast and Freed ([`value_word`]).
+pub(crate) const FORTRESS_FAST: &str = "gerudo-fortress=fast";
+pub(crate) const FORTRESS_FREED: &str = "gerudo-fortress=freed";
 pub(crate) const SCRUBS: &str = "scrubs";
 const SCRUB_PRICE: &str = "scrub-price";
 pub(crate) const NPC_GIFTS: &str = "npc-gifts";
@@ -433,6 +308,7 @@ fn toggle(
         section: place.section,
         section_about: place.about,
         list: place.list,
+        gives: Vec::new(),
     }
 }
 
@@ -523,14 +399,14 @@ pub fn schema() -> Vec<SettingDef> {
     let mut all = preset_defs
         .chain([choice(
             LOGIC,
-            place::RULES,
+            place::LOGIC,
             "Logic",
             "Glitchless places each item where Link can reach it without that item, so a seed can always be beaten. No logic places items anywhere, so a seed may not be",
             Logic::label,
         )])
         .chain([choice(
             ADULT_JABU,
-            place::OPEN_AREAS,
+            place::AREA_ACCESS,
             "Adult Jabu-Jabu",
             "Jabu-Jabu waits in the frozen fountain for adult Link too, from the start or once the Water sage is done. Adult Link walks in when his mouth is open (the Jabu-Jabu open preset), but only child Link's Boomerang beats the tentacles and Barinade. With dungeon entrances shuffled, his door leads wherever it leads for child Link",
             AdultJabu::label,
@@ -564,19 +440,33 @@ pub fn schema() -> Vec<SettingDef> {
         .chain([forcing(
             choice(
                 STARTING_AGE,
-                place::RULES,
+                place::LOGIC,
                 "Starting Age",
                 "How old Link is on a new file. Adult wakes in the Temple of Time with the Master Sword, and opens the Door of Time and the forest, so he can go back to child and walk out. Random rolls one from the seed",
                 StartingAge::label,
             ),
             StartingAge::forces,
         )])
-        .chain([default_on(toggle(
-                OPEN_DOOR,
-                place::RULES,
-                "Open Door of Time",
-                "The Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, whose gift comes at the start, and can put the sword back any time",
-            ))])
+        .chain([choice(
+            GERUDO_FORTRESS,
+            place::LOGIC,
+            "Gerudo Fortress",
+            "How the four carpenters in the Gerudo Fortress start. With Normal, Link frees all four, as in the game. With Fast, freeing any one frees all four and earns the membership card, and the other thieves still guard their cells. With Freed, all four are free from the start, with the membership card in hand, the guards standing down and the valley bridge up. Their thieves still stand, and beating one opens her cell without freeing anyone twice",
+            GerudoFortress::label,
+        )])
+        .chain([toggle(
+            MET_ZELDA,
+            place::LOGIC,
+            "Met Zelda",
+            "Link starts having met Zelda, with her letter in hand, and Talon and Malon back at Lon Lon Ranch. Her letter's check holds the letter. Impa's check comes at the start (Zelda's Lullaby, unless Songs are shuffled), and Malon's does too when NPC gifts are shuffled. Zelda's Letter and the Weird Egg have been removed from the pool",
+        )])
+        .chain([choice(
+            DOOR_OF_TIME,
+            place::AREA_ACCESS,
+            "Door of Time",
+            "With Open, the Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, whose gift comes at the start, and can put the sword back any time. With Closed, it opens as in the game, once Link holds the three stones and the Ocarina of Time and plays the Song of Time",
+            DoorOfTime::label,
+        )])
         .chain([default_on(toggle(
                 SCRUBS,
                 place::CHECKS,
@@ -604,7 +494,7 @@ pub fn schema() -> Vec<SettingDef> {
             ))])
         .chain([toggle(
                 DUNGEON_REWARDS,
-                place::REWARDS,
+                place::DUNGEONS,
                 "Dungeon Rewards",
                 "The Spiritual Stones and five medallions become checks, given by the scene after each boss. Light stays with Rauru",
             )])
@@ -616,22 +506,22 @@ pub fn schema() -> Vec<SettingDef> {
             )])
         .chain([toggle(
             MAPS_COMPASSES,
-            place::REWARDS,
+            place::DUNGEONS,
             "Maps and Compasses",
             "Each dungeon's map and compass turn up in a random chest of that dungeon. Keys stay where they are",
         )])
         .chain([choice(
             KEYS,
-            place::KEYS,
+            place::DUNGEONS,
             "Keys",
             "With Start, Link holds every dungeon's small keys and boss key from the start. With Key rings, each dungeon's small keys come as one ring that opens all its small-key doors. With Keysanity, each small key comes on its own. Rings, small keys and boss keys turn up in random chests and gifts, never in their own dungeon. The 43 chests that held a key become checks. With Start each brings a Red Rupee to the pool. With Key rings, one of a dungeon's rupees becomes its ring and another its boss key. The two keys lying in the open stay where they are",
             DungeonKeys::label,
         )])
         .chain([choice(
             FORTRESS_KEYS,
-            place::KEYS,
+            place::DUNGEONS,
             "Fortress Keys",
-            "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks. Can't be used with Carpenters freed, since its thieves are already beaten",
+            "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks",
             FortressKeys::label,
         )])
         .chain([forcing(
@@ -691,7 +581,7 @@ pub fn schema() -> Vec<SettingDef> {
             RUNNING_RACE,
             place::CHECKS,
             "Running Man's Race",
-            "The running man's prize for Link's first win becomes a check. Later wins still pay a Red Rupee. Logic expects it only with Carpenters freed, since he offers the race once the valley bridge is fixed",
+            "The running man's prize for Link's first win becomes a check. Later wins still pay a Red Rupee. Logic expects it only with Gerudo Fortress Freed, since he offers the race once the valley bridge is fixed",
         )])
         .chain([toggle(
             SKULLTULAS,
@@ -701,7 +591,7 @@ pub fn schema() -> Vec<SettingDef> {
         )])
         .chain([toggle(
             BOSS_HEARTS,
-            place::REWARDS,
+            place::DUNGEONS,
             "Boss Heart Containers",
             "The heart container each of the eight bosses leaves behind is a check",
         )])
@@ -836,12 +726,65 @@ pub fn schema() -> Vec<SettingDef> {
         .chain(named)
         .chain(areas)
         .collect::<Vec<_>>();
-    // Stable, so each section keeps the order the chain gives it.
+    for d in &mut all {
+        d.gives = gives(d);
+    }
+    // Stable, so each section keeps the order the chain gives it, bar
+    // those `ORDER` lists.
     all.sort_by_key(|d| {
-        (place::ALL.iter()).position(|p| p.group == d.group && p.section == d.section)
+        let section = place::ALL
+            .iter()
+            .position(|p| p.group == d.group && p.section == d.section);
+        (section, ORDER.iter().position(|id| *id == d.id))
     });
     all
 }
+
+/// The items a setting's value starts Link with by its own path, not the
+/// start inventory, as rule word ([`value_word`], or a toggle's id) and
+/// start words: Met Zelda's letter, and Gerudo Fortress
+/// Freed's membership card.
+const GIVES: [(&str, &[&str]); 2] = [
+    (MET_ZELDA, &["zeldas-letter"]),
+    (FORTRESS_FREED, &["gerudo-card"]),
+];
+
+/// `def`'s [`SettingDef::gives`], from [`GIVES`].
+fn gives(def: &SettingDef) -> Vec<(String, Vec<&'static str>)> {
+    let values: Vec<String> = match &def.kind {
+        Kind::Toggle { .. } => vec![new_game::ON.into()],
+        Kind::Choice { options, .. } => options.iter().map(|o| o.id.clone()).collect(),
+        Kind::Inventory { .. } => vec![],
+    };
+    let word = |value: &str| match def.kind {
+        Kind::Toggle { .. } => def.id.clone(),
+        _ => value_word(&def.id, value),
+    };
+    (values.into_iter())
+        .filter_map(|v| {
+            let (_, words) = GIVES.iter().find(|(w, _)| *w == word(&v))?;
+            Some((v, words.to_vec()))
+        })
+        .collect()
+}
+
+/// The rows of the sections that mix presets and settings, or settings
+/// from far apart in [`schema`], in the order they show.
+const ORDER: [&str; 13] = [
+    presets::OPEN_FOREST,
+    presets::KAKARIKO_GATE,
+    presets::KING_ZORA_MOVED,
+    presets::JABU_OPEN,
+    ADULT_JABU,
+    presets::OPEN_WATERFALL,
+    presets::ADULT_DEKU_TREE,
+    DOOR_OF_TIME,
+    DUNGEON_REWARDS,
+    MAPS_COMPASSES,
+    BOSS_HEARTS,
+    KEYS,
+    FORTRESS_KEYS,
+];
 
 #[cfg(test)]
 mod tests {
@@ -855,6 +798,23 @@ mod tests {
     }
 
     #[test]
+    fn met_zelda_and_freed_carpenters_give_their_items_locked() {
+        let gives = |id: &str| schema().into_iter().find(|d| d.id == id).unwrap().gives;
+        let met = vec![("on".to_owned(), vec!["zeldas-letter"])];
+        assert_eq!(gives(MET_ZELDA), met);
+        let freed = vec![("freed".to_owned(), vec!["gerudo-card"])];
+        assert_eq!(gives(GERUDO_FORTRESS), freed);
+        let given: usize = schema().iter().map(|d| d.gives.len()).sum();
+        assert_eq!(given, GIVES.len());
+        for (_, words) in GIVES {
+            assert!(
+                words.iter().all(|w| starting::parse(w).is_ok()),
+                "{words:?}"
+            );
+        }
+    }
+
+    #[test]
     fn each_setting_sits_in_its_section() {
         let at = |id: &str| {
             let d = schema().into_iter().find(|d| d.id == id).unwrap();
@@ -862,19 +822,33 @@ mod tests {
         };
         let is = |p: Place| (p.group, p.section);
         assert_eq!(at(CHEST_SIZE), is(place::COMFORT));
-        assert_eq!(at("open-forest"), is(place::OPEN_AREAS));
-        assert_eq!(at("claim-check"), is(place::QUEST));
         assert_eq!(at(starting::SETTING), is(place::START));
         assert_eq!(at(SHOP_SLOTS), is(place::CHECKS));
         assert_eq!(at(ICE_TRAPS), is(place::CHECKS));
         assert_eq!(at(PROGRESSIVE), is(place::ITEM_POOL));
         assert_eq!(at(HINTS), is(place::HINTS));
-        assert_eq!(at(KEYS), is(place::KEYS));
         assert_eq!(at(BUNNY_HOOD), is(place::GAMEPLAY));
         assert_eq!(at(AGELESS_ITEMS), is(place::GAMEPLAY));
         assert_eq!(at(SKIP_ALL), is(place::CUTSCENES));
-        assert_eq!(at(BRIDGE), is(place::WIN_CONDITION));
-        assert_eq!(at(TRIALS), is(place::WIN_CONDITION));
+        assert_eq!(at(DUNGEON_ENTRANCES), is(place::ENTRANCES));
+        // The Logic & Access sections and Shuffles' Dungeons, row by row.
+        let rows = |p: Place| {
+            (schema().into_iter())
+                .filter(|d| (d.group, d.section) == is(p))
+                .map(|d| d.id)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            rows(place::LOGIC),
+            [LOGIC, STARTING_AGE, GERUDO_FORTRESS, MET_ZELDA]
+        );
+        assert_eq!(rows(place::WIN_CONDITION), [BRIDGE, TRIALS]);
+        assert_eq!(rows(place::AREA_ACCESS), ORDER[..8]);
+        assert_eq!(rows(place::DUNGEONS), ORDER[8..]);
+        assert_eq!(rows(place::ENTRANCES), [DUNGEON_ENTRANCES]);
+        assert_eq!(place::ENTRANCES.group, group::LOGIC);
+        assert_eq!(place::DUNGEONS.group, group::SHUFFLES);
+        assert!(!GROUPS.contains(&"Dungeons"));
     }
 
     #[test]

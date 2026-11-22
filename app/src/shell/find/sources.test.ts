@@ -31,6 +31,7 @@ const def = (over: Partial<SettingDef> = {}): SettingDef => ({
   section: "Fake section",
   section_about: "",
   list: false,
+  gives: [],
   ...over,
 });
 

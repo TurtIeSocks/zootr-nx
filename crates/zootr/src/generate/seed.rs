@@ -16,7 +16,7 @@ use crate::rules::{self, Book, Ctx, Have, Need};
 use crate::settings::{self, DungeonEntrances, Logic, NewGame, Settings};
 use crate::shuffle::{self, Fixed};
 use crate::world::Era;
-use crate::{checks, fill, gamedata, hints, ice_traps, icons, places, steps};
+use crate::{checks, fill, gamedata, gifts, hints, ice_traps, icons, places, steps};
 
 /// How many door layouts a seed tries before it gives up. About one in
 /// twelve rolled layouts can be beaten with Ganon's Castle in place
@@ -129,6 +129,10 @@ pub fn shuffle(
         .keys(new_game.keys)
         .foreign(&new_game.foreign);
     let mut spots: Vec<Spot> = placements.iter().map(|p| Spot::new(p, &names)).collect();
+    let given = gifts::pocket(&new_game.on);
+    spots
+        .iter_mut()
+        .for_each(|s| s.given = given.contains(&s.hash));
     places::fill(romfs, &mut spots)?;
     spots.sort_by(|a, b| (&a.area_name, a.name(), a.hash).cmp(&(&b.area_name, b.name(), b.hash)));
     let hints = match (new_game.hints, &filled) {

@@ -10,7 +10,7 @@ use crate::known::item;
 use crate::narrowing::{Let, allowed, asks_at, shuffleable};
 use crate::progressive::Lines;
 use crate::rng::Rng;
-use crate::settings::NewGame;
+use crate::settings::{MET_ZELDA, NewGame};
 use crate::starter_bags;
 use crate::starting;
 use crate::{ammo, cows, gifts, presets, progressive};
@@ -111,6 +111,25 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
         }
         placed.push(Placement { check, item });
     }
+    let open = Let::of(new_game);
+    // The story items a setting starts Link with stay at their checks, so
+    // the pool holds no second.
+    let mut pins = Vec::new();
+    for (hash, item) in gifts::pinned(&new_game.on) {
+        match fixed.get(&hash) {
+            Some(own) if own == item => continue,
+            Some(own) => bail!("check {hash} holds {item} with this game's settings, not {own}"),
+            None => {}
+        }
+        let check = checks
+            .iter()
+            .find(|c| c.hash == hash && shuffleable(c, open));
+        if let Some(check) = check {
+            placed.push(Placement { check, item });
+            pins.push(hash);
+        }
+    }
+    let placed_at = |hash: &u64| fixed.contains_key(hash) || pins.contains(hash);
     // Gifts come in a fixed order, Saria's first, so they keep their own
     // item rather than a line's first level they couldn't swap.
     let own = |c: &'a ItemCheck| match gifts::is_gift(c) {
@@ -121,9 +140,8 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
     // too: only chests could take it off its hands.
     let keeps = |c: &'a ItemCheck| {
         let held = allowed(c, level(keys::pooled(c)), new_game.progressive);
-        new_game.keep_chests && (!gifts::is_gift(c) || !held) && !fixed.contains_key(&c.hash)
+        new_game.keep_chests && (!gifts::is_gift(c) || !held) && !placed_at(&c.hash)
     };
-    let open = Let::of(new_game);
     // Kept checks hold their own item, placed like plando's.
     let (kept, chests): (Vec<_>, Vec<_>) =
         (unique_chests(checks, open)?.into_iter()).partition(|c| keeps(c));
@@ -131,10 +149,7 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
     for p in placed.iter().filter(|p| shuffleable(p.check, open)) {
         take(&mut items, p.item, keys::pooled(p.check));
     }
-    let free: Vec<_> = chests
-        .into_iter()
-        .filter(|c| !fixed.contains_key(&c.hash))
-        .collect();
+    let free: Vec<_> = chests.into_iter().filter(|c| !placed_at(&c.hash)).collect();
     if new_game.vanilla {
         items = free.iter().map(|c| own(c)).collect();
     } else {
@@ -148,7 +163,11 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
     // One swap over both, so a starting item leaves one spot either way.
     let mut all: Vec<_> = kept.iter().map(|c| own(c)).collect();
     all.append(&mut items);
-    let owned = new_game.start.owned();
+    let mut owned = new_game.start.owned();
+    if new_game.on.contains(MET_ZELDA) {
+        // Met Zelda leaves nothing for the egg to wake.
+        owned.push(item::WEIRD_EGG.get());
+    }
     starting::swap_out(&mut all, &owned, level);
     if new_game.on.contains(presets::KING_ZORA_MOVED) {
         // Nothing reads the letter once King Zora has moved, so it's dealt
@@ -261,7 +280,7 @@ pub fn drops(checks: &[ItemCheck], placements: &[Placement], lines: Lines) -> Ha
 
 #[cfg(test)]
 mod tests {
-    use crate::known::{flag, item};
+    use crate::known::{Name, flag, item};
     use crate::settings;
 
     use super::*;
@@ -733,5 +752,53 @@ mod tests {
         let dealt = deal(&checks, &none, &moved).unwrap();
         assert_eq!(count(&dealt, item::BOTTLE_LETTER), 0);
         assert_eq!(count(&dealt, item::BOTTLE), 1);
+    }
+
+    #[test]
+    fn met_zelda_pins_the_letter_and_deals_no_egg() {
+        needs_names!();
+        let checks = with_gifts();
+        let none = Fixed::new();
+        let hash = |i: &Name| gifts::GIFTS.iter().find(|g| g.item == i).unwrap().hash();
+        let count = |p: &[Placement], i: &Name| p.iter().filter(|p| p.item == i.get()).count();
+        let met = NewGame {
+            on: [MET_ZELDA.to_owned()].into(),
+            ..game(false, &[])
+        };
+        for seed in 0..20 {
+            let p = shuffle(&checks, seed, &none, &met).unwrap();
+            assert_eq!(
+                holding(&p, hash(item::ZELDA_LETTER)),
+                item::ZELDA_LETTER.get()
+            );
+            assert_eq!(count(&p, item::ZELDA_LETTER), 1, "seed {seed}");
+            assert_eq!(count(&p, item::WEIRD_EGG), 0, "seed {seed}");
+        }
+        let p = shuffle(&checks, 0, &none, &game(false, &[])).unwrap();
+        assert_eq!(count(&p, item::WEIRD_EGG), 1);
+        // A plando can't put anything else at the letter's check.
+        let hook = Fixed::from([(hash(item::ZELDA_LETTER), line(0)[0].0.to_string())]);
+        assert!(deal(&checks, &hook, &met).is_err());
+    }
+
+    #[test]
+    fn gerudo_fortress_freed_pins_the_card_and_deals_no_second() {
+        needs_names!();
+        let checks = with_gifts();
+        let none = Fixed::new();
+        let card = gifts::GIFTS
+            .iter()
+            .find(|g| g.item == item::TOKEN_GERUDO)
+            .unwrap();
+        let freed = NewGame {
+            on: [crate::settings::FORTRESS_FREED.to_owned()].into(),
+            ..game(false, &[])
+        };
+        for seed in 0..20 {
+            let p = shuffle(&checks, seed, &none, &freed).unwrap();
+            assert_eq!(holding(&p, card.hash()), item::TOKEN_GERUDO.get());
+            let cards = p.iter().filter(|p| p.item == item::TOKEN_GERUDO.get());
+            assert_eq!(cards.count(), 1, "seed {seed}");
+        }
     }
 }

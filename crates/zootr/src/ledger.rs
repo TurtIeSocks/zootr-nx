@@ -144,12 +144,11 @@ impl Debt {
     }
 }
 
-/// Every shuffle on: each toggle the Shuffles and Dungeons panels show,
+/// Every shuffle on: each toggle the Shuffles panel shows,
 /// and the dungeon keys moved.
 pub fn every_shuffle() -> Settings {
-    let shuffles = [group::SHUFFLES, group::DUNGEONS];
     let mut out: Settings = (settings::schema().into_iter())
-        .filter(|d| shuffles.contains(&d.group) && matches!(d.kind, Kind::Toggle { .. }))
+        .filter(|d| d.group == group::SHUFFLES && matches!(d.kind, Kind::Toggle { .. }))
         .map(|d| (d.id, true.into()))
         .collect();
     out.insert(settings::KEYS.into(), "singles".into());
