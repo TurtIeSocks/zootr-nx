@@ -73,25 +73,21 @@ pub(super) fn flows(
         spawn::warp(romfs, &mut rewrites, spawn)?;
     }
     if new_game.age == Era::Adult {
-        // The pedestal's gift comes in the opening (`gifts`), so he wakes
-        // with the Master Sword only when it gives the sword or he started
-        // with it.
-        let sword = actor::WEAPON_SWORD_MASTER.get();
-        let sword =
-            gifts::pedestal_gives(drops) == sword || new_game.start.owned().contains(&sword);
+        // The pedestal's gift waits for the first swap to adult, so he wakes
+        // with the Master Sword only when he starts with it.
+        let sword = (new_game.start.owned()).contains(&actor::WEAPON_SWORD_MASTER.get());
         spawn::adult(romfs, &mut rewrites, sword)?;
     }
     if new_game.on.contains(TRADE_CHAIN) {
         trade_chain::deal(romfs, &mut rewrites, drops)?;
     }
-    gifts::give_all_aged(
+    gifts::give_all(
         romfs,
         all,
         &mut rewrites,
         drops,
         Lines::of(new_game),
         &new_game.on,
-        new_game.age == Era::Adult,
     )?;
     levels(romfs, drops, new_game)?.give(romfs, all, &mut rewrites)?;
     if new_game.shop_slots > 0 {
@@ -622,6 +618,38 @@ fn hook_flags(new_game: &NewGame) -> u32 {
 mod tests {
     use super::*;
     use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS, TRADE_CYCLE};
+
+    #[test]
+    fn an_adult_start_holds_the_master_sword_only_from_the_start_inventory() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let all = Flows::load(&romfs).unwrap();
+        let sword = actor::WEAPON_SWORD_MASTER.get();
+        let opening = |start: serde_json::Value| {
+            let settings = crate::settings::Settings::from([
+                (crate::settings::STARTING_AGE.into(), "adult".into()),
+                (starting::SETTING.into(), start),
+            ]);
+            let new_game = NewGame::from_settings(&settings, &[]).unwrap();
+            let (rewrites, _) = flows(&romfs, &all, &new_game, &HashMap::new()).unwrap();
+            let rendered = |name: &crate::known::Name| {
+                let flow = ounce_formats::Flowchart::parse(&rewrites[&crate::flows::rel(name)]);
+                crate::flows::render(&flow.unwrap().unwrap())
+            };
+            (
+                rendered(starting::OPENING),
+                rendered(crate::known::flow::MARKET_CHILD_FIELD_CHILD_TO_ADULT),
+            )
+        };
+        // Without it, the opening never names it: the pedestal's swap
+        // gives it on his first pull back to adult.
+        let (without, swap) = opening(serde_json::json!({}));
+        assert!(!without.contains(sword));
+        assert!(swap.contains(sword));
+        let (with, _) = opening(serde_json::json!({ "master-sword": 1 }));
+        assert!(with.contains(sword));
+    }
 
     #[test]
     fn each_hook_setting_sets_its_own_bit() {
