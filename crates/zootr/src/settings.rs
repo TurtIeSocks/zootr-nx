@@ -451,7 +451,7 @@ pub fn schema() -> Vec<SettingDef> {
             GERUDO_FORTRESS,
             place::LOGIC,
             "Gerudo Fortress",
-            "How the four carpenters in the Gerudo Fortress start. With Normal, Link frees all four, as in the game. With Fast, freeing any one frees all four and earns the membership card, and the other thieves still guard their cells. With Freed, all four are free from the start, with the membership card in hand, the guards standing down and the valley bridge up. Fortress Keys can't be used with Freed, since its thieves are already beaten",
+            "How the four carpenters in the Gerudo Fortress start. With Normal, Link frees all four, as in the game. With Fast, freeing any one frees all four and earns the membership card, and the other thieves still guard their cells. With Freed, all four are free from the start, with the membership card in hand, the guards standing down and the valley bridge up. Their thieves still stand, and beating one opens her cell without freeing anyone twice",
             GerudoFortress::label,
         )])
         .chain([toggle(
@@ -521,7 +521,7 @@ pub fn schema() -> Vec<SettingDef> {
             FORTRESS_KEYS,
             place::DUNGEONS,
             "Fortress Keys",
-            "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks. Can't be used with Gerudo Fortress Freed, since its thieves are already beaten",
+            "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks",
             FortressKeys::label,
         )])
         .chain([forcing(

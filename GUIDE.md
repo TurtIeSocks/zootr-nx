@@ -184,7 +184,7 @@ Its sections are Logic, Win Condition, Area Access and Entrances.
 | Setting | What it does |
 |---|---|
 | Logic | Glitchless places each item where Link can reach it without that item, so a seed can always be beaten. No logic places items anywhere |
-| Gerudo Fortress | Normal has Link free all four carpenters. Fast frees all four with the first. Freed starts with them free, the membership card in hand and the valley bridge up |
+| Gerudo Fortress | Normal has Link free all four carpenters. Fast frees all four with the first. Freed starts with them free, the membership card in hand and the valley bridge up. Their thieves still stand, and beating one frees no one twice |
 | Met Zelda | Start with Zelda met: her letter in hand, her lullaby learned and Talon and Malon at the ranch. Impa's and Malon's checks come at the start |
 | Rainbow bridge | Vanilla raises the bridge once Zelda has given Link the Light Arrows. Six medallions raises it once he holds all six. Open has it standing from the start |
 | Ganon's trials | All six, or done: every barrier in Ganon's Castle down from the start |

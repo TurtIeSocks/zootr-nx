@@ -54,10 +54,11 @@ pub fn guard_card(area: &str, steps: &[(String, String)]) -> Option<&'static Nam
     (!own && GUARDED.iter().any(|g| **g == *area)).then_some(CARD)
 }
 
-/// Gerudo Fortress Freed's edits: the four carpenters freed and their
-/// guards beaten. The quest step isn't here: the opening moves it
-/// ([`freed_step`]), as freeing the carpenters does, so the fortress guards
-/// stand down with it.
+/// Gerudo Fortress Freed's edits: the four carpenters freed, their thieves
+/// left standing with their checks. Beating one opens her cell without
+/// freeing her again ([`rescue_once`]). The quest step isn't here: the
+/// opening moves it ([`freed_step`]), as freeing the carpenters does, so
+/// the fortress guards stand down with it.
 pub fn freed() -> Vec<String> {
     let mut edits = lit(&[
         &format!(
@@ -69,11 +70,7 @@ pub fn freed() -> Vec<String> {
             field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED
         ),
     ]);
-    let cells = (13..=16).flat_map(|n| {
-        ["DestroyGerudoThief", "IsAfterHelpCarpenter"]
-            .map(|what| format!("GerudoFortress_{what}_Npc_Hylia_0{n}_Adult"))
-    });
-    edits.extend(all(cells, "true"));
+    edits.extend(all(CELLS.map(|(_, freed)| freed), "true"));
     edits.extend(all(
         [
             flag::GERUDO_FORTRESS_WARP_POINT01_CLEAR_EVENT,
@@ -391,8 +388,11 @@ mod tests {
             "{}=false",
             field::GERUDO_FORTRESS_NPC_GERUDO_001_IS_IN_FIRST_PLACE
         )));
-        let freed_cells = edits.iter().filter(|e| e.contains("IsAfterHelpCarpenter"));
-        assert_eq!(freed_cells.count(), 4);
+        for (_, freed) in CELLS {
+            assert!(edits.contains(&format!("{freed}=true")), "{freed}");
+        }
+        // The thieves stay, with their checks.
+        assert!(!edits.iter().any(|e| e.contains("DestroyGerudoThief")));
         assert!(
             !edits
                 .iter()

@@ -60,7 +60,7 @@ const HELD: &[(&str, &str, &str)] = &[
     (
         "gerudo-fortress",
         "freed",
-        " With Freed, all four are free from the start, with the membership card in hand, the guards standing down and the valley bridge up. Fortress Keys can't be used with Freed, since its thieves are already beaten",
+        " With Freed, all four are free from the start, with the membership card in hand, the guards standing down and the valley bridge up. Their thieves still stand, and beating one opens her cell without freeing anyone twice",
     ),
 ];
 

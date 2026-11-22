@@ -142,11 +142,6 @@ impl NewGame {
         }
         let fortress_keys = chosen::<FortressKeys>(settings, FORTRESS_KEYS);
         let gerudo_fortress = chosen::<GerudoFortress>(settings, GERUDO_FORTRESS);
-        if fortress_keys.moved() && gerudo_fortress == GerudoFortress::Freed {
-            bail!(
-                "Fortress keys can't start with {FORTRESS_FREED}: its thieves are already beaten"
-            );
-        }
         let bridge = chosen::<Bridge>(settings, BRIDGE);
         let trials = chosen::<Trials>(settings, TRIALS);
         let mut start = starting::Start::from_settings(settings)?;
@@ -603,7 +598,7 @@ mod tests {
     }
 
     #[test]
-    fn fortress_keys_are_refused_with_the_carpenters_freed_but_not_fast() {
+    fn fortress_keys_go_with_every_gerudo_fortress() {
         let fortress = |keys: &str, carpenters: &str| {
             let settings = Settings::from([
                 (FORTRESS_KEYS.into(), keys.into()),
@@ -611,12 +606,11 @@ mod tests {
             ]);
             NewGame::from_settings(&settings, &[])
         };
-        assert!(fortress("singles", "fast").is_ok());
-        assert!(fortress("start", "normal").is_ok());
-        let err = fortress("start", "freed").unwrap_err();
-        assert!(err.to_string().contains(FORTRESS_FREED), "{err}");
-        assert!(fortress("singles", "freed").is_err());
-        assert!(fortress("vanilla", "freed").is_ok());
+        for keys in ["vanilla", "start", "singles"] {
+            for carpenters in ["normal", "fast", "freed"] {
+                assert!(fortress(keys, carpenters).is_ok(), "{keys} {carpenters}");
+            }
+        }
     }
 
     #[test]

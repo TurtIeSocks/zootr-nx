@@ -168,6 +168,27 @@ fn fortress_keysanity_writes_its_copy_and_deals_one_for_every_thief() {
 }
 
 #[test]
+fn freed_carpenters_keep_the_thieves_and_their_keys_with_fortress_keysanity() {
+    let Some(romfs) = crate::game::dev_dump() else {
+        return;
+    };
+    let dir = std::env::temp_dir().join(format!("zootr-fortress-freed-{}", std::process::id()));
+    let settings = Settings::from([
+        (crate::settings::FORTRESS_KEYS.into(), "singles".into()),
+        (crate::settings::GERUDO_FORTRESS.into(), "freed".into()),
+    ]);
+    let new_game = NewGame::from_settings(&settings, &[]).unwrap();
+    let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
+    let thieves = report.spots.iter().filter(|s| s.holder == pickups::THIEF);
+    assert_eq!(thieves.count(), 4);
+    let copy = crate::key_tints::fortress();
+    assert_eq!(report.spots.iter().filter(|s| s.item == copy).count(), 4);
+    let beaten = |d: &&String| d.contains("DestroyGerudoThief");
+    assert!(!report.written.defaults.iter().any(|d| beaten(&d)));
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
 fn maps_and_compasses_deal_their_dungeon_s_copies_anywhere_and_name_it() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
