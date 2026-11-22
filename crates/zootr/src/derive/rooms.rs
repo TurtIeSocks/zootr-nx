@@ -14,7 +14,7 @@ use ounce_formats::{Romfs, murmur3};
 use crate::entrances::Dungeon;
 use crate::known::{field, flag};
 use crate::nav::Level;
-use crate::nav::graph::{Cross, Graph, Via, dist};
+use crate::nav::graph::{Cross, Via, dist};
 use crate::nav::limits::limits;
 use crate::nav::shape::{Solid, parts_of};
 use crate::rules::Book;
@@ -25,9 +25,11 @@ use crate::warp::Placement;
 
 mod label;
 mod locks;
+mod reach;
 
 use label::{label, path_of};
 use locks::{Lock, flag, locks_in, room_in_name};
+use reach::{REACH_MAX, skulltula_reach};
 
 /// Each dungeon's room names, by its folder and room number.
 static NAMES: LazyLock<BTreeMap<String, BTreeMap<u32, String>>> = LazyLock::new(|| {
@@ -156,51 +158,6 @@ fn maps(romfs: &Romfs, dungeon: &Dungeon) -> Result<BTreeSet<String>> {
         .filter(|m| m.starts_with(node) && dungeon.boss.is_none_or(|b| !m.starts_with(b.get())))
         .map(str::to_owned)
         .collect())
-}
-
-/// How far from a gold skulltula derive looks for floor: past the longest
-/// range.
-const REACH_MAX: f32 = 30.0;
-
-/// Below this height a sword or a bomb may hit a gold skulltula too,
-/// which no playtest has settled, so its rule is a guess there.
-const SKULLTULA_LOW: f32 = 2.5;
-
-/// What hits a gold skulltula from its room's floor.
-struct Reach {
-    needs: String,
-    why: String,
-    guess: bool,
-}
-
-/// The weapons whose range reaches the gold skulltula at `at` from the
-/// nearest floor of room `r`. Its token falls to the floor, so the hit
-/// is the whole check.
-fn skulltula_reach(graph: &Graph, room: &[Option<u32>], r: u32, at: [f32; 3]) -> Reach {
-    let far = |why: String| Reach {
-        needs: "gold-skulltula".into(),
-        why,
-        guess: true,
-    };
-    let Some(floor) = graph.nearest_floor(at, REACH_MAX, |f| room[f] == Some(r)) else {
-        return far(format!("no floor of its room within {REACH_MAX} m"));
-    };
-    let d = dist(floor.at, at);
-    let words = limits().reaching(d);
-    if words.is_empty() {
-        return far(format!("{d:.1} m from its room's floor, past every weapon"));
-    }
-    let needs = words.join(" or ");
-    let mut why = format!("{d:.1} m from its room's floor, in each one's range");
-    let low = d < SKULLTULA_LOW;
-    if low {
-        why.push_str("; a sword or a bomb may too, untested");
-    }
-    Reach {
-        needs,
-        why,
-        guess: low,
-    }
 }
 
 /// `uses` joined: each kept once, more than one in brackets with `and`.

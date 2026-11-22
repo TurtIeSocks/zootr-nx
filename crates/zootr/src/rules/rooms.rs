@@ -309,7 +309,11 @@ pub(super) fn overlay<T: Entry>(base: &mut [T], confirmed: Vec<T>) -> Result<()>
 /// Knowledge only comes from playtests, so a confirmed file adds it.
 fn add(base: &mut Vec<Knowledge>, confirmed: Vec<Knowledge>) -> Result<()> {
     for k in confirmed {
-        ensure!(!k.evidence.is_empty(), "confirmed {} has no evidence", k.key());
+        ensure!(
+            !k.evidence.is_empty(),
+            "confirmed {} has no evidence",
+            k.key()
+        );
         ensure!(
             base.iter().all(|b| b.key() != k.key()),
             "two entries for {}",
@@ -507,7 +511,12 @@ mod tests {
         "#;
         let (base, conf) = (at("baseline"), at("confirmed"));
         let rooms = load(&[(&base, BASE), (&conf, known)]).unwrap();
-        let what: Vec<String> = rooms[0].file.knowledge.iter().map(Knowledge::what).collect();
+        let what: Vec<String> = rooms[0]
+            .file
+            .knowledge
+            .iter()
+            .map(Knowledge::what)
+            .collect();
         assert_eq!(what, ["check 1", "to 0 (jump)"]);
         let bare = known.replace("evidence = [\"fake-playtest\"]", "");
         let err = load(&[(&base, BASE), (&conf, &bare)]).unwrap_err();
