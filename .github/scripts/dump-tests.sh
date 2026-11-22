@@ -25,7 +25,7 @@ CARGO_TERM_COLOR=never cargo test -p zootr --lib --bins --tests > "$log" 2>&1
 status=$?
 # The slow checks the default run skips: the AP export against each pair
 # of options' seeds.
-CARGO_TERM_COLOR=never cargo test -p zootr --lib -- --ignored ap:: >> "$log" 2>&1 || status=1
+CARGO_TERM_COLOR=never cargo test -p zootr --lib -- --ignored ap::export:: >> "$log" 2>&1 || status=1
 
 grep -E '^test result:|^test .* \.\.\. FAILED$' "$log"
 grep -q '^error: could not compile' "$log" && echo "build failed"
