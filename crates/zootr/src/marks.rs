@@ -20,7 +20,7 @@ use crate::known::{Name, actor, texture};
 use crate::medallions::model_file;
 use crate::rsdb::Tags;
 use crate::standins::{Tables, write_clone};
-use paint::{Canvas, Mark};
+use paint::{Canvas, Mark, Upright};
 
 /// How a model's copy is painted.
 #[derive(Clone, Copy)]
@@ -68,15 +68,16 @@ const MARKED: [(&Name, &Model); 8] = [
     (actor::OBJ_POT_A_08, &POT_08),
 ];
 
-/// A pot's band, as fractions of its albedo's height: the same rows on
-/// every pot, which share one mesh. Some bands differ from the body by
-/// hue more than brightness, so the rows are fixed, not found.
-const POT_BAND: (f32, f32) = (0.225, 0.46);
-const BAND_FEATHER: f32 = 0.03;
-/// Where a pot's Triforces go: around the lower body, half its wrap
-/// apart, and how tall each is.
-const POT_STAMPS: [(f32, f32); 2] = [(0.25, 0.62), (0.75, 0.62)];
-const POT_STAMP_HEIGHT: f32 = 0.2;
+/// A pot's albedo runs up the pot from its foot (v 0) to its lip (v 0.45),
+/// then down its inside (`probe uvs`), the same rows on every pot, which
+/// share one mesh. So the image is the pot upside down.
+/// Its band: the shoulder, neck and lip, as fractions of the height.
+const POT_BAND: (f32, f32) = (0.31, 0.5);
+const BAND_FEATHER: f32 = 0.02;
+/// Where a pot's Triforces go: on its belly, half its wrap apart, and how
+/// tall each is.
+const POT_STAMPS: [(f32, f32); 2] = [(0.25, 0.17), (0.75, 0.17)];
+const POT_STAMP_HEIGHT: f32 = 0.17;
 /// A pot's metres per v over metres per u (`probe uvs`).
 const POT_STRETCH: f32 = 1.734 / 1.567;
 
@@ -102,7 +103,8 @@ pub(crate) fn texture_path(name: &str) -> String {
 }
 
 /// Writes each marked model, its painted albedo, and each marked actor
-/// with its host's rows and tags.
+/// with its host's rows and tags. Without its Tag row a marked pot can't
+/// be lifted (spike, 2026-11-22).
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Result<()> {
     let triforce = Mark::triforce(romfs)?;
     let mut tags = Tags::load(romfs)?;
@@ -175,7 +177,7 @@ fn paint(canvas: &mut Canvas, look: Look, triforce: &Mark) {
         Look::Pot => {
             canvas.band(POT_BAND.0, POT_BAND.1, BAND_FEATHER);
             for at in POT_STAMPS {
-                canvas.stamp(triforce, at, POT_STAMP_HEIGHT, POT_STRETCH);
+                canvas.stamp(triforce, at, POT_STAMP_HEIGHT, POT_STRETCH, Upright::Flipped);
             }
         }
     }

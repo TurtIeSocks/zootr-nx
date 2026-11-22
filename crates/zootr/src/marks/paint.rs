@@ -69,8 +69,16 @@ impl Canvas {
 
     /// `mark` stamped in gold, centred at (`u`, `v`) and `height` tall
     /// (fractions of the texture), `width` as wide as `height` makes it
-    /// on the model at `stretch`, metres per v over metres per u.
-    pub(super) fn stamp(&mut self, mark: &Mark, (u, v): (f32, f32), height: f32, stretch: f32) {
+    /// on the model at `stretch`, metres per v over metres per u. It's
+    /// turned upside down in the image when the model shows the image so.
+    pub(super) fn stamp(
+        &mut self,
+        mark: &Mark,
+        (u, v): (f32, f32),
+        height: f32,
+        stretch: f32,
+        upright: Upright,
+    ) {
         let (w, h) = (self.texture.width as f32, self.texture.height as f32);
         let tall = height * h;
         let wide = height * mark.aspect() * stretch * w;
@@ -79,16 +87,27 @@ impl Canvas {
         let ys = top.floor().max(0.0) as usize..((top + tall).ceil() as usize).min(h as usize);
         for y in ys {
             for x in xs.clone() {
-                let share = mark.sample(
-                    (x as f32 + 0.5 - left) / wide,
-                    (y as f32 + 0.5 - top) / tall,
-                );
+                let down = (y as f32 + 0.5 - top) / tall;
+                let down = match upright {
+                    Upright::AsIs => down,
+                    Upright::Flipped => 1.0 - down,
+                };
+                let share = mark.sample((x as f32 + 0.5 - left) / wide, down);
                 // The stone's grain shows through the gold, a little.
                 let grain = 0.8 + 0.2 * self.gold(x, y)[0] / 255.0;
                 self.blend(x, y, GOLD.map(|c| c as f32 * grain), share);
             }
         }
     }
+}
+
+/// Which way up a model shows its texture: image rows running down it
+/// (`AsIs`) or up it (`Flipped`).
+#[derive(Clone, Copy)]
+pub(super) enum Upright {
+    #[allow(dead_code, reason = "the crates' faces, next")]
+    AsIs,
+    Flipped,
 }
 
 /// The gold a texel of brightness `luma` (0 to 255) becomes.

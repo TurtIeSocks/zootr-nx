@@ -46,6 +46,7 @@ pub(super) fn uvs(
             let mut rgba = vec![0u8; SIDE * SIDE * 4];
             let (mut lo, mut hi) = ([f32::MAX; 2], [f32::MIN; 2]);
             let mut stretch = Stretch::default();
+            let mut heights = Heights::default();
             for tri in tris.as_chunks::<3>().0 {
                 let at = [tri[0], tri[1], tri[2]].map(|i| [uv[i][0], uv[i][1]]);
                 for p in &at {
@@ -55,6 +56,9 @@ pub(super) fn uvs(
                     }
                 }
                 stretch.add(tri.map(|i| position[i]), at);
+                for i in tri {
+                    heights.add(uv[*i][1], position[*i][1]);
+                }
                 let n = normal[tri[0]];
                 fill(&mut rgba, at, facing([n[0], n[1], n[2]]));
             }
@@ -79,6 +83,7 @@ pub(super) fn uvs(
                 stretch.per(0),
                 stretch.per(1),
             );
+            heights.print();
         }
         Ok(())
     })
@@ -121,6 +126,30 @@ impl Stretch {
 
     fn per(&self, axis: usize) -> f32 {
         self.sum[axis] / self.area.max(f32::MIN_POSITIVE)
+    }
+}
+
+/// Where each tenth of the texture's height lands on the model: the
+/// heights of the vertices whose v falls in it.
+#[derive(Default)]
+struct Heights {
+    rows: [(f32, f32, usize); 10],
+}
+
+impl Heights {
+    fn add(&mut self, v: f32, y: f32) {
+        let row = ((v.rem_euclid(1.0) * 10.0) as usize).min(9);
+        let (lo, hi, n) = &mut self.rows[row];
+        (*lo, *hi) = if *n == 0 { (y, y) } else { (lo.min(y), hi.max(y)) };
+        *n += 1;
+    }
+
+    fn print(&self) {
+        for (row, (lo, hi, n)) in self.rows.iter().enumerate() {
+            if *n > 0 {
+                println!("  v {:.1}..{:.1}: y {lo:.3}..{hi:.3} ({n})", row as f32 / 10.0, (row + 1) as f32 / 10.0);
+            }
+        }
     }
 }
 
