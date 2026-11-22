@@ -8,7 +8,7 @@ use clap::builder::{PossibleValue, PossibleValuesParser, TypedValueParser};
 use ounce_formats::Byml;
 
 use crate::gamedata::GameData;
-use crate::known::{Name, actor, field, flag, flow, item};
+use crate::known::{Name, actor, field, flag, flow};
 use crate::savefile;
 use crate::settings::{Place, place};
 use crate::value;
