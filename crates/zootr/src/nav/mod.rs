@@ -40,6 +40,7 @@ pub mod graph;
 pub mod kinds;
 pub mod leap;
 pub mod limits;
+pub mod mesh;
 pub mod route;
 pub mod scene;
 pub mod shape;
@@ -79,8 +80,13 @@ pub fn eighths(yaw: f32, from: [f32; 3], to: [f32; 3]) -> i32 {
 /// A map's navmesh file, decompressed, or `None` for a map whose mesh
 /// comes in tiles instead (Hyrule Field, under `Phive/StitchedNavMesh`).
 pub fn navmesh_file(romfs: &Romfs, game: &Path, map: &str) -> Result<Option<Vec<u8>>> {
-    let path = format!("Phive/{}/{map}.", field::NAV_MESH);
-    match &crate::game::search(game, &path)?[..] {
+    dump_file(romfs, game, &format!("Phive/{}/{map}.", field::NAV_MESH))
+}
+
+/// The one file in the dump whose path contains `path`, decompressed, or
+/// `None` without one.
+fn dump_file(romfs: &Romfs, game: &Path, path: &str) -> Result<Option<Vec<u8>>> {
+    match &crate::game::search(game, path)?[..] {
         [] => Ok(None),
         [(path, data)] => romfs.dicts().decompress(path, data).map(Some),
         found => anyhow::bail!("{} files match {path}", found.len()),
