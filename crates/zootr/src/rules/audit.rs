@@ -123,7 +123,7 @@ fn add(audit: &mut Audit, book: &Book, room: &Room, siblings: &[&Room]) {
         .knowledge
         .extend(room.file.knowledge.iter().map(|k| Line {
             room: n,
-            what: format!("to {} ({})", k.to, k.via.word()),
+            what: k.what(),
             why: k.why.clone(),
         }));
 }
