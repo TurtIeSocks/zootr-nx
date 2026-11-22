@@ -8,6 +8,7 @@ use crate::{
     TABLE, Table, fnv, nearest,
 };
 
+mod arrows;
 mod bunny;
 mod chests;
 mod dev;
@@ -19,6 +20,7 @@ mod rt;
 
 use chests::{drop_value, level_for, owned, record, recreate, rewrite};
 
+type Childhood = unsafe extern "C" fn(usize) -> bool;
 type Setter = unsafe extern "C" fn(*mut u8, *const *const u8, *const *const u8);
 type Reader = unsafe extern "C" fn(*mut u8, *const u8, usize, usize) -> usize;
 
@@ -28,9 +30,9 @@ const KEY: &[u8] = b"ContentName";
 const MAX: usize = 128;
 
 // The call sites `bl` to content_name at +0, drop_actor at +4, run_speed
-// at +24 and the controller reads to +32, +36 and +40. The hooked
-// functions `b` to +8, +12, +16, +20, +28, +44, +48, +52 and +56 in place
-// of their pacibsp.
+// at +24, the controller reads to +32, +36 and +40, and seed_guide at +68. The hooked
+// functions `b` to +8, +12, +16, +20, +28, +44, +48, +52, +56, +60 and +64
+// in place of their pacibsp.
 // The opening node is in x20 at both content_name call sites.
 //
 // A function hook keeps every argument register and the link register,
@@ -69,14 +71,17 @@ global_asm!(
     ".endm",
     // A hook that runs its handler after the function returns, for a
     // function called with no stack arguments: it calls the function
-    // through the pacibsp and slot, keeps its result, and then returns
-    // to the function's caller.
+    // through the pacibsp and slot, keeps its result, hands the handler
+    // that result and the function's first argument, and then returns to
+    // the function's caller.
     ".macro function_hook_after handler, resume",
     "stp x29, x30, [sp, #-0x30]!",
     "mov x29, sp",
+    "str x0, [sp, #0x18]",
     "bl 1f",
     "str x0, [sp, #0x10]",
     "str q0, [sp, #0x20]",
+    "ldr x1, [sp, #0x18]",
     "bl \\handler",
     "ldr q0, [sp, #0x20]",
     "ldr x0, [sp, #0x10]",
@@ -117,6 +122,9 @@ global_asm!(
     "b items_left_entry",
     "b ui_update_entry",
     "b taken_entry",
+    "b nocked_entry",
+    "b emptied_entry",
+    "b seed_guide",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -135,6 +143,10 @@ global_asm!(
     "ui_update_resume:",
     "brk #0",
     "taken_resume:",
+    "brk #0",
+    "nocked_resume:",
+    "brk #0",
+    "emptied_resume:",
     "brk #0",
     "npad_full_stub:",
     "brk #0",
@@ -158,6 +170,10 @@ global_asm!(
     "function_hook picked, picked_resume",
     "taken_entry:",
     "function_hook taken, taken_resume",
+    "nocked_entry:",
+    "function_hook nocked, nocked_resume",
+    "emptied_entry:",
+    "function_hook_after emptied, emptied_resume",
     "npad_full_entry:",
     "npad_read npad_full_stub",
     "npad_handheld_entry:",
@@ -302,6 +318,42 @@ pub unsafe extern "C" fn drop_actor(
         }
         let reader: Reader = core::mem::transmute(main() + OFFSETS.reader as usize);
         reader(out, placement, a2, a3)
+    }
+}
+
+/// Link is about to nock an arrow or seed with `user`, his EquipmentUser
+/// component: he nocks the drawn bow's own.
+///
+/// # Safety
+/// Only the hooked function's entry calls this.
+#[unsafe(no_mangle)]
+unsafe extern "C" fn nocked(user: usize) {
+    hooked(|main, _| unsafe { arrows::nocked(main, user) })
+}
+
+/// Link drew a bow with no ammo, and the game picked its message by his
+/// age. Only the hooked function's return reaches this.
+#[unsafe(no_mangle)]
+unsafe extern "C" fn emptied(_: usize, node: usize) {
+    hooked(|main, _| unsafe { arrows::emptied(main, node) })
+}
+
+/// Called in place of the child test the bow draw asks for its guide, with
+/// Link: true picks the Slingshot's ("Shoot Seed"), false the Bow's
+/// ("Shoot Arrow"). It follows the drawn bow's projectile, not his age.
+///
+/// # Safety
+/// Only the game calls this, from the rewritten call site.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn seed_guide(link: usize) -> bool {
+    unsafe {
+        if let Some((main, _)) = table()
+            && let Some(seeds) = arrows::shoots_seeds(main, link)
+        {
+            return seeds;
+        }
+        let child: Childhood = core::mem::transmute(main() + OFFSETS.childhood as usize);
+        child(link)
     }
 }
 

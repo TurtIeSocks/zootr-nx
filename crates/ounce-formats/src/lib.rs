@@ -7,6 +7,7 @@
 //! loads, and the save files GameData describes.
 
 pub mod ainb;
+pub mod asb;
 mod bfres;
 mod blocks;
 mod bntx;

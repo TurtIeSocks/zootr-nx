@@ -72,7 +72,12 @@ pub const PANIC: u32 = 0x4e9_aff0;
 /// listed, then the full key, handheld and joy dual controller reads. The
 /// patch writes a `b` into each: past the hooked function's pacibsp, or to
 /// the game's `GetNpadStates` stub for that style.
-pub const SLOTS: u32 = 60;
+pub const SLOTS: u32 = 72;
+
+/// The Deku Seed's name hash, the projectile an empty bow says "no Deku
+/// seeds" for and the draw says "Shoot Seed" for. Every other one says
+/// "no arrows" and "Shoot Arrow".
+pub const DEKU_SEED: u32 = 0xdc49_1eef;
 
 /// Where the game keeps what the hook needs in `main` 1.1.1, the same in
 /// every seed, so the hook calls through them with no table yet. See
@@ -96,6 +101,17 @@ pub const OFFSETS: Offsets = Offsets {
     // pickup's own event (`OneShotPouchContentPushToPouchOwnInEvent`) or,
     // with no window, straight from the touch.
     taken: 0xc6_f620,
+    // Link's nock (EquipmentUser), the drawn bow's component, its
+    // `BowParam.ShootableActor`, and the copy of that into a fixed string.
+    nock: 0x2df_eea0,
+    drawn_bow: 0x2e0_0870,
+    shootable: 0x2d0_9f60,
+    name_copy: 0x2b_5480,
+    // The Bow node's out of ammo handler (`ExecutePlayerBow`).
+    emptied: 0x279_a7a0,
+    // Link's child test, which the bow draw's guide asks to pick the
+    // Slingshot's ("Shoot Seed") or the Bow's ("Shoot Arrow").
+    childhood: 0x4b_6db0,
     malloc: 0x14c_6c90,
     make_arg: 0xd7_9f10,
     request: 0xd7_a820,

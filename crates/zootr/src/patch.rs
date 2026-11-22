@@ -39,12 +39,14 @@ const SKIPS: [(u32, u32); 2] = [GATE, CATCH];
 /// the hook. The event request's string argument calls, where an opening
 /// chest sets its `ContentName`, go to `content_name`. The drop reader's
 /// calls, where a loading room reads a chest's placement, go to
-/// `drop_actor`.
-const CALLS: [(u32, u32); 4] = [
+/// `drop_actor`. The bow draw's child test, which picks its guide, goes
+/// to `seed_guide`, so a child Bow says "Shoot Arrow".
+const CALLS: [(u32, u32); 5] = [
     (0x2ae_0828, 0),
     (0x2ae_08cc, 0),
     (0x2ef_6560, 4),
     (0x2ef_4888, 4),
+    (0x4b_01a4, 68),
 ];
 /// The run node's call to the speed setter and the hook entry it goes to,
 /// `run_speed`, which scales the speed in the Bunny Hood in a seed with
@@ -59,7 +61,9 @@ const NPAD_CALLS: [(u32, u32); 3] = [(0x346_966c, 32), (0x346_9698, 36), (0x346_
 const NPAD_STUBS: [u32; 3] = [0x3c4_2800, 0x3c4_2830, 0x3c4_27f0];
 /// Each hooked function and the entry the `b` over its `pacibsp` goes to.
 /// Link's update runs the mailbox's requests and the dev switches in a
-/// seed with [`DEV`], and springs ice traps.
+/// seed with [`DEV`], and springs ice traps. The nock sets Link's
+/// projectile to the drawn bow's, so a child Bow fires arrows, and the out
+/// of ammo handler's message follows that projectile, not Link's age.
 const HOOKS: &[(u32, u32)] = &[
     (OFFSETS.map_loaded, 8),
     (OFFSETS.chest_made, 12),
@@ -70,6 +74,8 @@ const HOOKS: &[(u32, u32)] = &[
     (OFFSETS.items_left, 48),
     (OFFSETS.ui_update, 52),
     (OFFSETS.taken, 56),
+    (OFFSETS.nock, 60),
+    (OFFSETS.emptied, 64),
 ];
 /// `main`'s build ID, as its NSO header's 32 byte field holds it. Its first
 /// 8 bytes name the cheat file and the rest, trailing zeros left out, the
@@ -448,6 +454,18 @@ mod tests {
         name: 2,
         at: [3, 4, 5],
     };
+
+    #[test]
+    fn the_hooks_seed_hash_is_the_deku_seeds_name() {
+        if crate::game::no_names() {
+            return;
+        }
+        let name = crate::known::actor::SHOOTABLE_DEKU_SEED.get();
+        assert_eq!(
+            ounce_formats::murmur3(name.as_bytes()),
+            zootr_hook::DEKU_SEED
+        );
+    }
 
     #[test]
     fn the_fullest_table_fits() {
