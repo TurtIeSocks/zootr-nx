@@ -21,6 +21,12 @@ via = "jump"
 why = "level gap 1.5 m: within a running jump (2.7 m)"
 
 [[link]]
+to = 4
+needs = "always"
+via = "climb"
+why = "climb 14670770652390206064, 17725402113092522180"
+
+[[link]]
 to = 9
 needs = "always"
 via = "drop"
