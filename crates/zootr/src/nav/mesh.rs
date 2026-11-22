@@ -246,6 +246,26 @@ mod tests {
         );
     }
 
+    /// Every mesh in the game reads, and lands within 10 km of its
+    /// piece: none of them is far off from a section read the wrong way.
+    #[test]
+    fn every_mesh_reads_near_its_piece() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let game = Path::new("../../dump/oot.nup");
+        let mut read = 0;
+        crate::game::each(game, MESHES, |path, data| {
+            let mesh = ShapeMesh::parse(&romfs.dicts().decompress(&path, &data)?)?;
+            let far = mesh.vertices.iter().flatten().any(|c| c.abs() > 10_000.0);
+            assert!(!far, "{path} has a vertex past 10 km");
+            read += 1;
+            Ok(())
+        })
+        .unwrap();
+        assert!(read > 5000, "only {read} meshes read");
+    }
+
     /// Every Deku Tree piece's mesh reads to the bounds its shape file
     /// stores, to the mesh's 1/512 m step.
     #[test]
