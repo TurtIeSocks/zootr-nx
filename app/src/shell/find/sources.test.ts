@@ -142,12 +142,17 @@ test("settings: the schema's by group, the app's and the targets' fields", () =>
 });
 
 test("opening a setting opens its page and its closed section", () => {
+  // revealSetting calls the real reveal, which retries on a timer for its
+  // control. Left running, a retry outlived the file's jsdom in CI.
+  vi.useFakeTimers();
   useUi.setPath("settings.closed", ["Shuffles/Fake section", "Other/x"]);
   const [cows] = settings([def()], false);
   cows?.run();
   expect(useUi.getPath("tab")).toBe("Settings");
   expect(useUi.getPath("section")).toBe("Shuffles");
   expect(useUi.getPath("settings.closed")).toEqual(["Other/x"]);
+  vi.clearAllTimers();
+  vi.useRealTimers();
 });
 
 test("a blocked action greys out and says why; Stop shows only while generating", () => {
