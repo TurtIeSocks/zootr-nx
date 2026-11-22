@@ -21,7 +21,6 @@ pub(crate) const FILES: &[(&str, &str)] = include!(concat!(env!("OUT_DIR"), "/ro
 pub struct RoomFile {
     /// The game's own `DungeonRoom` number.
     pub room: u32,
-    #[expect(dead_code, reason = "logic audit reads it (room reach build step 4)")]
     pub name: String,
     #[serde(default)]
     pub link: Vec<Link>,
@@ -77,11 +76,9 @@ pub struct Link {
     pub to: u32,
     pub needs: String,
     pub via: Via,
-    #[expect(dead_code, reason = "logic audit reads it (room reach build step 4)")]
     pub why: String,
     /// Nothing measured settles it yet.
     #[serde(default)]
-    #[expect(dead_code, reason = "logic audit reads it (room reach build step 4)")]
     pub guess: bool,
     #[serde(default)]
     pub evidence: Vec<String>,
@@ -95,14 +92,9 @@ pub struct Check {
     pub hash: u64,
     pub name: String,
     pub needs: String,
-    #[expect(dead_code, reason = "logic audit reads it (room reach build step 4)")]
     pub why: String,
     /// The superset of the tools there, since nothing settled it.
     #[serde(default)]
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "logic audit reads it (room reach build step 4)")
-    )]
     pub guess: bool,
     #[serde(default)]
     pub evidence: Vec<String>,
@@ -117,10 +109,8 @@ pub struct Flag {
     pub hash: u32,
     pub name: String,
     pub needs: String,
-    #[expect(dead_code, reason = "logic audit reads it (room reach build step 4)")]
     pub why: String,
     #[serde(default)]
-    #[expect(dead_code, reason = "logic audit reads it (room reach build step 4)")]
     pub guess: bool,
     #[serde(default)]
     pub evidence: Vec<String>,
@@ -142,7 +132,6 @@ impl Flag {
 pub struct Knowledge {
     pub to: u32,
     pub via: Via,
-    #[expect(dead_code, reason = "logic audit reads it (room reach build step 4)")]
     pub why: String,
     #[serde(default)]
     pub evidence: Vec<String>,
@@ -207,7 +196,7 @@ pub struct Room {
 }
 
 /// A dungeon's folder name: its map's name in kebab case.
-pub(crate) fn folder(node: &str) -> String {
+pub fn folder(node: &str) -> String {
     let mut out = String::new();
     for c in node.chars() {
         if c.is_ascii_uppercase() && !out.is_empty() && !out.ends_with('-') {

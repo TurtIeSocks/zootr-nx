@@ -486,6 +486,12 @@ pub(super) enum LogicCommand {
         #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
         dir: PathBuf,
     },
+    /// The room files' playtest queue: hand rules that disagree with a room
+    /// rule, guesses with their reasons, and routes that take knowledge.
+    Audit {
+        /// One dungeon, by its id (`deku-tree`).
+        dungeon: Option<String>,
+    },
     /// Write `logic/baseline/` from the game's data: never edited by hand,
     /// `logic/confirmed/` overrides it.
     Derive {
