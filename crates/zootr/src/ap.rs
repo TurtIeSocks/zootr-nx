@@ -51,13 +51,11 @@ pub const OPTIONS: &[&str] = &[
 /// Choice options the world leaves out, each as setting id, option and
 /// the sentence of the setting's description that offers it: Bombchu Bags
 /// join the pool, which the world's pool doesn't hold.
-const HELD: &[(&str, &str, &str)] = &[
-    (
-        "bombchus",
-        "bag",
-        " Or three Bombchu Bags in the pool, holding 20, 30 and 40, and none until the first",
-    ),
-];
+const HELD: &[(&str, &str, &str)] = &[(
+    "bombchus",
+    "bag",
+    " Or three Bombchu Bags in the pool, holding 20, 30 and 40, and none until the first",
+)];
 
 /// Whether the world offers `option` of choice `id`.
 fn offers(id: &str, option: &str) -> bool {

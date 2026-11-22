@@ -57,7 +57,10 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
             _ => bail!("{id} = {value} isn't a toggle on or a choice's option"),
         };
         for f in start.flags.difference(&seed.start.flags) {
-            flag_settings.entry(f.clone()).or_default().push(word.clone());
+            flag_settings
+                .entry(f.clone())
+                .or_default()
+                .push(word.clone());
         }
     }
 
