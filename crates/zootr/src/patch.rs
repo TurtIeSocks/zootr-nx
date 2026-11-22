@@ -455,6 +455,9 @@ mod tests {
 
     #[test]
     fn the_hooks_seed_hash_is_the_deku_seeds_name() {
+        if crate::game::no_names() {
+            return;
+        }
         let name = crate::known::actor::SHOOTABLE_DEKU_SEED.get();
         assert_eq!(
             ounce_formats::murmur3(name.as_bytes()),
