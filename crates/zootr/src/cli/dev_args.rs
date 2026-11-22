@@ -110,6 +110,31 @@ pub(super) enum DevCommand {
         #[arg(long)]
         json: bool,
     },
+    /// A running jump across a gap, from its near edge `from` to its far
+    /// edge `to` (each `x,y,z`, as `logic derive` prints them): warp `run`
+    /// m behind `from`, face `to`, run, and X as Link is due `past` m
+    /// beyond `from`. Says whether he made it, where X went in, and the
+    /// trace. Clear enemies near first: ZL turns him to one.
+    Leap {
+        from: String,
+        to: String,
+        /// How far behind the near edge the run starts, in m.
+        #[arg(long, default_value_t = 2.0)]
+        run: f32,
+        /// How far past the near edge X goes in, in m: where the real lip
+        /// sits past the navmesh's edge. Negative jumps early.
+        #[arg(long, default_value_t = 0.0, allow_hyphen_values = true)]
+        past: f32,
+        /// Seconds to keep reading after the jump.
+        #[arg(long, default_value_t = crate::nav::trace::SETTLE)]
+        settle: f32,
+        /// The folder for `trace.json`.
+        #[arg(long)]
+        out: Option<std::path::PathBuf>,
+        /// One JSON object instead of lines.
+        #[arg(long)]
+        json: bool,
+    },
     /// Put an item on ZR, or gear (boots, a tunic) on or off, through the
     /// menu: the item is given once more, so the menu opens on it, then A.
     /// Names as `give` takes them.

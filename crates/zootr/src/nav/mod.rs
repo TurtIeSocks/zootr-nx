@@ -38,6 +38,7 @@ pub mod climb;
 pub mod drive;
 pub mod graph;
 pub mod kinds;
+pub mod leap;
 pub mod limits;
 pub mod route;
 pub mod scene;

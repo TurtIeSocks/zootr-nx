@@ -106,7 +106,11 @@ pub struct Traced {
 }
 
 impl Traced {
-    fn of(steps: &[Step], samples: Vec<Sample>, shots: Vec<(f32, PathBuf)>) -> Result<Self> {
+    pub(super) fn of(
+        steps: &[Step],
+        samples: Vec<Sample>,
+        shots: Vec<(f32, PathBuf)>,
+    ) -> Result<Self> {
         let (first, last) = match (samples.first(), samples.last()) {
             (Some(f), Some(l)) => (*f, *l),
             _ => bail!("Link's position was never read"),

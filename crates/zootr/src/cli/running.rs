@@ -239,6 +239,28 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             &crate::nav::trace::trace(&game, &mut input()?, &steps, settle, out.as_deref())?,
             json,
         )?,
+        DevCommand::Leap {
+            from,
+            to,
+            run,
+            past,
+            settle,
+            out,
+            json,
+        } => {
+            let spot = |s: &str| crate::warp::point(s).with_context(|| format!("{s}: not x,y,z"));
+            let ends = (spot(&from)?, spot(&to)?);
+            let leap = crate::nav::leap::leap(
+                &game,
+                &mut input()?,
+                ends,
+                run,
+                past,
+                settle,
+                out.as_deref(),
+            )?;
+            said(&leap, json)?
+        }
         DevCommand::Equip { item } => {
             crate::gear::equip(&game, &recorder::gamedata(romfs)?, &mut input()?, &item)?;
             format!("equipped {item}")
