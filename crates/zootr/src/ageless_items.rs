@@ -114,9 +114,11 @@ const CHILD: Link = Link {
     ],
     words: &["Hook", "Hammer", "Bow", "LSword"],
     // Every one of the adult's: a held item's clips are spread over all
-    // five (the Hook's draw in 01, lock-on in 02, its shots in 02_H, poses
-    // and rolls in 03, waits in 04). A state whose clip is missing plays
-    // nothing, and Link twitches.
+    // six (the Hook's draw in 01, lock-on in 02, its shots in 02_H, poses
+    // and rolls in 03, waits in 04, a two-handed sword's charge start in
+    // Cba). A state whose clip is missing plays nothing, and Link twitches
+    // or skips it: without Cba the charge skips its start, and a tap of the
+    // sword spins.
     archives: &[
         Archive {
             from: field::PLAYER_ADULT_01_ANIMATION,
@@ -140,6 +142,11 @@ const CHILD: Link = Link {
         },
         Archive {
             from: field::PLAYER_ADULT_04_ANIMATION,
+            skeleton: field::PLAYER_CHILD_01_ANIMATION,
+            word: Word::Other(SMALL),
+        },
+        Archive {
+            from: field::PLAYER_ADULT_CBA_ANIMATION,
             skeleton: field::PLAYER_CHILD_01_ANIMATION,
             word: Word::Other(SMALL),
         },
@@ -171,6 +178,11 @@ const ADULT: Link = Link {
         },
         Archive {
             from: field::PLAYER_CHILD_04_ANIMATION,
+            skeleton: field::PLAYER_ADULT_02_H_ANIMATION,
+            word: Word::Other(GROWN),
+        },
+        Archive {
+            from: field::PLAYER_CHILD_CBA_ANIMATION,
             skeleton: field::PLAYER_ADULT_02_H_ANIMATION,
             word: Word::Other(GROWN),
         },
@@ -539,6 +551,23 @@ mod tests {
                 .map(|a| link.renamed(a).unwrap())
                 .collect();
             assert_eq!(names, want);
+        }
+    }
+
+    /// Cba was missed once: the child's two-handed charge skipped its start
+    /// and every tap spun.
+    #[test]
+    fn each_link_borrows_every_archive_the_other_plays_but_cutscenes() {
+        let Some(romfs) = dev_dump() else { return };
+        for link in &LINKS {
+            let lender = ActorPack::load(&romfs, link.from).unwrap();
+            let theirs: HashSet<String> = (own_archives(&lender).unwrap().into_iter())
+                .filter(|a| a.contains(age(link.from)) && !a.contains("_Demo_"))
+                .collect();
+            let lent: HashSet<String> = (link.archives.iter())
+                .map(|a| a.from.get().to_string())
+                .collect();
+            assert_eq!(lent, theirs, "{}", link.who);
         }
     }
 
