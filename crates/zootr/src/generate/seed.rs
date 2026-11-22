@@ -16,7 +16,7 @@ use crate::rules::{self, Book, Ctx, Have, Need};
 use crate::settings::{self, DungeonEntrances, Logic, NewGame, Settings};
 use crate::shuffle::{self, Fixed};
 use crate::world::Era;
-use crate::{checks, fill, gamedata, gifts, hints, ice_traps, icons, places, steps};
+use crate::{checks, fill, gamedata, gifts, hints, ice_traps, icons, places, presets, steps};
 
 /// How many door layouts a seed tries before it gives up. About one in
 /// twelve rolled layouts can be beaten with Ganon's Castle in place
@@ -45,7 +45,7 @@ pub fn shuffle(
     run.step(Step::Checks)?;
     let checks = checks::dealt(romfs, &new_game)?;
     let logic = new_game.logic == Logic::Glitchless && !new_game.vanilla;
-    let (mut placements, filled) = match logic {
+    let (mut placements, filled, started) = match logic {
         true => {
             let book = Book::load()?;
             let shuffles = new_game.dungeon_entrances != DungeonEntrances::Off;
@@ -73,6 +73,7 @@ pub fn shuffle(
                 }
                 reroll &= vanilla == Some(true);
                 run.step(Step::Placing)?;
+                let started = deal.started.clone();
                 let filled = match reroll {
                     true => None,
                     false => {
@@ -86,7 +87,7 @@ pub fn shuffle(
                     }
                 };
                 if let Some(filled) = filled {
-                    break (filled.placements.clone(), Some((world, filled)));
+                    break (filled.placements.clone(), Some((world, filled)), started);
                 }
                 // A layout logic can't beat, like the Water Temple behind
                 // Jabu-Jabu's child-only door, rolls new doors.
@@ -104,7 +105,8 @@ pub fn shuffle(
             let mut deal = shuffle::deal(&checks, fixed, &new_game)?;
             let none = BTreeSet::new();
             ice_traps::swap(romfs, &mut deal.items, &none, new_game.ice_traps, seed)?;
-            (shuffle::scatter(deal, seed, &new_game)?, None)
+            let started = deal.started.clone();
+            (shuffle::scatter(deal, seed, &new_game)?, None, started)
         }
     };
     let needed = filled.as_ref().map(|(world, _)| world.items());
@@ -164,7 +166,7 @@ pub fn shuffle(
         way: vec![],
         playthrough: vec![],
         unprovable,
-        start: start(&have, new_game, &names),
+        start: start(&have, new_game, &names, &started),
         entrances: entrances(new_game),
     })
 }
@@ -183,14 +185,23 @@ fn entrances(new_game: &NewGame) -> Vec<Door> {
         .collect()
 }
 
-/// What logic starts Link with, named: `have`'s items, and the settings
-/// its rules read that are on.
-fn start(have: &Have, new_game: &NewGame, names: &Names) -> Start {
+/// What logic starts Link with, named: `have`'s items, each with where
+/// it came from (`started`, the checks whose pool slots starting items
+/// left), and the settings its rules read that are on.
+fn start(have: &Have, new_game: &NewGame, names: &Names, started: &[(&str, u64)]) -> Start {
     let mut items: Vec<Held> = (have.items.iter())
-        .map(|(item, &count)| Held {
-            item: item.clone(),
-            name: names.dealt(item),
-            count,
+        .map(|(item, &count)| {
+            let from: Vec<u64> = (started.iter())
+                .filter(|(i, _)| i == item)
+                .map(|&(_, hash)| hash)
+                .collect();
+            Held {
+                item: item.clone(),
+                name: names.dealt(item),
+                count,
+                via: (from.len() < count as usize).then(|| via(item, new_game).to_owned()),
+                from,
+            }
         })
         .collect();
     items.sort_by(|a, b| a.name.cmp(&b.name));
@@ -201,6 +212,21 @@ fn start(have: &Have, new_game: &NewGame, names: &Names) -> Start {
     Start {
         items,
         settings: age(new_game).into_iter().chain(on).collect(),
+    }
+}
+
+/// Where a starting item that left no pool slot came from: the preset
+/// that marks it held, else the starting inventory, else an edit.
+fn via(item: &str, new_game: &NewGame) -> &'static str {
+    let inventory = new_game.start.owned().contains(&item)
+        || new_game
+            .start
+            .defaults()
+            .contains(&format!("IsGet.{item}=true"));
+    match presets::holding(&new_game.on, item) {
+        Some(label) => label,
+        None if inventory => "Starting inventory",
+        None => "Game data edit",
     }
 }
 

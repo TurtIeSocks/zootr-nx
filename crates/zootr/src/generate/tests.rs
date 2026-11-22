@@ -818,17 +818,27 @@ fn a_logic_seed_lists_what_link_starts_with() {
     let sword = item::SWORD_KOKIRI.get();
     let new_game = NewGame {
         start: starting::Start::of(&["kokiri-sword"]),
-        on: ["open-forest".to_owned()].into(),
+        on: ["open-forest", "no-pickup-texts"].map(String::from).into(),
+        defaults: crate::presets::expand(&["no-pickup-texts".into()], &[]).unwrap(),
         ..NewGame::default()
     };
     let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
     std::fs::remove_dir_all(dir).unwrap();
-    let held = report.start.items.iter().find(|h| h.item == sword);
-    let held = held.expect("the starting item is listed");
+    let held = |item: &str| report.start.items.iter().find(|h| h.item == item);
+    let sword_held = held(sword).expect("the starting item is listed");
     assert!(
-        held.count == 1 && !held.name.starts_with("Item_"),
-        "{held:?}"
+        sword_held.count == 1 && !sword_held.name.starts_with("Item_"),
+        "{sword_held:?}"
     );
+    // It names the check whose slot it left: the sword's own, here.
+    let [from] = sword_held.from[..] else {
+        panic!("{sword_held:?}")
+    };
+    let spot = report.spots.iter().find(|s| s.hash == from).unwrap();
+    assert_eq!((spot.vanilla.as_str(), &sword_held.via), (sword, &None));
+    let heart = held(actor::OBJ_HEART.get()).expect("a preset's pickup is listed");
+    assert!(heart.from.is_empty(), "{heart:?}");
+    assert_eq!(heart.via.as_deref(), Some("No Pickup Texts"));
     assert!(report.start.settings.iter().any(|s| s.contains("orest")));
 }
 

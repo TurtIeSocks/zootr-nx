@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import type { Start } from "@/bindings";
+import { type ReactNode, useMemo } from "react";
+import type { Held, Spot, Start } from "@/bindings";
 import { cn } from "@/lib/utils";
 import { HeroStar, ItemIcon } from "@/play/spoiler/icons";
 import { PickButton } from "@/play/spoiler/pick-button";
@@ -37,6 +37,20 @@ function GlowNote({ glow }: { glow?: Glow }) {
   return glow && <span className="sr-only"> ({NOTES[glow]})</span>;
 }
 
+/** A card's second line: where it is, or where it came from. */
+function Origin({ children }: { children: ReactNode }) {
+  return <span className="mt-1 block text-ink-muted">{children}</span>;
+}
+
+/** Where a check is, as a card's second line. */
+function Where({ spot }: { spot: Spot }) {
+  return (
+    <Origin>
+      {areaOf(spot)} · {placeOf(spot)}
+    </Origin>
+  );
+}
+
 /** Props for {@link CardView}. */
 interface CardViewProps {
   card: Card;
@@ -69,10 +83,40 @@ function CardView({ card: c, glow }: CardViewProps) {
         </span>
         {s.hero && <HeroStar />}
       </span>
-      <span className="mt-1 block text-ink-muted">
-        {areaOf(s)} · {placeOf(s)}
-      </span>
+      <Where spot={s} />
     </PickButton>
+  );
+}
+
+/** Props for {@link StartCard}. */
+interface StartCardProps {
+  held: Held;
+  glow?: Glow;
+}
+
+/** An item Link starts with, then where each copy came from: the checks
+ * whose pool slots it left, and the preset or starting inventory that
+ * gave the rest. Seeds from before they were kept show neither. */
+function StartCard({ held: h, glow }: StartCardProps) {
+  const { spoiler } = useSpoiler();
+  const from = (h.from ?? []).flatMap(
+    (hash) => spoiler.spots.find((s) => s.hash === hash) ?? [],
+  );
+  return (
+    <li data-glow={glow} className={cn(card, "border-line")}>
+      <span className="flex items-center gap-1.5">
+        <ItemIcon item={h.item} />
+        <span className="min-w-0 flex-1">
+          {h.name}
+          <GlowNote glow={glow} />
+        </span>
+        {h.count > 1 && <span className="text-ink-muted">×{h.count}</span>}
+      </span>
+      {from.map((s) => (
+        <Where key={s.hash} spot={s} />
+      ))}
+      {h.via && <Origin>{h.via}</Origin>}
+    </li>
   );
 }
 
@@ -92,18 +136,7 @@ function StartColumn({ start, glows }: StartColumnProps) {
       <h3 className="mb-2 font-semibold text-[13px]">Start</h3>
       <ul aria-label="Start" className="flex flex-col gap-2">
         {start.items.map((h) => (
-          <li
-            key={h.item}
-            data-glow={glows.get(h.item)}
-            className={cn(card, "flex items-center gap-1.5 border-line")}
-          >
-            <ItemIcon item={h.item} />
-            <span className="min-w-0 flex-1">
-              {h.name}
-              <GlowNote glow={glows.get(h.item)} />
-            </span>
-            {h.count > 1 && <span className="text-ink-muted">×{h.count}</span>}
-          </li>
+          <StartCard key={h.item} held={h} glow={glows.get(h.item)} />
         ))}
         {start.settings.map((s) => (
           <li
