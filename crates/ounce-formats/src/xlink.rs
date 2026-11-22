@@ -260,7 +260,7 @@ fn graft(file: &[u8], a: &User, root: usize, b: &User, place: Place) -> Result<V
     calls.extend(&rest);
     // Every shipped user numbers its assets in call order: kept so.
     let mut assets = 0u32;
-    for call in calls.chunks_exact_mut(CALL) {
+    for call in calls.as_chunks_mut::<CALL>().0 {
         if u16::from_le_bytes([call[CALL_FLAGS], call[CALL_FLAGS + 1]]) & IS_CONTAINER == 0 {
             put(call, ASSET, &(assets as i16).to_le_bytes());
             assets += 1;
