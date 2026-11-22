@@ -2,8 +2,9 @@
 //! Equipment page greys out the other age's swords and shields by two
 //! flags per item in its table, and that's their only limit: unset, either
 //! age equips and uses them. Tunics and boots stay as they are, since they dress adult Link's
-//! model and do nothing on a child, and so do the two-handed swords, which
-//! a child equips but can't swing. See the spec,
+//! model and do nothing on a child, and so do the two-handed swords: a
+//! child swings them only with the clips items for both ages lends him,
+//! so that setting opens them ([`two_handed_opened`]). See the spec,
 //! `superpowers/specs/2026-11-18-equip-any-age-design.md`.
 
 use std::collections::HashSet;
@@ -52,8 +53,8 @@ fn is_weapon(romfs: &Romfs, name: &str) -> bool {
     })
 }
 
-/// The two-handed swords' `WeaponType`. A child equips them but his
-/// animations refuse the swing (`research/two-handed-swords-child.md`).
+/// The two-handed swords' `WeaponType`. A child's own animations refuse
+/// their swing (`research/two-handed-swords-child.md`).
 const TWO_HANDED: &Name = &crate::n!(0xac8f0c8c2fcaf11d);
 
 /// Each actor whose pouch row makes it a two-handed sword.
@@ -119,6 +120,18 @@ fn unlock(table: &[u8], weapon: impl Fn(&str) -> bool) -> Result<(Vec<u8>, usize
         }
     }
     Ok((doc.to_binary(), changed))
+}
+
+/// The pause menu's table at `table` with the two-handed swords open to
+/// both ages too.
+pub fn two_handed_opened(romfs: &Romfs, table: &[u8]) -> Result<Vec<u8>> {
+    let two_handed = two_handed(romfs)?;
+    let (table, changed) = unlock(table, |name| two_handed.contains(name))?;
+    ensure!(
+        changed > 0,
+        "no two-handed sword in the pause menu's table is limited to one age"
+    );
+    Ok(table)
 }
 
 /// Write the table with the Equipment page's swords and shields open to
@@ -199,6 +212,33 @@ mod tests {
             let ages = actors(&table).into_iter().find(|(n, _)| n == sword.get());
             assert_eq!(ages, Some((sword.to_string(), [false, true])), "{sword}");
         }
+    }
+
+    #[test]
+    fn items_for_both_ages_opens_the_two_handed_swords_alone_and_in_either_order() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let vanilla = romfs.read(POUCH_TABLE).unwrap();
+        let two_handed = two_handed(&romfs).unwrap();
+        let alone = two_handed_opened(&romfs, &vanilla).unwrap();
+        let mut opened = 0;
+        for ((name, was), (_, now)) in actors(&vanilla).iter().zip(&actors(&alone)) {
+            match two_handed.contains(name) {
+                true => {
+                    opened += 1;
+                    assert_eq!(*now, [true, true], "{name}");
+                }
+                false => assert_eq!(was, now, "{name} isn't two-handed"),
+            }
+        }
+        // Biggoron's, the Giant's Knife and the broken knife.
+        assert_eq!(opened, 3);
+        let shared = shared(&romfs).unwrap();
+        let weapons_first =
+            two_handed_opened(&romfs, &unlock(&vanilla, &shared).unwrap().0).unwrap();
+        let items_first = unlock(&alone, &shared).unwrap().0;
+        assert_eq!(weapons_first, items_first);
     }
 
     #[test]

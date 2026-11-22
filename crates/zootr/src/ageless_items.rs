@@ -1,12 +1,14 @@
 //! Items for both ages: each Link uses items only the other uses in the
-//! game. Child Link takes the Megaton Hammer, Hookshot, Longshot, Bow and
-//! magic arrows, adult Link the Deku Sticks and the Boomerang. The rest of the spec's items
+//! game. Child Link takes the Megaton Hammer, Hookshot, Longshot, Bow,
+//! magic arrows and the two-handed swords, adult Link the Deku Sticks and the Boomerang. The rest of the spec's items
 //! join once they work (`superpowers/specs/2026-11-21-ageless-items-design.md`).
 //!
 //! Each gate is data, and each Link's state machine already has every
 //! item's branches:
 //!
-//! - The pause menu's table lets the item be equipped at both ages.
+//! - The pause menu's table lets the item be equipped at both ages. The
+//!   two-handed swords' rows are opened by [`crate::ageless`], whose own
+//!   setting leaves them out.
 //! - Link's holder makes the item's actor at load. Only an actor made
 //!   there can be drawn.
 //! - Link's shooter makes the other Link's projectiles: the hooks for the
@@ -19,8 +21,9 @@
 //!   Bow fires arrows, not his seeds (`zootr-hook`, `game/arrows.rs`).
 //! - Child Link aims the Bow with its own clips, not the Slingshot's
 //!   ([`aim`]).
-//! - Child Link's sounds gain the Hammer's calls, and he loads the adult's
-//!   sound bank, which holds the slam's clang ([`sounds`]).
+//! - Each Link's sounds gain the calls of what he borrows: the child's the
+//!   Hammer's and the yells of the adult's two-handed swings, the adult's
+//!   the Boomerang's. Each loads the other's sound bank ([`sounds`]).
 //!
 //! The holder, shooter and animation files size their work from their
 //! RESTBL entry, and each row costs more than its bytes, so each gets
@@ -94,7 +97,8 @@ struct Link {
     /// The other Link's holder rows, by key.
     holds: &'static [&'static Name],
     /// The words the borrowed items' clips carry in their names: the long
-    /// roll with the hook is the plain long roll's name with `_Hook` added.
+    /// roll with the hook is the plain long roll's name with `_Hook` added,
+    /// with a two-handed sword `_LSword`.
     words: &'static [&'static str],
     archives: &'static [Archive],
 }
@@ -108,11 +112,13 @@ const CHILD: Link = Link {
         item::LONGSHOT,
         actor::WEAPON_RANGE_BOW,
     ],
-    words: &["Hook", "Hammer", "Bow"],
+    words: &["Hook", "Hammer", "Bow", "LSword"],
     // Every one of the adult's: a held item's clips are spread over all
-    // five (the Hook's draw in 01, lock-on in 02, its shots in 02_H, poses
-    // and rolls in 03, waits in 04). A state whose clip is missing plays
-    // nothing, and Link twitches.
+    // six (the Hook's draw in 01, lock-on in 02, its shots in 02_H, poses
+    // and rolls in 03, waits in 04, a two-handed sword's charge start in
+    // Cba). A state whose clip is missing plays nothing, and Link twitches
+    // or skips it: without Cba the charge skips its start, and a tap of the
+    // sword spins.
     archives: &[
         Archive {
             from: field::PLAYER_ADULT_01_ANIMATION,
@@ -136,6 +142,11 @@ const CHILD: Link = Link {
         },
         Archive {
             from: field::PLAYER_ADULT_04_ANIMATION,
+            skeleton: field::PLAYER_CHILD_01_ANIMATION,
+            word: Word::Other(SMALL),
+        },
+        Archive {
+            from: field::PLAYER_ADULT_CBA_ANIMATION,
             skeleton: field::PLAYER_CHILD_01_ANIMATION,
             word: Word::Other(SMALL),
         },
@@ -167,6 +178,11 @@ const ADULT: Link = Link {
         },
         Archive {
             from: field::PLAYER_CHILD_04_ANIMATION,
+            skeleton: field::PLAYER_ADULT_02_H_ANIMATION,
+            word: Word::Other(GROWN),
+        },
+        Archive {
+            from: field::PLAYER_CHILD_CBA_ANIMATION,
             skeleton: field::PLAYER_ADULT_02_H_ANIMATION,
             word: Word::Other(GROWN),
         },
@@ -206,13 +222,14 @@ impl Link {
     }
 
     /// `archive`'s model as this Link has it, and its name: resized to
-    /// his skeleton, each clip of his `own` hidden, each item clip given
-    /// the root of his plain one, and renamed. Its events are the
-    /// original's.
+    /// his skeleton, his eyelids left to him, each clip of his `own`
+    /// hidden, each item clip given the root of his plain one, and
+    /// renamed. Its events are the original's.
     fn lent(&self, romfs: &Romfs, archive: &Archive, own: &Own) -> Result<(String, Vec<u8>)> {
         let (name, from) = (self.renamed(archive)?, archive.from.get());
         let mut bytes = romfs.read(&model(from))?;
         fska::resize(&mut bytes, &romfs.read(&model(archive.skeleton))?)?;
+        fska::unbind_eyelids(&mut bytes);
         fska::hide(&mut bytes, |clip| own.clips.contains_key(clip));
         fska::rooted(&mut bytes, |clip| own.plain(self, clip))?;
         fska::rename(&mut bytes, from, &name)?;
@@ -254,6 +271,7 @@ impl Own {
 /// the borrowed archives, the child's graph and his sounds.
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     let table = opened(&builder.read(POUCH_TABLE)?)?;
+    let table = crate::ageless::two_handed_opened(romfs, &table)?;
     builder.write(POUCH_TABLE, &table)?;
     for link in &LINKS {
         let pack = ActorPack::from_bytes(link.who, builder.read(&pack_file(link.who))?)?;
@@ -537,6 +555,23 @@ mod tests {
         }
     }
 
+    /// Cba was missed once: the child's two-handed charge skipped its start
+    /// and every tap spun.
+    #[test]
+    fn each_link_borrows_every_archive_the_other_plays_but_cutscenes() {
+        let Some(romfs) = dev_dump() else { return };
+        for link in &LINKS {
+            let lender = ActorPack::load(&romfs, link.from).unwrap();
+            let theirs: HashSet<String> = (own_archives(&lender).unwrap().into_iter())
+                .filter(|a| a.contains(age(link.from)) && !a.contains("_Demo_"))
+                .collect();
+            let lent: HashSet<String> = (link.archives.iter())
+                .map(|a| a.from.get().to_string())
+                .collect();
+            assert_eq!(lent, theirs, "{}", link.who);
+        }
+    }
+
     #[test]
     fn each_lent_archive_has_a_name_of_its_own_and_its_files_are_extracted() {
         let Some(romfs) = dev_dump() else { return };
@@ -592,7 +627,7 @@ mod tests {
         let Some(romfs) = dev_dump() else { return };
         for link in &LINKS {
             let own = Own::read(&romfs, &ActorPack::load(&romfs, link.who).unwrap()).unwrap();
-            let mut rooted = 0;
+            let (mut rooted, mut two_handed) = (0, 0);
             for archive in link.archives {
                 let (_, lent) = link.lent(&romfs, archive, &own).unwrap();
                 for (clip, at) in fska::clips(&lent) {
@@ -604,10 +639,19 @@ mod tests {
                     if !theirs.is_empty() {
                         assert_eq!(mine, theirs, "{clip}");
                         rooted += 1;
+                        two_handed += usize::from(clip.contains("_LSword"));
                     }
                 }
             }
             assert!(rooted >= 18, "{}: {rooted}", link.who);
+            // The child's 12 rolls and 2 climb-ups with a two-handed
+            // sword: the camera trailed him in each.
+            let want = if link.who == actor::PLAYER_CHILD {
+                14
+            } else {
+                0
+            };
+            assert!(two_handed >= want, "{}: {two_handed}", link.who);
         }
     }
 

@@ -13,7 +13,7 @@ pub const GRAPH: &str = "AS/Player_Child.root.asb.zs";
 /// each Link's own archives, whose clips a borrowed one hides, and the
 /// sound files the child's Hammer sounds edit.
 // Text: the extract runs before a dump is open, so no name can be read.
-pub const FILES: [&str; 26] = [
+pub const FILES: [&str; 28] = [
     SOUNDS,
     BANKS,
     GRAPH,
@@ -36,8 +36,10 @@ pub const FILES: [&str; 26] = [
     "Model/Player_Child_04_Animation.anim.bfres.zs",
     "AnimationEvent/Animation/Player_Child_04_Animation.anim.baev.zs",
     "Model/Player_Adult_Cba_Animation.anim.bfres.zs",
+    "AnimationEvent/Animation/Player_Adult_Cba_Animation.anim.baev.zs",
     "Model/Player_Adult_Demo_Animation.anim.bfres.zs",
     "Model/Player_Dark_Animation.anim.bfres.zs",
     "Model/Player_Child_Cba_Animation.anim.bfres.zs",
+    "AnimationEvent/Animation/Player_Child_Cba_Animation.anim.baev.zs",
     "Model/Player_Child_Demo_Animation.anim.bfres.zs",
 ];
