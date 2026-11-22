@@ -390,6 +390,13 @@ impl Graph<'_> {
             })
     }
 
+    /// Whether floor `p` lies under any water the graph knows, however
+    /// shallow: Link wades or swims there.
+    pub fn wet(&self, p: [f32; 3]) -> bool {
+        (self.waters.iter())
+            .any(|w| w.covers(p[0], p[2]) && (w.surface - w.depth - IN..w.surface).contains(&p[1]))
+    }
+
     /// The spot on the surface over `p`, when `p` lies under a water the
     /// graph swims, deeper than Link floats and within its depth: where he
     /// sinks from to reach it.
