@@ -82,10 +82,15 @@ struct Seen<'k> {
     by: BTreeSet<u64>,
     /// The obstacle kinds standing on it, by placement.
     on: BTreeMap<u64, &'k Kind>,
+    /// Where it was seen with the least metric: the place to test it.
+    at: ([f32; 3], [f32; 3]),
 }
 
 impl Seen<'_> {
-    fn add(&mut self, metric: f32, by: Option<u64>) {
+    fn add(&mut self, metric: f32, by: Option<u64>, at: ([f32; 3], [f32; 3])) {
+        if self.count == 0 || metric < self.least {
+            self.at = at;
+        }
         if self.count == 0 {
             (self.least, self.most) = (metric, metric);
         }
@@ -129,6 +134,16 @@ pub struct Derived {
     pub roomless: Vec<u64>,
     /// Exits in no room, by name in words.
     pub exitless: Vec<String>,
+    /// Each jump link, at its narrowest: where a playtest settles it.
+    pub jumps: Vec<Jump>,
+}
+
+/// A jump link at its narrowest gap.
+pub struct Jump {
+    pub from: u32,
+    pub to: u32,
+    pub width: f32,
+    pub at: ([f32; 3], [f32; 3]),
 }
 
 /// The maps of `dungeon`: its own, by either age, never its boss's.
@@ -186,6 +201,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
     // Each room's exits and arrival spots, by key, with their names.
     let mut spots: BTreeMap<(u32, &str), BTreeMap<u32, String>> = BTreeMap::new();
     let mut exitless = vec![];
+    let mut jumps = vec![];
     let mut numbered = BTreeSet::new();
     let mut floored = BTreeSet::new();
     let (mut faces, mut unplaced) = (0, 0);
@@ -310,7 +326,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
             };
             if ra != rb {
                 let s = seen.entry((ra, rb, via)).or_default();
-                s.add(metric, by);
+                s.add(metric, by, path);
                 s.on.extend(on(path.0, path.1));
             }
         };
@@ -421,6 +437,15 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
         };
         let from_here = (room, 0, rooms::Via::Walk)..=(room, u32::MAX, rooms::Via::Sink);
         for (&(_, to, via), s) in seen.range(from_here) {
+            if via == rooms::Via::Jump {
+                let (from, width, at) = (room, s.least, s.at);
+                jumps.push(Jump {
+                    from,
+                    to,
+                    width,
+                    at,
+                });
+            }
             let (needs, why, guess) = link(via, room, s, &locks);
             let fields = [
                 ("to", to.to_string()),
@@ -475,6 +500,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
         floorless,
         roomless,
         exitless,
+        jumps,
     })
 }
 
