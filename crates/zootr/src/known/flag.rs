@@ -104,6 +104,7 @@ pub const ICE_CAVERN: &Name = &n!(0x5492622bcb6954b9);
 pub const INSIDE_GANON_CASTLE: &Name = &n!(0x7e27f0fae8d92890);
 pub const INSIDE_JABU_JABU_BELLY: &Name = &n!(0x22a5855b4b8f52bb);
 pub const INSIDE_THE_DEKU_TREE: &Name = &n!(0xcb9ca69e57d15e27);
+pub const INSIDE_THE_DEKU_TREE_ROOM_B_CLEARED: &Name = &n!(0x9039fcf8a329e698);
 pub const IS_AFTER: &Name = &n!(0x7a0db6d66915aef9);
 pub const IS_CLEAR_MINIGAME_FIND_OUT_CUCCO: &Name = &n!(0xe054f1c03bad1b0f);
 pub const IS_GET_ITEM_DEKU_STICK: &Name = &n!(0x15f1580810a6d5ee);

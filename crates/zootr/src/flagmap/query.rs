@@ -152,6 +152,28 @@ impl Graph {
         self.report(node, edges.map(|&e| (e, None)).collect(), None)
     }
 
+    /// The placements that set the state named `name` by playing an
+    /// event their params name: a scrub's talk once it's beaten.
+    pub fn played_by(&self, name: &str) -> Vec<u64> {
+        let Ok(state) = self.find(&format!("state:{name}")) else {
+            return Vec::new();
+        };
+        let into = |node: usize, link: Link| {
+            (self.ins[node].iter())
+                .map(|&e| &self.edges[e])
+                .filter(move |e| e.link == link)
+                .map(|e| e.from)
+        };
+        let mut found: Vec<u64> = into(state, Link::Writes)
+            .flat_map(|entry| into(entry, Link::Runs))
+            .flat_map(|row| into(row, Link::Plays))
+            .filter_map(|p| self.nodes[p].name.rsplit(' ').next()?.parse().ok())
+            .collect();
+        found.sort_unstable();
+        found.dedup();
+        found
+    }
+
     /// What asks a state.
     pub fn readers(&self, node: usize) -> Report<'_> {
         let edges = self.outs[node]
@@ -312,6 +334,7 @@ fn link_word(link: Link) -> &'static str {
         Link::Places => "places",
         Link::Has => "has",
         Link::Uses => "used by",
+        Link::Plays => "plays",
     }
 }
 

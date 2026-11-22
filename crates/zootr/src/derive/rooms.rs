@@ -183,6 +183,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
     let kind_at = |p: &Placement| kind_of.get(&murmur3(p.name.as_bytes())).copied();
     let jump = limits().level_jump();
     let shutters = crate::gates::trace_node(romfs, SHUTTER)?;
+    let flagmap = crate::flagmap::Graph::build(romfs)?;
     let checks = crate::checks::all(romfs)?;
     // Named one at a time: an item Archipelago has no name for fails only its own.
     let named: HashMap<u64, String> = (checks.iter())
@@ -299,14 +300,28 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
         for gate in shutters.iter().filter(|g| level.placement(g.hash).is_ok()) {
             let mut found = BTreeMap::new();
             locks_in(&gate.expr, &mut found);
-            for (name, setters) in found {
+            for (name, mut setters) in found {
+                // No graph sets it: a placement may, playing an event.
+                if setters.is_empty() {
+                    let placed = flagmap.played_by(&name).into_iter();
+                    setters.extend(placed.filter(|h| level.placement(*h).is_ok()));
+                }
                 let setter_room = (setters.iter())
                     .filter_map(|h| room_at(level.placement(*h).ok()?))
                     .next();
+                let named = (setters.iter())
+                    .filter_map(|h| {
+                        Some(format!(
+                            "{} {h}",
+                            super::words(&level.placement(*h).ok()?.name)
+                        ))
+                    })
+                    .collect();
                 let lock = Lock {
                     room: setter_room.or_else(|| room_in_name(&name)),
                     name: name.clone(),
                     setters,
+                    named,
                 };
                 let kinds: Vec<&Kind> = (lock.setters.iter())
                     .filter_map(|h| kind_at(level.placement(*h).ok()?))

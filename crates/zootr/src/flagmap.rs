@@ -21,6 +21,7 @@ use crate::known::{field, flag};
 
 mod actors;
 mod flows;
+mod placed;
 mod query;
 mod scene;
 mod tables;
@@ -58,6 +59,8 @@ pub enum Link {
     Has,
     /// A class's answer going into a graph that runs it.
     Uses,
+    /// A placement playing an event its params name, from its own code.
+    Plays,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -148,6 +151,7 @@ impl Graph {
         let packs = actors::add(&mut g, romfs, &gamedata)?;
         g.scene.extend(packs);
         tables::add(&mut g, romfs)?;
+        placed::add(&mut g, romfs, &flows)?;
         g.flows = Some(flows);
         g.gamedata = Some(gamedata);
         Ok(g)
@@ -329,7 +333,27 @@ fn detail(gd: &GameData, hash: u32) -> Option<String> {
 mod tests {
     use ounce_formats::murmur3;
 
-    use super::live;
+    use super::{Graph, live};
+    use crate::known::{actor, flag};
+
+    /// The Deku Tree's room B opens once its scrub is beaten: no graph
+    /// writes the flag, the scrub's talk does, named by its placement's
+    /// `DamageEventName`.
+    #[test]
+    fn a_scrub_that_plays_its_talk_sets_its_rooms_flag() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let g = Graph::build(&romfs).unwrap();
+        let by = g.played_by(flag::INSIDE_THE_DEKU_TREE_ROOM_B_CLEARED.get());
+        assert_eq!(by.len(), 1, "{by:?}");
+        let scrub = g.find(&format!(
+            "placement:{} {}",
+            actor::ENEMY_SCRUB_DEKU.get(),
+            by[0]
+        ));
+        assert!(scrub.is_ok());
+    }
 
     #[test]
     fn live_reads_a_state_by_id_name_or_hash_and_refuses_an_event() {
