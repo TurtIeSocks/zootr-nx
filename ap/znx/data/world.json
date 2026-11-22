@@ -9093,7 +9093,10 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "setting": "gerudo-fortress=freed"
+            "count": 1,
+            "items": [
+              "Carpenters freed"
+            ]
           }
         }
       ],
@@ -21769,6 +21772,30 @@
         }
       ],
       "name": "Gerudo Membership Card"
+    },
+    {
+      "at": [
+        {
+          "place": "gerudo-fortress-adult",
+          "rule": {
+            "any": [
+              {
+                "count": 1,
+                "items": [
+                  "Progressive Hookshot"
+                ]
+              },
+              {
+                "setting": "gerudo-fortress=fast"
+              },
+              {
+                "setting": "gerudo-fortress=freed"
+              }
+            ]
+          }
+        }
+      ],
+      "name": "Carpenters freed"
     },
     {
       "at": [

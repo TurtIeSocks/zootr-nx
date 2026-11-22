@@ -727,18 +727,16 @@ needs = "zora-river"
 setting = "merchants"
 
 # The running man's Purple Rupee, for Link's first win, dealt only with
-# running-race on. He stands in Gerudo Valley and offers the race once the
-# Spirit quest is past its first step, when the valley bridge is fixed.
-# Crossing the gap with the Longshot or Epona doesn't move the quest, so
-# the bridge rule isn't enough, and logic doesn't track freeing the
-# carpenters in play: only Gerudo Fortress Freed proves it. Winning asks
-# for no item until a real run is timed against his 2:18.
+# running-race on. He stands in Gerudo Valley and offers the race once all
+# four carpenters are freed, when the valley bridge is fixed. Crossing the
+# gap any other way frees no one, so the bridge rule isn't enough. Winning asks for no item until a real run is timed against his
+# 2:18.
 [[check]]
 hash = 11582029116926037889
 name = "Running man's race"
 place = "gerudo-valley-adult"
 era = "adult"
-needs = "setting:gerudo-fortress=freed"
+needs = "event:carpenters-freed"
 setting = "running-race"
 
 # A Kokiri kid's Blue Rupee, once Link has broken the eight rocks around
