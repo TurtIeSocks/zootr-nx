@@ -10,6 +10,13 @@ why = "climb 11417569812811528089, 11765149838097928674, 11945414457677533711, 1
 
 [[link]]
 to = 10
-needs = "always"
+needs = "flag:#d2f46f66"
 via = "walk"
-why = "walk, 1 edges"
+why = "walk, 1 edges; Switch Shutter A 02 7338135400039561278 shut until flag #d2f46f66"
+
+[[flag]]
+hash = 0xd2f46f66
+name = "Inside The Deku Tree Room K Cleared"
+needs = "always"
+why = "an event Enemy Scrub Deku Brothers 547854907662504385, Enemy Scrub Deku Brothers 10554947923767485696, Enemy Scrub Deku Brothers 11170244453833932746 plays sets it: what beats that isn't traced yet"
+guess = true

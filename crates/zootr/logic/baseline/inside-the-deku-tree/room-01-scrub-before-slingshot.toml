@@ -18,5 +18,5 @@ why = "walk, 1 edges; Switch Shutter A 02 11012697473795725691 shut until flag #
 hash = 0x64edd2f3
 name = "Inside The Deku Tree Room B Cleared"
 needs = "always"
-why = "set by clearing the room: what clears it isn't traced yet"
+why = "an event Enemy Scrub Deku 12281072600114391121 plays sets it: what beats that isn't traced yet"
 guess = true

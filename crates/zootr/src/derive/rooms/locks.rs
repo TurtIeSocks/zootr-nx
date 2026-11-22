@@ -14,8 +14,11 @@ use crate::rules::kinds::Kind;
 pub(super) struct Lock {
     /// The game's name: code only, never written (the hook blocks it).
     pub name: String,
-    /// The placements whose state sets it, when a graph sets it.
+    /// The placements that set it: through a graph, or playing an event
+    /// their params name.
     pub setters: BTreeSet<u64>,
+    /// Each setter in words with its hash, for a setter with no kind.
+    pub named: Vec<String>,
     /// Its room: its setters', or the room its name gives.
     pub room: Option<u32>,
 }
@@ -66,6 +69,13 @@ pub(super) fn locks_in(expr: &GateExpr, out: &mut BTreeMap<String, BTreeSet<u64>
 pub(super) fn flag(lock: &Lock, kinds: &[&Kind]) -> (String, String, bool) {
     if lock.setters.is_empty() {
         let why = "set by clearing the room: what clears it isn't traced yet".to_owned();
+        return ("always".into(), why, true);
+    }
+    if kinds.is_empty() {
+        let why = format!(
+            "an event {} plays sets it: what beats that isn't traced yet",
+            lock.named.join(", ")
+        );
         return ("always".into(), why, true);
     }
     let uses: Vec<&str> = kinds.iter().map(|k| k.uses.as_str()).collect();

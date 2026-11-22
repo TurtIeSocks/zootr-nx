@@ -8,13 +8,6 @@ needs = "flag:#d2f46f66"
 via = "walk"
 why = "walk, 1 edges; Switch Shutter A 02 7338135400039561278 shut until flag #d2f46f66"
 
-[[flag]]
-hash = 0xd2f46f66
-name = "Inside The Deku Tree Room K Cleared"
-needs = "always"
-why = "set by clearing the room: what clears it isn't traced yet"
-guess = true
-
 [[exit]]
 hash = 0xcdbcd52f
 name = "Gohma Stage"
