@@ -112,11 +112,14 @@ pub(super) enum DevCommand {
     },
     /// A running jump across a gap, from its near edge `from` to its far
     /// edge `to` (each `x,y,z`, as `logic derive` prints them): warp `run`
-    /// m behind `from`, face `to`, run, and X as Link is due `past` m
+    /// m behind `from`, run at `to`, steering by where Link goes (no ZL,
+    /// so nothing near gets locked onto), and X as he's due `past` m
     /// beyond `from`. Says whether he made it, where X went in, and the
-    /// trace. Clear enemies near first: ZL turns him to one.
+    /// trace.
     Leap {
+        #[arg(allow_hyphen_values = true)]
         from: String,
+        #[arg(allow_hyphen_values = true)]
         to: String,
         /// How far behind the near edge the run starts, in m.
         #[arg(long, default_value_t = 2.0)]

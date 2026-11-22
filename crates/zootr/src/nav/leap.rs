@@ -4,20 +4,28 @@
 //! `past` m beyond it, where the real lip sits past the navmesh's edge).
 //! Hand-timed holds over the bridge missed the edge by a metre either way
 //! (Deku Tree, other machine, 2026-11-21).
+//!
+//! No ZL: it locks onto a scrub, a Skulltula or an eye switch in reach,
+//! and a locked-on Link strafes instead of running (round 3, 2026-11-21).
+//! The stick is camera-relative and the camera isn't read, so the run
+//! steers by what Link does: a short push finds which way the camera
+//! faces, and each hold after it aims at the far edge from where the
+//! hold before it actually took him.
 
 use std::fmt;
 use std::path::Path;
-use std::time::Instant;
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
 use serde::Serialize;
 
-use super::drive::Drive;
 use super::trace::{Sample, Step, Traced};
+use super::{CLOCKWISE, eighths};
 use crate::checks::flat;
 use crate::dev::Dev;
 use crate::live::Memory;
-use crate::play::Input;
+use crate::play::{Input, stick};
 
 /// How long a control line takes to reach Link over the bridge, in s
 /// (room science notes: ~0.1 s).
@@ -30,6 +38,11 @@ const JUMP: f32 = 0.15;
 const STEER: f32 = 0.6;
 /// The run gives up after this long without reaching the edge, in s.
 const RUN: f32 = 4.0;
+/// The push that finds the camera, in s, and the wait for Link to stop.
+const PROBE: f32 = 0.2;
+const STOP: f32 = 0.5;
+/// A push that moves Link less than this, in m, says nothing of the camera.
+const MOVED: f32 = 0.1;
 /// A landing counts as on the far floor within this height of it, in m.
 const LEVEL: f32 = 0.5;
 /// What the leap is saved as in its folder.
@@ -81,6 +94,34 @@ fn due(ahead: f32, speed: f32, past: f32) -> bool {
     ahead + speed.max(0.0) * LATENCY >= past
 }
 
+/// Which way the camera faces, from Link going `from` to `to` on a push
+/// `k` eighths clockwise of up. `None` when he barely moved.
+fn camera(from: [f32; 3], to: [f32; 3], k: i32) -> Option<f32> {
+    let moved = (to[0] - from[0]).atan2(to[2] - from[2]);
+    (flat(from, to) >= MOVED).then_some(moved + k as f32 * std::f32::consts::FRAC_PI_4)
+}
+
+/// The stick's eighth, clockwise of up, and its control line, that points
+/// Link at `at` toward `to` with the camera facing `cam`.
+fn aim(cam: f32, at: [f32; 3], to: [f32; 3]) -> (i32, String) {
+    let k = eighths(cam, at, to).rem_euclid(8);
+    (k, stick(CLOCKWISE[k as usize]))
+}
+
+/// Find which way the camera faces: a short push up, else down (a wall
+/// ahead). Link is left where the push took him.
+fn find_camera<M: Memory, I: Input>(dev: &Dev<M>, input: &mut I) -> Result<f32> {
+    for k in [0, 4] {
+        let before = dev.link()?;
+        input.queue(&format!("{}~{PROBE}", stick(CLOCKWISE[k])))?;
+        sleep(Duration::from_secs_f32(PROBE + STOP));
+        if let Some(cam) = camera(before, dev.link()?, k as i32) {
+            return Ok(cam);
+        }
+    }
+    anyhow::bail!("Link didn't move on a push up or down: walled in at the start")
+}
+
 /// Whether Link ended on the far floor: within [`LEVEL`] of its height,
 /// and at or past its edge.
 fn landed(to: [f32; 3], width: f32, ahead: f32, end: [f32; 3]) -> bool {
@@ -102,9 +143,12 @@ pub fn leap<M: Memory, I: Input>(
     let dir = line(from, to);
     let start = [from[0] - dir.0 * run, from[1], from[2] - dir.1 * run];
     dev.warp(start)?;
-    Drive::new(dev, input).face(to)?;
+    sleep(Duration::from_secs_f32(STOP));
+    let mut cam = find_camera(dev, input)?;
     let (mut samples, mut jumped) = (Vec::<Sample>::new(), None::<Sample>);
     let (begun, mut hold) = (Instant::now(), 0.0);
+    // The last hold: its eighth and where Link was as it went in.
+    let mut last: Option<(i32, [f32; 3])> = None;
     loop {
         let t = begun.elapsed().as_secs_f32();
         let at = dev.link()?;
@@ -114,7 +158,8 @@ pub fn leap<M: Memory, I: Input>(
                 (ahead - along(from, dir, s.at)) / (t - s.t).max(f32::EPSILON)
             });
             if due(ahead, speed, past) {
-                input.queue(&format!("LUp+X~{JUMP}"))?;
+                let (_, way) = aim(cam, at, to);
+                input.queue(&format!("{way}+X~{JUMP}"))?;
                 (jumped, hold) = (Some(Sample { t, at }), t + JUMP);
             } else if t >= RUN {
                 samples.push(Sample { t, at });
@@ -123,8 +168,12 @@ pub fn leap<M: Memory, I: Input>(
         }
         let after = jumped.map(|j| t - j.t);
         if t >= hold && after.is_none_or(|a| a < STEER) {
-            input.queue(&format!("LUp~{CHUNK}"))?;
-            hold = t + CHUNK;
+            if let Some(c) = last.and_then(|(k, was)| camera(was, at, k)) {
+                cam = c;
+            }
+            let (k, way) = aim(cam, at, to);
+            input.queue(&format!("{way}~{CHUNK}"))?;
+            (hold, last) = (t + CHUNK, Some((k, at)));
         }
         samples.push(Sample { t, at });
         if after.is_some_and(|a| a >= STEER + settle) {
@@ -133,9 +182,9 @@ pub fn leap<M: Memory, I: Input>(
     }
     let run_secs = jumped.map_or(RUN, |j| j.t);
     let steps = [
-        Step::Hold("LUp".into(), run_secs.max(f32::EPSILON)),
-        Step::Hold("LUp+X".into(), JUMP),
-        Step::Hold("LUp".into(), STEER),
+        Step::Hold("toward TO".into(), run_secs.max(f32::EPSILON)),
+        Step::Hold("toward TO+X".into(), JUMP),
+        Step::Hold("toward TO".into(), STEER),
     ];
     let traced = Traced::of(&steps, samples, vec![])?;
     let width = flat(from, to);
@@ -171,6 +220,21 @@ mod tests {
         // Past the navmesh edge, the press waits for the lip.
         assert!(!due(0.0, 4.5, 1.0));
         assert!(due(0.6, 4.5, 1.0));
+    }
+
+    #[test]
+    fn a_push_says_which_way_the_camera_faces() {
+        // Up moved Link along +Z: the camera faces +Z, and up aims there.
+        let cam = camera([0.0; 3], [0.0, 0.0, 1.0], 0).unwrap();
+        assert!(cam.abs() < 1e-5);
+        assert_eq!(aim(cam, [0.0; 3], [0.0, 0.0, 5.0]), (0, "LUp".into()));
+        // Right (a quarter clockwise of up) moved him along -X: the camera
+        // still faces +Z, and aiming at -X picks right again.
+        let cam = camera([0.0; 3], [-1.0, 0.0, 0.0], 2).unwrap();
+        assert!(cam.abs() < 1e-5);
+        assert_eq!(aim(cam, [0.0; 3], [-5.0, 0.0, 0.0]), (2, "LRight".into()));
+        // A push that barely moved him says nothing.
+        assert_eq!(camera([0.0; 3], [0.05, 0.0, 0.0], 0), None);
     }
 
     #[test]

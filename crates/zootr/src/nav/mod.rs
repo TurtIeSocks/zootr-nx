@@ -52,7 +52,7 @@ pub mod water;
 pub mod went;
 
 /// The stick directions clockwise from up, an eighth of a turn apart.
-const CLOCKWISE: [&str; 8] = [
+pub(crate) const CLOCKWISE: [&str; 8] = [
     "up",
     "up-right",
     "right",
