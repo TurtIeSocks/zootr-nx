@@ -354,6 +354,17 @@ pub fn flag(romfs: &Romfs, gd: &GameData, hash: u64) -> Result<Option<Flag>> {
     Ok(Tracker::new(gd, &[Spot::new(&placement, &names)])?.flag(hash))
 }
 
+/// What the tracker reads once check `hash` is done in a seed whose spots
+/// are `spots`, as the app's client does: a check dealt another item can
+/// tick another flag (a Gold Skulltula's own pickup Bool, not its token's
+/// key). [`flag`]'s vanilla answer for a check the seed doesn't hold.
+pub fn seed_flag(romfs: &Romfs, gd: &GameData, spots: &[Spot], hash: u64) -> Result<Option<Flag>> {
+    match spots.iter().find(|s| s.hash == hash) {
+        Some(spot) => Ok(Tracker::new(gd, std::slice::from_ref(spot))?.flag(hash)),
+        None => flag(romfs, gd, hash),
+    }
+}
+
 /// Every placement that holds something, dealt or not: what drops a
 /// fixed item, every gift and scrub, and every breakable, whose drop
 /// is random unless placed.
@@ -441,7 +452,36 @@ fn kind(c: &ItemCheck) -> &'static str {
 
 #[cfg(test)]
 mod tests {
+    use ounce_formats::murmur3;
+
     use super::*;
+
+    /// A Gold Skulltula dealt another item ticks its own pickup Bool, not
+    /// the token's key a vanilla one sets.
+    #[test]
+    fn a_seed_s_skulltula_holding_another_item_ticks_its_own_flag() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gd = GameData::load(&romfs).unwrap();
+        let skulltula = &pickups::SKULLTULAS.checks(&romfs).unwrap()[0];
+        let rupee = actor::T_BOX_RUPEE_RED.get();
+        let names = crate::names::Names::load(&romfs, [rupee]).unwrap();
+        let placement = Placement {
+            check: skulltula,
+            item: rupee,
+        };
+        let spots = [Spot::new(&placement, &names)];
+        let vanilla = flag(&romfs, &gd, skulltula.hash).unwrap();
+        let seeded = seed_flag(&romfs, &gd, &spots, skulltula.hash).unwrap();
+        let picked = murmur3(crate::picked::flag(skulltula.hash).as_bytes());
+        assert_eq!(seeded, Some(Flag::Bool(picked)));
+        assert_ne!(seeded, vanilla);
+        assert_eq!(
+            seed_flag(&romfs, &gd, &[], skulltula.hash).unwrap(),
+            vanilla
+        );
+    }
 
     #[test]
     fn every_shuffle_moves_the_keys_and_deals_the_trade_chain() {
