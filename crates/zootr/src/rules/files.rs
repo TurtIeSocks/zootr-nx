@@ -176,7 +176,15 @@ impl Book {
         }
         book.rooms = rooms::load(room_files)?;
         book.kinds = kinds::load(room_files)?;
-        let live = book.rooms.iter().filter(|r| r.live);
+        book.take_room_checks();
+        book.validate()?;
+        Ok(book)
+    }
+
+    /// Each live room's check in place of the hand rule for it, which is
+    /// kept for the audit.
+    fn take_room_checks(&mut self) {
+        let live = self.rooms.iter().filter(|r| r.live);
         for check in live.flat_map(|r| &r.file.check) {
             let entry = CheckEntry {
                 name: check.name.clone(),
@@ -184,12 +192,25 @@ impl Book {
                 place: None,
                 optional: false,
             };
-            if let Some(hand) = book.checks.insert(check.hash, entry) {
-                book.hand.insert(check.hash, hand);
+            if let Some(hand) = self.checks.insert(check.hash, entry) {
+                self.hand.entry(check.hash).or_insert(hand);
             }
         }
-        book.validate()?;
-        Ok(book)
+    }
+
+    /// The book with the dungeon in `folder` live, as if it were in
+    /// [`rooms::LIVE`].
+    #[cfg(test)]
+    pub(crate) fn with_live(mut self, folder: &str) -> Self {
+        for room in self
+            .rooms
+            .iter_mut()
+            .filter(|r| rooms::folder(&r.node) == folder)
+        {
+            room.live = true;
+        }
+        self.take_room_checks();
+        self
     }
 
     fn add(&mut self, name: &str, text: &str) -> Result<()> {

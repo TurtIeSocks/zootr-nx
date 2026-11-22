@@ -21,3 +21,15 @@ name = "Inside The Deku Tree Room K Cleared"
 needs = "always"
 why = "set by clearing the room: what clears it isn't traced yet"
 guess = true
+
+[[exit]]
+hash = 0xcdbcd52f
+name = "Gohma Stage"
+
+[[arrival]]
+hash = 0x2e3b52b3
+name = "Inside The Deku Tree Defeat Boss"
+
+[[arrival]]
+hash = 0x9db945d7
+name = "Inside The Deku Tree Start Pos Get Stone Of Forest"

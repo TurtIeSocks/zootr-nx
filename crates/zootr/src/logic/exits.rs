@@ -18,6 +18,7 @@ pub(super) fn edges(
     scan: &Scan,
     alternatives: &BTreeMap<String, String>,
     exits: &BTreeSet<world::Exit>,
+    rooms: &super::rooms::RoomPlaces,
     at: &impl Fn(&str, Era) -> Result<usize>,
 ) -> Result<Vec<Edge>> {
     let mut edges = Vec::new();
@@ -79,7 +80,14 @@ pub(super) fn edges(
         // A dungeon's copy for an era its exit's map doesn't have, like
         // child Link leaving Ganon's Castle for the adult Market.
         let to_name = to;
-        let (Ok(from), Ok(to)) = (at(&e.from, e.era), at(to_name, e.era)) else {
+        // A live dungeon is left from the exit's room and entered in its
+        // spot's, unless a moved door leads in at the front.
+        let leaves = rooms.leave(&e.from, &e.to, &e.to_start)?;
+        let lands = match to_name == e.to {
+            true => rooms.arrive(&e.to, &e.to_start)?,
+            false => to_name.to_owned(),
+        };
+        let (Ok(from), Ok(to)) = (at(&leaves, e.era), at(&lands, e.era)) else {
             continue;
         };
         // Once its rule holds the game loads the _Alternative map instead.
@@ -120,7 +128,7 @@ pub(super) fn edges(
                     .with_context(|| format!("no place {}", rule.to))?,
             };
             edges.push(Edge {
-                from: Some(at(&rule.from, era)?),
+                from: Some(at(&rooms.leave(&rule.from, &rule.to, "-")?, era)?),
                 to: at(&rule.to, to_era)?,
                 need: need.clone(),
             });

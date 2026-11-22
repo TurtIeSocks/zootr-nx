@@ -39,3 +39,19 @@ hash = 8579518566955184384
 name = "Dungeon Map Chest"
 needs = "always"
 why = "in reach from its room"
+
+[[exit]]
+hash = 0xb5731c2c
+name = "Kokiri Forest Adult Front Deku Tree"
+
+[[exit]]
+hash = 0xc627617b
+name = "Kokiri Forest Child Front Deku Tree"
+
+[[arrival]]
+hash = 0x91ab2eca
+name = "Inside The Deku Tree Entrance Pos"
+
+[[arrival]]
+hash = 0xec7e9c19
+name = "Inside The Deku Tree Entrance"
