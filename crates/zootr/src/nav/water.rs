@@ -9,7 +9,7 @@ use std::path::Path;
 use anyhow::Result;
 use ounce_formats::{ActorPack, Romfs};
 
-use super::graph::{Border, Graph, Snap, Via, dist};
+use super::graph::{Border, Cross, Graph, Snap, Via, dist};
 use super::kinds;
 use super::shape::place;
 use crate::checks::flat;
@@ -298,7 +298,38 @@ impl Graph<'_> {
                 }
             }
         }
+        self.climbs_into_water();
         self
+    }
+
+    /// A climb down into water lands Link in it, not on the floor under
+    /// it: he swims ashore from the surface over its foot. Each such climb
+    /// also links its top and that shore, both ways. The Deku Tree's ivy
+    /// ends in a pool 2.9 m deep, whose floor touches nothing else.
+    fn climbs_into_water(&mut self) {
+        let mut wet = vec![];
+        for (top, arcs) in self.arcs.iter().enumerate() {
+            for arc in arcs {
+                let Cross::Link {
+                    via: via @ Via::Climb(_),
+                    from,
+                    to,
+                } = arc.cross
+                else {
+                    continue;
+                };
+                let Some(surface) = (to[1] < from[1]).then(|| self.above(to)).flatten() else {
+                    continue;
+                };
+                if let Some((shore, _)) = self.ashore(surface) {
+                    wet.push((top, via, from, shore));
+                }
+            }
+        }
+        for (top, via, at, shore) in wet {
+            self.link(top, shore.face, via, at, shore.at);
+            self.link(shore.face, top, via, shore.at, at);
+        }
     }
 
     /// Whether `p` stands on land Link walks: mesh under it from
@@ -512,6 +543,36 @@ mod tests {
         assert!(
             matches!(route.waypoints[1].via, Via::Swim(Some(_))),
             "{route:?}"
+        );
+    }
+
+    /// The ivy from the Deku Tree's lobby ends in the basement's pool,
+    /// where the maintainer swam (2026-11-22): it reaches the pool's shore.
+    #[test]
+    fn a_climb_down_into_water_reaches_its_shore() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let game = std::path::Path::new("../../dump/oot.nup");
+        let deku = crate::known::map::INSIDE_THE_DEKU_TREE.get();
+        let level = crate::nav::Level::of(&romfs, game, deku).unwrap();
+        let graph = level.graph();
+        let ivy = Via::Climb(Some(14670770652390206064));
+        let downs: Vec<[f32; 3]> = (graph.arcs.iter().flatten())
+            .filter_map(|a| match a.cross {
+                Cross::Link { via, from, to } if via == ivy && to[1] < from[1] => Some(to),
+                _ => None,
+            })
+            .collect();
+        assert!(
+            graph.above(downs[0]).is_some(),
+            "its foot is under the pool: {downs:?}"
+        );
+        assert!(
+            downs
+                .iter()
+                .any(|d| graph.above(*d).is_none() && graph.shores.iter().any(|s| s.at == *d)),
+            "{downs:?}"
         );
     }
 

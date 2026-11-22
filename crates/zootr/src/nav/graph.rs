@@ -321,7 +321,14 @@ impl<'a> Graph<'a> {
 
     /// Add the link leaving face `from` at `leave` and arriving on face
     /// `to` at `arrive`.
-    fn link(&mut self, from: usize, to: usize, via: Via, leave: [f32; 3], arrive: [f32; 3]) {
+    pub(super) fn link(
+        &mut self,
+        from: usize,
+        to: usize,
+        via: Via,
+        leave: [f32; 3],
+        arrive: [f32; 3],
+    ) {
         self.link_weighted(from, to, via, [leave, arrive], 1.0);
     }
 
