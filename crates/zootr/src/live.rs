@@ -618,6 +618,7 @@ mod lookup;
 mod mach;
 #[cfg(windows)]
 mod pipe;
+pub mod snap;
 
 pub use bridge::{Bridge, PATIENCE, Refused};
 pub use lookup::{Places, bools, hash, locate, read, set};

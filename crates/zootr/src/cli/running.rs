@@ -475,6 +475,38 @@ pub(super) fn mem(cmd: MemCommand) -> Result<()> {
                 println!("{:#x}  {:<47}  {text}", at + 16 * i as u64, hex.join(" "));
             }
         }
+        MemCommand::Snap {
+            name,
+            state,
+            new,
+            show,
+        } => {
+            let dir = crate::game::cache()?.join("mem").join(&name);
+            if new && dir.exists() {
+                std::fs::remove_dir_all(&dir)?;
+            }
+            let regions: Vec<_> = (game.regions()?.into_iter())
+                .filter(|&(_, _, prot)| prot & 3 == 3)
+                .map(|(start, size, _)| (start, size))
+                .collect();
+            match live::snap::snap(&game, &regions, &dir, &state)? {
+                live::snap::Snapped::Saved(bytes) => {
+                    println!(
+                        "saved {} MB as {state}: snap the other state next",
+                        bytes >> 20
+                    );
+                }
+                live::snap::Snapped::Left([a, b], values) => {
+                    println!("{} left between {a} and {b}", values.len());
+                    if values.len() <= show {
+                        for v in values {
+                            let [x, y] = v.reads;
+                            println!("{:#x}  {a} {x:#010x}  {b} {y:#010x}", v.at);
+                        }
+                    }
+                }
+            }
+        }
         MemCommand::Write { at, bytes: hex } => {
             let (at, data) = (address(&at)?, bytes(&hex)?);
             println!("was {:02x?}", game.read(at, data.len())?);

@@ -269,6 +269,21 @@ pub enum MemCommand {
         #[arg(default_value_t = 64)]
         len: usize,
     },
+    /// A cheat table search for the 4-byte values that follow a state of
+    /// the game (a prompt shown or not): snap writable memory in one
+    /// state, then the other, then again in either until few are left.
+    Snap {
+        /// The search's name, so several can run side by side.
+        name: String,
+        /// The state the game is in now, like `on` or `off`.
+        state: String,
+        /// Start the search over.
+        #[arg(long)]
+        new: bool,
+        /// List the values once this many or fewer are left.
+        #[arg(long, default_value_t = 40)]
+        show: usize,
+    },
     /// Write hex bytes at an address.
     Write {
         /// A 0x address, or `main+0x…` for an offset into `main`.
