@@ -1,10 +1,10 @@
-//! Child Link aims the Bow with the Bow's clips. His graph picks between
-//! the Slingshot's aim and the Bow's by age, since in the game only he has
-//! the Slingshot and only the adult the Bow, so he drew the Bow with the
-//! Slingshot's hands and held its arrow like a seed. Each of those picks
-//! becomes one by the item in his hand: the Slingshot's clips for the
-//! Slingshot, the Bow's for anything else. The adult never holds the
-//! Slingshot, so his graph stays.
+//! Each Link aims the Bow with the Bow's clips and the Slingshot with the
+//! Slingshot's. Both graphs pick between the two aims by age, since in the
+//! game only the child has the Slingshot and only the adult the Bow: the
+//! child drew the Bow with the Slingshot's hands and held its arrow like a
+//! seed, and the adult held the Slingshot sideways like a bow. Each of
+//! those picks becomes one by the item in his hand: the Slingshot's clips
+//! for the Slingshot, the Bow's for anything else.
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::asb::{self, Asb, Kind, Node};
@@ -44,8 +44,8 @@ fn picks(asb: &Asb) -> Result<Vec<(usize, u32, u32)>> {
     Ok(found)
 }
 
-/// Child Link's graph at `bytes`, each Slingshot or Bow pick made by the
-/// item in his hand.
+/// A Link's graph at `bytes`, each Slingshot or Bow pick made by the item
+/// in his hand.
 pub fn aimed(bytes: &[u8]) -> Result<Vec<u8>> {
     let asb = Asb::parse(bytes)?;
     let item = (asb.entry(Kind::Int, ITEM)?).context("the graph reads no item")?;
@@ -61,18 +61,23 @@ pub fn aimed(bytes: &[u8]) -> Result<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ageless_items::files::GRAPH;
+    use crate::ageless_items::files::GRAPHS;
     use crate::game::dev_dump;
 
     #[test]
-    fn the_child_aims_by_the_item_in_his_hand_and_nothing_else_moves() {
+    fn each_link_aims_by_the_item_in_his_hand_and_nothing_else_moves() {
         let Some(romfs) = dev_dump() else { return };
-        let vanilla = romfs.read(GRAPH).unwrap();
-        let was = Asb::parse(&vanilla).unwrap();
+        for graph in GRAPHS {
+            aims_by_item(&romfs.read(graph).unwrap());
+        }
+    }
+
+    fn aims_by_item(vanilla: &[u8]) {
+        let was = Asb::parse(vanilla).unwrap();
         let found = picks(&was).unwrap();
         // The lock-on aim's draws, charges and holds.
         assert_eq!(found.len(), 5);
-        let edited = aimed(&vanilla).unwrap();
+        let edited = aimed(vanilla).unwrap();
         let now = Asb::parse(&edited).unwrap();
         let item = now.entry(Kind::Int, ITEM).unwrap();
         assert_eq!(now.len(), was.len());
