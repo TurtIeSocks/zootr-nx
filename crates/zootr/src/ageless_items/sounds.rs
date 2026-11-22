@@ -12,9 +12,15 @@
 //! (the child's are in the child's voice). Each item's audio is only in
 //! its own Link's sound bank, so each Link loads the other's beside his
 //! own.
+//!
+//! Drawing and putting away an item plays a case of the user's `Equip` and
+//! `UnEquip` switches, picked by the item. Each Link's switches gain the
+//! other's cases for his borrowed items ([`DRAWN`]). The adult's Bow case
+//! picks again by the arrows held, which the child doesn't keep, so the
+//! child plays the adult's with arrows.
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{Byml, BymlDoc, ModBuilder, xlink_calls, xlink_copy_call};
+use ounce_formats::{Byml, BymlDoc, ModBuilder, xlink_add_case, xlink_calls, xlink_copy_call};
 
 use super::files::{BANKS, SOUNDS};
 use crate::known::{Name, actor, field};
@@ -84,6 +90,51 @@ const GAINED: [(&Name, &Name, &Name, &Name); 10] = [
     ),
 ];
 
+/// The draw and put-away cases each Link gains from the other: his user,
+/// then each case and the other's call it plays.
+const DRAWN: [(&Name, &[(&Name, &Name)]); 2] = [
+    (
+        actor::PLAYER_CHILD,
+        &[
+            (field::EQUIP_GIANTS_KNIFE, field::EQUIP_GIANTS_KNIFE),
+            (field::UN_EQUIP_GIANTS_KNIFE, field::UN_EQUIP_GIANTS_KNIFE),
+            (
+                field::EQUIP_BROKEN_GIANTS_KNIFE,
+                field::EQUIP_BROKEN_GIANTS_KNIFE,
+            ),
+            (
+                field::UN_EQUIP_BROKEN_GIANTS_KNIFE,
+                field::UN_EQUIP_BROKEN_GIANTS_KNIFE,
+            ),
+            (field::EQUIP_BIGGORON_SWORD, field::EQUIP_BIGGORON_SWORD),
+            (
+                field::UN_EQUIP_BIGGORON_SWORD,
+                field::UN_EQUIP_BIGGORON_SWORD,
+            ),
+            (field::EQUIP_BOW, field::EQUIP_BOW_ARROWS),
+            (field::UN_EQUIP_BOW, field::UN_EQUIP_BOW_ARROWS),
+            (field::EQUIP_HOOKSHOT, field::EQUIP_HOOKSHOT),
+            (field::UN_EQUIP_HOOKSHOT, field::UN_EQUIP_HOOKSHOT),
+            (field::EQUIP_MEGATON_HAMMER, field::EQUIP_MEGATON_HAMMER),
+            (
+                field::UN_EQUIP_MEGATON_HAMMER,
+                field::UN_EQUIP_MEGATON_HAMMER,
+            ),
+        ],
+    ),
+    (
+        actor::PLAYER_ADULT,
+        &[
+            (field::EQUIP_BOOMERANG, field::EQUIP_BOOMERANG),
+            (field::UN_EQUIP_BOOMERANG, field::UN_EQUIP_BOOMERANG),
+            (field::EQUIP_DEKU_STICK, field::EQUIP_DEKU_STICK),
+            (field::UN_EQUIP_DEKU_STICK, field::UN_EQUIP_DEKU_STICK),
+            (field::EQUIP_SLINGSHOT, field::EQUIP_SLINGSHOT),
+            (field::UN_EQUIP_SLINGSHOT, field::UN_EQUIP_SLINGSHOT),
+        ],
+    ),
+];
+
 /// What the adult's yells add to the child's own name for the same move:
 /// a two-handed sword's swings, its jump attack, and the Hammer's jump
 /// attack. Each the child lacks gains a copy of his own.
@@ -110,8 +161,14 @@ pub(super) fn write(builder: &mut ModBuilder) -> Result<()> {
 }
 
 /// The sound users at `bytes` with each Link's [`GAINED`] calls and the
-/// child's [`yells`].
+/// child's [`yells`], then each Link's [`DRAWN`] cases.
 fn called(bytes: &[u8]) -> Result<Vec<u8>> {
+    drawn(&gained(bytes)?)
+}
+
+/// The sound users at `bytes` with each Link's [`GAINED`] calls and the
+/// child's [`yells`].
+fn gained(bytes: &[u8]) -> Result<Vec<u8>> {
     let child = actor::PLAYER_CHILD.get();
     let file = GAINED
         .iter()
@@ -121,6 +178,25 @@ fn called(bytes: &[u8]) -> Result<Vec<u8>> {
     yells(bytes)?.iter().try_fold(file, |file, (name, own)| {
         xlink_copy_call(&file, child, own, child, name)
     })
+}
+
+/// The sound users at `bytes` with each Link's [`DRAWN`] cases.
+fn drawn(bytes: &[u8]) -> Result<Vec<u8>> {
+    DRAWN
+        .iter()
+        .try_fold(bytes.to_vec(), |file, (link, cases)| {
+            cases.iter().try_fold(file, |file, (case, body)| {
+                xlink_add_case(&file, other(link).get(), case, body, link)
+            })
+        })
+}
+
+/// The other Link's user.
+fn other(link: &Name) -> &'static Name {
+    match link == actor::PLAYER_CHILD {
+        true => actor::PLAYER_ADULT,
+        false => actor::PLAYER_CHILD,
+    }
 }
 
 /// Each [`YELLS`] call the adult has and the child lacks, and the child's
@@ -164,13 +240,13 @@ fn banked(bytes: &[u8]) -> Result<Vec<u8>> {
 mod tests {
     use super::*;
     use crate::game::dev_dump;
-    use ounce_formats::xlink_tree;
+    use ounce_formats::{xlink_children, xlink_tree, xlink_triggers};
 
     #[test]
     fn each_link_gains_the_others_calls_and_keeps_his_own() {
         let Some(romfs) = dev_dump() else { return };
         let shipped = romfs.read(SOUNDS).unwrap();
-        let ours = called(&shipped).unwrap();
+        let ours = gained(&shipped).unwrap();
         let (child, adult) = (actor::PLAYER_CHILD.get(), actor::PLAYER_ADULT.get());
         let (was, now) = (
             xlink_calls(&shipped, child).unwrap(),
@@ -226,6 +302,50 @@ mod tests {
     }
 
     #[test]
+    fn each_link_draws_and_puts_away_the_others_items_with_the_others_sounds() {
+        let Some(romfs) = dev_dump() else { return };
+        let was = gained(&romfs.read(SOUNDS).unwrap()).unwrap();
+        let now = drawn(&was).unwrap();
+        for (link, cases) in DRAWN {
+            let (link, from) = (link.get(), other(link).get());
+            let mut want = xlink_calls(&was, link).unwrap();
+            for switch in [field::EQUIP, field::UN_EQUIP] {
+                let mut cased = xlink_children(&was, link, switch).unwrap();
+                let theirs = xlink_children(&was, from, switch).unwrap();
+                cased.extend(
+                    cases
+                        .iter()
+                        .map(|(c, _)| c.get())
+                        .filter(|c| theirs.contains(c)),
+                );
+                assert_eq!(
+                    xlink_children(&now, link, switch).unwrap(),
+                    cased,
+                    "{switch}"
+                );
+            }
+            for (case, body) in cases {
+                let mut copied = xlink_tree(&was, from, body).unwrap();
+                copied[0] = case.get();
+                assert_eq!(xlink_tree(&now, link, case).unwrap(), copied);
+                want.extend(copied);
+            }
+            let mut have = xlink_calls(&now, link).unwrap();
+            have.sort();
+            want.sort();
+            assert_eq!(have, want, "{link} gains each tree and keeps his own");
+            for user in [link, from] {
+                assert_eq!(
+                    xlink_triggers(&now, user).unwrap(),
+                    xlink_triggers(&was, user).unwrap(),
+                    "each of {user}'s triggers plays what it did"
+                );
+            }
+        }
+        assert!(drawn(&now).is_err(), "nothing left to gain");
+    }
+
+    #[test]
     fn each_link_loads_the_others_bank_and_the_child_the_clangs_choice() {
         let Some(romfs) = dev_dump() else { return };
         let shipped = romfs.read(BANKS).unwrap();
@@ -246,12 +366,8 @@ mod tests {
             let mut want = banks(&shipped, link, key);
             want.push(file.get().into());
             assert_eq!(banks(&ours, link, key), want);
-            let other = match link == actor::PLAYER_CHILD {
-                true => actor::PLAYER_ADULT,
-                false => actor::PLAYER_CHILD,
-            };
             assert!(
-                banks(&shipped, other, key).contains(&file.get().to_string()),
+                banks(&shipped, other(link), key).contains(&file.get().to_string()),
                 "the other Link loads {file}"
             );
         }
