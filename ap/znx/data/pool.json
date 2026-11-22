@@ -54,7 +54,28 @@
     "count": 1,
     "item": "Bombchus (10)",
     "when": {
-      "setting": "npc-gifts"
+      "any": [
+        {
+          "setting": "merchants"
+        },
+        {
+          "setting": "npc-gifts"
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Bombchus (10)",
+    "when": {
+      "all": [
+        {
+          "setting": "npc-gifts"
+        },
+        {
+          "setting": "merchants"
+        }
+      ]
     }
   },
   {
@@ -87,12 +108,54 @@
     "count": 1,
     "item": "Bottle with Milk",
     "when": {
-      "setting": "npc-gifts"
+      "any": [
+        {
+          "setting": "cows"
+        },
+        {
+          "setting": "npc-gifts"
+        }
+      ]
+    }
+  },
+  {
+    "count": 4,
+    "item": "Bottle with Milk",
+    "when": {
+      "all": [
+        {
+          "setting": "npc-gifts=off"
+        },
+        {
+          "setting": "cows"
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Broken Goron's Sword",
+    "when": {
+      "setting": "trade-chain"
     }
   },
   {
     "count": 13,
     "item": "Business Scrub Seed"
+  },
+  {
+    "count": 1,
+    "item": "Claim Check",
+    "when": {
+      "setting": "trade-chain"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Cojiro",
+    "when": {
+      "setting": "trade-chain"
+    }
   },
   {
     "count": 2,
@@ -101,6 +164,20 @@
   {
     "count": 4,
     "item": "Deku Shield"
+  },
+  {
+    "count": 1,
+    "item": "Deku Shield",
+    "when": {
+      "all": [
+        {
+          "setting": "shopsanity"
+        },
+        {
+          "setting": "shop-slots=8"
+        }
+      ]
+    }
   },
   {
     "count": 1,
@@ -125,6 +202,20 @@
     "item": "Epona's Song",
     "when": {
       "setting": "songs"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Eye Drops",
+    "when": {
+      "setting": "trade-chain"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Eyeball Frog",
+    "when": {
+      "setting": "trade-chain"
     }
   },
   {
@@ -163,6 +254,13 @@
     }
   },
   {
+    "count": 1,
+    "item": "Giant's Knife",
+    "when": {
+      "setting": "merchants"
+    }
+  },
+  {
     "count": 10,
     "item": "Gold Rupee (200)"
   },
@@ -175,6 +273,27 @@
   },
   {
     "count": 1,
+    "item": "Gold Rupee (200)",
+    "when": {
+      "all": [
+        {
+          "setting": "npc-gifts"
+        },
+        {
+          "setting": "hundred-token-reward"
+        }
+      ]
+    }
+  },
+  {
+    "count": 100,
+    "item": "Gold Skulltula Token",
+    "when": {
+      "setting": "gold-skulltulas"
+    }
+  },
+  {
+    "count": 1,
     "item": "Goron Tunic",
     "when": {
       "setting": "npc-gifts"
@@ -183,6 +302,13 @@
   {
     "count": 5,
     "item": "Green Rupee (1)"
+  },
+  {
+    "count": 8,
+    "item": "Heart Container",
+    "when": {
+      "setting": "boss-hearts"
+    }
   },
   {
     "count": 1,
@@ -224,6 +350,13 @@
   },
   {
     "count": 1,
+    "item": "Magic Bean",
+    "when": {
+      "setting": "merchants"
+    }
+  },
+  {
+    "count": 1,
     "item": "Magic Jar"
   },
   {
@@ -235,6 +368,13 @@
     "item": "Magic Meter",
     "when": {
       "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Master Sword",
+    "when": {
+      "setting": "master-sword-shuffle"
     }
   },
   {
@@ -267,6 +407,20 @@
     }
   },
   {
+    "count": 1,
+    "item": "Odd Mushroom",
+    "when": {
+      "setting": "trade-chain"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Odd Potion",
+    "when": {
+      "setting": "trade-chain"
+    }
+  },
+  {
     "count": 9,
     "item": "Piece of Heart"
   },
@@ -274,7 +428,49 @@
     "count": 12,
     "item": "Piece of Heart",
     "when": {
-      "setting": "npc-gifts"
+      "any": [
+        {
+          "setting": "freestanding"
+        },
+        {
+          "setting": "npc-gifts"
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Piece of Heart",
+    "when": {
+      "setting": "freestanding"
+    }
+  },
+  {
+    "count": 12,
+    "item": "Piece of Heart",
+    "when": {
+      "all": [
+        {
+          "setting": "npc-gifts"
+        },
+        {
+          "setting": "freestanding"
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Poacher's Saw",
+    "when": {
+      "setting": "trade-chain"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Pocket Egg",
+    "when": {
+      "setting": "trade-chain"
     }
   },
   {
@@ -282,6 +478,13 @@
     "item": "Prelude of Light",
     "when": {
       "setting": "songs"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Prescription",
+    "when": {
+      "setting": "trade-chain"
     }
   },
   {
@@ -379,6 +582,919 @@
   {
     "count": 36,
     "item": "Red Rupee (20)"
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "setting": "cows"
+        },
+        {
+          "setting": "shopsanity"
+        }
+      ]
+    }
+  },
+  {
+    "count": 5,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "setting": "shopsanity"
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 5,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 5,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 5,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 5,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 5,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 5,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 4,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 2,
+    "item": "Red Rupee (20)",
+    "when": {
+      "all": [
+        {
+          "setting": "shopsanity"
+        },
+        {
+          "setting": "shop-slots=8"
+        },
+        {
+          "setting": "cows"
+        }
+      ]
+    }
+  },
+  {
+    "count": 5,
+    "item": "Red Rupee (20)",
+    "when": {
+      "all": [
+        {
+          "setting": "npc-gifts"
+        },
+        {
+          "setting": "shopsanity"
+        },
+        {
+          "setting": "shop-slots=8"
+        },
+        {
+          "setting": "cows"
+        }
+      ]
+    }
   },
   {
     "count": 1,

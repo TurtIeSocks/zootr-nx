@@ -262,6 +262,7 @@ pub(super) fn variants() -> Result<Vec<Variant>> {
         // The combination of every base value is the base.
         for overlay in combos.into_iter().skip(1) {
             out.push(Variant {
+                key: overlay.clone(),
                 overlay,
                 from: None,
             });
@@ -272,9 +273,11 @@ pub(super) fn variants() -> Result<Vec<Variant>> {
         let parent = defs.iter().find(|x| x.id == d.id).and_then(|x| x.requires);
         for value in d.values.iter().skip(1) {
             let mut overlay = Settings::from([(d.id.clone(), value.clone())]);
+            let mut key = overlay.clone();
             let from = match parent {
                 None => None,
                 Some(p) => {
+                    key.insert(p.into(), Value::Bool(true));
                     let mut with_parent = Settings::from([(p.to_owned(), Value::Bool(true))]);
                     // A parent in a group comes with its group's base values.
                     if let Some(g) = JOINT.iter().find(|g| g.contains(&p)) {
@@ -288,7 +291,7 @@ pub(super) fn variants() -> Result<Vec<Variant>> {
                     Some(at.with_context(|| format!("no seed with {p} on for {}", d.id))?)
                 }
             };
-            out.push(Variant { overlay, from });
+            out.push(Variant { overlay, key, from });
         }
     }
     Ok(out)

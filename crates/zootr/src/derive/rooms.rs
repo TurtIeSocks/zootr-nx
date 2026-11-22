@@ -3,7 +3,7 @@
 //! distance, so a room never reaches across a wall or through a door. The
 //! arcs between rooms become each room file's links.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::Write as _;
 use std::path::Path;
 use std::sync::LazyLock;
@@ -189,9 +189,13 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
     let flagmap = crate::flagmap::Graph::build(romfs)?;
     let mut checks = crate::checks::all(romfs)?;
     // Gold skulltulas are pickups, which `all` leaves to their setting.
-    checks.extend(crate::pickups::SKULLTULAS.checks(romfs)?);
+    let skulltulas = crate::pickups::SKULLTULAS.checks(romfs)?;
+    let by_room: HashSet<u64> = skulltulas.iter().map(|c| c.hash).collect();
+    checks.extend(skulltulas);
     // Named one at a time: an item Archipelago has no name for fails only its own.
+    // Skulltulas take their room's name below, closer than Archipelago's.
     let named: HashMap<u64, String> = (checks.iter())
+        .filter(|c| !by_room.contains(&c.hash))
         .filter_map(|c| {
             crate::ap::names::locations(romfs, std::slice::from_ref(c))
                 .ok()?
