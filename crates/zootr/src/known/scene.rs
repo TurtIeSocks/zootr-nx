@@ -186,6 +186,7 @@ pub const TIME_TEMPLE_0020: &Name = &n!(0xd74221687be5e672);
 pub const TIME_TEMPLE_0040: &Name = &n!(0xd7492d687bec1984);
 pub const TIME_TEMPLE_0055: &Name = &n!(0xd74cae687bef2a8e);
 pub const TIME_TEMPLE_0065: &Name = &n!(0xd7501e687bf21eb5);
+pub const TIME_TEMPLE_0070: &Name = &n!(0xd7531f687bf4563f);
 pub const TIME_TEMPLE_0075: &Name = &n!(0xd7531a687bf44dc0);
 pub const TIME_TEMPLE_0085: &Name = &n!(0xd756aa687bf77847);
 pub const TIME_TEMPLE_0086: &Name = &n!(0xd756ab687bf779fa);

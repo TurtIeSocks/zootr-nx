@@ -284,7 +284,7 @@ mod tests {
     /// The audit's class A: the scenes whose effects all copy. The rule in
     /// `cut` is computed from the flows, and a change to it shows as a diff
     /// against these names.
-    const CLASS_A: [&Name; 110] = [
+    const CLASS_A: [&Name; 111] = [
         scene::AWAKE_FIRE_GET,
         scene::AWAKE_FOREST_GET,
         scene::AWAKE_SHADOW,
@@ -382,6 +382,7 @@ mod tests {
         scene::SPIRIT_TEMPLE_0000,
         scene::TIME_TEMPLE_0000,
         scene::TIME_TEMPLE_0055,
+        scene::TIME_TEMPLE_0070,
         scene::TIME_TEMPLE_0075,
         scene::TIME_TEMPLE_0086,
         scene::TIME_TEMPLE_0087,
