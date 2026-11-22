@@ -464,7 +464,14 @@ pub(super) fn mem(cmd: MemCommand) -> Result<()> {
             let from = from.as_deref().map(address).transpose()?.unwrap_or(0);
             let to = to.as_deref().map(address).transpose()?.unwrap_or(u64::MAX);
             let mut hits = 0;
-            for (start, size, prot) in game.regions()? {
+            // A bridge can't list regions: scan the range given as one
+            // readable region, skipping chunks that don't read.
+            let regions = match game.regions() {
+                Ok(regions) => regions,
+                Err(_) if to != u64::MAX => vec![(from, (to - from) as usize, 3)],
+                Err(e) => return Err(e.context("give --from and --to to scan without regions")),
+            };
+            for (start, size, prot) in regions {
                 if prot & wanted != wanted {
                     continue;
                 }
@@ -474,7 +481,10 @@ pub(super) fn mem(cmd: MemCommand) -> Result<()> {
                     let len = CHUNK.min((end - at) as usize);
                     // Overlap chunks so a match across a seam is still seen.
                     let len = (len + needle.len() - 1).min((end - at) as usize);
-                    let Ok(data) = game.read(at, len) else { break };
+                    let Ok(data) = game.read(at, len) else {
+                        at += CHUNK as u64;
+                        continue;
+                    };
                     for i in memchr::memmem::find_iter(&data, &needle) {
                         println!("{:#x} (region {start:#x}, prot {prot})", at + i as u64);
                         hits += 1;
@@ -495,6 +505,23 @@ pub(super) fn mem(cmd: MemCommand) -> Result<()> {
                     .map(|&b| if b.is_ascii_graphic() { b as char } else { '.' })
                     .collect();
                 println!("{:#x}  {:<47}  {text}", at + 16 * i as u64, hex.join(" "));
+            }
+        }
+        MemCommand::Watch { ranges, secs } => {
+            let ranges = (ranges.iter())
+                .map(|r| range(r, main))
+                .collect::<Result<Vec<_>>>()?;
+            let start = std::time::Instant::now();
+            let mut last = String::new();
+            while start.elapsed().as_secs_f64() < secs {
+                let line = (game.read_many(&ranges)?.iter())
+                    .map(|data| data.iter().map(|b| format!("{b:02x}")).collect::<String>())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                if line != last {
+                    println!("{:>6} {line}", start.elapsed().as_millis());
+                    last = line;
+                }
             }
         }
         MemCommand::Snap {
@@ -552,6 +579,15 @@ fn address(text: &str, main: u64) -> Result<u64> {
     Ok(base + n)
 }
 
+/// An `ADDR:LEN` range: an [`address`], then a byte count.
+fn range(text: &str, main: u64) -> Result<(u64, usize)> {
+    let (at, len) = (text.split_once(':')).with_context(|| format!("{text} isn't ADDR:LEN"))?;
+    let len = len
+        .parse()
+        .with_context(|| format!("{len} isn't a byte count"))?;
+    Ok((address(at, main)?, len))
+}
+
 /// Hex bytes, or `s:` and text.
 fn bytes(text: &str) -> Result<Vec<u8>> {
     if let Some(s) = text.strip_prefix("s:") {
@@ -605,5 +641,8 @@ mod tests {
         assert_eq!(address("0x7f21d600e0", 1).unwrap(), 0x007f_21d6_00e0);
         assert_eq!(address("main+0x10", 0x1000).unwrap(), 0x1010);
         assert!(address("main+zz", 0x1000).is_err());
+        assert_eq!(range("main+0x10:8", 0x1000).unwrap(), (0x1010, 8));
+        assert!(range("0x10", 0).is_err());
+        assert!(range("0x10:x", 0).is_err());
     }
 }
