@@ -60,7 +60,7 @@
   },
   {
     "default": "normal",
-    "description": "How the four carpenters in the Gerudo Fortress start. With Normal, Link frees all four, as in the game. With Fast, freeing any one frees all four and earns the membership card, and the other thieves still guard their cells.",
+    "description": "How the four carpenters in the Gerudo Fortress start. With Normal, Link frees all four, as in the game. With Fast, freeing any one frees all four and earns the membership card, and the other thieves still guard their cells. With Freed, all four are free from the start, with the membership card in hand, the guards standing down and the valley bridge up. Their thieves still stand, and beating one opens her cell without freeing anyone twice",
     "id": "gerudo-fortress",
     "kind": "choice",
     "label": "Gerudo Fortress",
@@ -72,6 +72,10 @@
       {
         "id": "fast",
         "label": "Fast"
+      },
+      {
+        "id": "freed",
+        "label": "Freed"
       }
     ]
   },

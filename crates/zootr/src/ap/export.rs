@@ -14,7 +14,7 @@ use crate::checks::ItemCheck;
 use crate::fill;
 use crate::narrowing::allowed;
 use crate::rules::{Need, vocab};
-use crate::settings::{Kind, NewGame, schema};
+use crate::settings::{Kind, NewGame, schema, value_word};
 use crate::world::Era;
 
 /// Items that aren't progression but are worth more than filler.
@@ -40,7 +40,8 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         .unwrap_or_default();
     let names = Namer::new(romfs, &seed)?;
 
-    // What each exposed option adds to the start, which may only be flags.
+    // What each exposed option adds to the start, which may only be flags,
+    // each read as the setting word that sets it.
     let mut flag_settings: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for (id, value) in variants()? {
         let mut s = base.clone();
@@ -50,12 +51,16 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
             start.items == seed.start.items,
             "{id} changes what Link starts with"
         );
+        let word = match &value {
+            Value::Bool(true) => id.clone(),
+            Value::String(option) => value_word(&id, option),
+            _ => bail!("{id} = {value} isn't a toggle on or a choice's option"),
+        };
         for f in start.flags.difference(&seed.start.flags) {
-            if let Value::Bool(true) = value {
-                flag_settings.entry(f.clone()).or_default().push(id.clone());
-            } else {
-                bail!("{id} = {value} sets a start flag, which only a toggle may");
-            }
+            flag_settings
+                .entry(f.clone())
+                .or_default()
+                .push(word.clone());
         }
     }
 

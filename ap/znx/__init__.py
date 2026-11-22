@@ -92,29 +92,34 @@ class ZnxWorld(World):
 
         origin = regions[self.origin_region_name]
         for check in WORLD["checks"]:
-            if check["unprovable"]:
-                # Our logic shows no way in, so our fill gives it filler.
+            at = self.spots(check["at"], regions)
+            if check["unprovable"] or (check["at"] and not at):
+                # Our logic shows no way in, or none with these options, so
+                # our fill gives it filler.
                 location = self.place(check["name"], check["id"], [], regions, origin)
                 location.progress_type = LocationProgressType.EXCLUDED
             else:
-                location = self.place(check["name"], check["id"], check["at"], regions, origin)
+                location = self.place(check["name"], check["id"], at, regions, origin)
             if check["forbid"]:
                 forbid = frozenset(check["forbid"])
                 location.item_rule = lambda item, forbid=forbid: (
                     item.player != self.player or item.name not in forbid
                 )
         for event in WORLD["events"]:
-            location = self.place(event["name"], None, event["at"], regions, origin)
+            location = self.place(event["name"], None, self.spots(event["at"], regions), regions, origin)
             location.place_locked_item(ZnxItem(event["name"], ItemClassification.progression, None, self.player))
 
-    def place(self, name: str, code: int | None, at: list, regions: dict, origin: Region) -> ZnxLocation:
-        """A location where `at` says, or at the start when it says nowhere.
-        At several places, it gets a region of its own entered from each."""
-        at = [
+    def spots(self, at: list, regions: dict) -> list:
+        """The spots of `at` these options leave a way into."""
+        return [
             spot
             for spot in at
             if spot["place"] in regions and rules.fold(spot["rule"], self.setting_values) is not False
         ]
+
+    def place(self, name: str, code: int | None, at: list, regions: dict, origin: Region) -> ZnxLocation:
+        """A location where `at` says, or at the start when it says nowhere.
+        At several places, it gets a region of its own entered from each."""
         if len(at) == 1:
             region, rule = regions[at[0]["place"]], self.rule(at[0]["rule"])
         elif not at:
