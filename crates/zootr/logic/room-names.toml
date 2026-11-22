@@ -1,0 +1,18 @@
+# Each dungeon room's name in words, by the game's room number
+# (DefaultDungeonRoomIndex). Derive puts it in the room file's name and
+# file name. A first draft from what each room holds, confirmed live by
+# the DungeonRoom value in each dungeon's pilot.
+
+[inside-the-deku-tree]
+0 = "Lobby"
+1 = "Scrub Before Slingshot"
+2 = "Slingshot Room"
+3 = "Compass Room"
+4 = "Basement"
+5 = "Basement Scrub"
+6 = "Water Room"
+7 = "Block And Torch Room"
+8 = "Above Gohma"
+9 = "Scrub Puzzle"
+10 = "Gohma Room"
+11 = "Skulltula Alcove"

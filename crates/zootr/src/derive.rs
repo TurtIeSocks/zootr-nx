@@ -14,6 +14,8 @@ use crate::rules::kinds::{FILE, Sets};
 use crate::tools::Tools;
 use crate::world::node_of;
 
+pub mod rooms;
+
 /// Only these are objects. The rest of a dungeon's actors are enemies,
 /// people, scenery models and managers.
 const PREFIXES: &[&str] = &["Obj_", "FldObj_"];

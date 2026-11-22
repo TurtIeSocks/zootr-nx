@@ -492,6 +492,8 @@ pub(super) enum LogicCommand {
         /// The object kinds: what each needs and does, `baseline/kinds.toml`.
         #[arg(long)]
         kinds: bool,
+        /// A dungeon's room files, by its id (`deku-tree`).
+        dungeon: Option<String>,
         /// The logic folder to write in: a worktree's `crates/zootr/logic`.
         #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
         dir: PathBuf,

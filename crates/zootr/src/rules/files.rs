@@ -383,6 +383,7 @@ mod tests {
         let mut built: BTreeSet<String> = FILES.iter().map(|f| f.0.to_owned()).collect();
         built.insert(crate::key_rooms::FILE.into());
         built.insert(crate::nav::limits::FILE.into());
+        built.insert(crate::derive::rooms::NAMES_FILE.into());
         assert_eq!(on_disk, built);
     }
 }

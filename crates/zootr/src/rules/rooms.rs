@@ -1,6 +1,6 @@
-//! Room files: `logic/baseline/<dungeon>/room-NN.toml`, written by
-//! `zootr logic derive`, and `logic/confirmed/<dungeon>/room-NN.toml`,
-//! written from playtests. A confirmed entry replaces the baseline entry
+//! Room files: `logic/baseline/<dungeon>/room-NN-<name>.toml`, written by
+//! `zootr logic derive`, and `logic/confirmed/<dungeon>/room-NN-<name>.toml`,
+//! written from playtests. Only NN keys a file: the name is for people. A confirmed entry replaces the baseline entry
 //! with its key, and one whose key the baseline lacks is an error (room
 //! reach spec).
 
@@ -14,7 +14,7 @@ use super::{Expr, parse, vocab};
 use crate::entrances::DUNGEONS;
 
 /// Every room file under `logic/`, by its path there. `build.rs` lists them.
-pub(super) const FILES: &[(&str, &str)] = include!(concat!(env!("OUT_DIR"), "/room_files.rs"));
+pub(crate) const FILES: &[(&str, &str)] = include!(concat!(env!("OUT_DIR"), "/room_files.rs"));
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -50,6 +50,26 @@ pub enum Via {
     Sink,
 }
 
+impl Via {
+    /// As a room file writes it.
+    pub fn word(self) -> &'static str {
+        match self {
+            Via::Walk => "walk",
+            Via::Door => "door",
+            Via::Drop => "drop",
+            Via::Step => "step",
+            Via::Climb => "climb",
+            Via::Jump => "jump",
+            Via::Hover => "hover",
+            Via::Hookshot => "hookshot",
+            Via::Longshot => "longshot",
+            Via::Swim => "swim",
+            Via::Dive => "dive",
+            Via::Sink => "sink",
+        }
+    }
+}
+
 /// This room to another.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -59,6 +79,10 @@ pub struct Link {
     pub via: Via,
     #[expect(dead_code, reason = "logic audit reads it (room reach build step 4)")]
     pub why: String,
+    /// Nothing measured settles it yet.
+    #[serde(default)]
+    #[expect(dead_code, reason = "logic audit reads it (room reach build step 4)")]
+    pub guess: bool,
     #[serde(default)]
     pub evidence: Vec<String>,
     #[serde(skip, default = "always")]
@@ -175,7 +199,7 @@ pub struct Room {
 }
 
 /// A dungeon's folder name: its map's name in kebab case.
-fn folder(node: &str) -> String {
+pub(crate) fn folder(node: &str) -> String {
     let mut out = String::new();
     for c in node.chars() {
         if c.is_ascii_uppercase() && !out.is_empty() && !out.ends_with('-') {
@@ -190,11 +214,12 @@ fn folder(node: &str) -> String {
     out
 }
 
-/// `tier/dungeon/room-NN.toml` as its tier, the dungeon's node and NN.
+/// `tier/dungeon/room-NN-<name>.toml` (or `room-NN.toml`) as its tier,
+/// the dungeon's node and NN.
 fn path(path: &str) -> Result<(&str, String, u32)> {
     let parts: Vec<&str> = path.split('/').collect();
     let [tier @ ("baseline" | "confirmed"), dungeon, file] = parts[..] else {
-        bail!("not tier/dungeon/room-NN.toml");
+        bail!("not tier/dungeon/room-NN-<name>.toml");
     };
     let node = (DUNGEONS.iter())
         .map(|d| d.node.get())
@@ -202,8 +227,9 @@ fn path(path: &str) -> Result<(&str, String, u32)> {
         .with_context(|| format!("no dungeon `{dungeon}`"))?;
     let number = (file.strip_prefix("room-"))
         .and_then(|f| f.strip_suffix(".toml"))
+        .and_then(|f| f.split('-').next())
         .and_then(|n| n.parse().ok())
-        .context("not room-NN.toml")?;
+        .context("not room-NN-<name>.toml")?;
     Ok((tier, node.to_owned(), number))
 }
 
@@ -268,7 +294,8 @@ pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
         parsed().with_context(at)?;
         match tier {
             "baseline" => {
-                rooms.insert((node, number), file);
+                let twice = rooms.insert((node, number), file).is_some();
+                ensure!(!twice, "{}: a second file for room {number}", at());
             }
             _ => confirmed.push((name, node, file)),
         }
@@ -396,6 +423,26 @@ mod tests {
         let wrong = format!("baseline/{}/room-05.toml", deku());
         assert!(load(&[(&wrong, BASE)]).is_err());
         assert!(load(&[("baseline/fake-cave/room-04.toml", BASE)]).is_err());
+    }
+
+    /// Renaming a room keeps its confirmed entries: only NN keys a file.
+    #[test]
+    fn a_room_name_in_the_file_name_is_only_for_people() {
+        let named = format!("baseline/{}/room-04-fake-basement.toml", deku());
+        let confirmed = r#"
+            room = 4
+            name = "Room04"
+            [[check]]
+            hash = 1
+            name = "Fake Chest"
+            needs = "bombs"
+            why = "web: Bomb 100"
+            evidence = ["fake-trace"]
+        "#;
+        let rooms = load(&[(&named, BASE), (&at("confirmed"), confirmed)]).unwrap();
+        assert_eq!(rooms[0].file.room, 4);
+        let twice = load(&[(&named, BASE), (&at("baseline"), BASE)]).unwrap_err();
+        assert!(format!("{twice:#}").contains("second file"), "{twice:#}");
     }
 
     #[test]

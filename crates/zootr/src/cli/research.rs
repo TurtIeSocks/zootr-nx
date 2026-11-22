@@ -213,17 +213,32 @@ pub(super) fn logic(romfs: &Romfs, new_game: &NewGame) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn logic_set(romfs: &Romfs, cmd: LogicCommand) -> Result<()> {
-    if let LogicCommand::Derive { kinds, dir } = cmd {
-        anyhow::ensure!(
-            kinds,
-            "only `--kinds` so far: rooms come next (room reach build step 4)"
-        );
-        let (count, guesses) = crate::derive::kinds(romfs, &dir)?;
-        println!(
-            "{count} kinds, {guesses} guesses: {}",
-            dir.join("baseline/kinds.toml").display()
-        );
+pub(super) fn logic_set(romfs: &Romfs, game: &std::path::Path, cmd: LogicCommand) -> Result<()> {
+    if let LogicCommand::Derive {
+        kinds,
+        dungeon,
+        dir,
+    } = cmd
+    {
+        anyhow::ensure!(kinds || dungeon.is_some(), "name a dungeon, or `--kinds`");
+        if kinds {
+            let (count, guesses) = crate::derive::kinds(romfs, &dir)?;
+            println!(
+                "{count} kinds, {guesses} guesses: {}",
+                dir.join("baseline/kinds.toml").display()
+            );
+        }
+        if let Some(id) = dungeon {
+            let dungeon = (crate::entrances::DUNGEONS.iter())
+                .find(|d| d.id == id)
+                .with_context(|| format!("no dungeon `{id}`"))?;
+            let d = crate::derive::rooms::write(romfs, game, dungeon, &dir)?;
+            println!("{} room files for {}", d.files.len(), dungeon.label);
+            println!("{} of {} faces in no room", d.unplaced, d.faces);
+            if !d.floorless.is_empty() {
+                println!("rooms with no floor: {:?}", d.floorless);
+            }
+        }
         return Ok(());
     }
     let LogicCommand::Set {

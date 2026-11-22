@@ -120,7 +120,7 @@ pub fn run() -> Result<()> {
         Command::Items => items(&romfs),
         Command::Logic {
             edit: Some(edit), ..
-        } => logic_set(&romfs, edit),
+        } => logic_set(&romfs, &path, edit),
         Command::Logic { new_game, .. } => logic(&romfs, &new_game),
         Command::Flags => {
             let survey = flags(&romfs)?;

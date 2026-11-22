@@ -345,6 +345,58 @@ impl<'a> Graph<'a> {
         }
     }
 
+    /// Each gap across which another face sits within `reach` of a border
+    /// edge and no more than a step above or below it: the floor a jump
+    /// lands on. The face the edge is on, the face across, and the two
+    /// spots.
+    pub fn gaps(&self, reach: f32) -> Vec<(usize, usize, [f32; 3], [f32; 3])> {
+        let rise = step_up();
+        let mut found = vec![];
+        for Border { face, mid, out } in self.borders() {
+            let mut d = LOOK;
+            while d <= reach {
+                let past = [mid[0] + out[0] * d, mid[1], mid[2] + out[1] * d];
+                let level = self
+                    .floor(past, rise)
+                    .filter(|g| (g.height - mid[1]).abs() <= rise);
+                if let Some(g) = level {
+                    if g.face != face && d > LOOK {
+                        found.push((face, g.face, mid, [past[0], g.height, past[2]]));
+                    }
+                    break;
+                }
+                d += LOOK / 2.0;
+            }
+        }
+        found
+    }
+
+    /// Each edge off which Link falls further than a drop, into water deep
+    /// enough to float in, which breaks the fall: the face the edge is on,
+    /// the floor under the water, and the two spots.
+    pub fn plunges(&self) -> Vec<(usize, usize, [f32; 3], [f32; 3])> {
+        let drop = limits().drop();
+        let mut found = vec![];
+        for Border { face, mid, out } in self.borders() {
+            let past = [mid[0] + out[0] * LOOK, mid[1], mid[2] + out[1] * LOOK];
+            // The first floor Link meets on the way down.
+            let under = (self.faces_near(past[0], past[2], 0.0).into_iter())
+                .filter_map(|f| Some((f, self.mesh.height_on(f, past[0], past[2])?)))
+                .filter(|&(_, h)| h < mid[1] - DROP_MIN)
+                .max_by(|a, b| a.1.total_cmp(&b.1));
+            let Some((floor, h)) = under.filter(|&(_, h)| h < mid[1] - drop) else {
+                continue;
+            };
+            let wet = (self.waters.iter()).any(|w| {
+                w.covers(past[0], past[2]) && w.surface < mid[1] && w.surface - h >= self.float
+            });
+            if wet && floor != face {
+                found.push((face, floor, mid, [past[0], h, past[2]]));
+            }
+        }
+        found
+    }
+
     /// Every edge of the mesh's border with a length.
     pub(super) fn borders(&self) -> Vec<Border> {
         let mesh = self.mesh;
@@ -450,6 +502,18 @@ mod tests {
         let g = Graph::build(&m, &[door([1.0, 0.0, 2.0])], step_up());
         assert_eq!(links(&g, 0), [(1, Via::Door(Some(7)))]);
         assert_eq!(links(&g, 1), [(0, Via::Door(Some(7)))]);
+    }
+
+    /// A 1.5 m gap between two level floors is a gap, a 3 m one past the
+    /// reach isn't.
+    #[test]
+    fn a_level_gap_within_reach_is_a_gap() {
+        let m = mesh(&[quad(0.0, 0.0, 2.0, 2.0, 0.0), quad(3.5, 0.0, 5.5, 2.0, 0.0)]);
+        let g = Graph::build(&m, &[], step_up());
+        let gaps: Vec<(usize, usize)> = g.gaps(2.0).iter().map(|&(a, b, ..)| (a, b)).collect();
+        assert!(gaps.contains(&(0, 1)) && gaps.contains(&(1, 0)), "{gaps:?}");
+        let far = mesh(&[quad(0.0, 0.0, 2.0, 2.0, 0.0), quad(5.0, 0.0, 7.0, 2.0, 0.0)]);
+        assert!(Graph::build(&far, &[], step_up()).gaps(2.0).is_empty());
     }
 
     /// A ladder 4 m up a wall at z 0.4, from the floor before it to the
