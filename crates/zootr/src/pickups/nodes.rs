@@ -213,13 +213,22 @@ mod tests {
     }
 
     fn paths(root: &Byml) -> Vec<String> {
-        let groups = root.as_map().unwrap()[field::AI_GROUPS.get()].as_array().unwrap();
+        let groups = root.as_map().unwrap()[field::AI_GROUPS.get()]
+            .as_array()
+            .unwrap();
         let refs = groups[0].as_map().unwrap()[REFERENCES].as_array().unwrap();
-        refs.iter().map(|r| text(r, PATH).unwrap().to_owned()).collect()
+        refs.iter()
+            .map(|r| text(r, PATH).unwrap().to_owned())
+            .collect()
     }
 
     fn text<'a>(r: &'a Byml, key: &str) -> Option<&'a str> {
-        r.as_map().ok()?.get(key)?.as_string().ok().map(|s| s.as_str())
+        r.as_map()
+            .ok()?
+            .get(key)?
+            .as_string()
+            .ok()
+            .map(|s| s.as_str())
     }
 
     /// A top-level holder's copy is named beside it and gets a node. A
@@ -233,7 +242,11 @@ mod tests {
             (2, vec![("FakeBoss".to_owned(), 4)]),
         ]);
         let mut wiring = Wiring::default();
-        assert!(wiring.refer(&mut root, &[(1, 11), (2, 22)], &creators).unwrap());
+        assert!(
+            wiring
+                .refer(&mut root, &[(1, 11), (2, 22)], &creators)
+                .unwrap()
+        );
         assert_eq!(
             paths(&root),
             ["FakePot_1a2b", "_3c4d/FakePot_5e6f", "FakePot_1a2b_Copy1"]
@@ -242,7 +255,11 @@ mod tests {
         assert_eq!(edits, ["FakeRoom"]);
 
         let mut root = group();
-        assert!(!Wiring::default().refer(&mut root, &[(2, 22)], &creators).unwrap());
+        assert!(
+            !Wiring::default()
+                .refer(&mut root, &[(2, 22)], &creators)
+                .unwrap()
+        );
     }
 
     /// Every graph a loud holder's node sits in takes two copies of it,
