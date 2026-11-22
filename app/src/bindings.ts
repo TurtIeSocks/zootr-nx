@@ -111,6 +111,13 @@ export const commands = {
 	liveMute: (hash: number) => typedError<null, string>(__TAURI_INVOKE("live_mute", { hash })),
 	/**  Show a session log in the system's file browser. */
 	revealLog: (path: string) => typedError<null, string>(__TAURI_INVOKE("reveal_log", { path })),
+	/**  Where the Logs page picks up after a reload. */
+	appLogState: () => __TAURI_INVOKE<AppLogState>("app_log_state"),
+	/**
+	 *  Logs a line from the page, skipped as a repeat of the last line with
+	 *  the same `key` (its text, when none) within a minute.
+	 */
+	appLogWrite: (level: Level, text: string, key: string | null) => __TAURI_INVOKE<void>("app_log_write", { level, text, key }),
 	/**  The Checks tab's rows for the installed seed. */
 	checksState: () => typedError<ChecksState, string>(__TAURI_INVOKE("checks_state")),
 	/**  Mark a check in a seed, or clear its mark. */
@@ -182,6 +189,7 @@ export const commands = {
 /** Events */
 export const events = {
 	apEvent: makeEvent<ApEvent, ApEvent>("ap-event"),
+	appLog: makeEvent<AppLogEvent, AppLogEvent>("app-log"),
 	checksEvent: makeEvent<ChecksEvent, ChecksEvent>("checks-event"),
 	doorsEvent: makeEvent<DoorsEvent, DoorsEvent>("doors-event"),
 	itemsEvent: makeEvent<ItemsEvent, ItemsEvent>("items-event"),
@@ -208,6 +216,19 @@ export type ApState = {
 };
 
 export type ApStatus = "offline" | "connecting" | "connected" | "refused";
+
+/**  Each line, to whichever page is listening. */
+export type AppLogEvent = Line;
+
+/**  Where the Logs page picks up after a reload. */
+export type AppLogState = {
+	/**  The newest [`CAP`] lines, oldest first. */
+	lines: Line[],
+	/**  This run's file. */
+	file: string | null,
+	/**  Why there's no file. */
+	unsaved: string | null,
+};
 
 /**  What applying a test setup did. */
 export type Applied = {
@@ -638,6 +659,21 @@ export type Kind = { type: "toggle"; default: boolean } |
 export type Label = {
 	name?: string,
 	note?: string,
+};
+
+/**  How bad a line is. */
+export type Level = "error" | "warn" | "info" | "debug";
+
+/**
+ *  One line of the log, numbered so a page that loads mid-run can tell
+ *  which lines its snapshot already holds.
+ */
+export type Line = {
+	seq: number,
+	/**  The local time, as `HH:MM:SS`. */
+	time: string,
+	level: Level,
+	text: string,
 };
 
 /**  Every Live tab event, to whichever page is listening. */
