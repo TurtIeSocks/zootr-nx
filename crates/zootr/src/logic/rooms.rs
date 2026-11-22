@@ -198,4 +198,27 @@ mod tests {
         let sticks = (world.locations.iter()).find(|l| l.hash == 12889104996486369065);
         assert_eq!(name(sticks.unwrap().place), format!("{deku}#04"));
     }
+
+    #[test]
+    fn a_live_rooms_gold_skulltula_takes_its_rule_not_the_blanket_one() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let book = crate::rules::Book::load()
+            .unwrap()
+            .with_live("inside-the-deku-tree");
+        let new_game = crate::settings::NewGame {
+            skulltulas: true,
+            ..Default::default()
+        };
+        let checks = crate::checks::dealt(&romfs, &new_game).unwrap();
+        let ctx = crate::rules::Ctx::new(&new_game);
+        let world = super::super::World::build(&romfs, &book, &ctx, &checks).unwrap();
+        // The basement vine one: a slingshot hits it, which the blanket
+        // word (boomerang or hookshot) would leave out.
+        let vine = (world.locations.iter()).find(|l| l.hash == 16101480770659370603);
+        let need = format!("{:?}", vine.unwrap().need);
+        let slingshot = crate::known::item::RANGE_SLING_SHOT.get();
+        assert!(need.contains(slingshot), "{need}");
+    }
 }

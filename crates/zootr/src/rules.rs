@@ -90,6 +90,8 @@ pub struct CheckEntry {
     pub place: Option<(String, Era)>,
     /// Dealt only with a setting on.
     pub optional: bool,
+    /// From a live room file, which already measured what reaches it.
+    pub room: bool,
 }
 
 /// Every rule file, parsed and checked.

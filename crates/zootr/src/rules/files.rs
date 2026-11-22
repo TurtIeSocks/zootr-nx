@@ -190,7 +190,10 @@ impl Book {
                 name: check.name.clone(),
                 needs: check.expr.clone(),
                 place: None,
-                optional: false,
+                // A setting may leave it undealt, like a gold skulltula. Its
+                // hash is a placement's: the fresh derive test keeps it so.
+                optional: true,
+                room: true,
             };
             if let Some(hand) = self.checks.insert(check.hash, entry) {
                 self.hand.entry(check.hash).or_insert(hand);
@@ -240,6 +243,7 @@ impl Book {
                 needs,
                 place,
                 optional: rule.setting.is_some(),
+                room: false,
             };
             ensure!(
                 self.checks.insert(rule.hash, entry).is_none(),
