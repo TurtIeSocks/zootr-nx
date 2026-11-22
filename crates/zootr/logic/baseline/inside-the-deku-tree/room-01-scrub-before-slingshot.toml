@@ -11,14 +11,20 @@ guess = true
 
 [[link]]
 to = 2
-needs = "always"
+needs = "flag:#64edd2f3"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 02 11012697473795725691 opens on a flag, not found yet; Switch Shutter A 01 13719232524625078578 opens on a flag, not found yet"
-guess = true
+why = "walk, 1 edges; Switch Shutter A 02 11012697473795725691 shut until flag #64edd2f3"
 
 [[link]]
 to = 2
 needs = "always"
 via = "jump"
 why = "level gap 3.0 to 4.0 m: level jump not measured"
+guess = true
+
+[[flag]]
+hash = 0x64edd2f3
+name = "Inside The Deku Tree Room B Cleared"
+needs = "always"
+why = "set by clearing the room: what clears it isn't traced yet"
 guess = true

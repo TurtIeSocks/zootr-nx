@@ -4,14 +4,20 @@ name = "Gohma Room"
 
 [[link]]
 to = 9
-needs = "always"
+needs = "flag:#d2f46f66"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 01 2271429267365535837 opens on a flag, not found yet; Switch Shutter A 02 7338135400039561278 opens on a flag, not found yet; Switch Shutter A 02 8293133627293221405 opens on a flag, not found yet"
-guess = true
+why = "walk, 1 edges; Switch Shutter A 02 7338135400039561278 shut until flag #d2f46f66"
 
 [[link]]
 to = 9
-needs = "always"
+needs = "flag:#d2f46f66"
 via = "jump"
-why = "level gap 3.0 to 4.8 m: level jump not measured; Switch Shutter A 01 2271429267365535837 opens on a flag, not found yet; Switch Shutter A 02 7338135400039561278 opens on a flag, not found yet"
+why = "level gap 3.0 to 4.8 m: level jump not measured; Switch Shutter A 02 7338135400039561278 shut until flag #d2f46f66"
+guess = true
+
+[[flag]]
+hash = 0xd2f46f66
+name = "Inside The Deku Tree Room K Cleared"
+needs = "always"
+why = "set by clearing the room: what clears it isn't traced yet"
 guess = true

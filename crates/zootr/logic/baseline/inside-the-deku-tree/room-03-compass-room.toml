@@ -6,8 +6,7 @@ name = "Compass Room"
 to = 0
 needs = "always"
 via = "walk"
-why = "walk, 6 edges; Switch Shutter A 01 8489032987066835655 opens on a flag, not found yet"
-guess = true
+why = "walk, 6 edges"
 
 [[link]]
 to = 0
@@ -21,3 +20,15 @@ to = 9
 needs = "always"
 via = "drop"
 why = "drop 65.5 to 65.9 m into water"
+
+[[check]]
+hash = 9284193025315608699
+name = "Dungeon Compass Chest"
+needs = "always"
+why = "in reach from its room"
+
+[[check]]
+hash = 11368028582977069031
+name = "Upper Three Deku Nuts 2"
+needs = "always"
+why = "in reach from its room"

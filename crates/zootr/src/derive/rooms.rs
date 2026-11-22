@@ -13,10 +13,12 @@ use anyhow::{Context, Result};
 use ounce_formats::{Romfs, murmur3};
 
 use crate::entrances::Dungeon;
+use crate::gates::{Atom, Expr as GateExpr};
 use crate::nav::Level;
 use crate::nav::graph::{Arc, Cross, Graph, Via, dist};
 use crate::nav::limits::limits;
 use crate::nav::shape::{Solid, parts_of};
+use crate::rules::Book;
 use crate::rules::kinds::{Kind, Sets};
 use crate::rules::rooms::{self, folder};
 use crate::sweep::spot::slug;
@@ -56,15 +58,24 @@ fn path_of(graph: &Graph, from: usize, arc: &Arc) -> ([f32; 3], [f32; 3]) {
     }
 }
 
-/// Each face's room, `None` for a face no named placement reaches. A room
-/// spreads across anything but a door or a path `blocked` says an obstacle
-/// stands on, so rooms meet at their doors, shutters and webs.
+/// Each face's room and part.
+pub struct Labels {
+    /// `None` for a face no named placement reaches.
+    pub room: Vec<Option<u32>>,
+    /// The faces joined with nothing in the way share a part: a chest
+    /// behind a web is in another part of its room.
+    pub part: Vec<usize>,
+}
+
+/// Each face's room. A room spreads across anything but a door or a path
+/// `blocked` says an obstacle stands on, so rooms meet at their doors,
+/// shutters and webs.
 pub fn label(
     graph: &Graph,
     placed: &[Placement],
     rooms: &HashMap<u64, u32>,
     blocked: impl Fn([f32; 3], [f32; 3]) -> bool,
-) -> Vec<Option<u32>> {
+) -> Labels {
     let n = graph.centers.len();
     // Both ways: a ledge whose only arc is a drop off it is still its room's.
     // `near` leaves out what an obstacle stands on, `all` keeps it.
@@ -119,7 +130,31 @@ pub fn label(
         b.0 = 0.0;
     }
     spread(graph, &all, &mut best, heap, &kept);
-    best.into_iter().map(|b| b.map(|(_, r)| r)).collect()
+    Labels {
+        room: best.into_iter().map(|b| b.map(|(_, r)| r)).collect(),
+        part: parts(&near),
+    }
+}
+
+/// Each face's part: the faces `near` joins, numbered by their first face.
+fn parts(near: &[Vec<usize>]) -> Vec<usize> {
+    let mut part = vec![usize::MAX; near.len()];
+    for start in 0..near.len() {
+        if part[start] != usize::MAX {
+            continue;
+        }
+        part[start] = start;
+        let mut stack = vec![start];
+        while let Some(f) = stack.pop() {
+            for &to in &near[f] {
+                if part[to] == usize::MAX {
+                    part[to] = start;
+                    stack.push(to);
+                }
+            }
+        }
+    }
+    part
 }
 
 /// Spreads each room in `heap` over `near`, nearest first, never into a
@@ -164,6 +199,9 @@ static NAMES: LazyLock<BTreeMap<String, BTreeMap<u32, String>>> = LazyLock::new(
 /// The file in `logic/` the names come from, for the built-in files test.
 #[cfg(test)]
 pub(crate) const NAMES_FILE: &str = "room-names.toml";
+
+/// The logic node that drives a shutter's lattice.
+const SHUTTER: &str = "ActorLogicShutter";
 
 /// How far round an obstacle's collision a path still meets it, in m.
 const ON: f32 = 0.5;
@@ -216,6 +254,68 @@ fn via_of(via: Via) -> (rooms::Via, Option<u64>) {
     }
 }
 
+/// A flag a shutter waits on.
+#[derive(Clone, Default)]
+struct Lock {
+    /// The game's name: code only, never written (the hook blocks it).
+    name: String,
+    /// The placements whose state sets it, when a graph sets it.
+    setters: BTreeSet<u64>,
+    /// Its room: its setters', or the room its name gives.
+    room: Option<u32>,
+}
+
+impl Lock {
+    fn hash(&self) -> u32 {
+        murmur3(self.name.as_bytes())
+    }
+
+    /// A flag only clearing its room sets (a fight) holds Link in; a flag
+    /// a graph sets (a switch, torches) holds a door shut both ways.
+    fn holds(&self, from: u32) -> bool {
+        !self.setters.is_empty() || self.room == Some(from)
+    }
+}
+
+/// The room a flag's name gives: `..._RoomB_...` is room 1.
+fn room_in_name(name: &str) -> Option<u32> {
+    let (_, rest) = name.split_once("_Room")?;
+    let mut chars = rest.chars();
+    let letter = chars.next().filter(char::is_ascii_uppercase)?;
+    matches!(chars.next(), Some('_') | None).then(|| letter as u32 - 'A' as u32)
+}
+
+/// The flags `expr` waits on, with the placements that set each.
+fn locks_in(expr: &GateExpr, out: &mut BTreeMap<String, BTreeSet<u64>>) {
+    match expr {
+        GateExpr::SetFlag(name, drives) => {
+            let setters = drives
+                .iter()
+                .flat_map(GateExpr::atoms)
+                .filter_map(|a| match a {
+                    Atom::Actor { hash, .. } => *hash,
+                    _ => None,
+                });
+            out.entry(name.clone()).or_default().extend(setters);
+        }
+        GateExpr::Atom(Atom::Flag(name)) => {
+            out.entry(name.clone()).or_default();
+        }
+        GateExpr::And(v) | GateExpr::Or(v) => v.iter().for_each(|e| locks_in(e, out)),
+        GateExpr::Not(e) => locks_in(e, out),
+        GateExpr::Const(_) | GateExpr::Atom(_) => {}
+    }
+}
+
+/// A check as a room file writes it.
+struct CheckOut {
+    hash: u64,
+    name: String,
+    needs: String,
+    why: String,
+    guess: bool,
+}
+
 /// One dungeon's room files, by path under `logic/`, and what derive
 /// couldn't place.
 pub struct Derived {
@@ -225,6 +325,8 @@ pub struct Derived {
     pub unplaced: usize,
     /// Rooms the game numbers that got no floor.
     pub floorless: Vec<u32>,
+    /// Checks in no room, by hash.
+    pub roomless: Vec<u64>,
 }
 
 /// The maps of `dungeon`: its own, by either age, never its boss's.
@@ -238,12 +340,46 @@ fn maps(romfs: &Romfs, dungeon: &Dungeon) -> Result<BTreeSet<String>> {
         .collect())
 }
 
-/// The room files of `dungeon`, from its navmesh, its placements and
-/// `kinds`.
-pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, kinds: &[Kind]) -> Result<Derived> {
-    let kind_of: HashMap<u32, &Kind> = kinds.iter().map(|k| (k.hash, k)).collect();
+/// `uses` joined: each kept once, more than one in brackets with `and`.
+fn all_of(uses: &[&str]) -> String {
+    let mut kept: Vec<&str> = vec![];
+    for u in uses.iter().filter(|u| **u != "always") {
+        if !kept.contains(u) {
+            kept.push(u);
+        }
+    }
+    match &kept[..] {
+        [] => "always".to_owned(),
+        [one] => (*one).to_owned(),
+        many => many
+            .iter()
+            .map(|n| format!("({n})"))
+            .collect::<Vec<_>>()
+            .join(" and "),
+    }
+}
+
+/// The room files of `dungeon`, from its navmesh, its placements, its
+/// logic graphs and `book`'s kinds and check names.
+pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Result<Derived> {
+    let kind_of: HashMap<u32, &Kind> = book.kinds.iter().map(|k| (k.hash, k)).collect();
+    let kind_at = |p: &Placement| kind_of.get(&murmur3(p.name.as_bytes())).copied();
     let jump = limits().child.edge_jump.as_ref().map_or(0.0, |j| j.value);
+    let shutters = crate::gates::trace_node(romfs, SHUTTER)?;
+    let checks = crate::checks::all(romfs)?;
+    // Named one at a time: an item Archipelago has no name for fails only its own.
+    let named: HashMap<u64, String> = (checks.iter())
+        .filter_map(|c| {
+            crate::ap::names::locations(romfs, std::slice::from_ref(c))
+                .ok()?
+                .pop_first()
+        })
+        .collect();
     let mut seen: BTreeMap<(u32, u32, rooms::Via), Seen> = BTreeMap::new();
+    let mut locks: HashMap<u64, Vec<Lock>> = HashMap::new();
+    let mut flags: BTreeMap<String, (Lock, Vec<&Kind>)> = BTreeMap::new();
+    let mut checks_out: BTreeMap<u32, Vec<CheckOut>> = BTreeMap::new();
+    let mut roomless = vec![];
     let mut numbered = BTreeSet::new();
     let mut floored = BTreeSet::new();
     let (mut faces, mut unplaced) = (0, 0);
@@ -255,38 +391,63 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, kinds: &[Kind]) -> 
         // The obstacles placed in this map: each one's kind and collision.
         let mut obstacles: Vec<(u64, &Kind, Vec<Solid>)> = vec![];
         for p in &level.placed {
-            let (Some(h), Some(k)) = (p.hash, kind_of.get(&murmur3(p.name.as_bytes()))) else {
-                continue;
-            };
-            if k.sets == Sets::Opens {
+            if let (Some(h), Some(k)) = (p.hash, kind_at(p))
+                && k.sets == Sets::Opens
+            {
                 obstacles.push((h, k, parts_of(romfs, p)?));
             }
         }
         let on_path = |a: [f32; 3], b: [f32; 3]| {
             (obstacles.iter()).any(|(_, _, solids)| solids.iter().any(|s| meets(s, a, b)))
         };
+        let on = |a: [f32; 3], b: [f32; 3]| -> Vec<(u64, &Kind)> {
+            (obstacles.iter())
+                .filter(|(_, _, solids)| solids.iter().any(|s| meets(s, a, b)))
+                .map(|(h, k, _)| (*h, *k))
+                .collect()
+        };
         let labels = label(&graph, &level.placed, &rooms_of, on_path);
-        faces += labels.len();
-        unplaced += labels.iter().filter(|l| l.is_none()).count();
-        floored.extend(labels.iter().flatten().copied());
+        let room = &labels.room;
+        faces += room.len();
+        unplaced += room.iter().filter(|l| l.is_none()).count();
+        floored.extend(room.iter().flatten().copied());
+        let room_at = |p: &Placement| {
+            let hash = p.hash?;
+            (rooms_of.get(&hash).copied()).or_else(|| room[graph.locate(p.pose.at)?.face])
+        };
+        // Each shutter's flags, and the rooms that set them.
+        for gate in shutters.iter().filter(|g| level.placement(g.hash).is_ok()) {
+            let mut found = BTreeMap::new();
+            locks_in(&gate.expr, &mut found);
+            for (name, setters) in found {
+                let setter_room = (setters.iter())
+                    .filter_map(|h| room_at(level.placement(*h).ok()?))
+                    .next();
+                let lock = Lock {
+                    room: setter_room.or_else(|| room_in_name(&name)),
+                    name: name.clone(),
+                    setters,
+                };
+                let kinds: Vec<&Kind> = (lock.setters.iter())
+                    .filter_map(|h| kind_at(level.placement(*h).ok()?))
+                    .collect();
+                flags.entry(name).or_insert((lock.clone(), kinds));
+                locks.entry(gate.hash).or_default().push(lock);
+            }
+        }
         let mut note = |a: usize,
                         b: usize,
                         via: rooms::Via,
                         metric: f32,
                         by: Option<u64>,
                         path: ([f32; 3], [f32; 3])| {
-            let (Some(ra), Some(rb)) = (labels[a], labels[b]) else {
+            let (Some(ra), Some(rb)) = (room[a], room[b]) else {
                 return;
             };
-            if ra == rb {
-                return;
-            }
-            let s = seen.entry((ra, rb, via)).or_default();
-            s.add(metric, by);
-            for (h, k, solids) in &obstacles {
-                if solids.iter().any(|solid| meets(solid, path.0, path.1)) {
-                    s.on.insert(*h, k);
-                }
+            if ra != rb {
+                let s = seen.entry((ra, rb, via)).or_default();
+                s.add(metric, by);
+                s.on.extend(on(path.0, path.1));
             }
         };
         for (from, arcs) in graph.arcs.iter().enumerate() {
@@ -309,6 +470,66 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, kinds: &[Kind]) -> 
             let width = (from[0] - to[0]).hypot(from[2] - to[2]);
             note(a, b, rooms::Via::Jump, width, None, (from, to));
         }
+        // Each room's main part: the one with the most of its floor.
+        let mut sizes: HashMap<(u32, usize), usize> = HashMap::new();
+        for (f, r) in room.iter().enumerate() {
+            if let Some(r) = r {
+                *sizes.entry((*r, labels.part[f])).or_default() += 1;
+            }
+        }
+        let main = |r: u32| {
+            (sizes.iter())
+                .filter(|((sr, _), _)| *sr == r)
+                .max_by_key(|(k, n)| (**n, std::cmp::Reverse(k.1)))
+                .map(|((_, p), _)| *p)
+        };
+        // Each check: what stands between it and its room's main part.
+        for check in checks.iter().filter(|c| c.room.is_some()) {
+            let Ok(holder) = level.placement(check.hash) else {
+                continue;
+            };
+            let Some(r) = check.room else { continue };
+            if !floored.contains(&r) && main(r).is_none() {
+                roomless.push(check.hash);
+                continue;
+            }
+            let at = holder.pose.at;
+            let nearest = (0..room.len())
+                .filter(|&f| room[f] == Some(r) && Some(labels.part[f]) == main(r))
+                .min_by(|&a, &b| dist(graph.centers[a], at).total_cmp(&dist(graph.centers[b], at)));
+            let blocking = nearest
+                .map(|f| on(at, graph.centers[f]))
+                .unwrap_or_default();
+            let uses: Vec<&str> = blocking.iter().map(|(_, k)| k.uses.as_str()).collect();
+            let mut why = match &blocking[..] {
+                [] => "in reach from its room".to_owned(),
+                _ => (blocking.iter())
+                    .map(|(h, k)| format!("{} {h} in front: {}", k.name, k.uses))
+                    .collect::<Vec<_>>()
+                    .join("; "),
+            };
+            let mut guess = blocking.iter().any(|(_, k)| k.guess);
+            if nearest.is_none() {
+                why = "its room has no floor to reach it from".into();
+                guess = true;
+            }
+            let name = (book.check(check.hash).map(|c| c.name.clone()))
+                .or_else(|| named.get(&check.hash).cloned())
+                .unwrap_or_else(|| match check.holder.contains("TBox") {
+                    true => format!(
+                        "{} Chest",
+                        super::words(check.item.trim_start_matches("Item_"))
+                    ),
+                    false => super::words(&check.holder),
+                });
+            checks_out.entry(r).or_default().push(CheckOut {
+                hash: check.hash,
+                name,
+                needs: all_of(&uses),
+                why,
+                guess,
+            });
+        }
     }
     let folder = folder(dungeon.node.get());
     let names = NAMES.get(&folder);
@@ -325,19 +546,51 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, kinds: &[Kind]) -> 
             "# Generated by `zootr logic derive`. Don't edit: confirmed/ overrides it.\nroom = {room}\nname = {}\n",
             q(&words)
         );
-        let from_here = (room, 0, rooms::Via::Walk)..=(room, u32::MAX, rooms::Via::Sink);
-        for (&(_, to, via), s) in seen.range(from_here) {
-            let (needs, why, guess) = link(via, s);
-            write!(
-                out,
-                "\n[[link]]\nto = {to}\nneeds = {}\nvia = {}\nwhy = {}\n",
-                q(&needs),
-                q(via.word()),
-                q(&why)
-            )?;
+        let mut entry = |table: &str, fields: &[(&str, String)], guess: bool| {
+            write!(out, "\n[[{table}]]\n").unwrap();
+            for (k, v) in fields {
+                writeln!(out, "{k} = {v}").unwrap();
+            }
             if guess {
                 out += "guess = true\n";
             }
+        };
+        let from_here = (room, 0, rooms::Via::Walk)..=(room, u32::MAX, rooms::Via::Sink);
+        for (&(_, to, via), s) in seen.range(from_here) {
+            let (needs, why, guess) = link(via, room, s, &locks);
+            let fields = [
+                ("to", to.to_string()),
+                ("needs", q(&needs)),
+                ("via", q(via.word())),
+                ("why", q(&why)),
+            ];
+            entry("link", &fields, guess);
+        }
+        let mut here = checks_out.remove(&room).unwrap_or_default();
+        here.sort_by_key(|c| c.hash);
+        for c in here {
+            let fields = [
+                ("hash", c.hash.to_string()),
+                ("name", q(&c.name)),
+                ("needs", q(&c.needs)),
+                ("why", q(&c.why)),
+            ];
+            entry("check", &fields, c.guess);
+        }
+        let mut set_here: Vec<&(Lock, Vec<&Kind>)> = flags
+            .values()
+            .filter(|(l, _)| l.room == Some(room))
+            .collect();
+        set_here.sort_by_key(|(l, _)| l.hash());
+        for (lock, kinds) in set_here {
+            let (needs, why, guess) = flag(lock, kinds);
+            let fields = [
+                ("hash", format!("0x{:08x}", lock.hash())),
+                ("name", q(&super::words(&lock.name))),
+                ("needs", q(&needs)),
+                ("why", q(&why)),
+            ];
+            entry("flag", &fields, guess);
         }
         files.push((format!("baseline/{folder}/{file}"), out));
     }
@@ -347,11 +600,35 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, kinds: &[Kind]) -> 
         faces,
         unplaced,
         floorless,
+        roomless,
     })
 }
 
-/// A link's needs, why and whether it's a guess, from what was seen.
-fn link(via: rooms::Via, s: &Seen) -> (String, String, bool) {
+/// A flag's needs, why and whether it's a guess, from what sets it.
+fn flag(lock: &Lock, kinds: &[&Kind]) -> (String, String, bool) {
+    if lock.setters.is_empty() {
+        let why = "set by clearing the room: what clears it isn't traced yet".to_owned();
+        return ("always".into(), why, true);
+    }
+    let uses: Vec<&str> = kinds.iter().map(|k| k.uses.as_str()).collect();
+    let mut seen = BTreeSet::new();
+    let why = (kinds.iter())
+        .filter(|k| seen.insert(k.hash))
+        .map(|k| format!("{} sets it ({}): {}", k.name, lock.setters.len(), k.uses))
+        .collect::<Vec<_>>()
+        .join("; ");
+    let guess = kinds.is_empty() || kinds.iter().any(|k| k.guess);
+    (all_of(&uses), why, guess)
+}
+
+/// A link's needs, why and whether it's a guess, from what was seen
+/// crossing from `from`.
+fn link(
+    via: rooms::Via,
+    from: u32,
+    s: &Seen,
+    locks: &HashMap<u64, Vec<Lock>>,
+) -> (String, String, bool) {
     let span = |unit: &str| {
         if (s.most - s.least).abs() < 0.05 {
             format!("{:.1} {unit}", s.least)
@@ -375,37 +652,29 @@ fn link(via: rooms::Via, s: &Seen) -> (String, String, bool) {
         _ => format!("{} {}", via.word(), by()),
     };
     let mut guess = via == rooms::Via::Jump;
-    let mut needs: Vec<&str> = vec![];
+    let mut needs: Vec<String> = vec![];
     for (h, k) in &s.on {
-        if k.uses == "always" {
-            // Opened by a flag, which the flags step finds.
-            write!(why, "; {} {h} opens on a flag, not found yet", k.name).unwrap();
-            guess = true;
-        } else {
+        if k.uses != "always" {
             write!(why, "; {} {h}: {}", k.name, k.uses).unwrap();
             guess |= k.guess;
-            if !needs.contains(&k.uses.as_str()) {
-                needs.push(&k.uses);
-            }
+            needs.push(k.uses.clone());
+            continue;
+        }
+        for lock in locks.get(h).into_iter().flatten().filter(|l| l.holds(from)) {
+            write!(why, "; {} {h} shut until flag #{:08x}", k.name, lock.hash()).unwrap();
+            guess |= lock.room.is_none();
+            needs.push(format!("flag:#{:08x}", lock.hash()));
         }
     }
-    let needs = match &needs[..] {
-        [] => "always".to_owned(),
-        [one] => (*one).to_owned(),
-        many => many
-            .iter()
-            .map(|n| format!("({n})"))
-            .collect::<Vec<_>>()
-            .join(" and "),
-    };
-    (needs, why, guess)
+    let needs: Vec<&str> = needs.iter().map(String::as_str).collect();
+    (all_of(&needs), why, guess)
 }
 
 /// Writes `dungeon`'s baseline room files under the logic folder `dir`,
 /// first clearing the old ones, so a renamed room leaves no stale file.
 pub fn write(romfs: &Romfs, game: &Path, dungeon: &Dungeon, dir: &Path) -> Result<Derived> {
-    let book = crate::rules::Book::load()?;
-    let derived = derive(romfs, game, dungeon, &book.kinds)?;
+    let book = Book::load()?;
+    let derived = derive(romfs, game, dungeon, &book)?;
     let folder = dir.join("baseline").join(folder(dungeon.node.get()));
     if folder.exists() {
         for entry in std::fs::read_dir(&folder)? {
@@ -467,7 +736,7 @@ mod tests {
     fn each_floor_takes_the_room_of_the_nearest_tag_by_walking() {
         let (m, placed, rooms) = row();
         let g = Graph::build(&m, &placed, graph::step_up());
-        let labels = label(&g, &placed, &rooms, |_, _| false);
+        let labels = label(&g, &placed, &rooms, |_, _| false).room;
         assert_eq!(labels, [Some(1), Some(1), Some(2), Some(2), None]);
     }
 
@@ -477,7 +746,7 @@ mod tests {
         let (m, placed, rooms) = row();
         let g = Graph::build(&m, &placed, graph::step_up());
         let at_two = |a: [f32; 3], b: [f32; 3]| (a[0] - 2.0) * (b[0] - 2.0) < 0.0;
-        let labels = label(&g, &placed, &rooms, at_two);
+        let labels = label(&g, &placed, &rooms, at_two).room;
         assert_eq!(labels, [Some(1), Some(2), Some(2), Some(2), None]);
     }
 
@@ -488,8 +757,16 @@ mod tests {
         let g = Graph::build(&m, &placed, graph::step_up());
         let between =
             |a: [f32; 3], b: [f32; 3]| [2.0, 6.0].iter().any(|x| (a[0] - x) * (b[0] - x) < 0.0);
-        let labels = label(&g, &placed, &rooms, between);
+        let labels = label(&g, &placed, &rooms, between).room;
         assert!(labels[1].is_some() && labels[2].is_some(), "{labels:?}");
+    }
+
+    #[test]
+    fn a_flag_names_its_room_by_letter() {
+        assert_eq!(room_in_name("FakeTemple_RoomB_Cleared"), Some(1));
+        assert_eq!(room_in_name("FakeTemple_RoomA"), Some(0));
+        assert_eq!(room_in_name("FakeTemple_Roomy_Cleared"), None);
+        assert_eq!(room_in_name("FakeTemple_Cleared"), None);
     }
 
     #[test]
@@ -519,7 +796,7 @@ mod tests {
             .find(|d| d.node == map::INSIDE_THE_DEKU_TREE)
             .unwrap();
         let book = crate::rules::Book::load().unwrap();
-        let fresh = derive(&romfs, game, deku, &book.kinds).unwrap();
+        let fresh = derive(&romfs, game, deku, &book).unwrap();
         let folder = format!("baseline/{}/", folder(deku.node.get()));
         let committed: Vec<(String, String)> = (rooms::FILES.iter())
             .filter(|(path, _)| path.starts_with(&folder))
@@ -532,6 +809,12 @@ mod tests {
         // Every room the game numbers has floor but the Skulltula alcove,
         // whose Skulltulas hang on a wall, and nearly every face has a room.
         assert_eq!(fresh.floorless, [11]);
+        assert!(fresh.roomless.is_empty(), "{:?}", fresh.roomless);
+        let all: String = fresh.files.iter().map(|(_, t)| t.as_str()).collect();
+        assert!(
+            all.contains("needs = \"flag:#"),
+            "a shutter waits on its flag"
+        );
         assert!(
             fresh.unplaced * 10 < fresh.faces,
             "{} of {}",

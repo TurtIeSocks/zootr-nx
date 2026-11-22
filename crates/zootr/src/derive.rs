@@ -76,7 +76,7 @@ fn dungeon_kinds(romfs: &Romfs) -> Result<BTreeSet<String>> {
 }
 
 /// An actor's name in words: its parts and their capitals split apart.
-fn words(gyaml: &str) -> String {
+pub(crate) fn words(gyaml: &str) -> String {
     let rest = PREFIXES
         .iter()
         .find_map(|p| gyaml.strip_prefix(p))

@@ -6,22 +6,20 @@ name = "Block And Torch Room"
 to = 6
 needs = "always"
 via = "walk"
-why = "walk, 3 edges; Switch Shutter A 02 3110078652090200091 opens on a flag, not found yet; Switch Shutter A 01 5024342326168565885 opens on a flag, not found yet; Switch Shutter A 02 5845251992307848764 opens on a flag, not found yet"
-guess = true
+why = "walk, 3 edges"
 
 [[link]]
 to = 6
 needs = "always"
 via = "jump"
-why = "level gap 2.2 to 2.7 m: level jump not measured; Switch Shutter A 01 5024342326168565885 opens on a flag, not found yet; Switch Shutter A 02 5845251992307848764 opens on a flag, not found yet"
+why = "level gap 2.2 to 2.7 m: level jump not measured"
 guess = true
 
 [[link]]
 to = 8
 needs = "always"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 01 2821367699546364013 opens on a flag, not found yet"
-guess = true
+why = "walk, 1 edges"
 
 [[link]]
 to = 8
@@ -35,3 +33,10 @@ to = 9
 needs = "always"
 via = "drop"
 why = "drop 25.0 to 26.4 m into water"
+
+[[flag]]
+hash = 0xf85ceb3f
+name = "Inside The Deku Tree Room H Cleared"
+needs = "always"
+why = "Candle Stick Time Extinguish A 01 sets it (3): always"
+guess = true
