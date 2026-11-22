@@ -313,6 +313,20 @@ pub fn solids(romfs: &Romfs, placed: &[Placement]) -> Result<Vec<Solid>> {
     Ok(out)
 }
 
+/// Every collision part of `placed`, mesh-cutting or not: what a path
+/// through it meets.
+pub fn parts_of(romfs: &Romfs, placed: &Placement) -> Result<Vec<Solid>> {
+    Ok((shape_of(romfs, &placed.name)?.into_iter())
+        .flat_map(|shape| {
+            shape
+                .parts
+                .into_iter()
+                .map(|part| solid(&part, placed))
+                .collect::<Vec<_>>()
+        })
+        .collect())
+}
+
 #[cfg(test)]
 mod tests {
     use std::f32::consts::FRAC_PI_2;
