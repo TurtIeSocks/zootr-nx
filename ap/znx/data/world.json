@@ -9089,12 +9089,19 @@
       "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "gerudo-valley-adult",
+          "rule": {
+            "setting": "gerudo-fortress=freed"
+          }
+        }
+      ],
       "forbid": [],
       "hash": "11582029116926037889",
       "id": 132,
       "name": "Gerudo Valley Running man's race's Gift",
-      "unprovable": true
+      "unprovable": false
     },
     {
       "at": [
@@ -21886,6 +21893,9 @@
               {
                 "any": [
                   {
+                    "setting": "gerudo-fortress=freed"
+                  },
+                  {
                     "count": 2,
                     "items": [
                       "Progressive Hookshot"
@@ -23338,6 +23348,9 @@
       "from": "gerudo-valley-adult",
       "rule": {
         "any": [
+          {
+            "setting": "gerudo-fortress=freed"
+          },
           {
             "count": 2,
             "items": [
