@@ -42,6 +42,7 @@ pub mod kinds;
 pub mod leap;
 pub mod limits;
 pub mod mesh;
+pub mod picture;
 pub mod route;
 pub mod scene;
 pub mod shape;

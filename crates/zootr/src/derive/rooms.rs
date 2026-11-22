@@ -23,6 +23,7 @@ use crate::rules::rooms::{self, folder};
 use crate::sweep::spot::slug;
 use crate::warp::Placement;
 
+pub mod explain;
 mod label;
 mod locks;
 mod reach;
@@ -183,10 +184,66 @@ fn all_of(uses: &[&str]) -> String {
     }
 }
 
+/// Each kind in `book` by its name's hash.
+fn kinds_by_hash(book: &Book) -> HashMap<u32, &Kind> {
+    book.kinds.iter().map(|k| (k.hash, k)).collect()
+}
+
+/// One map as derive reads it: its level, the rooms its placements
+/// number, and the obstacles placed in it with their collision.
+struct Floor<'k> {
+    pub level: Level,
+    pub rooms_of: HashMap<u64, u32>,
+    pub obstacles: Vec<(u64, &'k Kind, Vec<Solid>)>,
+}
+
+impl<'k> Floor<'k> {
+    /// `map` as a child: how deep he wades, his crawls. The spec's adult
+    /// pass comes later, with age in `needs`.
+    pub fn of(
+        romfs: &Romfs,
+        game: &Path,
+        map: &str,
+        kinds: &HashMap<u32, &'k Kind>,
+    ) -> Result<Self> {
+        let mut level = Level::of(romfs, game, map)?;
+        level.child = true;
+        let rooms_of = crate::warp::rooms_in(romfs, map)?;
+        let mut obstacles = vec![];
+        for p in &level.placed {
+            if let (Some(h), Some(k)) = (p.hash, kinds.get(&murmur3(p.name.as_bytes())))
+                && k.sets == Sets::Opens
+            {
+                obstacles.push((h, *k, parts_of(romfs, p)?));
+            }
+        }
+        Ok(Self {
+            level,
+            rooms_of,
+            obstacles,
+        })
+    }
+
+    /// The obstacles standing on the way from `a` to `b`.
+    pub fn on(&self, a: [f32; 3], b: [f32; 3]) -> Vec<(u64, &'k Kind)> {
+        (self.obstacles.iter())
+            .filter(|(_, _, solids)| solids.iter().any(|s| meets(s, a, b)))
+            .map(|(h, k, _)| (*h, *k))
+            .collect()
+    }
+
+    /// Each face's room, labelled over `graph`.
+    pub fn labels(&self, graph: &crate::nav::graph::Graph) -> label::Labels {
+        label(graph, &self.level.placed, &self.rooms_of, |a, b| {
+            !self.on(a, b).is_empty()
+        })
+    }
+}
+
 /// The room files of `dungeon`, from its navmesh, its placements, its
 /// logic graphs and `book`'s kinds and check names.
 pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Result<Derived> {
-    let kind_of: HashMap<u32, &Kind> = book.kinds.iter().map(|k| (k.hash, k)).collect();
+    let kind_of = kinds_by_hash(book);
     let kind_at = |p: &Placement| kind_of.get(&murmur3(p.name.as_bytes())).copied();
     let jump = limits().level_jump();
     let shutters = crate::gates::trace_node(romfs, SHUTTER)?;
@@ -216,32 +273,12 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
     let mut floored = BTreeSet::new();
     let (mut faces, mut unplaced) = (0, 0);
     for map in maps(romfs, dungeon)? {
-        let mut level = Level::of(romfs, game, &map)?;
-        // The pilot derives the child: how deep he wades, his crawls. The
-        // spec's adult pass comes later, with age in `needs`.
-        level.child = true;
+        let floor = Floor::of(romfs, game, &map, &kind_of)?;
+        let (level, rooms_of, obstacles) = (&floor.level, &floor.rooms_of, &floor.obstacles);
         let graph = level.graph();
-        let rooms_of = crate::warp::rooms_in(romfs, &map)?;
         numbered.extend(rooms_of.values().copied());
-        // The obstacles placed in this map: each one's kind and collision.
-        let mut obstacles: Vec<(u64, &Kind, Vec<Solid>)> = vec![];
-        for p in &level.placed {
-            if let (Some(h), Some(k)) = (p.hash, kind_at(p))
-                && k.sets == Sets::Opens
-            {
-                obstacles.push((h, k, parts_of(romfs, p)?));
-            }
-        }
-        let on_path = |a: [f32; 3], b: [f32; 3]| {
-            (obstacles.iter()).any(|(_, _, solids)| solids.iter().any(|s| meets(s, a, b)))
-        };
-        let on = |a: [f32; 3], b: [f32; 3]| -> Vec<(u64, &Kind)> {
-            (obstacles.iter())
-                .filter(|(_, _, solids)| solids.iter().any(|s| meets(s, a, b)))
-                .map(|(h, k, _)| (*h, *k))
-                .collect()
-        };
-        let labels = label(&graph, &level.placed, &rooms_of, on_path);
+        let on = |a: [f32; 3], b: [f32; 3]| floor.on(a, b);
+        let labels = floor.labels(&graph);
         let room = &labels.room;
         faces += room.len();
         unplaced += room.iter().filter(|l| l.is_none()).count();
@@ -347,7 +384,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
         // A shutter's leaves wait on its flags, but its frame carries none:
         // an obstacle with no locks of its own shares a locked one's that
         // stands with it.
-        for (h, _, _) in &obstacles {
+        for (h, _, _) in obstacles {
             let Ok(p) = level.placement(*h) else { continue };
             if locks.contains_key(h) {
                 continue;
