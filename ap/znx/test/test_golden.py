@@ -1,14 +1,11 @@
 """Our logic and the AP world reach the same checks: golden.json holds
 what Rust reached for each option and item set."""
 
-from BaseClasses import CollectionState
+from BaseClasses import CollectionState, LocationProgressType
 
-from ..exported import OPTIONS, WORLD, load
+from ..exported import OPTIONS, load
 from ..options import attr
 from . import ZnxTestBase
-
-UNPROVABLE = {check["id"] for check in WORLD["checks"] if check["unprovable"]}
-
 
 def ap_value(setting: str, value):
     entry = next(e for e in OPTIONS if e["id"] == setting)
@@ -28,6 +25,7 @@ class TestGolden(ZnxTestBase):
                 reached = {
                     location.address
                     for location in self.multiworld.get_reachable_locations(state, self.player)
-                    if location.address is not None
+                    # Our fill gives an excluded check filler: no way in.
+                    if location.address is not None and location.progress_type != LocationProgressType.EXCLUDED
                 }
-                self.assertEqual(sorted(reached - UNPROVABLE), case["reachable"])
+                self.assertEqual(sorted(reached), case["reachable"])

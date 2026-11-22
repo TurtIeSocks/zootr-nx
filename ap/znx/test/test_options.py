@@ -1,6 +1,8 @@
 """AP's default tests (every location reachable with everything, the
 goal set, a fill that completes) for each option's other values."""
 
+from BaseClasses import LocationProgressType
+
 from ..exported import OPTIONS
 from ..options import attr
 from . import ZnxTestBase
@@ -33,3 +35,22 @@ class TestDeadTreeWithAdultDekuTree(ZnxTestBase):
     def test_a_way_in_a_region(self) -> None:
         names = {region.name for region in self.multiworld.get_regions(self.player)}
         self.assertIn("deku-tree-adult", names)
+
+
+RACE = "Gerudo Valley Running man's race's Gift"
+
+
+class TestRaceGiftNeedsFreed(ZnxTestBase):
+    """A check only an option lets Link into gets filler without it."""
+
+    def test_excluded_without_freed(self) -> None:
+        location = self.multiworld.get_location(RACE, self.player)
+        self.assertEqual(location.progress_type, LocationProgressType.EXCLUDED)
+
+
+class TestRaceGiftWithFreed(ZnxTestBase):
+    options = {"gerudo_fortress": "freed"}
+
+    def test_a_check_with_freed(self) -> None:
+        location = self.multiworld.get_location(RACE, self.player)
+        self.assertNotEqual(location.progress_type, LocationProgressType.EXCLUDED)
