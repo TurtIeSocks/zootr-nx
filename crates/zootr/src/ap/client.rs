@@ -487,6 +487,9 @@ pub struct Live {
     dev: Dev<Target>,
     gd: Arc<GameData>,
     tracker: Tracker,
+    /// Checks the seed hands over at the start, as Met Zelda's: their
+    /// scenes never play, so no flag says so.
+    given: BTreeSet<u64>,
     goal: u32,
     received: u32,
     /// [`DEATHS`] at the last look.
@@ -500,6 +503,7 @@ impl Live {
             dev: Dev::new(game)?,
             gd,
             tracker,
+            given: spots.iter().filter(|s| s.given).map(|s| s.hash).collect(),
             goal: live::hash(&steps::saved(flow::DEFEAT_GANON))?,
             received: live::hash(RECEIVED)?,
             deaths: None,
@@ -546,7 +550,7 @@ impl Game for Live {
             Flag::Bool(h) => on.contains(&h),
             Flag::Key(k) => keys.contains(&k),
         });
-        Ok(self.tracker.checked().clone())
+        Ok(self.tracker.checked().union(&self.given).copied().collect())
     }
 
     fn goal(&mut self) -> Result<bool> {
