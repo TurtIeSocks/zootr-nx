@@ -4,16 +4,17 @@ name = "Scrub Before Slingshot"
 
 # Beaten in two hits, then a talk: a hit knocks it out of its flower, a
 # second hit while it runs stops it, and talking to it sets the flag. Only
-# a ranged hit, the hammer, Din's Fire or its own nut sent back lifts it
+# a ranged hit, the hammer, Din's Fire, a bomb or its own nut lifts it
 # out of the ground. Once out, any weapon stops it.
 [[flag]]
 hash = 0x64edd2f3
 name = "Inside The Deku Tree Room B Cleared"
-needs = "slingshot or bow or boomerang or hookshot or hammer or fire or ((deku-shield or hylian-shield) and melee)"
-why = "out of the ground to a ranged hit, the hammer, Din's Fire or its nut sent back; then any weapon while it runs; then a talk"
+needs = "slingshot or bow or boomerang or hookshot or hammer or fire or bombs or ((deku-shield or hylian-shield) and melee)"
+why = "out of the ground to a ranged hit, the hammer, Din's Fire, a bomb or its nut sent back; then any weapon while it runs; then a talk"
 evidence = [
     "playtest 2026-11-22, the maintainer: ranged weapons and the hammer lift it out of the ground, swords and Deku Sticks don't",
     "playtest 2026-11-22, the maintainer: Din's Fire lifts it out of the ground",
+    "playtest 2026-11-22, the maintainer: a bomb lifts it out of the ground",
     "playtest 2026-11-22, the maintainer: its nut sent back with the shield lifts it out, then a sword stops it",
     "playtest 2026-11-22, the maintainer: once it runs, any weapon stops it, and the talk after unlocks the door",
 ]
