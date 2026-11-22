@@ -284,10 +284,6 @@ fn new_game(settings: &Settings, extras: &Extras, seed: u64) -> Result<NewGame> 
         random_age,
         ..NewGame::from_settings(&settings, &extras.defaults)?
     };
-    ensure!(
-        new_game.age == Era::Child || new_game.spawn.is_none(),
-        "an adult start can't take --spawn: spawns are child maps"
-    );
     new_game.fields.extend(extras.fields.iter().cloned());
     new_game.give.extend(extras.give.iter().cloned());
     Ok(new_game)
@@ -368,14 +364,14 @@ mod tests {
     }
 
     #[test]
-    fn an_adult_start_refuses_a_spawn() {
+    fn an_adult_start_takes_a_spawn() {
         let settings = Settings::from([(settings::STARTING_AGE.into(), "adult".into())]);
         let extras = Extras {
             spawn: Some("FakeMap_Child/FakeSpot".into()),
             ..Extras::default()
         };
-        let err = new_game(&settings, &extras, 0).unwrap_err();
-        assert!(err.to_string().contains("--spawn"), "{err}");
+        let game = new_game(&settings, &extras, 0).unwrap();
+        assert_eq!(game.spawn.as_deref(), Some("FakeMap_Child/FakeSpot"));
     }
 
     /// Seeds whose first ten layouts logic couldn't beat.

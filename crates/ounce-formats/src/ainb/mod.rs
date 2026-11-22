@@ -386,24 +386,41 @@ impl Patch {
 
     /// Set `node`'s string property or unlinked string input `name`.
     pub fn set_str(&mut self, node: usize, name: &str, value: &str) -> Result<()> {
+        let at = self.value_at(node, name, "string", |v| matches!(v, Value::String(_)))?;
+        let offset = self.intern(value)?;
+        self.data[at..at + 4].copy_from_slice(&offset.to_le_bytes());
+        self.reparse()
+    }
+
+    /// Set `node`'s bool property or unlinked bool input `name`.
+    pub fn set_bool(&mut self, node: usize, name: &str, value: bool) -> Result<()> {
+        let at = self.value_at(node, name, "bool", |v| matches!(v, Value::Bool(_)))?;
+        self.data[at..at + 4].copy_from_slice(&u32::from(value).to_le_bytes());
+        self.reparse()
+    }
+
+    /// Where `node`'s property or unlinked input `name` holds its value,
+    /// when `is` (a `kind`) takes it.
+    fn value_at(
+        &self,
+        node: usize,
+        name: &str,
+        kind: &str,
+        is: fn(&Value) -> bool,
+    ) -> Result<usize> {
         let n = self
             .graph
             .nodes
             .get(node)
             .ok_or_else(|| anyhow::anyhow!("no node {node}"))?;
-        let string = |v: &Value| matches!(v, Value::String(_));
         let mut prop = n.properties.iter().zip(&n.properties_at);
         let prop = prop
-            .find(|((k, v), _)| k == name && string(v))
+            .find(|((k, v), _)| k == name && is(v))
             .map(|(_, at)| *at);
         let mut input = n.inputs.iter().filter(|i| i.sources.is_empty());
-        let input = input.find(|i| i.name == name && string(&i.value));
-        let at = prop
-            .or(input.map(|i| i.value_at))
-            .ok_or_else(|| anyhow::anyhow!("node {node} has no string {name}"))?;
-        let offset = self.intern(value)?;
-        self.data[at..at + 4].copy_from_slice(&offset.to_le_bytes());
-        self.reparse()
+        let input = input.find(|i| i.name == name && is(&i.value));
+        prop.or(input.map(|i| i.value_at))
+            .ok_or_else(|| anyhow::anyhow!("node {node} has no {kind} {name}"))
     }
 
     fn intern(&mut self, s: &str) -> Result<u32> {

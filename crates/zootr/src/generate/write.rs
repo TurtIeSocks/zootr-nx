@@ -12,7 +12,6 @@ use crate::checks::{self, Drop};
 use crate::events::Flows;
 use crate::flows::Rewrites;
 use crate::hints::Hint;
-use crate::known::actor;
 use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::progressive::Lines;
@@ -38,7 +37,12 @@ pub(super) fn flows(
     new_game: &NewGame,
     drops: &HashMap<u64, Drop>,
 ) -> Result<(Rewrites, Vec<String>)> {
-    let (mut rewrites, mut flags) = cutscenes::skip(romfs, all, &new_game.skips)?;
+    // The opening movie and Navi's wake-up play in Kokiri Forest only.
+    let skips = cutscenes::Skips {
+        intro: new_game.skips.intro || boot(new_game).is_some(),
+        ..new_game.skips.clone()
+    };
+    let (mut rewrites, mut flags) = cutscenes::skip(romfs, all, &skips)?;
     if new_game.quiet_navi {
         navi::quiet(romfs, &mut rewrites)?;
     }
@@ -69,14 +73,9 @@ pub(super) fn flows(
     starting::replay(romfs, &mut rewrites, &new_game.progress)?;
     steps::hold(romfs, &mut rewrites, all, &new_game.progress)?;
     steps::dev_branch(romfs, &mut rewrites)?;
-    if let Some(spawn) = &new_game.spawn {
-        spawn::warp(romfs, &mut rewrites, spawn)?;
-    }
-    if new_game.age == Era::Adult {
-        // The pedestal's gift waits for the first swap to adult, so he wakes
-        // with the Master Sword only when he starts with it.
-        let sword = (new_game.start.owned()).contains(&actor::WEAPON_SWORD_MASTER.get());
-        spawn::adult(romfs, &mut rewrites, sword)?;
+    if let Some(spawn) = boot(new_game) {
+        let owned = new_game.start.owned();
+        flags.extend(spawn::boot(romfs, &mut rewrites, &spawn, &owned)?);
     }
     if new_game.on.contains(TRADE_CHAIN) {
         trade_chain::deal(romfs, &mut rewrites, drops)?;
@@ -131,6 +130,12 @@ pub(super) fn flows(
         entrances::reveal::flows_for(romfs, &mut rewrites, new_game.dungeon_entrances)?;
     }
     Ok((rewrites, flags))
+}
+
+/// Where `new_game` boots other than Link's house, as `MAP/SPOT`: the
+/// spawn, else the adult start's.
+fn boot(new_game: &NewGame) -> Option<String> {
+    (new_game.spawn.clone()).or_else(|| (new_game.age == Era::Adult).then(spawn::adult_start))
 }
 
 /// Apply `drops` (actor hash -> drop) to every Banc file, `new_game` to
@@ -617,6 +622,7 @@ fn hook_flags(new_game: &NewGame) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::known::actor;
     use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS, TRADE_CYCLE};
 
     #[test]

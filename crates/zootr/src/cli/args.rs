@@ -181,7 +181,8 @@ pub(super) enum Command {
     Census,
     /// List every scene exit: from node, era, to node, arrival point.
     Exits,
-    /// Every child `MAP/SPOT` that `shuffle --spawn` can start a new game at.
+    /// Every `MAP/SPOT` that `shuffle --spawn` can start a new game at. An
+    /// `_Adult` map starts him adult.
     Spawns,
     /// What each chest's GetEventName does to the save, beyond the drop.
     ChestEvents,
@@ -594,7 +595,7 @@ pub(super) struct Shuffle {
     #[arg(long, value_name = "DOOR=DUNGEON")]
     door: Vec<String>,
     /// Start a new game here instead of Link's house, as `MAP/SPOT` from
-    /// `spawns`. For setting up a test.
+    /// `spawns`, adult on an `_Adult` map. For setting up a test.
     #[arg(long, value_name = "MAP/SPOT")]
     spawn: Option<String>,
     /// Hand a new game this pouch item, by actor from `items`. Chests keep

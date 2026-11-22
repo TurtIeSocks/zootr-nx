@@ -44,7 +44,7 @@ export function SpawnField() {
     <Field
       id="test-spawn"
       label="Spawn"
-      hint="MAP/SPOT, child maps only. Blank starts in Link's house"
+      hint="MAP/SPOT, adult on an _Adult map. Blank starts in Link's house"
       warn={
         spawn && !known(options, "spawns", spawn)
           ? "The game never sends Link there. Pick one from the list"
