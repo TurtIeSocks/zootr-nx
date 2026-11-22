@@ -24,6 +24,7 @@ pub struct Limits {
 pub struct Reach {
     pub step_up: Limit,
     pub drop: Limit,
+    pub level_jump: Option<Limit>,
     pub edge_jump: Option<Limit>,
 }
 
@@ -48,6 +49,7 @@ impl Limits {
             let all = [
                 Some(&reach.step_up),
                 Some(&reach.drop),
+                reach.level_jump.as_ref(),
                 reach.edge_jump.as_ref(),
             ];
             ensure!(
@@ -62,6 +64,14 @@ impl Limits {
     /// walks it, so it takes the lower.
     pub fn step_up(&self) -> f32 {
         self.child.step_up.value.min(self.adult.step_up.value)
+    }
+
+    /// The widest level gap glitchless logic links: `margin` of the
+    /// lower age's level jump, of those measured. 0 with none.
+    pub fn level_jump(&self) -> f32 {
+        let both = [&self.child.level_jump, &self.adult.level_jump];
+        let least = both.into_iter().flatten().map(|l| l.value).reduce(f32::min);
+        least.map_or(0.0, |v| v * self.margin)
     }
 
     /// The deepest drop either age lands well.

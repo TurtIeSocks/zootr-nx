@@ -183,7 +183,10 @@ mod tests {
             "{:?}",
             sticks.ways_in
         );
-        assert!(deku.guess.iter().any(|g| g.what.contains("jump")));
+        // A measured level jump settles every gap: what's left to guess
+        // is how a room gets cleared.
+        assert!(!deku.guess.is_empty());
+        assert!(deku.guess.iter().all(|g| g.what.contains("Cleared")));
         assert!(deku.to_string().contains("disagree ("));
     }
 }

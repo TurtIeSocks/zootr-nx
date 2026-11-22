@@ -31,6 +31,17 @@ evidence = [
 value = 5.0
 evidence = ["static: LargeLandHeight 5"]
 
+# The widest gap at one height a running jump (X) crosses, in m: its
+# run speed times its 0.70 s in the air. Glitchless logic links a gap up
+# to `margin` of it.
+[child.level-jump]
+value = 3.15
+evidence = [
+    "static: JumpMaxInitSpeed 4.5 m/s, and a jump is 0.70 s in the air (JumpHeight 0.7, measured every time)",
+    "measured: 3.04, 3.05, 3.13, 3.15 m in the air at full speed (deku-leap4-1-0, deku-leap5-1-0 tries 2 and 4, deku-leap-1-0-p-0.4)",
+    "measured: crosses the Deku Tree Lobby's 2.5 m gap both ways (deku-leap*-0-1, deku-leap*-1-0)",
+]
+
 # How far past a ledge's edge a running jump lands, in m, for a drop of
 # `drop` m.
 [child.edge-jump]
