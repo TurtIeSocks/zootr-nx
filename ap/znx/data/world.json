@@ -21155,9 +21155,16 @@
         {
           "place": "hyrule-castle-child",
           "rule": {
-            "count": 1,
-            "items": [
-              "Weird Egg"
+            "any": [
+              {
+                "setting": "met-zelda"
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Weird Egg"
+                ]
+              }
             ]
           }
         }
@@ -21802,9 +21809,16 @@
         {
           "place": "hyrule-castle-child",
           "rule": {
-            "count": 1,
-            "items": [
-              "Weird Egg"
+            "any": [
+              {
+                "setting": "met-zelda"
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Weird Egg"
+                ]
+              }
             ]
           }
         }

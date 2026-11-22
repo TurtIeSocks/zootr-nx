@@ -34,6 +34,7 @@ pub const RECEIVED: &str = "Rando_ApReceived";
 pub const OPTIONS: &[&str] = &[
     "open-forest",
     "kakariko-gate",
+    "met-zelda",
     "door-of-time",
     "jabu-open",
     "open-waterfall",
