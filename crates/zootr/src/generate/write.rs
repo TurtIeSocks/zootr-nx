@@ -23,11 +23,12 @@ use crate::settings::{Bombchus, Bridge};
 use crate::starter_bags;
 use crate::world::Era;
 use crate::{
-    adult_jabu, ageless, ageless_items, ammo, blue_warps, bombchus, bombs, bridge, chest_levels,
-    cows, cutscenes, dampe, day_skulltulas, dig, door, enemies, entrances, flags, foreign,
-    fortress, gamedata, gerudo, gifts, goron_pot, held, hints, ice_traps, jabu_mood, jabu_mouth,
-    key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb,
-    scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain, twins,
+    adult_jabu, ageless, ageless_items, ammo, blue_warps, bombchus, bombs, bridge, carpenters,
+    chest_levels, cows, cutscenes, dampe, day_skulltulas, dig, door, enemies, entrances, flags,
+    foreign, fortress, gamedata, gerudo, gifts, goron_pot, held, hints, ice_traps, jabu_mood,
+    jabu_mouth, key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups,
+    presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain,
+    twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -100,6 +101,7 @@ pub(super) fn flows(
         goron_pot::rename(romfs, &mut rewrites, drops)?;
     }
     gerudo::stand_down(romfs, &mut rewrites, drops)?;
+    carpenters::flows(romfs, &mut rewrites)?;
     gerudo::clear_once(romfs, &mut rewrites)?;
     gerudo::rescue_once(romfs, &mut rewrites)?;
     let model = gifts::levels::model(all)?;
@@ -249,6 +251,7 @@ pub fn write_mod(
     exps.extend(shelves.exps.iter().cloned());
     exps.extend(steps.exps.iter().cloned());
     exps.extend(jabu_mood::exps(&gd, new_game.adult_jabu)?);
+    exps.extend(carpenters::exps(&gd)?);
     let mut data = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
     trade_chain::never_counting(&mut data.root)?;
     if new_game.on.contains(TRADE_CHAIN) {
@@ -448,6 +451,7 @@ pub fn write_mod(
         false => None,
     };
     let mut changed_maps = Vec::new();
+    let mut valley = 0;
     for (rel, doc) in checks::load_bancs(romfs, checks::banc_files(romfs)?) {
         run.check()?;
         let mut doc = doc?;
@@ -485,6 +489,8 @@ pub fn write_mod(
         let tinted = key_tints::swap(&rel, &mut doc.root, bosses)? > 0;
         // After shrinking: a shrunk chest runs the small chest's flow.
         let levelled = levels.name(romfs, &mut doc.root, &mut chest_events)? > 0;
+        let bridged = carpenters::banc(&rel, &mut doc.root)?;
+        valley += bridged;
         let doors = match &blocks {
             Some(b) => entrances::rewrite(&rel, &mut doc.root, &new_game.doors, b)? > 0,
             None => false,
@@ -499,6 +505,7 @@ pub fn write_mod(
             || tinted
             || levelled
             || doors
+            || bridged > 0
             || !changed.is_empty()
         {
             actors += changed.len();
@@ -510,6 +517,8 @@ pub fn write_mod(
         }
     }
     write_maps(&mut builder, &mut changed_maps)?;
+    carpenters::check_banc(valley)?;
+    carpenters::write(romfs, &mut builder)?;
     adult_jabu::arrival(romfs, &mut builder, new_game.adult_jabu)?;
     adult_jabu::strip_foliage(romfs, &mut builder, new_game.adult_jabu)?;
     jabu_mood::write(romfs, &mut builder, new_game.adult_jabu)?;

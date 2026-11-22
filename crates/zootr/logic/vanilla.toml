@@ -305,6 +305,16 @@ era = "adult"
 item = "item:gerudo-card"
 needs = "hookshot or setting:gerudo-fortress=fast"
 
+# All four carpenters freed: the valley bridge, the running man's race and
+# the carpenters' talk wait for it, as in Ship. Freeing them is the card
+# check's rule. Gerudo Fortress Freed frees them from the start.
+[[source]]
+name = "Carpenters freed"
+place = "gerudo-fortress-adult"
+era = "adult"
+item = "event:carpenters-freed"
+needs = "hookshot or setting:gerudo-fortress=fast or setting:gerudo-fortress=freed"
+
 # The Kokiri shop.
 [[source]]
 name = "Deku Shield"

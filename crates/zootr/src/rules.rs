@@ -783,7 +783,7 @@ mod tests {
         needs.iter().for_each(|n| n.items(&mut used));
         let missing: Vec<_> = used
             .iter()
-            .filter(|a| !known.contains(**a) && !a.starts_with(super::item::BEAT))
+            .filter(|a| !known.contains(**a) && !super::item::held(a))
             .collect();
         assert!(missing.is_empty(), "not items: {missing:?}");
     }
