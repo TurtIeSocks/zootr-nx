@@ -20,6 +20,7 @@ mod rt;
 
 use chests::{drop_value, level_for, owned, record, recreate, rewrite};
 
+type Childhood = unsafe extern "C" fn(usize) -> bool;
 type Setter = unsafe extern "C" fn(*mut u8, *const *const u8, *const *const u8);
 type Reader = unsafe extern "C" fn(*mut u8, *const u8, usize, usize) -> usize;
 
@@ -29,7 +30,7 @@ const KEY: &[u8] = b"ContentName";
 const MAX: usize = 128;
 
 // The call sites `bl` to content_name at +0, drop_actor at +4, run_speed
-// at +24 and the controller reads to +32, +36 and +40. The hooked
+// at +24, the controller reads to +32, +36 and +40, and seed_guide at +68. The hooked
 // functions `b` to +8, +12, +16, +20, +28, +44, +48, +52, +56, +60 and +64
 // in place of their pacibsp.
 // The opening node is in x20 at both content_name call sites.
@@ -123,6 +124,7 @@ global_asm!(
     "b taken_entry",
     "b nocked_entry",
     "b emptied_entry",
+    "b seed_guide",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -334,6 +336,25 @@ unsafe extern "C" fn nocked(user: usize) {
 #[unsafe(no_mangle)]
 unsafe extern "C" fn emptied(_: usize, node: usize) {
     hooked(|main, _| unsafe { arrows::emptied(main, node) })
+}
+
+/// Called in place of the child test the bow draw asks for its guide, with
+/// Link: true picks the Slingshot's ("Shoot Seed"), false the Bow's
+/// ("Shoot Arrow"). It follows the drawn bow's projectile, not his age.
+///
+/// # Safety
+/// Only the game calls this, from the rewritten call site.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn seed_guide(link: usize) -> bool {
+    unsafe {
+        if let Some((main, _)) = table()
+            && let Some(seeds) = arrows::shoots_seeds(main, link)
+        {
+            return seeds;
+        }
+        let child: Childhood = core::mem::transmute(main() + OFFSETS.childhood as usize);
+        child(link)
+    }
 }
 
 /// A map has started loading: its chests come next.

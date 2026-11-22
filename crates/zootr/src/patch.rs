@@ -39,12 +39,14 @@ const SKIPS: [(u32, u32); 2] = [GATE, CATCH];
 /// the hook. The event request's string argument calls, where an opening
 /// chest sets its `ContentName`, go to `content_name`. The drop reader's
 /// calls, where a loading room reads a chest's placement, go to
-/// `drop_actor`.
-const CALLS: [(u32, u32); 4] = [
+/// `drop_actor`. The bow draw's child test, which picks its guide, goes
+/// to `seed_guide`, so a child Bow says "Shoot Arrow".
+const CALLS: [(u32, u32); 5] = [
     (0x2ae_0828, 0),
     (0x2ae_08cc, 0),
     (0x2ef_6560, 4),
     (0x2ef_4888, 4),
+    (0x4b_01a4, 68),
 ];
 /// The run node's call to the speed setter and the hook entry it goes to,
 /// `run_speed`, which scales the speed in the Bunny Hood in a seed with

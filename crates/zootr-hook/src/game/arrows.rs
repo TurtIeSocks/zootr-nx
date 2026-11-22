@@ -1,12 +1,14 @@
-//! What Link nocks and what an empty bow says: the drawn bow's own
-//! projectile. The game nocks the one Link's `ArrowActorName` names, read
-//! once at load, and picks the empty message by his age, so a child Bow
-//! (items for both ages) would fire seeds and say it has none. Each bow's
+//! What Link nocks, what the draw's guide says and what an empty bow says:
+//! the drawn bow's own projectile. The game nocks the one Link's
+//! `ArrowActorName` names, read once at load, and picks the guide and the
+//! empty message by his age, so a child Bow (items for both ages) would
+//! fire seeds, say "Shoot Seed" and say it has no seeds. Each bow's
 //! `BowParam.ShootableActor` already names its own Link's projectile, so
 //! vanilla play nocks and says what it always did.
 
 use core::mem::transmute;
 
+use super::at;
 use crate::{DEKU_SEED, OFFSETS};
 
 /// Where Link's EquipmentUser component keeps his projectile's name
@@ -75,6 +77,18 @@ pub unsafe fn nocked(main: usize, user: usize) {
         if let Some(hash) = projectile(main, user) {
             *((user + PROJECTILE) as *mut u32) = hash;
         }
+    }
+}
+
+/// Whether the bow Link (his actor) has drawn shoots Deku Seeds. None with
+/// no bow drawn.
+///
+/// # Safety
+/// `link` is Link's actor.
+pub unsafe fn shoots_seeds(main: usize, link: usize) -> Option<bool> {
+    unsafe {
+        let user = at(link, 0x270).and_then(|parts| at(parts, 0x200))?;
+        projectile(main, user).map(|hash| hash == DEKU_SEED)
     }
 }
 

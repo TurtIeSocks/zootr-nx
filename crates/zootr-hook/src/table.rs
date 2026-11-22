@@ -114,6 +114,8 @@ pub struct Offsets {
     pub name_copy: u32,
     /// The hooked out of ammo handler, which picks the empty message.
     pub emptied: u32,
+    /// Link's child test, which the bow draw's guide asks.
+    pub childhood: u32,
     /// The game's own `malloc`.
     pub malloc: u32,
     /// Builds an event request in place.
