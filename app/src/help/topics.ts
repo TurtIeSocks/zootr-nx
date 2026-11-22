@@ -140,6 +140,14 @@ export const TOPICS = {
       "With autosaves only, changes show each time the game saves.",
     ],
   },
+  "app-logs": {
+    title: "Logs",
+    at: { section: "logs" },
+    body: [
+      "What the app did and what went wrong, newest at the bottom.",
+      "To report a bug, copy the lines or attach the file from the folder button.",
+    ],
+  },
   "save-editor": {
     title: "Save Editor",
     at: { tab: "Save" },
