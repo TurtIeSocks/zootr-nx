@@ -17,6 +17,8 @@
 //!   camera shake are.
 //! - The hook's nock gives Link the drawn bow's projectile, so the child's
 //!   Bow fires arrows, not his seeds (`zootr-hook`, `game/arrows.rs`).
+//! - Child Link aims the Bow with its own clips, not the Slingshot's
+//!   ([`aim`]).
 //! - Child Link's sounds gain the Hammer's calls, and he loads the adult's
 //!   sound bank, which holds the slam's clang ([`sounds`]).
 //!
@@ -34,6 +36,7 @@ use crate::game::POUCH_TABLE;
 use crate::known::{Name, actor, field, item};
 use crate::standins::{Edit, component_edited};
 
+mod aim;
 mod files;
 mod fska;
 mod sounds;
@@ -248,7 +251,7 @@ impl Own {
 }
 
 /// Write the setting's files: the pause menu's table, both Links' packs,
-/// the borrowed archives and the child's sounds.
+/// the borrowed archives, the child's graph and his sounds.
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     let table = opened(&builder.read(POUCH_TABLE)?)?;
     builder.write(POUCH_TABLE, &table)?;
@@ -269,6 +272,7 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
             builder.add(&events(&name), &romfs.read(&events(from))?, &events(from))?;
         }
     }
+    builder.write(files::GRAPH, &aim::aimed(&builder.read(files::GRAPH)?)?)?;
     sounds::write(builder)
 }
 
@@ -553,7 +557,7 @@ mod tests {
                 ]);
             }
         }
-        read.extend([SOUNDS, BANKS].map(String::from));
+        read.extend([SOUNDS, BANKS, files::GRAPH].map(String::from));
         let files: HashSet<&str> = FILES.into_iter().collect();
         let read: HashSet<&str> = read.iter().map(String::as_str).collect();
         assert_eq!(read, files);
