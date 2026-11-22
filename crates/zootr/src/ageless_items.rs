@@ -222,13 +222,14 @@ impl Link {
     }
 
     /// `archive`'s model as this Link has it, and its name: resized to
-    /// his skeleton, each clip of his `own` hidden, each item clip given
-    /// the root of his plain one, and renamed. Its events are the
-    /// original's.
+    /// his skeleton, his eyelids left to him, each clip of his `own`
+    /// hidden, each item clip given the root of his plain one, and
+    /// renamed. Its events are the original's.
     fn lent(&self, romfs: &Romfs, archive: &Archive, own: &Own) -> Result<(String, Vec<u8>)> {
         let (name, from) = (self.renamed(archive)?, archive.from.get());
         let mut bytes = romfs.read(&model(from))?;
         fska::resize(&mut bytes, &romfs.read(&model(archive.skeleton))?)?;
+        fska::unbind_eyelids(&mut bytes);
         fska::hide(&mut bytes, |clip| own.clips.contains_key(clip));
         fska::rooted(&mut bytes, |clip| own.plain(self, clip))?;
         fska::rename(&mut bytes, from, &name)?;

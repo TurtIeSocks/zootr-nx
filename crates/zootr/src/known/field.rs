@@ -170,6 +170,7 @@ pub const EXECUTE_GENERIC_DUMMY_ACTION: &Name = &n!(0xc1add54726edf6a9);
 pub const EXECUTE_SKULLTULA_GOLD_EMIT_TIME: &Name = &n!(0x479f17e5455bf5f1);
 pub const EXPANSION_MAX_NUM_ACTOR: &Name = &n!(0x7ecc00d8b78c4b9d);
 pub const EXTERNAL_DAMAGE_PARAMETERS: &Name = &n!(0x1dca37c44ab571af);
+pub const EYEBALL_L: &Name = &n!(0xcbf89785eff44290);
 pub const E_LINK_REF: &Name = &n!(0x056f1f8dc82c8f2d);
 pub const FIELD_AND_DUNGEON_ENTRANCE_EVENT_REQUEST_ACTOR: &Name = &n!(0x94a2be4ee49117d6);
 pub const FILE_PATH: &Name = &n!(0x539b73265db72ca4);

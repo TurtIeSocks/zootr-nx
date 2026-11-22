@@ -8,6 +8,9 @@
 //! constant translation. A translation curve scales by the bone's length
 //! ratio, through its scale and offset. The root bones scale by the leg
 //! ratio, since their translation is where the body stands.
+//!
+//! The eyelids are rigged at other angles at each age, so a lent archive
+//! leaves them unbound and the Link keeps his own.
 
 use std::collections::{HashMap, HashSet};
 
@@ -48,7 +51,10 @@ const TRANSLATIONS: [u32; 3] = [0x10, 0x14, 0x18];
 const WEAPON: &str = "Weapon";
 /// Shorter than this, a length is no length.
 const TINY: f64 = 1e-4;
-/// The first letter of a hidden clip's name. No clip's name starts so.
+/// The bones whose names start so are the eyelids, rigged at other angles
+/// at each age: an eyelid turned to the other Link's angles rolls his eyes.
+const EYELID: &str = "Eyelid_";
+/// The first letter of a hidden clip's or bone's name. No name starts so.
 const HIDDEN: u8 = b'~';
 
 fn u16_at(d: &[u8], at: usize) -> Option<u16> {
@@ -244,15 +250,33 @@ pub fn clips(d: &[u8]) -> impl Iterator<Item = (&str, usize)> {
 /// [`HIDDEN`] instead. How many it hid.
 pub fn hide(archive: &mut [u8], hidden: impl Fn(&str) -> bool) -> usize {
     let names: Vec<usize> = (animations(archive).into_iter())
-        .filter_map(|(at, _, _)| {
-            let name = offset_at(archive, at + NAME)?;
-            hidden(string_at(archive, name)?).then_some(name + 2)
-        })
+        .filter_map(|(at, _, _)| offset_at(archive, at + NAME))
         .collect();
-    for &at in &names {
+    mark(archive, names, hidden)
+}
+
+/// Leave the eyelids to the Link's own pose: each eyelid's name, which
+/// every track of it shares, starts with [`HIDDEN`] instead, so no track
+/// binds to his bone. How many names it changed.
+pub fn unbind_eyelids(archive: &mut [u8]) -> usize {
+    let names: Vec<usize> = (animations(archive).into_iter())
+        .flat_map(|(_, tracks, count)| (0..count).map(move |i| tracks + i * TRACK))
+        .filter_map(|at| offset_at(archive, at))
+        .collect();
+    mark(archive, names, |bone| bone.starts_with(EYELID))
+}
+
+/// Start each name at `names` (string offsets) that `marked` picks with
+/// [`HIDDEN`], once each. How many it changed.
+fn mark(archive: &mut [u8], names: Vec<usize>, marked: impl Fn(&str) -> bool) -> usize {
+    let picked: HashSet<usize> = (names.into_iter())
+        .filter(|&at| string_at(archive, at).is_some_and(&marked))
+        .map(|at| at + 2)
+        .collect();
+    for &at in &picked {
         archive[at] = HIDDEN;
     }
-    names.len()
+    picked.len()
 }
 
 /// The curves of the clip whose header is at `at`, each with its bone.
@@ -435,5 +459,37 @@ mod dump_tests {
             leg_of(&adult) > leg_of(&child) * 1.5,
             "the adult's are longer"
         );
+    }
+
+    /// The eyelids bound to the other Link's angles rolled the child's
+    /// eyes back through every borrowed clip.
+    #[test]
+    fn unbound_eyelids_bind_no_track_and_the_eyes_still_do() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let read =
+            |name: &crate::known::Name| romfs.read(&format!("Model/{name}.anim.bfres.zs")).unwrap();
+        for name in [
+            field::PLAYER_ADULT_CBA_ANIMATION,
+            field::PLAYER_CHILD_CBA_ANIMATION,
+        ] {
+            let shipped = read(name);
+            let bones = |d: &[u8]| -> HashSet<String> {
+                (animations(d).into_iter())
+                    .flat_map(|(_, tracks, count)| (0..count).map(move |i| tracks + i * TRACK))
+                    .filter_map(|at| track(d, at).map(|t| t.name.to_string()))
+                    .collect()
+            };
+            let mut unbound = shipped.clone();
+            let changed = unbind_eyelids(&mut unbound);
+            let (before, after) = (bones(&shipped), bones(&unbound));
+            let eyelids = before.iter().filter(|b| b.starts_with(EYELID)).count();
+            assert!(eyelids > 0, "{name} animates eyelids");
+            assert_eq!(changed, eyelids, "{name}: one name a bone");
+            assert!(!after.iter().any(|b| b.starts_with(EYELID)), "{name}");
+            assert!(after.contains(field::EYEBALL_L.get()), "{name}");
+            assert_eq!(unbound.len(), shipped.len());
+        }
     }
 }
