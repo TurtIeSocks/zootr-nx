@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import type { SettingDef } from "@/bindings";
 import type { Settings } from "@/lib/config";
 import {
+  affects,
   chosen,
   defaults,
   forcedPick,
@@ -125,6 +126,11 @@ test("a choice's pick forces toggles on and gives start words", () => {
   expect(forcedPick(gate, shut, gated)?.id).toBe("open");
   expect(forcedPick(gate, { gate: "shut" }, gated)).toBeUndefined();
   expect(summary(gated, shut)).toBe("Age: Adult");
+  // Whatever its pick, a choice affects what any pick forces.
+  expect(affects(opens, [door, ...gated])).toEqual([gate]);
+  expect(affects(age, [door, ...gated])).toEqual([door]);
+  expect(affects(gate, gated)).toEqual([]);
+  expect(affects(door, [age, door])).toEqual([]);
   expect(withForced({ sword: 2, bow: 1 }, ["sword", "hook"])).toEqual({
     sword: 2,
     bow: 1,

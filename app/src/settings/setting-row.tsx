@@ -1,4 +1,5 @@
 import { Link2, Lock, RotateCcw } from "lucide-react";
+import { Fragment, useMemo } from "react";
 import type { SettingDef } from "@/bindings";
 import { RequestError } from "@/components/request-error";
 import { TipButton } from "@/components/tip-button";
@@ -13,7 +14,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
-import { chosen, forcedPick, isOn, type Patch } from "@/lib/settings";
+import { affects, chosen, forcedPick, isOn, type Patch } from "@/lib/settings";
 import { Row } from "@/settings/row";
 import {
   controlId,
@@ -22,6 +23,7 @@ import {
   useLockedBy,
   useUnmet,
 } from "@/settings/setting";
+import { revealSetting } from "@/shell/find/reveal";
 import { changeSettings, useConfig } from "@/stores/config";
 import {
   DEFAULTS_FROM,
@@ -54,14 +56,56 @@ export interface LockedByProps {
   pick?: string;
 }
 
+/** Props for {@link SettingLink}. */
+interface SettingLinkProps {
+  def: SettingDef;
+}
+
+/** A setting's name in a caption, which jumps to its row. */
+function SettingLink({ def }: SettingLinkProps) {
+  return (
+    <button
+      type="button"
+      onClick={() => revealSetting(def)}
+      className="cursor-pointer font-medium text-ink-muted underline-offset-2 hover:text-ink hover:underline focus-visible:underline focus-visible:outline-none"
+    >
+      {def.label}
+    </button>
+  );
+}
+
 /** "On because of Parent", or "Pick because of Parent" for a choice, under
  * a locked setting. */
 export function LockedBy({ parent, pick }: LockedByProps) {
   return (
     <p className="mt-1.5 flex items-center gap-1 text-ink-faint text-xs">
       <Link2 className="size-3" />
-      {pick ?? "On"} because of{" "}
-      <b className="font-medium text-ink-muted">{parent.label}</b>
+      {pick ?? "On"} because of <SettingLink def={parent} />
+    </p>
+  );
+}
+
+/** Props for {@link Affects}. */
+interface AffectsProps {
+  /** The settings its picks can force. */
+  forced: SettingDef[];
+}
+
+/** "Affects Other, Another", under a choice whose picks force others,
+ * whatever it's picked now. */
+function Affects({ forced }: AffectsProps) {
+  return (
+    <p className="mt-1.5 flex items-center gap-1 text-ink-faint text-xs">
+      <Link2 className="size-3" />
+      Affects
+      <span>
+        {forced.map((d, i) => (
+          <Fragment key={d.id}>
+            {i > 0 && ", "}
+            <SettingLink def={d} />
+          </Fragment>
+        ))}
+      </span>
     </p>
   );
 }
@@ -77,8 +121,7 @@ function Needs({ needed }: NeedsProps) {
   return (
     <p className="mt-1.5 flex items-center gap-1 text-ink-faint text-xs">
       <Lock className="size-3" />
-      Needs <b className="font-medium text-ink-muted">{needed.label}</b> on
-      first
+      Needs <SettingLink def={needed} /> on first
     </p>
   );
 }
@@ -90,6 +133,8 @@ function SettingRowFrame({ def }: SettingRowProps) {
     (s) => forcedPick(def, s.config.settings, s.schema)?.label,
   );
   const needed = useUnmet(def);
+  const schema = useConfig((s) => s.schema);
+  const forced = useMemo(() => affects(def, schema), [def, schema]);
   const changed = useDrifted(def.id);
   return (
     <Row
@@ -102,6 +147,7 @@ function SettingRowFrame({ def }: SettingRowProps) {
         <>
           {parent && <LockedBy parent={parent} pick={pick} />}
           {needed && <Needs needed={needed} />}
+          {forced.length > 0 && <Affects forced={forced} />}
           <RequestError className="mt-1.5" />
         </>
       }
@@ -170,6 +216,7 @@ function SettingControl({ def }: SettingRowProps) {
   if (segmented(kind.options)) {
     return (
       <Segmented
+        id={controlId(def)}
         aria-labelledby={labelId(def)}
         options={kind.options}
         value={shown}

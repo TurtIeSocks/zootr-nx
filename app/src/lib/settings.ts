@@ -137,6 +137,16 @@ export function forcer(
   return schema.find((d) => chosen(d, settings)?.forces.some(forces));
 }
 
+/** The settings a pick of `def` can force, whatever it's picked now: each
+ * one named in any option's `forces`, in schema order. */
+export function affects(def: SettingDef, schema: SettingDef[]): SettingDef[] {
+  if (def.kind.type !== "choice") return [];
+  const ids = new Set(
+    def.kind.options.flatMap((o) => o.forces.map((w) => w.split("=")[0])),
+  );
+  return schema.filter((d) => ids.has(d.id));
+}
+
 /** The option of choice `def` another choice's pick forces, as `id=option`
  * in its `forces`, if one does. */
 export function forcedPick(

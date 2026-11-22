@@ -722,3 +722,34 @@ test("turning developer tools off on Test setup leaves for the first group", () 
   expect(useUi.getState().section).toBe("General");
   expect(screen.queryByLabelText("Spawn")).toBeNull();
 });
+
+/** A door Adult forces on. */
+const door = toggle("door", "Door");
+const age: SettingDef = {
+  ...choice("age", "Age", ["Child", "Adult"]),
+  kind: {
+    type: "choice",
+    default: "child",
+    options: [
+      { id: "child", label: "Child", forces: [], starts: [] },
+      { id: "adult", label: "Adult", forces: ["door"], starts: [] },
+    ],
+  },
+};
+
+test("a choice that forces names what it affects, and each name jumps to its row", () => {
+  show({ defs: [age, door] });
+  // Child forces nothing, yet the caption names what Adult would.
+  expect(screen.getByText("Affects")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Door" }));
+  const row = document.getElementById("setting-door")?.closest("[data-reveal]");
+  expect(row?.classList.contains("animate-flash")).toBe(true);
+});
+
+test("a forced row's reason jumps to the setting forcing it", () => {
+  show({ defs: [age, door], settings: { age: "adult" } });
+  expect(screen.getByText(/On because of/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Age" }));
+  const row = document.getElementById("setting-age")?.closest("[data-reveal]");
+  expect(row?.classList.contains("animate-flash")).toBe(true);
+});

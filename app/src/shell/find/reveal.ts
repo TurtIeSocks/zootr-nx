@@ -1,3 +1,8 @@
+import type { SettingDef } from "@/bindings";
+import { controlId } from "@/settings/setting";
+import { go } from "@/stores/shell";
+import { setSectionOpen } from "@/stores/ui";
+
 /** The ids of rows the search reveals that have no control of their own. */
 export const rowId = {
   check: (hash: string) => `check-${hash}`,
@@ -35,4 +40,12 @@ export function reveal(id: string, tries = TRIES) {
   row.addEventListener("animationend", () => row.classList.remove(FLASH), {
     once: true,
   });
+}
+
+/** Opens `def`'s page and section, then reveals its control. */
+export function revealSetting(def: SettingDef) {
+  go({ section: def.group });
+  if (def.kind.type !== "inventory")
+    setSectionOpen(`${def.group}/${def.section}`, true);
+  reveal(controlId(def));
 }

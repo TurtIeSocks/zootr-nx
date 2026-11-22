@@ -16,9 +16,9 @@ import { GROUP_HELP, TOPICS, type Topic } from "@/help/topics";
 import { nameOf } from "@/lib/format";
 import { hasAll, words } from "@/lib/matching";
 import { APP_FIELDS } from "@/settings/app-fields";
-import { controlId, untested } from "@/settings/setting";
+import { untested } from "@/settings/setting";
 import { ADVANCED_FIELDS, FIELDS, shown } from "@/settings/targets-draft";
-import { reveal, rowId } from "@/shell/find/reveal";
+import { reveal, revealSetting, rowId } from "@/shell/find/reveal";
 import {
   APP_PANES,
   groupIcon,
@@ -30,12 +30,7 @@ import {
   tabLabel,
 } from "@/shell/nav";
 import { go, type Place } from "@/stores/shell";
-import {
-  type Found,
-  type HistoryFilter,
-  setSectionOpen,
-  useUi,
-} from "@/stores/ui";
+import { type Found, type HistoryFilter, useUi } from "@/stores/ui";
 
 /** The search's groups, in the order they list. */
 export const GROUPS = [
@@ -187,12 +182,7 @@ export function settings(schema: SettingDef[], devTools: boolean): Hit[] {
         title: d.label,
         icon: groupIcon(d.group),
         body: untested(d.description)[1],
-        run: () => {
-          go({ section: d.group });
-          if (d.kind.type !== "inventory")
-            setSectionOpen(`${d.group}/${d.section}`, true);
-          reveal(controlId(d));
-        },
+        run: () => revealSetting(d),
       }),
     ),
     ...Object.values(APP_FIELDS).map((f) =>
