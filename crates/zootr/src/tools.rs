@@ -87,13 +87,14 @@ const HIT_HOOKSHOT: &Name = field::IS_HIT_HOOK_SHOT;
 static EYE_SWITCH_HITS: LazyLock<Vec<&str>> =
     LazyLock::new(|| vec!["SlingshotBullet", "Arrow", "Boomerang"]);
 
-/// What an actor pack says about getting past its actor.
+/// What an actor pack says about getting past its actor, each answer
+/// with the data behind it.
 #[derive(Clone)]
 enum Said {
     Nothing,
     /// Anyone gets past.
-    Free,
-    Rule(String),
+    Free(String),
+    Rule(String, String),
     /// Whether the hookshot hits it, unless the placement says otherwise.
     EyeSwitch {
         hookshot: bool,
@@ -132,8 +133,8 @@ impl<'a> Tools<'a> {
         };
         Ok(match self.said(gyaml)? {
             Said::Nothing => Some(guess.to_owned()),
-            Said::Free => None,
-            Said::Rule(rule) => Some(rule),
+            Said::Free(_) => None,
+            Said::Rule(rule, _) => Some(rule),
             Said::EyeSwitch { hookshot: default } => {
                 let hookshot = hookshot.unwrap_or(default);
                 let mut hits = EYE_SWITCH_HITS.to_vec();
@@ -141,6 +142,30 @@ impl<'a> Tools<'a> {
                 any_of(&hits)
             }
         })
+    }
+
+    /// What an actor's pack says about it, before any placement's params:
+    /// the rule (`None` when anyone gets past), why, and whether the rule
+    /// is a guess from its name. `None` when it's no obstacle at all.
+    pub fn explain(&mut self, gyaml: &str) -> Result<Option<(Option<String>, String, bool)>> {
+        let Some(guess) = guess(gyaml) else {
+            return Ok(None);
+        };
+        Ok(Some(match self.said(gyaml)? {
+            Said::Nothing => (
+                Some(guess.to_owned()),
+                "its name; its pack says nothing".into(),
+                true,
+            ),
+            Said::Free(why) => (None, why, false),
+            Said::Rule(rule, why) => (Some(rule), why, false),
+            Said::EyeSwitch { hookshot } => {
+                let mut hits = EYE_SWITCH_HITS.to_vec();
+                hits.extend(hookshot.then_some("Hookshot"));
+                let why = format!("eye switch: hit by {}", hits.join(", "));
+                (any_of(&hits), why, false)
+            }
+        }))
     }
 
     /// Whether an obstacle's tool comes from its name, not its pack.
@@ -190,19 +215,27 @@ fn read(pack: &ActorPack, param: &BymlMap) -> Result<Said> {
         .and_then(|lift| lift.get(&**field::LIFT_GRADE)?.as_int::<u32>().ok())
     {
         return Ok(match GRADES.iter().find(|(g, _)| hash(g) == grade) {
-            Some((_, None)) => Said::Free,
-            Some((_, Some(tool))) => Said::Rule((*tool).to_owned()),
+            Some((g, None)) => Said::Free(format!("lift grade {g}")),
+            Some((g, Some(tool))) => Said::Rule((*tool).to_owned(), format!("lift grade {g}")),
             None => Said::Nothing,
         });
     }
     let mut breakers = full_damage(pack, param)?;
-    if burns(pack, param)? {
+    let burn = burns(pack, param)?;
+    if burn {
         breakers.push("Fire");
     }
+    let why = || {
+        let mut why = format!("full damage from {}", breakers.join(", "));
+        if burn {
+            why += " (its material burns)";
+        }
+        why
+    };
     if breakers.iter().any(|t| FREE.contains(t)) {
-        return Ok(Said::Free);
+        return Ok(Said::Free(why()));
     }
-    Ok(any_of(&breakers).map_or(Said::Nothing, Said::Rule))
+    Ok(any_of(&breakers).map_or(Said::Nothing, |rule| Said::Rule(rule, why())))
 }
 
 fn hash(name: &str) -> u32 {

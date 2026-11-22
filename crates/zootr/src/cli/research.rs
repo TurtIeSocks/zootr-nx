@@ -214,6 +214,18 @@ pub(super) fn logic(romfs: &Romfs, new_game: &NewGame) -> Result<()> {
 }
 
 pub(super) fn logic_set(romfs: &Romfs, cmd: LogicCommand) -> Result<()> {
+    if let LogicCommand::Derive { kinds, dir } = cmd {
+        anyhow::ensure!(
+            kinds,
+            "only `--kinds` so far: rooms come next (room reach build step 4)"
+        );
+        let (count, guesses) = crate::derive::kinds(romfs, &dir)?;
+        println!(
+            "{count} kinds, {guesses} guesses: {}",
+            dir.join("baseline/kinds.toml").display()
+        );
+        return Ok(());
+    }
     let LogicCommand::Set {
         hash,
         name,
@@ -221,7 +233,10 @@ pub(super) fn logic_set(romfs: &Romfs, cmd: LogicCommand) -> Result<()> {
         place,
         era,
         dir,
-    } = cmd;
+    } = cmd
+    else {
+        unreachable!("derive returned above")
+    };
     let age = |e: &str| match e {
         "child" => Era::Child,
         _ => Era::Adult,

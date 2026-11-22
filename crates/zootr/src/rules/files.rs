@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use anyhow::{Context, Result, bail, ensure};
 use serde::Deserialize;
 
-use super::{Book, CheckEntry, Ctx, Expr, parse, rooms, vocab};
+use super::{Book, CheckEntry, Ctx, Expr, kinds, parse, rooms, vocab};
 use crate::settings::{self, DungeonKeys, FortressKeys};
 use crate::world::Era;
 
@@ -167,6 +167,7 @@ impl Book {
             sources: Vec::new(),
             toggles: settings::toggles(),
             rooms: Vec::new(),
+            kinds: Vec::new(),
             hand: BTreeMap::new(),
         };
         for &(name, text) in files {
@@ -174,6 +175,7 @@ impl Book {
                 .with_context(|| format!("logic/{name}"))?;
         }
         book.rooms = rooms::load(room_files)?;
+        book.kinds = kinds::load(room_files)?;
         for check in book.rooms.iter().flat_map(|r| &r.file.check) {
             let entry = CheckEntry {
                 name: check.name.clone(),
@@ -277,6 +279,10 @@ impl Book {
         for (hash, entry) in &self.checks {
             self.need(&entry.needs, &ctx)
                 .with_context(|| format!("check {hash}"))?;
+        }
+        for kind in &self.kinds {
+            self.need(&kind.expr, &ctx)
+                .with_context(|| format!("kind {}", kind.name))?;
         }
         for room in &self.rooms {
             let flags = room.file.flag.iter().map(|f| (&f.expr, f.name.as_str()));

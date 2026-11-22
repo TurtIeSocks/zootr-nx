@@ -125,7 +125,7 @@ pub struct Knowledge {
 }
 
 /// An entry a confirmed file can replace, by its key.
-trait Entry {
+pub(super) trait Entry {
     fn key(&self) -> String;
     fn evidence(&self) -> &[String];
 }
@@ -207,7 +207,7 @@ fn path(path: &str) -> Result<(&str, String, u32)> {
     Ok((tier, node.to_owned(), number))
 }
 
-fn unique<T: Entry>(list: &[T]) -> Result<()> {
+pub(super) fn unique<T: Entry>(list: &[T]) -> Result<()> {
     let mut seen = BTreeSet::new();
     for e in list {
         ensure!(seen.insert(e.key()), "two entries for {}", e.key());
@@ -216,7 +216,7 @@ fn unique<T: Entry>(list: &[T]) -> Result<()> {
 }
 
 /// Each confirmed entry in place of the baseline entry with its key.
-fn overlay<T: Entry>(base: &mut [T], confirmed: Vec<T>) -> Result<()> {
+pub(super) fn overlay<T: Entry>(base: &mut [T], confirmed: Vec<T>) -> Result<()> {
     unique(&confirmed)?;
     for c in confirmed {
         ensure!(
@@ -231,7 +231,7 @@ fn overlay<T: Entry>(base: &mut [T], confirmed: Vec<T>) -> Result<()> {
     Ok(())
 }
 
-fn rule(needs: &str) -> Result<Expr> {
+pub(super) fn rule(needs: &str) -> Result<Expr> {
     let mut expr = parse(needs)?;
     vocab::words(&mut expr)?;
     Ok(expr)
@@ -241,7 +241,10 @@ fn rule(needs: &str) -> Result<Expr> {
 pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
     let mut rooms: BTreeMap<(String, u32), RoomFile> = BTreeMap::new();
     let mut confirmed = Vec::new();
-    for &(name, text) in files {
+    for &(name, text) in files
+        .iter()
+        .filter(|(n, _)| !n.ends_with(super::kinds::FILE))
+    {
         let at = || format!("logic/{name}");
         let (tier, node, number) = path(name).with_context(at)?;
         let mut file: RoomFile = toml::from_str(text).with_context(at)?;

@@ -486,6 +486,16 @@ pub(super) enum LogicCommand {
         #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
         dir: PathBuf,
     },
+    /// Write `logic/baseline/` from the game's data: never edited by hand,
+    /// `logic/confirmed/` overrides it.
+    Derive {
+        /// The object kinds: what each needs and does, `baseline/kinds.toml`.
+        #[arg(long)]
+        kinds: bool,
+        /// The logic folder to write in: a worktree's `crates/zootr/logic`.
+        #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
+        dir: PathBuf,
+    },
 }
 
 #[derive(clap::Args)]
