@@ -17,6 +17,11 @@ if [ -d "$CARGO_TARGET_DIR" ] && [ "$(du -s --block-size=1G "$CARGO_TARGET_DIR" 
   rm -rf "$CARGO_TARGET_DIR"
 fi
 
+# A build script compiled by another job (an older branch, a cancelled
+# run) can sit in the shared cache and not be rebuilt here, so each job
+# compiles zootr's own.
+rm -rf "$CARGO_TARGET_DIR"/debug/build/zootr-* "$CARGO_TARGET_DIR"/debug/.fingerprint/zootr-*
+
 # The tests open ../../dump/oot.nup from the crate.
 ln -sf /dump/oot.nup dump/oot.nup
 
