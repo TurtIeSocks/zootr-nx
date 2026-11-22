@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use anyhow::{Context, Result, bail, ensure};
 use serde::Deserialize;
 
-use super::{Book, CheckEntry, Ctx, Expr, parse, vocab};
+use super::{Book, CheckEntry, Ctx, Expr, parse, rooms, vocab};
 use crate::settings::{self, DungeonKeys, FortressKeys};
 use crate::world::Era;
 
@@ -128,7 +128,7 @@ pub struct SourceRule {
     pub expr: Expr,
 }
 
-fn always() -> Expr {
+pub(super) fn always() -> Expr {
     Expr::Word("always".into())
 }
 
@@ -148,10 +148,16 @@ pub fn settings_read() -> BTreeSet<String> {
 
 impl Book {
     pub fn load() -> Result<Self> {
-        Self::from_files(FILES)
+        Self::from_parts(FILES, rooms::FILES)
     }
 
     pub(super) fn from_files(files: &[(&str, &str)]) -> Result<Self> {
+        Self::from_parts(files, &[])
+    }
+
+    /// The book from rule files and room files. A room file's check takes
+    /// the place of a hand rule for it, which is kept for the audit.
+    pub(super) fn from_parts(files: &[(&str, &str)], room_files: &[(&str, &str)]) -> Result<Self> {
         let mut book = Book {
             abilities: BTreeMap::new(),
             checks: BTreeMap::new(),
@@ -160,10 +166,24 @@ impl Book {
             insides: Vec::new(),
             sources: Vec::new(),
             toggles: settings::toggles(),
+            rooms: Vec::new(),
+            hand: BTreeMap::new(),
         };
         for &(name, text) in files {
             book.add(name, text)
                 .with_context(|| format!("logic/{name}"))?;
+        }
+        book.rooms = rooms::load(room_files)?;
+        for check in book.rooms.iter().flat_map(|r| &r.file.check) {
+            let entry = CheckEntry {
+                name: check.name.clone(),
+                needs: check.expr.clone(),
+                place: None,
+                optional: false,
+            };
+            if let Some(hand) = book.checks.insert(check.hash, entry) {
+                book.hand.insert(check.hash, hand);
+            }
         }
         book.validate()?;
         Ok(book)
@@ -258,6 +278,14 @@ impl Book {
             self.need(&entry.needs, &ctx)
                 .with_context(|| format!("check {hash}"))?;
         }
+        for room in &self.rooms {
+            let flags = room.file.flag.iter().map(|f| (&f.expr, f.name.as_str()));
+            let links = room.file.link.iter().map(|l| (&l.expr, "a link"));
+            for (expr, what) in flags.chain(links) {
+                self.need(expr, &ctx)
+                    .with_context(|| format!("room {} of {}: {what}", room.file.room, room.node))?;
+            }
+        }
         for exit in &self.exits {
             self.need(&exit.expr, &ctx)
                 .with_context(|| format!("exit {} to {}", exit.from, exit.to))?;
@@ -341,7 +369,10 @@ mod tests {
         let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/logic");
         let on_disk: BTreeSet<String> = std::fs::read_dir(dir)
             .unwrap()
-            .map(|e| e.unwrap().file_name().into_string().unwrap())
+            .map(|e| e.unwrap())
+            // The room folders, which build.rs lists whole.
+            .filter(|e| !e.file_type().unwrap().is_dir())
+            .map(|e| e.file_name().into_string().unwrap())
             .collect();
         let mut built: BTreeSet<String> = FILES.iter().map(|f| f.0.to_owned()).collect();
         built.insert(crate::key_rooms::FILE.into());

@@ -58,13 +58,22 @@ pub struct Location {
     pub need: Need,
 }
 
-/// An item Link gets outside the shuffle.
+/// An item Link gets outside the shuffle, or a flag he sets in a room.
 pub struct Source {
     pub name: String,
     /// Reaching any one of them is enough.
     pub places: Vec<usize>,
+    /// The item actor, or the flag as `#hash`.
     pub item: String,
+    pub gives: Gives,
     pub need: Need,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Gives {
+    Item,
+    /// A room file's `[[flag]]`.
+    Flag,
 }
 
 pub struct World {
@@ -380,11 +389,28 @@ impl World {
                 name: s.name.clone(),
                 places,
                 item: s.item.clone(),
+                gives: Gives::Item,
                 need: match keys::fortress_need(&s.item, ctx) {
                     Some(keys) => Need::All(vec![book.need(&s.expr, ctx)?, keys]),
                     None => book.need(&s.expr, ctx)?,
                 },
             });
+        }
+        // A room's flag, set once Link reaches its dungeon and meets its
+        // needs. Room places join the graph with derive (build step 4).
+        for room in &book.rooms {
+            for flag in &room.file.flag {
+                let places = (eras_of(&scan.places, &room.node).into_iter())
+                    .map(|era| at(&room.node, era))
+                    .collect::<Result<_>>()?;
+                sources.push(Source {
+                    name: flag.name.clone(),
+                    places,
+                    item: flag.word(),
+                    gives: Gives::Flag,
+                    need: book.need(&flag.expr, ctx)?,
+                });
+            }
         }
         let goal = goal::exits(book, ctx, scan, &at)?;
         Ok(Self {
@@ -479,7 +505,13 @@ impl World {
             for got in &round {
                 match got {
                     Got::Check(h) => items.get(h).into_iter().for_each(|i| have.add(i)),
-                    Got::Source(i) => have.add(&self.sources[*i].item),
+                    Got::Source(i) => {
+                        let s = &self.sources[*i];
+                        match s.gives {
+                            Gives::Item => have.add(&s.item),
+                            Gives::Flag => drop(have.flags.insert(s.item.clone())),
+                        }
+                    }
                 }
             }
             rounds.push(round);
@@ -564,6 +596,35 @@ pub(super) mod tests {
     use super::*;
     use crate::entrances::Doors;
     use crate::known::{actor, map};
+
+    #[test]
+    fn a_room_flag_is_held_once_its_room_is_reached() {
+        let place: Place = (map::INSIDE_THE_DEKU_TREE.get().to_owned(), Era::Child);
+        let flag = "#1a2b3c4d";
+        let world = World {
+            places: vec![place.clone()],
+            edges: vec![],
+            locations: vec![Location {
+                hash: 1,
+                place: 0,
+                need: Need::Flag(flag.into()),
+            }],
+            sources: vec![Source {
+                name: "Fake Room Unlocked".into(),
+                places: vec![0],
+                item: flag.into(),
+                gives: Gives::Flag,
+                need: Need::Always,
+            }],
+            obstacles: BTreeMap::new(),
+            goal: vec![],
+            start: place,
+        };
+        let play = world.play(&Have::default(), &HashMap::new());
+        assert!(play.reached.contains(&1));
+        assert!(play.have.flags.contains(flag) && play.have.items.is_empty());
+        assert_eq!(play.rounds.len(), 2, "the flag first, then the check");
+    }
 
     #[test]
     fn a_dealt_check_takes_over_from_its_source() {

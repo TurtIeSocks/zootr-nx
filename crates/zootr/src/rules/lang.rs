@@ -45,6 +45,20 @@ impl Have {
     pub fn add(&mut self, actor: &str) {
         *self.items.entry(actor.to_owned()).or_default() += 1;
     }
+
+    /// Whether Link holds `flag`, named or as `#hash`, either way round.
+    pub fn flag(&self, flag: &str) -> bool {
+        self.flags.contains(flag)
+            || flag_hash(flag).is_some_and(|h| self.flags.iter().any(|f| flag_hash(f) == Some(h)))
+    }
+}
+
+/// A flag's GameData hash, from its name or its `#hash`.
+pub fn flag_hash(flag: &str) -> Option<u32> {
+    match flag.strip_prefix('#') {
+        Some(hex) => u32::from_str_radix(hex, 16).ok(),
+        None => Some(ounce_formats::murmur3(flag.as_bytes())),
+    }
 }
 
 impl Need {
@@ -60,7 +74,7 @@ impl Need {
                     >= *count
             }
             Need::Era(e) => *e == era,
-            Need::Flag(f) => have.flags.contains(f),
+            Need::Flag(f) => have.flag(f),
             Need::Setting(_) => false,
             Need::All(needs) => needs.iter().all(|n| n.met(have, era)),
             Need::Any(needs) => needs.iter().any(|n| n.met(have, era)),
