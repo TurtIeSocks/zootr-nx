@@ -97,7 +97,8 @@ struct Link {
     /// The other Link's holder rows, by key.
     holds: &'static [&'static Name],
     /// The words the borrowed items' clips carry in their names: the long
-    /// roll with the hook is the plain long roll's name with `_Hook` added.
+    /// roll with the hook is the plain long roll's name with `_Hook` added,
+    /// with a two-handed sword `_LSword`.
     words: &'static [&'static str],
     archives: &'static [Archive],
 }
@@ -111,7 +112,7 @@ const CHILD: Link = Link {
         item::LONGSHOT,
         actor::WEAPON_RANGE_BOW,
     ],
-    words: &["Hook", "Hammer", "Bow"],
+    words: &["Hook", "Hammer", "Bow", "LSword"],
     // Every one of the adult's: a held item's clips are spread over all
     // five (the Hook's draw in 01, lock-on in 02, its shots in 02_H, poses
     // and rolls in 03, waits in 04). A state whose clip is missing plays
@@ -596,7 +597,7 @@ mod tests {
         let Some(romfs) = dev_dump() else { return };
         for link in &LINKS {
             let own = Own::read(&romfs, &ActorPack::load(&romfs, link.who).unwrap()).unwrap();
-            let mut rooted = 0;
+            let (mut rooted, mut two_handed) = (0, 0);
             for archive in link.archives {
                 let (_, lent) = link.lent(&romfs, archive, &own).unwrap();
                 for (clip, at) in fska::clips(&lent) {
@@ -608,10 +609,19 @@ mod tests {
                     if !theirs.is_empty() {
                         assert_eq!(mine, theirs, "{clip}");
                         rooted += 1;
+                        two_handed += usize::from(clip.contains("_LSword"));
                     }
                 }
             }
             assert!(rooted >= 18, "{}: {rooted}", link.who);
+            // The child's 12 rolls and 2 climb-ups with a two-handed
+            // sword: the camera trailed him in each.
+            let want = if link.who == actor::PLAYER_CHILD {
+                14
+            } else {
+                0
+            };
+            assert!(two_handed >= want, "{}: {two_handed}", link.who);
         }
     }
 
