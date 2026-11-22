@@ -14,6 +14,13 @@
     "label": "Open Kakariko Gate"
   },
   {
+    "default": false,
+    "description": "Link starts having met Zelda, with her letter in hand, and Talon and Malon back at Lon Lon Ranch. Her letter's check holds the letter. Impa's check comes at the start (Zelda's Lullaby, unless Songs are shuffled), and Malon's does too when NPC gifts are shuffled. Zelda's Letter and the Weird Egg have been removed from the pool",
+    "id": "met-zelda",
+    "kind": "toggle",
+    "label": "Met Zelda"
+  },
+  {
     "default": "open",
     "description": "With Open, the Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, whose gift comes at the start, and can put the sword back any time. With Closed, it opens as in the game, once Link holds the three stones and the Ocarina of Time and plays the Song of Time",
     "id": "door-of-time",
