@@ -15,9 +15,29 @@
     "name": "Arrows (5)"
   },
   {
+    "class": "progression",
+    "id": 35,
+    "name": "Biggoron's Sword"
+  },
+  {
     "class": "filler",
     "id": 4,
     "name": "Blue Rupee (5)"
+  },
+  {
+    "class": "progression",
+    "id": 36,
+    "name": "Bolero of Fire"
+  },
+  {
+    "class": "progression",
+    "id": 37,
+    "name": "Bombchus (10)"
+  },
+  {
+    "class": "progression",
+    "id": 38,
+    "name": "Bombchus (20)"
   },
   {
     "class": "progression",
@@ -33,6 +53,16 @@
     "class": "progression",
     "id": 7,
     "name": "Boomerang"
+  },
+  {
+    "class": "progression",
+    "id": 39,
+    "name": "Bottle"
+  },
+  {
+    "class": "progression",
+    "id": 40,
+    "name": "Bottle with Milk"
   },
   {
     "class": "filler",
@@ -55,9 +85,44 @@
     "name": "Deku Sticks (3)"
   },
   {
+    "class": "progression",
+    "id": 41,
+    "name": "Din's Fire"
+  },
+  {
+    "class": "filler",
+    "id": 42,
+    "name": "Double Defense"
+  },
+  {
+    "class": "progression",
+    "id": 43,
+    "name": "Epona's Song"
+  },
+  {
+    "class": "filler",
+    "id": 44,
+    "name": "Farore's Wind"
+  },
+  {
+    "class": "progression",
+    "id": 45,
+    "name": "Fire Arrows"
+  },
+  {
+    "class": "progression",
+    "id": 46,
+    "name": "Gerudo Membership Card"
+  },
+  {
     "class": "filler",
     "id": 11,
     "name": "Gold Rupee (200)"
+  },
+  {
+    "class": "progression",
+    "id": 47,
+    "name": "Goron Tunic"
   },
   {
     "class": "filler",
@@ -80,6 +145,11 @@
     "name": "Ice Arrows"
   },
   {
+    "class": "filler",
+    "id": 48,
+    "name": "Improved Spin"
+  },
+  {
     "class": "progression",
     "id": 16,
     "name": "Iron Boots"
@@ -93,6 +163,11 @@
     "class": "progression",
     "id": 18,
     "name": "Lens of Truth"
+  },
+  {
+    "class": "progression",
+    "id": 49,
+    "name": "Light Arrows"
   },
   {
     "class": "filler",
@@ -111,13 +186,33 @@
   },
   {
     "class": "progression",
+    "id": 50,
+    "name": "Minuet of Forest"
+  },
+  {
+    "class": "progression",
     "id": 21,
     "name": "Mirror Shield"
+  },
+  {
+    "class": "filler",
+    "id": 51,
+    "name": "Nayru's Love"
+  },
+  {
+    "class": "progression",
+    "id": 52,
+    "name": "Nocturne of Shadow"
   },
   {
     "class": "useful",
     "id": 22,
     "name": "Piece of Heart"
+  },
+  {
+    "class": "progression",
+    "id": 53,
+    "name": "Prelude of Light"
   },
   {
     "class": "progression",
@@ -151,6 +246,11 @@
   },
   {
     "class": "progression",
+    "id": 54,
+    "name": "Progressive Scale"
+  },
+  {
+    "class": "progression",
     "id": 29,
     "name": "Progressive Slingshot"
   },
@@ -158,6 +258,11 @@
     "class": "progression",
     "id": 30,
     "name": "Progressive Strength Upgrade"
+  },
+  {
+    "class": "progression",
+    "id": 55,
+    "name": "Progressive Wallet"
   },
   {
     "class": "filler",
@@ -168,5 +273,65 @@
     "class": "filler",
     "id": 32,
     "name": "Red Rupee (20)"
+  },
+  {
+    "class": "progression",
+    "id": 56,
+    "name": "Requiem of Spirit"
+  },
+  {
+    "class": "progression",
+    "id": 57,
+    "name": "Ruto's Letter"
+  },
+  {
+    "class": "progression",
+    "id": 58,
+    "name": "Saria's Song"
+  },
+  {
+    "class": "progression",
+    "id": 59,
+    "name": "Serenade of Water"
+  },
+  {
+    "class": "progression",
+    "id": 60,
+    "name": "Song of Storms"
+  },
+  {
+    "class": "progression",
+    "id": 61,
+    "name": "Song of Time"
+  },
+  {
+    "class": "filler",
+    "id": 62,
+    "name": "Stone of Agony"
+  },
+  {
+    "class": "progression",
+    "id": 63,
+    "name": "Sun's Song"
+  },
+  {
+    "class": "progression",
+    "id": 64,
+    "name": "Weird Egg"
+  },
+  {
+    "class": "progression",
+    "id": 65,
+    "name": "Zelda's Letter"
+  },
+  {
+    "class": "progression",
+    "id": 66,
+    "name": "Zelda's Lullaby"
+  },
+  {
+    "class": "progression",
+    "id": 67,
+    "name": "Zora Tunic"
   }
 ]

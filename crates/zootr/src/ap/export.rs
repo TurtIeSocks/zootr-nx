@@ -7,14 +7,15 @@ use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::Romfs;
 use serde_json::{Value, json};
 
-use super::rule::{Rules, any};
-use super::seed::{Everything, Seed, base, open, variants};
+use super::rule::{Rules, all, any};
+use super::seed::{Everything, Seed, base, domains, open, values, variants};
+use super::when::{Counts, Variant, steps, word};
 use super::{OPTIONS, described, ids::Ids, names, offers};
 use crate::checks::ItemCheck;
 use crate::fill;
 use crate::narrowing::allowed;
 use crate::rules::{Need, vocab};
-use crate::settings::{Kind, NewGame, schema, value_word};
+use crate::settings::{Kind, NewGame, Settings, schema};
 use crate::world::Era;
 
 /// Items that aren't progression but are worth more than filler.
@@ -33,58 +34,94 @@ pub const VICTORY: &str = "victory";
 /// export's `ids.json`, if any.
 pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str, String>> {
     let base = base();
-    let seed = Seed::build(romfs, &base, &open())?;
+    let base_seed = Seed::build(romfs, &base, &open())?;
+    let variants = variants()?;
+    let domains = domains()?;
+    let built: Vec<Seed> = (variants.iter())
+        .map(|v| Seed::build(romfs, &v.settings(), &open()))
+        .collect::<Result<_>>()?;
+    // The base first, then each variant's seed.
+    let seeds: Vec<&Seed> = std::iter::once(&base_seed).chain(&built).collect();
+    // The same, each with its settings set rather than left as words.
+    let settings: Vec<Settings> = std::iter::once(base.clone())
+        .chain(variants.iter().map(Variant::settings))
+        .collect();
+    let set: Vec<Seed> = (settings.iter())
+        .map(|s| Seed::build(romfs, s, &Default::default()))
+        .collect::<Result<_>>()?;
     let mut ids: Ids = ids
         .map(serde_json::from_str)
         .transpose()?
         .unwrap_or_default();
-    let names = Namer::new(romfs, &seed)?;
-
-    // What each exposed option adds to the start, which may only be flags,
-    // each read as the setting word that sets it.
-    let mut flag_settings: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    for (id, value) in variants()? {
-        let mut s = base.clone();
-        s.insert(id.clone(), value.clone());
-        let start = fill::start(&NewGame::from_settings(&s, &[])?);
+    let names = Namer::new(romfs, &seeds)?;
+    let w = &base_seed.world;
+    for (seed, v) in built.iter().zip(&variants) {
         ensure!(
-            start.items == seed.start.items,
-            "{id} changes what Link starts with"
+            seed.world.places == w.places && edges(&seed.world) == edges(w),
+            "{:?} changes the world's places or edges",
+            v.overlay
         );
-        let word = match &value {
-            Value::Bool(true) => id.clone(),
-            Value::String(option) => value_word(&id, option),
-            _ => bail!("{id} = {value} isn't a toggle on or a choice's option"),
-        };
-        for f in start.flags.difference(&seed.start.flags) {
+    }
+
+    // What each option adds to the start, as the settings that set it.
+    let mut flag_settings: BTreeMap<String, Vec<Value>> = BTreeMap::new();
+    let mut item_settings: BTreeMap<String, Vec<(Value, u32)>> = BTreeMap::new();
+    for overlay in values()? {
+        let mut s = base.clone();
+        s.extend(overlay.clone());
+        let start = fill::start(&NewGame::from_settings(&s, &[])?);
+        let words = overlay
+            .iter()
+            .map(|(id, v)| json!({ "setting": word(id, v) }));
+        let rule = all(words.collect());
+        for f in start.flags.difference(&base_seed.start.flags) {
             flag_settings
                 .entry(f.clone())
                 .or_default()
-                .push(word.clone());
+                .push(rule.clone());
+        }
+        for (actor, n) in &base_seed.start.items {
+            let now = start.items.get(actor).copied().unwrap_or(0);
+            ensure!(now >= *n, "{overlay:?} takes {actor} from the start");
+        }
+        for (actor, n) in &start.items {
+            let had = base_seed.start.items.get(actor).copied().unwrap_or(0);
+            if *n > had {
+                let given = item_settings.entry(actor.clone()).or_default();
+                given.push((rule.clone(), n - had));
+            }
         }
     }
 
-    let w = &seed.world;
-    // What gives each item outside the pool: a source, or a check the deal
-    // leaves holding its vanilla item, each an event.
+    // What gives each item outside a pool: a source, or a check a deal
+    // leaves holding its vanilla item, each an event, in any variant.
     let mut givers: BTreeMap<&str, Vec<String>> = BTreeMap::new();
-    for s in &w.sources {
-        givers.entry(&s.item).or_default().push(s.name.clone());
+    let mut pooled = BTreeSet::new();
+    for seed in &seeds {
+        for s in &seed.world.sources {
+            givers.entry(&s.item).or_default().push(s.name.clone());
+        }
+        for (hash, item) in &seed.dealt.kept {
+            givers.entry(item).or_default().push(vanilla(*hash));
+        }
+        pooled.extend(seed.dealt.pool.iter().cloned());
     }
-    for (hash, item) in &seed.dealt.kept {
-        givers.entry(item).or_default().push(vanilla(*hash));
+    for g in givers.values_mut() {
+        g.sort();
+        g.dedup();
     }
     let mut rules = Rules {
-        seed: &seed,
+        start: &base_seed.start,
+        pooled: &pooled,
         names: &names,
         flag_settings: &flag_settings,
+        item_settings: &item_settings,
         givers: &givers,
         used: BTreeSet::new(),
     };
-    // What Link reaches holding everything. The rest never happens.
-    let reach = Everything::any_option(romfs, &seed)?;
+    let reach = Everything::union(&set);
     let era = |i: usize| w.places[i].1;
-    // Where something is: one spot per place, any of its needs there.
+    // Where something is: each place it's at, any of its needs there.
     let at = |rules: &mut Rules, spots: Vec<(usize, &Need)>| {
         let mut by_place: BTreeMap<usize, Vec<Value>> = BTreeMap::new();
         for (place, need) in spots.into_iter().filter(|(p, _)| reach.places.contains(p)) {
@@ -96,6 +133,17 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         let spots = by_place
             .into_iter()
             .map(|(place, needs)| (place, any(needs)));
+        spots.collect::<Vec<_>>()
+    };
+    // One spot per place, false ones left out.
+    let spots = |at: Vec<(usize, Value)>| {
+        let mut by_place: BTreeMap<usize, Vec<Value>> = BTreeMap::new();
+        for (place, rule) in at {
+            by_place.entry(place).or_default().push(rule);
+        }
+        let spots = by_place
+            .into_iter()
+            .map(|(place, rules)| (place, any(rules)));
         let spots = spots.filter(|(_, rule)| *rule != Value::Bool(false));
         let spots = spots.map(|(place, rule)| json!({ "place": names.place(place), "rule": rule }));
         spots.collect::<Vec<_>>()
@@ -136,55 +184,108 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         }
     }
 
-    let mut by_hash: BTreeMap<u64, Vec<(usize, &Need)>> = BTreeMap::new();
-    for l in &w.locations {
-        by_hash.entry(l.hash).or_default().push((l.place, &l.need));
-    }
-    let mut checks = Vec::new();
-    let mut events = Vec::new();
-    let pooled: BTreeSet<&str> = seed.dealt.pool.iter().map(String::as_str).collect();
-    for (hash, spots) in by_hash {
-        let at = at(&mut rules, spots);
-        if seed.dealt.kept.contains_key(&hash) {
-            if reach.checks.contains(&hash) {
-                events.push(json!({ "name": vanilla(hash), "at": at }));
+    // Each row as some seeds hold it, keyed so the seeds' copies meet.
+    let mut checks: BTreeMap<u64, Row> = BTreeMap::new();
+    let mut events: BTreeMap<String, Row> = BTreeMap::new();
+    for (n, seed) in seeds.iter().enumerate() {
+        let mut by_hash: BTreeMap<u64, Vec<(usize, &Need)>> = BTreeMap::new();
+        for l in &seed.world.locations {
+            by_hash.entry(l.hash).or_default().push((l.place, &l.need));
+        }
+        for (&hash, spots) in &by_hash {
+            if seed.dealt.kept.contains_key(&hash) {
+                if reach.checks.contains(&hash) {
+                    let at = at(&mut rules, spots.clone());
+                    let row = json!({ "name": vanilla(hash) });
+                    Row::add(&mut events, vanilla(hash), (n, seeds.len()), row, at)?;
+                }
+                continue;
             }
-            continue;
+            if !seed.dealt.free.contains(&hash) {
+                continue;
+            }
+            let check = (seed.dealt.checks.iter().find(|c| c.hash == hash))
+                .with_context(|| format!("no check {hash}"))?;
+            let mut forbid = BTreeSet::new();
+            for actor in pooled
+                .iter()
+                .filter(|a| !allowed(check, a, seed.dealt.new_game.progressive))
+            {
+                forbid.insert(names.item(actor)?);
+            }
+            let row = json!({
+                "id": ids.location(hash),
+                "hash": hash.to_string(),
+                "name": names.location(hash)?,
+                "unprovable": !reach.checks.contains(&hash),
+                "forbid": forbid,
+            });
+            let at = at(&mut rules, spots.clone());
+            Row::add(&mut checks, hash, (n, seeds.len()), row, at)?;
         }
-        let check = (seed.dealt.checks.iter().find(|c| c.hash == hash))
-            .with_context(|| format!("no check {hash}"))?;
-        let mut forbid = BTreeSet::new();
-        for actor in pooled
-            .iter()
-            .filter(|a| !allowed(check, a, seed.dealt.new_game.progressive))
-        {
-            forbid.insert(names.item(actor)?);
+        let sources = seed.world.sources.iter();
+        for s in sources.filter(|s| reach.sources.contains(&s.name)) {
+            let at = at(&mut rules, s.places.iter().map(|&p| (p, &s.need)).collect());
+            let row = json!({ "name": s.name });
+            Row::add(&mut events, s.name.clone(), (n, seeds.len()), row, at)?;
         }
-        checks.push(json!({
-            "id": ids.location(hash),
-            "hash": hash.to_string(),
-            "name": names.location(hash)?,
-            "at": at,
-            "unprovable": !reach.checks.contains(&hash),
-            "forbid": forbid,
-        }));
-    }
-
-    for (_, s) in (w.sources.iter().enumerate()).filter(|(i, _)| reach.sources.contains(i)) {
-        events.push(json!({ "name": s.name, "at": at(&mut rules, s.places.iter().map(|&p| (p, &s.need)).collect()) }));
     }
     let goal = at(
         &mut rules,
         w.goal().iter().map(|(p, need)| (*p, need)).collect(),
     );
+    let goal = spots(goal);
+    // The settings a row or spot holds in, or none when it always does.
+    let when = |seeds: &[u32], what: &Value| -> Result<Option<Value>> {
+        let counts = Counts {
+            base: seeds[0],
+            by_variant: &seeds[1..],
+        };
+        match steps(&domains, &variants, &counts).as_slice() {
+            [(1, Value::Bool(true))] => Ok(None),
+            [(1, rule)] => Ok(Some(rule.clone())),
+            other => bail!("{what} isn't held once: {other:?}"),
+        }
+    };
+    let rows = |rows: Vec<Row>| -> Result<Vec<Value>> {
+        let mut out = Vec::new();
+        for row in rows {
+            let mut value = row.value.clone();
+            if let Some(w) = when(&row.seeds, &value)? {
+                value["when"] = w;
+            }
+            // A spot only some seeds hold, as a check Met Zelda puts at the
+            // start, holds in their settings.
+            let mut at = Vec::new();
+            for ((place, _), (rule, seeds)) in row.at {
+                if seeds == row.seeds {
+                    at.push((place, rule));
+                    continue;
+                }
+                let rule = match when(&seeds, &rule)? {
+                    Some(w) => all(vec![w, rule]),
+                    None => rule,
+                };
+                at.push((place, rule));
+            }
+            value["at"] = spots(at).into();
+            out.push(value);
+        }
+        Ok(out)
+    };
+    let checks = rows(checks.into_values().collect())?;
+    let mut events = rows(events.into_values().collect())?;
     events.push(json!({ "name": VICTORY, "at": goal }));
 
-    let mut counts: BTreeMap<&str, (u32, &str)> = BTreeMap::new();
-    for actor in seed.dealt.pool.iter().map(|a| names::same(a)) {
-        let name = names.item(actor)?;
-        let row = counts.entry(name).or_insert((0, actor));
-        ensure!(row.1 == actor, "{name} names two items");
-        row.0 += 1;
+    // Each pool item's count in each seed, by its AP name.
+    let mut counts: BTreeMap<&str, (Vec<u32>, &str)> = BTreeMap::new();
+    for (n, seed) in seeds.iter().enumerate() {
+        for actor in seed.dealt.pool.iter().map(|a| names::same(a)) {
+            let name = names.item(actor)?;
+            let row = counts.entry(name).or_insert((vec![0; seeds.len()], actor));
+            ensure!(row.1 == actor, "{name} names two items");
+            row.0[n] += 1;
+        }
     }
     let mut items = Vec::new();
     let mut pool = Vec::new();
@@ -195,21 +296,28 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
             _ => "filler",
         };
         items.push(json!({ "id": ids.item(actor), "name": name, "class": class }));
-        pool.push(json!({ "item": name, "count": count }));
+        let counts = Counts {
+            base: count[0],
+            by_variant: &count[1..],
+        };
+        for (count, rule) in steps(&domains, &variants, &counts) {
+            let mut row = json!({ "item": name, "count": count });
+            if rule != Value::Bool(true) {
+                row["when"] = rule;
+            }
+            pool.push(row);
+        }
     }
-    let event_names: BTreeSet<&str> = w.sources.iter().map(|s| s.name.as_str()).collect();
-    ensure!(
-        event_names.len() == w.sources.len(),
-        "two sources share a name"
-    );
     // A source that gives a pool item shares its name, so AP counts both.
-    for s in &w.sources {
-        if let Some((_, actor)) = counts.get(s.name.as_str()) {
-            ensure!(
-                *actor == s.item,
-                "{} names both an item and another's event",
-                s.name
-            );
+    for seed in &seeds {
+        for s in &seed.world.sources {
+            if let Some((_, actor)) = counts.get(s.name.as_str()) {
+                ensure!(
+                    *actor == s.item,
+                    "{} names both an item and another's event",
+                    s.name
+                );
+            }
         }
     }
 
@@ -221,7 +329,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         "events": events,
         "goal": VICTORY,
     });
-    let golden = super::golden::golden(romfs, &seed, &names, &ids)?;
+    let golden = super::golden::golden(&settings, &set, &names, &ids)?;
     let mut out = BTreeMap::new();
     out.insert("world.json", pretty(&world)?);
     out.insert("items.json", pretty(&Value::Array(items))?);
@@ -232,19 +340,68 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     Ok(out)
 }
 
+/// A row of the export as the seeds hold it: how many of the seeds, in
+/// order (the base first), hold it, the first one's copy less where it
+/// is, and each spot (place and rule) with the seeds holding it.
+struct Row {
+    seeds: Vec<u32>,
+    value: Value,
+    at: BTreeMap<(usize, String), (Value, Vec<u32>)>,
+}
+
+impl Row {
+    /// Notes that seed `n` of `seeds` holds `value` under `key`, at `at`.
+    /// Every seed holding a row must write it the same way.
+    fn add<K: Ord>(
+        rows: &mut BTreeMap<K, Row>,
+        key: K,
+        (n, seeds): (usize, usize),
+        value: Value,
+        at: Vec<(usize, Value)>,
+    ) -> Result<()> {
+        let row = rows.entry(key).or_insert_with(|| Row {
+            seeds: vec![0; seeds],
+            value: value.clone(),
+            at: BTreeMap::new(),
+        });
+        ensure!(
+            row.value == value,
+            "seeds write a row two ways:\n{}\n{}",
+            row.value,
+            value
+        );
+        row.seeds[n] += 1;
+        for (place, rule) in at {
+            let spot =
+                (row.at.entry((place, rule.to_string()))).or_insert_with(|| (rule, vec![0; seeds]));
+            spot.1[n] += 1;
+        }
+        Ok(())
+    }
+}
+
+/// Each edge's ends and need.
+fn edges(w: &crate::logic::World) -> Vec<(Option<usize>, usize, String)> {
+    w.edges
+        .iter()
+        .map(|e| (e.from, e.to, e.need.to_string()))
+        .collect()
+}
+
 /// The event a check the deal leaves vanilla stands for.
 fn vanilla(hash: u64) -> String {
     format!("vanilla-{hash}")
 }
 
-/// Each shuffled check once.
-fn unique_free(seed: &Seed) -> Vec<ItemCheck> {
+/// Each check any of `seeds` shuffles, once.
+fn unique_free(seeds: &[&Seed]) -> Vec<ItemCheck> {
     let mut seen = BTreeSet::new();
-    let free = seed
-        .dealt
-        .checks
-        .iter()
-        .filter(|c| seed.dealt.free.contains(&c.hash));
+    let free = (seeds.iter()).flat_map(|s| {
+        s.dealt
+            .checks
+            .iter()
+            .filter(|c| s.dealt.free.contains(&c.hash))
+    });
     free.filter(|c| seen.insert(c.hash)).cloned().collect()
 }
 
@@ -287,7 +444,8 @@ pub(super) struct Namer {
 }
 
 impl Namer {
-    fn new(romfs: &Romfs, seed: &Seed) -> Result<Self> {
+    fn new(romfs: &Romfs, seeds: &[&Seed]) -> Result<Self> {
+        let seed = seeds[0];
         let places = (seed.world.places.iter())
             .map(|(node, era)| match vocab::place_word(node) {
                 Some(w) if w.ends_with("-child") || w.ends_with("-adult") => w.to_owned(),
@@ -298,7 +456,7 @@ impl Namer {
         Ok(Self {
             places,
             progressive: seed.dealt.new_game.progressive,
-            locations: names::locations(romfs, &unique_free(seed))?,
+            locations: names::locations(romfs, &unique_free(seeds))?,
         })
     }
 
@@ -323,7 +481,159 @@ impl Namer {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::OnceLock;
+
     use super::*;
+    use crate::ap::when::holds;
+
+    /// The export of the committed ids, made once for every test.
+    fn exported(romfs: &Romfs) -> &'static BTreeMap<&'static str, String> {
+        static EXPORT: OnceLock<BTreeMap<&'static str, String>> = OnceLock::new();
+        EXPORT.get_or_init(|| {
+            let ids = std::fs::read_to_string(super::super::data_dir().join("ids.json")).unwrap();
+            export(romfs, Some(&ids)).unwrap()
+        })
+    }
+
+    /// The export's rows kept for `settings` against a seed built with
+    /// them: the same checks, events and pool, and one item a check.
+    fn rows_match(romfs: &Romfs, settings: &Settings) -> std::result::Result<(), String> {
+        let files = exported(romfs);
+        let world: Value = serde_json::from_str(&files["world.json"]).unwrap();
+        let pool: Value = serde_json::from_str(&files["pool.json"]).unwrap();
+        // Every offered option's value, as the world reads them.
+        let mut options = Settings::new();
+        for d in domains().unwrap() {
+            let value = settings.get(&d.id).unwrap_or(&d.values[0]).clone();
+            options.insert(d.id, value);
+        }
+        let kept = |r: &&Value| r.get("when").is_none_or(|w| holds(w, &options));
+        let rows = |key: &str| -> Vec<&Value> {
+            world[key].as_array().unwrap().iter().filter(kept).collect()
+        };
+        let seed = Seed::build(romfs, settings, &Default::default()).unwrap();
+        let mut want = BTreeSet::new();
+        let mut events = BTreeSet::new();
+        for l in &seed.world.locations {
+            match () {
+                _ if seed.dealt.free.contains(&l.hash) => want.insert(l.hash.to_string()),
+                _ if seed.dealt.kept.contains_key(&l.hash) => events.insert(vanilla(l.hash)),
+                _ => false,
+            };
+        }
+        let got: BTreeSet<String> = rows("checks")
+            .iter()
+            .map(|c| c["hash"].as_str().unwrap().to_owned())
+            .collect();
+        let mut wrong = Vec::new();
+        if got != want {
+            let extra: Vec<_> = got.difference(&want).collect();
+            let missing: Vec<_> = want.difference(&got).collect();
+            wrong.push(format!("checks: extra {extra:?}, missing {missing:?}"));
+        }
+        // Every event the seed has is a row; the export leaves out what no
+        // seed reaches.
+        let names: BTreeSet<String> = rows("events")
+            .iter()
+            .map(|e| e["name"].as_str().unwrap().to_owned())
+            .collect();
+        events.extend(seed.world.sources.iter().map(|s| s.name.clone()));
+        let stray: Vec<_> = names
+            .iter()
+            .filter(|n| *n != VICTORY && !events.contains(*n))
+            .collect();
+        if !stray.is_empty() {
+            wrong.push(format!("events the seed hasn't: {stray:?}"));
+        }
+        let mut want_pool: BTreeMap<String, u64> = BTreeMap::new();
+        for a in &seed.dealt.pool {
+            let name = names::item(names::same(a), seed.dealt.new_game.progressive).unwrap();
+            *want_pool.entry(name.to_owned()).or_default() += 1;
+        }
+        let mut got_pool: BTreeMap<String, u64> = BTreeMap::new();
+        let held = pool.as_array().unwrap().iter();
+        for r in held.filter(kept) {
+            *got_pool
+                .entry(r["item"].as_str().unwrap().to_owned())
+                .or_default() += r["count"].as_u64().unwrap();
+        }
+        if got_pool != want_pool {
+            wrong.push(format!("pool: {got_pool:?} != {want_pool:?}"));
+        }
+        if got_pool.values().sum::<u64>() != got.len() as u64 {
+            wrong.push(format!(
+                "{} items for {} checks",
+                got_pool.values().sum::<u64>(),
+                got.len()
+            ));
+        }
+        match wrong.is_empty() {
+            true => Ok(()),
+            false => Err(wrong.join("; ")),
+        }
+    }
+
+    fn assert_rows_match(romfs: &Romfs, cases: impl IntoIterator<Item = Settings>) {
+        let mut wrong = Vec::new();
+        for settings in cases {
+            if let Err(e) = rows_match(romfs, &settings) {
+                let mine: Vec<_> = (settings.iter())
+                    .filter(|(k, v)| base().get(*k) != Some(v))
+                    .collect();
+                wrong.push(format!("{mine:?}: {e}"));
+            }
+        }
+        assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+    }
+
+    #[test]
+    fn each_variant_keeps_its_own_seeds_rows() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let variants = variants().unwrap();
+        let cases = std::iter::once(base()).chain(variants.iter().map(Variant::settings));
+        assert_rows_match(&romfs, cases);
+    }
+
+    /// Every option at its last value at once: the rows add up across
+    /// options no variant combines.
+    #[test]
+    fn every_option_at_once_keeps_its_seeds_rows() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut settings = base();
+        for d in domains().unwrap() {
+            settings.insert(d.id, d.values.last().unwrap().clone());
+        }
+        assert_rows_match(&romfs, [settings]);
+    }
+
+    /// Each pair of options at each pair of other values. Slow, so the dump
+    /// job runs it with `--ignored`.
+    #[test]
+    #[ignore]
+    fn each_pair_of_options_keeps_its_seeds_rows() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let domains = domains().unwrap();
+        let mut cases = Vec::new();
+        for (i, a) in domains.iter().enumerate() {
+            for b in &domains[i + 1..] {
+                for va in &a.values[1..] {
+                    for vb in &b.values[1..] {
+                        let mut s = base();
+                        s.insert(a.id.clone(), va.clone());
+                        s.insert(b.id.clone(), vb.clone());
+                        cases.push(s);
+                    }
+                }
+            }
+        }
+        assert_rows_match(&romfs, cases);
+    }
 
     #[test]
     fn the_committed_data_matches_a_fresh_export() {
@@ -331,11 +641,10 @@ mod tests {
             return;
         };
         let dir = super::super::data_dir();
-        let ids = std::fs::read_to_string(dir.join("ids.json")).unwrap();
-        for (name, text) in export(&romfs, Some(&ids)).unwrap() {
+        for (name, text) in exported(&romfs) {
             let committed = std::fs::read_to_string(dir.join(name)).unwrap_or_default();
             assert!(
-                committed == text,
+                committed == *text,
                 "{name} is stale: run `zootr ap export` and commit it"
             );
         }

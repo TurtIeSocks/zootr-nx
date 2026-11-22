@@ -6,15 +6,23 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{Value, json};
 
 use super::export::Namer;
-use super::seed::Seed;
-use crate::rules::Need;
+use crate::rules::{Have, Need};
 use crate::world::Era;
 
 /// Turns a [`Need`] into a rule tree, noting each item name a rule uses.
+/// Rules are written once for every variant the export holds: an item
+/// comes from any variant's pool or any variant's giver, and what an
+/// option hands over at the start is that option's setting rule.
 pub(super) struct Rules<'a> {
-    pub seed: &'a Seed,
+    /// What Link starts with in the base.
+    pub start: &'a Have,
+    /// Every item any variant pools.
+    pub pooled: &'a BTreeSet<String>,
     pub names: &'a Namer,
-    pub flag_settings: &'a BTreeMap<String, Vec<String>>,
+    /// Each start flag an option sets, and the settings that set it.
+    pub flag_settings: &'a BTreeMap<String, Vec<Value>>,
+    /// Each item an option starts Link with, the settings and how many.
+    pub item_settings: &'a BTreeMap<String, Vec<(Value, u32)>>,
     pub givers: &'a BTreeMap<&'a str, Vec<String>>,
     pub used: BTreeSet<String>,
 }
@@ -26,10 +34,15 @@ impl Rules<'_> {
             Need::Never => false.into(),
             Need::Era(e) => (*e == era).into(),
             Need::Setting(id) => json!({ "setting": id }),
-            Need::Flag(f) if self.seed.start.flag(f) => true.into(),
+            Need::Flag(f) if self.start.flag(f) => true.into(),
             Need::Flag(f) => {
-                let ids = self.flag_settings.get(f).into_iter().flatten();
-                let mut rules: Vec<Value> = ids.map(|id| json!({ "setting": id })).collect();
+                let mut rules: Vec<Value> = self
+                    .flag_settings
+                    .get(f)
+                    .into_iter()
+                    .flatten()
+                    .cloned()
+                    .collect();
                 // A room's flag is an event, given where the room is.
                 if let Some(events) = self.givers.get(f.as_str()) {
                     self.used.extend(events.iter().cloned());
@@ -38,25 +51,39 @@ impl Rules<'_> {
                 any(rules)
             }
             Need::Items { actors, count } => {
-                let have = &self.seed.start.items;
+                let have = &self.start.items;
                 let held: u32 = actors.iter().filter_map(|a| have.get(a)).sum();
                 if held >= *count {
                     return true.into();
                 }
+                // An option that starts Link with enough of them.
+                let mut given: Vec<(&Value, u32)> = Vec::new();
+                for a in actors {
+                    for (rule, n) in self.item_settings.get(a.as_str()).into_iter().flatten() {
+                        match given.iter_mut().find(|g| g.0 == rule) {
+                            Some(g) => g.1 += n,
+                            None => given.push((rule, *n)),
+                        }
+                    }
+                }
+                let mut rules: Vec<Value> = (given.into_iter())
+                    .filter(|(_, n)| held + n >= *count)
+                    .map(|(rule, _)| rule.clone())
+                    .collect();
                 let mut names = BTreeSet::new();
                 for a in actors {
-                    if self.seed.dealt.pool.iter().any(|p| p == a)
+                    if self.pooled.contains(a.as_str())
                         && let Ok(n) = self.names.item(a)
                     {
                         names.insert(n.to_owned());
                     }
                     names.extend(self.givers.get(a.as_str()).into_iter().flatten().cloned());
                 }
-                if names.is_empty() {
-                    return false.into();
+                if !names.is_empty() {
+                    self.used.extend(names.iter().cloned());
+                    rules.push(json!({ "items": names, "count": count - held }));
                 }
-                self.used.extend(names.iter().cloned());
-                json!({ "items": names, "count": count - held })
+                any(rules)
             }
             Need::All(needs) => {
                 // An item under a false `all` is never needed.
