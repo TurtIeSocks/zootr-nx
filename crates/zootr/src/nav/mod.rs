@@ -38,6 +38,7 @@ pub mod climb;
 pub mod drive;
 pub mod graph;
 pub mod kinds;
+pub mod limits;
 pub mod route;
 pub mod scene;
 pub mod shape;
@@ -45,6 +46,7 @@ pub mod shove;
 #[cfg(test)]
 mod sim;
 pub mod sink;
+pub mod trace;
 pub mod water;
 pub mod went;
 
@@ -160,7 +162,7 @@ impl Level {
 
     /// The graph of its mesh, with its doors, climbs, swims and solids.
     pub fn graph(&self) -> graph::Graph<'_> {
-        graph::Graph::build(&self.mesh, &self.placed, graph::STEP_UP)
+        graph::Graph::build(&self.mesh, &self.placed, graph::step_up())
             .with_climbs(&self.climbs)
             .with_swims(&self.waters, self.child)
             .with_solids(&self.solids)
@@ -337,7 +339,7 @@ mod tests {
     #[test]
     fn an_item_is_aloft_only_with_no_floor_a_step_under_it() {
         let floor = fixture::mesh(&[fixture::quad(0.0, 0.0, 4.0, 4.0, 0.0)]);
-        let graph = graph::Graph::build(&floor, &[], graph::STEP_UP);
+        let graph = graph::Graph::build(&floor, &[], graph::step_up());
         // Made up: a `known` name reads as its hash without the dump.
         let at = |name: &str, y| Placement {
             name: name.to_string(),
@@ -365,7 +367,7 @@ mod tests {
     fn a_landing_past_the_edge_moves_to_a_side_with_floor() {
         // A 4 by 4 m ledge, and a scrub at its +Z edge facing off it.
         let ledge = fixture::mesh(&[fixture::quad(0.0, 0.0, 4.0, 4.0, 0.0)]);
-        let graph = graph::Graph::build(&ledge, &[], graph::STEP_UP);
+        let graph = graph::Graph::build(&ledge, &[], graph::step_up());
         let scrub = Placement {
             name: actor::ENEMY_SCRUB_BUSINESS.to_string(),
             hash: None,

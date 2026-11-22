@@ -245,6 +245,10 @@ impl Input for Mac {
         }
     }
 
+    fn queue(&mut self, line: &str) -> Result<()> {
+        self.send(line)
+    }
+
     fn dump(&mut self) -> Result<()> {
         match self.control {
             Some(_) => self.send("dump"),

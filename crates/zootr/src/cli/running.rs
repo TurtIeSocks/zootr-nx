@@ -230,6 +230,19 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             &shove::moved(&game, &mut input()?, romfs, game_path, hour, secs)?,
             json,
         )?,
+        DevCommand::Trace {
+            steps,
+            settle,
+            out,
+            json,
+        } => said(
+            &crate::nav::trace::trace(&game, &mut input()?, &steps, settle, out.as_deref())?,
+            json,
+        )?,
+        DevCommand::Equip { item } => {
+            crate::gear::equip(&game, &recorder::gamedata(romfs)?, &mut input()?, &item)?;
+            format!("equipped {item}")
+        }
         DevCommand::Use { hash, json } => said(
             &act::used(&game, &mut input()?, romfs, game_path, hash)?,
             json,

@@ -18,8 +18,10 @@ use crate::known::flag;
 use crate::names::TEXT;
 use crate::nav::navmesh_file;
 
+mod arsenal;
 mod climbs;
 mod formats;
+mod hurts;
 mod logic;
 mod map;
 mod plan;
@@ -59,6 +61,9 @@ pub enum Probe {
     /// lists them, or with `table` that table's first entries (`MetaData`
     /// for the save layout).
     Tables { table: Option<String> },
+    /// How Link moves and how far his gear reaches: his numbers, adult
+    /// beside child, then each piece of gear's, keys containing `grep`.
+    Arsenal { grep: Option<String> },
     /// An actor pack's files, or the files whose names contain `file`.
     Pack {
         actor: String,
@@ -66,6 +71,15 @@ pub enum Probe {
         /// Read the pack a seed wrote into this mod folder instead.
         #[arg(long)]
         mod_dir: Option<PathBuf>,
+    },
+    /// What each kind of hit does to an enemy: its Life, each damage type's
+    /// multiplier (0 is immune), and its exceptions, named.
+    Hurts {
+        actors: Vec<String>,
+        /// Every enemy placed in banc files containing this too, like a
+        /// dungeon's name.
+        #[arg(long)]
+        map: Option<String>,
     },
     /// Each text's murmur3, the way GameData keys its names, then the
     /// `n!(0x…)` that names it in our source (`known::hash`).
@@ -375,6 +389,8 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         } => data(romfs, &key, holders, exps, member),
         Probe::Key { hash } => key(romfs, hash),
         Probe::Tables { table } => crate::gamedata::print_tables(romfs, table.as_deref()),
+        Probe::Arsenal { grep } => arsenal::arsenal(romfs, grep.as_deref()),
+        Probe::Hurts { actors, map } => hurts::print(romfs, &actors, map),
         Probe::Pack {
             actor,
             file,

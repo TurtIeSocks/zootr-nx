@@ -1,5 +1,7 @@
-//! The rainbow bridge at six medallions. See
-//! `docs/superpowers/specs/2026-11-12-win-conditions-design.md`.
+//! The rainbow bridge at six medallions, or open, and Ganon's trials done.
+//! See
+//! `docs/superpowers/specs/2026-11-12-win-conditions-design.md` and
+//! `docs/superpowers/specs/2026-11-21-basic-win-condition-design.md`.
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{Byml, EventKind, Romfs, murmur3};
@@ -17,6 +19,35 @@ const ARMED_UNTIL: &Name = flag::DEFEAT_GANON_IS_AFTER_STEP01_EXP;
 pub fn start() -> String {
     crate::steps::at(flow::DEFEAT_GANON, "Step01")
 }
+/// The bridge up from the start: the walk-in scene counts as played, which
+/// the bridge's module ORs into creating the bridge. Nothing else: no Light
+/// Arrows, no sages, no Ganon step.
+pub fn open() -> Vec<String> {
+    vec![format!(
+        "{}.{}=true",
+        flag::HAVE_PLAYED_EVENT,
+        field::GANON_CASTLE_ADULT_FIELD_RAINBOW
+    )]
+}
+/// The six trials in Ganon's Castle, as their barrier flags name them.
+const TRIALS: [&str; 6] = ["Light", "Forest", "Water", "Shadow", "Fire", "Spirit"];
+
+/// Every barrier in Ganon's Castle down from the start: what the six
+/// barrier scenes leave set, played and removed each, none left and all
+/// clear. Nothing else: no Ganon step, no bridge.
+pub fn trials_done() -> Vec<String> {
+    let mut edits = vec![
+        format!("{}=0", field::INSIDE_GANON_CASTLE_DUNGEON_BARRIER_COUNT),
+        format!("{}=true", field::INSIDE_GANON_CASTLE_IS_ALL_BARRIER_CLEAR),
+    ];
+    for trial in TRIALS {
+        let removed = format!("InsideGanonCastle_Dungeon_BarrierRemove_{trial}");
+        edits.push(format!("{}.{removed}=true", flag::HAVE_PLAYED_EVENT));
+        edits.push(format!("{removed}=true"));
+    }
+    edits
+}
+
 pub const MEDALLIONS: [&Name; 6] = [
     item::MEDAL_FOREST,
     item::MEDAL_FIRE,
@@ -70,14 +101,10 @@ pub fn keep_step(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
                         _ => false,
                     }
             });
-        let step01 = step01.context("the Light Arrows scene sets no Step01")?;
-        let EventKind::Action { next, .. } = flow.events[step01 as usize].kind else {
-            unreachable!("running only finds actions")
-        };
-        for link in flow.links_to(step01) {
-            flow.link(link, next)?;
-        }
-        Ok(())
+        flows::step_over(
+            flow,
+            step01.context("the Light Arrows scene sets no Step01")?,
+        )
     })
 }
 
@@ -109,6 +136,15 @@ mod tests {
             );
         }
         assert!(text.contains("|| !("), "{text}");
+    }
+
+    #[test]
+    fn open_and_done_set_flags_the_game_has() {
+        let Some(romfs) = dev_dump() else { return };
+        let gd = GameData::load(&romfs).unwrap();
+        let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH).unwrap()).unwrap();
+        crate::presets::apply(&gd, &mut doc.root, &open()).unwrap();
+        crate::presets::apply(&gd, &mut doc.root, &trials_done()).unwrap();
     }
 
     /// The edited BoolExp, rendered the way `probe data` shows it.

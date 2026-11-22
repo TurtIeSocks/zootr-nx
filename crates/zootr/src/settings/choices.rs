@@ -349,3 +349,45 @@ impl Bombchus {
         }
     }
 }
+
+/// What raises the rainbow bridge to Ganon's Castle.
+#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
+pub enum Bridge {
+    /// Once Zelda gives the Light Arrows, as in the game
+    #[default]
+    Vanilla,
+    /// Once Link holds all six medallions
+    SixMedallions,
+    /// Up from the start
+    Open,
+}
+
+impl Bridge {
+    pub(super) fn label(self) -> &'static str {
+        match self {
+            Self::Vanilla => "Vanilla",
+            Self::SixMedallions => "Six Medallions",
+            Self::Open => "Open",
+        }
+    }
+}
+
+/// Whether the six trials in Ganon's Castle stand between Link and the
+/// tower.
+#[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
+pub enum Trials {
+    /// Each trial cleared in the castle, as in the game
+    #[default]
+    AllSix,
+    /// Every barrier down from the start
+    Done,
+}
+
+impl Trials {
+    pub(super) fn label(self) -> &'static str {
+        match self {
+            Self::AllSix => "All Six",
+            Self::Done => "Done",
+        }
+    }
+}

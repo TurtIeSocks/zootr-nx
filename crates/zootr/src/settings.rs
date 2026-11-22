@@ -18,13 +18,13 @@ mod choices;
 mod new_game;
 mod upgrade;
 pub use choices::{
-    AdultJabu, Bombchus, ChestSize, DungeonEntrances, DungeonKeys, FortressKeys, IceTraps, Keys,
-    Logic, ScrubPrice, ShopSlots, StartingAge,
+    AdultJabu, Bombchus, Bridge, ChestSize, DungeonEntrances, DungeonKeys, FortressKeys, IceTraps,
+    Keys, Logic, ScrubPrice, ShopSlots, StartingAge, Trials,
 };
 pub use new_game::NewGame;
 pub(crate) use new_game::value_word;
 pub(crate) use new_game::{toggles, toggles_on};
-pub(crate) use upgrade::upgrade;
+pub(crate) use upgrade::{OLD_PRESETS, OLD_TOGGLES, renamed, upgrade};
 
 /// Setting values by id. A missing id takes its default.
 pub type Settings = BTreeMap<String, Value>;
@@ -91,6 +91,11 @@ pub mod place {
         "Rules",
         "How items are placed and how the game is won",
     );
+    pub const WIN_CONDITION: Place = rows(
+        group::LOGIC,
+        "Win Condition",
+        "What stands between Link and Ganondorf",
+    );
     pub const OPEN_AREAS: Place = rows(
         group::LOGIC,
         "Open Areas",
@@ -156,8 +161,9 @@ pub mod place {
     );
 
     /// Every section, in the order the app shows them.
-    pub const ALL: [Place; 15] = [
+    pub const ALL: [Place; 16] = [
         RULES,
+        WIN_CONDITION,
         OPEN_AREAS,
         QUEST,
         CHECKS,
@@ -347,7 +353,8 @@ pub(crate) const NPC_GIFTS: &str = "npc-gifts";
 pub(crate) const HUNDRED_TOKENS: &str = "hundred-token-reward";
 pub(crate) const DUNGEON_REWARDS: &str = "dungeon-rewards";
 pub(crate) const SONGS: &str = "songs";
-const BRIDGE_MEDALLIONS: &str = "bridge-medallions";
+pub(crate) const BRIDGE: &str = "rainbow-bridge";
+pub(crate) const TRIALS: &str = "ganons-trials";
 const HINTS: &str = "hints";
 pub(crate) const MAPS_COMPASSES: &str = "maps-compasses";
 pub(crate) const SHOPS: &str = "shopsanity";
@@ -799,11 +806,19 @@ pub fn schema() -> Vec<SettingDef> {
             "Items for Both Ages",
             "Untested. Child Link can use the Megaton Hammer, Hookshot, Longshot, Bow and magic arrows, and adult Link Deku Sticks and the Boomerang. Logic still expects each at its own age",
         )])
-        .chain([toggle(
-            BRIDGE_MEDALLIONS,
-            place::RULES,
-            "Bridge at Six Medallions",
-            "The rainbow bridge to Ganon's Castle rises once Link holds all six medallions, without the Light Arrows from Zelda first",
+        .chain([choice(
+            BRIDGE,
+            place::WIN_CONDITION,
+            "Rainbow Bridge",
+            "What raises the bridge to Ganon's Castle. With Vanilla, Link walks onto the ledge once Zelda has given him the Light Arrows, as in the game. With Six Medallions, it rises once he holds all six, without the Light Arrows first. With Open, the bridge stands from the start",
+            Bridge::label,
+        )])
+        .chain([choice(
+            TRIALS,
+            place::WIN_CONDITION,
+            "Ganon's Trials",
+            "With All Six, the barrier to Ganon's tower comes down once Link clears the castle's six trials, as in the game. With Done, all six barriers are down from the start",
+            Trials::label,
         )])
         .chain([toggle(
             HINTS,
@@ -858,6 +873,8 @@ mod tests {
         assert_eq!(at(BUNNY_HOOD), is(place::GAMEPLAY));
         assert_eq!(at(AGELESS_ITEMS), is(place::GAMEPLAY));
         assert_eq!(at(SKIP_ALL), is(place::CUTSCENES));
+        assert_eq!(at(BRIDGE), is(place::WIN_CONDITION));
+        assert_eq!(at(TRIALS), is(place::WIN_CONDITION));
     }
 
     #[test]

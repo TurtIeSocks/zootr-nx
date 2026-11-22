@@ -7,7 +7,7 @@ use anyhow::Result;
 use ounce_formats::{NavMesh, Romfs};
 
 use crate::nav::clear::crosses;
-use crate::nav::graph::{Graph, STEP_UP};
+use crate::nav::graph::{Graph, step_up};
 use crate::nav::route::{Route, plan};
 use crate::nav::shape::{self, Shape, Solid};
 use crate::nav::{Level, kinds};
@@ -136,7 +136,7 @@ const ACROSS: f32 = 2.5;
 pub fn crossings(romfs: &Romfs, game: &Path, map: &str) -> Result<()> {
     let level = Level::of(romfs, game, map)?;
     let (bare, graph) = (
-        Graph::build(&level.mesh, &level.placed, STEP_UP),
+        Graph::build(&level.mesh, &level.placed, step_up()),
         level.graph(),
     );
     let hits = |r: &Route, s: &Solid| {

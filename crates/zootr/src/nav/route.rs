@@ -304,11 +304,11 @@ mod tests {
     use crate::checks::flat;
     use crate::known::{actor, map};
     use crate::nav::fixture::{mesh, quad};
-    use crate::nav::graph::STEP_UP;
+    use crate::nav::graph::step_up;
     use crate::warp::{Placement, Pose};
 
     fn route(m: &NavMesh, placed: &[Placement], from: [f32; 3], to: [f32; 3]) -> Route {
-        plan(&Graph::build(m, placed, STEP_UP), from, to).unwrap()
+        plan(&Graph::build(m, placed, step_up()), from, to).unwrap()
     }
 
     fn spots(r: &Route) -> Vec<[f32; 2]> {
@@ -392,7 +392,7 @@ mod tests {
         assert!(door_at.is_some() && drop_at > door_at, "{vias:?}");
         assert_eq!(r.waypoints.last().unwrap().at, [4.0, -2.0, 5.0]);
         // Back up the ledge there is no way.
-        let g = Graph::build(&m, &[], STEP_UP);
+        let g = Graph::build(&m, &[], step_up());
         let err = plan(&g, [4.0, -2.0, 5.0], [1.0, 0.0, 5.0]).unwrap_err();
         assert_eq!(err.to_string(), "no route");
     }
@@ -402,7 +402,7 @@ mod tests {
         let m = mesh(&[quad(0.0, 0.0, 4.0, 2.0, 0.0)]);
         let r = route(&m, &[], [1.0, 0.0, 1.0], [5.0, 0.0, 1.0]);
         assert_eq!(spots(&r), [[1.0, 1.0], [4.0, 1.0]]);
-        let g = Graph::build(&m, &[], STEP_UP);
+        let g = Graph::build(&m, &[], step_up());
         let err = plan(&g, [1.0, 0.0, 1.0], [7.0, 0.0, 1.0]).unwrap_err();
         assert!(err.to_string().starts_with("no route: "), "{err}");
     }

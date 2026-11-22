@@ -1,10 +1,14 @@
 # Inside the Deku Tree. Rules from the original game, on the playtest list.
 
-# Link drops to the basement through the web on the first floor.
+# Link drops to the basement through the first floor's web (it breaks to
+# a fall from the top floor, 18.8 m by its SpiderwebParam). The chest
+# sits behind a wall web there whose damage table takes only bombs, and
+# whose material burns. Slashes, a jump attack and seeds leave it; a bomb
+# broke it and the chest opened (playtest 2026-11-21).
 [[check]]
 hash = 12889104996486369065
 name = "Lower Three Deku Sticks"
-needs = "always"
+needs = "explosives or fire"
 
 # The room's door opens once the Deku Scrub is beaten, by sending its nut
 # back with the shield, the Hylian Shield for adult Link.
