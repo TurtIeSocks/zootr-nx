@@ -4,9 +4,9 @@ name = "Slingshot Room"
 
 [[link]]
 to = 1
-needs = "flag:#64edd2f3"
+needs = "always"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 02 11012697473795725691 shut until flag #64edd2f3"
+why = "walk, 1 edges"
 
 [[check]]
 hash = 821372075822700622

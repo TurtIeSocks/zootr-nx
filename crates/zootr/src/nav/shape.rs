@@ -20,15 +20,15 @@ const CONTROLLER_SET: &Name = field::CONTROLLER_SET_PATH;
 const ALIASES: &Name = field::ALIAS_ENTITY_LIST;
 const ALIAS: &Name = field::ALIAS_ENTITY;
 const RIGID_BODY: &Name = field::RIGID_BODY_NAME;
-const RIGID_BODIES: &Name = field::RIGID_BODY_ENTITY_NAME_PATH_ARY;
-const BODY_SHAPE: &Name = field::SHAPE_NAME;
+pub(super) const RIGID_BODIES: &Name = field::RIGID_BODY_ENTITY_NAME_PATH_ARY;
+pub(super) const BODY_SHAPE: &Name = field::SHAPE_NAME;
 const LAYER: &Name = field::LAYER_ENTITY;
-const SHAPES: &Name = field::SHAPE_NAME_PATH_ARY;
-const FILE: &Name = field::FILE_PATH;
+pub(super) const SHAPES: &Name = field::SHAPE_NAME_PATH_ARY;
+pub(super) const FILE: &Name = field::FILE_PATH;
 const BOUNDS: &Name = field::AUTO_CALC;
 const CUTS_MESH: &Name = field::NAV_MESH_OBJECT_REF;
 /// An entry's own name in a controller set's lists.
-const ENTRY_NAME: &str = "Name";
+pub(super) const ENTRY_NAME: &str = "Name";
 /// The alias of the rigid body the actor stands as.
 const MAIN: &str = "Main";
 const MIN: &str = "Min";
@@ -56,11 +56,11 @@ pub struct Shape {
     pub collides: bool,
 }
 
-fn text<'a>(map: &'a BymlMap, key: &str) -> Option<&'a str> {
+pub(super) fn text<'a>(map: &'a BymlMap, key: &str) -> Option<&'a str> {
     map.get(key)?.as_string().ok().map(|s| s.as_str())
 }
 
-fn maps<'a>(map: &'a BymlMap, key: &str) -> impl Iterator<Item = &'a BymlMap> {
+pub(super) fn maps<'a>(map: &'a BymlMap, key: &str) -> impl Iterator<Item = &'a BymlMap> {
     (map.get(key).and_then(|v| v.as_array().ok()).into_iter())
         .flatten()
         .filter_map(|v| v.as_map().ok())
@@ -117,9 +117,16 @@ fn parts(shape: &BymlMap) -> Vec<Part> {
     out
 }
 
-/// The shape of `actor`'s main rigid body, or `None` when it has no pack,
-/// no physics, no main body, or a shape file from outside its pack.
-pub fn shape_of(romfs: &Romfs, actor: &str) -> Result<Option<Shape>> {
+/// An actor's pack, its actor param and its physics' controller set.
+pub(super) struct Physics {
+    pub pack: ActorPack,
+    pub param: BymlMap,
+    pub set: BymlMap,
+}
+
+/// `actor`'s [`Physics`], or `None` when it has no pack, no physics or no
+/// controller set in its pack.
+pub(super) fn physics_of(romfs: &Romfs, actor: &str) -> Result<Option<Physics>> {
     if !romfs.root().join(pack_file(actor)).exists() {
         return Ok(None);
     }
@@ -127,22 +134,30 @@ pub fn shape_of(romfs: &Romfs, actor: &str) -> Result<Option<Shape>> {
     let Some(param) = pack.actor_param()? else {
         return Ok(None);
     };
-    let cuts_mesh = component(&param, CUTS_MESH.get()).is_some();
     let Some(physics) = follow(&pack, &param, PHYSICS.get())? else {
         return Ok(None);
     };
     let Some(set) = text(&physics, CONTROLLER_SET.get()) else {
         return Ok(None);
     };
-    let Some(set) = pack.resolve(set)? else {
+    let set = pack.resolve(set)?;
+    Ok(set.map(|set| Physics { pack, param, set }))
+}
+
+/// The file of the entry named `name` in the controller set's `list`.
+pub(super) fn entry<'a>(set: &'a BymlMap, list: &Name, name: &str) -> Option<&'a str> {
+    maps(set, list.get())
+        .find(|e| text(e, ENTRY_NAME) == Some(name))
+        .and_then(|e| text(e, FILE.get()))
+}
+
+/// The shape of `actor`'s main rigid body, or `None` when it has no pack,
+/// no physics, no main body, or a shape file from outside its pack.
+pub fn shape_of(romfs: &Romfs, actor: &str) -> Result<Option<Shape>> {
+    let Some(Physics { pack, param, set }) = physics_of(romfs, actor)? else {
         return Ok(None);
     };
-    // The file of the entry of `list` named `name`.
-    let entry = |list: &Name, name: &str| {
-        maps(&set, list.get())
-            .find(|e| text(e, ENTRY_NAME) == Some(name))
-            .and_then(|e| text(e, FILE.get()))
-    };
+    let cuts_mesh = component(&param, CUTS_MESH.get()).is_some();
     // The main alias names a rigid body, whose file names its shape.
     // Without aliases, as a pot's set has none, its first rigid body.
     // Without rigid bodies, as a static prop's set has none, its one shape.
@@ -159,12 +174,12 @@ pub fn shape_of(romfs: &Romfs, actor: &str) -> Result<Option<Shape>> {
     };
     // A rigid body file shared from outside the pack isn't in the dump's
     // pack: its shape then goes by the body's own name.
-    let body = match entry(RIGID_BODIES, name) {
+    let body = match entry(&set, RIGID_BODIES, name) {
         Some(file) => pack.resolve(file)?,
         None => None,
     };
     let shape = body.as_ref().and_then(|b| text(b, BODY_SHAPE.get()));
-    let Some(file) = entry(SHAPES, shape.unwrap_or(name)) else {
+    let Some(file) = entry(&set, SHAPES, shape.unwrap_or(name)) else {
         return Ok(None);
     };
     let Some(shape) = pack.resolve(file)? else {
@@ -203,7 +218,7 @@ pub fn inside(ring: &[[f32; 2]], p: [f32; 2]) -> bool {
 
 /// The rotation by `Rotate` angles X, Y, Z, in radians: about X first,
 /// then Y, then Z, each counterclockwise looking down its axis.
-fn rotation([x, y, z]: [f32; 3]) -> [[f32; 3]; 3] {
+pub(super) fn rotation([x, y, z]: [f32; 3]) -> [[f32; 3]; 3] {
     let (sx, cx) = x.sin_cos();
     let (sy, cy) = y.sin_cos();
     let (sz, cz) = z.sin_cos();

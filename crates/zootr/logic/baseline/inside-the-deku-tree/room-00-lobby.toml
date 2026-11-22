@@ -5,32 +5,26 @@ name = "Lobby"
 [[link]]
 to = 1
 needs = "always"
-via = "jump"
-why = "level gap 2.5 m: within a running jump (2.7 m)"
+via = "walk"
+why = "walk, 1 edges"
 
 [[link]]
 to = 3
 needs = "always"
 via = "walk"
-why = "walk, 6 edges"
+why = "walk, 1 edges"
 
 [[link]]
-to = 3
-needs = "always"
-via = "jump"
-why = "level gap 1.5 m: within a running jump (2.7 m)"
+to = 4
+needs = "fire"
+via = "drop"
+why = "drop 18.4 m into water; Inside The Deku Tree Spider Web A 01 278772661473487189: fire"
 
 [[link]]
 to = 4
 needs = "always"
 via = "climb"
 why = "climb 14670770652390206064, 17725402113092522180"
-
-[[link]]
-to = 9
-needs = "always"
-via = "drop"
-why = "drop 46.2 to 46.3 m into water"
 
 [[check]]
 hash = 185722044654914961

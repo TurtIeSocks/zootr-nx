@@ -21,6 +21,9 @@ pub(super) struct Lock {
     pub named: Vec<String>,
     /// Its room: its setters', or the room its name gives.
     pub room: Option<u32>,
+    /// Whether its setters play an event rather than drive a graph: a
+    /// fight or a talk that clears its room.
+    pub played: bool,
 }
 
 impl Lock {
@@ -28,10 +31,11 @@ impl Lock {
         murmur3(self.name.as_bytes())
     }
 
-    /// A flag only clearing its room sets (a fight) holds Link in; a flag
-    /// a graph sets (a switch, torches) holds a door shut both ways.
+    /// A flag only clearing its room sets (a fight, an event its setters
+    /// play) holds Link in; a flag a graph sets (a switch, torches) holds
+    /// a door shut both ways.
     pub fn holds(&self, from: u32) -> bool {
-        !self.setters.is_empty() || self.room == Some(from)
+        (!self.setters.is_empty() && !self.played) || self.room == Some(from)
     }
 }
 

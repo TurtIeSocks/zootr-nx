@@ -15,10 +15,16 @@ via = "walk"
 why = "walk, 1 edges"
 
 [[link]]
-to = 9
+to = 8
 needs = "always"
+via = "walk"
+why = "walk, 1 edges"
+
+[[link]]
+to = 9
+needs = "fire"
 via = "drop"
-why = "drop 23.8 to 26.3 m into water"
+why = "drop 25.8 to 26.0 m into water; Inside The Deku Tree Spider Web A 01 9217804728253310381: fire"
 
 [[link]]
 to = 9
@@ -35,12 +41,11 @@ why = "in reach from its room"
 [[check]]
 hash = 16101480770659370603
 name = "Basement Gold Skulltula 1"
-needs = "slingshot or bow or boomerang or hookshot or dins-fire"
-why = "5.4 m from its room's floor, in each one's range"
+needs = "slingshot or bow or longshot"
+why = "9.8 m from its room's floor, in each one's range"
 
 [[check]]
 hash = 18075358844331090388
 name = "Basement Gold Skulltula 2"
 needs = "slingshot or bow or boomerang or hookshot or dins-fire"
-why = "1.9 m from its room's floor, in each one's range; a sword or a bomb may too, untested"
-guess = true
+why = "4.1 m from its room's floor, in each one's range"

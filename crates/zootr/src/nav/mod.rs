@@ -35,6 +35,7 @@ macro_rules! said {
 pub mod act;
 pub mod clear;
 pub mod climb;
+pub mod crawl;
 pub mod drive;
 pub mod graph;
 pub mod kinds;
@@ -112,7 +113,11 @@ pub struct Level {
     pub mesh: NavMesh,
     pub placed: Vec<Placement>,
     pub solids: Vec<shape::Solid>,
+    /// The collision meshes its pieces stand.
+    pub walls: mesh::Walls,
     pub climbs: Vec<climb::Climb>,
+    /// Its crawl holes, which only a child goes through.
+    pub crawls: Vec<crawl::Crawl>,
     /// The waters there, by the flags their presence reads.
     pub waters: Vec<water::Water>,
     /// Whether Link is a child there, which sets how deep he wades.
@@ -146,7 +151,9 @@ impl Level {
             map: map.to_owned(),
             mesh: load(romfs, game, map)?,
             solids: shape::solids(romfs, &placed)?,
+            walls: mesh::walls(romfs, game, &placed)?,
             climbs: climb::climbs(romfs, &placed)?,
+            crawls: crawl::crawls(&placed),
             waters: water::waters(romfs, game, &placed, |_| false)?,
             child: map.ends_with("_Child"),
             placed,
@@ -161,17 +168,23 @@ impl Level {
             mesh,
             placed,
             solids: vec![],
+            walls: mesh::Walls::default(),
             climbs: vec![],
+            crawls: vec![],
             waters: vec![],
             child: false,
         }
     }
 
-    /// The graph of its mesh, with its doors, climbs, swims and solids.
+    /// The graph of its mesh, with its doors, climbs, swims, collision
+    /// meshes and solids.
     pub fn graph(&self) -> graph::Graph<'_> {
         graph::Graph::build(&self.mesh, &self.placed, graph::step_up())
-            .with_climbs(&self.climbs)
+            // Swims first: a climb out of water starts from the swim sheet.
             .with_swims(&self.waters, self.child)
+            .with_climbs(&self.climbs)
+            .with_crawls(if self.child { &self.crawls } else { &[] })
+            .with_walls(&self.walls)
             .with_solids(&self.solids)
     }
 

@@ -234,6 +234,16 @@ pub fn search(path: &Path, pattern: &str) -> Result<Vec<(String, Vec<u8>)>> {
 pub fn each(
     path: &Path,
     pattern: &str,
+    f: impl FnMut(String, Vec<u8>) -> Result<()>,
+) -> Result<()> {
+    each_where(path, |p| p.contains(pattern), f)
+}
+
+/// [`each`] for the files whose path `keep` takes, so one walk of the
+/// `.nup` reads many named files.
+pub fn each_where(
+    path: &Path,
+    keep: impl Fn(&str) -> bool,
     mut f: impl FnMut(String, Vec<u8>) -> Result<()>,
 ) -> Result<()> {
     if path.is_dir() {
@@ -242,28 +252,28 @@ pub fn each(
                 .strip_prefix(path)?
                 .to_string_lossy()
                 .replace('\\', "/");
-            if rel.contains(pattern) {
+            if keep(&rel) {
                 f(rel, fs::read(&file)?)?;
             }
         }
         return Ok(());
     }
     let nup = open(path)?;
-    walk(&nup, romfs(&nup)?, "", pattern, &mut f)
+    walk(&nup, romfs(&nup)?, "", &keep, &mut f)
 }
 
 fn walk(
     nup: &Nup,
     dir: nup_format::Dir,
     at: &str,
-    pattern: &str,
+    keep: &impl Fn(&str) -> bool,
     f: &mut impl FnMut(String, Vec<u8>) -> Result<()>,
 ) -> Result<()> {
     for node in nup.children(dir) {
         let path = format!("{at}{}", nup.name(node));
         match node {
-            Node::Dir(d) => walk(nup, d, &format!("{path}/"), pattern, f)?,
-            Node::File(file) if path.contains(pattern) => f(path, nup.read(file)?)?,
+            Node::Dir(d) => walk(nup, d, &format!("{path}/"), keep, f)?,
+            Node::File(file) if keep(&path) => f(path, nup.read(file)?)?,
             Node::File(_) => {}
         }
     }

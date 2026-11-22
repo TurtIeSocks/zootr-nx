@@ -20,15 +20,19 @@ pub(super) struct Reach {
 }
 
 /// The weapons whose range reaches the gold skulltula at `at` from the
-/// nearest floor of room `r`. Its token falls to the floor, so the hit
-/// is the whole check.
-pub(super) fn skulltula_reach(graph: &Graph, room: &[Option<u32>], r: u32, at: [f32; 3]) -> Reach {
+/// nearest floor `stands` keeps: its room's, where Link can stand. Its
+/// token falls to the floor, so the hit is the whole check.
+pub(super) fn skulltula_reach(
+    graph: &Graph,
+    stands: impl Fn(usize) -> bool,
+    at: [f32; 3],
+) -> Reach {
     let far = |why: String| Reach {
         needs: "gold-skulltula".into(),
         why,
         guess: true,
     };
-    let Some(floor) = graph.nearest_floor(at, REACH_MAX, |f| room[f] == Some(r)) else {
+    let Some(floor) = graph.nearest_floor(at, REACH_MAX, &stands) else {
         return far(format!("no floor of its room within {REACH_MAX} m"));
     };
     let d = dist(floor.at, at);

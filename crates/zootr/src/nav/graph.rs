@@ -9,8 +9,10 @@ use ounce_formats::{Footing, NavMesh, closest};
 use serde::Serialize;
 
 use super::climb::Climb;
+use super::crawl::Crawl;
 use super::kinds;
 use super::limits::limits;
+use super::mesh::{Wall, Walls};
 use super::shape::Solid;
 use super::water::{Shore, Water};
 use crate::warp::{self, Placement, Side};
@@ -33,12 +35,43 @@ const DOOR_REACH: f32 = 2.5;
 /// keeps off the wall a climb stands on, and a vine can hang down past the
 /// ledge it starts from (Kokiri Forest's, 2.9 m).
 const CLIMB_REACH: f32 = 3.5;
+/// How far from a crawl's anchor the floor at its end may be, in m: the
+/// navmesh stops short of the hole.
+const CRAWL_REACH: f32 = 2.0;
 /// How far off the mesh a start or goal snaps to the nearest face.
 const SNAP: f32 = 1.5;
 /// How far from a point's height the floor under it may be.
 pub(super) const FLOOR: f32 = 3.0;
 /// The size of the cells faces are looked up by.
 const CELL: f32 = 4.0;
+/// The heights above the floor a path is tested against walls at: a
+/// child Link's waist and head, which an adult's body spans too.
+const BODY: [f32; 2] = [0.5, 1.0];
+/// The height above the floor a jump or fall is tested against solid
+/// walls at: over the lips and curbs a floor's mesh has at its edges.
+const OVER: [f32; 1] = [1.0];
+/// How far below and above the floor a solid under Link's feet is
+/// looked for, past the mesh's edge.
+const LIP: f32 = 0.3;
+/// How far past the mesh's edge a ledge is looked for, and in what steps.
+const LEDGE_MAX: f32 = 2.0;
+const LEDGE_STEP: f32 = 0.05;
+/// Link's body radius, which clears the ledge before he falls.
+const RADIUS: f32 = 0.3;
+/// How far over a water's surface a swimmer's head is, in m.
+const HEAD: f32 = 0.3;
+/// How far out from each shore a swim's line is tested, in m: the shore
+/// point sits on land, past its edge.
+const SHORE_OFF: f32 = 1.0;
+
+/// Whether a path over the floor through `path` meets one of `walls` at
+/// any of `heights`.
+fn body_hits(walls: &[Wall], path: &[[f32; 3]], heights: &[f32]) -> bool {
+    heights.iter().any(|&h| {
+        let up = |p: [f32; 3]| [p[0], p[1] + h, p[2]];
+        (path.windows(2)).any(|leg| walls.iter().any(|w| w.crosses(up(leg[0]), up(leg[1]))))
+    })
+}
 
 /// How a waypoint is reached from the one before it.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
@@ -51,6 +84,9 @@ pub enum Via {
     Step,
     /// Up or down the ladder or climb wall placed with this hash.
     Climb(Option<u64>),
+    /// Through the crawl hole whose first anchor has this hash: a child
+    /// only.
+    Crawl(Option<u64>),
     /// Across the water placed with this hash.
     Swim(Option<u64>),
 }
@@ -65,6 +101,8 @@ impl fmt::Display for Via {
             Via::Step => write!(f, "step"),
             Via::Climb(Some(hash)) => write!(f, "climb {hash}"),
             Via::Climb(None) => write!(f, "climb"),
+            Via::Crawl(Some(hash)) => write!(f, "crawl {hash}"),
+            Via::Crawl(None) => write!(f, "crawl"),
             Via::Swim(Some(hash)) => write!(f, "swim {hash}"),
             Via::Swim(None) => write!(f, "swim"),
         }
@@ -112,6 +150,10 @@ pub struct Graph<'a> {
     pub mesh: &'a NavMesh,
     /// The placed solids the mesh doesn't know, which a route goes round.
     pub solids: &'a [Solid],
+    /// The invisible walls the mesh runs through, which Link stops at.
+    pub walls: &'a [Wall],
+    /// The walls and floors Link sees, which a jump or a fall hits.
+    pub solid: &'a [Wall],
     pub centers: Vec<[f32; 3]>,
     pub arcs: Vec<Vec<Arc>>,
     /// The waters a route swims, and the shore points it swims between.
@@ -148,6 +190,8 @@ impl<'a> Graph<'a> {
         let mut graph = Self {
             mesh,
             solids: &[],
+            walls: &[],
+            solid: &[],
             arcs: vec![vec![]; centers.len()],
             waters: vec![],
             shores: vec![],
@@ -170,6 +214,21 @@ impl<'a> Graph<'a> {
                 self.link(top.face, foot.face, Via::Climb(c.hash), top.at, foot.at);
             }
         }
+        self.climbs_into_water();
+        self
+    }
+
+    /// The graph with a link both ways through each of `crawls` with floor
+    /// at both ends, within [`CRAWL_REACH`] of its anchor and level with it.
+    pub fn with_crawls(mut self, crawls: &[Crawl]) -> Self {
+        for c in crawls {
+            let end =
+                |p: [f32; 3]| self.nearest(p, CRAWL_REACH, |_, q| (q[1] - p[1]).abs() < STEP_MIN);
+            if let (Some(a), Some(b)) = (end(c.ends[0]), end(c.ends[1])) {
+                self.link(a.face, b.face, Via::Crawl(c.hash), a.at, b.at);
+                self.link(b.face, a.face, Via::Crawl(c.hash), b.at, a.at);
+            }
+        }
         self
     }
 
@@ -178,7 +237,11 @@ impl<'a> Graph<'a> {
     /// middle for the foot and above it for the top.
     pub fn climb_ends(&self, c: &Climb) -> std::result::Result<(Snap, Snap), &'static str> {
         let middle = (c.foot[1] + c.top[1]) / 2.0;
-        let foot = (self.nearest(c.foot, CLIMB_REACH, |_, q| q[1] <= middle))
+        // Floor under the sheet Link swims on is the pool's bed, not where he
+        // grabs on, unless the mesh has no sheet there.
+        let low = |q: [f32; 3]| q[1] <= middle;
+        let foot = (self.nearest(c.foot, CLIMB_REACH, |_, q| low(q) && !self.sunk(q)))
+            .or_else(|| self.nearest(c.foot, CLIMB_REACH, |_, q| low(q)))
             .ok_or("no floor at its foot")?;
         let top = (self.nearest(c.top, CLIMB_REACH, |_, q| q[1] >= middle))
             .ok_or("no floor at its top")?;
@@ -186,6 +249,112 @@ impl<'a> Graph<'a> {
             return Err("its top is no higher than its foot");
         }
         Ok((foot, top))
+    }
+
+    /// The graph with `walls` for its jumps and falls to hit, without the
+    /// walks, steps and drops whose path passes through an invisible one at
+    /// Link's waist or head: Link stops at an invisible wall the mesh runs
+    /// through.
+    pub fn with_walls(mut self, walls: &'a Walls) -> Self {
+        (self.walls, self.solid) = (&walls.air, &walls.solid);
+        for f in 0..self.arcs.len() {
+            let from = self.centers[f];
+            let mut arcs = std::mem::take(&mut self.arcs[f]);
+            arcs.retain(|arc| {
+                let path = match arc.cross {
+                    // A swim crosses open water: a wall standing out of it
+                    // over the line between the shores stops it. Tested at
+                    // a swimmer's head, off the shores' own edges.
+                    Cross::Link {
+                        via: Via::Swim(h),
+                        from,
+                        to,
+                    } => return !self.swim_walled(h, from, to),
+                    Cross::Edge([a, b]) => {
+                        vec![
+                            from,
+                            std::array::from_fn(|i| (a[i] + b[i]) / 2.0),
+                            self.centers[arc.to],
+                        ]
+                    }
+                    Cross::Link {
+                        via: Via::Drop | Via::Step,
+                        from,
+                        to,
+                    } => vec![from, to],
+                    Cross::Link { .. } => return true,
+                };
+                !(path.windows(2)).any(|leg| self.walled(leg[0], leg[1]))
+            });
+            self.arcs[f] = arcs;
+        }
+        self
+    }
+
+    /// Whether a wall stands over the water `hash` between shores `a` and
+    /// `b`, at a swimmer's head and [`SHORE_OFF`] out from each.
+    fn swim_walled(&self, hash: Option<u64>, a: [f32; 3], b: [f32; 3]) -> bool {
+        let Some(w) = self
+            .waters
+            .iter()
+            .find(|w| w.hash == hash && hash.is_some())
+        else {
+            return false;
+        };
+        let len = dist([a[0], 0.0, a[2]], [b[0], 0.0, b[2]]);
+        if len <= 2.0 * SHORE_OFF {
+            return false;
+        }
+        let at = |t: f32| {
+            [
+                a[0] + (b[0] - a[0]) * t,
+                w.surface + HEAD,
+                a[2] + (b[2] - a[2]) * t,
+            ]
+        };
+        let (s, e) = (at(SHORE_OFF / len), at(1.0 - SHORE_OFF / len));
+        (self.walls.iter().chain(self.solid)).any(|wall| wall.crosses(s, e))
+    }
+
+    /// Whether an invisible wall stands on the way from floor `a` to floor
+    /// `b`, at Link's waist or head.
+    pub fn walled(&self, a: [f32; 3], b: [f32; 3]) -> bool {
+        body_hits(self.walls, &[a, b], &BODY)
+    }
+
+    /// Whether a jump or a fall from floor `a` to floor `b` hits a wall,
+    /// seen or not. A jump goes level with the higher floor. A fall goes
+    /// out to `b` or past the real ledge (the mesh stops short of it),
+    /// whichever is further, then straight down: whatever it meets on the
+    /// way, Link lands on instead.
+    pub fn leap_walled(&self, a: [f32; 3], b: [f32; 3]) -> bool {
+        let path = match b[1] < a[1] - DROP_MIN {
+            false if b[1] > a[1] => vec![a, [a[0], b[1], a[2]], b],
+            false => vec![a, [b[0], a[1], b[2]], b],
+            true => match self.ledge(a, b) {
+                Some(p) => vec![a, [p[0], a[1], p[2]], [p[0], b[1], p[2]]],
+                None => return true,
+            },
+        };
+        body_hits(self.walls, &path, &BODY) || body_hits(self.solid, &path, &OVER)
+    }
+
+    /// Where Link starts down from floor `a` heading for `b` below: over
+    /// `b`, or past the last solid under his feet and his body's width
+    /// more, whichever is further. `None` when the floor runs on further
+    /// than a fall looks.
+    fn ledge(&self, a: [f32; 3], b: [f32; 3]) -> Option<[f32; 3]> {
+        let (dx, dz) = (b[0] - a[0], b[2] - a[2]);
+        let len = dx.hypot(dz).max(1e-6);
+        let at = |d: f32| [a[0] + dx / len * d, a[1], a[2] + dz / len * d];
+        let under = |p: [f32; 3]| {
+            let (top, foot) = ([p[0], p[1] + LIP, p[2]], [p[0], p[1] - LIP, p[2]]);
+            self.solid.iter().any(|w| w.crosses(top, foot))
+        };
+        let clear = (0..=(LEDGE_MAX / LEDGE_STEP) as usize)
+            .map(|i| i as f32 * LEDGE_STEP)
+            .find(|&d| !under(at(d)))?;
+        Some(at((clear + RADIUS).max(len)))
     }
 
     /// The graph with `solids` for its routes to go round.
@@ -394,8 +563,9 @@ impl<'a> Graph<'a> {
                     .floor(past, rise)
                     .filter(|g| (g.height - mid[1]).abs() <= rise);
                 if let Some(g) = level {
-                    if g.face != face && d > LOOK {
-                        found.push((face, g.face, mid, [past[0], g.height, past[2]]));
+                    let to = [past[0], g.height, past[2]];
+                    if g.face != face && d > LOOK && !self.leap_walled(mid, to) {
+                        found.push((face, g.face, mid, to));
                     }
                     break;
                 }
@@ -424,8 +594,9 @@ impl<'a> Graph<'a> {
             let wet = (self.waters.iter()).any(|w| {
                 w.covers(past[0], past[2]) && w.surface < mid[1] && w.surface - h >= self.float
             });
-            if wet && floor != face {
-                found.push((face, floor, mid, [past[0], h, past[2]]));
+            let to = [past[0], h, past[2]];
+            if wet && floor != face && !self.leap_walled(mid, to) {
+                found.push((face, floor, mid, to));
             }
         }
         found
@@ -548,6 +719,51 @@ mod tests {
         assert!(gaps.contains(&(0, 1)) && gaps.contains(&(1, 0)), "{gaps:?}");
         let far = mesh(&[quad(0.0, 0.0, 2.0, 2.0, 0.0), quad(5.0, 0.0, 7.0, 2.0, 0.0)]);
         assert!(Graph::build(&far, &[], step_up()).gaps(2.0).is_empty());
+    }
+
+    /// A wall standing in the yz plane at `x`, `h` m tall.
+    fn wall_at(x: f32, h: f32) -> Walls {
+        let (p, q, r, t) = ([x, -1.0, -1.0], [x, h, -1.0], [x, h, 3.0], [x, -1.0, 3.0]);
+        Walls {
+            air: vec![],
+            solid: vec![Wall::new("FakeWall", vec![[p, q, r], [p, r, t]])],
+        }
+    }
+
+    /// A solid wall across a level gap cuts it; one lower than a body's
+    /// height, a lip, doesn't.
+    #[test]
+    fn a_solid_wall_cuts_a_level_gap_and_a_lip_does_not() {
+        let m = mesh(&[quad(0.0, 0.0, 2.0, 2.0, 0.0), quad(3.5, 0.0, 5.5, 2.0, 0.0)]);
+        let (wall, lip) = (wall_at(2.75, 3.0), wall_at(2.75, 0.6));
+        let g = Graph::build(&m, &[], step_up()).with_walls(&wall);
+        assert!(g.gaps(2.0).is_empty());
+        let g = Graph::build(&m, &[], step_up()).with_walls(&lip);
+        assert!(!g.gaps(2.0).is_empty());
+    }
+
+    /// A fall leaves past the real ledge, which the mesh stops short of,
+    /// and meets whatever floor lies under it on the way down.
+    #[test]
+    fn a_fall_clears_the_ledge_and_hits_a_floor_on_the_way_down() {
+        let slab = |x1: f32, y: f32| {
+            let (p, q, r, t) = ([-1.0, y, -1.0], [x1, y, -1.0], [x1, y, 3.0], [-1.0, y, 3.0]);
+            Wall::new("FakeFloor", vec![[p, q, r], [p, r, t]])
+        };
+        let m = mesh(&[quad(0.0, 0.0, 2.0, 2.0, 5.0)]);
+        let (from, to) = ([2.0, 5.0, 1.0], [2.5, 0.0, 1.0]);
+        let ledge = Walls {
+            air: vec![],
+            solid: vec![slab(2.4, 5.0)],
+        };
+        let g = Graph::build(&m, &[], step_up()).with_walls(&ledge);
+        assert!(!g.leap_walled(from, to));
+        let under = Walls {
+            air: vec![],
+            solid: vec![slab(2.4, 5.0), slab(4.0, 2.0)],
+        };
+        let g = Graph::build(&m, &[], step_up()).with_walls(&under);
+        assert!(g.leap_walled(from, to));
     }
 
     /// A ladder 4 m up a wall at z 0.4, from the floor before it to the
