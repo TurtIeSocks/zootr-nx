@@ -49,7 +49,7 @@ class TestDeadTreeWithAdultDekuTree(ZnxTestBase):
         self.assertIn("deku-tree-adult", names)
 
 
-RACE = "Gerudo Valley Running man's race's Gift"
+RACE = "Gerudo Valley Running Man's Race"
 
 
 class TestRaceGiftFollowsTheCarpenters(ZnxTestBase):
