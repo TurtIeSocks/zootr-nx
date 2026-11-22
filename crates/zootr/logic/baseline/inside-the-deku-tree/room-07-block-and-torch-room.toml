@@ -12,21 +12,13 @@ why = "walk, 3 edges"
 to = 6
 needs = "always"
 via = "jump"
-why = "level gap 2.2 to 2.7 m: level jump not measured"
-guess = true
+why = "level gap 2.2 m: within a running jump (2.7 m)"
 
 [[link]]
 to = 8
 needs = "always"
 via = "walk"
 why = "walk, 1 edges"
-
-[[link]]
-to = 8
-needs = "always"
-via = "jump"
-why = "level gap 2.7 m: level jump not measured"
-guess = true
 
 [[link]]
 to = 9

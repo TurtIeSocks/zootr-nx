@@ -13,10 +13,3 @@ to = 10
 needs = "always"
 via = "walk"
 why = "walk, 1 edges"
-
-[[link]]
-to = 10
-needs = "always"
-via = "jump"
-why = "level gap 4.5 to 4.8 m: level jump not measured"
-guess = true

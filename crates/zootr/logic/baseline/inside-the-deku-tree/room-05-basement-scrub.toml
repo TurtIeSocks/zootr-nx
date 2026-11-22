@@ -9,24 +9,10 @@ via = "walk"
 why = "walk, 1 edges"
 
 [[link]]
-to = 4
-needs = "always"
-via = "jump"
-why = "level gap 2.8 to 3.0 m: level jump not measured"
-guess = true
-
-[[link]]
 to = 6
 needs = "always"
 via = "walk"
 why = "walk, 1 edges"
-
-[[link]]
-to = 6
-needs = "always"
-via = "jump"
-why = "level gap 4.2 to 4.8 m: level jump not measured"
-guess = true
 
 [[flag]]
 hash = 0xc90d4ed1

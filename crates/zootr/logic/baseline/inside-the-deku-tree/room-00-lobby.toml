@@ -6,8 +6,7 @@ name = "Lobby"
 to = 1
 needs = "always"
 via = "jump"
-why = "level gap 2.5 m: level jump not measured"
-guess = true
+why = "level gap 2.5 m: within a running jump (2.7 m)"
 
 [[link]]
 to = 3
@@ -19,8 +18,7 @@ why = "walk, 6 edges"
 to = 3
 needs = "always"
 via = "jump"
-why = "level gap 1.5 to 4.2 m: level jump not measured"
-guess = true
+why = "level gap 1.5 m: within a running jump (2.7 m)"
 
 [[link]]
 to = 9

@@ -9,13 +9,6 @@ via = "walk"
 why = "walk, 1 edges"
 
 [[link]]
-to = 5
-needs = "always"
-via = "jump"
-why = "level gap 2.8 to 3.0 m: level jump not measured"
-guess = true
-
-[[link]]
 to = 9
 needs = "always"
 via = "drop"

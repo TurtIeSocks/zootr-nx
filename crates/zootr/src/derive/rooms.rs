@@ -181,7 +181,7 @@ fn all_of(uses: &[&str]) -> String {
 pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Result<Derived> {
     let kind_of: HashMap<u32, &Kind> = book.kinds.iter().map(|k| (k.hash, k)).collect();
     let kind_at = |p: &Placement| kind_of.get(&murmur3(p.name.as_bytes())).copied();
-    let jump = limits().child.edge_jump.as_ref().map_or(0.0, |j| j.value);
+    let jump = limits().level_jump();
     let shutters = crate::gates::trace_node(romfs, SHUTTER)?;
     let checks = crate::checks::all(romfs)?;
     // Named one at a time: an item Archipelago has no name for fails only its own.
@@ -530,11 +530,15 @@ fn link(
         rooms::Via::Drop if s.most > limits().drop() => format!("drop {} into water", span("m")),
         rooms::Via::Drop => format!("drop {}", span("m")),
         rooms::Via::Step => format!("step up {}", span("m")),
-        rooms::Via::Jump => format!("level gap {}: level jump not measured", span("m")),
+        rooms::Via::Jump => format!(
+            "level gap {}: within a running jump ({:.1} m)",
+            span("m"),
+            limits().level_jump()
+        ),
         _ if s.by.is_empty() => via.word().to_owned(),
         _ => format!("{} {}", via.word(), by()),
     };
-    let mut guess = via == rooms::Via::Jump;
+    let mut guess = false;
     let mut needs: Vec<String> = vec![];
     for (h, k) in &s.on {
         if k.uses != "always" {

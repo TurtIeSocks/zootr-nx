@@ -10,10 +10,9 @@ why = "walk, 1 edges"
 
 [[link]]
 to = 5
-needs = "flag:#c90d4ed1"
+needs = "always"
 via = "jump"
-why = "level gap 2.0 to 5.0 m: level jump not measured; Switch Shutter A 02 4516839470990929285 shut until flag #c90d4ed1"
-guess = true
+why = "level gap 2.0 m: within a running jump (2.7 m)"
 
 [[link]]
 to = 7
