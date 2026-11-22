@@ -12,25 +12,13 @@ why = "level gap 2.5 m: within a running jump (2.7 m)"
 to = 3
 needs = "always"
 via = "walk"
-why = "walk, 6 edges"
-
-[[link]]
-to = 3
-needs = "always"
-via = "jump"
-why = "level gap 1.5 m: within a running jump (2.7 m)"
+why = "walk, 1 edges"
 
 [[link]]
 to = 4
 needs = "always"
 via = "climb"
 why = "climb 14670770652390206064, 17725402113092522180"
-
-[[link]]
-to = 9
-needs = "always"
-via = "drop"
-why = "drop 46.2 to 46.3 m into water"
 
 [[check]]
 hash = 185722044654914961

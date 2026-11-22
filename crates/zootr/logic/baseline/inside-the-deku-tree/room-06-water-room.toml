@@ -9,19 +9,7 @@ via = "walk"
 why = "walk, 1 edges"
 
 [[link]]
-to = 5
-needs = "always"
-via = "jump"
-why = "level gap 2.0 m: within a running jump (2.7 m)"
-
-[[link]]
 to = 7
 needs = "always"
 via = "walk"
-why = "walk, 3 edges"
-
-[[link]]
-to = 9
-needs = "always"
-via = "drop"
-why = "drop 23.8 to 25.0 m into water"
+why = "walk, 2 edges"

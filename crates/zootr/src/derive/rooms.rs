@@ -383,6 +383,12 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                 .max_by_key(|(k, n)| (**n, std::cmp::Reverse(k.1)))
                 .map(|((_, p), _)| *p)
         };
+        // Floor Link shoots from: its room's main part, out of water too
+        // deep to stand in. The rest is out of bounds or swum.
+        let stands = |f: usize| {
+            room[f].and_then(main) == Some(labels.part[f])
+                && graph.above(graph.centers[f]).is_none()
+        };
         // Each check: what stands between it and its room's main part.
         for check in checks.iter().filter(|c| c.room.is_some()) {
             let Ok(holder) = level.placement(check.hash) else {
@@ -396,7 +402,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                 // A gold skulltula on a floorless room's wall is hit from
                 // the floor nearest it, whichever room that is.
                 let near = skulltula
-                    .then(|| graph.nearest_floor(at, REACH_MAX, |f| room[f].is_some()))
+                    .then(|| graph.nearest_floor(at, REACH_MAX, stands))
                     .flatten();
                 let Some(near) = near.and_then(|n| room[n.face]) else {
                     roomless.push(check.hash);
@@ -420,7 +426,8 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                     .join("; "),
             };
             let mut guess = blocking.iter().any(|(_, k)| k.guess);
-            let reach = skulltula.then(|| skulltula_reach(&graph, room, r, at));
+            let reach =
+                skulltula.then(|| skulltula_reach(&graph, |f| room[f] == Some(r) && stands(f), at));
             if let Some(reach) = &reach {
                 uses.push(&reach.needs);
                 why = match blocking.is_empty() {
@@ -679,7 +686,7 @@ mod tests {
             "Deku Tree room files are stale: run `zootr logic derive deku-tree`"
         );
         // Every room the game numbers has floor but the Skulltula alcove,
-        // whose Skulltulas hang on a wall, and nearly every face has a room.
+        // whose Skulltulas hang on a wall, and every check has a room.
         // Its gold skulltula is hit from the floor nearest it.
         assert_eq!(fresh.floorless, [11]);
         assert!(fresh.roomless.is_empty(), "{:?}", fresh.roomless);
@@ -689,8 +696,11 @@ mod tests {
             all.contains("needs = \"flag:#"),
             "a shutter waits on its flag"
         );
+        // The navmesh also covers the tree's outer shell and pockets behind
+        // walls, which the solid walls keep out of every room: about a third
+        // of its faces (2,346, 2026-11-22).
         assert!(
-            fresh.unplaced * 10 < fresh.faces,
+            fresh.unplaced * 2 < fresh.faces,
             "{} of {}",
             fresh.unplaced,
             fresh.faces
