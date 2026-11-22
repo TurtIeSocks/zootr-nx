@@ -458,7 +458,7 @@ pub fn schema() -> Vec<SettingDef> {
             MET_ZELDA,
             place::LOGIC,
             "Met Zelda",
-            "Link starts having met Zelda, with her letter in hand, and Talon and Malon back at Lon Lon Ranch. Her letter's check holds the letter. Impa's check comes at the start (Zelda's Lullaby, unless Songs are shuffled), and Malon's does too when NPC gifts are shuffled. The pool holds no second letter and no Weird Egg",
+            "Link starts having met Zelda, with her letter in hand, and Talon and Malon back at Lon Lon Ranch. Her letter's check holds the letter. Impa's check comes at the start (Zelda's Lullaby, unless Songs are shuffled), and Malon's does too when NPC gifts are shuffled. Zelda's Letter and the Weird Egg have been removed from the pool",
         )])
         .chain([choice(
             DOOR_OF_TIME,
