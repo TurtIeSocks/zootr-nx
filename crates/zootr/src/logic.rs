@@ -398,7 +398,7 @@ impl World {
         }
         // A room's flag, set once Link reaches its dungeon and meets its
         // needs. Room places join the graph with derive (build step 4).
-        for room in &book.rooms {
+        for room in book.rooms.iter().filter(|r| r.live) {
             for flag in &room.file.flag {
                 let places = (eras_of(&scan.places, &room.node).into_iter())
                     .map(|era| at(&room.node, era))
