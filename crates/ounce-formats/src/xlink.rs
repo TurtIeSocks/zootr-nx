@@ -1,7 +1,8 @@
 //! XLink2 files (`.bslnk` sounds, `.belnk` effects), version 0x22 with
 //! 64-bit offsets. Each user (an actor's sound or effect set) holds calls
 //! the game plays by name: an asset, or a container whose children are
-//! calls too. [`copy_call`] gives one user a call another has.
+//! calls too. [`copy_call`] gives one user a call another has, and
+//! [`add_case`] a case another's switch has.
 //!
 //! Every offset a call or container holds is relative to a table the whole
 //! file shares (asset params, conditions, property names), or to the
@@ -27,8 +28,22 @@ const NUM_CALL: usize = 0x08;
 const NUM_ASSET: usize = 0x0c;
 /// Containers of [`RANDOM`] type.
 const NUM_RANDOM: usize = 0x10;
+/// How many of each trigger table's entries there are, in their order.
+const TRIGGER_COUNTS: usize = 0x14;
 const TRIGGERS: usize = 0x30;
 const USER_HEADER: usize = 0x38;
+/// A local property: its name's offset, then four bytes.
+const LOCAL: usize = 0x08;
+
+// A user's trigger tables, in order: action slots, actions, action
+// triggers, properties, property triggers, always triggers. Each entry's
+// size, and where in it a trigger keeps its call, as a byte offset into
+// the user's calls.
+const TRIGGER_TABLES: [usize; 6] = [0x10, 0x10, 0x28, 0x18, 0x20, 0];
+const TRIGGER_CALL: usize = 0x08;
+const ACTION_TRIGGERS: usize = 2;
+const PROPERTY_TRIGGERS: usize = 4;
+const ALWAYS_TRIGGERS: usize = 5;
 
 // A call.
 const CALL: usize = 0x30;
@@ -38,6 +53,9 @@ const CALL_FLAGS: usize = 0x0a;
 const PARENT: usize = 0x10;
 const KEY: usize = 0x18;
 const PARAM: usize = 0x20;
+/// Where in the file's conditions the call's is: what picks it in its
+/// container.
+const CONDITION: usize = 0x28;
 const IS_CONTAINER: u16 = 1;
 
 // A container.
@@ -47,6 +65,12 @@ const BLEND: u8 = 3;
 const BY_PROPERTY: usize = 0x01;
 const FIRST: usize = 0x04;
 const LAST: usize = 0x08;
+/// The property a switch or blend reads: its name's offset (8 bytes),
+/// 4 more, then its index among the file's local property names, or
+/// [`GLOBAL`] for a global one.
+const PROPERTY: usize = 0x10;
+const LOCAL_INDEX: usize = 0x1c;
+const GLOBAL: u16 = 0xffff;
 
 /// A user's tables, as offsets into the file.
 struct User {
@@ -62,6 +86,81 @@ struct User {
 /// copied into user `to` and named `name` there. `name` must already be in
 /// the file's names, and `to` must not have it.
 pub fn copy_call(file: &[u8], from: &str, key: &str, to: &str, name: &str) -> Result<Vec<u8>> {
+    let (a, b) = (user(file, from)?, user(file, to)?);
+    ensure!(find(file, &b, name)?.is_none(), "{to} already has {name}");
+    let root = find(file, &a, key)?.with_context(|| format!("{from} has no {key}"))?;
+    let named = name_offset(file, name)? as u64;
+    let condition = Reader(file).u64(a.calls + root * CALL + CONDITION)?;
+    let place = Place {
+        at: b.count,
+        parent: -1,
+        name: named,
+        key: crc32(name.as_bytes()),
+        condition,
+    };
+    graft(file, &a, root, &b, place)
+}
+
+/// `file` with `case`, a case of a switch of user `from`, added as the
+/// last case of `to`'s switch of the same name, playing the tree of
+/// `from`'s call `body`. The new case takes `case`'s name and condition,
+/// so `body` may be a call under it, picked out of a switch `to` can't
+/// read. Both switches must read the same property, and every switch in
+/// the tree one `to` has: `to` must not already have `case`.
+pub fn add_case(file: &[u8], from: &str, case: &str, body: &str, to: &str) -> Result<Vec<u8>> {
+    let r = Reader(file);
+    let (a, b) = (user(file, from)?, user(file, to)?);
+    ensure!(find(file, &b, case)?.is_none(), "{to} already has {case}");
+    let at = find(file, &a, case)?.with_context(|| format!("{from} has no {case}"))?;
+    let root = find(file, &a, body)?.with_context(|| format!("{from} has no {body}"))?;
+    let parent = usize::try_from(r.i32(a.calls + at * CALL + PARENT)?)
+        .with_context(|| format!("{case} is no switch's case"))?;
+    let switch = std::str::from_utf8(call_name(file, a.calls + parent * CALL)?)?;
+    let theirs = switch_param(file, &a, parent)?;
+    let own = find(file, &b, switch)?.with_context(|| format!("{to} has no {switch}"))?;
+    let mine = switch_param(file, &b, own)?;
+    ensure!(
+        r.bytes(theirs + PROPERTY, 0x10)? == r.bytes(mine + PROPERTY, 0x10)?,
+        "{from}'s and {to}'s {switch} read different properties"
+    );
+    let locals = local_names(file, &b)?;
+    for i in tree(file, &a, root)? {
+        if let Some(name) = local_property(file, &a, i)? {
+            ensure!(
+                locals.contains(&name),
+                "{body} reads {}, which {to} lacks",
+                String::from_utf8_lossy(name)
+            );
+        }
+    }
+    let from_case = a.calls + at * CALL;
+    let place = Place {
+        at: r.i32(mine + LAST)? as usize + 1,
+        parent: own as i32,
+        name: r.u64(from_case + CALL_NAME)?,
+        key: r.u32(from_case + KEY)?,
+        condition: r.u64(from_case + CONDITION)?,
+    };
+    graft(file, &a, root, &b, place)
+}
+
+/// Where a grafted tree's root goes in its new user, and what it's called
+/// there: its index, its parent's (-1 for none), its name's offset, its
+/// key and its condition. Its parent, if any, is a switch it becomes the
+/// last case of.
+struct Place {
+    at: usize,
+    parent: i32,
+    name: u64,
+    key: u32,
+    condition: u64,
+}
+
+/// `file` with the call `root` of user `a`, and every call under it,
+/// copied into user `b`: the root at `place`, the rest after `b`'s calls.
+/// Every index `b` keeps of a call from the root's place on moves up one:
+/// parents, children, its calls by name, and its triggers' calls.
+fn graft(file: &[u8], a: &User, root: usize, b: &User, place: Place) -> Result<Vec<u8>> {
     let r = Reader(file);
     ensure!(&file[..4] == b"XLNK", "not an XLink2 file");
     let version = r.u32(VERSION_AT)?;
@@ -69,25 +168,68 @@ pub fn copy_call(file: &[u8], from: &str, key: &str, to: &str, name: &str) -> Re
         version == VERSION,
         "XLink2 version {version:#x}, not {VERSION:#x}"
     );
-    let (a, b) = (user(file, from)?, user(file, to)?);
-    let named = name_offset(file, name)?;
-    ensure!(find(file, &b, name)?.is_none(), "{to} already has {name}");
-    let root = find(file, &a, key)?.with_context(|| format!("{from} has no {key}"))?;
+    let at = place.at;
+    ensure!(at <= b.count, "a place past {}'s calls", b.count);
+    let shift = |i: usize| if i >= at { i + 1 } else { i };
+    let order = tree(file, a, root)?;
+    let moved = |old: usize| match order.iter().position(|&o| o == old).expect("in the tree") {
+        0 => at,
+        k => b.count + k,
+    };
 
-    let order = tree(file, &a, root)?;
-    let moved = |old: usize| b.count + order.iter().position(|&o| o == old).expect("in the tree");
+    // The user's own calls and container params, renumbered.
+    let mut own = r.bytes(b.calls, b.count * CALL)?.to_vec();
+    let mut own_params = r.bytes(b.containers, b.triggers - b.containers)?.to_vec();
+    let mut renumbered = std::collections::HashSet::new();
+    for i in 0..b.count {
+        let call = i * CALL;
+        let parent = i32_in(&own, call + PARENT);
+        if parent >= 0 {
+            put(
+                &mut own,
+                call + PARENT,
+                &(shift(parent as usize) as i32).to_le_bytes(),
+            );
+        }
+        if u16::from_le_bytes([own[call + CALL_FLAGS], own[call + CALL_FLAGS + 1]]) & IS_CONTAINER
+            == 0
+        {
+            continue;
+        }
+        let param = u64::from_le_bytes(own[call + PARAM..call + PARAM + 8].try_into()?) as usize;
+        if !renumbered.insert(param) {
+            continue;
+        }
+        for field in [FIRST, LAST] {
+            let child = i32_in(&own_params, param + field) as usize;
+            put(
+                &mut own_params,
+                param + field,
+                &(shift(child) as i32).to_le_bytes(),
+            );
+        }
+        if place.parent == i as i32 {
+            ensure!(
+                i32_in(&own_params, param + LAST) as usize + 1 == at,
+                "a case not after its switch's last"
+            );
+            put(&mut own_params, param + LAST, &(at as i32).to_le_bytes());
+        }
+    }
 
-    let (mut calls, mut params) = (Vec::new(), Vec::new());
-    let (mut assets, mut randoms) = (r.u32(b.base + NUM_ASSET)?, 0);
+    // The tree, copied: the root's call, then the rest's.
+    let (mut root_call, mut rest, mut params) = (Vec::new(), Vec::new(), Vec::new());
+    let mut randoms = 0;
     let param_base = b.triggers - b.containers;
     for (k, &old) in order.iter().enumerate() {
         let from_call = a.calls + old * CALL;
         let mut call = r.bytes(from_call, CALL)?.to_vec();
         let parent = match k {
             0 => {
-                put(&mut call, CALL_NAME, &(named as u64).to_le_bytes());
-                put(&mut call, KEY, &crc32(name.as_bytes()).to_le_bytes());
-                -1
+                put(&mut call, CALL_NAME, &place.name.to_le_bytes());
+                put(&mut call, KEY, &place.key.to_le_bytes());
+                put(&mut call, CONDITION, &place.condition.to_le_bytes());
+                place.parent
             }
             _ => moved(r.i32(from_call + PARENT)? as usize) as i32,
         };
@@ -106,31 +248,42 @@ pub fn copy_call(file: &[u8], from: &str, key: &str, to: &str, name: &str) -> Re
             let offset = (param_base + params.len()) as u64;
             put(&mut call, PARAM, &offset.to_le_bytes());
             params.extend(param);
-        } else {
-            put(&mut call, ASSET, &(assets as i16).to_le_bytes());
+        }
+        match k {
+            0 => root_call = call,
+            _ => rest.extend(call),
+        }
+    }
+    let mut calls = own[..at * CALL].to_vec();
+    calls.extend(&root_call);
+    calls.extend(&own[at * CALL..]);
+    calls.extend(&rest);
+    // Every shipped user numbers its assets in call order: kept so.
+    let mut assets = 0u32;
+    for call in calls.as_chunks_mut::<CALL>().0 {
+        if u16::from_le_bytes([call[CALL_FLAGS], call[CALL_FLAGS + 1]]) & IS_CONTAINER == 0 {
+            put(call, ASSET, &(assets as i16).to_le_bytes());
             assets += 1;
         }
-        calls.extend(call);
     }
 
     // The calls by name, which the game searches by halves. The shipped
     // order is kept, ties too, and each new call goes after its equals.
     let total = b.count + order.len();
-    let mut names = (0..b.count)
-        .map(|i| call_name(file, b.calls + i * CALL))
+    let names = (0..total)
+        .map(|i| {
+            name_at(
+                file,
+                u64::from_le_bytes(calls[i * CALL..][..8].try_into()?) as usize,
+            )
+        })
         .collect::<Result<Vec<_>>>()?;
-    for call in calls.chunks(CALL) {
-        names.push(name_at(
-            file,
-            u64::from_le_bytes(call[..8].try_into()?) as usize,
-        )?);
-    }
     let mut sorted = (0..b.count)
-        .map(|k| r.u16(b.ids + 2 * k))
+        .map(|k| Ok(shift(r.u16(b.ids + 2 * k)? as usize) as u16))
         .collect::<Result<Vec<_>>>()?;
-    for new in b.count..total {
-        let at = sorted.partition_point(|&i| names[i as usize] <= names[new]);
-        sorted.insert(at, new as u16);
+    for new in std::iter::once(at).chain(b.count + 1..total) {
+        let place = sorted.partition_point(|&i| names[i as usize] <= names[new]);
+        sorted.insert(place, new as u16);
     }
     let mut ids: Vec<u8> = sorted.iter().flat_map(|i| i.to_le_bytes()).collect();
     ids.resize(align4(total * 2), 0);
@@ -138,9 +291,8 @@ pub fn copy_call(file: &[u8], from: &str, key: &str, to: &str, name: &str) -> Re
     let mut out = Vec::with_capacity(file.len() + ids.len() + calls.len() + params.len());
     out.extend(&file[..b.ids]);
     out.extend(&ids);
-    out.extend(&file[b.calls..b.containers]);
     out.extend(&calls);
-    out.extend(&file[b.containers..b.triggers]);
+    out.extend(&own_params);
     out.extend(&params);
     out.extend(&file[b.triggers..]);
     let grown = out.len() - file.len();
@@ -155,6 +307,16 @@ pub fn copy_call(file: &[u8], from: &str, key: &str, to: &str, name: &str) -> Re
     );
     let triggers = r.u64(b.base + TRIGGERS)? + grown as u64;
     put(&mut out, b.base + TRIGGERS, &triggers.to_le_bytes());
+    if at < b.count {
+        for pos in trigger_calls(file, b)? {
+            let call = trigger_call(file, b, pos)?;
+            put(
+                &mut out,
+                pos + grown,
+                &((shift(call) * CALL) as u64).to_le_bytes(),
+            );
+        }
+    }
     for at in user_offsets(file)?.chain([CONDITIONS, NAMES]) {
         let offset = r.u64(at)? as usize;
         if offset > b.base {
@@ -184,26 +346,56 @@ pub fn tree_names<'a>(file: &'a [u8], user_name: &str, key: &str) -> Result<Vec<
         .collect()
 }
 
+/// The name of the call each of `user`'s action and property triggers
+/// plays, in their order.
+pub fn trigger_names<'a>(file: &'a [u8], user_name: &str) -> Result<Vec<&'a str>> {
+    let u = user(file, user_name)?;
+    (trigger_calls(file, &u)?.into_iter())
+        .map(|at| {
+            let call = trigger_call(file, &u, at)?;
+            Ok(std::str::from_utf8(call_name(
+                file,
+                u.calls + call * CALL,
+            )?)?)
+        })
+        .collect()
+}
+
+/// The names of the calls right under `user`'s container `key`, in order.
+pub fn child_names<'a>(file: &'a [u8], user_name: &str, key: &str) -> Result<Vec<&'a str>> {
+    let u = user(file, user_name)?;
+    let at = find(file, &u, key)?.with_context(|| format!("{user_name} has no {key}"))?;
+    (children(file, &u, at)?)
+        .map(|i| Ok(std::str::from_utf8(call_name(file, u.calls + i * CALL)?)?))
+        .collect()
+}
+
 /// The call `root` of `user` and every call under it, by index, each
 /// container's children together after it.
 fn tree(file: &[u8], user: &User, root: usize) -> Result<Vec<usize>> {
-    let r = Reader(file);
     let mut order = vec![root];
     let mut i = 0;
     while i < order.len() {
-        let call = user.calls + order[i] * CALL;
-        if r.u16(call + CALL_FLAGS)? & IS_CONTAINER != 0 {
-            let at = user.containers + r.u64(call + PARAM)? as usize;
-            let (first, last) = (r.i32(at + FIRST)?, r.i32(at + LAST)?);
-            ensure!(
-                0 <= first && first <= last && (last as usize) < user.count,
-                "a container's children past its user's calls"
-            );
-            order.extend(first as usize..=last as usize);
-        }
+        order.extend(children(file, user, order[i])?);
         i += 1;
     }
     Ok(order)
+}
+
+/// The calls right under `user`'s call `i`: none unless it's a container.
+fn children(file: &[u8], user: &User, i: usize) -> Result<std::ops::Range<usize>> {
+    let r = Reader(file);
+    let call = user.calls + i * CALL;
+    if r.u16(call + CALL_FLAGS)? & IS_CONTAINER == 0 {
+        return Ok(0..0);
+    }
+    let at = user.containers + r.u64(call + PARAM)? as usize;
+    let (first, last) = (r.i32(at + FIRST)?, r.i32(at + LAST)?);
+    ensure!(
+        0 <= first && first <= last && (last as usize) < user.count,
+        "a container's children past its user's calls"
+    );
+    Ok(first as usize..last as usize + 1)
 }
 
 fn user(file: &[u8], name: &str) -> Result<User> {
@@ -229,6 +421,83 @@ fn user(file: &[u8], name: &str) -> Result<User> {
         containers: calls + CALL * calls_count,
         triggers: base + r.u64(base + TRIGGERS)? as usize,
     })
+}
+
+/// Where each of `user`'s triggers keeps its call, in the file. Always
+/// triggers aren't read yet, so a user with any is refused.
+fn trigger_calls(file: &[u8], user: &User) -> Result<Vec<usize>> {
+    let r = Reader(file);
+    let counts = (0..TRIGGER_TABLES.len())
+        .map(|t| Ok(r.u32(user.base + TRIGGER_COUNTS + 4 * t)? as usize))
+        .collect::<Result<Vec<_>>>()?;
+    ensure!(
+        counts[ALWAYS_TRIGGERS] == 0,
+        "always triggers aren't read yet"
+    );
+    let mut at = user.triggers;
+    let mut calls = Vec::new();
+    for (t, (&size, &count)) in TRIGGER_TABLES.iter().zip(&counts).enumerate() {
+        if t == ACTION_TRIGGERS || t == PROPERTY_TRIGGERS {
+            calls.extend((0..count).map(|k| at + k * size + TRIGGER_CALL));
+        }
+        at += size * count;
+    }
+    Ok(calls)
+}
+
+/// The index of the call a trigger of `user` keeps at `at`.
+fn trigger_call(file: &[u8], user: &User, at: usize) -> Result<usize> {
+    let call = Reader(file).u64(at)? as usize;
+    ensure!(
+        call.is_multiple_of(CALL) && call / CALL < user.count,
+        "a trigger's call past its user's"
+    );
+    Ok(call / CALL)
+}
+
+/// The params of `user`'s call `i`, a switch.
+fn switch_param(file: &[u8], user: &User, i: usize) -> Result<usize> {
+    let r = Reader(file);
+    let call = user.calls + i * CALL;
+    ensure!(
+        r.u16(call + CALL_FLAGS)? & IS_CONTAINER != 0,
+        "not a switch"
+    );
+    let at = user.containers + r.u64(call + PARAM)? as usize;
+    ensure!(r.u8(at)? == SWITCH, "not a switch");
+    Ok(at)
+}
+
+/// The names of `user`'s local properties.
+fn local_names<'a>(file: &'a [u8], user: &User) -> Result<Vec<&'a [u8]>> {
+    let r = Reader(file);
+    (0..r.u16(user.base + LOCALS)? as usize)
+        .map(|k| name_at(file, r.u32(user.base + USER_HEADER + LOCAL * k)? as usize))
+        .collect()
+}
+
+/// The local property `user`'s call `i` reads, if it's a switch or a
+/// blend by property and the property isn't global.
+fn local_property<'a>(file: &'a [u8], user: &User, i: usize) -> Result<Option<&'a [u8]>> {
+    let r = Reader(file);
+    let call = user.calls + i * CALL;
+    if r.u16(call + CALL_FLAGS)? & IS_CONTAINER == 0 {
+        return Ok(None);
+    }
+    let at = user.containers + r.u64(call + PARAM)? as usize;
+    let reads = match r.u8(at)? {
+        SWITCH => true,
+        BLEND => r.u8(at + BY_PROPERTY)? != 0,
+        _ => false,
+    };
+    if !reads || r.u16(at + LOCAL_INDEX)? == GLOBAL {
+        return Ok(None);
+    }
+    Ok(Some(name_at(file, r.u64(at + PROPERTY)? as usize)?))
+}
+
+fn i32_in(d: &[u8], at: usize) -> i32 {
+    i32::from_le_bytes(d[at..at + 4].try_into().expect("four bytes"))
 }
 
 /// Where the users' offsets start, after their hashes.
