@@ -24,9 +24,10 @@ log=/logs/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.log
 CARGO_TERM_COLOR=never cargo test -p zootr --lib --bins --tests > "$log" 2>&1
 status=$?
 # The slow checks the default run skips: the AP export against each pair
-# of options' seeds. The same cargo shape as above, so nothing rebuilds:
-# another shape reruns the build script, which the shared cache points at
-# another runner's checkout.
+# of options' seeds. The same cargo shape as above, so nothing rebuilds.
+# Jobs share the cache, and a build script's slot in it doesn't depend on
+# its source, so a job on a branch from before build.rs read its folder at
+# run time can swap in a script pointing at that job's checkout.
 CARGO_TERM_COLOR=never cargo test -p zootr --lib --bins --tests -- --ignored ap::export:: >> "$log" 2>&1 || status=1
 
 grep -E '^test result:|^test .* \.\.\. FAILED$' "$log"
