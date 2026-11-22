@@ -45,6 +45,11 @@ const STOP: f32 = 0.5;
 const MOVED: f32 = 0.1;
 /// A landing counts as on the far floor within this height of it, in m.
 const LEVEL: f32 = 0.5;
+/// How far back from X Link's run speed is read, in s.
+const PACE: f32 = 0.35;
+/// The jump is over at the first sample past its apex within this of
+/// the height X went in at, in m.
+const DOWN: f32 = 0.08;
 /// What the leap is saved as in its folder.
 const FILE: &str = "trace.json";
 
@@ -59,6 +64,12 @@ pub struct Leap {
     /// along the jump's line. `None` when he never got there.
     pub jumped: Option<Sample>,
     pub past: Option<f32>,
+    /// His run speed as X went in, flat, in m/s: a jump carries him
+    /// about this times its air time.
+    pub speed: Option<f32>,
+    /// From X to back down at its height: how far, flat, and how long.
+    /// `None` when he landed lower, or never jumped.
+    pub air: Option<(f32, f32)>,
     /// Whether he ended on the far floor: at its height and past its edge.
     pub made: bool,
     pub traced: Traced,
@@ -71,6 +82,13 @@ impl fmt::Display for Leap {
         match self.past {
             Some(p) => writeln!(f, ", X {p:+.2} m from the near edge")?,
             None => writeln!(f, ", never reached the near edge")?,
+        }
+        if let Some(v) = self.speed {
+            write!(f, "running {v:.2} m/s at X")?;
+            match self.air {
+                Some((d, t)) => writeln!(f, ", {d:.2} m in the air over {t:.2} s")?,
+                None => writeln!(f, ", landed below the height X went in at")?,
+            }
         }
         write!(f, "{}", self.traced)
     }
@@ -120,6 +138,23 @@ fn find_camera<M: Memory, I: Input>(dev: &Dev<M>, input: &mut I) -> Result<f32> 
         }
     }
     anyhow::bail!("Link didn't move on a push up or down: walled in at the start")
+}
+
+/// Link's flat speed over the [`PACE`] s up to `x`.
+fn speed(samples: &[Sample], x: &Sample) -> Option<f32> {
+    let first = samples.iter().find(|s| s.t >= x.t - PACE && s.t < x.t)?;
+    Some(flat(first.at, x.at) / (x.t - first.t).max(f32::EPSILON))
+}
+
+/// How far, flat, and how long Link was in the air from `x`: until the
+/// first sample past the apex back within [`DOWN`] of X's height.
+fn air(samples: &[Sample], x: &Sample) -> Option<(f32, f32)> {
+    let after: Vec<&Sample> = samples.iter().filter(|s| s.t > x.t).collect();
+    let apex = (after.iter().enumerate())
+        .max_by(|a, b| a.1.at[1].total_cmp(&b.1.at[1]))?
+        .0;
+    let down = after[apex..].iter().find(|s| s.at[1] <= x.at[1] + DOWN)?;
+    (down.at[1] >= x.at[1] - LEVEL).then(|| (flat(x.at, down.at), down.t - x.t))
 }
 
 /// Whether Link ended on the far floor: within [`LEVEL`] of its height,
@@ -190,12 +225,16 @@ pub fn leap<M: Memory, I: Input>(
     let width = flat(from, to);
     let made = jumped.is_some() && landed(to, width, along(from, dir, traced.end), traced.end);
     let past = jumped.map(|j| along(from, dir, j.at));
+    let speed = jumped.and_then(|j| speed(&traced.samples, &j));
+    let air = jumped.and_then(|j| air(&traced.samples, &j));
     let leap = Leap {
         from,
         to,
         width,
         jumped,
         past,
+        speed,
+        air,
         made,
         traced,
     };
@@ -235,6 +274,40 @@ mod tests {
         assert_eq!(aim(cam, [0.0; 3], [-5.0, 0.0, 0.0]), (2, "LRight".into()));
         // A push that barely moved him says nothing.
         assert_eq!(camera([0.0; 3], [0.05, 0.0, 0.0], 0), None);
+    }
+
+    fn arc() -> (Vec<Sample>, Sample) {
+        // Running at 4 m/s along +Z, X at t 1, 0.7 m up and down over 0.7 s.
+        let at = |t: f32, y: f32| Sample {
+            t,
+            at: [0.0, y, 4.0 * t],
+        };
+        let samples = vec![
+            at(0.7, 10.0),
+            at(0.9, 10.0),
+            at(1.0, 10.0),
+            at(1.2, 10.5),
+            at(1.4, 10.7),
+            at(1.6, 10.4),
+            at(1.7, 10.05),
+            at(1.8, 10.0),
+        ];
+        let x = samples[2];
+        (samples, x)
+    }
+
+    #[test]
+    fn a_jump_reads_its_run_speed_and_its_air() {
+        let (samples, x) = arc();
+        assert!((speed(&samples, &x).unwrap() - 4.0).abs() < 1e-3);
+        let (d, t) = air(&samples, &x).unwrap();
+        assert!((t - 0.7).abs() < 1e-3 && (d - 2.8).abs() < 1e-3, "{d} {t}");
+        // Landing a metre below X's height has no level air to read.
+        let mut low = samples.clone();
+        for s in &mut low[6..] {
+            s.at[1] = 9.0;
+        }
+        assert_eq!(air(&low, &x), None);
     }
 
     #[test]

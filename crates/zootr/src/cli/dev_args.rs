@@ -26,6 +26,7 @@ pub(super) enum DevCommand {
     /// name or its placement hash from `probe actors`, or onto a spot
     /// given as `x,y,z`.
     Warp {
+        #[arg(allow_hyphen_values = true)]
         actor: String,
         /// Which side of the actor to land on.
         #[arg(long, value_enum, default_value_t)]
@@ -121,8 +122,9 @@ pub(super) enum DevCommand {
         from: String,
         #[arg(allow_hyphen_values = true)]
         to: String,
-        /// How far behind the near edge the run starts, in m.
-        #[arg(long, default_value_t = 2.0)]
+        /// How far behind the near edge the run starts, in m: Link reaches
+        /// his full 4.5 m/s after about 3.
+        #[arg(long, default_value_t = 3.0)]
         run: f32,
         /// How far past the near edge X goes in, in m: where the real lip
         /// sits past the navmesh's edge. Negative jumps early.
@@ -146,7 +148,10 @@ pub(super) enum DevCommand {
     /// placement hash, or a spot given as `x,y,z`, then ZL, for aiming: a
     /// slingshot shot, a bomb throw or a run then goes its way. Says
     /// whether he faces it and how far off it is.
-    Face { target: String },
+    Face {
+        #[arg(allow_hyphen_values = true)]
+        target: String,
+    },
     /// Walk to where a placed actor of the current map is used from, face
     /// it, then press A, or for a door walk through. Says `event`,
     /// `entered` or `nothing`, and where a frame of the game was saved.
