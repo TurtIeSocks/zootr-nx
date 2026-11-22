@@ -46,12 +46,14 @@ fn unique_chests(checks: &[ItemCheck], open: Let) -> Result<Vec<&ItemCheck>> {
 pub type Fixed = BTreeMap<u64, String>;
 
 /// Remove one `item` from `pool`, else one `fallback`, else any item. Keeps
-/// the pool one item per free chest whatever was placed.
-fn take(pool: &mut Vec<&str>, item: &str, fallback: &str) {
+/// the pool one item per free chest whatever was placed. `from`, the
+/// check each slot came from, loses the same slot.
+fn take(pool: &mut Vec<&str>, from: &mut Vec<u64>, item: &str, fallback: &str) {
     let at = pool.iter().position(|&i| i == item);
     let at = at.or_else(|| pool.iter().position(|&i| i == fallback));
     if let Some(at) = at.or(pool.len().checked_sub(1)) {
         pool.swap_remove(at);
+        from.swap_remove(at);
     }
 }
 
@@ -88,6 +90,9 @@ pub struct Deal<'a> {
     /// the pool. Each starting item leaves it for a filler, and progressive
     /// lines hold their first level.
     pub items: Vec<&'a str>,
+    /// Each starting item that left the pool, with the check (by hash)
+    /// whose slot it left, for the spoiler's Start column.
+    pub started: Vec<(&'a str, u64)>,
 }
 
 /// `fixed` placements, and the free checks with the items to deal them.
@@ -146,12 +151,14 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
     let (kept, chests): (Vec<_>, Vec<_>) =
         (unique_chests(checks, open)?.into_iter()).partition(|c| keeps(c));
     let mut items: Vec<_> = chests.iter().map(|c| keys::pooled(c)).collect();
+    let mut from: Vec<_> = chests.iter().map(|c| c.hash).collect();
     for p in placed.iter().filter(|p| shuffleable(p.check, open)) {
-        take(&mut items, p.item, keys::pooled(p.check));
+        take(&mut items, &mut from, p.item, keys::pooled(p.check));
     }
     let free: Vec<_> = chests.into_iter().filter(|c| !placed_at(&c.hash)).collect();
     if new_game.vanilla {
         items = free.iter().map(|c| own(c)).collect();
+        from = free.iter().map(|c| c.hash).collect();
     } else {
         items.iter_mut().for_each(|i| *i = level(i));
     }
@@ -163,12 +170,16 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
     // One swap over both, so a starting item leaves one spot either way.
     let mut all: Vec<_> = kept.iter().map(|c| own(c)).collect();
     all.append(&mut items);
+    let from: Vec<_> = kept.iter().map(|c| c.hash).chain(from).collect();
     let mut owned = new_game.start.owned();
     if new_game.on.contains(MET_ZELDA) {
         // Met Zelda leaves nothing for the egg to wake.
         owned.push(item::WEIRD_EGG.get());
     }
-    starting::swap_out(&mut all, &owned, level);
+    let slots = starting::swap_out(&mut all, &owned, level);
+    let started = (owned.into_iter().zip(slots))
+        .filter_map(|(item, at)| Some((item, from[at?])))
+        .collect();
     if new_game.on.contains(presets::KING_ZORA_MOVED) {
         // Nothing reads the letter once King Zora has moved, so it's dealt
         // as the bottle it comes in, as Ship does.
@@ -186,6 +197,7 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
         placed,
         free,
         items,
+        started,
     })
 }
 
@@ -208,6 +220,7 @@ pub fn scatter<'a>(deal: Deal<'a>, seed: u64, new_game: &NewGame) -> Result<Vec<
         mut placed,
         free,
         mut items,
+        ..
     } = deal;
     if !new_game.vanilla {
         Rng::new(seed).shuffle(&mut items);
@@ -474,12 +487,27 @@ mod tests {
     }
 
     #[test]
+    fn a_starting_item_names_the_check_whose_slot_it_left() {
+        needs_names!();
+        let sword = item::SWORD_KOKIRI.get();
+        let checks = [chest(1, "Item_A"), chest(2, sword), chest(3, "Item_C")];
+        // Plando takes chest 1's slot, which moves the slots after it.
+        let fixed = Fixed::from([(1, "Item_B".to_string())]);
+        for vanilla in [false, true] {
+            let deal = deal(&checks, &fixed, &game(vanilla, &["kokiri-sword"])).unwrap();
+            assert_eq!(deal.started, [(sword, 2)], "vanilla {vanilla}");
+        }
+    }
+
+    #[test]
     fn a_starting_item_outside_the_pool_changes_nothing() {
         needs_names!();
         let checks = [chest(1, "Item_A"), chest(2, "Item_B")];
         let none = Fixed::new();
         let p = shuffle(&checks, 7, &none, &game(true, &["deku-shield"])).unwrap();
         assert_eq!((holding(&p, 1), holding(&p, 2)), ("Item_A", "Item_B"));
+        let deal = deal(&checks, &none, &game(true, &["deku-shield"])).unwrap();
+        assert!(deal.started.is_empty());
     }
 
     #[test]
