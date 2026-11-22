@@ -506,7 +506,7 @@ pub fn schema() -> Vec<SettingDef> {
                 SONGS,
                 place::CHECKS,
                 "Songs",
-                "Ten songs become checks, given without the lesson: Zelda's Lullaby, Epona's Song, Saria's Song, the Song of Storms and Sheik's six. The Sun's Song, the Song of Time and the Scarecrow's Song stay where they are",
+                "Twelve songs become checks, given without the lesson: Zelda's Lullaby, Epona's Song, Saria's Song, the Sun's Song, the Song of Time, the Song of Storms and Sheik's six. The Scarecrow's Song stays where it is",
             )])
         .chain([toggle(
             MAPS_COMPASSES,

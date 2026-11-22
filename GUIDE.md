@@ -203,7 +203,7 @@ The Save Editor's item grid and two of its Status fields, on a new game. Click a
 | Chests | On by default. Off, each chest holds what it always does and the other checks shuffle among themselves. A gift that can't give its item by what Link has, like a pot holding a bag upgrade, keeps it too |
 | Business scrubs | Every Business Scrub outside the Dream World sells a check once, at a price you pick from 10 to 90 rupees |
 | NPC gifts | Heart pieces and items people hand over become checks, from the Skull Kid to Darunia's bracelet. A gift dealt arrows, seeds or bombs gives a Red Rupee until Link has what fires them, as a chest does |
-| Songs | Ten songs become checks, given without the lesson. The Sun's Song, the Song of Time and the Scarecrow's Song stay where they are |
+| Songs | Twelve songs become checks, given without the lesson. The Scarecrow's Song stays where it is |
 | Shopsanity | 1 to 8 slots in each of the eight shops sell a check once, at a random price. A slot dealt arrows, seeds or bombs shows a Red Rupee until Link has what fires them |
 | Freestanding heart pieces | The fourteen heart pieces lying out in the world are checks |
 | Cows | Each of the eight cows gives a check once, for Epona's Song. A cow dealt arrows, seeds or bombs gives a Red Rupee until Link has what fires them |
