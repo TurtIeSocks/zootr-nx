@@ -244,6 +244,9 @@ pub(super) fn logic_set(romfs: &Romfs, game: &std::path::Path, cmd: LogicCommand
             let d = crate::derive::rooms::write(romfs, game, dungeon, &dir)?;
             println!("{} room files for {}", d.files.len(), dungeon.label);
             println!("{} of {} faces in no room", d.unplaced, d.faces);
+            if !d.exitless.is_empty() {
+                println!("exits in no room: {:?}", d.exitless);
+            }
             if !d.roomless.is_empty() {
                 println!("checks in no room: {:?}", d.roomless);
             }

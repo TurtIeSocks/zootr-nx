@@ -30,6 +30,12 @@ pub struct RoomFile {
     pub flag: Vec<Flag>,
     #[serde(default)]
     pub knowledge: Vec<Knowledge>,
+    /// The exits placed in the room.
+    #[serde(default)]
+    pub exit: Vec<Spot>,
+    /// The spots Link lands on in the room.
+    #[serde(default)]
+    pub arrival: Vec<Spot>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -137,6 +143,23 @@ pub struct Knowledge {
     pub evidence: Vec<String>,
 }
 
+/// An exit or a spot Link lands on, keyed by [`spot`].
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Spot {
+    pub hash: u32,
+    #[expect(dead_code, reason = "for people: logic keys a spot by its hash")]
+    pub name: String,
+    #[serde(default)]
+    pub evidence: Vec<String>,
+}
+
+/// The key of a spot in a map, an exit's by where it leads: the same for
+/// an exit and the spot it lands on.
+pub fn spot(map: &str, spot: &str) -> u32 {
+    ounce_formats::murmur3(format!("{map}/{spot}").as_bytes())
+}
+
 /// An entry a confirmed file can replace, by its key.
 pub(super) trait Entry {
     fn key(&self) -> String;
@@ -164,6 +187,15 @@ impl Entry for Check {
 impl Entry for Flag {
     fn key(&self) -> String {
         format!("flag {}", self.word())
+    }
+    fn evidence(&self) -> &[String] {
+        &self.evidence
+    }
+}
+
+impl Entry for Spot {
+    fn key(&self) -> String {
+        format!("spot #{:08x}", self.hash)
     }
     fn evidence(&self) -> &[String] {
         &self.evidence
@@ -305,7 +337,9 @@ pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
             overlay(&mut base.link, file.link)?;
             overlay(&mut base.check, file.check)?;
             overlay(&mut base.flag, file.flag)?;
-            overlay(&mut base.knowledge, file.knowledge)
+            overlay(&mut base.knowledge, file.knowledge)?;
+            overlay(&mut base.exit, file.exit)?;
+            overlay(&mut base.arrival, file.arrival)
         };
         lay().with_context(at)?;
     }

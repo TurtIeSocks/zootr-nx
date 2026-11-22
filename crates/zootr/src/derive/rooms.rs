@@ -14,6 +14,7 @@ use ounce_formats::{Romfs, murmur3};
 
 use crate::entrances::Dungeon;
 use crate::gates::{Atom, Expr as GateExpr};
+use crate::known::{field, flag};
 use crate::nav::Level;
 use crate::nav::graph::{Arc, Cross, Graph, Via, dist};
 use crate::nav::limits::limits;
@@ -200,6 +201,10 @@ static NAMES: LazyLock<BTreeMap<String, BTreeMap<u32, String>>> = LazyLock::new(
 #[cfg(test)]
 pub(crate) const NAMES_FILE: &str = "room-names.toml";
 
+/// How far from the floor an exit's trigger box may sit and still take
+/// its room, in metres.
+const NEAR: f32 = 6.0;
+
 /// The logic node that drives a shutter's lattice.
 const SHUTTER: &str = "ActorLogicShutter";
 
@@ -327,6 +332,8 @@ pub struct Derived {
     pub floorless: Vec<u32>,
     /// Checks in no room, by hash.
     pub roomless: Vec<u64>,
+    /// Exits in no room, by name in words.
+    pub exitless: Vec<String>,
 }
 
 /// The maps of `dungeon`: its own, by either age, never its boss's.
@@ -380,6 +387,10 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
     let mut flags: BTreeMap<String, (Lock, Vec<&Kind>)> = BTreeMap::new();
     let mut checks_out: BTreeMap<u32, Vec<CheckOut>> = BTreeMap::new();
     let mut roomless = vec![];
+    let exits = crate::world::exits(romfs)?;
+    // Each room's exits and arrival spots, by key, with their names.
+    let mut spots: BTreeMap<(u32, &str), BTreeMap<u32, String>> = BTreeMap::new();
+    let mut exitless = vec![];
     let mut numbered = BTreeSet::new();
     let mut floored = BTreeSet::new();
     let (mut faces, mut unplaced) = (0, 0);
@@ -415,6 +426,64 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
             let hash = p.hash?;
             (rooms_of.get(&hash).copied()).or_else(|| room[graph.locate(p.pose.at)?.face])
         };
+        // A placement off the floor (an exit's trigger box) takes the room
+        // of the nearest floor around it.
+        let room_near = |p: &Placement| {
+            room_at(p).or_else(|| {
+                (0..room.len())
+                    .filter(|&f| room[f].is_some())
+                    .map(|f| (dist(graph.centers[f], p.pose.at), f))
+                    .filter(|(d, _)| *d < NEAR)
+                    .min_by(|a, b| a.0.total_cmp(&b.0))
+                    .and_then(|(_, f)| room[f])
+            })
+        };
+        let name_of = |to: &str, start: &str| match start {
+            "-" => super::words(to),
+            _ => format!("{} {}", super::words(to), super::words(start)),
+        };
+        let exit_placed = |label: &str| {
+            (level.placed.iter())
+                .filter(|p| p.name == field::FIELD_AND_DUNGEON_ENTRANCE_EVENT_REQUEST_ACTOR.get())
+                .filter(|p| p.label.as_deref() == Some(label))
+                .find_map(room_near)
+        };
+        for e in exits.iter().filter(|e| e.from == map) {
+            let name = name_of(&e.to, &e.to_start);
+            match exit_placed(&e.name) {
+                Some(r) => drop(
+                    spots
+                        .entry((r, "exit"))
+                        .or_default()
+                        .insert(rooms::spot(&e.to, &e.to_start), name),
+                ),
+                None => exitless.push(name),
+            }
+        }
+        // A boss exit the rule files add leaves from the boss's own room.
+        let boss = (level.placed.iter())
+            .find(|p| p.name.starts_with("Enemy") && p.name.contains("DungeonBoss"))
+            .and_then(room_near);
+        let added = (book.exits.iter()).filter(|r| r.added && r.from == map);
+        for rule in added {
+            let name = name_of(&rule.to, "-");
+            match boss.filter(|_| dungeon.boss.is_some_and(|b| b.get() == rule.to)) {
+                Some(r) => drop(
+                    spots
+                        .entry((r, "exit"))
+                        .or_default()
+                        .insert(rooms::spot(&rule.to, "-"), name),
+                ),
+                None => exitless.push(name),
+            }
+        }
+        let starts = (level.placed.iter()).filter(|p| p.name == flag::START_POS.get());
+        for p in starts {
+            if let (Some(label), Some(r)) = (&p.label, room_near(p)) {
+                let at = spots.entry((r, "arrival")).or_default();
+                at.insert(rooms::spot(&map, label), name_of(&map, label));
+            }
+        }
         // Each shutter's flags, and the rooms that set them.
         for gate in shutters.iter().filter(|g| level.placement(g.hash).is_ok()) {
             let mut found = BTreeMap::new();
@@ -592,6 +661,15 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
             ];
             entry("flag", &fields, guess);
         }
+        for table in ["exit", "arrival"] {
+            for (hash, name) in spots.get(&(room, table)).into_iter().flatten() {
+                entry(
+                    table,
+                    &[("hash", format!("0x{hash:08x}")), ("name", q(name))],
+                    false,
+                );
+            }
+        }
         files.push((format!("baseline/{folder}/{file}"), out));
     }
     let floorless = numbered.difference(&floored).copied().collect();
@@ -601,6 +679,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
         unplaced,
         floorless,
         roomless,
+        exitless,
     })
 }
 
@@ -810,6 +889,7 @@ mod tests {
         // whose Skulltulas hang on a wall, and nearly every face has a room.
         assert_eq!(fresh.floorless, [11]);
         assert!(fresh.roomless.is_empty(), "{:?}", fresh.roomless);
+        assert!(fresh.exitless.is_empty(), "{:?}", fresh.exitless);
         let all: String = fresh.files.iter().map(|(_, t)| t.as_str()).collect();
         assert!(
             all.contains("needs = \"flag:#"),
