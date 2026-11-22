@@ -17,6 +17,7 @@ mod notice;
 mod open;
 mod rule;
 mod seed;
+mod when;
 mod zip;
 
 pub use open::{ApSeed, Placed, Resolved};
@@ -29,8 +30,8 @@ pub const GAME: &str = "Ocarina of Time (znx)";
 /// always roll back together.
 pub const RECEIVED: &str = "Rando_ApReceived";
 
-/// The settings the AP world exposes, by id. Each passes the
-/// `an_exposed_option_changes_only_rules` test.
+/// The settings the AP world exposes, by id. An option changes the
+/// export's rules, or the checks and pool it holds through `when` rows.
 pub const OPTIONS: &[&str] = &[
     "open-forest",
     "kakariko-gate",
@@ -40,6 +41,8 @@ pub const OPTIONS: &[&str] = &[
     "open-waterfall",
     "adult-deku-tree",
     "gerudo-fortress",
+    "npc-gifts",
+    "songs",
     "bombchus",
     "skip-cutscenes",
     "chest-size",
@@ -47,6 +50,13 @@ pub const OPTIONS: &[&str] = &[
     "bunny-hood",
     "ageless-weapons",
 ];
+
+/// Exposed options that change the checks or the pool together, beyond
+/// what each changes alone, so the export builds each group's
+/// combinations whole: NPC Gifts with Met Zelda (Zelda's Letter ✅ stays
+/// put, no Weird Egg) and with Gerudo Fortress (Freed keeps the
+/// membership card's check).
+pub const JOINT: &[&[&str]] = &[&["npc-gifts", "met-zelda", "gerudo-fortress"]];
 
 /// Choice options the world leaves out, each as setting id, option and
 /// the sentence of the setting's description that offers it: Bombchu Bags

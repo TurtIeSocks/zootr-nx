@@ -12,8 +12,57 @@
     "item": "Arrows (5)"
   },
   {
+    "count": 1,
+    "item": "Biggoron's Sword",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
     "count": 15,
     "item": "Blue Rupee (5)"
+  },
+  {
+    "count": 2,
+    "item": "Blue Rupee (5)",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Blue Rupee (5)",
+    "when": {
+      "all": [
+        {
+          "setting": "met-zelda"
+        },
+        {
+          "setting": "npc-gifts"
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Bolero of Fire",
+    "when": {
+      "setting": "songs"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Bombchus (10)",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Bombchus (20)",
+    "when": {
+      "setting": "npc-gifts"
+    }
   },
   {
     "count": 3,
@@ -26,6 +75,20 @@
   {
     "count": 1,
     "item": "Boomerang"
+  },
+  {
+    "count": 3,
+    "item": "Bottle",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Bottle with Milk",
+    "when": {
+      "setting": "npc-gifts"
+    }
   },
   {
     "count": 13,
@@ -44,8 +107,78 @@
     "item": "Deku Sticks (3)"
   },
   {
+    "count": 1,
+    "item": "Din's Fire",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Double Defense",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Epona's Song",
+    "when": {
+      "setting": "songs"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Farore's Wind",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Fire Arrows",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Gerudo Membership Card",
+    "when": {
+      "all": [
+        {
+          "any": [
+            {
+              "setting": "gerudo-fortress=normal"
+            },
+            {
+              "setting": "gerudo-fortress=fast"
+            }
+          ]
+        },
+        {
+          "setting": "npc-gifts"
+        }
+      ]
+    }
+  },
+  {
     "count": 10,
     "item": "Gold Rupee (200)"
+  },
+  {
+    "count": 1,
+    "item": "Gold Rupee (200)",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Goron Tunic",
+    "when": {
+      "setting": "npc-gifts"
+    }
   },
   {
     "count": 5,
@@ -65,6 +198,13 @@
   },
   {
     "count": 1,
+    "item": "Improved Spin",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
     "item": "Iron Boots"
   },
   {
@@ -77,6 +217,13 @@
   },
   {
     "count": 1,
+    "item": "Light Arrows",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
     "item": "Magic Jar"
   },
   {
@@ -85,31 +232,101 @@
   },
   {
     "count": 1,
+    "item": "Magic Meter",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
     "item": "Megaton Hammer"
+  },
+  {
+    "count": 1,
+    "item": "Minuet of Forest",
+    "when": {
+      "setting": "songs"
+    }
   },
   {
     "count": 1,
     "item": "Mirror Shield"
   },
   {
+    "count": 1,
+    "item": "Nayru's Love",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Nocturne of Shadow",
+    "when": {
+      "setting": "songs"
+    }
+  },
+  {
     "count": 9,
     "item": "Piece of Heart"
+  },
+  {
+    "count": 12,
+    "item": "Piece of Heart",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Prelude of Light",
+    "when": {
+      "setting": "songs"
+    }
   },
   {
     "count": 1,
     "item": "Progressive Bomb Bag"
   },
   {
+    "count": 2,
+    "item": "Progressive Bomb Bag",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
     "count": 1,
     "item": "Progressive Bow"
+  },
+  {
+    "count": 2,
+    "item": "Progressive Bow",
+    "when": {
+      "setting": "npc-gifts"
+    }
   },
   {
     "count": 1,
     "item": "Progressive Deku Nut Bag"
   },
   {
+    "count": 1,
+    "item": "Progressive Deku Nut Bag",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
     "count": 2,
     "item": "Progressive Deku Stick Bag"
+  },
+  {
+    "count": 1,
+    "item": "Progressive Deku Stick Bag",
+    "when": {
+      "setting": "npc-gifts"
+    }
   },
   {
     "count": 2,
@@ -120,12 +337,40 @@
     "item": "Progressive Ocarina"
   },
   {
+    "count": 2,
+    "item": "Progressive Scale",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
     "count": 1,
     "item": "Progressive Slingshot"
   },
   {
     "count": 2,
+    "item": "Progressive Slingshot",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 2,
     "item": "Progressive Strength Upgrade"
+  },
+  {
+    "count": 1,
+    "item": "Progressive Strength Upgrade",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 2,
+    "item": "Progressive Wallet",
+    "when": {
+      "setting": "npc-gifts"
+    }
   },
   {
     "count": 16,
@@ -134,5 +379,103 @@
   {
     "count": 36,
     "item": "Red Rupee (20)"
+  },
+  {
+    "count": 1,
+    "item": "Requiem of Spirit",
+    "when": {
+      "setting": "songs"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Ruto's Letter",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Saria's Song",
+    "when": {
+      "setting": "songs"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Serenade of Water",
+    "when": {
+      "setting": "songs"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Song of Storms",
+    "when": {
+      "setting": "songs"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Song of Time",
+    "when": {
+      "setting": "songs"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Stone of Agony",
+    "when": {
+      "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Sun's Song",
+    "when": {
+      "setting": "songs"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Weird Egg",
+    "when": {
+      "all": [
+        {
+          "setting": "met-zelda=off"
+        },
+        {
+          "setting": "npc-gifts"
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Zelda's Letter",
+    "when": {
+      "all": [
+        {
+          "setting": "met-zelda=off"
+        },
+        {
+          "setting": "npc-gifts"
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Zelda's Lullaby",
+    "when": {
+      "setting": "songs"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Zora Tunic",
+    "when": {
+      "setting": "npc-gifts"
+    }
   }
 ]

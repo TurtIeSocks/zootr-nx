@@ -10,7 +10,7 @@ use crate::checks::ItemCheck;
 use crate::generate::Spot;
 use crate::known::{Name, actor, flag, flow, item, map};
 use crate::progressive::Lines;
-use crate::{gifts, places, scrubs};
+use crate::{gifts, pickups, places, scrubs};
 
 /// Each area by its folder.
 const AREAS: &[(&Name, &str)] = &[
@@ -28,6 +28,8 @@ const AREAS: &[(&Name, &str)] = &[
     (flag::GORON_CITY, "Goron City"),
     (flag::GRAVEYARD, "Graveyard"),
     (flag::HOUNTED_WASTELAND, "Haunted Wasteland"),
+    (map::GANON_CASTLE, "Outside Ganon's Castle"),
+    (flag::HYRULE_CASTLE, "Hyrule Castle"),
     (flag::HYRULE_FIELD, "Hyrule Field"),
     (map::ICE_CAVERN, "Ice Cavern"),
     (map::INSIDE_GANON_CASTLE, "Ganon's Castle"),
@@ -49,16 +51,29 @@ const AREAS: &[(&Name, &str)] = &[
 /// Each item by its actor. An upgrade line's levels are named one by one;
 /// [`PROGRESSIVE`] names the line.
 const ITEMS: &[(&Name, &str)] = &[
+    (item::AGONY_STONE, "Stone of Agony"),
+    (item::ARROW_FIRE, "Fire Arrows"),
     (item::ARROW_ICE, "Ice Arrows"),
+    (item::ARROW_LIGHT, "Light Arrows"),
     (item::BOMB_BAG_SMALL, "Bomb Bag"),
     (item::BOMB_BAG_MEDIUM, "Big Bomb Bag"),
     (item::BOMB_BAG_LARGE, "Biggest Bomb Bag"),
     (item::BOMB_BUNDLE_SMALL, "Bombs (5)"),
     (item::BOMBCHU_BUNDLE_SMALL, "Bombchus (5)"),
+    (item::BOMBCHU_BUNDLE_MEDIUM, "Bombchus (10)"),
+    (item::BOMBCHU_BUNDLE_LARGE, "Bombchus (20)"),
     (item::BOOMERANG, "Boomerang"),
+    (item::BOTTLE, "Bottle"),
+    (item::BOTTLE_LETTER, "Ruto's Letter"),
+    (item::BOTTLE_MILK, "Bottle with Milk"),
     (item::BULLET_BAG_MEDIUM, "Big Bullet Bag"),
     (item::BULLET_BAG_LARGE, "Biggest Bullet Bag"),
     (item::DEKU_STICK_BUNDLE_SMALL, "Deku Sticks (3)"),
+    (item::DIN_FIRE, "Din's Fire"),
+    (item::FAIRY_BLESS_DEFENSE_DOUBLE, "Double Defense"),
+    (item::FAIRY_BLESS_MP, "Improved Spin"),
+    (item::FAIRY_BLESS_MP_DOUBLE, "Double Magic"),
+    (item::FARORE_WIND, "Farore's Wind"),
     (item::GAUNTLET_GORON, "Goron's Bracelet"),
     (item::GAUNTLET_SILVER, "Silver Gauntlets"),
     (item::GAUNTLET_GOLD, "Golden Gauntlets"),
@@ -69,6 +84,19 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::HOVER_BOOT, "Hover Boots"),
     (item::LONGSHOT, "Longshot"),
     (crate::magic::meter::METER, "Magic Meter"),
+    (item::MELODY_ZELDA_LULLABY, "Zelda's Lullaby"),
+    (item::MELODY_EPONA_SONG, "Epona's Song"),
+    (item::MELODY_SARIA_SONG, "Saria's Song"),
+    (item::MELODY_SUN_SONG, "Sun's Song"),
+    (item::MELODY_TIME_SONG, "Song of Time"),
+    (item::MELODY_STORM_SONG, "Song of Storms"),
+    (item::MELODY_FOREST_MINUET, "Minuet of Forest"),
+    (item::MELODY_FIRE_BOLERO, "Bolero of Fire"),
+    (item::MELODY_WATER_SERENADE, "Serenade of Water"),
+    (item::MELODY_SPIRIT_REQUIEM, "Requiem of Spirit"),
+    (item::MELODY_SHADOW_NOCTURNE, "Nocturne of Shadow"),
+    (item::MELODY_LIGHT_PRELUDE, "Prelude of Light"),
+    (item::NAYRU_LOVE, "Nayru's Love"),
     (item::NUT_BAG_MEDIUM, "Deku Nut Bag (30)"),
     (item::NUT_BAG_LARGE, "Deku Nut Bag (40)"),
     (item::OCARINA_FAIRY, "Fairy Ocarina"),
@@ -83,9 +111,15 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::SHIELD_MIRROR, "Mirror Shield"),
     (item::STICK_BAG_MEDIUM, "Deku Stick Bag (20)"),
     (item::STICK_BAG_LARGE, "Deku Stick Bag (30)"),
+    (item::SWORD_BIGGORON, "Biggoron's Sword"),
     (item::SWORD_KOKIRI, "Kokiri Sword"),
+    (item::TOKEN_GERUDO, "Gerudo Membership Card"),
     (item::WALLET_MEDIUM, "Adult's Wallet"),
     (item::WALLET_LARGE, "Giant's Wallet"),
+    (item::WEIRD_EGG, "Weird Egg"),
+    (item::ZELDA_LETTER, "Zelda's Letter"),
+    (actor::OBJ_ARMOR_GORON, "Goron Tunic"),
+    (actor::OBJ_ARMOR_ZORA, "Zora Tunic"),
     (actor::OBJ_HEART_PIECE, "Piece of Heart"),
     (actor::TBOX_MAGIC_JAR_LARGE, "Magic Jar"),
     (actor::T_BOX_ARROW_BUNDLE_SMALL, "Arrows (3)"),
@@ -124,9 +158,13 @@ pub fn area(folder: &str) -> Result<&'static str> {
     find(AREAS, folder).with_context(|| format!("no Archipelago name for area {folder}"))
 }
 
-/// Items AP counts as another, which gives the same: the running man's
-/// Purple Rupee pays what a chest's does.
-const SAME: &[(&Name, &Name)] = &[(actor::OBJ_RUPEE_PURPLE, actor::T_BOX_RUPEE_PURPLE)];
+/// Items AP counts as another, which gives the same: a gift's rupee pays
+/// what a chest's does.
+const SAME: &[(&Name, &Name)] = &[
+    (actor::OBJ_RUPEE_BLUE, actor::T_BOX_RUPEE_BLUE),
+    (actor::OBJ_RUPEE_PURPLE, actor::T_BOX_RUPEE_PURPLE),
+    (actor::OBJ_RUPEE_GOLD, actor::T_BOX_RUPEE_GOLD),
+];
 
 /// The item AP counts `actor` as.
 pub fn same(actor: &str) -> &str {
@@ -176,6 +214,10 @@ pub fn locations(romfs: &Romfs, checks: &[ItemCheck]) -> Result<BTreeMap<u64, St
             format!("{area} {}'s Gift", c.holder)
         } else if c.holder == actor::OBJ_HRL_CITY_SHOP_T_BOX_A_02.get() {
             format!("{area} Treasure Chest Game Prize")
+        } else if pickups::is_pickup(c) {
+            // One lone pickup per area so far: the lake's Fire Arrows, the
+            // letter in the bottle.
+            format!("{area} {}", item(&c.item, false)?)
         } else if !s.place.is_empty() {
             match s.place.rsplit_once(' ') {
                 Some((at, n)) if n.parse::<u32>().is_ok() => format!("{area} {at} Chest {n}"),

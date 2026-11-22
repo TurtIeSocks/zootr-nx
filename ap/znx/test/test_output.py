@@ -31,7 +31,7 @@ class TestOutput(ZnxTestBase):
                 seed = json.loads(zf.read("seed.json"))
                 placements = json.loads(zf.read("placements.json"))
         self.assertEqual(manifest["game"], self.game)
-        self.assertEqual(set(placements), {check["hash"] for check in WORLD["checks"]})
+        self.assertEqual(set(placements), {check["hash"] for check in WORLD["checks"] if self.world.holds(check)})
         self.assertTrue(all("own" in p for p in placements.values()))
         self.assertEqual(set(seed["settings"]), {entry["id"] for entry in OPTIONS})
         self.assertIs(seed["settings"]["open-forest"], True)

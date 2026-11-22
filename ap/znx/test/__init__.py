@@ -5,3 +5,11 @@ from ..output import GAME
 
 class ZnxTestBase(WorldTestBase):
     game = GAME
+
+    def test_pool_fills_the_checks(self) -> None:
+        """Every option's checks and pool grow together, one item a check."""
+        if not self.run_default_tests:
+            return
+        checks = [loc for loc in self.multiworld.get_locations(self.player) if loc.address is not None]
+        items = [item for item in self.multiworld.itempool if item.player == self.player]
+        self.assertEqual(len(items), len(checks))

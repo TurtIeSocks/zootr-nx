@@ -43,8 +43,9 @@ class ZnxWeb(WebWorld):
 class ZnxWorld(World):
     """
     The Switch 2 Ocarina of Time, randomized by zootr-nx. Link wakes in
-    Kokiri Forest with the world's items shuffled across chests, gifts and
-    scrubs, and every other game's items mixed in.
+    Kokiri Forest with the world's items shuffled across chests, scrubs,
+    and the songs and gifts the options add, and every other game's items
+    mixed in.
     """
 
     game = GAME
@@ -63,6 +64,11 @@ class ZnxWorld(World):
             entry["id"]: setting_value(entry, getattr(self.options, attr(entry["id"])))
             for entry in OPTIONS
         }
+
+    def holds(self, row: dict) -> bool:
+        """Whether these options hold `row`: a check, event or pool row an
+        option adds or takes away carries `when`."""
+        return "when" not in row or rules.fold(row["when"], self.setting_values) is True
 
     def rule(self, tree) -> rules.Rule | None:
         tree = rules.fold(tree, self.setting_values)
@@ -91,7 +97,7 @@ class ZnxWorld(World):
                 regions[exit_["from"]].connect(regions[exit_["to"]], rule=self.rule(exit_["rule"]))
 
         origin = regions[self.origin_region_name]
-        for check in WORLD["checks"]:
+        for check in filter(self.holds, WORLD["checks"]):
             at = self.spots(check["at"], regions)
             if check["unprovable"] or (check["at"] and not at):
                 # Our logic shows no way in, or none with these options, so
@@ -105,7 +111,7 @@ class ZnxWorld(World):
                 location.item_rule = lambda item, forbid=forbid: (
                     item.player != self.player or item.name not in forbid
                 )
-        for event in WORLD["events"]:
+        for event in filter(self.holds, WORLD["events"]):
             location = self.place(event["name"], None, self.spots(event["at"], regions), regions, origin)
             location.place_locked_item(ZnxItem(event["name"], ItemClassification.progression, None, self.player))
 
@@ -139,11 +145,16 @@ class ZnxWorld(World):
         return ZnxItem(name, ItemClassification[CLASSES[name]], ITEM_NAME_TO_ID[name], self.player)
 
     def create_items(self) -> None:
-        for row in POOL:
+        for row in filter(self.holds, POOL):
             self.multiworld.itempool += [self.create_item(row["item"]) for _ in range(row["count"])]
 
     def get_filler_item_name(self) -> str:
-        counts = Counter({row["item"]: row["count"] for row in POOL if CLASSES[row["item"]] == "filler"})
+        # Every row, whatever the options: an item link's group world has
+        # none set.
+        counts = Counter()
+        for row in POOL:
+            if CLASSES[row["item"]] == "filler":
+                counts[row["item"]] += row["count"]
         return counts.most_common(1)[0][0]
 
     def set_rules(self) -> None:

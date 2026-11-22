@@ -7,7 +7,8 @@ use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 use serde_json::Value;
 
-use super::{OPTIONS, offers};
+use super::when::{Domain, Variant};
+use super::{JOINT, OPTIONS, offers};
 use crate::checks::{self, ItemCheck};
 use crate::fill;
 use crate::logic::{Got, Play, World};
@@ -18,42 +19,28 @@ use crate::starting;
 
 /// What Link reaches holding everything. The rest never happens, so the
 /// export leaves it out.
-#[derive(PartialEq)]
+#[derive(Default, PartialEq)]
 pub(super) struct Everything {
     pub checks: HashSet<u64>,
-    /// By index into the world's sources.
-    pub sources: BTreeSet<usize>,
+    /// By name: the variants' worlds hold different sources.
+    pub sources: BTreeSet<String>,
     /// By index into the world's places.
     pub places: BTreeSet<usize>,
 }
 
 impl Everything {
-    /// What the base reaches, and what any one exposed option's value
-    /// reaches beside it. Play leaves an open setting unmet, so a place only
-    /// that setting lets Link into would drop out of the export: the dead
-    /// tree under Adult Deku Tree. Each value is played as set, with the
-    /// other options still open.
-    pub fn any_option(romfs: &Romfs, base_seed: &Seed) -> Result<Self> {
-        let mut reach = base_seed.everything();
-        for (id, value) in variants()? {
-            let mut s = base();
-            s.insert(id.clone(), value);
-            let prefix = value_word(&id, "");
-            let mut open = open();
-            open.retain(|w| *w != id && !w.starts_with(&prefix));
-            let other = Seed::build(romfs, &s, &open)?.everything();
+    /// What Link reaches holding everything in any of `seeds`, each built
+    /// with its settings set: what an option lets Link into, like the dead
+    /// tree under Adult Deku Tree, or Bombchu Bowling's prizes with NPC
+    /// Gifts on and Bombchus free. The rest never happens.
+    pub fn union(seeds: &[Seed]) -> Self {
+        let mut reach = Everything::default();
+        for other in seeds.iter().map(Seed::everything) {
             reach.checks.extend(other.checks);
             reach.sources.extend(other.sources);
             reach.places.extend(other.places);
         }
-        Ok(reach)
-    }
-
-    #[cfg(test)]
-    fn covers(&self, other: &Self) -> bool {
-        self.checks.is_superset(&other.checks)
-            && self.sources.is_superset(&other.sources)
-            && self.places.is_superset(&other.places)
+        reach
     }
 }
 
@@ -137,7 +124,7 @@ impl Seed {
         let play = self.play(&all);
         let sources = (play.rounds.iter().flatten())
             .filter_map(|g| match g {
-                Got::Source(i) => Some(*i),
+                Got::Source(i) => Some(self.world.sources[*i].name.clone()),
                 Got::Check(_) => None,
             })
             .collect();
@@ -159,29 +146,6 @@ impl Seed {
         let goal = w.goal().iter().map(|(_, n)| n.to_string());
         let all: Vec<String> = edges.chain(locations).chain(sources).chain(goal).collect();
         all.join("\n")
-    }
-
-    /// Everything about the seed but what its rules need: the checks, the
-    /// pool, the start, and the graph's shape.
-    #[cfg(test)]
-    pub fn shape(&self) -> String {
-        let w = &self.world;
-        let mut pool = self.dealt.pool.clone();
-        pool.sort();
-        let mut start: Vec<_> = self.start.items.iter().collect();
-        start.sort();
-        let mut edges: Vec<_> = w.edges.iter().map(|e| (e.from, e.to)).collect();
-        edges.sort();
-        let mut locations: Vec<_> = w.locations.iter().map(|l| (l.hash, l.place)).collect();
-        locations.sort();
-        let sources: Vec<_> = (w.sources.iter())
-            .map(|s| (&s.name, &s.places, &s.item))
-            .collect();
-        let checks: BTreeSet<u64> = self.dealt.checks.iter().map(|c| c.hash).collect();
-        format!(
-            "{checks:?}{:?}{pool:?}{start:?}{:?}{edges:?}{locations:?}{sources:?}",
-            self.dealt.free, w.places
-        )
     }
 }
 
@@ -209,24 +173,122 @@ pub(super) fn base() -> Settings {
     s
 }
 
-/// The settings each exposed option can take besides the base's.
-pub(super) fn variants() -> Result<Vec<(String, Value)>> {
+impl Variant {
+    /// The base with this variant's settings over it.
+    pub fn settings(&self) -> Settings {
+        let mut s = base();
+        s.extend(self.overlay.clone());
+        s
+    }
+}
+
+/// Each exposed option at each value besides the base's, alone over the
+/// base: the toggle a setting `requires` comes along on. The settings a
+/// start flag or item is read from.
+pub(super) fn values() -> Result<Vec<Settings>> {
     let defs = schema();
+    let mut out = Vec::new();
+    for d in domains()? {
+        let def = defs.iter().find(|x| x.id == d.id);
+        let parent = def.and_then(|x| x.requires);
+        for value in d.values.into_iter().skip(1) {
+            let mut overlay = Settings::from([(d.id.clone(), value)]);
+            if let Some(p) = parent {
+                overlay.insert(p.into(), Value::Bool(true));
+            }
+            out.push(overlay);
+        }
+    }
+    Ok(out)
+}
+
+/// Every exposed option and the values the world offers, the base's first.
+pub(super) fn domains() -> Result<Vec<Domain>> {
+    let defs = schema();
+    let base = base();
     let mut out = Vec::new();
     for id in OPTIONS {
         let def = defs.iter().find(|d| d.id == *id);
-        match def
+        let values: Vec<Value> = match def
             .map(|d| &d.kind)
             .with_context(|| format!("no setting {id}"))?
         {
-            Kind::Toggle { .. } => out.push(((*id).into(), Value::Bool(true))),
+            Kind::Toggle { .. } => vec![false.into(), true.into()],
             Kind::Choice {
                 default, options, ..
             } => {
-                let others = (options.iter()).filter(|o| o.id != *default && offers(id, &o.id));
-                out.extend(others.map(|o| ((*id).into(), Value::String(o.id.clone()))));
+                let first = base.get(*id).and_then(Value::as_str).unwrap_or(default);
+                let mut v = vec![Value::String(first.to_owned())];
+                let others = (options.iter()).filter(|o| o.id != first && offers(id, &o.id));
+                v.extend(others.map(|o| Value::String(o.id.clone())));
+                v
             }
-            Kind::Inventory { .. } => {}
+            Kind::Inventory { .. } => continue,
+        };
+        out.push(Domain {
+            id: (*id).into(),
+            values,
+        });
+    }
+    Ok(out)
+}
+
+/// The seeds the export is built from, beside the base: each option's
+/// other values alone, and each [`JOINT`] group's combinations whole. A
+/// setting that `requires` another is varied with that one on, from the
+/// seed with it on.
+pub(super) fn variants() -> Result<Vec<Variant>> {
+    let defs = schema();
+    let domains = domains()?;
+    let domain = |id: &str| domains.iter().find(|d| d.id == id);
+    let mut out: Vec<Variant> = Vec::new();
+    for group in JOINT {
+        let members: Vec<&Domain> = group
+            .iter()
+            .map(|id| domain(id).with_context(|| format!("{id} in JOINT isn't offered")))
+            .collect::<Result<_>>()?;
+        let mut combos: Vec<Settings> = vec![Settings::new()];
+        for d in &members {
+            combos = (combos.into_iter())
+                .flat_map(|c| {
+                    d.values.iter().map(move |v| {
+                        let mut c = c.clone();
+                        c.insert(d.id.clone(), v.clone());
+                        c
+                    })
+                })
+                .collect();
+        }
+        // The combination of every base value is the base.
+        for overlay in combos.into_iter().skip(1) {
+            out.push(Variant {
+                overlay,
+                from: None,
+            });
+        }
+    }
+    let joint = |id: &str| JOINT.iter().any(|g| g.contains(&id));
+    for d in domains.iter().filter(|d| !joint(&d.id)) {
+        let parent = defs.iter().find(|x| x.id == d.id).and_then(|x| x.requires);
+        for value in d.values.iter().skip(1) {
+            let mut overlay = Settings::from([(d.id.clone(), value.clone())]);
+            let from = match parent {
+                None => None,
+                Some(p) => {
+                    let mut with_parent = Settings::from([(p.to_owned(), Value::Bool(true))]);
+                    // A parent in a group comes with its group's base values.
+                    if let Some(g) = JOINT.iter().find(|g| g.contains(&p)) {
+                        for id in g.iter().filter(|id| **id != p) {
+                            let first = domain(id).map(|x| x.values[0].clone());
+                            with_parent.insert((*id).into(), first.unwrap_or_default());
+                        }
+                    }
+                    overlay.extend(with_parent.clone());
+                    let at = out.iter().position(|v| v.overlay == with_parent);
+                    Some(at.with_context(|| format!("no seed with {p} on for {}", d.id))?)
+                }
+            };
+            out.push(Variant { overlay, from });
         }
     }
     Ok(out)
@@ -261,47 +323,6 @@ pub(super) fn open() -> BTreeSet<String> {
 mod tests {
     use super::*;
     use crate::rules::settings_read;
-
-    #[test]
-    fn an_exposed_option_changes_only_rules() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let read = settings_read();
-        let base_seed = Seed::build(&romfs, &base(), &open()).unwrap();
-        let base_all = base_seed.everything();
-        let mut changed = Vec::new();
-        for (id, value) in variants().unwrap() {
-            let mut s = base();
-            s.insert(id.clone(), value.clone());
-            let seed = Seed::build(&romfs, &s, &open()).unwrap();
-            let rules = !read.contains(&id) && seed.needs() != base_seed.needs();
-            // The export leaves out what the base can't reach, so no value
-            // may reach less.
-            let less = !seed.everything().covers(&base_all);
-            if seed.shape() != base_seed.shape() || rules || less {
-                changed.push(format!("{id} = {value}"));
-            }
-        }
-        assert_eq!(changed, Vec::<String>::new());
-    }
-
-    #[test]
-    fn the_export_holds_what_any_option_lets_link_reach() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let base_seed = Seed::build(&romfs, &base(), &open()).unwrap();
-        let reach = Everything::any_option(&romfs, &base_seed).unwrap();
-        assert!(reach.covers(&base_seed.everything()));
-        for (id, value) in variants().unwrap() {
-            let mut s = base();
-            s.insert(id.clone(), value.clone());
-            let seed = Seed::build(&romfs, &s, &Default::default()).unwrap();
-            assert_eq!(seed.world.places, base_seed.world.places, "{id} = {value}");
-            assert!(reach.covers(&seed.everything()), "{id} = {value}");
-        }
-    }
 
     #[test]
     fn an_exposed_rule_setting_has_no_parent() {
