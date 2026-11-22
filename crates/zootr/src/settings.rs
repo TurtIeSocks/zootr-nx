@@ -159,27 +159,31 @@ pub(crate) fn forced(
     (toggles, starts)
 }
 
-/// `settings` with each choice a pick forces set to the forced option.
+/// `settings` with what the picks force written in: each forced choice
+/// set to its option, each forced toggle on.
 pub(crate) fn with_picks(schema: &[SettingDef], settings: &Settings) -> Settings {
     let mut out = settings.clone();
     for word in forced(schema, settings).0 {
-        if let Some((id, option)) = word.split_once('=') {
-            out.insert(id.into(), option.into());
-        }
+        match word.split_once('=') {
+            Some((id, option)) => out.insert(id.into(), option.into()),
+            None => out.insert(word.into(), true.into()),
+        };
     }
     out
 }
 
 /// `settings` with a random starting age rolled from `seed`, and whether
-/// it was.
+/// it was. What Random forces stays forced whichever age it rolls, as the
+/// app showed it.
 pub fn roll_age(settings: &Settings, seed: u64) -> (Settings, bool) {
     let age = chosen::<StartingAge>(settings, STARTING_AGE);
-    let mut rolled = settings.clone();
-    if age == StartingAge::Random {
-        let id = choice_id(age.resolve(seed));
-        rolled.insert(STARTING_AGE.into(), Value::String(id));
+    if age != StartingAge::Random {
+        return (settings.clone(), false);
     }
-    (rolled, age == StartingAge::Random)
+    let mut rolled = with_picks(&schema(), settings);
+    let id = choice_id(age.resolve(seed));
+    rolled.insert(STARTING_AGE.into(), Value::String(id));
+    (rolled, true)
 }
 
 /// A choice's value, or its default when unset or unknown.
@@ -442,7 +446,7 @@ pub fn schema() -> Vec<SettingDef> {
                 STARTING_AGE,
                 place::LOGIC,
                 "Starting Age",
-                "How old Link is on a new file. Adult wakes in the Temple of Time with the Master Sword, and opens the Door of Time and the forest, so he can go back to child and walk out. Random rolls one from the seed",
+                "How old Link is on a new file. Adult wakes in the Temple of Time, and opens the Door of Time and the forest, so he can go back to child and walk out. He holds the Master Sword only when the start inventory does: otherwise the pedestal gives its check on his first pull back to adult. Random rolls one from the seed, and opens the door and the forest whichever it rolls",
                 StartingAge::label,
             ),
             StartingAge::forces,

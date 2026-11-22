@@ -40,12 +40,12 @@ class TestDeadTreeWithAdultDekuTree(ZnxTestBase):
 RACE = "Gerudo Valley Running man's race's Gift"
 
 
-class TestRaceGiftNeedsFreed(ZnxTestBase):
-    """A check only an option lets Link into gets filler without it."""
+class TestRaceGiftFollowsTheCarpenters(ZnxTestBase):
+    """Freeing the carpenters in play opens the race, so it's a check without Freed too."""
 
-    def test_excluded_without_freed(self) -> None:
+    def test_a_check_without_freed(self) -> None:
         location = self.multiworld.get_location(RACE, self.player)
-        self.assertEqual(location.progress_type, LocationProgressType.EXCLUDED)
+        self.assertNotEqual(location.progress_type, LocationProgressType.EXCLUDED)
 
 
 class TestRaceGiftWithFreed(ZnxTestBase):

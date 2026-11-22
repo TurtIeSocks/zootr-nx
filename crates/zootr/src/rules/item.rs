@@ -1,5 +1,5 @@
-//! Item words: the game's own names for item actors, and boss defeats,
-//! which Link holds like items.
+//! Item words: the game's own names for item actors, and boss defeats and
+//! story events, which Link holds like items.
 
 use anyhow::{Context, Result, ensure};
 
@@ -12,13 +12,22 @@ pub(super) const ITEM_PREFIXES: &[&str] = &["Item_", "TBox_", "Armor_", "Obj_", 
 /// A boss defeat's id starts with this. Only a vanilla source gives one,
 /// and Link holds it like an item.
 pub(super) const BEAT: &str = "Beat_";
+/// A story event's id, like a boss defeat's.
+pub(super) const EVENT: &str = "Event_";
 
-/// What `word` needs, if it names an item or a boss defeat.
+/// Whether `word` is a boss defeat's or a story event's id.
+pub(super) fn held(word: &str) -> bool {
+    [BEAT, EVENT]
+        .iter()
+        .any(|p| word.len() > p.len() && word.starts_with(p))
+}
+
+/// What `word` needs, if it names an item, a boss defeat or a story event.
 pub(super) fn word(word: &str, progressive: bool, lines: Lines) -> Option<Result<Need>> {
     if ITEM_PREFIXES.iter().any(|p| word.starts_with(p)) {
         return Some(item(word, progressive, lines));
     }
-    (word.len() > BEAT.len() && word.starts_with(BEAT)).then(|| item(word, false, lines))
+    held(word).then(|| item(word, false, lines))
 }
 
 /// An item's name or `name*n`. In an upgrade line, `n` counts levels from

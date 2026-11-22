@@ -125,6 +125,22 @@ pub fn str_field<'a>(map: &'a Byml, key: &str) -> Option<&'a str> {
         .map(|s| s.as_str())
 }
 
+/// Swap every string `from` in `byml` for `to`. Returns how many.
+pub(crate) fn swap_strings(map: &mut BymlMap, from: &str, to: &str) -> usize {
+    fn walk(b: &mut Byml, from: &str, to: &str) -> usize {
+        match b {
+            Byml::String(s) if s.as_str() == from => {
+                *s = to.into();
+                1
+            }
+            Byml::Map(m) => m.values_mut().map(|v| walk(v, from, to)).sum(),
+            Byml::Array(a) => a.iter_mut().map(|v| walk(v, from, to)).sum(),
+            _ => 0,
+        }
+    }
+    map.values_mut().map(|v| walk(v, from, to)).sum()
+}
+
 /// The dungeon room `actor` names, if it names one.
 pub fn room_of(actor: &Byml) -> Option<u32> {
     let dynamic = actor.as_map().ok()?.get("Dynamic")?;

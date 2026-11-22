@@ -3,6 +3,12 @@ room = 4
 name = "Basement"
 
 [[link]]
+to = 0
+needs = "always"
+via = "climb"
+why = "climb 14670770652390206064, 17725402113092522180"
+
+[[link]]
 to = 5
 needs = "always"
 via = "walk"

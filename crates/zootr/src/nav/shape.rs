@@ -78,7 +78,7 @@ fn point(map: &BymlMap, key: &str) -> Option<[f32; 3]> {
 }
 
 /// The bounds a map carries under `AutoCalc`, when they hold any space.
-fn bounds(map: &BymlMap) -> Option<([f32; 3], [f32; 3])> {
+pub(super) fn bounds(map: &BymlMap) -> Option<([f32; 3], [f32; 3])> {
     let bounds = map.get(BOUNDS.get())?.as_map().ok()?;
     let (min, max) = (point(bounds, MIN)?, point(bounds, MAX)?);
     (0..3).all(|i| max[i] >= min[i]).then_some((min, max))

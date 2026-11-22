@@ -71,6 +71,7 @@ pub fn freed() -> Vec<String> {
         ),
     ]);
     edits.extend(all(CELLS.map(|(_, freed)| freed), "true"));
+    edits.push(format!("{}=true", crate::carpenters::played()));
     edits.extend(all(
         [
             flag::GERUDO_FORTRESS_WARP_POINT01_CLEAR_EVENT,
