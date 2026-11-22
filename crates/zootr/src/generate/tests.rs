@@ -900,5 +900,8 @@ fn a_met_zelda_seed_marks_her_three_checks_given_at_start() {
     assert_eq!(given.iter().filter(|s| s.item == letter).count(), 1);
     assert_eq!(report.spots.iter().filter(|s| s.item == letter).count(), 1);
     assert!(report.spots.iter().all(|s| s.item != item::WEIRD_EGG.get()));
+    // Songs are on: Met Zelda teaches the lullaby, so the pool holds none.
+    let lullaby = item::MELODY_ZELDA_LULLABY.get();
+    assert!(report.spots.iter().all(|s| s.item != lullaby));
     assert!(report.spoiler(&[]).contains(" (given at start)\n"));
 }

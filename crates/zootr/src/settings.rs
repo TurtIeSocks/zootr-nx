@@ -458,7 +458,7 @@ pub fn schema() -> Vec<SettingDef> {
             MET_ZELDA,
             place::LOGIC,
             "Met Zelda",
-            "Link starts having met Zelda, with her letter in hand and her lullaby learned, and Talon and Malon back at Lon Lon Ranch. Her letter's check holds the letter, and whatever Impa's and Malon's checks hold comes at the start. The pool holds no second letter and no Weird Egg",
+            "Link starts having met Zelda, with her letter in hand and her lullaby learned, and Talon and Malon back at Lon Lon Ranch. Her letter's check holds the letter, and whatever Impa's and Malon's checks hold comes at the start. The pool holds no second letter, no Weird Egg and, with Songs on, no Zelda's Lullaby",
         )])
         .chain([choice(
             DOOR_OF_TIME,
