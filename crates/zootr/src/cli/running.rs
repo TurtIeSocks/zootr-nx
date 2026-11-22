@@ -243,6 +243,11 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             crate::gear::equip(&game, &recorder::gamedata(romfs)?, &mut input()?, &item)?;
             format!("equipped {item}")
         }
+        DevCommand::Face { hash } => {
+            let (faced, off) = act::faced(&game, &mut input()?, romfs, game_path, hash)?;
+            let word = if faced { "facing" } else { "not facing" };
+            format!("{word} {hash}, {off:.1} m off")
+        }
         DevCommand::Use { hash, json } => said(
             &act::used(&game, &mut input()?, romfs, game_path, hash)?,
             json,

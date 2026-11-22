@@ -114,6 +114,10 @@ pub(super) enum DevCommand {
     /// menu: the item is given once more, so the menu opens on it, then A.
     /// Names as `give` takes them.
     Equip { item: String },
+    /// Turn Link to face a placed actor of the current map, then ZL, for
+    /// aiming: a slingshot shot or a bomb throw then goes its way. Says
+    /// whether he faces it and how far off it is.
+    Face { hash: u64 },
     /// Walk to where a placed actor of the current map is used from, face
     /// it, then press A, or for a door walk through. Says `event`,
     /// `entered` or `nothing`, and where a frame of the game was saved.
