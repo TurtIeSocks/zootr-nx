@@ -25,6 +25,7 @@ const SHF_ALLOC: u64 = 2;
 const ENTRIES: u64 = zootr_hook::SLOTS as u64 / 4;
 
 fn main() {
+    room_files();
     let hook = Path::new(env!("CARGO_MANIFEST_DIR")).join("../zootr-hook");
     let (src, script) = (hook.join("src/lib.rs"), hook.join("hook.ld"));
     // A directory is watched through everything under it, and the hook has
@@ -167,4 +168,41 @@ fn code(d: &[u8]) -> (&[u8], &[u8]) {
         "the hook doesn't start with {ENTRIES} entry branches"
     );
     (text, far)
+}
+
+/// Lists every room file under `logic/baseline` and `logic/confirmed` with
+/// its text, for `rules::rooms`. Derive writes them, so no hand-kept list.
+fn room_files() {
+    let logic = Path::new(env!("CARGO_MANIFEST_DIR")).join("logic");
+    let mut files = Vec::new();
+    for tier in ["baseline", "confirmed"] {
+        let dir = logic.join(tier);
+        println!("cargo:rerun-if-changed={}", dir.display());
+        collect(&dir, &mut files);
+    }
+    files.sort();
+    let mut out = String::from("&[\n");
+    for f in &files {
+        let rel = f
+            .strip_prefix(&logic)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .replace('\\', "/");
+        out += &format!("    ({rel:?}, include_str!({:?})),\n", f.to_str().unwrap());
+    }
+    out += "]\n";
+    let dest = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("room_files.rs");
+    std::fs::write(dest, out).unwrap();
+}
+
+fn collect(dir: &Path, files: &mut Vec<PathBuf>) {
+    for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect(&path, files);
+        } else if path.extension().is_some_and(|e| e == "toml") {
+            files.push(path);
+        }
+    }
 }

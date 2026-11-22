@@ -15,6 +15,7 @@ use crate::world::Era;
 mod files;
 mod item;
 mod lang;
+pub mod rooms;
 mod set;
 pub mod vocab;
 
@@ -98,6 +99,10 @@ pub struct Book {
     insides: Vec<PlaceRule>,
     pub sources: Vec<SourceRule>,
     toggles: BTreeSet<String>,
+    /// The room files, confirmed over baseline.
+    pub rooms: Vec<rooms::Room>,
+    /// The hand rules room files took the place of, for the audit.
+    pub hand: BTreeMap<u64, CheckEntry>,
 }
 
 impl Book {
@@ -189,6 +194,12 @@ impl Book {
                 Some(("setting", id)) => {
                     ensure!(self.toggles.contains(id), "no toggle `{id}`");
                     ctx.setting(id)
+                }
+                Some(("flag", hash)) if hash.starts_with('#') => {
+                    let hex = &hash[1..];
+                    let ok = hex.len() == 8 && u32::from_str_radix(hex, 16).is_ok();
+                    ensure!(ok, "`{word}` isn't a flag's 8 hex digit hash");
+                    Need::Flag(hash.to_ascii_lowercase())
                 }
                 Some(("flag", name)) if !name.is_empty() => Need::Flag(name.into()),
                 // Something logic can't read yet, or a GameData enum it
@@ -326,7 +337,17 @@ mod tests {
         assert!(!flag.met(&h, Era::Child));
         h.flags.insert("Fake_Flag".into());
         assert!(flag.met(&h, Era::Child));
-        for bad in ["strength", "flag:", "switch:Obj_A"] {
+        // A room file names the same flag by its hash.
+        let hash = lang::flag_hash("Fake_Flag").unwrap();
+        let by_hash = book.resolve(&format!("flag:#{hash:08X}"), &c).unwrap();
+        assert!(by_hash.met(&h, Era::Child) && !by_hash.met(&have(&[]), Era::Child));
+        for bad in [
+            "strength",
+            "flag:",
+            "switch:Obj_A",
+            "flag:#12",
+            "flag:#zzzzzzzz",
+        ] {
             assert!(book.resolve(bad, &c).is_err(), "{bad}");
         }
     }

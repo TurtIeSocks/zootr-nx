@@ -26,10 +26,16 @@ impl Rules<'_> {
             Need::Never => false.into(),
             Need::Era(e) => (*e == era).into(),
             Need::Setting(id) => json!({ "setting": id }),
-            Need::Flag(f) if self.seed.start.flags.contains(f) => true.into(),
+            Need::Flag(f) if self.seed.start.flag(f) => true.into(),
             Need::Flag(f) => {
                 let ids = self.flag_settings.get(f).into_iter().flatten();
-                any(ids.map(|id| json!({ "setting": id })).collect())
+                let mut rules: Vec<Value> = ids.map(|id| json!({ "setting": id })).collect();
+                // A room's flag is an event, given where the room is.
+                if let Some(events) = self.givers.get(f.as_str()) {
+                    self.used.extend(events.iter().cloned());
+                    rules.push(json!({ "items": events, "count": 1 }));
+                }
+                any(rules)
             }
             Need::Items { actors, count } => {
                 let have = &self.seed.start.items;
