@@ -214,6 +214,17 @@ pub(super) fn logic(romfs: &Romfs, new_game: &NewGame) -> Result<()> {
 }
 
 pub(super) fn logic_set(romfs: &Romfs, game: &std::path::Path, cmd: LogicCommand) -> Result<()> {
+    if let LogicCommand::Audit { dungeon } = cmd {
+        let only = match dungeon {
+            Some(id) => Some(crate::rules::rooms::folder(dungeon_of(&id)?.node.get())),
+            None => None,
+        };
+        let book = crate::rules::Book::load()?;
+        let audits = crate::rules::audit::audit(&book, only.as_deref());
+        anyhow::ensure!(!audits.is_empty(), "no room files for that dungeon yet");
+        audits.iter().for_each(|a| print!("{a}"));
+        return Ok(());
+    }
     if let LogicCommand::Derive {
         kinds,
         dungeon,
@@ -229,9 +240,7 @@ pub(super) fn logic_set(romfs: &Romfs, game: &std::path::Path, cmd: LogicCommand
             );
         }
         if let Some(id) = dungeon {
-            let dungeon = (crate::entrances::DUNGEONS.iter())
-                .find(|d| d.id == id)
-                .with_context(|| format!("no dungeon `{id}`"))?;
+            let dungeon = dungeon_of(&id)?;
             let d = crate::derive::rooms::write(romfs, game, dungeon, &dir)?;
             println!("{} room files for {}", d.files.len(), dungeon.label);
             println!("{} of {} faces in no room", d.unplaced, d.faces);
@@ -273,4 +282,10 @@ pub(super) fn logic_set(romfs: &Romfs, game: &std::path::Path, cmd: LogicCommand
     };
     println!("{}", rules::set(&dir, hash, &edit, new)?.display());
     Ok(())
+}
+
+fn dungeon_of(id: &str) -> Result<&'static crate::entrances::Dungeon> {
+    (crate::entrances::DUNGEONS.iter())
+        .find(|d| d.id == id)
+        .with_context(|| format!("no dungeon `{id}`"))
 }

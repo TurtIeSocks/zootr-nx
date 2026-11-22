@@ -15,6 +15,26 @@ pub enum Expr {
     Any(Vec<Expr>),
 }
 
+/// The rule as a file writes it, with brackets only where they're needed.
+impl std::fmt::Display for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let join = |parts: &[Expr], word: &str, f: &mut std::fmt::Formatter| {
+            let parts: Vec<String> = (parts.iter())
+                .map(|p| match p {
+                    Expr::Word(_) => p.to_string(),
+                    _ => format!("({p})"),
+                })
+                .collect();
+            write!(f, "{}", parts.join(word))
+        };
+        match self {
+            Expr::Word(w) => write!(f, "{w}"),
+            Expr::All(parts) => join(parts, " and ", f),
+            Expr::Any(parts) => join(parts, " or ", f),
+        }
+    }
+}
+
 /// A rule resolved for one seed's settings.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Need {

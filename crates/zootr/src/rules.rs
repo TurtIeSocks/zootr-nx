@@ -12,6 +12,7 @@ use crate::entrances::Doors;
 use crate::settings::{AdultJabu, DungeonEntrances, DungeonKeys, FortressKeys, NewGame};
 use crate::world::Era;
 
+pub mod audit;
 mod files;
 mod item;
 pub mod kinds;
