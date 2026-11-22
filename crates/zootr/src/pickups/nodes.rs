@@ -10,6 +10,12 @@
 //! chests, loud watchers). So whatever read the holder's node reads any of
 //! them: an OR gains the copy's output, and anything else reads an OR of the
 //! holder's and its copies'.
+//!
+//! A holder a nested module makes or watches is left out: its copy stays a
+//! plain placement. A copy named through the module's path (`_1fdf/Name`)
+//! hung its map's load, with its node or without, where the same at the
+//! top of a group loads: the Deku Tree's regrowing shrubs in Gohma's room
+//! against Bottom of the Well's (Mac, 2026-11-22).
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -61,6 +67,7 @@ impl Wiring {
             let k = nth.entry(*of).or_default();
             *k += 1;
             let tail = suffix(*k);
+            let mut named_any = false;
             for group in groups.iter_mut() {
                 let Some(Byml::Array(refs)) = group.as_mut_map()?.get_mut(REFERENCES) else {
                     continue;
@@ -68,6 +75,9 @@ impl Wiring {
                 let Some(own) = refs.iter().find(|r| reference(r) == Some(*of)) else {
                     continue;
                 };
+                if nested(own) {
+                    continue;
+                }
                 let mut named = own.clone();
                 let map = named.as_mut_map()?;
                 for key in [ID, PATH] {
@@ -81,9 +91,12 @@ impl Wiring {
                 }
                 map.insert(REFERENCE.into(), Byml::U64(*copy));
                 refs.push(named);
-                changed = true;
+                named_any = true;
             }
-            for (graph, node) in creators.get(of).into_iter().flatten() {
+            changed |= named_any;
+            // A node no group names would never be bound to the copy.
+            let creating = creators.get(of).filter(|_| named_any);
+            for (graph, node) in creating.into_iter().flatten() {
                 let edits = self.graphs.entry(graph.clone()).or_default();
                 edits.insert((*node, tail.clone()));
             }
@@ -123,6 +136,13 @@ pub fn creators(romfs: &Romfs) -> Result<HashMap<u64, Vec<(String, usize)>>> {
 
 fn reference(r: &Byml) -> Option<u64> {
     r.as_map().ok()?.get(REFERENCE)?.as_int().ok()
+}
+
+/// Whether reference `r` names an actor of a module nested in the group's
+/// own, by a path through the module (`_1fdf/Name`).
+fn nested(r: &Byml) -> bool {
+    let path = r.as_map().ok().and_then(|m| m.get(PATH)?.as_string().ok());
+    path.is_some_and(|p| p.contains('/'))
 }
 
 /// A graph holding an `OperateOR`, and its index there.
@@ -173,6 +193,57 @@ fn wire(f: &mut File, node: usize, tail: &str, (donor, or): &(File, usize)) -> R
 mod tests {
     use super::*;
     use crate::game::dev_dump;
+
+    /// A group naming a top-level holder `1` and a nested one `2`.
+    fn group() -> Byml {
+        let map = |pairs: Vec<(&str, Byml)>| {
+            Byml::Map(pairs.into_iter().map(|(k, v)| (k.into(), v)).collect())
+        };
+        let named = |path: &str, hash: u64| {
+            let id = path.rsplit('/').next().unwrap();
+            map(vec![
+                (ID, Byml::String(id.into())),
+                (PATH, Byml::String(path.into())),
+                (REFERENCE, Byml::U64(hash)),
+            ])
+        };
+        let refs = vec![named("FakePot_1a2b", 1), named("_3c4d/FakePot_5e6f", 2)];
+        let group = map(vec![(REFERENCES, Byml::Array(refs))]);
+        map(vec![(field::AI_GROUPS.get(), Byml::Array(vec![group]))])
+    }
+
+    fn paths(root: &Byml) -> Vec<String> {
+        let groups = root.as_map().unwrap()[field::AI_GROUPS.get()].as_array().unwrap();
+        let refs = groups[0].as_map().unwrap()[REFERENCES].as_array().unwrap();
+        refs.iter().map(|r| text(r, PATH).unwrap().to_owned()).collect()
+    }
+
+    fn text<'a>(r: &'a Byml, key: &str) -> Option<&'a str> {
+        r.as_map().ok()?.get(key)?.as_string().ok().map(|s| s.as_str())
+    }
+
+    /// A top-level holder's copy is named beside it and gets a node. A
+    /// nested module's holder gets neither: named through the module, its
+    /// copy hung the Deku Tree's load.
+    #[test]
+    fn only_a_top_level_holder_names_its_copy() {
+        let mut root = group();
+        let creators = HashMap::from([
+            (1, vec![("FakeRoom".to_owned(), 3)]),
+            (2, vec![("FakeBoss".to_owned(), 4)]),
+        ]);
+        let mut wiring = Wiring::default();
+        assert!(wiring.refer(&mut root, &[(1, 11), (2, 22)], &creators).unwrap());
+        assert_eq!(
+            paths(&root),
+            ["FakePot_1a2b", "_3c4d/FakePot_5e6f", "FakePot_1a2b_Copy1"]
+        );
+        let edits: Vec<_> = wiring.graphs.keys().cloned().collect();
+        assert_eq!(edits, ["FakeRoom"]);
+
+        let mut root = group();
+        assert!(!Wiring::default().refer(&mut root, &[(2, 22)], &creators).unwrap());
+    }
 
     /// Every graph a loud holder's node sits in takes two copies of it,
     /// and comes back a graph the writer's check passes, where whatever
