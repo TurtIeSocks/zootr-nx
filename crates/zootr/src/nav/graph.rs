@@ -10,17 +10,19 @@ use serde::Serialize;
 
 use super::climb::Climb;
 use super::kinds;
+use super::limits::limits;
 use super::shape::Solid;
 use super::water::{Shore, Water};
 use crate::warp::{self, Placement, Side};
 
-/// The highest ledge Link pulls himself up, in m. A placeholder until it
-/// is measured live for child and adult with `move`.
-pub const STEP_UP: f32 = 1.0;
-/// A drop is a border with mesh past it at least `DROP_MIN` and
-/// at most `DROP_MAX` below.
+/// The highest ledge Link gets onto from below, in m, from
+/// `logic/limits.toml`.
+pub fn step_up() -> f32 {
+    limits().step_up()
+}
+/// A drop is a border with mesh past it at least `DROP_MIN` below, and at
+/// most the drop limit in `logic/limits.toml`.
 pub(super) const DROP_MIN: f32 = 0.5;
-const DROP_MAX: f32 = 3.0;
 /// A step up starts at this height.
 pub(super) const STEP_MIN: f32 = 0.5;
 /// How far past a border to look for the mesh across it.
@@ -320,16 +322,17 @@ impl<'a> Graph<'a> {
         });
     }
 
-    /// A drop from each border with mesh 0.5 to 3 m below past it, a step up
-    /// from each with mesh 0.5 m to `step_up` above.
+    /// A drop from each border with mesh 0.5 m to the drop limit below past
+    /// it, a step up from each with mesh 0.5 m to `step_up` above.
     fn border_arcs(&mut self, step_up: f32) {
+        let drop = limits().drop();
         for Border { face, mid, out } in self.borders() {
             let past = [mid[0] + out[0] * LOOK, mid[1], mid[2] + out[1] * LOOK];
-            let Some(g) = self.floor(past, FLOOR.max(step_up)) else {
+            let Some(g) = self.floor(past, FLOOR.max(step_up).max(drop)) else {
                 continue;
             };
             let rel = g.height - mid[1];
-            let via = if (-DROP_MAX..=-DROP_MIN).contains(&rel) {
+            let via = if (-drop..=-DROP_MIN).contains(&rel) {
                 Via::Drop
             } else if (STEP_MIN..=step_up).contains(&rel) {
                 Via::Step
@@ -430,7 +433,7 @@ mod tests {
     #[test]
     fn faces_that_share_an_edge_link_both_ways() {
         let m = mesh(&[quad(0.0, 0.0, 2.0, 2.0, 0.0), quad(2.0, 0.0, 4.0, 2.0, 0.0)]);
-        let g = Graph::build(&m, &[], STEP_UP);
+        let g = Graph::build(&m, &[], step_up());
         assert_eq!(g.arcs[0].iter().map(|a| a.to).collect::<Vec<_>>(), [1]);
         assert_eq!(g.arcs[1].iter().map(|a| a.to).collect::<Vec<_>>(), [0]);
         assert!(links(&g, 0).is_empty());
@@ -444,7 +447,7 @@ mod tests {
             quad(0.0, -3.0, 2.0, 0.5, 0.0),
             quad(0.0, 3.5, 2.0, 7.0, 0.0),
         ]);
-        let g = Graph::build(&m, &[door([1.0, 0.0, 2.0])], STEP_UP);
+        let g = Graph::build(&m, &[door([1.0, 0.0, 2.0])], step_up());
         assert_eq!(links(&g, 0), [(1, Via::Door(Some(7)))]);
         assert_eq!(links(&g, 1), [(0, Via::Door(Some(7)))]);
     }
@@ -468,9 +471,12 @@ mod tests {
             quad(0.0, -3.0, 2.0, 0.2, 0.0),
             quad(0.0, 0.6, 2.0, 4.0, 4.0),
         ]);
-        let g = Graph::build(&m, &[], STEP_UP).with_climbs(&[ladder()]);
+        let g = Graph::build(&m, &[], step_up()).with_climbs(&[ladder()]);
         assert_eq!(links(&g, 0), [(1, Via::Climb(Some(9)))]);
-        assert_eq!(links(&g, 1), [(0, Via::Climb(Some(9)))]);
+        // Down, the 4 m ledge is also within the drop limit.
+        let down = links(&g, 1);
+        assert!(down.contains(&(0, Via::Climb(Some(9)))), "{down:?}");
+        assert!(down.contains(&(0, Via::Drop)), "{down:?}");
     }
 
     #[test]
@@ -479,7 +485,7 @@ mod tests {
             quad(0.0, -3.0, 2.0, 0.2, 0.0),
             quad(0.0, 0.6, 2.0, 4.0, 9.0),
         ]);
-        let g = Graph::build(&m, &[], STEP_UP);
+        let g = Graph::build(&m, &[], step_up());
         assert_eq!(g.climb_ends(&ladder()), Err("no floor at its top"));
         assert!(links(&g.with_climbs(&[ladder()]), 0).is_empty());
     }
@@ -490,7 +496,7 @@ mod tests {
             quad(0.0, -3.0, 2.0, 0.5, 0.0),
             quad(0.0, 5.5, 2.0, 9.0, 0.0),
         ]);
-        let g = Graph::build(&m, &[door([1.0, 0.0, 2.0])], STEP_UP);
+        let g = Graph::build(&m, &[door([1.0, 0.0, 2.0])], step_up());
         assert!(links(&g, 0).is_empty() && links(&g, 1).is_empty());
     }
 
@@ -507,29 +513,34 @@ mod tests {
 
     #[test]
     fn a_drop_goes_down_one_way() {
-        let [up, down] = ledge(-2.0, STEP_UP);
+        let [up, down] = ledge(-2.0, step_up());
         assert_eq!(up.first(), Some(&(1, Via::Drop)));
         assert!(down.is_empty(), "{down:?}");
     }
 
     #[test]
     fn a_step_goes_up_only_up_to_the_limit() {
-        let [low, high] = ledge(0.8, STEP_UP);
+        let [low, high] = ledge(0.8, step_up());
         assert_eq!(low.first(), Some(&(1, Via::Step)));
         // The same ledge from above is a drop, so each way has its own kind.
         assert_eq!(high, [(0, Via::Drop)]);
         // Above the limit it is no link, and a drop of 0.3 is just a slope.
-        assert!(ledge(1.5, STEP_UP)[0].is_empty());
+        assert!(ledge(1.5, step_up())[0].is_empty());
         assert_eq!(ledge(1.5, 2.0)[0].first(), Some(&(1, Via::Step)));
-        assert!(ledge(0.3, STEP_UP)[0].is_empty() && ledge(-0.3, STEP_UP)[1].is_empty());
-        // Past 3 m down it is a fall, not a link.
-        assert!(ledge(-3.5, STEP_UP)[0].is_empty());
+        assert!(ledge(0.3, step_up())[0].is_empty() && ledge(-0.3, step_up())[1].is_empty());
+        // Down to the measured drop limit it is a drop, past it a fall.
+        let drop = limits().drop();
+        assert_eq!(
+            ledge(-(drop - 0.5), step_up())[0].first(),
+            Some(&(1, Via::Drop))
+        );
+        assert!(ledge(-(drop + 0.5), step_up())[0].is_empty());
     }
 
     #[test]
     fn a_spot_off_the_mesh_snaps_to_the_nearest_face_within_reach() {
         let m = mesh(&[quad(0.0, 0.0, 2.0, 2.0, 5.0)]);
-        let g = Graph::build(&m, &[], STEP_UP);
+        let g = Graph::build(&m, &[], step_up());
         let on = g.locate([1.0, 5.2, 1.0]).unwrap();
         assert_eq!((on.face, on.at), (0, [1.0, 5.0, 1.0]));
         let off = g.locate([3.0, 5.0, 1.0]).unwrap();

@@ -10,7 +10,7 @@ use anyhow::Result;
 use ounce_formats::{NavMesh, Romfs};
 use serde::Serialize;
 
-use super::graph::{DROP_MIN, FLOOR, LOOK, STEP_MIN, STEP_UP};
+use super::graph::{DROP_MIN, FLOOR, LOOK, STEP_MIN, step_up};
 use super::kinds;
 use crate::around::{self, clockwise, hour};
 use crate::checks::flat;
@@ -104,7 +104,7 @@ pub fn scene(
         let rise = b.beyond.unwrap_or(0.0);
         let what = match b.beyond {
             Some(h) if h <= -DROP_MIN => "drop",
-            Some(h) if (STEP_MIN..=STEP_UP).contains(&h) => "step",
+            Some(h) if (STEP_MIN..=step_up()).contains(&h) => "step",
             Some(h) if h.abs() < STEP_MIN => continue,
             _ => "wall",
         };

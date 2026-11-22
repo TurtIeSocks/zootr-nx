@@ -11,7 +11,7 @@ use serde::Serialize;
 
 use super::rooms::{LOCK, LOCK_REACH, flat, locked_doors, split};
 use crate::key_rooms::{self, RoomKeys};
-use crate::nav::graph::{Graph, STEP_UP};
+use crate::nav::graph::{Graph, step_up};
 use crate::nav::navmesh_file;
 use crate::warp;
 
@@ -81,7 +81,7 @@ fn plan(romfs: &Romfs, game: &Path, map: &str) -> Result<Plan> {
     let bytes = navmesh_file(romfs, game, map)?.with_context(|| format!("{map} has no navmesh"))?;
     let mesh = NavMesh::parse(&bytes)?;
     let placed = warp::placements_in(romfs, map)?;
-    let graph = Graph::build(&mesh, &placed, STEP_UP);
+    let graph = Graph::build(&mesh, &placed, step_up());
     let locked = locked_doors(&placed);
     let roots = split(&graph, &locked);
     let room = |at: [f32; 3]| graph.locate(at).map(|s| roots[s.face]);

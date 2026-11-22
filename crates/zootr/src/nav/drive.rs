@@ -672,7 +672,7 @@ pub fn go<M: Memory, I: Input>(
 mod tests {
     use super::*;
     use crate::nav::fixture::{mesh, quad};
-    use crate::nav::graph::STEP_UP;
+    use crate::nav::graph::step_up;
     use crate::nav::sim;
 
     const ORIGIN: [f32; 3] = [0.0; 3];
@@ -775,7 +775,7 @@ mod tests {
     fn walked(setup: impl FnOnce(&mut sim::World)) -> (Went, sim::Eyes) {
         let (eyes, mut hands, room) = walker();
         setup(&mut eyes.0.borrow_mut());
-        let graph = Graph::build(&room, &[], STEP_UP);
+        let graph = Graph::build(&room, &[], step_up());
         let went = sim::drive(&eyes, &mut hands)
             .walk(&graph, GOAL, ARRIVE)
             .unwrap();
@@ -787,7 +787,7 @@ mod tests {
         // Facing +Z, the goal is to his left.
         let (eyes, mut hands, room) = walker();
         eyes.0.borrow_mut().yaw = 0.0;
-        let graph = Graph::build(&room, &[], STEP_UP);
+        let graph = Graph::build(&room, &[], step_up());
         let went = sim::drive(&eyes, &mut hands)
             .walk(&graph, GOAL, ARRIVE)
             .unwrap();
@@ -806,7 +806,7 @@ mod tests {
     #[test]
     fn already_there_is_arrived_without_a_push() {
         let (eyes, mut hands, room) = walker();
-        let graph = Graph::build(&room, &[], STEP_UP);
+        let graph = Graph::build(&room, &[], step_up());
         let went = sim::drive(&eyes, &mut hands)
             .walk(&graph, [1.5, 0.0, 2.0], ARRIVE)
             .unwrap();
@@ -819,7 +819,7 @@ mod tests {
         // to plan, and needs none.
         let (eyes, mut hands) = sim::start([1.0, 0.0, 2.0], 0.0);
         let far = mesh(&[quad(10.0, 0.0, 14.0, 4.0, 0.0)]);
-        let graph = Graph::build(&far, &[], STEP_UP);
+        let graph = Graph::build(&far, &[], step_up());
         let went = sim::drive(&eyes, &mut hands)
             .walk(&graph, [1.2, 0.0, 2.0], ARRIVE)
             .unwrap();
@@ -864,7 +864,7 @@ mod tests {
             quad(0.0, 0.0, 4.0, 4.0, 0.0),
             quad(10.0, 0.0, 14.0, 4.0, 0.0),
         ]);
-        let graph = Graph::build(&two, &[], STEP_UP);
+        let graph = Graph::build(&two, &[], step_up());
         let went = sim::drive(&eyes, &mut hands)
             .walk(&graph, [12.0, 0.0, 2.0], ARRIVE)
             .unwrap();
@@ -880,7 +880,7 @@ mod tests {
         // Past the 1.5 m a plan reaches off the mesh for its goal.
         let (eyes, mut hands) = sim::start([3.5, 0.0, 2.0], std::f32::consts::FRAC_PI_2);
         let ledge = mesh(&[quad(0.0, 0.0, 4.0, 4.0, 0.0)]);
-        let graph = Graph::build(&ledge, &[], STEP_UP);
+        let graph = Graph::build(&ledge, &[], step_up());
         let went = sim::drive(&eyes, &mut hands)
             .walk(&graph, [6.2, 0.0, 2.0], ARRIVE)
             .unwrap();
@@ -930,7 +930,7 @@ mod tests {
     #[test]
     fn no_time_is_budget() {
         let (eyes, mut hands, room) = walker();
-        let graph = Graph::build(&room, &[], STEP_UP);
+        let graph = Graph::build(&room, &[], step_up());
         let mut drive = sim::drive(&eyes, &mut hands);
         drive.budget = Duration::ZERO;
         let went = drive.walk(&graph, GOAL, ARRIVE).unwrap();

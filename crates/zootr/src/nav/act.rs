@@ -344,7 +344,7 @@ mod tests {
     use crate::checks::flat;
     use crate::known::actor;
     use crate::nav::fixture::{mesh, quad};
-    use crate::nav::graph::STEP_UP;
+    use crate::nav::graph::step_up;
     use crate::nav::kinds::{ROLL, SWORD, THROW};
     use crate::nav::sim::{self, Eyes};
     use crate::warp::{Pose, Side};
@@ -367,7 +367,7 @@ mod tests {
     /// after `setup` has set the fake game up.
     fn touched(thing: &Placement, setup: impl FnOnce(&Eyes)) -> (Used, Eyes) {
         let room = mesh(&[quad(0.0, 0.0, 20.0, 4.0, 0.0)]);
-        let graph = Graph::build(&room, &[], STEP_UP);
+        let graph = Graph::build(&room, &[], step_up());
         let (eyes, mut hands) = sim::start([2.0, 0.0, 2.0], 0.0);
         setup(&eyes);
         let used = sim::drive(&eyes, &mut hands)
@@ -391,7 +391,7 @@ mod tests {
             quad(-3.0, -3.0, -0.5, 3.0, 0.0),
             quad(-0.5, 0.3, 3.0, 3.0, 0.8),
         ]);
-        let graph = Graph::build(&room, &[], STEP_UP);
+        let graph = Graph::build(&room, &[], step_up());
         let chest = placed(actor::OBJ_T_BOX_A_01, 1, [0.0; 3]);
         let face = Act::Face { stand: 0.8 };
         let at = stand(&graph, &chest, face, [0.0; 3]);
@@ -428,7 +428,7 @@ mod tests {
             quad(x - 0.4, z - 0.4, x + 0.4, z + 0.4, 0.0),
             quad(x0, -4.0, x1, 4.0, 0.0),
         ]);
-        let graph = Graph::build(&room, &[], STEP_UP);
+        let graph = Graph::build(&room, &[], step_up());
         let (side, at) = stand_from(&graph, &crate_, roll, [0.0, 0.0, 3.0], Side::Left, &[]);
         assert_ne!(side, Some(Side::Left), "{at:?}");
         assert!(route::plan(&graph, [0.0, 0.0, 3.0], at).is_ok(), "{at:?}");
@@ -455,7 +455,7 @@ mod tests {
         // Warped onto the customer spot, facing away from the keeper.
         let keeper = placed(actor::NPC_GORON_011_SHOP_CHILD, 77, [2.0, 0.0, 0.0]);
         let room = mesh(&[quad(0.0, 0.0, 20.0, 4.0, 0.0)]);
-        let graph = Graph::build(&room, &[], STEP_UP);
+        let graph = Graph::build(&room, &[], step_up());
         let (eyes, mut hands) = sim::start([2.0, 0.0, 2.0], 0.0);
         answers_to_the_north(&eyes);
         eyes.0.borrow_mut().warped();
@@ -725,7 +725,7 @@ mod tests {
     fn a_tree_has_no_use() {
         let tree = placed("Tree_FakeKokiri", 1, [10.0, 0.0, 2.0]);
         let room = mesh(&[quad(0.0, 0.0, 20.0, 4.0, 0.0)]);
-        let graph = Graph::build(&room, &[], STEP_UP);
+        let graph = Graph::build(&room, &[], step_up());
         let (eyes, mut hands) = sim::start([2.0, 0.0, 2.0], 0.0);
         let err = (sim::drive(&eyes, &mut hands))
             .touch(&graph, &tree, PathBuf::from("frames/use-tree.png"))
@@ -742,7 +742,7 @@ mod tests {
         let act = |p: &Placement| kinds::kind_of(&p.name).and_then(|k| k.act).unwrap();
         // With no floor anywhere, a chest keeps its front.
         let bare = mesh(&[]);
-        let graph = Graph::build(&bare, &[], STEP_UP);
+        let graph = Graph::build(&bare, &[], step_up());
         // 0.8 m in front by its own facing, whichever side Link is on.
         assert!(near(
             stand(&graph, &chest, act(&chest), [0.0; 3]),
