@@ -68,11 +68,26 @@ class ZnxWorld(World):
         tree = rules.fold(tree, self.setting_values)
         return None if tree is True else rules.closure(tree, self.player)
 
+    def live_places(self, exits: list) -> set[str]:
+        """The places the options' exits lead to from the start. The world
+        holds every place some option opens, like the dead Deku Tree under
+        Adult Deku Tree, and the rest have no way in."""
+        live, todo = {self.origin_region_name}, [self.origin_region_name]
+        while todo:
+            here = todo.pop()
+            for exit_ in exits:
+                if exit_["from"] == here and exit_["to"] not in live:
+                    live.add(exit_["to"])
+                    todo.append(exit_["to"])
+        return live
+
     def create_regions(self) -> None:
-        regions = {name: Region(name, self.player, self.multiworld) for name in WORLD["places"]}
+        exits = [e for e in WORLD["exits"] if rules.fold(e["rule"], self.setting_values) is not False]
+        live = self.live_places(exits)
+        regions = {name: Region(name, self.player, self.multiworld) for name in WORLD["places"] if name in live}
         self.multiworld.regions.extend(regions.values())
-        for exit_ in WORLD["exits"]:
-            if rules.fold(exit_["rule"], self.setting_values) is not False:
+        for exit_ in exits:
+            if exit_["from"] in regions:
                 regions[exit_["from"]].connect(regions[exit_["to"]], rule=self.rule(exit_["rule"]))
 
         origin = regions[self.origin_region_name]
@@ -95,7 +110,11 @@ class ZnxWorld(World):
     def place(self, name: str, code: int | None, at: list, regions: dict, origin: Region) -> ZnxLocation:
         """A location where `at` says, or at the start when it says nowhere.
         At several places, it gets a region of its own entered from each."""
-        at = [spot for spot in at if rules.fold(spot["rule"], self.setting_values) is not False]
+        at = [
+            spot
+            for spot in at
+            if spot["place"] in regions and rules.fold(spot["rule"], self.setting_values) is not False
+        ]
         if len(at) == 1:
             region, rule = regions[at[0]["place"]], self.rule(at[0]["rule"])
         elif not at:
