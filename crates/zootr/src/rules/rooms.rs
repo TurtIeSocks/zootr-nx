@@ -332,6 +332,7 @@ mod tests {
     fn a_folder_is_the_map_name_in_kebab_case() {
         assert_eq!(folder("FakeTemple"), "fake-temple");
         assert_eq!(folder("Fake_Cave"), "fake-cave");
+        needs_names!();
         assert!(deku().contains(DEKU));
     }
 
@@ -396,6 +397,7 @@ mod tests {
 
     #[test]
     fn a_bad_rule_fails_at_load() {
+        needs_names!();
         let bad = BASE.replace(
             "needs = \"slingshot\"\n        why = \"superset\"",
             "needs = \"fake-word\"\n        why = \"superset\"",
