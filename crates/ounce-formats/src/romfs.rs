@@ -158,9 +158,9 @@ impl<'a> ModBuilder<'a> {
     }
 
     /// Write a file the game doesn't ship, its RESTBL entry sized from
-    /// `like`, a shipped file of the same type.
+    /// `like`, a file of the same type the game ships or this mod adds.
     pub fn add(&mut self, rel: &str, contents: &[u8], like: &str) -> Result<()> {
-        let like_size = self.romfs.read(like)?.len();
+        let like_size = self.read(like)?.len();
         self.add_entry(rel, like, like_size, contents.len())?;
         self.put(rel, contents)?;
         self.written.push(rel.to_owned());
