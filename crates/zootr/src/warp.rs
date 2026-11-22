@@ -364,7 +364,7 @@ pub fn beside<M: Memory>(game: &Dev<M>, romfs: &Romfs, actor: &str, side: Side) 
 }
 
 /// `x,y,z` as a spot.
-fn point(text: &str) -> Option<[f32; 3]> {
+pub(crate) fn point(text: &str) -> Option<[f32; 3]> {
     let parts: Vec<f32> = text
         .split(',')
         .map(|p| p.trim().parse().ok())
