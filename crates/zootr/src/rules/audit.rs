@@ -174,7 +174,10 @@ mod tests {
             .find(|d| d.name == "Lower Three Deku Sticks")
             .expect("the hand rule and the room rule differ");
         assert_eq!((sticks.room, sticks.rule.as_str()), (4, "always"));
-        assert_eq!(sticks.hand, "explosives or fire", "a hand rule prints as written");
+        assert_eq!(
+            sticks.hand, "explosives or fire",
+            "a hand rule prints as written"
+        );
         assert!(
             sticks.ways_in.iter().any(|w| w.contains("fire")),
             "{:?}",
