@@ -144,6 +144,26 @@ era = "child"
 item = "item:zeldas-lullaby"
 needs = "courtyard"
 
+# Zelda met and Impa's send-off: the Door of Time quest's Step02. The quest
+# starts there, and Met Zelda starts past it.
+[[source]]
+name = "Met Zelda"
+place = "hyrule-castle"
+era = "child"
+item = "event:met-zelda"
+needs = "courtyard"
+
+# Zelda and Impa ride out over the drawbridge once the quest has counted
+# the three stones, then Zelda's gift and song wait in the moat. Open or
+# Closed, this is the only way to them, and the Closed door opens only
+# after it.
+[[source]]
+name = "Moat scene"
+place = "hyrule-field-child"
+era = "child"
+item = "event:moat-scene"
+needs = "(setting:met-zelda or event:met-zelda) and beat:gohma and beat:king-dodongo and beat:barinade"
+
 # Malon at Lon Lon Ranch.
 [[source]]
 name = "Epona's Song"
@@ -173,7 +193,7 @@ name = "Song of Time"
 place = "hyrule-field-child"
 era = "child"
 item = "item:song-of-time"
-needs = "ocarina and beat:gohma and beat:king-dodongo and beat:barinade"
+needs = "ocarina and event:moat-scene"
 
 # The windmill.
 [[source]]

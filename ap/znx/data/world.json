@@ -7153,25 +7153,9 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "all": [
-              {
-                "count": 1,
-                "items": [
-                  "Beat Gohma"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Beat KingDodongo"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Beat Barinade"
-                ]
-              }
+            "count": 1,
+            "items": [
+              "Moat scene"
             ]
           }
         }
@@ -32334,25 +32318,9 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "all": [
-              {
-                "count": 1,
-                "items": [
-                  "Beat Gohma"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Beat KingDodongo"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Beat Barinade"
-                ]
-              }
+            "count": 1,
+            "items": [
+              "Moat scene"
             ]
           }
         }
@@ -38176,6 +38144,27 @@
     {
       "at": [
         {
+          "place": "hyrule-castle-child",
+          "rule": {
+            "any": [
+              {
+                "setting": "met-zelda"
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Weird Egg"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "name": "Met Zelda"
+    },
+    {
+      "at": [
+        {
           "place": "sacred-forest-meadow-adult",
           "rule": true
         }
@@ -38184,6 +38173,49 @@
       "when": {
         "setting": "songs=off"
       }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "all": [
+              {
+                "any": [
+                  {
+                    "setting": "met-zelda"
+                  },
+                  {
+                    "count": 1,
+                    "items": [
+                      "Met Zelda"
+                    ]
+                  }
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Beat Gohma"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Beat KingDodongo"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Beat Barinade"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "name": "Moat scene"
     },
     {
       "at": [
@@ -38392,19 +38424,7 @@
               {
                 "count": 1,
                 "items": [
-                  "Beat Gohma"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Beat KingDodongo"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Beat Barinade"
+                  "Moat scene"
                 ]
               }
             ]
@@ -48586,19 +48606,7 @@
               {
                 "count": 1,
                 "items": [
-                  "Beat Gohma"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Beat KingDodongo"
-                ]
-              },
-              {
-                "count": 1,
-                "items": [
-                  "Beat Barinade"
+                  "Moat scene"
                 ]
               },
               {

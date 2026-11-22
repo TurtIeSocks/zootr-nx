@@ -11,7 +11,7 @@ use anyhow::{Result, bail};
 
 use super::Expr;
 use super::item::{BEAT, EVENT, ITEM_PREFIXES, held};
-use crate::known::{Name, actor, field, flow, item, map};
+use crate::known::{Name, actor, field, flow, item, map, scene};
 
 /// `item:<word>`: an actor Link holds, or a pickup that stands for one.
 pub const ITEMS: &[(&str, &Name)] = &[
@@ -112,7 +112,11 @@ pub const BEATS: &[(&str, &Name)] = &[
 
 /// `event:<word>`: a story event, held like an item. The const names the
 /// event, and the item is `EVENT` and that name.
-pub const EVENTS: &[(&str, &Name)] = &[("carpenters-freed", flow::MEET_FOUR_CARPENTER_CLEAR_EVENT)];
+pub const EVENTS: &[(&str, &Name)] = &[
+    ("carpenters-freed", flow::MEET_FOUR_CARPENTER_CLEAR_EVENT),
+    ("met-zelda", field::HYRULE_FIELD_DOOR_OF_TIME_SEND_OFF),
+    ("moat-scene", scene::MELODY_GET_TIME),
+];
 
 /// A place node. A word with no era is a dungeon or a boss room.
 pub const PLACES: &[(&str, &Name)] = &[
