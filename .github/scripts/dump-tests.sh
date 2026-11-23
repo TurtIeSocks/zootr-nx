@@ -29,11 +29,17 @@ log=/logs/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.log
 CARGO_TERM_COLOR=never cargo test -p zootr --lib --bins --tests > "$log" 2>&1
 status=$?
 # The slow checks the default run skips: the AP export against each pair
-# of options' seeds. The same cargo shape as above, so nothing rebuilds.
-# Jobs share the cache, and a build script's slot in it doesn't depend on
-# its source, so a job on a branch from before build.rs read its folder at
-# run time can swap in a script pointing at that job's checkout.
-CARGO_TERM_COLOR=never cargo test -p zootr --lib --bins --tests -- --ignored ap::export:: >> "$log" 2>&1 || status=1
+# of options' seeds. They run from the lib test binary the run above
+# built, not a second cargo run: jobs share the cache, and between two
+# cargo runs another job can swap in its own build script, pointing at its
+# checkout. One cargo run a job leaves no gap for that.
+bin=$(sed -n 's|^ *Running unittests src/lib.rs (\(.*\))$|\1|p' "$log" | head -1)
+if [ -x "$bin" ]; then
+  (cd crates/zootr && "$bin" --ignored ap::export::) >> "$log" 2>&1 || status=1
+else
+  echo "no lib test binary in the log, so the slow AP checks didn't run"
+  status=1
+fi
 
 grep -E '^test result:|^test .* \.\.\. FAILED$' "$log"
 grep -q '^error: could not compile' "$log" && echo "build failed"
