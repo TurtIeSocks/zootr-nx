@@ -3,6 +3,48 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.10.0] - 2026-11-23
+
+### Added
+
+- Cut the graph at the meshes level pieces collide with
+- Measure gold skulltulas from floor Link stands on
+- Derive the Deku Tree as a child, with crawls and shutter sides
+- Stage 2 check kinds join the Archipelago world
+- Log through the log facade, the CLI to stderr
+- The app's own log, in app-<time>.log and live to the page
+- An App > Logs page with the app's own log
+- Quest steps, what moves each one and what waits on it
+- Read or write one placement's own flag
+- A built stand-in's take sets its own Bool, without the hook
+- Every pickup stand-in plays its get on each take
+- A twin breaks along with the holder whose drop was taken
+- A stand-in's take ticks its holder without the hook
+- Zootr flagmap quests, the quest catalogue
+- `zootr logic explain` shows what derive sees round a spot
+- Mark a dealt pot in gold until Link picks up its item
+- Gold braces on the big crate, gold leaves on Hyrule Field's shrubs
+- Mark every breakable kind, through one look seam
+- Measure how far from a holder its button prompt shows
+- Sheik stays in the crater until Link has her gift
+- The weeding Kokiri offers his weeding until he pays
+- Zootr logic quest-gates, the quest gate audit
+- A graph's read gates only the node it feeds
+- Skip the checks the maintainer keeps out of the pool
+- Beating Phantom Ganon promises the forest sage quest
+
+### Fixed
+
+- Read the installed seed's flag for each check
+- Name each gift location by its giver, not "<giver>'s Gift"
+- Read the crate's folder when the build script runs
+- Zelda's moat checks and the Closed door wait for her scene
+- A skip seed's Door of Time opens to the Song of Time
+- Name the door quest through get() in the catalogue test
+- Read the AP data folder from the run-time CARGO_MANIFEST_DIR
+- Paint the pot's band on its shoulder and its Triforces on its belly
+- Skip the holder's new look field in the spots match
+
 ## [0.9.0] - 2026-11-22
 
 ### Added
