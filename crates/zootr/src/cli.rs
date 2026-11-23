@@ -90,7 +90,8 @@ pub fn run() -> Result<()> {
             server,
             slot,
             password,
-        }) => ap_connect(&romfs, server, slot, password),
+            timings,
+        }) => ap_connect(&romfs, server, slot, password, timings),
         Command::Ap(ApCommand::Export { out }) => {
             let dir = out.unwrap_or_else(crate::ap::data_dir);
             crate::ap::write(&romfs, &dir)?;

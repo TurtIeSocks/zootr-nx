@@ -11,6 +11,7 @@ use crate::settings::Archipelago::{self, Later, Never, Offered};
 use crate::settings::SettingDef;
 
 pub mod bench;
+pub mod bench_live;
 pub mod client;
 mod death;
 mod export;
@@ -23,6 +24,8 @@ mod presets;
 pub mod room;
 mod rule;
 mod seed;
+pub mod there;
+pub mod timing;
 mod when;
 mod zip;
 

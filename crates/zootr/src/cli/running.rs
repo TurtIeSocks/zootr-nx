@@ -85,8 +85,12 @@ pub(super) fn ap_connect(
     server: String,
     slot: Option<String>,
     password: Option<String>,
+    timings: Option<std::path::PathBuf>,
 ) -> Result<()> {
+    use std::io::Write;
+
     use crate::ap::client::{self, Room};
+    let mut timings = timings.map(std::fs::File::create).transpose()?;
     let gd = recorder::gamedata(romfs)?;
     let mut client = client::installed(romfs, gd.into(), attach(true)?)?;
     let room = Room {
@@ -99,6 +103,12 @@ pub(super) fn ap_connect(
     let stop = crate::turn::kept(crate::turn::session(), RENEW);
     let start = std::time::Instant::now();
     client::run(&room, &client.book, &mut client.game, &stop, &mut |note| {
+        if let (Some(f), Some(line)) = (
+            &mut timings,
+            crate::ap::timing::line(start.elapsed(), &note),
+        ) {
+            writeln!(f, "{line}").ok();
+        }
         println!("{} {note}", stamp(start));
     });
     Ok(())

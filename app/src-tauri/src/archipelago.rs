@@ -72,7 +72,9 @@ impl Ap {
             Note::Refused(_) => Some(ApStatus::Refused),
             _ => None,
         };
-        let line = (!matches!(note, Note::Connecting)).then(|| note.to_string());
+        // The server's confirmations are for timings, not the page.
+        let line =
+            (!matches!(note, Note::Connecting | Note::Confirmed(_))).then(|| note.to_string());
         self.say(app, status, line);
     }
 }

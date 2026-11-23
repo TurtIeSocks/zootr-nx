@@ -15,7 +15,7 @@ use crate::progress::Run;
 use crate::tracker::{Flag, Tracker};
 
 /// How many passes a pass metric times.
-const PASSES: usize = 100;
+pub(super) const PASSES: usize = 100;
 
 /// A metric more than this past the median of its last [`BASE`] rows is
 /// flagged.
@@ -25,25 +25,36 @@ const BASE: usize = 3;
 pub const HEADER: &str =
     "date\tcommit\ttarget\troom\tpreset\tlocations\tmetric\tmedian_ms\tworst_ms";
 
-/// One metric's timings.
+/// One metric: its median and worst, in ms for a time, or in the unit its
+/// name ends with (`%`).
 #[derive(Debug, PartialEq)]
 pub struct Sample {
     pub metric: &'static str,
-    pub median: Duration,
-    pub worst: Duration,
+    pub median: f64,
+    pub worst: f64,
 }
 
 impl Sample {
-    fn once(metric: &'static str, took: Duration) -> Self {
+    pub(super) fn once(metric: &'static str, took: Duration) -> Self {
         Self::of(metric, vec![took])
     }
 
-    fn of(metric: &'static str, mut runs: Vec<Duration>) -> Self {
+    pub(super) fn of(metric: &'static str, mut runs: Vec<Duration>) -> Self {
         runs.sort();
+        let ms = |d: Duration| d.as_secs_f64() * 1000.0;
         Self {
             metric,
-            median: runs[runs.len() / 2],
-            worst: *runs.last().expect("at least one run"),
+            median: ms(runs[runs.len() / 2]),
+            worst: ms(*runs.last().expect("at least one run")),
+        }
+    }
+
+    /// One reading, not a time.
+    pub(super) fn value(metric: &'static str, v: f64) -> Self {
+        Self {
+            metric,
+            median: v,
+            worst: v,
         }
     }
 }
@@ -123,7 +134,6 @@ pub struct Row {
 
 impl Row {
     pub fn new(run: &RunInfo, preset: &str, locations: usize, s: &Sample) -> Self {
-        let ms = |d: Duration| d.as_secs_f64() * 1000.0;
         Self {
             date: run.date.clone(),
             commit: run.commit.clone(),
@@ -132,8 +142,8 @@ impl Row {
             preset: preset.to_owned(),
             locations,
             metric: s.metric.to_owned(),
-            median_ms: ms(s.median),
-            worst_ms: ms(s.worst),
+            median_ms: s.median,
+            worst_ms: s.worst,
         }
     }
 
@@ -290,7 +300,7 @@ pub fn table(history: &[Row], new: &[Row]) -> String {
     out
 }
 
-fn git(dir: &Path, args: &[&str]) -> Result<String> {
+pub fn git(dir: &Path, args: &[&str]) -> Result<String> {
     let out = Command::new("git").arg("-C").arg(dir).args(args).output()?;
     ensure!(
         out.status.success(),
@@ -366,7 +376,7 @@ mod tests {
     fn a_sample_takes_the_median_and_the_worst() {
         let ms = Duration::from_millis;
         let s = Sample::of("pass", vec![ms(5), ms(1), ms(3), ms(9), ms(2)]);
-        assert_eq!((s.median, s.worst), (ms(3), ms(9)));
+        assert_eq!((s.median, s.worst), (3.0, 9.0));
     }
 
     #[test]

@@ -3,11 +3,12 @@
 
 use std::path::{Path, PathBuf};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use super::args::Install;
 use crate::ap::bench::{self, Row, RunInfo};
 use crate::ap::room::{self, Archipelago, Room, SLOTS};
+use crate::ap::there::There;
 use crate::game;
 use crate::progress::Run;
 
@@ -23,10 +24,23 @@ pub(super) enum RoomCommand {
         seed: u64,
         #[arg(long, default_value_t = room::PORT)]
         port: u16,
+        /// Host it on another machine of the queue (`machines.NAME` in the
+        /// config), still opening Link's slot here: a LAN room.
+        #[arg(long)]
+        on: Option<String>,
         #[command(flatten)]
         at: At,
         #[command(flatten)]
         install: Install,
+    },
+    /// Clone Archipelago on another machine of the queue and make its
+    /// venv, at the commit this machine's checkout is on. Once per machine,
+    /// and again after updating Archipelago here.
+    Setup {
+        #[arg(long)]
+        on: String,
+        #[command(flatten)]
+        at: At,
     },
     /// Send an item from the room's cheat console.
     Send {
@@ -36,7 +50,11 @@ pub(super) enum RoomCommand {
         to: String,
     },
     /// Whether the room is up, where, and its server log's tail.
-    Status,
+    Status {
+        /// The room's state as JSON instead.
+        #[arg(long)]
+        json: bool,
+    },
     /// Stop the room's server.
     Down,
 }
@@ -63,6 +81,20 @@ pub(super) struct Bench {
     /// Print the table without keeping the rows.
     #[arg(long)]
     no_record: bool,
+    /// Run the whole bench on another machine of the queue
+    /// (`machines.NAME` in the config), its game and a room there. Its rows
+    /// come back here.
+    #[arg(long)]
+    on: Option<String>,
+    /// Host the live rooms on another machine of the queue, the game
+    /// staying here: the LAN rows.
+    #[arg(long, conflicts_with = "on")]
+    room_on: Option<String>,
+    /// Only the metrics that need no game. Without it, the live metrics
+    /// run too: they need this session's turn on the Mac game, and they
+    /// boot a new file on each preset's room and quit the game after.
+    #[arg(long)]
+    offline: bool,
     #[command(flatten)]
     at: At,
 }
@@ -88,6 +120,7 @@ pub(super) fn room_command(game: &Path, cmd: RoomCommand) -> Result<()> {
             preset,
             seed,
             port,
+            on,
             at,
             mut install,
         } => {
@@ -95,8 +128,13 @@ pub(super) fn room_command(game: &Path, cmd: RoomCommand) -> Result<()> {
                 install.name = format!("AP room: {preset}");
                 install.note = "Link's slot of the room `zootr ap room up` hosts".into();
             }
-            let ap = Archipelago::find(at.archipelago, &home)?;
-            let room = Room::up(&ap, &home, &world(), &preset, seed, port)?;
+            let room = match on {
+                Some(on) => Room::up_there(There::find(&on)?, &home, &preset, seed, port)?,
+                None => {
+                    let ap = Archipelago::find(at.archipelago, &home)?;
+                    Room::up(&ap, &home, &world(), &preset, seed, port)?
+                }
+            };
             println!("room up at {} ({preset}, seed {seed})", room.address());
             for (slot, file) in SLOTS.iter().zip(&room.generated.slots) {
                 println!("{slot}: {}", file.display());
@@ -108,7 +146,19 @@ pub(super) fn room_command(game: &Path, cmd: RoomCommand) -> Result<()> {
             println!("sent {item} to {to}");
             Ok(())
         }
-        RoomCommand::Status => {
+        RoomCommand::Setup { on, at } => {
+            let ap = Archipelago::find(at.archipelago, &home)?;
+            let rev = crate::ap::bench::git(&ap.checkout, &["rev-parse", "HEAD"])?;
+            There::find(&on)?.setup(&rev)?;
+            println!("Archipelago {} ready on {on}", &rev[..9]);
+            Ok(())
+        }
+        RoomCommand::Status { json: true } => {
+            let room = up()?;
+            println!("{}", serde_json::to_string(&room)?);
+            Ok(())
+        }
+        RoomCommand::Status { json: false } => {
             match Room::load(&home)? {
                 None => println!("no room is up"),
                 Some(room) => {
@@ -133,27 +183,50 @@ pub(super) fn room_command(game: &Path, cmd: RoomCommand) -> Result<()> {
 }
 
 pub(super) fn bench_command(game: &Path, args: Bench) -> Result<()> {
-    let romfs = game::prepare(game, &Run::silent())?;
-    let home = home()?;
-    let ap = Archipelago::find(args.at.archipelago, &home)?;
     let world = world();
-    ap.prepare(&world)?;
-    let presets = match args.preset.is_empty() {
-        true => vec!["defaults".to_owned(), "all-on".to_owned()],
-        false => args.preset,
-    };
-    let run = RunInfo::here(&world, "none")?;
-    let file = match args.out {
-        Some(f) => Some(f),
+    let file = match &args.out {
+        Some(f) => Some(f.clone()),
         None => bench::default_file(&world)?,
     };
     let history = (file.as_ref())
         .and_then(|f| std::fs::read_to_string(f).ok())
         .map(|t| bench::rows(&t))
         .unwrap_or_default();
+    let presets = match args.preset.is_empty() {
+        true => vec!["defaults".to_owned(), "all-on".to_owned()],
+        false => args.preset.clone(),
+    };
+    let (new, comparable) = match &args.on {
+        Some(on) => (bench_there(&There::find(on)?, &presets, &args)?, true),
+        None => (
+            bench_here(game, &world, &presets, &args)?,
+            !cfg!(debug_assertions),
+        ),
+    };
+    print!("{}", bench::table(&history, &new));
+    match file {
+        _ if args.no_record => {}
+        _ if !comparable => println!("not recorded: a debug build's timings aren't comparable"),
+        None => println!("not recorded: the main checkout has no docs/"),
+        Some(f) => {
+            bench::append(&f, &new)?;
+            println!("recorded in {}", f.display());
+        }
+    }
+    Ok(())
+}
+
+/// The bench on this machine: the offline rows, then the live ones on a
+/// room here or (`--room-on`) on another machine.
+fn bench_here(game: &Path, world: &Path, presets: &[String], args: &Bench) -> Result<Vec<Row>> {
+    let romfs = game::prepare(game, &Run::silent())?;
+    let home = home()?;
+    let ap = Archipelago::find(args.at.archipelago.clone(), &home)?;
+    ap.prepare(world)?;
+    let run = RunInfo::here(world, "none")?;
     let work = home.join("bench");
     let mut new = Vec::new();
-    for preset in &presets {
+    for preset in presets {
         let (locations, samples) = bench::offline(&romfs, &ap, &work, preset, args.seed)?;
         new.extend(samples.iter().map(|s| Row::new(&run, preset, locations, s)));
     }
@@ -165,18 +238,111 @@ pub(super) fn bench_command(game: &Path, args: Bench) -> Result<()> {
         widest,
         &bench::export(&romfs, &work)?,
     ));
-    print!("{}", bench::table(&history, &new));
-    println!("live metrics: not built yet (a later PR)");
-    match file {
-        _ if args.no_record => {}
-        _ if cfg!(debug_assertions) => {
-            println!("not recorded: a debug build's timings aren't comparable")
-        }
-        None => println!("not recorded: the main checkout has no docs/"),
-        Some(f) => {
-            bench::append(&f, &new)?;
-            println!("recorded in {}", f.display());
-        }
+    if args.offline {
+        return Ok(new);
     }
+    let room = match args.room_on {
+        Some(_) => "lan",
+        None => "local",
+    };
+    let live_run = RunInfo {
+        room: room.into(),
+        ..run
+    };
+    for preset in presets {
+        let locations = (new.iter().find(|r| r.preset == *preset)).map_or(0, |r| r.locations);
+        let samples = live(&romfs, &home, preset, args)?;
+        new.extend(
+            samples
+                .iter()
+                .map(|s| Row::new(&live_run, preset, locations, s)),
+        );
+    }
+    Ok(new)
+}
+
+/// The whole bench run on `there` (its release build, game and rooms),
+/// its rows read back.
+fn bench_there(there: &There, presets: &[String], args: &Bench) -> Result<Vec<Row>> {
+    // A file of our own there: a fixed name in a shared /tmp could be
+    // someone else's.
+    let made = there.sh("mktemp -t zootr-ap-bench.XXXXXXXX").output()?;
+    anyhow::ensure!(made.status.success(), "mktemp failed on {}", there.name);
+    let out = String::from_utf8(made.stdout)?.trim().to_owned();
+    let seed = args.seed.to_string();
+    let mut run = vec!["ap", "bench", "--seed", &seed, "--out", &out];
+    for p in presets {
+        run.extend(["--preset", p]);
+    }
+    if args.offline {
+        run.push("--offline");
+    }
+    let status = there.zootr(&run).status()?;
+    let text = there.read(&out);
+    there.sh(&format!("rm -f -- '{out}'")).status().ok();
+    anyhow::ensure!(status.success(), "the bench failed on {}", there.name);
+    Ok(bench::rows(&String::from_utf8_lossy(&text?)))
+}
+
+/// The live metrics on a room of `preset`: brings the room up (installing
+/// Link's slot), boots a new file with infinite health, measures, then
+/// quits the game and takes the room down, whatever happened.
+fn live(
+    romfs: &ounce_formats::Romfs,
+    home: &Path,
+    preset: &str,
+    args: &Bench,
+) -> Result<Vec<bench::Sample>> {
+    crate::turn::hold(&crate::turn::session())?;
+    if Room::load(home)?.is_some() {
+        own(&["ap", "room", "down"])?;
+    }
+    let seed = args.seed.to_string();
+    let mut up = vec!["ap", "room", "up", "--preset", preset, "--seed", &seed];
+    up.extend(["--name", "AP bench", "--note", "zootr ap bench's live run"]);
+    let ap = args
+        .at
+        .archipelago
+        .as_ref()
+        .map(|p| p.to_string_lossy().into_owned());
+    if let Some(ap) = &ap {
+        up.extend(["--archipelago", ap]);
+    }
+    if let Some(on) = &args.room_on {
+        up.extend(["--on", on]);
+    }
+    own(&up)?;
+    let session = crate::turn::session();
+    let measured = (|| {
+        own(&["boot", "--session", &session, "--new"])?;
+        own(&["dev", "switches", "health"])?;
+        let room = Room::load(home)?.context("the room didn't come up")?;
+        let attach = || super::running::attach(true);
+        crate::ap::bench_live::live(romfs, &room, attach()?, attach()?, input()?.as_mut())
+    })();
+    let quit = input().and_then(|mut i| i.quit());
+    own(&["ap", "room", "down"])?;
+    let samples = measured?;
+    quit?;
+    Ok(samples)
+}
+
+fn input() -> Result<Box<dyn crate::play::Input>> {
+    let config = crate::config::Config::load()?;
+    crate::play::input(&config.target()?, config.game.as_deref())
+}
+
+/// Runs this same binary with `args`, its output shown only on failure.
+fn own(args: &[&str]) -> Result<()> {
+    let out = std::process::Command::new(std::env::current_exe()?)
+        .args(args)
+        .output()?;
+    anyhow::ensure!(
+        out.status.success(),
+        "zootr {} failed:\n{}{}",
+        args.join(" "),
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
     Ok(())
 }

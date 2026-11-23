@@ -526,6 +526,10 @@ pub(super) enum ApCommand {
         slot: Option<String>,
         #[arg(long)]
         password: Option<String>,
+        /// Also write the sends, the server's confirmations and the
+        /// gives as JSON lines, timed from the start, to this file.
+        #[arg(long)]
+        timings: Option<PathBuf>,
     },
     /// A local room for tests: a two-slot multiworld from a preset, with
     /// the server's cheat console a command away.
