@@ -10,7 +10,7 @@ why = "walk, 1 edges"
 
 [[check]]
 hash = 9284193025315608699
-name = "Dungeon Compass Chest"
+name = "Deku Tree Upper Compass Chest"
 needs = "always"
 why = "in reach from its room"
 

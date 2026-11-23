@@ -34,7 +34,7 @@ why = "in reach from its room"
 
 [[check]]
 hash = 8579518566955184384
-name = "Dungeon Map Chest"
+name = "Deku Tree Map Chest"
 needs = "always"
 why = "in reach from its room"
 
