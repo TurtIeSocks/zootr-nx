@@ -1,4 +1,4 @@
-import type { Choice, SettingDef } from "@/bindings";
+import type { Archipelago, Choice, SettingDef } from "@/bindings";
 import type { Settings } from "@/lib/config";
 import { forcer, unmet } from "@/lib/settings";
 import { useConfig } from "@/stores/config";
@@ -13,6 +13,25 @@ export const untested = (description: string): [boolean, string] =>
     : [false, description];
 
 /** The setting forcing `def` on, if one is. */
+/** Why the Archipelago world leaves a setting or pick out, or nothing
+ * while it offers it. */
+export const notInAp = (ap: Archipelago): string | undefined => {
+  if (ap.ap === "later") return `Not in Archipelago yet (${ap.why})`;
+  if (ap.ap === "never") return `Doesn't apply to Archipelago: ${ap.why}`;
+  return undefined;
+};
+
+/** A choice's picks the Archipelago world leaves out, by why. */
+export const heldPicks = (def: SettingDef): [string, string[]][] => {
+  if (def.kind.type !== "choice") return [];
+  const by = new Map<string, string[]>();
+  for (const o of def.kind.options) {
+    const why = notInAp(o.archipelago);
+    if (why) by.set(why, [...(by.get(why) ?? []), o.label]);
+  }
+  return [...by];
+};
+
 export const lockedBy = (
   def: SettingDef,
   schema: SettingDef[],

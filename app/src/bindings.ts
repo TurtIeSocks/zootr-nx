@@ -237,6 +237,16 @@ export type Applied = {
 	held: string[],
 };
 
+/**
+ *  Whether the Archipelago world offers a setting, or one of a choice's
+ *  options: the app marks the rest. See [`crate::ap::LEFT_OUT`].
+ */
+export type Archipelago = { ap: "offered" } | 
+/**  Coming, in this stage of the queue. */
+{ ap: "later"; why: string } | 
+/**  Not a setting a multiworld can use, and why. */
+{ ap: "never"; why: string };
+
 export type Build = {
 	status: BuildStatus,
 	/**  What the user is told, when the build isn't current. */
@@ -308,6 +318,8 @@ export type Choice = {
 	forces: string[],
 	/**  Start inventory words this pick gives, shown held. */
 	starts: string[],
+	/**  Whether the Archipelago world offers this pick. */
+	archipelago: Archipelago,
 };
 
 export type Config = {
@@ -836,6 +848,8 @@ export type SettingDef = {
 	 *  shows them locked: see [`GIVES`].
 	 */
 	gives: ([string, string[]])[],
+	/**  Whether the Archipelago world offers it: the app marks the rest. */
+	archipelago: Archipelago,
 };
 
 export type SettingsFile = {
