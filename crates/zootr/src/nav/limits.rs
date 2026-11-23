@@ -174,6 +174,22 @@ impl Limits {
     pub fn drop(&self) -> f32 {
         self.child.drop.value.min(self.adult.drop.value)
     }
+
+    /// How far past an edge a running jump lands for a fall of `h` m,
+    /// within `margin`: the arc d(h) = L/2 (1 + sqrt(1 + h/u)) through the
+    /// child's measured level jump (L at h = 0) and edge jump (at its
+    /// drop), the only ages measured. 0 without both.
+    pub fn leap(&self, h: f32) -> f32 {
+        let (Some(level), Some(edge)) = (&self.child.level_jump, &self.child.edge_jump) else {
+            return 0.0;
+        };
+        let Some(drop) = edge.drop.filter(|d| *d > 0.0) else {
+            return 0.0;
+        };
+        let ratio = 2.0 * edge.value / level.value - 1.0;
+        let apex = drop / (ratio * ratio - 1.0);
+        level.value / 2.0 * (1.0 + (1.0 + h.max(0.0) / apex).sqrt()) * self.margin
+    }
 }
 
 /// The limits, read once.
@@ -209,6 +225,17 @@ mod tests {
         assert_eq!(at(7.7), ["slingshot", "bow", "boomerang", "hookshot"]);
         assert_eq!(at(12.0), ["slingshot", "bow", "longshot"]);
         assert!(at(30.0).is_empty());
+    }
+
+    #[test]
+    fn a_leap_runs_through_both_measured_jumps() {
+        let l = limits();
+        let level = l.child.level_jump.as_ref().unwrap().value;
+        let edge = l.child.edge_jump.as_ref().unwrap();
+        assert!((l.leap(0.0) - level * l.margin).abs() < 1e-4);
+        assert!((l.leap(edge.drop.unwrap()) - edge.value * l.margin).abs() < 1e-4);
+        // A 2.1 m fall: about 3.6 m.
+        assert!((3.5..3.75).contains(&l.leap(2.1)), "{}", l.leap(2.1));
     }
 
     #[test]
