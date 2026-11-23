@@ -7,12 +7,18 @@ on:
   # release-pr.yml runs CI on the release PR this way: a PR it opens with
   # GITHUB_TOKEN gets no pull_request run.
   workflow_dispatch:
+  # Nightly, main's dump tests with the checks too slow for every PR
+  # (ZOOTR_NIGHTLY in dump-tests.sh). The other jobs skip it.
+  schedule:
+    - cron: "0 9 * * *"
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # By event too, so a push to main and the nightly run never cancel
+  # each other.
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 env:
@@ -21,6 +27,7 @@ env:
 jobs:
   rust:
     name: Rust (${{ matrix.os }})
+    if: github.event_name != 'schedule'
     strategy:
       fail-fast: false
       matrix:
@@ -107,6 +114,7 @@ jobs:
 
   app:
     name: App
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -133,6 +141,7 @@ jobs:
   # AP's general tests, which check every world it finds. No dump needed.
   archipelago:
     name: Archipelago world (Python ${{ matrix.python }})
+    if: github.event_name != 'schedule'
     strategy:
       fail-fast: false
       matrix:

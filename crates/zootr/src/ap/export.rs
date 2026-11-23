@@ -695,11 +695,11 @@ mod tests {
     }
 
     /// Each pair of options at each pair of other values. About 330 CPU
-    /// seconds, so it runs only in CI (the dump job). Run it locally with
-    /// `CI=1`.
+    /// seconds and growing with the square of the options, so it runs only
+    /// in the nightly dump job. Run it locally with `ZOOTR_NIGHTLY=1`.
     #[test]
     fn each_pair_of_options_keeps_its_seeds_rows() {
-        if std::env::var_os("CI").is_none() {
+        if std::env::var_os("ZOOTR_NIGHTLY").is_none() {
             return;
         }
         let Some(romfs) = crate::game::dev_dump() else {
