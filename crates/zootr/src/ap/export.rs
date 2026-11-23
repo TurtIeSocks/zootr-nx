@@ -573,16 +573,20 @@ mod tests {
         }
     }
 
+    /// Each case's seed fills on its own, so the cases run in parallel.
     fn assert_rows_match(romfs: &Romfs, cases: impl IntoIterator<Item = Settings>) {
-        let mut wrong = Vec::new();
-        for settings in cases {
-            if let Err(e) = rows_match(romfs, &settings) {
+        let cases: Vec<Settings> = cases.into_iter().collect();
+        let wrong: Vec<String> = crate::par::map(&cases, |settings| {
+            rows_match(romfs, settings).err().map(|e| {
                 let mine: Vec<_> = (settings.iter())
                     .filter(|(k, v)| base().get(*k) != Some(v))
                     .collect();
-                wrong.push(format!("{mine:?}: {e}"));
-            }
-        }
+                format!("{mine:?}: {e}")
+            })
+        })
+        .into_iter()
+        .flatten()
+        .collect();
         assert!(wrong.is_empty(), "{}", wrong.join("\n"));
     }
 
@@ -610,11 +614,14 @@ mod tests {
         assert_rows_match(&romfs, [settings]);
     }
 
-    /// Each pair of options at each pair of other values. Slow, so the dump
-    /// job runs it with `--ignored`.
+    /// Each pair of options at each pair of other values. About 330 CPU
+    /// seconds, so it runs only in CI (the dump job). Run it locally with
+    /// `CI=1`.
     #[test]
-    #[ignore]
     fn each_pair_of_options_keeps_its_seeds_rows() {
+        if std::env::var_os("CI").is_none() {
+            return;
+        }
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
