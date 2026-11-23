@@ -2,6 +2,7 @@
 //! text: the classic words where the remake's differ.
 
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
 
 use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::Romfs;
@@ -73,6 +74,10 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::COJIRO_CUCCO, "Cojiro"),
     (item::DEKU_STICK_BUNDLE_SMALL, "Deku Sticks (3)"),
     (item::DIN_FIRE, "Din's Fire"),
+    (item::DUNGEON_BOSS_KEY, "Boss Key"),
+    (item::DUNGEON_COMPASS, "Compass"),
+    (item::DUNGEON_MAP, "Map"),
+    (item::DUNGEON_SMALL_KEY, "Small Key"),
     (item::EYE_DROP, "Eye Drops"),
     (item::EYEBALL_FROG, "Eyeball Frog"),
     (item::FAIRY_BLESS_DEFENSE_DOUBLE, "Double Defense"),
@@ -89,6 +94,12 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::HOVER_BOOT, "Hover Boots"),
     (item::LONGSHOT, "Longshot"),
     (item::MAGIC_BEAN, "Magic Bean"),
+    (item::MEDAL_FIRE, "Fire Medallion"),
+    (item::MEDAL_FOREST, "Forest Medallion"),
+    (item::MEDAL_LIGHT, "Light Medallion"),
+    (item::MEDAL_SHADOW, "Shadow Medallion"),
+    (item::MEDAL_SPIRIT, "Spirit Medallion"),
+    (item::MEDAL_WATER, "Water Medallion"),
     (crate::magic::meter::METER, "Magic Meter"),
     (item::MELODY_ZELDA_LULLABY, "Zelda's Lullaby"),
     (item::MELODY_EPONA_SONG, "Epona's Song"),
@@ -121,6 +132,9 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::SCRUB_BUSINESS_SEED, "Business Scrub Seed"),
     (item::SHIELD_MIRROR, "Mirror Shield"),
     (item::STICK_BAG_MEDIUM, "Deku Stick Bag (20)"),
+    (item::STONE_FIRE, "Goron's Ruby"),
+    (item::STONE_FOREST, "Kokiri's Emerald"),
+    (item::STONE_WATER, "Zora's Sapphire"),
     (item::STICK_BAG_LARGE, "Deku Stick Bag (30)"),
     (item::SWORD_BIGGORON, "Biggoron's Sword"),
     (item::SWORD_GIANT, "Giant's Knife"),
@@ -133,6 +147,10 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::ZELDA_LETTER, "Zelda's Letter"),
     (actor::OBJ_ARMOR_GORON, "Goron Tunic"),
     (actor::OBJ_ARMOR_ZORA, "Zora Tunic"),
+    (actor::OBJ_DUNGEON_SMALL_KEY_GERUDO_FORTRESS_01, "Small Key"),
+    (actor::OBJ_DUNGEON_SMALL_KEY_GERUDO_FORTRESS_02, "Small Key"),
+    (actor::OBJ_DUNGEON_SMALL_KEY_GERUDO_FORTRESS_03, "Small Key"),
+    (actor::OBJ_DUNGEON_SMALL_KEY_GERUDO_FORTRESS_04, "Small Key"),
     (actor::OBJ_HEART_CONTAINER, "Heart Container"),
     (actor::OBJ_HEART_PIECE, "Piece of Heart"),
     (actor::TBOX_MAGIC_JAR_LARGE, "Magic Jar"),
@@ -188,9 +206,33 @@ pub fn same(actor: &str) -> &str {
         .map_or(actor, |(_, to)| to.get())
 }
 
+/// Each copy the hook credits (a dungeon's map or compass, a Fortress
+/// key), by its actor, named for its dungeon.
+static COPIES: LazyLock<BTreeMap<String, String>> = LazyLock::new(|| {
+    let mut out = BTreeMap::new();
+    for copy in crate::map_copies::copies() {
+        let name = crate::map_copies::copy_name(&copy, |f| area(f).unwrap_or(f).to_owned());
+        out.insert(copy, name.expect("a map copy names itself"));
+    }
+    out.insert(
+        crate::key_tints::fortress(),
+        "Gerudo's Fortress Small Key".into(),
+    );
+    out
+});
+
+/// Every actor the world names: any of ours another slot's seed can hold.
+pub fn named() -> impl Iterator<Item = &'static str> {
+    let tables = ITEMS.iter().chain(PROGRESSIVE).map(|(n, _)| n.get());
+    tables.chain(COPIES.keys().map(String::as_str))
+}
+
 /// The item's name: its line's with progressive items on, else its own.
 pub fn item(actor: &str, progressive: bool) -> Result<&'static str> {
     let actor = same(actor);
+    if let Some(name) = COPIES.get(actor) {
+        return Ok(name);
+    }
     // The world never shuffles a starter bag, so its lines are the game's.
     let line = progressive
         .then(|| Lines::default().all().find(|l| l[0].0.get() == actor))

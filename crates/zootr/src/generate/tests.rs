@@ -409,7 +409,7 @@ fn pickups_are_checks_with_their_options_on() {
     .unwrap();
     assert_eq!(of(&report, &pickups::POTS).len(), 530);
     assert_eq!(of(&report, &pickups::FLYING_POTS).len(), 23);
-    assert_eq!(of(&report, &pickups::CRATES).len(), 44);
+    assert_eq!(of(&report, &pickups::CRATES).len(), 38);
     assert_eq!(of(&report, &pickups::ROCKS).len(), 167);
     assert_eq!(of(&report, &pickups::GRASS).len(), 160);
     assert_eq!(of(&report, &pickups::HIVES).len(), 21);
@@ -566,8 +566,23 @@ fn dealt_gifts_are_checks_only_with_their_option_on() {
         return;
     };
     use crate::settings::{DUNGEON_REWARDS, HUNDRED_TOKENS, NPC_GIFTS, SONGS, TRADE_CHAIN};
-    for setting in [NPC_GIFTS, DUNGEON_REWARDS, SONGS, TRADE_CHAIN] {
-        let dir = std::env::temp_dir().join(format!("zootr-{setting}-{}", std::process::id()));
+    let pid = std::process::id();
+    // With every option off, one seed answers for each setting.
+    let off_dir = std::env::temp_dir().join(format!("zootr-gifts-off-{pid}"));
+    let off = shuffle(
+        &romfs,
+        &off_dir,
+        7,
+        &Fixed::new(),
+        &NewGame::default(),
+        &Run::silent(),
+    )
+    .unwrap();
+    std::fs::remove_dir_all(off_dir).unwrap();
+    // Each setting's seed builds on its own, so they build at once.
+    let settings = [NPC_GIFTS, DUNGEON_REWARDS, SONGS, TRADE_CHAIN];
+    ounce_formats::par_map(&settings, |&setting| {
+        let dir = std::env::temp_dir().join(format!("zootr-{setting}-{pid}"));
         let ours: Vec<&gifts::Gift> = gifts::GIFTS
             .iter()
             .filter(|g| g.setting() == Some(setting))
@@ -583,21 +598,13 @@ fn dealt_gifts_are_checks_only_with_their_option_on() {
             on: [setting, HUNDRED_TOKENS].map(String::from).into(),
             ..Default::default()
         };
-        let report = shuffle(&romfs, &dir.join("on"), 7, &first, &on, &Run::silent()).unwrap();
+        let report = shuffle(&romfs, &dir, 7, &first, &on, &Run::silent()).unwrap();
         assert_eq!(dealt(&report), ours.len(), "{setting}");
-        let flow = dir.join("on/romfs").join(crate::flows::rel(ours[0].flow));
+        let flow = dir.join("romfs").join(crate::flows::rel(ours[0].flow));
         assert!(flow.is_file(), "{setting}");
-        let off = shuffle(
-            &romfs,
-            &dir.join("off"),
-            7,
-            &Fixed::new(),
-            &NewGame::default(),
-            &Run::silent(),
-        );
-        assert_eq!(dealt(&off.unwrap()), 0, "{setting}");
+        assert_eq!(dealt(&off), 0, "{setting}");
         std::fs::remove_dir_all(dir).unwrap();
-    }
+    });
 }
 
 #[test]

@@ -77,6 +77,11 @@ static ALL: LazyLock<Vec<(String, Kind, usize)>> = LazyLock::new(|| {
     (n.flat_map(|n| KINDS.map(|k| (name(&k, n), k, n)))).collect()
 });
 
+/// Every copy, by actor.
+pub fn copies() -> impl Iterator<Item = String> {
+    ALL.iter().map(|(c, ..)| c.clone())
+}
+
 /// Whether `item` is a map or compass copy.
 pub fn is_copy(item: &str) -> bool {
     ALL.iter().any(|(c, ..)| c == item)
