@@ -96,10 +96,13 @@ impl There {
         Ok(out.stdout)
     }
 
-    /// A pipe into the file (a FIFO) at `path` there, kept open across
-    /// writes so each costs no new connection.
+    /// A pipe into the FIFO at `path` there: the connection stays open
+    /// across lines so each costs no new one, but each line opens and
+    /// closes the FIFO, since the server's `tail -f` passes a line on only
+    /// once its writer closes.
     pub fn pipe(&self, path: &str) -> Result<Pipe> {
-        let child = (self.sh(&format!("cat > {}", quote(path))))
+        let script = format!(r#"while IFS= read -r l; do printf '%s\n' "$l" > {}; done"#, quote(path));
+        let child = (self.sh(&script))
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
             .spawn()
