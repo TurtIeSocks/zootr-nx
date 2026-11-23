@@ -62,6 +62,7 @@ mod tests {
             env: vec![],
             harness_env: vec![],
             rebuild: None,
+            game: None,
         }
     }
 

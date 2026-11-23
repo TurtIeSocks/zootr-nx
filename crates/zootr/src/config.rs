@@ -15,6 +15,7 @@ use crate::shuffle::Fixed;
 mod mods_root;
 mod rebuild;
 mod settings_file;
+mod slots;
 
 pub use rebuild::Rebuild;
 pub use settings_file::SettingsFile;
@@ -175,6 +176,10 @@ pub struct Target {
     /// How to rebuild a game that bakes exefs patches in at build time.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rebuild: Option<Rebuild>,
+    /// The turn queue's game this target is part of: one of several slots
+    /// on a machine. None is this machine's game (`turn.here`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub game: Option<String>,
 }
 
 impl Target {
@@ -350,6 +355,7 @@ impl Target {
             env,
             harness_env,
             rebuild,
+            game,
         } = Target {
             name: String::new(),
             app: PathBuf::new(),
@@ -362,6 +368,7 @@ impl Target {
             env: vec![],
             harness_env: vec![],
             rebuild: None,
+            game: None,
         };
         let _ = (
             name,
@@ -375,6 +382,7 @@ impl Target {
             env,
             harness_env,
             rebuild,
+            game,
         );
         vec![
             "name",
@@ -389,6 +397,7 @@ impl Target {
             "env",
             "harness_env",
             "rebuild",
+            "game",
         ]
     }
 
@@ -467,8 +476,17 @@ impl Config {
         Ok(user_dir(Folder::Config, ENV)?.join("config.json"))
     }
 
-    /// The saved config, or the default when there is none yet.
+    /// The saved config, or the default when there is none yet, with only
+    /// the targets of the game this shell plays ([`turn::playing`]): a
+    /// command on one slot never sees another's.
     pub fn load() -> Result<Self> {
+        let all = Self::load_all()?;
+        let game = crate::turn::playing(&all.turn);
+        Ok(all.of_game(&game))
+    }
+
+    /// The saved config with every game's targets.
+    pub fn load_all() -> Result<Self> {
         let path = Self::path()?;
         match std::fs::read(&path) {
             Ok(b) => Self::parse(&b).with_context(|| format!("reading {}", path.display())),
@@ -512,10 +530,12 @@ impl Config {
         name
     }
 
+    /// Saves, keeping the other games' targets as they are.
     pub fn save(&self) -> Result<()> {
         let path = Self::path()?;
         std::fs::create_dir_all(path.parent().context("config path has no folder")?)?;
-        std::fs::write(&path, serde_json::to_vec_pretty(self)?)
+        let all = self.with_others(Self::load_all()?, &crate::turn::playing(&self.turn));
+        std::fs::write(&path, serde_json::to_vec_pretty(&all)?)
             .with_context(|| format!("writing {}", path.display()))
     }
 
@@ -585,7 +605,7 @@ mod tests {
         dir
     }
 
-    fn target(name: &str, save_dir: Option<&str>) -> Target {
+    pub(super) fn target(name: &str, save_dir: Option<&str>) -> Target {
         Target {
             name: name.into(),
             app: "/a.app".into(),
@@ -598,6 +618,7 @@ mod tests {
             env: vec![],
             harness_env: vec![],
             rebuild: None,
+            game: None,
         }
     }
 

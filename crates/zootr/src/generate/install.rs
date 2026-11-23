@@ -162,6 +162,7 @@ mod tests {
             env: vec![],
             harness_env: vec![],
             rebuild: None,
+            game: None,
         };
         let line = SettingsFile {
             file: env.clone(),
@@ -196,6 +197,7 @@ mod tests {
             env: vec![],
             harness_env: vec![],
             rebuild: None,
+            game: None,
         };
         let targets = [
             target("a", "m1", false),
@@ -238,6 +240,7 @@ mod tests {
             env: vec![],
             harness_env: vec![],
             rebuild: None,
+            game: None,
         };
         let has = |m: &str| crate::patch::path(&dir.join(m)).exists();
         let ips = |m: &str| crate::patch::ips_path(&dir.join(m)).is_file();
@@ -277,6 +280,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         let built = Target {
             rebuild: Some(crate::config::Rebuild::default()),
+            game: None,
             ..target("built", "R={romfs}")
         };
         install(&[built], &Run::silent(), |d| {
@@ -317,6 +321,7 @@ mod tests {
             env: vec![],
             harness_env: vec![],
             rebuild: None,
+            game: None,
         };
         let targets = [target("a"), target("b")];
         for t in &targets {
