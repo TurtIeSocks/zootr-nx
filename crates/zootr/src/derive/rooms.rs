@@ -92,6 +92,8 @@ struct Seen<'k> {
     on: BTreeMap<u64, &'k Kind>,
     /// Where it was seen with the least metric: the place to test it.
     at: ([f32; 3], [f32; 3]),
+    /// The furthest a jump on it falls, in m: 0 for a level gap.
+    fall: f32,
 }
 
 impl Seen<'_> {
@@ -439,7 +441,8 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                         via: rooms::Via,
                         metric: f32,
                         by: Option<u64>,
-                        path: ([f32; 3], [f32; 3])| {
+                        path: ([f32; 3], [f32; 3]),
+                        fall: f32| {
             let (Some(ra), Some(rb)) = (room[a], room[b]) else {
                 return;
             };
@@ -447,6 +450,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                 entries.insert((rb, labels.part[b]));
                 let s = seen.entry((ra, rb, via)).or_default();
                 s.add(metric, by, path);
+                s.fall = s.fall.max(fall);
                 s.on.extend(on(path.0, path.1));
             }
         };
@@ -460,17 +464,28 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                         (v, by, (f[1] - to[1]).abs())
                     }
                 };
-                note(from, arc.to, via, metric, by, path);
+                note(from, arc.to, via, metric, by, path, 0.0);
                 crossings.extend(cross(from, arc.to, path, via == rooms::Via::Crawl));
             }
         }
         for (a, b, from, to) in graph.plunges() {
-            note(a, b, rooms::Via::Drop, from[1] - to[1], None, (from, to));
+            note(
+                a,
+                b,
+                rooms::Via::Drop,
+                from[1] - to[1],
+                None,
+                (from, to),
+                0.0,
+            );
             crossings.extend(cross(a, b, (from, to), false));
         }
-        for (a, b, from, to) in graph.gaps(jump) {
+        // Level jumps fall nothing; a leap falls from its edge to its floor.
+        let gaps = graph.gaps(jump).into_iter().map(|g| (g, false));
+        for ((a, b, from, to), leap) in gaps.chain(graph.leaps().into_iter().map(|g| (g, true))) {
             let width = (from[0] - to[0]).hypot(from[2] - to[2]);
-            note(a, b, rooms::Via::Jump, width, None, (from, to));
+            let fall = if leap { from[1] - to[1] } else { 0.0 };
+            note(a, b, rooms::Via::Jump, width, None, (from, to), fall);
             crossings.extend(cross(a, b, (from, to), false));
         }
         // A shutter's two leaves stand a strip of floor apart: its flag is
@@ -737,6 +752,12 @@ fn link(
         rooms::Via::Drop if s.most > limits().drop() => format!("drop {} into water", span("m")),
         rooms::Via::Drop => format!("drop {}", span("m")),
         rooms::Via::Step => format!("step up {}", span("m")),
+        rooms::Via::Jump if s.fall > 0.0 => format!(
+            "gap {}, falling up to {:.1} m: within a running jump off the edge ({:.1} m for that fall)",
+            span("m"),
+            s.fall,
+            limits().leap(s.fall)
+        ),
         rooms::Via::Jump => format!(
             "level gap {}: within a running jump ({:.1} m)",
             span("m"),

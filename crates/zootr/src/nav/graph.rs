@@ -581,6 +581,53 @@ impl<'a> Graph<'a> {
         found
     }
 
+    /// Each gap Link clears by running off an edge onto floor below it,
+    /// further out than a plain drop lands: the first floor under his path
+    /// within a drop's fall, no further out than a running jump carries
+    /// him for that fall ([`super::limits::Limits::leap`]). Both ends stand
+    /// on the level's collision: floor with none under it (terrain, not read
+    /// yet) has no walls to stop a leap either. The face the edge is on, the
+    /// face landed on, and the two spots.
+    pub fn leaps(&self) -> Vec<(usize, usize, [f32; 3], [f32; 3])> {
+        let l = limits();
+        let (rise, fall) = (step_up(), l.drop());
+        let far = l.leap(fall);
+        // The highest floor under `p`, from a step over it to a fall under.
+        let under = |p: [f32; 3]| {
+            (self.faces_near(p[0], p[2], 0.0).into_iter())
+                .filter_map(|f| Some((f, self.mesh.height_on(f, p[0], p[2])?)))
+                .filter(|&(_, h)| h <= p[1] + rise && h >= p[1] - fall)
+                .max_by(|a, b| a.1.total_cmp(&b.1))
+        };
+        let solid = |p: [f32; 3]| {
+            let (top, foot) = ([p[0], p[1] + LIP, p[2]], [p[0], p[1] - LIP, p[2]]);
+            self.solid.iter().any(|w| w.crosses(top, foot))
+        };
+        let mut found = vec![];
+        for Border { face, mid, out } in self.borders() {
+            let at = |d: f32| [mid[0] + out[0] * d, mid[1], mid[2] + out[1] * d];
+            // Floor just past the edge: he walks on or drops, no leap.
+            if under(at(LOOK)).is_some() {
+                continue;
+            }
+            let mut d = LOOK + LOOK / 2.0;
+            while d <= far {
+                if let Some((floor, h)) = under(at(d)) {
+                    let to = [at(d)[0], h, at(d)[2]];
+                    let low = mid[1] - h >= DROP_MIN;
+                    let far_enough = d <= l.leap(mid[1] - h);
+                    let known = solid(mid) && solid(to);
+                    if low && floor != face && far_enough && known && !self.leap_walled(mid, to) {
+                        found.push((face, floor, mid, to));
+                    }
+                    break;
+                }
+                d += LOOK / 2.0;
+            }
+        }
+        found
+    }
+
     /// Each edge off which Link falls further than a drop, into water deep
     /// enough to float in, which breaks the fall: the face the edge is on,
     /// the floor under the water, and the two spots.
@@ -750,6 +797,38 @@ mod tests {
         assert!(g.gaps(2.0).is_empty());
         let g = Graph::build(&m, &[], step_up()).with_walls(&lip);
         assert!(!g.gaps(2.0).is_empty());
+    }
+
+    /// A ledge 2 m over a floor 1.5 m out is a leap; the same floor with no
+    /// collision under either end (terrain) or past a leap's reach isn't.
+    #[test]
+    fn a_leap_lands_on_collision_floor_within_its_reach() {
+        let slab = |x0: f32, x1: f32, y: f32| {
+            let (p, q, r, t) = ([x0, y, -1.0], [x1, y, -1.0], [x1, y, 3.0], [x0, y, 3.0]);
+            Wall::new("FakeFloor", vec![[p, q, r], [p, r, t]])
+        };
+        let floors = |far: f32| Walls {
+            air: vec![],
+            solid: vec![slab(-1.0, 2.2, 2.0), slab(far - 0.2, far + 2.2, 0.0)],
+        };
+        let leaps = |far: f32, walls: Option<Walls>| {
+            let m = mesh(&[
+                quad(0.0, 0.0, 2.0, 2.0, 2.0),
+                quad(far, 0.0, far + 2.0, 2.0, 0.0),
+            ]);
+            let g = Graph::build(&m, &[], step_up());
+            let g = match &walls {
+                Some(w) => g.with_walls(w),
+                None => g,
+            };
+            g.leaps()
+                .iter()
+                .map(|&(a, b, ..)| (a, b))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(leaps(3.5, Some(floors(3.5))), [(0, 1)]);
+        assert!(leaps(3.5, None).is_empty());
+        assert!(leaps(8.0, Some(floors(8.0))).is_empty());
     }
 
     /// A fall leaves past the real ledge, which the mesh stops short of,
