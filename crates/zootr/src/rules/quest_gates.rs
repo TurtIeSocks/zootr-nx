@@ -68,7 +68,8 @@ pub fn audit(romfs: &Romfs, graph: &Graph, book: &Book) -> Result<Report> {
     let implied = implies()?;
     let mut report = Report::default();
     let always = Expr::Word("always".into());
-    for check in crate::checks::all(romfs)? {
+    let checks = crate::checks::all(romfs)?;
+    for check in checks.into_iter().filter(|c| !crate::ledger::kept_out(c)) {
         let entry = book.check(check.hash);
         let what = match entry {
             Some(e) => format!("check {} {}", e.name, check.hash),
