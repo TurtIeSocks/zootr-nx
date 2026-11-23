@@ -408,21 +408,30 @@ fn tail(log: &str, n: usize) -> String {
     lines[lines.len().saturating_sub(n)..].join("\n")
 }
 
+/// The server's shell line: `MultiServer.py` with its stdin fed from the
+/// FIFO, its output to the log.
+const SERVE: &str = r#"tail -f "$1" | exec "$2" MultiServer.py --port "$3" "$4" > "$5" 2>&1"#;
+
 /// Starts `MultiServer.py` on `multi` in its own process group, its stdin
 /// fed from `fifo`.
 #[cfg(unix)]
 fn serve(ap: &Archipelago, multi: &Path, port: u16, fifo: &Path, log: &Path) -> Result<u32> {
     use std::os::unix::process::CommandExt;
-    let script = r#"tail -f "$1" | exec "$2" MultiServer.py --port "$3" "$4" > "$5" 2>&1"#;
+    let args = [fifo, &ap.python(), Path::new(&port.to_string()), multi, log]
+        .map(|p| p.as_os_str().to_owned());
+    if cfg!(target_os = "linux")
+        && Command::new("systemd-run")
+            .arg("--version")
+            .output()
+            .is_ok()
+    {
+        return serve_unit(ap, port, &args);
+    }
     let child = Command::new("sh")
         .current_dir(&ap.worktree)
         .env("PYTHONUNBUFFERED", "1")
-        .args(["-c", script, "sh"])
-        .arg(fifo)
-        .arg(ap.python())
-        .arg(port.to_string())
-        .arg(multi)
-        .arg(log)
+        .args(["-c", SERVE, "sh"])
+        .args(&args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -430,6 +439,31 @@ fn serve(ap: &Archipelago, multi: &Path, port: u16, fifo: &Path, log: &Path) -> 
         .spawn()
         .context("starting MultiServer.py")?;
     Ok(child.id())
+}
+
+/// The server as a user unit of systemd. Where a session's processes die
+/// with it, a room started over ssh would stop as the command returns; a
+/// unit outlives it. Its main process leads its own group, as above.
+#[cfg(unix)]
+fn serve_unit(ap: &Archipelago, port: u16, args: &[std::ffi::OsString]) -> Result<u32> {
+    let unit = format!("zootr-ap-room-{port}");
+    Command::new("systemctl")
+        .args(["--user", "reset-failed", &unit])
+        .output()
+        .ok();
+    run(Command::new("systemd-run")
+        .args(["--user", "--quiet", "--collect", &format!("--unit={unit}")])
+        .arg("--setenv=PYTHONUNBUFFERED=1")
+        .arg(format!("--working-directory={}", ap.worktree.display()))
+        .args(["sh", "-c", SERVE, "sh"])
+        .args(args))?;
+    let pid = output(
+        Command::new("systemctl").args(["--user", "show", "-p", "MainPID", "--value", &unit]),
+    )?;
+    match pid.trim().parse()? {
+        0 => bail!("the room's unit {unit} didn't start"),
+        pid => Ok(pid),
+    }
 }
 
 #[cfg(not(unix))]
