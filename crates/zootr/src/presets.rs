@@ -413,10 +413,10 @@ pub fn parser() -> impl TypedValueParser<Value = String> {
     let names = (PRESETS.iter()).map(|p| PossibleValue::new(p.name).help(p.what));
     PossibleValuesParser::new(names.chain(old)).map(|name| {
         if let Some(new) = crate::settings::renamed(&name) {
-            eprintln!("--preset {name} is now {new}");
+            log::warn!("--preset {name} is now {new}");
         }
         if let Some(why) = crate::settings::dropped(&name) {
-            eprintln!("--preset {name} is gone: {why}");
+            log::warn!("--preset {name} is gone: {why}");
         }
         name
     })

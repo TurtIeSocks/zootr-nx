@@ -9,7 +9,7 @@ use tauri::{AppHandle, Manager, State};
 use tauri_specta::Event as _;
 use zootr::config::Config;
 use zootr::gamedata::GameData;
-use zootr::recorder::{self, Ask, Event, Hub, Numbered, Snapshot, Watch};
+use zootr::recorder::{self, Ask, Event, Hub, LiveStatus, Numbered, Snapshot, Source, Watch};
 
 use crate::checks::Checks;
 use crate::{Items, Res, romfs, text};
@@ -34,9 +34,13 @@ impl Live {
         Self {
             gd: Mutex::default(),
             hub: Hub::new(move |n| {
-                if let Event::Row { change, .. } = &n.event {
-                    app.state::<Checks>().change(&app, change);
-                    app.state::<Items>().change(&app, change);
+                match &n.event {
+                    Event::Row { change, .. } => {
+                        app.state::<Checks>().change(&app, change);
+                        app.state::<Items>().change(&app, change);
+                    }
+                    Event::Status { status } => log_status(status),
+                    _ => {}
                 }
                 let _ = LiveEvent(n.clone()).emit(&app);
             }),
@@ -67,6 +71,22 @@ impl Live {
         let logs = recorder::logs()?;
         *self.watch.lock().unwrap() = Some(Watch::start(self.hub.clone(), gd, target, logs));
         Ok(())
+    }
+}
+
+/// The game's connection, for the app's log.
+fn log_status(status: &LiveStatus) {
+    let (what, why) = match status {
+        LiveStatus::Waiting { reason } => ("waiting", reason.as_deref()),
+        LiveStatus::Attaching { reason } => ("connecting", Some(reason.as_str())),
+        LiveStatus::Recording { session } => match session.source {
+            Source::Live => ("recording", None),
+            Source::Saves => ("recording from autosaves", session.reason.as_deref()),
+        },
+    };
+    match why {
+        Some(why) => log::info!("Game: {what} ({why})"),
+        None => log::info!("Game: {what}"),
     }
 }
 

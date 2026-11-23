@@ -3,6 +3,7 @@ import { ChecksView } from "@/checks/checks-view";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { LoadGate } from "@/components/load-gate";
 import { ItemsView } from "@/items/items-view";
+import { timeCommands } from "@/lib/timing";
 import { cn } from "@/lib/utils";
 import { LiveView } from "@/live/live-view";
 import { PlayView } from "@/play/play-view";
@@ -11,10 +12,11 @@ import { SpoilerView } from "@/play/spoiler/spoiler-view";
 import { SaveView } from "@/save/save-view";
 import { SettingsView } from "@/settings/settings-view";
 import { Find } from "@/shell/find/find";
-import { crumbs, type Tab } from "@/shell/nav";
+import { crumbs, FILL_PANES, type Section, type Tab } from "@/shell/nav";
 import { Topbar } from "@/shell/page-header";
 import { Sidebar } from "@/shell/sidebar";
 import { Welcome } from "@/shell/welcome";
+import { init as initAppLog } from "@/stores/app-log";
 import { init as initChecks } from "@/stores/checks";
 import { init as initConfig, useConfig } from "@/stores/config";
 import { init as initItems } from "@/stores/items";
@@ -37,8 +39,14 @@ const VIEWS: Record<Tab | "Settings", () => React.JSX.Element> = {
 /** Views that fill the window and scroll their own rows. */
 const FILLS: (Tab | "Settings")[] = ["Checks", "Items", "Live", "Spoiler"];
 
+/** Whether the view showing fills the window, as a Settings pane may. */
+const fills = (tab: Tab | "Settings", section: Section) =>
+  FILLS.includes(tab) || (tab === "Settings" && FILL_PANES.has(section));
+
 /** Starts every store the main window reads, and the update check. */
 function start() {
+  timeCommands(() => useConfig.getState().config.dev_tools);
+  void initAppLog();
   void initLive();
   void initSeeds();
   void initChecks();
@@ -88,7 +96,7 @@ function Shell() {
         <div
           className={cn(
             "min-h-0 flex-1 px-8 pt-2",
-            FILLS.includes(tab) ? "flex flex-col pb-6" : "overflow-auto pb-12",
+            fills(tab, section) ? "flex flex-col pb-6" : "overflow-auto pb-12",
           )}
         >
           {/* A view that breaks leaves the sidebar working, and clears when

@@ -1,25 +1,25 @@
-import {
-  ArrowDown,
-  Check,
-  Copy,
-  Flag,
-  FolderOpen,
-  ListCollapse,
-  Search,
-} from "lucide-react";
+import { Flag, ListCollapse } from "lucide-react";
 import {
   type FormEvent,
-  type PointerEvent,
   type ReactNode,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
 } from "react";
-import { commands } from "@/bindings";
 import { ArmedButton } from "@/components/armed-button";
 import { InlineError } from "@/components/callout";
 import { Help } from "@/components/help";
+import { typing, useLogKeys } from "@/components/log-view/keys";
+import {
+  CopyButton,
+  GrepInput,
+  OpenLogButton,
+} from "@/components/log-view/log-tools";
+import { Tail } from "@/components/log-view/tail";
+import {
+  type Selection,
+  useSelection,
+} from "@/components/log-view/use-selection";
 import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
 import { Badge } from "@/components/ui/badge";
@@ -43,8 +43,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { call } from "@/lib/api";
-import { MOD } from "@/lib/platform";
 import { useRequest, useRequestState } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
 import { useCopied } from "@/lib/use-copied";
@@ -52,7 +50,6 @@ import { LiveHeader, LiveRow, NoteRow } from "@/live/live-row";
 import { fold, type Item, isRow, kindsOf, textOf, visible } from "@/live/rows";
 import { Room, useColumnsStyle, useRoom } from "@/live/use-columns";
 import { useFresh } from "@/live/use-fresh";
-import { type Selection, useSelection } from "@/live/use-selection";
 import { Page } from "@/shell/page-header";
 import { LiveDot } from "@/shell/status-pill";
 import { clear, mark, useLive } from "@/stores/live";
@@ -134,27 +131,16 @@ function Empty() {
   );
 }
 
+/** Filters the log by name or change. */
+function LiveGrep() {
+  const [grep, setGrep] = useUi.usePath("live.grep");
+  return <GrepInput value={grep} onChange={setGrep} />;
+}
+
 /** The log's view: Quiet or All. */
 function ViewPicker() {
   const [quiet, setQuiet] = useUi.usePath("live.quiet");
   return <Segmented options={VIEWS} value={quiet} onValueChange={setQuiet} />;
-}
-
-/** Filters the log by name or change. */
-function GrepInput() {
-  const [grep, setGrep] = useUi.usePath("live.grep");
-  return (
-    <div className="relative w-44">
-      <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-ink-faint" />
-      <Input
-        aria-label="Filter lines"
-        placeholder="Filter lines"
-        className="h-7 pl-8"
-        value={grep}
-        onChange={(e) => setGrep(e.target.value)}
-      />
-    </div>
-  );
 }
 
 /** The lines shown, after the view and the filter, folded if folding. */
@@ -202,12 +188,6 @@ function TypesMenu() {
     </DropdownMenu>
   );
 }
-
-/** Whether a key press belongs to a field rather than the page. */
-const typing = (e: KeyboardEvent) =>
-  e.target instanceof HTMLElement &&
-  (e.target.isContentEditable ||
-    ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName));
 
 /** Marks the log with what happened, from a popover that M also opens.
  * Only while recording, since the session writes it. */
@@ -302,50 +282,10 @@ function FoldButton() {
   );
 }
 
-/** Props for {@link CopyButton}. */
-interface CopyButtonProps {
-  /** The selected lines, or every line shown with none selected. */
-  lines: Item[];
-  selecting: boolean;
-  copied: boolean;
-  onCopy: () => void;
-}
-
-/** Copies the selected lines, or every line shown, one per line. */
-function CopyButton({ lines, selecting, copied, onCopy }: CopyButtonProps) {
-  const n = lines.length;
-  const label = selecting
-    ? `Copy ${n} ${n === 1 ? "row" : "rows"}`
-    : "Copy shown";
-  const what = selecting ? "the selected rows" : "every row shown";
-  return (
-    <TipButton
-      label={label}
-      tip={copied ? "Copied" : `Copy ${what}, one line each (${MOD}C)`}
-      variant="ghost"
-      disabled={n === 0}
-      onClick={onCopy}
-    >
-      {copied ? <Check /> : <Copy />}
-    </TipButton>
-  );
-}
-
-/** Shows the session log in its folder, through the page's request. */
-function OpenLogButton() {
+/** Shows the session log in its folder. */
+function LiveLogButton() {
   const [log] = useLive.usePath("session.log");
-  const { run } = useRequest();
-  return (
-    <TipButton
-      label="Open log"
-      tip="Show the session log in its folder"
-      variant="ghost"
-      disabled={!log}
-      onClick={() => log && run(() => call(commands.revealLog(log)))}
-    >
-      <FolderOpen />
-    </TipButton>
-  );
+  return <OpenLogButton log={log} what="session log" />;
 }
 
 /** Why the page's request or the live store last failed. */
@@ -396,21 +336,7 @@ export function LiveView() {
     await navigator.clipboard.writeText(textOf(lines));
     flash("lines");
   };
-
-  // ⌘C copies, ⌘A selects every line, Esc clears, outside any field.
-  useEffect(() => {
-    const key = (e: KeyboardEvent) => {
-      if (typing(e)) return;
-      const cmd = e.metaKey || e.ctrlKey;
-      if (e.key === "Escape") selection.clear();
-      else if (cmd && e.key === "a") selection.all(shown);
-      else if (cmd && e.key === "c" && selecting) copy();
-      else return;
-      e.preventDefault();
-    };
-    window.addEventListener("keydown", key);
-    return () => window.removeEventListener("keydown", key);
-  });
+  useLogKeys(shown, selection, copy);
 
   return (
     <Page wide className="min-h-0 flex-1">
@@ -420,7 +346,7 @@ export function LiveView() {
             <SourceNote />
             <div className="ml-auto flex items-center gap-2">
               <ViewPicker />
-              <GrepInput />
+              <LiveGrep />
               <TypesMenu />
               <FoldButton />
               <MutedCount />
@@ -438,12 +364,12 @@ export function LiveView() {
                 </ArmedButton>
               </Tip>
               <CopyButton
-                lines={lines}
+                count={lines.length}
                 selecting={selecting}
                 copied={copied !== undefined}
                 onCopy={copy}
               />
-              <OpenLogButton />
+              <LiveLogButton />
             </div>
           </div>
           <LiveError />
@@ -460,77 +386,34 @@ interface LogProps {
   selection: Selection;
 }
 
-/** The rows shown, following new ones while scrolled to the bottom. Above
- * it, a button counts what arrived since and jumps back down. A press off
- * every line clears the selection. */
+/** The rows shown, in a box that follows new ones. */
 function Log({ shown, selection }: LogProps) {
   const [log] = useLive.usePath("session.log");
-  const [follow, setFollow] = useState(true);
-  const [seen, setSeen] = useState(0);
   const fresh = useFresh(log ?? null);
   const box = useRef<HTMLDivElement>(null);
   const room = useRoom(box);
-  const waiting = follow ? 0 : shown.filter((r) => r.id >= seen).length;
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scrolls again as rows arrive
-  useLayoutEffect(() => {
-    if (follow && box.current) box.current.scrollTop = box.current.scrollHeight;
-  }, [follow, shown.length]);
-
-  const scrolled = () => {
-    const el = box.current;
-    if (!el) return;
-    const bottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
-    if (bottom === follow) return;
-    setFollow(bottom);
-    if (!bottom) setSeen(useLive.getPath("next"));
-  };
-
   return (
-    <div className="relative min-h-0 flex-1">
-      <div
-        ref={box}
-        onScroll={scrolled}
-        onPointerDown={(e) => {
-          if (!(e.target as Element).closest("[data-line], [data-header]"))
-            selection.clear();
-        }}
-        className="h-full overflow-auto pb-1 font-mono text-xs leading-[18px]"
-      >
-        <Room.Provider value={room}>
-          <ColumnsBox>
-            <LiveHeader />
-            <Dropped />
-            {shown.map((i) => {
-              const line = {
-                selected: selection.ids.has(i.id),
-                pointer: {
-                  onPointerDown: (e: PointerEvent) =>
-                    selection.press(e, i.id, shown),
-                  onPointerEnter: () => selection.enter(i.id, shown),
-                },
-              };
-              return isRow(i) ? (
-                <LiveRow key={i.id} row={i} fresh={fresh(i.id)} {...line} />
-              ) : (
-                <NoteRow key={i.id} note={i} {...line} />
-              );
-            })}
-            {shown.length === 0 && <Empty />}
-          </ColumnsBox>
-        </Room.Provider>
-      </div>
-      {waiting > 0 && (
-        <Button
-          variant="secondary"
-          size="sm"
-          className="absolute bottom-3 left-1/2 -translate-x-1/2 shadow-md"
-          onClick={() => setFollow(true)}
-        >
-          {waiting} new
-          <ArrowDown />
-        </Button>
-      )}
-    </div>
+    <Tail
+      shown={shown}
+      next={() => useLive.getPath("next")}
+      selection={selection}
+      box={box}
+    >
+      <Room.Provider value={room}>
+        <ColumnsBox>
+          <LiveHeader />
+          <Dropped />
+          {shown.map((i) => {
+            const line = selection.line(i.id, shown);
+            return isRow(i) ? (
+              <LiveRow key={i.id} row={i} fresh={fresh(i.id)} {...line} />
+            ) : (
+              <NoteRow key={i.id} note={i} {...line} />
+            );
+          })}
+          {shown.length === 0 && <Empty />}
+        </ColumnsBox>
+      </Room.Provider>
+    </Tail>
   );
 }
