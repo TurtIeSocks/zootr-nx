@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 
-use crate::inventory::{self, Held, Pouch};
+use crate::inventory::{self, Held, Pouch, Section};
 use crate::known::{Name, actor, field, item};
 use crate::magic::meter;
 use crate::progressive;
@@ -26,8 +26,8 @@ pub const DEFAULT: [&str; 1] = ["master-sword"];
 pub const NONE: &str = "none";
 
 /// The `--start` word for all of Link's gear at its top tier, full ammo,
-/// every song, every trade item and twenty hearts: the kit room logic is
-/// measured with.
+/// every song, every trade item and twenty hearts (every heart container
+/// and piece): the kit room logic is measured with.
 pub const ARSENAL: &str = "arsenal";
 
 /// What [`ARSENAL`] holds, by word and count.
@@ -54,7 +54,7 @@ const KIT: &[(&str, i32)] = &[
     ("poachers-saw", 1), ("broken-sword", 1), ("prescription", 1), ("eyeball-frog", 1),
     ("eye-drops", 1), ("claim-check", 1),
     ("stone-of-agony", 1), ("gerudo-card", 1), ("double-defense", 1), ("gold-skulltula-tokens", 100),
-    ("giants-wallet", 1), ("rupees", 1000), ("heart-containers", 20),
+    ("giants-wallet", 1), ("rupees", 1000), ("heart-containers", 8), ("heart-pieces", 36),
     ("zeldas-lullaby", 1), ("eponas-song", 1), ("sarias-song", 1), ("suns-song", 1),
     ("song-of-time", 1), ("song-of-storms", 1), ("minuet-of-forest", 1), ("bolero-of-fire", 1),
     ("serenade-of-water", 1), ("requiem-of-spirit", 1), ("nocturne-of-shadow", 1), ("prelude-of-light", 1),
@@ -66,10 +66,15 @@ const BROUGHT: [(&Name, &Name, i32); 2] = [
     (actor::WEAPON_RANGE_SLING_SHOT, item::DEKU_SEED, 30),
 ];
 
-/// Heart containers, whole hearts.
+/// Heart containers, past the three hearts every new game has.
 const HEARTS: &str = "heart-containers";
-/// The heart containers every new game has. The rest are granted.
+/// The hearts every new game has.
 const BASE_HEARTS: i32 = 3;
+/// The heart containers the game hides, one per boss.
+pub(crate) const CONTAINERS: i32 = 8;
+/// The heart pieces the game hides, and how many make a heart.
+const PIECES: &str = "heart-pieces";
+const PER_HEART: i32 = 4;
 const RUPEE_WORD: &str = "rupees";
 
 /// Every grid actor's word, as a player would say it. Rule-file words
@@ -130,6 +135,10 @@ pub const WORDS: &[(&str, &Name)] = &[
     ("forest-medallion", item::MEDAL_FOREST), ("fire-medallion", item::MEDAL_FIRE), ("water-medallion", item::MEDAL_WATER),
     ("spirit-medallion", item::MEDAL_SPIRIT), ("shadow-medallion", item::MEDAL_SHADOW), ("light-medallion", item::MEDAL_LIGHT),
 ];
+
+/// Grid sections a new game can't start holding: too much of the game
+/// reads the stones and medallions as quest progress.
+pub const BARRED: [Section; 2] = [Section::Stones, Section::Medallions];
 
 /// Grid actors whose chest item has another name: what a new game is
 /// granted, what leaves the pool and what logic counts. The upgrade lines
@@ -252,16 +261,10 @@ impl Start {
         start
     }
 
-    /// Fails on a word that isn't an item, a heart count or rupees.
+    /// Fails on a word that isn't an item, a heart count or rupees, or
+    /// names a stone or medallion.
     pub fn check(&self) -> Result<()> {
-        let known = |w: &str| w == HEARTS || w == RUPEE_WORD || WORDS.iter().any(|(k, _)| *k == w);
-        if let Some(w) = self.0.keys().find(|w| !known(w)) {
-            bail!(
-                "a new game can't start with {w}. `--start` takes {}",
-                words()
-            );
-        }
-        Ok(())
+        self.0.keys().try_for_each(|w| actor_of(w).map(|_| ()))
     }
 
     /// Whether `word` is held at all.
@@ -274,16 +277,13 @@ impl Start {
         if word == ARSENAL {
             return KIT.iter().try_for_each(|&(w, n)| self.add(w, n));
         }
-        if word == HEARTS || word == RUPEE_WORD {
+        if word == HEARTS && !(0..=CONTAINERS).contains(&n) {
+            bail!("a new game starts with 0 to {CONTAINERS} heart containers, not {n}");
+        }
+        let Some(actor) = actor_of(word)? else {
             self.0.insert(word.into(), n);
             return Ok(());
-        }
-        let &(_, actor) = (WORDS.iter().find(|(w, _)| *w == word)).with_context(|| {
-            format!(
-                "a new game can't start with {word}. `--start` takes {}",
-                words()
-            )
-        })?;
+        };
         for lower in inventory::below(actor)
             .into_iter()
             .filter(|a| !ALWAYS.contains(a))
@@ -294,6 +294,13 @@ impl Start {
         }
         self.0.insert(word.into(), n);
         Ok(())
+    }
+
+    /// The hearts it starts with: a new game's three, one per heart
+    /// container and one per four pieces.
+    pub fn hearts(&self) -> i32 {
+        let n = |w: &str| self.0.get(w).copied().unwrap_or(0);
+        BASE_HEARTS + n(HEARTS) + n(PIECES) / PER_HEART
     }
 
     /// How many of grid actor `a` it holds.
@@ -312,17 +319,18 @@ impl Start {
 
     /// The opening's grants. Items in grid order, so the Hookshot comes
     /// before the Longshot. Then the ammo, past what its weapon and bags
-    /// bring. Then the heart containers past a new game's, one grant each: a
-    /// heart container's grant adds one whatever its count.
+    /// bring. Then a heart container per heart past a new game's, one
+    /// grant each: a heart container's grant adds one whatever its count,
+    /// and a granted heart piece adds none (live, 2026-11-23: eight pieces
+    /// left three hearts), so the pieces' hearts come as containers too.
     pub fn grants(&self, pouch: &Pouch) -> Vec<Grant> {
         let mut out = self.items();
         for (h, n) in self.held().into_iter().filter(|(h, _)| h.ammo) {
             let n = n - self.brought(h.actor, pouch);
             out.extend((n > 0).then(|| Grant::new(h.actor.get(), n)));
         }
-        let hearts = self.0.get(HEARTS).copied().unwrap_or(BASE_HEARTS);
         let container = || Grant::new(actor::OBJ_HEART_CONTAINER.get(), 1);
-        out.extend((BASE_HEARTS..hearts).map(|_| container()));
+        out.extend((BASE_HEARTS..self.hearts()).map(|_| container()));
         out
     }
 
@@ -370,9 +378,12 @@ impl Start {
     /// What Link owns from the start, once per unit: what leaves the pool
     /// and what logic counts. Ammo is neither.
     pub fn owned(&self) -> Vec<&'static str> {
+        let containers = self.0.get(HEARTS).copied().unwrap_or(0).max(0);
         (self.held().into_iter())
             .filter(|(h, _)| !h.ammo)
-            .flat_map(|(h, n)| std::iter::repeat_n(drop(h.actor).get(), n as usize))
+            .map(|(h, n)| (drop(h.actor), n))
+            .chain([(actor::OBJ_HEART_CONTAINER, containers)])
+            .flat_map(|(d, n)| std::iter::repeat_n(d.get(), n as usize))
             .collect()
     }
 
@@ -390,13 +401,12 @@ impl Start {
             .collect()
     }
 
-    /// The Status edits the panel's save takes: heart containers, with
-    /// health full, and the rupees.
+    /// The Status edits the panel's save takes: its hearts past a new
+    /// game's, with health full, and the rupees.
     fn status(&self) -> Vec<Edit> {
-        let hearts = self
-            .0
-            .get(HEARTS)
-            .map(|&h| [(MAX_LIFE, h * 4), (LIFE, h * 4)]);
+        let quarters = self.hearts() * 4;
+        let hearts =
+            (self.hearts() > BASE_HEARTS).then_some([(MAX_LIFE, quarters), (LIFE, quarters)]);
         let rupees = self.0.get(RUPEE_WORD).map(|&n| (RUPEES, n));
         (hearts.into_iter().flatten().chain(rupees))
             .map(|(hash, n)| Edit {
@@ -405,6 +415,29 @@ impl Start {
                 value: n.to_string(),
             })
             .collect()
+    }
+}
+
+/// Brings a saved starting inventory up to date: the stones and
+/// medallions it may hold, which no new game starts with now, are dropped.
+/// A heart count past [`CONTAINERS`] is from when the word counted every
+/// heart, and becomes the containers and pieces that make as many.
+pub fn upgrade(start: &mut serde_json::Value) {
+    let Some(words) = start.as_object_mut() else {
+        return;
+    };
+    words.retain(|w, _| {
+        let actor = WORDS.iter().find(|(k, _)| k == w);
+        !actor.is_some_and(|(_, a)| barred(a))
+    });
+    let old = words.get(HEARTS).and_then(serde_json::Value::as_i64);
+    if let Some(hearts) = old.filter(|&h| h > i64::from(CONTAINERS)) {
+        let past = hearts as i32 - BASE_HEARTS;
+        let pieces = (past - CONTAINERS) * PER_HEART;
+        let held = words.get(PIECES).and_then(serde_json::Value::as_i64);
+        let pieces = (held.unwrap_or(0) as i32).max(pieces).min(36);
+        words.insert(HEARTS.into(), CONTAINERS.into());
+        words.insert(PIECES.into(), pieces.into());
     }
 }
 
@@ -423,8 +456,31 @@ pub fn parse(arg: &str) -> Result<(String, i32)> {
 
 /// Every word `--start` takes.
 pub fn words() -> String {
-    let all = (WORDS.iter().map(|(w, _)| *w)).chain([HEARTS, RUPEE_WORD, NONE, ARSENAL]);
+    let items = WORDS.iter().filter(|(_, a)| !barred(a)).map(|(w, _)| *w);
+    let all = items.chain([HEARTS, RUPEE_WORD, NONE, ARSENAL]);
     all.collect::<Vec<_>>().join(", ")
+}
+
+/// Whether grid actor `a` is a stone or medallion, which no new game
+/// starts with.
+fn barred(a: &Name) -> bool {
+    inventory::section(a).is_some_and(|s| BARRED.contains(&s))
+}
+
+/// The grid actor `word` names, none for a heart or rupee count. Fails on
+/// a word `--start` doesn't take.
+fn actor_of(word: &str) -> Result<Option<&'static Name>> {
+    if word == HEARTS || word == RUPEE_WORD {
+        return Ok(None);
+    }
+    let found = WORDS.iter().find(|(w, _)| *w == word);
+    match found {
+        Some((_, a)) if !barred(a) => Ok(Some(*a)),
+        _ => bail!(
+            "a new game can't start with {word}. `--start` takes {}",
+            words()
+        ),
+    }
 }
 
 fn word_of(actor: &Name) -> Result<&'static str> {
@@ -434,7 +490,7 @@ fn word_of(actor: &Name) -> Result<&'static str> {
 }
 
 mod panel;
-pub use panel::{click, items, onto, set};
+pub use panel::{click, items, onto};
 
 #[cfg(test)]
 mod tests {
@@ -493,6 +549,7 @@ mod tests {
     #[test]
     fn unknown_words_are_refused() {
         assert!(start(&[("hookshot", 1), (HEARTS, 5)]).check().is_ok());
+        assert!(Start::default().add(HEARTS, CONTAINERS + 1).is_err());
         let err = start(&[("hookshoot", 1)]).check().unwrap_err();
         assert!(err.to_string().contains("hookshoot"));
         let settings = Settings::from([(SETTING.into(), serde_json::json!({ "nope": 1 }))]);
@@ -503,6 +560,18 @@ mod tests {
         );
         let none = Settings::from([(SETTING.into(), serde_json::json!({}))]);
         assert_eq!(Start::from_settings(&none).unwrap(), Start::default());
+    }
+
+    #[test]
+    fn no_new_game_starts_with_a_stone_or_medallion() {
+        for w in ["kokiri-emerald", "forest-medallion", "light-medallion"] {
+            assert!(parse(w).is_err(), "{w}");
+            assert!(start(&[(w, 1)]).check().is_err(), "{w}");
+            assert!(!words().split(", ").any(|k| k == w), "{w}");
+        }
+        let mut old = serde_json::json!({ "goron-ruby": 1, "spirit-medallion": 1, "hookshot": 1 });
+        upgrade(&mut old);
+        assert_eq!(old, serde_json::json!({ "hookshot": 1 }));
     }
 
     #[test]
@@ -531,7 +600,8 @@ mod tests {
             ("longshot", 1),
             ("hookshot", 1),
             ("kokiri-sword", 1),
-            (HEARTS, 5),
+            (HEARTS, 1),
+            (PIECES, 5),
         ]);
         let got: Vec<_> = (s.grants(&Pouch::default()).into_iter())
             .map(|g| (g.actor, g.num, g.equip))
@@ -542,12 +612,13 @@ mod tests {
             (item::HOOKSHOT.get(), 1, false),
             (item::LONGSHOT.get(), 1, false),
             (item::SWORD_KOKIRI.get(), 1, true),
+            (actor::OBJ_HEART_PIECE.get(), 5, false),
             (item::BOMB.get(), 20, false),
             (actor::OBJ_HEART_CONTAINER.get(), 1, false),
             (actor::OBJ_HEART_CONTAINER.get(), 1, false),
         ];
         assert_eq!(got, want.map(|(a, n, e)| (a.to_owned(), n, e)));
-        let none = start(&[(HEARTS, 3)]).grants(&Pouch::default());
+        let none = start(&[(HEARTS, 0)]).grants(&Pouch::default());
         assert!(none.is_empty(), "{none:?}");
     }
 
@@ -617,12 +688,35 @@ mod tests {
     }
 
     #[test]
+    fn hearts_are_three_and_each_container_and_each_four_pieces() {
+        assert_eq!(Start::default().hearts(), 3);
+        assert_eq!(start(&[(HEARTS, 2), (PIECES, 7)]).hearts(), 6);
+        assert_eq!(Start::of(&[ARSENAL]).hearts(), 20);
+    }
+
+    #[test]
+    fn an_old_heart_count_becomes_containers_and_pieces() {
+        let up = |old: serde_json::Value| {
+            let mut v = old;
+            upgrade(&mut v);
+            v
+        };
+        let twenty = serde_json::json!({ "heart-containers": 8, "heart-pieces": 36 });
+        assert_eq!(up(serde_json::json!({ "heart-containers": 20 })), twenty);
+        let twelve = serde_json::json!({ "heart-containers": 8, "heart-pieces": 4 });
+        assert_eq!(up(serde_json::json!({ "heart-containers": 12 })), twelve);
+        let now = serde_json::json!({ "heart-containers": 5 });
+        assert_eq!(up(now.clone()), now);
+    }
+
+    #[test]
     fn owned_counts_each_unit_but_no_ammo() {
         needs_names!();
         let s = start(&[
             ("bombs", 20),
             ("bomb-bag", 1),
             ("heart-pieces", 3),
+            (HEARTS, 2),
             ("bottle-1", 1),
             ("bottle-2", 1),
         ]);
@@ -634,6 +728,7 @@ mod tests {
             item::BOTTLE.get(),
         ];
         want.extend([actor::OBJ_HEART_PIECE.get(); 3]);
+        want.extend([actor::OBJ_HEART_CONTAINER.get(); 2]);
         want.sort();
         assert_eq!(owned, want);
     }

@@ -32,10 +32,11 @@ const SIZE = PIXELS.Medium;
 const INK = "text-ink";
 
 /** The item columns, top to bottom, sized to come out about as tall as
- * each other. They sit side by side where there's room, else stacked. */
+ * each other. They sit side by side where there's room, else stacked. The
+ * starting inventory hides the Stones and Medallions. */
 const MAIN: Section[][] = [
-  ["Inventory", "Masks", "Songs", "Upgrades"],
-  ["Equipment", "Quest", "Trade", "Stones", "Medallions"],
+  ["Inventory", "Trade", "Songs", "Stones", "Medallions"],
+  ["Equipment", "Upgrades", "Quest", "Masks"],
 ];
 
 /** Tall enough to take a column alone, kept on the right at any width. */
@@ -63,8 +64,9 @@ export interface ItemsEditorProps {
   view: ItemsView;
   /** Takes a click on cell `at`. A throw shows above the grid. */
   onClick: (at: number, intent: Intent) => Promise<void>;
-  /** Takes a Status field's new value. A throw shows under the field. */
-  onStatus: (edit: Edit) => Promise<void>;
+  /** Takes a Status field's new value. A throw shows under the field.
+   * Needed only when `view.status` has fields. */
+  onStatus?: (edit: Edit) => Promise<void>;
   /** The names of the settings `view.locked` indexes, for a locked tile's
    * tooltip. */
   lockedBy?: string[];
@@ -91,7 +93,7 @@ export function ItemsEditor({
   };
   return (
     <div className="flex flex-col gap-4">
-      {view.status.length > 0 && (
+      {view.status.length > 0 && onStatus && (
         <StatusPanel fields={view.status} onCommit={onStatus} />
       )}
       <InlineError error={error} />

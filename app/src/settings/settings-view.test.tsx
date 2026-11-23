@@ -646,19 +646,7 @@ const startView = (tier: number) =>
       caps: [null],
       staged: [tier > 0],
       locked: [],
-      status: [
-        {
-          group: "Meters" as const,
-          label: "Heart containers",
-          hash: 9,
-          input: "number" as const,
-          value: "12",
-          choices: [],
-          per: 4,
-          max: 80,
-          warn: null,
-        },
-      ],
+      status: [],
     },
   });
 
@@ -683,7 +671,6 @@ test("the starting inventory draws the save editor's grid and saves each click",
     );
   const setConfig = show({ defs: [inventory], section: "Inventory" });
   const tile = await screen.findByRole("button", { name: /^Hookshot/ });
-  expect(screen.getByLabelText("Heart containers")).toBeTruthy();
   fireEvent.click(tile);
   await waitFor(() =>
     expect(saved(setConfig)).toEqual({ "start-inventory": { hookshot: 1 } }),
@@ -763,26 +750,6 @@ test("the Kokiri Tunic shows held and locked to every new game", async () => {
     name: "Kokiri Tunic, from every new game",
   });
   expect(load).toHaveBeenLastCalledWith({}, [["kokiri-tunic"]]);
-});
-
-test("a Status field sets the starting inventory through the backend", async () => {
-  vi.spyOn(commands, "startItems").mockImplementation(() => startView(0));
-  const set = vi.spyOn(commands, "startSet").mockResolvedValue({
-    status: "ok",
-    data: { "heart-containers": 5 },
-  });
-  const setConfig = show({ defs: [inventory], section: "Inventory" });
-  const hearts = (await screen.findByLabelText(
-    "Heart containers",
-  )) as HTMLInputElement;
-  fireEvent.change(hearts, { target: { value: "5" } });
-  fireEvent.keyDown(hearts, { key: "Enter" });
-  await waitFor(() =>
-    expect(saved(setConfig)).toEqual({
-      "start-inventory": { "heart-containers": 5 },
-    }),
-  );
-  expect(set).toHaveBeenCalledWith({}, { hash: 9, index: 0, value: "20" });
 });
 
 test("All starts with the arsenal and None with nothing", async () => {

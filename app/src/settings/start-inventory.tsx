@@ -59,8 +59,9 @@ const TIP = (on: boolean) =>
     ? "Every piece of gear at its top tier, full ammo, every song, every trade item and twenty hearts"
     : "Start with nothing";
 
-/** The starting inventory as the Save page's grid and Status fields, on a
- * new game. Each click saves the setting. What a choice's pick gives shows
+/** The starting inventory as the Save page's grid, on a new game, with
+ * cells of its own for heart containers and rupees. Each click saves the
+ * setting. What a choice's pick gives shows
  * held, with the choice named under the grid. What a setting gives by its
  * own path shows held and locked, naming the setting, and stays out of the
  * setting's count. */
@@ -126,9 +127,6 @@ export function StartInventory({ def }: StartInventoryProps) {
         lockedBy={givers}
         onClick={async (at: number, intent: Intent) =>
           save(await call(commands.startClick(now(), at, intent)))
-        }
-        onStatus={async (edit) =>
-          save(await call(commands.startSet(now(), edit)))
         }
       />
       {forcers.map((f) => (
