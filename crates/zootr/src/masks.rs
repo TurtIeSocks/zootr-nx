@@ -6,8 +6,8 @@
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{EventKind, Flowchart, Romfs};
 
-use crate::flows::{self, param};
 use crate::flows::Rewrites;
+use crate::flows::{self, param};
 use crate::known::{actor, field, flow};
 
 /// What a borrow and a sale run, every seed.
@@ -31,9 +31,9 @@ pub fn keep(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
 /// Whether event `e` runs `action`.
 fn is_action(flow: &Flowchart, e: u16, action: &str) -> bool {
     match &flow.events[e as usize].kind {
-        EventKind::Action { actor, action: a, .. } => {
-            flow.actor_of(*actor).actions[*a as usize] == action
-        }
+        EventKind::Action {
+            actor, action: a, ..
+        } => flow.actor_of(*actor).actions[*a as usize] == action,
         _ => false,
     }
 }
@@ -74,9 +74,16 @@ fn skip_exchange(shop: &mut Flowchart) -> Result<()> {
             _ => false,
         })
         .collect();
-    ensure!(asks.len() == 2, "the exchange line runs {} times", asks.len());
+    ensure!(
+        asks.len() == 2,
+        "the exchange line runs {} times",
+        asks.len()
+    );
     for ask in asks {
-        let EventKind::Action { next: Some(choice), .. } = shop.events[ask as usize].kind else {
+        let EventKind::Action {
+            next: Some(choice), ..
+        } = shop.events[ask as usize].kind
+        else {
             anyhow::bail!("nothing follows the exchange line");
         };
         let EventKind::Switch { cases, .. } = &shop.events[choice as usize].kind else {
@@ -120,10 +127,11 @@ mod tests {
             actor::NPC_HYLIA_023_SHOP_CHILD,
             field::TALK_30
         );
-        let asked = (0..shop.events.len() as u16).filter(|&e| match &shop.events[e as usize].kind {
-            EventKind::Action { params, .. } => param(params, field::MESSAGE_ID) == Some(&line),
-            _ => false,
-        });
+        let asked =
+            (0..shop.events.len() as u16).filter(|&e| match &shop.events[e as usize].kind {
+                EventKind::Action { params, .. } => param(params, field::MESSAGE_ID) == Some(&line),
+                _ => false,
+            });
         assert!(asked.into_iter().all(|e| shop.links_to(e).is_empty()));
     }
 
@@ -132,7 +140,11 @@ mod tests {
         let Some((_, common)) = kept() else {
             return;
         };
-        let sell = common.entry_points.iter().find(|e| e.name == **flow::SELL_MASK).unwrap();
+        let sell = common
+            .entry_points
+            .iter()
+            .find(|e| e.name == **flow::SELL_MASK)
+            .unwrap();
         let reached = flows::reachable_from(&common, sell.main);
         let add = flow::EVENT_TRIGGER_ADD_OR_REMOVE_POUCH_CONTENT;
         assert!(!reached.iter().any(|&e| is_action(&common, e, add)));
