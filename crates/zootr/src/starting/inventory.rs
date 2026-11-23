@@ -52,7 +52,7 @@ const KIT: &[(&str, i32)] = &[
     ("keaton-mask", 1), ("skull-mask", 1), ("spooky-mask", 1), ("bunny-hood", 1),
     ("goron-mask", 1), ("zora-mask", 1), ("gerudo-mask", 1), ("mask-of-truth", 1),
     ("stone-of-agony", 1), ("gerudo-card", 1), ("double-defense", 1),
-    ("giants-wallet", 1), ("rupees", 500), ("heart-containers", 20),
+    ("giants-wallet", 1), ("rupees", 1000), ("heart-containers", 20),
     ("zeldas-lullaby", 1), ("eponas-song", 1), ("sarias-song", 1), ("suns-song", 1),
     ("song-of-time", 1), ("song-of-storms", 1), ("minuet-of-forest", 1), ("bolero-of-fire", 1),
     ("serenade-of-water", 1), ("requiem-of-spirit", 1), ("nocturne-of-shadow", 1), ("prelude-of-light", 1),
@@ -897,6 +897,23 @@ mod tests {
         assert_eq!(view.cells[magic].tier, 2);
         let once = click(&gd, &inv, &pouch, &Start::default(), magic, Intent::Up).unwrap();
         assert_eq!(once, start(&[("magic-meter", 1)]));
+    }
+
+    /// The panel holding the arsenal, and the cell labelled `label` in it.
+    fn arsenal_cell(label: &str) -> Option<(ItemsView, crate::inventory::Cell)> {
+        let (gd, inv, pouch) = layout()?;
+        let view = items(&gd, &inv, &pouch, &Start::of(&[ARSENAL]), &[]).unwrap();
+        let cell = view.cells.iter().find(|c| c.label == label).unwrap().clone();
+        Some((view, cell))
+    }
+
+    #[test]
+    fn the_arsenal_fills_its_wallet() {
+        let Some((view, _)) = arsenal_cell("Wallet") else {
+            return;
+        };
+        let rupees = view.status.iter().find(|f| f.hash == RUPEES).unwrap();
+        assert_eq!(rupees.max.map(|m| m.to_string()), Some(rupees.value.clone()));
     }
 
     #[test]
