@@ -10,6 +10,7 @@ import {
 export const TITLES: Record<Section, string> = {
   Inventory: "Inventory",
   Trade: "Trade",
+  Masks: "Masks",
   Equipment: "Equipment",
   Upgrades: "Upgrades",
   Quest: "Quest",

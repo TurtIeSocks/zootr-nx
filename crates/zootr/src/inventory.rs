@@ -28,6 +28,7 @@ const STOCK: &Name = flag::STOCK_NUM;
 pub enum Section {
     Inventory,
     Trade,
+    Masks,
     Equipment,
     Upgrades,
     Quest,
@@ -38,9 +39,10 @@ pub enum Section {
 }
 
 impl Section {
-    pub const ALL: [Section; 9] = [
+    pub const ALL: [Section; 10] = [
         Section::Inventory,
         Section::Trade,
+        Section::Masks,
         Section::Equipment,
         Section::Upgrades,
         Section::Quest,
@@ -54,7 +56,7 @@ impl Section {
     fn width(self) -> u8 {
         match self {
             Section::Equipment | Section::Stones => 3,
-            Section::Upgrades | Section::Dungeons => 4,
+            Section::Upgrades | Section::Masks | Section::Dungeons => 4,
             Section::Quest | Section::Trade => 5,
             Section::Inventory | Section::Songs | Section::Medallions => 6,
         }
@@ -241,6 +243,15 @@ const GRID: &[Slot] = &[
     slot(Trade, "Eyeball Frog", &[item::EYEBALL_FROG]),
     slot(Trade, "Eye Drops", &[item::EYE_DROP]),
     slot(Trade, "Claim Check", &[item::CLAIM_CHECK]),
+    // Link can hold every mask at once (the mask slot), so each has a cell.
+    slot(Masks, "Keaton Mask", &[actor::ARMOR_CHILD_MASK_KEATON]),
+    slot(Masks, "Skull Mask", &[actor::ARMOR_CHILD_MASK_SKULL]),
+    slot(Masks, "Spooky Mask", &[actor::ARMOR_CHILD_MASK_SPOOKY]),
+    slot(Masks, "Bunny Hood", &[actor::ARMOR_CHILD_MASK_BUNNY]),
+    slot(Masks, "Goron Mask", &[actor::ARMOR_CHILD_MASK_GORON]),
+    slot(Masks, "Zora Mask", &[actor::ARMOR_CHILD_MASK_ZORA]),
+    slot(Masks, "Gerudo Mask", &[actor::ARMOR_CHILD_MASK_GERUDO]),
+    slot(Masks, "Mask of Truth", &[actor::ARMOR_CHILD_MASK_TRUTH]),
     slot(Equipment, "Kokiri Sword", &[actor::WEAPON_SWORD_KOKIRI]),
     slot(Equipment, "Master Sword", &[actor::WEAPON_SWORD_MASTER]),
     slot(Equipment, "Biggoron's Sword", &[actor::WEAPON_SWORD_GIANT, actor::WEAPON_SWORD_BIGGORON]),
@@ -252,14 +263,6 @@ const GRID: &[Slot] = &[
     slot(Equipment, "Zora Tunic", &[actor::ARMOR_ADULT_ZORA]),
     slot(Equipment, "Iron Boots", &[actor::ARMOR_ADULT_HEAVY_BOOT]),
     slot(Equipment, "Hover Boots", &[actor::ARMOR_ADULT_HOVER_BOOT]),
-    slot(Equipment, "Keaton Mask", &[actor::ARMOR_CHILD_MASK_KEATON]),
-    slot(Equipment, "Skull Mask", &[actor::ARMOR_CHILD_MASK_SKULL]),
-    slot(Equipment, "Spooky Mask", &[actor::ARMOR_CHILD_MASK_SPOOKY]),
-    slot(Equipment, "Bunny Hood", &[actor::ARMOR_CHILD_MASK_BUNNY]),
-    slot(Equipment, "Goron Mask", &[actor::ARMOR_CHILD_MASK_GORON]),
-    slot(Equipment, "Zora Mask", &[actor::ARMOR_CHILD_MASK_ZORA]),
-    slot(Equipment, "Gerudo Mask", &[actor::ARMOR_CHILD_MASK_GERUDO]),
-    slot(Equipment, "Mask of Truth", &[actor::ARMOR_CHILD_MASK_TRUTH]),
     slot(Upgrades, "Strength", &[actor::ARMOR_CHILD_GAUNTLET_GORON, actor::ARMOR_ADULT_GAUNTLET_SILVER, actor::ARMOR_ADULT_GAUNTLET_GOLD]),
     slot(Upgrades, "Scale", &[item::SCALE_SILVER, item::SCALE_GOLD]),
     slot(Upgrades, "Wallet", &[item::WALLET_SMALL, item::WALLET_MEDIUM, item::WALLET_LARGE]),
@@ -664,6 +667,18 @@ pub(super) mod tests {
     }
 
     /// Every trade item, child then adult, as the Trade section lists them.
+    /// The masks, in the game's order.
+    const MASKS: [&Name; 8] = [
+        actor::ARMOR_CHILD_MASK_KEATON,
+        actor::ARMOR_CHILD_MASK_SKULL,
+        actor::ARMOR_CHILD_MASK_SPOOKY,
+        actor::ARMOR_CHILD_MASK_BUNNY,
+        actor::ARMOR_CHILD_MASK_GORON,
+        actor::ARMOR_CHILD_MASK_ZORA,
+        actor::ARMOR_CHILD_MASK_GERUDO,
+        actor::ARMOR_CHILD_MASK_TRUTH,
+    ];
+
     const TRADE: [&Name; 14] = [
         item::WEIRD_EGG,
         item::ALARM_CUCCO,
@@ -686,6 +701,19 @@ pub(super) mod tests {
         let trade: Vec<_> = GRID.iter().filter(|s| s.section == Trade).collect();
         let held: Vec<_> = trade.iter().map(|s| s.tiers.to_vec()).collect();
         assert_eq!(held, TRADE.map(|a| vec![a]));
+    }
+
+    #[test]
+    fn each_mask_has_a_cell_of_its_own_in_masks() {
+        let masks: Vec<_> = (GRID.iter())
+            .filter(|s| s.section == Masks)
+            .map(|s| s.tiers.to_vec())
+            .collect();
+        assert_eq!(masks, MASKS.map(|a| vec![a]));
+        let elsewhere = (GRID.iter())
+            .filter(|s| s.section != Masks)
+            .any(|s| MASKS.iter().any(|m| s.tiers.contains(m)));
+        assert!(!elsewhere);
     }
 
     #[test]
