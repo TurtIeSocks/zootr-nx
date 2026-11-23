@@ -8,6 +8,7 @@ use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 
 pub mod bench;
+pub mod bench_live;
 pub mod client;
 mod death;
 mod export;
@@ -20,6 +21,7 @@ mod presets;
 pub mod room;
 mod rule;
 mod seed;
+pub mod timing;
 mod when;
 mod zip;
 

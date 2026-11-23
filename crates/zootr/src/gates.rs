@@ -26,7 +26,7 @@ use rule::{Rule, atom};
 pub use wiring::{Placed, Wiring, path, wiring};
 
 const LOGIC: &str = "Logic";
-const CHEST: &str = "Obj_TBox_";
+pub(crate) const CHEST: &str = "Obj_TBox_";
 const TREASURE_BOX: &Name = field::ACTOR_LOGIC_TREASURE_BOX;
 /// A boss's heart container, and the logic node that makes it appear.
 const HEART: &Name = actor::OBJ_HEART_CONTAINER;

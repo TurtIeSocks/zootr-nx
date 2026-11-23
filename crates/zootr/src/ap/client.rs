@@ -79,6 +79,11 @@ impl Book {
         })
     }
 
+    /// The AP location of `spot`, if AP placed it.
+    pub fn location(&self, spot: u64) -> Option<i64> {
+        self.locations.get(&spot).copied()
+    }
+
     /// The AP locations of `spots`, skipping any AP didn't place.
     fn locations<'a>(&self, spots: impl IntoIterator<Item = &'a u64>) -> Vec<i64> {
         spots
@@ -99,6 +104,9 @@ pub enum Note {
     Lost(String, Duration),
     /// Locations sent, by name.
     Sent(Vec<String>),
+    /// Locations the server has taken from us, by name: its item-send
+    /// message for each, the only reply a check gets.
+    Confirmed(Vec<String>),
     Received {
         item: String,
         from: String,
@@ -123,6 +131,7 @@ impl std::fmt::Display for Note {
             Self::Refused(why) => write!(f, "refused: {why}"),
             Self::Lost(why, wait) => write!(f, "lost ({why}), retrying in {} s", wait.as_secs()),
             Self::Sent(names) => write!(f, "sent {}", names.join(", ")),
+            Self::Confirmed(names) => write!(f, "server has {}", names.join(", ")),
             Self::Received { item, from } => write!(f, "received {item} from {from}"),
             Self::Goal => write!(f, "goal sent"),
             Self::Died => write!(f, "Link died, DeathLink sent"),
@@ -317,6 +326,7 @@ fn session(
     let mut deaths = Deaths::default();
     let mut notices = Notices::default();
     let mut heard = Vec::new();
+    let mut printed = Vec::new();
     let mut connected = false;
     let mut next_look = Instant::now();
     // An item may still be owed: give it on the next pass, unslept.
@@ -337,12 +347,18 @@ fn session(
                 }
                 // Something for Link: look now rather than at the next tick.
                 ap::Event::ReceivedItems(_) => next_look = Instant::now(),
+                ap::Event::Print(ap::Print::ItemSend { item, .. }) => printed.push(item),
                 ap::Event::DeathLink { source, cause, .. } if book.death_link => {
                     heard.push(Death { source, cause });
                     next_look = Instant::now();
                 }
                 _ => {}
             }
+        }
+        if let ConnectionState::Connected(client) = conn.state_mut()
+            && let Some(names) = ours(client, &mut printed)
+        {
+            note(Note::Confirmed(names));
         }
         match conn.state_mut() {
             ConnectionState::Disconnected(e) => {
@@ -446,6 +462,16 @@ fn death_link(
         Err(e) => return note(Note::Trouble(format!("{e:#}"))),
     };
     note(sent.unwrap_or_else(|e| Note::Trouble(e.to_string())));
+}
+
+/// The locations of ours among `printed`'s item sends, which it empties.
+fn ours(client: &ap::Client, printed: &mut Vec<ap::LocatedItem>) -> Option<Vec<String>> {
+    let me = client.this_player().slot();
+    let names: Vec<String> = (printed.drain(..))
+        .filter(|i| i.sender().slot() == me)
+        .map(|i| i.location().name().to_string())
+        .collect();
+    (!names.is_empty()).then_some(names)
 }
 
 /// AP's location for an item in the start inventory.

@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use super::args::Install;
 use crate::ap::bench::{self, Row, RunInfo};
@@ -63,6 +63,11 @@ pub(super) struct Bench {
     /// Print the table without keeping the rows.
     #[arg(long)]
     no_record: bool,
+    /// Only the metrics that need no game. Without it, the live metrics
+    /// run too: they need this session's turn on the Mac game, and they
+    /// boot a new file on each preset's room and quit the game after.
+    #[arg(long)]
+    offline: bool,
     #[command(flatten)]
     at: At,
 }
@@ -132,10 +137,67 @@ pub(super) fn room_command(game: &Path, cmd: RoomCommand) -> Result<()> {
     }
 }
 
+/// The live metrics on a room of `preset`: brings the room up (installing
+/// Link's slot), boots a new file with infinite health, measures, then
+/// quits the game and takes the room down, whatever happened.
+fn live(
+    romfs: &ounce_formats::Romfs,
+    home: &Path,
+    preset: &str,
+    seed: u64,
+    ap: Option<&Path>,
+) -> Result<Vec<bench::Sample>> {
+    crate::turn::hold(&crate::turn::session())?;
+    if Room::load(home)?.is_some() {
+        own(&["ap", "room", "down"])?;
+    }
+    let seed = seed.to_string();
+    let mut up = vec!["ap", "room", "up", "--preset", preset, "--seed", &seed];
+    up.extend(["--name", "AP bench", "--note", "zootr ap bench's live run"]);
+    let ap = ap.map(|p| p.to_string_lossy().into_owned());
+    if let Some(ap) = &ap {
+        up.extend(["--archipelago", ap]);
+    }
+    own(&up)?;
+    let session = crate::turn::session();
+    let measured = (|| {
+        own(&["boot", "--session", &session, "--new"])?;
+        own(&["dev", "switches", "health"])?;
+        let room = Room::load(home)?.context("the room didn't come up")?;
+        let attach = || super::running::attach(true);
+        crate::ap::bench_live::live(romfs, &room, attach()?, attach()?, input()?.as_mut())
+    })();
+    let quit = input().and_then(|mut i| i.quit());
+    own(&["ap", "room", "down"])?;
+    let samples = measured?;
+    quit?;
+    Ok(samples)
+}
+
+fn input() -> Result<Box<dyn crate::play::Input>> {
+    let config = crate::config::Config::load()?;
+    crate::play::input(&config.target()?, config.game.as_deref())
+}
+
+/// Runs this same binary with `args`, its output shown only on failure.
+fn own(args: &[&str]) -> Result<()> {
+    let out = std::process::Command::new(std::env::current_exe()?)
+        .args(args)
+        .output()?;
+    anyhow::ensure!(
+        out.status.success(),
+        "zootr {} failed:\n{}{}",
+        args.join(" "),
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    Ok(())
+}
+
 pub(super) fn bench_command(game: &Path, args: Bench) -> Result<()> {
     let romfs = game::prepare(game, &Run::silent())?;
     let home = home()?;
-    let ap = Archipelago::find(args.at.archipelago, &home)?;
+    let ap = Archipelago::find(args.at.archipelago.clone(), &home)?;
     let world = world();
     ap.prepare(&world)?;
     let presets = match args.preset.is_empty() {
@@ -165,8 +227,28 @@ pub(super) fn bench_command(game: &Path, args: Bench) -> Result<()> {
         widest,
         &bench::export(&romfs, &work)?,
     ));
+    if !args.offline {
+        let local = RunInfo {
+            room: "local".into(),
+            ..run
+        };
+        for preset in &presets {
+            let locations = (new.iter().find(|r| r.preset == *preset)).map_or(0, |r| r.locations);
+            let samples = live(
+                &romfs,
+                &home,
+                preset,
+                args.seed,
+                args.at.archipelago.as_deref(),
+            )?;
+            new.extend(
+                samples
+                    .iter()
+                    .map(|s| Row::new(&local, preset, locations, s)),
+            );
+        }
+    }
     print!("{}", bench::table(&history, &new));
-    println!("live metrics: not built yet (a later PR)");
     match file {
         _ if args.no_record => {}
         _ if cfg!(debug_assertions) => {
