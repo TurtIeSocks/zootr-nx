@@ -1,12 +1,8 @@
 import { ArrowRight, Check, Copy, VolumeX } from "lucide-react";
-import {
-  type HTMLAttributes,
-  type KeyboardEvent,
-  type ReactNode,
-  useState,
-} from "react";
+import { type KeyboardEvent, type ReactNode, useState } from "react";
 import type { Change } from "@/bindings";
 import { InlineError } from "@/components/callout";
+import { type LineProps, PICKED } from "@/components/log-view/line";
 import { Tip } from "@/components/tip";
 import { Input } from "@/components/ui/input";
 import { useRequest, useRequestState } from "@/lib/request";
@@ -22,24 +18,6 @@ import {
 } from "@/live/rows";
 import { type Column, ROW_GRID, useDivider } from "@/live/use-columns";
 import { label, mute, useLive } from "@/stores/live";
-
-/** What a line does with the pointer, for the log's selection. */
-export type LinePointer = Pick<
-  HTMLAttributes<HTMLElement>,
-  "onPointerDown" | "onPointerEnter"
->;
-
-/** The pointer handlers and fill a line carries. Each line is
- * `data-line`, so a press off every line clears the selection. */
-interface LineProps {
-  /** Picked in the log's selection. */
-  selected: boolean;
-  pointer: LinePointer;
-}
-
-/** A selected line's fill, over its hover. */
-const PICKED =
-  "data-selected:bg-primary-soft data-selected:hover:bg-primary-soft";
 
 /** The log's headings, with the column each resizes. */
 const HEADINGS: [string, Column?][] = [

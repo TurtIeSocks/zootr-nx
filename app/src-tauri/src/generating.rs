@@ -62,6 +62,15 @@ impl Generating {
         });
         run.end(&report);
         *self.stop.lock().unwrap() = None;
+        if report.is_ok() {
+            let what = if install { "installed" } else { "generated" };
+            let share = zootr::share::encode(seed, settings, extras);
+            let log = match run.log() {
+                Some(log) => format!(", log {}", log.display()),
+                None => String::new(),
+            };
+            log::info!("Seed {seed} {what} (share {share}){log}");
+        }
         if let Err(e) = &report
             && progress::stopped(e).is_some_and(|s| s.took_off)
         {

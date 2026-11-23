@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
+import { between, pressed } from "@/components/log-view/use-selection";
 import type { Item } from "@/live/rows";
-import { between, pressed } from "@/live/use-selection";
 
 const items: Item[] = [1, 2, 3, 4].map((id) => ({
   id,

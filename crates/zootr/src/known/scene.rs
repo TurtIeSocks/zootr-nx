@@ -182,6 +182,7 @@ pub const SY_GET_IN_EVENT: &Name = &n!(0x278c3f04ae699f79);
 pub const SY_OCARINA: &Name = &n!(0x314aa1de0ea6e059);
 pub const SY_TREASUREBOX: &Name = &n!(0x85cd7501a6a3cdee);
 pub const TIME_TEMPLE_0000: &Name = &n!(0xd73b95687be08ce0);
+pub const TIME_TEMPLE_0010: &Name = &n!(0xd73f1b687be3a669);
 pub const TIME_TEMPLE_0020: &Name = &n!(0xd74221687be5e672);
 pub const TIME_TEMPLE_0040: &Name = &n!(0xd7492d687bec1984);
 pub const TIME_TEMPLE_0055: &Name = &n!(0xd74cae687bef2a8e);

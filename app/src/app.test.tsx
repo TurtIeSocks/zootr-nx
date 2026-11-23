@@ -63,8 +63,12 @@ const backend = {
   running: false,
 };
 
+// Wrapping the commands would hide the spies below.
+vi.mock("@/lib/timing", () => ({ timeCommands: () => {} }));
+
 vi.mock("@/bindings", () => ({
   events: {
+    appLog: { listen: () => Promise.resolve(() => {}) },
     liveEvent: { listen: () => Promise.resolve(() => {}) },
     checksEvent: { listen: () => Promise.resolve(() => {}) },
     doorsEvent: { listen: () => Promise.resolve(() => {}) },
@@ -98,6 +102,8 @@ vi.mock("@/bindings", () => ({
         data: { spots: [], events: [], unprovable: [], entrances: [] },
       }),
     ),
+    appLogState: () =>
+      Promise.resolve({ lines: [], file: null, unsaved: null }),
     liveState: () =>
       Promise.resolve({
         status: { state: "Waiting", reason: null },

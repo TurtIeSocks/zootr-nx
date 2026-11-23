@@ -139,9 +139,11 @@ const INTRO_GUARDS: [&Name; 2] = [arrivals::ENTRANCE, map::LOCATION_AREA];
 /// instead, where the cutscene would have ended. `scene::TIME_TEMPLE_0040`,
 /// the first pull, is the same in a flow: set at the start, its flag sent
 /// every pull of a closed door's sword to the plain swap, past Rauru and the
-/// sword's grant.
-const FLAG_AT_END: [&Name; 3] = [
+/// sword's grant. `scene::TIME_TEMPLE_0010`, the door opening, too: the
+/// song's flow ends before opening it once its flag is set.
+const FLAG_AT_END: [&Name; 4] = [
     scene::HRL_FIELD_0010,
+    scene::TIME_TEMPLE_0010,
     scene::TIME_TEMPLE_0020,
     scene::TIME_TEMPLE_0040,
 ];
@@ -635,7 +637,12 @@ mod tests {
             scene::HRL_FIELD_0010
         )));
         let door = rendered(flow::DOOR_OF_TIME);
-        for n in [scene::TIME_TEMPLE_0020, scene::TIME_TEMPLE_0040] {
+        let opens = [
+            scene::TIME_TEMPLE_0010,
+            scene::TIME_TEMPLE_0020,
+            scene::TIME_TEMPLE_0040,
+        ];
+        for n in opens {
             let plays = format!(r#"{}="{n}""#, flow::EVENT_NAME);
             let transition = flow::EVENT_TRANSITION.get();
             assert!(

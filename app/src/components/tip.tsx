@@ -1,9 +1,10 @@
-import type { ReactElement, ReactNode } from "react";
+import { type ReactElement, type ReactNode, useRef, useState } from "react";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 /** How long the pointer rests before a tip shows. A native `title`
  * waits as long as the OS likes, which is why the app has none. */
@@ -34,6 +35,39 @@ export function Tip({ tip, focusable, wrap, children }: TipProps) {
         {wrap ? <span className="inline-flex">{children}</span> : children}
       </TooltipTrigger>
       <TooltipContent className="whitespace-pre-line">{tip}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Props for {@link CutText}. */
+interface CutTextProps {
+  text: string;
+  className?: string;
+}
+
+/** One line of text, cut off with an ellipsis when it doesn't fit, and
+ * shown whole on hover only then. */
+export function CutText({ text, className }: CutTextProps) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [open, setOpen] = useState(false);
+  const cut = () => {
+    const el = ref.current;
+    return el !== null && el.scrollWidth > el.clientWidth;
+  };
+  return (
+    <Tooltip
+      delayDuration={TIP_MS}
+      open={open}
+      onOpenChange={(o) => setOpen(o && cut())}
+    >
+      <TooltipTrigger asChild>
+        <span ref={ref} className={cn("truncate", className)}>
+          {text}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xl whitespace-pre-wrap break-words">
+        {text}
+      </TooltipContent>
     </Tooltip>
   );
 }

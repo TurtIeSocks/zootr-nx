@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { InlineError } from "@/components/callout";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
+import { LogsView } from "@/logs/logs-view";
 import { AppSettings } from "@/settings/app-settings";
 import { DriftBar } from "@/settings/drift-bar";
 import { GroupPage } from "@/settings/group-page";
@@ -16,6 +17,7 @@ import { useUi } from "@/stores/ui";
 /** A settings group's page, or one of the app's panes, in the page frame. */
 export function SettingsView() {
   const [section] = useUi.usePath("section");
+  if (section === "logs") return <LogsView />;
   return (
     <Page>
       {PANES[section] ?? <Group group={section} />}

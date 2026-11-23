@@ -51,10 +51,7 @@ fn path() -> anyhow::Result<PathBuf> {
 fn read(path: &Path) -> anyhow::Result<Map<String, Value>> {
     match std::fs::read(path) {
         Ok(b) => Ok(serde_json::from_slice(&b).unwrap_or_else(|e| {
-            eprintln!(
-                "zootr-app: {} doesn't parse, starting it over: {e}",
-                path.display()
-            );
+            log::warn!("{} doesn't parse, starting it over: {e}", path.display());
             Map::new()
         })),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Map::new()),

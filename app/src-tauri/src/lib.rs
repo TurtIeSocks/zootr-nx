@@ -26,6 +26,7 @@ use zootr::savefile::{self, Change};
 use zootr::settings::{SettingDef, Settings};
 use zootr::share;
 
+mod app_log;
 mod archipelago;
 mod checks;
 mod dev_panel;
@@ -41,7 +42,9 @@ const BINDINGS: &str = "../src/bindings.ts";
 /// Errors reach the UI as the whole chain on one line.
 type Res<T> = Result<T, String>;
 
+/// What a player reads of `e`. The log gets its whole chain.
 fn text(e: anyhow::Error) -> String {
+    log::error!("{e:#}");
     zootr::plain::shown(&e)
 }
 
@@ -171,6 +174,7 @@ async fn set_config(app: AppHandle, config: Config) -> Res<Vec<String>> {
         }
         check_steps(&old, &config)?;
         config.save()?;
+        app_log::set_level(config.dev_tools);
         if game_art(&old) != game_art(&config) || old.game != config.game {
             app.state::<Items>().emit(&app);
         }
@@ -348,6 +352,7 @@ async fn uninstall(app: AppHandle) -> Res<()> {
         let mut history = History::load()?;
         history.install(None);
         history.save()?;
+        log::info!("Took the mod off every target");
         app.state::<Items>().emit(&app);
         Ok(())
     })
@@ -644,6 +649,8 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             live_tab::live_mark,
             live_tab::live_mute,
             reveal_log,
+            app_log::app_log_state,
+            app_log::app_log_write,
             checks::checks_state,
             checks::checks_mark,
             checks::checks_pick,
@@ -677,6 +684,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
         ])
         .events(collect_events![
             live_tab::LiveEvent,
+            app_log::AppLogEvent,
             checks::ChecksEvent,
             checks::DoorsEvent,
             ItemsEvent,
@@ -703,6 +711,9 @@ pub fn export_bindings(path: impl AsRef<Path>) -> Result<(), specta_typescript::
 }
 
 pub fn run() -> tauri::Result<()> {
+    let config = Config::load();
+    app_log::install(config.as_ref().is_ok_and(|c| c.dev_tools));
+    app_log::header(&config);
     #[cfg(debug_assertions)]
     if let Err(e) = export_bindings(Path::new(env!("CARGO_MANIFEST_DIR")).join(BINDINGS)) {
         eprintln!("couldn't write the bindings: {e}");
@@ -731,6 +742,7 @@ pub fn run() -> tauri::Result<()> {
         })
         .setup(move |app| {
             builder.mount_events(app);
+            app_log::attach(app.handle());
             app.manage(archipelago::Ap::default());
             app.manage(checks::Checks::default());
             app.manage(Items::default());
@@ -772,6 +784,18 @@ mod tests {
     use std::collections::BTreeMap;
 
     use super::*;
+
+    #[test]
+    fn an_error_logs_its_whole_chain() {
+        app_log::install_bare();
+        let shown = text(anyhow!("the FakeFile is gone").context("reading the FakeSave"));
+        assert!(!shown.is_empty());
+        let lines = serde_json::to_value(app_log::app_log_state()).unwrap();
+        let logged = lines["lines"].as_array().unwrap().iter();
+        assert!(logged.into_iter().any(|l| l["text"]
+            == "reading the FakeSave: the FakeFile is gone"
+            && l["level"] == "error"));
+    }
 
     #[test]
     fn a_changed_setup_with_a_bad_quest_step_is_refused_when_saved() {
