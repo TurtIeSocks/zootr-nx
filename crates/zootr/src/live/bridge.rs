@@ -1,9 +1,10 @@
 //! The target's control socket: one JSON line a request, its reply matched by `id`.
 
+use std::collections::{HashMap, VecDeque};
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::sync::Mutex;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail, ensure};
 use serde_json::{Value, json};
@@ -17,6 +18,9 @@ pub const PATIENCE: Duration = Duration::from_secs(30);
 const CHUNK: usize = 1 << 20;
 /// The most ranges one `mem_read_many` may name: the target refuses more.
 const RANGES: usize = 64;
+/// The most requests sent before their replies: the target serves up to 8
+/// memory requests a frame, all in the same pass.
+const FLIGHT: usize = 8;
 
 /// The game answered a request with an error.
 #[derive(Debug)]
@@ -78,129 +82,182 @@ impl Bridge {
     /// `cmd` with `args` (an object, or null for none), answered within
     /// `within`. The reply's fields, or [`Refused`].
     pub fn ask(&self, cmd: &str, args: Value, within: Duration) -> Result<Value> {
+        Ok(self.asks(vec![(cmd, args)], within)?.remove(0))
+    }
+
+    /// Every one of `asks`, up to [`FLIGHT`] sent before their replies,
+    /// each answered within `within`. The replies in `asks`' order, or the
+    /// first refusal once all have answered. A `busy` refusal (every memory
+    /// slot taken) is asked again until `within` runs out.
+    pub fn asks(&self, asks: Vec<(&str, Value)>, within: Duration) -> Result<Vec<Value>> {
         let mut conn = self.conn.lock().unwrap();
-        let id = conn.next;
-        conn.next += 1;
+        conn.lines.get_ref().set_read_timeout(Some(within))?;
+        let start = Instant::now();
+        let mut queue: VecDeque<usize> = (0..asks.len()).collect();
+        let mut flying = HashMap::new();
+        let mut out = vec![Value::Null; asks.len()];
+        let mut refused = None;
+        loop {
+            while flying.len() < FLIGHT
+                && let Some(i) = queue.pop_front()
+            {
+                let (cmd, args) = &asks[i];
+                flying.insert(conn.send(cmd, args)?, i);
+            }
+            let Some(&i) = flying.values().next() else {
+                break;
+            };
+            let reply = conn.reply(asks[i].0, within)?;
+            let Some(i) = (reply["id"].as_u64()).and_then(|id| flying.remove(&id)) else {
+                continue;
+            };
+            if reply["ok"] == true {
+                out[i] = reply;
+                continue;
+            }
+            let field = |k: &str| reply[k].as_str().unwrap_or_default().to_owned();
+            let (error, message) = (field("error"), field("message"));
+            if error == "busy" && start.elapsed() < within {
+                if flying.is_empty() {
+                    std::thread::sleep(Duration::from_millis(2));
+                }
+                queue.push_front(i);
+                continue;
+            }
+            let cmd = asks[i].0.into();
+            refused.get_or_insert(Refused {
+                cmd,
+                error,
+                message,
+            });
+        }
+        match refused {
+            Some(r) => Err(r.into()),
+            None => Ok(out),
+        }
+    }
+
+    /// Writes each of `writes`, and reads `reads` in requests of up to
+    /// [`RANGES`] ranges and [`CHUNK`] bytes, each read in one pass so its
+    /// ranges agree with each other. Every request goes out at once.
+    fn exchange(&self, writes: &[(u64, &[u8])], reads: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+        let mut asks = Vec::new();
+        for &(at, data) in writes {
+            for (i, part) in data.chunks(CHUNK).enumerate() {
+                let at = at + (i * CHUNK) as u64;
+                asks.push(("mem_write", json!({"addr": address(at), "hex": hex(part)})));
+            }
+        }
+        let wrote = asks.len();
+        let parts = parts(reads);
+        for part in &parts {
+            asks.push(match part[..] {
+                [(_, at, size)] => ("mem_read", json!({"addr": address(at), "size": size})),
+                _ => {
+                    let ranges: Vec<Value> = (part.iter())
+                        .map(|&(_, at, size)| json!({"addr": address(at), "size": size}))
+                        .collect();
+                    ("mem_read_many", json!({ "ranges": ranges }))
+                }
+            });
+        }
+        let replies = self.asks(asks, PATIENCE)?;
+        let mut out = vec![Vec::new(); reads.len()];
+        for (part, reply) in parts.iter().zip(&replies[wrote..]) {
+            let got = match reply["ranges"].as_array() {
+                Some(ranges) => ranges.iter().collect(),
+                None => vec![reply],
+            };
+            ensure!(
+                got.len() == part.len(),
+                "the game read {} of {} ranges",
+                got.len(),
+                part.len()
+            );
+            for (&(i, _, size), r) in part.iter().zip(got) {
+                let data = unhex(r["data"].as_str().unwrap_or_default())?;
+                ensure!(
+                    data.len() == size,
+                    "the game read {} of {size} bytes",
+                    data.len()
+                );
+                out[i].extend(data);
+            }
+        }
+        Ok(out)
+    }
+}
+
+impl Conn {
+    /// Sends `cmd` with `args`, saying its `id`.
+    fn send(&mut self, cmd: &str, args: &Value) -> Result<u64> {
+        let id = self.next;
+        self.next += 1;
         let mut line = match args {
             Value::Null => json!({}),
-            Value::Object(_) => args,
+            Value::Object(_) => args.clone(),
             _ => bail!("{cmd}'s arguments aren't an object"),
         };
         line["id"] = id.into();
         line["cmd"] = cmd.into();
-        writeln!(conn.out, "{line}")?;
-        conn.lines.get_ref().set_read_timeout(Some(within))?;
-        loop {
-            let mut text = String::new();
-            let read = conn.lines.read_line(&mut text);
-            match read {
-                Ok(0) => bail!("the game closed the bridge"),
-                Err(e) if is_timeout(&e) => {
-                    let raw = anyhow::anyhow!("the game didn't answer {cmd} in {within:?}");
-                    return Err(raw.context(crate::plain::Plain(super::SLOW.into())));
-                }
-                Err(e) => return Err(e.into()),
-                Ok(_) => {}
-            }
-            let reply: Value = serde_json::from_str(&text)
-                .with_context(|| format!("not a reply: {}", text.trim()))?;
-            if reply["id"] != id {
-                continue;
-            }
-            if reply["ok"] == true {
-                return Ok(reply);
-            }
-            let field = |k: &str| reply[k].as_str().unwrap_or_default().to_owned();
-            let (error, message) = (field("error"), field("message"));
-            return Err(Refused {
-                cmd: cmd.into(),
-                error,
-                message,
-            }
-            .into());
-        }
+        writeln!(self.out, "{line}")?;
+        Ok(id)
     }
 
-    /// One `mem_read_many` of the ranges `part` picks, into `out`.
-    fn read_part(
-        &self,
-        ranges: &[(u64, usize)],
-        part: &[usize],
-        out: &mut [Vec<u8>],
-    ) -> Result<()> {
-        if part.is_empty() {
-            return Ok(());
+    /// The next line the game sends, waiting on `cmd` for at most `within`.
+    fn reply(&mut self, cmd: &str, within: Duration) -> Result<Value> {
+        let mut text = String::new();
+        match self.lines.read_line(&mut text) {
+            Ok(0) => bail!("the game closed the bridge"),
+            Err(e) if is_timeout(&e) => {
+                let raw = anyhow::anyhow!("the game didn't answer {cmd} in {within:?}");
+                Err(raw.context(crate::plain::Plain(super::SLOW.into())))
+            }
+            Err(e) => Err(e.into()),
+            Ok(_) => {
+                serde_json::from_str(&text).with_context(|| format!("not a reply: {}", text.trim()))
+            }
         }
-        let args: Vec<Value> = (part.iter())
-            .map(|&i| json!({"addr": address(ranges[i].0), "size": ranges[i].1}))
-            .collect();
-        let reply = self.request("mem_read_many", json!({ "ranges": args }))?;
-        let got = (reply["ranges"].as_array()).context("mem_read_many gave no ranges")?;
-        ensure!(
-            got.len() == part.len(),
-            "mem_read_many gave {} of {} ranges",
-            got.len(),
-            part.len()
-        );
-        for (&i, r) in part.iter().zip(got) {
-            let data = unhex(r["data"].as_str().unwrap_or_default())?;
-            ensure!(
-                data.len() == ranges[i].1,
-                "mem_read_many gave {} of {} bytes",
-                data.len(),
-                ranges[i].1
-            );
-            out[i] = data;
-        }
-        Ok(())
     }
+}
+
+/// `reads` cut into requests: each a list of (read, address, size), at
+/// most [`RANGES`] long and [`CHUNK`] bytes, a read past the cap in pieces.
+/// An empty read isn't sent.
+fn parts(reads: &[(u64, usize)]) -> Vec<Vec<(usize, u64, usize)>> {
+    let mut parts = vec![Vec::new()];
+    let mut bytes = 0;
+    for (i, &(at, len)) in reads.iter().enumerate() {
+        for start in (0..len).step_by(CHUNK) {
+            let size = CHUNK.min(len - start);
+            let part = parts.last().unwrap();
+            if part.len() == RANGES || bytes + size > CHUNK {
+                parts.push(Vec::new());
+                bytes = 0;
+            }
+            parts.last_mut().unwrap().push((i, at + start as u64, size));
+            bytes += size;
+        }
+    }
+    parts.retain(|p| !p.is_empty());
+    parts
 }
 
 impl Memory for Bridge {
     fn read(&self, at: u64, len: usize) -> Result<Vec<u8>> {
-        let mut out = Vec::with_capacity(len);
-        for start in (0..len).step_by(CHUNK) {
-            let size = CHUNK.min(len - start);
-            let args = json!({"addr": address(at + start as u64), "size": size});
-            let reply = self.request("mem_read", args)?;
-            out.extend(unhex(reply["data"].as_str().unwrap_or_default())?);
-        }
-        if out.len() != len {
-            bail!("read {} of {len} bytes at {at:#x}", out.len());
-        }
-        Ok(out)
-    }
-
-    /// Up to [`RANGES`] ranges and [`CHUNK`] bytes a request, each request
-    /// read in one pass so its ranges agree with each other. An empty range
-    /// isn't sent, and one past the cap is read on its own.
-    fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
-        let mut out = vec![Vec::new(); ranges.len()];
-        let (mut part, mut bytes) = (Vec::new(), 0);
-        for (i, &(at, len)) in ranges.iter().enumerate() {
-            if len > CHUNK {
-                out[i] = self.read(at, len)?;
-                continue;
-            }
-            if part.len() == RANGES || bytes + len > CHUNK {
-                self.read_part(ranges, &part, &mut out)?;
-                (part, bytes) = (Vec::new(), 0);
-            }
-            if len > 0 {
-                part.push(i);
-                bytes += len;
-            }
-        }
-        self.read_part(ranges, &part, &mut out)?;
-        Ok(out)
+        Ok(self.exchange(&[], &[(at, len)])?.remove(0))
     }
 
     fn write(&self, at: u64, data: &[u8]) -> Result<()> {
-        for (i, part) in data.chunks(CHUNK).enumerate() {
-            let at = at + (i * CHUNK) as u64;
-            self.request("mem_write", json!({"addr": address(at), "hex": hex(part)}))?;
-        }
-        Ok(())
+        self.exchange(&[(at, data)], &[]).map(drop)
+    }
+
+    fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+        self.exchange(&[], ranges)
+    }
+
+    fn batch(&self, writes: &[(u64, &[u8])], reads: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+        self.exchange(writes, reads)
     }
 }
 
@@ -342,7 +399,10 @@ mod tests {
         let sizes = Arc::new(Mutex::new(Vec::new()));
         let seen = sizes.clone();
         let game = fake(move |req| {
-            let ranges = req["ranges"].as_array().unwrap();
+            let Some(ranges) = req["ranges"].as_array() else {
+                seen.lock().unwrap().push(1);
+                return vec![ok(req, json!({"data": "07"}))];
+            };
             seen.lock().unwrap().push(ranges.len());
             let data = vec![json!({"data": "07"}); ranges.len()];
             vec![ok(req, json!({ "ranges": data }))]
@@ -358,8 +418,11 @@ mod tests {
         let sizes = Arc::new(Mutex::new(Vec::new()));
         let seen = sizes.clone();
         let game = fake(move |req| {
-            let ranges = req["ranges"].as_array().unwrap();
             let sized = |r: &Value| r["size"].as_u64().unwrap() as usize;
+            let Some(ranges) = req["ranges"].as_array() else {
+                seen.lock().unwrap().push(vec![sized(req)]);
+                return vec![ok(req, json!({"data": "07".repeat(sized(req))}))];
+            };
             seen.lock()
                 .unwrap()
                 .push(ranges.iter().map(sized).collect::<Vec<_>>());
@@ -378,6 +441,60 @@ mod tests {
         );
         // An empty range isn't sent, and a request stops at the cap.
         assert_eq!(*sizes.lock().unwrap(), [vec![half, half], vec![1]]);
+    }
+
+    #[test]
+    fn keeps_the_game_s_flight_full_and_matches_replies_out_of_order() {
+        const ASKS: usize = 20;
+        let held = Arc::new(Mutex::new((Vec::new(), 0)));
+        let game = fake(move |req| {
+            let (stash, got) = &mut *held.lock().unwrap();
+            stash.push(req.clone());
+            *got += 1;
+            assert!(stash.len() <= FLIGHT, "{} in flight", stash.len());
+            if stash.len() < FLIGHT && *got < ASKS {
+                return vec![];
+            }
+            let replies = stash.drain(..).rev();
+            replies.map(|r| ok(&r, json!({"n": r["n"]}))).collect()
+        });
+        let asks = (0..ASKS).map(|n| ("status", json!({ "n": n }))).collect();
+        let got = game.asks(asks, PATIENCE).unwrap();
+        let ns: Vec<_> = got.iter().map(|r| r["n"].as_u64().unwrap()).collect();
+        assert_eq!(ns, (0..ASKS as u64).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn a_busy_game_is_asked_again() {
+        let tries = Arc::new(AtomicU32::new(0));
+        let seen = tries.clone();
+        let game = fake(move |req| match seen.fetch_add(1, Ordering::Relaxed) {
+            0 => vec![json!({"id": req["id"], "ok": false, "error": "busy"})],
+            _ => vec![ok(req, json!({"data": "2a"}))],
+        });
+        assert_eq!(game.read(0, 1).unwrap(), [0x2a]);
+        assert_eq!(tries.load(Ordering::Relaxed), 2);
+    }
+
+    #[test]
+    fn a_batch_sends_its_writes_and_reads_together() {
+        let cmds = Arc::new(Mutex::new(Vec::new()));
+        let seen = cmds.clone();
+        let game = fake(move |req| {
+            seen.lock()
+                .unwrap()
+                .push(req["cmd"].as_str().unwrap().to_owned());
+            match req["cmd"].as_str() {
+                Some("mem_write") => vec![ok(req, json!({"wrote": 1}))],
+                _ => vec![ok(req, json!({"data": "05"}))],
+            }
+        });
+        let got = Memory::batch(&game, &[(0, &[1]), (8, &[2])], &[(4, 1)]).unwrap();
+        assert_eq!(got, [vec![5]]);
+        assert_eq!(
+            *cmds.lock().unwrap(),
+            ["mem_write", "mem_write", "mem_read"]
+        );
     }
 
     #[test]
