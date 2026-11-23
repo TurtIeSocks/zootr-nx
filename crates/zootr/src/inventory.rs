@@ -95,6 +95,7 @@ const GRID: &[Slot] = &[
     bottle("Bottle", &[field::BOTTLE_C]),
     bottle("Bottle", &[field::BOTTLE_D]),
     bottle("Bottle", &[field::BOTTLE_E]),
+    ammo("Business Scrub Seeds", &[item::SCRUB_BUSINESS_SEED], None, item::SCRUB_BUSINESS_SEED),
     // Link can hold every trade item at once, so each has a cell.
     slot(Trade, "Weird Egg", &[item::WEIRD_EGG]),
     slot(Trade, "Cucco", &[item::ALARM_CUCCO]),
@@ -591,6 +592,7 @@ pub(super) mod tests {
             (item::BOMB, 25),
             (item::LONGSHOT, 1),
             (item::MELODY_SUN_SONG, 1),
+            (item::SCRUB_BUSINESS_SEED, 7),
         ];
         // A type marker first, then each value as a scalar.
         let pairs: Vec<_> = std::iter::once((0, 0))
@@ -614,6 +616,11 @@ pub(super) mod tests {
         let hook = cell(&cells, "Hookshot");
         assert_eq!((hook.tier, hook.icon.as_str()), (2, item::LONGSHOT.get()));
         assert_eq!(cell(&cells, "Sun's Song").tier, 1);
+        let seeds = cell(&cells, "Business Scrub Seeds");
+        assert_eq!(
+            (seeds.section, seeds.tier, seeds.count),
+            (Inventory, 1, Some(7))
+        );
 
         let missing = cell(&cells, "Megaton Hammer");
         assert_eq!(

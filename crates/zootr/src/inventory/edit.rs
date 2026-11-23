@@ -633,6 +633,10 @@ mod tests {
             pouch.caps.get(item::TOKEN_GOLD.get()),
             Some(&Cap::Fixed(100))
         );
+        assert_eq!(
+            pouch.caps.get(item::SCRUB_BUSINESS_SEED.get()),
+            Some(&Cap::Fixed(30))
+        );
         let bomb_group = &pouch.bags[item::BOMB_BAG_SMALL.get()].0;
         assert_eq!(
             pouch.caps.get(item::BOMB.get()),
