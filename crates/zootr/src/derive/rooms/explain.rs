@@ -268,6 +268,7 @@ mod tests {
     /// The water room's door: the basement scrub room's side is room 5,
     /// the landing past it room 6, and the picture of both draws.
     #[test]
+    #[ignore = "derives the Deku Tree from the dump: run with `--ignored` when changing derive"]
     fn the_water_room_door_parts_rooms_5_and_6() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
