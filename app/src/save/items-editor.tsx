@@ -32,10 +32,11 @@ const SIZE = PIXELS.Medium;
 const INK = "text-ink";
 
 /** The item columns, top to bottom, sized to come out about as tall as
- * each other. They sit side by side where there's room, else stacked. */
+ * each other. They sit side by side where there's room, else stacked. The
+ * starting inventory hides the Stones and Medallions. */
 const MAIN: Section[][] = [
-  ["Inventory", "Masks", "Songs", "Upgrades"],
-  ["Equipment", "Quest", "Trade", "Stones", "Medallions"],
+  ["Inventory", "Trade", "Songs", "Stones", "Medallions"],
+  ["Equipment", "Upgrades", "Quest", "Masks"],
 ];
 
 /** Tall enough to take a column alone, kept on the right at any width. */
