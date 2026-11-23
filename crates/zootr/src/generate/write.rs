@@ -26,8 +26,8 @@ use crate::{
     chest_levels, cows, cutscenes, dampe, day_skulltulas, dig, door, enemies, entrances, flags,
     foreign, fortress, gamedata, gerudo, gifts, goron_pot, held, hints, ice_traps, jabu_mood,
     jabu_mouth, key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups,
-    presets, rsdb, scrubs, shops, spawn, standins, starting, steps, text, tracker, trade_chain,
-    twins,
+    presets, rsdb, scrubs, sheik_crater, shops, spawn, standins, starting, steps, text, tracker,
+    trade_chain, twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -341,6 +341,7 @@ pub fn write_mod(
     if maps_move(new_game) {
         map_copies::write(romfs, &mut builder, &mut tables)?;
     }
+    crate::marks::write(romfs, &mut builder, &mut tables)?;
     foreign::write(
         romfs,
         &mut builder,
@@ -383,6 +384,7 @@ pub fn write_mod(
     if new_game.day_skulltulas {
         day_skulltulas::write(romfs, &mut builder)?;
     }
+    sheik_crater::write(romfs, &mut builder)?;
     if new_game.on.contains(presets::JABU_OPEN) {
         jabu_mouth::write(romfs, &mut builder)?;
     }

@@ -214,6 +214,37 @@ pub(super) fn logic(romfs: &Romfs, new_game: &NewGame) -> Result<()> {
 }
 
 pub(super) fn logic_set(romfs: &Romfs, game: &std::path::Path, cmd: LogicCommand) -> Result<()> {
+    if let LogicCommand::Explain {
+        dungeon,
+        at,
+        within,
+        picture,
+        rooms,
+        y,
+    } = cmd
+    {
+        anyhow::ensure!(
+            at.is_some() || (picture.is_some() && !rooms.is_empty()),
+            "name a spot (`--at X,Y,Z`), or rooms to draw (`--picture PNG --rooms 5,6`)"
+        );
+        let at = match at.as_deref() {
+            None => None,
+            Some(&[x, y, z]) => Some([x, y, z]),
+            Some(_) => anyhow::bail!("`--at` takes three numbers, `X,Y,Z`"),
+        };
+        let ask = crate::derive::rooms::explain::Ask {
+            at,
+            within,
+            picture,
+            rooms,
+            y,
+        };
+        print!(
+            "{}",
+            crate::derive::rooms::explain::explain(romfs, game, dungeon_of(&dungeon)?, &ask)?
+        );
+        return Ok(());
+    }
     if let LogicCommand::Audit { dungeon } = cmd {
         let only = match dungeon {
             Some(id) => Some(crate::rules::rooms::folder(dungeon_of(&id)?.node.get())),

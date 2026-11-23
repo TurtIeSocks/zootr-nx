@@ -7,6 +7,7 @@ pub const BONGO_BONGO_STAGE: &Name = &n!(0xe63668becb08826f);
 pub const BOSS_RUSH_INTERVAL_ROOM: &Name = &n!(0x03a8e5bec67a0ca4);
 pub const BOTTOM_OF_THE_WELL: &Name = &n!(0xab6c3eee1d36619a);
 pub const DEATH_MOUNTAIN_CRATER_ADULT: &Name = &n!(0x139754452070af0e);
+pub const DEATH_MOUNTAIN_CRATER_ADULT_PREFAB_E63C: &Name = &n!(0x672a6bef06c1260b);
 pub const DEATH_MOUNTAIN_CRATER_CHILD: &Name = &n!(0xabc28ffe50103a28);
 pub const DEATH_MOUNTAIN_TRAIL_ADULT: &Name = &n!(0x2736cb2ef62e5421);
 pub const DEATH_MOUNTAIN_TRAIL_CHILD: &Name = &n!(0x2174e729edb2e40b);

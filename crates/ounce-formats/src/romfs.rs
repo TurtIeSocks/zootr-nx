@@ -236,6 +236,11 @@ impl<'a> ModBuilder<'a> {
         self.resize(param, old, new)
     }
 
+    /// Whether `path` has a RESTBL entry: a shipped file the game sizes.
+    pub fn has_entry(&self, path: &str) -> bool {
+        self.restbl.get(path).is_some()
+    }
+
     /// Give a new file inside a pack its RESTBL entry, sized from `like`, a
     /// shipped file of the same type that is `like_size` bytes.
     pub fn add_entry(

@@ -429,6 +429,16 @@ pub(crate) fn pointed(
     name: &str,
     model: &str,
 ) -> Result<[(String, BymlDoc, String); 2]> {
+    pointed_at(template, name, model, model)
+}
+
+/// [`pointed`], naming `fmdb` in model project `project`.
+pub(crate) fn pointed_at(
+    template: &ActorPack,
+    name: &str,
+    project: &str,
+    fmdb: &str,
+) -> Result<[(String, BymlDoc, String); 2]> {
     let actor_like = actor_path(&template.name);
     let info_like = path_of(template, MODEL)?;
     let info_path = renamed(&info_like, name);
@@ -436,9 +446,11 @@ pub(crate) fn pointed(
     let actor = with_ref(actor_doc.root.as_map()?, MODEL, &info_path)?;
     let info_doc = BymlDoc::parse(&raw(template, &info_like)?)?;
     let mut info = info_doc.root.as_map()?.clone();
-    for key in [field::FMDB_NAME, field::MODEL_PROJECT_NAME] {
-        info.insert(key.get().into(), Byml::String(model.into()));
-    }
+    info.insert(field::FMDB_NAME.get().into(), Byml::String(fmdb.into()));
+    info.insert(
+        field::MODEL_PROJECT_NAME.get().into(),
+        Byml::String(project.into()),
+    );
     Ok([
         (actor_path(name), doc(actor, &actor_doc), actor_like),
         (info_path, doc(info, &info_doc), info_like),
