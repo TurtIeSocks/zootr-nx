@@ -661,7 +661,7 @@ mod pipe;
 pub mod snap;
 
 pub use bridge::{Bridge, PATIENCE, Refused};
-pub use lookup::{Places, bools, hash, locate, read, set};
+pub use lookup::{Places, bools, hash, locate, read, set, value, value_with};
 
 #[cfg(test)]
 pub(crate) mod tests {
