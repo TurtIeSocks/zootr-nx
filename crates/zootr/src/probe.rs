@@ -207,8 +207,9 @@ pub enum Probe {
         #[arg(long)]
         file: bool,
     },
-    /// A logic or AI graph, one node per line: index, class, values, and
-    /// where each linked input comes from.
+    /// A logic or AI graph, one node per line: index, class, values, where
+    /// each linked input comes from, then its children (`plug:#N`) and its
+    /// other links by plug kind (`~k3:#N`, a "then" after a sequence step).
     Ainb {
         /// Romfs path, like `Logic/NAME.logic.module.ainb`,
         /// or a graph inside an actor pack as `probe grep` names it, like
