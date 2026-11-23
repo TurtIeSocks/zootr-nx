@@ -51,7 +51,7 @@ const KIT: &[(&str, i32)] = &[
     ("bottle-1", 1), ("bottle-2", 1), ("bottle-3", 1), ("bottle-4", 1),
     ("keaton-mask", 1), ("skull-mask", 1), ("spooky-mask", 1), ("bunny-hood", 1),
     ("goron-mask", 1), ("zora-mask", 1), ("gerudo-mask", 1), ("mask-of-truth", 1),
-    ("stone-of-agony", 1), ("gerudo-card", 1), ("double-defense", 1),
+    ("stone-of-agony", 1), ("gerudo-card", 1), ("double-defense", 1), ("gold-skulltula-tokens", 100),
     ("giants-wallet", 1), ("rupees", 1000), ("heart-containers", 20),
     ("zeldas-lullaby", 1), ("eponas-song", 1), ("sarias-song", 1), ("suns-song", 1),
     ("song-of-time", 1), ("song-of-storms", 1), ("minuet-of-forest", 1), ("bolero-of-fire", 1),
@@ -922,6 +922,14 @@ mod tests {
             return;
         };
         assert_eq!(spin.tier, 1);
+    }
+
+    #[test]
+    fn the_arsenal_holds_a_hundred_gold_skulltulas() {
+        let Some((_, tokens)) = arsenal_cell("Gold Skulltulas") else {
+            return;
+        };
+        assert_eq!(tokens.count, Some(100));
     }
 
     #[test]
