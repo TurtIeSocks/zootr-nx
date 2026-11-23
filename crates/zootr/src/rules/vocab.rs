@@ -124,6 +124,7 @@ pub const EVENTS: &[(&str, &Name)] = &[
 pub const IMPLIES: &[(&str, &Name, &str)] = &[
     ("event:met-zelda", flow::DOOR_OF_TIME, "Step02"),
     ("event:moat-scene", flow::DOOR_OF_TIME, "Step05"),
+    ("beat:phantom-ganon", flow::SAGE_OF_FOREST, "Complete"),
 ];
 
 /// A place node. A word with no era is a dungeon or a boss room.

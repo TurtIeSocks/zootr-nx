@@ -267,6 +267,14 @@ impl Graph {
             .any(|g| g.quest == quest && g.least(&steps).is_some_and(|i| i >= least))
     }
 
+    /// The entry points of `flow`, as `FLOW/ENTRY` event names.
+    #[cfg(test)]
+    pub fn entries(&self, flow: &str) -> Vec<String> {
+        let chart = self.flows.as_ref().and_then(|f| f.0.get(flow));
+        let entries = chart.into_iter().flat_map(|c| &c.entry_points);
+        entries.map(|e| format!("{flow}/{}", e.name)).collect()
+    }
+
     /// Whether a graph's read `edge` feeds its node `target`, the one that
     /// drives or plays what's below: a read that only lights a room isn't
     /// a gate on the room's minigame. True when either end isn't known.

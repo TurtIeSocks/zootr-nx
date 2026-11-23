@@ -184,6 +184,7 @@ mod tests {
 
     use super::{EXIT_GIVERS, Implied, audit, implies, promised};
     use crate::flagmap::{Gate, Graph};
+    use crate::known::scene;
     use crate::rules::lang::parse;
     use crate::rules::vocab::{self, EVENTS, IMPLIES};
     use crate::rules::{Book, Expr};
@@ -240,7 +241,9 @@ mod tests {
     }
 
     /// Each `implies` row holds in the game: its event moves the quest to
-    /// that step, or waits for it.
+    /// that step, or waits for it. A boss's row holds when Link's warp out
+    /// of a boss room (the dungeon escape scene) moves the quest there.
+    /// Which boss is the row's own claim: no data ties a boss to a quest.
     #[test]
     fn every_implies_row_is_what_its_event_does_to_the_quest() {
         let Some(romfs) = crate::game::dev_dump() else {
@@ -248,13 +251,18 @@ mod tests {
         };
         let graph = Graph::build(&romfs).unwrap();
         for &(word, quest, step) in IMPLIES {
-            let event = (word.strip_prefix("event:"))
-                .and_then(|w| EVENTS.iter().find(|e| e.0 == w))
-                .unwrap_or_else(|| panic!("{word}: only event words can be checked yet"));
             let least = graph.steps_of(quest.get()).iter().position(|s| s == step);
             let least = least.unwrap_or_else(|| panic!("{quest} has no {step}"));
+            let events = match word.split_once(':') {
+                Some(("event", w)) => {
+                    let (_, event) = EVENTS.iter().find(|e| e.0 == w).unwrap();
+                    vec![event.get().to_owned()]
+                }
+                Some(("beat", _)) => graph.entries(scene::SY_BANC_CHANGE_ESCAPE_DUNGEON.get()),
+                _ => panic!("{word}: only event and beat words can be checked yet"),
+            };
             assert!(
-                graph.promises(event.1.get(), quest.get(), least),
+                (events.iter()).any(|e| graph.promises(e, quest.get(), least)),
                 "{word}: {quest} {step}"
             );
         }
