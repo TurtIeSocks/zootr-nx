@@ -357,6 +357,7 @@ name = "Sheik in the Crater"
 place = "death-mountain-crater-adult"
 era = "adult"
 needs = "crater-floor"
+quest-gate-ok = "the seed keeps her there until her scene plays (sheik_crater.rs)"
 
 [[check]]
 hash = 1221457217093522685
@@ -764,4 +765,5 @@ name = "Kokiri yard weeding"
 place = "kokiri-forest-child"
 era = "child"
 needs = "always"
+quest-gate-ok = "the seed keeps his talk on the weeding until he pays (gifts/weeding.rs)"
 setting = "npc-gifts"
