@@ -209,6 +209,7 @@ pub(crate) const PROGRESSIVE: &str = "progressive-items";
 pub(crate) const BOMBCHUS: &str = "bombchus";
 pub(crate) const SHUFFLE_NUT_BAG: &str = "shuffle-nut-bag";
 pub(crate) const SHUFFLE_STICK_BAG: &str = "shuffle-stick-bag";
+pub(crate) const SHUFFLE_MASKS: &str = "shuffle-masks";
 const BUNNY_HOOD: &str = "bunny-hood";
 const DAY_SKULLTULAS: &str = "day-skulltulas";
 pub(crate) const AGELESS_WEAPONS: &str = "ageless-weapons";
@@ -656,6 +657,12 @@ pub fn schema() -> Vec<SettingDef> {
                 place::ITEM_POOL,
                 "Shuffle the Stick Bag",
                 "The Small Stick Bag is an item in the pool, and Link holds no Deku Sticks until he finds it. Off, the first stick he picks up brings it, as in the game",
+            ),
+            toggle(
+                SHUFFLE_MASKS,
+                place::ITEM_POOL,
+                "Shuffle Masks",
+                "The eight masks are items in the pool, less any Link starts with, and the Happy Mask Shop lends none. Off, the shop lends them in order, as in the game",
             ),
         ])
         .chain([default_on(toggle(
