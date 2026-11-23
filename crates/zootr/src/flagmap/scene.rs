@@ -8,7 +8,7 @@ use std::collections::HashSet;
 
 use ounce_formats::ainb::{Graph as Ainb, Node as AinbNode, NodeKind, Value};
 
-use super::{Graph, Kind, Link};
+use super::{Graph, Kind, Link, quests};
 use crate::gamedata::GameData;
 use crate::gates::{Wiring, path};
 use crate::known::field;
@@ -84,6 +84,22 @@ pub(super) fn own(
             match writes(&node.name, key) {
                 true => g.edge(graph, state, Link::Writes, label, file, at),
                 false => g.edge(state, graph, Link::Reads, label, file, at),
+            }
+        }
+        // A node naming a quest moves it, or checks its step when the graph
+        // reads its answer. One that does neither (the progress UI) is
+        // left out.
+        if let Some(quest) = node.str(field::CHALLENGE_NAME) {
+            let step =
+                (node.str(field::STEP_NAME)).or_else(|| node.str(field::CHALLENGE_STEP_NAME));
+            let read = read_back(ainb, n);
+            let label = quests::label(&node.name, step, &read);
+            if quests::moves(&node.name) {
+                let state = g.state(gd, &quests::state(quest));
+                g.edge(graph, state, Link::Writes, label, file, at);
+            } else if !read.is_empty() {
+                let state = g.state(gd, &quests::state(quest));
+                g.edge(state, graph, Link::Reads, label, file, at);
             }
         }
     }

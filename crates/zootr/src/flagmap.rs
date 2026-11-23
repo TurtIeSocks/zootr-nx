@@ -23,6 +23,7 @@ mod actors;
 mod flows;
 mod placed;
 mod query;
+mod quests;
 mod scene;
 mod tables;
 

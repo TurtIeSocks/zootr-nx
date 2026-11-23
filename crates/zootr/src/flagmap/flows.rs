@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 
 use ounce_formats::{EventKind, Flowchart, Params, Value};
 
-use super::{Graph, Kind, Link};
+use super::{Graph, Kind, Link, quests};
 use crate::events::{FOLLOW, Flows};
 use crate::gamedata::GameData;
 use crate::known::{field, flag, flow};
@@ -137,6 +137,7 @@ fn step(
                 };
                 edge(g, from, to, link, label(action, params));
             }
+            quest(g, gd, ev, params, args, (action, false), &edge);
             for (follows, key) in FOLLOW {
                 if action == *follows
                     && let Some(target) = flows::param(params, key)
@@ -173,6 +174,7 @@ fn step(
                 let st = g.state(gd, &name);
                 edge(g, st, ev, Link::Reads, label(query, params));
             }
+            quest(g, gd, ev, params, args, (query, true), &edge);
         }
         EventKind::SubFlow {
             flowchart,
@@ -209,29 +211,61 @@ fn entries(flows: &Flows, flow: &str, entry: Option<&str>) -> Vec<String> {
 /// The GameData names `params` gives, a `$argument` looked up in each
 /// caller's params. One nobody passes stays `$argument`.
 fn named(params: &Params, args: &[Params]) -> Vec<String> {
-    let mut out = Vec::new();
-    for (_, value) in params
-        .iter()
+    let mut out: Vec<String> = (params.iter())
         .filter(|(k, _)| k.starts_with(&**field::GAME_DATA_NAME))
-    {
-        match value {
-            Value::Argument(a) => {
-                let passed: Vec<_> = args
-                    .iter()
-                    .filter_map(|p| flows::param(p, a))
-                    .map(str::to_owned)
-                    .collect();
-                match passed.is_empty() {
-                    true => out.push(format!("${a}")),
-                    false => out.extend(passed),
-                }
-            }
-            v => out.extend(v.as_str().map(str::to_owned)),
-        }
-    }
+        .flat_map(|(_, value)| strings(value, args))
+        .collect();
     out.sort();
     out.dedup();
     out
+}
+
+/// A param's strings: its own, or each caller's for a `$argument`. One
+/// nobody passes stays `$argument`.
+fn strings(value: &Value, args: &[Params]) -> Vec<String> {
+    match value {
+        Value::Argument(a) => {
+            let passed: Vec<_> = (args.iter())
+                .filter_map(|p| flows::param(p, a))
+                .map(str::to_owned)
+                .collect();
+            match passed.is_empty() {
+                true => vec![format!("${a}")],
+                false => passed,
+            }
+        }
+        v => v.as_str().map(str::to_owned).into_iter().collect(),
+    }
+}
+
+/// The step edges of an action or query `class` that names a quest: a
+/// write when it moves the quest, a read when it's a query (`asks`). An
+/// action that names one without moving it (the progress UI) is neither.
+fn quest(
+    g: &mut Graph,
+    gd: &GameData,
+    ev: usize,
+    params: &Params,
+    args: &[Params],
+    (class, asks): (&str, bool),
+    edge: &impl Fn(&mut Graph, usize, usize, Link, String),
+) {
+    if !asks && !quests::moves(class) {
+        return;
+    }
+    let Some((_, named)) = params.iter().find(|(k, _)| k == field::CHALLENGE_NAME) else {
+        return;
+    };
+    let step = (flows::param(params, field::STEP_NAME))
+        .or_else(|| flows::param(params, field::CHALLENGE_STEP_NAME));
+    let label = quests::label(short(class), step, &[]);
+    for q in strings(named, args) {
+        let st = g.state(gd, &quests::state(&q));
+        match quests::moves(class) {
+            true => edge(g, ev, st, Link::Writes, label.clone()),
+            false => edge(g, st, ev, Link::Reads, label.clone()),
+        }
+    }
 }
 
 /// An action's short name, with the value it sets and the array index.
@@ -262,7 +296,7 @@ mod tests {
 
     use super::super::Graph;
     use super::named;
-    use crate::known::{field, flag, flow, scene};
+    use crate::known::{field, flag, flow, map, scene};
 
     #[test]
     fn the_door_of_times_draw_reads_the_first_pulls_played_flag_and_the_scene_sets_it() {
@@ -307,6 +341,41 @@ mod tests {
         assert!(
             cited.contains(&**flag::MARKET_CHILD_TIME_TEMPLE_DOOR_OPENED),
             "{cited}"
+        );
+    }
+
+    /// The escape moves the Door of Time quest to Step04, and the moat's
+    /// graph waits for it: the gate that held the moat checks (#298).
+    #[test]
+    fn the_escape_moves_the_door_quest_and_the_moat_graph_waits_for_it() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let g = Graph::build(&romfs).unwrap();
+        let step = format!("state:{}{}", crate::steps::SAVED, &**flow::DOOR_OF_TIME);
+        let step = g.find(&step).unwrap();
+        let escape = format!(
+            "event:{}/{}",
+            &**flow::DOOR_OF_TIME,
+            &**field::DOOR_OF_TIME_ESCAPE
+        );
+        let writers = g.writers(step);
+        let line = writers.edges.iter().find(|l| l.from.id == escape).unwrap();
+        assert!(line.label.ends_with(" to Step04"), "{}", line.label);
+        let moat = format!(
+            "graph:{}.logic.module",
+            &**map::HYRULE_FIELD_CHILD_PREFAB_32F7
+        );
+        let readers = g.readers(step);
+        let line = readers.edges.iter().find(|l| l.to.id == moat).unwrap();
+        assert!(
+            line.label.ends_with("IsAfter|IsEqual Step04"),
+            "{}",
+            line.label
+        );
+        assert!(
+            !readers.edges.iter().any(|l| l.label.contains("ProgressUI")),
+            "showing the progress UI checks nothing"
         );
     }
 
