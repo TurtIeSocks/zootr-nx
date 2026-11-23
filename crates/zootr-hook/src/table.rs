@@ -324,20 +324,25 @@ pub const REACH: f32 = 8.0;
 
 /// The holder whose drop Link just took: `name`, lying `at`. The nearest
 /// of `spots` within [`REACH`] that drops that name, of those not yet
-/// `picked`. Two holders dropping the same name that close may swap ticks,
-/// which leaves Link the same item either way.
+/// `picked`. A twinned holder takes the tick only once it broke: its
+/// key is set at the break, so one still `whole` (by its placement) can't
+/// have dropped anything. Its mark would go while it stands, and one take
+/// that runs this twice would tick it too. A holder without a twin (a
+/// Gold Skulltula) keeps no key at the break, so `whole` isn't asked.
 pub fn nearest(
     spots: impl Iterator<Item = Spot>,
     name: &[u8],
     at: [f32; 3],
     picked: impl Fn(u32) -> bool,
+    whole: impl Fn(u64) -> bool,
 ) -> Option<Spot> {
     let name = Spot::name_hash(name);
+    let standing = |s: &Spot| s.twin != 0 && whole(s.placed);
     let mut best: Option<(f32, Spot)> = None;
     for s in spots.filter(|s| s.name == name) {
         let d = s.distance2(at);
         let nearer = best.is_none_or(|(b, _)| d < b);
-        if nearer && d <= REACH * REACH && !picked(s.flag) {
+        if nearer && d <= REACH * REACH && !picked(s.flag) && !standing(&s) {
             best = Some((d, s));
         }
     }
@@ -941,8 +946,14 @@ mod tests {
     }
 
     fn take(name: &str, at: [f32; 3], picked: &[u32]) -> Option<u32> {
+        take_whole(name, at, picked, &[])
+    }
+
+    /// A take while the holders placed as `whole` still stand unbroken.
+    fn take_whole(name: &str, at: [f32; 3], picked: &[u32], whole: &[u64]) -> Option<u32> {
         let spots = SPOTS.iter().map(|s| Spot::from_words(s.words()));
-        nearest(spots, name.as_bytes(), at, |f| picked.contains(&f)).map(|s| s.flag)
+        let (picked, whole) = (|f| picked.contains(&f), |p| whole.contains(&p));
+        nearest(spots, name.as_bytes(), at, picked, whole).map(|s| s.flag)
     }
 
     #[test]
@@ -956,6 +967,35 @@ mod tests {
     fn a_picked_holder_passes_the_tick_to_the_next() {
         assert_eq!(take("Obj_FakeGreen", [10.0, 0.0, 10.0], &[1]), Some(2));
         assert_eq!(take("Obj_FakeGreen", [10.0, 0.0, 10.0], &[1, 2]), None);
+    }
+
+    #[test]
+    fn a_holder_still_standing_never_takes_the_tick() {
+        // Holder 1 broke, but its drop lies nearer holder 2, still whole.
+        let whole = [SPOTS[1].placed];
+        assert_eq!(
+            take_whole("Obj_FakeGreen", [12.0, 0.0, 10.0], &[], &whole),
+            Some(1)
+        );
+        // A second tick of the same take finds no other broken holder.
+        assert_eq!(
+            take_whole("Obj_FakeGreen", [12.0, 0.0, 10.0], &[1], &whole),
+            None
+        );
+        // A holder without a twin keeps no key at the break (a Gold
+        // Skulltula), so whole or not it may take the tick.
+        let mut skulltula = SPOTS[0];
+        skulltula.twin = 0;
+        let whole = |p| p == skulltula.placed;
+        let picked = |_| false;
+        let ticked = nearest(
+            [skulltula].into_iter(),
+            b"Obj_FakeGreen",
+            [10.0, 0.0, 10.0],
+            picked,
+            whole,
+        );
+        assert_eq!(ticked, Some(skulltula));
     }
 
     #[test]

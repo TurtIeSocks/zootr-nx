@@ -505,25 +505,28 @@ unsafe extern "C" fn taken(pouched: usize) {
         };
         // A flag missing from GameData counts as picked, so nothing sets it.
         let picked = |flag| dev::get_bool(main, table.offsets, gd, flag) != Some(false);
+        // A key missing from GameData counts as broken, as before keys
+        // were asked.
+        let whole = |placed| key_entries(gd).and_then(|e| keys::value(e, placed)) == Some(0);
         let spots = (0..table.spots).map_while(|i| dev::spot(main, table.offsets, gd, i));
-        if let Some(spot) = nearest(spots, name, lies, picked) {
+        if let Some(spot) = nearest(spots, name, lies, picked, whole) {
             dev::set_bool(main, table.offsets, gd, spot.flag, true);
-            if spot.twin != 0 {
-                follow(gd, spot.placed, spot.twin);
+            if spot.twin != 0
+                && let Some(entries) = key_entries(gd)
+            {
+                // Breaks the twin as the holder is.
+                keys::follow(entries, spot.placed, spot.twin);
             }
         }
     })
 }
 
-/// Breaks `twin` as `placed` is, in the GameData manager `gd`'s keys.
-unsafe fn follow(gd: usize, placed: u64, twin: u64) {
+/// The GameData manager `gd`'s keys, laid end to end.
+unsafe fn key_entries(gd: usize) -> Option<&'static mut [u8]> {
     let count = unsafe { *((gd + keys::KEYS) as *const u32) } as usize;
-    let Some(at) = (unsafe { at(gd, keys::KEYS + 8) }) else {
-        return;
-    };
+    let at = unsafe { at(gd, keys::KEYS + 8) }?;
     // SAFETY: the manager's own sorted list, `count` entries long.
-    let entries = unsafe { slice::from_raw_parts_mut(at as *mut u8, count * keys::KEY_STRIDE) };
-    keys::follow(entries, placed, twin);
+    Some(unsafe { slice::from_raw_parts_mut(at as *mut u8, count * keys::KEY_STRIDE) })
 }
 
 /// The pickup a pouch content belongs to.
