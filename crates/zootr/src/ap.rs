@@ -16,6 +16,7 @@ mod ids;
 pub(crate) mod names;
 mod notice;
 mod open;
+mod presets;
 pub mod room;
 mod rule;
 mod seed;
