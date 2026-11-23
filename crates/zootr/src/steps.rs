@@ -107,15 +107,26 @@ pub fn at(challenge: &Name, step: impl std::fmt::Display) -> String {
 /// Teach `gd` every quest's saved step name, which its data keeps only as
 /// a hash: a BoolExp on one then reads as the saved step and its value.
 pub fn learn(romfs: &Romfs, gd: &mut GameData) -> Result<()> {
+    for challenge in starts(romfs)?.keys() {
+        gd.learn(&format!("{SAVED}{challenge}"));
+    }
+    Ok(())
+}
+
+/// Every quest in the quest table, with the flag that starts it when it
+/// names one (`DependFlagName`).
+pub fn starts(romfs: &Romfs) -> Result<BTreeMap<String, Option<String>>> {
     let table = BymlDoc::parse(&romfs.read(&rsdb::path(CHALLENGES))?)?;
+    let mut out = BTreeMap::new();
     for row in table.root.as_array()? {
         let id = str_field(row, rsdb::ROW_ID).unwrap_or_default();
         let name = id.rsplit('/').next().and_then(|f| f.split('.').next());
         if let Some(challenge) = name {
-            gd.learn(&format!("{SAVED}{challenge}"));
+            let start = str_field(row, field::DEPEND_FLAG_NAME).filter(|f| !f.is_empty());
+            out.insert(challenge.to_owned(), start.map(str::to_owned));
         }
     }
-    Ok(())
+    Ok(out)
 }
 
 /// The table of quests, a row each, its id the quest's file name under `Work/Challenge`.

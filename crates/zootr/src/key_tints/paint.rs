@@ -186,7 +186,7 @@ fn tint(rgba: &mut [u8], colour: Colour) {
 }
 
 /// A texel's brightness: Rec. 709 luma, weights out of 256.
-pub(super) fn luma(px: &[u8]) -> u32 {
+pub(crate) fn luma(px: &[u8]) -> u32 {
     (px[0] as u32 * 54 + px[1] as u32 * 183 + px[2] as u32 * 19 + 128) / 256
 }
 

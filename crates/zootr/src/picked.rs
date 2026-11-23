@@ -80,6 +80,8 @@ const KINDS: [&Kind; 8] = [
 pub struct Holder {
     pub hash: u64,
     pub after: After,
+    /// How it looks until picked, if it's a breakable that's marked.
+    pub look: crate::marks::Look,
 }
 
 /// What stands in a holder's place once it's picked.
@@ -148,18 +150,21 @@ pub fn holders(pieces: &[ItemCheck], drops: &HashMap<u64, Drop>) -> Vec<Holder> 
         _ if c.presence.is_some() => After::Gone,
         _ => After::Twin(crate::known::hash(&flag(c.hash))),
     };
-    let found: BTreeMap<u64, After> = pieces
+    let found: BTreeMap<u64, (After, crate::marks::Look)> = pieces
         .iter()
         .filter(|c| KINDS.iter().any(|k| k.holds(c)) || lying(c))
         .filter(|c| {
             let item = crate::gifts::item_at(drops, c.hash, &c.item);
             !keeps_token(SKULLTULAS.holds(c), &c.item, item)
         })
-        .map(|c| (c.hash, after(c)))
+        .map(|c| {
+            let look = crate::marks::look(crate::gifts::item_at(drops, c.hash, &c.item));
+            (c.hash, (after(c), look))
+        })
         .collect();
     let holders = found
         .into_iter()
-        .map(|(hash, after)| Holder { hash, after });
+        .map(|(hash, (after, look))| Holder { hash, after, look });
     holders.collect()
 }
 
@@ -235,7 +240,8 @@ pub fn delete_letter(romfs: &Romfs, rewrites: &mut Rewrites, holders: &[Holder])
 
 /// Place a twin beside each of `holders` in `root`, a Banc file's doc:
 /// a copy as it is now, under the twin's hash, standing once the flag is
-/// set, while the holder stands until then. Run before the holder's drop
+/// set, while the holder stands until then, as its marked copy when it's
+/// a breakable that's marked (`marks`). Run before the holder's drop
 /// changes, so the twin keeps the vanilla one. Returns how many holders
 /// it changed.
 pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
@@ -261,6 +267,7 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
                     "holder {hash} stands only once something happens, so it can't take turns"
                 );
                 checks::gate(actor, &flag, true)?;
+                crate::marks::mark(actor, h.look)?;
                 gated += 1;
                 continue;
             }
@@ -284,6 +291,7 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
         };
         let mut twin = actor.clone();
         checks::gate(actor, &flag, true).with_context(|| format!("holder {hash}"))?;
+        crate::marks::mark(actor, h.look)?;
         crate::shows::rehash(&mut twin, twin_hash)?;
         checks::gate(&mut twin, &flag, false)?;
         twins.push(twin);
@@ -446,6 +454,34 @@ mod tests {
         let skulltula = *skulltulas.first().unwrap();
         let spot = at(actor::ENEMY_SKULLTULA_GOLD, skulltula);
         assert_eq!(flag_at(&spot), Some(flag(skulltula)));
+    }
+
+    #[test]
+    fn a_dealt_breakable_stands_marked_and_its_twin_and_the_undealt_stay_vanilla() {
+        use pickups::{CRATES, FLYING_POTS, GRASS, HIVES, POTS, ROCKS};
+        let Some(romfs) = dev_dump() else { return };
+        for kind in [&POTS, &FLYING_POTS, &CRATES, &ROCKS, &GRASS, &HIVES] {
+            let pieces = kind.checks(&romfs).unwrap();
+            // One dealt, the rest of its file as if their kind were off.
+            let dealt = &pieces[..1];
+            let holders = holders(dealt, &moved(dealt));
+            let mut doc = checks::load_banc(&romfs, &dealt[0].file).unwrap();
+            place(&mut doc.root, &holders).unwrap();
+            let actors = checks::actors(&doc.root).unwrap();
+            let gyaml = |hash: u64| {
+                let a = actors.iter().find(|a| hash_of(a) == Some(hash)).unwrap();
+                checks::str_field(a, checks::GYAML).unwrap().to_owned()
+            };
+            let host = &dealt[0].holder;
+            assert_eq!(gyaml(dealt[0].hash), crate::marks::marked(host).unwrap());
+            if let After::Twin(twin) = holders[0].after {
+                assert_eq!(&gyaml(twin), host);
+            }
+            let undealt = pieces[1..].iter().filter(|c| c.file == dealt[0].file);
+            for other in undealt {
+                assert_eq!(gyaml(other.hash), other.holder, "{}", other.hash);
+            }
+        }
     }
 
     #[test]

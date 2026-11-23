@@ -261,6 +261,35 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             )?;
             said(&leap, json)?
         }
+        DevCommand::Reach {
+            hash,
+            word,
+            angles,
+            far,
+            near,
+            step,
+            out,
+            vision,
+            json,
+        } => {
+            let plan = crate::nav::reach::Plan {
+                angles,
+                far,
+                near,
+                step,
+                word,
+            };
+            let reach = crate::nav::reach::reach(
+                &game,
+                &mut input()?,
+                romfs,
+                &vision.vision()?,
+                hash,
+                &plan,
+                out.as_deref(),
+            )?;
+            said(&reach, json)?
+        }
         DevCommand::Equip { item } => {
             crate::gear::equip(&game, &recorder::gamedata(romfs)?, &mut input()?, &item)?;
             format!("equipped {item}")
