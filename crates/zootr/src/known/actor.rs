@@ -4,6 +4,7 @@ use super::Name;
 
 pub const ANIMAL_COW: &Name = &n!(0xc3b206063bdfa9e5);
 pub const ANIMAL_COW_GIVE_MILK: &Name = &n!(0x5ffda599998b4658);
+pub const AREA: &Name = &n!(0x06fd2f8b555158a4);
 pub const ARMOR_ADULT_GAUNTLET_GOLD: &Name = &n!(0xb5ed853633ab5995);
 pub const ARMOR_ADULT_GAUNTLET_SILVER: &Name = &n!(0xcd0d8ebfdf7e865e);
 pub const ARMOR_ADULT_GORON: &Name = &n!(0x1e437fc8ca59fe49);
