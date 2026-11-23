@@ -7,10 +7,10 @@ use std::path::PathBuf;
 use anyhow::{Result, bail};
 use ounce_formats::Save;
 
-use super::{BARRED, HEARTS, RUPEE_WORD, Start, WORDS};
+use super::{BARRED, CONTAINERS, HEARTS, RUPEE_WORD, Start, WORDS};
 use crate::gamedata::GameData;
-use crate::inventory::{self, Intent, Inventory, Pouch};
-use crate::known::{Name, field};
+use crate::inventory::{self, Cell, Glyph, Intent, Inventory, Pouch, Section};
+use crate::known::{Name, actor, field};
 use crate::magic::meter;
 use crate::save_editor::{self, ItemsView, LIFE, MAX_LIFE, Opened, RUPEES};
 use crate::savefile::{self, Edit};
@@ -95,7 +95,56 @@ pub fn onto(
 }
 
 /// The Status fields the panel keeps: the rest follow from the grid.
-const STATUS: [u32; 2] = [MAX_LIFE, RUPEES];
+const STATUS: [u32; 1] = [RUPEES];
+
+/// A cell the panel adds to the grid's Quest section, for a count a new
+/// game starts with that no pouch item holds.
+struct Extra {
+    label: &'static str,
+    icon: &'static Name,
+    glyph: Glyph,
+    word: &'static str,
+}
+
+const EXTRAS: [Extra; 1] = [Extra {
+    label: "Heart Containers",
+    icon: actor::OBJ_HEART_CONTAINER,
+    glyph: Glyph::Heart,
+    word: HEARTS,
+}];
+
+impl Extra {
+    /// The most it can hold.
+    fn cap(&self) -> i32 {
+        CONTAINERS
+    }
+
+    fn cell(&self, n: i32) -> Cell {
+        Cell {
+            section: Section::Quest,
+            label: self.label.into(),
+            icon: self.icon.to_string(),
+            glyph: self.glyph,
+            tier: u8::from(n > 0),
+            tiers: 1,
+            count: Some(n),
+            row: None,
+        }
+    }
+
+    /// Its count after `intent` from `n`: a click adds one, wrapping to
+    /// none past the cap, and a right click takes one.
+    fn after(&self, n: i32, intent: Intent) -> i32 {
+        let cap = self.cap();
+        match intent {
+            Intent::Up if n >= cap => 0,
+            Intent::Up => n + 1,
+            Intent::Down if n <= 0 => cap,
+            Intent::Down => n - 1,
+            Intent::Count(c) => c.clamp(0, cap),
+        }
+    }
+}
 
 /// The Inventory panel: the grid without its Dungeons, whose keys belong to
 /// the Dungeon keys setting, or the stones and medallions no new game
@@ -133,6 +182,13 @@ pub fn items(
             giving.iter().position(gives).map(|i| i as u32)
         })
         .collect();
+    for e in &EXTRAS {
+        let n = shown.0.get(e.word).copied().unwrap_or(0);
+        view.cells.push(e.cell(n));
+        view.caps.push(Some(e.cap()));
+        view.staged.push(n > 0);
+        view.locked.push(None);
+    }
     (view.sections.iter_mut())
         .filter(|p| p.section == inventory::Section::Dungeons || BARRED.contains(&p.section))
         .for_each(|p| p.shown = false);
@@ -140,7 +196,8 @@ pub fn items(
     Ok(view)
 }
 
-/// `start` after a click on cell `at`.
+/// `start` after a click on cell `at`, a grid cell or one of the
+/// [`EXTRAS`] after them.
 pub fn click(
     gd: &GameData,
     inv: &Inventory,
@@ -149,9 +206,24 @@ pub fn click(
     at: usize,
     intent: Intent,
 ) -> Result<Start> {
+    let extra = at.checked_sub(inv.cells().len());
+    if let Some(e) = extra.and_then(|i| EXTRAS.get(i)) {
+        let mut out = start.clone();
+        match e.after(start.0.get(e.word).copied().unwrap_or(0), intent) {
+            0 => out.0.remove(e.word),
+            n => out.0.insert(e.word.into(), n),
+        };
+        return Ok(out);
+    }
     let opened = open(gd, inv, pouch, start)?;
     let edits = save_editor::click(inv, pouch, &opened, at, intent)?;
-    reread(gd, inv, pouch, opened, &edits)
+    let mut out = reread(gd, inv, pouch, opened, &edits)?;
+    for e in &EXTRAS {
+        if let Some(&n) = start.0.get(e.word) {
+            out.0.insert(e.word.into(), n);
+        }
+    }
+    Ok(out)
 }
 
 /// `start` after a Status field takes `edit`. Health follows the heart
@@ -164,14 +236,14 @@ pub fn set(
     edit: Edit,
 ) -> Result<Start> {
     if !STATUS.contains(&edit.hash) {
-        bail!("a new game only starts with heart containers and rupees set");
+        bail!("a new game only starts with rupees set");
     }
     let opened = open(gd, inv, pouch, start)?;
     reread(gd, inv, pouch, opened, &[edit])
 }
 
 /// What `opened` holds after `edits`, as words: only what differs from a
-/// fresh save.
+/// fresh save. Its hearts aren't read back: the [`EXTRAS`] keep theirs.
 fn reread(
     gd: &GameData,
     inv: &Inventory,
@@ -198,11 +270,9 @@ fn reread(
             .and_then(|e| save.scalar(e))
             .map(|r| r as i32)
     };
-    for (word, hash, per) in [(HEARTS, MAX_LIFE, 4), (RUPEE_WORD, RUPEES, 1)] {
-        let n = int(&opened.edited, hash);
-        if n.is_some() && n != int(&opened.original, hash) {
-            out.insert(word.into(), n.unwrap_or(0) / per);
-        }
+    let rupees = int(&opened.edited, RUPEES);
+    if rupees.is_some() && rupees != int(&opened.original, RUPEES) {
+        out.insert(RUPEE_WORD.into(), rupees.unwrap_or(0));
     }
     Ok(Start(out).floored(pouch))
 }
@@ -239,7 +309,9 @@ mod tests {
             edited: save,
         };
         let read = reread(&gd, &inv, &pouch, opened, &[]).unwrap();
-        assert_eq!(read, kit.floored(&pouch));
+        let mut want = kit.floored(&pouch);
+        want.0.remove(HEARTS);
+        assert_eq!(read, want);
     }
 
     #[test]
@@ -334,7 +406,7 @@ mod tests {
         assert!(view.staged[at("Hookshot")]);
         assert!(view.locked.iter().all(Option::is_none));
         let fields: Vec<_> = view.status.iter().map(|f| f.label.as_str()).collect();
-        assert_eq!(fields, ["Heart containers", "Rupees"]);
+        assert_eq!(fields, ["Rupees"]);
         let hidden: Vec<_> = (view.sections.iter())
             .filter(|p| !p.shown)
             .map(|p| p.section)
@@ -385,7 +457,7 @@ mod tests {
     }
 
     #[test]
-    fn status_edits_come_back_as_hearts_and_rupees() {
+    fn status_edits_come_back_as_rupees() {
         let Some((gd, inv, pouch)) = layout() else {
             return;
         };
@@ -394,12 +466,49 @@ mod tests {
             &inv,
             &pouch,
             &Start::default(),
-            Edit::new(MAX_LIFE, "20"),
+            Edit::new(RUPEES, "50"),
         )
         .unwrap();
-        assert_eq!(s, start(&[(HEARTS, 5)]));
-        let s = set(&gd, &inv, &pouch, &s, Edit::new(RUPEES, "50")).unwrap();
-        assert_eq!(s, start(&[(HEARTS, 5), (RUPEE_WORD, 50)]));
-        assert!(set(&gd, &inv, &pouch, &s, Edit::new(LIFE, "4")).is_err());
+        assert_eq!(s, start(&[(RUPEE_WORD, 50)]));
+        assert!(set(&gd, &inv, &pouch, &s, Edit::new(MAX_LIFE, "20")).is_err());
+    }
+
+    #[test]
+    fn heart_containers_are_a_quest_cell_counted_to_eight() {
+        let Some((gd, inv, pouch)) = layout() else {
+            return;
+        };
+        let click = |s: &Start, at, intent| click(&gd, &inv, &pouch, s, at, intent).unwrap();
+        let view = items(&gd, &inv, &pouch, &Start::default(), &[]).unwrap();
+        let at = (view.cells.iter())
+            .position(|c| c.label == "Heart Containers")
+            .unwrap();
+        assert_eq!(view.cells[at].section, Section::Quest);
+        assert_eq!((view.cells[at].count, view.caps[at]), (Some(0), Some(8)));
+        let one = click(&Start::default(), at, Intent::Up);
+        assert_eq!(one, start(&[(HEARTS, 1)]));
+        assert_eq!(click(&one, at, Intent::Count(20)), start(&[(HEARTS, 8)]));
+        assert_eq!(click(&one, at, Intent::Down), Start::default());
+        assert_eq!(
+            click(&Start::default(), at, Intent::Down),
+            start(&[(HEARTS, 8)])
+        );
+        // A grid click keeps the containers.
+        let hookshot = view
+            .cells
+            .iter()
+            .position(|c| c.label == "Hookshot")
+            .unwrap();
+        let both = click(&one, hookshot, Intent::Up);
+        assert_eq!(both, start(&[(HEARTS, 1), ("hookshot", 1)]));
+    }
+
+    #[test]
+    fn heart_pieces_count_to_thirty_six() {
+        let Some((view, pieces)) = arsenal_cell("Heart Pieces") else {
+            return;
+        };
+        let at = view.cells.iter().position(|c| c == &pieces).unwrap();
+        assert_eq!((pieces.count, view.caps[at]), (Some(36), Some(36)));
     }
 }

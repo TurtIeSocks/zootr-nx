@@ -11,7 +11,7 @@ use ounce_formats::{BymlDoc, Romfs, Save, murmur3};
 use serde::{Deserialize, Serialize};
 
 use super::{GRID, Inventory, Slot};
-use crate::known::{Name, field};
+use crate::known::{Name, actor, field};
 use crate::rsdb::ROW_ID;
 use crate::savefile::Edit;
 use crate::standins::POUCH_ACTOR_INFO;
@@ -28,6 +28,9 @@ pub enum Intent {
     /// This many of a counted item, kept within its cap.
     Count(i32),
 }
+
+/// The heart pieces the game hides.
+const HEART_PIECES: i32 = 36;
 
 /// Where a counted item's cap comes from.
 #[derive(Clone, Debug, PartialEq)]
@@ -80,6 +83,9 @@ impl Pouch {
                 _ => {}
             }
         }
+        // The table gives heart pieces no cap, but the game hides 36.
+        let piece = actor::OBJ_HEART_PIECE.to_string();
+        pouch.caps.entry(piece).or_insert(Cap::Fixed(HEART_PIECES));
         Ok(pouch)
     }
 
