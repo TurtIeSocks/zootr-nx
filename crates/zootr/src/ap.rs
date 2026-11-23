@@ -53,6 +53,10 @@ pub const OPTIONS: &[&str] = &[
     "cows",
     "gold-skulltulas",
     "boss-hearts",
+    "dungeon-rewards",
+    "maps-compasses",
+    "keys",
+    "fortress-keys",
     "bombchus",
     "skip-cutscenes",
     "chest-size",
@@ -70,13 +74,36 @@ pub const OPTIONS: &[&str] = &[
 pub const JOINT: &[&[&str]] = &[&["npc-gifts", "met-zelda", "gerudo-fortress", "cows"]];
 
 /// Choice options the world leaves out, each as setting id, option and
-/// the sentence of the setting's description that offers it: Bombchu Bags
-/// join the pool, which the world's pool doesn't hold.
-const HELD: &[(&str, &str, &str)] = &[(
-    "bombchus",
-    "bag",
-    " Or three Bombchu Bags in the pool, holding 20, 30 and 40, and none until the first",
-)];
+/// a sentence of the setting's description that offers it: Bombchu Bags
+/// join the pool, which the world's pool doesn't hold. Dungeon keys offer
+/// Vanilla and Start only, so far.
+const HELD: &[(&str, &str, &str)] = &[
+    (
+        "bombchus",
+        "bag",
+        " Or three Bombchu Bags in the pool, holding 20, 30 and 40, and none until the first",
+    ),
+    (
+        "keys",
+        "rings",
+        " With Key rings, each dungeon's small keys come as one ring that opens all its small-key doors.",
+    ),
+    (
+        "keys",
+        "rings",
+        " With Key rings, one of a dungeon's rupees becomes its ring and another its boss key.",
+    ),
+    (
+        "keys",
+        "singles",
+        " With Keysanity, each small key comes on its own.",
+    ),
+    (
+        "keys",
+        "singles",
+        " Rings, small keys and boss keys turn up in random chests and gifts, never in their own dungeon.",
+    ),
+];
 
 /// Whether the world offers `option` of choice `id`.
 fn offers(id: &str, option: &str) -> bool {

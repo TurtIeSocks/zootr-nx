@@ -111,13 +111,18 @@ pub static FORTRESS_COPIES: LazyLock<Vec<String>> =
     LazyLock::new(|| vec![key_tints::fortress(); FORTRESS.1 as usize]);
 
 /// Each copy `keys` and `fortress` deal takes the place of a key chest's or
-/// a thief's Red Rupee, but for those `placed` already holds.
+/// a thief's Red Rupee, but for those `placed` already holds. With nothing
+/// left to deal (an AP seed fixes every check), the copies not placed here
+/// went to other worlds.
 pub fn deal_copies(
     items: &mut [&str],
     keys: DungeonKeys,
     fortress: FortressKeys,
     placed: &[&str],
 ) -> Result<()> {
+    if items.is_empty() {
+        return Ok(());
+    }
     let copies: &[String] = match keys {
         DungeonKeys::Rings => &SHUFFLED,
         DungeonKeys::Singles => &SINGLES,
@@ -382,6 +387,23 @@ mod tests {
             assert!(sets, "{} never sets {}", module.graph, taken.get());
             assert_eq!(loose_taken(hash), Some(taken.get()));
         }
+    }
+
+    #[test]
+    fn copies_placed_in_other_worlds_leave_nothing_to_deal() {
+        needs_names!();
+        // An AP seed fixes every check: the copies it put elsewhere aren't
+        // among this world's placements, and no item is left to swap.
+        let copy = key_tints::fortress();
+        let placed = [copy.as_str()];
+        deal_copies(
+            &mut [],
+            DungeonKeys::Vanilla,
+            FortressKeys::Singles,
+            &placed,
+        )
+        .unwrap();
+        deal_copies(&mut [], DungeonKeys::Singles, FortressKeys::Singles, &[]).unwrap();
     }
 
     #[test]

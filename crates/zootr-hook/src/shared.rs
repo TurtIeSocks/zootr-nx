@@ -33,6 +33,8 @@ pub struct List {
     count: u32,
     chests: [Chest; CHESTS],
     credited: Credited,
+    /// The name hash of the item an AP notice's popup shows, 0 for none.
+    noticed: u32,
 }
 
 /// A key copy credited: its name's hash, whether the pickup window
@@ -75,6 +77,22 @@ impl List {
             last != Credited::default() && last.name == now.name && last.picked != now.picked;
         self.credited = if pair { Credited::default() } else { now };
         !pair
+    }
+
+    /// A notice is about to show `name`'s popup, which opens the pickup
+    /// window though Link gets nothing.
+    pub fn notice(&mut self, name: u32) {
+        self.noticed = name;
+    }
+
+    /// Whether the pickup window on `name` is a notice's popup, which
+    /// credits nothing. Each notice excuses one window.
+    pub fn noticed(&mut self, name: u32) -> bool {
+        let popup = self.noticed != 0 && self.noticed == name;
+        if popup {
+            self.noticed = 0;
+        }
+        popup
     }
 
     /// No event plays: the get that made the last credit is over, so no
@@ -173,6 +191,20 @@ mod tests {
     fn list() -> Box<Shared> {
         // SAFETY: zeroed, as the game's memory starts.
         unsafe { Box::new_zeroed().assume_init() }
+    }
+
+    #[test]
+    fn a_notice_s_popup_credits_nothing_and_excuses_one_window() {
+        let shared = list();
+        shared.with(|l| {
+            // An AP give, then its notice: the popup opens the window on
+            // the same item after the give's event is over.
+            l.notice(7);
+            assert!(!l.noticed(8));
+            assert!(l.noticed(7));
+            // The next window on it is a real get.
+            assert!(!l.noticed(7));
+        });
     }
 
     #[test]

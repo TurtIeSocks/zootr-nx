@@ -407,7 +407,9 @@ unsafe extern "C" fn picked(node: usize) {
             .and_then(|s| at(s, 0))
             .and_then(|p| name(p as *const u8))
         {
-            credit(main, table, added, true);
+            if !shared(main).with(|l| l.noticed(fnv(added))) {
+                credit(main, table, added, true);
+            }
         }
     })
 }

@@ -8,7 +8,7 @@ use super::rt::{memcpy, memset};
 use super::{at, level_for, name, owned, shared};
 use crate::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
-    ARG_SUMMARY, Ask, GUARD, Mailbox, NAME, Notice, Offsets, Outcome, Spot, play_event,
+    ARG_SUMMARY, Ask, GUARD, Mailbox, NAME, Notice, Offsets, Outcome, Spot, fnv, play_event,
 };
 
 type Malloc = unsafe extern "C" fn(usize) -> usize;
@@ -364,6 +364,11 @@ unsafe fn notice(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outc
     let Some(kind) = Notice::from_word(mail.hour) else {
         return Outcome::Unknown;
     };
+    if kind == Notice::Item
+        && let Some(item) = unsafe { name(mail.map.as_ptr()) }
+    {
+        shared(main).with(|l| l.notice(fnv(item)));
+    }
     let texts = [&mail.map];
     let args = [
         Arg::Bool(ARG_NOTICE, true),

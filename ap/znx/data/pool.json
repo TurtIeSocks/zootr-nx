@@ -134,6 +134,20 @@
   },
   {
     "count": 1,
+    "item": "Bottom of the Well Compass",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Bottom of the Well Map",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
     "item": "Broken Goron's Sword",
     "when": {
       "setting": "trade-chain"
@@ -185,9 +199,37 @@
   },
   {
     "count": 1,
+    "item": "Deku Tree Compass",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Deku Tree Map",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
     "item": "Din's Fire",
     "when": {
       "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Dodongo's Cavern Compass",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Dodongo's Cavern Map",
+    "when": {
+      "setting": "maps-compasses"
     }
   },
   {
@@ -234,6 +276,48 @@
   },
   {
     "count": 1,
+    "item": "Fire Medallion",
+    "when": {
+      "setting": "dungeon-rewards"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Fire Temple Compass",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Fire Temple Map",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Forest Medallion",
+    "when": {
+      "setting": "dungeon-rewards"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Forest Temple Compass",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Forest Temple Map",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
     "item": "Gerudo Membership Card",
     "when": {
       "all": [
@@ -251,6 +335,13 @@
           "setting": "npc-gifts"
         }
       ]
+    }
+  },
+  {
+    "count": 4,
+    "item": "Gerudo's Fortress Small Key",
+    "when": {
+      "setting": "fortress-keys=singles"
     }
   },
   {
@@ -300,6 +391,13 @@
     }
   },
   {
+    "count": 1,
+    "item": "Goron's Ruby",
+    "when": {
+      "setting": "dungeon-rewards"
+    }
+  },
+  {
     "count": 5,
     "item": "Green Rupee (1)"
   },
@@ -324,6 +422,20 @@
   },
   {
     "count": 1,
+    "item": "Ice Cavern Compass",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Ice Cavern Map",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
     "item": "Improved Spin",
     "when": {
       "setting": "npc-gifts"
@@ -335,7 +447,28 @@
   },
   {
     "count": 1,
+    "item": "Jabu-Jabu's Belly Compass",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Jabu-Jabu's Belly Map",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
     "item": "Kokiri Sword"
+  },
+  {
+    "count": 1,
+    "item": "Kokiri's Emerald",
+    "when": {
+      "setting": "dungeon-rewards"
+    }
   },
   {
     "count": 1,
@@ -346,6 +479,13 @@
     "item": "Light Arrows",
     "when": {
       "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Light Medallion",
+    "when": {
+      "setting": "dungeon-rewards"
     }
   },
   {
@@ -589,6 +729,12 @@
     "when": {
       "any": [
         {
+          "setting": "fortress-keys=start"
+        },
+        {
+          "setting": "keys=start"
+        },
+        {
           "setting": "cows"
         },
         {
@@ -598,10 +744,16 @@
     }
   },
   {
-    "count": 5,
+    "count": 1,
     "item": "Red Rupee (20)",
     "when": {
       "any": [
+        {
+          "setting": "fortress-keys=start"
+        },
+        {
+          "setting": "keys=start"
+        },
         {
           "setting": "shopsanity"
         },
@@ -624,6 +776,222 @@
     "when": {
       "any": [
         {
+          "setting": "keys=start"
+        },
+        {
+          "all": [
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "setting": "shopsanity"
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "setting": "keys=start"
+        },
+        {
+          "setting": "shopsanity"
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "setting": "keys=start"
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "setting": "keys=start"
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "setting": "keys=start"
+        },
+        {
           "all": [
             {
               "setting": "shopsanity"
@@ -662,6 +1030,22 @@
             },
             {
               "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
             }
           ]
         }
@@ -669,10 +1053,13 @@
     }
   },
   {
-    "count": 5,
+    "count": 1,
     "item": "Red Rupee (20)",
     "when": {
       "any": [
+        {
+          "setting": "keys=start"
+        },
         {
           "all": [
             {
@@ -727,6 +1114,264 @@
     "when": {
       "any": [
         {
+          "setting": "keys=start"
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "setting": "keys=start"
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "setting": "keys=start"
+        },
+        {
           "all": [
             {
               "setting": "shopsanity"
@@ -787,6 +1432,47 @@
             },
             {
               "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
             }
           ]
         }
@@ -794,10 +1480,13 @@
     }
   },
   {
-    "count": 5,
+    "count": 1,
     "item": "Red Rupee (20)",
     "when": {
       "any": [
+        {
+          "setting": "keys=start"
+        },
         {
           "all": [
             {
@@ -874,6 +1563,296 @@
     "when": {
       "any": [
         {
+          "setting": "keys=start"
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "setting": "keys=start"
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "setting": "keys=start"
+        },
+        {
           "all": [
             {
               "setting": "shopsanity"
@@ -928,6 +1907,44 @@
             },
             {
               "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
             }
           ]
         }
@@ -935,10 +1952,13 @@
     }
   },
   {
-    "count": 5,
+    "count": 1,
     "item": "Red Rupee (20)",
     "when": {
       "any": [
+        {
+          "setting": "keys=start"
+        },
         {
           "all": [
             {
@@ -1009,6 +2029,38 @@
     "when": {
       "any": [
         {
+          "setting": "keys=start"
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
           "all": [
             {
               "setting": "shopsanity"
@@ -1059,15 +2111,287 @@
               ]
             }
           ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
         }
       ]
     }
   },
   {
-    "count": 5,
+    "count": 1,
     "item": "Red Rupee (20)",
     "when": {
       "any": [
+        {
+          "setting": "keys=start"
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "setting": "keys=start"
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "setting": "keys=start"
+        },
         {
           "all": [
             {
@@ -1132,6 +2456,35 @@
     "when": {
       "any": [
         {
+          "setting": "keys=start"
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
           "all": [
             {
               "setting": "shopsanity"
@@ -1176,15 +2529,203 @@
               ]
             }
           ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
         }
       ]
     }
   },
   {
-    "count": 5,
+    "count": 1,
     "item": "Red Rupee (20)",
     "when": {
       "any": [
+        {
+          "setting": "keys=start"
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "setting": "keys=start"
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
         {
           "all": [
             {
@@ -1238,10 +2779,256 @@
     }
   },
   {
-    "count": 3,
+    "count": 2,
     "item": "Red Rupee (20)",
     "when": {
       "any": [
+        {
+          "all": [
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
         {
           "all": [
             {
@@ -1281,15 +3068,129 @@
               ]
             }
           ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
         }
       ]
     }
   },
   {
-    "count": 5,
+    "count": 2,
     "item": "Red Rupee (20)",
     "when": {
       "any": [
+        {
+          "all": [
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        },
         {
           "all": [
             {
@@ -1304,6 +3205,167 @@
                   "setting": "shop-slots=8"
                 }
               ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
             }
           ]
         },
@@ -1337,10 +3399,460 @@
     }
   },
   {
-    "count": 3,
+    "count": 1,
     "item": "Red Rupee (20)",
     "when": {
       "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 2,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
         {
           "all": [
             {
@@ -1370,12 +3882,73 @@
               "setting": "shop-slots=8"
             }
           ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
         }
       ]
     }
   },
   {
-    "count": 4,
+    "count": 2,
     "item": "Red Rupee (20)",
     "when": {
       "any": [
@@ -1385,7 +3958,277 @@
               "setting": "shopsanity"
             },
             {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
               "setting": "shop-slots=8"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
             }
           ]
         },
@@ -1426,10 +4269,81 @@
               "setting": "shopsanity"
             },
             {
-              "setting": "shop-slots=8"
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
             },
             {
               "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
             }
           ]
         },
@@ -1463,21 +4377,4073 @@
     "count": 2,
     "item": "Red Rupee (20)",
     "when": {
-      "all": [
+      "any": [
         {
-          "setting": "shopsanity"
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
         },
         {
-          "setting": "shop-slots=8"
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
         },
         {
-          "setting": "cows"
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
         }
       ]
     }
   },
   {
-    "count": 5,
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=2"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 2,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=3"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=4"
+                },
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=5"
+                },
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=6"
+                },
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 3,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 2,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "any": [
+                {
+                  "setting": "shop-slots=7"
+                },
+                {
+                  "setting": "shop-slots=8"
+                }
+              ]
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 2,
+    "item": "Red Rupee (20)",
+    "when": {
+      "any": [
+        {
+          "all": [
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            },
+            {
+              "setting": "fortress-keys=start"
+            }
+          ]
+        },
+        {
+          "all": [
+            {
+              "setting": "npc-gifts"
+            },
+            {
+              "setting": "shopsanity"
+            },
+            {
+              "setting": "shop-slots=8"
+            },
+            {
+              "setting": "cows"
+            },
+            {
+              "setting": "keys=start"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "count": 1,
     "item": "Red Rupee (20)",
     "when": {
       "all": [
@@ -1492,6 +8458,35 @@
         },
         {
           "setting": "cows"
+        },
+        {
+          "setting": "keys=start"
+        }
+      ]
+    }
+  },
+  {
+    "count": 4,
+    "item": "Red Rupee (20)",
+    "when": {
+      "all": [
+        {
+          "setting": "npc-gifts"
+        },
+        {
+          "setting": "shopsanity"
+        },
+        {
+          "setting": "shop-slots=8"
+        },
+        {
+          "setting": "cows"
+        },
+        {
+          "setting": "keys=start"
+        },
+        {
+          "setting": "fortress-keys=start"
         }
       ]
     }
@@ -1526,6 +8521,27 @@
   },
   {
     "count": 1,
+    "item": "Shadow Medallion",
+    "when": {
+      "setting": "dungeon-rewards"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Shadow Temple Compass",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Shadow Temple Map",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
     "item": "Song of Storms",
     "when": {
       "setting": "songs"
@@ -1540,6 +8556,27 @@
   },
   {
     "count": 1,
+    "item": "Spirit Medallion",
+    "when": {
+      "setting": "dungeon-rewards"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Spirit Temple Compass",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Spirit Temple Map",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
     "item": "Stone of Agony",
     "when": {
       "setting": "npc-gifts"
@@ -1550,6 +8587,27 @@
     "item": "Sun's Song",
     "when": {
       "setting": "songs"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Water Medallion",
+    "when": {
+      "setting": "dungeon-rewards"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Water Temple Compass",
+    "when": {
+      "setting": "maps-compasses"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Water Temple Map",
+    "when": {
+      "setting": "maps-compasses"
     }
   },
   {
@@ -1592,6 +8650,13 @@
     "item": "Zora Tunic",
     "when": {
       "setting": "npc-gifts"
+    }
+  },
+  {
+    "count": 1,
+    "item": "Zora's Sapphire",
+    "when": {
+      "setting": "dungeon-rewards"
     }
   }
 ]

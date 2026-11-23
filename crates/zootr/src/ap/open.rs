@@ -1,7 +1,7 @@
 //! A seed from Archipelago: the `.apznx` the `znx` world writes, read into
 //! what a normal seed is made of.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
 
 use anyhow::{Context, Result, bail, ensure};
@@ -170,10 +170,10 @@ impl ApSeed {
         );
         let ids = Ids::load()?;
         let actors = ids.actors(dealt.pool.iter().map(|a| names::same(a)));
-        let actor = |id: u64| match actors.get(&id) {
-            Some(a) => Ok(a.to_string()),
-            None => bail!("no item has AP id {id}"),
-        };
+        let actor = |id| by_id(&actors, id);
+        // Another slot's settings can deal items this slot's never do.
+        let ours = ids.actors(names::named().map(names::same));
+        let theirs = |id| by_id(&ours, id);
 
         let mut fixed = Fixed::new();
         type Copy = (String, Option<String>, String, String);
@@ -183,7 +183,7 @@ impl ApSeed {
                 Placed::Own(id) => actor(*id)?,
                 Placed::Foreign(f) => {
                     let (shows, model) = match (f.game == GAME, f.id) {
-                        (true, Some(id)) => (actor(id)?, None),
+                        (true, Some(id)) => (theirs(id)?, None),
                         _ => (
                             STAND_IN.get().to_owned(),
                             Some(foreign::class_model(&f.class)),
@@ -215,6 +215,14 @@ impl ApSeed {
             foreign,
             give,
         })
+    }
+}
+
+/// The actor `table` gives AP id `id`.
+fn by_id(table: &HashMap<u64, &str>, id: u64) -> Result<String> {
+    match table.get(&id) {
+        Some(a) => Ok(a.to_string()),
+        None => bail!("no item has AP id {id}"),
     }
 }
 
@@ -283,6 +291,25 @@ mod tests {
         // Zelda's items are ours, so each copy shows the item itself.
         assert!(resolved.foreign.iter().all(|f| f.shows != STAND_IN.get()));
         assert!(resolved.foreign.iter().all(|f| f.model.is_none()));
+    }
+
+    #[test]
+    fn our_item_from_another_slot_shows_itself_though_this_slot_lacks_it() {
+        let Some(romfs) = dev_dump() else { return };
+        let mut seed = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        // The fixture deals no medallions: only another slot's settings could.
+        let medal = crate::known::item::MEDAL_LIGHT.get();
+        let id = Ids::load().unwrap().item_id(medal).unwrap();
+        *seed.placements.values_mut().next().unwrap() = Placed::Foreign(ForeignItem {
+            player: 2,
+            player_name: "Zelda".into(),
+            game: GAME.into(),
+            item: "Light Medallion".into(),
+            class: "progression".into(),
+            id: Some(id),
+        });
+        let resolved = seed.resolve(&romfs).unwrap();
+        assert!(resolved.foreign.iter().any(|f| f.shows == medal));
     }
 
     #[test]
