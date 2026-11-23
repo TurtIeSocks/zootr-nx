@@ -33,6 +33,8 @@ const SOURCES: [&[&str]; 2] = [
         "Tex",
         // The leaf types the foliage system draws, a marked shrub's among them.
         "Pack/Foliage.pack.zs",
+        // The collision filter's layers, masks and material presets.
+        crate::nav::filter::BOOTUP,
     ],
 ];
 
@@ -162,18 +164,40 @@ fn keep(file: &Path, text: &str) -> Result<()> {
 }
 
 /// Every name in `sources`, one a line, each hash once.
+/// The files whose path from the romfs starts with `rel`, a stem ending
+/// in a dot like `Pack/Bootup.`: a file named for its platform, which
+/// isn't written out here.
+pub(crate) fn starting(romfs: &Romfs, rel: &str) -> Result<Vec<PathBuf>> {
+    let at = romfs.root().join(rel);
+    let (Some(dir), Some(stem)) = (at.parent(), at.file_name().and_then(|f| f.to_str())) else {
+        return Ok(vec![]);
+    };
+    if !dir.is_dir() {
+        return Ok(vec![]);
+    }
+    let mut out: Vec<PathBuf> = (std::fs::read_dir(dir)?.flatten())
+        .map(|e| e.path())
+        .filter(|p| {
+            p.file_name()
+                .and_then(|f| f.to_str())
+                .is_some_and(|f| f.starts_with(stem))
+        })
+        .collect();
+    out.sort();
+    Ok(out)
+}
+
 fn read(romfs: &Romfs, sources: &[&str]) -> Result<String> {
     let (mut seen, mut names) = (HashSet::new(), String::new());
     for source in sources {
         let at = romfs.root().join(source);
-        if !at.exists() {
-            // An older extract lacks some folders: read what it has.
-            continue;
-        }
+        // An older extract lacks some folders: read what it has.
         let files = if at.is_file() {
             vec![at]
-        } else {
+        } else if at.is_dir() {
             files_with_suffix(&at, "")?
+        } else {
+            starting(romfs, source)?
         };
         for path in files {
             let rel = path.strip_prefix(romfs.root())?.to_string_lossy();

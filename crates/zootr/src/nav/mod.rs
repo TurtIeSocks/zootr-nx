@@ -37,6 +37,7 @@ pub mod clear;
 pub mod climb;
 pub mod crawl;
 pub mod drive;
+pub mod filter;
 pub mod graph;
 pub mod kinds;
 pub mod leap;
@@ -88,7 +89,7 @@ pub fn navmesh_file(romfs: &Romfs, game: &Path, map: &str) -> Result<Option<Vec<
 
 /// The one file in the dump whose path contains `path`, decompressed, or
 /// `None` without one.
-fn dump_file(romfs: &Romfs, game: &Path, path: &str) -> Result<Option<Vec<u8>>> {
+pub fn dump_file(romfs: &Romfs, game: &Path, path: &str) -> Result<Option<Vec<u8>>> {
     match &crate::game::search(game, path)?[..] {
         [] => Ok(None),
         [(path, data)] => romfs.dicts().decompress(path, data).map(Some),

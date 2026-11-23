@@ -20,6 +20,7 @@ use crate::nav::navmesh_file;
 
 mod arsenal;
 mod climbs;
+mod collision;
 mod formats;
 mod hurts;
 mod logic;
@@ -347,6 +348,23 @@ pub enum Probe {
         #[arg(long)]
         only: Option<String>,
     },
+    /// A map's collision meshes as the game's collision filter sorts
+    /// them: each piece's meshes, invisible or seen, what each does to Link
+    /// on foot, and its materials. With `--under`, the floor under each
+    /// other placement instead (chests, pots, start spots).
+    Collision {
+        /// A map, by its Banc param name.
+        map: String,
+        #[arg(long)]
+        under: bool,
+        /// Every collision triangle over or under a point X,Y,Z instead.
+        #[arg(long, value_parser = point, allow_hyphen_values = true)]
+        at: Option<[f32; 3]>,
+        /// Every type one mesh's tagfile declares, by its name like
+        /// `<piece>__Physical`, instead.
+        #[arg(long)]
+        types: Option<String>,
+    },
     /// A map's navmesh (`Phive/NavMesh/MAP`): counts and bounds, or with
     /// `--at`, the face under a point and the mesh's edges near it.
     Nav {
@@ -465,6 +483,22 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             map, cross: true, ..
         } => shapes::crossings(romfs, game, &map),
         Probe::Shapes { map, gyaml, .. } => shapes::shapes(romfs, game, &map, gyaml.as_deref()),
+        Probe::Collision {
+            types: Some(mesh), ..
+        } => {
+            let bytes = crate::nav::dump_file(romfs, game, &format!("Phive/Shape/Dcc/{mesh}."))?;
+            let bytes = bytes.with_context(|| format!("no mesh {mesh}"))?;
+            print_types(&bytes)?;
+            let m = ounce_formats::ShapeMesh::parse(&bytes)?;
+            println!("sections {:?}", m.section_sizes);
+            for (key, tag) in &m.tag_runs {
+                println!("tag run {key:#x} ({key}) -> {tag}");
+            }
+            Ok(())
+        }
+        Probe::Collision { map, under, at, .. } => {
+            collision::collision(romfs, game, &map, under, at)
+        }
         Probe::Nav {
             map,
             types,
@@ -733,6 +767,18 @@ fn text(romfs: &Romfs, pattern: &str) -> Result<()> {
     Ok(())
 }
 
+/// Every type a tagfile declares, with its fields.
+fn print_types(bytes: &[u8]) -> Result<()> {
+    let file = Tagfile::parse(bytes)?;
+    for (i, t) in file.types.iter().enumerate().skip(1) {
+        println!("{i} {} parent {} size {}", t.name, t.parent, file.size(i));
+        for f in &t.fields {
+            println!("    {} @{} {}", f.name, f.offset, file.types[f.ty].name);
+        }
+    }
+    Ok(())
+}
+
 fn nav(
     romfs: &Romfs,
     game: &Path,
@@ -744,14 +790,7 @@ fn nav(
     let bytes = navmesh_file(romfs, game, map)?
         .with_context(|| format!("{map} has no navmesh of its own (Hyrule Field's is in tiles)"))?;
     if types {
-        let file = Tagfile::parse(&bytes)?;
-        for (i, t) in file.types.iter().enumerate().skip(1) {
-            println!("{i} {} parent {} size {}", t.name, t.parent, file.size(i));
-            for f in &t.fields {
-                println!("    {} @{} {}", f.name, f.offset, file.types[f.ty].name);
-            }
-        }
-        return Ok(());
+        return print_types(&bytes);
     }
     let mesh = NavMesh::parse(&bytes)?;
     let xyz = |p: [f32; 3]| format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2]);
