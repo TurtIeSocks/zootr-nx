@@ -545,6 +545,8 @@ pub fn write_mod(
     }
     // Last, once every holder's spot is known.
     gamedata::add_u64s(&mut data.root, &picked::entries(&spots))?;
+    // Every stand-in is built by now.
+    gamedata::add_bools(&mut data.root, &pickups::taken::flags(builder.written()))?;
     builder.write(gamedata::PATH, &data.to_binary())?;
     bombs::write(&mut builder)?;
     dig::write(romfs, &mut builder, drops, new_game)?;

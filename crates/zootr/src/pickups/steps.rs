@@ -142,12 +142,10 @@ impl Steps {
         Ok(shows::gate(root, &self.gates)? || copied || named)
     }
 
-    /// The drop graph's branch, when a step stand-in needs it.
+    /// The shared pack's graphs: the take tick, and the drop graph's
+    /// branch when a step stand-in needs it.
     pub fn write(&self, romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
-        match self.built {
-            true => stale::write(romfs, builder),
-            false => Ok(()),
-        }
+        super::shared::write(romfs, builder, self.built)
     }
 }
 

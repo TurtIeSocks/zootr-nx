@@ -147,6 +147,11 @@ impl<'a> ModBuilder<'a> {
         self.romfs.dicts().decompress(rel, &raw)
     }
 
+    /// Every file written so far, by its romfs path, in order.
+    pub fn written(&self) -> &[String] {
+        &self.written
+    }
+
     /// Write a changed file, given its decompressed contents. Its RESTBL
     /// entry grows from what [`Self::read`] had.
     pub fn write(&mut self, rel: &str, contents: &[u8]) -> Result<()> {

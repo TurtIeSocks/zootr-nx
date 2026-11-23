@@ -23,8 +23,10 @@ use crate::world::presence_of;
 
 pub mod groups;
 pub mod nodes;
+mod shared;
 mod stale;
 pub mod steps;
+pub mod taken;
 
 /// One kind of placed holder.
 pub struct Kind {

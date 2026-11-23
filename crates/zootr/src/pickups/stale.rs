@@ -11,16 +11,14 @@
 //!     die (life depleted)
 //! ```
 //!
-//! A new AI or blackboard file name crashes or silences the drop (research:
-//! upgrades off chests), so the branch lives in the one graph every drop
-//! already runs, and the pack holding it grows in place.
+//! The branch lives in the one graph every drop already runs
+//! ([`shared`]).
 
 use anyhow::{Context, Result};
 use ounce_formats::ainb::{File, Value};
-use ounce_formats::{ModBuilder, Romfs};
-use roead::sarc::{Sarc, SarcWriter};
+use roead::sarc::Sarc;
 
-use super::GLOBAL_AI;
+use super::shared;
 use crate::known::{Name, field};
 
 /// The name every step stand-in starts with, and nothing else does.
@@ -38,34 +36,15 @@ pub fn exp(stand_in: &str) -> String {
 }
 
 /// The drop graph's path in the pack.
-fn graph() -> String {
+pub fn graph() -> String {
     format!("AI/{}.root.ainb", field::DROP_ITEM.get())
 }
 
-/// Writes the pack with the branch in its drop graph, its size table entry
-/// resized.
-pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
-    let data = romfs.read(GLOBAL_AI)?;
-    let pack = Sarc::new(&data)?;
-    let file = graph();
-    let old = pack.get_data(&file).context("no drop graph")?.len();
-    let new = branched(&pack)?;
-    let len = new.len();
-    let packed = SarcWriter::from_sarc(&pack)
-        .with_file(file.as_str(), new)
-        .to_binary();
-    builder.write(GLOBAL_AI, &packed)?;
-    builder.resize(&file, old, len)
-}
-
 /// The pack's drop graph with the branch hung last under its root.
-fn branched(pack: &Sarc) -> Result<Vec<u8>> {
+pub fn branched(pack: &Sarc) -> Result<Vec<u8>> {
     let vanilla = File::parse(pack.get_data(&graph()).context("no drop graph")?)?;
     let mut f = vanilla.clone();
-    let copy = |f: &mut File, class: &Name| -> Result<usize> {
-        let (from, node) = template(pack, class.get())?;
-        f.copy_node(&from, node)
-    };
+    let copy = |f: &mut File, class: &Name| shared::copy(pack, f, class.get());
     let own = copy(&mut f, field::QUERY_GENERIC_GET_OWN_ACTOR_LINK)?;
     let name = copy(&mut f, field::QUERY_GENERIC_GET_ACTOR_NAME)?;
     let starts = copy(&mut f, field::QUERY_GENERIC_STRING_STARTS_WITH)?;
@@ -106,33 +85,11 @@ fn branched(pack: &Sarc) -> Result<Vec<u8>> {
     f.to_bytes()
 }
 
-/// The first node of class `class` the writer can copy, from the pack's
-/// graphs in name order, so every seed takes the same one.
-fn template(pack: &Sarc, class: &str) -> Result<(File, usize)> {
-    let mut graphs: Vec<_> = pack
-        .files()
-        .filter(|f| f.name().is_some_and(|n| n.ends_with(".ainb")))
-        .filter(|f| f.data().windows(class.len()).any(|w| w == class.as_bytes()))
-        .collect();
-    graphs.sort_by_key(|f| f.name().map(str::to_owned));
-    for g in graphs {
-        let Ok(from) = File::parse(g.data()) else {
-            continue;
-        };
-        let Some(node) = from.find(class) else {
-            continue;
-        };
-        if from.clone().copy_node(&from, node).is_ok() {
-            return Ok((from, node));
-        }
-    }
-    anyhow::bail!("no graph in the shared pack has a {class} to copy")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::game::dev_dump;
+    use crate::pickups::GLOBAL_AI;
     use ounce_formats::ainb::{Graph, Link, check};
 
     #[test]
