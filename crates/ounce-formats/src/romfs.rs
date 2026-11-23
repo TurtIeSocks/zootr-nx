@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
 
@@ -6,16 +7,17 @@ use roead::sarc::{Sarc, SarcWriter};
 
 use crate::{Dicts, Restbl, files_with_suffix, pack_file, par_map};
 
-/// A read-only extracted romfs folder.
+/// A read-only extracted romfs folder. A clone shares its dictionaries.
+#[derive(Clone)]
 pub struct Romfs {
     root: PathBuf,
-    dicts: Dicts,
+    dicts: Arc<Dicts>,
 }
 
 impl Romfs {
     pub fn open(root: impl Into<PathBuf>) -> Result<Self> {
         let root = root.into();
-        let dicts = Dicts::load(&root)?;
+        let dicts = Arc::new(Dicts::load(&root)?);
         Ok(Self { root, dicts })
     }
 

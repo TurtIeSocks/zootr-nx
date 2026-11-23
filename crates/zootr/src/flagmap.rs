@@ -122,6 +122,17 @@ impl Kind {
 }
 
 impl Graph {
+    /// The dev dump's graph, built once for every test: a build holds
+    /// close to a gigabyte, so each test building its own ran the test
+    /// runner out of memory.
+    #[cfg(test)]
+    pub(crate) fn dev() -> Option<&'static Self> {
+        static GRAPH: std::sync::OnceLock<Option<Graph>> = std::sync::OnceLock::new();
+        GRAPH
+            .get_or_init(|| crate::game::dev_dump().map(|romfs| Self::build(&romfs).unwrap()))
+            .as_ref()
+    }
+
     /// Every GameData entry and every flow, read from the dump.
     pub fn build(romfs: &Romfs) -> Result<Self> {
         let flows = Flows::load(romfs)?;
@@ -344,10 +355,9 @@ mod tests {
     /// `DamageEventName`.
     #[test]
     fn a_scrub_that_plays_its_talk_sets_its_rooms_flag() {
-        let Some(romfs) = crate::game::dev_dump() else {
+        let Some(g) = Graph::dev() else {
             return;
         };
-        let g = Graph::build(&romfs).unwrap();
         let by = g.played_by(flag::INSIDE_THE_DEKU_TREE_ROOM_B_CLEARED.get());
         assert_eq!(by.len(), 1, "{by:?}");
         let scrub = g.find(&format!(

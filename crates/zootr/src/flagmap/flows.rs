@@ -300,10 +300,9 @@ mod tests {
 
     #[test]
     fn the_door_of_times_draw_reads_the_first_pulls_played_flag_and_the_scene_sets_it() {
-        let Some(romfs) = crate::game::dev_dump() else {
+        let Some(g) = Graph::dev() else {
             return;
         };
-        let g = Graph::build(&romfs).unwrap();
         let played = format!(
             "state:{}.{}",
             flag::HAVE_PLAYED_EVENT,
@@ -323,10 +322,9 @@ mod tests {
 
     #[test]
     fn opening_the_door_sets_its_flag_and_cites_the_event_that_does() {
-        let Some(romfs) = crate::game::dev_dump() else {
+        let Some(g) = Graph::dev() else {
             return;
         };
-        let g = Graph::build(&romfs).unwrap();
         let opened = g.find(flag::MARKET_CHILD_TIME_TEMPLE_DOOR_OPENED).unwrap();
         let open = format!(
             "event:{}/{}",
@@ -348,10 +346,9 @@ mod tests {
     /// graph waits for it: the gate that held the moat checks (#298).
     #[test]
     fn the_escape_moves_the_door_quest_and_the_moat_graph_waits_for_it() {
-        let Some(romfs) = crate::game::dev_dump() else {
+        let Some(g) = Graph::dev() else {
             return;
         };
-        let g = Graph::build(&romfs).unwrap();
         let step = format!("state:{}{}", crate::steps::SAVED, &**flow::DOOR_OF_TIME);
         let step = g.find(&step).unwrap();
         let escape = format!(
