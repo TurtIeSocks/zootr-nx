@@ -147,5 +147,7 @@ pub const OFFSETS: Offsets = Offsets {
     equipped: 0x17_b6e0,
     worn: 0xa7_1080,
     pouch_menu: 0x4c7_e0d0,
+    redraw: 0x20_8350,
+    icon: 0xa7_37e0,
     effects: 0x4e8_40e0,
 };

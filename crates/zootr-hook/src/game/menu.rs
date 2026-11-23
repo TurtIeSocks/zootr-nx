@@ -23,6 +23,8 @@ struct Layout {
     /// The animation whose frame says whether the cell's item is usable
     /// or worn (on a button).
     state: usize,
+    /// The cell layout's pane that draws the cursor's border.
+    cursor_line: usize,
 }
 
 impl Page {
@@ -34,6 +36,7 @@ impl Page {
                 button: 0xe8,
                 name: 0x90,
                 state: 0x48,
+                cursor_line: 13,
             },
             Page::Equipment => Layout {
                 cells: 0x50,
@@ -41,14 +44,17 @@ impl Page {
                 button: 0xd8,
                 name: 0x88,
                 state: 0x40,
+                cursor_line: 15,
             },
         }
     }
 }
 
 /// An Equipment cell's icon animation, its frame the item's place in the
-/// page's icon list, and the size of its name buffer.
+/// page's icon list, its picture (the texture panes `0xa737e0` loads by
+/// name), and the size of its name buffer.
 const EQUIPMENT_ICON: usize = 0x58;
+const EQUIPMENT_PICTURE: usize = 0x80;
 const NAME_SIZE: usize = 0x90;
 /// A button's state, and its states while the cursor is on it: focusing
 /// (as a refresh leaves it for a few frames) and focused. Unfocusing is
@@ -60,15 +66,13 @@ const CURSOR_ON: [u8; 2] = [1, 3];
 /// frame, grey when that's another age's item.
 const USABLE: f32 = 1.0;
 const ON_BUTTON: f32 = 2.0;
-/// The cell's layout, its panes (count, array, each `PANE` long), and
-/// the cursor line, its border, among them. A pane's material
-/// tints it, this cell's alone.
+/// The cell's layout, its panes (count, array, each `PANE` long). A
+/// pane's material tints it, this cell's alone.
 const CELL_LAYOUT: usize = 0x20;
 const LAYOUT_PANES: usize = 0x80;
 const PANE_COUNT: usize = 0x13c;
 const PANE_ARRAY: usize = 0x100;
 const PANE: usize = 0xb0;
-const CURSOR_LINE: usize = 13;
 const PANE_MATERIAL: usize = 8;
 const MATERIAL_COLOUR: usize = 0x20;
 /// The border while Link cycles the slot, and as the game draws it.
@@ -88,6 +92,8 @@ type Focus = unsafe extern "C" fn(usize, usize, usize, usize);
 type AnimFrame = unsafe extern "C" fn(usize, f32);
 type Equipped = unsafe extern "C" fn(usize, u8, u32) -> i32;
 type Worn = unsafe extern "C" fn(usize, *const *const u8) -> u32;
+type Redraw = unsafe extern "C" fn(usize, u32);
+type Icon = unsafe extern "C" fn(usize, *const *const u8, u32, u32);
 
 /// Called after each of the controller device's `GetNpadStates` calls,
 /// with the states it wrote and their count, which it hands back. The
@@ -216,7 +222,7 @@ unsafe fn show(main: usize, table: &Table, i: usize) -> Option<()> {
             state.seen = seen;
             (state.showing(&slot.actors), state.cycling())
         });
-        tint(cell, if cycling { CYCLING } else { PLAIN })?;
+        tint(cell, l.cursor_line, if cycling { CYCLING } else { PLAIN })?;
         let (actor, kind) = slot.actor(want?)?;
         if name(at(cell, l.name)? as *const u8) == Some(actor) {
             return Some(());
@@ -232,11 +238,17 @@ unsafe fn show(main: usize, table: &Table, i: usize) -> Option<()> {
                 let size = *((cell + NAME_SIZE) as *const u32) as usize;
                 let to = at(cell, l.name)? as *mut u8;
                 let n = actor.len().min(size.checked_sub(1)?);
-                core::ptr::copy_nonoverlapping(actor.as_ptr(), to, n);
-                *to.add(n) = 0;
+                let shown = core::slice::from_raw_parts(to, n + 1);
+                if shown[..n] != actor[..n] || shown[n] != 0 {
+                    core::ptr::copy_nonoverlapping(actor.as_ptr(), to, n);
+                    *to.add(n) = 0;
+                    // The picture is a texture loaded by name, so only on a change.
+                    let icon: Icon = transmute(main + o.icon as usize);
+                    icon(at(cell, EQUIPMENT_PICTURE)?, &to.cast_const(), 0, 0);
+                }
                 seek(main, o, cell, EQUIPMENT_ICON, f32::from(kind))?;
                 let worn: Worn = transmute(main + o.worn as usize);
-                worn(dev::single(main, o.pouch_menu)?, &actor.as_ptr()) & 1 != 0
+                worn(dev::single(main, o.pouch_menu)?, &to.cast_const()) & 1 != 0
             }
         };
         seek(
@@ -246,6 +258,10 @@ unsafe fn show(main: usize, table: &Table, i: usize) -> Option<()> {
             l.state,
             if on_button { ON_BUTTON } else { USABLE },
         )?;
+        if slot.page == Page::Equipment {
+            // The Equipment page's own refresh applies the new frames so.
+            transmute::<usize, Redraw>(main + o.redraw as usize)(cell, 0);
+        }
         if focused {
             for refresh in [o.unfocus, o.focus] {
                 transmute::<usize, Focus>(main + refresh as usize)(button, 0, 0, 0);
@@ -279,11 +295,11 @@ unsafe fn seek(
 ///
 /// # Safety
 /// `cell` is a page's cell.
-unsafe fn tint(cell: usize, colour: [f32; 4]) -> Option<()> {
+unsafe fn tint(cell: usize, cursor_line: usize, colour: [f32; 4]) -> Option<()> {
     unsafe {
         let panes = at(at(cell, CELL_LAYOUT)?, LAYOUT_PANES)?;
-        (usize::from(*((panes + PANE_COUNT) as *const u16)) > CURSOR_LINE).then_some(())?;
-        let line = at(panes, PANE_ARRAY)? + CURSOR_LINE * PANE;
+        (usize::from(*((panes + PANE_COUNT) as *const u16)) > cursor_line).then_some(())?;
+        let line = at(panes, PANE_ARRAY)? + cursor_line * PANE;
         let now = (at(line, PANE_MATERIAL)? + MATERIAL_COLOUR) as *mut [f32; 4];
         if *now != colour {
             *now = colour;
@@ -308,8 +324,6 @@ pub(super) fn granted(main: usize, table: &Table, added: &[u8]) {
         let Some((slot, i)) = slot.and_then(|s| Some((s, s.index(added)?))) else {
             continue;
         };
-        shared(main)
-            .ui
-            .with(|s| s.slots[n].granted(i, &slot.actors));
+        shared(main).ui.with(|s| s.slots[n].choose(i, &slot.actors));
     }
 }

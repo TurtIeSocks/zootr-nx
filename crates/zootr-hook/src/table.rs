@@ -170,6 +170,10 @@ pub struct Offsets {
     /// to the name), and the pointer to the pouch menu.
     pub worn: u32,
     pub pouch_menu: u32,
+    /// Applies a cell layout's animation frames (the cell, 0).
+    pub redraw: u32,
+    /// Loads an Equipment cell's picture by name (its picture, &name, 0, 0).
+    pub icon: u32,
     /// The pointer to the effect system, which holds the effect file
     /// the ice's [`Look`] sizes.
     pub effects: u32,

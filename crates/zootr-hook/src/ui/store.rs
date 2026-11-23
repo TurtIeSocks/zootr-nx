@@ -64,7 +64,7 @@ impl SlotState {
         let age = self.seen.age();
         let out = self.cycle.step(frame, slot, age, self.seen.held());
         if let Some(i) = out.chosen {
-            self.choose(i, age);
+            self.choose(i, slot);
         }
         out.swallow
     }
@@ -81,17 +81,14 @@ impl SlotState {
             .showing(slot, self.choice(age), age, self.seen.held())
     }
 
-    /// Link just got actor `i`: it's the choice for each age that uses it.
-    pub fn granted(&mut self, i: usize, slot: &MultiSlot) {
+    /// Link picked actor `i`, or just got it: it's the choice for each age
+    /// that uses it, so a mask picked as a child is still on as an adult.
+    pub fn choose(&mut self, i: usize, slot: &MultiSlot) {
         for age in [Age::Child, Age::Adult] {
             if slot.ages.get(i).is_some_and(|a| a & age as u8 != 0) {
-                self.choose(i, age);
+                self.choice[age as usize - 1] = u8::try_from(i + 1).unwrap_or(0);
             }
         }
-    }
-
-    fn choose(&mut self, i: usize, age: Age) {
-        self.choice[age as usize - 1] = u8::try_from(i + 1).unwrap_or(0);
     }
 
     fn choice(&self, age: Age) -> Option<usize> {
@@ -172,7 +169,7 @@ mod tests {
     #[test]
     fn a_cycle_starts_from_the_choice() {
         let mut store = fresh(&[1, 2]);
-        store.slots[0].granted(2, &FAKE);
+        store.slots[0].choose(2, &FAKE);
         store.read(Buttons::A, &ONE);
         assert_eq!(store.slots[0].showing(&FAKE), Some(2));
         store.read(Buttons::NONE, &ONE);
@@ -194,7 +191,7 @@ mod tests {
     #[test]
     fn a_choice_traded_away_falls_back_and_a_new_item_is_chosen() {
         let mut store = fresh(&[1, 2]);
-        store.slots[0].granted(2, &FAKE);
+        store.slots[0].choose(2, &FAKE);
         assert_eq!(store.slots[0].showing(&FAKE), Some(2));
         store.slots[0].seen.held = 1 << 1;
         assert_eq!(store.slots[0].showing(&FAKE), Some(1));
@@ -205,8 +202,27 @@ mod tests {
             Some(3),
             "the child keeps its own"
         );
-        store.slots[0].granted(4, &FAKE);
+        store.slots[0].choose(4, &FAKE);
         assert_eq!(store.slots[0].showing(&FAKE), Some(4));
+    }
+
+    #[test]
+    fn a_pick_both_ages_use_holds_for_both() {
+        const BOTH: MultiSlot = MultiSlot { ages: &[3, 3] };
+        let both = [Some(BOTH), None];
+        let mut store = fresh(&[0, 1]);
+        for press in [
+            Buttons::A,
+            Buttons::NONE,
+            Buttons::D_RIGHT,
+            Buttons::NONE,
+            Buttons::A,
+        ] {
+            store.read(press, &both);
+        }
+        assert_eq!(store.slots[0].showing(&BOTH), Some(1));
+        store.slots[0].seen.child = true;
+        assert_eq!(store.slots[0].showing(&BOTH), Some(1));
     }
 
     #[test]
