@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 
+pub mod bench;
 pub mod client;
 mod death;
 mod export;
@@ -15,6 +16,7 @@ mod ids;
 pub(crate) mod names;
 mod notice;
 mod open;
+pub mod room;
 mod rule;
 mod seed;
 mod when;

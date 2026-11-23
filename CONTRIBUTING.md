@@ -104,6 +104,23 @@ pnpm typecheck && pnpm lint && pnpm test
 macOS builds the live memory code for real. Linux and Windows build its
 stub, which reports that live reads need macOS.
 
+## Testing the Archipelago world
+
+Both commands need an Archipelago checkout with its `.venv`, named by
+`--archipelago` or `ZOOTR_ARCHIPELAGO`. They run on macOS and Linux.
+
+- `zootr ap room up --preset defaults` generates a two-slot multiworld
+  (Link and Zelda) from `ap/bench/presets.toml`, hosts it on
+  `localhost:38281`, and opens Link's slot. `ap room send ITEM` sends an
+  item from the server's cheat console, `ap room status` shows its log,
+  and `ap room down` stops it.
+- `zootr ap bench` times the export, the generation, the seed open and
+  the client's pass for each preset. Run it from a release build: each
+  run adds its rows to the private bench file, and a metric more than 20%
+  slower than its last three runs is flagged.
+- A new AP option joins the `all-on` preset in the same PR. A test fails
+  until it does.
+
 ## Commits
 
 - Conventional commits: `feat(scope): ...`, `fix(scope): ...`,
