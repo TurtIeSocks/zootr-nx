@@ -2,12 +2,11 @@
 //! watcher's live changes. See `docs/research/saves.md`.
 
 use std::collections::HashMap;
-use std::ops::RangeInclusive;
 use std::sync::LazyLock;
 
 use anyhow::{Context, Result};
 use ounce_formats::{Romfs, Save, murmur3};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::checks::{self, ItemCheck};
 use crate::gamedata::GameData;
@@ -17,141 +16,13 @@ use crate::savefile::Change;
 
 mod edit;
 mod glyph;
+mod layout;
 pub use edit::{Intent, Pouch};
 pub use glyph::Glyph;
+pub use layout::{COLUMNS, IconSize, Placement, Section, TrackerOptions};
 
 const POUCH: &str = "PouchData";
 const STOCK: &Name = flag::STOCK_NUM;
-
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(feature = "specta", derive(specta::Type))]
-pub enum Section {
-    Inventory,
-    Equipment,
-    Upgrades,
-    Quest,
-    Songs,
-    Stones,
-    Medallions,
-    Dungeons,
-}
-
-impl Section {
-    pub const ALL: [Section; 8] = [
-        Section::Inventory,
-        Section::Equipment,
-        Section::Upgrades,
-        Section::Quest,
-        Section::Songs,
-        Section::Stones,
-        Section::Medallions,
-        Section::Dungeons,
-    ];
-
-    /// Icons per row until the user changes it.
-    fn width(self) -> u8 {
-        match self {
-            Section::Equipment | Section::Stones => 3,
-            Section::Upgrades | Section::Dungeons => 4,
-            Section::Quest => 5,
-            Section::Inventory | Section::Songs | Section::Medallions => 6,
-        }
-    }
-
-    /// The widths it can take. A row of Dungeons is one dungeon, so it
-    /// stays as wide as a row.
-    fn widths(self) -> RangeInclusive<u8> {
-        match self {
-            Section::Dungeons => KEPT.len() as u8..=KEPT.len() as u8,
-            _ => 1..=self.slots() as u8,
-        }
-    }
-
-    fn slots(self) -> usize {
-        match self {
-            Section::Dungeons => ROWS * KEPT.len(),
-            _ => GRID.iter().filter(|s| s.section == self).count(),
-        }
-    }
-}
-
-/// How many columns the grid's sections can sit in.
-pub const COLUMNS: u8 = 3;
-
-/// Where a section sits in the grid and how wide it draws.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(feature = "specta", derive(specta::Type))]
-pub struct Placement {
-    pub section: Section,
-    /// 1 to `COLUMNS`.
-    pub column: u8,
-    /// Icons per row.
-    pub width: u8,
-    pub shown: bool,
-}
-
-impl Placement {
-    fn new(section: Section) -> Self {
-        Self {
-            section,
-            column: 1,
-            width: section.width(),
-            shown: true,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(feature = "specta", derive(specta::Type))]
-pub enum IconSize {
-    Small,
-    #[default]
-    Medium,
-    Large,
-}
-
-/// How the grid looks, in the tab and the pop out.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(feature = "specta", derive(specta::Type))]
-#[serde(default)]
-pub struct TrackerOptions {
-    pub size: IconSize,
-    /// A CSS colour.
-    pub background: String,
-    /// Every section once. The order within a column is the draw order.
-    pub sections: Vec<Placement>,
-}
-
-impl Default for TrackerOptions {
-    fn default() -> Self {
-        Self {
-            size: IconSize::default(),
-            background: "#18181b".into(),
-            sections: Section::ALL.map(Placement::new).into(),
-        }
-    }
-}
-
-impl TrackerOptions {
-    /// Every section exactly once and in range, so an older config or a
-    /// section added later still draws.
-    pub fn tidy(mut self) -> Self {
-        let mut seen = vec![];
-        self.sections.retain(|p| {
-            let new = !seen.contains(&p.section);
-            seen.push(p.section);
-            new
-        });
-        let missing = Section::ALL.into_iter().filter(|s| !seen.contains(s));
-        self.sections.extend(missing.map(Placement::new));
-        for p in &mut self.sections {
-            p.column = p.column.clamp(1, COLUMNS);
-            let widths = p.section.widths();
-            p.width = p.width.clamp(*widths.start(), *widths.end());
-        }
-        self
-    }
-}
 
 /// One cell of the grid.
 struct Slot {
@@ -164,8 +35,6 @@ struct Slot {
     icon: Option<&'static Name>,
     /// Shown as a number.
     count: Option<&'static Name>,
-    /// Held one tier at a time, as a trade sequence is.
-    exclusive: bool,
 }
 
 const fn slot(section: Section, label: &'static str, tiers: &'static [&'static Name]) -> Slot {
@@ -175,7 +44,6 @@ const fn slot(section: Section, label: &'static str, tiers: &'static [&'static N
         tiers,
         icon: None,
         count: None,
-        exclusive: false,
     }
 }
 
@@ -226,13 +94,31 @@ const GRID: &[Slot] = &[
     bottle("Bottle", &[field::BOTTLE_B]),
     bottle("Bottle", &[field::BOTTLE_C]),
     bottle("Bottle", &[field::BOTTLE_D]),
-    Slot { exclusive: true, ..slot(Inventory, "Child Trade", &[
-        item::WEIRD_EGG, item::ALARM_CUCCO, item::ZELDA_LETTER,
-    ]) },
-    Slot { exclusive: true, ..slot(Inventory, "Adult Trade", &[
-        item::POCKET_EGG, item::POCKET_CUCCO, item::COJIRO_CUCCO, item::ODD_MUSHROOM, item::ODD_POWDER,
-        item::POACHER_SAW, item::BROKEN_SWORD, item::PRESCRIPTION, item::EYEBALL_FROG, item::EYE_DROP, item::CLAIM_CHECK,
-    ]) },
+    bottle("Bottle", &[field::BOTTLE_E]),
+    // Link can hold every trade item at once, so each has a cell.
+    slot(Trade, "Weird Egg", &[item::WEIRD_EGG]),
+    slot(Trade, "Cucco", &[item::ALARM_CUCCO]),
+    slot(Trade, "Zelda's Letter", &[item::ZELDA_LETTER]),
+    slot(Trade, "Pocket Egg", &[item::POCKET_EGG]),
+    slot(Trade, "Pocket Cucco", &[item::POCKET_CUCCO]),
+    slot(Trade, "Cojiro", &[item::COJIRO_CUCCO]),
+    slot(Trade, "Odd Mushroom", &[item::ODD_MUSHROOM]),
+    slot(Trade, "Odd Potion", &[item::ODD_POWDER]),
+    slot(Trade, "Poacher's Saw", &[item::POACHER_SAW]),
+    slot(Trade, "Broken Goron's Sword", &[item::BROKEN_SWORD]),
+    slot(Trade, "Prescription", &[item::PRESCRIPTION]),
+    slot(Trade, "Eyeball Frog", &[item::EYEBALL_FROG]),
+    slot(Trade, "Eye Drops", &[item::EYE_DROP]),
+    slot(Trade, "Claim Check", &[item::CLAIM_CHECK]),
+    // Link can hold every mask at once (the mask slot), so each has a cell.
+    slot(Masks, "Keaton Mask", &[actor::ARMOR_CHILD_MASK_KEATON]),
+    slot(Masks, "Skull Mask", &[actor::ARMOR_CHILD_MASK_SKULL]),
+    slot(Masks, "Spooky Mask", &[actor::ARMOR_CHILD_MASK_SPOOKY]),
+    slot(Masks, "Bunny Hood", &[actor::ARMOR_CHILD_MASK_BUNNY]),
+    slot(Masks, "Goron Mask", &[actor::ARMOR_CHILD_MASK_GORON]),
+    slot(Masks, "Zora Mask", &[actor::ARMOR_CHILD_MASK_ZORA]),
+    slot(Masks, "Gerudo Mask", &[actor::ARMOR_CHILD_MASK_GERUDO]),
+    slot(Masks, "Mask of Truth", &[actor::ARMOR_CHILD_MASK_TRUTH]),
     slot(Equipment, "Kokiri Sword", &[actor::WEAPON_SWORD_KOKIRI]),
     slot(Equipment, "Master Sword", &[actor::WEAPON_SWORD_MASTER]),
     slot(Equipment, "Biggoron's Sword", &[actor::WEAPON_SWORD_GIANT, actor::WEAPON_SWORD_BIGGORON]),
@@ -244,14 +130,6 @@ const GRID: &[Slot] = &[
     slot(Equipment, "Zora Tunic", &[actor::ARMOR_ADULT_ZORA]),
     slot(Equipment, "Iron Boots", &[actor::ARMOR_ADULT_HEAVY_BOOT]),
     slot(Equipment, "Hover Boots", &[actor::ARMOR_ADULT_HOVER_BOOT]),
-    slot(Equipment, "Keaton Mask", &[actor::ARMOR_CHILD_MASK_KEATON]),
-    slot(Equipment, "Skull Mask", &[actor::ARMOR_CHILD_MASK_SKULL]),
-    slot(Equipment, "Spooky Mask", &[actor::ARMOR_CHILD_MASK_SPOOKY]),
-    slot(Equipment, "Bunny Hood", &[actor::ARMOR_CHILD_MASK_BUNNY]),
-    slot(Equipment, "Goron Mask", &[actor::ARMOR_CHILD_MASK_GORON]),
-    slot(Equipment, "Zora Mask", &[actor::ARMOR_CHILD_MASK_ZORA]),
-    slot(Equipment, "Gerudo Mask", &[actor::ARMOR_CHILD_MASK_GERUDO]),
-    slot(Equipment, "Mask of Truth", &[actor::ARMOR_CHILD_MASK_TRUTH]),
     slot(Upgrades, "Strength", &[actor::ARMOR_CHILD_GAUNTLET_GORON, actor::ARMOR_ADULT_GAUNTLET_SILVER, actor::ARMOR_ADULT_GAUNTLET_GOLD]),
     slot(Upgrades, "Scale", &[item::SCALE_SILVER, item::SCALE_GOLD]),
     slot(Upgrades, "Wallet", &[item::WALLET_SMALL, item::WALLET_MEDIUM, item::WALLET_LARGE]),
@@ -316,12 +194,9 @@ pub fn held() -> Vec<Held> {
     out
 }
 
-/// The tiers below `actor` in its cell, which holding it holds too: none
-/// along a trade sequence, where Link holds one at a time.
+/// The tiers below `actor` in its cell, which holding it holds too.
 pub fn below(actor: &Name) -> Vec<&'static Name> {
-    let cell = GRID
-        .iter()
-        .find(|s| !s.exclusive && s.tiers.contains(&actor));
+    let cell = GRID.iter().find(|s| s.tiers.contains(&actor));
     let tiers = cell.map_or(&[][..], |s| s.tiers);
     tiers.iter().take_while(|&&t| t != actor).copied().collect()
 }
@@ -605,64 +480,72 @@ pub fn has_flag(gd: &GameData, actor: &str) -> bool {
 #[cfg(test)]
 pub(super) mod tests {
     use super::*;
-    use crate::known::{flag, item};
+    use crate::known::{actor, field, flag, item};
+
+    /// The masks, in the game's order.
+    const MASKS: [&Name; 8] = [
+        actor::ARMOR_CHILD_MASK_KEATON,
+        actor::ARMOR_CHILD_MASK_SKULL,
+        actor::ARMOR_CHILD_MASK_SPOOKY,
+        actor::ARMOR_CHILD_MASK_BUNNY,
+        actor::ARMOR_CHILD_MASK_GORON,
+        actor::ARMOR_CHILD_MASK_ZORA,
+        actor::ARMOR_CHILD_MASK_GERUDO,
+        actor::ARMOR_CHILD_MASK_TRUTH,
+    ];
+
+    /// Every trade item, child then adult, as the Trade section lists them.
+    const TRADE: [&Name; 14] = [
+        item::WEIRD_EGG,
+        item::ALARM_CUCCO,
+        item::ZELDA_LETTER,
+        item::POCKET_EGG,
+        item::POCKET_CUCCO,
+        item::COJIRO_CUCCO,
+        item::ODD_MUSHROOM,
+        item::ODD_POWDER,
+        item::POACHER_SAW,
+        item::BROKEN_SWORD,
+        item::PRESCRIPTION,
+        item::EYEBALL_FROG,
+        item::EYE_DROP,
+        item::CLAIM_CHECK,
+    ];
 
     #[test]
-    fn tidy_keeps_order_and_fills_what_is_missing() {
-        let songs = Placement {
-            column: 9,
-            width: 0,
-            ..Placement::new(Section::Songs)
-        };
-        let options = TrackerOptions {
-            sections: vec![songs, songs],
-            ..TrackerOptions::default()
-        }
-        .tidy();
-        assert_eq!(options.sections.len(), Section::ALL.len());
-        assert_eq!(options.sections[0].section, Section::Songs);
-        assert_eq!(
-            (options.sections[0].column, options.sections[0].width),
-            (3, 1)
-        );
-        assert_eq!(options.sections[1], Placement::new(Section::Inventory));
+    fn each_trade_item_has_a_cell_of_its_own_in_trade() {
+        let trade: Vec<_> = GRID.iter().filter(|s| s.section == Trade).collect();
+        let held: Vec<_> = trade.iter().map(|s| s.tiers.to_vec()).collect();
+        assert_eq!(held, TRADE.map(|a| vec![a]));
     }
 
     #[test]
-    fn widths_never_pass_a_sections_slots() {
-        let wide = Placement {
-            width: 99,
-            ..Placement::new(Section::Stones)
-        };
-        let options = TrackerOptions {
-            sections: vec![wide],
-            ..TrackerOptions::default()
-        }
-        .tidy();
-        assert_eq!(options.sections[0].width, 3);
+    fn each_mask_has_a_cell_of_its_own_in_masks() {
+        let masks: Vec<_> = (GRID.iter())
+            .filter(|s| s.section == Masks)
+            .map(|s| s.tiers.to_vec())
+            .collect();
+        assert_eq!(masks, MASKS.map(|a| vec![a]));
+        let elsewhere = (GRID.iter())
+            .filter(|s| s.section != Masks)
+            .any(|s| MASKS.iter().any(|m| s.tiers.contains(m)));
+        assert!(!elsewhere);
     }
 
     #[test]
-    fn dungeons_stay_one_row_per_dungeon_wide() {
-        let widths = [1, 9].map(|width| Placement {
-            width,
-            ..Placement::new(Section::Dungeons)
-        });
-        for p in widths {
-            let options = TrackerOptions {
-                sections: vec![p],
-                ..TrackerOptions::default()
-            }
-            .tidy();
-            assert_eq!(options.sections[0].width as usize, KEPT.len());
-        }
-    }
-
-    #[test]
-    fn default_widths_fit() {
-        for s in Section::ALL {
-            assert!(s.widths().contains(&s.width()), "{s:?}");
-        }
+    fn the_grid_has_a_cell_for_each_of_the_five_bottles() {
+        let bottles: Vec<_> = (GRID.iter())
+            .filter(|s| s.icon == Some(item::BOTTLE))
+            .map(|s| s.tiers.to_vec())
+            .collect();
+        let slots = [
+            field::BOTTLE_A,
+            field::BOTTLE_B,
+            field::BOTTLE_C,
+            field::BOTTLE_D,
+            field::BOTTLE_E,
+        ];
+        assert_eq!(bottles, slots.map(|b| vec![b]));
     }
 
     /// Keys as if every actor were its own hash.
@@ -741,7 +624,7 @@ pub(super) mod tests {
     }
 
     #[test]
-    fn a_cell_draws_the_glyph_of_the_tier_it_shows() {
+    fn every_cell_draws_a_known_glyph() {
         let held = |names: &[&Name]| {
             let pairs: Vec<_> = std::iter::once((0, 0))
                 .chain(names.iter().map(|a| (murmur3(a.as_bytes()), 1)))
@@ -751,18 +634,16 @@ pub(super) mod tests {
             inv.load(in_save(&save));
             inv.cells()
         };
-        let trade = |cells: &[Cell]| cell(cells, "Child Trade").glyph;
-        assert_eq!(trade(&held(&[])), Glyph::of(item::WEIRD_EGG));
-        let egg = held(&[item::WEIRD_EGG]);
-        assert_eq!(trade(&egg), Glyph::of(item::WEIRD_EGG));
-        let letter = held(&[item::WEIRD_EGG, item::ZELDA_LETTER]);
-        assert_eq!(trade(&letter), Glyph::of(item::ZELDA_LETTER));
-        assert_ne!(trade(&egg), trade(&letter));
+        let truth = held(&[actor::ARMOR_CHILD_MASK_TRUTH]);
+        assert_eq!(
+            cell(&truth, "Mask of Truth").glyph,
+            Glyph::of(actor::ARMOR_CHILD_MASK_TRUTH)
+        );
         // A bottle slot draws a bottle whatever it holds.
-        assert_eq!(cell(&letter, "Bottle").glyph, Glyph::of(item::BOTTLE));
-        let map = cell(&letter, "Forest Temple Map");
+        assert_eq!(cell(&truth, "Bottle").glyph, Glyph::of(item::BOTTLE));
+        let map = cell(&truth, "Forest Temple Map");
         assert_eq!(map.glyph, Glyph::of(item::DUNGEON_MAP));
-        assert!(letter.iter().all(|c| c.glyph != Glyph::Unknown));
+        assert!(truth.iter().all(|c| c.glyph != Glyph::Unknown));
     }
 
     /// Forest has all four, the Deku Tree a map and a compass.

@@ -34,8 +34,8 @@ const INK = "text-ink";
 /** The item columns, top to bottom, sized to come out about as tall as
  * each other. They sit side by side where there's room, else stacked. */
 const MAIN: Section[][] = [
-  ["Inventory", "Songs", "Upgrades"],
-  ["Equipment", "Quest", "Stones", "Medallions"],
+  ["Inventory", "Masks", "Songs", "Upgrades"],
+  ["Equipment", "Quest", "Trade", "Stones", "Medallions"],
 ];
 
 /** Tall enough to take a column alone, kept on the right at any width. */

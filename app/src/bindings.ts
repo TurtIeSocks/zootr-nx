@@ -798,7 +798,7 @@ export type SavePreset = {
 	what: string,
 };
 
-export type Section = "Inventory" | "Equipment" | "Upgrades" | "Quest" | "Songs" | "Stones" | "Medallions" | "Dungeons";
+export type Section = "Inventory" | "Trade" | "Masks" | "Equipment" | "Upgrades" | "Quest" | "Songs" | "Stones" | "Medallions" | "Dungeons";
 
 export type Session = {
 	source: Source,

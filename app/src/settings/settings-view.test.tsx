@@ -688,11 +688,31 @@ test("an item a setting gives shows locked, naming it, and a click does nothing"
   const tile = await screen.findByRole("button", {
     name: "Hookshot, from Met Fake",
   });
-  expect(load).toHaveBeenLastCalledWith({}, [["hookshot"]]);
+  expect(load).toHaveBeenLastCalledWith({}, [["hookshot"], ["kokiri-tunic"]]);
   fireEvent.click(tile);
   fireEvent.contextMenu(tile);
   expect(click).not.toHaveBeenCalled();
   expect(setConfig).not.toHaveBeenCalled();
+});
+
+test("the Kokiri Tunic shows held and locked to every new game", async () => {
+  const load = vi
+    .spyOn(commands, "startItems")
+    .mockImplementation((_s, given) =>
+      startView(1).then((v) => ({
+        ...v,
+        data: {
+          ...v.data,
+          cells: v.data.cells.map((c) => ({ ...c, label: "Kokiri Tunic" })),
+          locked: [given.findIndex((w) => w.includes("kokiri-tunic"))],
+        },
+      })),
+    );
+  show({ defs: [inventory], section: "Inventory" });
+  await screen.findByRole("button", {
+    name: "Kokiri Tunic, from every new game",
+  });
+  expect(load).toHaveBeenLastCalledWith({}, [["kokiri-tunic"]]);
 });
 
 test("a Status field sets the starting inventory through the backend", async () => {

@@ -294,10 +294,7 @@ impl Inventory {
             Intent::Up => (self.tier(slot) + 1) % (n + 1),
             Intent::Down => (self.tier(slot) + n) % (n + 1),
         };
-        let held = |i: usize| match slot.exclusive {
-            true => i + 1 == next,
-            false => i < next,
-        };
+        let held = |i: usize| i < next;
         let mut out: Vec<Edit> = (slot.tiers.iter().enumerate())
             .filter(|&(i, a)| held(i) != (self.value(a) > 0))
             .map(|(i, a)| Edit::new(key(a), if held(i) { "1" } else { "0" }))
@@ -459,27 +456,6 @@ mod tests {
             [
                 (h(item::HOOKSHOT), "0".into()),
                 (h(item::LONGSHOT), "0".into())
-            ]
-        );
-    }
-
-    #[test]
-    fn a_trade_item_is_held_alone() {
-        needs_names!();
-        let save = save_of(&[(item::WEIRD_EGG, 1)], "");
-        let mut inv = inventory();
-        inv.load(crate::inventory::in_save(&save));
-        let up = inv.edits(
-            &pouch(),
-            &save,
-            cell_at(&inv.cells(), "Child Trade"),
-            Intent::Up,
-        );
-        assert_eq!(
-            pairs(up.unwrap()),
-            [
-                (h(item::WEIRD_EGG), "0".into()),
-                (h(item::ALARM_CUCCO), "1".into())
             ]
         );
     }

@@ -127,6 +127,25 @@ test("missing items are grey, held ones show counts and tiers", async () => {
   expect(within(bag).getByText("2")).toBeTruthy();
 });
 
+test("a progressive Quest item shows its tier, as an upgrade does", async () => {
+  const was = backend.state;
+  backend.state = {
+    ...was,
+    cells: [cell("Magic", { section: "Quest", tier: 1, tiers: 2 })],
+    options: {
+      ...was.options,
+      sections: [{ section: "Quest", column: 1, width: 1, shown: true }],
+    },
+  };
+  try {
+    showItems();
+    const magic = await screen.findByRole("img", { name: "Magic" });
+    expect(within(magic).getByText("1")).toBeTruthy();
+  } finally {
+    backend.state = was;
+  }
+});
+
 test("a dungeon's row fills from the backend, names its dungeon and fades what it has no such item for", async () => {
   const dungeon = (label: string, patch: Partial<Cell> = {}) =>
     cell(label, { section: "Dungeons", ...patch });

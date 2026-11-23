@@ -1,11 +1,15 @@
 import { Fragment, type ReactNode, useState } from "react";
-import type { Cell, DungeonRow, Glyph, Placement } from "@/bindings";
+import type { Cell, DungeonRow, Glyph, Placement, Section } from "@/bindings";
 import { Tip } from "@/components/tip";
 import { fallbackIcon } from "@/items/fallback-icons";
 import { iconUrl } from "@/items/icons";
 import { BADGE, TITLES } from "@/items/layout";
 import { cn } from "@/lib/utils";
 import { useItems } from "@/stores/items";
+
+/** The sections whose progressive items show their tier as pips: the
+ * upgrades, and the Magic Meter and Doubled Magic in Quest. */
+const PIPPED: Section[] = ["Upgrades", "Quest"];
 
 /** Gold pips for the tier held, with the number for screen readers. */
 function Tier({ cell }: { cell: Cell }) {
@@ -51,7 +55,7 @@ export function Tile({
 }: TileProps) {
   const absent = cell.tiers === 0;
   const missing = cell.tier === 0;
-  const tier = cell.section === "Upgrades" && cell.tiers > 1 && !missing;
+  const tier = PIPPED.includes(cell.section) && cell.tiers > 1 && !missing;
   return (
     <Tip tip={cell.label}>
       <div

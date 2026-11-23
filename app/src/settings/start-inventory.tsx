@@ -20,7 +20,7 @@ import { useLoad } from "@/lib/use-load";
 import { ItemsEditor } from "@/save/items-editor";
 import { AllNone } from "@/settings/checklist";
 import { LockedBy } from "@/settings/setting-row";
-import { changeSettings, useConfig } from "@/stores/config";
+import { type ConfigState, changeSettings, useConfig } from "@/stores/config";
 
 /** Props for {@link StartInventory}. */
 export interface StartInventoryProps {
@@ -39,6 +39,16 @@ const loadItems = ({ start, given }: Load) =>
 /** `start` with the arsenal (all of Link's gear) added. */
 const withArsenal = (start: Start) => call(commands.startArsenal(start));
 
+/** What every new game holds whatever the settings, shown held and
+ * locked like a setting's gift: Link can't start without his tunic. */
+const NEW_GAME = { name: "every new game", words: ["kokiri-tunic"] };
+
+/** Each setting that gives items, then {@link NEW_GAME}. */
+const giversOf = (s: ConfigState) => [
+  ...startGivers(s.schema, s.config.settings),
+  NEW_GAME,
+];
+
 /** What All and None say when they'd change nothing, and what each does. */
 const ALREADY = (on: boolean) =>
   on
@@ -46,7 +56,7 @@ const ALREADY = (on: boolean) =>
     : "Link already starts empty";
 const TIP = (on: boolean) =>
   on
-    ? "Every piece of gear at its top tier, full ammo, every song and twenty hearts"
+    ? "Every piece of gear at its top tier, full ammo, every song, every trade item and twenty hearts"
     : "Start with nothing";
 
 /** The starting inventory as the Save page's grid and Status fields, on a
@@ -66,15 +76,9 @@ export function StartInventory({ def }: StartInventoryProps) {
       .flatMap((f) => f.words)
       .join(" "),
   );
-  const givers = useConfig(
-    useShallow((s) =>
-      startGivers(s.schema, s.config.settings).map((g) => g.name),
-    ),
-  );
+  const givers = useConfig(useShallow((s) => giversOf(s).map((g) => g.name)));
   const given = useConfig((s) =>
-    JSON.stringify(
-      startGivers(s.schema, s.config.settings).map((g) => g.words),
-    ),
+    JSON.stringify(giversOf(s).map((g) => g.words)),
   );
   /** The setting's own words, without what other settings force. */
   const start = useMemo(
