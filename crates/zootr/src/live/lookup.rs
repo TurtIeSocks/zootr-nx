@@ -1,7 +1,7 @@
 //! One GameData value by its hash: found once through the type tables'
 //! maps, then read or written where it sits.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 
 use anyhow::{Result, bail};
@@ -106,8 +106,7 @@ fn spots(mem: &impl Memory, places: &Places, global: u64, hashes: &[u32]) -> Res
         check: vec![(global, 8), (word, 8)],
         expect: vec![word, manager],
     };
-    for &hash in hashes {
-        let found = place(mem, manager, hash)?;
+    for found in places_of(mem, manager, hashes)? {
         let at = match found {
             Some((row, i)) => {
                 let (list, read) = entries(mem, places, manager, row)?;
@@ -203,32 +202,73 @@ fn find(mem: &impl Memory, global: u64, hash: u32) -> Result<Option<(&'static Ro
 
 /// `hash`'s place, from [`Memory::places`] once it's been found.
 fn place(mem: &impl Memory, manager: u64, hash: u32) -> Result<Place> {
-    let Some(places) = mem.places() else {
-        return scan(mem, manager, hash);
-    };
-    if let Some(place) = places.get(manager, hash) {
-        return Ok(place);
-    }
-    let place = scan(mem, manager, hash)?;
-    places.put(manager, hash, place);
-    Ok(place)
+    Ok(places_of(mem, manager, &[hash])?[0])
 }
 
-/// `hash`'s place, read from each table's map in turn.
-fn scan(mem: &impl Memory, manager: u64, hash: u32) -> Result<Place> {
-    for row in TYPES.iter() {
-        let table = table(manager, row);
-        let count = mem.u32(table + 8)?;
-        let cap = mem.u32(table + 0x24)? as usize;
-        let map = mem.read(mem.u64(table + 0x18)?, sized(row.1, cap * 8)?)?;
-        let found = (map.as_chunks::<8>().0.iter()).find(|p| word(&p[..], 0) == hash);
-        if let Some(i) = found.map(|p| word(&p[..], 4))
-            && i < count
-        {
-            return Ok(Some((row, i)));
+/// Each of `hashes`' places: from [`Memory::places`] where found before,
+/// the rest found together in one [`scan`].
+fn places_of(mem: &impl Memory, manager: u64, hashes: &[u32]) -> Result<Vec<Place>> {
+    let kept = mem.places();
+    let mut out: Vec<_> = (hashes.iter())
+        .map(|&h| kept.and_then(|k| k.get(manager, h)))
+        .collect();
+    let missing: Vec<u32> = (hashes.iter().zip(&out))
+        .filter(|(_, o)| o.is_none())
+        .map(|(&h, _)| h)
+        .collect();
+    if !missing.is_empty() {
+        let found = scan(mem, manager, &missing)?;
+        for (&hash, place) in hashes.iter().zip(&mut out) {
+            if place.is_none() {
+                let at = found.get(&hash).copied().flatten();
+                if let Some(kept) = kept {
+                    kept.put(manager, hash, at);
+                }
+                *place = Some(at);
+            }
         }
     }
-    Ok(None)
+    Ok(out.into_iter().map(Option::unwrap).collect())
+}
+
+/// `hashes`' places, read from the tables' maps: every table's header in
+/// one read, then every map in another, however many hashes there are.
+/// A hash goes by the first table whose map lists it.
+fn scan(mem: &impl Memory, manager: u64, hashes: &[u32]) -> Result<HashMap<u32, Place>> {
+    // From +8: the count, the map at +0x10, its capacity at +0x1c.
+    let heads: Vec<_> = TYPES
+        .iter()
+        .map(|row| (table(manager, row) + 8, 0x20))
+        .collect();
+    let heads = mem.read_many(&heads)?;
+    let mut maps = Vec::new();
+    for (row, head) in TYPES.iter().zip(&heads) {
+        let cap = word(head, 0x1c) as usize;
+        if cap > 0 {
+            maps.push((
+                row,
+                word(head, 0),
+                (quad(head, 0x10), sized(row.1, cap * 8)?),
+            ));
+        }
+    }
+    let ranges: Vec<_> = maps.iter().map(|m| m.2).collect();
+    let wanted: HashSet<u32> = hashes.iter().copied().collect();
+    let mut found = HashMap::new();
+    for ((row, count, _), map) in maps.iter().zip(mem.read_many(&ranges)?) {
+        let mut seen = HashSet::new();
+        for p in map.as_chunks::<8>().0 {
+            let (hash, i) = (word(&p[..], 0), word(&p[..], 4));
+            if wanted.contains(&hash)
+                && !found.contains_key(&hash)
+                && seen.insert(hash)
+                && i < *count
+            {
+                found.insert(hash, Some((*row, i)));
+            }
+        }
+    }
+    Ok(found)
 }
 
 /// Whether each Bool in `hashes` is true, in one read once their places
@@ -409,6 +449,21 @@ mod tests {
         // the manager, the Bool and Int tables' entries): no map again,
         // even for the hash the game doesn't hold.
         assert_eq!(mem.reads(), [Many(4 + 3)]);
+    }
+
+    #[test]
+    fn a_cold_pass_reads_each_map_once_however_many_flags() {
+        let on = |b: u8| entry(0, &[(0x16, &[b])]);
+        let flags: Vec<_> = (0..40).map(|i| on((i % 2) as u8)).collect();
+        let fresh = || kept(game(&[(0, flags.clone())], &[]));
+        let reads = |n: u32| {
+            let mem = fresh();
+            let hashes: Vec<_> = (0..n).map(|i| hash(0, i)).collect();
+            let got = bools(&mem, 0x1000, &hashes).unwrap();
+            assert_eq!(got, (0..n).map(|i| i % 2 == 1).collect::<Vec<_>>());
+            mem.reads().len()
+        };
+        assert_eq!(reads(1), reads(40));
     }
 
     /// Where [`movable`] moves its manager and entries to.
