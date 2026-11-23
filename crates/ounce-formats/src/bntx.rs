@@ -1,6 +1,10 @@
 //! BNTX textures, decoded to RGBA8, and redrawn in place. Decoding reads
 //! the first mip level and array layer, which is all a UI icon has.
 
+use std::collections::HashMap;
+use std::hash::{DefaultHasher, Hash, Hasher};
+use std::sync::{Mutex, OnceLock};
+
 use anyhow::{Context, Result, bail, ensure};
 use texture2ddecoder as tex;
 
@@ -183,6 +187,10 @@ pub fn redraws(format: u32) -> bool {
 /// all takes keeps its bytes. The layout stays byte for byte: only blocks
 /// change. Each ASTC block is the closest of one colour or two, each BC1
 /// block of four. BC4 takes the red channel.
+///
+/// Each redraw is kept for the process, by its inputs: a seed redraws the
+/// same textures in the same colours (a key's dungeon, a mark's kind), and
+/// a process makes many seeds (the app, the tests), so each encodes once.
 pub fn redraw(
     data: &[u8],
     rgba: &[u8],
@@ -195,6 +203,39 @@ pub fn redraw(
         "{}: wrong image size",
         info.name
     );
+    let kept: Vec<bool> = (0..height)
+        .flat_map(|y| (0..width).map(move |x| (x, y)))
+        .map(|(x, y)| keep(x, y))
+        .collect();
+    let key = redraw_key(data, rgba, &kept);
+    if let Some(out) = redrawn().lock().unwrap().get(&key) {
+        return Ok(out.clone());
+    }
+    let out = encode(data, &info, rgba, &kept)?;
+    redrawn().lock().unwrap().insert(key, out.clone());
+    Ok(out)
+}
+
+/// The files [`redraw`] made, by [`redraw_key`].
+fn redrawn() -> &'static Mutex<HashMap<[u64; 2], Vec<u8>>> {
+    static REDRAWN: OnceLock<Mutex<HashMap<[u64; 2], Vec<u8>>>> = OnceLock::new();
+    REDRAWN.get_or_init(Default::default)
+}
+
+/// A redraw's inputs hashed twice over, salted apart: 128 bits, so two
+/// different redraws never share a key in practice.
+fn redraw_key(data: &[u8], rgba: &[u8], kept: &[bool]) -> [u64; 2] {
+    [0u8, 1].map(|salt| {
+        let mut h = DefaultHasher::new();
+        (salt, data, rgba, kept).hash(&mut h);
+        h.finish()
+    })
+}
+
+/// [`redraw`]'s work: `kept` is `keep` for each first-level texel,
+/// row-major.
+fn encode(data: &[u8], info: &Info, rgba: &[u8], kept: &[bool]) -> Result<Vec<u8>> {
+    let (width, height) = (info.width, info.height);
     let (bw, bh, unit) = block(info.format)?;
     let kind = info.format >> 8;
     ensure!(
@@ -237,8 +278,9 @@ pub fn redraw(
             // The first level's texels the block covers.
             let (x0, y0) = ((bx * bw) << i, (by * bh) << i);
             let (x1, y1) = (((bx + 1) * bw) << i, ((by + 1) * bh) << i);
-            let kept = (y0..y1.min(height)).all(|y| (x0..x1.min(width)).all(|x| keep(x, y)));
-            if kept {
+            let all_kept =
+                (y0..y1.min(height)).all(|y| (x0..x1.min(width)).all(|x| kept[y * width + x]));
+            if all_kept {
                 return None;
             }
             let texels: Vec<Rgba> = (0..bh)
