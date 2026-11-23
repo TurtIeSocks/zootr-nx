@@ -536,6 +536,7 @@ pub const TAG_LIST: &Name = &n!(0xb3d78f74c896e15b);
 pub const TALK: &Name = &n!(0x03c95cfb08fae04f);
 pub const TALK_0028_2: &Name = &n!(0x1c29776c3c2c6017);
 pub const TALK_03: &Name = &n!(0x17fff77857c949a9);
+pub const TALK_30: &Name = &n!(0x180a067857d1b7ab);
 pub const TALK_EVENT_NAME: &Name = &n!(0x851bedccd974586e);
 pub const TERRAIN_SYSTEM_ACTOR: &Name = &n!(0xdfc9cf5ebed9873c);
 pub const THROWING_NUTS_01: &Name = &n!(0x0f384df5f5e21919);

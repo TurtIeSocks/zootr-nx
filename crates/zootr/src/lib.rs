@@ -81,6 +81,7 @@ pub mod look;
 mod magic;
 mod map_copies;
 pub mod marks;
+mod masks;
 mod medallions;
 mod names;
 mod narrowing;
