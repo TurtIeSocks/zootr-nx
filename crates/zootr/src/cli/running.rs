@@ -160,6 +160,7 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
     let reads = matches!(
         cmd,
         DevCommand::State
+            | DevCommand::Here { .. }
             | DevCommand::Around { .. }
             | DevCommand::Scene { .. }
             | DevCommand::Go { plan: true, .. }
@@ -175,6 +176,7 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             let busy: String = busy.iter().filter(|b| b.0).map(|b| b.1).collect();
             format!("{} as {age}{busy}", s.map)
         }
+        DevCommand::Here { json } => said(&game.here()?, json)?,
         DevCommand::Teleport { place, near, side } => {
             let place = Place::parse(&place)?;
             dev::known(&place, &dev::places(romfs)?)?;

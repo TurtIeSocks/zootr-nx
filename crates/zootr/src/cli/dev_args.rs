@@ -10,6 +10,12 @@ use anyhow::Result;
 pub(super) enum DevCommand {
     /// The map, the age, and whether a teleport would be refused.
     State,
+    /// Where Link stands, as a room file names a spot, and the dungeon
+    /// room he is in.
+    Here {
+        #[arg(long)]
+        json: bool,
+    },
     /// Send Link to `MAP/SPOT`, switching age first when it's the other
     /// age's map.
     Teleport {

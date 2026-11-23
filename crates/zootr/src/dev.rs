@@ -20,6 +20,7 @@ use crate::known::{Name, flag, scene};
 use crate::live::{self, Game, Memory};
 use crate::patch;
 
+mod here;
 mod hide;
 mod place;
 mod setup;
