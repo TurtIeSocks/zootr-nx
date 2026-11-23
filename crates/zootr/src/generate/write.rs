@@ -218,6 +218,7 @@ pub fn write_mod(
     let pieces = pickups::dealt(romfs, new_game)?;
     let picked = picked::holders(&pieces, drops);
     let steps = pickups::steps::Steps::new(&pieces, drops, Lines::of(new_game), &picked, &gd)?;
+    let stand_ins = pickups::stand_ins(&pieces, drops, Lines::of(new_game));
     let mut bools = cows::flags(&cows);
     bools.extend(picked::flags(&picked));
     if new_game.shop_slots > 0 {
@@ -252,7 +253,7 @@ pub fn write_mod(
     let mut exps: Vec<_> = aliases
         .map(|(name, of)| (name, vec![gamedata::Op::Bool(of)]))
         .collect();
-    exps.extend(picked::exps(&picked));
+    exps.extend(picked::exps(&picked, &stand_ins));
     exps.extend(shelves.exps.iter().cloned());
     exps.extend(steps.exps.iter().cloned());
     exps.extend(jabu_mood::exps(&gd, new_game.adult_jabu)?);
@@ -547,6 +548,8 @@ pub fn write_mod(
     }
     // Last, once every holder's spot is known.
     gamedata::add_u64s(&mut data.root, &picked::entries(&spots))?;
+    // Every stand-in is built by now.
+    gamedata::add_bools(&mut data.root, &pickups::taken::flags(builder.written()))?;
     builder.write(gamedata::PATH, &data.to_binary())?;
     bombs::write(&mut builder)?;
     dig::write(romfs, &mut builder, drops, new_game)?;
@@ -569,6 +572,7 @@ pub fn write_mod(
         defaults,
         actors,
         files,
+        stand_ins,
     })
 }
 

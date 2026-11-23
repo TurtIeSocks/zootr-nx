@@ -129,7 +129,7 @@ unsafe fn get_u64(main: usize, o: &Offsets, gd: usize, hash: u32) -> Option<u64>
 /// Spot `i` of those the seed wrote to GameData.
 pub(super) unsafe fn spot(main: usize, o: &Offsets, gd: usize, i: u32) -> Option<Spot> {
     let word = |w| unsafe { get_u64(main, o, gd, Spot::key(i, w)) };
-    Some(Spot::from_words([word(0)?, word(1)?]))
+    Some(Spot::from_words([word(0)?, word(1)?, word(2)?, word(3)?]))
 }
 
 pub(super) unsafe fn set_bool(main: usize, o: &Offsets, gd: usize, hash: u32, value: bool) {

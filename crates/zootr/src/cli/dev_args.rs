@@ -329,6 +329,13 @@ pub enum MemCommand {
     /// The per-placement flags (Bool64bitKey) that are set, one placement
     /// hash a line.
     Keys,
+    /// One placement's own flag (Bool64bitKey): where it sits and its value,
+    /// or with `--set` a write of it, like a pot broken or whole.
+    Key {
+        hash: u64,
+        #[arg(long)]
+        set: Option<bool>,
+    },
     /// Bytes at an address, as hex, sixteen to a line.
     Read {
         /// A 0x address, or `main+0x…` for an offset into `main`.

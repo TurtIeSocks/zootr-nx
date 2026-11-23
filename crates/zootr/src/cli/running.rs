@@ -452,7 +452,11 @@ const CHUNK: usize = 1 << 20;
 
 pub(super) fn mem(cmd: MemCommand) -> Result<()> {
     use live::Memory;
-    let game = attach(matches!(cmd, MemCommand::Write { .. }))?;
+    let writes = matches!(
+        cmd,
+        MemCommand::Write { .. } | MemCommand::Key { set: Some(_), .. }
+    );
+    let game = attach(writes)?;
     let main = game.global() - u64::from(crate::patch::OFFSETS.gamedata);
     let address = |text: &str| address(text, main);
     match cmd {
@@ -475,6 +479,17 @@ pub(super) fn mem(cmd: MemCommand) -> Result<()> {
         MemCommand::Keys => {
             for key in live::keys(&game, game.global())? {
                 println!("{key}");
+            }
+        }
+        MemCommand::Key { hash, set } => {
+            let (at, was) = live::key_value(&game, game.global(), hash)?
+                .with_context(|| format!("GameData has no key for placement {hash}"))?;
+            match set {
+                Some(value) => {
+                    game.write(at, &[u8::from(value)])?;
+                    println!("{hash} at {at:#x}: {was} -> {}", u8::from(value));
+                }
+                None => println!("{hash} at {at:#x}: {was}"),
             }
         }
         MemCommand::Regions { min } => {

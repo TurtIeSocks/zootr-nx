@@ -54,6 +54,9 @@ impl std::fmt::Display for Flag {
 pub struct Tracker {
     /// Spot to what's set once it's checked.
     flags: HashMap<u64, Flag>,
+    /// Each spot's stand-ins' taken Bools, which check it too, set without
+    /// the hook (`pickups::taken`).
+    taken: Vec<(u64, Flag)>,
     /// Tracked flags that are set.
     on: HashSet<Flag>,
     checked: BTreeSet<u64>,
@@ -134,8 +137,16 @@ impl Tracker {
             .iter()
             .filter_map(|s| Some((s.hash, flag(s)?)))
             .collect();
+        let taken = (spots.iter())
+            .flat_map(|s| {
+                s.taken
+                    .iter()
+                    .map(|t| (s.hash, Flag::Bool(murmur3(t.as_bytes()))))
+            })
+            .collect();
         Ok(Self {
             flags,
+            taken,
             ..Default::default()
         })
     }
@@ -154,7 +165,8 @@ impl Tracker {
     /// Every flag it watches.
     pub fn flags(&self) -> impl Iterator<Item = Flag> + '_ {
         let doors = self.doors.iter().map(|(_, f)| Flag::Bool(*f));
-        self.flags.values().copied().chain(doors)
+        let taken = self.taken.iter().map(|(_, f)| *f);
+        self.flags.values().copied().chain(taken).chain(doors)
     }
 
     /// What's set once spot `hash` is checked, if known.
@@ -187,11 +199,10 @@ impl Tracker {
     }
 
     fn flips(&mut self) -> Flips {
-        let now: BTreeSet<u64> = self
-            .flags
-            .iter()
+        let now: BTreeSet<u64> = (self.flags.iter().map(|(&s, &f)| (s, f)))
+            .chain(self.taken.iter().copied())
             .filter(|(_, f)| self.on.contains(f))
-            .map(|(&s, _)| s)
+            .map(|(s, _)| s)
             .collect();
         let revealed: BTreeSet<String> = (self.doors.iter())
             .filter(|(_, f)| self.on.contains(&Flag::Bool(*f)))
@@ -418,6 +429,7 @@ mod tests {
                 defaults: vec![],
                 actors: 0,
                 files: 0,
+                stand_ins: vec![],
             },
         };
         history.add(
@@ -492,6 +504,27 @@ mod tests {
         let t = Tracker::new(&gd, &[rock]).unwrap();
         let flag = picked::flag(hash);
         assert_eq!(t.flag(hash), Some(Flag::Bool(murmur3(flag.as_bytes()))));
+    }
+
+    #[test]
+    fn a_pot_ticks_on_any_stand_in_taken_without_the_hook() {
+        let Some(romfs) = dev_dump() else { return };
+        let gd = GameData::load(&romfs).unwrap();
+        let taken = [
+            "Rando_Taken_Obj_RandoStep_001_0",
+            "Rando_Taken_Obj_RandoStep_001_1",
+        ];
+        let pot = Spot {
+            taken: taken.map(String::from).to_vec(),
+            ..spot(7)
+        };
+        let mut t = Tracker::new(&gd, &[pot]).unwrap();
+        let second = murmur3(taken[1].as_bytes());
+        assert!(t.flags().any(|f| f == Flag::Bool(second)));
+        let flips = t.change(&bool_(second, "false -> true"));
+        assert_eq!(flips.checked, [7]);
+        let flips = t.change(&bool_(second, "true -> false"));
+        assert_eq!(flips.unchecked, [7]);
     }
 
     #[test]

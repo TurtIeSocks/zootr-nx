@@ -158,6 +158,10 @@ pub fn shuffle(
     }
     run.step(Step::Writing)?;
     let written = write_mod(romfs, mod_dir, &drops, new_game, &hints, run)?;
+    for (of, stand_in) in &written.stand_ins {
+        let spot = spots.iter_mut().filter(|s| s.hash == *of);
+        spot.for_each(|s| s.taken.push(crate::pickups::taken::flag(stand_in)));
+    }
     Ok(Report {
         seed,
         spots,

@@ -401,6 +401,7 @@ pub(crate) mod tests {
                 defaults: vec![],
                 actors: 1,
                 files: 2,
+                stand_ins: vec![],
             },
         }
     }

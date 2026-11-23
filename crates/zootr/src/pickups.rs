@@ -23,8 +23,10 @@ use crate::world::presence_of;
 
 pub mod groups;
 pub mod nodes;
+mod shared;
 mod stale;
 pub mod steps;
+pub mod taken;
 
 /// One kind of placed holder.
 pub struct Kind {
@@ -555,6 +557,20 @@ pub fn moved<'a>(
     out
 }
 
+/// Each stand-in built for one holder, by the holder whose gates its
+/// take feeds (`taken`).
+pub fn stand_ins(
+    checks: &[ItemCheck],
+    drops: &HashMap<u64, Drop>,
+    progressive: crate::progressive::Lines,
+) -> Vec<(u64, String)> {
+    let moved = moved(checks, drops, progressive).into_iter();
+    let built = moved.filter(Moved::built);
+    built
+        .map(|m| (m.step.as_ref().map_or(m.hash, |s| s.of), m.actor))
+        .collect()
+}
+
 /// Build a pickup for each holder whose item changed, and return the
 /// placement fields, as `HASH.PATH=VALUE`, that place it.
 pub fn write(
@@ -909,6 +925,9 @@ mod tests {
         param(&sarc, &parent);
         let pouch = param(&sarc, &refs(POUCH));
         assert_eq!(pouch.get(COUNT_CHECK.get()), Some(&Byml::Bool(false)));
+        // Every take plays its get, so the event graph marks it (`taken`).
+        let many = field::PLAY_GET_EVENT_MANY_TIMES.get();
+        assert_eq!(pouch.get(many), Some(&Byml::Bool(true)));
 
         // The Skulltula's drops: built on a pickup that lands, keeping how
         // it falls and bounces over the boomerang's table.

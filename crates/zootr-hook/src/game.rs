@@ -5,7 +5,7 @@ use core::{arch::asm, arch::global_asm, slice};
 
 use crate::{
     CAVE, Credit, Credited, DEV, Found, HEADER, Header, ICE_TRAPS, LIST, List, OFFSETS, Shared,
-    TABLE, Table, fnv, nearest,
+    TABLE, Table, fnv, keys, nearest,
 };
 
 mod arrows;
@@ -477,10 +477,24 @@ unsafe extern "C" fn taken(pouched: usize) {
         // A flag missing from GameData counts as picked, so nothing sets it.
         let picked = |flag| dev::get_bool(main, table.offsets, gd, flag) != Some(false);
         let spots = (0..table.spots).map_while(|i| dev::spot(main, table.offsets, gd, i));
-        if let Some(flag) = nearest(spots, name, lies, picked) {
-            dev::set_bool(main, table.offsets, gd, flag, true);
+        if let Some(spot) = nearest(spots, name, lies, picked) {
+            dev::set_bool(main, table.offsets, gd, spot.flag, true);
+            if spot.twin != 0 {
+                follow(gd, spot.placed, spot.twin);
+            }
         }
     })
+}
+
+/// Breaks `twin` as `placed` is, in the GameData manager `gd`'s keys.
+unsafe fn follow(gd: usize, placed: u64, twin: u64) {
+    let count = unsafe { *((gd + keys::KEYS) as *const u32) } as usize;
+    let Some(at) = (unsafe { at(gd, keys::KEYS + 8) }) else {
+        return;
+    };
+    // SAFETY: the manager's own sorted list, `count` entries long.
+    let entries = unsafe { slice::from_raw_parts_mut(at as *mut u8, count * keys::KEY_STRIDE) };
+    keys::follow(entries, placed, twin);
 }
 
 /// The pickup a pouch content belongs to.

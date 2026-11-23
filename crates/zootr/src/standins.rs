@@ -391,6 +391,10 @@ impl StandIn<'_> {
             .or_insert_with(|| pouch_actor(&item.name));
         if self.price.is_none() {
             pouch.insert(COUNT_CHECK.get().into(), Byml::Bool(false));
+            // Every take plays its get, so the pickup event graph marks it
+            // ([`crate::pickups::taken`]), whatever Link already has.
+            let many = field::PLAY_GET_EVENT_MANY_TIMES.get();
+            pouch.insert(many.into(), Byml::Bool(true));
         }
         let new_pouch = format!(
             "Component/{}/{name}.game__component__PouchContentParam.bgyml",

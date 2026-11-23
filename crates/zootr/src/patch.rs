@@ -453,6 +453,8 @@ mod tests {
         flag: 1,
         name: 2,
         at: [3, 4, 5],
+        placed: 6,
+        twin: 7,
     };
 
     #[test]

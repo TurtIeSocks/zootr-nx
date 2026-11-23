@@ -1,4 +1,4 @@
-use ounce_formats::{BymlDoc, Flowchart, Link};
+use ounce_formats::{BymlDoc, Flowchart, Link, murmur3};
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -752,7 +752,11 @@ fn a_pickup_holding_a_major_item_drops_its_stand_in() {
         (pot.hash, item::HOOKSHOT.to_string()),
         (skulltula.hash, item::BOOMERANG.to_string()),
     ]);
-    shuffle(&romfs, &dir, 7, &fixed, &new_game, &Run::silent()).unwrap();
+    let report = shuffle(&romfs, &dir, 7, &fixed, &new_game, &Run::silent()).unwrap();
+    let rel = crate::gamedata::PATH;
+    let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
+    let gd =
+        crate::gamedata::GameData::parse(&romfs.dicts().decompress(rel, &raw).unwrap()).unwrap();
     for check in [pot, skulltula] {
         let raw = std::fs::read(dir.join("romfs").join(&check.file)).unwrap();
         let raw = romfs.dicts().decompress(&check.file, &raw).unwrap();
@@ -769,6 +773,24 @@ fn a_pickup_holding_a_major_item_drops_its_stand_in() {
         let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
         let pouch = BymlDoc::parse(&romfs.dicts().decompress(rel, &raw).unwrap()).unwrap();
         standins::row(&pouch, drop).unwrap();
+        // Its take ticks it without the hook: the stand-in's Bool, read by
+        // every gate through the holder's BoolExp, and by the tracker.
+        let taken = pickups::taken::flag(drop);
+        let spot = report.spots.iter().find(|s| s.hash == check.hash).unwrap();
+        assert_eq!(spot.taken, std::slice::from_ref(&taken));
+        let got = crate::picked::got(check.hash);
+        let named = |n: &str| gd.name(murmur3(n.as_bytes()));
+        let picked = named(&crate::picked::flag(check.hash));
+        assert_eq!(
+            gd.expr(&got).unwrap(),
+            Some(format!("{picked} || {}", named(&taken)))
+        );
+        let gate = crate::world::presence_of(actor).unwrap();
+        assert!(
+            gate.flag == got || gate.flag == crate::picked::shown(check.hash),
+            "{}",
+            gate.flag
+        );
     }
     std::fs::remove_dir_all(dir).unwrap();
 }
