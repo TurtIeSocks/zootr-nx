@@ -149,10 +149,11 @@ class ZnxWorld(World):
             self.multiworld.itempool += [self.create_item(row["item"]) for _ in range(row["count"])]
 
     def get_filler_item_name(self) -> str:
-        # Every row, whatever the options: an item link's group world has
-        # none set.
+        # The rows these options hold, so the filler is one our deal has
+        # too. An item link's group world has no options set: every row.
+        held = POOL if not hasattr(self, "setting_values") else filter(self.holds, POOL)
         counts = Counter()
-        for row in POOL:
+        for row in held:
             if CLASSES[row["item"]] == "filler":
                 counts[row["item"]] += row["count"]
         return counts.most_common(1)[0][0]
