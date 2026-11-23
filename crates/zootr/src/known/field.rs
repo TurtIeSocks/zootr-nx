@@ -119,6 +119,7 @@ pub const DEAD: &Name = &n!(0xd049237343c44e47);
 pub const DEATH_RESON: &Name = &n!(0x2f1511809bec041c);
 pub const DEFAULT_DUNGEON_ROOM_INDEX: &Name = &n!(0x09dc969f9e7ee42d);
 pub const DEFAULT_VALUE: &Name = &n!(0x1360db86318e0a5f);
+pub const DEPEND_FLAG_NAME: &Name = &n!(0x67e1bdc8f8a9b79e);
 pub const DESERT_COLOSSUS_COMMON_7E8D_LOGIC_MODULE: &Name = &n!(0x0ba01073971572a2);
 pub const DESERT_COLOSSUS_FROM_SPIRIT_TEMPLE_ENTRANCE: &Name = &n!(0x42a9cd1e73d7a908);
 pub const DESTINATION_ANCHOR: &Name = &n!(0x0fa9b8ae744d1326);
