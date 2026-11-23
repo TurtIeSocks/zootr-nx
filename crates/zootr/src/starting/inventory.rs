@@ -903,7 +903,12 @@ mod tests {
     fn arsenal_cell(label: &str) -> Option<(ItemsView, crate::inventory::Cell)> {
         let (gd, inv, pouch) = layout()?;
         let view = items(&gd, &inv, &pouch, &Start::of(&[ARSENAL]), &[]).unwrap();
-        let cell = view.cells.iter().find(|c| c.label == label).unwrap().clone();
+        let cell = view
+            .cells
+            .iter()
+            .find(|c| c.label == label)
+            .unwrap()
+            .clone();
         Some((view, cell))
     }
 
@@ -913,7 +918,10 @@ mod tests {
             return;
         };
         let rupees = view.status.iter().find(|f| f.hash == RUPEES).unwrap();
-        assert_eq!(rupees.max.map(|m| m.to_string()), Some(rupees.value.clone()));
+        assert_eq!(
+            rupees.max.map(|m| m.to_string()),
+            Some(rupees.value.clone())
+        );
     }
 
     #[test]
@@ -990,6 +998,20 @@ mod tests {
             .position(|c| c.label == "Hookshot")
             .unwrap();
         assert_eq!(view.locked[hookshot], None);
+    }
+
+    #[test]
+    fn the_kokiri_tunic_given_shows_held_and_locked() {
+        let Some((gd, inv, pouch)) = layout() else {
+            return;
+        };
+        let given = [vec!["kokiri-tunic".to_owned()]];
+        let view = items(&gd, &inv, &pouch, &Start::default(), &given).unwrap();
+        let at = (view.cells.iter())
+            .position(|c| c.label == "Kokiri Tunic")
+            .unwrap();
+        assert_eq!(view.cells[at].tier, 1);
+        assert_eq!(view.locked[at], Some(0));
     }
 
     #[test]
