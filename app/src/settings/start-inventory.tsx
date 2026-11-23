@@ -8,8 +8,6 @@ import {
   type StartInventory as Start,
 } from "@/bindings";
 import { DumpError } from "@/components/needs-dump";
-import { Tip } from "@/components/tip";
-import { Button } from "@/components/ui/button";
 import { call } from "@/lib/api";
 import {
   sameStart,
@@ -20,6 +18,7 @@ import {
 } from "@/lib/settings";
 import { useLoad } from "@/lib/use-load";
 import { ItemsEditor } from "@/save/items-editor";
+import { AllNone } from "@/settings/checklist";
 import { LockedBy } from "@/settings/setting-row";
 import { changeSettings, useConfig } from "@/stores/config";
 
@@ -36,6 +35,19 @@ interface Load {
 
 const loadItems = ({ start, given }: Load) =>
   call(commands.startItems(start, given));
+
+/** `start` with the arsenal (all of Link's gear) added. */
+const withArsenal = (start: Start) => call(commands.startArsenal(start));
+
+/** What All and None say when they'd change nothing, and what each does. */
+const ALREADY = (on: boolean) =>
+  on
+    ? "Link already starts with the full arsenal"
+    : "Link already starts empty";
+const TIP = (on: boolean) =>
+  on
+    ? "Every piece of gear at its top tier, full ammo, every song and twenty hearts"
+    : "Start with nothing";
 
 /** The starting inventory as the Save page's grid and Status fields, on a
  * new game. Each click saves the setting. What a choice's pick gives shows
@@ -64,17 +76,20 @@ export function StartInventory({ def }: StartInventoryProps) {
       startGivers(s.schema, s.config.settings).map((g) => g.words),
     ),
   );
+  /** The setting's own words, without what other settings force. */
+  const start = useMemo(
+    () => startOf(def, value === undefined ? {} : { [def.id]: value }),
+    [def, value],
+  );
   const load = useMemo(
     () => ({
-      start: withForced(
-        startOf(def, value === undefined ? {} : { [def.id]: value }),
-        forced.split(" ").filter(Boolean),
-      ),
+      start: withForced(start, forced.split(" ").filter(Boolean)),
       given: JSON.parse(given) as string[][],
     }),
-    [def, value, forced, given],
+    [start, forced, given],
   );
   const view = useLoad(loadItems, load, true);
+  const armed = useLoad(withArsenal, start);
   /** The setting as it stands now, read at the moment of a change. */
   const now = () => startOf(def, useConfig.getState().config.settings);
   /** Saves `next`, or unsets it at the default. Emptied, it saves `{}`,
@@ -90,17 +105,18 @@ export function StartInventory({ def }: StartInventoryProps) {
   }
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex justify-end">
-        <Tip tip="Every piece of gear at its top tier, full ammo, every song and twenty hearts">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={async () => save(await call(commands.startArsenal(now())))}
-          >
-            Full Arsenal
-          </Button>
-        </Tip>
-      </div>
+      <AllNone
+        of={def.label}
+        would={(on) =>
+          on
+            ? armed.status !== "ok" || !sameStart(armed.data, start)
+            : Object.keys(start).length > 0
+        }
+        onPick={async (on) => save(on ? await withArsenal(now()) : {})}
+        already={ALREADY}
+        tip={TIP}
+        className="pl-0"
+      />
       <ItemsEditor
         view={view.data}
         lockedBy={givers}
