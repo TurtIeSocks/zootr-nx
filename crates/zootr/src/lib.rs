@@ -108,6 +108,7 @@ pub mod savefile;
 mod scrubs;
 pub mod settings;
 pub mod share;
+mod sheik_crater;
 mod shops;
 mod shows;
 mod shuffle;
