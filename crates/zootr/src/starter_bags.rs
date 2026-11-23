@@ -311,6 +311,7 @@ pub fn added(new_game: &NewGame) -> Vec<&'static str> {
         .chain(stick)
         .chain(bombchus.iter().copied())
         .chain(meter)
+        .chain(crate::masks::pooled(new_game))
         .collect()
 }
 

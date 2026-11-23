@@ -55,6 +55,8 @@ pub const ITEMS: &[(&str, &Name)] = &[
     ("kokiri-emerald", item::STONE_FOREST),
     ("kokiri-sword", item::SWORD_KOKIRI),
     ("lens-of-truth", item::GLASS_TRUTH),
+    ("skull-mask", item::MASK_SKULL),
+    ("mask-of-truth", item::MASK_TRUTH),
     ("light-arrows", item::ARROW_LIGHT),
     ("light-medallion", item::MEDAL_LIGHT),
     ("longshot", item::LONGSHOT),

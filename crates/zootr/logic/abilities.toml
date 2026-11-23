@@ -74,12 +74,13 @@ song-of-time = "ocarina and item:song-of-time"
 scarecrow = "hookshot and ocarina and item:scarecrows-song"
 magic-beans = "item:magic-bean"
 
-# The masks the Deku Theater asks for, which the Happy Mask Shop lends. The
-# shop opens once the Kakariko guard has seen the letter. The Mask of Truth
-# comes after every mask is sold, and the Skull Kid who buys the Skull Mask
-# needs Saria's Song.
-skull-mask = "item:zeldas-letter"
-mask-of-truth = "skull-mask and sarias-song"
+# The masks the Deku Theater asks for: found in the pool with
+# `shuffle-masks`, else lent by the Happy Mask Shop. The shop opens once the
+# Kakariko guard has seen the letter. The Mask of Truth comes after every
+# mask is sold, and the Skull Kid who buys the Skull Mask needs Saria's Song.
+mask-shop = "setting:shuffle-masks=off and item:zeldas-letter"
+skull-mask = "item:skull-mask or mask-shop"
+mask-of-truth = "item:mask-of-truth or (mask-shop and sarias-song)"
 
 # Keys stay in their vanilla chests, and the vanilla game reaches each one
 # before its door. With `keys` at start Link holds every key from the

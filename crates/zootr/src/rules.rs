@@ -542,10 +542,24 @@ mod tests {
     }
 
     #[test]
+    fn shuffled_masks_come_only_from_the_pool() {
+        needs_names!();
+        let book = Book::load().unwrap();
+        let c = ctx(true, &["shuffle-masks", "shuffle-masks=on"]);
+        let (letter, saria) = (item::ZELDA_LETTER, item::MELODY_SARIA_SONG);
+        let skull = book.resolve("skull-mask", &c).unwrap();
+        assert!(!skull.met(&have(&[letter]), Era::Child));
+        assert!(skull.met(&have(&[item::MASK_SKULL]), Era::Child));
+        let truth = book.resolve("mask-of-truth", &c).unwrap();
+        assert!(!truth.met(&have(&[letter, item::OCARINA_FAIRY, saria]), Era::Child));
+        assert!(truth.met(&have(&[item::MASK_TRUTH]), Era::Adult));
+    }
+
+    #[test]
     fn each_minigame_prize_needs_what_its_game_does() {
         needs_names!();
         let book = Book::load().unwrap();
-        let c = ctx(true, &["bombchus=bomb-bag"]);
+        let c = ctx(true, &["bombchus=bomb-bag", "shuffle-masks=off"]);
         let (bag, bow) = (item::BOMBCHU_BUNDLE_SMALL, item::RANGE_BOW);
         let (sling, gerudo) = (item::RANGE_SLING_SHOT, item::TOKEN_GERUDO);
         let (letter, saria) = (item::ZELDA_LETTER, item::MELODY_SARIA_SONG);

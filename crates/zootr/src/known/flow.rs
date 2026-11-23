@@ -165,6 +165,7 @@ pub const PAYMENT_MESSAGE_ID: &Name = &n!(0x9ae00d4939c05824);
 pub const REPLACE_EQUIPMENT_FOR_ERA_CHANGE: &Name = &n!(0x541c61b65314665e);
 pub const REVEIVE_ITEM: &Name = &n!(0xbcc4c76e9338d5f2);
 pub const ROOT_BUY: &Name = &n!(0x0d17b77b51b82d2e);
+pub const ROOT_HAPPY_MASK_SHOP: &Name = &n!(0x3a42563374d086bc);
 pub const SACRED_FOREST_MEADOW: &Name = &n!(0xf3942a2cf9419ee9);
 pub const SAGE_OF_FIRE: &Name = &n!(0xdebde68e90e09e64);
 pub const SAGE_OF_FIRE_NAVI_SCORCHING: &Name = &n!(0x780533dbda5faad7);
