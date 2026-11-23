@@ -24,8 +24,13 @@ use crate::tracker::{Flag, Tracker};
 
 /// How many checks and items a run times.
 const EACH: usize = 10;
-/// The items sent: rupees, which every pool holds and logic never needs.
-const ITEMS: [&str; 2] = ["Red Rupee (20)", "Blue Rupee (5)"];
+/// The items sent: refills, which logic never needs and no event follows.
+const ITEMS: [&str; 4] = [
+    "Deku Nuts (3)",
+    "Arrows (5)",
+    "Red Rupee (20)",
+    "Blue Rupee (5)",
+];
 /// How long a CPU window samples.
 const WINDOW: Duration = Duration::from_secs(30);
 /// Between one item and the next, so the last one's notice has closed.

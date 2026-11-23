@@ -264,7 +264,11 @@ fn bench_here(game: &Path, world: &Path, presets: &[String], args: &Bench) -> Re
 /// The whole bench run on `there` (its release build, game and rooms),
 /// its rows read back.
 fn bench_there(there: &There, presets: &[String], args: &Bench) -> Result<Vec<Row>> {
-    let out = format!("/tmp/zootr-ap-bench-{}.tsv", std::process::id());
+    // A file of our own there: a fixed name in a shared /tmp could be
+    // someone else's.
+    let made = there.sh("mktemp -t zootr-ap-bench.XXXXXXXX").output()?;
+    anyhow::ensure!(made.status.success(), "mktemp failed on {}", there.name);
+    let out = String::from_utf8(made.stdout)?.trim().to_owned();
     let seed = args.seed.to_string();
     let mut run = vec!["ap", "bench", "--seed", &seed, "--out", &out];
     for p in presets {
@@ -275,7 +279,7 @@ fn bench_there(there: &There, presets: &[String], args: &Bench) -> Result<Vec<Ro
     }
     let status = there.zootr(&run).status()?;
     let text = there.read(&out);
-    there.sh(&format!("rm -f '{out}'")).status().ok();
+    there.sh(&format!("rm -f -- '{out}'")).status().ok();
     anyhow::ensure!(status.success(), "the bench failed on {}", there.name);
     Ok(bench::rows(&String::from_utf8_lossy(&text?)))
 }
