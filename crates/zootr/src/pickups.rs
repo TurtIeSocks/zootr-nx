@@ -105,10 +105,12 @@ pub const POTS: Kind = Kind {
     named: None,
 };
 
-/// Wooden crates, which break to a rolling Link, and the small ones he
-/// lifts.
+/// Wooden crates, which break to a rolling Link. The small ones he lifts
+/// ([`actor::OBJ_BROKEN_BOX_A_03`], 4 in the Fire Temple and 2 in
+/// Jabu-Jabu's Belly) stay out: they have no Life, so nothing breaks them
+/// and nothing they hold could be got (the maintainer's call, EIE row 17).
 pub const CRATES: Kind = Kind {
-    actors: &[actor::OBJ_BROKEN_BOX_A_01, actor::OBJ_BROKEN_BOX_A_03],
+    actors: &[actor::OBJ_BROKEN_BOX_A_01],
     item: None,
     field: DROP,
     needs: None,
@@ -778,7 +780,7 @@ mod tests {
             (&SKULLTULAS, 100),
             (&BOSS_HEARTS, 8),
             (&POTS, 530),
-            (&CRATES, 44),
+            (&CRATES, 38),
             (&ROCKS, 167),
             (&GRASS, 160),
             (&FLYING_POTS, 23),

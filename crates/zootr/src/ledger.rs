@@ -25,13 +25,13 @@ pub const SCHEMA: u32 = 1;
 /// The EIE debt today. A PR that pays some off lowers it in the same PR,
 /// and the `accounting` test fails one that adds debt.
 pub const BASELINE: Debt = Debt {
-    refused: 311,
+    refused: 307,
     left_out: 45,
 };
 
 /// Placements `left_out` calls no holder that aren't breakables, by
 /// holder, and why.
-const NOT_HOLDERS: [(&Name, Why); 8] = [
+const NOT_HOLDERS: [(&Name, Why); 9] = [
     // Furniture in the Iron Knuckle rooms, a tree and a cow bone.
     (actor::OBJ_IRON_KNUCKLE_PILLAR_A_01, Why::Scenery),
     (actor::OBJ_IRON_KNUCKLE_CHAIR_A_02, Why::Scenery),
@@ -43,6 +43,8 @@ const NOT_HOLDERS: [(&Name, Why); 8] = [
     // The Treasure Chest Game's room chests: only its prize is a check.
     (actor::OBJ_HRL_CITY_SHOP_T_BOX_A_01, Why::Maintainer),
     (actor::OBJ_HRL_CITY_SHOP_T_BOX_A_02, Why::Maintainer),
+    // The crates Link lifts: nothing breaks them (EIE row 17).
+    (actor::OBJ_BROKEN_BOX_A_03, Why::Maintainer),
 ];
 
 #[derive(Serialize)]
@@ -315,6 +317,10 @@ fn refused(c: &ItemCheck, items: &BTreeSet<&str>, new_game: &NewGame) -> Vec<Ref
 /// for: a breakable, a thief's key, a gift a setting keeps out, or one of
 /// [`NOT_HOLDERS`].
 fn explain(c: &ItemCheck, new_game: &NewGame, breakable: &BTreeSet<String>) -> Why {
+    let listed = NOT_HOLDERS.iter().find(|(holder, _)| **holder == *c.holder);
+    if let Some((_, why)) = listed {
+        return why.clone();
+    }
     if breakable.contains(&c.holder) {
         return Why::Eie { eie: BREAKABLES };
     }
@@ -329,9 +335,7 @@ fn explain(c: &ItemCheck, new_game: &NewGame, breakable: &BTreeSet<String>) -> W
     if gifts::of(c).is_some_and(|g| !g.dealt(&new_game.on)) {
         return Why::Setting;
     }
-    (NOT_HOLDERS.iter())
-        .find(|(holder, _)| **holder == *c.holder)
-        .map_or(Why::Unknown, |(_, why)| why.clone())
+    Why::Unknown
 }
 
 /// Whether the maintainer keeps `c` out of the pool for good (the Treasure
@@ -520,8 +524,14 @@ mod tests {
         let rings: Vec<_> = (1..=crate::keys::DUNGEONS.len())
             .map(crate::key_tints::ring)
             .collect();
+        const KINDS: [&str; 7] = ["chest", "pickup", "gift", "scrub", "shop", "cow", "prize"];
         let (mut home, mut kinds) = (BTreeSet::new(), BTreeSet::new());
-        for seed in 0..30 {
+        // Until every dungeon's key has come home and every kind held one:
+        // a dungeon of one key (Ganon's Castle) can miss home 30 seeds running.
+        for seed in 0..100 {
+            if home.len() == rings.len() && KINDS.iter().all(|k| kinds.contains(k)) {
+                break;
+            }
             let deal = shuffle::deal(&dealt, &fixed, &new_game).unwrap();
             for p in shuffle::scatter(deal, seed, &new_game).unwrap() {
                 let Some(n) = rings.iter().position(|r| *r == p.item) else {
@@ -538,7 +548,7 @@ mod tests {
             rings.len(),
             "dungeons whose keys came home: {home:?}"
         );
-        for k in ["chest", "pickup", "gift", "scrub", "shop", "cow", "prize"] {
+        for k in KINDS {
             assert!(kinds.contains(k), "no small key in a {k}: {kinds:?}");
         }
     }
