@@ -15,6 +15,7 @@ mod rewrite;
 mod rolling;
 mod sales;
 mod table;
+mod weeding;
 mod zora;
 
 pub use cutscene::straight;
@@ -134,6 +135,9 @@ const SKIPPED_IN: [(&Name, &Name); 17] = [
     (scene::MELODY_GET_STORM, actor::NPC_HYLIA_009_ADULT),
     (scene::TIME_TEMPLE_0130, flow::ALL_SAGE),
 ];
+
+/// The weeding Kokiri's flow (`weeding`).
+pub(crate) const WEEDING: &Name = actor::NPC_KOKIRI_005_CHILD;
 
 /// The flow every dungeon's boss warp leaves through.
 const ESCAPE: &Name = scene::SY_BANC_CHANGE_ESCAPE_DUNGEON;
@@ -466,6 +470,13 @@ pub fn give_all(
     }
     pedestal::shuffle(romfs, rewrites, on)?;
     flows::edit(romfs, rewrites, BIGGORON, waited)?;
+    let weeding = GIFTS.iter().find(|g| g.flow == WEEDING);
+    let paid = weeding
+        .and_then(|g| g.found())
+        .context("the weeding pays no Bool")?;
+    flows::edit(romfs, rewrites, WEEDING, |f| {
+        weeding::offered_until_paid(f, &paid)
+    })?;
     flows::edit(romfs, rewrites, FOUNTAIN, ungated)
 }
 
