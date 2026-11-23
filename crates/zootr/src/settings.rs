@@ -512,7 +512,7 @@ pub fn schema() -> Vec<SettingDef> {
             MAPS_COMPASSES,
             place::DUNGEONS,
             "Maps and Compasses",
-            "Each dungeon's map and compass turn up in a random chest of that dungeon. Keys stay where they are",
+            "Each dungeon's map and compass turn up at random checks anywhere, and mark their own dungeon wherever Link finds them. Keys stay where they are",
         )])
         .chain([choice(
             KEYS,
