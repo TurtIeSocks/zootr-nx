@@ -225,6 +225,7 @@ const GRID: &[Slot] = &[
     bottle("Bottle", &[field::BOTTLE_B]),
     bottle("Bottle", &[field::BOTTLE_C]),
     bottle("Bottle", &[field::BOTTLE_D]),
+    bottle("Bottle", &[field::BOTTLE_E]),
     // Link can hold every trade item at once, so each has a cell.
     slot(Trade, "Weird Egg", &[item::WEIRD_EGG]),
     slot(Trade, "Cucco", &[item::ALARM_CUCCO]),
@@ -609,7 +610,7 @@ pub fn has_flag(gd: &GameData, actor: &str) -> bool {
 #[cfg(test)]
 pub(super) mod tests {
     use super::*;
-    use crate::known::{actor, flag, item};
+    use crate::known::{actor, field, flag, item};
 
     #[test]
     fn tidy_keeps_order_and_fills_what_is_missing() {
@@ -685,6 +686,22 @@ pub(super) mod tests {
         let trade: Vec<_> = GRID.iter().filter(|s| s.section == Trade).collect();
         let held: Vec<_> = trade.iter().map(|s| s.tiers.to_vec()).collect();
         assert_eq!(held, TRADE.map(|a| vec![a]));
+    }
+
+    #[test]
+    fn the_grid_has_a_cell_for_each_of_the_five_bottles() {
+        let bottles: Vec<_> = (GRID.iter())
+            .filter(|s| s.icon == Some(item::BOTTLE))
+            .map(|s| s.tiers.to_vec())
+            .collect();
+        let slots = [
+            field::BOTTLE_A,
+            field::BOTTLE_B,
+            field::BOTTLE_C,
+            field::BOTTLE_D,
+            field::BOTTLE_E,
+        ];
+        assert_eq!(bottles, slots.map(|b| vec![b]));
     }
 
     #[test]

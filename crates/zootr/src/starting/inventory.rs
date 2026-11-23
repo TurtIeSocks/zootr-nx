@@ -49,7 +49,7 @@ const KIT: &[(&str, i32)] = &[
     ("longshot", 1), ("boomerang", 1), ("megaton-hammer", 1), ("lens-of-truth", 1),
     ("dins-fire", 1), ("farores-wind", 1), ("nayrus-love", 1), ("double-magic", 1), ("improved-spin", 1),
     ("ocarina-of-time", 1), ("magic-beans", 10),
-    ("bottle-1", 1), ("bottle-2", 1), ("bottle-3", 1), ("bottle-4", 1),
+    ("bottle-1", 1), ("bottle-2", 1), ("bottle-3", 1), ("bottle-4", 1), ("bottle-5", 1),
     ("keaton-mask", 1), ("skull-mask", 1), ("spooky-mask", 1), ("bunny-hood", 1),
     ("goron-mask", 1), ("zora-mask", 1), ("gerudo-mask", 1), ("mask-of-truth", 1),
     ("weird-egg", 1), ("cucco", 1), ("zeldas-letter", 1),
@@ -96,6 +96,7 @@ pub const WORDS: &[(&str, &Name)] = &[
     ("magic-beans", item::MAGIC_BEAN), ("megaton-hammer", item::HAMMER),
     ("light-arrows", item::ARROW_LIGHT), ("nayrus-love", item::NAYRU_LOVE),
     ("bottle-1", field::BOTTLE_A), ("bottle-2", field::BOTTLE_B), ("bottle-3", field::BOTTLE_C), ("bottle-4", field::BOTTLE_D),
+    ("bottle-5", field::BOTTLE_E),
     ("weird-egg", item::WEIRD_EGG), ("cucco", item::ALARM_CUCCO), ("zeldas-letter", item::ZELDA_LETTER),
     ("keaton-mask", actor::ARMOR_CHILD_MASK_KEATON), ("skull-mask", actor::ARMOR_CHILD_MASK_SKULL),
     ("spooky-mask", actor::ARMOR_CHILD_MASK_SPOOKY), ("bunny-hood", actor::ARMOR_CHILD_MASK_BUNNY),
@@ -155,6 +156,7 @@ const DROPS: &[(&Name, &Name)] = &[
     (field::BOTTLE_B, item::BOTTLE),
     (field::BOTTLE_C, item::BOTTLE),
     (field::BOTTLE_D, item::BOTTLE),
+    (field::BOTTLE_E, item::BOTTLE),
 ];
 
 /// Ammo whose first pickup also gives its bag, with that bag's tiers. A
