@@ -118,6 +118,15 @@ pub const EVENTS: &[(&str, &Name)] = &[
     ("moat-scene", scene::MELODY_GET_TIME),
 ];
 
+/// What a word promises about a quest: once Link has the word, the quest
+/// is at that step or past it. The quest gate audit reads it, and a test
+/// checks each row against the flag map.
+pub const IMPLIES: &[(&str, &Name, &str)] = &[
+    ("event:met-zelda", flow::DOOR_OF_TIME, "Step02"),
+    ("event:moat-scene", flow::DOOR_OF_TIME, "Step05"),
+    ("beat:phantom-ganon", flow::SAGE_OF_FOREST, "Complete"),
+];
+
 /// A place node. A word with no era is a dungeon or a boss room.
 pub const PLACES: &[(&str, &Name)] = &[
     ("barinade-room", map::BARINADE_STAGE),

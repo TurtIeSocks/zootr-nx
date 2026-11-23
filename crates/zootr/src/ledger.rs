@@ -334,6 +334,18 @@ fn explain(c: &ItemCheck, new_game: &NewGame, breakable: &BTreeSet<String>) -> W
         .map_or(Why::Unknown, |(_, why)| why.clone())
 }
 
+/// Whether the maintainer keeps `c` out of the pool for good (the Treasure
+/// Chest Game's room chests, Dampe's repeat prizes): never a check.
+pub(crate) fn kept_out(c: &ItemCheck) -> bool {
+    let open = Let {
+        maps: true,
+        keys: true,
+    };
+    let holder = || NOT_HOLDERS.iter().find(|(h, _)| **h == *c.holder);
+    matches!(narrowing::left_out(c, open), Some(LeftOut::Maintainer))
+        || !gifts::is_gift(c) && holder().is_some_and(|(_, why)| matches!(why, Why::Maintainer))
+}
+
 /// What the tracker reads once check `hash` is done in a vanilla game,
 /// as the Checks tab does. `None` when it has no known flag.
 pub fn flag(romfs: &Romfs, gd: &GameData, hash: u64) -> Result<Option<Flag>> {

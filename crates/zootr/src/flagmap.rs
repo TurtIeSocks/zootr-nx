@@ -23,11 +23,13 @@ mod actors;
 mod flows;
 mod placed;
 mod query;
+mod quest_gates;
 mod quests;
 mod scene;
 mod tables;
 
 pub use query::*;
+pub use quest_gates::Gate;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, clap::ValueEnum)]
 #[serde(rename_all = "lowercase")]

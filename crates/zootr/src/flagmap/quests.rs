@@ -4,12 +4,12 @@
 //! `reads` edges on that enum, labelled with the step, so `writers` lists
 //! what moves a quest and `readers` what waits on it.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
 
-use ounce_formats::murmur3;
 use serde::Serialize;
 
+use super::quest_gates::Cmp;
 use super::{Graph, Kind, Link};
 use crate::rsdb::flow_name;
 use crate::steps::SAVED;
@@ -113,7 +113,7 @@ impl Graph {
             .gamedata
             .as_ref()
             .expect("the flag map keeps its GameData");
-        let mut quests = Vec::new();
+        let (mut quests, reads) = (Vec::new(), self.step_reads());
         for (name, start) in starts {
             if only.is_some_and(|o| !o.eq_ignore_ascii_case(name)) {
                 continue;
@@ -139,7 +139,7 @@ impl Graph {
                     step.moved_by.push(Mover { by, edge: e });
                 }
             }
-            for (step, check) in self.checks(node, &saved) {
+            for (step, check) in self.checks(&reads, name) {
                 if let Some(step) = named(&mut steps, &step) {
                     step.checks.push(check);
                 }
@@ -153,75 +153,36 @@ impl Graph {
         Catalogue(quests)
     }
 
-    /// Every check on quest step enum `node`, named `saved`, with the step
-    /// it names: a node reading the enum, or reading a BoolExp built on it
-    /// (through any BoolExps built on that).
-    fn checks(&self, node: usize, saved: &str) -> BTreeSet<(String, Check)> {
-        let gd = self
-            .gamedata
-            .as_ref()
-            .expect("the flag map keeps its GameData");
+    /// Every check on quest `quest`, with the step it names: a node
+    /// reading its step enum, or a BoolExp built on it.
+    fn checks(&self, reads: &HashMap<usize, Vec<Cmp>>, quest: &str) -> BTreeSet<(String, Check)> {
         let mut out = BTreeSet::new();
-        for &e in &self.outs[node] {
-            let edge = &self.edges[e];
-            let to = &self.nodes[edge.to];
-            if edge.link != Link::Reads {
-                continue;
-            }
-            if to.kind != Kind::State {
-                let answers = (ANSWERS.iter())
-                    .filter(|(word, _)| edge.label.contains(word))
-                    .map(|&(_, a)| a)
-                    .collect();
-                let (by, via) = (to.id.clone(), None);
-                let check = Check {
-                    by,
-                    answers,
-                    via,
-                    edge: e,
-                };
-                out.insert((last(&edge.label).to_owned(), check));
-                continue;
-            }
-            let hash = match to.name.strip_prefix('#') {
-                Some(hex) => u32::from_str_radix(hex, 16).unwrap_or_default(),
-                None => murmur3(to.name.as_bytes()),
-            };
-            let Ok(Some(expr)) = gd.expr_of(hash) else {
-                continue;
-            };
-            let compared = compares(&expr, saved);
-            for reader in self.through_exps(edge.to) {
-                for &(op, step) in &compared {
-                    let check = Check {
-                        by: self.nodes[reader].id.clone(),
-                        answers: vec![op],
-                        via: Some(to.name.clone()),
-                        edge: e,
-                    };
-                    out.insert((step.to_owned(), check));
-                }
-            }
-        }
-        out
-    }
-
-    /// The nodes that read state `exp`, following reads through any
-    /// BoolExps built on it.
-    fn through_exps(&self, exp: usize) -> BTreeSet<usize> {
-        let (mut seen, mut todo, mut out) = (BTreeSet::from([exp]), vec![exp], BTreeSet::new());
-        while let Some(n) = todo.pop() {
-            for &e in &self.outs[n] {
-                let edge = &self.edges[e];
-                if edge.link != Link::Reads {
-                    continue;
-                }
-                match self.nodes[edge.to].kind {
-                    Kind::State if seen.insert(edge.to) => todo.push(edge.to),
-                    Kind::State => {}
-                    _ => {
-                        out.insert(edge.to);
+        for (&exp, cmps) in reads {
+            for cmp in cmps.iter().filter(|c| c.quest == quest) {
+                let via = cmp.op.is_some().then(|| self.nodes[exp].name.clone());
+                for &e in &self.outs[exp] {
+                    let edge = &self.edges[e];
+                    if edge.link != Link::Reads || self.nodes[edge.to].kind == Kind::State {
+                        continue;
                     }
+                    let answers = match cmp.op {
+                        Some(op) => vec![op],
+                        None => answers(&edge.label),
+                    };
+                    let step = cmp
+                        .step
+                        .clone()
+                        .unwrap_or_else(|| last(&edge.label).to_owned());
+                    let by = self.nodes[edge.to].id.clone();
+                    out.insert((
+                        step,
+                        Check {
+                            by,
+                            answers,
+                            via: via.clone(),
+                            edge: e,
+                        },
+                    ));
                 }
             }
         }
@@ -229,9 +190,17 @@ impl Graph {
     }
 }
 
+/// The answers a graph reads from a step enum, as its label names them.
+pub(super) fn answers(label: &str) -> Vec<&'static str> {
+    (ANSWERS.iter())
+        .filter(|(word, _)| label.contains(word))
+        .map(|&(_, a)| a)
+        .collect()
+}
+
 /// The comparisons of `saved` in a rendered BoolExp, as the answer each
 /// reads and the step: `Step_X > Step04` is `after` Step04.
-fn compares<'a>(expr: &'a str, saved: &str) -> Vec<(&'static str, &'a str)> {
+pub(super) fn compares<'a>(expr: &'a str, saved: &str) -> Vec<(&'static str, &'a str)> {
     let words: Vec<&str> = expr.split_whitespace().collect();
     (words.windows(3))
         .filter(|w| w[0].trim_start_matches(['(', '!']) == saved)
@@ -253,7 +222,7 @@ fn named<'a>(steps: &'a mut [Step], name: &str) -> Option<&'a mut Step> {
 }
 
 /// A label's last word: the step a quest edge names.
-fn last(label: &str) -> &str {
+pub(super) fn last(label: &str) -> &str {
     label.rsplit(' ').next().unwrap_or(label)
 }
 

@@ -426,10 +426,20 @@ pub(crate) fn reachable(flow: &Flowchart, entry: &str) -> Result<BTreeSet<u16>> 
 /// Every event that running `start` reaches, through calls into the flow's
 /// own entry points.
 pub(crate) fn reachable_from(flow: &Flowchart, start: Option<u16>) -> BTreeSet<u16> {
+    reachable_avoiding(flow, start, None)
+}
+
+/// [`reachable_from`], never running past event `avoid`: what the flow
+/// reaches on paths that don't go through it.
+pub(crate) fn reachable_avoiding(
+    flow: &Flowchart,
+    start: Option<u16>,
+    avoid: Option<u16>,
+) -> BTreeSet<u16> {
     let main = |name: &str| flow.entry_points.iter().find(|e| e.name == name);
     let (mut seen, mut todo) = (BTreeSet::new(), Vec::from_iter(start));
     while let Some(e) = todo.pop() {
-        if !seen.insert(e) {
+        if !seen.insert(e) || Some(e) == avoid {
             continue;
         }
         match &flow.events[e as usize].kind {
