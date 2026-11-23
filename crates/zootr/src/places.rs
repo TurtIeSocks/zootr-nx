@@ -38,8 +38,7 @@ const COMPASS: [&str; 8] = [
 /// Sets each spot's `custom` name from the rule files, and each placed
 /// spot's `place`. Same places in an area get numbers, in room order.
 pub fn fill(romfs: &Romfs, spots: &mut [Spot]) -> Result<()> {
-    let wanted: HashSet<String> = spots.iter().map(|s| s.area.clone()).collect();
-    let areas = read(romfs, &wanted)?;
+    let areas = read(romfs, spots)?;
     let mut found = Vec::new();
     for (i, spot) in spots.iter_mut().enumerate() {
         spot.custom = Book::name(spot.hash).unwrap_or_default().to_owned();
@@ -51,6 +50,32 @@ pub fn fill(romfs: &Romfs, spots: &mut [Spot]) -> Result<()> {
         };
         spot.place = area.name(chest.pos, &spot.chest_name);
         found.push((i, *chest));
+    }
+    number(spots, found);
+    Ok(())
+}
+
+/// Like [`fill`] for spots of any holder placed in their area (a
+/// Skulltula, a heart, a cow): `place` is where it stands, then its
+/// `chest_name`. Leaves `custom` alone.
+pub fn fill_any(romfs: &Romfs, spots: &mut [Spot]) -> Result<()> {
+    let areas = read(romfs, spots)?;
+    let mut found = Vec::new();
+    for (i, spot) in spots.iter_mut().enumerate() {
+        let Some(area) = areas.get(&spot.area) else {
+            continue;
+        };
+        let Some(at) = area.placed.get(&spot.hash) else {
+            continue;
+        };
+        spot.place = match area
+            .house(at.pos)
+            .or_else(|| area.at(at.pos).map(str::to_owned))
+        {
+            Some(where_) => format!("{where_} {}", spot.chest_name),
+            None => spot.chest_name.clone(),
+        };
+        found.push((i, *at));
     }
     number(spots, found);
     Ok(())
@@ -71,6 +96,8 @@ struct House {
 #[derive(Default)]
 struct Area {
     chests: HashMap<u64, Chest>,
+    /// Every wanted spot's actor, chest or not.
+    placed: HashMap<u64, Chest>,
     houses: Vec<House>,
     entrance: Option<f32>,
     dungeon: bool,
@@ -79,25 +106,28 @@ struct Area {
     count: usize,
 }
 
-fn read(romfs: &Romfs, wanted: &HashSet<String>) -> Result<HashMap<String, Area>> {
+/// The areas `spots` are in.
+fn read(romfs: &Romfs, spots: &[Spot]) -> Result<HashMap<String, Area>> {
+    let wanted: HashSet<&str> = spots.iter().map(|s| s.area.as_str()).collect();
+    let hashes: HashSet<u64> = spots.iter().map(|s| s.hash).collect();
     let mut areas: HashMap<String, Area> = HashMap::new();
     let area_of = |file: &str| file.split('/').nth(1).map(str::to_owned);
     let files = (banc_files(romfs)?.into_iter())
-        .filter(|f| area_of(f).is_some_and(|a| wanted.contains(&a)))
+        .filter(|f| area_of(f).is_some_and(|a| wanted.contains(a.as_str())))
         .collect();
     for (file, doc) in load_bancs(romfs, files) {
         let doc = doc?;
         let name = area_of(&file).expect("kept for its area");
         let area = areas.entry(name).or_default();
         for actor in actors(&doc.root)? {
-            area.add(actor);
+            area.add(actor, &hashes);
         }
     }
     Ok(areas)
 }
 
 impl Area {
-    fn add(&mut self, actor: &Byml) {
+    fn add(&mut self, actor: &Byml, wanted: &HashSet<u64>) {
         let Some(pos) = vec3(actor, "Translate") else {
             return;
         };
@@ -113,15 +143,20 @@ impl Area {
             let rot_y = vec3(actor, "Rotate").map_or(0.0, |r| r[1]);
             self.houses.push(House { name, pos, rot_y });
         }
-        if gyaml.starts_with(actor::OBJ_T_BOX_A_01.trim_end_matches("_A_01"))
-            && let Some(hash) = hash_of(actor)
-        {
-            let room = actor
-                .as_map()
-                .ok()
-                .and_then(|m| m.get("Dynamic")?.as_map().ok()?.get(&**ROOM)?.as_int().ok())
-                .unwrap_or_default();
-            self.chests.entry(hash).or_insert(Chest { pos, room });
+        let Some(hash) = hash_of(actor) else {
+            return;
+        };
+        let room = actor
+            .as_map()
+            .ok()
+            .and_then(|m| m.get("Dynamic")?.as_map().ok()?.get(&**ROOM)?.as_int().ok())
+            .unwrap_or_default();
+        let at = Chest { pos, room };
+        if wanted.contains(&hash) {
+            self.placed.entry(hash).or_insert(at);
+        }
+        if gyaml.starts_with(actor::OBJ_T_BOX_A_01.trim_end_matches("_A_01")) {
+            self.chests.entry(hash).or_insert(at);
         }
     }
 
@@ -129,13 +164,17 @@ impl Area {
         if let Some(house) = self.house(pos) {
             return house;
         }
-        let at = match self.dungeon {
-            true => self.entrance.and_then(|y| floor(pos[1] - y)),
-            false => Some(self.compass(pos)),
-        };
-        match at {
+        match self.at(pos) {
             Some(at) => format!("{at} {content}"),
             None => content.to_owned(),
+        }
+    }
+
+    /// The floor in a dungeon, the compass point outside one.
+    fn at(&self, pos: [f32; 3]) -> Option<&'static str> {
+        match self.dungeon {
+            true => self.entrance.and_then(|y| floor(pos[1] - y)),
+            false => Some(self.compass(pos)),
         }
     }
 

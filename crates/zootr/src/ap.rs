@@ -43,6 +43,16 @@ pub const OPTIONS: &[&str] = &[
     "gerudo-fortress",
     "npc-gifts",
     "songs",
+    "hundred-token-reward",
+    "trade-chain",
+    "merchants",
+    "master-sword-shuffle",
+    "shopsanity",
+    "shop-slots",
+    "freestanding",
+    "cows",
+    "gold-skulltulas",
+    "boss-hearts",
     "bombchus",
     "skip-cutscenes",
     "chest-size",
@@ -54,9 +64,10 @@ pub const OPTIONS: &[&str] = &[
 /// Exposed options that change the checks or the pool together, beyond
 /// what each changes alone, so the export builds each group's
 /// combinations whole: NPC Gifts with Met Zelda (Zelda's Letter ✅ stays
-/// put, no Weird Egg) and with Gerudo Fortress (Freed keeps the
-/// membership card's check).
-pub const JOINT: &[&[&str]] = &[&["npc-gifts", "met-zelda", "gerudo-fortress"]];
+/// put, no Weird Egg), with Gerudo Fortress (Freed keeps the membership
+/// card's check) and with Cows (the gifts' bottles fill the pouch's five,
+/// so the cows' milk deals as rupees).
+pub const JOINT: &[&[&str]] = &[&["npc-gifts", "met-zelda", "gerudo-fortress", "cows"]];
 
 /// Choice options the world leaves out, each as setting id, option and
 /// the sentence of the setting's description that offers it: Bombchu Bags

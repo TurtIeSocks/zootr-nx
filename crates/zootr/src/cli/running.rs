@@ -375,7 +375,12 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
         }
         DevCommand::Checked { hash } => {
             let gd = installed_gamedata(romfs)?;
-            match crate::ledger::flag(romfs, &gd, hash)? {
+            let history = crate::history::History::load()?;
+            let spots = match history.installed.map(|id| history.get(id)) {
+                Some(entry) => entry?.report.spots.clone(),
+                None => Vec::new(),
+            };
+            match crate::ledger::seed_flag(romfs, &gd, &spots, hash)? {
                 None => "no flag".into(),
                 // A pickup's Bool exists only in a seed that shuffles it.
                 Some(Flag::Bool(h)) if gd.entry(h).is_none() => "no flag in this seed".into(),

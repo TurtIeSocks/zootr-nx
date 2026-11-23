@@ -23,8 +23,8 @@ for entry in OPTIONS:
 
 # The options that change the checks together (`ap::JOINT`), every
 # combination with NPC Gifts on: Met Zelda keeps Zelda's Letter ✅ out,
-# Freed the membership card's.
-JOINT = ["met-zelda", "gerudo-fortress"]
+# Freed the membership card's, Cows lose their milk to the bottle cap.
+JOINT = ["met-zelda", "gerudo-fortress", "cows"]
 JOINT_ENTRIES = [next(entry for entry in OPTIONS if entry["id"] == id_) for id_ in JOINT]
 for combo in product(*([attr(str(e["default"])) if e["kind"] != "toggle" else e["default"], *other_values(e)] for e in JOINT_ENTRIES)):
     options = {"npc_gifts": True, **{attr(id_): value for id_, value in zip(JOINT, combo)}}
@@ -49,7 +49,7 @@ class TestDeadTreeWithAdultDekuTree(ZnxTestBase):
         self.assertIn("deku-tree-adult", names)
 
 
-RACE = "Gerudo Valley Running man's race's Gift"
+RACE = "Gerudo Valley Running Man's Race"
 
 
 class TestRaceGiftFollowsTheCarpenters(ZnxTestBase):

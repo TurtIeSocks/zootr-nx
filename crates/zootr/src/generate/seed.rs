@@ -337,10 +337,6 @@ pub fn generate(
         ap.is_none() || new_game.age == Era::Child,
         "an Archipelago seed starts as child for now"
     );
-    ensure!(
-        ap.is_none() || !new_game.on.contains(crate::settings::MASTER_SWORD),
-        "an Archipelago seed can't shuffle the Master Sword yet"
-    );
     if let Some(ap) = &ap {
         new_game.foreign = ap.foreign.clone();
         new_game.players = extras

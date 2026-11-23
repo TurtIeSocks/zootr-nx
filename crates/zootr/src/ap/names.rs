@@ -10,7 +10,7 @@ use crate::checks::ItemCheck;
 use crate::generate::Spot;
 use crate::known::{Name, actor, flag, flow, item, map};
 use crate::progressive::Lines;
-use crate::{gifts, pickups, places, scrubs};
+use crate::{cows, gifts, goron_pot, pickups, places, scrubs, shops};
 
 /// Each area by its folder.
 const AREAS: &[(&Name, &str)] = &[
@@ -66,10 +66,15 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::BOTTLE, "Bottle"),
     (item::BOTTLE_LETTER, "Ruto's Letter"),
     (item::BOTTLE_MILK, "Bottle with Milk"),
+    (item::BROKEN_SWORD, "Broken Goron's Sword"),
     (item::BULLET_BAG_MEDIUM, "Big Bullet Bag"),
     (item::BULLET_BAG_LARGE, "Biggest Bullet Bag"),
+    (item::CLAIM_CHECK, "Claim Check"),
+    (item::COJIRO_CUCCO, "Cojiro"),
     (item::DEKU_STICK_BUNDLE_SMALL, "Deku Sticks (3)"),
     (item::DIN_FIRE, "Din's Fire"),
+    (item::EYE_DROP, "Eye Drops"),
+    (item::EYEBALL_FROG, "Eyeball Frog"),
     (item::FAIRY_BLESS_DEFENSE_DOUBLE, "Double Defense"),
     (item::FAIRY_BLESS_MP, "Improved Spin"),
     (item::FAIRY_BLESS_MP_DOUBLE, "Double Magic"),
@@ -83,6 +88,7 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::HOOKSHOT, "Hookshot"),
     (item::HOVER_BOOT, "Hover Boots"),
     (item::LONGSHOT, "Longshot"),
+    (item::MAGIC_BEAN, "Magic Bean"),
     (crate::magic::meter::METER, "Magic Meter"),
     (item::MELODY_ZELDA_LULLABY, "Zelda's Lullaby"),
     (item::MELODY_EPONA_SONG, "Epona's Song"),
@@ -100,6 +106,11 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::NUT_BAG_MEDIUM, "Deku Nut Bag (30)"),
     (item::NUT_BAG_LARGE, "Deku Nut Bag (40)"),
     (item::OCARINA_FAIRY, "Fairy Ocarina"),
+    (item::ODD_MUSHROOM, "Odd Mushroom"),
+    (item::ODD_POWDER, "Odd Potion"),
+    (item::POACHER_SAW, "Poacher's Saw"),
+    (item::POCKET_EGG, "Pocket Egg"),
+    (item::PRESCRIPTION, "Prescription"),
     (item::OCARINA_TIME, "Ocarina of Time"),
     (item::QUIVER_MEDIUM, "Big Quiver"),
     (item::QUIVER_LARGE, "Biggest Quiver"),
@@ -112,14 +123,17 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::STICK_BAG_MEDIUM, "Deku Stick Bag (20)"),
     (item::STICK_BAG_LARGE, "Deku Stick Bag (30)"),
     (item::SWORD_BIGGORON, "Biggoron's Sword"),
+    (item::SWORD_GIANT, "Giant's Knife"),
     (item::SWORD_KOKIRI, "Kokiri Sword"),
     (item::TOKEN_GERUDO, "Gerudo Membership Card"),
+    (item::TOKEN_GOLD, "Gold Skulltula Token"),
     (item::WALLET_MEDIUM, "Adult's Wallet"),
     (item::WALLET_LARGE, "Giant's Wallet"),
     (item::WEIRD_EGG, "Weird Egg"),
     (item::ZELDA_LETTER, "Zelda's Letter"),
     (actor::OBJ_ARMOR_GORON, "Goron Tunic"),
     (actor::OBJ_ARMOR_ZORA, "Zora Tunic"),
+    (actor::OBJ_HEART_CONTAINER, "Heart Container"),
     (actor::OBJ_HEART_PIECE, "Piece of Heart"),
     (actor::TBOX_MAGIC_JAR_LARGE, "Magic Jar"),
     (actor::T_BOX_ARROW_BUNDLE_SMALL, "Arrows (3)"),
@@ -133,6 +147,7 @@ const ITEMS: &[(&Name, &str)] = &[
     (actor::T_BOX_RUPEE_GOLD, "Gold Rupee (200)"),
     (actor::T_BOX_SHIELD_DEKU, "Deku Shield"),
     (actor::T_BOX_SHIELD_HYLIAN, "Hylian Shield"),
+    (actor::WEAPON_SWORD_MASTER, "Master Sword"),
 ];
 
 /// Each upgrade line by its first level, with progressive items on.
@@ -188,7 +203,8 @@ pub fn item(actor: &str, progressive: bool) -> Result<&'static str> {
 }
 
 /// Each check's location name, by hash: the area, then where (from
-/// `places::fill`), then the vanilla item, then the holder.
+/// `places::fill`), then the vanilla item, then the holder. Names two
+/// checks would share get where each stands, then a number.
 pub fn locations(romfs: &Romfs, checks: &[ItemCheck]) -> Result<BTreeMap<u64, String>> {
     let mut spots = Vec::new();
     for c in checks {
@@ -211,12 +227,15 @@ pub fn locations(romfs: &Romfs, checks: &[ItemCheck]) -> Result<BTreeMap<u64, St
                 None => format!("{area} Business Scrub"),
             }
         } else if gifts::of(c).is_some() {
-            format!("{area} {}'s Gift", c.holder)
+            format!("{area} {}", title(beside(area, &c.holder)))
         } else if c.holder == actor::OBJ_HRL_CITY_SHOP_T_BOX_A_02.get() {
             format!("{area} Treasure Chest Game Prize")
+        } else if cows::is_holder(&c.holder) || shops::is_holder(&c.holder) {
+            // A shop slot or cow names its own place: "Market Bazaar 1".
+            format!("{area} {}", beside(area, &c.holder))
+        } else if c.hash == goron_pot::HASH {
+            format!("{area} Spinning Pot {}", item(&c.item, false)?)
         } else if pickups::is_pickup(c) {
-            // One lone pickup per area so far: the lake's Fire Arrows, the
-            // letter in the bottle.
             format!("{area} {}", item(&c.item, false)?)
         } else if !s.place.is_empty() {
             match s.place.rsplit_once(' ') {
@@ -228,6 +247,7 @@ pub fn locations(romfs: &Romfs, checks: &[ItemCheck]) -> Result<BTreeMap<u64, St
         };
         out.insert(c.hash, name);
     }
+    apart(romfs, checks, &mut out)?;
     let unique: std::collections::BTreeSet<&String> = out.values().collect();
     ensure!(
         unique.len() == out.len(),
@@ -236,20 +256,141 @@ pub fn locations(romfs: &Romfs, checks: &[ItemCheck]) -> Result<BTreeMap<u64, St
     Ok(out)
 }
 
-/// Each word capitalized.
+/// Gives each check whose name another shares where it stands in its area:
+/// "Hyrule Field Gold Skulltula Token" becomes "Hyrule Field Southwest Gold
+/// Skulltula Token", numbered when that clashes too.
+fn apart(romfs: &Romfs, checks: &[ItemCheck], names: &mut BTreeMap<u64, String>) -> Result<()> {
+    let mut seen: BTreeMap<&str, u32> = BTreeMap::new();
+    for n in names.values() {
+        *seen.entry(n).or_default() += 1;
+    }
+    let shared: Vec<&ItemCheck> = (checks.iter())
+        .filter(|c| seen.get(names[&c.hash].as_str()) > Some(&1))
+        .collect();
+    let mut spots = Vec::new();
+    for c in &shared {
+        let what = names[&c.hash]
+            .strip_prefix(area(&c.area)?)
+            .unwrap_or_default();
+        spots.push(Spot {
+            hash: c.hash,
+            area: c.area.clone(),
+            chest_name: what.trim().to_owned(),
+            ..Default::default()
+        });
+    }
+    places::fill_any(romfs, &mut spots)?;
+    for (c, s) in shared.iter().zip(&spots) {
+        ensure!(
+            !s.place.is_empty(),
+            "{} shares its name and isn't placed",
+            names[&c.hash]
+        );
+        names.insert(c.hash, format!("{} {}", area(&c.area)?, s.place));
+    }
+    Ok(())
+}
+
+/// `name` with the words that repeat `area` dropped, for a name that
+/// follows it: the area's own words at its start ("Kakariko shooting
+/// gallery" in Kakariko Village, "Zora Shop 1" in Zora's Domain) and an
+/// "in (the) ..." or "at (the) ..." of the area's words at its end
+/// ("Sheik in the Crater" in Death Mountain Crater).
+fn beside<'a>(area: &str, name: &'a str) -> &'a str {
+    let area: Vec<String> = area.split(' ').map(str::to_lowercase).collect();
+    let words: Vec<&str> = name.split(' ').collect();
+    let lead = (words.iter().zip(&area))
+        .take_while(|(w, a)| a.starts_with(&w.to_lowercase()))
+        .count();
+    let lead = lead.min(words.len() - 1);
+    let tail = match words.iter().rposition(|w| ["in", "at"].contains(w)) {
+        Some(i) if i > lead => {
+            let rest = &words[i + 1..];
+            let rest = rest.strip_prefix(&["the"]).unwrap_or(rest);
+            let joined = rest.join(" ").to_lowercase();
+            let theirs = area.join(" ");
+            let ours =
+                !rest.is_empty() && (theirs.ends_with(&joined) || theirs.starts_with(&joined));
+            if ours { words.len() - i } else { 0 }
+        }
+        _ => 0,
+    };
+    let start: usize = words[..lead].iter().map(|w| w.len() + 1).sum();
+    let end = name.len()
+        - words[words.len() - tail..]
+            .iter()
+            .map(|w| w.len() + 1)
+            .sum::<usize>();
+    &name[start..end.max(start)]
+}
+
+/// Each word capitalized, but the small ones inside a name.
 fn title(text: &str) -> String {
-    let word = |w: &str| {
+    const SMALL: &[&str] = &["a", "an", "as", "at", "in", "of", "on", "the", "to"];
+    let word = |(i, w): (usize, &str)| {
+        if i > 0 && SMALL.contains(&w) {
+            return w.to_owned();
+        }
         let mut cs = w.chars();
         cs.next()
             .map(|c| c.to_uppercase().chain(cs).collect())
             .unwrap_or_default()
     };
-    text.split(' ').map(word).collect::<Vec<String>>().join(" ")
+    text.split(' ')
+        .enumerate()
+        .map(word)
+        .collect::<Vec<String>>()
+        .join(" ")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A gift reads as its giver, without the area twice.
+    #[test]
+    fn a_name_beside_its_area_drops_the_area_s_words() {
+        let cases = [
+            (
+                "Kakariko Village",
+                "Kakariko shooting gallery",
+                "Kakariko Village Shooting Gallery",
+            ),
+            ("Lost Woods", "Lost Woods target", "Lost Woods Target"),
+            ("Ice Cavern", "Sheik in the Ice Cavern", "Ice Cavern Sheik"),
+            (
+                "Death Mountain Crater",
+                "Sheik in the Crater",
+                "Death Mountain Crater Sheik",
+            ),
+            (
+                "Kakariko Village",
+                "Sheik in Kakariko",
+                "Kakariko Village Sheik",
+            ),
+            (
+                "Desert Colossus",
+                "Sheik at the Colossus",
+                "Desert Colossus Sheik",
+            ),
+            ("Zora's Domain", "Zora Shop 8", "Zora's Domain Shop 8"),
+            (
+                "Market",
+                "Sheik at the Temple of Time",
+                "Market Sheik at the Temple of Time",
+            ),
+            (
+                "Zora's Fountain",
+                "Great Fairy of Farore",
+                "Zora's Fountain Great Fairy of Farore",
+            ),
+            ("Hyrule Field", "Zelda's song", "Hyrule Field Zelda's Song"),
+            ("Market", "Market", "Market Market"),
+        ];
+        for (area, giver, want) in cases {
+            assert_eq!(format!("{area} {}", title(beside(area, giver))), want);
+        }
+    }
 
     #[test]
     fn the_running_man_s_purple_rupee_is_a_chest_s_to_ap() {

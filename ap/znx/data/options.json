@@ -94,6 +94,110 @@
     "label": "Songs"
   },
   {
+    "default": false,
+    "description": "With NPC gifts on, the House of Skulltula's reward for all 100 tokens is a check too. Off, it pays its Gold Rupee as always, and logic never sends Link for all 100",
+    "id": "hundred-token-reward",
+    "kind": "toggle",
+    "label": "100-Token Reward"
+  },
+  {
+    "default": false,
+    "description": "Each trade on the way to Biggoron's sword becomes a check, from Anju's Pocket Egg to Biggoron's Claim Check, and the ten trade items join the pool. Showing an item to the one who wants it gives that check, whatever order Link finds them in. Grog or Fado waits at the stump by which item Link holds. The Pocket Cucco still hatches from the egg",
+    "id": "trade-chain",
+    "kind": "toggle",
+    "label": "Adult Trade Quest"
+  },
+  {
+    "default": false,
+    "description": "People who sell one thing sell a check once, for the price of the thing: Medigoron's Giant's Knife, the carpet merchant's Bombchus, and the bean seller's first bean. Bombchus and beans stay on sale after that",
+    "id": "merchants",
+    "kind": "toggle",
+    "label": "Merchants"
+  },
+  {
+    "default": false,
+    "description": "The pedestal holds an item from the pool, and the Master Sword can turn up anywhere. Pulling or returning the sword still travels through time without it. Adult Link without it has no sword",
+    "id": "master-sword-shuffle",
+    "kind": "toggle",
+    "label": "Master Sword"
+  },
+  {
+    "default": false,
+    "description": "Shelf slots in the eight shops sell checks, each once, at a random price. Prices over 99 rupees need a bigger wallet in logic",
+    "id": "shopsanity",
+    "kind": "toggle",
+    "label": "Shopsanity"
+  },
+  {
+    "default": "4",
+    "description": "How many slots of each shop sell a check with Shopsanity on. The rest sell what they always did",
+    "id": "shop-slots",
+    "kind": "choice",
+    "label": "Shop Slots",
+    "options": [
+      {
+        "id": "1",
+        "label": "1"
+      },
+      {
+        "id": "2",
+        "label": "2"
+      },
+      {
+        "id": "3",
+        "label": "3"
+      },
+      {
+        "id": "4",
+        "label": "4"
+      },
+      {
+        "id": "5",
+        "label": "5"
+      },
+      {
+        "id": "6",
+        "label": "6"
+      },
+      {
+        "id": "7",
+        "label": "7"
+      },
+      {
+        "id": "8",
+        "label": "8 (every slot)"
+      }
+    ]
+  },
+  {
+    "default": false,
+    "description": "The fourteen heart pieces lying out in the world are checks. One that holds something else shows it, spinning where the piece was",
+    "id": "freestanding",
+    "kind": "toggle",
+    "label": "Freestanding Heart Pieces"
+  },
+  {
+    "default": false,
+    "description": "Each of the eight cows gives a check once, for Epona's Song. After that it gives milk, which still needs a bottle",
+    "id": "cows",
+    "kind": "toggle",
+    "label": "Cows"
+  },
+  {
+    "default": false,
+    "description": "Each of the 100 Gold Skulltulas drops a check when killed. A token for each goes in the pool, so the House of Skulltula still counts them. Logic wants the Boomerang or Hookshot for every one",
+    "id": "gold-skulltulas",
+    "kind": "toggle",
+    "label": "Gold Skulltulas"
+  },
+  {
+    "default": false,
+    "description": "The heart container each of the eight bosses leaves behind is a check",
+    "id": "boss-hearts",
+    "kind": "toggle",
+    "label": "Boss Heart Containers"
+  },
+  {
     "default": "free",
     "description": "What caps the Bombchus Link holds. The bomb bag's, as in the game. Their own cap of 40, so they open the same checks bombs do without waiting on the bag.",
     "id": "bombchus",
