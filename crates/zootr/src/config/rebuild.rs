@@ -34,6 +34,15 @@ impl Target {
         }
     }
 
+    /// Whether `other`, another target, plays the same build: the same
+    /// patch list, as every slot of a machine does.
+    pub fn shares_build(&self, other: &Target) -> bool {
+        other.name != self.name
+            && self.rebuild.is_some()
+            && other.rebuild.is_some()
+            && other.manifest() == self.manifest()
+    }
+
     /// The rebuild command with `{game}` filled in, or `None` when it has
     /// none.
     pub fn rebuild_args(&self, game: Option<&Path>) -> Result<Option<Vec<String>>> {
@@ -99,5 +108,28 @@ mod tests {
         let typo = r#"{"name": "a", "app": "/a", "mod_dir": "/m", "rebuild": {"comand": []}}"#;
         let err = Target::import_at(typo, None).unwrap_err().to_string();
         assert!(err.contains("comand"), "{err}");
+    }
+
+    #[test]
+    fn slots_share_a_build_by_its_patch_list() {
+        let slot = |name: &str, mods: &str| {
+            let json = format!(
+                r#"{{"name": "{name}", "app": "/a", "mod_dir": "{mods}",
+                "rebuild": {{"command": ["bake"], "manifest": "/g/list.txt"}}}}"#
+            );
+            Target::import_at(&json, None).unwrap()
+        };
+        let (one, two) = (
+            slot("FakeOne", "/g/mods/zootr"),
+            slot("FakeTwo", "/s/2/mods/zootr"),
+        );
+        assert!(one.shares_build(&two) && two.shares_build(&one));
+        assert!(!one.shares_build(&one), "not itself");
+        let mut apart = slot("FakeApart", "/h/mods/zootr");
+        apart.rebuild.as_mut().unwrap().manifest = None;
+        assert!(!one.shares_build(&apart));
+        apart.rebuild = None;
+        apart.mod_dir = "/g/mods/zootr".into();
+        assert!(!one.shares_build(&apart), "no build of its own");
     }
 }

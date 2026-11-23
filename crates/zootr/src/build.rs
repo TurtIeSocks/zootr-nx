@@ -154,8 +154,17 @@ pub fn rebuild(target: &Target, game: Option<&Path>, run: &Run) -> Result<Status
     let name = &target.name;
     let args =
         (target.rebuild_args(game)?).with_context(|| format!("{name} has no rebuild command"))?;
-    if target.running() {
-        bail!("Close the game first: {name} is running");
+    // Slots share one build: a rebuild under any running one breaks it.
+    let saved = crate::config::Config::load_all().map(|c| c.targets);
+    let sharing = saved
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|t| t.shares_build(target));
+    if let Some(busy) = std::iter::once(target.clone())
+        .chain(sharing)
+        .find(Target::running)
+    {
+        bail!("Close the game first: {} is running", busy.name);
     }
     let _held = Held::take(name)?;
     run.step(Step::Rebuilding)?;
@@ -347,6 +356,7 @@ mod tests {
             env: vec![],
             harness_env: vec![],
             rebuild: None,
+            game: None,
         }
     }
 
@@ -373,6 +383,7 @@ mod tests {
         assert_eq!(status(&t), None, "no manifest and no table");
         let with_table = Target {
             rebuild: Some(Rebuild::default()),
+            game: None,
             ..t.clone()
         };
         assert_eq!(status(&with_table), Some(Status::Unrecorded));
@@ -490,6 +501,7 @@ mod tests {
         assert!(err.to_string().ends_with("'s rebuild failed"), "{err}");
         let none = Target {
             rebuild: Some(Rebuild::default()),
+            game: None,
             ..t.clone()
         };
         let err = rebuild(&none, None, &Run::silent())

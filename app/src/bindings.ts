@@ -1107,6 +1107,11 @@ export type Target = {
 	harness_env?: string[],
 	/**  How to rebuild a game that bakes exefs patches in at build time. */
 	rebuild?: Rebuild | null,
+	/**
+	 *  The turn queue's game this target is part of: one of several slots
+	 *  on a machine. None is this machine's game (`turn.here`).
+	 */
+	game?: string | null,
 } & ({
 	/**  Settings file lines written on install, e.g. `KEY={romfs}`. */
 	settings_file?: SettingsFile | null,

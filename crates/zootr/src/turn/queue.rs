@@ -120,14 +120,57 @@ impl Queue {
         g.holder.is_none() && !g.maintainer && g.reserved.as_deref().is_none_or(|r| r == session)
     }
 
-    /// Whether every game could go to `session` at once.
+    /// Whether a game of every machine could go to `session` at once.
     fn all_open_to(&self, session: &str) -> bool {
-        self.games.iter().all(|g| Self::open_to(g, session))
+        (self.machines().into_iter()).all(|m| {
+            (self.games.iter()).any(|g| machine(&g.name) == m && Self::open_to(g, session))
+        })
+    }
+
+    /// The machines the games run on, in the games' order.
+    fn machines(&self) -> Vec<&str> {
+        let mut seen = Vec::new();
+        for g in &self.games {
+            if !seen.contains(&machine(&g.name)) {
+                seen.push(machine(&g.name));
+            }
+        }
+        seen
+    }
+
+    /// The first game not `claimed` that `fits`, one with no sweep on it
+    /// before one a sweep would have to leave.
+    fn pick(&self, claimed: &[bool], fits: impl Fn(&Game) -> bool) -> Option<usize> {
+        let fit = |(j, g): &(usize, &Game)| {
+            !claimed[*j] && self.room(machine(&g.name), claimed) && fits(g)
+        };
+        let mut open = self.games.iter().enumerate().filter(fit);
+        let first = open.clone().next().map(|(j, _)| j);
+        open.find(|(_, g)| g.sweep.is_none())
+            .map(|(j, _)| j)
+            .or(first)
+    }
+
+    /// How many of `m`'s games are played or `claimed` this tick: by a
+    /// session, or by the maintainer.
+    fn taken(&self, m: &str, claimed: &[bool]) -> usize {
+        let on_m = |(j, g): &(usize, &Game)| {
+            machine(&g.name) == m && (claimed[*j] || g.holder.is_some() || g.maintainer)
+        };
+        self.games.iter().enumerate().filter(on_m).count()
+    }
+
+    /// Whether `m` takes another game: always, but only one beside a
+    /// sweep, which shares the machine's memory with the model judging it.
+    fn room(&self, m: &str, claimed: &[bool]) -> bool {
+        let swept = (self.games.iter()).any(|g| machine(&g.name) == m && g.sweep.is_some());
+        !swept || self.taken(m, claimed) == 0
     }
 
     /// Queue `session`, or update its note, urgency, `both` and `on` if it
-    /// waits already. With `both` it waits for every game at once, with
-    /// `on` for that game alone. Returns its place, from 1.
+    /// waits already. With `both` it waits for a game of every machine at
+    /// once, with `on` for that game or one of its slots ([`suits`]).
+    /// Returns its place, from 1.
     pub fn join(
         &mut self,
         session: &str,
@@ -142,7 +185,7 @@ impl Queue {
         }
         if let Some(game) = on {
             if both {
-                bail!("--on names one game, --both every game: pick one");
+                bail!("--on names one game, --both every machine: pick one");
             }
             self.game(game)?;
         }
@@ -257,14 +300,18 @@ impl Queue {
 
     /// Sweep `name` asks to run on `game`: yes once no one holds it, the
     /// maintainer isn't playing, and no one waits who could have a game
-    /// now. A `both` waiter counts only once every game is open to it, an
-    /// `on` waiter only for its own game.
+    /// now, and the machine plays one game at most besides ([`room`]). A
+    /// `both` waiter counts only once every machine is open to it, an `on`
+    /// waiter only for a game it [`suits`].
     pub fn sweep_start(&mut self, game: &str, name: &str) -> Result<bool> {
         let idle = (self.waiting.iter()).all(|w| {
-            (w.both && !self.all_open_to(&w.session)) || w.on.as_deref().is_some_and(|o| o != game)
+            (w.both && !self.all_open_to(&w.session))
+                || w.on.as_deref().is_some_and(|o| !suits(o, game))
         });
+        let unclaimed = vec![false; self.games.len()];
+        let crowded = self.taken(machine(game), &unclaimed) > 1;
         let g = self.game(game)?;
-        if g.holder.is_some() || g.maintainer || !idle {
+        if g.holder.is_some() || g.maintainer || !idle || crowded {
             return Ok(false);
         }
         g.sweep = Some(Sweep {
@@ -294,9 +341,11 @@ impl Queue {
 
     /// Lapse holds idle past `lease`, count sweeps still mid-row past
     /// `cap` as gone, then hand each free game to the first waiter it
-    /// suits, asking a sweep on it to step aside first. A `both` waiter
-    /// gets every game in one tick or none, and asks sweeps to step aside
-    /// only once every game is otherwise open to it.
+    /// suits, asking a sweep on it to step aside first, and only when no
+    /// game without one suits. A machine with a sweep takes one game more
+    /// at most ([`room`]). A `both` waiter gets a game of every
+    /// machine in one tick or none, and asks sweeps to step aside only
+    /// once every machine is otherwise open to it.
     pub fn tick(&mut self, now: i64, lease: i64, cap: i64) -> Vec<Grant> {
         for g in &mut self.games {
             if g.holder.as_ref().is_some_and(|h| now - h.seen >= lease) {
@@ -316,24 +365,32 @@ impl Queue {
         while i < self.waiting.len() {
             let session = self.waiting[i].session.clone();
             if self.waiting[i].both {
-                let open = (self.games.iter().enumerate())
-                    .all(|(j, g)| !claimed[j] && Self::open_to(g, &session));
-                if !open {
+                let chosen: Option<Vec<usize>> = (self.machines().iter())
+                    .map(|&m| {
+                        self.pick(&claimed, |g| {
+                            machine(&g.name) == m && Self::open_to(g, &session)
+                        })
+                    })
+                    .collect();
+                let Some(chosen) = chosen else {
                     i += 1;
                     continue;
-                }
-                claimed.fill(true);
+                };
                 let mut swept = false;
-                for s in self.games.iter_mut().filter_map(|g| g.sweep.as_mut()) {
-                    s.yielding.get_or_insert(now);
-                    swept = true;
+                for &j in &chosen {
+                    claimed[j] = true;
+                    if let Some(s) = self.games[j].sweep.as_mut() {
+                        s.yielding.get_or_insert(now);
+                        swept = true;
+                    }
                 }
                 if swept {
                     i += 1;
                     continue;
                 }
                 let w = self.waiting.remove(i);
-                for g in &mut self.games {
+                for &j in &chosen {
+                    let g = &mut self.games[j];
                     g.holder = Some(w.hold(now));
                     grants.push(Grant {
                         session: w.session.clone(),
@@ -345,14 +402,13 @@ impl Queue {
             // A session a game is kept for waits for that game alone.
             let kept = (self.games.iter()).any(|g| g.reserved.as_deref() == Some(&session));
             let on = self.waiting[i].on.clone();
-            let free = |(j, g): &(usize, &Game)| {
-                !claimed[*j]
-                    && g.holder.is_none()
+            let free = |g: &Game| {
+                g.holder.is_none()
                     && !g.maintainer
                     && g.reserved.as_deref() == kept.then_some(session.as_str())
-                    && on.as_deref().is_none_or(|o| o == g.name)
+                    && on.as_deref().is_none_or(|o| suits(o, &g.name))
             };
-            let Some(j) = self.games.iter().enumerate().find(free).map(|(j, _)| j) else {
+            let Some(j) = self.pick(&claimed, free) else {
                 i += 1;
                 continue;
             };
@@ -372,6 +428,21 @@ impl Queue {
         }
         grants
     }
+}
+
+/// The machine a game runs on: its name without a slot's `-N`, so
+/// `other-2` runs on `other`.
+pub fn machine(game: &str) -> &str {
+    match game.rsplit_once('-') {
+        Some((m, n)) if !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()) => m,
+        _ => game,
+    }
+}
+
+/// Whether a waiter `on` a game takes `game`: that game, or any slot of
+/// its machine when it names the machine.
+pub fn suits(on: &str, game: &str) -> bool {
+    game == on || machine(game) == on
 }
 
 impl Game {
@@ -729,5 +800,76 @@ mod tests {
         let names: Vec<_> = q.games.iter().map(|g| g.name.as_str()).collect();
         assert_eq!(names, ["far", "near", "new"]);
         assert_eq!(q.held("a").unwrap().name, "near");
+    }
+
+    /// `near`, and `far` with two more slots.
+    fn slots() -> Queue {
+        Queue::new(&["near".into(), "far".into(), "far-2".into(), "far-3".into()])
+    }
+
+    #[test]
+    fn a_slot_runs_on_its_machine() {
+        assert_eq!(machine("far-2"), "far");
+        assert_eq!(machine("far"), "far");
+        assert_eq!(machine("far-x"), "far-x");
+        assert!(suits("far", "far-3") && suits("far-2", "far-2"));
+        assert!(!suits("far-2", "far") && !suits("far", "near"));
+    }
+
+    #[test]
+    fn a_waiter_on_a_machine_gets_any_of_its_slots_and_on_a_slot_that_one() {
+        let mut q = slots();
+        for s in ["a", "b"] {
+            q.join(s, "", false, false, Some("far"), 0).unwrap();
+        }
+        q.join("c", "", false, false, Some("far-2"), 0).unwrap();
+        q.join("d", "", false, false, Some("far"), 0).unwrap();
+        let got = granted(&mut q, 1);
+        assert_eq!(
+            got,
+            [pair("a", "far"), pair("b", "far-2"), pair("d", "far-3")]
+        );
+        assert_eq!(q.waiting[0].session, "c", "far-2 alone, held by b");
+        q.free("b");
+        assert_eq!(granted(&mut q, 2), [pair("c", "far-2")]);
+    }
+
+    #[test]
+    fn beside_a_sweep_a_machine_plays_one_game_more_and_leaves_the_sweep_be() {
+        let mut q = slots();
+        assert!(q.sweep_start("far", "night").unwrap());
+        for w in ["a", "b"] {
+            q.join(w, "", false, false, Some("far"), 1).unwrap();
+        }
+        assert_eq!(granted(&mut q, 1), [pair("a", "far-2")]);
+        assert!(!q.sweep_yields("far", "night"), "b waits, the sweep runs");
+        q.join("c", "", false, false, None, 2).unwrap();
+        assert_eq!(granted(&mut q, 2), [pair("c", "near")], "near has no sweep");
+        q.sweep_done("far", "night").unwrap();
+        assert_eq!(granted(&mut q, 3), [pair("b", "far")]);
+    }
+
+    #[test]
+    fn a_sweep_waits_while_two_slots_of_its_machine_play() {
+        let mut q = slots();
+        q.join("a", "", false, false, Some("far-2"), 0).unwrap();
+        q.join("b", "", false, false, Some("far-3"), 0).unwrap();
+        assert_eq!(granted(&mut q, 0), [pair("a", "far-2"), pair("b", "far-3")]);
+        assert!(!q.sweep_start("far", "night").unwrap());
+        q.free("b");
+        assert!(q.sweep_start("far", "night").unwrap());
+    }
+
+    #[test]
+    fn a_both_waiter_gets_one_game_of_each_machine() {
+        let mut q = slots();
+        q.join("x", "", false, false, Some("far"), 0).unwrap();
+        granted(&mut q, 0);
+        q.join("ab", "", false, true, None, 1).unwrap();
+        assert_eq!(
+            granted(&mut q, 1),
+            [pair("ab", "near"), pair("ab", "far-2")]
+        );
+        assert_eq!(q.holds("ab").count(), 2);
     }
 }

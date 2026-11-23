@@ -748,6 +748,7 @@ mod tests {
             env: vec![],
             harness_env: vec![],
             rebuild: None,
+            game: None,
         };
         let (tx, rx) = std::sync::mpsc::channel();
         let send = move |e| {
