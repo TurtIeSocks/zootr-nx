@@ -65,6 +65,16 @@
     "name": "Bottle with Milk"
   },
   {
+    "class": "filler",
+    "id": 83,
+    "name": "Bottom of the Well Compass"
+  },
+  {
+    "class": "filler",
+    "id": 84,
+    "name": "Bottom of the Well Map"
+  },
+  {
     "class": "progression",
     "id": 68,
     "name": "Broken Goron's Sword"
@@ -100,9 +110,29 @@
     "name": "Deku Sticks (3)"
   },
   {
+    "class": "filler",
+    "id": 85,
+    "name": "Deku Tree Compass"
+  },
+  {
+    "class": "filler",
+    "id": 86,
+    "name": "Deku Tree Map"
+  },
+  {
     "class": "progression",
     "id": 41,
     "name": "Din's Fire"
+  },
+  {
+    "class": "filler",
+    "id": 87,
+    "name": "Dodongo's Cavern Compass"
+  },
+  {
+    "class": "filler",
+    "id": 88,
+    "name": "Dodongo's Cavern Map"
   },
   {
     "class": "filler",
@@ -135,9 +165,44 @@
     "name": "Fire Arrows"
   },
   {
+    "class": "filler",
+    "id": 89,
+    "name": "Fire Medallion"
+  },
+  {
+    "class": "filler",
+    "id": 90,
+    "name": "Fire Temple Compass"
+  },
+  {
+    "class": "filler",
+    "id": 91,
+    "name": "Fire Temple Map"
+  },
+  {
+    "class": "filler",
+    "id": 92,
+    "name": "Forest Medallion"
+  },
+  {
+    "class": "filler",
+    "id": 93,
+    "name": "Forest Temple Compass"
+  },
+  {
+    "class": "filler",
+    "id": 94,
+    "name": "Forest Temple Map"
+  },
+  {
     "class": "progression",
     "id": 46,
     "name": "Gerudo Membership Card"
+  },
+  {
+    "class": "progression",
+    "id": 95,
+    "name": "Gerudo's Fortress Small Key"
   },
   {
     "class": "filler",
@@ -158,6 +223,11 @@
     "class": "progression",
     "id": 47,
     "name": "Goron Tunic"
+  },
+  {
+    "class": "filler",
+    "id": 96,
+    "name": "Goron's Ruby"
   },
   {
     "class": "filler",
@@ -186,6 +256,16 @@
   },
   {
     "class": "filler",
+    "id": 97,
+    "name": "Ice Cavern Compass"
+  },
+  {
+    "class": "filler",
+    "id": 98,
+    "name": "Ice Cavern Map"
+  },
+  {
+    "class": "filler",
     "id": 48,
     "name": "Improved Spin"
   },
@@ -195,9 +275,24 @@
     "name": "Iron Boots"
   },
   {
+    "class": "filler",
+    "id": 99,
+    "name": "Jabu-Jabu's Belly Compass"
+  },
+  {
+    "class": "filler",
+    "id": 100,
+    "name": "Jabu-Jabu's Belly Map"
+  },
+  {
     "class": "progression",
     "id": 17,
     "name": "Kokiri Sword"
+  },
+  {
+    "class": "filler",
+    "id": 101,
+    "name": "Kokiri's Emerald"
   },
   {
     "class": "progression",
@@ -208,6 +303,11 @@
     "class": "progression",
     "id": 49,
     "name": "Light Arrows"
+  },
+  {
+    "class": "filler",
+    "id": 102,
+    "name": "Light Medallion"
   },
   {
     "class": "progression",
@@ -370,6 +470,21 @@
     "name": "Serenade of Water"
   },
   {
+    "class": "filler",
+    "id": 103,
+    "name": "Shadow Medallion"
+  },
+  {
+    "class": "filler",
+    "id": 104,
+    "name": "Shadow Temple Compass"
+  },
+  {
+    "class": "filler",
+    "id": 105,
+    "name": "Shadow Temple Map"
+  },
+  {
     "class": "progression",
     "id": 60,
     "name": "Song of Storms"
@@ -381,6 +496,21 @@
   },
   {
     "class": "filler",
+    "id": 106,
+    "name": "Spirit Medallion"
+  },
+  {
+    "class": "filler",
+    "id": 107,
+    "name": "Spirit Temple Compass"
+  },
+  {
+    "class": "filler",
+    "id": 108,
+    "name": "Spirit Temple Map"
+  },
+  {
+    "class": "filler",
     "id": 62,
     "name": "Stone of Agony"
   },
@@ -388,6 +518,21 @@
     "class": "progression",
     "id": 63,
     "name": "Sun's Song"
+  },
+  {
+    "class": "filler",
+    "id": 109,
+    "name": "Water Medallion"
+  },
+  {
+    "class": "filler",
+    "id": 110,
+    "name": "Water Temple Compass"
+  },
+  {
+    "class": "filler",
+    "id": 111,
+    "name": "Water Temple Map"
   },
   {
     "class": "progression",
@@ -408,5 +553,10 @@
     "class": "progression",
     "id": 67,
     "name": "Zora Tunic"
+  },
+  {
+    "class": "filler",
+    "id": 112,
+    "name": "Zora's Sapphire"
   }
 ]

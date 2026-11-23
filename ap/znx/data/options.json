@@ -198,6 +198,58 @@
     "label": "Boss Heart Containers"
   },
   {
+    "default": false,
+    "description": "The Spiritual Stones and five medallions become checks, given by the scene after each boss. Light stays with Rauru",
+    "id": "dungeon-rewards",
+    "kind": "toggle",
+    "label": "Dungeon Rewards"
+  },
+  {
+    "default": false,
+    "description": "Each dungeon's map and compass turn up in a random chest of that dungeon. Keys stay where they are",
+    "id": "maps-compasses",
+    "kind": "toggle",
+    "label": "Maps and Compasses"
+  },
+  {
+    "default": "vanilla",
+    "description": "With Start, Link holds every dungeon's small keys and boss key from the start. The 43 chests that held a key become checks. With Start each brings a Red Rupee to the pool. The two keys lying in the open stay where they are",
+    "id": "keys",
+    "kind": "choice",
+    "label": "Keys",
+    "options": [
+      {
+        "id": "vanilla",
+        "label": "Vanilla"
+      },
+      {
+        "id": "start",
+        "label": "Start with them"
+      }
+    ]
+  },
+  {
+    "default": "vanilla",
+    "description": "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks",
+    "id": "fortress-keys",
+    "kind": "choice",
+    "label": "Fortress Keys",
+    "options": [
+      {
+        "id": "vanilla",
+        "label": "Vanilla"
+      },
+      {
+        "id": "start",
+        "label": "Start with them"
+      },
+      {
+        "id": "singles",
+        "label": "Keysanity"
+      }
+    ]
+  },
+  {
     "default": "free",
     "description": "What caps the Bombchus Link holds. The bomb bag's, as in the game. Their own cap of 40, so they open the same checks bombs do without waiting on the bag.",
     "id": "bombchus",
