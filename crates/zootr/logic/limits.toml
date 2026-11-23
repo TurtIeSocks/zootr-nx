@@ -49,6 +49,44 @@ value = 5.2
 drop = 4.65
 evidence = ["measured: jump at the edge (child-edge-jump-1.08, child-edge-jump-1.00)"]
 
+# How far from a holder Link takes it by hand, in m: the flat distance
+# from his origin to the holder's at which its prompt still shows
+# (`zootr dev reach`, the room science notes' holder reach table). The
+# lowest edge measured over the angles, with no margin: the prompt is up
+# or it isn't.
+[child.hand.small-chest]
+value = 1.25
+evidence = [
+    "measured: Kakariko basement chest, +20 and -20 degrees: shown 1.30 and 1.25, gone 1.35 and 1.30 (run-small3-child)",
+    "measured: Deku compass room side chest by hand: shown 1.29, gone 1.32",
+]
+
+[child.hand.big-chest]
+value = 1.35
+evidence = [
+    "measured: Deku compass chest, 0 and +-20 degrees: shown 1.35, gone 1.40 (run-big-9284193025315608699)",
+    "measured: Deku map chest, 0 and +-20 degrees: shown 1.40, gone 1.45 (run-big-8579518566955184384)",
+]
+
+[child.hand.pot]
+value = 1.04
+evidence = [
+    "measured: Kakariko pot, +90, 180 and -90 degrees: shown 1.04, 1.05, 1.10 (run-pot-child2)",
+]
+
+# The adult's big chest isn't measured yet: a guess until it is.
+[adult.hand.small-chest]
+value = 1.25
+evidence = [
+    "measured: Kakariko basement chest, +20 and -20 degrees: shown 1.30 and 1.25, gone 1.35 and 1.30 (run-small-adult)",
+]
+
+[adult.hand.pot]
+value = 1.05
+evidence = [
+    "measured: Kakariko pot, +90, 180 and -90 degrees: shown 1.05, 1.09, 1.10 (run-pot-adult)",
+]
+
 # How far each weapon reaches from Link, in m, read from its own
 # parameters. Glitchless logic counts a target up to `margin` of it.
 [range.slingshot]

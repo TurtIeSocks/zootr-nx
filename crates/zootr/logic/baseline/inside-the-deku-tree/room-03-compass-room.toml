@@ -18,13 +18,13 @@ why = "level gap 0.7 to 2.0 m: within a running jump (2.7 m)"
 hash = 9284193025315608699
 name = "Dungeon Compass Chest"
 needs = "always"
-why = "in reach from its room"
+why = "0.1 m from its room's floor, within a big chest's reach (1.35 m)"
 
 [[check]]
 hash = 11368028582977069031
 name = "Upper Three Deku Nuts 2"
 needs = "always"
-why = "in reach from its room"
+why = "0.3 m from its room's floor, within a small chest's reach (1.25 m)"
 
 [[check]]
 hash = 13609975487234437568

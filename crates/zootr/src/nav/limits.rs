@@ -53,6 +53,51 @@ pub struct Reach {
     pub drop: Limit,
     pub level_jump: Option<Limit>,
     pub edge_jump: Option<Limit>,
+    /// How far from each kind of holder he takes it by hand.
+    #[serde(default)]
+    pub hand: Hand,
+}
+
+/// How far from a holder Link takes it by hand, per holder kind: `None`
+/// until measured.
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+pub struct Hand {
+    pub small_chest: Option<Limit>,
+    pub big_chest: Option<Limit>,
+    pub pot: Option<Limit>,
+}
+
+/// A kind of holder Link takes by hand.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Holder {
+    SmallChest,
+    BigChest,
+    Pot,
+}
+
+impl Holder {
+    pub fn word(self) -> &'static str {
+        match self {
+            Holder::SmallChest => "small chest",
+            Holder::BigChest => "big chest",
+            Holder::Pot => "pot",
+        }
+    }
+}
+
+impl Hand {
+    pub fn get(&self, holder: Holder) -> Option<&Limit> {
+        match holder {
+            Holder::SmallChest => self.small_chest.as_ref(),
+            Holder::BigChest => self.big_chest.as_ref(),
+            Holder::Pot => self.pot.as_ref(),
+        }
+    }
+
+    fn all(&self) -> [Option<&Limit>; 3] {
+        [Holder::SmallChest, Holder::BigChest, Holder::Pot].map(|h| self.get(h))
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -80,7 +125,9 @@ impl Limits {
                 reach.edge_jump.as_ref(),
             ];
             ensure!(
-                all.into_iter().flatten().all(|l| !l.evidence.is_empty()),
+                (all.into_iter().chain(reach.hand.all()))
+                    .flatten()
+                    .all(|l| !l.evidence.is_empty()),
                 "a {age} limit has no evidence"
             );
         }
@@ -88,6 +135,13 @@ impl Limits {
             ensure!(!l.evidence.is_empty(), "the {word} range has no evidence");
         }
         Ok(limits)
+    }
+
+    /// How far from `holder` Link at his age takes it by hand, `None`
+    /// until measured.
+    pub fn hand(&self, child: bool, holder: Holder) -> Option<f32> {
+        let reach = if child { &self.child } else { &self.adult };
+        reach.hand.get(holder).map(|l| l.value)
     }
 
     /// The highest ledge either age gets onto: the graph doesn't know who
@@ -155,6 +209,24 @@ mod tests {
         assert_eq!(at(7.7), ["slingshot", "bow", "boomerang", "hookshot"]);
         assert_eq!(at(12.0), ["slingshot", "bow", "longshot"]);
         assert!(at(30.0).is_empty());
+    }
+
+    #[test]
+    fn hand_reach_is_per_holder_and_age_and_none_until_measured() {
+        let l = limits();
+        assert_eq!(l.hand(true, Holder::SmallChest), Some(1.25));
+        assert_eq!(l.hand(true, Holder::BigChest), Some(1.35));
+        assert_eq!(l.hand(false, Holder::BigChest), None);
+        // A hand reach needs its evidence like any limit. A Windows
+        // checkout ends lines with CRLF.
+        let text = TEXT.replace("\r\n", "\n");
+        let bare = text.replacen(
+            "evidence = [\n    \"measured: Kakariko pot, +90, 180 and -90 degrees: shown 1.04, 1.05, 1.10 (run-pot-child2)\",\n]",
+            "evidence = []",
+            1,
+        );
+        assert_ne!(bare, text);
+        assert!(Limits::parse(&bare).is_err());
     }
 
     #[test]
