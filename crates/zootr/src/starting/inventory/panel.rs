@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use anyhow::{Result, bail};
 use ounce_formats::Save;
 
-use super::{BARRED, CONTAINERS, HEARTS, RUPEE_WORD, Start, WORDS};
+use super::{ALWAYS, BARRED, CONTAINERS, HEARTS, RUPEE_WORD, Start, WORDS};
 use crate::gamedata::GameData;
 use crate::inventory::{self, Cell, Glyph, Intent, Inventory, Pouch, Section};
 use crate::known::{Name, actor, field};
@@ -17,8 +17,9 @@ use crate::savefile::{self, Edit};
 use crate::value;
 
 /// A new game's save, as far as the grid and the kept Status fields go:
-/// every value they read, at its GameData default. The Magic Meter's,
-/// which only a seed's GameData has, at the default of what it copies.
+/// every value they read, at its GameData default, holding what every new
+/// game holds ([`ALWAYS`]). The Magic Meter's, which only a seed's GameData
+/// has, at the default of what it copies.
 fn fresh(gd: &GameData, inv: &Inventory, pouch: &Pouch) -> Result<Save> {
     let mut seen = HashSet::new();
     let hashes = (inv.cell_hashes(pouch).into_iter().flatten()).chain([MAX_LIFE, LIFE, RUPEES]);
@@ -44,7 +45,10 @@ fn fresh(gd: &GameData, inv: &Inventory, pouch: &Pouch) -> Result<Save> {
         };
         entries.push((hash, kind, bytes));
     }
-    Save::build(&entries)
+    let mut save = Save::build(&entries)?;
+    let always: Vec<(&Name, i32)> = ALWAYS.iter().map(|&a| (a, 1)).collect();
+    savefile::apply(gd, &mut save, &inv.holding(pouch, &always)?)?;
+    Ok(save)
 }
 
 /// The editor's view of a new game holding `start`: a fresh save as
@@ -413,6 +417,18 @@ mod tests {
             .collect();
         use inventory::Section::{Dungeons, Medallions, Stones};
         assert_eq!(hidden, [Stones, Medallions, Dungeons]);
+    }
+
+    #[test]
+    fn the_wallet_starts_at_the_child_s_and_clicks_up_to_the_adult_s() {
+        let Some((gd, inv, pouch)) = layout() else {
+            return;
+        };
+        let view = items(&gd, &inv, &pouch, &Start::default(), &[]).unwrap();
+        let at = view.cells.iter().position(|c| c.label == "Wallet").unwrap();
+        assert_eq!(view.cells[at].tier, 1);
+        let adult = click(&gd, &inv, &pouch, &Start::default(), at, Intent::Up).unwrap();
+        assert_eq!(adult, start(&[("adults-wallet", 1)]));
     }
 
     #[test]
