@@ -206,7 +206,7 @@
   },
   {
     "default": false,
-    "description": "Each dungeon's map and compass turn up in a random chest of that dungeon. Keys stay where they are",
+    "description": "Each dungeon's map and compass turn up at random checks anywhere, and mark their own dungeon wherever Link finds them. Keys stay where they are",
     "id": "maps-compasses",
     "kind": "toggle",
     "label": "Maps and Compasses"
