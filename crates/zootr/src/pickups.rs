@@ -557,6 +557,20 @@ pub fn moved<'a>(
     out
 }
 
+/// Each stand-in built for one holder, by the holder whose gates its
+/// take feeds (`taken`).
+pub fn stand_ins(
+    checks: &[ItemCheck],
+    drops: &HashMap<u64, Drop>,
+    progressive: crate::progressive::Lines,
+) -> Vec<(u64, String)> {
+    let moved = moved(checks, drops, progressive).into_iter();
+    let built = moved.filter(Moved::built);
+    built
+        .map(|m| (m.step.as_ref().map_or(m.hash, |s| s.of), m.actor))
+        .collect()
+}
+
 /// Build a pickup for each holder whose item changed, and return the
 /// placement fields, as `HASH.PATH=VALUE`, that place it.
 pub fn write(

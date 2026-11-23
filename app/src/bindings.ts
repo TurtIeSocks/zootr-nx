@@ -955,6 +955,11 @@ export type Spot = {
 	 *  (`gifts::pocket`).
 	 */
 	given?: boolean,
+	/**
+	 *  The Bools its stand-ins set once taken, which tick it without the
+	 *  hook (`pickups::taken`).
+	 */
+	taken?: string[],
 };
 
 /**

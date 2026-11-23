@@ -102,7 +102,7 @@ impl Steps {
                 After::Killed(Some(p)) | After::Taken(Some(p)) => Some(p),
                 _ => None,
             };
-            let unpicked = not(by_name(&picked::flag(step.of), Op::Bool));
+            let unpicked = not(by_name(&picked::got(step.of), Op::Exp));
             let program = shows::within(own, and(step.program.clone(), unpicked), gd)?;
             let gate = gate(m.hash);
             steps.exps.push((gate.clone(), program));
@@ -240,7 +240,7 @@ mod tests {
             format!("{}1", hookshot.strip_suffix('0').unwrap())
         );
         // Each stands only until the pot's drop is picked up.
-        let picked = Op::Bool(murmur3(picked::flag(POT).as_bytes()));
+        let picked = Op::Exp(murmur3(picked::got(POT).as_bytes()));
         for gate in [&gate, &copy_gate] {
             assert!(exp(&steps, gate).ends_with(&[picked, Op::Not, Op::And]));
         }
@@ -326,7 +326,7 @@ mod tests {
         let (_, longshot) = at(&root, copy_hash(PIECE, 1), "Gyaml");
         assert_eq!(gate, format!("Rando_Step_{PIECE}"));
         assert_ne!(hookshot, longshot);
-        let picked = Op::Bool(murmur3(picked::flag(PIECE).as_bytes()));
+        let picked = Op::Exp(murmur3(picked::got(PIECE).as_bytes()));
         assert!(exp(&steps, &gate).ends_with(&[picked, Op::Not, Op::And]));
         assert_eq!(spots.len(), 2);
         let row = crate::generate::Spot {

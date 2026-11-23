@@ -104,6 +104,14 @@ pub fn flag(hash: u64) -> String {
     format!("Rando_Picked_{hash}")
 }
 
+/// The BoolExp every gate of the holder placed as `hash` reads: its
+/// [`flag`], which the hook sets, or any of its stand-ins' taken Bools,
+/// which the pickup event graph sets without the hook
+/// (`pickups::taken`).
+pub fn got(hash: u64) -> String {
+    format!("Rando_Got_{hash}")
+}
+
 /// The BoolExp a gated Gold Skulltula shows by: its own gate, and its
 /// drop not picked up yet.
 pub fn shown(hash: u64) -> String {
@@ -159,9 +167,20 @@ pub fn flags(holders: &[Holder]) -> Vec<String> {
     holders.iter().map(|h| flag(h.hash)).collect()
 }
 
-/// The BoolExp each gated Gold Skulltula among `holders` shows by.
-pub fn exps(holders: &[Holder]) -> Vec<(String, Vec<Op>)> {
+/// Each of `holders`' [`got`], from its flag and its `stand_ins`, by
+/// holder, then the BoolExp each gated Gold Skulltula shows by.
+pub fn exps(holders: &[Holder], stand_ins: &[(u64, String)]) -> Vec<(String, Vec<Op>)> {
     let bool_of = |name: &str| Op::Bool(murmur3(name.as_bytes()));
+    let got_of = |hash: u64| {
+        let taken = (stand_ins.iter().filter(|(of, _)| *of == hash))
+            .map(|(_, s)| vec![bool_of(&crate::pickups::taken::flag(s))]);
+        let program = std::iter::once(vec![bool_of(&flag(hash))]).chain(taken);
+        (
+            got(hash),
+            program.reduce(crate::shows::or).unwrap_or_default(),
+        )
+    };
+    let mut out: Vec<_> = holders.iter().map(|h| got_of(h.hash)).collect();
     let gated = holders.iter().filter_map(|h| match &h.after {
         After::Killed(Some(gate)) => Some((h.hash, gate)),
         _ => None,
@@ -169,10 +188,11 @@ pub fn exps(holders: &[Holder]) -> Vec<(String, Vec<Op>)> {
     let exps = gated.map(|(hash, gate)| {
         let mut program = vec![bool_of(&gate.flag)];
         program.extend(gate.negated.then_some(Op::Not));
-        program.extend([bool_of(&flag(hash)), Op::Not, Op::And]);
+        program.extend([Op::Exp(murmur3(got(hash).as_bytes())), Op::Not, Op::And]);
         (shown(hash), program)
     });
-    exps.collect()
+    out.extend(exps);
+    out
 }
 
 /// Each holder's hash, then its twin's.
@@ -227,7 +247,7 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
         let Some(h) = holders.iter().find(|h| h.hash == hash) else {
             continue;
         };
-        let flag = flag(hash);
+        let flag = got(hash);
         let twin_hash = match h.after {
             After::Twin(twin) => twin,
             // Its steps' gates take its turns (`pickups::steps`).
@@ -498,20 +518,25 @@ mod tests {
             let placed = actors.iter().find(|a| hash_of(a) == Some(h.hash)).unwrap();
             let gate = presence_of(placed).unwrap();
             match h.hash == plain.hash {
-                true => assert_eq!((gate.flag, gate.negated), (flag(h.hash), true)),
+                true => assert_eq!((gate.flag, gate.negated), (got(h.hash), true)),
                 false => assert_eq!((gate.flag, gate.negated), (shown(h.hash), false)),
             }
         }
-        let exps = exps(&holders);
-        assert_eq!(exps.len(), 10);
-        let (name, program) = exps.iter().find(|(n, _)| *n == shown(bean.hash)).unwrap();
+        let stand_in = "Obj_FakeStandIn_001";
+        let exps = exps(&holders, &[(bean.hash, stand_in.into())]);
+        assert_eq!(exps.len(), holders.len() + 10);
+        let exp = |name: &str| exps.iter().find(|(n, _)| *n == name).unwrap().clone();
         let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH).unwrap()).unwrap();
-        gamedata::add_bools(&mut doc.root, &[flag(bean.hash)]).unwrap();
-        gamedata::add_exps(&mut doc.root, &[(name.clone(), program.clone())]).unwrap();
+        let taken = crate::pickups::taken::flag(stand_in);
+        gamedata::add_bools(&mut doc.root, &[flag(bean.hash), taken.clone()]).unwrap();
+        let (got, shown) = (exp(&got(bean.hash)), exp(&shown(bean.hash)));
+        gamedata::add_exps(&mut doc.root, &[got.clone(), shown.clone()]).unwrap();
         let gd = gamedata::GameData::parse(&doc.to_binary()).unwrap();
         let name_of = |n: &str| gd.name(murmur3(n.as_bytes()));
-        let expr = format!("{} && !{}", name_of(&soil.flag), name_of(&flag(bean.hash)));
-        assert_eq!(gd.expr(name).unwrap(), Some(expr));
+        let picked_or_taken = format!("{} || {}", name_of(&flag(bean.hash)), name_of(&taken));
+        assert_eq!(gd.expr(&got.0).unwrap(), Some(picked_or_taken));
+        let expr = format!("{} && !{}", name_of(&soil.flag), name_of(&got.0));
+        assert_eq!(gd.expr(&shown.0).unwrap(), Some(expr));
     }
 
     #[test]
@@ -547,7 +572,7 @@ mod tests {
         let (held, copy) = (find(rock_hash), find(twin));
         let gate = |a| presence_of(a).unwrap();
         let (a, b) = (gate(held), gate(copy));
-        let flag = flag(rock_hash);
+        let flag = got(rock_hash);
         assert_eq!((a.flag.as_str(), a.negated), (flag.as_str(), true));
         assert_eq!((b.flag.as_str(), b.negated), (flag.as_str(), false));
         // Its drop or its drop table, whichever it's placed with.
@@ -580,7 +605,7 @@ mod tests {
         for hash in [ICE_RED, ICE_BLUE] {
             let pot = actors.iter().find(|a| hash_of(a) == Some(hash)).unwrap();
             let gate = presence_of(pot).unwrap();
-            assert_eq!((gate.flag, gate.negated), (flag(hash), true));
+            assert_eq!((gate.flag, gate.negated), (got(hash), true));
         }
     }
 

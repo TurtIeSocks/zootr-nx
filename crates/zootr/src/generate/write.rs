@@ -218,6 +218,7 @@ pub fn write_mod(
     let pieces = pickups::dealt(romfs, new_game)?;
     let picked = picked::holders(&pieces, drops);
     let steps = pickups::steps::Steps::new(&pieces, drops, Lines::of(new_game), &picked, &gd)?;
+    let stand_ins = pickups::stand_ins(&pieces, drops, Lines::of(new_game));
     let mut bools = cows::flags(&cows);
     bools.extend(picked::flags(&picked));
     if new_game.shop_slots > 0 {
@@ -252,7 +253,7 @@ pub fn write_mod(
     let mut exps: Vec<_> = aliases
         .map(|(name, of)| (name, vec![gamedata::Op::Bool(of)]))
         .collect();
-    exps.extend(picked::exps(&picked));
+    exps.extend(picked::exps(&picked, &stand_ins));
     exps.extend(shelves.exps.iter().cloned());
     exps.extend(steps.exps.iter().cloned());
     exps.extend(jabu_mood::exps(&gd, new_game.adult_jabu)?);
@@ -569,6 +570,7 @@ pub fn write_mod(
         defaults,
         actors,
         files,
+        stand_ins,
     })
 }
 

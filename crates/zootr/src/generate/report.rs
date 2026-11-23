@@ -56,6 +56,10 @@ pub struct Spot {
     /// (`gifts::pocket`).
     #[serde(default, skip_serializing_if = "is_false")]
     pub given: bool,
+    /// The Bools its stand-ins set once taken, which tick it without the
+    /// hook (`pickups::taken`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub taken: Vec<String>,
 }
 
 fn is_false(b: &bool) -> bool {
@@ -139,6 +143,11 @@ pub struct Written {
     /// Placed actors whose drop changed, child and adult copies counted apart.
     pub actors: usize,
     pub files: usize,
+    /// Each stand-in built for one holder, by the holder
+    /// (`pickups::stand_ins`), for its spot's [`Spot::taken`].
+    #[serde(skip)]
+    #[cfg_attr(feature = "specta", specta(skip))]
+    pub stand_ins: Vec<(u64, String)>,
 }
 
 /// An item Link gets outside the shuffle, in the round that collects it.
@@ -369,6 +378,7 @@ mod tests {
                 defaults: vec![],
                 actors: 2,
                 files: 3,
+                stand_ins: vec![],
             },
         }
     }
