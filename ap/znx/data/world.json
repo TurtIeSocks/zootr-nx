@@ -6843,17 +6843,14 @@
         {
           "place": "sacred-forest-meadow-child",
           "rule": {
-            "all": [
+            "any": [
               {
-                "count": 1,
-                "items": [
-                  "Progressive Ocarina"
-                ]
+                "setting": "met-zelda"
               },
               {
                 "count": 1,
                 "items": [
-                  "Zelda's Lullaby"
+                  "Met Zelda"
                 ]
               }
             ]
