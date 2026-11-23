@@ -3,6 +3,33 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.11.0] - 2026-11-23
+
+### Added
+
+- Sort collision meshes by the game's collision filter
+- Stand Link on collision floors the navmesh leaves out
+- Take checks from where Link enters a room, by hand reach
+- Link edge jumps onto lower floor, where collision is read
+- Dungeon Rewards, Maps and Compasses, Keys and Fortress Keys join the AP world
+- Confirmed entries that name a spot, read and checked by derive
+- All and None on the starting inventory, for Full Arsenal
+
+### Fixed
+
+- Maps and Compasses deal anywhere, so say so
+- Give each group copy its own sensor Areas
+- Leave the lift-only crates out of the shuffle
+- An AP seed's key copies can sit in other worlds
+- Show our items from another slot though this slot never deals them
+- An AP notice's popup credits nothing
+- Give the new-game grid the Magic Meter's IsGet
+
+### Faster
+
+- Each redraw encodes once a process, kept by its inputs
+- One AP export a process, its seeds built at once, one off seed for the gift test
+
 ## [0.10.0] - 2026-11-23
 
 ### Added
