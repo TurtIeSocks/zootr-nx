@@ -35,6 +35,7 @@ pub mod keys;
 pub mod look;
 mod mailbox;
 mod shared;
+mod spots;
 pub mod switches;
 mod table;
 pub mod traps;
@@ -45,6 +46,7 @@ pub use mailbox::{
     ARG_SUMMARY, Ask, GUARD, MAILBOX, Mailbox, NAME, Notice, Outcome, play_event,
 };
 pub use shared::{CHESTS, Chest, Credited, List, Shared, Swap};
+pub use spots::{REACH, SPOT_KEY, Spot, nearest};
 pub use switches::SWITCHES;
 #[cfg(not(target_os = "none"))]
 pub use table::SlotSpec;
@@ -52,8 +54,7 @@ pub use table::SlotSpec;
 pub use table::encode;
 pub use table::{
     BOMBCHU_BAG, BUNNY_HOOD, Credit, DEV, FREE_BOMBCHUS, Found, HEADER, Header, ICE_TRAPS, Level,
-    Levels, MAGIC, MENU_CYCLE, Offsets, REACH, SPOT_KEY, Slot, Spot, Table, after_grant, fnv,
-    nearest, pick, pick_with,
+    Levels, MAGIC, MENU_CYCLE, Offsets, Slot, Table, after_grant, fnv, pick, pick_with,
 };
 
 /// Where our pieces go in `main`, for game 1.1.1. The code goes over

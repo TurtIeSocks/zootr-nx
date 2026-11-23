@@ -17,11 +17,20 @@ pub fn find(entries: &[u8], key: u64) -> Option<usize> {
     entries.binary_search_by_key(&key, key_of).ok()
 }
 
+/// Where `key`'s value sits in `entries`, when it has an entry.
+fn offset(entries: &[u8], key: u64) -> Option<usize> {
+    Some(find(entries, key)? * KEY_STRIDE + KEY_VALUE)
+}
+
+/// `key`'s value: 0 for a placement still whole, more once it broke.
+pub fn value(entries: &[u8], key: u64) -> Option<u8> {
+    entries.get(offset(entries, key)?).copied()
+}
+
 /// Sets `to`'s value to `from`'s, so a twin breaks and resets with its
 /// holder. False, and nothing changed, when either has no entry.
 pub fn follow(entries: &mut [u8], from: u64, to: u64) -> bool {
-    let value = |key| Some(find(entries, key)? * KEY_STRIDE + KEY_VALUE);
-    let (Some(from), Some(to)) = (value(from), value(to)) else {
+    let (Some(from), Some(to)) = (offset(entries, from), offset(entries, to)) else {
         return false;
     };
     // No indexing: a bounds panic would need relocating in the hook.
@@ -49,6 +58,14 @@ mod tests {
         assert_eq!(find(&table, u64::MAX), Some(2));
         assert_eq!(find(&table, 4), None);
         assert_eq!(find(&[], 3), None);
+    }
+
+    #[test]
+    fn a_value_reads_only_a_key_that_is_there() {
+        let table: Vec<u8> = [entry(3, 1), entry(70, 0)].concat();
+        assert_eq!(value(&table, 3), Some(1));
+        assert_eq!(value(&table, 70), Some(0));
+        assert_eq!(value(&table, 4), None);
     }
 
     #[test]
