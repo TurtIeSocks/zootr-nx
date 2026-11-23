@@ -118,7 +118,19 @@ fn add(audit: &mut Audit, book: &Book, room: &Room, siblings: &[&Room]) {
         needs: f.needs.clone(),
         why: f.why.clone(),
     });
-    audit.guess.extend(links.chain(checks).chain(flags));
+    // Spot links and placed flags reach the baseline as links and flags;
+    // a floor claim only moves floor, so its guess is listed from here.
+    let floors = (room.spots.floor.iter())
+        .filter(|f| f.evidence.is_empty())
+        .map(|f| Guess {
+            room: n,
+            what: format!("floor at {}", f.at),
+            needs: "always".into(),
+            why: f.why.clone(),
+        });
+    audit
+        .guess
+        .extend(links.chain(checks).chain(flags).chain(floors));
     audit
         .knowledge
         .extend(room.file.knowledge.iter().map(|k| Line {

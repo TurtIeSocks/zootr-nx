@@ -23,6 +23,7 @@ use crate::rules::rooms::{self, folder};
 use crate::sweep::spot::slug;
 use crate::warp::Placement;
 
+mod confirmed;
 pub mod explain;
 mod hand;
 mod label;
@@ -94,6 +95,8 @@ struct Seen<'k> {
     at: ([f32; 3], [f32; 3]),
     /// The furthest a jump on it falls, in m: 0 for a level gap.
     fall: f32,
+    /// The confirmed link that stands in for every derived arc here.
+    puzzle: Option<&'k rooms::SpotLink>,
 }
 
 impl Seen<'_> {
@@ -148,6 +151,8 @@ pub struct Derived {
     pub exitless: Vec<String>,
     /// Each jump link, at its narrowest: where a playtest settles it.
     pub jumps: Vec<Jump>,
+    /// What a confirmed entry and the level disagree on, short of an error.
+    pub warnings: Vec<String>,
 }
 
 /// A jump link at its narrowest gap.
@@ -272,6 +277,10 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                 .pop_first()
         })
         .collect();
+    let game_data = crate::gamedata::GameData::load(romfs)?;
+    let in_game = |h: u32| game_data.entry(h).is_some();
+    let confirmed = confirmed::Confirmed::of(&book.rooms, dungeon.node.get(), in_game)?;
+    let mut warnings = vec![];
     let mut seen: BTreeMap<(u32, u32, rooms::Via), Seen> = BTreeMap::new();
     let mut locks: HashMap<u64, Vec<Lock>> = HashMap::new();
     let mut flags: BTreeMap<String, (Lock, Vec<&Kind>)> = BTreeMap::new();
@@ -291,7 +300,10 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
         let graph = level.graph();
         numbered.extend(rooms_of.values().copied());
         let on = |a: [f32; 3], b: [f32; 3]| floor.on(a, b);
-        let labels = floor.labels(&graph);
+        let mut labels = floor.labels(&graph);
+        confirmed.claim(&graph, &mut labels)?;
+        let here = confirmed.locate(&graph, &labels)?;
+        confirmed.place_flags(&graph, &labels)?;
         let room = &labels.room;
         faces += room.len();
         unplaced += room.iter().filter(|l| l.is_none()).count();
@@ -312,6 +324,13 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                     .and_then(|(_, f)| room[f])
             })
         };
+        let setter_rooms = |h: u32| {
+            let played = flagmap.played_by(&game_data.bare(h)).into_iter();
+            played
+                .filter_map(|p| room_at(level.placement(p).ok()?))
+                .collect()
+        };
+        confirmed.writers(setter_rooms, &mut warnings);
         let name_of = |to: &str, start: &str| match start {
             "-" => super::words(to),
             _ => format!("{} {}", super::words(to), super::words(start)),
@@ -419,13 +438,15 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
         let mut entries: HashSet<(u32, usize)> = HashSet::new();
         // Each arc between two parts of one room, and what stands on it.
         let mut crossings: Vec<hand::Crossing> = vec![];
-        let cross = |a: usize, b: usize, path: ([f32; 3], [f32; 3]), crawl: bool| {
+        let cross = |a: usize, b: usize, path: ([f32; 3], [f32; 3]), via: rooms::Via| {
             let (pa, pb) = (labels.part[a], labels.part[b]);
-            (pa != pb && room[a].is_some() && room[a] == room[b]).then(|| hand::Crossing {
+            let own = pa != pb && room[a].is_some() && room[a] == room[b];
+            (own && !here.replaces_parts(pa, pb, via)).then(|| hand::Crossing {
                 from: pa,
                 to: pb,
                 on: on(path.0, path.1),
-                crawl,
+                crawl: via == rooms::Via::Crawl,
+                puzzle: None,
             })
         };
         let starts = (level.placed.iter()).filter(|p| p.name == flag::START_POS.get());
@@ -446,7 +467,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
             let (Some(ra), Some(rb)) = (room[a], room[b]) else {
                 return;
             };
-            if ra != rb {
+            if ra != rb && !here.replaces_rooms(ra, rb, via) {
                 entries.insert((rb, labels.part[b]));
                 let s = seen.entry((ra, rb, via)).or_default();
                 s.add(metric, by, path);
@@ -465,7 +486,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                     }
                 };
                 note(from, arc.to, via, metric, by, path, 0.0);
-                crossings.extend(cross(from, arc.to, path, via == rooms::Via::Crawl));
+                crossings.extend(cross(from, arc.to, path, via));
             }
         }
         for (a, b, from, to) in graph.plunges() {
@@ -478,7 +499,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                 (from, to),
                 0.0,
             );
-            crossings.extend(cross(a, b, (from, to), false));
+            crossings.extend(cross(a, b, (from, to), rooms::Via::Drop));
         }
         // Level jumps fall nothing; a leap falls from its edge to its floor.
         let gaps = graph.gaps(jump).into_iter().map(|g| (g, false));
@@ -486,14 +507,37 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
             let width = (from[0] - to[0]).hypot(from[2] - to[2]);
             let fall = if leap { from[1] - to[1] } else { 0.0 };
             note(a, b, rooms::Via::Jump, width, None, (from, to), fall);
-            crossings.extend(cross(a, b, (from, to), false));
+            crossings.extend(cross(a, b, (from, to), rooms::Via::Jump));
+        }
+        // The confirmed links, where the arcs they replace were.
+        for p in &here.links {
+            let ((ra, pa), (rb, pb)) = (p.from, p.to);
+            if ra == rb {
+                crossings.push(hand::Crossing {
+                    from: pa,
+                    to: pb,
+                    on: vec![],
+                    crawl: false,
+                    puzzle: Some(p.link),
+                });
+                continue;
+            }
+            entries.insert((rb, pb));
+            let s = seen.entry((ra, rb, p.link.via)).or_default();
+            s.add(0.0, None, p.at);
+            s.puzzle = Some(p.link);
         }
         // A shutter's two leaves stand a strip of floor apart: its flag is
         // paid on the link into the room, so the floor past the second leaf
         // is entered too.
+        // A confirmed link that needs nothing, settled by a playtest, enters
+        // the part it leads to too.
         let opens: Vec<(usize, usize)> = (crossings.iter())
-            .filter(|c| {
-                !c.crawl && !c.on.is_empty() && c.on.iter().all(|(_, k)| k.uses == "always")
+            .filter(|c| match c.puzzle {
+                Some(p) => confirmed::free(p) && !p.guess,
+                None => {
+                    !c.crawl && !c.on.is_empty() && c.on.iter().all(|(_, k)| k.uses == "always")
+                }
             })
             .map(|c| (c.from, c.to))
             .collect();
@@ -574,6 +618,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                         guess: blocking.iter().any(|(_, k)| k.guess),
                         on: blocking,
                         child: false,
+                        needs: vec![],
                         why,
                     }
                 }
@@ -581,10 +626,12 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
             let Taken {
                 on: blocking,
                 child,
+                needs,
                 mut why,
                 mut guess,
             } = taken;
             let mut uses: Vec<&str> = blocking.iter().map(|(_, k)| k.uses.as_str()).collect();
+            uses.extend(needs.iter().map(String::as_str));
             if child {
                 uses.push("child");
             }
@@ -624,6 +671,15 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
             });
         }
     }
+    confirmed.finish()?;
+    // A flag a confirmed entry places is set in its room, whatever derive
+    // traced.
+    let traced = locks.values_mut().flatten();
+    confirmed.place_locks(
+        traced.chain(flags.values_mut().map(|(l, _)| l)),
+        &mut warnings,
+    );
+    let placed = confirmed.flags();
     let folder = folder(dungeon.node.get());
     let names = NAMES.get(&folder);
     let q = |s: &str| toml::Value::String(s.to_owned()).to_string();
@@ -648,9 +704,9 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                 out += "guess = true\n";
             }
         };
-        let from_here = (room, 0, rooms::Via::Walk)..=(room, u32::MAX, rooms::Via::Sink);
+        let from_here = (room, 0, rooms::Via::Walk)..=(room, u32::MAX, rooms::Via::Event);
         for (&(_, to, via), s) in seen.range(from_here) {
-            if via == rooms::Via::Jump {
+            if via == rooms::Via::Jump && s.puzzle.is_none() {
                 let (from, width, at) = (room, s.least, s.at);
                 jumps.push(Jump {
                     from,
@@ -690,7 +746,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
         }
         let mut set_here: Vec<&(Lock, Vec<&Kind>)> = flags
             .values()
-            .filter(|(l, _)| l.room == Some(room))
+            .filter(|(l, _)| l.room == Some(room) && !placed.contains_key(&l.hash()))
             .collect();
         set_here.sort_by_key(|(l, _)| l.hash());
         for (lock, kinds) in set_here {
@@ -702,6 +758,20 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                 ("why", q(&why)),
             ];
             entry("flag", &fields, guess);
+        }
+        let mut confirmed_here: Vec<&rooms::Flag> = (placed.values())
+            .filter(|(r, _)| *r == room)
+            .map(|(_, f)| *f)
+            .collect();
+        confirmed_here.sort_by_key(|f| f.hash);
+        for f in confirmed_here {
+            let fields = [
+                ("hash", format!("0x{:08x}", f.hash)),
+                ("name", q(&f.name)),
+                ("needs", q(&f.needs)),
+                ("why", q(&format!("confirmed: {}", f.why))),
+            ];
+            entry("flag", &fields, f.guess);
         }
         for table in ["exit", "arrival"] {
             for (hash, name) in spots.get(&(room, table)).into_iter().flatten() {
@@ -723,6 +793,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
         roomless,
         exitless,
         jumps,
+        warnings,
     })
 }
 
@@ -734,6 +805,9 @@ fn link(
     s: &Seen,
     locks: &HashMap<u64, Vec<Lock>>,
 ) -> (String, String, bool) {
+    if let Some(p) = s.puzzle {
+        return (p.needs.clone(), format!("confirmed: {}", p.why), p.guess);
+    }
     let span = |unit: &str| {
         if (s.most - s.least).abs() < 0.05 {
             format!("{:.1} {unit}", s.least)

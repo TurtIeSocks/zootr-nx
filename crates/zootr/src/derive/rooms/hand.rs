@@ -9,6 +9,7 @@ use crate::checks::{ItemCheck, is_big};
 use crate::nav::graph::Graph;
 use crate::nav::limits::{Holder, limits};
 use crate::rules::kinds::Kind;
+use crate::rules::rooms::SpotLink;
 
 /// The kind of holder `check` is, for its hand reach: `None` for one no
 /// reach is kept for (a scrub, a person, an item on the floor).
@@ -24,19 +25,22 @@ pub(super) fn holder(check: &ItemCheck) -> Option<Holder> {
     }
 }
 
-/// An arc from one part of a room to another: the obstacles on it, and
-/// whether it's a crawl (a child's only).
+/// An arc from one part of a room to another: the obstacles on it,
+/// whether it's a crawl (a child's only), and the confirmed link it is.
 pub(super) struct Crossing<'k> {
     pub from: usize,
     pub to: usize,
     pub on: Vec<(u64, &'k Kind)>,
     pub crawl: bool,
+    pub puzzle: Option<&'k SpotLink>,
 }
 
 impl Crossing<'_> {
-    /// What it costs: each obstacle, and a crawl as one more.
+    /// What it costs: each obstacle, a crawl as one more, and a confirmed
+    /// link that needs something.
     fn cost(&self) -> usize {
-        self.on.len() + usize::from(self.crawl)
+        let paid = self.puzzle.is_some_and(|p| !super::confirmed::free(p));
+        self.on.len() + usize::from(self.crawl) + usize::from(paid)
     }
 }
 
@@ -140,14 +144,20 @@ impl<'k> TakenBy<'_, '_, 'k> {
             return Taken {
                 on: blocking,
                 child: false,
+                needs: vec![],
                 why,
                 guess: true,
             };
         };
-        let mut crawl = false;
+        let (mut crawl, mut needs, mut guess, mut puzzles) = (false, vec![], false, vec![]);
         for c in way {
             blocking.extend(c.on.iter().filter(|(_, k)| k.uses != "always").cloned());
             crawl |= c.crawl;
+            if let Some(p) = c.puzzle {
+                needs.push(p.needs.clone());
+                guess |= p.guess;
+                puzzles.push(format!("confirmed: {}", p.why));
+            }
         }
         blocking.sort_by_key(|(h, _)| *h);
         blocking.dedup_by_key(|(h, _)| *h);
@@ -157,20 +167,26 @@ impl<'k> TakenBy<'_, '_, 'k> {
         if crawl {
             why.push_str("; through a crawl: child");
         }
+        for p in puzzles {
+            why = format!("{why}; {p}");
+        }
         Taken {
-            guess: blocking.iter().any(|(_, k)| k.guess),
+            guess: guess || blocking.iter().any(|(_, k)| k.guess),
             on: blocking,
             child: crawl,
+            needs,
             why,
         }
     }
 }
 
 /// How a check is taken: the obstacles on the way, whether only a child
-/// gets there (a crawl), why, and whether it's a guess.
+/// gets there (a crawl), what the confirmed links on the way need, why,
+/// and whether it's a guess.
 pub(super) struct Taken<'k> {
     pub on: Vec<(u64, &'k Kind)>,
     pub child: bool,
+    pub needs: Vec<String>,
     pub why: String,
     pub guess: bool,
 }
@@ -180,6 +196,7 @@ impl Taken<'_> {
         Taken {
             on: vec![],
             child: false,
+            needs: vec![],
             why,
             guess: true,
         }
@@ -204,6 +221,7 @@ mod tests {
             to,
             on: (0..n).map(|i| (i as u64, &web)).collect(),
             crawl: false,
+            puzzle: None,
         };
         // Main is part 1. Part 3 is behind one web by way of part 2, or two
         // webs straight.

@@ -2,7 +2,12 @@
 //! `zootr logic derive`, and `logic/confirmed/<dungeon>/room-NN-<name>.toml`,
 //! written from playtests. Only NN keys a file: the name is for people. A confirmed entry replaces the baseline entry
 //! with its key, and one whose key the baseline lacks is an error (room
-//! reach spec).
+//! reach spec). One without evidence is a guess.
+//!
+//! A confirmed entry that names a spot on the floor (`from`, `to` or
+//! `at`) isn't laid over anything here: derive reads it, checks it
+//! against the level and writes what it makes into the baseline (puzzle
+//! links spec).
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -17,7 +22,7 @@ use crate::entrances::DUNGEONS;
 pub(crate) const FILES: &[(&str, &str)] = include!(concat!(env!("OUT_DIR"), "/room_files.rs"));
 
 #[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(try_from = "RawFile")]
 pub struct RoomFile {
     /// The game's own `DungeonRoom` number.
     pub room: u32,
@@ -34,11 +39,171 @@ pub struct RoomFile {
     #[serde(default)]
     pub exit: Vec<Spot>,
     /// The spots Link lands on in the room.
-    #[serde(default)]
     pub arrival: Vec<Spot>,
+    /// Links between two spots: a puzzle, a floor that gives way.
+    pub spot_link: Vec<SpotLink>,
+    /// Floor no room had, claimed for this one.
+    pub floor: Vec<FloorClaim>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+/// A room file as written, before its links split into room links and
+/// spot links.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawFile {
+    room: u32,
+    name: String,
+    #[serde(default)]
+    link: Vec<RawLink>,
+    #[serde(default)]
+    check: Vec<Check>,
+    #[serde(default)]
+    flag: Vec<Flag>,
+    #[serde(default)]
+    knowledge: Vec<Knowledge>,
+    #[serde(default)]
+    exit: Vec<Spot>,
+    #[serde(default)]
+    arrival: Vec<Spot>,
+    #[serde(default)]
+    floor: Vec<FloorClaim>,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum To {
+    Room(u32),
+    Spot(Point),
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RawLink {
+    from: Option<Point>,
+    to: To,
+    needs: String,
+    via: Via,
+    why: String,
+    #[serde(default)]
+    guess: bool,
+    #[serde(default)]
+    evidence: Vec<String>,
+}
+
+impl TryFrom<RawFile> for RoomFile {
+    type Error = anyhow::Error;
+
+    fn try_from(raw: RawFile) -> Result<Self> {
+        let (mut link, mut spot_link) = (vec![], vec![]);
+        for l in raw.link {
+            let RawLink {
+                from,
+                to,
+                needs,
+                via,
+                why,
+                guess,
+                evidence,
+            } = l;
+            match (from, to) {
+                (None, To::Room(to)) => link.push(Link {
+                    to,
+                    needs,
+                    via,
+                    why,
+                    guess,
+                    evidence,
+                    expr: always(),
+                }),
+                (Some(from), To::Spot(to)) => spot_link.push(SpotLink {
+                    from,
+                    to,
+                    needs,
+                    via,
+                    why,
+                    guess,
+                    evidence,
+                    expr: always(),
+                }),
+                (None, To::Spot(to)) => bail!("link to {to} names no `from` spot"),
+                (Some(from), To::Room(to)) => {
+                    bail!("link from {from} to room {to}: a spot link names a spot `to`")
+                }
+            }
+        }
+        Ok(RoomFile {
+            room: raw.room,
+            name: raw.name,
+            link,
+            check: raw.check,
+            flag: raw.flag,
+            knowledge: raw.knowledge,
+            exit: raw.exit,
+            arrival: raw.arrival,
+            spot_link,
+            floor: raw.floor,
+        })
+    }
+}
+
+/// A spot on the floor, written `"x,y,z"`: derive finds its face, room
+/// and part.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Point(pub [f32; 3]);
+
+impl std::str::FromStr for Point {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let xyz: Vec<f32> = (s.split(','))
+            .map(|n| n.trim().parse::<f32>())
+            .collect::<Result<_, _>>()
+            .with_context(|| format!("spot `{s}` isn't x,y,z"))?;
+        let [x, y, z] = xyz[..] else {
+            bail!("spot `{s}` isn't x,y,z");
+        };
+        Ok(Point([x, y, z]))
+    }
+}
+
+impl<'de> Deserialize<'de> for Point {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(d)?;
+        s.parse().map_err(serde::de::Error::custom)
+    }
+}
+
+impl std::fmt::Display for Point {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let [x, y, z] = self.0;
+        write!(f, "{x},{y},{z}")
+    }
+}
+
+/// A link between two spots, the first in this file's room.
+#[derive(Debug)]
+pub struct SpotLink {
+    pub from: Point,
+    pub to: Point,
+    pub needs: String,
+    pub via: Via,
+    pub why: String,
+    pub guess: bool,
+    pub evidence: Vec<String>,
+    pub expr: Expr,
+}
+
+/// Floor walk-joined to `at` that no room had joins this file's room.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FloorClaim {
+    pub at: Point,
+    pub why: String,
+    #[serde(default)]
+    pub evidence: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "kebab-case")]
 pub enum Via {
     Walk,
@@ -54,6 +219,10 @@ pub enum Via {
     Swim,
     Dive,
     Sink,
+    /// One way: the floor gives way under Link.
+    Fall,
+    /// A scene moves Link.
+    Event,
 }
 
 impl Via {
@@ -73,6 +242,8 @@ impl Via {
             Via::Swim => "swim",
             Via::Dive => "dive",
             Via::Sink => "sink",
+            Via::Fall => "fall",
+            Via::Event => "event",
         }
     }
 }
@@ -126,6 +297,9 @@ pub struct Flag {
     pub guess: bool,
     #[serde(default)]
     pub evidence: Vec<String>,
+    /// Where it's set, for one derive can't trace (an event): derive
+    /// checks the spot and writes the flag into the baseline.
+    pub at: Option<Point>,
     #[serde(skip, default = "always")]
     pub expr: Expr,
 }
@@ -190,9 +364,17 @@ pub fn spot(map: &str, spot: &str) -> u32 {
 pub(super) trait Entry {
     fn key(&self) -> String;
     fn evidence(&self) -> &[String];
+    /// A confirmed entry with no evidence: a guess where it can be one.
+    fn unproven(&mut self) -> Result<()> {
+        bail!("confirmed {} has no evidence", self.key())
+    }
 }
 
 impl Entry for Link {
+    fn unproven(&mut self) -> Result<()> {
+        self.guess = true;
+        Ok(())
+    }
     fn key(&self) -> String {
         format!("link to {} by {:?}", self.to, self.via)
     }
@@ -202,6 +384,10 @@ impl Entry for Link {
 }
 
 impl Entry for Check {
+    fn unproven(&mut self) -> Result<()> {
+        self.guess = true;
+        Ok(())
+    }
     fn key(&self) -> String {
         format!("check {}", self.hash)
     }
@@ -211,8 +397,25 @@ impl Entry for Check {
 }
 
 impl Entry for Flag {
+    fn unproven(&mut self) -> Result<()> {
+        self.guess = true;
+        Ok(())
+    }
     fn key(&self) -> String {
         format!("flag {}", self.word())
+    }
+    fn evidence(&self) -> &[String] {
+        &self.evidence
+    }
+}
+
+impl Entry for SpotLink {
+    fn unproven(&mut self) -> Result<()> {
+        self.guess = true;
+        Ok(())
+    }
+    fn key(&self) -> String {
+        format!("link from {} to {} by {:?}", self.from, self.to, self.via)
     }
     fn evidence(&self) -> &[String] {
         &self.evidence
@@ -251,6 +454,18 @@ pub struct Room {
     pub file: RoomFile,
     /// Whether its dungeon is in [`LIVE`].
     pub live: bool,
+    /// Its confirmed entries that name a spot, for derive.
+    pub spots: Spots,
+}
+
+/// A room's confirmed entries that name a spot. Derive reads them; logic
+/// sees them only through the baseline derive writes.
+#[derive(Debug, Default)]
+pub struct Spots {
+    pub link: Vec<SpotLink>,
+    /// Flags with `at`.
+    pub flag: Vec<Flag>,
+    pub floor: Vec<FloorClaim>,
 }
 
 /// A dungeon's folder name: its map's name in kebab case.
@@ -299,12 +514,10 @@ pub(super) fn unique<T: Entry>(list: &[T]) -> Result<()> {
 /// Each confirmed entry in place of the baseline entry with its key.
 pub(super) fn overlay<T: Entry>(base: &mut [T], confirmed: Vec<T>) -> Result<()> {
     unique(&confirmed)?;
-    for c in confirmed {
-        ensure!(
-            !c.evidence().is_empty(),
-            "confirmed {} has no evidence",
-            c.key()
-        );
+    for mut c in confirmed {
+        if c.evidence().is_empty() {
+            c.unproven()?;
+        }
         let slot = (base.iter_mut().find(|b| b.key() == c.key()))
             .with_context(|| format!("confirmed {} has no baseline entry", c.key()))?;
         *slot = c;
@@ -336,9 +549,17 @@ pub(super) fn rule(needs: &str) -> Result<Expr> {
     Ok(expr)
 }
 
+/// The flags `expr` names, by hash.
+fn flags_named(expr: &Expr, out: &mut Vec<u32>) {
+    match expr {
+        Expr::All(exprs) | Expr::Any(exprs) => exprs.iter().for_each(|e| flags_named(e, out)),
+        Expr::Word(w) => out.extend(w.strip_prefix("flag:").and_then(super::lang::flag_hash)),
+    }
+}
+
 /// Every room, confirmed over baseline, each rule parsed.
 pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
-    let mut rooms: BTreeMap<(String, u32), RoomFile> = BTreeMap::new();
+    let mut rooms: BTreeMap<(String, u32), (RoomFile, Spots)> = BTreeMap::new();
     let mut confirmed = Vec::new();
     for &(name, text) in files
         .iter()
@@ -350,6 +571,7 @@ pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
         ensure!(file.room == number, "{}: says room {}", at(), file.room);
         let mut parsed = || -> Result<()> {
             unique(&file.link)?;
+            unique(&file.spot_link)?;
             unique(&file.check)?;
             unique(&file.flag)?;
             unique(&file.knowledge)?;
@@ -357,6 +579,9 @@ pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
                 k.shaped().with_context(|| k.key())?;
             }
             for l in &mut file.link {
+                l.expr = rule(&l.needs).with_context(|| l.key())?;
+            }
+            for l in &mut file.spot_link {
                 l.expr = rule(&l.needs).with_context(|| l.key())?;
             }
             for c in &mut file.check {
@@ -370,17 +595,65 @@ pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
         parsed().with_context(at)?;
         match tier {
             "baseline" => {
-                let twice = rooms.insert((node, number), file).is_some();
+                let spotted = !file.spot_link.is_empty()
+                    || !file.floor.is_empty()
+                    || file.flag.iter().any(|f| f.at.is_some());
+                ensure!(
+                    !spotted,
+                    "{}: a spot entry belongs in confirmed/, derive writes what it makes",
+                    at()
+                );
+                let twice = rooms
+                    .insert((node, number), (file, Spots::default()))
+                    .is_some();
                 ensure!(!twice, "{}: a second file for room {number}", at());
             }
             _ => confirmed.push((name, node, file)),
         }
     }
-    for (name, node, file) in confirmed {
+    // Each flag a confirmed entry names, to check something sets it.
+    let mut named: Vec<(String, String, u32)> = vec![];
+    for (name, node, mut file) in confirmed {
         let at = || format!("logic/{name}");
-        let base = (rooms.get_mut(&(node, file.room)))
+        let (base, spots) = (rooms.get_mut(&(node.clone(), file.room)))
             .with_context(|| format!("{}: no baseline room", at()))?;
+        let mut name_flags = |key: String, expr: &Expr| {
+            let mut out = vec![];
+            flags_named(expr, &mut out);
+            named.extend(
+                out.into_iter()
+                    .map(|h| (node.clone(), format!("{}: {key}", at()), h)),
+            );
+        };
+        for l in &file.link {
+            name_flags(l.key(), &l.expr);
+        }
+        for l in &file.spot_link {
+            name_flags(l.key(), &l.expr);
+        }
+        for c in &file.check {
+            name_flags(c.key(), &c.expr);
+        }
+        for f in &file.flag {
+            name_flags(f.key(), &f.expr);
+        }
+        let (placed, flags): (Vec<Flag>, Vec<Flag>) =
+            file.flag.into_iter().partition(|f| f.at.is_some());
+        file.flag = flags;
         let lay = || -> Result<()> {
+            for mut l in std::mem::take(&mut file.spot_link) {
+                if l.evidence.is_empty() {
+                    l.unproven()?;
+                }
+                spots.link.push(l);
+            }
+            for mut f in placed {
+                if f.evidence.is_empty() {
+                    f.unproven()?;
+                }
+                spots.flag.push(f);
+            }
+            spots.floor.append(&mut file.floor);
             overlay(&mut base.link, file.link)?;
             overlay(&mut base.check, file.check)?;
             overlay(&mut base.flag, file.flag)?;
@@ -390,11 +663,21 @@ pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
         };
         lay().with_context(at)?;
     }
+    for (node, what, hash) in named {
+        let set = (rooms.range((node.clone(), 0)..=(node, u32::MAX)))
+            .flat_map(|(_, (file, spots))| file.flag.iter().chain(&spots.flag))
+            .any(|f| f.hash == hash);
+        ensure!(
+            set,
+            "{what} needs flag #{hash:08x}, which no [[flag]] in its dungeon sets"
+        );
+    }
     let rooms: Vec<Room> = (rooms.into_iter())
-        .map(|((node, _), file)| Room {
+        .map(|((node, _), (file, spots))| Room {
             live: LIVE.contains(&folder(&node).as_str()),
             node,
             file,
+            spots,
         })
         .collect();
     let mut checks = BTreeSet::new();
@@ -492,12 +775,96 @@ mod tests {
         assert!(format!("{err:#}").contains("no baseline entry"), "{err:#}");
     }
 
+    /// The maintainer's call (puzzle links spec): an entry no playtest
+    /// backs is a guess until one does.
     #[test]
-    fn a_confirmed_entry_needs_evidence() {
+    fn a_confirmed_entry_without_evidence_is_a_guess() {
         let bare = BASE.replace("guess = true", "");
         let (base, conf) = (at("baseline"), at("confirmed"));
-        let err = load(&[(&base, BASE), (&conf, &bare)]).unwrap_err();
+        let rooms = load(&[(&base, BASE), (&conf, &bare)]).unwrap();
+        let file = &rooms[0].file;
+        assert!(file.link[0].guess && file.check[0].guess && file.flag[0].guess);
+        // An exit or arrival has nothing to guess: it still needs evidence.
+        let spot = format!("{BASE}\n[[exit]]\nhash = 7\nname = \"Fake Exit\"\n");
+        let err = load(&[(&base, &spot), (&conf, &spot)]).unwrap_err();
         assert!(format!("{err:#}").contains("no evidence"), "{err:#}");
+    }
+
+    const SPOTS: &str = r#"
+        room = 4
+        name = "Room04"
+        [[link]]
+        from = "-33.5,109.8,10.7"
+        to = "-45,104.9,11"
+        needs = "always"
+        via = "fall"
+        why = "the plank breaks"
+        evidence = ["fake-playtest"]
+        [[link]]
+        from = "-45,104.9,11"
+        to = "-31.5,109.8,10.2"
+        needs = "flag:#1a2b3c4d"
+        via = "climb"
+        why = "the ladder falls"
+        [[flag]]
+        hash = 0x5e5e5e5e
+        name = "Fake Room Cleared"
+        at = "1,2,3"
+        needs = "always"
+        why = "a fake fight"
+        [[floor]]
+        at = "4,5,6"
+        why = "fake pit"
+    "#;
+
+    #[test]
+    fn spot_entries_go_to_derive_not_over_the_baseline() {
+        let (base, conf) = (at("baseline"), at("confirmed"));
+        let rooms = load(&[(&base, BASE), (&conf, SPOTS)]).unwrap();
+        let room = &rooms[0];
+        assert_eq!((room.file.link.len(), room.file.flag.len()), (1, 1));
+        let [fall, ladder] = &room.spots.link[..] else {
+            panic!("{:?}", room.spots)
+        };
+        assert_eq!((fall.via, fall.guess), (Via::Fall, false));
+        assert_eq!(fall.from, Point([-33.5, 109.8, 10.7]));
+        assert!(ladder.guess, "no evidence");
+        assert_eq!(room.spots.flag[0].at, Some(Point([1.0, 2.0, 3.0])));
+        assert!(room.spots.flag[0].guess);
+        assert_eq!(room.spots.floor[0].at, Point([4.0, 5.0, 6.0]));
+        let err = load(&[(&base, SPOTS)]).unwrap_err();
+        assert!(
+            format!("{err:#}").contains("belongs in confirmed"),
+            "{err:#}"
+        );
+    }
+
+    #[test]
+    fn a_spot_link_names_two_spots() {
+        let (base, conf) = (at("baseline"), at("confirmed"));
+        let bad = |from: &str, to: &str| {
+            let text = SPOTS
+                .replacen("from = \"-33.5,109.8,10.7\"", from, 1)
+                .replacen("to = \"-45,104.9,11\"", to, 1);
+            format!("{:#}", load(&[(&base, BASE), (&conf, &text)]).unwrap_err())
+        };
+        assert!(bad("", "to = \"1,2,3\"").contains("no `from`"));
+        assert!(bad("from = \"1,2,3\"", "to = 0").contains("names a spot `to`"));
+        assert!(bad("from = \"1,2\"", "to = \"1,2,3\"").contains("isn't x,y,z"));
+    }
+
+    #[test]
+    fn a_confirmed_entry_names_only_flags_its_dungeon_sets() {
+        let (base, conf) = (at("baseline"), at("confirmed"));
+        let unset = SPOTS.replace("flag:#1a2b3c4d", "flag:#0badf1a6");
+        let err = load(&[(&base, BASE), (&conf, &unset)]).unwrap_err();
+        assert!(
+            format!("{err:#}").contains("no [[flag]] in its dungeon sets"),
+            "{err:#}"
+        );
+        // A flag a confirmed entry places counts as set.
+        let placed = SPOTS.replace("flag:#1a2b3c4d", "flag:#5e5e5e5e");
+        load(&[(&base, BASE), (&conf, &placed)]).unwrap();
     }
 
     #[test]

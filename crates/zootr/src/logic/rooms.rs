@@ -122,6 +122,7 @@ mod tests {
             node: node.into(),
             file,
             live: true,
+            spots: Default::default(),
         }
     }
 

@@ -295,6 +295,9 @@ pub(super) fn logic_set(romfs: &Romfs, game: &std::path::Path, cmd: LogicCommand
             if !d.floorless.is_empty() {
                 println!("rooms with no floor: {:?}", d.floorless);
             }
+            for w in &d.warnings {
+                println!("warning: {w}");
+            }
             let at = |p: [f32; 3]| format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2]);
             for j in &d.jumps {
                 let (from, to) = (at(j.at.0), at(j.at.1));
