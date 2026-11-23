@@ -141,12 +141,30 @@ impl Queue {
     /// The first game not `claimed` that `fits`, one with no sweep on it
     /// before one a sweep would have to leave.
     fn pick(&self, claimed: &[bool], fits: impl Fn(&Game) -> bool) -> Option<usize> {
-        let fit = |(j, g): &(usize, &Game)| !claimed[*j] && fits(g);
+        let fit = |(j, g): &(usize, &Game)| {
+            !claimed[*j] && self.room(machine(&g.name), claimed) && fits(g)
+        };
         let mut open = self.games.iter().enumerate().filter(fit);
         let first = open.clone().next().map(|(j, _)| j);
         open.find(|(_, g)| g.sweep.is_none())
             .map(|(j, _)| j)
             .or(first)
+    }
+
+    /// How many of `m`'s games are played or `claimed` this tick: by a
+    /// session, or by the maintainer.
+    fn taken(&self, m: &str, claimed: &[bool]) -> usize {
+        let on_m = |(j, g): &(usize, &Game)| {
+            machine(&g.name) == m && (claimed[*j] || g.holder.is_some() || g.maintainer)
+        };
+        self.games.iter().enumerate().filter(on_m).count()
+    }
+
+    /// Whether `m` takes another game: always, but only one beside a
+    /// sweep, which shares the machine's memory with the model judging it.
+    fn room(&self, m: &str, claimed: &[bool]) -> bool {
+        let swept = (self.games.iter()).any(|g| machine(&g.name) == m && g.sweep.is_some());
+        !swept || self.taken(m, claimed) == 0
     }
 
     /// Queue `session`, or update its note, urgency, `both` and `on` if it
@@ -282,15 +300,18 @@ impl Queue {
 
     /// Sweep `name` asks to run on `game`: yes once no one holds it, the
     /// maintainer isn't playing, and no one waits who could have a game
-    /// now. A `both` waiter counts only once every machine is open to it,
-    /// an `on` waiter only for a game it [`suits`].
+    /// now, and the machine plays one game at most besides ([`room`]). A
+    /// `both` waiter counts only once every machine is open to it, an `on`
+    /// waiter only for a game it [`suits`].
     pub fn sweep_start(&mut self, game: &str, name: &str) -> Result<bool> {
         let idle = (self.waiting.iter()).all(|w| {
             (w.both && !self.all_open_to(&w.session))
                 || w.on.as_deref().is_some_and(|o| !suits(o, game))
         });
+        let unclaimed = vec![false; self.games.len()];
+        let crowded = self.taken(machine(game), &unclaimed) > 1;
         let g = self.game(game)?;
-        if g.holder.is_some() || g.maintainer || !idle {
+        if g.holder.is_some() || g.maintainer || !idle || crowded {
             return Ok(false);
         }
         g.sweep = Some(Sweep {
@@ -321,7 +342,8 @@ impl Queue {
     /// Lapse holds idle past `lease`, count sweeps still mid-row past
     /// `cap` as gone, then hand each free game to the first waiter it
     /// suits, asking a sweep on it to step aside first, and only when no
-    /// game without one suits. A `both` waiter gets a game of every
+    /// game without one suits. A machine with a sweep takes one game more
+    /// at most ([`room`]). A `both` waiter gets a game of every
     /// machine in one tick or none, and asks sweeps to step aside only
     /// once every machine is otherwise open to it.
     pub fn tick(&mut self, now: i64, lease: i64, cap: i64) -> Vec<Grant> {
@@ -813,16 +835,29 @@ mod tests {
     }
 
     #[test]
-    fn a_waiter_takes_a_free_slot_over_one_a_sweep_must_leave() {
+    fn beside_a_sweep_a_machine_plays_one_game_more_and_leaves_the_sweep_be() {
         let mut q = slots();
         assert!(q.sweep_start("far", "night").unwrap());
-        q.join("a", "", false, false, Some("far"), 1).unwrap();
+        for w in ["a", "b"] {
+            q.join(w, "", false, false, Some("far"), 1).unwrap();
+        }
         assert_eq!(granted(&mut q, 1), [pair("a", "far-2")]);
-        assert!(!q.sweep_yields("far", "night"), "far-2 was free");
-        q.join("b", "", false, false, Some("far"), 2).unwrap();
-        q.join("c", "", false, false, Some("far"), 2).unwrap();
-        assert_eq!(granted(&mut q, 2), [pair("b", "far-3")]);
-        assert!(q.sweep_yields("far", "night"), "c waits for the sweep's");
+        assert!(!q.sweep_yields("far", "night"), "b waits, the sweep runs");
+        q.join("c", "", false, false, None, 2).unwrap();
+        assert_eq!(granted(&mut q, 2), [pair("c", "near")], "near has no sweep");
+        q.sweep_done("far", "night").unwrap();
+        assert_eq!(granted(&mut q, 3), [pair("b", "far")]);
+    }
+
+    #[test]
+    fn a_sweep_waits_while_two_slots_of_its_machine_play() {
+        let mut q = slots();
+        q.join("a", "", false, false, Some("far-2"), 0).unwrap();
+        q.join("b", "", false, false, Some("far-3"), 0).unwrap();
+        assert_eq!(granted(&mut q, 0), [pair("a", "far-2"), pair("b", "far-3")]);
+        assert!(!q.sweep_start("far", "night").unwrap());
+        q.free("b");
+        assert!(q.sweep_start("far", "night").unwrap());
     }
 
     #[test]
