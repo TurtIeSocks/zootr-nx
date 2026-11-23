@@ -33,17 +33,10 @@ pub fn set(
     edit: &Edit,
     new: impl FnOnce() -> Result<(String, String)>,
 ) -> Result<PathBuf> {
-    let mut files = FILES
-        .iter()
-        .map(|(name, _)| {
-            let path = dir.join(name);
-            let text = fs::read_to_string(&path).with_context(|| path.display().to_string())?;
-            Ok((*name, text))
-        })
-        .collect::<Result<Vec<_>>>()?;
+    let mut files = rule_files(dir)?;
     let at = match files
         .iter()
-        .position(|(_, text)| block(text, hash).is_some())
+        .position(|(_, text)| check(text, hash).is_some())
     {
         Some(at) => {
             files[at].1 = update(&files[at].1, hash, edit);
@@ -71,12 +64,27 @@ pub fn set(
     Ok(path)
 }
 
-/// The lines of `hash`'s entry, from its `[[check]]` line to the blank,
-/// comment or table line after it.
-fn block(text: &str, hash: u64) -> Option<Range<usize>> {
+/// The rule files under `dir`, as they are on disk.
+pub(super) fn rule_files(dir: &Path) -> Result<Vec<(&'static str, String)>> {
+    (FILES.iter())
+        .map(|(name, _)| {
+            let path = dir.join(name);
+            let text = fs::read_to_string(&path).with_context(|| path.display().to_string())?;
+            Ok((*name, text))
+        })
+        .collect()
+}
+
+/// The lines of `hash`'s `[[check]]` entry.
+fn check(text: &str, hash: u64) -> Option<Range<usize>> {
+    block(text, "[[check]]", &format!("hash = {hash}"))
+}
+
+/// The lines of the `table` entry whose line after the table line is
+/// `key`, from its table line to the blank, comment or table line after it.
+pub(super) fn block(text: &str, table: &str, key: &str) -> Option<Range<usize>> {
     let lines: Vec<&str> = text.lines().collect();
-    let key = format!("hash = {hash}");
-    let at = (1..lines.len()).find(|&i| lines[i] == key && lines[i - 1] == "[[check]]")?;
+    let at = (1..lines.len()).find(|&i| lines[i] == key && lines[i - 1] == table)?;
     let end = (at + 1..lines.len())
         .find(|&i| {
             let l = lines[i].trim();
@@ -88,7 +96,6 @@ fn block(text: &str, hash: u64) -> Option<Range<usize>> {
 
 /// The `key = value` lines an edit writes, values quoted as TOML strings.
 fn fields(edit: &Edit) -> Vec<(&'static str, String)> {
-    let quote = |s: &str| toml::Value::String(s.to_owned()).to_string();
     let mut out = Vec::new();
     if let Some(name) = &edit.name {
         out.push(("name", quote(name)));
@@ -103,6 +110,11 @@ fn fields(edit: &Edit) -> Vec<(&'static str, String)> {
     out
 }
 
+/// `s` as a TOML string.
+pub(super) fn quote(s: &str) -> String {
+    toml::Value::String(s.to_owned()).to_string()
+}
+
 fn era_word(era: Era) -> &'static str {
     match era {
         Era::Child => "child",
@@ -114,7 +126,7 @@ fn era_word(era: Era) -> &'static str {
 /// end of its entry where it doesn't.
 fn update(text: &str, hash: u64, edit: &Edit) -> String {
     let mut lines: Vec<String> = text.lines().map(String::from).collect();
-    let Some(mut range) = block(text, hash) else {
+    let Some(mut range) = check(text, hash) else {
         return text.to_owned();
     };
     for (key, value) in fields(edit) {
@@ -199,8 +211,8 @@ mod tests {
                 "\n\n[[check]]\nhash = 9\nname = \"Fake Hill Rock\"\nneeds = \"child\"\n"
             )
         );
-        assert!(block(&got, 9).is_some());
-        assert_eq!(block(FILE, 9), None);
+        assert!(check(&got, 9).is_some());
+        assert_eq!(check(FILE, 9), None);
     }
 
     #[test]

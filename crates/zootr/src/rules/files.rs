@@ -2,6 +2,7 @@
 //! into a [`Book`], checked once.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 
 use anyhow::{Context, Result, bail, ensure};
 use serde::Deserialize;
@@ -157,6 +158,14 @@ pub fn settings_read() -> BTreeSet<String> {
 impl Book {
     pub fn load() -> Result<Self> {
         Self::from_parts(FILES, rooms::FILES)
+    }
+
+    /// The book from the rule and room files under `dir` as they are on
+    /// disk now (a worktree's edits), not the ones built in.
+    pub fn load_from(dir: &Path) -> Result<Self> {
+        let rules = super::set::rule_files(dir)?;
+        let rooms = rooms::write::room_files(dir)?;
+        Self::from_parts(&pairs(&rules), &pairs(&rooms))
     }
 
     pub(super) fn from_files(files: &[(&str, &str)]) -> Result<Self> {
@@ -347,6 +356,13 @@ impl Book {
         }
         Ok(())
     }
+}
+
+/// Borrowed `(name, text)` pairs, as the loaders take them.
+pub(super) fn pairs<N: AsRef<str>>(files: &[(N, String)]) -> Vec<(&str, &str)> {
+    (files.iter())
+        .map(|(n, t)| (n.as_ref(), t.as_str()))
+        .collect()
 }
 
 #[cfg(test)]

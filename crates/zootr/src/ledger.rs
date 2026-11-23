@@ -80,6 +80,21 @@ pub struct Row {
     pub tracker: Option<String>,
     /// How the sweep triggers it, or why it skips it.
     pub sweep: Option<String>,
+    /// Its room's rule, for a check in a dungeon with room files.
+    pub room: Option<RoomRule>,
+}
+
+/// A check's rule in its room file: the baseline with confirmed laid over.
+#[derive(Serialize)]
+pub struct RoomRule {
+    /// The dungeon's id (`deku-tree`).
+    pub dungeon: &'static str,
+    pub room: u32,
+    pub room_name: String,
+    pub needs: String,
+    pub why: String,
+    pub guess: bool,
+    pub confirmed: bool,
 }
 
 #[derive(Serialize)]
@@ -223,6 +238,25 @@ pub(crate) fn planned(romfs: &Romfs) -> Result<(Ledger, Vec<crate::sweep::plan::
         .map(|p| (p.spot.hash, crate::sweep::night::how(&p.trigger)))
         .collect();
 
+    let mut in_rooms = BTreeMap::new();
+    for room in &book.rooms {
+        let Some(d) = (crate::entrances::DUNGEONS.iter()).find(|d| d.node.get() == room.node)
+        else {
+            continue;
+        };
+        for c in &room.file.check {
+            let rule = RoomRule {
+                dungeon: d.id,
+                room: room.file.room,
+                room_name: room.file.name.clone(),
+                needs: c.needs.clone(),
+                why: c.why.clone(),
+                guess: c.guess,
+                confirmed: c.confirmed,
+            };
+            in_rooms.insert(c.hash, rule);
+        }
+    }
     let rows = rows
         .into_iter()
         .zip(spots)
@@ -255,6 +289,7 @@ pub(crate) fn planned(romfs: &Romfs) -> Result<(Ledger, Vec<crate::sweep::plan::
             left_out,
             tracker: tracker.flag(c.hash).map(|f| f.to_string()),
             sweep: sweep.get(&c.hash).cloned(),
+            room: in_rooms.remove(&c.hash),
         })
         .collect();
     let ledger = Ledger {
