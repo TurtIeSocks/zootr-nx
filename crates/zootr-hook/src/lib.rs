@@ -58,11 +58,12 @@ pub use table::{
 
 /// Where our pieces go in `main`, for game 1.1.1. The code goes over
 /// Havok's physics trace recorder, which a patch keeps from ever running,
-/// the far code (link section `.far`, what rarely runs) in the zero padding after
-/// text, the table in the zero padding after rodata, and the chest list in
-/// the zeroed page tail after bss.
+/// the far code (link section `.far`, what rarely runs) over a function
+/// only the recorder's dispatcher calls, dead with it, the table in the zero
+/// padding after rodata, and the chest list in the zeroed page tail after
+/// bss. The padding after text stays free: every other code mod uses it.
 pub const CAVE: u32 = 0x17f_1680;
-pub const FAR: u32 = 0x3c4_61d0;
+pub const FAR: u32 = 0x17f_60c0;
 pub const TABLE: u32 = 0x484_c080;
 /// The first byte after bss. sloperinaGZ keeps its hook and lock slots
 /// in the 16 bytes from here, so the list keeps clear of them.

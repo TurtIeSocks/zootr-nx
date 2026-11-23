@@ -19,8 +19,9 @@ const HOOK: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/hook.bin"));
 const FAR_CODE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/far.bin"));
 /// Where the recorder, and the free space after rodata and bss, end.
 const CAVE_END: u32 = 0x17f_58e0;
-/// Where the padding after text, which holds the far code, ends: rodata.
-const FAR_END: u32 = 0x3c4_7000;
+/// Where the far code's room ends: the first word past `FAR` the Mac's
+/// game rewrites, which a cheat can't write over.
+const FAR_END: u32 = 0x17f_8a1c;
 const TABLE_END: u32 = 0x484_d000;
 const LIST_END: u32 = 0x4e9_b000;
 const _: () = assert!(LIST + size_of::<Shared>() as u32 <= PANIC && LIST.is_multiple_of(8));
@@ -442,7 +443,7 @@ mod tests {
     use std::collections::BTreeMap;
     use std::ops::Range;
 
-    use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS, HEADER, Header, ICE_TRAPS, MAGIC, Table};
+    use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS, HEADER, Header, ICE_TRAPS, MAGIC, Table, fnv};
 
     use super::*;
 
@@ -841,6 +842,51 @@ mod tests {
         let header = nup.read(main).unwrap();
         assert_eq!(header[0x40..0x60], BUILD_ID);
         assert!(path(Path::new("m")).ends_with("cheats/E0F3CCFAF50065AE.txt"));
+    }
+
+    /// `main` as the Mac's game runs it: the dump's, but for the words it
+    /// rewrote, which its cheats can't write over. A word that holds the
+    /// dump's original here is one it left alone.
+    const PC_MAIN: &str = "../../dump/0400486024DEC000_build/patched_v131072/main.patched.bin";
+
+    #[test]
+    fn every_word_the_patch_writes_over_holds_what_we_expect() {
+        let Ok(main) = std::fs::read(PC_MAIN) else {
+            return;
+        };
+        let word = |at: u32| u32::from_le_bytes(main[at as usize..][..4].try_into().unwrap());
+        let room = |at: u32, end: u32| &main[at as usize..end as usize];
+        assert_eq!(word(GATE.0), 0x3400_0048, "cbz w8, 0x17d59c4");
+        assert_eq!(word(CATCH.0), 0x3640_0509, "tbz w9, #8, 0x4102f0");
+        for (at, _) in CALLS.into_iter().chain([RUN_CALL]) {
+            assert_eq!(word(at) >> 26, 0x25, "{at:#x} isn't a bl");
+        }
+        for (&(at, _), stub) in NPAD_CALLS.iter().zip(NPAD_STUBS) {
+            assert_eq!(word(at).to_le_bytes(), branch(at, stub, true), "{at:#x}");
+        }
+        for &(at, _) in HOOKS {
+            assert_eq!(word(at), 0xd503_237f, "{at:#x} isn't a pacibsp");
+        }
+        // Havok's trace recorder, and a function only its dispatcher
+        // calls, as 1.1.1 has them, untouched by the Mac's game.
+        assert_eq!(fnv(room(CAVE, CAVE_END)), 0xc734_cad6, "the cave");
+        assert_eq!(fnv(room(FAR, FAR_END)), 0x7aea_f248, "the far code's room");
+        assert!(
+            room(TABLE, TABLE_END).iter().all(|&b| b == 0),
+            "the table's room"
+        );
+        // Each patch starts at a place checked above.
+        let sites = SKIPS.iter().chain(&CALLS).chain(&NPAD_CALLS).chain(HOOKS);
+        let checked: Vec<u32> = (sites.map(|&(at, _)| at))
+            .chain([RUN_CALL.0, CAVE, FAR, TABLE, TABLE + 4])
+            .collect();
+        for p in patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap() {
+            assert!(
+                checked.contains(&p.at),
+                "nothing checks what {:#x} holds",
+                p.at
+            );
+        }
     }
 
     #[test]
