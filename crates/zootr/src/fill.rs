@@ -226,8 +226,7 @@ mod tests {
     }
 
     /// [`seeds_fill`], handing each filled seed to `each`. The seeds fill
-    /// in parallel, each thread taking the next seed left, since these
-    /// tests set the suite's wall time.
+    /// in parallel, since these tests set the suite's wall time.
     fn seeds_fill_and(settings: &Settings, each: impl Fn(&Filled) + Sync) {
         let Some(romfs) = dev_dump() else { return };
         let new_game = NewGame::from_settings(settings, &[]).unwrap();
@@ -241,7 +240,7 @@ mod tests {
         .unwrap();
         let fixed = Fixed::new();
         let needed = world.items();
-        let one = |seed: u64| {
+        let one = |&seed: &u64| {
             let mut deal = deal(&checks, &fixed, &new_game).unwrap();
             let how = new_game.ice_traps;
             crate::ice_traps::swap(&romfs, &mut deal.items, &needed, how, seed).unwrap();
@@ -257,41 +256,16 @@ mod tests {
                     each(&filled);
                     None
                 }
-                Err(e) => Some((seed, format!("seed {seed}: {e:#}"))),
+                Err(e) => Some(format!("seed {seed}: {e:#}")),
             }
         };
-        let next = std::sync::atomic::AtomicU64::new(0);
-        let threads = std::thread::available_parallelism().map_or(1, |n| n.get());
-        let mut failed: Vec<(u64, String)> = std::thread::scope(|s| {
-            let workers: Vec<_> = (0..threads)
-                .map(|_| {
-                    s.spawn(|| {
-                        let mut failed = Vec::new();
-                        loop {
-                            let seed = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                            if seed >= SEEDS {
-                                return failed;
-                            }
-                            failed.extend(one(seed));
-                        }
-                    })
-                })
-                .collect();
-            workers
-                .into_iter()
-                .flat_map(|w| w.join().unwrap())
-                .collect()
-        });
-        failed.sort();
+        let seeds: Vec<u64> = (0..SEEDS).collect();
+        let failed: Vec<String> = crate::par::map(&seeds, one).into_iter().flatten().collect();
         assert!(
             failed.is_empty(),
             "{} of {SEEDS} failed:\n{}",
             failed.len(),
-            failed
-                .iter()
-                .map(|f| f.1.as_str())
-                .collect::<Vec<_>>()
-                .join("\n")
+            failed.join("\n")
         );
     }
 
