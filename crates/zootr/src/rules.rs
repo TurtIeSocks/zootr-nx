@@ -17,6 +17,7 @@ mod files;
 mod item;
 pub mod kinds;
 mod lang;
+pub mod quest_gates;
 pub mod rooms;
 mod set;
 pub mod vocab;
@@ -92,6 +93,8 @@ pub struct CheckEntry {
     pub optional: bool,
     /// From a live room file, which already measured what reaches it.
     pub room: bool,
+    /// Why the quest gate audit may pass a gate the rule names no word for.
+    pub quest_gate_ok: Option<String>,
 }
 
 /// Every rule file, parsed and checked.
@@ -151,6 +154,25 @@ impl Book {
 
     pub fn checks(&self) -> impl Iterator<Item = (u64, &CheckEntry)> {
         self.checks.iter().map(|(h, e)| (*h, e))
+    }
+
+    /// The words `expr` can't be met without, abilities opened up: all of
+    /// an `and`, and what every side of an `or` shares. A side that's only
+    /// a setting is left out of an `or`, since a seed with it on changes the
+    /// game there instead.
+    pub fn required(&self, expr: &Expr) -> BTreeSet<String> {
+        match expr {
+            Expr::Word(word) => match self.abilities.get(word) {
+                Some(inner) => self.required(inner),
+                None => BTreeSet::from([word.clone()]),
+            },
+            Expr::All(exprs) => exprs.iter().flat_map(|e| self.required(e)).collect(),
+            Expr::Any(exprs) => (exprs.iter())
+                .filter(|e| !matches!(e, Expr::Word(w) if w.starts_with("setting:")))
+                .map(|e| self.required(e))
+                .reduce(|a, b| a.intersection(&b).cloned().collect())
+                .unwrap_or_default(),
+        }
     }
 
     /// `text` parsed and resolved, for rules from outside the files.

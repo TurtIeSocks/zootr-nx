@@ -493,6 +493,9 @@ pub(super) enum LogicCommand {
         /// One dungeon, by its id (`deku-tree`).
         dungeon: Option<String>,
     },
+    /// Every check and hand exit whose giver waits on a quest step that its
+    /// rule names no word for, and has no `quest-gate-ok` reason.
+    QuestGates,
     /// Write `logic/baseline/` from the game's data: never edited by hand,
     /// `logic/confirmed/` overrides it.
     Derive {

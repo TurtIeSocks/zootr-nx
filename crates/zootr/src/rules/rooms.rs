@@ -106,6 +106,10 @@ pub struct Check {
     pub guess: bool,
     #[serde(default)]
     pub evidence: Vec<String>,
+    /// Why a quest step gate the rule names no word for is always met
+    /// by the time Link reaches it (`zootr logic quest-gates`).
+    #[serde(rename = "quest-gate-ok")]
+    pub quest_gate_ok: Option<String>,
     #[serde(skip, default = "always")]
     pub expr: Expr,
 }

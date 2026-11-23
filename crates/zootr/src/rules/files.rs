@@ -87,6 +87,10 @@ struct CheckRule {
     era: Option<Era>,
     /// The setting that deals the check, so it may not be dealt.
     setting: Option<String>,
+    /// Why a quest step gate the rule names no word for is always met
+    /// by the time Link reaches it (`zootr logic quest-gates`).
+    #[serde(rename = "quest-gate-ok")]
+    quest_gate_ok: Option<String>,
 }
 
 /// What an exit between two maps needs. One the game's data doesn't have,
@@ -99,6 +103,10 @@ pub struct ExitRule {
     #[serde(default)]
     pub added: bool,
     pub needs: String,
+    /// Why a quest step gate the rule names no word for is always met
+    /// by the time Link reaches it (`zootr logic quest-gates`).
+    #[serde(rename = "quest-gate-ok")]
+    pub quest_gate_ok: Option<String>,
     #[serde(skip, default = "always")]
     pub expr: Expr,
 }
@@ -194,6 +202,7 @@ impl Book {
                 // hash is a placement's: the fresh derive test keeps it so.
                 optional: true,
                 room: true,
+                quest_gate_ok: check.quest_gate_ok.clone(),
             };
             if let Some(hand) = self.checks.insert(check.hash, entry) {
                 self.hand.entry(check.hash).or_insert(hand);
@@ -244,6 +253,7 @@ impl Book {
                 place,
                 optional: rule.setting.is_some(),
                 room: false,
+                quest_gate_ok: rule.quest_gate_ok,
             };
             ensure!(
                 self.checks.insert(rule.hash, entry).is_none(),

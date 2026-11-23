@@ -225,6 +225,17 @@ pub(super) fn logic_set(romfs: &Romfs, game: &std::path::Path, cmd: LogicCommand
         audits.iter().for_each(|a| print!("{a}"));
         return Ok(());
     }
+    if let LogicCommand::QuestGates = cmd {
+        let (graph, book) = (
+            crate::flagmap::Graph::build(romfs)?,
+            crate::rules::Book::load()?,
+        );
+        print!(
+            "{}",
+            crate::rules::quest_gates::audit(romfs, &graph, &book)?
+        );
+        return Ok(());
+    }
     if let LogicCommand::Derive {
         kinds,
         dungeon,
