@@ -46,7 +46,7 @@ const KIT: &[(&str, i32)] = &[
     ("biggest-bomb-bag", 1), ("bombs", 40), ("bombchus", 20),
     ("biggest-stick-bag", 1), ("deku-sticks", 30), ("biggest-nut-bag", 1), ("deku-nuts", 40),
     ("longshot", 1), ("boomerang", 1), ("megaton-hammer", 1), ("lens-of-truth", 1),
-    ("dins-fire", 1), ("farores-wind", 1), ("nayrus-love", 1), ("double-magic", 1),
+    ("dins-fire", 1), ("farores-wind", 1), ("nayrus-love", 1), ("double-magic", 1), ("improved-spin", 1),
     ("ocarina-of-time", 1), ("magic-beans", 10),
     ("bottle-1", 1), ("bottle-2", 1), ("bottle-3", 1), ("bottle-4", 1),
     ("keaton-mask", 1), ("skull-mask", 1), ("spooky-mask", 1), ("bunny-hood", 1),
@@ -914,6 +914,14 @@ mod tests {
         };
         let rupees = view.status.iter().find(|f| f.hash == RUPEES).unwrap();
         assert_eq!(rupees.max.map(|m| m.to_string()), Some(rupees.value.clone()));
+    }
+
+    #[test]
+    fn the_arsenal_holds_improved_spin() {
+        let Some((_, spin)) = arsenal_cell("Improved Spin") else {
+            return;
+        };
+        assert_eq!(spin.tier, 1);
     }
 
     #[test]
