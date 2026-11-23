@@ -90,9 +90,13 @@ fn described(id: &str, description: &str) -> String {
     held.fold(description.to_owned(), |d, h| d.replace(h.2, ""))
 }
 
-/// Where the world's data lives in the repo.
+/// Where the world's data lives in the repo. Cargo's run-time
+/// `CARGO_MANIFEST_DIR` comes first: CI's test binary can be another job's
+/// build, whose baked-in checkout is gone.
 pub fn data_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../ap/znx/data")
+    let crate_dir = std::env::var_os("CARGO_MANIFEST_DIR").map(PathBuf::from);
+    let crate_dir = crate_dir.unwrap_or_else(|| env!("CARGO_MANIFEST_DIR").into());
+    crate_dir.join("../../ap/znx/data")
 }
 
 /// Export into `dir`, keeping the ids its `ids.json` already gave out.
