@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 use anyhow::{Result, anyhow, bail};
 
 use ounce_formats::KEYED;
+use zootr_hook::keys::{KEY_STRIDE, KEY_VALUE, KEYS, find};
 
 use crate::config::Target;
 use crate::gamedata::GameData;
@@ -180,22 +181,31 @@ pub fn keys(mem: &impl Memory, global: u64) -> Result<BTreeSet<u64>> {
     keys_of(mem, manager(mem, global)?)
 }
 
-/// The manager keeps the per-placement flags apart from the typed tables:
-/// a count, then a pointer to entries sorted by key. Each entry is the u64
-/// key, then its value at [`KEY_VALUE`]. `docs/research/tracker-flags.md`.
-const KEYS: u64 = 0xc58;
-const KEY_STRIDE: usize = 0x10;
-const KEY_VALUE: usize = 0xc;
+/// Where the per-placement flags' entries sit, and all of them
+/// ([`zootr_hook::keys`]).
+fn key_entries(mem: &impl Memory, manager: u64) -> Result<(u64, Vec<u8>)> {
+    let count = mem.u32(manager + KEYS as u64)? as usize;
+    let at = mem.u64(manager + KEYS as u64 + 8)?;
+    Ok((at, mem.read(at, sized(KEYED, count * KEY_STRIDE)?)?))
+}
 
 fn keys_of(mem: &impl Memory, manager: u64) -> Result<BTreeSet<u64>> {
-    let count = mem.u32(manager + KEYS)? as usize;
-    let at = mem.u64(manager + KEYS + 8)?;
-    let entries = mem.read(at, sized(KEYED, count * KEY_STRIDE)?)?;
+    let (_, entries) = key_entries(mem, manager)?;
     let (entries, _) = entries.as_chunks::<KEY_STRIDE>();
     Ok((entries.iter())
         .filter(|e| e[KEY_VALUE] != 0)
         .map(|e| quad(e, 0))
         .collect())
+}
+
+/// Where placement `key`'s own flag keeps its value, and that value, given
+/// the global from [`global`]. `None` when GameData has no entry for it.
+pub fn key_value(mem: &impl Memory, global: u64, key: u64) -> Result<Option<(u64, u8)>> {
+    let (at, entries) = key_entries(mem, manager(mem, global)?)?;
+    Ok(find(&entries, key).map(|i| {
+        let entry = i * KEY_STRIDE;
+        (at + (entry + KEY_VALUE) as u64, entries[entry + KEY_VALUE])
+    }))
 }
 
 /// Every value in the type tables, in three requests over a bridge: the

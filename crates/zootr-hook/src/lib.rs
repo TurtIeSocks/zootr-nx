@@ -31,6 +31,7 @@
 
 #[cfg(target_os = "none")]
 mod game;
+pub mod keys;
 pub mod look;
 mod mailbox;
 mod shared;
