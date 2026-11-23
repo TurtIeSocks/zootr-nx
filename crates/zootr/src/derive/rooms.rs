@@ -798,11 +798,15 @@ fn past_shutters(
     opens: &[(usize, usize)],
 ) -> HashSet<(u32, usize)> {
     loop {
+        // Every room entered at `a`: a part may hold two rooms, and
+        // picking one by the set's order made derive differ run to run.
         let more: Vec<(u32, usize)> = (opens.iter())
-            .filter_map(|&(a, b)| {
-                let r = entries.iter().find(|(_, p)| *p == a)?.0;
-                (!entries.contains(&(r, b))).then_some((r, b))
+            .flat_map(|&(a, b)| {
+                (entries.iter())
+                    .filter(move |(_, p)| *p == a)
+                    .map(move |&(r, _)| (r, b))
             })
+            .filter(|e| !entries.contains(e))
             .collect();
         if more.is_empty() {
             return entries;
