@@ -441,6 +441,9 @@ fn take(path: &Path) -> Result<()> {
     }
 }
 
+#[cfg(all(test, feature = "emu"))]
+mod emu;
+
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
@@ -850,7 +853,8 @@ mod tests {
     /// `main` as the Mac's game runs it: the dump's, but for the words it
     /// rewrote, which its cheats can't write over. A word that holds the
     /// dump's original here is one it left alone.
-    const PC_MAIN: &str = "../../dump/0400486024DEC000_build/patched_v131072/main.patched.bin";
+    pub(super) const PC_MAIN: &str =
+        "../../dump/0400486024DEC000_build/patched_v131072/main.patched.bin";
 
     #[test]
     fn every_word_the_patch_writes_over_holds_what_we_expect() {

@@ -60,6 +60,15 @@ jobs:
       - name: cargo test
         run: cargo test --workspace --lib --bins --tests --config .github/cargo-ci.toml
 
+      # The hook's unicorn tests (feature emu, unicorn: GPL, never in a
+      # release). Built on one OS so they never rot; they skip without the
+      # Mac game's main, which CI doesn't have.
+      - name: cargo clippy and test, the hook's unicorn tests
+        if: runner.os == 'Linux'
+        run: |
+          cargo clippy -p zootr --features emu --lib --tests -- -D warnings
+          cargo test -p zootr --features emu --lib --config .github/cargo-ci.toml -- patch::emu
+
   # The tests that need the game dump, which skip themselves above. They run
   # on our own runner, which holds the dump. Never on a fork's code: this
   # if: skips a fork's PR, and the runner refuses one anyway.
