@@ -11,6 +11,8 @@ name = "zootr_app"
 
 [dependencies]
 anyhow.workspace = true
+jiff.workspace = true
+log.workspace = true
 ounce-formats.workspace = true
 serde.workspace = true
 serde_json.workspace = true

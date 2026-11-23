@@ -78,12 +78,13 @@ needs = "hookshot"
 
 # Market and the Temple of Time
 
-# The Door of Time, then the Master Sword.
+# The Door of Time, then the Master Sword. Closed, it opens only once the
+# quest is past the moat scene: the flow the song runs checks it.
 [[exit]]
 from = "market-child"
 to = "market-adult"
 added = true
-needs = "setting:door-of-time=open or (beat:gohma and beat:king-dodongo and beat:barinade and item:ocarina-of-time and song-of-time)"
+needs = "setting:door-of-time=open or (event:moat-scene and item:ocarina-of-time and song-of-time)"
 
 [[exit]]
 from = "market-adult"

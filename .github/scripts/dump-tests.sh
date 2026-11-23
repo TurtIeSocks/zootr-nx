@@ -30,7 +30,9 @@ status=$?
 # checkout. One cargo run a job leaves no gap for that.
 bin=$(sed -n 's|^ *Running unittests src/lib.rs (\(.*\))$|\1|p' "$log" | head -1)
 if [ -x "$bin" ]; then
-  (cd crates/zootr && "$bin" --ignored ap::export::) >> "$log" 2>&1 || status=1
+  # Cargo sets CARGO_MANIFEST_DIR for a test it runs, so set it here too: the
+  # binary may be another job's build, its baked-in checkout gone.
+  (cd crates/zootr && CARGO_MANIFEST_DIR="$PWD" "$bin" --ignored ap::export::) >> "$log" 2>&1 || status=1
 else
   echo "no lib test binary in the log, so the slow AP checks didn't run"
   status=1

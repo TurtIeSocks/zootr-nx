@@ -1,6 +1,7 @@
 import {
   Activity,
   Backpack,
+  FileText,
   FlaskConical,
   Gamepad2,
   Globe,
@@ -67,6 +68,7 @@ export type Section = string;
 export const APP_PANES: [Section, string, LucideIcon][] = [
   ["settings", "Settings", Settings],
   ["targets", "Targets", MonitorPlay],
+  ["logs", "Logs", FileText],
   ["test", "Test Setup", FlaskConical],
 ];
 
@@ -74,6 +76,9 @@ export const APP_PANES: [Section, string, LucideIcon][] = [
 export const RANDOMIZER_PANES: [Section, string, LucideIcon][] = [
   ["plando", "Plando", Pin],
 ];
+
+/** Panes that fill the window and scroll their own rows. */
+export const FILL_PANES: ReadonlySet<Section> = new Set(["logs"]);
 
 /** Panes only developer tools show. */
 const DEV_PANES: ReadonlySet<Section> = new Set(["test"]);

@@ -468,7 +468,7 @@ pub fn schema() -> Vec<SettingDef> {
             DOOR_OF_TIME,
             place::AREA_ACCESS,
             "Door of Time",
-            "With Open, the Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, whose gift comes at the start, and can put the sword back any time. With Closed, it opens as in the game, once Link holds the three stones and the Ocarina of Time and plays the Song of Time",
+            "With Open, the Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, whose gift comes at the start, and can put the sword back any time. With Closed, it opens as in the game: once Link has met Zelda, brought the three stones to her scene at the moat, and plays the Song of Time on the Ocarina of Time",
             DoorOfTime::label,
         )])
         .chain([default_on(toggle(
