@@ -505,6 +505,30 @@ pub(super) enum LogicCommand {
         #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
         dir: PathBuf,
     },
+    /// What derive sees in a dungeon: each navmesh face near a spot with
+    /// its room, part and arcs out, the placements that number rooms there,
+    /// and a top-down picture of the floor by room.
+    Explain {
+        /// The dungeon, by its id (`deku-tree`).
+        dungeon: String,
+        /// The spot to explain, as `X,Y,Z`.
+        #[arg(long, value_delimiter = ',', allow_negative_numbers = true)]
+        at: Option<Vec<f32>>,
+        /// How far round the spot to look, in m.
+        #[arg(long, default_value_t = 3.0)]
+        within: f32,
+        /// Write a top-down PNG: floors by room (swum water darker, room
+        /// numbers drawn), walls cut at waist height (black solid, blue
+        /// invisible), swims green, crawls orange, the spot a red cross.
+        #[arg(long)]
+        picture: Option<PathBuf>,
+        /// The rooms the picture shows, like `5,6`. Without: round the spot.
+        #[arg(long, value_delimiter = ',')]
+        rooms: Vec<u32>,
+        /// The height walls are cut at. Without: the spot's, or the floor's.
+        #[arg(long, allow_negative_numbers = true)]
+        y: Option<f32>,
+    },
 }
 
 #[derive(clap::Args)]
