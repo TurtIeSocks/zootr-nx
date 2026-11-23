@@ -31,6 +31,8 @@ const SOURCES: [&[&str]; 2] = [
         crate::ageless_items::BANKS,
         // The textures extracted for the marks, named by their files.
         "Tex",
+        // The leaf types the foliage system draws, a marked shrub's among them.
+        "Pack/Foliage.pack.zs",
     ],
 ];
 

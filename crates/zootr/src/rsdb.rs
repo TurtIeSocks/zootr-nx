@@ -171,9 +171,16 @@ impl Tags {
             ..self.doc
         };
         let root = doc.root.as_mut_map()?;
-        let paths = self.paths.iter().flatten().map(|p| Byml::String(p.as_str().into()));
+        let paths = self
+            .paths
+            .iter()
+            .flatten()
+            .map(|p| Byml::String(p.as_str().into()));
         root.insert(field::PATH_LIST.get().into(), Byml::Array(paths.collect()));
-        root.insert(field::BIT_TABLE.get().into(), Byml::BinaryData(self.bits.clone()));
+        root.insert(
+            field::BIT_TABLE.get().into(),
+            Byml::BinaryData(self.bits.clone()),
+        );
         let ranks = self.ranks().iter().flat_map(|r| r.to_le_bytes()).collect();
         root.insert(field::RANK_TABLE.get().into(), Byml::BinaryData(ranks));
         builder.write(&path(TAGS), &doc.to_binary())
@@ -268,7 +275,11 @@ mod tests {
         let Some(Byml::BinaryData(raw)) = root.get(field::RANK_TABLE.get()) else {
             panic!("no ranks");
         };
-        raw.as_chunks::<4>().0.iter().map(|b| u32::from_le_bytes(*b)).collect()
+        raw.as_chunks::<4>()
+            .0
+            .iter()
+            .map(|b| u32::from_le_bytes(*b))
+            .collect()
     }
 
     #[test]

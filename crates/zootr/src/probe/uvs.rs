@@ -140,14 +140,22 @@ impl Heights {
     fn add(&mut self, v: f32, y: f32) {
         let row = ((v.rem_euclid(1.0) * 10.0) as usize).min(9);
         let (lo, hi, n) = &mut self.rows[row];
-        (*lo, *hi) = if *n == 0 { (y, y) } else { (lo.min(y), hi.max(y)) };
+        (*lo, *hi) = if *n == 0 {
+            (y, y)
+        } else {
+            (lo.min(y), hi.max(y))
+        };
         *n += 1;
     }
 
     fn print(&self) {
         for (row, (lo, hi, n)) in self.rows.iter().enumerate() {
             if *n > 0 {
-                println!("  v {:.1}..{:.1}: y {lo:.3}..{hi:.3} ({n})", row as f32 / 10.0, (row + 1) as f32 / 10.0);
+                println!(
+                    "  v {:.1}..{:.1}: y {lo:.3}..{hi:.3} ({n})",
+                    row as f32 / 10.0,
+                    (row + 1) as f32 / 10.0
+                );
             }
         }
     }

@@ -57,11 +57,29 @@ impl Canvas {
     /// The rows between `top` and `bottom` (as fractions of the height) in
     /// brightened gold, fading in and out over `feather`.
     pub(super) fn band(&mut self, top: f32, bottom: f32, feather: f32) {
-        let height = self.texture.height as f32;
+        self.patch((f32::NEG_INFINITY, top), (f32::INFINITY, bottom), feather);
+    }
+
+    /// The rectangle from (`left`, `top`) to (`right`, `bottom`), fractions
+    /// of the texture, in brightened gold, fading in and out over
+    /// `feather`.
+    pub(super) fn patch(
+        &mut self,
+        (left, top): (f32, f32),
+        (right, bottom): (f32, f32),
+        feather: f32,
+    ) {
+        let (width, height) = (self.texture.width as f32, self.texture.height as f32);
+        let inside = |at: f32, from: f32, to: f32| {
+            ((at - from) / feather + 0.5).min((to - at) / feather + 0.5)
+        };
         for y in 0..self.texture.height {
-            let v = (y as f32 + 0.5) / height;
-            let share = ((v - top) / feather + 0.5).min((bottom - v) / feather + 0.5);
+            let down = inside((y as f32 + 0.5) / height, top, bottom);
+            if down <= 0.0 {
+                continue;
+            }
             for x in 0..self.texture.width {
+                let share = down.min(inside((x as f32 + 0.5) / width, left, right));
                 self.blend(x, y, self.gold(x, y), share.clamp(0.0, 1.0));
             }
         }
@@ -105,7 +123,7 @@ impl Canvas {
 /// (`AsIs`) or up it (`Flipped`).
 #[derive(Clone, Copy)]
 pub(super) enum Upright {
-    #[allow(dead_code, reason = "the crates' faces, next")]
+    #[allow(dead_code, reason = "the small crate's faces, next")]
     AsIs,
     Flipped,
 }
@@ -170,10 +188,7 @@ impl Mark {
         if !(0.0..1.0).contains(&x) || !(0.0..1.0).contains(&y) {
             return 0.0;
         }
-        let (fx, fy) = (
-            x * self.width as f32 - 0.5,
-            y * self.height as f32 - 0.5,
-        );
+        let (fx, fy) = (x * self.width as f32 - 0.5, y * self.height as f32 - 0.5);
         let at = |x: f32, y: f32| {
             let x = (x.max(0.0) as usize).min(self.width - 1);
             let y = (y.max(0.0) as usize).min(self.height - 1);
@@ -208,8 +223,17 @@ mod tests {
         let share = mark.covered() as f32 / (mark.width * mark.height) as f32;
         assert!((0.3..0.45).contains(&share), "{share}");
         // Apex up: the top row is narrow, the bottom row wide.
-        let row = |y: f32| (0..20).filter(|&x| mark.sample(x as f32 / 20.0, y) > 0.5).count();
-        assert!(row(0.05) <= 4 && row(0.95) >= 16, "{} {}", row(0.05), row(0.95));
+        let row = |y: f32| {
+            (0..20)
+                .filter(|&x| mark.sample(x as f32 / 20.0, y) > 0.5)
+                .count()
+        };
+        assert!(
+            row(0.05) <= 4 && row(0.95) >= 16,
+            "{} {}",
+            row(0.05),
+            row(0.95)
+        );
         // The hole in the middle.
         assert!(mark.sample(0.5, 0.6) < 0.5);
         // About as wide as an equilateral triangle is.
@@ -240,5 +264,21 @@ mod tests {
         let red = |y: usize| canvas.texture.rgba[4 * y * 4];
         // Gold is redder than the grey it covers, fully in the middle.
         assert!(red(35) > red(19) && red(19) >= 100);
+    }
+
+    #[test]
+    fn a_patch_paints_only_its_rectangle() {
+        let texture = Texture {
+            name: String::new(),
+            width: 100,
+            height: 100,
+            rgba: vec![100; 4 * 100 * 100],
+        };
+        let mut canvas = Canvas::new(texture);
+        canvas.patch((0.2, 0.4), (0.3, 0.8), 0.02);
+        let painted = |x: usize, y: usize| canvas.painted[y * 100 + x];
+        assert!(painted(25, 60));
+        assert!(!painted(10, 60) && !painted(40, 60), "outside it across");
+        assert!(!painted(25, 30) && !painted(25, 90), "outside it down");
     }
 }

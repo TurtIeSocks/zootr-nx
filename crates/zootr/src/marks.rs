@@ -8,6 +8,7 @@
 
 mod files;
 mod paint;
+mod shrubs;
 
 pub use files::FILES;
 
@@ -25,9 +26,10 @@ use paint::{Canvas, Mark, Upright};
 /// How a model's copy is painted.
 #[derive(Clone, Copy)]
 enum Look {
-    /// A gold band where the pot's own runs, and Triforces around its
-    /// lower body.
+    /// A gold band on the pot's shoulder, and Triforces on its belly.
     Pot,
+    /// The big crate's diagonal brace in gold, with Triforces along it.
+    Brace,
 }
 
 /// A breakable's model, and the albedo its copy repaints.
@@ -55,9 +57,15 @@ static POT_05: Model = pot(actor::OBJ_POT_A_05, texture::ROCK_POT_A_05_ALB);
 static POT_06: Model = pot(actor::OBJ_POT_A_06, texture::ROCK_POT_A_06_ALB);
 static POT_07: Model = pot(actor::OBJ_POT_A_07, texture::ROCK_POT_A_07_ALB);
 static POT_08: Model = pot(actor::OBJ_POT_A_08, texture::ROCK_POT_A_08_ALB);
+static BIG_CRATE: Model = Model {
+    project: actor::OBJ_BROKEN_BOX_A,
+    fmdb: actor::OBJ_BROKEN_BOX_A_04,
+    albedo: texture::OBJ_BROKEN_BOX_A_04_ALB,
+    look: Look::Brace,
+};
 
 /// Each breakable that's marked, and the model it shows.
-const MARKED: [(&Name, &Model); 8] = [
+const MARKED: [(&Name, &Model); 9] = [
     (actor::OBJ_POT_A_01, &POT_01),
     (actor::OBJ_POT_A_02, &POT_02),
     (actor::OBJ_POT_A_03, &POT_03),
@@ -66,7 +74,12 @@ const MARKED: [(&Name, &Model); 8] = [
     (actor::OBJ_POT_A_06, &POT_06),
     (actor::OBJ_POT_A_07, &POT_07),
     (actor::OBJ_POT_A_08, &POT_08),
+    (actor::OBJ_BROKEN_BOX_A_01, &BIG_CRATE),
 ];
+
+/// Each shrub that's marked: drawn by the foliage system, so marked by its
+/// leaves' colour (`shrubs`).
+const SHRUBS: [&Name; 1] = [actor::LAND_KOKIRI_PLANT_A_02_DROP_FIXED_03];
 
 /// A pot's albedo runs up the pot from its foot (v 0) to its lip (v 0.45),
 /// then down its inside (`probe uvs`), the same rows on every pot, which
@@ -81,6 +94,24 @@ const POT_STAMP_HEIGHT: f32 = 0.17;
 /// A pot's metres per v over metres per u (`probe uvs`).
 const POT_STRETCH: f32 = 1.734 / 1.567;
 
+/// The big crate's braces: the plank on its albedo each brace shows (two
+/// faces have one, found with a numbered grid live), from its top left to
+/// its bottom right in texels of the 512 square. Its bevels sit on its
+/// edges.
+const BRACES: [((f32, f32), (f32, f32)); 2] = [
+    ((310.0, 246.0), (348.0, 370.0)),
+    ((429.0, 264.0), (469.0, 406.0)),
+];
+const BRACE_SIDE: f32 = 512.0;
+/// Where along each brace its Triforces go, as fractions of its length,
+/// and how tall each is, as a fraction of the texture, to fit inside its
+/// bevels.
+const BRACE_STAMPS: [f32; 3] = [0.2, 0.5, 0.8];
+const BRACE_STAMP_HEIGHT: f32 = 0.045;
+
+/// The kinds of texture a copy keeps its host's of: all but the albedo.
+const KEPT: [&str; 6] = ["_Nrm", "_Rgh", "_AO", "_Mtl", "_Emm", "_Gn0"];
+
 /// The marked copy of a name: its class part `A` made `Z`, so the copy
 /// is as long as the name, as a model's rename needs.
 pub fn marked(name: &str) -> Result<String> {
@@ -94,7 +125,7 @@ pub fn marked(name: &str) -> Result<String> {
 /// The marked copy `actor` stands as while it holds a check, if it's a
 /// breakable that's marked.
 fn marked_actor(actor: &str) -> Option<String> {
-    let found = MARKED.iter().any(|(a, _)| *a == actor);
+    let found = MARKED.iter().any(|(a, _)| *a == actor) || SHRUBS.iter().any(|a| *a == actor);
     found.then(|| marked(actor).ok()).flatten()
 }
 
@@ -127,6 +158,9 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Re
         tables.point_at(&name, &project, &fmdb)?;
         tags.copy(&name, host)?;
     }
+    for host in SHRUBS {
+        shrubs::write(romfs, builder, tables, &mut tags, host)?;
+    }
     tags.write(builder)
 }
 
@@ -138,10 +172,10 @@ fn write_model(
     triforce: &Mark,
 ) -> Result<()> {
     let host = model_file(model.project, model.fmdb);
-    let (project, albedo) = (marked(model.project)?, marked(model.albedo)?);
-    let copy = rename(&romfs.read(&host)?, model.project, &project)?;
-    let copy = rename(&copy, model.albedo, &albedo)?;
+    let project = marked(model.project)?;
+    let copy = copy_model(&romfs.read(&host)?, model)?;
     builder.add(&model_file(&project, &marked(model.fmdb)?), &copy, &host)?;
+    let albedo = marked(model.albedo)?;
     let like = texture_path(model.albedo);
     let data = romfs.read(&like)?;
     let mut canvas = Canvas::new(top_level(&data)?);
@@ -156,13 +190,30 @@ fn write_model(
     builder.add(&texture_path(&albedo), &data, &like)
 }
 
+/// `data`, `model`'s file, renamed as its marked copy: its project and
+/// its albedo marked. A texture named after the model is renamed with it,
+/// so every one the copy doesn't repaint gets its host's name back.
+fn copy_model(data: &[u8], model: &Model) -> Result<Vec<u8>> {
+    let copy = rename(data, model.project, &marked(model.project)?)?;
+    let copy = rename(&copy, model.albedo, &marked(model.albedo)?)?;
+    KEPT.iter().try_fold(copy, |copy, kind| {
+        let kept = format!("{}{kind}", model.fmdb.get());
+        rename(&copy, &marked(&kept)?, &kept)
+    })
+}
+
 /// Each marked albedo painted, written to `out` as PNG under its marked
-/// name, for a look before a seed: `probe marks`.
+/// name beside its host's, for a look before a seed: `probe marks`.
 pub fn preview(romfs: &Romfs, out: &std::path::Path) -> Result<()> {
     std::fs::create_dir_all(out)?;
     let triforce = Mark::triforce(romfs)?;
     for (_, model) in MARKED {
-        let mut canvas = Canvas::new(top_level(&romfs.read(&texture_path(model.albedo))?)?);
+        let host = top_level(&romfs.read(&texture_path(model.albedo))?)?;
+        std::fs::write(
+            out.join(format!("{}.png", model.albedo.get())),
+            crate::sprites::png(&host)?,
+        )?;
+        let mut canvas = Canvas::new(host);
         paint(&mut canvas, model.look, &triforce);
         let name = marked(model.albedo)?;
         let path = out.join(format!("{name}.png"));
@@ -177,7 +228,23 @@ fn paint(canvas: &mut Canvas, look: Look, triforce: &Mark) {
         Look::Pot => {
             canvas.band(POT_BAND.0, POT_BAND.1, BAND_FEATHER);
             for at in POT_STAMPS {
-                canvas.stamp(triforce, at, POT_STAMP_HEIGHT, POT_STRETCH, Upright::Flipped);
+                canvas.stamp(
+                    triforce,
+                    at,
+                    POT_STAMP_HEIGHT,
+                    POT_STRETCH,
+                    Upright::Flipped,
+                );
+            }
+        }
+        Look::Brace => {
+            for ((left, top), (right, bottom)) in BRACES {
+                let [left, top, right, bottom] = [left, top, right, bottom].map(|t| t / BRACE_SIDE);
+                canvas.patch((left, top), (right, bottom), BAND_FEATHER / 2.0);
+                for along in BRACE_STAMPS {
+                    let at = ((left + right) / 2.0, top + (bottom - top) * along);
+                    canvas.stamp(triforce, at, BRACE_STAMP_HEIGHT, 1.0, Upright::Flipped);
+                }
             }
         }
     }
@@ -200,9 +267,9 @@ mod tests {
 
     #[test]
     fn the_files_spelled_out_are_the_ones_the_marks_read() {
-        if crate::game::dev_dump().is_none() {
+        let Some(romfs) = crate::game::dev_dump() else {
             return;
-        }
+        };
         let mut read: Vec<String> = Vec::new();
         for (_, model) in MARKED {
             let file = model_file(model.project, model.fmdb);
@@ -217,7 +284,27 @@ mod tests {
             }
         }
         read.push(texture_path(texture::TRI_FORCE_MARK_GRAVEYARD_ASSETS_A_ALB));
+        read.extend(shrubs::geometry_files(&romfs, &SHRUBS).unwrap());
         assert_eq!(read, FILES);
+    }
+
+    #[test]
+    fn a_copy_names_its_marked_albedo_and_its_hosts_other_textures() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let has = |data: &[u8], name: &str| data.windows(name.len()).any(|w| w == name.as_bytes());
+        for model in [&BIG_CRATE, &POT_01] {
+            let host = romfs.read(&model_file(model.project, model.fmdb)).unwrap();
+            let copy = copy_model(&host, model).unwrap();
+            assert_eq!(copy.len(), host.len());
+            assert!(has(&copy, &marked(model.albedo).unwrap()));
+            assert!(!has(&copy, model.albedo));
+            assert!(has(&copy, &marked(model.fmdb).unwrap()));
+            let normal = format!("{}_Nrm", model.fmdb.get());
+            assert_eq!(has(&copy, &normal), has(&host, &normal), "{normal}");
+            assert!(!has(&copy, &marked(&normal).unwrap()));
+        }
     }
 
     #[test]

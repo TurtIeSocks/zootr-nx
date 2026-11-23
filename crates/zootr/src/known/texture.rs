@@ -2,6 +2,7 @@
 
 use super::Name;
 
+pub const OBJ_BROKEN_BOX_A_04_ALB: &Name = &n!(0x6f78c80b56acdb2a);
 pub const ROCK_POT_A_02_ALB: &Name = &n!(0x95d93ecec4fe5e41);
 pub const ROCK_POT_A_03_ALB: &Name = &n!(0x398f48a06048255e);
 pub const ROCK_POT_A_04_ALB: &Name = &n!(0xb5bd1ca407da7f23);
