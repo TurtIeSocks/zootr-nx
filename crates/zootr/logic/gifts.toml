@@ -310,6 +310,7 @@ name = "Master Sword pedestal"
 place = "market-adult"
 era = "adult"
 needs = "always"
+quest-gate-ok = "market-adult is reached only through the Door of Time, whose exit promises Step06"
 
 # Songs, dealt only with the setting on. Each is where its vanilla source
 # is and needs what it does, since the scene that teaches it starts the
@@ -334,7 +335,7 @@ hash = 3350061319058231770
 name = "Saria in the Meadow"
 place = "sacred-forest-meadow-child"
 era = "child"
-needs = "zeldas-lullaby"
+needs = "setting:met-zelda or event:met-zelda"
 
 [[check]]
 hash = 4624030970593856299
@@ -454,6 +455,7 @@ name = "Zelda's letter"
 place = "hyrule-castle"
 era = "child"
 needs = "courtyard"
+quest-gate-ok = "her courtyard scene moves the castle quest to Step04 before she hands it over"
 
 # Malon at the castle wall, who hands over the egg.
 [[check]]
@@ -516,6 +518,7 @@ name = "Horseback archery"
 place = "gerudo-fortress-adult"
 era = "adult"
 needs = "bow and eponas-song and item:gerudo-card"
+quest-gate-ok = "waits on the minigame's own round, which starting a game moves"
 
 # The quiver comes with the second win, as the heart does with the first.
 [[check]]
@@ -524,6 +527,7 @@ name = "Horseback archery: quiver"
 place = "gerudo-fortress-adult"
 era = "adult"
 needs = "bow and eponas-song and item:gerudo-card"
+quest-gate-ok = "waits on the minigame's own round, which starting a game moves"
 
 [[check]]
 hash = 7640046613117969341
@@ -539,6 +543,7 @@ name = "Bombchu bowling: first prize"
 place = "market-child"
 era = "child"
 needs = "bombchus"
+quest-gate-ok = "waits on the minigame's own round, which starting a game moves"
 
 [[check]]
 hash = 8748954161277078873
@@ -553,6 +558,7 @@ name = "Bombchu bowling: third prize"
 place = "market-child"
 era = "child"
 needs = "bombchus"
+quest-gate-ok = "waits on the minigame's own round, which starting a game moves"
 
 # The Market gallery lends its own slingshot. The Kakariko one needs Link's
 # bow, and its reward a perfect score.
@@ -578,6 +584,7 @@ needs = "bow"
 hash = 16881481538337649070
 name = "Treasure Chest Game"
 needs = "lens"
+quest-gate-ok = "waits on the minigame's own round, which starting a game moves"
 
 [[check]]
 hash = 16041366920820397198
