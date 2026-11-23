@@ -87,8 +87,6 @@ mod narrowing;
 pub mod nav;
 mod navi;
 pub mod notice;
-#[cfg(test)]
-mod par;
 mod patch;
 mod per_dump;
 mod picked;

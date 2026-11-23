@@ -4,7 +4,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::{Context, Result, bail, ensure};
-use ounce_formats::Romfs;
+use ounce_formats::{Romfs, par_map};
 use serde_json::{Value, json};
 
 use super::rule::{Rules, all, any};
@@ -37,8 +37,9 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let base_seed = Seed::build(romfs, &base, &open())?;
     let variants = variants()?;
     let domains = domains()?;
-    let built: Vec<Seed> = (variants.iter())
-        .map(|v| Seed::build(romfs, &v.settings(), &open()))
+    // Each seed builds on its own, so they build at once.
+    let built: Vec<Seed> = par_map(&variants, |v| Seed::build(romfs, &v.settings(), &open()))
+        .into_iter()
         .collect::<Result<_>>()?;
     // The base first, then each variant's seed.
     let seeds: Vec<&Seed> = std::iter::once(&base_seed).chain(&built).collect();
@@ -46,8 +47,8 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let settings: Vec<Settings> = std::iter::once(base.clone())
         .chain(variants.iter().map(Variant::settings))
         .collect();
-    let set: Vec<Seed> = (settings.iter())
-        .map(|s| Seed::build(romfs, s, &Default::default()))
+    let set: Vec<Seed> = par_map(&settings, |s| Seed::build(romfs, s, &Default::default()))
+        .into_iter()
         .collect::<Result<_>>()?;
     let mut ids: Ids = ids
         .map(serde_json::from_str)
@@ -576,7 +577,7 @@ mod tests {
     /// Each case's seed fills on its own, so the cases run in parallel.
     fn assert_rows_match(romfs: &Romfs, cases: impl IntoIterator<Item = Settings>) {
         let cases: Vec<Settings> = cases.into_iter().collect();
-        let wrong: Vec<String> = crate::par::map(&cases, |settings| {
+        let wrong: Vec<String> = par_map(&cases, |settings| {
             rows_match(romfs, settings).err().map(|e| {
                 let mine: Vec<_> = (settings.iter())
                     .filter(|(k, v)| base().get(*k) != Some(v))
@@ -662,7 +663,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        for (name, text) in export(&romfs, None).unwrap() {
+        for (name, text) in exported(&romfs) {
             let id = text
                 .split(|c: char| !c.is_ascii_alphanumeric() && c != '_')
                 .find(|w| {

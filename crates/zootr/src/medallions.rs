@@ -330,6 +330,21 @@ mod tests {
         }
     }
 
+    /// A redraw is kept by its inputs: the same ones give the kept file,
+    /// other texels or another keep never do.
+    #[test]
+    fn a_kept_redraw_answers_only_its_own_inputs() {
+        let Some(romfs) = dev_dump() else { return };
+        let data = romfs.read(FILES[1]).unwrap();
+        let own = &levels(&data).unwrap()[0];
+        let drawn = redraw(&data, &own.rgba, |_, _| false).unwrap();
+        assert!(redraw(&data, &own.rgba, |_, _| false).unwrap() == drawn);
+        let mut dark = own.rgba.clone();
+        dark.iter_mut().for_each(|c| *c /= 2);
+        assert!(redraw(&data, &dark, |_, _| false).unwrap() != drawn);
+        assert!(redraw(&data, &own.rgba, |_, _| true).unwrap() == data);
+    }
+
     #[test]
     fn rebuilt_dictionaries_match_the_hosts_own() {
         let Some(romfs) = dev_dump() else { return };
