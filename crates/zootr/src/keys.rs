@@ -396,7 +396,13 @@ mod tests {
         // among this world's placements, and no item is left to swap.
         let copy = key_tints::fortress();
         let placed = [copy.as_str()];
-        deal_copies(&mut [], DungeonKeys::Vanilla, FortressKeys::Singles, &placed).unwrap();
+        deal_copies(
+            &mut [],
+            DungeonKeys::Vanilla,
+            FortressKeys::Singles,
+            &placed,
+        )
+        .unwrap();
         deal_copies(&mut [], DungeonKeys::Singles, FortressKeys::Singles, &[]).unwrap();
     }
 

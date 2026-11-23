@@ -214,7 +214,10 @@ static COPIES: LazyLock<BTreeMap<String, String>> = LazyLock::new(|| {
         let name = crate::map_copies::copy_name(&copy, |f| area(f).unwrap_or(f).to_owned());
         out.insert(copy, name.expect("a map copy names itself"));
     }
-    out.insert(crate::key_tints::fortress(), "Gerudo's Fortress Small Key".into());
+    out.insert(
+        crate::key_tints::fortress(),
+        "Gerudo's Fortress Small Key".into(),
+    );
     out
 });
 
