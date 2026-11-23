@@ -208,6 +208,28 @@ impl Solid {
     pub fn holds(&self, p: [f32; 2]) -> bool {
         inside(&self.ring, p)
     }
+
+    /// The share of the way from `a` to `b` (each x, z) over its
+    /// footprint, as the part from `t0` to `t1`: the line clipped by each
+    /// edge of its convex ring in turn. `None` when it misses.
+    pub fn over(&self, a: [f32; 2], b: [f32; 2]) -> Option<(f32, f32)> {
+        let ring = &self.ring;
+        if ring.len() < 3 {
+            return None;
+        }
+        let (mut t0, mut t1) = (0.0f32, 1.0f32);
+        for i in 0..ring.len() {
+            let (p, q) = (ring[i], ring[(i + 1) % ring.len()]);
+            let (fa, fb) = (turn(p, q, a), turn(p, q, b));
+            match (fa < 0.0, fb < 0.0) {
+                (true, true) => return None,
+                (true, false) => t0 = t0.max(fa / (fa - fb)),
+                (false, true) => t1 = t1.min(fa / (fa - fb)),
+                (false, false) => {}
+            }
+        }
+        (t0 <= t1).then_some((t0, t1))
+    }
 }
 
 /// Whether `p` lies inside the convex counterclockwise `ring`, its edge

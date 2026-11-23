@@ -57,6 +57,7 @@ pub(super) fn label(
     graph: &Graph,
     placed: &[Placement],
     rooms: &HashMap<u64, u32>,
+    first_floor: usize,
     blocked: impl Fn([f32; 3], [f32; 3]) -> bool,
 ) -> Labels {
     let n = graph.centers.len();
@@ -64,7 +65,12 @@ pub(super) fn label(
     // `near` leaves out what an obstacle stands on, `all` keeps it.
     let (mut near, mut all): (Vec<Vec<usize>>, Vec<Vec<usize>>) =
         (vec![vec![]; n], vec![vec![]; n]);
+    // One way, against the arc: who gets to each face with nothing in the way.
+    let mut back: Vec<Vec<usize>> = vec![vec![]; n];
     let mut join = |a: usize, b: usize, open: bool| {
+        if open {
+            back[b].push(a);
+        }
         for list in [&mut all].into_iter().chain(open.then_some(&mut near)) {
             list[a].push(b);
             list[b].push(a);
@@ -102,9 +108,11 @@ pub(super) fn label(
     let seeds: Vec<([f32; 3], u32)> = (placed.iter())
         .filter_map(|p| Some((p.pose.at, *rooms.get(&p.hash?)?)))
         .collect();
-    for at in doorway_seeds(graph, &seeds) {
+    for at in doorway_seeds(&seeds) {
         let (at, room) = at;
-        let Some(snap) = graph.locate(at) else {
+        // On the navmesh: a door's leaf stands where the collision floors
+        // run on through the doorway, on whichever side.
+        let Some(snap) = graph.locate_where(at, |f| f < first_floor) else {
             continue;
         };
         let d = dist(snap.at, graph.centers[snap.face]);
@@ -116,7 +124,12 @@ pub(super) fn label(
     spread(graph, &near, &mut best, heap, &vec![false; n]);
     // The floor between two obstacles (Deku hangs shutters in pairs) joins
     // the nearest room past them; a face pass one placed keeps its room.
-    let kept: Vec<bool> = best.iter().map(Option::is_some).collect();
+    // Collision floor takes its room only from the first spread: one no room
+    // reached without crossing an obstacle stays roomless, never the
+    // nearest room through the shutter beside it.
+    let kept: Vec<bool> = (best.iter().enumerate())
+        .map(|(f, b)| b.is_some() || f >= first_floor)
+        .collect();
     let heap = (0..n)
         .filter_map(|f| Some(Reverse((Far(0.0), f, best[f]?.1))))
         .collect();
@@ -124,30 +137,59 @@ pub(super) fn label(
         b.0 = 0.0;
     }
     spread(graph, &all, &mut best, heap, &kept);
+    let mut room: Vec<Option<u32>> = best.into_iter().map(|b| b.map(|(_, r)| r)).collect();
+    let home = homeward(&room, &back, first_floor);
+    for (f, r) in room.iter_mut().enumerate().skip(first_floor) {
+        if !home[f] {
+            *r = None;
+        }
+    }
     Labels {
-        room: best.into_iter().map(|b| b.map(|(_, r)| r)).collect(),
+        room,
         part: parts(&near),
     }
+}
+
+/// Which faces lead Link back to their room's navmesh (the faces before
+/// `first_floor`) through their own room's faces, by `back`'s arcs
+/// reversed. Collision floor that doesn't (a corridor's roof, reached only
+/// by dropping from the floor above) is in no room: standing on it puts
+/// Link in none of the rooms round it.
+fn homeward(room: &[Option<u32>], back: &[Vec<usize>], first_floor: usize) -> Vec<bool> {
+    let mut home: Vec<bool> = (0..room.len())
+        .map(|f| f < first_floor && room[f].is_some())
+        .collect();
+    let mut stack: Vec<usize> = (0..room.len()).filter(|&f| home[f]).collect();
+    while let Some(f) = stack.pop() {
+        for &from in &back[f] {
+            if !home[from] && room[from] == room[f] {
+                home[from] = true;
+                stack.push(from);
+            }
+        }
+    }
+    home
 }
 
 /// How far past its doorway a door leaf seeds its room, in m: the game's
 /// room change volumes stand about that far out from a shutter.
 const DOORWAY_OUT: f32 = 1.0;
 
+/// How near two placements of different rooms stand to be one door's
+/// leaves, in m: a Deku shutter's are 0.4 to 0.9 m apart.
+const LEAVES: f32 = 1.2;
+
 /// `seeds` with each one on a doorway moved to its own side. Placements of
-/// two rooms on one face are a door's leaves (a Deku shutter's carry the
+/// two rooms side by side are a door's leaves (a Deku shutter's carry the
 /// room on each side), so each moves [`DOORWAY_OUT`] further along the line
-/// from the other rooms' leaves to it.
-fn doorway_seeds(graph: &Graph, seeds: &[([f32; 3], u32)]) -> Vec<([f32; 3], u32)> {
-    let face: Vec<Option<usize>> = seeds
-        .iter()
-        .map(|(at, _)| graph.locate(*at).map(|s| s.face))
-        .collect();
-    (seeds.iter().enumerate())
-        .map(|(i, &(at, room))| {
-            let others: Vec<[f32; 3]> = (0..seeds.len())
-                .filter(|&j| face[j].is_some() && face[j] == face[i] && seeds[j].1 != room)
-                .map(|j| seeds[j].0)
+/// from the other rooms' leaves to it. Side by side, not on one face: the
+/// collision floors' small faces put a doorway's leaves on several.
+fn doorway_seeds(seeds: &[([f32; 3], u32)]) -> Vec<([f32; 3], u32)> {
+    (seeds.iter())
+        .map(|&(at, room)| {
+            let others: Vec<[f32; 3]> = (seeds.iter())
+                .filter(|(o, r)| *r != room && dist(*o, at) <= LEAVES)
+                .map(|(o, _)| *o)
                 .collect();
             if others.is_empty() {
                 return (at, room);
@@ -212,6 +254,18 @@ fn spread(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn collision_floor_that_never_leads_back_to_its_room_is_in_none() {
+        // Faces 0 and 1 are navmesh, 2 and 3 collision floor. 2 drops back
+        // into 1; 3 is reached from 2 only, and leads nowhere.
+        let room = vec![Some(1), Some(1), Some(1), Some(1)];
+        let back = vec![vec![1], vec![0, 2], vec![1], vec![2]];
+        assert_eq!(homeward(&room, &back, 2), vec![true, true, true, false]);
+        // A face of another room on the way home doesn't count.
+        let room = vec![Some(1), Some(2), Some(1), Some(1)];
+        assert_eq!(homeward(&room, &back, 2), vec![true, true, false, false]);
+    }
     use crate::nav::fixture::{mesh, quad};
     use crate::nav::graph;
     use crate::warp::Pose;
@@ -248,7 +302,7 @@ mod tests {
     fn each_floor_takes_the_room_of_the_nearest_tag_by_walking() {
         let (m, placed, rooms) = row();
         let g = Graph::build(&m, &placed, graph::step_up());
-        let labels = label(&g, &placed, &rooms, |_, _| false).room;
+        let labels = label(&g, &placed, &rooms, usize::MAX, |_, _| false).room;
         assert_eq!(labels, [Some(1), Some(1), Some(2), Some(2), None]);
     }
 
@@ -258,7 +312,7 @@ mod tests {
         let (m, placed, rooms) = row();
         let g = Graph::build(&m, &placed, graph::step_up());
         let at_two = |a: [f32; 3], b: [f32; 3]| (a[0] - 2.0) * (b[0] - 2.0) < 0.0;
-        let labels = label(&g, &placed, &rooms, at_two).room;
+        let labels = label(&g, &placed, &rooms, usize::MAX, at_two).room;
         assert_eq!(labels, [Some(1), Some(2), Some(2), Some(2), None]);
     }
 
@@ -269,7 +323,7 @@ mod tests {
         let g = Graph::build(&m, &placed, graph::step_up());
         let between =
             |a: [f32; 3], b: [f32; 3]| [2.0, 6.0].iter().any(|x| (a[0] - x) * (b[0] - x) < 0.0);
-        let labels = label(&g, &placed, &rooms, between).room;
+        let labels = label(&g, &placed, &rooms, usize::MAX, between).room;
         assert!(labels[1].is_some() && labels[2].is_some(), "{labels:?}");
     }
 }

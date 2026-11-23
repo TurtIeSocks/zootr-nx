@@ -50,7 +50,8 @@ pub fn collision(
         .collect();
     let meshes = mesh::meshes(romfs, game, &wanted)?;
     if let Some(at) = at {
-        return triangles_at(filter, &placed, &uses, &meshes, at);
+        let walls = mesh::walls(romfs, game, &placed)?;
+        return triangles_at(filter, &placed, &uses, &meshes, &walls, at);
     }
     for (actor, (count, uses)) in uses.iter().filter(|(_, (_, u))| !u.is_empty()) {
         for u in uses {
@@ -142,6 +143,7 @@ fn triangles_at(
     placed: &[warp::Placement],
     uses: &BTreeMap<&str, (usize, Vec<MeshUse>)>,
     meshes: &std::collections::HashMap<String, ounce_formats::ShapeMesh>,
+    walls: &mesh::Walls,
     [x, y, z]: [f32; 3],
 ) -> Result<()> {
     let mut found = vec![];
@@ -166,10 +168,10 @@ fn triangles_at(
                         .unwrap_or_default();
                     format!("{name} {}", filter.tag_names(mat.tags).join("+"))
                 });
-                let up = if mesh::floor_normal(t) {
-                    "floor"
-                } else {
-                    "steep"
+                let up = match (mesh::floor_normal(t), mesh::facing_up(t)) {
+                    (true, true) => "floor",
+                    (true, false) => "ceiling",
+                    (false, _) => "steep",
                 };
                 let does = match (touch.on_foot, touch.ridable) {
                     (false, _) => "none",
@@ -183,6 +185,21 @@ fn triangles_at(
                 ));
             }
         }
+    }
+    let round = crate::nav::floors::Round::of(walls);
+    for (h, _) in found.iter().filter(|(h, _)| (h - y).abs() <= 0.5) {
+        let rays = round.rays([x, *h, z]);
+        let shown: Vec<String> = (rays.iter())
+            .map(|r| {
+                r.map_or("-".to_owned(), |(d, back)| {
+                    format!("{d:.1}{}", if back { "b" } else { "f" })
+                })
+            })
+            .collect();
+        println!(
+            "rays from {h:.2} (east first, b = a wall's back): {}",
+            shown.join(" ")
+        );
     }
     found.sort_by(|a, b| b.0.total_cmp(&a.0));
     for (h, line) in found {

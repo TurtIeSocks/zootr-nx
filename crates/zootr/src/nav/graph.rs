@@ -46,7 +46,7 @@ pub(super) const FLOOR: f32 = 3.0;
 const CELL: f32 = 4.0;
 /// The heights above the floor a path is tested against walls at: a
 /// child Link's waist and head, which an adult's body spans too.
-const BODY: [f32; 2] = [0.5, 1.0];
+pub(super) const BODY: [f32; 2] = [0.5, 1.0];
 /// The height above the floor a jump or fall is tested against solid
 /// walls at: over the lips and curbs a floor's mesh has at its edges.
 const OVER: [f32; 1] = [1.0];
@@ -278,7 +278,7 @@ impl<'a> Graph<'a> {
                         ]
                     }
                     Cross::Link {
-                        via: Via::Drop | Via::Step,
+                        via: Via::Drop | Via::Step | Via::Walk,
                         from,
                         to,
                     } => vec![from, to],
@@ -463,12 +463,18 @@ impl<'a> Graph<'a> {
     /// Where `p` stands on the mesh, or the nearest face within 1.5 m of
     /// it when it's off.
     pub fn locate(&self, p: [f32; 3]) -> Option<Snap> {
-        match self.floor(p, FLOOR) {
+        self.locate_where(p, |_| true)
+    }
+
+    /// [`Graph::locate`] among the faces `keep` allows.
+    pub fn locate_where(&self, p: [f32; 3], keep: impl Fn(usize) -> bool) -> Option<Snap> {
+        let near = (self.faces_near(p[0], p[2], 0.0).into_iter()).filter(|&f| keep(f));
+        match self.mesh.footing_among(near, p, FLOOR) {
             Some(f) => Some(Snap {
                 face: f.face,
                 at: [p[0], f.height, p[2]],
             }),
-            None => self.nearest(p, SNAP, |_, _| true),
+            None => self.nearest(p, SNAP, |f, _| keep(f)),
         }
     }
 
@@ -583,6 +589,10 @@ impl<'a> Graph<'a> {
         let mut found = vec![];
         for Border { face, mid, out } in self.borders() {
             let past = [mid[0] + out[0] * LOOK, mid[1], mid[2] + out[1] * LOOK];
+            // Floor level past the edge: he walks on, no fall.
+            if self.floor(past, DROP_MIN).is_some() {
+                continue;
+            }
             // The first floor Link meets on the way down.
             let under = (self.faces_near(past[0], past[2], 0.0).into_iter())
                 .filter_map(|f| Some((f, self.mesh.height_on(f, past[0], past[2])?)))

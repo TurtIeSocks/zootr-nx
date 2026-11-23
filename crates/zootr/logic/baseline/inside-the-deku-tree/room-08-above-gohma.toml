@@ -12,11 +12,11 @@ why = "walk, 1 edges"
 to = 7
 needs = "flag:#f85ceb3f"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 01 2821367699546364013 shut until flag #f85ceb3f"
+why = "walk, 1 edges; Switch Shutter A 02 833482588217572877 shut until flag #f85ceb3f; Switch Shutter A 01 2821367699546364013 shut until flag #f85ceb3f"
 
 [[check]]
 hash = 17501688996789643983
 name = "Above Gohma Gold Skulltula"
 needs = "slingshot or bow or boomerang or hookshot or dins-fire"
-why = "on a wall of room 11, which has no floor; 4.3 m from its room's floor, in each one's range"
+why = "on a wall of room 11, which has no floor; 2.0 m from its room's floor, in each one's range; a sword or a bomb may too, untested"
 guess = true

@@ -6,7 +6,7 @@ name = "Scrub Before Slingshot"
 to = 0
 needs = "flag:#64edd2f3"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 02 9748473284350580952 shut until flag #64edd2f3; Switch Shutter A 02 9748473284350580952 shut until flag #64edd2f3; Switch Shutter A 01 11355963437042053245 shut until flag #64edd2f3"
+why = "walk, 1 edges; Switch Shutter A 02 9748473284350580952 shut until flag #64edd2f3; Switch Shutter A 01 11355963437042053245 shut until flag #64edd2f3"
 
 [[link]]
 to = 2

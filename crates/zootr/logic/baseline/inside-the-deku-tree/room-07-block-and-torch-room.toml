@@ -6,13 +6,13 @@ name = "Block And Torch Room"
 to = 6
 needs = "always"
 via = "walk"
-why = "walk, 1 edges"
+why = "walk, 2 edges"
 
 [[link]]
 to = 8
 needs = "flag:#f85ceb3f"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 01 2821367699546364013 shut until flag #f85ceb3f"
+why = "walk, 1 edges; Switch Shutter A 02 833482588217572877 shut until flag #f85ceb3f; Switch Shutter A 01 2821367699546364013 shut until flag #f85ceb3f"
 
 [[flag]]
 hash = 0xf85ceb3f
