@@ -25,6 +25,8 @@ zootr-hook.workspace = true
 zstd.workspace = true
 archipelago_rs = { version = "3.0.1", default-features = false, features = ["rustls"] }
 rustls = { version = "0.23.36", default-features = false, features = ["aws_lc_rs", "std"] }
+# GPL-2.0, test-only: the hook's unicorn tests (feature `emu`), never in a release.
+unicorn-engine = { version = "2.1.5", optional = true }
 
 [build-dependencies]
 zootr-hook.workspace = true
@@ -38,3 +40,5 @@ yaxpeax-arm.workspace = true
 [features]
 # `specta::Type` on the API types, for the app's generated TypeScript
 specta = ["dep:specta"]
+# The hook's unicorn tests (`patch::emu`): runs the hook's bytes in unicorn
+emu = ["dep:unicorn-engine"]
