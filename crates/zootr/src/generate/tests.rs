@@ -128,8 +128,15 @@ fn grants_land_on_top_of_the_intro_skip() {
         panic!("two grants")
     };
     assert_eq!(both.links_to(boomerang), callers);
-    assert_eq!(both.links_to(sword), [Link::Next(boomerang)]);
-    assert_eq!(both.links_to(save), [Link::Next(sword)]);
+    // Each grant goes on through its one-frame wait.
+    let after_wait = |e: u16| {
+        let [Link::Next(wait)] = both.links_to(e)[..] else {
+            panic!("event {e} has one caller")
+        };
+        both.links_to(wait)
+    };
+    assert_eq!(after_wait(sword), [Link::Next(boomerang)]);
+    assert_eq!(after_wait(save), [Link::Next(sword)]);
     assert_eq!(both.entry_points, skipped.entry_points);
     for (i, e) in (0u16..).zip(&skipped.events) {
         let runs_save = callers
