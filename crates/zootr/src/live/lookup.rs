@@ -68,29 +68,31 @@ impl Places {
 }
 
 /// The manager's pointer `global` holds, and the manager, from `places`
-/// when kept.
-fn chain(mem: &impl Memory, places: &Places, global: u64) -> Result<(u64, u64)> {
-    if let Some(kept) = places.chain(global) {
-        return Ok(kept);
+/// when kept. Whether they were read just now.
+fn chain(mem: &impl Memory, places: &Places, global: u64) -> Result<(u64, u64, bool)> {
+    if let Some((word, manager)) = places.chain(global) {
+        return Ok((word, manager, false));
     }
     let word = mem.u64(global)?;
     let manager = mem.u64(word)?;
     places.0.lock().unwrap().chain = Some((global, word, manager));
-    Ok((word, manager))
+    Ok((word, manager, true))
 }
 
-/// `row`'s entries under `manager`, from `places` when kept.
-fn entries(mem: &impl Memory, places: &Places, manager: u64, row: &Row) -> Result<u64> {
+/// `row`'s entries under `manager`, from `places` when kept. Whether they
+/// were read just now.
+fn entries(mem: &impl Memory, places: &Places, manager: u64, row: &Row) -> Result<(u64, bool)> {
     if let Some(&at) = places.under(manager).entries.get(&row.0) {
-        return Ok(at);
+        return Ok((at, false));
     }
     let at = mem.u64(table(manager, row) + 0x10)?;
     places.under(manager).entries.insert(row.0, at);
-    Ok(at)
+    Ok((at, true))
 }
 
-/// Where each hash's entry is, as far as `places` knows, and the pointers
-/// it was found through: the words to read, and what each should hold.
+/// Where each hash's entry is, as far as `places` knows, and the kept
+/// pointers it was found through: the words to read, and what each should
+/// hold. None when every pointer was read just now.
 struct Spots {
     at: Vec<Option<(&'static Row, u64)>>,
     check: Vec<(u64, usize)>,
@@ -98,7 +100,7 @@ struct Spots {
 }
 
 fn spots(mem: &impl Memory, places: &Places, global: u64, hashes: &[u32]) -> Result<Spots> {
-    let (word, manager) = chain(mem, places, global)?;
+    let (word, manager, mut fresh) = chain(mem, places, global)?;
     let mut s = Spots {
         at: Vec::new(),
         check: vec![(global, 8), (word, 8)],
@@ -108,7 +110,8 @@ fn spots(mem: &impl Memory, places: &Places, global: u64, hashes: &[u32]) -> Res
         let found = place(mem, manager, hash)?;
         let at = match found {
             Some((row, i)) => {
-                let list = entries(mem, places, manager, row)?;
+                let (list, read) = entries(mem, places, manager, row)?;
+                fresh &= read;
                 let pointer = table(manager, row) + 0x10;
                 if !s.check.contains(&(pointer, 8)) {
                     s.check.push((pointer, 8));
@@ -119,6 +122,9 @@ fn spots(mem: &impl Memory, places: &Places, global: u64, hashes: &[u32]) -> Res
             None => None,
         };
         s.at.push(at);
+    }
+    if fresh {
+        (s.check, s.expect) = Default::default();
     }
     Ok(s)
 }
