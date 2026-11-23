@@ -331,7 +331,7 @@ pub fn spots(root: &Byml, holders: &[Holder], copies: &[(u64, u64)]) -> Result<V
         let Some(placed) = hash_of(actor) else {
             continue;
         };
-        let Some(Holder { hash, after }) = holder(placed) else {
+        let Some(Holder { hash, after, .. }) = holder(placed) else {
             continue;
         };
         let dynamic = actor.as_map()?.get("Dynamic");
