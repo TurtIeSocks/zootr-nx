@@ -827,7 +827,6 @@ mod tests {
         let found = past_shutters(entries, &[(7, 8), (3, 9)]);
         assert_eq!(found, HashSet::from([(2, 7), (2, 8)]));
     }
-    use crate::known::map;
 
     #[test]
     fn a_path_meets_a_solid_it_passes_through() {
