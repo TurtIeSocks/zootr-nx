@@ -109,10 +109,9 @@ mod tests {
     /// entry, and the adult-only fields that keep a child out of them.
     #[test]
     fn the_iron_boots_reach_their_rows_and_age_limits() {
-        let Some(romfs) = crate::game::dev_dump() else {
+        let Some(g) = Graph::dev() else {
             return;
         };
-        let g = Graph::build(&romfs).unwrap();
         let find = |id: String| g.find(&id).unwrap_or_else(|e| panic!("{e:#}"));
         let path = |a: usize, b: usize| !g.trace(a, b).paths.is_empty();
         let (boots, armor) = (&**actor::ITEM_HEAVY_BOOT, &**actor::ARMOR_ADULT_HEAVY_BOOT);

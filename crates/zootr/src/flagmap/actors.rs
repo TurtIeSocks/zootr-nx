@@ -81,10 +81,9 @@ mod tests {
     /// and the day question and emit timer that graph runs.
     #[test]
     fn the_gold_skulltula_reaches_all_three_blockers() {
-        let Some(romfs) = crate::game::dev_dump() else {
+        let Some(g) = Graph::dev() else {
             return;
         };
-        let g = Graph::build(&romfs).unwrap();
         let find = |id: String| g.find(&id).unwrap_or_else(|e| panic!("{e:#}"));
         let path = |a: usize, b: usize| !g.trace(a, b).paths.is_empty();
         let gold = &**actor::ENEMY_SKULLTULA_GOLD;

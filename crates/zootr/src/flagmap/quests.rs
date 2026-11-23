@@ -276,7 +276,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let g = super::Graph::build(&romfs).unwrap();
+        let g = super::Graph::dev().unwrap();
         let starts = crate::steps::starts(&romfs).unwrap();
         let door = flow::DOOR_OF_TIME.get();
         let quests = g.quests(&starts, Some(door)).0;

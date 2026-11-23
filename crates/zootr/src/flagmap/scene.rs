@@ -171,10 +171,9 @@ mod tests {
 
     #[test]
     fn the_night_module_deletes_each_gold_skulltula_it_places() {
-        let Some(romfs) = crate::game::dev_dump() else {
+        let Some(g) = Graph::dev() else {
             return;
         };
-        let g = Graph::build(&romfs).unwrap();
         let module = format!(
             "graph:{}.logic.module",
             &**map::GIMMICK_NIGHTTIME_SKULLTULA_GOLD_APPEAR_05A9
@@ -198,7 +197,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let g = Graph::build(&romfs).unwrap();
+        let g = Graph::dev().unwrap();
         let ids: std::collections::HashMap<u64, usize> = (0..g.nodes.len())
             .filter_map(|i| {
                 let id = g.nodes[i].id.strip_prefix("placement:")?;
