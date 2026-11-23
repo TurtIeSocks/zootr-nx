@@ -14,6 +14,7 @@ use anyhow::{Context, Result, bail, ensure};
 use serde::{Deserialize, Serialize};
 
 use super::presets::{options, player_yaml};
+use super::there::{Pipe, There};
 use super::zip;
 
 /// The two slots every room holds, Link's first.
@@ -175,6 +176,31 @@ pub struct Room {
     pub generated: Generated,
     pub fifo: PathBuf,
     pub log: PathBuf,
+    /// The machine hosting it, when that's not this one: the paths above
+    /// are there, and every command goes there over ssh.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on: Option<There>,
+}
+
+/// Where a room's console lines go: its FIFO here, or a pipe kept open to
+/// it there, so a timed send costs no new ssh connection.
+pub enum Console {
+    Here(PathBuf),
+    There(Pipe),
+}
+
+impl Console {
+    pub fn send(&mut self, slot: &str, item: &str) -> Result<()> {
+        use std::io::Write;
+        let line = send_line(slot, item);
+        match self {
+            Self::Here(fifo) => Ok(std::fs::OpenOptions::new()
+                .append(true)
+                .open(fifo)?
+                .write_all(line.as_bytes())?),
+            Self::There(pipe) => pipe.write(&line),
+        }
+    }
 }
 
 /// The room's folder, beside the app's config.
@@ -204,7 +230,55 @@ impl Room {
     }
 
     pub fn address(&self) -> String {
-        format!("localhost:{}", self.port)
+        let host = self.on.as_ref().map_or("localhost", |t| &t.machine.host);
+        format!("{host}:{}", self.port)
+    }
+
+    /// Hosts a room of `preset` on `there` and fetches Link's slot into
+    /// `home`. Refuses while a room is up.
+    pub fn up_there(there: There, home: &Path, preset: &str, seed: u64, port: u16) -> Result<Self> {
+        Self::clear(home)?;
+        let (seed_s, port_s) = (seed.to_string(), port.to_string());
+        let up = [
+            "ap", "room", "up", "--preset", preset, "--seed", &seed_s, "--port", &port_s,
+        ];
+        there.run(
+            &[
+                &up[..],
+                &[
+                    "--no-install",
+                    "--name",
+                    "AP room",
+                    "--note",
+                    "Hosted for another machine",
+                ],
+            ]
+            .concat(),
+        )?;
+        let mut room: Self =
+            serde_json::from_str(&there.run(&["ap", "room", "status", "--json"])?)?;
+        let out = home.join("out");
+        std::fs::create_dir_all(&out)?;
+        let link = &room.generated.slots[0];
+        let here = out.join(link.file_name().context("Link's slot has no name")?);
+        std::fs::write(&here, there.read(&link.to_string_lossy())?)?;
+        room.generated.slots[0] = here;
+        room.on = Some(there);
+        room.save(home)?;
+        Ok(room)
+    }
+
+    /// Forgets a room that's stopped, and refuses one that's up.
+    fn clear(home: &Path) -> Result<()> {
+        if let Some(room) = Self::load(home)? {
+            ensure!(
+                !room.alive(),
+                "a room is up at {}: `ap room down` first",
+                room.address()
+            );
+            std::fs::remove_file(state(home)).ok();
+        }
+        Ok(())
     }
 
     /// Generates from `preset` and hosts it. Refuses while a room is up.
@@ -216,14 +290,7 @@ impl Room {
         seed: u64,
         port: u16,
     ) -> Result<Self> {
-        if let Some(room) = Self::load(home)? {
-            ensure!(
-                !room.alive(),
-                "a room is up at {}: `ap room down` first",
-                room.address()
-            );
-            std::fs::remove_file(state(home)).ok();
-        }
+        Self::clear(home)?;
         ap.prepare(world)?;
         let out = home.join("out");
         let generated = ap.generate(preset, seed, &out)?;
@@ -239,6 +306,7 @@ impl Room {
             generated,
             fifo,
             log,
+            on: None,
         };
         if let Err(e) = room.wait_listening(Duration::from_secs(90)) {
             room.stop();
@@ -263,6 +331,11 @@ impl Room {
 
     /// Whether the server is still running.
     pub fn alive(&self) -> bool {
+        if let Some(there) = &self.on {
+            return there
+                .run(&["ap", "room", "status"])
+                .is_ok_and(|s| s.starts_with("up"));
+        }
         Command::new("kill")
             .args(["-0", &self.pid.to_string()])
             .stderr(Stdio::null())
@@ -272,20 +345,35 @@ impl Room {
 
     /// Sends `item` to `slot` through the server's cheat console.
     pub fn send(&self, slot: &str, item: &str) -> Result<()> {
-        use std::io::Write;
         ensure!(self.alive(), "the room's server isn't running");
-        let mut fifo = std::fs::OpenOptions::new().append(true).open(&self.fifo)?;
-        fifo.write_all(send_line(slot, item).as_bytes())?;
-        Ok(())
+        self.console()?.send(slot, item)
+    }
+
+    /// The room's console, to send through again and again.
+    pub fn console(&self) -> Result<Console> {
+        Ok(match &self.on {
+            None => Console::Here(self.fifo.clone()),
+            Some(there) => Console::There(there.pipe(&self.fifo.to_string_lossy())?),
+        })
     }
 
     /// The server log's last `n` lines, without its public address.
     pub fn log_tail(&self, n: usize) -> String {
+        if let Some(there) = &self.on {
+            let status = there
+                .run(&["ap", "room", "status"])
+                .unwrap_or_else(|e| e.to_string());
+            return status.lines().skip(1).collect::<Vec<_>>().join("\n");
+        }
         let log = std::fs::read_to_string(&self.log).unwrap_or_default();
         tail(&log, n)
     }
 
     fn stop(&self) {
+        if let Some(there) = &self.on {
+            there.run(&["ap", "room", "down"]).ok();
+            return;
+        }
         let group = format!("-{}", self.pid);
         Command::new("kill")
             .args(["-TERM", "--", &group])
@@ -414,8 +502,26 @@ mod tests {
             },
             fifo: home.join("server.in"),
             log: home.join("server.log"),
+            on: None,
         };
         room.save(&home).unwrap();
+        assert_eq!(room.address(), "localhost:38281");
+        assert_eq!(Room::load(&home).unwrap().as_ref(), Some(&room));
+        // Hosted elsewhere: the same file, and the address that machine is
+        // reached at.
+        let far = There {
+            name: "far".into(),
+            machine: super::super::there::Machine {
+                host: "10.0.0.2".into(),
+                ..Default::default()
+            },
+        };
+        let room = Room {
+            on: Some(far),
+            ..room
+        };
+        room.save(&home).unwrap();
+        assert_eq!(room.address(), "10.0.0.2:38281");
         assert_eq!(Room::load(&home).unwrap(), Some(room));
         std::fs::remove_dir_all(&home).unwrap();
     }

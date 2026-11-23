@@ -300,7 +300,7 @@ pub fn table(history: &[Row], new: &[Row]) -> String {
     out
 }
 
-fn git(dir: &Path, args: &[&str]) -> Result<String> {
+pub fn git(dir: &Path, args: &[&str]) -> Result<String> {
     let out = Command::new("git").arg("-C").arg(dir).args(args).output()?;
     ensure!(
         out.status.success(),

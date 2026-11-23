@@ -62,6 +62,11 @@ pub struct Config {
     #[cfg_attr(feature = "specta", specta(skip))]
     #[serde(skip_serializing_if = "crate::turn::TurnConfig::is_unset")]
     pub turn: crate::turn::TurnConfig,
+    /// The queue's other machines, by game name, for what runs there over
+    /// ssh (`ap room up --on`, `ap bench --on`).
+    #[cfg_attr(feature = "specta", specta(skip))]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub machines: BTreeMap<String, crate::ap::there::Machine>,
     /// Draw item icons from the game dump. zootr-nx ships none of the
     /// game's art, so it's off until the person turns it on.
     pub game_assets: bool,

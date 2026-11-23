@@ -14,7 +14,7 @@ use ounce_formats::Romfs;
 
 use super::bench::{PASSES, Sample};
 use super::client::{self, Book, Game, Note};
-use super::room::{Room, SLOTS};
+use super::room::{Console, Room, SLOTS};
 use super::timing;
 use crate::live;
 use crate::play::Input;
@@ -60,6 +60,7 @@ pub fn live(
         slot: SLOTS[0].into(),
         password: None,
     };
+    let mut console = room.console()?;
     let (stop, stopped) = channel();
     let timed = thread::scope(|s| {
         let (conn, book, game, heard) = (&conn, &book, &mut game, &heard);
@@ -84,7 +85,7 @@ pub fn live(
             let receives = (0..EACH)
                 .map(|i| {
                     settle(&writer, input)?;
-                    receive(room, ITEMS[i % ITEMS.len()], &seen, &writer)
+                    receive(&mut console, ITEMS[i % ITEMS.len()], &seen, &writer)
                 })
                 .collect::<Result<Vec<_>>>()?;
             Ok((busy, sends, receives))
@@ -150,13 +151,13 @@ fn settle(game: &Dev, input: &mut dyn Input) -> Result<()> {
 
 /// Sends `item` from the room and times it into Link's pouch.
 fn receive(
-    room: &Room,
+    console: &mut Console,
     item: &str,
     seen: &impl Fn() -> Vec<(Instant, Note)>,
     game: &Dev,
 ) -> Result<Duration> {
     let start = Instant::now();
-    room.send(SLOTS[0], item)?;
+    console.send(SLOTS[0], item)?;
     let done =
         wait(Duration::from_secs(30), || timing::received(&seen(), start)).with_context(|| {
             let state = game

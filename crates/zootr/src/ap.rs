@@ -21,6 +21,7 @@ mod presets;
 pub mod room;
 mod rule;
 mod seed;
+pub mod there;
 pub mod timing;
 mod when;
 mod zip;
