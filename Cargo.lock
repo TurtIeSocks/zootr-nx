@@ -2676,7 +2676,7 @@ dependencies = [
 
 [[package]]
 name = "nup-format"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "nup-format",
  "sha2",
@@ -2960,7 +2960,7 @@ dependencies = [
 
 [[package]]
 name = "ounce-formats"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "anyhow",
  "roead",
@@ -6320,7 +6320,7 @@ checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
 
 [[package]]
 name = "zootr"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "anyhow",
  "archipelago_rs",
@@ -6347,7 +6347,7 @@ dependencies = [
 
 [[package]]
 name = "zootr-app"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "anyhow",
  "jiff",
@@ -6369,7 +6369,7 @@ dependencies = [
 
 [[package]]
 name = "zootr-hook"
-version = "0.11.0"
+version = "0.12.0"
 
 [[package]]
 name = "zstd"

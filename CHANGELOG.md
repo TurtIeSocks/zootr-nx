@@ -3,6 +3,74 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.12.0] - 2026-11-23
+
+### Added
+
+- A local room for tests and a standard bench
+- All-on gains the stage 3 options
+- Derived baselines for the other eleven dungeons
+- `dev here`, Link's spot and dungeon room for a room file
+- Room-set, room-add and rooms, writing confirmed room files
+- Start with any of the eight masks, each its own cell
+- Link keeps every mask the shop lends and every mask he sells
+- Start with any of the eight masks, each its own cell
+- Shuffle-masks puts the eight masks in the pool
+- Set-exit and set-inside, and each ledger row's ways in
+- Mask select, cycling the Equipment page's mask slot
+- Live bench metrics and connect timings
+- Rooms and the bench on another machine
+- A name for every dungeon room
+- A Trade section with a cell per trade item
+- The fifth bottle
+- A Masks section, one cell per mask
+- Swap Link's age where he stands on maps with no other-age version
+- Business Scrub Seeds get a cell in the grid
+- Several games on one machine, as slots
+- Beside a sweep, a machine plays one game more at most
+- Offer pots, crates, rocks, grass, hives, scrubs and the race
+- Mark the settings Archipelago doesn't offer
+- No stones or medallions in the starting inventory
+- Hearts from heart containers and pieces
+- Rupees as a Quest cell, and no Status fields
+- Columns of Inventory, Trade and Songs beside Equipment, Upgrades, Quest and Masks
+- The world runs the pool trades, offering Shuffle Masks and Bombchu Bags
+- The starting inventory follows the bag settings
+
+### Fixed
+
+- Enter a shutter's far part from every room entered at its near one
+- Drop the test module's unused map import
+- Show each check's need as it reads in its era
+- Move the far code out of the padding after text
+- Draw the mask slot's picture and keep a mask pick for both ages
+- Bench rows there go to a mktemp file; refills as the spec names
+- A room started over ssh outlives the session on Linux
+- The pipe to a room there writes each line through
+- The server's shell line is unix-only, like its users
+- Keep the shared list clear of sloperinaGZ's slots
+- The arsenal fills the Giant's Wallet, 1000 rupees
+- The arsenal holds Improved Spin
+- The arsenal holds 100 Gold Skulltula tokens
+- Magic shows its tier as pips, like the upgrades
+- The Kokiri Tunic shows held and locked on the Inventory page
+- Wait a frame between starting grants
+- Only a broken holder takes a drop's tick
+- Take filler from the pool these options hold
+- The Inventory panel's wallet starts at the child's
+- Starting heart containers draw full on the HUD
+
+### Faster
+
+- One flagmap graph a test process
+- Derive borrows the flagmap graph, so its tests share one
+- Open the dev dump once a test process
+- Send bridge requests together, up to 8 in flight
+- Keep GameData's pointers, checked on every read
+- Skip the pointer check when every pointer is fresh
+- Fewer round trips to ask the hook and check for play
+- Find a pass's places in one scan of every map
+
 ## [0.11.0] - 2026-11-23
 
 ### Added
