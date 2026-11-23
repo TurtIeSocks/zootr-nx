@@ -17,6 +17,11 @@ if [ -d "$CARGO_TARGET_DIR" ] && [ "$(du -s --block-size=1G "$CARGO_TARGET_DIR" 
   rm -rf "$CARGO_TARGET_DIR"
 fi
 
+# A build script compiled by another job (an older branch, a cancelled
+# run) can sit in the shared cache and not be rebuilt here, so each job
+# compiles zootr's own.
+rm -rf "$CARGO_TARGET_DIR"/debug/build/zootr-* "$CARGO_TARGET_DIR"/debug/.fingerprint/zootr-*
+
 # The tests open ../../dump/oot.nup from the crate.
 ln -sf /dump/oot.nup dump/oot.nup
 
@@ -24,10 +29,17 @@ log=/logs/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.log
 CARGO_TERM_COLOR=never cargo test -p zootr --lib --bins --tests > "$log" 2>&1
 status=$?
 # The slow checks the default run skips: the AP export against each pair
-# of options' seeds. The same cargo shape as above, so nothing rebuilds:
-# another shape reruns the build script, which the shared cache points at
-# another runner's checkout.
-CARGO_TERM_COLOR=never cargo test -p zootr --lib --bins --tests -- --ignored ap::export:: >> "$log" 2>&1 || status=1
+# of options' seeds. They run from the lib test binary the run above
+# built, not a second cargo run: jobs share the cache, and between two
+# cargo runs another job can swap in its own build script, pointing at its
+# checkout. One cargo run a job leaves no gap for that.
+bin=$(sed -n 's|^ *Running unittests src/lib.rs (\(.*\))$|\1|p' "$log" | head -1)
+if [ -x "$bin" ]; then
+  (cd crates/zootr && "$bin" --ignored ap::export::) >> "$log" 2>&1 || status=1
+else
+  echo "no lib test binary in the log, so the slow AP checks didn't run"
+  status=1
+fi
 
 grep -E '^test result:|^test .* \.\.\. FAILED$' "$log"
 grep -q '^error: could not compile' "$log" && echo "build failed"
