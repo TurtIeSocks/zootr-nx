@@ -595,6 +595,15 @@ pub(super) enum ApCommand {
         #[arg(long)]
         password: Option<String>,
     },
+    /// A local room for tests: a two-slot multiworld from a preset, with
+    /// the server's cheat console a command away.
+    Room {
+        #[command(subcommand)]
+        cmd: super::ap::RoomCommand,
+    },
+    /// Time AP the same way every run (export, generate, open, the
+    /// client's pass) and keep each metric as a row, flagging a slowdown.
+    Bench(super::ap::Bench),
 }
 
 #[derive(clap::Args)]

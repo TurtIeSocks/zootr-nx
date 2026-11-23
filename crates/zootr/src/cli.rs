@@ -21,6 +21,7 @@ use selftest::selftest;
 use target::target_command;
 use turn::turn;
 
+mod ap;
 pub(crate) mod args;
 mod dev_args;
 mod flagmap;
@@ -70,6 +71,8 @@ pub fn run() -> Result<()> {
         Command::Ap(ApCommand::Open { file, install }) => {
             return seed::ap_open(&path, &file, install);
         }
+        Command::Ap(ApCommand::Room { cmd }) => return ap::room_command(&path, cmd),
+        Command::Ap(ApCommand::Bench(args)) => return ap::bench_command(&path, args),
         _ => {}
     }
     let romfs = game::prepare(&path, &Run::silent())?;
@@ -78,7 +81,7 @@ pub fn run() -> Result<()> {
         | Command::Target(_)
         | Command::Turn { .. }
         | Command::Shuffle(_)
-        | Command::Ap(ApCommand::Open { .. }) => {
+        | Command::Ap(ApCommand::Open { .. } | ApCommand::Room { .. } | ApCommand::Bench(_)) => {
             unreachable!("handled above")
         }
         Command::Census => census(&romfs),

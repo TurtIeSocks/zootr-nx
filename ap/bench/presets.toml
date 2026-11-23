@@ -1,0 +1,43 @@
+# The option sets `zootr ap room` and `zootr ap bench` generate with, by
+# the setting ids in `ap/znx/data/options.json`. Both slots of a room play
+# the same preset, and each also starts with the test seeds' items.
+
+# The world's defaults, plus the test seeds' rules.
+[defaults]
+open-forest = true
+kakariko-gate = true
+skip-cutscenes = true
+
+# Every option at its widest: every check kind on. An option the world
+# gains joins here in the same PR (a test checks every one is named).
+[all-on]
+open-forest = true
+kakariko-gate = true
+met-zelda = true
+door-of-time = "open"
+jabu-open = true
+open-waterfall = true
+adult-deku-tree = true
+gerudo-fortress = "normal"
+npc-gifts = true
+songs = true
+hundred-token-reward = true
+trade-chain = true
+merchants = true
+master-sword-shuffle = true
+shopsanity = true
+shop-slots = "8"
+freestanding = true
+cows = true
+gold-skulltulas = true
+boss-hearts = true
+dungeon-rewards = true
+maps-compasses = true
+keys = "start"
+fortress-keys = "singles"
+bombchus = "free"
+skip-cutscenes = true
+chest-size = "vanilla"
+quiet-navi = true
+bunny-hood = true
+ageless-weapons = true
