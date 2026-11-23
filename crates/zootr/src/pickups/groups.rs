@@ -90,9 +90,8 @@ mod tests {
     /// and the web it deletes on its death.
     const SKULLTULA: u64 = 17067594426901953848;
 
-    /// A Fire Temple crate a room's module respawns, watched through 18
-    /// sensor areas.
-    const CRATE: u64 = 15851182856759542692;
+    /// A Shadow Temple pot a room's module watches through 2 sensor areas.
+    const POT: u64 = 645964684709624210;
 
     /// The map of `kind`'s check `hash`.
     fn doc(romfs: &ounce_formats::Romfs, kind: &crate::pickups::Kind, hash: u64) -> Byml {
@@ -151,20 +150,20 @@ mod tests {
     #[test]
     fn each_copy_watches_through_its_own_areas() {
         let Some(romfs) = dev_dump() else { return };
-        let mut root = doc(&romfs, &crate::pickups::CRATES, CRATE);
-        let [vanilla] = &naming(&root, CRATE)[..] else {
-            panic!("one group names the crate");
+        let mut root = doc(&romfs, &crate::pickups::POTS, POT);
+        let [vanilla] = &naming(&root, POT)[..] else {
+            panic!("one group names the pot");
         };
         let before = placed(&root).len();
-        let copies = [1, 2].map(|k| (CRATE, copy_hash(CRATE, k)));
+        let copies = [1, 2].map(|k| (POT, copy_hash(POT, k)));
         assert!(super::copy(&mut root, &copies).unwrap());
 
-        assert_eq!(&naming(&root, CRATE)[..], std::slice::from_ref(vanilla));
+        assert_eq!(&naming(&root, POT)[..], std::slice::from_ref(vanilla));
         let placed = placed(&root);
         let area =
             |h: &u64| placed.get(h).and_then(|a| str_field(a, GYAML)) == Some(actor::AREA.get());
         let areas: Vec<u64> = refs(vanilla).into_iter().filter(area).collect();
-        assert_eq!(areas.len(), 18);
+        assert_eq!(areas.len(), 2);
         let mut seen = BTreeSet::new();
         for (_, copy) in copies {
             let [dup] = &naming(&root, copy)[..] else {
@@ -179,9 +178,9 @@ mod tests {
                 let at = |h: &u64| checks::vec3(placed[h], "Translate");
                 assert_eq!(at(mine), at(clone));
             }
-            // The other crates stay shared.
-            let crates = |g: &Byml| refs(g).into_iter().filter(|h| !area(h)).count();
-            assert_eq!(crates(dup), crates(vanilla));
+            // Its other references stay shared.
+            let others = |g: &Byml| refs(g).into_iter().filter(|h| !area(h)).count();
+            assert_eq!(others(dup), others(vanilla));
         }
         assert_eq!(placed.len(), before + 2 * areas.len());
     }

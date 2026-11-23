@@ -424,9 +424,9 @@ mod tests {
         let skulltulas = pickups::SKULLTULAS.checks(&dev_dump().unwrap()).unwrap();
         let skulltulas: BTreeSet<u64> = skulltulas.iter().map(|s| s.hash).collect();
         assert_eq!(skulltulas.len(), 100);
-        // 530 pots and 23 flying ones, 44 crates, 167 rocks, 134 shrubs and
+        // 530 pots and 23 flying ones, 38 crates, 167 rocks, 134 shrubs and
         // 21 hives.
-        assert_eq!(holders.len(), 945 + 100);
+        assert_eq!(holders.len(), 939 + 100);
         let killed = |h: &&Holder| matches!(h.after, After::Killed(_));
         let killed: BTreeSet<u64> = holders.iter().filter(killed).map(|h| h.hash).collect();
         assert_eq!(killed, skulltulas);
