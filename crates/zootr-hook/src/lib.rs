@@ -52,7 +52,7 @@ pub use table::SlotSpec;
 pub use table::encode;
 pub use table::{
     BOMBCHU_BAG, BUNNY_HOOD, Credit, DEV, FREE_BOMBCHUS, Found, HEADER, Header, ICE_TRAPS, Level,
-    Levels, MAGIC, Offsets, REACH, SPOT_KEY, Slot, Spot, TRADE_CYCLE, Table, after_grant, fnv,
+    Levels, MAGIC, MENU_CYCLE, Offsets, REACH, SPOT_KEY, Slot, Spot, Table, after_grant, fnv,
     nearest, pick, pick_with,
 };
 
@@ -74,7 +74,7 @@ pub const PANIC: u32 = 0x4e9_aff0;
 /// listed, then the full key, handheld and joy dual controller reads. The
 /// patch writes a `b` into each: past the hooked function's pacibsp, or to
 /// the game's `GetNpadStates` stub for that style.
-pub const SLOTS: u32 = 72;
+pub const SLOTS: u32 = 80;
 
 /// The Deku Seed's name hash, the projectile an empty bow says "no Deku
 /// seeds" for and the draw says "Shoot Seed" for. Every other one says
@@ -138,10 +138,17 @@ pub const OFFSETS: Offsets = Offsets {
     // The Items page's vtable slot 7, run as it's left or the menu closes.
     items_left: 0xa7_6770,
     ui_update: 0x6e_6be0,
+    // The Equipment page's vtable slots 5 and 7, as the Items page's.
+    equipment_built: 0xa6_c800,
+    equipment_left: 0xa7_0ff0,
     cell_set: 0xa7_3060,
     unfocus: 0xab_5080,
     focus: 0xab_4ec0,
     anim_frame: 0x2d_2d90,
     equipped: 0x17_b6e0,
+    worn: 0xa7_1080,
+    pouch_menu: 0x4c7_e0d0,
+    redraw: 0x20_8350,
+    icon: 0xa7_37e0,
     effects: 0x4e8_40e0,
 };

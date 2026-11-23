@@ -628,7 +628,7 @@ fn hook_flags(new_game: &NewGame) -> u32 {
         (new_game.bombchus == Bombchus::Bag, zootr_hook::BOMBCHU_BAG),
         (new_game.bunny_hood, zootr_hook::BUNNY_HOOD),
         (ice_traps::springs(new_game), zootr_hook::ICE_TRAPS),
-        (true, zootr_hook::TRADE_CYCLE),
+        (true, zootr_hook::MENU_CYCLE),
     ]
     .into_iter()
     .filter_map(|(on, bit)| on.then_some(bit))
@@ -639,7 +639,7 @@ fn hook_flags(new_game: &NewGame) -> u32 {
 mod tests {
     use super::*;
     use crate::known::actor;
-    use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS, TRADE_CYCLE};
+    use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS, MENU_CYCLE};
 
     #[test]
     fn an_adult_start_holds_the_master_sword_only_from_the_start_inventory() {
@@ -675,7 +675,7 @@ mod tests {
 
     #[test]
     fn each_hook_setting_sets_its_own_bit() {
-        assert_eq!(FREE_BOMBCHUS & BUNNY_HOOD & TRADE_CYCLE, 0);
+        assert_eq!(FREE_BOMBCHUS & BUNNY_HOOD & MENU_CYCLE, 0);
         let flags = |free: bool, bunny_hood| {
             hook_flags(&NewGame {
                 bombchus: [Bombchus::BombBag, Bombchus::Free][usize::from(free)],
@@ -683,9 +683,9 @@ mod tests {
                 ..Default::default()
             })
         };
-        assert_eq!(flags(false, false), TRADE_CYCLE);
-        assert_eq!(flags(true, false), FREE_BOMBCHUS | TRADE_CYCLE);
-        assert_eq!(flags(false, true), BUNNY_HOOD | TRADE_CYCLE);
-        assert_eq!(flags(true, true), FREE_BOMBCHUS | BUNNY_HOOD | TRADE_CYCLE);
+        assert_eq!(flags(false, false), MENU_CYCLE);
+        assert_eq!(flags(true, false), FREE_BOMBCHUS | MENU_CYCLE);
+        assert_eq!(flags(false, true), BUNNY_HOOD | MENU_CYCLE);
+        assert_eq!(flags(true, true), FREE_BOMBCHUS | BUNNY_HOOD | MENU_CYCLE);
     }
 }

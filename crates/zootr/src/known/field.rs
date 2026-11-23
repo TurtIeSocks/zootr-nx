@@ -358,6 +358,7 @@ pub const MAINTAIN_PERFORMANCE_STATE: &Name = &n!(0x495048d316415f07);
 pub const MARKET_ADULT_ALL_SAGE_START: &Name = &n!(0x2627ace92db26e21);
 pub const MARKET_ADULT_FIELD_GET_ARROW_LIGHT: &Name = &n!(0xa3d920887d2f9e11);
 pub const MARKET_ENTRANCE: &Name = &n!(0x561a05dc9774b4a8);
+pub const MASK: &Name = &n!(0x49c560aecfeb8c29);
 pub const MASK_VALUE: &Name = &n!(0x4c1bb4bea6f36a36);
 pub const MATERIAL_COLLECTION: &Name = &n!(0x76da3024da68471c);
 pub const MATERIAL_PRESETS: &Name = &n!(0x1b24658247566eb4);

@@ -12,5 +12,5 @@ pub mod store;
 
 pub use cycle::{Cycle, Frame, Out, Sound};
 pub use input::{Buttons, Input};
-pub use slots::{Age, MultiSlot};
-pub use store::{Seen, Store};
+pub use slots::{Age, MAX_SLOTS, MultiSlot, Page};
+pub use store::{PageUp, Seen, SlotState, Store};

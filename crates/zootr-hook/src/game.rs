@@ -31,8 +31,8 @@ const MAX: usize = 128;
 
 // The call sites `bl` to content_name at +0, drop_actor at +4, run_speed
 // at +24, the controller reads to +32, +36 and +40, and seed_guide at +68. The hooked
-// functions `b` to +8, +12, +16, +20, +28, +44, +48, +52, +56, +60 and +64
-// in place of their pacibsp.
+// functions `b` to +8, +12, +16, +20, +28, +44, +48, +52, +56, +60, +64,
+// +72 and +76 in place of their pacibsp.
 // The opening node is in x20 at both content_name call sites.
 //
 // A function hook keeps every argument register and the link register,
@@ -125,6 +125,8 @@ global_asm!(
     "b nocked_entry",
     "b emptied_entry",
     "b seed_guide",
+    "b equipment_built_entry",
+    "b equipment_left_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -147,6 +149,10 @@ global_asm!(
     "nocked_resume:",
     "brk #0",
     "emptied_resume:",
+    "brk #0",
+    "equipment_built_resume:",
+    "brk #0",
+    "equipment_left_resume:",
     "brk #0",
     "npad_full_stub:",
     "brk #0",
@@ -186,6 +192,10 @@ global_asm!(
     "function_hook items_left, items_left_resume",
     "ui_update_entry:",
     "function_hook_after ui_update, ui_update_resume",
+    "equipment_built_entry:",
+    "function_hook equipment_built, equipment_built_resume",
+    "equipment_left_entry:",
+    "function_hook equipment_left, equipment_left_resume",
 );
 
 /// `main`, from where the hook starts.
@@ -217,7 +227,7 @@ fn table() -> Option<(usize, Table<'static>)> {
         Found::Table => {}
     }
     let at = (header as *const Header).cast::<u8>();
-    let size = (header.size + header.credits + header.slot + header.look) as usize;
+    let size = (header.size + header.credits + header.slots + header.look) as usize;
     let body = unsafe { slice::from_raw_parts(at.add(HEADER), size) };
     match Table::parse(header, body) {
         Some(table) => Some((main, table)),
