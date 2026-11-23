@@ -19,6 +19,7 @@ use super::{Expr, parse, vocab};
 use crate::entrances::DUNGEONS;
 
 mod spots;
+pub mod write;
 pub use spots::{FloorClaim, Point, SpotLink, Spots};
 
 /// Every room file under `logic/`, by its path there. `build.rs` lists them.
@@ -127,6 +128,9 @@ pub struct Check {
     /// by the time Link reaches it (`zootr logic quest-gates`).
     #[serde(rename = "quest-gate-ok")]
     pub quest_gate_ok: Option<String>,
+    /// Laid over the baseline from a confirmed file.
+    #[serde(skip)]
+    pub confirmed: bool,
     #[serde(skip, default = "always")]
     pub expr: Expr,
 }
@@ -478,6 +482,7 @@ pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
             }
             spots.floor.append(&mut file.floor);
             overlay(&mut base.link, file.link)?;
+            file.check.iter_mut().for_each(|c| c.confirmed = true);
             overlay(&mut base.check, file.check)?;
             overlay(&mut base.flag, file.flag)?;
             add(&mut base.knowledge, file.knowledge)?;

@@ -7,6 +7,7 @@ use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 
 use super::dev_args::{DevCommand, MemCommand};
+use super::logic_args::LogicCommand;
 use crate::config::Config;
 use crate::progress::{About, Run};
 use crate::settings::Settings;
@@ -461,76 +462,6 @@ pub(super) enum Command {
         stall: u64,
         #[command(flatten)]
         start: StartArgs,
-    },
-}
-
-/// What a harness start plays. Without either, the game's own saves.
-#[derive(Subcommand)]
-pub(super) enum LogicCommand {
-    /// Set one check's name, need or place in the rule files, keeping
-    /// comments and order. A check with no entry gets one in its area's
-    /// file. Refused, with nothing written, unless every file still loads.
-    Set {
-        hash: u64,
-        /// Shown in place of the generated name.
-        #[arg(long)]
-        name: Option<String>,
-        /// What it needs beyond reaching its place, like `child and hookshot`.
-        #[arg(long)]
-        needs: Option<String>,
-        /// The logic place Link gets it from, with `--era`.
-        #[arg(long, requires = "era")]
-        place: Option<String>,
-        #[arg(long, requires = "place", value_parser = ["child", "adult"])]
-        era: Option<String>,
-        /// The rule files to edit: a worktree's `crates/zootr/logic`.
-        #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
-        dir: PathBuf,
-    },
-    /// The room files' playtest queue: hand rules that disagree with a room
-    /// rule, guesses with their reasons, and routes that take knowledge.
-    Audit {
-        /// One dungeon, by its id (`deku-tree`).
-        dungeon: Option<String>,
-    },
-    /// Every check and hand exit whose giver waits on a quest step that its
-    /// rule names no word for, and has no `quest-gate-ok` reason.
-    QuestGates,
-    /// Write `logic/baseline/` from the game's data: never edited by hand,
-    /// `logic/confirmed/` overrides it.
-    Derive {
-        /// The object kinds: what each needs and does, `baseline/kinds.toml`.
-        #[arg(long)]
-        kinds: bool,
-        /// A dungeon's room files, by its id (`deku-tree`).
-        dungeon: Option<String>,
-        /// The logic folder to write in: a worktree's `crates/zootr/logic`.
-        #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
-        dir: PathBuf,
-    },
-    /// What derive sees in a dungeon: each navmesh face near a spot with
-    /// its room, part and arcs out, the placements that number rooms there,
-    /// and a top-down picture of the floor by room.
-    Explain {
-        /// The dungeon, by its id (`deku-tree`).
-        dungeon: String,
-        /// The spot to explain, as `X,Y,Z`.
-        #[arg(long, value_delimiter = ',', allow_negative_numbers = true)]
-        at: Option<Vec<f32>>,
-        /// How far round the spot to look, in m.
-        #[arg(long, default_value_t = 3.0)]
-        within: f32,
-        /// Write a top-down PNG: floors by room (swum water darker, room
-        /// numbers drawn), walls cut at waist height (black solid, blue
-        /// invisible), swims green, crawls orange, the spot a red cross.
-        #[arg(long)]
-        picture: Option<PathBuf>,
-        /// The rooms the picture shows, like `5,6`. Without: round the spot.
-        #[arg(long, value_delimiter = ',')]
-        rooms: Vec<u32>,
-        /// The height walls are cut at. Without: the spot's, or the floor's.
-        #[arg(long, allow_negative_numbers = true)]
-        y: Option<f32>,
     },
 }
 

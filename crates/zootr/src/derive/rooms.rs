@@ -768,7 +768,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
 /// Writes `dungeon`'s baseline room files under the logic folder `dir`,
 /// first clearing the old ones, so a renamed room leaves no stale file.
 pub fn write(romfs: &Romfs, game: &Path, dungeon: &Dungeon, dir: &Path) -> Result<Derived> {
-    let book = Book::load()?;
+    let book = Book::load_from(dir)?;
     let derived = derive(romfs, game, dungeon, &book)?;
     let folder = dir.join("baseline").join(folder(dungeon.node.get()));
     if folder.exists() {

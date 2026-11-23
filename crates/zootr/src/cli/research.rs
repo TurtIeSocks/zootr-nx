@@ -7,8 +7,10 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use ounce_formats::{Flowchart, Romfs};
 
-use super::args::{LogicCommand, NewGame};
+use super::args::NewGame;
+use super::logic_args::{LogicCommand, RoomEntry};
 use crate::known::{field, flag};
+use crate::rules::rooms::write;
 use crate::world::Era;
 use crate::{arrivals, checks, cut, cutscenes, events, fill, flags, flows, items, logic, rules};
 
@@ -306,6 +308,80 @@ pub(super) fn logic_set(romfs: &Romfs, game: &std::path::Path, cmd: LogicCommand
                     j.from, j.to, j.width
                 );
             }
+        }
+        return Ok(());
+    }
+    if let LogicCommand::RoomSet {
+        dungeon,
+        room,
+        hash,
+        needs,
+        why,
+        evidence,
+        dir,
+    } = cmd
+    {
+        let dungeon = dungeon_of(&dungeon)?;
+        let path = write::set_check(&dir, dungeon, room, hash, &needs, &why, evidence.as_deref())?;
+        println!("{}", path.display());
+        return Ok(());
+    }
+    if let LogicCommand::RoomAdd {
+        dungeon,
+        room,
+        entry,
+        evidence,
+        dir,
+    } = cmd
+    {
+        let entry = match entry {
+            RoomEntry::Link {
+                from,
+                to,
+                via,
+                needs,
+                why,
+            } => write::Add::Link {
+                from,
+                to,
+                via,
+                needs,
+                why,
+            },
+            RoomEntry::Flag {
+                hash,
+                name,
+                at,
+                needs,
+                why,
+            } => write::Add::Flag {
+                hash,
+                name,
+                at,
+                needs,
+                why,
+            },
+            RoomEntry::Floor { at, why } => write::Add::Floor { at, why },
+        };
+        let path = write::add(
+            &dir,
+            dungeon_of(&dungeon)?,
+            room,
+            &entry,
+            evidence.as_deref(),
+        )?;
+        println!("{}", path.display());
+        return Ok(());
+    }
+    if let LogicCommand::Rooms { dungeon, json, dir } = cmd {
+        let rooms = write::rooms(&dir, dungeon_of(&dungeon)?)?;
+        if json {
+            let rows: Vec<_> = (rooms.iter())
+                .map(|(room, name)| serde_json::json!({ "room": room, "name": name }))
+                .collect();
+            println!("{}", serde_json::to_string(&rows)?);
+        } else {
+            rooms.iter().for_each(|(r, n)| println!("{r:>2}  {n}"));
         }
         return Ok(());
     }

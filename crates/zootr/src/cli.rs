@@ -25,6 +25,7 @@ mod ap;
 pub(crate) mod args;
 mod dev_args;
 mod flagmap;
+mod logic_args;
 mod new_game;
 mod play;
 mod research;
