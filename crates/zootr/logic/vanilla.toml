@@ -403,3 +403,8 @@ needs = "adult and hookshot and ocarina and scarecrow"
 hash = 1876671093443800633
 name = "Baby Dodongo Room Pot 1"
 needs = "always"
+
+[[check]]
+hash = 9774921074194675290
+name = "Baby Dodongo Room Pot - Right"
+needs = "always"
