@@ -715,6 +715,34 @@ test("a Status field sets the starting inventory through the backend", async () 
   expect(set).toHaveBeenCalledWith({}, { hash: 9, index: 0, value: "20" });
 });
 
+test("All starts with the arsenal and None with nothing", async () => {
+  vi.spyOn(commands, "startItems").mockImplementation(() => startView(0));
+  const arsenal = vi
+    .spyOn(commands, "startArsenal")
+    .mockImplementation((s) =>
+      Promise.resolve({ status: "ok", data: { ...s, longshot: 1 } }),
+    );
+  const setConfig = show({
+    defs: [inventory],
+    settings: { "start-inventory": { hookshot: 1 } },
+    section: "Inventory",
+  });
+  await screen.findByRole("button", { name: /^Hookshot/ });
+  fireEvent.click(
+    screen.getByRole("button", { name: "All in Starting inventory" }),
+  );
+  await waitFor(() =>
+    expect(saved(setConfig)).toEqual({
+      "start-inventory": { hookshot: 1, longshot: 1 },
+    }),
+  );
+  expect(arsenal).toHaveBeenCalledWith({ hookshot: 1 });
+  fireEvent.click(
+    screen.getByRole("button", { name: "None in Starting inventory" }),
+  );
+  await waitFor(() => expect(saved(setConfig)).toEqual({}));
+});
+
 test("turning developer tools off on Test setup leaves for the first group", () => {
   show({ section: "test", devTools: true });
   expect(screen.getByLabelText("Spawn")).toBeTruthy();

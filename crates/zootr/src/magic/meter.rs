@@ -3,7 +3,7 @@
 //! Magic's pack and rows with the single meter, painted meter green.
 
 use anyhow::{Context, Result};
-use ounce_formats::{ActorPack, Byml, ModBuilder, Romfs, redraw, top_level};
+use ounce_formats::{ActorPack, Byml, ModBuilder, Romfs, murmur3, redraw, top_level};
 
 use crate::gamedata;
 use crate::key_tints::paint::{Host, Look};
@@ -81,6 +81,14 @@ pub fn copy_pack(romfs: &Romfs, item: &str) -> Result<Option<ActorPack>> {
 /// Its `IsGet` and pouch count, as Doubled Magic's.
 pub fn game_data(root: &mut Byml) -> Result<()> {
     gamedata::copy_item(root, LIKE.get(), NAME)
+}
+
+/// The dump's value a seed's GameData copies `hash` from, when `hash` is
+/// the meter's `IsGet`. Only a seed's GameData has the meter, so a new
+/// game built from the dump's takes the default of the one it copies.
+pub fn copied_from(hash: u32) -> Option<u32> {
+    let is_get = |item: &str| murmur3(format!("{}.{item}", gamedata::IS_GET).as_bytes());
+    (hash == is_get(NAME)).then(|| is_get(LIKE.get()))
 }
 
 /// Its model, icon, pack and rows. Its pouch row is Doubled Magic's with

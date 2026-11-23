@@ -91,13 +91,30 @@ export interface AllNoneProps {
   would: (on: boolean) => boolean;
   /** Turns the section's toggles on, or off. */
   onPick: (on: boolean) => void;
+  /** What each button says when it would change nothing, for a section
+   * that isn't toggles. */
+  already?: (on: boolean) => string;
+  /** What each button does, as its tip. */
+  tip?: (on: boolean) => ReactNode;
+  /** Classes on top of its own, for a place that isn't under a header. */
+  className?: string;
 }
+
+const toggled = (on: boolean) =>
+  `Every toggle here is already ${on ? "on" : "off"}`;
 
 /** All and None, under a section's header. Each says why when every
  * toggle it would change is already there, or held by a parent. */
-export function AllNone({ of, would, onPick }: AllNoneProps) {
+export function AllNone({
+  of,
+  would,
+  onPick,
+  already = toggled,
+  tip,
+  className,
+}: AllNoneProps) {
   return (
-    <div className="flex items-center gap-1 pr-4 pb-2 pl-9">
+    <div className={cn("flex items-center gap-1 pr-4 pb-2 pl-9", className)}>
       {(["All", "None"] as const).map((word) => {
         const on = word === "All";
         return (
@@ -106,9 +123,8 @@ export function AllNone({ of, would, onPick }: AllNoneProps) {
             variant="ghost"
             size="sm"
             aria-label={`${word} in ${of}`}
-            why={
-              !would(on) && `Every toggle here is already ${on ? "on" : "off"}`
-            }
+            why={!would(on) && already(on)}
+            tip={tip?.(on)}
             onClick={() => onPick(on)}
           >
             {word}
