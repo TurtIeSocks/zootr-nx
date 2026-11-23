@@ -119,7 +119,7 @@ pub struct ExitRule {
 #[serde(deny_unknown_fields)]
 pub struct PlaceRule {
     pub place: String,
-    needs: String,
+    pub needs: String,
     #[serde(skip, default = "always")]
     pub expr: Expr,
 }

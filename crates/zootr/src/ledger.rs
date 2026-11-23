@@ -82,6 +82,17 @@ pub struct Row {
     pub sweep: Option<String>,
     /// Its room's rule, for a check in a dungeon with room files.
     pub room: Option<RoomRule>,
+    /// The hand rules for getting into its area: exits into it, and what
+    /// being inside needs.
+    pub ways_in: Vec<WayIn>,
+}
+
+/// A hand exit into an area, or (no `from`) what being inside it needs.
+#[derive(Clone, Serialize)]
+pub struct WayIn {
+    pub from: Option<String>,
+    pub to: String,
+    pub needs: String,
 }
 
 /// A check's rule in its room file: the baseline with confirmed laid over.
@@ -257,6 +268,34 @@ pub(crate) fn planned(romfs: &Romfs) -> Result<(Ledger, Vec<crate::sweep::plan::
             in_rooms.insert(c.hash, rule);
         }
     }
+    // Exits and inside rules by the node they lead into, as the rule
+    // files spell their places.
+    let word =
+        |node: &str| crate::rules::vocab::place_word(node).map_or(node.to_owned(), str::to_owned);
+    let mut ways: BTreeMap<&str, Vec<WayIn>> = BTreeMap::new();
+    for e in &book.exits {
+        ways.entry(&e.to).or_default().push(WayIn {
+            from: Some(word(&e.from)),
+            to: word(&e.to),
+            needs: e.needs.clone(),
+        });
+    }
+    for i in &book.insides {
+        ways.entry(&i.place).or_default().push(WayIn {
+            from: None,
+            to: word(&i.place),
+            needs: i.needs.clone(),
+        });
+    }
+    let ways_in = |hash: u64| -> Vec<WayIn> {
+        let nodes: BTreeSet<&str> = (world.locations.iter())
+            .filter(|l| l.hash == hash)
+            .map(|l| world.places[l.place].0.as_str())
+            .collect();
+        (nodes.iter())
+            .flat_map(|n| ways.get(n).into_iter().flatten().cloned())
+            .collect()
+    };
     let rows = rows
         .into_iter()
         .zip(spots)
@@ -290,6 +329,7 @@ pub(crate) fn planned(romfs: &Romfs) -> Result<(Ledger, Vec<crate::sweep::plan::
             tracker: tracker.flag(c.hash).map(|f| f.to_string()),
             sweep: sweep.get(&c.hash).cloned(),
             room: in_rooms.remove(&c.hash),
+            ways_in: ways_in(c.hash),
         })
         .collect();
     let ledger = Ledger {

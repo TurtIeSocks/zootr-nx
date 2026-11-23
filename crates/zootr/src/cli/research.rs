@@ -311,6 +311,24 @@ pub(super) fn logic_set(romfs: &Romfs, game: &std::path::Path, cmd: LogicCommand
         }
         return Ok(());
     }
+    let way = match &cmd {
+        LogicCommand::SetExit { from, to, .. } => Some(rules::Way::Exit {
+            from: from.clone(),
+            to: to.clone(),
+        }),
+        LogicCommand::SetInside { place, .. } => Some(rules::Way::Inside {
+            place: place.clone(),
+        }),
+        _ => None,
+    };
+    if let (
+        Some(way),
+        LogicCommand::SetExit { needs, dir, .. } | LogicCommand::SetInside { needs, dir, .. },
+    ) = (way, &cmd)
+    {
+        println!("{}", rules::set_way(dir, &way, needs)?.display());
+        return Ok(());
+    }
     if let LogicCommand::RoomSet {
         dungeon,
         room,
