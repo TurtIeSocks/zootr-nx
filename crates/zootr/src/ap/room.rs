@@ -410,6 +410,7 @@ fn tail(log: &str, n: usize) -> String {
 
 /// The server's shell line: `MultiServer.py` with its stdin fed from the
 /// FIFO, its output to the log.
+#[cfg(unix)]
 const SERVE: &str = r#"tail -f "$1" | exec "$2" MultiServer.py --port "$3" "$4" > "$5" 2>&1"#;
 
 /// Starts `MultiServer.py` on `multi` in its own process group, its stdin
