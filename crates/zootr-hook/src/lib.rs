@@ -64,7 +64,13 @@ pub use table::{
 pub const CAVE: u32 = 0x17f_1680;
 pub const FAR: u32 = 0x3c4_61d0;
 pub const TABLE: u32 = 0x484_c080;
-pub const LIST: u32 = 0x4e9_a4d0;
+/// The first byte after bss. sloperinaGZ keeps its hook and lock slots
+/// in the 16 bytes from here, so the list keeps clear of them.
+const BSS_END: u32 = 0x4e9_a4d0;
+/// The list sits at the page tail's top end, under [`PANIC`], and moves
+/// down as [`Shared`] grows.
+pub const LIST: u32 = (PANIC - size_of::<Shared>() as u32) & !15;
+const _: () = assert!(LIST >= BSS_END + 16, "the list reaches sloperinaGZ's slots");
 /// Where a panic in the hook leaves its line and file, in the list page's
 /// last 16 bytes, for reading from outside when the game hangs.
 pub const PANIC: u32 = 0x4e9_aff0;
