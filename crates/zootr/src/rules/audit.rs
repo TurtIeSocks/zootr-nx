@@ -187,11 +187,15 @@ mod tests {
             slingshot.ways_in
         );
         // A measured level jump settles every gap: what's left to guess
-        // is how a room gets cleared, and gold skulltulas a sword may
-        // reach or seen from another room.
+        // is how a room gets cleared, gold skulltulas a sword may reach or
+        // seen from another room, and the slingshot room's two chests,
+        // whose floor joins the doorway only over terrain derive can't read.
         assert!(!deku.guess.is_empty());
+        let terrain = ["Upper Fairy Slingshot", "Upper Three Deku Nuts 1"];
         assert!(
-            (deku.guess.iter()).all(|g| g.what.contains("Cleared") || g.what.contains("Skulltula")),
+            (deku.guess.iter()).all(|g| g.what.contains("Cleared")
+                || g.what.contains("Skulltula")
+                || terrain.iter().any(|t| g.what.contains(t))),
             "{:?}",
             deku.guess.iter().map(|g| &g.what).collect::<Vec<_>>()
         );

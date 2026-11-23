@@ -24,10 +24,12 @@ use crate::sweep::spot::slug;
 use crate::warp::Placement;
 
 pub mod explain;
+mod hand;
 mod label;
 mod locks;
 mod reach;
 
+use hand::{Taken, TakenBy, in_front};
 use label::{label, path_of};
 use locks::{Lock, flag, locks_in, room_in_name};
 use reach::{REACH_MAX, skulltula_reach};
@@ -410,6 +412,28 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                 locks.insert(*h, shared);
             }
         }
+        // Where Link enters each room: (room, part) of each arrival spot,
+        // and of the floor each arc from another room lands on.
+        let mut entries: HashSet<(u32, usize)> = HashSet::new();
+        // Each arc between two parts of one room, and what stands on it.
+        let mut crossings: Vec<hand::Crossing> = vec![];
+        let cross = |a: usize, b: usize, path: ([f32; 3], [f32; 3]), crawl: bool| {
+            let (pa, pb) = (labels.part[a], labels.part[b]);
+            (pa != pb && room[a].is_some() && room[a] == room[b]).then(|| hand::Crossing {
+                from: pa,
+                to: pb,
+                on: on(path.0, path.1),
+                crawl,
+            })
+        };
+        let starts = (level.placed.iter()).filter(|p| p.name == flag::START_POS.get());
+        for p in starts {
+            if let Some(snap) = graph.locate(p.pose.at)
+                && let Some(r) = room[snap.face]
+            {
+                entries.insert((r, labels.part[snap.face]));
+            }
+        }
         let mut note = |a: usize,
                         b: usize,
                         via: rooms::Via,
@@ -420,6 +444,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                 return;
             };
             if ra != rb {
+                entries.insert((rb, labels.part[b]));
                 let s = seen.entry((ra, rb, via)).or_default();
                 s.add(metric, by, path);
                 s.on.extend(on(path.0, path.1));
@@ -436,32 +461,53 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                     }
                 };
                 note(from, arc.to, via, metric, by, path);
+                crossings.extend(cross(from, arc.to, path, via == rooms::Via::Crawl));
             }
         }
         for (a, b, from, to) in graph.plunges() {
             note(a, b, rooms::Via::Drop, from[1] - to[1], None, (from, to));
+            crossings.extend(cross(a, b, (from, to), false));
         }
         for (a, b, from, to) in graph.gaps(jump) {
             let width = (from[0] - to[0]).hypot(from[2] - to[2]);
             note(a, b, rooms::Via::Jump, width, None, (from, to));
+            crossings.extend(cross(a, b, (from, to), false));
         }
-        // Each room's main part: the one with the most of its floor.
+        // A shutter's two leaves stand a strip of floor apart: its flag is
+        // paid on the link into the room, so the floor past the second leaf
+        // is entered too.
+        let opens: Vec<(usize, usize)> = (crossings.iter())
+            .filter(|c| {
+                !c.crawl && !c.on.is_empty() && c.on.iter().all(|(_, k)| k.uses == "always")
+            })
+            .map(|c| (c.from, c.to))
+            .collect();
+        // Each room's main part: the parts Link enters it by (rule 13). A
+        // room nothing enters (the first one, with no arrival placed in
+        // this map) falls back on the part with the most of its floor.
         let mut sizes: HashMap<(u32, usize), usize> = HashMap::new();
         for (f, r) in room.iter().enumerate() {
             if let Some(r) = r {
                 *sizes.entry((*r, labels.part[f])).or_default() += 1;
             }
         }
-        let main = |r: u32| {
+        let largest = |r: u32| {
             (sizes.iter())
                 .filter(|((sr, _), _)| *sr == r)
                 .max_by_key(|(k, n)| (**n, std::cmp::Reverse(k.1)))
                 .map(|((_, p), _)| *p)
         };
+        let entries = past_shutters(entries, &opens);
+        let entered: HashSet<u32> = entries.iter().map(|(r, _)| *r).collect();
+        let main = |r: u32, part: usize| match entered.contains(&r) {
+            true => entries.contains(&(r, part)),
+            false => largest(r) == Some(part),
+        };
+        let has_main = |r: u32| sizes.keys().any(|&(sr, p)| sr == r && main(r, p));
         // Floor Link shoots from: its room's main part, out of water too
         // deep to stand in. The rest is out of bounds or swum.
         let stands = |f: usize| {
-            room[f].and_then(main) == Some(labels.part[f]) && !graph.deep(graph.centers[f])
+            room[f].is_some_and(|r| main(r, labels.part[f])) && !graph.deep(graph.centers[f])
         };
         // Each check: what stands between it and its room's main part.
         for check in checks.iter().filter(|c| c.room.is_some()) {
@@ -472,7 +518,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
             let at = holder.pose.at;
             let skulltula = crate::pickups::SKULLTULAS.holds(check);
             let mut walled = None;
-            if !floored.contains(&r) && main(r).is_none() {
+            if !floored.contains(&r) && !has_main(r) {
                 // A gold skulltula on a floorless room's wall is hit from
                 // the floor nearest it, whichever room that is.
                 let near = skulltula
@@ -486,20 +532,47 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                 r = near;
             }
             let nearest = (0..room.len())
-                .filter(|&f| room[f] == Some(r) && Some(labels.part[f]) == main(r))
+                .filter(|&f| room[f] == Some(r) && main(r, labels.part[f]))
                 .min_by(|&a, &b| dist(graph.centers[a], at).total_cmp(&dist(graph.centers[b], at)));
-            let blocking = nearest
-                .map(|f| on(at, graph.centers[f]))
-                .unwrap_or_default();
-            let mut uses: Vec<&str> = blocking.iter().map(|(_, k)| k.uses.as_str()).collect();
-            let mut why = match &blocking[..] {
-                [] => "in reach from its room".to_owned(),
-                _ => (blocking.iter())
-                    .map(|(h, k)| format!("{} {h} in front: {}", k.name, k.uses))
-                    .collect::<Vec<_>>()
-                    .join("; "),
+            let by_hand = (!skulltula && walled.is_none())
+                .then(|| hand::holder(check))
+                .flatten();
+            let taken = match by_hand {
+                Some(kind) => {
+                    let taken = TakenBy {
+                        graph: &graph,
+                        room,
+                        part: &labels.part,
+                        crossings: &crossings,
+                    };
+                    taken.hand(kind, r, at, &|p| main(r, p), &on)
+                }
+                None => {
+                    let blocking = nearest
+                        .map(|f| on(at, graph.centers[f]))
+                        .unwrap_or_default();
+                    let why = match &blocking[..] {
+                        [] => "in reach from its room".to_owned(),
+                        _ => in_front(&blocking),
+                    };
+                    Taken {
+                        guess: blocking.iter().any(|(_, k)| k.guess),
+                        on: blocking,
+                        child: false,
+                        why,
+                    }
+                }
             };
-            let mut guess = blocking.iter().any(|(_, k)| k.guess);
+            let Taken {
+                on: blocking,
+                child,
+                mut why,
+                mut guess,
+            } = taken;
+            let mut uses: Vec<&str> = blocking.iter().map(|(_, k)| k.uses.as_str()).collect();
+            if child {
+                uses.push("child");
+            }
             let reach =
                 skulltula.then(|| skulltula_reach(&graph, |f| room[f] == Some(r) && stands(f), at));
             if let Some(reach) = &reach {
@@ -514,7 +587,7 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
                 why = format!("on a wall of room {w}, which has no floor; {why}");
                 guess = true;
             }
-            if nearest.is_none() {
+            if nearest.is_none() && by_hand.is_none() {
                 why = "its room has no floor to reach it from".into();
                 guess = true;
             }
@@ -727,9 +800,38 @@ pub fn write(romfs: &Romfs, game: &Path, dungeon: &Dungeon, dir: &Path) -> Resul
     Ok(derived)
 }
 
+/// `entries` (room, part) grown across `opens`, each a pair of parts of
+/// one room with only a flag shutter between: the parts Link enters.
+fn past_shutters(
+    mut entries: HashSet<(u32, usize)>,
+    opens: &[(usize, usize)],
+) -> HashSet<(u32, usize)> {
+    loop {
+        let more: Vec<(u32, usize)> = (opens.iter())
+            .filter_map(|&(a, b)| {
+                let r = entries.iter().find(|(_, p)| *p == a)?.0;
+                (!entries.contains(&(r, b))).then_some((r, b))
+            })
+            .collect();
+        if more.is_empty() {
+            return entries;
+        }
+        entries.extend(more);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_room_entered_between_a_shutters_leaves_is_entered_past_them() {
+        // Room 2 entered on the strip (part 7) between its shutter's leaves,
+        // the room itself past the second (part 8); part 9 is behind a web.
+        let entries = HashSet::from([(2, 7)]);
+        let found = past_shutters(entries, &[(7, 8), (3, 9)]);
+        assert_eq!(found, HashSet::from([(2, 7), (2, 8)]));
+    }
     use crate::known::map;
 
     #[test]

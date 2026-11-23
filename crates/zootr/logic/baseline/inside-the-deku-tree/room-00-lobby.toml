@@ -42,7 +42,7 @@ why = "in reach from its room"
 hash = 8579518566955184384
 name = "Dungeon Map Chest"
 needs = "always"
-why = "in reach from its room"
+why = "0.1 m from its room's floor, within a big chest's reach (1.35 m)"
 
 [[exit]]
 hash = 0xb5731c2c

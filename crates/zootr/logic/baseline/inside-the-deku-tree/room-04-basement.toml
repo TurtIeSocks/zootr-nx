@@ -36,7 +36,7 @@ why = "climb 11417569812811528089, 11765149838097928674, 11945414457677533711, 1
 hash = 12889104996486369065
 name = "Lower Three Deku Sticks"
 needs = "explosives or fire"
-why = "Inside The Deku Tree Spider Web A 02 108641270484685267 in front: explosives or fire"
+why = "0.2 m from its room's floor, within a small chest's reach (1.25 m); Inside The Deku Tree Spider Web A 02 108641270484685267 in front: explosives or fire"
 
 [[check]]
 hash = 16101480770659370603
