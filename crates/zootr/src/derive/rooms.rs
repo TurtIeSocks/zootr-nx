@@ -844,28 +844,59 @@ mod tests {
         assert!(!meets(&wall, [1.0, 4.0, 1.0], [3.0, 4.0, 1.0]));
     }
 
-    /// The committed Deku Tree room files match a fresh derive.
-    #[test]
-    fn the_committed_deku_tree_rooms_match_a_fresh_derive() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        needs_names!();
+    /// `id`'s committed room files against a fresh derive, which it returns.
+    fn fresh(id: &str) -> Option<Derived> {
+        let romfs = crate::game::dev_dump()?;
         let game = Path::new("../../dump/oot.nup");
-        let deku = (crate::entrances::DUNGEONS.iter())
-            .find(|d| d.node == map::INSIDE_THE_DEKU_TREE)
+        let dungeon = (crate::entrances::DUNGEONS.iter())
+            .find(|d| d.id == id)
             .unwrap();
         let book = crate::rules::Book::load().unwrap();
-        let fresh = derive(&romfs, game, deku, &book).unwrap();
-        let folder = format!("baseline/{}/", folder(deku.node.get()));
+        let fresh = derive(&romfs, game, dungeon, &book).unwrap();
+        let folder = format!("baseline/{}/", folder(dungeon.node.get()));
         let committed: Vec<(String, String)> = (rooms::FILES.iter())
             .filter(|(path, _)| path.starts_with(&folder))
             .map(|&(p, t)| (p.to_owned(), t.to_owned()))
             .collect();
         assert!(
             fresh.files == committed,
-            "Deku Tree room files are stale: run `zootr logic derive deku-tree`"
+            "{id} room files are stale: run `zootr logic derive {id}`"
         );
+        Some(fresh)
+    }
+
+    /// One test a dungeon, so they derive side by side.
+    macro_rules! fresh {
+        ($($test:ident: $id:literal,)*) => {$(
+            #[test]
+            fn $test() {
+                needs_names!();
+                fresh($id);
+            }
+        )*};
+    }
+
+    fresh! {
+        dodongos_cavern_rooms_match_a_fresh_derive: "dodongos-cavern",
+        jabu_jabu_rooms_match_a_fresh_derive: "jabu-jabu",
+        forest_temple_rooms_match_a_fresh_derive: "forest-temple",
+        fire_temple_rooms_match_a_fresh_derive: "fire-temple",
+        water_temple_rooms_match_a_fresh_derive: "water-temple",
+        shadow_temple_rooms_match_a_fresh_derive: "shadow-temple",
+        spirit_temple_rooms_match_a_fresh_derive: "spirit-temple",
+        bottom_of_the_well_rooms_match_a_fresh_derive: "bottom-of-the-well",
+        ice_cavern_rooms_match_a_fresh_derive: "ice-cavern",
+        gerudo_training_ground_rooms_match_a_fresh_derive: "gerudo-training-ground",
+        ganons_castle_rooms_match_a_fresh_derive: "ganons-castle",
+    }
+
+    /// The committed Deku Tree room files match a fresh derive.
+    #[test]
+    fn the_committed_deku_tree_rooms_match_a_fresh_derive() {
+        needs_names!();
+        let Some(fresh) = fresh("deku-tree") else {
+            return;
+        };
         // Every room the game numbers has floor but the Skulltula alcove,
         // whose Skulltulas hang on a wall, and every check has a room.
         // Its gold skulltula is hit from the floor nearest it.
