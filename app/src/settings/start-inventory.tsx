@@ -27,14 +27,19 @@ export interface StartInventoryProps {
   def: SettingDef;
 }
 
-/** What the grid loads: the start, and the words each giver gives. */
+/** The settings as the config holds them. */
+type Settings = ConfigState["config"]["settings"];
+
+/** What the grid loads: the start, the words each giver gives, and the
+ * settings, whose bags change what it can hold. */
 interface Load {
   start: Start;
   given: string[][];
+  settings: Settings;
 }
 
-const loadItems = ({ start, given }: Load) =>
-  call(commands.startItems(start, given));
+const loadItems = ({ start, given, settings }: Load) =>
+  call(commands.startItems(start, given, settings));
 
 /** `start` with the arsenal (all of Link's gear) added. */
 const withArsenal = (start: Start) => call(commands.startArsenal(start));
@@ -81,6 +86,7 @@ export function StartInventory({ def }: StartInventoryProps) {
   const given = useConfig((s) =>
     JSON.stringify(giversOf(s).map((g) => g.words)),
   );
+  const settings = useConfig((s) => JSON.stringify(s.config.settings));
   /** The setting's own words, without what other settings force. */
   const start = useMemo(
     () => startOf(def, value === undefined ? {} : { [def.id]: value }),
@@ -90,8 +96,9 @@ export function StartInventory({ def }: StartInventoryProps) {
     () => ({
       start: withForced(start, forced.split(" ").filter(Boolean)),
       given: JSON.parse(given) as string[][],
+      settings: JSON.parse(settings) as Settings,
     }),
-    [start, forced, given],
+    [start, forced, given, settings],
   );
   const view = useLoad(loadItems, load, true);
   const armed = useLoad(withArsenal, start);
@@ -126,7 +133,16 @@ export function StartInventory({ def }: StartInventoryProps) {
         view={view.data}
         lockedBy={givers}
         onClick={async (at: number, intent: Intent) =>
-          save(await call(commands.startClick(now(), at, intent)))
+          save(
+            await call(
+              commands.startClick(
+                now(),
+                at,
+                intent,
+                useConfig.getState().config.settings,
+              ),
+            ),
+          )
         }
       />
       {forcers.map((f) => (

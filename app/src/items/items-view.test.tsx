@@ -23,6 +23,7 @@ const cell = (label: string, patch: Partial<Cell> = {}): Cell => ({
   tiers: 1,
   count: null,
   row: null,
+  hidden: false,
   ...patch,
 });
 

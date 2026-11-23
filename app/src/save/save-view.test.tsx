@@ -62,6 +62,7 @@ const cell = (label: string, more: Partial<Cell>): Cell => ({
   tiers: 1,
   count: null,
   row: null,
+  hidden: false,
   ...more,
 });
 

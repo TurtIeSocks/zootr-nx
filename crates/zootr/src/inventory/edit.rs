@@ -14,6 +14,7 @@ use super::{GRID, Inventory, Slot};
 use crate::known::{Name, actor, field};
 use crate::rsdb::ROW_ID;
 use crate::savefile::Edit;
+use crate::settings::NewGame;
 use crate::standins::POUCH_ACTOR_INFO;
 
 /// What a click on a cell asks for.
@@ -41,11 +42,13 @@ enum Cap {
 }
 
 /// What the pouch table says about counts: each bag's group and the cap it
-/// gives, and where each counted item's cap comes from.
+/// gives, where each counted item's cap comes from, and the groups whose
+/// first ammo brings their smallest bag (`IsAbleToGetBagIfGet`), by group.
 #[derive(Clone, Debug, Default)]
 pub struct Pouch {
     bags: HashMap<String, (String, i32)>,
     caps: HashMap<String, Cap>,
+    brings: HashMap<String, String>,
 }
 
 impl Pouch {
@@ -66,6 +69,13 @@ impl Pouch {
             };
             let Some(id) = text(ROW_ID) else { continue };
             let group = text(field::MAX_NUM_GAME_DATA.get());
+            let brings = row.get(&**field::IS_ABLE_TO_GET_BAG_IF_GET);
+            if brings.and_then(|b| b.as_bool().ok()) == Some(true)
+                && let (Some(group), Some(bag)) = (&group, text(field::SMALL_BAG_ACTOR.get()))
+                && let Some(bag) = actor_of(&bag)
+            {
+                pouch.brings.insert(group.clone(), bag.to_owned());
+            }
             match (
                 group,
                 int(field::AFTER_EXPANSION_MAX_NUM.get()),
@@ -87,6 +97,64 @@ impl Pouch {
         let piece = actor::OBJ_HEART_PIECE.to_string();
         pouch.caps.entry(piece).or_insert(Cap::Fixed(HEART_PIECES));
         Ok(pouch)
+    }
+
+    /// The table as a seed with `new_game` writes it: what its Bombchus and
+    /// starter bag settings change.
+    pub fn seeded(mut self, new_game: &NewGame) -> Self {
+        crate::bombchus::seed(&mut self, new_game.bombchus);
+        crate::starter_bags::seed(&mut self, new_game);
+        self
+    }
+
+    /// Cap `actor` at `n`, whatever bag Link holds.
+    pub(crate) fn fix(&mut self, actor: &str, n: i32) {
+        self.caps.insert(actor.to_owned(), Cap::Fixed(n));
+    }
+
+    /// Cap `actor` by `group`, whose `bags` each give the cap of the bag
+    /// they copy.
+    pub(crate) fn bag_by(&mut self, actor: &str, group: &str, bags: &[(&str, &Name)]) {
+        self.caps
+            .insert(actor.to_owned(), Cap::Bag(group.to_owned()));
+        for &(bag, like) in bags {
+            let cap = self.bags.get(like.get()).map_or(0, |b| b.1);
+            self.bags.insert(bag.to_owned(), (group.to_owned(), cap));
+        }
+    }
+
+    /// `group`'s ammo stops bringing its smallest bag.
+    pub(crate) fn keep_bag(&mut self, group: &str) {
+        self.brings.remove(group);
+    }
+
+    /// The smallest bags a group's first ammo brings, which a new game
+    /// starts holding: no pool deals them.
+    pub fn brought_bags(&self) -> impl Iterator<Item = &str> {
+        self.brings.values().map(String::as_str)
+    }
+
+    /// The cap `bag` gives, none for a bag the table lacks: a seed without
+    /// Bombchu Bags has none.
+    pub fn bag_cap(&self, bag: &str) -> Option<i32> {
+        self.bags.get(bag).map(|b| b.1)
+    }
+
+    /// How many of counted `actor` Link can hold with `held` among his
+    /// bags: its fixed cap, else its group's biggest held bag's, else 0.
+    /// `None` for an item nothing caps.
+    pub fn room(&self, actor: &str, held: &[&str]) -> Option<i32> {
+        match self.caps.get(actor)? {
+            Cap::Fixed(n) => Some(*n),
+            Cap::Bag(group) => Some(
+                (held.iter())
+                    .filter_map(|b| self.bags.get(*b))
+                    .filter(|(g, _)| g == group)
+                    .map(|b| b.1)
+                    .max()
+                    .unwrap_or(0),
+            ),
+        }
     }
 
     /// The save's String64 naming the bag a group's cap comes from.
@@ -155,8 +223,15 @@ impl Pouch {
             caps: (counted.iter())
                 .map(|(a, g)| (a.to_string(), Cap::Bag(g.to_string())))
                 .collect(),
+            brings: HashMap::new(),
         }
     }
+}
+
+/// The actor a pouch row's actor path names.
+fn actor_of(path: &str) -> Option<&str> {
+    let file = path.rsplit('/').next()?;
+    file.split('.').next()
 }
 
 impl Inventory {
@@ -420,6 +495,7 @@ mod tests {
                 (item::TOKEN_GOLD.to_string(), Cap::Fixed(100)),
             ]
             .into(),
+            brings: HashMap::new(),
         }
     }
 

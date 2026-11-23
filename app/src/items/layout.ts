@@ -96,4 +96,6 @@ export function columnsOf(sections: Placement[], count: number) {
 
 /** One section's cells, each with where it sits among all of them. */
 export const inSection = (cells: Cell[], section: Section) =>
-  cells.flatMap((cell, at) => (cell.section === section ? [{ cell, at }] : []));
+  cells.flatMap((cell, at) =>
+    cell.section === section && !cell.hidden ? [{ cell, at }] : [],
+  );

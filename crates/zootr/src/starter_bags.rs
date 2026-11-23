@@ -175,6 +175,24 @@ impl Ammo {
     }
 }
 
+/// `pouch` as [`write`] leaves the table: a shuffled bag no longer comes
+/// with its ammo.
+pub fn seed(pouch: &mut crate::inventory::Pouch, new_game: &NewGame) {
+    for (on, ammo) in shuffled(new_game) {
+        if on {
+            pouch.keep_bag(ammo.slot);
+        }
+    }
+}
+
+/// Each starter bag's ammo, with whether its setting shuffles the bag.
+fn shuffled(new_game: &NewGame) -> [(bool, Ammo); 2] {
+    [
+        (new_game.shuffle_nut_bag, NUTS),
+        (new_game.shuffle_stick_bag, STICKS),
+    ]
+}
+
 /// With a bag setting on, its ammo stops handing the bag over, and the
 /// Small bag gets a get of its own to be dealt like any item.
 pub fn write(
@@ -183,10 +201,7 @@ pub fn write(
     builder: &mut ModBuilder,
     tables: &mut Tables,
 ) -> Result<()> {
-    for (on, ammo) in [
-        (new_game.shuffle_nut_bag, NUTS),
-        (new_game.shuffle_stick_bag, STICKS),
-    ] {
+    for (on, ammo) in shuffled(new_game) {
         if on {
             ammo.keep_bag(builder, tables)?;
             ammo.take_get(romfs, builder)?;

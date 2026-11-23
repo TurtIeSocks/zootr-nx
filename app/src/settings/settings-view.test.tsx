@@ -641,6 +641,7 @@ const startView = (tier: number) =>
           tiers: 2,
           count: null,
           row: null,
+          hidden: false,
         },
       ],
       caps: [null],
@@ -675,11 +676,16 @@ test("the starting inventory draws the save editor's grid and saves each click",
   await waitFor(() =>
     expect(saved(setConfig)).toEqual({ "start-inventory": { hookshot: 1 } }),
   );
-  expect(click).toHaveBeenLastCalledWith({}, 0, "up");
+  expect(click).toHaveBeenLastCalledWith({}, 0, "up", expect.anything());
   await screen.findByRole("button", { name: /Hookshot.*changed/ });
   fireEvent.contextMenu(screen.getByRole("button", { name: /^Hookshot/ }));
   await waitFor(() => expect(saved(setConfig)).toEqual({}));
-  expect(click).toHaveBeenLastCalledWith({ hookshot: 1 }, 0, "down");
+  expect(click).toHaveBeenLastCalledWith(
+    { hookshot: 1 },
+    0,
+    "down",
+    expect.anything(),
+  );
 });
 
 test("a default starting inventory emptied saves as empty, not unset", async () => {
@@ -701,7 +707,12 @@ test("a default starting inventory emptied saves as empty, not unset", async () 
   await waitFor(() =>
     expect(saved(setConfig)).toEqual({ "start-inventory": {} }),
   );
-  expect(click).toHaveBeenLastCalledWith({ hookshot: 1 }, 0, "down");
+  expect(click).toHaveBeenLastCalledWith(
+    { hookshot: 1 },
+    0,
+    "down",
+    expect.anything(),
+  );
 });
 
 test("an item a setting gives shows locked, naming it, and a click does nothing", async () => {
@@ -725,7 +736,11 @@ test("an item a setting gives shows locked, naming it, and a click does nothing"
   const tile = await screen.findByRole("button", {
     name: "Hookshot, from Met Fake",
   });
-  expect(load).toHaveBeenLastCalledWith({}, [["hookshot"], ["kokiri-tunic"]]);
+  expect(load).toHaveBeenLastCalledWith(
+    {},
+    [["hookshot"], ["kokiri-tunic"]],
+    expect.anything(),
+  );
   fireEvent.click(tile);
   fireEvent.contextMenu(tile);
   expect(click).not.toHaveBeenCalled();
@@ -749,7 +764,11 @@ test("the Kokiri Tunic shows held and locked to every new game", async () => {
   await screen.findByRole("button", {
     name: "Kokiri Tunic, from every new game",
   });
-  expect(load).toHaveBeenLastCalledWith({}, [["kokiri-tunic"]]);
+  expect(load).toHaveBeenLastCalledWith(
+    {},
+    [["kokiri-tunic"]],
+    expect.anything(),
+  );
 });
 
 test("All starts with the arsenal and None with nothing", async () => {

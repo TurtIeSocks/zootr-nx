@@ -73,6 +73,16 @@ fn capping(bombchus: Bombchus) -> Option<fn(&mut BymlMap)> {
     }
 }
 
+/// `pouch` as `bombchus` caps them, as [`write`] writes the table.
+pub fn seed(pouch: &mut crate::inventory::Pouch, bombchus: Bombchus) {
+    let chus = item::BOMBCHU.get();
+    match bombchus {
+        Bombchus::BombBag => {}
+        Bombchus::Free => pouch.fix(chus, CAP),
+        Bombchus::Bag => pouch.bag_by(chus, bombchu_bags::SLOT, &bombchu_bags::copies()),
+    }
+}
+
 /// The param, capped by `edit` instead of the bomb bag.
 fn recap(param: &[u8], edit: fn(&mut BymlMap)) -> Result<Vec<u8>> {
     let mut doc = BymlDoc::parse(param)?;

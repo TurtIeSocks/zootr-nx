@@ -333,6 +333,10 @@ pub fn generate(
         "an Archipelago seed places every item itself"
     );
     let mut new_game = new_game(settings, extras, seed)?;
+    let pouch = crate::inventory::Pouch::load(romfs)?.seeded(&new_game);
+    for note in new_game.settle_start(&pouch) {
+        eprintln!("starting inventory, no room for it in this seed: {note}");
+    }
     ensure!(
         ap.is_none() || new_game.dungeon_entrances == DungeonEntrances::Off,
         "an Archipelago seed can't shuffle dungeon entrances yet"
