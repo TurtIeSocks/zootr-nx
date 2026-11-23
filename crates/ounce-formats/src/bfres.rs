@@ -102,6 +102,77 @@ pub fn edit_vertices(
     Ok(out)
 }
 
+/// Every vertex's value of attribute `name` (`_p0`, `_u0`, `_n0`) in the
+/// shape named `shape`, whichever of its buffers holds it, as up to four
+/// floats (missing ones 0). Reads the formats the game's models use for
+/// them: floats, halves, 16-bit unorms and 10:10:10:2 snorms.
+pub fn attribute(data: &[u8], shape: &str, name: &str) -> Result<Vec<[f32; 4]>> {
+    let at = shape_at(data, shape)?;
+    let (_, pool, _) = pool(data)?;
+    let v = u64_at(data, at + SHAPE_VERTICES)?;
+    let attributes = u64_at(data, v + VERTEX_ATTRIBUTES)?;
+    let count = u32_at(data, v + VERTEX_COUNT)?;
+    let named = |a: usize| pool_string(data, u64_at(data, a).unwrap_or(0)).unwrap_or_default();
+    let all: Vec<usize> = (0..data[v + VERTEX_ATTRIBUTE_COUNT] as usize)
+        .map(|i| attributes + 16 * i)
+        .collect();
+    let found = all.iter().copied().find(|&a| named(a) == name.as_bytes());
+    let a = found.with_context(|| {
+        let names: Vec<_> = all
+            .iter()
+            .map(|&a| String::from_utf8_lossy(named(a)))
+            .collect();
+        format!("{shape}: no {name}, only {}", names.join(" "))
+    })?;
+    let format = u32_at(data, a + 8)? as u32;
+    let offset = u16::from_le_bytes([data[a + 12], data[a + 13]]) as usize;
+    let index = u16::from_le_bytes([data[a + 14], data[a + 15]]) as usize;
+    // Each buffer follows the one before it in the pool, aligned.
+    let (sizes, strides) = (
+        u64_at(data, v + VERTEX_SIZES)?,
+        u64_at(data, v + VERTEX_STRIDES)?,
+    );
+    let mut start = pool + u32_at(data, v + VERTEX_DATA)?;
+    for k in 0..index {
+        start = (start + u32_at(data, sizes + 16 * k)?).next_multiple_of(8);
+    }
+    let stride = u32_at(data, strides + 16 * index)?;
+    (0..count)
+        .map(|i| {
+            let at = start + stride * i + offset;
+            let half =
+                |k: usize| -> Result<f32> { Ok(from_half(u32_at(data, at + 2 * k)? as u16)) };
+            let float =
+                |k: usize| -> Result<f32> { Ok(f32::from_bits(u32_at(data, at + 4 * k)? as u32)) };
+            let unorm = |k: usize| -> Result<f32> {
+                Ok((u32_at(data, at + 2 * k)? & 0xffff) as f32 / 65535.0)
+            };
+            Ok(match format {
+                0x1805 => [float(0)?, float(1)?, float(2)?, 0.0],
+                0x1705 => [float(0)?, float(1)?, 0.0, 0.0],
+                0x1505 => [half(0)?, half(1)?, half(2)?, half(3)?],
+                0x1205 => [half(0)?, half(1)?, 0.0, 0.0],
+                0x1201 => [unorm(0)?, unorm(1)?, 0.0, 0.0],
+                0xe02 => unpack(u32_at(data, at)? as u32),
+                other => bail!("{shape}: {name} in format {other:#x}"),
+            })
+        })
+        .collect()
+}
+
+/// The finest level of detail's triangles of the shape named `shape`, as
+/// indices into its vertices.
+pub fn triangles(data: &[u8], shape: &str) -> Result<Vec<usize>> {
+    let (_, pool, _) = pool(data)?;
+    let meshes = Mesh::all(data, shape_at(data, shape)?)?;
+    let m = meshes
+        .first()
+        .with_context(|| format!("{shape}: no mesh"))?;
+    (0..m.count)
+        .map(|i| Ok(m.first + (u32_at(data, pool + m.faces + 2 * i)? & 0xffff)))
+        .collect()
+}
+
 /// One attribute of a shape's vertices: its name (`_p0`, `_u1`, `_i0`),
 /// format, where it sits in each vertex, and whether its bytes differ
 /// between vertices.

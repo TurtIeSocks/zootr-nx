@@ -341,6 +341,7 @@ pub fn write_mod(
     if maps_move(new_game) {
         map_copies::write(romfs, &mut builder, &mut tables)?;
     }
+    crate::marks::write(romfs, &mut builder, &mut tables)?;
     foreign::write(
         romfs,
         &mut builder,

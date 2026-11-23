@@ -29,6 +29,10 @@ const SOURCES: [&[&str]; 2] = [
         // The sound calls and banks the child's Hammer sounds name.
         crate::ageless_items::SOUNDS,
         crate::ageless_items::BANKS,
+        // The textures extracted for the marks, named by their files.
+        "Tex",
+        // The leaf types the foliage system draws, a marked shrub's among them.
+        "Pack/Foliage.pack.zs",
     ],
 ];
 
@@ -51,6 +55,7 @@ pub mod flow;
 pub mod item;
 pub mod map;
 pub mod scene;
+pub mod texture;
 
 /// FNV-1a over the name's bytes. `const`, so a test can hash a name it
 /// spells out for itself.
@@ -390,6 +395,7 @@ mod tests {
             ("item", include_str!("known/item.rs")),
             ("map", include_str!("known/map.rs")),
             ("scene", include_str!("known/scene.rs")),
+            ("texture", include_str!("known/texture.rs")),
         ];
         // Animation names, read by `probe floors` from model archives that
         // stay in the .nup: the extracted romfs never holds them.

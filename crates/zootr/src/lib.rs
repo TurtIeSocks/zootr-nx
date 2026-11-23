@@ -80,6 +80,7 @@ mod logic;
 pub mod look;
 mod magic;
 mod map_copies;
+pub mod marks;
 mod medallions;
 mod names;
 mod narrowing;

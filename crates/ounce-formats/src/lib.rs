@@ -34,8 +34,8 @@ mod xlink;
 mod zs;
 
 pub use bfres::{
-    Attribute, Lod, Vertex, attributes, bones, edit_vertices, lods, pack, pointers, positions,
-    replace_mesh, replace_mesh_like, shape_names, unpack, vertices,
+    Attribute, Lod, Vertex, attribute, attributes, bones, edit_vertices, lods, pack, pointers,
+    positions, replace_mesh, replace_mesh_like, shape_names, triangles, unpack, vertices,
 };
 pub use bntx::{
     Texture, format, levels, redraw, redraw_halve, redraws, textures, textures_named, top_level,
