@@ -640,7 +640,6 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             save_editor::start_items,
             save_editor::start_arsenal,
             save_editor::start_click,
-            save_editor::start_set,
             save_editor::save_stage,
             save_editor::save_flags,
             save_editor::save_write,

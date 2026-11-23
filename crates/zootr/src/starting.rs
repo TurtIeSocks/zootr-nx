@@ -12,7 +12,7 @@ use crate::{grant as inline, items};
 mod inventory;
 pub use inventory::{
     ARSENAL, DEFAULT, Grant, NONE, SETTING, Start, WORDS, click, drop, granted, items as view,
-    onto, parse, set, upgrade,
+    onto, parse, upgrade,
 };
 
 /// What a starting item's chest holds instead.

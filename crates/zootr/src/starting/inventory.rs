@@ -490,7 +490,7 @@ fn word_of(actor: &Name) -> Result<&'static str> {
 }
 
 mod panel;
-pub use panel::{click, items, onto, set};
+pub use panel::{click, items, onto};
 
 #[cfg(test)]
 mod tests {

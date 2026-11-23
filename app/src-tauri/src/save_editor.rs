@@ -154,16 +154,6 @@ pub(crate) async fn start_click(
     .await
 }
 
-/// `start` after a Status field's commit.
-#[tauri::command]
-#[specta::specta]
-pub(crate) async fn start_set(app: AppHandle, start: Start, edit: Edit) -> Res<Start> {
-    with_layout(app, move |gd, (inv, pouch)| {
-        starting::set(gd, inv, pouch, &start, edit)
-    })
-    .await
-}
-
 /// `start` holding all of Link's gear too (`--start arsenal`).
 #[tauri::command]
 #[specta::specta]

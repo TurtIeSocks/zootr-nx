@@ -87,8 +87,6 @@ export const commands = {
 	startArsenal: (start: StartInventory) => typedError<StartInventory, string>(__TAURI_INVOKE("start_arsenal", { start })),
 	/**  `start` after a click on a grid cell. */
 	startClick: (start: StartInventory, at: number, intent: Intent) => typedError<StartInventory, string>(__TAURI_INVOKE("start_click", { start, at, intent })),
-	/**  `start` after a Status field's commit. */
-	startSet: (start: StartInventory, edit: Edit) => typedError<StartInventory, string>(__TAURI_INVOKE("start_set", { start, edit })),
 	/**
 	 *  `pending` cut to the edits that change the slot, and how many things
 	 *  they change. Refuses an edit the save won't take.
