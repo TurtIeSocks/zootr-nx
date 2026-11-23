@@ -201,8 +201,7 @@ pub(crate) async fn dev_age(app: AppHandle) -> Res<String> {
     blocking(move || {
         let config = Config::load()?;
         let places = app.state::<Places>().get(&config)?;
-        let (place, done) = dev_game()?.switch_age(&romfs(&config)?, &places)?;
-        Ok(format!("{done}, to {place}"))
+        dev_game()?.switch_age(&romfs(&config)?, &places)
     })
     .await
 }

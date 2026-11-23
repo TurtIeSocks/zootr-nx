@@ -79,6 +79,7 @@ const HOOKS: &[(u32, u32)] = &[
     (OFFSETS.emptied, 64),
     (OFFSETS.equipment_built, 72),
     (OFFSETS.equipment_left, 76),
+    (OFFSETS.resident_create, 80),
 ];
 /// `main`'s build ID, as its NSO header's 32 byte field holds it. Its first
 /// 8 bytes name the cheat file and the rest, trailing zeros left out, the

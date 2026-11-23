@@ -376,10 +376,7 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
             0 => "sent".into(),
             n => format!("sent, after {n} still waiting"),
         },
-        DevCommand::Age => {
-            let (place, done) = game.switch_age(romfs, &dev::places(romfs)?)?;
-            format!("{done}, to {place}")
-        }
+        DevCommand::Age => game.switch_age(romfs, &dev::places(romfs)?)?,
         DevCommand::Time { hour } => game.ask(&Request::Time(hour))?.into(),
         DevCommand::Step { challenge, step } => {
             steps::check(&recorder::gamedata(romfs)?, &challenge, &step)?;

@@ -177,6 +177,16 @@ pub struct Offsets {
     /// The pointer to the effect system, which holds the effect file
     /// the ice's [`Look`] sizes.
     pub effects: u32,
+    /// The resident actors' create (the manager, child), which makes the
+    /// player of that age and has the other age's go, on every area load,
+    /// and their wake (the manager, &position, &3x3 rotation). See
+    /// `docs/research/character-select.md`.
+    pub resident_create: u32,
+    pub cancel_sleep: u32,
+    /// The request and release pause nodes' bodies (`SeqOneShotRequestPause`,
+    /// `SeqOneShotReleasePause`), each taking the node.
+    pub request_pause: u32,
+    pub release_pause: u32,
 }
 
 /// The table at `TABLE`. Each line is a level count, [`KEYED`] or not,

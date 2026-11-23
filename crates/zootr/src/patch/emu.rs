@@ -280,3 +280,5 @@ fn without_a_table_each_hooked_function_runs_its_own_body_and_nothing_else() {
         );
     }
 }
+
+mod swap;
