@@ -64,17 +64,17 @@ const ON: f32 = 0.5;
 /// How near an obstacle stands to a locked one to share its locks, in m: a
 /// Deku shutter's leaves stand 0.4 m out from its frame.
 const WITH: f32 = 1.0;
-/// How far apart a path's samples are, in m.
-const STEP: f32 = 0.25;
 
 /// Whether the straight path from `a` to `b` passes through `solid`.
 fn meets(solid: &Solid, a: [f32; 3], b: [f32; 3]) -> bool {
-    let n = (dist(a, b) / STEP).ceil().max(1.0) as usize;
-    (0..=n).any(|i| {
-        let t = i as f32 / n as f32;
-        let p: [f32; 3] = std::array::from_fn(|k| a[k] + (b[k] - a[k]) * t);
-        (solid.low - ON..=solid.high + ON).contains(&p[1]) && solid.holds([p[0], p[2]])
-    })
+    // Exactly, not by samples: a Deku shutter is 0.11 m thick, and the
+    // collision floors' small triangles make short paths that step over it.
+    let Some((t0, t1)) = solid.over([a[0], a[2]], [b[0], b[2]]) else {
+        return false;
+    };
+    let y = |t: f32| a[1] + (b[1] - a[1]) * t;
+    let (lo, hi) = (y(t0).min(y(t1)), y(t0).max(y(t1)));
+    lo <= solid.high + ON && hi >= solid.low - ON
 }
 
 /// What a crossing from one room to another was seen as.
@@ -217,6 +217,10 @@ impl<'k> Floor<'k> {
                 obstacles.push((h, *k, parts_of(romfs, p)?));
             }
         }
+        // No collision floor under a shutter or a web: a doorway joins its
+        // rooms through the navmesh, where the obstacle stands on the way.
+        let under: Vec<Solid> = obstacles.iter().flat_map(|(_, _, s)| s.clone()).collect();
+        let level = level.with_floors(romfs, &under)?;
         Ok(Self {
             level,
             rooms_of,
@@ -234,7 +238,8 @@ impl<'k> Floor<'k> {
 
     /// Each face's room, labelled over `graph`.
     pub fn labels(&self, graph: &crate::nav::graph::Graph) -> label::Labels {
-        label(graph, &self.level.placed, &self.rooms_of, |a, b| {
+        let first = self.level.floors.unwrap_or(usize::MAX);
+        label(graph, &self.level.placed, &self.rooms_of, first, |a, b| {
             !self.on(a, b).is_empty()
         })
     }
@@ -679,10 +684,17 @@ fn link(
             needs.push(k.uses.clone());
             continue;
         }
-        for lock in locks.get(h).into_iter().flatten().filter(|l| l.holds(from)) {
-            write!(why, "; {} {h} shut until flag #{:08x}", k.name, lock.hash()).unwrap();
-            guess |= lock.room.is_none();
-            needs.push(format!("flag:#{:08x}", lock.hash()));
+        // A shutter may carry one flag in two locks: name it once.
+        let mut flags: Vec<(u32, bool)> = (locks.get(h).into_iter().flatten())
+            .filter(|l| l.holds(from))
+            .map(|l| (l.hash(), l.room.is_none()))
+            .collect();
+        flags.sort_unstable();
+        flags.dedup_by_key(|f| f.0);
+        for (flag, roomless) in flags {
+            write!(why, "; {} {h} shut until flag #{flag:08x}", k.name).unwrap();
+            guess |= roomless;
+            needs.push(format!("flag:#{flag:08x}"));
         }
     }
     let needs: Vec<&str> = needs.iter().map(String::as_str).collect();

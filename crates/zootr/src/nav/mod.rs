@@ -38,6 +38,7 @@ pub mod climb;
 pub mod crawl;
 pub mod drive;
 pub mod filter;
+pub mod floors;
 pub mod graph;
 pub mod kinds;
 pub mod leap;
@@ -125,6 +126,9 @@ pub struct Level {
     pub waters: Vec<water::Water>,
     /// Whether Link is a child there, which sets how deep he wades.
     pub child: bool,
+    /// The first of the mesh's faces that are collision floor, not
+    /// navmesh: none until [`Level::with_floors`] adds them.
+    pub floors: Option<usize>,
 }
 
 impl Level {
@@ -159,8 +163,46 @@ impl Level {
             crawls: crawl::crawls(&placed),
             waters: water::waters(romfs, game, &placed, |_| false)?,
             child: map.ends_with("_Child"),
+            floors: None,
             placed,
         })
+    }
+
+    /// The level with its collision floors (room reach spec, rules 9 to
+    /// 11) added to the mesh as faces, for Link at his age there, none
+    /// under the obstacles `under` (shutters, webs). Derive
+    /// uses them; the sweep and `dev go` keep the navmesh alone until a
+    /// live run shows routes over them hold.
+    pub fn with_floors(mut self, romfs: &Romfs, under: &[shape::Solid]) -> Result<Self> {
+        let height = floors::height(romfs, self.child)?;
+        let float = water::float(self.child);
+        let keep = floors::Keep {
+            waters: &self.waters,
+            float,
+            height,
+            under,
+        };
+        let patches = floors::patches(&self.mesh, &self.walls, &keep);
+        let first = self.mesh.faces.len();
+        let navmesh = std::mem::take(&mut self.mesh);
+        self.floors = Some(first);
+        self.mesh = floors::joined(&navmesh, &patches);
+        // Only the floor Link gets onto from the navmesh: not the top of a
+        // doorway's frame he could only drop off.
+        let reached = floors::reached(&self.graph(), first, limits::limits().level_jump());
+        let mut face = first;
+        let kept: Vec<Vec<[[f32; 3]; 3]>> = (patches.into_iter())
+            .map(|p| {
+                (p.into_iter())
+                    .filter(|_| {
+                        face += 1;
+                        reached[face - 1]
+                    })
+                    .collect()
+            })
+            .collect();
+        self.mesh = floors::joined(&navmesh, &kept);
+        Ok(self)
     }
 
     /// A level with no solids or climbs, as a test builds one.
@@ -176,14 +218,20 @@ impl Level {
             crawls: vec![],
             waters: vec![],
             child: false,
+            floors: None,
         }
     }
 
     /// The graph of its mesh, with its doors, climbs, swims, collision
     /// meshes and solids.
     pub fn graph(&self) -> graph::Graph<'_> {
-        graph::Graph::build(&self.mesh, &self.placed, graph::step_up())
-            // Swims first: a climb out of water starts from the swim sheet.
+        let graph = graph::Graph::build(&self.mesh, &self.placed, graph::step_up());
+        let graph = match self.floors {
+            Some(first) => graph.with_floors(first, &self.walls),
+            None => graph,
+        };
+        // Swims first: a climb out of water starts from the swim sheet.
+        graph
             .with_swims(&self.waters, self.child)
             .with_climbs(&self.climbs)
             .with_crawls(if self.child { &self.crawls } else { &[] })

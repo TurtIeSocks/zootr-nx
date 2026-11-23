@@ -12,7 +12,7 @@ why = "climb 11417569812811528089, 11765149838097928674, 11945414457677533711, 1
 to = 10
 needs = "flag:#d2f46f66"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 01 2271429267365535837 shut until flag #d2f46f66; Switch Shutter A 02 7338135400039561278 shut until flag #d2f46f66; Switch Shutter A 02 8293133627293221405 shut until flag #d2f46f66; Switch Shutter A 02 8293133627293221405 shut until flag #d2f46f66"
+why = "walk, 1 edges; Switch Shutter A 01 2271429267365535837 shut until flag #d2f46f66; Switch Shutter A 02 7338135400039561278 shut until flag #d2f46f66; Switch Shutter A 02 8293133627293221405 shut until flag #d2f46f66"
 
 [[flag]]
 hash = 0xd2f46f66

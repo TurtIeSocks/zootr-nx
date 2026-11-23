@@ -6,7 +6,13 @@ name = "Compass Room"
 to = 0
 needs = "always"
 via = "walk"
-why = "walk, 1 edges"
+why = "walk, 10 edges"
+
+[[link]]
+to = 0
+needs = "always"
+via = "jump"
+why = "level gap 0.7 to 2.0 m: within a running jump (2.7 m)"
 
 [[check]]
 hash = 9284193025315608699
@@ -24,5 +30,5 @@ why = "in reach from its room"
 hash = 13609975487234437568
 name = "Compass Room Gold Skulltula"
 needs = "slingshot or bow or boomerang or hookshot or dins-fire"
-why = "1.3 m from its room's floor, in each one's range; a sword or a bomb may too, untested"
+why = "0.8 m from its room's floor, in each one's range; a sword or a bomb may too, untested"
 guess = true

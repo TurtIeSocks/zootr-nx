@@ -168,20 +168,23 @@ mod tests {
         let [deku] = &audits[..] else {
             panic!("one audit for the Deku Tree, got {}", audits.len());
         };
-        // The hand rule asks for what burns or blows up the web, the room
-        // rule only for reaching the basement: the web is on its ways in.
-        let sticks = (deku.disagree.iter())
-            .find(|d| d.name == "Lower Three Deku Sticks")
+        // The room rule finds the web in front of the basement's sticks chest,
+        // as the hand rule has it.
+        assert!(!(deku.disagree.iter()).any(|d| d.name == "Lower Three Deku Sticks"));
+        // The hand rule asks for a shield against the slingshot room's
+        // scrub, the room rule only for its shutter's flag on the way in.
+        let slingshot = (deku.disagree.iter())
+            .find(|d| d.name == "Upper Fairy Slingshot")
             .expect("the hand rule and the room rule differ");
-        assert_eq!((sticks.room, sticks.rule.as_str()), (4, "always"));
+        assert_eq!((slingshot.room, slingshot.rule.as_str()), (2, "always"));
         assert_eq!(
-            sticks.hand, "explosives or fire",
+            slingshot.hand, "deku-shield or hylian-shield",
             "a hand rule prints as written"
         );
         assert!(
-            sticks.ways_in.iter().any(|w| w.contains("fire")),
+            slingshot.ways_in.iter().any(|w| w.contains("flag:#")),
             "{:?}",
-            sticks.ways_in
+            slingshot.ways_in
         );
         // A measured level jump settles every gap: what's left to guess
         // is how a room gets cleared, and gold skulltulas a sword may

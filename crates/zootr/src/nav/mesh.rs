@@ -105,6 +105,11 @@ pub fn floor_normal([p, q, r]: &[[f32; 3]; 3]) -> bool {
     len > 1e-9 && n[1].abs() / len >= FLOOR_UP
 }
 
+/// Whether triangle `t` faces up by its winding: the side Link stands on.
+pub fn facing_up([p, q, r]: &[[f32; 3]; 3]) -> bool {
+    cross(sub(*q, *p), sub(*r, *p))[1] > 0.0
+}
+
 /// The height of triangle `t` at `(x, z)`, when it lies over that spot.
 pub fn height_in([p, q, r]: &[[f32; 3]; 3], x: f32, z: f32) -> Option<f32> {
     let det = (q[2] - r[2]) * (p[0] - r[0]) + (r[0] - q[0]) * (p[2] - r[2]);
@@ -135,7 +140,7 @@ fn dot(a: [f32; 3], b: [f32; 3]) -> f32 {
 
 /// Whether the segment from `a` to `b` passes through triangle `t`
 /// (Moller and Trumbore's test, kept to the segment).
-fn through(a: [f32; 3], b: [f32; 3], [p, q, r]: &[[f32; 3]; 3]) -> bool {
+pub(super) fn through(a: [f32; 3], b: [f32; 3], [p, q, r]: &[[f32; 3]; 3]) -> bool {
     let d = sub(b, a);
     let (e1, e2) = (sub(*q, *p), sub(*r, *p));
     let h = cross(d, e2);
