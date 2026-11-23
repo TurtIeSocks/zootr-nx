@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use crate::gamedata::GameData;
 use crate::inventory::{self, Held, Intent, Inventory, Pouch};
 use crate::known::{Name, actor, field, item};
+use crate::magic::meter;
 use crate::progressive;
 use crate::save_editor::{self, ItemsView, LIFE, MAX_LIFE, Opened, RUPEES};
 use crate::savefile::{self, Edit};
@@ -110,7 +111,7 @@ pub const WORDS: &[(&str, &Name)] = &[
     ("quiver", item::QUIVER_SMALL), ("big-quiver", item::QUIVER_MEDIUM), ("biggest-quiver", item::QUIVER_LARGE),
     ("bullet-bag", item::BULLET_BAG_SMALL), ("big-bullet-bag", item::BULLET_BAG_MEDIUM), ("biggest-bullet-bag", item::BULLET_BAG_LARGE),
     ("heart-pieces", actor::OBJ_HEART_PIECE),
-    ("magic-meter", crate::magic::meter::METER), ("double-magic", item::FAIRY_BLESS_MP_DOUBLE),
+    ("magic-meter", meter::METER), ("double-magic", item::FAIRY_BLESS_MP_DOUBLE),
     ("improved-spin", item::FAIRY_BLESS_MP), ("double-defense", item::FAIRY_BLESS_DEFENSE_DOUBLE),
     ("gerudo-card", item::TOKEN_GERUDO), ("stone-of-agony", item::AGONY_STONE),
     ("gold-skulltula-tokens", item::TOKEN_GOLD),
@@ -419,13 +420,18 @@ fn word_of(actor: &Name) -> Result<&'static str> {
 }
 
 /// A new game's save, as far as the grid and the kept Status fields go:
-/// every value they read, at its GameData default.
+/// every value they read, at its GameData default. The Magic Meter's,
+/// which only a seed's GameData has, at the default of what it copies.
 fn fresh(gd: &GameData, inv: &Inventory, pouch: &Pouch) -> Result<Save> {
     let mut seen = HashSet::new();
     let hashes = (inv.cell_hashes(pouch).into_iter().flatten()).chain([MAX_LIFE, LIFE, RUPEES]);
     let mut entries = Vec::new();
     for hash in hashes.filter(|h| seen.insert(*h)) {
-        let (Some(kind), Some(entry)) = (gd.kind(hash), gd.entry(hash)) else {
+        let from = match gd.kind(hash) {
+            Some(_) => hash,
+            None => meter::copied_from(hash).unwrap_or(hash),
+        };
+        let (Some(kind), Some(entry)) = (gd.kind(from), gd.entry(from)) else {
             continue;
         };
         let Some(default) = entry.as_map()?.get(&**field::DEFAULT_VALUE) else {
@@ -866,9 +872,21 @@ mod tests {
             edited: save,
         };
         let read = reread(&gd, &inv, &pouch, opened, &[]).unwrap();
-        let mut want = kit.clone().floored(&pouch);
-        want.0.remove("magic-meter");
-        assert_eq!(read, want);
+        assert_eq!(read, kit.floored(&pouch));
+    }
+
+    #[test]
+    fn the_panel_holds_the_arsenal_and_its_magic_meter() {
+        let Some((gd, inv, pouch)) = layout() else {
+            return;
+        };
+        let mut kit = Start::default();
+        kit.add(ARSENAL, 1).unwrap();
+        let view = items(&gd, &inv, &pouch, &kit, &[]).unwrap();
+        let magic = view.cells.iter().position(|c| c.label == "Magic").unwrap();
+        assert_eq!(view.cells[magic].tier, 2);
+        let once = click(&gd, &inv, &pouch, &Start::default(), magic, Intent::Up).unwrap();
+        assert_eq!(once, start(&[("magic-meter", 1)]));
     }
 
     #[test]
