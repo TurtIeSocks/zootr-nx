@@ -224,12 +224,17 @@ impl<'k> Floor<'k> {
 
 /// The room files of `dungeon`, from its navmesh, its placements, its
 /// logic graphs and `book`'s kinds and check names.
-pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Result<Derived> {
+pub fn derive(
+    romfs: &Romfs,
+    game: &Path,
+    dungeon: &Dungeon,
+    book: &Book,
+    flagmap: &crate::flagmap::Graph,
+) -> Result<Derived> {
     let kind_of = kinds_by_hash(book);
     let kind_at = |p: &Placement| kind_of.get(&murmur3(p.name.as_bytes())).copied();
     let jump = limits().level_jump();
     let shutters = crate::gates::trace_node(romfs, SHUTTER)?;
-    let flagmap = crate::flagmap::Graph::build(romfs)?;
     let mut checks = crate::checks::all(romfs)?;
     // Gold skulltulas are pickups, which `all` leaves to their setting.
     let skulltulas = crate::pickups::SKULLTULAS.checks(romfs)?;
@@ -769,7 +774,8 @@ pub fn derive(romfs: &Romfs, game: &Path, dungeon: &Dungeon, book: &Book) -> Res
 /// first clearing the old ones, so a renamed room leaves no stale file.
 pub fn write(romfs: &Romfs, game: &Path, dungeon: &Dungeon, dir: &Path) -> Result<Derived> {
     let book = Book::load_from(dir)?;
-    let derived = derive(romfs, game, dungeon, &book)?;
+    let flagmap = crate::flagmap::Graph::build(romfs)?;
+    let derived = derive(romfs, game, dungeon, &book, &flagmap)?;
     let folder = dir.join("baseline").join(folder(dungeon.node.get()));
     if folder.exists() {
         for entry in std::fs::read_dir(&folder)? {
@@ -851,7 +857,8 @@ mod tests {
             .find(|d| d.id == id)
             .unwrap();
         let book = crate::rules::Book::load().unwrap();
-        let fresh = derive(&romfs, game, dungeon, &book).unwrap();
+        let flagmap = crate::flagmap::Graph::dev()?;
+        let fresh = derive(&romfs, game, dungeon, &book, flagmap).unwrap();
         let folder = format!("baseline/{}/", folder(dungeon.node.get()));
         let committed: Vec<(String, String)> = (rooms::FILES.iter())
             .filter(|(path, _)| path.starts_with(&folder))
