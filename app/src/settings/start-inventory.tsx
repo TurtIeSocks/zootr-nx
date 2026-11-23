@@ -56,7 +56,7 @@ const ALREADY = (on: boolean) =>
     : "Link already starts empty";
 const TIP = (on: boolean) =>
   on
-    ? "Every piece of gear at its top tier, full ammo, every song and twenty hearts"
+    ? "Every piece of gear at its top tier, full ammo, every song, every trade item and twenty hearts"
     : "Start with nothing";
 
 /** The starting inventory as the Save page's grid and Status fields, on a

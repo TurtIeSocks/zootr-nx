@@ -27,6 +27,7 @@ const STOCK: &Name = flag::STOCK_NUM;
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub enum Section {
     Inventory,
+    Trade,
     Equipment,
     Upgrades,
     Quest,
@@ -37,8 +38,9 @@ pub enum Section {
 }
 
 impl Section {
-    pub const ALL: [Section; 8] = [
+    pub const ALL: [Section; 9] = [
         Section::Inventory,
+        Section::Trade,
         Section::Equipment,
         Section::Upgrades,
         Section::Quest,
@@ -53,7 +55,7 @@ impl Section {
         match self {
             Section::Equipment | Section::Stones => 3,
             Section::Upgrades | Section::Dungeons => 4,
-            Section::Quest => 5,
+            Section::Quest | Section::Trade => 5,
             Section::Inventory | Section::Songs | Section::Medallions => 6,
         }
     }
@@ -164,8 +166,6 @@ struct Slot {
     icon: Option<&'static Name>,
     /// Shown as a number.
     count: Option<&'static Name>,
-    /// Held one tier at a time, as a trade sequence is.
-    exclusive: bool,
 }
 
 const fn slot(section: Section, label: &'static str, tiers: &'static [&'static Name]) -> Slot {
@@ -175,7 +175,6 @@ const fn slot(section: Section, label: &'static str, tiers: &'static [&'static N
         tiers,
         icon: None,
         count: None,
-        exclusive: false,
     }
 }
 
@@ -226,13 +225,21 @@ const GRID: &[Slot] = &[
     bottle("Bottle", &[field::BOTTLE_B]),
     bottle("Bottle", &[field::BOTTLE_C]),
     bottle("Bottle", &[field::BOTTLE_D]),
-    Slot { exclusive: true, ..slot(Inventory, "Child Trade", &[
-        item::WEIRD_EGG, item::ALARM_CUCCO, item::ZELDA_LETTER,
-    ]) },
-    Slot { exclusive: true, ..slot(Inventory, "Adult Trade", &[
-        item::POCKET_EGG, item::POCKET_CUCCO, item::COJIRO_CUCCO, item::ODD_MUSHROOM, item::ODD_POWDER,
-        item::POACHER_SAW, item::BROKEN_SWORD, item::PRESCRIPTION, item::EYEBALL_FROG, item::EYE_DROP, item::CLAIM_CHECK,
-    ]) },
+    // Link can hold every trade item at once, so each has a cell.
+    slot(Trade, "Weird Egg", &[item::WEIRD_EGG]),
+    slot(Trade, "Cucco", &[item::ALARM_CUCCO]),
+    slot(Trade, "Zelda's Letter", &[item::ZELDA_LETTER]),
+    slot(Trade, "Pocket Egg", &[item::POCKET_EGG]),
+    slot(Trade, "Pocket Cucco", &[item::POCKET_CUCCO]),
+    slot(Trade, "Cojiro", &[item::COJIRO_CUCCO]),
+    slot(Trade, "Odd Mushroom", &[item::ODD_MUSHROOM]),
+    slot(Trade, "Odd Potion", &[item::ODD_POWDER]),
+    slot(Trade, "Poacher's Saw", &[item::POACHER_SAW]),
+    slot(Trade, "Broken Goron's Sword", &[item::BROKEN_SWORD]),
+    slot(Trade, "Prescription", &[item::PRESCRIPTION]),
+    slot(Trade, "Eyeball Frog", &[item::EYEBALL_FROG]),
+    slot(Trade, "Eye Drops", &[item::EYE_DROP]),
+    slot(Trade, "Claim Check", &[item::CLAIM_CHECK]),
     slot(Equipment, "Kokiri Sword", &[actor::WEAPON_SWORD_KOKIRI]),
     slot(Equipment, "Master Sword", &[actor::WEAPON_SWORD_MASTER]),
     slot(Equipment, "Biggoron's Sword", &[actor::WEAPON_SWORD_GIANT, actor::WEAPON_SWORD_BIGGORON]),
@@ -316,12 +323,9 @@ pub fn held() -> Vec<Held> {
     out
 }
 
-/// The tiers below `actor` in its cell, which holding it holds too: none
-/// along a trade sequence, where Link holds one at a time.
+/// The tiers below `actor` in its cell, which holding it holds too.
 pub fn below(actor: &Name) -> Vec<&'static Name> {
-    let cell = GRID
-        .iter()
-        .find(|s| !s.exclusive && s.tiers.contains(&actor));
+    let cell = GRID.iter().find(|s| s.tiers.contains(&actor));
     let tiers = cell.map_or(&[][..], |s| s.tiers);
     tiers.iter().take_while(|&&t| t != actor).copied().collect()
 }
@@ -605,7 +609,7 @@ pub fn has_flag(gd: &GameData, actor: &str) -> bool {
 #[cfg(test)]
 pub(super) mod tests {
     use super::*;
-    use crate::known::{flag, item};
+    use crate::known::{actor, flag, item};
 
     #[test]
     fn tidy_keeps_order_and_fills_what_is_missing() {
@@ -656,6 +660,31 @@ pub(super) mod tests {
             .tidy();
             assert_eq!(options.sections[0].width as usize, KEPT.len());
         }
+    }
+
+    /// Every trade item, child then adult, as the Trade section lists them.
+    const TRADE: [&Name; 14] = [
+        item::WEIRD_EGG,
+        item::ALARM_CUCCO,
+        item::ZELDA_LETTER,
+        item::POCKET_EGG,
+        item::POCKET_CUCCO,
+        item::COJIRO_CUCCO,
+        item::ODD_MUSHROOM,
+        item::ODD_POWDER,
+        item::POACHER_SAW,
+        item::BROKEN_SWORD,
+        item::PRESCRIPTION,
+        item::EYEBALL_FROG,
+        item::EYE_DROP,
+        item::CLAIM_CHECK,
+    ];
+
+    #[test]
+    fn each_trade_item_has_a_cell_of_its_own_in_trade() {
+        let trade: Vec<_> = GRID.iter().filter(|s| s.section == Trade).collect();
+        let held: Vec<_> = trade.iter().map(|s| s.tiers.to_vec()).collect();
+        assert_eq!(held, TRADE.map(|a| vec![a]));
     }
 
     #[test]
@@ -741,7 +770,7 @@ pub(super) mod tests {
     }
 
     #[test]
-    fn a_cell_draws_the_glyph_of_the_tier_it_shows() {
+    fn every_cell_draws_a_known_glyph() {
         let held = |names: &[&Name]| {
             let pairs: Vec<_> = std::iter::once((0, 0))
                 .chain(names.iter().map(|a| (murmur3(a.as_bytes()), 1)))
@@ -751,18 +780,16 @@ pub(super) mod tests {
             inv.load(in_save(&save));
             inv.cells()
         };
-        let trade = |cells: &[Cell]| cell(cells, "Child Trade").glyph;
-        assert_eq!(trade(&held(&[])), Glyph::of(item::WEIRD_EGG));
-        let egg = held(&[item::WEIRD_EGG]);
-        assert_eq!(trade(&egg), Glyph::of(item::WEIRD_EGG));
-        let letter = held(&[item::WEIRD_EGG, item::ZELDA_LETTER]);
-        assert_eq!(trade(&letter), Glyph::of(item::ZELDA_LETTER));
-        assert_ne!(trade(&egg), trade(&letter));
+        let truth = held(&[actor::ARMOR_CHILD_MASK_TRUTH]);
+        assert_eq!(
+            cell(&truth, "Mask of Truth").glyph,
+            Glyph::of(actor::ARMOR_CHILD_MASK_TRUTH)
+        );
         // A bottle slot draws a bottle whatever it holds.
-        assert_eq!(cell(&letter, "Bottle").glyph, Glyph::of(item::BOTTLE));
-        let map = cell(&letter, "Forest Temple Map");
+        assert_eq!(cell(&truth, "Bottle").glyph, Glyph::of(item::BOTTLE));
+        let map = cell(&truth, "Forest Temple Map");
         assert_eq!(map.glyph, Glyph::of(item::DUNGEON_MAP));
-        assert!(letter.iter().all(|c| c.glyph != Glyph::Unknown));
+        assert!(truth.iter().all(|c| c.glyph != Glyph::Unknown));
     }
 
     /// Forest has all four, the Deku Tree a map and a compass.

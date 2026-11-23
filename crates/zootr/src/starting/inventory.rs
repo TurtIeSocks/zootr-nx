@@ -30,7 +30,8 @@ pub const DEFAULT: [&str; 1] = ["master-sword"];
 pub const NONE: &str = "none";
 
 /// The `--start` word for all of Link's gear at its top tier, full ammo,
-/// every song and twenty hearts: the kit room logic is measured with.
+/// every song, every trade item and twenty hearts: the kit room logic is
+/// measured with.
 pub const ARSENAL: &str = "arsenal";
 
 /// What [`ARSENAL`] holds, by word and count.
@@ -51,6 +52,10 @@ const KIT: &[(&str, i32)] = &[
     ("bottle-1", 1), ("bottle-2", 1), ("bottle-3", 1), ("bottle-4", 1),
     ("keaton-mask", 1), ("skull-mask", 1), ("spooky-mask", 1), ("bunny-hood", 1),
     ("goron-mask", 1), ("zora-mask", 1), ("gerudo-mask", 1), ("mask-of-truth", 1),
+    ("weird-egg", 1), ("cucco", 1), ("zeldas-letter", 1),
+    ("pocket-egg", 1), ("pocket-cucco", 1), ("cojiro", 1), ("odd-mushroom", 1), ("odd-powder", 1),
+    ("poachers-saw", 1), ("broken-sword", 1), ("prescription", 1), ("eyeball-frog", 1),
+    ("eye-drops", 1), ("claim-check", 1),
     ("stone-of-agony", 1), ("gerudo-card", 1), ("double-defense", 1), ("gold-skulltula-tokens", 100),
     ("giants-wallet", 1), ("rupees", 1000), ("heart-containers", 20),
     ("zeldas-lullaby", 1), ("eponas-song", 1), ("sarias-song", 1), ("suns-song", 1),
@@ -938,6 +943,18 @@ mod tests {
             return;
         };
         assert_eq!(tokens.count, Some(100));
+    }
+
+    #[test]
+    fn the_arsenal_holds_every_trade_item() {
+        let Some((view, _)) = arsenal_cell("Weird Egg") else {
+            return;
+        };
+        let trade: Vec<_> = (view.cells.iter())
+            .filter(|c| c.section == inventory::Section::Trade)
+            .collect();
+        assert_eq!(trade.len(), 14);
+        assert!(trade.iter().all(|c| c.tier == 1), "{trade:?}");
     }
 
     #[test]

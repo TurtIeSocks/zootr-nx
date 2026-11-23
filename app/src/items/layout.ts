@@ -9,6 +9,7 @@ import {
 /** Each section's title, as the grid and its toolbars show it. */
 export const TITLES: Record<Section, string> = {
   Inventory: "Inventory",
+  Trade: "Trade",
   Equipment: "Equipment",
   Upgrades: "Upgrades",
   Quest: "Quest",
