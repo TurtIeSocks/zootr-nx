@@ -16,9 +16,9 @@ why = "drop 3.5 m"
 
 [[link]]
 to = 15
-needs = "flag:#66180d0c"
+needs = "always"
 via = "walk"
-why = "walk, 2 edges; Switch Shutter A 02 12153572674131611463 shut until flag #66180d0c; Shadow Temple Switch Shutter A 04 12253095579699422228 shut until flag #66180d0c"
+why = "walk, 2 edges"
 
 [[check]]
 hash = 15564367841356014861

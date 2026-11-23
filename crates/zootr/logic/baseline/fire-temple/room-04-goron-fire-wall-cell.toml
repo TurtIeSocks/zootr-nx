@@ -5,5 +5,6 @@ name = "Goron Fire Wall Cell"
 [[check]]
 hash = 16785682308850448108
 name = "Fire Temple Upper Small Key Chest"
-needs = "always"
-why = "0.7 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#7defc137"
+why = "0.7 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #7defc137"
+guess = true

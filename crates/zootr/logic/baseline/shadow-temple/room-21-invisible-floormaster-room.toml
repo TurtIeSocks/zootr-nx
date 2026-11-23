@@ -11,12 +11,27 @@ why = "walk, 1 edges; Switch Shutter A 02 10123210224515384597 shut until flag #
 [[check]]
 hash = 17902550525792072472
 name = "Shadow Temple Lower Small Key Chest"
+needs = "(flag:#a4f02c90) and (flag:#2190ae8e) and (flag:#e53a50c5)"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #a4f02c90; its graph waits on flag #2190ae8e; its graph waits on flag #e53a50c5"
+guess = true
+
+[[flag]]
+hash = 0x2190ae8e
+name = "Shadow Temple Room B3 FB4 FL Defeat Floormaster Truth"
 needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+why = "clearing its room sets it (Enemy Floormaster Truth 10673961673431030030): what that takes isn't traced yet"
+guess = true
+
+[[flag]]
+hash = 0xa4f02c90
+name = "Shadow Temple Room B3 FB4 FL Cleared"
+needs = "always"
+why = "clearing its room sets it (Enemy Floormaster Truth 10673961673431030030): what that takes isn't traced yet"
+guess = true
 
 [[flag]]
 hash = 0xe53a50c5
 name = "Shadow Temple Room B3 FB4 F Open Counter"
 needs = "always"
-why = "an event Enemy Floormaster Truth 10673961673431030030 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Floormaster Truth 10673961673431030030): what that takes isn't traced yet"
 guess = true

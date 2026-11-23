@@ -24,13 +24,14 @@ why = "level gap 1.5 m: within a running jump (2.7 m); Switch Shutter A 02 12459
 hash = 4372363658229299619
 name = "Gerudo Training Ground Small Key Chest"
 needs = "always"
-why = "0.4 m from its room's floor, within a small chest's reach (1.25 m)"
+why = "0.4 m from its room's floor, within a small chest's reach (1.25 m); a logic graph gates it that derive doesn't read"
+guess = true
 
 [[flag]]
 hash = 0x88cc699c
 name = "Gerudo Training Ground Dungeon Room05 Defeat Enemy"
 needs = "always"
-why = "an event Enemy Torch Slug 6755452948339883936, Enemy Keese Fire 12390950219315169688, Enemy Torch Slug 13935234899752532283, Enemy Keese Fire 16992713854034533303 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Torch Slug 6755452948339883936, Enemy Keese Fire 12390950219315169688, Enemy Torch Slug 13935234899752532283, Enemy Keese Fire 16992713854034533303): what that takes isn't traced yet"
 guess = true
 
 [[flag]]

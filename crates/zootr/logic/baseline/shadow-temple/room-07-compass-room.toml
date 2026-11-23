@@ -11,19 +11,19 @@ why = "walk, 2 edges; Switch Shutter A 02 6782117124637293392 shut until flag #2
 [[check]]
 hash = 1733372171176975157
 name = "Shadow Temple Compass Chest"
-needs = "always"
-why = "0.0 m from its room's floor, within a big chest's reach (1.35 m)"
+needs = "flag:#2ad60a3f"
+why = "0.0 m from its room's floor, within a big chest's reach (1.35 m); its graph waits on flag #2ad60a3f"
 
 [[flag]]
 hash = 0x2ad60a3f
 name = "Shadow Temple Room B2 FB Cleared"
 needs = "always"
-why = "an event Enemy Gibdo 4653286102722751489, Enemy Gibdo 11402370322965111895 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Gibdo 4653286102722751489, Enemy Gibdo 11402370322965111895): what that takes isn't traced yet"
 guess = true
 
 [[flag]]
 hash = 0x8cbb6633
 name = "Shadow Temple Room B2 FB Shutter Open"
 needs = "always"
-why = "an event Enemy Gibdo 4653286102722751489, Enemy Gibdo 11402370322965111895 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Gibdo 4653286102722751489, Enemy Gibdo 11402370322965111895): what that takes isn't traced yet"
 guess = true

@@ -4,12 +4,12 @@ name = "Tower Stairs 2"
 
 [[link]]
 to = 22
-needs = "flag:#e9cbbba2"
+needs = "always"
 via = "walk"
-why = "walk, 1 edges; Inside Ganon Castle Switch Shutter A 02 629251087997242994 shut until flag #e9cbbba2; Switch Shutter A 02 1898552333934912677 shut until flag #e9cbbba2"
+why = "walk, 1 edges"
 
 [[link]]
 to = 24
-needs = "(flag:#77964795) and (flag:#a03ca29b)"
+needs = "always"
 via = "walk"
-why = "walk, 1 edges; Inside Ganon Castle Switch Shutter A 02 6572769807258773449 shut until flag #77964795; Inside Ganon Castle Switch Shutter A 02 6572769807258773449 shut until flag #a03ca29b; Switch Shutter A 02 9018482408517203727 shut until flag #77964795; Switch Shutter A 02 9018482408517203727 shut until flag #a03ca29b"
+why = "walk, 1 edges"

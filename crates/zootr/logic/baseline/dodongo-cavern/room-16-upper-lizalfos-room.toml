@@ -35,12 +35,12 @@ why = "step up 0.6 m"
 [[check]]
 hash = 850464708089653824
 name = "Dodongo's Cavern Upper Business Scrub Seed Chest"
-needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#ccf631b5"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #ccf631b5"
 
 [[flag]]
 hash = 0xccf631b5
 name = "Gimmick Defeat Enemy Open Dodongo Cave 02"
 needs = "always"
-why = "an event Enemy Middle Boss Lizalfos 1539353330400110799, Enemy Middle Boss Lizalfos 2541558834648863509 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Middle Boss Lizalfos 1539353330400110799, Enemy Middle Boss Lizalfos 2541558834648863509): what that takes isn't traced yet"
 guess = true

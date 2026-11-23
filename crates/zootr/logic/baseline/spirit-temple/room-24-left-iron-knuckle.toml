@@ -48,5 +48,5 @@ why = "in reach from its room"
 hash = 0x42773288
 name = "Spirit Temple Room25 Unlocked"
 needs = "always"
-why = "an event Enemy Iron Knuckle Silver 12916461246075154028 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Iron Knuckle Silver 12916461246075154028): what that takes isn't traced yet"
 guess = true

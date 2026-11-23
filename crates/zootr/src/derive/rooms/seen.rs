@@ -49,7 +49,7 @@ impl Seen<'_> {
 /// crossing from `from`.
 pub(super) fn link(
     via: rooms::Via,
-    from: u32,
+    (from, to): (u32, u32),
     s: &Seen,
     locks: &HashMap<u64, Vec<Lock>>,
 ) -> (String, String, bool) {
@@ -102,7 +102,7 @@ pub(super) fn link(
         }
         // A shutter may carry one flag in two locks: name it once.
         let mut flags: Vec<(u32, bool)> = (locks.get(h).into_iter().flatten())
-            .filter(|l| l.holds(from))
+            .filter(|l| l.holds(from, to))
             .map(|l| (l.hash(), l.room.is_none()))
             .collect();
         flags.sort_unstable();

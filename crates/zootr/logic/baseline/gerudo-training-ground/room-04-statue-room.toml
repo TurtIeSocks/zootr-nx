@@ -23,6 +23,6 @@ why = "walk, 2 edges"
 [[check]]
 hash = 11563468890171962383
 name = "Gerudo Training Ground Small Key Chest"
-needs = "always"
-why = "no floor of its room within a small chest's reach (1.25 m)"
+needs = "flag:#a08ebbb9"
+why = "no floor of its room within a small chest's reach (1.25 m); its graph waits on flag #a08ebbb9"
 guess = true

@@ -11,9 +11,9 @@ guess = true
 
 [[link]]
 to = 15
-needs = "flag:#950d163c"
+needs = "always"
 via = "walk"
-why = "walk, 2 edges; Switch Shutter A 02 7411802255801677123 shut until flag #950d163c; Fire Temple Switch Shutter A 01 11164201979525523373 shut until flag #950d163c"
+why = "walk, 2 edges"
 
 [[check]]
 hash = 14706322686481615109

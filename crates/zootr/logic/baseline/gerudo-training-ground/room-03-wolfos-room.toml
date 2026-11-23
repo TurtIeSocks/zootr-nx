@@ -35,8 +35,15 @@ why = "level gap 1.5 m: within a running jump (2.7 m); Gerudo Switch Shutter A 0
 [[check]]
 hash = 4519534997122863169
 name = "Gerudo Training Ground Blue Rupee (5) Chest"
+needs = "flag:#85ec522f"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #85ec522f"
+
+[[flag]]
+hash = 0x85ec522f
+name = "Gerudo Training Ground Dungeon Room03 Defeat Enemy"
 needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+why = "clearing its room sets it (Enemy Wolfos White 1701254371889731661, Enemy Wolfos 5116560407848715706, Enemy Wolfos 6658667009361842063, Enemy Wolfos White 8496709525513812147, Enemy Wolfos White 8956991345055770591, Enemy Wolfos 9823233588499794409, Enemy Wolfos White 16971004441720339738, Enemy Wolfos 17216215487921589389): what that takes isn't traced yet"
+guess = true
 
 [[flag]]
 hash = 0x9961be86

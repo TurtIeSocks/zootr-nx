@@ -24,11 +24,24 @@ guess = true
 [[check]]
 hash = 6897789835137994741
 name = "Gerudo Training Ground Red Rupee (20) Chest"
-needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#db00f008"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #db00f008"
 
 [[check]]
 hash = 11754783663699171680
 name = "Gerudo Training Ground Business Scrub Seed Chest"
+needs = "flag:#108dfa5a"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #108dfa5a"
+
+[[flag]]
+hash = 0x108dfa5a
+name = "Gerudo Training Ground Room10 Eye Switch TBox"
+needs = "slingshot or bow or boomerang or hookshot"
+why = "Eye Switch A 02 sets it (1): slingshot or bow or boomerang or hookshot"
+
+[[flag]]
+hash = 0xdb00f008
+name = "Gerudo Training Ground Dungeon Room10 Defeat Enemy"
 needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+why = "clearing its room sets it (Enemy Like Like 304378747580028585, Enemy Like Like 12262601019028426350, Enemy Like Like 16135855386590131258): what that takes isn't traced yet"
+guess = true

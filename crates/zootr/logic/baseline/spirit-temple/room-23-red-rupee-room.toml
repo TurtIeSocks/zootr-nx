@@ -10,9 +10,9 @@ why = "walk, 1 edges; Switch Shutter A 06 3482585178191715824 shut until flag #7
 
 [[link]]
 to = 24
-needs = "flag:#42773288"
+needs = "always"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 06 7192247717941907599 shut until flag #42773288"
+why = "walk, 1 edges"
 
 [[check]]
 hash = 9143177002861777924

@@ -17,8 +17,15 @@ why = "walk, 1 edges; Spirit Temple Switch Shutter A 01 17569862636469890641 shu
 [[check]]
 hash = 1501288453962537671
 name = "Upper Five Bombchus"
+needs = "flag:#392e5cd9"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #392e5cd9"
+
+[[flag]]
+hash = 0x392e5cd9
+name = "Spirit Temple Room07 TBox On"
 needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+why = "Switch Hit A 05 sets it (1): always"
+guess = true
 
 [[flag]]
 hash = 0xeaa23cd1

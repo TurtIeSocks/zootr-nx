@@ -35,12 +35,12 @@ why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
 [[check]]
 hash = 14962432460641118089
 name = "Ganon's Castle Lower Red Rupee (20) Chest"
-needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#ce91ac58"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #ce91ac58"
 
 [[flag]]
 hash = 0xce91ac58
 name = "Inside Ganon Castle Dungeon Room12 Defeat Enemy"
 needs = "always"
-why = "an event Enemy Skulltula Truth 2728970570046451540, Enemy Keese Truth 7784311683591261554, Enemy Keese Truth 8295711502225959716, Enemy Keese Truth 13278425263127022303 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Skulltula Truth 2728970570046451540, Enemy Keese Truth 7784311683591261554, Enemy Keese Truth 8295711502225959716, Enemy Keese Truth 13278425263127022303): what that takes isn't traced yet"
 guess = true

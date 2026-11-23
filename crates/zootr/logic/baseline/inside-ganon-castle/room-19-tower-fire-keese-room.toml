@@ -4,12 +4,12 @@ name = "Tower Fire Keese Room"
 
 [[link]]
 to = 20
-needs = "flag:#5d840f9e"
+needs = "always"
 via = "walk"
-why = "walk, 2 edges; Switch Shutter A 02 2673009987344317179 shut until flag #5d840f9e"
+why = "walk, 2 edges"
 
 [[link]]
 to = 20
-needs = "flag:#5d840f9e"
+needs = "always"
 via = "jump"
-why = "level gap 1.7 m: within a running jump (2.7 m); Inside Ganon Castle Switch Shutter A 02 1130372459033636510 shut until flag #5d840f9e; Switch Shutter A 02 2673009987344317179 shut until flag #5d840f9e"
+why = "level gap 1.7 m: within a running jump (2.7 m)"

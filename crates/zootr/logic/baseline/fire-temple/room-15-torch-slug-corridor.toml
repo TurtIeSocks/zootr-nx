@@ -38,5 +38,5 @@ why = "walk, 2 edges; Switch Shutter A 02 7411802255801677123 shut until flag #9
 hash = 0x950d163c
 name = "Gimmick Defeat Enemy Open Fire Temple 02"
 needs = "always"
-why = "an event Enemy Torch Slug 5930553965653627978, Enemy Torch Slug 8743045069235089570, Enemy Torch Slug 9589779297860968464, Enemy Torch Slug 11775233865672791356, Enemy Torch Slug 17875235627908344469, Enemy Torch Slug 18173849526483625199 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Torch Slug 5930553965653627978, Enemy Torch Slug 8743045069235089570, Enemy Torch Slug 9589779297860968464, Enemy Torch Slug 11775233865672791356, Enemy Torch Slug 17875235627908344469, Enemy Torch Slug 18173849526483625199): what that takes isn't traced yet"
 guess = true

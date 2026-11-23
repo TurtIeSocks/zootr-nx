@@ -22,6 +22,6 @@ why = "walk, 5 edges"
 
 [[link]]
 to = 21
-needs = "flag:#e53a50c5"
+needs = "always"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 02 10123210224515384597 shut until flag #e53a50c5; Shadow Temple Switch Shutter A 04 11550996206427633227 shut until flag #e53a50c5"
+why = "walk, 1 edges"

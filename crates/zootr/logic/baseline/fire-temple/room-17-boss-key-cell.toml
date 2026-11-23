@@ -16,12 +16,13 @@ why = "walk, 1 edges"
 
 [[link]]
 to = 3
-needs = "(flag:#09efdbb8) and (flag:#bded4a86)"
+needs = "always"
 via = "walk"
-why = "walk, 3 edges; Fire Temple Switch Shutter A 01 10217891004231336629 shut until flag #09efdbb8; Fire Temple Switch Shutter A 01 10217891004231336629 shut until flag #bded4a86"
+why = "walk, 3 edges"
 
 [[check]]
 hash = 14060099092170010696
 name = "Fire Temple Boss Key Chest"
-needs = "always"
-why = "0.1 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#20dc1f8a"
+why = "0.1 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #20dc1f8a"
+guess = true
