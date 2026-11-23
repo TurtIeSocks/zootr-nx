@@ -240,6 +240,7 @@ pub const SHOP_WEAPON_SHIELD_DEKU: &Name = &n!(0xbd7496e71c492424);
 pub const SHOP_WEAPON_SHIELD_HYLIAN: &Name = &n!(0x066729a16fee2904);
 pub const SHOOTABLE_DEKU_SEED: &Name = &n!(0x8b4de57a66def57b);
 pub const SONG_OF_THE_SUN_SENSOR_ACTOR: &Name = &n!(0x8e3347b533e971bd);
+pub const START_POS: &Name = &n!(0x257f467ec255c57f);
 pub const TBOX_MAGIC_JAR_LARGE: &Name = &n!(0xefe9040a7243eb21);
 pub const T_BOX_ARROW_BUNDLE_LARGE: &Name = &n!(0x36709cde35608522);
 pub const T_BOX_ARROW_BUNDLE_MEDIUM: &Name = &n!(0xaffeab641da6c068);

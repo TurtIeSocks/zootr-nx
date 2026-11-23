@@ -1,6 +1,9 @@
 //! The Havok meshes a level piece collides with, read straight from the
 //! dump since zootr doesn't extract them: its walls and floors
-//! (`__Physical`) and its invisible walls (`__Airwall`).
+//! (`__Physical`) and its invisible walls (`__Airwall`). Only meshes the
+//! game's collision filter lets touch Link on foot count ([`filter`]).
+//!
+//! [`filter`]: super::filter
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -8,6 +11,7 @@ use std::path::Path;
 use anyhow::Result;
 use ounce_formats::{Romfs, ShapeMesh};
 
+use super::filter::{Filter, Touch};
 use super::shape::{
     BODY_SHAPE, ENTRY_NAME, FILE, Physics, RIGID_BODIES, SHAPES, maps, physics_of, place, text,
 };
@@ -25,14 +29,28 @@ pub struct Wall {
     pub triangles: Vec<[[f32; 3]; 3]>,
     pub lo: [f32; 3],
     pub hi: [f32; 3],
+    /// Link stands on it where it faces up: no unridable tag.
+    pub ridable: bool,
 }
 
 impl Wall {
     /// `mesh` moved into the world by `pose`.
     pub fn posed(name: &str, mesh: &ShapeMesh, pose: &crate::warp::Pose) -> Self {
+        Self::posed_where(name, mesh, pose, |_| true)
+    }
+
+    /// The triangles of `mesh` that `keep` holds, by index, moved into the
+    /// world by `pose`.
+    pub fn posed_where(
+        name: &str,
+        mesh: &ShapeMesh,
+        pose: &crate::warp::Pose,
+        keep: impl Fn(usize) -> bool,
+    ) -> Self {
         let at: Vec<[f32; 3]> = mesh.vertices.iter().map(|&v| place(v, pose)).collect();
-        let triangles = (mesh.triangles.iter())
-            .map(|t| t.map(|i| at[i as usize]))
+        let triangles = (mesh.triangles.iter().enumerate())
+            .filter(|(i, _)| keep(*i))
+            .map(|(_, t)| t.map(|i| at[i as usize]))
             .collect();
         Self::new(name, triangles)
     }
@@ -54,6 +72,7 @@ impl Wall {
             triangles,
             lo,
             hi,
+            ridable: true,
         }
     }
 
@@ -62,6 +81,40 @@ impl Wall {
         let apart = (0..3).any(|i| a[i].max(b[i]) < self.lo[i] || a[i].min(b[i]) > self.hi[i]);
         !apart && self.triangles.iter().any(|t| through(a, b, t))
     }
+
+    /// The heights of its floor straight under or over `(x, z)`: the
+    /// triangles there that face up, no steeper than Link walks.
+    pub fn floors_at(&self, x: f32, z: f32) -> Vec<f32> {
+        if x < self.lo[0] || x > self.hi[0] || z < self.lo[2] || z > self.hi[2] {
+            return vec![];
+        }
+        (self.triangles.iter())
+            .filter(|t| floor_normal(t))
+            .filter_map(|t| height_in(t, x, z))
+            .collect()
+    }
+}
+
+/// The least a floor's normal points up: steeper ground is a wall.
+const FLOOR_UP: f32 = 0.7;
+
+/// Whether `t` faces up, gently enough to stand on.
+pub fn floor_normal([p, q, r]: &[[f32; 3]; 3]) -> bool {
+    let n = cross(sub(*q, *p), sub(*r, *p));
+    let len = dot(n, n).sqrt();
+    len > 1e-9 && n[1].abs() / len >= FLOOR_UP
+}
+
+/// The height of triangle `t` at `(x, z)`, when it lies over that spot.
+pub fn height_in([p, q, r]: &[[f32; 3]; 3], x: f32, z: f32) -> Option<f32> {
+    let det = (q[2] - r[2]) * (p[0] - r[0]) + (r[0] - q[0]) * (p[2] - r[2]);
+    if det.abs() < 1e-9 {
+        return None;
+    }
+    let u = ((q[2] - r[2]) * (x - r[0]) + (r[0] - q[0]) * (z - r[2])) / det;
+    let v = ((r[2] - p[2]) * (x - r[0]) + (p[0] - r[0]) * (z - r[2])) / det;
+    let w = 1.0 - u - v;
+    (u >= 0.0 && v >= 0.0 && w >= 0.0).then(|| u * p[1] + v * q[1] + w * r[1])
 }
 
 fn sub(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
@@ -98,21 +151,36 @@ fn through(a: [f32; 3], b: [f32; 3], [p, q, r]: &[[f32; 3]; 3]) -> bool {
     (0.0..=1.0).contains(&u) && v >= 0.0 && u + v <= 1.0 && (0.0..=1.0).contains(&t)
 }
 
-/// The meshes of `actor`'s shapes, each with whether it's an invisible
-/// wall: the shape of a rigid body on the player's airwall sublayer.
-pub fn mesh_names(romfs: &Romfs, actor: &str) -> Result<Vec<(String, bool)>> {
+/// One mesh of an actor's shapes: whether its rigid body stands on the
+/// player's airwall sub-layer (an invisible wall), and that body's
+/// `Enable` masks (all ones without a body).
+#[derive(Clone, Debug, PartialEq)]
+pub struct MeshUse {
+    pub name: String,
+    pub air: bool,
+    pub body: [u64; 2],
+}
+
+/// The meshes of `actor`'s shapes.
+pub fn mesh_names(romfs: &Romfs, filter: &Filter, actor: &str) -> Result<Vec<MeshUse>> {
     let Some(Physics { pack, set, .. }) = physics_of(romfs, actor)? else {
         return Ok(vec![]);
     };
-    let mut air = HashSet::new();
+    let mut bodies = HashMap::new();
     for body in maps(&set, RIGID_BODIES.get()) {
         let file = text(body, FILE.get());
         let Some(body) = file.map(|f| pack.resolve(f)).transpose()?.flatten() else {
             continue;
         };
-        if text(&body, field::SUB_LAYER_ENTITY.get()) == Some(field::AIR_WALL.get()) {
-            air.extend(text(&body, BODY_SHAPE.get()).map(str::to_owned));
-        }
+        let Some(shape) = text(&body, BODY_SHAPE.get()) else {
+            continue;
+        };
+        let air = text(&body, field::SUB_LAYER_ENTITY.get()) == Some(field::AIR_WALL.get());
+        let masks = [
+            filter.layer_mask(text(&body, field::ENABLE_LAYER_HIT_MASK.get())),
+            filter.sub_layer_mask(text(&body, field::ENABLE_SUB_LAYER_HIT_MASK.get())),
+        ];
+        bodies.insert(shape.to_owned(), (air, masks));
     }
     let mut out = vec![];
     for shape in maps(&set, SHAPES.get()) {
@@ -121,17 +189,51 @@ pub fn mesh_names(romfs: &Romfs, actor: &str) -> Result<Vec<(String, bool)>> {
         let Some(param) = file.map(|f| pack.resolve(f)).transpose()?.flatten() else {
             continue;
         };
+        let (air, body) = bodies.get(name).copied().unwrap_or((false, [u64::MAX; 2]));
         for mesh in maps(&param, field::PHSH_MESH.get()) {
             if let Some(path) = text(mesh, field::PHSH_MESH_PATH.get()) {
                 let file = path.rsplit('/').next().unwrap_or(path);
-                out.push((
-                    file.trim_end_matches(".phsh").to_owned(),
-                    air.contains(name),
-                ));
+                out.push(MeshUse {
+                    name: file.trim_end_matches(".phsh").to_owned(),
+                    air,
+                    body,
+                });
             }
         }
     }
     Ok(out)
+}
+
+/// What each of a mesh's materials does to Link under a body with
+/// `body` masks: its masks ANDed with the body's. One for a mesh with no
+/// material table.
+pub fn touches(filter: &Filter, body: [u64; 2], mesh: &ShapeMesh) -> Vec<Touch> {
+    let one = |(layers, subs, tags): (u64, u64, u64)| {
+        filter.touch(body[0] & layers, body[1] & subs, tags)
+    };
+    if mesh.materials.is_empty() {
+        return vec![one((u64::MAX, u64::MAX, 0))];
+    }
+    (mesh.materials.iter())
+        .map(|m| one((m.layers, m.sub_layers, m.tags)))
+        .collect()
+}
+
+/// What a mesh does to Link as a whole: it touches him if any of its
+/// materials does, and is ridable only if all are.
+pub fn touch(filter: &Filter, body: [u64; 2], mesh: &ShapeMesh) -> Touch {
+    (touches(filter, body, mesh).into_iter()).fold(
+        Touch {
+            on_foot: false,
+            climbing: false,
+            ridable: true,
+        },
+        |a, t| Touch {
+            on_foot: a.on_foot || t.on_foot,
+            climbing: a.climbing || t.climbing,
+            ridable: a.ridable && t.ridable,
+        },
+    )
 }
 
 /// The mesh name a dump path under [`MESHES`] holds.
@@ -150,38 +252,68 @@ pub struct Walls {
 
 /// The collision meshes placed in a level, from one walk of the dump.
 pub fn walls(romfs: &Romfs, game: &Path, placed: &[Placement]) -> Result<Walls> {
-    let mut names: HashMap<&str, Vec<(String, bool)>> = HashMap::new();
+    let filter = Filter::get(romfs)?;
+    let mut names: HashMap<&str, Vec<MeshUse>> = HashMap::new();
     for p in placed {
         if !names.contains_key(p.name.as_str()) {
-            names.insert(&p.name, mesh_names(romfs, &p.name)?);
+            names.insert(&p.name, mesh_names(romfs, filter, &p.name)?);
         }
     }
-    let wanted: HashSet<&str> = names.values().flatten().map(|(n, _)| n.as_str()).collect();
+    let wanted: HashSet<&str> = names.values().flatten().map(|u| u.name.as_str()).collect();
     let mut walls = Walls::default();
-    if wanted.is_empty() {
-        return Ok(walls);
+    let meshes = meshes(romfs, game, &wanted)?;
+    for p in placed {
+        for u in &names[p.name.as_str()] {
+            let Some(mesh) = meshes.get(&u.name) else {
+                continue;
+            };
+            // Each triangle goes by its own material: one that never
+            // touches Link on foot (a camera's, an animal's, a climbing
+            // wall's) is no wall to a walk or a fall, and an unridable one
+            // is a wall he can't stand on.
+            let touches = touches(filter, u.body, mesh);
+            let of = |i: usize| {
+                let m = mesh.triangle_materials.get(i).copied().unwrap_or(0);
+                touches
+                    .get(usize::from(m))
+                    .or(touches.first())
+                    .copied()
+                    .unwrap_or_default()
+            };
+            for ridable in [true, false] {
+                let keep = |i: usize| of(i).on_foot && of(i).ridable == ridable;
+                let wall = Wall {
+                    ridable,
+                    ..Wall::posed_where(&u.name, mesh, &p.pose, keep)
+                };
+                match (wall.triangles.is_empty(), u.air) {
+                    (true, _) => {}
+                    (false, true) => walls.air.push(wall),
+                    (false, false) => walls.solid.push(wall),
+                }
+            }
+        }
     }
+    Ok(walls)
+}
+
+/// The meshes named in `wanted`, by name, from one walk of the dump.
+pub fn meshes(
+    romfs: &Romfs,
+    game: &Path,
+    wanted: &HashSet<&str>,
+) -> Result<HashMap<String, ShapeMesh>> {
     let mut meshes = HashMap::new();
+    if wanted.is_empty() {
+        return Ok(meshes);
+    }
     let keep = |path: &str| mesh_name(path).is_some_and(|n| wanted.contains(n));
     crate::game::each_where(game, keep, |path, data| {
         let mesh = ShapeMesh::parse(&romfs.dicts().decompress(&path, &data)?)?;
         meshes.insert(mesh_name(&path).unwrap_or_default().to_owned(), mesh);
         Ok(())
     })?;
-    for p in placed {
-        for (name, air) in &names[p.name.as_str()] {
-            let Some(mesh) = meshes.get(name) else {
-                continue;
-            };
-            let wall = Wall::posed(name, mesh, &p.pose);
-            if *air {
-                walls.air.push(wall)
-            } else {
-                walls.solid.push(wall)
-            }
-        }
-    }
-    Ok(walls)
+    Ok(meshes)
 }
 
 /// The mesh named `name`, like `<piece>__Airwall`, in its
@@ -291,6 +423,17 @@ mod tests {
             };
             let (min, max) = super::super::shape::bounds(&shape).unwrap();
             let (lo, hi) = mesh.bounds().unwrap();
+            // Each triangle's shape tag run names one of its materials.
+            let materials = mesh.materials.len().max(1);
+            assert_eq!(
+                mesh.triangle_materials.len(),
+                mesh.triangles.len(),
+                "{name}"
+            );
+            assert!(
+                (mesh.triangle_materials.iter()).all(|&m| usize::from(m) < materials),
+                "{name}: a triangle's tag is past its {materials} materials"
+            );
             for i in 0..3 {
                 assert!((lo[i] - min[i]).abs() < 0.003, "{name} min {lo:?} {min:?}");
                 assert!((hi[i] - max[i]).abs() < 0.003, "{name} max {hi:?} {max:?}");
@@ -300,5 +443,48 @@ mod tests {
         })
         .unwrap();
         assert!(checked > 20, "only {checked} meshes checked");
+    }
+
+    /// The Deku shaft's big mesh mixes floor Link stands on with walls
+    /// tagged unridable, so its triangles split by their own materials:
+    /// some go to a ridable wall, some to an unridable one. A camera's
+    /// airwall that never touches Link on foot is no wall at all.
+    #[test]
+    fn deku_walls_split_by_each_triangles_material() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let game = Path::new("../../dump/oot.nup");
+        let deku = crate::known::map::INSIDE_THE_DEKU_TREE.get();
+        let placed = crate::warp::placements_in(&romfs, deku).unwrap();
+        let walls = walls(&romfs, game, &placed).unwrap();
+        let named = |ridable: bool| {
+            (walls.solid.iter())
+                .filter(|w| w.ridable == ridable)
+                .map(|w| w.name.as_str())
+                .collect::<HashSet<_>>()
+        };
+        let (ridable, unridable) = (named(true), named(false));
+        let both: Vec<_> = ridable.intersection(&unridable).collect();
+        assert!(!both.is_empty(), "no mesh splits by material");
+        let filter = Filter::get(&romfs).unwrap();
+        let uses: Vec<MeshUse> = (placed.iter())
+            .flat_map(|p| mesh_names(&romfs, filter, &p.name).unwrap())
+            .collect();
+        let wanted: HashSet<&str> = uses.iter().map(|u| u.name.as_str()).collect();
+        let meshes = meshes(&romfs, game, &wanted).unwrap();
+        let untouched: Vec<&str> = (uses.iter())
+            .filter(|u| {
+                meshes
+                    .get(&u.name)
+                    .is_some_and(|m| !touch(filter, u.body, m).on_foot)
+            })
+            .map(|u| u.name.as_str())
+            .collect();
+        assert!(!untouched.is_empty(), "every Deku mesh touches Link");
+        for name in untouched {
+            let kept = walls.air.iter().chain(&walls.solid).any(|w| w.name == name);
+            assert!(!kept, "{name} touches nothing on foot but stays a wall");
+        }
     }
 }
