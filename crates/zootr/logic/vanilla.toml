@@ -398,3 +398,8 @@ needs = "zora-river"
 hash = 2014780391754316762
 name = "Upper Courtyard Token"
 needs = "adult and hookshot and ocarina and scarecrow"
+
+[[check]]
+hash = 1876671093443800633
+name = "Baby Dodongo Room Pot 1"
+needs = "always"
