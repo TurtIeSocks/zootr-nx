@@ -166,7 +166,11 @@ fn pinned() -> Settings {
 pub(super) fn base() -> Settings {
     let defs = schema();
     let mut s = pinned();
-    for id in OPTIONS.iter().filter(|id| !s.contains_key(**id)).collect::<Vec<_>>() {
+    for id in OPTIONS
+        .iter()
+        .filter(|id| !s.contains_key(**id))
+        .collect::<Vec<_>>()
+    {
         if let Some(d) = defs.iter().find(|d| d.id == *id)
             && let Kind::Toggle { .. } = d.kind
         {
@@ -351,7 +355,10 @@ mod tests {
             assert_eq!(base.get(id), Some(&Value::Bool(true)), "{id}");
         }
         let scrubs = domains().unwrap().into_iter().find(|d| d.id == SCRUBS);
-        assert_eq!(scrubs.unwrap().values, [Value::Bool(true), Value::Bool(false)]);
+        assert_eq!(
+            scrubs.unwrap().values,
+            [Value::Bool(true), Value::Bool(false)]
+        );
     }
 
     #[test]

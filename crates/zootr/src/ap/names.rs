@@ -213,7 +213,10 @@ const SAME: &[(&Name, &Name)] = &[
     (actor::OBJ_RUPEE_RED, actor::T_BOX_RUPEE_RED),
     (actor::OBJ_RUPEE_PURPLE, actor::T_BOX_RUPEE_PURPLE),
     (actor::OBJ_RUPEE_GOLD, actor::T_BOX_RUPEE_GOLD),
-    (actor::OBJ_ARROW_BUNDLE_SMALL, actor::T_BOX_ARROW_BUNDLE_SMALL),
+    (
+        actor::OBJ_ARROW_BUNDLE_SMALL,
+        actor::T_BOX_ARROW_BUNDLE_SMALL,
+    ),
 ];
 
 /// The item AP counts `actor` as.
@@ -329,7 +332,10 @@ fn breakable(check: &ItemCheck) -> Option<&'static str> {
         (&GRASS, "Grass"),
         (&HIVES, "Beehive"),
     ];
-    kinds.into_iter().find(|(k, _)| k.holds(check)).map(|(_, name)| name)
+    kinds
+        .into_iter()
+        .find(|(k, _)| k.holds(check))
+        .map(|(_, name)| name)
 }
 
 /// Gives each check whose name another shares where it stands in its area:
