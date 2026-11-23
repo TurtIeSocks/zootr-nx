@@ -401,7 +401,7 @@ needs = "adult and hookshot and ocarina and scarecrow"
 
 [[check]]
 hash = 1876671093443800633
-name = "Baby Dodongo Room Pot 1"
+name = "Baby Dodongo Room Pot - Left"
 needs = "always"
 
 [[check]]
