@@ -218,6 +218,12 @@ static COPIES: LazyLock<BTreeMap<String, String>> = LazyLock::new(|| {
     out
 });
 
+/// Every actor the world names: any of ours another slot's seed can hold.
+pub fn named() -> impl Iterator<Item = &'static str> {
+    let tables = ITEMS.iter().chain(PROGRESSIVE).map(|(n, _)| n.get());
+    tables.chain(COPIES.keys().map(String::as_str))
+}
+
 /// The item's name: its line's with progressive items on, else its own.
 pub fn item(actor: &str, progressive: bool) -> Result<&'static str> {
     let actor = same(actor);
