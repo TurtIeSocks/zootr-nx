@@ -112,7 +112,7 @@ fn lookup(hash: u64) -> Option<&'static str> {
     TABLES.iter().enumerate().find_map(|(tier, table)| {
         let table = table.get_or_init(|| {
             load(root, tier)
-                .inspect_err(|e| eprintln!("reading the game's names: {e:#}"))
+                .inspect_err(|e| log::warn!("reading the game's names: {e:#}"))
                 .unwrap_or_default()
         });
         table.get(&hash).copied()
@@ -140,7 +140,7 @@ fn load(root: &Path, tier: usize) -> Result<HashMap<u64, &'static str>> {
         Err(_) => {
             let text = read(&Romfs::open(root)?, SOURCES[tier])?;
             if let Err(e) = keep(&file, &text) {
-                eprintln!("caching the game's names: {e:#}");
+                log::warn!("caching the game's names: {e:#}");
             }
             text
         }

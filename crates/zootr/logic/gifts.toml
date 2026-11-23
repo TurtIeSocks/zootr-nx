@@ -9,13 +9,13 @@ place = "kokiri-forest-child"
 era = "child"
 needs = "setting:open-forest or beat:gohma"
 
-# At the castle moat, once Link has the three Spiritual Stones.
+# At the castle moat, in its scene.
 [[check]]
 hash = 16028206441208456211
 name = "Zelda's gift"
 place = "hyrule-field-child"
 era = "child"
-needs = "beat:gohma and beat:king-dodongo and beat:barinade"
+needs = "event:moat-scene"
 
 # NPC gifts, dealt only with the setting on.
 
@@ -399,7 +399,7 @@ hash = 3701241424386675305
 name = "Zelda's song"
 place = "hyrule-field-child"
 era = "child"
-needs = "beat:gohma and beat:king-dodongo and beat:barinade"
+needs = "event:moat-scene"
 
 # The House of Skulltula's rewards, dealt with the NPC gifts. The tokens
 # that open them are only in logic with Gold Skulltulas shuffled.

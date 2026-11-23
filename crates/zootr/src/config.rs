@@ -269,7 +269,7 @@ pub fn with_save(env: &[(String, String)], save: Option<&Path>) -> Vec<(String, 
 }
 
 /// The home folder, for the `~` in shared presets and logs.
-pub(crate) fn home() -> Option<PathBuf> {
+pub fn home() -> Option<PathBuf> {
     ["HOME", "USERPROFILE"]
         .iter()
         .filter_map(std::env::var_os)

@@ -11,6 +11,7 @@ import {
   type Edit,
   events,
   type FlagQuery,
+  type Level,
   type Side,
   type Value,
 } from "@/bindings";
@@ -70,6 +71,8 @@ export interface Ui {
      * Rows after it flash. */
     seen: { log: string | null; id: number };
   };
+  /** The Logs page's filter, and the levels it leaves out. */
+  logs: { grep: string; hidden: Level[] };
   /** Checks' search and filter. */
   checks: { query: string; filter: Filter };
   /** The spoiler's tab, its Way of the Hero filter, and its checks
@@ -153,6 +156,7 @@ const INITIAL: Ui = {
     hiddenKinds: [],
     seen: { log: null, id: 0 },
   },
+  logs: { grep: "", hidden: [] },
   checks: { query: "", filter: "all" },
   spoiler: { tab: "spheres", heroOnly: false, query: "" },
   newSeed: { seed: "" },
