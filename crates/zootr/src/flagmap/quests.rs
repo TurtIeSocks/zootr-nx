@@ -309,7 +309,7 @@ mod tests {
         };
         let g = super::Graph::build(&romfs).unwrap();
         let starts = crate::steps::starts(&romfs).unwrap();
-        let door = &*flow::DOOR_OF_TIME;
+        let door = flow::DOOR_OF_TIME.get();
         let quests = g.quests(&starts, Some(door)).0;
         let [quest] = &quests[..] else {
             panic!("{} quests", quests.len())
