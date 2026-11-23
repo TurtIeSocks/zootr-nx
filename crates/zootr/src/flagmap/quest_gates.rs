@@ -206,6 +206,7 @@ impl Graph {
             };
             for cmp in found {
                 let side = match flow {
+                    None if !self.wired(edge, target) => None,
                     None => graph_side(cmp, &edge.label),
                     Some((chart, entry, t)) => {
                         edge.at.and_then(|q| flow_side(cmp, chart, entry, q, t))
@@ -264,6 +265,29 @@ impl Graph {
         }
         (self.gates(vec![(start, None)]).iter())
             .any(|g| g.quest == quest && g.least(&steps).is_some_and(|i| i >= least))
+    }
+
+    /// Whether a graph's read `edge` feeds its node `target`, the one that
+    /// drives or plays what's below: a read that only lights a room isn't
+    /// a gate on the room's minigame. True when either end isn't known.
+    fn wired(&self, edge: &super::Edge, target: Option<u16>) -> bool {
+        let (Some(from), Some(to), Some(ainb)) = (edge.at, target, self.scene.get(&edge.file))
+        else {
+            return true;
+        };
+        let (from, to) = (from as usize, to as usize);
+        let (mut seen, mut todo) = (BTreeSet::from([to]), vec![to]);
+        while let Some(n) = todo.pop() {
+            if n == from {
+                return true;
+            }
+            let Some(node) = ainb.nodes.get(n) else {
+                continue;
+            };
+            let sources = node.inputs.iter().flat_map(|i| &i.sources);
+            todo.extend(sources.map(|l| l.node).filter(|&s| seen.insert(s)));
+        }
+        false
     }
 
     /// Whether an entry point of `flow` moves quest `quest`.
