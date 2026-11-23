@@ -410,6 +410,7 @@ pub const PHANTOM_GANON: &Name = &n!(0xd8d60a03e32d0ec5);
 pub const PHSH_MESH: &Name = &n!(0x8b3dd6ff48ffa4c7);
 pub const PHSH_MESH_PATH: &Name = &n!(0x5439dc25b5e137f0);
 pub const PHYSICS_REF: &Name = &n!(0x9ff10857ea87b1ab);
+pub const PLAY_GET_EVENT_MANY_TIMES: &Name = &n!(0x4b65900a4648457e);
 pub const PLAYER_ADULT_01_ANIMATION: &Name = &n!(0x7a3a6f2cf1027fba);
 pub const PLAYER_ADULT_02_ANIMATION: &Name = &n!(0xf792846d796b742b);
 pub const PLAYER_ADULT_02_H_ANIMATION: &Name = &n!(0x01e22b48145097b8);

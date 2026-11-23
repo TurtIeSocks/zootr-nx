@@ -911,6 +911,9 @@ mod tests {
         param(&sarc, &parent);
         let pouch = param(&sarc, &refs(POUCH));
         assert_eq!(pouch.get(COUNT_CHECK.get()), Some(&Byml::Bool(false)));
+        // Every take plays its get, so the event graph marks it (`taken`).
+        let many = field::PLAY_GET_EVENT_MANY_TIMES.get();
+        assert_eq!(pouch.get(many), Some(&Byml::Bool(true)));
 
         // The Skulltula's drops: built on a pickup that lands, keeping how
         // it falls and bounces over the boomerang's table.
