@@ -79,6 +79,7 @@ pub const NPC_HYLIA_015_ADULT: &Name = &n!(0xda6a48550f011b3a);
 pub const NPC_HYLIA_016_ADULT: &Name = &n!(0x35cfd1292ccc8903);
 pub const NPC_HYLIA_017_ADULT: &Name = &n!(0x249f21ceb9f195b8);
 pub const NPC_HYLIA_020_SHOP_CHILD: &Name = &n!(0xbc08e9d786ee38e7);
+pub const NPC_HYLIA_023_SHOP_CHILD: &Name = &n!(0x0affbe3a5090e87c);
 pub const NPC_HYLIA_044_ADULT: &Name = &n!(0x29b01bd71186d910);
 pub const NPC_HYLIA_045_ADULT: &Name = &n!(0x19cc6f87200f3dbb);
 pub const NPC_HYLIA_045_CHILD: &Name = &n!(0x56e843357eae3a39);

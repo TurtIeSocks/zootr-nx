@@ -79,6 +79,7 @@ pub mod logging;
 mod logic;
 pub mod look;
 mod magic;
+mod masks;
 mod map_copies;
 pub mod marks;
 mod medallions;

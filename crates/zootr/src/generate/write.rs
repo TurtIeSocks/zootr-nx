@@ -59,6 +59,7 @@ pub(super) fn flows(
     }
     flags.push(starting::navi_guide());
     trade_chain::cut_timers(romfs, &mut rewrites)?;
+    crate::masks::keep(romfs, &mut rewrites)?;
     // Rauru's gift, the Light Medallion or what was dealt there, comes in
     // the opening with the door open: `gifts::give_all`.
     if new_game.open_door {
