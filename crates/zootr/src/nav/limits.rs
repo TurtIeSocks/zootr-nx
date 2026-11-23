@@ -217,13 +217,15 @@ mod tests {
         assert_eq!(l.hand(true, Holder::SmallChest), Some(1.25));
         assert_eq!(l.hand(true, Holder::BigChest), Some(1.35));
         assert_eq!(l.hand(false, Holder::BigChest), None);
-        // A hand reach needs its evidence like any limit.
-        let bare = TEXT.replacen(
+        // A hand reach needs its evidence like any limit. A Windows
+        // checkout ends lines with CRLF.
+        let text = TEXT.replace("\r\n", "\n");
+        let bare = text.replacen(
             "evidence = [\n    \"measured: Kakariko pot, +90, 180 and -90 degrees: shown 1.04, 1.05, 1.10 (run-pot-child2)\",\n]",
             "evidence = []",
             1,
         );
-        assert_ne!(bare, TEXT);
+        assert_ne!(bare, text);
         assert!(Limits::parse(&bare).is_err());
     }
 
