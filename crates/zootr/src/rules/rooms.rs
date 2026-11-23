@@ -280,7 +280,10 @@ impl Entry for Knowledge {
 /// The dungeons whose room files drive logic, by folder. A dungeon joins
 /// once room places are in the solver and its pilot has settled its audit
 /// (room reach spec, build steps 4 and 6). Until then its room files are
-/// derived, loaded and checked, and logic keeps its hand rules.
+/// derived, loaded and checked, and logic keeps its hand rules. Their
+/// freshness tests are ignored until then (each derives a whole dungeon,
+/// minutes of CI for files no seed reads): a dungeon that joins takes the
+/// ignore off its own.
 pub const LIVE: &[&str] = &[];
 
 /// One room, its confirmed entries laid over its baseline.
