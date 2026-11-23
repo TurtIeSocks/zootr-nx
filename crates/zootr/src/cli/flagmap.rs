@@ -52,6 +52,9 @@ pub enum FlagmapQuery {
     Source { edge: String },
     /// Node and edge counts, and what the extractors don't cover yet.
     Stats,
+    /// Every quest's steps in order: what moves the quest to each, and
+    /// what checks it against each. Or one quest, by name.
+    Quests { name: Option<String> },
     /// The running game's values of these states. Reads only, on the
     /// session's turn: it never takes or renews one.
     Live { nodes: Vec<String> },
@@ -86,6 +89,10 @@ pub(super) fn flagmap(romfs: &Romfs, query: FlagmapQuery, json: bool) -> Result<
             }
         }
         FlagmapQuery::Stats => said(&g.stats(), json)?,
+        FlagmapQuery::Quests { name } => said(
+            &g.quests(&crate::steps::starts(romfs)?, name.as_deref()),
+            json,
+        )?,
         FlagmapQuery::Live { .. } => unreachable!("answered without the graph"),
     };
     println!("{}", out.trim_end());
