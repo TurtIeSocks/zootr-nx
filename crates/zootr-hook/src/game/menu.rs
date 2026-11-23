@@ -174,6 +174,10 @@ fn left(which: Page, page: usize) {
 #[unsafe(no_mangle)]
 extern "C" fn ui_update() {
     hooked(|main, table| {
+        if table.flags & crate::DEV != 0 {
+            // SAFETY: the table's offsets are this build's.
+            unsafe { super::swap::step(main, table.offsets) };
+        }
         for i in 0..MAX_SLOTS {
             // SAFETY: the table's offsets are this build's.
             unsafe { show(main, table, i) };

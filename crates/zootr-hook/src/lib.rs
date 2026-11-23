@@ -44,7 +44,7 @@ pub use mailbox::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
     ARG_SUMMARY, Ask, GUARD, MAILBOX, Mailbox, NAME, Notice, Outcome, play_event,
 };
-pub use shared::{CHESTS, Chest, Credited, List, Shared};
+pub use shared::{CHESTS, Chest, Credited, List, Shared, Swap};
 pub use switches::SWITCHES;
 #[cfg(not(target_os = "none"))]
 pub use table::SlotSpec;
@@ -80,7 +80,7 @@ pub const PANIC: u32 = 0x4e9_aff0;
 /// listed, then the full key, handheld and joy dual controller reads. The
 /// patch writes a `b` into each: past the hooked function's pacibsp, or to
 /// the game's `GetNpadStates` stub for that style.
-pub const SLOTS: u32 = 80;
+pub const SLOTS: u32 = 84;
 
 /// The Deku Seed's name hash, the projectile an empty bow says "no Deku
 /// seeds" for and the draw says "Shoot Seed" for. Every other one says
@@ -157,4 +157,8 @@ pub const OFFSETS: Offsets = Offsets {
     redraw: 0x20_8350,
     icon: 0xa7_37e0,
     effects: 0x4e8_40e0,
+    resident_create: 0x94_5610,
+    cancel_sleep: 0x94_3550,
+    request_pause: 0xd9_aec0,
+    release_pause: 0xda_d2c0,
 };

@@ -17,6 +17,7 @@ mod look;
 mod menu;
 mod refill;
 mod rt;
+mod swap;
 
 use chests::{drop_value, level_for, owned, record, recreate, rewrite};
 
@@ -32,7 +33,7 @@ const MAX: usize = 128;
 // The call sites `bl` to content_name at +0, drop_actor at +4, run_speed
 // at +24, the controller reads to +32, +36 and +40, and seed_guide at +68. The hooked
 // functions `b` to +8, +12, +16, +20, +28, +44, +48, +52, +56, +60, +64,
-// +72 and +76 in place of their pacibsp.
+// +72, +76 and +80 in place of their pacibsp.
 // The opening node is in x20 at both content_name call sites.
 //
 // A function hook keeps every argument register and the link register,
@@ -127,6 +128,7 @@ global_asm!(
     "b seed_guide",
     "b equipment_built_entry",
     "b equipment_left_entry",
+    "b resident_made_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -153,6 +155,8 @@ global_asm!(
     "equipment_built_resume:",
     "brk #0",
     "equipment_left_resume:",
+    "brk #0",
+    "resident_made_resume:",
     "brk #0",
     "npad_full_stub:",
     "brk #0",
@@ -196,6 +200,8 @@ global_asm!(
     "function_hook equipment_built, equipment_built_resume",
     "equipment_left_entry:",
     "function_hook equipment_left, equipment_left_resume",
+    "resident_made_entry:",
+    "function_hook resident_made, resident_made_resume",
 );
 
 /// `main`, from where the hook starts.
@@ -365,6 +371,17 @@ pub unsafe extern "C" fn seed_guide(link: usize) -> bool {
         let child: Childhood = core::mem::transmute(main() + OFFSETS.childhood as usize);
         child(link)
     }
+}
+
+/// The game makes the resident actors (the player of an age, the
+/// cameras, Navi) with their manager, on every area load: keep it for an
+/// age swap in place.
+#[unsafe(no_mangle)]
+extern "C" fn resident_made(manager: usize) {
+    hooked(|main, _| {
+        let resident = &shared(main).resident;
+        resident.store(manager, core::sync::atomic::Ordering::Release)
+    })
 }
 
 /// A map has started loading: its chests come next.

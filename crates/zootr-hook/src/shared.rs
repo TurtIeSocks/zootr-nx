@@ -3,10 +3,30 @@
 //! store under a lock of its own.
 
 use core::cell::UnsafeCell;
-use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+use core::sync::atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering};
 
 use crate::Mailbox;
 use crate::ui::Store;
+
+/// An age swap in place under way (`Ask::AgeHere`), one step a frame:
+/// all zeros is none. See `game/swap.rs`.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Swap {
+    pub stage: u32,
+    /// The age being made: 1 child.
+    pub child: u32,
+    /// Frames in this stage.
+    pub frames: u32,
+    /// The mailbox request it answers once done.
+    pub asked: u32,
+    /// 1 once the new Link never came and the swap went back.
+    pub failed: u32,
+    pub manager: usize,
+    /// Where Link stood, and his 3x3 rotation, for the wake.
+    pub position: [f32; 3],
+    pub rotation: [f32; 9],
+}
 
 /// How many chests a map's list holds.
 pub const CHESTS: usize = 64;
@@ -157,6 +177,10 @@ pub struct Shared {
     /// 1 while the ice's shells hold child Link's size, see
     /// [`crate::look`].
     pub child_ice: AtomicU32,
+    /// The resident actor manager, as the game last made residents with it
+    /// (every area load), 0 before.
+    pub resident: AtomicUsize,
+    pub swap: Locked<Swap>,
 }
 
 // SAFETY: the mailbox's plain fields are only read after `asked` is.

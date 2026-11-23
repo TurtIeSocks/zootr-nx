@@ -48,6 +48,9 @@ const BOOTS_ON: &str = "#a6719419";
 pub(crate) const HEARTS: u32 = switches::HEARTS;
 /// How long Link has to pick a request up.
 const WAIT: Duration = Duration::from_secs(3);
+/// An age swap in place takes about 2 s, 20 at worst (made, given up,
+/// made again).
+const SWAP_WAIT: Duration = Duration::from_secs(25);
 /// GameData names the state reads.
 const MAP: &Name = flag::SEQUENCE_CURRENT_BANC;
 const IS_CHILD: &Name = flag::SEQUENCE_IS_CHILDHOOD;
@@ -124,6 +127,8 @@ pub enum Request {
     Teleport(Place),
     /// Switch age and land here.
     Age(Place),
+    /// Switch age where Link stands, with no area load.
+    AgeHere,
     Time(u32),
     /// Move a quest to one of its steps.
     Step(String, String),
@@ -166,6 +171,10 @@ fn refusal(outcome: Outcome) -> Option<String> {
         Outcome::NoAge => "the game has no age flag yet".into(),
         Outcome::NoClock => "there's no clock here".into(),
         Outcome::NoController => "Link's character controller isn't where the warp looks".into(),
+        Outcome::NoResident => {
+            "no area has loaded since the game started: go through a door".into()
+        }
+        Outcome::Stuck => "the new Link never came, so Link went back to his age".into(),
         Outcome::Unknown => {
             "the installed seed's hook is older than this request: install a seed built since"
                 .into()
@@ -330,6 +339,7 @@ impl<M: Memory> Dev<M> {
             (Request::Warp(_), _) => "warped",
             (Request::Where, _) => "found",
             (Request::Notice(..), _) => "shown",
+            (Request::AgeHere, _) => "swapped in place",
             _ => "sent",
         })
     }
@@ -354,6 +364,7 @@ impl<M: Memory> Dev<M> {
             Request::Play(event) => (Ask::Play, 0, Some([&**event, "", ""])),
             Request::Warp(_) => (Ask::Warp, 0, None),
             Request::Where => (Ask::Where, 0, None),
+            Request::AgeHere => (Ask::AgeHere, 0, None),
             Request::Notice(actor, kind) => (Ask::Notice, *kind as u32, Some([&**actor, "", ""])),
         };
         if let Some(texts) = texts {
@@ -371,7 +382,12 @@ impl<M: Memory> Dev<M> {
             .write(field(offset_of!(Mailbox, asked)), &asked.to_le_bytes())?;
         let start = Instant::now();
         while self.game.u32(field(offset_of!(Mailbox, answered)))? != asked {
-            if start.elapsed() > WAIT {
+            let wait = match request {
+                // The new Link's model loads first, and he may be made twice.
+                Request::AgeHere => SWAP_WAIT,
+                _ => WAIT,
+            };
+            if start.elapsed() > wait {
                 // Should Link pick it up later, the hook refuses it.
                 self.game.write(field(offset_of!(Mailbox, ask)), &[0; 4])?;
                 bail!("Link didn't pick the request up. Is the game paused or in a menu?");
@@ -413,23 +429,32 @@ impl<M: Memory> Dev<M> {
         Ok(done)
     }
 
-    /// Switch age, landing where [`other_age`] says: the arrival point
-    /// nearest Link. A spot no exit arrives at is refused: the game would
-    /// sit on a black screen.
-    pub fn switch_age(
-        &self,
-        romfs: &Romfs,
-        places: &BTreeSet<Place>,
-    ) -> Result<(Place, &'static str)> {
+    /// Switch age. On a map with an other-age twin, land where
+    /// [`other_age`] says: the arrival point nearest Link. A spot no exit
+    /// arrives at is refused: the game would sit on a black screen. On one
+    /// without (a dungeon, an interior), swap where Link stands. Says
+    /// what it did, in words.
+    pub fn switch_age(&self, romfs: &Romfs, places: &BTreeSet<Place>) -> Result<String> {
         let State { map, child, .. } = self.state()?;
         let spots = match twin(&map, child) {
             Some(twin) => spots(romfs, &twin)?,
-            None => Default::default(),
+            None => {
+                let was = self.link()?;
+                let done = self.ask(&Request::AgeHere)?;
+                let moved = distance(was, self.link()?);
+                let age = if self.state()?.child {
+                    "child"
+                } else {
+                    "adult"
+                };
+                return Ok(format!("{done}: {age}, moved {moved:.2} m"));
+            }
         };
-        let place = other_age(&map, child, places, self.link()?, &spots);
+        let place = other_age(&map, child, places, self.link()?, &spots)
+            .with_context(|| format!("no arrival point listed for {map}'s other age"))?;
         known(&place, places)?;
         let done = self.ask(&Request::Age(place.clone()))?;
-        Ok((place, done))
+        Ok(format!("{done}, to {place}"))
     }
 
     /// Give Link `count` of an item, as `zootr give` does: the game's own
