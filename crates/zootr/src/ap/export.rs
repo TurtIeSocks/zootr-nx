@@ -16,6 +16,7 @@ use crate::fill;
 use crate::narrowing::allowed;
 use crate::rules::{Need, vocab};
 use crate::settings::{Kind, NewGame, Settings, schema};
+use crate::starter_bags;
 use crate::world::Era;
 
 /// Items that aren't progression but are worth more than filler.
@@ -278,25 +279,51 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let mut events = rows(events.into_values().collect())?;
     events.push(json!({ "name": VICTORY, "at": goal }));
 
-    // Each pool item's count in each seed, by its AP name.
-    let mut counts: BTreeMap<&str, (Vec<u32>, &str)> = BTreeMap::new();
+    // Each pool item's count in each seed, by its AP name: the pool
+    // before the trade, then what settings add, which the world trades in
+    // for rupees itself (`starter_bags::swap_in`). Which rupee depends on
+    // every other option, so no row could say it.
+    // Keyed by name and whether the trade may take it: a chest's rupee,
+    // not a pot's, though both share a name.
+    type Count<'a> = BTreeMap<(&'a str, bool), (Vec<u32>, &'a str)>;
+    let mut counts: Count = BTreeMap::new();
+    let junk_actor = |a: &str| starter_bags::JUNK.iter().any(|j| j.get() == a);
+    // In `starter_bags::added`'s order, the order the world trades them.
+    let mut added: Vec<(&str, (Vec<u32>, &str))> = Vec::new();
     for (n, seed) in seeds.iter().enumerate() {
-        for actor in seed.dealt.pool.iter().map(|a| names::same(a)) {
+        for raw in &seed.dealt.before {
+            let actor = names::same(raw);
             let name = names.item(actor)?;
-            let row = counts.entry(name).or_insert((vec![0; seeds.len()], actor));
+            let key = (name, junk_actor(raw));
+            let row = counts.entry(key).or_insert((vec![0; seeds.len()], actor));
             ensure!(row.1 == actor, "{name} names two items");
             row.0[n] += 1;
         }
+        for actor in seed.dealt.added.iter().map(|a| names::same(a)) {
+            let name = names.item(actor)?;
+            let at = match added.iter().position(|(n, _)| *n == name) {
+                Some(at) => at,
+                None => {
+                    added.push((name, (vec![0; seeds.len()], actor)));
+                    added.len() - 1
+                }
+            };
+            added[at].1.0[n] += 1;
+        }
     }
-    let mut items = Vec::new();
+    let mut items: Vec<Value> = Vec::new();
     let mut pool = Vec::new();
-    for (name, (count, actor)) in &counts {
+    let rows = counts.iter().map(|((n, junk), c)| (*n, c, *junk, false));
+    let added_rows = added.iter().map(|(n, c)| (*n, c, false, true));
+    for (name, (count, actor), is_junk, is_added) in rows.chain(added_rows) {
         let class = match () {
-            _ if rules.used.contains(*name) => "progression",
-            _ if USEFUL.contains(name) => "useful",
+            _ if rules.used.contains(name) => "progression",
+            _ if USEFUL.contains(&name) => "useful",
             _ => "filler",
         };
-        items.push(json!({ "id": ids.item(actor), "name": name, "class": class }));
+        if !items.iter().any(|i| i["name"] == name) {
+            items.push(json!({ "id": ids.item(actor), "name": name, "class": class }));
+        }
         let counts = Counts {
             base: count[0],
             by_variant: &count[1..],
@@ -306,13 +333,26 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
             if rule != Value::Bool(true) {
                 row["when"] = rule;
             }
+            if is_added {
+                row["added"] = true.into();
+            }
+            if is_junk {
+                row["junk"] = true.into();
+            }
             pool.push(row);
         }
     }
+    let junk: Vec<&str> = (starter_bags::JUNK.iter())
+        .map(|j| names.item(names::same(j.get())))
+        .collect::<Result<_>>()?;
     // A source that gives a pool item shares its name, so AP counts both.
     for seed in &seeds {
         for s in &seed.world.sources {
-            if let Some((_, actor)) = counts.get(s.name.as_str()) {
+            let added = added.iter().find(|(n, _)| *n == s.name).map(|(_, c)| c);
+            let pooled = [false, true]
+                .into_iter()
+                .find_map(|j| counts.get(&(s.name.as_str(), j)));
+            if let Some((_, actor)) = pooled.or(added) {
                 ensure!(
                     *actor == s.item,
                     "{} names both an item and another's event",
@@ -334,7 +374,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let mut out = BTreeMap::new();
     out.insert("world.json", pretty(&world)?);
     out.insert("items.json", pretty(&Value::Array(items))?);
-    out.insert("pool.json", pretty(&Value::Array(pool))?);
+    out.insert("pool.json", pretty(&json!({ "junk": junk, "rows": pool }))?);
     out.insert("options.json", pretty(&options())?);
     out.insert("golden.json", pretty(&golden)?);
     out.insert("ids.json", pretty(&serde_json::to_value(&ids)?)?);
@@ -551,15 +591,23 @@ mod tests {
             let name = names::item(names::same(a), seed.dealt.new_game.progressive).unwrap();
             *want_pool.entry(name.to_owned()).or_default() += 1;
         }
-        let mut got_pool: BTreeMap<String, u64> = BTreeMap::new();
-        let held = pool.as_array().unwrap().iter();
-        for r in held.filter(kept) {
-            *got_pool
-                .entry(r["item"].as_str().unwrap().to_owned())
-                .or_default() += r["count"].as_u64().unwrap();
-        }
+        let held: Vec<&Value> = pool["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(kept)
+            .collect();
+        let junk: Vec<&str> = (pool["junk"].as_array().unwrap().iter())
+            .map(|j| j.as_str().unwrap())
+            .collect();
+        let got_pool = traded(&held, &junk);
         if got_pool != want_pool {
-            wrong.push(format!("pool: {got_pool:?} != {want_pool:?}"));
+            let keys: BTreeSet<&String> = got_pool.keys().chain(want_pool.keys()).collect();
+            let off: Vec<_> = (keys.into_iter())
+                .filter(|k| got_pool.get(*k) != want_pool.get(*k))
+                .map(|k| format!("{k}: {:?} != {:?}", got_pool.get(k), want_pool.get(k)))
+                .collect();
+            wrong.push(format!("pool (rows != seed): {}", off.join(", ")));
         }
         if got_pool.values().sum::<u64>() != got.len() as u64 {
             wrong.push(format!(
@@ -572,6 +620,37 @@ mod tests {
             true => Ok(()),
             false => Err(wrong.join("; ")),
         }
+    }
+
+    /// The pool `rows` hold, each added item traded in for the cheapest
+    /// of `junk` left among the rows the trade may take, as the world does
+    /// it.
+    fn traded(rows: &[&Value], junk: &[&str]) -> BTreeMap<String, u64> {
+        let mut pool: BTreeMap<String, u64> = BTreeMap::new();
+        let mut takeable: BTreeMap<&str, u64> = BTreeMap::new();
+        let mut added = Vec::new();
+        for r in rows {
+            let (item, count) = (r["item"].as_str().unwrap(), r["count"].as_u64().unwrap());
+            match r.get("added").is_some() {
+                true => added.extend((0..count).map(|_| item)),
+                false => *pool.entry(item.to_owned()).or_default() += count,
+            }
+            if r.get("junk").is_some() {
+                *takeable.entry(item).or_default() += count;
+            }
+        }
+        for item in added {
+            let rupee = junk
+                .iter()
+                .find(|j| takeable.get(**j).is_some_and(|n| *n > 0));
+            if let Some(rupee) = rupee {
+                *takeable.get_mut(*rupee).unwrap() -= 1;
+                *pool.get_mut(*rupee).unwrap() -= 1;
+                *pool.entry(item.to_owned()).or_default() += 1;
+            }
+        }
+        pool.retain(|_, n| *n > 0);
+        pool
     }
 
     /// Each case's seed fills on its own, so the cases run in parallel.

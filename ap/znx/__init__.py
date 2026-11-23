@@ -12,12 +12,35 @@ from BaseClasses import Item, ItemClassification, Location, LocationProgressType
 from worlds.AutoWorld import WebWorld, World
 
 from . import rules
-from .exported import CLASSES, HASHES, ITEM_NAME_TO_ID, LOCATION_NAME_TO_ID, OPTIONS, POOL, WORLD
+from .exported import CLASSES, HASHES, ITEM_NAME_TO_ID, JUNK, LOCATION_NAME_TO_ID, OPTIONS, POOL, WORLD
 from .options import ZnxOptions, attr, setting_value
 from .output import GAME, ZnxContainer, placement
 
 VICTORY = WORLD["goal"]
 
+
+
+def traded(rows) -> Counter:
+    """The items `rows` hold, each `added` one in place of the cheapest
+    rupee left among the `junk` rows (a chest's, not a pot's), in row
+    order. One with none left is left out."""
+    counts = Counter()
+    takeable = Counter()
+    added = []
+    for row in rows:
+        if row.get("added"):
+            added += [row["item"]] * row["count"]
+        else:
+            counts[row["item"]] += row["count"]
+        if row.get("junk"):
+            takeable[row["item"]] += row["count"]
+    for item in added:
+        rupee = next((j for j in JUNK if takeable[j] > 0), None)
+        if rupee is not None:
+            takeable[rupee] -= 1
+            counts[rupee] -= 1
+            counts[item] += 1
+    return +counts
 
 class ZnxItem(Item):
     game = GAME
@@ -144,19 +167,20 @@ class ZnxWorld(World):
     def create_item(self, name: str) -> ZnxItem:
         return ZnxItem(name, ItemClassification[CLASSES[name]], ITEM_NAME_TO_ID[name], self.player)
 
+    def pool(self) -> Counter:
+        """The items these options deal, as the app's deal counts them."""
+        return traded(filter(self.holds, POOL))
+
     def create_items(self) -> None:
-        for row in filter(self.holds, POOL):
-            self.multiworld.itempool += [self.create_item(row["item"]) for _ in range(row["count"])]
+        for item, count in self.pool().items():
+            self.multiworld.itempool += [self.create_item(item) for _ in range(count)]
 
     def get_filler_item_name(self) -> str:
-        # The rows these options hold, so the filler is one our deal has
-        # too. An item link's group world has no options set: every row.
-        held = POOL if not hasattr(self, "setting_values") else filter(self.holds, POOL)
-        counts = Counter()
-        for row in held:
-            if CLASSES[row["item"]] == "filler":
-                counts[row["item"]] += row["count"]
-        return counts.most_common(1)[0][0]
+        # One our deal has too. An item link's group world has no options
+        # set: every row.
+        counts = traded(POOL) if not hasattr(self, "setting_values") else self.pool()
+        filler = Counter({item: n for item, n in counts.items() if CLASSES[item] == "filler"})
+        return filler.most_common(1)[0][0]
 
     def set_rules(self) -> None:
         self.multiworld.completion_condition[self.player] = lambda state: state.has(VICTORY, self.player)

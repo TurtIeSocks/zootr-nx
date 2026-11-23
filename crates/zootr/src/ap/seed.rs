@@ -12,8 +12,12 @@ use super::{JOINT, OPTIONS, offers};
 use crate::checks::{self, ItemCheck};
 use crate::fill;
 use crate::logic::{Got, Play, World};
+use crate::progressive::Lines;
 use crate::rules::{Book, Ctx, Have};
-use crate::settings::{CHESTS, Kind, NewGame, RUNNING_RACE, SCRUBS, Settings, schema, value_word};
+use crate::settings::{
+    BOMBCHUS, CHESTS, Kind, MAGIC_WITH_FIRST_ITEM, NewGame, RUNNING_RACE, SCRUBS, SHUFFLE_NUT_BAG,
+    SHUFFLE_STICK_BAG, Settings, schema, value_word,
+};
 use crate::shuffle::{self, Fixed};
 use crate::starting;
 
@@ -62,6 +66,13 @@ pub(super) struct Dealt {
     /// The item each other check keeps.
     pub kept: HashMap<u64, String>,
     pub pool: Vec<String>,
+    /// The pool before settings' added items took their rupees: `pool`
+    /// with each traded one turned back. What the world sums before it
+    /// trades them in, as `starter_bags::swap_in` does.
+    pub before: Vec<String>,
+    /// What settings add to the pool, in `starter_bags::added`'s order, at
+    /// the level the pool holds each.
+    pub added: Vec<String>,
 }
 
 impl Dealt {
@@ -70,7 +81,14 @@ impl Dealt {
         let checks = checks::dealt(romfs, &new_game)?;
         let fixed = Fixed::new();
         let deal = shuffle::deal(&checks, &fixed, &new_game)?;
-        let pool = deal.items.iter().map(|i| i.to_string()).collect();
+        let pool: Vec<String> = deal.items.iter().map(|i| i.to_string()).collect();
+        let mut before = pool.clone();
+        for (item, rupee) in &deal.traded {
+            let at = before.iter().position(|i| i == item);
+            let at = at.with_context(|| format!("{item} was traded in but isn't dealt"))?;
+            before[at] = rupee.to_string();
+        }
+        let added = deal.added.iter().map(|i| i.to_string()).collect();
         let free: BTreeSet<u64> = deal.free.iter().map(|c| c.hash).collect();
         let mut kept: HashMap<u64, String> = (deal.placed.iter())
             .map(|p| (p.check.hash, p.item.to_owned()))
@@ -84,8 +102,22 @@ impl Dealt {
             free,
             kept,
             pool,
+            before,
+            added,
         })
     }
+}
+
+/// `new_game`'s upgrade lines, each a setting in `open` can lengthen at
+/// its longest, so every value reads the rules the same way. A longer line
+/// only lets a higher level stand in for a lower one.
+fn lines(new_game: &NewGame, open: &BTreeSet<String>) -> Lines {
+    let mut lines = Lines::of(new_game);
+    lines.nut_bag |= open.contains(SHUFFLE_NUT_BAG);
+    lines.stick_bag |= open.contains(SHUFFLE_STICK_BAG);
+    lines.bombchu_bags |= open.contains(&value_word(BOMBCHUS, "bag"));
+    lines.magic_meter |= open.contains(MAGIC_WITH_FIRST_ITEM);
+    lines
 }
 
 impl Seed {
@@ -95,6 +127,7 @@ impl Seed {
         let (new_game, checks) = (&dealt.new_game, &dealt.checks);
         let ctx = Ctx {
             open: open.clone(),
+            lines: lines(new_game, open),
             ..Ctx::new(new_game)
         };
         let world = World::build(romfs, &Book::load()?, &ctx, checks)?;

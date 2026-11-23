@@ -588,5 +588,50 @@
     "class": "filler",
     "id": 112,
     "name": "Zora's Sapphire"
+  },
+  {
+    "class": "progression",
+    "id": 121,
+    "name": "Progressive Bombchu Bag"
+  },
+  {
+    "class": "filler",
+    "id": 124,
+    "name": "Keaton Mask"
+  },
+  {
+    "class": "progression",
+    "id": 125,
+    "name": "Skull Mask"
+  },
+  {
+    "class": "filler",
+    "id": 126,
+    "name": "Spooky Mask"
+  },
+  {
+    "class": "filler",
+    "id": 127,
+    "name": "Bunny Hood"
+  },
+  {
+    "class": "filler",
+    "id": 128,
+    "name": "Goron Mask"
+  },
+  {
+    "class": "filler",
+    "id": 129,
+    "name": "Zora Mask"
+  },
+  {
+    "class": "filler",
+    "id": 130,
+    "name": "Gerudo Mask"
+  },
+  {
+    "class": "progression",
+    "id": 131,
+    "name": "Mask of Truth"
   }
 ]

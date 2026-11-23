@@ -316,7 +316,7 @@ pub fn added(new_game: &NewGame) -> Vec<&'static str> {
 }
 
 /// The junk an added item takes the place of, cheapest first.
-const JUNK: [&Name; 4] = [
+pub const JUNK: [&Name; 4] = [
     actor::T_BOX_RUPEE_GREEN,
     actor::T_BOX_RUPEE_BLUE,
     actor::T_BOX_RUPEE_RED,
@@ -324,16 +324,20 @@ const JUNK: [&Name; 4] = [
 ];
 
 /// Put each of `added` in `pool` in place of the cheapest rupee it holds.
-/// One with no rupee left to take is left out.
-pub fn swap_in<'a>(pool: &mut [&'a str], added: &[&'a str]) {
+/// One with no rupee left to take is left out. Returns each one put in,
+/// with the rupee it took.
+pub fn swap_in<'a>(pool: &mut [&'a str], added: &[&'a str]) -> Vec<(&'a str, &'a str)> {
+    let mut traded = Vec::new();
     for &item in added {
         let at = JUNK
             .iter()
             .find_map(|j| pool.iter().position(|i| *i == j.get()));
         if let Some(at) = at {
+            traded.push((item, pool[at]));
             pool[at] = item;
         }
     }
+    traded
 }
 
 #[cfg(test)]
@@ -461,7 +465,7 @@ mod tests {
         needs_names!();
         let (red, green) = (actor::T_BOX_RUPEE_RED.get(), actor::T_BOX_RUPEE_GREEN.get());
         let mut pool = [red, "Item_A", green, green];
-        swap_in(
+        let traded = swap_in(
             &mut pool,
             &[
                 "Item_FakeBag",
@@ -473,6 +477,14 @@ mod tests {
         assert_eq!(
             pool,
             ["Item_FakeBag3", "Item_A", "Item_FakeBag", "Item_FakeBag2"]
+        );
+        assert_eq!(
+            traded,
+            [
+                ("Item_FakeBag", green),
+                ("Item_FakeBag2", green),
+                ("Item_FakeBag3", red)
+            ]
         );
     }
 }

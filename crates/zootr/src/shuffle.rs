@@ -93,6 +93,12 @@ pub struct Deal<'a> {
     /// Each starting item that left the pool, with the check (by hash)
     /// whose slot it left, for the spoiler's Start column.
     pub started: Vec<(&'a str, u64)>,
+    /// What settings add to the pool (`starter_bags::added`), at the
+    /// level the pool holds each.
+    pub added: Vec<&'a str>,
+    /// Each of `added` with the rupee it took. One that found none is
+    /// left out.
+    pub traded: Vec<(&'a str, &'a str)>,
 }
 
 /// `fixed` placements, and the free checks with the items to deal them.
@@ -166,7 +172,7 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
         .into_iter()
         .map(level)
         .collect();
-    starter_bags::swap_in(&mut items, &added);
+    let traded = starter_bags::swap_in(&mut items, &added);
     // One swap over both, so a starting item leaves one spot either way.
     let mut all: Vec<_> = kept.iter().map(|c| own(c)).collect();
     all.append(&mut items);
@@ -198,6 +204,8 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
         free,
         items,
         started,
+        added,
+        traded,
     })
 }
 
