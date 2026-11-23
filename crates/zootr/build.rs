@@ -24,9 +24,19 @@ const SHF_ALLOC: u64 = 2;
 /// the branch slots.
 const ENTRIES: u64 = zootr_hook::SLOTS as u64 / 4;
 
+/// This crate's folder, read when the script runs. `env!` would bake in the
+/// checkout that compiled the script, and a target folder shared between
+/// checkouts (the dump runners' cache) reuses the script after that
+/// checkout is gone.
+fn manifest_dir() -> PathBuf {
+    std::env::var_os("CARGO_MANIFEST_DIR")
+        .expect("cargo sets CARGO_MANIFEST_DIR for build scripts")
+        .into()
+}
+
 fn main() {
     room_files();
-    let hook = Path::new(env!("CARGO_MANIFEST_DIR")).join("../zootr-hook");
+    let hook = manifest_dir().join("../zootr-hook");
     let (src, script) = (hook.join("src/lib.rs"), hook.join("hook.ld"));
     // A directory is watched through everything under it, and the hook has
     // more than one file.
@@ -173,7 +183,7 @@ fn code(d: &[u8]) -> (&[u8], &[u8]) {
 /// Lists every room file under `logic/baseline` and `logic/confirmed` with
 /// its text, for `rules::rooms`. Derive writes them, so no hand-kept list.
 fn room_files() {
-    let logic = Path::new(env!("CARGO_MANIFEST_DIR")).join("logic");
+    let logic = manifest_dir().join("logic");
     let mut files = Vec::new();
     for tier in ["baseline", "confirmed"] {
         let dir = logic.join(tier);
