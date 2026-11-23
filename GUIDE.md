@@ -221,7 +221,7 @@ A section of the Shuffles page.
 | Setting | What it does |
 |---|---|
 | Dungeon rewards | The Spiritual Stones and five medallions become checks. Light stays with Rauru |
-| Maps and compasses | Each dungeon's map and compass turn up in a random chest of that dungeon |
+| Maps and compasses | Each dungeon's map and compass turn up at random checks anywhere, and mark their own dungeon wherever Link finds them |
 | Boss heart containers | The heart container each of the eight bosses leaves behind is a check |
 | Keys | Start with every dungeon's small keys and boss key, and their 43 chests become checks |
 | Fortress keys | Start with the four Gerudo Fortress keys, and the keys the thieves carry become checks |
