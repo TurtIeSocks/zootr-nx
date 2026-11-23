@@ -123,6 +123,19 @@ impl Need {
         }
     }
 
+    /// This as it reads in `era`: `child` and `adult` settled, nested
+    /// groups flattened, what's always met and repeats dropped, and an
+    /// `or` that another part of its `and` already meets dropped.
+    pub fn in_era(&self, era: Era) -> Need {
+        match self {
+            Need::Era(e) if *e == era => Need::Always,
+            Need::Era(_) => Need::Never,
+            Need::All(needs) => group(needs, era, true),
+            Need::Any(needs) => group(needs, era, false),
+            other => other.clone(),
+        }
+    }
+
     /// Every item actor this mentions.
     pub fn items<'a>(&'a self, out: &mut BTreeSet<&'a str>) {
         match self {
@@ -130,6 +143,44 @@ impl Need {
             Need::All(needs) | Need::Any(needs) => needs.iter().for_each(|n| n.items(out)),
             _ => {}
         }
+    }
+}
+
+/// An `and` (`all`) or `or` group of `needs` in `era`, simplified.
+fn group(needs: &[Need], era: Era, all: bool) -> Need {
+    let (unit, zero) = match all {
+        true => (Need::Always, Need::Never),
+        false => (Need::Never, Need::Always),
+    };
+    let mut parts: Vec<Need> = Vec::new();
+    for n in needs.iter().map(|n| n.in_era(era)) {
+        let inner = match (&n, all) {
+            (Need::All(v), true) | (Need::Any(v), false) => v.clone(),
+            _ => vec![n],
+        };
+        for n in inner {
+            if n == zero {
+                return zero;
+            }
+            if n != unit && !parts.contains(&n) {
+                parts.push(n);
+            }
+        }
+    }
+    // `a and (a or b)` is `a`, and `a or (a and b)` is `a`.
+    let covered = |n: &Need, parts: &[Need]| match (n, all) {
+        (Need::Any(v), true) | (Need::All(v), false) => v.iter().any(|m| parts.contains(m)),
+        _ => false,
+    };
+    let kept: Vec<Need> = (parts.iter())
+        .filter(|n| !covered(n, &parts))
+        .cloned()
+        .collect();
+    match kept.len() {
+        0 => unit,
+        1 => kept.into_iter().next().unwrap_or(unit),
+        _ if all => Need::All(kept),
+        _ => Need::Any(kept),
     }
 }
 
@@ -224,6 +275,30 @@ fn atom(tokens: &[&str], at: &mut usize) -> Result<Expr> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_need_in_one_era_settles_the_ages_and_drops_what_repeats() {
+        let item = |a: &str| Need::Items {
+            actors: vec![a.into()],
+            count: 1,
+        };
+        let adult = |n: Need| Need::All(vec![Need::Era(Era::Adult), n]);
+        let child = |n: Need| Need::All(vec![Need::Era(Era::Child), n]);
+        let hook = adult(item("Hook"));
+        let need = Need::All(vec![
+            hook.clone(),
+            Need::All(vec![hook.clone(), item("Ocarina")]),
+            Need::Any(vec![child(item("Sling")), adult(item("Bow")), hook.clone()]),
+        ]);
+        assert_eq!(need.in_era(Era::Child), Need::Never);
+        assert_eq!(need.in_era(Era::Adult).to_string(), "Hook and Ocarina");
+        let either = Need::Any(vec![child(item("Sling")), adult(item("Bow"))]);
+        assert_eq!(either.in_era(Era::Child).to_string(), "Sling");
+        assert_eq!(
+            Need::All(vec![Need::Era(Era::Adult)]).in_era(Era::Adult),
+            Need::Always
+        );
+    }
 
     fn w(s: &str) -> Expr {
         Expr::Word(s.into())

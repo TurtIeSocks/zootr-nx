@@ -269,15 +269,18 @@ pub(crate) fn planned(romfs: &Romfs) -> Result<(Ledger, Vec<crate::sweep::plan::
             kind: kind(c),
             vanilla: c.item.clone(),
             name: spot.name().to_owned(),
+            // Each era's need as it reads there: one that era can never
+            // meet (a child row needing `adult`) isn't shown.
             logic: (world.locations.iter())
                 .filter(|l| l.hash == c.hash)
-                .map(|l| {
+                .filter_map(|l| {
                     let (node, era) = &world.places[l.place];
-                    Need {
+                    let need = l.need.in_era(*era);
+                    (need != crate::rules::Need::Never).then(|| Need {
                         era: era.to_string(),
                         node: node.clone(),
-                        need: l.need.to_string(),
-                    }
+                        need: need.to_string(),
+                    })
                 })
                 .collect(),
             rule: book.check(c.hash).is_some(),
