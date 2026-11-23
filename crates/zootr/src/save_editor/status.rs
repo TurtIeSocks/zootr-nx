@@ -149,6 +149,9 @@ const FIELDS: &[Spec] = &[
         (actor::ARMOR_CHILD_MASK_SKULL, "Skull Mask"),
         (actor::ARMOR_CHILD_MASK_SPOOKY, "Spooky Mask"),
         (actor::ARMOR_CHILD_MASK_BUNNY, "Bunny Hood"),
+        (actor::ARMOR_CHILD_MASK_GORON, "Goron Mask"),
+        (actor::ARMOR_CHILD_MASK_ZORA, "Zora Mask"),
+        (actor::ARMOR_CHILD_MASK_GERUDO, "Gerudo Mask"),
         (actor::ARMOR_CHILD_MASK_TRUTH, "Mask of Truth"),
     ]),
     gear("Ocarina", OCARINA, &[
