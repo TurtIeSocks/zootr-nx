@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 
+use crate::bombchu_bags;
 use crate::inventory::{self, Held, Pouch, Section};
 use crate::known::{Name, actor, field, item};
 use crate::magic::meter;
@@ -40,7 +41,7 @@ const KIT: &[(&str, i32)] = &[
     ("bow", 1), ("biggest-quiver", 1), ("arrows", 50),
     ("fire-arrows", 1), ("ice-arrows", 1), ("light-arrows", 1),
     ("slingshot", 1), ("biggest-bullet-bag", 1), ("deku-seeds", 50),
-    ("biggest-bomb-bag", 1), ("bombs", 40), ("bombchus", 20),
+    ("biggest-bomb-bag", 1), ("bombs", 40), ("biggest-bombchu-bag", 1), ("bombchus", 40),
     ("biggest-stick-bag", 1), ("deku-sticks", 30), ("biggest-nut-bag", 1), ("deku-nuts", 40),
     ("longshot", 1), ("boomerang", 1), ("megaton-hammer", 1), ("lens-of-truth", 1),
     ("dins-fire", 1), ("farores-wind", 1), ("nayrus-love", 1), ("double-magic", 1), ("improved-spin", 1),
@@ -91,6 +92,7 @@ pub const WORDS: &[(&str, &Name)] = &[
     ("fire-arrows", item::ARROW_FIRE), ("dins-fire", item::DIN_FIRE),
     ("slingshot", actor::WEAPON_RANGE_SLING_SHOT), ("deku-seeds", item::DEKU_SEED),
     ("fairy-ocarina", item::OCARINA_FAIRY), ("ocarina-of-time", item::OCARINA_TIME),
+    ("bombchu-bag", bombchu_bags::SMALL), ("big-bombchu-bag", bombchu_bags::MEDIUM), ("biggest-bombchu-bag", bombchu_bags::LARGE),
     ("bombchus", item::BOMBCHU),
     ("hookshot", item::HOOKSHOT), ("longshot", item::LONGSHOT),
     ("ice-arrows", item::ARROW_ICE), ("farores-wind", item::FARORE_WIND),
@@ -304,7 +306,7 @@ impl Start {
     }
 
     /// How many of grid actor `a` it holds.
-    fn count(&self, a: &Name) -> i32 {
+    pub(crate) fn count(&self, a: &Name) -> i32 {
         let w = WORDS.iter().find(|(_, n)| *n == a).map(|(w, _)| *w);
         w.and_then(|w| self.0.get(w)).copied().unwrap_or(0)
     }
@@ -373,6 +375,44 @@ impl Start {
             }
         }
         self
+    }
+
+    /// Fit it to a seed whose pouch table is `pouch` (`Pouch::seeded`):
+    /// hold each smallest bag its ammo brings, as every new game then does,
+    /// drop a Bombchu Bag the seed doesn't have, and bring each ammo
+    /// down to the room its bags leave. Returns what came down or went, as
+    /// `word: was -> now`.
+    pub fn settle(&mut self, pouch: &Pouch) -> Vec<String> {
+        for bag in pouch.brought_bags() {
+            let word = WORDS.iter().find(|(_, a)| a.get() == bag);
+            if let Some((w, _)) = word {
+                self.0.entry((*w).to_owned()).or_insert(1);
+            }
+        }
+        let mut notes = Vec::new();
+        let mut note = |w: &str, was: i32, now: i32| notes.push(format!("{w}: {was} -> {now}"));
+        for (w, a) in WORDS {
+            let lacked = bombchu_bags::BAGS.contains(&a.get()) && pouch.bag_cap(a.get()).is_none();
+            if lacked && let Some(was) = self.0.remove(*w) {
+                note(w, was, 0);
+            }
+        }
+        let held = self.held();
+        let bags: Vec<&str> = (held.iter().map(|(h, _)| h.actor.get()))
+            .filter(|a| pouch.bag_cap(a).is_some())
+            .collect();
+        for (h, n) in &held {
+            let room = pouch.room(h.actor.get(), &bags).unwrap_or(*n);
+            if *n > room {
+                let w = word_of(h.actor).expect("a grid actor");
+                match room {
+                    0 => self.0.remove(w),
+                    r => self.0.insert(w.to_owned(), r),
+                };
+                note(w, *n, room);
+            }
+        }
+        notes
     }
 
     /// What Link owns from the start, once per unit: what leaves the pool
@@ -707,6 +747,64 @@ mod tests {
         assert_eq!(up(serde_json::json!({ "heart-containers": 12 })), twelve);
         let now = serde_json::json!({ "heart-containers": 5 });
         assert_eq!(up(now.clone()), now);
+    }
+
+    #[test]
+    fn settling_fits_the_start_to_the_seed_s_bags() {
+        use crate::settings::{Bombchus, NewGame};
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let table = Pouch::load(&romfs).unwrap();
+        let settle = |new_game: NewGame, words: &[(&str, i32)]| {
+            let mut s = start(words);
+            let notes = s.settle(&table.clone().seeded(&new_game));
+            (s.0, notes)
+        };
+        let bags = || NewGame {
+            bombchus: Bombchus::Bag,
+            ..Default::default()
+        };
+        // Unshuffled bags come with every new game.
+        let (held, notes) = settle(NewGame::default(), &[]);
+        assert_eq!(held, start(&[("nut-bag", 1), ("stick-bag", 1)]).0);
+        assert!(notes.is_empty());
+        // Free bombchus hold 40 with no bag, and no Bombchu Bag is dealt.
+        let (held, notes) = settle(NewGame::default(), &[("bombchus", 50), ("bombchu-bag", 1)]);
+        assert_eq!(held.get("bombchus"), Some(&40));
+        assert!(!held.contains_key("bombchu-bag"));
+        assert_eq!(notes, ["bombchu-bag: 1 -> 0", "bombchus: 50 -> 40"]);
+        // With Bombchu Bags, none fit before the first, and the bag's size after.
+        let (held, notes) = settle(bags(), &[("bombchus", 20)]);
+        assert!(!held.contains_key("bombchus"));
+        assert_eq!(notes, ["bombchus: 20 -> 0"]);
+        let (held, _) = settle(
+            bags(),
+            &[("bombchus", 40), ("bombchu-bag", 1), ("big-bombchu-bag", 1)],
+        );
+        assert_eq!(held.get("bombchus"), Some(&30));
+        // A shuffled bag doesn't come with the game: nuts need one.
+        let shuffled = NewGame {
+            shuffle_nut_bag: true,
+            ..Default::default()
+        };
+        let (held, _) = settle(shuffled, &[("deku-nuts", 20)]);
+        assert!(!held.contains_key("nut-bag") && !held.contains_key("deku-nuts"));
+        assert_eq!(held.get("stick-bag"), Some(&1));
+    }
+
+    #[test]
+    fn a_starting_bombchu_bag_leaves_the_pool_and_is_granted() {
+        needs_names!();
+        let s = start(&[("bombchu-bag", 1), ("big-bombchu-bag", 1)]);
+        let bags = [bombchu_bags::SMALL.get(), bombchu_bags::MEDIUM.get()];
+        assert_eq!(s.owned(), bags);
+        let granted: Vec<_> = s
+            .grants(&Pouch::default())
+            .into_iter()
+            .map(|g| g.actor)
+            .collect();
+        assert_eq!(granted, bags);
     }
 
     #[test]

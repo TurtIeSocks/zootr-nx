@@ -69,7 +69,7 @@ pub(super) fn flows(
             new_game.age == Era::Adult,
         )?);
     }
-    let pouch = crate::inventory::Pouch::load(romfs)?;
+    let pouch = crate::inventory::Pouch::load(romfs)?.seeded(new_game);
     let grants = starting::with_gives(new_game.start.grants(&pouch), &new_game.give);
     starting::grant(romfs, &mut rewrites, &grants)?;
     starting::replay(romfs, &mut rewrites, &new_game.progress)?;

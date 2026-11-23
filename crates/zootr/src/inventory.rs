@@ -8,6 +8,7 @@ use anyhow::{Context, Result};
 use ounce_formats::{Romfs, Save, murmur3};
 use serde::Serialize;
 
+use crate::bombchu_bags;
 use crate::checks::{self, ItemCheck};
 use crate::gamedata::GameData;
 use crate::keys;
@@ -135,6 +136,7 @@ const GRID: &[Slot] = &[
     slot(Upgrades, "Scale", &[item::SCALE_SILVER, item::SCALE_GOLD]),
     slot(Upgrades, "Wallet", &[item::WALLET_SMALL, item::WALLET_MEDIUM, item::WALLET_LARGE]),
     slot(Upgrades, "Bomb Bag", &[item::BOMB_BAG_SMALL, item::BOMB_BAG_MEDIUM, item::BOMB_BAG_LARGE]),
+    Slot { icon: Some(item::BOMBCHU), ..slot(Upgrades, "Bombchu Bag", &[bombchu_bags::SMALL, bombchu_bags::MEDIUM, bombchu_bags::LARGE]) },
     slot(Upgrades, "Quiver", &[item::QUIVER_SMALL, item::QUIVER_MEDIUM, item::QUIVER_LARGE]),
     slot(Upgrades, "Bullet Bag", &[item::BULLET_BAG_SMALL, item::BULLET_BAG_MEDIUM, item::BULLET_BAG_LARGE]),
     slot(Upgrades, "Stick Capacity", &[item::STICK_BAG_SMALL, item::STICK_BAG_MEDIUM, item::STICK_BAG_LARGE]),
@@ -168,6 +170,11 @@ const GRID: &[Slot] = &[
     slot(Medallions, "Shadow", &[item::MEDAL_SHADOW]),
     slot(Medallions, "Light", &[item::MEDAL_LIGHT]),
 ];
+
+/// The tiers of grid cell `at`, lowest first: none past the grid.
+pub fn tiers_at(at: usize) -> &'static [&'static Name] {
+    GRID.get(at).map_or(&[], |s| s.tiers)
+}
 
 /// One actor of the grid, as a new game can start holding it.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -203,9 +210,14 @@ pub fn section(actor: &Name) -> Option<Section> {
 
 /// The tiers below `actor` in its cell, which holding it holds too.
 pub fn below(actor: &Name) -> Vec<&'static Name> {
-    let cell = GRID.iter().find(|s| s.tiers.contains(&actor));
-    let tiers = cell.map_or(&[][..], |s| s.tiers);
+    let tiers = tiers_of(actor);
     tiers.iter().take_while(|&&t| t != actor).copied().collect()
+}
+
+/// Every tier of the cell `actor` fills, lowest first.
+pub fn tiers_of(actor: &Name) -> &'static [&'static Name] {
+    let cell = GRID.iter().find(|s| s.tiers.contains(&actor));
+    cell.map_or(&[], |s| s.tiers)
 }
 
 /// The dungeons the Dungeons section has a row for, in game order: the
@@ -320,6 +332,8 @@ pub struct Cell {
     pub count: Option<i32>,
     /// Set on a row's first cell, in a section laid out in rows.
     pub row: Option<DungeonRow>,
+    /// Ours, and not in this save or seed: drawn nowhere.
+    pub hidden: bool,
 }
 
 /// The dungeon a row of the Dungeons section is for.
@@ -402,6 +416,18 @@ impl Inventory {
         self.values.insert(c.hash, value) != Some(value)
     }
 
+    /// Whether `slot` is of our own items and the loaded values hold none
+    /// of them, as a save or seed without them.
+    fn absent(&self, slot: &Slot) -> bool {
+        let ours = |a: &&Name| crate::known::is_ours(a.get());
+        let loaded = |a: &&Name| {
+            self.keys
+                .get(a)
+                .is_some_and(|k| self.values.contains_key(k))
+        };
+        slot.tiers.iter().all(|a| ours(a) && !loaded(a))
+    }
+
     fn value(&self, actor: &Name) -> i32 {
         (self.keys.get(actor))
             .and_then(|k| self.values.get(k))
@@ -423,6 +449,7 @@ impl Inventory {
                 tiers: u8::from(k.key.is_some()),
                 count: (k.small && k.key.is_some()).then_some(value),
                 row: k.row.clone(),
+                hidden: false,
             }
         });
         GRID.iter()
@@ -443,6 +470,7 @@ impl Inventory {
                     tiers: s.tiers.len() as u8,
                     count: s.count.map(|a| self.value(a)),
                     row: None,
+                    hidden: self.absent(s),
                 }
             })
             .chain(dungeons)

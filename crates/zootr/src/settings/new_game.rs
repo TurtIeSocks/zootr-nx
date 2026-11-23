@@ -122,6 +122,19 @@ impl NewGame {
         }
     }
 
+    /// Fit the start to `pouch`, the seed's own table (`Pouch::seeded`),
+    /// and mark what it then holds, as [`Start::settle`] says. Returns what
+    /// came down.
+    pub fn settle_start(&mut self, pouch: &crate::inventory::Pouch) -> Vec<String> {
+        let notes = self.start.settle(pouch);
+        for d in self.start.defaults() {
+            if !self.defaults.contains(&d) {
+                self.defaults.push(d);
+            }
+        }
+        notes
+    }
+
     /// `settings`, then `edits` (`NAME=VALUE`) on top.
     pub fn from_settings(settings: &Settings, edits: &[String]) -> Result<Self> {
         let schema = schema();
@@ -325,6 +338,22 @@ mod tests {
     use super::*;
     use crate::known::flag;
     use crate::presets::ADULT_DEKU_TREE;
+
+    #[test]
+    fn a_settled_start_marks_the_ammo_its_new_bags_hold() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut new_game = NewGame::from_settings(&Settings::new(), &[]).unwrap();
+        let nuts = format!("IsGet.{}=true", crate::known::item::DEKU_NUT);
+        assert!(!new_game.defaults.contains(&nuts));
+        let pouch = crate::inventory::Pouch::load(&romfs)
+            .unwrap()
+            .seeded(&new_game);
+        new_game.settle_start(&pouch);
+        assert!(new_game.start.holds("nut-bag"));
+        assert!(new_game.defaults.contains(&nuts), "{:?}", new_game.defaults);
+    }
 
     /// What the default-on presets add, then `edits`.
     fn with_defaults(edits: &[&str]) -> Vec<String> {

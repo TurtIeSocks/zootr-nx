@@ -16,6 +16,7 @@ use zootr::save_editor::{
     self as editor, FlagQuery, FlagsView, ItemsView, Opened, Pending, SlotRow, Staged,
 };
 use zootr::savefile::Edit;
+use zootr::settings::{NewGame, Settings};
 use zootr::starting::{self, Start};
 
 use crate::{Live, Res, blocking, romfs};
@@ -123,23 +124,25 @@ pub(crate) async fn save_click(
     .await
 }
 
-/// The grid, caps and Status panel of a new game starting with `start`,
-/// for the settings' Inventory panel, with the words each setting in
-/// `given` gives shown held and locked.
+/// The grid and caps of a new game starting with `start`, for the
+/// settings' Inventory panel, as a seed with `settings` deals it, with the
+/// words each setting in `given` gives shown held and locked.
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn start_items(
     app: AppHandle,
     start: Start,
     given: Vec<Vec<String>>,
+    settings: Settings,
 ) -> Res<ItemsView> {
     with_layout(app, move |gd, (inv, pouch)| {
-        starting::view(gd, inv, pouch, &start, &given)
+        let pouch = seeded(pouch, &settings)?;
+        starting::view(gd, inv, &pouch, &start, &given)
     })
     .await
 }
 
-/// `start` after a click on a grid cell.
+/// `start` after a click on a grid cell, as a seed with `settings` deals it.
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn start_click(
@@ -147,11 +150,20 @@ pub(crate) async fn start_click(
     start: Start,
     at: u32,
     intent: Intent,
+    settings: Settings,
 ) -> Res<Start> {
     with_layout(app, move |gd, (inv, pouch)| {
-        starting::click(gd, inv, pouch, &start, at as usize, intent)
+        let pouch = seeded(pouch, &settings)?;
+        starting::click(gd, inv, &pouch, &start, at as usize, intent)
     })
     .await
+}
+
+/// The pouch table as a seed with `settings` writes it.
+fn seeded(pouch: &Pouch, settings: &Settings) -> anyhow::Result<Pouch> {
+    Ok(pouch
+        .clone()
+        .seeded(&NewGame::from_settings(settings, &[])?))
 }
 
 /// `start` holding all of Link's gear too (`--start arsenal`).

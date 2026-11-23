@@ -5,7 +5,7 @@ mod look;
 pub use look::FILES;
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_path};
+use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, murmur3, pack_path};
 
 use crate::gamedata;
 use crate::key_tints;
@@ -32,6 +32,23 @@ const BOMB_BAGS: [&Name; 3] = [
     item::BOMB_BAG_MEDIUM,
     item::BOMB_BAG_LARGE,
 ];
+
+/// Each bag with the bomb bag it copies, smallest first.
+pub fn copies() -> [(&'static str, &'static Name); 3] {
+    [0, 1, 2].map(|i| (BAGS[i], BOMB_BAGS[i]))
+}
+
+/// The dump's value a seed's GameData copies `hash` from, when `hash` is
+/// one a bag adds: a bag's `IsGet` copies its bomb bag's, and the slot
+/// naming the held bag copies the bomb bag's slot.
+pub fn copied_from(hash: u32) -> Option<u32> {
+    let is_get = |item: &str| murmur3(format!("{}.{item}", gamedata::IS_GET).as_bytes());
+    if hash == murmur3(slot_entry().as_bytes()) {
+        return Some(murmur3(slot_entry().replace(SLOT, "Bomb").as_bytes()));
+    }
+    let at = BAGS.iter().position(|b| is_get(b) == hash)?;
+    Some(is_get(BOMB_BAGS[at].get()))
+}
 
 /// The pouch slot a Bombchu Bag sets and Bombchus are capped by, as the
 /// nut bags set `DekuNut`. The game names the save entry holding the bag

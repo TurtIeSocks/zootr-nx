@@ -7,7 +7,8 @@ use std::path::PathBuf;
 use anyhow::Result;
 use ounce_formats::Save;
 
-use super::{ALWAYS, BARRED, CONTAINERS, HEARTS, RUPEE_WORD, Start, WORDS};
+use super::{ALWAYS, BARRED, CONTAINERS, HEARTS, RUPEE_WORD, Start, WORDS, word_of};
+use crate::bombchu_bags;
 use crate::gamedata::GameData;
 use crate::inventory::{self, Cell, Glyph, Intent, Inventory, Pouch, Section};
 use crate::known::{Name, actor, field, item};
@@ -19,15 +20,21 @@ use crate::value;
 /// A new game's save, as far as the grid and the kept Status fields go:
 /// every value they read, at its GameData default, holding what every new
 /// game holds ([`ALWAYS`]). The Magic Meter's, which only a seed's GameData
-/// has, at the default of what it copies.
+/// has, at the default of what it copies, and the Bombchu Bags' too where
+/// `pouch` has them.
 fn fresh(gd: &GameData, inv: &Inventory, pouch: &Pouch) -> Result<Save> {
+    let chu_bags = pouch.bag_cap(bombchu_bags::BAGS[0]).is_some();
+    let copied = |hash| {
+        let bag = || chu_bags.then(|| bombchu_bags::copied_from(hash)).flatten();
+        meter::copied_from(hash).or_else(bag)
+    };
     let mut seen = HashSet::new();
     let hashes = (inv.cell_hashes(pouch).into_iter().flatten()).chain([MAX_LIFE, LIFE, RUPEES]);
     let mut entries = Vec::new();
     for hash in hashes.filter(|h| seen.insert(*h)) {
         let from = match gd.kind(hash) {
             Some(_) => hash,
-            None => meter::copied_from(hash).unwrap_or(hash),
+            None => copied(hash).unwrap_or(hash),
         };
         let (Some(kind), Some(entry)) = (gd.kind(from), gd.entry(from)) else {
             continue;
@@ -51,12 +58,20 @@ fn fresh(gd: &GameData, inv: &Inventory, pouch: &Pouch) -> Result<Save> {
     Ok(save)
 }
 
+/// `start` as a seed with `pouch` (`Pouch::seeded`) deals it, holding
+/// what its weapons and bags bring.
+fn shown(start: &Start, pouch: &Pouch) -> Start {
+    let mut start = start.clone();
+    start.settle(pouch);
+    start.floored(pouch)
+}
+
 /// The editor's view of a new game holding `start`: a fresh save as
-/// `original`, and it holding `start` as `edited`.
+/// `original`, and it holding `start` as `edited`, settled to `pouch`.
 pub fn open(gd: &GameData, inv: &Inventory, pouch: &Pouch, start: &Start) -> Result<Opened> {
     let original = fresh(gd, inv, pouch)?;
     let mut edited = Save::parse(original.bytes().to_vec())?;
-    let start = &start.clone().floored(pouch);
+    let start = &shown(start, pouch);
     let held: Vec<(&Name, i32)> = (start.held().into_iter())
         .map(|(h, n)| (h.actor, n))
         .collect();
@@ -158,6 +173,7 @@ impl Extra {
             tiers: 1,
             count: Some(n),
             row: None,
+            hidden: false,
         }
     }
 
@@ -246,12 +262,49 @@ pub fn click(
     }
     let edits = save_editor::click(inv, pouch, &opened, at, intent)?;
     let mut out = reread(gd, inv, pouch, opened, &edits)?;
+    // A bag every new game holds has no none: past either end, the click
+    // goes on to the other.
+    let tiers = inventory::tiers_at(at);
+    let floor = tiers
+        .first()
+        .filter(|t| pouch.brought_bags().any(|b| b == t.get()));
+    if floor.is_some() && tiers.iter().all(|t| out.count(t) == 0) {
+        let to = if intent == Intent::Down {
+            tiers.last()
+        } else {
+            floor
+        };
+        out.add(word_of(to.expect("a tier"))?, 1)?;
+    }
+    keep_chosen(&mut out, start, pouch);
     // A smaller wallet holds fewer rupees.
     let now = open(gd, inv, pouch, &out)?;
     for e in &EXTRAS {
         e.set(&mut out, e.of(start).min(e.cap(pouch, &now.edited)));
     }
     Ok(out)
+}
+
+/// Keep `out` to what the player chose, not what settling `start` made of
+/// it: what settling took and the click left alone comes back, so a change
+/// of settings gives it back, and a bag settling added stays out while it's
+/// the only tier of its line held.
+fn keep_chosen(out: &mut Start, start: &Start, pouch: &Pouch) {
+    let settled = shown(start, pouch);
+    for (w, a) in WORDS {
+        let get = |s: &Start| s.0.get(*w).copied();
+        let (chose, made, now) = (get(start), get(&settled), get(out));
+        let took = made.unwrap_or(0) < chose.unwrap_or(0) && now == made;
+        let line = inventory::tiers_of(a);
+        let alone = !line.iter().any(|t| t != a && out.count(t) > 0);
+        let added = chose.is_none() && made.is_some() && now == made && alone;
+        if took || added {
+            match chose {
+                Some(n) => out.0.insert((*w).to_owned(), n),
+                None => out.0.remove(*w),
+            };
+        }
+    }
 }
 
 /// What `opened` holds after `edits`, as words: only what differs from a
@@ -284,6 +337,7 @@ fn reread(
 mod tests {
     use super::super::tests::start;
     use super::*;
+    use crate::settings::{Bombchus, NewGame};
     use crate::starting::ARSENAL;
 
     /// The grid and pouch table from the dump, with GameData.
@@ -312,7 +366,8 @@ mod tests {
             edited: save,
         };
         let read = reread(&gd, &inv, &pouch, opened, &[]).unwrap();
-        let mut want = kit.floored(&pouch);
+        // A save without Bombchu Bags reads back without them.
+        let mut want = shown(&kit, &pouch);
         EXTRAS.iter().for_each(|e| e.set(&mut want, 0));
         assert_eq!(read, want);
     }
@@ -425,6 +480,90 @@ mod tests {
         assert_eq!(view.cells[at].tier, 1);
         let adult = click(&gd, &inv, &pouch, &Start::default(), at, Intent::Up).unwrap();
         assert_eq!(adult, start(&[("adults-wallet", 1)]));
+    }
+
+    /// The pouch table as a seed with `new_game` writes it.
+    fn seeded(pouch: &Pouch, new_game: NewGame) -> Pouch {
+        pouch.clone().seeded(&new_game)
+    }
+
+    #[test]
+    fn the_bombchu_bag_cell_shows_only_in_a_seed_with_bombchu_bags() {
+        let Some((gd, inv, pouch)) = layout() else {
+            return;
+        };
+        let cell = |view: &ItemsView, label: &str| {
+            view.cells.iter().position(|c| c.label == label).unwrap()
+        };
+        let free = seeded(&pouch, NewGame::default());
+        let view = items(&gd, &inv, &free, &Start::default(), &[]).unwrap();
+        let (bag, chus) = (cell(&view, "Bombchu Bag"), cell(&view, "Bombchus"));
+        assert!(view.cells[bag].hidden);
+        assert_eq!(view.caps[chus], Some(40), "free bombchus need no bag");
+        let bags = seeded(
+            &pouch,
+            NewGame {
+                bombchus: Bombchus::Bag,
+                ..Default::default()
+            },
+        );
+        let view = items(&gd, &inv, &bags, &Start::default(), &[]).unwrap();
+        assert!(!view.cells[bag].hidden);
+        assert_eq!(view.caps[chus], Some(0), "none before the first bag");
+        let up = |s: &Start| click(&gd, &inv, &bags, s, bag, Intent::Up).unwrap();
+        let medium = up(&up(&Start::default()));
+        assert!(medium.holds("big-bombchu-bag"), "{medium:?}");
+        let view = items(&gd, &inv, &bags, &medium, &[]).unwrap();
+        assert_eq!(view.caps[chus], Some(30));
+    }
+
+    #[test]
+    fn an_unshuffled_bag_has_no_none() {
+        let Some((gd, inv, pouch)) = layout() else {
+            return;
+        };
+        let game = seeded(&pouch, NewGame::default());
+        let view = items(&gd, &inv, &game, &Start::default(), &[]).unwrap();
+        let at = view
+            .cells
+            .iter()
+            .position(|c| c.label == "Nut Capacity")
+            .unwrap();
+        assert_eq!(view.cells[at].tier, 1, "every new game holds the Small bag");
+        let go = |s: &Start, intent| click(&gd, &inv, &game, s, at, intent).unwrap();
+        let large = go(&Start::default(), Intent::Down);
+        assert!(large.holds("biggest-nut-bag"), "Small wraps down to Large");
+        let small = go(&large, Intent::Up);
+        assert_eq!(small, start(&[("nut-bag", 1)]), "Large wraps up to Small");
+        let shuffled = seeded(
+            &pouch,
+            NewGame {
+                shuffle_nut_bag: true,
+                ..Default::default()
+            },
+        );
+        let view = items(&gd, &inv, &shuffled, &Start::default(), &[]).unwrap();
+        assert_eq!(view.cells[at].tier, 0, "a shuffled bag can be none");
+    }
+
+    #[test]
+    fn what_the_settings_leave_no_room_for_stays_chosen_through_a_click() {
+        let Some((gd, inv, pouch)) = layout() else {
+            return;
+        };
+        let bags = seeded(
+            &pouch,
+            NewGame {
+                bombchus: Bombchus::Bag,
+                ..Default::default()
+            },
+        );
+        let chosen = start(&[("bombchus", 20)]);
+        let view = items(&gd, &inv, &bags, &chosen, &[]).unwrap();
+        let at = |label: &str| view.cells.iter().position(|c| c.label == label).unwrap();
+        assert_eq!(view.cells[at("Bombchus")].count, Some(0));
+        let after = click(&gd, &inv, &bags, &chosen, at("Hookshot"), Intent::Up).unwrap();
+        assert_eq!(after, start(&[("bombchus", 20), ("hookshot", 1)]));
     }
 
     #[test]

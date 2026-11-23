@@ -78,15 +78,15 @@ export const commands = {
 	/**  The edits a click on a grid cell makes, to add to the pending ones. */
 	saveClick: (slot: number, pending: Pending, at: number, intent: Intent) => typedError<Edit[], string>(__TAURI_INVOKE("save_click", { slot, pending, at, intent })),
 	/**
-	 *  The grid, caps and Status panel of a new game starting with `start`,
-	 *  for the settings' Inventory panel, with the words each setting in
-	 *  `given` gives shown held and locked.
+	 *  The grid and caps of a new game starting with `start`, for the
+	 *  settings' Inventory panel, as a seed with `settings` deals it, with the
+	 *  words each setting in `given` gives shown held and locked.
 	 */
-	startItems: (start: StartInventory, given: string[][]) => typedError<ItemsView, string>(__TAURI_INVOKE("start_items", { start, given })),
+	startItems: (start: StartInventory, given: string[][], settings: { [key in string]: Value }) => typedError<ItemsView, string>(__TAURI_INVOKE("start_items", { start, given, settings })),
 	/**  `start` holding all of Link's gear too (`--start arsenal`). */
 	startArsenal: (start: StartInventory) => typedError<StartInventory, string>(__TAURI_INVOKE("start_arsenal", { start })),
-	/**  `start` after a click on a grid cell. */
-	startClick: (start: StartInventory, at: number, intent: Intent) => typedError<StartInventory, string>(__TAURI_INVOKE("start_click", { start, at, intent })),
+	/**  `start` after a click on a grid cell, as a seed with `settings` deals it. */
+	startClick: (start: StartInventory, at: number, intent: Intent, settings: { [key in string]: Value }) => typedError<StartInventory, string>(__TAURI_INVOKE("start_click", { start, at, intent, settings })),
 	/**
 	 *  `pending` cut to the edits that change the slot, and how many things
 	 *  they change. Refuses an edit the save won't take.
@@ -279,6 +279,8 @@ export type Cell = {
 	count: number | null,
 	/**  Set on a row's first cell, in a section laid out in rows. */
 	row: DungeonRow | null,
+	/**  Ours, and not in this save or seed: drawn nowhere. */
+	hidden: boolean,
 };
 
 /**  One changed value, to print or to send to the app. */
