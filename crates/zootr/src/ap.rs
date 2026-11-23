@@ -79,6 +79,7 @@ pub const OPTIONS: &[&str] = &[
     "rocks",
     "grass",
     "hives",
+    "shuffle-masks",
 ];
 
 /// Every setting the world doesn't offer, and why: each one coming in a
@@ -87,14 +88,15 @@ pub const OPTIONS: &[&str] = &[
 /// here (a test holds it), and the app marks these as not in AP.
 pub const LEFT_OUT: &[(&str, Archipelago)] = &[
     // Off, Dodongo's Cavern's Bomb Bag chest keeps its bag, and logic
-    // shows no child way to it. It also trades pool items with Keys, Maps
-    // and Compasses, Scrubs and the bag and mask shuffles.
+    // shows no child way to it.
     ("chests", Later(CHECK_KINDS)),
-    // Each trades a pool item for one another option picks: NPC Gifts,
-    // Scrubs, Chests and each other.
+    // With progressive items, each makes its line start a level lower, so
+    // the Nut Bag (30) a gift or scrub deals becomes the Nut Bag (20) and
+    // Double Magic the Magic Meter: which item a check deals depends on
+    // two options, NPC Gifts or Scrubs with this.
     ("shuffle-nut-bag", Later(CHECK_KINDS)),
     ("shuffle-stick-bag", Later(CHECK_KINDS)),
-    ("shuffle-masks", Later(CHECK_KINDS)),
+    ("magic-with-first-item", Later(COMFORT)),
     ("ice-traps", Later(ITEM_POOL)),
     ("progressive-items", Later(ITEM_POOL)),
     ("logic", Later(RULES)),
@@ -107,7 +109,6 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
     ("day-skulltulas", Later(RULES)),
     ("shuffle-dungeon-entrances", Later(RULES)),
     ("scrub-price", Later(COMFORT)),
-    ("magic-with-first-item", Later(COMFORT)),
     ("ageless-items", Later(COMFORT)),
     ("quiet-enemies", Later(COMFORT)),
     ("menus", Later(COMFORT)),
@@ -145,12 +146,11 @@ pub fn archipelago(def: &SettingDef) -> Option<Archipelago> {
 }
 
 /// Whether the world offers `option` of choice `id`, as the app marks it:
-/// Bombchu Bags wait for the item pool, the key options for the keys.
+/// the key options wait for the keys.
 pub fn archipelago_option(id: &str, option: &str) -> Archipelago {
-    match (offers(id, option), id) {
-        (true, _) => Offered,
-        (false, "bombchus") => Later(ITEM_POOL),
-        _ => Later(KEYS),
+    match offers(id, option) {
+        true => Offered,
+        false => Later(KEYS),
     }
 }
 
@@ -163,15 +163,9 @@ pub fn archipelago_option(id: &str, option: &str) -> Archipelago {
 pub const JOINT: &[&[&str]] = &[&["npc-gifts", "met-zelda", "gerudo-fortress", "cows"]];
 
 /// Choice options the world leaves out, each as setting id, option and
-/// a sentence of the setting's description that offers it: Bombchu Bags
-/// join the pool, which the world's pool doesn't hold. Dungeon keys offer
-/// Vanilla and Start only, so far.
+/// a sentence of the setting's description that offers it. Dungeon keys
+/// offer Vanilla and Start only, so far.
 const HELD: &[(&str, &str, &str)] = &[
-    (
-        "bombchus",
-        "bag",
-        " Or three Bombchu Bags in the pool, holding 20, 30 and 40, and none until the first",
-    ),
     (
         "keys",
         "rings",

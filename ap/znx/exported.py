@@ -10,7 +10,11 @@ def load(name: str):
 
 WORLD = load("world")
 ITEMS = load("items")
-POOL = load("pool")
+_POOL = load("pool")
+# Rows of the pool before the trade; an `added` row's item takes the place
+# of the cheapest of `JUNK` left, as the app's `starter_bags::swap_in` does.
+POOL = _POOL["rows"]
+JUNK = _POOL["junk"]
 OPTIONS = load("options")
 
 ITEM_NAME_TO_ID = {item["name"]: item["id"] for item in ITEMS}

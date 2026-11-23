@@ -251,7 +251,7 @@
   },
   {
     "default": "free",
-    "description": "What caps the Bombchus Link holds. The bomb bag's, as in the game. Their own cap of 40, so they open the same checks bombs do without waiting on the bag.",
+    "description": "What caps the Bombchus Link holds. The bomb bag's, as in the game. Their own cap of 40, so they open the same checks bombs do without waiting on the bag. Or three Bombchu Bags in the pool, holding 20, 30 and 40, and none until the first",
     "id": "bombchus",
     "kind": "choice",
     "label": "Bombchus",
@@ -263,6 +263,10 @@
       {
         "id": "free",
         "label": "Their own, 40"
+      },
+      {
+        "id": "bag",
+        "label": "Bombchu Bags"
       }
     ]
   },
@@ -359,5 +363,12 @@
     "id": "hives",
     "kind": "toggle",
     "label": "Beehives"
+  },
+  {
+    "default": false,
+    "description": "The eight masks are items in the pool, less any Link starts with, and the Happy Mask Shop lends none. Off, the shop lends them in order, as in the game",
+    "id": "shuffle-masks",
+    "kind": "toggle",
+    "label": "Shuffle Masks"
   }
 ]

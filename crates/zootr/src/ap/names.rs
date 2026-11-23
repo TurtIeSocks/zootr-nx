@@ -63,6 +63,9 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::BOMBCHU_BUNDLE_SMALL, "Bombchus (5)"),
     (item::BOMBCHU_BUNDLE_MEDIUM, "Bombchus (10)"),
     (item::BOMBCHU_BUNDLE_LARGE, "Bombchus (20)"),
+    (crate::bombchu_bags::SMALL, "Bombchu Bag (20)"),
+    (crate::bombchu_bags::MEDIUM, "Bombchu Bag (30)"),
+    (crate::bombchu_bags::LARGE, "Bombchu Bag (40)"),
     (item::BOOMERANG, "Boomerang"),
     (item::BOTTLE, "Bottle"),
     (item::BOTTLE_LETTER, "Ruto's Letter"),
@@ -194,6 +197,7 @@ const PROGRESSIVE: &[(&Name, &str)] = &[
     (item::RANGE_SLING_SHOT, "Progressive Slingshot"),
     (item::STICK_BAG_MEDIUM, "Progressive Deku Stick Bag"),
     (item::NUT_BAG_MEDIUM, "Progressive Deku Nut Bag"),
+    (crate::bombchu_bags::SMALL, "Progressive Bombchu Bag"),
 ];
 
 fn find(table: &[(&Name, &'static str)], id: &str) -> Option<&'static str> {
@@ -253,9 +257,17 @@ pub fn item(actor: &str, progressive: bool) -> Result<&'static str> {
     if let Some(name) = COPIES.get(actor) {
         return Ok(name);
     }
-    // The world never shuffles a starter bag, so its lines are the game's.
+    // The game's lines, and the Bombchu Bags', whose first level is the
+    // same with or without them. A shuffled starter bag keeps its own name:
+    // the line's first level is another bag without it, and one name can't
+    // stand for two items.
+    let lines = Lines {
+        bombchu_bags: true,
+        ..Lines::default()
+    };
+    // A line of one level (Double Magic, without the meter) climbs nowhere.
     let line = progressive
-        .then(|| Lines::default().all().find(|l| l[0].0.get() == actor))
+        .then(|| lines.all().find(|l| l.len() > 1 && l[0].0.get() == actor))
         .flatten();
     let name = match line {
         Some(_) => find(PROGRESSIVE, actor),

@@ -1,10 +1,13 @@
 """AP's default tests (every location reachable with everything, the
 goal set, a fill that completes) for each option's other values."""
 
+import unittest
+from collections import Counter
 from itertools import product
 
 from BaseClasses import LocationProgressType
-from ..exported import OPTIONS
+from .. import traded
+from ..exported import JUNK, OPTIONS, POOL
 from ..options import attr
 from . import ZnxTestBase
 
@@ -68,3 +71,66 @@ class TestRaceGiftWithFreed(ZnxTestBase):
         location = self.multiworld.get_location(RACE, self.player)
         self.assertNotEqual(location.progress_type, LocationProgressType.EXCLUDED)
 
+
+
+class TestAddedItemsTakeTheCheapestRupees(ZnxTestBase):
+    """What the mask and Bombchu Bag options add takes the place of the
+    cheapest rupees, as in the app's deal."""
+
+    options = {"shuffle_masks": True, "bombchus": "bag"}
+
+    def test_each_takes_a_rupee(self) -> None:
+        world = self.multiworld.worlds[self.player]
+        held = [row for row in POOL if world.holds(row)]
+        before = traded(row for row in held if not row.get("added"))
+        added = Counter()
+        for row in held:
+            if row.get("added"):
+                added[row["item"]] += row["count"]
+        # The masks and bags, past what every world adds (the Magic Meter).
+        always = sum(row["count"] for row in POOL if row.get("added") and "when" not in row)
+        self.assertEqual(added.total(), always + 8 + 3)
+        pool = world.pool()
+        self.assertEqual(pool.total(), before.total())
+        for item, count in added.items():
+            self.assertEqual(pool[item], before[item] + count, item)
+        takeable = Counter()
+        for row in held:
+            if row.get("junk"):
+                takeable[row["item"]] += row["count"]
+        lost = [before[rupee] - pool[rupee] for rupee in JUNK]
+        self.assertEqual(sum(lost), added.total())
+        for i, rupee in enumerate(JUNK):
+            if lost[i]:
+                self.assertTrue(all(lost[k] == takeable[c] for k, c in enumerate(JUNK[:i])), rupee)
+
+
+class TestTradeOrder(unittest.TestCase):
+    """The trade on its own: the cheapest rupee left first, and an item
+    with none left is left out."""
+
+    def test_cheapest_first(self) -> None:
+        rows = [
+            {"item": JUNK[2], "count": 1, "junk": True},
+            {"item": JUNK[0], "count": 1, "junk": True},
+            {"item": "Fake Bag", "count": 2, "added": True},
+        ]
+        self.assertEqual(traded(rows), Counter({"Fake Bag": 2}))
+
+    def test_only_junk_rows(self) -> None:
+        """A pot's Green Rupee shares the chest's name, but the trade
+        takes only the chest's."""
+        rows = [
+            {"item": JUNK[0], "count": 1},
+            {"item": JUNK[1], "count": 1, "junk": True},
+            {"item": "Fake Bag", "count": 1, "added": True},
+        ]
+        self.assertEqual(traded(rows), Counter({JUNK[0]: 1, "Fake Bag": 1}))
+
+    def test_none_left_leaves_it_out(self) -> None:
+        rows = [
+            {"item": JUNK[1], "count": 1, "junk": True},
+            {"item": "Fake Bag", "count": 1, "added": True},
+            {"item": "Fake Meter", "count": 1, "added": True},
+        ]
+        self.assertEqual(traded(rows), Counter({"Fake Bag": 1}))

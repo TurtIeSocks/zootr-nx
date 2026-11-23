@@ -9,7 +9,7 @@ import zipfile
 from Fill import distribute_items_restrictive
 from worlds.AutoWorld import call_all
 
-from ..exported import ITEM_NAME_TO_ID, OPTIONS, POOL, WORLD
+from ..exported import ITEM_NAME_TO_ID, OPTIONS, WORLD
 from . import ZnxTestBase
 
 
@@ -47,5 +47,5 @@ class TestFillerIsInTheDeal(ZnxTestBase):
 
     def test_filler_is_held(self) -> None:
         world = self.multiworld.worlds[self.player]
-        held = {row["item"] for row in POOL if world.holds(row)}
+        held = set(world.pool())
         self.assertIn(world.get_filler_item_name(), held)
