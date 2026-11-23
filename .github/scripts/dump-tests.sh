@@ -11,9 +11,29 @@ if [ ! -f /dump/oot.nup ]; then
   exit 1
 fi
 
-# The build cache grows with every toolchain and dependency bump.
-if [ -d "$CARGO_TARGET_DIR" ] && [ "$(du -s --block-size=1G "$CARGO_TARGET_DIR" | cut -f1)" -gt 15 ]; then
-  echo "build cache over 15 GB, wiping it"
+# One build folder a job. The box runs two jobs at once, and a shared
+# folder let one job's build replace another's: its build script, baked
+# with a deleted checkout's path, or a test binary another job then ran.
+# A job claims a free folder with flock and holds it until it exits (the
+# lock goes with the process, even on a cancel), so no two jobs ever share
+# one. With every folder taken it waits for the first, never sharing.
+for slot in 0 1; do
+  exec 9>"/cache/target-$slot.lock"
+  flock -n 9 && break
+  exec 9>&-
+  slot=
+done
+if [ -z "$slot" ]; then
+  slot=0
+  exec 9>"/cache/target-$slot.lock"
+  echo "both build folders busy, waiting for one"
+  flock 9
+fi
+export CARGO_TARGET_DIR=/cache/target-$slot
+
+# The build folder grows with every toolchain and dependency bump.
+if [ -d "$CARGO_TARGET_DIR" ] && [ "$(du -s --block-size=1G "$CARGO_TARGET_DIR" | cut -f1)" -gt 10 ]; then
+  echo "build folder over 10 GB, wiping it"
   rm -rf "$CARGO_TARGET_DIR"
 fi
 

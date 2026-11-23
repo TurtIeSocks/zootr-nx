@@ -70,8 +70,8 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, X64, zootr-nx]
     timeout-minutes: 45
+    # dump-tests.sh picks CARGO_TARGET_DIR, one folder a job.
     env:
-      CARGO_TARGET_DIR: /cache/target
       CARGO_HOME: /cache/cargo
       RUSTUP_HOME: /cache/rustup
       ZOOTR_CACHE: /cache/zootr
