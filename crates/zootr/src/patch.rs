@@ -8,10 +8,10 @@ use anyhow::{Context, Result, ensure};
 pub use zootr_hook::OFFSETS;
 use zootr_hook::look::LookSpec;
 use zootr_hook::{
-    CAVE, Credit, DEV, FAR, LIST, PANIC, SLOTS, Shared, Spot, TABLE, TRADE_CYCLE, encode,
+    CAVE, Credit, DEV, FAR, LIST, MENU_CYCLE, PANIC, SLOTS, Shared, Spot, TABLE, encode,
 };
 
-use crate::{progressive, trade_slot};
+use crate::{menu_slots, progressive};
 
 /// The hook's code, built by `build.rs`.
 const HOOK: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/hook.bin"));
@@ -54,7 +54,7 @@ const CALLS: [(u32, u32); 5] = [
 const RUN_CALL: (u32, u32) = (0x93_4990, 24);
 /// The controller device's three `GetNpadStates` calls (full key,
 /// handheld, joy dual) and their hook entries, which run the trade slot's
-/// cycle with the three Items page hooks, in a seed with [`TRADE_CYCLE`].
+/// cycle with the three Items page hooks, in a seed with [`MENU_CYCLE`].
 const NPAD_CALLS: [(u32, u32); 3] = [(0x346_966c, 32), (0x346_9698, 36), (0x346_94f8, 40)];
 /// The game's stubs for `nn::hid::GetNpadStates` those calls go to, in
 /// the same order. The hook reaches them through its slots.
@@ -76,6 +76,8 @@ const HOOKS: &[(u32, u32)] = &[
     (OFFSETS.taken, 56),
     (OFFSETS.nock, 60),
     (OFFSETS.emptied, 64),
+    (OFFSETS.equipment_built, 72),
+    (OFFSETS.equipment_left, 76),
 ];
 /// `main`'s build ID, as its NSO header's 32 byte field holds it. Its first
 /// 8 bytes name the cheat file and the rest, trailing zeros left out, the
@@ -207,9 +209,10 @@ pub fn patches<A: AsRef<str>>(
         .collect();
     let keyed: Vec<&[(&str, &str)]> = keyed.iter().map(Vec::as_slice).collect();
     let flags = flags | DEV;
-    let actors = trade_slot::actors();
-    let slot = (flags & TRADE_CYCLE != 0).then(|| trade_slot::spec(&actors));
-    let table = encode(flags, &lines, &keyed, credits, slot.as_ref(), spots, look);
+    let cycled = menu_slots::ALL.iter().filter(|_| flags & MENU_CYCLE != 0);
+    let actors: Vec<_> = cycled.clone().map(|s| s.actors()).collect();
+    let slots: Vec<_> = cycled.zip(&actors).map(|(s, a)| s.spec(a)).collect();
+    let table = encode(flags, &lines, &keyed, credits, &slots, spots, look);
     let table = fit(TABLE, table, TABLE_END, "table")?;
     Ok((code()?.into_iter())
         .chain(table_writes(table))
@@ -447,7 +450,7 @@ mod tests {
     use super::*;
 
     /// Every flag that adds a site.
-    const ALL: u32 = BUNNY_HOOD | TRADE_CYCLE;
+    const ALL: u32 = BUNNY_HOOD | MENU_CYCLE;
     /// A holder that stands until picked, which adds the take's site.
     const SPOT: Spot = Spot {
         flag: 1,

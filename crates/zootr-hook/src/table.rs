@@ -1,13 +1,13 @@
 //! The table the seed writes into the game: its header, the progressive
 //! lines, how a level is picked, the flags an item sets as it's found, the
-//! menu slot Link cycles, and the twinned holders whose drop sets a flag as
+//! menu slots Link cycles, and the twinned holders whose drop sets a flag as
 //! Link takes it. The hook only reads it: a cheat that writes it many
 //! times a second would put back anything the hook wrote.
 
 use crate::look::Look;
 #[cfg(not(target_os = "none"))]
 use crate::look::LookSpec;
-use crate::ui::MultiSlot;
+use crate::ui::{MAX_SLOTS, MultiSlot, Page};
 
 pub const MAGIC: &[u8; 4] = b"ZLTA";
 
@@ -15,8 +15,9 @@ pub const MAGIC: &[u8; 4] = b"ZLTA";
 pub const FREE_BOMBCHUS: u32 = 1;
 /// The header's flag for a seed where Link runs faster in the Bunny Hood.
 pub const BUNNY_HOOD: u32 = 2;
-/// The header's flag for a seed where Link picks what the trade slot shows.
-pub const TRADE_CYCLE: u32 = 4;
+/// The header's flag for a seed where Link picks what each shared menu
+/// slot (trade, masks) shows.
+pub const MENU_CYCLE: u32 = 4;
 /// The header's flag for a seed with ice traps, which spring on Link's
 /// update.
 pub const ICE_TRAPS: u32 = 8;
@@ -39,11 +40,11 @@ pub struct Header {
     pub size: u32,
     /// The size of the credits after them.
     pub credits: u32,
-    /// The size of the [`Slot`] after them, 0 for none.
-    pub slot: u32,
+    /// The size of the [`Slot`]s after them, 0 for none.
+    pub slots: u32,
     /// How many [`Spot`]s the seed wrote to GameData.
     pub spots: u32,
-    /// The size of the [`Look`] after the slot, 0 for none.
+    /// The size of the [`Look`] after the slots, 0 for none.
     pub look: u32,
 }
 
@@ -148,10 +149,13 @@ pub struct Offsets {
     /// Sets the speed and direction Player asks the controller for.
     pub run_setter: u32,
     /// The hooked functions: the Items page built (entered), the Items page
-    /// left, and the UI update each frame.
+    /// left, the UI update each frame, and the Equipment page built and
+    /// left.
     pub items_built: u32,
     pub items_left: u32,
     pub ui_update: u32,
+    pub equipment_built: u32,
+    pub equipment_left: u32,
     /// Sets an Items page cell's actor, and a cell button's unfocus and
     /// focus, which refresh the item detail panel.
     pub cell_set: u32,
@@ -162,6 +166,10 @@ pub struct Offsets {
     pub anim_frame: u32,
     /// The item kind on a button for an age (the manager, child, 1).
     pub equipped: u32,
+    /// Whether Link wears the named equipment (the pouch menu, a pointer
+    /// to the name), and the pointer to the pouch menu.
+    pub worn: u32,
+    pub pouch_menu: u32,
     /// The pointer to the effect system, which holds the effect file
     /// the ice's [`Look`] sizes.
     pub effects: u32,
@@ -179,7 +187,8 @@ pub struct Table<'a> {
     pub flags: u32,
     lines: &'a [u8],
     credits: &'a [u8],
-    pub slot: Option<Slot<'a>>,
+    /// The slots Link cycles, in the order the seed wrote them.
+    pub slots: [Option<Slot<'a>>; MAX_SLOTS],
     /// How many [`Spot`]s the seed wrote to GameData.
     pub spots: u32,
     pub look: Option<Look<'a>>,
@@ -190,14 +199,14 @@ impl<'a> Table<'a> {
     pub fn parse(header: &'a Header, body: &'a [u8]) -> Option<Self> {
         let (lines, rest) = body.split_at_checked(header.size as usize)?;
         let (credits, rest) = rest.split_at_checked(header.credits as usize)?;
-        let (slot, rest) = rest.split_at_checked(header.slot as usize)?;
+        let (slots, rest) = rest.split_at_checked(header.slots as usize)?;
         let look = rest.get(..header.look as usize)?;
         (header.magic == *MAGIC).then_some(Self {
             offsets: &crate::OFFSETS,
             flags: header.flags,
             lines,
             credits,
-            slot: Slot::parse(slot),
+            slots: Slot::parse_all(slots),
             spots: header.spots,
             look: Look::parse(look),
         })
@@ -433,36 +442,58 @@ fn take_name<'a>(rest: &mut &'a [u8]) -> Option<&'a [u8]> {
     Some(name)
 }
 
-/// A menu slot several actors share, as the seed writes it: the age flag's
-/// hash, the slot's cell on the Items page, the actor count, each actor's
-/// age bits, then each one's item kind, then each one's name the way the
-/// lines write it. Actors are in the game's table order.
+/// A menu slot several actors share, as the seed writes it: the page,
+/// the age flag's hash, the slot's cell on its page, the actor count, each
+/// actor's age bits, then each one's kind, then the size of the names and
+/// each one's name the way the lines write it. Actors are in the game's
+/// table order.
 #[derive(Clone, Copy, Debug)]
 pub struct Slot<'a> {
+    pub page: Page,
     /// The GameData Bool true while Link is a child.
     pub age_flag: u32,
-    /// Where the slot's cell is in the Items page's list.
+    /// Where the slot's cell is in its page's list.
     pub cell: u8,
     pub actors: MultiSlot<'a>,
-    /// What the cell setter takes with each actor: its kind in the game's
-    /// item kind list, less one.
+    /// What the page draws each actor by. On the Items page, what the cell
+    /// setter takes: its kind in the game's item kind list, less one. On
+    /// the Equipment page, its icon's frame.
     kinds: &'a [u8],
     names: &'a [u8],
 }
 
 impl<'a> Slot<'a> {
-    fn parse(bytes: &'a [u8]) -> Option<Self> {
-        let (hash, rest) = bytes.split_first_chunk()?;
+    /// Each slot in `bytes`, up to [`MAX_SLOTS`].
+    fn parse_all(mut bytes: &'a [u8]) -> [Option<Self>; MAX_SLOTS] {
+        let mut slots = [None; MAX_SLOTS];
+        for slot in &mut slots {
+            let Some((read, rest)) = Self::parse(bytes) else {
+                break;
+            };
+            *slot = Some(read);
+            bytes = rest;
+        }
+        slots
+    }
+
+    /// The slot `bytes` starts with, and what follows it.
+    fn parse(bytes: &'a [u8]) -> Option<(Self, &'a [u8])> {
+        let (&[page], rest) = bytes.split_first_chunk()?;
+        let (hash, rest) = rest.split_first_chunk()?;
         let (&[cell, n], rest) = rest.split_first_chunk()?;
         let (ages, rest) = rest.split_at_checked(n as usize)?;
-        let (kinds, names) = rest.split_at_checked(n as usize)?;
-        Some(Self {
+        let (kinds, rest) = rest.split_at_checked(n as usize)?;
+        let (size, rest) = rest.split_first_chunk()?;
+        let (names, rest) = rest.split_at_checked(u16::from_le_bytes(*size).into())?;
+        let slot = Self {
+            page: Page::from_u8(page)?,
             age_flag: u32::from_le_bytes(*hash),
             cell,
             actors: MultiSlot { ages },
             kinds,
             names,
-        })
+        };
+        Some((slot, rest))
     }
 
     /// Actor `i`'s name, a NUL after it in the table, and its kind.
@@ -484,6 +515,7 @@ impl<'a> Slot<'a> {
 /// A [`Slot`] for [`encode`]: each actor as its name, age bits and kind.
 #[cfg(not(target_os = "none"))]
 pub struct SlotSpec<'a> {
+    pub page: Page,
     pub age_flag: u32,
     pub cell: u8,
     pub actors: &'a [(&'a str, u8, u8)],
@@ -546,7 +578,7 @@ pub fn after_grant<'a>(
 
 /// The table for `lines`, then the [`KEYED`] lines `keyed`, each lowest
 /// level first as (drop, pouch name), with the seed's `flags`, `credits`
-/// by name, the `slot` Link cycles and how many holders' `spots` the seed
+/// by name, the `slots` Link cycles and how many holders' `spots` the seed
 /// writes to GameData.
 #[cfg(not(target_os = "none"))]
 #[allow(clippy::too_many_arguments)]
@@ -555,7 +587,7 @@ pub fn encode(
     lines: &[&[(&str, &str)]],
     keyed: &[&[(&str, &str)]],
     credits: &[(&str, Credit)],
-    slot: Option<&SlotSpec>,
+    slots: &[SlotSpec],
     spots: &[Spot],
     look: Option<&LookSpec>,
 ) -> Vec<u8> {
@@ -581,15 +613,24 @@ pub fn encode(
         body.extend(credit.bytes());
     }
     let credits = body.len() - size;
-    if let Some(slot) = slot {
+    assert!(
+        slots.len() <= MAX_SLOTS,
+        "the hook cycles {MAX_SLOTS} slots"
+    );
+    for slot in slots {
         let n = u8::try_from(slot.actors.len()).expect("a slot has under 256 actors");
+        body.push(slot.page as u8);
         body.extend(slot.age_flag.to_le_bytes());
         body.extend([slot.cell, n]);
         body.extend(slot.actors.iter().map(|a| a.1));
         body.extend(slot.actors.iter().map(|a| a.2));
+        let mut names = Vec::new();
         for (name, ..) in slot.actors {
-            push_name(&mut body, name);
+            push_name(&mut names, name);
         }
+        let len = u16::try_from(names.len()).expect("a slot's names are under 64 KB");
+        body.extend(len.to_le_bytes());
+        body.extend(names);
     }
     let slot = body.len() - size - credits;
     body.extend(look.map(LookSpec::bytes).unwrap_or_default());
@@ -659,13 +700,13 @@ mod tests {
             &[HOOK, BAGS, GLOVES],
             &[SEEDS],
             CREDITS,
-            Some(&SLOT),
+            &[SLOT, MASKS],
             SPOTS,
             Some(&look()),
         );
         let header = Header::read(&bytes);
         assert_eq!(
-            (header.size + header.credits + header.slot + header.look) as usize,
+            (header.size + header.credits + header.slots + header.look) as usize,
             bytes.len() - HEADER
         );
         assert_eq!(header.spots as usize, SPOTS.len());
@@ -777,7 +818,7 @@ mod tests {
 
     #[test]
     fn a_wrong_magic_is_no_table() {
-        let mut bytes = encode(0, &[HOOK], &[], &[], None, &[], None);
+        let mut bytes = encode(0, &[HOOK], &[], &[], &[], &[], None);
         bytes[0] = b'X';
         assert!(Table::parse(&Header::read(&bytes), &bytes[HEADER..]).is_none());
     }
@@ -800,7 +841,7 @@ mod tests {
 
     #[test]
     fn a_zero_magic_is_nothing_ours_a_table_and_any_other_broken() {
-        let mut bytes = encode(0, &[HOOK], &[], &[], None, &[], None);
+        let mut bytes = encode(0, &[HOOK], &[], &[], &[], &[], None);
         assert_eq!(Header::read(&bytes).found(), Found::Table);
         bytes[..4].copy_from_slice(&[0; 4]);
         assert_eq!(Header::read(&bytes).found(), Found::Nothing);
@@ -810,7 +851,7 @@ mod tests {
 
     #[test]
     fn a_table_cut_short_is_no_table() {
-        let bytes = encode(0, &[HOOK], &[], CREDITS, Some(&SLOT), SPOTS, None);
+        let bytes = encode(0, &[HOOK], &[], CREDITS, &[SLOT], SPOTS, None);
         let header = Header::read(&bytes);
         let cut = &bytes[HEADER..bytes.len() - 1];
         assert!(Table::parse(&header, cut).is_none());
@@ -839,15 +880,29 @@ mod tests {
     }
 
     const SLOT: SlotSpec = SlotSpec {
+        page: Page::Items,
         age_flag: 0xc0ff_ee00,
         cell: 22,
         actors: &[("FakeCheck", 2, 44), ("FakeSaw", 2, 39), ("FakeEgg", 1, 31)],
     };
 
+    const MASKS: SlotSpec = SlotSpec {
+        page: Page::Equipment,
+        age_flag: 0xc0ff_ee00,
+        cell: 12,
+        actors: &[("FakeTruth", 3, 16), ("FakeKeaton", 3, 12)],
+    };
+
     #[test]
-    fn the_slot_reads_back_by_index_and_name() {
+    fn the_slots_read_back_by_index_and_name() {
         with_table(|t| {
-            let slot = t.slot.unwrap();
+            let [Some(slot), Some(masks)] = t.slots else {
+                panic!("two slots");
+            };
+            assert_eq!((masks.page, masks.cell), (Page::Equipment, 12));
+            assert_eq!(masks.actor(1), Some((&b"FakeKeaton"[..], 12)));
+            assert_eq!(masks.index(b"FakeTruth"), Some(0));
+            assert_eq!(slot.page, Page::Items);
             assert_eq!((slot.age_flag, slot.cell), (0xc0ff_ee00, 22));
             assert_eq!(slot.actors.ages, [2, 2, 1]);
             assert_eq!(slot.actor(1), Some((&b"FakeSaw"[..], 39)));
@@ -860,13 +915,14 @@ mod tests {
 
     #[test]
     fn a_table_without_a_slot_has_none() {
-        let bytes = encode(0, &[HOOK], &[], CREDITS, None, &[], None);
+        let bytes = encode(0, &[HOOK], &[], CREDITS, &[], &[], None);
         let header = Header::read(&bytes);
         assert!(
             Table::parse(&header, &bytes[HEADER..])
                 .unwrap()
-                .slot
-                .is_none()
+                .slots
+                .iter()
+                .all(Option::is_none)
         );
     }
 

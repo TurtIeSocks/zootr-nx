@@ -1,31 +1,63 @@
-//! The slot Link cycles on the pause menu's Items page. The controller
-//! reads go through `npad_states`, which runs the cycle and keeps its
-//! presses from the game. The Items page's build and leaving say when the
-//! page is up, and after each UI update `ui_update` makes the slot's cell
-//! show what the store says, on the menu's own thread.
+//! The slots Link cycles on the pause menu's Items and Equipment pages.
+//! The controller reads go through `npad_states`, which runs each slot's
+//! cycle and keeps its presses from the game. Each page's build and
+//! leaving say when it's up, and after each UI update `ui_update` makes
+//! each slot's cell show what the store says, on the menu's own thread.
 //! See `docs/research/in-game-ui.md`.
 
 use core::mem::transmute;
 
 use super::{at, chests, dev, hooked, name, shared, table};
 use crate::Table;
-use crate::ui::{Buttons, Seen};
+use crate::ui::{Buttons, MAX_SLOTS, Page, PageUp, Seen};
 
-/// The Items page's cells and their count.
-const CELLS: usize = 0x78;
-const COUNT: usize = 0x70;
-/// A cell's button, the button's state, and its states while the cursor
-/// is on it: focusing (as a refresh leaves it for a few frames) and
-/// focused. Unfocusing is the cursor leaving, and 0 is away.
-const BUTTON: usize = 0xe8;
+/// Where a page keeps what the hook reads.
+struct Layout {
+    /// The page's cells and their count.
+    cells: usize,
+    count: usize,
+    /// A cell's button.
+    button: usize,
+    /// The cell's copy of its actor's name.
+    name: usize,
+    /// The animation whose frame says whether the cell's item is usable
+    /// or worn (on a button).
+    state: usize,
+}
+
+impl Page {
+    fn layout(self) -> Layout {
+        match self {
+            Page::Items => Layout {
+                cells: 0x78,
+                count: 0x70,
+                button: 0xe8,
+                name: 0x90,
+                state: 0x48,
+            },
+            Page::Equipment => Layout {
+                cells: 0x50,
+                count: 0x48,
+                button: 0xd8,
+                name: 0x88,
+                state: 0x40,
+            },
+        }
+    }
+}
+
+/// An Equipment cell's icon animation, its frame the item's place in the
+/// page's icon list, and the size of its name buffer.
+const EQUIPMENT_ICON: usize = 0x58;
+const NAME_SIZE: usize = 0x90;
+/// A button's state, and its states while the cursor is on it: focusing
+/// (as a refresh leaves it for a few frames) and focused. Unfocusing is
+/// the cursor leaving, and 0 is away.
 const STATE: usize = 0x38;
 const CURSOR_ON: [u8; 2] = [1, 3];
-/// The cell's copy of its actor's name, and its icon's animation.
-const CELL_NAME: usize = 0x90;
-const CELL_ICON: usize = 0x48;
-/// The icon frames the Items build gives a held item its age can use, and
-/// one on a button. The build leaves the slot on its own pick's frame,
-/// grey when that's another age's item.
+/// The state frames both pages give a held item its age can use, and one
+/// worn or on a button. The Items build leaves the slot on its own pick's
+/// frame, grey when that's another age's item.
 const USABLE: f32 = 1.0;
 const ON_BUTTON: f32 = 2.0;
 /// The cell's layout, its panes (count, array, each `PANE` long), and
@@ -55,6 +87,7 @@ type CellSet = unsafe extern "C" fn(usize, *const *const u8, i32, i32, i32);
 type Focus = unsafe extern "C" fn(usize, usize, usize, usize);
 type AnimFrame = unsafe extern "C" fn(usize, f32);
 type Equipped = unsafe extern "C" fn(usize, u8, u32) -> i32;
+type Worn = unsafe extern "C" fn(usize, *const *const u8) -> u32;
 
 /// Called after each of the controller device's `GetNpadStates` calls,
 /// with the states it wrote and their count, which it hands back. The
@@ -67,15 +100,14 @@ pub unsafe extern "C" fn npad_states(states: *mut u8, n: i32) -> i32 {
     let Some((main, table)) = table() else {
         return n;
     };
-    let Some(slot) = table.slot.filter(|_| n > 0) else {
+    let slots = table.slots.map(|s| s.map(|s| s.actors));
+    if n <= 0 || slots.iter().all(Option::is_none) {
         return n;
-    };
+    }
     let state = |i: i32| states as usize + i as usize * NPAD_STATE;
     // SAFETY: the call wrote `n` states.
     let now = Buttons(unsafe { *((state(0) + NPAD_BUTTONS) as *const u64) } as u32);
-    let (hide, cycling) = shared(main)
-        .ui
-        .with(|s| (s.read(now, &slot.actors), s.cycling()));
+    let (hide, cycling) = shared(main).ui.with(|s| (s.read(now, &slots), s.cycling()));
     for i in 0..n {
         // SAFETY: as above.
         unsafe {
@@ -94,51 +126,79 @@ pub unsafe extern "C" fn npad_states(states: *mut u8, n: i32) -> i32 {
 /// The Items page is being built: it's up.
 #[unsafe(no_mangle)]
 extern "C" fn items_built(page: usize) {
-    hooked(|main, _| {
-        shared(main).ui.with(|s| {
-            s.page = page;
-            s.up = true;
-        })
-    })
+    built(Page::Items, page);
 }
 
 /// The Items page is being left, for another page or as the menu closes.
 #[unsafe(no_mangle)]
 extern "C" fn items_left(page: usize) {
-    hooked(|main, _| shared(main).ui.with(|s| s.up &= s.page != page))
+    left(Page::Items, page);
+}
+
+/// The Equipment page is being built: it's up.
+#[unsafe(no_mangle)]
+extern "C" fn equipment_built(page: usize) {
+    built(Page::Equipment, page);
+}
+
+/// The Equipment page is being left.
+#[unsafe(no_mangle)]
+extern "C" fn equipment_left(page: usize) {
+    left(Page::Equipment, page);
+}
+
+fn built(which: Page, page: usize) {
+    hooked(|main, _| {
+        shared(main)
+            .ui
+            .with(|s| s.pages[which as usize] = PageUp { page, up: true })
+    })
+}
+
+fn left(which: Page, page: usize) {
+    hooked(|main, _| {
+        shared(main).ui.with(|s| {
+            let p = &mut s.pages[which as usize];
+            p.up &= p.page != page;
+        })
+    })
 }
 
 /// The UI has updated for this frame.
 #[unsafe(no_mangle)]
 extern "C" fn ui_update() {
     hooked(|main, table| {
-        // SAFETY: the table's offsets are this build's.
-        unsafe { show(main, table) };
+        for i in 0..MAX_SLOTS {
+            // SAFETY: the table's offsets are this build's.
+            unsafe { show(main, table, i) };
+        }
     })
 }
 
-/// Look at the Items page and make the slot's cell show what the store
-/// says. A focused cell's button is refreshed as the cursor would, so the
-/// item detail panel follows. One not focused never is: focusing it would
-/// put a second cursor on the page.
+/// Look at slot `i`'s page and make its cell show what the store says. A
+/// focused cell's button is refreshed as the cursor would, so the item
+/// detail panel follows. One not focused never is: focusing it would put
+/// a second cursor on the page.
 ///
-/// Far code: it runs only while the Items page is up.
+/// Far code: it runs only while a page is up.
 ///
 /// # Safety
 /// The table's offsets are this build's.
 #[inline(never)]
 #[unsafe(link_section = ".far")]
-unsafe fn show(main: usize, table: &Table) -> Option<()> {
-    let slot = table.slot?;
+unsafe fn show(main: usize, table: &Table, i: usize) -> Option<()> {
+    let slot = table.slots[i]?;
     let ui = &shared(main).ui;
     let page = ui.with(|s| {
-        s.seen.on_slot &= s.up;
-        s.up.then_some(s.page)
+        let PageUp { page, up } = s.pages[slot.page as usize];
+        s.slots[i].seen.on_slot &= up;
+        up.then_some(page)
     })?;
     let o = table.offsets;
+    let l = slot.page.layout();
     unsafe {
-        let cell = cell(page, slot.cell)?;
-        let button = at(cell, BUTTON)?;
+        let cell = cell(page, &l, slot.cell)?;
+        let button = at(cell, l.button)?;
         let focused = CURSOR_ON.contains(&*((button + STATE) as *const u8));
         let owns = chests::owned(main, o)?;
         let held = (0..slot.actors.ages.len())
@@ -152,23 +212,38 @@ unsafe fn show(main: usize, table: &Table) -> Option<()> {
             held,
         };
         let (want, cycling) = ui.with(|s| {
-            s.seen = seen;
-            (s.showing(&slot.actors), s.cycling())
+            let state = &mut s.slots[i];
+            state.seen = seen;
+            (state.showing(&slot.actors), state.cycling())
         });
         tint(cell, if cycling { CYCLING } else { PLAIN })?;
         let (actor, kind) = slot.actor(want?)?;
-        if name(at(cell, CELL_NAME)? as *const u8) == Some(actor) {
+        if name(at(cell, l.name)? as *const u8) == Some(actor) {
             return Some(());
         }
-        let set: CellSet = transmute(main + o.cell_set as usize);
-        set(cell, &actor.as_ptr(), i32::from(kind), 0, 1);
-        let equipped: Equipped = transmute(main + o.equipped as usize);
-        let on_button = equipped(at(main, o.manager as usize)?, child.into(), 1) == i32::from(kind);
+        let on_button = match slot.page {
+            Page::Items => {
+                let set: CellSet = transmute(main + o.cell_set as usize);
+                set(cell, &actor.as_ptr(), i32::from(kind), 0, 1);
+                let equipped: Equipped = transmute(main + o.equipped as usize);
+                equipped(at(main, o.manager as usize)?, child.into(), 1) == i32::from(kind)
+            }
+            Page::Equipment => {
+                let size = *((cell + NAME_SIZE) as *const u32) as usize;
+                let to = at(cell, l.name)? as *mut u8;
+                let n = actor.len().min(size.checked_sub(1)?);
+                core::ptr::copy_nonoverlapping(actor.as_ptr(), to, n);
+                *to.add(n) = 0;
+                seek(main, o, cell, EQUIPMENT_ICON, f32::from(kind))?;
+                let worn: Worn = transmute(main + o.worn as usize);
+                worn(dev::single(main, o.pouch_menu)?, &actor.as_ptr()) & 1 != 0
+            }
+        };
         seek(
             main,
             o,
             cell,
-            CELL_ICON,
+            l.state,
             if on_button { ON_BUTTON } else { USABLE },
         )?;
         if focused {
@@ -183,7 +258,7 @@ unsafe fn show(main: usize, table: &Table) -> Option<()> {
 /// Seek the cell's animation at `anim` to `frame`, unless it's there.
 ///
 /// # Safety
-/// `cell` is an Items page cell, and the offsets are this build's.
+/// `cell` is a page's cell, and the offsets are this build's.
 unsafe fn seek(
     main: usize,
     o: &crate::Offsets,
@@ -203,7 +278,7 @@ unsafe fn seek(
 /// Tint the cell's cursor border, unless it's that colour.
 ///
 /// # Safety
-/// `cell` is an Items page cell.
+/// `cell` is a page's cell.
 unsafe fn tint(cell: usize, colour: [f32; 4]) -> Option<()> {
     unsafe {
         let panes = at(at(cell, CELL_LAYOUT)?, LAYOUT_PANES)?;
@@ -217,22 +292,24 @@ unsafe fn tint(cell: usize, colour: [f32; 4]) -> Option<()> {
     Some(())
 }
 
-/// The Items page's cell `i`.
+/// Cell `i` of `page`, laid out as `l`.
 ///
 /// # Safety
-/// `page` is the Items page.
-unsafe fn cell(page: usize, i: u8) -> Option<usize> {
-    let count = unsafe { *((page + COUNT) as *const u32) };
+/// `page` is the page `l` is for.
+unsafe fn cell(page: usize, l: &Layout, i: u8) -> Option<usize> {
+    let count = unsafe { *((page + l.count) as *const u32) };
     (u32::from(i) < count).then_some(())?;
-    unsafe { at(at(page, CELLS)?, 8 * usize::from(i)) }
+    unsafe { at(at(page, l.cells)?, 8 * usize::from(i)) }
 }
 
-/// Link just got `added`: if the slot holds it, it's his choice.
+/// Link just got `added`: if a slot holds it, it's his choice there.
 pub(super) fn granted(main: usize, table: &Table, added: &[u8]) {
-    let Some(slot) = table.slot else {
-        return;
-    };
-    if let Some(i) = slot.index(added) {
-        shared(main).ui.with(|s| s.granted(i, &slot.actors));
+    for (n, slot) in table.slots.iter().enumerate() {
+        let Some((slot, i)) = slot.and_then(|s| Some((s, s.index(added)?))) else {
+            continue;
+        };
+        shared(main)
+            .ui
+            .with(|s| s.slots[n].granted(i, &slot.actors));
     }
 }

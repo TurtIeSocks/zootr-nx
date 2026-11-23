@@ -1,5 +1,24 @@
 //! A menu slot that holds several things, like the trade slot.
 
+/// The most slots the hook cycles: the trade slot and the mask slot.
+pub const MAX_SLOTS: usize = 2;
+
+/// The pause menu pages a slot can be on.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum Page {
+    Items,
+    Equipment,
+}
+
+impl Page {
+    pub const ALL: [Page; 2] = [Page::Items, Page::Equipment];
+
+    pub fn from_u8(b: u8) -> Option<Self> {
+        Self::ALL.get(usize::from(b)).copied()
+    }
+}
+
 /// Link's age, as the bits a slot's `ages` holds.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Age {
