@@ -2,7 +2,7 @@
 
 /// The files the marks are made from, spelled out like
 /// [`crate::key_tints::FILES`]: extracted before a dump's names are read.
-pub const FILES: [&str; 20] = [
+pub const FILES: [&str; 31] = [
     "Model/Obj_Pot_A.Obj_Pot_A_01.bfres.zs",
     "Model/Obj_Pot_A.Obj_Pot_A_02.bfres.zs",
     "Model/Obj_Pot_A.Obj_Pot_A_03.bfres.zs",
@@ -11,7 +11,13 @@ pub const FILES: [&str; 20] = [
     "Model/Obj_Pot_A.Obj_Pot_A_06.bfres.zs",
     "Model/Obj_Pot_A.Obj_Pot_A_07.bfres.zs",
     "Model/Obj_Pot_A.Obj_Pot_A_08.bfres.zs",
+    "Model/Enemy_FlyingPot.Enemy_FlyingPot.bfres.zs",
+    "Model/Enemy_FlyingPot.anim.bfres.zs",
     "Model/Obj_BrokenBox_A.Obj_BrokenBox_A_04.bfres.zs",
+    "Model/Obj_BrokenBox_A.Obj_BrokenBox_A_03.bfres.zs",
+    "Model/Obj_Rock_A.Obj_LiftRock_A_01.bfres.zs",
+    "Model/Obj_Kokiri_Beehive_A.Obj_Kokiri_Beehive_A_01.bfres.zs",
+    "Model/Obj_Plant_A.Obj_Plant_Grass_A_02.bfres.zs",
     "Tex/Rock_Pot_A_Alb.bntx.zs",
     "Tex/Rock_Pot_A_02_Alb.bntx.zs",
     "Tex/Rock_Pot_A_03_Alb.bntx.zs",
@@ -21,6 +27,11 @@ pub const FILES: [&str; 20] = [
     "Tex/Rock_Pot_A_07_Alb.bntx.zs",
     "Tex/Rock_Pot_A_08_Alb.bntx.zs",
     "Tex/Obj_BrokenBox_A_04_Alb.bntx.zs",
+    "Tex/Stone_BrokenBox_A_Alb.bntx.zs",
+    "Tex/MT_Rock_LiftRock_A_01_Alb.bntx.zs",
+    "Tex/Obj_HidingHole_Beehive_A_Alb.bntx.zs",
+    "Tex/Plant_LiftGrass_A_02_Alb.bntx.zs",
+    "Tex/Obj_Plant_A_BillBoard_Alb.bntx.zs",
     "Tex/TriForceMark_Graveyard_Assets_A_Alb.bntx.zs",
     "Foliage/NodeTreeShootLeaf/Land_kokiri_Plant_A_01.foliage.flnt.zs",
 ];

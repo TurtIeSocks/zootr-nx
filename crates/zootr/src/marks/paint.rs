@@ -60,6 +60,12 @@ impl Canvas {
         self.patch((f32::NEG_INFINITY, top), (f32::INFINITY, bottom), feather);
     }
 
+    /// The whole texture in brightened gold.
+    pub(super) fn tint(&mut self) {
+        let all = (f32::NEG_INFINITY, f32::INFINITY);
+        self.patch((all.0, all.0), (all.1, all.1), 1.0);
+    }
+
     /// The rectangle from (`left`, `top`) to (`right`, `bottom`), fractions
     /// of the texture, in brightened gold, fading in and out over
     /// `feather`.
@@ -123,7 +129,6 @@ impl Canvas {
 /// (`AsIs`) or up it (`Flipped`).
 #[derive(Clone, Copy)]
 pub(super) enum Upright {
-    #[allow(dead_code, reason = "the small crate's faces, next")]
     AsIs,
     Flipped,
 }
