@@ -37,6 +37,18 @@ if [ -d "$CARGO_TARGET_DIR" ] && [ "$(du -s --block-size=1G "$CARGO_TARGET_DIR" 
   rm -rf "$CARGO_TARGET_DIR"
 fi
 
+# Build from a fixed copy of the checkout, one a build folder. Each job
+# checks out to a new path with every file new, so cargo rebuilt all our
+# crates and rustc's incremental cache never matched. rsync --checksum
+# without -t rewrites only the files whose content changed, so the rest
+# keep their old times. Then only changed crates rebuild, and rustc reuses
+# the unchanged parts of zootr: a one-line edit built in 44 s against
+# 173 s. --delete drops files the checkout no longer has.
+src=/cache/src-$slot
+mkdir -p "$src"
+rsync -rlpc --delete --exclude .git ./ "$src/"
+cd "$src" || exit 1
+
 # The tests open ../../dump/oot.nup from the crate.
 ln -sf /dump/oot.nup dump/oot.nup
 
