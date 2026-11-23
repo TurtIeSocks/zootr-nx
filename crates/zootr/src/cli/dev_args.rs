@@ -140,6 +140,39 @@ pub(super) enum DevCommand {
         #[arg(long)]
         json: bool,
     },
+    /// How far from a placed holder of the current map its button prompt
+    /// shows: warp Link to spots along lines out from its front, farthest
+    /// first, face it, and ask the vision model whether `word` is up. Says
+    /// each line's edge and every spot tried, by where Link stood.
+    Reach {
+        hash: u64,
+        /// The prompt's word, like `Open` or `Lift`.
+        #[arg(long, default_value = "Open")]
+        word: String,
+        /// Degrees off the holder's front, clockwise from above.
+        #[arg(
+            long,
+            value_delimiter = ',',
+            allow_hyphen_values = true,
+            default_value = "0"
+        )]
+        angles: Vec<f32>,
+        /// The farthest and nearest spots, and the step between, in m.
+        #[arg(long, default_value_t = 2.4)]
+        far: f32,
+        #[arg(long, default_value_t = 0.6)]
+        near: f32,
+        #[arg(long, default_value_t = 0.1)]
+        step: f32,
+        /// Keep each frame here.
+        #[arg(long)]
+        out: Option<std::path::PathBuf>,
+        #[command(flatten)]
+        vision: super::args::VisionArgs,
+        /// One JSON object instead of lines.
+        #[arg(long)]
+        json: bool,
+    },
     /// Put an item on ZR, or gear (boots, a tunic) on or off, through the
     /// menu: the item is given once more, so the menu opens on it, then A.
     /// Names as `give` takes them.
