@@ -162,6 +162,12 @@ const ITEMS: &[(&Name, &str)] = &[
     (actor::OBJ_HEART_CONTAINER, "Heart Container"),
     (actor::OBJ_HEART_PIECE, "Piece of Heart"),
     (actor::TBOX_MAGIC_JAR_LARGE, "Magic Jar"),
+    (actor::OBJ_MAGIC_JAR_SMALL, "Small Magic Jar"),
+    (actor::OBJ_HEART, "Recovery Heart"),
+    (actor::OBJ_FAIRY, "Fairy"),
+    (actor::OBJ_BOMB, "Bomb"),
+    (actor::OBJ_DEKU_STICK, "Deku Stick"),
+    (actor::OBJ_DEKU_SEED, "Deku Seeds (3)"),
     (actor::T_BOX_ARROW_BUNDLE_SMALL, "Arrows (3)"),
     (actor::T_BOX_ARROW_BUNDLE_MEDIUM, "Arrows (5)"),
     (actor::T_BOX_ARROW_BUNDLE_LARGE, "Arrows (10)"),
@@ -202,9 +208,15 @@ pub fn area(folder: &str) -> Result<&'static str> {
 /// Items AP counts as another, which gives the same: a gift's rupee pays
 /// what a chest's does.
 const SAME: &[(&Name, &Name)] = &[
+    (actor::OBJ_RUPEE_GREEN, actor::T_BOX_RUPEE_GREEN),
     (actor::OBJ_RUPEE_BLUE, actor::T_BOX_RUPEE_BLUE),
+    (actor::OBJ_RUPEE_RED, actor::T_BOX_RUPEE_RED),
     (actor::OBJ_RUPEE_PURPLE, actor::T_BOX_RUPEE_PURPLE),
     (actor::OBJ_RUPEE_GOLD, actor::T_BOX_RUPEE_GOLD),
+    (
+        actor::OBJ_ARROW_BUNDLE_SMALL,
+        actor::T_BOX_ARROW_BUNDLE_SMALL,
+    ),
 ];
 
 /// The item AP counts `actor` as.
@@ -285,6 +297,8 @@ pub fn locations(romfs: &Romfs, checks: &[ItemCheck]) -> Result<BTreeMap<u64, St
             format!("{area} {}", beside(area, &c.holder))
         } else if c.hash == goron_pot::HASH {
             format!("{area} Spinning Pot {}", item(&c.item, false)?)
+        } else if let Some(kind) = breakable(c) {
+            format!("{area} {kind}")
         } else if pickups::is_pickup(c) {
             format!("{area} {}", item(&c.item, false)?)
         } else if !s.place.is_empty() {
@@ -304,6 +318,24 @@ pub fn locations(romfs: &Romfs, checks: &[ItemCheck]) -> Result<BTreeMap<u64, St
         "two checks share a location name"
     );
     Ok(out)
+}
+
+/// What breakable holds `check`, as its location names it: a pot, not
+/// the drop it held in the vanilla game.
+fn breakable(check: &ItemCheck) -> Option<&'static str> {
+    use pickups::{CRATES, FLYING_POTS, GRASS, HIVES, POTS, ROCKS};
+    let kinds = [
+        (&POTS, "Pot"),
+        (&FLYING_POTS, "Flying Pot"),
+        (&CRATES, "Crate"),
+        (&ROCKS, "Rock"),
+        (&GRASS, "Grass"),
+        (&HIVES, "Beehive"),
+    ];
+    kinds
+        .into_iter()
+        .find(|(k, _)| k.holds(check))
+        .map(|(_, name)| name)
 }
 
 /// Gives each check whose name another shares where it stands in its area:
@@ -396,6 +428,27 @@ fn title(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every breakable reads as what holds it, never its drop: "Kakariko
+    /// Village East Pot 3".
+    #[test]
+    fn a_breakable_is_named_by_its_kind() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let on = ["pots", "crates", "rocks", "grass", "hives"];
+        let settings = on.map(|id| (id.to_owned(), true.into())).into();
+        let new_game = crate::settings::NewGame::from_settings(&settings, &[]).unwrap();
+        let mut checks = crate::checks::dealt(&romfs, &new_game).unwrap();
+        checks.retain(|c| breakable(c).is_some());
+        let names = locations(&romfs, &checks).unwrap();
+        for c in &checks {
+            let (kind, name) = (breakable(c).unwrap(), &names[&c.hash]);
+            let bare = name.trim_end_matches(|ch: char| ch.is_ascii_digit() || ch == ' ');
+            assert!(bare.ends_with(kind), "{name} isn't a {kind}");
+        }
+        assert!(checks.len() > 900, "{} breakables", checks.len());
+    }
 
     /// A gift reads as its giver, without the area twice.
     #[test]

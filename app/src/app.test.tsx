@@ -34,6 +34,7 @@ const toggle = (id: string, group: string): SettingDef => ({
   section_about: "Fake about",
   list: false,
   gives: [],
+  archipelago: { ap: "offered" },
 });
 
 const seed: Summary = {

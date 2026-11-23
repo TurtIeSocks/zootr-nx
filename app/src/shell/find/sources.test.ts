@@ -32,6 +32,7 @@ const def = (over: Partial<SettingDef> = {}): SettingDef => ({
   section_about: "",
   list: false,
   gives: [],
+  archipelago: { ap: "offered" },
   ...over,
 });
 

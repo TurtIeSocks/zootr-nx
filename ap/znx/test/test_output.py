@@ -9,7 +9,7 @@ import zipfile
 from Fill import distribute_items_restrictive
 from worlds.AutoWorld import call_all
 
-from ..exported import ITEM_NAME_TO_ID, OPTIONS, WORLD
+from ..exported import ITEM_NAME_TO_ID, OPTIONS, POOL, WORLD
 from . import ZnxTestBase
 
 
@@ -39,3 +39,13 @@ class TestOutput(ZnxTestBase):
         self.assertEqual(seed["start"], [ITEM_NAME_TO_ID["Boomerang"]])
         self.assertIs(seed["death_link"], True)
         self.assertEqual(seed["players"], {str(self.player): self.multiworld.player_name[self.player]})
+
+
+class TestFillerIsInTheDeal(ZnxTestBase):
+    """Start inventory from the pool puts filler in its place: one these
+    options' pool holds, or our client can't give it."""
+
+    def test_filler_is_held(self) -> None:
+        world = self.multiworld.worlds[self.player]
+        held = {row["item"] for row in POOL if world.holds(row)}
+        self.assertIn(world.get_filler_item_name(), held)

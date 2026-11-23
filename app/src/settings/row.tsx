@@ -1,17 +1,35 @@
 import type { ReactNode } from "react";
+import type { Archipelago } from "@/bindings";
 import { Help } from "@/components/help";
 import { Tip } from "@/components/tip";
 import { Badge, ChangedDot } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import type { HelpTopic } from "@/help/topics";
 import { cn } from "@/lib/utils";
-import { untested } from "@/settings/setting";
+import { notInAp, untested } from "@/settings/setting";
 
 /** Marks a setting not yet played through. */
 export function UntestedBadge() {
   return (
     <Tip focusable tip="Not played through yet, so it may misbehave">
       <Badge variant="gold">Untested</Badge>
+    </Tip>
+  );
+}
+
+/** Props for {@link NotInApBadge}. */
+export interface NotInApBadgeProps {
+  /** Why the Archipelago world leaves it out, or nothing while it offers
+   * it. */
+  why: string | undefined;
+}
+
+/** Marks a setting or pick the Archipelago world leaves out, saying why. */
+export function NotInApBadge({ why }: NotInApBadgeProps) {
+  if (!why) return null;
+  return (
+    <Tip focusable tip={why}>
+      <Badge variant="ap">Not in AP</Badge>
     </Tip>
   );
 }
@@ -29,6 +47,8 @@ export interface RowProps {
   changed?: boolean;
   /** Mutes the label. */
   locked?: boolean;
+  /** Marks a setting the Archipelago world leaves out. */
+  archipelago?: Archipelago;
   /** A line under the description. */
   under?: ReactNode;
   children: ReactNode;
@@ -43,6 +63,7 @@ export function Row({
   description,
   changed,
   locked,
+  archipelago,
   under,
   children,
 }: RowProps) {
@@ -71,6 +92,7 @@ export function Row({
           </Label>
           {help && <Help topic={help} />}
           {isUntested && <UntestedBadge />}
+          {archipelago && <NotInApBadge why={notInAp(archipelago)} />}
         </div>
         {text && (
           <p className="mt-0.5 max-w-[62ch] text-pretty text-[13px] text-ink-muted leading-[18px]">

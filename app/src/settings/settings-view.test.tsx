@@ -43,6 +43,7 @@ const toggle = (
   section_about: "Fake about",
   list: false,
   gives: [],
+  archipelago: { ap: "offered" },
   ...patch,
 });
 
@@ -56,6 +57,7 @@ const choice = (id: string, label: string, options: string[]): SettingDef => ({
       label: o,
       forces: [],
       starts: [],
+      archipelago: { ap: "offered" },
     })),
   },
 });
@@ -228,6 +230,54 @@ test("an untested description becomes a badge", () => {
   expect(screen.getByText("Untested")).toBeTruthy();
   expect(screen.getByText("Pop-ups go")).toBeTruthy();
   expect(screen.queryByText(/Untested\./)).toBeNull();
+});
+
+test("a setting the AP world leaves out is marked, saying why on focus", async () => {
+  show({
+    defs: [
+      toggle("fake-traps", "Fake traps", {
+        archipelago: { ap: "later", why: "the item pool" },
+      }),
+      toggle("open-forest", "Open forest"),
+    ],
+  });
+  const marks = screen.getAllByText("Not in AP");
+  expect(marks).toHaveLength(1);
+  fireEvent.focus(marks[0] as HTMLElement);
+  expect((await screen.findByRole("tooltip")).textContent).toBe(
+    "Not in Archipelago yet (the item pool)",
+  );
+});
+
+test("a choice's picks the AP world leaves out are listed under it", () => {
+  const keys = choice("fake-keys", "Fake keys", [
+    "Vanilla",
+    "Rings",
+    "Singles",
+  ]);
+  if (keys.kind.type !== "choice") throw new Error("a choice");
+  for (const o of keys.kind.options.slice(1)) {
+    o.archipelago = { ap: "later", why: "keys" };
+  }
+  show({ defs: [keys] });
+  expect(screen.getByText("Rings, Singles")).toBeTruthy();
+  expect(screen.getAllByText("Not in AP")).toHaveLength(1);
+});
+
+test("a checklist item the AP world leaves out is marked", () => {
+  const lake = cutscene("lake", "Lake Hylia", null, "By area");
+  show({
+    defs: [
+      cutscene("kokiri", "Kokiri Forest", null, "By area"),
+      { ...lake, archipelago: { ap: "never", why: "fake reason" } },
+    ],
+    section: "Cutscenes",
+  });
+  const item = screen.getByRole("checkbox", { name: "Lake Hylia" });
+  expect(
+    within(item.closest("label") as HTMLElement).getByText("Not in AP"),
+  ).toBeTruthy();
+  expect(screen.getAllByText("Not in AP")).toHaveLength(1);
 });
 
 test("a changed setting can be reset, alone or with its group", async () => {
@@ -779,8 +829,20 @@ const age: SettingDef = {
     type: "choice",
     default: "child",
     options: [
-      { id: "child", label: "Child", forces: [], starts: [] },
-      { id: "adult", label: "Adult", forces: ["door"], starts: [] },
+      {
+        id: "child",
+        label: "Child",
+        forces: [],
+        starts: [],
+        archipelago: { ap: "offered" },
+      },
+      {
+        id: "adult",
+        label: "Adult",
+        forces: ["door"],
+        starts: [],
+        archipelago: { ap: "offered" },
+      },
     ],
   },
 };

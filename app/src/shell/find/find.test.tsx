@@ -34,6 +34,7 @@ const cows: SettingDef = {
   section_about: "",
   list: false,
   gives: [],
+  archipelago: { ap: "offered" },
 };
 
 /** The top bar, the settings page while it's open, and the search. */

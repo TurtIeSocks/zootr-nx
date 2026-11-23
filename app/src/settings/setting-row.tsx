@@ -15,9 +15,10 @@ import { Switch } from "@/components/ui/switch";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
 import { affects, chosen, forcedPick, isOn, type Patch } from "@/lib/settings";
-import { Row } from "@/settings/row";
+import { NotInApBadge, Row } from "@/settings/row";
 import {
   controlId,
+  heldPicks,
   labelId,
   segmented,
   useLockedBy,
@@ -126,6 +127,20 @@ function Needs({ needed }: NeedsProps) {
   );
 }
 
+/** "Not in AP: Key rings, Keysanity", under a choice for each reason the
+ * Archipelago world leaves some of its picks out. */
+function HeldPicks({ def }: SettingRowProps) {
+  return heldPicks(def).map(([why, labels]) => (
+    <p
+      key={why}
+      className="mt-1.5 flex items-center gap-1.5 text-ink-faint text-xs"
+    >
+      <NotInApBadge why={why} />
+      {labels.join(", ")}
+    </p>
+  ));
+}
+
 /** The row around a setting's control, inside its request. */
 function SettingRowFrame({ def }: SettingRowProps) {
   const parent = useLockedBy(def);
@@ -143,8 +158,10 @@ function SettingRowFrame({ def }: SettingRowProps) {
       description={def.description}
       changed={changed}
       locked={parent !== undefined || needed !== undefined}
+      archipelago={def.archipelago}
       under={
         <>
+          <HeldPicks def={def} />
           {parent && <LockedBy parent={parent} pick={pick} />}
           {needed && <Needs needed={needed} />}
           {forced.length > 0 && <Affects forced={forced} />}

@@ -34,6 +34,7 @@ const toggles = (n: number): SettingDef[] =>
     section_about: "Fake about",
     list: false,
     gives: [],
+    archipelago: { ap: "offered" },
   }));
 
 test("lists a few settings and counts many", () => {
@@ -62,6 +63,7 @@ test("a parent turns its children on and stands in for them", () => {
     section_about: "Fake about",
     list: false,
     gives: [],
+    archipelago: { ap: "offered" },
   });
   const child = off("s1", "s0");
   const schema = [off("s0", null), child, off("s2", "s0")];
@@ -82,8 +84,20 @@ test("a choice's pick forces toggles on and gives start words", () => {
       type: "choice",
       default: "child",
       options: [
-        { id: "child", label: "Child", forces: [], starts: [] },
-        { id: "adult", label: "Adult", forces: ["door"], starts: ["sword"] },
+        {
+          id: "child",
+          label: "Child",
+          forces: [],
+          starts: [],
+          archipelago: { ap: "offered" },
+        },
+        {
+          id: "adult",
+          label: "Adult",
+          forces: ["door"],
+          starts: ["sword"],
+          archipelago: { ap: "offered" },
+        },
       ],
     },
   };
@@ -104,8 +118,20 @@ test("a choice's pick forces toggles on and gives start words", () => {
       type: "choice",
       default: "open",
       options: [
-        { id: "shut", label: "Shut", forces: [], starts: [] },
-        { id: "open", label: "Open", forces: [], starts: [] },
+        {
+          id: "shut",
+          label: "Shut",
+          forces: [],
+          starts: [],
+          archipelago: { ap: "offered" },
+        },
+        {
+          id: "open",
+          label: "Open",
+          forces: [],
+          starts: [],
+          archipelago: { ap: "offered" },
+        },
       ],
     },
   };
@@ -115,8 +141,20 @@ test("a choice's pick forces toggles on and gives start words", () => {
       type: "choice",
       default: "child",
       options: [
-        { id: "child", label: "Child", forces: [], starts: [] },
-        { id: "adult", label: "Adult", forces: ["gate=open"], starts: [] },
+        {
+          id: "child",
+          label: "Child",
+          forces: [],
+          starts: [],
+          archipelago: { ap: "offered" },
+        },
+        {
+          id: "adult",
+          label: "Adult",
+          forces: ["gate=open"],
+          starts: [],
+          archipelago: { ap: "offered" },
+        },
       ],
     },
   };
@@ -159,8 +197,20 @@ test("a choice is summed up only off its default", () => {
       type: "choice",
       default: "big",
       options: [
-        { id: "big", label: "Big", forces: [], starts: [] },
-        { id: "small", label: "Small", forces: [], starts: [] },
+        {
+          id: "big",
+          label: "Big",
+          forces: [],
+          starts: [],
+          archipelago: { ap: "offered" },
+        },
+        {
+          id: "small",
+          label: "Small",
+          forces: [],
+          starts: [],
+          archipelago: { ap: "offered" },
+        },
       ],
     },
     parent: null,
@@ -169,6 +219,7 @@ test("a choice is summed up only off its default", () => {
     section_about: "Fake about",
     list: false,
     gives: [],
+    archipelago: { ap: "offered" },
   };
   expect(summary([size], {})).toBe("Nothing extra");
   expect(summary([size], { size: "small" })).toBe("Size: Small");
@@ -209,6 +260,7 @@ function diffSchema(): SettingDef[] {
     section_about: "Fake about",
     list: false,
     gives: [],
+    archipelago: { ap: "offered" },
   });
   const size: SettingDef = {
     ...def("size"),
@@ -216,9 +268,27 @@ function diffSchema(): SettingDef[] {
       type: "choice",
       default: "a",
       options: [
-        { id: "a", label: "Big", forces: [], starts: [] },
-        { id: "b", label: "Small", forces: [], starts: [] },
-        { id: "c", label: "Tiny", forces: [], starts: [] },
+        {
+          id: "a",
+          label: "Big",
+          forces: [],
+          starts: [],
+          archipelago: { ap: "offered" },
+        },
+        {
+          id: "b",
+          label: "Small",
+          forces: [],
+          starts: [],
+          archipelago: { ap: "offered" },
+        },
+        {
+          id: "c",
+          label: "Tiny",
+          forces: [],
+          starts: [],
+          archipelago: { ap: "offered" },
+        },
       ],
     },
   };
@@ -315,8 +385,20 @@ test("a setting's value names what it gives the grid", () => {
       type: "choice",
       default: "normal",
       options: [
-        { id: "normal", label: "Normal", forces: [], starts: [] },
-        { id: "freed", label: "Freed", forces: [], starts: [] },
+        {
+          id: "normal",
+          label: "Normal",
+          forces: [],
+          starts: [],
+          archipelago: { ap: "offered" },
+        },
+        {
+          id: "freed",
+          label: "Freed",
+          forces: [],
+          starts: [],
+          archipelago: { ap: "offered" },
+        },
       ],
     },
     gives: [["freed", ["gerudo-card"]]],
