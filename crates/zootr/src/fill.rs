@@ -260,7 +260,10 @@ mod tests {
             }
         };
         let seeds: Vec<u64> = (0..SEEDS).collect();
-        let failed: Vec<String> = crate::par::map(&seeds, one).into_iter().flatten().collect();
+        let failed: Vec<String> = ounce_formats::par_map(&seeds, one)
+            .into_iter()
+            .flatten()
+            .collect();
         assert!(
             failed.is_empty(),
             "{} of {SEEDS} failed:\n{}",
