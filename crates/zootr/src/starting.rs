@@ -130,8 +130,46 @@ pub fn with_gives(mut grants: Vec<Grant>, give: &[String]) -> Vec<Grant> {
     grants
 }
 
+/// The get flow's heart gauge calls, in the order a heart container's get
+/// runs them: queue the refill, show the hearts, play it. A granted
+/// container raises max health and health but leaves the hearts it added
+/// drawn empty (live, 2026-11-23: twenty hearts drew as three and the
+/// last), so the opening runs these after its grants.
+const GAUGE: [(&Name, &Name); 3] = [
+    (
+        field::UI_SYSTEM_ACTOR,
+        flow::EVENT_TRIGGER_RESERVE_RECOVER_OR_ADD_HEART_GAUGE,
+    ),
+    (
+        field::UI_SYSTEM_ACTOR,
+        flow::EVENT_TRIGGER_SET_DISPLAY_HEART_GAUGE,
+    ),
+    (
+        field::UI_SYSTEM_ACTOR,
+        flow::EVENT_START_RECOVER_OR_ADD_HEART_GAUGE,
+    ),
+];
+
+/// [`GAUGE`]'s calls, copied from the get flow, when `grants` holds a
+/// heart container. None otherwise.
+fn redraw(romfs: &Romfs, grants: &[Grant]) -> Result<Vec<Model>> {
+    let container = actor::OBJ_HEART_CONTAINER.get();
+    if !grants.iter().any(|g| g.actor == container) {
+        return Ok(Vec::new());
+    }
+    let get = flows::load(romfs, flow::SY_GET)?.context("the get flow is a timeline")?;
+    (GAUGE.iter())
+        .map(|&what| {
+            let at = flows::switch(&get, what)
+                .with_context(|| format!("{} never runs {}", flow::SY_GET, what.1))?;
+            flows::model(&get, what, at)
+        })
+        .collect()
+}
+
 /// Add `grants` to the opening flow in `rewrites`, or the game's own when
-/// no other setting rewrote it.
+/// no other setting rewrote it, then redraw the hearts any heart container
+/// added.
 pub fn grant(romfs: &Romfs, rewrites: &mut Rewrites, grants: &[Grant]) -> Result<()> {
     if grants.is_empty() {
         return Ok(());
@@ -143,8 +181,11 @@ pub fn grant(romfs: &Romfs, rewrites: &mut Rewrites, grants: &[Grant]) -> Result
     }
     let (template, pouch) = inline::Models::load(romfs)?;
     let wait = inline::frame(&pouch)?;
+    let gauge = redraw(romfs, grants)?;
     flows::edit(romfs, rewrites, OPENING, |flow| {
-        chain(flow, &template, &wait, grants).context("granting the starting items")
+        chain(flow, &template, &wait, grants).context("granting the starting items")?;
+        let gauge = gauge.iter().map(|m| (&m.actor, m.name, m.params.clone()));
+        before_save(flow, gauge.collect())
     })
 }
 
@@ -194,6 +235,45 @@ mod tests {
         let slots = swap_out(&mut pool, &owned, level);
         assert_eq!(pool, [FILLER, "Item_A", item::SWORD_KOKIRI, FILLER]);
         assert_eq!(slots, [Some(0), Some(3), None]);
+    }
+
+    #[test]
+    fn a_heart_container_redraws_the_hearts_after_the_grants() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let opening = |words: &[(&str, i32)]| {
+            let mut start = Start::default();
+            words.iter().for_each(|&(w, n)| start.add(w, n).unwrap());
+            let pouch = crate::inventory::Pouch::load(&romfs).unwrap();
+            let mut rewrites = Rewrites::new();
+            grant(&romfs, &mut rewrites, &start.grants(&pouch)).unwrap();
+            flows::current(&romfs, &rewrites, OPENING).unwrap()
+        };
+        let flow = opening(&[("heart-containers", 2), ("kokiri-sword", 1)]);
+        let save = only(&flow, AUTOSAVE).unwrap();
+        // Pushed last to first: the last grant, then the gauge in order,
+        // then the save.
+        let last = *flows::running(&flow, GRANT).first().unwrap();
+        let mut at = last;
+        for what in GAUGE {
+            at = loop {
+                let EventKind::Action { next, .. } = flow.events[at as usize].kind else {
+                    unreachable!()
+                };
+                let next = next.unwrap();
+                if flows::running(&flow, what).contains(&next) {
+                    break next;
+                }
+                at = next;
+            };
+        }
+        let EventKind::Action { next, .. } = flow.events[at as usize].kind else {
+            unreachable!()
+        };
+        assert_eq!(next, Some(save));
+        let none = opening(&[("kokiri-sword", 1)]);
+        assert!(GAUGE.iter().all(|&w| flows::running(&none, w).is_empty()));
     }
 
     #[test]
