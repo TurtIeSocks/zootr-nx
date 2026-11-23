@@ -296,14 +296,14 @@ pub fn spots(root: &Byml, holders: &[Holder], copies: &[(u64, u64)]) -> Result<V
     let holder = |placed: u64| {
         let of = copies.iter().find(|(_, copy)| *copy == placed);
         let hash = of.map_or(placed, |(of, _)| *of);
-        holders.iter().any(|h| h.hash == hash).then_some(hash)
+        holders.iter().find(|h| h.hash == hash)
     };
     let mut out = Vec::new();
     for actor in checks::actors(root)? {
         let Some(placed) = hash_of(actor) else {
             continue;
         };
-        let Some(hash) = holder(placed) else {
+        let Some(Holder { hash, after }) = holder(placed) else {
             continue;
         };
         let dynamic = actor.as_map()?.get("Dynamic");
@@ -313,9 +313,14 @@ pub fn spots(root: &Byml, holders: &[Holder], copies: &[(u64, u64)]) -> Result<V
         let at =
             vec3(actor, TRANSLATE).with_context(|| format!("holder {placed} stands nowhere"))?;
         out.push(Spot {
-            flag: murmur3(flag(hash).as_bytes()),
+            flag: murmur3(flag(*hash).as_bytes()),
             name: Spot::name_hash(drop.as_bytes()),
             at: at.map(|v| v.round() as i16),
+            placed,
+            twin: match after {
+                After::Twin(twin) => *twin,
+                _ => 0,
+            },
         });
     }
     Ok(out)
@@ -606,6 +611,10 @@ mod tests {
             .unwrap();
         let at = vec3(placed, TRANSLATE).unwrap();
         assert_eq!(mine.at, at.map(|v| v.round() as i16));
+        // Its take breaks its twin along with it.
+        let rock_holder = holders.iter().find(|h| h.hash == rock.hash).unwrap();
+        assert_eq!(After::Twin(mine.twin), rock_holder.after);
+        assert_eq!(mine.placed, rock.hash);
         // Twins aren't listed: one spot per holder in the file.
         let here = holders
             .iter()
@@ -619,22 +628,24 @@ mod tests {
     }
 
     #[test]
-    fn each_spot_is_two_entries_the_hook_reads_back_by_index() {
+    fn each_spot_is_four_entries_the_hook_reads_back_by_index() {
         let spot = |flag| Spot {
             flag,
             name: 7,
             at: [-3, 0, 900],
+            placed: u64::MAX - u64::from(flag),
+            twin: u64::from(flag) << 40,
         };
         let spots = [spot(1), spot(2)];
         let entries = entries(&spots);
         let keys: Vec<u32> = entries.iter().map(|e| e.0).collect();
         assert_eq!(
             keys,
-            (0..4).map(|k| zootr_hook::SPOT_KEY + k).collect::<Vec<_>>()
+            (0..8).map(|k| zootr_hook::SPOT_KEY + k).collect::<Vec<_>>()
         );
         for (i, s) in (0..).zip(spots) {
             let word = |w| entries.iter().find(|e| e.0 == Spot::key(i, w)).unwrap().1;
-            assert_eq!(Spot::from_words([word(0), word(1)]), s);
+            assert_eq!(Spot::from_words([0, 1, 2, 3].map(word)), s);
         }
     }
 

@@ -105,7 +105,10 @@ mod tests {
         .map(String::from);
         assert_eq!(
             flags(&written),
-            ["Rando_Taken_Obj_Rando_007", "Rando_Taken_Obj_RandoStep_012_1"]
+            [
+                "Rando_Taken_Obj_Rando_007",
+                "Rando_Taken_Obj_RandoStep_012_1"
+            ]
         );
     }
 
@@ -135,7 +138,12 @@ mod tests {
         // The take's vanilla children stay first, the branch comes last.
         let push = field::ONE_SHOT_POUCH_CONTENT_PUSH_TO_POUCH_OWN_IN_EVENT.get();
         let take = (0..f.node_count())
-            .find(|&n| f.children(n).unwrap().iter().any(|(_, k)| class(*k as usize) == push))
+            .find(|&n| {
+                f.children(n)
+                    .unwrap()
+                    .iter()
+                    .any(|(_, k)| class(*k as usize) == push)
+            })
             .unwrap();
         let children = f.children(take).unwrap();
         let (last, kept) = children.split_last().unwrap();
@@ -152,8 +160,14 @@ mod tests {
 
         assert_eq!(class(child(ours, "False")), field::ONESHOT_DO_NOTHING.get());
         let set = child(ours, "True");
-        assert_eq!(class(set), field::ONE_SHOT_SET_NON_STRUCT_GAME_DATA_BOOL.get());
-        assert_eq!(g.nodes[set].value(field::VALUE.get()), Some(&Value::Bool(true)));
+        assert_eq!(
+            class(set),
+            field::ONE_SHOT_SET_NON_STRUCT_GAME_DATA_BOOL.get()
+        );
+        assert_eq!(
+            g.nodes[set].value(field::VALUE.get()),
+            Some(&Value::Bool(true))
+        );
         let concat = from(set, field::GAME_DATA_FULL_NAME.get()).node;
         assert_eq!(class(concat), field::QUERY_GENERIC_CONCAT_STRING.get());
         assert_eq!(g.nodes[concat].str("Input0"), Some(TAKEN));

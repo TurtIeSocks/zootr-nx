@@ -693,14 +693,10 @@ pub(crate) mod tests {
         heap: &[(u64, Vec<u8>)],
         keys: &[(u64, bool)],
     ) -> Fake {
-        let mut manager = vec![0; KEYS as usize + 0x10];
+        let mut manager = vec![0; KEYS + 0x10];
         let at = 0x80000u64;
-        put(
-            &mut manager,
-            KEYS as usize,
-            &(keys.len() as u32).to_le_bytes(),
-        );
-        put(&mut manager, KEYS as usize + 8, &at.to_le_bytes());
+        put(&mut manager, KEYS, &(keys.len() as u32).to_le_bytes());
+        put(&mut manager, KEYS + 8, &at.to_le_bytes());
         let entries = (keys.iter()).flat_map(|&(k, on)| {
             let mut e = [0u8; KEY_STRIDE];
             put(&mut e, 0, &k.to_le_bytes());

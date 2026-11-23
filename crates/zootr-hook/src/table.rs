@@ -299,48 +299,57 @@ impl Credit {
 /// where it lands.
 pub const REACH: f32 = 8.0;
 
-/// The flag of the holder whose drop Link just took: `name`, lying `at`.
-/// The nearest of `spots` within [`REACH`] that drops that name, of those
-/// not yet `picked`. Two holders dropping the same name that close may
-/// swap ticks, which leaves Link the same item either way.
+/// The holder whose drop Link just took: `name`, lying `at`. The nearest
+/// of `spots` within [`REACH`] that drops that name, of those not yet
+/// `picked`. Two holders dropping the same name that close may swap ticks,
+/// which leaves Link the same item either way.
 pub fn nearest(
     spots: impl Iterator<Item = Spot>,
     name: &[u8],
     at: [f32; 3],
     picked: impl Fn(u32) -> bool,
-) -> Option<u32> {
+) -> Option<Spot> {
     let name = Spot::name_hash(name);
-    let mut best: Option<(f32, u32)> = None;
+    let mut best: Option<(f32, Spot)> = None;
     for s in spots.filter(|s| s.name == name) {
         let d = s.distance2(at);
         let nearer = best.is_none_or(|(b, _)| d < b);
         if nearer && d <= REACH * REACH && !picked(s.flag) {
-            best = Some((d, s.flag));
+            best = Some((d, s));
         }
     }
-    best.map(|(_, flag)| flag)
+    best.map(|(_, s)| s)
 }
 
-/// Where the spots' GameData hashes start, two to a spot: murmur3 of
-/// `Rando_Spot`, so the hook needs no name hashing.
+/// Where the spots' GameData hashes start, [`Spot::WORDS`] to a spot:
+/// murmur3 of `Rando_Spot`, so the hook needs no name hashing.
 pub const SPOT_KEY: u32 = 0xa5b7_e07e;
 
-/// A twinned holder (a pot, box, rock or hive): the Bool its drop sets
-/// once taken, the drop's name by [`Spot::name_hash`], and where the holder
-/// stands, in whole metres. The seed writes each as two unsaved UInt64s in
-/// GameData, at [`Spot::key`].
+/// A twinned holder (a pot, box, rock or hive), or one of its step
+/// copies: the Bool its drop sets once taken, the drop's name by
+/// [`Spot::name_hash`], where it stands, in whole metres, its own
+/// placement and its twin's (0 for none), whose keys
+/// ([`crate::keys`]) the take keeps alike. The seed writes each as
+/// unsaved UInt64s in GameData, at [`Spot::key`].
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Spot {
     pub flag: u32,
     pub name: u16,
     pub at: [i16; 3],
+    pub placed: u64,
+    pub twin: u64,
 }
 
 impl Spot {
+    /// How many GameData words a spot takes.
+    pub const WORDS: u32 = 4;
+
     /// The GameData hash of spot `i`'s `word`: 0 its flag and name, 1
-    /// where it stands.
+    /// where it stands, 2 its placement, 3 its twin's.
     pub fn key(i: u32, word: u32) -> u32 {
-        SPOT_KEY.wrapping_add(i.wrapping_mul(2)).wrapping_add(word)
+        SPOT_KEY
+            .wrapping_add(i.wrapping_mul(Self::WORDS))
+            .wrapping_add(word)
     }
 
     /// The low half of a name's FNV-1a.
@@ -348,22 +357,25 @@ impl Spot {
         fnv(name) as u16
     }
 
-    /// The spot from its two GameData words.
-    pub fn from_words([who, at]: [u64; 2]) -> Self {
+    /// The spot from its GameData words.
+    pub fn from_words([who, at, placed, twin]: [u64; Self::WORDS as usize]) -> Self {
         Self {
             flag: who as u32,
             name: (who >> 32) as u16,
             at: [0, 16, 32].map(|shift| (at >> shift) as u16 as i16),
+            placed,
+            twin,
         }
     }
 
-    /// Its two GameData words: the flag and name, then where it stands.
+    /// Its GameData words: the flag and name, where it stands, its
+    /// placement, then its twin's.
     #[cfg(not(target_os = "none"))]
-    pub fn words(self) -> [u64; 2] {
+    pub fn words(self) -> [u64; Self::WORDS as usize] {
         let who = u64::from(self.flag) | u64::from(self.name) << 32;
         let at = (self.at.iter().zip([0, 16, 32]))
             .fold(0, |at, (&v, shift)| at | u64::from(v as u16) << shift);
-        [who, at]
+        [who, at, self.placed, self.twin]
     }
 
     fn distance2(&self, at: [f32; 3]) -> f32 {
@@ -636,6 +648,8 @@ mod tests {
             flag,
             name: h as u16,
             at,
+            placed: flag as u64 + 100,
+            twin: flag as u64 + 200,
         }
     }
 
@@ -858,7 +872,7 @@ mod tests {
 
     fn take(name: &str, at: [f32; 3], picked: &[u32]) -> Option<u32> {
         let spots = SPOTS.iter().map(|s| Spot::from_words(s.words()));
-        nearest(spots, name.as_bytes(), at, |f| picked.contains(&f))
+        nearest(spots, name.as_bytes(), at, |f| picked.contains(&f)).map(|s| s.flag)
     }
 
     #[test]
@@ -887,8 +901,8 @@ mod tests {
         let far = spot(u32::MAX, "Obj_FakeGreen", [-32768, -1, 32767]);
         assert_eq!(Spot::from_words(far.words()), far);
         assert_eq!(
-            (Spot::key(0, 0), Spot::key(0, 1), Spot::key(1, 0)),
-            (SPOT_KEY, SPOT_KEY + 1, SPOT_KEY + 2)
+            (Spot::key(0, 0), Spot::key(0, 3), Spot::key(1, 0)),
+            (SPOT_KEY, SPOT_KEY + 3, SPOT_KEY + 4)
         );
     }
 
