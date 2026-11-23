@@ -64,6 +64,27 @@ pub(super) enum LogicCommand {
         #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
         dir: PathBuf,
     },
+    /// Set what a hand exit needs (`exits.toml`). Refused, with nothing
+    /// written, unless every file still loads.
+    SetExit {
+        /// Its `from` place, like `sacred-forest-meadow-adult`.
+        from: String,
+        /// Its `to` place, like `forest-temple`.
+        to: String,
+        #[arg(long)]
+        needs: String,
+        #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
+        dir: PathBuf,
+    },
+    /// Set what being inside a place needs (`[[inside]]`, like the Forest
+    /// Temple's `adult`).
+    SetInside {
+        place: String,
+        #[arg(long)]
+        needs: String,
+        #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
+        dir: PathBuf,
+    },
     /// The room files' playtest queue: hand rules that disagree with a room
     /// rule, guesses with their reasons, and routes that take knowledge.
     Audit {

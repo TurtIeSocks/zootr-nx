@@ -22,7 +22,7 @@ pub mod rooms;
 mod set;
 pub mod vocab;
 
-pub use set::{Edit, set};
+pub use set::{Edit, Way, set, set_way};
 
 pub use files::{ExitRule, PlaceRule, SourceRule, settings_read};
 pub use lang::{Expr, Have, Need, parse};
@@ -103,7 +103,7 @@ pub struct Book {
     checks: BTreeMap<u64, CheckEntry>,
     pub exits: Vec<ExitRule>,
     pub alternatives: Vec<PlaceRule>,
-    insides: Vec<PlaceRule>,
+    pub insides: Vec<PlaceRule>,
     pub sources: Vec<SourceRule>,
     toggles: BTreeSet<String>,
     /// The room files, confirmed over baseline.

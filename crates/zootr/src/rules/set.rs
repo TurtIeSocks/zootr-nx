@@ -84,14 +84,82 @@ fn check(text: &str, hash: u64) -> Option<Range<usize>> {
 /// `key`, from its table line to the blank, comment or table line after it.
 pub(super) fn block(text: &str, table: &str, key: &str) -> Option<Range<usize>> {
     let lines: Vec<&str> = text.lines().collect();
-    let at = (1..lines.len()).find(|&i| lines[i] == key && lines[i - 1] == table)?;
-    let end = (at + 1..lines.len())
-        .find(|&i| {
-            let l = lines[i].trim();
-            l.is_empty() || l.starts_with('[') || l.starts_with('#')
-        })
-        .unwrap_or(lines.len());
-    Some(at - 1..end)
+    entries(text, table).find(|r| lines.get(r.start + 1) == Some(&key))
+}
+
+/// Each `table` entry's lines, from its table line to the blank, comment
+/// or table line after it.
+fn entries(text: &str, table: &str) -> std::vec::IntoIter<Range<usize>> {
+    let lines: Vec<&str> = text.lines().collect();
+    let end = |at: usize| {
+        (at + 1..lines.len())
+            .find(|&i| {
+                let l = lines[i].trim();
+                l.is_empty() || l.starts_with('[') || l.starts_with('#')
+            })
+            .unwrap_or(lines.len())
+    };
+    (0..lines.len())
+        .filter(|&i| lines[i] == table)
+        .map(|at| at..end(at))
+        .collect::<Vec<_>>()
+        .into_iter()
+}
+
+/// A way into a place whose need `logic set-exit` or `set-inside` sets.
+pub enum Way {
+    Exit { from: String, to: String },
+    Inside { place: String },
+}
+
+impl Way {
+    /// Its entry's lines in `text`.
+    fn find(&self, text: &str) -> Option<Range<usize>> {
+        let lines: Vec<&str> = text.lines().collect();
+        let has = |r: &Range<usize>, key: &str, value: &str| {
+            lines[r.clone()].contains(&format!("{key} = {}", quote(value)).as_str())
+        };
+        match self {
+            Way::Exit { from, to } => {
+                entries(text, "[[exit]]").find(|r| has(r, "from", from) && has(r, "to", to))
+            }
+            Way::Inside { place } => entries(text, "[[inside]]").find(|r| has(r, "place", place)),
+        }
+    }
+}
+
+/// Sets a hand exit's or inside rule's need in the rule files under
+/// `dir`, then writes only if every file still loads. Returns the file.
+pub fn set_way(dir: &Path, way: &Way, needs: &str) -> Result<PathBuf> {
+    let mut files = rule_files(dir)?;
+    let (at, range) = (files.iter().enumerate())
+        .find_map(|(i, (_, text))| way.find(text).map(|r| (i, r)))
+        .context("no such exit or inside rule")?;
+    let text = &files[at].1;
+    let mut lines: Vec<String> = text.lines().map(String::from).collect();
+    set_lines(&mut lines, range, vec![("needs", quote(needs))]);
+    files[at].1 = lines.join("\n") + if text.ends_with('\n') { "\n" } else { "" };
+    Book::from_files(&super::files::pairs(&files))
+        .context("the edited rules don't load, nothing written")?;
+    let path = dir.join(files[at].0);
+    fs::write(&path, &files[at].1)?;
+    Ok(path)
+}
+
+/// Each `key = value` set in `range`: replaced where its line is, added
+/// at the end of the entry where it isn't.
+fn set_lines(lines: &mut Vec<String>, mut range: Range<usize>, fields: Vec<(&str, String)>) {
+    for (key, value) in fields {
+        let line = format!("{key} = {value}");
+        let prefix = format!("{key} = ");
+        match range.clone().find(|&i| lines[i].starts_with(&prefix)) {
+            Some(i) => lines[i] = line,
+            None => {
+                lines.insert(range.end, line);
+                range.end += 1;
+            }
+        }
+    }
 }
 
 /// The `key = value` lines an edit writes, values quoted as TOML strings.
@@ -126,20 +194,10 @@ fn era_word(era: Era) -> &'static str {
 /// end of its entry where it doesn't.
 fn update(text: &str, hash: u64, edit: &Edit) -> String {
     let mut lines: Vec<String> = text.lines().map(String::from).collect();
-    let Some(mut range) = check(text, hash) else {
+    let Some(range) = check(text, hash) else {
         return text.to_owned();
     };
-    for (key, value) in fields(edit) {
-        let line = format!("{key} = {value}");
-        let prefix = format!("{key} = ");
-        match range.clone().find(|&i| lines[i].starts_with(&prefix)) {
-            Some(i) => lines[i] = line,
-            None => {
-                lines.insert(range.end, line);
-                range.end += 1;
-            }
-        }
-    }
+    set_lines(&mut lines, range, fields(edit));
     lines.join("\n") + if text.ends_with('\n') { "\n" } else { "" }
 }
 
@@ -213,6 +271,23 @@ mod tests {
         );
         assert!(check(&got, 9).is_some());
         assert_eq!(check(FILE, 9), None);
+    }
+
+    #[test]
+    fn a_way_in_finds_its_entry_by_both_ends() {
+        let text = "[[exit]]\nfrom = \"a\"\nto = \"b\"\nneeds = \"x\"\n\n[[exit]]\nfrom = \"a\"\nto = \"c\"\n\n[[inside]]\nplace = \"c\"\nneeds = \"adult\"\n";
+        let exit = |to: &str| Way::Exit {
+            from: "a".into(),
+            to: to.into(),
+        };
+        assert_eq!(exit("b").find(text), Some(0..4));
+        assert_eq!(exit("c").find(text), Some(5..8));
+        assert_eq!(exit("d").find(text), None);
+        let inside = Way::Inside { place: "c".into() };
+        assert_eq!(inside.find(text), Some(9..12));
+        let mut lines: Vec<String> = text.lines().map(String::from).collect();
+        set_lines(&mut lines, 5..8, vec![("needs", quote("bow"))]);
+        assert_eq!(lines[8], "needs = \"bow\"");
     }
 
     #[test]
