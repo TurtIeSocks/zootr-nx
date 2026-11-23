@@ -53,7 +53,8 @@ cd "$src" || exit 1
 ln -sf /dump/oot.nup dump/oot.nup
 
 log=/logs/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.log
-# CI is set, so the run includes the slow AP export checks.
+# The nightly run adds the checks too slow for every PR.
+[ "${GITHUB_EVENT_NAME:-}" = schedule ] && export ZOOTR_NIGHTLY=1
 CARGO_TERM_COLOR=never cargo test -p zootr --lib --bins --tests > "$log" 2>&1
 status=$?
 
