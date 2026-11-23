@@ -69,6 +69,7 @@ pub(super) fn ainb(romfs: &Romfs, path: &str, out: Option<&Path>) -> Result<()> 
     for (i, node) in graph.nodes.iter().enumerate() {
         let children: Vec<_> = (file.children(i)?.into_iter())
             .map(|(plug, to)| format!("{plug}:#{to}"))
+            .chain((file.links(i)?.into_iter()).map(|(kind, to)| format!("~k{kind}:#{to}")))
             .collect();
         let children = match children.is_empty() {
             true => String::new(),

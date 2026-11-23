@@ -608,6 +608,15 @@ impl File {
             .collect()
     }
 
+    /// `node`'s plugs past its children (kind 3 and up), by kind and the
+    /// node each points at.
+    pub fn links(&self, node: usize) -> Result<Vec<(usize, i32)>> {
+        let plugs = &self.node(node)?.plugs;
+        Ok((plugs.iter().enumerate().skip(CHILD + 1))
+            .flat_map(|(kind, records)| records.iter().map(move |r| (kind, word(r, 0) as i32)))
+            .collect())
+    }
+
     /// Every child plug still pointing nowhere, by node and plug name.
     pub(super) fn unset(&self) -> Option<(usize, String)> {
         let nodes = self.nodes.iter().enumerate();
@@ -702,6 +711,15 @@ mod tests {
                 )
             })
             .collect()
+    }
+
+    #[test]
+    fn links_list_the_plugs_past_the_children() {
+        let f = game();
+        // The string input link, not the generic one or the children.
+        assert_eq!(f.links(5).unwrap(), vec![(STRINGS, 2)]);
+        assert!(f.links(4).unwrap().is_empty());
+        assert!(f.links(0).unwrap().is_empty());
     }
 
     #[test]
