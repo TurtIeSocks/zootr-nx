@@ -286,11 +286,16 @@ fn walk(
 pub(crate) const DEV_DUMP: &str = "../../dump/oot.nup";
 
 /// The dev dump, or `None` without one so tests that need it pass vacuously.
+/// Opened once a process: each test gets a clone, which shares it.
 #[cfg(test)]
 pub(crate) fn dev_dump() -> Option<Romfs> {
-    let path = Path::new(DEV_DUMP);
-    path.exists()
-        .then(|| prepare(path, &Run::silent()).unwrap())
+    static DUMP: std::sync::OnceLock<Option<Romfs>> = std::sync::OnceLock::new();
+    DUMP.get_or_init(|| {
+        let path = Path::new(DEV_DUMP);
+        path.exists()
+            .then(|| prepare(path, &Run::silent()).unwrap())
+    })
+    .clone()
 }
 
 /// Whether tests run without the dev dump, and so without the game's
