@@ -80,6 +80,7 @@ function show(
       section_about: "Fake about",
       list: false,
       gives: [],
+      archipelago: { ap: "offered" },
     },
   ]);
   useConfig.setPath(

@@ -100,6 +100,8 @@ word_enum! {
         /// Show the banner of `hour`'s [`Notice`] for the item actor `map`,
         /// with the popup for an item, as a seed's map change flow runs it.
         Notice = 10,
+        /// Swap Link's age where he stands, with no area load.
+        AgeHere = 11,
     }
 }
 
@@ -136,6 +138,11 @@ word_enum! {
         Unknown = 10,
         /// Link's character controller isn't where a warp looks.
         NoController = 11,
+        /// No area has loaded since the hook came in, so it hasn't met
+        /// the resident actors yet.
+        NoResident = 12,
+        /// The new Link never came: the swap went back to the old age.
+        Stuck = 13,
     }
 }
 

@@ -9,13 +9,8 @@ use ounce_formats::Romfs;
 use serde::Serialize;
 
 use super::{ADULT, CHILD, distance};
-use crate::known::{Name, field, flag};
+use crate::known::flag;
 use crate::{warp, world};
-
-/// Where an age switch lands when the map has no version for the other
-/// age: the Market's entrance, an arrival point at both ages. Prelude of
-/// Light's spot isn't one, and left a black screen.
-const FALLBACK: (&str, &Name) = ("Market", field::MARKET_ENTRANCE);
 
 /// A map and an arrival point in it, written `MAP/SPOT`.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize)]
@@ -100,15 +95,16 @@ pub fn twin(map: &str, child: bool) -> Option<String> {
 }
 
 /// Where switching age from `map` lands: the arrival point of its [`twin`]
-/// nearest `link`, by where [`spots`] puts each, else the Market's
-/// entrance. Both ages' maps share their coordinates.
+/// nearest `link`, by where [`spots`] puts each. `None` without a twin,
+/// or with no arrival point in it: Link swaps where he stands then. Both
+/// ages' maps share their coordinates.
 pub fn other_age(
     map: &str,
     child: bool,
     places: &BTreeSet<Place>,
     link: [f32; 3],
     spots: &HashMap<String, [f32; 3]>,
-) -> Place {
+) -> Option<Place> {
     let away = |p: &Place| {
         spots
             .get(&p.spot)
@@ -119,16 +115,12 @@ pub fn other_age(
             (places.iter().filter(|p| p.map == twin)).min_by(|a, b| away(a).total_cmp(&away(b)))
         })
         .cloned()
-        .unwrap_or_else(|| Place {
-            map: format!("{}{}", FALLBACK.0, if child { ADULT } else { CHILD }),
-            spot: FALLBACK.1.to_string(),
-        })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::map;
+    use crate::known::{field, map};
 
     fn place(text: &str) -> Place {
         Place::parse(text).unwrap()
@@ -204,7 +196,7 @@ mod tests {
     }
 
     #[test]
-    fn switching_age_keeps_the_map_or_goes_to_the_market() {
+    fn switching_age_lands_on_the_twin_nearest_spot_and_nowhere_without_one() {
         needs_names!();
         let places = BTreeSet::from([
             place(&format!(
@@ -219,66 +211,19 @@ mod tests {
             )),
             place(&format!("{}/Entrance", flag::WATER_TEMPLE)),
         ]);
+        let none = HashMap::new();
         assert_eq!(
-            other_age(
-                flag::KAKARIKO_VILLAGE_CHILD,
-                true,
-                &places,
-                [0.0; 3],
-                &HashMap::new()
-            ),
-            place(&format!(
+            other_age(flag::KAKARIKO_VILLAGE_CHILD, true, &places, [0.0; 3], &none),
+            Some(place(&format!(
                 "{}/{}",
                 flag::KAKARIKO_VILLAGE_ADULT,
                 field::KAKARIKO_VILLAGE_ENTRANCE
-            ))
+            )))
         );
-        assert_eq!(
-            other_age(
-                flag::KAKARIKO_VILLAGE_ADULT,
-                false,
-                &places,
-                [0.0; 3],
-                &HashMap::new()
-            ),
-            place(&format!(
-                "{}/{}",
-                flag::MARKET_CHILD,
-                field::MARKET_ENTRANCE
-            ))
-        );
-        assert_eq!(
-            other_age(
-                flag::WATER_TEMPLE,
-                false,
-                &places,
-                [0.0; 3],
-                &HashMap::new()
-            ),
-            place(&format!(
-                "{}/{}",
-                flag::MARKET_CHILD,
-                field::MARKET_ENTRANCE
-            ))
-        );
-    }
-
-    #[test]
-    fn switching_age_from_a_dungeon_lands_where_an_exit_arrives() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let places = places(&romfs).unwrap();
-        for child in [true, false] {
-            let to = other_age(
-                flag::WATER_TEMPLE,
-                child,
-                &places,
-                [0.0; 3],
-                &HashMap::new(),
-            );
-            known(&to, &places).unwrap();
-        }
+        // A twin with no arrival point listed, and a map with no twin.
+        let lone = |map, child| other_age(map, child, &places, [0.0; 3], &none);
+        assert_eq!(lone(flag::KAKARIKO_VILLAGE_ADULT, false), None);
+        assert_eq!(lone(flag::WATER_TEMPLE, false), None);
     }
 
     #[test]
@@ -290,7 +235,7 @@ mod tests {
         let spots = spots(&romfs, map::KOKIRI_FOREST_ADULT).unwrap();
         let lost_woods = spots[&**field::KOKIRI_FOREST_FRONT_OF_LOST_WOOD];
         let near = [lost_woods[0] + 3.0, lost_woods[1], lost_woods[2] - 2.0];
-        let to = other_age(map::KOKIRI_FOREST_CHILD, true, &places, near, &spots);
+        let to = other_age(map::KOKIRI_FOREST_CHILD, true, &places, near, &spots).unwrap();
         assert_eq!(to.map, **map::KOKIRI_FOREST_ADULT);
         assert_eq!(to.spot, **field::KOKIRI_FOREST_FRONT_OF_LOST_WOOD);
     }

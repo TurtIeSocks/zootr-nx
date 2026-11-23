@@ -17,6 +17,7 @@ mod look;
 mod menu;
 mod refill;
 mod rt;
+mod swap;
 
 use chests::{drop_value, level_for, owned, record, recreate, rewrite};
 
@@ -32,7 +33,7 @@ const MAX: usize = 128;
 // The call sites `bl` to content_name at +0, drop_actor at +4, run_speed
 // at +24, the controller reads to +32, +36 and +40, and seed_guide at +68. The hooked
 // functions `b` to +8, +12, +16, +20, +28, +44, +48, +52, +56, +60, +64,
-// +72 and +76 in place of their pacibsp.
+// +72, +76 and +80 in place of their pacibsp.
 // The opening node is in x20 at both content_name call sites.
 //
 // A function hook keeps every argument register and the link register,
@@ -127,6 +128,7 @@ global_asm!(
     "b seed_guide",
     "b equipment_built_entry",
     "b equipment_left_entry",
+    "b resident_made_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -153,6 +155,8 @@ global_asm!(
     "equipment_built_resume:",
     "brk #0",
     "equipment_left_resume:",
+    "brk #0",
+    "resident_made_resume:",
     "brk #0",
     "npad_full_stub:",
     "brk #0",
@@ -196,6 +200,8 @@ global_asm!(
     "function_hook equipment_built, equipment_built_resume",
     "equipment_left_entry:",
     "function_hook equipment_left, equipment_left_resume",
+    "resident_made_entry:",
+    "function_hook resident_made, resident_made_resume",
 );
 
 /// `main`, from where the hook starts.
@@ -367,6 +373,17 @@ pub unsafe extern "C" fn seed_guide(link: usize) -> bool {
     }
 }
 
+/// The game makes the resident actors (the player of an age, the
+/// cameras, Navi) with their manager, on every area load: keep it for an
+/// age swap in place.
+#[unsafe(no_mangle)]
+extern "C" fn resident_made(manager: usize) {
+    hooked(|main, _| {
+        let resident = &shared(main).resident;
+        resident.store(manager, core::sync::atomic::Ordering::Release)
+    })
+}
+
 /// A map has started loading: its chests come next.
 #[unsafe(no_mangle)]
 extern "C" fn map_loaded() {
@@ -488,25 +505,28 @@ unsafe extern "C" fn taken(pouched: usize) {
         };
         // A flag missing from GameData counts as picked, so nothing sets it.
         let picked = |flag| dev::get_bool(main, table.offsets, gd, flag) != Some(false);
+        // A key missing from GameData counts as broken, as before keys
+        // were asked.
+        let whole = |placed| key_entries(gd).and_then(|e| keys::value(e, placed)) == Some(0);
         let spots = (0..table.spots).map_while(|i| dev::spot(main, table.offsets, gd, i));
-        if let Some(spot) = nearest(spots, name, lies, picked) {
+        if let Some(spot) = nearest(spots, name, lies, picked, whole) {
             dev::set_bool(main, table.offsets, gd, spot.flag, true);
-            if spot.twin != 0 {
-                follow(gd, spot.placed, spot.twin);
+            if spot.twin != 0
+                && let Some(entries) = key_entries(gd)
+            {
+                // Breaks the twin as the holder is.
+                keys::follow(entries, spot.placed, spot.twin);
             }
         }
     })
 }
 
-/// Breaks `twin` as `placed` is, in the GameData manager `gd`'s keys.
-unsafe fn follow(gd: usize, placed: u64, twin: u64) {
+/// The GameData manager `gd`'s keys, laid end to end.
+unsafe fn key_entries(gd: usize) -> Option<&'static mut [u8]> {
     let count = unsafe { *((gd + keys::KEYS) as *const u32) } as usize;
-    let Some(at) = (unsafe { at(gd, keys::KEYS + 8) }) else {
-        return;
-    };
+    let at = unsafe { at(gd, keys::KEYS + 8) }?;
     // SAFETY: the manager's own sorted list, `count` entries long.
-    let entries = unsafe { slice::from_raw_parts_mut(at as *mut u8, count * keys::KEY_STRIDE) };
-    keys::follow(entries, placed, twin);
+    Some(unsafe { slice::from_raw_parts_mut(at as *mut u8, count * keys::KEY_STRIDE) })
 }
 
 /// The pickup a pouch content belongs to.

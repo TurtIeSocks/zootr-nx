@@ -9,7 +9,7 @@ use std::sync::LazyLock;
 use anyhow::{Context, Result};
 use ounce_formats::{Actor, EventKind, Flowchart, Params, Romfs, Value};
 
-use crate::flows::{self, GRANT, param};
+use crate::flows::{self, GRANT, Model, param};
 use crate::known::{Name, field, flow, scene};
 use crate::starting;
 
@@ -35,6 +35,18 @@ pub(crate) static GET_LINES: LazyLock<[String; 2]> = LazyLock::new(|| {
 });
 const TALK: &Name = flow::EVENT_TALK;
 const MESSAGE: &Name = field::MESSAGE_ID;
+/// The wait [`POUCH`] runs, which [`frame`] copies.
+pub(crate) const WAIT: (&Name, &Name) = (field::GAME_SYSTEM_ACTOR, flow::EVENT_WAIT);
+
+/// `pouch`'s wait, cut to one frame.
+pub(crate) fn frame(pouch: &Flowchart) -> Result<Model> {
+    let at = *flows::running(pouch, WAIT)
+        .first()
+        .with_context(|| format!("{POUCH} never waits"))?;
+    let mut wait = flows::model(pouch, WAIT, at)?;
+    flows::set(&mut wait.params, "Frames", Value::Int(vec![1]))?;
+    Ok(wait)
+}
 
 /// The two flows an inline grant copies its events from, as [`Models::load`]
 /// reads them.

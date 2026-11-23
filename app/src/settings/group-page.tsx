@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils";
 import { AllNone, Checklist } from "@/settings/checklist";
 import { Fold } from "@/settings/fold";
 import { ResetButton } from "@/settings/reset-button";
-import { UntestedBadge } from "@/settings/row";
-import { controlId, lockedBy, untested } from "@/settings/setting";
+import { NotInApBadge, UntestedBadge } from "@/settings/row";
+import { controlId, lockedBy, notInAp, untested } from "@/settings/setting";
 import { LockedBy, SettingRow } from "@/settings/setting-row";
 import { StartInventory } from "@/settings/start-inventory";
 import { PageHeader } from "@/shell/page-header";
@@ -154,7 +154,12 @@ function SubgroupList({ id, title, defs }: SectionProps) {
           control: controlId(d),
           label: d.label,
           description: shared ? undefined : description || undefined,
-          tags: isUntested && <UntestedBadge />,
+          tags: (
+            <>
+              {isUntested && <UntestedBadge />}
+              <NotInApBadge why={notInAp(d.archipelago)} />
+            </>
+          ),
           on: on[i] ?? false,
           changed: drifted[i],
           locked: locks[i] !== undefined,

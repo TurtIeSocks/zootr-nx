@@ -21,6 +21,17 @@ pub use remote::{Ask, TurnConfig};
 /// touches the game without a `--session` of its own.
 pub const SESSION: &str = "ZOOTR_SESSION";
 
+/// Names the queue's game a command plays, for a machine with several
+/// (`other`, `other-2`): `export ZOOTR_GAME=$(zootr turn wait)`.
+pub const GAME: &str = "ZOOTR_GAME";
+
+/// The game this shell plays: [`GAME`], else this machine's (`here`).
+pub fn playing(turn: &TurnConfig) -> String {
+    (std::env::var(GAME).ok())
+        .filter(|g| !g.is_empty())
+        .unwrap_or_else(|| turn.here.clone())
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Player {
@@ -190,12 +201,18 @@ fn played(
     }
 }
 
-/// Refuses unless `held`, the game `session` holds, is this machine's:
-/// a hold on another machine's game doesn't cover this one's.
+/// Refuses unless `held`, the game `session` holds, is the one this shell
+/// plays ([`playing`]): a hold on another game doesn't cover this one.
 fn here(turn: &TurnConfig, session: &str, held: Option<&str>) -> Result<()> {
-    let here = &turn.here;
+    holds_played(&playing(turn), session, held)
+}
+
+fn holds_played(here: &str, session: &str, held: Option<&str>) -> Result<()> {
     match held {
         Some(game) if !here.is_empty() && game != here => {
+            if queue::machine(game) == queue::machine(here) {
+                bail!("{session} holds {game}, and this shell plays {here}: set {GAME}={game}")
+            }
             bail!("{session} holds {game}, and this machine's game is {here}: run it there")
         }
         _ => Ok(()),
@@ -574,5 +591,19 @@ mod tests {
         let json = serde_json::to_string(&held(Some(Player::Claude))).unwrap();
         assert_eq!(json, r#"{"player":"claude","since":1}"#);
         assert_eq!(Turn::default().to_string(), "free");
+    }
+
+    #[test]
+    fn a_hold_covers_the_game_this_shell_plays_and_says_how_to_play_another_slot() {
+        assert!(holds_played("other-2", "a", Some("other-2")).is_ok());
+        assert!(holds_played("other", "a", None).is_ok());
+        let slot = holds_played("other", "a", Some("other-2"))
+            .unwrap_err()
+            .to_string();
+        assert!(slot.contains(&format!("{GAME}=other-2")), "{slot}");
+        let away = holds_played("other", "a", Some("mac"))
+            .unwrap_err()
+            .to_string();
+        assert!(away.contains("run it there"), "{away}");
     }
 }

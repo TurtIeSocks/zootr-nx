@@ -70,6 +70,11 @@ pub unsafe fn serve(main: usize, o: &Offsets, actor: usize) {
         return;
     }
     let outcome = match Ask::from_word(mail.ask) {
+        // Answered by the swap's last step, frames later.
+        Some(Ask::AgeHere) => match unsafe { super::swap::start(main, o, mail, actor) } {
+            Some(refused) => refused,
+            None => return,
+        },
         Some(Ask::Teleport) => unsafe { teleport(main, o, mail, actor) },
         Some(Ask::Age) => unsafe { age(main, o, mail, actor) },
         Some(Ask::Time) => unsafe { time(main, o, mail.hour) },
@@ -201,7 +206,7 @@ enum Arg {
 
 /// The event manager, refusing while the game isn't up, an event plays
 /// or a map loads.
-unsafe fn idle(main: usize, o: &Offsets) -> Result<usize, Outcome> {
+pub(super) unsafe fn idle(main: usize, o: &Offsets) -> Result<usize, Outcome> {
     let (Some(events), Some(gd)) = (unsafe { (single(main, o.events), single(main, o.gamedata)) })
     else {
         return Err(Outcome::NoGame);

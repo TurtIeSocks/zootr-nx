@@ -5,10 +5,10 @@
 //! inline grant a setting copied into its own flow ([`crate::grant`]).
 
 use anyhow::{Context, Result};
-use ounce_formats::{EventKind, Flowchart, Link, Value};
+use ounce_formats::{EventKind, Flowchart, Link};
 
 use crate::flows::{self, Model, Rewrites, param, set, string};
-use crate::grant::{GET_LINES, POUCH};
+use crate::grant::{self, GET_LINES, POUCH};
 use crate::known::{Name, field, flag, flow};
 
 /// Whether a String64 entry holds a value. Case 0 is yes.
@@ -20,8 +20,6 @@ const IS_STRING: (&Name, &Name) = (
 const ASKS: &Name = flow::DISPLAY_SHOP;
 /// The item the get window names.
 const NAMED: &Name = flag::UI_MESSAGE_TARGET_ACTOR_NAME;
-const WAIT: (&Name, &Name) = (field::GAME_SYSTEM_ACTOR, flow::EVENT_WAIT);
-const FRAMES: &str = "Frames";
 
 /// The two calls the check copies.
 struct Models {
@@ -40,11 +38,9 @@ impl Models {
                 .with_context(|| format!("{} never runs {what:?}", flow.name))?;
             flows::model(flow, what, at)
         };
-        let mut wait = model(&load(POUCH)?, WAIT)?;
-        set(&mut wait.params, FRAMES, Value::Int(vec![1]))?;
         Ok(Self {
             is_string: model(&load(ASKS)?, IS_STRING)?,
-            wait,
+            wait: grant::frame(&load(POUCH)?)?,
         })
     }
 }

@@ -155,11 +155,12 @@ pub(super) enum Command {
         /// bug the maintainer reported.
         #[arg(long)]
         urgent: bool,
-        /// `join` for every game at once: granted together once all are
-        /// free, never one alone.
+        /// `join` for a game of every machine at once: granted together
+        /// once one of each is free, never one alone.
         #[arg(long)]
         both: bool,
-        /// The game `reserve` keeps, or the one game `join` waits for.
+        /// The game `reserve` keeps, or the one game `join` waits for. A
+        /// machine's name (`other`) takes any of its slots (`other-2`).
         #[arg(long, default_value = "")]
         on: String,
     },

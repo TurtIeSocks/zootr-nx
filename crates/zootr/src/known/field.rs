@@ -71,6 +71,7 @@ pub const BOTTLE_A: &Name = &n!(0x787a27ee178242d8);
 pub const BOTTLE_B: &Name = &n!(0x787a2aee178247f1);
 pub const BOTTLE_C: &Name = &n!(0x787a29ee1782463e);
 pub const BOTTLE_D: &Name = &n!(0x787a2cee17824b57);
+pub const BOTTLE_E: &Name = &n!(0x787a2bee178249a4);
 pub const BOTTOM_OF_THE_WELL_GET_GLASS_TRUTH: &Name = &n!(0x412b031ed9746fa0);
 pub const BOTTOM_OF_THE_WELL_LEVEL_ROOM01_WATER_LEVEL_DOWN: &Name = &n!(0x5e8bcb26b8dfc437);
 pub const BUNDLE_ACTOR: &Name = &n!(0xc713662b9f8a469a);

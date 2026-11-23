@@ -79,6 +79,7 @@ const HOOKS: &[(u32, u32)] = &[
     (OFFSETS.emptied, 64),
     (OFFSETS.equipment_built, 72),
     (OFFSETS.equipment_left, 76),
+    (OFFSETS.resident_create, 80),
 ];
 /// `main`'s build ID, as its NSO header's 32 byte field holds it. Its first
 /// 8 bytes name the cheat file and the rest, trailing zeros left out, the
@@ -440,6 +441,9 @@ fn take(path: &Path) -> Result<()> {
         _ => Ok(()),
     }
 }
+
+#[cfg(all(test, feature = "emu"))]
+mod emu;
 
 #[cfg(test)]
 mod tests {
@@ -850,7 +854,8 @@ mod tests {
     /// `main` as the Mac's game runs it: the dump's, but for the words it
     /// rewrote, which its cheats can't write over. A word that holds the
     /// dump's original here is one it left alone.
-    const PC_MAIN: &str = "../../dump/0400486024DEC000_build/patched_v131072/main.patched.bin";
+    pub(super) const PC_MAIN: &str =
+        "../../dump/0400486024DEC000_build/patched_v131072/main.patched.bin";
 
     #[test]
     fn every_word_the_patch_writes_over_holds_what_we_expect() {

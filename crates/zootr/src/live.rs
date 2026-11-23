@@ -84,6 +84,13 @@ pub trait Memory {
         ranges.iter().map(|&(at, len)| self.read(at, len)).collect()
     }
 
+    /// Writes each of `writes`, then reads `reads`: over a bridge, all in
+    /// one go, where they may land in any order. So no write may overlap
+    /// another, and no read may depend on a write.
+    fn batch(&self, writes: &[(u64, &[u8])], reads: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+        in_order(self, writes, reads)
+    }
+
     /// Where values were found, when this memory keeps them.
     fn places(&self) -> Option<&Places> {
         None
@@ -98,6 +105,18 @@ pub trait Memory {
     }
 }
 
+/// [`Memory::batch`] one step at a time, in order.
+fn in_order(
+    mem: &(impl Memory + ?Sized),
+    writes: &[(u64, &[u8])],
+    reads: &[(u64, usize)],
+) -> Result<Vec<Vec<u8>>> {
+    for &(at, data) in writes {
+        mem.write(at, data)?;
+    }
+    mem.read_many(reads)
+}
+
 impl<M: Memory + ?Sized> Memory for &M {
     fn read(&self, at: u64, len: usize) -> Result<Vec<u8>> {
         (**self).read(at, len)
@@ -109,6 +128,10 @@ impl<M: Memory + ?Sized> Memory for &M {
 
     fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
         (**self).read_many(ranges)
+    }
+
+    fn batch(&self, writes: &[(u64, &[u8])], reads: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+        (**self).batch(writes, reads)
     }
 
     fn places(&self) -> Option<&Places> {
@@ -478,6 +501,13 @@ impl Memory for Game {
         }
     }
 
+    fn batch(&self, writes: &[(u64, &[u8])], reads: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
+        match &self.mem {
+            Backend::Mach(_) => in_order(self, writes, reads),
+            Backend::Bridge(b) => b.batch(writes, reads),
+        }
+    }
+
     fn places(&self) -> Option<&Places> {
         Some(&self.places)
     }
@@ -631,7 +661,7 @@ mod pipe;
 pub mod snap;
 
 pub use bridge::{Bridge, PATIENCE, Refused};
-pub use lookup::{Places, bools, hash, locate, read, set};
+pub use lookup::{Places, bools, hash, locate, read, set, value, value_with};
 
 #[cfg(test)]
 pub(crate) mod tests {

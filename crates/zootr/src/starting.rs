@@ -4,10 +4,10 @@
 use anyhow::{Context, Result, bail};
 use ounce_formats::{Actor, EventKind, Flowchart, Params, Romfs, Value};
 
-use crate::flows::{self, ACTOR, GRANT, Rewrites, only};
-use crate::items;
+use crate::flows::{self, ACTOR, GRANT, Model, Rewrites, only};
 use crate::known::{Name, actor, field, flag, flow, scene};
 use crate::steps;
+use crate::{grant as inline, items};
 
 mod inventory;
 pub use inventory::{
@@ -94,19 +94,26 @@ pub(crate) fn granting(params: &Params, actor: Value, equip: Value) -> Result<Pa
 }
 
 /// Grant `grants` in `flow` just before its autosave, in order, with
-/// `template`'s grant event as the model.
-fn chain(flow: &mut Flowchart, template: &Flowchart, grants: &[Grant]) -> Result<()> {
+/// `template`'s grant event as the model and `wait` after each one.
+///
+/// A grant queues String64 writes in a fixed pool, and the game aborts
+/// when it's full (`0xd24e50`). Grants back to back filled it: 112
+/// starting items crashed every new game. With a frame between grants the
+/// pool empties, and all 112 land.
+fn chain(flow: &mut Flowchart, template: &Flowchart, wait: &Model, grants: &[Grant]) -> Result<()> {
     let (actor, params) = grant_event(template)?;
-    let events = grants.iter().map(|g| {
+    let mut events = Vec::with_capacity(grants.len() * 2);
+    for g in grants {
         let mut params = granting(
             params,
             Value::String(vec![g.actor.clone()]),
             Value::Bool(vec![g.equip]),
         )?;
         flows::set(&mut params, flows::NUM, Value::Int(vec![g.num]))?;
-        Ok((actor, GRANT.1.get(), params))
-    });
-    before_save(flow, events.collect::<Result<_>>()?)
+        events.push((actor, GRANT.1.get(), params));
+        events.push((&wait.actor, wait.name, wait.params.clone()));
+    }
+    before_save(flow, events)
 }
 
 /// `grants`, then each of `give` (pouch items by actor) not among them.
@@ -134,9 +141,10 @@ pub fn grant(romfs: &Romfs, rewrites: &mut Rewrites, grants: &[Grant]) -> Result
             bail!("{} isn't a pouch item. `zootr items` lists them", g.actor);
         }
     }
-    let template = template(romfs)?;
+    let (template, pouch) = inline::Models::load(romfs)?;
+    let wait = inline::frame(&pouch)?;
     flows::edit(romfs, rewrites, OPENING, |flow| {
-        chain(flow, &template, grants).context("granting the starting items")
+        chain(flow, &template, &wait, grants).context("granting the starting items")
     })
 }
 
@@ -193,7 +201,6 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let template = flows::load(&romfs, TEMPLATE).unwrap().unwrap();
         let before = flows::load(&romfs, OPENING).unwrap().unwrap();
         let mut flow = Flowchart::parse(&before.to_bytes()).unwrap().unwrap();
         let mut start = Start::default();
@@ -201,7 +208,9 @@ mod tests {
         start.add("bomb-bag", 1).unwrap();
         start.add("kokiri-sword", 1).unwrap();
         let pouch = crate::inventory::Pouch::load(&romfs).unwrap();
-        chain(&mut flow, &template, &start.grants(&pouch)).unwrap();
+        let (template, pouch_flow) = inline::Models::load(&romfs).unwrap();
+        let wait = inline::frame(&pouch_flow).unwrap();
+        chain(&mut flow, &template, &wait, &start.grants(&pouch)).unwrap();
         let save = only(&flow, AUTOSAVE).unwrap();
         // Pushed last to first, so reversed they run in order: the bag, the
         // sword, then the bombs.
@@ -210,10 +219,37 @@ mod tests {
         assert_eq!(run.len(), 3, "{run:?}");
         let after = Flowchart::parse(&flow.to_bytes()).unwrap().unwrap();
         assert_eq!(after.links_to(run[0]), before.links_to(save));
-        for w in run.windows(2) {
-            assert_eq!(after.links_to(w[1]), [ounce_formats::Link::Next(w[0])]);
+        // Each grant waits a frame before the next one, and the last before
+        // the save.
+        let next = |e: u16| match after.events[e as usize].kind {
+            EventKind::Action { next, .. } => next.unwrap(),
+            _ => unreachable!(),
+        };
+        let waits: Vec<_> = run.iter().map(|&g| next(g)).collect();
+        assert_eq!(
+            waits.iter().map(|&w| next(w)).collect::<Vec<_>>(),
+            [run[1], run[2], save]
+        );
+        for &w in &waits {
+            let EventKind::Action {
+                actor,
+                action,
+                params,
+                ..
+            } = &after.events[w as usize].kind
+            else {
+                unreachable!()
+            };
+            let actor = after.actor_of(*actor);
+            assert_eq!(
+                (
+                    actor.name.as_str(),
+                    actor.actions[*action as usize].as_str()
+                ),
+                flows::said(inline::WAIT)
+            );
+            assert!(params.contains(&("Frames".into(), Value::Int(vec![1]))));
         }
-        assert_eq!(after.links_to(save), [ounce_formats::Link::Next(run[2])]);
         let params = |e: u16| match &after.events[e as usize].kind {
             EventKind::Action { params, .. } => params.clone(),
             _ => unreachable!(),

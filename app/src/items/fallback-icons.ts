@@ -77,6 +77,7 @@ export const FALLBACK_ICONS: Record<Glyph, LucideIcon> = {
   hookshot: Anchor,
   boomerang: Redo2,
   beans: Bean,
+  "scrub-seeds": Sprout,
   lens: Glasses,
   hammer: Hammer,
   "fire-arrow": Flame,

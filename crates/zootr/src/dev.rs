@@ -48,6 +48,11 @@ const BOOTS_ON: &str = "#a6719419";
 pub(crate) const HEARTS: u32 = switches::HEARTS;
 /// How long Link has to pick a request up.
 const WAIT: Duration = Duration::from_secs(3);
+/// An age swap in place takes about 2 s, 20 at worst (made, given up,
+/// made again).
+const SWAP_WAIT: Duration = Duration::from_secs(25);
+/// The least time between looks for the hook's answer.
+const POLL: Duration = Duration::from_millis(20);
 /// GameData names the state reads.
 const MAP: &Name = flag::SEQUENCE_CURRENT_BANC;
 const IS_CHILD: &Name = flag::SEQUENCE_IS_CHILDHOOD;
@@ -124,6 +129,8 @@ pub enum Request {
     Teleport(Place),
     /// Switch age and land here.
     Age(Place),
+    /// Switch age where Link stands, with no area load.
+    AgeHere,
     Time(u32),
     /// Move a quest to one of its steps.
     Step(String, String),
@@ -166,6 +173,10 @@ fn refusal(outcome: Outcome) -> Option<String> {
         Outcome::NoAge => "the game has no age flag yet".into(),
         Outcome::NoClock => "there's no clock here".into(),
         Outcome::NoController => "Link's character controller isn't where the warp looks".into(),
+        Outcome::NoResident => {
+            "no area has loaded since the game started: go through a door".into()
+        }
+        Outcome::Stuck => "the new Link never came, so Link went back to his age".into(),
         Outcome::Unknown => {
             "the installed seed's hook is older than this request: install a seed built since"
                 .into()
@@ -225,8 +236,7 @@ impl<M: Memory> Dev<M> {
     }
 
     fn value_of(&self, hash: u32) -> Result<Vec<u8>> {
-        let (_, at, len) = live::locate(&self.game, self.global, hash)?;
-        self.game.read(at, len)
+        live::value(&self.game, self.global, hash)
     }
 
     /// Link's yaw in radians: he faces `(sin, 0, cos)` of it.
@@ -271,14 +281,27 @@ impl<M: Memory> Dev<M> {
 
     /// Loading or in an event, so not in play: [`Dev::state`]'s two flags
     /// without the rest, for a look made often.
+    /// The loading flag and the event slot are read in one pass.
     pub fn busy(&self) -> Result<bool> {
-        Ok(self.flag(LOADING)? || self.event()?)
+        let slot = [(self.events_slot(), 8)];
+        let (loading, slot) =
+            live::value_with(&self.game, self.global, live::hash(LOADING)?, &slot)?;
+        Ok(loading[0] & 1 == 1 || self.event_under(u64::from_le_bytes(slot[0][..].try_into()?))?)
+    }
+
+    /// Where `main` keeps the pointer to the event manager's slot.
+    fn events_slot(&self) -> u64 {
+        self.main + u64::from(patch::OFFSETS.events)
     }
 
     /// An event plays, or the event manager isn't up yet.
     fn event(&self) -> Result<bool> {
-        let slot = self.main + u64::from(patch::OFFSETS.events);
-        let events = self.game.u64(self.game.u64(slot)?)?;
+        self.event_under(self.game.u64(self.events_slot())?)
+    }
+
+    /// [`Dev::event`], given the word the events slot holds.
+    fn event_under(&self, slot: u64) -> Result<bool> {
+        let events = self.game.u64(slot)?;
         Ok(events == 0 || self.game.u64(events + PLAYING)? != 0)
     }
 
@@ -330,6 +353,7 @@ impl<M: Memory> Dev<M> {
             (Request::Warp(_), _) => "warped",
             (Request::Where, _) => "found",
             (Request::Notice(..), _) => "shown",
+            (Request::AgeHere, _) => "swapped in place",
             _ => "sent",
         })
     }
@@ -354,32 +378,55 @@ impl<M: Memory> Dev<M> {
             Request::Play(event) => (Ask::Play, 0, Some([&**event, "", ""])),
             Request::Warp(_) => (Ask::Warp, 0, None),
             Request::Where => (Ask::Where, 0, None),
+            Request::AgeHere => (Ask::AgeHere, 0, None),
             Request::Notice(actor, kind) => (Ask::Notice, *kind as u32, Some([&**actor, "", ""])),
         };
+        // The request's fields go in with the read of `asked`, then
+        // `asked` alone, since that write is what tells the hook to act.
+        let mut writes = Vec::new();
         if let Some(texts) = texts {
-            self.game
-                .write(field(offset_of!(Mailbox, map)), &names(texts)?)?;
+            writes.push((field(offset_of!(Mailbox, map)), names(texts)?));
         }
         if let Request::Warp(at) = request {
-            let bytes = at.map(f32::to_le_bytes).concat();
-            self.game.write(field(offset_of!(Mailbox, at)), &bytes)?;
+            writes.push((
+                field(offset_of!(Mailbox, at)),
+                at.map(f32::to_le_bytes).concat(),
+            ));
         }
         let words = [ask as u32, hour].map(u32::to_le_bytes).concat();
-        self.game.write(field(offset_of!(Mailbox, ask)), &words)?;
-        let asked = self.game.u32(field(offset_of!(Mailbox, asked)))? + 1;
+        writes.push((field(offset_of!(Mailbox, ask)), words));
+        let writes: Vec<_> = writes.iter().map(|(at, b)| (*at, &b[..])).collect();
+        let read = self
+            .game
+            .batch(&writes, &[(field(offset_of!(Mailbox, asked)), 4)])?;
+        let asked = u32::from_le_bytes(read[0][..].try_into()?) + 1;
         self.game
             .write(field(offset_of!(Mailbox, asked)), &asked.to_le_bytes())?;
+        // `answered` and `outcome` sit side by side: one read for both.
+        let (answered, outcome) = (offset_of!(Mailbox, answered), offset_of!(Mailbox, outcome));
         let start = Instant::now();
-        while self.game.u32(field(offset_of!(Mailbox, answered)))? != asked {
-            if start.elapsed() > WAIT {
+        let wait = match request {
+            // The new Link's model loads first, and he may be made twice.
+            Request::AgeHere => SWAP_WAIT,
+            _ => WAIT,
+        };
+        loop {
+            let polled = Instant::now();
+            let both = self.game.read(field(answered), outcome + 4 - answered)?;
+            let word =
+                |at: usize| u32::from_le_bytes(both[at - answered..][..4].try_into().unwrap());
+            if word(answered) == asked {
+                return Outcome::from_word(word(outcome))
+                    .context("the hook gave an unknown answer");
+            }
+            if start.elapsed() > wait {
                 // Should Link pick it up later, the hook refuses it.
                 self.game.write(field(offset_of!(Mailbox, ask)), &[0; 4])?;
                 bail!("Link didn't pick the request up. Is the game paused or in a menu?");
             }
-            std::thread::sleep(Duration::from_millis(20));
+            // A read over a bridge waits a frame already.
+            std::thread::sleep(POLL.saturating_sub(polled.elapsed()));
         }
-        let word = self.game.u32(field(offset_of!(Mailbox, outcome)))?;
-        Outcome::from_word(word).context("the hook gave an unknown answer")
     }
 
     /// Teleport to `place`, switching age first when it's the other age's.
@@ -413,23 +460,32 @@ impl<M: Memory> Dev<M> {
         Ok(done)
     }
 
-    /// Switch age, landing where [`other_age`] says: the arrival point
-    /// nearest Link. A spot no exit arrives at is refused: the game would
-    /// sit on a black screen.
-    pub fn switch_age(
-        &self,
-        romfs: &Romfs,
-        places: &BTreeSet<Place>,
-    ) -> Result<(Place, &'static str)> {
+    /// Switch age. On a map with an other-age twin, land where
+    /// [`other_age`] says: the arrival point nearest Link. A spot no exit
+    /// arrives at is refused: the game would sit on a black screen. On one
+    /// without (a dungeon, an interior), swap where Link stands. Says
+    /// what it did, in words.
+    pub fn switch_age(&self, romfs: &Romfs, places: &BTreeSet<Place>) -> Result<String> {
         let State { map, child, .. } = self.state()?;
         let spots = match twin(&map, child) {
             Some(twin) => spots(romfs, &twin)?,
-            None => Default::default(),
+            None => {
+                let was = self.link()?;
+                let done = self.ask(&Request::AgeHere)?;
+                let moved = distance(was, self.link()?);
+                let age = if self.state()?.child {
+                    "child"
+                } else {
+                    "adult"
+                };
+                return Ok(format!("{done}: {age}, moved {moved:.2} m"));
+            }
         };
-        let place = other_age(&map, child, places, self.link()?, &spots);
+        let place = other_age(&map, child, places, self.link()?, &spots)
+            .with_context(|| format!("no arrival point listed for {map}'s other age"))?;
         known(&place, places)?;
         let done = self.ask(&Request::Age(place.clone()))?;
-        Ok((place, done))
+        Ok(format!("{done}, to {place}"))
     }
 
     /// Give Link `count` of an item, as `zootr give` does: the game's own
@@ -612,6 +668,54 @@ fn stayed(at: [f32; 3], here: [f32; 3], before: Option<[f32; 3]>) -> bool {
 mod tests {
     use super::*;
     use crate::known::{flow, item, map};
+    use crate::live::tests::Fake;
+
+    /// A mailbox the fake hook answers once `asked` is written, noting
+    /// each write's field.
+    struct Hook(Fake, u64, std::cell::RefCell<Vec<usize>>);
+
+    impl Memory for Hook {
+        fn read(&self, at: u64, len: usize) -> Result<Vec<u8>> {
+            self.0.read(at, len)
+        }
+
+        fn write(&self, at: u64, data: &[u8]) -> Result<()> {
+            let field = (at - self.1) as usize;
+            self.2.borrow_mut().push(field);
+            self.0.write(at, data)?;
+            if field == offset_of!(Mailbox, asked) {
+                let outcome = self.1 + offset_of!(Mailbox, outcome) as u64;
+                self.0
+                    .write(outcome, &(Outcome::Done as u32).to_le_bytes())?;
+                self.0
+                    .write(self.1 + offset_of!(Mailbox, answered) as u64, data)?;
+            }
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn a_request_is_asked_only_once_its_fields_are_in() {
+        let main = 0x10_0000;
+        let mail = main + u64::from(MAILBOX);
+        let fake = Fake::new(vec![(mail, vec![0; size_of::<Mailbox>()])]);
+        let global = main + u64::from(patch::OFFSETS.gamedata);
+        let dev = Dev {
+            game: Hook(fake, mail, Default::default()),
+            global,
+            main,
+        };
+        let give = Request::Give("Item_FakeSword".into(), false);
+        assert_eq!(dev.send(&give).unwrap(), Outcome::Done);
+        assert_eq!(dev.send(&give).unwrap(), Outcome::Done);
+        let fields = [
+            offset_of!(Mailbox, map),
+            offset_of!(Mailbox, ask),
+            offset_of!(Mailbox, asked),
+        ];
+        assert_eq!(*dev.game.2.borrow(), [fields, fields].concat());
+        assert_eq!(dev.game.u32(mail).unwrap(), 2);
+    }
 
     #[test]
     fn switches_are_the_hooks_bits() {

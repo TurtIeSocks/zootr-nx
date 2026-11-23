@@ -35,6 +35,7 @@ pub mod keys;
 pub mod look;
 mod mailbox;
 mod shared;
+mod spots;
 pub mod switches;
 mod table;
 pub mod traps;
@@ -44,7 +45,8 @@ pub use mailbox::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
     ARG_SUMMARY, Ask, GUARD, MAILBOX, Mailbox, NAME, Notice, Outcome, play_event,
 };
-pub use shared::{CHESTS, Chest, Credited, List, Shared};
+pub use shared::{CHESTS, Chest, Credited, List, Shared, Swap};
+pub use spots::{REACH, SPOT_KEY, Spot, nearest};
 pub use switches::SWITCHES;
 #[cfg(not(target_os = "none"))]
 pub use table::SlotSpec;
@@ -52,8 +54,7 @@ pub use table::SlotSpec;
 pub use table::encode;
 pub use table::{
     BOMBCHU_BAG, BUNNY_HOOD, Credit, DEV, FREE_BOMBCHUS, Found, HEADER, Header, ICE_TRAPS, Level,
-    Levels, MAGIC, MENU_CYCLE, Offsets, REACH, SPOT_KEY, Slot, Spot, Table, after_grant, fnv,
-    nearest, pick, pick_with,
+    Levels, MAGIC, MENU_CYCLE, Offsets, Slot, Table, after_grant, fnv, pick, pick_with,
 };
 
 /// Where our pieces go in `main`, for game 1.1.1. The code goes over
@@ -65,7 +66,13 @@ pub use table::{
 pub const CAVE: u32 = 0x17f_1680;
 pub const FAR: u32 = 0x17f_60c0;
 pub const TABLE: u32 = 0x484_c080;
-pub const LIST: u32 = 0x4e9_a4d0;
+/// The first byte after bss. sloperinaGZ keeps its hook and lock slots
+/// in the 16 bytes from here, so the list keeps clear of them.
+const BSS_END: u32 = 0x4e9_a4d0;
+/// The list sits at the page tail's top end, under [`PANIC`], and moves
+/// down as [`Shared`] grows.
+pub const LIST: u32 = (PANIC - size_of::<Shared>() as u32) & !15;
+const _: () = assert!(LIST >= BSS_END + 16, "the list reaches sloperinaGZ's slots");
 /// Where a panic in the hook leaves its line and file, in the list page's
 /// last 16 bytes, for reading from outside when the game hangs.
 pub const PANIC: u32 = 0x4e9_aff0;
@@ -74,7 +81,7 @@ pub const PANIC: u32 = 0x4e9_aff0;
 /// listed, then the full key, handheld and joy dual controller reads. The
 /// patch writes a `b` into each: past the hooked function's pacibsp, or to
 /// the game's `GetNpadStates` stub for that style.
-pub const SLOTS: u32 = 80;
+pub const SLOTS: u32 = 84;
 
 /// The Deku Seed's name hash, the projectile an empty bow says "no Deku
 /// seeds" for and the draw says "Shoot Seed" for. Every other one says
@@ -151,4 +158,8 @@ pub const OFFSETS: Offsets = Offsets {
     redraw: 0x20_8350,
     icon: 0xa7_37e0,
     effects: 0x4e8_40e0,
+    resident_create: 0x94_5610,
+    cancel_sleep: 0x94_3550,
+    request_pause: 0xd9_aec0,
+    release_pause: 0xda_d2c0,
 };

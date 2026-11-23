@@ -4,7 +4,6 @@ goal set, a fill that completes) for each option's other values."""
 from itertools import product
 
 from BaseClasses import LocationProgressType
-
 from ..exported import OPTIONS
 from ..options import attr
 from . import ZnxTestBase
@@ -55,14 +54,17 @@ RACE = "Gerudo Valley Running Man's Race"
 class TestRaceGiftFollowsTheCarpenters(ZnxTestBase):
     """Freeing the carpenters in play opens the race, so it's a check without Freed too."""
 
+    options = {"running_race": True}
+
     def test_a_check_without_freed(self) -> None:
         location = self.multiworld.get_location(RACE, self.player)
         self.assertNotEqual(location.progress_type, LocationProgressType.EXCLUDED)
 
 
 class TestRaceGiftWithFreed(ZnxTestBase):
-    options = {"gerudo_fortress": "freed"}
+    options = {"running_race": True, "gerudo_fortress": "freed"}
 
     def test_a_check_with_freed(self) -> None:
         location = self.multiworld.get_location(RACE, self.player)
         self.assertNotEqual(location.progress_type, LocationProgressType.EXCLUDED)
+

@@ -13,7 +13,7 @@ use crate::checks::{self, ItemCheck};
 use crate::fill;
 use crate::logic::{Got, Play, World};
 use crate::rules::{Book, Ctx, Have};
-use crate::settings::{Kind, NewGame, RUNNING_RACE, Settings, schema, value_word};
+use crate::settings::{CHESTS, Kind, NewGame, RUNNING_RACE, SCRUBS, Settings, schema, value_word};
 use crate::shuffle::{self, Fixed};
 use crate::starting;
 
@@ -149,21 +149,28 @@ impl Seed {
     }
 }
 
-/// Settings the world holds at their own value, whatever the app's
-/// default, so a seed from an older world still opens: the running man's
-/// race is a location those worlds hold, and Link starts with nothing.
+/// Settings the base holds at their own value, whatever the app's default,
+/// so a seed from an older world still opens: chests, Business Scrubs and
+/// the running man's race are locations those worlds always held, and Link
+/// starts with nothing.
 fn pinned() -> Settings {
     Settings::from([
+        (CHESTS.into(), Value::Bool(true)),
+        (SCRUBS.into(), Value::Bool(true)),
         (RUNNING_RACE.into(), Value::Bool(true)),
         (starting::SETTING.into(), Value::Object(Default::default())),
     ])
 }
 
-/// The base settings: the pinned ones, then every exposed toggle off.
+/// The base settings: the pinned ones, then every other exposed toggle off.
 pub(super) fn base() -> Settings {
     let defs = schema();
     let mut s = pinned();
-    for id in OPTIONS {
+    for id in OPTIONS
+        .iter()
+        .filter(|id| !s.contains_key(**id))
+        .collect::<Vec<_>>()
+    {
         if let Some(d) = defs.iter().find(|d| d.id == *id)
             && let Kind::Toggle { .. } = d.kind
         {
@@ -213,7 +220,10 @@ pub(super) fn domains() -> Result<Vec<Domain>> {
             .map(|d| &d.kind)
             .with_context(|| format!("no setting {id}"))?
         {
-            Kind::Toggle { .. } => vec![false.into(), true.into()],
+            Kind::Toggle { .. } => {
+                let first = base.get(*id).and_then(Value::as_bool).unwrap_or(false);
+                vec![first.into(), (!first).into()]
+            }
             Kind::Choice {
                 default, options, ..
             } => {
@@ -334,6 +344,21 @@ mod tests {
             let def = defs.iter().find(|d| d.id == *id).unwrap();
             assert_eq!(def.parent, None, "{id}");
         }
+    }
+
+    /// A file from a world before these options opens with what that
+    /// world always held: chests, Business Scrubs and the race.
+    #[test]
+    fn an_older_file_keeps_chests_scrubs_and_the_race() {
+        let base = base();
+        for id in [CHESTS, SCRUBS, RUNNING_RACE] {
+            assert_eq!(base.get(id), Some(&Value::Bool(true)), "{id}");
+        }
+        let scrubs = domains().unwrap().into_iter().find(|d| d.id == SCRUBS);
+        assert_eq!(
+            scrubs.unwrap().values,
+            [Value::Bool(true), Value::Bool(false)]
+        );
     }
 
     #[test]

@@ -237,6 +237,16 @@ export type Applied = {
 	held: string[],
 };
 
+/**
+ *  Whether the Archipelago world offers a setting, or one of a choice's
+ *  options: the app marks the rest. See [`crate::ap::LEFT_OUT`].
+ */
+export type Archipelago = { ap: "offered" } | 
+/**  Coming, in this stage of the queue. */
+{ ap: "later"; why: string } | 
+/**  Not a setting a multiworld can use, and why. */
+{ ap: "never"; why: string };
+
 export type Build = {
 	status: BuildStatus,
 	/**  What the user is told, when the build isn't current. */
@@ -308,6 +318,8 @@ export type Choice = {
 	forces: string[],
 	/**  Start inventory words this pick gives, shown held. */
 	starts: string[],
+	/**  Whether the Archipelago world offers this pick. */
+	archipelago: Archipelago,
 };
 
 export type Config = {
@@ -546,7 +558,7 @@ export type GameOptions = {
  *  What a cell draws when the game's art is off. Tiers share one, as the
  *  swords and the three wallets do.
  */
-export type Glyph = "sticks" | "nuts" | "bombs" | "bombchus" | "bow" | "slingshot" | "ocarina" | "hookshot" | "boomerang" | "beans" | "lens" | "hammer" | "fire-arrow" | "fire-medallion" | "ice-arrow" | "light-arrow" | "light-medallion" | "dins-fire" | "farores-wind" | "nayrus-love" | "bottle" | "egg" | "cucco" | "letter" | "mask" | "truth-mask" | "mushroom" | "saw" | "sword" | "prescription" | "frog" | "eye-drops" | "claim-check" | "shield" | "tunic" | "iron-boots" | "hover-boots" | "gauntlets" | "scale" | "wallet" | "bomb-bag" | "quiver" | "bullet-bag" | "heart-piece" | "heart" | "rupee" | "magic" | "spin" | "defense" | "gerudo-card" | "agony-stone" | "skulltula" | "song" | "stone" | "forest-medallion" | "water-medallion" | "spirit-medallion" | "shadow-medallion" | "small-key" | "boss-key" | "map" | "compass" | "unknown";
+export type Glyph = "sticks" | "nuts" | "bombs" | "bombchus" | "bow" | "slingshot" | "ocarina" | "hookshot" | "boomerang" | "beans" | "scrub-seeds" | "lens" | "hammer" | "fire-arrow" | "fire-medallion" | "ice-arrow" | "light-arrow" | "light-medallion" | "dins-fire" | "farores-wind" | "nayrus-love" | "bottle" | "egg" | "cucco" | "letter" | "mask" | "truth-mask" | "mushroom" | "saw" | "sword" | "prescription" | "frog" | "eye-drops" | "claim-check" | "shield" | "tunic" | "iron-boots" | "hover-boots" | "gauntlets" | "scale" | "wallet" | "bomb-bag" | "quiver" | "bullet-bag" | "heart-piece" | "heart" | "rupee" | "magic" | "spin" | "defense" | "gerudo-card" | "agony-stone" | "skulltula" | "song" | "stone" | "forest-medallion" | "water-medallion" | "spirit-medallion" | "shadow-medallion" | "small-key" | "boss-key" | "map" | "compass" | "unknown";
 
 /**  One of a test setup's goals, read from the game. */
 export type Goal = {
@@ -798,7 +810,7 @@ export type SavePreset = {
 	what: string,
 };
 
-export type Section = "Inventory" | "Equipment" | "Upgrades" | "Quest" | "Songs" | "Stones" | "Medallions" | "Dungeons";
+export type Section = "Inventory" | "Trade" | "Masks" | "Equipment" | "Upgrades" | "Quest" | "Songs" | "Stones" | "Medallions" | "Dungeons";
 
 export type Session = {
 	source: Source,
@@ -836,6 +848,8 @@ export type SettingDef = {
 	 *  shows them locked: see [`GIVES`].
 	 */
 	gives: ([string, string[]])[],
+	/**  Whether the Archipelago world offers it: the app marks the rest. */
+	archipelago: Archipelago,
 };
 
 export type SettingsFile = {
@@ -1107,6 +1121,11 @@ export type Target = {
 	harness_env?: string[],
 	/**  How to rebuild a game that bakes exefs patches in at build time. */
 	rebuild?: Rebuild | null,
+	/**
+	 *  The turn queue's game this target is part of: one of several slots
+	 *  on a machine. None is this machine's game (`turn.here`).
+	 */
+	game?: string | null,
 } & ({
 	/**  Settings file lines written on install, e.g. `KEY={romfs}`. */
 	settings_file?: SettingsFile | null,

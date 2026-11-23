@@ -7,6 +7,9 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 
+use crate::settings::Archipelago::{self, Later, Never, Offered};
+use crate::settings::SettingDef;
+
 pub mod bench;
 pub mod bench_live;
 pub mod client;
@@ -69,7 +72,87 @@ pub const OPTIONS: &[&str] = &[
     "quiet-navi",
     "bunny-hood",
     "ageless-weapons",
+    "scrubs",
+    "running-race",
+    "pots",
+    "crates",
+    "rocks",
+    "grass",
+    "hives",
 ];
+
+/// Every setting the world doesn't offer, and why: each one coming in a
+/// stage of the "Missing from AP" queue, or never. With [`OPTIONS`], it
+/// names every setting the app has, so one the app gains waits on a call
+/// here (a test holds it), and the app marks these as not in AP.
+pub const LEFT_OUT: &[(&str, Archipelago)] = &[
+    // Off, Dodongo's Cavern's Bomb Bag chest keeps its bag, and logic
+    // shows no child way to it. It also trades pool items with Keys, Maps
+    // and Compasses, Scrubs and the bag and mask shuffles.
+    ("chests", Later(CHECK_KINDS)),
+    // Each trades a pool item for one another option picks: NPC Gifts,
+    // Scrubs, Chests and each other.
+    ("shuffle-nut-bag", Later(CHECK_KINDS)),
+    ("shuffle-stick-bag", Later(CHECK_KINDS)),
+    ("shuffle-masks", Later(CHECK_KINDS)),
+    ("ice-traps", Later(ITEM_POOL)),
+    ("progressive-items", Later(ITEM_POOL)),
+    ("logic", Later(RULES)),
+    ("starting-age", Later(RULES)),
+    ("rainbow-bridge", Later(RULES)),
+    ("ganons-trials", Later(RULES)),
+    ("king-zora-moved", Later(RULES)),
+    ("adult-jabu-jabu", Later(RULES)),
+    ("hints", Later(RULES)),
+    ("day-skulltulas", Later(RULES)),
+    ("shuffle-dungeon-entrances", Later(RULES)),
+    ("scrub-price", Later(COMFORT)),
+    ("magic-with-first-item", Later(COMFORT)),
+    ("ageless-items", Later(COMFORT)),
+    ("quiet-enemies", Later(COMFORT)),
+    ("menus", Later(COMFORT)),
+    ("clock", Later(COMFORT)),
+    ("no-tutorials", Later(COMFORT)),
+    ("no-pickup-texts", Later(COMFORT)),
+    (
+        "shuffle-items",
+        Never("off, every check holds what it always does, which leaves nothing to share"),
+    ),
+    (
+        "start-inventory",
+        Never("Archipelago sets what Link starts with from its own start inventory"),
+    ),
+];
+
+/// The queue's stages, as the app names them.
+const CHECK_KINDS: &str = "check kinds";
+const ITEM_POOL: &str = "the item pool";
+const RULES: &str = "goal and rules";
+const KEYS: &str = "keys";
+const COMFORT: &str = "comfort";
+
+/// Whether the world offers `def`. A single cutscene skip under one the
+/// world offers waits for the comfort stage: the world offers them only
+/// all at once.
+pub fn archipelago(def: &SettingDef) -> Option<Archipelago> {
+    if OPTIONS.contains(&def.id.as_str()) {
+        return Some(Offered);
+    }
+    if let Some((_, left)) = LEFT_OUT.iter().find(|(id, _)| *id == def.id) {
+        return Some(*left);
+    }
+    (def.parent.is_some_and(|p| OPTIONS.contains(&p))).then_some(Later(COMFORT))
+}
+
+/// Whether the world offers `option` of choice `id`, as the app marks it:
+/// Bombchu Bags wait for the item pool, the key options for the keys.
+pub fn archipelago_option(id: &str, option: &str) -> Archipelago {
+    match (offers(id, option), id) {
+        (true, _) => Offered,
+        (false, "bombchus") => Later(ITEM_POOL),
+        _ => Later(KEYS),
+    }
+}
 
 /// Exposed options that change the checks or the pool together, beyond
 /// what each changes alone, so the export builds each group's
@@ -159,6 +242,27 @@ mod tests {
                 !described(id, def.description).contains(sentence),
                 "{id}={option}"
             );
+        }
+    }
+
+    /// Every setting is offered or left out, never both, never neither.
+    #[test]
+    fn every_setting_is_offered_or_left_out_with_a_reason() {
+        let defs = crate::settings::schema();
+        let unsorted: Vec<_> = (defs.iter())
+            .filter(|d| super::archipelago(d).is_none())
+            .map(|d| &d.id)
+            .collect();
+        assert!(
+            unsorted.is_empty(),
+            "the AP world neither offers nor leaves out (ap::LEFT_OUT): {unsorted:?}"
+        );
+        for (id, why) in super::LEFT_OUT {
+            assert!(!super::OPTIONS.contains(id), "{id} is offered and left out");
+            assert!(!why.why().is_empty(), "{id} is left out without a reason");
+            assert!(defs.iter().any(|d| d.id == *id), "{id} isn't a setting");
+            let twice = super::LEFT_OUT.iter().filter(|(other, _)| other == id);
+            assert_eq!(twice.count(), 1, "{id} is left out twice");
         }
     }
 
