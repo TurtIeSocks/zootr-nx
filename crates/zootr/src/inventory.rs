@@ -195,6 +195,12 @@ pub fn held() -> Vec<Held> {
     out
 }
 
+/// The section of the cell `actor` fills.
+pub fn section(actor: &Name) -> Option<Section> {
+    let cell = GRID.iter().find(|s| s.tiers.contains(&actor));
+    cell.map(|s| s.section)
+}
+
 /// The tiers below `actor` in its cell, which holding it holds too.
 pub fn below(actor: &Name) -> Vec<&'static Name> {
     let cell = GRID.iter().find(|s| s.tiers.contains(&actor));

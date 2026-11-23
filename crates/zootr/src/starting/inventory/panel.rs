@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use anyhow::{Result, bail};
 use ounce_formats::Save;
 
-use super::{HEARTS, RUPEE_WORD, Start, WORDS};
+use super::{BARRED, HEARTS, RUPEE_WORD, Start, WORDS};
 use crate::gamedata::GameData;
 use crate::inventory::{self, Intent, Inventory, Pouch};
 use crate::known::{Name, field};
@@ -98,7 +98,8 @@ pub fn onto(
 const STATUS: [u32; 2] = [MAX_LIFE, RUPEES];
 
 /// The Inventory panel: the grid without its Dungeons, whose keys belong to
-/// the Dungeon keys setting, and the kept Status fields. `given` holds the
+/// the Dungeon keys setting, or the stones and medallions no new game
+/// starts with, and the kept Status fields. `given` holds the
 /// words each setting gives outside `start`: they show held, each cell
 /// locked to the first that gives it.
 pub fn items(
@@ -133,7 +134,7 @@ pub fn items(
         })
         .collect();
     (view.sections.iter_mut())
-        .filter(|p| p.section == inventory::Section::Dungeons)
+        .filter(|p| p.section == inventory::Section::Dungeons || BARRED.contains(&p.section))
         .for_each(|p| p.shown = false);
     view.status.retain(|f| STATUS.contains(&f.hash));
     Ok(view)
@@ -334,11 +335,12 @@ mod tests {
         assert!(view.locked.iter().all(Option::is_none));
         let fields: Vec<_> = view.status.iter().map(|f| f.label.as_str()).collect();
         assert_eq!(fields, ["Heart containers", "Rupees"]);
-        let dungeons = view
-            .sections
-            .iter()
-            .find(|p| p.section == inventory::Section::Dungeons);
-        assert!(!dungeons.unwrap().shown);
+        let hidden: Vec<_> = (view.sections.iter())
+            .filter(|p| !p.shown)
+            .map(|p| p.section)
+            .collect();
+        use inventory::Section::{Dungeons, Medallions, Stones};
+        assert_eq!(hidden, [Stones, Medallions, Dungeons]);
     }
 
     #[test]

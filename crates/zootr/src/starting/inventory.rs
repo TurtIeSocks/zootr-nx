@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 
-use crate::inventory::{self, Held, Pouch};
+use crate::inventory::{self, Held, Pouch, Section};
 use crate::known::{Name, actor, field, item};
 use crate::magic::meter;
 use crate::progressive;
@@ -131,6 +131,10 @@ pub const WORDS: &[(&str, &Name)] = &[
     ("spirit-medallion", item::MEDAL_SPIRIT), ("shadow-medallion", item::MEDAL_SHADOW), ("light-medallion", item::MEDAL_LIGHT),
 ];
 
+/// Grid sections a new game can't start holding: too much of the game
+/// reads the stones and medallions as quest progress.
+pub const BARRED: [Section; 2] = [Section::Stones, Section::Medallions];
+
 /// Grid actors whose chest item has another name: what a new game is
 /// granted, what leaves the pool and what logic counts. The upgrade lines
 /// (`progressive::LINES`) name theirs too.
@@ -252,16 +256,10 @@ impl Start {
         start
     }
 
-    /// Fails on a word that isn't an item, a heart count or rupees.
+    /// Fails on a word that isn't an item, a heart count or rupees, or
+    /// names a stone or medallion.
     pub fn check(&self) -> Result<()> {
-        let known = |w: &str| w == HEARTS || w == RUPEE_WORD || WORDS.iter().any(|(k, _)| *k == w);
-        if let Some(w) = self.0.keys().find(|w| !known(w)) {
-            bail!(
-                "a new game can't start with {w}. `--start` takes {}",
-                words()
-            );
-        }
-        Ok(())
+        self.0.keys().try_for_each(|w| actor_of(w).map(|_| ()))
     }
 
     /// Whether `word` is held at all.
@@ -274,16 +272,10 @@ impl Start {
         if word == ARSENAL {
             return KIT.iter().try_for_each(|&(w, n)| self.add(w, n));
         }
-        if word == HEARTS || word == RUPEE_WORD {
+        let Some(actor) = actor_of(word)? else {
             self.0.insert(word.into(), n);
             return Ok(());
-        }
-        let &(_, actor) = (WORDS.iter().find(|(w, _)| *w == word)).with_context(|| {
-            format!(
-                "a new game can't start with {word}. `--start` takes {}",
-                words()
-            )
-        })?;
+        };
         for lower in inventory::below(actor)
             .into_iter()
             .filter(|a| !ALWAYS.contains(a))
@@ -408,6 +400,18 @@ impl Start {
     }
 }
 
+/// Brings a saved starting inventory up to date: the stones and
+/// medallions it may hold, which no new game starts with now, are dropped.
+pub fn upgrade(start: &mut serde_json::Value) {
+    let Some(words) = start.as_object_mut() else {
+        return;
+    };
+    words.retain(|w, _| {
+        let actor = WORDS.iter().find(|(k, _)| k == w);
+        !actor.is_some_and(|(_, a)| barred(a))
+    });
+}
+
 /// `--start`'s `WORD[=N]`: a word it takes, and how many, 1 unless said.
 pub fn parse(arg: &str) -> Result<(String, i32)> {
     if arg == NONE {
@@ -423,8 +427,31 @@ pub fn parse(arg: &str) -> Result<(String, i32)> {
 
 /// Every word `--start` takes.
 pub fn words() -> String {
-    let all = (WORDS.iter().map(|(w, _)| *w)).chain([HEARTS, RUPEE_WORD, NONE, ARSENAL]);
+    let items = WORDS.iter().filter(|(_, a)| !barred(a)).map(|(w, _)| *w);
+    let all = items.chain([HEARTS, RUPEE_WORD, NONE, ARSENAL]);
     all.collect::<Vec<_>>().join(", ")
+}
+
+/// Whether grid actor `a` is a stone or medallion, which no new game
+/// starts with.
+fn barred(a: &Name) -> bool {
+    inventory::section(a).is_some_and(|s| BARRED.contains(&s))
+}
+
+/// The grid actor `word` names, none for a heart or rupee count. Fails on
+/// a word `--start` doesn't take.
+fn actor_of(word: &str) -> Result<Option<&'static Name>> {
+    if word == HEARTS || word == RUPEE_WORD {
+        return Ok(None);
+    }
+    let found = WORDS.iter().find(|(w, _)| *w == word);
+    match found {
+        Some((_, a)) if !barred(a) => Ok(Some(*a)),
+        _ => bail!(
+            "a new game can't start with {word}. `--start` takes {}",
+            words()
+        ),
+    }
 }
 
 fn word_of(actor: &Name) -> Result<&'static str> {
@@ -503,6 +530,18 @@ mod tests {
         );
         let none = Settings::from([(SETTING.into(), serde_json::json!({}))]);
         assert_eq!(Start::from_settings(&none).unwrap(), Start::default());
+    }
+
+    #[test]
+    fn no_new_game_starts_with_a_stone_or_medallion() {
+        for w in ["kokiri-emerald", "forest-medallion", "light-medallion"] {
+            assert!(parse(w).is_err(), "{w}");
+            assert!(start(&[(w, 1)]).check().is_err(), "{w}");
+            assert!(!words().split(", ").any(|k| k == w), "{w}");
+        }
+        let mut old = serde_json::json!({ "goron-ruby": 1, "spirit-medallion": 1, "hookshot": 1 });
+        upgrade(&mut old);
+        assert_eq!(old, serde_json::json!({ "hookshot": 1 }));
     }
 
     #[test]

@@ -169,6 +169,9 @@ pub(crate) fn upgrade(settings: &mut Settings) {
     if settings.get(CLAIM_CHECK).is_some_and(Value::is_boolean) {
         settings.remove(CLAIM_CHECK);
     }
+    if let Some(start) = settings.get_mut(starting::SETTING) {
+        starting::upgrade(start);
+    }
     let on: Vec<&[&str]> = (STARTING.iter())
         .filter_map(|(id, words)| (settings.remove(*id)? == true).then_some(*words))
         .collect();
