@@ -310,5 +310,54 @@
     "id": "ageless-weapons",
     "kind": "toggle",
     "label": "One-Handed Swords and Shields for Both Ages"
+  },
+  {
+    "default": true,
+    "description": "Every Business Scrub outside the Dream World sells a check once. Scrubs that sold ammo on repeat sell their one item and leave",
+    "id": "scrubs",
+    "kind": "toggle",
+    "label": "Business Scrubs"
+  },
+  {
+    "default": false,
+    "description": "The running man's prize for Link's first win becomes a check. Later wins still pay a Red Rupee. Logic expects it only with Gerudo Fortress Freed, since he offers the race once the valley bridge is fixed",
+    "id": "running-race",
+    "kind": "toggle",
+    "label": "Running Man's Race"
+  },
+  {
+    "default": false,
+    "description": "Each pot is a check, flying pots included. One placed with no drop of its own brings a Recovery Heart, a Deku Stick and the like to the pool. A broken pot may come back when the area reloads, so its item may too",
+    "id": "pots",
+    "kind": "toggle",
+    "label": "Pots"
+  },
+  {
+    "default": false,
+    "description": "Each wooden crate is a check. Link breaks a big one by rolling into it",
+    "id": "crates",
+    "kind": "toggle",
+    "label": "Crates"
+  },
+  {
+    "default": false,
+    "description": "Each small rock is a check. Link lifts and throws one to break it",
+    "id": "rocks",
+    "kind": "toggle",
+    "label": "Rocks"
+  },
+  {
+    "default": false,
+    "description": "Each grass shrub Link can cut or lift is a check, like those outside Saria's house",
+    "id": "grass",
+    "kind": "toggle",
+    "label": "Grass"
+  },
+  {
+    "default": false,
+    "description": "Each of Kakariko's beehives is a check. Anything thrown or shot but a slingshot seed knocks one down",
+    "id": "hives",
+    "kind": "toggle",
+    "label": "Beehives"
   }
 ]

@@ -30,6 +30,11 @@
     "name": "Bolero of Fire"
   },
   {
+    "class": "filler",
+    "id": 113,
+    "name": "Bomb"
+  },
+  {
     "class": "progression",
     "id": 37,
     "name": "Bombchus (10)"
@@ -100,9 +105,19 @@
     "name": "Deku Nuts (3)"
   },
   {
+    "class": "filler",
+    "id": 114,
+    "name": "Deku Seeds (3)"
+  },
+  {
     "class": "progression",
     "id": 9,
     "name": "Deku Shield"
+  },
+  {
+    "class": "filler",
+    "id": 115,
+    "name": "Deku Stick"
   },
   {
     "class": "filler",
@@ -153,6 +168,11 @@
     "class": "progression",
     "id": 72,
     "name": "Eyeball Frog"
+  },
+  {
+    "class": "filler",
+    "id": 116,
+    "name": "Fairy"
   },
   {
     "class": "filler",
@@ -446,6 +466,11 @@
   },
   {
     "class": "filler",
+    "id": 117,
+    "name": "Recovery Heart"
+  },
+  {
+    "class": "filler",
     "id": 32,
     "name": "Red Rupee (20)"
   },
@@ -483,6 +508,11 @@
     "class": "filler",
     "id": 105,
     "name": "Shadow Temple Map"
+  },
+  {
+    "class": "filler",
+    "id": 118,
+    "name": "Small Magic Jar"
   },
   {
     "class": "progression",

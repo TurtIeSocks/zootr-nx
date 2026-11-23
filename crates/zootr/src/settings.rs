@@ -55,6 +55,31 @@ pub struct SettingDef {
     /// `(value, words)`: a toggle's `on`, else an option's id. The grid
     /// shows them locked: see [`GIVES`].
     pub gives: Vec<(String, Vec<&'static str>)>,
+    /// Whether the Archipelago world offers it: the app marks the rest.
+    pub archipelago: Archipelago,
+}
+
+/// Whether the Archipelago world offers a setting, or one of a choice's
+/// options: the app marks the rest. See [`crate::ap::LEFT_OUT`].
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(tag = "ap", content = "why", rename_all = "lowercase")]
+pub enum Archipelago {
+    Offered,
+    /// Coming, in this stage of the queue.
+    Later(&'static str),
+    /// Not a setting a multiworld can use, and why.
+    Never(&'static str),
+}
+
+impl Archipelago {
+    /// The reason it's left out, empty when offered.
+    pub fn why(self) -> &'static str {
+        match self {
+            Archipelago::Offered => "",
+            Archipelago::Later(why) | Archipelago::Never(why) => why,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -86,6 +111,8 @@ pub struct Choice {
     pub forces: Vec<&'static str>,
     /// Start inventory words this pick gives, shown held.
     pub starts: Vec<&'static str>,
+    /// Whether the Archipelago world offers this pick.
+    pub archipelago: Archipelago,
 }
 
 /// The id a choice is saved as, its clap name.
@@ -110,6 +137,7 @@ fn choice<T: ValueEnum + Copy + Default>(
             label: labels(v),
             forces: Vec::new(),
             starts: Vec::new(),
+            archipelago: Archipelago::Offered,
         })
         .collect();
     SettingDef {
@@ -314,6 +342,7 @@ fn toggle(
         section_about: place.about,
         list: place.list,
         gives: Vec::new(),
+        archipelago: Archipelago::Offered,
     }
 }
 
@@ -739,6 +768,12 @@ pub fn schema() -> Vec<SettingDef> {
         .collect::<Vec<_>>();
     for d in &mut all {
         d.gives = gives(d);
+        d.archipelago = crate::ap::archipelago(d).unwrap_or(Archipelago::Offered);
+        if let Kind::Choice { options, .. } = &mut d.kind {
+            for o in options {
+                o.archipelago = crate::ap::archipelago_option(&d.id, &o.id);
+            }
+        }
     }
     // Stable, so each section keeps the order the chain gives it, bar
     // those `ORDER` lists.
