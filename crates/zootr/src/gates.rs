@@ -48,8 +48,10 @@ const EVENT_TRIGGER: &Name = field::EVENT_REQUEST_TRIGGER;
 /// nothing else is quiet: running it twice changes nothing.
 const QUIET: [&str; 3] = ["ActorLogic", "Operate", "Hold"];
 /// Words in those classes that still mark a writer: an event request, a
-/// GameData allocation, a setter.
-const LOUD: [&str; 3] = ["EventRequest", "Alloc", "Set"];
+/// setter. An autogen GameData allocation is the group's own memory, kept
+/// per placed group, so a copy under its own Hash keeps its own (research:
+/// Fire Temple crate freeze, the Deku Tree's regrowing grass).
+const LOUD: [&str; 2] = ["EventRequest", "Set"];
 
 /// One thing a gate reads.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
