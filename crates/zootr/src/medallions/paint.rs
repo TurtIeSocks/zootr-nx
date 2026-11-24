@@ -161,7 +161,7 @@ fn coverage(icon: &Texture, t: &Texture, x: f32, y: f32) -> f32 {
 }
 
 /// Hue in turns, saturation and value, each 0 to 1.
-fn hsv([r, g, b]: Colour) -> (f32, f32, f32) {
+pub(crate) fn hsv([r, g, b]: Colour) -> (f32, f32, f32) {
     let (r, g, b) = (r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0);
     let (max, min) = (r.max(g).max(b), r.min(g).min(b));
     let d = max - min;

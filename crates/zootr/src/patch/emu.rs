@@ -299,7 +299,7 @@ fn without_a_table_each_hooked_function_runs_its_own_body_and_nothing_else() {
 #[test]
 fn without_a_table_the_boots_icon_reads_the_games_child_byte() {
     for mut m in machines() {
-        let (site, _) = gear::hud(&m.h.build);
+        let site = m.h.build.calls.gear_hud;
         let what = format!("{} boots icon", m.h.release.name());
         for child in [0u8, 1] {
             let set = m.set_registers();

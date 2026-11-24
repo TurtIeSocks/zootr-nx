@@ -86,18 +86,15 @@ const fn skips(b: &Build) -> [(u32, u32); 3] {
 /// chest sets its `ContentName`, go to `content_name`. The drop reader's
 /// calls, where a loading room reads a chest's placement, go to
 /// `drop_actor`. The bow draw's child test, which picks its guide, goes
-/// to `seed_guide`, so a child Bow says "Shoot Arrow". The equipment
-/// slots' child tests go to `gear_child` ([`gear::calls`]).
-const fn calls(b: &Build) -> [(u32, u32); 7] {
-    let [gear_request, gear_actor] = gear::calls(b);
+/// to `seed_guide`, so a child Bow says "Shoot Arrow". The gear sites
+/// are [`gear::sites`].
+const fn calls(b: &Build) -> [(u32, u32); 5] {
     [
         (b.calls.content1, entry::CONTENT_NAME),
         (b.calls.content2, entry::CONTENT_NAME),
         (b.calls.drop1, entry::DROP_ACTOR),
         (b.calls.drop2, entry::DROP_ACTOR),
         (b.calls.seed_guide, entry::SEED_GUIDE),
-        gear_request,
-        gear_actor,
     ]
 }
 /// The run node's call to the speed setter and the hook entry it goes to,
@@ -223,14 +220,16 @@ impl Hook {
     fn sites(&self) -> impl Iterator<Item = Patch> + use<> {
         let b = &self.build;
         let cave = b.regions.cave;
-        let calls = calls(b).into_iter().chain(npad_calls(b));
+        let calls = calls(b)
+            .into_iter()
+            .chain(npad_calls(b))
+            .chain(gear::sites(b));
         let calls = calls.map(|(at, entry)| (at, entry, true));
         let hooks = hooks(b).into_iter().map(|(at, entry)| (at, entry, false));
         let (run, run_entry) = run_call(b);
-        let (hud, hud_entry) = gear::hud(b);
         calls
             .chain(hooks)
-            .chain([(hud, hud_entry, true), (run, run_entry, true)])
+            .chain([(run, run_entry, true)])
             .map(move |(at, entry, link)| Patch {
                 at,
                 bytes: branch(at, cave + entry, link).to_vec(),
@@ -631,7 +630,7 @@ mod tests {
             let at = |i: usize| u32::from_le_bytes(p[SITES_AT + i].bytes[..].try_into().unwrap());
             assert_eq!(at(0) >> 26, 0b100101, "a call stays a bl");
             assert_eq!(
-                at(calls(b).len() + npad_calls(b).len()) >> 26,
+                at(calls(b).len() + npad_calls(b).len() + gear::sites(b).len()) >> 26,
                 0b000101,
                 "a hook is a b"
             );
@@ -714,14 +713,14 @@ mod tests {
     fn the_1_1_1_patch_is_pinned() {
         let (got, pinned) = pins(v111());
         let want = [
-            ("hook", 0xe07e_c926_1640_d3a7),
-            ("far", 0xc4ad_4cb3_788d_2dc6),
-            ("code", 0x239a_7257_4280_4086),
-            ("sites", 0x0209_eeb8_fec6_37d2),
-            ("patches", 0xaaeb_45bb_d473_e72e),
-            ("pchtxt", 0x1b45_94a8_d22e_dc95),
-            ("ips", 0x0925_074c_306f_92d4),
-            ("cheat", 0x2402_0a13_e2c6_c98d),
+            ("hook", 0x5316_c7f9_5f7d_77b7),
+            ("far", 0xb276_ab0a_0c1d_575e),
+            ("code", 0xee5a_7581_970c_bd63),
+            ("sites", 0x3608_bf58_814b_3fcf),
+            ("patches", 0xc015_8f28_6485_fcab),
+            ("pchtxt", 0xa653_6371_50bb_4aa4),
+            ("ips", 0x872e_9168_f5ba_d9ab),
+            ("cheat", 0x24f3_6732_a2ba_5a33),
         ];
         assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
     }
@@ -732,14 +731,14 @@ mod tests {
     fn the_1_0_0_patch_is_pinned() {
         let (got, pinned) = pins(Hook::of(Release::V100));
         let want = [
-            ("hook", 0x2b23_a33a_a53b_e220),
-            ("far", 0x4a3b_2218_b11e_471a),
-            ("code", 0x60a6_280c_eab2_6b39),
-            ("sites", 0x6a43_a440_d683_4bc4),
-            ("patches", 0xaacd_a342_08b9_47f9),
-            ("pchtxt", 0xd015_27d2_4851_ab58),
-            ("ips", 0x4b05_bbfd_066c_be5b),
-            ("cheat", 0xaf80_8828_1c76_4918),
+            ("hook", 0x829e_0104_709b_cc75),
+            ("far", 0xe201_f977_01da_f74a),
+            ("code", 0x499f_8d65_4ce9_00a9),
+            ("sites", 0xabe9_5d05_59f7_2375),
+            ("patches", 0x8a30_2148_d1a5_4995),
+            ("pchtxt", 0x38ed_9afd_842b_766b),
+            ("ips", 0xb153_1230_2307_b1c9),
+            ("cheat", 0xab41_62c1_8090_10be),
         ];
         assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
     }
@@ -783,21 +782,13 @@ mod tests {
             0x3640_0009 | imm(catch, orig, 5),
             "tbz w9, #8, catch_orig"
         );
-        let (boots, boots_to) = gear::boots(b);
-        assert_eq!(
-            word(boots),
-            0x3600_0000 | imm(boots, boots_to, 5),
-            "tbz w0, #0, boots_to"
-        );
-        assert_eq!(word(gear::hud(b).0), 0x3957_0108, "ldrb w8, [x8, #0x5c0]");
+        gear::words_hold_what_we_expect(main, b);
         let f = &b.funcs;
         let callees = [
             f.setter,
             f.setter,
             f.reader,
             f.reader,
-            f.childhood,
-            f.childhood,
             f.childhood,
             f.run_setter,
         ];
@@ -839,16 +830,10 @@ mod tests {
         let sites = (skips(b).into_iter())
             .chain(calls(b))
             .chain(npad_calls(b))
+            .chain(gear::sites(b))
             .chain(hooks(b));
         let checked: Vec<u32> = (sites.map(|(at, _)| at))
-            .chain([
-                run_call(b).0,
-                gear::hud(b).0,
-                r.cave,
-                r.far,
-                r.table,
-                r.table + 4,
-            ])
+            .chain([run_call(b).0, r.cave, r.far, r.table, r.table + 4])
             .collect();
         for p in h
             .patches(&progressive::LINES, &[], 0, &[], &[], None)

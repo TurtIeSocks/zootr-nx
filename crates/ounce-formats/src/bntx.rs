@@ -230,9 +230,12 @@ impl Kind {
     }
 }
 
-/// Whether [`redraw`] redraws a texture of `format`: ASTC, BC1 or BC4.
+/// Whether [`redraw`] redraws a texture of `format`: ASTC, BC1, BC3 or BC4.
 pub fn redraws(format: u32) -> bool {
-    matches!(Kind::of(format), Ok(Kind::Bc1 | Kind::Bc4 | Kind::Astc(..)))
+    matches!(
+        Kind::of(format),
+        Ok(Kind::Bc1 | Kind::Bc3 | Kind::Bc4 | Kind::Astc(..))
+    )
 }
 
 /// A file of one texture with its texels redrawn from `rgba`, its first
@@ -294,7 +297,7 @@ fn encode(data: &[u8], info: &Info, rgba: &[u8], kept: &[bool]) -> Result<Vec<u8
     let (bw, bh, unit) = kind.block();
     ensure!(
         redraws(info.format),
-        "{}: only ASTC, BC1 and BC4 are redrawn",
+        "{}: only ASTC, BC1, BC3 and BC4 are redrawn",
         info.name
     );
     ensure!(
@@ -355,6 +358,7 @@ fn encode(data: &[u8], info: &Info, rgba: &[u8], kept: &[bool]) -> Result<Vec<u8
                     let red: [u8; 16] = std::array::from_fn(|t| texels[t][0]);
                     blocks::bc4(&red).to_vec()
                 }
+                Kind::Bc3 => blocks::bc3(&texels).to_vec(),
                 // ASTC, the one kind left that `redraws` takes.
                 _ => blocks::astc(&texels, bw, bh).to_vec(),
             })
@@ -466,7 +470,7 @@ mod tests {
         assert_eq!(Kind::of(0x3a06).unwrap().block(), (12, 12, 16));
         assert_eq!(Kind::of(0x1a01).unwrap().block(), (4, 4, 8));
         assert!(Kind::of(0x2101).is_err());
-        assert!(redraws(0x1d01) && redraws(0x3001) && !redraws(0x2001));
+        assert!(redraws(0x1d01) && redraws(0x3001) && redraws(0x1c06) && !redraws(0x2001));
     }
 
     #[test]

@@ -34,6 +34,7 @@ mod build;
 pub mod entry;
 #[cfg(target_os = "none")]
 mod game;
+mod gear;
 pub mod keys;
 pub mod look;
 mod mailbox;
@@ -48,6 +49,10 @@ pub use build::{
     Branches, Bss, Build, Calls, Entries, Funcs, Got, Imports, Offsets, Regions, V65536, V131072,
     Vtables,
 };
+pub use gear::{
+    ADULT_KOKIRI, ARMOR_SLOT, BOOTS_SLOT, CHILD_ARMOR, CHILD_GEAR, child_armor, every_kokiri_worn,
+    gear_through, hud_child, kokiri_worn,
+};
 pub use mailbox::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
     ARG_SUMMARY, Ask, GUARD, MAILBOX, Mailbox, NAME, Notice, Outcome, play_event,
@@ -60,9 +65,8 @@ pub use table::SlotSpec;
 #[cfg(not(target_os = "none"))]
 pub use table::encode;
 pub use table::{
-    BOMBCHU_BAG, BOOTS_SLOT, BUNNY_HOOD, CHILD_GEAR, Credit, DEV, FREE_BOMBCHUS, Found, HEADER,
-    Header, ICE_TRAPS, Level, Levels, MAGIC, MENU_CYCLE, Slot, Table, after_grant, fnv,
-    gear_through, hud_child, pick, pick_with,
+    BOMBCHU_BAG, BUNNY_HOOD, Credit, DEV, FREE_BOMBCHUS, Found, HEADER, Header, ICE_TRAPS, Level,
+    Levels, MAGIC, MENU_CYCLE, Slot, Table, after_grant, fnv, pick, pick_with,
 };
 
 /// The build everything here is made for: the hook is compiled against it,
@@ -102,7 +106,7 @@ pub const fn list(b: &Build) -> u32 {
 /// listed, then the full key, handheld and joy dual controller reads. The
 /// patch writes a `b` into each: past the hooked function's pacibsp, or to
 /// the game's `GetNpadStates` stub for that style.
-pub const SLOTS: u32 = 92;
+pub const SLOTS: u32 = 108;
 
 /// The Deku Seed's name hash, the projectile an empty bow says "no Deku
 /// seeds" for and the draw says "Shoot Seed" for. Every other one says

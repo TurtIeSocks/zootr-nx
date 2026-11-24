@@ -570,7 +570,7 @@ impl<'a> Parts<'a> {
             ageless::write(romfs, builder)?;
         }
         if new_game.on.contains(AGELESS_GEAR) {
-            ageless::gear::write(builder)?;
+            ageless::gear::write(romfs, builder, tables)?;
             // The boots' clips and effects are the adult's, which
             // ageless-items lends too. Its sounds don't cover the boots.
             if !new_game.on.contains(AGELESS_ITEMS) {

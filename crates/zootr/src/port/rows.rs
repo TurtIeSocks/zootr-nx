@@ -117,6 +117,7 @@ rows! {
         shootable: Code,
         name_copy: Code,
         childhood: Code,
+        make_actor: Code,
         malloc: Code,
         make_arg: Code,
         request: Code,
@@ -153,6 +154,14 @@ rows! {
         gear_request: Code,
         gear_actor: Code,
         gear_hud: Code,
+        gear_menu: Code,
+        gear_worn: Code,
+        gear_mark: Code,
+        gear_create1: Code,
+        gear_create2: Code,
+        gear_create3: Code,
+        gear_create4: Code,
+        gear_create5: Code,
     }
     branches: Branches {
         gate: Code,

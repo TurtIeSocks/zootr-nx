@@ -22,6 +22,13 @@ pub struct Tables {
     dirty: bool,
 }
 
+/// A pouch row's id, as [`Tables::edit_pouch`] hands rows over.
+fn row_id_of(row: &BymlMap) -> Option<&str> {
+    row.get(rsdb::ROW_ID)
+        .and_then(|v| v.as_string().ok())
+        .map(|s| s.as_str())
+}
+
 pub(crate) fn row_id(row: &Byml) -> &str {
     row.as_map()
         .ok()
@@ -223,13 +230,28 @@ impl Tables {
     /// and counts no other way. Returns how many it found.
     pub(crate) fn plain_deal(&mut self, names: &[String]) -> Result<usize> {
         self.edit_pouch(|row| {
-            let id = row.get(rsdb::ROW_ID).and_then(|v| v.as_string().ok());
-            let hit = id.is_some_and(|id| names.iter().any(|n| n == id));
+            let hit = row_id_of(row).is_some_and(|id| names.iter().any(|n| n == id));
             if hit {
                 row.insert(field::POUCH_SPECIAL_DEAL.get().into(), PLAIN_DEAL.into());
             }
             hit
         })
+    }
+
+    /// `name`'s pouch row takes `like`'s deal.
+    pub(crate) fn take_deal(&mut self, name: &str, like: &str) -> Result<()> {
+        let key = field::POUCH_SPECIAL_DEAL.get();
+        let deal = row(&self.pouch, like)?.get(key).cloned();
+        let deal = deal.with_context(|| format!("{like} has no deal"))?;
+        let changed = self.edit_pouch(|row| {
+            let hit = row_id_of(row) == Some(name);
+            if hit {
+                row.insert(key.into(), deal.clone());
+            }
+            hit
+        })?;
+        ensure!(changed == 1, "{name} has no pouch row");
+        Ok(())
     }
 
     /// Hand `edit` every row of the pouch table, written with the rest.

@@ -22,6 +22,9 @@ mod swap;
 use chests::{drop_value, level_for, owned, record, recreate, rewrite};
 
 type Childhood = unsafe extern "C" fn(usize) -> bool;
+/// The equipment menu's test of whether the cell named by its second
+/// argument is worn.
+type WornTest = unsafe extern "C" fn(usize, *const *const u8) -> bool;
 type Setter = unsafe extern "C" fn(*mut u8, *const *const u8, *const *const u8);
 type Reader = unsafe extern "C" fn(*mut u8, *const u8, usize, usize) -> usize;
 /// The game's name hash, as the nock and the chest list use it.
@@ -133,6 +136,10 @@ global_asm!(
     "b resident_made_entry",
     "b gear_child_entry",
     "b gear_hud_entry",
+    "b gear_create_entry",
+    "b gear_menu_entry",
+    "b gear_worn_entry",
+    "b gear_mark_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -184,6 +191,80 @@ global_asm!(
     "mov w8, w0",
     "ldp x29, x30, [sp], #0x10",
     "ret",
+    // Far, as the rest of the gear stubs: they run only on an equip, or
+    // when the menu shows the equipment.
+    ".pushsection .far, \"ax\"",
+    // In place of each equipment creation's `bl` to the creator: saves the
+    // creator's register args (its stack args stay put), asks `gear_create`
+    // which name to make, then goes on to the creator as the call would.
+    "gear_create_entry:",
+    "stp x29, x30, [sp, #-0x60]!",
+    "stp x0, x1, [sp, #0x10]",
+    "stp x2, x3, [sp, #0x20]",
+    "stp x4, x5, [sp, #0x30]",
+    "stp x6, x7, [sp, #0x40]",
+    "str x8, [sp, #0x50]",
+    "mov x0, x1",
+    "mov x1, x2",
+    "bl gear_create",
+    "mov x16, x1",
+    "mov x1, x0",
+    "ldr x0, [sp, #0x10]",
+    "ldp x2, x3, [sp, #0x20]",
+    "ldp x4, x5, [sp, #0x30]",
+    "ldp x6, x7, [sp, #0x40]",
+    "ldr x8, [sp, #0x50]",
+    "ldp x29, x30, [sp], #0x60",
+    "br x16",
+    // In place of the pause menu's `ldrb w25, [x9, #0x5c0]`, its read of
+    // whether Link is a child, which greys a child's tunics out. Every
+    // register but w25 is the menu's, so all it may hold are kept.
+    "gear_menu_entry:",
+    "stp x29, x30, [sp, #-0xa0]!",
+    "stp x0, x1, [sp, #0x10]",
+    "stp x2, x3, [sp, #0x20]",
+    "stp x4, x5, [sp, #0x30]",
+    "stp x6, x7, [sp, #0x40]",
+    "stp x8, x9, [sp, #0x50]",
+    "stp x10, x11, [sp, #0x60]",
+    "stp x12, x13, [sp, #0x70]",
+    "stp x14, x15, [sp, #0x80]",
+    "stp x16, x17, [sp, #0x90]",
+    "ldrb w0, [x9, #0x5c0]",
+    "bl gear_hud",
+    "mov w25, w0",
+    "ldp x0, x1, [sp, #0x10]",
+    "ldp x2, x3, [sp, #0x20]",
+    "ldp x4, x5, [sp, #0x30]",
+    "ldp x6, x7, [sp, #0x40]",
+    "ldp x8, x9, [sp, #0x50]",
+    "ldp x10, x11, [sp, #0x60]",
+    "ldp x12, x13, [sp, #0x70]",
+    "ldp x14, x15, [sp, #0x80]",
+    "ldp x16, x17, [sp, #0x90]",
+    "ldp x29, x30, [sp], #0xa0",
+    "ret",
+    // In place of the equipment cells' `ccmp w28, #0x0, #0x0, ne`, after
+    // `cmp w8, #0x0` on the worn armor's first byte, with the child byte in
+    // w28. Its flags pick the cell's worn mark: equal tests the cell's
+    // name, else every Kokiri Tunic cell shows as worn. No scratch register
+    // is live: both paths reload x8.
+    "gear_worn_entry:",
+    "stp x29, x30, [sp, #-0x10]!",
+    "cmp w8, #0x0",
+    "cset w0, eq",
+    "mov w1, w28",
+    "bl gear_worn",
+    "ldp x29, x30, [sp], #0x10",
+    "cmp w0, #0x0",
+    "ret",
+    // In place of the equipment cells' call to the worn test, with the
+    // menu in x0, the cell's name in x1 and the worn name at the refresh's
+    // [sp, #0x20].
+    "gear_mark_entry:",
+    "ldr x2, [sp, #0x20]",
+    "b gear_mark",
+    ".popsection",
     "map_loaded_entry:",
     "function_hook map_loaded, map_loaded_resume",
     "chest_made_entry:",
@@ -408,6 +489,7 @@ pub unsafe extern "C" fn seed_guide(link: usize) -> bool {
 /// # Safety
 /// Only the game calls this, from the rewritten call sites.
 #[unsafe(no_mangle)]
+#[unsafe(link_section = ".far")]
 pub unsafe extern "C" fn gear_child(link: usize, slot: u32) -> bool {
     if table().is_some_and(|(_, table)| crate::gear_through(slot, table.flags)) {
         return false;
@@ -415,6 +497,56 @@ pub unsafe extern "C" fn gear_child(link: usize, slot: u32) -> bool {
     unsafe {
         let child: Childhood = func(main(), OFFSETS.funcs.childhood);
         child(link)
+    }
+}
+
+/// What a creation call made on Link's equipment goes on with: where the
+/// actor's name is read from, and the creator.
+#[repr(C)]
+pub struct Created {
+    name: *const *const u8,
+    create: usize,
+}
+
+/// Where an actor's creation params keep its owner: Link, for his
+/// equipment.
+const PARAMS_OWNER: usize = 0x70;
+
+/// The equipment code hands an actor's name (`name`, read through) and its
+/// creation params to the game's creator. For a child's tunic in a seed
+/// with [`crate::CHILD_GEAR`], the name read is the seed's armor for him
+/// ([`crate::child_armor`]) instead: every way the game puts armor on him
+/// (the menu, the equip refresh, a map load, the menu's Link) goes through
+/// one of these calls.
+///
+/// # Safety
+/// Only the game calls this, from a rewritten creation call, with `name`
+/// pointing at a name and `params` at its creation params.
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".far")]
+pub unsafe extern "C" fn gear_create(name: *const *const u8, params: usize) -> Created {
+    unsafe {
+        let main = main();
+        let create = main + OFFSETS.funcs.make_actor as usize;
+        let worn = core::ffi::CStr::from_ptr((*name).cast()).to_bytes();
+        let renamed = table().and_then(|(_, table)| {
+            let at = crate::child_armor(worn, table.flags)?;
+            let link = *((params + PARAMS_OWNER) as *const usize);
+            let child: Childhood = func(main, OFFSETS.funcs.childhood);
+            (link != 0 && child(link)).then_some(at)
+        });
+        let Some(at) = renamed else {
+            return Created { name, create };
+        };
+        let cell = &shared(main).child_armor[at];
+        cell.store(
+            crate::CHILD_ARMOR[at].name().as_ptr() as usize,
+            core::sync::atomic::Ordering::Relaxed,
+        );
+        Created {
+            name: cell.as_ptr().cast(),
+            create,
+        }
     }
 }
 
@@ -428,6 +560,43 @@ extern "C" fn gear_hud(child: bool) -> bool {
         Some((_, table)) => crate::hud_child(child, table.flags),
         None => child,
     }
+}
+
+/// The equipment menu asks whether every Kokiri Tunic cell shows as worn
+/// rather than testing each cell, for no armor worn (`empty`) and the
+/// game's child answer: [`crate::every_kokiri_worn`].
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".far")]
+extern "C" fn gear_worn(empty: bool, child: bool) -> bool {
+    crate::every_kokiri_worn(empty, child, flags())
+}
+
+/// The equipment menu tests whether the cell named `cell` is worn: the
+/// game's test, or [`crate::kokiri_worn`] with `worn` the armor slot's
+/// name.
+///
+/// # Safety
+/// Only the game calls this, from the rewritten call, with `cell` and
+/// `worn` pointing at names.
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".far")]
+pub unsafe extern "C" fn gear_mark(menu: usize, cell: *const *const u8, worn: *const u8) -> bool {
+    unsafe {
+        let test: WornTest = func(main(), OFFSETS.funcs.worn);
+        if test(menu, cell) {
+            return true;
+        }
+        let (Some(cell), Some(worn)) = (name(*cell), name(worn)) else {
+            return false;
+        };
+        crate::kokiri_worn(cell, worn, flags())
+    }
+}
+
+/// The table's flags, none without a table.
+#[inline(always)]
+fn flags() -> u32 {
+    table().map_or(0, |(_, table)| table.flags)
 }
 
 /// The game makes the resident actors (the player of an age, the

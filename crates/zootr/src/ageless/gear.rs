@@ -1,27 +1,39 @@
-//! Boots for a child. The menu's table greys them out for him, and his
-//! model had no group for the boots' armor to hide, so his own fur boots
-//! showed through. The seed's `CHILD_GEAR` flag lets the hook make the
-//! boots on him and their state reach him (`patch/gear.rs`), and his steps
-//! in them are the adult's clips, lent ([`crate::ageless_items`]). See
-//! `superpowers/specs/2026-11-23-child-gear-design.md`.
+//! Boots and tunics for a child. The menu's table greys them out for him,
+//! and his model had no group for their armor to hide, so his own fur
+//! boots and green cloth showed through. The seed's `CHILD_GEAR` flag lets
+//! the hook make them on him and the boots' state reach him
+//! (`patch/gear.rs`), his steps in boots are the adult's clips, lent
+//! ([`crate::ageless_items`]), and his tunics are his own ([`tunics`]).
+//! See `superpowers/specs/2026-11-23-child-gear-design.md`.
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, pack_file};
+use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_file};
 
+use super::tunics;
 use crate::game::POUCH_TABLE;
 use crate::known::{Name, actor, field};
 use crate::standins;
 
-/// The boots' armor actors, as the table names them.
-const BOOTS: [&Name; 2] = [actor::ARMOR_ADULT_HEAVY_BOOT, actor::ARMOR_ADULT_HOVER_BOOT];
+/// The boots' and tunics' armor actors, as the table names them.
+const GEAR: [&Name; 4] = [
+    actor::ARMOR_ADULT_HEAVY_BOOT,
+    actor::ARMOR_ADULT_HOVER_BOOT,
+    actor::ARMOR_ADULT_ZORA,
+    actor::ARMOR_ADULT_GORON,
+];
 /// The child's packs that carry his base equipment user file: his own and
 /// the menu's model of him.
 const PACKS: [&Name; 2] = [actor::PLAYER_CHILD, actor::POUCH_PLAYER_CHILD];
-/// The group the boots' armor hides, and his materials it covers.
-const GROUP: (&Name, [&Name; 2]) = (
-    field::G_BOOTS,
-    [field::MT_FUR_BOOTS, field::MT_FUR_BOOTS_ALPHA_MASK],
-);
+/// The groups the gear's armor hides on him, each with his materials it
+/// covers: the boots' his fur boots, then the tunics'.
+const GROUPS: [(&Name, &[&Name]); 3] = [
+    (
+        field::G_BOOTS,
+        &[field::MT_FUR_BOOTS, field::MT_FUR_BOOTS_ALPHA_MASK],
+    ),
+    tunics::GROUPS[0],
+    tunics::GROUPS[1],
+];
 
 /// His base equipment user file, which only his two packs carry.
 fn user_path() -> String {
@@ -32,17 +44,18 @@ fn user_path() -> String {
     )
 }
 
-/// The pause menu's table at `table` with the boots open to both ages.
-fn boots_opened(table: &[u8]) -> Result<Vec<u8>> {
-    let (table, changed) = super::unlock(table, |name| BOOTS.iter().any(|b| b.get() == name))?;
+/// The pause menu's table at `table` with the boots and tunics open to
+/// both ages.
+fn gear_opened(table: &[u8]) -> Result<Vec<u8>> {
+    let (table, changed) = super::unlock(table, |name| GEAR.iter().any(|b| b.get() == name))?;
     ensure!(
-        changed == BOOTS.len(),
-        "the pause menu's table has {changed} of the boots limited to one age"
+        changed == GEAR.len(),
+        "the pause menu's table has {changed} of the boots and tunics limited to one age"
     );
     Ok(table)
 }
 
-/// The equipment user file at `param` with `GROUP` added to its hidden
+/// The equipment user file at `param` with `GROUPS` added to its hidden
 /// groups.
 fn grouped(param: &[u8]) -> Result<Vec<u8>> {
     let mut doc = BymlDoc::parse(param)?;
@@ -52,25 +65,26 @@ fn grouped(param: &[u8]) -> Result<Vec<u8>> {
     let Byml::Array(groups) = list else {
         anyhow::bail!("the hidden material groups aren't a list");
     };
-    let (name, materials) = GROUP;
-    let has = |g: &Byml| {
-        let group = g.as_map().ok().and_then(|m| m.get(field::GROUP_NAME.get()));
-        group
-            .and_then(|n| n.as_string().ok())
-            .is_some_and(|n| n.as_str() == name.get())
-    };
-    ensure!(!groups.iter().any(has), "{name} is already a group");
-    let mut group = BymlMap::default();
-    group.insert(
-        field::GROUP_NAME.get().into(),
-        Byml::String(name.get().into()),
-    );
-    let materials = materials.map(|m| Byml::String(m.get().into()));
-    group.insert(
-        field::MATERIAL_NAME_LIST.get().into(),
-        Byml::Array(materials.into()),
-    );
-    groups.push(Byml::Map(group));
+    for (name, materials) in GROUPS {
+        let has = |g: &Byml| {
+            let group = g.as_map().ok().and_then(|m| m.get(field::GROUP_NAME.get()));
+            group
+                .and_then(|n| n.as_string().ok())
+                .is_some_and(|n| n.as_str() == name.get())
+        };
+        ensure!(!groups.iter().any(has), "{name} is already a group");
+        let mut group = BymlMap::default();
+        group.insert(
+            field::GROUP_NAME.get().into(),
+            Byml::String(name.get().into()),
+        );
+        let materials = materials.iter().map(|m| Byml::String(m.get().into()));
+        group.insert(
+            field::MATERIAL_NAME_LIST.get().into(),
+            Byml::Array(materials.collect()),
+        );
+        groups.push(Byml::Map(group));
+    }
     Ok(doc.to_binary())
 }
 
@@ -91,10 +105,11 @@ pub fn shortcut(tables: &mut standins::Tables) -> Result<usize> {
     Ok(changed)
 }
 
-/// Write the setting's files: the table with the boots open to a child,
-/// and his packs with the group their armor hides.
-pub fn write(builder: &mut ModBuilder) -> Result<()> {
-    let table = boots_opened(&builder.read(POUCH_TABLE)?)?;
+/// Write the setting's files: the table with the boots and tunics open to
+/// a child, his packs with the groups their armor hides, and his tunics'
+/// armor, with its rows in `tables`.
+pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut standins::Tables) -> Result<()> {
+    let table = gear_opened(&builder.read(POUCH_TABLE)?)?;
     builder.write(POUCH_TABLE, &table)?;
     let path = user_path();
     let mut sizes = None;
@@ -110,7 +125,8 @@ pub fn write(builder: &mut ModBuilder) -> Result<()> {
     // Both packs share the file's one RESTBL entry. Grown by bytes alone,
     // the Mac build crashed loading it at New Game.
     let (old, new) = sizes.context("no child pack")?;
-    builder.scale(&path, old, new)
+    builder.scale(&path, old, new)?;
+    tunics::write(romfs, builder, tables)
 }
 
 #[cfg(test)]
@@ -169,28 +185,28 @@ mod tests {
     }
 
     #[test]
-    fn the_boots_open_to_a_child_and_nothing_else_moves() {
+    fn the_boots_and_tunics_open_to_a_child_and_nothing_else_moves() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
         let vanilla = romfs.read(POUCH_TABLE).unwrap();
-        let (before, after) = (rows(&vanilla), rows(&boots_opened(&vanilla).unwrap()));
+        let (before, after) = (rows(&vanilla), rows(&gear_opened(&vanilla).unwrap()));
         assert_eq!(before.len(), after.len());
         let mut opened = 0;
         for ((name, was), (_, now)) in before.iter().zip(&after) {
-            match BOOTS.iter().any(|b| b.get() == name) {
+            match GEAR.iter().any(|b| b.get() == name) {
                 true => {
                     opened += 1;
                     assert_eq!((*was, *now), ([false, true], [true, true]), "{name}");
                 }
-                false => assert_eq!(was, now, "{name} isn't boots"),
+                false => assert_eq!(was, now, "{name} isn't boots or a tunic"),
             }
         }
-        assert_eq!(opened, BOOTS.len());
+        assert_eq!(opened, GEAR.len());
     }
 
     #[test]
-    fn the_boots_hide_his_fur_boots_in_both_his_packs() {
+    fn the_gear_hides_his_boots_cloth_and_vest_in_both_his_packs() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
@@ -200,11 +216,11 @@ mod tests {
             let old = standins::raw(&pack, &path).unwrap();
             let (before, after) = (groups(&old), groups(&grouped(&old).unwrap()));
             assert_eq!(after[..before.len()], before[..], "{name} keeps its groups");
-            let fur = [field::MT_FUR_BOOTS, field::MT_FUR_BOOTS_ALPHA_MASK].map(|m| m.to_string());
-            assert_eq!(
-                after[before.len()..],
-                [(field::G_BOOTS.to_string(), fur.to_vec())]
-            );
+            let added = GROUPS.map(|(name, materials)| {
+                let materials = materials.iter().map(|m| m.to_string()).collect();
+                (name.to_string(), materials)
+            });
+            assert_eq!(after[before.len()..], added);
         }
         let mine = ActorPack::load(&romfs, actor::PLAYER_CHILD).unwrap();
         let menu = ActorPack::load(&romfs, actor::POUCH_PLAYER_CHILD).unwrap();

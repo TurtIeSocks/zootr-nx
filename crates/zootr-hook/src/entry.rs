@@ -34,13 +34,21 @@ pub const RESIDENT_MADE: u32 = 80;
 pub const GEAR_CHILD: u32 = 84;
 /// The D-pad boots icon's read of whether Link is a child.
 pub const GEAR_HUD: u32 = 88;
+/// The equipment code's calls to the actor creator.
+pub const GEAR_CREATE: u32 = 92;
+/// The pause menu's read of whether Link is a child.
+pub const GEAR_MENU: u32 = 96;
+/// The equipment cells' child test for the worn armor mark.
+pub const GEAR_WORN: u32 = 100;
+/// The equipment cells' call to the worn test.
+pub const GEAR_MARK: u32 = 104;
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     /// Each entry's branch target in `game.rs`, and its offset here.
-    const ENTRIES: [(&str, u32); 23] = [
+    const ENTRIES: [(&str, u32); 27] = [
         ("content_name_entry", CONTENT_NAME),
         ("drop_actor", DROP_ACTOR),
         ("map_loaded_entry", MAP_LOADED),
@@ -64,6 +72,10 @@ mod tests {
         ("resident_made_entry", RESIDENT_MADE),
         ("gear_child_entry", GEAR_CHILD),
         ("gear_hud_entry", GEAR_HUD),
+        ("gear_create_entry", GEAR_CREATE),
+        ("gear_menu_entry", GEAR_MENU),
+        ("gear_worn_entry", GEAR_WORN),
+        ("gear_mark_entry", GEAR_MARK),
     ];
 
     #[test]

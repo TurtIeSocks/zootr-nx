@@ -97,6 +97,8 @@ pub struct Funcs {
     /// Link's child test, which the bow draw's guide asks to pick the
     /// Slingshot's ("Shoot Seed") or the Bow's ("Shoot Arrow").
     pub childhood: u32,
+    /// The actor creator, which the equipment code hands an armor's name.
+    pub make_actor: u32,
     /// The game's own `malloc`.
     pub malloc: u32,
     /// Builds an event request in place.
@@ -170,6 +172,20 @@ pub struct Calls {
     /// The D-pad boots icon's `ldrb` of whether Link is a child, from the
     /// HUD status: a load, not a call, made a `bl` all the same.
     pub gear_hud: u32,
+    /// The pause menu's `ldrb` of whether Link is a child, which greys his
+    /// tunics out.
+    pub gear_menu: u32,
+    /// The equipment cells' child test for the armor's worn mark, a
+    /// `ccmp`, and the cells' call to the worn test.
+    pub gear_worn: u32,
+    pub gear_mark: u32,
+    /// The equipment code's calls to the actor creator: in the actor
+    /// maker, the pouch's maker and the spawner's three.
+    pub gear_create1: u32,
+    pub gear_create2: u32,
+    pub gear_create3: u32,
+    pub gear_create4: u32,
+    pub gear_create5: u32,
 }
 
 /// The branches the patch rewrites into `b`s: each where it is, and where
@@ -402,6 +418,7 @@ pub const V131072: Build = Build {
         shootable: 0x2d0_9f60,
         name_copy: 0x2b_5480,
         childhood: 0x4b_6db0,
+        make_actor: 0x37_2a70,
         malloc: 0x14c_6c90,
         make_arg: 0xd7_9f10,
         request: 0xd7_a820,
@@ -438,6 +455,14 @@ pub const V131072: Build = Build {
         gear_request: 0x2df_6d84,
         gear_actor: 0x101_4010,
         gear_hud: 0x2d_4998,
+        gear_menu: 0x33b_a4a8,
+        gear_worn: 0xa7_0818,
+        gear_mark: 0xa7_05a8,
+        gear_create1: 0x101_47c0,
+        gear_create2: 0x2df_8c20,
+        gear_create3: 0x2e0_2208,
+        gear_create4: 0x2e0_2934,
+        gear_create5: 0x2e0_3014,
     },
     branches: Branches {
         gate: 0x17d_59bc,

@@ -181,6 +181,10 @@ pub struct Shared {
     /// (every area load), 0 before.
     pub resident: AtomicUsize,
     pub swap: Locked<Swap>,
+    /// A pointer to each child armor's name ([`crate::CHILD_ARMOR`]), which
+    /// the creator reads it through. Set before each use: the hook holds
+    /// no pointers, having no relocations.
+    pub child_armor: [AtomicUsize; 3],
 }
 
 // SAFETY: the mailbox's plain fields are only read after `asked` is.
