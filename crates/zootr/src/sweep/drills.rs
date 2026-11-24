@@ -50,10 +50,10 @@ impl Skill {
 
     /// Its name as rows and the command line spell it, like `no-route`.
     pub fn label(self) -> String {
-        serde_json::to_value(self)
-            .ok()
-            .and_then(|v| v.as_str().map(str::to_owned))
-            .unwrap_or_default()
+        self.to_possible_value()
+            .expect("every skill has a name")
+            .get_name()
+            .to_owned()
     }
 }
 
@@ -215,7 +215,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
                 eprintln!("run {run}: {}", d.name);
                 let tag = json!({"drill": d.name, "skill": d.skill});
                 let first = night::at_known(p, &known);
-                self.attempt(&mut live, &at, p, &first, d.name.to_owned(), &tag)?;
+                self.attempt(&mut live, &at, p, &first, d.name, &tag)?;
             }
         }
         Ok(())

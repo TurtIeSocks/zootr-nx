@@ -26,6 +26,30 @@ mod quest;
 mod room;
 mod shop;
 
+/// What `slot` holds, `load`ed into it the first time it's asked for.
+fn lazy<T>(slot: &mut Option<T>, load: impl FnOnce() -> Result<T>) -> Result<&T> {
+    let held: &T = match slot {
+        Some(held) => held,
+        None => slot.insert(load()?),
+    };
+    Ok(held)
+}
+
+/// A map's name, its poses, the pose of the placement looked for, and the
+/// map's age.
+type PlacedIn<'a> = (&'a String, &'a HashMap<u64, Pose>, &'a Pose, Option<bool>);
+
+/// Where in `maps` the placement `hash` is: in a map of age `first`, else
+/// of the other age, else of none.
+fn placed_in(maps: &Maps, hash: u64, first: bool) -> Option<PlacedIn<'_>> {
+    [Some(first), Some(!first), None]
+        .into_iter()
+        .find_map(|era| {
+            let mut of_era = maps.iter().filter(|(map, _)| warp::era(map) == era);
+            of_era.find_map(|(map, poses)| Some((map, poses, poses.get(&hash)?, era)))
+        })
+}
+
 /// What `by` holds for `map` of `area`.
 fn in_map<'a, T>(by: &'a HashMap<String, Maps<Vec<T>>>, area: &str, map: &str) -> &'a [T] {
     (by.get(area).and_then(|m| m.get(map))).map_or(&[], Vec::as_slice)
@@ -217,10 +241,12 @@ struct Planner<'a> {
     /// placement hash.
     appear: Option<HashMap<u64, Raise>>,
     /// The actors each gated chest's graph reads, by placement hash: a
-    /// switch a pillar may pin down.
+    /// switch a pillar may pin down. Filled with `appear` by
+    /// [`Planner::appear`], which [`Planner::wield`] needs run first.
     drivers: HashMap<u64, Vec<Name>>,
     /// The enemy placements each gated chest waits on, when beating them
-    /// is all it waits on, by placement hash.
+    /// is all it waits on, by placement hash. Filled with `appear` by
+    /// [`Planner::appear`].
     foes: HashMap<u64, Vec<u64>>,
     cows: Option<Vec<Cow>>,
     /// The sensor areas that start each request actor's event.
@@ -267,24 +293,23 @@ impl<'a> Planner<'a> {
 impl Planner<'_> {
     fn spot(&mut self, spot: &Spot) -> Result<Planned> {
         let gift = GIFTS.iter().find(|g| g.hash() == spot.hash);
-        let mut side = Side::Front;
-        let (trigger, child) = match gift {
-            Some(gift) => self.gift(gift)?,
-            None if cows::is_holder(&spot.holder) => self.cow(spot)?,
+        // Only a placed holder lands on a side of its own.
+        let front = |(trigger, child): (Trigger, Option<bool>)| (trigger, child, Side::Front);
+        let (trigger, child, side) = match gift {
+            Some(gift) => front(self.gift(gift)?),
+            None if cows::is_holder(&spot.holder) => front(self.cow(spot)?),
             None if spot.holder.starts_with(chest())
                 || spot.holder.starts_with(scrubs::HOLDER)
                 || pickups::within_reach(&spot.holder)
                 // Ruto's bottle on the lake bed: a dive onto it takes it.
                 || spot.holder == **actor::OBJ_BOTTLE_LETTER =>
             {
-                let (trigger, child, landing) = self.placed(spot)?;
-                side = landing;
-                (trigger, child)
+                self.placed(spot)?
             }
-            None if shops::is_holder(&spot.holder) => self.shop(spot)?,
+            None if shops::is_holder(&spot.holder) => front(self.shop(spot)?),
             None => {
                 let why = format!("out of scope: {}", spot.holder);
-                (Trigger::Skip(why), None)
+                (Trigger::Skip(why), None, Side::Front)
             }
         };
         Ok(Planned {
@@ -338,7 +363,8 @@ impl Planner<'_> {
 
     /// What Link wields before he uses the holder of `spot` at `face` in
     /// `map`: a pour on red ice it's frozen in, else a pound on a pillar
-    /// pinning down a switch its gate reads.
+    /// pinning down a switch its gate reads. Needs [`Planner::appear`] run
+    /// first, for the switches.
     fn wield(&self, spot: &Spot, map: &str, face: [f32; 3]) -> Result<Option<Wield>> {
         let of = |by| in_map(by, &spot.area, map);
         if let Some(melt) = wield::melt(of(&self.ice), face) {
@@ -362,10 +388,7 @@ impl Planner<'_> {
         if ready.is_empty() {
             return Ok(vec![]);
         }
-        if self.flows.is_none() {
-            self.flows = Some(Flows::load(self.romfs)?);
-        }
-        let flows = self.flows.as_ref().unwrap();
+        let flows = lazy(&mut self.flows, || Flows::load(self.romfs))?;
         let mut out: Ready = vec![];
         for flag in ready {
             let setters = (flows.0.iter()).filter(|(name, chart)| {
@@ -391,19 +414,14 @@ impl Planner<'_> {
         let (raise, steps, age) = self.appear(spot.hash)?;
         let raise = [self.leaving(&raise)?, raise].concat();
         let foes = self.foes.get(&spot.hash).cloned().unwrap_or_default();
-        let (raise, latch) = match foes.is_empty() {
-            true => (raise, vec![]),
-            false => (vec![], raise),
+        let (raise, latch) = if foes.is_empty() {
+            (raise, vec![])
+        } else {
+            (vec![], raise)
         };
+        // Not `maps`' own return: it would hold `self` across `wield`.
         self.maps(&spot.area)?;
-        let maps = &self.areas[&spot.area];
-        let first = age.unwrap_or(true);
-        let found = [Some(first), Some(!first), None]
-            .into_iter()
-            .find_map(|era| {
-                let mut of_era = maps.iter().filter(|(map, _)| warp::era(map) == era);
-                of_era.find_map(|(map, poses)| Some((map, poses, poses.get(&spot.hash)?, era)))
-            });
+        let found = placed_in(&self.areas[&spot.area], spot.hash, age.unwrap_or(true));
         let scrub = spot.holder.starts_with(scrubs::HOLDER);
         Ok(match found {
             None => {
@@ -421,9 +439,10 @@ impl Planner<'_> {
                 let face = pose.at;
                 let wield = self.wield(spot, &map, face)?;
                 let broken = pickups::broken(&spot.holder);
-                let found = match broken {
-                    true => neighbours(spot.hash, face, poses, &self.breakables),
-                    false => vec![],
+                let near = if broken {
+                    neighbours(spot.hash, face, poses, &self.breakables)
+                } else {
+                    vec![]
                 };
                 // Every breakable near, not only this seed's: the crater
                 // box's roll broke the Gold Skulltula box beside it, its
@@ -437,9 +456,20 @@ impl Planner<'_> {
                     _ => vec![],
                 };
                 let side = sides.first().copied().unwrap_or_default();
-                let near = found.into_iter().map(|n| n.0).collect();
-                let trigger = match scrub {
-                    false => Trigger::Open {
+                let trigger = if scrub {
+                    Trigger::Talk {
+                        ready: self.sellers(&map, spot.hash)?,
+                        map,
+                        at,
+                        face,
+                        steps: vec![],
+                        then: None,
+                        give: None,
+                        counter: false,
+                        halt: None,
+                    }
+                } else {
+                    Trigger::Open {
                         ready: [raise, noted(&spot.holder), water(&map)].concat(),
                         steps,
                         first: drain(&map),
@@ -452,18 +482,7 @@ impl Planner<'_> {
                         sides,
                         foes,
                         latch,
-                    },
-                    true => Trigger::Talk {
-                        ready: self.sellers(&map, spot.hash)?,
-                        map,
-                        at,
-                        face,
-                        steps: vec![],
-                        then: None,
-                        give: None,
-                        counter: false,
-                        halt: None,
-                    },
+                    }
                 };
                 (trigger, era, side)
             }
@@ -472,21 +491,17 @@ impl Planner<'_> {
 
     /// GameData, with every quest's saved step named.
     fn gamedata(&mut self) -> Result<&GameData> {
-        if self.gamedata.is_none() {
+        lazy(&mut self.gamedata, || {
             let mut gamedata = GameData::load(self.romfs)?;
             steps::learn(self.romfs, &mut gamedata)?;
-            self.gamedata = Some(gamedata);
-        }
-        Ok(self.gamedata.as_ref().unwrap())
+            Ok(gamedata)
+        })
     }
 
     /// A cow: the event Epona's Song runs at it, in the map of the
     /// placement its check is keyed by.
     fn cow(&mut self, spot: &Spot) -> Result<(Trigger, Option<bool>)> {
-        if self.cows.is_none() {
-            self.cows = Some(cows::find(self.romfs)?);
-        }
-        let all = self.cows.as_ref().unwrap();
+        let all = lazy(&mut self.cows, || cows::find(self.romfs))?;
         let Some(cow) = all.iter().find(|c| c.hash() == spot.hash) else {
             return Ok((Trigger::Skip(format!("no cow {}", spot.hash)), None));
         };

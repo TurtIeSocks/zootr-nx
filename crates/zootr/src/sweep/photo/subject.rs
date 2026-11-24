@@ -10,6 +10,7 @@ use ounce_formats::Romfs;
 use serde::{Deserialize, Serialize};
 
 use super::nightly;
+use crate::cows;
 use crate::ledger::{self, Why};
 use crate::nav::kinds;
 use crate::sweep::plan::{Planned, Steps, Trigger};
@@ -68,8 +69,23 @@ pub struct Subject {
     pub prep: Prep,
 }
 
-/// The verdict of a photo the maintainer took by hand.
-pub const BY_HAND: &str = "by hand";
+/// How a check's photo came out, as `photos.jsonl` spells it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Shot {
+    /// A side passed: Hob saw the holder from it.
+    #[serde(rename = "framed")]
+    Framed,
+    /// No side passed, the first frame kept.
+    #[serde(rename = "best effort")]
+    BestEffort,
+    /// No spot to stand beside, or no landing Link could stand on.
+    #[default]
+    #[serde(rename = "no spot")]
+    NoSpot,
+    /// The maintainer took it by hand.
+    #[serde(rename = "by hand")]
+    ByHand,
+}
 
 /// One check's photo, as the ledger's `photos/index.json` keeps it.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -82,9 +98,7 @@ pub struct Line {
     pub side: Option<Side>,
     /// How many steps back from that side.
     pub step: u32,
-    /// `framed`, `best effort` (no side passed, the first frame kept),
-    /// `no spot` or [`BY_HAND`].
-    pub verdict: String,
+    pub verdict: Shot,
     /// The placement photographed in the check's place: a gift's giver.
     pub giver: Option<String>,
     pub at: String,
@@ -154,7 +168,7 @@ pub fn subjects(romfs: &Romfs, area: Option<&str>, hashes: &[u64]) -> Result<Vec
         };
         let child = (at.as_ref().and_then(|(map, _)| warp::era(map))).or(child);
         let what = match &at {
-            Some((_, Spot::At(_))) if !r.holder.contains("Cow") => "person".into(),
+            Some((_, Spot::At(_))) if !cows::is_holder(&r.holder) => "person".into(),
             _ => what(&r.holder, &r.name),
         };
         out.push(Subject {
@@ -197,7 +211,7 @@ fn map_for<'a>(maps: impl Iterator<Item = &'a str>, child: Option<bool>) -> Opti
 fn what(holder: &str, name: &str) -> String {
     if nightly(holder) {
         "Gold Skulltula".into()
-    } else if holder.contains("Cow") {
+    } else if cows::is_holder(holder) {
         "cow".into()
     } else {
         match kinds::word(holder) {
@@ -225,15 +239,15 @@ fn read(file: &Path) -> HashMap<u64, Line> {
 /// tries it first.
 pub fn sides(file: &Path) -> HashMap<u64, Side> {
     (read(file).into_iter())
-        .filter(|(_, l)| l.verdict == "framed")
+        .filter(|(_, l)| l.verdict == Shot::Framed)
         .filter_map(|(hash, l)| Some((hash, l.side?)))
         .collect()
 }
 
-/// `line` as a photo shot by hand: [`BY_HAND`], with no side.
+/// `line` as a photo shot by hand: [`Shot::ByHand`], with no side.
 pub(super) fn by_hand(line: Line) -> Line {
     Line {
-        verdict: BY_HAND.into(),
+        verdict: Shot::ByHand,
         side: None,
         step: 0,
         ..line
@@ -253,13 +267,13 @@ mod tests {
             time: Some("night".into()),
             side: Some(Side::Left),
             step: 1,
-            verdict: "best effort".into(),
+            verdict: Shot::BestEffort,
             ..Line::default()
         };
         let hand = by_hand(line.clone());
         assert_eq!(
-            (hand.verdict.as_str(), hand.side, hand.step),
-            (BY_HAND, None, 0)
+            (hand.verdict, hand.side, hand.step),
+            (Shot::ByHand, None, 0)
         );
         assert_eq!((hand.map, hand.time), (line.map, line.time));
     }
@@ -290,26 +304,26 @@ mod tests {
     fn a_run_resumes_from_its_lines_and_a_later_line_wins() {
         let dir = std::env::temp_dir().join(format!("zootr-photo-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        let line = |hash: &str, verdict: &str| Line {
+        let line = |hash: &str, verdict| Line {
             hash: hash.into(),
-            verdict: verdict.into(),
+            verdict,
             ..Line::default()
         };
         let text = [
-            line("1", "best effort"),
-            line("2", "framed"),
-            line("1", "framed"),
+            line("1", Shot::BestEffort),
+            line("2", Shot::Framed),
+            line("1", Shot::Framed),
         ]
         .map(|l| serde_json::to_string(&l).unwrap())
         .join("\n");
         std::fs::write(dir.join(LINES), text + "\nnot json\n").unwrap();
         let done = done(&dir);
         assert_eq!(done.len(), 2);
-        assert_eq!(done[&1].verdict, "framed");
+        assert_eq!(done[&1].verdict, Shot::Framed);
         let side = Line {
             hash: "3".into(),
             side: Some(Side::Left),
-            verdict: "framed".into(),
+            verdict: Shot::Framed,
             ..Line::default()
         };
         let text = serde_json::to_string(&side).unwrap();
@@ -328,6 +342,9 @@ mod tests {
         };
         let json = serde_json::to_value(&line).unwrap();
         assert_eq!(json["side"], "left");
+        let spelt = [Shot::Framed, Shot::BestEffort, Shot::NoSpot, Shot::ByHand]
+            .map(|s| serde_json::to_value(s).unwrap());
+        assert_eq!(spelt, ["framed", "best effort", "no spot", "by hand"]);
         assert_eq!(line.subject(), Some(9));
     }
 
