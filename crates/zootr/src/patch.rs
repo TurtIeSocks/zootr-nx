@@ -119,9 +119,10 @@ fn sites() -> impl Iterator<Item = Patch> {
     let calls = calls.map(|(at, entry)| (at, entry, true));
     let hooks = HOOKS.iter().map(|&(at, entry)| (at, entry, false));
     let run = (RUN_CALL.0, RUN_CALL.1, true);
+    let hud = (gear::HUD.0, gear::HUD.1, true);
     calls
         .chain(hooks)
-        .chain([run])
+        .chain([hud, run])
         .map(|(at, entry, link)| Patch {
             at,
             bytes: branch(at, CAVE + entry, link).to_vec(),
@@ -892,7 +893,7 @@ mod tests {
         // Each patch starts at a place checked above.
         let sites = SKIPS.iter().chain(&CALLS).chain(&NPAD_CALLS).chain(HOOKS);
         let checked: Vec<u32> = (sites.map(|&(at, _)| at))
-            .chain([RUN_CALL.0, CAVE, FAR, TABLE, TABLE + 4])
+            .chain([RUN_CALL.0, gear::HUD.0, CAVE, FAR, TABLE, TABLE + 4])
             .collect();
         for p in patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap() {
             assert!(

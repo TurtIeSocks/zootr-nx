@@ -74,6 +74,23 @@ fn grouped(param: &[u8]) -> Result<Vec<u8>> {
     Ok(doc.to_binary())
 }
 
+/// Give each boots item's row of the pouch table the adult's armor for a
+/// child too, so the D-pad's boots shortcut offers them to him. Returns how many
+/// rows changed.
+pub fn shortcut(tables: &mut standins::Tables) -> Result<usize> {
+    let changed = tables.edit_pouch(|row| {
+        let text = |key: &Name| row.get(key.get()).and_then(|v| v.as_string().ok());
+        let boots = text(field::ACTION_GUIDE_TYPE).is_some_and(|t| t == field::BOOT_SHORTCUT.get());
+        let Some(adult) = text(field::ADULT_EQUIPMENT).cloned().filter(|_| boots) else {
+            return false;
+        };
+        row.insert(field::CHILD_EQUIPMENT.get().into(), Byml::String(adult));
+        true
+    })?;
+    ensure!(changed > 0, "no boots row in the pouch table");
+    Ok(changed)
+}
+
 /// Write the setting's files: the table with the boots open to a child,
 /// and his packs with the group their armor hides.
 pub fn write(builder: &mut ModBuilder) -> Result<()> {
@@ -99,7 +116,24 @@ pub fn write(builder: &mut ModBuilder) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::actor;
+    use crate::known::{actor, item};
+
+    #[test]
+    fn every_boots_row_gives_a_child_the_adults_armor() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut tables = standins::Tables::load(&romfs).unwrap();
+        // The armor rows name no armor for either age.
+        assert_eq!(shortcut(&mut tables).unwrap(), 2);
+        for id in [item::HEAVY_BOOT, item::HOVER_BOOT] {
+            let row = standins::row(&tables.pouch, id.get()).unwrap();
+            assert_eq!(
+                row[field::CHILD_EQUIPMENT.get()],
+                row[field::ADULT_EQUIPMENT.get()]
+            );
+        }
+    }
 
     /// Each hidden group in the equipment user file at `bytes`: its name
     /// and materials.

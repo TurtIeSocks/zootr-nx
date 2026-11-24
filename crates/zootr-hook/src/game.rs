@@ -31,7 +31,8 @@ const KEY: &[u8] = b"ContentName";
 const MAX: usize = 128;
 
 // The call sites `bl` to content_name at +0, drop_actor at +4, run_speed
-// at +24, the controller reads to +32, +36 and +40, and seed_guide at +68. The hooked
+// at +24, the controller reads to +32, +36 and +40, seed_guide at +68,
+// gear_child at +84 and gear_hud at +88. The hooked
 // functions `b` to +8, +12, +16, +20, +28, +44, +48, +52, +56, +60, +64,
 // +72, +76 and +80 in place of their pacibsp.
 // The opening node is in x20 at both content_name call sites.
@@ -130,6 +131,7 @@ global_asm!(
     "b equipment_left_entry",
     "b resident_made_entry",
     "b gear_child_entry",
+    "b gear_hud_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -172,6 +174,15 @@ global_asm!(
     "gear_child_entry:",
     "mov w1, w20",
     "b gear_child",
+    // In place of the boots icon's `ldrb w8, [x8, #0x5c0]`: x8 is the HUD
+    // status, and the answer goes back in w8.
+    "gear_hud_entry:",
+    "stp x29, x30, [sp, #-0x10]!",
+    "ldrb w0, [x8, #0x5c0]",
+    "bl gear_hud",
+    "mov w8, w0",
+    "ldp x29, x30, [sp], #0x10",
+    "ret",
     "map_loaded_entry:",
     "function_hook map_loaded, map_loaded_resume",
     "chest_made_entry:",
@@ -393,6 +404,18 @@ pub unsafe extern "C" fn gear_child(link: usize, slot: u32) -> bool {
     unsafe {
         let child: Childhood = core::mem::transmute(main() + OFFSETS.childhood as usize);
         child(link)
+    }
+}
+
+/// The D-pad's boots icon reads whether Link is a child from the HUD
+/// status (`child`), and hides itself for one. Not in a seed with
+/// [`crate::CHILD_GEAR`], where he wears them. Without a table, the
+/// game's own answer.
+#[unsafe(no_mangle)]
+extern "C" fn gear_hud(child: bool) -> bool {
+    match table() {
+        Some((_, table)) => crate::hud_child(child, table.flags),
+        None => child,
     }
 }
 

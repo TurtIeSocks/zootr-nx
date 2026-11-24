@@ -281,4 +281,24 @@ fn without_a_table_each_hooked_function_runs_its_own_body_and_nothing_else() {
     }
 }
 
+#[test]
+fn without_a_table_the_boots_icon_reads_the_games_child_byte() {
+    let Some(mut m) = Machine::new() else {
+        return;
+    };
+    let (site, _) = gear::HUD;
+    for child in [0u8, 1] {
+        let set = m.set_registers();
+        let status = m.uc.reg_read(R::X8).unwrap();
+        m.uc.mem_write(status + 0x5c0, &[child]).unwrap();
+        m.run(at(site), at(site + 4), "boots icon");
+        assert_eq!(m.uc.reg_read(R::X8).unwrap(), u64::from(child));
+        assert_eq!(
+            m.changed(&set, &KEPT),
+            [""; 0],
+            "the registers a call keeps"
+        );
+    }
+}
+
 mod swap;

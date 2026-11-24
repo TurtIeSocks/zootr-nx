@@ -16,6 +16,13 @@ pub(super) const BOOTS: (u32, u32) = (0x4b_6ed8, 0x4b_6ef4);
 /// on, and the child has no clips to walk in them.
 pub(super) const CALLS: [(u32, u32); 2] = [(0x2df_6d84, 84), (0x101_4010, 84)];
 
+/// The D-pad boots icon's read of whether Link is a child, from the HUD
+/// status (`ldrb w8, [x8, #0x5c0]`), and the hook entry its `bl` goes to
+/// in its place: `gear_hud` (entry 22). A child's icon hides there, so in
+/// a seed with `CHILD_GEAR` it answers that he isn't one. Only the boots
+/// icon reads it here: the masks share the cross with their own test.
+pub(super) const HUD: (u32, u32) = (0x2d_4998, 88);
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -32,6 +39,7 @@ mod tests {
         };
         let word = |at: u32| u32::from_le_bytes(main[at as usize..][..4].try_into().unwrap());
         assert_eq!(word(BOOTS.0), 0x3600_00e0, "tbz w0, #0, 0x4b6ef4");
+        assert_eq!(word(HUD.0), 0x3957_0108, "ldrb w8, [x8, #0x5c0]");
         for (at, _) in CALLS {
             assert_eq!(word(at), childhood_call(at), "{at:#x}");
         }

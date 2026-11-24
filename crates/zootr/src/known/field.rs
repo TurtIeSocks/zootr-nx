@@ -21,6 +21,7 @@ pub const ACTOR_NAME: &Name = &n!(0xe7ba79bb467ddd61);
 pub const ACTOR_NAME_REF: &Name = &n!(0xabd744105cf59ca6);
 pub const ACTOR_PARAM: &Name = &n!(0x6fc60091688d6b6b);
 pub const ACTOR_SHORT: &Name = &n!(0x664edcdd482ebdac);
+pub const ACTION_GUIDE_TYPE: &Name = &n!(0xf63ebbb3c9d33c15);
 pub const ADULT_EQUIPMENT: &Name = &n!(0xd9dba99123d86051);
 pub const AFFILIATION_REF: &Name = &n!(0xa90ccc7fdeba702e);
 pub const AFTER_EXPANSION_MAX_NUM: &Name = &n!(0xce16530e52997640);
