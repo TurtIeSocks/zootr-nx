@@ -9,9 +9,8 @@ use std::ops::Range;
 
 use unicorn_engine::{Arch, Mode, Prot, RegisterARM64 as R, Unicorn};
 
-use super::tests::PC_MAIN;
+use super::tests::pc_main;
 use super::*;
-use crate::game::{Release, dumped_main};
 
 /// Where `main` is mapped.
 const BASE: u64 = 0x1000_0000;
@@ -113,14 +112,11 @@ fn at(offset: u32) -> u64 {
 }
 
 impl Machine {
-    /// `h`'s build of `main` with its code patches and no table, or `None`
-    /// without it (as on CI): 1.1.1's as the Mac game runs it, 1.0.0's
-    /// from the dump.
+    /// `h`'s build of `main` as the Mac game runs it, with its code
+    /// patches and no table, or `None` without that build's conversion
+    /// (as on CI).
     fn new(h: &'static Hook) -> Option<Self> {
-        let original = match h.release {
-            Release::V111 => std::fs::read(PC_MAIN).ok()?,
-            Release::V100 => dumped_main(Release::V100)?.1.clone(),
-        };
+        let original = pc_main(h.release)?;
         let r = &h.build.regions;
         let mut uc =
             Unicorn::new_with_data(Arch::ARM64, Mode::LITTLE_ENDIAN, Run::default()).unwrap();

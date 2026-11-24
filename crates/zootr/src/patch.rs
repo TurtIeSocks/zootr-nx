@@ -649,11 +649,23 @@ mod tests {
         }
     }
 
-    /// `main` as the Mac's game runs it: the dump's, but for the words it
-    /// rewrote, which its cheats can't write over. A word that holds the
-    /// dump's original here is one it left alone.
-    pub(super) const PC_MAIN: &str =
-        "../../dump/0400486024DEC000_build/patched_v131072/main.patched.bin";
+    /// Where the Mac's game converts each build, beside the others.
+    const PC_BUILDS: &str = "../../dump/0400486024DEC000_build";
+
+    /// The Mac's game's conversion of `release`: its `main` and the logs
+    /// of what it rewrote.
+    fn pc_build(release: Release) -> std::path::PathBuf {
+        let version = release.package().1;
+        std::path::Path::new(PC_BUILDS).join(format!("patched_v{version}"))
+    }
+
+    /// `release`'s `main` as the Mac's game runs it, or `None` without its
+    /// conversion: the dump's, but for the words it rewrote, which its
+    /// cheats can't write over. A word that holds the dump's original here
+    /// is one it left alone.
+    pub(super) fn pc_main(release: Release) -> Option<Vec<u8>> {
+        std::fs::read(pc_build(release).join("main.patched.bin")).ok()
+    }
 
     /// FNV-1a over 64 bits, enough to tell two patches apart.
     fn fingerprint(bytes: &[u8]) -> u64 {
@@ -740,22 +752,69 @@ mod tests {
 
     #[test]
     fn every_word_the_patch_writes_over_holds_what_we_expect() {
-        if let Ok(main) = std::fs::read(PC_MAIN) {
-            words_hold_what_we_expect(&main, v111());
-            the_1_1_1_rooms_hold_what_we_expect(&main);
-        }
-        if let Some((_, main)) = crate::game::dumped_main(Release::V111) {
-            words_hold_what_we_expect(main, v111());
-            the_1_1_1_rooms_hold_what_we_expect(main);
+        for h in Hook::all() {
+            let pc = pc_main(h.release);
+            let dumped = crate::game::dumped_main(h.release).map(|(_, m)| m.as_slice());
+            for main in [pc.as_deref(), dumped].into_iter().flatten() {
+                words_hold_what_we_expect(main, h);
+                if h.release == Release::V111 {
+                    the_1_1_1_rooms_hold_what_we_expect(main);
+                }
+            }
         }
     }
 
+    /// Each build's rooms are as the dump has them in the Mac's game, so
+    /// it rewrote none of their words, and the word at `far_end` is one
+    /// it rewrote, so the far code's room is all it can be.
     #[test]
-    fn every_word_the_1_0_0_patch_writes_over_holds_what_we_expect() {
-        let Some((_, main)) = crate::game::dumped_main(Release::V100) else {
-            return;
-        };
-        words_hold_what_we_expect(main, Hook::of(Release::V100));
+    fn the_mac_game_rewrites_no_word_in_our_rooms() {
+        for h in Hook::all() {
+            let (Some(pc), Some((_, dumped))) =
+                (pc_main(h.release), crate::game::dumped_main(h.release))
+            else {
+                continue;
+            };
+            let (r, build) = (&h.build.regions, h.release.name());
+            let rooms = [
+                ("the cave", r.cave..r.cave_end),
+                ("the far code's room", r.far..r.far_end),
+                ("the table's room", r.table..r.table_end),
+            ];
+            for (name, room) in rooms {
+                let room = room.start as usize..room.end as usize;
+                assert!(pc[room.clone()] == dumped[room], "{build}: {name}");
+            }
+            let word = |main: &[u8]| main[r.far_end as usize..][..4].to_vec();
+            assert_ne!(word(&pc), word(dumped), "{build}: far_end");
+        }
+    }
+
+    /// The Mac's game's conversion of each build is of that build, and
+    /// lays `main` out as its regions say: data starts at the table's
+    /// room's end, text ends at `text_end`, and the pages it adds sit
+    /// past the list's.
+    #[test]
+    fn the_mac_game_lays_out_main_as_the_regions_say() {
+        for h in Hook::all() {
+            let file = pc_build(h.release).join("main.fixups.tsv");
+            let Ok(text) = std::fs::read_to_string(file) else {
+                continue;
+            };
+            let fixup = |key: &str| {
+                (text.lines())
+                    .find_map(|l| l.strip_prefix("# ")?.strip_prefix(key)?.strip_prefix('\t'))
+                    .unwrap_or_else(|| panic!("no {key}"))
+            };
+            let at = |key: &str| u32::from_str_radix(&fixup(key)[2..], 16).unwrap();
+            let (r, build) = (&h.build.regions, h.release.name());
+            let id: String = h.id[..16].iter().map(|b| format!("{b:02x}")).collect();
+            assert_eq!(fixup("BUILD_ID"), id, "{build}");
+            assert_eq!(at("DATA_OFF"), r.table_end, "{build}");
+            assert_eq!(at("TEXT_END"), r.text_end, "{build}");
+            assert!(at("KEY_PAGE_OFF") >= r.list_end, "{build}");
+            assert!(at("PATCH_OFF") >= r.list_end, "{build}");
+        }
     }
 
     /// The checks on a build's `main` with its hook `h`: each site holds

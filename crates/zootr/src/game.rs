@@ -225,7 +225,7 @@ impl Release {
     }
 
     /// The package that holds it: title and version.
-    const fn package(self) -> (u64, u32) {
+    pub(crate) const fn package(self) -> (u64, u32) {
         match self {
             Self::V100 => (TITLE, BASE),
             Self::V111 => (TITLE | 0x800, UPDATE),
