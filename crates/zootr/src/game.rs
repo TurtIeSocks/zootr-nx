@@ -608,6 +608,8 @@ mod tests {
             .chain(files().map(|f| (format!("romfs/{}", stamp(f)), &b"file"[..])))
             .collect();
         base.push(("romfs/Banc/old.Product.100.bin".into(), b"base"));
+        // The GameData list, which tells the build ([`Release::of`]).
+        base.push((format!("romfs/{}", stamp(crate::gamedata::PATH)), b"list"));
         let base: Vec<(&str, &[u8])> = base.iter().map(|(p, d)| (p.as_str(), *d)).collect();
         let newer: &[(&str, &[u8])] = &[("romfs/Banc/new.bin", b"update")];
         let mut packages = vec![Package {
