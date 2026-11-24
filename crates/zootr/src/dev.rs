@@ -33,6 +33,16 @@ use setup::{Grant, grants, plan_give};
 pub(crate) use slay::distance;
 pub use slay::{Fate, Foe, Lines, Slain, Target};
 
+/// Marks an error that came after a give reached Link: it counts as given.
+#[derive(Debug)]
+pub struct Landed;
+
+impl std::fmt::Display for Landed {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "the give landed")
+    }
+}
+
 /// The arrival event a teleport plays. Some areas may want their own.
 const ARRIVE: &Name = scene::SY_BANC_CHANGE_ARRIVE;
 /// Link's yaw (GameData, unnamed).
@@ -500,34 +510,45 @@ impl<M: Memory> Dev<M> {
         Ok(got.unwrap_or_else(|| actor.to_owned()))
     }
 
-    /// Run `jobs`, and say what the first game grant gave.
+    /// Run `jobs`, and say what the first game grant gave. An error after
+    /// one reached Link is marked [`Landed`].
     fn grant(&self, jobs: Vec<Grant>, level: bool) -> Result<Option<String>> {
-        let mut got = None;
-        for job in jobs {
-            match job {
-                Grant::Game(actor, equip) => {
-                    let leveled = level && !equip;
-                    let request = match leveled {
-                        true => Request::GiveLevel(
-                            actor.clone(),
-                            ammo::swap(&actor, Default::default()),
-                        ),
-                        false => Request::Give(actor.clone(), equip),
-                    };
-                    self.ask(&request)?;
-                    let given = match leveled {
-                        true => self.given()?,
-                        false => None,
-                    };
-                    got.get_or_insert(given.unwrap_or(actor));
-                    self.settle()?;
-                }
-                Grant::Stock(hash, count) => {
-                    live::set(&self.game, self.global, hash, &count.to_string())?
-                }
-            }
+        let (mut got, mut landed) = (None, false);
+        let ran = (jobs.into_iter())
+            .try_for_each(|job| self.grant_one(job, level, &mut got, &mut landed));
+        match ran {
+            Err(e) if landed => Err(e.context(Landed)),
+            ran => ran.map(|()| got),
         }
-        Ok(got)
+    }
+
+    /// One of [`Dev::grant`]'s jobs. Sets `landed` once the hook runs it.
+    fn grant_one(
+        &self,
+        job: Grant,
+        level: bool,
+        got: &mut Option<String>,
+        landed: &mut bool,
+    ) -> Result<()> {
+        let (actor, equip) = match job {
+            Grant::Game(actor, equip) => (actor, equip),
+            Grant::Stock(hash, count) => {
+                return live::set(&self.game, self.global, hash, &count.to_string());
+            }
+        };
+        let leveled = level && !equip;
+        let request = match leveled {
+            true => Request::GiveLevel(actor.clone(), ammo::swap(&actor, Default::default())),
+            false => Request::Give(actor.clone(), equip),
+        };
+        self.ask(&request)?;
+        *landed = true;
+        let given = match leveled {
+            true => self.given()?,
+            false => None,
+        };
+        got.get_or_insert(given.unwrap_or(actor));
+        self.settle()
     }
 
     /// The item a level give gave, as the hook wrote it back, or `None`
@@ -711,6 +732,23 @@ mod tests {
         ];
         assert_eq!(*dev.game.2.borrow(), [fields, fields].concat());
         assert_eq!(dev.game.u32(mail).unwrap(), 2);
+    }
+
+    /// A grant the hook ran, whose wait for its event fails after (here,
+    /// the event manager can't be read), says it landed.
+    #[test]
+    fn an_error_after_a_grant_runs_says_it_landed() {
+        let main = 0x10_0000;
+        let mail = main + u64::from(MAILBOX);
+        let fake = Fake::new(vec![(mail, vec![0; size_of::<Mailbox>()])]);
+        let dev = Dev {
+            game: Hook(fake, mail, Default::default()),
+            global: main + u64::from(patch::OFFSETS.got.gamedata),
+            main,
+        };
+        let err =
+            (dev.grant(vec![Grant::Game("Item_FakeSword".into(), false)], false)).unwrap_err();
+        assert!(err.is::<Landed>(), "{err:#}");
     }
 
     #[test]

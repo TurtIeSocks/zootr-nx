@@ -44,6 +44,17 @@ export function keeps(filter: LogFilter, kind: LineKind) {
 export const reconnecting = (lines: ApLine[]) =>
   kindOf(lines.at(-1)?.text ?? "") === "lost";
 
+/** How the client says the game stopped answering, and answers again. */
+const UNREACHABLE = "can't reach the game";
+const REACHABLE = "the game answers again";
+
+/** The client can't reach the game: its last word on that was losing it. */
+export const gameLost = (lines: ApLine[]) =>
+  [...lines]
+    .reverse()
+    .find((l) => l.text.startsWith(UNREACHABLE) || l.text === REACHABLE)
+    ?.text.startsWith(UNREACHABLE) ?? false;
+
 /** The server's refusals, as `archipelago_rs` words them, in a sentence. */
 const REFUSALS: Record<string, (slot: string) => string> = {
   "the name provided doesn't match any names on the server": (slot) =>

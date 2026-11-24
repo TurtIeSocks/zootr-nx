@@ -1,10 +1,14 @@
-//! A target's settings file: `KEY=VALUE` lines a seed sets on install and
-//! removes on uninstall, keeping every other line.
+//! A target's settings file: `KEY=VALUE` lines a seed sets on install.
+//! Uninstall removes the ones that point into the mod and keeps the rest,
+//! so a vanilla game still starts with them. Other lines stay as they are.
 
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
+
+/// The placeholders that point into the mod folder, and what each becomes.
+const MOD_PATHS: [(&str, &str); 2] = [("{romfs}", "romfs"), ("{cheats}", "cheats")];
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -35,12 +39,28 @@ fn one_or_more<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Vec<String>, D:
 impl SettingsFile {
     /// Set these lines in `file`, replacing lines with the same keys.
     pub fn apply(&self, mod_dir: &Path, control: Option<&Path>) -> Result<()> {
+        self.rewrite(self.filled(mod_dir, control, |_| true)?)
+    }
+
+    /// Drop the lines that point into the mod (`{romfs}`, `{cheats}`) from
+    /// `file`, and set the rest: the game runs vanilla with them still on.
+    pub fn remove(&self, control: Option<&Path>) -> Result<()> {
+        let unmodded = |l: &str| !MOD_PATHS.iter().any(|(from, _)| l.contains(from));
+        self.rewrite(self.filled(Path::new(""), control, unmodded)?)
+    }
+
+    /// The lines `keep` passes, with `{romfs}`, `{cheats}` and `{control}`
+    /// filled in.
+    fn filled(
+        &self,
+        mod_dir: &Path,
+        control: Option<&Path>,
+        keep: impl Fn(&str) -> bool,
+    ) -> Result<Vec<String>> {
         let fill = |l: &String| {
-            let l = [("{romfs}", "romfs"), ("{cheats}", "cheats")]
-                .iter()
-                .fold(l.clone(), |l, (from, to)| {
-                    l.replace(from, &mod_dir.join(to).to_string_lossy())
-                });
+            let l = MOD_PATHS.iter().fold(l.clone(), |l, (from, to)| {
+                l.replace(from, &mod_dir.join(to).to_string_lossy())
+            });
             match control {
                 Some(c) => Ok(l.replace("{control}", &c.to_string_lossy())),
                 None if l.contains("{control}") => {
@@ -51,12 +71,7 @@ impl SettingsFile {
                 None => Ok(l),
             }
         };
-        self.rewrite(self.lines.iter().map(fill).collect::<Result<_>>()?)
-    }
-
-    /// Drop these lines' keys from `file`. A missing file stays missing.
-    pub fn remove(&self) -> Result<()> {
-        self.rewrite(vec![])
+        self.lines.iter().filter(|l| keep(l)).map(fill).collect()
     }
 
     /// `file` without these lines' keys, plus `add`.
@@ -131,18 +146,30 @@ mod tests {
     }
 
     #[test]
-    fn removing_a_settings_line_keeps_the_rest() {
+    fn removing_drops_only_the_lines_that_point_into_the_mod() {
         let dir = scratch("remove");
         let file = dir.join("env.txt");
-        let line = SettingsFile {
+        let only_mod = SettingsFile {
             file: file.clone(),
-            lines: vec!["KEY={romfs}".into()],
+            lines: vec!["KEY={romfs}".into(), "C={cheats}".into()],
         };
-        line.remove().unwrap();
+        only_mod.remove(None).unwrap();
         assert!(!file.exists());
-        std::fs::write(&file, "A=1\nKEY=/m/romfs\nB=2\n").unwrap();
-        line.remove().unwrap();
-        assert_eq!(std::fs::read_to_string(&file).unwrap(), "A=1\nB=2\n");
+        let lines = SettingsFile {
+            file: file.clone(),
+            lines: vec![
+                "KEY={romfs}".into(),
+                "C={cheats}".into(),
+                "FOCUS=1".into(),
+                "IN={control}".into(),
+            ],
+        };
+        std::fs::write(&file, "A=1\nKEY=/m/romfs\nB=2\nC=/m/cheats\nFOCUS=1\n").unwrap();
+        lines.remove(Some(Path::new("/c/in.txt"))).unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&file).unwrap(),
+            "A=1\nB=2\nFOCUS=1\nIN=/c/in.txt\n"
+        );
     }
 
     #[test]

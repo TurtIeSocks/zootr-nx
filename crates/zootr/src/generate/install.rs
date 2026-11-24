@@ -107,8 +107,8 @@ pub fn install<T>(
     })
 }
 
-/// Take the mod off every target, its romfs and settings line, so the game
-/// runs vanilla until the next install.
+/// Take the mod off every target, its romfs and the settings lines that
+/// point into it, so the game runs vanilla until the next install.
 pub fn uninstall(targets: &[Target]) -> Result<()> {
     guarded(targets, || take_off(targets))
 }
@@ -133,7 +133,7 @@ fn take_off_one(t: &Target) -> Result<()> {
     }
     patch::remove(&t.mod_dir)?;
     if let Some(line) = &t.settings_file {
-        line.remove()?;
+        line.remove(t.control.as_deref())?;
     }
     Ok(())
 }
@@ -156,7 +156,7 @@ mod tests {
     static TURNS: Mutex<()> = Mutex::new(());
 
     #[test]
-    fn uninstalling_takes_the_romfs_cheat_and_settings_lines_off_every_target() {
+    fn uninstalling_takes_the_romfs_cheat_and_mod_settings_lines_off_every_target() {
         let _turn = TURNS.lock().unwrap();
         let dir = Scratch::new("uninstall");
         let mod_dir = dir.join("mod");
@@ -181,7 +181,7 @@ mod tests {
         };
         let line = SettingsFile {
             file: env.clone(),
-            lines: vec!["KEY={romfs}".into()],
+            lines: vec!["KEY={romfs}".into(), "FOCUS=1".into()],
         };
         let targets = [target(None), target(Some(line))];
         uninstall(&targets).unwrap();
@@ -189,7 +189,7 @@ mod tests {
         assert!(!mod_dir.join("romfs").exists() && mod_dir.join("spoiler.txt").exists());
         let v111 = crate::patch::Hook::of(crate::game::Release::V111);
         assert!(!v111.path(&mod_dir).exists());
-        assert_eq!(std::fs::read_to_string(&env).unwrap(), "A=1\n");
+        assert_eq!(std::fs::read_to_string(&env).unwrap(), "A=1\nFOCUS=1\n");
         assert!(uninstall(&[]).is_err());
     }
 

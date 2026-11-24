@@ -3,7 +3,7 @@
 
 use anyhow::Result;
 
-use super::client::Game;
+use super::game::Game;
 
 /// A death from the room.
 #[derive(Clone, Debug, PartialEq)]
@@ -21,16 +21,19 @@ pub enum Done {
     Killed(Death),
 }
 
-/// Link's death counter at the last look. A death moves it up by one, and
-/// a save loading by anything, so only a rise of one counts.
+/// Link's death counter at the last look. A death moves it up by one, the
+/// moment his hearts run out, and a save loading by anything. So only a
+/// rise of one counts, and none across a load: the counter's first read
+/// after one is a new baseline.
 #[derive(Debug, Default)]
 pub struct Count(Option<i64>);
 
 impl Count {
     /// Whether the counter reading `n` is a death since the last look.
-    pub fn died(&mut self, n: i64) -> bool {
-        let died = self.0.is_some_and(|last| n == last + 1);
-        self.0 = Some(n);
+    /// `loading` while the game loads, a save or a reload after Game Over.
+    pub fn died(&mut self, n: i64, loading: bool) -> bool {
+        let died = !loading && self.0.is_some_and(|last| n == last + 1);
+        self.0 = (!loading).then_some(n);
         died
     }
 }
@@ -90,7 +93,7 @@ impl Deaths {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ap::client::tests::Fake;
+    use crate::ap::game::tests::Fake;
 
     fn death(source: &str) -> Death {
         Death {
@@ -102,9 +105,19 @@ mod tests {
     #[test]
     fn a_rise_of_one_is_a_death_and_a_save_s_jump_isn_t() {
         let mut count = Count::default();
-        let died: Vec<bool> = [0, 1, 1, 5, 2, 3].map(|n| count.died(n)).into();
+        let died: Vec<bool> = [0, 1, 1, 5, 2, 3].map(|n| count.died(n, false)).into();
         // The first read only sets the baseline.
         assert_eq!(died, [false, true, false, false, false, true]);
+    }
+
+    /// A fresh title reads 0 deaths, then the save loads with 1: the
+    /// load between drops the baseline, so that rise isn't a death.
+    #[test]
+    fn a_save_loading_is_never_a_death() {
+        let mut count = Count::default();
+        let reads = [(0, false), (0, true), (1, true), (1, false), (2, false)];
+        let died: Vec<bool> = reads.map(|(n, loading)| count.died(n, loading)).into();
+        assert_eq!(died, [false, false, false, false, true]);
     }
 
     #[test]
