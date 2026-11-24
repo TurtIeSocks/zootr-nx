@@ -4,7 +4,7 @@
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 
 use crate::checks::{self, ItemCheck, actors, bancs, hash_of, str_field};
@@ -13,10 +13,11 @@ use crate::known::{Name, flag, item, map};
 use crate::rules::{Book, Ctx, Have, Need};
 use crate::tools::Tools;
 use crate::world::{self, Era, node_of};
-use crate::{cows, gates, gifts, keys, pickups, scrubs, shops};
+use crate::{cows, gates, gifts, keys, shops};
 
 mod exits;
 mod goal;
+mod locations;
 mod play;
 mod rooms;
 
@@ -223,245 +224,37 @@ impl World {
         for (room, node) in rooms.added() {
             places.extend(places_of(&scan.places, node, &room));
         }
-        let index: HashMap<Place, usize> = places
-            .iter()
-            .enumerate()
-            .map(|(i, p)| (p.clone(), i))
-            .collect();
-        let at = |node: &str, era: Era| -> Result<usize> {
-            index
-                .get(&(node.to_owned(), era))
-                .copied()
-                .with_context(|| format!("no place {node} {era}"))
+        let b = Build {
+            book,
+            ctx,
+            scan,
+            index: (places.iter().enumerate())
+                .map(|(i, p)| (p.clone(), i))
+                .collect(),
+            boss_rooms: boss_rooms(ctx),
+            gates,
+            shop_slots,
+            cows,
+            rooms,
         };
-        let resolve = |text: &str| book.resolve(text, ctx);
-
-        let mut edges = Vec::new();
-        for (node, song, era) in &scan.warps {
-            edges.push(Edge {
-                from: None,
-                to: at(node, *era)?,
-                need: resolve(&format!(
-                    "ocarina and {}{song}",
-                    item::MELODY_SPIRIT_REQUIEM.stem()
-                ))?,
-            });
-        }
-
+        let at = |node: &str, era: Era| b.at(node, era);
+        let mut edges = b.warp_edges()?;
         edges.extend(exits::edges(
             book,
             ctx,
             scan,
             alternatives,
             exits,
-            &rooms,
+            &b.rooms,
             &at,
         )?);
-        // A live dungeon's rooms, joined by their links.
-        for room in book.rooms.iter().filter(|r| r.live) {
-            let from = rooms.node(&room.node, room.file.room);
-            for link in &room.file.link {
-                let need = book.need(&link.expr, ctx)?;
-                let to = rooms.node(&room.node, link.to);
-                for era in eras_of(&scan.places, &room.node) {
-                    edges.push(Edge {
-                        from: Some(at(&from, era)?),
-                        to: at(&to, era)?,
-                        need: need.clone(),
-                    });
-                }
-            }
-        }
-
-        // What each place's obstacles need. A map for one era drops the
-        // obstacles only the other era clears.
-        let mut by_tool = HashMap::new();
-        let mut obstacles_at = |place: &Place| -> Result<Need> {
-            let Some(tools) = scan.obstacles.get(&place.0) else {
-                return Ok(Need::Always);
-            };
-            let one_era = eras_of(&scan.places, &place.0).len() == 1;
-            let mut needs = Vec::new();
-            for tool in tools.keys() {
-                if !by_tool.contains_key(tool) {
-                    by_tool.insert(tool.clone(), resolve(tool)?);
-                }
-                let need = &by_tool[tool];
-                if !(one_era && !need.possible(place.1)) {
-                    needs.push(need.clone());
-                }
-            }
-            Ok(Need::All(needs))
-        };
-
-        // A boss room counts for either era once doors move, since its
-        // dungeon may stand behind the other era's door. Gohma's always does:
-        // adult Link reaches her only through a door that asks for the adult
-        // Deku Tree, and both eras' rules inside are audited. The blue warp
-        // keeps Link's age (`entrances.md`, "Blue warps keep Link's age").
-        let boss_rooms: HashSet<&str> = DUNGEONS
-            .iter()
-            .filter(|d| ctx.doors.is_some() || d.node == map::INSIDE_THE_DEKU_TREE)
-            .filter_map(|d| d.boss)
-            .map(|b| &**b)
-            .collect();
-        let pinned = |node: &str, era: Era| match boss_rooms.contains(node) {
-            true => eras_of(&scan.places, node),
-            false => vec![era],
-        };
-        let pocket = gifts::pocket(&ctx.on);
-        let mut locations = Vec::new();
-        let mut seen = HashSet::new();
-        for check in checks {
-            if !seen.insert((check.hash, check.file.as_str())) {
-                continue;
-            }
-            let rule = book.check(check.hash);
-            let mut where_: Vec<Place> = Vec::new();
-            if pocket.contains(&check.hash) {
-                where_.push(start_of(ctx.age));
-            } else if let Some((room, node)) = rooms.check(check.hash) {
-                where_.extend(places_of(&scan.places, node, &room));
-            } else if let Some((node, era)) = rule.and_then(|r| r.place.clone()) {
-                where_.extend(pinned(&node, era).into_iter().map(|e| (node.clone(), e)));
-            } else if check.file.starts_with("Banc/") {
-                let (node, eras) = node_of(&check.file);
-                where_.extend(eras.into_iter().map(|e| (node.clone(), e)));
-            } else {
-                let scrub = scrubs::of(check).map(|s| s.placements.to_vec());
-                let shop = || {
-                    let slot = shop_slots.iter().find(|s| s.hash() == check.hash);
-                    slot.map(|s| s.placements.clone())
-                };
-                let cow = || {
-                    let cow = cows.iter().find(|c| c.hash() == check.hash);
-                    cow.map(|c| c.placements.iter().map(|p| p.hash).collect())
-                };
-                for hash in scrub.or_else(shop).or_else(cow).into_iter().flatten() {
-                    for node in scan.nodes_of.get(&hash).into_iter().flatten() {
-                        where_.extend(places_of(&scan.places, node, node));
-                    }
-                }
-            }
-            if where_.is_empty() {
-                bail!("check {} ({}) has no place", check.hash, check.holder);
-            }
-            let presence = match &check.presence {
-                Some(p) if !p.negated => Need::Flag(p.flag.clone()),
-                _ => Need::Always,
-            };
-            // What Link pays there: a shop's price or a Great Fairy's offering.
-            let rupees = match shops::is_shop(check) {
-                true => Some(shops::price(ctx.seed, check.hash)),
-                false => shops::offering(check.hash),
-            };
-            let cost = match rupees {
-                Some(r) => ctx.progressive(|p| Ok(shops::wallet(r, p)))?,
-                None => Need::Always,
-            };
-            for place in where_ {
-                let need = match rule {
-                    Some(r) => book.need(&r.needs, ctx)?,
-                    None => {
-                        let obstacles = obstacles_at(&place)?;
-                        match gates.get(&check.hash) {
-                            Some(gate) => {
-                                let gate = resolve(&switches(gate, tools)?)?;
-                                Need::All(vec![gate, obstacles])
-                            }
-                            None => obstacles,
-                        }
-                    }
-                };
-                // A room rule measured what hits a gold skulltula, which the
-                // kind's blanket word would only narrow.
-                let kind = match scrubs::of(check) {
-                    Some(_) => Some(STUN_SCRUB),
-                    None if rule.is_some_and(|r| r.room) => None,
-                    None => pickups::kind_of(check).and_then(|k| k.needs),
-                };
-                let need = match kind {
-                    Some(word) => Need::All(vec![need, resolve(word)?]),
-                    None => need,
-                };
-                let keys = [
-                    keys::dungeon_need(check, ctx.keys),
-                    keys::fortress_need(&check.item, ctx),
-                ];
-                let need = match keys.into_iter().flatten().collect::<Vec<_>>() {
-                    keys if keys.is_empty() => need,
-                    keys => Need::All([vec![need], keys].concat()),
-                };
-                // The opening gives a pocketed check, whatever its scene needs.
-                let need = match pocket.contains(&check.hash) {
-                    true => Need::Always,
-                    false => Need::All(vec![presence.clone(), cost.clone(), need]),
-                };
-                locations.push(Location {
-                    hash: check.hash,
-                    place: at(&place.0, place.1)?,
-                    need,
-                });
-            }
-        }
-        for (hash, entry) in book.checks() {
-            ensure!(
-                entry.optional
-                    || seen.iter().any(|(h, _)| *h == hash)
-                    || gifts::by_hash(hash).is_some(),
-                "a rule names check {hash}, which no check has"
-            );
-        }
-        // A source a dealt check stands for, at its place with its item, or
-        // a shop check takes the place of, leaves logic: the check puts the
-        // item in the pool instead. A sale still sells what it sold.
-        let stood_for: HashSet<(&str, &str)> = checks
-            .iter()
-            .filter(|c| !gifts::of(c).is_some_and(|g| g.is_sale()))
-            .filter_map(|c| {
-                let (place, _) = book.check(c.hash)?.place.as_ref()?;
-                Some((place.as_str(), c.item.as_str()))
-            })
-            .collect();
-        let sold = |item: &str| checks.iter().any(|c| shops::is_shop(c) && c.item == item);
-        let mut sources = Vec::new();
-        for s in book.sources.iter().filter(|s| !sold(&s.item)) {
-            if stood_for.contains(&(s.place.as_str(), s.item.as_str())) {
-                continue;
-            }
-            let places = (pinned(&s.place, s.era).into_iter())
-                .map(|era| at(&s.place, era).with_context(|| format!("source {}", s.name)))
-                .collect::<Result<_>>()?;
-            sources.push(Source {
-                name: s.name.clone(),
-                places,
-                item: s.item.clone(),
-                gives: Gives::Item,
-                need: match keys::fortress_need(&s.item, ctx) {
-                    Some(keys) => Need::All(vec![book.need(&s.expr, ctx)?, keys]),
-                    None => book.need(&s.expr, ctx)?,
-                },
-            });
-        }
-        // A room's flag, set once Link reaches its room and meets its needs.
-        for room in book.rooms.iter().filter(|r| r.live) {
-            for flag in &room.file.flag {
-                let node = rooms.node(&room.node, room.file.room);
-                let places = (eras_of(&scan.places, &room.node).into_iter())
-                    .map(|era| at(&node, era))
-                    .collect::<Result<_>>()?;
-                sources.push(Source {
-                    name: flag.name.clone(),
-                    places,
-                    item: flag.word(),
-                    gives: Gives::Flag,
-                    need: book.need(&flag.expr, ctx)?,
-                });
-            }
-        }
+        edges.extend(b.room_edges()?);
+        let locations = b.locations(checks, tools)?;
+        let mut sources = b.sources(checks)?;
+        sources.extend(b.room_flags()?);
         let goal = goal::exits(book, ctx, scan, &at)?;
         let (node, era) = start_of(ctx.age);
-        let start = at(&node, era)?;
+        let start = b.at(&node, era)?;
         Ok(Self {
             places,
             edges,
@@ -491,6 +284,150 @@ impl World {
     }
 }
 
+/// A boss room counts for either era once doors move, since its
+/// dungeon may stand behind the other era's door. Gohma's always does:
+/// adult Link reaches her only through a door that asks for the adult
+/// Deku Tree, and both eras' rules inside are audited. The blue warp
+/// keeps Link's age (`entrances.md`, "Blue warps keep Link's age").
+fn boss_rooms(ctx: &Ctx) -> HashSet<&'static str> {
+    DUNGEONS
+        .iter()
+        .filter(|d| ctx.doors.is_some() || d.node == map::INSIDE_THE_DEKU_TREE)
+        .filter_map(|d| d.boss)
+        .map(|b| &**b)
+        .collect()
+}
+
+/// What the world's parts read as it's built for one seed.
+struct Build<'a> {
+    book: &'a Book,
+    ctx: &'a Ctx,
+    scan: &'a Scan,
+    rooms: rooms::RoomPlaces,
+    /// Each place's index in the world's places.
+    index: HashMap<Place, usize>,
+    /// The boss rooms that count for either era ([`boss_rooms`]).
+    boss_rooms: HashSet<&'static str>,
+    gates: &'a BTreeMap<u64, String>,
+    shop_slots: &'a [shops::Slot],
+    cows: &'a [cows::Cow],
+}
+
+impl Build<'_> {
+    fn at(&self, node: &str, era: Era) -> Result<usize> {
+        (self.index.get(&(node.to_owned(), era)).copied())
+            .with_context(|| format!("no place {node} {era}"))
+    }
+
+    fn resolve(&self, text: &str) -> Result<Need> {
+        self.book.resolve(text, self.ctx)
+    }
+
+    /// The eras a thing in `node` at `era` counts for: a boss room's every
+    /// era.
+    fn pinned(&self, node: &str, era: Era) -> Vec<Era> {
+        match self.boss_rooms.contains(node) {
+            true => eras_of(&self.scan.places, node),
+            false => vec![era],
+        }
+    }
+
+    /// Each warp song's landing, from anywhere in its era.
+    fn warp_edges(&self) -> Result<Vec<Edge>> {
+        let mut edges = Vec::new();
+        for (node, song, era) in &self.scan.warps {
+            edges.push(Edge {
+                from: None,
+                to: self.at(node, *era)?,
+                need: self.resolve(&format!(
+                    "ocarina and {}{song}",
+                    item::MELODY_SPIRIT_REQUIEM.stem()
+                ))?,
+            });
+        }
+        Ok(edges)
+    }
+
+    /// A live dungeon's rooms, joined by their links.
+    fn room_edges(&self) -> Result<Vec<Edge>> {
+        let mut edges = Vec::new();
+        for room in self.book.rooms.iter().filter(|r| r.live) {
+            let from = self.rooms.node(&room.node, room.file.room);
+            for link in &room.file.link {
+                let need = self.book.need(&link.expr, self.ctx)?;
+                let to = self.rooms.node(&room.node, link.to);
+                for era in eras_of(&self.scan.places, &room.node) {
+                    edges.push(Edge {
+                        from: Some(self.at(&from, era)?),
+                        to: self.at(&to, era)?,
+                        need: need.clone(),
+                    });
+                }
+            }
+        }
+        Ok(edges)
+    }
+
+    /// The rules' sources, less those a dealt check stands for or a shop
+    /// sells.
+    fn sources(&self, checks: &[ItemCheck]) -> Result<Vec<Source>> {
+        let (book, ctx) = (self.book, self.ctx);
+        // A source a dealt check stands for, at its place with its item, or
+        // a shop check takes the place of, leaves logic: the check puts the
+        // item in the pool instead. A sale still sells what it sold.
+        let stood_for: HashSet<(&str, &str)> = checks
+            .iter()
+            .filter(|c| !gifts::of(c).is_some_and(|g| g.is_sale()))
+            .filter_map(|c| {
+                let (place, _) = book.check(c.hash)?.place.as_ref()?;
+                Some((place.as_str(), c.item.as_str()))
+            })
+            .collect();
+        let sold = |item: &str| checks.iter().any(|c| shops::is_shop(c) && c.item == item);
+        let mut sources = Vec::new();
+        for s in book.sources.iter().filter(|s| !sold(&s.item)) {
+            if stood_for.contains(&(s.place.as_str(), s.item.as_str())) {
+                continue;
+            }
+            let places = (self.pinned(&s.place, s.era).into_iter())
+                .map(|era| (self.at(&s.place, era)).with_context(|| format!("source {}", s.name)))
+                .collect::<Result<_>>()?;
+            sources.push(Source {
+                name: s.name.clone(),
+                places,
+                item: s.item.clone(),
+                gives: Gives::Item,
+                need: match keys::fortress_need(&s.item, ctx) {
+                    Some(keys) => Need::All(vec![book.need(&s.expr, ctx)?, keys]),
+                    None => book.need(&s.expr, ctx)?,
+                },
+            });
+        }
+        Ok(sources)
+    }
+
+    /// A room's flag, set once Link reaches its room and meets its needs.
+    fn room_flags(&self) -> Result<Vec<Source>> {
+        let mut sources = Vec::new();
+        for room in self.book.rooms.iter().filter(|r| r.live) {
+            for flag in &room.file.flag {
+                let node = self.rooms.node(&room.node, room.file.room);
+                let places = (eras_of(&self.scan.places, &room.node).into_iter())
+                    .map(|era| self.at(&node, era))
+                    .collect::<Result<_>>()?;
+                sources.push(Source {
+                    name: flag.name.clone(),
+                    places,
+                    item: flag.word(),
+                    gives: Gives::Flag,
+                    need: self.book.need(&flag.expr, self.ctx)?,
+                });
+            }
+        }
+        Ok(sources)
+    }
+}
+
 /// `rule` with each `switch:<actor>` swapped for what the actor's pack
 /// says hits it, or `always`.
 fn switches(rule: &str, tools: &mut Tools) -> Result<String> {
@@ -514,6 +451,7 @@ pub(super) mod tests {
     use super::*;
     use crate::entrances::Doors;
     use crate::known::{actor, map};
+    use crate::scrubs;
 
     #[test]
     fn a_dealt_check_takes_over_from_its_source() {

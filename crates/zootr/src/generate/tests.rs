@@ -3,7 +3,7 @@ use ounce_formats::{BymlDoc, Flowchart, Link, murmur3};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use super::write::flows;
+use super::write::flows_alone as flows;
 use super::*;
 use crate::checks::{self, Drop};
 use crate::events::Flows;
