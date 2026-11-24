@@ -24,7 +24,7 @@ import { useUi } from "@/stores/ui";
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  useUi.setPath("settings.reset", "defaults");
+  useUi.setPath("settings", { closed: [], reset: "defaults" });
 });
 
 const toggle = (

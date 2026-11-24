@@ -6,6 +6,7 @@ import { splitLines } from "@/lib/format";
 export interface Draft {
   name: string;
   app: string;
+  /** One launch argument per row. */
   args: string;
   mod_dir: string;
   save_dir: string;
@@ -27,7 +28,7 @@ export interface Draft {
 export const toDraft = (t: Target): Draft => ({
   name: t.name,
   app: t.app,
-  args: t.args?.join(" ") ?? "",
+  args: t.args?.join("\n") ?? "",
   mod_dir: t.mod_dir,
   save_dir: t.save_dir ?? "",
   line_file: t.settings_file?.file ?? "",
@@ -44,7 +45,7 @@ export const toDraft = (t: Target): Draft => ({
 export const toTarget = (d: Draft): Target => ({
   name: d.name.trim(),
   app: d.app.trim(),
-  args: d.args.split(/\s+/).filter(Boolean),
+  args: splitLines(d.args),
   mod_dir: d.mod_dir.trim(),
   save_dir: d.save_dir.trim() || null,
   settings_file:
@@ -67,12 +68,13 @@ export const toTarget = (d: Draft): Target => ({
 /** A new target with nothing filled in. */
 export const BLANK: Draft = toDraft({ name: "", app: "", mod_dir: "" });
 
-/** The drafts with `t` added, numbered past any name already taken. */
-export function withTarget(drafts: Draft[], t: Target): Draft[] {
+/** `t` as a draft to add beside `drafts`, numbered past any name already
+ * taken. */
+export function importedDraft(drafts: Draft[], t: Target): Draft {
   const taken = new Set(drafts.map((d) => d.name.trim()));
   let name = t.name;
   for (let n = 2; taken.has(name); n++) name = `${t.name} ${n}`;
-  return [...drafts, toDraft({ ...t, name })];
+  return toDraft({ ...t, name });
 }
 
 /** Whether `d` is what's saved under its name, so its export is what shows. */
@@ -132,7 +134,8 @@ export const ADVANCED_FIELDS: DraftField[] = [
     key: "args",
     help: "variables",
     label: "Launch Arguments (Optional)",
-    hint: "Extra arguments, for apps that take the game on the command line",
+    hint: "Extra arguments, for apps that take the game on the command line, one argument per line",
+    multiline: true,
   },
   {
     key: "line_file",
