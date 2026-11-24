@@ -26,9 +26,88 @@ pub use image::Image;
 use rows::{Kind, ROWS, Rule};
 
 /// Rows the matcher can't settle, confirmed by hand for 1.0.0: each row's
-/// name, its 1.0.0 offset and how it was confirmed. None so far: every
-/// row matched.
-pub const CONFIRMED: &[(&str, u32, &str)] = &[];
+/// name, its 1.0.0 offset and how it was confirmed. Each one's code
+/// changed between the builds, so no window matches; the evidence is its
+/// [`likeness`] to its 1.1.1 code, which a dump test checks stays at
+/// [`LIKE`] or more. For scale: `entries.granted`, which callers match,
+/// scores 0.903; unrelated functions 0.02 to 0.04.
+pub const CONFIRMED: &[(&str, u32, &str)] = &[
+    (
+        "entries.link_update",
+        0x2bc_d710,
+        "likeness 0.712; its first 15 words agree, then its stack frame \
+         moved, and both its callers' frames round the call",
+    ),
+    (
+        "entries.ui_update",
+        0x6b_5900,
+        "likeness 0.873; its referrer's two address loads agree; it saves \
+         one more register, so its body sits a word later",
+    ),
+];
+/// How many words from each entry [`likeness`] compares.
+pub const LIKENESS_WORDS: u32 = 600;
+/// The least [`likeness`] a row confirmed by hand may have.
+pub const LIKE: f64 = 0.6;
+
+/// Each row in `confirmed`'s [`likeness`] to its code in `from`, where
+/// `build` places it.
+pub fn liked(from: &Image, build: &Build, to: &Image, confirmed: &[(&str, u32, &str)]) -> Vec<f64> {
+    let had = rows::values(build);
+    let at = |name: &str| rows::position(name).map(|i| had[i]);
+    (confirmed.iter())
+        .map(|&(name, there, _)| at(name).map_or(0.0, |at| likeness(from, at, to, there)))
+        .collect()
+}
+
+/// How alike the code at `at` in `from` and `there` in `to` is: the
+/// share of [`LIKENESS_WORDS`] words each, by [`arm::shape`], that
+/// [`ratio`] pairs up.
+pub fn likeness(from: &Image, at: u32, to: &Image, there: u32) -> f64 {
+    let shapes = |img: &Image, at: u32| -> Vec<u32> {
+        (0..LIKENESS_WORDS)
+            .map(|i| arm::shape(img.word(at + 4 * i)))
+            .collect()
+    };
+    ratio(&shapes(from, at), &shapes(to, there))
+}
+
+/// Ratcliff and Obershelp's ratio, as Python's `difflib` gives it with no
+/// junk: the longest common run (the earliest in `a`, then in `b`), then
+/// the same either side of it, and twice the words paired over both
+/// lengths.
+pub fn ratio(a: &[u32], b: &[u32]) -> f64 {
+    let mut paired = 0;
+    let mut todo = vec![(0, a.len(), 0, b.len())];
+    while let Some((alo, ahi, blo, bhi)) = todo.pop() {
+        let (mut at, mut bt, mut len) = (alo, blo, 0);
+        let mut run = vec![0usize; bhi - blo + 1];
+        for (i, &x) in a.iter().enumerate().take(ahi).skip(alo) {
+            for j in (blo..bhi).rev() {
+                let k = j - blo + 1;
+                run[k] = if x == b[j] { run[k - 1] + 1 } else { 0 };
+            }
+            for j in blo..bhi {
+                let k = run[j - blo + 1];
+                if k > len {
+                    (at, bt, len) = (i + 1 - k, j + 1 - k, k);
+                }
+            }
+        }
+        if len == 0 {
+            continue;
+        }
+        paired += len;
+        todo.push((alo, at, blo, bt));
+        todo.push((at + len, ahi, bt + len, bhi));
+    }
+    let total = a.len() + b.len();
+    if total == 0 {
+        1.0
+    } else {
+        2.0 * paired as f64 / total as f64
+    }
+}
 
 /// The command that writes 1.0.0's table, which its header names.
 pub const COMMAND: &str = "zootr probe port --to 1.0.0";
@@ -322,7 +401,15 @@ impl Port {
     /// Per row: its offset in each build, the method, the window, the
     /// candidates, the confidence and a note; then counts, every row
     /// unmatched, the rooms and the field offsets left unconfirmed.
-    pub fn report(&self, from: &str, to: &str) -> String {
+    /// `confirmed` are the rows confirmed by hand, `liked` their
+    /// [`likeness`] each.
+    pub fn report(
+        &self,
+        from: &str,
+        to: &str,
+        confirmed: &[(&str, u32, &str)],
+        liked: &[f64],
+    ) -> String {
         let mut out = String::new();
         let w = &mut out;
         let _ = writeln!(
@@ -359,6 +446,11 @@ impl Port {
         for ((method, confidence), n) in counts {
             let _ = writeln!(w, "  {method:<10} {confidence:<6} {n}");
         }
+        let _ = writeln!(w, "\nconfirmed by hand");
+        for ((name, v, why), l) in confirmed.iter().zip(liked) {
+            let under = if *l < LIKE { ", under the least" } else { "" };
+            let _ = writeln!(w, "  {name:<26} {v:>#10x}  measured {l:.3}{under}: {why}");
+        }
         let _ = writeln!(w, "\nrooms");
         for r in &self.rooms {
             let size = r.size.map_or("-".to_string(), |s| s.to_string());
@@ -388,10 +480,10 @@ impl Port {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use std::sync::OnceLock;
 
-    use zootr_hook::V131072;
+    use zootr_hook::{V65536, V131072};
 
     use super::*;
     use crate::game::dumped_main;
@@ -411,28 +503,39 @@ pub(crate) mod tests {
         Some(PORT.get_or_init(|| port(from, &V131072, to, usual, crate::patch::needs())))
     }
 
-    /// 1.0.0 offsets for the rows the port leaves unmatched, read from
-    /// the code round them and not confirmed: only so the checks on a
-    /// whole 1.0.0 table run until the maintainer settles them.
-    const LIKELY: &[(&str, u32, &str)] = &[
-        (
-            "entries.link_update",
-            0x2bc_d710,
-            "its first 15 words agree, then its stack frame moves; its two callers' too",
-        ),
-        (
-            "entries.ui_update",
-            0x6b_5900,
-            "its referrer's two address loads, whose first 16 words match; it saves one more register",
-        ),
-    ];
+    #[test]
+    fn every_row_confirmed_by_hand_is_like_its_1_1_1_code() {
+        let (Some(update), Some(base)) = (image(Release::V111), image(Release::V100)) else {
+            return;
+        };
+        let liked = liked(update, &V131072, base, CONFIRMED);
+        for (&(name, there, why), &l) in CONFIRMED.iter().zip(&liked) {
+            assert!(
+                l >= LIKE,
+                "{name} at {there:#x} is only {l:.3} like its 1.1.1 code"
+            );
+            assert!(
+                why.contains(&format!("likeness {l:.3}")),
+                "{name}: {l:.3}, {why}"
+            );
+        }
+        // The scale: a row callers match, and an unrelated function.
+        let granted = V131072.entries.granted;
+        let unrelated = likeness(update, granted, base, 0x6b_5900);
+        let granted = likeness(update, granted, base, 0x113_78f0);
+        assert!(
+            granted > 0.9 && unrelated < 0.1,
+            "{granted:.3}, {unrelated:.3}"
+        );
+    }
 
-    /// 1.0.0's table as matched, with [`LIKELY`] for what wasn't.
-    pub(crate) fn candidate() -> Option<&'static Build> {
-        static BUILD: OnceLock<Build> = OnceLock::new();
-        let p = to_base()?;
-        let hand: Vec<_> = CONFIRMED.iter().chain(LIKELY).copied().collect();
-        Some(BUILD.get_or_init(|| p.build(&hand).unwrap()))
+    #[test]
+    fn the_ratio_is_difflibs() {
+        // SequenceMatcher(None, a, b, autojunk=False).ratio() for each.
+        assert_eq!(ratio(&[1, 2, 9, 3, 4], &[1, 2, 3, 4]), 8.0 / 9.0);
+        assert_eq!(ratio(&[1, 2, 3, 4], &[2, 3, 4, 1]), 0.75);
+        assert_eq!(ratio(&[1, 2], &[3, 4]), 0.0);
+        assert_eq!(ratio(&[], &[]), 1.0);
     }
 
     #[test]
@@ -443,21 +546,23 @@ pub(crate) mod tests {
         let usual = usual(Release::V111, Release::V111);
         let p = port(img, &V131072, img, usual, crate::patch::needs());
         let built = p.build(&[]).map_err(|e| e.to_string());
-        assert_eq!(built, Ok(V131072), "{}", p.report("1.1.1", "1.1.1"));
+        assert_eq!(
+            built,
+            Ok(V131072),
+            "{}",
+            p.report("1.1.1", "1.1.1", &[], &[])
+        );
     }
 
     #[test]
     fn every_offset_found_in_1_0_0_maps_back() {
-        let (Some(there), Some(b), Some(base), Some(update)) = (
-            to_base(),
-            candidate(),
-            image(Release::V100),
-            image(Release::V111),
-        ) else {
+        let (Some(there), Some(base), Some(update)) =
+            (to_base(), image(Release::V100), image(Release::V111))
+        else {
             return;
         };
         let usual = usual(Release::V100, Release::V111);
-        let back = port(base, b, update, usual, crate::patch::needs());
+        let back = port(base, &V65536, update, usual, crate::patch::needs());
         let want = rows::values(&V131072);
         let mut wrong = Vec::new();
         let rows = ROWS.iter().zip(&there.found).zip(&back.found).zip(want);
@@ -466,7 +571,7 @@ pub(crate) mod tests {
             // not come back: 1.1.1 may hold a twin of its 1.0.0 code as
             // well. It mustn't come back wrong.
             let changed = there.as_ref().is_ok_and(|f| f.method == Method::Callers)
-                || LIKELY.iter().any(|l| l.0 == row.name());
+                || CONFIRMED.iter().any(|c| c.0 == row.name());
             match back {
                 Ok(f) if f.value == want => {}
                 Err(_) if changed => {}
@@ -565,7 +670,11 @@ pub(crate) mod tests {
         assert_eq!(p.build(&hand).unwrap(), V131072);
         let wrong = [("entries.granted", 1, "a typo")];
         assert!(p.build(&wrong).is_err());
-        assert!(p.report("1.1.1", "1.1.1").contains("entries.map_loaded"));
+        let text = p.report("1.1.1", "1.1.1", &hand, &[0.5]);
+        assert!(
+            text.contains("measured 0.500, under the least: read by hand"),
+            "{text}"
+        );
     }
 
     #[test]

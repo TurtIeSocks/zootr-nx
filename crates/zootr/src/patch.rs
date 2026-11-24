@@ -605,10 +605,7 @@ mod tests {
         let Some((_, main)) = crate::game::dumped_main(crate::game::Release::V100) else {
             return;
         };
-        let Some(b) = crate::port::tests::candidate() else {
-            return;
-        };
-        words_hold_what_we_expect(main, b);
+        words_hold_what_we_expect(main, &zootr_hook::V65536);
     }
 
     /// The checks on a build's `main` with its table `b`: each site holds

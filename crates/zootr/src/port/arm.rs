@@ -76,6 +76,21 @@ fn written(w: u32) -> u32 {
     }
 }
 
+/// `w`'s shape for comparing code that changed: only the operands that
+/// move with the code round it (b and bl, adrp and adr, b.cond) cleared,
+/// with no registers followed.
+pub fn shape(w: u32) -> u32 {
+    if w & 0x7c00_0000 == 0x1400_0000 {
+        w & 0xfc00_0000
+    } else if w & 0x1f00_0000 == 0x1000_0000 {
+        w & 0x9f00_001f
+    } else if w & 0xff00_0010 == 0x5400_0000 {
+        w & 0xff00_001f
+    } else {
+        w
+    }
+}
+
 pub fn is_bl(w: u32) -> bool {
     w >> 26 == 0x25
 }
@@ -160,6 +175,15 @@ mod tests {
         assert_eq!(target(0x3640_0509, 0x41_0250), Some(0x41_02f0));
         assert_eq!(target(0x9100_0000, 0), None);
         assert!(is_bl(0x9794_0dee) && !is_bl(0x1400_0002));
+    }
+
+    #[test]
+    fn a_shape_keeps_all_but_moving_operands() {
+        // bl, adrp x16, b.ne and cbz w8: the first three lose their operands.
+        assert_eq!(shape(0x9794_0dee), 0x9400_0000);
+        assert_eq!(shape(0xb000_83f0 | 16), 0x9000_0010);
+        assert_eq!(shape(0x5400_0141), 0x5400_0001);
+        assert_eq!(shape(0x3400_0048), 0x3400_0048);
     }
 
     #[test]

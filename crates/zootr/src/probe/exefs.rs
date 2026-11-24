@@ -8,7 +8,7 @@ use nup_format::nso::{SEGMENTS, build_id_hex};
 use zootr_hook::V131072;
 
 use crate::game::{Release, main_image};
-use crate::port::{CONFIRMED, Image, base_source, port as map, usual};
+use crate::port::{CONFIRMED, Image, LIKE, base_source, liked, port as map, usual};
 
 /// Writes `build`'s `main` flat to `out` and prints its build ID, where
 /// each segment lies and how it was stored, and MOD0.
@@ -53,12 +53,17 @@ pub(super) fn port(game: &Path, to: Release, report: Option<&Path>, out: &Path) 
         usual(Release::V111, to),
         crate::patch::needs(),
     );
-    let text = ported.report("1.1.1", to.name());
+    let liked = liked(&from, &V131072, &into, CONFIRMED);
+    let text = ported.report("1.1.1", to.name(), CONFIRMED, &liked);
     match report {
         Some(path) => {
             std::fs::write(path, &text).with_context(|| format!("writing {}", path.display()))?
         }
         None => print!("{text}"),
+    }
+    let rows = CONFIRMED.iter().zip(&liked);
+    if let Some(((name, ..), l)) = rows.into_iter().find(|(_, l)| **l < LIKE) {
+        bail!("{name} is only {l:.3} like its 1.1.1 code, under {LIKE}: not confirmed");
     }
     let build = ported.build(CONFIRMED)?;
     if let Some(dir) = out.parent() {
