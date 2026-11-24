@@ -162,7 +162,6 @@ mod tests {
 
     use super::*;
     use crate::known::{actor, flag};
-    use crate::sweep::night::tests::open;
 
     #[test]
     fn earlier_nights_give_each_spot_its_age_and_whether_it_gave_its_item() {
@@ -188,13 +187,12 @@ mod tests {
                 hash,
                 ..Default::default()
             },
-            ..open(flag::SPIRIT_TEMPLE)
+            ..Planned::open(flag::SPIRIT_TEMPLE)
         };
         assert_eq!(at_known(&spot(4), &known).child, Some(false));
         assert_eq!(at_known(&spot(2), &known).child, None, "never reached");
         let named = Planned {
             child: Some(true),
-            side: Side::Front,
             ..spot(4)
         };
         assert_eq!(
@@ -260,7 +258,7 @@ mod tests {
                 ..Default::default()
             },
             side,
-            ..open(flag::SPIRIT_TEMPLE)
+            ..Planned::open(flag::SPIRIT_TEMPLE)
         };
         let side = |hash| at_known(&planned(hash, Side::Front), &known).side;
         assert_eq!(side(1), Side::Left, "the side it gave from");
@@ -288,10 +286,16 @@ mod tests {
     fn a_round_starts_at_a_map_its_seed_picks() {
         let skip = Planned {
             trigger: Trigger::Skip("none".into()),
-            ..open("")
+            ..Planned::open("")
         };
         let order_of = |seed| {
-            let mut planned = [open("A"), open("A"), open("B"), open("C"), skip.clone()];
+            let mut planned = [
+                Planned::open("A"),
+                Planned::open("A"),
+                Planned::open("B"),
+                Planned::open("C"),
+                skip.clone(),
+            ];
             order(&mut planned, &Known::default(), seed);
             planned.iter().map(map).collect::<Vec<_>>()
         };
@@ -303,7 +307,7 @@ mod tests {
     #[test]
     fn the_least_tried_spots_go_first_and_confirmed_ones_last() {
         let at = |map: &str, hash: u64| {
-            let mut p = open(map);
+            let mut p = Planned::open(map);
             p.spot.hash = hash;
             p
         };
@@ -332,7 +336,7 @@ mod tests {
     #[test]
     fn a_stubborn_spot_goes_first_one_round_in_four_and_last_otherwise() {
         let at = |hash: u64| {
-            let mut p = open("A");
+            let mut p = Planned::open("A");
             p.spot.hash = hash;
             p
         };

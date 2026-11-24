@@ -100,7 +100,7 @@ pub fn saved(challenge: impl std::fmt::Display) -> String {
 }
 
 /// The edit that saves quest `challenge` at `step`.
-pub fn at(challenge: &Name, step: impl std::fmt::Display) -> String {
+pub fn at(challenge: impl std::fmt::Display, step: impl std::fmt::Display) -> String {
     format!("{}={step}", saved(challenge))
 }
 

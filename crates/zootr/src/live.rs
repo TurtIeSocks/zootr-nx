@@ -671,7 +671,7 @@ mod mach;
 mod pipe;
 pub mod snap;
 
-pub use bridge::{Bridge, PATIENCE, Refused};
+pub use bridge::{Bridge, CLOSED, GONE, PATIENCE, Refused};
 pub use lookup::{Places, bools, hash, locate, read, set, value, value_with};
 
 #[cfg(test)]
