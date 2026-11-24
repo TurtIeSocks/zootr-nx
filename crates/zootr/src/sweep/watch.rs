@@ -320,9 +320,9 @@ mod tests {
         )];
         assert_eq!(got_other(&lost, &wanted, false), None);
         let got = [change("IsGet.Item_A", "false -> true")];
-        let item_a = Some(Other::Flag("Item_A".into()));
-        assert_eq!(got_other(&got, &wanted, false), item_a);
-        assert_eq!(item_a.unwrap().to_string(), "IsGet.Item_A", "as reported");
+        let item_a = || Other::Flag("Item_A".into());
+        assert_eq!(got_other(&got, &wanted, false), Some(item_a()));
+        assert_eq!(item_a().to_string(), "IsGet.Item_A", "as reported");
         let ours = [change(
             &format!("IsGet.{}", item::HOVER_BOOT),
             "false -> true",
