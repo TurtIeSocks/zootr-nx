@@ -15,9 +15,9 @@ use anyhow::{Context, Result};
 use ounce_formats::{EventKind, Flowchart, Romfs, Value};
 use zootr_hook::{ARG_ACTOR, ARG_MIXED, ARG_SUMMARY, Notice};
 
+use crate::copies::{MADE, POUCH_TEXT, label};
 use crate::flows::{self, Model, running, set};
 use crate::foreign::clean;
-use crate::key_tints::{MADE, POUCH_TEXT, label};
 use crate::keys::SMALL;
 use crate::known::{Name, field, flag, flow, scene};
 use crate::text::{Copies, CopyLine, Piece, Says, Tagged};

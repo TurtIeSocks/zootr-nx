@@ -402,10 +402,7 @@ fn each_plain_cow_gets_a_pack_rows_and_an_event_of_its_own() {
     tables.write(&mut builder).unwrap();
     events.write(&mut builder).unwrap();
     builder.finish().unwrap();
-    let read = |rel: &str| {
-        let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
-        romfs.dicts().decompress(rel, &raw).unwrap()
-    };
+    let read = |rel: &str| crate::game::read_built(&romfs, &dir, rel);
     let events = BymlDoc::parse(&read(&rsdb::path(rsdb::EVENTS))).unwrap();
     let template = row(&events, actor::ANIMAL_COW_GIVE_MILK).unwrap();
     let analyzed = BymlDoc::parse(&read(&rsdb::path(rsdb::ANALYZED))).unwrap();

@@ -5,9 +5,9 @@
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, ModBuilder, Romfs, murmur3, redraw, top_level};
 
+use crate::copies::{self, copied};
 use crate::gamedata;
 use crate::key_tints::paint::{Host, Look};
-use crate::key_tints::{self, copied};
 use crate::known::{Name, field, hash, item};
 use crate::medallions::paint::{self, Band, Hues};
 use crate::standins::{PLAIN_DEAL, Tables, clone_pack, write_clone};
@@ -76,7 +76,7 @@ fn model() -> String {
 /// The label naming the Magic Meter: its pack lives only in the seed, and
 /// it answers to its own name.
 pub fn name_label(item: &str) -> Option<String> {
-    (item == NAME).then(|| key_tints::label(NAME))
+    (item == NAME).then(|| copies::label(NAME))
 }
 
 /// The Magic Meter's pack, if `item` is it, built as [`write`] writes it.
@@ -130,7 +130,7 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Re
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::key_tints::MADE;
+    use crate::copies::MADE;
 
     #[test]
     fn the_extracted_files_are_the_look() {
@@ -165,8 +165,7 @@ mod tests {
         };
         let host = FILES[3];
         let copy = host.replace(LIKE.get(), &model());
-        let written = std::fs::read(dir.join("romfs").join(&copy)).unwrap();
-        let written = romfs.dicts().decompress(&copy, &written).unwrap();
+        let written = crate::game::read_built(&romfs, &dir, &copy);
         assert_eq!(metal(&written), 0);
         assert!(metal(&romfs.read(host).unwrap()) > 0);
         std::fs::remove_dir_all(dir).ok();

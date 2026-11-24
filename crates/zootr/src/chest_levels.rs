@@ -14,10 +14,10 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::{Byml, EventKind, Flowchart, Romfs, Value};
 
 use crate::checks::{self, DROP_ACTOR, Drop, GYAML, str_field};
+use crate::copies::Sets;
 use crate::events::Flows;
 use crate::flows::{self, Model, Rewrites};
 use crate::gifts::levels;
-use crate::key_tints::Sets;
 use crate::known::{Name, field, flow};
 use crate::progressive::Lines;
 use crate::rsdb::{self, Events, Runs};

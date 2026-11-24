@@ -5,18 +5,24 @@ use anyhow::{Context, Result};
 use crate::bfres::{find_magic, name_at};
 use crate::reader::Reader;
 
-const MAGIC: &[u8; 4] = b"FSKA";
-const NAME: usize = 0x08;
-const BONES: usize = 0x28;
-const BONE_COUNT: usize = 0x4c;
-const BONE_SIZE: usize = 0x38;
-const BONE_NAME: usize = 0x00;
-const BONE_BASE: usize = 0x10;
-const BONE_FLAGS: usize = 0x28;
-/// Which parts a bone's base values hold, in this order.
-const HAS_SCALE: usize = 1 << 3;
-const HAS_ROTATE: usize = 1 << 4;
-const HAS_TRANSLATE: usize = 1 << 5;
+pub const MAGIC: &[u8; 4] = b"FSKA";
+/// An animation header's fields: its name, its bone animations and how
+/// many.
+pub const NAME: usize = 0x08;
+pub const BONES: usize = 0x28;
+pub const BONE_COUNT: usize = 0x4c;
+/// A bone animation's size and fields: its name, base values and flags.
+pub const BONE_SIZE: usize = 0x38;
+pub const BONE_NAME: usize = 0x00;
+pub const BONE_BASE: usize = 0x10;
+pub const BONE_FLAGS: usize = 0x28;
+/// Which parts a bone's base values hold, in this order: scale (3
+/// floats), rotation (4), translation (3).
+pub const HAS_SCALE: usize = 1 << 3;
+pub const HAS_ROTATE: usize = 1 << 4;
+pub const HAS_TRANSLATE: usize = 1 << 5;
+const SCALE_FLOATS: usize = 3;
+const ROTATE_FLOATS: usize = 4;
 
 /// A bone's values at an animation's first frame. Each is `None` where the
 /// animation leaves that part of the bone alone.
@@ -49,8 +55,8 @@ pub fn bases(data: &[u8], anim: &str) -> Result<Option<Vec<(String, Base)>>> {
             continue;
         }
         let base = Base {
-            scale: take(&r, flags, HAS_SCALE, &mut cursor)?,
-            rotate: take(&r, flags, HAS_ROTATE, &mut cursor)?,
+            scale: take::<SCALE_FLOATS>(&r, flags, HAS_SCALE, &mut cursor)?,
+            rotate: take::<ROTATE_FLOATS>(&r, flags, HAS_ROTATE, &mut cursor)?,
             translate: take(&r, flags, HAS_TRANSLATE, &mut cursor)?,
         };
         out.push((name, base));
@@ -85,8 +91,19 @@ pub fn names(data: &[u8]) -> Vec<String> {
         .collect()
 }
 
-/// Every skeletal animation header's offset.
-fn animations(data: &[u8]) -> impl Iterator<Item = usize> + '_ {
+/// Where a bone's base translation sits, given its `flags` and its base
+/// values at `base`: past the scale and rotation the flags say come first.
+/// `None` when it has no base translation.
+pub fn translation_at(flags: usize, base: usize) -> Option<usize> {
+    if flags & HAS_TRANSLATE == 0 || base == 0 {
+        return None;
+    }
+    let floats = |has, n: usize| if flags & has != 0 { n * 4 } else { 0 };
+    Some(base + floats(HAS_SCALE, SCALE_FLOATS) + floats(HAS_ROTATE, ROTATE_FLOATS))
+}
+
+/// Every skeletal animation header's offset, by magic, 8-aligned.
+pub fn animations(data: &[u8]) -> impl Iterator<Item = usize> + '_ {
     find_magic(data, MAGIC, BONE_COUNT + 4, 8)
 }
 
@@ -148,5 +165,18 @@ mod tests {
         assert_eq!(translate("Arm"), None);
         assert!(bases(&d, "Walk").unwrap().is_none());
         assert_eq!(names(&d), ["Pose"]);
+    }
+
+    #[test]
+    fn a_translation_sits_past_the_scale_and_rotation_its_flags_carry() {
+        let all = HAS_SCALE | HAS_ROTATE | HAS_TRANSLATE;
+        assert_eq!(translation_at(all, 0x100), Some(0x100 + 12 + 16));
+        assert_eq!(
+            translation_at(HAS_ROTATE | HAS_TRANSLATE, 0x100),
+            Some(0x110)
+        );
+        assert_eq!(translation_at(HAS_TRANSLATE, 0x100), Some(0x100));
+        assert_eq!(translation_at(HAS_SCALE | HAS_ROTATE, 0x100), None);
+        assert_eq!(translation_at(all, 0), None);
     }
 }

@@ -5,7 +5,7 @@ use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs};
 
 use crate::bombchu_bags;
 use crate::checks::Swap;
-use crate::key_tints::MADE;
+use crate::copies::MADE;
 use crate::known::{Name, actor, item};
 use crate::progressive::{self, Lines};
 use crate::standins::{Tables, actor_path, raw, write_clone};

@@ -18,8 +18,8 @@ pub use freeze::{event, flow, sensor, thaw};
 pub use get::one_page;
 pub use look::{FILES, look};
 
+use crate::copies::MADE;
 use crate::foreign::{Foreign, Owner};
-use crate::key_tints::MADE;
 use crate::known::{Name, item};
 use crate::rng::Rng;
 use crate::settings::{IceTraps, NewGame};

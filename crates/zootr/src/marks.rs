@@ -16,7 +16,7 @@ use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, Byml, BymlDoc, ModBuilder, Romfs, redraw, rename, top_level};
 
 use crate::checks::{self, GYAML};
-use crate::key_tints::pointed_at;
+use crate::copies::pointed_at;
 use crate::known::{Name, actor, field, texture};
 use crate::medallions::model_file;
 use crate::rsdb::Tags;

@@ -21,7 +21,7 @@ mod bntx;
 mod byml_doc;
 mod crc32;
 mod evfl;
-mod fska;
+pub mod fska;
 mod material;
 mod msbt;
 mod murmur3;

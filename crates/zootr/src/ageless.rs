@@ -29,7 +29,7 @@ fn ages(actor: &BymlMap) -> [bool; 2] {
 }
 
 /// The actor's name, as the table gives it.
-fn name(actor: &BymlMap) -> Option<&str> {
+pub(crate) fn name(actor: &BymlMap) -> Option<&str> {
     actor
         .get(field::ACTOR_SHORT.get())?
         .as_string()
@@ -89,13 +89,16 @@ fn shared(romfs: &Romfs) -> Result<impl Fn(&str) -> bool + '_> {
     Ok(move |name: &str| is_weapon(romfs, name) && !two_handed.contains(name))
 }
 
-/// Each actor on the Equipment page that `weapon` says is a sword or a
-/// shield.
-fn weapons<'a>(root: &'a mut Byml, weapon: &impl Fn(&str) -> bool) -> Result<Vec<&'a mut BymlMap>> {
-    let Some(Byml::Array(slots)) = root.as_mut_map()?.get_mut(field::EQUIPMENT_ARRAY.get()) else {
-        return Ok(vec![]);
-    };
-    let actors = slots.iter_mut().filter_map(|slot| {
+/// Each actor row in `root`, the pause menu's table: on `page` alone, or
+/// on every page with `None`.
+pub(crate) fn rows<'a>(root: &'a mut Byml, page: Option<&Name>) -> Result<Vec<&'a mut BymlMap>> {
+    let pages = (root.as_mut_map()?.iter_mut())
+        .filter(|(key, _)| page.is_none_or(|p| key.as_str() == p.get()))
+        .filter_map(|(_, slots)| match slots {
+            Byml::Array(slots) => Some(slots),
+            _ => None,
+        });
+    let actors = pages.flatten().filter_map(|slot| {
         match slot.as_mut_map().ok()?.get_mut(field::ACTOR.get()) {
             Some(Byml::Array(actors)) => Some(actors),
             _ => None,
@@ -104,34 +107,46 @@ fn weapons<'a>(root: &'a mut Byml, weapon: &impl Fn(&str) -> bool) -> Result<Vec
     Ok(actors
         .flatten()
         .filter_map(|a| a.as_mut_map().ok())
-        .filter(|a| name(a).is_some_and(weapon))
         .collect())
+}
+
+/// Makes `actor` usable at both ages. Returns whether it wasn't already.
+pub(crate) fn open(actor: &mut BymlMap) -> bool {
+    let changed = ages(actor) != [true, true];
+    for flag in AGES {
+        actor.insert(flag.get().into(), Byml::Bool(true));
+    }
+    changed
+}
+
+/// Makes every Equipment page actor `weapon` names usable at both ages in
+/// `root`, the pause menu's table. Returns how many it changed.
+fn unlock_in(root: &mut Byml, weapon: impl Fn(&str) -> bool) -> Result<usize> {
+    let weapons = rows(root, Some(field::EQUIPMENT_ARRAY))?.into_iter();
+    Ok((weapons.filter(|a| name(a).is_some_and(&weapon)))
+        .map(open)
+        .filter(|&changed| changed)
+        .count())
 }
 
 /// The table with every actor `weapon` names usable at both ages, and how
 /// many it changed.
 fn unlock(table: &[u8], weapon: impl Fn(&str) -> bool) -> Result<(Vec<u8>, usize)> {
     let mut doc = BymlDoc::parse(table)?;
-    let mut changed = 0;
-    for actor in weapons(&mut doc.root, &weapon)? {
-        changed += usize::from(ages(actor) != [true, true]);
-        for flag in AGES {
-            actor.insert(flag.get().into(), Byml::Bool(true));
-        }
-    }
+    let changed = unlock_in(&mut doc.root, weapon)?;
     Ok((doc.to_binary(), changed))
 }
 
-/// The pause menu's table at `table` with the two-handed swords open to
-/// both ages too.
-pub fn two_handed_opened(romfs: &Romfs, table: &[u8]) -> Result<Vec<u8>> {
+/// Opens the two-handed swords to both ages too in `root`, the pause
+/// menu's table.
+pub fn two_handed_opened(romfs: &Romfs, root: &mut Byml) -> Result<()> {
     let two_handed = two_handed(romfs)?;
-    let (table, changed) = unlock(table, |name| two_handed.contains(name))?;
+    let changed = unlock_in(root, |name| two_handed.contains(name))?;
     ensure!(
         changed > 0,
         "no two-handed sword in the pause menu's table is limited to one age"
     );
-    Ok(table)
+    Ok(())
 }
 
 /// Write the table with the Equipment page's swords and shields open to
@@ -153,18 +168,19 @@ mod tests {
     /// Each Equipment page actor in the table at `bytes`: its name and
     /// ages.
     fn actors(bytes: &[u8]) -> Vec<(String, [bool; 2])> {
-        let root = BymlDoc::parse(bytes).unwrap().root;
-        let slots = root.as_map().unwrap()[field::EQUIPMENT_ARRAY.get()]
-            .as_array()
-            .unwrap();
-        slots
-            .iter()
-            .flat_map(|s| s.as_map().unwrap()[field::ACTOR.get()].as_array().unwrap())
-            .map(|a| {
-                let a = a.as_map().unwrap();
-                (name(a).unwrap().to_owned(), ages(a))
-            })
-            .collect()
+        let mut root = BymlDoc::parse(bytes).unwrap().root;
+        (rows(&mut root, Some(field::EQUIPMENT_ARRAY))
+            .unwrap()
+            .into_iter())
+        .map(|a| (name(a).unwrap().to_owned(), ages(a)))
+        .collect()
+    }
+
+    /// The table at `bytes` with the two-handed swords opened.
+    fn two_handed_bytes(romfs: &Romfs, bytes: &[u8]) -> Vec<u8> {
+        let mut doc = BymlDoc::parse(bytes).unwrap();
+        two_handed_opened(romfs, &mut doc.root).unwrap();
+        doc.to_binary()
     }
 
     #[test]
@@ -221,7 +237,7 @@ mod tests {
         };
         let vanilla = romfs.read(POUCH_TABLE).unwrap();
         let two_handed = two_handed(&romfs).unwrap();
-        let alone = two_handed_opened(&romfs, &vanilla).unwrap();
+        let alone = two_handed_bytes(&romfs, &vanilla);
         let mut opened = 0;
         for ((name, was), (_, now)) in actors(&vanilla).iter().zip(&actors(&alone)) {
             match two_handed.contains(name) {
@@ -235,8 +251,7 @@ mod tests {
         // Biggoron's, the Giant's Knife and the broken knife.
         assert_eq!(opened, 3);
         let shared = shared(&romfs).unwrap();
-        let weapons_first =
-            two_handed_opened(&romfs, &unlock(&vanilla, &shared).unwrap().0).unwrap();
+        let weapons_first = two_handed_bytes(&romfs, &unlock(&vanilla, &shared).unwrap().0);
         let items_first = unlock(&alone, &shared).unwrap().0;
         assert_eq!(weapons_first, items_first);
     }

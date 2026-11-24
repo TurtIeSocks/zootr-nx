@@ -264,8 +264,7 @@ mod tests {
         // Sized by its bytes alone, the fortress crashed: each rescue costs
         // at least what his Step01 schedule does.
         let table = romfs.restbl_rel().unwrap();
-        let written = std::fs::read(dir.join("romfs").join(&table)).unwrap();
-        let written = romfs.dicts().decompress(&table, &written).unwrap();
+        let written = crate::game::read_built(&romfs, &dir, &table);
         let restbl = ounce_formats::Restbl::parse(&written).unwrap();
         for carpenter in CARPENTERS {
             let (own, step) = (

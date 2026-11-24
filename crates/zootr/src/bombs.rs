@@ -99,8 +99,7 @@ mod tests {
         write(&mut builder).unwrap();
         assert_eq!(builder.finish().unwrap().len(), PACKS.len() + 1);
         for pack in PACKS {
-            let raw = std::fs::read(dir.join("romfs").join(pack_file(pack))).unwrap();
-            let data = romfs.dicts().decompress(&pack_file(pack), &raw).unwrap();
+            let data = crate::game::read_built(&romfs, &dir, &pack_file(pack));
             let sarc = Sarc::new(data).unwrap();
             assert_eq!(
                 own_grade(sarc.get_data(&param()).unwrap()),

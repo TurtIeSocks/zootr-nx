@@ -377,7 +377,7 @@ mod tests {
         let received = resolved.foreign.iter().find(|f| f.actor == trap).unwrap();
         assert!(matches!(received.owner, Owner::Trap { .. }));
         // The received notice names it: the trap's own name, not a disguise.
-        let named = crate::key_tints::label(trap);
+        let named = crate::copies::label(trap);
         let captions = foreign::captions(&resolved.foreign);
         let name = captions.new.iter().find(|l| l.label == named).unwrap();
         assert!(matches!(&name.says, crate::text::Says::Text(t) if t == crate::ice_traps::NAME));
