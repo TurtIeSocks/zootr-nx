@@ -12,7 +12,7 @@ use ounce_formats::Romfs;
 use super::judge::{Answer, Judge, Look, TURNS};
 use super::melody;
 use super::plan::{Halt, Planned, Trigger, preset};
-use super::verdict::{Kill, Swept, Verdict};
+use super::verdict::{Evidence, Kill, Swept, Verdict};
 use super::watch::{MESSAGE, Watch, got_other, named, swapped, wielded};
 use super::wield::{self, Wield};
 use crate::dev::{Dev, Fate, Place, Request, Target};
@@ -121,11 +121,11 @@ fn voided(used: &Used) -> bool {
 impl<I: Input, J: Judge> Sweeper<'_, I, J> {
     /// Sweep `p`, named `name` in the report.
     pub fn sweep(&mut self, p: &Planned, name: &str) -> Swept {
-        let mut swept = Swept::default();
+        let mut evidence = Evidence::default();
         let verdict = match &p.trigger {
             Trigger::Skip(why) => Verdict::NotSwept(why.clone()),
             _ => self
-                .run(p, name, &mut swept)
+                .run(p, name, &mut evidence)
                 .unwrap_or_else(|e| match gone(&e) {
                     true => Verdict::Crash(format!("{e:#}")),
                     false => Verdict::SetupFailed(format!("{e:#}")),
@@ -135,13 +135,12 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             verdict,
             Verdict::Pass | Verdict::NotSwept(_) | Verdict::Crash(_)
         ) {
-            self.shot(p, name, "end", &mut swept);
+            self.shot(p, name, "end", &mut evidence);
         }
-        swept.verdict = Some(verdict);
-        swept
+        Swept { verdict, evidence }
     }
 
-    fn run(&mut self, p: &Planned, name: &str, swept: &mut Swept) -> Result<Verdict> {
+    fn run(&mut self, p: &Planned, name: &str, evidence: &mut Evidence) -> Result<Verdict> {
         let watch = Watch::new(self.gd, self.romfs, &p.spot.item)?;
         self.calm()?;
         if let Trigger::Open { steps, .. } = &p.trigger {
@@ -173,7 +172,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             ..
         } = &p.trigger
             && !foes.is_empty()
-            && let Some(verdict) = self.beat(p, map, *at, foes, latch, swept)?
+            && let Some(verdict) = self.beat(p, map, *at, foes, latch, evidence)?
         {
             return Ok(verdict);
         }
@@ -190,17 +189,17 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         let was = live::snapshot(game, dev.global())?;
         let before = watch.read(self.dev, self.gd)?;
         let landed = |s: &Self| Ok::<_, anyhow::Error>(watch.read(s.dev, s.gd)? != before);
-        self.trigger(p, name, swept)?;
+        self.trigger(p, name, evidence)?;
         let broken = matches!(p.trigger, Trigger::Open { broken: true, .. });
         if broken {
             self.fetch(&landed)?;
         }
         let mut verdict = match shops::is_holder(&p.spot.holder) {
-            true => self.buy(&p.spot.item, &landed, swept)?,
+            true => self.buy(&p.spot.item, &landed, evidence)?,
             false => self.alone(&landed)?,
         };
         if verdict.is_none() {
-            verdict = self.judged(p, name, &landed, swept)?;
+            verdict = self.judged(p, name, &landed, evidence)?;
         }
         let now = live::snapshot(game, dev.global())?;
         let mut changes = live::changes(self.gd, &was, &now, |_| true);
@@ -209,7 +208,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             changes.retain(|c| !wielded(c, w.item));
         }
         let cleared_lines = (cleared.iter()).map(|f| format!("{f} cleared by the map load"));
-        swept.changes = cleared_lines
+        evidence.changes = cleared_lines
             .chain(changes.iter().map(|c| format!("{} {}", c.name, c.change)))
             .collect();
         Ok(self.classify(p, &watch, &changes, broken, verdict))
@@ -356,7 +355,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         at: [f32; 3],
         foes: &[u64],
         latch: &[String],
-        swept: &mut Swept,
+        evidence: &mut Evidence,
     ) -> Result<Option<Verdict>> {
         self.calmly(|dev| dev.warp(at))?;
         let mut died = true;
@@ -372,14 +371,14 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         }
         self.calm()?;
         if !died {
-            swept.kill = Some(Kill::LatchedNotKilled);
+            evidence.kill = Some(Kill::LatchedNotKilled);
             self.reload(p, map, latch)?;
             return Ok(None);
         }
         let start = Instant::now();
         while start.elapsed() < LATCH {
             if self.latched(latch)? {
-                swept.kill = Some(Kill::Killed);
+                evidence.kill = Some(Kill::Killed);
                 return Ok(None);
             }
             sleep(BEAT);
@@ -407,16 +406,16 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
     }
 
     /// Save a shot of the game as [`Self::frame`], when the game gives one.
-    fn shot(&mut self, p: &Planned, name: &str, tag: &str, swept: &mut Swept) {
+    fn shot(&mut self, p: &Planned, name: &str, tag: &str, evidence: &mut Evidence) {
         let shot = self.frame(p, name, tag);
         if self.input.shot(&shot).is_ok() {
-            swept.shots.push(shot);
+            evidence.shots.push(shot);
         }
     }
 
     /// Open, talk or play: whatever starts the spot's event. A holder is
     /// used as `zootr dev use` does, from a warp near it.
-    fn trigger(&mut self, p: &Planned, name: &str, swept: &mut Swept) -> Result<()> {
+    fn trigger(&mut self, p: &Planned, name: &str, evidence: &mut Evidence) -> Result<()> {
         let (at, face, here, halt, sides) = match &p.trigger {
             Trigger::Open {
                 at, face, sides, ..
@@ -461,7 +460,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             self.calmly(|dev| dev.warp(over.unwrap_or(at)))?;
             let under = over.is_some() || nav::sink::floated(self.dev.link()?, at);
             if let Trigger::Open { wield: Some(w), .. } = &p.trigger {
-                self.wield(w, p, name, swept)?;
+                self.wield(w, p, name, evidence)?;
             }
             let shot = self.frame(p, name, "use");
             let mut drive = Drive::new(self.dev, &mut *self.input);
@@ -472,9 +471,9 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
                 true => nav::sink::touch_under(&mut drive, self.gd, &graph, holder, shot)?,
                 false => drive.touch(&graph, holder, shot)?,
             };
-            swept.shots.extend(used.shot.clone());
+            evidence.shots.extend(used.shot.clone());
             let fell = voided(&used);
-            swept.used = Some(used);
+            evidence.used = Some(used);
             if !fell || i + 1 == spots.len() {
                 break;
             }
@@ -510,7 +509,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
     /// Wield `w`: give its item, put it on ZR from the Items screen, face
     /// what it acts on and press ZR, then stand on the switch it frees.
     /// Out of reach of that, Link warps beside it first, and back after.
-    fn wield(&mut self, w: &Wield, p: &Planned, name: &str, swept: &mut Swept) -> Result<()> {
+    fn wield(&mut self, w: &Wield, p: &Planned, name: &str, evidence: &mut Evidence) -> Result<()> {
         self.equip(w.item)?;
         let here = self.dev.link()?;
         let far = dist(here, w.on) > wield::REACH;
@@ -521,7 +520,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         Drive::new(self.dev, &mut *self.input).face(w.on)?;
         self.input.press("ZR")?;
         sleep(w.after);
-        self.shot(p, name, "wield", swept);
+        self.shot(p, name, "wield", evidence);
         if let Some(switch) = w.press {
             self.calmly(|dev| dev.warp(switch))?;
             sleep(wield::PRESSED);
@@ -591,14 +590,14 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         p: &Planned,
         name: &str,
         landed: &impl Fn(&Self) -> Result<bool>,
-        swept: &mut Swept,
+        evidence: &mut Evidence,
     ) -> Result<Option<Verdict>> {
         let mut tried: Vec<String> = Vec::new();
         for turn in 0..TURNS {
             let s = self.dev.state()?;
             let shot = self.frame(p, name, turn);
             self.input.shot(&shot)?;
-            swept.shots.push(shot.clone());
+            evidence.shots.push(shot.clone());
             let look = Look {
                 spot: name,
                 expected: &p.spot.item_name,
@@ -608,7 +607,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
                 shot: &shot,
             };
             let answer = self.judge.look(&look)?;
-            swept.judge.push(answer.line());
+            evidence.judge.push(answer.line());
             match &answer {
                 Answer::Press { button, .. } => self.input.press(button)?,
                 Answer::Stick { direction, ms, .. } => self.input.stick(direction, *ms)?,

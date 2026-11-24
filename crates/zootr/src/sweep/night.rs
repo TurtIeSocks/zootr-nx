@@ -408,7 +408,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             row.extend(tag.clone());
         }
         append(at.rows, &row)?;
-        let verdict = swept.verdict.unwrap_or(Verdict::Nothing);
+        let verdict = swept.verdict;
         eprintln!("  {name}: {}", serde_json::to_string(&verdict)?);
         Ok(verdict)
     }

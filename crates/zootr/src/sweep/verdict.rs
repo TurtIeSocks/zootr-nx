@@ -46,9 +46,16 @@ impl Verdict {
 }
 
 /// A spot's verdict and its evidence.
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Swept {
-    pub verdict: Option<Verdict>,
+    pub verdict: Verdict,
+    #[serde(flatten)]
+    pub evidence: Evidence,
+}
+
+/// What a spot's sweep saw on its way to the verdict.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct Evidence {
     /// The judge's answers, in order.
     pub judge: Vec<String>,
     pub shots: Vec<PathBuf>,
@@ -92,5 +99,20 @@ mod tests {
         let v = serde_json::to_value(Verdict::Pass).unwrap();
         assert_eq!(v, serde_json::json!({"verdict": "pass"}));
         assert!(Verdict::Stall.broke() && !Verdict::Nothing.broke());
+    }
+
+    #[test]
+    fn a_swept_row_keeps_its_evidence_beside_its_verdict() {
+        let swept = Swept {
+            verdict: Verdict::Pass,
+            evidence: Evidence {
+                kill: Some(Kill::Killed),
+                ..Evidence::default()
+            },
+        };
+        let v = serde_json::to_value(swept).unwrap();
+        assert_eq!(v["verdict"]["verdict"], "pass");
+        assert_eq!(v["kill"], "killed");
+        assert!(v["used"].is_null() && v["judge"].as_array().unwrap().is_empty());
     }
 }

@@ -9,7 +9,7 @@ use anyhow::{Context, Result};
 
 use super::judge::Judge;
 use super::spot::{ALONE, BEAT, RUPEES, Sweeper};
-use super::verdict::{Swept, Verdict};
+use super::verdict::{Evidence, Verdict};
 use crate::known::{Name, flag};
 use crate::live;
 use crate::play::Input;
@@ -44,7 +44,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         &mut self,
         item: &str,
         landed: &impl Fn(&Self) -> Result<bool>,
-        swept: &mut Swept,
+        evidence: &mut Evidence,
     ) -> Result<Option<Verdict>> {
         let (game, global) = (self.dev.game(), self.dev.global());
         live::set(game, global, live::hash(CURSOR)?, "-1")?;
@@ -56,7 +56,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             self.input.press("A")?;
             sleep(BEAT);
         }
-        if self.shelve(item, &mut swept.judge)? {
+        if self.shelve(item, &mut evidence.judge)? {
             // Exactly the price: a buy that leaves more than the wallet
             // holds is refused as a full bag, rupees the most often (Mac,
             // 2026-11-14).
