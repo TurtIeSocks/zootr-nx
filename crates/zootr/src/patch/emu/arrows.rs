@@ -27,24 +27,31 @@ const STEPS: [(u64, u64); 6] = [
     (PARTS + 0x200, USER),
     (PARTS + 0x358, PLAYER),
 ];
-/// The player component's flags word, and the no arrows message in it.
+/// The player component's flags word, and the empty messages in it.
 const FLAGS: u64 = PLAYER + 0xe38;
 const NO_ARROWS: u32 = 1 << 27;
+const NO_SEEDS: u32 = 1 << 29;
 
-/// With the message raised, the hook would rewrite the word if it got
-/// past a null, so the word staying put shows the guard stopped it.
+/// A Deku Seed bow drawn with the age's arrows message raised: with every
+/// pointer intact the hook swaps it for the seeds message, so with a null
+/// on the way the arrows message staying put shows the guard stopped it.
 #[test]
 fn an_empty_bow_with_a_null_on_the_way_to_link_leaves_the_game_alone() {
     let Some(mut g) = Game::new() else {
         return;
     };
     g.map(PAGES, PAGES_LEN);
-    for broken in 0..STEPS.len() {
+    g.projectile = Some(zootr_hook::DEKU_SEED);
+    let mut run = |broken: Option<usize>| {
         for (i, &(at, to)) in STEPS.iter().enumerate() {
-            g.write(at, &u64s(&[if i == broken { 0 } else { to }]));
+            g.write(at, &u64s(&[if Some(i) == broken { 0 } else { to }]));
         }
         g.write(FLAGS, &NO_ARROWS.to_le_bytes());
         g.call(OFFSETS.emptied, NODE);
-        assert_eq!(g.u64(FLAGS) as u32, NO_ARROWS, "step {broken} null");
+        g.u64(FLAGS) as u32
+    };
+    assert_eq!(run(None), NO_SEEDS, "every pointer intact");
+    for broken in 0..STEPS.len() {
+        assert_eq!(run(Some(broken)), NO_ARROWS, "step {broken} null");
     }
 }
