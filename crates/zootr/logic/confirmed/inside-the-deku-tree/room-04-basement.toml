@@ -27,11 +27,12 @@ evidence = [
 # is a trick, not a route.
 [[link]]
 to = 9
-needs = "fire"
+needs = "sticks or fire"
 via = "drop"
-why = "the floor web burns to fire only, then the drop lands in the water"
+why = "the floor web burns to a lit stick or magic fire, not bombs, then the drop lands in the water"
 evidence = [
     "playtest 2026-11-24, the maintainer: bombs don't break the web",
+    "playtest 2026-11-24, the maintainer: a lit Deku Stick burns it too",
     "the maintainer's call 2026-11-24: logic always burns the web, the slip past it doesn't count",
 ]
 
