@@ -8,7 +8,7 @@ pub use zootr_hook::OFFSETS;
 use zootr_hook::entry;
 use zootr_hook::look::LookSpec;
 use zootr_hook::{
-    CAVE, Credit, DEV, FAR, LIST, MENU_CYCLE, PANIC, SLOTS, Shared, Spot, TABLE, encode,
+    Build, CAVE, Credit, DEV, FAR, LIST, MENU_CYCLE, PANIC, SLOTS, Shared, Spot, TABLE, encode,
 };
 
 use crate::menu_slots;
@@ -33,12 +33,18 @@ const _: () = assert!(LIST + size_of::<Shared>() as u32 <= PANIC && LIST.is_mult
 const _: () = assert!(PANIC + 16 == LIST_END);
 /// The physics step's `cbz` over the call into Havok's trace recorder, and
 /// where it skips to. Made a `b`, the recorder never runs and holds `CAVE`.
-const GATE: (u32, u32) = (OFFSETS.branches.gate, OFFSETS.branches.gate_to);
+const GATE: (u32, u32) = gate(&OFFSETS);
+const fn gate(b: &Build) -> (u32, u32) {
+    (b.branches.gate, b.branches.gate_to)
+}
 /// Link's "can he catch the Boomerang" check's `tbz` into its child test
 /// (the age override, then `PlayerGameParam.IsChild`), and where it skips
 /// to: whether the Boomerang is back. Made a `b`, the adult catches it as
 /// the child does, and every selector that asks gets the same answer.
-const CATCH: (u32, u32) = (OFFSETS.branches.catch, OFFSETS.branches.catch_to);
+const CATCH: (u32, u32) = catch(&OFFSETS);
+const fn catch(b: &Build) -> (u32, u32) {
+    (b.branches.catch, b.branches.catch_to)
+}
 /// The `b`s written over the game's own code, each `(at, to)`.
 const SKIPS: [(u32, u32); 2] = [GATE, CATCH];
 /// Each call site and the hook entry its `bl` goes to, as an offset into
@@ -47,53 +53,69 @@ const SKIPS: [(u32, u32); 2] = [GATE, CATCH];
 /// calls, where a loading room reads a chest's placement, go to
 /// `drop_actor`. The bow draw's child test, which picks its guide, goes
 /// to `seed_guide`, so a child Bow says "Shoot Arrow".
-const CALLS: [(u32, u32); 5] = [
-    (OFFSETS.calls.content1, entry::CONTENT_NAME),
-    (OFFSETS.calls.content2, entry::CONTENT_NAME),
-    (OFFSETS.calls.drop1, entry::DROP_ACTOR),
-    (OFFSETS.calls.drop2, entry::DROP_ACTOR),
-    (OFFSETS.calls.seed_guide, entry::SEED_GUIDE),
-];
+const CALLS: [(u32, u32); 5] = calls(&OFFSETS);
+const fn calls(b: &Build) -> [(u32, u32); 5] {
+    [
+        (b.calls.content1, entry::CONTENT_NAME),
+        (b.calls.content2, entry::CONTENT_NAME),
+        (b.calls.drop1, entry::DROP_ACTOR),
+        (b.calls.drop2, entry::DROP_ACTOR),
+        (b.calls.seed_guide, entry::SEED_GUIDE),
+    ]
+}
 /// The run node's call to the speed setter and the hook entry it goes to,
 /// `run_speed`, which scales the speed in the Bunny Hood in a seed with
 /// the setting.
-const RUN_CALL: (u32, u32) = (OFFSETS.calls.run, entry::RUN_SPEED);
+const RUN_CALL: (u32, u32) = run_call(&OFFSETS);
+const fn run_call(b: &Build) -> (u32, u32) {
+    (b.calls.run, entry::RUN_SPEED)
+}
 /// The controller device's three `GetNpadStates` calls (full key,
 /// handheld, joy dual) and their hook entries, which run the trade slot's
 /// cycle with the three Items page hooks, in a seed with [`MENU_CYCLE`].
-const NPAD_CALLS: [(u32, u32); 3] = [
-    (OFFSETS.calls.npad_full, entry::NPAD_FULL),
-    (OFFSETS.calls.npad_handheld, entry::NPAD_HANDHELD),
-    (OFFSETS.calls.npad_dual, entry::NPAD_DUAL),
-];
+const NPAD_CALLS: [(u32, u32); 3] = npad_calls(&OFFSETS);
+const fn npad_calls(b: &Build) -> [(u32, u32); 3] {
+    [
+        (b.calls.npad_full, entry::NPAD_FULL),
+        (b.calls.npad_handheld, entry::NPAD_HANDHELD),
+        (b.calls.npad_dual, entry::NPAD_DUAL),
+    ]
+}
 /// The game's stubs for `nn::hid::GetNpadStates` those calls go to, in
 /// the same order. The hook reaches them through its slots.
-const NPAD_STUBS: [u32; 3] = [
-    OFFSETS.imports.npad_full,
-    OFFSETS.imports.npad_handheld,
-    OFFSETS.imports.npad_dual,
-];
+const NPAD_STUBS: [u32; 3] = npad_stubs(&OFFSETS);
+const fn npad_stubs(b: &Build) -> [u32; 3] {
+    [
+        b.imports.npad_full,
+        b.imports.npad_handheld,
+        b.imports.npad_dual,
+    ]
+}
 /// Each hooked function and the entry the `b` over its `pacibsp` goes to.
 /// Link's update runs the mailbox's requests and the dev switches in a
 /// seed with [`DEV`], and springs ice traps. The nock sets Link's
 /// projectile to the drawn bow's, so a child Bow fires arrows, and the out
 /// of ammo handler's message follows that projectile, not Link's age.
-const HOOKS: &[(u32, u32)] = &[
-    (OFFSETS.entries.map_loaded, entry::MAP_LOADED),
-    (OFFSETS.entries.chest_made, entry::CHEST_MADE),
-    (OFFSETS.entries.granted, entry::GRANTED),
-    (OFFSETS.entries.link_update, entry::LINK_UPDATE),
-    (OFFSETS.entries.picked, entry::PICKED),
-    (OFFSETS.entries.items_built, entry::ITEMS_BUILT),
-    (OFFSETS.entries.items_left, entry::ITEMS_LEFT),
-    (OFFSETS.entries.ui_update, entry::UI_UPDATE),
-    (OFFSETS.entries.taken, entry::TAKEN),
-    (OFFSETS.entries.nock, entry::NOCKED),
-    (OFFSETS.entries.emptied, entry::EMPTIED),
-    (OFFSETS.entries.equipment_built, entry::EQUIPMENT_BUILT),
-    (OFFSETS.entries.equipment_left, entry::EQUIPMENT_LEFT),
-    (OFFSETS.entries.resident_create, entry::RESIDENT_MADE),
-];
+const HOOKS: &[(u32, u32)] = &hooks(&OFFSETS);
+const fn hooks(b: &Build) -> [(u32, u32); 14] {
+    let e = &b.entries;
+    [
+        (e.map_loaded, entry::MAP_LOADED),
+        (e.chest_made, entry::CHEST_MADE),
+        (e.granted, entry::GRANTED),
+        (e.link_update, entry::LINK_UPDATE),
+        (e.picked, entry::PICKED),
+        (e.items_built, entry::ITEMS_BUILT),
+        (e.items_left, entry::ITEMS_LEFT),
+        (e.ui_update, entry::UI_UPDATE),
+        (e.taken, entry::TAKEN),
+        (e.nock, entry::NOCKED),
+        (e.emptied, entry::EMPTIED),
+        (e.equipment_built, entry::EQUIPMENT_BUILT),
+        (e.equipment_left, entry::EQUIPMENT_LEFT),
+        (e.resident_create, entry::RESIDENT_MADE),
+    ]
+}
 /// `main`'s build ID, as its NSO header's 32 byte field holds it. Its first
 /// 8 bytes name the cheat file and the rest, trailing zeros left out, the
 /// exefs patch's `@nsobid`, so a build these offsets weren't found in never
@@ -569,47 +591,79 @@ mod tests {
     #[test]
     fn every_word_the_patch_writes_over_holds_what_we_expect() {
         if let Ok(main) = std::fs::read(PC_MAIN) {
-            words_hold_what_we_expect(&main);
+            words_hold_what_we_expect(&main, &OFFSETS);
+            the_1_1_1_rooms_hold_what_we_expect(&main);
         }
         if let Some((_, main)) = crate::game::dumped_main(crate::game::Release::V111) {
-            words_hold_what_we_expect(main);
+            words_hold_what_we_expect(main, &OFFSETS);
+            the_1_1_1_rooms_hold_what_we_expect(main);
         }
     }
 
-    /// The checks on `main` 1.1.1, the dump's decoded or the Mac's game's.
-    fn words_hold_what_we_expect(main: &[u8]) {
+    #[test]
+    fn every_word_the_patch_would_write_over_in_1_0_0_holds_what_we_expect() {
+        let Some((_, main)) = crate::game::dumped_main(crate::game::Release::V100) else {
+            return;
+        };
+        let Some(b) = crate::port::tests::candidate() else {
+            return;
+        };
+        words_hold_what_we_expect(main, b);
+    }
+
+    /// The checks on a build's `main` with its table `b`: each site holds
+    /// the word the patch expects to replace, each call goes where the
+    /// table says, and the rooms are free and big enough.
+    fn words_hold_what_we_expect(main: &[u8], b: &Build) {
         let word = |at: u32| u32::from_le_bytes(main[at as usize..][..4].try_into().unwrap());
-        let room = |at: u32, end: u32| &main[at as usize..end as usize];
         let imm = |from: u32, to: u32, shift: u32| ((to - from) / 4) << shift;
+        let (gate, (catch, _)) = (gate(b), catch(b));
         assert_eq!(
-            word(GATE.0),
-            0x3400_0008 | imm(GATE.0, GATE.1, 5),
+            word(gate.0),
+            0x3400_0008 | imm(gate.0, gate.1, 5),
             "cbz w8, gate_to"
         );
-        let (catch, orig) = (CATCH.0, OFFSETS.branches.catch_orig);
+        let orig = b.branches.catch_orig;
         assert_eq!(
             word(catch),
             0x3640_0009 | imm(catch, orig, 5),
             "tbz w9, #8, catch_orig"
         );
-        for (at, _) in CALLS.into_iter().chain([RUN_CALL]) {
-            assert_eq!(word(at) >> 26, 0x25, "{at:#x} isn't a bl");
+        let f = &b.funcs;
+        let callees = [
+            f.setter,
+            f.setter,
+            f.reader,
+            f.reader,
+            f.childhood,
+            f.run_setter,
+        ];
+        for ((at, _), to) in calls(b).into_iter().chain([run_call(b)]).zip(callees) {
+            assert_eq!(word(at).to_le_bytes(), branch(at, to, true), "{at:#x}");
         }
-        for (&(at, _), stub) in NPAD_CALLS.iter().zip(NPAD_STUBS) {
+        for ((at, _), stub) in npad_calls(b).into_iter().zip(npad_stubs(b)) {
             assert_eq!(word(at).to_le_bytes(), branch(at, stub, true), "{at:#x}");
         }
-        for &(at, _) in HOOKS {
+        for (at, _) in hooks(b) {
             assert_eq!(word(at), 0xd503_237f, "{at:#x} isn't a pacibsp");
         }
-        // Havok's trace recorder, and a function only its dispatcher
-        // calls, as 1.1.1 has them, untouched by the Mac's game.
+        let r = &b.regions;
+        assert!(r.cave_end - r.cave >= hook_code().len() as u32, "the cave");
+        assert!(
+            r.far_end - r.far >= FAR_CODE.len() as u32,
+            "the far code's room"
+        );
+        let table = &main[r.table as usize..r.table_end as usize];
+        assert!(table.iter().all(|&b| b == 0), "the table's room");
+    }
+
+    /// The 1.1.1 checks no other build shares: the recorder and the far
+    /// function as 1.1.1 has them, untouched by the Mac's game, and every
+    /// patch starting at a place checked above.
+    fn the_1_1_1_rooms_hold_what_we_expect(main: &[u8]) {
+        let room = |at: u32, end: u32| &main[at as usize..end as usize];
         assert_eq!(fnv(room(CAVE, CAVE_END)), 0xc734_cad6, "the cave");
         assert_eq!(fnv(room(FAR, FAR_END)), 0x7aea_f248, "the far code's room");
-        assert!(
-            room(TABLE, TABLE_END).iter().all(|&b| b == 0),
-            "the table's room"
-        );
-        // Each patch starts at a place checked above.
         let sites = SKIPS.iter().chain(&CALLS).chain(&NPAD_CALLS).chain(HOOKS);
         let checked: Vec<u32> = (sites.map(|&(at, _)| at))
             .chain([RUN_CALL.0, CAVE, FAR, TABLE, TABLE + 4])
