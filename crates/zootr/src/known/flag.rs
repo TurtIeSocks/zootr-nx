@@ -24,6 +24,7 @@ pub const DESERT_COLOSSUS_TBOX_ON: &Name = &n!(0x4496ffafad0eb955);
 pub const DIN_FIRE: &Name = &n!(0x33569569ecb20ba4);
 pub const DODONGO_CAVERN: &Name = &n!(0xd8d44ca517b7ce52);
 pub const DODONGO_CAVERN_OPNE: &Name = &n!(0x0870532084f5a54c);
+pub const DUNGEON_INFO: &Name = &n!(0x1d6fd9084da96bbd);
 pub const ENEMY_SCRUB_BUSINESS_DEKU_NUTS_POUCH_01: &Name = &n!(0x761256193ec17bd7);
 pub const ENEMY_SCRUB_BUSINESS_DEKU_STICK_POUCH_01: &Name = &n!(0x988485a40186284f);
 pub const ENEMY_SCRUB_BUSINESS_SECRET_SUCCESS: &Name = &n!(0xd302e661e3dcf64b);
