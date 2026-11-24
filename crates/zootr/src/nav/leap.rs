@@ -21,7 +21,7 @@ use anyhow::{Context, Result};
 use serde::Serialize;
 
 use super::trace::{Sample, Step, Traced};
-use super::{CLOCKWISE, eighths};
+use super::{CLOCKWISE, eighths, flat_dir};
 use crate::checks::flat;
 use crate::dev::Dev;
 use crate::live::Memory;
@@ -94,15 +94,8 @@ impl fmt::Display for Leap {
     }
 }
 
-/// The jump's line from `from` to `to`, flat: a unit direction.
-fn line(from: [f32; 3], to: [f32; 3]) -> (f32, f32) {
-    let (dx, dz) = (to[0] - from[0], to[2] - from[2]);
-    let len = dx.hypot(dz).max(f32::EPSILON);
-    (dx / len, dz / len)
-}
-
-/// How far `at` is past `from` along the line `(ux, uz)`.
-fn along(from: [f32; 3], (ux, uz): (f32, f32), at: [f32; 3]) -> f32 {
+/// How far `at` is past `from` along the line `[ux, uz]`.
+fn along(from: [f32; 3], [ux, uz]: [f32; 2], at: [f32; 3]) -> f32 {
     (at[0] - from[0]) * ux + (at[2] - from[2]) * uz
 }
 
@@ -175,8 +168,9 @@ pub fn leap<M: Memory, I: Input>(
     settle: f32,
     out: Option<&Path>,
 ) -> Result<Leap> {
-    let dir = line(from, to);
-    let start = [from[0] - dir.0 * run, from[1], from[2] - dir.1 * run];
+    // The jump's line, flat.
+    let dir = flat_dir(from, to);
+    let start = [from[0] - dir[0] * run, from[1], from[2] - dir[1] * run];
     dev.warp(start)?;
     sleep(Duration::from_secs_f32(STOP));
     let mut cam = find_camera(dev, input)?;
@@ -313,8 +307,8 @@ mod tests {
     #[test]
     fn a_landing_counts_only_on_the_far_floor() {
         let to = [0.0, 10.0, 3.0];
-        let dir = line([0.0, 10.0, 0.0], to);
-        assert_eq!(dir, (0.0, 1.0));
+        let dir = flat_dir([0.0, 10.0, 0.0], to);
+        assert_eq!(dir, [0.0, 1.0]);
         assert!(landed(to, 3.0, 3.4, [0.0, 10.1, 3.4]));
         // Short of the far edge, or on a lip below it.
         assert!(!landed(to, 3.0, 2.0, [0.0, 10.0, 2.0]));

@@ -584,15 +584,6 @@ fn tally<'a, T>(
     Ok(())
 }
 
-/// The root of `i`'s set in a union-find forest, halving the path there.
-fn root(of: &mut [usize], mut i: usize) -> usize {
-    while of[i] != i {
-        of[i] = of[of[i]];
-        i = of[i];
-    }
-    i
-}
-
 fn key(romfs: &Romfs, hash: u64) -> Result<()> {
     let doc = ounce_formats::BymlDoc::parse(&romfs.read(crate::gamedata::PATH)?)?;
     let keyed = doc.root.as_map()?["Data"].as_map()?[ounce_formats::KEYED].as_array()?;

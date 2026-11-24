@@ -36,6 +36,7 @@ pub mod act;
 pub mod clear;
 pub mod climb;
 pub mod crawl;
+pub mod disjoint;
 pub mod drive;
 pub mod filter;
 pub mod floors;
@@ -55,7 +56,6 @@ mod sim;
 pub mod sink;
 pub mod terrain;
 pub mod trace;
-pub mod vec3;
 pub mod water;
 pub mod went;
 
@@ -82,6 +82,28 @@ pub fn heading(yaw: f32, from: [f32; 3], to: [f32; 3]) -> &'static str {
 /// `yaw`.
 pub fn eighths(yaw: f32, from: [f32; 3], to: [f32; 3]) -> i32 {
     (crate::around::clockwise(yaw, from, to) / std::f32::consts::FRAC_PI_4).round() as i32
+}
+
+/// Whether a live `read` of `flag` says it's set. A failed read counts as
+/// not set, with a warning, so the waters still build.
+fn live_set(flag: &str, read: Result<String>) -> bool {
+    (read.inspect_err(|e| log::warn!("reading {flag} for the waters, taken as not set: {e:#}")))
+        .is_ok_and(|v| v == "true")
+}
+
+/// The shortest flat length a direction is divided by, so one of no
+/// length comes out zero rather than not a number.
+const FLAT_MIN: f32 = f32::EPSILON;
+
+/// `[x, z]` at length 1, or zero when it has no length.
+pub fn flat_unit([x, z]: [f32; 2]) -> [f32; 2] {
+    let n = x.hypot(z).max(FLAT_MIN);
+    [x / n, z / n]
+}
+
+/// The unit vector from `a` to `b`, measured flat.
+pub fn flat_dir(a: [f32; 3], b: [f32; 3]) -> [f32; 2] {
+    flat_unit([b[0] - a[0], b[2] - a[2]])
 }
 
 /// A map's navmesh file, decompressed, or `None` for a map whose mesh
@@ -146,9 +168,9 @@ impl Level {
         if level.placed.iter().any(|p| p.presence.is_some()) {
             let gd = crate::gamedata::GameData::load(romfs)?;
             let set = |flag: &str| {
-                crate::live::hash(flag)
-                    .and_then(|h| crate::live::read(dev.game(), &gd, dev.global(), h))
-                    .is_ok_and(|v| v == "true")
+                let read = crate::live::hash(flag)
+                    .and_then(|h| crate::live::read(dev.game(), &gd, dev.global(), h));
+                live_set(flag, read)
             };
             level.waters = water::waters(romfs, game, &level.placed, set)?;
         }
@@ -401,6 +423,23 @@ pub(crate) mod fixture {
 mod tests {
     use super::*;
     use crate::known::actor;
+
+    #[test]
+    fn a_failed_live_read_counts_as_not_set() {
+        assert!(live_set("FakeFlag", Ok("true".into())));
+        assert!(!live_set("FakeFlag", Ok("false".into())));
+        assert!(!live_set("FakeFlag", Err(anyhow::anyhow!("no such flag"))));
+    }
+
+    #[test]
+    fn a_flat_direction_has_length_one_however_short_its_way() {
+        for far in [3.0, 1e-4] {
+            let [x, z] = flat_dir([1.0, 5.0, 1.0], [1.0 + far, -2.0, 1.0 + far]);
+            assert!((x.hypot(z) - 1.0).abs() < 1e-5, "{far}: {x}, {z}");
+            assert!((x - z).abs() < 1e-6);
+        }
+        assert_eq!(flat_dir([1.0, 0.0, 1.0], [1.0, 9.0, 1.0]), [0.0, 0.0]);
+    }
 
     #[test]
     fn link_turns_toward_the_holder_by_one_tap() {

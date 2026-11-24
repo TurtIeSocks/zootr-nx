@@ -14,7 +14,7 @@ use super::route::{Route, Waypoint, plan};
 use super::shove::{LEVEL, Shove, rise};
 use super::water::{DASH, DASH_SPEED};
 use super::went::{Done, Gone, Reason, Went};
-use super::{CLOCKWISE, Level, eighths, heading};
+use super::{CLOCKWISE, Level, eighths, flat_dir, heading};
 use crate::around::clockwise;
 use crate::checks::flat;
 use crate::dev::{Dev, State};
@@ -161,13 +161,12 @@ pub struct Drive<'a, S, I> {
 /// The point `far` m from `here`, `angle` radians round from the way to
 /// `goal`.
 fn beside(here: [f32; 3], goal: [f32; 3], angle: f32, far: f32) -> [f32; 3] {
-    let (dx, dz) = (goal[0] - here[0], goal[2] - here[2]);
-    let len = dx.hypot(dz).max(f32::EPSILON);
+    let [ux, uz] = flat_dir(here, goal);
     let (sin, cos) = angle.sin_cos();
     [
-        here[0] + (dx * cos - dz * sin) / len * far,
+        here[0] + (ux * cos - uz * sin) * far,
         here[1],
-        here[2] + (dx * sin + dz * cos) / len * far,
+        here[2] + (ux * sin + uz * cos) * far,
     ]
 }
 

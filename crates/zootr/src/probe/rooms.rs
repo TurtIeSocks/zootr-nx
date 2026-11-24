@@ -6,9 +6,8 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use ounce_formats::{NavMesh, Romfs};
 
-use super::root;
-use crate::checks::flat;
-use crate::checks::xyz;
+use crate::checks::{flat, xyz};
+use crate::nav::disjoint::DisjointSet;
 use crate::nav::graph::{Cross, Graph, Via, step_up};
 use crate::nav::{kinds, navmesh_file};
 use crate::warp::{self, Placement};
@@ -57,7 +56,7 @@ pub(super) fn locked_doors(placed: &[Placement]) -> BTreeSet<u64> {
 /// Each face's room: the faces joined by any crossing but a locked door,
 /// named by one face of each.
 pub(super) fn split(graph: &Graph, locked: &BTreeSet<u64>) -> Vec<usize> {
-    let mut parent: Vec<usize> = (0..graph.centers.len()).collect();
+    let mut sets = DisjointSet::new(graph.centers.len());
     for (from, arcs) in graph.arcs.iter().enumerate() {
         for arc in arcs {
             if let Cross::Link {
@@ -68,11 +67,10 @@ pub(super) fn split(graph: &Graph, locked: &BTreeSet<u64>) -> Vec<usize> {
             {
                 continue;
             }
-            let (a, b) = (root(&mut parent, from), root(&mut parent, arc.to));
-            parent[a] = b;
+            sets.union(from, arc.to);
         }
     }
-    (0..parent.len()).map(|f| root(&mut parent, f)).collect()
+    sets.roots()
 }
 
 /// Prints each room (the faces joined without a locked door) holding a

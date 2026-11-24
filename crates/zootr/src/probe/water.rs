@@ -6,9 +6,9 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use ounce_formats::Romfs;
 
-use super::root;
 use crate::checks::xyz;
 use crate::nav::Level;
+use crate::nav::disjoint::DisjointSet;
 use crate::nav::graph::{Graph, step_up};
 use crate::nav::water::{NoSwim, bodies};
 
@@ -219,16 +219,15 @@ const ISLAND: usize = 20;
 /// gets round within, going any way across every arc.
 fn islands(graph: &Graph) -> usize {
     let n = graph.arcs.len();
-    let mut of: Vec<usize> = (0..n).collect();
+    let mut sets = DisjointSet::new(n);
     for (from, arcs) in graph.arcs.iter().enumerate() {
         for a in arcs {
-            let (r, s) = (root(&mut of, from), root(&mut of, a.to));
-            of[r] = s;
+            sets.union(from, a.to);
         }
     }
     let mut sizes = std::collections::HashMap::new();
-    for f in 0..n {
-        *sizes.entry(root(&mut of, f)).or_insert(0) += 1;
+    for r in sets.roots() {
+        *sizes.entry(r).or_insert(0) += 1;
     }
     sizes.values().filter(|&&s| s >= ISLAND).count()
 }

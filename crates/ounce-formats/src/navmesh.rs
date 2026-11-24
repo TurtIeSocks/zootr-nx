@@ -5,6 +5,7 @@
 use anyhow::{Context, Result, ensure};
 
 use crate::tagfile::{Obj, Tagfile};
+use crate::vec3::sub;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Face {
@@ -194,10 +195,6 @@ impl NavMesh {
         out.sort_by(|a, b| a.distance.total_cmp(&b.distance));
         out
     }
-}
-
-fn sub(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
-    [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
 }
 
 /// The point on segment a..b nearest `p`, measured flat.
