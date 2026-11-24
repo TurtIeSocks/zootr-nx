@@ -8,6 +8,15 @@ open-forest = true
 kakariko-gate = true
 skip-cutscenes = true
 
+# The defaults with Progressive Items off and NPC Gifts on: each check
+# deals its own item, every level of a line by its own name.
+[progressive-off]
+open-forest = true
+kakariko-gate = true
+skip-cutscenes = true
+npc-gifts = true
+progressive-items = false
+
 # Every option at its widest: every check kind on. An option the world
 # gains joins here in the same PR (a test checks every one is named).
 [all-on]
