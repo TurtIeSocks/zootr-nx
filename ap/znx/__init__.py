@@ -92,6 +92,26 @@ def lined(counts: Counter) -> Counter:
     return out
 
 
+def forced(values: dict) -> dict:
+    """`values` with what each picked choice forces written in, as the
+    app and our seed do (`settings::with_picks`): Adult opens the Door of
+    Time and the forest."""
+    out = dict(values)
+    for entry in OPTIONS:
+        picked = next((o for o in entry.get("options", []) if o["id"] == values[entry["id"]]), None)
+        for word in picked["forces"] if picked else []:
+            setting, _, value = word.partition("=")
+            out[setting] = value or True
+    return out
+
+
+def start(values: dict) -> str:
+    """Where these options start Link: the first of the world's starts
+    that holds, else its own."""
+    held = (s["place"] for s in WORLD["starts"] if rules.fold(s["when"], values) is True)
+    return next(held, WORLD["start"])
+
+
 class ZnxItem(Item):
     game = GAME
 
@@ -134,10 +154,11 @@ class ZnxWorld(World):
     dealt: Counter
 
     def generate_early(self) -> None:
-        self.setting_values = {
+        self.setting_values = forced({
             entry["id"]: setting_value(entry, getattr(self.options, attr(entry["id"])))
             for entry in OPTIONS
-        }
+        })
+        self.origin_region_name = start(self.setting_values)
         share = SHARES[self.setting_values.get(ICE_TRAPS, "off")]
         self.dealt = trapped(*dealt(filter(self.holds, POOL)), share, self.random)
         if self.setting_values[PROGRESSIVE]:
