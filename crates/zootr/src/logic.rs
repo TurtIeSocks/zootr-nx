@@ -88,7 +88,7 @@ pub struct World {
     /// Each exit into `GOAL`: its place and what it needs.
     goal: Vec<(usize, Need)>,
     /// Where the new file starts.
-    start: Place,
+    start: usize,
 }
 
 /// Something collected in a playthrough.
@@ -190,6 +190,13 @@ fn eras_of(places: &BTreeSet<Place>, node: &str) -> Vec<Era> {
     places.iter().filter(|p| p.0 == node).map(|p| p.1).collect()
 }
 
+/// Every era of `node`'s places, under `name`.
+fn places_of(places: &BTreeSet<Place>, node: &str, name: &str) -> Vec<Place> {
+    (eras_of(places, node).into_iter())
+        .map(|e| (name.to_owned(), e))
+        .collect()
+}
+
 impl World {
     pub fn build(romfs: &Romfs, book: &Book, ctx: &Ctx, checks: &[ItemCheck]) -> Result<Self> {
         Self::from_data(&mut Data::read(romfs, checks)?, book, ctx, checks)
@@ -214,11 +221,7 @@ impl World {
         let rooms = rooms::RoomPlaces::new(&book.rooms, exits)?;
         let mut places: Vec<Place> = scan.places.iter().cloned().collect();
         for (room, node) in rooms.added() {
-            places.extend(
-                eras_of(&scan.places, node)
-                    .into_iter()
-                    .map(|e| (room.clone(), e)),
-            );
+            places.extend(places_of(&scan.places, node, &room));
         }
         let index: HashMap<Place, usize> = places
             .iter()
@@ -318,11 +321,7 @@ impl World {
             if pocket.contains(&check.hash) {
                 where_.push(start_of(ctx.age));
             } else if let Some((room, node)) = rooms.check(check.hash) {
-                where_.extend(
-                    eras_of(&scan.places, node)
-                        .into_iter()
-                        .map(|e| (room.clone(), e)),
-                );
+                where_.extend(places_of(&scan.places, node, &room));
             } else if let Some((node, era)) = rule.and_then(|r| r.place.clone()) {
                 where_.extend(pinned(&node, era).into_iter().map(|e| (node.clone(), e)));
             } else if check.file.starts_with("Banc/") {
@@ -340,9 +339,7 @@ impl World {
                 };
                 for hash in scrub.or_else(shop).or_else(cow).into_iter().flatten() {
                     for node in scan.nodes_of.get(&hash).into_iter().flatten() {
-                        for era in eras_of(&scan.places, node) {
-                            where_.push((node.clone(), era));
-                        }
+                        where_.extend(places_of(&scan.places, node, node));
                     }
                 }
             }
@@ -463,6 +460,8 @@ impl World {
             }
         }
         let goal = goal::exits(book, ctx, scan, &at)?;
+        let (node, era) = start_of(ctx.age);
+        let start = at(&node, era)?;
         Ok(Self {
             places,
             edges,
@@ -470,15 +469,12 @@ impl World {
             sources,
             obstacles: scan.obstacles.clone(),
             goal,
-            start: start_of(ctx.age),
+            start,
         })
     }
 
     pub fn start(&self) -> usize {
-        self.places
-            .iter()
-            .position(|p| *p == self.start)
-            .unwrap_or(0)
+        self.start
     }
 
     /// Every item actor any rule here mentions.
@@ -524,15 +520,8 @@ pub(super) mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let book = crate::rules::Book::load().unwrap();
         let sources = |on: &[&str]| {
-            let new_game = crate::settings::NewGame {
-                on: on.iter().map(|s| s.to_string()).collect(),
-                ..Default::default()
-            };
-            let checks = checks::dealt(&romfs, &new_game).unwrap();
-            let ctx = Ctx::new(&new_game);
-            let world = World::build(&romfs, &book, &ctx, &checks).unwrap();
+            let world = world(&romfs, on);
             world
                 .sources
                 .into_iter()
@@ -553,8 +542,8 @@ pub(super) mod tests {
         for list in [&off, &on, &sold] {
             assert!(list.iter().any(|n| n == "Magic Beans"));
         }
-        // The trade chain's Biggoron check gives the Claim Check, and
-        // every trade check has a place.
+        // The trade chain's Biggoron check gives the Claim Check. The world
+        // builds, so every trade check has a place.
         let traded = sources(&[crate::settings::NPC_GIFTS, crate::settings::TRADE_CHAIN]);
         assert!(on.iter().any(|n| n == "Claim Check"));
         assert!(!traded.iter().any(|n| n == "Claim Check"));
@@ -597,20 +586,19 @@ pub(super) mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let barinade = |world: &World| {
-            let beat = crate::rules::vocab::id("beat:barinade").unwrap();
-            let source = world.sources.iter().find(|s| s.item == beat).unwrap();
-            let mut eras: Vec<Era> = source.places.iter().map(|&p| world.places[p].1).collect();
-            eras.sort();
-            eras
-        };
-        let new_game = crate::settings::NewGame::default();
-        let checks = checks::dealt(&romfs, &new_game).unwrap();
-        let book = crate::rules::Book::load().unwrap();
-        let off = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
-        assert_eq!(barinade(&off), [Era::Child]);
+        let off = world(&romfs, &[]);
+        assert_eq!(beaten_in(&off, "barinade"), [Era::Child]);
         let on = shuffled(&romfs, Doors::default(), &[]);
-        assert_eq!(barinade(&on), [Era::Child, Era::Adult]);
+        assert_eq!(beaten_in(&on, "barinade"), [Era::Child, Era::Adult]);
+    }
+
+    /// The eras `boss` can be beaten in, sorted.
+    fn beaten_in(world: &World, boss: &str) -> Vec<Era> {
+        let beat = crate::rules::vocab::id(&format!("beat:{boss}")).unwrap();
+        let source = world.sources.iter().find(|s| s.item == beat).unwrap();
+        let mut eras: Vec<Era> = source.places.iter().map(|&p| world.places[p].1).collect();
+        eras.sort();
+        eras
     }
 
     #[test]
@@ -619,11 +607,7 @@ pub(super) mod tests {
             return;
         };
         let world = world(&romfs, &[]);
-        let beat = crate::rules::vocab::id("beat:gohma").unwrap();
-        let source = world.sources.iter().find(|s| s.item == beat).unwrap();
-        let mut eras: Vec<Era> = source.places.iter().map(|&p| world.places[p].1).collect();
-        eras.sort();
-        assert_eq!(eras, [Era::Child, Era::Adult]);
+        assert_eq!(beaten_in(&world, "gohma"), [Era::Child, Era::Adult]);
     }
 
     #[test]
@@ -631,10 +615,7 @@ pub(super) mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let book = crate::rules::Book::load().unwrap();
-        let new_game = crate::settings::NewGame::default();
-        let checks = checks::dealt(&romfs, &new_game).unwrap();
-        let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
+        let world = world(&romfs, &[]);
         let burning = (
             map::KAKARIKO_VILLAGE_ADULT_ALTERNATIVE.to_string(),
             Era::Adult,

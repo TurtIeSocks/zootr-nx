@@ -50,7 +50,7 @@ pub(super) fn edges(
             let node = &**DUNGEONS[dungeon].node;
             Ok((node, Some(book.inside(node, ctx)?)))
         };
-        let (to, inside) = match (&ctx.doors, role(e)) {
+        let (to_node, inside) = match (&ctx.doors, role(e)) {
             (Some(doors), Some(Role::Into(door))) => into(doors.behind(door))?,
             // No rule of the adult fountain's copied door ever covered
             // Jabu's inside, so it adds it with doors in place too.
@@ -77,25 +77,24 @@ pub(super) fn edges(
         if let Some(inside) = inside {
             need = Need::All(vec![need, inside]);
         }
-        // A dungeon's copy for an era its exit's map doesn't have, like
-        // child Link leaving Ganon's Castle for the adult Market.
-        let to_name = to;
         // A live dungeon is left from the exit's room and entered in its
         // spot's, unless a moved door leads in at the front.
         let leaves = rooms.leave(&e.from, &e.to, &e.to_start)?;
-        let lands = match to_name == e.to {
+        let lands = match to_node == e.to {
             true => rooms.arrive(&e.to, &e.to_start)?,
-            false => to_name.to_owned(),
+            false => to_node.to_owned(),
         };
         let (Ok(from), Ok(to)) = (at(&leaves, e.era), at(&lands, e.era)) else {
+            // A dungeon's copy for an era its exit's map doesn't have, like
+            // child Link leaving Ganon's Castle for the adult Market.
             continue;
         };
         // Once its rule holds the game loads the _Alternative map instead.
-        if alternatives.contains_key(to_name) {
+        if alternatives.contains_key(to_node) {
             edges.push(Edge {
                 from: Some(from),
-                to: at(&format!("{to_name}_Alternative"), e.era)?,
-                need: Need::All(vec![need.clone(), book.alternative(to_name, ctx)?]),
+                to: at(&format!("{to_node}_Alternative"), e.era)?,
+                need: Need::All(vec![need.clone(), book.alternative(to_node, ctx)?]),
             });
         }
         edges.push(Edge {

@@ -52,6 +52,8 @@ struct Conn {
     lines: BufReader<Stream>,
     out: Stream,
     next: u64,
+    /// A reply line cut off by a timeout, finished by the next read.
+    pending: String,
 }
 
 impl Bridge {
@@ -63,6 +65,7 @@ impl Bridge {
             lines,
             out,
             next: 1,
+            pending: String::new(),
         };
         Ok(Self {
             conn: Mutex::new(conn),
@@ -205,9 +208,10 @@ impl Conn {
     }
 
     /// The next line the game sends, waiting on `cmd` for at most `within`.
+    /// A timeout keeps what arrived of the line in `pending`, so the stream
+    /// stays in step.
     fn reply(&mut self, cmd: &str, within: Duration) -> Result<Value> {
-        let mut text = String::new();
-        match self.lines.read_line(&mut text) {
+        match self.lines.read_line(&mut self.pending) {
             Ok(0) => bail!("the game closed the bridge"),
             Err(e) if is_timeout(&e) => {
                 let raw = anyhow::anyhow!("the game didn't answer {cmd} in {within:?}");
@@ -215,6 +219,7 @@ impl Conn {
             }
             Err(e) => Err(e.into()),
             Ok(_) => {
+                let text = std::mem::take(&mut self.pending);
                 serde_json::from_str(&text).with_context(|| format!("not a reply: {}", text.trim()))
             }
         }
@@ -266,17 +271,27 @@ fn address(at: u64) -> String {
     format!("{at:#x}")
 }
 
+const DIGITS: &[u8; 16] = b"0123456789abcdef";
+
 fn hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for &b in bytes {
+        out.push(DIGITS[usize::from(b >> 4)].into());
+        out.push(DIGITS[usize::from(b & 0xf)].into());
+    }
+    out
 }
 
+/// Bytes from the game's hex, taken a byte at a time so nothing in the
+/// text can panic it.
 fn unhex(text: &str) -> Result<Vec<u8>> {
     if !text.len().is_multiple_of(2) {
         bail!("odd hex from the game: {text:.40}");
     }
-    (0..text.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&text[i..i + 2], 16).context("bad hex from the game"))
+    let nibble = |c: u8| (c as char).to_digit(16).context("bad hex from the game");
+    let (pairs, _) = text.as_bytes().as_chunks::<2>();
+    (pairs.iter())
+        .map(|&[hi, lo]| -> Result<u8> { Ok(((nibble(hi)? << 4) | nibble(lo)?) as u8) })
         .collect()
 }
 
@@ -552,5 +567,34 @@ mod tests {
         let bytes = [0, 1, 0x7f, 0x80, 0xff];
         assert_eq!(unhex(&hex(&bytes)).unwrap(), bytes);
         assert!(unhex("abc").is_err());
+        assert!(unhex("+f").is_err());
+        assert!(unhex("0\u{e9}0").is_err());
+        assert_eq!(unhex("AbcD").unwrap(), [0xab, 0xcd]);
+    }
+
+    #[test]
+    fn a_reply_cut_off_by_a_timeout_is_finished_by_the_next_read() {
+        let name = format!("zootr-bridge-torn-{}", std::process::id());
+        let (path, accept) = listen(&name);
+        thread::spawn(move || {
+            let (stream, mut out) = accept();
+            let mut lines = BufReader::new(stream).lines();
+            let mut next =
+                || serde_json::from_str::<Value>(&lines.next().unwrap().unwrap()).unwrap();
+            let line = ok(&next(), json!({"n": 1})).to_string();
+            let (head, tail) = line.split_at(line.len() / 2);
+            write!(out, "{head}").unwrap();
+            out.flush().unwrap();
+            let second = next();
+            writeln!(out, "{tail}").unwrap();
+            writeln!(out, "{}", ok(&second, json!({"n": 2}))).unwrap();
+        });
+        let game = Bridge::connect(&path).unwrap();
+        #[cfg(unix)]
+        std::fs::remove_file(&path).unwrap();
+        let quick = Duration::from_millis(100);
+        assert!(game.ask("status", Value::Null, quick).is_err());
+        // The first reply, finished now, is skipped by its id.
+        assert_eq!(game.request("status", Value::Null).unwrap()["n"], 2);
     }
 }

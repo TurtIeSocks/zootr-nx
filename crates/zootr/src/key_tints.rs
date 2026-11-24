@@ -20,7 +20,8 @@ use zootr_hook::Credit;
 
 use crate::checks::{self, DROP_ACTOR, GYAML};
 use crate::keys::{
-    BOSS, DUNGEONS, FORTRESS, FORTRESS_KEY, SMALL, boss_flag, dungeon_of, has_boss, small_flag,
+    BOSS, DUNGEONS, Dungeon, FORTRESS, FORTRESS_KEY, SMALL, boss_flag, dungeon, dungeon_of,
+    has_boss, small_flag,
 };
 use crate::known::{Name, actor, field, flag, flow, item};
 use crate::medallions::{self, Colour};
@@ -170,18 +171,53 @@ pub fn name_label(item: &str) -> Option<String> {
 
 /// The key `item` copies and the model it shows as `keys` deals it.
 fn copy_of(item: &str, keys: DungeonKeys) -> Option<(&'static Name, String)> {
+    let (template, n) = copied_as(item)?;
+    let model = match template {
+        _ if n == FORTRESS_MODEL => SMALL_LOOK.name(FORTRESS_MODEL),
+        t if t == SMALL => ring_model(n, keys),
+        _ => boss(n),
+    };
+    Some((template, model))
+}
+
+/// The key `item` copies and its dungeon's number in [`DUNGEONS`], the
+/// Fortress's after them.
+fn copied_as(item: &str) -> Option<(&'static Name, usize)> {
     if item == fortress() {
-        return Some((SMALL, SMALL_LOOK.name(FORTRESS_MODEL)));
+        return Some((SMALL, FORTRESS_MODEL));
     }
     (1..=DUNGEONS.len()).find_map(|n| {
         if item == ring(n) {
-            Some((SMALL, ring_model(n, keys)))
+            Some((SMALL, n))
         } else if has_boss(n) && item == boss(n) {
-            Some((BOSS, boss(n)))
+            Some((BOSS, n))
         } else {
             None
         }
     })
+}
+
+/// The lines a copy of `template` for dungeon `n` reads as `keys` deals it.
+fn copy_text(template: &Name, n: usize, keys: DungeonKeys) -> &'static CopyText {
+    match template == BOSS {
+        true => &BOSS_TEXT,
+        false if keys == DungeonKeys::Singles || n == FORTRESS_MODEL => &SINGLE_TEXT,
+        false => &RING_TEXT,
+    }
+}
+
+/// The place whose keys copy `item` is, and the English name its get
+/// shows as `keys` deals it, `{}` the place's name.
+pub(crate) fn english_name(
+    item: &str,
+    keys: DungeonKeys,
+) -> Option<(&'static Dungeon, &'static str)> {
+    let (template, n) = copied_as(item)?;
+    let place = match n {
+        FORTRESS_MODEL => &FORTRESS,
+        n => dungeon(n),
+    };
+    Some((place, copy_text(template, n, keys)[0].0?))
 }
 
 /// The text each copy's get shows, copied from its template's and naming
@@ -191,15 +227,8 @@ pub fn captions(keys: DungeonKeys, bosses: bool, fortress: bool) -> Copies<'stat
     let new = made(keys.copies(), bosses, fortress)
         .into_iter()
         .flat_map(|(copy, template, n)| {
-            let lines = match template == BOSS {
-                true => &BOSS_TEXT,
-                false if keys == DungeonKeys::Singles || n == FORTRESS_MODEL => &SINGLE_TEXT,
-                false => &RING_TEXT,
-            };
-            TEXT_PARTS
-                .iter()
-                .zip(lines)
-                .map(move |(part, &(english, bracketed))| {
+            TEXT_PARTS.iter().zip(copy_text(template, n, keys)).map(
+                move |(part, &(english, bracketed))| {
                     let says = english.map_or(Says::Source, |english| {
                         Says::Named(Named {
                             place: place(n),
@@ -212,7 +241,8 @@ pub fn captions(keys: DungeonKeys, bosses: bool, fortress: bool) -> Copies<'stat
                         sources: vec![format!("{}{part}", template.get())],
                         says,
                     }
-                })
+                },
+            )
         })
         .collect();
     Copies {
@@ -225,9 +255,9 @@ pub fn captions(keys: DungeonKeys, bosses: bool, fortress: bool) -> Copies<'stat
 /// "Inside Ganondorf's Castle" under its own, so it takes the castle's.
 fn place(n: usize) -> &'static str {
     if n == FORTRESS_MODEL {
-        return FORTRESS.0.get();
+        return FORTRESS.name.get();
     }
-    match DUNGEONS[n - 1].0 {
+    match dungeon(n).name {
         d if d == flag::INSIDE_GANON_CASTLE => flag::GANON_CASTLE.get(),
         d => d.get(),
     }
@@ -291,19 +321,19 @@ pub enum Sets {
 /// key's counter, and with `fortress` one more on the Fortress's.
 pub fn sets(bosses: bool, keys: DungeonKeys, fortress: bool) -> Vec<(String, Sets)> {
     let mut out = Vec::new();
-    for (i, (dungeon, small, room)) in DUNGEONS.iter().enumerate() {
-        if bosses && room.is_some() {
-            out.push((boss(i + 1), Sets::Bool(boss_flag(dungeon))));
+    for (i, d) in DUNGEONS.iter().enumerate() {
+        if bosses && d.boss_room.is_some() {
+            out.push((boss(i + 1), Sets::Bool(boss_flag(d.name))));
         }
-        let counter = small_flag(dungeon);
+        let counter = small_flag(d.name);
         match keys {
-            DungeonKeys::Rings => out.push((ring(i + 1), Sets::Int(counter, *small))),
+            DungeonKeys::Rings => out.push((ring(i + 1), Sets::Int(counter, d.keys as i32))),
             DungeonKeys::Singles => out.push((ring(i + 1), Sets::Add(counter, 1))),
             DungeonKeys::Vanilla | DungeonKeys::Start => {}
         }
     }
     if fortress {
-        out.push((self::fortress(), Sets::Add(small_flag(FORTRESS.0), 1)));
+        out.push((self::fortress(), Sets::Add(small_flag(FORTRESS.name), 1)));
     }
     out
 }
@@ -345,14 +375,14 @@ pub fn write(
     let floor = ActorPack::load(romfs, SMALL_LOOK.host)?;
     let chest = ActorPack::load(romfs, SMALL)?;
     let boss_chest = ActorPack::load(romfs, BOSS)?;
-    for (i, (dungeon, count, _)) in DUNGEONS.iter().enumerate() {
+    for (i, d) in DUNGEONS.iter().enumerate() {
         let n = i + 1;
-        let tint = colour(dungeon).with_context(|| format!("no colour for {dungeon}"))?;
+        let tint = colour(d.name).with_context(|| format!("no colour for {}", d.name))?;
         let name = small.paint(builder, n, tint)?;
         copy(builder, tables, &chest, &chest_key(n), &name, false)?;
         copy(builder, tables, &floor, &name, &name, false)?;
         if keys == DungeonKeys::Rings {
-            let model = rings::model(&small.model, *count as usize)?;
+            let model = rings::model(&small.model, d.keys as usize)?;
             small.write_as(builder, &ring_model(n, keys), &model, tint, true)?;
         }
         if keys.copies() {
@@ -371,7 +401,7 @@ pub fn write(
         }
     }
     let name = small.paint(builder, FORTRESS_MODEL, FORTRESS_COLOUR)?;
-    for k in 1..=FORTRESS.1 {
+    for k in 1..=FORTRESS.keys {
         let pack = ActorPack::load(romfs, &format!("{FORTRESS_KEY}{k:02}"))?;
         repoint(builder, &pack, &name)?;
         tables.show(&pack.name, SMALL_LOOK.host, &name)?;
@@ -540,7 +570,7 @@ mod tests {
     fn a_copy_s_text_names_its_dungeon_in_english_and_in_brackets_elsewhere() {
         use ounce_formats::{Msbt, Part};
         let Some(romfs) = dev_dump() else { return };
-        let dungeon = |d: &Name| DUNGEONS.iter().position(|e| e.0 == d).unwrap() + 1;
+        let dungeon = |d: &Name| DUNGEONS.iter().position(|e| e.name == d).unwrap() + 1;
         let (forest, ganon) = (
             dungeon(flag::FOREST_TEMPLE),
             dungeon(flag::INSIDE_GANON_CASTLE),
@@ -709,7 +739,7 @@ mod tests {
         if crate::game::no_names() {
             return;
         }
-        let bosses = DUNGEONS.iter().filter(|d| d.2.is_some()).count();
+        let bosses = DUNGEONS.iter().filter(|d| d.boss_room.is_some()).count();
         assert_eq!(credits(true, DungeonKeys::Start, false).len(), bosses);
         assert_eq!(
             credits(false, DungeonKeys::Rings, false).len(),
@@ -721,7 +751,7 @@ mod tests {
         assert_eq!(fortress, [(super::fortress(), Credit::Add(0x3a28_b6a4, 1))]);
         let forest = DUNGEONS
             .iter()
-            .position(|d| d.0 == flag::FOREST_TEMPLE)
+            .position(|d| d.name == flag::FOREST_TEMPLE)
             .unwrap();
         let credits = credits(true, DungeonKeys::Rings, false);
         let of = |name: String| credits.iter().find(|(n, _)| *n == name).map(|c| c.1);
@@ -742,8 +772,8 @@ mod tests {
         if crate::game::no_names() {
             return;
         }
-        for (dungeon, ..) in DUNGEONS {
-            assert!(colour(dungeon).is_some(), "{dungeon}");
+        for d in DUNGEONS {
+            assert!(colour(d.name).is_some(), "{}", d.name);
         }
     }
 
@@ -799,10 +829,10 @@ mod tests {
                 bosses[n] += usize::from(held == Some(BOSS_LOOK.name(n).as_str()));
             }
         }
-        for (i, (dungeon, _, boss)) in DUNGEONS.iter().enumerate() {
-            assert!(per_dungeon[i + 1] > 0, "no keys swapped in {dungeon}");
-            let boss = usize::from(boss.is_some());
-            assert_eq!(bosses[i + 1], boss, "{dungeon}'s boss key");
+        for (i, d) in DUNGEONS.iter().enumerate() {
+            assert!(per_dungeon[i + 1] > 0, "no keys swapped in {}", d.name);
+            let boss = usize::from(d.boss_room.is_some());
+            assert_eq!(bosses[i + 1], boss, "{}'s boss key", d.name);
         }
     }
 
@@ -829,6 +859,7 @@ mod tests {
             }
             let hookshot = copy_pack(&romfs, item::HOOKSHOT, keys).unwrap();
             assert!(hookshot.is_none());
+            std::fs::remove_dir_all(&dir).ok();
         }
     }
 
@@ -865,7 +896,7 @@ mod tests {
             lods[0].vertices.len()
         };
         let one = key_vertices(&SMALL_LOOK.name(1));
-        for (i, (_, count, _)) in DUNGEONS.iter().enumerate() {
+        for (i, d) in DUNGEONS.iter().enumerate() {
             let n = i + 1;
             let small = SMALL_LOOK.name(n);
             let mut copies = vec![
@@ -880,7 +911,7 @@ mod tests {
                 DungeonKeys::Rings => RING_LOOK.name(n),
                 _ => SMALL_LOOK.name(n),
             };
-            let rings = *count as usize * usize::from(keys == DungeonKeys::Rings);
+            let rings = d.keys as usize * usize::from(keys == DungeonKeys::Rings);
             assert!(key_vertices(&shown) >= one * rings.max(1), "{shown}");
             if rings > 0 {
                 // The hoop, with any Triforces, weighs less than two keys.
@@ -920,7 +951,7 @@ mod tests {
             }
         }
         let floor_info = info(SMALL_LOOK.host);
-        for k in 1..=FORTRESS.1 {
+        for k in 1..=FORTRESS.keys {
             let key = format!("{FORTRESS_KEY}{k:02}");
             assert_eq!(fmdb(&key), Some(SMALL_LOOK.name(FORTRESS_MODEL)));
             let pack = read(&format!("Pack/Actor/{key}.pack.zs"));

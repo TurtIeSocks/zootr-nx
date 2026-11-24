@@ -2,7 +2,7 @@
 //! nothing else, for seeds where the magic items don't. It's Doubled
 //! Magic's pack and rows with the single meter, painted meter green.
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, ModBuilder, Romfs, murmur3, redraw, top_level};
 
 use crate::gamedata;
@@ -44,13 +44,23 @@ const GREEN: (f32, f32, f32) = (125.0 / 360.0, 0.85, 0.7);
 
 /// `rgba`'s gold moved to the meter's green, its grain kept.
 pub fn paint(rgba: &mut [u8]) {
-    let to = GREEN;
-    paint::shift(rgba, &[Band { hues: GOLD, to }]);
+    paint::shift(
+        rgba,
+        &[Band {
+            hues: GOLD,
+            to: GREEN,
+        }],
+    );
 }
 
 /// The copy's icon, decoded: Doubled Magic's painted green.
 pub fn icon(romfs: &Romfs) -> Result<ounce_formats::Texture> {
-    let mut t = top_level(&romfs.read(ICON)?)?;
+    painted(&romfs.read(ICON)?)
+}
+
+/// Doubled Magic's icon file `data`, decoded and painted green.
+fn painted(data: &[u8]) -> Result<ounce_formats::Texture> {
+    let mut t = top_level(data)?;
     paint(&mut t.rgba);
     Ok(t)
 }
@@ -109,9 +119,9 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Re
         row.insert(field::POUCH_SPECIAL_DEAL.get().into(), PLAIN_DEAL.into());
         true
     })?;
-    anyhow::ensure!(rows == 1, "{rows} Magic Meter rows");
+    ensure!(rows == 1, "{rows} Magic Meter rows");
     let data = romfs.read(ICON)?;
-    let t = icon(romfs)?;
+    let t = painted(&data)?;
     builder
         .add(&icon_path(), &redraw(&data, &t.rgba, |_, _| false)?, ICON)
         .context("the Magic Meter's icon")

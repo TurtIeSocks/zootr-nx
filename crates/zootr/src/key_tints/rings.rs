@@ -105,9 +105,6 @@ impl Finish {
     /// Its texel `x`, `y` in a `w` by `h` texture of `kind`, whose untinted
     /// texels are `key`.
     fn texel(&self, kind: &str, key: &[u8], w: usize, x: usize, y: usize) -> Result<[u8; 4]> {
-        if !["Alb", "Mtl", "Rgh", "AO", "Nrm"].contains(&kind) {
-            bail!("no finish for {kind}");
-        }
         Ok(match self.surface {
             Surface::Flat {
                 albedo,
@@ -361,9 +358,15 @@ fn prism(lod: &mut Lod, base: [[f32; 3]; 3], rise: [f32; 3], uv: [f32; 2]) {
     }
 }
 
+/// The texture kinds a [`Finish`] paints.
+const KINDS: [&str; 5] = ["Alb", "Mtl", "Rgh", "AO", "Nrm"];
+
 /// `t`, a first level of the key's texture `kind` whose untinted texels
 /// are `key`, with each [`Finish`] painted in.
 pub fn paint(t: &mut Texture, key: &[u8], kind: &str) -> Result<()> {
+    if !KINDS.contains(&kind) {
+        bail!("no finish for {kind}");
+    }
     let (w, h) = (t.width, t.height);
     for finish in FINISHES {
         for y in 0..h {

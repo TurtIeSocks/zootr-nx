@@ -46,15 +46,18 @@ fn keep(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
         skip_exchange(shop)
     })?;
     flows::edit(romfs, rewrites, flow::NPC_COMMON, |common| {
-        let sell = (common.entry_points.iter())
-            .find(|e| e.name == **flow::SELL_MASK)
-            .context("no SellMask")?;
-        let takes = (flows::reachable_from(common, sell.main).into_iter())
+        let takes = (flows::reachable_from(common, sell_start(common)?).into_iter())
             .filter(|&e| is_action(common, e, flow::EVENT_TRIGGER_ADD_OR_REMOVE_POUCH_CONTENT));
         let takes: Vec<_> = takes.collect();
         ensure!(takes.len() == 1, "SellMask takes {} times", takes.len());
-        skip(common, takes[0])
+        flows::step_over(common, takes[0])
     })
+}
+
+/// Where a buyer's SellMask starts.
+fn sell_start(common: &Flowchart) -> Result<Option<u16>> {
+    let sell = (common.entry_points.iter()).find(|e| e.name == **flow::SELL_MASK);
+    Ok(sell.context("no SellMask")?.main)
 }
 
 /// The keeper talks but never opens the shelf: each call into the shop
@@ -65,29 +68,29 @@ fn close_shop(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
         let calls = shop_calls(keeper);
         ensure!(!calls.is_empty(), "the keeper never opens the shop");
         for e in calls {
-            let EventKind::SubFlow { next, .. } = keeper.events[e as usize].kind else {
-                unreachable!("only calls are listed");
-            };
-            for link in keeper.links_to(e) {
-                keeper.link(link, next)?;
-            }
+            flows::step_over(keeper, e)?;
         }
         Ok(())
     })
 }
 
+/// The events of `flow` that `pick` picks.
+fn events_where(flow: &Flowchart, pick: impl Fn(&EventKind) -> bool) -> Vec<u16> {
+    (0..flow.events.len() as u16)
+        .filter(|&e| pick(&flow.events[e as usize].kind))
+        .collect()
+}
+
 /// The keeper's events that open the shop's shelf.
 fn shop_calls(keeper: &Flowchart) -> Vec<u16> {
-    (0..keeper.events.len() as u16)
-        .filter(|&e| match &keeper.events[e as usize].kind {
-            EventKind::SubFlow {
-                flowchart,
-                entry_point,
-                ..
-            } => flowchart == flow::DISPLAY_SHOP && entry_point == flow::ROOT_HAPPY_MASK_SHOP,
-            _ => false,
-        })
-        .collect()
+    events_where(keeper, |kind| match kind {
+        EventKind::SubFlow {
+            flowchart,
+            entry_point,
+            ..
+        } => flowchart == flow::DISPLAY_SHOP && entry_point == flow::ROOT_HAPPY_MASK_SHOP,
+        _ => false,
+    })
 }
 
 /// Whether event `e` runs `action`.
@@ -106,36 +109,29 @@ fn skip_action(flow: &mut Flowchart, action: &str) -> Result<()> {
         .filter(|&e| is_action(flow, e, action))
         .collect();
     ensure!(at.len() == 1, "{action} runs {} times", at.len());
-    skip(flow, at[0])
+    flows::step_over(flow, at[0])
 }
 
-/// Point everything that runs action `e` at what follows it.
-fn skip(flow: &mut Flowchart, e: u16) -> Result<()> {
-    let EventKind::Action { next, .. } = flow.events[e as usize].kind else {
-        unreachable!("only actions are skipped");
-    };
-    for link in flow.links_to(e) {
-        flow.link(link, next)?;
-    }
-    Ok(())
-}
-
-/// The shop asks "You already have an item checked out. Did you want to
-/// exchange it?" when Link holds a mask. Whatever runs that line goes
-/// where its Yes goes, so a borrow just goes on.
-fn skip_exchange(shop: &mut Flowchart) -> Result<()> {
+/// The events that ask "You already have an item checked out. Did you
+/// want to exchange it?". The shop runs that line twice.
+fn exchange_asks(shop: &Flowchart) -> Vec<u16> {
     let line = format!(
         "{}/{}:{}",
         field::EVENT_FLOW_MSG,
         actor::NPC_HYLIA_023_SHOP_CHILD,
         field::TALK_30
     );
-    let asks: Vec<u16> = (0..shop.events.len() as u16)
-        .filter(|&e| match &shop.events[e as usize].kind {
-            EventKind::Action { params, .. } => param(params, field::MESSAGE_ID) == Some(&line),
-            _ => false,
-        })
-        .collect();
+    events_where(shop, |kind| match kind {
+        EventKind::Action { params, .. } => param(params, field::MESSAGE_ID) == Some(&line),
+        _ => false,
+    })
+}
+
+/// The shop asks "You already have an item checked out. Did you want to
+/// exchange it?" when Link holds a mask. Whatever runs that line goes
+/// where its Yes goes, so a borrow just goes on.
+fn skip_exchange(shop: &mut Flowchart) -> Result<()> {
+    let asks = exchange_asks(shop);
     ensure!(
         asks.len() == 2,
         "the exchange line runs {} times",
@@ -217,17 +213,8 @@ mod tests {
             return;
         };
         assert!(!runs(&shop, flow::EVENT_TRIGGER_REMOVE_OWNED_MASK));
-        let line = format!(
-            "{}/{}:{}",
-            field::EVENT_FLOW_MSG,
-            actor::NPC_HYLIA_023_SHOP_CHILD,
-            field::TALK_30
-        );
-        let asked =
-            (0..shop.events.len() as u16).filter(|&e| match &shop.events[e as usize].kind {
-                EventKind::Action { params, .. } => param(params, field::MESSAGE_ID) == Some(&line),
-                _ => false,
-            });
+        let asked = exchange_asks(&shop);
+        assert_eq!(asked.len(), 2);
         assert!(asked.into_iter().all(|e| shop.links_to(e).is_empty()));
     }
 
@@ -236,12 +223,7 @@ mod tests {
         let Some((_, common)) = kept() else {
             return;
         };
-        let sell = common
-            .entry_points
-            .iter()
-            .find(|e| e.name == **flow::SELL_MASK)
-            .unwrap();
-        let reached = flows::reachable_from(&common, sell.main);
+        let reached = flows::reachable_from(&common, sell_start(&common).unwrap());
         let add = flow::EVENT_TRIGGER_ADD_OR_REMOVE_POUCH_CONTENT;
         assert!(!reached.iter().any(|&e| is_action(&common, e, add)));
         assert!(!reached.is_empty());

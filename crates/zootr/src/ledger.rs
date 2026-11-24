@@ -12,7 +12,9 @@ use crate::checks::{self, GYAML, ItemCheck, actors, banc_files, hash_of, load_ba
 use crate::gamedata::GameData;
 use crate::generate::Spot;
 use crate::known::{Name, actor};
+use crate::logic::World;
 use crate::narrowing::{self, LeftOut, Let};
+use crate::rules::{Book, Need};
 use crate::settings::{self, Kind, NewGame, Settings, group};
 use crate::shuffle::{self, Fixed, Placement};
 use crate::tracker::{Flag, Tracker};
@@ -67,7 +69,7 @@ pub struct Row {
     /// What the app shows it as.
     pub name: String,
     /// Each place logic puts it, by era, and what it needs there.
-    pub logic: Vec<Need>,
+    pub logic: Vec<LogicNeed>,
     /// Whether a rule file names it.
     pub rule: bool,
     /// Logic has it, but nothing reaches it at either age.
@@ -109,7 +111,7 @@ pub struct RoomRule {
 }
 
 #[derive(Serialize)]
-pub struct Need {
+pub struct LogicNeed {
     pub era: String,
     pub node: String,
     pub need: String,
@@ -150,6 +152,9 @@ impl Why {
 
 /// EIE #12: a breakable the shuffle doesn't deal, its drop random or not.
 const BREAKABLES: u8 = 12;
+/// EIE #2: a key logic keeps out of its own dungeon, by asking for all
+/// the dungeon's keys at each of its checks.
+const OWN_DUNGEON_KEYS: u8 = 2;
 
 /// The EIE debt the code may carry: neither count may grow.
 #[derive(Debug, PartialEq, Eq)]
@@ -218,9 +223,9 @@ pub(crate) fn planned(romfs: &Romfs) -> Result<(Ledger, Vec<crate::sweep::plan::
         rows.push((c, Some(why)));
     }
 
-    let book = crate::rules::Book::load()?;
+    let book = Book::load()?;
     let ctx = crate::rules::Ctx::new(&new_game);
-    let world = crate::logic::World::build(romfs, &book, &ctx, &dealt)?;
+    let world = World::build(romfs, &book, &ctx, &dealt)?;
     let held = rows
         .iter()
         .map(|(c, _)| c.item.as_str())
@@ -249,6 +254,60 @@ pub(crate) fn planned(romfs: &Romfs) -> Result<(Ledger, Vec<crate::sweep::plan::
         .map(|p| (p.spot.hash, crate::sweep::night::how(&p.trigger)))
         .collect();
 
+    let mut in_rooms = room_rules(&book);
+    let ways = ways_by_node(&book);
+    let rows = rows
+        .into_iter()
+        .zip(spots)
+        .map(|((c, left_out), spot)| Row {
+            hash: c.hash,
+            area: c.area.clone(),
+            area_name: spot.area_name.clone(),
+            file: c.file.clone(),
+            holder: c.holder.clone(),
+            kind: kind(c),
+            vanilla: c.item.clone(),
+            name: spot.name().to_owned(),
+            logic: logic_needs(&world, c.hash),
+            rule: book.check(c.hash).is_some(),
+            never: world.never(c.hash),
+            refused: match left_out {
+                Some(_) => Vec::new(),
+                None => refused(c, &items, &new_game),
+            },
+            left_out,
+            tracker: tracker.flag(c.hash).map(|f| f.to_string()),
+            sweep: sweep.get(&c.hash).cloned(),
+            room: in_rooms.remove(&c.hash),
+            ways_in: ways_in(&world, &ways, c.hash),
+        })
+        .collect();
+    let ledger = Ledger {
+        schema: SCHEMA,
+        rows,
+    };
+    Ok((ledger, planned))
+}
+
+/// Each era's need for the check `hash` as it reads there: one that era
+/// can never meet (a child row needing `adult`) isn't shown.
+fn logic_needs(world: &World, hash: u64) -> Vec<LogicNeed> {
+    (world.locations.iter())
+        .filter(|l| l.hash == hash)
+        .filter_map(|l| {
+            let (node, era) = &world.places[l.place];
+            let need = l.need.in_era(*era);
+            (need != Need::Never).then(|| LogicNeed {
+                era: era.to_string(),
+                node: node.clone(),
+                need: need.to_string(),
+            })
+        })
+        .collect()
+}
+
+/// Each dungeon check's rule in its room file, by hash.
+fn room_rules(book: &Book) -> BTreeMap<u64, RoomRule> {
     let mut in_rooms = BTreeMap::new();
     for room in &book.rooms {
         let Some(d) = (crate::entrances::DUNGEONS.iter()).find(|d| d.node.get() == room.node)
@@ -268,8 +327,12 @@ pub(crate) fn planned(romfs: &Romfs) -> Result<(Ledger, Vec<crate::sweep::plan::
             in_rooms.insert(c.hash, rule);
         }
     }
-    // Exits and inside rules by the node they lead into, as the rule
-    // files spell their places.
+    in_rooms
+}
+
+/// Exits and inside rules by the node they lead into, as the rule files
+/// spell their places.
+fn ways_by_node(book: &Book) -> BTreeMap<&str, Vec<WayIn>> {
     let word =
         |node: &str| crate::rules::vocab::place_word(node).map_or(node.to_owned(), str::to_owned);
     let mut ways: BTreeMap<&str, Vec<WayIn>> = BTreeMap::new();
@@ -287,59 +350,18 @@ pub(crate) fn planned(romfs: &Romfs) -> Result<(Ledger, Vec<crate::sweep::plan::
             needs: i.needs.clone(),
         });
     }
-    let ways_in = |hash: u64| -> Vec<WayIn> {
-        let nodes: BTreeSet<&str> = (world.locations.iter())
-            .filter(|l| l.hash == hash)
-            .map(|l| world.places[l.place].0.as_str())
-            .collect();
-        (nodes.iter())
-            .flat_map(|n| ways.get(n).into_iter().flatten().cloned())
-            .collect()
-    };
-    let rows = rows
-        .into_iter()
-        .zip(spots)
-        .map(|((c, left_out), spot)| Row {
-            hash: c.hash,
-            area: c.area.clone(),
-            area_name: spot.area_name.clone(),
-            file: c.file.clone(),
-            holder: c.holder.clone(),
-            kind: kind(c),
-            vanilla: c.item.clone(),
-            name: spot.name().to_owned(),
-            // Each era's need as it reads there: one that era can never
-            // meet (a child row needing `adult`) isn't shown.
-            logic: (world.locations.iter())
-                .filter(|l| l.hash == c.hash)
-                .filter_map(|l| {
-                    let (node, era) = &world.places[l.place];
-                    let need = l.need.in_era(*era);
-                    (need != crate::rules::Need::Never).then(|| Need {
-                        era: era.to_string(),
-                        node: node.clone(),
-                        need: need.to_string(),
-                    })
-                })
-                .collect(),
-            rule: book.check(c.hash).is_some(),
-            never: world.never(c.hash),
-            refused: match left_out {
-                Some(_) => Vec::new(),
-                None => refused(c, &items, &new_game),
-            },
-            left_out,
-            tracker: tracker.flag(c.hash).map(|f| f.to_string()),
-            sweep: sweep.get(&c.hash).cloned(),
-            room: in_rooms.remove(&c.hash),
-            ways_in: ways_in(c.hash),
-        })
+    ways
+}
+
+/// The ways into each node the check `hash` stands at, from [`ways_by_node`].
+fn ways_in(world: &World, ways: &BTreeMap<&str, Vec<WayIn>>, hash: u64) -> Vec<WayIn> {
+    let nodes: BTreeSet<&str> = (world.locations.iter())
+        .filter(|l| l.hash == hash)
+        .map(|l| world.places[l.place].0.as_str())
         .collect();
-    let ledger = Ledger {
-        schema: SCHEMA,
-        rows,
-    };
-    Ok((ledger, planned))
+    (nodes.iter())
+        .flat_map(|n| ways.get(n).into_iter().flatten().cloned())
+        .collect()
 }
 
 /// Prints the ledger as JSON, or with `unknown` each left-out placement
@@ -375,12 +397,12 @@ fn refused(c: &ItemCheck, items: &BTreeSet<&str>, new_game: &NewGame) -> Vec<Ref
     let need = (!crate::key_rooms::by_room(c))
         .then(|| crate::keys::dungeon_need(c, new_game.keys))
         .flatten();
-    let own_key = |item: &str| matches!(&need, Some(crate::rules::Need::Items { actors, .. }) if actors.iter().any(|a| a == item));
+    let own_key = |item: &str| matches!(&need, Some(Need::Items { actors, .. }) if actors.iter().any(|a| a == item));
     (items.iter())
         .filter_map(|&item| {
             let eie = match narrowing::refusal(c, item, new_game.progressive) {
                 Some(n) => n.number(),
-                None if own_key(item) => 2,
+                None if own_key(item) => OWN_DUNGEON_KEYS,
                 None => return None,
             };
             Some(Refused {

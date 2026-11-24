@@ -195,8 +195,7 @@ impl History {
 
     pub fn save(&self) -> Result<()> {
         let path = path()?;
-        std::fs::create_dir_all(path.parent().context("history path has no folder")?)?;
-        std::fs::write(&path, serde_json::to_vec(self)?)
+        crate::known::keep(&path, &serde_json::to_vec(self)?)
             .with_context(|| format!("writing {}", path.display()))
     }
 
@@ -254,8 +253,14 @@ impl History {
             marks: BTreeMap::new(),
             picks: BTreeMap::new(),
         });
-        let excess = self.entries.len().saturating_sub(KEEP);
-        self.entries.drain(..excess);
+        // The oldest go first, but never the installed one: its mod is
+        // still in place.
+        let (mut excess, installed) = (self.entries.len().saturating_sub(KEEP), self.installed);
+        self.entries.retain(|e| {
+            let drop = excess > 0 && Some(e.id) != installed;
+            excess -= usize::from(drop);
+            !drop
+        });
         self.entries.last().expect("just pushed")
     }
 
@@ -271,12 +276,12 @@ impl History {
         Ok(())
     }
 
-    /// Mark a spot, or clear its mark with `None`.
     /// Places for a seed saved before they were kept.
     pub fn place(&mut self, id: u32, romfs: &Romfs) -> Result<()> {
         places::fill(romfs, &mut self.get_mut(id)?.report.spots)
     }
 
+    /// Mark a spot, or clear its mark with `None`.
     pub fn mark(&mut self, id: u32, spot: u64, mark: Option<Mark>) -> Result<()> {
         let entry = self.get_mut(id)?;
         match mark {
@@ -600,6 +605,29 @@ pub(crate) mod tests {
         }
         assert_eq!(history.entries.len(), KEEP);
         assert_eq!(history.entries[0].report.seed, 5);
+    }
+
+    #[test]
+    fn trimming_spares_the_installed_seed() {
+        let mut history = History::default();
+        let add = |history: &mut History, seed| {
+            let entry = history.add(
+                Settings::new(),
+                Extras::default(),
+                Label::default(),
+                report(seed),
+            );
+            entry.id
+        };
+        let first = add(&mut history, 0);
+        history.install(Some(first));
+        for seed in 1..=KEEP as u64 + 5 {
+            add(&mut history, seed);
+        }
+        assert_eq!(history.entries.len(), KEEP);
+        assert_eq!(history.entries[0].id, first);
+        assert_eq!(history.entries[1].report.seed, 7);
+        assert!(history.view().installed.is_some());
     }
 
     #[test]

@@ -72,7 +72,8 @@ impl Let {
     }
 }
 
-/// Chests M2 may touch. The rest stay vanilla until logic can place them.
+/// Whether the shuffle may deal `c`: true when [`left_out`] finds no reason
+/// to keep it vanilla.
 pub(crate) fn shuffleable(c: &ItemCheck, open: Let) -> bool {
     left_out(c, open).is_none()
 }

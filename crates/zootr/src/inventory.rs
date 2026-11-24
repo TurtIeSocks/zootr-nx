@@ -243,7 +243,7 @@ const DUNGEONS: [(&Name, &str, &str); 12] = [
 ];
 
 /// The Fortress's row, which shows its keys alone.
-const FORTRESS: (&Name, &str, &str) = (keys::FORTRESS.0, "Gerudo Fortress", "GF");
+const FORTRESS: (&Name, &str, &str) = (keys::FORTRESS.name, "Gerudo Fortress", "GF");
 
 /// Rows in the Dungeons section.
 const ROWS: usize = DUNGEONS.len() + 1;
@@ -454,11 +454,7 @@ impl Inventory {
         });
         GRID.iter()
             .map(|s| {
-                let tier = s
-                    .tiers
-                    .iter()
-                    .rposition(|a| self.value(a) > 0)
-                    .map_or(0, |i| i + 1);
+                let tier = self.tier(s);
                 let held = s.tiers[tier.saturating_sub(1)];
                 let icon = s.icon.unwrap_or(held);
                 Cell {
