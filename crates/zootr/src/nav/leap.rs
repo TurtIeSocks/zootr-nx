@@ -20,7 +20,7 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result};
 use serde::Serialize;
 
-use super::trace::{Sample, Step, Traced};
+use super::trace::{Sample, Step, Traced, check_settle};
 use super::{CLOCKWISE, eighths, flat_dir};
 use crate::checks::flat;
 use crate::dev::Dev;
@@ -168,6 +168,7 @@ pub fn leap<M: Memory, I: Input>(
     settle: f32,
     out: Option<&Path>,
 ) -> Result<Leap> {
+    check_settle(settle)?;
     // The jump's line, flat.
     let dir = flat_dir(from, to);
     let start = [from[0] - dir[0] * run, from[1], from[2] - dir[1] * run];
@@ -244,6 +245,18 @@ pub fn leap<M: Memory, I: Input>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::nav::sim;
+
+    #[test]
+    fn a_settle_that_never_runs_out_is_refused_before_the_warp() {
+        let (_, mut hands) = sim::start([0.0; 3], 0.0);
+        let dev = sim::dev();
+        for bad in [f32::INFINITY, f32::NAN, -1.0] {
+            let line = ([0.0; 3], [1.0, 0.0, 0.0]);
+            let err = leap(&dev, &mut hands, line, 2.0, 0.0, bad, None).unwrap_err();
+            assert!(err.to_string().starts_with("--settle"), "{bad}: {err}");
+        }
+    }
 
     #[test]
     fn x_goes_in_a_latency_early() {
