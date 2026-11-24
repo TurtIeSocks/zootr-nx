@@ -18,9 +18,9 @@ pub(super) fn silence_calls(flow: &mut Flowchart, call: &[Call], item: &str) -> 
         EventKind::SubFlow { params, .. } => names_item(params, &[item]),
         _ => false,
     };
-    let silenced: Vec<usize> = calls_to(flow, call)?
+    let silenced: Vec<u16> = calls_to(flow, call)
         .into_iter()
-        .filter(|&i| named(&flow.events[i].kind))
+        .filter(|&i| named(&flow.events[i as usize].kind))
         .collect();
     ensure!(
         !silenced.is_empty(),
@@ -44,7 +44,7 @@ pub(super) fn silence_calls(flow: &mut Flowchart, call: &[Call], item: &str) -> 
         nothing.with_context(|| format!("{} has no {} to stand in", flow.name, NOTHING.1))?;
     let nothing = nothing.1.kind.clone();
     for i in silenced {
-        flow.events[i].kind = nothing.clone();
+        flow.events[i as usize].kind = nothing.clone();
     }
     Ok(())
 }

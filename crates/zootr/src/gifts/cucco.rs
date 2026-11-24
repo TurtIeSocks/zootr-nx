@@ -32,17 +32,17 @@ const FILLS: [Call; 2] = [
 /// Answer every question about an empty bottle with yes, and make each call
 /// that fills one the plain hand-over, keeping where it goes next.
 pub(super) fn open(flow: &mut Flowchart) -> Result<()> {
-    let [plain] = calls_to(flow, CALL)?[..] else {
+    let [plain] = calls_to(flow, CALL)[..] else {
         bail!("{FLOW} hands over by {} not once", said(CALL));
     };
-    for i in calls_to(flow, &FILLS)? {
-        let mut kind = flow.events[plain].kind.clone();
+    for i in calls_to(flow, &FILLS) {
+        let mut kind = flow.events[plain as usize].kind.clone();
         if let (EventKind::SubFlow { next: to, .. }, EventKind::SubFlow { next, .. }) =
-            (&mut kind, &flow.events[i].kind)
+            (&mut kind, &flow.events[i as usize].kind)
         {
             *to = *next;
         }
-        flow.events[i].kind = kind;
+        flow.events[i as usize].kind = kind;
     }
     let asks: Vec<usize> = (0..flow.events.len())
         .filter(|&i| match &flow.events[i].kind {
@@ -75,8 +75,8 @@ mod tests {
 
     const HEART: &Name = actor::OBJ_HEART_PIECE;
 
-    fn nexts(flow: &Flowchart, calls: &[usize]) -> Vec<Option<u16>> {
-        let next = |i: &usize| match &flow.events[*i].kind {
+    fn nexts(flow: &Flowchart, calls: &[u16]) -> Vec<Option<u16>> {
+        let next = |&i: &u16| match &flow.events[i as usize].kind {
             EventKind::SubFlow { next, .. } => *next,
             _ => unreachable!(),
         };
@@ -89,17 +89,17 @@ mod tests {
             return;
         };
         let mut flow = flows::load(&romfs, FLOW).unwrap().unwrap();
-        let fills = calls_to(&flow, &FILLS).unwrap();
+        let fills = calls_to(&flow, &FILLS);
         assert_eq!(fills.len(), 2);
         let after = nexts(&flow, &fills);
         open(&mut flow).unwrap();
         rename_calls(&mut flow, CALL, MILK, HEART).unwrap();
-        assert!(calls_to(&flow, &FILLS).unwrap().is_empty());
+        assert!(calls_to(&flow, &FILLS).is_empty());
         assert_eq!(nexts(&flow, &fills), after, "each goes on as before");
-        let plain = calls_to(&flow, CALL).unwrap();
+        let plain = calls_to(&flow, CALL);
         assert_eq!(plain.len(), 3);
         for i in plain {
-            let EventKind::SubFlow { params, .. } = &flow.events[i].kind else {
+            let EventKind::SubFlow { params, .. } = &flow.events[i as usize].kind else {
                 unreachable!();
             };
             let named: Vec<_> = ITEM_PARAMS
@@ -151,6 +151,6 @@ mod tests {
         assert!(give(MILK).is_none());
         let flow = Flowchart::parse(&give(HEART).unwrap()).unwrap().unwrap();
         assert!(!flows::strings(&flow).contains(&&**MILK));
-        assert!(calls_to(&flow, &FILLS).unwrap().is_empty());
+        assert!(calls_to(&flow, &FILLS).is_empty());
     }
 }

@@ -103,11 +103,10 @@ pub(super) fn in_swap(
     flows: &Flows,
     item: &str,
 ) -> Result<()> {
-    let gear = calls_to(flow, &[call(GEAR, GEAR)])?;
+    let gear = calls_to(flow, &[call(GEAR, GEAR)]);
     let [gear] = gear[..] else {
         bail!("{} calls {GEAR} {} times", flow.name, gear.len());
     };
-    let gear = gear as u16;
     let callers = flow.links_to(gear);
     let grant = granting(
         flow,
