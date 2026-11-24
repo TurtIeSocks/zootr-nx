@@ -28,7 +28,7 @@ pub const SCHEMA: u32 = 1;
 /// and the `accounting` test fails one that adds debt.
 pub const BASELINE: Debt = Debt {
     refused: 307,
-    left_out: 45,
+    left_out: 179,
 };
 
 /// Placements `left_out` calls no holder that aren't breakables, by
@@ -152,6 +152,8 @@ impl Why {
 
 /// EIE #12: a breakable the shuffle doesn't deal, its drop random or not.
 const BREAKABLES: u8 = 12;
+/// EIE #18: a rupee or heart lying loose, which no setting deals yet.
+const LOOSE: u8 = 18;
 /// EIE #2: a key logic keeps out of its own dungeon, by asking for all
 /// the dungeon's keys at each of its checks.
 const OWN_DUNGEON_KEYS: u8 = 2;
@@ -417,8 +419,8 @@ fn refused(c: &ItemCheck, items: &BTreeSet<&str>, new_game: &NewGame) -> Vec<Ref
 }
 
 /// Why the shuffle leaves out `c`, a placement `left_out` finds no reason
-/// for: a breakable, a thief's key, a gift a setting keeps out, a loose
-/// rupee or heart, or one of [`NOT_HOLDERS`].
+/// for: a breakable, a loose rupee or heart, a thief's key, a gift a
+/// setting keeps out, or one of [`NOT_HOLDERS`].
 fn explain(c: &ItemCheck, new_game: &NewGame, breakable: &BTreeSet<String>) -> Why {
     let listed = NOT_HOLDERS.iter().find(|(holder, _)| **holder == *c.holder);
     if let Some((_, why)) = listed {
@@ -438,9 +440,8 @@ fn explain(c: &ItemCheck, new_game: &NewGame, breakable: &BTreeSet<String>) -> W
     if gifts::of(c).is_some_and(|g| !g.dealt(&new_game.on)) {
         return Why::Setting;
     }
-    // Until a setting deals them (the maintainer, 2026-11-24).
     if pickups::LOOSE.holds(c) {
-        return Why::Maintainer;
+        return Why::Eie { eie: LOOSE };
     }
     Why::Unknown
 }
@@ -691,8 +692,8 @@ mod tests {
             unknown.is_empty(),
             "left out for no reason (NOT_HOLDERS): {unknown:?}"
         );
-        // Loose rupees and hearts are listed, left out by the maintainer's
-        // call until a setting deals them.
+        // Loose rupees and hearts are listed, as debt until a setting deals
+        // them.
         let loose: Vec<_> = (ledger.rows.iter())
             .filter(|r| pickups::LOOSE.places(&r.holder))
             .map(|r| &r.left_out)
@@ -703,10 +704,8 @@ mod tests {
             logic.clone().all(|r| !r.logic.is_empty()),
             "a loose row with no logic"
         );
-        assert!(
-            loose.iter().all(|w| **w == Some(Why::Maintainer)),
-            "{loose:?}"
-        );
+        let debt = Some(Why::Eie { eie: LOOSE });
+        assert!(loose.iter().all(|w| **w == debt), "{loose:?}");
         assert_eq!(
             Debt::of(&ledger),
             BASELINE,

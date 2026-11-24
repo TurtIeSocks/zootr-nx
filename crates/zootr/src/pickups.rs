@@ -223,8 +223,8 @@ pub const RUTOS_LETTER: Kind = Kind {
 };
 
 /// Rupees and Recovery Hearts lying in the open, each its own pickup. No
-/// setting deals them yet (the maintainer's call, 2026-11-24): they're
-/// here so the ledger lists them and derive gives each a room rule.
+/// setting deals them yet (EIE row 18, debt): they're here so the ledger
+/// lists them and derive gives each a room rule.
 pub const LOOSE: Kind = Kind {
     actors: &[
         actor::OBJ_RUPEE_GREEN,
