@@ -56,7 +56,6 @@ skip-cutscenes = true
 chest-size = "vanilla"
 quiet-navi = true
 bunny-hood = true
-ageless-weapons = true
 scrubs = true
 running-race = true
 pots = true
@@ -79,7 +78,6 @@ king-zora-moved = true
 adult-jabu-jabu = "always"
 day-skulltulas = true
 scrub-price = "90"
-ageless-items = true
 quiet-enemies = true
 menus = true
 clock = true
@@ -87,3 +85,11 @@ no-tutorials = true
 no-pickup-texts = true
 hints = true
 skipped-cutscenes = ["skip-intro", "skip-kokiri"]
+both-ages = [
+  "both-ages-kokiri-sword", "both-ages-master-sword", "both-ages-giants-knife",
+  "both-ages-biggoron-sword", "both-ages-deku-shield", "both-ages-mirror-shield",
+  "both-ages-bow", "both-ages-slingshot", "both-ages-hammer", "both-ages-hookshot",
+  "both-ages-longshot", "both-ages-boomerang", "both-ages-deku-sticks",
+  "both-ages-iron-boots", "both-ages-hover-boots", "both-ages-zora-tunic",
+  "both-ages-goron-tunic",
+]

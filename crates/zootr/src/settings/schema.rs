@@ -354,9 +354,11 @@ fn dungeon_defs() -> Vec<SettingDef> {
     ]
 }
 
-/// The comfort and gameplay changes.
+/// The comfort and gameplay changes, and the items either Link can use.
 fn enhancement_defs() -> Vec<SettingDef> {
-    vec![
+    let both = (crate::ageless::toggles::TOGGLES.iter())
+        .map(|t| toggle(t.id, place::BOTH_AGES, t.label, t.about));
+    let mut defs = vec![
         choice(
             CHEST_SIZE,
             place::COMFORT,
@@ -388,25 +390,9 @@ fn enhancement_defs() -> Vec<SettingDef> {
             "Gold Skulltulas by Day",
             "Gold Skulltulas that only come out at night show at any hour",
         ),
-        toggle(
-            AGELESS_WEAPONS,
-            place::GAMEPLAY,
-            "One-Handed Swords and Shields for Both Ages",
-            "Child and adult Link can each wield every one-handed sword and every shield, and logic expects them to. Biggoron's Sword and the Giant's Knife stay adult Link's, and only he can aim the Mirror Shield at light",
-        ),
-        toggle(
-            AGELESS_GEAR,
-            place::GAMEPLAY,
-            "Boots for Both Ages",
-            "Child Link can wear the Iron Boots and Hover Boots, and logic expects him to",
-        ),
-        toggle(
-            AGELESS_ITEMS,
-            place::GAMEPLAY,
-            "Items for Both Ages",
-            "Untested. Child Link can use the Megaton Hammer, Hookshot, Longshot, Bow, magic arrows and the two-handed swords, and adult Link Deku Sticks and the Boomerang. Logic still expects each at its own age",
-        ),
-    ]
+    ];
+    defs.extend(both);
+    defs
 }
 
 /// The starting inventory.

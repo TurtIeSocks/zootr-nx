@@ -50,6 +50,43 @@ const CLAIM_CHECK: &str = "claim-check";
 /// The preset that started with Zelda met, before [`MET_ZELDA`].
 const ZELDA_DONE: &str = "zelda-done";
 
+/// The toggles that opened items to both ages by kind, before one toggle
+/// per item, and the Both Ages toggles each became.
+const SPLIT: [(&str, &[&str]); 3] = [
+    (
+        "ageless-weapons",
+        &[
+            "both-ages-kokiri-sword",
+            "both-ages-master-sword",
+            "both-ages-deku-shield",
+            "both-ages-mirror-shield",
+        ],
+    ),
+    (
+        "ageless-items",
+        &[
+            "both-ages-bow",
+            "both-ages-slingshot",
+            "both-ages-hammer",
+            "both-ages-hookshot",
+            "both-ages-longshot",
+            "both-ages-boomerang",
+            "both-ages-deku-sticks",
+            "both-ages-giants-knife",
+            "both-ages-biggoron-sword",
+        ],
+    ),
+    (
+        "ageless-gear",
+        &[
+            "both-ages-iron-boots",
+            "both-ages-hover-boots",
+            "both-ages-zora-tunic",
+            "both-ages-goron-tunic",
+        ],
+    ),
+];
+
 /// Presets the CLI still takes by their old names, and toggles by their
 /// old ids: see [`renamed`] and [`dropped`].
 pub(crate) const OLD_PRESETS: [&str; 7] = [
@@ -61,7 +98,13 @@ pub(crate) const OLD_PRESETS: [&str; 7] = [
     CARPENTERS_FAST,
     CLAIM_CHECK,
 ];
-pub(crate) const OLD_TOGGLES: [&str; 2] = [BRIDGE_MEDALLIONS, OPEN_DOOR];
+pub(crate) const OLD_TOGGLES: [&str; 5] = [
+    BRIDGE_MEDALLIONS,
+    OPEN_DOOR,
+    SPLIT[0].0,
+    SPLIT[1].0,
+    SPLIT[2].0,
+];
 
 /// Each old preset and toggle, in the order the upgrade reads them: where
 /// two set one choice, the first wins.
@@ -110,6 +153,10 @@ pub(crate) fn renamed(old: &str) -> Option<String> {
 
 /// What old preset or toggle `old` set to `on` is now, as the CLI takes it.
 pub(crate) fn renamed_as(old: &str, on: bool) -> Option<String> {
+    if let Some((_, new)) = SPLIT.iter().find(|(id, _)| *id == old) {
+        let each = new.iter().map(|id| format!("--setting {id}={on}"));
+        return Some(each.collect::<Vec<_>>().join(" "));
+    }
     became(old, on).map(|(id, value)| match value.as_str() {
         Some(option) => format!("--setting {id}={option}"),
         None => format!("--setting {id}={value}"),
@@ -196,6 +243,13 @@ pub(crate) fn upgrade(settings: &mut Settings, from: SettingsVersion) {
             settings.entry(id.into()).or_insert(value);
         }
     }
+    for (old, new) in SPLIT {
+        if settings.remove(old) == Some(true.into()) {
+            for id in new {
+                settings.entry((*id).into()).or_insert(true.into());
+            }
+        }
+    }
     if let Some(start) = settings.get_mut(starting::SETTING) {
         starting::upgrade(start);
     }
@@ -231,6 +285,32 @@ mod tests {
             .collect();
         upgrade(&mut s, SettingsVersion::CURRENT);
         s
+    }
+
+    /// Each old kind toggle turns on its items, and between them every
+    /// Both Ages toggle once.
+    #[test]
+    fn the_kind_toggles_become_one_toggle_per_item() {
+        let mut every: Vec<&str> = SPLIT
+            .iter()
+            .flat_map(|(_, new)| new.iter().copied())
+            .collect();
+        every.sort_unstable();
+        let mut toggles = crate::ageless::toggles::TOGGLES.map(|t| t.id);
+        toggles.sort_unstable();
+        assert_eq!(every, toggles);
+        for (old, new) in SPLIT {
+            let on: Settings = new
+                .iter()
+                .map(|id| ((*id).to_owned(), true.into()))
+                .collect();
+            assert_eq!(up(&[(old, true)]), on, "{old}");
+            assert_eq!(up(&[(old, false)]), Settings::new(), "{old} off");
+        }
+        // A toggle saved off since stays off.
+        let kept = up(&[(SPLIT[2].0, true), ("both-ages-goron-tunic", false)]);
+        assert_eq!(kept["both-ages-goron-tunic"], false);
+        assert_eq!(kept["both-ages-zora-tunic"], true);
     }
 
     /// Every word an old starting toggle became is one `--start` takes.

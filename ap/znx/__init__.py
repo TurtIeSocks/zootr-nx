@@ -133,10 +133,11 @@ def kept(holds) -> dict:
 def forced(values: dict) -> dict:
     """`values` with what each picked choice forces written in, as the
     app and our seed do (`settings::with_picks`): Adult opens the Door of
-    Time and the forest. A set's parent on turns all it lists on."""
+    Time and the forest. A set's parent, if it has one, on turns all it
+    lists on."""
     out = dict(values)
     for entry in OPTIONS:
-        if entry["kind"] == "set" and values[entry["parent"]]:
+        if entry["kind"] == "set" and "parent" in entry and values[entry["parent"]]:
             out.update({o["id"]: True for o in entry["options"]})
         picked = next((o for o in entry.get("options", []) if o["id"] == values.get(entry["id"])), None)
         for word in picked.get("forces", []) if picked else []:

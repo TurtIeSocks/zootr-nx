@@ -103,6 +103,11 @@ pub mod place {
         "Gameplay",
         "Changes to what Link can do",
     );
+    pub const BOTH_AGES: Place = rows(
+        group::ENHANCEMENTS,
+        "Both Ages",
+        "Items either Link can use",
+    );
     pub const CUTSCENES: Place = rows(
         group::ENHANCEMENTS,
         "Cutscenes",
@@ -121,7 +126,7 @@ pub mod place {
     );
 
     /// Every section, in the order the app shows them.
-    pub const ALL: [Place; 14] = [
+    pub const ALL: [Place; 15] = [
         LOGIC,
         WIN_CONDITION,
         AREA_ACCESS,
@@ -133,6 +138,7 @@ pub mod place {
         HINTS,
         COMFORT,
         GAMEPLAY,
+        BOTH_AGES,
         CUTSCENES,
         CUTSCENE_AREAS,
         START,
