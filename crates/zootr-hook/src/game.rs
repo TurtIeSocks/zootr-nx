@@ -24,6 +24,8 @@ use chests::{drop_value, level_for, owned, record, recreate, rewrite};
 type Childhood = unsafe extern "C" fn(usize) -> bool;
 type Setter = unsafe extern "C" fn(*mut u8, *const *const u8, *const *const u8);
 type Reader = unsafe extern "C" fn(*mut u8, *const u8, usize, usize) -> usize;
+/// The game's name hash, as the nock and the chest list use it.
+type Hash = unsafe extern "C" fn(*const u8, u32) -> u32;
 
 /// The argument the chest's get event gives and shows.
 const KEY: &[u8] = b"ContentName";

@@ -6,7 +6,7 @@
 //! `BowParam.ShootableActor` already names its own Link's projectile, so
 //! vanilla play nocks and says what it always did.
 
-use super::{at, func};
+use super::{Hash, at, func};
 use crate::traps::COMPONENTS;
 use crate::{DEKU_SEED, OFFSETS};
 
@@ -30,8 +30,7 @@ struct Fixed {
 
 type Drawn = unsafe extern "C" fn(usize) -> usize;
 type Shootable = unsafe extern "C" fn(*const usize) -> usize;
-type Copy = unsafe extern "C" fn(*mut Fixed, usize);
-type Hash = unsafe extern "C" fn(*const u8, u32) -> u32;
+type NameCopy = unsafe extern "C" fn(*mut Fixed, usize);
 
 /// The drawn bow's projectile, as a name hash, the way the release at
 /// `0x2e007c0` names it. None with no bow drawn, or one naming none.
@@ -53,7 +52,7 @@ unsafe fn projectile(main: usize, user: usize) -> Option<u32> {
             buffer: [0; 64],
         };
         fixed.text = fixed.buffer.as_mut_ptr();
-        let copy: Copy = func(main, OFFSETS.name_copy);
+        let copy: NameCopy = func(main, OFFSETS.name_copy);
         copy(&mut fixed, name);
         fixed.buffer[63] = 0;
         if *fixed.text == 0 {

@@ -3,12 +3,11 @@
 
 use core::ffi::CStr;
 
-use super::{at, func, name, shared};
+use super::{Hash, at, func, name, shared};
 use crate::traps::COMPONENTS;
 use crate::{CHESTS, Chest, Offsets, Table, after_grant, pick_with};
 
 type Count = unsafe extern "C" fn(usize, *const *const u8, u32, u32) -> i32;
-type Hash = unsafe extern "C" fn(*const u8, u32) -> u32;
 type Delete = unsafe extern "C" fn(usize, usize) -> bool;
 type Create = unsafe extern "C" fn(usize, usize, *const usize, usize) -> bool;
 

@@ -17,9 +17,9 @@ type MakeArg = unsafe extern "C" fn(usize);
 type Request = unsafe extern "C" fn(usize, usize) -> u64;
 type SetLink = unsafe extern "C" fn(usize, usize, usize);
 type Release = unsafe extern "C" fn(usize);
-type GetBool = unsafe extern "C" fn(usize, *mut u64, u32) -> u32;
+/// A GameData getter, Bool and U64 alike: (gamedata, out, hash) -> found.
+type Get = unsafe extern "C" fn(usize, *mut u64, u32) -> u32;
 type SetBool = unsafe extern "C" fn(usize, u32, u32);
-type GetU64 = unsafe extern "C" fn(usize, *mut u64, u32) -> u32;
 type SetTime = unsafe extern "C" fn(usize, u32);
 type MoveTo = unsafe extern "C" fn(usize, *const f32);
 
@@ -127,13 +127,13 @@ pub(super) unsafe fn single(main: usize, slot: u32) -> Option<usize> {
 }
 
 pub(super) unsafe fn get_bool(main: usize, o: &Offsets, gd: usize, hash: u32) -> Option<bool> {
-    let get: GetBool = unsafe { func(main, o.get_bool) };
+    let get: Get = unsafe { func(main, o.get_bool) };
     let mut out = 0;
     (unsafe { get(gd, &mut out, hash) } & 1 == 1).then_some(out & 1 == 1)
 }
 
 unsafe fn get_u64(main: usize, o: &Offsets, gd: usize, hash: u32) -> Option<u64> {
-    let get: GetU64 = unsafe { func(main, o.get_u64) };
+    let get: Get = unsafe { func(main, o.get_u64) };
     let mut out = 0;
     (unsafe { get(gd, &mut out, hash) } & 1 == 1).then_some(out)
 }
