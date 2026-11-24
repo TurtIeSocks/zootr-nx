@@ -19,6 +19,15 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     builder.write(&module, &staying(&romfs.read(&module)?)?)
 }
 
+/// What feeds `node`'s `input` in `g`.
+fn sources(g: &Graph, node: usize, input: &Name) -> Result<Vec<Link>> {
+    let found = g.nodes[node].inputs.iter().find(|i| i.name == input.get());
+    Ok(found
+        .with_context(|| format!("#{node} has no {input}"))?
+        .sources
+        .clone())
+}
+
 /// `module` with the area made while the scene hasn't played, and the
 /// quest move behind its own before-`EnterTemple` question.
 fn staying(module: &[u8]) -> Result<Vec<u8>> {
@@ -30,13 +39,7 @@ fn staying(module: &[u8]) -> Result<Vec<u8>> {
             _ => anyhow::bail!("not one {name} node in the crater graph"),
         }
     };
-    let source = |node: usize, input: &Name| -> Result<Vec<Link>> {
-        let input = g.nodes[node].inputs.iter().find(|i| i.name == input.get());
-        Ok(input
-            .with_context(|| format!("#{node} has no {input:?}"))?
-            .sources
-            .clone())
-    };
+    let source = |node: usize, input: &Name| sources(&g, node, input);
     let (area, step) = (
         class(field::ACTOR_LOGIC_AREA_ACTOR)?,
         class(field::TRIGGER_CHALLENGE_SET_STEP)?,
@@ -85,6 +88,19 @@ mod tests {
 
     use super::*;
     use crate::gifts::GIFTS;
+
+    /// A missing input is named in the error.
+    #[test]
+    fn a_missing_input_is_named() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let module = logic(map::DEATH_MOUNTAIN_CRATER_ADULT_PREFAB_E63C);
+        let mut g = Graph::parse(&romfs.read(&module).unwrap()).unwrap();
+        g.nodes[0].inputs.clear();
+        let err = sources(&g, 0, field::LOGIC_CREATE).unwrap_err().to_string();
+        assert_eq!(err, format!("#0 has no {}", field::LOGIC_CREATE));
+    }
 
     /// The area waits on the scene's played flag alone, which is the flag
     /// her gift is found by, and the quest move on the scene's end and the

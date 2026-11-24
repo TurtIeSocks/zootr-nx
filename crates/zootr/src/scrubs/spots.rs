@@ -15,7 +15,8 @@ pub enum Branch {
     Pouch,
     /// Hyrule Field's heart piece, sold at the end of its riddle talk.
     Secret,
-    /// Sold consumables on repeat. As a check, it runs `ENTRY`.
+    /// Sold consumables on repeat. As a check, it runs its own entry into
+    /// the pouch root `ROOT`.
     Shop,
 }
 
