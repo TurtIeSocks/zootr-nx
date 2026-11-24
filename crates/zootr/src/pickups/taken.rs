@@ -17,7 +17,7 @@ use ounce_formats::ainb::{File, Value};
 use roead::sarc::Sarc;
 
 use super::shared;
-use crate::known::{Name, field};
+use crate::known::field;
 
 /// The name every built pickup starts with, and nothing vanilla does.
 pub const PREFIX: &str = "Obj_Rando";
@@ -57,28 +57,12 @@ pub fn ticked(pack: &Sarc) -> Result<Vec<u8>> {
         .context("no sequence runs the push")?;
 
     let mut f = vanilla.clone();
-    let copy = |f: &mut File, class: &Name| shared::copy(pack, f, class.get());
-    let own = copy(&mut f, field::QUERY_GENERIC_GET_OWN_ACTOR_LINK)?;
-    let name = copy(&mut f, field::QUERY_GENERIC_GET_ACTOR_NAME)?;
-    let starts = copy(&mut f, field::QUERY_GENERIC_STRING_STARTS_WITH)?;
-    let concat = copy(&mut f, field::QUERY_GENERIC_CONCAT_STRING)?;
-    let set = copy(&mut f, field::ONE_SHOT_SET_NON_STRUCT_GAME_DATA_BOOL)?;
-    let select = vanilla.find_bool_selector().context("no bool selector")?;
-    let nothing = (vanilla.find(field::ONESHOT_DO_NOTHING.get())).context("no do-nothing leaf")?;
+    let set = field::ONE_SHOT_SET_NON_STRUCT_GAME_DATA_BOOL;
+    let (starts, set) = shared::name_check(pack, &mut f, PREFIX, TAKEN, set)?;
+    let (select, nothing) = shared::selector_and_leaf(&vanilla)?;
     let ours = f.copy_node(&vanilla, select)?;
     let others = f.copy_node(&vanilla, nothing)?;
 
-    let file_name = field::ACTOR_FILE_NAME.get();
-    let full_name = field::GAME_DATA_FULL_NAME.get();
-    let text = |s: &str| Value::String(s.into());
-    f.link(name, "Actor", own, "Actor")?;
-    f.link(starts, "Input", name, file_name)?;
-    f.set_input(starts, "Token", &text(PREFIX))?;
-    f.set_input(concat, "Input0", &text(TAKEN))?;
-    f.link(concat, "Input1", name, file_name)?;
-    f.set_input(concat, "Input2", &text(""))?;
-    f.set_input(set, full_name, &text(""))?;
-    f.link(set, full_name, concat, "Output")?;
     f.set_input(set, field::VALUE.get(), &Value::Bool(true))?;
     f.link(ours, "Input", starts, "Result")?;
     f.set_child(ours, "True", set)?;

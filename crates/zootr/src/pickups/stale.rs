@@ -19,7 +19,7 @@ use ounce_formats::ainb::{File, Value};
 use roead::sarc::Sarc;
 
 use super::shared;
-use crate::known::{Name, field};
+use crate::known::field;
 
 /// The name every step stand-in starts with, and nothing else does.
 pub const STEP: &str = "Obj_RandoStep_";
@@ -44,16 +44,11 @@ pub fn graph() -> String {
 pub fn branched(pack: &Sarc) -> Result<Vec<u8>> {
     let vanilla = File::parse(pack.get_data(&graph()).context("no drop graph")?)?;
     let mut f = vanilla.clone();
-    let copy = |f: &mut File, class: &Name| shared::copy(pack, f, class.get());
-    let own = copy(&mut f, field::QUERY_GENERIC_GET_OWN_ACTOR_LINK)?;
-    let name = copy(&mut f, field::QUERY_GENERIC_GET_ACTOR_NAME)?;
-    let starts = copy(&mut f, field::QUERY_GENERIC_STRING_STARTS_WITH)?;
-    let concat = copy(&mut f, field::QUERY_GENERIC_CONCAT_STRING)?;
-    let read = copy(&mut f, field::QUERY_GET_NON_STRUCT_GAME_DATA_BOOL_EXP)?;
-    let death = copy(&mut f, field::ONE_SHOT_DEATH_REQUEST_DEATH)?;
+    let read = field::QUERY_GET_NON_STRUCT_GAME_DATA_BOOL_EXP;
+    let (starts, read) = shared::name_check(pack, &mut f, STEP, DROP, read)?;
+    let death = shared::copy(pack, &mut f, field::ONE_SHOT_DEATH_REQUEST_DEATH.get())?;
     // The graph's own selector and do-nothing leaf, copied twice each.
-    let select = vanilla.find_bool_selector().context("no bool selector")?;
-    let nothing = (vanilla.find(field::ONESHOT_DO_NOTHING.get())).context("no do-nothing leaf")?;
+    let (select, nothing) = shared::selector_and_leaf(&vanilla)?;
     let (is_step, standing) = (
         f.copy_node(&vanilla, select)?,
         f.copy_node(&vanilla, select)?,
@@ -63,17 +58,6 @@ pub fn branched(pack: &Sarc) -> Result<Vec<u8>> {
         f.copy_node(&vanilla, nothing)?,
     );
 
-    let file_name = field::ACTOR_FILE_NAME.get();
-    let full_name = field::GAME_DATA_FULL_NAME.get();
-    let text = |s: &str| Value::String(s.into());
-    f.link(name, "Actor", own, "Actor")?;
-    f.link(starts, "Input", name, file_name)?;
-    f.set_input(starts, "Token", &text(STEP))?;
-    f.set_input(concat, "Input0", &text(DROP))?;
-    f.link(concat, "Input1", name, file_name)?;
-    f.set_input(concat, "Input2", &text(""))?;
-    f.set_input(read, full_name, &text(""))?;
-    f.link(read, full_name, concat, "Output")?;
     f.link(is_step, "Input", starts, "Result")?;
     f.set_child(is_step, "True", standing)?;
     f.set_child(is_step, "False", others)?;
