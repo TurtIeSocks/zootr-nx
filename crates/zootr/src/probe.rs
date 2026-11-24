@@ -275,6 +275,11 @@ pub enum Probe {
     Seeds {
         #[arg(long, default_value_t = 50, value_parser = clap::value_parser!(u64).range(1..))]
         seeds: u64,
+        /// Start from a favorite's settings, as `shuffle` does
+        /// (`randomizer` for a dungeon PR's table), then lay each
+        /// `--setting` over it.
+        #[arg(long, value_name = "NAME", value_parser = crate::cli::args::favorite)]
+        favorite: Option<crate::settings::Settings>,
         /// A setting by id, as `shuffle` takes it. Repeatable.
         #[arg(long = "setting", value_name = "ID=VALUE", value_parser = crate::cli::args::setting)]
         settings: Vec<(String, serde_json::Value)>,
@@ -594,7 +599,11 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             never,
         } => checks(romfs, area.as_deref(), &settings, never),
         Probe::Doors { rolls, settings } => doors(romfs, rolls, &settings),
-        Probe::Seeds { seeds, settings } => logic::seeds(romfs, seeds, &settings),
+        Probe::Seeds {
+            seeds,
+            favorite,
+            settings,
+        } => logic::seeds(romfs, seeds, favorite.unwrap_or_default(), &settings),
         Probe::Byml { pattern, file } => byml(romfs, game, &pattern, file),
         Probe::Ainb { path, out } => ainb(romfs, &path, out.as_deref()),
         Probe::Ainbs => ainbs(romfs),

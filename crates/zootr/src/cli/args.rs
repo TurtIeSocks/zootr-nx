@@ -16,7 +16,7 @@ use crate::vision::{Api, Effort};
 use crate::{checks, generate, presets, savefile, settings};
 
 pub(super) use super::new_game::NewGame;
-pub(crate) use super::new_game::setting;
+pub(crate) use super::new_game::{favorite, setting};
 
 #[derive(Parser)]
 #[command(
