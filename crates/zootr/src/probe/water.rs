@@ -25,7 +25,7 @@ pub fn water(
     let level = Level::of(romfs, game, map)?;
     let graph = level.graph();
     let xyz = |p: [f32; 3]| format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2]);
-    let crossings = graph.crossings(&level.waters);
+    let crossings = graph.crossings();
     let shores = &graph.shores;
     for (n, body) in bodies(&level.waters).iter().enumerate() {
         let on = shores.iter().filter(|s| body.contains(&s.water)).count();

@@ -15,7 +15,7 @@ use std::path::Path;
 use std::thread::sleep;
 use std::time::Duration;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, ensure};
 use ounce_formats::Romfs;
 use serde::Serialize;
 
@@ -99,9 +99,20 @@ impl fmt::Display for Reach {
 }
 
 /// The distances along a line, `far` down to `near` by `step`.
-fn steps(plan: &Plan) -> Vec<f32> {
+fn steps(plan: &Plan) -> Result<Vec<f32>> {
+    ensure!(
+        plan.step.is_finite() && plan.step > 0.0,
+        "--step {} isn't a distance over 0 m",
+        plan.step
+    );
+    ensure!(
+        plan.far.is_finite() && plan.near.is_finite(),
+        "--far {} and --near {} must be finite",
+        plan.far,
+        plan.near
+    );
     let n = ((plan.far - plan.near) / plan.step).round().max(0.0) as usize;
-    (0..=n).map(|i| plan.far - i as f32 * plan.step).collect()
+    Ok((0..=n).map(|i| plan.far - i as f32 * plan.step).collect())
 }
 
 /// The flat unit vector `angle` degrees clockwise (seen from above, `+Y`
@@ -159,10 +170,11 @@ pub fn reach<M: Memory, I: Input>(
         "Is a button prompt with the word {} shown on screen?",
         plan.word
     );
+    let aims = steps(plan)?;
     let mut tried = Vec::new();
     for &angle in &plan.angles {
         let dir = line(&pose, angle);
-        for aimed in steps(plan) {
+        for &aimed in &aims {
             dev.warp(spot(at, dir, aimed))?;
             sleep(SETTLE);
             let faced = Drive::new(dev, input).face(at)?;
@@ -213,9 +225,28 @@ mod tests {
             step: 0.2,
             word: "Open".into(),
         };
-        let got = steps(&plan);
+        let got = steps(&plan).unwrap();
         assert_eq!(got.len(), 4);
         assert!((got[0] - 1.6).abs() < 1e-5 && (got[3] - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn steps_refuse_a_step_that_never_ends() {
+        let plan = |far: f32, step: f32| Plan {
+            angles: vec![0.0],
+            far,
+            near: 1.0,
+            step,
+            word: "Open".into(),
+        };
+        for (far, step) in [
+            (1.6, 0.0),
+            (1.6, -0.2),
+            (1.6, f32::NAN),
+            (f32::INFINITY, 0.2),
+        ] {
+            assert!(steps(&plan(far, step)).is_err(), "far {far} step {step}");
+        }
     }
 
     #[test]

@@ -39,7 +39,10 @@ impl Step {
         let (head, secs) = match text.split_once('~') {
             Some((head, n)) => {
                 let secs: f32 = n.parse().with_context(|| format!("{n} isn't seconds"))?;
-                ensure!(secs > 0.0, "{text}: a step lasts more than 0 s");
+                ensure!(
+                    secs.is_finite() && secs > 0.0,
+                    "{text}: a step lasts more than 0 s and ends"
+                );
                 (head, Some(secs))
             }
             None => (text, None),
@@ -120,11 +123,10 @@ impl Traced {
         let off = samples.iter().position(|s| s.at[1] < y0 - OFF);
         let level = off.map(|i| samples[i.saturating_sub(1)]);
         let crossed = off.map(|i| {
+            // `i` is the first sample below the line, so the one before it
+            // is above: `a` is higher than `b`.
             let (a, b) = (samples[i.saturating_sub(1)].at, samples[i].at);
-            let f = match a[1] - b[1] {
-                d if d > 0.0 => ((a[1] - (y0 - OFF)) / d).clamp(0.0, 1.0),
-                _ => 0.0,
-            };
+            let f = ((a[1] - (y0 - OFF)) / (a[1] - b[1])).clamp(0.0, 1.0);
             [0, 1, 2].map(|k| a[k] + (b[k] - a[k]) * f)
         });
         Ok(Traced {
@@ -176,6 +178,16 @@ fn starts(steps: &[Step]) -> Vec<f32> {
         .collect()
 }
 
+/// When the trace stops: `settle` s past the end of the last step.
+fn end(steps: &[Step], settle: f32) -> Result<f32> {
+    ensure!(
+        settle.is_finite() && settle >= 0.0,
+        "--settle {settle} isn't a time of 0 s or more"
+    );
+    let last = starts(steps).last().zip(steps.last());
+    Ok(last.map_or(0.0, |(t, s)| t + s.secs()) + settle)
+}
+
 /// Play `steps` and read Link's position every frame until `settle` s past
 /// the last, saving frames and the trace in `out` when given.
 pub fn trace<M: Memory, I: Input>(
@@ -190,12 +202,8 @@ pub fn trace<M: Memory, I: Input>(
     if let Some(dir) = out {
         std::fs::create_dir_all(dir).with_context(|| format!("making {}", dir.display()))?;
     }
+    let end = end(steps, settle)?;
     let starts = starts(steps);
-    let end = starts
-        .last()
-        .zip(steps.last())
-        .map_or(0.0, |(t, s)| t + s.secs())
-        + settle;
     let (mut samples, mut shots, mut next) = (Vec::new(), Vec::new(), 0);
     let begun = Instant::now();
     loop {
@@ -203,7 +211,7 @@ pub fn trace<M: Memory, I: Input>(
         while next < steps.len() && starts[next] <= t {
             match &steps[next] {
                 Step::Hold(buttons, secs) => {
-                    input.queue(&line(buttons, Some((secs * 1000.0) as u64))?)?
+                    input.queue(&line(buttons, Some((secs * 1000.0).round() as u64))?)?
                 }
                 Step::Wait(_) => {}
                 Step::Shot => {
@@ -242,7 +250,9 @@ mod tests {
         assert_eq!(Step::parse("A").unwrap(), Step::Hold("A".into(), 0.15));
         assert_eq!(Step::parse("wait~1").unwrap(), Step::Wait(1.0));
         assert_eq!(Step::parse("shot").unwrap(), Step::Shot);
-        for bad in ["Jump~1", "wait", "shot~1", "A~0", "A~x"] {
+        for bad in [
+            "Jump~1", "wait", "shot~1", "A~0", "A~x", "A~inf", "wait~inf",
+        ] {
             assert!(Step::parse(bad).is_err(), "{bad}");
         }
     }
@@ -251,6 +261,15 @@ mod tests {
     fn steps_start_back_to_back() {
         let steps = ["LUp~1", "shot", "A~0.2", "wait~0.5"].map(|s| Step::parse(s).unwrap());
         assert_eq!(starts(&steps), [0.0, 1.0, 1.0, 1.2]);
+    }
+
+    #[test]
+    fn the_trace_ends_settle_past_the_last_step() {
+        let steps = ["LUp~1", "wait~0.5"].map(|s| Step::parse(s).unwrap());
+        assert_eq!(end(&steps, 1.5).unwrap(), 3.0);
+        for bad in [f32::INFINITY, f32::NAN, -1.0] {
+            assert!(end(&steps, bad).is_err(), "{bad}");
+        }
     }
 
     #[test]
