@@ -1,7 +1,7 @@
 use ounce_formats::{BymlDoc, Flowchart, Link, murmur3};
 
-use std::collections::{HashMap, HashSet};
-use std::path::Path;
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::path::{Path, PathBuf};
 
 use super::write::flows;
 use super::*;
@@ -19,37 +19,79 @@ use crate::{
 
 mod copies;
 
+/// A test's own scratch folder, emptied when made and gone when dropped
+/// (after a failed assert too), so no two tests share one or leave it.
+/// Each test passes its own `tag`.
+pub(crate) struct Scratch(PathBuf);
+
+impl Scratch {
+    pub(crate) fn new(tag: &str) -> Self {
+        let name = format!("zootr-generate-{tag}-{}", std::process::id());
+        let dir = std::env::temp_dir().join(name);
+        let _ = std::fs::remove_dir_all(&dir);
+        Self(dir)
+    }
+}
+
+impl std::ops::Deref for Scratch {
+    type Target = Path;
+    fn deref(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl AsRef<Path> for Scratch {
+    fn as_ref(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// Every file under `dir`, by its path there, with its bytes.
+fn tree(dir: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
+    let mut files = BTreeMap::new();
+    let mut todo = vec![dir.to_owned()];
+    while let Some(at) = todo.pop() {
+        for entry in std::fs::read_dir(&at).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                todo.push(path);
+            } else {
+                let bytes = std::fs::read(&path).unwrap();
+                files.insert(path.strip_prefix(dir).unwrap().to_owned(), bytes);
+            }
+        }
+    }
+    files
+}
+
 #[test]
 fn same_seed_and_settings_give_the_same_mod() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-gen-{}", std::process::id()));
+    let dir = Scratch::new("gen");
     let settings = Settings::from([("open-forest".into(), true.into())]);
     let extras = Extras::default();
-    let a = generate(
-        &romfs,
-        &dir.join("a"),
-        7,
-        &settings,
-        &extras,
-        &Run::silent(),
-    )
-    .unwrap();
-    let b = generate(
-        &romfs,
-        &dir.join("a"),
-        7,
-        &settings,
-        &extras,
-        &Run::silent(),
-    )
-    .unwrap();
+    let [a, b] = ["a", "b"]
+        .map(|to| generate(&romfs, &dir.join(to), 7, &settings, &extras, &Run::silent()).unwrap());
     assert_eq!(a, b);
+    let (a_files, b_files) = (tree(&dir.join("a")), tree(&dir.join("b")));
+    assert_eq!(
+        a_files.keys().collect::<Vec<_>>(),
+        b_files.keys().collect::<Vec<_>>()
+    );
+    for (path, bytes) in &a_files {
+        assert!(b_files[path] == *bytes, "{} differs", path.display());
+    }
     assert!(a.changed() > 0 && !a.written.defaults.is_empty());
     let spoiler = std::fs::read_to_string(dir.join("a/spoiler.txt")).unwrap();
     assert_eq!(spoiler, a.spoiler(&icons::icons(7, &settings, &extras)));
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -66,12 +108,11 @@ fn a_run_reports_every_step_in_order() {
         }
     });
     let romfs = crate::game::prepare(path, &run).unwrap();
-    let dir = std::env::temp_dir().join(format!("zootr-steps-{}", std::process::id()));
+    let dir = Scratch::new("steps-run");
     generate(&romfs, &dir, 7, &Settings::new(), &Extras::default(), &run).unwrap();
     use Step::*;
     let steps = [Dump, Checks, Logic, Placing, Writing, Spoiler];
     assert_eq!(*began.lock().unwrap(), steps);
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -79,7 +120,7 @@ fn every_seed_can_call_navi_without_the_deku_tree() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-navi-{}", std::process::id()));
+    let dir = Scratch::new("navi");
     let report = generate(
         &romfs,
         &dir,
@@ -93,7 +134,6 @@ fn every_seed_can_call_navi_without_the_deku_tree() {
         "{}.Navi: false -> true",
         flag::ACTION_GUIDE_IS_END
     )));
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -213,7 +253,7 @@ fn a_bad_quest_step_stops_the_seed_before_anything_is_written() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-steps-{}", std::process::id()));
+    let dir = Scratch::new("steps-bad");
     let extras = Extras {
         progress: vec![format!("{}=Step99", flow::SAGE_OF_SPIRIT)],
         ..Default::default()
@@ -232,7 +272,7 @@ fn scrubs_are_checks_only_with_the_option_on() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-scrubs-{}", std::process::id()));
+    let dir = Scratch::new("scrubs");
     let flow = crate::flows::rel(scrubs::FLOW);
     let scrubs = |r: &Report| {
         let of = |s: &&Spot| s.holder.starts_with(scrubs::HOLDER);
@@ -263,7 +303,6 @@ fn scrubs_are_checks_only_with_the_option_on() {
     );
     assert_eq!(scrubs(&report.unwrap()), 0);
     assert!(!dir.join("off/romfs").join(&flow).is_file());
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -271,7 +310,7 @@ fn cows_are_checks_and_bools_only_with_the_option_on() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-cows-gen-{}", std::process::id()));
+    let dir = Scratch::new("cows-gen");
     let flow = crate::flows::rel(actor::ANIMAL_COW);
     let cows = |r: &Report| {
         r.spots
@@ -324,7 +363,6 @@ fn cows_are_checks_and_bools_only_with_the_option_on() {
     assert_eq!(written(&dir.join("on")), written(off) + 8);
     assert!(!off.join("romfs").join(&flow).is_file());
     assert!(!clone(off).is_file());
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -332,7 +370,7 @@ fn shop_slots_are_checks_with_shopsanity_on() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-shops-gen-{}", std::process::id()));
+    let dir = Scratch::new("shops-gen");
     let shops = |r: &Report| -> Vec<Spot> {
         let of = |s: &&Spot| shops::is_holder(&s.holder);
         r.spots.iter().filter(of).cloned().collect()
@@ -380,7 +418,6 @@ fn shop_slots_are_checks_with_shopsanity_on() {
         &Run::silent(),
     );
     assert!(shops(&off.unwrap()).is_empty());
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -388,7 +425,7 @@ fn pickups_are_checks_with_their_options_on() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-pickups-gen-{}", std::process::id()));
+    let dir = Scratch::new("pickups-gen");
     let of = |r: &Report, kind: &pickups::Kind| -> HashSet<u64> {
         let checks = kind.checks(&romfs).unwrap();
         let held = |s: &&Spot| checks.iter().any(|c| c.hash == s.hash);
@@ -437,7 +474,6 @@ fn pickups_are_checks_with_their_options_on() {
     assert!(of(&off, &pickups::FREESTANDING).is_empty());
     assert!(of(&off, &pickups::SKULLTULAS).is_empty());
     assert!(of(&off, &pickups::POTS).is_empty());
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -446,7 +482,7 @@ fn the_lake_pickups_are_checks_only_with_npc_gifts_on() {
         return;
     };
     use crate::settings::NPC_GIFTS;
-    let dir = std::env::temp_dir().join(format!("zootr-lake-gen-{}", std::process::id()));
+    let dir = Scratch::new("lake-gen");
     let held = |r: &Report| -> usize {
         let hashes = [&pickups::FIRE_ARROWS, &pickups::RUTOS_LETTER]
             .map(|k| k.checks(&romfs).unwrap()[0].hash);
@@ -475,7 +511,6 @@ fn the_lake_pickups_are_checks_only_with_npc_gifts_on() {
         &Run::silent(),
     );
     assert_eq!(held(&off.unwrap()), 0);
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -484,7 +519,7 @@ fn the_merchants_sell_their_checks_only_with_merchants_on() {
         return;
     };
     use crate::settings::MERCHANTS;
-    let dir = std::env::temp_dir().join(format!("zootr-merchants-gen-{}", std::process::id()));
+    let dir = Scratch::new("merchants-gen");
     let sales: Vec<_> = gifts::GIFTS.iter().filter(|g| g.is_sale()).collect();
     assert_eq!(sales.len(), 3);
     let fixed: Fixed = sales
@@ -522,7 +557,6 @@ fn the_merchants_sell_their_checks_only_with_merchants_on() {
     let report = off.unwrap();
     assert_eq!(held(&report), 0);
     assert!(rels.iter().all(|r| !written(&dir.join("off"), r)));
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -530,7 +564,7 @@ fn gift_flows_are_written_when_they_give_something() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-gift-{}", std::process::id()));
+    let dir = Scratch::new("gift");
     let [saria, zelda] = [0, 1].map(|i| crate::flows::rel(gifts::GIFTS[i].flow));
     let written = |dir: &Path, rel: &str| dir.join("romfs").join(rel).is_file();
     let hook = Fixed::from([(gifts::GIFTS[0].hash(), item::HOOKSHOT.to_string())]);
@@ -564,7 +598,6 @@ fn gift_flows_are_written_when_they_give_something() {
     )
     .unwrap();
     assert!(!written(&dir.join("b"), &saria) && written(&dir.join("b"), &zelda));
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -573,9 +606,8 @@ fn dealt_gifts_are_checks_only_with_their_option_on() {
         return;
     };
     use crate::settings::{DUNGEON_REWARDS, HUNDRED_TOKENS, NPC_GIFTS, SONGS, TRADE_CHAIN};
-    let pid = std::process::id();
     // With every option off, one seed answers for each setting.
-    let off_dir = std::env::temp_dir().join(format!("zootr-gifts-off-{pid}"));
+    let off_dir = Scratch::new("gifts-off");
     let off = shuffle(
         &romfs,
         &off_dir,
@@ -585,11 +617,10 @@ fn dealt_gifts_are_checks_only_with_their_option_on() {
         &Run::silent(),
     )
     .unwrap();
-    std::fs::remove_dir_all(off_dir).unwrap();
     // Each setting's seed builds on its own, so they build at once.
     let settings = [NPC_GIFTS, DUNGEON_REWARDS, SONGS, TRADE_CHAIN];
     ounce_formats::par_map(&settings, |&setting| {
-        let dir = std::env::temp_dir().join(format!("zootr-{setting}-{pid}"));
+        let dir = Scratch::new(&format!("gifts-{setting}"));
         let ours: Vec<&gifts::Gift> = gifts::GIFTS
             .iter()
             .filter(|g| g.setting() == Some(setting))
@@ -610,7 +641,6 @@ fn dealt_gifts_are_checks_only_with_their_option_on() {
         let flow = dir.join("romfs").join(crate::flows::rel(ours[0].flow));
         assert!(flow.is_file(), "{setting}");
         assert_eq!(dealt(&off), 0, "{setting}");
-        std::fs::remove_dir_all(dir).unwrap();
     });
 }
 
@@ -619,7 +649,7 @@ fn the_medallion_bridge_starts_armed_and_keeps_its_step() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-bridge-gen-{}", std::process::id()));
+    let dir = Scratch::new("bridge-gen");
     let on = NewGame {
         bridge: crate::settings::Bridge::SixMedallions,
         ..Default::default()
@@ -649,7 +679,7 @@ fn hints_fill_every_stone_only_with_the_option_on() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-hints-{}", std::process::id()));
+    let dir = Scratch::new("hints");
     let stones = |dir: &Path| {
         let rel = crate::names::TEXT;
         let raw = std::fs::read(dir.join("romfs").join(rel)).ok()?;
@@ -700,7 +730,6 @@ fn hints_fill_every_stone_only_with_the_option_on() {
     .unwrap();
     let vanilla = stones(&dir.join("b")).unwrap_or_default();
     assert!(!vanilla.iter().any(|l| l.starts_with("They say that ")));
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -710,7 +739,7 @@ fn line_chests_hold_their_first_level_and_no_swap() {
     };
     use crate::progressive::{first, in_line};
     let checks = checks::scan(&romfs).unwrap();
-    let dir = std::env::temp_dir().join(format!("zootr-prog-{}", std::process::id()));
+    let dir = Scratch::new("prog");
     let new_game = NewGame {
         vanilla: true,
         progressive: true,
@@ -742,7 +771,6 @@ fn line_chests_hold_their_first_level_and_no_swap() {
     }
     // The Water Temple's Longshot chest holds the Hookshot.
     assert!(moved > 0);
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -750,7 +778,7 @@ fn a_pickup_holding_a_major_item_drops_its_stand_in() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-standin-{}", std::process::id()));
+    let dir = Scratch::new("standin");
     // Free bombchus edit the pouch table too, and once wrote it over the
     // stand-ins' rows: the get window opened, but nothing reached the pouch
     // (Mac, 2026-11-15).
@@ -806,7 +834,6 @@ fn a_pickup_holding_a_major_item_drops_its_stand_in() {
             gate.flag
         );
     }
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -814,7 +841,7 @@ fn a_logic_seed_keeps_each_spots_round_hero_and_rule() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-logic-{}", std::process::id()));
+    let dir = Scratch::new("logic");
     // The game's own bridge and Bombchus' default cap (for the Spirit
     // trial), which a hand-built new game holds no word for.
     let bridge = crate::settings::value_word(crate::settings::BRIDGE, "vanilla");
@@ -824,7 +851,6 @@ fn a_logic_seed_keeps_each_spots_round_hero_and_rule() {
         ..Default::default()
     };
     let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
-    std::fs::remove_dir_all(dir).unwrap();
     let rounds: HashSet<u16> = (report.spots.iter().filter_map(|s| s.round))
         .chain(report.events.iter().map(|e| e.round))
         .collect();
@@ -850,7 +876,7 @@ fn a_logic_seed_lists_what_link_starts_with() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-start-{}", std::process::id()));
+    let dir = Scratch::new("start");
     let sword = item::SWORD_KOKIRI.get();
     let new_game = NewGame {
         start: starting::Start::of(&["kokiri-sword"]),
@@ -859,7 +885,6 @@ fn a_logic_seed_lists_what_link_starts_with() {
         ..NewGame::default()
     };
     let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
-    std::fs::remove_dir_all(dir).unwrap();
     let held = |item: &str| report.start.items.iter().find(|h| h.item == item);
     let sword_held = held(sword).expect("the starting item is listed");
     assert!(
@@ -903,7 +928,7 @@ fn a_seed_with_every_starter_bag_writes() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-bags-{}", std::process::id()));
+    let dir = Scratch::new("bags");
     let carpet = (gifts::GIFTS.iter())
         .find(|g| g.flow == actor::NPC_HYLIA_044_ADULT)
         .unwrap();
@@ -926,7 +951,6 @@ fn a_seed_with_every_starter_bag_writes() {
         assert!(dealt(bag), "{bag}");
     }
     assert!(dealt(item::NUT_BAG_SMALL.get()) && dealt(item::STICK_BAG_SMALL.get()));
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -935,11 +959,10 @@ fn a_met_zelda_seed_marks_her_three_checks_given_at_start() {
         return;
     };
     use crate::settings::{MET_ZELDA, NPC_GIFTS, SONGS, Settings};
-    let dir = std::env::temp_dir().join(format!("zootr-met-zelda-{}", std::process::id()));
+    let dir = Scratch::new("met-zelda");
     let settings = Settings::from([MET_ZELDA, NPC_GIFTS, SONGS].map(|id| (id.into(), true.into())));
     let new_game = NewGame::from_settings(&settings, &[]).unwrap();
     let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
-    std::fs::remove_dir_all(dir).unwrap();
     let given: Vec<&Spot> = report.spots.iter().filter(|s| s.given).collect();
     assert_eq!(given.len(), 3, "{given:?}");
     let letter = item::ZELDA_LETTER.get();

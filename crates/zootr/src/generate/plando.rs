@@ -129,7 +129,7 @@ fn skipped(
             .map(|id| scope.spawn(move || dealt_with(id)))
             .collect();
         jobs.into_iter()
-            .map(|job| job.join().expect("a dealt read panicked"))
+            .map(|job| job.join().unwrap_or_else(|p| std::panic::resume_unwind(p)))
             .collect()
     });
     let mut out = BTreeMap::new();

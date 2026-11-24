@@ -189,25 +189,26 @@ pub fn write_mod(
         _ => shops::slots(romfs)?,
     };
     let shelves = shops::Shelves::new(&slots, drops, new_game, &gd)?;
-    let mut copies = match new_game.shop_slots {
-        0 => Vec::new(),
-        _ => vec![shops::captions(romfs, &shelves)?],
-    };
     let key_copies = (
         new_game.keys.copies(),
         BOSS_COPIES,
         new_game.fortress_keys.copies(),
     );
-    // First, so a copy on a shelf takes its caption from its own lines.
-    copies.insert(0, foreign::captions(&new_game.foreign));
     let mut key_lines = key_tints::captions(new_game.keys, key_copies.1, key_copies.2);
     if maps_move(new_game) {
         key_lines.new.extend(map_copies::captions());
     }
-    copies.insert(0, key_lines);
-    copies.push(starter_bags::captions(new_game));
-    copies.push(notice::banners());
-    copies.push(notice::senders(&new_game.players));
+    // Copies' own lines before the shelves', so a copy on a shelf takes its
+    // caption from its own lines.
+    let mut copies = vec![key_lines, foreign::captions(&new_game.foreign)];
+    if new_game.shop_slots > 0 {
+        copies.push(shops::captions(romfs, &shelves)?);
+    }
+    copies.extend([
+        starter_bags::captions(new_game),
+        notice::banners(),
+        notice::senders(&new_game.players),
+    ]);
     text::write(romfs, &mut builder, &lines, &copies, hints)?;
     let cows = match new_game.cows {
         true => cows::find(romfs)?,

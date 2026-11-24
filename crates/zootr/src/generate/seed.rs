@@ -379,6 +379,7 @@ pub fn time_seed() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::generate::tests::Scratch;
 
     #[test]
     fn extra_fields_join_the_presets_fields() {
@@ -410,7 +411,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let dir = std::env::temp_dir().join(format!("zootr-doors-{}", std::process::id()));
+        let dir = Scratch::new("doors");
         let settings = crate::settings::Settings::from([
             ("shuffle-dungeon-entrances".into(), "on".into()),
             ("open-forest".into(), true.into()),
@@ -429,6 +430,5 @@ mod tests {
             );
             assert_eq!(report.unwrap().entrances.len(), 11, "seed {seed}");
         }
-        std::fs::remove_dir_all(dir).unwrap();
     }
 }

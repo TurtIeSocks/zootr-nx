@@ -46,11 +46,7 @@ pub fn add_keys(root: &mut Byml, twins: &[(u64, u64)]) -> Result<usize> {
 /// [`add_bools`] for the `Int` table, defaulting to 0. Each copies the first
 /// Int kept in the save the way Link's rupees and keys are.
 pub fn add_ints(root: &mut Byml, names: &[String]) -> Result<()> {
-    let kept = |e: &BymlMap| {
-        e.get(&**field::RESET_TYPE_VALUE)
-            .is_some_and(|v| int(v).ok() == Some(KEPT))
-    };
-    add(root, "Int", names, kept)
+    add(root, "Int", names, is_kept)
 }
 
 /// Append an unsaved `UInt64` for each `(hash, value)`, a copy of the
@@ -93,11 +89,7 @@ pub fn add_u64s(root: &mut Byml, values: &[(u32, u64)]) -> Result<()> {
 /// the first String64 the save keeps, as it keeps a bag's size (the Deku
 /// Nut slot's current expansion actor).
 pub fn add_string64s(root: &mut Byml, names: &[String]) -> Result<()> {
-    let kept = |e: &BymlMap| {
-        e.get(&**field::RESET_TYPE_VALUE)
-            .is_some_and(|v| int(v).ok() == Some(KEPT))
-    };
-    add(root, STRING64, names, kept)
+    add(root, STRING64, names, is_kept)
 }
 
 /// The GameData table of 64-byte strings.
@@ -121,6 +113,12 @@ fn zero(like: Option<&Byml>) -> Option<Byml> {
 
 /// The reset type of a value the save keeps.
 const KEPT: i64 = 8;
+
+/// Whether the save keeps entry `e` the way it keeps Link's rupees.
+fn is_kept(e: &BymlMap) -> bool {
+    e.get(&**field::RESET_TYPE_VALUE)
+        .is_some_and(|v| int(v).ok() == Some(KEPT))
+}
 
 /// Append an entry to table `kind` named each of `names`, copying the first
 /// entry `like` takes, with its value at false or 0.
@@ -240,22 +238,17 @@ pub fn add_exps(root: &mut Byml, exps: &[(String, Vec<Op>)]) -> Result<()> {
         .find(|i| i.len() == 2)
         .context("no BoolExp reads an entry")?
         .to_vec();
+    let reads = |code: i64, of: u32| -> Result<Byml> {
+        let arg = typed(template.get(1), of)?;
+        Ok(Byml::Array(vec![like(&template[0], code)?, arg]))
+    };
     for (name, program) in exps {
         let hash = murmur3(name.as_bytes());
         let taken = table.iter().any(|e| has_hash(e, hash));
         ensure!(!taken, "{} already has {name}", flag::GAME_DATA);
         let values = program.iter().map(|op| match *op {
-            Op::Bool(of) | Op::Exp(of) => {
-                let code = if matches!(op, Op::Bool(_)) {
-                    op::BOOL
-                } else {
-                    op::BOOL_EXP
-                };
-                Ok(Byml::Array(vec![
-                    like(&template[0], code)?,
-                    typed(template.get(1), of)?,
-                ]))
-            }
+            Op::Bool(of) => reads(op::BOOL, of),
+            Op::Exp(of) => reads(op::BOOL_EXP, of),
             Op::Not => instruction(&template, op::NOT, None),
             Op::And => instruction(&template, op::AND, None),
             Op::Or => instruction(&template, op::OR, None),
@@ -593,8 +586,10 @@ mod tests {
             return;
         };
         let mut doc = BymlDoc::parse(&romfs.read(PATH).unwrap()).unwrap();
-        let alias = ("ZootrOpened.1".to_string(), 0xc66e58f2);
-        let both = ("ZootrBoth.1".to_string(), 0x1f7a3c55);
+        let read = |name: &str| (name.to_string(), murmur3(name.as_bytes()));
+        let (opened, shut) = (read("ZootrFakeOpened"), read("ZootrFakeShut"));
+        let alias = ("ZootrOpened.1".to_string(), opened.1);
+        let both = ("ZootrBoth.1".to_string(), shut.1);
         let exps = [
             (alias.0.clone(), vec![Op::Bool(alias.1)]),
             (
@@ -605,9 +600,12 @@ mod tests {
         add_exps(&mut doc.root, &exps).unwrap();
         let gd = GameData::parse(&doc.to_binary()).unwrap();
         assert_eq!(gd.expr(&alias.0).unwrap(), Some(gd.name(alias.1)));
-        assert!(gd.implied_by(&alias.0, &gd.name(alias.1)).is_ok());
+        assert!(gd.implied_by(&alias.0, &opened.0).unwrap());
         let (a, b) = (gd.name(alias.1), gd.name(both.1));
         assert_eq!(gd.expr(&both.0).unwrap(), Some(format!("{a} && !{b}")));
+        // Only an `||` chain is implied by one of its terms, never an `&&`.
+        assert!(!gd.implied_by(&both.0, &opened.0).unwrap());
+        assert!(!gd.implied_by(&both.0, &shut.0).unwrap());
         assert!(add_exps(&mut doc.root, &exps[..1]).is_err(), "added twice");
     }
 
