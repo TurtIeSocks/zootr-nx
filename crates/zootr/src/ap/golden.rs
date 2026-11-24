@@ -4,10 +4,10 @@
 use anyhow::{Context, Result};
 use serde_json::{Value, json};
 
-use super::OPTIONS;
 use super::export::Namer;
 use super::ids::Ids;
 use super::seed::Seed;
+use super::{OPTIONS, SETS};
 use crate::rng::Rng;
 use crate::settings::{Kind, Settings, schema};
 
@@ -15,18 +15,31 @@ use crate::settings::{Kind, Settings, schema};
 const SHARES: [usize; 4] = [0, 1, 2, 3];
 const OF: usize = 4;
 
-/// Every exposed option's value in `settings`, its default if unset.
+/// Every AP option's value in `settings`, its default if unset: a set's
+/// as the children it holds on.
 fn exposed(settings: &Settings) -> Result<serde_json::Map<String, Value>> {
     let defs = schema();
-    let mut out = serde_json::Map::new();
-    for id in OPTIONS {
-        let def = defs.iter().find(|d| d.id == *id);
+    let value = |id: &str| -> Result<Value> {
+        let def = defs.iter().find(|d| d.id == id);
         let default = match &def.with_context(|| format!("no setting {id}"))?.kind {
             Kind::Toggle { default } => Value::Bool(*default),
             Kind::Choice { default, .. } => Value::String(default.clone()),
             Kind::Inventory { default } => serde_json::to_value(default)?,
         };
-        out.insert((*id).into(), settings.get(*id).cloned().unwrap_or(default));
+        Ok(settings.get(id).cloned().unwrap_or(default))
+    };
+    let mut out = serde_json::Map::new();
+    for id in OPTIONS {
+        out.insert((*id).into(), value(id)?);
+    }
+    for set in SETS {
+        let mut on = Vec::new();
+        for d in set.members() {
+            if value(&d.id)? == Value::Bool(true) {
+                on.push(Value::String(d.id));
+            }
+        }
+        out.insert(set.id.into(), Value::Array(on));
     }
     Ok(out)
 }
