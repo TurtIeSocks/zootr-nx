@@ -258,10 +258,7 @@ mod tests {
         write(&romfs, &mut builder, &mut tables).unwrap();
         tables.write(&mut builder).unwrap();
         builder.finish().unwrap();
-        let read = |rel: &str| {
-            let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
-            romfs.dicts().decompress(rel, &raw).unwrap()
-        };
+        let read = |rel: &str| crate::game::read_built(&romfs, &dir, rel);
         let pouch = BymlDoc::parse(&read(POUCH_ACTOR_INFO)).unwrap();
         let chu = pouch_actor(item::BOMBCHU).as_string().unwrap().to_string();
         for (at, (bag, like)) in BAGS.iter().zip(BOMB_BAGS).enumerate() {

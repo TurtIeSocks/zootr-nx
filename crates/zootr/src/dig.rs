@@ -133,8 +133,7 @@ mod tests {
         let drops = HashMap::from([(gift.hash(), Drop::from(PRIZE.to_string()))]);
         write(romfs, &mut builder, &drops, &NewGame::rings()).unwrap();
         let files = builder.finish().unwrap();
-        let raw = std::fs::read(dir.join("romfs").join(rel(PIECE))).unwrap();
-        let data = romfs.dicts().decompress(&rel(PIECE), &raw).unwrap();
+        let data = crate::game::read_built(romfs, &dir, &rel(PIECE));
         std::fs::remove_dir_all(dir).unwrap();
         (data, files)
     }

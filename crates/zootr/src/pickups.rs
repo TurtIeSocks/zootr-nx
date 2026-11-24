@@ -809,8 +809,7 @@ mod tests {
 
         let built = |name: &str| {
             let rel = format!("Pack/Actor/{name}.pack.zs");
-            let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-            let data = romfs.dicts().decompress(&rel, &raw).unwrap();
+            let data = crate::game::read_built(&romfs, &dir, &rel);
             Sarc::new(data).unwrap()
         };
         let param = |sarc: &Sarc, path: &str| -> BymlMap {

@@ -298,6 +298,14 @@ pub(crate) fn dev_dump() -> Option<Romfs> {
     .clone()
 }
 
+/// The file at `rel` a test's [`ModBuilder`](ounce_formats::ModBuilder)
+/// wrote under `dir`, decompressed.
+#[cfg(test)]
+pub(crate) fn read_built(romfs: &Romfs, dir: &Path, rel: &str) -> Vec<u8> {
+    let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
+    romfs.dicts().decompress(rel, &raw).unwrap()
+}
+
 /// Whether tests run without the dev dump, and so without the game's
 /// names. A test that reads a name returns early then, as the dump-backed
 /// tests do: the names never live in the repo.

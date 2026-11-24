@@ -496,9 +496,8 @@ mod tests {
         let copy = &foreign[0].actor;
 
         let rel = pack_file(copy);
-        let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
+        let bytes = crate::game::read_built(&romfs, &dir, &rel);
         std::fs::remove_dir_all(&dir).unwrap();
-        let bytes = romfs.dicts().decompress(&rel, &raw).unwrap();
         let written = ActorPack::from_bytes(copy, bytes.to_vec()).unwrap();
         let built = pack(&romfs, copy, &foreign, DungeonKeys::default())
             .unwrap()

@@ -500,8 +500,7 @@ mod tests {
             .into_iter()
             .find(|r| r.contains("USen"))
             .unwrap();
-        let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-        let data = romfs.dicts().decompress(&rel, &raw).unwrap();
+        let data = crate::game::read_built(&romfs, &dir, &rel);
         let sarc = Sarc::new(&data).unwrap();
         let path = format!("{}.msbt", lines.file);
         let msbt = Msbt::parse(sarc.get_data(&path).unwrap()).unwrap();
@@ -609,8 +608,7 @@ mod tests {
             .into_iter()
             .find(|r| r.contains("USen"));
         let rel = rel.unwrap();
-        let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-        let data = romfs.dicts().decompress(&rel, &raw).unwrap();
+        let data = crate::game::read_built(&romfs, &dir, &rel);
         let sarc = Sarc::new(&data).unwrap();
         for l in &lines {
             let msbt = Msbt::parse(sarc.get_data(&format!("{}.msbt", l.file)).unwrap()).unwrap();
@@ -652,8 +650,7 @@ mod tests {
             .into_iter()
             .find(|r| r.contains("USen"));
         let rel = rel.unwrap();
-        let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-        let data = romfs.dicts().decompress(&rel, &raw).unwrap();
+        let data = crate::game::read_built(&romfs, &dir, &rel);
         let sarc = Sarc::new(&data).unwrap();
         let msbt = Msbt::parse(sarc.get_data(&format!("{}.msbt", l.file)).unwrap()).unwrap();
         let line = |label: &str| split(&msbt.get(label).unwrap().unwrap()).0;

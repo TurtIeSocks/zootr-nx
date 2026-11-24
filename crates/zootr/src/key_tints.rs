@@ -733,8 +733,7 @@ mod tests {
             builder.finish().unwrap();
             for copy in [ring(2), boss(2), fortress()] {
                 let rel = pack_file(&copy);
-                let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-                let bytes = romfs.dicts().decompress(&rel, &raw).unwrap();
+                let bytes = crate::game::read_built(&romfs, &dir, &rel);
                 let written = ActorPack::from_bytes(&copy, bytes.to_vec()).unwrap();
                 let built = copy_pack(&romfs, &copy, keys).unwrap().unwrap();
                 assert_eq!(built.files(), written.files(), "{copy} {keys:?}");
@@ -762,10 +761,7 @@ mod tests {
         let mut tables = Tables::load(romfs).unwrap();
         write(romfs, &mut builder, &mut tables, true, keys, false).unwrap();
         builder.finish().unwrap();
-        let read = |rel: &str| {
-            let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
-            romfs.dicts().decompress(rel, &raw).unwrap()
-        };
+        let read = |rel: &str| crate::game::read_built(romfs, &dir, rel);
         let info = |name: &str| path_of(&ActorPack::load(romfs, name).unwrap(), MODEL).unwrap();
         let has = |bytes: &[u8], s: &str| bytes.windows(s.len()).any(|w| w == s.as_bytes());
         let fmdb = |name: &str| {

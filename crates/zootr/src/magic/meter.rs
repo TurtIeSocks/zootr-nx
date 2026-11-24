@@ -165,8 +165,7 @@ mod tests {
         };
         let host = FILES[3];
         let copy = host.replace(LIKE.get(), &model());
-        let written = std::fs::read(dir.join("romfs").join(&copy)).unwrap();
-        let written = romfs.dicts().decompress(&copy, &written).unwrap();
+        let written = crate::game::read_built(&romfs, &dir, &copy);
         assert_eq!(metal(&written), 0);
         assert!(metal(&romfs.read(host).unwrap()) > 0);
         std::fs::remove_dir_all(dir).ok();

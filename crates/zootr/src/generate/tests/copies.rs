@@ -247,8 +247,7 @@ fn a_pot_dealt_a_compass_drops_the_compass_copy_s_stand_in() {
         flag::KOKIRI_FOREST,
         crate::known::map::KOKIRI_FOREST_CHILD
     );
-    let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
-    let doc = BymlDoc::parse(&romfs.dicts().decompress(rel, &raw).unwrap()).unwrap();
+    let doc = BymlDoc::parse(&crate::game::read_built(&romfs, &dir, rel)).unwrap();
     let actors = checks::actors(&doc.root).unwrap();
     let pot = actors
         .iter()

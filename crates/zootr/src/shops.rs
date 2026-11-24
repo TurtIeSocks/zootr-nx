@@ -746,8 +746,7 @@ mod tests {
         }
 
         let rel = format!("Pack/Actor/{name}.pack.zs");
-        let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-        let data = romfs.dicts().decompress(&rel, &raw).unwrap();
+        let data = crate::game::read_built(&romfs, &dir, &rel);
         let sarc = Sarc::new(data).unwrap();
         let param = |path: &str| -> BymlMap {
             let pack_file = pack_path(path);
@@ -850,8 +849,7 @@ mod tests {
         assert!(restbl.get(&pack_path(&refs(POUCH))).is_some());
 
         for table in [ACTOR_INFO, GAME_ACTOR_INFO, POUCH_ACTOR_INFO] {
-            let raw = std::fs::read(dir.join("romfs").join(table)).unwrap();
-            let doc = BymlDoc::parse(&romfs.dicts().decompress(table, &raw).unwrap()).unwrap();
+            let doc = BymlDoc::parse(&crate::game::read_built(&romfs, &dir, table)).unwrap();
             let ids: Vec<&str> = doc.root.as_array().unwrap().iter().map(row_id).collect();
             assert!(ids.windows(2).all(|w| w[0] < w[1]), "{table} out of order");
             assert_eq!(

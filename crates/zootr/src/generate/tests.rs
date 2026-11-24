@@ -326,10 +326,7 @@ fn cows_are_checks_and_bools_only_with_the_option_on() {
             .unwrap()
             .len()
     };
-    let written = |dir: &Path| {
-        let raw = std::fs::read(dir.join("romfs").join(gamedata::PATH)).unwrap();
-        bools(&romfs.dicts().decompress(gamedata::PATH, &raw).unwrap())
-    };
+    let written = |dir: &Path| bools(&crate::game::read_built(&romfs, dir, gamedata::PATH));
     let clone = |dir: &Path| dir.join("romfs/Pack/Actor/Animal_Cow_Rando_00.pack.zs");
     let on = NewGame {
         cows: true,
@@ -665,8 +662,7 @@ fn the_medallion_bridge_starts_armed_and_keeps_its_step() {
             .join(crate::flows::rel(flow::ALL_SAGE))
             .is_file()
     );
-    let raw = std::fs::read(dir.join("romfs").join(gamedata::PATH)).unwrap();
-    let data = romfs.dicts().decompress(gamedata::PATH, &raw).unwrap();
+    let data = crate::game::read_built(&romfs, &dir, gamedata::PATH);
     let mut doc = BymlDoc::parse(&data).unwrap();
     assert!(
         bridge::need_medallions(&mut doc.root).is_err(),
@@ -796,12 +792,9 @@ fn a_pickup_holding_a_major_item_drops_its_stand_in() {
     ]);
     let report = shuffle(&romfs, &dir, 7, &fixed, &new_game, &Run::silent()).unwrap();
     let rel = crate::gamedata::PATH;
-    let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
-    let gd =
-        crate::gamedata::GameData::parse(&romfs.dicts().decompress(rel, &raw).unwrap()).unwrap();
+    let gd = crate::gamedata::GameData::parse(&crate::game::read_built(&romfs, &dir, rel)).unwrap();
     for check in [pot, skulltula] {
-        let raw = std::fs::read(dir.join("romfs").join(&check.file)).unwrap();
-        let raw = romfs.dicts().decompress(&check.file, &raw).unwrap();
+        let raw = crate::game::read_built(&romfs, &dir, &check.file);
         let doc = BymlDoc::parse(&raw).unwrap();
         let actors = checks::actors(&doc.root).unwrap();
         let actor = actors
@@ -812,8 +805,7 @@ fn a_pickup_holding_a_major_item_drops_its_stand_in() {
         let drop = checks::str_field(dynamic, checks::DROP_ACTOR).unwrap();
         assert!(drop.starts_with("Obj_Rando_"), "{}: {drop}", check.holder);
         let rel = standins::POUCH_ACTOR_INFO;
-        let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
-        let pouch = BymlDoc::parse(&romfs.dicts().decompress(rel, &raw).unwrap()).unwrap();
+        let pouch = BymlDoc::parse(&crate::game::read_built(&romfs, &dir, rel)).unwrap();
         standins::row(&pouch, drop).unwrap();
         // Its take ticks it without the hook: the stand-in's Bool, read by
         // every gate through the holder's BoolExp, and by the tracker.

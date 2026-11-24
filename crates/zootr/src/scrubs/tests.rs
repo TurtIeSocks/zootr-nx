@@ -410,8 +410,7 @@ fn a_mod_with_plain_items_at_scrubs_generates() {
     )
     .unwrap();
     let rel = flows::rel(FLOW);
-    let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-    let data = romfs.dicts().decompress(&rel, &raw).unwrap();
+    let data = crate::game::read_built(&romfs, &dir, &rel);
     let flow = Flowchart::parse(&data).unwrap().unwrap();
     assert!(flow.entry_points.iter().any(|e| e.name == PLAIN_ONE_TIME));
     assert!(!reachable(&flow, ROOT).unwrap().is_empty());

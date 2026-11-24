@@ -280,10 +280,7 @@ mod tests {
             ..NewGame::default()
         };
         shuffle(&romfs, &dir, 7, &Fixed::new(), &hives, &Run::silent()).unwrap();
-        let written = |rel: &str| {
-            let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
-            romfs.dicts().decompress(rel, &raw).unwrap()
-        };
+        let written = |rel: &str| crate::game::read_built(&romfs, &dir, rel);
         let actors_in = |map: &Name| {
             let rel = format!(
                 "Banc/{}/{map}_Dynamic.bcett.byml.zs",
