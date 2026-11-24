@@ -89,7 +89,8 @@ pub(crate) fn any(terms: impl Iterator<Item = Vec<Op>>) -> Vec<Op> {
 pub(crate) fn copy_hash(of: u64, k: usize) -> u64 {
     match k {
         0 => of,
-        // splitmix64, so no copy lands on another placement's hash.
+        // splitmix64, so a copy landing on another placement's hash is
+        // vanishingly unlikely.
         k => {
             let mut z = of ^ (k as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15);
             z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
@@ -98,6 +99,7 @@ pub(crate) fn copy_hash(of: u64, k: usize) -> u64 {
         }
     }
 }
+
 /// Give a copied placement its own hash, in each field that holds it.
 pub(crate) fn rehash(actor: &mut Byml, hash: u64) -> Result<()> {
     let map = actor.as_mut_map()?;

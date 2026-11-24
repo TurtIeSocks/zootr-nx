@@ -171,7 +171,7 @@ fn sequence(name: &Name, kind: &str) -> String {
     format!("Sequence/{name}.{kind}.ainb")
 }
 
-/// The first node in `graph` named `name`.
+/// The first node in `patch`'s graph named `name`.
 fn named(patch: &Patch, name: &Name) -> Result<usize> {
     (patch.graph().nodes.iter())
         .position(|n| n.name == name.get())
@@ -256,7 +256,7 @@ mod tests {
         (rewrites, flags)
     }
 
-    /// The patched node `name` of sequence graph `rel`.
+    /// The node `name` of patched sequence graph `graph`.
     fn node<'a>(graph: &'a Graph, name: &Name) -> &'a ounce_formats::ainb::Node {
         graph.nodes.iter().find(|n| n.name == name.get()).unwrap()
     }

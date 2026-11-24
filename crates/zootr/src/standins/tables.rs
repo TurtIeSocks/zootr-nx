@@ -18,7 +18,8 @@ pub struct Tables {
     pub(crate) actor: BymlDoc,
     pub(crate) game: BymlDoc,
     pub(crate) pouch: BymlDoc,
-    added: usize,
+    /// Whether anything changed a row, so `write` has tables to write.
+    dirty: bool,
 }
 
 pub(crate) fn row_id(row: &Byml) -> &str {
@@ -29,14 +30,16 @@ pub(crate) fn row_id(row: &Byml) -> &str {
         .map_or("", |s| s.as_str())
 }
 
+/// Where row `id` sits in `rows`, sorted by id.
+fn position(rows: &[Byml], id: &str) -> Result<usize> {
+    let at = rows.partition_point(|r| row_id(r) < id);
+    let found = rows.get(at).is_some_and(|r| row_id(r) == id);
+    found.then_some(at).with_context(|| format!("no row {id}"))
+}
+
 pub(crate) fn row(doc: &BymlDoc, id: &str) -> Result<BymlMap> {
     let rows = doc.root.as_array()?;
-    let at = rows.partition_point(|r| row_id(r) < id);
-    let found = rows.get(at).filter(|r| row_id(r) == id);
-    Ok(found
-        .with_context(|| format!("no row {id}"))?
-        .as_map()?
-        .clone())
+    Ok(rows[position(rows, id)?].as_map()?.clone())
 }
 
 pub(crate) fn insert(doc: &mut BymlDoc, id: &str, mut row: BymlMap) -> Result<()> {
@@ -88,7 +91,7 @@ impl Tables {
             actor: load(ACTOR_INFO)?,
             game: load(GAME_ACTOR_INFO)?,
             pouch: load(POUCH_ACTOR_INFO)?,
-            added: 0,
+            dirty: false,
         })
     }
 
@@ -111,7 +114,7 @@ impl Tables {
             pouch.insert(BUYING.get().into(), Byml::I32(price));
         }
         insert(&mut self.pouch, name, pouch)?;
-        self.added += 1;
+        self.dirty = true;
         Ok(())
     }
 
@@ -175,9 +178,9 @@ impl Tables {
 
     pub(super) fn replace(&mut self, name: &str, actor: BymlMap) -> Result<()> {
         let rows = self.actor.root.as_mut_array()?;
-        let at = rows.partition_point(|r| row_id(r) < name);
+        let at = position(rows, name)?;
         rows[at] = Byml::Map(actor);
-        self.added += 1;
+        self.dirty = true;
         Ok(())
     }
 
@@ -186,7 +189,7 @@ impl Tables {
         let (actor, game) = (row(&self.actor, like)?, row(&self.game, like)?);
         insert(&mut self.actor, name, actor)?;
         insert(&mut self.game, name, game)?;
-        self.added += 1;
+        self.dirty = true;
         Ok(())
     }
 
@@ -201,20 +204,19 @@ impl Tables {
     /// its source's, and the game asks that field who an actor is.
     pub(crate) fn name_itself(&mut self, name: &str) -> Result<()> {
         let rows = self.actor.root.as_mut_array()?;
-        let at = rows.partition_point(|r| row_id(r) < name);
-        let found = rows.get_mut(at).filter(|r| row_id(r) == name);
-        let row = found
-            .with_context(|| format!("no row {name}"))?
-            .as_mut_map()?;
+        let at = position(rows, name)?;
+        let row = rows[at].as_mut_map()?;
         row.insert(flag::ACTOR_NAME.get().into(), Byml::String(name.into()));
-        self.added += 1;
+        self.dirty = true;
         Ok(())
     }
 
     /// `name`'s pouch row, `like`'s.
     pub(crate) fn copy_pouch(&mut self, name: &str, like: &str) -> Result<()> {
         let pouch = row(&self.pouch, like)?;
-        insert(&mut self.pouch, name, pouch)
+        insert(&mut self.pouch, name, pouch)?;
+        self.dirty = true;
+        Ok(())
     }
 
     /// The pouch rows of `names` take the deal of an item the game stores
@@ -240,13 +242,13 @@ impl Tables {
         for row in self.pouch.root.as_mut_array()? {
             changed += edit(row.as_mut_map()?) as usize;
         }
-        self.added += changed;
+        self.dirty |= changed > 0;
         Ok(changed)
     }
 
     /// Writes the tables if anything changed a row.
     pub fn write(&self, builder: &mut ModBuilder) -> Result<()> {
-        if self.added == 0 {
+        if !self.dirty {
             return Ok(());
         }
         for (rel, doc) in [
@@ -257,5 +259,30 @@ impl Tables {
             builder.write(rel, &doc.to_binary())?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rows(ids: &[&str]) -> Vec<Byml> {
+        let row = |id: &str| {
+            let mut row = BymlMap::default();
+            row.insert(rsdb::ROW_ID.into(), Byml::String(id.into()));
+            Byml::Map(row)
+        };
+        ids.iter().map(|id| row(id)).collect()
+    }
+
+    #[test]
+    fn a_missing_row_has_no_position_to_replace() {
+        let rows = rows(&["FakeA", "FakeC"]);
+        assert_eq!(position(&rows, "FakeA").unwrap(), 0);
+        assert_eq!(position(&rows, "FakeC").unwrap(), 1);
+        // Between rows and past the end, where `replace` once overwrote
+        // FakeC or indexed out of bounds.
+        assert!(position(&rows, "FakeB").is_err());
+        assert!(position(&rows, "FakeD").is_err());
     }
 }
