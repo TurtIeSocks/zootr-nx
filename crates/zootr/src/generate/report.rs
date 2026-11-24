@@ -149,8 +149,9 @@ pub struct Written {
     #[serde(skip)]
     #[cfg_attr(feature = "specta", specta(skip))]
     pub stand_ins: Vec<(u64, String)>,
-    /// The build of the game the mod was made for.
-    #[serde(default, skip_serializing_if = "Release::is_update")]
+    /// The build of the game the mod was made for. Seeds from before it
+    /// was kept were all made for 1.1.1, the default.
+    #[serde(default)]
     pub release: Release,
 }
 
@@ -261,8 +262,9 @@ impl Report {
         let width = width.max().unwrap_or(0);
         let mut out = format!("seed {}\nicons {}\n", self.seed, icons.join(" · "));
         let release = self.written.release;
+        out += &format!("game {}\n", release.name());
         if let Some(notice) = release.notice() {
-            out += &format!("game {}\n{notice}\n", release.name());
+            out += &format!("{notice}\n");
         }
         if !self.entrances.is_empty() {
             let width = self.entrances.iter().map(|d| d.name().chars().count());
@@ -401,14 +403,29 @@ mod tests {
     }
 
     #[test]
-    fn a_seed_says_its_build_only_when_it_is_the_base_game() {
+    fn a_seed_says_its_build_and_only_the_base_game_warns() {
         let update = Report {
             spots: vec![],
             ..report()
         };
         let json = serde_json::to_value(&update).unwrap();
-        assert!(json.get("release").is_none(), "1.1.1 reports as before");
-        assert_eq!(update.spoiler(&[]), format!("seed {}\nicons \n", u64::MAX));
+        assert_eq!(json["release"], "1.1.1");
+        assert_eq!(
+            serde_json::from_value::<Report>(json.clone()).unwrap(),
+            update
+        );
+        let mut old = json;
+        old.as_object_mut().unwrap().remove("release");
+        let old: Report = serde_json::from_value(old).unwrap();
+        assert_eq!(
+            old.written.release,
+            Release::V111,
+            "an older seed was 1.1.1's"
+        );
+        assert_eq!(
+            update.spoiler(&[]),
+            format!("seed {}\nicons \ngame 1.1.1\n", u64::MAX)
+        );
         let mut base = update.clone();
         base.written.release = Release::V100;
         let json = serde_json::to_value(&base).unwrap();
@@ -444,7 +461,7 @@ mod tests {
         };
         assert_eq!(
             report.spoiler(&[]),
-            "seed 7\nicons \n\nEntrances\n  Kokiri Forest, Deku Tree door            -> Fire Temple\n  Death Mountain Crater, Fire Temple door  -> Deku Tree\n"
+            "seed 7\nicons \ngame 1.1.1\n\nEntrances\n  Kokiri Forest, Deku Tree door            -> Fire Temple\n  Death Mountain Crater, Fire Temple door  -> Deku Tree\n"
         );
     }
 
@@ -502,7 +519,7 @@ mod tests {
         };
         assert_eq!(
             report.spoiler(&["Sun".into(), "Moon".into()]),
-            "seed 7\nicons Sun · Moon\n\nField\n  Sword            -> Bow\n  North Bow (big)  -> Sword\n\nLake\n  Map              -> Map (given at start)\n"
+            "seed 7\nicons Sun · Moon\ngame 1.1.1\n\nField\n  Sword            -> Bow\n  North Bow (big)  -> Sword\n\nLake\n  Map              -> Map (given at start)\n"
         );
     }
 
@@ -572,7 +589,7 @@ mod tests {
         assert!(report.events.is_empty());
         assert_eq!(
             report.spoiler(&[]),
-            "seed 7\nicons \n\nWay of the Hero\n  Field: Sword -> Bow\n\nPlaythrough\n  Round 1\n    Field: Sword -> Bow\n"
+            "seed 7\nicons \ngame 1.1.1\n\nWay of the Hero\n  Field: Sword -> Bow\n\nPlaythrough\n  Round 1\n    Field: Sword -> Bow\n"
         );
     }
 

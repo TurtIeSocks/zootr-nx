@@ -224,12 +224,6 @@ impl Release {
         }
     }
 
-    /// The update, which every seed was made for before seeds kept their
-    /// build, so a report leaves it out.
-    pub fn is_update(&self) -> bool {
-        *self == Self::V111
-    }
-
     /// The package that holds it: title and version.
     const fn package(self) -> (u64, u32) {
         match self {
