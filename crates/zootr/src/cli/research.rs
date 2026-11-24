@@ -1,7 +1,7 @@
 //! The commands that read the game's data and print what they find, for
 //! research: placements, flows, flags, items, cutscenes and what logic reaches.
 
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use anyhow::{Context, Result};
@@ -11,7 +11,6 @@ use super::args::NewGame;
 use super::logic_args::{LogicCommand, RoomEntry};
 use crate::known::{field, flag};
 use crate::rules::rooms::write;
-use crate::world::Era;
 use crate::{arrivals, checks, cut, cutscenes, events, fill, flags, flows, items, logic, rules};
 
 pub(super) fn cutscenes(romfs: &Romfs) -> Result<()> {
@@ -58,9 +57,9 @@ pub(super) fn cutscenes(romfs: &Romfs) -> Result<()> {
 
 pub(super) fn census(romfs: &Romfs) -> Result<()> {
     let checks = checks::all(romfs)?;
-    let mut by_item = BTreeMap::<&str, usize>::new();
+    let mut kinds = HashSet::<&str>::new();
     for c in &checks {
-        *by_item.entry(&c.item).or_default() += 1;
+        kinds.insert(&c.item);
         println!(
             "{:<60} {:<32} {:>20} {:<32} {:<48} {}",
             c.file,
@@ -71,12 +70,12 @@ pub(super) fn census(romfs: &Romfs) -> Result<()> {
             c.presence.as_ref().map_or("-".into(), |p| p.to_string())
         );
     }
-    let unique: std::collections::BTreeSet<u64> = checks.iter().map(|c| c.hash).collect();
+    let unique: HashSet<u64> = checks.iter().map(|c| c.hash).collect();
     eprintln!(
         "{} placements, {} unique actors, {} item kinds",
         checks.len(),
         unique.len(),
-        by_item.len()
+        kinds.len()
     );
     Ok(())
 }
@@ -216,221 +215,215 @@ pub(super) fn logic(romfs: &Romfs, new_game: &NewGame) -> Result<()> {
 }
 
 pub(super) fn logic_set(romfs: &Romfs, game: &std::path::Path, cmd: LogicCommand) -> Result<()> {
-    if let LogicCommand::Explain {
-        dungeon,
-        at,
-        within,
-        picture,
-        rooms,
-        y,
-    } = cmd
-    {
-        anyhow::ensure!(
-            at.is_some() || (picture.is_some() && !rooms.is_empty()),
-            "name a spot (`--at X,Y,Z`), or rooms to draw (`--picture PNG --rooms 5,6`)"
-        );
-        let at = match at.as_deref() {
-            None => None,
-            Some(&[x, y, z]) => Some([x, y, z]),
-            Some(_) => anyhow::bail!("`--at` takes three numbers, `X,Y,Z`"),
-        };
-        let ask = crate::derive::rooms::explain::Ask {
+    match cmd {
+        LogicCommand::Explain {
+            dungeon,
             at,
             within,
             picture,
             rooms,
             y,
-        };
-        print!(
-            "{}",
-            crate::derive::rooms::explain::explain(romfs, game, dungeon_of(&dungeon)?, &ask)?
-        );
-        return Ok(());
-    }
-    if let LogicCommand::Audit { dungeon } = cmd {
-        let only = match dungeon {
-            Some(id) => Some(crate::rules::rooms::folder(dungeon_of(&id)?.node.get())),
-            None => None,
-        };
-        let book = crate::rules::Book::load()?;
-        let audits = crate::rules::audit::audit(&book, only.as_deref());
-        anyhow::ensure!(!audits.is_empty(), "no room files for that dungeon yet");
-        audits.iter().for_each(|a| print!("{a}"));
-        return Ok(());
-    }
-    if let LogicCommand::QuestGates = cmd {
-        let (graph, book) = (
-            crate::flagmap::Graph::build(romfs)?,
-            crate::rules::Book::load()?,
-        );
-        print!(
-            "{}",
-            crate::rules::quest_gates::audit(romfs, &graph, &book)?
-        );
-        return Ok(());
-    }
-    if let LogicCommand::Derive {
-        kinds,
-        dungeon,
-        dir,
-    } = cmd
-    {
-        anyhow::ensure!(kinds || dungeon.is_some(), "name a dungeon, or `--kinds`");
-        if kinds {
-            let (count, guesses) = crate::derive::kinds(romfs, &dir)?;
-            println!(
-                "{count} kinds, {guesses} guesses: {}",
-                dir.join("baseline/kinds.toml").display()
+        } => {
+            anyhow::ensure!(
+                at.is_some() || (picture.is_some() && !rooms.is_empty()),
+                "name a spot (`--at X,Y,Z`), or rooms to draw (`--picture PNG --rooms 5,6`)"
+            );
+            let at = match at.as_deref() {
+                None => None,
+                Some(&[x, y, z]) => Some([x, y, z]),
+                Some(_) => anyhow::bail!("`--at` takes three numbers, `X,Y,Z`"),
+            };
+            let ask = crate::derive::rooms::explain::Ask {
+                at,
+                within,
+                picture,
+                rooms,
+                y,
+            };
+            print!(
+                "{}",
+                crate::derive::rooms::explain::explain(romfs, game, dungeon_of(&dungeon)?, &ask)?
             );
         }
-        if let Some(id) = dungeon {
-            let dungeon = dungeon_of(&id)?;
-            let d = crate::derive::rooms::write(romfs, game, dungeon, &dir)?;
-            println!("{} room files for {}", d.files.len(), dungeon.label);
-            println!("{} of {} faces in no room", d.unplaced, d.faces);
-            if !d.exitless.is_empty() {
-                println!("exits in no room: {:?}", d.exitless);
-            }
-            if !d.roomless.is_empty() {
-                println!("checks in no room: {:?}", d.roomless);
-            }
-            if !d.floorless.is_empty() {
-                println!("rooms with no floor: {:?}", d.floorless);
-            }
-            for w in &d.warnings {
-                println!("warning: {w}");
-            }
-            let at = |p: [f32; 3]| format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2]);
-            for j in &d.jumps {
-                let (from, to) = (at(j.at.0), at(j.at.1));
-                println!(
-                    "jump {} to {}: {:.1} m, {from} to {to}",
-                    j.from, j.to, j.width
-                );
-            }
+        LogicCommand::Audit { dungeon } => {
+            let only = match dungeon {
+                Some(id) => Some(crate::rules::rooms::folder(dungeon_of(&id)?.node.get())),
+                None => None,
+            };
+            let book = crate::rules::Book::load()?;
+            let audits = crate::rules::audit::audit(&book, only.as_deref());
+            anyhow::ensure!(!audits.is_empty(), "no room files for that dungeon yet");
+            audits.iter().for_each(|a| print!("{a}"));
         }
-        return Ok(());
-    }
-    let way = match &cmd {
-        LogicCommand::SetExit { from, to, .. } => Some(rules::Way::Exit {
-            from: from.clone(),
-            to: to.clone(),
-        }),
-        LogicCommand::SetInside { place, .. } => Some(rules::Way::Inside {
-            place: place.clone(),
-        }),
-        _ => None,
-    };
-    if let (
-        Some(way),
-        LogicCommand::SetExit { needs, dir, .. } | LogicCommand::SetInside { needs, dir, .. },
-    ) = (way, &cmd)
-    {
-        println!("{}", rules::set_way(dir, &way, needs)?.display());
-        return Ok(());
-    }
-    if let LogicCommand::RoomSet {
-        dungeon,
-        room,
-        hash,
-        needs,
-        why,
-        evidence,
-        dir,
-    } = cmd
-    {
-        let dungeon = dungeon_of(&dungeon)?;
-        let path = write::set_check(&dir, dungeon, room, hash, &needs, &why, evidence.as_deref())?;
-        println!("{}", path.display());
-        return Ok(());
-    }
-    if let LogicCommand::RoomAdd {
-        dungeon,
-        room,
-        entry,
-        evidence,
-        dir,
-    } = cmd
-    {
-        let entry = match entry {
-            RoomEntry::Link {
-                from,
-                to,
-                via,
-                needs,
-                why,
-            } => write::Add::Link {
-                from,
-                to,
-                via,
-                needs,
-                why,
-            },
-            RoomEntry::Flag {
-                hash,
-                name,
-                at,
-                needs,
-                why,
-            } => write::Add::Flag {
-                hash,
-                name,
-                at,
-                needs,
-                why,
-            },
-            RoomEntry::Floor { at, why } => write::Add::Floor { at, why },
-        };
-        let path = write::add(
-            &dir,
-            dungeon_of(&dungeon)?,
+        LogicCommand::QuestGates => {
+            let (graph, book) = (
+                crate::flagmap::Graph::build(romfs)?,
+                crate::rules::Book::load()?,
+            );
+            print!(
+                "{}",
+                crate::rules::quest_gates::audit(romfs, &graph, &book)?
+            );
+        }
+        LogicCommand::Derive {
+            kinds,
+            dungeon,
+            dir,
+        } => derive(romfs, game, kinds, dungeon, &dir)?,
+        LogicCommand::SetExit {
+            from,
+            to,
+            needs,
+            dir,
+        } => set_way(&dir, &rules::Way::Exit { from, to }, &needs)?,
+        LogicCommand::SetInside { place, needs, dir } => {
+            set_way(&dir, &rules::Way::Inside { place }, &needs)?;
+        }
+        LogicCommand::RoomSet {
+            dungeon,
             room,
-            &entry,
-            evidence.as_deref(),
-        )?;
-        println!("{}", path.display());
-        return Ok(());
-    }
-    if let LogicCommand::Rooms { dungeon, json, dir } = cmd {
-        let rooms = write::rooms(&dir, dungeon_of(&dungeon)?)?;
-        if json {
-            let rows: Vec<_> = (rooms.iter())
-                .map(|(room, name)| serde_json::json!({ "room": room, "name": name }))
-                .collect();
-            println!("{}", serde_json::to_string(&rows)?);
-        } else {
-            rooms.iter().for_each(|(r, n)| println!("{r:>2}  {n}"));
+            hash,
+            needs,
+            why,
+            evidence,
+            dir,
+        } => {
+            let dungeon = dungeon_of(&dungeon)?;
+            let path =
+                write::set_check(&dir, dungeon, room, hash, &needs, &why, evidence.as_deref())?;
+            println!("{}", path.display());
         }
-        return Ok(());
+        LogicCommand::RoomAdd {
+            dungeon,
+            room,
+            entry,
+            evidence,
+            dir,
+        } => {
+            let entry = match entry {
+                RoomEntry::Link {
+                    from,
+                    to,
+                    via,
+                    needs,
+                    why,
+                } => write::Add::Link {
+                    from,
+                    to,
+                    via,
+                    needs,
+                    why,
+                },
+                RoomEntry::Flag {
+                    hash,
+                    name,
+                    at,
+                    needs,
+                    why,
+                } => write::Add::Flag {
+                    hash,
+                    name,
+                    at,
+                    needs,
+                    why,
+                },
+                RoomEntry::Floor { at, why } => write::Add::Floor { at, why },
+            };
+            let path = write::add(
+                &dir,
+                dungeon_of(&dungeon)?,
+                room,
+                &entry,
+                evidence.as_deref(),
+            )?;
+            println!("{}", path.display());
+        }
+        LogicCommand::Rooms { dungeon, json, dir } => {
+            let rooms = write::rooms(&dir, dungeon_of(&dungeon)?)?;
+            if json {
+                let rows: Vec<_> = (rooms.iter())
+                    .map(|(room, name)| serde_json::json!({ "room": room, "name": name }))
+                    .collect();
+                println!("{}", serde_json::to_string(&rows)?);
+            } else {
+                rooms.iter().for_each(|(r, n)| println!("{r:>2}  {n}"));
+            }
+        }
+        LogicCommand::Set {
+            hash,
+            name,
+            needs,
+            place,
+            era,
+            dir,
+        } => {
+            let edit = rules::Edit {
+                name,
+                needs,
+                place: place.zip(era),
+            };
+            let new = || {
+                let ledger = crate::ledger::build(romfs)?;
+                let row = (ledger.rows.into_iter())
+                    .find(|r| r.hash == hash)
+                    .with_context(|| format!("no check {hash} in the ledger"))?;
+                Ok((row.area, row.name))
+            };
+            println!("{}", rules::set(&dir, hash, &edit, new)?.display());
+        }
     }
-    let LogicCommand::Set {
-        hash,
-        name,
-        needs,
-        place,
-        era,
-        dir,
-    } = cmd
-    else {
-        unreachable!("derive returned above")
+    Ok(())
+}
+
+/// `zootr logic derive`: the object kinds, a dungeon's room files, or both.
+fn derive(
+    romfs: &Romfs,
+    game: &Path,
+    kinds: bool,
+    dungeon: Option<String>,
+    dir: &Path,
+) -> Result<()> {
+    anyhow::ensure!(kinds || dungeon.is_some(), "name a dungeon, or `--kinds`");
+    if kinds {
+        let (count, guesses) = crate::derive::kinds(romfs, dir)?;
+        println!(
+            "{count} kinds, {guesses} guesses: {}",
+            dir.join("baseline/kinds.toml").display()
+        );
+    }
+    let Some(id) = dungeon else {
+        return Ok(());
     };
-    let age = |e: &str| match e {
-        "child" => Era::Child,
-        _ => Era::Adult,
-    };
-    let edit = rules::Edit {
-        name,
-        needs,
-        place: place.zip(era.as_deref().map(age)),
-    };
-    let new = || {
-        let ledger = crate::ledger::build(romfs)?;
-        let row = (ledger.rows.into_iter())
-            .find(|r| r.hash == hash)
-            .with_context(|| format!("no check {hash} in the ledger"))?;
-        Ok((row.area, row.name))
-    };
-    println!("{}", rules::set(&dir, hash, &edit, new)?.display());
+    let dungeon = dungeon_of(&id)?;
+    let d = crate::derive::rooms::write(romfs, game, dungeon, dir)?;
+    println!("{} room files for {}", d.files.len(), dungeon.label);
+    println!("{} of {} faces in no room", d.unplaced, d.faces);
+    if !d.exitless.is_empty() {
+        println!("exits in no room: {:?}", d.exitless);
+    }
+    if !d.roomless.is_empty() {
+        println!("checks in no room: {:?}", d.roomless);
+    }
+    if !d.floorless.is_empty() {
+        println!("rooms with no floor: {:?}", d.floorless);
+    }
+    for w in &d.warnings {
+        println!("warning: {w}");
+    }
+    let at = |p: [f32; 3]| format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2]);
+    for j in &d.jumps {
+        let (from, to) = (at(j.at.0), at(j.at.1));
+        println!(
+            "jump {} to {}: {:.1} m, {from} to {to}",
+            j.from, j.to, j.width
+        );
+    }
+    Ok(())
+}
+
+/// `zootr logic set-exit` and `set-inside`: what `way` needs, written.
+fn set_way(dir: &Path, way: &rules::Way, needs: &str) -> Result<()> {
+    println!("{}", rules::set_way(dir, way, needs)?.display());
     Ok(())
 }
 

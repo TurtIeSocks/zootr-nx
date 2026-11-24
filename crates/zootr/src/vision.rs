@@ -40,6 +40,9 @@ const ANTHROPIC_URL: &str = "https://api.anthropic.com";
 const ANTHROPIC_MODEL: &str = "claude-opus-5-5";
 const OPENAI_MODEL: &str = "iq3_xxs";
 const ANTHROPIC_VERSION: &str = "2026-10-21";
+/// Anthropic's `max_tokens`, whatever [`Ask::max_tokens`] says: thinking
+/// counts against it.
+const ANTHROPIC_MAX_TOKENS: u32 = 16000;
 
 /// Where the model is and which one.
 pub struct Vision {
@@ -61,6 +64,7 @@ pub struct Ask<'a> {
     pub png: &'a [u8],
     /// OpenAI only: Anthropic's current version rejects it.
     pub temperature: f32,
+    /// OpenAI only: Anthropic gets a fixed `ANTHROPIC_MAX_TOKENS`.
     pub max_tokens: u32,
 }
 
@@ -120,8 +124,7 @@ impl Vision {
 fn anthropic_body(vision: &Vision, ask: &Ask, base64_png: &str) -> Value {
     let mut body = json!({
         "model": vision.model,
-        // Thinking counts against this.
-        "max_tokens": 16000,
+        "max_tokens": ANTHROPIC_MAX_TOKENS,
         "system": ask.system,
         "messages": [
             {"role": "user", "content": [
@@ -177,7 +180,13 @@ fn parse_anthropic(reply: &Value, model: &str) -> Result<String> {
         .iter()
         .find(|block| block["type"] == "text")
         .and_then(|block| block["text"].as_str());
-    Ok(text.unwrap_or_default().to_owned())
+    match text {
+        Some(text) => Ok(text.to_owned()),
+        None => {
+            let stop = reply["stop_reason"].as_str().unwrap_or("none");
+            bail!("{model} gave no text: stop_reason {stop}")
+        }
+    }
 }
 
 /// The message of an OpenAI reply's first choice.
@@ -186,7 +195,9 @@ fn parse_openai(reply: &Value, model: &str) -> Result<String> {
         bail!("{model} refused: {error}");
     }
     let text = reply["choices"][0]["message"]["content"].as_str();
-    Ok(text.unwrap_or_default().to_owned())
+    Ok(text
+        .with_context(|| format!("{model} gave no choices or content"))?
+        .to_owned())
 }
 
 /// How many times a question is asked while the model is out of memory.
@@ -206,6 +217,10 @@ pub fn fit(png: &[u8], width: u32) -> Result<Vec<u8>> {
     let mut decoder = png::Decoder::new(std::io::Cursor::new(png));
     decoder.set_transformations(png::Transformations::normalize_to_color8());
     let mut reader = decoder.read_info()?;
+    let by = reader.info().width.div_ceil(width);
+    if by <= 1 {
+        return Ok(png.to_vec());
+    }
     let mut buf = vec![
         0;
         reader
@@ -213,10 +228,6 @@ pub fn fit(png: &[u8], width: u32) -> Result<Vec<u8>> {
             .context("the frame is too big")?
     ];
     let info = reader.next_frame(&mut buf)?;
-    let by = info.width.div_ceil(width);
-    if by <= 1 {
-        return Ok(png.to_vec());
-    }
     let (w, h) = (info.width / by, info.height / by);
     let samples = info.color_type.samples();
     let mut out = Vec::with_capacity((w * h) as usize * samples);
@@ -279,17 +290,18 @@ fn post(api: Api, url: &str, key_file: &Path, body: &Value) -> Result<Value> {
         .stderr(Stdio::piped())
         .spawn()
         .context("running curl")?;
-    child
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(body.to_string().as_bytes())?;
+    // A curl that quits before reading the body says why on stderr, which
+    // beats the broken pipe: wait for it either way, and check it first.
+    let mut stdin = child.stdin.take().context("curl's stdin")?;
+    let sent = stdin.write_all(body.to_string().as_bytes());
+    drop(stdin);
     let out = child.wait_with_output()?;
     ensure!(
         out.status.success(),
         "the vision model didn't answer: {}",
         String::from_utf8_lossy(&out.stderr).trim()
     );
+    sent.context("sending the request to curl")?;
     serde_json::from_slice(&out.stdout).context("the vision model's reply isn't JSON")
 }
 
@@ -454,6 +466,17 @@ mod tests {
             {"type": "text", "text": "second"},
         ]});
         assert_eq!(parse_anthropic(&reply, "m").unwrap(), "first");
+    }
+
+    #[test]
+    fn a_reply_with_no_text_is_an_error() {
+        let thought = json!({"stop_reason": "max_tokens", "content": [
+            {"type": "thinking", "thinking": "hm"},
+        ]});
+        let err = parse_anthropic(&thought, "m").unwrap_err();
+        assert!(err.to_string().contains("max_tokens"), "{err}");
+        let err = parse_openai(&json!({"choices": []}), "m").unwrap_err();
+        assert!(err.to_string().contains("no choices"), "{err}");
     }
 
     #[test]

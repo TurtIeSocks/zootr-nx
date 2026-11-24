@@ -62,25 +62,29 @@ fn stamp(d: Duration) -> String {
 
 impl Report {
     pub fn passed(&self) -> bool {
-        self.error.is_none() && self.stall.is_none() && self.steps.iter().all(|s| s.outcome.is_ok())
+        self.failure().is_none()
     }
 
     /// Why the run failed, in one line.
     pub fn verdict(&self) -> String {
+        match self.failure() {
+            Some(why) => format!("FAIL: {why}"),
+            None => "PASS".into(),
+        }
+    }
+
+    /// The run's error, else its stall, else its first failing step.
+    fn failure(&self) -> Option<String> {
         if let Some(e) = &self.error {
-            return format!("FAIL: {e}");
+            return Some(e.clone());
         }
         if let Some(s) = &self.stall {
-            return format!("FAIL: stalled on {} at {}", s.map, stamp(s.at));
+            return Some(format!("stalled on {} at {}", s.map, stamp(s.at)));
         }
-        match self.steps.iter().find(|s| s.outcome.is_err()) {
-            Some(Done {
-                line,
-                outcome: Err(why),
-                ..
-            }) => format!("FAIL: the step at line {line}: {why}"),
-            _ => "PASS".into(),
-        }
+        self.steps.iter().find_map(|s| {
+            let why = s.outcome.as_ref().err()?;
+            Some(format!("the step at line {}: {why}", s.line))
+        })
     }
 
     pub fn markdown(&self) -> String {

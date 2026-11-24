@@ -130,7 +130,9 @@ describe("fetchReleases", () => {
       vi.fn().mockResolvedValue({ ok: true, json: async () => list }),
     );
     const got = await fetchReleases("o/r", 2);
-    expect(got.map((r) => r.version)).toEqual(["0.2.0", "0.1.0"]);
+    expect(got.releases.map((r) => r.version)).toEqual(["0.2.0", "0.1.0"]);
+    // A short page is the last, whatever it held.
+    expect(got.more).toBe(false);
     expect(fetch).toHaveBeenCalledWith(
       `https://api.github.com/repos/o/r/releases?per_page=${PAGE}&page=2`,
       expect.anything(),

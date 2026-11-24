@@ -2,11 +2,54 @@
 //! screenshots and starting it. The game on the Mac is one backend.
 
 use std::path::Path;
+use std::time::{Duration, Instant};
 
-use anyhow::{Result, bail};
+use anyhow::{Result, bail, ensure};
 
 /// How long a press holds its button, in milliseconds.
 pub const PRESS: u64 = 150;
+/// The names a button press takes, joined with `+`.
+const BUTTONS: [&str; 24] = [
+    "A", "B", "X", "Y", "L", "R", "ZL", "ZR", "Plus", "Minus", "Left", "Up", "Right", "Down", "LS",
+    "RS", "LLeft", "LUp", "LRight", "LDown", "RLeft", "RUp", "RRight", "RDown",
+];
+/// How long the game gets to quit.
+const QUIT: Duration = Duration::from_secs(30);
+
+/// Refuse `buttons` (names joined with `+`) unless each is a button.
+pub fn check_buttons(buttons: &str) -> Result<()> {
+    for b in buttons.split('+') {
+        ensure!(
+            BUTTONS.contains(&b),
+            "{b} isn't a button. Buttons are {}",
+            BUTTONS.join(" ")
+        );
+    }
+    Ok(())
+}
+
+/// The left stick's buttons for a direction like `up` or `down-left`.
+/// Other names, like `RUp`, pass through.
+pub fn stick(direction: &str) -> String {
+    let parts = direction.split(['-', '+']).map(|d| match d {
+        "up" => "LUp",
+        "down" => "LDown",
+        "left" => "LLeft",
+        "right" => "LRight",
+        other => other,
+    });
+    parts.collect::<Vec<_>>().join("+")
+}
+
+/// Wait for `input`'s game to be gone, after asking it to quit.
+pub(super) fn gone(input: &(impl Input + ?Sized)) -> Result<()> {
+    let start = Instant::now();
+    while input.running() {
+        ensure!(start.elapsed() < QUIT, "the game didn't quit");
+        std::thread::sleep(Duration::from_millis(500));
+    }
+    Ok(())
+}
 
 /// How far a start has got.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -61,7 +104,7 @@ pub trait Input {
         None
     }
 
-    /// Quit the game, if it runs.
+    /// Quit the game, if it runs, and return once it's gone.
     fn quit(&mut self) -> Result<()> {
         Ok(())
     }

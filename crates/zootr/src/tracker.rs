@@ -112,26 +112,24 @@ impl Tracker {
     pub fn new(gd: &GameData, spots: &[Spot]) -> Result<Self> {
         let chests = chest_flags(gd)?;
         let flag = |spot: &Spot| {
-            let name = match (
-                GIFTS.iter().find(|g| g.hash() == spot.hash),
-                scrubs::at(spot.hash),
-                cows::flag_at(spot.hash).or_else(|| goron_pot::flag_at(spot.hash)),
-                fortress::got(&spot.vanilla, &spot.item),
-                picked::flag_at(spot),
-                keys::loose_taken(spot.hash),
-            ) {
-                (Some(g), ..) => g.found(),
-                (_, Some(s), ..) => s.sold(&spot.item),
-                (_, _, Some(cow), ..) => Some(cow),
-                (.., Some(thief), _, _) => Some(thief),
-                (.., Some(picked), _) => Some(picked),
-                (.., Some(loose)) => Some(loose.to_owned()),
-                _ => {
-                    let key = gd.has_key(spot.hash).then_some(Flag::Key(spot.hash));
-                    return chests(spot.hash).map(Flag::Bool).or(key);
-                }
-            };
-            name.map(|f| Flag::Bool(murmur3(f.as_bytes())))
+            let named = |f: String| Flag::Bool(murmur3(f.as_bytes()));
+            // A gift or scrub at the spot decides, even when it names no flag.
+            if let Some(g) = GIFTS.iter().find(|g| g.hash() == spot.hash) {
+                return g.found().map(named);
+            }
+            if let Some(s) = scrubs::at(spot.hash) {
+                return s.sold(&spot.item).map(named);
+            }
+            let name = (cows::flag_at(spot.hash))
+                .or_else(|| goron_pot::flag_at(spot.hash))
+                .or_else(|| fortress::got(&spot.vanilla, &spot.item))
+                .or_else(|| picked::flag_at(spot))
+                .or_else(|| keys::loose_taken(spot.hash).map(str::to_owned));
+            if let Some(name) = name {
+                return Some(named(name));
+            }
+            let key = gd.has_key(spot.hash).then_some(Flag::Key(spot.hash));
+            chests(spot.hash).map(Flag::Bool).or(key)
         };
         let flags = spots
             .iter()
@@ -236,7 +234,6 @@ impl Tracker {
         entry.report.entrances.iter().map(row).collect()
     }
 
-    /// The tab's rows for a seed's history entry.
     /// The Checks tab's rows, with `label` giving each flag's label.
     pub fn rows(&self, entry: &Entry, label: impl Fn(u32) -> Option<String>) -> Vec<Row> {
         let row = |spot: &Spot| {

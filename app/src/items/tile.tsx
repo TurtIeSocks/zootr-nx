@@ -55,7 +55,7 @@ export function Tile({
 }: TileProps) {
   const absent = cell.tiers === 0;
   const missing = cell.tier === 0;
-  const tier = PIPPED.includes(cell.section) && cell.tiers > 1 && !missing;
+  const pipped = PIPPED.includes(cell.section) && cell.tiers > 1 && !missing;
   return (
     <Tip tip={cell.label}>
       <div
@@ -79,7 +79,7 @@ export function Tile({
         {!noCount && cell.count !== null && !missing && (
           <span className={BADGE}>{cell.count}</span>
         )}
-        {tier && <Tier cell={cell} />}
+        {pipped && <Tier cell={cell} />}
       </div>
     </Tip>
   );
@@ -97,22 +97,33 @@ interface ItemIconProps {
  * game assets are off or the icon won't load. Fills its parent. */
 export function ItemIcon({ icon, glyph, ink }: ItemIconProps) {
   const [art] = useItems.usePath("art");
-  const [broken, setBroken] = useState(false);
   if (art === "building") {
-    return <span className="size-full animate-pulse rounded-sm bg-white/15" />;
-  }
-  if (art === "game" && !broken) {
     return (
-      <img
-        src={iconUrl(icon)}
-        alt=""
-        draggable={false}
-        className="size-full object-contain"
-        onError={() => setBroken(true)}
+      <span
+        className={cn("size-full animate-pulse rounded-sm bg-current/15", ink)}
       />
     );
   }
+  if (art === "game") {
+    return <GameIcon key={icon} icon={icon} glyph={glyph} ink={ink} />;
+  }
   return <FallbackIcon glyph={glyph} ink={ink} />;
+}
+
+/** The dump's icon, or zootr-nx's own once it won't load. Keyed by the
+ * icon, and gone during a build, so a new icon or build tries again. */
+function GameIcon({ icon, glyph, ink }: ItemIconProps) {
+  const [broken, setBroken] = useState(false);
+  if (broken) return <FallbackIcon glyph={glyph} ink={ink} />;
+  return (
+    <img
+      src={iconUrl(icon)}
+      alt=""
+      draggable={false}
+      className="size-full object-contain"
+      onError={() => setBroken(true)}
+    />
+  );
 }
 
 /** zootr-nx's own icon for a cell, in the grid's ink, so a missing item's

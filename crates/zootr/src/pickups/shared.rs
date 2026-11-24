@@ -4,11 +4,12 @@
 //! seed adds goes into a graph the game already runs.
 
 use anyhow::{Context, Result};
-use ounce_formats::ainb::File;
+use ounce_formats::ainb::{File, Value};
 use ounce_formats::{ModBuilder, Romfs};
 use roead::sarc::{Sarc, SarcWriter};
 
 use super::{GLOBAL_AI, stale, taken};
+use crate::known::{Name, field};
 
 /// One graph's path in the pack, and what makes its new bytes from the
 /// pack.
@@ -43,6 +44,45 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, steps_built: bool) -> Resu
 pub fn copy(pack: &Sarc, f: &mut File, class: &str) -> Result<usize> {
     let (from, node) = template(pack, class)?;
     f.copy_node(&from, node)
+}
+
+/// Copies onto `f` the name check both branches open with: the file name
+/// of the pickup's own actor, whether it starts with `token`, and a node of
+/// class `class` on the Bool `bool_prefix` + that name. Returns the check,
+/// whose `Result` reads it, and that node.
+pub fn name_check(
+    pack: &Sarc,
+    f: &mut File,
+    token: &str,
+    bool_prefix: &str,
+    class: &Name,
+) -> Result<(usize, usize)> {
+    let copy = |f: &mut File, class: &Name| self::copy(pack, f, class.get());
+    let own = copy(f, field::QUERY_GENERIC_GET_OWN_ACTOR_LINK)?;
+    let name = copy(f, field::QUERY_GENERIC_GET_ACTOR_NAME)?;
+    let starts = copy(f, field::QUERY_GENERIC_STRING_STARTS_WITH)?;
+    let concat = copy(f, field::QUERY_GENERIC_CONCAT_STRING)?;
+    let flag = copy(f, class)?;
+
+    let file_name = field::ACTOR_FILE_NAME.get();
+    let full_name = field::GAME_DATA_FULL_NAME.get();
+    let text = |s: &str| Value::String(s.into());
+    f.link(name, "Actor", own, "Actor")?;
+    f.link(starts, "Input", name, file_name)?;
+    f.set_input(starts, "Token", &text(token))?;
+    f.set_input(concat, "Input0", &text(bool_prefix))?;
+    f.link(concat, "Input1", name, file_name)?;
+    f.set_input(concat, "Input2", &text(""))?;
+    f.set_input(flag, full_name, &text(""))?;
+    f.link(flag, full_name, concat, "Output")?;
+    Ok((starts, flag))
+}
+
+/// `vanilla`'s own bool selector and do-nothing leaf, for copying.
+pub fn selector_and_leaf(vanilla: &File) -> Result<(usize, usize)> {
+    let select = vanilla.find_bool_selector().context("no bool selector")?;
+    let nothing = (vanilla.find(field::ONESHOT_DO_NOTHING.get())).context("no do-nothing leaf")?;
+    Ok((select, nothing))
 }
 
 /// The first node of class `class` the writer can copy, from the pack's

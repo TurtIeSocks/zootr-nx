@@ -20,7 +20,7 @@ pub(super) fn target_command(cmd: TargetCommand) -> Result<()> {
                 eprintln!("{note}");
             }
             let mut config = Config::load()?;
-            let name = config.add_imported(target);
+            let name = config.add_imported(target, &Config::load_all()?);
             config.save()?;
             println!("{name}");
         }

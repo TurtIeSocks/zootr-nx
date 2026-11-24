@@ -5,17 +5,18 @@
 //! at a run of entries in the file's multi-source table, as its first
 //! entry's place and a count. Its one plug, on the reader, names the input
 //! and points at the first source, as the game's files do.
+//!
+//! As with every edit, one that fails can leave the file half-edited: drop
+//! it then.
 
 use anyhow::{Context, Result, ensure};
 
-use super::edit::{GENERIC, MULTI_COUNT, READ, input_fields, set_word, word};
-use super::file::File;
-use super::{Graph, MULTI, ParamType, TYPES};
+use super::edit::{GENERIC, MULTI_COUNT, UNLINKED};
+use super::file::{File, set_word, word};
+use super::{MULTI, ParamType, TYPES};
 
 /// A multi-source entry: node, output, then a word the game leaves 0.
 const ENTRY: usize = 8;
-/// What an input's source node reads when nothing is linked.
-const UNLINKED: i16 = -1;
 
 fn entry(node: i16, output: i16) -> [u8; ENTRY] {
     let mut e = [0; ENTRY];
@@ -28,10 +29,9 @@ impl File {
     /// Copies node `node` onto the end of the graph, reading every link it
     /// reads, and gives the copy's index.
     pub fn duplicate(&mut self, node: usize) -> Result<usize> {
-        let graph = Graph::parse(&self.to_bytes()?)?;
-        let from = self.clone();
-        let copy = self.copy_node(&from, node)?;
+        let graph = super::Graph::parse(&self.to_bytes()?)?;
         let reads = &graph.nodes.get(node).context("no such node")?.inputs;
+        let copy = self.copy_own(node)?;
         for input in reads {
             for s in &input.sources {
                 self.add_source(copy, &input.name, s.node, &s.output)?;
@@ -57,9 +57,10 @@ impl File {
         ensure!(TYPES[t] == ParamType::Bool, "{input} isn't a bool input");
         let added = entry(
             i16::try_from(source)?,
-            self.read(reader, t, source, output)?,
+            self.mark_read(reader, t, source, output)?,
         );
-        let first = match node > MULTI {
+        let single = node > MULTI;
+        let first = match single {
             // One link becomes a run of two.
             true => {
                 let first = self.multi.len() / ENTRY;
@@ -75,10 +76,10 @@ impl File {
                 first
             }
         };
-        let count = if node > MULTI { 2 } else { count + 1 };
+        let count = if single { 2 } else { count + 1 };
         self.set_source_of(t, i, MULTI - i16::try_from(first)?, count);
         let held = self.nodes[reader].u16_at(MULTI_COUNT);
-        let grown = held + if node > MULTI { 2 } else { 1 };
+        let grown = held + if single { 2 } else { 1 };
         self.nodes[reader].set_u16(MULTI_COUNT, grown);
         Ok(())
     }
@@ -96,66 +97,44 @@ impl File {
         ensure!(TYPES[t] == ParamType::Bool, "{input} isn't a bool input");
         let (was, _) = self.output(from.0, t, from.1)?;
         let old = entry(i16::try_from(from.0)?, i16::try_from(was)?);
-        let (to_node, to_output) = (i16::try_from(to.0)?, self.read(reader, t, to.0, to.1)?);
-        let new = entry(to_node, to_output);
+        let to_node = i16::try_from(to.0)?;
+        // Every lookup that can fail goes before the first write.
         let (node, count) = self.source_of(t, i);
-        let first = match node > MULTI {
+        let place = match node > MULTI {
             true => {
                 ensure!(entry(node, count) == old, "{input} doesn't read that");
-                self.set_source_of(t, i, to_node, to_output);
-                true
+                None
             }
             false => {
                 let start = (MULTI - node) as usize;
-                let run = start..start + count as usize;
-                let place = run
-                    .clone()
+                let place = (start..start + count as usize)
                     .find(|&k| self.multi[k * ENTRY..k * ENTRY + 4] == old[..4])
                     .with_context(|| format!("{input} doesn't read that"))?;
-                self.multi[place * ENTRY..(place + 1) * ENTRY].copy_from_slice(&new);
-                place == run.start
+                Some((place, start))
             }
         };
-        if first {
-            let name = self.intern(input);
-            let plugs = &mut self.nodes[reader].plugs[GENERIC];
-            let plug = plugs.iter_mut().find(|r| word(r, 4) == name);
-            let plug = plug.with_context(|| format!("{input} carries no plug"))?;
-            set_word(plug, 0, to.0 as u32);
+        // The plug follows the first source.
+        let plug = match place {
+            Some((place, start)) if place != start => None,
+            _ => {
+                let name = self.intern(input);
+                let plugs = &self.nodes[reader].plugs[GENERIC];
+                let plug = plugs.iter().position(|r| word(r, 4) == name);
+                Some(plug.with_context(|| format!("{input} carries no plug"))?)
+            }
+        };
+        let to_output = self.mark_read(reader, t, to.0, to.1)?;
+        match place {
+            None => self.set_source_of(t, i, to_node, to_output),
+            Some((place, _)) => {
+                let new = entry(to_node, to_output);
+                self.multi[place * ENTRY..(place + 1) * ENTRY].copy_from_slice(&new);
+            }
+        }
+        if let Some(k) = plug {
+            set_word(&mut self.nodes[reader].plugs[GENERIC][k], 0, to.0 as u32);
         }
         Ok(())
-    }
-
-    /// `source`'s type `t` `output`, marked read by `reader`: its place
-    /// among the node's outputs of that type.
-    fn read(&mut self, reader: usize, t: usize, source: usize, output: &str) -> Result<i16> {
-        let (k, o) = self.output(source, t, output)?;
-        let at = o * TYPES[t].output_len();
-        let read = word(&self.outputs[t], at) | READ;
-        set_word(&mut self.outputs[t], at, read);
-        if self.nodes[source].is_query() {
-            self.add_query(reader, source)?;
-        }
-        Ok(i16::try_from(k)?)
-    }
-
-    /// Type `t` input `i`'s source node and output (or, for several
-    /// sources, the encoded first entry and the count).
-    fn source_of(&self, t: usize, i: usize) -> (i16, i16) {
-        let (at, _, _) = input_fields(TYPES[t]);
-        let e = &self.inputs[t][i * TYPES[t].input_len() + at..];
-        (
-            i16::from_le_bytes([e[0], e[1]]),
-            i16::from_le_bytes([e[2], e[3]]),
-        )
-    }
-
-    fn set_source_of(&mut self, t: usize, i: usize, node: i16, output: i16) {
-        let (at, _, _) = input_fields(TYPES[t]);
-        let at = i * TYPES[t].input_len() + at;
-        let e = &mut self.inputs[t][at..at + 4];
-        e[..2].copy_from_slice(&node.to_le_bytes());
-        e[2..].copy_from_slice(&output.to_le_bytes());
     }
 
     /// Moves every run of sources starting at or past entry `at` one entry
@@ -175,8 +154,8 @@ impl File {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ainb::Value;
     use crate::ainb::file::tests::{Fake, fake};
+    use crate::ainb::{Graph, Value};
 
     use ParamType::{Bool, String as Str};
 

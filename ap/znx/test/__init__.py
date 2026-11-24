@@ -1,6 +1,15 @@
 from test.bases import WorldTestBase
 
+from ..exported import OPTIONS
+from ..options import attr
 from ..output import GAME
+
+
+def ap_value(setting: str, value):
+    """A setting's value as its AP option takes it: a toggle's as is, a
+    choice's option id as an attribute name."""
+    entry = next(e for e in OPTIONS if e["id"] == setting)
+    return value if entry["kind"] == "toggle" else attr(value)
 
 
 class ZnxTestBase(WorldTestBase):

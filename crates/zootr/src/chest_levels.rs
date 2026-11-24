@@ -101,9 +101,10 @@ impl Levels {
                 items.entry(item.clone()).or_insert(g);
             }
         }
-        let bases = match items.is_empty() {
-            true => vec![],
-            false => bases(&rsdb::events(romfs)?),
+        let bases = if items.is_empty() {
+            vec![]
+        } else {
+            bases(&rsdb::events(romfs)?)
         };
         let lines = progressive;
         Ok(Self {
@@ -157,7 +158,7 @@ impl Levels {
         let mut named = 0;
         for actor in checks::actors_mut(root)? {
             let gyaml = str_field(actor, GYAML).unwrap_or_default().to_owned();
-            let Some(dynamic) = actor.as_mut_map()?.get_mut("Dynamic") else {
+            let Some(dynamic) = actor.as_mut_map()?.get_mut(checks::DYNAMIC) else {
                 continue;
             };
             let held = str_field(dynamic, DROP_ACTOR).filter(|i| self.items.contains_key(*i));

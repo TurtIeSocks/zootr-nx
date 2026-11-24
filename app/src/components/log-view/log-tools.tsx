@@ -1,7 +1,7 @@
-import { Check, Copy, FolderOpen, Search } from "lucide-react";
+import { Check, Copy, FolderOpen } from "lucide-react";
 import { commands } from "@/bindings";
+import { SearchInput } from "@/components/search-input";
 import { TipButton } from "@/components/tip-button";
-import { Input } from "@/components/ui/input";
 import { call } from "@/lib/api";
 import { MOD } from "@/lib/platform";
 import { useRequest } from "@/lib/request";
@@ -15,16 +15,13 @@ interface GrepInputProps {
 /** Filters a log's lines by what they say. */
 export function GrepInput({ value, onChange }: GrepInputProps) {
   return (
-    <div className="relative w-44">
-      <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-ink-faint" />
-      <Input
-        aria-label="Filter lines"
-        placeholder="Filter lines"
-        className="h-7 pl-8"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </div>
+    <SearchInput
+      className="w-44"
+      aria-label="Filter lines"
+      placeholder="Filter lines"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
   );
 }
 

@@ -6,6 +6,7 @@ use std::path::Path;
 use anyhow::Result;
 use ounce_formats::Romfs;
 
+use super::{tally, xyz};
 use crate::nav::filter::Filter;
 use crate::nav::mesh::{self, MeshUse};
 use crate::warp;
@@ -37,10 +38,9 @@ pub fn collision(
     let filter = Filter::get(romfs)?;
     let mut uses: BTreeMap<&str, (usize, Vec<MeshUse>)> = BTreeMap::new();
     for p in &placed {
-        if !uses.contains_key(p.name.as_str()) {
-            uses.insert(&p.name, (0, mesh::mesh_names(romfs, filter, &p.name)?));
-        }
-        uses.get_mut(p.name.as_str()).unwrap().0 += 1;
+        tally(&mut uses, &p.name, || {
+            mesh::mesh_names(romfs, filter, &p.name)
+        })?;
     }
     if under {
         return floors_under(romfs, game, &placed, &uses);
@@ -128,7 +128,7 @@ fn floors_under(
         near += usize::from(gap.is_some_and(|g| g <= BELOW));
         let gap = gap.map_or("none".to_owned(), |g| format!("{g:.2}"));
         let hash = p.hash.map(|h| h.to_string()).unwrap_or_default();
-        println!("{gap:>6} {} {hash} {x:.1},{y:.1},{z:.1}", p.name);
+        println!("{gap:>6} {} {hash} {}", p.name, xyz(p.pose.at));
     }
     println!("{near} of {all} stand within {BELOW} m of a floor");
     Ok(())

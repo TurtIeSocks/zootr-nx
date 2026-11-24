@@ -42,31 +42,37 @@ export const askedRepo = () =>
 /** What a check you asked for found. */
 export type Checked = "newer" | "current" | "failed";
 
+/** `latest` when it's newer than this build, else null. */
+function newerOnly(latest: Release | null): Release | null {
+  const { current } = useUpdate.getState();
+  return latest && current && newer(current, latest.version) ? latest : null;
+}
+
 /** Asks GitHub for the latest release now, even with checks off. A newer
  * one shows in the sidebar, even one skipped before. */
 export async function checkNow(): Promise<Checked> {
-  const latest = await fetchLatest(askedRepo());
-  const { current } = useUpdate.getState();
-  if (!latest) return "failed";
-  if (!current || !newer(current, latest.version)) return "current";
+  const found = await fetchLatest(askedRepo());
+  if (!found) return "failed";
+  const latest = newerOnly(found);
+  if (!latest) return "current";
   useUi.setPath("update.skipped", null);
   useUpdate.setPath("latest", latest);
   return "newer";
 }
 
+/** Counts the checks begun, so only the newest one's answer lands. */
+let checks = 0;
+
 /** Asks GitHub for the latest release, unless checks are off. */
 async function check() {
+  const asked = ++checks;
   const from = repo();
   if (!from || useConfig.getState().config.no_update_check) {
     useUpdate.setPath("latest", null);
     return;
   }
   const latest = await fetchLatest(from);
-  const { current } = useUpdate.getState();
-  useUpdate.setPath(
-    "latest",
-    latest && current && newer(current, latest.version) ? latest : null,
-  );
+  if (asked === checks) useUpdate.setPath("latest", newerOnly(latest));
 }
 
 /** Reads this build's version, which the sidebar always shows, then checks

@@ -21,10 +21,12 @@ import { ADVANCED_FIELDS, FIELDS, shown } from "@/settings/targets-draft";
 import { reveal, revealSetting, rowId } from "@/shell/find/reveal";
 import {
   APP_PANES,
+  appPane,
   groupIcon,
   PLAY_FOLDERS,
   RANDOMIZER_PANES,
   RUN_TABS,
+  type Section,
   shows,
   TOP_TABS,
   tabLabel,
@@ -171,8 +173,7 @@ const topicText = (id: keyof typeof TOPICS | undefined) =>
 
 /** Every setting: the schema's, by group, and the app's own fields. */
 export function settings(schema: SettingDef[], devTools: boolean): Hit[] {
-  const icon = (section: string) =>
-    APP_PANES.find(([id]) => id === section)?.[2] ?? ListChecks;
+  const icon = (section: Section) => appPane(section)?.[2] ?? ListChecks;
   return [
     ...schema.map((d) =>
       hit({

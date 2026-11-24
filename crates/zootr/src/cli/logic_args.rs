@@ -4,6 +4,11 @@ use std::path::PathBuf;
 
 use clap::Subcommand;
 
+use crate::world::Era;
+
+/// The rule and room files' folder in this checkout.
+const LOGIC_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/logic");
+
 /// `zootr logic`: what it does with the rule and room files.
 #[derive(Subcommand)]
 pub(super) enum LogicCommand {
@@ -21,10 +26,11 @@ pub(super) enum LogicCommand {
         /// The logic place Link gets it from, with `--era`.
         #[arg(long, requires = "era")]
         place: Option<String>,
-        #[arg(long, requires = "place", value_parser = ["child", "adult"])]
-        era: Option<String>,
+        /// `child` or `adult`.
+        #[arg(long, requires = "place", value_parser = era)]
+        era: Option<Era>,
         /// The rule files to edit: a worktree's `crates/zootr/logic`.
-        #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
+        #[arg(long, default_value = LOGIC_DIR)]
         dir: PathBuf,
     },
     /// Set a check's confirmed rule in a room file, made when the room has
@@ -41,7 +47,7 @@ pub(super) enum LogicCommand {
         /// Added to the entry's evidence. Without any, it's a guess.
         #[arg(long)]
         evidence: Option<String>,
-        #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
+        #[arg(long, default_value = LOGIC_DIR)]
         dir: PathBuf,
     },
     /// Add a confirmed entry that names a spot to a room file. Derive
@@ -53,7 +59,7 @@ pub(super) enum LogicCommand {
         entry: RoomEntry,
         #[arg(long, global = true)]
         evidence: Option<String>,
-        #[arg(long, global = true, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
+        #[arg(long, global = true, default_value = LOGIC_DIR)]
         dir: PathBuf,
     },
     /// A dungeon's rooms, by number, with their names.
@@ -61,7 +67,7 @@ pub(super) enum LogicCommand {
         dungeon: String,
         #[arg(long)]
         json: bool,
-        #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
+        #[arg(long, default_value = LOGIC_DIR)]
         dir: PathBuf,
     },
     /// Set what a hand exit needs (`exits.toml`). Refused, with nothing
@@ -73,7 +79,7 @@ pub(super) enum LogicCommand {
         to: String,
         #[arg(long)]
         needs: String,
-        #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
+        #[arg(long, default_value = LOGIC_DIR)]
         dir: PathBuf,
     },
     /// Set what being inside a place needs (`[[inside]]`, like the Forest
@@ -82,7 +88,7 @@ pub(super) enum LogicCommand {
         place: String,
         #[arg(long)]
         needs: String,
-        #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
+        #[arg(long, default_value = LOGIC_DIR)]
         dir: PathBuf,
     },
     /// The room files' playtest queue: hand rules that disagree with a room
@@ -103,7 +109,7 @@ pub(super) enum LogicCommand {
         /// A dungeon's room files, by its id (`deku-tree`).
         dungeon: Option<String>,
         /// The logic folder to write in: a worktree's `crates/zootr/logic`.
-        #[arg(long, default_value = concat!(env!("CARGO_MANIFEST_DIR"), "/logic"))]
+        #[arg(long, default_value = LOGIC_DIR)]
         dir: PathBuf,
     },
     /// What derive sees in a dungeon: each navmesh face near a spot with
@@ -179,4 +185,11 @@ fn flag_hash(s: &str) -> Result<u32, std::num::ParseIntError> {
         Some(hex) => u32::from_str_radix(hex, 16),
         None => s.parse(),
     }
+}
+
+/// `child` or `adult`.
+fn era(s: &str) -> Result<Era, String> {
+    use serde::Deserialize;
+    use serde::de::value::{Error, StrDeserializer};
+    Era::deserialize(StrDeserializer::<Error>::new(s)).map_err(|e| e.to_string())
 }

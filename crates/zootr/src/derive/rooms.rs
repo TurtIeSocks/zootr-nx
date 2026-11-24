@@ -11,6 +11,7 @@ use std::sync::LazyLock;
 use anyhow::{Context, Result};
 use ounce_formats::{Romfs, murmur3};
 
+use crate::checks::ItemCheck;
 use crate::entrances::Dungeon;
 use crate::known::{field, flag};
 use crate::nav::Level;
@@ -20,7 +21,6 @@ use crate::nav::shape::{Solid, parts_of};
 use crate::rules::Book;
 use crate::rules::kinds::{Kind, Sets};
 use crate::rules::rooms::{self, folder};
-use crate::sweep::spot::slug;
 use crate::warp::Placement;
 
 mod confirmed;
@@ -29,13 +29,17 @@ mod hand;
 mod label;
 mod locks;
 mod reach;
+mod render;
 mod seen;
 
-use hand::{Taken, TakenBy, in_front};
+use hand::{Taken, TakenBy, in_front, is_chest};
 use label::{label, path_of};
-use locks::{Lock, flag, locks_in, room_in_name};
+use locks::{Lock, locks_in, room_in_name};
 use reach::{REACH_MAX, skulltula_reach};
-use seen::{Seen, link};
+use render::{CheckOut, Traced, room_files};
+
+/// A straight path between two points, or a link's two ends.
+pub type Segment = ([f32; 3], [f32; 3]);
 
 /// Each dungeon's room names, by its folder and room number.
 static NAMES: LazyLock<BTreeMap<String, BTreeMap<u32, String>>> = LazyLock::new(|| {
@@ -52,7 +56,6 @@ static NAMES: LazyLock<BTreeMap<String, BTreeMap<u32, String>>> = LazyLock::new(
         .collect()
 });
 
-/// The file in `logic/` the names come from, for the built-in files test.
 /// The file in `logic/` the names come from, for the built-in files test.
 #[cfg(test)]
 pub(crate) const NAMES_FILE: &str = "room-names.toml";
@@ -99,16 +102,6 @@ fn via_of(via: Via) -> (rooms::Via, Option<u64>) {
     }
 }
 
-/// A check as a room file writes it.
-struct CheckOut {
-    hash: u64,
-    /// `None` names it by its room: a gold skulltula nothing else names.
-    name: Option<String>,
-    needs: String,
-    why: String,
-    guess: bool,
-}
-
 /// One dungeon's room files, by path under `logic/`, and what derive
 /// couldn't place.
 pub struct Derived {
@@ -133,7 +126,7 @@ pub struct Jump {
     pub from: u32,
     pub to: u32,
     pub width: f32,
-    pub at: ([f32; 3], [f32; 3]),
+    pub at: Segment,
 }
 
 /// The maps of `dungeon`: its own, by either age, never its boss's.
@@ -150,13 +143,13 @@ fn maps(romfs: &Romfs, dungeon: &Dungeon) -> Result<BTreeSet<String>> {
 /// `uses` joined: each kept once, more than one in brackets with `and`.
 fn all_of(uses: &[&str]) -> String {
     let mut kept: Vec<&str> = vec![];
-    for u in uses.iter().filter(|u| **u != "always") {
+    for u in uses.iter().filter(|u| **u != super::ALWAYS) {
         if !kept.contains(u) {
             kept.push(u);
         }
     }
     match &kept[..] {
-        [] => "always".to_owned(),
+        [] => super::ALWAYS.to_owned(),
         [one] => (*one).to_owned(),
         many => many
             .iter()
@@ -227,6 +220,27 @@ impl<'k> Floor<'k> {
     }
 }
 
+/// Every check, gold skulltulas included, and each one's name in words,
+/// but a gold skulltula's, which takes its room's name.
+fn checks_and_names(romfs: &Romfs) -> Result<(Vec<ItemCheck>, HashMap<u64, String>)> {
+    let mut checks = crate::checks::all(romfs)?;
+    // Gold skulltulas are pickups, which `all` leaves to their setting.
+    let skulltulas = crate::pickups::SKULLTULAS.checks(romfs)?;
+    let by_room: HashSet<u64> = skulltulas.iter().map(|c| c.hash).collect();
+    checks.extend(skulltulas);
+    // Named one at a time: an item Archipelago has no name for fails only its own.
+    // Skulltulas take their room's name below, closer than Archipelago's.
+    let named = (checks.iter())
+        .filter(|c| !by_room.contains(&c.hash))
+        .filter_map(|c| {
+            crate::ap::names::locations(romfs, std::slice::from_ref(c))
+                .ok()?
+                .pop_first()
+        })
+        .collect();
+    Ok((checks, named))
+}
+
 /// The room files of `dungeon`, from its navmesh, its placements, its
 /// logic graphs and `book`'s kinds and check names.
 pub fn derive(
@@ -242,35 +256,15 @@ pub fn derive(
     let shutters = crate::gates::trace_node(romfs, SHUTTER)?;
     let chest_gates = crate::gates::trace(romfs)?;
     let chest_gate = |h: u64| chest_gates.iter().find(|g| g.hash == h);
-    let mut checks = crate::checks::all(romfs)?;
-    // Gold skulltulas are pickups, which `all` leaves to their setting.
-    let skulltulas = crate::pickups::SKULLTULAS.checks(romfs)?;
-    let by_room: HashSet<u64> = skulltulas.iter().map(|c| c.hash).collect();
-    checks.extend(skulltulas);
-    // Named one at a time: an item Archipelago has no name for fails only its own.
-    // Skulltulas take their room's name below, closer than Archipelago's.
-    let named: HashMap<u64, String> = (checks.iter())
-        .filter(|c| !by_room.contains(&c.hash))
-        .filter_map(|c| {
-            crate::ap::names::locations(romfs, std::slice::from_ref(c))
-                .ok()?
-                .pop_first()
-        })
-        .collect();
+    let (checks, named) = checks_and_names(romfs)?;
     let game_data = crate::gamedata::GameData::load(romfs)?;
     let in_game = |h: u32| game_data.entry(h).is_some();
     let confirmed = confirmed::Confirmed::of(&book.rooms, dungeon.node.get(), in_game)?;
     let mut warnings = vec![];
-    let mut seen: BTreeMap<(u32, u32, rooms::Via), Seen> = BTreeMap::new();
-    let mut locks: HashMap<u64, Vec<Lock>> = HashMap::new();
-    let mut flags: BTreeMap<String, (Lock, Vec<&Kind>)> = BTreeMap::new();
-    let mut checks_out: BTreeMap<u32, Vec<CheckOut>> = BTreeMap::new();
+    let mut traced = Traced::default();
     let mut roomless = vec![];
     let exits = crate::world::exits(romfs)?;
-    // Each room's exits and arrival spots, by key, with their names.
-    let mut spots: BTreeMap<(u32, &str), BTreeMap<u32, String>> = BTreeMap::new();
     let mut exitless = vec![];
-    let mut jumps = vec![];
     let mut numbered = BTreeSet::new();
     let mut floored = BTreeSet::new();
     let (mut faces, mut unplaced) = (0, 0);
@@ -326,7 +320,8 @@ pub fn derive(
             let name = name_of(&e.to, &e.to_start);
             match exit_placed(&e.name) {
                 Some(r) => drop(
-                    spots
+                    traced
+                        .spots
                         .entry((r, "exit"))
                         .or_default()
                         .insert(rooms::spot(&e.to, &e.to_start), name),
@@ -343,7 +338,8 @@ pub fn derive(
             let name = name_of(&rule.to, "-");
             match boss.filter(|_| dungeon.boss.is_some_and(|b| b.get() == rule.to)) {
                 Some(r) => drop(
-                    spots
+                    traced
+                        .spots
                         .entry((r, "exit"))
                         .or_default()
                         .insert(rooms::spot(&rule.to, "-"), name),
@@ -354,7 +350,7 @@ pub fn derive(
         let starts = (level.placed.iter()).filter(|p| p.name == flag::START_POS.get());
         for p in starts {
             if let (Some(label), Some(r)) = (&p.label, room_near(p)) {
-                let at = spots.entry((r, "arrival")).or_default();
+                let at = traced.spots.entry((r, "arrival")).or_default();
                 at.insert(rooms::spot(&map, label), name_of(&map, label));
             }
         }
@@ -396,8 +392,8 @@ pub fn derive(
             locks_in(&gate.expr, &mut found);
             for (name, setters) in found {
                 let (lock, kinds) = lock_of(&name, setters);
-                flags.entry(name).or_insert((lock.clone(), kinds));
-                locks.entry(gate.hash).or_default().push(lock);
+                traced.flags.entry(name).or_insert((lock.clone(), kinds));
+                traced.locks.entry(gate.hash).or_default().push(lock);
             }
         }
         // A shutter's leaves wait on its flags, but its frame carries none:
@@ -405,10 +401,10 @@ pub fn derive(
         // stands with it.
         for (h, _, _) in obstacles {
             let Ok(p) = level.placement(*h) else { continue };
-            if locks.contains_key(h) {
+            if traced.locks.contains_key(h) {
                 continue;
             }
-            let shared: Vec<Lock> = (locks.iter())
+            let shared: Vec<Lock> = (traced.locks.iter())
                 .filter(|(g, _)| {
                     level
                         .placement(**g)
@@ -417,7 +413,7 @@ pub fn derive(
                 .flat_map(|(_, l)| l.iter().cloned())
                 .collect();
             if !shared.is_empty() {
-                locks.insert(*h, shared);
+                traced.locks.insert(*h, shared);
             }
         }
         // Where Link enters each room: (room, part) of each arrival spot,
@@ -425,10 +421,10 @@ pub fn derive(
         let mut entries: HashSet<(u32, usize)> = HashSet::new();
         // Each arc between two parts of one room, and what stands on it.
         let mut crossings: Vec<hand::Crossing> = vec![];
-        let cross = |a: usize, b: usize, path: ([f32; 3], [f32; 3]), via: rooms::Via| {
+        let cross = |a: usize, b: usize, path: Segment, via: rooms::Via| {
             let (pa, pb) = (labels.part[a], labels.part[b]);
             let own = pa != pb && room[a].is_some() && room[a] == room[b];
-            (own && !here.replaces_parts(pa, pb, via)).then(|| hand::Crossing {
+            (own && !here.takes_parts_arc(pa, pb, via)).then(|| hand::Crossing {
                 from: pa,
                 to: pb,
                 on: on(path.0, path.1),
@@ -449,14 +445,14 @@ pub fn derive(
                         via: rooms::Via,
                         metric: f32,
                         by: Option<u64>,
-                        path: ([f32; 3], [f32; 3]),
+                        path: Segment,
                         fall: f32| {
             let (Some(ra), Some(rb)) = (room[a], room[b]) else {
                 return;
             };
-            if ra != rb && !here.replaces_rooms(ra, rb, via) {
+            if ra != rb && !here.takes_room_arc(ra, rb, via) {
                 entries.insert((rb, labels.part[b]));
-                let s = seen.entry((ra, rb, via)).or_default();
+                let s = traced.seen.entry((ra, rb, via)).or_default();
                 s.add(metric, by, path);
                 s.fall = s.fall.max(fall);
                 s.on.extend(on(path.0, path.1));
@@ -510,7 +506,7 @@ pub fn derive(
                 continue;
             }
             entries.insert((rb, pb));
-            let s = seen.entry((ra, rb, p.link.via)).or_default();
+            let s = traced.seen.entry((ra, rb, p.link.via)).or_default();
             s.add(0.0, None, p.at);
             s.puzzle = Some(p.link);
         }
@@ -523,7 +519,9 @@ pub fn derive(
             .filter(|c| match c.puzzle {
                 Some(p) => confirmed::free(p) && !p.guess,
                 None => {
-                    !c.crawl && !c.on.is_empty() && c.on.iter().all(|(_, k)| k.uses == "always")
+                    !c.crawl
+                        && !c.on.is_empty()
+                        && c.on.iter().all(|(_, k)| k.uses == super::ALWAYS)
                 }
             })
             .map(|c| (c.from, c.to))
@@ -638,7 +636,7 @@ pub fn derive(
                     write!(why, "; its graph waits on flag #{:08x}", lock.hash()).unwrap();
                     guess |= lock.room.is_none();
                     waits.push(format!("flag:#{:08x}", lock.hash()));
-                    flags.entry(name).or_insert((lock, kinds));
+                    traced.flags.entry(name).or_insert((lock, kinds));
                 }
             }
             let mut uses: Vec<&str> = blocking.iter().map(|(_, k)| k.uses.as_str()).collect();
@@ -671,14 +669,14 @@ pub fn derive(
             }
             let name = (book.check(check.hash).map(|c| c.name.clone()))
                 .or_else(|| named.get(&check.hash).cloned())
-                .or_else(|| match check.holder.contains("TBox") {
+                .or_else(|| match is_chest(&check.holder) {
                     true => Some(format!(
                         "{} Chest",
                         super::words(check.item.trim_start_matches("Item_"))
                     )),
                     false => reach.is_none().then(|| super::words(&check.holder)),
                 });
-            checks_out.entry(r).or_default().push(CheckOut {
+            traced.checks.entry(r).or_default().push(CheckOut {
                 hash: check.hash,
                 name,
                 needs: all_of(&uses),
@@ -690,116 +688,13 @@ pub fn derive(
     confirmed.finish()?;
     // A flag a confirmed entry places is set in its room, whatever derive
     // traced.
-    let traced = locks.values_mut().flatten();
+    let locks = traced.locks.values_mut().flatten();
     confirmed.place_locks(
-        traced.chain(flags.values_mut().map(|(l, _)| l)),
+        locks.chain(traced.flags.values_mut().map(|(l, _)| l)),
         &mut warnings,
     );
     let placed = confirmed.flags();
-    let folder = folder(dungeon.node.get());
-    let names = NAMES.get(&folder);
-    let q = |s: &str| toml::Value::String(s.to_owned()).to_string();
-    let mut files = vec![];
-    for &room in &numbered {
-        let name = names.and_then(|n| n.get(&room));
-        let file = match name {
-            Some(n) => format!("room-{room:02}-{}.toml", slug(n)),
-            None => format!("room-{room:02}.toml"),
-        };
-        let words = name.cloned().unwrap_or_else(|| format!("Room {room:02}"));
-        let mut out = format!(
-            "# Generated by `zootr logic derive`. Don't edit: confirmed/ overrides it.\nroom = {room}\nname = {}\n",
-            q(&words)
-        );
-        let mut entry = |table: &str, fields: &[(&str, String)], guess: bool| {
-            write!(out, "\n[[{table}]]\n").unwrap();
-            for (k, v) in fields {
-                writeln!(out, "{k} = {v}").unwrap();
-            }
-            if guess {
-                out += "guess = true\n";
-            }
-        };
-        let from_here = (room, 0, rooms::Via::Walk)..=(room, u32::MAX, rooms::Via::Event);
-        for (&(_, to, via), s) in seen.range(from_here) {
-            if via == rooms::Via::Jump && s.puzzle.is_none() {
-                let (from, width, at) = (room, s.least, s.at);
-                jumps.push(Jump {
-                    from,
-                    to,
-                    width,
-                    at,
-                });
-            }
-            let (needs, why, guess) = link(via, (room, to), s, &locks);
-            let fields = [
-                ("to", to.to_string()),
-                ("needs", q(&needs)),
-                ("via", q(via.word())),
-                ("why", q(&why)),
-            ];
-            entry("link", &fields, guess);
-        }
-        let mut here = checks_out.remove(&room).unwrap_or_default();
-        here.sort_by_key(|c| c.hash);
-        let unnamed = here.iter().filter(|c| c.name.is_none()).count();
-        let mut nth = 0;
-        for c in here {
-            let name = c.name.unwrap_or_else(|| {
-                nth += 1;
-                match unnamed {
-                    1 => format!("{words} Gold Skulltula"),
-                    _ => format!("{words} Gold Skulltula {nth}"),
-                }
-            });
-            let fields = [
-                ("hash", c.hash.to_string()),
-                ("name", q(&name)),
-                ("needs", q(&c.needs)),
-                ("why", q(&c.why)),
-            ];
-            entry("check", &fields, c.guess);
-        }
-        let mut set_here: Vec<&(Lock, Vec<&Kind>)> = flags
-            .values()
-            .filter(|(l, _)| l.room == Some(room) && !placed.contains_key(&l.hash()))
-            .collect();
-        set_here.sort_by_key(|(l, _)| l.hash());
-        for (lock, kinds) in set_here {
-            let (needs, why, guess) = flag(lock, kinds);
-            let fields = [
-                ("hash", format!("0x{:08x}", lock.hash())),
-                ("name", q(&super::words(&lock.name))),
-                ("needs", q(&needs)),
-                ("why", q(&why)),
-            ];
-            entry("flag", &fields, guess);
-        }
-        let mut confirmed_here: Vec<&rooms::Flag> = (placed.values())
-            .filter(|(r, _)| *r == room)
-            .map(|(_, f)| *f)
-            .collect();
-        confirmed_here.sort_by_key(|f| f.hash);
-        for f in confirmed_here {
-            let fields = [
-                ("hash", format!("0x{:08x}", f.hash)),
-                ("name", q(&f.name)),
-                ("needs", q(&f.needs)),
-                ("why", q(&format!("confirmed: {}", f.why))),
-            ];
-            entry("flag", &fields, f.guess);
-        }
-        for table in ["exit", "arrival"] {
-            for (hash, name) in spots.get(&(room, table)).into_iter().flatten() {
-                entry(
-                    table,
-                    &[("hash", format!("0x{hash:08x}")), ("name", q(name))],
-                    false,
-                );
-            }
-        }
-        files.push((format!("baseline/{folder}/{file}"), out));
-    }
+    let (files, jumps) = room_files(&folder(dungeon.node.get()), &numbered, traced, &placed);
     let floorless = numbered.difference(&floored).copied().collect();
     Ok(Derived {
         files,

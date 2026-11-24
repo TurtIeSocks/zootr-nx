@@ -102,7 +102,7 @@ fn checked(session: &str, look: bool) -> Result<()> {
             Err(e) => eprintln!("{e:#}: going by the local turn"),
         }
     }
-    Turn::load()?.ensure_held(session, true)
+    Turn::load()?.ensure_held(session)
 }
 
 /// For a run that touches the game long after it starts: renews
@@ -259,14 +259,10 @@ impl Turn {
         })
     }
 
-    /// Refuses a Claude shell (`claude`) unless the turn is Claude
-    /// session `session`'s.
-    pub fn ensure_held(&self, session: &str, claude: bool) -> Result<()> {
+    /// Refuses unless the turn is Claude session `session`'s.
+    pub fn ensure_held(&self, session: &str) -> Result<()> {
         ensure!(
-            !claude
-                || (self.player == Some(Player::Claude)
-                    && self.session == session
-                    && !session.is_empty()),
+            self.player == Some(Player::Claude) && self.session == session && !session.is_empty(),
             "the game isn't this session's to play ({self}): take a free turn with `zootr turn claude --session NAME`"
         );
         Ok(())
@@ -429,23 +425,14 @@ mod tests {
 
     #[test]
     fn only_the_session_holding_the_turn_plays_from_claudes_shell() {
-        assert!(claudes("fake-mine").ensure_held("fake-mine", true).is_ok());
-        assert!(
-            claudes("fake-other")
-                .ensure_held("fake-mine", true)
-                .is_err()
-        );
-        assert!(claudes("").ensure_held("", true).is_err());
-        assert!(held(None).ensure_held("fake-mine", true).is_err());
+        assert!(claudes("fake-mine").ensure_held("fake-mine").is_ok());
+        assert!(claudes("fake-other").ensure_held("fake-mine").is_err());
+        assert!(claudes("").ensure_held("").is_err());
+        assert!(held(None).ensure_held("fake-mine").is_err());
         assert!(
             held(Some(Player::Maintainer))
-                .ensure_held("fake-mine", true)
+                .ensure_held("fake-mine")
                 .is_err()
-        );
-        assert!(
-            held(Some(Player::Maintainer))
-                .ensure_held("", false)
-                .is_ok()
         );
     }
 

@@ -6,6 +6,7 @@ use std::path::Path;
 use anyhow::Result;
 use ounce_formats::{NavMesh, Romfs};
 
+use super::tally;
 use crate::nav::clear::crosses;
 use crate::nav::graph::{Graph, step_up};
 use crate::nav::route::{Route, plan};
@@ -36,10 +37,7 @@ pub fn shapes(romfs: &Romfs, game: &Path, map: &str, gyaml: Option<&str>) -> Res
     let picked = |name: &str| gyaml.is_none_or(|g| name.contains(g));
     let mut by: BTreeMap<&str, (usize, Option<Shape>)> = BTreeMap::new();
     for p in placed.iter().filter(|p| picked(&p.name)) {
-        if !by.contains_key(p.name.as_str()) {
-            by.insert(&p.name, (0, shape::shape_of(romfs, &p.name)?));
-        }
-        by.get_mut(p.name.as_str()).unwrap().0 += 1;
+        tally(&mut by, &p.name, || shape::shape_of(romfs, &p.name))?;
     }
     let (mut cut, mut loose, mut fixed, mut empty, mut none) = (0, 0, 0, 0, 0);
     for (name, (count, shape)) in &by {

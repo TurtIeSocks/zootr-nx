@@ -1,7 +1,7 @@
 //! The zootr window: Tauri commands over the `zootr` library.
 
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, anyhow, bail};
 use generating::Generating;
@@ -90,21 +90,25 @@ struct Status {
     targets: Vec<TargetStatus>,
 }
 
+/// Polled, so off the main thread: it probes processes and user paths.
 #[tauri::command]
 #[specta::specta]
-fn status() -> Res<Status> {
-    let config = Config::load().map_err(text)?;
-    let targets = config.targets.iter().map(|t| TargetStatus {
-        name: t.name.clone(),
-        app: t.app.exists(),
-        mod_dir: t.mod_dir.is_dir(),
-        running: t.running(),
-        build: Build::of(t),
-    });
-    Ok(Status {
-        game: config.game.is_some_and(|g| g.exists()),
-        targets: targets.collect(),
+async fn status() -> Res<Status> {
+    blocking(|| {
+        let config = Config::load()?;
+        let targets = config.targets.iter().map(|t| TargetStatus {
+            name: t.name.clone(),
+            app: t.app.exists(),
+            mod_dir: t.mod_dir.is_dir(),
+            running: t.running(),
+            build: Build::of(t),
+        });
+        Ok(Status {
+            game: config.game.is_some_and(|g| g.exists()),
+            targets: targets.collect(),
+        })
     })
+    .await
 }
 
 #[tauri::command]
@@ -187,6 +191,21 @@ async fn set_config(app: AppHandle, config: Config) -> Res<Vec<String>> {
 fn romfs(config: &Config) -> anyhow::Result<Romfs> {
     let game = config.game.as_ref().context("Set the game dump first")?;
     zootr::game::prepare(game, &Run::silent())
+}
+
+/// What `slot` holds, loaded into it by `load` the first time. Kept until
+/// the app closes, so a changed dump takes a restart.
+fn cached<T>(
+    slot: &Mutex<Option<Arc<T>>>,
+    load: impl FnOnce() -> anyhow::Result<T>,
+) -> anyhow::Result<Arc<T>> {
+    let mut slot = slot.lock().unwrap();
+    if let Some(kept) = &*slot {
+        return Ok(kept.clone());
+    }
+    let loaded = Arc::new(load()?);
+    *slot = Some(loaded.clone());
+    Ok(loaded)
 }
 
 /// The `zootr shuffle` command that Generate stands for, with the current
@@ -316,20 +335,19 @@ async fn plando_options() -> Res<PlandoOptions> {
 #[specta::specta]
 async fn install(app: AppHandle, id: u32, steps: Channel<progress::StepEvent>) -> Res<()> {
     blocking(move || {
-        let mut history = History::load()?;
-        let entry = history.get(id)?;
-        let generating = app.state::<Generating>();
-        generating.build(
-            steps,
-            entry.report.seed,
-            &entry.settings,
-            &entry.extras,
-            true,
-        )?;
-        history.install(Some(id));
-        history.save()?;
+        let entry = History::load()?.get(id)?.clone();
+        let (seed, settings, extras) = (entry.report.seed, entry.settings, entry.extras);
+        let built = (app.state::<Generating>()).build(steps, seed, &settings, &extras, true);
+        // Loaded again: History may have changed during the build.
+        let done = built.and_then(|_| {
+            let mut history = History::load()?;
+            history.get(id)?;
+            history.install(Some(id));
+            history.save()
+        });
+        // A stopped install that took the mod off changed it too.
         app.state::<Items>().emit(&app);
-        Ok(())
+        done
     })
     .await
 }
@@ -361,8 +379,8 @@ async fn uninstall(app: AppHandle) -> Res<()> {
 
 #[tauri::command]
 #[specta::specta]
-fn history() -> Res<View> {
-    history::view().map_err(text)
+async fn history() -> Res<View> {
+    blocking(history::view).await
 }
 
 /// Change history and save it.
@@ -525,7 +543,7 @@ fn pop_out(app: &AppHandle, label: &str) -> Res<()> {
         return window.set_focus().map_err(|e| e.to_string());
     }
     let config = app.config().app.windows.iter().find(|w| w.label == label);
-    let config = config.ok_or(format!("no {label} window in tauri.conf.json"))?;
+    let config = config.ok_or_else(|| format!("no {label} window in tauri.conf.json"))?;
     tauri::WebviewWindowBuilder::from_config(app, config)
         .and_then(|b| b.build())
         .map(|_| ())
@@ -715,7 +733,7 @@ pub fn run() -> tauri::Result<()> {
     app_log::header(&config);
     #[cfg(debug_assertions)]
     if let Err(e) = export_bindings(Path::new(env!("CARGO_MANIFEST_DIR")).join(BINDINGS)) {
-        eprintln!("couldn't write the bindings: {e}");
+        log::warn!("Couldn't write the bindings: {e}");
     }
     let builder = commands();
     tauri::Builder::default()
@@ -734,7 +752,10 @@ pub fn run() -> tauri::Result<()> {
                     Ok(png) => tauri::http::Response::builder()
                         .header(tauri::http::header::CONTENT_TYPE, "image/png")
                         .body(png),
-                    Err(_) => tauri::http::Response::builder().status(404).body(vec![]),
+                    Err(e) => {
+                        log::debug!("No icon for {}: {e:#}", request.uri().path());
+                        tauri::http::Response::builder().status(404).body(vec![])
+                    }
                 };
                 responder.respond(response.expect("a plain response"));
             });
@@ -752,7 +773,11 @@ pub fn run() -> tauri::Result<()> {
             app.manage(ui::UiFile::default());
             // Built now, so the Items tab rarely waits on a new dump.
             let handle = app.handle().clone();
-            std::thread::spawn(move || handle.state::<Icons>().folder());
+            std::thread::spawn(move || {
+                if let Err(e) = handle.state::<Icons>().folder() {
+                    log::debug!("Icons not built at startup: {e:#}");
+                }
+            });
             app.manage(Live::new(app.handle().clone()));
             Ok(app.state::<Live>().watch(app.handle())?)
         })
@@ -788,12 +813,21 @@ mod tests {
     fn an_error_logs_its_whole_chain() {
         app_log::install_bare();
         let shown = text(anyhow!("the FakeFile is gone").context("reading the FakeSave"));
-        assert!(!shown.is_empty());
+        assert_eq!(shown, "reading the FakeSave: the FakeFile is gone");
         let lines = serde_json::to_value(app_log::app_log_state()).unwrap();
-        let logged = lines["lines"].as_array().unwrap().iter();
-        assert!(logged.into_iter().any(|l| l["text"]
-            == "reading the FakeSave: the FakeFile is gone"
-            && l["level"] == "error"));
+        let mut logged = lines["lines"].as_array().unwrap().iter();
+        assert!(logged.any(
+            |l| l["text"] == "reading the FakeSave: the FakeFile is gone" && l["level"] == "error"
+        ));
+    }
+
+    #[test]
+    fn a_cached_value_loads_once_and_a_failed_load_keeps_nothing() {
+        let slot = Mutex::default();
+        assert!(cached(&slot, || Err::<u8, _>(anyhow!("no FakeDump"))).is_err());
+        assert!(slot.lock().unwrap().is_none());
+        assert_eq!(*cached(&slot, || Ok(1)).unwrap(), 1);
+        assert_eq!(*cached(&slot, || Ok(2)).unwrap(), 1);
     }
 
     #[test]
@@ -810,7 +844,6 @@ mod tests {
             ..Default::default()
         };
         // Nothing to read, or nothing new: nothing is checked.
-        // Text: no dump is open yet, so a name can't be read here.
         let good = with(setup("SageOfSpirit=Step02"));
         check_steps(&old, &good).unwrap();
         check_steps(&good, &good).unwrap();

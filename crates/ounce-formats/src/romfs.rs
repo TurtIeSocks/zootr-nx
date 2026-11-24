@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::{Context, Result, anyhow, bail, ensure};
+use anyhow::{Context, Result, anyhow, ensure};
 
 use roead::sarc::{Sarc, SarcWriter};
 
@@ -87,18 +87,24 @@ fn sibling(dir: &Path, suffix: &str) -> Result<PathBuf> {
     Ok(dir.with_file_name(format!(".{}.{suffix}", name.to_string_lossy())))
 }
 
-/// Delete `dir` if it exists, but only when empty or carrying our marker:
-/// a mistyped path must never delete someone's files.
-fn clear(dir: &Path) -> Result<()> {
-    if !dir.exists() {
-        return Ok(());
-    }
-    let ours = dir.join(MARKER).exists();
-    if !ours && std::fs::read_dir(dir)?.next().is_some() {
-        bail!(
-            "{} exists and wasn't made by this tool (no {MARKER}); refusing to clear it",
+/// Refuse to `verb` `dir` unless it is missing, empty or carries our
+/// marker: a mistyped path must never touch someone's files.
+fn ensure_ours(dir: &Path, verb: &str) -> Result<()> {
+    if dir.exists() && !dir.join(MARKER).exists() {
+        ensure!(
+            std::fs::read_dir(dir)?.next().is_none(),
+            "{} exists and wasn't made by this tool (no {MARKER}); refusing to {verb} it",
             dir.display()
         );
+    }
+    Ok(())
+}
+
+/// Delete `dir` if it exists, but only when [`ensure_ours`] allows it.
+fn clear(dir: &Path) -> Result<()> {
+    ensure_ours(dir, "clear")?;
+    if !dir.exists() {
+        return Ok(());
     }
     std::fs::remove_dir_all(dir).with_context(|| format!("clearing {}", dir.display()))
 }
@@ -108,13 +114,7 @@ impl<'a> ModBuilder<'a> {
     /// `finish` replaces it whole, so stale files from an earlier seed can't
     /// leak in.
     pub fn new(romfs: &'a Romfs, mod_dir: &Path) -> Result<Self> {
-        if mod_dir.exists() && !mod_dir.join(MARKER).exists() {
-            ensure!(
-                std::fs::read_dir(mod_dir)?.next().is_none(),
-                "{} exists and wasn't made by this tool (no {MARKER}); refusing to replace it",
-                mod_dir.display()
-            );
-        }
+        ensure_ours(mod_dir, "replace")?;
         let staging = sibling(mod_dir, "part")?;
         clear(&staging)?;
         std::fs::create_dir_all(&staging)?;
@@ -301,17 +301,23 @@ impl<'a> ModBuilder<'a> {
 fn swap_in(staging: &Path, mod_dir: &Path) -> Result<()> {
     let old = sibling(mod_dir, "old")?;
     clear(&old)?;
-    if mod_dir.exists() {
+    let moved = mod_dir.exists();
+    if moved {
         std::fs::rename(mod_dir, &old)?;
     }
-    std::fs::rename(staging, mod_dir)
-        .with_context(|| format!("moving the mod into {}", mod_dir.display()))?;
+    if let Err(e) = std::fs::rename(staging, mod_dir) {
+        if moved {
+            _ = std::fs::rename(&old, mod_dir);
+        }
+        return Err(e).with_context(|| format!("moving the mod into {}", mod_dir.display()));
+    }
     clear(&old)
 }
 
 /// Copy a written mod folder over `to`, staged and swapped in as
 /// [`ModBuilder::finish`] does, so a failed copy leaves `to` as it was.
 pub fn copy_mod(from: &Path, to: &Path) -> Result<()> {
+    ensure_ours(to, "replace")?;
     let staging = sibling(to, "part")?;
     clear(&staging)?;
     copy_dir(from, &staging)
@@ -350,6 +356,34 @@ mod tests {
         clear(&ours).unwrap();
         assert!(theirs.exists() && !ours.exists());
         assert_eq!(sibling(&ours, "part").unwrap(), base.join(".ours.part"));
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn copy_mod_leaves_a_foreign_folder_where_it_is() {
+        let base = std::env::temp_dir().join(format!("ounce-copy-{}", std::process::id()));
+        let (from, to) = (base.join("from"), base.join("theirs"));
+        for dir in [&from, &to] {
+            std::fs::create_dir_all(dir).unwrap();
+        }
+        std::fs::write(from.join("a.bin"), b"new").unwrap();
+        std::fs::write(to.join("save.dat"), b"x").unwrap();
+        assert!(copy_mod(&from, &to).is_err());
+        assert_eq!(std::fs::read(to.join("save.dat")).unwrap(), b"x");
+        assert!(!sibling(&to, "old").unwrap().exists());
+        assert!(!sibling(&to, "part").unwrap().exists());
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn a_failed_swap_puts_the_old_mod_back() {
+        let base = std::env::temp_dir().join(format!("ounce-swap-{}", std::process::id()));
+        let mod_dir = base.join("mod");
+        std::fs::create_dir_all(&mod_dir).unwrap();
+        std::fs::write(mod_dir.join(MARKER), b"").unwrap();
+        std::fs::write(mod_dir.join("a.bin"), b"old").unwrap();
+        assert!(swap_in(&base.join("missing"), &mod_dir).is_err());
+        assert_eq!(std::fs::read(mod_dir.join("a.bin")).unwrap(), b"old");
         std::fs::remove_dir_all(base).unwrap();
     }
 }

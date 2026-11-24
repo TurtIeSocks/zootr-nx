@@ -10,6 +10,15 @@ export async function call<T>(result: Promise<Result<T>>): Promise<T> {
 export const same = (a: unknown, b: unknown) =>
   JSON.stringify(a) === JSON.stringify(b);
 
+/** Whether two records hold the same entries, whatever order their keys
+ * came in. */
+export const sameEntries = <T>(a: Record<string, T>, b: Record<string, T>) => {
+  const keys = Object.keys(a);
+  return (
+    keys.length === Object.keys(b).length && keys.every((k) => a[k] === b[k])
+  );
+};
+
 /** An updater that keeps the old value when `next` holds the same data, so
  * nothing reading it redraws and forms holding it keep their edits. */
 export const keep =

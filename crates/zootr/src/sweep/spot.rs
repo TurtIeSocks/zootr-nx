@@ -26,6 +26,7 @@ use crate::nav::drive::Drive;
 use crate::nav::graph::dist;
 use crate::nav::{self, Level};
 use crate::play::Input;
+use crate::savefile::Change;
 use crate::shops;
 use crate::steps::SAVED;
 use crate::warp::Placement;
@@ -81,14 +82,6 @@ pub struct Sweeper<'a, I, J> {
     pub dir: &'a Path,
 }
 
-/// How many times a request refused for an event is asked again.
-const AGAIN: usize = 3;
-
-/// The GameData values a spot writes before its teleport and holds through
-/// the load: its trigger's ready values, then each quest step it needs, as
-/// the step's save copy `Step_<challenge>`. Gates read that copy (a
-/// keeper's presence). The copy is one write held through the load, where
-/// a step run through the quest system is an event of its own.
 /// The quest steps a spot needs.
 fn steps(p: &Planned) -> &[(String, String)] {
     match &p.trigger {
@@ -99,6 +92,11 @@ fn steps(p: &Planned) -> &[(String, String)] {
     }
 }
 
+/// The GameData values a spot writes before its teleport and holds through
+/// the load: its trigger's ready values, then each quest step it needs, as
+/// the step's save copy `Step_<challenge>`. Gates read that copy (a
+/// keeper's presence). The copy is one write held through the load, where
+/// a step run through the quest system is an event of its own.
 pub(super) fn presets(p: &Planned) -> Vec<String> {
     let (ready, quests) = match &p.trigger {
         Trigger::Open { ready, steps, .. }
@@ -132,6 +130,9 @@ fn voided(used: &Used) -> bool {
         && used.went.legs == 0
         && used.went.left.is_some_and(|left| left > VOIDED)
 }
+
+/// How many times a request refused for an event is asked again.
+const AGAIN: usize = 3;
 
 /// `ask`, and again after `calm` while it's refused for an event: Navi or
 /// an enemy's scene can start between one request and the next.
@@ -220,24 +221,22 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         {
             return Ok(verdict);
         }
+        let dev = self.dev;
+        let game = dev.game();
         if pays(p) {
-            live::set(
-                self.dev.game(),
-                self.dev.global(),
-                live::hash(RUPEES.0)?,
-                RUPEES.1,
-            )?;
+            game.set(live::hash(RUPEES.0)?, RUPEES.1)?;
         }
         // Link may own it from an earlier spot or round: take it away.
         for &flag in &watch.flags {
-            live::set(self.dev.game(), self.dev.global(), flag, "false")?;
+            game.set(flag, "false")?;
         }
-        live::set(self.dev.game(), self.dev.global(), watch.message, "")?;
-        let was = live::snapshot(self.dev.game(), self.dev.global())?;
+        game.set(watch.message, "")?;
+        let was = live::snapshot(game, dev.global())?;
         let before = watch.read(self.dev, self.gd)?;
         let landed = |s: &Self| Ok::<_, anyhow::Error>(watch.read(s.dev, s.gd)? != before);
         self.trigger(p, name, swept)?;
-        if matches!(p.trigger, Trigger::Open { broken: true, .. }) {
+        let broken = matches!(p.trigger, Trigger::Open { broken: true, .. });
+        if broken {
             self.fetch(&landed)?;
         }
         let mut verdict = match shops::is_holder(&p.spot.holder) {
@@ -247,39 +246,51 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         if verdict.is_none() {
             verdict = self.judged(p, name, &landed, swept)?;
         }
-        let now = live::snapshot(self.dev.game(), self.dev.global())?;
+        let now = live::snapshot(game, dev.global())?;
         let mut changes = live::changes(self.gd, &was, &now, |_| true);
         // A shop may sell Blue Fire or a hammer, so only one wielded is ours.
         if let Trigger::Open { wield: Some(w), .. } = &p.trigger {
             changes.retain(|c| !wielded(c, w.item));
         }
-        let cleared = cleared
-            .iter()
-            .map(|f| format!("{f} cleared by the map load"));
-        swept.changes = cleared
+        let cleared_lines = (cleared.iter()).map(|f| format!("{f} cleared by the map load"));
+        swept.changes = cleared_lines
             .chain(changes.iter().map(|c| format!("{} {}", c.name, c.change)))
             .collect();
+        Ok(self.classify(p, &watch, &changes, broken, verdict))
+    }
+
+    /// The spot's verdict, from what `changes` show landed. Only a bug or a
+    /// stall `seen` while pressing through the event stands over them: a
+    /// pass there only meant the pressing could stop.
+    fn classify(
+        &self,
+        p: &Planned,
+        watch: &Watch,
+        changes: &[Change],
+        broken: bool,
+        seen: Option<Verdict>,
+    ) -> Verdict {
         let (wanted, items) = (watch.names(self.gd), &watch.items);
-        let named = named(&changes);
-        let swap = named.clone().filter(|n| swapped(&p.spot.item, n));
+        let item_named = named(changes);
         let ours = changes
             .iter()
             .any(|c| c.name != MESSAGE && wanted.contains(&c.name))
-            || named.as_ref().is_some_and(|n| items.contains(n));
-        let windowed = !matches!(p.trigger, Trigger::Open { broken: true, .. });
-        let other = got_other(&changes, &wanted, windowed);
+            || item_named.as_ref().is_some_and(|n| items.contains(n));
+        let other = got_other(changes, &wanted, !broken);
+        let swap = item_named.filter(|n| swapped(&p.spot.item, n));
         let next_door = match (&p.trigger, &other) {
             (Trigger::Open { near, .. }, Some(c)) => neighbour(self.romfs, near, c),
             _ => None,
         };
-        Ok(match (verdict, ours, other) {
-            (Some(v @ (Verdict::Bug(_) | Verdict::Stall)), _, _) => v,
-            (_, true, _) => Verdict::Pass,
-            _ if swap.is_some() => Verdict::Substituted(swap.unwrap_or_default()),
-            _ if next_door.is_some() => Verdict::Neighbour(next_door.unwrap_or_default()),
-            (_, false, Some(c)) => Verdict::WrongItem(c),
+        let substitute =
+            (swap.map(Verdict::Substituted)).or_else(|| next_door.map(Verdict::Neighbour));
+        match (seen, ours, substitute, other) {
+            (Some(v @ (Verdict::Bug(_) | Verdict::Stall)), ..) => v,
+            (_, true, ..) => Verdict::Pass,
+            (_, _, Some(v), _) => v,
+            (_, _, _, Some(c)) => Verdict::WrongItem(c.to_string()),
             _ => Verdict::Nothing,
-        })
+        }
     }
 
     /// [`calmly`] with this spot's game.
@@ -303,24 +314,29 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
 
     /// Sets each entry, and names those that weren't set.
     fn hold(&self, entries: &[String]) -> Result<Vec<String>> {
-        let (game, global) = (self.dev.game(), self.dev.global());
         let mut cleared = vec![];
         for entry in entries {
-            let (name, value) = preset(entry);
-            let hash = live::hash(name)?;
-            if live::read(game, self.gd, global, hash)? != value {
+            let (hash, value, differs) = self.differs(entry)?;
+            if differs {
                 cleared.push(entry.clone());
             }
-            live::set(game, global, hash, value)?;
+            self.dev.game().set(hash, value)?;
         }
         Ok(cleared)
+    }
+
+    /// The hash and value of the preset `entry`, and whether the game
+    /// holds another value there.
+    fn differs<'e>(&self, entry: &'e str) -> Result<(u32, &'e str, bool)> {
+        let (name, value) = preset(entry);
+        let hash = live::hash(name)?;
+        Ok((hash, value, self.dev.game().get(self.gd, hash)? != value))
     }
 
     /// Whether Link holds `item`.
     fn holds(&self, item: &str) -> Result<bool> {
         let hash = live::hash(&format!("IsGet.{item}"))?;
-        let (game, global) = (self.dev.game(), self.dev.global());
-        Ok(live::read(game, self.gd, global, hash)? == "true")
+        Ok(self.dev.game().get(self.gd, hash)? == "true")
     }
 
     /// The song a cow wants, the item a giver takes or the card the guards
@@ -419,10 +435,8 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
 
     /// Whether every entry already holds its value.
     fn latched(&self, entries: &[String]) -> Result<bool> {
-        let (game, global) = (self.dev.game(), self.dev.global());
         for entry in entries {
-            let (name, value) = preset(entry);
-            if live::read(game, self.gd, global, live::hash(name)?)? != value {
+            if self.differs(entry)?.2 {
                 return Ok(false);
             }
         }
@@ -462,16 +476,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             } => (*at, *face, *counter, *halt, &[][..]),
             Trigger::Play {
                 event, melody, at, ..
-            } => {
-                if !self.step_in(*at)? {
-                    self.play(event)?;
-                }
-                if let Some(song) = melody {
-                    sleep(OCARINA);
-                    self.perform(song)?;
-                }
-                return Ok(());
-            }
+            } => return self.start_play(event, *melody, *at),
             Trigger::Skip(_) => return Ok(()),
         };
         if let Some(halt) = &halt {
@@ -494,7 +499,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             (false, true) => vec![at],
             (false, false) => nav::landings(&graph, holder, at, p.side, sides),
         };
-        let here = here || aloft;
+        let stay = here || aloft;
         for (i, &at) in spots.iter().enumerate() {
             // Under water, Link uses it from the surface over it: a plane's,
             // or wherever a warp into water put him back up.
@@ -508,15 +513,15 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
             let mut drive = Drive::new(self.dev, &mut *self.input);
             drive.side = p.side;
             drive.then = sides.to_vec();
-            drive.here = here;
+            drive.here = stay;
             let used = match under {
                 true => nav::sink::touch_under(&mut drive, self.gd, &graph, holder, shot)?,
                 false => drive.touch(&graph, holder, shot)?,
             };
             swept.shots.extend(used.shot.clone());
-            let voided = voided(&used);
+            let fell = voided(&used);
             swept.used = Some(used);
-            if !voided || i + 1 == spots.len() {
+            if !fell || i + 1 == spots.len() {
                 break;
             }
             eprintln!("    {name}: the warp beside it didn't hold, another side");
@@ -526,6 +531,24 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         } = &p.trigger
         {
             self.after_talk(button)?;
+        }
+        Ok(())
+    }
+
+    /// Start a play spot's `event`, by Link's step at `at` when it starts
+    /// it, then play its `melody` once the ocarina is out.
+    fn start_play(
+        &mut self,
+        event: &str,
+        melody: Option<&str>,
+        at: Option<[f32; 3]>,
+    ) -> Result<()> {
+        if !self.step_in(at)? {
+            self.play(event)?;
+        }
+        if let Some(song) = melody {
+            sleep(OCARINA);
+            self.perform(song)?;
         }
         Ok(())
     }
@@ -564,16 +587,16 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
     /// Stop a giver who rolls a track: wait for him to pass the one spot
     /// he can be stopped at, then set what a bomb hit there sets.
     fn halt(&self, halt: &Halt) -> Result<()> {
-        let (game, global) = (self.dev.game(), self.dev.global());
+        let game = self.dev.game();
         let passing = live::hash(halt.passing)?;
         let until = Instant::now() + LAP;
-        while live::read(game, self.gd, global, passing)? != "true" {
+        while game.get(self.gd, passing)? != "true" {
             if Instant::now() > until {
                 bail!("{} didn't pass his stopping spot in {LAP:?}", halt.actor);
             }
             sleep(PASSING);
         }
-        live::set(game, global, live::hash(halt.hit)?, "true")
+        game.set(live::hash(halt.hit)?, "true")
     }
 
     /// Talk, A through it, then press `button`: what the giver waits for
@@ -763,17 +786,6 @@ fn pays(p: &Planned) -> bool {
     matches!(p.trigger, Trigger::Talk { .. } | Trigger::Play { .. })
 }
 
-/// Arrival points inside the trigger of a scene that plays as Link lands
-/// and waits on its get window, so a teleport there never settles and the
-/// item is given before the sweep looks: the adult meadow's by the temple,
-/// where Sheik teaches his song.
-const SCENE_ON_ARRIVAL: [(&Name, &Name); 1] = [(
-    map::SACRED_FOREST_MEADOW_ADULT,
-    field::OUTSIDE_OF_FOREST_TEMPLE,
-)];
-
-/// Where a teleport to `map` arrives: its first arrival point that starts
-/// no scene, or its first.
 /// Wait for no event and no load, pressing A through any text left.
 pub(super) fn quiet<I: Input>(dev: &Dev, input: &mut I) -> Result<()> {
     let start = Instant::now();
@@ -809,11 +821,22 @@ pub(super) fn teleport<I: Input>(
     }
 }
 
+/// Arrival points inside the trigger of a scene that plays as Link lands
+/// and waits on its get window, so a teleport there never settles and the
+/// item is given before the sweep looks: the adult meadow's by the temple,
+/// where Sheik teaches his song.
+const SCENE_ON_ARRIVAL: [(&Name, &Name); 1] = [(
+    map::SACRED_FOREST_MEADOW_ADULT,
+    field::OUTSIDE_OF_FOREST_TEMPLE,
+)];
+
+/// Where a teleport to `map` arrives: its first arrival point that starts
+/// no scene, or its first.
 pub(super) fn arrival<'a>(places: &'a BTreeSet<Place>, map: &str) -> Option<&'a Place> {
-    let quiet =
+    let starts_no_scene =
         |pl: &&Place| !(SCENE_ON_ARRIVAL.iter()).any(|(m, s)| **m == *pl.map && **s == *pl.spot);
     let mut of = places.iter().filter(|pl| pl.map == map);
-    of.clone().find(quiet).or_else(|| of.next())
+    of.clone().find(starts_no_scene).or_else(|| of.next())
 }
 
 #[cfg(test)]

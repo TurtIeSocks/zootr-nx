@@ -12,7 +12,7 @@ use zootr::gamedata::GameData;
 use zootr::recorder::{self, Ask, Event, Hub, LiveStatus, Numbered, Snapshot, Source, Watch};
 
 use crate::checks::Checks;
-use crate::{Items, Res, romfs, text};
+use crate::{Items, Res, cached, romfs, text};
 
 /// Every Live tab event, to whichever page is listening.
 #[derive(Clone, Serialize, Type)]
@@ -24,7 +24,7 @@ impl tauri_specta::Event for LiveEvent {
 
 /// The Live tab's sessions, and the GameData names they show, loaded once.
 pub(crate) struct Live {
-    pub(crate) gd: Mutex<Option<Arc<GameData>>>,
+    gd: Mutex<Option<Arc<GameData>>>,
     hub: Arc<Hub>,
     watch: Mutex<Option<Watch>>,
 }
@@ -49,27 +49,33 @@ impl Live {
     }
 
     pub(crate) fn gamedata(&self, config: &Config) -> anyhow::Result<Arc<GameData>> {
-        let mut gd = self.gd.lock().unwrap();
-        if gd.is_none() {
-            *gd = Some(Arc::new(recorder::gamedata(&romfs(config)?)?));
-        }
-        Ok(gd.clone().expect("just loaded"))
+        cached(&self.gd, || recorder::gamedata(&romfs(config)?))
+    }
+
+    /// GameData, if something loaded it already.
+    pub(crate) fn loaded(&self) -> Option<Arc<GameData>> {
+        self.gd.lock().unwrap().clone()
     }
 
     /// Records the picked target whenever it runs, for as long as the app
     /// is open.
     pub(crate) fn watch(&self, app: &AppHandle) -> anyhow::Result<()> {
         let app = app.clone();
-        let gd = move || {
+        // GameData, with the tracker and the inventory ready before the
+        // first row, so no flip is missed.
+        let ready = move || {
             let gd = app.state::<Live>().gamedata(&Config::load()?);
-            // Ready before the first row, so no flip is missed.
-            let _ = app.state::<Checks>().state(&app);
-            let _ = app.state::<Items>().state(&app);
+            if let Err(e) = app.state::<Checks>().state(&app) {
+                log::debug!("Tracker not ready for the game: {e:#}");
+            }
+            if let Err(e) = app.state::<Items>().state(&app) {
+                log::debug!("Inventory not ready for the game: {e:#}");
+            }
             gd
         };
         let target = || Config::load()?.target();
         let logs = recorder::logs()?;
-        *self.watch.lock().unwrap() = Some(Watch::start(self.hub.clone(), gd, target, logs));
+        *self.watch.lock().unwrap() = Some(Watch::start(self.hub.clone(), ready, target, logs));
         Ok(())
     }
 }
@@ -102,7 +108,7 @@ pub(crate) fn live_state(live: State<Live>) -> Snapshot {
 #[specta::specta]
 pub(crate) fn live_label(live: State<Live>, hash: u32, label: String) -> Res<()> {
     zootr::labels::set(&zootr::labels::path().map_err(text)?, hash, &label).map_err(text)?;
-    if let Some(gd) = &*live.gd.lock().unwrap() {
+    if let Some(gd) = live.loaded() {
         gd.set_label(hash, &label);
     }
     Ok(())

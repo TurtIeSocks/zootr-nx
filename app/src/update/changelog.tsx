@@ -1,6 +1,7 @@
 import { Loader2, Newspaper } from "lucide-react";
 import { useEffect, useState } from "react";
 import { InlineError } from "@/components/callout";
+import { Disclosure } from "@/components/disclosure";
 import { TipButton } from "@/components/tip-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,10 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Disclosure } from "@/settings/fold";
+import { message } from "@/lib/api";
 import { askedRepo, useUpdate } from "@/stores/update";
 import { Notes, ReleaseLink } from "@/update/notes";
-import { day, fetchReleases, PAGE, type Release } from "@/update/release";
+import { day, fetchReleases, type Release } from "@/update/release";
 
 /** Opens every release, newest first, each a fold of its notes with only
  * the newest open. Nothing is fetched until it opens. */
@@ -59,14 +60,14 @@ function Releases() {
     let live = true;
     setStatus("loading");
     fetchReleases(askedRepo(), pages).then(
-      (got) => {
+      ({ releases, more }) => {
         if (!live) return;
-        setList((l) => [...l, ...got]);
-        setStatus(got.length < PAGE ? "end" : "more");
+        setList((l) => [...l, ...releases]);
+        setStatus(more ? "more" : "end");
       },
       (e: unknown) => {
         if (!live) return;
-        setError(String(e));
+        setError(message(e));
         setStatus("error");
       },
     );

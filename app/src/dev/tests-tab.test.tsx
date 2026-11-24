@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { DevWindow } from "@/dev/dev-window";
 import { devApply, game, goal, goals, ok, saved, setup } from "@/test/dev-game";
 import { fakeGame, openTab, renderReady } from "@/test/dev-window";
@@ -11,6 +11,12 @@ vi.mock(
 );
 
 fakeGame();
+
+/** A test that empties the setup's expectation can't leak it on failing. */
+const EXPECT = saved.expect;
+afterEach(() => {
+  saved.expect = EXPECT;
+});
 
 test("a saved setup applies live, its lines in the entry", async () => {
   await renderReady();
@@ -83,5 +89,4 @@ test("a setup with no goals says what it applies", async () => {
   await openTab("Tests");
   expect(await screen.findByLabelText("No goals")).toBeTruthy();
   expect(screen.getByText(/No goals. Applies the spawn/)).toBeTruthy();
-  saved.expect = "a lens";
 });

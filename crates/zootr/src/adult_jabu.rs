@@ -198,9 +198,8 @@ fn place(node: &mut Byml, at: &str, rot: &str, centre: [f32; 3], spot: &Spot) ->
     let (sin, cos) = spot.turn.sin_cos();
     let map = node.as_mut_map()?;
     if let Some(pos) = map.get_mut(at) {
-        let v = pos.as_mut_array()?;
-        let get = |v: &[Byml], i: usize| v[i].as_float();
-        let (dx, dz) = (get(v, 0)? - centre[0], get(v, 2)? - centre[2]);
+        let v = triple(pos, at)?;
+        let (dx, dz) = (v[0].as_float()? - centre[0], v[2].as_float()? - centre[2]);
         v[0] = Byml::Float(spot.at[0] + dx * cos + dz * sin);
         v[2] = Byml::Float(spot.at[1] - dx * sin + dz * cos);
     }
@@ -210,7 +209,7 @@ fn place(node: &mut Byml, at: &str, rot: &str, centre: [f32; 3], spot: &Spot) ->
     let Some(r) = map.get_mut(rot) else {
         return Ok(());
     };
-    let r = r.as_mut_array()?;
+    let r = triple(r, rot)?;
     // Rotate is X·Y·Z: a turn about the world's Y adds to Y while X is 0,
     // and comes off it while X is a half turn (X then flips Y).
     let rx = r[0].as_float()?;
@@ -221,6 +220,14 @@ fn place(node: &mut Byml, at: &str, rot: &str, centre: [f32; 3], spot: &Spot) ->
     };
     r[1] = Byml::Float(r[1].as_float()? + turn);
     Ok(())
+}
+
+/// `v`, an X, Y, Z array kept under `key`.
+fn triple<'a>(v: &'a mut Byml, key: &str) -> Result<&'a mut [Byml; 3]> {
+    let v = v.as_mut_array()?;
+    let len = v.len();
+    <&mut [Byml; 3]>::try_from(v.as_mut_slice())
+        .map_err(|_| anyhow::anyhow!("a {key} has {len} entries, not 3"))
 }
 
 /// Takes [`INSIDE`] out of `root` and moves [`MOVED`]. Whether any of
@@ -241,8 +248,8 @@ fn make_room(root: &mut Byml) -> Result<bool> {
             continue;
         };
         let at = (actor.as_mut_map()?.get_mut(checks::TRANSLATE))
-            .context("a moved Octorok has no spot")?
-            .as_mut_array()?;
+            .context("a moved Octorok has no spot")?;
+        let at = triple(at, checks::TRANSLATE)?;
         at[0] = Byml::Float(to[0]);
         at[2] = Byml::Float(to[1]);
         changed = true;
@@ -549,5 +556,26 @@ mod tests {
         // A tilt about X can't turn about Y.
         let mut leaning = node([0.0; 3], [0.3, 0.0, 0.0]);
         assert!(place(&mut leaning, "Translate", "Rotate", centre, &spot).is_err());
+    }
+
+    #[test]
+    fn a_short_spot_is_an_error() {
+        let spot = Spot {
+            at: [0.0, 0.0],
+            turn: std::f32::consts::FRAC_PI_2,
+        };
+        let short = |key: &str| {
+            let v = |n: usize| Byml::Array(vec![Byml::Float(0.0); n]);
+            let (pos, rot) = if key == "Translate" { (1, 3) } else { (3, 1) };
+            Byml::Map(
+                [("Translate".into(), v(pos)), ("Rotate".into(), v(rot))]
+                    .into_iter()
+                    .collect(),
+            )
+        };
+        for key in ["Translate", "Rotate"] {
+            let err = place(&mut short(key), "Translate", "Rotate", [0.0; 3], &spot);
+            assert!(err.is_err(), "{key}");
+        }
     }
 }

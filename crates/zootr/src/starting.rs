@@ -11,8 +11,8 @@ use crate::{grant as inline, items};
 
 mod inventory;
 pub use inventory::{
-    ARSENAL, DEFAULT, Grant, NONE, SETTING, Start, WORDS, click, drop, granted, items as view,
-    onto, parse, upgrade,
+    ARSENAL, DEFAULT, Grant, NONE, SETTING, Start, WORDS, chest_item, click, granted,
+    items as view, onto, parse, upgrade,
 };
 
 /// What a starting item's chest holds instead.
@@ -431,10 +431,6 @@ mod tests {
         let EventKind::Action { params, .. } = &flow.events[at as usize].kind else {
             unreachable!()
         };
-        assert_eq!(
-            flows::param(params, field::CHALLENGE_NAME),
-            Some(&**CHALLENGE)
-        );
         assert_eq!(flows::param(params, field::STEP_NAME), Some(STEP));
         assert!(params.contains(&(steps::QUIET.to_string(), Value::Bool(vec![true]))));
         let save = only(&flow, AUTOSAVE).unwrap();

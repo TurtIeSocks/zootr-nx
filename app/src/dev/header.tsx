@@ -4,7 +4,7 @@ import { Tip } from "@/components/tip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
-import { area } from "@/dev/areas";
+import { ageOf, area } from "@/dev/areas";
 import { InfinitySwitches } from "@/dev/infinity-switches";
 import { openPalette } from "@/dev/nav";
 import { call } from "@/lib/api";
@@ -109,7 +109,7 @@ const AGES = [
 function AgePicker() {
   const [child] = useDev.usePath("game.state.child");
   const can = useCanSend();
-  const age = child === undefined ? undefined : child ? "child" : "adult";
+  const age = ageOf(child);
 
   return (
     <Segmented

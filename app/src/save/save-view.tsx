@@ -195,6 +195,10 @@ function SaveBar({ onSaved, onReload }: SaveBarProps) {
   const [stale, setStale] = useState<number>();
   const n = usePendingCount();
   const [running] = useSeeds.usePath("running");
+  // Nothing pending (a save, Discard, a slot switch) ends what it warned of.
+  useEffect(() => {
+    if (n === 0) setStale(undefined);
+  }, [n]);
   if (n === 0 || slot === null) return null;
   const write = () =>
     save.run(async () => {
@@ -202,8 +206,11 @@ function SaveBar({ onSaved, onReload }: SaveBarProps) {
       const now = rows.find((r) => r.slot === slot)?.stamp;
       if (now !== undefined && now !== stamp) return setStale(now);
       const edit = await call(commands.saveWrite(slot, pending, stamp ?? 0));
+      // The write moved the file's stamp: take it, so the next save here
+      // doesn't read as the game's.
+      const after = await call(commands.saveSlots());
       discard();
-      setStamp(null);
+      setStamp(after.find((r) => r.slot === slot)?.stamp ?? null);
       onSaved(edit);
     });
   return (

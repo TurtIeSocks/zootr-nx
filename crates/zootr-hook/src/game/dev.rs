@@ -1,5 +1,5 @@
 //! The dev requests, run on Link's update. Each one proven first from
-//! outside the game, see `docs/research/teleport.md`.
+//! outside the game.
 
 use core::arch::asm;
 use core::sync::atomic::Ordering;

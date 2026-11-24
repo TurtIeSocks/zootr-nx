@@ -57,40 +57,52 @@ const EYELID: &str = "Eyelid_";
 /// The first letter of a hidden clip's or bone's name. No name starts so.
 const HIDDEN: u8 = b'~';
 
+/// The `len` bytes at `at`, an offset read from the file, if they're all
+/// in it.
+fn span(d: &[u8], at: usize, len: usize) -> Option<&[u8]> {
+    d.get(at..at.checked_add(len)?)
+}
+
+fn span_mut(d: &mut [u8], at: usize, len: usize) -> Option<&mut [u8]> {
+    d.get_mut(at..at.checked_add(len)?)
+}
+
 fn u16_at(d: &[u8], at: usize) -> Option<u16> {
-    Some(u16::from_le_bytes(d.get(at..at + 2)?.try_into().ok()?))
+    Some(u16::from_le_bytes(span(d, at, 2)?.try_into().ok()?))
 }
 
 fn u32_at(d: &[u8], at: usize) -> Option<u32> {
-    Some(u32::from_le_bytes(d.get(at..at + 4)?.try_into().ok()?))
+    Some(u32::from_le_bytes(span(d, at, 4)?.try_into().ok()?))
 }
 
 fn offset_at(d: &[u8], at: usize) -> Option<usize> {
-    usize::try_from(u64::from_le_bytes(d.get(at..at + 8)?.try_into().ok()?)).ok()
+    usize::try_from(u64::from_le_bytes(span(d, at, 8)?.try_into().ok()?)).ok()
 }
 
-fn put_offset(d: &mut [u8], at: usize, value: usize) {
-    d[at..at + 8].copy_from_slice(&(value as u64).to_le_bytes());
+fn put_offset(d: &mut [u8], at: usize, value: usize) -> Option<()> {
+    span_mut(d, at, 8)?.copy_from_slice(&(value as u64).to_le_bytes());
+    Some(())
 }
 
 fn floats_at<const N: usize>(d: &[u8], at: usize) -> Option<[f32; N]> {
     let mut out = [0.0; N];
     for (i, f) in out.iter_mut().enumerate() {
-        *f = f32::from_bits(u32_at(d, at + 4 * i)?);
+        *f = f32::from_bits(u32_at(d, at.checked_add(4 * i)?)?);
     }
     Some(out)
 }
 
-fn put_floats(d: &mut [u8], at: usize, values: &[f32]) {
+fn put_floats(d: &mut [u8], at: usize, values: &[f32]) -> Option<()> {
     for (i, f) in values.iter().enumerate() {
-        d[at + 4 * i..at + 4 * i + 4].copy_from_slice(&f.to_le_bytes());
+        span_mut(d, at.checked_add(4 * i)?, 4)?.copy_from_slice(&f.to_le_bytes());
     }
+    Some(())
 }
 
 /// The string a bfres offset points at: a u16 length, then its bytes.
 fn string_at(d: &[u8], at: usize) -> Option<&str> {
     let len = usize::from(u16_at(d, at)?);
-    std::str::from_utf8(d.get(at + 2..at + 2 + len)?).ok()
+    std::str::from_utf8(span(d, at.checked_add(2)?, len)?).ok()
 }
 
 /// In f64, as each value is worked out before it's stored back as f32.
@@ -142,7 +154,7 @@ fn animations(d: &[u8]) -> Vec<(usize, usize, usize)> {
             string_at(d, offset_at(d, at + NAME)?)?;
             let tracks = offset_at(d, at + TRACKS)?;
             let count = (u32_at(d, at + TRACK_COUNT)? & 0xffff) as usize;
-            d.get(tracks..tracks + count * TRACK)?;
+            span(d, tracks, count * TRACK)?;
             Some((at, tracks, count))
         })
         .collect()
@@ -221,13 +233,14 @@ pub fn resize(archive: &mut [u8], target: &[u8]) -> Result<Resized> {
                 .filter(|&c| u32_at(archive, c + TARGET).is_some_and(|k| TRANSLATIONS.contains(&k)))
                 .filter(|&c| done.insert(c))
                 .collect();
-            put_floats(archive, at, &new);
+            put_floats(archive, at, &new).context("a bone doesn't write")?;
             bones += 1;
             for c in scaled {
                 let [scale, offset] =
                     floats_at::<2>(archive, c + SCALE).context("a curve doesn't read")?;
                 let [scale, offset] = [scale, offset].map(|v| (f64::from(v) * ratio) as f32);
-                put_floats(archive, c + SCALE, &[scale, offset]);
+                put_floats(archive, c + SCALE, &[scale, offset])
+                    .context("a curve doesn't write")?;
                 curves += 1;
             }
         }
@@ -375,13 +388,17 @@ pub fn rooted<'a>(
             let spans = spans(own, theirs).context("a root curve doesn't read")?;
             let mut put = [0; 2];
             for (slot, (src, len)) in put.iter_mut().zip(spans) {
+                let data = span(own, src, len).context("a root curve's data doesn't read")?;
                 *slot = take(&mut room, len).context("no room left for a root curve")?;
-                archive[*slot..*slot + len].copy_from_slice(&own[src..src + len]);
+                archive[*slot..*slot + len].copy_from_slice(data);
             }
-            archive[to + CURVE_FLAGS..to + CURVE]
-                .copy_from_slice(&own[theirs + CURVE_FLAGS..theirs + CURVE]);
-            put_offset(archive, to + FRAMES, put[0]);
-            put_offset(archive, to + KEYS, put[1]);
+            let fields = CURVE - CURVE_FLAGS;
+            let theirs =
+                span(own, theirs + CURVE_FLAGS, fields).context("a root curve doesn't read")?;
+            (span_mut(archive, to + CURVE_FLAGS, fields).context("a root curve doesn't write")?)
+                .copy_from_slice(theirs);
+            put_offset(archive, to + FRAMES, put[0]).context("a root curve doesn't write")?;
+            put_offset(archive, to + KEYS, put[1]).context("a root curve doesn't write")?;
         }
     }
     Ok(paired.len())
@@ -430,6 +447,19 @@ mod tests {
         assert_eq!(d, b"..FakeB_01..FakeB_01.");
         assert!(rename(&mut d, "FakeB_01", "FakeLonger").is_err());
         assert!(rename(&mut d, "FakeC_01", "FakeD_01").is_err());
+    }
+
+    #[test]
+    fn offsets_past_the_file_read_and_write_nothing() {
+        assert_eq!(string_at(&[5, 0, b'a'], 0), None);
+        assert_eq!(string_at(&[0; 4], usize::MAX), None);
+        assert_eq!(offset_at(&[0; 16], usize::MAX - 3), None);
+        assert_eq!(put_offset(&mut [0; 4], 0, 1), None);
+        assert_eq!(put_floats(&mut [0; 8], 4, &[1.0, 2.0]), None);
+        assert_eq!(put_floats(&mut [0; 8], usize::MAX - 1, &[1.0]), None);
+        let mut d = [0; 8];
+        assert_eq!(put_floats(&mut d, 0, &[1.0, 2.0]), Some(()));
+        assert_eq!(floats_at::<2>(&d, 0), Some([1.0, 2.0]));
     }
 }
 

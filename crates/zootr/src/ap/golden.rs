@@ -50,7 +50,7 @@ pub fn golden(settings: &[Settings], seeds: &[Seed], names: &Namer, ids: &Ids) -
             reachable.sort();
             let items = pool
                 .iter()
-                .map(|a| names.item(a))
+                .map(|a| names.item_in(a, Some(seed.dealt.new_game.progressive)))
                 .collect::<Result<Vec<_>>>()?;
             out.push(json!({
                 "settings": exposed(settings)?,

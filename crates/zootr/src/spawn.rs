@@ -125,7 +125,7 @@ fn adult_gear(romfs: &Romfs, rewrites: &mut Rewrites, owned: &[&str]) -> Result<
     let first = |names: &[&'static Name]| {
         let held = names
             .iter()
-            .find(|&&n| owned.contains(&starting::drop(n).get()));
+            .find(|&&n| owned.contains(&starting::chest_item(n).get()));
         held.map_or("", |n| n.get())
     };
     let slots = [
@@ -310,7 +310,10 @@ mod tests {
             return;
         };
         let opening = |owned: &[&'static Name]| {
-            let owned: Vec<_> = owned.iter().map(|&n| starting::drop(n).get()).collect();
+            let owned: Vec<_> = owned
+                .iter()
+                .map(|&n| starting::chest_item(n).get())
+                .collect();
             let (rewrites, flags) = booted(&romfs, &adult_start(), &owned);
             let entered = format!("{}.{}", flag::HAVE_PLAYED_EVENT, scene::TIME_TEMPLE_0000);
             let edits = [
