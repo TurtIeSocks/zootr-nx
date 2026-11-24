@@ -289,8 +289,9 @@ fn unhex(text: &str) -> Result<Vec<u8>> {
         bail!("odd hex from the game: {text:.40}");
     }
     let nibble = |c: u8| (c as char).to_digit(16).context("bad hex from the game");
-    (text.as_bytes().chunks_exact(2))
-        .map(|p| -> Result<u8> { Ok(((nibble(p[0])? << 4) | nibble(p[1])?) as u8) })
+    let (pairs, _) = text.as_bytes().as_chunks::<2>();
+    (pairs.iter())
+        .map(|&[hi, lo]| -> Result<u8> { Ok(((nibble(hi)? << 4) | nibble(lo)?) as u8) })
         .collect()
 }
 

@@ -206,7 +206,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let template = ActorPack::load(&romfs, super::SHRUBS[0]).unwrap();
+        let template = ActorPack::load(&romfs, crate::marks::SHRUBS[0]).unwrap();
         let leaf = leaf_of(&foliage(&template).unwrap().1).unwrap();
         let named = format!("Foliage/ResShootLeaf/{leaf}.");
         let pack = Sarc::new(romfs.read(FOLIAGE).unwrap()).unwrap();
