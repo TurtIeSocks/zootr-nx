@@ -163,7 +163,8 @@ pub fn run() -> Result<()> {
         } => {
             let (drops, new_game) = (HashMap::from([(hash, item.into())]), new_game.resolve()?);
             let (romfs, run) = (romfs()?, Run::silent());
-            let (written, _) = out.write(&run, |d| {
+            let release = crate::game::Release::of(romfs.root());
+            let (written, _) = out.write(release, &run, |d| {
                 generate::write_mod(&romfs, d, &drops, &new_game, &[], &run)
             })?;
             print_written(&written);

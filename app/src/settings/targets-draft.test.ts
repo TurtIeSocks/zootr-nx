@@ -24,7 +24,14 @@ test("a draft saves back as the target it came from, blanks left out", () => {
     env: [],
     harness_env: [],
     rebuild: null,
+    release: null,
   });
+});
+
+test("a target's build saves back as it was", () => {
+  const base = { ...fake, release: "1.0.0" as const };
+  expect(toDraft(base).release).toBe("1.0.0");
+  expect(toTarget(toDraft(base))).toMatchObject(base);
 });
 
 test("a rebuild command keeps one argument per line", () => {

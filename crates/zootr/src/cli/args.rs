@@ -720,10 +720,12 @@ impl ModDir {
         })
     }
 
-    /// `write` into `--mod-dir`, or install to every target like the app.
-    /// Also returns whether it went to the targets.
+    /// `write` into `--mod-dir`, or install a seed for `release` to every
+    /// target that takes it, like the app. Also returns whether it went to
+    /// the targets.
     pub(super) fn write<T>(
         self,
+        release: crate::game::Release,
         run: &Run,
         mut write: impl FnMut(&Path) -> Result<T>,
     ) -> Result<(T, bool)> {
@@ -739,7 +741,7 @@ impl ModDir {
         }
         match self.mod_dir {
             Some(d) => Ok((each(&d)?, false)),
-            None => Ok((generate::install(&targets, run, each)?, true)),
+            None => Ok((generate::install(&targets, release, run, each)?, true)),
         }
     }
 }

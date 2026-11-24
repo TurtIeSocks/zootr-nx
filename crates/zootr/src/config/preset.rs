@@ -75,7 +75,7 @@ impl Target {
 
     /// Every key a target's JSON takes, aliases too.
     /// `every_key_a_target_writes_is_known` keeps it in step with the fields.
-    const KEYS: [&str; 13] = [
+    const KEYS: [&str; 14] = [
         "name",
         "app",
         "mod_dir",
@@ -89,6 +89,7 @@ impl Target {
         "harness_env",
         "rebuild",
         "game",
+        "release",
     ];
     /// [`Target::KEYS`] for a settings file.
     const SETTINGS_FILE_KEYS: [&str; 3] = ["file", "lines", "line"];
@@ -155,6 +156,7 @@ mod tests {
     use super::*;
     use crate::config::tests::target;
     use crate::config::{Rebuild, SettingsFile};
+    use crate::game::Release;
 
     const PRESET: &str = r#"{
         "name": "My target",
@@ -203,6 +205,7 @@ mod tests {
                 manifest: Some("/p".into()),
             }),
             game: Some("FakeHost".into()),
+            release: Some(Release::V100),
         };
         let json = serde_json::to_value(&full).unwrap();
         let keys = |v: &serde_json::Value| -> Vec<String> {
@@ -217,7 +220,7 @@ mod tests {
                 assert!(known.contains(&key.as_str()), "{key} isn't in {known:?}");
             }
         }
-        assert_eq!(keys(&json).len(), 12, "a field went unwritten");
+        assert_eq!(keys(&json).len(), 13, "a field went unwritten");
     }
 
     #[test]

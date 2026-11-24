@@ -51,12 +51,12 @@ impl Generating {
         *self.log.lock().unwrap() = run.log().map(Into::into);
         let report = self.stoppable(&run, || {
             progress::caught(|| {
-                let romfs = zootr::game::prepare(game, extras.release, &run)?;
+                let (romfs, release) = config.seed_romfs(game, extras.release, &run)?;
                 let write = |d: &std::path::Path| {
                     generate::generate(&romfs, d, seed, settings, extras, &run)
                 };
                 if install {
-                    generate::install(&config.targets, &run, write)
+                    generate::install(&config.targets, release, &run, write)
                 } else {
                     generate::throwaway(write)
                 }

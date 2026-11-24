@@ -70,6 +70,9 @@ export function PlayButtonGroup() {
                 {targets.map((t) => (
                   <DropdownMenuRadioItem key={t.name} value={t.name}>
                     {t.name}
+                    {t.release && (
+                      <span className="text-ink-faint"> {t.release}</span>
+                    )}
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>

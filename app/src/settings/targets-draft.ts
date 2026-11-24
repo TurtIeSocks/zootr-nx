@@ -1,4 +1,4 @@
-import type { Target } from "@/bindings";
+import type { Release, Target } from "@/bindings";
 import type { TopicId } from "@/help/topics";
 import { splitLines } from "@/lib/format";
 
@@ -22,6 +22,8 @@ export interface Draft {
   /** One rebuild command argument per row. */
   rebuild_command: string;
   manifest: string;
+  /** The build the target runs, "" for either. Shown, not edited. */
+  release: Release | "";
 }
 
 /** A saved target as the form edits it. */
@@ -39,6 +41,7 @@ export const toDraft = (t: Target): Draft => ({
   harness_env: t.harness_env?.join("\n") ?? "",
   rebuild_command: t.rebuild?.command?.join("\n") ?? "",
   manifest: t.rebuild?.manifest ?? "",
+  release: t.release ?? "",
 });
 
 /** The target a draft saves as, trimmed, with blank options left out. */
@@ -63,6 +66,7 @@ export const toTarget = (d: Draft): Target => ({
           manifest: d.manifest.trim() || null,
         }
       : null,
+  release: d.release || null,
 });
 
 /** A new target with nothing filled in. */

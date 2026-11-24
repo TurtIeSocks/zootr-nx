@@ -256,7 +256,7 @@ function TargetCard({ id, draft, onChange, onRemove }: TargetCardProps) {
 
   return (
     <Card
-      title={title}
+      title={draft.release ? `${title} (${draft.release})` : title}
       action={
         <>
           <TipButton
