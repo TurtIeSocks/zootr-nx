@@ -4,9 +4,9 @@ name = "Child Stalfos Room"
 
 [[link]]
 to = 1
-needs = "flag:#6f951499"
+needs = "always"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 06 3484097666579822899 shut until flag #6f951499; Switch Shutter A 06 13570088711649221161 shut until flag #6f951499; Spirit Temple Switch Shutter A 01 14005557071922138741 shut until flag #6f951499"
+why = "walk, 1 edges"
 
 [[link]]
 to = 3

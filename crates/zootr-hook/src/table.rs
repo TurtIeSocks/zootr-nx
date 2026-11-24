@@ -243,6 +243,9 @@ impl<'a> Table<'a> {
 
     /// What finding `name` sets.
     pub fn credit(&self, name: &[u8]) -> Option<Credit> {
+        if self.flags & ICE_TRAPS != 0 && name.starts_with(crate::traps::ITEM.as_bytes()) {
+            return Some(Credit::Freeze);
+        }
         let mut rest = self.credits;
         while let Some((&len, after)) = rest.split_first() {
             let found = after.get(..len as usize)?;
@@ -756,6 +759,20 @@ mod tests {
             assert_eq!(t.credit(b"Key_0"), None);
             assert_eq!(t.credit(b"Hook"), None);
         });
+    }
+
+    #[test]
+    fn every_trap_freezes_without_an_entry_while_ice_traps_is_on() {
+        let trap = format!("{}042", crate::traps::ITEM);
+        let credit = |flags| {
+            let bytes = encode(flags, &[HOOK], &[], CREDITS, &[], &[], None);
+            let header = Header::read(&bytes);
+            let t = Table::parse(&header, &bytes[HEADER..]).unwrap();
+            (t.credit(trap.as_bytes()), t.credit(b"Key_01"))
+        };
+        let key = Some(Credit::Bool(0x1234_5678));
+        assert_eq!(credit(ICE_TRAPS), (Some(Credit::Freeze), key));
+        assert_eq!(credit(0), (None, key));
     }
 
     #[test]

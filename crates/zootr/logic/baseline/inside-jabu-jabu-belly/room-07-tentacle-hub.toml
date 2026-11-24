@@ -28,9 +28,9 @@ why = "walk, 3 edges"
 
 [[link]]
 to = 12
-needs = "flag:#76f26ef4"
+needs = "always"
 via = "walk"
-why = "walk, 2 edges; Inside Jabu Jabu Switch Shutter A 02 2585183189913946432 shut until flag #76f26ef4"
+why = "walk, 2 edges"
 
 [[flag]]
 hash = 0xd3cbed11

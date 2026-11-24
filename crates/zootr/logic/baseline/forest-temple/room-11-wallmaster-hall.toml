@@ -7,3 +7,10 @@ to = 16
 needs = "always"
 via = "walk"
 why = "walk, 6 edges"
+
+[[check]]
+hash = 5306318520835485827
+name = "Forest Temple Upper Boss Key Chest"
+needs = "always"
+why = "its placement names no room, so its nearest floor's; no floor of its room within a small chest's reach (1.25 m)"
+guess = true

@@ -4,9 +4,9 @@ name = "Lava Room"
 
 [[link]]
 to = 5
-needs = "flag:#88cc699c"
+needs = "always"
 via = "walk"
-why = "walk, 1 edges; Gerudo Switch Shutter A 04 13905333383293071313 shut until flag #88cc699c; Switch Shutter A 02 15440364066181580650 shut until flag #88cc699c"
+why = "walk, 1 edges"
 
 [[link]]
 to = 7

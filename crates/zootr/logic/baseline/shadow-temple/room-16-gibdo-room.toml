@@ -6,11 +6,19 @@ name = "Gibdo Room"
 hash = 169081039115821925
 name = "Shadow Temple Lower Small Key Chest"
 needs = "lens"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); TBox Glass Truth A 01 169081039115821925 in front: lens"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); TBox Glass Truth A 01 169081039115821925 in front: lens; a logic graph gates it that derive doesn't read"
 guess = true
 
 [[check]]
 hash = 5681107746948738726
 name = "Shadow Temple Lower Green Rupee (1) Chest"
+needs = "(flag:#56d16068) and (flag:#2c209dbf)"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #56d16068; its graph waits on flag #2c209dbf"
+guess = true
+
+[[flag]]
+hash = 0x56d16068
+name = "Shadow Temple Level Room 16 Treasure Box Fall"
 needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+why = "clearing its room sets it (Enemy Gibdo 11338747740861005588, Enemy Gibdo 16290242624551451847): what that takes isn't traced yet"
+guess = true

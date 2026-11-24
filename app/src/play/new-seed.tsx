@@ -1,5 +1,5 @@
 import { CircleAlert, CircleOff, Dices } from "lucide-react";
-import { Callout, InlineError } from "@/components/callout";
+import { Callout } from "@/components/callout";
 import { CardHeader } from "@/components/card";
 import { FixLink } from "@/components/fix-link";
 import { Tip } from "@/components/tip";
@@ -18,7 +18,6 @@ import { useUi } from "@/stores/ui";
 /** The Standard folder: generates and installs a seed from the current
  * settings, or from a share code's own. */
 export function NewSeed() {
-  const [error] = useSeeds.usePath("error");
   return (
     <>
       <CardHeader
@@ -36,7 +35,6 @@ export function NewSeed() {
         <GenerateSteps />
         <BuildOverview />
         <Blocked />
-        <InlineError error={error} />
       </div>
     </>
   );

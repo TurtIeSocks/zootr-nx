@@ -11,6 +11,12 @@ why = "walk, 1 edges"
 [[check]]
 hash = 15920957434854338961
 name = "Forest Temple Upper Purple Rupee (50) Chest"
-needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m), but no way there from where Link enters the room"
+needs = "flag:#2662855d"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m), but no way there from where Link enters the room; its graph waits on flag #2662855d"
 guess = true
+
+[[flag]]
+hash = 0x2662855d
+name = "Forest Temple Room08 Eye Switch Clear"
+needs = "slingshot or bow or boomerang or hookshot"
+why = "Eye Switch A 02 sets it (1): slingshot or bow or boomerang or hookshot"

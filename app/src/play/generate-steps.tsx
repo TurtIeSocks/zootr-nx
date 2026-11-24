@@ -1,5 +1,6 @@
 import { Check, CircleAlert, CircleStop, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { InlineError } from "@/components/callout";
 import { linkClass } from "@/components/styles";
 import { message } from "@/lib/api";
 import { useCopied } from "@/lib/use-copied";
@@ -25,8 +26,20 @@ function hint(row: StepRow) {
 }
 
 /** The running or last generate run's steps, in the folder that started
- * it: Archipelago for a slot (`ap`), Standard for the rest. */
+ * it: Archipelago for a slot (`ap`), Standard for the rest. Why the last
+ * job failed shows right under them. */
 export function GenerateSteps({ ap = false }: { ap?: boolean }) {
+  const [error] = useSeeds.usePath("error");
+  return (
+    <>
+      <StepList ap={ap} />
+      <InlineError error={error} />
+    </>
+  );
+}
+
+/** The run's steps, or nothing before one ran in this folder. */
+function StepList({ ap }: { ap: boolean }) {
   const [steps] = useSeeds.usePath("steps");
   const [generating] = useSeeds.usePath("generating");
   // A rebuild's run has no log of its own.

@@ -21,9 +21,9 @@ pub(super) struct Lock {
     pub named: Vec<String>,
     /// Its room: its setters', or the room its name gives.
     pub room: Option<u32>,
-    /// Whether its setters play an event rather than drive a graph: a
-    /// fight or a talk that clears its room.
-    pub played: bool,
+    /// Whether clearing its room sets it: its setters are enemies to beat,
+    /// or play an event (a fight, a talk), rather than a switch or torches.
+    pub clears: bool,
 }
 
 impl Lock {
@@ -31,11 +31,13 @@ impl Lock {
         murmur3(self.name.as_bytes())
     }
 
-    /// A flag only clearing its room sets (a fight, an event its setters
-    /// play) holds Link in; a flag a graph sets (a switch, torches) holds
-    /// a door shut both ways.
-    pub fn holds(&self, from: u32) -> bool {
-        (!self.setters.is_empty() && !self.played) || self.room == Some(from)
+    /// Whether it holds the door from `from` to `to` shut. A flag only
+    /// clearing a room sets (beating its enemies, an event its setters
+    /// play) holds Link in that room; a flag a switch or torches set, or
+    /// a fight elsewhere, holds the door shut both ways.
+    pub fn holds(&self, from: u32, to: u32) -> bool {
+        let elsewhere = self.room.is_some_and(|r| r != from && r != to);
+        (!self.setters.is_empty() && (!self.clears || elsewhere)) || self.room == Some(from)
     }
 }
 
@@ -77,7 +79,7 @@ pub(super) fn flag(lock: &Lock, kinds: &[&Kind]) -> (String, String, bool) {
     }
     if kinds.is_empty() {
         let why = format!(
-            "an event {} plays sets it: what beats that isn't traced yet",
+            "clearing its room sets it ({}): what that takes isn't traced yet",
             lock.named.join(", ")
         );
         return ("always".into(), why, true);
@@ -96,6 +98,27 @@ pub(super) fn flag(lock: &Lock, kinds: &[&Kind]) -> (String, String, bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn fake_lock(room: u32, clears: bool) -> Lock {
+        Lock {
+            name: "FakeTemple_Cleared".into(),
+            setters: [1].into(),
+            named: vec![],
+            room: Some(room),
+            clears,
+        }
+    }
+
+    #[test]
+    fn a_room_that_clears_holds_link_in_but_not_out() {
+        let fight = fake_lock(4, true);
+        assert!(fight.holds(4, 3), "leaving waits on the fight");
+        assert!(!fight.holds(3, 4), "entering doesn't");
+        assert!(fight.holds(5, 6), "a door elsewhere waits both ways");
+        assert!(fight.holds(6, 5));
+        let switch = fake_lock(4, false);
+        assert!(switch.holds(4, 3) && switch.holds(3, 4));
+    }
 
     #[test]
     fn a_flag_names_its_room_by_letter() {

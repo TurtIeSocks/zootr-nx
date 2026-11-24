@@ -43,14 +43,16 @@ why = "1.0 m from its room's floor, within a big chest's reach (1.35 m)"
 [[check]]
 hash = 9634924691849556346
 name = "Fire Temple Upper Small Key Chest"
-needs = "always"
-why = "0.8 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#7c6a945f"
+why = "0.8 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #7c6a945f"
+guess = true
 
 [[check]]
 hash = 12567412825200613393
 name = "Fire Temple Upper Small Key Chest"
-needs = "always"
-why = "0.8 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#a5207b77"
+why = "0.8 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #a5207b77"
+guess = true
 
 [[check]]
 hash = 12751796212121957464

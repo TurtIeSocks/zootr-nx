@@ -4,19 +4,26 @@ name = "Light Trial Lullaby Room"
 
 [[link]]
 to = 12
-needs = "flag:#ce91ac58"
+needs = "always"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 02 15313139002053248290 shut until flag #ce91ac58; Inside Ganon Castle Switch Shutter A 01 17308395020688077841 shut until flag #ce91ac58"
+why = "walk, 1 edges"
 
 [[check]]
 hash = 4733634471038136588
 name = "Lower Green Rupee"
-needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#03384d24"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #03384d24"
 
 [[check]]
 hash = 15320975652699461295
 name = "Ganon's Castle Lower Small Key Chest"
 needs = "lens"
 why = "0.4 m from its room's floor, within a small chest's reach (1.25 m); TBox Glass Truth A 01 15320975652699461295 in front: lens"
+guess = true
+
+[[flag]]
+hash = 0x03384d24
+name = "Inside Ganon Castle Dungeon Room13 Cleared"
+needs = "always"
+why = "clearing its room sets it (Event Proxy Request Actor 8606162768230986171): what that takes isn't traced yet"
 guess = true

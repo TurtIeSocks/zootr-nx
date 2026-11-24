@@ -23,12 +23,12 @@ why = "level gap 0.8 to 1.5 m: within a running jump (2.7 m); Switch Shutter A 0
 [[check]]
 hash = 13501407288943710656
 name = "Gerudo Training Ground Small Key Chest"
-needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#d8bd9906"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #d8bd9906"
 
 [[flag]]
 hash = 0xd8bd9906
 name = "Gerudo Training Ground Dungeon Room01 Defeat Enemy A"
 needs = "always"
-why = "an event Enemy Stalfos 7021046199117902786, Enemy Stalfos 12275608568214173935, Enemy Stalfos 12579840899936310700, Enemy Stalfos 18162474085756963459 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Stalfos 7021046199117902786, Enemy Stalfos 12275608568214173935, Enemy Stalfos 12579840899936310700, Enemy Stalfos 18162474085756963459): what that takes isn't traced yet"
 guess = true

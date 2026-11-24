@@ -61,6 +61,11 @@ pub(crate) const NAMES_FILE: &str = "room-names.toml";
 /// its room, in metres.
 const NEAR: f32 = 6.0;
 
+/// How far from the floor a holder whose placement names no room may sit
+/// and still take the nearest floor's room, in metres: the Forest Temple's
+/// Boss Key chest is about 7 m from Wallmaster Hall's.
+const HOLDER_NEAR: f32 = 10.0;
+
 /// The logic node that drives a shutter's lattice.
 const SHUTTER: &str = "ActorLogicShutter";
 
@@ -235,6 +240,8 @@ pub fn derive(
     let kind_at = |p: &Placement| kind_of.get(&murmur3(p.name.as_bytes())).copied();
     let jump = limits().level_jump();
     let shutters = crate::gates::trace_node(romfs, SHUTTER)?;
+    let chest_gates = crate::gates::trace(romfs)?;
+    let chest_gate = |h: u64| chest_gates.iter().find(|g| g.hash == h);
     let mut checks = crate::checks::all(romfs)?;
     // Gold skulltulas are pickups, which `all` leaves to their setting.
     let skulltulas = crate::pickups::SKULLTULAS.checks(romfs)?;
@@ -286,17 +293,18 @@ pub fn derive(
             (rooms_of.get(&hash).copied()).or_else(|| room[graph.locate(p.pose.at)?.face])
         };
         // A placement off the floor (an exit's trigger box) takes the room
-        // of the nearest floor around it.
-        let room_near = |p: &Placement| {
+        // of the nearest floor within `near` of it.
+        let room_within = |p: &Placement, near: f32| {
             room_at(p).or_else(|| {
                 (0..room.len())
                     .filter(|&f| room[f].is_some())
                     .map(|f| (dist(graph.centers[f], p.pose.at), f))
-                    .filter(|(d, _)| *d < NEAR)
+                    .filter(|(d, _)| *d < near)
                     .min_by(|a, b| a.0.total_cmp(&b.0))
                     .and_then(|(_, f)| room[f])
             })
         };
+        let room_near = |p: &Placement| room_within(p, NEAR);
         let setter_rooms = |h: u32| {
             let played = flagmap.played_by(&game_data.bare(h)).into_iter();
             played
@@ -350,38 +358,44 @@ pub fn derive(
                 at.insert(rooms::spot(&map, label), name_of(&map, label));
             }
         }
+        // The flag `name` and what sets it: the placements a graph names
+        // (`setters`), or else those playing an event. Beating enemies or
+        // playing an event clears the setters' room.
+        let lock_of = |name: &str, mut setters: BTreeSet<u64>| -> (Lock, Vec<&Kind>) {
+            let played = setters.is_empty();
+            if played {
+                let placed = flagmap.played_by(name).into_iter();
+                setters.extend(placed.filter(|h| level.placement(*h).is_ok()));
+            }
+            let placed = || setters.iter().filter_map(|h| level.placement(*h).ok());
+            let foes = !setters.is_empty()
+                && placed().count() == setters.len()
+                && placed().all(|p| p.name.starts_with(crate::enemies::ENEMY));
+            let setter_room = placed().filter_map(room_at).next();
+            let named = (setters.iter())
+                .filter_map(|h| {
+                    Some(format!(
+                        "{} {h}",
+                        super::words(&level.placement(*h).ok()?.name)
+                    ))
+                })
+                .collect();
+            let kinds: Vec<&Kind> = placed().filter_map(kind_at).collect();
+            let lock = Lock {
+                room: setter_room.or_else(|| room_in_name(name)),
+                name: name.to_owned(),
+                setters,
+                named,
+                clears: played || foes,
+            };
+            (lock, kinds)
+        };
         // Each shutter's flags, and the rooms that set them.
         for gate in shutters.iter().filter(|g| level.placement(g.hash).is_ok()) {
             let mut found = BTreeMap::new();
             locks_in(&gate.expr, &mut found);
-            for (name, mut setters) in found {
-                // No graph sets it: a placement may, playing an event.
-                let played = setters.is_empty();
-                if played {
-                    let placed = flagmap.played_by(&name).into_iter();
-                    setters.extend(placed.filter(|h| level.placement(*h).is_ok()));
-                }
-                let setter_room = (setters.iter())
-                    .filter_map(|h| room_at(level.placement(*h).ok()?))
-                    .next();
-                let named = (setters.iter())
-                    .filter_map(|h| {
-                        Some(format!(
-                            "{} {h}",
-                            super::words(&level.placement(*h).ok()?.name)
-                        ))
-                    })
-                    .collect();
-                let lock = Lock {
-                    room: setter_room.or_else(|| room_in_name(&name)),
-                    name: name.clone(),
-                    setters,
-                    named,
-                    played,
-                };
-                let kinds: Vec<&Kind> = (lock.setters.iter())
-                    .filter_map(|h| kind_at(level.placement(*h).ok()?))
-                    .collect();
+            for (name, setters) in found {
+                let (lock, kinds) = lock_of(&name, setters);
                 flags.entry(name).or_insert((lock.clone(), kinds));
                 locks.entry(gate.hash).or_default().push(lock);
             }
@@ -542,11 +556,17 @@ pub fn derive(
             room[f].is_some_and(|r| main(r, labels.part[f])) && !graph.deep(graph.centers[f])
         };
         // Each check: what stands between it and its room's main part.
-        for check in checks.iter().filter(|c| c.room.is_some()) {
+        for check in &checks {
             let Ok(holder) = level.placement(check.hash) else {
                 continue;
             };
-            let Some(mut r) = check.room else { continue };
+            // A holder whose placement names no room (the Forest Temple's
+            // Boss Key chest) takes the nearest floor's, as a guess.
+            let unnamed = check.room.is_none();
+            let Some(mut r) = check.room.or_else(|| room_within(holder, HOLDER_NEAR)) else {
+                roomless.push(check.hash);
+                continue;
+            };
             let at = holder.pose.at;
             let skulltula = crate::pickups::SKULLTULAS.holds(check);
             let mut walled = None;
@@ -603,8 +623,27 @@ pub fn derive(
                 mut why,
                 mut guess,
             } = taken;
+            // A chest its logic graph raises or unlocks waits on the
+            // graph's flags, set where their setters stand.
+            let mut waits = vec![];
+            if let Some(gate) = chest_gate(check.hash) {
+                let mut found = BTreeMap::new();
+                locks_in(&gate.expr, &mut found);
+                if found.is_empty() && !gate.expr.atoms().is_empty() {
+                    why.push_str("; a logic graph gates it that derive doesn't read");
+                    guess = true;
+                }
+                for (name, setters) in found {
+                    let (lock, kinds) = lock_of(&name, setters);
+                    write!(why, "; its graph waits on flag #{:08x}", lock.hash()).unwrap();
+                    guess |= lock.room.is_none();
+                    waits.push(format!("flag:#{:08x}", lock.hash()));
+                    flags.entry(name).or_insert((lock, kinds));
+                }
+            }
             let mut uses: Vec<&str> = blocking.iter().map(|(_, k)| k.uses.as_str()).collect();
             uses.extend(needs.iter().map(String::as_str));
+            uses.extend(waits.iter().map(String::as_str));
             if child {
                 uses.push("child");
             }
@@ -620,6 +659,10 @@ pub fn derive(
             }
             if let Some(w) = walled {
                 why = format!("on a wall of room {w}, which has no floor; {why}");
+                guess = true;
+            }
+            if unnamed {
+                why = format!("its placement names no room, so its nearest floor's; {why}");
                 guess = true;
             }
             if nearest.is_none() && by_hand.is_none() {
@@ -688,7 +731,7 @@ pub fn derive(
                     at,
                 });
             }
-            let (needs, why, guess) = link(via, room, s, &locks);
+            let (needs, why, guess) = link(via, (room, to), s, &locks);
             let fields = [
                 ("to", to.to_string()),
                 ("needs", q(&needs)),

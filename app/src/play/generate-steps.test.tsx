@@ -72,3 +72,26 @@ test("a finished rebuild says so and has no log to copy", () => {
   expect(screen.queryByText("Copy Log")).toBeNull();
   useSeeds.setPath("rebuilt", null);
 });
+
+test("why a run failed shows under its steps", () => {
+  const end = { kind: "failed", error: "the generator crashed" } as const;
+  useSeeds.setPath("error", "the generator crashed");
+  show({ ...running, end }, false);
+  const steps = screen.getByLabelText("Steps");
+  const alert = screen.getByRole("alert");
+  expect(alert.textContent).toContain("the generator crashed");
+  expect(
+    steps.compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  useSeeds.setPath("error", undefined);
+});
+
+test("a job that failed before any step still says why", () => {
+  useSeeds.setPath("error", "Already writing a seed");
+  useSeeds.setPath("steps", null);
+  render(<GenerateSteps />);
+  expect(screen.getByRole("alert").textContent).toContain(
+    "Already writing a seed",
+  );
+  useSeeds.setPath("error", undefined);
+});

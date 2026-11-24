@@ -18,19 +18,19 @@ guess = true
 [[check]]
 hash = 8757492004108970488
 name = "Fire Temple Red Rupee (20) Chest"
-needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#bded4a86"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #bded4a86"
 
 [[flag]]
 hash = 0x09efdbb8
 name = "Gimmick Defeat Enemy Open Fire Temple 03"
 needs = "always"
-why = "an event Enemy Middle Boss Flare Dancer 16988850121550021009 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Middle Boss Flare Dancer 16988850121550021009): what that takes isn't traced yet"
 guess = true
 
 [[flag]]
 hash = 0xbded4a86
 name = "Fire Temple Room03 Event Has Played"
 needs = "always"
-why = "an event Enemy Middle Boss Flare Dancer 16988850121550021009 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Middle Boss Flare Dancer 16988850121550021009): what that takes isn't traced yet"
 guess = true

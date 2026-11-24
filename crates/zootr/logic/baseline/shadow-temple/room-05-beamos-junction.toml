@@ -10,9 +10,9 @@ why = "walk, 2 edges"
 
 [[link]]
 to = 7
-needs = "(flag:#2ad60a3f) and (flag:#8cbb6633)"
+needs = "always"
 via = "walk"
-why = "walk, 2 edges; Switch Shutter A 02 6782117124637293392 shut until flag #2ad60a3f; Switch Shutter A 02 6782117124637293392 shut until flag #8cbb6633"
+why = "walk, 2 edges"
 
 [[link]]
 to = 8

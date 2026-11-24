@@ -16,9 +16,9 @@ why = "gap 0.8 to 2.8 m, falling up to 1.8 m: within a running jump off the edge
 
 [[link]]
 to = 10
-needs = "(flag:#3e9fae66) and (blue-fire)"
+needs = "blue-fire"
 via = "walk"
-why = "walk, 19 edges; Ice Cave Switch Shutter A 02 6080385011425235023 shut until flag #3e9fae66; Switch Shutter A 02 8075604269458561056 shut until flag #3e9fae66; Red Ice A 04 16134962554615344128: blue-fire"
+why = "walk, 19 edges; Red Ice A 04 16134962554615344128: blue-fire"
 guess = true
 
 [[link]]

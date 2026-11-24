@@ -17,11 +17,18 @@ why = "walk, 1 edges; Switch Shutter A 06 3812060363698300263 shut until flag #1
 [[check]]
 hash = 17407066694905911064
 name = "Upper Small Key 2"
-needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#834c77fa"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #834c77fa"
 
 [[flag]]
 hash = 0x168522b6
 name = "Spirit Temple Room10 Candle On"
 needs = "always"
 why = "Silver Rupee Counter 02 sets it (1): always"
+
+[[flag]]
+hash = 0x834c77fa
+name = "Spirit Temple Room10 Unlocked"
+needs = "light"
+why = "Solar Switch A 01 sets it (2): light; Spirit Temple Movable Box A 01 sets it (2): always"
+guess = true

@@ -55,8 +55,8 @@ guess = true
 [[check]]
 hash = 2203243501006528435
 name = "Upper Small Key 1"
-needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m), but no way there from where Link enters the room"
+needs = "flag:#2c0072f2"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m), but no way there from where Link enters the room; its graph waits on flag #2c0072f2"
 guess = true
 
 [[check]]
@@ -75,14 +75,21 @@ guess = true
 [[check]]
 hash = 13852283723126411131
 name = "Upper Dungeon Map"
-needs = "always"
-why = "0.1 m from its room's floor, within a big chest's reach (1.35 m)"
+needs = "flag:#e688b6ee"
+why = "0.1 m from its room's floor, within a big chest's reach (1.35 m); its graph waits on flag #e688b6ee"
 
 [[flag]]
 hash = 0xbca3b267
 name = "Spirit Temple Room08 Unlocked 01"
 needs = "hammer"
 why = "Hammer Switch A 01 sets it (1): hammer"
+guess = true
+
+[[flag]]
+hash = 0xe688b6ee
+name = "Spirit Temple Room08 TBox On 01"
+needs = "always"
+why = "Candle Stick A 02 sets it (1): always"
 guess = true
 
 [[flag]]

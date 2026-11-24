@@ -23,9 +23,9 @@ why = "level gap 0.8 m: within a running jump (2.7 m)"
 
 [[link]]
 to = 13
-needs = "(flag:#6da58703) and (flag:#f2b38f41)"
+needs = "flag:#f2b38f41"
 via = "walk"
-why = "walk, 1 edges; Shadow Temple Switch Shutter A 04 13055652297728890453 shut until flag #6da58703; Shadow Temple Switch Shutter A 04 13055652297728890453 shut until flag #f2b38f41; Switch Shutter A 02 16977842842805962299 shut until flag #f2b38f41"
+why = "walk, 1 edges; Shadow Temple Switch Shutter A 04 13055652297728890453 shut until flag #f2b38f41; Switch Shutter A 02 16977842842805962299 shut until flag #f2b38f41"
 
 [[link]]
 to = 14

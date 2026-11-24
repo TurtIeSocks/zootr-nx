@@ -11,9 +11,9 @@ guess = true
 
 [[link]]
 to = 21
-needs = "flag:#e0103d5e"
+needs = "always"
 via = "walk"
-why = "walk, 2 edges; Spirit Temple Switch Shutter A 01 10037122146538168883 shut until flag #e0103d5e"
+why = "walk, 2 edges"
 
 [[link]]
 to = 27
