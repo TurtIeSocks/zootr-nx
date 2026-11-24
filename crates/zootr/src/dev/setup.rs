@@ -95,7 +95,7 @@ pub(super) fn plan_give(gd: &GameData, actor: &str, count: i32) -> Result<Vec<Gr
             || inventory::has_flag(gd, actor)
             || starting::WORDS
                 .iter()
-                .any(|(_, a)| starting::drop(a).get() == actor),
+                .any(|(_, a)| starting::chest_item(a).get() == actor),
         "{actor} isn't an item Link can be given. `zootr items` lists them"
     );
     let mut jobs = grants(actor);

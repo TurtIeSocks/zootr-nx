@@ -55,20 +55,17 @@ static OBSTACLES: LazyLock<Vec<(&str, Option<&str>)>> = LazyLock::new(|| {
 
 /// Damage types an obstacle may need, in the order rules list them, and
 /// the ability that deals each.
-static DAMAGE: LazyLock<Vec<(&str, &str)>> = LazyLock::new(|| {
-    vec![
-        ("Bomb", "explosives"),
-        ("Hammer", "hammer"),
-        ("SlingshotBullet", "slingshot"),
-        ("Arrow", "bow"),
-        ("Boomerang", "boomerang"),
-        ("Hookshot", "hookshot"),
-        ("Fire", "fire"),
-    ]
-});
+const DAMAGE: &[(&str, &str)] = &[
+    ("Bomb", "explosives"),
+    ("Hammer", "hammer"),
+    ("SlingshotBullet", "slingshot"),
+    ("Arrow", "bow"),
+    ("Boomerang", "boomerang"),
+    ("Hookshot", "hookshot"),
+    ("Fire", "fire"),
+];
 /// Damage types anyone deals, by rolling or swinging.
-static FREE: LazyLock<Vec<&str>> =
-    LazyLock::new(|| vec!["Body", "SmallWeapon", "LargeWeapon", "ThrustWeapon"]);
+const FREE: &[&str] = &["Body", "SmallWeapon", "LargeWeapon", "ThrustWeapon"];
 /// Full damage. Actors that take everything take it at 1, so lower rates
 /// don't say what an obstacle needs.
 const FULL: f32 = 100.0;
@@ -84,8 +81,14 @@ const GRADES: &[(&str, Option<&str>)] = &[
 /// The eye switch AI reads this blackboard key, and fires on these damage
 /// types, plus `Hookshot` while the key is true.
 const HIT_HOOKSHOT: &Name = field::IS_HIT_HOOK_SHOT;
-static EYE_SWITCH_HITS: LazyLock<Vec<&str>> =
-    LazyLock::new(|| vec!["SlingshotBullet", "Arrow", "Boomerang"]);
+const EYE_SWITCH_HITS: &[&str] = &["SlingshotBullet", "Arrow", "Boomerang"];
+
+/// The damage types an eye switch fires on, with `Hookshot` if it takes it.
+fn eye_hits(hookshot: bool) -> Vec<&'static str> {
+    let mut hits = EYE_SWITCH_HITS.to_vec();
+    hits.extend(hookshot.then_some("Hookshot"));
+    hits
+}
 
 /// What an actor pack says about getting past its actor, each answer
 /// with the data behind it.
@@ -135,12 +138,7 @@ impl<'a> Tools<'a> {
             Said::Nothing => Some(guess.to_owned()),
             Said::Free(_) => None,
             Said::Rule(rule, _) => Some(rule),
-            Said::EyeSwitch { hookshot: default } => {
-                let hookshot = hookshot.unwrap_or(default);
-                let mut hits = EYE_SWITCH_HITS.to_vec();
-                hits.extend(hookshot.then_some("Hookshot"));
-                any_of(&hits)
-            }
+            Said::EyeSwitch { hookshot: default } => any_of(&eye_hits(hookshot.unwrap_or(default))),
         })
     }
 
@@ -160,8 +158,7 @@ impl<'a> Tools<'a> {
             Said::Free(why) => (None, why, false),
             Said::Rule(rule, why) => (Some(rule), why, false),
             Said::EyeSwitch { hookshot } => {
-                let mut hits = EYE_SWITCH_HITS.to_vec();
-                hits.extend(hookshot.then_some("Hookshot"));
+                let hits = eye_hits(hookshot);
                 let why = format!("eye switch: hit by {}", hits.join(", "));
                 (any_of(&hits), why, false)
             }
@@ -179,7 +176,19 @@ impl<'a> Tools<'a> {
         if let Some(said) = self.packs.get(gyaml) {
             return Ok(said.clone());
         }
+        // Saying nothing meanwhile ends a cycle of actors holding each other.
         self.packs.insert(gyaml.to_owned(), Said::Nothing);
+        let said = self.read_pack(gyaml);
+        match &said {
+            Ok(said) => self.packs.insert(gyaml.to_owned(), said.clone()),
+            // Not cached, so the next ask meets the error again.
+            Err(_) => self.packs.remove(gyaml),
+        };
+        said
+    }
+
+    /// [`Self::said`], uncached.
+    fn read_pack(&mut self, gyaml: &str) -> Result<Said> {
         let pack = ActorPack::load(self.romfs, gyaml)?;
         let Some(param) = pack.actor_param()? else {
             return Ok(Said::Nothing);
@@ -193,7 +202,6 @@ impl<'a> Tools<'a> {
                 }
             }
         }
-        self.packs.insert(gyaml.to_owned(), said.clone());
         Ok(said)
     }
 }

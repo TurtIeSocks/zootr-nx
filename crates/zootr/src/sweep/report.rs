@@ -9,7 +9,9 @@ use std::path::Path;
 use serde_json::Value;
 
 use super::drills::{DRILLS, Skill};
-use super::night::holder_kind;
+use super::night::{RESULTS, holder_kind};
+use crate::gates::CHEST;
+use crate::known::actor;
 use crate::{cows, scrubs, shops};
 
 /// Passes out of runs.
@@ -72,10 +74,28 @@ fn rows(text: &str) -> impl Iterator<Item = Value> + '_ {
         .filter(|r| r.get("swept").is_some())
 }
 
+/// The verdicts rows name, as [`Verdict`](super::verdict::Verdict)'s serde
+/// names spell them (a test pins each).
+pub(super) mod verdicts {
+    pub const PASS: &str = "pass";
+    pub const WRONG_ITEM: &str = "wrong_item";
+    pub const SUBSTITUTED: &str = "substituted";
+    pub const NOTHING: &str = "nothing";
+    pub const NEIGHBOUR: &str = "neighbour";
+
+    /// Whether `verdict` says the dealt item, or its substitute, landed.
+    pub fn gave(verdict: &str) -> bool {
+        matches!(verdict, PASS | SUBSTITUTED)
+    }
+}
+
+/// A sweep row's verdict, as [`verdicts`] names it.
+pub(super) fn verdict_of(row: &Value) -> Option<&str> {
+    row["swept"]["verdict"]["verdict"].as_str()
+}
+
 fn verdict(row: &Value) -> &str {
-    row["swept"]["verdict"]["verdict"]
-        .as_str()
-        .unwrap_or("none")
+    verdict_of(row).unwrap_or("none")
 }
 
 /// How a row's walk and use ended, as `walk/reason/use`: `gave up/blocked/
@@ -104,7 +124,7 @@ struct Run {
 
 impl Run {
     fn passed(&self) -> bool {
-        self.tries.iter().any(|r| verdict(r) == "pass")
+        self.tries.iter().any(|r| verdict(r) == verdicts::PASS)
     }
 }
 
@@ -182,10 +202,13 @@ pub fn proven(ladders: &[String]) -> BTreeSet<Skill> {
     drilled
 }
 
-/// The holder prefixes a drill covers by name.
-const CHEST: &str = "Obj_TBox_";
-const BOX: &str = "Obj_BrokenBox_";
-const LIFT: &str = "Obj_LiftRock_";
+// The holder prefixes a drill covers by name, beside [`CHEST`].
+fn boxes() -> &'static str {
+    actor::OBJ_BROKEN_BOX_A_01.trim_end_matches("A_01")
+}
+fn lifts() -> &'static str {
+    actor::OBJ_LIFT_ROCK_A_01.trim_end_matches("A_01")
+}
 
 /// The skills a sweep row leans on: its use's, by its holder, and every
 /// walking one when its walk gave up. `None` for a holder no drill covers
@@ -194,8 +217,8 @@ pub fn skills(row: &Value) -> Option<Vec<Skill>> {
     let holder = row["spot"]["holder"].as_str().unwrap_or_default();
     let by_prefix = [
         (CHEST, Skill::Chest),
-        (BOX, Skill::Box),
-        (LIFT, Skill::Lift),
+        (boxes(), Skill::Box),
+        (lifts(), Skill::Lift),
         (scrubs::HOLDER, Skill::Scrub),
     ];
     let used = (by_prefix.iter().find(|(p, _)| holder.starts_with(p)))
@@ -234,14 +257,14 @@ pub fn sweep(
         if let (Some(proven), Some(tally)) = (proven, board.proven.as_mut()) {
             let sure = skills(&row).is_some_and(|s| s.iter().all(|s| proven.contains(s)));
             if sure {
-                tally.add(said == "pass");
-            } else if said == "nothing" {
+                tally.add(said == verdicts::PASS);
+            } else if said == verdicts::NOTHING {
                 said = "unproven";
             }
         }
-        let verdicts = board.kinds.entry(kind.to_owned()).or_default();
-        *verdicts.entry(said.to_owned()).or_default() += 1;
-        if said != "pass" {
+        let counts = board.kinds.entry(kind.to_owned()).or_default();
+        *counts.entry(said.to_owned()).or_default() += 1;
+        if said != verdicts::PASS {
             *board.endings.entry(ending(&row)).or_default() += 1;
         }
         if let Some(kill) = row["swept"]["kill"].as_str() {
@@ -254,12 +277,12 @@ pub fn sweep(
 /// The rows a sweep folder holds: its own `results.jsonl`, or each night
 /// folder's inside it, oldest first.
 pub fn sweep_rows(dir: &Path) -> std::io::Result<String> {
-    let own = dir.join("results.jsonl");
+    let own = dir.join(RESULTS);
     if own.exists() {
         return std::fs::read_to_string(own);
     }
     let mut nights: Vec<_> = (std::fs::read_dir(dir)?.flatten())
-        .map(|n| n.path().join("results.jsonl"))
+        .map(|n| n.path().join(RESULTS))
         .filter(|f| f.exists())
         .collect();
     nights.sort();
@@ -339,6 +362,23 @@ impl fmt::Display for Sweep {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_verdicts_rows_name_are_the_verdicts_own() {
+        use super::super::verdict::Verdict;
+        let name = |v: Verdict| serde_json::to_value(v).unwrap()["verdict"].clone();
+        let x = || "x".to_owned();
+        let pairs = [
+            (Verdict::Pass, verdicts::PASS),
+            (Verdict::WrongItem(x()), verdicts::WRONG_ITEM),
+            (Verdict::Substituted(x()), verdicts::SUBSTITUTED),
+            (Verdict::Nothing, verdicts::NOTHING),
+            (Verdict::Neighbour(x()), verdicts::NEIGHBOUR),
+        ];
+        for (v, said) in pairs {
+            assert_eq!(name(v), said);
+        }
+    }
 
     /// A row the way a run appends it: its walk's end and reason, and its
     /// use's result, `None` for a row without a walk.
@@ -487,8 +527,9 @@ mod tests {
 
     #[test]
     fn a_nothing_leaning_on_an_unproven_skill_reads_unproven() {
+        needs_names!();
         let [chest_a, chest_b, chest_c] = ["A", "B", "C"].map(|n| format!("{CHEST}Fake{n}"));
-        let box_a = format!("{BOX}FakeA");
+        let box_a = format!("{}FakeA", boxes());
         let text = [
             row(0, &chest_a, "pass", Some(("arrived", "", "event"))),
             row(0, &chest_b, "nothing", Some(("arrived", "", "nothing"))),
@@ -517,6 +558,7 @@ mod tests {
 
     #[test]
     fn a_rows_skills_come_from_its_holder_and_its_walk() {
+        needs_names!();
         let of = |holder: &str, trigger: &str, walk: &str| {
             let mut r: Value =
                 serde_json::from_str(&row(0, holder, "nothing", Some((walk, "", "nothing"))))
@@ -538,7 +580,7 @@ mod tests {
             Some(vec![Skill::Talk])
         );
         assert_eq!(of("Fake scene", "play", "arrived"), None);
-        let gave_up = of(&format!("{LIFT}FakeA"), "open", "gave up").unwrap();
+        let gave_up = of(&format!("{}FakeA", lifts()), "open", "gave up").unwrap();
         assert_eq!(gave_up[0], Skill::Lift);
         assert!(Skill::WALKING.iter().all(|s| gave_up.contains(s)));
     }
@@ -548,10 +590,10 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-report-{}", std::process::id()));
         for night in ["night-b", "night-a"] {
             std::fs::create_dir_all(dir.join(night)).unwrap();
-            std::fs::write(dir.join(night).join("results.jsonl"), format!("{night}\n")).unwrap();
+            std::fs::write(dir.join(night).join(RESULTS), format!("{night}\n")).unwrap();
         }
         assert_eq!(sweep_rows(&dir).unwrap(), "night-a\nnight-b\n");
-        std::fs::write(dir.join("results.jsonl"), "own\n").unwrap();
+        std::fs::write(dir.join(RESULTS), "own\n").unwrap();
         assert_eq!(sweep_rows(&dir).unwrap(), "own\n");
         std::fs::remove_dir_all(dir).unwrap();
     }

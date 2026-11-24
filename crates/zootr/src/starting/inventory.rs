@@ -5,7 +5,7 @@
 
 use std::collections::BTreeMap;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, bail, ensure};
 use serde::{Deserialize, Serialize};
 
 use crate::bombchu_bags;
@@ -55,7 +55,7 @@ const KIT: &[(&str, i32)] = &[
     ("poachers-saw", 1), ("broken-sword", 1), ("prescription", 1), ("eyeball-frog", 1),
     ("eye-drops", 1), ("claim-check", 1),
     ("stone-of-agony", 1), ("gerudo-card", 1), ("double-defense", 1), ("gold-skulltula-tokens", 100),
-    ("giants-wallet", 1), ("rupees", 1000), ("heart-containers", 8), ("heart-pieces", 36),
+    ("giants-wallet", 1), ("rupees", 1000), (HEARTS, CONTAINERS), (PIECES, MAX_PIECES),
     ("zeldas-lullaby", 1), ("eponas-song", 1), ("sarias-song", 1), ("suns-song", 1),
     ("song-of-time", 1), ("song-of-storms", 1), ("minuet-of-forest", 1), ("bolero-of-fire", 1),
     ("serenade-of-water", 1), ("requiem-of-spirit", 1), ("nocturne-of-shadow", 1), ("prelude-of-light", 1),
@@ -73,9 +73,14 @@ const HEARTS: &str = "heart-containers";
 const BASE_HEARTS: i32 = 3;
 /// The heart containers the game hides, one per boss.
 pub(crate) const CONTAINERS: i32 = 8;
-/// The heart pieces the game hides, and how many make a heart.
+/// Heart pieces, the word.
 const PIECES: &str = "heart-pieces";
+/// The heart pieces the game hides.
+const MAX_PIECES: i32 = 36;
+/// Heart pieces that make a heart.
 const PER_HEART: i32 = 4;
+/// Quarters of life per heart, as the Status life fields count it.
+const LIFE_PER_HEART: i32 = 4;
 const RUPEE_WORD: &str = "rupees";
 
 /// Every grid actor's word, as a player would say it. Rule-file words
@@ -198,7 +203,7 @@ const EQUIPPED: [&Name; 2] = [item::SWORD_KOKIRI, actor::T_BOX_SHIELD_DEKU];
 const WITH: [(&Name, &Name); 1] = [(item::RANGE_SLING_SHOT, item::BULLET_BAG_SMALL)];
 
 /// The chest item a grid actor stands for.
-pub fn drop(actor: &'static Name) -> &'static Name {
+pub fn chest_item(actor: &'static Name) -> &'static Name {
     let lines = (progressive::LINES.iter().flat_map(|l| l.iter())).map(|&(d, p)| (p, d));
     (lines.chain(DROPS.iter().copied()))
         .find(|&(pouch, _)| pouch == actor)
@@ -264,9 +269,9 @@ impl Start {
     }
 
     /// Fails on a word that isn't an item, a heart count or rupees, or
-    /// names a stone or medallion.
+    /// names a stone or medallion, and on a count its word can't hold.
     pub fn check(&self) -> Result<()> {
-        self.0.keys().try_for_each(|w| actor_of(w).map(|_| ()))
+        (self.0.iter()).try_for_each(|(w, &n)| check_count(w, n).and(actor_of(w).map(|_| ())))
     }
 
     /// Whether `word` is held at all.
@@ -279,9 +284,7 @@ impl Start {
         if word == ARSENAL {
             return KIT.iter().try_for_each(|&(w, n)| self.add(w, n));
         }
-        if word == HEARTS && !(0..=CONTAINERS).contains(&n) {
-            bail!("a new game starts with 0 to {CONTAINERS} heart containers, not {n}");
-        }
+        check_count(word, n)?;
         let Some(actor) = actor_of(word)? else {
             self.0.insert(word.into(), n);
             return Ok(());
@@ -327,10 +330,13 @@ impl Start {
     /// left three hearts), so the pieces' hearts come as containers too.
     pub fn grants(&self, pouch: &Pouch) -> Vec<Grant> {
         let mut out = self.items();
-        for (h, n) in self.held().into_iter().filter(|(h, _)| h.ammo) {
-            let n = n - self.brought(h.actor, pouch);
-            out.extend((n > 0).then(|| Grant::new(h.actor.get(), n)));
-        }
+        let bags = bags(&out);
+        let ammo: Vec<_> = (self.held().into_iter())
+            .filter(|(h, _)| h.ammo)
+            .map(|(h, n)| (h.actor, n - self.brought(h.actor, pouch, &bags)))
+            .filter(|&(_, n)| n > 0)
+            .collect();
+        out.extend(ammo.into_iter().map(|(a, n)| Grant::new(a.get(), n)));
         let container = || Grant::new(actor::OBJ_HEART_CONTAINER.get(), 1);
         out.extend((BASE_HEARTS..self.hearts()).map(|_| container()));
         out
@@ -340,7 +346,10 @@ impl Start {
     /// item comes only when the grid doesn't hold it already.
     fn items(&self) -> Vec<Grant> {
         let held: Vec<_> = self.held().into_iter().filter(|(h, _)| !h.ammo).collect();
-        let drops: Vec<&str> = held.iter().map(|(h, _)| drop(h.actor).get()).collect();
+        let drops: Vec<&str> = held
+            .iter()
+            .map(|(h, _)| chest_item(h.actor).get())
+            .collect();
         let mut out = Vec::new();
         for ((_, n), d) in held.iter().zip(&drops) {
             let mut grants = granted(d, *n).into_iter();
@@ -350,16 +359,14 @@ impl Start {
         out
     }
 
-    /// The ammo `a` its held weapon and bags bring: the weapon its own, a
-    /// bag past the first fills it.
-    fn brought(&self, a: &Name, pouch: &Pouch) -> i32 {
-        let items = self.items();
-        let bags: Vec<&str> = items.iter().map(|g| g.actor.as_str()).collect();
+    /// The ammo `a` its held weapon and bags (`bags`, of [`Self::items`])
+    /// bring: the weapon its own, a bag past the first fills it.
+    fn brought(&self, a: &Name, pouch: &Pouch, bags: &[&str]) -> i32 {
         let weapon = (BROUGHT.iter())
             .filter(|(weapon, ammo, _)| *ammo == a && self.count(weapon) > 0)
             .map(|(_, _, n)| *n);
         weapon
-            .chain([pouch.filled(a.get(), &bags)])
+            .chain([pouch.filled(a.get(), bags)])
             .max()
             .unwrap_or(0)
     }
@@ -367,12 +374,15 @@ impl Start {
     /// It holding at least the ammo its weapons and bags bring, as the
     /// game gives it.
     fn floored(mut self, pouch: &Pouch) -> Self {
-        for (word, a) in WORDS {
-            let n = self.brought(a, pouch);
-            if n > 0 {
-                let held = self.0.entry((*word).to_owned()).or_default();
-                *held = (*held).max(n);
-            }
+        let items = self.items();
+        let bags = bags(&items);
+        let floors: Vec<_> = (WORDS.iter())
+            .map(|(word, a)| (*word, self.brought(a, pouch, &bags)))
+            .filter(|&(_, n)| n > 0)
+            .collect();
+        for (word, n) in floors {
+            let held = self.0.entry(word.to_owned()).or_default();
+            *held = (*held).max(n);
         }
         self
     }
@@ -421,7 +431,7 @@ impl Start {
         let containers = self.0.get(HEARTS).copied().unwrap_or(0).max(0);
         (self.held().into_iter())
             .filter(|(h, _)| !h.ammo)
-            .map(|(h, n)| (drop(h.actor), n))
+            .map(|(h, n)| (chest_item(h.actor), n))
             .chain([(actor::OBJ_HEART_CONTAINER, containers)])
             .flat_map(|(d, n)| std::iter::repeat_n(d.get(), n as usize))
             .collect()
@@ -432,19 +442,23 @@ impl Start {
     /// containers are granted.
     pub fn defaults(&self) -> Vec<String> {
         let rupees = self.0.get(RUPEE_WORD);
-        let bagged = (BAGGED.iter())
-            .filter(|(_, bags)| bags.iter().any(|b| self.count(b) > 0))
-            .map(|(ammo, _)| format!("IsGet.{ammo}=true"));
         (rupees.iter())
             .map(|n| format!("#{RUPEES:08x}={n}"))
-            .chain(bagged)
+            .chain(self.bagged())
             .collect()
+    }
+
+    /// The ammo a held bag marks got (`BAGGED`), as default edits.
+    fn bagged(&self) -> impl Iterator<Item = String> + '_ {
+        (BAGGED.iter())
+            .filter(|(_, bags)| bags.iter().any(|b| self.count(b) > 0))
+            .map(|(ammo, _)| format!("IsGet.{ammo}=true"))
     }
 
     /// The Status edits the panel's save takes: its hearts past a new
     /// game's, with health full, and the rupees.
     fn status(&self) -> Vec<Edit> {
-        let quarters = self.hearts() * 4;
+        let quarters = self.hearts() * LIFE_PER_HEART;
         let hearts =
             (self.hearts() > BASE_HEARTS).then_some([(MAX_LIFE, quarters), (LIFE, quarters)]);
         let rupees = self.0.get(RUPEE_WORD).map(|&n| (RUPEES, n));
@@ -472,13 +486,38 @@ pub fn upgrade(start: &mut serde_json::Value) {
     });
     let old = words.get(HEARTS).and_then(serde_json::Value::as_i64);
     if let Some(hearts) = old.filter(|&h| h > i64::from(CONTAINERS)) {
-        let past = hearts as i32 - BASE_HEARTS;
-        let pieces = (past - CONTAINERS) * PER_HEART;
+        let past = hearts - i64::from(BASE_HEARTS);
+        let containers = past.min(CONTAINERS.into());
+        let pieces = (past - containers).saturating_mul(PER_HEART.into());
         let held = words.get(PIECES).and_then(serde_json::Value::as_i64);
-        let pieces = (held.unwrap_or(0) as i32).max(pieces).min(36);
-        words.insert(HEARTS.into(), CONTAINERS.into());
+        let pieces = held.unwrap_or(0).max(pieces).clamp(0, MAX_PIECES.into());
+        words.insert(HEARTS.into(), containers.into());
         words.insert(PIECES.into(), pieces.into());
     }
+}
+
+/// Fails on a count `word` can't start with: heart containers and pieces
+/// up to what the game hides, anything else up to any count, none below 0.
+fn check_count(word: &str, n: i32) -> Result<()> {
+    let max = match word {
+        HEARTS => Some(CONTAINERS),
+        PIECES => Some(MAX_PIECES),
+        _ => None,
+    };
+    match max {
+        Some(max) => ensure!(
+            (0..=max).contains(&n),
+            "a new game starts with 0 to {max} {word}, not {n}"
+        ),
+        None => ensure!(n >= 0, "a new game can't start with {n} {word}"),
+    }
+    Ok(())
+}
+
+/// The actors of `items` (of [`Start::items`]), the bags [`Start::brought`]
+/// fills.
+fn bags(items: &[Grant]) -> Vec<&str> {
+    items.iter().map(|g| g.actor.as_str()).collect()
 }
 
 /// `--start`'s `WORD[=N]`: a word it takes, and how many, 1 unless said.
@@ -594,6 +633,20 @@ mod tests {
         assert!(err.to_string().contains("hookshoot"));
         let settings = Settings::from([(SETTING.into(), serde_json::json!({ "nope": 1 }))]);
         assert!(Start::from_settings(&settings).is_err());
+        for bad in [
+            (HEARTS, 100),
+            (PIECES, MAX_PIECES + 1),
+            (RUPEE_WORD, -5),
+            ("bombs", -1),
+        ] {
+            assert!(start(&[bad]).check().is_err(), "{bad:?}");
+            assert!(Start::default().add(bad.0, bad.1).is_err(), "{bad:?}");
+        }
+        assert!(
+            start(&[(PIECES, MAX_PIECES), (RUPEE_WORD, 0)])
+                .check()
+                .is_ok()
+        );
         assert_eq!(
             Start::from_settings(&Settings::new()).unwrap(),
             Start::of(&DEFAULT)
@@ -745,6 +798,19 @@ mod tests {
         assert_eq!(up(serde_json::json!({ "heart-containers": 20 })), twenty);
         let twelve = serde_json::json!({ "heart-containers": 8, "heart-pieces": 4 });
         assert_eq!(up(serde_json::json!({ "heart-containers": 12 })), twelve);
+        let nine = serde_json::json!({ "heart-containers": 6, "heart-pieces": 0 });
+        assert_eq!(up(serde_json::json!({ "heart-containers": 9 })), nine);
+        let ten = serde_json::json!({ "heart-containers": 7, "heart-pieces": 0 });
+        assert_eq!(up(serde_json::json!({ "heart-containers": 10 })), ten);
+        let eleven = serde_json::json!({ "heart-containers": 8, "heart-pieces": 0 });
+        assert_eq!(up(serde_json::json!({ "heart-containers": 11 })), eleven);
+        let held = serde_json::json!({ "heart-containers": 9, "heart-pieces": 3 });
+        assert_eq!(
+            up(held),
+            serde_json::json!({ "heart-containers": 6, "heart-pieces": 3 })
+        );
+        let huge = serde_json::json!({ "heart-containers": i64::MAX, "heart-pieces": -5 });
+        assert_eq!(up(huge), twenty);
         let now = serde_json::json!({ "heart-containers": 5 });
         assert_eq!(up(now.clone()), now);
     }
@@ -858,7 +924,7 @@ mod tests {
             return;
         };
         for h in inventory::held() {
-            let d = drop(h.actor);
+            let d = chest_item(h.actor);
             if ALWAYS.contains(&d) || crate::known::is_ours(d) {
                 continue;
             }

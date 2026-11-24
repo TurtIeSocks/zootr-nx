@@ -10,7 +10,7 @@ use std::time::Duration;
 use anyhow::{Context, Result, bail};
 
 use super::queue::Queue;
-use super::remote::{Answer, Ask, Request, ServeConfig, TurnConfig};
+use super::remote::{Answer, Ask, QUICK, Request, ServeConfig, TurnConfig};
 
 /// How often the ticker looks for lapsed holds and freed games, and how
 /// long a waiter sleeps between looks when nothing wakes it.
@@ -28,9 +28,14 @@ fn now() -> i64 {
 }
 
 impl Shared {
+    /// Written beside the state file, then renamed over it, so a kill
+    /// mid-write never leaves a half-written queue.
     fn save(&self, q: &Queue) {
         let json = serde_json::to_vec_pretty(q).expect("a queue serializes");
-        if let Err(e) = std::fs::write(&self.serve.state, json) {
+        let tmp = self.serve.state.with_extension("tmp");
+        if let Err(e) =
+            std::fs::write(&tmp, json).and_then(|()| std::fs::rename(&tmp, &self.serve.state))
+        {
             eprintln!("saving the queue to {}: {e}", self.serve.state.display());
         }
     }
@@ -105,6 +110,8 @@ impl Shared {
     }
 
     fn handle(&self, stream: TcpStream) -> Result<()> {
+        // A client that connects and never asks doesn't keep a thread.
+        stream.set_read_timeout(Some(QUICK))?;
         let mut line = String::new();
         BufReader::new(&stream).read_line(&mut line)?;
         let answer = match serde_json::from_str::<Request>(&line) {
@@ -152,10 +159,13 @@ fn serve_on(listener: TcpListener, turn: &TurnConfig) -> Result<()> {
         .serve
         .clone()
         .context("no `serve` in the config's `turn`")?;
+    // Only a missing file starts empty: the ticker saves within seconds,
+    // so any other read error would wipe the queue on disk.
     let mut queue = match std::fs::read(&serve.state) {
         Ok(b) => serde_json::from_slice(&b)
             .with_context(|| format!("reading {}", serve.state.display()))?,
-        Err(_) => Queue::default(),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Queue::default(),
+        Err(e) => return Err(e).with_context(|| format!("reading {}", serve.state.display())),
     };
     queue.configure(&turn.games);
     let shared = Arc::new(Shared {
@@ -329,6 +339,34 @@ mod tests {
         let q = r#"{"games":[],"waiting":[{"session":"a","note":"","urgent":false,"since":0}]}"#;
         let waiter = &serde_json::from_str::<Queue>(q).unwrap().waiting[0];
         assert!(!waiter.both && waiter.on.is_none());
+    }
+
+    #[test]
+    fn a_state_file_that_can_t_be_read_stops_the_service() {
+        let (mut blocked, dir) = started("unreadable", &["near"]);
+        let state = dir.join("blocked");
+        std::fs::create_dir_all(&state).unwrap();
+        blocked.serve.as_mut().unwrap().state = state;
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let err = serve_on(listener, &blocked).unwrap_err();
+        assert!(err.to_string().contains("reading"), "{err:#}");
+    }
+
+    #[test]
+    fn a_missing_key_file_isn_t_the_service_down_and_a_hang_up_is() {
+        let (mut turn, dir) = started("nokey", &["near"]);
+        turn.key_file = dir.join("missing");
+        let err = turn.ask(Ask::Status).unwrap_err();
+        assert!(!crate::turn::unreachable(&err), "{err:#}");
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let hangs_up = TurnConfig {
+            url: listener.local_addr().unwrap().to_string(),
+            key_file: dir.join("key"),
+            ..turn
+        };
+        std::thread::spawn(move || drop(listener.accept()));
+        let err = hangs_up.ask(Ask::Status).unwrap_err();
+        assert!(crate::turn::unreachable(&err), "{err:#}");
     }
 
     #[test]
