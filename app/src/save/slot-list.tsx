@@ -27,21 +27,34 @@ interface SlotListProps {
   rows: SlotRow[];
 }
 
+/** A switch waiting on Discard: the slot asked for, the one it leaves,
+ * and how many changes it drops. */
+interface Asking {
+  to: SlotRow;
+  from: number | null;
+  n: number;
+}
+
 /** The slots, one row each with what's in it. Picking another with edits
  * pending asks first. */
 export function SlotList({ rows }: SlotListProps) {
   const [slot] = useUi.usePath("save.slot");
   const pending = usePendingCount();
-  const [asking, setAsking] = useState<SlotRow>();
+  // What was asked outlives the dialog's closing, so it reads the same
+  // while it fades out.
+  const [asking, setAsking] = useState<Asking>();
+  const [open, setOpen] = useState(false);
   if (rows.length === 0) {
     return (
       <p className="text-ink-muted text-xs">No saves in the save folder yet</p>
     );
   }
-  const pick = (row: SlotRow) =>
-    row.slot === slot || pending === 0
-      ? pickSlot(row.slot, row.stamp)
-      : setAsking(row);
+  const pick = (row: SlotRow) => {
+    if (row.slot === slot || pending === 0)
+      return pickSlot(row.slot, row.stamp);
+    setAsking({ to: row, from: slot, n: pending });
+    setOpen(true);
+  };
   const continues = rows.find((r) => r.continues);
   return (
     <>
@@ -60,23 +73,25 @@ export function SlotList({ rows }: SlotListProps) {
           Continue loads slot {continues.slot}, the one written last.
         </p>
       )}
-      <Dialog open={!!asking} onOpenChange={(o) => !o && setAsking(undefined)}>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Discard {count(pending, "change")}?</DialogTitle>
+            <DialogTitle>
+              Discard {count(asking?.n ?? 0, "change")}?
+            </DialogTitle>
             <DialogDescription>
-              They're for slot {slot}. Switching to slot {asking?.slot} drops
-              them.
+              They're for slot {asking?.from}. Switching to slot{" "}
+              {asking?.to.slot} drops them.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setAsking(undefined)}>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
               Keep Editing
             </Button>
             <Button
               onClick={() => {
-                if (asking) pickSlot(asking.slot, asking.stamp);
-                setAsking(undefined);
+                if (asking) pickSlot(asking.to.slot, asking.to.stamp);
+                setOpen(false);
               }}
             >
               Discard and Switch
