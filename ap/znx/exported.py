@@ -15,6 +15,10 @@ _POOL = load("pool")
 # of the cheapest of `JUNK` left, as the app's `starter_bags::swap_in` does.
 POOL = _POOL["rows"]
 JUNK = _POOL["junk"]
+# The trap the world swaps in for a share of its `trappable` items, by
+# Ice Traps' value, as the app's `ice_traps::swap` does.
+TRAP = _POOL["trap"]
+SHARES = _POOL["shares"]
 OPTIONS = load("options")
 
 ITEM_NAME_TO_ID = {item["name"]: item["id"] for item in ITEMS}

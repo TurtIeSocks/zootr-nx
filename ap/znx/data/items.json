@@ -633,5 +633,10 @@
     "class": "progression",
     "id": 131,
     "name": "Mask of Truth"
+  },
+  {
+    "class": "trap",
+    "id": 132,
+    "name": "Ice Trap"
   }
 ]

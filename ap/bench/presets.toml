@@ -49,3 +49,4 @@ rocks = true
 grass = true
 hives = true
 shuffle-masks = true
+ice-traps = "mayhem"
