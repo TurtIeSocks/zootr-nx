@@ -92,8 +92,10 @@ pub fn install<T>(
         });
         match wrote {
             Err(e) if run.replaced() => {
+                // A fresh error, so a stop doesn't pass for one that left
+                // the targets as they were.
                 if let Err(off) = take_off(targets) {
-                    return Err(e.context(format!("the mod stayed on ({off:#}) after")));
+                    bail!("the mod stayed on ({off:#}) after: {e:#}");
                 }
                 Err(match progress::stopped(&e) {
                     Some(_) => Stopped { took_off: true }.into(),
@@ -414,6 +416,21 @@ mod tests {
             message.contains("removing") && message.ends_with(": broke"),
             "{message}"
         );
+        std::fs::remove_file(&stuck).unwrap();
+        // A stop there says so too, never that the targets are as they were.
+        fresh();
+        let run = Run::silent();
+        let err = install(&targets, &run, |_| {
+            run.mark_replaced();
+            std::fs::remove_dir_all(&stuck)?;
+            std::fs::write(&stuck, "")?;
+            run.stopper().stop();
+            run.check()
+        })
+        .unwrap_err();
+        assert!(progress::stopped(&err).is_none());
+        let message = format!("{err:#}");
+        assert!(message.contains("stayed on"), "{message}");
         std::fs::remove_file(&stuck).unwrap();
         // And the lock it held is free for the next install.
         fresh();
