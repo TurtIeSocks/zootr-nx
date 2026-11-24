@@ -50,7 +50,7 @@ pub(crate) fn frame(pouch: &Flowchart) -> Result<Model> {
 
 /// The two flows an inline grant copies its events from, as [`Models::load`]
 /// reads them.
-pub(crate) type Flows = (Flowchart, Flowchart);
+pub(crate) type ModelCharts = (Flowchart, Flowchart);
 
 /// The grant's model flows: the starting items' grant and the get window.
 pub(crate) struct Models<'a> {
@@ -59,7 +59,7 @@ pub(crate) struct Models<'a> {
 }
 
 impl<'a> Models<'a> {
-    pub(crate) fn load(romfs: &Romfs) -> Result<Flows> {
+    pub(crate) fn load(romfs: &Romfs) -> Result<ModelCharts> {
         let load = |name: &str| -> Result<Flowchart> {
             flows::load(romfs, name)?.with_context(|| format!("{name} is a timeline"))
         };

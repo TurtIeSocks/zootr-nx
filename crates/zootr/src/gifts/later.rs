@@ -15,9 +15,7 @@ const NOTHING: (&Name, &Name) = (
 /// fork branch can't be unlinked.
 pub(super) fn silence_calls(flow: &mut Flowchart, call: &[Call], item: &str) -> Result<()> {
     let named = |kind: &EventKind| match kind {
-        EventKind::SubFlow { params, .. } => {
-            ITEM_PARAMS.iter().any(|k| param(params, k) == Some(item))
-        }
+        EventKind::SubFlow { params, .. } => names_item(params, &[item]),
         _ => false,
     };
     let silenced: Vec<usize> = calls_to(flow, call)?
@@ -141,8 +139,7 @@ mod tests {
             zelda,
             item::MEDAL_FIRE,
             &BTreeSet::new(),
-            false,
-            false,
+            Placement::Scene,
         )
         .unwrap();
         let parse = |name: &str| {
@@ -301,7 +298,7 @@ mod tests {
         let mut skips = skip_all();
         skips.areas.remove("castle");
         let dealt = Some((scene::HRL_CASTLE_0050, item::MEDAL_FIRE));
-        let (rewrites, flags) = seed(&romfs, &skips, dealt);
+        let (rewrites, _) = seed(&romfs, &skips, dealt);
         let flow = written(&rewrites, flow::GOTO_HYRULE_CASTLE);
         let ran = run(&flow, MEET);
         let vanilla = flows::load(&romfs, flow::GOTO_HYRULE_CASTLE)
@@ -330,7 +327,6 @@ mod tests {
         // Nothing dealt and no skip at all: the flow isn't written.
         let (plain, _) = seed(&romfs, &Default::default(), None);
         assert!(!plain.contains_key(&flows::rel(flow::GOTO_HYRULE_CASTLE)));
-        drop(flags);
     }
 
     const IMPA: &Name = field::STEP01_NPC_HYLIA_IMPA_CHILD_TALK;

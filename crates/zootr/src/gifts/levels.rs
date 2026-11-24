@@ -143,7 +143,7 @@ fn events(flow: &Flowchart, item: &str) -> Vec<(u16, usize)> {
                 entry_point,
                 params,
                 ..
-            } if ITEM_PARAMS.iter().any(|k| param(params, k) == Some(item)) => {
+            } if names_item(params, &[item]) => {
                 let window = flowchart == POUCH && entry_point == WINDOW;
                 Some((i, usize::from(!window)))
             }

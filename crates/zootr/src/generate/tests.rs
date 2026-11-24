@@ -623,7 +623,7 @@ fn dealt_gifts_are_checks_only_with_their_option_on() {
         let dir = Scratch::new(&format!("gifts-{setting}"));
         let ours: Vec<&gifts::Gift> = gifts::GIFTS
             .iter()
-            .filter(|g| g.setting() == Some(setting))
+            .filter(|g| g.setting == Some(setting))
             .collect();
         let dealt = |r: &Report| {
             let of = |s: &&Spot| ours.iter().any(|g| g.hash() == s.hash);
@@ -936,7 +936,7 @@ fn a_seed_with_every_starter_bag_writes() {
         bombchus: crate::settings::Bombchus::Bag,
         shuffle_nut_bag: true,
         shuffle_stick_bag: true,
-        on: carpet.setting().into_iter().map(String::from).collect(),
+        on: carpet.setting.into_iter().map(String::from).collect(),
         ..Default::default()
     };
     let own = Fixed::from([(carpet.hash(), carpet.item.to_string())]);

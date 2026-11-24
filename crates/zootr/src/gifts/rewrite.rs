@@ -12,7 +12,7 @@ pub(super) fn waited(flow: &mut Flowchart) -> Result<()> {
             cases,
             ..
         } if flow.actor_of(*actor).queries[*query as usize].contains(&**ELAPSED) => {
-            cases.iter().find(|c| c.0 == 0).map(|c| c.1)
+            goes_on(cases, 0)
         }
         _ => None,
     };
@@ -52,12 +52,26 @@ pub(super) fn ungated(flow: &mut Flowchart) -> Result<()> {
     let EventKind::Switch { cases, .. } = &flow.events[gate as usize].kind else {
         unreachable!("din_gates found a switch");
     };
-    let open = cases.iter().find(|c| c.0 == 0).map(|c| c.1);
-    let open = open.context("the Din's Fire gate has no case 0")?;
+    let open = goes_on(cases, 0).context("the Din's Fire gate has no case 0")?;
     for link in flow.links_to(gate) {
         flow.link(link, Some(open))?;
     }
     Ok(())
+}
+
+/// Send every link to `at` to `to` instead, at least one.
+pub(super) fn relink(flow: &mut Flowchart, at: u16, callers: Vec<Link>, to: u16) -> Result<()> {
+    ensure!(
+        !callers.is_empty(),
+        "{} never reaches event {at}",
+        flow.name
+    );
+    callers.into_iter().try_for_each(|l| flow.link(l, Some(to)))
+}
+
+/// Where a switch with `cases` goes on case `n`.
+pub(super) fn goes_on(cases: &[(u32, u16)], n: u32) -> Option<u16> {
+    cases.iter().find(|c| c.0 == n).map(|c| c.1)
 }
 
 /// Every entry point of `flow` ends at once.
@@ -116,6 +130,14 @@ pub(super) fn in_place(flow: &mut Flowchart, item: &str) -> Result<()> {
 /// The params a getting sub-flow takes its item in.
 pub(super) const ITEM_PARAMS: [&Name; 3] = [NAME, flow::REVEIVE_ITEM, flow::TAKEN_REWARD_ACTOR];
 
+/// Whether a call's params hand it one of `items`, by whichever param its
+/// getting sub-flow reads the item from.
+pub(super) fn names_item(params: &Params, items: &[&str]) -> bool {
+    ITEM_PARAMS
+        .iter()
+        .any(|k| param(params, k).is_some_and(|n| items.contains(&n)))
+}
+
 /// The getting sub-flow that only shows the item.
 pub(super) const PLAIN: &Name = flow::GET_IN_EVENT_DEMO_NOT_LOOKAT_OBJECT_ENTRY;
 
@@ -132,6 +154,13 @@ pub(super) const DRESSED: [&Name; 9] = [
     flow::GET_IN_EVENT_ITEM_SWORD_MEDIGORON,
     flow::GET_IN_EVENT_MASK,
 ];
+
+/// A dressed call becomes `PLAIN`.
+fn undress(entry_point: &mut String) {
+    if DRESSED.iter().any(|d| **d == **entry_point) {
+        *entry_point = PLAIN.to_string();
+    }
+}
 
 /// The events that make any of `calls`.
 pub(super) fn calls_to(flow: &Flowchart, calls: &[Call]) -> Result<Vec<usize>> {
@@ -172,9 +201,7 @@ pub(super) fn naming(
     taken: &BTreeSet<u16>,
 ) -> Result<Vec<u16>> {
     let names = |i: &u16| match &flow.events[*i as usize].kind {
-        EventKind::SubFlow { params, .. } => {
-            ITEM_PARAMS.iter().any(|k| param(params, k) == Some(item))
-        }
+        EventKind::SubFlow { params, .. } => names_item(params, &[item]),
         _ => false,
     };
     Ok((calls_to(flow, call)?.into_iter())
@@ -208,10 +235,8 @@ pub(super) fn rename_untaken(
                 flows::set(params, key, string(to))?;
             }
         }
-        if let EventKind::SubFlow { entry_point, .. } = kind
-            && DRESSED.iter().any(|d| **d == **entry_point)
-        {
-            *entry_point = PLAIN.to_string();
+        if let EventKind::SubFlow { entry_point, .. } = kind {
+            undress(entry_point);
         }
     }
     Ok(calls)
@@ -276,13 +301,11 @@ pub(super) fn set_own_bool(flow: &mut Flowchart, call: &[Call], name: &str) -> R
         else {
             unreachable!("calls_to finds sub-flows");
         };
-        if DRESSED.iter().any(|d| **d == **entry_point) {
-            *entry_point = PLAIN.to_string();
-        }
+        undress(entry_point);
         let next = *next;
         let mut params = sets.params.clone();
         flows::set(&mut params, GAME_DATA, string(name))?;
-        flows::set(&mut params, "Value", Value::Bool(vec![true]))?;
+        flows::set(&mut params, field::VALUE, Value::Bool(vec![true]))?;
         let (actor, action) = flow.action(&sets.actor, sets.name);
         let mark = flow.push(EventKind::Action {
             next,
@@ -327,9 +350,7 @@ pub(super) fn giving(flow: &Flowchart, keep: &str, taken: &BTreeSet<u16>) -> Res
         .zip(&flow.events)
         .filter(|(i, _)| !taken.contains(i))
         .filter(|(_, e)| match &e.kind {
-            EventKind::SubFlow { params, .. } => {
-                ITEM_PARAMS.iter().any(|k| param(params, k) == Some(keep))
-            }
+            EventKind::SubFlow { params, .. } => names_item(params, &[keep]),
             _ => false,
         })
         .map(|(i, _)| i)
@@ -347,7 +368,7 @@ pub(super) fn asked(flow: &Flowchart, ask: &str, call: u16) -> Vec<u16> {
         .zip(&flow.events)
         .filter(|(i, e)| match &e.kind {
             EventKind::Switch { params, .. } => {
-                ["Actor", field::GAME_DATA_NAME]
+                [ACTOR, field::GAME_DATA_NAME]
                     .iter()
                     .filter_map(|k| param(params, k))
                     .any(|n| n.strip_prefix(IS_GET).unwrap_or(n).starts_with(ask))
@@ -410,11 +431,7 @@ mod tests {
         in_place(&mut flow, "Item_A").unwrap();
         let after = Flowchart::parse(&flow.to_bytes()).unwrap().unwrap();
         let (old, new) = (flows::render(&before), flows::render(&after));
-        let changed: Vec<_> = old
-            .lines()
-            .zip(new.lines())
-            .filter(|(a, b)| a != b)
-            .collect();
+        let changed = changed(&old, &new);
         assert_eq!(changed.len(), 2, "{changed:#?}");
         for (was, now) in changed {
             assert!(was.contains(&**GIFTS[0].item), "{was}");
@@ -437,11 +454,7 @@ mod tests {
             rename_calls(&mut flow, call, gift.item, "Item_A").unwrap();
             let after = Flowchart::parse(&flow.to_bytes()).unwrap().unwrap();
             let (old, new) = (flows::render(&before), flows::render(&after));
-            let changed: Vec<_> = old
-                .lines()
-                .zip(new.lines())
-                .filter(|(a, b)| a != b)
-                .collect();
+            let changed = changed(&old, &new);
             let named: Vec<String> = said(call).split('|').map(|c| format!("{c}(")).collect();
             let calls = old
                 .lines()
@@ -466,7 +479,7 @@ mod tests {
             .collect();
         (0u16..).zip(&flow.events).any(|(i, e)| match &e.kind {
             EventKind::SubFlow { params, .. } => {
-                reached.contains(&i) && ITEM_PARAMS.iter().any(|k| param(params, k) == Some(item))
+                reached.contains(&i) && names_item(params, &[item])
             }
             _ => false,
         })

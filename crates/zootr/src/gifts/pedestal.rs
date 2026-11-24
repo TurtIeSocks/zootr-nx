@@ -69,16 +69,6 @@ fn granting(
     models(flows)?.push(flow, string(item), Some(set))
 }
 
-/// Send every link to `at` to `to` instead.
-fn relink(flow: &mut Flowchart, at: u16, callers: Vec<Link>, to: u16) -> Result<()> {
-    ensure!(
-        !callers.is_empty(),
-        "{} never reaches event {at}",
-        flow.name
-    );
-    callers.into_iter().try_for_each(|l| flow.link(l, Some(to)))
-}
-
 /// The first pull with the door closed: its sword grant gives `item`, with
 /// a window. Returns the grant.
 pub(super) fn in_draw(
