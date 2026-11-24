@@ -242,6 +242,7 @@ const BUNNY_HOOD: &str = "bunny-hood";
 const DAY_SKULLTULAS: &str = "day-skulltulas";
 pub(crate) const AGELESS_WEAPONS: &str = "ageless-weapons";
 pub(crate) const AGELESS_ITEMS: &str = "ageless-items";
+pub(crate) const AGELESS_GEAR: &str = "ageless-gear";
 pub(crate) const MAGIC_WITH_FIRST_ITEM: &str = "magic-with-first-item";
 const QUIET_NAVI: &str = "quiet-navi";
 pub(crate) const QUIET_ENEMIES: &str = "quiet-enemies";
@@ -725,6 +726,12 @@ pub fn schema() -> Vec<SettingDef> {
             "Child and adult Link can each wield every one-handed sword and every shield, and logic expects them to. Biggoron's Sword and the Giant's Knife stay adult Link's, and only he can aim the Mirror Shield at light",
         )])
         .chain([toggle(
+            AGELESS_GEAR,
+            place::GAMEPLAY,
+            "Boots for Both Ages",
+            "Child Link can wear the Iron Boots and Hover Boots, and logic expects him to",
+        )])
+        .chain([toggle(
             MAGIC_WITH_FIRST_ITEM,
             place::ITEM_POOL,
             "Magic Comes with the First Magic Item",
@@ -875,6 +882,7 @@ mod tests {
         assert_eq!(at(HINTS), is(place::HINTS));
         assert_eq!(at(BUNNY_HOOD), is(place::GAMEPLAY));
         assert_eq!(at(AGELESS_ITEMS), is(place::GAMEPLAY));
+        assert_eq!(at(AGELESS_GEAR), is(place::GAMEPLAY));
         assert_eq!(at(SKIP_ALL), is(place::CUTSCENES));
         assert_eq!(at(DUNGEON_ENTRANCES), is(place::ENTRANCES));
         // The Logic & Access sections and Shuffles' Dungeons, row by row.

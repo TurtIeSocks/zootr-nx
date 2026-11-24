@@ -110,6 +110,7 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
     ("shuffle-dungeon-entrances", Later(RULES)),
     ("scrub-price", Later(COMFORT)),
     ("ageless-items", Later(COMFORT)),
+    ("ageless-gear", Later(RULES)),
     ("quiet-enemies", Later(COMFORT)),
     ("menus", Later(COMFORT)),
     ("clock", Later(COMFORT)),

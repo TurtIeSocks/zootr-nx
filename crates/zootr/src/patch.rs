@@ -34,8 +34,13 @@ const GATE: (u32, u32) = (0x17d_59bc, 0x17d_59c4);
 /// to: whether the Boomerang is back. Made a `b`, the adult catches it as
 /// the child does, and every selector that asks gets the same answer.
 const CATCH: (u32, u32) = (0x41_0250, 0x41_0258);
+/// The boot state's `tbz` past its child test's early return, and where it
+/// skips to: reading which boots Link wears. Made a `b`, a child in the
+/// Iron or Hover Boots gets their state as the adult does. A child wears
+/// boots only in a seed whose table unlocks them.
+const BOOTS: (u32, u32) = (0x4b_6ed8, 0x4b_6ef4);
 /// The `b`s written over the game's own code, each `(at, to)`.
-const SKIPS: [(u32, u32); 2] = [GATE, CATCH];
+const SKIPS: [(u32, u32); 3] = [GATE, CATCH, BOOTS];
 /// Each call site and the hook entry its `bl` goes to, as an offset into
 /// the hook. The event request's string argument calls, where an opening
 /// chest sets its `ContentName`, go to `content_name`. The drop reader's
@@ -597,6 +602,14 @@ mod tests {
         assert_eq!(catch.at, 0x41_0250);
         // b 0x410258, over tbz w9, #8, 0x4102f0
         assert_eq!(catch.bytes, 0x1400_0002u32.to_le_bytes());
+    }
+
+    #[test]
+    fn the_boot_state_skips_the_child_return() {
+        let boots = &patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap()[2];
+        assert_eq!(boots.at, 0x4b_6ed8);
+        // b 0x4b6ef4, over tbz w0, #0, 0x4b6ef4
+        assert_eq!(boots.bytes, 0x1400_0007u32.to_le_bytes());
     }
 
     #[test]

@@ -1,8 +1,8 @@
 //! One-handed swords and shields for both ages. The pause menu's
 //! Equipment page greys out the other age's swords and shields by two
 //! flags per item in its table, and that's their only limit: unset, either
-//! age equips and uses them. Tunics and boots stay as they are, since they dress adult Link's
-//! model and do nothing on a child, and so do the two-handed swords: a
+//! age equips and uses them. Tunics and boots are `ageless-gear`'s
+//! ([`gear`]), and the two-handed swords stay as they are: a
 //! child swings them only with the clips items for both ages lends him,
 //! so that setting opens them ([`two_handed_opened`]). See the spec,
 //! `superpowers/specs/2026-11-18-equip-any-age-design.md`.
@@ -16,6 +16,8 @@ use roead::sarc::Sarc;
 use crate::game::POUCH_TABLE;
 use crate::known::{Name, field};
 use crate::standins::{POUCH_ACTOR_INFO, row_id};
+
+pub mod gear;
 
 /// The flags, each age's.
 const AGES: [&Name; 2] = [field::IS_USABLE_CHILD, field::IS_USABLE_ADULT];
@@ -89,9 +91,11 @@ fn shared(romfs: &Romfs) -> Result<impl Fn(&str) -> bool + '_> {
     Ok(move |name: &str| is_weapon(romfs, name) && !two_handed.contains(name))
 }
 
-/// Each actor on the Equipment page that `weapon` says is a sword or a
-/// shield.
-fn weapons<'a>(root: &'a mut Byml, weapon: &impl Fn(&str) -> bool) -> Result<Vec<&'a mut BymlMap>> {
+/// Each actor on the Equipment page that `wanted` picks by name.
+fn equipment<'a>(
+    root: &'a mut Byml,
+    wanted: &impl Fn(&str) -> bool,
+) -> Result<Vec<&'a mut BymlMap>> {
     let Some(Byml::Array(slots)) = root.as_mut_map()?.get_mut(field::EQUIPMENT_ARRAY.get()) else {
         return Ok(vec![]);
     };
@@ -104,16 +108,16 @@ fn weapons<'a>(root: &'a mut Byml, weapon: &impl Fn(&str) -> bool) -> Result<Vec
     Ok(actors
         .flatten()
         .filter_map(|a| a.as_mut_map().ok())
-        .filter(|a| name(a).is_some_and(weapon))
+        .filter(|a| name(a).is_some_and(wanted))
         .collect())
 }
 
-/// The table with every actor `weapon` names usable at both ages, and how
+/// The table with every actor `wanted` names usable at both ages, and how
 /// many it changed.
-fn unlock(table: &[u8], weapon: impl Fn(&str) -> bool) -> Result<(Vec<u8>, usize)> {
+fn unlock(table: &[u8], wanted: impl Fn(&str) -> bool) -> Result<(Vec<u8>, usize)> {
     let mut doc = BymlDoc::parse(table)?;
     let mut changed = 0;
-    for actor in weapons(&mut doc.root, &weapon)? {
+    for actor in equipment(&mut doc.root, &wanted)? {
         changed += usize::from(ages(actor) != [true, true]);
         for flag in AGES {
             actor.insert(flag.get().into(), Byml::Bool(true));

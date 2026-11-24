@@ -16,7 +16,7 @@ use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::progressive::Lines;
 use crate::settings::{
-    AGELESS_ITEMS, AGELESS_WEAPONS, ChestSize, DungeonEntrances, NewGame, TRADE_CHAIN,
+    AGELESS_GEAR, AGELESS_ITEMS, AGELESS_WEAPONS, ChestSize, DungeonEntrances, NewGame, TRADE_CHAIN,
 };
 use crate::settings::{Bombchus, Bridge};
 use crate::starter_bags;
@@ -321,6 +321,9 @@ pub fn write_mod(
     )?;
     if new_game.on.contains(AGELESS_WEAPONS) {
         ageless::write(romfs, &mut builder)?;
+    }
+    if new_game.on.contains(AGELESS_GEAR) {
+        ageless::gear::write(&mut builder)?;
     }
     if new_game.on.contains(AGELESS_ITEMS) {
         ageless_items::write(romfs, &mut builder)?;

@@ -50,8 +50,11 @@ silver-scale = "item:silver-scale"
 # Past the two boulders at Zora River's mouth: blown up, broken by the
 # hammer, or skipped down the Lost Woods shortcut, which lands upriver.
 zora-river = "explosives or hammer or silver-scale"
-iron-boots = "adult and item:iron-boots"
-hover-boots = "adult and item:hover-boots"
+# The boots, for either age with ageless-gear. Each use was audited for a
+# child: only the Hyrule Field grotto's child crates and Dodongo's Cavern's
+# eye targets open to him, the rest lie in adult places.
+iron-boots = "(adult or setting:ageless-gear) and item:iron-boots"
+hover-boots = "(adult or setting:ageless-gear) and item:hover-boots"
 # Shops sell the pouch item, the givers hand over the pickup actor.
 zora-tunic = "adult and (item:zora-tunic or item:zora-tunic-pickup)"
 goron-tunic = "adult and (item:goron-tunic or item:goron-tunic-pickup)"

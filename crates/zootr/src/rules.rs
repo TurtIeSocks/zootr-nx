@@ -401,8 +401,8 @@ mod tests {
         needs_names!();
         let book = Book::load().unwrap();
         // Whether the other age may use it with the setting on. Live: the
-        // tunics and boots do nothing on a child, and a child can't aim
-        // the Mirror Shield's reflection.
+        // tunics do nothing on a child, the boots are ageless-gear's, and
+        // a child can't aim the Mirror Shield's reflection.
         let cases = [
             ("mirror-shield", "mirror-shield", Era::Adult, false),
             ("kokiri-sword", "kokiri-sword", Era::Child, true),
@@ -424,6 +424,27 @@ mod tests {
             let on = [settings::AGELESS_WEAPONS];
             assert!(met(&on, home), "{word} on, at its own age");
             assert_eq!(met(&on, other), shared, "{word} on, at the other age");
+        }
+    }
+
+    #[test]
+    fn ageless_gear_lets_a_child_wear_the_boots_and_nothing_else() {
+        needs_names!();
+        let book = Book::load().unwrap();
+        let cases = [
+            ("iron-boots", "iron-boots", true),
+            ("hover-boots", "hover-boots", true),
+            ("zora-tunic", "zora-tunic", false),
+            ("goron-tunic", "goron-tunic", false),
+        ];
+        for (word, item, shared) in cases {
+            let held = have(&[&vocab::id(&format!("item:{item}")).unwrap()]);
+            let met =
+                |on: &[&str], era| book.resolve(word, &ctx(true, on)).unwrap().met(&held, era);
+            let on = [settings::AGELESS_GEAR];
+            assert!(met(&[], Era::Adult) && !met(&[], Era::Child), "{word} off");
+            assert!(met(&on, Era::Adult), "{word} on, as an adult");
+            assert_eq!(met(&on, Era::Child), shared, "{word} on, as a child");
         }
     }
 
