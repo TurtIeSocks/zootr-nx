@@ -128,9 +128,8 @@ pub const OFFSETS: Offsets = Offsets {
     // Link's child test, which the bow draw's guide asks to pick the
     // Slingshot's ("Shoot Seed") or the Bow's ("Shoot Arrow").
     childhood: 0x4b_6db0,
-    // GameData's string getter, which the equip refresh reads a slot's
-    // name with.
-    get_string: 0xa7_a860,
+    // The actor creator, which the equipment code hands an armor's name.
+    make_actor: 0x37_2a70,
     malloc: 0x14c_6c90,
     make_arg: 0xd7_9f10,
     request: 0xd7_a820,

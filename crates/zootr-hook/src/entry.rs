@@ -34,8 +34,8 @@ pub const RESIDENT_MADE: u32 = 80;
 pub const GEAR_CHILD: u32 = 84;
 /// The D-pad boots icon's read of whether Link is a child.
 pub const GEAR_HUD: u32 = 88;
-/// The equip refresh's read of the name its slot holds.
-pub const GEAR_ARMOR: u32 = 92;
+/// The equipment code's calls to the actor creator.
+pub const GEAR_CREATE: u32 = 92;
 /// The pause menu's read of whether Link is a child.
 pub const GEAR_MENU: u32 = 96;
 
@@ -68,7 +68,7 @@ mod tests {
         ("resident_made_entry", RESIDENT_MADE),
         ("gear_child_entry", GEAR_CHILD),
         ("gear_hud_entry", GEAR_HUD),
-        ("gear_armor_entry", GEAR_ARMOR),
+        ("gear_create_entry", GEAR_CREATE),
         ("gear_menu_entry", GEAR_MENU),
     ];
 

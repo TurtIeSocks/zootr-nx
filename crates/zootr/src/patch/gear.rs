@@ -2,7 +2,7 @@
 //! opened so the Iron and Hover Boots and the Zora and Goron Tunics reach
 //! him in a seed with ageless gear.
 
-use zootr_hook::entry::{GEAR_ARMOR, GEAR_CHILD, GEAR_HUD, GEAR_MENU};
+use zootr_hook::entry::{GEAR_CHILD, GEAR_CREATE, GEAR_HUD, GEAR_MENU};
 
 /// The boot state's `tbz` past its child test's early return, and where it
 /// skips to: reading which boots Link wears. Made a `b`, a child in the
@@ -26,11 +26,22 @@ pub(super) const CALLS: [(u32, u32); 2] = [(0x2df_6d84, GEAR_CHILD), (0x101_4010
 /// icon reads it here: the masks share the cross with their own test.
 pub(super) const HUD: (u32, u32) = (0x2d_4998, GEAR_HUD);
 
-/// The equip refresh's call to GameData's string getter, which reads the
-/// name of what Link wears in a slot, and the hook entry it goes to in
-/// its place: `gear_armor`. The refresh makes the armor actor that names,
-/// so a child's tunic there becomes the seed's armor for him.
-pub(super) const ARMOR: (u32, u32) = (0x2df_7390, GEAR_ARMOR);
+/// The actor creator, which the equipment code hands an actor's name.
+#[cfg(test)]
+const CREATOR: u32 = 0x37_2a70;
+
+/// The equipment code's calls to the creator: in the actor maker, the
+/// pouch's maker and the spawner's three. Each goes to `gear_create`,
+/// which makes a child's tunic the seed's armor for him in a seed with
+/// `CHILD_GEAR`. The pause menu puts a tunic on through these, not the
+/// equip refresh.
+pub(super) const CREATE: [(u32, u32); 5] = [
+    (0x101_47c0, GEAR_CREATE),
+    (0x2df_8c20, GEAR_CREATE),
+    (0x2e0_2208, GEAR_CREATE),
+    (0x2e0_2934, GEAR_CREATE),
+    (0x2e0_3014, GEAR_CREATE),
+];
 
 /// The pause menu's read of whether Link is a child (`ldrb w25, [x9,
 /// #0x5c0]`), which greys his tunics out, and the hook entry its `bl` goes
@@ -38,7 +49,9 @@ pub(super) const ARMOR: (u32, u32) = (0x2df_7390, GEAR_ARMOR);
 pub(super) const MENU: (u32, u32) = (0x33b_a4a8, GEAR_MENU);
 
 /// Every site above that a `bl` goes over.
-pub(super) const SITES: [(u32, u32); 5] = [CALLS[0], CALLS[1], HUD, ARMOR, MENU];
+pub(super) const SITES: [(u32, u32); 9] = [
+    CALLS[0], CALLS[1], HUD, MENU, CREATE[0], CREATE[1], CREATE[2], CREATE[3], CREATE[4],
+];
 
 #[cfg(test)]
 mod tests {
@@ -61,11 +74,9 @@ mod tests {
         assert_eq!(word(BOOTS.0), 0x3600_00e0, "tbz w0, #0, 0x4b6ef4");
         assert_eq!(word(HUD.0), 0x3957_0108, "ldrb w8, [x8, #0x5c0]");
         assert_eq!(word(MENU.0), 0x3957_0139, "ldrb w25, [x9, #0x5c0]");
-        assert_eq!(
-            word(ARMOR.0),
-            call(ARMOR.0, 0xa7_a860),
-            "bl to the string getter"
-        );
+        for (at, _) in CREATE {
+            assert_eq!(word(at), call(at, CREATOR), "{at:#x}");
+        }
         for (at, _) in CALLS {
             assert_eq!(word(at), call(at, CHILDHOOD), "{at:#x}");
         }

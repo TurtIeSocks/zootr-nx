@@ -67,12 +67,12 @@ pub fn gear_through(slot: u32, flags: u32) -> bool {
 }
 
 /// The armor a child wears in place of `worn`, the name his tunic's slot
-/// holds, in a seed with `flags`: [`CHILD_ARMOR`]'s, or `None` to keep
-/// the game's.
-pub fn child_armor(worn: &[u8], flags: u32) -> Option<&'static CStr> {
+/// holds, in a seed with `flags`: its index in [`CHILD_ARMOR`], or `None`
+/// to keep the game's.
+pub fn child_armor(worn: &[u8], flags: u32) -> Option<usize> {
     let hash = fnv(worn);
-    let found = CHILD_ARMOR.iter().find(|a| a.worn == hash);
-    found.filter(|_| child_gear(flags)).map(Armor::name)
+    let found = CHILD_ARMOR.iter().position(|a| a.worn == hash);
+    found.filter(|_| child_gear(flags))
 }
 
 /// Whether the D-pad's Down icon takes Link for a child, from the HUD

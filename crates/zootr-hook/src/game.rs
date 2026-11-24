@@ -133,7 +133,7 @@ global_asm!(
     "b resident_made_entry",
     "b gear_child_entry",
     "b gear_hud_entry",
-    "b gear_armor_entry",
+    "b gear_create_entry",
     "b gear_menu_entry",
     "entries_end:",
     "map_loaded_resume:",
@@ -190,10 +190,28 @@ global_asm!(
     // place of the equip refresh's call to GameData's string getter, with
     // the equipment in x19 and its slot in w20.
     ".pushsection .far, \"ax\"",
-    "gear_armor_entry:",
-    "mov x4, x19",
-    "mov w5, w20",
-    "b gear_armor",
+    // In place of each equipment creation's `bl` to the creator: saves the
+    // creator's register args (its stack args stay put), asks `gear_create`
+    // which name to make, then goes on to the creator as the call would.
+    "gear_create_entry:",
+    "stp x29, x30, [sp, #-0x60]!",
+    "stp x0, x1, [sp, #0x10]",
+    "stp x2, x3, [sp, #0x20]",
+    "stp x4, x5, [sp, #0x30]",
+    "stp x6, x7, [sp, #0x40]",
+    "str x8, [sp, #0x50]",
+    "mov x0, x1",
+    "mov x1, x2",
+    "bl gear_create",
+    "mov x16, x1",
+    "mov x1, x0",
+    "ldr x0, [sp, #0x10]",
+    "ldp x2, x3, [sp, #0x20]",
+    "ldp x4, x5, [sp, #0x30]",
+    "ldp x6, x7, [sp, #0x40]",
+    "ldr x8, [sp, #0x50]",
+    "ldp x29, x30, [sp], #0x60",
+    "br x16",
     // In place of the pause menu's `ldrb w25, [x9, #0x5c0]`, its read of
     // whether Link is a child, which greys a child's tunics out. Every
     // register but w25 is the menu's, so all it may hold are kept.
@@ -458,47 +476,55 @@ pub unsafe extern "C" fn gear_child(link: usize, slot: u32) -> bool {
     }
 }
 
-/// GameData's string getter: (gamedata, out, entry, name hash) -> found.
-type GetString = unsafe extern "C" fn(usize, *mut *const u8, usize, u32) -> bool;
-
-/// The equip refresh reads the name `slot`'s GameData entry holds into
-/// `worn`, then makes that actor on Link (`equipment`'s). For a child's
-/// tunic in a seed with [`crate::CHILD_GEAR`], the name read is the
-/// seed's armor for him ([`crate::child_armor`]) in its place.
-///
-/// # Safety
-/// Only the game calls this, from the rewritten call site.
-#[unsafe(no_mangle)]
-#[unsafe(link_section = ".far")]
-pub unsafe extern "C" fn gear_armor(
-    gamedata: usize,
-    worn: *mut *const u8,
-    entry: usize,
-    hash: u32,
-    equipment: usize,
-    slot: u32,
-) -> bool {
-    unsafe {
-        let main = main();
-        let get: GetString = func(main, OFFSETS.get_string);
-        let found = get(gamedata, worn, entry, hash);
-        let Some((_, table)) = table().filter(|_| found && slot == crate::ARMOR_SLOT) else {
-            return found;
-        };
-        let child: Childhood = func(main, OFFSETS.childhood);
-        let link = *((equipment + EQUIPMENT_LINK) as *const usize);
-        let name = core::ffi::CStr::from_ptr((*worn).cast());
-        if let Some(armor) = crate::child_armor(name.to_bytes(), table.flags)
-            && child(link)
-        {
-            *worn = armor.as_ptr().cast();
-        }
-        found
-    }
+/// What a creation call made on Link's equipment goes on with: where the
+/// actor's name is read from, and the creator.
+#[repr(C)]
+pub struct Created {
+    name: *const *const u8,
+    create: usize,
 }
 
-/// Where Link's equipment keeps Link.
-const EQUIPMENT_LINK: usize = 0x18;
+/// Where an actor's creation params keep its owner: Link, for his
+/// equipment.
+const PARAMS_OWNER: usize = 0x70;
+
+/// The equipment code hands an actor's name (`name`, read through) and its
+/// creation params to the game's creator. For a child's tunic in a seed
+/// with [`crate::CHILD_GEAR`], the name read is the seed's armor for him
+/// ([`crate::child_armor`]) instead: every way the game puts armor on him
+/// (the menu, the equip refresh, a map load, the menu's Link) goes through
+/// one of these calls.
+///
+/// # Safety
+/// Only the game calls this, from a rewritten creation call, with `name`
+/// pointing at a name and `params` at its creation params.
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".far")]
+pub unsafe extern "C" fn gear_create(name: *const *const u8, params: usize) -> Created {
+    unsafe {
+        let main = main();
+        let create = main + OFFSETS.make_actor as usize;
+        let worn = core::ffi::CStr::from_ptr((*name).cast()).to_bytes();
+        let renamed = table().and_then(|(_, table)| {
+            let at = crate::child_armor(worn, table.flags)?;
+            let link = *((params + PARAMS_OWNER) as *const usize);
+            let child: Childhood = func(main, OFFSETS.childhood);
+            (link != 0 && child(link)).then_some(at)
+        });
+        let Some(at) = renamed else {
+            return Created { name, create };
+        };
+        let cell = &shared(main).child_armor[at];
+        cell.store(
+            crate::CHILD_ARMOR[at].name().as_ptr() as usize,
+            core::sync::atomic::Ordering::Relaxed,
+        );
+        Created {
+            name: cell.as_ptr().cast(),
+            create,
+        }
+    }
+}
 
 /// The D-pad's boots icon reads whether Link is a child from the HUD
 /// status (`child`), and hides itself for one. Not in a seed with

@@ -8,7 +8,7 @@
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs};
-use zootr_hook::{CHILD_GEAR, child_armor};
+use zootr_hook::{CHILD_ARMOR, CHILD_GEAR, child_armor};
 
 use super::files::{CLOTH, MODEL, VEST};
 use crate::key_tints::pointed_at;
@@ -99,6 +99,7 @@ fn rows(tables: &mut Tables, name: &str, like: &Name) -> Result<()> {
 /// The armor the hook puts on a child whose tunic's slot holds `worn`.
 fn child_name(worn: &Name) -> Result<String> {
     let armor = child_armor(worn.as_bytes(), CHILD_GEAR)
+        .map(|at| CHILD_ARMOR[at].name())
         .with_context(|| format!("the hook has no child armor for {worn}"))?;
     Ok(armor.to_str()?.to_owned())
 }
@@ -159,7 +160,7 @@ fn painted(data: &[u8], path: &str, mark: u8, colour: Colour) -> Result<(String,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use zootr_hook::{CHILD_ARMOR, fnv};
+    use zootr_hook::fnv;
 
     #[test]
     fn the_hook_dresses_a_child_in_each_tunics_copy() {
@@ -167,9 +168,9 @@ mod tests {
             return;
         }
         let worn = [TUNICS[0].0, TUNICS[1].0, actor::OBJ_ARMOR_CHILD_NORMAL];
-        for (worn, armor) in worn.iter().zip(&CHILD_ARMOR) {
-            assert_eq!(fnv(worn.as_bytes()), armor.worn, "{worn}");
-            assert_eq!(child_armor(worn.as_bytes(), CHILD_GEAR), Some(armor.name()));
+        for (at, worn) in worn.iter().enumerate() {
+            assert_eq!(fnv(worn.as_bytes()), CHILD_ARMOR[at].worn, "{worn}");
+            assert_eq!(child_armor(worn.as_bytes(), CHILD_GEAR), Some(at));
             assert_eq!(
                 child_armor(worn.as_bytes(), 0),
                 None,

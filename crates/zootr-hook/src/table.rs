@@ -119,8 +119,8 @@ pub struct Offsets {
     pub emptied: u32,
     /// Link's child test, which the bow draw's guide asks.
     pub childhood: u32,
-    /// GameData's string getter.
-    pub get_string: u32,
+    /// The actor creator, which the equipment code hands an armor's name.
+    pub make_actor: u32,
     /// The game's own `malloc`.
     pub malloc: u32,
     /// Builds an event request in place.
