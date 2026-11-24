@@ -20,7 +20,7 @@ use crate::checks::Drop;
 use crate::flows::{self, GRANT, IS_BOOL, Model, Rewrites, running, set, string, switch};
 use crate::gifts::GIFTS;
 use crate::known::{Name, field, flag, flow, item, scene};
-use crate::presets::{all, lit};
+use crate::presets::all;
 use crate::steps;
 
 /// What the Gerudo give.
@@ -60,16 +60,13 @@ pub fn guard_card(area: &str, steps: &[(String, String)]) -> Option<&'static Nam
 /// opening moves it ([`freed_step`]), as freeing the carpenters does, so
 /// the fortress guards stand down with it.
 pub fn freed() -> Vec<String> {
-    let mut edits = lit(&[
-        &format!(
+    let mut edits = vec![
+        format!(
             "{}=false",
             field::GERUDO_FORTRESS_NPC_GERUDO_001_IS_IN_FIRST_PLACE
         ),
-        &format!(
-            "{}=4",
-            field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED
-        ),
-    ]);
+        format!("{HELPED}=4"),
+    ];
     edits.extend(all(CELLS.map(|(_, freed)| freed), "true"));
     edits.push(format!("{}=true", crate::carpenters::played()));
     edits.extend(all(
@@ -78,8 +75,7 @@ pub fn freed() -> Vec<String> {
             flag::GERUDO_FORTRESS_WARP_POINT02_CLEAR_EVENT,
             flag::GERUDO_FORTRESS_WARP_POINT03_CLEAR_EVENT,
             flag::GERUDO_FORTRESS_WARP_POINT04_CLEAR_EVENT,
-        ]
-        .map(|f| f.to_string()),
+        ],
         "true",
     ));
     edits
@@ -97,10 +93,7 @@ pub fn freed_step() -> (String, String) {
 /// thief.
 pub fn fast() -> Vec<String> {
     vec![
-        format!(
-            "{}=3",
-            field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED
-        ),
+        format!("{HELPED}=3"),
         format!(
             "{}=1",
             field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED_02
@@ -118,15 +111,10 @@ struct Models {
 impl Models {
     fn load(romfs: &Romfs) -> Result<Self> {
         let flow = steps::template(romfs)?;
-        let call = |what: (&Name, &Name)| -> Result<Model> {
-            let at = switch(&flow, what)
-                .with_context(|| format!("{} never asks {what:?}", flow.name))?;
-            flows::model(&flow, what, at)
-        };
         Ok(Self {
             progress: steps::progress(&flow)?,
-            is_bool: call(IS_BOOL)?,
-            is_exp: call(IS_EXP)?,
+            is_bool: asked(&flow, IS_BOOL)?,
+            is_exp: asked(&flow, IS_EXP)?,
         })
     }
 
@@ -134,13 +122,27 @@ impl Models {
     fn progress(&self, challenge: &str, step: &str) -> Result<Params> {
         steps::moving(&self.progress, string(challenge), string(step))
     }
+}
 
-    /// `query` on the GameData entry `name`.
-    fn asking(model: &Model, name: &str) -> Result<Params> {
-        let mut params = model.params.clone();
-        set(&mut params, flows::GAME_DATA, string(name))?;
-        Ok(params)
-    }
+/// The quest flow's own ask of `what`, to copy.
+fn asked(flow: &Flowchart, what: (&Name, &Name)) -> Result<Model> {
+    let at = switch(flow, what).with_context(|| format!("{} never asks {what:?}", flow.name))?;
+    flows::model(flow, what, at)
+}
+
+/// An ask of the GameData entry `name` through `model`, a copy of a
+/// GameData query: on to `yes` when it's true, else `no`. Returns the ask.
+fn ask(flow: &mut Flowchart, model: &Model, name: &str, yes: u16, no: u16) -> Result<u16> {
+    let (actor, query) = flow.query(&model.actor, model.name);
+    let mut params = model.params.clone();
+    set(&mut params, flows::GAME_DATA, string(name))?;
+    // Case 0 is true.
+    Ok(flow.push(EventKind::Switch {
+        actor,
+        query,
+        params,
+        cases: vec![(0, yes), (1, no)],
+    }))
 }
 
 /// Whether the seed holds the card anywhere but its vanilla check.
@@ -174,30 +176,21 @@ fn check(flow: &mut Flowchart, models: &Models, after: u16) -> Result<u16> {
         action,
         params,
     });
-    let (actor, query) = flow.query(&models.is_exp.actor, models.is_exp.name);
-    let params = Models::asking(&models.is_exp, PAST_FIRST)?;
-    // Case 0 is true.
-    let early = flow.push(EventKind::Switch {
-        actor,
-        query,
-        params,
-        cases: vec![(0, after), (1, progress)],
-    });
-    let (actor, query) = flow.query(&models.is_bool.actor, models.is_bool.name);
-    let params = Models::asking(&models.is_bool, &format!("IsGet.{CARD}"))?;
-    Ok(flow.push(EventKind::Switch {
-        actor,
-        query,
-        params,
-        cases: vec![(0, early), (1, after)],
-    }))
+    let early = ask(flow, &models.is_exp, PAST_FIRST, after, progress)?;
+    ask(
+        flow,
+        &models.is_bool,
+        &format!("IsGet.{CARD}"),
+        early,
+        after,
+    )
 }
 
 /// The check right after each variable grant in `flow`, then on as the
 /// flow went.
 fn hook(flow: &mut Flowchart, models: &Models) -> Result<()> {
     let sites = grants(flow);
-    anyhow::ensure!(!sites.is_empty(), "{} grants nothing by name", flow.name);
+    ensure!(!sites.is_empty(), "{} grants nothing by name", flow.name);
     for site in sites {
         let EventKind::Action { next, .. } = flow.events[site as usize].kind else {
             unreachable!("grants finds actions");
@@ -273,7 +266,7 @@ const CELLS: [(&Name, &Name); 4] = [
 /// Until her door first opens the Bool is false, so a rescue in play runs
 /// as in the game.
 pub fn rescue_once(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
-    let models = Models::load(romfs)?;
+    let is_bool = asked(&steps::template(romfs)?, IS_BOOL)?;
     flows::edit(romfs, rewrites, DOORS, |flow| {
         for (entry, freed) in CELLS {
             let at = flow.entry_points.iter().position(|e| e.name == *entry);
@@ -294,16 +287,8 @@ pub fn rescue_once(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
             ensure!(next.is_some(), "{entry} ends at her door");
             *next = None;
             let only = flow.push(only);
-            let (actor, query) = flow.query(&models.is_bool.actor, models.is_bool.name);
-            let params = Models::asking(&models.is_bool, freed.get())?;
-            // Case 0 is true.
-            let ask = flow.push(EventKind::Switch {
-                actor,
-                query,
-                params,
-                cases: vec![(0, only), (1, start)],
-            });
-            flow.entry_points[at].main = Some(ask);
+            let first = ask(flow, &is_bool, freed.get(), only, start)?;
+            flow.entry_points[at].main = Some(first);
         }
         Ok(())
     })
@@ -323,10 +308,11 @@ pub fn clear_once(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
         let i = i.with_context(|| format!("{RESCUE} does nothing past 3"))?;
         let clear = cases[i].1;
         let mut four = flow.events[past as usize].kind.clone();
-        if let EventKind::Switch { params, cases, .. } = &mut four {
-            set(params, field::VALUE, Value::Int(vec![4]))?;
-            *cases = vec![(AT, clear)];
-        }
+        let EventKind::Switch { params, cases, .. } = &mut four else {
+            unreachable!("cloned from a switch");
+        };
+        set(params, field::VALUE, Value::Int(vec![4]))?;
+        *cases = vec![(AT, clear)];
         let four = flow.push(four);
         flow.link(Link::Branch(past, i), Some(four))
     })
@@ -364,9 +350,8 @@ mod tests {
 
     #[test]
     fn fast_counts_three_carpenters_freed() {
-        let helped = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED;
         let left = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED_02;
-        assert_eq!(fast(), [format!("{helped}=3"), format!("{left}=1")]);
+        assert_eq!(fast(), [format!("{HELPED}=3"), format!("{left}=1")]);
     }
 
     #[test]
@@ -587,17 +572,22 @@ mod tests {
         let mut rewrites = Rewrites::new();
         stand_down(&romfs, &mut rewrites, &card_at(ELSEWHERE)).unwrap();
         for name in GRANTERS {
+            let before = flows::load(&romfs, name).unwrap().unwrap();
             let flow = Flowchart::parse(&rewrites[&flows::rel(name)])
                 .unwrap()
                 .unwrap();
-            let sites = grants(&flow);
+            let sites = grants(&before);
             assert!(!sites.is_empty(), "{name}");
             for site in sites {
+                // The check rejoins where the grant went, or the flow's end.
+                let EventKind::Action { next: was, .. } = before.events[site as usize].kind else {
+                    panic!("not an action")
+                };
+                let was = was.or_else(|| flows::ending(&before)).expect("an end");
                 let EventKind::Action { next, .. } = &flow.events[site as usize].kind else {
                     panic!("not an action")
                 };
-                let (.., exits) = chain(&flow, next.unwrap());
-                assert_chain(&flow, next.unwrap(), exits[0]);
+                assert_chain(&flow, next.unwrap(), was);
             }
         }
     }
