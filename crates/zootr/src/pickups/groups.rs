@@ -18,8 +18,8 @@ use crate::known::{actor, field};
 use crate::shows::{copy_hash, copy_in};
 
 const HASH: &str = "Hash";
-const REFERENCES: &str = "References";
-const REFERENCE: &str = "Reference";
+pub(super) const REFERENCES: &str = "References";
+pub(super) const REFERENCE: &str = "Reference";
 
 /// Duplicate each of `root`'s `AiGroups` naming a holder, once per copy in
 /// `copies` (copy by the holder it copies), each with its own clones of the
@@ -76,7 +76,8 @@ fn names(group: &Byml, hash: u64) -> bool {
     refs.is_some_and(|refs| refs.iter().any(|r| reference(r) == Some(hash)))
 }
 
-fn reference(r: &Byml) -> Option<u64> {
+/// The actor hash a group's reference `r` names.
+pub(super) fn reference(r: &Byml) -> Option<u64> {
     r.as_map().ok()?.get(REFERENCE)?.as_int().ok()
 }
 

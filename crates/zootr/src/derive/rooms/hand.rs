@@ -6,17 +6,23 @@ use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 
 use crate::checks::{ItemCheck, is_big};
+use crate::derive::ALWAYS;
 use crate::nav::graph::Graph;
 use crate::nav::limits::{Holder, limits};
 use crate::rules::kinds::Kind;
 use crate::rules::rooms::SpotLink;
+
+/// Whether `holder` is a chest, big or small.
+pub(super) fn is_chest(holder: &str) -> bool {
+    holder.contains("TBox")
+}
 
 /// The kind of holder `check` is, for its hand reach: `None` for one no
 /// reach is kept for (a scrub, a person, an item on the floor).
 pub(super) fn holder(check: &ItemCheck) -> Option<Holder> {
     if is_big(&check.holder) {
         Some(Holder::BigChest)
-    } else if check.holder.contains("TBox") {
+    } else if is_chest(&check.holder) {
         Some(Holder::SmallChest)
     } else if crate::pickups::POTS.holds(check) {
         Some(Holder::Pot)
@@ -151,7 +157,7 @@ impl<'k> TakenBy<'_, '_, 'k> {
         };
         let (mut crawl, mut needs, mut guess, mut puzzles) = (false, vec![], false, vec![]);
         for c in way {
-            blocking.extend(c.on.iter().filter(|(_, k)| k.uses != "always").cloned());
+            blocking.extend(c.on.iter().filter(|(_, k)| k.uses != ALWAYS).cloned());
             crawl |= c.crawl;
             if let Some(p) = c.puzzle {
                 needs.push(p.needs.clone());

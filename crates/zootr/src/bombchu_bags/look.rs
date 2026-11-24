@@ -290,11 +290,15 @@ impl Fit {
     }
 }
 
+/// BNTX's format id for BC4, a red-only block format. A texture's format
+/// holds it above a low byte giving its type.
+const BC4: u32 = 0x1d;
+
 /// Texture file `data`'s first level, resampled to `w` by `h` (nearest),
 /// grey where it holds only red (BC4).
 fn resample(data: &[u8], w: usize, h: usize) -> Result<Vec<u8>> {
     let top = top_level(data)?;
-    let red_only = format(data)? >> 8 == 0x1d;
+    let red_only = format(data)? >> 8 == BC4;
     let mut out = Vec::with_capacity(w * h * 4);
     for y in 0..h {
         for x in 0..w {

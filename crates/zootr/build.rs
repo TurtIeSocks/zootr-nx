@@ -34,6 +34,12 @@ fn manifest_dir() -> PathBuf {
         .into()
 }
 
+fn out_dir() -> PathBuf {
+    std::env::var_os("OUT_DIR")
+        .expect("cargo sets OUT_DIR for build scripts")
+        .into()
+}
+
 fn main() {
     room_files();
     let hook = manifest_dir().join("../zootr-hook");
@@ -43,7 +49,7 @@ fn main() {
     for p in [&hook.join("src"), &script] {
         println!("cargo:rerun-if-changed={}", p.display());
     }
-    let out = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    let out = out_dir();
     let elf = out.join("hook.elf");
     let rustc = std::env::var("RUSTC").unwrap_or_else(|_| "rustc".into());
     let status = Command::new(rustc)
@@ -202,13 +208,17 @@ fn room_files() {
         out += &format!("    ({rel:?}, include_str!({:?})),\n", f.to_str().unwrap());
     }
     out += "]\n";
-    let dest = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join("room_files.rs");
+    let dest = out_dir().join("room_files.rs");
     std::fs::write(dest, out).unwrap();
 }
 
 fn collect(dir: &Path, files: &mut Vec<PathBuf>) {
-    for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
-        let path = entry.path();
+    let entries =
+        std::fs::read_dir(dir).unwrap_or_else(|e| panic!("reading {}: {e}", dir.display()));
+    for entry in entries {
+        let path = entry
+            .unwrap_or_else(|e| panic!("reading {}: {e}", dir.display()))
+            .path();
         if path.is_dir() {
             collect(&path, files);
         } else if path.extension().is_some_and(|e| e == "toml") {

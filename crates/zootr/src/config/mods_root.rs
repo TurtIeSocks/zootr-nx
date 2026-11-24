@@ -51,18 +51,8 @@ mod tests {
 
     fn target(mod_dir: &Path) -> Target {
         Target {
-            name: "FakeTarget".into(),
-            app: "/nowhere/app".into(),
             mod_dir: mod_dir.into(),
-            settings_file: None,
-            save_dir: None,
-            args: vec![],
-            control: None,
-            bridge: None,
-            env: vec![],
-            harness_env: vec![],
-            rebuild: None,
-            game: None,
+            ..crate::config::tests::target("FakeTarget", None)
         }
     }
 

@@ -176,7 +176,7 @@ fn fields(edit: &Edit) -> Vec<(&'static str, String)> {
 }
 
 /// `s` as a TOML string.
-pub(super) fn quote(s: &str) -> String {
+pub(crate) fn quote(s: &str) -> String {
     toml::Value::String(s.to_owned()).to_string()
 }
 

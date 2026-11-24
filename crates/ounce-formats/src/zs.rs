@@ -46,15 +46,15 @@ impl Dicts {
         })
     }
 
-    /// The dictionary for a romfs file name, or `None` when it isn't zstd.
-    fn for_name(&self, name: &str) -> Option<Option<&[u8]>> {
+    /// How a romfs file name is stored.
+    fn for_name(&self, name: &str) -> Codec<'_> {
         if !name.ends_with(".zs") {
-            return None;
+            return Codec::Plain;
         }
         // Read before the dictionaries are loaded, so shipped without one.
         // A dictionary frame here hangs the game on boot.
         if NO_DICT.iter().any(|s| name.ends_with(s)) {
-            return Some(None);
+            return Codec::Zstd(&[]);
         }
         let dict = if name.ends_with(".bcett.byml.zs") {
             &self.bcett
@@ -65,18 +65,18 @@ impl Dicts {
         } else {
             &self.zs
         };
-        Some(Some(dict))
+        Codec::Zstd(dict)
     }
 
     /// Decompress `data` if `name` says it is zstd; otherwise return it as is.
     pub fn decompress(&self, name: &str, data: &[u8]) -> Result<Vec<u8>> {
-        let Some(dict) = self.for_name(name) else {
+        let Codec::Zstd(dict) = self.for_name(name) else {
             return Ok(data.to_vec());
         };
         let size = zstd::zstd_safe::get_frame_content_size(data)
             .map_err(|e| anyhow!("{name}: bad zstd frame header: {e:?}"))?
             .ok_or_else(|| anyhow!("{name}: zstd frame has no content size"))?;
-        let mut d = zstd::bulk::Decompressor::with_dictionary(dict.unwrap_or_default())?;
+        let mut d = zstd::bulk::Decompressor::with_dictionary(dict)?;
         d.decompress(data, size as usize)
             .with_context(|| format!("decompressing {name}"))
     }
@@ -84,11 +84,18 @@ impl Dicts {
     /// Compress `data` the way the game expects for `name`. Bulk compression
     /// records the content size in the frame header, as the originals do.
     pub fn compress(&self, name: &str, data: &[u8]) -> Result<Vec<u8>> {
-        let Some(dict) = self.for_name(name) else {
+        let Codec::Zstd(dict) = self.for_name(name) else {
             return Ok(data.to_vec());
         };
-        compress_with(dict.unwrap_or_default(), data)
+        compress_with(dict, data)
     }
+}
+
+/// How a romfs file is stored: as is, or zstd with a dictionary (empty
+/// for none).
+enum Codec<'a> {
+    Plain,
+    Zstd(&'a [u8]),
 }
 
 /// zstd treats a source that starts exactly where its dictionary's copy ends

@@ -105,7 +105,7 @@ impl Save {
         ensure!(word(0)? == MAGIC, "not a save file");
         let end = word(8)? as usize;
         ensure!(
-            end <= bytes.len() && (end - TABLE).is_multiple_of(8),
+            (TABLE..=bytes.len()).contains(&end) && (end - TABLE).is_multiple_of(8),
             "bad table end {end:#x}"
         );
         let (mut entries, mut index, mut kind) = (Vec::new(), HashMap::new(), None);
@@ -482,6 +482,15 @@ mod tests {
             ("Bool64bitKey", None),
         ] {
             assert_eq!(width(kind), w, "{kind}");
+        }
+    }
+
+    #[test]
+    fn a_table_end_inside_the_header_is_refused() {
+        for end in [0u32, 0x1f] {
+            let mut b = Save::fixture(&[(0, 0), (11, 1)]);
+            b[8..12].copy_from_slice(&end.to_le_bytes());
+            assert!(Save::parse(b).is_err(), "{end:#x}");
         }
     }
 }

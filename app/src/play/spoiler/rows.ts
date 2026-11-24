@@ -13,6 +13,8 @@ export const doorName = (d: Door) => `${d.area}, ${d.vanilla} door`;
 export const placeOf = (s: Spot) => s.place || s.chest_name || s.vanilla;
 /** What a spot holds, by name. */
 export const itemOf = (s: Spot) => s.item_name || s.item;
+/** Where a spot is: its area and place. */
+export const whereOf = (s: Spot) => `${areaOf(s)} · ${placeOf(s)}`;
 
 /** Whether the seed kept its rounds, Way of the Hero and rules. Seeds from
  * before them, and seeds logic didn't place, have none. */
@@ -32,7 +34,10 @@ export interface Column {
 
 /** A column a round, its checks by area then its sources. `heroOnly` keeps
  * the Way of the Hero's checks and the rounds that hold one. */
-export function columns({ spots, events }: Spoiler, heroOnly: boolean) {
+export function columns(
+  { spots, events }: Spoiler,
+  heroOnly: boolean,
+): Column[] {
   const rounds = [
     ...spots.map((s) => s.round ?? 0),
     ...events.map((e) => e.round),
@@ -61,9 +66,14 @@ export interface Area {
 /** The Way of the Hero's checks by area, in the seed's order. */
 export function heroAreas(spots: Spot[]): Area[] {
   const groups = new Map<string, Spot[]>();
-  for (const s of spots.filter((s) => s.hero))
-    groups.set(areaOf(s), [...(groups.get(areaOf(s)) ?? []), s]);
-  return [...groups].map(([name, spots]) => ({ name, spots }));
+  for (const s of spots) {
+    if (!s.hero) continue;
+    const area = areaOf(s);
+    const held = groups.get(area) ?? [];
+    held.push(s);
+    groups.set(area, held);
+  }
+  return [...groups].map(([name, held]) => ({ name, spots: held }));
 }
 
 /** The spots whose area, place or item holds `query`. */
@@ -74,7 +84,6 @@ export function search(spots: Spot[], query: string) {
   );
 }
 
-/** A piece of a rule: text, or an item with the check giving it soonest. */
 /** A piece of a rule: plain text, or an item it names, with the spot that
  * gives it when there is one. */
 export type Part =
@@ -91,12 +100,29 @@ const readable = (id: string) => id.replace(/^Item_/, "").replaceAll("_", " ");
 const soonest = (a: Spot, b: Spot) =>
   (a.round ?? Number.POSITIVE_INFINITY) - (b.round ?? Number.POSITIVE_INFINITY);
 
+/** Each item's soonest spot, the first among ties, per spots list. */
+const GIVERS = new WeakMap<Spot[], Map<string, Spot>>();
+
+/** The spot giving each item in `spots` soonest, worked out once a list. */
+function soonestGivers(spots: Spot[]) {
+  let found = GIVERS.get(spots);
+  if (!found) {
+    found = new Map();
+    for (const s of spots) {
+      const best = found.get(s.item);
+      if (!best || soonest(s, best) < 0) found.set(s.item, s);
+    }
+    GIVERS.set(spots, found);
+  }
+  return found;
+}
+
 /** The item `id` as a rule part: held at the start, given by its soonest
  * spot, or named only. */
 function item(id: string, spots: Spot[], start: Held[]): Part {
   const held = start.find((h) => h.item === id);
   if (held) return { item: id, name: `${held.name} (start)` };
-  const giver = spots.filter((s) => s.item === id).sort(soonest)[0];
+  const giver = soonestGivers(spots).get(id);
   if (!giver) return { item: id, name: readable(id) };
   return { item: id, name: itemOf(giver), giver };
 }

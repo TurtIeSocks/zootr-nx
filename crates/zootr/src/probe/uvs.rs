@@ -171,14 +171,24 @@ fn facing(n: [f32; 3]) -> [u8; 4] {
     c
 }
 
-/// `tri`, in UV space wrapped into the picture, filled with `colour`.
+/// `tri`, in UV space wrapped into the picture, filled with `colour`. It
+/// wraps whole, so a triangle across a tile's edge stays one piece: moved
+/// to start in the first tile, then painted again a tile back on each axis
+/// for the part that runs into the next.
 fn fill(rgba: &mut [u8], tri: [[f32; 2]; 3], colour: [u8; 4]) {
-    let px = tri.map(|[u, v]| {
-        [
-            u.rem_euclid(1.0) * SIDE as f32,
-            v.rem_euclid(1.0) * SIDE as f32,
-        ]
-    });
+    let start = |k: usize| tri.iter().map(|p| p[k]).fold(f32::MAX, f32::min).floor();
+    let (u0, v0) = (start(0), start(1));
+    let px = tri.map(|[u, v]| [(u - u0) * SIDE as f32, (v - v0) * SIDE as f32]);
+    let back = -(SIDE as f32);
+    for dx in [0.0, back] {
+        for dy in [0.0, back] {
+            paint(rgba, px.map(|[x, y]| [x + dx, y + dy]), colour);
+        }
+    }
+}
+
+/// `px`, in pixels, filled with `colour` where it overlaps the picture.
+fn paint(rgba: &mut [u8], px: [[f32; 2]; 3], colour: [u8; 4]) {
     let x0 = px.iter().map(|p| p[0]).fold(f32::MAX, f32::min).max(0.0) as usize;
     let x1 = (px.iter().map(|p| p[0]).fold(0.0, f32::max) as usize).min(SIDE - 1);
     let y0 = px.iter().map(|p| p[1]).fold(f32::MAX, f32::min).max(0.0) as usize;
@@ -203,5 +213,25 @@ fn fill(rgba: &mut [u8], tri: [[f32; 2]; 3], colour: [u8; 4]) {
                 rgba[at..at + 4].copy_from_slice(&colour);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A triangle across the right edge shows at that edge and wraps to
+    /// the left one, not as a sliver across the whole picture.
+    #[test]
+    fn a_triangle_across_an_edge_wraps_whole() {
+        let mut rgba = vec![0u8; SIDE * SIDE * 4];
+        fill(&mut rgba, [[0.9, 0.1], [1.1, 0.1], [1.0, 0.3]], [255; 4]);
+        let painted = |u: f32, v: f32| {
+            let (x, y) = ((u * SIDE as f32) as usize, (v * SIDE as f32) as usize);
+            rgba[(y * SIDE + x) * 4 + 3] != 0
+        };
+        assert!(painted(0.98, 0.15));
+        assert!(painted(0.02, 0.15));
+        assert!(!painted(0.5, 0.15));
     }
 }

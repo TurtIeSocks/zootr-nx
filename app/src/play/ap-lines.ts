@@ -11,9 +11,12 @@ export type LineKind =
   | "room"
   | "trouble";
 
+/** How a note of an item sent starts. */
+export const SENT = "sent ";
+
 /** Each note's opening words, as zootr's AP client writes them. */
 const STARTS: [string, LineKind][] = [
-  ["sent ", "sent"],
+  [SENT, "sent"],
   ["received ", "received"],
   ["DeathLink:", "death"],
   ["Link died", "death"],

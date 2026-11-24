@@ -4,14 +4,13 @@ import { cn } from "@/lib/utils";
 import { HeroStar, ItemIcon } from "@/play/spoiler/icons";
 import { PickButton } from "@/play/spoiler/pick-button";
 import {
-  areaOf,
   type Card,
   columns,
   itemOf,
   type Need,
   needed,
-  placeOf,
   unlocks,
+  whereOf,
 } from "@/play/spoiler/rows";
 import { useSpoiler } from "@/play/spoiler/spoiler-context";
 import { useUi } from "@/stores/ui";
@@ -29,7 +28,7 @@ const NOTES: Record<Glow, string> = {
 
 /** What every card in a column shares. What the pick needs glows gold,
  * dashed when it's one option, and what it unlocks glows blue. */
-const card =
+const CARD =
   "w-full rounded-md border px-2.5 py-2 text-left text-[12.5px] transition-[background-color,border-color,box-shadow] duration-(--duration-fast) data-[glow=all]:border-gold data-[glow=all]:bg-gold-soft data-[glow=all]:ring-3 data-[glow=all]:ring-gold/35 data-[glow=any]:border-gold data-[glow=any]:border-dashed data-[glow=any]:bg-gold-soft data-[glow=unlocked]:border-info-ink data-[glow=unlocked]:bg-info-soft";
 
 /** Says how a card relates to the pick, to screen readers only. */
@@ -44,11 +43,7 @@ function Origin({ children }: { children: ReactNode }) {
 
 /** Where a check is, as a card's second line. */
 function Where({ spot }: { spot: Spot }) {
-  return (
-    <Origin>
-      {areaOf(spot)} · {placeOf(spot)}
-    </Origin>
-  );
+  return <Origin>{whereOf(spot)}</Origin>;
 }
 
 /** Props for {@link CardView}. */
@@ -58,20 +53,20 @@ interface CardViewProps {
 }
 
 /** A source as a dashed note, or a check as a card that picks it. */
-function CardView({ card: c, glow }: CardViewProps) {
-  if (c.kind === "source")
+function CardView({ card, glow }: CardViewProps) {
+  if (card.kind === "source")
     return (
-      <div className={cn(card, "border-line border-dashed text-ink-muted")}>
-        {c.name}
+      <div className={cn(CARD, "border-line border-dashed text-ink-muted")}>
+        {card.name}
       </div>
     );
-  const s = c.spot;
+  const s = card.spot;
   return (
     <PickButton
       hash={s.hash}
       data-glow={glow}
       className={cn(
-        card,
+        CARD,
         "border-line bg-surface hover:bg-surface-hover data-picked:border-primary data-picked:bg-primary-soft",
       )}
     >
@@ -103,7 +98,7 @@ function StartCard({ held: h, glow }: StartCardProps) {
     (hash) => spoiler.spots.find((s) => s.hash === hash) ?? [],
   );
   return (
-    <li data-glow={glow} className={cn(card, "border-line")}>
+    <li data-glow={glow} className={cn(CARD, "border-line")}>
       <span className="flex items-center gap-1.5">
         <ItemIcon item={h.item} />
         <span className="min-w-0 flex-1">
@@ -141,7 +136,7 @@ function StartColumn({ start, glows }: StartColumnProps) {
         {start.settings.map((s) => (
           <li
             key={s}
-            className={cn(card, "border-line border-dashed text-ink-muted")}
+            className={cn(CARD, "border-line border-dashed text-ink-muted")}
           >
             {s}
           </li>

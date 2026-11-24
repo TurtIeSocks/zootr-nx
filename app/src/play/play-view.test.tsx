@@ -345,6 +345,9 @@ test("deleting a seed and clearing history each ask for a second click", async (
   await waitFor(() => expect(del).toHaveBeenCalledWith(2));
   fireEvent.click(button("Clear"));
   expect(button("Really clear?")).toBeTruthy();
+  // Moving away disarms it, even with no focus to lose.
+  fireEvent.pointerLeave(button("Really clear?"));
+  expect(button("Clear")).toBeTruthy();
 });
 
 test("a pasted share code goes to Generate whole, a seed as digits", async () => {
@@ -353,6 +356,10 @@ test("a pasted share code goes to Generate whole, a seed as digits", async () =>
   const generate = vi.spyOn(commands, "generate").mockResolvedValue({
     status: "ok",
     data: seed,
+  });
+  vi.spyOn(commands, "shareSettings").mockResolvedValue({
+    status: "ok",
+    data: { settings: {}, pins: 0, test: {} },
   });
   backend({ installed: seed, entries: [seed] });
   show(null);

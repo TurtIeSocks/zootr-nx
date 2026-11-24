@@ -6,8 +6,7 @@ pub(crate) struct Reader<'a>(pub(crate) &'a [u8]);
 
 impl<'a> Reader<'a> {
     pub(crate) fn bytes(&self, at: usize, n: usize) -> Result<&'a [u8]> {
-        self.0
-            .get(at..at + n)
+        (at.checked_add(n).and_then(|end| self.0.get(at..end)))
             .with_context(|| format!("read of {n} bytes at {at:#x} past the end"))
     }
     pub(crate) fn u8(&self, at: usize) -> Result<u8> {
@@ -24,6 +23,14 @@ impl<'a> Reader<'a> {
     }
     pub(crate) fn u64(&self, at: usize) -> Result<u64> {
         Ok(u64::from_le_bytes(self.bytes(at, 8)?.try_into()?))
+    }
+    /// A u64 file offset.
+    pub(crate) fn ptr(&self, at: usize) -> Result<usize> {
+        Ok(self.u64(at)? as usize)
+    }
+    /// A u32 offset, size or count.
+    pub(crate) fn offset(&self, at: usize) -> Result<usize> {
+        Ok(self.u32(at)? as usize)
     }
     pub(crate) fn f32(&self, at: usize) -> Result<f32> {
         Ok(f32::from_le_bytes(self.bytes(at, 4)?.try_into()?))

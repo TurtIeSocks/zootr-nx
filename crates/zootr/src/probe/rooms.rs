@@ -1,11 +1,13 @@
 //! A map's rooms as its navmesh splits them at locked doors.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::path::Path;
 
 use anyhow::{Context, Result};
 use ounce_formats::{NavMesh, Romfs};
 
+use super::{root, xyz};
+use crate::checks::flat;
 use crate::nav::graph::{Cross, Graph, Via, step_up};
 use crate::nav::{kinds, navmesh_file};
 use crate::warp::{self, Placement};
@@ -14,17 +16,30 @@ use crate::warp::{self, Placement};
 pub(super) const LOCK: &str = "DoorChainLock";
 pub(super) const LOCK_REACH: f32 = 1.5;
 
-pub(super) fn flat(a: [f32; 3], b: [f32; 3]) -> f32 {
-    (a[0] - b[0]).hypot(a[2] - b[2])
+/// A map's navmesh and its placements, to split into rooms.
+pub(super) struct Rooms {
+    pub(super) mesh: NavMesh,
+    pub(super) placed: Vec<Placement>,
 }
 
-fn find(parent: &mut [usize], f: usize) -> usize {
-    let mut r = f;
-    while parent[r] != r {
-        r = parent[r];
+impl Rooms {
+    pub(super) fn load(romfs: &Romfs, game: &Path, map: &str) -> Result<Self> {
+        let bytes =
+            navmesh_file(romfs, game, map)?.with_context(|| format!("{map} has no navmesh"))?;
+        Ok(Self {
+            mesh: NavMesh::parse(&bytes)?,
+            placed: warp::placements_in(romfs, map)?,
+        })
     }
-    parent[f] = r;
-    r
+
+    /// The map's graph, its locked doors, and each face's room as `split`
+    /// names it.
+    pub(super) fn split(&self) -> (Graph<'_>, BTreeSet<u64>, Vec<usize>) {
+        let graph = Graph::build(&self.mesh, &self.placed, step_up());
+        let locked = locked_doors(&self.placed);
+        let roots = split(&graph, &locked);
+        (graph, locked, roots)
+    }
 }
 
 /// The doors a lock sits beside, by hash.
@@ -52,36 +67,28 @@ pub(super) fn split(graph: &Graph, locked: &BTreeSet<u64>) -> Vec<usize> {
             {
                 continue;
             }
-            let (a, b) = (find(&mut parent, from), find(&mut parent, arc.to));
+            let (a, b) = (root(&mut parent, from), root(&mut parent, arc.to));
             parent[a] = b;
         }
     }
-    (0..parent.len()).map(|f| find(&mut parent, f)).collect()
+    (0..parent.len()).map(|f| root(&mut parent, f)).collect()
 }
 
 /// Prints each room (the faces joined without a locked door) holding a
 /// chest or a lock, and each locked door's two rooms.
 pub(super) fn rooms(romfs: &Romfs, game: &Path, map: &str) -> Result<()> {
-    let bytes = navmesh_file(romfs, game, map)?.with_context(|| format!("{map} has no navmesh"))?;
-    let mesh = NavMesh::parse(&bytes)?;
-    let placed = warp::placements_in(romfs, map)?;
-    let graph = Graph::build(&mesh, &placed, step_up());
-    let locked = locked_doors(&placed);
-    let roots = split(&graph, &locked);
+    let level = Rooms::load(romfs, game, map)?;
+    let placed = &level.placed;
+    let (graph, locked, roots) = level.split();
     let room = |at: [f32; 3]| graph.locate(at).map(|s| roots[s.face]);
-    let mut held: BTreeMap<usize, Vec<String>> = BTreeMap::new();
-    for p in &placed {
+    for p in placed {
         let word = kinds::word(&p.name);
         if word != Some("chest") && !p.name.contains(LOCK) {
             continue;
         }
         let r = room(p.pose.at).map_or("off".into(), |r| r.to_string());
         let hash = p.hash.map_or("-".into(), |h| h.to_string());
-        let [x, y, z] = p.pose.at;
-        println!("{r} {} {hash} {x:.1},{y:.1},{z:.1}", p.name);
-        if let Ok(r) = r.parse() {
-            held.entry(r).or_default().push(p.name.clone());
-        }
+        println!("{r} {} {hash} {}", p.name, xyz(p.pose.at));
     }
     let rooms: BTreeSet<usize> = roots.iter().copied().collect();
     println!("{} rooms, {} locked doors", rooms.len(), locked.len());
@@ -89,13 +96,13 @@ pub(super) fn rooms(romfs: &Romfs, game: &Path, map: &str) -> Result<()> {
         .iter()
         .filter(|p| p.hash.is_some_and(|h| locked.contains(&h)))
     {
-        let [x, y, z] = door.pose.at;
         let ahead = warp::landing_at(&door.pose, warp::Side::Front, 1.0);
         let behind = warp::landing_at(&door.pose, warp::Side::Back, 1.0);
         let (a, b) = (room(ahead), room(behind));
         println!(
-            "door {} {x:.1},{y:.1},{z:.1}: {a:?} | {b:?}",
-            door.hash.unwrap_or(0)
+            "door {} {}: {a:?} | {b:?}",
+            door.hash.unwrap_or(0),
+            xyz(door.pose.at)
         );
     }
     Ok(())

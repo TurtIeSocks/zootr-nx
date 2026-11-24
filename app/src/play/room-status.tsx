@@ -47,8 +47,7 @@ export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
     return (
       <Strip
         dot="on"
-        ping
-        action={<Act ghost label="Disconnect" onClick={disconnect} />}
+        action={<Act variant="ghost" label="Disconnect" onClick={disconnect} />}
       >
         <span>
           <b className="font-semibold">Connected</b> as {slot}
@@ -62,7 +61,7 @@ export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
     return (
       <Strip
         dot="wait"
-        action={<Act ghost label="Cancel" onClick={disconnect} />}
+        action={<Act variant="ghost" label="Cancel" onClick={disconnect} />}
       >
         <b className="font-semibold">
           {reconnecting(lines) ? "Reconnecting" : "Connecting"}
@@ -73,7 +72,7 @@ export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
   }
   if (status === "refused") {
     return (
-      <Strip dot="bad" bad action={<Act label="Try Again" onClick={go} />}>
+      <Strip dot="bad" action={<Act label="Try Again" onClick={go} />}>
         <span>
           <b className="font-semibold">Refused:</b> {refusal(lines, slot)}
         </span>
@@ -94,7 +93,14 @@ export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
   return (
     <Strip
       dot="off"
-      action={<Act primary label="Connect" onClick={go} disabled={!playing} />}
+      action={
+        <Act
+          variant="default"
+          label="Connect"
+          onClick={go}
+          disabled={!playing}
+        />
+      }
     >
       <b className="font-semibold">Not connected</b>
       {addr}
@@ -117,27 +123,25 @@ export function DeathLinkBadge() {
 
 /** Props for {@link Strip}. */
 interface StripProps {
+  /** The room's state. A live connection's dot pings, and a refusal sits
+   * on a danger ground. */
   dot: keyof typeof DOT;
-  /** The dot pings, for a live connection. */
-  ping?: boolean;
-  /** A refusal's danger ground. */
-  bad?: boolean;
   action: ReactNode;
   children: ReactNode;
 }
 
 /** The room line's sunken strip: dot, words, then its action. */
-function Strip({ dot, ping, bad, action, children }: StripProps) {
+function Strip({ dot, action, children }: StripProps) {
   return (
     <div
       role="status"
       className={cn(
         "flex items-center gap-3 rounded-md py-2 pr-2 pl-3 text-[13px]",
-        bad ? "bg-danger-soft text-danger-ink" : "bg-surface-sunken",
+        dot === "bad" ? "bg-danger-soft text-danger-ink" : "bg-surface-sunken",
       )}
     >
       <span className="relative flex size-[7px] shrink-0">
-        {ping && (
+        {dot === "on" && (
           <span className="absolute inset-0 animate-ping rounded-full bg-primary opacity-60" />
         )}
         <span className={cn("relative size-[7px] rounded-full", DOT[dot])} />
@@ -154,14 +158,12 @@ function Strip({ dot, ping, bad, action, children }: StripProps) {
 interface ActProps {
   label: string;
   onClick: () => void;
-  primary?: boolean;
-  ghost?: boolean;
+  variant?: "default" | "ghost" | "secondary";
   disabled?: boolean;
 }
 
 /** The room line's one action. */
-function Act({ label, onClick, primary, ghost, disabled }: ActProps) {
-  const variant = primary ? "default" : ghost ? "ghost" : "secondary";
+function Act({ label, onClick, variant = "secondary", disabled }: ActProps) {
   return (
     <Button size="sm" variant={variant} onClick={onClick} disabled={disabled}>
       {label}

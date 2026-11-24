@@ -3,6 +3,8 @@
 
 use anyhow::{Context, Result, bail, ensure};
 
+use crate::reader::Reader;
+
 /// Where the header keeps its first block (u16), the relocation table and
 /// the file's size (u32s).
 const FIRST_BLOCK: usize = 0x16;
@@ -34,7 +36,7 @@ const MESH_FORMAT: usize = 0x28;
 const MESH_COUNT: usize = 0x2c;
 const MESH_FIRST: usize = 0x30;
 const MESH_SUBMESH_COUNT: usize = 0x34;
-const U16_INDICES: usize = 1;
+const U16_INDICES: u32 = 1;
 /// A vertex buffer header's attributes, their strides, where its data
 /// starts in the pool, how many attributes and buffers, and vertices.
 const VERTEX_ATTRIBUTES: usize = 0x08;
@@ -44,12 +46,22 @@ const VERTEX_DATA: usize = 0x48;
 const VERTEX_ATTRIBUTE_COUNT: usize = 0x4c;
 const VERTEX_BUFFER_COUNT: usize = 0x4d;
 const VERTEX_COUNT: usize = 0x50;
-/// The attributes edited, by name and the one format each is read in:
-/// four halves, two 16-bit unorms, and 10:10:10:2 kept as stored.
-const POSITION: (&str, u32) = ("_p0", 0x1505);
-const UV: (&str, u32) = ("_u0", 0x1201);
-const NORMAL: (&str, u32) = ("_n0", 0xe02);
-const TANGENT: (&str, u32) = ("_t0", 0xe02);
+/// An attribute record's size.
+const ATTRIBUTE_SIZE: usize = 16;
+/// The attribute formats the game's models use: three and two floats,
+/// four and two halves, two 16-bit unorms, and 10:10:10:2 snorms.
+const FLOAT3: u32 = 0x1805;
+const FLOAT2: u32 = 0x1705;
+const HALF4: u32 = 0x1505;
+const HALF2: u32 = 0x1205;
+const UNORM16X2: u32 = 0x1201;
+const SNORM10X3_2: u32 = 0xe02;
+/// The attributes edited, by name and the one format each is read in. A
+/// normal and a tangent are kept as stored.
+const POSITION: (&str, u32) = ("_p0", HALF4);
+const UV: (&str, u32) = ("_u0", UNORM16X2);
+const NORMAL: (&str, u32) = ("_n0", SNORM10X3_2);
+const TANGENT: (&str, u32) = ("_t0", SNORM10X3_2);
 
 /// One vertex of a shape: where it is, its texture coordinates, and its
 /// normal and tangent as stored (10:10:10:2, see [`unpack`]).
@@ -70,14 +82,13 @@ pub fn vertices(data: &[u8], shape: &str) -> Result<Vec<Vertex>> {
 /// The positions of the shape named `shape`, whatever its other
 /// attributes' formats.
 pub fn positions(data: &[u8], shape: &str) -> Result<Vec<[f32; 3]>> {
+    let r = Reader(data);
     let buffer = Buffer::find(data, shape)?;
     let position = buffer.offset(data, POSITION)?;
     (0..buffer.count)
         .map(|i| {
             let at = buffer.start + buffer.stride * i + position;
-            let half =
-                |k: usize| -> Result<f32> { Ok(from_half(u32_at(data, at + 2 * k)? as u16)) };
-            Ok([half(0)?, half(1)?, half(2)?])
+            Ok([half_at(&r, at)?, half_at(&r, at + 2)?, half_at(&r, at + 4)?])
         })
         .collect()
 }
@@ -102,58 +113,70 @@ pub fn edit_vertices(
     Ok(out)
 }
 
+/// One attribute record of a vertex buffer header: its name, format,
+/// where it sits in each vertex, and which buffer holds it.
+struct AttrRecord<'a> {
+    name: Option<&'a [u8]>,
+    format: u32,
+    offset: usize,
+    buffer: usize,
+}
+
+/// Every attribute record of the vertex buffer header at `v`.
+fn attr_records<'a>(data: &'a [u8], v: usize) -> Result<Vec<AttrRecord<'a>>> {
+    let r = Reader(data);
+    let attributes = r.ptr(v + VERTEX_ATTRIBUTES)?;
+    (0..r.u8(v + VERTEX_ATTRIBUTE_COUNT)? as usize)
+        .map(|i| {
+            let a = attributes + ATTRIBUTE_SIZE * i;
+            Ok(AttrRecord {
+                name: name_at(data, a),
+                format: r.u32(a + 8)?,
+                offset: r.u16(a + 12)? as usize,
+                buffer: r.u16(a + 14)? as usize,
+            })
+        })
+        .collect()
+}
+
 /// Every vertex's value of attribute `name` (`_p0`, `_u0`, `_n0`) in the
 /// shape named `shape`, whichever of its buffers holds it, as up to four
 /// floats (missing ones 0). Reads the formats the game's models use for
 /// them: floats, halves, 16-bit unorms and 10:10:10:2 snorms.
 pub fn attribute(data: &[u8], shape: &str, name: &str) -> Result<Vec<[f32; 4]>> {
+    let r = Reader(data);
     let at = shape_at(data, shape)?;
-    let (_, pool, _) = pool(data)?;
-    let v = u64_at(data, at + SHAPE_VERTICES)?;
-    let attributes = u64_at(data, v + VERTEX_ATTRIBUTES)?;
-    let count = u32_at(data, v + VERTEX_COUNT)?;
-    let named = |a: usize| pool_string(data, u64_at(data, a).unwrap_or(0)).unwrap_or_default();
-    let all: Vec<usize> = (0..data[v + VERTEX_ATTRIBUTE_COUNT] as usize)
-        .map(|i| attributes + 16 * i)
-        .collect();
-    let found = all.iter().copied().find(|&a| named(a) == name.as_bytes());
+    let pool = Pool::read(data)?;
+    let v = r.ptr(at + SHAPE_VERTICES)?;
+    let count = r.offset(v + VERTEX_COUNT)?;
+    let all = attr_records(data, v)?;
+    let found = all.iter().find(|a| a.name == Some(name.as_bytes()));
     let a = found.with_context(|| {
-        let names: Vec<_> = all
-            .iter()
-            .map(|&a| String::from_utf8_lossy(named(a)))
+        let names: Vec<_> = (all.iter())
+            .map(|a| String::from_utf8_lossy(a.name.unwrap_or_default()))
             .collect();
         format!("{shape}: no {name}, only {}", names.join(" "))
     })?;
-    let format = u32_at(data, a + 8)? as u32;
-    let offset = u16::from_le_bytes([data[a + 12], data[a + 13]]) as usize;
-    let index = u16::from_le_bytes([data[a + 14], data[a + 15]]) as usize;
     // Each buffer follows the one before it in the pool, aligned.
-    let (sizes, strides) = (
-        u64_at(data, v + VERTEX_SIZES)?,
-        u64_at(data, v + VERTEX_STRIDES)?,
-    );
-    let mut start = pool + u32_at(data, v + VERTEX_DATA)?;
-    for k in 0..index {
-        start = (start + u32_at(data, sizes + 16 * k)?).next_multiple_of(8);
+    let (sizes, strides) = (r.ptr(v + VERTEX_SIZES)?, r.ptr(v + VERTEX_STRIDES)?);
+    let mut start = pool.start + r.offset(v + VERTEX_DATA)?;
+    for k in 0..a.buffer {
+        start = (start + r.offset(sizes + 16 * k)?).next_multiple_of(8);
     }
-    let stride = u32_at(data, strides + 16 * index)?;
+    let stride = r.offset(strides + 16 * a.buffer)?;
     (0..count)
         .map(|i| {
-            let at = start + stride * i + offset;
-            let half =
-                |k: usize| -> Result<f32> { Ok(from_half(u32_at(data, at + 2 * k)? as u16)) };
-            let float =
-                |k: usize| -> Result<f32> { Ok(f32::from_bits(u32_at(data, at + 4 * k)? as u32)) };
-            let unorm = |k: usize| -> Result<f32> {
-                Ok((u32_at(data, at + 2 * k)? & 0xffff) as f32 / 65535.0)
-            };
-            Ok(match format {
-                0x1805 => [float(0)?, float(1)?, float(2)?, 0.0],
-                0x1705 => [float(0)?, float(1)?, 0.0, 0.0],
-                0x1505 => [half(0)?, half(1)?, half(2)?, half(3)?],
-                0x1205 => [half(0)?, half(1)?, 0.0, 0.0],
-                0x1201 => [unorm(0)?, unorm(1)?, 0.0, 0.0],
-                0xe02 => unpack(u32_at(data, at)? as u32),
+            let at = start + stride * i + a.offset;
+            let half = |k: usize| half_at(&r, at + 2 * k);
+            let float = |k: usize| r.f32(at + 4 * k);
+            let unorm = |k: usize| unorm_at(&r, at + 2 * k);
+            Ok(match a.format {
+                FLOAT3 => [float(0)?, float(1)?, float(2)?, 0.0],
+                FLOAT2 => [float(0)?, float(1)?, 0.0, 0.0],
+                HALF4 => [half(0)?, half(1)?, half(2)?, half(3)?],
+                HALF2 => [half(0)?, half(1)?, 0.0, 0.0],
+                UNORM16X2 => [unorm(0)?, unorm(1)?, 0.0, 0.0],
+                SNORM10X3_2 => unpack(r.u32(at)?),
                 other => bail!("{shape}: {name} in format {other:#x}"),
             })
         })
@@ -163,13 +186,14 @@ pub fn attribute(data: &[u8], shape: &str, name: &str) -> Result<Vec<[f32; 4]>> 
 /// The finest level of detail's triangles of the shape named `shape`, as
 /// indices into its vertices.
 pub fn triangles(data: &[u8], shape: &str) -> Result<Vec<usize>> {
-    let (_, pool, _) = pool(data)?;
+    let r = Reader(data);
+    let pool = Pool::read(data)?;
     let meshes = Mesh::all(data, shape_at(data, shape)?)?;
     let m = meshes
         .first()
         .with_context(|| format!("{shape}: no mesh"))?;
     (0..m.count)
-        .map(|i| Ok(m.first + (u32_at(data, pool + m.faces + 2 * i)? & 0xffff)))
+        .map(|i| Ok(m.first + r.u16(pool.start + m.faces + 2 * i)? as usize))
         .collect()
 }
 
@@ -187,15 +211,13 @@ pub struct Attribute {
 /// The attributes of the shape named `shape`, in its buffer's order.
 pub fn attributes(data: &[u8], shape: &str) -> Result<Vec<Attribute>> {
     let buffer = Buffer::find(data, shape)?;
-    let count = data[buffer.vertex + VERTEX_ATTRIBUTE_COUNT] as usize;
-    let mut found: Vec<Attribute> = (0..count)
-        .map(|i| {
-            let a = buffer.attributes + 16 * i;
-            let name = pool_string(data, u64_at(data, a)?).context("an attribute with no name")?;
+    let mut found: Vec<Attribute> = attr_records(data, buffer.vertex)?
+        .into_iter()
+        .map(|a| {
             Ok(Attribute {
-                name: String::from_utf8_lossy(name).into(),
-                format: u32_at(data, a + 8)? as u32,
-                offset: u16::from_le_bytes([data[a + 12], data[a + 13]]) as usize,
+                name: String::from_utf8_lossy(a.name.context("an attribute with no name")?).into(),
+                format: a.format,
+                offset: a.offset,
                 varies: false,
             })
         })
@@ -244,12 +266,13 @@ pub struct Lod {
 
 /// The levels of detail of the shape named `shape`, finest first.
 pub fn lods(data: &[u8], shape: &str) -> Result<Vec<Lod>> {
+    let r = Reader(data);
     let layout = Layout::find(data, shape)?;
-    let (_, pool, _) = pool(data)?;
+    let pool = Pool::read(data)?;
     let meshes = Mesh::all(data, shape_at(data, shape)?)?;
     let lod = |m: &Mesh| -> Result<Lod> {
         let indices = (0..m.count)
-            .map(|i| Ok(u32_at(data, pool + m.faces + 2 * i)? as u16))
+            .map(|i| r.u16(pool.start + m.faces + 2 * i))
             .collect::<Result<Vec<u16>>>()?;
         let count = indices.iter().max().map_or(0, |&i| i as usize + 1);
         let vertices = (m.first..m.first + count)
@@ -267,8 +290,9 @@ pub fn lods(data: &[u8], shape: &str) -> Result<Vec<Lod>> {
 /// beyond [`Vertex`]'s (its bone) are the shape's, which every vertex
 /// must share.
 pub fn replace_mesh(data: &[u8], shape: &str, lods: &[Lod]) -> Result<Vec<u8>> {
-    let template = Layout::find(data, shape)?.template(data)?;
-    replace(data, shape, lods, |_, _| Ok(template.clone()))
+    let layout = Layout::find(data, shape)?;
+    let template = layout.template(data)?;
+    replace(data, shape, &layout, lods, |_, _| Ok(template.clone()))
 }
 
 /// [`replace_mesh`] for a shape whose vertices don't all share their other
@@ -290,7 +314,7 @@ pub fn replace_mesh_like(
                 .all(|(l, lod)| l.len() == lod.vertices.len()),
         "{shape}: a like for each new vertex"
     );
-    replace(data, shape, lods, |i, j| {
+    replace(data, shape, &layout, lods, |i, j| {
         let k = like[i][j];
         ensure!(k < layout.count, "{shape}: no vertex {k}");
         Ok(data[layout.start + layout.stride * k..][..layout.stride].to_vec())
@@ -301,10 +325,11 @@ pub fn replace_mesh_like(
 fn replace(
     data: &[u8],
     shape: &str,
+    layout: &Layout,
     lods: &[Lod],
     rest: impl Fn(usize, usize) -> Result<Vec<u8>>,
 ) -> Result<Vec<u8>> {
-    let layout = Layout::find(data, shape)?;
+    let r = Reader(data);
     let at = shape_at(data, shape)?;
     let meshes = Mesh::all(data, at)?;
     ensure!(
@@ -313,8 +338,10 @@ fn replace(
         meshes.len(),
         lods.len()
     );
-    let (info, pool, size) = pool(data)?;
-    let end = pool + size;
+    let vertices: Vec<&Vertex> = lods.iter().flat_map(|l| &l.vertices).collect();
+    let bounds = Bounds::of(&vertices).with_context(|| format!("{shape}: no vertices"))?;
+    let Pool { info, start, size } = Pool::read(data)?;
+    let end = start + size;
 
     let mut added = Vec::new();
     let mut faces = Vec::new();
@@ -334,8 +361,7 @@ fn replace(
         added.extend(lod.indices.iter().flat_map(|i| i.to_le_bytes()));
     }
     pad(&mut added, BUFFER_ALIGN);
-    let start = size + added.len();
-    let vertices: Vec<&Vertex> = lods.iter().flat_map(|l| &l.vertices).collect();
+    let vertex_data = size + added.len();
     for (i, lod) in lods.iter().enumerate() {
         for (j, v) in lod.vertices.iter().enumerate() {
             let mut raw = rest(i, j)?;
@@ -356,12 +382,12 @@ fn replace(
     relocate(&mut out, end, growth)?;
     grow_blocks(&mut out, end, growth)?;
 
-    let v = u64_at(data, at + SHAPE_VERTICES)?;
-    put(&mut out, v + VERTEX_DATA, start)?;
+    let v = r.ptr(at + SHAPE_VERTICES)?;
+    put(&mut out, v + VERTEX_DATA, vertex_data)?;
     put(&mut out, v + VERTEX_COUNT, vertices.len())?;
     put(
         &mut out,
-        u64_at(data, v + VERTEX_SIZES)?,
+        r.ptr(v + VERTEX_SIZES)?,
         vertices.len() * layout.stride,
     )?;
     let mut first = 0;
@@ -370,18 +396,14 @@ fn replace(
         put(&mut out, mesh.at + MESH_FACES, faces)?;
         put(&mut out, mesh.at + MESH_COUNT, count)?;
         put(&mut out, mesh.at + MESH_FIRST, first)?;
-        put(
-            &mut out,
-            u64_at(data, mesh.at + MESH_BUFFER_SIZE)?,
-            2 * count,
-        )?;
+        put(&mut out, r.ptr(mesh.at + MESH_BUFFER_SIZE)?, 2 * count)?;
         // Its one submesh: where it starts in the indices, and how many.
-        let submesh = u64_at(data, mesh.at + MESH_SUBMESHES)?;
+        let submesh = r.ptr(mesh.at + MESH_SUBMESHES)?;
         put(&mut out, submesh, 0)?;
         put(&mut out, submesh + 4, count)?;
         first += lod.vertices.len();
     }
-    bound(&mut out, data, at, &meshes, &vertices)?;
+    bounds.write(&mut out, data, at, meshes.len())?;
     Ok(out)
 }
 
@@ -396,95 +418,121 @@ struct Mesh {
 impl Mesh {
     /// A shape's meshes, each with one submesh of u16 indices.
     fn all(data: &[u8], shape: usize) -> Result<Vec<Self>> {
-        let meshes = u64_at(data, shape + SHAPE_MESHES)?;
-        let count = *data.get(shape + SHAPE_MESH_COUNT).context("past the end")?;
-        (0..count as usize)
+        let r = Reader(data);
+        let meshes = r.ptr(shape + SHAPE_MESHES)?;
+        (0..r.u8(shape + SHAPE_MESH_COUNT)? as usize)
             .map(|i| {
                 let at = meshes + MESH_SIZE * i;
                 ensure!(
-                    u32_at(data, at + MESH_FORMAT)? == U16_INDICES,
+                    r.u32(at + MESH_FORMAT)? == U16_INDICES,
                     "mesh {i}: not u16 indices"
                 );
-                let submeshes = u16::from_le_bytes([
-                    data[at + MESH_SUBMESH_COUNT],
-                    data[at + MESH_SUBMESH_COUNT + 1],
-                ]);
+                let submeshes = r.u16(at + MESH_SUBMESH_COUNT)?;
                 ensure!(submeshes == 1, "mesh {i}: {submeshes} submeshes");
                 Ok(Self {
                     at,
-                    faces: u32_at(data, at + MESH_FACES)?,
-                    count: u32_at(data, at + MESH_COUNT)?,
-                    first: u32_at(data, at + MESH_FIRST)?,
+                    faces: r.offset(at + MESH_FACES)?,
+                    count: r.offset(at + MESH_COUNT)?,
+                    first: r.offset(at + MESH_FIRST)?,
                 })
             })
             .collect()
     }
 }
 
-/// Every bounding box of the shape at `shape` (each mesh's and its
-/// submesh's) and its sphere set to hold all of `vertices`, so the
-/// game never culls a part of it.
-fn bound(
-    out: &mut [u8],
-    data: &[u8],
-    shape: usize,
-    meshes: &[Mesh],
-    vertices: &[&Vertex],
-) -> Result<()> {
-    let mut lo = [f32::MAX; 3];
-    let mut hi = [f32::MIN; 3];
-    for v in vertices {
-        for k in 0..3 {
-            lo[k] = lo[k].min(v.position[k]);
-            hi[k] = hi[k].max(v.position[k]);
-        }
-    }
-    let centre: [f32; 3] = std::array::from_fn(|k| (lo[k] + hi[k]) / 2.0);
-    let extent: [f32; 3] = std::array::from_fn(|k| (hi[k] - lo[k]) / 2.0);
-    let radius = vertices
-        .iter()
-        .map(|v| {
-            (0..3)
-                .map(|k| (v.position[k] - centre[k]).powi(2))
-                .sum::<f32>()
-                .sqrt()
-        })
-        .fold(0.0, f32::max);
-    let floats = |at: usize, values: &[f32], out: &mut [u8]| {
-        for (i, f) in values.iter().enumerate() {
-            out[at + 4 * i..at + 4 * i + 4].copy_from_slice(&f.to_le_bytes());
-        }
-    };
-    let boxes = u64_at(data, shape + SHAPE_BOXES)?;
-    let box_ = [centre, extent].concat();
-    for i in 0..2 * meshes.len() {
-        floats(boxes + 24 * i, &box_, out);
-    }
-    let sphere = u64_at(data, shape + SHAPE_SPHERE)?;
-    floats(sphere, &[centre[0], centre[1], centre[2], radius], out);
-    Ok(())
+/// A box and a sphere holding every vertex of a shape.
+#[derive(Debug, PartialEq)]
+struct Bounds {
+    centre: [f32; 3],
+    extent: [f32; 3],
+    radius: f32,
 }
 
-/// The memory pool's info header, and where the pool starts and how big
-/// it is.
-fn pool(data: &[u8]) -> Result<(usize, usize, usize)> {
-    let info = u64_at(data, POOL_INFO)?;
-    Ok((info, u64_at(data, info + 8)?, u32_at(data, info + 4)?))
+impl Bounds {
+    /// `None` without a vertex to hold.
+    fn of(vertices: &[&Vertex]) -> Option<Self> {
+        let first = vertices.first()?.position;
+        let (mut lo, mut hi) = (first, first);
+        for v in vertices {
+            for k in 0..3 {
+                lo[k] = lo[k].min(v.position[k]);
+                hi[k] = hi[k].max(v.position[k]);
+            }
+        }
+        let centre: [f32; 3] = std::array::from_fn(|k| (lo[k] + hi[k]) / 2.0);
+        let extent: [f32; 3] = std::array::from_fn(|k| (hi[k] - lo[k]) / 2.0);
+        let radius = vertices
+            .iter()
+            .map(|v| {
+                (0..3)
+                    .map(|k| (v.position[k] - centre[k]).powi(2))
+                    .sum::<f32>()
+                    .sqrt()
+            })
+            .fold(0.0, f32::max);
+        Some(Self {
+            centre,
+            extent,
+            radius,
+        })
+    }
+
+    /// Every bounding box of the shape at `shape` (each of its `meshes`'
+    /// and its submesh's) and its sphere set to these, so the game never
+    /// culls a part of it.
+    fn write(&self, out: &mut [u8], data: &[u8], shape: usize, meshes: usize) -> Result<()> {
+        let r = Reader(data);
+        let floats = |at: usize, values: &[f32], out: &mut [u8]| {
+            for (i, f) in values.iter().enumerate() {
+                out[at + 4 * i..at + 4 * i + 4].copy_from_slice(&f.to_le_bytes());
+            }
+        };
+        let boxes = r.ptr(shape + SHAPE_BOXES)?;
+        let box_ = [self.centre, self.extent].concat();
+        for i in 0..2 * meshes {
+            floats(boxes + 24 * i, &box_, out);
+        }
+        let sphere = r.ptr(shape + SHAPE_SPHERE)?;
+        let [x, y, z] = self.centre;
+        floats(sphere, &[x, y, z, self.radius], out);
+        Ok(())
+    }
+}
+
+/// The memory pool: where its info header is, and where the pool starts
+/// and how big it is.
+struct Pool {
+    info: usize,
+    start: usize,
+    size: usize,
+}
+
+impl Pool {
+    fn read(data: &[u8]) -> Result<Self> {
+        let r = Reader(data);
+        let info = r.ptr(POOL_INFO)?;
+        Ok(Self {
+            info,
+            start: r.ptr(info + 8)?,
+            size: r.offset(info + 4)?,
+        })
+    }
 }
 
 /// Every pointer the relocation table lists: where it is, and where it
 /// points.
 pub fn pointers(data: &[u8]) -> Result<Vec<(usize, usize)>> {
+    let r = Reader(data);
     let table = Table::find(data)?;
     let mut out = Vec::new();
     for e in 0..table.entries {
         let entry = table.entry(e);
-        let structs = u16::from_le_bytes([data[entry + 4], data[entry + 5]]) as usize;
-        let (count, padding) = (data[entry + 6] as usize, data[entry + 7] as usize);
-        let mut p = u32_at(data, entry)?;
+        let structs = r.u16(entry + 4)?;
+        let (count, padding) = (r.u8(entry + 6)?, r.u8(entry + 7)? as usize);
+        let mut p = r.offset(entry)?;
         for _ in 0..structs {
             for _ in 0..count {
-                out.push((p, u64_at(data, p)?));
+                out.push((p, r.ptr(p)?));
                 p += 8;
             }
             p += 8 * padding;
@@ -502,13 +550,14 @@ struct Table {
 
 impl Table {
     fn find(data: &[u8]) -> Result<Self> {
-        let at = u32_at(data, RELOCATIONS)?;
+        let r = Reader(data);
+        let at = r.offset(RELOCATIONS)?;
         ensure!(data.get(at..at + 4) == Some(b"_RLT"), "no relocation table");
-        let sections = u32_at(data, at + 8)?;
+        let sections = r.offset(at + 8)?;
         let mut entries = 0;
         for s in 0..sections {
             let section = at + 0x10 + 0x18 * s;
-            entries = entries.max(u32_at(data, section + 16)? + u32_at(data, section + 20)?);
+            entries = entries.max(r.offset(section + 16)? + r.offset(section + 20)?);
         }
         Ok(Self {
             at,
@@ -530,14 +579,15 @@ impl Table {
 /// `growth` bytes inserted at `at`. The table follows the pool, so it has
 /// moved too: the header learns where.
 fn relocate(out: &mut [u8], at: usize, growth: usize) -> Result<()> {
-    let old = u32_at(out, RELOCATIONS)?;
+    let old = Reader(out).offset(RELOCATIONS)?;
     ensure!(old >= at, "the relocation table is before the pool's end");
     put(out, RELOCATIONS, old + growth)?;
     let table = Table::find(out)?;
     put(out, table.at + 4, table.at)?;
     for s in 0..table.sections {
         let section = table.section(s);
-        let (offset, size) = (u32_at(out, section + 8)?, u32_at(out, section + 12)?);
+        let r = Reader(out);
+        let (offset, size) = (r.offset(section + 8)?, r.offset(section + 12)?);
         if offset >= at {
             put(out, section + 8, offset + growth)?;
         } else if offset + size >= at {
@@ -545,7 +595,7 @@ fn relocate(out: &mut [u8], at: usize, growth: usize) -> Result<()> {
         }
     }
     for e in 0..table.entries {
-        let location = u32_at(out, table.entry(e))?;
+        let location = Reader(out).offset(table.entry(e))?;
         if location >= at {
             put(out, table.entry(e), location + growth)?;
         }
@@ -561,9 +611,10 @@ fn relocate(out: &mut [u8], at: usize, growth: usize) -> Result<()> {
 /// Each block whose span holds `at` grown by `growth`, and each link to a
 /// block past it lengthened.
 fn grow_blocks(out: &mut [u8], at: usize, growth: usize) -> Result<()> {
-    let mut block = u16::from_le_bytes([out[FIRST_BLOCK], out[FIRST_BLOCK + 1]]) as usize;
+    let mut block = Reader(out).u16(FIRST_BLOCK)? as usize;
     while block != 0 {
-        let (next, size) = (u32_at(out, block + 4)?, u32_at(out, block + 8)?);
+        let r = Reader(out);
+        let (next, size) = (r.offset(block + 4)?, r.offset(block + 8)?);
         if block < at && block + size >= at {
             put(out, block + 8, size + growth)?;
         }
@@ -606,30 +657,29 @@ struct Buffer<'a> {
     start: usize,
     stride: usize,
     count: usize,
+    /// The vertex buffer header.
     vertex: usize,
-    attributes: usize,
 }
 
 impl<'a> Buffer<'a> {
     fn find(data: &[u8], shape: &'a str) -> Result<Self> {
+        let r = Reader(data);
         let at = shape_at(data, shape)?;
-        let (_, pool, size) = pool(data)?;
-        let pool_end = pool + size;
-        let v = u64_at(data, at + SHAPE_VERTICES)?;
+        let pool = Pool::read(data)?;
+        let v = r.ptr(at + SHAPE_VERTICES)?;
         ensure!(
-            data.get(v + VERTEX_BUFFER_COUNT) == Some(&1),
+            r.u8(v + VERTEX_BUFFER_COUNT)? == 1,
             "{shape}: not one vertex buffer"
         );
         let buffer = Self {
             shape,
-            start: pool + u32_at(data, v + VERTEX_DATA)?,
-            stride: u32_at(data, u64_at(data, v + VERTEX_STRIDES)?)?,
-            count: u32_at(data, v + VERTEX_COUNT)?,
+            start: pool.start + r.offset(v + VERTEX_DATA)?,
+            stride: r.offset(r.ptr(v + VERTEX_STRIDES)?)?,
+            count: r.offset(v + VERTEX_COUNT)?,
             vertex: v,
-            attributes: u64_at(data, v + VERTEX_ATTRIBUTES)?,
         };
         ensure!(
-            buffer.start + buffer.stride * buffer.count <= pool_end.min(data.len()),
+            buffer.start + buffer.stride * buffer.count <= (pool.start + pool.size).min(data.len()),
             "{shape}: vertices past the pool"
         );
         Ok(buffer)
@@ -638,17 +688,15 @@ impl<'a> Buffer<'a> {
     /// Where attribute `name` sits in each vertex, if it's in `format`.
     fn offset(&self, data: &[u8], (name, format): (&str, u32)) -> Result<usize> {
         let shape = self.shape;
-        for i in 0..data[self.vertex + VERTEX_ATTRIBUTE_COUNT] as usize {
-            let a = self.attributes + 16 * i;
-            if pool_string(data, u64_at(data, a)?) == Some(name.as_bytes()) {
-                let found = u32_at(data, a + 8)? as u32;
-                if found != format {
-                    bail!("{shape}: {name} in format {found:#x}");
-                }
-                return Ok(u16::from_le_bytes([data[a + 12], data[a + 13]]) as usize);
-            }
-        }
-        bail!("{shape}: no {name}")
+        let records = attr_records(data, self.vertex)?;
+        let a = (records.iter().find(|a| a.name == Some(name.as_bytes())))
+            .with_context(|| format!("{shape}: no {name}"))?;
+        ensure!(
+            a.format == format,
+            "{shape}: {name} in format {:#x}",
+            a.format
+        );
+        Ok(a.offset)
     }
 }
 
@@ -679,18 +727,15 @@ impl Layout {
     }
 
     fn read(&self, data: &[u8], i: usize) -> Result<Vertex> {
+        let r = Reader(data);
         let at = self.start + self.stride * i;
-        let half = |k: usize| -> Result<f32> {
-            Ok(from_half(u32_at(data, at + self.position + 2 * k)? as u16))
-        };
-        let unorm = |k: usize| -> Result<f32> {
-            Ok((u32_at(data, at + self.uv + 2 * k)? & 0xffff) as f32 / 65535.0)
-        };
+        let half = |k: usize| half_at(&r, at + self.position + 2 * k);
+        let unorm = |k: usize| unorm_at(&r, at + self.uv + 2 * k);
         Ok(Vertex {
             position: [half(0)?, half(1)?, half(2)?],
             uv: [unorm(0)?, unorm(1)?],
-            normal: u32_at(data, at + self.normal)? as u32,
-            tangent: u32_at(data, at + self.tangent)? as u32,
+            normal: r.u32(at + self.normal)?,
+            tangent: r.u32(at + self.tangent)?,
         })
     }
 
@@ -729,20 +774,20 @@ impl Layout {
 
     /// `v`'s edited attributes written into the vertex at byte `at`.
     fn write_at(&self, out: &mut [u8], at: usize, v: &Vertex) -> Result<()> {
-        let mut put = |offset: usize, bytes: &[u8]| {
+        let mut set = |offset: usize, bytes: &[u8]| {
             out[at + offset..at + offset + bytes.len()].copy_from_slice(bytes)
         };
         for (k, p) in v.position.iter().enumerate() {
-            put(self.position + 2 * k, &to_half(*p)?.to_le_bytes());
+            set(self.position + 2 * k, &to_half(*p)?.to_le_bytes());
         }
         for (k, u) in v.uv.iter().enumerate() {
-            put(
+            set(
                 self.uv + 2 * k,
                 &((u.clamp(0.0, 1.0) * 65535.0).round() as u16).to_le_bytes(),
             );
         }
-        put(self.normal, &v.normal.to_le_bytes());
-        put(self.tangent, &v.tangent.to_le_bytes());
+        set(self.normal, &v.normal.to_le_bytes());
+        set(self.tangent, &v.tangent.to_le_bytes());
         Ok(())
     }
 }
@@ -768,6 +813,16 @@ pub fn pack(v: [f32; 4]) -> u32 {
         | field(v[1], 511.0, 10) << 10
         | field(v[2], 511.0, 10) << 20
         | field(v[3], 1.0, 2) << 30
+}
+
+/// The half float at `at`.
+fn half_at(r: &Reader, at: usize) -> Result<f32> {
+    Ok(from_half(r.u16(at)?))
+}
+
+/// The 16-bit unorm at `at`, from 0 to 1.
+fn unorm_at(r: &Reader, at: usize) -> Result<f32> {
+    Ok(r.u16(at)? as f32 / 65535.0)
 }
 
 /// A half float's value.
@@ -806,29 +861,35 @@ pub fn shape_names(data: &[u8]) -> Vec<String> {
 
 /// Every shape header's offset.
 fn shapes(data: &[u8]) -> impl Iterator<Item = usize> + '_ {
-    (0..data.len().saturating_sub(SHAPE_VERTICES + 8))
-        .step_by(8)
-        .filter(|&at| &data[at..at + 4] == b"FSHP")
+    find_magic(data, b"FSHP", SHAPE_VERTICES + 8, 8)
 }
 
 fn shape_name(data: &[u8], shape: usize) -> Option<&[u8]> {
-    pool_string(data, u64_at(data, shape + SHAPE_NAME).ok()?)
+    name_at(data, shape + SHAPE_NAME)
+}
+
+/// Every offset, a multiple of `align`, where `magic` starts a header
+/// that needs `tail` bytes from its start.
+pub(crate) fn find_magic<'a>(
+    data: &'a [u8],
+    magic: &'a [u8; 4],
+    tail: usize,
+    align: usize,
+) -> impl Iterator<Item = usize> + 'a {
+    (0..data.len().saturating_sub(tail))
+        .step_by(align)
+        .filter(move |&at| data.get(at..at + 4) == Some(magic))
+}
+
+/// The pool string the pointer at `at` points to.
+pub(crate) fn name_at(data: &[u8], at: usize) -> Option<&[u8]> {
+    pool_string(data, Reader(data).ptr(at).ok()?)
 }
 
 /// A string in the file's pool: its length first.
-pub(crate) fn pool_string(data: &[u8], at: usize) -> Option<&[u8]> {
-    let len = u16::from_le_bytes(data.get(at..at + 2)?.try_into().ok()?) as usize;
+fn pool_string(data: &[u8], at: usize) -> Option<&[u8]> {
+    let len = Reader(data).u16(at).ok()? as usize;
     data.get(at + 2..at + 2 + len)
-}
-
-pub(crate) fn u32_at(data: &[u8], at: usize) -> Result<usize> {
-    let b = data.get(at..at + 4).context("past the end")?;
-    Ok(u32::from_le_bytes(b.try_into()?) as usize)
-}
-
-pub(crate) fn u64_at(data: &[u8], at: usize) -> Result<usize> {
-    let b = data.get(at..at + 8).context("past the end")?;
-    Ok(u64::from_le_bytes(b.try_into()?) as usize)
 }
 
 #[cfg(test)]
@@ -841,6 +902,26 @@ mod tests {
             assert_eq!(pack(unpack(packed)), packed, "{packed:#x}");
         }
         assert_eq!(unpack(pack([1.0, -1.0, 0.0, -1.0])), [1.0, -1.0, 0.0, -1.0]);
+    }
+
+    #[test]
+    fn bounds_hold_every_vertex_and_need_one() {
+        let at = |position| Vertex {
+            position,
+            uv: [0.0; 2],
+            normal: 0,
+            tangent: 0,
+        };
+        assert_eq!(Bounds::of(&[]), None);
+        let (a, b) = (at([0.0, -2.0, 1.0]), at([4.0, 2.0, 1.0]));
+        assert_eq!(
+            Bounds::of(&[&a, &b]),
+            Some(Bounds {
+                centre: [2.0, 0.0, 1.0],
+                extent: [2.0, 2.0, 0.0],
+                radius: 8f32.sqrt(),
+            })
+        );
     }
 
     #[test]

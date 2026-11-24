@@ -6,9 +6,10 @@
 //! pickup that gives a major item when no `Obj_*` form exists.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
+use std::sync::Arc;
 
 use anyhow::{Context, Result};
-use ounce_formats::{ActorPack, ModBuilder, Romfs};
+use ounce_formats::{ActorPack, Byml, ModBuilder, Romfs};
 
 use crate::checks::{
     DROP_ACTOR, Drop, GYAML, ItemCheck, Watched, actors, banc_files, hash_of, load_bancs, room_of,
@@ -16,6 +17,7 @@ use crate::checks::{
 };
 use crate::gifts;
 use crate::known::{Name, actor, field as fields, item, map};
+use crate::per_dump::PerDump;
 use crate::settings::{NPC_GIFTS, NewGame};
 use crate::standins::{StandIn, Tables, item_pack};
 use crate::warp;
@@ -29,6 +31,7 @@ pub mod steps;
 pub mod taken;
 
 /// One kind of placed holder.
+#[derive(PartialEq)]
 pub struct Kind {
     /// The placed actors.
     pub actors: &'static [&'static Name],
@@ -44,6 +47,7 @@ pub struct Kind {
 
 /// The placements of a kind with a `Name` beginning `prefix`, shown as
 /// `holder`.
+#[derive(PartialEq)]
 struct Named {
     prefix: &'static str,
     holder: &'static str,
@@ -362,53 +366,74 @@ impl Kind {
 
     /// One check per placement, as chests are.
     pub fn checks(&self, romfs: &Romfs) -> Result<Vec<ItemCheck>> {
-        let mut out = Vec::new();
-        let files = (banc_files(romfs)?.into_iter())
-            .filter(|f| !f.starts_with(REMIX))
-            .collect();
-        for (file, doc) in load_bancs(romfs, files) {
-            let doc = doc?;
-            for actor in actors(&doc.root)? {
-                let gyaml = str_field(actor, GYAML).unwrap_or_default();
-                if !self.places(gyaml) {
-                    continue;
-                }
-                let dynamic = actor.as_map()?.get("Dynamic");
-                let held = (dynamic.and_then(|d| str_field(d, DROP_ACTOR)))
-                    .filter(|d| !d.starts_with(ANIMAL));
-                let table = dynamic.and_then(|d| str_field(d, fields::DROP_DROP_TABLE));
-                let own = self.owns_drop().then(|| own_drop(table, &file).get());
-                let (holder, item) = match &self.named {
-                    Some(Named { prefix, holder }) => {
-                        if !str_field(actor, NAME).is_some_and(|n| n.starts_with(prefix)) {
-                            continue;
-                        }
-                        (*holder, gyaml)
-                    }
-                    None => {
-                        let Some(item) = self.item.map(|i| i.get()).or(held).or(own) else {
-                            continue;
-                        };
-                        (gyaml, item)
-                    }
-                };
-                let hash = hash_of(actor).context("actor without Hash")?;
-                let area = file.split('/').nth(1).unwrap_or("?");
-                let mut check = gifts::check(file.clone(), area, hash, holder.into(), item);
-                // A named holder is there once its event has put it there,
-                // which the seed doesn't have to wait for.
-                check.presence = presence_of(actor).filter(|_| self.named.is_none());
-                check.room = room_of(actor);
-                out.push(check);
-            }
+        let i = (KINDS.iter().position(|k| *k == self)).context("a kind outside KINDS")?;
+        Ok(by_kind(romfs)?[i].clone())
+    }
+
+    /// The check `actor`, placed in Banc file `file`, is, if it's one of
+    /// this kind.
+    fn check_of(&self, actor: &Byml, file: &str) -> Result<Option<ItemCheck>> {
+        let gyaml = str_field(actor, GYAML).unwrap_or_default();
+        if !self.places(gyaml) {
+            return Ok(None);
         }
-        Ok(out)
+        let dynamic = actor.as_map()?.get("Dynamic");
+        let held =
+            (dynamic.and_then(|d| str_field(d, DROP_ACTOR))).filter(|d| !d.starts_with(ANIMAL));
+        let table = dynamic.and_then(|d| str_field(d, fields::DROP_DROP_TABLE));
+        let own = self.owns_drop().then(|| own_drop(table, file).get());
+        let (holder, item) = match &self.named {
+            Some(Named { prefix, holder }) => {
+                if !str_field(actor, NAME).is_some_and(|n| n.starts_with(prefix)) {
+                    return Ok(None);
+                }
+                (*holder, gyaml)
+            }
+            None => {
+                let Some(item) = self.item.map(|i| i.get()).or(held).or(own) else {
+                    return Ok(None);
+                };
+                (gyaml, item)
+            }
+        };
+        let hash = hash_of(actor).context("actor without Hash")?;
+        let area = file.split('/').nth(1).unwrap_or("?");
+        let mut check = gifts::check(file.into(), area, hash, holder.into(), item);
+        // A named holder is there once its event has put it there,
+        // which the seed doesn't have to wait for.
+        check.presence = presence_of(actor).filter(|_| self.named.is_none());
+        check.room = room_of(actor);
+        Ok(Some(check))
     }
 
     pub fn holds(&self, check: &ItemCheck) -> bool {
         let named = self.named.as_ref().map(|n| n.holder);
         self.places(&check.holder) || named == Some(check.holder.as_str())
     }
+}
+
+/// The checks of each of [`KINDS`], in its order. Kept per dump: a seed
+/// asks for them several times over, and reading every Banc file is slow.
+fn by_kind(romfs: &Romfs) -> Result<Arc<Vec<Vec<ItemCheck>>>> {
+    static KEPT: PerDump<Arc<Vec<Vec<ItemCheck>>>> = PerDump::new();
+    KEPT.get(romfs, || read_kinds(romfs).map(Arc::new))
+}
+
+/// [`by_kind`], reading each Banc file once for every kind.
+fn read_kinds(romfs: &Romfs) -> Result<Vec<Vec<ItemCheck>>> {
+    let mut out = vec![Vec::new(); KINDS.len()];
+    let files = (banc_files(romfs)?.into_iter())
+        .filter(|f| !f.starts_with(REMIX))
+        .collect();
+    for (file, doc) in load_bancs(romfs, files) {
+        let doc = doc?;
+        for actor in actors(&doc.root)? {
+            for (kind, checks) in KINDS.iter().zip(&mut out) {
+                checks.extend(kind.check_of(actor, &file)?);
+            }
+        }
+    }
+    Ok(out)
 }
 
 /// The checks of every kind `new_game` turns on.
@@ -464,10 +489,7 @@ fn watch(romfs: &Romfs, checks: &mut [ItemCheck]) -> Result<()> {
 
 /// Every pickup check of every kind a logic module makes appear or watches.
 pub fn watched(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
-    let mut checks = Vec::new();
-    for kind in KINDS {
-        checks.extend(kind.checks(romfs)?);
-    }
+    let mut checks = by_kind(romfs)?.concat();
     watch(romfs, &mut checks)?;
     checks.retain(|c| c.watched != Watched::No);
     Ok(checks)

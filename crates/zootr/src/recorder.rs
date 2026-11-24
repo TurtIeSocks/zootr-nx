@@ -277,7 +277,6 @@ fn closing(running: impl Fn() -> bool) -> bool {
     })
 }
 
-/// The first line of an error, for a status line.
 /// What Live shows for `e`: its player wording, or its first line.
 fn why(e: &anyhow::Error) -> String {
     match crate::plain::split(e) {
@@ -300,20 +299,26 @@ pub fn logs() -> Result<PathBuf> {
 /// kind.
 pub fn open(dir: &Path, kind: &str) -> Result<(PathBuf, File)> {
     std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
-    let name = jiff::Zoned::now().strftime("-%Y-%m-%d-%H%M%S.log");
-    let path = dir.join(format!("{kind}{name}"));
+    let prefix = format!("{kind}-");
+    let stamp = jiff::Zoned::now().strftime("%Y-%m-%d-%H%M%S.log");
+    let path = dir.join(format!("{prefix}{stamp}"));
     let file = File::options()
         .create(true)
         .append(true)
         .open(&path)
         .with_context(|| format!("writing {}", path.display()))?;
-    let logs = std::fs::read_dir(dir)?
-        .filter_map(|e| Some(e.ok()?.path()))
-        .filter(|p| {
-            let name = p.file_name().and_then(|n| n.to_str()).unwrap_or_default();
-            name.starts_with(&format!("{kind}-")) && name.ends_with(".log")
-        });
-    keep_newest(logs, KEEP)?;
+    let prune = || -> Result<()> {
+        let logs = std::fs::read_dir(dir)?
+            .filter_map(|e| Some(e.ok()?.path()))
+            .filter(|p| {
+                let name = p.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+                name.starts_with(&prefix) && name.ends_with(".log")
+            });
+        keep_newest(logs, KEEP)
+    };
+    // Pruning is housekeeping: an old log it can't remove (one still held
+    // open, say) mustn't cost this session its own.
+    let _ = prune();
     Ok((path, file))
 }
 
@@ -770,6 +775,27 @@ mod tests {
         let reason = CLOSED.into();
         assert_eq!(ended, Event::Ended { reason });
         drop(rec);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// An old log that can't be removed leaves the new one written all the
+    /// same.
+    #[cfg(unix)]
+    #[test]
+    fn a_failed_prune_keeps_the_new_log() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = scratch("prune");
+        let held = dir.join("live-2000-01-01-000000.log").join("held");
+        std::fs::create_dir_all(&held).unwrap();
+        std::fs::write(held.join("file"), "").unwrap();
+        for i in 1..=KEEP {
+            std::fs::write(dir.join(format!("live-2000-01-01-{i:06}.log")), "").unwrap();
+        }
+        let mode = |m| std::fs::set_permissions(&held, std::fs::Permissions::from_mode(m)).unwrap();
+        mode(0o555);
+        let opened = open(&dir, "live");
+        mode(0o755);
+        assert!(opened.unwrap().0.exists());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

@@ -168,7 +168,7 @@ pub(super) enum DevCommand {
         far: f32,
         #[arg(long, default_value_t = 0.6)]
         near: f32,
-        #[arg(long, default_value_t = 0.1)]
+        #[arg(long, default_value_t = 0.1, value_parser = positive)]
         step: f32,
         /// Keep each frame here.
         #[arg(long)]
@@ -223,7 +223,7 @@ pub(super) enum DevCommand {
         #[arg(long, default_value_t = 30.0)]
         within: f32,
         /// List the enemies in reach with their Life instead.
-        #[arg(long)]
+        #[arg(long, conflicts_with = "target")]
         list: bool,
         /// One JSON array instead of lines.
         #[arg(long)]
@@ -384,9 +384,33 @@ pub enum MemCommand {
     },
 }
 
-/// A number of seconds above zero.
+/// A number above zero.
 fn positive(arg: &str) -> Result<f32> {
-    let secs: f32 = arg.parse()?;
-    anyhow::ensure!(secs > 0.0, "{arg} isn't above zero");
-    Ok(secs)
+    let n: f32 = arg.parse()?;
+    anyhow::ensure!(n > 0.0, "{arg} isn't above zero");
+    Ok(n)
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+
+    use super::super::args::Cli;
+
+    fn parses(line: &str) -> bool {
+        Cli::try_parse_from(line.split(' ')).is_ok()
+    }
+
+    #[test]
+    fn a_reach_steps_forward() {
+        assert!(parses("zootr dev reach 1 --step 0.2"));
+        assert!(!parses("zootr dev reach 1 --step 0"));
+    }
+
+    #[test]
+    fn slay_lists_or_slays_never_both() {
+        assert!(parses("zootr dev slay --list"));
+        assert!(parses("zootr dev slay FakeFoe"));
+        assert!(!parses("zootr dev slay FakeFoe --list"));
+    }
 }

@@ -31,8 +31,8 @@ pub const NO_LIVE: &str =
     "The app can't read the game live here. Set the target's save folder to follow its autosaves";
 
 /// Live reads if attaching worked. Only a build that isn't signed, or a
-/// target off macOS without a bridge, can't attach at all, so that falls back to autosaves, and
-/// anything else is retried.
+/// target off macOS without a bridge, can't attach at all, so that falls
+/// back to autosaves, and anything else is retried.
 pub fn decide<G>(attach: Result<G>, saves: Option<PathBuf>) -> Next<G> {
     match attach {
         Ok(g) => Next::Record(Pick::Live(g), None),
@@ -107,10 +107,11 @@ pub struct Watch {
 
 impl Watch {
     /// Watches the target `target` names, looked up on every pass so a new
-    /// pick takes effect. `gd` loads the GameData names first.
+    /// pick takes effect. `gd` loads the GameData names first, tried again
+    /// each pass until it works.
     pub fn start(
         hub: Arc<Hub>,
-        gd: impl FnOnce() -> Result<Arc<GameData>> + Send + 'static,
+        gd: impl Fn() -> Result<Arc<GameData>> + Send + 'static,
         target: impl Fn() -> Result<Target> + Send + 'static,
         logs: PathBuf,
     ) -> Self {
@@ -122,14 +123,19 @@ impl Watch {
                     reason: Some(format!("{e:#}")),
                 },
             };
-            let gd = match gd() {
-                Ok(gd) => gd,
-                Err(e) => return hub.send(waiting(e)),
-            };
             let (mut phase, mut rec) = (Phase::Waiting, None::<Recorder>);
+            let mut names = None::<Arc<GameData>>;
             while !flag.load(Ordering::Relaxed) {
-                match target() {
-                    Ok(t) => {
+                // A dump not set up yet mustn't leave Live waiting for good.
+                if names.is_none() {
+                    match gd() {
+                        Ok(gd) => names = Some(gd),
+                        Err(e) => hub.send(waiting(e)),
+                    }
+                }
+                match (&names, target()) {
+                    (None, _) => {}
+                    (Some(gd), Ok(t)) => {
                         let ended = rec.as_ref().is_some_and(Recorder::finished);
                         let attach = || decide(Game::attach(&t).and_then(Poll::new), saves(&t));
                         if let Some((pick, reason)) = phase.tick(t.running(), ended, attach) {
@@ -148,7 +154,7 @@ impl Watch {
                             hub.send(Event::Status { status });
                         }
                     }
-                    Err(e) => hub.send(waiting(e)),
+                    (Some(_), Err(e)) => hub.send(waiting(e)),
                 }
                 let mut slept = Duration::ZERO;
                 while slept < WATCH && !flag.load(Ordering::Relaxed) {
@@ -224,8 +230,7 @@ mod tests {
         assert!(phase.tick(true, false, never).is_none() && phase.status().is_none());
         phase.tick(false, true, never);
         assert_eq!(phase.status(), Some(LiveStatus::Waiting { reason: None }));
-        let attaching = Phase::Attaching("booting".into());
-        let mut closed = attaching;
+        let mut closed = Phase::Attaching("booting".into());
         closed.tick(false, false, never);
         assert_eq!(closed, Phase::Waiting);
     }
@@ -239,5 +244,26 @@ mod tests {
         phase.tick(true, false, || -> Next<u8> { panic!("no retry") });
         phase.tick(false, false, || -> Next<u8> { panic!("not running") });
         assert_eq!(phase, Phase::Waiting);
+    }
+
+    /// GameData that fails to load is tried again on the next pass, not
+    /// given up on for good.
+    #[test]
+    fn the_watch_tries_the_gamedata_again_until_it_loads() {
+        use std::sync::atomic::AtomicUsize;
+        let tries = Arc::new(AtomicUsize::new(0));
+        let counted = tries.clone();
+        let gd = move || -> Result<Arc<GameData>> {
+            counted.fetch_add(1, Ordering::Relaxed);
+            anyhow::bail!("no dump yet")
+        };
+        let target = || -> Result<Target> { anyhow::bail!("no target") };
+        let watch = Watch::start(Hub::new(|_| {}), gd, target, PathBuf::new());
+        let deadline = std::time::Instant::now() + WATCH * 3;
+        while tries.load(Ordering::Relaxed) < 2 && std::time::Instant::now() < deadline {
+            std::thread::sleep(live::TICK);
+        }
+        drop(watch);
+        assert!(tries.load(Ordering::Relaxed) >= 2);
     }
 }

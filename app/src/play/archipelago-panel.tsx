@@ -10,7 +10,7 @@ import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { call } from "@/lib/api";
+import { call, message } from "@/lib/api";
 import { useCopied } from "@/lib/use-copied";
 import { ApLog } from "@/play/ap-log";
 import { GenerateSteps } from "@/play/generate-steps";
@@ -63,6 +63,7 @@ function Slot({ slot }: { slot: string | null }) {
   const why = blocked || (busy ? "A seed is already being made" : "");
   // A drop that was turned away, whose reason shows while it still holds.
   const [refused, setRefused] = useState(false);
+  if (refused && !why) setRefused(false);
   const open = useCallback(
     (path: string) => {
       setRefused(!!why);
@@ -149,7 +150,10 @@ function useApworld() {
   const name = version ? `znx.apworld ${version}` : "znx.apworld";
 
   const get = async () => {
-    if (!bundled) return void openUrl(apworldUrl(version));
+    if (!bundled) {
+      void openUrl(apworldUrl(version));
+      return;
+    }
     const path = await pickSave({
       defaultPath: "znx.apworld",
       filters: [{ name: "Archipelago world", extensions: ["apworld"] }],
@@ -160,7 +164,7 @@ function useApworld() {
       setError(undefined);
       flash("apworld");
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(message(e));
     }
   };
   return { bundled, saved: !!saved, error, name, get };

@@ -30,20 +30,23 @@ interface Ok {
 const ok = (data: unknown): Promise<Ok> =>
   Promise.resolve({ status: "ok", data });
 
+/** The seed's checks every test starts from. */
+const fresh = (): ChecksState => ({
+  id: 7,
+  rows: [
+    row("1", "Kokiri Forest", "Front left"),
+    row("2", "Kokiri Forest", "Back left", { checked: true, flag: 2 }),
+    row("3", "Kokiri Forest", "Grotto", { flag: null }),
+  ],
+  doors: [],
+});
+
 const backend = {
   listener: undefined as ((e: { payload: ChecksEvent }) => void) | undefined,
   doorsListener: undefined as
     | ((e: { payload: DoorsEvent }) => void)
     | undefined,
-  state: {
-    id: 7,
-    rows: [
-      row("1", "Kokiri Forest", "Front left"),
-      row("2", "Kokiri Forest", "Back left", { checked: true, flag: 2 }),
-      row("3", "Kokiri Forest", "Grotto", { flag: null }),
-    ],
-    doors: [],
-  } as ChecksState,
+  state: fresh(),
   send(payload: ChecksEvent) {
     act(() => backend.listener?.({ payload }));
   },
@@ -95,7 +98,16 @@ vi.mock("@/bindings", () => ({
   },
 }));
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  backend.state = fresh();
+});
+
+const openMenu = async (name: string) =>
+  fireEvent.pointerDown(await screen.findByLabelText(`Mark ${name}`), {
+    button: 0,
+    ctrlKey: false,
+  });
 
 async function show() {
   await act(init);
@@ -124,12 +136,10 @@ test("items stay hidden until checked, and a flip shows them", async () => {
 });
 
 test("a check the opening gives says so in its note", async () => {
-  const rows = backend.state.rows;
   const given = row("1", "Kokiri Forest", "Front left");
   backend.state.rows = [{ ...given, spot: { ...given.spot, given: true } }];
   await show();
   expect(await screen.findByText("Given at Start")).toBeTruthy();
-  backend.state.rows = rows;
 });
 
 test("the filter shows what's left, then only marked checks", async () => {
@@ -146,10 +156,7 @@ test("the filter shows what's left, then only marked checks", async () => {
 
 test("a note is saved on the seed and shown", async () => {
   await show();
-  fireEvent.pointerDown(await screen.findByLabelText("Mark Front left"), {
-    button: 0,
-    ctrlKey: false,
-  });
+  await openMenu("Front left");
   fireEvent.click(await screen.findByText("Note…"));
   fireEvent.change(await screen.findByLabelText("Note"), {
     target: { value: " behind the bed " },
@@ -159,12 +166,6 @@ test("a note is saved on the seed and shown", async () => {
   await waitFor(() => expect(checksMark).toHaveBeenCalledWith(7, "1", note));
   expect(await screen.findByText("behind the bed")).toBeTruthy();
 });
-
-const openMenu = async (name: string) =>
-  fireEvent.pointerDown(await screen.findByLabelText(`Mark ${name}`), {
-    button: 0,
-    ctrlKey: false,
-  });
 
 test("renaming labels the check's flag and the label wins", async () => {
   await show();
@@ -253,10 +254,7 @@ test("a note being typed stays open when its check ticks out of the filter", asy
   await show();
   await screen.findByText("Kokiri Forest");
   fireEvent.click(screen.getByRole("button", { name: "Remaining" }));
-  fireEvent.pointerDown(screen.getByLabelText("Mark Front left"), {
-    button: 0,
-    ctrlKey: false,
-  });
+  await openMenu("Front left");
   fireEvent.click(await screen.findByText("Note…"));
   fireEvent.change(await screen.findByLabelText("Note"), {
     target: { value: "under the sign" },
@@ -308,7 +306,6 @@ test("doors show ? until found, a pick until then, and found over a pick", async
   expect(await screen.findByText("1/2")).toBeTruthy();
   expect(screen.queryByText("?")).toBeNull();
   expect(screen.queryByLabelText("Pick FakeArea, Deku Tree door")).toBeNull();
-  backend.state = { ...backend.state, doors: [] };
 });
 
 test("a pick is saved on the seed and shown", async () => {
@@ -326,7 +323,6 @@ test("a pick is saved on the seed and shown", async () => {
     expect(checksPick).toHaveBeenCalledWith(7, "deku-tree", "fire-temple"),
   );
   await waitFor(() => expect(screen.getAllByText("?")).toHaveLength(1));
-  backend.state = { ...backend.state, doors: [] };
 });
 
 // Last, since it leaves the store without a seed.

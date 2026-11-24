@@ -1,5 +1,10 @@
 [
   {
+    "class": "progression",
+    "id": 133,
+    "name": "Adult's Wallet"
+  },
+  {
     "class": "filler",
     "id": 1,
     "name": "Arrows (10)"
@@ -13,6 +18,21 @@
     "class": "filler",
     "id": 3,
     "name": "Arrows (5)"
+  },
+  {
+    "class": "progression",
+    "id": 134,
+    "name": "Big Bomb Bag"
+  },
+  {
+    "class": "progression",
+    "id": 135,
+    "name": "Big Bullet Bag"
+  },
+  {
+    "class": "progression",
+    "id": 136,
+    "name": "Big Quiver"
   },
   {
     "class": "progression",
@@ -33,6 +53,11 @@
     "class": "filler",
     "id": 113,
     "name": "Bomb"
+  },
+  {
+    "class": "progression",
+    "id": 137,
+    "name": "Bomb Bag"
   },
   {
     "class": "progression",
@@ -101,6 +126,11 @@
   },
   {
     "class": "filler",
+    "id": 138,
+    "name": "Deku Nut Bag (30)"
+  },
+  {
+    "class": "filler",
     "id": 8,
     "name": "Deku Nuts (3)"
   },
@@ -118,6 +148,11 @@
     "class": "filler",
     "id": 115,
     "name": "Deku Stick"
+  },
+  {
+    "class": "filler",
+    "id": 139,
+    "name": "Deku Stick Bag (20)"
   },
   {
     "class": "filler",
@@ -156,6 +191,11 @@
   },
   {
     "class": "progression",
+    "id": 140,
+    "name": "Double Magic"
+  },
+  {
+    "class": "progression",
     "id": 43,
     "name": "Epona's Song"
   },
@@ -173,6 +213,21 @@
     "class": "filler",
     "id": 116,
     "name": "Fairy"
+  },
+  {
+    "class": "progression",
+    "id": 141,
+    "name": "Fairy Bow"
+  },
+  {
+    "class": "progression",
+    "id": 142,
+    "name": "Fairy Ocarina"
+  },
+  {
+    "class": "progression",
+    "id": 143,
+    "name": "Fairy Slingshot"
   },
   {
     "class": "filler",
@@ -230,6 +285,11 @@
     "name": "Giant's Knife"
   },
   {
+    "class": "progression",
+    "id": 144,
+    "name": "Giant's Wallet"
+  },
+  {
     "class": "filler",
     "id": 11,
     "name": "Gold Rupee (200)"
@@ -241,8 +301,23 @@
   },
   {
     "class": "progression",
+    "id": 145,
+    "name": "Golden Gauntlets"
+  },
+  {
+    "class": "progression",
+    "id": 146,
+    "name": "Golden Scale"
+  },
+  {
+    "class": "progression",
     "id": 47,
     "name": "Goron Tunic"
+  },
+  {
+    "class": "progression",
+    "id": 147,
+    "name": "Goron's Bracelet"
   },
   {
     "class": "filler",
@@ -258,6 +333,11 @@
     "class": "filler",
     "id": 75,
     "name": "Heart Container"
+  },
+  {
+    "class": "progression",
+    "id": 148,
+    "name": "Hookshot"
   },
   {
     "class": "progression",
@@ -331,6 +411,11 @@
   },
   {
     "class": "progression",
+    "id": 149,
+    "name": "Longshot"
+  },
+  {
+    "class": "progression",
     "id": 76,
     "name": "Magic Bean"
   },
@@ -338,11 +423,6 @@
     "class": "filler",
     "id": 19,
     "name": "Magic Jar"
-  },
-  {
-    "class": "progression",
-    "id": 34,
-    "name": "Magic Meter"
   },
   {
     "class": "progression",
@@ -373,6 +453,11 @@
     "class": "progression",
     "id": 52,
     "name": "Nocturne of Shadow"
+  },
+  {
+    "class": "progression",
+    "id": 150,
+    "name": "Ocarina of Time"
   },
   {
     "class": "progression",
@@ -408,56 +493,6 @@
     "class": "progression",
     "id": 82,
     "name": "Prescription"
-  },
-  {
-    "class": "progression",
-    "id": 23,
-    "name": "Progressive Bomb Bag"
-  },
-  {
-    "class": "progression",
-    "id": 24,
-    "name": "Progressive Bow"
-  },
-  {
-    "class": "useful",
-    "id": 25,
-    "name": "Progressive Deku Nut Bag"
-  },
-  {
-    "class": "useful",
-    "id": 26,
-    "name": "Progressive Deku Stick Bag"
-  },
-  {
-    "class": "progression",
-    "id": 27,
-    "name": "Progressive Hookshot"
-  },
-  {
-    "class": "progression",
-    "id": 28,
-    "name": "Progressive Ocarina"
-  },
-  {
-    "class": "progression",
-    "id": 54,
-    "name": "Progressive Scale"
-  },
-  {
-    "class": "progression",
-    "id": 29,
-    "name": "Progressive Slingshot"
-  },
-  {
-    "class": "progression",
-    "id": 30,
-    "name": "Progressive Strength Upgrade"
-  },
-  {
-    "class": "progression",
-    "id": 55,
-    "name": "Progressive Wallet"
   },
   {
     "class": "filler",
@@ -508,6 +543,16 @@
     "class": "filler",
     "id": 105,
     "name": "Shadow Temple Map"
+  },
+  {
+    "class": "progression",
+    "id": 151,
+    "name": "Silver Gauntlets"
+  },
+  {
+    "class": "progression",
+    "id": 152,
+    "name": "Silver Scale"
   },
   {
     "class": "filler",
@@ -591,8 +636,23 @@
   },
   {
     "class": "progression",
-    "id": 121,
-    "name": "Progressive Bombchu Bag"
+    "id": 34,
+    "name": "Magic Meter"
+  },
+  {
+    "class": "progression",
+    "id": 153,
+    "name": "Bombchu Bag (20)"
+  },
+  {
+    "class": "progression",
+    "id": 122,
+    "name": "Bombchu Bag (30)"
+  },
+  {
+    "class": "progression",
+    "id": 123,
+    "name": "Bombchu Bag (40)"
   },
   {
     "class": "filler",
@@ -633,6 +693,61 @@
     "class": "progression",
     "id": 131,
     "name": "Mask of Truth"
+  },
+  {
+    "class": "progression",
+    "id": 23,
+    "name": "Progressive Bomb Bag"
+  },
+  {
+    "class": "progression",
+    "id": 121,
+    "name": "Progressive Bombchu Bag"
+  },
+  {
+    "class": "progression",
+    "id": 24,
+    "name": "Progressive Bow"
+  },
+  {
+    "class": "useful",
+    "id": 25,
+    "name": "Progressive Deku Nut Bag"
+  },
+  {
+    "class": "useful",
+    "id": 26,
+    "name": "Progressive Deku Stick Bag"
+  },
+  {
+    "class": "progression",
+    "id": 27,
+    "name": "Progressive Hookshot"
+  },
+  {
+    "class": "progression",
+    "id": 28,
+    "name": "Progressive Ocarina"
+  },
+  {
+    "class": "progression",
+    "id": 54,
+    "name": "Progressive Scale"
+  },
+  {
+    "class": "progression",
+    "id": 29,
+    "name": "Progressive Slingshot"
+  },
+  {
+    "class": "progression",
+    "id": 30,
+    "name": "Progressive Strength Upgrade"
+  },
+  {
+    "class": "progression",
+    "id": 55,
+    "name": "Progressive Wallet"
   },
   {
     "class": "trap",

@@ -29,7 +29,8 @@ afterEach(() => {
 const button = (name: string | RegExp) =>
   screen.getByRole("button", { name }) as HTMLButtonElement;
 
-/** Spies on generate, answering a seed. Its steps need the IPC. */
+/** Spies on generate, answering an error so the run ends at once. Its
+ * steps need the IPC. */
 function spyGenerate() {
   mockIPC(() => {});
   return vi

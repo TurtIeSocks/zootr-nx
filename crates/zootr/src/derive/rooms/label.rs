@@ -4,6 +4,7 @@
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 
+use super::Segment;
 use crate::nav::graph::{Arc, Cross, Graph, Via, dist};
 use crate::warp::Placement;
 
@@ -34,7 +35,7 @@ impl Ord for Far {
 
 /// The path an arc takes: face to face across a shared edge (a shutter in
 /// the doorway sits on it), or a link's own ends.
-pub(super) fn path_of(graph: &Graph, from: usize, arc: &Arc) -> ([f32; 3], [f32; 3]) {
+pub(super) fn path_of(graph: &Graph, from: usize, arc: &Arc) -> Segment {
     match arc.cross {
         Cross::Edge(_) => (graph.centers[from], graph.centers[arc.to]),
         Cross::Link { from: a, to: b, .. } => (a, b),
@@ -68,12 +69,12 @@ pub(super) fn label(
     // One way, against the arc: who gets to each face with nothing in the way.
     let mut back: Vec<Vec<usize>> = vec![vec![]; n];
     let mut join = |a: usize, b: usize, open: bool| {
+        all[a].push(b);
+        all[b].push(a);
         if open {
+            near[a].push(b);
+            near[b].push(a);
             back[b].push(a);
-        }
-        for list in [&mut all].into_iter().chain(open.then_some(&mut near)) {
-            list[a].push(b);
-            list[b].push(a);
         }
     };
     for (from, arcs) in graph.arcs.iter().enumerate() {
@@ -108,8 +109,7 @@ pub(super) fn label(
     let seeds: Vec<([f32; 3], u32)> = (placed.iter())
         .filter_map(|p| Some((p.pose.at, *rooms.get(&p.hash?)?)))
         .collect();
-    for at in doorway_seeds(&seeds) {
-        let (at, room) = at;
+    for (at, room) in doorway_seeds(&seeds) {
         // On the navmesh: a door's leaf stands where the collision floors
         // run on through the doorway, on whichever side.
         let Some(snap) = graph.locate_where(at, |f| f < first_floor) else {
@@ -254,6 +254,9 @@ fn spread(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::nav::fixture::{mesh, quad};
+    use crate::nav::graph;
+    use crate::warp::Pose;
 
     #[test]
     fn collision_floor_that_never_leads_back_to_its_room_is_in_none() {
@@ -266,9 +269,6 @@ mod tests {
         let room = vec![Some(1), Some(2), Some(1), Some(1)];
         assert_eq!(homeward(&room, &back, 2), vec![true, true, false, false]);
     }
-    use crate::nav::fixture::{mesh, quad};
-    use crate::nav::graph;
-    use crate::warp::Pose;
 
     fn tag(hash: u64, at: [f32; 3]) -> Placement {
         Placement {

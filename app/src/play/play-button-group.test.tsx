@@ -75,6 +75,13 @@ test("with two targets, the menu picks between them", () => {
   expect(menu()).toBeTruthy();
 });
 
+/** A build whose hook patch changed, that the app can rebuild. */
+const STALE: Build = {
+  status: { kind: "stale" },
+  text: "FakeOne needs a rebuild: its hook patch changed since the last build",
+  command: true,
+};
+
 /** The status of FakeOne's game, built with `build`. */
 function built(build: Build) {
   useSeeds.setPath("status", {
@@ -89,11 +96,7 @@ test("Play on a stale target asks first, and Play anyway starts it", () => {
   const play = vi
     .spyOn(commands, "play")
     .mockResolvedValue({ status: "ok", data: null });
-  built({
-    status: { kind: "stale" },
-    text: "FakeOne needs a rebuild: its hook patch changed since the last build",
-    command: true,
-  });
+  built(STALE);
   show("FakeOne");
   fireEvent.click(screen.getByRole("button", { name: "Play FakeOne" }));
   expect(screen.getByText("Rebuild FakeOne first?")).toBeTruthy();
@@ -133,11 +136,7 @@ function rebuildAndPlay(
   const play = vi
     .spyOn(commands, "play")
     .mockResolvedValue({ status: "ok", data: null });
-  built({
-    status: { kind: "stale" },
-    text: "FakeOne needs a rebuild: its hook patch changed since the last build",
-    command: true,
-  });
+  built(STALE);
   show("FakeOne");
   fireEvent.click(screen.getByRole("button", { name: "Play FakeOne" }));
   fireEvent.click(screen.getByRole("button", { name: "Rebuild and Play" }));

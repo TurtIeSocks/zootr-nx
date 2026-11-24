@@ -223,16 +223,15 @@ interface RowActionsProps {
 /** A row's buttons, over the trailing edge while it's hovered or focused.
  * Mute only while recording, since it asks the session. */
 function RowActions({ row }: RowActionsProps) {
-  const { copied, flash } = useCopied();
+  const { copied, copy } = useCopied();
   const { run } = useRequest();
   const [state] = useLive.usePath("status.state");
-  const copy = async () => {
-    await navigator.clipboard.writeText(lineOf(row));
-    flash("row");
-  };
   return (
     <span className="absolute inset-y-0 right-2 flex items-center gap-0.5 bg-surface-hover pl-2 group-data-selected/row:bg-primary-soft opacity-0 transition-opacity duration-(--duration-fast) focus-within:opacity-100 group-hover/row:opacity-100">
-      <RowButton label={copied ? "Copied" : "Copy row"} onClick={copy}>
+      <RowButton
+        label={copied ? "Copied" : "Copy row"}
+        onClick={() => copy("row", lineOf(row))}
+      >
         {copied ? <Check /> : <Copy />}
       </RowButton>
       {state === "Recording" && (

@@ -20,6 +20,8 @@ const GET_EVENT: &Name = field::GET_EVENT_NAME;
 pub const CHECK_ACTOR: &Name = field::DROP_CHECK_ACTOR;
 pub const SUBSTITUTE: &Name = field::DROP_DROP_ACTOR_SUBSTITUTE;
 pub const GYAML: &str = "Gyaml";
+/// A placement's own params.
+pub const DYNAMIC: &str = "Dynamic";
 /// Where a placement stands, `[x, y, z]`.
 pub const TRANSLATE: &str = "Translate";
 /// Big chests and the small chest each becomes.
@@ -125,7 +127,8 @@ pub fn str_field<'a>(map: &'a Byml, key: &str) -> Option<&'a str> {
         .map(|s| s.as_str())
 }
 
-/// Swap every string `from` in `byml` for `to`. Returns how many.
+/// Swap every string value `from` in `map` for `to`, keys left as they
+/// are. Returns how many.
 pub(crate) fn swap_strings(map: &mut BymlMap, from: &str, to: &str) -> usize {
     fn walk(b: &mut Byml, from: &str, to: &str) -> usize {
         match b {
@@ -143,7 +146,7 @@ pub(crate) fn swap_strings(map: &mut BymlMap, from: &str, to: &str) -> usize {
 
 /// The dungeon room `actor` names, if it names one.
 pub fn room_of(actor: &Byml) -> Option<u32> {
-    let dynamic = actor.as_map().ok()?.get("Dynamic")?;
+    let dynamic = actor.as_map().ok()?.get(DYNAMIC)?;
     let room = dynamic
         .as_map()
         .ok()?
@@ -185,7 +188,7 @@ fn read_rooms(romfs: &Romfs) -> Result<(Vec<ItemCheck>, HashMap<u64, u32>)> {
     for (file, doc) in bancs(romfs)? {
         let doc = doc?;
         for actor in actors(&doc.root)? {
-            let Some(dynamic) = actor.as_map()?.get("Dynamic") else {
+            let Some(dynamic) = actor.as_map()?.get(DYNAMIC) else {
                 continue;
             };
             let Some(drop) = str_field(dynamic, DROP_ACTOR) else {
@@ -298,12 +301,13 @@ pub fn set_drops(
             continue;
         };
         let gyaml = str_field(actor, GYAML).unwrap_or_default();
-        let bake = match gyaml.ends_with(NO_BAKE) {
-            true => NO_BAKE,
-            false => "",
+        let bake = if gyaml.ends_with(NO_BAKE) {
+            NO_BAKE
+        } else {
+            ""
         };
         let guarded = gyaml.starts_with(&**SUBSTITUTE_CHEST);
-        let Some(dynamic) = actor.as_mut_map()?.get_mut("Dynamic") else {
+        let Some(dynamic) = actor.as_mut_map()?.get_mut(DYNAMIC) else {
             continue;
         };
         if str_field(dynamic, DROP_ACTOR).is_none() {
@@ -387,7 +391,7 @@ fn clear_dynamic(root: &mut Byml, of: impl Fn(&u64) -> bool, key: &Name) -> Resu
         let Some(hash) = hash_of(actor).filter(&of) else {
             continue;
         };
-        let Some(dynamic) = actor.as_mut_map()?.get_mut("Dynamic") else {
+        let Some(dynamic) = actor.as_mut_map()?.get_mut(DYNAMIC) else {
             continue;
         };
         if dynamic.as_mut_map()?.remove(&**key).is_some() {
@@ -397,9 +401,20 @@ fn clear_dynamic(root: &mut Byml, of: impl Fn(&u64) -> bool, key: &Name) -> Resu
     Ok(changed)
 }
 
-/// A hand-set placement field, `HASH.PATH=VALUE`: the placement, the field
-/// path under it like `Gyaml` or `Dynamic.Drop__DropActor`, and the string.
-pub fn field(arg: &str) -> Result<(u64, Vec<&str>, &str, bool)> {
+/// A hand-set placement field, `HASH.PATH=VALUE` or `HASH.PATH+=AMOUNT`.
+#[derive(Debug, PartialEq)]
+pub struct FieldEdit<'a> {
+    /// The placement.
+    pub hash: u64,
+    /// The field path under it, like `Gyaml` or `Dynamic.Drop__DropActor`.
+    pub path: Vec<&'a str>,
+    pub value: &'a str,
+    /// `+=`: raise the number there by `value` instead of setting it.
+    pub raise: bool,
+}
+
+/// Parse a hand-set placement field.
+pub fn parse_field(arg: &str) -> Result<FieldEdit<'_>> {
     let (left, value) = arg
         .split_once('=')
         .context("fields look like HASH.PATH=VALUE")?;
@@ -414,7 +429,12 @@ pub fn field(arg: &str) -> Result<(u64, Vec<&str>, &str, bool)> {
         .with_context(|| format!("{hash} isn't a placement hash"))?;
     let path: Vec<&str> = path.collect();
     ensure!(!path.is_empty(), "{arg} names no field after the hash");
-    Ok((hash, path, value, raise))
+    Ok(FieldEdit {
+        hash,
+        path,
+        value,
+        raise,
+    })
 }
 
 /// Set each of `fields` on the actor it names, making any map on its path.
@@ -424,14 +444,17 @@ pub fn field(arg: &str) -> Result<(u64, Vec<&str>, &str, bool)> {
 pub fn set_fields(root: &mut Byml, fields: &[String]) -> Result<Vec<u64>> {
     let fields = fields
         .iter()
-        .map(|f| field(f))
+        .map(|f| parse_field(f))
         .collect::<Result<Vec<_>>>()?;
     let mut changed = Vec::new();
     for actor in actors_mut(root)? {
         let Some(hash) = hash_of(actor) else {
             continue;
         };
-        for (_, path, value, raise) in fields.iter().filter(|f| f.0 == hash) {
+        for FieldEdit {
+            path, value, raise, ..
+        } in fields.iter().filter(|f| f.hash == hash)
+        {
             if *raise {
                 let by = value
                     .parse()
@@ -618,11 +641,16 @@ mod tests {
 
     #[test]
     fn field_needs_a_hash_and_a_path() {
-        assert!(field("Gyaml=X").is_err());
-        assert!(field("1=X").is_err());
+        assert!(parse_field("Gyaml=X").is_err());
+        assert!(parse_field("1=X").is_err());
         assert_eq!(
-            field("1.Dynamic.A=B").unwrap(),
-            (1, vec!["Dynamic", "A"], "B", false)
+            parse_field("1.Dynamic.A=B").unwrap(),
+            FieldEdit {
+                hash: 1,
+                path: vec!["Dynamic", "A"],
+                value: "B",
+                raise: false,
+            }
         );
     }
 

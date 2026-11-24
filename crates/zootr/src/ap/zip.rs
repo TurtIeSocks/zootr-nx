@@ -59,8 +59,12 @@ pub fn files(data: &[u8]) -> Result<HashMap<String, Vec<u8>>> {
         let file = match method {
             0 => raw.to_vec(),
             8 => {
-                let mut file = Vec::with_capacity(size);
-                flate2::read::DeflateDecoder::new(raw).read_to_end(&mut file)?;
+                // The sizes come from the file: deflate packs at most 1032 to
+                // one, and one byte past `size` is enough to call it wrong.
+                let mut file = Vec::with_capacity(size.min(raw.len().saturating_mul(1032)));
+                flate2::read::DeflateDecoder::new(raw)
+                    .take(size as u64 + 1)
+                    .read_to_end(&mut file)?;
                 file
             }
             m => bail!("{name} is packed with method {m}, which isn't read"),
@@ -69,4 +73,80 @@ pub fn files(data: &[u8]) -> Result<HashMap<String, Vec<u8>>> {
         out.insert(name, file);
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Write;
+
+    use super::*;
+
+    /// A zip of one file named `a`, as `method` packs `packed`, claiming
+    /// `size` bytes unpacked.
+    fn one_file(method: u16, packed: &[u8], size: u32) -> Vec<u8> {
+        let le16 = |v: u16| v.to_le_bytes();
+        let le32 = |v: u32| v.to_le_bytes();
+        let len = u32::try_from(packed.len()).unwrap();
+        let mut zip = Vec::new();
+        zip.extend(le32(LOCAL));
+        zip.extend([0; 4]);
+        zip.extend(le16(method));
+        zip.extend([0; 8]);
+        zip.extend(le32(len));
+        zip.extend(le32(size));
+        zip.extend(le16(1));
+        zip.extend(le16(0));
+        zip.push(b'a');
+        zip.extend(packed);
+        let directory = u32::try_from(zip.len()).unwrap();
+        zip.extend(le32(ENTRY));
+        zip.extend([0; 6]);
+        zip.extend(le16(method));
+        zip.extend([0; 8]);
+        zip.extend(le32(len));
+        zip.extend(le32(size));
+        zip.extend(le16(1));
+        zip.extend([0; 12]);
+        zip.extend(le32(0));
+        zip.push(b'a');
+        let directory_len = u32::try_from(zip.len()).unwrap() - directory;
+        zip.extend(le32(END));
+        zip.extend([0; 4]);
+        zip.extend(le16(1));
+        zip.extend(le16(1));
+        zip.extend(le32(directory_len));
+        zip.extend(le32(directory));
+        zip.extend(le16(0));
+        zip
+    }
+
+    fn deflate(data: &[u8]) -> Vec<u8> {
+        let mut enc =
+            flate2::write::DeflateEncoder::new(Vec::new(), flate2::Compression::default());
+        enc.write_all(data).unwrap();
+        enc.finish().unwrap()
+    }
+
+    #[test]
+    fn a_stored_and_a_deflated_file_read_back() {
+        let stored = files(&one_file(0, b"hi", 2)).unwrap();
+        assert_eq!(stored["a"], b"hi");
+        let data = [7u8; 300];
+        let deflated = files(&one_file(8, &deflate(&data), 300)).unwrap();
+        assert_eq!(deflated["a"], data);
+    }
+
+    #[test]
+    fn a_cut_short_zip_is_refused() {
+        let zip = one_file(0, b"hi", 2);
+        for len in 0..zip.len() {
+            assert!(files(&zip[..len]).is_err(), "cut at {len}");
+        }
+    }
+
+    #[test]
+    fn a_file_that_unpacks_past_its_size_is_refused() {
+        let zip = one_file(8, &deflate(&[7u8; 4096]), 10);
+        assert!(files(&zip).is_err());
+    }
 }

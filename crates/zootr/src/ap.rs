@@ -81,6 +81,7 @@ pub const OPTIONS: &[&str] = &[
     "hives",
     "shuffle-masks",
     "ice-traps",
+    "progressive-items",
 ];
 
 /// Every setting the world doesn't offer, and why: each one coming in a
@@ -98,7 +99,6 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
     ("shuffle-nut-bag", Later(CHECK_KINDS)),
     ("shuffle-stick-bag", Later(CHECK_KINDS)),
     ("magic-with-first-item", Later(COMFORT)),
-    ("progressive-items", Later(ITEM_POOL)),
     ("logic", Later(RULES)),
     ("starting-age", Later(RULES)),
     ("rainbow-bridge", Later(RULES)),
@@ -127,7 +127,6 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
 
 /// The queue's stages, as the app names them.
 const CHECK_KINDS: &str = "check kinds";
-const ITEM_POOL: &str = "the item pool";
 const RULES: &str = "goal and rules";
 const KEYS: &str = "keys";
 const COMFORT: &str = "comfort";
