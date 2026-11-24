@@ -1,7 +1,8 @@
 //! Placed actors that hold an item as a check without a chest: freestanding
 //! heart pieces, Gold Skulltulas, whose kill drops their token, the
 //! pots, crates, rocks, grass, hives and flying pots that drop something
-//! when broken, and the Gerudo thieves' keys. One
+//! when broken, the Gerudo thieves' keys, and the rupees and hearts lying
+//! loose, which no setting deals yet. One
 //! that holds something else gets a pickup for it, a stand-in built on a
 //! pickup that gives a major item when no `Obj_*` form exists.
 
@@ -221,6 +222,23 @@ pub const RUTOS_LETTER: Kind = Kind {
     named: None,
 };
 
+/// Rupees and Recovery Hearts lying in the open, each its own pickup. No
+/// setting deals them yet (EIE row 18, debt): they're here so the ledger
+/// lists them and derive gives each a room rule.
+pub const LOOSE: Kind = Kind {
+    actors: &[
+        actor::OBJ_RUPEE_GREEN,
+        actor::OBJ_RUPEE_BLUE,
+        actor::OBJ_RUPEE_RED,
+        actor::OBJ_RUPEE_PURPLE,
+        actor::OBJ_HEART,
+    ],
+    item: None,
+    field: GYAML,
+    needs: None,
+    named: None,
+};
+
 /// The holders Link breaks for what they drop.
 const BREAKABLE: [&Kind; 4] = [&POTS, &CRATES, &ROCKS, &GRASS];
 
@@ -232,7 +250,7 @@ fn any_holds(kinds: &[&Kind], holder: &str) -> bool {
 /// Whether the sweep takes what `holder` holds by walking up to it: a
 /// pickup lying in the open, which A takes, or one of [`BREAKABLE`].
 pub fn within_reach(holder: &str) -> bool {
-    any_holds(&[&FREESTANDING, &BOSS_HEARTS, &LOOSE_KEYS], holder) || broken(holder)
+    any_holds(&[&FREESTANDING, &BOSS_HEARTS, &LOOSE_KEYS, &LOOSE], holder) || broken(holder)
 }
 
 /// Whether `holder` is broken for what it drops: a pot, crate, rock or
@@ -241,7 +259,7 @@ pub fn broken(holder: &str) -> bool {
     any_holds(&BREAKABLE, holder)
 }
 
-const KINDS: [&Kind; 13] = [
+const KINDS: [&Kind; 14] = [
     &FREESTANDING,
     &SKULLTULAS,
     &BOSS_HEARTS,
@@ -255,6 +273,7 @@ const KINDS: [&Kind; 13] = [
     &LOOSE_KEYS,
     &FIRE_ARROWS,
     &RUTOS_LETTER,
+    &LOOSE,
 ];
 
 /// What a thief's key check is held by, in the spoiler.
@@ -311,7 +330,9 @@ impl Kind {
                 (*holder, gyaml)
             }
             None => {
-                let Some(item) = self.item.map(|i| i.get()).or(held).or(own) else {
+                // A placement that is its own pickup holds itself.
+                let itself = (self.field == GYAML).then_some(gyaml);
+                let Some(item) = self.item.map(|i| i.get()).or(held).or(own).or(itself) else {
                     return Ok(None);
                 };
                 (gyaml, item)
@@ -762,6 +783,23 @@ mod tests {
         assert!(fields.contains(&format!("{letter}.{GYAML}={}", actor::OBJ_SHIELD_HYLIAN)));
         builder.finish().unwrap();
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    /// Each rupee or heart lying loose is a check holding itself, and no
+    /// setting deals one yet.
+    #[test]
+    fn a_loose_rupee_or_heart_holds_itself_and_no_setting_deals_it() {
+        let Some(romfs) = dev_dump() else { return };
+        let loose = LOOSE.checks(&romfs).unwrap();
+        assert_eq!(loose.len(), 192);
+        assert!(loose.iter().all(|c| c.item == c.holder));
+        let every = NewGame::from_settings(&crate::ledger::every_shuffle(), &[]).unwrap();
+        assert!(
+            !dealt(&romfs, &every)
+                .unwrap()
+                .iter()
+                .any(|c| LOOSE.holds(c))
+        );
     }
 
     #[test]

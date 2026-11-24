@@ -35,6 +35,18 @@ why = "level gap 1.5 m: within a running jump (2.7 m); on terrain floor no live 
 guess = true
 
 [[check]]
+hash = 876976950103637140
+name = "Recovery Heart"
+needs = "always"
+why = "in reach from its room"
+
+[[check]]
+hash = 10973307894322368710
+name = "Recovery Heart"
+needs = "always"
+why = "in reach from its room"
+
+[[check]]
 hash = 16713240760352215634
 name = "Fire Temple Upper Compass Chest"
 needs = "always"
