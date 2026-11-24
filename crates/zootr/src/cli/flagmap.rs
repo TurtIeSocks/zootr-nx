@@ -82,11 +82,7 @@ pub(super) fn flagmap(romfs: &Romfs, query: FlagmapQuery, json: bool) -> Result<
         }
         FlagmapQuery::Trace { from, to } => said(&g.trace(g.find(&from)?, g.find(&to)?), json)?,
         FlagmapQuery::Source { edge } => {
-            let text = g.source(edge.trim_start_matches('#').parse()?)?;
-            match json {
-                true => serde_json::to_string(&text)?,
-                false => text,
-            }
+            said(&g.source(edge.trim_start_matches('#').parse()?)?, json)?
         }
         FlagmapQuery::Stats => said(&g.stats(), json)?,
         FlagmapQuery::Quests { name } => said(

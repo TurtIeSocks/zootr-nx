@@ -82,4 +82,13 @@ mod tests {
             4
         );
     }
+
+    #[test]
+    fn importing_a_name_another_slot_has_keeps_that_slots_target() {
+        let mut two = slotted().of_game("FakeHost-2");
+        let name = two.add_imported(target("FakeOne", None), &slotted());
+        assert_eq!(name, "FakeOne 2");
+        let saved = two.with_others(slotted(), "FakeHost-2");
+        assert!(names(&saved).contains(&"FakeOne"), "{:?}", names(&saved));
+    }
 }
