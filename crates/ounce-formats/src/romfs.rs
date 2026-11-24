@@ -77,24 +77,40 @@ fn split_stamp(name: &str) -> Option<(&str, &str)> {
 }
 
 /// Whether `name` is `want` but for its version stamp, which may be any.
-pub fn same_but_stamp(name: &str, want: &str) -> bool {
+fn same_but_stamp(name: &str, want: &str) -> bool {
     split_stamp(name).is_some_and(|parts| split_stamp(want) == Some(parts))
+}
+
+/// Of `names`, the one that is `want` but for its version stamp, the
+/// highest version if there are more (100 above 90).
+pub fn stamped_among<'a>(names: impl IntoIterator<Item = &'a str>, want: &str) -> Option<&'a str> {
+    let version = |n: &str| -> u32 {
+        let (head, tail) = split_stamp(n).unwrap_or_default();
+        n[head.len() + ".Product.".len()..n.len() - tail.len()]
+            .parse()
+            .unwrap_or_default()
+    };
+    (names.into_iter())
+        .filter(|n| same_but_stamp(n, want))
+        .max_by_key(|n| version(n))
 }
 
 /// `rel` as the romfs at `root` names it. Each build stamps some files
 /// with its version, and not all alike: 1.0.0's `Product.100` is
 /// `Product.110` or `Product.111` in 1.1.1. A stamped name `root` lacks is
-/// looked up in its folder under any stamp, the highest if there are more.
-/// Anything else, or a name no stamp finds, is `rel` as it is.
+/// looked up in its folder under any stamp ([`stamped_among`]). Anything
+/// else, or a name no stamp finds, is `rel` as it is.
 pub fn stamped<'a>(root: &Path, rel: &'a str) -> Cow<'a, str> {
     if split_stamp(rel).is_none() || root.join(rel).exists() {
         return Cow::Borrowed(rel);
     }
     let (dir, file) = rel.rsplit_once('/').unwrap_or(("", rel));
     let entries = std::fs::read_dir(root.join(dir)).into_iter().flatten();
-    let names = entries.filter_map(|e| e.ok()?.file_name().into_string().ok());
-    match names.filter(|n| same_but_stamp(n, file)).max() {
-        Some(found) if dir.is_empty() => Cow::Owned(found),
+    let names: Vec<String> = entries
+        .filter_map(|e| e.ok()?.file_name().into_string().ok())
+        .collect();
+    match stamped_among(names.iter().map(String::as_str), file) {
+        Some(found) if dir.is_empty() => Cow::Owned(found.into()),
         Some(found) => Cow::Owned(format!("{dir}/{found}")),
         None => Cow::Borrowed(rel),
     }

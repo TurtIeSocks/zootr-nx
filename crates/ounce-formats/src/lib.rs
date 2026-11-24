@@ -61,7 +61,7 @@ pub use par::{par_batches, par_map, threads};
 pub use rename::rename;
 pub use restbl::Restbl;
 pub use roead::byml::{Byml, Map as BymlMap};
-pub use romfs::{ModBuilder, Romfs, copy_mod, same_but_stamp, stamped};
+pub use romfs::{ModBuilder, Romfs, copy_mod, stamped, stamped_among};
 pub use sarc::replace_file;
 pub use save::{BOOL, Entry as SaveEntry, KEYED, Save, width as save_width};
 pub use shape_mesh::{Material, ShapeMesh};

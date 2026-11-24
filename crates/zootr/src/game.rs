@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use anyhow::{Context, Result, anyhow, bail};
 use nup_format::nso::Nso;
 use nup_format::{Kind, Node, Nup};
-use ounce_formats::{Romfs, files_with_suffix, murmur3, same_but_stamp};
+use ounce_formats::{Romfs, files_with_suffix, murmur3, stamped_among};
 use serde::{Deserialize, Serialize};
 
 use crate::plain::Plain;
@@ -158,11 +158,7 @@ fn stamped_in(nup: &Nup, dir: nup_format::Dir, rel: &str) -> String {
             _ => None,
         },
     };
-    let found = parent.and_then(|d| {
-        (nup.children(d).map(|n| nup.name(n)))
-            .filter(|n| same_but_stamp(n, file))
-            .max()
-    });
+    let found = parent.and_then(|d| stamped_among(nup.children(d).map(|n| nup.name(n)), file));
     match (found, rel.rsplit_once('/')) {
         (Some(f), Some((p, _))) => format!("{p}/{f}"),
         (Some(f), None) => f.into(),
