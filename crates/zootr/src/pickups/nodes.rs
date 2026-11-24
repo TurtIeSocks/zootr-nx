@@ -275,7 +275,7 @@ mod tests {
             }
         }
         // Two of them are loose rupees or hearts, which no setting deals yet.
-        assert_eq!((loud.len(), by_graph.len()), (108, 40));
+        assert_eq!((loud.len(), by_graph.len()), (94, 29));
         let donor = donor(&romfs).unwrap();
         for (graph, nodes) in &by_graph {
             let rel = format!("{LOGIC}/{graph}.ainb");

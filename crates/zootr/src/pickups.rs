@@ -746,7 +746,22 @@ mod tests {
         // read state and make the Skulltula and its web.
         assert_eq!(watched(&SKULLTULAS), (101, 3, 114));
         // Most watched pots sit in rooms whose groups set flags or play.
-        assert_eq!(watched(&POTS), (14, 47, 530));
+        assert_eq!(watched(&POTS), (25, 36, 530));
+    }
+
+    /// The Deku Tree's regrowing shrubs (rooms C and H) are watched quiet:
+    /// their modules write only their own autogen GameData. Watched loud,
+    /// a twin named beside its holder, kept out by its Presence, hung the
+    /// map's load (research: Fire Temple crate freeze).
+    #[test]
+    fn regrowing_grass_is_watched_quiet() {
+        let Some(romfs) = dev_dump() else { return };
+        let mut checks = GRASS.checks(&romfs).unwrap();
+        watch(&romfs, &mut checks).unwrap();
+        for hash in [12536486041203664147, 2540384747854371104] {
+            let check = checks.iter().find(|c| c.hash == hash).unwrap();
+            assert_eq!(check.watched, Watched::Quiet, "{hash}");
+        }
     }
 
     #[test]
