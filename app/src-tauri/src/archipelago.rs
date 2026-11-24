@@ -55,6 +55,10 @@ pub(crate) struct Ap(Mutex<Held>);
 struct Held {
     /// Dropped to stop the running client.
     stop: Option<Sender<()>>,
+    /// A run's thread hasn't ended yet, stopped or not. One stopped by
+    /// Disconnect can be mid-give for seconds, so no new run starts until it
+    /// ends: two on one game would give the same item twice.
+    running: bool,
     /// The latest run's number. A run stopped by Disconnect can still be
     /// winding down when the next one starts, and must leave it alone.
     run: u64,
@@ -63,13 +67,17 @@ struct Held {
 
 impl Ap {
     /// Start a run stopped by dropping `stop`, its number, unless one is
-    /// running.
+    /// running or still stopping.
     fn start(&self, stop: Sender<()>) -> Res<u64> {
         let mut held = self.0.lock().unwrap();
         if held.stop.is_some() {
             return Err("The client is already running".into());
         }
+        if held.running {
+            return Err("The last connection is still closing. Try again in a moment.".into());
+        }
         held.run += 1;
+        held.running = true;
         held.stop = Some(stop);
         held.state.log.clear();
         Ok(held.run)
@@ -127,7 +135,8 @@ impl Held {
     }
 
     /// Stop the client and forget its run. A new run number leaves the old
-    /// thread, still winding down, unable to write to the page.
+    /// thread, still winding down, unable to write to the page. It still
+    /// holds off the next run until it ends.
     fn reset(&mut self) -> ApEvent {
         self.stop = None;
         self.run += 1;
@@ -142,6 +151,8 @@ impl Held {
     /// `run` ended: it reads as disconnected unless it was refused. `None`
     /// when there's nothing to send, or a newer run owns the page now.
     fn end(&mut self, run: u64) -> Option<ApEvent> {
+        // Only one thread runs at a time, so this is the one that just ended.
+        self.running = false;
         if self.run != run {
             return None;
         }
@@ -225,13 +236,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_stopped_run_winding_down_leaves_the_next_one_alone() {
+    fn a_new_run_waits_for_the_stopped_one_to_end() {
         let ap = Ap::default();
         let (send, _old) = channel();
         let old = ap.start(send).unwrap();
         let (send, _) = channel();
         assert!(ap.start(send).is_err(), "one run at a time");
         ap.0.lock().unwrap().stop = None;
+        let (send, _) = channel();
+        assert!(
+            ap.start(send).is_err(),
+            "a stopped run winding down could still give an item"
+        );
+        let ended = ap.0.lock().unwrap().end(old).expect("an ended run says so");
+        assert!(ended.status == ApStatus::Offline);
+        assert_eq!(ended.line.as_deref(), Some("disconnected"));
         let (send, _new_stop) = channel();
         let new = ap.start(send).unwrap();
         let mut held = ap.0.lock().unwrap();
@@ -239,18 +258,8 @@ mod tests {
             held.say(new, Some(ApStatus::Connected), Some("in".into()))
                 .is_some()
         );
-        assert!(
-            held.say(old, Some(ApStatus::Connecting), Some("lost".into()))
-                .is_none()
-        );
-        assert!(held.end(old).is_none());
-        assert!(held.stop.is_some(), "the new run still runs");
-        assert!(held.state.status == ApStatus::Connected);
+        assert!(held.say(old, Some(ApStatus::Connecting), None).is_none());
         assert_eq!(held.state.log, ["in"]);
-        let ended = held.end(new).expect("an ended run says so");
-        assert!(ended.status == ApStatus::Offline);
-        assert_eq!(ended.line.as_deref(), Some("disconnected"));
-        assert!(held.stop.is_none());
     }
 
     #[test]
@@ -267,8 +276,13 @@ mod tests {
         assert!(held.state.status == ApStatus::Offline);
         assert!(held.state.log.is_empty());
         assert!(held.say(run, Some(ApStatus::Connected), None).is_none());
-        assert!(held.end(run).is_none(), "the old run can't write back");
         drop(held);
+        let (send, _) = channel();
+        assert!(ap.start(send).is_err(), "the old run is still winding down");
+        assert!(
+            ap.0.lock().unwrap().end(run).is_none(),
+            "the old run can't write back"
+        );
         let (send, _stop) = channel();
         assert!(ap.start(send).is_ok(), "a new seed can connect");
     }

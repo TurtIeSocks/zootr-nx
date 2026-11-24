@@ -51,11 +51,12 @@ pub trait Game {
 }
 
 /// The seed's AP ids: each free check's location, each item's actor.
-/// And whether the slot plays DeathLink.
+/// And whether the slot plays DeathLink, and the world that wrote it.
 pub struct Book {
     locations: HashMap<u64, i64>,
     actors: HashMap<i64, String>,
     death_link: bool,
+    world_version: String,
 }
 
 impl Book {
@@ -75,6 +76,7 @@ impl Book {
             locations,
             actors,
             death_link: seed.death_link,
+            world_version: seed.world_version.clone(),
         })
     }
 
@@ -347,6 +349,11 @@ fn session(
         for event in conn.update() {
             match event {
                 ap::Event::Connected => {
+                    if let ConnectionState::Connected(client) = conn.state()
+                        && let Err(e) = super::check_room(client.slot_data(), &book.world_version)
+                    {
+                        return End::Refused(e.to_string());
+                    }
                     connected = true;
                     ledger.reset();
                     note(Note::Connected);
@@ -510,6 +517,7 @@ pub fn installed(romfs: &Romfs, gd: Arc<GameData>, target: Target) -> Result<Ins
     let entry = history.get(history.installed.context("no seed is installed")?)?;
     let seed =
         (entry.extras.ap.as_ref()).context("the installed seed isn't one from Archipelago")?;
+    seed.check_version()?;
     Ok(Installed {
         book: Book::new(romfs, seed)?,
         game: Live::new(target, gd, &entry.report.spots)?,
@@ -673,6 +681,7 @@ pub(super) mod tests {
             locations: [(10, 100), (20, 200)].into(),
             actors: [(1, "Item_FakeBow".into()), (2, "Item_FakeHook".into())].into(),
             death_link: false,
+            world_version: String::new(),
         }
     }
 
