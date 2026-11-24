@@ -23,15 +23,33 @@ for entry in OPTIONS:
         name = f"Test_{attr(entry['id'])}_{value}"
         globals()[name] = type(name, (ZnxTestBase,), {"options": {attr(entry["id"]): value}})
 
-# The options that change the checks together (`ap::JOINT`), every
-# combination with NPC Gifts on: Met Zelda keeps Zelda's Letter ✅ out,
-# Freed the membership card's, Cows lose their milk to the bottle cap.
-JOINT = ["met-zelda", "gerudo-fortress", "cows"]
-JOINT_ENTRIES = [next(entry for entry in OPTIONS if entry["id"] == id_) for id_ in JOINT]
-for combo in product(*([ap_value(e["id"], e["default"]), *other_values(e)] for e in JOINT_ENTRIES)):
-    options = {"npc_gifts": True, **{attr(id_): value for id_, value in zip(JOINT, combo)}}
-    name = "Test_npc_gifts_" + "_".join(str(value) for value in combo)
-    globals()[name] = type(name, (ZnxTestBase,), {"options": options})
+# The options that change the checks or the pool together (`ap::JOINT`,
+# which the export writes as each option's `joint` group), every
+# combination of every value: Met Zelda keeps Zelda's Letter ✅ out with NPC
+# Gifts, Freed the membership card's, Cows lose their milk to the bottle
+# cap, and Progressive Items names a line's levels by what the starter bag
+# and Magic Meter options keep.
+JOINT = {}
+for entry in OPTIONS:
+    if "joint" in entry:
+        JOINT.setdefault(entry["joint"], []).append(entry)
+for group, entries in sorted(JOINT.items()):
+    values = [[ap_value(e["id"], e["default"]), *other_values(e)] for e in entries]
+    for combo in product(*values):
+        options = {attr(e["id"]): value for e, value in zip(entries, combo)}
+        name = f"Test_joint_{group}_" + "_".join(str(value) for value in combo)
+        globals()[name] = type(name, (ZnxTestBase,), {"options": options})
+
+
+class TestTheExportNamesItsJointGroups(unittest.TestCase):
+    """The groups come from the export, not a list kept here: each one
+    combines at least two options, over every value of each."""
+
+    def test_groups(self) -> None:
+        self.assertGreaterEqual(len(JOINT), 2)
+        for entries in JOINT.values():
+            self.assertGreaterEqual(len(entries), 2)
+            self.assertTrue(all(e["kind"] in ("toggle", "choice") for e in entries))
 
 
 class TestANumberedChoiceTakesItsNumber(unittest.TestCase):
@@ -186,6 +204,38 @@ class TestProgressiveItemsOnDealsTheLine(ZnxTestBase):
         pool = self.multiworld.worlds[self.player].pool()
         self.assertEqual(pool["Progressive Hookshot"], 2)
         self.assertNotIn("Longshot", pool)
+
+
+class TestStartInventoryFromPoolOffInTheLineSpelling(ZnxTestBase):
+    """Off, a line's name counts as its first levels, so logic reads them."""
+
+    options = {
+        "progressive_items": False,
+        "start_inventory_from_pool": {"Progressive Slingshot": 1, "Progressive Hookshot": 2, "Magic Bean": 1},
+    }
+
+    def test_the_levels_are_what_starts(self) -> None:
+        start = self.multiworld.worlds[self.player].options.start_inventory_from_pool.value
+        self.assertEqual(start, {"Fairy Slingshot": 1, "Hookshot": 1, "Longshot": 1, "Magic Bean": 1})
+
+
+class TestStartInventoryFromPoolOnInTheLevelSpelling(ZnxTestBase):
+    """On, a level's name counts as the line's copies up to it, and the
+    higher level of two named holds the lower."""
+
+    options = {
+        "progressive_items": True,
+        "start_inventory_from_pool": {"Hookshot": 1, "Longshot": 1, "Fairy Slingshot": 1, "Magic Bean": 1},
+        "start_inventory": {"Big Bomb Bag": 1},
+    }
+
+    def test_the_line_s_copies_are_what_starts(self) -> None:
+        options = self.multiworld.worlds[self.player].options
+        self.assertEqual(
+            options.start_inventory_from_pool.value,
+            {"Progressive Hookshot": 2, "Progressive Slingshot": 1, "Magic Bean": 1},
+        )
+        self.assertEqual(options.start_inventory.value, {"Progressive Bomb Bag": 2})
 
 
 class TestIceTrapsTakeTheirShare(ZnxTestBase):

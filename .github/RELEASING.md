@@ -45,6 +45,10 @@ Commit messages pick the version, and `CHANGELOG.md` writes itself.
    others.
 5. Open the draft on the Releases page. Check every asset in the table above
    is there, then publish.
+6. Refresh `crates/zootr/src/ap/testdata/released.json`, which the
+   `ap::released` test holds the world's ids to: each check's name from
+   `world.json` and each item's name and class from `items.json`, as the
+   tag has them (`git show vX.Y.Z:ap/znx/data/...`).
 
 Publishing is what tells running copies of the app. Each one asks GitHub
 for the latest release at launch and every 6 hours, and shows its notes

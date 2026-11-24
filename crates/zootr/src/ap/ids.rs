@@ -31,7 +31,9 @@ impl Ids {
 
     /// `actor`'s id, or with `plain` its second: a line's first level goes
     /// by its line's name with progressive items on and its own with them
-    /// off (`names::levels`), and a name keeps one id.
+    /// off (`names::levels`), and a name keeps one id. The Magic Meter's two
+    /// are the other way round: a release shipped its plain name under the
+    /// first id (`ap::released`).
     pub fn item_as(&mut self, actor: &str, plain: bool) -> u64 {
         take(&mut self.items, item_key(actor, plain))
     }

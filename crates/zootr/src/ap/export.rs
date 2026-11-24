@@ -13,13 +13,13 @@ use serde_json::{Value, json};
 use super::rule::{self, Rules, all, any};
 use super::seed::{Dump, Everything, Seed, base, domains, open, values, variants};
 use super::when::{Counts, Domain, Variant, steps, word};
-use super::{OPTIONS, SETS, described, ids::Ids, names, offers};
+use super::{JOINT, OPTIONS, SETS, described, ids::Ids, names, offers};
 use crate::checks::ItemCheck;
 use crate::fill;
 use crate::logic::World;
 use crate::narrowing::allowed;
 use crate::rules::{Need, vocab};
-use crate::settings::{Kind, NewGame, SettingDef, Settings, schema};
+use crate::settings::{Kind, NewGame, PROGRESSIVE, SettingDef, Settings, schema};
 use crate::world::Era;
 
 /// Items that aren't progression but are worth more than filler.
@@ -137,7 +137,24 @@ pub fn export(romfs: &Romfs, ids: &str) -> Result<BTreeMap<&'static str, String>
         .collect();
     shrink::merge(&mut world, &lined);
     shrink::share(&mut world);
-    let golden = super::golden::golden(&settings, &set, &names, &ids)?;
+    // The golden pairs Progressive Items on with each other case's options
+    // too: the base holds it off, and so would every case but the joint
+    // group's.
+    let on = |s: &Settings| {
+        let mut on = s.clone();
+        on.insert(PROGRESSIVE.into(), true.into());
+        on
+    };
+    let twins: Vec<Settings> = settings
+        .iter()
+        .map(&on)
+        .filter(|t| !settings.contains(t))
+        .collect();
+    let twin_seeds: Vec<Seed> = par_map(&twins, |s| Seed::build_in(&dump, s, &Default::default()))
+        .into_iter()
+        .collect::<Result<_>>()?;
+    let cases = (settings.iter().chain(&twins)).zip(set.iter().chain(&twin_seeds));
+    let golden = super::golden::golden(cases, &names, &ids)?;
     let mut out = BTreeMap::new();
     out.insert("world.json", pretty(&world)?);
     out.insert("items.json", pretty(&Value::Array(items))?);
@@ -499,23 +516,30 @@ fn options() -> Value {
     let rows = OPTIONS
         .iter()
         .filter_map(|id| defs.iter().find(|d| d.id == *id));
-    let rows = rows.map(|d| match &d.kind {
-        Kind::Toggle { default } => json!({
-            "id": d.id, "label": d.label, "description": d.description,
-            "kind": "toggle", "default": default,
-        }),
-        Kind::Choice { default, options } => json!({
-            "id": d.id, "label": d.label, "description": described(&d.id, d.description),
-            "kind": "choice", "default": default,
-            "options": (options.iter())
-                .filter(|o| offers(&d.id, &o.id))
-                .map(|o| json!({ "id": o.id, "label": o.label, "forces": o.forces }))
-                .collect::<Vec<_>>(),
-        }),
-        Kind::Inventory { default } => json!({
-            "id": d.id, "label": d.label, "description": d.description,
-            "kind": "inventory", "default": default,
-        }),
+    let rows = rows.map(|d| {
+        let mut row = match &d.kind {
+            Kind::Toggle { default } => json!({
+                "id": d.id, "label": d.label, "description": d.description,
+                "kind": "toggle", "default": default,
+            }),
+            Kind::Choice { default, options } => json!({
+                "id": d.id, "label": d.label, "description": described(&d.id, d.description),
+                "kind": "choice", "default": default,
+                "options": (options.iter())
+                    .filter(|o| offers(&d.id, &o.id))
+                    .map(|o| json!({ "id": o.id, "label": o.label, "forces": o.forces }))
+                    .collect::<Vec<_>>(),
+            }),
+            Kind::Inventory { default } => json!({
+                "id": d.id, "label": d.label, "description": d.description,
+                "kind": "inventory", "default": default,
+            }),
+        };
+        // The group of options whose combinations the world's tests run.
+        if let Some(group) = JOINT.iter().position(|g| g.contains(&d.id.as_str())) {
+            row["joint"] = group.into();
+        }
+        row
     });
     let sets = SETS.iter().map(|set| {
         let members = set.members();
@@ -890,6 +914,28 @@ mod tests {
                 "{name} is stale: run `zootr ap export` and commit it"
             );
         }
+    }
+
+    /// The world reads its joint groups from the options, not a list of
+    /// its own: each member says which group it is in.
+    #[test]
+    fn each_joint_option_names_its_group() {
+        let options = options();
+        for (n, group) in JOINT.iter().enumerate() {
+            let named = (options.as_array().unwrap().iter()).filter(|o| o["joint"] == n);
+            let mut named: Vec<&str> = named.map(|o| o["id"].as_str().unwrap()).collect();
+            let mut want = group.to_vec();
+            named.sort();
+            want.sort();
+            assert_eq!(named, want, "group {n}");
+        }
+        let members: usize = JOINT.iter().map(|g| g.len()).sum();
+        let tagged = options
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|o| o.get("joint").is_some());
+        assert_eq!(tagged.count(), members);
     }
 
     #[test]
