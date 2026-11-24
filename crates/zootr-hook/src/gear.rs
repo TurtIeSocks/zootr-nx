@@ -79,9 +79,6 @@ pub fn child_armor(worn: &[u8], flags: u32) -> Option<usize> {
     found.filter(|_| child_gear(flags))
 }
 
-/// Whether the D-pad's Down icon takes Link for a child, from the HUD
-/// status's own answer (`child`): it hides the boots icon from a child.
-/// Not in a seed with [`CHILD_GEAR`], where he wears them too.
 /// Whether the equipment menu marks every Kokiri Tunic cell as worn,
 /// rather than testing each cell, for no armor worn (`empty`) and the
 /// game's `child` answer, in a seed with `flags`. The game does for a
@@ -114,6 +111,9 @@ fn kokiri(name: &[u8]) -> bool {
     hash == CHILD_ARMOR[2].worn || hash == ADULT_KOKIRI
 }
 
+/// Whether the D-pad's Down icon takes Link for a child, from the HUD
+/// status's own answer (`child`): it hides the boots icon from a child.
+/// Not in a seed with [`CHILD_GEAR`], where he wears them too.
 pub fn hud_child(child: bool, flags: u32) -> bool {
     child && !child_gear(flags)
 }

@@ -191,9 +191,8 @@ global_asm!(
     "mov w8, w0",
     "ldp x29, x30, [sp], #0x10",
     "ret",
-    // Far, as the rest of the gear stubs: they run only on an equip. In
-    // place of the equip refresh's call to GameData's string getter, with
-    // the equipment in x19 and its slot in w20.
+    // Far, as the rest of the gear stubs: they run only on an equip, or
+    // when the menu shows the equipment.
     ".pushsection .far, \"ax\"",
     // In place of each equipment creation's `bl` to the creator: saves the
     // creator's register args (its stack args stay put), asks `gear_create`
