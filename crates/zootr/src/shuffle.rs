@@ -13,7 +13,7 @@ use crate::rng::Rng;
 use crate::settings::{MET_ZELDA, NewGame};
 use crate::starter_bags;
 use crate::starting;
-use crate::{ammo, cows, gifts, presets, progressive};
+use crate::{ammo, cows, gifts, presets};
 
 /// One shuffled chest, for the spoiler log.
 #[derive(Clone, Copy)]
@@ -45,15 +45,30 @@ fn unique_chests(checks: &[ItemCheck], open: Let) -> Result<Vec<&ItemCheck>> {
 /// Plando: chest hash to the item it must hold.
 pub type Fixed = BTreeMap<u64, String>;
 
-/// Remove one `item` from `pool`, else one `fallback`, else any item. Keeps
-/// the pool one item per free chest whatever was placed. `from`, the
-/// check each slot came from, loses the same slot.
-fn take(pool: &mut Vec<&str>, from: &mut Vec<u64>, item: &str, fallback: &str) {
-    let at = pool.iter().position(|&i| i == item);
-    let at = at.or_else(|| pool.iter().position(|&i| i == fallback));
-    if let Some(at) = at.or(pool.len().checked_sub(1)) {
-        pool.swap_remove(at);
-        from.swap_remove(at);
+/// The pool's items, each with the check (by hash) its slot came from.
+struct Pool<'a> {
+    items: Vec<&'a str>,
+    from: Vec<u64>,
+}
+
+impl<'a> Pool<'a> {
+    /// One slot per check of `checks`, holding what `item` gives for it.
+    fn of(checks: &[&'a ItemCheck], item: impl Fn(&'a ItemCheck) -> &'a str) -> Self {
+        Self {
+            items: checks.iter().map(|&c| item(c)).collect(),
+            from: checks.iter().map(|c| c.hash).collect(),
+        }
+    }
+
+    /// Remove one `item`, else one `fallback`, else any item, with its
+    /// slot. Keeps the pool one item per free chest whatever was placed.
+    fn take(&mut self, item: &str, fallback: &str) {
+        let at = self.items.iter().position(|&i| i == item);
+        let at = at.or_else(|| self.items.iter().position(|&i| i == fallback));
+        if let Some(at) = at.or(self.items.len().checked_sub(1)) {
+            self.items.swap_remove(at);
+            self.from.swap_remove(at);
+        }
     }
 }
 
@@ -80,6 +95,10 @@ fn cap_bottles<'a>(items: &mut [&'a str], placed: impl Iterator<Item = &'a str>)
     }
 }
 
+/// Each starting item that left the pool, with the check (by hash) whose
+/// slot it left.
+pub type Started<'a> = Vec<(&'a str, u64)>;
+
 /// What a seed deals out.
 pub struct Deal<'a> {
     /// Plando placements.
@@ -92,7 +111,7 @@ pub struct Deal<'a> {
     pub items: Vec<&'a str>,
     /// Each starting item that left the pool, with the check (by hash)
     /// whose slot it left, for the spoiler's Start column.
-    pub started: Vec<(&'a str, u64)>,
+    pub started: Started<'a>,
     /// What settings add to the pool (`starter_bags::added`), at the
     /// level the pool holds each.
     pub added: Vec<&'a str>,
@@ -103,102 +122,21 @@ pub struct Deal<'a> {
 
 /// `fixed` placements, and the free checks with the items to deal them.
 pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -> Result<Deal<'a>> {
-    let lines = progressive::Lines::of(new_game);
-    let level = |item: &'a str| match new_game.progressive {
-        true => lines.first(item),
-        false => item,
+    let d = Dealer {
+        checks,
+        fixed,
+        new_game,
+        lines: Lines::of(new_game),
+        open: Let::of(new_game),
     };
-    let mut placed = Vec::new();
-    for (&hash, item) in fixed {
-        let check = checks.iter().find(|c| c.hash == hash);
-        let check = check.with_context(|| format!("no check with hash {hash}"))?;
-        let item = level(item);
-        if let Some(gift) = gifts::of(check).filter(|_| asks_at(check, item, new_game.progressive))
-        {
-            bail!(
-                "{} can't give {item}: what it gives depends on what Link has, and a gift can't check",
-                gift.giver
-            );
-        }
-        placed.push(Placement { check, item });
-    }
-    let open = Let::of(new_game);
-    // The story items a setting starts Link with stay at their checks, so
-    // the pool holds no second.
-    let mut pins = Vec::new();
-    for (hash, item) in gifts::pinned(&new_game.on) {
-        match fixed.get(&hash) {
-            Some(own) if own == item => continue,
-            Some(own) => bail!("check {hash} holds {item} with this game's settings, not {own}"),
-            None => {}
-        }
-        let check = checks
-            .iter()
-            .find(|c| c.hash == hash && shuffleable(c, open));
-        if let Some(check) = check {
-            placed.push(Placement { check, item });
-            pins.push(hash);
-        }
-    }
-    let placed_at = |hash: &u64| fixed.contains_key(hash) || pins.contains(hash);
-    // Gifts come in a fixed order, Saria's first, so they keep their own
-    // item rather than a line's first level they couldn't swap.
-    let own = |c: &'a ItemCheck| match gifts::is_gift(c) {
-        true => keys::pooled(c),
-        false => level(keys::pooled(c)),
-    };
-    // With chests kept, a gift that may not hold its own item keeps it
-    // too: only chests could take it off its hands.
-    let keeps = |c: &'a ItemCheck| {
-        let held = allowed(c, level(keys::pooled(c)), new_game.progressive);
-        new_game.keep_chests && (!gifts::is_gift(c) || !held) && !placed_at(&c.hash)
-    };
-    // Kept checks hold their own item, placed like plando's.
-    let (kept, chests): (Vec<_>, Vec<_>) =
-        (unique_chests(checks, open)?.into_iter()).partition(|c| keeps(c));
-    let mut items: Vec<_> = chests.iter().map(|c| keys::pooled(c)).collect();
-    let mut from: Vec<_> = chests.iter().map(|c| c.hash).collect();
-    for p in placed.iter().filter(|p| shuffleable(p.check, open)) {
-        take(&mut items, &mut from, p.item, keys::pooled(p.check));
-    }
-    let free: Vec<_> = chests.into_iter().filter(|c| !placed_at(&c.hash)).collect();
-    if new_game.vanilla {
-        items = free.iter().map(|c| own(c)).collect();
-        from = free.iter().map(|c| c.hash).collect();
-    } else {
-        items.iter_mut().for_each(|i| *i = level(i));
-    }
-    let added: Vec<_> = starter_bags::added(new_game)
-        .into_iter()
-        .map(level)
+    let mut placed = d.plando()?;
+    let pins = d.pin_story(&mut placed)?;
+    let (kept, free, mut pool) = d.pool(&placed, &pins)?;
+    let added: Vec<_> = (starter_bags::added(new_game).into_iter())
+        .map(|i| d.level(i))
         .collect();
-    let traded = starter_bags::swap_in(&mut items, &added);
-    // One swap over both, so a starting item leaves one spot either way.
-    let mut all: Vec<_> = kept.iter().map(|c| own(c)).collect();
-    all.append(&mut items);
-    let from: Vec<_> = kept.iter().map(|c| c.hash).chain(from).collect();
-    let mut owned = new_game.start.owned();
-    if new_game.on.contains(MET_ZELDA) {
-        // Met Zelda leaves nothing for the egg to wake.
-        owned.push(item::WEIRD_EGG.get());
-    }
-    let slots = starting::swap_out(&mut all, &owned, level);
-    let started = (owned.into_iter().zip(slots))
-        .filter_map(|(item, at)| Some((item, from[at?])))
-        .collect();
-    if new_game.on.contains(presets::KING_ZORA_MOVED) {
-        // Nothing reads the letter once King Zora has moved, so it's dealt
-        // as the bottle it comes in, as Ship does.
-        for i in all.iter_mut().filter(|i| **i == &**item::BOTTLE_LETTER) {
-            *i = &**item::BOTTLE;
-        }
-    }
-    let mut items = all.split_off(kept.len());
-    let kept = kept.into_iter().zip(all);
-    placed.extend(kept.map(|(check, item)| Placement { check, item }));
-    cap_bottles(&mut items, placed.iter().map(|p| p.item));
-    let fixed: Vec<_> = placed.iter().map(|p| p.item).collect();
-    keys::deal_copies(&mut items, new_game.keys, new_game.fortress_keys, &fixed)?;
+    let traded = starter_bags::swap_in(&mut pool.items, &added);
+    let (started, items) = d.finish(kept, pool, &mut placed)?;
     Ok(Deal {
         placed,
         free,
@@ -207,6 +145,155 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
         added,
         traded,
     })
+}
+
+/// Some checks, by reference.
+type Checks<'a> = Vec<&'a ItemCheck>;
+
+/// What a deal reads: the checks, plando's placements and the settings.
+struct Dealer<'a, 'n> {
+    checks: &'a [ItemCheck],
+    fixed: &'a Fixed,
+    new_game: &'n NewGame,
+    lines: Lines,
+    open: Let,
+}
+
+impl<'a> Dealer<'a, '_> {
+    /// `item` at the level the pool holds it: its line's first with
+    /// progressive items on.
+    fn level(&self, item: &'a str) -> &'a str {
+        match self.new_game.progressive {
+            true => self.lines.first(item),
+            false => item,
+        }
+    }
+
+    /// `c`'s own item as it's dealt. Gifts come in a fixed order, Saria's
+    /// first, so they keep their own item rather than a line's first level
+    /// they couldn't swap.
+    fn own(&self, c: &'a ItemCheck) -> &'a str {
+        match gifts::is_gift(c) {
+            true => keys::pooled(c),
+            false => self.level(keys::pooled(c)),
+        }
+    }
+
+    /// Plando's placements, each at the level the pool holds it.
+    fn plando(&self) -> Result<Vec<Placement<'a>>> {
+        let mut placed = Vec::new();
+        for (&hash, item) in self.fixed {
+            let check = self.checks.iter().find(|c| c.hash == hash);
+            let check = check.with_context(|| format!("no check with hash {hash}"))?;
+            let item = self.level(item);
+            let progressive = self.new_game.progressive;
+            if let Some(gift) = gifts::of(check).filter(|_| asks_at(check, item, progressive)) {
+                bail!(
+                    "{} can't give {item}: what it gives depends on what Link has, and a gift can't check",
+                    gift.giver
+                );
+            }
+            placed.push(Placement { check, item });
+        }
+        Ok(placed)
+    }
+
+    /// Place the story items a setting starts Link with at their checks,
+    /// so the pool holds no second. Returns the checks pinned.
+    fn pin_story(&self, placed: &mut Vec<Placement<'a>>) -> Result<Vec<u64>> {
+        let mut pins = Vec::new();
+        for (hash, item) in gifts::pinned(&self.new_game.on) {
+            match self.fixed.get(&hash) {
+                Some(own) if own == item => continue,
+                Some(own) => {
+                    bail!("check {hash} holds {item} with this game's settings, not {own}")
+                }
+                None => {}
+            }
+            let check = (self.checks.iter()).find(|c| c.hash == hash && shuffleable(c, self.open));
+            if let Some(check) = check {
+                placed.push(Placement { check, item });
+                pins.push(hash);
+            }
+        }
+        Ok(pins)
+    }
+
+    /// The checks kept holding their own item, the free checks, and the
+    /// pool to deal them: one item per free check, less what `placed` took.
+    fn pool(
+        &self,
+        placed: &[Placement<'a>],
+        pins: &[u64],
+    ) -> Result<(Checks<'a>, Checks<'a>, Pool<'a>)> {
+        let (new_game, open) = (self.new_game, self.open);
+        let placed_at = |hash: &u64| self.fixed.contains_key(hash) || pins.contains(hash);
+        // With chests kept, a gift that may not hold its own item keeps it
+        // too: only chests could take it off its hands.
+        let keeps = |c: &'a ItemCheck| {
+            let held = allowed(c, self.level(keys::pooled(c)), new_game.progressive);
+            new_game.keep_chests && (!gifts::is_gift(c) || !held) && !placed_at(&c.hash)
+        };
+        // Kept checks hold their own item, placed like plando's.
+        let (kept, chests): (Vec<_>, Vec<_>) =
+            (unique_chests(self.checks, open)?.into_iter()).partition(|c| keeps(c));
+        let mut pool = Pool::of(&chests, keys::pooled);
+        for p in placed.iter().filter(|p| shuffleable(p.check, open)) {
+            pool.take(p.item, keys::pooled(p.check));
+        }
+        let free: Vec<_> = chests.into_iter().filter(|c| !placed_at(&c.hash)).collect();
+        if new_game.vanilla {
+            pool = Pool::of(&free, |c| self.own(c));
+        } else {
+            pool.items.iter_mut().for_each(|i| *i = self.level(i));
+        }
+        Ok((kept, free, pool))
+    }
+
+    /// Take the starting items out of `pool` and the `kept` checks' own
+    /// items, deal the letter as its bottle once King Zora has moved, and
+    /// place the kept checks. Then cap the pool's bottles and deal its key
+    /// copies. Returns each starting item with the check whose slot it
+    /// left, and the items to deal.
+    fn finish(
+        &self,
+        kept: Checks<'a>,
+        pool: Pool<'a>,
+        placed: &mut Vec<Placement<'a>>,
+    ) -> Result<(Started<'a>, Vec<&'a str>)> {
+        let new_game = self.new_game;
+        // One swap over both, so a starting item leaves one spot either way.
+        let mut all = Pool::of(&kept, |c| self.own(c));
+        all.items.extend(pool.items);
+        all.from.extend(pool.from);
+        let mut owned = new_game.start.owned();
+        if new_game.on.contains(MET_ZELDA) {
+            // Met Zelda leaves nothing for the egg to wake.
+            owned.push(item::WEIRD_EGG.get());
+        }
+        let slots = starting::swap_out(&mut all.items, &owned, |i| self.level(i));
+        let started = (owned.into_iter().zip(slots))
+            .filter_map(|(item, at)| Some((item, all.from[at?])))
+            .collect();
+        if new_game.on.contains(presets::KING_ZORA_MOVED) {
+            // Nothing reads the letter once King Zora has moved, so it's dealt
+            // as the bottle it comes in, as Ship does.
+            for i in all
+                .items
+                .iter_mut()
+                .filter(|i| **i == &**item::BOTTLE_LETTER)
+            {
+                *i = &**item::BOTTLE;
+            }
+        }
+        let mut items = all.items.split_off(kept.len());
+        let kept = kept.into_iter().zip(all.items);
+        placed.extend(kept.map(|(check, item)| Placement { check, item }));
+        cap_bottles(&mut items, placed.iter().map(|p| p.item));
+        let fixed: Vec<_> = placed.iter().map(|p| p.item).collect();
+        keys::deal_copies(&mut items, new_game.keys, new_game.fortress_keys, &fixed)?;
+        Ok((started, items))
+    }
 }
 
 /// `fixed` placements first, then the deal's items at random, or left
@@ -302,7 +389,7 @@ pub fn drops(checks: &[ItemCheck], placements: &[Placement], lines: Lines) -> Ha
 #[cfg(test)]
 mod tests {
     use crate::known::{Name, flag, item};
-    use crate::settings;
+    use crate::{progressive, settings};
 
     use super::*;
     use crate::checks::Swap;
