@@ -8,6 +8,7 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 export const commands = {
 	/**  Polled, so off the main thread: it probes processes and user paths. */
 	status: () => typedError<Status, string>(__TAURI_INVOKE("status")),
+	buildInfo: () => __TAURI_INVOKE<BuildInfo>("build_info"),
 	schema: () => __TAURI_INVOKE<SettingDef[]>("schema"),
 	config: () => typedError<Config, string>(__TAURI_INVOKE("config")),
 	/**
@@ -260,6 +261,15 @@ export type Build = {
 	text: string | null,
 	/**  The target has a rebuild command. */
 	command: boolean,
+};
+
+/**  What the sidebar says this build is. */
+export type BuildInfo = {
+	version: string,
+	/**  The short commit it was built from, `*` when dirty. Empty without git. */
+	commit: string,
+	/**  A tagged build from the release workflow. Any other is a source build. */
+	release: boolean,
 };
 
 /**  Whether a game's last build saw the hook patch installed now. */

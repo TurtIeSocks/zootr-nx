@@ -24,10 +24,10 @@ import { useLive } from "@/stores/live";
 import { useGroupDrifted, useSeeds } from "@/stores/seeds";
 import { openDev, openSettings } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
-import { useUpdate } from "@/stores/update";
 import { ChangelogButton } from "@/update/changelog";
 import { CheckButton } from "@/update/check-button";
 import { UpdateAlert } from "@/update/update-alert";
+import { Version } from "@/update/version";
 
 /** Props for {@link NavItem}. */
 interface NavItemProps {
@@ -216,16 +216,6 @@ function StatusPills() {
         </StatusPill>
       ))}
     </div>
-  );
-}
-
-/** This build's version, so a screenshot always says which one it is. */
-function Version() {
-  const [current] = useUpdate.usePath("current");
-  return (
-    <span className="mr-auto pl-2 font-mono text-ink-faint text-xs">
-      {current && `v${current}`}
-    </span>
   );
 }
 

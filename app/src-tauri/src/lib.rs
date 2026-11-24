@@ -111,6 +111,26 @@ async fn status() -> Res<Status> {
     .await
 }
 
+/// What the sidebar says this build is.
+#[derive(Serialize, Type)]
+struct BuildInfo {
+    version: String,
+    /// The short commit it was built from, `*` when dirty. Empty without git.
+    commit: String,
+    /// A tagged build from the release workflow. Any other is a source build.
+    release: bool,
+}
+
+#[tauri::command]
+#[specta::specta]
+fn build_info(app: tauri::AppHandle) -> BuildInfo {
+    BuildInfo {
+        version: app.package_info().version.to_string(),
+        commit: env!("ZNX_COMMIT").into(),
+        release: option_env!("ZNX_RELEASE").is_some(),
+    }
+}
+
 #[tauri::command]
 #[specta::specta]
 fn schema() -> Vec<SettingDef> {
@@ -628,6 +648,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
     tauri_specta::Builder::new()
         .commands(collect_commands![
             status,
+            build_info,
             schema,
             config,
             set_config,

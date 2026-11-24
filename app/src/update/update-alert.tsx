@@ -19,20 +19,23 @@ import { install, installable, type Progress } from "@/update/install";
 import { Notes, ReleaseLink } from "@/update/notes";
 import { day, type Release } from "@/update/release";
 
-/** Install & restart, once the updater can install `version`. Held while
- * a game runs: the restart would drop its bridge and tracker. */
+/** Install & restart, once the updater can install `version`, and never
+ * on a source build: the release could hold less than its commit. Held
+ * while a game runs: the restart would drop its bridge and tracker. */
 function useInstall(version: string) {
   const [update, setUpdate] = useState<Update | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [running] = useSeeds.usePath("running");
+  const [release] = useUpdate.usePath("release");
   useEffect(() => {
+    if (!release) return;
     let live = true;
     void installable(version).then((u) => live && setUpdate(u));
     return () => {
       live = false;
     };
-  }, [version]);
+  }, [version, release]);
   const go = () => {
     if (!update) return;
     setError(null);
@@ -92,6 +95,18 @@ function InstallStatus({ update, progress, error }: InstallState) {
   );
 }
 
+/** Where a source build's update comes from, in place of the install. */
+function SourceNote() {
+  const [release] = useUpdate.usePath("release");
+  const [commit] = useUpdate.usePath("commit");
+  if (release) return null;
+  return (
+    <p className="text-ink-faint text-xs">
+      Built from source{commit && ` (${commit})`}: pull and rebuild to update.
+    </p>
+  );
+}
+
 /** Props for {@link ReleaseCard}. */
 interface ReleaseCardProps {
   release: Release;
@@ -100,7 +115,7 @@ interface ReleaseCardProps {
 
 /** The popover's content: what's out with links to its changelog and
  * release page, its notes, then skip and the install when the updater has
- * it. */
+ * it, or for a source build, how to update it. */
 function ReleaseCard({ release, onSkip }: ReleaseCardProps) {
   const install = useInstall(release.version);
   return (
@@ -130,6 +145,7 @@ function ReleaseCard({ release, onSkip }: ReleaseCardProps) {
           <InstallButton {...install} />
         </div>
         <InstallStatus {...install} />
+        <SourceNote />
       </div>
     </>
   );
