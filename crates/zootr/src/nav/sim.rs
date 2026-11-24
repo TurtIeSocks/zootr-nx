@@ -91,10 +91,10 @@ pub fn start(at: [f32; 3], yaw: f32) -> (Eyes, Hands) {
 /// A dev panel on a game that holds only its hook: any other read fails.
 pub fn dev() -> Dev<Fake> {
     let main = 0x10_0000;
-    let at = patch::OFFSETS.link_update;
+    let at = patch::OFFSETS.entries.link_update;
     let hook = patch::site(at).unwrap();
     let game = Fake::new(vec![(main + u64::from(at), hook)]);
-    Dev::with(game, main + u64::from(patch::OFFSETS.gamedata)).unwrap()
+    Dev::with(game, main + u64::from(patch::OFFSETS.got.gamedata)).unwrap()
 }
 
 /// A drive that never waits.

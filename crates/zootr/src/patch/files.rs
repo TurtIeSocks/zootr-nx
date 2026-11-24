@@ -281,15 +281,15 @@ mod tests {
     #[test]
     fn the_exefs_patch_writes_the_same_bytes_in_64_byte_lines() {
         let p = [Patch {
-            at: 0x17d_59bc,
+            at: 0x1_0000,
             bytes: (0..66).collect(),
         }];
         let text = pchtxt(&p);
         let lines: Vec<_> = text.lines().collect();
         assert_eq!(lines[0], "@nsobid-E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348");
         assert_eq!(lines[1..4], ["@flag offset_shift 0x100", "", "@enabled"]);
-        assert!(lines[4].starts_with("017D59BC 00010203") && lines[4].len() == 9 + 128);
-        assert_eq!(lines[5..], ["017D59FC 4041", "@stop"]);
+        assert!(lines[4].starts_with("00010000 00010203") && lines[4].len() == 9 + 128);
+        assert_eq!(lines[5..], ["00010040 4041", "@stop"]);
     }
 
     /// An IPS32 file's records, as `(offset, bytes)`.
@@ -318,11 +318,11 @@ mod tests {
     #[test]
     fn the_ips_counts_the_nso_header_big_endian() {
         let p = [Patch {
-            at: 0x17d_59bc,
+            at: 0x1_0000,
             bytes: vec![1, 2, 3, 4],
         }];
         let mut want = b"IPS32".to_vec();
-        want.extend([0x01, 0x7d, 0x5a, 0xbc, 0x00, 0x04, 1, 2, 3, 4]);
+        want.extend([0x00, 0x01, 0x01, 0x00, 0x00, 0x04, 1, 2, 3, 4]);
         want.extend(b"EEOF");
         assert_eq!(ips(&p), want);
     }
@@ -429,14 +429,14 @@ mod tests {
         install(&dir, Default::default(), &[], 0, &[], &[], None).unwrap();
         let dev = std::fs::read_to_string(path(&dir)).unwrap();
         assert!(
-            dev.contains(&format!("{:08X}", OFFSETS.link_update)),
+            dev.contains(&format!("{:08X}", OFFSETS.entries.link_update)),
             "{dev}"
         );
         let exefs = dir.join("exefs/zootr.pchtxt");
         assert!(
             std::fs::read_to_string(&exefs)
                 .unwrap()
-                .contains(&format!("{:08X} ", OFFSETS.link_update))
+                .contains(&format!("{:08X} ", OFFSETS.entries.link_update))
         );
         install(&dir, Default::default(), &[], BUNNY_HOOD, &[], &[], None).unwrap();
         let hood = std::fs::read_to_string(path(&dir)).unwrap();

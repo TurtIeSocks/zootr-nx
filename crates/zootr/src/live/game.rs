@@ -124,7 +124,7 @@ impl Game {
     /// The game behind `bridge`, whose GameData global sits at a
     /// fixed offset from `main`.
     pub fn over(bridge: Bridge) -> Result<Self> {
-        let global = NATIVE_MAIN + u64::from(OFFSETS.gamedata);
+        let global = NATIVE_MAIN + u64::from(OFFSETS.got.gamedata);
         bridge.u64(global)?;
         Ok(Self {
             mem: Backend::Bridge(bridge),

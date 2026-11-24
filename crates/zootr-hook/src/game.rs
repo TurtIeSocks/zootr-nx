@@ -307,7 +307,7 @@ pub unsafe extern "C" fn content_name(
     let main = main();
     // SAFETY: the offsets were found in this build of `main`.
     unsafe {
-        let setter: Setter = func(main, OFFSETS.setter);
+        let setter: Setter = func(main, OFFSETS.funcs.setter);
         let Some((_, table)) = table else {
             return setter(request, key, value);
         };
@@ -344,7 +344,7 @@ pub unsafe extern "C" fn drop_actor(
         {
             rewrite(main, &table, value);
         }
-        let reader: Reader = func(main(), OFFSETS.reader);
+        let reader: Reader = func(main(), OFFSETS.funcs.reader);
         reader(out, placement, a2, a3)
     }
 }
@@ -380,7 +380,7 @@ pub unsafe extern "C" fn seed_guide(link: usize) -> bool {
         {
             return seeds;
         }
-        let child: Childhood = func(main(), OFFSETS.childhood);
+        let child: Childhood = func(main(), OFFSETS.funcs.childhood);
         child(link)
     }
 }

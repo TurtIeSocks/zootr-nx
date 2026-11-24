@@ -208,8 +208,8 @@ impl<M: Memory> Dev<M> {
     /// The game in `game`, whose GameData global is at `global`.
     pub fn with(game: M, global: u64) -> Result<Self> {
         // The GameData global sits at a fixed place in `main`.
-        let main = global - u64::from(patch::OFFSETS.gamedata);
-        let at = patch::OFFSETS.link_update;
+        let main = global - u64::from(patch::OFFSETS.got.gamedata);
+        let at = patch::OFFSETS.entries.link_update;
         let want = patch::site(at).context("Link's update has no hook site")?;
         ensure!(
             game.read(main + u64::from(at), want.len())? == want,
@@ -286,7 +286,7 @@ impl<M: Memory> Dev<M> {
 
     /// Where `main` keeps the pointer to the event manager's slot.
     fn events_slot(&self) -> u64 {
-        self.main + u64::from(patch::OFFSETS.events)
+        self.main + u64::from(patch::OFFSETS.got.events)
     }
 
     /// An event plays, or the event manager isn't up yet.
@@ -694,7 +694,7 @@ mod tests {
         let main = 0x10_0000;
         let mail = main + u64::from(MAILBOX);
         let fake = Fake::new(vec![(mail, vec![0; size_of::<Mailbox>()])]);
-        let global = main + u64::from(patch::OFFSETS.gamedata);
+        let global = main + u64::from(patch::OFFSETS.got.gamedata);
         let dev = Dev {
             game: Hook(fake, mail, Default::default()),
             global,
@@ -784,7 +784,7 @@ mod tests {
         let fake = Fake::new(vec![(mail, vec![0; size_of::<Mailbox>()])]);
         let dev = Dev {
             game: Hook(fake, mail, Default::default()),
-            global: main + u64::from(patch::OFFSETS.gamedata),
+            global: main + u64::from(patch::OFFSETS.got.gamedata),
             main,
         };
         let give = Request::Give(item::SWORD_KOKIRI.to_string(), true);

@@ -560,7 +560,7 @@ mod tests {
 
     #[test]
     fn a_game_over_the_bridge_reads_its_global_at_main_plus_gamedata() {
-        let global = super::super::NATIVE_MAIN + u64::from(crate::patch::OFFSETS.gamedata);
+        let global = super::super::NATIVE_MAIN + u64::from(crate::patch::OFFSETS.got.gamedata);
         let game = fake(move |req| {
             assert_eq!(req["addr"], address(global));
             vec![ok(req, json!({"data": "0000001001000000"}))]

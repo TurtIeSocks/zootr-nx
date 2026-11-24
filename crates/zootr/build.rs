@@ -86,9 +86,12 @@ fn main() {
         .args(["-C", "llvm-args=-enable-machine-outliner=never"])
         .arg(format!(
             "-Clink-arg=--defsym=__cave={:#x}",
-            zootr_hook::CAVE
+            zootr_hook::OFFSETS.regions.cave
         ))
-        .arg(format!("-Clink-arg=--defsym=__far={:#x}", zootr_hook::FAR))
+        .arg(format!(
+            "-Clink-arg=--defsym=__far={:#x}",
+            zootr_hook::OFFSETS.regions.far
+        ))
         .arg(format!("-Clink-arg=-T{}", script.display()))
         .arg("-o")
         .arg(&elf)
@@ -145,13 +148,13 @@ fn code(d: &[u8]) -> (&[u8], &[u8]) {
     let (addr, off, len) = text.expect("the hook has no .text");
     assert_eq!(
         addr,
-        u64::from(zootr_hook::CAVE),
+        u64::from(zootr_hook::OFFSETS.regions.cave),
         "the hook isn't linked at the cave"
     );
     let far = far.map_or(&[][..], |(at, off, len)| {
         assert_eq!(
             at,
-            u64::from(zootr_hook::FAR),
+            u64::from(zootr_hook::OFFSETS.regions.far),
             "the far code isn't linked at FAR"
         );
         &d[off..off + len]
