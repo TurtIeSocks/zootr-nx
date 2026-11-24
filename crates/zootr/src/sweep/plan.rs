@@ -533,7 +533,7 @@ mod tests {
             panic!("{chest:?}");
         };
         assert_eq!(ready, &[flag::DESERT_COLOSSUS_TBOX_ON]);
-        assert!(map.ends_with("_Adult"), "{map}");
+        assert!(map.ends_with(crate::warp::ADULT), "{map}");
         assert_eq!(chest.unwrap().child, Some(false));
     }
 

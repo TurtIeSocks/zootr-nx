@@ -163,7 +163,7 @@ impl Level {
             climbs: climb::climbs(romfs, &placed)?,
             crawls: crawl::crawls(&placed),
             waters: water::waters(romfs, game, &placed, |_| false)?,
-            child: map.ends_with("_Child"),
+            child: map.ends_with(warp::CHILD),
             floors: None,
             placed,
         })

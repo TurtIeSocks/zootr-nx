@@ -12,9 +12,9 @@ use crate::cutscenes::played_flag;
 use crate::flows::{self, Rewrites};
 use crate::known::{Name, actor, field, flag, flow, map, scene};
 use crate::starting::{self, OPENING};
+use crate::warp::ADULT;
 use crate::world;
 
-const ADULT: &str = "_Adult";
 /// Where an adult start wakes: the Prelude of Light's arrival in the
 /// Temple of Time, as Ship's.
 pub const ADULT_START: (&Name, &Name) = (map::MARKET_ADULT, flag::LIGHT_PRELUDE);
