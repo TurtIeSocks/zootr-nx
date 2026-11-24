@@ -264,6 +264,15 @@ pub enum Probe {
         #[arg(long = "setting", value_name = "ID=VALUE", value_parser = crate::cli::args::setting)]
         settings: Vec<(String, serde_json::Value)>,
     },
+    /// How many of `seeds` seeds logic fills within its tries, and the
+    /// last failure's reason: a dungeon PR's before and after.
+    Seeds {
+        #[arg(long, default_value_t = 50, value_parser = clap::value_parser!(u64).range(1..))]
+        seeds: u64,
+        /// A setting by id, as `shuffle` takes it. Repeatable.
+        #[arg(long = "setting", value_name = "ID=VALUE", value_parser = crate::cli::args::setting)]
+        settings: Vec<(String, serde_json::Value)>,
+    },
     /// The check ledger as JSON: every check with every shuffle on, dealt
     /// or left out, with what the code knows of it. `--unknown` lists only
     /// the left-out placements nothing explains yet.
@@ -571,6 +580,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             never,
         } => checks(romfs, area.as_deref(), &settings, never),
         Probe::Doors { rolls, settings } => doors(romfs, rolls, &settings),
+        Probe::Seeds { seeds, settings } => logic::seeds(romfs, seeds, &settings),
         Probe::Byml { pattern, file } => byml(romfs, game, &pattern, file),
         Probe::Ainb { path, out } => ainb(romfs, &path, out.as_deref()),
         Probe::Ainbs => ainbs(romfs),
