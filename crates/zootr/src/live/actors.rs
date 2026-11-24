@@ -5,7 +5,7 @@
 use anyhow::{Context, Result};
 use serde::Serialize;
 
-use super::Memory;
+use super::{Memory, quad, sized};
 
 /// Where the table's header pointer and its slot count are.
 const TABLE: u64 = 0x4e9_0da8;
@@ -96,7 +96,8 @@ impl Life {
 pub fn actors(mem: &impl Memory, main: u64) -> Result<Vec<Actor>> {
     let header = mem.u64(main + TABLE)?;
     let capacity = mem.u64(main + CAPACITY)? as usize;
-    let slots = mem.read(header + SLOTS, capacity * SLOT)?;
+    let len = capacity.checked_mul(SLOT).context("actor table size")?;
+    let slots = mem.read(header + SLOTS, sized("actor table", len)?)?;
     let ptrs: Vec<u64> = (slots.chunks(SLOT).map(|s| quad(s, 0)))
         .filter(|&p| p != 0)
         .collect();
@@ -228,10 +229,6 @@ fn each_some(mem: &impl Memory, ranges: Vec<Option<(u64, usize)>>) -> Vec<Option
         .collect()
 }
 
-fn quad(b: &[u8], at: usize) -> u64 {
-    u64::from_le_bytes(b[at..at + 8].try_into().unwrap())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -241,9 +238,12 @@ mod tests {
         b[at as usize..at as usize + v.len()].copy_from_slice(v);
     }
 
-    /// The game it walked, the enemy it found, and the enemy's model.
-    fn walked() -> (Fake, Actor, u64) {
-        let main = 0x1000_0000;
+    const MAIN: u64 = 0x1000_0000;
+
+    /// A game holding an enemy, a rock and a freed slot, the enemy's Life
+    /// and the enemy's model.
+    fn fake() -> (Fake, u64, u64) {
+        let main = MAIN;
         let (header, heap) = (0x2000_0000_u64, 0x3000_0000_u64);
         let (thief, rock, gone) = (heap, heap + 0x1000, heap + 0x2000);
         let (block, life, decoy) = (heap + 0x3000, heap + 0xb000, heap + 0xb100);
@@ -289,7 +289,20 @@ mod tests {
         }
         put(&mut h, block - heap + MODEL, &model.to_le_bytes());
         let mem = Fake::new(vec![(main + CAPACITY, statics), (header, table), (heap, h)]);
-        let mut found = actors(&mem, main).unwrap();
+        (mem, life, model)
+    }
+
+    const HASHED: u64 = 16_850_179_431_221_442_802;
+
+    fn byte(mem: &Fake, at: u64) -> u8 {
+        mem.read(at, 1).unwrap()[0]
+    }
+
+    #[test]
+    fn walks_the_table_and_finds_an_enemys_life() {
+        let (mem, life, model) = fake();
+        let main = MAIN;
+        let found = actors(&mem, main).unwrap();
         let named: Vec<_> = found.iter().map(|a| a.name.as_str()).collect();
         assert_eq!(named, ["Enemy_Fake", "Obj_FakeRock"]);
         assert_eq!(found[0].pos[0], 1.5);
@@ -301,25 +314,23 @@ mod tests {
         assert_eq!((found[1].hash, found[1].model), (None, None));
         assert_eq!(found[0].hidden, Hidden::Shown);
         assert!(hide(&mem, &found[1], true).is_err());
-        (mem, found.remove(0), model)
-    }
-
-    const HASHED: u64 = 16_850_179_431_221_442_802;
-
-    fn byte(mem: &Fake, at: u64) -> u8 {
-        mem.read(at, 1).unwrap()[0]
     }
 
     #[test]
-    fn walks_the_table_and_finds_an_enemys_life() {
-        walked();
+    fn a_garbage_slot_count_is_an_error() {
+        let (mem, _, _) = fake();
+        mem.write(MAIN + CAPACITY, &u64::MAX.to_le_bytes()).unwrap();
+        assert!(actors(&mem, MAIN).is_err());
+        mem.write(MAIN + CAPACITY, &(1u64 << 40).to_le_bytes())
+            .unwrap();
+        assert!(actors(&mem, MAIN).is_err());
     }
 
     #[test]
     fn a_hide_is_our_bit_and_marks_the_mask_dirty_as_it_crosses_zero() {
-        let (mem, thief, model) = walked();
-        let main = 0x1000_0000;
-        let hidden = || actors(&mem, main).unwrap()[0].hidden;
+        let (mem, _, model) = fake();
+        let thief = actors(&mem, MAIN).unwrap().remove(0);
+        let hidden = || actors(&mem, MAIN).unwrap()[0].hidden;
         hide(&mem, &thief, true).unwrap();
         assert_eq!(
             (byte(&mem, model + MASK), byte(&mem, model + DIRTY)),
