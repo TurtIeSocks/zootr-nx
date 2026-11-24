@@ -14,6 +14,18 @@ needs = "flag:#64edd2f3"
 via = "walk"
 why = "walk, 1 edges; Switch Shutter A 02 11012697473795725691 shut until flag #64edd2f3; Switch Shutter A 01 13719232524625078578 shut until flag #64edd2f3"
 
+[[check]]
+hash = 8632533875205065781
+name = "Recovery Heart"
+needs = "always"
+why = "in reach from its room"
+
+[[check]]
+hash = 9391308054738304433
+name = "Green Rupee"
+needs = "always"
+why = "in reach from its room"
+
 [[flag]]
 hash = 0x64edd2f3
 name = "Inside The Deku Tree Room B Cleared"

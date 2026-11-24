@@ -13,7 +13,7 @@ use ounce_formats::{Romfs, murmur3};
 
 use crate::checks::ItemCheck;
 use crate::entrances::Dungeon;
-use crate::known::{field, flag};
+use crate::known::{Name, actor, field, flag};
 use crate::nav::Level;
 use crate::nav::graph::{Cross, Hop, Via, dist};
 use crate::nav::limits::limits;
@@ -36,7 +36,7 @@ mod seen;
 use hand::{Taken, TakenBy, in_front, is_chest};
 use label::{label, path_of};
 use locks::{Lock, locks_in, room_in_name};
-use reach::{REACH_MAX, skulltula_reach};
+use reach::{REACH_MAX, loose_reach, skulltula_reach};
 use render::{CheckOut, Traced, room_files};
 
 /// A straight path between two points, or a link's two ends.
@@ -221,8 +221,18 @@ impl<'k> Floor<'k> {
     }
 }
 
-/// Every check, gold skulltulas included, and each one's name in words,
-/// but a gold skulltula's, which takes its room's name.
+/// A loose pickup's name in words, by what it is.
+const LOOSE_NAMES: [(&Name, &str); 5] = [
+    (actor::OBJ_RUPEE_GREEN, "Green Rupee"),
+    (actor::OBJ_RUPEE_BLUE, "Blue Rupee"),
+    (actor::OBJ_RUPEE_RED, "Red Rupee"),
+    (actor::OBJ_RUPEE_PURPLE, "Purple Rupee"),
+    (actor::OBJ_HEART, "Recovery Heart"),
+];
+
+/// Every check, gold skulltulas and loose rupees and hearts included, and
+/// each one's name in words, but a gold skulltula's, which takes its
+/// room's name.
 fn checks_and_names(romfs: &Romfs) -> Result<(Vec<ItemCheck>, HashMap<u64, String>)> {
     let mut checks = crate::checks::all(romfs)?;
     // Gold skulltulas are pickups, which `all` leaves to their setting.
@@ -238,7 +248,15 @@ fn checks_and_names(romfs: &Romfs) -> Result<(Vec<ItemCheck>, HashMap<u64, Strin
                 .ok()?
                 .pop_first()
         })
-        .collect();
+        .collect::<HashMap<_, _>>();
+    // Loose pickups, which no setting deals yet, still get a room rule.
+    let loose = crate::pickups::LOOSE.checks(romfs)?;
+    let mut named = named;
+    for c in &loose {
+        let name = LOOSE_NAMES.iter().find(|(a, _)| **a == *c.item);
+        named.extend(name.map(|(_, n)| (c.hash, (*n).to_owned())));
+    }
+    checks.extend(loose);
     Ok((checks, named))
 }
 
@@ -667,6 +685,14 @@ pub fn derive(
                     false => format!("{why}; {}", reach.why),
                 };
                 guess |= reach.guess;
+            }
+            let loose = crate::pickups::LOOSE.holds(check);
+            let high = loose
+                .then(|| loose_reach(&graph, |f| room[f] == Some(r) && stands(f), at))
+                .flatten();
+            if let Some(high) = high {
+                why = format!("{why}; {high}");
+                guess = true;
             }
             if let Some(w) = walled {
                 why = format!("on a wall of room {w}, which has no floor; {why}");

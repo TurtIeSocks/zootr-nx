@@ -52,3 +52,26 @@ pub(super) fn skulltula_reach(
         guess: low,
     }
 }
+
+/// How far from its room's floor Link takes a loose pickup by walking
+/// into it. Past this it may want a jump, the Boomerang or a hookshot,
+/// which derive doesn't trace, so its rule is a guess.
+const LOOSE_GRAB: f32 = 1.5;
+
+/// Why the loose pickup at `at` is a guess, when it lies past
+/// [`LOOSE_GRAB`] from the nearest floor `stands` keeps.
+pub(super) fn loose_reach(
+    graph: &Graph,
+    stands: impl Fn(usize) -> bool,
+    at: [f32; 3],
+) -> Option<String> {
+    let Some(floor) = graph.nearest_floor(at, REACH_MAX, &stands) else {
+        return Some(format!("no floor of its room within {REACH_MAX} m"));
+    };
+    let d = dist(floor.at, at);
+    (d > LOOSE_GRAB).then(|| {
+        format!(
+            "lies {d:.1} m from its room's floor, past a walk's reach; what takes it isn't traced"
+        )
+    })
+}

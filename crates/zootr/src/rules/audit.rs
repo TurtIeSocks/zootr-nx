@@ -200,13 +200,14 @@ mod tests {
         );
         // A measured level jump settles every gap: what's left to guess
         // is how a room gets cleared, gold skulltulas a sword may reach or
-        // seen from another room, and links over terrain floor, which no
-        // live run has walked yet.
+        // seen from another room, links over terrain floor, which no live
+        // run has walked yet, and loose pickups lying past a walk's reach.
         assert!(!deku.guess.is_empty());
         assert!(
             (deku.guess.iter()).all(|g| g.what.contains("Cleared")
                 || g.what.contains("Skulltula")
-                || g.why.contains("on terrain floor")),
+                || g.why.contains("on terrain floor")
+                || g.why.contains("past a walk's reach")),
             "{:?}",
             deku.guess.iter().map(|g| &g.what).collect::<Vec<_>>()
         );
