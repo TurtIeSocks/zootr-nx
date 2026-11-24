@@ -112,6 +112,16 @@ jobs:
       - name: cargo test, with the dump
         run: .github/scripts/dump-tests.sh
 
+  # Code files stay under 1000 lines (CLAUDE.md). The local push hook only
+  # sees pushes from one machine, so CI holds the line for every PR.
+  file-size:
+    name: File size
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: .github/scripts/file-size.sh
+
   app:
     name: App
     if: github.event_name != 'schedule'
