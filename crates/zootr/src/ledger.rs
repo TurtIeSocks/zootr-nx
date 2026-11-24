@@ -559,7 +559,7 @@ fn kind(c: &ItemCheck) -> &'static str {
         "pickup"
     } else if gifts::of(c).is_some() {
         "gift"
-    } else if c.holder.starts_with("Obj_TBox_") {
+    } else if checks::is_chest(&c.holder) {
         "chest"
     } else {
         "other"

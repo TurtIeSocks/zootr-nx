@@ -35,6 +35,8 @@ const SUBSTITUTE_CHEST: &Name = actor::OBJ_T_BOX_A_06;
 /// The small chest a `SUBSTITUTE_CHEST` is built on.
 const PLAIN_CHEST: &Name = actor::OBJ_T_BOX_A_01;
 const NO_BAKE: &str = "_NoBake";
+/// The prefix every chest's actor name starts with.
+pub const CHEST: &str = "Obj_TBox_";
 
 #[derive(Clone)]
 pub struct ItemCheck {
@@ -92,6 +94,11 @@ pub fn banc_area(rel: &str) -> Option<&str> {
 /// [`banc_area`], or `"?"` for a path with no folder.
 pub fn area_of(rel: &str) -> &str {
     banc_area(rel).unwrap_or("?")
+}
+
+/// Whether `holder`, a placed actor's name, is a chest.
+pub fn is_chest(holder: &str) -> bool {
+    holder.starts_with(CHEST)
 }
 
 /// Whether Banc file `rel` is a child map's.

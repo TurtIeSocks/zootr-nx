@@ -81,7 +81,7 @@ pub(crate) fn shuffleable(c: &ItemCheck, open: Let) -> bool {
 /// Why `c` stays out of the shuffle, if it does.
 pub(crate) fn left_out(c: &ItemCheck, open: Let) -> Option<LeftOut> {
     // Not the Treasure Chest Game's shop chests, but its prize.
-    if !(c.holder.starts_with("Obj_TBox_") || gifts::is_gift(c)) {
+    if !(crate::checks::is_chest(&c.holder) || gifts::is_gift(c)) {
         return Some(LeftOut::NotAHolder);
     }
     // Keys moved around can soft-lock, since logic doesn't count them.
@@ -137,7 +137,7 @@ pub(crate) fn refusal(check: &ItemCheck, item: &str, progressive: bool) -> Optio
     if gift && asks_at(check, item, progressive) {
         return Some(Narrowing::AsksPouch);
     }
-    let credited = gift || check.holder.starts_with("Obj_TBox_");
+    let credited = gift || crate::checks::is_chest(&check.holder);
     (!credited && keys::is_shuffled(item)).then_some(Narrowing::Uncredited)
 }
 
