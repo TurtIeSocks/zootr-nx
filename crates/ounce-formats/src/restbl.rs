@@ -138,7 +138,9 @@ impl Restbl {
     /// file: added byml nodes cost the game more than their bytes, and the
     /// Mac build refuses a file whose parse outgrows its entry.
     pub fn scale(&mut self, path: &str, old_size: usize, new_size: usize) -> Result<()> {
-        let scaled = self.get(path).map_or(0, |e| e as usize * new_size / old_size.max(1));
+        let scaled = self
+            .get(path)
+            .map_or(0, |e| e as usize * new_size / old_size.max(1));
         self.resize(path, old_size, new_size)?;
         self.raise(path, u32::try_from(scaled)?)
     }
