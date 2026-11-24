@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { full } from "@/lib/config";
 import { useConfig } from "@/stores/config";
 import { useUi } from "@/stores/ui";
-import { checkNow, init, stop, useUpdate } from "@/stores/update";
+import { checkNow, init, useUpdate } from "@/stores/update";
 
 vi.mock("@tauri-apps/api/app", () => ({
   getVersion: vi.fn(async () => "0.1.0"),
@@ -25,8 +25,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  stop();
-  useUpdate.setState({ latest: null, current: null });
   vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
@@ -77,6 +75,22 @@ test("turning the switch off hides the notice", async () => {
   await init();
   useConfig.setPath("config", full({ no_update_check: true }));
   await vi.waitFor(() => expect(useUpdate.getState().latest).toBeNull());
+});
+
+test("a check still out when the switch turns off can't bring the notice back", async () => {
+  useConfig.setPath("config", full({ no_update_check: true }));
+  await init();
+  let answer: (r: unknown) => void = () => {};
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise((r) => (answer = r))),
+  );
+  useConfig.setPath("config", full({}));
+  useConfig.setPath("config", full({ no_update_check: true }));
+  answer(release("v0.2.0"));
+  await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+  await new Promise((r) => setTimeout(r));
+  expect(useUpdate.getState().latest).toBeNull();
 });
 
 test("a check you ask for runs with checks off, and shows a skipped release", async () => {
