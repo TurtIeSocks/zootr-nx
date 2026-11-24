@@ -241,6 +241,15 @@ pub struct Room {
     pub password: Option<String>,
 }
 
+impl Room {
+    /// The server to dial: [`Room::server`] without the spaces a paste
+    /// brings, which would make it a bad url that reads as a lost
+    /// connection.
+    fn address(&self) -> &str {
+        self.server.trim()
+    }
+}
+
 /// How often the core looks at the game.
 const LOOK: Duration = Duration::from_millis(500);
 /// How often it lets the connection answer.
@@ -321,7 +330,7 @@ fn session(
         options = options.tags([ap::tags::DEATH_LINK]);
     }
     let mut conn: ap::Connection =
-        ap::Connection::new(room.server.clone(), room.slot.clone(), Some(GAME), options);
+        ap::Connection::new(room.address(), room.slot.clone(), Some(GAME), options);
     let mut ledger = Ledger::default();
     let mut deaths = Deaths::default();
     let mut notices = Notices::default();
@@ -788,6 +797,16 @@ pub(super) mod tests {
         game.goal = true;
         assert!(ledger.look(&mut game).unwrap().goal);
         assert!(!ledger.look(&mut game).unwrap().goal);
+    }
+
+    #[test]
+    fn a_pasted_server_s_spaces_are_dropped() {
+        let room = Room {
+            server: " localhost:38281 \n".into(),
+            slot: "FakeSlot".into(),
+            password: None,
+        };
+        assert_eq!(room.address(), "localhost:38281");
     }
 
     #[test]
