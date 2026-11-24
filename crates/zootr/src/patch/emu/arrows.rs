@@ -1,9 +1,7 @@
 //! The out of ammo handler's hook over faked game memory: the Bow node,
 //! the steps from it to Link, and his components.
 
-use zootr_hook::OFFSETS;
-
-use super::swap::{FAKE, Game, u64s};
+use super::swap::{FAKE, games, u64s};
 
 /// Where the test's own pages are mapped: past the swap's fake memory, so
 /// nothing of the swap's shares them.
@@ -37,21 +35,21 @@ const NO_SEEDS: u32 = 1 << 29;
 /// on the way the arrows message staying put shows the guard stopped it.
 #[test]
 fn an_empty_bow_with_a_null_on_the_way_to_link_leaves_the_game_alone() {
-    let Some(mut g) = Game::new() else {
-        return;
-    };
-    g.map(PAGES, PAGES_LEN);
-    g.projectile = Some(zootr_hook::DEKU_SEED);
-    let mut run = |broken: Option<usize>| {
-        for (i, &(at, to)) in STEPS.iter().enumerate() {
-            g.write(at, &u64s(&[if Some(i) == broken { 0 } else { to }]));
+    for mut g in games() {
+        g.map(PAGES, PAGES_LEN);
+        g.projectile = Some(zootr_hook::DEKU_SEED);
+        let emptied = g.build().entries.emptied;
+        let mut run = |broken: Option<usize>| {
+            for (i, &(at, to)) in STEPS.iter().enumerate() {
+                g.write(at, &u64s(&[if Some(i) == broken { 0 } else { to }]));
+            }
+            g.write(FLAGS, &NO_ARROWS.to_le_bytes());
+            g.call(emptied, NODE);
+            g.u64(FLAGS) as u32
+        };
+        assert_eq!(run(None), NO_SEEDS, "every pointer intact");
+        for broken in 0..STEPS.len() {
+            assert_eq!(run(Some(broken)), NO_ARROWS, "step {broken} null");
         }
-        g.write(FLAGS, &NO_ARROWS.to_le_bytes());
-        g.call(OFFSETS.entries.emptied, NODE);
-        g.u64(FLAGS) as u32
-    };
-    assert_eq!(run(None), NO_SEEDS, "every pointer intact");
-    for broken in 0..STEPS.len() {
-        assert_eq!(run(Some(broken)), NO_ARROWS, "step {broken} null");
     }
 }

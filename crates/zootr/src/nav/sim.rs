@@ -92,7 +92,7 @@ pub fn start(at: [f32; 3], yaw: f32) -> (Eyes, Hands) {
 pub fn dev() -> Dev<Fake> {
     let main = 0x10_0000;
     let at = patch::OFFSETS.entries.link_update;
-    let hook = patch::site(at).unwrap();
+    let hook = (patch::Hook::of(crate::game::Release::V111).site(at)).unwrap();
     let game = Fake::new(vec![(main + u64::from(at), hook)]);
     Dev::with(game, main + u64::from(patch::OFFSETS.got.gamedata)).unwrap()
 }

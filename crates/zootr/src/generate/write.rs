@@ -14,6 +14,7 @@ use crate::bombchu_bags;
 use crate::checks::{self, Drop, ItemCheck};
 use crate::events::Flows;
 use crate::flows::Rewrites;
+use crate::game::Release;
 use crate::gamedata::{GameData, Op};
 use crate::hints::Hint;
 use crate::narrowing::maps_move;
@@ -270,6 +271,7 @@ pub fn write_mod(
         .collect();
     patch::install(
         mod_dir,
+        Release::of(romfs.root()),
         Lines::of(new_game),
         &keyed,
         hook_flags(new_game),

@@ -685,12 +685,8 @@ mod tests {
 
     #[test]
     fn each_release_names_its_build_id_and_carries_it() {
-        let v100 = [
-            0x33, 0xfa, 0x6c, 0x2c, 0x23, 0x84, 0x82, 0x82, 0xa7, 0x7e, 0x8b, 0x88, 0xa0, 0xa9,
-            0x3f, 0x48, 0x87, 0xc5, 0x59, 0x20,
-        ];
-        let v111 = &crate::patch::BUILD_ID[..20];
-        for (release, id) in [(Release::V100, &v100[..]), (Release::V111, v111)] {
+        for release in [Release::V100, Release::V111] {
+            let id = &crate::patch::Hook::of(release).id[..20];
             let Some((nso, image)) = dumped_main(release) else {
                 return;
             };

@@ -112,7 +112,8 @@ pub fn status(target: &Target) -> Option<Status> {
     // vanilla: with no table, every hook passes through.
     let installed = installed.or_else(|| {
         ours.as_ref()?;
-        let code = patch::pchtxt(&patch::code_patches().ok()?);
+        let h = patch::Hook::of(crate::game::Release::V111);
+        let code = h.pchtxt(&h.code_patches().ok()?);
         Some(format!("{:08x}", fnv1a(code.as_bytes())))
     });
     Some(match (ours, installed) {
@@ -467,7 +468,8 @@ mod tests {
             Some(Status::Stale),
             "patch removed, an old build"
         );
-        let code = patch::pchtxt(&patch::code_patches().unwrap());
+        let h = patch::Hook::of(crate::game::Release::V111);
+        let code = h.pchtxt(&h.code_patches().unwrap());
         manifest(&dir, "zootr", fnv1a(code.as_bytes()), "code");
         assert_eq!(
             status(&t),

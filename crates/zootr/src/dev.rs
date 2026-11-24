@@ -210,7 +210,8 @@ impl<M: Memory> Dev<M> {
         // The GameData global sits at a fixed place in `main`.
         let main = global - u64::from(patch::OFFSETS.got.gamedata);
         let at = patch::OFFSETS.entries.link_update;
-        let want = patch::site(at).context("Link's update has no hook site")?;
+        let want = (patch::Hook::of(crate::game::Release::V111).site(at))
+            .context("Link's update has no hook site")?;
         ensure!(
             game.read(main + u64::from(at), want.len())? == want,
             "the dev panel's hook isn't in the game. Reinstall the seed, then restart the game"
