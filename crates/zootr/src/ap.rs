@@ -21,6 +21,8 @@ pub(crate) mod names;
 mod notice;
 mod open;
 mod presets;
+#[cfg(test)]
+mod released;
 pub mod room;
 mod rule;
 mod seed;
