@@ -26,6 +26,11 @@ pub(crate) fn own_pack(template: &ActorPack, item: &str, model: &str) -> Result<
 /// The lines a copy's get reads, each under the copy's name.
 pub(crate) const TEXT_PARTS: [&str; 3] = ["_Name", "_GetMessage", "_GetCaption"];
 
+/// The label of `item`'s name line, the first of its [`TEXT_PARTS`].
+pub(crate) fn label(item: &str) -> String {
+    format!("{item}{}", TEXT_PARTS[0])
+}
+
 /// The text file holding those lines.
 pub(crate) const POUCH_TEXT: &str = "ActorMsg/PouchContent";
 
