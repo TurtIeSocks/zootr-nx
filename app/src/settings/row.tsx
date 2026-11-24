@@ -6,7 +6,7 @@ import { Badge, ChangedDot } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import type { HelpTopic } from "@/help/topics";
 import { cn } from "@/lib/utils";
-import { notInAp, untested } from "@/settings/setting";
+import { type ApMark, apMark, untested } from "@/settings/setting";
 
 /** Marks a setting not yet played through. */
 export function UntestedBadge() {
@@ -17,19 +17,20 @@ export function UntestedBadge() {
   );
 }
 
-/** Props for {@link NotInApBadge}. */
-export interface NotInApBadgeProps {
-  /** Why the Archipelago world leaves it out, or nothing while it offers
+/** Props for {@link ApBadge}. */
+export interface ApBadgeProps {
+  /** How the Archipelago world leaves it out, or nothing while it offers
    * it. */
-  why: string | undefined;
+  mark: ApMark | undefined;
 }
 
-/** Marks a setting or pick the Archipelago world leaves out, saying why. */
-export function NotInApBadge({ why }: NotInApBadgeProps) {
-  if (!why) return null;
+/** Marks a setting or pick the Archipelago world leaves out or forces on,
+ * saying why. */
+export function ApBadge({ mark }: ApBadgeProps) {
+  if (!mark) return null;
   return (
-    <Tip focusable tip={why}>
-      <Badge variant="ap">Not in AP</Badge>
+    <Tip focusable tip={mark.why}>
+      <Badge variant="ap">{mark.label}</Badge>
     </Tip>
   );
 }
@@ -92,7 +93,7 @@ export function Row({
           </Label>
           {help && <Help topic={help} />}
           {isUntested && <UntestedBadge />}
-          {archipelago && <NotInApBadge why={notInAp(archipelago)} />}
+          {archipelago && <ApBadge mark={apMark(archipelago)} />}
         </div>
         {text && (
           <p className="mt-0.5 max-w-[62ch] text-pretty text-[13px] text-ink-muted leading-[18px]">

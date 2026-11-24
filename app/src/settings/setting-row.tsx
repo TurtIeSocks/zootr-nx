@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
 import { affects, chosen, forcedPick, isOn, type Patch } from "@/lib/settings";
-import { NotInApBadge, Row } from "@/settings/row";
+import { ApBadge, Row } from "@/settings/row";
 import {
   controlId,
   heldPicks,
@@ -130,12 +130,12 @@ function Needs({ needed }: NeedsProps) {
 /** "Not in AP: Key rings, Keysanity", under a choice for each reason the
  * Archipelago world leaves some of its picks out. */
 function HeldPicks({ def }: SettingRowProps) {
-  return heldPicks(def).map(([why, labels]) => (
+  return heldPicks(def).map(([mark, labels]) => (
     <p
-      key={why}
+      key={mark.why}
       className="mt-1.5 flex items-center gap-1.5 text-ink-faint text-xs"
     >
-      <NotInApBadge why={why} />
+      <ApBadge mark={mark} />
       {labels.join(", ")}
     </p>
   ));
