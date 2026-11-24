@@ -184,13 +184,9 @@ mod tests {
         // as the hand rule has it.
         assert!(!(deku.disagree.iter()).any(|d| d.name == "Lower Three Deku Sticks"));
         // The maintainer's playtest settled every other disagreement and
-        // guess: only a Gold Skulltula a sword may reach is left.
+        // guess.
         assert!(deku.disagree.is_empty(), "{deku}");
-        assert!(
-            (deku.guess.iter()).all(|g| g.what.contains("Skulltula")),
-            "{:?}",
-            deku.guess.iter().map(|g| &g.what).collect::<Vec<_>>()
-        );
+        assert!(deku.guess.is_empty(), "{deku}");
         assert!(deku.to_string().contains("disagree ("));
     }
 }

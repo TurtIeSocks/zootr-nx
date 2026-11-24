@@ -10,3 +10,12 @@ why = "the crawl hole between the basement and above Gohma fits child Link only"
 evidence = [
     "playtest 2026-11-24, the maintainer: the crawl hole is child only",
 ]
+
+[[check]]
+hash = 17501688996789643983
+name = "Above Gohma Gold Skulltula"
+needs = "slingshot or bow or boomerang or hookshot or dins-fire or explosives"
+why = "on a wall of room 11, 2.0 m up: out of a sword's reach, in reach of anything thrown, shot or blown up"
+evidence = [
+    "playtest 2026-11-24, the maintainer: a sword can't reach it, any explosive kills it",
+]
