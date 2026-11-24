@@ -114,9 +114,10 @@ fn pointed(foliage: &BymlMap, from: &str, to: &str) -> Result<BymlMap> {
 
 /// Writes `marked`, leaf type `leaf`'s gold copy: a copy of each file the
 /// foliage pack names for `leaf`, its leaf type gold and its FoliageParam
-/// naming it, and a copy of its geometry.
+/// naming it, and a copy of its geometry. It builds on the pack as the
+/// mod has it so far, so each shrub's leaf type keeps the others'.
 fn write_leaf(romfs: &Romfs, builder: &mut ModBuilder, leaf: &str, marked: &str) -> Result<()> {
-    let data = romfs.read(FOLIAGE)?;
+    let data = builder.read(FOLIAGE)?;
     let pack = Sarc::new(&data)?;
     let mut writer = SarcWriter::from_sarc(&pack);
     let named = format!("/{leaf}.");
@@ -205,19 +206,17 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
+        let template = ActorPack::load(&romfs, super::SHRUBS[0]).unwrap();
+        let leaf = leaf_of(&foliage(&template).unwrap().1).unwrap();
+        let named = format!("Foliage/ResShootLeaf/{leaf}.");
         let pack = Sarc::new(romfs.read(FOLIAGE).unwrap()).unwrap();
         let data = (pack.files())
-            .find(|f| {
-                f.name
-                    .is_some_and(|n| n.starts_with("Foliage/ResShootLeaf/"))
-            })
-            .expect("a leaf type")
+            .find(|f| f.name.is_some_and(|n| n.starts_with(&named)))
+            .expect("the shrub's leaf type")
             .data;
         let host = BymlDoc::parse(data).unwrap();
         let host = host.root.as_map().unwrap();
-        if host.get(field::LEAF_MOD_COLOR.get()).is_none() {
-            return;
-        }
+        assert!(host.get(field::LEAF_MOD_COLOR.get()).is_some());
         let leaf = gold(host, "Land_FakePlant_Z_01").unwrap();
         let colour = leaf[field::LEAF_MOD_COLOR.get()].as_map().unwrap()[field::COLOR.get()]
             .as_map()

@@ -166,15 +166,19 @@ const MARKED: [(&Name, &Model); 24] = [
 /// leaves' colour (`shrubs`).
 const SHRUBS: [&Name; 1] = [actor::LAND_KOKIRI_PLANT_A_02_DROP_FIXED_03];
 
-/// A pot's albedo runs up the pot from its foot (v 0) to its lip (v 0.45),
-/// then down its inside (`probe uvs`), the same rows on every pot, which
-/// share one mesh. So the image is the pot upside down.
-/// Its band: the shoulder, neck and lip, as fractions of the height.
+// A pot's albedo runs up the pot from its foot (v 0) to its lip (v 0.45),
+// then down its inside (`probe uvs`), the same rows on every pot, which
+// share one mesh. So the image is the pot upside down.
+
+/// A pot's band: the shoulder, neck and lip, as fractions of the height.
 const POT_BAND: (f32, f32) = (0.31, 0.5);
+/// How far a pot's band fades in and out at its edges, as a fraction of
+/// the height. A brace's patch fades over half that.
 const BAND_FEATHER: f32 = 0.02;
-/// Where a pot's Triforces go: on its belly, a third of its wrap apart so
-/// one always faces the camera, and how tall each is.
+/// Where a pot's Triforces go, each a (u, v) centre: on its belly, a
+/// third of its wrap apart so one always faces the camera.
 const POT_STAMPS: [(f32, f32); 3] = [(1.0 / 6.0, 0.17), (0.5, 0.17), (5.0 / 6.0, 0.17)];
+/// How tall each of a pot's Triforces is, as a fraction of the height.
 const POT_STAMP_HEIGHT: f32 = 0.17;
 /// A pot's metres per v over metres per u (`probe uvs`).
 const POT_STRETCH: f32 = 1.734 / 1.567;
@@ -235,7 +239,8 @@ fn marked_actor(actor: &str) -> Option<String> {
     found.then(|| marked(actor).ok()).flatten()
 }
 
-pub(crate) fn texture_path(name: &str) -> String {
+/// Texture `name`'s file.
+pub(crate) fn texture_file(name: &str) -> String {
     format!("Tex/{name}.bntx.zs")
 }
 
@@ -258,9 +263,10 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Re
         let (project, fmdb) = (marked(model.project)?, marked(model.fmdb)?);
         let template = ActorPack::load(romfs, host)?;
         let [actor, (at, info, like)] = pointed_at(&template, &name, &project, &fmdb)?;
-        let info = match model.coloured {
-            true => coloured_by(info, model.project, &project)?,
-            false => info,
+        let info = if model.coloured {
+            coloured_by(info, model.project, &project)?
+        } else {
+            info
         };
         write_clone(builder, &template, &name, [actor, (at, info, like)])?;
         tables.copy(&name, host)?;
@@ -333,18 +339,16 @@ fn write_albedo(
     triforce: &Mark,
 ) -> Result<()> {
     let name = marked(albedo)?;
-    let like = texture_path(albedo);
+    let like = texture_file(albedo);
     let data = romfs.read(&like)?;
     let mut canvas = Canvas::new(top_level(&data)?);
     paint(&mut canvas, style, triforce);
-    let width = canvas.texture.width;
-    let painted = |x: usize, y: usize| canvas.painted[y * width + x];
     let data = redraw(
         &rename(&data, albedo, &name)?,
         &canvas.texture.rgba,
-        |x, y| !painted(x, y),
+        |x, y| !canvas.is_painted(x, y),
     )?;
-    builder.add(&texture_path(&name), &data, &like)
+    builder.add(&texture_file(&name), &data, &like)
 }
 
 /// `data`, `model`'s file, renamed as its marked copy: its name
@@ -375,7 +379,7 @@ pub fn preview(romfs: &Romfs, out: &std::path::Path) -> Result<()> {
     std::fs::create_dir_all(out)?;
     let triforce = Mark::triforce(romfs)?;
     for (albedo, style) in albedos() {
-        let host = top_level(&romfs.read(&texture_path(albedo))?)?;
+        let host = top_level(&romfs.read(&texture_file(albedo))?)?;
         std::fs::write(
             out.join(format!("{}.png", albedo.get())),
             crate::sprites::png(&host)?,
@@ -469,9 +473,9 @@ mod tests {
         read.extend(
             albedos()
                 .into_iter()
-                .map(|(albedo, _)| texture_path(albedo)),
+                .map(|(albedo, _)| texture_file(albedo)),
         );
-        read.push(texture_path(texture::TRI_FORCE_MARK_GRAVEYARD_ASSETS_A_ALB));
+        read.push(texture_file(texture::TRI_FORCE_MARK_GRAVEYARD_ASSETS_A_ALB));
         read.extend(shrubs::geometry_files(&romfs, &SHRUBS).unwrap());
         assert_eq!(read, FILES);
     }
@@ -619,12 +623,12 @@ mod tests {
                 assert_eq!(copy.len(), name.len());
                 let exists = |rel: &str| romfs.root().join(rel).exists();
                 assert!(!exists(&format!("Pack/Actor/{copy}.pack.zs")), "{copy}");
-                assert!(!exists(&texture_path(&copy)), "{copy}");
+                assert!(!exists(&texture_file(&copy)), "{copy}");
                 assert!(!exists(&model_file(&copy, &copy)), "{copy}");
             }
             assert!(romfs.read(&model_file(model.project, model.fmdb)).is_ok());
             for albedo in model.albedos {
-                assert!(romfs.read(&texture_path(albedo)).is_ok());
+                assert!(romfs.read(&texture_file(albedo)).is_ok());
             }
         }
     }

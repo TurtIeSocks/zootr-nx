@@ -21,8 +21,15 @@ pub(crate) use paint::Colour;
 /// The medallion every song's is copied from. Its name and a song's,
 /// a song medal's, are as long, so no offset in a copy moves.
 pub(crate) const HOST: &Name = item::MEDAL_FOREST;
-/// The host's own textures, each its own file, by suffix.
-const KINDS: [&str; 6] = ["Alb", "Emc", "Nrm", "AO", "Mtl", "Rgh"];
+/// The host's own textures, each its own file.
+const KINDS: [Kind; 6] = [
+    Kind::Alb,
+    Kind::Emc,
+    Kind::Nrm,
+    Kind::Ao,
+    Kind::Mtl,
+    Kind::Rgh,
+];
 /// The host's body. Its front face is a shallow dish mapped flat onto
 /// the textures' face, with the Forest emblem modelled over it: grooves
 /// and ridges between `FACE_FLOOR` and its rim, `FACE_EDGE` out, drawn
@@ -82,6 +89,31 @@ pub(crate) fn texture_path(name: &str, kind: &str) -> String {
     format!("Tex/Mt_{name}_{kind}.bntx.zs")
 }
 
+/// A kind of texture the host wears.
+#[derive(Clone, Copy)]
+enum Kind {
+    Alb,
+    Emc,
+    Nrm,
+    Ao,
+    Mtl,
+    Rgh,
+}
+
+impl Kind {
+    /// The suffix its file's name ends in.
+    fn suffix(self) -> &'static str {
+        match self {
+            Kind::Alb => "Alb",
+            Kind::Emc => "Emc",
+            Kind::Nrm => "Nrm",
+            Kind::Ao => "AO",
+            Kind::Mtl => "Mtl",
+            Kind::Rgh => "Rgh",
+        }
+    }
+}
+
 /// The medallion `item` shows, if it's a song: named by its songbook icon.
 pub(crate) fn medallion(item: &str) -> Option<String> {
     sprites::songs()
@@ -121,7 +153,7 @@ pub fn write<'a>(
     let model = flatten_face(&romfs.read(&host_model)?)?;
     let textures = KINDS
         .iter()
-        .map(|kind| Ok((*kind, romfs.read(&texture_path(HOST, kind))?)))
+        .map(|kind| Ok((*kind, romfs.read(&texture_path(HOST, kind.suffix()))?)))
         .collect::<Result<Vec<_>>>()?;
     let icons = textures_named(&romfs.read(sprites::LAYOUT)?, |n| n.starts_with(ICON))?;
     let (spinner, menu_host) = (
@@ -134,23 +166,25 @@ pub fn write<'a>(
         .chain([(ANIMATION.get(), &menu_host)])
         .collect::<Vec<_>>();
     for (number, song) in sprites::songs() {
-        let name = medallion(song).context("a song")?;
+        let name = medallion(song).with_context(|| format!("{song} has no medallion"))?;
         builder.add(
             &model_path(&name),
             &rename(&model, HOST, &name)?,
             &host_model,
         )?;
+        let icon_name = format!("{ICON}{number}");
         let icon = icons
             .iter()
-            .find(|t| t.name == format!("{ICON}{number}"))
-            .with_context(|| format!("no icon {ICON}{number}"))?;
-        let colour = colour(song).context("a song")?;
+            .find(|t| t.name == icon_name)
+            .with_context(|| format!("no icon {icon_name}"))?;
+        let colour = colour(song).with_context(|| format!("no colour for {song}"))?;
         for (kind, data) in &textures {
-            let like = texture_path(HOST, kind);
-            let drawn = draw(kind, &rename(data, HOST, &name)?, icon, colour)?;
-            builder.add(&texture_path(&name, kind), &drawn, &like)?;
+            let like = texture_path(HOST, kind.suffix());
+            let drawn = draw(*kind, &rename(data, HOST, &name)?, icon, colour)?;
+            builder.add(&texture_path(&name, kind.suffix()), &drawn, &like)?;
         }
-        rewrite_pack(builder, &ActorPack::load(romfs, song)?, &lenders)?;
+        let pack = ActorPack::load(romfs, song)?;
+        rewrite_pack(builder, &pack, &lenders, &spinner)?;
         tables.show(song, HOST, &name)?;
         tables.take(song, MENU_HOST, &[field::ANIMATION_RESOURCES])?;
         tables.add_heaps(song, SPINNER)?;
@@ -199,19 +233,23 @@ fn on_face_map(v: &Vertex) -> bool {
 }
 
 /// A song's pack showing its medallion, and taking each component of
-/// `lenders` from the pack lending it, the file it names too.
+/// `lenders` from the pack lending it, the file it names too. Its actor
+/// file is sized like `spinner`'s.
 fn rewrite_pack(
     builder: &mut ModBuilder,
     pack: &ActorPack,
     lenders: &[(&str, &ActorPack)],
+    spinner: &ActorPack,
 ) -> Result<()> {
     let mut writer = pack.writer();
-    let (info_path, info) = model_info(pack)?.context("a song")?;
+    let info = model_info(pack)?;
+    let (info_path, info) = info.with_context(|| format!("{} isn't a song", pack.name))?;
     let old_info = standins::raw(pack, &info_path)?.len();
     builder.resize(&info_path, old_info, info.len())?;
     writer.add_file(info_path, info);
     let actor_path = standins::actor_path(&pack.name);
-    let mut actor = BymlDoc::parse(&standins::raw(pack, &actor_path)?)?;
+    let actor_raw = standins::raw(pack, &actor_path)?;
+    let mut actor = BymlDoc::parse(&actor_raw)?;
     let mut refs = standins::components(actor.root.as_map()?)?;
     for (key, lender) in lenders {
         standins::lend(&mut writer, &mut refs, key, lender)?;
@@ -221,8 +259,7 @@ fn rewrite_pack(
         .as_mut_map()?
         .insert(COMPONENTS.into(), Byml::Map(refs));
     let new_actor = actor.to_binary();
-    let old_actor = standins::raw(pack, &actor_path)?.len();
-    let (_, spinner) = lenders.first().context("no spinner")?;
+    let old_actor = actor_raw.len();
     let like = standins::actor_path(&spinner.name);
     let like_size = standins::raw(spinner, &like)?.len();
     builder.resize_like(&actor_path, old_actor, new_actor.len(), &like, like_size)?;
@@ -237,29 +274,26 @@ pub(crate) fn colour(song: &str) -> Option<Colour> {
 /// A host texture of `kind` as a song's medallion wears it: the albedo and
 /// glow in its colour, the icon on the face, raised in the normal map and
 /// unshaded in the occlusion map. The rest are the host's.
-fn draw(kind: &str, data: &[u8], icon: &Texture, colour: Colour) -> Result<Vec<u8>> {
-    let mut t = top_level(data)?;
-    let (w, h) = (t.width, t.height);
-    let off_face = |x, y| !paint::on_face(w, h, x, y);
+fn draw(kind: Kind, data: &[u8], icon: &Texture, colour: Colour) -> Result<Vec<u8>> {
     match kind {
-        "Alb" => {
+        Kind::Alb | Kind::Emc => {
+            let mut t = top_level(data)?;
             paint::recolour(&mut t, colour);
-            paint::paint_icon(&mut t, icon, colour);
+            if matches!(kind, Kind::Alb) {
+                paint::paint_icon(&mut t, icon, colour);
+            }
             redraw(data, &t.rgba, |_, _| false)
         }
-        "Emc" => {
-            paint::recolour(&mut t, colour);
-            redraw(data, &t.rgba, |_, _| false)
+        Kind::Nrm | Kind::Ao => {
+            let mut t = top_level(data)?;
+            match kind {
+                Kind::Nrm => paint::emboss(&mut t, icon),
+                _ => paint::fill(&mut t, 255),
+            }
+            let (w, h) = (t.width, t.height);
+            redraw(data, &t.rgba, |x, y| !paint::on_face(w, h, x, y))
         }
-        "Nrm" => {
-            paint::emboss(&mut t, icon);
-            redraw(data, &t.rgba, off_face)
-        }
-        "AO" => {
-            paint::fill(&mut t, 255);
-            redraw(data, &t.rgba, off_face)
-        }
-        _ => Ok(data.to_vec()),
+        Kind::Mtl | Kind::Rgh => Ok(data.to_vec()),
     }
 }
 
@@ -274,7 +308,7 @@ mod tests {
     fn the_host_files_are_where_its_name_puts_them() {
         needs_names!();
         let mut named = vec![model_path(HOST)];
-        named.extend(KINDS.iter().map(|k| texture_path(HOST, k)));
+        named.extend(KINDS.iter().map(|k| texture_path(HOST, k.suffix())));
         assert_eq!(named, FILES[..7]);
     }
 
