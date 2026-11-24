@@ -312,3 +312,10 @@ test("Play shows Get started with no seed installed, ticking what's done", async
   fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
   expect(screen.queryByText("Get Started")).toBeNull();
 });
+
+test("Get started stays gone once a seed was made, even uninstalled", async () => {
+  render(<App />);
+  await screen.findByText("Get Started");
+  act(() => useSeeds.setPath("history", { installed: null, entries: [seed] }));
+  expect(screen.queryByText("Get Started")).toBeNull();
+});
