@@ -198,7 +198,6 @@ function ForHosts({ apworld }: { apworld: ReturnType<typeof useApworld> }) {
  * Both lock while the client is connecting or connected. */
 function Room({ entry }: { entry: Summary }) {
   const status = useAp((s) => s.status);
-  const error = useAp((s) => s.error);
   const [rooms, setRooms] = useUi.usePath("ap.rooms");
   const room = rooms[entry.id] ?? { server: "", password: "" };
   const [shown, setShown] = useState(false);
@@ -248,7 +247,6 @@ function Room({ entry }: { entry: Summary }) {
         </div>
       </div>
       <RoomStatus entry={entry} onSetUp={() => server.current?.focus()} />
-      <InlineError error={error ?? undefined} />
     </>
   );
 }

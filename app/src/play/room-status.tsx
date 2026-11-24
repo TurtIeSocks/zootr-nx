@@ -1,6 +1,7 @@
 import { Skull } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Summary } from "@/bindings";
+import { InlineError } from "@/components/callout";
 import { Tip } from "@/components/tip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,10 +28,22 @@ interface RoomStatusProps {
   onSetUp?: () => void;
 }
 
+/** The room line, and under it why the last Connect couldn't start. The
+ * header shows this too, so the error sits with the button that failed. */
+export function RoomStatus(props: RoomStatusProps) {
+  const error = useAp((s) => s.error);
+  return (
+    <>
+      <RoomLine {...props} />
+      <InlineError error={error ?? undefined} />
+    </>
+  );
+}
+
 /** One line saying whether the game is talking to its Archipelago room,
  * with the one step that fits. The bold word names the state, so the dot
  * is never alone. */
-export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
+function RoomLine({ entry, onSetUp }: RoomStatusProps) {
   const status = useAp((s) => s.status);
   const lines = useAp((s) => s.lines);
   const [rooms] = useUi.usePath("ap.rooms");
