@@ -157,11 +157,17 @@ fn load(root: &Path, tier: usize) -> Result<HashMap<u64, &'static str>> {
 }
 
 /// Writes `text` to `file` through a temporary, so a reader never sees half.
+/// Each call has its own temporary, so two saves at once never share one.
 pub(crate) fn keep(file: &Path, text: impl AsRef<[u8]>) -> Result<()> {
-    let part = file.with_extension(format!("{}.part", std::process::id()));
+    static CALLS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let call = CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let part = file.with_extension(format!("{}-{call}.part", std::process::id()));
     std::fs::create_dir_all(file.parent().unwrap_or(file))?;
-    std::fs::write(&part, text)?;
-    Ok(std::fs::rename(part, file)?)
+    let kept = std::fs::write(&part, text).and_then(|()| std::fs::rename(&part, file));
+    if kept.is_err() {
+        let _ = std::fs::remove_file(&part);
+    }
+    Ok(kept?)
 }
 
 /// The files whose path from the romfs starts with `rel`, a stem ending
@@ -376,6 +382,27 @@ mod tests {
             "a broken tail is cut"
         );
         assert!(words(data).any(|w| w == "Fake_"), "its head still counts");
+    }
+
+    #[test]
+    fn saves_at_once_each_land_whole() {
+        let dir = std::env::temp_dir().join(format!("zootr-known-keep-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let file = dir.join("kept.json");
+        let texts: Vec<String> = (0..16).map(|i| i.to_string().repeat(4096)).collect();
+        std::thread::scope(|s| {
+            for text in &texts {
+                let file = &file;
+                s.spawn(move || keep(file, text).unwrap());
+            }
+        });
+        assert!(texts.contains(&std::fs::read_to_string(&file).unwrap()));
+        assert_eq!(
+            std::fs::read_dir(&dir).unwrap().count(),
+            1,
+            "no temporary left"
+        );
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
