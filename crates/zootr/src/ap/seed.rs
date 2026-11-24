@@ -8,7 +8,7 @@ use ounce_formats::Romfs;
 use serde_json::Value;
 
 use super::when::{Domain, Variant};
-use super::{JOINT, OPTIONS, names, offers};
+use super::{JOINT, exposed, names, offers};
 use crate::checks::{self, ItemCheck};
 use crate::fill;
 use crate::ice_traps;
@@ -225,15 +225,11 @@ pub(super) fn pinned() -> Settings {
 pub(super) fn base() -> Settings {
     let defs = schema();
     let mut s = pinned();
-    for id in OPTIONS
-        .iter()
-        .filter(|id| !s.contains_key(**id))
-        .collect::<Vec<_>>()
-    {
-        if let Some(d) = defs.iter().find(|d| d.id == *id)
+    for id in exposed() {
+        if let Some(d) = defs.iter().find(|d| d.id == id)
             && let Kind::Toggle { .. } = d.kind
         {
-            s.insert((*id).into(), Value::Bool(false));
+            s.entry(id).or_insert(Value::Bool(false));
         }
     }
     s
@@ -273,20 +269,20 @@ pub(super) fn domains() -> Result<Vec<Domain>> {
     let defs = schema();
     let base = base();
     let mut out = Vec::new();
-    for id in OPTIONS {
+    for id in &exposed() {
         let def = defs.iter().find(|d| d.id == *id);
         let values: Vec<Value> = match def
             .map(|d| &d.kind)
             .with_context(|| format!("no setting {id}"))?
         {
             Kind::Toggle { .. } => {
-                let first = base.get(*id).and_then(Value::as_bool).unwrap_or(false);
+                let first = base.get(id).and_then(Value::as_bool).unwrap_or(false);
                 vec![first.into(), (!first).into()]
             }
             Kind::Choice {
                 default, options, ..
             } => {
-                let first = base.get(*id).and_then(Value::as_str).unwrap_or(default);
+                let first = base.get(id).and_then(Value::as_str).unwrap_or(default);
                 let mut v = vec![Value::String(first.to_owned())];
                 let others = (options.iter()).filter(|o| o.id != first && offers(id, &o.id));
                 v.extend(others.map(|o| Value::String(o.id.clone())));
@@ -295,7 +291,7 @@ pub(super) fn domains() -> Result<Vec<Domain>> {
             Kind::Inventory { .. } => continue,
         };
         out.push(Domain {
-            id: (*id).into(),
+            id: id.clone(),
             values,
         });
     }
@@ -344,6 +340,8 @@ pub(super) fn variants() -> Result<Vec<Variant>> {
             let mut overlay = Settings::from([(d.id.clone(), value.clone())]);
             let mut key = overlay.clone();
             let from = match parent {
+                // The base holds it on already (Scrubs, pinned).
+                Some(p) if base().get(p) == Some(&Value::Bool(true)) => None,
                 None => None,
                 Some(p) => {
                     key.insert(p.into(), Value::Bool(true));
@@ -371,7 +369,7 @@ pub(super) fn variants() -> Result<Vec<Variant>> {
 pub(super) fn open() -> BTreeSet<String> {
     let defs = schema();
     let mut out = BTreeSet::new();
-    for def in OPTIONS
+    for def in exposed()
         .iter()
         .filter_map(|id| defs.iter().find(|d| d.id == *id))
     {
@@ -394,6 +392,8 @@ pub(super) fn open() -> BTreeSet<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ap::OPTIONS;
+    use crate::settings::SCRUB_PRICE;
     use crate::rules::settings_read;
 
     #[test]
@@ -403,6 +403,16 @@ mod tests {
             let def = defs.iter().find(|d| d.id == *id).unwrap();
             assert_eq!(def.parent, None, "{id}");
         }
+    }
+
+    /// Scrub Price needs Scrubs, which the base pins on: its variants
+    /// come from the base, not a Scrubs-on seed there's no need for.
+    #[test]
+    fn a_setting_whose_parent_the_base_holds_varies_from_the_base() {
+        let variants = variants().unwrap();
+        let price = (variants.iter()).filter(|v| v.overlay.contains_key(SCRUB_PRICE));
+        assert!(price.clone().count() > 0);
+        assert!(price.into_iter().all(|v| v.from.is_none()));
     }
 
     /// A file from a world before these options opens with what that

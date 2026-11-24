@@ -265,7 +265,7 @@ pub(crate) const MET_ZELDA: &str = "met-zelda";
 pub(crate) const FORTRESS_FAST: &str = "gerudo-fortress=fast";
 pub(crate) const FORTRESS_FREED: &str = "gerudo-fortress=freed";
 pub(crate) const SCRUBS: &str = "scrubs";
-const SCRUB_PRICE: &str = "scrub-price";
+pub(crate) const SCRUB_PRICE: &str = "scrub-price";
 pub(crate) const NPC_GIFTS: &str = "npc-gifts";
 pub(crate) const HUNDRED_TOKENS: &str = "hundred-token-reward";
 pub(crate) const DUNGEON_REWARDS: &str = "dungeon-rewards";

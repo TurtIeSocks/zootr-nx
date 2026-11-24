@@ -5,6 +5,8 @@ use std::collections::BTreeMap;
 
 use anyhow::{Context, Result, bail};
 
+use crate::settings::schema;
+
 /// What each slot starts with: the test seeds' items, by AP name.
 const START: [&str; 5] = [
     "Kokiri Sword",
@@ -33,7 +35,20 @@ pub(super) fn options(name: &str) -> Result<Vec<String>> {
                 toml::Value::Boolean(b) => b.to_string(),
                 // AP spells a choice's options as Python names, like its ids.
                 toml::Value::String(s) => s.replace('-', "_"),
-                _ => bail!("{name}.{id}: a toggle or a choice"),
+                // A set's keys are its settings' labels.
+                toml::Value::Array(ids) => {
+                    let label = |v: &toml::Value| -> Result<String> {
+                        let id = v.as_str().with_context(|| format!("{name}.{id}: ids"))?;
+                        let def = schema().into_iter().find(|d| d.id == id);
+                        Ok(format!(
+                            "{:?}",
+                            def.with_context(|| format!("no setting {id}"))?.label
+                        ))
+                    };
+                    let labels: Vec<String> = ids.iter().map(label).collect::<Result<_>>()?;
+                    format!("[{}]", labels.join(", "))
+                }
+                _ => bail!("{name}.{id}: a toggle, a choice or a set"),
             };
             Ok(format!("{}: {value}", id.replace('-', "_")))
         })
@@ -89,6 +104,11 @@ mod tests {
                     (Some(vs), toml::Value::String(v)) => {
                         assert!(vs.contains(&v), "{name}.{id} = {v}: not one of {vs:?}")
                     }
+                    (Some(vs), toml::Value::Array(items)) => {
+                        for v in items.iter().map(|v| v.as_str().unwrap().to_owned()) {
+                            assert!(vs.contains(&v), "{name}.{id} lists {v}: not one of {vs:?}")
+                        }
+                    }
                     (_, v) => panic!("{name}.{id} = {v}: the wrong kind"),
                 }
             }
@@ -115,6 +135,13 @@ mod tests {
     fn a_choice_s_option_goes_by_ap_s_spelling() {
         let lines = options("all-on").unwrap();
         assert!(lines.contains(&"rainbow_bridge: six_medallions".to_owned()));
+    }
+
+    #[test]
+    fn a_set_goes_by_its_settings_labels() {
+        let lines = options("all-on").unwrap();
+        let line = r#"skipped_cutscenes: ["Skip the Intro", "Kokiri Forest"]"#;
+        assert!(lines.contains(&line.to_owned()), "{lines:?}");
     }
 
     #[test]

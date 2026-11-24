@@ -12,13 +12,13 @@ use serde_json::{Value, json};
 use super::rule::{self, Rules, all, any};
 use super::seed::{Everything, Seed, base, domains, open, values, variants};
 use super::when::{Counts, Domain, Variant, steps, word};
-use super::{OPTIONS, described, ids::Ids, names, offers};
+use super::{OPTIONS, SETS, described, ids::Ids, names, offers};
 use crate::checks::ItemCheck;
 use crate::fill;
 use crate::logic::World;
 use crate::narrowing::allowed;
 use crate::rules::{Need, vocab};
-use crate::settings::{Kind, NewGame, Settings, schema};
+use crate::settings::{Kind, NewGame, SettingDef, Settings, schema};
 use crate::world::Era;
 
 /// Items that aren't progression but are worth more than filler.
@@ -499,7 +499,19 @@ fn options() -> Value {
             "kind": "inventory", "default": default,
         }),
     });
-    Value::Array(rows.collect())
+    let sets = SETS.iter().map(|set| {
+        let members = set.members();
+        let on = |d: &&SettingDef| matches!(d.kind, Kind::Toggle { default: true });
+        json!({
+            "id": set.id, "label": set.label, "kind": "set", "parent": set.parent,
+            "description": set.description,
+            "options": (members.iter())
+                .map(|d| json!({ "id": d.id, "label": d.label }))
+                .collect::<Vec<_>>(),
+            "default": members.iter().filter(on).map(|d| &d.id).collect::<Vec<_>>(),
+        })
+    });
+    Value::Array(rows.chain(sets).collect())
 }
 
 /// Names for the export: places, items and locations, all ours.

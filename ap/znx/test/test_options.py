@@ -241,3 +241,33 @@ class TestAdultStartOpensTheDoorAndForest(ZnxTestBase):
         self.assertIs(world.setting_values["open-forest"], True)
         self.assertEqual(world.setting_values["door-of-time"], "open")
         self.assertEqual(world.origin_region_name, WORLD["starts"][0]["place"])
+
+
+SKIPS = next(e for e in OPTIONS if e["id"] == "skipped-cutscenes")
+
+
+class TestSkippedCutscenesListsEverySkip(unittest.TestCase):
+    def test_one_key_a_skip(self) -> None:
+        labels = [o["label"] for o in SKIPS["options"]]
+        self.assertEqual(len(labels), 32)
+        self.assertEqual(len(set(labels)), 32)
+
+
+class TestSkippedCutscenesWritesItsToggles(ZnxTestBase):
+    """Two listed, Skip Cutscenes off: those two on, the rest off."""
+
+    picked = [o["label"] for o in SKIPS["options"][:2]]
+    options = {"skip_cutscenes": False, "skipped_cutscenes": picked}
+
+    def test_listed_on_rest_off(self) -> None:
+        values = self.multiworld.worlds[self.player].setting_values
+        on = [o["label"] for o in SKIPS["options"] if values[o["id"]]]
+        self.assertEqual(on, self.picked)
+
+
+class TestSkipCutscenesTurnsEverySkipOn(ZnxTestBase):
+    options = {"skip_cutscenes": True, "skipped_cutscenes": []}
+
+    def test_all_on(self) -> None:
+        values = self.multiworld.worlds[self.player].setting_values
+        self.assertTrue(all(values[o["id"]] for o in SKIPS["options"]))
