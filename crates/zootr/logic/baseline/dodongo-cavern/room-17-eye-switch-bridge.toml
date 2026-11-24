@@ -6,34 +6,23 @@ name = "Eye Switch Bridge"
 to = 13
 needs = "always"
 via = "walk"
-why = "walk, 7 edges"
-
-[[link]]
-to = 13
-needs = "always"
-via = "jump"
-why = "level gap 0.8 m: within a running jump (2.7 m)"
+why = "walk, 10 edges"
 
 [[link]]
 to = 15
 needs = "always"
 via = "walk"
-why = "walk, 3 edges"
+why = "walk, 17 edges"
 
 [[link]]
 to = 15
 needs = "always"
 via = "jump"
-why = "level gap 1.5 to 2.5 m: within a running jump (2.7 m)"
+why = "level gap 0.7 m: within a running jump (2.7 m); on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 16
 needs = "always"
 via = "walk"
-why = "walk, 18 edges"
-
-[[link]]
-to = 16
-needs = "always"
-via = "jump"
-why = "level gap 0.8 m: within a running jump (2.7 m)"
+why = "walk, 5 edges"

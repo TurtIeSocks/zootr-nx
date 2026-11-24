@@ -219,6 +219,7 @@ fn name_value(line: &str) -> Result<(&str, &str)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cutscenes::played_set;
     use crate::known::{field, flag, flow, scene};
 
     fn example() -> String {
@@ -280,25 +281,14 @@ expect = ["{}.{}=true"]
             kinds,
             [
                 Kind::Play(flow::GOTO_HYRULE_CASTLE.to_string()),
-                Kind::Until(
-                    format!(
-                        "{}.{}=true",
-                        flag::HAVE_PLAYED_EVENT,
-                        scene::HRL_CASTLE_0050
-                    ),
-                    Duration::from_secs(20)
-                ),
+                Kind::Until(played_set(scene::HRL_CASTLE_0050), Duration::from_secs(20)),
                 Kind::Press("A".into()),
                 Kind::Hold("ZL".into(), 800),
                 Kind::Stick("up-left".into(), MS),
                 Kind::Wait(Duration::from_millis(1500)),
                 Kind::Shot,
                 Kind::Expect(
-                    vec![format!(
-                        "{}.{}=true",
-                        flag::HAVE_PLAYED_EVENT,
-                        scene::HRL_CASTLE_0060
-                    )],
+                    vec![played_set(scene::HRL_CASTLE_0060)],
                     Duration::from_secs(10)
                 ),
             ]

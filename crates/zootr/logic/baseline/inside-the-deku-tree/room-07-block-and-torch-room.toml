@@ -6,7 +6,7 @@ name = "Block And Torch Room"
 to = 6
 needs = "always"
 via = "walk"
-why = "walk, 2 edges"
+why = "walk, 3 edges"
 
 [[link]]
 to = 8

@@ -302,6 +302,9 @@ pub fn walls(romfs: &Romfs, game: &Path, placed: &[Placement]) -> Result<Walls> 
             }
         }
     }
+    walls
+        .solid
+        .extend(super::terrain::walls(romfs, game, placed)?);
     Ok(walls)
 }
 

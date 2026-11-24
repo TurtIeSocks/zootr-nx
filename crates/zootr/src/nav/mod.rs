@@ -54,6 +54,7 @@ pub mod shove;
 #[cfg(test)]
 mod sim;
 pub mod sink;
+pub mod terrain;
 pub mod trace;
 pub mod water;
 pub mod went;
@@ -152,6 +153,9 @@ pub struct Level {
     /// The first of the mesh's faces that are collision floor, not
     /// navmesh: none until [`Level::with_floors`] adds them.
     pub floors: Option<usize>,
+    /// Of the collision floor faces, from [`Level::floors`] on, which
+    /// are terrain's.
+    pub terrain: Vec<bool>,
 }
 
 impl Level {
@@ -185,8 +189,9 @@ impl Level {
             climbs: climb::climbs(romfs, &placed)?,
             crawls: crawl::crawls(&placed),
             waters: water::waters(romfs, game, &placed, |_| false)?,
-            child: map.ends_with("_Child"),
+            child: map.ends_with(warp::CHILD),
             floors: None,
+            terrain: vec![],
             placed,
         })
     }
@@ -204,6 +209,7 @@ impl Level {
             float,
             height,
             under,
+            shapes: &self.solids,
         };
         let patches = floors::patches(&self.mesh, &self.walls, &keep);
         let first = self.mesh.faces.len();
@@ -222,8 +228,14 @@ impl Level {
                     .collect()
             })
             .collect();
+        self.terrain = floors::on_terrain(&self.walls, &kept);
         self.mesh = floors::joined(&navmesh, &kept);
         Ok(self)
+    }
+
+    /// Whether face `f` is collision floor on terrain.
+    pub fn on_terrain(&self, f: usize) -> bool {
+        (self.floors).is_some_and(|first| f >= first && self.terrain.get(f - first) == Some(&true))
     }
 
     /// A level with no solids or climbs, as a test builds one.
@@ -240,6 +252,7 @@ impl Level {
             waters: vec![],
             child: false,
             floors: None,
+            terrain: vec![],
         }
     }
 

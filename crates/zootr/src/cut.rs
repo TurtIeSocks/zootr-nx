@@ -379,7 +379,7 @@ pub(crate) fn judge(all: &Flows, c: &Cutscene) -> Verdict {
         [] => Vec::new(),
         // A scene running another's flow runs it from the main entry point.
         [(flow, entry)] => match plan(
-            &all.0[*flow],
+            &all.charts[*flow],
             entry.or((*flow != c.name).then_some(ENTRY)),
             all,
             &items,
@@ -410,7 +410,10 @@ pub(crate) fn judge(all: &Flows, c: &Cutscene) -> Verdict {
             return kept("the map starts it as well");
         }
         for f in &c.flows {
-            let plays = all.0.get(f).map(|f| gifts::scene_marks(f, &c.name).0.len());
+            let plays = all
+                .charts
+                .get(f)
+                .map(|f| gifts::scene_marks(f, &c.name).0.len());
             if plays.is_none_or(|n| n == 0) {
                 return Verdict::Kept(format!("{f} has no transition to it"));
             }

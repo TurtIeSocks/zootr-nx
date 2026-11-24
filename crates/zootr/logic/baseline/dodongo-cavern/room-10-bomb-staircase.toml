@@ -6,7 +6,14 @@ name = "Bomb Staircase"
 to = 1
 needs = "flag:#cf5e43e4"
 via = "walk"
-why = "walk, 18 edges; Switch Shutter A 06 3133131671431381109 shut until flag #cf5e43e4; Dodongo Cave Switch Shutter A 01 9691562485383977530 shut until flag #cf5e43e4"
+why = "walk, 32 edges; Switch Shutter A 06 3133131671431381109 shut until flag #cf5e43e4; Dodongo Cave Switch Shutter A 01 9691562485383977530 shut until flag #cf5e43e4"
+
+[[link]]
+to = 1
+needs = "always"
+via = "jump"
+why = "gap 1.0 to 2.5 m, falling up to 4.9 m: within a running jump off the edge (4.5 m for that fall); on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 11
@@ -19,6 +26,13 @@ to = 12
 needs = "flag:#03061f09"
 via = "walk"
 why = "walk, 7 edges; Switch Shutter A 06 15168842578462879268 shut until flag #03061f09; Dodongo Cave Switch Shutter A 01 17234807852443998469 shut until flag #03061f09"
+
+[[link]]
+to = 12
+needs = "flag:#03061f09"
+via = "jump"
+why = "level gap 1.5 to 2.0 m: within a running jump (2.7 m); Switch Shutter A 06 5116964458081546297 shut until flag #03061f09; Switch Shutter A 06 15168842578462879268 shut until flag #03061f09; Dodongo Cave Switch Shutter A 01 17234807852443998469 shut until flag #03061f09; on terrain floor no live run has walked"
+guess = true
 
 [[check]]
 hash = 8470399761714006011

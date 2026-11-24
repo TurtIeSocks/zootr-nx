@@ -73,7 +73,7 @@ fn text(event: &'static [u8]) -> &'static str {
 /// makes the sensor and ends, and one for [`END`], which takes it away. It
 /// outlives Link's freeze and would freeze him again after each break.
 pub fn flow(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
-    let songs = flows::load(romfs, SONGS)?.context("the song flow is a timeline")?;
+    let songs = flows::timeline(romfs, SONGS)?;
     let at = *flows::running(&songs, MAKE)
         .first()
         .context("the song flow makes no sensor")?;

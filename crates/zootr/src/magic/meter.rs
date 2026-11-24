@@ -7,7 +7,7 @@ use ounce_formats::{ActorPack, Byml, ModBuilder, Romfs, murmur3, redraw, top_lev
 
 use crate::gamedata;
 use crate::key_tints::paint::{Host, Look};
-use crate::key_tints::{TEXT_PARTS, copied};
+use crate::key_tints::{self, copied};
 use crate::known::{Name, field, hash, item};
 use crate::medallions::paint::{self, Band, Hues};
 use crate::standins::{PLAIN_DEAL, Tables, clone_pack, write_clone};
@@ -76,7 +76,7 @@ fn model() -> String {
 /// The label naming the Magic Meter: its pack lives only in the seed, and
 /// it answers to its own name.
 pub fn name_label(item: &str) -> Option<String> {
-    (item == NAME).then(|| format!("{NAME}{}", TEXT_PARTS[0]))
+    (item == NAME).then(|| key_tints::label(NAME))
 }
 
 /// The Magic Meter's pack, if `item` is it, built as [`write`] writes it.

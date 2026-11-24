@@ -49,6 +49,9 @@ const TYPES: [&str; 33] = [
     "Bool64bitKey",
 ];
 
+/// The type of a single flag.
+pub const BOOL: &str = "Bool";
+
 /// The type of per-placement flags: one entry whose data is the keys that
 /// are true, as sorted u64s, then a zero.
 pub const KEYED: &str = "Bool64bitKey";

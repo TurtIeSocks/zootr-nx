@@ -166,7 +166,7 @@ pub(crate) fn own_pack(template: &ActorPack, item: &str, model: &str) -> Result<
 /// lives only in the seed, and it answers to its own name, whose lines
 /// [`captions`] writes.
 pub fn name_label(item: &str) -> Option<String> {
-    copy_of(item, DungeonKeys::default()).map(|_| format!("{item}{}", TEXT_PARTS[0]))
+    copy_of(item, DungeonKeys::default()).map(|_| label(item))
 }
 
 /// The key `item` copies and the model it shows as `keys` deals it.
@@ -285,6 +285,11 @@ pub fn made(rings: bool, bosses: bool, fortress: bool) -> Vec<(String, &'static 
 
 /// The lines a key's get reads, each under the key's name.
 pub(crate) const TEXT_PARTS: [&str; 3] = ["_Name", "_GetMessage", "_GetCaption"];
+
+/// The label of `item`'s name line, the first of its [`TEXT_PARTS`].
+pub(crate) fn label(item: &str) -> String {
+    format!("{item}{}", TEXT_PARTS[0])
+}
 
 /// Each of [`TEXT_PARTS`]' English line for a copy, `{}` its dungeon's
 /// name, and whether every other language adds the name in brackets.

@@ -18,7 +18,7 @@ why = "step up 0.6 to 0.7 m"
 to = 21
 needs = "(flag:#0fd4f9c9) and (flag:#6e5f3718)"
 via = "walk"
-why = "walk, 16 edges; Switch Shutter A 06 6705589528480792193 shut until flag #0fd4f9c9; Switch Shutter A 06 6705589528480792193 shut until flag #6e5f3718; Dodongo Cave Switch Shutter A 01 16871561526373450485 shut until flag #0fd4f9c9; Dodongo Cave Switch Shutter A 01 16871561526373450485 shut until flag #6e5f3718"
+why = "walk, 15 edges; Switch Shutter A 06 6705589528480792193 shut until flag #0fd4f9c9; Switch Shutter A 06 6705589528480792193 shut until flag #6e5f3718; Dodongo Cave Switch Shutter A 01 16871561526373450485 shut until flag #0fd4f9c9; Dodongo Cave Switch Shutter A 01 16871561526373450485 shut until flag #6e5f3718"
 
 [[link]]
 to = 21

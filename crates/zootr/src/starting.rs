@@ -71,7 +71,7 @@ pub fn replay(romfs: &Romfs, rewrites: &mut Rewrites, steps: &[(String, String)]
 
 /// Saria's ocarina flow, which holds the grant event every grant copies.
 pub(crate) fn template(romfs: &Romfs) -> Result<Flowchart> {
-    flows::load(romfs, TEMPLATE)?.context("the ocarina flow is a timeline")
+    flows::timeline(romfs, TEMPLATE)
 }
 
 /// The template's grant: the actor it runs on and its params.
@@ -157,7 +157,7 @@ fn redraw(romfs: &Romfs, grants: &[Grant]) -> Result<Vec<Model>> {
     if !grants.iter().any(|g| g.actor == container) {
         return Ok(Vec::new());
     }
-    let get = flows::load(romfs, flow::SY_GET)?.context("the get flow is a timeline")?;
+    let get = flows::timeline(romfs, flow::SY_GET)?;
     (GAUGE.iter())
         .map(|&what| {
             let at = flows::switch(&get, what)

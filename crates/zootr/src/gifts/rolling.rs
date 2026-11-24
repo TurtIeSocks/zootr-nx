@@ -45,10 +45,10 @@ mod tests {
         for q in &asks {
             assert!(!reached.contains(q), "#{q} still asked");
         }
-        let calls = calls_to(&flow, CALL).unwrap();
+        let calls = calls_to(&flow, CALL);
         let bags: Vec<&str> = (calls.iter())
-            .filter(|&&i| reached.contains(&(i as u16)))
-            .filter_map(|&i| match &flow.events[i].kind {
+            .filter(|&i| reached.contains(i))
+            .filter_map(|&i| match &flow.events[i as usize].kind {
                 EventKind::SubFlow { params, .. } => param(params, flow::REVEIVE_ITEM),
                 _ => None,
             })

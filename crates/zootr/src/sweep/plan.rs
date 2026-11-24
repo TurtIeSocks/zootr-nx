@@ -150,6 +150,38 @@ pub enum Trigger {
     Skip(String),
 }
 
+impl Trigger {
+    /// The quest steps the spot needs: none for a skip.
+    pub fn steps(&self) -> &[(String, String)] {
+        match self {
+            Trigger::Open { steps, .. }
+            | Trigger::Talk { steps, .. }
+            | Trigger::Play { steps, .. } => steps,
+            Trigger::Skip(_) => &[],
+        }
+    }
+
+    /// The values set before the teleport: none for a skip.
+    pub fn ready(&self) -> &[String] {
+        match self {
+            Trigger::Open { ready, .. }
+            | Trigger::Talk { ready, .. }
+            | Trigger::Play { ready, .. } => ready,
+            Trigger::Skip(_) => &[],
+        }
+    }
+
+    /// The map the spot is swept in: none for a skip, or an event played
+    /// wherever Link stands.
+    pub fn map(&self) -> Option<&str> {
+        match self {
+            Trigger::Open { map, .. } | Trigger::Talk { map, .. } => Some(map),
+            Trigger::Play { map, .. } => map.as_deref(),
+            Trigger::Skip(_) => None,
+        }
+    }
+}
+
 /// A spot with its trigger.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Planned {
@@ -159,6 +191,37 @@ pub struct Planned {
     pub child: Option<bool>,
     /// The side of its holder Link lands on and uses it from first.
     pub side: Side,
+}
+
+#[cfg(test)]
+impl Planned {
+    /// A spot with `trigger`, for any age, used from the front.
+    pub(crate) fn with(trigger: Trigger) -> Self {
+        Self {
+            spot: Default::default(),
+            trigger,
+            child: None,
+            side: Side::Front,
+        }
+    }
+
+    /// A chest spot in `map`, for any age.
+    pub(crate) fn open(map: &str) -> Self {
+        Self::with(Trigger::Open {
+            map: map.into(),
+            at: Default::default(),
+            face: Default::default(),
+            ready: vec![],
+            steps: vec![],
+            first: None,
+            broken: false,
+            near: vec![],
+            wield: None,
+            sides: vec![],
+            foes: vec![],
+            latch: vec![],
+        })
+    }
 }
 
 // Not a word of the dump's name tables: only the start of chests' names.
@@ -533,7 +596,7 @@ mod tests {
             panic!("{chest:?}");
         };
         assert_eq!(ready, &[flag::DESERT_COLOSSUS_TBOX_ON]);
-        assert!(map.ends_with("_Adult"), "{map}");
+        assert!(map.ends_with(crate::warp::ADULT), "{map}");
         assert_eq!(chest.unwrap().child, Some(false));
     }
 

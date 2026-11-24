@@ -25,10 +25,6 @@ const SALE: (&Name, &Name) = (
     actor::NPC_EVENT_STARTER,
     flow::EVENT_TRIGGER_ADD_SHOP_ITEM_SOLD_NUM,
 );
-/// The query comparing a GameData Int with its `Value`. Case 1 is equal.
-const IS_INT: &Name = flow::EVENT_QUERY_IS_GAME_DATA_INT;
-/// The query reading a BoolExp. Case 0 is true.
-const IS_EXP: &Name = flow::EVENT_QUERY_IS_GAME_DATA_BOOL_EXP;
 const EQUAL: usize = 1;
 
 /// The Bool a check slot sets when it sells.
@@ -156,7 +152,7 @@ fn ask(
                 let set_step = set_true(flow, set, &step.sold, sale)?;
                 let mut params = is_bool.params.clone();
                 flows::set(&mut params, GAME_DATA, string(&step.shows))?;
-                let (actor, query) = flow.query(&is_bool.actor, IS_EXP);
+                let (actor, query) = flow.query(&is_bool.actor, flows::IS_EXP.1);
                 shown = flow.push(EventKind::Switch {
                     actor,
                     query,
@@ -168,7 +164,7 @@ fn ask(
             let mut params = is_bool.params.clone();
             flows::set(&mut params, GAME_DATA, string(flag::SHOP_SELECT_ITEM_INDEX))?;
             params.push((field::VALUE.to_string(), Value::Int(vec![slot.goods_index])));
-            let (actor, query) = flow.query(&is_bool.actor, IS_INT);
+            let (actor, query) = flow.query(&is_bool.actor, flows::IS_INT.1);
             let mut cases = vec![(0, which), (1, which), (2, which)];
             cases[EQUAL].1 = sold;
             which = flow.push(EventKind::Switch {

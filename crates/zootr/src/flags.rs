@@ -7,6 +7,7 @@ use anyhow::Result;
 use ounce_formats::{Byml, EventKind, Flowchart, Romfs, files_with_suffix, murmur3};
 
 use crate::checks::{actors, bancs};
+use crate::cutscenes::played_flag;
 use crate::events::Flows;
 use crate::flows;
 use crate::gamedata::GameData;
@@ -79,7 +80,7 @@ fn learn(gd: &mut GameData, s: &str) {
     // Quest step enums are named after their challenge.
     gd.learn(&format!("Step_{s}"));
     // The game sets an event's played flag, named after the event.
-    gd.learn(&format!("{}.{s}", flag::HAVE_PLAYED_EVENT));
+    gd.learn(&played_flag(s));
 }
 
 impl Survey {
@@ -111,7 +112,7 @@ impl Survey {
             .rows()
             .keys()
             .for_each(|row| learn(&mut gamedata, row));
-        for (name, chart) in &flows.0 {
+        for (name, chart) in &flows.charts {
             learn(&mut gamedata, name);
             flows::strings(chart)
                 .into_iter()

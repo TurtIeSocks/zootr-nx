@@ -4,9 +4,8 @@
 //! only a seed with the setting changes the speed. Rolls, stops and the rest ask from other calls and
 //! stay as they are.
 
-use core::mem::transmute;
-
-use super::{at, main, table};
+use super::{at, func, main, table};
+use crate::traps::COMPONENTS;
 use crate::{BUNNY_HOOD, OFFSETS};
 
 /// How much faster, Ship of Harkinian's factor.
@@ -36,7 +35,7 @@ pub unsafe extern "C" fn run_speed(state: usize, dir: *const f32, speed: f32) {
     };
     // SAFETY: the offset was found in this build of `main`.
     unsafe {
-        let setter: Setter = transmute(main() + OFFSETS.run_setter as usize);
+        let setter: Setter = func(main(), OFFSETS.run_setter);
         setter(state, dir, speed)
     }
 }
@@ -56,7 +55,7 @@ unsafe fn wears_hood(state: usize) -> bool {
 unsafe fn shown_mask(state: usize) -> Option<u32> {
     unsafe {
         let actor = at(state, 0x18)?;
-        let model = at(at(actor, 0x270)?, 0x358)?;
+        let model = at(at(actor, COMPONENTS)?, 0x358)?;
         Some(*((model + MASK) as *const u32))
     }
 }

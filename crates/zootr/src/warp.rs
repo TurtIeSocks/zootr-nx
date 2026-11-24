@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::checks::{GYAML, actors, banc_files, hash_of, load_banc, str_field, vec3};
 use crate::config::TestSetup;
-use crate::dev::{ADULT, CHILD, Dev, Place};
+use crate::dev::{Dev, Place};
 use crate::known::{Name, actor, field, flow};
 use crate::live::Memory;
 use crate::world::{Presence, presence_of};
@@ -237,6 +237,11 @@ pub fn actors_in(romfs: &Romfs, map: &str) -> Result<Vec<Placement>> {
     found.sort_by(|a, b| (&a.name, &a.label, a.hash).cmp(&(&b.name, &b.label, b.hash)));
     Ok(found)
 }
+
+/// The suffix of a map's child copy.
+pub(crate) const CHILD: &str = "_Child";
+/// The suffix of a map's adult copy.
+pub(crate) const ADULT: &str = "_Adult";
 
 /// Whether `map` is a child copy, an adult copy, or neither.
 pub fn era(map: &str) -> Option<bool> {

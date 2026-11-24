@@ -15,7 +15,7 @@ use ounce_formats::EventKind;
 use ounce_formats::{ModBuilder, Romfs};
 
 use crate::flows::{self, GAME_DATA, Rewrites, param};
-use crate::known::{field, flag, flow, scene};
+use crate::known::{flag, flow, scene};
 use crate::standins::Tables;
 
 /// A pouch row's ability, and the value that raises the meter.
@@ -94,14 +94,11 @@ const ASK_EMPTY: [&crate::known::Name; 3] = [
 pub fn quiet(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
     for name in ASK_EMPTY {
         flows::edit(romfs, rewrites, name, |f| {
-            let asks = (flows::events(
-                f,
-                (field::GAME_DATA_ACTOR, flow::EVENT_QUERY_IS_GAME_DATA_INT),
-            ))
-            .into_iter()
-            .filter(|(_, p)| param(p, GAME_DATA) == Some(flag::PLAYER_STATUS_MP_MAX))
-            .map(|(i, _)| i)
-            .collect::<Vec<_>>();
+            let asks = flows::events(f, flows::IS_INT)
+                .into_iter()
+                .filter(|(_, p)| param(p, GAME_DATA) == Some(flag::PLAYER_STATUS_MP_MAX))
+                .map(|(i, _)| i)
+                .collect::<Vec<_>>();
             ensure!(!asks.is_empty(), "{} never asks about the meter", f.name);
             for at in asks {
                 let event = f.events.get_mut(at as usize).context("no such event")?;

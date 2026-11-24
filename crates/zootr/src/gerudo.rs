@@ -17,7 +17,9 @@ use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::{EventKind, Flowchart, Link, Params, Romfs, Value};
 
 use crate::checks::Drop;
-use crate::flows::{self, GRANT, IS_BOOL, Model, Rewrites, running, set, string, switch};
+use crate::flows::{
+    self, GRANT, IS_BOOL, IS_EXP, IS_INT, Model, Rewrites, running, set, string, switch,
+};
 use crate::gifts::GIFTS;
 use crate::known::{Name, field, flag, flow, item, scene};
 use crate::presets::all;
@@ -31,10 +33,6 @@ const CHALLENGE: &Name = flow::SAGE_OF_SPIRIT;
 const STAND_DOWN: &str = "Step02";
 /// The Banc folders the guards watch.
 const GUARDED: [&Name; 2] = [flag::GERUDO_FORTRESS, flag::GERUDO_TRAINING_GROUND];
-const IS_EXP: (&Name, &Name) = (
-    field::GAME_DATA_ACTOR,
-    flow::EVENT_QUERY_IS_GAME_DATA_BOOL_EXP,
-);
 /// True while the quest is past its first step.
 const PAST_FIRST: &Name = flag::SAGE_OF_SPIRIT_IS_AFTER_STEP01_EXP;
 /// The flows that grant an item they are handed by name: the shared get
@@ -216,7 +214,6 @@ fn at_map_change(flow: &mut Flowchart, models: &Models) -> Result<()> {
 
 /// The rescue flow, which counts the carpenters freed.
 const RESCUE: &Name = flow::SAGE_OF_SPIRIT_RESCUE_CARPENTER;
-const IS_INT: (&Name, &Name) = (field::GAME_DATA_ACTOR, flow::EVENT_QUERY_IS_GAME_DATA_INT);
 const HELPED: &Name = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED;
 /// An Int query's answers: below, at or above its `Value`.
 const AT: u32 = 1;

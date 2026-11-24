@@ -20,19 +20,20 @@ guess = true
 to = 16
 needs = "always"
 via = "walk"
-why = "walk, 13 edges"
+why = "walk, 2 edges"
 
 [[link]]
 to = 16
 needs = "always"
 via = "drop"
-why = "drop 1.9 to 2.8 m"
+why = "drop 3.3 to 3.5 m; on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 16
 needs = "always"
 via = "jump"
-why = "gap 0.7 to 2.5 m, falling up to 3.4 m: within a running jump off the edge (4.1 m for that fall)"
+why = "level gap 0.7 m: within a running jump (2.7 m)"
 
 [[check]]
 hash = 3688520809244472975

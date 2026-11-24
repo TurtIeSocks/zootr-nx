@@ -103,11 +103,10 @@ pub(super) fn in_swap(
     flows: &Flows,
     item: &str,
 ) -> Result<()> {
-    let gear = calls_to(flow, &[call(GEAR, GEAR)])?;
+    let gear = calls_to(flow, &[call(GEAR, GEAR)]);
     let [gear] = gear[..] else {
         bail!("{} calls {GEAR} {} times", flow.name, gear.len());
     };
-    let gear = gear as u16;
     let callers = flow.links_to(gear);
     let grant = granting(
         flow,
@@ -170,7 +169,7 @@ fn posed(flow: &mut Flowchart, held: &Model) -> Result<()> {
 
 /// The equipment swap's own pouch question, as a model.
 fn held(romfs: &Romfs) -> Result<Model> {
-    let f = flows::load(romfs, GEAR)?.with_context(|| format!("{GEAR} is a timeline"))?;
+    let f = flows::timeline(romfs, GEAR)?;
     let at = flows::switch(&f, IN_POUCH).with_context(|| format!("{GEAR} asks no pouch"))?;
     flows::model(&f, IN_POUCH, at)
 }
