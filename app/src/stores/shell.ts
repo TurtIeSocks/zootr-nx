@@ -56,13 +56,23 @@ export function openDumpField() {
   setTimeout(() => document.getElementById("game")?.focus(), 50);
 }
 
+/** Each reason nothing can be built or installed that a page fixes, and
+ * how to open that page. */
+const FIXES = new Map<string, () => void>([
+  [NEED_DUMP, openDumpField],
+  [DUMP_GONE, openDumpField],
+  [NEED_TARGET, () => openSettings("targets")],
+]);
+
+/** Whether a page fixes `why`, a reason nothing can be built or installed. */
+export const fixable = (why: string) => FIXES.has(why);
+
 /** Opens where `why`, a reason nothing can be built or installed, is fixed.
  * False for a reason no page fixes. */
 export function fix(why: string): boolean {
-  if (why === NEED_DUMP || why === DUMP_GONE) openDumpField();
-  else if (why === NEED_TARGET) openSettings("targets");
-  else return false;
-  return true;
+  const open = FIXES.get(why);
+  open?.();
+  return !!open;
 }
 
 /** Counts an unsaved bar in while it shows, so the drift bar steps aside.
