@@ -10,8 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use super::GAME;
 use super::ids::Ids;
-use super::names;
-use super::seed::{Dealt, base};
+use super::seed::{Dealt, base, named_by_id};
 use crate::foreign::{self, Foreign, Owner};
 use crate::hints::{Hint, Place};
 use crate::ice_traps;
@@ -195,10 +194,10 @@ impl ApSeed {
             "the seed doesn't match this version's checks: none placed at {missing:?}, unknown {extra:?}"
         );
         let ids = Ids::load()?;
-        let actors = dealt.by_id(&ids)?;
+        let actors = dealt.any_by_id(&ids)?;
         let actor = |id| by_id(&actors, id);
         // Another slot's settings can deal items this slot's never do.
-        let ours = ids.actors(names::named().map(names::same));
+        let ours = named_by_id(&ids);
         let theirs = |id| by_id(&ours, id);
 
         let mut fixed = Fixed::new();
@@ -279,6 +278,7 @@ fn by_id(table: &HashMap<u64, &str>, id: u64) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ap::names;
     use crate::game::dev_dump;
     use crate::generate::{Extras, generate};
     use crate::progress::Run;
@@ -548,6 +548,16 @@ mod tests {
             "{refused}"
         );
         let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn a_start_item_outside_the_pool_is_given() {
+        let Some(romfs) = dev_dump() else { return };
+        let mut seed = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        // The fixture deals no medallions: only AP's start inventory could.
+        let medal = crate::known::item::MEDAL_LIGHT.get();
+        seed.start = vec![Ids::load().unwrap().item_id(medal).unwrap()];
+        assert_eq!(seed.resolve(&romfs).unwrap().give, [medal]);
     }
 
     #[test]

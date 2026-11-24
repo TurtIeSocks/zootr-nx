@@ -15,7 +15,7 @@ use anyhow::{Context, Result, ensure};
 use archipelago_rs::{self as ap, ClientStatus, ConnectionOptions, ConnectionState, ItemHandling};
 use ounce_formats::Romfs;
 
-use super::death::{Death, Deaths, Done};
+use super::death::{Count, Death, Deaths, Done};
 use super::ids::Ids;
 use super::notice::Notices;
 use super::seed::Dealt;
@@ -50,7 +50,7 @@ pub trait Game {
     fn kill(&mut self) -> Result<()>;
 }
 
-/// The seed's AP ids: each free check's location, each pool item's actor.
+/// The seed's AP ids: each free check's location, each item's actor.
 /// And whether the slot plays DeathLink.
 pub struct Book {
     locations: HashMap<u64, i64>,
@@ -67,7 +67,7 @@ impl Book {
             .filter_map(|&h| Some((h, ids.location_id(h)?)))
             .map(|(h, l)| Ok((h, id(l)?)))
             .collect::<Result<_>>()?;
-        let actors = (dealt.by_id(&ids)?)
+        let actors = (dealt.any_by_id(&ids)?)
             .into_iter()
             .map(|(i, a)| Ok((id(i)?, a.to_owned())))
             .collect::<Result<_>>()?;
@@ -241,6 +241,15 @@ pub struct Room {
     pub password: Option<String>,
 }
 
+impl Room {
+    /// The server to dial: [`Room::server`] without the spaces a paste
+    /// brings, which would make it a bad url that reads as a lost
+    /// connection.
+    fn address(&self) -> &str {
+        self.server.trim()
+    }
+}
+
 /// How often the core looks at the game.
 const LOOK: Duration = Duration::from_millis(500);
 /// How often it lets the connection answer.
@@ -321,7 +330,7 @@ fn session(
         options = options.tags([ap::tags::DEATH_LINK]);
     }
     let mut conn: ap::Connection =
-        ap::Connection::new(room.server.clone(), room.slot.clone(), Some(GAME), options);
+        ap::Connection::new(room.address(), room.slot.clone(), Some(GAME), options);
     let mut ledger = Ledger::default();
     let mut deaths = Deaths::default();
     let mut notices = Notices::default();
@@ -519,7 +528,7 @@ pub struct Live {
     goal: u32,
     received: u32,
     /// [`DEATHS`] at the last look.
-    deaths: Option<i64>,
+    deaths: Count,
 }
 
 impl Live {
@@ -532,7 +541,7 @@ impl Live {
             given: spots.iter().filter(|s| s.given).map(|s| s.hash).collect(),
             goal: live::hash(&steps::saved(flow::DEFEAT_GANON))?,
             received: live::hash(RECEIVED)?,
-            deaths: None,
+            deaths: Count::default(),
         })
     }
 
@@ -589,10 +598,7 @@ impl Game for Live {
     }
 
     fn died(&mut self) -> Result<bool> {
-        let n: i64 = self.get(DEATHS)?.parse()?;
-        let died = self.deaths.is_some_and(|last| n > last);
-        self.deaths = Some(n);
-        Ok(died)
+        Ok(self.deaths.died(self.get(DEATHS)?.parse()?))
     }
 
     fn kill(&mut self) -> Result<()> {
@@ -767,6 +773,23 @@ pub(super) mod tests {
         assert!(game.given.is_empty());
     }
 
+    /// A host's `/send` can grant any item the world names, not only the
+    /// pool's: Link gets it, so it holds up nothing behind it.
+    #[test]
+    fn an_item_outside_the_pool_is_given() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let seed = ApSeed::from_zip(include_bytes!("testdata/two_slots.apznx")).unwrap();
+        let book = Book::new(&romfs, &seed).unwrap();
+        // The fixture deals no medallions.
+        let medal = crate::known::item::MEDAL_LIGHT.get();
+        let id = Ids::load().unwrap().item_id(medal).unwrap() as i64;
+        let mut game = Fake::default();
+        give_next(&mut game, &book, &[id]).unwrap();
+        assert_eq!(game.given, [medal]);
+    }
+
     #[test]
     fn the_goal_is_sent_once() {
         let (mut game, mut ledger) = (Fake::default(), Ledger::default());
@@ -774,6 +797,16 @@ pub(super) mod tests {
         game.goal = true;
         assert!(ledger.look(&mut game).unwrap().goal);
         assert!(!ledger.look(&mut game).unwrap().goal);
+    }
+
+    #[test]
+    fn a_pasted_server_s_spaces_are_dropped() {
+        let room = Room {
+            server: " localhost:38281 \n".into(),
+            slot: "FakeSlot".into(),
+            password: None,
+        };
+        assert_eq!(room.address(), "localhost:38281");
     }
 
     #[test]

@@ -21,6 +21,20 @@ pub enum Done {
     Killed(Death),
 }
 
+/// Link's death counter at the last look. A death moves it up by one, and
+/// a save loading by anything, so only a rise of one counts.
+#[derive(Debug, Default)]
+pub struct Count(Option<i64>);
+
+impl Count {
+    /// Whether the counter reading `n` is a death since the last look.
+    pub fn died(&mut self, n: i64) -> bool {
+        let died = self.0.is_some_and(|last| n == last + 1);
+        self.0 = Some(n);
+        died
+    }
+}
+
 /// Looks a kill gets to take Link out of play before it counts as missed.
 const GRACE: u32 = 20;
 
@@ -83,6 +97,14 @@ mod tests {
             source: source.into(),
             cause: None,
         }
+    }
+
+    #[test]
+    fn a_rise_of_one_is_a_death_and_a_save_s_jump_isn_t() {
+        let mut count = Count::default();
+        let died: Vec<bool> = [0, 1, 1, 5, 2, 3].map(|n| count.died(n)).into();
+        // The first read only sets the baseline.
+        assert_eq!(died, [false, true, false, false, false, true]);
     }
 
     #[test]
