@@ -45,8 +45,9 @@ pub const TUNICS: [(&Name, u8, Colours); 2] = [
     ),
 ];
 
-/// The groups of his materials a tunic's armor hides on him: his cloth and
-/// his vest, which the armor draws in its colours instead.
+/// The groups of his materials a tunic's armor hides on him: his cloth
+/// (his headband's among it) and his vest, which the armor draws in its
+/// colours instead.
 pub const GROUPS: [(&Name, &[&Name]); 2] = [
     (
         field::G_ANGIN,
@@ -54,6 +55,7 @@ pub const GROUPS: [(&Name, &[&Name]); 2] = [
             field::MT_CLOTH,
             field::MT_CLOTH_PARTS,
             field::MT_CLOTH_PARTS_ALPHA_MASK,
+            field::MT_BAND,
         ],
     ),
     (field::G_VEST, &[field::MT_VEST]),

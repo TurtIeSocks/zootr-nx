@@ -388,6 +388,7 @@ pub const MODEL_INFO_REF: &Name = &n!(0xac88eda311da31eb);
 pub const MODEL_PROJECT_NAME: &Name = &n!(0x05b3c24eeb782c70);
 pub const MODEL_VARIATION_ANIMS: &Name = &n!(0xb91b2d850a132563);
 pub const MORPHA: &Name = &n!(0xd3f78df3d1591eec);
+pub const MT_BAND: &Name = &n!(0xc87d8dd8e62109e2);
 pub const MT_BODY: &Name = &n!(0xb66630d8dbaac8d1);
 pub const MOUNTAIN_TRAIL_DODONGO_CAVERN_SIDE: &Name = &n!(0x1ae93337990074eb);
 pub const MT_CLOTH: &Name = &n!(0x82e463a394f7e0a7);
