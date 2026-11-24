@@ -9,10 +9,11 @@ use super::spots::{Branch, RED, edits, plain};
 use super::*;
 use crate::checks::Drop;
 use crate::flows::{
-    self, ACTOR as ACTOR_PARAM, GAME_DATA, IN_POUCH, IS_BOOL, Model, Rewrites, VALUE, events,
-    param, reachable,
+    self, ACTOR as ACTOR_PARAM, GAME_DATA, IN_POUCH, IS_BOOL, Model, Rewrites, events, param,
+    reachable,
 };
 use crate::game::dev_dump;
+use crate::known::field::VALUE;
 use crate::known::{Name, actor, field, flag, item};
 
 const KOKIRI: usize = 0;

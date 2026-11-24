@@ -4,7 +4,8 @@ use anyhow::{Context, Result, bail};
 use ounce_formats::{EventKind, Flowchart};
 
 use super::{FLOW, SELECTED, SET_STRING};
-use crate::flows::{self, GAME_DATA, VALUE, events, param, params_mut, string};
+use crate::flows::{self, GAME_DATA, events, param, params_mut, string};
+use crate::known::field::VALUE;
 
 /// The events running `what` whose `key` param is `value`.
 pub(super) fn with(
