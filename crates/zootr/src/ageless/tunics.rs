@@ -89,6 +89,10 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Re
     let like = actor_path(&template.name);
     let doc = BymlDoc::parse(&raw(&template, &like)?)?;
     write_clone(builder, &template, &name, [(actor_path(&name), doc, like)])?;
+    // His Kokiri row's deal keeps the pouch from equipping it, so nothing
+    // took a tunic off: the adult's Kokiri deal equips it, and the hook
+    // makes his empty armor for it.
+    tables.take_deal(actor::OBJ_ARMOR_CHILD_NORMAL, actor::ARMOR_ADULT_NORMAL)?;
     rows(tables, &name, actor::ARMOR_ADULT_NORMAL)
 }
 
@@ -243,6 +247,13 @@ mod tests {
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let mut tables = Tables::load(&romfs).unwrap();
         write(&romfs, &mut builder, &mut tables).unwrap();
+        // His Kokiri row equips through the pouch as the adult's does.
+        let deal = |name: &Name| {
+            let row = crate::standins::row(&tables.pouch, name).unwrap();
+            row.get(field::POUCH_SPECIAL_DEAL.get()).cloned()
+        };
+        let adult = deal(actor::ARMOR_ADULT_NORMAL);
+        assert_eq!(deal(actor::OBJ_ARMOR_CHILD_NORMAL), adult);
         tables.write(&mut builder).unwrap();
         builder.finish().unwrap();
         for armor in &CHILD_ARMOR {
