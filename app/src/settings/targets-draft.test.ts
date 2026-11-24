@@ -1,13 +1,13 @@
 import { expect, test } from "vitest";
 import {
   BLANK,
+  importedDraft,
   isSaved,
   namesVariable,
   problem,
   toDraft,
   toTarget,
   VARIABLES,
-  withTarget,
 } from "@/settings/targets-draft";
 import { rust } from "@/test/rust";
 
@@ -44,6 +44,13 @@ test("a rebuild command keeps one argument per line", () => {
   });
 });
 
+test("a launch argument holding a space saves back whole", () => {
+  const spaced = { ...fake, args: ["--rom", "~/My Games/{game}"] };
+  const draft = toDraft(spaced);
+  expect(draft.args).toBe("--rom\n~/My Games/{game}");
+  expect(toTarget(draft)).toMatchObject(spaced);
+});
+
 test("a bridge and its env lines save back as they were", () => {
   const native = {
     ...fake,
@@ -55,7 +62,9 @@ test("a bridge and its env lines save back as they were", () => {
 });
 
 test("an added target is numbered past the names taken", () => {
-  const drafts = withTarget(withTarget([toDraft(fake)], fake), fake);
+  const drafts = [toDraft(fake)];
+  drafts.push(importedDraft(drafts, fake));
+  drafts.push(importedDraft(drafts, fake));
   expect(drafts.map((d) => d.name)).toEqual([
     "FakeTarget",
     "FakeTarget 2",

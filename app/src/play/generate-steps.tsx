@@ -90,31 +90,44 @@ interface StepLineProps {
   running: boolean;
 }
 
+/** How a step stands, and the mark each state shows. */
+const MARKS = {
+  failed: { Icon: CircleAlert, label: "Failed", className: "text-danger-ink" },
+  running: {
+    Icon: Loader2,
+    label: "Running",
+    className: "animate-spin text-ink-muted",
+  },
+  stopped: { Icon: CircleStop, label: "Stopped", className: "text-ink-muted" },
+  done: { Icon: Check, label: "Done", className: "text-primary-ink" },
+} as const;
+
 /** One step: a check and its time once ended, a spinner and a live timer
- * while it runs. */
+ * while it runs. A step the run failed or stopped in shows no time, since
+ * its clock stopped with the run. */
 function StepLine({ row, failed, running }: StepLineProps) {
   const now = useNow(running);
-  const secs = row.secs ?? (now - row.started) / 1000;
+  const state = failed
+    ? "failed"
+    : running
+      ? "running"
+      : row.secs === null
+        ? "stopped"
+        : "done";
+  const { Icon, label, className } = MARKS[state];
+  const secs = running ? (now - row.started) / 1000 : row.secs;
   const long = running && now - row.started > HINT_AFTER;
-  const Icon = failed ? CircleAlert : running ? Loader2 : Check;
   return (
     <li className="flex flex-col">
       <span className="flex items-center gap-2">
-        <Icon
-          aria-label={failed ? "Failed" : running ? "Running" : "Done"}
-          className={
-            failed
-              ? "size-3.5 text-danger-ink"
-              : running
-                ? "size-3.5 animate-spin text-ink-muted"
-                : "size-3.5 text-primary-ink"
-          }
-        />
+        <Icon aria-label={label} className={`size-3.5 ${className}`} />
         <span>{stepName(row.step)}</span>
         {row.detail && <span className="text-ink-muted">{row.detail}</span>}
-        <span className="ml-auto font-mono text-ink-muted">
-          {seconds(secs)}
-        </span>
+        {secs !== null && (
+          <span className="ml-auto font-mono text-ink-muted">
+            {seconds(secs)}
+          </span>
+        )}
       </span>
       {long && hint(row) && (
         <span className="pl-5.5 text-ink-muted">{hint(row)}</span>

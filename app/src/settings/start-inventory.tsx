@@ -1,6 +1,5 @@
 import { Loader2 } from "lucide-react";
 import { useMemo } from "react";
-import { useShallow } from "zustand/react/shallow";
 import {
   commands,
   type Intent,
@@ -9,6 +8,7 @@ import {
 } from "@/bindings";
 import { DumpError } from "@/components/needs-dump";
 import { call } from "@/lib/api";
+import type { Settings } from "@/lib/config";
 import {
   sameStart,
   startForcers,
@@ -20,15 +20,12 @@ import { useLoad } from "@/lib/use-load";
 import { ItemsEditor } from "@/save/items-editor";
 import { AllNone } from "@/settings/checklist";
 import { LockedBy } from "@/settings/setting-row";
-import { type ConfigState, changeSettings, useConfig } from "@/stores/config";
+import { changeSettings, useConfig } from "@/stores/config";
 
 /** Props for {@link StartInventory}. */
 export interface StartInventoryProps {
   def: SettingDef;
 }
-
-/** The settings as the config holds them. */
-type Settings = ConfigState["config"]["settings"];
 
 /** What the grid loads: the start, the words each giver gives, and the
  * settings, whose bags change what it can hold. */
@@ -49,8 +46,8 @@ const withArsenal = (start: Start) => call(commands.startArsenal(start));
 const NEW_GAME = { name: "every new game", words: ["kokiri-tunic"] };
 
 /** Each setting that gives items, then {@link NEW_GAME}. */
-const giversOf = (s: ConfigState) => [
-  ...startGivers(s.schema, s.config.settings),
+const giversOf = (schema: SettingDef[], settings: Settings) => [
+  ...startGivers(schema, settings),
   NEW_GAME,
 ];
 
@@ -71,22 +68,14 @@ const TIP = (on: boolean) =>
  * own path shows held and locked, naming the setting, and stays out of the
  * setting's count. */
 export function StartInventory({ def }: StartInventoryProps) {
-  const value = useConfig((s) => s.config.settings[def.id]);
-  const forcers = useConfig(
-    useShallow((s) =>
-      startForcers(s.schema, s.config.settings).map((f) => f.def),
-    ),
+  const settings = useConfig((s) => s.config.settings);
+  const schema = useConfig((s) => s.schema);
+  const value = settings[def.id];
+  const forcers = useMemo(
+    () => startForcers(schema, settings),
+    [schema, settings],
   );
-  const forced = useConfig((s) =>
-    startForcers(s.schema, s.config.settings)
-      .flatMap((f) => f.words)
-      .join(" "),
-  );
-  const givers = useConfig(useShallow((s) => giversOf(s).map((g) => g.name)));
-  const given = useConfig((s) =>
-    JSON.stringify(giversOf(s).map((g) => g.words)),
-  );
-  const settings = useConfig((s) => JSON.stringify(s.config.settings));
+  const givers = useMemo(() => giversOf(schema, settings), [schema, settings]);
   /** The setting's own words, without what other settings force. */
   const start = useMemo(
     () => startOf(def, value === undefined ? {} : { [def.id]: value }),
@@ -94,16 +83,19 @@ export function StartInventory({ def }: StartInventoryProps) {
   );
   const load = useMemo(
     () => ({
-      start: withForced(start, forced.split(" ").filter(Boolean)),
-      given: JSON.parse(given) as string[][],
-      settings: JSON.parse(settings) as Settings,
+      start: withForced(
+        start,
+        forcers.flatMap((f) => f.words),
+      ),
+      given: givers.map((g) => g.words),
+      settings,
     }),
-    [start, forced, given, settings],
+    [start, forcers, givers, settings],
   );
   const view = useLoad(loadItems, load, true);
   const armed = useLoad(withArsenal, start);
-  /** The setting as it stands now, read at the moment of a change. */
-  const now = () => startOf(def, useConfig.getState().config.settings);
+  /** The settings as they stand now, read at the moment of a change. */
+  const now = () => useConfig.getState().config.settings;
   /** Saves `next`, or unsets it at the default. Emptied, it saves `{}`,
    * since unset is the default. */
   const save = async (next: Start) => {
@@ -124,28 +116,26 @@ export function StartInventory({ def }: StartInventoryProps) {
             ? armed.status !== "ok" || !sameStart(armed.data, start)
             : Object.keys(start).length > 0
         }
-        onPick={async (on) => save(on ? await withArsenal(now()) : {})}
+        onPick={async (on) =>
+          save(on ? await withArsenal(startOf(def, now())) : {})
+        }
         already={ALREADY}
         tip={TIP}
         className="pl-0"
       />
       <ItemsEditor
         view={view.data}
-        lockedBy={givers}
-        onClick={async (at: number, intent: Intent) =>
-          save(
+        lockedBy={givers.map((g) => g.name)}
+        onClick={async (at: number, intent: Intent) => {
+          const current = now();
+          await save(
             await call(
-              commands.startClick(
-                now(),
-                at,
-                intent,
-                useConfig.getState().config.settings,
-              ),
+              commands.startClick(startOf(def, current), at, intent, current),
             ),
-          )
-        }
+          );
+        }}
       />
-      {forcers.map((f) => (
+      {forcers.map(({ def: f }) => (
         <LockedBy key={f.id} parent={f} />
       ))}
     </div>

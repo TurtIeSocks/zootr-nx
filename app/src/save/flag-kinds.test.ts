@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { kindOptions, kindWord } from "@/save/flag-kinds";
+import { elementKind, isArray, kindOptions, kindWord } from "@/save/flag-kinds";
 
 test("a flag type reads as a plain word, a list for an array", () => {
   expect(kindWord("Bool", false)).toBe("On/Off");
@@ -25,4 +25,11 @@ test("the filter merges the types that share a word", () => {
     { word: "Text", kinds: ["String16", "WString16"] },
   ]);
   expect(kindOptions(kinds, true)).toHaveLength(6);
+});
+
+test("a list's element type is its name without Array", () => {
+  expect(isArray("IntArray")).toBe(true);
+  expect(isArray("Int")).toBe(false);
+  expect(elementKind("String64Array")).toBe("String64");
+  expect(elementKind("Bool")).toBe("Bool");
 });
