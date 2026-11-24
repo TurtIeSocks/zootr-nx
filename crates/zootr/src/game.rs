@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use anyhow::{Context, Result, anyhow, bail};
+use nup_format::nso::Nso;
 use nup_format::{Kind, Node, Nup};
 use ounce_formats::{Romfs, files_with_suffix, murmur3};
 
@@ -18,6 +19,9 @@ pub const TITLE: u64 = 0x0400_4860_24DE_C000;
 /// The 1.1.1 update, the only one zootr reads. Its romfs names its
 /// resource size table `Product.111`.
 pub const UPDATE: u32 = 131072;
+/// The base package, the game as it came out: 1.0.0. Only its `main` is
+/// read.
+pub const BASE: u32 = 65536;
 /// The pause menu's table: each page's slots, their items, and the ages
 /// that use them. Equipment for both ages edits it, and the trade slot's
 /// tests check it.
@@ -134,6 +138,59 @@ fn open(path: &Path) -> Result<Nup> {
             None => raw,
         }
     })
+}
+
+/// A build of the game's code: the `main` in the base package (1.0.0) or
+/// in the update (1.1.1).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
+pub enum Release {
+    #[value(name = "1.0.0")]
+    V100,
+    #[value(name = "1.1.1")]
+    V111,
+}
+
+impl Release {
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::V100 => "1.0.0",
+            Self::V111 => "1.1.1",
+        }
+    }
+
+    /// The package that holds it: title and version.
+    const fn package(self) -> (u64, u32) {
+        match self {
+            Self::V100 => (TITLE, BASE),
+            Self::V111 => (TITLE | 0x800, UPDATE),
+        }
+    }
+}
+
+/// `release`'s `exefs/main` as the `.nup` at `path` holds it: an NSO file.
+pub fn main_nso(path: &Path, release: Release) -> Result<Vec<u8>> {
+    let nup = open(path)?;
+    let (title, version) = release.package();
+    let name = release.name();
+    let exefs = (nup.packages().iter())
+        .find(|p| p.title_id == title && p.version == version)
+        .and_then(|p| p.exefs)
+        .with_context(|| {
+            format!("this dump has no {name} exefs (title {title:016X}, version {version})")
+        })?;
+    match nup.find(exefs, "main") {
+        Some(Node::File(main)) => Ok(nup.read(main)?),
+        _ => bail!("{name}'s exefs has no main"),
+    }
+}
+
+/// `release`'s `main` as it lies in memory, and its NSO header.
+pub fn main_image(path: &Path, release: Release) -> Result<(Nso, Vec<u8>)> {
+    let file = main_nso(path, release)?;
+    let nso = Nso::parse(&file)?;
+    let image =
+        (nso.image(&file)).with_context(|| format!("decoding {}'s main", release.name()))?;
+    Ok((nso, image))
 }
 
 /// The romfs folder for `path`: a folder as is, a `.nup` extracted into the
@@ -314,6 +371,18 @@ pub(crate) fn no_names() -> bool {
     !Path::new(DEV_DUMP).exists()
 }
 
+/// `release`'s `main` from the dev dump as it lies in memory, decoded
+/// once a test run, or `None` without the dump.
+#[cfg(test)]
+pub(crate) fn dumped_main(release: Release) -> Option<&'static (Nso, Vec<u8>)> {
+    use std::sync::OnceLock;
+    static MAINS: [OnceLock<(Nso, Vec<u8>)>; 2] = [OnceLock::new(), OnceLock::new()];
+    let path = Path::new(DEV_DUMP);
+    let read = || main_image(path, release).unwrap();
+    path.exists()
+        .then(|| MAINS[release as usize].get_or_init(read))
+}
+
 /// Every actor pack holding `file`, sorted by name.
 #[cfg(test)]
 pub(crate) fn packs_holding(romfs: &Romfs, file: &str) -> Vec<String> {
@@ -470,5 +539,61 @@ mod tests {
         assert_eq!(extract(&path, &cache, &Run::silent()).unwrap(), out);
         assert_eq!(fs::read(out.join("Logic/new.bin")).unwrap(), b"update");
         assert_eq!(fs::read(out.join("Banc/new.bin")).unwrap(), b"edited");
+    }
+
+    /// The GNU build ID note's header: name size 4, ID size 20, type 3,
+    /// "GNU". The linker puts the ID the NSO header names after it.
+    const NOTE: [u8; 16] = [4, 0, 0, 0, 20, 0, 0, 0, 3, 0, 0, 0, b'G', b'N', b'U', 0];
+
+    #[test]
+    fn each_release_names_its_build_id_and_carries_it() {
+        let v100 = [
+            0x33, 0xfa, 0x6c, 0x2c, 0x23, 0x84, 0x82, 0x82, 0xa7, 0x7e, 0x8b, 0x88, 0xa0, 0xa9,
+            0x3f, 0x48, 0x87, 0xc5, 0x59, 0x20,
+        ];
+        let v111 = &crate::patch::BUILD_ID[..20];
+        for (release, id) in [(Release::V100, &v100[..]), (Release::V111, v111)] {
+            let Some((nso, image)) = dumped_main(release) else {
+                return;
+            };
+            assert_eq!(nso.build_id[..20], *id, "{}", release.name());
+            assert!(nso.build_id[20..].iter().all(|&b| b == 0));
+            let note = image.windows(16).position(|w| w == NOTE).unwrap() + 16;
+            assert_eq!(image[note..note + 20], *id, "{}", release.name());
+        }
+    }
+
+    #[test]
+    fn the_item_add_starts_with_a_pacibsp_in_each_release() {
+        // 1.0.0's is sloperinaGZ's, from its per-build table.
+        let adds = [
+            (Release::V111, zootr_hook::OFFSETS.granted),
+            (Release::V100, 0x113_78f0),
+        ];
+        for (release, at) in adds {
+            let Some((_, image)) = dumped_main(release) else {
+                return;
+            };
+            let word = u32::from_le_bytes(image[at as usize..][..4].try_into().unwrap());
+            assert_eq!(word, 0xd503_237f, "{}", release.name());
+        }
+    }
+
+    #[test]
+    fn mod0_and_bss_lie_where_each_release_puts_them() {
+        // 1.1.1's from our notes on `main`, 1.0.0's MOD0 from sloperinaGZ.
+        for (release, at) in [(Release::V111, 0x3c4_705c), (Release::V100, 0x3be_705c)] {
+            let Some((nso, image)) = dumped_main(release) else {
+                return;
+            };
+            assert_eq!(nso.mod0(image).unwrap(), at, "{}", release.name());
+        }
+        let Some((nso, image)) = dumped_main(Release::V111) else {
+            return;
+        };
+        // MOD0's fourth word: how far past it bss ends.
+        let mod0 = nso.mod0(image).unwrap() as usize;
+        let to_end = i32::from_le_bytes(image[mod0 + 12..][..4].try_into().unwrap());
+        assert_eq!(mod0 as i64 + i64::from(to_end), 0x4e9_a4c8);
     }
 }

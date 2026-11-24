@@ -544,9 +544,16 @@ mod tests {
 
     #[test]
     fn every_word_the_patch_writes_over_holds_what_we_expect() {
-        let Ok(main) = std::fs::read(PC_MAIN) else {
-            return;
-        };
+        if let Ok(main) = std::fs::read(PC_MAIN) {
+            words_hold_what_we_expect(&main);
+        }
+        if let Some((_, main)) = crate::game::dumped_main(crate::game::Release::V111) {
+            words_hold_what_we_expect(main);
+        }
+    }
+
+    /// The checks on `main` 1.1.1, the dump's decoded or the Mac's game's.
+    fn words_hold_what_we_expect(main: &[u8]) {
         let word = |at: u32| u32::from_le_bytes(main[at as usize..][..4].try_into().unwrap());
         let room = |at: u32, end: u32| &main[at as usize..end as usize];
         let imm = |from: u32, to: u32, shift: u32| ((to - from) / 4) << shift;

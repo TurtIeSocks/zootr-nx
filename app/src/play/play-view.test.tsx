@@ -211,6 +211,7 @@ test("an installed seed can be played", () => {
   ).toHaveLength(1);
   expect(screen.queryByText("42")).toBeNull();
   expect(button("Play Emu").disabled).toBe(false);
+  expect(screen.getByText("92 of 104 checks changed")).toBeTruthy();
 });
 
 test("a seed shows its icons and can't delete itself while installed", () => {
@@ -223,6 +224,30 @@ test("a seed shows its icons and can't delete itself while installed", () => {
   expect(button("Installed").getAttribute("aria-disabled")).toBe("true");
   expect(button("Use settings").getAttribute("aria-disabled")).toBe("true");
   expect(screen.queryByRole("button", { name: "Install" })).toBeNull();
+});
+
+test("installing from History darkens the old badge and spins on the new row", async () => {
+  const older = summary({ id: 2, seed: "7" });
+  let finish = () => {};
+  vi.spyOn(commands, "install").mockImplementation(
+    () =>
+      new Promise((done) => {
+        finish = () => done(ok);
+      }),
+  );
+  backend({ installed: older, entries: [seed, older] });
+  show(seed, {}, {}, [older]);
+  openTab("History");
+  fireEvent.click(button("Install"));
+  const was = button("Installed");
+  expect(was.dataset.variant).toBe("default");
+  expect(button("Installing").dataset.variant).toBe("info");
+  expect(screen.queryByRole("button", { name: "Install" })).toBeNull();
+  await act(async () => finish());
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: "Installing" })).toBeNull(),
+  );
+  expect(button("Installed").dataset.variant).toBe("green");
 });
 
 test("a seed's name and note show in history and prefill its label", async () => {

@@ -18,6 +18,7 @@ mod actors;
 mod arsenal;
 mod climbs;
 mod collision;
+mod exefs;
 mod filter;
 mod formats;
 mod hurts;
@@ -346,6 +347,15 @@ pub enum Probe {
         #[arg(long, value_parser = point, allow_hyphen_values = true, requires = "from")]
         to: Option<[f32; 3]>,
     },
+    /// One build's code, `main`, decoded from the dump and written flat to
+    /// `--out` as it lies in memory (text, rodata and data at their
+    /// offsets, bss zeroed), with its build ID, segments and MOD0.
+    Main {
+        #[arg(long)]
+        build: crate::game::Release,
+        #[arg(long)]
+        out: PathBuf,
+    },
     /// The sweep's plan for one round: each holder kind by how it'd be
     /// swept (open, talk, play, skip), and every skipped spot with why.
     Plan {
@@ -489,6 +499,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             at,
             within,
         } => nav(romfs, game, &map, types, at, within),
+        Probe::Main { build, out } => exefs::print_main(game, build, &out),
         Probe::Plan { mix, seed, only } => plan::plan(romfs, mix.as_deref(), seed, only.as_deref()),
         Probe::Unpack { pattern, out } => unpack(romfs, game, &pattern, &out),
         Probe::Grep { needle, path } => grep(romfs, game, &needle, &path),

@@ -56,11 +56,7 @@ pub fn cheat(patches: &[Patch]) -> String {
 /// `main`'s build ID in hex, trailing zeros left out: how an exefs patch
 /// names the build it fits.
 fn build_id() -> String {
-    let used = BUILD_ID.iter().rposition(|&b| b != 0).map_or(0, |i| i + 1);
-    BUILD_ID[..used]
-        .iter()
-        .map(|b| format!("{b:02X}"))
-        .collect()
+    nup_format::nso::build_id_hex(&BUILD_ID)
 }
 
 /// The NSO header before `main`'s image, which exefs patch offsets count.
@@ -393,14 +389,7 @@ mod tests {
         if !dump.exists() {
             return;
         }
-        let nup = nup_format::Nup::open(dump).unwrap();
-        let title = crate::game::TITLE | 0x800;
-        let update = nup.packages().iter().find(|p| p.title_id == title);
-        let exefs = update.and_then(|p| p.exefs).unwrap();
-        let Some(nup_format::Node::File(main)) = nup.find(exefs, "main") else {
-            panic!("no exefs/main")
-        };
-        let header = nup.read(main).unwrap();
+        let header = crate::game::main_nso(dump, crate::game::Release::V111).unwrap();
         assert_eq!(header[0x40..0x60], BUILD_ID);
         assert!(path(Path::new("m")).ends_with("cheats/E0F3CCFAF50065AE.txt"));
     }

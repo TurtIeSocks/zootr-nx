@@ -2,7 +2,8 @@
 //! base game, its updates and its add-ons in one file.
 //!
 //! Written from the format's SPEC.md, v1. Read only, and the per-package meta
-//! TLV block is not read (see the README).
+//! TLV block is not read (see the README). [`nso`] reads the executables an
+//! exefs holds.
 
 use std::fs;
 use std::io::{self, BufReader, Read, Write};
@@ -12,6 +13,8 @@ use sha2::{Digest, Sha256};
 
 #[cfg(feature = "fixture")]
 pub mod fixture;
+mod lz4;
+pub mod nso;
 
 const MAGIC: [u8; 4] = *b"NUP\x01";
 const TOC_MAGIC: [u8; 4] = *b"TOC\x01";
