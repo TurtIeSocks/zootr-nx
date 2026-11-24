@@ -8,18 +8,40 @@ use super::sales::{run_into, secret};
 use super::spots::{Branch, RED, edits, plain};
 use super::*;
 use crate::checks::Drop;
-use crate::flows::{self, GAME_DATA, IN_POUCH, IS_BOOL, Model, Rewrites, events, param, reachable};
+use crate::flows::{
+    self, ACTOR as ACTOR_PARAM, GAME_DATA, IN_POUCH, IS_BOOL, Model, Rewrites, VALUE, events,
+    param, reachable,
+};
 use crate::game::dev_dump;
 use crate::known::{Name, actor, field, flag, item};
 
 const KOKIRI: usize = 0;
 const LW_STICKS: usize = 1;
+const LW_NUTS: usize = 2;
+const DMC_HEART: usize = 3;
 const HF_HEART: usize = 4;
 const HF_BOMBS: usize = 7;
-const DMC_HEART: usize = 3;
 /// A price no spot asks in the vanilla game, so a sale at it shows the
 /// setting took.
 const PRICE_SET: i32 = 25;
+
+/// The index consts point at the spots they're named for, so a spot added
+/// to the table can't move them onto another.
+#[test]
+fn the_test_spots_are_the_ones_named() {
+    let spots = [
+        (KOKIRI, flag::KOKIRI_FOREST, "sticks"),
+        (LW_STICKS, flag::LOST_WOOD, "sticks"),
+        (LW_NUTS, flag::LOST_WOOD, "nuts"),
+        (DMC_HEART, flag::DEATH_MOUNTAIN_CRATER, "heart piece"),
+        (HF_HEART, flag::HYRULE_FIELD, "heart piece"),
+        (HF_BOMBS, flag::HYRULE_FIELD, "bombs"),
+    ];
+    for (at, area, name) in spots {
+        let s = &SCRUBS[at];
+        assert!(s.area == area && s.name == name, "{at}: {}", s.name);
+    }
+}
 
 fn drops(at: &[(usize, impl AsRef<str>)]) -> HashMap<u64, Drop> {
     at.iter()
@@ -50,16 +72,16 @@ fn written(at: &[(usize, impl AsRef<str>)]) -> Option<(Flowchart, Flowchart)> {
 }
 
 fn head(flow: &Flowchart) -> u16 {
-    let compares = with(flow, COMPARE, field::GAME_DATA_NAME, TEMP);
-    let heads = with(flow, COMPARE, "Value", HEAD);
+    let compares = with(flow, COMPARE, GAME_DATA, TEMP);
+    let heads = with(flow, COMPARE, VALUE, HEAD);
     heads.into_iter().find(|e| compares.contains(e)).unwrap()
 }
 
 /// What the pouch root's chain sells `item` as: the call's item and price.
 fn branch(flow: &Flowchart, item: &str) -> Option<String> {
-    let compares = with(flow, COMPARE, field::GAME_DATA_NAME, TEMP);
+    let compares = with(flow, COMPARE, GAME_DATA, TEMP);
     let root = reachable(flow, ROOT).unwrap();
-    let hit = with(flow, COMPARE, "Value", item)
+    let hit = with(flow, COMPARE, VALUE, item)
         .into_iter()
         .find(|e| compares.contains(e) && root.contains(e))?;
     let at = case(flow, hit, 0).unwrap();
@@ -67,7 +89,7 @@ fn branch(flow: &Flowchart, item: &str) -> Option<String> {
         panic!("{item} doesn't sell")
     };
     let p = |k| param(params, k).map_or(String::new(), str::to_owned);
-    let price = params.iter().find(|(k, _)| k == "Price").unwrap();
+    let price = params.iter().find(|(k, _)| k == PRICE_PARAM).unwrap();
     assert_eq!(p(SELLER), seller(item), "{item}");
     Some(format!("{} {:?}", p(flag::ACTOR_NAME), price.1))
 }
@@ -82,13 +104,12 @@ fn a_changed_pouch_scrub_sells_its_item_ahead_of_the_vanilla_chain() {
     assert_eq!(head(&after), head(&before));
     let root = reachable(&after, ROOT).unwrap();
     assert!(root.contains(&head(&after)), "vanilla chain cut off");
-    let vanilla = with(&after, COMPARE, field::GAME_DATA_NAME, TEMP);
+    let vanilla = with(&after, COMPARE, GAME_DATA, TEMP);
     for e in [head(&after), case(&after, head(&after), 1).unwrap()] {
         assert!(vanilla.contains(&e) && root.contains(&e));
     }
 }
 
-const LW_NUTS: usize = 2;
 const SONG: &Name = item::MELODY_SUN_SONG;
 const MEDAL: &Name = item::MEDAL_WATER;
 const STONE: &Name = item::STONE_FIRE;
@@ -109,12 +130,12 @@ fn value<'a>(flow: &'a Flowchart, e: u16, key: &str) -> Option<&'a Value> {
     params.iter().find(|(k, _)| k == key).map(|(_, v)| v)
 }
 
-/// What an action runs, as the actor's name and the action's.
 /// A pair of names as text, to read against what the flow runs.
 fn texts<'a>(what: (&'a Name, &'a Name)) -> (&'a str, &'a str) {
     (what.0.get(), what.1.get())
 }
 
+/// What an action runs, as the actor's name and the action's.
 fn action_of(flow: &Flowchart, e: u16) -> (&str, &str) {
     match &flow.events[e as usize].kind {
         EventKind::Action { actor, action, .. } => {
@@ -143,9 +164,9 @@ fn called(flow: &Flowchart, entry: &str) -> Vec<String> {
 
 /// Where the pouch root's compare for `item` goes on a match.
 fn sale(flow: &Flowchart, item: &str) -> u16 {
-    let compares = with(flow, COMPARE, field::GAME_DATA_NAME, TEMP);
+    let compares = with(flow, COMPARE, GAME_DATA, TEMP);
     let root = reachable(flow, ROOT).unwrap();
-    let hit = with(flow, COMPARE, "Value", item)
+    let hit = with(flow, COMPARE, VALUE, item)
         .into_iter()
         .find(|e| compares.contains(e) && root.contains(e))
         .unwrap();
@@ -172,7 +193,7 @@ fn sales_from(flow: &Flowchart, at: u16) -> Vec<(String, String)> {
 /// Whether `e` asks the pouch for `item`.
 fn asks_for(flow: &Flowchart, e: u16, item: &str) -> bool {
     let asks = events(flow, IN_POUCH).into_iter().any(|(at, _)| at == e);
-    asks && value(flow, e, "Actor").and_then(Value::as_str) == Some(item)
+    asks && value(flow, e, ACTOR_PARAM).and_then(Value::as_str) == Some(item)
 }
 
 #[test]
@@ -188,7 +209,7 @@ fn a_plain_item_sells_through_the_rupee_deduction_and_the_plain_grant() {
         assert_eq!(entry_point, PLAIN_ONE_TIME);
         let named = |key| value(&after, call, key).and_then(Value::as_str);
         assert_eq!(named(flag::ACTOR_NAME), Some(item.get()));
-        assert_eq!(named("Price"), None);
+        assert_eq!(named(PRICE_PARAM), None);
         assert_eq!(named(SELLER), Some(seller(item).as_str()));
 
         // The copy takes the rupees, waits for the count, then grants by
@@ -269,7 +290,7 @@ fn a_plain_pouch_spot_names_the_item_after_reading_the_placement() {
         Some(SELECTED.get())
     );
     assert_eq!(
-        value(&after, main, "Value").and_then(Value::as_str),
+        value(&after, main, VALUE).and_then(Value::as_str),
         Some(SONG.get())
     );
     let call = next(&after, main).unwrap();
@@ -297,7 +318,7 @@ fn a_plain_pouch_spot_names_the_item_after_reading_the_placement() {
         Some(SELECTED.get())
     );
     assert_eq!(
-        value(&after, compare, "Value").and_then(Value::as_str),
+        value(&after, compare, VALUE).and_then(Value::as_str),
         Some(SONG.get())
     );
     assert_eq!(case(&after, compare, 1).unwrap(), carry_on);
@@ -308,7 +329,7 @@ fn a_plain_pouch_spot_names_the_item_after_reading_the_placement() {
         Some(TEMP.get())
     );
     assert_eq!(
-        value(&after, set, "Value").and_then(Value::as_str),
+        value(&after, set, VALUE).and_then(Value::as_str),
         Some(SONG.get())
     );
     let clear = next(&after, set).unwrap();
@@ -317,7 +338,7 @@ fn a_plain_pouch_spot_names_the_item_after_reading_the_placement() {
         Some(SELECTED.get())
     );
     assert_eq!(
-        value(&after, clear, "Value").and_then(Value::as_str),
+        value(&after, clear, VALUE).and_then(Value::as_str),
         Some("")
     );
     assert_eq!(next(&after, clear), Some(carry_on));
@@ -335,7 +356,7 @@ fn every_spot_can_sell_a_plain_item_at_once() {
         if spot.branch != Branch::Secret {
             let main = entry_of(&after, &sells(spot, item)).main.unwrap();
             assert_eq!(
-                value(&after, main, "Value").and_then(Value::as_str),
+                value(&after, main, VALUE).and_then(Value::as_str),
                 Some(item.get())
             );
         }
@@ -578,7 +599,7 @@ fn riddle_sales(flow: &Flowchart) -> Vec<(String, Vec<String>, bool)> {
             let opens = run_into(flow, sale);
             let shown = (opens.iter())
                 .filter(|e| with(flow, SET_STRING, GAME_DATA, SELECTED).contains(e))
-                .map(|&e| sold(flow, e, "Value"))
+                .map(|&e| sold(flow, e, VALUE))
                 .collect();
             let hearts = opens.iter().any(|e| gauges.contains(e));
             (sold(flow, sale, flag::ACTOR_NAME), shown, hearts)
@@ -636,7 +657,7 @@ fn two_scrubs_selling_one_item_share_a_branch() {
     let Some((_, after)) = written(&[(KOKIRI, "Item_L"), (LW_STICKS, "Item_L")]) else {
         return;
     };
-    let compares = with(&after, COMPARE, "Value", "Item_L");
+    let compares = with(&after, COMPARE, VALUE, "Item_L");
     assert_eq!(compares.len(), 1);
 }
 
@@ -737,7 +758,7 @@ fn every_sale_asks_the_set_price() {
         .filter_map(|e| match &after.events[e as usize].kind {
             EventKind::SubFlow { params, .. } => Some(format!(
                 "{:?}",
-                params.iter().find(|(k, _)| k == "Price")?.1
+                params.iter().find(|(k, _)| k == PRICE_PARAM)?.1
             )),
             _ => None,
         })
@@ -888,9 +909,7 @@ fn a_spot_is_sold_by_the_flag_its_seed_registers() {
 
 #[test]
 fn an_unedited_spot_keeps_its_vanilla_sold_flag() {
-    if dev_dump().is_none() {
-        return;
-    }
+    needs_names!();
     for s in SCRUBS.iter().filter(|s| s.branch != Branch::Shop) {
         let vanilla = s.sold.map(|f| f.to_string());
         assert!(vanilla.is_some(), "{}", s.name);

@@ -1,8 +1,9 @@
 //! Room files: `logic/baseline/<dungeon>/room-NN-<name>.toml`, written by
 //! `zootr logic derive`, and `logic/confirmed/<dungeon>/room-NN-<name>.toml`,
-//! written from playtests. Only NN keys a file: the name is for people. A confirmed entry replaces the baseline entry
-//! with its key, and one whose key the baseline lacks is an error (room
-//! reach spec). One without evidence is a guess.
+//! written from playtests. Only NN keys a file: the name is for people. A
+//! confirmed entry replaces the baseline entry with its key, and one whose
+//! key the baseline lacks is an error (room reach spec). One without
+//! evidence is a guess.
 //!
 //! A confirmed entry that names a spot on the floor (`from`, `to` or
 //! `at`) isn't laid over anything here: derive reads it, checks it
@@ -25,22 +26,19 @@ pub use spots::{FloorClaim, Point, SpotLink, Spots};
 /// Every room file under `logic/`, by its path there. `build.rs` lists them.
 pub(crate) const FILES: &[(&str, &str)] = include!(concat!(env!("OUT_DIR"), "/room_files.rs"));
 
+/// A room file. It reads through `spots::RawFile`, which holds the
+/// defaults and refuses unknown fields.
 #[derive(Debug, Deserialize)]
 #[serde(try_from = "spots::RawFile")]
 pub struct RoomFile {
     /// The game's own `DungeonRoom` number.
     pub room: u32,
     pub name: String,
-    #[serde(default)]
     pub link: Vec<Link>,
-    #[serde(default)]
     pub check: Vec<Check>,
-    #[serde(default)]
     pub flag: Vec<Flag>,
-    #[serde(default)]
     pub knowledge: Vec<Knowledge>,
     /// The exits placed in the room.
-    #[serde(default)]
     pub exit: Vec<Spot>,
     /// The spots Link lands on in the room.
     pub arrival: Vec<Spot>,
@@ -218,6 +216,13 @@ pub(super) trait Entry {
     fn unproven(&mut self) -> Result<()> {
         bail!("confirmed {} has no evidence", self.key())
     }
+    /// A confirmed entry as it counts: unproven when it has no evidence.
+    fn settle(&mut self) -> Result<()> {
+        match self.evidence().is_empty() {
+            true => self.unproven(),
+            false => Ok(()),
+        }
+    }
 }
 
 impl Entry for Link {
@@ -314,12 +319,21 @@ pub fn folder(node: &str) -> String {
     out
 }
 
+/// Which folder under `logic/` a room file sits in.
+#[derive(Clone, Copy)]
+enum Tier {
+    Baseline,
+    Confirmed,
+}
+
 /// `tier/dungeon/room-NN-<name>.toml` (or `room-NN.toml`) as its tier,
 /// the dungeon's node and NN.
-fn path(path: &str) -> Result<(&str, String, u32)> {
+fn path(path: &str) -> Result<(Tier, String, u32)> {
     let parts: Vec<&str> = path.split('/').collect();
-    let [tier @ ("baseline" | "confirmed"), dungeon, file] = parts[..] else {
-        bail!("not tier/dungeon/room-NN-<name>.toml");
+    let (tier, dungeon, file) = match parts[..] {
+        ["baseline", dungeon, file] => (Tier::Baseline, dungeon, file),
+        ["confirmed", dungeon, file] => (Tier::Confirmed, dungeon, file),
+        _ => bail!("not tier/dungeon/room-NN-<name>.toml"),
     };
     let node = (DUNGEONS.iter())
         .map(|d| d.node.get())
@@ -345,9 +359,7 @@ pub(super) fn unique<T: Entry>(list: &[T]) -> Result<()> {
 pub(super) fn overlay<T: Entry>(base: &mut [T], confirmed: Vec<T>) -> Result<()> {
     unique(&confirmed)?;
     for mut c in confirmed {
-        if c.evidence().is_empty() {
-            c.unproven()?;
-        }
+        c.settle()?;
         let slot = (base.iter_mut().find(|b| b.key() == c.key()))
             .with_context(|| format!("confirmed {} has no baseline entry", c.key()))?;
         *slot = c;
@@ -387,6 +399,50 @@ fn flags_named(expr: &Expr, out: &mut Vec<u32>) {
     }
 }
 
+/// Check `file`'s keys are unique and its knowledge well shaped, and parse
+/// each of its rules.
+fn parse_rules(file: &mut RoomFile) -> Result<()> {
+    unique(&file.link)?;
+    unique(&file.spot_link)?;
+    unique(&file.check)?;
+    unique(&file.flag)?;
+    unique(&file.knowledge)?;
+    for k in &file.knowledge {
+        k.shaped().with_context(|| k.key())?;
+    }
+    for l in &mut file.link {
+        l.expr = rule(&l.needs).with_context(|| l.key())?;
+    }
+    for l in &mut file.spot_link {
+        l.expr = rule(&l.needs).with_context(|| l.key())?;
+    }
+    for c in &mut file.check {
+        c.expr = rule(&c.needs).with_context(|| c.key())?;
+    }
+    for f in &mut file.flag {
+        f.expr = rule(&f.needs).with_context(|| f.key())?;
+    }
+    Ok(())
+}
+
+/// Each `(node, what, hash)` a confirmed entry names: some flag entry in
+/// its dungeon, placed or not, sets it.
+fn check_named(
+    rooms: &BTreeMap<(String, u32), (RoomFile, Spots)>,
+    named: Vec<(String, String, u32)>,
+) -> Result<()> {
+    for (node, what, hash) in named {
+        let set = (rooms.range((node.clone(), 0)..=(node, u32::MAX)))
+            .flat_map(|(_, (file, spots))| file.flag.iter().chain(&spots.flag))
+            .any(|f| f.hash == hash);
+        ensure!(
+            set,
+            "{what} needs flag #{hash:08x}, which no [[flag]] in its dungeon sets"
+        );
+    }
+    Ok(())
+}
+
 /// Every room, confirmed over baseline, each rule parsed.
 pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
     let mut rooms: BTreeMap<(String, u32), (RoomFile, Spots)> = BTreeMap::new();
@@ -399,32 +455,9 @@ pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
         let (tier, node, number) = path(name).with_context(at)?;
         let mut file: RoomFile = toml::from_str(text).with_context(at)?;
         ensure!(file.room == number, "{}: says room {}", at(), file.room);
-        let mut parsed = || -> Result<()> {
-            unique(&file.link)?;
-            unique(&file.spot_link)?;
-            unique(&file.check)?;
-            unique(&file.flag)?;
-            unique(&file.knowledge)?;
-            for k in &file.knowledge {
-                k.shaped().with_context(|| k.key())?;
-            }
-            for l in &mut file.link {
-                l.expr = rule(&l.needs).with_context(|| l.key())?;
-            }
-            for l in &mut file.spot_link {
-                l.expr = rule(&l.needs).with_context(|| l.key())?;
-            }
-            for c in &mut file.check {
-                c.expr = rule(&c.needs).with_context(|| c.key())?;
-            }
-            for f in &mut file.flag {
-                f.expr = rule(&f.needs).with_context(|| f.key())?;
-            }
-            Ok(())
-        };
-        parsed().with_context(at)?;
+        parse_rules(&mut file).with_context(at)?;
         match tier {
-            "baseline" => {
+            Tier::Baseline => {
                 let spotted = !file.spot_link.is_empty()
                     || !file.floor.is_empty()
                     || file.flag.iter().any(|f| f.at.is_some());
@@ -438,7 +471,7 @@ pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
                     .is_some();
                 ensure!(!twice, "{}: a second file for room {number}", at());
             }
-            _ => confirmed.push((name, node, file)),
+            Tier::Confirmed => confirmed.push((name, node, file)),
         }
     }
     // Each flag a confirmed entry names, to check something sets it.
@@ -472,15 +505,11 @@ pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
         file.flag = flags;
         let lay = || -> Result<()> {
             for mut l in std::mem::take(&mut file.spot_link) {
-                if l.evidence.is_empty() {
-                    l.unproven()?;
-                }
+                l.settle()?;
                 spots.link.push(l);
             }
             for mut f in placed {
-                if f.evidence.is_empty() {
-                    f.unproven()?;
-                }
+                f.settle()?;
                 spots.flag.push(f);
             }
             spots.floor.append(&mut file.floor);
@@ -494,15 +523,7 @@ pub(super) fn load(files: &[(&str, &str)]) -> Result<Vec<Room>> {
         };
         lay().with_context(at)?;
     }
-    for (node, what, hash) in named {
-        let set = (rooms.range((node.clone(), 0)..=(node, u32::MAX)))
-            .flat_map(|(_, (file, spots))| file.flag.iter().chain(&spots.flag))
-            .any(|f| f.hash == hash);
-        ensure!(
-            set,
-            "{what} needs flag #{hash:08x}, which no [[flag]] in its dungeon sets"
-        );
-    }
+    check_named(&rooms, named)?;
     let rooms: Vec<Room> = (rooms.into_iter())
         .map(|((node, _), (file, spots))| Room {
             live: LIVE.contains(&folder(&node).as_str()),
@@ -682,6 +703,7 @@ mod tests {
         assert!(bad("", "to = \"1,2,3\"").contains("no `from`"));
         assert!(bad("from = \"1,2,3\"", "to = 0").contains("names a spot `to`"));
         assert!(bad("from = \"1,2\"", "to = \"1,2,3\"").contains("isn't x,y,z"));
+        assert!(bad("from = \"1,2,3\"", "to = \"1,2\"").contains("isn't x,y,z"));
     }
 
     #[test]

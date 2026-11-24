@@ -52,13 +52,14 @@ pub fn set(
             at
         }
     };
-    Book::from_files(
-        &files
-            .iter()
-            .map(|(n, t)| (*n, t.as_str()))
-            .collect::<Vec<_>>(),
-    )
-    .context("the edited rules don't load, nothing written")?;
+    write_checked(dir, &files, at)
+}
+
+/// Writes file `at` of the edited `files` under `dir`, only if every file
+/// still loads. Returns its path.
+fn write_checked(dir: &Path, files: &[(&str, String)], at: usize) -> Result<PathBuf> {
+    Book::from_files(&super::files::pairs(files))
+        .context("the edited rules don't load, nothing written")?;
     let path = dir.join(files[at].0);
     fs::write(&path, &files[at].1)?;
     Ok(path)
@@ -139,11 +140,7 @@ pub fn set_way(dir: &Path, way: &Way, needs: &str) -> Result<PathBuf> {
     let mut lines: Vec<String> = text.lines().map(String::from).collect();
     set_lines(&mut lines, range, vec![("needs", quote(needs))]);
     files[at].1 = lines.join("\n") + if text.ends_with('\n') { "\n" } else { "" };
-    Book::from_files(&super::files::pairs(&files))
-        .context("the edited rules don't load, nothing written")?;
-    let path = dir.join(files[at].0);
-    fs::write(&path, &files[at].1)?;
-    Ok(path)
+    write_checked(dir, &files, at)
 }
 
 /// Each `key = value` set in `range`: replaced where its line is, added
@@ -173,7 +170,7 @@ fn fields(edit: &Edit) -> Vec<(&'static str, String)> {
     }
     if let Some((place, era)) = &edit.place {
         out.push(("place", quote(place)));
-        out.push(("era", quote(era_word(*era))));
+        out.push(("era", quote(&era.to_string())));
     }
     out
 }
@@ -181,13 +178,6 @@ fn fields(edit: &Edit) -> Vec<(&'static str, String)> {
 /// `s` as a TOML string.
 pub(crate) fn quote(s: &str) -> String {
     toml::Value::String(s.to_owned()).to_string()
-}
-
-fn era_word(era: Era) -> &'static str {
-    match era {
-        Era::Child => "child",
-        Era::Adult => "adult",
-    }
 }
 
 /// `text` with `hash`'s fields replaced where it has them, added at the
@@ -218,14 +208,7 @@ fn append(text: &str, hash: u64, name: &str, edit: &Edit) -> String {
 
 /// `BottomOfTheWell` is in `bottom-of-the-well.toml`.
 fn area_file(area: &str) -> String {
-    let mut out = String::new();
-    for (i, c) in area.chars().enumerate() {
-        if c.is_ascii_uppercase() && i > 0 {
-            out.push('-');
-        }
-        out.push(c.to_ascii_lowercase());
-    }
-    out + ".toml"
+    format!("{}.toml", super::rooms::folder(area))
 }
 
 #[cfg(test)]

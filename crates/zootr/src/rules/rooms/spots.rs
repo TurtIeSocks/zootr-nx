@@ -32,18 +32,20 @@ pub(super) struct RawFile {
     floor: Vec<FloorClaim>,
 }
 
+/// A link's `to`: a room, or a spot kept as text and parsed after, since
+/// an untagged enum drops a variant's own error.
 #[derive(Deserialize)]
 #[serde(untagged)]
-enum To {
+enum To<S> {
     Room(u32),
-    Spot(Point),
+    Spot(S),
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RawLink {
     from: Option<Point>,
-    to: To,
+    to: To<String>,
     needs: String,
     via: Via,
     why: String,
@@ -68,6 +70,10 @@ impl TryFrom<RawFile> for RoomFile {
                 guess,
                 evidence,
             } = l;
+            let to = match to {
+                To::Room(n) => To::Room(n),
+                To::Spot(s) => To::Spot(s.parse::<Point>()?),
+            };
             match (from, to) {
                 (None, To::Room(to)) => link.push(Link {
                     to,

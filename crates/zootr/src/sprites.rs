@@ -92,7 +92,11 @@ fn build(romfs: &Romfs, game: &Path, part: &Path) -> Result<()> {
     std::fs::create_dir_all(part)?;
     let wanted: HashSet<&str> = inventory::icons().collect();
     for (path, data) in game::search(game, ICONS)? {
-        let name = path[ICONS.len()..].trim_end_matches(".bntx.zs");
+        // The search matches anywhere in a path, so not every hit is an icon.
+        let Some(name) = path.strip_prefix(ICONS) else {
+            continue;
+        };
+        let name = name.trim_end_matches(".bntx.zs");
         if wanted.contains(name) {
             let data = romfs.dicts().decompress(&path, &data)?;
             write(part, name, decode(&data).first())?;
@@ -103,11 +107,13 @@ fn build(romfs: &Romfs, game: &Path, part: &Path) -> Result<()> {
         let icon = crate::magic::meter::icon(romfs)?;
         write(part, crate::magic::meter::NAME, Some(&icon))?;
     }
+    let renamed = |tex: &str| RENAMES.iter().find(|(t, _)| *t == tex).map(|r| r.1);
     for (path, data) in game::search(game, LAYOUT)? {
         let data = romfs.dicts().decompress(&path, &data)?;
-        let renamed = |tex: &str| RENAMES.iter().find(|(t, _)| *t == tex).map(|r| r.1);
         for t in textures_named(&data, |tex| renamed(tex).is_some()).unwrap_or_default() {
-            write(part, renamed(&t.name).expect("kept"), Some(&t))?;
+            if let Some(name) = renamed(&t.name) {
+                write(part, name, Some(&t))?;
+            }
         }
     }
     Ok(())
@@ -162,7 +168,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let game = Path::new("../../dump/oot.nup");
+        let game = Path::new(game::DEV_DUMP);
         let (path, data) = game::search(game, &format!("UI/Tex/Icon/{}.", item::HOOKSHOT))
             .unwrap()
             .remove(0);
@@ -180,7 +186,7 @@ mod tests {
             return;
         };
         let out = std::env::temp_dir().join(format!("zootr-icons-{}", std::process::id()));
-        build(&romfs, Path::new("../../dump/oot.nup"), &out).unwrap();
+        build(&romfs, Path::new(game::DEV_DUMP), &out).unwrap();
         let missing: Vec<_> = inventory::icons()
             .filter(|i| !out.join(format!("{i}.png")).exists())
             .collect();

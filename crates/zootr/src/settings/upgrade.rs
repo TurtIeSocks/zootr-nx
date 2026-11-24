@@ -64,7 +64,7 @@ pub(crate) const OLD_TOGGLES: [&str; 2] = [BRIDGE_MEDALLIONS, OPEN_DOOR];
 
 /// Each old preset and toggle, in the order the upgrade reads them: where
 /// two set one choice, the first wins.
-const OLD: [&str; 8] = [
+const OLD: [&str; 9] = [
     BRIDGE_UP,
     ZELDA_DONE,
     BRIDGE_MEDALLIONS,
@@ -73,6 +73,7 @@ const OLD: [&str; 8] = [
     OPEN_DOOR,
     CARPENTERS_FREED,
     CARPENTERS_FAST,
+    CLAIM_CHECK,
 ];
 
 /// The setting old preset or toggle `old` became, as setting id and value,
@@ -166,9 +167,6 @@ pub(crate) fn upgrade(settings: &mut Settings) {
             settings.entry(id.into()).or_insert(value);
         }
     }
-    if settings.get(CLAIM_CHECK).is_some_and(Value::is_boolean) {
-        settings.remove(CLAIM_CHECK);
-    }
     if let Some(start) = settings.get_mut(starting::SETTING) {
         starting::upgrade(start);
     }
@@ -191,15 +189,25 @@ pub(crate) fn upgrade(settings: &mut Settings) {
 mod tests {
     use super::*;
 
+    /// `old`'s toggles, upgraded.
+    fn up(old: &[(&str, bool)]) -> Settings {
+        let mut s: Settings = (old.iter())
+            .map(|&(id, on)| (id.to_owned(), on.into()))
+            .collect();
+        upgrade(&mut s);
+        s
+    }
+
+    /// Every word an old starting toggle became is one `--start` takes.
+    #[test]
+    fn every_starting_word_parses() {
+        for word in STARTING.iter().flat_map(|(_, words)| *words) {
+            assert!(starting::parse(word).is_ok(), "{word}");
+        }
+    }
+
     #[test]
     fn the_bridge_toggle_and_the_quest_presets_become_the_win_condition() {
-        let up = |old: &[(&str, bool)]| {
-            let mut s: Settings = (old.iter())
-                .map(|&(id, on)| (id.to_owned(), on.into()))
-                .collect();
-            upgrade(&mut s);
-            s
-        };
         let is = |new: &[(&str, &str)]| -> Settings {
             (new.iter())
                 .map(|&(id, v)| (id.to_owned(), v.into()))
@@ -242,13 +250,6 @@ mod tests {
 
     #[test]
     fn the_door_toggle_and_preset_become_the_door_of_time() {
-        let up = |old: &[(&str, bool)]| {
-            let mut s: Settings = (old.iter())
-                .map(|&(id, on)| (id.to_owned(), on.into()))
-                .collect();
-            upgrade(&mut s);
-            s
-        };
         let door = |v: &str| Settings::from([(DOOR_OF_TIME.into(), v.into())]);
         assert_eq!(up(&[(OPEN_DOOR, true)]), door("open"));
         assert_eq!(up(&[(OPEN_DOOR, false)]), door("closed"));
@@ -269,13 +270,6 @@ mod tests {
 
     #[test]
     fn the_carpenter_presets_become_the_gerudo_fortress() {
-        let up = |old: &[(&str, bool)]| {
-            let mut s: Settings = (old.iter())
-                .map(|&(id, on)| (id.to_owned(), on.into()))
-                .collect();
-            upgrade(&mut s);
-            s
-        };
         let fortress = |v: &str| Settings::from([(GERUDO_FORTRESS.into(), v.into())]);
         assert_eq!(up(&[(CARPENTERS_FREED, true)]), fortress("freed"));
         assert_eq!(up(&[(CARPENTERS_FAST, true)]), fortress("fast"));

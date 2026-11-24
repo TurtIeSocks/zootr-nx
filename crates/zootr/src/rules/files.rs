@@ -8,7 +8,7 @@ use anyhow::{Context, Result, bail, ensure};
 use serde::Deserialize;
 
 use super::{Book, CheckEntry, Ctx, Expr, kinds, parse, rooms, vocab};
-use crate::settings::{self, DungeonKeys, FortressKeys};
+use crate::settings;
 use crate::world::Era;
 
 pub(super) const ABILITIES: &str = "abilities.toml";
@@ -305,18 +305,7 @@ impl Book {
 
     /// Resolves every rule once, so an unknown word or a loop fails at load.
     fn validate(&self) -> Result<()> {
-        let ctx = Ctx {
-            progressive: true,
-            lines: Default::default(),
-            on: BTreeSet::new(),
-            seed: 0,
-            keys: DungeonKeys::Vanilla,
-            fortress: FortressKeys::Vanilla,
-            open: BTreeSet::new(),
-            doors: None,
-            age: crate::world::Era::Child,
-            adult_jabu: settings::AdultJabu::Off,
-        };
+        let ctx = Ctx::for_checks();
         for (word, expr) in &self.abilities {
             self.need(expr, &ctx)
                 .with_context(|| format!("ability `{word}`"))?;

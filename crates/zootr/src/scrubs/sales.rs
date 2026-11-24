@@ -17,7 +17,7 @@ use super::{
 };
 use crate::checks::Drop;
 use crate::flows::{
-    self, GAME_DATA, IS_BOOL, Rewrites, events, param, params_mut, reachable, string,
+    self, GAME_DATA, IS_BOOL, Rewrites, VALUE, events, param, params_mut, reachable, string,
 };
 use crate::gifts::levels::Level;
 use crate::known::{actor, field, flag};
@@ -71,18 +71,10 @@ pub(super) fn secret(flow: &mut Flowchart, item: &str, price: i32, level: Level)
     };
     let sale = only(calls(flow, ONE_TIME), "secret sales")?;
     let shown = only(
-        with(flow, SET_STRING, field::GAME_DATA_NAME, SELECTED),
+        with(flow, SET_STRING, GAME_DATA, SELECTED),
         "secret item shows",
     )?;
-    if let EventKind::SubFlow { entry_point, .. } = &mut flow.events[sale as usize].kind
-        && plain(item)
-    {
-        *entry_point = PLAIN_ONE_TIME.into();
-    }
-    let params = params_mut(&mut flow.events[sale as usize].kind);
-    flows::set(params, flag::ACTOR_NAME, string(item))?;
-    flows::set(params, PRICE_PARAM, Value::Int(vec![price]))?;
-    flows::set(params, SELLER, string(&seller(item)))?;
+    set_sale(&mut flow.events[sale as usize].kind, item, price)?;
     if *item != **HEART {
         sold_out(flow, item)?;
     }
@@ -115,6 +107,20 @@ pub(super) fn secret(flow: &mut Flowchart, item: &str, price: i32, level: Level)
         flow.link(link, Some(start))?;
     }
     Ok(())
+}
+
+/// Make `ONE_TIME` call `sale` sell `item` at `price`, through
+/// `PLAIN_ONE_TIME` for a plain item.
+fn set_sale(sale: &mut EventKind, item: &str, price: i32) -> Result<()> {
+    if let EventKind::SubFlow { entry_point, .. } = sale
+        && plain(item)
+    {
+        *entry_point = PLAIN_ONE_TIME.into();
+    }
+    let params = params_mut(sale);
+    flows::set(params, flag::ACTOR_NAME, string(item))?;
+    flows::set(params, PRICE_PARAM, Value::Int(vec![price]))?;
+    flows::set(params, SELLER, string(&seller(item)))
 }
 
 /// Point the riddle scrub's sold-out talks at their lines naming `item`.
@@ -180,7 +186,7 @@ fn open(flow: &mut Flowchart, opens: &[u16], shown: u16, sale: u16) -> Result<u1
         }
         let mut kind = flow.events[e as usize].kind.clone();
         if e == shown {
-            flows::set(params_mut(&mut kind), "Value", string(&item))?;
+            flows::set(params_mut(&mut kind), VALUE, string(&item))?;
         }
         if let EventKind::Action { next: n, .. } = &mut kind {
             *n = Some(next);
@@ -196,9 +202,9 @@ fn sell(flow: &mut Flowchart, sales: &[&str], price: i32, level: Level) -> Resul
     if sales.is_empty() {
         return Ok(());
     }
-    let compares = with(flow, COMPARE, field::GAME_DATA_NAME, TEMP);
+    let compares = with(flow, COMPARE, GAME_DATA, TEMP);
     let head = one(
-        with(flow, COMPARE, "Value", HEAD)
+        with(flow, COMPARE, VALUE, HEAD)
             .into_iter()
             .filter(|e| compares.contains(e))
             .collect(),
@@ -209,16 +215,10 @@ fn sell(flow: &mut Flowchart, sales: &[&str], price: i32, level: Level) -> Resul
     let mut next = head;
     for &item in sales.iter().rev() {
         let mut sale = last(flow, call);
-        let params = params_mut(&mut sale);
-        flows::set(params, flag::ACTOR_NAME, string(item))?;
-        flows::set(params, PRICE_PARAM, Value::Int(vec![price]))?;
-        flows::set(params, SELLER, string(&seller(item)))?;
-        if let (true, EventKind::SubFlow { entry_point, .. }) = (plain(item), &mut sale) {
-            *entry_point = PLAIN_ONE_TIME.into();
-        }
+        set_sale(&mut sale, item, price)?;
         let sale = flow.push(sale);
         let mut compare = flow.events[head as usize].kind.clone();
-        flows::set(params_mut(&mut compare), "Value", string(item))?;
+        flows::set(params_mut(&mut compare), VALUE, string(item))?;
         set_cases(&mut compare, [sale, next]);
         next = flow.push(compare);
         // After the compare, which the chain then leads through.
@@ -328,7 +328,7 @@ fn hook(flow: &mut Flowchart, items: &[&str]) -> Result<()> {
     };
     // Any item compare will do as a template. `sell` may already have added
     // one for the chain's own head item.
-    let template = *with(flow, COMPARE, field::GAME_DATA_NAME, TEMP)
+    let template = *with(flow, COMPARE, GAME_DATA, TEMP)
         .first()
         .context("no item compare")?;
     let clear = set_string(flow, SELECTED, "", Some(after))?;
@@ -339,7 +339,7 @@ fn hook(flow: &mut Flowchart, items: &[&str]) -> Result<()> {
         let copy = flow.push(copy);
         let mut compare = flow.events[template as usize].kind.clone();
         flows::set(params_mut(&mut compare), GAME_DATA, string(SELECTED))?;
-        flows::set(params_mut(&mut compare), "Value", string(item))?;
+        flows::set(params_mut(&mut compare), VALUE, string(item))?;
         set_cases(&mut compare, [copy, miss]);
         miss = flow.push(compare);
     }
