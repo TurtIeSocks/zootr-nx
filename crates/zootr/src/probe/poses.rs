@@ -94,9 +94,9 @@ pub(super) fn bounds(romfs: &Romfs, game: &Path, path: &str, pose: Option<&[f32]
     })
 }
 
-/// Prints `shops/floors.rs`: each pool item's lowest point on a shelf, in
-/// the pose `standins::shelf_pose` gives it there, and every level of each
-/// line, which a shelf's steps show.
+/// Prints `shops/floors/table.rs`: each pool item's lowest point on a
+/// shelf, in the pose `standins::shelf_pose` gives it there, and every
+/// level of each line, which a shelf's steps show.
 pub(super) fn floors(romfs: &Romfs, game: &Path) -> Result<()> {
     let tables = Tables::load(romfs)?;
     let mut items: Vec<String> = (crate::checks::all(romfs)?.into_iter())
@@ -189,43 +189,25 @@ pub(super) fn floors(romfs: &Romfs, game: &Path) -> Result<()> {
         floors.insert(hash(item), (floor, stands));
     }
     print!("{HEADER}");
-    println!("const FLOORS: [(Name, f32, bool); {}] = [", floors.len());
+    println!(
+        "pub(super) const FLOORS: [(Name, f32, bool); {}] = [",
+        floors.len()
+    );
     for (h, (floor, stands)) in floors {
         println!("    (n!({h:#018x}), {floor:.4}, {stands}),");
     }
-    println!("];\n{FOOTER}");
+    println!("];");
     Ok(())
 }
 
 const HEADER: &str = "\
-//! How far above its origin each pool item's model reaches down on a
-//! shelf, in the pose it plays there: its lowest vertex once the pose has
-//! scaled, turned and lifted the skeleton root. Written by `zootr probe
-//! floors`, from the dump: rerun it when the pool or the poses change. A
-//! model whose vertices it can't read takes its `ActorInfo` floor, less
-//! its own pose's lift, plus the shelf pose's. A model lying flat in the
-//! token's pose stands up in the Deku Shield's instead.
+//! Written by `zootr probe floors`, from the dump: rerun it when the pool
+//! or the poses change, never edit it by hand. See [`super`].
 
-use crate::known::{Name, hash};
+use crate::known::Name;
 
 /// By the item name's hash, in hash order, with whether the item stands up.
 ";
-
-const FOOTER: &str = "
-/// `item`'s floor on a shelf, if the table has it.
-pub fn floor(item: &str) -> Option<f32> {
-    row(item).map(|r| r.1)
-}
-
-/// Whether `item`'s model lies flat, so stands up on a shelf.
-pub fn stands(item: &str) -> bool {
-    row(item).is_some_and(|r| r.2)
-}
-
-fn row(item: &str) -> Option<&'static (Name, f32, bool)> {
-    let at = FLOORS.binary_search_by_key(&hash(item), |(n, ..)| n.0).ok()?;
-    Some(&FLOORS[at])
-}";
 
 /// The skeleton root's values in the shelf pose an archive holds, or none
 /// where it leaves the root alone.
@@ -275,6 +257,13 @@ fn lowest(points: &[[f32; 3]], pose: &Base) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_floors_table_is_what_the_probe_prints() {
+        let table = include_str!("../shops/floors/table.rs");
+        assert!(table.starts_with(HEADER));
+        assert!(table.contains("pub(super) const FLOORS: [(Name, f32, bool); "));
+    }
 
     #[test]
     fn a_plate_lies_flat_and_a_rod_or_a_post_does_not() {
