@@ -96,8 +96,8 @@ pub fn twin(map: &str, child: bool) -> Option<String> {
 
 /// Where switching age from `map` lands: the arrival point of its [`twin`]
 /// nearest `link`, by where [`spots`] puts each. `None` without a twin,
-/// or with no arrival point in it: Link swaps where he stands then. Both
-/// ages' maps share their coordinates.
+/// or when `places` lists no arrival point in it: Link swaps where he
+/// stands then. Both ages' maps share their coordinates.
 pub fn other_age(
     map: &str,
     child: bool,
@@ -211,15 +211,29 @@ mod tests {
             )),
             place(&format!("{}/Entrance", flag::WATER_TEMPLE)),
         ]);
-        let none = HashMap::new();
+        // The well side is the nearer spot, whatever order the set keeps.
+        let spots = HashMap::from([
+            (field::KAKARIKO_WELL_SIDE.to_string(), [1.0, 0.0, 0.0]),
+            (
+                field::KAKARIKO_VILLAGE_ENTRANCE.to_string(),
+                [50.0, 0.0, 0.0],
+            ),
+        ]);
         assert_eq!(
-            other_age(flag::KAKARIKO_VILLAGE_CHILD, true, &places, [0.0; 3], &none),
+            other_age(
+                flag::KAKARIKO_VILLAGE_CHILD,
+                true,
+                &places,
+                [0.0; 3],
+                &spots
+            ),
             Some(place(&format!(
                 "{}/{}",
                 flag::KAKARIKO_VILLAGE_ADULT,
-                field::KAKARIKO_VILLAGE_ENTRANCE
+                field::KAKARIKO_WELL_SIDE
             )))
         );
+        let none = HashMap::new();
         // A twin with no arrival point listed, and a map with no twin.
         let lone = |map, child| other_age(map, child, &places, [0.0; 3], &none);
         assert_eq!(lone(flag::KAKARIKO_VILLAGE_ADULT, false), None);
