@@ -52,7 +52,8 @@ impl Generating {
         });
         *self.log.lock().unwrap() = run.log().map(Into::into);
         *self.stop.lock().unwrap() = Some(run.stopper());
-        let report = zootr::game::prepare(game, &run).and_then(|romfs| {
+        let report = progress::caught(|| {
+            let romfs = zootr::game::prepare(game, &run)?;
             let write =
                 |d: &std::path::Path| generate::generate(&romfs, d, seed, settings, extras, &run);
             match install {
@@ -72,7 +73,7 @@ impl Generating {
             log::info!("Seed {seed} {what} (share {share}){log}");
         }
         if let Err(e) = &report
-            && progress::stopped(e).is_some_and(|s| s.took_off)
+            && progress::took_off(e)
         {
             let mut history = History::load()?;
             history.install(None);

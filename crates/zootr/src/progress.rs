@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use serde::Serialize;
 
 mod log;
@@ -133,6 +133,36 @@ pub fn stopped(e: &anyhow::Error) -> Option<&Stopped> {
     e.downcast_ref()
 }
 
+/// A failure once writing replaced a mod folder: the install took the mod
+/// off every target, as a stop then does.
+#[derive(Debug)]
+pub struct TookOff;
+
+impl fmt::Display for TookOff {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "The install failed partway, so the mod is off every target and the game runs vanilla until the next install"
+        )
+    }
+}
+
+/// Whether the install took the mod off every target as `e` ended it.
+pub fn took_off(e: &anyhow::Error) -> bool {
+    stopped(e).is_some_and(|s| s.took_off) || e.downcast_ref::<TookOff>().is_some()
+}
+
+/// `f`'s result, with a panic in it as an error: the run then ends failed,
+/// logged and shown, instead of unwinding past its end.
+pub fn caught<T>(f: impl FnOnce() -> Result<T>) -> Result<T> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or_else(|panic| {
+        let text = (panic.downcast_ref::<&str>().map(|s| s.to_string()))
+            .or_else(|| panic.downcast_ref::<String>().cloned())
+            .unwrap_or_else(|| "no message".into());
+        Err(anyhow!("the generator crashed: {text}"))
+    })
+}
+
 /// Asks a run to stop at its next checkpoint, from any thread.
 #[derive(Clone, Default)]
 pub struct Stopper(Arc<AtomicBool>);
@@ -150,6 +180,8 @@ struct Now {
     step: Option<(Step, Instant)>,
     detail: String,
     reached: Vec<Step>,
+    /// Writing replaced a mod folder.
+    replaced: bool,
     /// The target being written, the detail writing the mod starts with.
     target: String,
 }
@@ -225,6 +257,17 @@ impl Run {
     /// The target the mod is written for next.
     pub fn target(&self, name: &str) {
         self.now.lock().unwrap().target = name.to_owned();
+    }
+
+    /// Notes that writing replaced a mod folder: a failure from here on
+    /// leaves the targets holding a mix of seeds.
+    pub fn mark_replaced(&self) {
+        self.now.lock().unwrap().replaced = true;
+    }
+
+    /// Whether writing replaced a mod folder.
+    pub fn replaced(&self) -> bool {
+        self.now.lock().unwrap().replaced
     }
 
     /// Whether `step` has started.

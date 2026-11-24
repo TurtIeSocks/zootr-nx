@@ -556,6 +556,7 @@ pub fn write_mod(
     dig::write(romfs, &mut builder, drops, new_game)?;
     run.check()?;
     let files = builder.finish()?.len();
+    run.mark_replaced();
     let credits = credits(new_game);
     let keyed: Vec<_> = (rupees.iter())
         .filter_map(|r| ammo::line(ammo::copied(r)?))
