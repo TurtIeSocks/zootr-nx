@@ -11,7 +11,9 @@ use anyhow::Result;
 
 use super::CLOCKWISE;
 use super::drive::{Drive, SPEED, Sense};
-use crate::dev::{State, Switches};
+use crate::dev::{Dev, State, Switches};
+use crate::live::tests::Fake;
+use crate::patch;
 use crate::play::Input;
 
 /// A push this short or shorter turns Link where he stands.
@@ -84,6 +86,15 @@ pub fn start(at: [f32; 3], yaw: f32) -> (Eyes, Hands) {
         camera: false,
     }));
     (Eyes(world.clone()), Hands(world))
+}
+
+/// A dev panel on a game that holds only its hook: any other read fails.
+pub fn dev() -> Dev<Fake> {
+    let main = 0x10_0000;
+    let at = patch::OFFSETS.link_update;
+    let hook = patch::site(at).unwrap();
+    let game = Fake::new(vec![(main + u64::from(at), hook)]);
+    Dev::with(game, main + u64::from(patch::OFFSETS.gamedata)).unwrap()
 }
 
 /// A drive that never waits.
