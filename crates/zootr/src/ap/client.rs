@@ -612,6 +612,12 @@ impl Live {
 /// hearts run out, and a fairy's save doesn't count.
 const DEATHS: u32 = 0xd30c_8e29;
 
+/// The screen the game shows (GameData, an unnamed Enum): play, a menu,
+/// the title, Game Over, or [`SCREEN_LOADING`].
+const SCREEN: u32 = 0x578d_41e1;
+/// [`SCREEN`] while a save loads, and on a reload after Game Over.
+const SCREEN_LOADING: &str = "Loading";
+
 /// The step Ganon's defeat reaches once his last fight is over.
 const GOAL_DONE: &str = "Complete";
 
@@ -656,7 +662,8 @@ impl Game for Live {
     }
 
     fn died(&mut self) -> Result<bool> {
-        Ok(self.deaths.died(self.get(DEATHS)?.parse()?))
+        let loading = self.get(SCREEN)? == self.gd.name(live::hash(SCREEN_LOADING)?);
+        Ok(self.deaths.died(self.get(DEATHS)?.parse()?, loading))
     }
 
     fn kill(&mut self) -> Result<()> {
