@@ -35,8 +35,8 @@ const USEFUL: &[&str] = &[
 pub const VICTORY: &str = "victory";
 
 /// Every file of the export, by name, as JSON text. `ids` is the last
-/// export's `ids.json`, if any.
-pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str, String>> {
+/// export's `ids.json`.
+pub fn export(romfs: &Romfs, ids: &str) -> Result<BTreeMap<&'static str, String>> {
     let base = base();
     // Every seed below reads the same game data, so it's read once.
     let dump = Dump::new(romfs)?;
@@ -56,10 +56,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let set: Vec<Seed> = par_map(&settings, |s| Seed::build_in(&dump, s, &Default::default()))
         .into_iter()
         .collect::<Result<_>>()?;
-    let mut ids: Ids = ids
-        .map(serde_json::from_str)
-        .transpose()?
-        .unwrap_or_default();
+    let mut ids: Ids = serde_json::from_str(ids)?;
     let names = Namer::new(romfs, &seeds)?;
     let w = &base_seed.world;
     for (seed, v) in built.iter().zip(&variants) {
@@ -602,7 +599,7 @@ mod tests {
         static EXPORT: OnceLock<BTreeMap<&'static str, String>> = OnceLock::new();
         EXPORT.get_or_init(|| {
             let ids = std::fs::read_to_string(super::super::data_dir().join("ids.json")).unwrap();
-            export(romfs, Some(&ids)).unwrap()
+            export(romfs, &ids).unwrap()
         })
     }
 

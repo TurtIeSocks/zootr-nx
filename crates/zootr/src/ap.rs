@@ -279,8 +279,7 @@ pub fn data_dir() -> PathBuf {
 
 /// Export into `dir`, keeping the ids its `ids.json` already gave out.
 pub fn write(romfs: &Romfs, dir: &Path) -> Result<()> {
-    let ids = std::fs::read_to_string(dir.join("ids.json")).ok();
-    let files = export::export(romfs, ids.as_deref())?;
+    let files = export::export(romfs, &kept_ids(dir)?)?;
     std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
     for (name, text) in files {
         std::fs::write(dir.join(name), text)?;
@@ -288,9 +287,28 @@ pub fn write(romfs: &Romfs, dir: &Path) -> Result<()> {
     Ok(())
 }
 
+/// The ids `dir` already gave out, or for a folder without them the ones
+/// the world ships, so a new folder never hands an old id to a new check.
+fn kept_ids(dir: &Path) -> Result<String> {
+    let path = dir.join("ids.json");
+    match std::fs::read_to_string(&path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(ids::IDS.to_owned()),
+        read => read.with_context(|| format!("reading {}", path.display())),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{HELD, data_dir, described};
+    use super::{HELD, data_dir, described, kept_ids};
+
+    #[test]
+    fn a_folder_without_ids_carries_on_from_the_world_s() {
+        let dir = data_dir();
+        let held = std::fs::read_to_string(dir.join("ids.json")).unwrap();
+        assert_eq!(kept_ids(&dir).unwrap(), held);
+        let fresh = dir.join("fake-no-such-folder");
+        assert_eq!(kept_ids(&fresh).unwrap(), super::ids::IDS);
+    }
 
     /// Each held sentence is still in its setting's text, so the world's
     /// copy never offers an option it leaves out.
