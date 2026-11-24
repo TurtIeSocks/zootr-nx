@@ -8,7 +8,9 @@ use std::f32::consts::{FRAC_PI_4, TAU};
 use anyhow::Result;
 use ounce_formats::{Byml, Romfs};
 
-use crate::checks::{GYAML, actors, banc_files, flat, hash_of, load_bancs, str_field, vec3};
+use crate::checks::{
+    GYAML, actors, area_of, banc_area, banc_files, flat, hash_of, load_bancs, str_field, vec3,
+};
 use crate::generate::Spot;
 use crate::known::{Name, actor, field};
 use crate::rules::Book;
@@ -111,14 +113,12 @@ fn read(romfs: &Romfs, spots: &[Spot]) -> Result<HashMap<String, Area>> {
     let wanted: HashSet<&str> = spots.iter().map(|s| s.area.as_str()).collect();
     let hashes: HashSet<u64> = spots.iter().map(|s| s.hash).collect();
     let mut areas: HashMap<String, Area> = HashMap::new();
-    let area_of = |file: &str| file.split('/').nth(1).map(str::to_owned);
     let files = (banc_files(romfs)?.into_iter())
-        .filter(|f| area_of(f).is_some_and(|a| wanted.contains(a.as_str())))
+        .filter(|f| banc_area(f).is_some_and(|a| wanted.contains(a)))
         .collect();
     for (file, doc) in load_bancs(romfs, files) {
         let doc = doc?;
-        let name = area_of(&file).expect("kept for its area");
-        let area = areas.entry(name).or_default();
+        let area = areas.entry(area_of(&file).to_owned()).or_default();
         for actor in actors(&doc.root)? {
             area.add(actor, &hashes);
         }

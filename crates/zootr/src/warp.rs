@@ -8,7 +8,7 @@ use clap::ValueEnum;
 use ounce_formats::{Byml, Romfs};
 use serde::{Deserialize, Serialize};
 
-use crate::checks::{GYAML, actors, banc_files, hash_of, load_banc, str_field, vec3};
+use crate::checks::{GYAML, actors, banc_area, banc_files, hash_of, load_banc, str_field, vec3};
 use crate::config::TestSetup;
 use crate::dev::{ADULT, CHILD, Dev, Place};
 use crate::known::{Name, actor, field, flow};
@@ -245,11 +245,6 @@ pub fn era(map: &str) -> Option<bool> {
     } else {
         map.ends_with(ADULT).then_some(false)
     }
-}
-
-/// The area folder a Banc file `rel` sits in.
-fn banc_area(rel: &str) -> Option<&str> {
-    rel.split('/').nth(1)
 }
 
 pub(crate) fn map_of(rel: &str) -> &str {

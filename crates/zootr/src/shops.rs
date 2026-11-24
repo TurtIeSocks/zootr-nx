@@ -170,8 +170,8 @@ fn find_slots(romfs: &Romfs) -> Result<Vec<Slot>> {
     let mut npcs = Vec::new();
     for (file, doc) in bancs(romfs)? {
         let doc = doc?;
-        let area = file.split('/').nth(1).unwrap_or("?");
-        let adult = !file.contains("_Child_");
+        let area = crate::checks::area_of(&file);
+        let adult = !crate::checks::is_child(&file);
         for actor in actors(&doc.root)? {
             let goods = str_field(actor, GYAML).unwrap_or_default();
             if goods.starts_with(KEEPER) {

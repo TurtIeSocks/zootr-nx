@@ -156,7 +156,7 @@ mod tests {
         let names = Names::load(&romfs, checks.iter().map(|c| c.item.as_str())).unwrap();
         let mut missing: Vec<&str> = checks
             .iter()
-            .flat_map(|c| [c.file.split('/').nth(1).unwrap(), &c.item])
+            .flat_map(|c| [crate::checks::area_of(&c.file), &c.item])
             .filter(|id| !names.areas.contains_key(*id) && !names.items.contains_key(*id))
             .collect();
         missing.sort();

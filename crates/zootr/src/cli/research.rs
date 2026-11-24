@@ -103,7 +103,7 @@ pub(super) fn chest_events(romfs: &Romfs) -> Result<()> {
         if !seen.insert(c.hash) {
             continue;
         }
-        let area = c.file.split('/').nth(1).unwrap_or("?");
+        let area = crate::checks::area_of(&c.file);
         println!("{area} {} {} {event}", c.hash, c.item);
         match flows.effects(event) {
             Some(effects) => effects.iter().for_each(|e| println!("    {e}")),

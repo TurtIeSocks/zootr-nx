@@ -84,6 +84,21 @@ pub fn banc_files(romfs: &Romfs) -> Result<Vec<String>> {
         .collect()
 }
 
+/// The area folder a Banc file `rel` sits in, e.g. `KokiriForest`.
+pub fn banc_area(rel: &str) -> Option<&str> {
+    rel.split('/').nth(1)
+}
+
+/// [`banc_area`], or `"?"` for a path with no folder.
+pub fn area_of(rel: &str) -> &str {
+    banc_area(rel).unwrap_or("?")
+}
+
+/// Whether Banc file `rel` is a child map's.
+pub fn is_child(rel: &str) -> bool {
+    rel.contains("_Child_")
+}
+
 pub fn load_banc(romfs: &Romfs, rel: &str) -> Result<BymlDoc> {
     BymlDoc::parse(&romfs.read(rel)?).with_context(|| format!("parsing {rel}"))
 }
@@ -205,7 +220,7 @@ fn read_rooms(romfs: &Romfs) -> Result<(Vec<ItemCheck>, HashMap<u64, u32>)> {
             };
             out.push(ItemCheck {
                 file: file.clone(),
-                area: file.split('/').nth(1).unwrap_or("?").to_owned(),
+                area: area_of(&file).to_owned(),
                 hash: hash_of(actor).context("actor without Hash")?,
                 holder: str_field(actor, GYAML).unwrap_or_default().to_owned(),
                 item: item.to_owned(),
@@ -553,6 +568,16 @@ mod tests {
             .iter()
             .filter_map(|a| str_field(a, GYAML))
             .collect()
+    }
+
+    #[test]
+    fn a_banc_path_names_its_area_folder() {
+        let rel = "Banc/FakeArea/FakeMap_Child_Static.bcett.byml.zs";
+        assert_eq!(banc_area(rel), Some("FakeArea"));
+        assert_eq!(area_of(rel), "FakeArea");
+        assert!(is_child(rel));
+        assert_eq!(banc_area("loose"), None);
+        assert_eq!(area_of("loose"), "?");
     }
 
     #[test]

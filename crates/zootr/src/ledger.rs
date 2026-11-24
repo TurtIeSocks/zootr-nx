@@ -497,7 +497,7 @@ fn census(romfs: &Romfs, breakable: &BTreeSet<String>) -> Result<Vec<ItemCheck>>
             if breakable.contains(holder) && !placed.contains(&hash) {
                 out.push(ItemCheck {
                     file: file.clone(),
-                    area: file.split('/').nth(1).unwrap_or("?").to_owned(),
+                    area: crate::checks::area_of(&file).to_owned(),
                     hash,
                     holder: holder.to_owned(),
                     item: String::new(),

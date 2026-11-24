@@ -460,9 +460,8 @@ impl World {
                     world.gyamls.entry(hash).or_insert_with(|| gyaml.to_owned());
                 }
             }
-            let area = rel.trim_start_matches("Banc/");
             world.bancs.push(Banc {
-                area: area.split('/').next().unwrap_or(area).to_owned(),
+                area: crate::checks::area_of(&rel).to_owned(),
                 groups: groups(&doc.root)
                     .with_context(|| format!("{} in {rel}", field::AI_GROUPS))?,
             });
