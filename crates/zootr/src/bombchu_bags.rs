@@ -150,8 +150,7 @@ fn files(template: &ActorPack, name: &str, model: &str) -> Result<Vec<(String, B
 /// The label naming `item`, if it's a Bombchu Bag: its pack lives only in
 /// the seed, and it answers to its own name.
 pub fn name_label(item: &str) -> Option<String> {
-    BAGS.contains(&item)
-        .then(|| format!("{item}{}", key_tints::TEXT_PARTS[0]))
+    BAGS.contains(&item).then(|| key_tints::label(item))
 }
 
 /// `item`'s pack if it's a Bombchu Bag, built as [`write`] writes it.

@@ -42,7 +42,14 @@ why = "level gap 2.5 m: within a running jump (2.7 m)"
 to = 10
 needs = "flag:#cf5e43e4"
 via = "walk"
-why = "walk, 18 edges; Switch Shutter A 06 3133131671431381109 shut until flag #cf5e43e4; Dodongo Cave Switch Shutter A 01 9691562485383977530 shut until flag #cf5e43e4"
+why = "walk, 32 edges; Switch Shutter A 06 3133131671431381109 shut until flag #cf5e43e4; Dodongo Cave Switch Shutter A 01 9691562485383977530 shut until flag #cf5e43e4"
+
+[[link]]
+to = 10
+needs = "always"
+via = "jump"
+why = "gap 1.0 to 2.2 m, falling up to 3.4 m: within a running jump off the edge (4.1 m for that fall); on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 12
@@ -54,25 +61,34 @@ why = "walk, 4 edges; Switch Shutter A 06 3892030450363597117 shut until flag #0
 to = 12
 needs = "flag:#03061f09"
 via = "jump"
-why = "level gap 2.2 m: within a running jump (2.7 m); Switch Shutter A 06 3892030450363597117 shut until flag #03061f09; Dodongo Cave Switch Shutter A 01 9853854296544990579 shut until flag #03061f09; Switch Shutter A 06 12320693207838952747 shut until flag #03061f09"
+why = "level gap 2.0 m: within a running jump (2.7 m); Switch Shutter A 06 3892030450363597117 shut until flag #03061f09; Dodongo Cave Switch Shutter A 01 9853854296544990579 shut until flag #03061f09; Switch Shutter A 06 12320693207838952747 shut until flag #03061f09; on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 13
 needs = "always"
 via = "walk"
-why = "walk, 8 edges"
+why = "walk, 31 edges"
+
+[[link]]
+to = 13
+needs = "always"
+via = "drop"
+why = "drop 1.2 to 1.4 m; on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 13
 needs = "always"
 via = "jump"
-why = "level gap 2.0 to 2.3 m: within a running jump (2.7 m)"
+why = "gap 1.0 to 3.5 m, falling up to 3.6 m: within a running jump off the edge (4.1 m for that fall); on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 18
 needs = "always"
 via = "walk"
-why = "walk, 14 edges"
+why = "walk, 17 edges"
 
 [[link]]
 to = 18

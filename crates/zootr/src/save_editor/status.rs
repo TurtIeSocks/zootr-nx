@@ -12,7 +12,7 @@ use crate::names;
 use crate::value::{self, Input};
 
 /// Link's health in quarter hearts (`PlayerStatus.Life`).
-pub(crate) const LIFE: u32 = crate::dev::HEARTS;
+pub(crate) const LIFE: u32 = zootr_hook::switches::HEARTS;
 /// Link's heart containers, in quarter hearts.
 pub(crate) const MAX_LIFE: u32 = 0xfbe01da1;
 /// Link's magic.

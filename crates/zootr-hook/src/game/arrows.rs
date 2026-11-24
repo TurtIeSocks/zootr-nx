@@ -6,9 +6,8 @@
 //! `BowParam.ShootableActor` already names its own Link's projectile, so
 //! vanilla play nocks and says what it always did.
 
-use core::mem::transmute;
-
-use super::at;
+use super::{Hash, at, func};
+use crate::traps::COMPONENTS;
 use crate::{DEKU_SEED, OFFSETS};
 
 /// Where Link's EquipmentUser component keeps his projectile's name
@@ -31,8 +30,7 @@ struct Fixed {
 
 type Drawn = unsafe extern "C" fn(usize) -> usize;
 type Shootable = unsafe extern "C" fn(*const usize) -> usize;
-type Copy = unsafe extern "C" fn(*mut Fixed, usize);
-type Hash = unsafe extern "C" fn(*const u8, u32) -> u32;
+type NameCopy = unsafe extern "C" fn(*mut Fixed, usize);
 
 /// The drawn bow's projectile, as a name hash, the way the release at
 /// `0x2e007c0` names it. None with no bow drawn, or one naming none.
@@ -40,14 +38,13 @@ type Hash = unsafe extern "C" fn(*const u8, u32) -> u32;
 /// # Safety
 /// `user` is Link's EquipmentUser component.
 unsafe fn projectile(main: usize, user: usize) -> Option<u32> {
-    let call = |off: u32| main + off as usize;
     unsafe {
-        let drawn: Drawn = transmute(call(OFFSETS.drawn_bow));
+        let drawn: Drawn = func(main, OFFSETS.drawn_bow);
         let bow = drawn(user);
         if bow == 0 {
             return None;
         }
-        let shootable: Shootable = transmute(call(OFFSETS.shootable));
+        let shootable: Shootable = func(main, OFFSETS.shootable);
         let name = shootable(&bow);
         let mut fixed = Fixed {
             text: core::ptr::null_mut(),
@@ -55,13 +52,13 @@ unsafe fn projectile(main: usize, user: usize) -> Option<u32> {
             buffer: [0; 64],
         };
         fixed.text = fixed.buffer.as_mut_ptr();
-        let copy: Copy = transmute(call(OFFSETS.name_copy));
+        let copy: NameCopy = func(main, OFFSETS.name_copy);
         copy(&mut fixed, name);
         fixed.buffer[63] = 0;
         if *fixed.text == 0 {
             return None;
         }
-        let hash: Hash = transmute(call(OFFSETS.hash));
+        let hash: Hash = func(main, OFFSETS.hash);
         Some(hash(fixed.text, 0))
     }
 }
@@ -87,7 +84,7 @@ pub unsafe fn nocked(main: usize, user: usize) {
 /// `link` is Link's actor.
 pub unsafe fn shoots_seeds(main: usize, link: usize) -> Option<bool> {
     unsafe {
-        let user = at(link, 0x270).and_then(|parts| at(parts, 0x200))?;
+        let user = at(link, COMPONENTS).and_then(|parts| at(parts, 0x200))?;
         projectile(main, user).map(|hash| hash == DEKU_SEED)
     }
 }
@@ -98,16 +95,12 @@ pub unsafe fn shoots_seeds(main: usize, link: usize) -> Option<bool> {
 /// # Safety
 /// `node` is the Bow node, as the out of ammo handler gets it.
 pub unsafe fn emptied(main: usize, node: usize) {
-    let at = |p: usize| unsafe { *(p as *const usize) };
     unsafe {
-        let link = at(at(at(node + 8) + 8) + 0x1f0);
-        let parts = at(link + 0x270);
-        if parts == 0 {
+        let Some((user, player)) = parts_of(node) else {
             return;
-        }
-        let (user, player) = (at(parts + 0x200), at(parts + 0x358));
+        };
         let flags = (player + FLAGS) as *mut u32;
-        if user == 0 || player == 0 || *flags & (NO_ARROWS | NO_SEEDS) == 0 {
+        if *flags & (NO_ARROWS | NO_SEEDS) == 0 {
             return;
         }
         let Some(hash) = projectile(main, user) else {
@@ -119,5 +112,18 @@ pub unsafe fn emptied(main: usize, node: usize) {
             NO_ARROWS
         };
         *flags = *flags & !(NO_ARROWS | NO_SEEDS) | says;
+    }
+}
+
+/// Link's EquipmentUser and player components, from the Bow node `node`.
+/// None if any pointer on the way is null.
+///
+/// # Safety
+/// `node` is null or the Bow node.
+unsafe fn parts_of(node: usize) -> Option<(usize, usize)> {
+    unsafe {
+        let link = at(at(at(node, 8)?, 8)?, 0x1f0)?;
+        let parts = at(link, COMPONENTS)?;
+        Some((at(parts, 0x200)?, at(parts, 0x358)?))
     }
 }

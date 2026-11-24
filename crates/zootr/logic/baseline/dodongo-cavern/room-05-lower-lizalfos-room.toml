@@ -9,6 +9,12 @@ via = "walk"
 why = "walk, 7 edges; Dodongo Cave Switch Shutter A 01 5859121431558704523 shut until flag #dba3c3ef; Switch Shutter A 06 6947539486009694291 shut until flag #dba3c3ef"
 
 [[link]]
+to = 4
+needs = "always"
+via = "jump"
+why = "level gap 2.0 m: within a running jump (2.7 m)"
+
+[[link]]
 to = 6
 needs = "flag:#dba3c3ef"
 via = "walk"

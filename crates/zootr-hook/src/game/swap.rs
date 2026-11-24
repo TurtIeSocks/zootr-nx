@@ -12,7 +12,8 @@
 use core::sync::atomic::Ordering;
 
 use super::dev::{CHILD, POSITION, get_bool, idle, set_bool, single};
-use super::{at, shared};
+use super::{at, func, shared};
+use crate::traps::COMPONENTS;
 use crate::{Mailbox, Offsets, Outcome, Swap};
 
 type Create = unsafe extern "C" fn(usize, u32) -> u32;
@@ -42,10 +43,9 @@ const ENTRY: usize = 0x70;
 /// An actor's state, asleep at 3 or 6, and its rotation, a 3x3 matrix.
 const STATE: usize = 0x2c;
 const ROTATION: usize = 0x328;
-/// An actor's components; the camera's own component, the player's
-/// camera target part, and where the camera keeps the target part it
+/// The camera's own component and the player's camera target part among
+/// an actor's components, and where the camera keeps the target part it
 /// followed last. A new part there makes it snap behind Link.
-const COMPONENTS: usize = 0x270;
 const CAMERA: usize = 0x360;
 const TARGET: usize = 0x368;
 const FOLLOWED: usize = 0xfe0;
@@ -104,7 +104,7 @@ pub unsafe fn start(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> O
 unsafe fn pause(main: usize, body: u32) {
     let name = [SCENE_TRANSITION.as_ptr() as usize];
     let mut node = [0, 0, 0, 0, name.as_ptr() as usize];
-    let run: Pause = unsafe { core::mem::transmute(main + body as usize) };
+    let run: Pause = unsafe { func(main, body) };
     unsafe { run(&mut node) };
 }
 
@@ -123,10 +123,9 @@ pub unsafe fn step(main: usize, o: &Offsets) {
     if s.stage == IDLE {
         return;
     }
-    let call = |f: u32| main + f as usize;
     let next = match s.stage {
         CREATE => {
-            let create: Create = unsafe { core::mem::transmute(call(o.resident_create)) };
+            let create: Create = unsafe { func(main, o.resident_create) };
             (unsafe { create(s.manager, s.child) } & 1 == 1).then_some(WAIT)
         }
         WAIT => unsafe { asleep(s.manager, s.child == 1) }.map(|_| WAKE),
@@ -134,7 +133,7 @@ pub unsafe fn step(main: usize, o: &Offsets) {
             if let Some(link) = unsafe { asleep(s.manager, s.child == 1) } {
                 unsafe { keep_camera(s.manager, link) };
             }
-            let wake: Wake = unsafe { core::mem::transmute(call(o.cancel_sleep)) };
+            let wake: Wake = unsafe { func(main, o.cancel_sleep) };
             (unsafe { wake(s.manager, &s.position, &s.rotation) } & 1 == 1).then_some(IDLE)
         }
     };

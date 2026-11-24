@@ -13,15 +13,13 @@ use roead::sarc::{Sarc, SarcWriter};
 
 use crate::checks::Drop;
 use crate::gifts::{self, GIFTS};
-use crate::known::{Name, actor, field};
+use crate::known::{Name, actor};
 use crate::settings::NewGame;
-use crate::standins::item_pack;
+use crate::standins::{COMPONENTS, MODEL, item_pack};
 
 /// Dampe's flow, and the actor his dig shows.
 const DAMPE: &Name = actor::NPC_HYLIA_DAMPE_001;
 const PIECE: &Name = actor::OBJ_HEART_PIECE_DIGGING_HOLE;
-const COMPONENTS: &str = "Components";
-const MODEL: &Name = field::MODEL_INFO_REF;
 const PARENT: &str = "$parent";
 
 fn rel(actor: &str) -> String {

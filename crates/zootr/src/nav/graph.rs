@@ -60,7 +60,7 @@ const LIP: f32 = 0.3;
 const LEDGE_MAX: f32 = 2.0;
 const LEDGE_STEP: f32 = 0.05;
 /// Link's body radius, which clears the ledge before he falls.
-const RADIUS: f32 = 0.3;
+pub const RADIUS: f32 = 0.3;
 /// How far over a water's surface a swimmer's head is, in m.
 const HEAD: f32 = 0.3;
 /// How far out from each shore a swim's line is tested, in m: the shore

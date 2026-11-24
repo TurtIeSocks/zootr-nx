@@ -6,7 +6,14 @@ name = "Dinolfos Mirror Room"
 to = 30
 needs = "flag:#9b180729"
 via = "walk"
-why = "walk, 3 edges; Spirit Temple Switch Shutter A 01 322920475917812712 shut until flag #9b180729; Switch Shutter A 06 8610852534360824642 shut until flag #9b180729; Switch Shutter A 06 16305076459615501852 shut until flag #9b180729"
+why = "walk, 18 edges; Spirit Temple Switch Shutter A 01 322920475917812712 shut until flag #9b180729; Switch Shutter A 06 8610852534360824642 shut until flag #9b180729; Switch Shutter A 06 16305076459615501852 shut until flag #9b180729"
+
+[[link]]
+to = 30
+needs = "always"
+via = "jump"
+why = "gap 0.8 to 3.0 m, falling up to 1.0 m: within a running jump off the edge (3.2 m for that fall); on terrain floor no live run has walked"
+guess = true
 
 [[check]]
 hash = 13828480906010430010

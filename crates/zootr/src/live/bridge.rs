@@ -14,6 +14,14 @@ use super::Memory;
 /// How long a reply may take before the game counts as hung.
 pub const PATIENCE: Duration = Duration::from_secs(30);
 
+/// What a bridge error says when the game is gone, not a request
+/// refused: no game to connect to, the game closing the bridge, or a reply
+/// that never came. `sweep::spot::gone` tells a crash by these.
+pub const NOT_LISTENING: &str = "no game is listening";
+pub const CLOSED: &str = "the game closed the bridge";
+pub const HUNG: &str = "didn't answer";
+pub const GONE: [&str; 3] = [NOT_LISTENING, CLOSED, HUNG];
+
 /// The most one memory request moves.
 const CHUNK: usize = 1 << 20;
 /// The most ranges one `mem_read_many` may name: the target refuses more.
@@ -59,7 +67,7 @@ struct Conn {
 impl Bridge {
     pub fn connect(path: &Path) -> Result<Self> {
         let out = Stream::connect(path)
-            .with_context(|| format!("no game is listening on {}", path.display()))?;
+            .with_context(|| format!("{NOT_LISTENING} on {}", path.display()))?;
         let lines = BufReader::new(out.try_clone()?);
         let conn = Conn {
             lines,
@@ -212,9 +220,9 @@ impl Conn {
     /// stays in step.
     fn reply(&mut self, cmd: &str, within: Duration) -> Result<Value> {
         match self.lines.read_line(&mut self.pending) {
-            Ok(0) => bail!("the game closed the bridge"),
+            Ok(0) => bail!(CLOSED),
             Err(e) if is_timeout(&e) => {
-                let raw = anyhow::anyhow!("the game didn't answer {cmd} in {within:?}");
+                let raw = anyhow::anyhow!("the game {HUNG} {cmd} in {within:?}");
                 Err(raw.context(crate::plain::Plain(super::SLOW.into())))
             }
             Err(e) => Err(e.into()),
@@ -544,7 +552,7 @@ mod tests {
             .ask("status", Value::Null, Duration::from_millis(50))
             .unwrap_err();
         assert!(
-            format!("{err:#}").contains("didn't answer status"),
+            format!("{err:#}").contains(&format!("{HUNG} status")),
             "{err:#}"
         );
         assert_eq!(err.to_string(), super::super::SLOW);

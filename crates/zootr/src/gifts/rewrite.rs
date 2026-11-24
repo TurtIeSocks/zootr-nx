@@ -163,9 +163,10 @@ fn undress(entry_point: &mut String) {
 }
 
 /// The events that make any of `calls`.
-pub(super) fn calls_to(flow: &Flowchart, calls: &[Call]) -> Result<Vec<usize>> {
-    Ok((0..flow.events.len())
-        .filter(|&i| match &flow.events[i].kind {
+pub(super) fn calls_to(flow: &Flowchart, calls: &[Call]) -> Vec<u16> {
+    (0u16..)
+        .zip(&flow.events)
+        .filter(|(_, e)| match &e.kind {
             EventKind::SubFlow {
                 flowchart,
                 entry_point,
@@ -179,7 +180,8 @@ pub(super) fn calls_to(flow: &Flowchart, calls: &[Call]) -> Result<Vec<usize>> {
             }),
             _ => false,
         })
-        .collect())
+        .map(|(i, _)| i)
+        .collect()
 }
 
 /// Rename `from` to `to` in every call to `call` naming it, at least one.
@@ -204,8 +206,7 @@ pub(super) fn naming(
         EventKind::SubFlow { params, .. } => names_item(params, &[item]),
         _ => false,
     };
-    Ok((calls_to(flow, call)?.into_iter())
-        .map(|i| i as u16)
+    Ok((calls_to(flow, call).into_iter())
         .filter(|i| !taken.contains(i) && names(i))
         .collect())
 }
@@ -287,7 +288,7 @@ pub(super) fn set_own_bool(flow: &mut Flowchart, call: &[Call], name: &str) -> R
         .first()
         .with_context(|| format!("{} sets no Bool", flow.name))?;
     let sets = flows::model(flow, SET_BOOL, *sets)?;
-    let calls = calls_to(flow, call)?;
+    let calls = calls_to(flow, call);
     ensure!(
         !calls.is_empty(),
         "{} never calls {}",
@@ -297,7 +298,7 @@ pub(super) fn set_own_bool(flow: &mut Flowchart, call: &[Call], name: &str) -> R
     for i in calls {
         let EventKind::SubFlow {
             entry_point, next, ..
-        } = &mut flow.events[i].kind
+        } = &mut flow.events[i as usize].kind
         else {
             unreachable!("calls_to finds sub-flows");
         };
@@ -313,7 +314,7 @@ pub(super) fn set_own_bool(flow: &mut Flowchart, call: &[Call], name: &str) -> R
             action,
             params,
         });
-        flow.link(Link::Next(i as u16), Some(mark))?;
+        flow.link(Link::Next(i), Some(mark))?;
     }
     Ok(())
 }

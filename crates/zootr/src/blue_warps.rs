@@ -7,9 +7,9 @@
 use anyhow::{Context, Result};
 use ounce_formats::{EventKind, Flowchart, Link, Romfs, Value};
 
-use crate::dev::{ADULT, CHILD};
 use crate::flows::{self, Rewrites};
 use crate::known::{Name, actor, field, flow, scene};
+use crate::warp::{ADULT, CHILD};
 
 /// The flow every boss's warp leaves through.
 pub const FLOW: &Name = scene::SY_BANC_CHANGE_ESCAPE_DUNGEON;

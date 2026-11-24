@@ -28,12 +28,15 @@ pub(super) struct Seen<'k> {
     pub at: Segment,
     /// The furthest a jump on it falls, in m: 0 for a level gap.
     pub fall: f32,
+    /// Whether it was seen once with neither end on terrain floor.
+    pub firm: bool,
     /// The confirmed link that stands in for every derived arc here.
     pub puzzle: Option<&'k rooms::SpotLink>,
 }
 
 impl Seen<'_> {
-    pub fn add(&mut self, metric: f32, by: Option<u64>, at: Segment) {
+    pub fn add(&mut self, metric: f32, by: Option<u64>, at: Segment, terrain: bool) {
+        self.firm |= !terrain;
         if self.count == 0 || metric < self.least {
             self.at = at;
         }
@@ -115,6 +118,29 @@ pub(super) fn link(
             needs.push(format!("flag:#{flag:08x}"));
         }
     }
+    // Terrain's heightmap stands in for floor the navmesh leaves out, and
+    // one such link (the Deku Tree's scrub room) led out of bounds.
+    if !s.firm {
+        why += "; on terrain floor no live run has walked";
+        guess = true;
+    }
     let needs: Vec<&str> = needs.iter().map(String::as_str).collect();
     (all_of(&needs), why, guess)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_link_seen_only_on_terrain_is_a_guess() {
+        let at = ([0.0; 3], [1.0, 0.0, 0.0]);
+        let mut s = Seen::default();
+        s.add(1.0, None, at, true);
+        let (_, why, guess) = link(rooms::Via::Jump, (1, 2), &s, &HashMap::new());
+        assert!(guess && why.contains("terrain"), "{why}");
+        s.add(1.2, None, at, false);
+        let (_, why, guess) = link(rooms::Via::Jump, (1, 2), &s, &HashMap::new());
+        assert!(!guess && !why.contains("terrain"), "{why}");
+    }
 }

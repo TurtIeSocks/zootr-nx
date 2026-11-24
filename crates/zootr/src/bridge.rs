@@ -6,6 +6,7 @@
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{Byml, EventKind, Romfs, murmur3};
 
+use crate::cutscenes::played_set;
 use crate::flows::{self, Rewrites};
 use crate::gamedata::{self, op};
 use crate::known::{Name, field, flag, flow, item};
@@ -23,11 +24,7 @@ pub fn start() -> String {
 /// the bridge's module ORs into creating the bridge. Nothing else: no Light
 /// Arrows, no sages, no Ganon step.
 pub fn open() -> Vec<String> {
-    vec![format!(
-        "{}.{}=true",
-        flag::HAVE_PLAYED_EVENT,
-        field::GANON_CASTLE_ADULT_FIELD_RAINBOW
-    )]
+    vec![played_set(field::GANON_CASTLE_ADULT_FIELD_RAINBOW)]
 }
 /// The six trials in Ganon's Castle, as their barrier flags name them.
 const TRIALS: [&str; 6] = ["Light", "Forest", "Water", "Shadow", "Fire", "Spirit"];
@@ -42,7 +39,7 @@ pub fn trials_done() -> Vec<String> {
     ];
     for trial in TRIALS {
         let removed = format!("InsideGanonCastle_Dungeon_BarrierRemove_{trial}");
-        edits.push(format!("{}.{removed}=true", flag::HAVE_PLAYED_EVENT));
+        edits.push(played_set(&removed));
         edits.push(format!("{removed}=true"));
     }
     edits

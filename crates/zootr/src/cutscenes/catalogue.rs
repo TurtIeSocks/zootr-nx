@@ -58,7 +58,7 @@ impl Catalogue {
                 read.entry(n).or_default().insert(by.to_owned());
             }
         };
-        for (name, flow) in &all.0 {
+        for (name, flow) in &all.charts {
             for e in &flow.events {
                 if let Some(to) = transition(flow, &e.kind) {
                     callers.entry(to.into()).or_default().insert(name.clone());

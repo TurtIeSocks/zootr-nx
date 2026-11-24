@@ -187,8 +187,7 @@ pub(crate) fn reference(path: &str) -> Byml {
 
 /// The string under `key` in a param's `Components`.
 pub(crate) fn component(param: &BymlMap, key: &str) -> Option<String> {
-    let components = param.get(COMPONENTS)?.as_map().ok()?;
-    Some(components.get(key)?.as_string().ok()?.to_string())
+    crate::items::component(param, key).map(str::to_owned)
 }
 
 pub(crate) fn components(param: &BymlMap) -> Result<BymlMap> {

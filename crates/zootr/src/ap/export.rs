@@ -1,24 +1,24 @@
 //! The world graph, pool and options as the `znx` world loads them, with
 //! abilities inlined, eras resolved per place and start flags folded in.
 
+mod pool;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::{Context, Result, bail, ensure};
-use clap::ValueEnum;
 use ounce_formats::{Romfs, par_map};
 use serde_json::{Value, json};
 
 use super::rule::{self, Rules, all, any};
 use super::seed::{Everything, Seed, base, domains, open, values, variants};
-use super::when::{Counts, Variant, steps, word};
-use super::{OPTIONS, described, ids::Ids, names, offers};
+use super::when::{Counts, Domain, Variant, steps, word};
+use super::{OPTIONS, SETS, described, ids::Ids, names, offers};
 use crate::checks::ItemCheck;
 use crate::fill;
-use crate::ice_traps;
+use crate::logic::World;
 use crate::narrowing::allowed;
 use crate::rules::{Need, vocab};
-use crate::settings::{IceTraps, Kind, NewGame, PROGRESSIVE, Settings, choice_id, schema};
-use crate::starter_bags;
+use crate::settings::{Kind, NewGame, SettingDef, Settings, schema};
 use crate::world::Era;
 
 /// Items that aren't progression but are worth more than filler.
@@ -66,64 +66,9 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
             v.overlay
         );
     }
-
-    // What each option adds to the start, as the settings that set it.
-    let mut flag_settings: BTreeMap<String, Vec<Value>> = BTreeMap::new();
-    let mut item_settings: BTreeMap<String, Vec<(Value, u32)>> = BTreeMap::new();
-    for overlay in values()? {
-        let mut s = base.clone();
-        s.extend(overlay.clone());
-        let start = fill::start(&NewGame::from_settings(&s, &[])?);
-        let words = overlay
-            .iter()
-            .map(|(id, v)| json!({ "setting": word(id, v) }));
-        let rule = all(words.collect());
-        for f in start.flags.difference(&base_seed.start.flags) {
-            flag_settings
-                .entry(f.clone())
-                .or_default()
-                .push(rule.clone());
-        }
-        for (actor, n) in &base_seed.start.items {
-            let now = start.items.get(actor).copied().unwrap_or(0);
-            ensure!(now >= *n, "{overlay:?} takes {actor} from the start");
-        }
-        for (actor, n) in &start.items {
-            let had = base_seed.start.items.get(actor).copied().unwrap_or(0);
-            if *n > had {
-                let given = item_settings.entry(actor.clone()).or_default();
-                given.push((rule.clone(), n - had));
-            }
-        }
-    }
-
-    // What gives each item outside a pool: a source, or a check a deal
-    // leaves holding its vanilla item, each an event, in any variant.
-    let mut givers: BTreeMap<&str, Vec<String>> = BTreeMap::new();
-    let mut pooled = BTreeSet::new();
-    for seed in &seeds {
-        for s in &seed.world.sources {
-            givers.entry(&s.item).or_default().push(s.name.clone());
-        }
-        for (hash, item) in &seed.dealt.kept {
-            givers.entry(item).or_default().push(vanilla(*hash));
-        }
-        pooled.extend(seed.dealt.pool.iter().cloned());
-    }
-    for g in givers.values_mut() {
-        g.sort();
-        g.dedup();
-    }
-    // Each line's levels with the events that give them (`rule::lined`).
-    let levels: Vec<rule::Line> = (names::levels()?.into_iter())
-        .map(|(line, steps)| {
-            let given = |(actor, name): (&str, &str)| {
-                let events = givers.get(actor).into_iter().flatten().cloned();
-                [name.to_owned()].into_iter().chain(events).collect()
-            };
-            (line.to_owned(), steps.into_iter().map(given).collect())
-        })
-        .collect();
+    let (flag_settings, item_settings) = option_starts(&base, &base_seed)?;
+    let (givers, pooled) = givers(&seeds);
+    let levels = lined(&givers)?;
     let mut rules = Rules {
         start: &base_seed.start,
         pooled: &pooled,
@@ -136,295 +81,27 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         levels: &levels,
     };
     let reach = Everything::union(&set);
-    let era = |i: usize| w.places[i].1;
-    // Where something is: each place it's at, any of its needs there.
-    let at = |rules: &mut Rules, spots: Vec<(usize, &Need)>| {
-        let mut by_place: BTreeMap<usize, Vec<Value>> = BTreeMap::new();
-        for (place, need) in spots.into_iter().filter(|(p, _)| reach.places.contains(p)) {
-            by_place
-                .entry(place)
-                .or_default()
-                .push(rules.rule(need, era(place)));
-        }
-        let spots = by_place
-            .into_iter()
-            .map(|(place, needs)| (place, any(needs)));
-        spots.collect::<Vec<_>>()
+    let cx = Ctx {
+        w,
+        reach: &reach,
+        names: &names,
+        domains: &domains,
+        variants: &variants,
     };
-    // One spot per place, false ones left out.
-    let spots = |at: Vec<(usize, Value)>| {
-        let mut by_place: BTreeMap<usize, Vec<Value>> = BTreeMap::new();
-        for (place, rule) in at {
-            by_place.entry(place).or_default().push(rule);
-        }
-        let spots = by_place
-            .into_iter()
-            .map(|(place, rules)| (place, any(rules)));
-        let spots = spots.filter(|(_, rule)| *rule != Value::Bool(false));
-        let spots = spots.map(|(place, rule)| json!({ "place": names.place(place), "rule": rule }));
-        spots.collect::<Vec<_>>()
-    };
-
-    let mut places: Vec<String> = reach.places.iter().map(|i| names.place(*i)).collect();
-    places.extend([Namer::hub(Era::Child), Namer::hub(Era::Adult)]);
-    ensure!(
-        places.iter().collect::<BTreeSet<_>>().len() == places.len(),
-        "two places share a name"
-    );
-
-    // One exit per pair of places, any of the edges between them.
-    let mut pairs: BTreeMap<(String, String), Vec<Value>> = BTreeMap::new();
-    let edges = w.edges.iter().filter(|e| {
-        reach.places.contains(&e.to) && e.from.is_none_or(|f| reach.places.contains(&f))
-    });
-    for e in edges {
-        let (from, era) = match e.from {
-            Some(f) => (names.place(f), era(f)),
-            None => (Namer::hub(era(e.to)), era(e.to)),
-        };
-        let rule = rules.rule(&e.need, era);
-        pairs
-            .entry((from, names.place(e.to)))
-            .or_default()
-            .push(rule);
-    }
-    for &i in &reach.places {
-        let pair = (names.place(i), Namer::hub(era(i)));
-        pairs.entry(pair).or_default().push(true.into());
-    }
-    let mut exits = Vec::new();
-    for ((from, to), rules) in pairs {
-        let rule = any(rules);
-        if rule != Value::Bool(false) {
-            exits.push(json!({ "from": from, "to": to, "rule": rule }));
-        }
-    }
-
-    // Each row as some seeds hold it, keyed so the seeds' copies meet.
-    let mut checks: BTreeMap<u64, Row> = BTreeMap::new();
-    let mut events: BTreeMap<String, Row> = BTreeMap::new();
-    for (n, seed) in seeds.iter().enumerate() {
-        let mut by_hash: BTreeMap<u64, Vec<(usize, &Need)>> = BTreeMap::new();
-        for l in &seed.world.locations {
-            by_hash.entry(l.hash).or_default().push((l.place, &l.need));
-        }
-        for (&hash, found) in &by_hash {
-            if seed.dealt.kept.contains_key(&hash) {
-                if reach.checks.contains(&hash) {
-                    let at = at(&mut rules, found.clone());
-                    let row = json!({ "name": vanilla(hash) });
-                    Row::add(&mut events, vanilla(hash), (n, seeds.len()), row, at)?;
-                }
-                continue;
-            }
-            if !seed.dealt.free.contains(&hash) {
-                continue;
-            }
-            let check = (seed.dealt.checks.iter().find(|c| c.hash == hash))
-                .with_context(|| format!("no check {hash}"))?;
-            // In either form, since a row holds for both.
-            let mut forbid = BTreeSet::new();
-            for form in [true, false] {
-                for actor in pooled.iter().filter(|a| !allowed(check, a, form)) {
-                    forbid.insert(names.item_in(actor, Some(form))?);
-                }
-            }
-            let row = json!({
-                "id": ids.location(hash),
-                "hash": hash.to_string(),
-                "name": names.location(hash)?,
-                "unprovable": !reach.checks.contains(&hash),
-                "forbid": forbid,
-            });
-            let at = at(&mut rules, found.clone());
-            Row::add(&mut checks, hash, (n, seeds.len()), row, at)?;
-        }
-        let sources = seed.world.sources.iter();
-        for s in sources.filter(|s| reach.sources.contains(&s.name)) {
-            let at = at(&mut rules, s.places.iter().map(|&p| (p, &s.need)).collect());
-            let row = json!({ "name": s.name });
-            Row::add(&mut events, s.name.clone(), (n, seeds.len()), row, at)?;
-        }
-    }
-    let goal = at(
+    let places = cx.places()?;
+    let exits = cx.exits(&mut rules);
+    let (checks, events) = cx.rows(&mut rules, &seeds, &pooled, &mut ids)?;
+    let goal = cx.at(
         &mut rules,
         w.goal().iter().map(|(p, need)| (*p, need)).collect(),
     );
-    let goal = spots(goal);
-    // The settings a row or spot holds in, or none when it always does.
-    let when = |seeds: &[u32], what: &Value| -> Result<Option<Value>> {
-        let counts = Counts {
-            base: seeds[0],
-            by_variant: &seeds[1..],
-        };
-        match steps(&domains, &variants, &counts).as_slice() {
-            [(1, Value::Bool(true))] => Ok(None),
-            [(1, rule)] => Ok(Some(rule.clone())),
-            other => bail!("{what} isn't held once: {other:?}"),
-        }
-    };
-    let rows = |rows: Vec<Row>| -> Result<Vec<Value>> {
-        let mut out = Vec::new();
-        for row in rows {
-            let mut value = row.value.clone();
-            if let Some(w) = when(&row.seeds, &value)? {
-                value["when"] = w;
-            }
-            // A spot only some seeds hold, as a check Met Zelda puts at the
-            // start, holds in their settings.
-            let mut at = Vec::new();
-            for ((place, _), (rule, seeds)) in row.at {
-                if seeds == row.seeds {
-                    at.push((place, rule));
-                    continue;
-                }
-                let rule = match when(&seeds, &rule)? {
-                    Some(w) => all(vec![w, rule]),
-                    None => rule,
-                };
-                at.push((place, rule));
-            }
-            value["at"] = spots(at).into();
-            out.push(value);
-        }
-        Ok(out)
-    };
-    let checks = rows(checks.into_values().collect())?;
-    let mut events = rows(events.into_values().collect())?;
+    let goal = cx.spots(goal);
+    let checks = cx.json_rows(checks.into_values().collect())?;
+    let mut events = cx.json_rows(events.into_values().collect())?;
     events.push(json!({ "name": VICTORY, "at": goal }));
-
-    // Each pool item's count in each seed, by its AP name: the pool
-    // before the trade, then what settings add, which the world trades in
-    // for rupees itself (`starter_bags::swap_in`). Which rupee depends on
-    // every other option, so no row could say it.
-    // Keyed by name, whether the trade may take it (a chest's rupee, not a
-    // pot's, though both share a name) and whether a trap may.
-    type Count<'a> = BTreeMap<(&'a str, bool, bool), (Vec<u32>, &'a str)>;
-    let mut counts: Count = BTreeMap::new();
-    let junk_actor = |a: &str| starter_bags::JUNK.iter().any(|j| j.get() == a);
-    // In `starter_bags::added`'s order, the order the world trades them.
-    let mut added: Vec<(&str, (Vec<u32>, &str))> = Vec::new();
-    // A seed with progressive items on deals each line's first level, so
-    // its pool reads from its twin with them off, which deals each check's
-    // own item: the world names a line by it (`names::line`).
-    let twin = |n: usize| -> Result<&Seed> {
-        if !seeds[n].dealt.new_game.progressive {
-            return Ok(seeds[n]);
-        }
-        let mut off = settings[n].clone();
-        off.insert(PROGRESSIVE.into(), false.into());
-        let at = settings.iter().position(|s| *s == off);
-        Ok(seeds[at.with_context(|| format!("no seed {off:?}"))?])
-    };
-    for n in 0..seeds.len() {
-        let seed = twin(n)?;
-        for raw in &seed.dealt.before {
-            let actor = names::same(raw);
-            let name = names::item(actor, false)?;
-            let key = (name, junk_actor(raw), seed.trappable.contains(raw));
-            let row = counts.entry(key).or_insert((vec![0; seeds.len()], actor));
-            ensure!(row.1 == actor, "{name} names two items");
-            row.0[n] += 1;
-        }
-        for actor in seed.dealt.added.iter().map(|a| names::same(a)) {
-            let name = names::item(actor, false)?;
-            let at = match added.iter().position(|(n, _)| *n == name) {
-                Some(at) => at,
-                None => {
-                    added.push((name, (vec![0; seeds.len()], actor)));
-                    added.len() - 1
-                }
-            };
-            added[at].1.0[n] += 1;
-        }
-    }
-    let mut items: Vec<Value> = Vec::new();
-    let mut pool = Vec::new();
-    let rows = counts
-        .iter()
-        .map(|((n, junk, trap), c)| (*n, c, *junk, *trap, false));
-    let added_rows = added.iter().map(|(n, c)| (*n, c, false, false, true));
-    let mut firsts: BTreeMap<&str, &str> = BTreeMap::new();
-    let class = |name: &str| match () {
-        _ if rules.used.contains(name) => "progression",
-        _ if USEFUL.contains(&name) => "useful",
-        _ => "filler",
-    };
-    for (name, (count, actor), is_junk, is_trappable, is_added) in rows.chain(added_rows) {
-        if !items.iter().any(|i| i["name"] == name) {
-            // A line's first level keeps its first id for the line's name,
-            // unless the line goes by it.
-            let line = names::line(actor)?;
-            let plain = line.is_some_and(|(l, first)| first == *actor && l != name);
-            items.push(
-                json!({ "id": ids.item_as(actor, plain), "name": name, "class": class(name) }),
-            );
-            if let Some((line, first)) = line {
-                firsts.insert(line, first);
-            }
-        }
-        let counts = Counts {
-            base: count[0],
-            by_variant: &count[1..],
-        };
-        for (count, rule) in steps(&domains, &variants, &counts) {
-            let mut row = json!({ "item": name, "count": count });
-            if rule != Value::Bool(true) {
-                row["when"] = rule;
-            }
-            if is_added {
-                row["added"] = true.into();
-            }
-            if is_junk {
-                row["junk"] = true.into();
-            }
-            if is_trappable {
-                row["trappable"] = true.into();
-            }
-            pool.push(row);
-        }
-    }
-    // With progressive items on, each line's levels go by its name, under
-    // its first level's id.
-    // The Magic Meter's goes by its first level's, already there.
-    for (line, first) in firsts {
-        if !items.iter().any(|i| i["name"] == line) {
-            items.push(json!({ "id": ids.item(first), "name": line, "class": class(line) }));
-        }
-    }
-    // Each line's levels by its name, each its own name then its events:
-    // with progressive items on, the world deals each as the line and reads
-    // its rules as `rule::lined` does.
-    let levels_json: serde_json::Map<String, Value> = (levels.iter())
-        .map(|(line, steps)| (line.clone(), json!(steps)))
-        .collect();
-    // The traps the world swaps in for its trappable items, a share of
-    // them by Ice Traps' value (`IceTraps::of`).
-    let trap = ice_traps::POOLED;
-    items.push(json!({ "id": ids.item(trap), "name": names.item(trap)?, "class": "trap" }));
-    let shares: serde_json::Map<String, Value> = (IceTraps::value_variants().iter())
-        .map(|&v| (choice_id(v), json!(v.share())))
-        .collect();
-    let junk: Vec<&str> = (starter_bags::JUNK.iter())
-        .map(|j| names.item(names::same(j.get())))
-        .collect::<Result<_>>()?;
-    // A source that gives a pool item shares its name, so AP counts both.
-    for seed in &seeds {
-        for s in &seed.world.sources {
-            let added = added.iter().find(|(n, _)| *n == s.name).map(|(_, c)| c);
-            let pooled = (counts.iter())
-                .find(|((n, ..), _)| *n == s.name)
-                .map(|(_, c)| c);
-            if let Some((_, actor)) = pooled.or(added) {
-                ensure!(
-                    *actor == s.item,
-                    "{} names both an item and another's event",
-                    s.name
-                );
-            }
-        }
-    }
-
+    let counted = pool::Counted::new(&seeds, &settings)?;
+    counted.check_sources(&seeds)?;
+    let (items, pool) = counted.items_and_pool(&cx, &rules.used, &mut ids)?;
     // Where a variant starts Link elsewhere (Starting Age), that start
     // under the settings that pick it; the world takes the first that
     // holds, else `start`.
@@ -455,12 +132,278 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let mut out = BTreeMap::new();
     out.insert("world.json", pretty(&world)?);
     out.insert("items.json", pretty(&Value::Array(items))?);
-    let pool = json!({ "junk": junk, "rows": pool, "trap": names.item(trap)?, "shares": shares, "levels": levels_json });
-    out.insert("pool.json", pretty(&pool)?);
+    out.insert(
+        "pool.json",
+        pretty(&pool::pool_json(pool, &levels, &names)?)?,
+    );
     out.insert("options.json", pretty(&options())?);
     out.insert("golden.json", pretty(&golden)?);
     out.insert("ids.json", pretty(&serde_json::to_value(&ids)?)?);
     Ok(out)
+}
+
+/// Each start flag an option sets, and the settings that set it.
+type FlagSettings = BTreeMap<String, Vec<Value>>;
+/// Each item an option starts Link with, the settings and how many.
+type ItemSettings = BTreeMap<String, Vec<(Value, u32)>>;
+
+/// What each option adds to `base_seed`'s start, as the settings that set
+/// it.
+fn option_starts(base: &Settings, base_seed: &Seed) -> Result<(FlagSettings, ItemSettings)> {
+    let mut flag_settings = FlagSettings::new();
+    let mut item_settings = ItemSettings::new();
+    for overlay in values()? {
+        let mut s = base.clone();
+        s.extend(overlay.clone());
+        let start = fill::start(&NewGame::from_settings(&s, &[])?);
+        let words = overlay
+            .iter()
+            .map(|(id, v)| json!({ "setting": word(id, v) }));
+        let rule = all(words.collect());
+        for f in start.flags.difference(&base_seed.start.flags) {
+            flag_settings
+                .entry(f.clone())
+                .or_default()
+                .push(rule.clone());
+        }
+        for (actor, n) in &base_seed.start.items {
+            let now = start.items.get(actor).copied().unwrap_or(0);
+            ensure!(now >= *n, "{overlay:?} takes {actor} from the start");
+        }
+        for (actor, n) in &start.items {
+            let had = base_seed.start.items.get(actor).copied().unwrap_or(0);
+            if *n > had {
+                let given = item_settings.entry(actor.clone()).or_default();
+                given.push((rule.clone(), n - had));
+            }
+        }
+    }
+    Ok((flag_settings, item_settings))
+}
+
+/// What gives each item outside a pool: a source, or a check a deal
+/// leaves holding its vanilla item, each an event, in any variant. And
+/// every item any of `seeds` pools.
+fn givers<'s>(seeds: &[&'s Seed]) -> (BTreeMap<&'s str, Vec<String>>, BTreeSet<String>) {
+    let mut givers: BTreeMap<&str, Vec<String>> = BTreeMap::new();
+    let mut pooled = BTreeSet::new();
+    for seed in seeds {
+        for s in &seed.world.sources {
+            givers.entry(&s.item).or_default().push(s.name.clone());
+        }
+        for (hash, item) in &seed.dealt.kept {
+            givers.entry(item).or_default().push(vanilla(*hash));
+        }
+        pooled.extend(seed.dealt.pool.iter().cloned());
+    }
+    for g in givers.values_mut() {
+        g.sort();
+        g.dedup();
+    }
+    (givers, pooled)
+}
+
+/// Each line's levels with the events that give them (`rule::lined`).
+fn lined(givers: &BTreeMap<&str, Vec<String>>) -> Result<Vec<rule::Line>> {
+    let levels = (names::levels()?.into_iter()).map(|(line, steps)| {
+        let given = |(actor, name): (&str, &str)| {
+            let events = givers.get(actor).into_iter().flatten().cloned();
+            [name.to_owned()].into_iter().chain(events).collect()
+        };
+        (line.to_owned(), steps.into_iter().map(given).collect())
+    });
+    Ok(levels.collect())
+}
+
+/// What the world's rows read: the base's world, what any seed reaches,
+/// the names, and the variants the rows' settings pick out.
+struct Ctx<'a> {
+    w: &'a World,
+    reach: &'a Everything,
+    names: &'a Namer,
+    domains: &'a [Domain],
+    variants: &'a [Variant],
+}
+
+impl Ctx<'_> {
+    fn era(&self, i: usize) -> Era {
+        self.w.places[i].1
+    }
+
+    /// Where something is: each place it's at, any of its needs there.
+    fn at(&self, rules: &mut Rules, spots: Vec<(usize, &Need)>) -> Vec<(usize, Value)> {
+        let mut by_place: BTreeMap<usize, Vec<Value>> = BTreeMap::new();
+        let reached = spots
+            .into_iter()
+            .filter(|(p, _)| self.reach.places.contains(p));
+        for (place, need) in reached {
+            by_place
+                .entry(place)
+                .or_default()
+                .push(rules.rule(need, self.era(place)));
+        }
+        let spots = by_place
+            .into_iter()
+            .map(|(place, needs)| (place, any(needs)));
+        spots.collect()
+    }
+
+    /// One spot per place, false ones left out.
+    fn spots(&self, at: Vec<(usize, Value)>) -> Vec<Value> {
+        let mut by_place: BTreeMap<usize, Vec<Value>> = BTreeMap::new();
+        for (place, rule) in at {
+            by_place.entry(place).or_default().push(rule);
+        }
+        let spots = by_place
+            .into_iter()
+            .map(|(place, rules)| (place, any(rules)));
+        let spots = spots.filter(|(_, rule)| *rule != Value::Bool(false));
+        let names = self.names;
+        let spots = spots.map(|(place, rule)| json!({ "place": names.place(place), "rule": rule }));
+        spots.collect()
+    }
+
+    /// Every place any seed reaches by name, and a hub per age.
+    fn places(&self) -> Result<Vec<String>> {
+        let mut places: Vec<String> = (self.reach.places.iter())
+            .map(|i| self.names.place(*i))
+            .collect();
+        places.extend([Namer::hub(Era::Child), Namer::hub(Era::Adult)]);
+        ensure!(
+            places.iter().collect::<BTreeSet<_>>().len() == places.len(),
+            "two places share a name"
+        );
+        Ok(places)
+    }
+
+    /// One exit per pair of places, any of the edges between them.
+    fn exits(&self, rules: &mut Rules) -> Vec<Value> {
+        let (names, places) = (self.names, &self.reach.places);
+        let mut pairs: BTreeMap<(String, String), Vec<Value>> = BTreeMap::new();
+        let edges = (self.w.edges.iter())
+            .filter(|e| places.contains(&e.to) && e.from.is_none_or(|f| places.contains(&f)));
+        for e in edges {
+            let (from, era) = match e.from {
+                Some(f) => (names.place(f), self.era(f)),
+                None => (Namer::hub(self.era(e.to)), self.era(e.to)),
+            };
+            let rule = rules.rule(&e.need, era);
+            pairs
+                .entry((from, names.place(e.to)))
+                .or_default()
+                .push(rule);
+        }
+        for &i in places {
+            let pair = (names.place(i), Namer::hub(self.era(i)));
+            pairs.entry(pair).or_default().push(true.into());
+        }
+        let exits = pairs
+            .into_iter()
+            .map(|((from, to), rules)| (from, to, any(rules)));
+        (exits.filter(|(.., rule)| *rule != Value::Bool(false)))
+            .map(|(from, to, rule)| json!({ "from": from, "to": to, "rule": rule }))
+            .collect()
+    }
+
+    /// The check rows and event rows, each as some seeds hold it, keyed so
+    /// the seeds' copies meet.
+    fn rows(
+        &self,
+        rules: &mut Rules,
+        seeds: &[&Seed],
+        pooled: &BTreeSet<String>,
+        ids: &mut Ids,
+    ) -> Result<(BTreeMap<u64, Row>, BTreeMap<String, Row>)> {
+        let (reach, names) = (self.reach, self.names);
+        let mut checks: BTreeMap<u64, Row> = BTreeMap::new();
+        let mut events: BTreeMap<String, Row> = BTreeMap::new();
+        for (n, seed) in seeds.iter().enumerate() {
+            let mut by_hash: BTreeMap<u64, Vec<(usize, &Need)>> = BTreeMap::new();
+            for l in &seed.world.locations {
+                by_hash.entry(l.hash).or_default().push((l.place, &l.need));
+            }
+            for (&hash, found) in &by_hash {
+                if seed.dealt.kept.contains_key(&hash) {
+                    if reach.checks.contains(&hash) {
+                        let at = self.at(rules, found.clone());
+                        let row = json!({ "name": vanilla(hash) });
+                        Row::add(&mut events, vanilla(hash), (n, seeds.len()), row, at)?;
+                    }
+                    continue;
+                }
+                if !seed.dealt.free.contains(&hash) {
+                    continue;
+                }
+                let check = (seed.dealt.checks.iter().find(|c| c.hash == hash))
+                    .with_context(|| format!("no check {hash}"))?;
+                // In either form, since a row holds for both.
+                let mut forbid = BTreeSet::new();
+                for form in [true, false] {
+                    for actor in pooled.iter().filter(|a| !allowed(check, a, form)) {
+                        forbid.insert(names.item_in(actor, Some(form))?);
+                    }
+                }
+                let row = json!({
+                    "id": ids.location(hash),
+                    "hash": hash.to_string(),
+                    "name": names.location(hash)?,
+                    "unprovable": !reach.checks.contains(&hash),
+                    "forbid": forbid,
+                });
+                let at = self.at(rules, found.clone());
+                Row::add(&mut checks, hash, (n, seeds.len()), row, at)?;
+            }
+            let sources = seed.world.sources.iter();
+            for s in sources.filter(|s| reach.sources.contains(&s.name)) {
+                let at = self.at(rules, s.places.iter().map(|&p| (p, &s.need)).collect());
+                let row = json!({ "name": s.name });
+                Row::add(&mut events, s.name.clone(), (n, seeds.len()), row, at)?;
+            }
+        }
+        Ok((checks, events))
+    }
+
+    /// The settings a row or spot holds in, or none when it always does.
+    fn when(&self, seeds: &[u32], what: &Value) -> Result<Option<Value>> {
+        let counts = Counts {
+            base: seeds[0],
+            by_variant: &seeds[1..],
+        };
+        match steps(self.domains, self.variants, &counts).as_slice() {
+            [(1, Value::Bool(true))] => Ok(None),
+            [(1, rule)] => Ok(Some(rule.clone())),
+            other => bail!("{what} isn't held once: {other:?}"),
+        }
+    }
+
+    /// `rows` as the world writes them, each with the settings it and its
+    /// spots hold in.
+    fn json_rows(&self, rows: Vec<Row>) -> Result<Vec<Value>> {
+        let mut out = Vec::new();
+        for row in rows {
+            let mut value = row.value.clone();
+            if let Some(w) = self.when(&row.seeds, &value)? {
+                value["when"] = w;
+            }
+            // A spot only some seeds hold, as a check Met Zelda puts at the
+            // start, holds in their settings.
+            let mut at = Vec::new();
+            for ((place, _), (rule, seeds)) in row.at {
+                if seeds == row.seeds {
+                    at.push((place, rule));
+                    continue;
+                }
+                let rule = match self.when(&seeds, &rule)? {
+                    Some(w) => all(vec![w, rule]),
+                    None => rule,
+                };
+                at.push((place, rule));
+            }
+            value["at"] = self.spots(at).into();
+            out.push(value);
+        }
+        Ok(out)
+    }
 }
 
 /// A row of the export as the seeds hold it: how many of the seeds, in
@@ -556,7 +499,19 @@ fn options() -> Value {
             "kind": "inventory", "default": default,
         }),
     });
-    Value::Array(rows.collect())
+    let sets = SETS.iter().map(|set| {
+        let members = set.members();
+        let on = |d: &&SettingDef| matches!(d.kind, Kind::Toggle { default: true });
+        json!({
+            "id": set.id, "label": set.label, "kind": "set", "parent": set.parent,
+            "description": set.description,
+            "options": (members.iter())
+                .map(|d| json!({ "id": d.id, "label": d.label }))
+                .collect::<Vec<_>>(),
+            "default": members.iter().filter(on).map(|d| &d.id).collect::<Vec<_>>(),
+        })
+    });
+    Value::Array(rows.chain(sets).collect())
 }
 
 /// Names for the export: places, items and locations, all ours.
@@ -619,7 +574,7 @@ mod tests {
 
     use super::*;
     use crate::ap::when::holds;
-    use crate::settings::ICE_TRAPS;
+    use crate::settings::{ICE_TRAPS, PROGRESSIVE};
 
     /// The export of the committed ids, made once for every test.
     fn exported(romfs: &Romfs) -> &'static BTreeMap<&'static str, String> {

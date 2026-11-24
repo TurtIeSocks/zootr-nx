@@ -13,8 +13,8 @@ pub(super) fn sell(
     item: &str,
 ) -> Result<()> {
     let mut sells = 0;
-    for i in calls_to(flow, call)? {
-        let params = params_mut(&mut flow.events[i].kind);
+    for i in calls_to(flow, call) {
+        let params = params_mut(&mut flow.events[i as usize].kind);
         let asks = params
             .iter()
             .any(|(k, v)| k == "Price" && *v == Value::Int(vec![price]));
@@ -22,7 +22,7 @@ pub(super) fn sell(
             continue;
         }
         flows::set(params, NAME, string(item))?;
-        show(flow, i as u16, item)?;
+        show(flow, i, item)?;
         sells += 1;
     }
     ensure!(
@@ -75,9 +75,9 @@ fn buys_into_a_full_pouch(flow: &mut Flowchart) -> Result<()> {
 /// yet completes the quest: a dealt item there was lost for good, and a
 /// full wallet is where the sweep sells from. Every answer rewards.
 pub(super) fn rewards_into_a_full_wallet(flow: &mut Flowchart) -> Result<()> {
-    let rewards = calls_to(flow, &[get(flow::GET_IN_EVENT_POESHOP)])?;
+    let rewards = calls_to(flow, &[get(flow::GET_IN_EVENT_POESHOP)]);
     let before: Vec<u16> = (rewards.into_iter())
-        .flat_map(|r| flow.links_to(r as u16))
+        .flat_map(|r| flow.links_to(r))
         .filter_map(|l| match l {
             Link::Next(i) => Some(i),
             _ => None,
@@ -145,10 +145,10 @@ fn cases_mut(flow: &mut Flowchart, at: u16) -> &mut [(u32, u16)] {
 /// The bean seller's one hand-over gives what the sale it's in names, which
 /// is a bean in every call but the first sale's.
 pub(super) fn hand_over_the_sold(flow: &mut Flowchart) -> Result<()> {
-    let beans: Vec<usize> = calls_to(flow, &[HAND_OVER])?
+    let beans: Vec<u16> = calls_to(flow, &[HAND_OVER])
         .into_iter()
         .filter(|&i| {
-            let params = params_mut(&mut flow.events[i].kind);
+            let params = params_mut(&mut flow.events[i as usize].kind);
             param(params, GIVEN) == Some(item::MAGIC_BEAN)
         })
         .collect();
@@ -158,7 +158,7 @@ pub(super) fn hand_over_the_sold(flow: &mut Flowchart) -> Result<()> {
         flow.name,
         beans.len()
     );
-    let params = params_mut(&mut flow.events[beans[0]].kind);
+    let params = params_mut(&mut flow.events[beans[0] as usize].kind);
     flows::set(params, GIVEN, Value::Argument(NAME.to_string()))
 }
 
@@ -174,10 +174,9 @@ fn ask_bool(flow: &mut Flowchart, name: &str, set: u16, unset: u16) -> Result<u1
 /// The carpet merchant's one sale, now of the dealt item, runs only until
 /// he has sold. A copy of it sells his Bombchus after that.
 pub(super) fn sell_bombchus_after(flow: &mut Flowchart) -> Result<()> {
-    let [sale] = calls_to(flow, &[CARPET_SALE])?[..] else {
+    let [sale] = calls_to(flow, &[CARPET_SALE])[..] else {
         bail!("{} has no one sale", flow.name);
     };
-    let sale = sale as u16;
     let mut bombchus = flow.events[sale as usize].kind.clone();
     flows::set(params_mut(&mut bombchus), NAME, string(CARPET_BOMBCHUS))?;
     let links = flow.links_to(sale);

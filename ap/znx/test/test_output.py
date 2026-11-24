@@ -33,7 +33,11 @@ class TestOutput(ZnxTestBase):
         self.assertEqual(manifest["game"], self.game)
         self.assertEqual(set(placements), {check["hash"] for check in WORLD["checks"] if self.world.holds(check)})
         self.assertTrue(all("own" in p for p in placements.values()))
-        self.assertEqual(set(seed["settings"]), {entry["id"] for entry in OPTIONS})
+        ids = set()
+        for entry in OPTIONS:
+            # A set's settings are the ones it lists.
+            ids |= {o["id"] for o in entry["options"]} if entry["kind"] == "set" else {entry["id"]}
+        self.assertEqual(set(seed["settings"]), ids)
         self.assertIs(seed["settings"]["open-forest"], True)
         self.assertEqual(seed["settings"]["chest-size"], "small")
         self.assertEqual(seed["start"], [ITEM_NAME_TO_ID["Boomerang"]])

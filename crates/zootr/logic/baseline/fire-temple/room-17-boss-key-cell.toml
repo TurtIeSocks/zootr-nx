@@ -6,7 +6,7 @@ name = "Boss Key Cell"
 to = 0
 needs = "always"
 via = "walk"
-why = "walk, 3 edges"
+why = "walk, 5 edges"
 
 [[link]]
 to = 2

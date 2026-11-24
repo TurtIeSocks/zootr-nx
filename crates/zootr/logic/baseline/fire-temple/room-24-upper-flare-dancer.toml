@@ -6,7 +6,7 @@ name = "Upper Flare Dancer"
 to = 10
 needs = "always"
 via = "walk"
-why = "walk, 2 edges"
+why = "walk, 20 edges"
 
 [[flag]]
 hash = 0xcbcbc9b8

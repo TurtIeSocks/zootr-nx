@@ -6,37 +6,59 @@ name = "Blade Trap Room"
 to = 1
 needs = "always"
 via = "walk"
-why = "walk, 8 edges"
+why = "walk, 31 edges"
+
+[[link]]
+to = 1
+needs = "always"
+via = "drop"
+why = "drop 0.6 to 1.1 m"
 
 [[link]]
 to = 1
 needs = "always"
 via = "jump"
-why = "level gap 0.7 to 2.5 m: within a running jump (2.7 m)"
+why = "gap 0.7 to 2.5 m, falling up to 2.7 m: within a running jump off the edge (3.8 m for that fall)"
 
 [[link]]
 to = 14
 needs = "always"
 via = "climb"
-why = "climb 5259290752783024406"
+why = "climb 5259290752783024406; on terrain floor no live run has walked"
+guess = true
+
+[[link]]
+to = 14
+needs = "always"
+via = "jump"
+why = "gap 1.0 to 3.0 m, falling up to 1.9 m: within a running jump off the edge (3.6 m for that fall); on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 17
 needs = "always"
 via = "walk"
-why = "walk, 7 edges"
+why = "walk, 10 edges"
 
 [[link]]
 to = 17
 needs = "always"
 via = "jump"
-why = "level gap 1.0 m: within a running jump (2.7 m)"
+why = "gap 1.8 to 3.0 m, falling up to 2.1 m: within a running jump off the edge (3.6 m for that fall); on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 18
 needs = "always"
 via = "walk"
-why = "walk, 1 edges"
+why = "walk, 11 edges"
+
+[[link]]
+to = 18
+needs = "always"
+via = "jump"
+why = "gap 1.0 to 1.8 m, falling up to 3.8 m: within a running jump off the edge (4.2 m for that fall); on terrain floor no live run has walked"
+guess = true
 
 [[check]]
 hash = 11582649900854566065

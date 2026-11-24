@@ -7,8 +7,10 @@ from ..output import GAME
 
 def ap_value(setting: str, value):
     """A setting's value as its AP option takes it: a toggle's as is, a
-    choice's option id as an attribute name."""
+    choice's option id as an attribute name, a set's ids as labels."""
     entry = next(e for e in OPTIONS if e["id"] == setting)
+    if entry["kind"] == "set":
+        return [o["label"] for o in entry["options"] if o["id"] in value]
     return value if entry["kind"] == "toggle" else attr(value)
 
 

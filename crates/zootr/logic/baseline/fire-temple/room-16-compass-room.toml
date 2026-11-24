@@ -6,43 +6,33 @@ name = "Compass Room"
 to = 5
 needs = "always"
 via = "walk"
-why = "walk, 13 edges"
-
-[[link]]
-to = 5
-needs = "always"
-via = "drop"
-why = "drop 1.5 m"
-
-[[link]]
-to = 5
-needs = "always"
-via = "jump"
-why = "level gap 0.7 m: within a running jump (2.7 m)"
+why = "walk, 2 edges"
 
 [[link]]
 to = 6
 needs = "flag:#8f62d9dc"
 via = "walk"
-why = "walk, 4 edges; Switch Shutter A 02 6545418845981059466 shut until flag #8f62d9dc; Fire Temple Switch Shutter A 01 14097512838582689444 shut until flag #8f62d9dc"
+why = "walk, 32 edges; Switch Shutter A 02 6545418845981059466 shut until flag #8f62d9dc; Fire Temple Switch Shutter A 01 14097512838582689444 shut until flag #8f62d9dc"
 
 [[link]]
 to = 6
 needs = "always"
 via = "jump"
-why = "level gap 2.0 m: within a running jump (2.7 m)"
+why = "level gap 1.8 m: within a running jump (2.7 m); on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 10
 needs = "always"
 via = "walk"
-why = "walk, 26 edges"
+why = "walk, 58 edges"
 
 [[link]]
 to = 10
 needs = "always"
 via = "jump"
-why = "level gap 1.0 to 2.0 m: within a running jump (2.7 m)"
+why = "level gap 1.5 m: within a running jump (2.7 m); on terrain floor no live run has walked"
+guess = true
 
 [[check]]
 hash = 16713240760352215634

@@ -16,7 +16,7 @@ use ounce_formats::{EntryPoint, EventKind, Romfs};
 use super::{BLOCK, Blocks, pool};
 use crate::flows::{self, GAME_DATA, Rewrites, SET_BOOL};
 use crate::known::{Name, field};
-use crate::rsdb::{self, Events, Runs};
+use crate::rsdb::{Events, Runs};
 use crate::settings::DungeonEntrances;
 
 /// The block fields naming an arrival event.
@@ -144,12 +144,6 @@ pub fn flows(
     Ok(())
 }
 
-/// [`flows`] for a seed whose doors `mode` shuffles, reading what it needs.
-pub fn flows_for(romfs: &Romfs, rewrites: &mut Rewrites, mode: DungeonEntrances) -> Result<()> {
-    let plan = plan(&Blocks::read(romfs)?, mode);
-    flows(romfs, rewrites, &rsdb::events(romfs)?, &plan)
-}
-
 #[cfg(test)]
 mod tests {
     use super::super::{Doors, Role, actors, bancs, door_of_actor, rewrite, role_of_door};
@@ -185,7 +179,7 @@ mod tests {
     fn every_arrival_sets_its_dungeons_bool_first() {
         let Some(romfs) = dev_dump() else { return };
         let (_, plan) = arrivals(&romfs, DungeonEntrances::OnGanon);
-        let runs = rsdb::events(&romfs).unwrap();
+        let runs = crate::rsdb::events(&romfs).unwrap();
         let mut rewrites = Rewrites::new();
         flows(&romfs, &mut rewrites, &runs, &plan).unwrap();
         for a in &plan {
