@@ -13,6 +13,7 @@ use ounce_formats::Romfs;
 
 use super::kinds;
 use super::shape::{Shape, place, shape_of};
+use super::vec3::{length, sub};
 use crate::warp::Placement;
 
 /// The least a climb rises to be one, in m: lower, Link steps or pulls
@@ -38,14 +39,6 @@ pub struct Climb {
     pub out: [f32; 2],
     /// Half its thickness, in m.
     pub half: f32,
-}
-
-fn sub(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
-    std::array::from_fn(|i| a[i] - b[i])
-}
-
-fn length(v: [f32; 3]) -> f32 {
-    v[0].hypot(v[1]).hypot(v[2])
 }
 
 /// The climb of the box `min` to `max` in the actor's space, placed as
@@ -147,20 +140,9 @@ mod tests {
 
     use super::*;
     use crate::nav::graph::{Graph, Via, step_up};
-    use crate::warp::Pose;
 
     fn placed(at: [f32; 3], rotate: [f32; 3]) -> Placement {
-        Placement {
-            name: "Obj_FakeLadder".into(),
-            hash: Some(1),
-            label: None,
-            pose: Pose {
-                at,
-                rotate,
-                scale: [1.0; 3],
-            },
-            presence: None,
-        }
+        crate::nav::fixture::turned("Obj_FakeLadder", Some(1), at, rotate)
     }
 
     fn near(a: [f32; 3], b: [f32; 3]) -> bool {
@@ -220,7 +202,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let game = std::path::Path::new("../../dump/oot.nup");
+        let game = std::path::Path::new(crate::game::DEV_DUMP);
         let level = crate::nav::Level::of(&romfs, game, crate::known::map::FOREST_TEMPLE).unwrap();
         let hash = 6306446343189810327;
         let ladder = level.climbs.iter().find(|c| c.hash == Some(hash)).unwrap();

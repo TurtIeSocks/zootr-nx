@@ -57,10 +57,16 @@ const fn kind(segment: &'static str, word: &'static str, act: Option<Act>) -> Ki
     Kind { segment, word, act }
 }
 
+/// The words logic tells kinds apart by, beside showing them.
+const DOOR: &str = "door";
+const ITEM: &str = "item";
+const LADDER: &str = "ladder";
+const CLIMB_WALL: &str = "climb wall";
+
 /// In the order they're tried: a scrub's actor is a scrub before it
 /// is an enemy.
-const KINDS: [Kind; 24] = [
-    kind("Door", "door", Some(Act::Through { stand: 1.0 })),
+const KINDS: &[Kind] = &[
+    kind("Door", DOOR, Some(Act::Through { stand: 1.0 })),
     // A chained door: A spends a key, from 0.6 m off the lock (Forest
     // Temple, Mac, 2026-11-16).
     kind("Lock", "lock", Some(Act::Face { stand: 0.6 })),
@@ -86,30 +92,30 @@ const KINDS: [Kind; 24] = [
         }),
     ),
     // A heart piece or container lying out: A takes it.
-    kind("Piece", "item", Some(Act::Face { stand: 0.5 })),
+    kind("Piece", ITEM, Some(Act::Face { stand: 0.5 })),
     kind("Scrub", "scrub", Some(Act::Face { stand: 1.2 })),
     kind("Sign", "sign", Some(Act::Face { stand: 1.2 })),
     kind("Npc", "person", Some(Act::Face { stand: 1.2 })),
     kind("Enemy", "enemy", None),
-    kind("Item", "item", Some(Act::Over)),
+    kind("Item", ITEM, Some(Act::Over)),
     // Ruto's bottle on the lake bed: a dive onto it takes it (Mac,
     // 2026-11-18).
-    kind("Letter", "item", Some(Act::Over)),
-    kind("Container", "item", Some(Act::Face { stand: 0.5 })),
+    kind("Letter", ITEM, Some(Act::Over)),
+    kind("Container", ITEM, Some(Act::Face { stand: 0.5 })),
     // Before a tree: the Deku Tree's ladder is a ladder.
-    kind("Ladder", "ladder", None),
-    kind("Climbable", "climb wall", None),
-    kind("ClimbWall", "climb wall", None),
-    kind("ClimbPlayer", "climb wall", None),
+    kind("Ladder", LADDER, None),
+    kind("Climbable", CLIMB_WALL, None),
+    kind("ClimbWall", CLIMB_WALL, None),
+    kind("ClimbPlayer", CLIMB_WALL, None),
     kind("Tree", "tree", None),
     kind("Cliff", "cliff", None),
     kind("Interior", "house", None),
     kind("House", "house", None),
 ];
 
-/// What kind of thing a placement named `name` is, by the first of its
-/// `_` separated parts that ends the way a kind does, so `DekuTree` is a
-/// tree.
+/// What kind of thing a placement named `name` is: the first kind, in
+/// [`KINDS`]' order, that any of its `_` separated parts ends the way of,
+/// so `DekuTree` is a tree.
 pub fn kind_of(name: &str) -> Option<&'static Kind> {
     KINDS
         .iter()
@@ -120,7 +126,17 @@ pub fn kind_of(name: &str) -> Option<&'static Kind> {
 /// ivy or grating. Only one with a shape of its own climbs: hanging vines
 /// and wind ivy have none, so they're scenery.
 pub fn climbs(name: &str) -> bool {
-    matches!(word(name), Some("ladder" | "climb wall"))
+    matches!(word(name), Some(LADDER | CLIMB_WALL))
+}
+
+/// Whether a placement named `name` is a door.
+pub fn is_door(name: &str) -> bool {
+    word(name) == Some(DOOR)
+}
+
+/// Whether a placement named `name` is an item lying out.
+pub fn is_item(name: &str) -> bool {
+    word(name) == Some(ITEM)
 }
 
 /// Whether Link swims in a placement named `name`: a water plane. Effect

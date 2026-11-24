@@ -14,7 +14,7 @@ use ounce_formats::{Romfs, murmur3};
 use crate::entrances::Dungeon;
 use crate::known::{field, flag};
 use crate::nav::Level;
-use crate::nav::graph::{Cross, Via, dist};
+use crate::nav::graph::{Cross, Hop, Via, dist};
 use crate::nav::limits::limits;
 use crate::nav::shape::{Solid, parts_of};
 use crate::rules::Book;
@@ -476,7 +476,13 @@ pub fn derive(
                 crossings.extend(cross(from, arc.to, path, via));
             }
         }
-        for (a, b, from, to) in graph.plunges() {
+        for Hop {
+            from: a,
+            to: b,
+            leave: from,
+            land: to,
+        } in graph.plunges()
+        {
             note(
                 a,
                 b,
@@ -490,7 +496,13 @@ pub fn derive(
         }
         // Level jumps fall nothing; a leap falls from its edge to its floor.
         let gaps = graph.gaps(jump).into_iter().map(|g| (g, false));
-        for ((a, b, from, to), leap) in gaps.chain(graph.leaps().into_iter().map(|g| (g, true))) {
+        for (hop, leap) in gaps.chain(graph.leaps().into_iter().map(|g| (g, true))) {
+            let Hop {
+                from: a,
+                to: b,
+                leave: from,
+                land: to,
+            } = hop;
             let width = (from[0] - to[0]).hypot(from[2] - to[2]);
             let fall = if leap { from[1] - to[1] } else { 0.0 };
             note(a, b, rooms::Via::Jump, width, None, (from, to), fall);

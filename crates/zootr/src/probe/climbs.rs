@@ -29,7 +29,7 @@ pub fn climbs(romfs: &Romfs, game: &Path, map: &str) -> Result<()> {
                     xyz(top.at)
                 )
             }
-            Err(why) => why.into(),
+            Err(why) => why.to_string(),
         };
         println!(
             "{} {hash} rises {rise:.1} from {}: {ends}",

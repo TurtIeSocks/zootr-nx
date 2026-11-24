@@ -77,6 +77,8 @@ const FACING: f32 = 20.0;
 const STILL: f32 = 0.05;
 /// How many taps Link gets to turn.
 const TURNS: usize = 3;
+/// How many short pushes close Link in on a spot.
+const CLOSE_IN: usize = 3;
 /// `go`: a leg that covers under this share of the distance is a block.
 const STUCK: f32 = 0.5;
 /// How far a push must move Link for the way he went to stand in for his
@@ -89,7 +91,7 @@ const FIND_MS: u64 = 300;
 pub trait Sense {
     /// Where he stands.
     fn link(&self) -> Result<[f32; 3]>;
-    /// Which way he faces: `(sin, 0, cos)` of it.
+    /// Which way he faces: his yaw, in radians.
     fn yaw(&self) -> Result<f32>;
     /// The map, and whether it is loading or an event plays.
     fn state(&self) -> Result<State>;
@@ -197,7 +199,7 @@ fn lean_via(here: [f32; 3], to: [f32; 3], via: Via) -> f32 {
 /// The waypoint from `next` on that a push from `here` in water aims at:
 /// the last of a run within [`AHEAD`] of him, stopping before a climb.
 fn ahead(waypoints: &[Waypoint], next: usize, here: [f32; 3]) -> usize {
-    let near = |w: &Waypoint| flat(here, w.at) <= AHEAD && !matches!(w.via, Via::Climb(_));
+    let near = |w: &Waypoint| flat(here, w.at) <= AHEAD && !w.via.is_climb();
     let run = waypoints
         .iter()
         .skip(next + 1)
@@ -278,6 +280,11 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
         self.steer_with(to, ms, None)
     }
 
+    /// [`Self::steer`] for as long as a push walks Link to `to`.
+    pub(super) fn steer_at(&mut self, to: [f32; 3]) -> Result<()> {
+        self.steer(to, millis(lean(self.sense.link()?, to)))
+    }
+
     /// [`Self::steer`], with `button` held along with the stick.
     fn steer_with(&mut self, to: [f32; 3], ms: u64, button: Option<&str>) -> Result<()> {
         if !self.here {
@@ -294,14 +301,14 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
         self.moved(before, turned(yaw, eighths(yaw, before, to)))
     }
 
-    /// Whether Link faces `at` within 20 degrees.
+    /// Whether Link faces `at` within [`FACING`] degrees.
     fn facing(&self, at: [f32; 3]) -> Result<bool> {
         let turned = clockwise(self.yaw()?, self.sense.link()?, at);
         Ok(turned.abs() <= FACING.to_radians())
     }
 
     /// Turn Link toward `at`: ZL and a tap, again until he faces it within
-    /// 20 degrees, for at most 3 taps. Whether he does.
+    /// [`FACING`] degrees, for at most [`TURNS`] taps. Whether he does.
     pub fn face(&mut self, at: [f32; 3]) -> Result<bool> {
         for _ in 0..TURNS {
             if self.facing(at)? {
@@ -313,12 +320,12 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
     }
 
     /// Push Link in toward `at` until he stands within `stand` of it, at
-    /// most 3 short pushes, stopping at one that moves him nowhere. A walk
-    /// counts as arrived 0.4 m from its spot, and the Well's key chest
-    /// shows "Open" only within 0.9 m: Link stopped 1.0 m off and A did
-    /// nothing (other machine and Mac, 2026-11-16).
+    /// most [`CLOSE_IN`] short pushes, stopping at one that moves him
+    /// nowhere. A walk counts as arrived 0.4 m from its spot, and the
+    /// Well's key chest shows "Open" only within 0.9 m: Link stopped 1.0 m
+    /// off and A did nothing (other machine and Mac, 2026-11-16).
     pub(super) fn close_in(&mut self, at: [f32; 3], stand: f32) -> Result<()> {
-        for _ in 0..TURNS {
+        for _ in 0..CLOSE_IN {
             let here = self.sense.link()?;
             let off = flat(here, at);
             if off <= stand {
@@ -376,11 +383,7 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             _ => Some(flat(self.sense.link()?, goal)),
         };
         Ok(Went {
-            result: if reason.is_some() {
-                Done::GaveUp
-            } else {
-                Done::Arrived
-            },
+            result: ended(reason),
             reason,
             secs: start.elapsed().as_secs_f32(),
             legs,
@@ -409,7 +412,7 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             if rise(here, stepped) < -LEVEL {
                 break;
             }
-            self.steer(goal, millis(lean(stepped, goal)))?;
+            self.steer_at(goal)?;
             legs += 1;
             let now = self.sense.link()?;
             if self.sense.state()?.event {
@@ -425,10 +428,7 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             }
         }
         Ok(Went {
-            result: match reason {
-                None => Done::Arrived,
-                Some(_) => Done::GaveUp,
-            },
+            result: ended(reason),
             reason,
             secs: went.secs + start.elapsed().as_secs_f32(),
             legs,
@@ -464,11 +464,14 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
         let secs = lean(here, goal);
         self.steer(goal, millis(secs))?;
         let now = self.sense.link()?;
-        let reason = match () {
-            _ if self.sense.state()?.event => Some(Reason::Event),
-            _ if flat(now, goal) <= arrive => None,
-            _ if stuck(here, now, secs * SPEED) => Some(Reason::Blocked),
-            _ => Some(Reason::NoRoute),
+        let reason = if self.sense.state()?.event {
+            Some(Reason::Event)
+        } else if flat(now, goal) <= arrive {
+            None
+        } else if stuck(here, now, secs * SPEED) {
+            Some(Reason::Blocked)
+        } else {
+            Some(Reason::NoRoute)
         };
         Ok((reason, legs + 1))
     }
@@ -518,13 +521,13 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
                 return Ok((None, legs));
             }
             let last = next + 1 == waypoints.len();
-            let climb = |w: Option<&Waypoint>| w.is_some_and(|w| matches!(w.via, Via::Climb(_)));
+            let climb = |w: Option<&Waypoint>| w.is_some_and(|w| w.via.is_climb());
             let on = if held == Some(next) {
                 OFF_CLIMB
             } else {
                 CLIMBED
             };
-            let level = !matches!(via, Via::Climb(_)) || (here[1] - target[1]).abs() <= on;
+            let level = !via.is_climb() || (here[1] - target[1]).abs() <= on;
             // Either end of a climb is reached within CLIMBED: Link stopped
             // 0.4 m short of the Well ladder's top, at its edge (Mac,
             // 2026-11-18).
@@ -543,7 +546,7 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
                 return Ok((Some(Reason::Budget), legs));
             }
             let below = here[1] - target[1] > on;
-            if matches!(via, Via::Climb(_)) && below && held != Some(next) {
+            if via.is_climb() && below && held != Some(next) {
                 self.take_hold(target)?;
                 held = Some(next);
                 continue;
@@ -551,7 +554,7 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             // In water, any leg swims: Link drifts off a walk into a river's
             // pool (Zora's River, Mac, 2026-11-18).
             let via = match via {
-                Via::Walk | Via::Drop | Via::Step if graph.in_water(here) => Via::Swim(None),
+                Via::Walk | Via::Drop | Via::Step if self.wet => Via::Swim(None),
                 via => via,
             };
             let secs = lean_via(here, target, via);
@@ -588,6 +591,25 @@ impl<'a, S: Sense, I: Input> Drive<'a, S, I> {
             };
             (route, next, held, missed) = (again, 1, None, None);
         }
+    }
+}
+
+/// How a walk ended for the `reason` it stopped, if any: arrived without
+/// one.
+fn ended(reason: Option<Reason>) -> Done {
+    match reason {
+        None => Done::Arrived,
+        Some(_) => Done::GaveUp,
+    }
+}
+
+/// `went`, then a warp begun at `start` that left Link `left` m off.
+fn warped(went: Went, start: Instant, left: f32) -> Went {
+    Went {
+        result: Done::Warped,
+        secs: went.secs + start.elapsed().as_secs_f32(),
+        left: Some(left),
+        ..went
     }
 }
 
@@ -629,24 +651,14 @@ pub fn go<M: Memory, I: Input>(
         Some(top) => {
             let start = Instant::now();
             dev.warp(top)?;
-            Went {
-                result: Done::Warped,
-                secs: start.elapsed().as_secs_f32(),
-                left: Some(flat(dev.link()?, top)),
-                ..Went::here()
-            }
+            warped(Went::here(), start, flat(dev.link()?, top))
         }
         None => drive.walk(&graph, goal, ARRIVE)?,
     };
     if how.warp && went.reason == Some(Reason::NoRoute) {
         let start = Instant::now();
         warp::beside(dev, romfs, &hash.to_string(), Side::Front)?;
-        went = Went {
-            result: Done::Warped,
-            secs: went.secs + start.elapsed().as_secs_f32(),
-            left: Some(flat(dev.link()?, goal)),
-            ..went
-        };
+        went = warped(went, start, flat(dev.link()?, goal));
     }
     // A block can leave Link already in reach, which `use` judges itself.
     let near =

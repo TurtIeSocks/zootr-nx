@@ -54,6 +54,7 @@ pub mod shove;
 mod sim;
 pub mod sink;
 pub mod trace;
+pub mod vec3;
 pub mod water;
 pub mod went;
 
@@ -190,14 +191,12 @@ impl Level {
         // Only the floor Link gets onto from the navmesh: not the top of a
         // doorway's frame he could only drop off.
         let reached = floors::reached(&self.graph(), first, limits::limits().level_jump());
-        let mut face = first;
-        let kept: Vec<Vec<[[f32; 3]; 3]>> = (patches.into_iter())
+        // The patches' triangles are the faces from `first` on, in order.
+        let mut faces = reached[first..].iter();
+        let kept: Vec<Vec<floors::Tri>> = (patches.into_iter())
             .map(|p| {
-                (p.into_iter())
-                    .filter(|_| {
-                        face += 1;
-                        reached[face - 1]
-                    })
+                (p.into_iter().zip(faces.by_ref()))
+                    .filter_map(|(t, &reached)| reached.then_some(t))
                     .collect()
             })
             .collect();
@@ -269,7 +268,7 @@ const UNDERFOOT: f32 = 1.0;
 /// the path never reached it in 15 sweeps. Warped onto the pillar, Link
 /// took it with A (Mac, 2026-11-17).
 pub fn aloft(graph: &graph::Graph, holder: &Placement) -> bool {
-    kinds::word(&holder.name) == Some("item") && graph.floor(holder.pose.at, UNDERFOOT).is_none()
+    kinds::is_item(&holder.name) && graph.floor(holder.pose.at, UNDERFOOT).is_none()
 }
 
 /// Where to warp beside `holder`: its `first` side, `planned` for the
@@ -290,8 +289,9 @@ pub fn landing(
 }
 
 /// Every side [`landing`] could pick, in the order it would: those with
-/// floor first, each kind `first`, then `then`'s, then the rest. The mesh can't see every void: two sides of Kokiri
-/// Forest's sticks scrub stand on it and still void Link out (Mac,
+/// floor before those without, and within each, `first`, then `then`'s
+/// sides, then the rest. The mesh can't see every void: two sides of
+/// Kokiri Forest's sticks scrub stand on it and still void Link out (Mac,
 /// 2026-11-17), so a warp that didn't hold tries the next.
 pub fn landings(
     graph: &graph::Graph,
@@ -316,6 +316,28 @@ pub fn landings(
 #[cfg(test)]
 pub(crate) mod fixture {
     use ounce_formats::{Edge, Face, NavMesh};
+
+    use crate::warp::{Placement, Pose};
+
+    /// `name` placed at `at` with `hash`, unturned.
+    pub fn placed(name: &str, hash: Option<u64>, at: [f32; 3]) -> Placement {
+        turned(name, hash, at, [0.0; 3])
+    }
+
+    /// `name` placed at `at` with `hash`, turned by `rotate`.
+    pub fn turned(name: &str, hash: Option<u64>, at: [f32; 3], rotate: [f32; 3]) -> Placement {
+        Placement {
+            name: name.into(),
+            hash,
+            label: None,
+            pose: Pose {
+                at,
+                rotate,
+                scale: [1.0; 3],
+            },
+            presence: None,
+        }
+    }
 
     /// A mesh of convex faces, each a ring of corners `[x, y, z]`. Corners
     /// at one spot share a vertex, and rings that share an edge are linked
@@ -384,17 +406,7 @@ mod tests {
 
     #[test]
     fn a_holder_is_found_by_where_it_stands() {
-        let placed = |name: &str, at| Placement {
-            name: name.into(),
-            hash: None,
-            label: None,
-            pose: crate::warp::Pose {
-                at,
-                rotate: [0.0; 3],
-                scale: [1.0; 3],
-            },
-            presence: None,
-        };
+        let placed = |name: &str, at| fixture::placed(name, None, at);
         let level = Level::new(
             "Test",
             fixture::mesh(&[fixture::quad(0.0, 0.0, 4.0, 4.0, 0.0)]),
@@ -412,17 +424,7 @@ mod tests {
         let floor = fixture::mesh(&[fixture::quad(0.0, 0.0, 4.0, 4.0, 0.0)]);
         let graph = graph::Graph::build(&floor, &[], graph::step_up());
         // Made up: a `known` name reads as its hash without the dump.
-        let at = |name: &str, y| Placement {
-            name: name.to_string(),
-            hash: None,
-            label: None,
-            pose: crate::warp::Pose {
-                at: [2.0, y, 2.0],
-                rotate: [0.0; 3],
-                scale: [1.0; 3],
-            },
-            presence: None,
-        };
+        let at = |name: &str, y| fixture::placed(name, None, [2.0, y, 2.0]);
         assert!(
             aloft(&graph, &at("Obj_FakeHeart_Piece", 1.5)),
             "on a pillar"
@@ -439,17 +441,7 @@ mod tests {
         // A 4 by 4 m ledge, and a scrub at its +Z edge facing off it.
         let ledge = fixture::mesh(&[fixture::quad(0.0, 0.0, 4.0, 4.0, 0.0)]);
         let graph = graph::Graph::build(&ledge, &[], graph::step_up());
-        let scrub = Placement {
-            name: actor::ENEMY_SCRUB_BUSINESS.to_string(),
-            hash: None,
-            label: None,
-            pose: crate::warp::Pose {
-                at: [2.0, 0.0, 3.5],
-                rotate: [0.0; 3],
-                scale: [1.0; 3],
-            },
-            presence: None,
-        };
+        let scrub = fixture::placed(actor::ENEMY_SCRUB_BUSINESS, None, [2.0, 0.0, 3.5]);
         let front = warp::landing_at(&scrub.pose, warp::Side::Front, 1.2);
         assert!(graph.floor(front, UNDERFOOT).is_none(), "{front:?}");
         let at = landing(&graph, &scrub, front, Side::Front);
@@ -471,14 +463,7 @@ mod tests {
                 .all(|&at| graph.floor(at, UNDERFOOT).is_some())
         );
         // With no floor on any side, the first side all the same.
-        let far = Placement {
-            pose: crate::warp::Pose {
-                at: [20.0, 0.0, 20.0],
-                rotate: [0.0; 3],
-                scale: [1.0; 3],
-            },
-            ..scrub
-        };
+        let far = fixture::placed(actor::ENEMY_SCRUB_BUSINESS, None, [20.0, 0.0, 20.0]);
         let off = warp::landing_at(&far.pose, warp::Side::Front, 1.2);
         assert_eq!(landing(&graph, &far, off, Side::Front), off);
         let left = warp::landing_at(&far.pose, warp::Side::Left, 1.2);
@@ -488,17 +473,7 @@ mod tests {
     #[test]
     fn a_holder_use_acts_on_wins_over_a_wall_or_area_at_its_pose() {
         needs_names!();
-        let placed = |name: &str| Placement {
-            name: name.into(),
-            hash: None,
-            label: None,
-            pose: crate::warp::Pose {
-                at: [2.0, 0.0, 2.0],
-                rotate: [0.0; 3],
-                scale: [1.0; 3],
-            },
-            presence: None,
-        };
+        let placed = |name: &str| fixture::placed(name, None, [2.0, 0.0, 2.0]);
         let level = Level::new(
             "Test",
             fixture::mesh(&[fixture::quad(0.0, 0.0, 4.0, 4.0, 0.0)]),
