@@ -48,8 +48,12 @@ export function areas(rows: Row[], query: string, filter: Filter): Area[] {
   const q = query.toLowerCase();
   const keep = keeps(filter);
   const groups = new Map<string, Row[]>();
-  for (const r of rows)
-    groups.set(areaOf(r), [...(groups.get(areaOf(r)) ?? []), r]);
+  for (const r of rows) {
+    const k = areaOf(r);
+    const group = groups.get(k);
+    if (group) group.push(r);
+    else groups.set(k, [r]);
+  }
   return [...groups]
     .sort(([a], [b]) => byName(a, b))
     .map(([name, all]) => ({

@@ -295,6 +295,29 @@ test("Refresh reads again in the new order", async () => {
   expect(devNearby).toHaveBeenCalledTimes(2);
 });
 
+test("a read the game answered before a show can't undo it", async () => {
+  render(liveActors);
+  await within(await list()).findByText("Obj_FakeRock");
+  fireEvent.click(row(/Obj_FakeRock/));
+  await vi.waitFor(() =>
+    expect(row(/Obj_FakeRock/).getAttribute("aria-pressed")).toBe("true"),
+  );
+  let answer = (_: Result<DevNear[]>) => {};
+  devNearby.mockImplementationOnce(
+    () => new Promise((done) => (answer = done)),
+  );
+  const stale = world.list.map((n) =>
+    n.hash === "1" ? { ...n, hidden: "ours" as const } : n,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+  fireEvent.click(row(/Obj_FakeRock/));
+  await vi.waitFor(() =>
+    expect(row(/Obj_FakeRock/).getAttribute("aria-pressed")).toBe("false"),
+  );
+  await act(async () => answer({ status: "ok", data: stale }));
+  expect(row(/Obj_FakeRock/).getAttribute("aria-pressed")).toBe("false");
+});
+
 test("a row's Warp beside warps to it on the side picked in Warp", async () => {
   render(liveActors);
   await within(await list()).findByText("Obj_FakeRock");

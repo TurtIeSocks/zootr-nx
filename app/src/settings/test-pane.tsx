@@ -32,8 +32,9 @@ import {
   toForm,
   useTestForm,
 } from "@/settings/test-form";
+import { useSaveConfig } from "@/settings/use-save-config";
 import { PageHeader } from "@/shell/page-header";
-import { saveConfig, useConfig } from "@/stores/config";
+import { useConfig } from "@/stores/config";
 
 /** Where a new game starts and what it holds. Generate uses it until it's
  * cleared, and each seed keeps its own copy. Starts from the saved setup;
@@ -97,19 +98,12 @@ export function TestPane() {
   );
 }
 
-/** Saves the config through the pane's request. */
-const useStore = () => {
-  const { run } = useRequest();
-  return (next: Parameters<typeof saveConfig>[0]) =>
-    run(() => saveConfig(next));
-};
-
 /** The setups saved by name: click one to use it, or save the form as one. */
 function SavedSetups() {
   const [current] = useConfig.usePath("config.test");
   const [savedTests] = useConfig.usePath("config.saved_tests");
   const { busy } = useRequest();
-  const store = useStore();
+  const store = useSaveConfig();
   const { form } = useTestForm();
   /** The name to save the form as. */
   const [name, setName] = useState("");
@@ -189,7 +183,7 @@ function SavedSetups() {
 function SetupActions() {
   const [current] = useConfig.usePath("config.test");
   const { busy, run } = useRequest();
-  const store = useStore();
+  const store = useSaveConfig();
   const { form, set } = useTestForm();
   const { copied, flash } = useCopied();
   const unchanged = same(fromForm(form), current);
@@ -239,7 +233,7 @@ function SetupActions() {
 function SaveBar() {
   const [current] = useConfig.usePath("config.test");
   const { busy, error } = useRequest();
-  const store = useStore();
+  const store = useSaveConfig();
   const { form, set } = useTestForm();
   if (same(fromForm(form), current)) return <RequestError />;
 

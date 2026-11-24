@@ -6,16 +6,16 @@ from collections import Counter
 from itertools import product
 
 from BaseClasses import LocationProgressType
-from .. import traded
-from ..exported import JUNK, OPTIONS, POOL
+from .. import dealt, traded, trapped
+from ..exported import JUNK, OPTIONS, POOL, SHARES, TRAP, WORLD
 from ..options import attr
-from . import ZnxTestBase
+from . import ZnxTestBase, ap_value
 
 
 def other_values(entry: dict) -> list:
     if entry["kind"] == "toggle":
         return [not entry["default"]]
-    return [option["id"].replace("-", "_") for option in entry["options"] if option["id"] != entry["default"]]
+    return [ap_value(entry["id"], option["id"]) for option in entry["options"] if option["id"] != entry["default"]]
 
 
 for entry in OPTIONS:
@@ -28,7 +28,7 @@ for entry in OPTIONS:
 # Freed the membership card's, Cows lose their milk to the bottle cap.
 JOINT = ["met-zelda", "gerudo-fortress", "cows"]
 JOINT_ENTRIES = [next(entry for entry in OPTIONS if entry["id"] == id_) for id_ in JOINT]
-for combo in product(*([attr(str(e["default"])) if e["kind"] != "toggle" else e["default"], *other_values(e)] for e in JOINT_ENTRIES)):
+for combo in product(*([ap_value(e["id"], e["default"]), *other_values(e)] for e in JOINT_ENTRIES)):
     options = {"npc_gifts": True, **{attr(id_): value for id_, value in zip(JOINT, combo)}}
     name = "Test_npc_gifts_" + "_".join(str(value) for value in combo)
     globals()[name] = type(name, (ZnxTestBase,), {"options": options})
@@ -49,6 +49,22 @@ class TestDeadTreeWithAdultDekuTree(ZnxTestBase):
     def test_a_way_in_a_region(self) -> None:
         names = {region.name for region in self.multiworld.get_regions(self.player)}
         self.assertIn("deku-tree-adult", names)
+
+
+class TestEventWithNoWayInIsNotFree(ZnxTestBase):
+    """An event whose every spot these options close is never reached,
+    rather than given at the start."""
+
+    EVENT = {"name": "Beat FakeBoss", "at": [{"place": WORLD["start"], "rule": False}]}
+
+    def setUp(self) -> None:
+        WORLD["events"].append(self.EVENT)
+        self.addCleanup(WORLD["events"].remove, self.EVENT)
+        super().setUp()
+
+    def test_not_placed(self) -> None:
+        names = {location.name for location in self.multiworld.get_locations(self.player)}
+        self.assertNotIn(self.EVENT["name"], names)
 
 
 RACE = "Gerudo Valley Running Man's Race"
@@ -134,3 +150,51 @@ class TestTradeOrder(unittest.TestCase):
             {"item": "Fake Meter", "count": 1, "added": True},
         ]
         self.assertEqual(traded(rows), Counter({"Fake Bag": 1}))
+
+
+class TestIceTrapsTakeTheirShare(ZnxTestBase):
+    """Mayhem: every item a trap may take, after the trade, is a trap,
+    and no other item goes."""
+
+    options = {"ice_traps": "mayhem", "shuffle_masks": True}
+
+    def test_every_trappable_item(self) -> None:
+        world = self.multiworld.worlds[self.player]
+        counts, trappable = dealt(row for row in POOL if world.holds(row))
+        pool = world.pool()
+        self.assertGreater(trappable.total(), 0)
+        self.assertEqual(pool[TRAP], trappable.total())
+        self.assertEqual(pool.total(), counts.total())
+        for item, count in counts.items():
+            self.assertEqual(pool[item], count - trappable[item], item)
+
+
+class TestTrapShare(unittest.TestCase):
+    """The share on its own: rounded up, picked only from what a trap may
+    take."""
+
+    def test_rounded_up(self) -> None:
+        import random
+
+        counts = Counter({"Fake Rupee": 11, "Fake Sword": 1})
+        trappable = Counter({"Fake Rupee": 11})
+        out = trapped(counts, trappable, SHARES["some"], random.Random(1))
+        self.assertEqual(out[TRAP], 2)
+        self.assertEqual(out["Fake Rupee"], 9)
+        self.assertEqual(out["Fake Sword"], 1)
+
+    def test_off_traps_nothing(self) -> None:
+        import random
+
+        counts = Counter({"Fake Rupee": 3})
+        out = trapped(counts, Counter(counts), SHARES["off"], random.Random(1))
+        self.assertEqual(out, counts)
+
+    def test_the_trade_leaves_fewer_to_trap(self) -> None:
+        rows = [
+            {"item": JUNK[0], "count": 2, "junk": True, "trappable": True},
+            {"item": "Fake Bag", "count": 1, "added": True},
+        ]
+        counts, trappable = dealt(rows)
+        self.assertEqual(trappable, Counter({JUNK[0]: 1}))
+        self.assertEqual(counts, Counter({JUNK[0]: 1, "Fake Bag": 1}))

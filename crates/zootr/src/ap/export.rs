@@ -4,6 +4,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::{Context, Result, bail, ensure};
+use clap::ValueEnum;
 use ounce_formats::{Romfs, par_map};
 use serde_json::{Value, json};
 
@@ -13,9 +14,10 @@ use super::when::{Counts, Variant, steps, word};
 use super::{OPTIONS, described, ids::Ids, names, offers};
 use crate::checks::ItemCheck;
 use crate::fill;
+use crate::ice_traps;
 use crate::narrowing::allowed;
 use crate::rules::{Need, vocab};
-use crate::settings::{Kind, NewGame, Settings, schema};
+use crate::settings::{IceTraps, Kind, NewGame, Settings, choice_id, schema};
 use crate::starter_bags;
 use crate::world::Era;
 
@@ -283,9 +285,9 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     // before the trade, then what settings add, which the world trades in
     // for rupees itself (`starter_bags::swap_in`). Which rupee depends on
     // every other option, so no row could say it.
-    // Keyed by name and whether the trade may take it: a chest's rupee,
-    // not a pot's, though both share a name.
-    type Count<'a> = BTreeMap<(&'a str, bool), (Vec<u32>, &'a str)>;
+    // Keyed by name, whether the trade may take it (a chest's rupee, not a
+    // pot's, though both share a name) and whether a trap may.
+    type Count<'a> = BTreeMap<(&'a str, bool, bool), (Vec<u32>, &'a str)>;
     let mut counts: Count = BTreeMap::new();
     let junk_actor = |a: &str| starter_bags::JUNK.iter().any(|j| j.get() == a);
     // In `starter_bags::added`'s order, the order the world trades them.
@@ -294,7 +296,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         for raw in &seed.dealt.before {
             let actor = names::same(raw);
             let name = names.item(actor)?;
-            let key = (name, junk_actor(raw));
+            let key = (name, junk_actor(raw), seed.trappable.contains(raw));
             let row = counts.entry(key).or_insert((vec![0; seeds.len()], actor));
             ensure!(row.1 == actor, "{name} names two items");
             row.0[n] += 1;
@@ -313,9 +315,11 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     }
     let mut items: Vec<Value> = Vec::new();
     let mut pool = Vec::new();
-    let rows = counts.iter().map(|((n, junk), c)| (*n, c, *junk, false));
-    let added_rows = added.iter().map(|(n, c)| (*n, c, false, true));
-    for (name, (count, actor), is_junk, is_added) in rows.chain(added_rows) {
+    let rows = counts
+        .iter()
+        .map(|((n, junk, trap), c)| (*n, c, *junk, *trap, false));
+    let added_rows = added.iter().map(|(n, c)| (*n, c, false, false, true));
+    for (name, (count, actor), is_junk, is_trappable, is_added) in rows.chain(added_rows) {
         let class = match () {
             _ if rules.used.contains(name) => "progression",
             _ if USEFUL.contains(&name) => "useful",
@@ -339,9 +343,19 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
             if is_junk {
                 row["junk"] = true.into();
             }
+            if is_trappable {
+                row["trappable"] = true.into();
+            }
             pool.push(row);
         }
     }
+    // The traps the world swaps in for its trappable items, a share of
+    // them by Ice Traps' value (`IceTraps::of`).
+    let trap = ice_traps::POOLED;
+    items.push(json!({ "id": ids.item(trap), "name": names.item(trap)?, "class": "trap" }));
+    let shares: serde_json::Map<String, Value> = (IceTraps::value_variants().iter())
+        .map(|&v| (choice_id(v), json!(v.share())))
+        .collect();
     let junk: Vec<&str> = (starter_bags::JUNK.iter())
         .map(|j| names.item(names::same(j.get())))
         .collect::<Result<_>>()?;
@@ -349,9 +363,9 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     for seed in &seeds {
         for s in &seed.world.sources {
             let added = added.iter().find(|(n, _)| *n == s.name).map(|(_, c)| c);
-            let pooled = [false, true]
-                .into_iter()
-                .find_map(|j| counts.get(&(s.name.as_str(), j)));
+            let pooled = (counts.iter())
+                .find(|((n, ..), _)| *n == s.name)
+                .map(|(_, c)| c);
             if let Some((_, actor)) = pooled.or(added) {
                 ensure!(
                     *actor == s.item,
@@ -374,7 +388,8 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let mut out = BTreeMap::new();
     out.insert("world.json", pretty(&world)?);
     out.insert("items.json", pretty(&Value::Array(items))?);
-    out.insert("pool.json", pretty(&json!({ "junk": junk, "rows": pool }))?);
+    let pool = json!({ "junk": junk, "rows": pool, "trap": names.item(trap)?, "shares": shares });
+    out.insert("pool.json", pretty(&pool)?);
     out.insert("options.json", pretty(&options())?);
     out.insert("golden.json", pretty(&golden)?);
     out.insert("ids.json", pretty(&serde_json::to_value(&ids)?)?);
@@ -526,6 +541,7 @@ mod tests {
 
     use super::*;
     use crate::ap::when::holds;
+    use crate::settings::ICE_TRAPS;
 
     /// The export of the committed ids, made once for every test.
     fn exported(romfs: &Romfs) -> &'static BTreeMap<&'static str, String> {
@@ -600,7 +616,20 @@ mod tests {
         let junk: Vec<&str> = (pool["junk"].as_array().unwrap().iter())
             .map(|j| j.as_str().unwrap())
             .collect();
-        let got_pool = traded(&held, &junk);
+        let (got_pool, trappable) = traded(&held, &junk);
+        // The world's traps, from the share the export writes for the
+        // seed's Ice Traps.
+        let value = options
+            .get(ICE_TRAPS)
+            .and_then(Value::as_str)
+            .unwrap_or("off");
+        let share = &pool["shares"][value];
+        let (n, d) = (share[0].as_u64().unwrap(), share[1].as_u64().unwrap());
+        let traps = (trappable * n).div_ceil(d);
+        let want = seed.traps(romfs) as u64;
+        if traps != want {
+            wrong.push(format!("{traps} traps, the app's seed {want}"));
+        }
         if got_pool != want_pool {
             let keys: BTreeSet<&String> = got_pool.keys().chain(want_pool.keys()).collect();
             let off: Vec<_> = (keys.into_iter())
@@ -625,9 +654,12 @@ mod tests {
     /// The pool `rows` hold, each added item traded in for the cheapest
     /// of `junk` left among the rows the trade may take, as the world does
     /// it.
-    fn traded(rows: &[&Value], junk: &[&str]) -> BTreeMap<String, u64> {
+    /// And how many items a trap may take are left after the trade.
+    fn traded(rows: &[&Value], junk: &[&str]) -> (BTreeMap<String, u64>, u64) {
         let mut pool: BTreeMap<String, u64> = BTreeMap::new();
         let mut takeable: BTreeMap<&str, u64> = BTreeMap::new();
+        let mut trappable = 0;
+        let mut trappable_junk = BTreeSet::new();
         let mut added = Vec::new();
         for r in rows {
             let (item, count) = (r["item"].as_str().unwrap(), r["count"].as_u64().unwrap());
@@ -638,6 +670,12 @@ mod tests {
             if r.get("junk").is_some() {
                 *takeable.entry(item).or_default() += count;
             }
+            if r.get("trappable").is_some() {
+                trappable += count;
+                if r.get("junk").is_some() {
+                    trappable_junk.insert(item);
+                }
+            }
         }
         for item in added {
             let rupee = junk
@@ -646,11 +684,12 @@ mod tests {
             if let Some(rupee) = rupee {
                 *takeable.get_mut(*rupee).unwrap() -= 1;
                 *pool.get_mut(*rupee).unwrap() -= 1;
+                trappable -= u64::from(trappable_junk.contains(rupee));
                 *pool.entry(item.to_owned()).or_default() += 1;
             }
         }
         pool.retain(|_, n| *n > 0);
-        pool
+        (pool, trappable)
     }
 
     /// Each case's seed fills on its own, so the cases run in parallel.

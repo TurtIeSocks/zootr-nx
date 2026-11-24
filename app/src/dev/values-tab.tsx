@@ -8,7 +8,8 @@ import { ValueInput } from "@/components/value-input";
 import { DevCard } from "@/dev/dev-card";
 import { openTab } from "@/dev/nav";
 import { RECENT_VALUES } from "@/dev/requests";
-import { call, message } from "@/lib/api";
+import { useDevValue } from "@/dev/use-dev-value";
+import { call } from "@/lib/api";
 import { SAVED } from "@/lib/quest-step";
 import { send, useCanSend, useDev } from "@/stores/dev";
 import { remember, useUi } from "@/stores/ui";
@@ -237,25 +238,8 @@ function useValue() {
 
   const name = isName(names, unsafeName.trim()) ? unsafeName.trim() : "";
 
-  const [shown, setShown] = useState<{
-    name: string;
-    value?: DevValue;
-    error?: string;
-  }>();
   const [round, setRound] = useState(0);
-
-  useEffect(() => {
-    // Read again after `round` moves on.
-    void round;
-    if (!name) return;
-    let live = true;
-    call(commands.devValue(name))
-      .then((value) => live && setShown({ name, value }))
-      .catch((e) => live && setShown({ name, error: message(e) }));
-    return () => {
-      live = false;
-    };
-  }, [name, round]);
+  const shown = useDevValue(name, round);
 
   useEffect(() => {
     if (shown?.value)
@@ -264,7 +248,7 @@ function useValue() {
 
   // Nothing of the last name stays up while this one loads.
   return {
-    ...(shown?.name === name ? shown : {}),
+    ...shown,
     name,
     again: () => setRound((r) => r + 1),
   };

@@ -12,14 +12,22 @@ import {
   WifiOff,
 } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
+import { InlineError } from "@/components/callout";
 import { CardHeader } from "@/components/card";
 import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
+import { message } from "@/lib/api";
 import { useCopied } from "@/lib/use-copied";
 import { cn } from "@/lib/utils";
-import { keeps, kindOf, type LineKind, type LogFilter } from "@/play/ap-lines";
+import {
+  keeps,
+  kindOf,
+  type LineKind,
+  type LogFilter,
+  SENT,
+} from "@/play/ap-lines";
 import { type ApLine, useAp } from "@/stores/ap";
 
 const FILTERS = [
@@ -64,6 +72,7 @@ export function ApLog() {
   const lines = useAp((s) => s.lines);
   const [filter, setFilter] = useState<LogFilter>("all");
   const { copied, flash } = useCopied();
+  const [error, setError] = useState<string>();
   const shown = lines.filter((l) => keeps(filter, kindOf(l.text)));
   const list = useRef<HTMLOListElement>(null);
   const [following, setFollowing] = useState(true);
@@ -76,8 +85,13 @@ export function ApLog() {
 
   const copy = async () => {
     const text = lines.map((l) => `${clock(l.time)} ${l.text}`).join("\n");
-    await navigator.clipboard.writeText(text);
-    flash("log");
+    try {
+      await navigator.clipboard.writeText(text);
+      setError(undefined);
+      flash("log");
+    } catch (e) {
+      setError(message(e));
+    }
   };
 
   return (
@@ -105,6 +119,7 @@ export function ApLog() {
           </div>
         }
       />
+      <InlineError className="px-4 pb-2" error={error} />
       {shown.length ? (
         <div className="relative">
           <ol
@@ -119,8 +134,9 @@ export function ApLog() {
             }}
           >
             {shown.map((line, i) => (
-              // The log only grows at its end, so an index keys it.
-              // biome-ignore lint/suspicious/noArrayIndexKey: append-only
+              // Rows hold no state, so an index keys them, though the log
+              // drops its oldest past its kept lines and a filter moves them.
+              // biome-ignore lint/suspicious/noArrayIndexKey: stateless rows
               <Row key={i} line={line} />
             ))}
           </ol>
@@ -185,7 +201,8 @@ function Words({ kind, text }: { kind: LineKind; text: string }) {
   if (kind === "sent") {
     return (
       <>
-        sent <b className="font-medium text-ink">{text.slice(5)}</b>
+        {SENT}
+        <b className="font-medium text-ink">{text.slice(SENT.length)}</b>
       </>
     );
   }

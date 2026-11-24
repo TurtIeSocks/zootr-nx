@@ -29,7 +29,6 @@ test("the page keeps the game dump and saves developer tools", async () => {
   expect((screen.getByLabelText("Game Dump") as HTMLInputElement).value).toBe(
     "/oot.nup",
   );
-  expect(screen.queryByRole("switch", { name: "Dev panel" })).toBeNull();
   fireEvent.click(screen.getByRole("switch", { name: "Developer Tools" }));
   await vi.waitFor(() =>
     expect(setConfig).toHaveBeenCalledWith({ ...config, dev_tools: true }),

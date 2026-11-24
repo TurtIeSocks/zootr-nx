@@ -7,7 +7,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { Cell, ItemsState, TrackerOptions } from "@/bindings";
 import { ItemsView } from "@/items/items-view";
 import { TrackerWindow } from "@/items/tracker-window";
@@ -104,9 +104,17 @@ function showItems() {
   return render(<ItemsView />);
 }
 
+/** The fixtures a test may swap, put back after it. */
+let was: Pick<typeof backend, "state" | "icons" | "build">;
+
+beforeEach(() => {
+  was = { state: backend.state, icons: backend.icons, build: backend.build };
+});
+
 afterEach(() => {
   cleanup();
   stop();
+  Object.assign(backend, was);
   backend.listeners = [];
   backend.popOutFail = undefined;
 });
@@ -129,22 +137,17 @@ test("missing items are grey, held ones show counts and tiers", async () => {
 });
 
 test("a progressive Quest item shows its tier, as an upgrade does", async () => {
-  const was = backend.state;
   backend.state = {
-    ...was,
+    ...backend.state,
     cells: [cell("Magic", { section: "Quest", tier: 1, tiers: 2 })],
     options: {
-      ...was.options,
+      ...backend.state.options,
       sections: [{ section: "Quest", column: 1, width: 1, shown: true }],
     },
   };
-  try {
-    showItems();
-    const magic = await screen.findByRole("img", { name: "Magic" });
-    expect(within(magic).getByText("1")).toBeTruthy();
-  } finally {
-    backend.state = was;
-  }
+  showItems();
+  const magic = await screen.findByRole("img", { name: "Magic" });
+  expect(within(magic).getByText("1")).toBeTruthy();
 });
 
 test("a dungeon's row fills from the backend, names its dungeon and fades what it has no such item for", async () => {
@@ -171,58 +174,53 @@ test("a dungeon's row fills from the backend, names its dungeon and fades what i
     },
     game_art: true,
   });
-  const was = backend.state;
   backend.state = state(3);
-  try {
-    showItems();
-    const row = await screen.findByRole("region", { name: "Dungeons" });
-    const keys = within(row).getByRole("img", {
-      name: "Forest Temple Small Keys",
-    });
-    expect(within(keys).getByText("3")).toBeTruthy();
-    const boss = within(row).getByRole("img", {
-      name: "Forest Temple Boss Key (missing)",
-    });
-    expect(boss.className).toContain("grayscale");
-    expect(
-      within(row).getByRole("img", { name: "Deku Tree Map" }),
-    ).toBeTruthy();
-    // Each row starts with its dungeon's short name, the full one on hover.
-    const grid = row.querySelector(".grid");
-    expect(grid?.children).toHaveLength(6);
-    expect(grid?.children[0]?.textContent).toBe("DT");
-    fireEvent.focus(within(row).getByText("FoT"));
-    expect((await screen.findByRole("tooltip")).textContent).toBe(
-      "Forest Temple",
-    );
-    // A dungeon without the item still draws it, fainter than missing.
-    const absent = within(row).getByRole("img", {
-      name: "Deku Tree Small Keys (not in this dungeon)",
-    });
-    expect(absent.className).toContain("opacity-12");
-    expect(absent.className).not.toContain("opacity-28");
-    expect(row.querySelectorAll("img")).toHaveLength(4);
-    // Rows line up with dungeons at one width, so it has no stepper.
-    expect(within(row).getByRole("button", { name: "Hide Dungeons" }));
-    expect(
-      within(row).queryByRole("button", { name: "Wider Dungeons" }),
-    ).toBeNull();
+  showItems();
+  const row = await screen.findByRole("region", { name: "Dungeons" });
+  const keys = within(row).getByRole("img", {
+    name: "Forest Temple Small Keys",
+  });
+  expect(within(keys).getByText("3")).toBeTruthy();
+  const boss = within(row).getByRole("img", {
+    name: "Forest Temple Boss Key (missing)",
+  });
+  expect(boss.className).toContain("grayscale");
+  expect(within(row).getByRole("img", { name: "Deku Tree Map" })).toBeTruthy();
+  // Each row starts with its dungeon's short name, the full one on hover.
+  const grid = row.querySelector(".grid");
+  expect(grid?.children).toHaveLength(6);
+  expect(grid?.children[0]?.textContent).toBe("DT");
+  fireEvent.focus(within(row).getByText("FoT"));
+  expect((await screen.findByRole("tooltip")).textContent).toBe(
+    "Forest Temple",
+  );
+  // A dungeon without the item still draws it, fainter than missing.
+  const absent = within(row).getByRole("img", {
+    name: "Deku Tree Small Keys (not in this dungeon)",
+  });
+  expect(absent.className).toContain("opacity-12");
+  expect(absent.className).not.toContain("opacity-28");
+  expect(row.querySelectorAll("img")).toHaveLength(4);
+  // Rows line up with dungeons at one width, so it has no stepper.
+  expect(
+    within(row).getByRole("button", { name: "Hide Dungeons" }),
+  ).toBeTruthy();
+  expect(
+    within(row).queryByRole("button", { name: "Wider Dungeons" }),
+  ).toBeNull();
 
-    backend.send(state(2));
-    expect(
-      within(
-        within(row).getByRole("img", { name: "Forest Temple Small Keys" }),
-      ).getByText("2"),
-    ).toBeTruthy();
-    backend.send(state(0));
-    expect(
-      within(row).getByRole("img", {
-        name: "Forest Temple Small Keys (missing)",
-      }),
-    ).toBeTruthy();
-  } finally {
-    backend.state = was;
-  }
+  backend.send(state(2));
+  expect(
+    within(
+      within(row).getByRole("img", { name: "Forest Temple Small Keys" }),
+    ).getByText("2"),
+  ).toBeTruthy();
+  backend.send(state(0));
+  expect(
+    within(row).getByRole("img", {
+      name: "Forest Temple Small Keys (missing)",
+    }),
+  ).toBeTruthy();
 });
 
 /** A tile's own icon, the stand-in drawn without the dump's. */
@@ -235,48 +233,42 @@ test("an icon that doesn't load falls back to zootr-nx's own", async () => {
   act(() => bombs.querySelector("img")?.dispatchEvent(new Event("error")));
   expect(bombs.querySelector("img")).toBeNull();
   expect(standIn(bombs)).toBeTruthy();
+
+  // A rebuild tries the dump's icon again.
+  act(() => useItems.setState({ art: "building" }));
+  act(() => useItems.setState({ art: "game" }));
+  expect(bombs.querySelector("img")).toBeTruthy();
 });
 
 test("with game assets off, tiles draw zootr-nx's icons and build nothing", async () => {
   const icons = vi.fn(() => backend.icons);
-  const was = { state: backend.state, build: backend.build };
-  backend.state = { ...was.state, game_art: false };
+  backend.state = { ...backend.state, game_art: false };
   backend.build = icons;
-  try {
-    showItems();
-    const bombs = await screen.findByRole("img", { name: "Bombs" });
-    expect(standIn(bombs)).toBeTruthy();
-    expect(bombs.querySelector("img")).toBeNull();
-    expect(screen.queryByText(/Building icons/)).toBeNull();
-    expect(icons).not.toHaveBeenCalled();
+  showItems();
+  const bombs = await screen.findByRole("img", { name: "Bombs" });
+  expect(standIn(bombs)).toBeTruthy();
+  expect(bombs.querySelector("img")).toBeNull();
+  expect(screen.queryByText(/Building icons/)).toBeNull();
+  expect(icons).not.toHaveBeenCalled();
 
-    // Turned on, every window builds the dump's icons and draws them.
-    backend.send({ ...backend.state, game_art: true });
-    await waitFor(() => expect(bombs.querySelector("img")).toBeTruthy());
-    expect(icons).toHaveBeenCalledOnce();
-    expect(useItems.getState().art).toBe("game");
+  // Turned on, every window builds the dump's icons and draws them.
+  backend.send({ ...backend.state, game_art: true });
+  await waitFor(() => expect(bombs.querySelector("img")).toBeTruthy());
+  expect(icons).toHaveBeenCalledOnce();
+  expect(useItems.getState().art).toBe("game");
 
-    // Turned off again, back to zootr-nx's.
-    backend.send({ ...backend.state, game_art: false });
-    expect(standIn(bombs)).toBeTruthy();
-  } finally {
-    backend.state = was.state;
-    backend.build = was.build;
-  }
+  // Turned off again, back to zootr-nx's.
+  backend.send({ ...backend.state, game_art: false });
+  expect(standIn(bombs)).toBeTruthy();
 });
 
 test("a failed icon build falls back to zootr-nx's icons and says why", async () => {
-  const was = backend.icons;
   backend.icons = Promise.resolve({ status: "error", error: "No icons" });
-  try {
-    showItems();
-    const bombs = await screen.findByRole("img", { name: "Bombs" });
-    expect(await screen.findByText("No icons")).toBeTruthy();
-    expect(useItems.getState().art).toBe("fallback");
-    expect(standIn(bombs)).toBeTruthy();
-  } finally {
-    backend.icons = was;
-  }
+  showItems();
+  const bombs = await screen.findByRole("img", { name: "Bombs" });
+  expect(await screen.findByText("No icons")).toBeTruthy();
+  expect(useItems.getState().art).toBe("fallback");
+  expect(standIn(bombs)).toBeTruthy();
 });
 
 test("the pop out renders the same grid and follows events", async () => {
@@ -309,22 +301,17 @@ test("tiles wait on the icon build, with a status line", async () => {
 });
 
 test("a banner says the icons are zootr-nx's own until dismissed for good", async () => {
-  const was = backend.state;
-  backend.state = { ...was, game_art: false };
+  backend.state = { ...backend.state, game_art: false };
   useUi.setPath("items.bannerDismissed", false);
-  try {
-    showItems();
-    const banner = await screen.findByText(/Showing zootr-nx's own icons/);
-    fireEvent.click(screen.getByRole("button", { name: "Open Settings" }));
-    expect(useUi.getState().tab).toBe("Settings");
-    expect(useUi.getState().section).toBe("settings");
+  showItems();
+  const banner = await screen.findByText(/Showing zootr-nx's own icons/);
+  fireEvent.click(screen.getByRole("button", { name: "Open Settings" }));
+  expect(useUi.getState().tab).toBe("Settings");
+  expect(useUi.getState().section).toBe("settings");
 
-    fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
-    expect(useUi.getState().items.bannerDismissed).toBe(true);
-    expect(banner.isConnected).toBe(false);
-  } finally {
-    backend.state = was;
-  }
+  fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+  expect(useUi.getState().items.bannerDismissed).toBe(true);
+  expect(banner.isConnected).toBe(false);
 });
 
 test("the banner stays away while the game's icons draw", async () => {

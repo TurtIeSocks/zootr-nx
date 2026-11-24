@@ -12,15 +12,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
+import { useKept } from "@/play/use-kept";
 import { label } from "@/stores/seeds";
 import { closeLabel, useShell } from "@/stores/shell";
 
 /** Names a history seed and notes what it's for. */
 export function LabelDialog() {
-  const [entry] = useShell.usePath("labeling");
+  const [labeling] = useShell.usePath("labeling");
+  // The form keeps its seed while the dialog fades out.
+  const entry = useKept(labeling);
   return (
     <Dialog
-      open={entry !== undefined}
+      open={labeling !== undefined}
       onOpenChange={(open) => !open && closeLabel()}
     >
       <DialogContent>
@@ -41,7 +44,7 @@ export function LabelDialog() {
 
 /** Props for {@link LabelForm}. */
 interface LabelFormProps {
-  /** The seed being labelled; none while the dialog closes. */
+  /** The seed being labelled, kept while the dialog closes. */
   entry: Summary | undefined;
 }
 

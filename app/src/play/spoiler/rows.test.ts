@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import type { Spot } from "@/bindings";
 import { oldSeed, seed } from "@/play/spoiler/fixture";
 import {
+  type Column,
   columns,
   hasLogic,
   heroAreas,
@@ -15,7 +16,7 @@ import {
 /** The spot at `i`, which the fixture always has. */
 const at = (spots: Spot[], i: number) => spots[i] as Spot;
 
-const titles = (c: ReturnType<typeof columns>[number]) =>
+const titles = (c: Column) =>
   c.cards.map((card) =>
     card.kind === "check" ? card.spot.item_name : card.name,
   );
@@ -139,12 +140,12 @@ test("a spot needs an item Link starts with by its id", () => {
 
 test("a spot needs nothing for an item no check holds or a plain rule", () => {
   const spots = seed().spots;
-  const goron = {
+  const ungiven = {
     ...at(spots, 0),
     need: "Item_I and adult",
     need_items: ["Item_I"],
   };
-  expect(needed(goron, spots).size).toBe(0);
+  expect(needed(ungiven, spots).size).toBe(0);
   expect(needed(at(spots, 5), spots).size).toBe(0);
 });
 

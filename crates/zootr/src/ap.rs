@@ -80,6 +80,7 @@ pub const OPTIONS: &[&str] = &[
     "grass",
     "hives",
     "shuffle-masks",
+    "ice-traps",
 ];
 
 /// Every setting the world doesn't offer, and why: each one coming in a
@@ -97,7 +98,6 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
     ("shuffle-nut-bag", Later(CHECK_KINDS)),
     ("shuffle-stick-bag", Later(CHECK_KINDS)),
     ("magic-with-first-item", Later(COMFORT)),
-    ("ice-traps", Later(ITEM_POOL)),
     ("progressive-items", Later(ITEM_POOL)),
     ("logic", Later(RULES)),
     ("starting-age", Later(RULES)),

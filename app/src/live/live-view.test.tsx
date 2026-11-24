@@ -393,6 +393,34 @@ test("Mark, or M, marks the log with what happened while recording", async () =>
   expect(screen.getByText("01:15 · opened the chest")).toBeTruthy();
 });
 
+test("a Mark left open when recording stops stays shut on the next one", async () => {
+  await recording();
+  fireEvent.keyDown(document.body, { key: "m" });
+  expect(await screen.findByLabelText("What happened?")).toBeTruthy();
+  backend.send({ type: "Ended", reason: "the game closed" });
+  backend.send({ type: "Status", status: { state: "Waiting", reason: null } });
+  await waitFor(() =>
+    expect(screen.queryByLabelText("What happened?")).toBeNull(),
+  );
+  backend.send({ type: "Status", status: { state: "Recording", session } });
+  expect(screen.getByText("Recording")).toBeTruthy();
+  expect(screen.queryByLabelText("What happened?")).toBeNull();
+});
+
+test("a refused clipboard leaves Copy as it was", async () => {
+  await recording();
+  writeText
+    .mockRejectedValueOnce(new Error("no clipboard"))
+    .mockRejectedValueOnce(new Error("no clipboard"));
+  fireEvent.click(screen.getByRole("button", { name: "Copy row" }));
+  fireEvent.click(screen.getByRole("button", { name: "Copy shown" }));
+  await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2));
+  await act(async () => {});
+  expect(screen.queryByRole("button", { name: "Copied" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Copy row" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Copy shown" })).toBeTruthy();
+});
+
 test("a row's Mute asks the session to mute its value", async () => {
   await recording();
   fireEvent.click(screen.getByRole("button", { name: "Mute this value" }));

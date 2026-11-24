@@ -13,6 +13,7 @@
 use anyhow::{Result, ensure};
 use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs, set_param};
 
+use crate::ice_traps;
 use crate::key_tints::paint::{Host, Look};
 use crate::key_tints::{MADE, POUCH_TEXT, TEXT_PARTS, pointed};
 use crate::keys::SMALL;
@@ -149,14 +150,16 @@ impl Foreign {
     pub fn name(&self, shown: impl FnOnce(&str) -> String) -> String {
         match &self.owner {
             Owner::Player { item, player } => format!("{} for {}", clean(item), clean(player)),
-            Owner::Trap { .. } => format!("Ice Trap (as {})", shown(&self.shows)),
+            Owner::Trap { .. } => format!("{} (as {})", ice_traps::NAME, shown(&self.shows)),
         }
     }
 
     /// Each of [`TEXT_PARTS`]' line. Another player's say the same in every
     /// language: AP's item and player names have no translations. A trap's
     /// name is its disguise's, its get "FOOL!" and its caption a space: an
-    /// empty one held the get open for good (live, 2026-11-18).
+    /// empty one held the get open for good (live, 2026-11-18). The copy the
+    /// room's traps give has nothing to hide, so its name, which the
+    /// received notice shows, is the trap's own.
     fn lines(&self) -> [Says; 3] {
         match &self.owner {
             Owner::Player { item, player } => {
@@ -169,8 +172,11 @@ impl Foreign {
                 .map(Says::Text)
             }
             Owner::Trap { .. } => [
-                Says::Source,
-                Says::Text(crate::ice_traps::FOOL.into()),
+                match self.actor == ice_traps::POOLED {
+                    true => Says::Text(ice_traps::NAME.into()),
+                    false => Says::Source,
+                },
+                Says::Text(ice_traps::FOOL.into()),
                 Says::Text(" ".into()),
             ],
         }

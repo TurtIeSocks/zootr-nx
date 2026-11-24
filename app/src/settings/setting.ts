@@ -12,7 +12,6 @@ export const untested = (description: string): [boolean, string] =>
     ? [true, description.slice(UNTESTED.length)]
     : [false, description];
 
-/** The setting forcing `def` on, if one is. */
 /** Why the Archipelago world leaves a setting or pick out, or nothing
  * while it offers it. */
 export const notInAp = (ap: Archipelago): string | undefined => {
@@ -32,6 +31,7 @@ export const heldPicks = (def: SettingDef): [string, string[]][] => {
   return [...by];
 };
 
+/** The setting forcing `def` on, if one is. */
 export const lockedBy = (
   def: SettingDef,
   schema: SettingDef[],

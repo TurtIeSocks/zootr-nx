@@ -9,12 +9,12 @@ import { APP_FIELDS } from "@/settings/app-fields";
 import { saveConfig, useConfig } from "@/stores/config";
 import { useNoDump } from "@/stores/seeds";
 
+const FIELD = APP_FIELDS.game;
+
 /** The game dump's path, starting from the saved one, with Save, which
  * extracts it. Under it, whether the saved dump is ready, gone, or why
  * the last Save failed. Keyed by the saved path, it starts again on each
  * save. */
-const FIELD = APP_FIELDS.game;
-
 export function GameDump() {
   const [saved] = useConfig.usePath("config.game");
   const [game, setGame] = useState(saved ?? "");

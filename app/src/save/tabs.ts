@@ -25,19 +25,37 @@ export const merge = (now: Edit[], add: Edit[]) => [
   ...add,
 ];
 
-/** Adds edits to what's pending, keeping only those that change the
- * save, so a cell clicked back to where it was drops out. The slot is
- * opened with them first: a value the save won't take throws here and is
- * never staged. */
-export async function stage(add: Edit[]) {
-  const { slot, presets, edits } = useUi.getState().save;
-  if (slot === null || add.length === 0) return;
-  const staged = await call(
-    commands.saveStage(slot, { presets, edits: merge(edits, add) }),
-  );
-  useUi.setPath("save.edits", staged.edits);
-  useUi.setPath("save.changes", staged.count);
+/** The stage in flight, so the next reads what it left. */
+let staging: Promise<unknown> = Promise.resolve();
+
+/** Adds the edits `ask` makes of the slot as it stands to what's pending,
+ * keeping only those that change the save, so a cell clicked back to
+ * where it was drops out. The slot is opened with them first: a value the
+ * save won't take throws here and is never staged. Stages run one at a
+ * time, each against what the last left, and one whose slot was switched
+ * or discarded while it ran is dropped. */
+export function stageFrom(
+  ask: (slot: number, pending: Pending) => Promise<Edit[]>,
+): Promise<void> {
+  const run = staging.then(async () => {
+    const { slot, presets, edits } = useUi.getState().save;
+    if (slot === null) return;
+    const add = await ask(slot, { presets, edits });
+    if (add.length === 0) return;
+    const staged = await call(
+      commands.saveStage(slot, { presets, edits: merge(edits, add) }),
+    );
+    const now = useUi.getState().save;
+    if (now.slot !== slot || now.edits !== edits) return;
+    useUi.setPath("save.edits", staged.edits);
+    useUi.setPath("save.changes", staged.count);
+  });
+  staging = run.catch(() => {});
+  return run;
 }
+
+/** Stages `add`, as {@link stageFrom} does. */
+export const stage = (add: Edit[]) => stageFrom(async () => add);
 
 /** Turns a preset on or off. Its edits apply before the single ones. */
 export const togglePreset = (name: string, on: boolean) =>

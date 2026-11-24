@@ -1,5 +1,5 @@
 import { Gift, Minus, Plus, Signpost } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { commands } from "@/bindings";
 import { NameField } from "@/components/name-field";
 import { QuestStepPicker } from "@/components/quest-step-picker";
@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DevCard } from "@/dev/dev-card";
 import { give, giveLabel } from "@/dev/requests";
-import { call, message } from "@/lib/api";
+import { useDevValue } from "@/dev/use-dev-value";
+import { call } from "@/lib/api";
 import { SAVED, stepOf } from "@/lib/quest-step";
 import { send, useCanSend, useDev } from "@/stores/dev";
 import { useUi } from "@/stores/ui";
@@ -54,9 +55,11 @@ function GiveSelect() {
 const clamp = (n: number) =>
   Math.min(MAX_COUNT, Math.max(1, Math.round(n) || 1));
 
-/** How many to give, 1 to 99, with a step down and up. */
+/** How many to give, 1 to 99, with a step down and up. The field can be
+ * emptied to type a new count, and shows the count again on leaving it. */
 function GiveCount() {
   const [count, setCount] = useUi.usePath("dev.give.count");
+  const [cleared, setCleared] = useState(false);
 
   return (
     <div className="flex h-8 shrink-0 items-center rounded-md border border-control-border bg-surface">
@@ -75,8 +78,12 @@ function GiveCount() {
         min={1}
         max={MAX_COUNT}
         className="h-7 w-9 border-0 px-0 text-center shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none"
-        value={count}
-        onChange={(e) => setCount(clamp(Number(e.target.value)))}
+        value={cleared ? "" : count}
+        onChange={(e) => {
+          setCleared(e.target.value === "");
+          if (e.target.value !== "") setCount(clamp(Number(e.target.value)));
+        }}
+        onBlur={() => setCleared(false)}
       />
       <Button
         size="icon-xs"
@@ -184,32 +191,18 @@ function MoveButton({ onMoved }: { onMoved: () => void }) {
  * picked and after each Move. */
 function SavedCopy({ challenge, round }: { challenge: string; round: number }) {
   const name = `${SAVED}${challenge}`;
-  const [held, setHeld] = useState<{ name: string; text: string }>();
-
-  useEffect(() => {
-    // Read again after `round` moves on.
-    void round;
-    let live = true;
-    call(commands.devValue(name))
-      .then(
-        (v) =>
-          live &&
-          setHeld({
-            name,
-            text: v.live ?? `${v.info.default ?? "—"} (default)`,
-          }),
-      )
-      .catch((e) => live && setHeld({ name, text: message(e) }));
-    return () => {
-      live = false;
-    };
-  }, [name, round]);
+  const read = useDevValue(name, round);
+  const text = !read
+    ? "…"
+    : read.value
+      ? (read.value.live ?? `${read.value.info.default ?? "—"} (default)`)
+      : read.error;
 
   return (
     <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 text-[12.5px]">
       <dt className="text-ink-faint">Saved Copy</dt>
       <dd className="type-mono truncate">
-        {name} = {held?.name === name ? held.text : "…"}
+        {name} = {text}
       </dd>
     </dl>
   );

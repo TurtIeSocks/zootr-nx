@@ -12,35 +12,74 @@ from BaseClasses import Item, ItemClassification, Location, LocationProgressType
 from worlds.AutoWorld import WebWorld, World
 
 from . import rules
-from .exported import CLASSES, HASHES, ITEM_NAME_TO_ID, JUNK, LOCATION_NAME_TO_ID, OPTIONS, POOL, WORLD
+from .exported import (
+    CLASSES,
+    HASHES,
+    ITEM_NAME_TO_ID,
+    JUNK,
+    LOCATION_NAME_TO_ID,
+    OPTIONS,
+    POOL,
+    SHARES,
+    TRAP,
+    WORLD,
+)
 from .options import ZnxOptions, attr, setting_value
 from .output import GAME, ZnxContainer, placement
 
 VICTORY = WORLD["goal"]
+ICE_TRAPS = "ice-traps"
 
 
 
-def traded(rows) -> Counter:
+def dealt(rows) -> tuple[Counter, Counter]:
     """The items `rows` hold, each `added` one in place of the cheapest
     rupee left among the `junk` rows (a chest's, not a pot's), in row
-    order. One with none left is left out."""
-    counts = Counter()
-    takeable = Counter()
+    order, one with none left left out; and those of them a trap may
+    take."""
+    counts, takeable, trappable = Counter(), Counter(), Counter()
+    trappable_junk = set()
     added = []
     for row in rows:
+        item, count = row["item"], row["count"]
         if row.get("added"):
-            added += [row["item"]] * row["count"]
+            added += [item] * count
         else:
-            counts[row["item"]] += row["count"]
+            counts[item] += count
         if row.get("junk"):
-            takeable[row["item"]] += row["count"]
+            takeable[item] += count
+        if row.get("trappable"):
+            trappable[item] += count
+            if row.get("junk"):
+                trappable_junk.add(item)
     for item in added:
         rupee = next((j for j in JUNK if takeable[j] > 0), None)
         if rupee is not None:
             takeable[rupee] -= 1
             counts[rupee] -= 1
             counts[item] += 1
-    return +counts
+            if rupee in trappable_junk:
+                trappable[rupee] -= 1
+    return +counts, +trappable
+
+
+def traded(rows) -> Counter:
+    """The items `rows` hold after the trade."""
+    return dealt(rows)[0]
+
+
+def trapped(counts: Counter, trappable: Counter, share: list[int], random) -> Counter:
+    """`counts` with `share` of `trappable` (rounded up) turned to traps,
+    picked by `random`."""
+    n, d = share
+    pieces = sorted(trappable.elements())
+    traps = -(-len(pieces) * n // d)
+    out = counts.copy()
+    for item in random.sample(pieces, traps):
+        out[item] -= 1
+    out[TRAP] += traps
+    return +out
+
 
 class ZnxItem(Item):
     game = GAME
@@ -81,12 +120,15 @@ class ZnxWorld(World):
     topology_present = True
 
     setting_values: dict[str, Any]
+    dealt: Counter
 
     def generate_early(self) -> None:
         self.setting_values = {
             entry["id"]: setting_value(entry, getattr(self.options, attr(entry["id"])))
             for entry in OPTIONS
         }
+        share = SHARES[self.setting_values.get(ICE_TRAPS, "off")]
+        self.dealt = trapped(*dealt(filter(self.holds, POOL)), share, self.random)
 
     def holds(self, row: dict) -> bool:
         """Whether these options hold `row`: a check, event or pool row an
@@ -135,7 +177,11 @@ class ZnxWorld(World):
                     item.player != self.player or item.name not in forbid
                 )
         for event in filter(self.holds, WORLD["events"]):
-            location = self.place(event["name"], None, self.spots(event["at"], regions), regions, origin)
+            at = self.spots(event["at"], regions)
+            if event["at"] and not at:
+                # No way in with these options: never reached, not free.
+                continue
+            location = self.place(event["name"], None, at, regions, origin)
             location.place_locked_item(ZnxItem(event["name"], ItemClassification.progression, None, self.player))
 
     def spots(self, at: list, regions: dict) -> list:
@@ -169,7 +215,7 @@ class ZnxWorld(World):
 
     def pool(self) -> Counter:
         """The items these options deal, as the app's deal counts them."""
-        return traded(filter(self.holds, POOL))
+        return self.dealt
 
     def create_items(self) -> None:
         for item, count in self.pool().items():
@@ -178,7 +224,7 @@ class ZnxWorld(World):
     def get_filler_item_name(self) -> str:
         # One our deal has too. An item link's group world has no options
         # set: every row.
-        counts = traded(POOL) if not hasattr(self, "setting_values") else self.pool()
+        counts = traded(POOL) if not hasattr(self, "dealt") else self.pool()
         filler = Counter({item: n for item, n in counts.items() if CLASSES[item] == "filler"})
         return filler.most_common(1)[0][0]
 

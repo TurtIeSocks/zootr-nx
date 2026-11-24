@@ -8,15 +8,16 @@ use ounce_formats::Romfs;
 use serde_json::Value;
 
 use super::when::{Domain, Variant};
-use super::{JOINT, OPTIONS, offers};
+use super::{JOINT, OPTIONS, names, offers};
 use crate::checks::{self, ItemCheck};
 use crate::fill;
+use crate::ice_traps;
 use crate::logic::{Got, Play, World};
 use crate::progressive::Lines;
 use crate::rules::{Book, Ctx, Have};
 use crate::settings::{
-    BOMBCHUS, CHESTS, Kind, MAGIC_WITH_FIRST_ITEM, NewGame, RUNNING_RACE, SCRUBS, SHUFFLE_NUT_BAG,
-    SHUFFLE_STICK_BAG, Settings, schema, value_word,
+    BOMBCHUS, CHESTS, IceTraps, Kind, MAGIC_WITH_FIRST_ITEM, NewGame, RUNNING_RACE, SCRUBS,
+    SHUFFLE_NUT_BAG, SHUFFLE_STICK_BAG, Settings, schema, value_word,
 };
 use crate::shuffle::{self, Fixed};
 use crate::starting;
@@ -54,6 +55,8 @@ pub(super) struct Seed {
     pub dealt: Dealt,
     pub start: Have,
     pub world: World,
+    /// The items of the deal's pool a trap may take (`ice_traps::junk`).
+    pub trappable: BTreeSet<String>,
 }
 
 /// One seed's deal as the export sees it: the checks AP places, and the
@@ -76,6 +79,14 @@ pub(super) struct Dealt {
 }
 
 impl Dealt {
+    /// The actors AP ids can name for this slot: the pool's, and the trap
+    /// the room may send when the seed has traps.
+    pub fn actors(&self) -> Vec<&str> {
+        let pool = self.pool.iter().map(|a| names::same(a));
+        let trap = (self.new_game.ice_traps != IceTraps::Off).then_some(ice_traps::POOLED);
+        pool.chain(trap).collect()
+    }
+
     pub fn new(romfs: &Romfs, settings: &Settings) -> Result<Self> {
         let new_game = NewGame::from_settings(settings, &[])?;
         let checks = checks::dealt(romfs, &new_game)?;
@@ -132,11 +143,26 @@ impl Seed {
         };
         let world = World::build(romfs, &Book::load()?, &ctx, checks)?;
         let start = fill::start(new_game);
+        let needed = world.items();
+        let pool = dealt.pool.iter().map(String::as_str);
+        let trappable = ice_traps::junk(romfs, pool, &needed)?;
+        let trappable = trappable.into_iter().map(str::to_owned).collect();
         Ok(Self {
             dealt,
             start,
             world,
+            trappable,
         })
+    }
+
+    /// How many traps the app's seed puts in the pool, as its own swap
+    /// counts them.
+    #[cfg(test)]
+    pub fn traps(&self, romfs: &Romfs) -> usize {
+        let mut items: Vec<&str> = self.dealt.pool.iter().map(String::as_str).collect();
+        let (needed, how) = (self.world.items(), self.dealt.new_game.ice_traps);
+        ice_traps::swap(romfs, &mut items, &needed, how, 0).unwrap();
+        items.iter().filter(|i| ice_traps::is_trap(i)).count()
     }
 
     /// What Link reaches holding `have`, kept checks giving theirs.

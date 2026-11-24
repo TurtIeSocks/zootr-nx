@@ -1,4 +1,5 @@
 import type { Choice, SettingDef, StartInventory } from "@/bindings";
+import { sameEntries } from "@/lib/api";
 import type { Settings } from "@/lib/config";
 import { count, LISTED } from "@/lib/format";
 
@@ -42,12 +43,8 @@ export function startOf(def: SettingDef, settings: Settings): StartInventory {
 }
 
 /** Whether two starting inventories hold the same, in any order. */
-export function sameStart(a: StartInventory, b: StartInventory): boolean {
-  const words = Object.keys(a);
-  return (
-    words.length === Object.keys(b).length && words.every((w) => a[w] === b[w])
-  );
-}
+export const sameStart = (a: StartInventory, b: StartInventory) =>
+  sameEntries(a, b);
 
 /** How many things a starting inventory holds, each word once. */
 const held = (def: SettingDef, settings: Settings) =>
@@ -259,8 +256,9 @@ function chipOf(
 const chips = (defs: SettingDef[], settings: Settings, schema: SettingDef[]) =>
   defs.flatMap((d) => chipOf(d, settings, schema) ?? []);
 
-/** The labels of every setting that changed, or how many when it's long. A
- * parent stands in for its children. */
+/** The labels of every setting that's on (toggles that are on, choices off
+ * their default, inventories holding anything), or how many when it's long.
+ * A parent stands in for its children. */
 export function summaryParts(
   schema: SettingDef[],
   settings: Settings,
@@ -270,7 +268,7 @@ export function summaryParts(
   return on.length > LISTED ? [`${on.length} settings on`] : on;
 }
 
-/** The labels of every setting that changed, as one line. */
+/** The labels of every setting that's on, as one line. */
 export function summary(schema: SettingDef[], settings: Settings): string {
   return summaryParts(schema, settings).join(", ");
 }
@@ -339,7 +337,8 @@ export function settingsChanges(
     if (forcedOn(def, before, schema) !== forcedOn(def, after, schema)) {
       return [];
     }
-    const [a = "", b = ""] = [before, after].map((s) => shown(def, s, schema));
+    const a = shown(def, before, schema);
+    const b = shown(def, after, schema);
     return a === b ? [] : [{ def, before: a, after: b }];
   });
 }
