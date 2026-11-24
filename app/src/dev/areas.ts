@@ -52,18 +52,24 @@ export function spots(
   });
 }
 
-/** `spots`, grouped by area, the areas sorted. */
+/** `spots`, grouped by area, the areas sorted, the area of the map Link
+ * is in (`here`) first. */
 export function areas(
   places: string[],
   child: boolean | undefined,
   query: string,
+  here?: string,
 ): Area[] {
   const byArea = new Map<string, Spot[]>();
   for (const s of spots(places, child, query)) {
     const name = area(s.map);
     byArea.set(name, [...(byArea.get(name) ?? []), s]);
   }
+  const first = here && area(here);
   return [...byArea]
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(
+      ([a], [b]) =>
+        Number(b === first) - Number(a === first) || a.localeCompare(b),
+    )
     .map(([area, spots]) => ({ area, spots }));
 }

@@ -40,14 +40,15 @@ export function WarpTab() {
 }
 
 /** Starred and recent places, then every arrival point for Link's age by
- * area, a click teleporting there. */
+ * area, the area Link is in first, a click teleporting there. */
 function Places() {
   const [places] = useDev.usePath("options.places");
   const [child] = useDev.usePath("game.state.child");
+  const [map] = useDev.usePath("game.state.map");
   const [starred] = useUi.usePath("dev.starred");
   const [recent] = useUi.usePath("dev.recent.places");
   const [query, setQuery] = useUi.usePath("dev.teleport.places");
-  const shown = areas(places, child, query);
+  const shown = areas(places, child, query, map);
   const stars = spots(starred, child, query);
   const lately = spots(recent, child, query);
 
