@@ -2,6 +2,7 @@
 //! abilities inlined, eras resolved per place and start flags folded in.
 
 mod pool;
+mod shrink;
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -102,6 +103,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let counted = pool::Counted::new(&seeds, &settings)?;
     counted.check_sources(&seeds)?;
     let (items, pool) = counted.items_and_pool(&cx, &rules.used, &mut ids)?;
+    let kept = pool::kept(&cx, &seeds)?;
     // Where a variant starts Link elsewhere (Starting Age), that start
     // under the settings that pick it; the world takes the first that
     // holds, else `start`.
@@ -119,7 +121,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
             }
         }
     }
-    let world = json!({
+    let mut world = json!({
         "start": names.place(w.start()),
         "starts": starts,
         "places": places,
@@ -128,13 +130,21 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         "events": events,
         "goal": VICTORY,
     });
+    // Every name `rules.lined` reads as a line's level, which stays a rule
+    // of its own.
+    let lined: BTreeSet<&str> = (levels.iter())
+        .flat_map(|(_, steps)| steps.iter().flatten())
+        .map(String::as_str)
+        .collect();
+    shrink::merge(&mut world, &lined);
+    shrink::share(&mut world);
     let golden = super::golden::golden(&settings, &set, &names, &ids)?;
     let mut out = BTreeMap::new();
     out.insert("world.json", pretty(&world)?);
     out.insert("items.json", pretty(&Value::Array(items))?);
     out.insert(
         "pool.json",
-        pretty(&pool::pool_json(pool, &levels, &names)?)?,
+        pretty(&pool::pool_json(pool, &levels, &kept, &names)?)?,
     );
     out.insert("options.json", pretty(&options())?);
     out.insert("golden.json", pretty(&golden)?);
@@ -589,7 +599,7 @@ mod tests {
     /// them: the same checks, events and pool, and one item a check.
     fn rows_match(romfs: &Romfs, settings: &Settings) -> std::result::Result<(), String> {
         let files = exported(romfs);
-        let world: Value = serde_json::from_str(&files["world.json"]).unwrap();
+        let world = shrink::expand(&serde_json::from_str(&files["world.json"]).unwrap());
         let pool: Value = serde_json::from_str(&files["pool.json"]).unwrap();
         // Every offered option's value, as the world reads them.
         let mut options = Settings::new();
@@ -733,8 +743,13 @@ mod tests {
     fn lined(pool: BTreeMap<String, u64>, levels: &Value) -> BTreeMap<String, u64> {
         let line = |item: &str| {
             let mut lines = levels.as_object().unwrap().iter();
-            let found =
-                lines.find(|(_, steps)| steps.as_array().unwrap().iter().any(|s| s[0] == item));
+            let found = lines.find(|(_, levels)| {
+                levels
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|l| l["names"][0] == item)
+            });
             found.map(|(line, _)| line.clone())
         };
         let mut out = BTreeMap::new();

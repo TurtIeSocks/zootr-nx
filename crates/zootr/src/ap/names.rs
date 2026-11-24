@@ -125,6 +125,7 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::MELODY_SHADOW_NOCTURNE, "Nocturne of Shadow"),
     (item::MELODY_LIGHT_PRELUDE, "Prelude of Light"),
     (item::NAYRU_LOVE, "Nayru's Love"),
+    (item::NUT_BAG_SMALL, "Deku Nut Bag (20)"),
     (item::NUT_BAG_MEDIUM, "Deku Nut Bag (30)"),
     (item::NUT_BAG_LARGE, "Deku Nut Bag (40)"),
     (item::OCARINA_FAIRY, "Fairy Ocarina"),
@@ -142,6 +143,7 @@ const ITEMS: &[(&Name, &str)] = &[
     (item::SCALE_GOLD, "Golden Scale"),
     (item::SCRUB_BUSINESS_SEED, "Business Scrub Seed"),
     (item::SHIELD_MIRROR, "Mirror Shield"),
+    (item::STICK_BAG_SMALL, "Deku Stick Bag (10)"),
     (item::STICK_BAG_MEDIUM, "Deku Stick Bag (20)"),
     (item::STONE_FIRE, "Goron's Ruby"),
     (item::STONE_FOREST, "Kokiri's Emerald"),
@@ -185,7 +187,9 @@ const ITEMS: &[(&Name, &str)] = &[
     (actor::WEAPON_SWORD_MASTER, "Master Sword"),
 ];
 
-/// Each upgrade line by its first level, with progressive items on.
+/// Each upgrade line's name with progressive items on, by the level whose
+/// id the name keeps: its first before the starter bags and the Magic
+/// Meter's setting joined AP.
 const PROGRESSIVE: &[(&Name, &str)] = &[
     (item::HOOKSHOT, "Progressive Hookshot"),
     (item::GAUNTLET_GORON, "Progressive Strength Upgrade"),
@@ -198,6 +202,7 @@ const PROGRESSIVE: &[(&Name, &str)] = &[
     (item::STICK_BAG_MEDIUM, "Progressive Deku Stick Bag"),
     (item::NUT_BAG_MEDIUM, "Progressive Deku Nut Bag"),
     (crate::bombchu_bags::SMALL, "Progressive Bombchu Bag"),
+    (crate::magic::meter::METER, "Progressive Magic Meter"),
 ];
 
 fn find(table: &[(&Name, &'static str)], id: &str) -> Option<&'static str> {
@@ -263,32 +268,27 @@ pub fn item(actor: &str, progressive: bool) -> Result<&'static str> {
         // Not a [`Name`]: no dump holds it.
         return Ok(ice_traps::NAME);
     }
-    let name = match progressive.then(|| first(actor)).flatten() {
-        // A line without a name of its own goes by its first level's.
-        Some(first) => find(PROGRESSIVE, first).or_else(|| find(ITEMS, first)),
+    let name = match progressive.then(|| key(actor)).flatten() {
+        Some(key) => find(PROGRESSIVE, key),
         None => find(ITEMS, actor),
     };
     name.with_context(|| format!("no Archipelago name for item {actor}"))
 }
 
-/// The first level of the line `actor` is any level of, if it climbs.
-fn first(actor: &str) -> Option<&'static str> {
-    let line = lines().find(|l| l.iter().any(|level| level.0.get() == actor));
-    line.map(|l| l[0].0.get())
+/// The level [`PROGRESSIVE`] names the line `actor` is any level of by,
+/// if it climbs.
+fn key(actor: &str) -> Option<&'static str> {
+    let line = lines().find(|l| l.iter().any(|level| level.0.get() == actor))?;
+    let mut levels = line.iter().map(|level| level.0.get());
+    levels.find(|a| find(PROGRESSIVE, a).is_some())
 }
 
-/// The upgrade lines AP names: the game's, the Bombchu Bags', whose first
-/// level is the same with or without them, and the Magic Meter's, which
-/// Magic Comes with the First Magic Item (left out, so off) pools. A
-/// shuffled starter bag keeps its own name: the line's first level is
-/// another bag without it, and one name can't stand for two items.
+/// The upgrade lines AP names, at their longest: both starter bags, the
+/// Bombchu Bags and the Magic Meter. One name stands for a line at every
+/// level, and a seed keeps the levels its settings do (`pool.json`
+/// `levels`, each with its `when`).
 fn lines() -> impl Iterator<Item = &'static [Level]> {
-    let lines = Lines {
-        bombchu_bags: true,
-        magic_meter: true,
-        ..Lines::default()
-    };
-    lines.all().filter(|l| l.len() > 1)
+    Lines::widest(false).all().filter(|l| l.len() > 1)
 }
 
 /// A line's name and its levels, lowest first: each level's actor and own
@@ -306,12 +306,12 @@ pub fn levels() -> Result<Vec<Levels>> {
     lines().map(named).collect()
 }
 
-/// The name and first level of the line `actor` is any level of, if it
-/// climbs: with progressive items on, the world gives the line's name to
-/// each check's own item, which the pool names.
+/// The name of the line `actor` is any level of, if it climbs, and the
+/// level whose id the name keeps: with progressive items on, the world
+/// gives the line's name to each check's own item, which the pool names.
 pub fn line(actor: &str) -> Result<Option<(&'static str, &'static str)>> {
-    let first = first(same(actor));
-    first.map(|f| Ok((item(f, true)?, f))).transpose()
+    let key = key(same(actor));
+    key.map(|k| Ok((item(k, true)?, k))).transpose()
 }
 
 /// Each check's location name, by hash: the area, then where (from
@@ -543,6 +543,21 @@ mod tests {
         for (area, giver, want) in cases {
             assert_eq!(format!("{area} {}", title(beside(area, giver))), want);
         }
+    }
+
+    /// The starter bags and the Magic Meter included, so a level a
+    /// setting adds never goes by a name of its own.
+    #[test]
+    fn a_line_goes_by_one_name_at_every_level() {
+        for l in lines() {
+            let name = item(l[0].0.get(), true).unwrap();
+            assert!(name.starts_with("Progressive "), "{name}");
+            for level in l {
+                assert_eq!(item(level.0.get(), true).unwrap(), name);
+            }
+        }
+        let nuts = item(item::NUT_BAG_SMALL.get(), true).unwrap();
+        assert_eq!(nuts, "Progressive Deku Nut Bag");
     }
 
     #[test]

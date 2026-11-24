@@ -2,8 +2,9 @@
 
 import unittest
 
-from ..exported import LEVELS
+from .. import kept
 from ..rules import lined
+from . import ZnxTestBase
 
 FAKE = {"Progressive Fake": [["Fake One", "Fake Gift"], ["Fake Two"]]}
 
@@ -29,4 +30,32 @@ class TestLined(unittest.TestCase):
         self.assertEqual(lined(tree, FAKE), want)
 
     def test_longshot_is_the_second_hookshot(self) -> None:
-        self.assertEqual(lined(rule(["Longshot"], 1), LEVELS), rule(["Progressive Hookshot"], 2))
+        every = kept(lambda level: True)
+        self.assertEqual(lined(rule(["Longshot"], 1), every), rule(["Progressive Hookshot"], 2))
+
+
+class TestNutBagLine(ZnxTestBase):
+    """With progressive items on, the Nut Bag (30) is the line's first
+    level. The pool deals one upgrade as the line."""
+
+    run_default_tests = False
+    options = {"progressive_items": True}
+    level = 1
+    dealt = 1
+
+    def test_the_30_bag_is_its_level_of_the_line(self) -> None:
+        world = self.multiworld.worlds[self.player]
+        tree = lined(rule(["Deku Nut Bag (30)"], 1), world.levels)
+        self.assertEqual(tree["count"], self.level)
+        self.assertEqual(world.pool()["Progressive Deku Nut Bag"], self.dealt)
+        self.assertNotIn("Deku Nut Bag (20)", world.pool())
+
+
+class TestNutBagLineShuffled(TestNutBagLine):
+    """The shuffle puts the (20) first: the (30) is the second, and the
+    pool deals the (20) as the line too."""
+
+    options = {"progressive_items": True, "shuffle_nut_bag": True}
+    level = 2
+    dealt = 2
+

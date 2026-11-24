@@ -67,7 +67,7 @@ impl Book {
             .filter_map(|&h| Some((h, ids.location_id(h)?)))
             .map(|(h, l)| Ok((h, id(l)?)))
             .collect::<Result<_>>()?;
-        let actors = (ids.actors(dealt.actors()))
+        let actors = (dealt.by_id(&ids)?)
             .into_iter()
             .map(|(i, a)| Ok((id(i)?, a.to_owned())))
             .collect::<Result<_>>()?;

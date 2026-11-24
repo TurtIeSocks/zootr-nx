@@ -82,6 +82,9 @@ pub const OPTIONS: &[&str] = &[
     "shuffle-masks",
     "ice-traps",
     "progressive-items",
+    "shuffle-nut-bag",
+    "shuffle-stick-bag",
+    "magic-with-first-item",
     "logic",
     "starting-age",
     "rainbow-bridge",
@@ -144,13 +147,6 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
     // Off, Dodongo's Cavern's Bomb Bag chest keeps its bag, and logic
     // shows no child way to it.
     ("chests", Later(CHECK_KINDS)),
-    // With progressive items, each makes its line start a level lower, so
-    // the Nut Bag (30) a gift or scrub deals becomes the Nut Bag (20) and
-    // Double Magic the Magic Meter: which item a check deals depends on
-    // two options, NPC Gifts or Scrubs with this.
-    ("shuffle-nut-bag", Later(CHECK_KINDS)),
-    ("shuffle-stick-bag", Later(CHECK_KINDS)),
-    ("magic-with-first-item", Later(COMFORT)),
     ("hints", Later(RULES)),
     ("shuffle-dungeon-entrances", Later(RULES)),
     (
@@ -167,7 +163,6 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
 const CHECK_KINDS: &str = "check kinds";
 const RULES: &str = "goal and rules";
 const KEYS: &str = "keys";
-const COMFORT: &str = "comfort";
 
 /// Whether the world offers `def`, alone or in a set. A toggle left out
 /// but on in every Archipelago seed (its default, or pinned like Chests)
@@ -209,14 +204,25 @@ pub fn archipelago_option(id: &str, option: &str) -> Archipelago {
 /// put, no Weird Egg), with Gerudo Fortress (Freed keeps the membership
 /// card's check), with Cows (the gifts' bottles fill the pouch's five,
 /// so the cows' milk deals as rupees) and with King Zora Moved (either
-/// makes Ruto's Letter ✅ a check).
-pub const JOINT: &[&[&str]] = &[&[
-    "npc-gifts",
-    "met-zelda",
-    "gerudo-fortress",
-    "cows",
-    "king-zora-moved",
-]];
+/// makes Ruto's Letter ✅ a check). And Progressive Items with the
+/// settings that start a line a level lower (a starter bag shuffled, the
+/// Magic Meter pooled): which levels a line's name stands for depends on
+/// all four.
+pub const JOINT: &[&[&str]] = &[
+    &[
+        "npc-gifts",
+        "met-zelda",
+        "gerudo-fortress",
+        "cows",
+        "king-zora-moved",
+    ],
+    &[
+        "progressive-items",
+        "shuffle-nut-bag",
+        "shuffle-stick-bag",
+        "magic-with-first-item",
+    ],
+];
 
 /// Choice options the world leaves out, each as setting id, option and
 /// a sentence of the setting's description that offers it. Dungeon keys
@@ -330,7 +336,7 @@ mod tests {
         assert_eq!(ap(crate::settings::CHESTS), OnUntil(CHECK_KINDS));
         assert!(matches!(ap("shuffle-items"), AlwaysOn(_)));
         assert!(matches!(ap("start-inventory"), Never(_)));
-        assert!(matches!(ap("shuffle-nut-bag"), Later(_)));
+        assert!(matches!(ap("hints"), Later(_)));
     }
 
     #[test]

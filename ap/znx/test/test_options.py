@@ -104,8 +104,9 @@ class TestAddedItemsTakeTheCheapestRupees(ZnxTestBase):
         for row in held:
             if row.get("added"):
                 added[row["item"]] += row["count"]
-        # The masks and bags, past what every world adds (the Magic Meter).
-        always = sum(row["count"] for row in POOL if row.get("added") and "when" not in row)
+        # The masks and bags, past the Magic Meter, which Magic with First
+        # Item off adds.
+        always = sum(row["count"] for row in held if row.get("added") and row["item"] == "Magic Meter")
         self.assertEqual(added.total(), always + 8 + 3)
         pool = world.pool()
         self.assertEqual(pool.total(), before.total())

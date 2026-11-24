@@ -172,7 +172,7 @@ impl ApSeed {
             "the seed doesn't match this version's checks: none placed at {missing:?}, unknown {extra:?}"
         );
         let ids = Ids::load()?;
-        let actors = ids.actors(dealt.actors());
+        let actors = dealt.by_id(&ids)?;
         let actor = |id| by_id(&actors, id);
         // Another slot's settings can deal items this slot's never do.
         let ours = ids.actors(names::named().map(names::same));
