@@ -74,6 +74,16 @@ pub struct Entry {
     pub picks: BTreeMap<String, String>,
 }
 
+impl Entry {
+    /// `#id`, and its name when it has one.
+    fn called(&self) -> String {
+        match self.label.name.as_str() {
+            "" => format!("#{}", self.id),
+            name => format!("#{} \"{name}\"", self.id),
+        }
+    }
+}
+
 /// A check the player set aside, or a note on it.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -400,6 +410,25 @@ impl History {
         self.entries.retain(|e| installed.contains(&e.id));
     }
 
+    /// What to warn when `mod_dir` holds another seed than the installed
+    /// one, as when an install elsewhere wrote over it without telling this
+    /// history. Names that seed when the history has it.
+    pub fn foreign_mod(&self, mod_dir: &Path) -> Option<String> {
+        let installed = self.installed_entry().ok()?;
+        let spoiler = std::fs::read_to_string(mod_dir.join(crate::generate::SPOILER)).ok()?;
+        let seed = Report::spoiler_seed(&spoiler)?;
+        if seed == installed.report.seed {
+            return None;
+        }
+        let there = (self.entries.iter().rev())
+            .find(|e| e.report.seed == seed)
+            .map_or("a seed from elsewhere".into(), Entry::called);
+        Some(format!(
+            "The mod folder holds {there}, not {}. Install it again before playing.",
+            installed.called()
+        ))
+    }
+
     pub fn view(&self) -> View {
         let installed = self.installed().id.and_then(|id| self.get(id).ok());
         View {
@@ -588,6 +617,45 @@ pub(crate) mod tests {
         let s = Summary::from(&history.entries[0]);
         assert_eq!((s.test, s.ap_slot.as_deref()), (false, Some("FakeSlot")));
         assert!(s.death_link, "the slot's DeathLink");
+    }
+
+    #[test]
+    fn a_mod_folder_holding_another_seed_is_named() {
+        let mut history = History::default();
+        let label = |name: &str| Label {
+            name: name.into(),
+            note: String::new(),
+        };
+        let ours = (history.add(Settings::new(), Extras::default(), label("Ice"), report(5))).id;
+        history.add(
+            Settings::new(),
+            Extras::default(),
+            label("Other"),
+            report(9),
+        );
+        history.installed = Some(ours);
+        let dir = std::env::temp_dir().join(format!("zootr-foreign-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let spoiler = |seed: u64| {
+            let text = report(seed).spoiler(&[]);
+            std::fs::write(dir.join(crate::generate::SPOILER), text).unwrap();
+        };
+        spoiler(5);
+        assert_eq!(history.foreign_mod(&dir), None, "the installed seed's own");
+        spoiler(9);
+        let warning = history.foreign_mod(&dir).unwrap();
+        assert!(
+            warning.starts_with("The mod folder holds #2 \"Other\", not #1 \"Ice\""),
+            "{warning}"
+        );
+        spoiler(3);
+        assert!(
+            history
+                .foreign_mod(&dir)
+                .unwrap()
+                .contains("a seed from elsewhere")
+        );
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

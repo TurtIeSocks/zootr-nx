@@ -1207,7 +1207,11 @@ export type TargetStatus = {
 	 *  For a game that bakes the hook patch in at build time, whether its
 	 *  build has the installed one.
 	 */
-	build?: Build | null,
+	build?: Build | null,	/**
+	 *  What to warn when its mod folder holds another seed than the
+	 *  installed one.
+	 */
+	foreign?: string | null,
 };
 
 /**

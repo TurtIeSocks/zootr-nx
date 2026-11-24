@@ -59,6 +59,10 @@ struct TargetStatus {
     /// build has the installed one.
     #[serde(skip_serializing_if = "Option::is_none")]
     build: Option<Build>,
+    /// What to warn when its mod folder holds another seed than the
+    /// installed one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    foreign: Option<String>,
 }
 
 #[derive(Serialize, Type)]
@@ -97,12 +101,14 @@ struct Status {
 async fn status() -> Res<Status> {
     blocking(|| {
         let config = Config::load()?;
+        let history = History::load().ok();
         let targets = config.targets.iter().map(|t| TargetStatus {
             name: t.name.clone(),
             app: t.app.exists(),
             mod_dir: t.mod_dir.is_dir(),
             running: t.running(),
             build: Build::of(t),
+            foreign: history.as_ref().and_then(|h| h.foreign_mod(&t.mod_dir)),
         });
         Ok(Status {
             game: config.game.is_some_and(|g| g.exists()),

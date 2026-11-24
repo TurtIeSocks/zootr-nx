@@ -179,7 +179,7 @@ mod tests {
         let dir = Scratch::new("uninstall");
         let mod_dir = dir.join("mod");
         std::fs::create_dir_all(mod_dir.join("romfs/Pack")).unwrap();
-        std::fs::write(mod_dir.join("spoiler.txt"), "").unwrap();
+        std::fs::write(mod_dir.join(crate::generate::SPOILER), "").unwrap();
         crate::patch::install(&mod_dir, crate::game::Release::V111, &climbing()).unwrap();
         let env = dir.join("env.txt");
         std::fs::write(&env, "A=1\nKEY=x\n").unwrap();
@@ -205,7 +205,7 @@ mod tests {
         let targets = [target(None), target(Some(line))];
         uninstall(&targets).unwrap();
         uninstall(&targets).unwrap();
-        assert!(!mod_dir.join("romfs").exists() && mod_dir.join("spoiler.txt").exists());
+        assert!(!mod_dir.join("romfs").exists() && mod_dir.join(crate::generate::SPOILER).exists());
         let v111 = crate::patch::Hook::of(crate::game::Release::V111);
         assert!(!v111.path(&mod_dir).exists());
         assert_eq!(std::fs::read_to_string(&env).unwrap(), "A=1\nFOCUS=1\n");
