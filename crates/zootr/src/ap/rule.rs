@@ -7,6 +7,7 @@ use serde_json::{Value, json};
 
 use super::export::Namer;
 use crate::rules::{Have, Need};
+use crate::settings::{PROGRESSIVE, value_word};
 use crate::world::Era;
 
 /// Turns a [`Need`] into a rule tree, noting each item name a rule uses.
@@ -25,6 +26,9 @@ pub(super) struct Rules<'a> {
     pub item_settings: &'a BTreeMap<String, Vec<(Value, u32)>>,
     pub givers: &'a BTreeMap<&'a str, Vec<String>>,
     pub used: BTreeSet<String>,
+    /// Progressive items on or off, under an `all` holding that setting's
+    /// word (`Ctx::progressive`): its items go by that form's names.
+    pub form: Option<bool>,
 }
 
 impl Rules<'_> {
@@ -50,6 +54,25 @@ impl Rules<'_> {
                 }
                 any(rules)
             }
+            Need::Items { actors, .. } if self.form.is_none() => {
+                // Outside either form, items whose names differ by it read
+                // each form's names behind its word.
+                let names = self.names;
+                let named = |p| actors.iter().map(move |a| names.item_in(a, Some(p)).ok());
+                if named(true).eq(named(false)) {
+                    return self.rule_in(need, era, Some(self.names.progressive()));
+                }
+                any(vec![
+                    all(vec![
+                        json!({ "setting": PROGRESSIVE }),
+                        self.rule_in(need, era, Some(true)),
+                    ]),
+                    all(vec![
+                        json!({ "setting": value_word(PROGRESSIVE, "off") }),
+                        self.rule_in(need, era, Some(false)),
+                    ]),
+                ])
+            }
             Need::Items { actors, count } => {
                 let have = &self.start.items;
                 let held: u32 = actors.iter().filter_map(|a| have.get(a)).sum();
@@ -73,7 +96,7 @@ impl Rules<'_> {
                 let mut names = BTreeSet::new();
                 for a in actors {
                     if self.pooled.contains(a.as_str())
-                        && let Ok(n) = self.names.item(a)
+                        && let Ok(n) = self.names.item_in(a, self.form)
                     {
                         names.insert(n.to_owned());
                     }
@@ -88,7 +111,10 @@ impl Rules<'_> {
             Need::All(needs) => {
                 // An item under a false `all` is never needed.
                 let used = self.used.clone();
+                let form = needs.iter().find_map(form).or(self.form);
+                let outer = std::mem::replace(&mut self.form, form);
                 let rule = all(needs.iter().map(|n| self.rule(n, era)).collect());
+                self.form = outer;
                 if rule == Value::Bool(false) {
                     self.used = used;
                 }
@@ -96,6 +122,22 @@ impl Rules<'_> {
             }
             Need::Any(needs) => any(needs.iter().map(|n| self.rule(n, era)).collect()),
         }
+    }
+
+    fn rule_in(&mut self, need: &Need, era: Era, form: Option<bool>) -> Value {
+        let outer = std::mem::replace(&mut self.form, form);
+        let rule = self.rule(need, era);
+        self.form = outer;
+        rule
+    }
+}
+
+/// The progressive items form `need` picks, if it's that setting's word.
+fn form(need: &Need) -> Option<bool> {
+    match need {
+        Need::Setting(id) if id == PROGRESSIVE => Some(true),
+        Need::Setting(id) if *id == value_word(PROGRESSIVE, "off") => Some(false),
+        _ => None,
     }
 }
 

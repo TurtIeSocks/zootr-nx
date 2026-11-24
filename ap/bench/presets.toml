@@ -50,3 +50,4 @@ grass = true
 hives = true
 shuffle-masks = true
 ice-traps = "mayhem"
+progressive-items = true

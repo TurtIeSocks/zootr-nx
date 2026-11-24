@@ -17,7 +17,7 @@ use crate::fill;
 use crate::ice_traps;
 use crate::narrowing::allowed;
 use crate::rules::{Need, vocab};
-use crate::settings::{IceTraps, Kind, NewGame, Settings, choice_id, schema};
+use crate::settings::{IceTraps, Kind, NewGame, PROGRESSIVE, Settings, choice_id, schema};
 use crate::starter_bags;
 use crate::world::Era;
 
@@ -122,6 +122,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         item_settings: &item_settings,
         givers: &givers,
         used: BTreeSet::new(),
+        form: None,
     };
     let reach = Everything::union(&set);
     let era = |i: usize| w.places[i].1;
@@ -210,12 +211,12 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
             }
             let check = (seed.dealt.checks.iter().find(|c| c.hash == hash))
                 .with_context(|| format!("no check {hash}"))?;
+            // In either form, since a row holds for both.
             let mut forbid = BTreeSet::new();
-            for actor in pooled
-                .iter()
-                .filter(|a| !allowed(check, a, seed.dealt.new_game.progressive))
-            {
-                forbid.insert(names.item(actor)?);
+            for form in [true, false] {
+                for actor in pooled.iter().filter(|a| !allowed(check, a, form)) {
+                    forbid.insert(names.item_in(actor, Some(form))?);
+                }
             }
             let row = json!({
                 "id": ids.location(hash),
@@ -292,17 +293,30 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let junk_actor = |a: &str| starter_bags::JUNK.iter().any(|j| j.get() == a);
     // In `starter_bags::added`'s order, the order the world trades them.
     let mut added: Vec<(&str, (Vec<u32>, &str))> = Vec::new();
-    for (n, seed) in seeds.iter().enumerate() {
+    // A seed with progressive items on deals each line's first level, so
+    // its pool reads from its twin with them off, which deals each check's
+    // own item: the world names a line by it (`names::line`).
+    let twin = |n: usize| -> Result<&Seed> {
+        if !seeds[n].dealt.new_game.progressive {
+            return Ok(seeds[n]);
+        }
+        let mut off = settings[n].clone();
+        off.insert(PROGRESSIVE.into(), false.into());
+        let at = settings.iter().position(|s| *s == off);
+        Ok(seeds[at.with_context(|| format!("no seed {off:?}"))?])
+    };
+    for n in 0..seeds.len() {
+        let seed = twin(n)?;
         for raw in &seed.dealt.before {
             let actor = names::same(raw);
-            let name = names.item(actor)?;
+            let name = names::item(actor, false)?;
             let key = (name, junk_actor(raw), seed.trappable.contains(raw));
             let row = counts.entry(key).or_insert((vec![0; seeds.len()], actor));
             ensure!(row.1 == actor, "{name} names two items");
             row.0[n] += 1;
         }
         for actor in seed.dealt.added.iter().map(|a| names::same(a)) {
-            let name = names.item(actor)?;
+            let name = names::item(actor, false)?;
             let at = match added.iter().position(|(n, _)| *n == name) {
                 Some(at) => at,
                 None => {
@@ -319,14 +333,26 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         .iter()
         .map(|((n, junk, trap), c)| (*n, c, *junk, *trap, false));
     let added_rows = added.iter().map(|(n, c)| (*n, c, false, false, true));
+    let mut lines = serde_json::Map::new();
+    let mut firsts: BTreeMap<&str, &str> = BTreeMap::new();
+    let class = |name: &str| match () {
+        _ if rules.used.contains(name) => "progression",
+        _ if USEFUL.contains(&name) => "useful",
+        _ => "filler",
+    };
     for (name, (count, actor), is_junk, is_trappable, is_added) in rows.chain(added_rows) {
-        let class = match () {
-            _ if rules.used.contains(name) => "progression",
-            _ if USEFUL.contains(&name) => "useful",
-            _ => "filler",
-        };
         if !items.iter().any(|i| i["name"] == name) {
-            items.push(json!({ "id": ids.item(actor), "name": name, "class": class }));
+            // A line's first level keeps its first id for the line's name,
+            // unless the line goes by it.
+            let line = names::line(actor)?;
+            let plain = line.is_some_and(|(l, first)| first == *actor && l != name);
+            items.push(
+                json!({ "id": ids.item_as(actor, plain), "name": name, "class": class(name) }),
+            );
+            if let Some((line, first)) = line {
+                lines.insert(name.into(), line.into());
+                firsts.insert(line, first);
+            }
         }
         let counts = Counts {
             base: count[0],
@@ -347,6 +373,14 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
                 row["trappable"] = true.into();
             }
             pool.push(row);
+        }
+    }
+    // With progressive items on, each line's levels go by its name, under
+    // its first level's id.
+    // The Magic Meter's goes by its first level's, already there.
+    for (line, first) in firsts {
+        if !items.iter().any(|i| i["name"] == line) {
+            items.push(json!({ "id": ids.item(first), "name": line, "class": class(line) }));
         }
     }
     // The traps the world swaps in for its trappable items, a share of
@@ -388,7 +422,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let mut out = BTreeMap::new();
     out.insert("world.json", pretty(&world)?);
     out.insert("items.json", pretty(&Value::Array(items))?);
-    let pool = json!({ "junk": junk, "rows": pool, "trap": names.item(trap)?, "shares": shares });
+    let pool = json!({ "junk": junk, "rows": pool, "trap": names.item(trap)?, "shares": shares, "lines": lines });
     out.insert("pool.json", pretty(&pool)?);
     out.insert("options.json", pretty(&options())?);
     out.insert("golden.json", pretty(&golden)?);
@@ -526,7 +560,18 @@ impl Namer {
     }
 
     pub fn item(&self, actor: &str) -> Result<&'static str> {
-        names::item(actor, self.progressive)
+        self.item_in(actor, None)
+    }
+
+    /// Whether the base has progressive items on.
+    pub fn progressive(&self) -> bool {
+        self.progressive
+    }
+
+    /// `actor`'s name in `form` (progressive items on or off), the base's
+    /// without one.
+    pub fn item_in(&self, actor: &str, form: Option<bool>) -> Result<&'static str> {
+        names::item(actor, form.unwrap_or(self.progressive))
     }
 
     pub fn location(&self, hash: u64) -> Result<&str> {
@@ -616,7 +661,10 @@ mod tests {
         let junk: Vec<&str> = (pool["junk"].as_array().unwrap().iter())
             .map(|j| j.as_str().unwrap())
             .collect();
-        let (got_pool, trappable) = traded(&held, &junk);
+        let (mut got_pool, trappable) = traded(&held, &junk);
+        if seed.dealt.new_game.progressive {
+            got_pool = lined(got_pool, &pool["lines"]);
+        }
         // The world's traps, from the share the export writes for the
         // seed's Ice Traps.
         let value = options
@@ -692,6 +740,20 @@ mod tests {
         (pool, trappable)
     }
 
+    /// `pool` with each line's levels named by the line, as the world
+    /// names them with progressive items on.
+    fn lined(pool: BTreeMap<String, u64>, lines: &Value) -> BTreeMap<String, u64> {
+        let mut out = BTreeMap::new();
+        for (item, n) in pool {
+            let name = lines
+                .get(&item)
+                .and_then(Value::as_str)
+                .map_or(item, str::to_owned);
+            *out.entry(name).or_default() += n;
+        }
+        out
+    }
+
     /// Each case's seed fills on its own, so the cases run in parallel.
     fn assert_rows_match(romfs: &Romfs, cases: impl IntoIterator<Item = Settings>) {
         let cases: Vec<Settings> = cases.into_iter().collect();
@@ -730,7 +792,12 @@ mod tests {
         for d in domains().unwrap() {
             settings.insert(d.id, d.values.last().unwrap().clone());
         }
-        assert_rows_match(&romfs, [settings]);
+        // And with progressive items the other way, whose names each
+        // option's rows hold in one form.
+        let mut flipped = settings.clone();
+        let on = settings.get(PROGRESSIVE).and_then(Value::as_bool) == Some(true);
+        flipped.insert(PROGRESSIVE.into(), Value::Bool(!on));
+        assert_rows_match(&romfs, [settings, flipped]);
     }
 
     /// Each pair of options at each pair of other values. About 330 CPU
@@ -759,6 +826,41 @@ mod tests {
             }
         }
         assert_rows_match(&romfs, cases);
+    }
+
+    /// Each `items` rule under an `all` with `setting`'s word.
+    fn under(rule: &Value, setting: &str, out: &mut Vec<Value>) {
+        match rule {
+            Value::Object(o) if o.get("all").is_some() => {
+                let all = o["all"].as_array().unwrap();
+                if all.contains(&json!({ "setting": setting })) {
+                    out.extend(all.iter().filter(|r| r.get("items").is_some()).cloned());
+                }
+                all.iter().for_each(|r| under(r, setting, out));
+            }
+            Value::Object(o) => o.values().for_each(|v| under(v, setting, out)),
+            Value::Array(a) => a.iter().for_each(|v| under(v, setting, out)),
+            _ => {}
+        }
+    }
+
+    #[test]
+    fn each_progressive_form_names_its_own_items() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let world: Value = serde_json::from_str(&exported(&romfs)["world.json"]).unwrap();
+        let (mut on, mut off) = (Vec::new(), Vec::new());
+        under(&world, PROGRESSIVE, &mut on);
+        under(
+            &world,
+            &crate::settings::value_word(PROGRESSIVE, "off"),
+            &mut off,
+        );
+        let longshot = json!({ "items": ["Longshot"], "count": 1 });
+        let line = json!({ "items": ["Progressive Hookshot"], "count": 2 });
+        assert!(on.contains(&line) && !on.contains(&longshot));
+        assert!(off.contains(&longshot) && !off.contains(&line));
     }
 
     #[test]

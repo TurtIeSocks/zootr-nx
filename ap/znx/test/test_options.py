@@ -77,7 +77,8 @@ class TestAddedItemsTakeTheCheapestRupees(ZnxTestBase):
     """What the mask and Bombchu Bag options add takes the place of the
     cheapest rupees, as in the app's deal."""
 
-    options = {"shuffle_masks": True, "bombchus": "bag"}
+    # Off, so the pool names each item as its rows do.
+    options = {"shuffle_masks": True, "bombchus": "bag", "progressive_items": False}
 
     def test_each_takes_a_rupee(self) -> None:
         world = self.multiworld.worlds[self.player]
@@ -136,11 +137,32 @@ class TestTradeOrder(unittest.TestCase):
         self.assertEqual(traded(rows), Counter({"Fake Bag": 1}))
 
 
+class TestProgressiveItemsOffDealsEachLevel(ZnxTestBase):
+    """Off, each line's copies go by its levels' own names, lowest first."""
+
+    options = {"progressive_items": False, "npc_gifts": True}
+
+    def test_each_level_once(self) -> None:
+        pool = self.multiworld.worlds[self.player].pool()
+        self.assertNotIn("Progressive Hookshot", pool)
+        self.assertEqual((pool["Hookshot"], pool["Longshot"]), (1, 1))
+        self.assertEqual((pool["Adult's Wallet"], pool["Giant's Wallet"]), (1, 1))
+
+
+class TestProgressiveItemsOnDealsTheLine(ZnxTestBase):
+    options = {"progressive_items": True}
+
+    def test_the_line_s_name(self) -> None:
+        pool = self.multiworld.worlds[self.player].pool()
+        self.assertEqual(pool["Progressive Hookshot"], 2)
+        self.assertNotIn("Longshot", pool)
+
+
 class TestIceTrapsTakeTheirShare(ZnxTestBase):
     """Mayhem: every item a trap may take, after the trade, is a trap,
     and no other item goes."""
 
-    options = {"ice_traps": "mayhem", "shuffle_masks": True}
+    options = {"ice_traps": "mayhem", "shuffle_masks": True, "progressive_items": False}
 
     def test_every_trappable_item(self) -> None:
         world = self.multiworld.worlds[self.player]
