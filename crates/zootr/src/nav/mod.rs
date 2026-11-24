@@ -36,6 +36,7 @@ pub mod act;
 pub mod clear;
 pub mod climb;
 pub mod crawl;
+pub mod disjoint;
 pub mod drive;
 pub mod filter;
 pub mod floors;

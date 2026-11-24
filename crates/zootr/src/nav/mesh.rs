@@ -9,6 +9,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use anyhow::Result;
+use ounce_formats::vec3::{cross, dot, sub};
 use ounce_formats::{ActorPack, BymlMap, Romfs, ShapeMesh};
 
 use super::filter::{Filter, Touch};
@@ -17,7 +18,6 @@ use super::shape::{
 };
 use crate::known::field;
 use crate::warp::Placement;
-use ounce_formats::vec3::{cross, dot, sub};
 
 /// Where the shape meshes live, by the name a `PhshMeshPath` gives.
 const MESHES: &str = "Phive/Shape/Dcc/";

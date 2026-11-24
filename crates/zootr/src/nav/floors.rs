@@ -7,14 +7,15 @@
 use std::collections::HashMap;
 
 use anyhow::{Context, Result};
+use ounce_formats::vec3::{cross, dot, sub};
 use ounce_formats::{ActorPack, Byml, Edge, Face, NavMesh, Romfs};
 
+use super::disjoint::DisjointSet;
 use super::graph::{BODY, Cross, Graph, LOOK, STEP_MIN, Via, body_hits};
 use super::mesh::{Walls, facing_up, floor_normal, height_in, moller, through};
 use super::shape::Solid;
 use super::water::Water;
 use crate::known::{actor, field};
-use ounce_formats::vec3::{cross, dot, sub};
 
 /// How near the navmesh's floor may be to a triangle's height, in m,
 /// before the triangle is floor the navmesh already has.
@@ -286,25 +287,17 @@ pub fn patches(mesh: &NavMesh, walls: &Walls, keep: &Keep) -> Vec<Vec<Tri>> {
         })
         .collect();
     // Join triangles that share a corner.
-    let mut parent: Vec<usize> = (0..kept.len()).collect();
-    fn root(parent: &mut [usize], mut i: usize) -> usize {
-        while parent[i] != i {
-            parent[i] = parent[parent[i]];
-            i = parent[i];
-        }
-        i
-    }
+    let mut sets = DisjointSet::new(kept.len());
     let mut first_at: HashMap<[i64; 3], usize> = HashMap::new();
     for (i, t) in kept.iter().enumerate() {
         for v in t {
             let j = *first_at.entry(key(*v)).or_insert(i);
-            let (a, b) = (root(&mut parent, i), root(&mut parent, j));
-            parent[a] = b;
+            sets.union(i, j);
         }
     }
     let mut by_root: HashMap<usize, Vec<Tri>> = HashMap::new();
-    for (i, t) in kept.iter().enumerate() {
-        by_root.entry(root(&mut parent, i)).or_default().push(*t);
+    for (r, t) in sets.roots().into_iter().zip(&kept) {
+        by_root.entry(r).or_default().push(*t);
     }
     let mut out: Vec<_> = (by_root.into_values())
         .filter(|p| p.iter().map(area).sum::<f32>() >= PATCH_MIN)

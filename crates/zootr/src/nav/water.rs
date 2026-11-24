@@ -9,6 +9,7 @@ use std::path::Path;
 use anyhow::Result;
 use ounce_formats::{ActorPack, Romfs};
 
+use super::disjoint::DisjointSet;
 use super::graph::{Border, Cross, Graph, Snap, Via, dist};
 use super::kinds;
 use super::shape::{place, turn};
@@ -210,26 +211,17 @@ pub fn waters(
 /// `0..n` in groups, chaining every pair `joined` says is together, each
 /// group in order and the groups by their first.
 fn groups(n: usize, joined: impl Fn(usize, usize) -> bool) -> Vec<Vec<usize>> {
-    fn root(of: &mut [usize], mut i: usize) -> usize {
-        while of[i] != i {
-            of[i] = of[of[i]];
-            i = of[i];
-        }
-        i
-    }
-    let mut of: Vec<usize> = (0..n).collect();
+    let mut sets = DisjointSet::new(n);
     for a in 0..n {
         for b in a + 1..n {
             if joined(a, b) {
-                let (ra, rb) = (root(&mut of, a), root(&mut of, b));
-                of[ra] = rb;
+                sets.union(a, b);
             }
         }
     }
     let mut out: Vec<Vec<usize>> = vec![];
     let mut at = HashMap::new();
-    for i in 0..n {
-        let r = root(&mut of, i);
+    for (i, r) in sets.roots().into_iter().enumerate() {
         let g = *at.entry(r).or_insert_with(|| {
             out.push(vec![]);
             out.len() - 1
