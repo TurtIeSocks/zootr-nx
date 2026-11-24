@@ -8,11 +8,14 @@ interface MarkedProps {
   className?: string;
 }
 
-/** Which characters of `text` any of `words` covers. */
+/** Which characters of `text` any of `words` covers. An empty word covers
+ * none. Indices come from `text`'s lower case, so a character whose lower
+ * case is longer (like `İ`) shifts the marks after it. */
 function covered(text: string, words: string[]): boolean[] {
   const lower = text.toLowerCase();
   const hit = new Array<boolean>(text.length).fill(false);
   for (const w of words) {
+    if (!w) continue;
     for (let at = lower.indexOf(w); at >= 0; at = lower.indexOf(w, at + 1))
       hit.fill(true, at, at + w.length);
   }

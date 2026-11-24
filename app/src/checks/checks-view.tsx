@@ -1,4 +1,4 @@
-import { Circle, CircleCheck, Ellipsis, Search } from "lucide-react";
+import { Circle, CircleCheck, Ellipsis } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import type { Row } from "@/bindings";
 import { EntranceRows } from "@/checks/entrance-rows";
@@ -10,6 +10,7 @@ import {
   isDone,
   nameOf,
 } from "@/checks/rows";
+import { AreaHeading } from "@/checks/table";
 import { InlineError } from "@/components/callout";
 import { Help } from "@/components/help";
 import { LoadGate } from "@/components/load-gate";
@@ -17,6 +18,8 @@ import { Meter } from "@/components/meter";
 import { NoSeed } from "@/components/no-seed";
 import { RequestError } from "@/components/request-error";
 import { SaveFooter } from "@/components/save-footer";
+import { SearchInput } from "@/components/search-input";
+import { cellClass } from "@/components/styles";
 import { Tip } from "@/components/tip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -190,9 +193,6 @@ function Unseen({ row }: RowProps) {
   );
 }
 
-/** What every cell in a check's row shares. */
-const cell = "h-8.5 border-line border-t px-3 align-middle";
-
 /** A check's row, with its own request for marking it: one mark at a
  * time, and why one failed shown in the row. */
 function CheckRow({ row }: RowProps) {
@@ -208,7 +208,7 @@ function CheckRow({ row }: RowProps) {
           done && "text-ink-faint",
         )}
       >
-        <td className={cn(cell, "w-10 pr-0")}>
+        <td className={cn(cellClass, "w-10 pr-0")}>
           {row.checked ? (
             <CircleCheck className="size-4 text-primary" aria-label="checked" />
           ) : (
@@ -217,19 +217,22 @@ function CheckRow({ row }: RowProps) {
         </td>
         <Tip tip={devTools && `${row.spot.holder} ${row.spot.hash}`}>
           <td
-            className={cn(cell, done && "line-through decoration-line-strong")}
+            className={cn(
+              cellClass,
+              done && "line-through decoration-line-strong",
+            )}
           >
             {nameOf(row)}
           </td>
         </Tip>
-        <td className={cell}>
+        <td className={cellClass}>
           {row.checked ? (
             row.spot.item_name || row.spot.item
           ) : (
             <Unseen row={row} />
           )}
         </td>
-        <td className={cn(cell, "text-ink-muted")}>
+        <td className={cn(cellClass, "text-ink-muted")}>
           {row.mark?.kind === "Skipped" ? (
             <Badge shape="square">Skipped</Badge>
           ) : (
@@ -240,7 +243,7 @@ function CheckRow({ row }: RowProps) {
           )}
           <RequestError />
         </td>
-        <td className={cn(cell, "w-12 text-right")}>
+        <td className={cn(cellClass, "w-12 text-right")}>
           <MarkMenu row={row} />
         </td>
       </tr>
@@ -257,19 +260,12 @@ interface AreaRowsProps {
 function AreaRows({ area }: AreaRowsProps) {
   return (
     <tbody className="group/area">
-      <tr>
-        <th
-          colSpan={5}
-          className="sticky top-8 z-1 border-line-strong border-t bg-surface px-3 pt-3 pb-2 text-left font-normal group-first/area:border-t-0"
-        >
-          <div className="flex items-center gap-3">
-            <span className="font-semibold text-[13.5px]">{area.name}</span>
-            <Meter value={area.done} max={area.total}>
-              {area.done}/{area.total}
-            </Meter>
-          </div>
-        </th>
-      </tr>
+      <AreaHeading
+        name={area.name}
+        done={area.done}
+        total={area.total}
+        className="border-line-strong border-t group-first/area:border-t-0"
+      />
       {area.rows.map((r) => (
         <CheckRow key={r.spot.hash} row={r} />
       ))}
@@ -302,16 +298,13 @@ function Done() {
 function Query() {
   const [query, setQuery] = useUi.usePath("checks.query");
   return (
-    <div className="relative ml-auto min-w-40 max-w-64 flex-1">
-      <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-ink-faint" />
-      <Input
-        className="h-7 pl-8"
-        aria-label="Filter checks"
-        placeholder="Filter checks"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
-    </div>
+    <SearchInput
+      className="ml-auto min-w-40 max-w-64 flex-1"
+      aria-label="Filter checks"
+      placeholder="Filter checks"
+      value={query}
+      onChange={(e) => setQuery(e.target.value)}
+    />
   );
 }
 

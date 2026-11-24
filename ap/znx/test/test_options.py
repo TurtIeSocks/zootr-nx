@@ -7,15 +7,15 @@ from itertools import product
 
 from BaseClasses import LocationProgressType
 from .. import dealt, traded, trapped
-from ..exported import JUNK, OPTIONS, POOL, SHARES, TRAP
+from ..exported import JUNK, OPTIONS, POOL, SHARES, TRAP, WORLD
 from ..options import attr
-from . import ZnxTestBase
+from . import ZnxTestBase, ap_value
 
 
 def other_values(entry: dict) -> list:
     if entry["kind"] == "toggle":
         return [not entry["default"]]
-    return [option["id"].replace("-", "_") for option in entry["options"] if option["id"] != entry["default"]]
+    return [ap_value(entry["id"], option["id"]) for option in entry["options"] if option["id"] != entry["default"]]
 
 
 for entry in OPTIONS:
@@ -28,7 +28,7 @@ for entry in OPTIONS:
 # Freed the membership card's, Cows lose their milk to the bottle cap.
 JOINT = ["met-zelda", "gerudo-fortress", "cows"]
 JOINT_ENTRIES = [next(entry for entry in OPTIONS if entry["id"] == id_) for id_ in JOINT]
-for combo in product(*([attr(str(e["default"])) if e["kind"] != "toggle" else e["default"], *other_values(e)] for e in JOINT_ENTRIES)):
+for combo in product(*([ap_value(e["id"], e["default"]), *other_values(e)] for e in JOINT_ENTRIES)):
     options = {"npc_gifts": True, **{attr(id_): value for id_, value in zip(JOINT, combo)}}
     name = "Test_npc_gifts_" + "_".join(str(value) for value in combo)
     globals()[name] = type(name, (ZnxTestBase,), {"options": options})
@@ -49,6 +49,22 @@ class TestDeadTreeWithAdultDekuTree(ZnxTestBase):
     def test_a_way_in_a_region(self) -> None:
         names = {region.name for region in self.multiworld.get_regions(self.player)}
         self.assertIn("deku-tree-adult", names)
+
+
+class TestEventWithNoWayInIsNotFree(ZnxTestBase):
+    """An event whose every spot these options close is never reached,
+    rather than given at the start."""
+
+    EVENT = {"name": "Beat FakeBoss", "at": [{"place": WORLD["start"], "rule": False}]}
+
+    def setUp(self) -> None:
+        WORLD["events"].append(self.EVENT)
+        self.addCleanup(WORLD["events"].remove, self.EVENT)
+        super().setUp()
+
+    def test_not_placed(self) -> None:
+        names = {location.name for location in self.multiworld.get_locations(self.player)}
+        self.assertNotIn(self.EVENT["name"], names)
 
 
 RACE = "Gerudo Valley Running Man's Race"

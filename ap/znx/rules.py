@@ -24,6 +24,8 @@ def held(word: str, settings: dict) -> bool:
 
 
 def fold(tree, settings: dict):
+    """`tree` with its settings read from `settings`: `True`, `False`, or a
+    smaller tree."""
     if isinstance(tree, bool):
         return tree
     if "setting" in tree:
@@ -33,9 +35,10 @@ def fold(tree, settings: dict):
             parts = [fold(part, settings) for part in tree[key]]
             if absorbs in parts:
                 return absorbs
-            rest = [part for part in parts if part is not (not absorbs)]
+            identity = not absorbs
+            rest = [part for part in parts if part is not identity]
             if not rest:
-                return not absorbs
+                return identity
             return rest[0] if len(rest) == 1 else {key: rest}
     return tree
 
