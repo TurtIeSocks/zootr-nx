@@ -109,12 +109,12 @@ impl Game {
         g.write(LINK + 0x31c, &f32s(&POSITION));
         g.write(LINK + 0x328, &f32s(&ROTATION));
         g.write(LINK, &u64s(&[at(o.player_vtable)]));
-        g.write(LINK + 624, &u64s(&[LINK + 0x800]));
-        g.write(LINK + 0x800 + 800, &u64s(&[MOVEMENT]));
-        g.write(MOVEMENT + 24, &u64s(&[LINK]));
+        g.write(LINK + 0x270, &u64s(&[LINK + 0x800]));
+        g.write(LINK + 0x800 + 0x320, &u64s(&[MOVEMENT]));
+        g.write(MOVEMENT + 0x18, &u64s(&[LINK]));
         g.write(OWNER, &u64s(&[at(o.move_vtable)]));
-        g.write(OWNER + 16, &u64s(&[RESOURCE]));
-        g.write(RESOURCE + 88, b"Player\0");
+        g.write(OWNER + 0x10, &u64s(&[RESOURCE]));
+        g.write(RESOURCE + 0x58, b"Player\0");
         // GameData and the events (none playing) through main's globals.
         g.write(CELLS, &u64s(&[GAMEDATA, EVENTS]));
         g.write(at(o.gamedata), &u64s(&[CELLS]));

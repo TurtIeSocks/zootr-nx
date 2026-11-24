@@ -6,6 +6,7 @@ use core::sync::atomic::Ordering;
 
 use super::rt::{memcpy, memset};
 use super::{at, func, level_for, name, owned, shared};
+use crate::traps::COMPONENTS;
 use crate::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
     ARG_SUMMARY, Ask, GUARD, Mailbox, NAME, Notice, Offsets, Outcome, Spot, fnv, play_event,
@@ -38,23 +39,29 @@ const TEXT: u32 = 1;
 const BOOL: u32 = 4;
 /// Where the block keeps its event name, its arguments, and the
 /// two actor links.
-const EVENT_NAME: usize = 6800;
+const EVENT_NAME: usize = 0x1a90;
 const ARGS: usize = 8;
-const ARG_COUNT: usize = 16;
-const ARG_SIZE: usize = 200;
-const ARG_VALUE: usize = 152;
+const ARG_COUNT: usize = 0x10;
+const ARG_SIZE: usize = 0xc8;
+const ARG_VALUE: usize = 0x98;
 const STARTER: usize = 0x1950;
 const LINKS: [usize; 2] = [0x1968, 0x1950];
 /// The event manager's playing event.
-const PLAYING: usize = 104;
+const PLAYING: usize = 0x68;
 /// The world's clock.
 const CLOCK: usize = 0x510;
-/// Link's components, and the steps from them to his character
-/// controller.
-const COMPONENTS: usize = 624;
+/// The steps from Link's components to his character controller.
+const CONTROLLER: [usize; 4] = [0x50, 0x20, 0x10, 0x8];
+/// Where Link's components keep his movement component; where that sits
+/// in the player object that owns it, and keeps its actor; and where the
+/// owner keeps its resource, and the resource its name.
+const MOVEMENT: usize = 0x320;
+const MOVEMENT_IN_OWNER: usize = 0x1d50;
+const MOVEMENT_ACTOR: usize = 0x18;
+const RESOURCE: usize = 0x10;
+const RESOURCE_NAME: usize = 0x58;
 /// An actor's position, Link's and a pickup's alike.
-pub(super) const POSITION: usize = 796;
-const CONTROLLER: [usize; 4] = [80, 32, 16, 8];
+pub(super) const POSITION: usize = 0x31c;
 
 /// Run the request the app left in the mailbox. Far code: only a dev
 /// seed calls it, and most calls find no request.
@@ -104,12 +111,12 @@ pub(super) unsafe fn player(main: usize, o: &Offsets, actor: usize) -> Option<us
         if !vtable(actor, o.player_vtable) {
             return None;
         }
-        let movement = at(at(actor, 624)?, 800)?;
-        let owner = movement - 0x1d50;
-        let resource = at(owner, 16)?;
-        let ok = at(movement, 24)? == actor
+        let movement = at(at(actor, COMPONENTS)?, MOVEMENT)?;
+        let owner = movement - MOVEMENT_IN_OWNER;
+        let resource = at(owner, RESOURCE)?;
+        let ok = at(movement, MOVEMENT_ACTOR)? == actor
             && vtable(owner, o.move_vtable)
-            && name((resource + 88) as *const u8) == Some(&b"Player"[..]);
+            && name((resource + RESOURCE_NAME) as *const u8) == Some(&b"Player"[..]);
         ok.then_some(owner)
     }
 }
@@ -175,7 +182,7 @@ unsafe fn add(block: usize, key: &[u8], kind: u32, value: usize) -> bool {
             return false;
         };
         let e = args + n as usize * ARG_SIZE;
-        if !put(*((e + 8) as *const usize), *((e + 16) as *const u32), key) {
+        if !put(*((e + 8) as *const usize), *((e + 0x10) as *const u32), key) {
             return false;
         }
         match kind {

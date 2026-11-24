@@ -7,6 +7,7 @@
 //! vanilla play nocks and says what it always did.
 
 use super::{at, func};
+use crate::traps::COMPONENTS;
 use crate::{DEKU_SEED, OFFSETS};
 
 /// Where Link's EquipmentUser component keeps his projectile's name
@@ -84,7 +85,7 @@ pub unsafe fn nocked(main: usize, user: usize) {
 /// `link` is Link's actor.
 pub unsafe fn shoots_seeds(main: usize, link: usize) -> Option<bool> {
     unsafe {
-        let user = at(link, 0x270).and_then(|parts| at(parts, 0x200))?;
+        let user = at(link, COMPONENTS).and_then(|parts| at(parts, 0x200))?;
         projectile(main, user).map(|hash| hash == DEKU_SEED)
     }
 }
@@ -123,7 +124,7 @@ pub unsafe fn emptied(main: usize, node: usize) {
 unsafe fn parts_of(node: usize) -> Option<(usize, usize)> {
     unsafe {
         let link = at(at(at(node, 8)?, 8)?, 0x1f0)?;
-        let parts = at(link, 0x270)?;
+        let parts = at(link, COMPONENTS)?;
         Some((at(parts, 0x200)?, at(parts, 0x358)?))
     }
 }

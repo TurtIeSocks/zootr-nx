@@ -13,6 +13,7 @@ use core::sync::atomic::Ordering;
 
 use super::dev::{CHILD, POSITION, get_bool, idle, set_bool, single};
 use super::{at, func, shared};
+use crate::traps::COMPONENTS;
 use crate::{Mailbox, Offsets, Outcome, Swap};
 
 type Create = unsafe extern "C" fn(usize, u32) -> u32;
@@ -42,10 +43,9 @@ const ENTRY: usize = 0x70;
 /// An actor's state, asleep at 3 or 6, and its rotation, a 3x3 matrix.
 const STATE: usize = 0x2c;
 const ROTATION: usize = 0x328;
-/// An actor's components; the camera's own component, the player's
-/// camera target part, and where the camera keeps the target part it
+/// The camera's own component and the player's camera target part among
+/// an actor's components, and where the camera keeps the target part it
 /// followed last. A new part there makes it snap behind Link.
-const COMPONENTS: usize = 0x270;
 const CAMERA: usize = 0x360;
 const TARGET: usize = 0x368;
 const FOLLOWED: usize = 0xfe0;

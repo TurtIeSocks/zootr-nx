@@ -5,6 +5,7 @@
 //! stay as they are.
 
 use super::{at, func, main, table};
+use crate::traps::COMPONENTS;
 use crate::{BUNNY_HOOD, OFFSETS};
 
 /// How much faster, Ship of Harkinian's factor.
@@ -54,7 +55,7 @@ unsafe fn wears_hood(state: usize) -> bool {
 unsafe fn shown_mask(state: usize) -> Option<u32> {
     unsafe {
         let actor = at(state, 0x18)?;
-        let model = at(at(actor, 0x270)?, 0x358)?;
+        let model = at(at(actor, COMPONENTS)?, 0x358)?;
         Some(*((model + MASK) as *const u32))
     }
 }
