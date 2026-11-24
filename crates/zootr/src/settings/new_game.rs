@@ -110,6 +110,9 @@ pub struct NewGame {
     /// Every slot's name by number, in an AP seed, for received items'
     /// notices.
     pub players: std::collections::BTreeMap<u32, String>,
+    /// The stones' hints AP picked, in an AP seed that has them: the seed
+    /// picks none of its own.
+    pub given_hints: Option<Vec<crate::hints::Hint>>,
 }
 
 impl NewGame {
@@ -253,6 +256,7 @@ impl NewGame {
             ints: vec![],
             foreign: vec![],
             players: Default::default(),
+            given_hints: None,
         })
     }
 }
@@ -457,6 +461,7 @@ mod tests {
                 ints: vec![],
                 foreign: vec![],
                 players: Default::default(),
+                given_hints: None,
                 logic: Logic::Glitchless,
                 on: toggles_on(&Settings::new()),
             }

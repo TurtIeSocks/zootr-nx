@@ -13,6 +13,7 @@ use super::ids::Ids;
 use super::names;
 use super::seed::{Dealt, base};
 use crate::foreign::{self, Foreign, Owner};
+use crate::hints::{Hint, Place};
 use crate::ice_traps;
 use crate::known::{Name, item};
 use crate::settings::{IceTraps, Settings};
@@ -48,6 +49,24 @@ pub struct ApSeed {
     pub players: BTreeMap<u32, String>,
     /// By check hash.
     pub placements: BTreeMap<u64, Placed>,
+    /// The stones' hints, in order, with the hints option on. Seeds from
+    /// before them have none.
+    #[serde(default)]
+    pub hints: Vec<ApHint>,
+}
+
+/// One stone's hint: where one of this slot's items is.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ApHint {
+    /// At one of this slot's checks, by hash.
+    Own { item: u64, own: u64 },
+    /// At another slot's location, by its AP names.
+    Theirs {
+        item: u64,
+        player: String,
+        location: String,
+    },
 }
 
 /// What AP put at one check.
@@ -79,6 +98,7 @@ pub struct Resolved {
     pub foreign: Vec<Foreign>,
     /// The start inventory, by actor.
     pub give: Vec<String>,
+    pub hints: Vec<Hint>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -129,6 +149,8 @@ impl ApSeed {
             death_link: bool,
             #[serde(default)]
             players: BTreeMap<u32, String>,
+            #[serde(default)]
+            hints: Vec<ApHint>,
         }
         let seed: SeedFile = json(&files, "seed.json")?;
         Ok(Self {
@@ -141,6 +163,7 @@ impl ApSeed {
             death_link: seed.death_link,
             players: seed.players,
             placements: json(&files, "placements.json")?,
+            hints: seed.hints,
         })
     }
 
@@ -217,10 +240,30 @@ impl ApSeed {
             .iter()
             .map(|&id| actor(id))
             .collect::<Result<_>>()?;
+        let area = |hash| match dealt.checks.iter().find(|c| c.hash == hash) {
+            Some(c) => Ok(Place::Area(c.area.clone())),
+            None => bail!("a hint names check {hash}, which this version doesn't have"),
+        };
+        let hint = |h: &ApHint| -> Result<Hint> {
+            let (item, place) = match h {
+                ApHint::Own { item, own } => (item, area(*own)?),
+                ApHint::Theirs {
+                    item,
+                    player,
+                    location,
+                } => (item, Place::Words(format!("{location} ({player})"))),
+            };
+            Ok(Hint {
+                place,
+                item: actor(*item)?,
+            })
+        };
+        let hints = self.hints.iter().map(hint).collect::<Result<_>>()?;
         Ok(Resolved {
             fixed,
             foreign,
             give,
+            hints,
         })
     }
 }
@@ -317,6 +360,45 @@ mod tests {
         });
         let resolved = seed.resolve(&romfs).unwrap();
         assert!(resolved.foreign.iter().any(|f| f.shows == medal));
+    }
+
+    #[test]
+    fn hints_name_link_s_own_checks_by_area_and_another_slot_s_by_name() {
+        let Some(romfs) = dev_dump() else { return };
+        let mut seed = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        // Written before hints, the fixture has none.
+        assert!(seed.resolve(&romfs).unwrap().hints.is_empty());
+        let own = |(&hash, p): (&u64, &Placed)| match p {
+            Placed::Own(id) => Some((hash, *id)),
+            Placed::Foreign(_) => None,
+        };
+        let (own, item) = seed.placements.iter().find_map(own).unwrap();
+        let location = "Fake Pot 3".to_string();
+        let player = "Zelda".to_string();
+        seed.hints = vec![
+            ApHint::Own { item, own },
+            ApHint::Theirs {
+                item,
+                player,
+                location,
+            },
+        ];
+        let resolved = seed.resolve(&romfs).unwrap();
+        let dealt = Dealt::new(&romfs, &seed.full_settings()).unwrap();
+        let area = dealt
+            .checks
+            .iter()
+            .find(|c| c.hash == own)
+            .unwrap()
+            .area
+            .clone();
+        let item = resolved.fixed[&own].clone();
+        let words = Place::Words("Fake Pot 3 (Zelda)".into());
+        let want = [(Place::Area(area), &item), (words, &item)].map(|(place, item)| Hint {
+            place,
+            item: item.clone(),
+        });
+        assert_eq!(resolved.hints, want);
     }
 
     #[test]

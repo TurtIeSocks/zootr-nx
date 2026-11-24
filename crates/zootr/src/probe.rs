@@ -94,7 +94,12 @@ pub enum Probe {
     /// description, and a choice's options.
     Settings,
     /// Game text whose id or English contains this, any case.
-    Text { pattern: String },
+    Text {
+        pattern: String,
+        /// Read this mod folder's text, as a seed wrote it, instead.
+        #[arg(long)]
+        mod_dir: Option<PathBuf>,
+    },
     /// Files anywhere in the dump whose path contains this, with sizes.
     /// Reads the `.nup`, so it reaches files zootr doesn't extract.
     Files {
@@ -422,7 +427,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             });
             Ok(())
         }
-        Probe::Text { pattern } => text(romfs, &pattern),
+        Probe::Text { pattern, mod_dir } => text(romfs, &pattern, mod_dir.as_deref()),
         Probe::Settings => {
             settings();
             Ok(())
@@ -663,8 +668,17 @@ fn pack(romfs: &Romfs, actor: &str, file: Option<&str>, mod_dir: Option<&Path>) 
     Ok(())
 }
 
-fn text(romfs: &Romfs, pattern: &str) -> Result<()> {
-    let sarc = Sarc::new(romfs.read(TEXT)?).with_context(|| format!("reading {TEXT}"))?;
+fn text(romfs: &Romfs, pattern: &str, mod_dir: Option<&Path>) -> Result<()> {
+    let data = match mod_dir {
+        Some(dir) => {
+            let path = dir.join("romfs").join(TEXT);
+            let raw =
+                std::fs::read(&path).with_context(|| format!("reading {}", path.display()))?;
+            romfs.dicts().decompress(TEXT, &raw)?
+        }
+        None => romfs.read(TEXT)?,
+    };
+    let sarc = Sarc::new(&data).with_context(|| format!("reading {TEXT}"))?;
     let want = pattern.to_lowercase();
     for f in sarc.files() {
         let Some(name) = f.name().filter(|n| n.ends_with(".msbt")) else {

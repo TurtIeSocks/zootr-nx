@@ -650,6 +650,13 @@
     "label": "No Pickup Texts"
   },
   {
+    "default": false,
+    "description": "Each gossip stone names where an item Link needs is hidden, without the Mask of Truth or any small talk",
+    "id": "hints",
+    "kind": "toggle",
+    "label": "Gossip Stone Hints"
+  },
+  {
     "default": [
       "skip-intro",
       "skip-arrivals"

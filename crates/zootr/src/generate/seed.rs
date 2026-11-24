@@ -137,9 +137,11 @@ pub fn shuffle(
         .for_each(|s| s.given = given.contains(&s.hash));
     places::fill(romfs, &mut spots)?;
     spots.sort_by(|a, b| (&a.area_name, a.name(), a.hash).cmp(&(&b.area_name, b.name(), b.hash)));
-    let hints = match (new_game.hints, &filled) {
-        (true, Some((world, _))) => hints::choose(&spots, &world.items(), seed),
-        _ => vec![],
+    let hints = match (new_game.hints, &new_game.given_hints, &filled) {
+        (false, ..) => vec![],
+        (true, Some(given), _) => given.clone(),
+        (true, None, Some((world, _))) => hints::choose(&spots, &world.items(), seed),
+        (true, None, None) => vec![],
     };
     let (mut events, mut unprovable) = (Vec::new(), Vec::new());
     if let Some((world, filled)) = &filled {
@@ -347,6 +349,8 @@ pub fn generate(
     );
     if let Some(ap) = &ap {
         new_game.foreign = ap.foreign.clone();
+        // An AP seed's stones name only what AP picked.
+        new_game.given_hints = Some(ap.hints.clone());
         new_game.players = extras
             .ap
             .as_ref()

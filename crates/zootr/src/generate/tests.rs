@@ -726,6 +726,34 @@ fn hints_fill_every_stone_only_with_the_option_on() {
     .unwrap();
     let vanilla = stones(&dir.join("b")).unwrap_or_default();
     assert!(!vanilla.iter().any(|l| l.starts_with("They say that ")));
+    // An AP seed's stones name only the hints it was given.
+    let given = |hints: Vec<hints::Hint>, out: &str| {
+        let new_game = NewGame {
+            given_hints: Some(hints),
+            ..on.clone()
+        };
+        shuffle(
+            &romfs,
+            &dir.join(out),
+            7,
+            &Fixed::new(),
+            &new_game,
+            &Run::silent(),
+        )
+        .unwrap();
+        stones(&dir.join(out)).unwrap_or_default()
+    };
+    let words = hints::Place::Words("Fake Pot 3 (Fake Player)".into());
+    let hint = hints::Hint {
+        place: words,
+        item: item::HAMMER.to_string(),
+    };
+    let read = given(vec![hint], "c");
+    assert_eq!(read.len(), hints::STONES);
+    let line = "They say that Fake Pot 3 (Fake Player)\nhides Megaton Hammer.";
+    assert!(read.iter().all(|l| l == line), "{read:?}");
+    let none = given(vec![], "d");
+    assert!(!none.iter().any(|l| l.starts_with("They say that ")));
 }
 
 #[test]
