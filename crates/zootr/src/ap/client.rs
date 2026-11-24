@@ -514,7 +514,7 @@ pub struct Installed {
 /// seed's, which names the Int it adds.
 pub fn installed(romfs: &Romfs, gd: Arc<GameData>, target: Target) -> Result<Installed> {
     let history = crate::history::History::load()?;
-    let entry = history.get(history.installed.context("no seed is installed")?)?;
+    let entry = history.installed_entry()?;
     let seed =
         (entry.extras.ap.as_ref()).context("the installed seed isn't one from Archipelago")?;
     seed.check_version()?;
