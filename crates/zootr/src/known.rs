@@ -156,7 +156,7 @@ fn load(root: &Path, tier: usize) -> Result<HashMap<u64, &'static str>> {
 }
 
 /// Writes `text` to `file` through a temporary, so a reader never sees half.
-fn keep(file: &Path, text: &str) -> Result<()> {
+pub(crate) fn keep(file: &Path, text: impl AsRef<[u8]>) -> Result<()> {
     let part = file.with_extension(format!("{}.part", std::process::id()));
     std::fs::create_dir_all(file.parent().unwrap_or(file))?;
     std::fs::write(&part, text)?;

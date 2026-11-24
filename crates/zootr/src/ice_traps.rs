@@ -127,8 +127,11 @@ pub fn disguise(
         return Ok(vec![]);
     }
     let placed = || placements.iter().map(|p| p.item);
-    let none = BTreeSet::new();
-    let junk = junk(romfs, placed(), needed.unwrap_or(&none))?;
+    // Junk only matters with no logic to say what's needed.
+    let junk = match needed {
+        None => junk(romfs, placed(), &BTreeSet::new())?,
+        Some(_) => BTreeSet::new(),
+    };
     let wanted = |i: &str| needed.map_or(!junk.contains(i), |n| n.contains(i));
     let shown: Vec<&str> = (placed().filter(|i| !i.starts_with(MADE) && wanted(i)))
         .collect::<BTreeSet<_>>()

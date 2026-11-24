@@ -51,10 +51,15 @@ pub fn path(name: &str) -> Result<PathBuf> {
 
 fn folder(name: &str) -> Result<PathBuf> {
     ensure!(
-        !name.is_empty() && !name.contains(['/', '\\']) && !name.starts_with('.'),
+        plain(name),
         "a kept save's name is one plain word, not {name:?}"
     );
     Ok(library()?.join(name))
+}
+
+/// Whether `name` can name a kept save: one word, not hidden.
+fn plain(name: &str) -> bool {
+    !name.is_empty() && !name.contains(['/', '\\']) && !name.starts_with('.')
 }
 
 /// Keep the save folder `from` as `name`: every slot, or only `slot`
@@ -87,45 +92,76 @@ pub fn keep(
     };
     let mut json = serde_json::to_vec_pretty(&kept)?;
     json.push(b'\n');
-    std::fs::write(to.join(META), json)?;
+    let meta = to.join(META);
+    std::fs::write(&meta, json).with_context(|| format!("writing {}", meta.display()))?;
     Ok(kept)
 }
 
 /// Every kept save by name, sorted.
 pub fn list() -> Result<Vec<(String, Kept)>> {
-    let Ok(entries) = std::fs::read_dir(library()?) else {
-        return Ok(vec![]);
+    Ok(list_in(&library()?))
+}
+
+/// Every kept save in the library `dir`: its folders a kept save's name
+/// can name, so not a stray file or a half-made copy.
+fn list_in(dir: &Path) -> Vec<(String, Kept)> {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return vec![];
     };
     let mut kept: Vec<(String, Kept)> = entries
         .filter_map(|e| {
-            let path = e.ok()?.path();
-            let meta = std::fs::read(path.join(META)).unwrap_or_default();
-            let name = path.file_name()?.to_str()?.to_owned();
+            let e = e.ok()?;
+            let name = e.file_name().to_str()?.to_owned();
+            if !e.file_type().ok()?.is_dir() || !plain(&name) {
+                return None;
+            }
+            let meta = std::fs::read(e.path().join(META)).unwrap_or_default();
             Some((name, serde_json::from_slice(&meta).unwrap_or_default()))
         })
         .collect();
     kept.sort_by(|a, b| a.0.cmp(&b.0));
-    Ok(kept)
+    kept
 }
 
 /// `from`'s save files into a fresh `to`: the top-level `.sav` files, and
-/// every `slot_NN` folder or only `slot`'s, renamed `slot_00`.
+/// every `slot_NN` folder or only `slot`'s, renamed `slot_00`. The copy is
+/// made beside `to` and replaces it only once whole, so a failed one
+/// leaves the old `to` as it was.
 fn copy(from: &Path, to: &Path, slot: Option<u8>) -> Result<()> {
     if let Some(n) = slot {
         let slot = from.join(format!("slot_{n:02}"));
         ensure!(slot.is_dir(), "{} has no slot {n}", from.display());
     }
     let entries = std::fs::read_dir(from).with_context(|| format!("reading {}", from.display()))?;
-    let slots = entries
-        .flatten()
-        .filter(|e| slot_of(&e.file_name().to_string_lossy()).is_some());
+    let slots = entries.flatten().filter(|e| {
+        let dir = e.file_type().is_ok_and(|t| t.is_dir());
+        dir && is_save(&e.file_name().to_string_lossy(), dir)
+    });
     ensure!(
         slots.count() > 0,
         "{} holds no slot_NN folder: --from takes the folder the slots are in",
         from.display()
     );
-    let _ = std::fs::remove_dir_all(to);
-    std::fs::create_dir_all(to)?;
+    let name = to.file_name().context("a kept save's folder has no name")?;
+    let part = to.with_file_name(format!(".{}.part", name.to_string_lossy()));
+    let _ = std::fs::remove_dir_all(&part);
+    if let Err(e) = copy_into(from, &part, slot) {
+        let _ = std::fs::remove_dir_all(&part);
+        return Err(e);
+    }
+    match std::fs::remove_dir_all(to) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+            let _ = std::fs::remove_dir_all(&part);
+            return Err(e).with_context(|| format!("replacing {}", to.display()));
+        }
+        _ => {}
+    }
+    std::fs::rename(&part, to).with_context(|| format!("moving the copy to {}", to.display()))
+}
+
+/// `copy`'s files, into a `to` made for them.
+fn copy_into(from: &Path, to: &Path, slot: Option<u8>) -> Result<()> {
+    std::fs::create_dir_all(to).with_context(|| format!("making {}", to.display()))?;
     for entry in std::fs::read_dir(from).with_context(|| format!("reading {}", from.display()))? {
         let entry = entry?;
         let name = entry.file_name().to_string_lossy().into_owned();
@@ -139,9 +175,7 @@ fn copy(from: &Path, to: &Path, slot: Option<u8>) -> Result<()> {
                 Some(_) => copy_dir(&entry.path(), &to.join("slot_00"))?,
                 None => copy_dir(&entry.path(), &to.join(&name))?,
             },
-            _ => {
-                std::fs::copy(entry.path(), to.join(&name))?;
-            }
+            _ => copy_file(&entry.path(), &to.join(&name))?,
         }
     }
     Ok(())
@@ -156,17 +190,25 @@ pub(crate) fn is_save(name: &str, dir: bool) -> bool {
     }
 }
 
-/// The number of a `slot_NN` folder's name.
+/// The number of a `slot_NN` folder's name: two digits, as the game
+/// names them.
 fn slot_of(name: &str) -> Option<u8> {
-    name.strip_prefix("slot_")?.parse().ok()
+    let n = name.strip_prefix("slot_")?;
+    (n.len() == 2 && n.bytes().all(|b| b.is_ascii_digit())).then(|| n.parse().ok())?
 }
 
 fn copy_dir(from: &Path, to: &Path) -> Result<()> {
-    std::fs::create_dir_all(to)?;
-    for entry in std::fs::read_dir(from)? {
+    std::fs::create_dir_all(to).with_context(|| format!("making {}", to.display()))?;
+    let entries = std::fs::read_dir(from).with_context(|| format!("reading {}", from.display()))?;
+    for entry in entries {
         let entry = entry?;
-        std::fs::copy(entry.path(), to.join(entry.file_name()))?;
+        copy_file(&entry.path(), &to.join(entry.file_name()))?;
     }
+    Ok(())
+}
+
+fn copy_file(from: &Path, to: &Path) -> Result<()> {
+    std::fs::copy(from, to).with_context(|| format!("copying {}", from.display()))?;
     Ok(())
 }
 
@@ -223,6 +265,49 @@ mod tests {
         let err = copy(&from, &to, None).unwrap_err().to_string();
         assert!(err.contains("no slot_NN folder"), "{err}");
         assert!(to.join("option.sav").exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn a_failed_copy_keeps_the_old_keep_whole() {
+        let root = std::env::temp_dir().join(format!("zootr-keep-fail-{}", std::process::id()));
+        let (from, to) = (root.join("save"), root.join("kept"));
+        std::fs::create_dir_all(from.join("slot_00")).unwrap();
+        std::fs::write(from.join("slot_00/progress.sav"), "new").unwrap();
+        std::os::unix::fs::symlink(root.join("gone"), from.join("broken.sav")).unwrap();
+        std::fs::create_dir_all(&to).unwrap();
+        std::fs::write(to.join("option.sav"), "kept before").unwrap();
+        let err = format!("{:#}", copy(&from, &to, None).unwrap_err());
+        assert!(err.contains("broken.sav"), "{err}");
+        assert!(to.join("option.sav").exists());
+        assert!(!to.join("slot_00").exists());
+        assert!(!root.join(".kept.part").exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn slots_are_folders_named_with_two_digits() {
+        let root = std::env::temp_dir().join(format!("zootr-keep-slots-{}", std::process::id()));
+        let (from, to) = (root.join("save"), root.join("kept"));
+        std::fs::create_dir_all(from.join("slot_3")).unwrap();
+        std::fs::write(from.join("slot_00"), "a file, not a slot").unwrap();
+        let err = copy(&from, &to, None).unwrap_err().to_string();
+        assert!(err.contains("no slot_NN folder"), "{err}");
+        assert_eq!(slot_of("slot_03"), Some(3));
+        assert_eq!(slot_of("slot_+1"), None);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn the_list_holds_only_kept_save_folders() {
+        let root = std::env::temp_dir().join(format!("zootr-keep-list-{}", std::process::id()));
+        std::fs::create_dir_all(root.join("deku")).unwrap();
+        std::fs::create_dir_all(root.join(".deku.part")).unwrap();
+        std::fs::write(root.join(".DS_Store"), "").unwrap();
+        std::fs::write(root.join("notes"), "").unwrap();
+        let names: Vec<_> = list_in(&root).into_iter().map(|(n, _)| n).collect();
+        assert_eq!(names, ["deku"]);
         std::fs::remove_dir_all(root).unwrap();
     }
 

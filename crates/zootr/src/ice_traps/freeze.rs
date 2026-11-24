@@ -303,9 +303,9 @@ impl Remade {
             builder.add_entry(path, like, *like_size, *size)?;
         }
         builder.add(
-            &format!("Pack/Actor/{SENSOR}.pack.zs"),
+            &pack_file(SENSOR),
             &self.writer.to_binary(),
-            &format!("Pack/Actor/{}.pack.zs", self.like.name),
+            &pack_file(&self.like.name),
         )
     }
 }

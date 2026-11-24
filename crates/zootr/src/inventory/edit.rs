@@ -349,7 +349,7 @@ impl Inventory {
     }
 
     /// The tier `slot` is at: 0 for none.
-    fn tier(&self, slot: &Slot) -> usize {
+    pub(super) fn tier(&self, slot: &Slot) -> usize {
         (slot.tiers.iter())
             .rposition(|a| self.value(a) > 0)
             .map_or(0, |i| i + 1)
