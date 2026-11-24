@@ -102,7 +102,8 @@ pub fn onto(
         .map(|(h, n)| (h.actor, n))
         .collect();
     let mut edits = inv.holding(pouch, &held)?;
-    for d in start.defaults() {
+    // Not the defaults' rupees: the Status edits set them.
+    for d in start.bagged() {
         edits.push(Edit::parse(&d)?);
     }
     edits.extend(start.status());
@@ -370,6 +371,18 @@ mod tests {
         let mut want = shown(&kit, &pouch);
         EXTRAS.iter().for_each(|e| e.set(&mut want, 0));
         assert_eq!(read, want);
+    }
+
+    #[test]
+    fn onto_sets_the_rupees_once() {
+        let Some((gd, inv, pouch)) = layout() else {
+            return;
+        };
+        let mut save = fresh(&gd, &inv, &pouch).unwrap();
+        let log = onto(&gd, &inv, &pouch, &mut save, &start(&[(RUPEE_WORD, 99)])).unwrap();
+        let rupees = format!("{}: ", gd.name(RUPEES));
+        let set: Vec<_> = log.iter().filter(|l| l.starts_with(&rupees)).collect();
+        assert_eq!(set.len(), 1, "{log:?}");
     }
 
     #[test]
