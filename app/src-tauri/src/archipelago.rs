@@ -73,38 +73,17 @@ impl Ap {
         Ok(held.run)
     }
 
-    /// Whether `run` is the latest one.
-    fn current(&self, run: u64) -> bool {
-        self.0.lock().unwrap().run == run
-    }
-
-    /// `run` ended: whether it was refused, or `None` when a newer run
-    /// owns the page now.
-    fn finish(&self, run: u64) -> Option<bool> {
+    /// Applies `change` to what's held and sends the event it returns. The
+    /// change and the send share one lock, so a run's check that it's still
+    /// the latest can't go stale before its change lands.
+    fn apply(&self, app: &AppHandle, change: impl FnOnce(&mut Held) -> Option<ApEvent>) {
         let mut held = self.0.lock().unwrap();
-        if held.run != run {
-            return None;
+        if let Some(event) = change(&mut held) {
+            let _ = event.emit(app);
         }
-        held.stop = None;
-        Some(held.state.status == ApStatus::Refused)
     }
 
-    /// Keep and send a status, and a line when there is one.
-    fn say(&self, app: &AppHandle, status: Option<ApStatus>, line: Option<String>) {
-        let mut held = self.0.lock().unwrap();
-        let state = &mut held.state;
-        state.status = status.unwrap_or(state.status);
-        if let Some(l) = &line {
-            state.log.push(l.clone());
-            let over = state.log.len().saturating_sub(KEPT);
-            state.log.drain(..over);
-        }
-        let status = state.status;
-        drop(held);
-        let _ = ApEvent { status, line }.emit(app);
-    }
-
-    fn note(&self, app: &AppHandle, note: &Note) {
+    fn note(&self, app: &AppHandle, run: u64, note: &Note) {
         let status = match note {
             Note::Connecting | Note::Lost(..) => Some(ApStatus::Connecting),
             Note::Connected => Some(ApStatus::Connected),
@@ -114,7 +93,41 @@ impl Ap {
         // The server's confirmations are for timings, not the page.
         let line =
             (!matches!(note, Note::Connecting | Note::Confirmed(_))).then(|| note.to_string());
-        self.say(app, status, line);
+        self.apply(app, |held| held.say(run, status, line));
+    }
+}
+
+impl Held {
+    /// Keep `run`'s status, and a line when there is one, and the event that
+    /// sends them. `None` when a newer run owns the page now.
+    fn say(&mut self, run: u64, status: Option<ApStatus>, line: Option<String>) -> Option<ApEvent> {
+        if self.run != run {
+            return None;
+        }
+        let state = &mut self.state;
+        state.status = status.unwrap_or(state.status);
+        if let Some(l) = &line {
+            state.log.push(l.clone());
+            let over = state.log.len().saturating_sub(KEPT);
+            state.log.drain(..over);
+        }
+        Some(ApEvent {
+            status: state.status,
+            line,
+        })
+    }
+
+    /// `run` ended: it reads as disconnected unless it was refused. `None`
+    /// when there's nothing to send, or a newer run owns the page now.
+    fn end(&mut self, run: u64) -> Option<ApEvent> {
+        if self.run != run {
+            return None;
+        }
+        self.stop = None;
+        if self.state.status == ApStatus::Refused {
+            return None;
+        }
+        self.say(run, Some(ApStatus::Offline), Some("disconnected".into()))
     }
 }
 
@@ -151,13 +164,9 @@ pub(crate) async fn ap_connect(
     std::thread::spawn(move || {
         let ap = app.state::<Ap>();
         client::run(&room, &parts.book, &mut parts.game, &stop, &mut |n| {
-            if ap.current(run) {
-                ap.note(&app, &n);
-            }
+            ap.note(&app, run, &n);
         });
-        if ap.finish(run) == Some(false) {
-            ap.say(&app, Some(ApStatus::Offline), Some("disconnected".into()));
-        }
+        ap.apply(&app, |held| held.end(run));
     });
     Ok(())
 }
@@ -201,16 +210,36 @@ mod tests {
         let (send, _) = channel();
         assert!(ap.start(send).is_err(), "one run at a time");
         ap.0.lock().unwrap().stop = None;
-        let (send, new_stop) = channel();
+        let (send, _new_stop) = channel();
         let new = ap.start(send).unwrap();
-        assert!(!ap.current(old) && ap.current(new));
-        assert_eq!(ap.finish(old), None);
+        let mut held = ap.0.lock().unwrap();
         assert!(
-            ap.0.lock().unwrap().stop.is_some(),
-            "the new run still runs"
+            held.say(new, Some(ApStatus::Connected), Some("in".into()))
+                .is_some()
         );
-        drop(new_stop);
-        assert_eq!(ap.finish(new), Some(false));
-        assert!(ap.0.lock().unwrap().stop.is_none());
+        assert!(
+            held.say(old, Some(ApStatus::Connecting), Some("lost".into()))
+                .is_none()
+        );
+        assert!(held.end(old).is_none());
+        assert!(held.stop.is_some(), "the new run still runs");
+        assert!(held.state.status == ApStatus::Connected);
+        assert_eq!(held.state.log, ["in"]);
+        let ended = held.end(new).expect("an ended run says so");
+        assert!(ended.status == ApStatus::Offline);
+        assert_eq!(ended.line.as_deref(), Some("disconnected"));
+        assert!(held.stop.is_none());
+    }
+
+    #[test]
+    fn a_refused_run_ends_without_a_disconnect() {
+        let ap = Ap::default();
+        let (send, _stop) = channel();
+        let run = ap.start(send).unwrap();
+        let mut held = ap.0.lock().unwrap();
+        held.say(run, Some(ApStatus::Refused), Some("refused".into()));
+        assert!(held.end(run).is_none());
+        assert!(held.stop.is_none());
+        assert!(held.state.status == ApStatus::Refused);
     }
 }

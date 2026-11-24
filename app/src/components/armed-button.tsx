@@ -2,11 +2,12 @@ import type { ComponentProps, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useArmed } from "@/play/use-armed";
 
-/** Props for {@link ArmedButton}. */
+/** Props for {@link ArmedButton}: a button's, but for the handlers
+ * {@link useArmed} owns. */
 interface ArmedButtonProps
   extends Omit<
     ComponentProps<typeof Button>,
-    "onClick" | "onBlur" | "children"
+    keyof ReturnType<typeof useArmed> | "children"
   > {
   /** What the second click does, as "Really <verb>?" asks it. */
   verb: string;

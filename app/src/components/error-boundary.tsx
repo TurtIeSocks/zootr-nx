@@ -80,15 +80,7 @@ function CrashNotice({
   const details = [`${label}: ${error}`, error.stack, where]
     .filter(Boolean)
     .join("\n\n");
-  const { copied, flash } = useCopied();
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(details);
-      flash("details");
-    } catch {
-      // No clipboard to write to.
-    }
-  };
+  const { copied, copy } = useCopied();
   return (
     <div
       role="alert"
@@ -112,7 +104,11 @@ function CrashNotice({
         <Button size="sm" onClick={onRetry}>
           Try Again
         </Button>
-        <Button size="sm" variant="secondary" onClick={() => void copy()}>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => void copy("details", details)}
+        >
           {copied ? "Copied" : "Copy Details"}
         </Button>
       </div>
