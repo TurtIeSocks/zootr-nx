@@ -52,3 +52,10 @@ test("the game is lost until the client says it answers again", () => {
   expect(gameLost(at(lost, "the game answers again"))).toBe(false);
   expect(gameLost(at("connected"))).toBe(false);
 });
+
+test("a new connection starts the game's state over", () => {
+  const lost = "can't reach the game: reading 8 bytes at 0x1 failed (4)";
+  expect(gameLost(at(lost, "disconnected", "connected"))).toBe(false);
+  expect(gameLost(at(lost, "connected", "sent Fake Chest"))).toBe(false);
+  expect(gameLost(at("connected", lost))).toBe(true);
+});

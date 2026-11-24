@@ -48,11 +48,18 @@ export const reconnecting = (lines: ApLine[]) =>
 const UNREACHABLE = "can't reach the game";
 const REACHABLE = "the game answers again";
 
-/** The client can't reach the game: its last word on that was losing it. */
+/** The client can't reach the game: its last word on that, since this
+ * connection began, was losing it. Each connection starts over, so one
+ * that never lost the game never says it answers again. */
 export const gameLost = (lines: ApLine[]) =>
   [...lines]
     .reverse()
-    .find((l) => l.text.startsWith(UNREACHABLE) || l.text === REACHABLE)
+    .find(
+      (l) =>
+        l.text.startsWith(UNREACHABLE) ||
+        l.text === REACHABLE ||
+        l.text === "connected",
+    )
     ?.text.startsWith(UNREACHABLE) ?? false;
 
 /** The server's refusals, as `archipelago_rs` words them, in a sentence. */

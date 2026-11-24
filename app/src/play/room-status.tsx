@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { gameLost, reconnecting, refusal } from "@/play/ap-lines";
-import { connect, disconnect, useAp } from "@/stores/ap";
+import { connect, disconnect, roomIn, useAp } from "@/stores/ap";
 import { useLive } from "@/stores/live";
 import { useUi } from "@/stores/ui";
 
@@ -47,12 +47,12 @@ function RoomLine({ entry, onSetUp }: RoomStatusProps) {
   const status = useAp((s) => s.status);
   const lines = useAp((s) => s.lines);
   const [rooms] = useUi.usePath("ap.rooms");
-  const server = rooms[entry.id]?.server ?? "";
+  const { server } = roomIn(rooms, entry);
   const slot = entry.ap_slot ?? "";
   const addr = server && (
     <span className="font-mono text-[12.5px] text-ink-muted">{server}</span>
   );
-  const go = () => void connect(entry.id);
+  const go = () => void connect(entry);
   // The client reaches the room through the running game.
   const playing = useLive((s) => s.status.state !== "Waiting");
 

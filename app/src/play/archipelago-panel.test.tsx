@@ -83,6 +83,27 @@ test("with no AP slot installed, the room asks for one", () => {
   expect(screen.queryByLabelText("Server")).toBeNull();
 });
 
+test("a slot from the room page brings its server, and Connect uses it", async () => {
+  const connect = vi
+    .spyOn(commands, "apConnect")
+    .mockResolvedValue({ status: "ok", data: null });
+  const fromRoom = { ...slot, ap_server: "FakeRoom:38281" };
+  show("offline", [], { installed: fromRoom });
+  expect(field("Server").value).toBe("FakeRoom:38281");
+  expect(screen.getByRole("status").textContent).toContain("FakeRoom:38281");
+  fireEvent.click(button("Connect"));
+  await waitFor(() =>
+    expect(connect).toHaveBeenCalledWith("FakeRoom:38281", null),
+  );
+});
+
+test("a server typed over the room page's is the one kept", () => {
+  const fromRoom = { ...slot, ap_server: "FakeRoom:38281" };
+  show("offline", [], { installed: fromRoom });
+  fireEvent.change(field("Server"), { target: { value: "localhost:1" } });
+  expect(field("Server").value).toBe("localhost:1");
+});
+
 test("no room yet points at the server, then connects to the one typed", async () => {
   const connect = vi
     .spyOn(commands, "apConnect")

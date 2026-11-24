@@ -1,8 +1,14 @@
 import { create } from "zustand";
-import { type ApEvent, type ApStatus, commands, events } from "@/bindings";
+import {
+  type ApEvent,
+  type ApStatus,
+  commands,
+  events,
+  type Summary,
+} from "@/bindings";
 import { call, message } from "@/lib/api";
 import { once } from "@/stores/once";
-import { useUi } from "@/stores/ui";
+import { type Ui, useUi } from "@/stores/ui";
 
 /** One of the client's notes, with when the app heard it. */
 export interface ApLine {
@@ -62,13 +68,16 @@ const started = once(async () => {
 
 export const { init, stop } = started;
 
-/** The server and password kept for a seed, blank when none are. */
-export const roomOf = (id: number) =>
-  useUi.getPath("ap.rooms")[id] ?? { server: "", password: "" };
+/** The server and password kept for `entry` in `rooms`. Until any are,
+ * the server its `.apznx` names, when it came from the room page. */
+export const roomIn = (
+  rooms: Ui["ap"]["rooms"],
+  entry: Pick<Summary, "id" | "ap_server">,
+) => rooms[entry.id] ?? { server: entry.ap_server ?? "", password: "" };
 
-/** Connects the running game to the room kept for seed `id`. */
-export async function connect(id: number) {
-  const { server, password } = roomOf(id);
+/** Connects the running game to `entry`'s room. */
+export async function connect(entry: Pick<Summary, "id" | "ap_server">) {
+  const { server, password } = roomIn(useUi.getPath("ap.rooms"), entry);
   useAp.setState({ error: null });
   try {
     await call(commands.apConnect(server, password || null));

@@ -124,6 +124,8 @@ pub struct Summary {
     plando: bool,
     /// The slot, for a seed opened from an Archipelago `.apznx`.
     ap_slot: Option<String>,
+    /// The room's server, when the `.apznx` came from its room page.
+    ap_server: Option<String>,
     /// The slot plays DeathLink.
     death_link: bool,
     /// The build of the game the seed was made for.
@@ -159,6 +161,9 @@ impl From<&Entry> for Summary {
             .is_empty(),
             plando: !e.extras.place.is_empty(),
             ap_slot: e.extras.ap.as_ref().map(|a| a.slot.clone()),
+            ap_server: (e.extras.ap.as_ref())
+                .map(|a| a.server.clone())
+                .filter(|s| !s.is_empty()),
             death_link: e.extras.ap.as_ref().is_some_and(|a| a.death_link),
             release: e.report.written.release,
         }
@@ -607,6 +612,7 @@ pub(crate) mod tests {
             seed: 1,
             slot: "FakeSlot".into(),
             player: 1,
+            server: "FakeRoom:38281".into(),
             start: vec![],
             death_link: true,
             players: BTreeMap::new(),
@@ -616,6 +622,7 @@ pub(crate) mod tests {
         history.add(Settings::new(), Extras::ap(ap), Label::default(), report(1));
         let s = Summary::from(&history.entries[0]);
         assert_eq!((s.test, s.ap_slot.as_deref()), (false, Some("FakeSlot")));
+        assert_eq!(s.ap_server.as_deref(), Some("FakeRoom:38281"));
         assert!(s.death_link, "the slot's DeathLink");
     }
 

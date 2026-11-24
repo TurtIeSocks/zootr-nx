@@ -14,6 +14,7 @@ export const summary = (patch: Partial<Summary> = {}): Summary => ({
   test: false,
   plando: false,
   ap_slot: null,
+  ap_server: null,
   death_link: false,
   release: "1.1.1",
   ...patch,
