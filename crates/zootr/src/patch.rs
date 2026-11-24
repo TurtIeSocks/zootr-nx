@@ -484,6 +484,56 @@ mod tests {
     pub(super) const PC_MAIN: &str =
         "../../dump/0400486024DEC000_build/patched_v131072/main.patched.bin";
 
+    /// FNV-1a over 64 bits, enough to tell two patches apart.
+    fn fingerprint(bytes: &[u8]) -> u64 {
+        bytes.iter().fold(0xcbf2_9ce4_8422_2325, |h, &b| {
+            (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
+        })
+    }
+
+    /// Pins the 1.1.1 patch: one hash for each thing the patch writes, for
+    /// a fixed seed (every setting that adds a site, a spot, credits and
+    /// the progressive lines). Moving an offset, or the table the offsets
+    /// come from, changes none of them. A change that is meant to change
+    /// the patch updates these in the same commit and says why.
+    #[test]
+    fn the_1_1_1_patch_is_pinned() {
+        let credits = [
+            ("Key_01", Credit::Bool(0x1234_5678)),
+            ("Key_02", Credit::Int(0xdead_beef, -3)),
+            ("Key_03", Credit::Add(0xfeed_face, 1)),
+        ];
+        let all = ALL | ICE_TRAPS | FREE_BOMBCHUS;
+        let seed = patches(&progressive::LINES, &[], all, &credits, &[SPOT], None).unwrap();
+        let flat = |p: &[Patch]| -> Vec<u8> {
+            (p.iter())
+                .flat_map(|p| p.at.to_le_bytes().into_iter().chain(p.bytes.iter().copied()))
+                .collect()
+        };
+        let sites: Vec<_> = sites().collect();
+        let got = [
+            ("hook", fingerprint(HOOK)),
+            ("far", fingerprint(FAR_CODE)),
+            ("code", fingerprint(&flat(&code_patches().unwrap()))),
+            ("sites", fingerprint(&flat(&sites))),
+            ("patches", fingerprint(&flat(&seed))),
+            ("pchtxt", fingerprint(pchtxt(&seed).as_bytes())),
+            ("ips", fingerprint(&files::ips(&seed))),
+            ("cheat", fingerprint(files::cheat(&seed).as_bytes())),
+        ];
+        let want = [
+            ("hook", 0x819e_56db_d5b1_8f40),
+            ("far", 0x6244_fff5_6621_104a),
+            ("code", 0x433f_a38d_1679_8e07),
+            ("sites", 0x8316_48fb_631c_ff1c),
+            ("patches", 0x315a_54b3_66ae_b5ef),
+            ("pchtxt", 0x09ac_e57c_7b0a_411d),
+            ("ips", 0x1083_af06_e0cb_712f),
+            ("cheat", 0x451b_71a4_113e_7a7f),
+        ];
+        assert_eq!(got, want, "{got:#x?}");
+    }
+
     #[test]
     fn every_word_the_patch_writes_over_holds_what_we_expect() {
         let Ok(main) = std::fs::read(PC_MAIN) else {
