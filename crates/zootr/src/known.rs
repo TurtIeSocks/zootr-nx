@@ -82,8 +82,6 @@ pub fn found(root: &Path) {
     let _ = ROOT.set(root.into());
 }
 
-/// The name hashed `hash`, reading each tier of [`SOURCES`] on first use
-/// until one has it. Our own actors ([`OURS`]) answer without a dump. `None` before any dump is found, or when none has it.
 /// Names of our own actors, which no dump holds.
 const OURS: [&str; 4] = [
     crate::bombchu_bags::BAGS[0],
@@ -103,6 +101,9 @@ pub fn ours() -> impl Iterator<Item = &'static str> {
     OURS.into_iter()
 }
 
+/// The name hashed `hash`, reading each tier of [`SOURCES`] on first use
+/// until one has it. Our own actors ([`OURS`]) answer without a dump.
+/// `None` before any dump is found, or when none has it.
 fn lookup(hash: u64) -> Option<&'static str> {
     if hash == self::hash("") {
         return Some("");
@@ -163,7 +164,6 @@ pub(crate) fn keep(file: &Path, text: impl AsRef<[u8]>) -> Result<()> {
     Ok(std::fs::rename(part, file)?)
 }
 
-/// Every name in `sources`, one a line, each hash once.
 /// The files whose path from the romfs starts with `rel`, a stem ending
 /// in a dot like `Pack/Bootup.`: a file named for its platform, which
 /// isn't written out here.
@@ -187,6 +187,7 @@ pub(crate) fn starting(romfs: &Romfs, rel: &str) -> Result<Vec<PathBuf>> {
     Ok(out)
 }
 
+/// Every name in `sources`, one a line, each hash once.
 fn read(romfs: &Romfs, sources: &[&str]) -> Result<String> {
     let (mut seen, mut names) = (HashSet::new(), String::new());
     for source in sources {
@@ -383,9 +384,7 @@ mod tests {
             return;
         };
         for sources in SOURCES {
-            let started = std::time::Instant::now();
-            let names = read(&romfs, sources).unwrap();
-            eprintln!("{} names in {:?}", names.lines().count(), started.elapsed());
+            read(&romfs, sources).unwrap();
         }
         assert_ne!(item::BOMB.get(), "");
         assert!(!item::BOMB.get().starts_with('#'));

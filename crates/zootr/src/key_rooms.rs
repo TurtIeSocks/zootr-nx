@@ -50,7 +50,7 @@ fn load(text: &str) -> Result<Vec<(usize, Dungeon)>> {
     let mut out: Vec<(usize, Dungeon)> = Vec::new();
     for d in table.dungeon {
         let n = (keys::DUNGEONS.iter())
-            .position(|(name, ..)| slug(&pretty(name.get())) == d.name)
+            .position(|k| slug(&pretty(k.name.get())) == d.name)
             .with_context(|| format!("no dungeon with keys is called {}", d.name))?
             + 1;
         ensure!(out.iter().all(|(m, _)| *m != n), "{} twice", d.name);

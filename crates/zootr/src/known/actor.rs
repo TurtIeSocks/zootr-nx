@@ -66,7 +66,6 @@ pub const ITEM_BOTTLE_BLUE_FIRE: &Name = &n!(0xd23776688b24ed58);
 pub const LAND_KOKIRI_INTERIOR_A_01: &Name = &n!(0x20e2f3c20fa5c503);
 pub const LAND_KOKIRI_PLANT_A_02_DROP_FIXED_03: &Name = &n!(0xe3f4c25f786f3feb);
 pub const LAND_SPIRIT_TEMPLE_CLIMB_WALL_A_07: &Name = &n!(0x2d9081fb56bf8d5d);
-pub const LAND_WELL_LADDER_A_02: &Name = &n!(0x8017c482f80ecd79);
 pub const NPC_EVENT_STARTER: &Name = &n!(0xce38f83787698d4e);
 pub const NPC_GORON: &Name = &n!(0xefa541043d24cbee);
 pub const NPC_GORON_006_CHILD: &Name = &n!(0x2d0387044a4e1c0e);
@@ -121,6 +120,8 @@ pub const OBJ_BOMBCHU: &Name = &n!(0x123d935357a36a6b);
 pub const OBJ_BOMB_FLOWER_A_01: &Name = &n!(0xbf291526f8c10d46);
 pub const OBJ_BOMB_FLOWER_A_03: &Name = &n!(0xbf291326f8c109e0);
 pub const OBJ_BOMB_FLOWER_A_04: &Name = &n!(0xbf291a26f8c115c5);
+pub const OBJ_BOMB_FLOWER_FRUIT_FOR_BREAK_OBJ_DEATH_MT_TRAIL_BROKEN_ROCK_A_01: &Name =
+    &n!(0x77310e943a071874);
 pub const OBJ_BOTTLE_LETTER: &Name = &n!(0xff71af97aee268ac);
 pub const OBJ_BROKEN_BOX_A: &Name = &n!(0xef0b41b9072a9c6f);
 pub const OBJ_BROKEN_BOX_A_01: &Name = &n!(0x1ebdfe97bfec0d23);
@@ -220,9 +221,6 @@ pub const PLAYER_ADULT: &Name = &n!(0xbb99778f6c7d0697);
 pub const PLAYER_CHILD: &Name = &n!(0x97089bd5ecd54fc5);
 pub const PLAYER_EVENT: &Name = &n!(0xba78a4f01d1912a7);
 pub const POUCH_BOMBCHU: &Name = &n!(0xd208315fb48c1849);
-pub const POUCH_BOMB_BAG_LARGE: &Name = &n!(0x54d4bd1e4d6fe2ad);
-pub const POUCH_BOMB_BAG_MEDIUM: &Name = &n!(0xda375fd72cc421f1);
-pub const POUCH_BOMB_BAG_SMALL: &Name = &n!(0x939e9ade546d74f1);
 pub const POUCH_DEKU_NUT: &Name = &n!(0x3ed07dab3b5c99d1);
 pub const POUCH_DEKU_STICK: &Name = &n!(0x39edcabddf6008a6);
 pub const POUCH_RANGE_BOW_AND_ARROW_FIRE: &Name = &n!(0x857f26d7fe8cc4d4);
@@ -272,7 +270,3 @@ pub const WEAPON_SWORD_BROKEN_GIANT: &Name = &n!(0x6e9ff588196281d6);
 pub const WEAPON_SWORD_GIANT: &Name = &n!(0x3366399f30a2559d);
 pub const WEAPON_SWORD_KOKIRI: &Name = &n!(0xa3c410aa39bd8c7f);
 pub const WEAPON_SWORD_MASTER: &Name = &n!(0x85806047050c308e);
-
-// Bucket 4.
-pub const OBJ_BOMB_FLOWER_FRUIT_FOR_BREAK_OBJ_DEATH_MT_TRAIL_BROKEN_ROCK_A_01: &Name =
-    &n!(0x77310e943a071874);

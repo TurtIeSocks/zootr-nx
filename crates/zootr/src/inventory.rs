@@ -243,7 +243,7 @@ const DUNGEONS: [(&Name, &str, &str); 12] = [
 ];
 
 /// The Fortress's row, which shows its keys alone.
-const FORTRESS: (&Name, &str, &str) = (keys::FORTRESS.0, "Gerudo Fortress", "GF");
+const FORTRESS: (&Name, &str, &str) = (keys::FORTRESS.name, "Gerudo Fortress", "GF");
 
 /// Rows in the Dungeons section.
 const ROWS: usize = DUNGEONS.len() + 1;

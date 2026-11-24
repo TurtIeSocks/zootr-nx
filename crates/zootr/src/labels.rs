@@ -33,23 +33,25 @@ pub fn load(user: &Path) -> HashMap<u32, String> {
 }
 
 /// Label `hash` in the user's file, or drop its label for empty `text`.
+/// A file that can't be read is left as it is, and a label keeps to one
+/// line.
 pub fn set(user: &Path, hash: u32, text: &str) -> Result<()> {
-    let old = std::fs::read_to_string(user).unwrap_or_default();
+    let old = match std::fs::read_to_string(user) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+        old => old.with_context(|| format!("reading {}", user.display()))?,
+    };
     let key = format!("{hash:08x} ");
     let mut lines: Vec<String> = old
         .lines()
         .filter(|l| !l.starts_with(&key))
         .map(String::from)
         .collect();
-    let text = text.trim();
+    let text = text.trim().replace(['\r', '\n'], " ");
     if !text.is_empty() {
         lines.push(format!("{key}{text}"));
     }
-    if let Some(dir) = user.parent() {
-        std::fs::create_dir_all(dir)?;
-    }
     let body: String = lines.iter().map(|l| format!("{l}\n")).collect();
-    std::fs::write(user, body).with_context(|| format!("writing {}", user.display()))
+    crate::known::keep(user, body).with_context(|| format!("writing {}", user.display()))
 }
 
 #[cfg(test)]
@@ -84,6 +86,24 @@ mod tests {
         assert!(!labels.contains_key(&0x1));
         assert!(labels[&0xc66e58f2].starts_with("rupees"));
         assert_eq!(std::fs::read_to_string(&user).unwrap(), "");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn an_unreadable_file_is_kept_and_a_label_stays_one_line() {
+        let dir = std::env::temp_dir().join(format!("zootr-labels-keep-{}", std::process::id()));
+        let user = dir.join("labels.txt");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(&user, b"\xff not text\n").unwrap();
+        assert!(set(&user, 0x1, "one").is_err());
+        assert_eq!(std::fs::read(&user).unwrap(), b"\xff not text\n");
+        std::fs::remove_file(&user).unwrap();
+        set(&user, 0x1, "two\nlines").unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&user).unwrap(),
+            "00000001 two lines\n"
+        );
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

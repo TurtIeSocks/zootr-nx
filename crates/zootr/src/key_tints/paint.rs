@@ -160,7 +160,6 @@ fn texture(
         return Ok(data.to_vec());
     }
     let mut t = top.clone();
-    let key = t.rgba.clone();
     if kind == "Alb" {
         albedo_paint(&mut t.rgba);
     }
@@ -168,7 +167,7 @@ fn texture(
         t.rgba.chunks_mut(4).for_each(|px| px[0] = 0);
     }
     if ring {
-        rings::paint(&mut t, &key, kind)?;
+        rings::paint(&mut t, &top.rgba, kind)?;
     }
     let (w, h) = (t.width, t.height);
     redraw(data, &t.rgba, |x, y| !whole && !rings::painted(w, h, x, y))
