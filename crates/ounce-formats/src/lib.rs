@@ -67,8 +67,9 @@ pub use shape_mesh::{Material, ShapeMesh};
 pub use tagfile::{Field, Item, Obj, Tagfile, Type};
 pub use walk::files_with_suffix;
 pub use xlink::{
-    add_case as xlink_add_case, call_names as xlink_calls, child_names as xlink_children,
-    copy_call as xlink_copy_call, copy_property as xlink_copy_property, nest as xlink_nest,
-    property_names as xlink_properties, tree_names as xlink_tree, trigger_names as xlink_triggers,
+    action_names as xlink_actions, add_case as xlink_add_case, call_names as xlink_calls,
+    child_names as xlink_children, copy_action as xlink_copy_action, copy_call as xlink_copy_call,
+    copy_property as xlink_copy_property, nest as xlink_nest, property_names as xlink_properties,
+    tree_names as xlink_tree, trigger_names as xlink_triggers,
 };
 pub use zs::{Dicts, frame_dict_id};
