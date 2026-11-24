@@ -34,7 +34,8 @@ pub struct TurnConfig {
 pub struct ServeConfig {
     /// `ADDRESS:PORT` to listen on.
     pub listen: String,
-    /// Seconds a hold lasts with no game command.
+    /// Seconds a hold lasts with no game command, and a sweep with no
+    /// word to the queue (it asks at each row): past either, it's gone.
     pub lease: i64,
     /// Seconds a sweep gets to finish its row before it counts as gone:
     /// past the longest row (324 s on 2026-11-17).

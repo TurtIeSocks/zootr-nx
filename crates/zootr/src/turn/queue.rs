@@ -101,6 +101,17 @@ impl Queue {
             .collect();
     }
 
+    /// A sweep kept from before sweeps had a `seen` loads with none, so
+    /// it counts as seen at `now`, the load: one lease to speak up rather
+    /// than lapsing on the first tick while it may still run.
+    pub fn loaded(&mut self, now: i64) {
+        for s in self.games.iter_mut().filter_map(|g| g.sweep.as_mut()) {
+            if s.seen == 0 {
+                s.seen = now;
+            }
+        }
+    }
+
     fn game(&mut self, name: &str) -> Result<&mut Game> {
         match self.games.iter_mut().find(|g| g.name == name) {
             Some(g) => Ok(g),
@@ -689,6 +700,18 @@ mod tests {
             q.sweep_yields("far", "night", 100 + LEASE),
             "not its game now"
         );
+    }
+
+    #[test]
+    fn a_sweep_kept_from_before_seen_gets_a_lease_from_the_load() {
+        let old = r#"{"games":[{"name":"far","sweep":{"name":"night"}}],"waiting":[]}"#;
+        let mut q: Queue = serde_json::from_str(old).unwrap();
+        let load = 1_000_000;
+        q.loaded(load);
+        granted(&mut q, load + 1);
+        assert!(!q.sweep_start("far", "day", load + 1).unwrap());
+        granted(&mut q, load + LEASE);
+        assert!(q.sweep_start("far", "day", load + LEASE).unwrap());
     }
 
     #[test]
