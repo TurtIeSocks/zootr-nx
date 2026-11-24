@@ -424,7 +424,10 @@ mod tests {
         let chest = |gyaml: &str, item: &str, event: Option<&str>| {
             let mut dynamic = vec![(DROP_ACTOR.get(), Byml::from(item))];
             dynamic.extend(event.map(|e| (field::GET_EVENT_NAME.get(), Byml::from(e))));
-            Byml::from_iter([(GYAML, gyaml.into()), ("Dynamic", Byml::from_iter(dynamic))])
+            Byml::from_iter([
+                (GYAML, gyaml.into()),
+                (crate::checks::DYNAMIC, Byml::from_iter(dynamic)),
+            ])
         };
         let small = actor::OBJ_T_BOX_A_01;
         let mut root = Byml::from_iter([(
@@ -441,7 +444,12 @@ mod tests {
         assert_eq!(n, 3);
         let actors = checks::actors_mut(&mut root).unwrap();
         let named: Vec<Option<&str>> = (actors.iter())
-            .map(|a| str_field(&a.as_map().unwrap()["Dynamic"], field::GET_EVENT_NAME))
+            .map(|a| {
+                str_field(
+                    &a.as_map().unwrap()[crate::checks::DYNAMIC],
+                    field::GET_EVENT_NAME,
+                )
+            })
             .collect();
         let copy = |base: &str| event(base, item::HOOKSHOT);
         assert_eq!(named[0], Some(&*copy(flow::SY_TREASUREBOX)));

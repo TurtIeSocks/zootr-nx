@@ -149,7 +149,14 @@ impl Area {
         let room = actor
             .as_map()
             .ok()
-            .and_then(|m| m.get("Dynamic")?.as_map().ok()?.get(&**ROOM)?.as_int().ok())
+            .and_then(|m| {
+                m.get(crate::checks::DYNAMIC)?
+                    .as_map()
+                    .ok()?
+                    .get(&**ROOM)?
+                    .as_int()
+                    .ok()
+            })
             .unwrap_or_default();
         let at = Chest { pos, room };
         if wanted.contains(&hash) {

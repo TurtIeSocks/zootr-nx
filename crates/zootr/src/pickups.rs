@@ -298,7 +298,7 @@ impl Kind {
         if !self.places(gyaml) {
             return Ok(None);
         }
-        let dynamic = actor.as_map()?.get("Dynamic");
+        let dynamic = actor.as_map()?.get(crate::checks::DYNAMIC);
         let held =
             (dynamic.and_then(|d| str_field(d, DROP_ACTOR))).filter(|d| !d.starts_with(ANIMAL));
         let table = dynamic.and_then(|d| str_field(d, fields::DROP_DROP_TABLE));

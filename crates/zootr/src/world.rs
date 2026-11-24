@@ -121,7 +121,7 @@ fn find_exits(romfs: &Romfs) -> Result<BTreeSet<Exit>> {
             if str_field(actor, checks::GYAML) != Some(EXIT_ACTOR) {
                 continue;
             }
-            let Some(dynamic) = actor.as_map()?.get("Dynamic") else {
+            let Some(dynamic) = actor.as_map()?.get(crate::checks::DYNAMIC) else {
                 continue;
             };
             let presence = presence_of(actor).map(|p| p.to_string());

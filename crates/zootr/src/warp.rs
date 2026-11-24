@@ -58,7 +58,7 @@ pub fn placements(romfs: &Romfs, actor: &str) -> Result<BTreeMap<String, Pose>> 
 /// placement hash and pose.
 pub fn requested(romfs: &Romfs, event: &str) -> Result<BTreeMap<String, (Option<u64>, Pose)>> {
     first_where(romfs, |a| {
-        let dynamic = a.as_map().ok().and_then(|m| m.get("Dynamic"));
+        let dynamic = a.as_map().ok().and_then(|m| m.get(crate::checks::DYNAMIC));
         str_field(a, GYAML) == Some(REQUEST)
             && dynamic.and_then(|d| str_field(d, field::REQUEST_EVENT_NAME)) == Some(event)
     })

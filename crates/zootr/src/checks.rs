@@ -564,7 +564,7 @@ mod tests {
         let actor = Byml::from_iter([
             ("Hash", Byml::from(1u64)),
             (GYAML, gyaml.into()),
-            ("Dynamic", dynamic),
+            (DYNAMIC, dynamic),
         ]);
         Byml::from_iter([("Actors", Byml::from(vec![actor]))])
     }
@@ -664,7 +664,7 @@ mod tests {
             gyamls(&root),
             [actor::OBJ_SHIELD_HYLIAN, actor::ENEMY_SKULLTULA_GOLD]
         );
-        let dynamic = &actors_mut(&mut root).unwrap()[1].as_map().unwrap()["Dynamic"];
+        let dynamic = &actors_mut(&mut root).unwrap()[1].as_map().unwrap()[DYNAMIC];
         assert_eq!(
             str_field(dynamic, DROP_ACTOR),
             Some(&**actor::OBJ_HEART_PIECE)
@@ -679,7 +679,7 @@ mod tests {
             parse_field("1.Dynamic.A=B").unwrap(),
             FieldEdit {
                 hash: 1,
-                path: vec!["Dynamic", "A"],
+                path: vec![DYNAMIC, "A"],
                 value: "B",
                 raise: false,
             }
@@ -691,7 +691,7 @@ mod tests {
         let mut root = chest("Item_A", "Flag");
         assert!(clear_drops(&mut root, &[2]).unwrap().is_empty());
         assert_eq!(clear_drops(&mut root, &[1]).unwrap(), [1]);
-        let dynamic = &actors(&root).unwrap()[0].as_map().unwrap()["Dynamic"];
+        let dynamic = &actors(&root).unwrap()[0].as_map().unwrap()[DYNAMIC];
         assert_eq!(str_field(dynamic, DROP_ACTOR), None);
         assert_eq!(str_field(dynamic, GET_EVENT), Some("Flag"));
         assert!(clear_drops(&mut root, &[1]).unwrap().is_empty());
@@ -701,7 +701,7 @@ mod tests {
         let mut root = chest(item, event);
         let drops = HashMap::from([(1, Drop::from(new.to_owned()))]);
         assert_eq!(set_drops(&mut root, &drops, |e| e == "Pose").unwrap(), [1]);
-        let dynamic = &actors(&root).unwrap()[0].as_map().unwrap()["Dynamic"];
+        let dynamic = &actors(&root).unwrap()[0].as_map().unwrap()[DYNAMIC];
         assert_eq!(str_field(dynamic, DROP_ACTOR), Some(new));
         str_field(dynamic, GET_EVENT).map(str::to_owned)
     }
@@ -730,7 +730,7 @@ mod tests {
             };
             set_drops(&mut root, &HashMap::from([(1, drop)]), |_| false).unwrap();
             let actor = &actors(&root).unwrap()[0];
-            let dynamic = &actor.as_map().unwrap()["Dynamic"];
+            let dynamic = &actor.as_map().unwrap()[DYNAMIC];
             [
                 (actor, GYAML),
                 (dynamic, CHECK_ACTOR),
@@ -770,7 +770,7 @@ mod tests {
         let drops = HashMap::from([(1, Drop::from("Item_C".to_owned()))]);
         set_drops(&mut root, &drops, |_| false).unwrap();
         let actor = &actors(&root).unwrap()[0];
-        let dynamic = &actor.as_map().unwrap()["Dynamic"];
+        let dynamic = &actor.as_map().unwrap()[DYNAMIC];
         assert_eq!(gyamls(&root), [actor::OBJ_T_BOX_A_01_NO_BAKE]);
         assert_eq!(
             [DROP_ACTOR, CHECK_ACTOR, SUBSTITUTE].map(|k| str_field(dynamic, k)),
@@ -799,7 +799,7 @@ mod tests {
         for rel in banc_files(&romfs).unwrap() {
             let doc = load_banc(&romfs, &rel).unwrap();
             for actor in actors(&doc.root).unwrap() {
-                let Some(dynamic) = actor.as_map().unwrap().get("Dynamic") else {
+                let Some(dynamic) = actor.as_map().unwrap().get(DYNAMIC) else {
                     continue;
                 };
                 if str_field(dynamic, SUBSTITUTE).is_some() {

@@ -334,7 +334,7 @@ pub fn spots(root: &Byml, holders: &[Holder], copies: &[(u64, u64)]) -> Result<V
         let Some(Holder { hash, after, .. }) = holder(placed) else {
             continue;
         };
-        let dynamic = actor.as_map()?.get("Dynamic");
+        let dynamic = actor.as_map()?.get(crate::checks::DYNAMIC);
         let drop = dynamic.and_then(|d| str_field(d, DROP_ACTOR.get()));
         let drop = drop.or_else(|| str_field(actor, GYAML));
         let drop = drop.with_context(|| format!("holder {placed} is nothing"))?;
@@ -612,7 +612,7 @@ mod tests {
         assert_eq!((a.flag.as_str(), a.negated), (flag.as_str(), true));
         assert_eq!((b.flag.as_str(), b.negated), (flag.as_str(), false));
         // Its drop or its drop table, whichever it's placed with.
-        let dynamic = |a: &Byml| a.as_map().unwrap()["Dynamic"].clone();
+        let dynamic = |a: &Byml| a.as_map().unwrap()[crate::checks::DYNAMIC].clone();
         assert_eq!(dynamic(held), dynamic(copy));
         let id = |a: &Byml| a.as_map().unwrap()["Phive"].as_map().unwrap()["Placement"].clone();
         assert_eq!(id(copy).as_map().unwrap()["ID"], Byml::U64(twin));

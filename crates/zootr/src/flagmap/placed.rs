@@ -46,7 +46,7 @@ fn names(romfs: &Romfs, rel: &str, flows: &Flows) -> Result<Vec<Names>> {
         else {
             continue;
         };
-        let Some(Ok(dynamic)) = map.get("Dynamic").map(|d| d.as_map()) else {
+        let Some(Ok(dynamic)) = map.get(crate::checks::DYNAMIC).map(|d| d.as_map()) else {
             continue;
         };
         for (key, value) in dynamic.iter() {

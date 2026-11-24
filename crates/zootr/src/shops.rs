@@ -288,7 +288,7 @@ fn by_shop(slots: Vec<Slot>) -> Vec<Vec<Slot>> {
 /// entry's placements leave it out.
 fn goods_index(actor: &Byml) -> i32 {
     let index = || {
-        let dynamic = actor.as_map().ok()?.get(field::DYNAMIC.get())?;
+        let dynamic = actor.as_map().ok()?.get(crate::checks::DYNAMIC)?;
         let dynamic = dynamic.as_map().ok()?;
         dynamic.get(field::SHOP_ITEM_INDEX.get())?.as_int().ok()
     };

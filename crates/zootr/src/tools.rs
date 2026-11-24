@@ -395,7 +395,12 @@ fn blackboard(
 
 /// A bool the placement sets in its `Dynamic` params.
 fn dynamic_bool(placement: &Byml, key: &str) -> Option<bool> {
-    let dynamic = placement.as_map().ok()?.get("Dynamic")?.as_map().ok()?;
+    let dynamic = placement
+        .as_map()
+        .ok()?
+        .get(crate::checks::DYNAMIC)?
+        .as_map()
+        .ok()?;
     dynamic.get(key)?.as_bool().ok()
 }
 
