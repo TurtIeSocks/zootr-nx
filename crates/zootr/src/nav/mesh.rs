@@ -15,9 +15,9 @@ use super::filter::{Filter, Touch};
 use super::shape::{
     BODY_SHAPE, ENTRY_NAME, FILE, Physics, RIGID_BODIES, SHAPES, maps, physics_of, place, text,
 };
-use super::vec3::{cross, dot, sub};
 use crate::known::field;
 use crate::warp::Placement;
+use ounce_formats::vec3::{cross, dot, sub};
 
 /// Where the shape meshes live, by the name a `PhshMeshPath` gives.
 const MESHES: &str = "Phive/Shape/Dcc/";

@@ -54,7 +54,6 @@ pub mod shove;
 mod sim;
 pub mod sink;
 pub mod trace;
-pub mod vec3;
 pub mod water;
 pub mod went;
 

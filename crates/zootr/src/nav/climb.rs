@@ -13,8 +13,8 @@ use ounce_formats::Romfs;
 
 use super::kinds;
 use super::shape::{Shape, place, shape_of};
-use super::vec3::{length, sub};
 use crate::warp::Placement;
+use ounce_formats::vec3::{length, sub};
 
 /// The least a climb rises to be one, in m: lower, Link steps or pulls
 /// himself up instead.

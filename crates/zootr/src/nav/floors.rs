@@ -12,9 +12,9 @@ use ounce_formats::{ActorPack, Byml, Edge, Face, NavMesh, Romfs};
 use super::graph::{BODY, Cross, Graph, LOOK, STEP_MIN, Via, body_hits};
 use super::mesh::{Walls, facing_up, floor_normal, height_in, moller, through};
 use super::shape::Solid;
-use super::vec3::{cross, dot, sub};
 use super::water::Water;
 use crate::known::{actor, field};
+use ounce_formats::vec3::{cross, dot, sub};
 
 /// How near the navmesh's floor may be to a triangle's height, in m,
 /// before the triangle is floor the navmesh already has.

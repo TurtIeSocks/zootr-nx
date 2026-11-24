@@ -36,6 +36,7 @@ mod sarc;
 mod save;
 mod shape_mesh;
 mod tagfile;
+pub mod vec3;
 mod walk;
 mod xlink;
 mod zs;
