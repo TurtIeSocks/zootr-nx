@@ -195,6 +195,12 @@ impl<'a> ModBuilder<'a> {
         self.restbl.resize(path, old_size, new_size)
     }
 
+    /// Account for a byml inside a changed pack that gained nodes: see
+    /// [`Restbl::scale`].
+    pub fn scale(&mut self, path: &str, old_size: usize, new_size: usize) -> Result<()> {
+        self.restbl.scale(path, old_size, new_size)
+    }
+
     /// Account for a file inside a changed pack that took on parts of
     /// `like`, a shipped file of its type `like_size` bytes: its entry
     /// grows by its bytes, and to at least `like`'s at its new size, since

@@ -134,6 +134,15 @@ impl Restbl {
         Ok(())
     }
 
+    /// Like [`Self::resize`], but the entry also grows in proportion to the
+    /// file: added byml nodes cost the game more than their bytes, and the
+    /// Mac build refuses a file whose parse outgrows its entry.
+    pub fn scale(&mut self, path: &str, old_size: usize, new_size: usize) -> Result<()> {
+        let scaled = self.get(path).map_or(0, |e| e as usize * new_size / old_size.max(1));
+        self.resize(path, old_size, new_size)?;
+        self.raise(path, u32::try_from(scaled)?)
+    }
+
     /// Raise `path`'s entry to at least `size`.
     pub fn raise(&mut self, path: &str, size: u32) -> Result<()> {
         let entry = self
@@ -219,6 +228,18 @@ mod tests {
         t.resize("A/b.byml.zs", 140, 10).unwrap();
         assert_eq!(t.get("A/b.byml"), Some(1032));
         assert!(t.resize("E/f.byml", 1, 2).is_err());
+    }
+
+    #[test]
+    fn scales_with_its_file_and_grows_at_least_by_bytes() {
+        let mut t = sample();
+        t.scale("A/b.byml.zs", 100, 150).unwrap();
+        assert_eq!(t.get("A/b.byml"), Some(1500));
+        t.scale("A/b.byml.zs", 2000, 2040).unwrap(); // 2016 -> 2048 beats 1530
+        assert_eq!(t.get("A/b.byml"), Some(1532));
+        t.scale("A/b.byml.zs", 150, 10).unwrap();
+        assert_eq!(t.get("A/b.byml"), Some(1532));
+        assert!(t.scale("E/f.byml", 1, 2).is_err());
     }
 
     #[test]

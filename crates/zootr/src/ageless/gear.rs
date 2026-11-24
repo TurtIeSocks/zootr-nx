@@ -90,9 +90,10 @@ pub fn write(builder: &mut ModBuilder) -> Result<()> {
         writer.add_file(path.clone(), new);
         builder.write(&pack_file(name), &writer.to_binary())?;
     }
-    // Both packs share the file's one RESTBL entry.
+    // Both packs share the file's one RESTBL entry. Grown by bytes alone,
+    // the Mac build crashed loading it at New Game.
     let (old, new) = sizes.context("no child pack")?;
-    builder.resize(&path, old, new)
+    builder.scale(&path, old, new)
 }
 
 #[cfg(test)]
