@@ -13,7 +13,12 @@ use crate::known::{Name, actor, field};
 use crate::standins;
 
 /// The boots' armor actors, as the table names them.
-const BOOTS: [&Name; 2] = [actor::ARMOR_ADULT_HEAVY_BOOT, actor::ARMOR_ADULT_HOVER_BOOT];
+const BOOTS: [&Name; 4] = [
+    actor::ARMOR_ADULT_HEAVY_BOOT,
+    actor::ARMOR_ADULT_HOVER_BOOT,
+    actor::ARMOR_ADULT_ZORA,
+    actor::ARMOR_ADULT_GORON,
+];
 /// The child's packs that carry his base equipment user file: his own and
 /// the menu's model of him.
 const PACKS: [&Name; 2] = [actor::PLAYER_CHILD, actor::POUCH_PLAYER_CHILD];

@@ -40,7 +40,7 @@ pub const BOOTS_SLOT: u32 = 9;
 /// and hand armor slots (8 to 10), so nothing of theirs is made on him.
 /// [`CHILD_GEAR`] lets the boots through.
 pub fn gear_through(slot: u32, flags: u32) -> bool {
-    slot == BOOTS_SLOT && flags & CHILD_GEAR != 0
+    (slot == BOOTS_SLOT || slot == 8) && flags & CHILD_GEAR != 0
 }
 pub const HEADER: usize = size_of::<Header>();
 
