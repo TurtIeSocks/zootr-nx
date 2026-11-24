@@ -166,6 +166,9 @@ struct Ledger {
     /// Spots the server has from us this connection.
     sent: BTreeSet<u64>,
     goal: bool,
+    /// The server has sent our items this connection. Until then its list
+    /// reads empty.
+    items: bool,
 }
 
 /// One look at the game, without the server: what to send, and whether the
@@ -229,6 +232,8 @@ fn give_next(
 /// Give the next item owed, if any, then show the notice due: between a
 /// burst's gives only its first few, so the rest aren't held up. Its index
 /// and what Link got. `sender` says who sent an index, as it's given.
+/// `received` is `None` until the server's items are in: nothing is given
+/// then, so a save with items given isn't held against an empty list.
 ///
 /// One give a pass, so the room is answered between gives: the server
 /// drops a client that leaves its keepalive unanswered for 20 s, and a
@@ -236,12 +241,15 @@ fn give_next(
 fn give_one<G: Game>(
     game: &mut G,
     book: &Book,
-    received: &[i64],
+    received: Option<&[i64]>,
     notices: &mut Notices,
     mut sender: impl FnMut(usize) -> Option<u32>,
     now: Instant,
 ) -> Result<Option<(usize, String)>> {
-    let gave = give_next(game, book, received)?;
+    let gave = match received {
+        Some(received) => give_next(game, book, received)?,
+        None => None,
+    };
     match &gave {
         Some((index, got)) => {
             if let Some(slot) = sender(*index) {
@@ -383,7 +391,10 @@ fn session(
                     note(Note::Trouble(e.to_string()))
                 }
                 // Something for Link: look now rather than at the next tick.
-                ap::Event::ReceivedItems(_) => next_look = Instant::now(),
+                ap::Event::ReceivedItems(_) => {
+                    ledger.items = true;
+                    next_look = Instant::now();
+                }
                 ap::Event::Print(ap::Print::ItemSend { item, .. }) => printed.push(item),
                 ap::Event::DeathLink { source, cause, .. } if book.death_link => {
                     heard.push(Death { source, cause });
@@ -469,7 +480,8 @@ fn tick(
             None => ledger.goal = false,
         }
     }
-    let received: Vec<i64> = found(client).map(|r| r.item().id()).collect();
+    let received: Option<Vec<i64>> =
+        (ledger.items).then(|| found(client).map(|r| r.item().id()).collect());
     let sender = |index| {
         let r = found(client).nth(index)?;
         note(Note::Received {
@@ -478,7 +490,14 @@ fn tick(
         });
         Some(r.sender().slot())
     };
-    let gave = give_one(game, book, &received, notices, sender, Instant::now());
+    let gave = give_one(
+        game,
+        book,
+        received.as_deref(),
+        notices,
+        sender,
+        Instant::now(),
+    );
     troubles.take(Source::Give, gave, note).flatten().is_some()
 }
 
@@ -772,7 +791,8 @@ pub(super) mod tests {
     /// notices had shown after each give.
     fn give_all(game: &mut Fake, notices: &mut Notices, received: &[i64]) -> Vec<(usize, usize)> {
         let (book, now, mut out) = (book(), Instant::now(), vec![]);
-        while let Some((i, _)) = give_one(game, &book, received, notices, |_| Some(0), now).unwrap()
+        while let Some((i, _)) =
+            give_one(game, &book, Some(received), notices, |_| Some(0), now).unwrap()
         {
             out.push((i, game.notices.len()));
         }
@@ -783,7 +803,14 @@ pub(super) mod tests {
     fn a_pass_gives_one_item_so_the_room_is_answered_between() {
         let (mut game, book, mut notices) = (Fake::default(), book(), Notices::default());
         let now = Instant::now();
-        let gave = give_one(&mut game, &book, &[2, 1, 2], &mut notices, |_| Some(0), now);
+        let gave = give_one(
+            &mut game,
+            &book,
+            Some(&[2, 1, 2]),
+            &mut notices,
+            |_| Some(0),
+            now,
+        );
         assert_eq!(gave.unwrap().map(|(i, _)| i), Some(0));
         assert_eq!(game.given.len(), 1);
         let given: Vec<_> = give_all(&mut game, &mut notices, &[2, 1, 2])
@@ -823,6 +850,23 @@ pub(super) mod tests {
         let err = give_next(&mut game, &book, &[1]).unwrap_err();
         assert!(err.to_string().contains("another room"), "{err}");
         assert!(game.given.is_empty());
+    }
+
+    /// Right after a connect the server's items may not be in yet: the
+    /// save isn't held against an empty list.
+    #[test]
+    fn nothing_is_compared_before_the_server_sends_its_items() {
+        let (mut game, book, mut notices) = (Fake::default(), book(), Notices::default());
+        game.counted = 3;
+        let gave = give_one(
+            &mut game,
+            &book,
+            None,
+            &mut notices,
+            |_| Some(0),
+            Instant::now(),
+        );
+        assert_eq!(gave.unwrap(), None);
     }
 
     /// A give whose wait after it fails still counts, or every pass gives
