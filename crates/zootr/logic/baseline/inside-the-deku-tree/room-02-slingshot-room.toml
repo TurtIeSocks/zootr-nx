@@ -12,12 +12,10 @@ why = "walk, 1 edges"
 hash = 821372075822700622
 name = "Upper Fairy Slingshot"
 needs = "always"
-why = "0.0 m from its room's floor, within a big chest's reach (1.35 m), but no way there from where Link enters the room"
-guess = true
+why = "0.0 m from its room's floor, within a big chest's reach (1.35 m)"
 
 [[check]]
 hash = 13027331340815880287
 name = "Upper Three Deku Nuts 1"
 needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m), but no way there from where Link enters the room"
-guess = true
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"

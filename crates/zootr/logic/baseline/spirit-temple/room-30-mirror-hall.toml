@@ -12,7 +12,7 @@ why = "walk, 1 edges"
 to = 31
 needs = "flag:#9b180729"
 via = "walk"
-why = "walk, 3 edges; Spirit Temple Switch Shutter A 01 322920475917812712 shut until flag #9b180729; Switch Shutter A 06 8610852534360824642 shut until flag #9b180729; Switch Shutter A 06 16305076459615501852 shut until flag #9b180729"
+why = "walk, 18 edges; Spirit Temple Switch Shutter A 01 322920475917812712 shut until flag #9b180729; Switch Shutter A 06 8610852534360824642 shut until flag #9b180729; Switch Shutter A 06 16305076459615501852 shut until flag #9b180729"
 
 [[flag]]
 hash = 0x9b180729

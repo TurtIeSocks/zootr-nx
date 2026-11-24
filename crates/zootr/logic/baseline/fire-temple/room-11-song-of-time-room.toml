@@ -6,19 +6,21 @@ name = "Song of Time Room"
 to = 10
 needs = "always"
 via = "walk"
-why = "walk, 16 edges"
+why = "walk, 36 edges"
 
 [[link]]
 to = 10
-needs = "always"
+needs = "small-key"
 via = "door"
-why = "door 1357454618756669151"
+why = "door 458358399851065497, 1357454618756669151, 17520323088057735070; Door Chain Lock A 04 3821680550391843340: small-key; Door Chain Lock A 04 11850579166655186247: small-key"
+guess = true
 
 [[link]]
 to = 10
-needs = "always"
+needs = "small-key"
 via = "jump"
-why = "level gap 1.7 to 2.2 m: within a running jump (2.7 m)"
+why = "level gap 0.8 to 2.2 m: within a running jump (2.7 m); Door Chain Lock A 04 3821680550391843340: small-key; Door Chain Lock A 04 11850579166655186247: small-key"
+guess = true
 
 [[check]]
 hash = 10521366928524045067

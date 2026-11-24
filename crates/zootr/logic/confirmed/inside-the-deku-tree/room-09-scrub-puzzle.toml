@@ -1,0 +1,18 @@
+# Settled by playtest. Overrides baseline/ by key.
+room = 9
+name = "Scrub Puzzle"
+
+# Behind the rock on the room's north side is a pocket of collision floor
+# the navmesh joins to the room through a crevice. From it derive drops
+# into the room below. Link can't get there: the way on is the door the
+# three scrubs open, then the passage down.
+[[link]]
+from = "-38.0,53.1,47.9"
+to = "-37.5,50.7,48.8"
+needs = "never"
+via = "jump"
+why = "the pocket it starts from is behind the rock, out of bounds"
+evidence = [
+    "playtest 2026-11-23, the maintainer: no way down here, the room is left by the door the scrubs open",
+    "live trace 2026-11-23: walking from the scrub room's floor at the pocket, Link stops at the rock (z 45.6)",
+]
