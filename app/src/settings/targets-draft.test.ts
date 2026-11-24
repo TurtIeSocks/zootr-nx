@@ -104,6 +104,7 @@ test("problem names the first thing stopping a save", () => {
 test("Variables lists exactly the variables the code fills", () => {
   const filled = [
     "config.rs",
+    "config/target.rs",
     "config/settings_file.rs",
     "config/rebuild.rs",
   ].flatMap((f) => [...rust(f).matchAll(/"(\{[a-z]+\})"/g)].map((m) => m[1]));
