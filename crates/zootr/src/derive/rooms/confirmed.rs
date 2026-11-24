@@ -13,6 +13,7 @@ use anyhow::{Result, bail, ensure};
 use crate::nav::graph::{Cross, Graph, Snap};
 use crate::rules::rooms::{Flag, FloorClaim, Point, Room, SpotLink, Via};
 
+use super::Segment;
 use super::label::Labels;
 use super::locks::Lock;
 
@@ -29,7 +30,7 @@ fn floor_at(graph: &Graph, p: Point) -> Option<Snap> {
 
 /// Whether a spot link costs nothing to take.
 pub(super) fn free(link: &SpotLink) -> bool {
-    link.needs.trim() == "always"
+    link.needs.trim() == crate::derive::ALWAYS
 }
 
 fn warn(warnings: &mut Vec<String>, room: u32, hash: u32, setter: u32) {
@@ -49,6 +50,9 @@ struct Entry<'b, T> {
     room: u32,
     it: &'b T,
     found: Cell<bool>,
+    /// Set by `Here::takes_room_arc` and `takes_parts_arc` when the
+    /// entry's link stands in for a derived arc: `finish` needs it for a
+    /// removal.
     hit: Cell<bool>,
 }
 
@@ -60,6 +64,17 @@ impl<'b, T> Entry<'b, T> {
             found: Cell::new(false),
             hit: Cell::new(false),
         }
+    }
+}
+
+impl Entry<'_, SpotLink> {
+    /// The link as an error names it.
+    fn what(&self) -> String {
+        let l = self.it;
+        format!(
+            "confirmed room {}: link from {} to {}",
+            self.room, l.from, l.to
+        )
     }
 }
 
@@ -76,7 +91,7 @@ pub(super) struct Placed<'b> {
     pub link: &'b SpotLink,
     pub from: (u32, usize),
     pub to: (u32, usize),
-    pub at: ([f32; 3], [f32; 3]),
+    pub at: Segment,
 }
 
 /// One map's spot links, and the derived arcs they replace.
@@ -93,14 +108,15 @@ impl Here<'_, '_> {
     }
 
     /// Whether a confirmed link stands in for a derived arc from room `a`
-    /// to room `b` by `via`.
-    pub fn replaces_rooms(&self, a: u32, b: u32, via: Via) -> bool {
+    /// to room `b` by `via`, recording on the link that it took one.
+    pub fn takes_room_arc(&self, a: u32, b: u32, via: Via) -> bool {
         self.replaced(self.rooms.get(&(a, b, via)))
     }
 
     /// Whether a confirmed link stands in for a derived arc from part `a`
-    /// of a room to its part `b` by `via`.
-    pub fn replaces_parts(&self, a: usize, b: usize, via: Via) -> bool {
+    /// of a room to its part `b` by `via`, recording on the link that it
+    /// took one.
+    pub fn takes_parts_arc(&self, a: usize, b: usize, via: Via) -> bool {
         self.replaced(self.parts.get(&(a, b, via)))
     }
 }
@@ -171,34 +187,32 @@ impl<'b> Confirmed<'b> {
         };
         for (i, e) in self.links.iter().enumerate() {
             let l = e.it;
-            let what = || {
-                format!(
-                    "confirmed room {}: link from {} to {}",
-                    e.room, l.from, l.to
-                )
-            };
             let Some(from) = floor_at(graph, l.from) else {
                 continue;
             };
             let Some(to) = floor_at(graph, l.to) else {
-                bail!("{}: `to` has no floor within {BELOW} m under it", what());
+                bail!("{}: `to` has no floor within {BELOW} m under it", e.what());
             };
             let (ra, rb) = (labels.room[from.face], labels.room[to.face]);
             ensure!(
                 ra == Some(e.room),
                 "{}: `from` is in room {ra:?}, not this file's",
-                what()
+                e.what()
             );
             let Some(rb) = rb else {
                 bail!(
                     "{}: `to` is in no room: claim its floor with a [[floor]]",
-                    what()
+                    e.what()
                 );
             };
             let (pa, pb) = (labels.part[from.face], labels.part[to.face]);
             let twice = match e.room == rb {
                 true => {
-                    ensure!(pa != pb, "{}: both spots are one part of the room", what());
+                    ensure!(
+                        pa != pb,
+                        "{}: both spots are one part of the room",
+                        e.what()
+                    );
                     here.parts.insert((pa, pb, l.via), i).is_some()
                 }
                 false => here.rooms.insert((e.room, rb, l.via), i).is_some(),
@@ -206,7 +220,7 @@ impl<'b> Confirmed<'b> {
             ensure!(
                 !twice,
                 "{}: a second link for those ends by {}",
-                what(),
+                e.what(),
                 l.via.word()
             );
             e.found.set(true);
@@ -281,21 +295,15 @@ impl<'b> Confirmed<'b> {
     pub fn finish(&self) -> Result<()> {
         for e in &self.links {
             let l = e.it;
-            let what = || {
-                format!(
-                    "confirmed room {}: link from {} to {}",
-                    e.room, l.from, l.to
-                )
-            };
             ensure!(
                 e.found.get(),
                 "{}: `from` has no floor within {BELOW} m under it in any map",
-                what()
+                e.what()
             );
             ensure!(
                 !never(l) || e.hit.get(),
                 "{}: needs \"never\", but derive has no arc there by {} to remove",
-                what(),
+                e.what(),
                 l.via.word()
             );
         }
@@ -394,10 +402,10 @@ mod tests {
         let here = c.locate(&g, &labels).unwrap();
         assert_eq!(here.links.len(), 2);
         assert_eq!((here.links[0].from, here.links[0].to), ((1, 0), (2, 2)));
-        assert!(here.replaces_rooms(1, 2, Via::Fall));
-        assert!(!here.replaces_rooms(1, 2, Via::Walk), "another via stays");
-        assert!(here.replaces_parts(0, 1, Via::Climb));
-        assert!(!here.replaces_parts(1, 0, Via::Climb), "one way");
+        assert!(here.takes_room_arc(1, 2, Via::Fall));
+        assert!(!here.takes_room_arc(1, 2, Via::Walk), "another via stays");
+        assert!(here.takes_parts_arc(0, 1, Via::Climb));
+        assert!(!here.takes_parts_arc(1, 0, Via::Climb), "one way");
         c.finish().unwrap();
     }
 
@@ -410,7 +418,7 @@ mod tests {
         let here = c.locate(&g, &labels).unwrap();
         assert!(here.links.is_empty(), "a removal adds nothing");
         assert!(err(c.finish()).contains("no arc there by jump"));
-        assert!(here.replaces_rooms(1, 2, Via::Jump));
+        assert!(here.takes_room_arc(1, 2, Via::Jump));
         c.finish().unwrap();
     }
 

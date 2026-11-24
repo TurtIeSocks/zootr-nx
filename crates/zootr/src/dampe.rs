@@ -12,8 +12,8 @@ use ounce_formats::{EventKind, Flowchart, Link, Romfs, Value};
 
 use crate::checks::Drop;
 use crate::flows::{
-    self, ACTOR, GAME_DATA, IN_POUCH, IS_BOOL, Model, Rewrites, SET_BOOL, param, running, set,
-    string, switch,
+    self, ACTOR, GAME_DATA, IN_POUCH, IS_BOOL, Model, Rewrites, SET_BOOL, VALUE, param, running,
+    set, string, switch,
 };
 use crate::known::{Name, field, flag, flow, item};
 
@@ -141,7 +141,7 @@ fn set_when_opened(flow: &mut Flowchart, set_bool: &Model) -> Result<()> {
                 let EventKind::Action { params, .. } = &flow.events[e as usize].kind else {
                     return false;
                 };
-                param(params, GAME_DATA) == Some(STATE) && param(params, "Value") == Some(opened)
+                param(params, GAME_DATA) == Some(STATE) && param(params, VALUE) == Some(opened)
             })
             .collect();
         ensure!(
@@ -155,7 +155,7 @@ fn set_when_opened(flow: &mut Flowchart, set_bool: &Model) -> Result<()> {
             };
             let mut params = set_bool.params.clone();
             set(&mut params, GAME_DATA, string(flag))?;
-            set(&mut params, "Value", Value::Bool(vec![true]))?;
+            set(&mut params, VALUE, Value::Bool(vec![true]))?;
             let sets = flow.push(EventKind::Action {
                 next,
                 actor,
@@ -255,7 +255,7 @@ mod tests {
                     let EventKind::Action { params, .. } = &flow.events[e as usize].kind else {
                         return false;
                     };
-                    param(params, "Value") == Some(opened)
+                    param(params, VALUE) == Some(opened)
                 })
                 .collect();
             assert!(!notes.is_empty(), "{opened}");
@@ -270,7 +270,7 @@ mod tests {
                 };
                 assert_eq!(param(params, GAME_DATA), Some(flag));
                 assert_eq!(
-                    params.iter().find(|p| p.0 == "Value").map(|p| &p.1),
+                    params.iter().find(|p| p.0 == VALUE).map(|p| &p.1),
                     Some(&Value::Bool(vec![true]))
                 );
                 assert!(next.is_some());
