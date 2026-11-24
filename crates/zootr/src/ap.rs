@@ -82,6 +82,13 @@ pub const OPTIONS: &[&str] = &[
     "shuffle-masks",
     "ice-traps",
     "progressive-items",
+    "logic",
+    "starting-age",
+    "rainbow-bridge",
+    "ganons-trials",
+    "king-zora-moved",
+    "adult-jabu-jabu",
+    "day-skulltulas",
 ];
 
 /// Every setting the world doesn't offer, and why: each one coming in a
@@ -99,14 +106,7 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
     ("shuffle-nut-bag", Later(CHECK_KINDS)),
     ("shuffle-stick-bag", Later(CHECK_KINDS)),
     ("magic-with-first-item", Later(COMFORT)),
-    ("logic", Later(RULES)),
-    ("starting-age", Later(RULES)),
-    ("rainbow-bridge", Later(RULES)),
-    ("ganons-trials", Later(RULES)),
-    ("king-zora-moved", Later(RULES)),
-    ("adult-jabu-jabu", Later(RULES)),
     ("hints", Later(RULES)),
-    ("day-skulltulas", Later(RULES)),
     ("shuffle-dungeon-entrances", Later(RULES)),
     ("scrub-price", Later(COMFORT)),
     ("ageless-items", Later(COMFORT)),
@@ -171,14 +171,27 @@ pub fn archipelago_option(id: &str, option: &str) -> Archipelago {
 /// what each changes alone, so the export builds each group's
 /// combinations whole: NPC Gifts with Met Zelda (Zelda's Letter ✅ stays
 /// put, no Weird Egg), with Gerudo Fortress (Freed keeps the membership
-/// card's check) and with Cows (the gifts' bottles fill the pouch's five,
-/// so the cows' milk deals as rupees).
-pub const JOINT: &[&[&str]] = &[&["npc-gifts", "met-zelda", "gerudo-fortress", "cows"]];
+/// card's check), with Cows (the gifts' bottles fill the pouch's five,
+/// so the cows' milk deals as rupees) and with King Zora Moved (either
+/// makes Ruto's Letter ✅ a check).
+pub const JOINT: &[&[&str]] = &[&[
+    "npc-gifts",
+    "met-zelda",
+    "gerudo-fortress",
+    "cows",
+    "king-zora-moved",
+]];
 
 /// Choice options the world leaves out, each as setting id, option and
 /// a sentence of the setting's description that offers it. Dungeon keys
 /// offer Vanilla and Start only, so far.
 const HELD: &[(&str, &str, &str)] = &[
+    // AP's own `random` in a YAML rolls the age, before the fill needs it.
+    (
+        "starting-age",
+        "random",
+        " Random rolls one from the seed, and opens the door and the forest whichever it rolls",
+    ),
     (
         "keys",
         "rings",

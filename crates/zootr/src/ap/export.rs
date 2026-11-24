@@ -102,8 +102,26 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let counted = pool::Counted::new(&seeds, &settings)?;
     counted.check_sources(&seeds)?;
     let (items, pool) = counted.items_and_pool(&cx, &rules.used, &mut ids)?;
+    // Where a variant starts Link elsewhere (Starting Age), that start
+    // under the settings that pick it; the world takes the first that
+    // holds, else `start`.
+    let mut starts: Vec<Value> = Vec::new();
+    for (seed, v) in built.iter().zip(&variants) {
+        let place = names.place(seed.world.start());
+        if place != names.place(w.start()) {
+            let picks = v
+                .key
+                .iter()
+                .map(|(id, value)| json!({ "setting": word(id, value) }));
+            let start = json!({ "place": place, "when": all(picks.collect()) });
+            if !starts.contains(&start) {
+                starts.push(start);
+            }
+        }
+    }
     let world = json!({
         "start": names.place(w.start()),
+        "starts": starts,
         "places": places,
         "exits": exits,
         "checks": checks,
@@ -473,7 +491,7 @@ fn options() -> Value {
             "kind": "choice", "default": default,
             "options": (options.iter())
                 .filter(|o| offers(&d.id, &o.id))
-                .map(|o| json!({ "id": o.id, "label": o.label }))
+                .map(|o| json!({ "id": o.id, "label": o.label, "forces": o.forces }))
                 .collect::<Vec<_>>(),
         }),
         Kind::Inventory { default } => json!({
