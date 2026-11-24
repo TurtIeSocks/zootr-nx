@@ -318,22 +318,29 @@ pub fn open(dir: &Path, kind: &str) -> Result<(PathBuf, File)> {
     };
     // Pruning is housekeeping: an old log it can't remove (one still held
     // open, say) mustn't cost this session its own.
-    let _ = prune();
+    if let Err(e) = prune() {
+        log::warn!("pruning old logs in {}: {e:#}", dir.display());
+    }
     Ok((path, file))
 }
 
 /// Remove all but the `keep` last of `paths` by name (their names start
-/// with the time), files and folders alike.
+/// with the time), files and folders alike. Each is tried, so one stuck
+/// path never keeps the rest. The first failure is returned.
 pub fn keep_newest(paths: impl Iterator<Item = PathBuf>, keep: usize) -> Result<()> {
     let mut old: Vec<PathBuf> = paths.collect();
     old.sort();
+    let mut first = None;
     for p in &old[..old.len().saturating_sub(keep)] {
-        match p.is_dir() {
-            true => std::fs::remove_dir_all(p)?,
-            false => std::fs::remove_file(p)?,
+        let removed = match p.is_dir() {
+            true => std::fs::remove_dir_all(p),
+            false => std::fs::remove_file(p),
+        };
+        if let Err(e) = removed {
+            first.get_or_insert(anyhow::Error::new(e).context(format!("removing {}", p.display())));
         }
     }
-    Ok(())
+    first.map_or(Ok(()), Err)
 }
 
 type Rows = (Vec<Change>, Vec<u32>);
@@ -796,6 +803,22 @@ mod tests {
         let opened = open(&dir, "live");
         mode(0o755);
         assert!(opened.unwrap().0.exists());
+        // The stuck log doesn't keep the next oldest.
+        assert!(!dir.join("live-2000-01-01-000001.log").exists());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_path_that_wont_go_neither_stops_the_rest_nor_hides() {
+        let dir = scratch("stuck");
+        std::fs::create_dir_all(&dir).unwrap();
+        let log = |i| dir.join(format!("live-{i}.log"));
+        (1..=2).for_each(|i| std::fs::write(log(i), "").unwrap());
+        // Gone before it's removed, as a stuck one fails.
+        let paths = [log(0), log(1), log(2)].into_iter();
+        let err = format!("{:#}", keep_newest(paths, 1).unwrap_err());
+        assert!(err.contains("live-0.log"), "{err}");
+        assert!(!log(1).exists() && log(2).exists());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

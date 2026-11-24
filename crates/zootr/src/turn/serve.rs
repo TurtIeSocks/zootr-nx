@@ -93,7 +93,7 @@ impl Shared {
             Ask::Leave { game } => q.leave(&game)?,
             Ask::Reserve { game, session } => q.reserve(&game, session.as_deref())?,
             Ask::SweepStart { game, name } => {
-                while !q.sweep_start(&game, &name)? {
+                while !q.sweep_start(&game, &name, now())? {
                     q = self
                         .changed
                         .wait_timeout(q, TICK)
@@ -102,7 +102,9 @@ impl Shared {
                 }
                 answer.yes = Some(true);
             }
-            Ask::SweepYields { game, name } => answer.yes = Some(q.sweep_yields(&game, &name)),
+            Ask::SweepYields { game, name } => {
+                answer.yes = Some(q.sweep_yields(&game, &name, now()))
+            }
             Ask::SweepDone { game, name } => q.sweep_done(&game, &name)?,
         }
         self.tick(&mut q);

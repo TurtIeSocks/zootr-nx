@@ -149,14 +149,31 @@ fn copy(from: &Path, to: &Path, slot: Option<u8>) -> Result<()> {
         let _ = std::fs::remove_dir_all(&part);
         return Err(e);
     }
-    match std::fs::remove_dir_all(to) {
-        Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
-            let _ = std::fs::remove_dir_all(&part);
-            return Err(e).with_context(|| format!("replacing {}", to.display()));
+    swap(&part, to)
+}
+
+/// Put the finished `part` in `to`'s place. The old `to` is moved aside
+/// first and deleted only once `part` is in, so a failed swap puts it
+/// back and leaves `part` for the taking.
+fn swap(part: &Path, to: &Path) -> Result<()> {
+    let name = to.file_name().context("a kept save's folder has no name")?;
+    let old = to.with_file_name(format!(".{}.old", name.to_string_lossy()));
+    let _ = std::fs::remove_dir_all(&old);
+    let aside = match std::fs::rename(to, &old) {
+        Ok(()) => true,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+        Err(e) => return Err(e).with_context(|| format!("moving {} aside", to.display())),
+    };
+    if let Err(e) = std::fs::rename(part, to) {
+        if aside {
+            let _ = std::fs::rename(&old, to);
         }
-        _ => {}
+        return Err(e).with_context(|| format!("moving the copy to {}", to.display()));
     }
-    std::fs::rename(&part, to).with_context(|| format!("moving the copy to {}", to.display()))
+    if aside && let Err(e) = std::fs::remove_dir_all(&old) {
+        log::warn!("removing the old copy {}: {e}", old.display());
+    }
+    Ok(())
 }
 
 /// `copy`'s files, into a `to` made for them.
@@ -283,6 +300,26 @@ mod tests {
         assert!(to.join("option.sav").exists());
         assert!(!to.join("slot_00").exists());
         assert!(!root.join(".kept.part").exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn a_failed_swap_puts_the_old_keep_back() {
+        let root = std::env::temp_dir().join(format!("zootr-keep-swap-{}", std::process::id()));
+        let to = root.join("kept");
+        std::fs::create_dir_all(&to).unwrap();
+        std::fs::write(to.join("option.sav"), "kept before").unwrap();
+        let err = format!("{:#}", swap(&root.join(".kept.part"), &to).unwrap_err());
+        assert!(err.contains("moving the copy"), "{err}");
+        assert!(to.join("option.sav").exists());
+        assert!(!root.join(".kept.old").exists());
+        // A whole part goes in, and the old copy goes.
+        let part = root.join(".kept.part");
+        std::fs::create_dir_all(&part).unwrap();
+        std::fs::write(part.join("account.sav"), "new").unwrap();
+        swap(&part, &to).unwrap();
+        assert!(to.join("account.sav").exists() && !to.join("option.sav").exists());
+        assert!(!part.exists() && !root.join(".kept.old").exists());
         std::fs::remove_dir_all(root).unwrap();
     }
 
