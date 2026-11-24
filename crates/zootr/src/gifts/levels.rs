@@ -13,7 +13,7 @@ use crate::{ammo, progressive};
 /// The pouch question every chain asks, as the archery flow asks it.
 pub(crate) fn model(flows: &Flows) -> Result<Model> {
     let archery = flow::MINIGAME_HORSEBACK_ARCHERY;
-    let chart = (flows.0.get(&**archery)).with_context(|| format!("no {archery} flow"))?;
+    let chart = (flows.charts.get(&**archery)).with_context(|| format!("no {archery} flow"))?;
     let at = flows::switch(chart, IN_POUCH)
         .with_context(|| format!("{archery} never asks the pouch"))?;
     flows::model(chart, IN_POUCH, at)

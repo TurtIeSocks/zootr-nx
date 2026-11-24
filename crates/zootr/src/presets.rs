@@ -8,6 +8,7 @@ use anyhow::{Context, Result, bail};
 use clap::builder::{PossibleValue, PossibleValuesParser, TypedValueParser};
 use ounce_formats::Byml;
 
+use crate::cutscenes::{played_flag, played_set};
 use crate::gamedata::GameData;
 use crate::known::{Name, actor, field, flag, flow};
 use crate::savefile;
@@ -154,10 +155,8 @@ fn no_tutorials() -> Vec<String> {
         "{}=true",
         field::KAKARIKO_VILLAGE_GATHERING_TOKEN_GOLD_ACTION_GUIDE_AGONY_STONE_TRUE
     ));
-    edits.push(format!(
-        "{}.{}=true",
-        flag::HAVE_PLAYED_EVENT,
-        flag::KOKIRI_FOREST_KOKIRI_011_STOP_IN_FRONT_OF_SHOP_00
+    edits.push(played_set(
+        flag::KOKIRI_FOREST_KOKIRI_011_STOP_IN_FRONT_OF_SHOP_00,
     ));
     edits
 }
@@ -201,7 +200,7 @@ const JABU_MOUTH: u64 = 4228704915231375030;
 /// Ruto's schedules and the belly's rooms wait on.
 fn jabu_arrival() -> Vec<String> {
     let event = flow::GET_STONE_OF_WATER_ARRIVE_JABU_JABU_BELLY;
-    let played = format!("{}.{event}", flag::HAVE_PLAYED_EVENT);
+    let played = played_flag(event);
     [
         (field::INIT_EVENT_NAME, event.to_string()),
         (field::INIT_EVENT_FLAG, played),
@@ -623,9 +622,7 @@ mod tests {
             "{}=true",
             field::KAKARIKO_VILLAGE_GATHERING_TOKEN_GOLD_ACTION_GUIDE_AGONY_STONE_TRUE
         )));
-        assert!(has(&format!(
-            "{}.{}=true",
-            flag::HAVE_PLAYED_EVENT,
+        assert!(has(&played_set(
             flag::KOKIRI_FOREST_KOKIRI_011_STOP_IN_FRONT_OF_SHOP_00
         )));
         assert!(has(&format!(

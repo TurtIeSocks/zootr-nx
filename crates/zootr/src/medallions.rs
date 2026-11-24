@@ -5,8 +5,6 @@
 
 pub(crate) mod paint;
 
-use std::sync::LazyLock;
-
 use anyhow::{Context, Result};
 use ounce_formats::{
     ActorPack, Byml, BymlDoc, ModBuilder, Romfs, Texture, Vertex, edit_vertices, redraw, rename,
@@ -56,7 +54,7 @@ pub const FILES: [&str; 8] = [
 /// animation sequence, which turns its model's root bone there, and the
 /// animations the menu's copy of the host plays on the host's own bones.
 const SPINNER: &Name = item::AGONY_STONE;
-static SPINS: LazyLock<[&str; 2]> = LazyLock::new(|| ["ASRef", field::AS_INFO_REF]);
+const SPINS: [&Name; 2] = [field::AS_REF, field::AS_INFO_REF];
 const MENU_HOST: &Name = item::MEDAL_FOREST_IMPORTANT_MENU;
 /// The songbook icons' names, before each song's number.
 const ICON: &str = "OcarinaMelodyIcon_";
@@ -161,7 +159,7 @@ pub fn write<'a>(
         ActorPack::load(romfs, MENU_HOST)?,
     );
     let lenders = SPINS
-        .map(|key| (key, &spinner))
+        .map(|key| (key.get(), &spinner))
         .into_iter()
         .chain([(ANIMATION.get(), &menu_host)])
         .collect::<Vec<_>>();

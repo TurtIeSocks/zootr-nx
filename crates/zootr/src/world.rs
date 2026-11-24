@@ -13,6 +13,7 @@ use ounce_formats::{Byml, BymlDoc, Romfs, files_with_suffix};
 use crate::checks::{self, actors, bancs, str_field};
 use crate::known::{Name, field};
 use crate::per_dump::PerDump;
+use crate::warp;
 
 const EXIT_ACTOR: &Name = field::FIELD_AND_DUNGEON_ENTRANCE_EVENT_REQUEST_ACTOR;
 
@@ -52,9 +53,9 @@ pub fn node_of(file: &str) -> (String, Vec<Era>) {
         .iter()
         .find_map(|s| stem.split_once(s).map(|(n, _)| n))
         .unwrap_or(stem);
-    let eras = if node.contains("_Child") {
+    let eras = if node.contains(warp::CHILD) {
         vec![Era::Child]
-    } else if node.contains("_Adult") {
+    } else if node.contains(warp::ADULT) {
         vec![Era::Adult]
     } else {
         Era::BOTH.to_vec()

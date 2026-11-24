@@ -363,6 +363,7 @@ fn is_on(schema: &[SettingDef], settings: &Settings, id: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cutscenes::played_set;
     use crate::known::flag;
     use crate::presets::ADULT_DEKU_TREE;
 
@@ -507,11 +508,7 @@ mod tests {
         needs_names!();
         let open = Settings::from([(BRIDGE.into(), "open".into())]);
         let (game, added) = added(&open);
-        let played = format!(
-            "{}.{}=true",
-            flag::HAVE_PLAYED_EVENT,
-            crate::known::field::GANON_CASTLE_ADULT_FIELD_RAINBOW
-        );
+        let played = played_set(crate::known::field::GANON_CASTLE_ADULT_FIELD_RAINBOW);
         assert_eq!(added, [played]);
         assert_eq!(game.bridge, Bridge::Open);
         assert!(game.give.is_empty() && game.progress.is_empty());
@@ -534,7 +531,7 @@ mod tests {
         assert!(added.contains(&format!("{clear}=true")));
         for trial in ["Light", "Forest", "Water", "Shadow", "Fire", "Spirit"] {
             let removed = format!("InsideGanonCastle_Dungeon_BarrierRemove_{trial}");
-            let played = format!("{}.{removed}=true", flag::HAVE_PLAYED_EVENT);
+            let played = played_set(&removed);
             assert!(added.contains(&played), "{trial}");
             assert!(added.contains(&format!("{removed}=true")), "{trial}");
         }
