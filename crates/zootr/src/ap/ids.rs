@@ -14,7 +14,7 @@ pub struct Ids {
 }
 
 /// The AP world's table, as the app ships it.
-const IDS: &str = include_str!("../../../../ap/znx/data/ids.json");
+pub(super) const IDS: &str = include_str!("../../../../ap/znx/data/ids.json");
 
 impl Ids {
     pub fn load() -> anyhow::Result<Self> {
