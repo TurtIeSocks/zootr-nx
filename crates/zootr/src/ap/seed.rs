@@ -393,8 +393,8 @@ pub(super) fn open() -> BTreeSet<String> {
 mod tests {
     use super::*;
     use crate::ap::OPTIONS;
-    use crate::settings::SCRUB_PRICE;
     use crate::rules::settings_read;
+    use crate::settings::SCRUB_PRICE;
 
     #[test]
     fn an_exposed_rule_setting_has_no_parent() {
