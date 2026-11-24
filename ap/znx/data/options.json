@@ -337,13 +337,6 @@
   },
   {
     "default": false,
-    "description": "Child and adult Link can each wield every one-handed sword and every shield, and logic expects them to. Biggoron's Sword and the Giant's Knife stay adult Link's, and only he can aim the Mirror Shield at light",
-    "id": "ageless-weapons",
-    "kind": "toggle",
-    "label": "One-Handed Swords and Shields for Both Ages"
-  },
-  {
-    "default": false,
     "description": "Every Business Scrub outside the Dream World sells a check once. Scrubs that sold ammo on repeat sell their one item and leave",
     "id": "scrubs",
     "kind": "toggle",
@@ -618,13 +611,6 @@
   },
   {
     "default": false,
-    "description": "Untested. Child Link can use the Megaton Hammer, Hookshot, Longshot, Bow, magic arrows and the two-handed swords, and adult Link Deku Sticks and the Boomerang. Logic still expects each at its own age",
-    "id": "ageless-items",
-    "kind": "toggle",
-    "label": "Items for Both Ages"
-  },
-  {
-    "default": false,
     "description": "Enemies never show, so nothing grabs Link or knocks him back. Gold Skulltulas, scrubs, Big Poes, the Skull Kid and enemies that are checks stay. For the play harness's seeds",
     "id": "quiet-enemies",
     "kind": "toggle",
@@ -802,5 +788,82 @@
       }
     ],
     "parent": "skip-cutscenes"
+  },
+  {
+    "default": [],
+    "description": "Each item either Link can use: child Link the adult's, adult Link the child's",
+    "id": "both-ages",
+    "kind": "set",
+    "label": "Both Ages",
+    "options": [
+      {
+        "id": "both-ages-kokiri-sword",
+        "label": "Kokiri Sword"
+      },
+      {
+        "id": "both-ages-master-sword",
+        "label": "Master Sword"
+      },
+      {
+        "id": "both-ages-giants-knife",
+        "label": "Giant's Knife"
+      },
+      {
+        "id": "both-ages-biggoron-sword",
+        "label": "Biggoron's Sword"
+      },
+      {
+        "id": "both-ages-deku-shield",
+        "label": "Deku Shield"
+      },
+      {
+        "id": "both-ages-mirror-shield",
+        "label": "Mirror Shield"
+      },
+      {
+        "id": "both-ages-bow",
+        "label": "Bow"
+      },
+      {
+        "id": "both-ages-slingshot",
+        "label": "Slingshot"
+      },
+      {
+        "id": "both-ages-hammer",
+        "label": "Megaton Hammer"
+      },
+      {
+        "id": "both-ages-hookshot",
+        "label": "Hookshot"
+      },
+      {
+        "id": "both-ages-longshot",
+        "label": "Longshot"
+      },
+      {
+        "id": "both-ages-boomerang",
+        "label": "Boomerang"
+      },
+      {
+        "id": "both-ages-deku-sticks",
+        "label": "Deku Sticks"
+      },
+      {
+        "id": "both-ages-iron-boots",
+        "label": "Iron Boots"
+      },
+      {
+        "id": "both-ages-hover-boots",
+        "label": "Hover Boots"
+      },
+      {
+        "id": "both-ages-zora-tunic",
+        "label": "Zora Tunic"
+      },
+      {
+        "id": "both-ages-goron-tunic",
+        "label": "Goron Tunic"
+      }
+    ]
   }
 ]
