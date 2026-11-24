@@ -369,7 +369,10 @@ pub fn generate(
     let report = shuffle(romfs, mod_dir, seed, place, &new_game, run)?;
     run.step(Step::Spoiler)?;
     let icons = icons::icons(seed, settings, extras);
-    std::fs::write(mod_dir.join("spoiler.txt"), report.spoiler(&icons))?;
+    std::fs::write(
+        mod_dir.join(crate::generate::SPOILER),
+        report.spoiler(&icons),
+    )?;
     Ok(report)
 }
 

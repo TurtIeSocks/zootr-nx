@@ -22,6 +22,8 @@ export function InstalledSeed() {
   const [targets] = useSeeds.usePath("status.targets");
   // Builds that bake the hook patch in and haven't seen the installed one.
   const builds = targets.flatMap((t) => t.build?.text ?? []);
+  // Mod folders another install wrote over without telling the history.
+  const foreign = [...new Set(targets.flatMap((t) => t.foreign ?? []))];
 
   return (
     <RequestProvider>
@@ -76,7 +78,7 @@ export function InstalledSeed() {
             </Meter>
           </div>
         )}
-        {builds.map((text) => (
+        {[...foreign, ...builds].map((text) => (
           <Callout key={text} tone="gold" icon={TriangleAlert}>
             <ErrorWords text={text} />
           </Callout>

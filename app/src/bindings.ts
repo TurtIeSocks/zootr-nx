@@ -1208,6 +1208,11 @@ export type TargetStatus = {
 	 *  build has the installed one.
 	 */
 	build?: Build | null,
+	/**
+	 *  What to warn when its mod folder holds another seed than the
+	 *  installed one.
+	 */
+	foreign?: string | null,
 };
 
 /**

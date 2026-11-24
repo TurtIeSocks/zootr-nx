@@ -163,6 +163,12 @@ pub struct RoundEvent {
     pub name: String,
 }
 
+/// The spoiler a seed writes beside its mod.
+pub const SPOILER: &str = "spoiler.txt";
+
+/// How a spoiler starts, before its seed.
+const SEED_LINE: &str = "seed ";
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Report {
@@ -256,11 +262,17 @@ impl Report {
         self.spots.iter().filter(|s| s.item != s.vanilla).count()
     }
 
+    /// The seed a spoiler names on its first line.
+    pub fn spoiler_seed(spoiler: &str) -> Option<u64> {
+        let line = spoiler.lines().next()?;
+        line.strip_prefix(SEED_LINE)?.trim().parse().ok()
+    }
+
     /// Chests grouped by area, each with what it holds now.
     pub fn spoiler(&self, icons: &[String]) -> String {
         let width = self.spots.iter().map(|s| s.name().chars().count());
         let width = width.max().unwrap_or(0);
-        let mut out = format!("seed {}\nicons {}\n", self.seed, icons.join(" · "));
+        let mut out = format!("{SEED_LINE}{}\nicons {}\n", self.seed, icons.join(" · "));
         let release = self.written.release;
         out += &format!("game {}\n", release.name());
         if let Some(notice) = release.notice() {
