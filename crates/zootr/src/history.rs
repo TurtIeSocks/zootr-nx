@@ -455,6 +455,7 @@ pub(crate) mod tests {
             death_link: true,
             players: BTreeMap::new(),
             placements: BTreeMap::new(),
+            hints: vec![],
         };
         history.add(Settings::new(), Extras::ap(ap), Label::default(), report(1));
         let s = Summary::from(&history.entries[0]);

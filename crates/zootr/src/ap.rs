@@ -99,6 +99,7 @@ pub const OPTIONS: &[&str] = &[
     "clock",
     "no-tutorials",
     "no-pickup-texts",
+    "hints",
 ];
 
 /// Settings the world offers together as one AP option, a list of the
@@ -147,7 +148,6 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
     // Off, Dodongo's Cavern's Bomb Bag chest keeps its bag, and logic
     // shows no child way to it.
     ("chests", Later(CHECK_KINDS)),
-    ("hints", Later(RULES)),
     ("shuffle-dungeon-entrances", Later(RULES)),
     (
         "shuffle-items",
@@ -336,7 +336,7 @@ mod tests {
         assert_eq!(ap(crate::settings::CHESTS), OnUntil(CHECK_KINDS));
         assert!(matches!(ap("shuffle-items"), AlwaysOn(_)));
         assert!(matches!(ap("start-inventory"), Never(_)));
-        assert!(matches!(ap("hints"), Later(_)));
+        assert!(matches!(ap("shuffle-dungeon-entrances"), Later(_)));
     }
 
     #[test]
