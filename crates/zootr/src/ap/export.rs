@@ -11,7 +11,7 @@ use ounce_formats::{Romfs, par_map};
 use serde_json::{Value, json};
 
 use super::rule::{self, Rules, all, any};
-use super::seed::{Everything, Seed, base, domains, open, values, variants};
+use super::seed::{Dump, Everything, Seed, base, domains, open, values, variants};
 use super::when::{Counts, Domain, Variant, steps, word};
 use super::{OPTIONS, SETS, described, ids::Ids, names, offers};
 use crate::checks::ItemCheck;
@@ -38,11 +38,13 @@ pub const VICTORY: &str = "victory";
 /// export's `ids.json`, if any.
 pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str, String>> {
     let base = base();
-    let base_seed = Seed::build(romfs, &base, &open())?;
+    // Every seed below reads the same game data, so it's read once.
+    let dump = Dump::new(romfs)?;
+    let base_seed = Seed::build_in(&dump, &base, &open())?;
     let variants = variants()?;
     let domains = domains()?;
     // Each seed builds on its own, so they build at once.
-    let built: Vec<Seed> = par_map(&variants, |v| Seed::build(romfs, &v.settings(), &open()))
+    let built: Vec<Seed> = par_map(&variants, |v| Seed::build_in(&dump, &v.settings(), &open()))
         .into_iter()
         .collect::<Result<_>>()?;
     // The base first, then each variant's seed.
@@ -51,7 +53,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let settings: Vec<Settings> = std::iter::once(base.clone())
         .chain(variants.iter().map(Variant::settings))
         .collect();
-    let set: Vec<Seed> = par_map(&settings, |s| Seed::build(romfs, s, &Default::default()))
+    let set: Vec<Seed> = par_map(&settings, |s| Seed::build_in(&dump, s, &Default::default()))
         .into_iter()
         .collect::<Result<_>>()?;
     let mut ids: Ids = ids
@@ -327,6 +329,9 @@ impl Ctx<'_> {
         let (reach, names) = (self.reach, self.names);
         let mut checks: BTreeMap<u64, Row> = BTreeMap::new();
         let mut events: BTreeMap<String, Row> = BTreeMap::new();
+        // What a check may not hold depends on the check alone, so once
+        // for every seed.
+        let mut forbids: BTreeMap<u64, BTreeSet<&str>> = BTreeMap::new();
         for (n, seed) in seeds.iter().enumerate() {
             let mut by_hash: BTreeMap<u64, Vec<(usize, &Need)>> = BTreeMap::new();
             for l in &seed.world.locations {
@@ -346,13 +351,19 @@ impl Ctx<'_> {
                 }
                 let check = (seed.dealt.checks.iter().find(|c| c.hash == hash))
                     .with_context(|| format!("no check {hash}"))?;
-                // In either form, since a row holds for both.
-                let mut forbid = BTreeSet::new();
-                for form in [true, false] {
-                    for actor in pooled.iter().filter(|a| !allowed(check, a, form)) {
-                        forbid.insert(names.item_in(actor, Some(form))?);
+                let forbid = match forbids.get(&hash) {
+                    Some(forbid) => forbid.clone(),
+                    None => {
+                        // In either form, since a row holds for both.
+                        let mut forbid = BTreeSet::new();
+                        for form in [true, false] {
+                            for actor in pooled.iter().filter(|a| !allowed(check, a, form)) {
+                                forbid.insert(names.item_in(actor, Some(form))?);
+                            }
+                        }
+                        forbids.entry(hash).or_insert(forbid).clone()
                     }
-                }
+                };
                 let row = json!({
                     "id": ids.location(hash),
                     "hash": hash.to_string(),

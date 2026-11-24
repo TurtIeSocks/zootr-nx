@@ -13,7 +13,7 @@ use super::{JOINT, exposed, names, offers};
 use crate::checks::{self, ItemCheck};
 use crate::fill;
 use crate::ice_traps;
-use crate::logic::{Got, Play, World};
+use crate::logic::{Data, Got, Play, World};
 use crate::progressive::Lines;
 use crate::rules::{Book, Ctx, Have};
 use crate::settings::{
@@ -110,8 +110,13 @@ impl Dealt {
     }
 
     pub fn new(romfs: &Romfs, settings: &Settings) -> Result<Self> {
+        Self::of(romfs, checks::all(romfs)?, settings)
+    }
+
+    /// [`Dealt::new`] from every check, as [`checks::all`] gives them.
+    fn of(romfs: &Romfs, all: Vec<ItemCheck>, settings: &Settings) -> Result<Self> {
         let new_game = NewGame::from_settings(settings, &[])?;
-        let checks = checks::dealt(romfs, &new_game)?;
+        let checks = checks::dealt_of(romfs, all, &new_game)?;
         let fixed = Fixed::new();
         let deal = shuffle::deal(&checks, &fixed, &new_game)?;
         let pool: Vec<String> = deal.items.iter().map(|i| i.to_string()).collect();
@@ -153,17 +158,45 @@ fn lines(new_game: &NewGame, open: &BTreeSet<String>) -> Lines {
     lines
 }
 
+/// What every seed reads from the game, read once for the export's many.
+pub struct Dump<'a> {
+    romfs: &'a Romfs,
+    /// Every check, before a seed's settings pick from them.
+    all: Vec<ItemCheck>,
+    data: Data<'a>,
+    book: Book,
+}
+
+impl<'a> Dump<'a> {
+    pub fn new(romfs: &'a Romfs) -> Result<Self> {
+        Ok(Self {
+            romfs,
+            all: checks::all(romfs)?,
+            data: Data::every(romfs)?,
+            book: Book::load()?,
+        })
+    }
+}
+
 impl Seed {
     /// `settings` resolved as a normal seed would, with `open` left open.
+    #[cfg(test)]
     pub fn build(romfs: &Romfs, settings: &Settings, open: &BTreeSet<String>) -> Result<Self> {
-        let dealt = Dealt::new(romfs, settings)?;
+        Self::build_in(&Dump::new(romfs)?, settings, open)
+    }
+
+    /// [`Seed::build`] from game data read once.
+    pub fn build_in(dump: &Dump, settings: &Settings, open: &BTreeSet<String>) -> Result<Self> {
+        let romfs = dump.romfs;
+        let dealt = Dealt::of(romfs, dump.all.clone(), settings)?;
         let (new_game, checks) = (&dealt.new_game, &dealt.checks);
         let ctx = Ctx {
             open: open.clone(),
             lines: lines(new_game, open),
             ..Ctx::new(new_game)
         };
-        let world = World::build(romfs, &Book::load()?, &ctx, checks)?;
+        let mut data = dump.data.only(checks);
+        let world = World::from_data(&mut data, &dump.book, &ctx, checks)?;
         let start = fill::start(new_game);
         let needed = world.items();
         let pool = dealt.pool.iter().map(String::as_str);

@@ -104,6 +104,7 @@ enum Said {
     },
 }
 
+#[derive(Clone)]
 pub struct Tools<'a> {
     romfs: &'a Romfs,
     packs: HashMap<String, Said>,
