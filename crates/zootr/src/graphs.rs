@@ -2,7 +2,7 @@
 //! a string it holds, and move what reads one output onto another. Also
 //! prints a node the way `probe ainb` does.
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::ainb::{Graph, Node, Patch, Value};
 
 use crate::known::Name;
@@ -52,7 +52,7 @@ pub(crate) fn node(graph: &Graph, (name, key): (&Name, &Name), value: &str) -> R
     let (i, _) = found
         .next()
         .with_context(|| format!("no {name} with {key} {value}"))?;
-    anyhow::ensure!(found.next().is_none(), "two {name} with {key} {value}");
+    ensure!(found.next().is_none(), "two {name} with {key} {value}");
     Ok(i)
 }
 
@@ -63,7 +63,7 @@ pub(crate) fn link_from(
     output: &str,
 ) -> Result<(usize, String, usize)> {
     let links = graph.nodes.iter().enumerate().flat_map(|(n, node)| {
-        node.inputs.iter().flat_map(move |input| {
+        node.inputs.iter().filter_map(move |input| {
             let at = input
                 .sources
                 .iter()
@@ -74,7 +74,7 @@ pub(crate) fn link_from(
     let links: Vec<_> = links.collect();
     match &links[..] {
         [one] => Ok(one.clone()),
-        _ => anyhow::bail!("{} links from node {from}'s {output}, not one", links.len()),
+        _ => bail!("{} links from node {from}'s {output}, not one", links.len()),
     }
 }
 

@@ -116,20 +116,13 @@ impl Graph {
         }
     }
 
-    fn report(
-        &self,
-        node: usize,
-        edges: Vec<(usize, Option<usize>)>,
-        kind: Option<Kind>,
-    ) -> Report<'_> {
-        let other = |e: &Edge| if e.from == node { e.to } else { e.from };
-        let kept: Vec<_> = (edges.into_iter())
-            .filter(|(e, _)| kind.is_none_or(|k| self.nodes[other(&self.edges[*e])].kind == k))
-            .collect();
+    /// `edges` as lines about `node`, those past [`CAP`] counted. Callers
+    /// filter first, so the cap and the count are of what they keep.
+    fn report(&self, node: usize, edges: Vec<(usize, Option<usize>)>) -> Report<'_> {
         Report {
             node: Some(&self.nodes[node]),
-            more: kept.len().saturating_sub(CAP),
-            edges: (kept.iter().take(CAP))
+            more: edges.len().saturating_sub(CAP),
+            edges: (edges.iter().take(CAP))
                 .map(|&(e, d)| self.line(&self.edges[e], d))
                 .collect(),
         }
@@ -137,11 +130,11 @@ impl Graph {
 
     /// One node and every edge touching it, what feeds it first.
     pub fn around(&self, node: usize, kind: Option<Kind>) -> Report<'_> {
-        let edges = self.ins[node]
-            .iter()
-            .chain(&self.outs[node])
+        let other = |e: &Edge| if e.from == node { e.to } else { e.from };
+        let edges = (self.ins[node].iter().chain(&self.outs[node]))
+            .filter(|&&e| kind.is_none_or(|k| self.nodes[other(&self.edges[e])].kind == k))
             .map(|&e| (e, None));
-        self.report(node, edges.collect(), kind)
+        self.report(node, edges.collect())
     }
 
     /// What sets a state.
@@ -149,7 +142,7 @@ impl Graph {
         let edges = self.ins[node]
             .iter()
             .filter(|&&e| self.edges[e].link == Link::Writes);
-        self.report(node, edges.map(|&e| (e, None)).collect(), None)
+        self.report(node, edges.map(|&e| (e, None)).collect())
     }
 
     /// The placements that set the state named `name` by playing an
@@ -179,7 +172,7 @@ impl Graph {
         let edges = self.outs[node]
             .iter()
             .filter(|&&e| self.edges[e].link == Link::Reads);
-        self.report(node, edges.map(|&e| (e, None)).collect(), None)
+        self.report(node, edges.map(|&e| (e, None)).collect())
     }
 
     /// Every edge within `depth` hops upstream or downstream, nearest first.
@@ -196,18 +189,18 @@ impl Graph {
                 Dir::Down => (&self.outs[n], |e| e.to),
             };
             for &e in list {
-                edges.push((e, Some(d + 1)));
-                let next = far(&self.edges[e]);
+                let edge = &self.edges[e];
+                let (from, to) = (&self.nodes[edge.from], &self.nodes[edge.to]);
+                if kind.is_none_or(|k| from.kind == k || to.kind == k) {
+                    edges.push((e, Some(d + 1)));
+                }
+                let next = far(edge);
                 if !std::mem::replace(&mut seen[next], true) {
                     todo.push_back((next, d + 1));
                 }
             }
         }
-        let mut report = self.report(node, edges, None);
-        if let Some(k) = kind {
-            report.edges.retain(|l| l.from.kind == k || l.to.kind == k);
-        }
-        report
+        self.report(node, edges)
     }
 
     /// The shortest paths from `from` to `to`, following edges forward.
@@ -292,9 +285,7 @@ impl Graph {
         let mut nodes = BTreeMap::new();
         let (mut unnamed, mut unlinked, mut unresolved) = (0, 0, 0);
         for (i, n) in self.nodes.iter().enumerate() {
-            *nodes
-                .entry(format!("{:?}", n.kind).to_lowercase())
-                .or_default() += 1;
+            *nodes.entry(n.kind.word().to_owned()).or_default() += 1;
             if n.kind == Kind::State {
                 unnamed += usize::from(n.name.starts_with('#'));
                 unresolved += usize::from(n.name.starts_with('$'));
@@ -303,12 +294,10 @@ impl Graph {
         }
         let (mut edges, mut labels) = (BTreeMap::new(), BTreeMap::<String, usize>::new());
         for e in &self.edges {
-            *edges
-                .entry(format!("{:?}", e.link).to_lowercase())
-                .or_default() += 1;
+            *edges.entry(e.link.word().to_owned()).or_default() += 1;
             let head = e.label.split([' ', '=']).next().unwrap_or_default();
             *labels
-                .entry(format!("{:?} {head}", e.link).to_lowercase())
+                .entry(format!("{} {head}", e.link.word()).to_lowercase())
                 .or_default() += 1;
         }
         let mut labels: Vec<_> = labels.into_iter().collect();
@@ -483,6 +472,19 @@ mod tests {
         let g = graph(&edges.iter().map(String::as_str).collect::<Vec<_>>());
         let r = g.around(g.find("hub").unwrap(), None);
         assert_eq!((r.edges.len(), r.more), (CAP, 7));
+    }
+
+    #[test]
+    fn a_walk_filters_by_kind_before_the_cap() {
+        let edges: Vec<String> = (0..CAP + 7).map(|i| format!("hub>n{i}")).collect();
+        let mut g = graph(&edges.iter().map(String::as_str).collect::<Vec<_>>());
+        let (hub, state) = (
+            g.find("hub").unwrap(),
+            g.node(Kind::State, "FakeDoor", || None),
+        );
+        g.edge(hub, state, Link::Writes, String::new(), "FakeFlow", None);
+        let r = g.walk(hub, Dir::Down, 1, Some(Kind::State));
+        assert_eq!((r.edges.len(), r.more), (1, 0));
     }
 
     #[test]

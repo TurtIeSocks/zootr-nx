@@ -47,7 +47,7 @@ pub fn straight(flow: &mut Flowchart) -> Result<()> {
 /// one, and the song lesson. Bolero's scene also sets its song's `IsGet`
 /// flag by hand.
 pub(crate) fn kept(flow: &Flowchart, flows: &Flows, items: &[&str]) -> Result<Vec<u16>> {
-    let got: Vec<String> = items.iter().map(|i| format!("IsGet.{i}")).collect();
+    let got: Vec<String> = items.iter().map(|i| format!("{IS_GET}{i}")).collect();
     let gives = |e: &EventKind| match e {
         EventKind::Action { params, .. } => {
             param(params, ACTOR).is_some_and(|a| items.contains(&a))
@@ -81,14 +81,6 @@ pub(crate) fn kept(flow: &Flowchart, flows: &Flows, items: &[&str]) -> Result<Ve
         }
     }
     Ok(kept)
-}
-
-/// Whether a call's params hand it one of `items`, by whichever param its
-/// getting sub-flow reads the item from.
-fn names_item(params: &Params, items: &[&str]) -> bool {
-    ITEM_PARAMS
-        .iter()
-        .any(|k| param(params, k).is_some_and(|n| items.contains(&n)))
 }
 
 /// Point the entry point at the reward for `item`, then `then` if any,
@@ -233,7 +225,7 @@ mod tests {
         };
         let all = Flows::load(&romfs).unwrap();
         let cut_songs = GIFTS.iter().filter(|g| matches!(g.how, How::Cut { .. }));
-        for gift in cut_songs.filter(|g| g.setting() == Some(SONGS)) {
+        for gift in cut_songs.filter(|g| g.setting == Some(SONGS)) {
             let mut flow = flows::load(&romfs, gift.flow).unwrap().unwrap();
             cut(&mut flow, &all, gift.item, "Item_A", None).unwrap();
             let flow = Flowchart::parse(&flow.to_bytes()).unwrap().unwrap();

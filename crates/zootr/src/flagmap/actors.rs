@@ -6,14 +6,12 @@ use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 use ounce_formats::ainb::Graph as Ainb;
-use ounce_formats::{Romfs, files_with_suffix, par_map};
+use ounce_formats::{Romfs, pack_file, par_map};
 use roead::sarc::Sarc;
 
 use super::{Graph, Kind, Link, scene};
 use crate::gamedata::GameData;
 
-const PACKS: &str = "Pack/Actor";
-const PACK: &str = ".pack.zs";
 const AINB: &str = ".ainb";
 
 /// One actor's graphs: its name, each member path with the graph, and the
@@ -22,13 +20,9 @@ type Pack = (String, Vec<(String, Ainb)>, Vec<String>);
 
 /// Adds every pack's graphs, and returns them by the path `source` cites.
 pub(super) fn add(g: &mut Graph, romfs: &Romfs, gd: &GameData) -> Result<HashMap<String, Ainb>> {
-    let mut files = files_with_suffix(&romfs.root().join(PACKS), PACK)?;
-    files.sort();
-    let packs: Vec<Result<Pack>> = par_map(&files, |path| {
-        let rel = romfs.rel(path)?;
-        let actor = (rel.rsplit('/').next().unwrap_or(&rel))
-            .trim_end_matches(PACK)
-            .to_owned();
+    let actors = crate::flags::pack_actors(romfs)?;
+    let packs: Vec<Result<Pack>> = par_map(&actors, |actor| {
+        let rel = pack_file(actor);
         let data = romfs.read(&rel)?;
         let sarc = Sarc::new(&data)?;
         let (mut graphs, mut unread) = (Vec::new(), Vec::new());
@@ -40,19 +34,20 @@ pub(super) fn add(g: &mut Graph, romfs: &Romfs, gd: &GameData) -> Result<HashMap
                 Err(_) => unread.push(file),
             }
         }
-        Ok((actor, graphs, unread))
+        Ok((actor.clone(), graphs, unread))
     });
     let mut kept = HashMap::new();
     for pack in packs {
         let (actor, graphs, unread) = pack?;
         g.unread.extend(unread);
+        if graphs.is_empty() {
+            continue;
+        }
         let stems: HashSet<String> = graphs.iter().map(|(file, _)| stem(file)).collect();
-        let has = (!graphs.is_empty()).then(|| g.node(Kind::Actor, &actor, || None));
+        let has = g.node(Kind::Actor, &actor, || None);
         for (file, ainb) in graphs {
             let graph = g.node(Kind::Graph, &format!("{actor}/{}", stem(&file)), || None);
-            if let Some(has) = has {
-                g.edge(has, graph, Link::Has, String::new(), &file, None);
-            }
+            g.edge(has, graph, Link::Has, String::new(), &file, None);
             // A module the pack holds is its own; any other is shared.
             let module = |child: &str| match stems.contains(child) {
                 true => format!("{actor}/{child}"),
@@ -67,7 +62,7 @@ pub(super) fn add(g: &mut Graph, romfs: &Romfs, gd: &GameData) -> Result<HashMap
 
 /// `.../AI/NAME.utility.root.ainb` is `NAME.utility.root`.
 fn stem(file: &str) -> String {
-    let name = file.rsplit('/').next().unwrap_or(file);
+    let name = file.rsplit('/').next().unwrap_or_default();
     name.trim_end_matches(AINB).to_owned()
 }
 

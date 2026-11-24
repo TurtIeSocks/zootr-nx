@@ -22,11 +22,6 @@ pub(crate) fn all(
     names.into_iter().map(|n| format!("{n}={value}")).collect()
 }
 
-/// `edits` as owned strings.
-pub(crate) fn lit(edits: &[&str]) -> Vec<String> {
-    edits.iter().map(|&e| e.into()).collect()
-}
-
 pub struct Preset {
     pub name: &'static str,
     pub label: &'static str,

@@ -159,9 +159,6 @@ pub(crate) const FITS_POUCH: (&Name, &Name) = (
     flow::EVENT_QUERY_CAN_ADD_TO_PORCH,
 );
 
-/// What a GameData setter sets its value to.
-pub(crate) const VALUE: &str = "Value";
-
 /// Set `params`' existing `key`.
 pub(crate) fn set(params: &mut Params, key: &str, value: Value) -> Result<()> {
     let slot = params.iter_mut().find(|(k, _)| k == key);
@@ -184,7 +181,7 @@ pub(crate) fn set_after(
     let (actor, action) = flow.action(&setter.actor, setter.name);
     let mut params = setter.params.clone();
     set(&mut params, GAME_DATA, string(name))?;
-    set(&mut params, VALUE, value)?;
+    set(&mut params, field::VALUE, value)?;
     let after = flow.push(EventKind::Action {
         next,
         actor,
@@ -199,7 +196,18 @@ pub(crate) fn string(s: &str) -> Value {
     Value::String(vec![s.into()])
 }
 
-/// An action's or a call's params.
+/// An action's, query's or call's params.
+pub(crate) fn params_of(kind: &EventKind) -> Option<&Params> {
+    match kind {
+        EventKind::Action { params, .. }
+        | EventKind::Switch { params, .. }
+        | EventKind::SubFlow { params, .. }
+        | EventKind::SubFlowSwitch { params, .. } => Some(params),
+        _ => None,
+    }
+}
+
+/// [`params_of`], to change.
 pub(crate) fn params_mut(kind: &mut EventKind) -> &mut Params {
     match kind {
         EventKind::Action { params, .. }
@@ -251,13 +259,7 @@ pub(crate) fn undeclared(flow: &Flowchart) -> BTreeSet<String> {
             .iter()
             .any(|a| a.name == name && a.secondary_name == secondary)
     };
-    let params = flow.events.iter().filter_map(|e| match &e.kind {
-        EventKind::Action { params, .. }
-        | EventKind::Switch { params, .. }
-        | EventKind::SubFlow { params, .. }
-        | EventKind::SubFlowSwitch { params, .. } => Some(params),
-        _ => None,
-    });
+    let params = flow.events.iter().filter_map(|e| params_of(&e.kind));
     (params.flatten())
         .filter_map(|(_, v)| match v {
             Value::ActorId { name, secondary } if !declared(name, secondary) => {
@@ -272,6 +274,9 @@ pub(crate) fn undeclared(flow: &Flowchart) -> BTreeSet<String> {
 pub(crate) fn param<'a>(params: &'a Params, key: &str) -> Option<&'a str> {
     params.iter().find(|(k, _)| k == key)?.1.as_str()
 }
+
+/// A UI param's "none", as the game writes it.
+const UNUSED: &str = "使用しない";
 
 /// The UI actor every flow's fades go through.
 const UI: &Name = field::UI_SYSTEM_ACTOR;
@@ -300,11 +305,8 @@ pub(crate) fn fade_in(flow: &mut Flowchart, next: Option<u16>) -> u16 {
             ),
             (flow::IS_GROUNDING.to_string(), Value::Bool(vec![false])),
             (field::IS_WORLD.to_string(), Value::Bool(vec![false])),
-            (
-                field::USE_EVENT_MODEL_ANIME.to_string(),
-                string("使用しない"),
-            ),
-            (field::USE_EVENT_AS.to_string(), string("使用しない")),
+            (field::USE_EVENT_MODEL_ANIME.to_string(), string(UNUSED)),
+            (field::USE_EVENT_AS.to_string(), string(UNUSED)),
         ],
     };
     let (actor, action) = flow.action(&ui, FADE_IN);
@@ -319,7 +321,7 @@ pub(crate) fn fade_in(flow: &mut Flowchart, next: Option<u16>) -> u16 {
                 field::IS_NO_PLAY_ANIME.to_string(),
                 Value::Bool(vec![false]),
             ),
-            ("Color".into(), Value::Int(vec![0])),
+            (field::COLOR.to_string(), Value::Int(vec![0])),
         ],
     })
 }
@@ -442,33 +444,21 @@ pub(crate) fn reachable_avoiding(
         if !seen.insert(e) || Some(e) == avoid {
             continue;
         }
-        match &flow.events[e as usize].kind {
-            EventKind::Action { next, .. } | EventKind::Join { next } => todo.extend(*next),
-            EventKind::Switch { cases, .. } => todo.extend(cases.iter().map(|c| c.1)),
-            EventKind::Fork { join, branches } => todo.extend(branches.iter().chain([join])),
-            EventKind::SubFlow {
-                next,
-                flowchart,
-                entry_point,
-                ..
-            } => {
-                todo.extend(*next);
-                if is_local(flow, flowchart) {
-                    todo.extend(main(entry_point).and_then(|e| e.main));
-                }
-            }
-            EventKind::SubFlowSwitch {
-                cases,
-                flowchart,
-                entry_point,
-                ..
-            } => {
-                todo.extend(cases.iter().map(|c| c.1));
-                if is_local(flow, flowchart) {
-                    todo.extend(main(entry_point).and_then(|e| e.main));
-                }
-            }
-            EventKind::Return { .. } => {}
+        let kind = &flow.events[e as usize].kind;
+        todo.extend(successors(kind));
+        if let EventKind::SubFlow {
+            flowchart,
+            entry_point,
+            ..
+        }
+        | EventKind::SubFlowSwitch {
+            flowchart,
+            entry_point,
+            ..
+        } = kind
+            && is_local(flow, flowchart)
+        {
+            todo.extend(main(entry_point).and_then(|e| e.main));
         }
     }
     seen
@@ -491,6 +481,18 @@ pub(crate) fn successors(kind: &EventKind) -> Vec<u16> {
         EventKind::Fork { join, branches } => branches.iter().chain([join]).copied().collect(),
         EventKind::Return { .. } => Vec::new(),
     }
+}
+
+/// The events running `start` runs itself, not following calls into other
+/// entry points.
+pub(crate) fn runs_itself(flow: &Flowchart, start: Option<u16>) -> BTreeSet<u16> {
+    let (mut seen, mut todo) = (BTreeSet::new(), Vec::from_iter(start));
+    while let Some(e) = todo.pop() {
+        if seen.insert(e) {
+            todo.extend(successors(&flow.events[e as usize].kind));
+        }
+    }
+    seen
 }
 
 /// `kind` with every event it runs next looked up in `to`, and its actor
@@ -533,12 +535,7 @@ pub(crate) fn copy_entry(
         bail!("{} already has {name}", flow.name);
     }
     let old = flow.entry_points[at].clone();
-    let (mut seen, mut todo) = (BTreeSet::new(), Vec::from_iter(old.main));
-    while let Some(e) = todo.pop() {
-        if seen.insert(e) {
-            todo.extend(successors(&flow.events[e as usize].kind));
-        }
-    }
+    let seen = runs_itself(flow, old.main);
     let first = flow.events.len() as u16;
     let to: BTreeMap<u16, u16> = seen.iter().copied().zip(first..).collect();
     let argument = flow
@@ -560,9 +557,9 @@ pub(crate) fn copy_entry(
         actor.argument_entry = Some(flow.entry_points.len() as u16);
         flow.actors.push(actor);
     }
-    for (kind, (&old, &new)) in kinds.into_iter().zip(&to) {
+    for (kind, &new) in kinds.into_iter().zip(to.values()) {
         let pushed = flow.push(kind);
-        debug_assert_eq!((pushed, old), (new, old));
+        debug_assert_eq!(pushed, new);
     }
     flow.entry_points.push(EntryPoint {
         name: name.into(),

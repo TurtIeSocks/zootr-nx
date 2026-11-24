@@ -4,10 +4,11 @@
 //! either, he never paid. His talk now asks first whether he's paid: until
 //! then it goes to the early talk, and after it runs on as it did.
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use ounce_formats::{EventKind, Flowchart, Link};
 
 use super::rewrite::bool_switch;
+use crate::flows::is_local;
 use crate::known::field;
 
 /// `flow`'s talk asks Bool `paid` first, to the early talk while it's unset.
@@ -21,16 +22,16 @@ pub(super) fn offered_until_paid(flow: &mut Flowchart, paid: &str) -> Result<()>
     let early = field::GAME_STARTED_TALK.get();
     let calls = |e: &EventKind| {
         matches!(e, EventKind::SubFlow { flowchart, entry_point, .. }
-            if flowchart.is_empty() && entry_point == early)
+            if is_local(flow, flowchart) && entry_point == early)
     };
-    let started: Vec<usize> = (flow.events.iter().enumerate())
+    let started: Vec<u16> = ((0u16..).zip(&flow.events))
         .filter(|(_, e)| calls(&e.kind))
         .map(|(i, _)| i)
         .collect();
     let [started] = started[..] else {
-        anyhow::bail!("{} doesn't call its early talk once", flow.name);
+        bail!("{} doesn't call its early talk once", flow.name);
     };
-    let ask = bool_switch(flow, paid, vec![(0, first), (1, u16::try_from(started)?)])?;
+    let ask = bool_switch(flow, paid, vec![(0, first), (1, started)])?;
     let ask = flow.push(ask);
     flow.link(Link::Entry(at), Some(ask))
 }

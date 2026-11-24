@@ -49,12 +49,15 @@ pub fn by_hash(hash: u64) -> Option<&'static Gift> {
     INDEX.get(&hash).copied()
 }
 
+/// The Treasure Chest Game's final prize chest, by placement hash.
+const TREASURE_GAME_PRIZE_CHEST: u64 = 16881481538337649070;
+
 /// The minigame chests that are checks, by placement hash: the Treasure
 /// Chest Game's heart piece, then Dampe's two. Every other chest whose event
 /// starts `MiniGame_` stays vanilla. Gifts in all but where they're placed,
 /// since a chest of the game can't turn into a substitute one.
 pub(crate) const PRIZE_CHESTS: [u64; 3] = [
-    16881481538337649070,
+    TREASURE_GAME_PRIZE_CHEST,
     dampe::HOOKSHOT_CHEST,
     dampe::HEART_CHEST,
 ];

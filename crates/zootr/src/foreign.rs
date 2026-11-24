@@ -11,7 +11,7 @@
 //! "FOOL!", and the hook freezes Link (`crate::ice_traps`).
 
 use anyhow::{Result, ensure};
-use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs, set_param};
+use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs, pack_file, set_param};
 
 use crate::ice_traps;
 use crate::key_tints::paint::{Host, Look};
@@ -222,8 +222,35 @@ pub fn pack(
     let Some(f) = foreign.iter().find(|f| f.actor == item) else {
         return Ok(None);
     };
-    let built = Built::new(romfs, f, keys)?;
-    Ok(Some(ActorPack::from_bytes(item, built.pack()?)?))
+    let key = ActorPack::load(romfs, SMALL)?;
+    let built = Built::new(romfs, f, &key, keys)?;
+    Ok(Some(ActorPack::from_bytes(item, built.pack())?))
+}
+
+/// Which pack a copy's new file is sized like in the RESTBL.
+#[derive(Clone, Copy)]
+enum Source {
+    Key,
+    Shown,
+}
+
+/// A copy's new file: its path, contents, and the file it's sized like.
+struct NewFile {
+    path: String,
+    data: Vec<u8>,
+    like: String,
+    source: Source,
+}
+
+impl NewFile {
+    fn new(path: String, doc: &BymlDoc, like: String, source: Source) -> Self {
+        Self {
+            path,
+            data: doc.to_binary(),
+            like,
+            source,
+        }
+    }
 }
 
 /// One copy: the shown item's pack under the copy's name, giving the small
@@ -231,24 +258,27 @@ pub fn pack(
 struct Built<'a> {
     foreign: &'a Foreign,
     shown: ActorPack,
-    key: ActorPack,
-    /// Each new file: its path, contents, and the file and pack it's sized
-    /// like in the RESTBL.
-    files: Vec<(String, BymlDoc, String, bool)>,
+    key: &'a ActorPack,
+    files: Vec<NewFile>,
 }
 
 impl<'a> Built<'a> {
-    fn new(romfs: &Romfs, foreign: &'a Foreign, keys: DungeonKeys) -> Result<Self> {
+    /// `key` is the small key's pack, loaded once for every copy.
+    fn new(
+        romfs: &Romfs,
+        foreign: &'a Foreign,
+        key: &'a ActorPack,
+        keys: DungeonKeys,
+    ) -> Result<Self> {
         let shown = match made_pack(romfs, &foreign.shows, keys)? {
             Some(made) => made,
             None => ActorPack::load(romfs, &foreign.shows)?,
         };
-        let key = ActorPack::load(romfs, SMALL)?;
         let name = foreign.actor.as_str();
-        let pouch_like = path_of(&key, POUCH)?;
+        let pouch_like = path_of(key, POUCH)?;
         let pouch_at = renamed(&pouch_like, name);
-        let pouch_doc = BymlDoc::parse(&raw(&key, &pouch_like)?)?;
-        let mut pouch = resolved(&key, &pouch_like)?;
+        let pouch_doc = BymlDoc::parse(&raw(key, &pouch_like)?)?;
+        let mut pouch = resolved(key, &pouch_like)?;
         pouch.insert(POUCH_ACTOR.get().into(), pouch_actor(name));
         let actor_like = actor_path(&shown.name);
         let (actor_doc, info) = match &foreign.model {
@@ -260,10 +290,15 @@ impl<'a> Built<'a> {
         };
         let actor = with_ref(actor_doc.root.as_map()?, POUCH, &pouch_at)?;
         let mut files = vec![
-            (actor_path(name), doc(actor, &actor_doc), actor_like, false),
-            (pouch_at, doc(pouch, &pouch_doc), pouch_like, true),
+            NewFile::new(
+                actor_path(name),
+                &doc(actor, &actor_doc),
+                actor_like,
+                Source::Shown,
+            ),
+            NewFile::new(pouch_at, &doc(pouch, &pouch_doc), pouch_like, Source::Key),
         ];
-        files.extend(info.map(|(path, info, like)| (path, info, like, false)));
+        files.extend(info.map(|(path, info, like)| NewFile::new(path, &info, like, Source::Shown)));
         Ok(Self {
             foreign,
             shown,
@@ -272,31 +307,31 @@ impl<'a> Built<'a> {
         })
     }
 
-    /// The pack the file at `like` comes from.
-    fn like_pack(&self, from_key: bool) -> &ActorPack {
-        match from_key {
-            true => &self.key,
-            false => &self.shown,
+    /// The pack a new file's `like` comes from.
+    fn like_pack(&self, source: Source) -> &ActorPack {
+        match source {
+            Source::Key => self.key,
+            Source::Shown => &self.shown,
         }
     }
 
-    fn pack(&self) -> Result<Vec<u8>> {
+    fn pack(&self) -> Vec<u8> {
         let mut writer = self.shown.writer();
-        for (path, data, ..) in &self.files {
-            writer.add_file(path.clone(), data.to_binary());
+        for f in &self.files {
+            writer.add_file(f.path.clone(), f.data.clone());
         }
-        Ok(writer.to_binary())
+        writer.to_binary()
     }
 
     fn write(&self, builder: &mut ModBuilder) -> Result<()> {
-        for (path, data, like, from_key) in &self.files {
-            let like_size = raw(self.like_pack(*from_key), like)?.len();
-            builder.add_entry(path, like, like_size, data.to_binary().len())?;
+        for f in &self.files {
+            let like_size = raw(self.like_pack(f.source), &f.like)?.len();
+            builder.add_entry(&f.path, &f.like, like_size, f.data.len())?;
         }
         builder.add(
-            &format!("Pack/Actor/{}.pack.zs", self.foreign.actor),
-            &self.pack()?,
-            &format!("Pack/Actor/{}.pack.zs", self.shown.name),
+            &pack_file(&self.foreign.actor),
+            &self.pack(),
+            &pack_file(&self.shown.name),
         )
     }
 }
@@ -318,8 +353,9 @@ pub fn write(
             host.write_as(builder, &CLASS_LOOK.name(n + 1), &model, *colour, false)?;
         }
     }
+    let key = ActorPack::load(romfs, SMALL)?;
     for f in foreign {
-        Built::new(romfs, f, keys)?.write(builder)?;
+        Built::new(romfs, f, &key, keys)?.write(builder)?;
         tables.copy(&f.actor, &f.shows)?;
         tables.copy_pouch(&f.actor, SMALL)?;
         tables.name_itself(&f.actor)?;
@@ -345,7 +381,7 @@ mod tests {
     use crate::known::{field, flag, item};
     use crate::medallions::model_path;
     use crate::standins::{PLAIN_DEAL, row};
-    use ounce_formats::{Msbt, Part, pack_file};
+    use ounce_formats::{Msbt, Part};
     use roead::sarc::Sarc;
 
     fn hookshot_for(player: &str) -> Foreign {

@@ -7,7 +7,7 @@
 use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::{EventKind, Flowchart};
 
-use super::{Call, HAND_OVER, call, calls_to, get, said};
+use super::{Call, HAND_OVER, call, calls_to, get, goes_on, said};
 use crate::known::{Name, field, flow, item};
 
 pub(super) const FLOW: &Name = flow::MINIGAME_FIND_OUT_CUCCO;
@@ -58,7 +58,7 @@ pub(super) fn open(flow: &mut Flowchart) -> Result<()> {
         let EventKind::Switch { cases, .. } = &mut flow.events[i].kind else {
             unreachable!("asks are switches");
         };
-        let yes = cases.iter().find(|c| c.0 == 0).context("no yes case")?.1;
+        let yes = goes_on(cases, 0).context("no yes case")?;
         cases.iter_mut().for_each(|c| c.1 = yes);
     }
     Ok(())

@@ -42,11 +42,12 @@ pub fn running(targets: &[Target]) -> Option<&Target> {
     targets.iter().find(|t| t.running())
 }
 
-/// Run `write` once per distinct mod folder, then write each target's
-/// settings line. A folder no target reads the cheat from keeps only the
+/// Run `write` once, into the first target's mod folder, copy what it
+/// wrote to every other distinct folder, then write each target's settings
+/// line. A folder no target reads the cheat from keeps only the
 /// exefs patch, or, for a game that builds that in, splits it (see
 /// [`patch::split`]). Refuses while another install runs or any target's game
-/// is open. Returns what the last `write` did.
+/// is open. Returns what `write` did.
 ///
 /// A stop or failure (a panic too) before any folder's mod is replaced
 /// changes nothing. After, the targets would hold a mix of seeds, or a mod
@@ -54,7 +55,7 @@ pub fn running(targets: &[Target]) -> Option<&Target> {
 pub fn install<T>(
     targets: &[Target],
     run: &Run,
-    mut write: impl FnMut(&Path) -> Result<T>,
+    write: impl FnOnce(&Path) -> Result<T>,
 ) -> Result<T> {
     guarded(targets, || {
         let wrote: Result<T> = progress::caught(|| {
@@ -91,7 +92,9 @@ pub fn install<T>(
         });
         match wrote {
             Err(e) if run.replaced() => {
-                take_off(targets)?;
+                if let Err(off) = take_off(targets) {
+                    return Err(e.context(format!("the mod stayed on ({off:#}) after")));
+                }
                 Err(match progress::stopped(&e) {
                     Some(_) => Stopped { took_off: true }.into(),
                     None => e.context(TookOff),
@@ -108,19 +111,27 @@ pub fn uninstall(targets: &[Target]) -> Result<()> {
     guarded(targets, || take_off(targets))
 }
 
+/// Take the mod off every target, each tried even after one fails.
 fn take_off(targets: &[Target]) -> Result<()> {
-    for t in targets {
-        let romfs = t.mod_dir.join("romfs");
-        match std::fs::remove_dir_all(&romfs) {
-            Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
-                return Err(e).with_context(|| format!("removing {}", romfs.display()));
-            }
-            _ => {}
+    let failed: Vec<String> = (targets.iter())
+        .filter_map(|t| take_off_one(t).err())
+        .map(|e| format!("{e:#}"))
+        .collect();
+    ensure!(failed.is_empty(), "{}", failed.join("; "));
+    Ok(())
+}
+
+fn take_off_one(t: &Target) -> Result<()> {
+    let romfs = t.mod_dir.join("romfs");
+    match std::fs::remove_dir_all(&romfs) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+            return Err(e).with_context(|| format!("removing {}", romfs.display()));
         }
-        patch::remove(&t.mod_dir)?;
-        if let Some(line) = &t.settings_file {
-            line.remove()?;
-        }
+        _ => {}
+    }
+    patch::remove(&t.mod_dir)?;
+    if let Some(line) = &t.settings_file {
+        line.remove()?;
     }
     Ok(())
 }
@@ -129,6 +140,7 @@ fn take_off(targets: &[Target]) -> Result<()> {
 mod tests {
     use super::*;
     use crate::config::SettingsFile;
+    use crate::generate::tests::Scratch;
 
     /// Install and uninstall refuse to overlap, so their tests take turns.
     static TURNS: Mutex<()> = Mutex::new(());
@@ -136,8 +148,7 @@ mod tests {
     #[test]
     fn uninstalling_takes_the_romfs_cheat_and_settings_lines_off_every_target() {
         let _turn = TURNS.lock().unwrap();
-        let dir = std::env::temp_dir().join(format!("zootr-test-{}-uninstall", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
+        let dir = Scratch::new("uninstall");
         let mod_dir = dir.join("mod");
         std::fs::create_dir_all(mod_dir.join("romfs/Pack")).unwrap();
         std::fs::write(mod_dir.join("spoiler.txt"), "").unwrap();
@@ -178,13 +189,12 @@ mod tests {
         assert!(!crate::patch::path(&mod_dir).exists());
         assert_eq!(std::fs::read_to_string(&env).unwrap(), "A=1\n");
         assert!(uninstall(&[]).is_err());
-        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
     fn install_writes_one_folder_copies_it_to_the_rest_then_every_settings_line() {
         let _turn = TURNS.lock().unwrap();
-        let dir = std::env::temp_dir().join(format!("zootr-install-{}", std::process::id()));
+        let dir = Scratch::new("install");
         let target = |name: &str, mod_dir: &str, line: bool| Target {
             name: name.into(),
             app: "/nowhere/zootr-test.app".into(),
@@ -221,13 +231,12 @@ mod tests {
         assert_eq!(copied, "7");
         assert!(dir.join("b.txt").is_file() && dir.join("c.txt").is_file());
         assert!(install(&[], &Run::silent(), |_| Ok(())).is_err());
-        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
     fn the_cheat_stays_only_where_a_target_reads_it() {
         let _turn = TURNS.lock().unwrap();
-        let dir = std::env::temp_dir().join(format!("zootr-cheat-{}", std::process::id()));
+        let dir = Scratch::new("cheat");
         let target = |mod_dir: &str, line: &str| Target {
             name: mod_dir.into(),
             app: "/nowhere/zootr-test.app".into(),
@@ -250,7 +259,7 @@ mod tests {
         // Either way round: a folder written first without a reader still
         // hands the cheat to the copy that has one.
         for order in [["reads", "not"], ["not", "reads"]] {
-            let _ = std::fs::remove_dir_all(&dir);
+            let _ = std::fs::remove_dir_all(&*dir);
             let line = |m| {
                 if m == "reads" {
                     "C={cheats}"
@@ -280,7 +289,7 @@ mod tests {
         }
         // A game that builds the exefs patch in gets it without the table,
         // which comes as a cheat.
-        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&*dir);
         let built = Target {
             rebuild: Some(crate::config::Rebuild::default()),
             game: None,
@@ -302,13 +311,12 @@ mod tests {
         let code = crate::patch::code_patches().unwrap();
         assert_eq!(exefs, crate::patch::pchtxt(&code));
         assert!(has("built") && ips("built"));
-        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
     fn a_stop_or_failure_once_a_folder_is_replaced_takes_the_mod_off_every_target() {
         let _turn = TURNS.lock().unwrap();
-        let dir = std::env::temp_dir().join(format!("zootr-stop-{}", std::process::id()));
+        let dir = Scratch::new("stop");
         let target = |name: &str| Target {
             name: name.into(),
             app: "/nowhere/zootr-test.app".into(),
@@ -388,9 +396,27 @@ mod tests {
         assert!(progress::took_off(&err));
         assert!(format!("{err:#}").contains("the generator crashed: index out of bounds"));
         off();
+        // A target the mod won't come off neither keeps it on the rest nor
+        // hides why the install failed.
+        fresh();
+        let run = Run::silent();
+        let stuck = targets[0].mod_dir.join("romfs");
+        let err = install(&targets, &run, |_| -> Result<()> {
+            run.mark_replaced();
+            std::fs::remove_dir_all(&stuck)?;
+            std::fs::write(&stuck, "")?;
+            bail!("broke")
+        })
+        .unwrap_err();
+        assert!(!installed(&targets[1]) && line(&targets[1]).unwrap() == "A=1\n");
+        let message = format!("{err:#}");
+        assert!(
+            message.contains("removing") && message.ends_with(": broke"),
+            "{message}"
+        );
+        std::fs::remove_file(&stuck).unwrap();
         // And the lock it held is free for the next install.
         fresh();
         install(&targets[..1], &Run::silent(), |_| Ok(())).unwrap();
-        std::fs::remove_dir_all(dir).unwrap();
     }
 }

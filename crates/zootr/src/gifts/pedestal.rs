@@ -59,7 +59,7 @@ fn granting(
     let (actor, action) = flow.action(&setter.actor, setter.name);
     let mut params = setter.params.clone();
     flows::set(&mut params, GAME_DATA, string(GOT))?;
-    flows::set(&mut params, flows::VALUE, Value::Bool(vec![true]))?;
+    flows::set(&mut params, field::VALUE, Value::Bool(vec![true]))?;
     let set = flow.push(EventKind::Action {
         next,
         actor,
@@ -67,16 +67,6 @@ fn granting(
         params,
     });
     models(flows)?.push(flow, string(item), Some(set))
-}
-
-/// Send every link to `at` to `to` instead.
-fn relink(flow: &mut Flowchart, at: u16, callers: Vec<Link>, to: u16) -> Result<()> {
-    ensure!(
-        !callers.is_empty(),
-        "{} never reaches event {at}",
-        flow.name
-    );
-    callers.into_iter().try_for_each(|l| flow.link(l, Some(to)))
 }
 
 /// The first pull with the door closed: its sword grant gives `item`, with
@@ -157,7 +147,7 @@ fn while_held(flow: &mut Flowchart, at: u16, held: &Model) -> Result<()> {
 /// only while Link holds it, as it does for the shields.
 fn swordless(flow: &mut Flowchart, held: &Model) -> Result<()> {
     let set = (flows::events(flow, SET_STRING).into_iter())
-        .find(|(_, p)| param(p, flows::VALUE) == Some(SWORD.get()))
+        .find(|(_, p)| param(p, field::VALUE) == Some(SWORD.get()))
         .with_context(|| format!("{} never sets {SWORD}", flow.name))?
         .0;
     while_held(flow, set, held)

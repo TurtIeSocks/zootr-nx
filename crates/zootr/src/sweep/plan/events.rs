@@ -149,7 +149,7 @@ impl Planner<'_> {
         if gift.item.starts_with("Item_Melody_") || gift.giver.contains("Great Fairy") {
             return self.play(gift);
         }
-        let kind = (gift.setting() == Some(DUNGEON_REWARDS))
+        let kind = (gift.setting == Some(DUNGEON_REWARDS))
             .then_some("boss reward")
             .or_else(|| {
                 let of = OUT_OF_SCOPE.iter().find(|(p, _)| gift.flow.starts_with(p));
