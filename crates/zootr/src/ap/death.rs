@@ -3,7 +3,7 @@
 
 use anyhow::Result;
 
-use super::client::Game;
+use super::game::Game;
 
 /// A death from the room.
 #[derive(Clone, Debug, PartialEq)]
@@ -93,7 +93,7 @@ impl Deaths {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ap::client::tests::Fake;
+    use crate::ap::game::tests::Fake;
 
     fn death(source: &str) -> Death {
         Death {

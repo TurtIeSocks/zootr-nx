@@ -15,6 +15,7 @@ pub mod bench_live;
 pub mod client;
 mod death;
 mod export;
+mod game;
 mod golden;
 mod ids;
 pub(crate) mod names;
