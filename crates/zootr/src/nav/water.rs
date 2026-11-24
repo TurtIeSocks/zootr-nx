@@ -12,7 +12,7 @@ use ounce_formats::{ActorPack, Romfs};
 use super::disjoint::DisjointSet;
 use super::graph::{Border, Cross, Graph, Snap, Via, dist};
 use super::kinds;
-use super::shape::{place, turn};
+use super::shape::{cached, place, turn};
 use crate::checks::flat;
 use crate::warp::Placement;
 use crate::world::Presence;
@@ -198,10 +198,7 @@ pub fn waters(
     let mut boxes: HashMap<&str, Option<Bounds>> = HashMap::new();
     let mut out = vec![];
     for p in placed.iter().filter(|p| kinds::water(&p.name)) {
-        if !boxes.contains_key(p.name.as_str()) {
-            boxes.insert(&p.name, volume(romfs, game, &p.name)?);
-        }
-        if let Some(b) = boxes[p.name.as_str()] {
+        if let Some(b) = *cached(&mut boxes, &p.name, || volume(romfs, game, &p.name))? {
             out.extend(Some(Water::of(p, b)).filter(|w| w.shown(&set)));
         }
     }

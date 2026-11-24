@@ -6,6 +6,7 @@
 //! is a footprint on the floor that a route keeps clear of.
 
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 use anyhow::Result;
 use ounce_formats::{ActorPack, Byml, BymlMap, Romfs, pack_file};
@@ -64,6 +65,19 @@ pub(super) fn maps<'a>(map: &'a BymlMap, key: &str) -> impl Iterator<Item = &'a 
     (map.get(key).and_then(|v| v.as_array().ok()).into_iter())
         .flatten()
         .filter_map(|v| v.as_map().ok())
+}
+
+/// `key`'s value in `map`, loaded by `load` the first time it's asked
+/// for.
+pub(super) fn cached<'m, 'k, V>(
+    map: &'m mut HashMap<&'k str, V>,
+    key: &'k str,
+    load: impl FnOnce() -> Result<V>,
+) -> Result<&'m V> {
+    Ok(match map.entry(key) {
+        Entry::Occupied(e) => e.into_mut(),
+        Entry::Vacant(e) => e.insert(load()?),
+    })
 }
 
 fn point(map: &BymlMap, key: &str) -> Option<[f32; 3]> {
@@ -337,10 +351,7 @@ pub fn solids(romfs: &Romfs, placed: &[Placement]) -> Result<Vec<Solid>> {
     let mut out = vec![];
     let doors = |p: &&Placement| kinds::word(&p.name) == Some("door");
     for p in placed.iter().filter(|p| !doors(p)) {
-        if !shapes.contains_key(p.name.as_str()) {
-            shapes.insert(&p.name, shape_of(romfs, &p.name)?);
-        }
-        let Some(shape) = &shapes[p.name.as_str()] else {
+        let Some(shape) = cached(&mut shapes, &p.name, || shape_of(romfs, &p.name))? else {
             continue;
         };
         if shape.cuts_mesh && shape.collides {

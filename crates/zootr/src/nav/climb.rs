@@ -13,7 +13,7 @@ use ounce_formats::Romfs;
 use ounce_formats::vec3::{length, sub};
 
 use super::kinds;
-use super::shape::{Shape, place, shape_of};
+use super::shape::{Shape, cached, place, shape_of};
 use crate::warp::Placement;
 
 /// The least a climb rises to be one, in m: lower, Link steps or pulls
@@ -123,11 +123,8 @@ pub fn climbs(romfs: &Romfs, placed: &[Placement]) -> Result<Vec<Climb>> {
     let mut shapes: HashMap<&str, Option<Bounds>> = HashMap::new();
     let mut out = vec![];
     for p in placed.iter().filter(|p| kinds::climbs(&p.name)) {
-        if !shapes.contains_key(p.name.as_str()) {
-            let shape = shape_of(romfs, &p.name)?;
-            shapes.insert(&p.name, shape.as_ref().and_then(bounds));
-        }
-        if let Some((min, max)) = shapes[p.name.as_str()] {
+        let load = || Ok(shape_of(romfs, &p.name)?.as_ref().and_then(bounds));
+        if let Some((min, max)) = *cached(&mut shapes, &p.name, load)? {
             out.extend(climb(min, max, p));
         }
     }
