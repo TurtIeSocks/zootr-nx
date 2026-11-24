@@ -45,16 +45,15 @@ pub fn session<T>(
             Err(_) => std::thread::sleep(tick),
         }
     };
-    let mut last = None;
     loop {
-        match ready(&game) {
+        // Only a failure in the last look says why it never loaded.
+        let failed = match ready(&game) {
             Ok(true) => return Ok(game),
-            Ok(false) => {}
-            Err(e) => last = Some(e),
-        }
+            ready => ready.err(),
+        };
         if start.elapsed() > limit {
             let never = "the game never finished loading";
-            return Err(last.map_or_else(|| anyhow!(never), |e| e.context(never)));
+            return Err(failed.map_or_else(|| anyhow!(never), |e| e.context(never)));
         }
         std::thread::sleep(tick);
     }
@@ -352,6 +351,19 @@ mod tests {
             err.contains("never finished") && err.contains("no map"),
             "{err}"
         );
+    }
+
+    #[test]
+    fn a_session_that_never_loads_forgets_a_failure_it_got_past() {
+        let mut game = Fake::default();
+        let looks = Cell::new(0);
+        let ready = |_: &()| {
+            looks.set(looks.get() + 1);
+            ensure!(looks.get() > 1, "no map");
+            Ok(false)
+        };
+        let err = session(&mut game, false, || Ok(()), ready, QUICK).unwrap_err();
+        assert_eq!(format!("{err:#}"), "the game never finished loading");
     }
 
     #[test]
