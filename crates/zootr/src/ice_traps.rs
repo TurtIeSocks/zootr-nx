@@ -12,7 +12,6 @@ use std::sync::LazyLock;
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::Romfs;
-use zootr_hook::Credit;
 
 pub(crate) use freeze::adult_effects;
 pub use freeze::{event, flow, sensor, thaw};
@@ -28,15 +27,14 @@ use crate::shuffle::Placement;
 /// What a trap's get says, in every language.
 pub const FOOL: &str = "FOOL!";
 
-/// What follows [`MADE`] in a trap's name.
-const TRAP: &str = "IceTrap";
-/// A trap before its disguise, as the pool deals it.
-static POOLED: LazyLock<String> = LazyLock::new(|| format!("{MADE}{TRAP}"));
+/// A trap before its disguise, as the pool deals it. Every disguise's
+/// name starts with it too, which is how the hook freezes Link for each.
+const POOLED: &str = zootr_hook::traps::ITEM;
 /// The most disguises a seed's traps take, one actor each.
 const MOST: usize = 999;
 /// Each disguise's actor, in the order the seed draws them.
 static DISGUISED: LazyLock<Vec<String>> =
-    LazyLock::new(|| (1..=MOST).map(|n| format!("{MADE}{TRAP}{n:03}")).collect());
+    LazyLock::new(|| (1..=MOST).map(|n| format!("{POOLED}{n:03}")).collect());
 /// Keeps the traps' rolls apart from the fill's, which starts from the
 /// same seed.
 const SALT: u64 = 0x1ce7_7a95_f001_0001;
@@ -45,8 +43,7 @@ const JUNK: [&str; 3] = ["rupee", "ammo", "recovery"];
 
 /// Whether `item` is a trap, disguised or not.
 pub fn is_trap(item: &str) -> bool {
-    item.strip_prefix(MADE)
-        .is_some_and(|rest| rest.starts_with(TRAP))
+    item.starts_with(POOLED)
 }
 
 /// Whether the seed holds any trap, so it needs the sensor, its event and
@@ -99,7 +96,7 @@ pub fn swap(
         .collect();
     Rng::new(seed ^ SALT).shuffle(&mut at);
     for &i in at.iter().take(how.of(at.len())) {
-        items[i] = POOLED.as_str();
+        items[i] = POOLED;
     }
     Ok(())
 }
@@ -114,7 +111,7 @@ pub fn disguise(
     seed: u64,
 ) -> Result<Vec<Foreign>> {
     let traps: Vec<usize> = (0..placements.len())
-        .filter(|&i| placements[i].item == POOLED.as_str())
+        .filter(|&i| placements[i].item == POOLED)
         .collect();
     if traps.is_empty() {
         return Ok(vec![]);
@@ -154,13 +151,6 @@ pub fn disguise(
     Ok(copies)
 }
 
-/// Each trap's credit in the hook's table: a freeze.
-pub fn credits(foreign: &[Foreign]) -> Vec<(String, Credit)> {
-    actors(foreign)
-        .map(|a| (a.to_owned(), Credit::Freeze))
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -179,7 +169,7 @@ mod tests {
 
     #[test]
     fn a_trap_is_named_as_one_disguised_or_not() {
-        assert!(is_trap(&POOLED) && is_trap(&DISGUISED[0]));
+        assert!(is_trap(POOLED) && is_trap(&DISGUISED[0]));
         assert!(!is_trap(&crate::foreign::actor(1)) && !is_trap(&format!("{MADE}KeyRing01")));
     }
 
@@ -193,7 +183,7 @@ mod tests {
     }
 
     fn traps(items: &[&str]) -> usize {
-        items.iter().filter(|i| **i == POOLED.as_str()).count()
+        items.iter().filter(|i| **i == POOLED).count()
     }
 
     #[test]
@@ -228,12 +218,7 @@ mod tests {
     #[test]
     fn traps_pass_for_items_logic_needs_one_copy_each() {
         let Some(romfs) = dev_dump() else { return };
-        let items = [
-            POOLED.as_str(),
-            item::HOOKSHOT.get(),
-            POOLED.as_str(),
-            item::BOOMERANG.get(),
-        ];
+        let items = [POOLED, item::HOOKSHOT.get(), POOLED, item::BOOMERANG.get()];
         let checks: Vec<_> = (0..items.len() as u64).map(|h| chest(h, "x")).collect();
         let dealt = |needed: &BTreeSet<&str>, seed| {
             let mut placements: Vec<Placement> = (checks.iter().zip(items))
@@ -246,7 +231,7 @@ mod tests {
         let hookshot = BTreeSet::from([item::HOOKSHOT.get()]);
         let (placed, copies) = dealt(&hookshot, 7);
         assert_eq!(placed[0], placed[2], "one disguise, one copy");
-        assert!(is_trap(placed[0]) && placed[0] != POOLED.as_str());
+        assert!(is_trap(placed[0]) && placed[0] != POOLED);
         let [copy] = &copies[..] else {
             panic!("{copies:?}")
         };
@@ -255,7 +240,6 @@ mod tests {
             (placed[0], item::HOOKSHOT.get())
         );
         assert!(matches!(&copy.owner, Owner::Trap { label } if label.ends_with("_Name")));
-        assert_eq!(credits(&copies), [(copy.actor.clone(), Credit::Freeze)]);
         let both = BTreeSet::from([item::HOOKSHOT.get(), item::BOOMERANG.get()]);
         assert_eq!(dealt(&both, 7).0, dealt(&both, 7).0, "the seed picks");
     }

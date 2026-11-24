@@ -14,6 +14,11 @@ pub const EVENT: &[u8] = b"Rando_IceTrap\0";
 pub const END: &[u8] = b"Rando_IceTrapEnd\0";
 /// The sensor that hits Link with a Freezard's breath.
 pub const SENSOR: &str = "Sensor_Rando_IceTrap";
+/// What every trap's name starts with, before its disguise and after.
+/// With [`ICE_TRAPS`](crate::ICE_TRAPS) on, the table credits each one
+/// with a freeze without an entry of its own: a seed's traps would
+/// otherwise outgrow it.
+pub const ITEM: &str = "Item_Rando_IceTrap";
 
 /// Where the count of traps waiting sits in `main`.
 pub const TRAPS: u32 = LIST + core::mem::offset_of!(Shared, traps) as u32;
