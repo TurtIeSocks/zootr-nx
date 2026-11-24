@@ -6,7 +6,8 @@ name = "Basement"
 to = 0
 needs = "always"
 via = "climb"
-why = "climb 14670770652390206064, 17725402113092522180"
+why = "climb 14670770652390206064, 17725402113092522180; on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 5
@@ -16,15 +17,16 @@ why = "walk, 1 edges"
 
 [[link]]
 to = 8
-needs = "always"
-via = "walk"
-why = "walk, 1 edges"
+needs = "child"
+via = "crawl"
+why = "crawl 16307553744183202862; Air Wall Crawl Hole 16188498550072501143: child; Air Wall Crawl Hole 17670633605855749111: child; on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 9
-needs = "fire"
+needs = "always"
 via = "drop"
-why = "drop 17.2 to 26.0 m into water; Inside The Deku Tree Spider Web A 01 9217804728253310381: fire"
+why = "drop 17.2 to 20.2 m into water"
 
 [[link]]
 to = 9

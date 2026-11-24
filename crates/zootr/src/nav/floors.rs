@@ -4,12 +4,12 @@
 //! collision mesh holds its floor. Each patch of such floor joins the
 //! level's mesh as faces.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, Byml, Edge, Face, NavMesh, Romfs};
 
-use super::graph::{BODY, Cross, Graph, LOOK, STEP_MIN, Via, body_hits};
+use super::graph::{BODY, Cross, Graph, LOOK, RADIUS, STEP_MIN, Via, body_hits};
 use super::mesh::{Walls, facing_up, floor_normal, height_in, moller, through};
 use super::shape::Solid;
 use super::vec3::{cross, dot, sub};
@@ -220,6 +220,9 @@ pub struct Keep<'a> {
     pub height: f32,
     /// Obstacles a floor may not run under (shutters, webs).
     pub under: &'a [Solid],
+    /// Every placed shape, which terrain may not run under either: a
+    /// door's frame stands on it.
+    pub shapes: &'a [Solid],
 }
 
 /// How far over or under an obstacle a floor still runs under it, in m.
@@ -240,6 +243,32 @@ fn under(solid: &Solid, t: &Tri) -> bool {
     edge || solid.ring.iter().any(ring)
 }
 
+/// Whether triangle `t` lies under `solid` or within Link's radius of it,
+/// where his body would stand in it: the room the navmesh keeps.
+fn beside(solid: &Solid, t: &[[f32; 3]; 3]) -> bool {
+    if under(solid, t) {
+        return true;
+    }
+    let (lo, hi) = t.iter().fold((f32::MAX, f32::MIN), |(lo, hi), v| {
+        (lo.min(v[1]), hi.max(v[1]))
+    });
+    if hi < solid.low - UNDER || lo > solid.high + UNDER {
+        return false;
+    }
+    let ring = &solid.ring;
+    let near = |p: [f32; 2]| {
+        (0..ring.len()).any(|i| {
+            let (a, b) = (ring[i], ring[(i + 1) % ring.len()]);
+            let (dx, dz) = (b[0] - a[0], b[1] - a[1]);
+            let len2 = (dx * dx + dz * dz).max(1e-9);
+            let s = (((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / len2).clamp(0.0, 1.0);
+            (p[0] - a[0] - s * dx).hypot(p[1] - a[1] - s * dz) < RADIUS
+        })
+    };
+    let m = middle(t);
+    t.iter().chain([&m]).any(|v| near([v[0], v[2]]))
+}
+
 /// The collision floor triangles of `walls`, in patches: each a triangle
 /// that touches Link on foot and lets him stand (ridable, facing up no
 /// steeper than he walks), with `height` clear above its middle, out of
@@ -252,6 +281,7 @@ pub fn patches(mesh: &NavMesh, walls: &Walls, keep: &Keep) -> Vec<Vec<Tri>> {
         float,
         height,
         under: obstacles,
+        shapes,
     } = *keep;
     let faces = Grid::faces(mesh, CELL);
     let all: Vec<&Tri> = (walls.solid.iter().chain(&walls.air))
@@ -274,16 +304,31 @@ pub fn patches(mesh: &NavMesh, walls: &Walls, keep: &Keep) -> Vec<Vec<Tri>> {
     // Stairs stand twice, as their slope and their steps: the slope until
     // a live check says which Link's controller stands on (rule 7).
     let step = format!("__{}", field::STAIR_STEP.get());
+    // Terrain runs on under the pieces standing on it: where a wall
+    // crosses one of its triangles at Link's waist, that's no floor.
+    let walled = |t: &Tri| {
+        let waist = |v: [f32; 3]| [v[0], v[1] + WAIST, v[2]];
+        (0..3).any(|i| round.crosses(waist(t[i]), waist(t[(i + 1) % 3])))
+    };
     let kept: Vec<Tri> = (walls.solid.iter())
         .filter(|w| w.ridable && !w.name.ends_with(&step))
-        .flat_map(|w| w.triangles.iter().copied())
-        .filter(|t| key(t[0]) != key(t[1]) && key(t[1]) != key(t[2]) && key(t[0]) != key(t[2]))
-        .filter(|t| floor_normal(t) && facing_up(t))
-        .filter(|t| !obstacles.iter().any(|o| under(o, t)))
-        .filter(|t| {
-            let m = middle(t);
-            !navmesh_has(m) && !wet(m) && !roofed(m) && !round.inside(m)
+        .flat_map(|w| {
+            let terrain = w.name.ends_with(super::terrain::SUFFIX);
+            w.triangles.iter().map(move |t| (*t, terrain))
         })
+        .filter(|(t, _)| key(t[0]) != key(t[1]) && key(t[1]) != key(t[2]) && key(t[0]) != key(t[2]))
+        .filter(|(t, _)| floor_normal(t) && facing_up(t))
+        .filter(|(t, _)| !obstacles.iter().any(|o| under(o, t)))
+        .filter(|(t, terrain)| {
+            let m = middle(t);
+            !navmesh_has(m)
+                && !wet(m)
+                && !roofed(m)
+                && !round.inside(m)
+                && !(*terrain
+                    && (walled(t) || obstacles.iter().chain(shapes).any(|o| beside(o, t))))
+        })
+        .map(|(t, _)| t)
         .collect();
     // Join triangles that share a corner.
     let mut parent: Vec<usize> = (0..kept.len()).collect();
@@ -315,6 +360,23 @@ pub fn patches(mesh: &NavMesh, walls: &Walls, keep: &Keep) -> Vec<Vec<Tri>> {
         at(a).cmp(&at(b))
     });
     out
+}
+
+/// Which of `patches`' triangles, in their order, are terrain's: the
+/// heightmap's top, which no live run has walked yet.
+pub fn on_terrain(walls: &Walls, patches: &[Vec<[[f32; 3]; 3]>]) -> Vec<bool> {
+    let corners = |t: &[[f32; 3]; 3]| {
+        let mut k = t.map(key);
+        k.sort_unstable();
+        k
+    };
+    let terrain: HashSet<_> = (walls.solid.iter())
+        .filter(|w| w.name.ends_with(super::terrain::SUFFIX))
+        .flat_map(|w| w.triangles.iter().map(corners))
+        .collect();
+    (patches.iter().flatten())
+        .map(|t| terrain.contains(&corners(t)))
+        .collect()
 }
 
 /// Which faces Link gets to from the navmesh's (those before `first`):
@@ -470,6 +532,26 @@ mod tests {
         vec![[a, c, b], [a, d, c]]
     }
 
+    #[test]
+    fn a_patch_triangle_is_terrains_when_a_terrain_wall_has_its_corners() {
+        let ground = square(0.0, 0.0, 0.0);
+        let piece = square(5.0, 0.0, 0.0);
+        let walls = Walls {
+            solid: vec![
+                wall(
+                    &format!("FakeHill{}", crate::nav::terrain::SUFFIX),
+                    ground.clone(),
+                ),
+                wall("FakePiece__Physical", piece.clone()),
+            ],
+            ..Walls::default()
+        };
+        // Its corners in another order are the same triangle.
+        let turned = ground.iter().map(|&[a, b, c]| [b, c, a]).collect();
+        let tagged = on_terrain(&walls, &[turned, piece]);
+        assert_eq!(tagged, [true, true, false, false]);
+    }
+
     /// Triangle `t` wound to face along `d`.
     fn toward(t: Tri, d: [f32; 3]) -> Tri {
         let n = cross(sub(t[1], t[0]), sub(t[2], t[0]));
@@ -510,6 +592,7 @@ mod tests {
         float: 1.0,
         height: 1.17,
         under: &[],
+        shapes: &[],
     };
 
     fn empty() -> NavMesh {

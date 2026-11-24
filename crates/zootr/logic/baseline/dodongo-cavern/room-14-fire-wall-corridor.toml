@@ -12,10 +12,25 @@ why = "drop 4.5 m"
 to = 13
 needs = "always"
 via = "climb"
-why = "climb 5259290752783024406"
+why = "climb 5259290752783024406; on terrain floor no live run has walked"
+guess = true
+
+[[link]]
+to = 13
+needs = "always"
+via = "jump"
+why = "gap 0.7 to 4.3 m, falling up to 4.8 m: within a running jump off the edge (4.5 m for that fall); on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 15
 needs = "always"
 via = "walk"
-why = "walk, 13 edges"
+why = "walk, 26 edges"
+
+[[link]]
+to = 15
+needs = "always"
+via = "jump"
+why = "gap 2.5 to 3.0 m, falling up to 1.7 m: within a running jump off the edge (3.5 m for that fall); on terrain floor no live run has walked"
+guess = true

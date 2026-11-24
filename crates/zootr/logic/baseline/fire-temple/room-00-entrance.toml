@@ -45,13 +45,19 @@ guess = true
 to = 17
 needs = "always"
 via = "walk"
-why = "walk, 3 edges"
+why = "walk, 5 edges"
+
+[[link]]
+to = 17
+needs = "always"
+via = "drop"
+why = "drop 4.0 to 4.1 m"
 
 [[link]]
 to = 17
 needs = "always"
 via = "jump"
-why = "level gap 0.8 m: within a running jump (2.7 m)"
+why = "gap 1.5 m, falling up to 4.0 m: within a running jump off the edge (4.2 m for that fall)"
 
 [[arrival]]
 hash = 0x9802db36
