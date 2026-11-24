@@ -207,10 +207,12 @@ export const STEPS = [{"name":"reading the dump","step":"dump"},{"name":"reading
 export const TRACKER_COLUMNS = 3 as const;
 
 /* Types */
-/**  A status change or a log line. */
+/**  A status change or a log line, or the page's log started over. */
 export type ApEvent = {
 	status: ApStatus,
 	line: string | null,
+	/**  The log so far is another seed's: drop it before taking `line`. */
+	clear: boolean,
 };
 
 /**  What the page shows: the status and the log so far. */
