@@ -46,7 +46,7 @@ impl AsRef<Path> for Scratch {
     }
 }
 
-impl Drop for Scratch {
+impl std::ops::Drop for Scratch {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.0);
     }
