@@ -610,11 +610,10 @@ fn sets(new_game: &NewGame) -> Vec<(String, key_tints::Sets)> {
     sets
 }
 
-/// [`sets`] as the hook's table names it, then each ice trap's freeze.
+/// [`sets`] as the hook's table names it. Traps need none: the hook
+/// freezes Link for any of them by name.
 fn credits(new_game: &NewGame) -> Vec<(String, zootr_hook::Credit)> {
-    let mut credits = key_tints::as_credits(sets(new_game));
-    credits.extend(ice_traps::credits(&new_game.foreign));
-    credits
+    key_tints::as_credits(sets(new_game))
 }
 
 /// The settings the hook acts on, as the table's flag bits. Every seed
