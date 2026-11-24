@@ -20,6 +20,7 @@ pub use look::{FILES, look};
 
 use crate::foreign::{Foreign, Owner};
 use crate::key_tints::MADE;
+use crate::known::{Name, item};
 use crate::rng::Rng;
 use crate::settings::{IceTraps, NewGame};
 use crate::shuffle::Placement;
@@ -29,7 +30,12 @@ pub const FOOL: &str = "FOOL!";
 
 /// A trap before its disguise, as the pool deals it. Every disguise's
 /// name starts with it too, which is how the hook freezes Link for each.
-const POOLED: &str = zootr_hook::traps::ITEM;
+/// In an Archipelago seed it's also the copy the room's traps give
+/// ([`received`]).
+pub const POOLED: &str = zootr_hook::traps::ITEM;
+/// What the copy the room's traps give passes for: what Link holds up
+/// before "FOOL!".
+const RECEIVED_SHOWS: &Name = item::HOOKSHOT;
 /// The most disguises a seed's traps take, one actor each.
 const MOST: usize = 999;
 /// Each disguise's actor, in the order the seed draws them.
@@ -60,8 +66,9 @@ pub fn actors(foreign: &[Foreign]) -> impl Iterator<Item = &str> {
 }
 
 /// The items among `items` that are junk and logic doesn't name in
-/// `needed`: what the pouch files under [`JUNK`].
-fn junk<'a>(
+/// `needed`: what the pouch files under [`JUNK`], and what [`swap`] may
+/// trap.
+pub fn junk<'a>(
     romfs: &Romfs,
     items: impl Iterator<Item = &'a str>,
     needed: &BTreeSet<&str>,
@@ -149,6 +156,21 @@ pub fn disguise(
         placements[i].item = actor;
     }
     Ok(copies)
+}
+
+/// The copy an Archipelago seed with traps gives for each trap the room
+/// sends, so its sensor and the hook's freeze are in whether or not any of
+/// its own checks hold one.
+pub fn received(romfs: &Romfs) -> Result<Foreign> {
+    let shows = RECEIVED_SHOWS.get();
+    let label =
+        crate::names::name_label(romfs, shows)?.with_context(|| format!("{shows} has no name"))?;
+    Ok(Foreign {
+        actor: POOLED.to_owned(),
+        shows: shows.to_owned(),
+        model: None,
+        owner: Owner::Trap { label },
+    })
 }
 
 #[cfg(test)]

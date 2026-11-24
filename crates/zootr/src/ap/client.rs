@@ -17,7 +17,6 @@ use ounce_formats::Romfs;
 
 use super::death::{Death, Deaths, Done};
 use super::ids::Ids;
-use super::names;
 use super::notice::Notices;
 use super::seed::Dealt;
 use super::{ApSeed, GAME, RECEIVED};
@@ -68,7 +67,7 @@ impl Book {
             .filter_map(|&h| Some((h, ids.location_id(h)?)))
             .map(|(h, l)| Ok((h, id(l)?)))
             .collect::<Result<_>>()?;
-        let actors = (ids.actors(dealt.pool.iter().map(|a| names::same(a))))
+        let actors = (ids.actors(dealt.actors()))
             .into_iter()
             .map(|(i, a)| Ok((id(i)?, a.to_owned())))
             .collect::<Result<_>>()?;

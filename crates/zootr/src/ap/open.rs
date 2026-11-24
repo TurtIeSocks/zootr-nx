@@ -13,9 +13,13 @@ use super::ids::Ids;
 use super::names;
 use super::seed::{Dealt, base};
 use crate::foreign::{self, Foreign, Owner};
+use crate::ice_traps;
 use crate::known::{Name, item};
-use crate::settings::Settings;
+use crate::settings::{IceTraps, Settings};
 use crate::shuffle::Fixed;
+
+/// AP's class for a trap.
+const TRAP: &str = "trap";
 
 /// The item another game's item is a copy of, showing its class's model:
 /// one Link gets once, so it reads as a get of its own.
@@ -169,7 +173,7 @@ impl ApSeed {
             "the seed doesn't match this version's checks: none placed at {missing:?}, unknown {extra:?}"
         );
         let ids = Ids::load()?;
-        let actors = ids.actors(dealt.pool.iter().map(|a| names::same(a)));
+        let actors = ids.actors(dealt.actors());
         let actor = |id| by_id(&actors, id);
         // Another slot's settings can deal items this slot's never do.
         let ours = ids.actors(names::named().map(names::same));
@@ -182,8 +186,9 @@ impl ApSeed {
             let item = match placed {
                 Placed::Own(id) => actor(*id)?,
                 Placed::Foreign(f) => {
+                    // Another slot's trap shows as any game's trap does.
                     let (shows, model) = match (f.game == GAME, f.id) {
-                        (true, Some(id)) => (theirs(id)?, None),
+                        (true, Some(id)) if f.class != TRAP => (theirs(id)?, None),
                         _ => (
                             STAND_IN.get().to_owned(),
                             Some(foreign::class_model(&f.class)),
@@ -196,7 +201,7 @@ impl ApSeed {
             };
             fixed.insert(hash, item);
         }
-        let foreign = copies
+        let mut foreign: Vec<Foreign> = copies
             .into_iter()
             .map(|((shows, model, item, player), actor)| Foreign {
                 actor,
@@ -205,6 +210,9 @@ impl ApSeed {
                 owner: Owner::Player { item, player },
             })
             .collect();
+        if dealt.new_game.ice_traps != IceTraps::Off {
+            foreign.push(ice_traps::received(romfs)?);
+        }
         let give = self
             .start
             .iter()
@@ -342,6 +350,37 @@ mod tests {
         assert_eq!(shown("useful"), foreign::class_model("useful"));
         assert_eq!(shown("filler"), filler);
         assert_eq!(shown("trap"), filler);
+    }
+
+    #[test]
+    fn a_seed_with_traps_holds_link_s_own_and_gives_the_room_s() {
+        let Some(romfs) = dev_dump() else { return };
+        let mut seed = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        let trap = crate::ice_traps::POOLED;
+        let without = seed.resolve(&romfs).unwrap();
+        assert!(!without.foreign.iter().any(|f| f.actor == trap));
+        let id = Ids::load().unwrap().item_id(trap).unwrap();
+        let mut spots = seed.placements.values_mut();
+        *spots.next().unwrap() = Placed::Own(id);
+        // Link's trap in Zelda's world: hers to find, shown as a trap.
+        *spots.next().unwrap() = Placed::Foreign(ForeignItem {
+            player: 2,
+            player_name: "Zelda".into(),
+            game: GAME.into(),
+            item: "Ice Trap".into(),
+            class: TRAP.into(),
+            id: Some(id),
+        });
+        seed.settings
+            .insert(crate::settings::ICE_TRAPS.into(), "some".into());
+        let resolved = seed.resolve(&romfs).unwrap();
+        assert!(resolved.fixed.values().any(|i| i == trap));
+        let received = resolved.foreign.iter().find(|f| f.actor == trap).unwrap();
+        assert!(matches!(received.owner, Owner::Trap { .. }));
+        let hers = (resolved.foreign.iter())
+            .find(|f| matches!(&f.owner, Owner::Player { item, .. } if item == "Ice Trap"))
+            .unwrap();
+        assert_eq!(hers.model, Some(foreign::class_model(TRAP)));
     }
 
     /// What `extras` installs from `seed` with the fixture's settings.

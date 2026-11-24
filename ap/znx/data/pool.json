@@ -8,15 +8,18 @@
   "rows": [
     {
       "count": 1,
-      "item": "Arrows (10)"
+      "item": "Arrows (10)",
+      "trappable": true
     },
     {
       "count": 2,
-      "item": "Arrows (3)"
+      "item": "Arrows (3)",
+      "trappable": true
     },
     {
       "count": 1,
       "item": "Arrows (3)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -34,6 +37,7 @@
     {
       "count": 1,
       "item": "Arrows (3)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -48,6 +52,7 @@
     {
       "count": 1,
       "item": "Arrows (3)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -69,6 +74,7 @@
     {
       "count": 14,
       "item": "Arrows (3)",
+      "trappable": true,
       "when": {
         "setting": "pots"
       }
@@ -76,6 +82,7 @@
     {
       "count": 1,
       "item": "Arrows (3)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -104,6 +111,7 @@
     {
       "count": 1,
       "item": "Arrows (3)",
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -118,6 +126,7 @@
     {
       "count": 1,
       "item": "Arrows (3)",
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -134,7 +143,8 @@
     },
     {
       "count": 2,
-      "item": "Arrows (5)"
+      "item": "Arrows (5)",
+      "trappable": true
     },
     {
       "count": 1,
@@ -146,6 +156,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -172,6 +183,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -195,6 +207,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -242,6 +255,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -269,6 +283,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -299,6 +314,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -316,6 +332,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -360,6 +377,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -394,6 +412,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -447,6 +466,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -511,6 +531,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -568,6 +589,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -628,6 +650,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -662,6 +685,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -699,6 +723,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -720,6 +745,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -770,6 +796,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -807,6 +834,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -866,6 +894,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -893,6 +922,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -923,6 +953,7 @@
     {
       "count": 11,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "setting": "pots"
       }
@@ -930,6 +961,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -988,6 +1020,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1036,6 +1069,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1103,6 +1137,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1144,6 +1179,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1188,6 +1224,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1216,6 +1253,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1273,6 +1311,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1317,6 +1356,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1383,6 +1423,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1459,6 +1500,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1525,6 +1567,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1594,6 +1637,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1631,6 +1675,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1671,6 +1716,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -1688,6 +1734,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1744,6 +1791,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1784,6 +1832,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -1849,6 +1898,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -1872,6 +1922,7 @@
     {
       "count": 1,
       "item": "Blue Rupee (5)",
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -1898,12 +1949,14 @@
     {
       "count": 15,
       "item": "Blue Rupee (5)",
-      "junk": true
+      "junk": true,
+      "trappable": true
     },
     {
       "count": 1,
       "item": "Blue Rupee (5)",
       "junk": true,
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -2168,6 +2221,7 @@
     {
       "count": 5,
       "item": "Deku Seeds (3)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -2182,6 +2236,7 @@
     {
       "count": 4,
       "item": "Deku Seeds (3)",
+      "trappable": true,
       "when": {
         "setting": "grass"
       }
@@ -2189,6 +2244,7 @@
     {
       "count": 5,
       "item": "Deku Seeds (3)",
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -2323,6 +2379,7 @@
     {
       "count": 7,
       "item": "Fairy",
+      "trappable": true,
       "when": {
         "setting": "pots"
       }
@@ -2420,11 +2477,13 @@
     },
     {
       "count": 10,
-      "item": "Gold Rupee (200)"
+      "item": "Gold Rupee (200)",
+      "trappable": true
     },
     {
       "count": 1,
       "item": "Gold Rupee (200)",
+      "trappable": true,
       "when": {
         "setting": "npc-gifts"
       }
@@ -2432,6 +2491,7 @@
     {
       "count": 1,
       "item": "Gold Rupee (200)",
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -2467,6 +2527,7 @@
     {
       "count": 6,
       "item": "Green Rupee (1)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -2484,6 +2545,7 @@
     {
       "count": 1,
       "item": "Green Rupee (1)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -2498,6 +2560,7 @@
     {
       "count": 6,
       "item": "Green Rupee (1)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -2519,6 +2582,7 @@
     {
       "count": 26,
       "item": "Green Rupee (1)",
+      "trappable": true,
       "when": {
         "setting": "pots"
       }
@@ -2526,6 +2590,7 @@
     {
       "count": 6,
       "item": "Green Rupee (1)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -2554,6 +2619,7 @@
     {
       "count": 1,
       "item": "Green Rupee (1)",
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -2568,6 +2634,7 @@
     {
       "count": 6,
       "item": "Green Rupee (1)",
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -2585,7 +2652,19 @@
     {
       "count": 6,
       "item": "Green Rupee (1)",
-      "junk": true
+      "junk": true,
+      "when": {
+        "setting": "shuffle-masks"
+      }
+    },
+    {
+      "count": 6,
+      "item": "Green Rupee (1)",
+      "junk": true,
+      "trappable": true,
+      "when": {
+        "setting": "shuffle-masks=off"
+      }
     },
     {
       "count": 8,
@@ -2683,7 +2762,8 @@
     },
     {
       "count": 1,
-      "item": "Magic Jar"
+      "item": "Magic Jar",
+      "trappable": true
     },
     {
       "count": 1,
@@ -3024,6 +3104,7 @@
     {
       "count": 1,
       "item": "Purple Rupee (50)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3038,6 +3119,7 @@
     {
       "count": 1,
       "item": "Purple Rupee (50)",
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -3052,11 +3134,13 @@
     {
       "count": 15,
       "item": "Purple Rupee (50)",
-      "junk": true
+      "junk": true,
+      "trappable": true
     },
     {
       "count": 12,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3080,6 +3164,7 @@
     {
       "count": 11,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3100,6 +3185,7 @@
     {
       "count": 12,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3127,6 +3213,7 @@
     {
       "count": 108,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3144,6 +3231,7 @@
     {
       "count": 2,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3178,6 +3266,7 @@
     {
       "count": 10,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3239,6 +3328,7 @@
     {
       "count": 2,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3290,6 +3380,7 @@
     {
       "count": 9,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3331,6 +3422,7 @@
     {
       "count": 2,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3375,6 +3467,7 @@
     {
       "count": 10,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3422,6 +3515,7 @@
     {
       "count": 2,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3456,6 +3550,7 @@
     {
       "count": 108,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3477,6 +3572,7 @@
     {
       "count": 12,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3514,6 +3610,7 @@
     {
       "count": 11,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3538,6 +3635,7 @@
     {
       "count": 12,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3565,6 +3663,7 @@
     {
       "count": 48,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "setting": "pots"
       }
@@ -3572,6 +3671,7 @@
     {
       "count": 12,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3620,6 +3720,7 @@
     {
       "count": 11,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3658,6 +3759,7 @@
     {
       "count": 12,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3699,6 +3801,7 @@
     {
       "count": 108,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3727,6 +3830,7 @@
     {
       "count": 2,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3771,6 +3875,7 @@
     {
       "count": 10,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3844,6 +3949,7 @@
     {
       "count": 2,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3904,6 +4010,7 @@
     {
       "count": 9,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -3951,6 +4058,7 @@
     {
       "count": 2,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4001,6 +4109,7 @@
     {
       "count": 10,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4054,6 +4163,7 @@
     {
       "count": 2,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4091,6 +4201,7 @@
     {
       "count": 108,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -4108,6 +4219,7 @@
     {
       "count": 12,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4148,6 +4260,7 @@
     {
       "count": 11,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -4168,6 +4281,7 @@
     {
       "count": 12,
       "item": "Recovery Heart",
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -4191,6 +4305,7 @@
     {
       "count": 2,
       "item": "Red Rupee (20)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4208,6 +4323,7 @@
     {
       "count": 2,
       "item": "Red Rupee (20)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4229,6 +4345,7 @@
     {
       "count": 2,
       "item": "Red Rupee (20)",
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4257,6 +4374,7 @@
     {
       "count": 2,
       "item": "Red Rupee (20)",
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -4274,12 +4392,14 @@
     {
       "count": 26,
       "item": "Red Rupee (20)",
-      "junk": true
+      "junk": true,
+      "trappable": true
     },
     {
       "count": 3,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4304,6 +4424,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4335,6 +4456,7 @@
       "count": 3,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4373,6 +4495,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4401,6 +4524,7 @@
       "count": 2,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4481,6 +4605,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4588,6 +4713,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4698,6 +4824,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4798,6 +4925,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -4901,6 +5029,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -5007,6 +5136,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -5100,6 +5230,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -5117,156 +5248,6 @@
                 "setting": "scrubs"
               }
             ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=3"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=2"
-                  },
-                  {
-                    "setting": "shop-slots=3"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "fortress-keys=start"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=2"
-                  },
-                  {
-                    "setting": "shop-slots=3"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "fortress-keys=start"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "count": 1,
-      "item": "Red Rupee (20)",
-      "junk": true,
-      "when": {
-        "any": [
-          {
-            "setting": "keys=start"
           },
           {
             "all": [
@@ -5413,6 +5394,158 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "setting": "keys=start"
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=3"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=2"
+                  },
+                  {
+                    "setting": "shop-slots=3"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "fortress-keys=start"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=2"
+                  },
+                  {
+                    "setting": "shop-slots=3"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "fortress-keys=start"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Red Rupee (20)",
+      "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -5617,6 +5750,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -5824,6 +5958,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -6018,6 +6153,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -6215,6 +6351,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -6399,6 +6536,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -6545,6 +6683,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -6755,6 +6894,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -6949,276 +7089,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
-      "when": {
-        "any": [
-          {
-            "setting": "keys=start"
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=3"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=2"
-                  },
-                  {
-                    "setting": "shop-slots=3"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "fortress-keys=start"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=2"
-                  },
-                  {
-                    "setting": "shop-slots=3"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=3"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "fortress-keys=start"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=3"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "fortress-keys=start"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=2"
-                  },
-                  {
-                    "setting": "shop-slots=3"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "fortress-keys=start"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "count": 1,
-      "item": "Red Rupee (20)",
-      "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -7393,6 +7264,277 @@
           {
             "all": [
               {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=3"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "fortress-keys=start"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=2"
+                  },
+                  {
+                    "setting": "shop-slots=3"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "fortress-keys=start"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Red Rupee (20)",
+      "junk": true,
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "setting": "keys=start"
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=3"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=2"
+                  },
+                  {
+                    "setting": "shop-slots=3"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "fortress-keys=start"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=2"
+                  },
+                  {
+                    "setting": "shop-slots=3"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=3"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "fortress-keys=start"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
                 "setting": "npc-gifts"
               },
               {
@@ -7492,6 +7634,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -7727,6 +7870,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -7965,6 +8109,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -8187,6 +8332,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -8374,6 +8520,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -8619,6 +8766,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -8823,6 +8971,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -9097,6 +9246,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -9374,6 +9524,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -9616,6 +9767,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -9861,6 +10013,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -10065,6 +10218,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -10237,6 +10391,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -10461,6 +10616,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -10647,6 +10803,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -10897,6 +11054,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -11150,6 +11308,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -11371,6 +11530,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -11632,6 +11792,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -11855,6 +12016,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -12049,6 +12211,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -12292,6 +12455,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -12503,6 +12667,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -12772,6 +12937,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -13044,6 +13210,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -13274,6 +13441,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -13561,6 +13729,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -13813,6 +13982,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -14068,6 +14238,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -14362,6 +14533,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -14611,6 +14783,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -14915,6 +15088,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -15225,6 +15399,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -15493,6 +15668,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -15840,6 +16016,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -16139,6 +16316,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -16491,6 +16669,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -16849,6 +17028,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -17162,6 +17342,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -17523,6 +17704,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -17871,6 +18053,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -18152,6 +18335,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -18506,6 +18690,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -18796,6 +18981,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -19171,6 +19357,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -19549,6 +19736,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -19879,6 +20067,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -20215,6 +20404,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -20513,6 +20703,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -20776,6 +20967,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -21106,6 +21298,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -21363,6 +21556,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -21696,6 +21890,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -21753,326 +21948,6 @@
                     "setting": "shop-slots=8"
                   }
                 ]
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "fortress-keys=start"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=3"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "fortress-keys=start"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=3"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "keys=start"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=2"
-                  },
-                  {
-                    "setting": "shop-slots=3"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "fortress-keys=start"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=3"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "fortress-keys=start"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "setting": "shop-slots=8"
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "count": 1,
-      "item": "Red Rupee (20)",
-      "junk": true,
-      "when": {
-        "any": [
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
               },
               {
                 "setting": "keys=start"
@@ -22275,6 +22150,327 @@
                 "setting": "shopsanity"
               },
               {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=3"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "fortress-keys=start"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "setting": "shop-slots=8"
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Red Rupee (20)",
+      "junk": true,
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "fortress-keys=start"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=3"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "fortress-keys=start"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=3"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "keys=start"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=2"
+                  },
+                  {
+                    "setting": "shop-slots=3"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "fortress-keys=start"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "shopsanity"
+              },
+              {
                 "setting": "shop-slots=8"
               },
               {
@@ -22295,6 +22491,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -22580,6 +22777,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -22821,6 +23019,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -23027,6 +23226,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -23269,6 +23469,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -23470,6 +23671,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -23741,6 +23943,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -24015,6 +24218,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -24254,6 +24458,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -24496,6 +24701,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -24697,6 +24903,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -24866,6 +25073,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -24906,189 +25114,6 @@
               }
             ]
           },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "fortress-keys=start"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "keys=start"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=4"
-                  },
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "fortress-keys=start"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "count": 1,
-      "item": "Red Rupee (20)",
-      "junk": true,
-      "when": {
-        "any": [
           {
             "all": [
               {
@@ -25270,6 +25295,191 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "fortress-keys=start"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "keys=start"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=4"
+                  },
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "fortress-keys=start"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Red Rupee (20)",
+      "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -25517,6 +25727,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -25767,6 +25978,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -25985,6 +26197,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -26206,6 +26419,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -26389,6 +26603,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -26543,6 +26758,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -26580,167 +26796,6 @@
               }
             ]
           },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "fortress-keys=start"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "setting": "shop-slots=8"
-              },
-              {
-                "setting": "keys=start"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=5"
-                  },
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "fortress-keys=start"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "count": 1,
-      "item": "Red Rupee (20)",
-      "junk": true,
-      "when": {
-        "any": [
           {
             "all": [
               {
@@ -26900,6 +26955,169 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "fortress-keys=start"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "setting": "shop-slots=8"
+              },
+              {
+                "setting": "keys=start"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=5"
+                  },
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "fortress-keys=start"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Red Rupee (20)",
+      "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -27119,6 +27337,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -27341,6 +27560,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -27534,6 +27754,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -27730,6 +27951,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -27891,6 +28113,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -28045,6 +28268,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -28202,6 +28426,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -28327,6 +28552,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -28503,185 +28729,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
-      "when": {
-        "any": [
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "fortress-keys=start"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "setting": "shop-slots=8"
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "setting": "shop-slots=8"
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "fortress-keys=start"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=6"
-                  },
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "fortress-keys=start"
-              },
-              {
-                "setting": "scrubs"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "any": [
-                  {
-                    "setting": "shop-slots=7"
-                  },
-                  {
-                    "setting": "shop-slots=8"
-                  }
-                ]
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              },
-              {
-                "setting": "fortress-keys=start"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "shopsanity"
-              },
-              {
-                "setting": "shop-slots=8"
-              },
-              {
-                "setting": "cows"
-              },
-              {
-                "setting": "keys=start"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "count": 1,
-      "item": "Red Rupee (20)",
-      "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -28815,6 +28863,35 @@
                 "setting": "shopsanity"
               },
               {
+                "any": [
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "fortress-keys=start"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "shopsanity"
+              },
+              {
                 "setting": "shop-slots=8"
               },
               {
@@ -28832,6 +28909,158 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "fortress-keys=start"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "setting": "shop-slots=8"
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "setting": "shop-slots=8"
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "fortress-keys=start"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "any": [
+                  {
+                    "setting": "shop-slots=6"
+                  },
+                  {
+                    "setting": "shop-slots=7"
+                  },
+                  {
+                    "setting": "shop-slots=8"
+                  }
+                ]
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              },
+              {
+                "setting": "fortress-keys=start"
+              },
+              {
+                "setting": "scrubs"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "shopsanity"
+              },
+              {
+                "setting": "shop-slots=8"
+              },
+              {
+                "setting": "cows"
+              },
+              {
+                "setting": "keys=start"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Red Rupee (20)",
+      "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -28985,6 +29214,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -29087,6 +29317,7 @@
       "count": 2,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -29192,6 +29423,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -29290,6 +29522,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -29391,6 +29624,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -29470,6 +29704,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -29552,6 +29787,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -29637,6 +29873,7 @@
       "count": 2,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "any": [
           {
@@ -29690,6 +29927,7 @@
       "count": 1,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -29717,6 +29955,7 @@
       "count": 4,
       "item": "Red Rupee (20)",
       "junk": true,
+      "trappable": true,
       "when": {
         "all": [
           {
@@ -29795,6 +30034,7 @@
     {
       "count": 60,
       "item": "Small Magic Jar",
+      "trappable": true,
       "when": {
         "setting": "pots"
       }
@@ -29995,5 +30235,24 @@
         "setting": "shuffle-masks"
       }
     }
-  ]
+  ],
+  "shares": {
+    "lots": [
+      1,
+      2
+    ],
+    "mayhem": [
+      1,
+      1
+    ],
+    "off": [
+      0,
+      1
+    ],
+    "some": [
+      1,
+      10
+    ]
+  },
+  "trap": "Ice Trap"
 }

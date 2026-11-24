@@ -370,5 +370,30 @@
     "id": "shuffle-masks",
     "kind": "toggle",
     "label": "Shuffle Masks"
+  },
+  {
+    "default": "off",
+    "description": "Swaps junk (rupees, ammo, recovery hearts) for ice traps. Each looks like an item logic needs until Link gets it, then says FOOL! and freezes him",
+    "id": "ice-traps",
+    "kind": "choice",
+    "label": "Ice Traps",
+    "options": [
+      {
+        "id": "off",
+        "label": "Off"
+      },
+      {
+        "id": "some",
+        "label": "Some (1 in 10)"
+      },
+      {
+        "id": "lots",
+        "label": "Lots (half)"
+      },
+      {
+        "id": "mayhem",
+        "label": "Mayhem (all junk)"
+      }
+    ]
   }
 ]

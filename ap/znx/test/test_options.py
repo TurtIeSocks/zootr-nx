@@ -6,8 +6,8 @@ from collections import Counter
 from itertools import product
 
 from BaseClasses import LocationProgressType
-from .. import traded
-from ..exported import JUNK, OPTIONS, POOL
+from .. import dealt, traded, trapped
+from ..exported import JUNK, OPTIONS, POOL, SHARES, TRAP
 from ..options import attr
 from . import ZnxTestBase
 
@@ -134,3 +134,51 @@ class TestTradeOrder(unittest.TestCase):
             {"item": "Fake Meter", "count": 1, "added": True},
         ]
         self.assertEqual(traded(rows), Counter({"Fake Bag": 1}))
+
+
+class TestIceTrapsTakeTheirShare(ZnxTestBase):
+    """Mayhem: every item a trap may take, after the trade, is a trap,
+    and no other item goes."""
+
+    options = {"ice_traps": "mayhem", "shuffle_masks": True}
+
+    def test_every_trappable_item(self) -> None:
+        world = self.multiworld.worlds[self.player]
+        counts, trappable = dealt(row for row in POOL if world.holds(row))
+        pool = world.pool()
+        self.assertGreater(trappable.total(), 0)
+        self.assertEqual(pool[TRAP], trappable.total())
+        self.assertEqual(pool.total(), counts.total())
+        for item, count in counts.items():
+            self.assertEqual(pool[item], count - trappable[item], item)
+
+
+class TestTrapShare(unittest.TestCase):
+    """The share on its own: rounded up, picked only from what a trap may
+    take."""
+
+    def test_rounded_up(self) -> None:
+        import random
+
+        counts = Counter({"Fake Rupee": 11, "Fake Sword": 1})
+        trappable = Counter({"Fake Rupee": 11})
+        out = trapped(counts, trappable, SHARES["some"], random.Random(1))
+        self.assertEqual(out[TRAP], 2)
+        self.assertEqual(out["Fake Rupee"], 9)
+        self.assertEqual(out["Fake Sword"], 1)
+
+    def test_off_traps_nothing(self) -> None:
+        import random
+
+        counts = Counter({"Fake Rupee": 3})
+        out = trapped(counts, Counter(counts), SHARES["off"], random.Random(1))
+        self.assertEqual(out, counts)
+
+    def test_the_trade_leaves_fewer_to_trap(self) -> None:
+        rows = [
+            {"item": JUNK[0], "count": 2, "junk": True, "trappable": True},
+            {"item": "Fake Bag", "count": 1, "added": True},
+        ]
+        counts, trappable = dealt(rows)
+        self.assertEqual(trappable, Counter({JUNK[0]: 1}))
+        self.assertEqual(counts, Counter({JUNK[0]: 1, "Fake Bag": 1}))

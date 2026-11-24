@@ -11,7 +11,7 @@ use crate::checks::ItemCheck;
 use crate::generate::Spot;
 use crate::known::{Name, actor, flag, flow, item, map};
 use crate::progressive::Lines;
-use crate::{cows, gifts, goron_pot, pickups, places, scrubs, shops};
+use crate::{cows, gifts, goron_pot, ice_traps, pickups, places, scrubs, shops};
 
 /// Each area by its folder.
 const AREAS: &[(&Name, &str)] = &[
@@ -248,14 +248,22 @@ static COPIES: LazyLock<BTreeMap<String, String>> = LazyLock::new(|| {
 /// Every actor the world names: any of ours another slot's seed can hold.
 pub fn named() -> impl Iterator<Item = &'static str> {
     let tables = ITEMS.iter().chain(PROGRESSIVE).map(|(n, _)| n.get());
-    tables.chain(COPIES.keys().map(String::as_str))
+    let trap = std::iter::once(ice_traps::POOLED);
+    tables.chain(COPIES.keys().map(String::as_str)).chain(trap)
 }
+
+/// The trap the world swaps in for junk. Not a [`Name`]: no dump holds
+/// it, and it has no pack of its own.
+const TRAP: &str = "Ice Trap";
 
 /// The item's name: its line's with progressive items on, else its own.
 pub fn item(actor: &str, progressive: bool) -> Result<&'static str> {
     let actor = same(actor);
     if let Some(name) = COPIES.get(actor) {
         return Ok(name);
+    }
+    if actor == ice_traps::POOLED {
+        return Ok(TRAP);
     }
     // The game's lines, and the Bombchu Bags', whose first level is the
     // same with or without them. A shuffled starter bag keeps its own name:

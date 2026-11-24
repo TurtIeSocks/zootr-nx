@@ -220,11 +220,17 @@ impl IceTraps {
     /// How many of `junk` pieces become traps: a tenth and a half rounded
     /// up, so a seed with any junk gets at least one.
     pub fn of(self, junk: usize) -> usize {
+        let (n, d) = self.share();
+        (junk * n).div_ceil(d)
+    }
+
+    /// The share of junk that becomes traps, as a fraction.
+    pub fn share(self) -> (usize, usize) {
         match self {
-            Self::Off => 0,
-            Self::Some => junk.div_ceil(10),
-            Self::Lots => junk.div_ceil(2),
-            Self::Mayhem => junk,
+            Self::Off => (0, 1),
+            Self::Some => (1, 10),
+            Self::Lots => (1, 2),
+            Self::Mayhem => (1, 1),
         }
     }
 }
