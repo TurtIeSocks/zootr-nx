@@ -333,6 +333,7 @@ fn record(
         built.and_then(|r| History::record(settings, extras, Label::default(), r, install));
     // A stopped install that took the mod off changed it too.
     if install {
+        app.state::<archipelago::Ap>().reset(app);
         app.state::<Items>().emit(app);
     }
     summary
@@ -366,6 +367,7 @@ async fn install(app: AppHandle, id: u32, steps: Channel<progress::StepEvent>) -
             history.save()
         });
         // A stopped install that took the mod off changed it too.
+        app.state::<archipelago::Ap>().reset(&app);
         app.state::<Items>().emit(&app);
         done
     })
@@ -391,6 +393,7 @@ async fn uninstall(app: AppHandle) -> Res<()> {
         history.install(None);
         history.save()?;
         log::info!("Took the mod off every target");
+        app.state::<archipelago::Ap>().reset(&app);
         app.state::<Items>().emit(&app);
         Ok(())
     })

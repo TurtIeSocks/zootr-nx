@@ -34,11 +34,13 @@ pub(crate) struct ApState {
     log: Vec<String>,
 }
 
-/// A status change or a log line.
+/// A status change or a log line, or the page's log started over.
 #[derive(Clone, Serialize, Type)]
 pub(crate) struct ApEvent {
     status: ApStatus,
     line: Option<String>,
+    /// The log so far is another seed's: drop it before taking `line`.
+    clear: bool,
 }
 
 impl tauri_specta::Event for ApEvent {
@@ -83,6 +85,12 @@ impl Ap {
         }
     }
 
+    /// The installed seed changed: stop the running client and start the page
+    /// over, so the new seed's panel never shows the old slot's run.
+    pub(crate) fn reset(&self, app: &AppHandle) {
+        self.apply(app, |held| Some(held.reset()));
+    }
+
     fn note(&self, app: &AppHandle, run: u64, note: &Note) {
         let status = match note {
             Note::Connecting | Note::Lost(..) => Some(ApStatus::Connecting),
@@ -114,7 +122,21 @@ impl Held {
         Some(ApEvent {
             status: state.status,
             line,
+            clear: false,
         })
+    }
+
+    /// Stop the client and forget its run. A new run number leaves the old
+    /// thread, still winding down, unable to write to the page.
+    fn reset(&mut self) -> ApEvent {
+        self.stop = None;
+        self.run += 1;
+        self.state = ApState::default();
+        ApEvent {
+            status: ApStatus::Offline,
+            line: None,
+            clear: true,
+        }
     }
 
     /// `run` ended: it reads as disconnected unless it was refused. `None`
@@ -229,6 +251,26 @@ mod tests {
         assert!(ended.status == ApStatus::Offline);
         assert_eq!(ended.line.as_deref(), Some("disconnected"));
         assert!(held.stop.is_none());
+    }
+
+    #[test]
+    fn a_new_install_stops_the_run_and_clears_the_page() {
+        let ap = Ap::default();
+        let (send, stop) = channel();
+        let run = ap.start(send).unwrap();
+        let mut held = ap.0.lock().unwrap();
+        held.say(run, Some(ApStatus::Refused), Some("refused".into()));
+        let event = held.reset();
+        assert!(event.clear && event.status == ApStatus::Offline);
+        assert!(held.stop.is_none(), "the sender is dropped");
+        assert!(stop.recv().is_err(), "the client sees the stop");
+        assert!(held.state.status == ApStatus::Offline);
+        assert!(held.state.log.is_empty());
+        assert!(held.say(run, Some(ApStatus::Connected), None).is_none());
+        assert!(held.end(run).is_none(), "the old run can't write back");
+        drop(held);
+        let (send, _stop) = channel();
+        assert!(ap.start(send).is_ok(), "a new seed can connect");
     }
 
     #[test]
