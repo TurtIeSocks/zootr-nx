@@ -22,6 +22,14 @@ test("add skips lines it already holds and keeps the newest", () => {
   expect(log.lines[0]?.seq).toBe(3);
 });
 
+test("a line sent out of order slots in, once", () => {
+  let log = add(EMPTY, [line(0), line(2)]);
+  log = add(log, [line(1)]);
+  expect(log.lines.map((l) => l.id)).toEqual([0, 1, 2]);
+  expect(log.next).toBe(3);
+  expect(add(log, [line(1)])).toBe(log);
+});
+
 test("debug shows only with developer tools, and the filter and levels narrow", () => {
   const lines = add(EMPTY, [
     line(0, "error", "Install failed"),
