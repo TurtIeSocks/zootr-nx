@@ -92,8 +92,9 @@ fn live_set(flag: &str, read: Result<String>) -> bool {
 }
 
 /// The shortest flat length a direction is divided by, so one of no
-/// length comes out zero rather than not a number. Every flat direction
-/// in the crate floors here, where some once floored at 1e-3 or 1e-6.
+/// length comes out zero rather than not a number. The flat unit
+/// helpers ([`flat_unit`], [`flat_dir`]) floor here. A few older spots
+/// keep their own floor of 1e-3 or 1e-6.
 const FLAT_MIN: f32 = f32::EPSILON;
 
 /// `[x, z]` at length 1, or zero when it has no length.

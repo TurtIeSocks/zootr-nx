@@ -178,7 +178,8 @@ fn starts(steps: &[Step]) -> Vec<f32> {
         .collect()
 }
 
-/// Refuses a `--settle` that a run would never get past.
+/// Refuses a `--settle` that a run would never get past, or a negative
+/// one, which is no time to wait.
 pub(super) fn check_settle(settle: f32) -> Result<()> {
     ensure!(
         settle.is_finite() && settle >= 0.0,
