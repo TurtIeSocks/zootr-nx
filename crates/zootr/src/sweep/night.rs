@@ -607,11 +607,7 @@ fn picked(p: &Planned, text: &str) -> bool {
 
 /// The map a spot is swept in, for sweeping a map's spots together.
 fn map(p: &Planned) -> String {
-    match &p.trigger {
-        Trigger::Open { map, .. } | Trigger::Talk { map, .. } => map.clone(),
-        Trigger::Play { map, .. } => map.clone().unwrap_or_default(),
-        Trigger::Skip(_) => String::new(),
-    }
+    p.trigger.map().unwrap_or_default().to_owned()
 }
 
 /// How the sweep triggers a spot, or why it skips it.
@@ -651,7 +647,6 @@ pub(crate) fn name(p: &Planned) -> String {
 mod tests {
     use super::*;
     use crate::known::{actor, flag, item, map};
-    use crate::warp::Side;
 
     #[test]
     fn every_mix_entry_is_a_setting_the_cli_takes() {
@@ -667,37 +662,14 @@ mod tests {
         }
     }
 
-    /// A chest spot in `map`, for any age.
-    pub(super) fn open(map: &str) -> Planned {
-        Planned {
-            spot: Default::default(),
-            trigger: Trigger::Open {
-                map: map.into(),
-                at: Default::default(),
-                face: Default::default(),
-                ready: vec![],
-                steps: vec![],
-                first: None,
-                broken: false,
-                near: vec![],
-                wield: None,
-                sides: vec![],
-                foes: vec![],
-                latch: vec![],
-            },
-            child: None,
-            side: Side::Front,
-        }
-    }
-
     #[test]
     fn only_keeps_the_spots_whose_name_holder_or_item_holds_each_part() {
         needs_names!();
-        let mut cow = open(flag::KAKARIKO_VILLAGE_CHILD);
+        let mut cow = Planned::open(flag::KAKARIKO_VILLAGE_CHILD);
         cow.spot.area_name = "Kakariko Village".into();
         cow.spot.chest_name = "Lon Lon Milk (Cow)".into();
         cow.spot.holder = "Cow".into();
-        let mut pot = open(map::KOKIRI_FOREST_CHILD);
+        let mut pot = Planned::open(map::KOKIRI_FOREST_CHILD);
         pot.spot.holder = actor::OBJ_POT_A_01.to_string();
         assert!(picked(&cow, "Cow") && picked(&cow, "Kakariko"));
         assert!(picked(&pot, "Pot") && !picked(&pot, "Cow"));
@@ -721,23 +693,36 @@ mod tests {
     fn a_dungeon_spot_that_came_to_nothing_goes_again_as_the_other_age() {
         needs_names!();
         let child = || Some(true);
-        let again = other_age(&open(flag::SPIRIT_TEMPLE), &Verdict::Nothing, child);
+        let again = other_age(
+            &Planned::open(flag::SPIRIT_TEMPLE),
+            &Verdict::Nothing,
+            child,
+        );
         assert_eq!(again.map(|p| p.child), Some(Some(false)));
         let failed = Verdict::SetupFailed("x".into());
-        assert!(other_age(&open(flag::SPIRIT_TEMPLE), &failed, || Some(false)).is_some());
-        assert!(other_age(&open(flag::SPIRIT_TEMPLE), &Verdict::Pass, child).is_none());
+        assert!(other_age(&Planned::open(flag::SPIRIT_TEMPLE), &failed, || Some(false)).is_some());
+        assert!(other_age(&Planned::open(flag::SPIRIT_TEMPLE), &Verdict::Pass, child).is_none());
         assert!(
-            other_age(&open(map::KOKIRI_FOREST_CHILD), &Verdict::Nothing, child).is_none(),
+            other_age(
+                &Planned::open(map::KOKIRI_FOREST_CHILD),
+                &Verdict::Nothing,
+                child
+            )
+            .is_none(),
             "its map names its age"
         );
         assert!(
-            other_age(&open(flag::SPIRIT_TEMPLE), &Verdict::Nothing, || None).is_none(),
+            other_age(
+                &Planned::open(flag::SPIRIT_TEMPLE),
+                &Verdict::Nothing,
+                || None
+            )
+            .is_none(),
             "the game can't say Link's age"
         );
         let tried = Planned {
             child: Some(false),
-            side: Side::Front,
-            ..open(flag::SPIRIT_TEMPLE)
+            ..Planned::open(flag::SPIRIT_TEMPLE)
         };
         assert!(
             other_age(&tried, &Verdict::Nothing, || Some(false)).is_none(),
@@ -753,7 +738,7 @@ mod tests {
         assert!(stuck(&Verdict::SetupFailed(ignored)));
         assert!(!stuck(&Verdict::SetupFailed("no arrival point".into())));
         let unread = || -> Option<bool> { panic!("no second try, so no age read") };
-        assert!(other_age(&open(flag::SPIRIT_TEMPLE), &never, unread).is_none());
+        assert!(other_age(&Planned::open(flag::SPIRIT_TEMPLE), &never, unread).is_none());
     }
 
     #[test]
@@ -761,7 +746,7 @@ mod tests {
         needs_names!();
         let crash = Verdict::Crash(live::CLOSED.into());
         let unread = || -> Option<bool> { panic!("the game is gone") };
-        assert!(other_age(&open(flag::SPIRIT_TEMPLE), &crash, unread).is_none());
+        assert!(other_age(&Planned::open(flag::SPIRIT_TEMPLE), &crash, unread).is_none());
         assert!(crash.broke());
     }
 
@@ -790,8 +775,8 @@ mod tests {
     #[test]
     fn a_map_with_no_arrival_point_is_skipped() {
         let mut planned = [
-            open(map::KOKIRI_FOREST_CHILD),
-            open(map::BOSS_RUSH_INTERVAL_ROOM),
+            Planned::open(map::KOKIRI_FOREST_CHILD),
+            Planned::open(map::BOSS_RUSH_INTERVAL_ROOM),
         ];
         let places =
             BTreeSet::from([

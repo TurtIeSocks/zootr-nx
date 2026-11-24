@@ -28,7 +28,6 @@ use crate::nav::{self, Level};
 use crate::play::Input;
 use crate::savefile::Change;
 use crate::shops;
-use crate::steps::SAVED;
 use crate::warp::Placement;
 
 mod arrive;
@@ -86,30 +85,14 @@ pub struct Sweeper<'a, I, J> {
     pub dir: &'a Path,
 }
 
-/// The quest steps a spot needs.
-fn steps(p: &Planned) -> &[(String, String)] {
-    match &p.trigger {
-        Trigger::Open { steps, .. } | Trigger::Talk { steps, .. } | Trigger::Play { steps, .. } => {
-            steps
-        }
-        Trigger::Skip(_) => &[],
-    }
-}
-
 /// The GameData values a spot writes before its teleport and holds through
 /// the load: its trigger's ready values, then each quest step it needs, as
 /// the step's save copy `Step_<challenge>`. Gates read that copy (a
 /// keeper's presence). The copy is one write held through the load, where
 /// a step run through the quest system is an event of its own.
 pub(super) fn presets(p: &Planned) -> Vec<String> {
-    let (ready, quests) = match &p.trigger {
-        Trigger::Open { ready, steps, .. }
-        | Trigger::Talk { ready, steps, .. }
-        | Trigger::Play { ready, steps, .. } => (ready, steps),
-        Trigger::Skip(_) => return vec![],
-    };
-    let saved = quests.iter().map(|(c, s)| format!("{SAVED}{c}={s}"));
-    ready.iter().cloned().chain(saved).collect()
+    let saved = (p.trigger.steps().iter()).map(|(c, s)| crate::steps::at(c, s));
+    p.trigger.ready().iter().cloned().chain(saved).collect()
 }
 
 /// A halted giver as the placement Link talks to: his own, standing at
@@ -318,11 +301,9 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
     /// a scrub's seller flag) is read only as the map spawns. Quest
     /// steps are [`presets`].
     fn setup(&mut self, p: &Planned, reload: bool) -> Result<()> {
-        let map = match &p.trigger {
-            Trigger::Open { map, .. } | Trigger::Talk { map, .. } => Some(map),
-            Trigger::Play { map, .. } => map.as_ref(),
-            Trigger::Skip(_) => return Ok(()),
-        };
+        if let Trigger::Skip(_) = p.trigger {
+            return Ok(());
+        }
         // The ocarina plays only the songs in Link's songbook: a cow didn't
         // know Epona's Song until the game granted it (Mac, 2026-11-14). A
         // given item is the game's own grant for the same reason.
@@ -337,13 +318,13 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         }
         // Held before the teleport, so the map change stands the guards
         // down as it would in a seed.
-        if let Some(card) = gerudo::guard_card(&p.spot.area, steps(p))
+        if let Some(card) = gerudo::guard_card(&p.spot.area, p.trigger.steps())
             && !self.holds(card)?
         {
             let gd = self.gd;
             self.calmly(|dev| dev.give(gd, card, 1))?;
         }
-        let Some(map) = map else {
+        let Some(map) = p.trigger.map() else {
             return Ok(());
         };
         let here = self.dev.state()?;
@@ -764,7 +745,6 @@ mod tests {
     use super::*;
     use crate::known::{actor, flag, flow, scene};
     use crate::sweep::plan::Steps;
-    use crate::warp::Side;
 
     #[test]
     fn a_use_that_never_left_a_far_landing_voided() {
@@ -810,7 +790,7 @@ mod tests {
                 area: area.into(),
                 ..Default::default()
             },
-            trigger: Trigger::Talk {
+            ..Planned::with(Trigger::Talk {
                 map: String::new(),
                 at: [0.0; 3],
                 face: [0.0; 3],
@@ -820,9 +800,7 @@ mod tests {
                 give: None,
                 counter: false,
                 halt: None,
-            },
-            child: None,
-            side: Side::Front,
+            })
         };
         let biggoron = vec![(
             flow::SUB_EVENT_GET_SWORD_BIG_GORON.to_string(),
@@ -846,12 +824,6 @@ mod tests {
 
     #[test]
     fn link_pays_at_a_talk_or_a_play_spot() {
-        let with = |trigger| Planned {
-            spot: Default::default(),
-            trigger,
-            child: None,
-            side: Side::Front,
-        };
         let play = Trigger::Play {
             map: None,
             event: scene::FAIRY_FOUNTAIN_FRORE.to_string(),
@@ -860,21 +832,7 @@ mod tests {
             melody: None,
             at: None,
         };
-        assert!(pays(&with(play)));
-        let open = Trigger::Open {
-            map: String::new(),
-            at: Default::default(),
-            face: Default::default(),
-            ready: vec![],
-            steps: vec![],
-            first: None,
-            broken: false,
-            near: vec![],
-            wield: None,
-            sides: vec![],
-            foes: vec![],
-            latch: vec![],
-        };
-        assert!(!pays(&with(open)));
+        assert!(pays(&Planned::with(play)));
+        assert!(!pays(&Planned::open("")));
     }
 }
