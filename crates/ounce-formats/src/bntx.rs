@@ -42,18 +42,11 @@ pub fn textures_named(data: &[u8], keep: impl Fn(&str) -> bool) -> Result<Vec<Te
     Ok(out)
 }
 
+/// The texture at `brti`'s first level, read as [`top_level`] reads it.
 fn texture(data: &[u8], brti: usize) -> Result<Texture> {
     let info = Info::read(data, brti)?;
-    let raw = data
-        .get(info.start..info.start + info.size)
-        .context("texture data past the end")?;
-    let rgba = decode(&info, raw, info.width, info.height, info.block_height)?;
-    Ok(Texture {
-        name: info.name,
-        width: info.width,
-        height: info.height,
-        rgba,
-    })
+    (data.get(info.start..info.start + info.size)).context("texture data past the end")?;
+    level(data, &info, 0)
 }
 
 /// What a BRTI says about its texture.
