@@ -1,8 +1,9 @@
 //! XLink2 files (`.bslnk` sounds, `.belnk` effects), version 0x22 with
 //! 64-bit offsets. Each user (an actor's sound or effect set) holds calls
 //! the game plays by name: an asset, or a container whose children are
-//! calls too. [`copy_call`] gives one user a call another has, and
-//! [`add_case`] a case another's switch has.
+//! calls too. [`copy_call`] gives one user a call another has,
+//! [`add_case`] a case another's switch has, and [`nest`] puts a call of
+//! one user inside a tree another has.
 //!
 //! Every offset a call or container holds is relative to a table the whole
 //! file shares (asset params, conditions, property names), or to the
@@ -123,16 +124,7 @@ pub fn add_case(file: &[u8], from: &str, case: &str, body: &str, to: &str) -> Re
         r.bytes(theirs + PROPERTY, 0x10)? == r.bytes(mine + PROPERTY, 0x10)?,
         "{from}'s and {to}'s {switch} read different properties"
     );
-    let locals = local_names(file, &b)?;
-    for i in tree(file, &a, root)? {
-        if let Some(name) = local_property(file, &a, i)? {
-            ensure!(
-                locals.contains(&name),
-                "{body} reads {}, which {to} lacks",
-                String::from_utf8_lossy(name)
-            );
-        }
-    }
+    readable(file, &a, &b, &tree(file, &a, root)?, body, to)?;
     let from_case = a.calls + at * CALL;
     let place = Place {
         at: r.i32(mine + LAST)? as usize + 1,
@@ -142,6 +134,66 @@ pub fn add_case(file: &[u8], from: &str, case: &str, body: &str, to: &str) -> Re
         condition: r.u64(from_case + CONDITION)?,
     };
     graft(file, &a, root, &b, place)
+}
+
+/// `file` with user `to`'s call `key` nested in a copy of user `from`'s
+/// call of the same name: the copy takes its place, and the copy's call
+/// `case` is `to`'s old one, under `case`'s name and condition, so it
+/// plays `to`'s old tree. The rest of `case`'s tree stays behind. Every
+/// switch in the copy must read a property `to` has.
+pub fn nest(file: &[u8], from: &str, key: &str, case: &str, to: &str) -> Result<Vec<u8>> {
+    let r = Reader(file);
+    let (a, b) = (user(file, from)?, user(file, to)?);
+    let at = find(file, &b, key)?.with_context(|| format!("{to} has no {key}"))?;
+    let root = find(file, &a, key)?.with_context(|| format!("{from} has no {key}"))?;
+    let kept = find(file, &a, case)?.with_context(|| format!("{from} has no {case}"))?;
+    let behind = tree(file, &a, kept)?.split_off(1);
+    let order: Vec<usize> = (tree(file, &a, root)?.into_iter())
+        .filter(|i| !behind.contains(i))
+        .collect();
+    let copied: Vec<usize> = order.iter().copied().filter(|&i| i != kept).collect();
+    ensure!(
+        kept != root && copied.len() < order.len(),
+        "{case} isn't under {from}'s {key}"
+    );
+    readable(file, &a, &b, &copied, key, to)?;
+    let call = b.calls + at * CALL;
+    let place = Place {
+        at,
+        parent: r.i32(call + PARENT)?,
+        name: r.u64(call + CALL_NAME)?,
+        key: r.u32(call + KEY)?,
+        condition: r.u64(call + CONDITION)?,
+    };
+    let old = r.bytes(call, CALL)?;
+    let tree = copy_tree(file, &a, &b, &order, &place, b.count, Some((kept, old)))?;
+    let moved = b.count + order.iter().position(|&i| i == kept).expect("kept") - 1;
+    let mut calls = r.bytes(b.calls, b.count * CALL)?.to_vec();
+    for i in 0..b.count {
+        if i32_in(&calls, i * CALL + PARENT) == at as i32 {
+            put(&mut calls, i * CALL + PARENT, &(moved as i32).to_le_bytes());
+        }
+    }
+    calls[at * CALL..][..CALL].copy_from_slice(&tree.root);
+    calls.extend(&tree.rest);
+    let own_params = r.bytes(b.containers, b.triggers - b.containers)?;
+    rebuilt(file, &b, calls, own_params, &tree, b.count)
+}
+
+/// Fails unless every switch among `a`'s calls `calls` reads a property
+/// `b` has: `what` and `to` name them in the error.
+fn readable(file: &[u8], a: &User, b: &User, calls: &[usize], what: &str, to: &str) -> Result<()> {
+    let locals = local_names(file, b)?;
+    for &i in calls {
+        if let Some(name) = local_property(file, a, i)? {
+            ensure!(
+                locals.contains(&name),
+                "{what} reads {}, which {to} lacks",
+                String::from_utf8_lossy(name)
+            );
+        }
+    }
+    Ok(())
 }
 
 /// Where a grafted tree's root goes in its new user, and what it's called
@@ -161,6 +213,30 @@ struct Place {
 /// Every index `b` keeps of a call from the root's place on moves up one:
 /// parents, children, its calls by name, and its triggers' calls.
 fn graft(file: &[u8], a: &User, root: usize, b: &User, place: Place) -> Result<Vec<u8>> {
+    let insert_at = place.at;
+    ensure!(insert_at <= b.count, "a place past {}'s calls", b.count);
+    let order = tree(file, a, root)?;
+    let (own, own_params) = renumber_own(file, b, &place)?;
+    let tree = copy_tree(file, a, b, &order, &place, b.count + 1, None)?;
+
+    let mut calls = own[..insert_at * CALL].to_vec();
+    calls.extend(&tree.root);
+    calls.extend(&own[insert_at * CALL..]);
+    calls.extend(&tree.rest);
+    rebuilt(file, b, calls, &own_params, &tree, insert_at)
+}
+
+/// `file` with user `b`'s calls now `calls`, its container params
+/// `own_params` then `tree`'s, its assets renumbered and its ids sorted.
+/// Calls from `insert_at` on are new, and `b`'s own past it moved up one.
+fn rebuilt(
+    file: &[u8],
+    b: &User,
+    mut calls: Vec<u8>,
+    own_params: &[u8],
+    tree: &Copied,
+    insert_at: usize,
+) -> Result<Vec<u8>> {
     let r = Reader(file);
     ensure!(r.bytes(0, 4)? == b"XLNK", "not an XLink2 file");
     let version = r.u32(VERSION_AT)?;
@@ -168,16 +244,6 @@ fn graft(file: &[u8], a: &User, root: usize, b: &User, place: Place) -> Result<V
         version == VERSION,
         "XLink2 version {version:#x}, not {VERSION:#x}"
     );
-    let insert_at = place.at;
-    ensure!(insert_at <= b.count, "a place past {}'s calls", b.count);
-    let order = tree(file, a, root)?;
-    let (own, own_params) = renumber_own(file, b, &place)?;
-    let tree = copy_tree(file, a, b, &order, &place)?;
-
-    let mut calls = own[..insert_at * CALL].to_vec();
-    calls.extend(&tree.root);
-    calls.extend(&own[insert_at * CALL..]);
-    calls.extend(&tree.rest);
     // Every shipped user numbers its assets in call order: kept so.
     let mut assets = 0u32;
     for call in calls.as_chunks_mut::<CALL>().0 {
@@ -192,7 +258,7 @@ fn graft(file: &[u8], a: &User, root: usize, b: &User, place: Place) -> Result<V
     out.extend(&file[..b.ids]);
     out.extend(&ids);
     out.extend(&calls);
-    out.extend(&own_params);
+    out.extend(own_params);
     out.extend(&tree.params);
     out.extend(&file[b.triggers..]);
     let counts = Counts {
@@ -262,13 +328,22 @@ struct Copied {
 }
 
 /// The calls `order` of user `a`, a tree, copied for user `b`: the root
-/// named and placed at `place`, the rest after `b`'s calls, their params
-/// after `b`'s.
-fn copy_tree(file: &[u8], a: &User, b: &User, order: &[usize], place: &Place) -> Result<Copied> {
+/// named and placed at `place`, the rest from index `rest_at` on, their
+/// params after `b`'s. A `kept` call of `a` is copied as the given call
+/// of `b`'s instead, under its own name and condition, params untouched.
+fn copy_tree(
+    file: &[u8],
+    a: &User,
+    b: &User,
+    order: &[usize],
+    place: &Place,
+    rest_at: usize,
+    kept: Option<(usize, &[u8])>,
+) -> Result<Copied> {
     let r = Reader(file);
     let moved = |old: usize| match order.iter().position(|&o| o == old).expect("in the tree") {
         0 => place.at,
-        k => b.count + k,
+        k => rest_at + k - 1,
     };
     let mut copied = Copied {
         root: Vec::new(),
@@ -279,6 +354,16 @@ fn copy_tree(file: &[u8], a: &User, b: &User, order: &[usize], place: &Place) ->
     let param_base = b.triggers - b.containers;
     for (k, &old) in order.iter().enumerate() {
         let from_call = a.calls + old * CALL;
+        if let Some((_, own)) = kept.filter(|&(i, _)| i == old) {
+            let mut call = own.to_vec();
+            for (field, len) in [(CALL_NAME, 8), (KEY, 4), (CONDITION, 8)] {
+                put(&mut call, field, r.bytes(from_call + field, len)?);
+            }
+            let parent = moved(r.i32(from_call + PARENT)? as usize) as i32;
+            put(&mut call, PARENT, &parent.to_le_bytes());
+            copied.rest.extend(call);
+            continue;
+        }
         let mut call = r.bytes(from_call, CALL)?.to_vec();
         let parent = match k {
             0 => {

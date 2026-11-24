@@ -305,19 +305,29 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     sounds::write(builder)
 }
 
-/// Lend child Link the adult's archives and nothing else: the clips his
-/// graph names for the boots (`Heavy_*`, `Hover*`) are only the adult's.
-/// [`write`] lends them too, so only one of the two runs.
+/// Lend child Link the adult's archives and effects and nothing else: the
+/// clips his graph names for the boots (`Heavy_*`, `Hover*`) and the
+/// Hover Boots' dust are only the adult's. [`write`] lends them too, so
+/// only one of the two runs.
 pub fn lend_child_clips(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     let link = &CHILD;
     let pack = ActorPack::from_bytes(link.who, builder.read(&pack_file(link.who))?)?;
     let own = Own::read(romfs, &pack)?;
-    let (path, old, new, slack) = listed(link, &pack, &param(&pack)?)?;
-    builder.resize(&path, old.len(), new.len() + slack)?;
+    let param = param(&pack)?;
+    let (path, old, new) = crate::ice_traps::adult_effects(&pack, &param)?;
+    let edits = [listed(link, &pack, &param)?, (path, old, new, 0)];
     let mut writer = pack.writer();
-    writer.add_file(path, new);
+    for (path, old, new, slack) in edits {
+        builder.resize(&path, old.len(), new.len() + slack)?;
+        writer.add_file(path, new);
+    }
     builder.write(&pack_file(link.who), &writer.to_binary())?;
     link.lend(romfs, builder, &own)
+}
+
+/// The child's boots sounds, for both settings: see [`sounds::write_boots`].
+pub fn lend_boot_sounds(builder: &mut ModBuilder) -> Result<()> {
+    sounds::write_boots(builder)
 }
 
 /// The archives `pack` plays, by name.
@@ -731,15 +741,29 @@ mod tests {
         );
     }
 
+    /// `edit` run on a scratch mod of the dump named for `test`, then the
+    /// child's pack as it left it.
+    fn child_after(romfs: &Romfs, test: &str, edit: impl FnOnce(&mut ModBuilder)) -> ActorPack {
+        let id = std::process::id();
+        let dir = std::env::temp_dir().join(format!("zootr-ageless-items-{test}-{id}"));
+        let mut builder = ModBuilder::new(romfs, &dir).unwrap();
+        edit(&mut builder);
+        let child = builder.read(&pack_file(CHILD.who)).unwrap();
+        drop(builder);
+        let _ = std::fs::remove_dir_all(dir.with_file_name(format!(
+            ".{}.part",
+            dir.file_name().unwrap().to_string_lossy()
+        )));
+        ActorPack::from_bytes(CHILD.who, child).unwrap()
+    }
+
     #[test]
     fn with_ice_traps_too_child_link_keeps_both_settings_edits() {
         let Some(romfs) = dev_dump() else { return };
-        let dir = std::env::temp_dir().join(format!("zootr-ageless-items-{}", std::process::id()));
-        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
-        write(&romfs, &mut builder).unwrap();
-        crate::ice_traps::thaw(&mut builder).unwrap();
-        let child = builder.read(&pack_file(CHILD.who)).unwrap();
-        let child = ActorPack::from_bytes(CHILD.who, child).unwrap();
+        let child = child_after(&romfs, "ice", |builder| {
+            write(&romfs, builder).unwrap();
+            crate::ice_traps::thaw(builder).unwrap();
+        });
         let holder = file(&child, field::ACTOR_HOLDER_REF);
         let holds = map(&holder, field::ACTOR_HOLD_SETTINGS).unwrap();
         assert!(holds.contains_key(item::HOOKSHOT.get()), "ours");
@@ -747,10 +771,12 @@ mod tests {
         let frozen = conditions.get(field::IS_ENABLE_FROZEN.get());
         assert_eq!(frozen, Some(&Byml::Bool(true)), "the ice traps'");
         assert_eq!(effects_user(&child), actor::PLAYER_ADULT.get(), "both");
-        drop(builder);
-        let _ = std::fs::remove_dir_all(dir.with_file_name(format!(
-            ".{}.part",
-            dir.file_name().unwrap().to_string_lossy()
-        )));
+    }
+
+    #[test]
+    fn the_boots_alone_lend_the_child_the_adults_effects_too() {
+        let Some(romfs) = dev_dump() else { return };
+        let child = child_after(&romfs, "boots", |b| lend_child_clips(&romfs, b).unwrap());
+        assert_eq!(effects_user(&child), actor::PLAYER_ADULT.get());
     }
 }

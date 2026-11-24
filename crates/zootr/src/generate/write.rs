@@ -324,10 +324,12 @@ pub fn write_mod(
     }
     if new_game.on.contains(AGELESS_GEAR) {
         ageless::gear::write(&mut builder)?;
-        // The boots' clips are the adult's, which ageless-items lends too.
+        // The boots' clips and effects are the adult's, which
+        // ageless-items lends too. Its sounds don't cover the boots.
         if !new_game.on.contains(AGELESS_ITEMS) {
             ageless_items::lend_child_clips(romfs, &mut builder)?;
         }
+        ageless_items::lend_boot_sounds(&mut builder)?;
     }
     if new_game.on.contains(AGELESS_ITEMS) {
         ageless_items::write(romfs, &mut builder)?;

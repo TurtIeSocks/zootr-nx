@@ -20,7 +20,9 @@
 //! child plays the adult's with arrows.
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{Byml, BymlDoc, ModBuilder, xlink_add_case, xlink_calls, xlink_copy_call};
+use ounce_formats::{
+    Byml, BymlDoc, ModBuilder, xlink_add_case, xlink_calls, xlink_copy_call, xlink_nest,
+};
 
 use super::files::{BANKS, SOUNDS};
 use crate::known::{Name, actor, field};
@@ -140,11 +142,18 @@ const DRAWN: [(&Name, &[(&Name, &Name)]); 2] = [
 /// attack. Each the child lacks gains a copy of his own.
 const YELLS: [&str; 3] = ["Big", "BS_", "H_"];
 
+/// A bank or sound choice a Link loads beside his own: his user, the
+/// list and the file.
+type Loaded = (&'static Name, &'static Name, &'static Name);
+
+/// The adult's bank, which the child loads for both settings.
+const ADULT_BANK: Loaded = (actor::PLAYER_CHILD, field::BARS, field::PLAYER_ADULT_BARS);
+
 /// The banks and sound choices each Link loads beside his own: the
 /// other's bank, and the choice of the slam's clang recording for the
 /// ground under it.
-const LOADED: [(&Name, &Name, &Name); 3] = [
-    (actor::PLAYER_CHILD, field::BARS, field::PLAYER_ADULT_BARS),
+const LOADED: [Loaded; 3] = [
+    ADULT_BANK,
     (
         actor::PLAYER_CHILD,
         field::CHOICE_ASSET,
@@ -153,11 +162,40 @@ const LOADED: [(&Name, &Name, &Name); 3] = [
     (actor::PLAYER_ADULT, field::BARS, field::PLAYER_CHILD_BARS),
 ];
 
+/// The boots' calls the child gains from the adult, whole: changing
+/// boots, landing in them, and the Hover Boots' float.
+const BOOTED: [&Name; 3] = [
+    field::BOOTS_CHANGE,
+    field::FOOT_STEP_BOOTS_CHANGE_LAND,
+    field::HOVER_WALK_ON_AIR,
+];
+
 pub(super) fn write(builder: &mut ModBuilder) -> Result<()> {
     let sounds = called(&builder.read(SOUNDS)?)?;
     builder.write(SOUNDS, &sounds)?;
-    let banks = banked(&builder.read(BANKS)?)?;
+    let banks = banked(&builder.read(BANKS)?, &LOADED)?;
     builder.write(BANKS, &banks)
+}
+
+/// Write the child's boots sounds ([`booted`]), with the adult's bank,
+/// where they are, loaded beside his.
+pub fn write_boots(builder: &mut ModBuilder) -> Result<()> {
+    let sounds = booted(&builder.read(SOUNDS)?)?;
+    builder.write(SOUNDS, &sounds)?;
+    let banks = banked(&builder.read(BANKS)?, &[ADULT_BANK])?;
+    builder.write(BANKS, &banks)
+}
+
+/// The sound users at `bytes` with the child's steps picked by his boots
+/// as the adult's are, his own steps the plain boots' case, and the
+/// adult's [`BOOTED`] calls.
+fn booted(bytes: &[u8]) -> Result<Vec<u8>> {
+    let (child, adult) = (actor::PLAYER_CHILD.get(), actor::PLAYER_ADULT.get());
+    let (steps, plain) = (field::FOOT_STEP.get(), field::FOOT_STEP_NORMAL_BOOTS.get());
+    let stepped = xlink_nest(bytes, adult, steps, plain, child)?;
+    BOOTED.iter().try_fold(stepped, |file, call| {
+        xlink_copy_call(&file, adult, call, child, call)
+    })
 }
 
 /// The sound users at `bytes` with each Link's [`GAINED`] calls and the
@@ -216,13 +254,14 @@ fn yells(bytes: &[u8]) -> Result<Vec<(String, String)>> {
     Ok(found)
 }
 
-/// The bank list at `bytes` with each Link loading his [`LOADED`] too.
-fn banked(bytes: &[u8]) -> Result<Vec<u8>> {
+/// The bank list at `bytes` with each Link loading his `loaded` too, once
+/// though both settings ask.
+fn banked(bytes: &[u8], loaded: &[Loaded]) -> Result<Vec<u8>> {
     let mut doc = BymlDoc::parse(bytes)?;
     let table = (doc.root.as_mut_map()?.get_mut(field::BARSLIST_TABLE.get()))
         .with_context(|| format!("no {}", field::BARSLIST_TABLE))?
         .as_mut_map()?;
-    for (link, key, file) in LOADED {
+    for &(link, key, file) in loaded {
         let banks = (table.get_mut(link.get()))
             .with_context(|| format!("no {link} banks"))?
             .as_mut_map()?;
@@ -230,8 +269,9 @@ fn banked(bytes: &[u8]) -> Result<Vec<u8>> {
             anyhow::bail!("{link} has no {key}");
         };
         let file = Byml::String(file.get().into());
-        ensure!(!list.contains(&file), "{link} already loads it");
-        list.push(file);
+        if !list.contains(&file) {
+            list.push(file);
+        }
     }
     Ok(doc.to_binary())
 }
@@ -241,6 +281,65 @@ mod tests {
     use super::*;
     use crate::game::dev_dump;
     use ounce_formats::{xlink_children, xlink_tree, xlink_triggers};
+
+    #[test]
+    fn the_childs_steps_pick_by_his_boots_and_plain_ones_stay_his() {
+        let Some(romfs) = dev_dump() else { return };
+        let shipped = romfs.read(SOUNDS).unwrap();
+        let ours = booted(&shipped).unwrap();
+        let (child, adult) = (actor::PLAYER_CHILD.get(), actor::PLAYER_ADULT.get());
+        fn under<'a>(f: &'a [u8], user: &str, key: &Name) -> Vec<&'a str> {
+            xlink_children(f, user, key.get()).unwrap()
+        }
+        fn tree<'a>(f: &'a [u8], user: &str, key: &Name) -> Vec<&'a str> {
+            xlink_tree(f, user, key.get()).unwrap()
+        }
+        assert_eq!(
+            under(&ours, child, field::FOOT_STEP),
+            [field::FOOT_STEP_SWITCH.get()]
+        );
+        assert_eq!(
+            under(&ours, child, field::FOOT_STEP_SWITCH),
+            under(&shipped, adult, field::FOOT_STEP_SWITCH)
+        );
+        let normal = field::FOOT_STEP_NORMAL_BOOTS;
+        assert_eq!(
+            tree(&ours, child, normal)[1..],
+            tree(&shipped, child, field::FOOT_STEP)[1..],
+            "plain boots play his own steps"
+        );
+        assert!(xlink_tree(&shipped, child, field::FOOT_STEP_HOVER_BOOTS.get()).is_err());
+        let hover = field::FOOT_STEP_HOVER_BOOTS;
+        assert_eq!(tree(&ours, child, hover), tree(&shipped, adult, hover));
+        // As names, sorted: the adult's tree without his plain steps,
+        // with the child's instead.
+        let mut want = tree(&shipped, adult, field::FOOT_STEP);
+        for name in &tree(&shipped, adult, normal)[1..] {
+            want.remove(want.iter().position(|n| n == name).unwrap());
+        }
+        want.extend(&tree(&shipped, child, field::FOOT_STEP)[1..]);
+        let mut now = tree(&ours, child, field::FOOT_STEP);
+        now.sort_unstable();
+        want.sort_unstable();
+        assert_eq!(now, want, "the adult's tree, his steps for the plain boots");
+        for call in BOOTED {
+            assert_eq!(tree(&ours, child, call), tree(&shipped, adult, call));
+        }
+        let (was, now) = (
+            xlink_calls(&shipped, child).unwrap(),
+            xlink_calls(&ours, child).unwrap(),
+        );
+        assert_eq!(now[..was.len()], was[..], "his calls stay where they were");
+        assert_eq!(
+            xlink_triggers(&ours, child).unwrap(),
+            xlink_triggers(&shipped, child).unwrap(),
+            "each trigger plays what it did"
+        );
+        assert_eq!(
+            xlink_calls(&ours, adult).unwrap(),
+            xlink_calls(&shipped, adult).unwrap()
+        );
+    }
 
     #[test]
     fn each_link_gains_the_others_calls_and_keeps_his_own() {
@@ -349,7 +448,9 @@ mod tests {
     fn each_link_loads_the_others_bank_and_the_child_the_clangs_choice() {
         let Some(romfs) = dev_dump() else { return };
         let shipped = romfs.read(BANKS).unwrap();
-        let ours = BymlDoc::parse(&banked(&shipped).unwrap()).unwrap();
+        let ours = banked(&shipped, &LOADED).unwrap();
+        assert_eq!(banked(&ours, &[ADULT_BANK]).unwrap(), ours, "once");
+        let ours = BymlDoc::parse(&ours).unwrap();
         let shipped = BymlDoc::parse(&shipped).unwrap();
         let banks = |doc: &BymlDoc, link: &Name, key: &Name| -> Vec<String> {
             let table = doc.root.as_map().unwrap()[field::BARSLIST_TABLE.get()]
