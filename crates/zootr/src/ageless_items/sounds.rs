@@ -21,8 +21,8 @@
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{
-    Byml, BymlDoc, ModBuilder, xlink_add_case, xlink_calls, xlink_copy_action, xlink_copy_call,
-    xlink_copy_property, xlink_nest,
+    Byml, BymlDoc, ModBuilder, xlink_add_case, xlink_calls, xlink_copy_call, xlink_copy_property,
+    xlink_nest,
 };
 
 use super::files::{BANKS, SOUNDS};
@@ -189,9 +189,8 @@ pub fn write_boots(builder: &mut ModBuilder) -> Result<()> {
 
 /// The sound users at `bytes` with the child's steps picked by his boots
 /// as the adult's are, his own steps the plain boots' case, the adult's
-/// [`BOOTED`] calls, the float played as the adult's is (as the Hover
-/// Boots' float time changes), and the landing as his is: during the
-/// boot change, at the frame his feet hit the floor.
+/// [`BOOTED`] calls, and the float played as the adult's is: as the
+/// Hover Boots' float time changes.
 fn booted(bytes: &[u8]) -> Result<Vec<u8>> {
     let (child, adult) = (actor::PLAYER_CHILD.get(), actor::PLAYER_ADULT.get());
     let (steps, plain) = (field::FOOT_STEP.get(), field::FOOT_STEP_NORMAL_BOOTS.get());
@@ -199,13 +198,7 @@ fn booted(bytes: &[u8]) -> Result<Vec<u8>> {
     let booted = BOOTED.iter().try_fold(stepped, |file, call| {
         xlink_copy_call(&file, adult, call, child, call)
     })?;
-    let floated = xlink_copy_property(&booted, adult, field::HOVER_WALK_ON_AIR.get(), child)?;
-    xlink_copy_action(
-        &floated,
-        adult,
-        field::FOOT_STEP_BOOTS_CHANGE_LAND.get(),
-        child,
-    )
+    xlink_copy_property(&booted, adult, field::HOVER_WALK_ON_AIR.get(), child)
 }
 
 /// The sound users at `bytes` with each Link's [`GAINED`] calls and the
@@ -290,9 +283,7 @@ fn banked(bytes: &[u8], loaded: &[Loaded]) -> Result<Vec<u8>> {
 mod tests {
     use super::*;
     use crate::game::dev_dump;
-    use ounce_formats::{
-        xlink_actions, xlink_children, xlink_properties, xlink_tree, xlink_triggers,
-    };
+    use ounce_formats::{xlink_children, xlink_properties, xlink_tree, xlink_triggers};
 
     #[test]
     fn the_childs_steps_pick_by_his_boots_and_plain_ones_stay_his() {
@@ -346,14 +337,8 @@ mod tests {
             xlink_triggers(&shipped, child).unwrap(),
             xlink_triggers(&ours, child).unwrap(),
         );
-        let (float, land) = (
-            field::HOVER_WALK_ON_AIR.get(),
-            field::FOOT_STEP_BOOTS_CHANGE_LAND.get(),
-        );
-        let kept: Vec<_> = now
-            .into_iter()
-            .filter(|&c| c != float && c != land)
-            .collect();
+        let float = field::HOVER_WALK_ON_AIR.get();
+        let kept: Vec<_> = now.into_iter().filter(|&c| c != float).collect();
         assert_eq!(kept, was, "each trigger plays what it did");
         fn props<'a>(f: &'a [u8], user: &str) -> Vec<(&'a str, Vec<&'a str>)> {
             xlink_properties(f, user).unwrap()
@@ -365,17 +350,6 @@ mod tests {
         let mut want = props(&shipped, child);
         want.insert(at, theirs[at].clone());
         assert_eq!(props(&ours, child), want);
-        // His actions with the adult's boot change in its slot, sorted
-        // among his by name, playing the landing.
-        let theirs = xlink_actions(&shipped, adult).unwrap();
-        let change = theirs.iter().find(|(_, _, c)| *c == [land]).unwrap();
-        let mut want = xlink_actions(&shipped, child).unwrap();
-        let at = want
-            .iter()
-            .position(|(s, n, _)| *s == change.0 && *n > change.1)
-            .unwrap();
-        want.insert(at, change.clone());
-        assert_eq!(xlink_actions(&ours, child).unwrap(), want);
         assert_eq!(
             xlink_calls(&ours, adult).unwrap(),
             xlink_calls(&shipped, adult).unwrap()
