@@ -19,6 +19,7 @@ use super::death::{Count, Death, Deaths, Done};
 use super::ids::Ids;
 use super::notice::Notices;
 use super::seed::Dealt;
+use super::trouble::{Source, Troubles};
 use super::{ApSeed, GAME, RECEIVED};
 use crate::dev::{Dev, Landed};
 use crate::gamedata::GameData;
@@ -124,8 +125,15 @@ pub enum Note {
         from: String,
         cause: Option<String>,
     },
-    /// Something went wrong that the core keeps going past.
+    /// Something went wrong that the core keeps going past. Said once
+    /// while it lasts.
     Trouble(String),
+    /// A trouble that lasted has cleared.
+    Cleared(String),
+    /// The game can't be read, and why. Nothing reaches Link until
+    /// [`Note::Reachable`].
+    Unreachable(String),
+    Reachable,
 }
 
 impl std::fmt::Display for Note {
@@ -145,6 +153,9 @@ impl std::fmt::Display for Note {
                 None => write!(f, "DeathLink: {from} died"),
             },
             Self::Trouble(why) => write!(f, "{why}"),
+            Self::Cleared(why) => write!(f, "cleared: {why}"),
+            Self::Unreachable(why) => write!(f, "can't reach the game: {why}"),
+            Self::Reachable => write!(f, "the game answers again"),
         }
     }
 }
@@ -345,6 +356,7 @@ fn session(
     let mut ledger = Ledger::default();
     let mut deaths = Deaths::default();
     let mut notices = Notices::default();
+    let mut troubles = Troubles::default();
     let mut heard = Vec::new();
     let mut printed = Vec::new();
     let mut connected = false;
@@ -394,12 +406,21 @@ fn session(
             }
             ConnectionState::Connected(client) if owed || Instant::now() >= next_look => {
                 next_look = Instant::now() + LOOK;
-                owed = tick(client, book, game, &mut ledger, &mut notices, note);
+                owed = tick(
+                    client,
+                    book,
+                    game,
+                    (&mut ledger, &mut notices, &mut troubles),
+                    note,
+                );
                 if book.death_link {
                     // The room's own bounce comes back to us too.
                     let me = client.this_player().alias().to_string();
                     (heard.drain(..).filter(|d| d.source != me)).for_each(|d| deaths.hold(d));
-                    death_link(client, game, &mut deaths, &me, note);
+                    // A game that can't be read has said so already.
+                    if troubles.reachable() {
+                        death_link(client, game, &mut deaths, &mut troubles, &me, note);
+                    }
                 }
             }
             _ => owed = false,
@@ -416,16 +437,11 @@ fn tick(
     client: &mut ap::Client,
     book: &Book,
     game: &mut impl Game,
-    ledger: &mut Ledger,
-    notices: &mut Notices,
+    (ledger, notices, troubles): (&mut Ledger, &mut Notices, &mut Troubles),
     note: &mut impl FnMut(Note),
 ) -> bool {
-    let look = match ledger.look(game) {
-        Ok(look) => look,
-        Err(e) => {
-            note(Note::Trouble(format!("{e:#}")));
-            return false;
-        }
+    let Some(look) = troubles.take(Source::Game, ledger.look(game), note) else {
+        return false;
     };
     let (send, unknown) = book.sendable(&look.send, |id| client.this_game().has_location(id));
     if !unknown.is_empty() {
@@ -440,21 +456,17 @@ fn tick(
             .iter()
             .map(|&(_, id)| location_name(client, id))
             .collect();
-        match client.mark_checked(send.iter().map(|&(_, id)| id)) {
-            Ok(()) => note(Note::Sent(names)),
-            Err(e) => {
-                ledger.sent.retain(|s| !send.iter().any(|(h, _)| h == s));
-                note(Note::Trouble(e.to_string()));
-            }
+        let sent = client.mark_checked(send.iter().map(|&(_, id)| id));
+        match troubles.take(Source::Send, sent.map_err(Into::into), note) {
+            Some(()) => note(Note::Sent(names)),
+            None => ledger.sent.retain(|s| !send.iter().any(|(h, _)| h == s)),
         }
     }
     if look.goal {
-        match client.set_status(ClientStatus::Goal) {
-            Ok(()) => note(Note::Goal),
-            Err(e) => {
-                ledger.goal = false;
-                note(Note::Trouble(e.to_string()));
-            }
+        let set = client.set_status(ClientStatus::Goal);
+        match troubles.take(Source::Goal, set.map_err(Into::into), note) {
+            Some(()) => note(Note::Goal),
+            None => ledger.goal = false,
         }
     }
     let received: Vec<i64> = found(client).map(|r| r.item().id()).collect();
@@ -466,13 +478,8 @@ fn tick(
         });
         Some(r.sender().slot())
     };
-    match give_one(game, book, &received, notices, sender, Instant::now()) {
-        Ok(gave) => gave.is_some(),
-        Err(e) => {
-            note(Note::Trouble(format!("{e:#}")));
-            false
-        }
-    }
+    let gave = give_one(game, book, &received, notices, sender, Instant::now());
+    troubles.take(Source::Give, gave, note).flatten().is_some()
 }
 
 /// Send Link's death to the room, or kill him for one of the room's.
@@ -480,22 +487,28 @@ fn death_link(
     client: &mut ap::Client,
     game: &mut impl Game,
     deaths: &mut Deaths,
+    troubles: &mut Troubles,
     me: &str,
     note: &mut impl FnMut(Note),
 ) {
-    let sent = match deaths.look(game) {
-        Ok(Some(Done::Died)) => {
+    let said = match troubles
+        .take(Source::Death, deaths.look(game), note)
+        .flatten()
+    {
+        Some(Done::Died) => {
             let options = ap::DeathLinkOptions::new().cause(format!("{me} died."));
-            client.death_link(options).map(|()| Note::Died)
+            let sent = client.death_link(options).map_err(Into::into);
+            troubles
+                .take(Source::DeathSent, sent, note)
+                .map(|()| Note::Died)
         }
-        Ok(Some(Done::Killed(d))) => Ok(Note::Killed {
+        Some(Done::Killed(d)) => Some(Note::Killed {
             from: d.source,
             cause: d.cause,
         }),
-        Ok(None) => return,
-        Err(e) => return note(Note::Trouble(format!("{e:#}"))),
+        None => None,
     };
-    note(sent.unwrap_or_else(|e| Note::Trouble(e.to_string())));
+    said.into_iter().for_each(note);
 }
 
 /// The locations of ours among `printed`'s item sends, which it empties.

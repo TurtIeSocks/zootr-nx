@@ -28,6 +28,7 @@ mod rule;
 mod seed;
 pub mod there;
 pub mod timing;
+mod trouble;
 mod when;
 mod zip;
 
