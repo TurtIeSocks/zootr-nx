@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 
 use crate::settings::Archipelago::{self, AlwaysOn, Later, Never, Offered, OnUntil};
-use crate::settings::{Kind, SettingDef};
+use crate::settings::{Kind, SKIP_ALL, SettingDef, schema};
 
 pub mod bench;
 pub mod bench_live;
@@ -89,7 +89,52 @@ pub const OPTIONS: &[&str] = &[
     "king-zora-moved",
     "adult-jabu-jabu",
     "day-skulltulas",
+    "scrub-price",
+    "ageless-items",
+    "quiet-enemies",
+    "menus",
+    "clock",
+    "no-tutorials",
+    "no-pickup-texts",
 ];
+
+/// Settings the world offers together as one AP option, a list of the
+/// children of one parent setting, which turns them all on.
+pub struct Set {
+    pub id: &'static str,
+    pub label: &'static str,
+    pub parent: &'static str,
+    pub description: &'static str,
+}
+
+pub const SETS: &[Set] = &[Set {
+    id: "skipped-cutscenes",
+    label: "Skipped Cutscenes",
+    parent: SKIP_ALL,
+    description: "Each cutscene skipped, with Skip Cutscenes off. On, it skips them all",
+}];
+
+impl Set {
+    /// The settings this set lists.
+    pub fn members(&self) -> Vec<SettingDef> {
+        let parent = Some(self.parent);
+        schema()
+            .into_iter()
+            .filter(|d| d.parent == parent)
+            .collect()
+    }
+}
+
+/// Every setting the world sets: each option, then each set's children.
+pub fn exposed() -> Vec<String> {
+    let options = OPTIONS.iter().map(|id| (*id).to_owned());
+    options
+        .chain(
+            SETS.iter()
+                .flat_map(|s| s.members().into_iter().map(|d| d.id)),
+        )
+        .collect()
+}
 
 /// Every setting the world doesn't offer, and why: each one coming in a
 /// stage of the "Missing from AP" queue, or never. With [`OPTIONS`], it
@@ -108,14 +153,7 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
     ("magic-with-first-item", Later(COMFORT)),
     ("hints", Later(RULES)),
     ("shuffle-dungeon-entrances", Later(RULES)),
-    ("scrub-price", Later(COMFORT)),
-    ("ageless-items", Later(COMFORT)),
     ("ageless-gear", Later(RULES)),
-    ("quiet-enemies", Later(COMFORT)),
-    ("menus", Later(COMFORT)),
-    ("clock", Later(COMFORT)),
-    ("no-tutorials", Later(COMFORT)),
-    ("no-pickup-texts", Later(COMFORT)),
     (
         "shuffle-items",
         Never("off, every check holds what it always does, which leaves nothing to share"),
@@ -132,22 +170,20 @@ const RULES: &str = "goal and rules";
 const KEYS: &str = "keys";
 const COMFORT: &str = "comfort";
 
-/// Whether the world offers `def`. A single cutscene skip under one the
-/// world offers waits for the comfort stage: the world offers them only
-/// all at once. A toggle left out but on in every Archipelago seed (its
-/// default, or pinned like Chests) says so.
+/// Whether the world offers `def`, alone or in a set. A toggle left out
+/// but on in every Archipelago seed (its default, or pinned like Chests)
+/// says so. The schema calls it, so it reads `def` alone.
 pub fn archipelago(def: &SettingDef) -> Option<Archipelago> {
-    if OPTIONS.contains(&def.id.as_str()) {
+    let in_set = SETS.iter().any(|s| def.parent == Some(s.parent));
+    if in_set || OPTIONS.contains(&def.id.as_str()) {
         return Some(Offered);
     }
-    if let Some((_, left)) = LEFT_OUT.iter().find(|(id, _)| *id == def.id) {
-        return Some(match (*left, on_in_ap(def)) {
-            (Later(why), true) => OnUntil(why),
-            (Never(why), true) => AlwaysOn(why),
-            (left, _) => left,
-        });
-    }
-    (def.parent.is_some_and(|p| OPTIONS.contains(&p))).then_some(Later(COMFORT))
+    let (_, left) = LEFT_OUT.iter().find(|(id, _)| *id == def.id)?;
+    Some(match (*left, on_in_ap(def)) {
+        (Later(why), true) => OnUntil(why),
+        (Never(why), true) => AlwaysOn(why),
+        (left, _) => left,
+    })
 }
 
 /// Whether every Archipelago seed holds toggle `def` on: the world's base
