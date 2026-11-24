@@ -6,7 +6,7 @@ import { Tip } from "@/components/tip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { reconnecting, refusal } from "@/play/ap-lines";
+import { gameLost, reconnecting, refusal } from "@/play/ap-lines";
 import { connect, disconnect, useAp } from "@/stores/ap";
 import { useLive } from "@/stores/live";
 import { useUi } from "@/stores/ui";
@@ -57,13 +57,15 @@ function RoomLine({ entry, onSetUp }: RoomStatusProps) {
   const playing = useLive((s) => s.status.state !== "Waiting");
 
   if (status === "connected") {
+    const lost = gameLost(lines);
     return (
       <Strip
-        dot="on"
+        dot={lost ? "wait" : "on"}
         action={<Act variant="ghost" label="Disconnect" onClick={disconnect} />}
       >
         <span>
           <b className="font-semibold">Connected</b> as {slot}
+          {lost && ", but the game isn't answering"}
         </span>
         {addr}
         {entry.death_link && <DeathLinkBadge />}

@@ -1,5 +1,11 @@
 import { expect, test } from "vitest";
-import { keeps, kindOf, reconnecting, refusal } from "@/play/ap-lines";
+import {
+  gameLost,
+  keeps,
+  kindOf,
+  reconnecting,
+  refusal,
+} from "@/play/ap-lines";
 
 const at = (...texts: string[]) => texts.map((text) => ({ time: 0, text }));
 
@@ -37,4 +43,12 @@ test("reconnecting while the last note is a lost connection", () => {
   expect(reconnecting(at("lost (x), retrying in 5 s", "connecting"))).toBe(
     false,
   );
+});
+
+test("the game is lost until the client says it answers again", () => {
+  const lost = "can't reach the game: Broken pipe (os error 32)";
+  expect(gameLost(at("connected", lost))).toBe(true);
+  expect(gameLost(at(lost, "sent Fake Chest"))).toBe(true);
+  expect(gameLost(at(lost, "the game answers again"))).toBe(false);
+  expect(gameLost(at("connected"))).toBe(false);
 });

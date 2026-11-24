@@ -15,6 +15,7 @@ pub mod bench_live;
 pub mod client;
 mod death;
 mod export;
+mod game;
 mod golden;
 mod ids;
 pub(crate) mod names;
@@ -28,6 +29,7 @@ mod rule;
 mod seed;
 pub mod there;
 pub mod timing;
+mod trouble;
 mod when;
 mod zip;
 
