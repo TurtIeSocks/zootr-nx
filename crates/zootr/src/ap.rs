@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 
-use crate::settings::Archipelago::{self, AlwaysOn, Later, Never, OnUntil, Offered};
+use crate::settings::Archipelago::{self, AlwaysOn, Later, Never, Offered, OnUntil};
 use crate::settings::{Kind, SettingDef};
 
 pub mod bench;
