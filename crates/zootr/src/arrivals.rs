@@ -183,7 +183,7 @@ pub(crate) fn swap(flow: &mut Flowchart, cutscene: &str, flag: &str) -> Result<(
             Value::String(vec![flag.into()]),
         ),
         ("Index".into(), Value::Int(vec![-1])),
-        (flows::VALUE.into(), Value::Bool(vec![true])),
+        (field::VALUE.get().into(), Value::Bool(vec![true])),
     ];
     replace(flow, cutscene, SET_BOOL, &params)
 }

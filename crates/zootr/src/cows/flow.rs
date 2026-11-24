@@ -17,7 +17,7 @@ use ounce_formats::{ActorPack, BymlDoc, EventKind, Flowchart, Params, Romfs, Val
 use super::{Cow, FLOW, PLAIN, event_of, item};
 use crate::checks::Drop;
 use crate::flows::{
-    self, ACTOR, GAME_DATA, IS_BOOL, Model, Rewrites, SET_BOOL, VALUE, running, set, string, switch,
+    self, ACTOR, GAME_DATA, IS_BOOL, Model, Rewrites, SET_BOOL, running, set, string, switch,
 };
 use crate::gifts::levels::Level;
 use crate::grant;
@@ -153,7 +153,7 @@ fn gate(flow: &mut Flowchart, inline: &grant::Models) -> Result<()> {
         let grant = inline.push(flow, Value::Argument(ARG_ITEM.into()), None)?;
         let mut params = models.set_bool.params.clone();
         set(&mut params, GAME_DATA, flag())?;
-        set(&mut params, VALUE, Value::Bool(vec![true]))?;
+        set(&mut params, field::VALUE, Value::Bool(vec![true]))?;
         let (actor, action) = flow.action(&models.set_bool.actor, models.set_bool.name);
         let mark = flow.push(EventKind::Action {
             next: Some(grant),
