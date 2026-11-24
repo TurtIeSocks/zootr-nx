@@ -3,6 +3,20 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.15.0] - 2026-11-24
+
+### Added
+
+- Both Ages, one toggle per item
+- A slot from the room page fills in its room's server
+
+### Fixed
+
+- Warn when the mod folder holds another seed than the installed one
+- Regenerate the bindings for the foreign mod warning
+- Received items wait until Link is in play, so Try Again can't lose one
+- The room strip forgets a lost game from an earlier connection
+
 ## [0.14.0] - 2026-11-24
 
 ### Added
