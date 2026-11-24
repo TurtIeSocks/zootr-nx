@@ -10,12 +10,24 @@ why = "walk, 6 edges"
 
 [[link]]
 to = 17
-needs = "(flag:#936fce7b) and (flag:#de9e2dc2)"
+needs = "flag:#936fce7b"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 02 3452877867018573937 shut until flag #936fce7b; Switch Shutter A 02 3452877867018573937 shut until flag #de9e2dc2; Forest Temple Switch Shutter A 03 8429336115493724386 shut until flag #936fce7b; Forest Temple Switch Shutter A 03 8429336115493724386 shut until flag #de9e2dc2"
+why = "walk, 1 edges; Switch Shutter A 02 3452877867018573937 shut until flag #936fce7b; Forest Temple Switch Shutter A 03 8429336115493724386 shut until flag #936fce7b"
 
 [[check]]
 hash = 3433400840978782007
 name = "Forest Temple Upper Small Key Chest"
+needs = "(flag:#fa3b4acc) and (flag:#16282cdb)"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #fa3b4acc; its graph waits on flag #16282cdb"
+
+[[flag]]
+hash = 0x16282cdb
+name = "Second Daughter Generate"
 needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+why = "Forest Temple Ghost Picture A 01 sets it (3): always"
+
+[[flag]]
+hash = 0xfa3b4acc
+name = "Forest Temple Room 12 Appear Treasure Chest"
+needs = "always"
+why = "Forest Temple Ghost Picture A 01 sets it (4): always"

@@ -4,27 +4,27 @@ name = "Entrance"
 
 [[link]]
 to = 1
-needs = "flag:#d8bd9906"
+needs = "always"
 via = "walk"
-why = "walk, 2 edges; Switch Shutter A 02 14285985470192712178 shut until flag #d8bd9906; Gerudo Switch Shutter A 04 17271596773795074407 shut until flag #d8bd9906"
+why = "walk, 2 edges"
 
 [[link]]
 to = 1
-needs = "flag:#d8bd9906"
+needs = "always"
 via = "jump"
-why = "level gap 1.8 m: within a running jump (2.7 m); Switch Shutter A 02 14285985470192712178 shut until flag #d8bd9906; Switch Shutter A 02 14655837537725132952 shut until flag #d8bd9906; Gerudo Switch Shutter A 04 17271596773795074407 shut until flag #d8bd9906"
+why = "level gap 1.8 m: within a running jump (2.7 m)"
 
 [[link]]
 to = 7
-needs = "flag:#1c7725f8"
+needs = "always"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 02 301105647681483946 shut until flag #1c7725f8; Gerudo Switch Shutter A 04 1845019500144608623 shut until flag #1c7725f8"
+why = "walk, 1 edges"
 
 [[link]]
 to = 7
-needs = "flag:#1c7725f8"
+needs = "always"
 via = "jump"
-why = "level gap 1.8 m: within a running jump (2.7 m); Switch Shutter A 02 301105647681483946 shut until flag #1c7725f8; Gerudo Switch Shutter A 04 1845019500144608623 shut until flag #1c7725f8; Switch Shutter A 02 8754689240334695823 shut until flag #1c7725f8"
+why = "level gap 1.8 m: within a running jump (2.7 m)"
 
 [[link]]
 to = 8
@@ -35,8 +35,14 @@ why = "walk, 16 edges"
 [[check]]
 hash = 2436665354602612279
 name = "Gerudo Training Ground Blue Rupee (5) Chest"
-needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#34525d96"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #34525d96"
+
+[[flag]]
+hash = 0x34525d96
+name = "Gerudo Training Ground Dungeon Room00 Eye Switch"
+needs = "slingshot or bow or boomerang or hookshot"
+why = "Eye Switch A 02 sets it (1): slingshot or bow or boomerang or hookshot"
 
 [[arrival]]
 hash = 0x361ffc5c

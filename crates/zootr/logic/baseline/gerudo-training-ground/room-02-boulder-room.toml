@@ -4,9 +4,9 @@ name = "Boulder Room"
 
 [[link]]
 to = 1
-needs = "flag:#d8bd9906"
+needs = "always"
 via = "walk"
-why = "walk, 2 edges; Gerudo Switch Shutter A 04 4403590790470660495 shut until flag #d8bd9906; Switch Shutter A 02 7470782970757114834 shut until flag #d8bd9906"
+why = "walk, 2 edges"
 
 [[link]]
 to = 3

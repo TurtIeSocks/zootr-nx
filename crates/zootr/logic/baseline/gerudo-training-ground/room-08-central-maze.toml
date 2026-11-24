@@ -71,6 +71,13 @@ why = "0.0 m from its room's floor, within a small chest's reach (1.25 m), but n
 guess = true
 
 [[check]]
+hash = 10743352138513225188
+name = "Gerudo Training Ground Arrows (3) Chest"
+needs = "always"
+why = "its placement names no room, so its nearest floor's; 0.0 m from its room's floor, within a small chest's reach (1.25 m), but no way there from where Link enters the room"
+guess = true
+
+[[check]]
 hash = 11683433230229591151
 name = "Gerudo Training Ground Arrows (3) Chest"
 needs = "always"

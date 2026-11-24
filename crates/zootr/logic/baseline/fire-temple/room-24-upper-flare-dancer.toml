@@ -12,12 +12,12 @@ why = "walk, 2 edges"
 hash = 0xcbcbc9b8
 name = "Fire Temple Room24 Event Has Played"
 needs = "always"
-why = "an event Enemy Middle Boss Flare Dancer 17630461387392231276 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Middle Boss Flare Dancer 17630461387392231276): what that takes isn't traced yet"
 guess = true
 
 [[flag]]
 hash = 0xf764d7da
 name = "Gimmick Defeat Enemy Open Fire Temple 01"
 needs = "always"
-why = "an event Event Request Actor 17655579664394792172 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Event Request Actor 17655579664394792172): what that takes isn't traced yet"
 guess = true

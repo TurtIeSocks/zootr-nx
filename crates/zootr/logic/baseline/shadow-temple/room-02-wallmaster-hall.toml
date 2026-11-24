@@ -11,6 +11,6 @@ guess = true
 
 [[link]]
 to = 3
-needs = "(flag:#022fae3d) and (flag:#eec3e80d)"
+needs = "always"
 via = "walk"
-why = "walk, 3 edges; Switch Shutter A 02 5189774182790692684 shut until flag #022fae3d; Switch Shutter A 02 5189774182790692684 shut until flag #eec3e80d; Shadow Temple Switch Shutter A 04 7274532379203988907 shut until flag #022fae3d; Shadow Temple Switch Shutter A 04 7274532379203988907 shut until flag #eec3e80d"
+why = "walk, 3 edges"

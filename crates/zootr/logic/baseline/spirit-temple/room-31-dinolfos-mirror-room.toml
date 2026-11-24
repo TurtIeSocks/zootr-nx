@@ -11,5 +11,12 @@ why = "walk, 3 edges; Spirit Temple Switch Shutter A 01 322920475917812712 shut 
 [[check]]
 hash = 13828480906010430010
 name = "Upper Five Bombs 2"
-needs = "always"
-why = "0.2 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#79d251c2"
+why = "0.2 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #79d251c2"
+
+[[flag]]
+hash = 0x79d251c2
+name = "Spirit Temple Room32 TBox On"
+needs = "light"
+why = "Solar Switch A 02 sets it (1): light"
+guess = true

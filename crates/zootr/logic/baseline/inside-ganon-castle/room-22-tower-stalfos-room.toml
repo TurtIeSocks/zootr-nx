@@ -24,5 +24,5 @@ why = "level gap 1.8 m: within a running jump (2.7 m); Inside Ganon Castle Switc
 hash = 0xe9cbbba2
 name = "Inside Ganon Castle Dungeon Room22 Cleared"
 needs = "always"
-why = "an event Enemy Stalfos 4821530632224218285, Enemy Stalfos 7385680628307858778 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Stalfos 4821530632224218285, Enemy Stalfos 7385680628307858778): what that takes isn't traced yet"
 guess = true

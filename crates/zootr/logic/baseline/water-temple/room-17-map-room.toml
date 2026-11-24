@@ -16,9 +16,9 @@ why = "swim 12541865752730803128"
 
 [[link]]
 to = 18
-needs = "(flag:#4b9c4e36) and (flag:#a1194afb)"
+needs = "flag:#4b9c4e36"
 via = "walk"
-why = "walk, 2 edges; Water Temple Switch Shutter A 01 4624951682117061604 shut until flag #4b9c4e36; Water Temple Switch Shutter A 01 4624951682117061604 shut until flag #a1194afb; Switch Shutter A 02 11789951689557365618 shut until flag #a1194afb"
+why = "walk, 2 edges; Water Temple Switch Shutter A 01 4624951682117061604 shut until flag #4b9c4e36"
 
 [[link]]
 to = 25

@@ -23,5 +23,6 @@ why = "level gap 1.7 to 2.2 m: within a running jump (2.7 m)"
 [[check]]
 hash = 10521366928524045067
 name = "Fire Temple Upper Small Key Chest"
-needs = "always"
-why = "0.7 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#0fa4811b"
+why = "0.7 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #0fa4811b"
+guess = true

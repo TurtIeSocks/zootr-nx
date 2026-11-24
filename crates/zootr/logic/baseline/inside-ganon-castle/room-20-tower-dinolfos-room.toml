@@ -24,5 +24,5 @@ why = "level gap 1.3 m: within a running jump (2.7 m); Switch Shutter A 02 85773
 hash = 0x5d840f9e
 name = "Inside Ganon Castle Dungeon Room20 Cleared"
 needs = "always"
-why = "an event Enemy Dinolfos 8516579763721254190, Enemy Dinolfos 17652544319625022963 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Dinolfos 8516579763721254190, Enemy Dinolfos 17652544319625022963): what that takes isn't traced yet"
 guess = true

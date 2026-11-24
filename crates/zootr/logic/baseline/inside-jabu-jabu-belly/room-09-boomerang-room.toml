@@ -5,12 +5,19 @@ name = "Boomerang Room"
 [[check]]
 hash = 5527401621172639818
 name = "Jabu-Jabu's Belly Boomerang Chest"
+needs = "flag:#ed5247fb"
+why = "0.0 m from its room's floor, within a big chest's reach (1.35 m); its graph waits on flag #ed5247fb"
+
+[[flag]]
+hash = 0xed5247fb
+name = "Insidejabujabu Room9 Cleared"
 needs = "always"
-why = "0.0 m from its room's floor, within a big chest's reach (1.35 m)"
+why = "clearing its room sets it (Enemy Stinger 4039994172559959745, Enemy Stinger 5129059413688710441, Enemy Stinger 14165743011612163902, Enemy Stinger 16597078800886776025): what that takes isn't traced yet"
+guess = true
 
 [[flag]]
 hash = 0xfdec26af
 name = "Inside Jabu Jabu Belly Room09 Door"
 needs = "always"
-why = "an event Enemy Stinger 4039994172559959745, Enemy Stinger 5129059413688710441, Enemy Stinger 14165743011612163902, Enemy Stinger 16597078800886776025 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Stinger 4039994172559959745, Enemy Stinger 5129059413688710441, Enemy Stinger 14165743011612163902, Enemy Stinger 16597078800886776025): what that takes isn't traced yet"
 guess = true

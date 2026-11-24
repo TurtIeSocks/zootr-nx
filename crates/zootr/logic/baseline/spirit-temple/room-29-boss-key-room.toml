@@ -12,5 +12,12 @@ guess = true
 [[check]]
 hash = 16272168033146555902
 name = "Upper Boss Key"
+needs = "flag:#0ce90901"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #0ce90901"
+
+[[flag]]
+hash = 0x0ce90901
+name = "Have Played Event.Sprit Temple Room30 Step Switch"
 needs = "always"
-why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
+why = "Step Switch A 01 sets it (1): always"
+guess = true

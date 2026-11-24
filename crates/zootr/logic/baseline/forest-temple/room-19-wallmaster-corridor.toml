@@ -4,6 +4,6 @@ name = "Wallmaster Corridor"
 
 [[link]]
 to = 18
-needs = "flag:#a2befb49"
+needs = "always"
 via = "walk"
-why = "walk, 3 edges; Switch Shutter A 02 11204537862336392250 shut until flag #a2befb49; Forest Temple Switch Shutter A 03 13335036537438067814 shut until flag #a2befb49"
+why = "walk, 3 edges"

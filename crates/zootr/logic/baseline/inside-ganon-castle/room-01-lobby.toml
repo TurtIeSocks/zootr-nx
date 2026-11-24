@@ -58,9 +58,9 @@ why = "step up 0.7 m"
 
 [[link]]
 to = 12
-needs = "flag:#ce91ac58"
+needs = "always"
 via = "walk"
-why = "walk, 2 edges; Switch Shutter A 02 16279602921470609179 shut until flag #ce91ac58"
+why = "walk, 2 edges"
 
 [[link]]
 to = 16

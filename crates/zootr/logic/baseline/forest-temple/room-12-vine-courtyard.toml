@@ -47,9 +47,9 @@ why = "walk, 1 edges"
 
 [[link]]
 to = 22
-needs = "flag:#0ad068f9"
+needs = "always"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 02 10409417497029550440 shut until flag #0ad068f9; Forest Temple Switch Shutter A 03 12998759442067131061 shut until flag #0ad068f9"
+why = "walk, 1 edges"
 
 [[check]]
 hash = 10970805784153267902

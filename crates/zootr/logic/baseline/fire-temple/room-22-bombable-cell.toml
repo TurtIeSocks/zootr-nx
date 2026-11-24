@@ -11,5 +11,6 @@ why = "walk, 2 edges; Fire Temple Crack Wall A 01 3450708986142730000: explosive
 [[check]]
 hash = 1705064956286753527
 name = "Fire Temple Small Key Chest"
-needs = "always"
-why = "0.8 m from its room's floor, within a small chest's reach (1.25 m)"
+needs = "flag:#453a0d7e"
+why = "0.8 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #453a0d7e"
+guess = true

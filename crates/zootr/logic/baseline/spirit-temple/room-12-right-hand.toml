@@ -4,9 +4,9 @@ name = "Right Hand"
 
 [[link]]
 to = 11
-needs = "flag:#920429ac"
+needs = "always"
 via = "walk"
-why = "walk, 1 edges; Spirit Temple Switch Shutter A 01 1055894830919592114 shut until flag #920429ac; Switch Shutter A 06 17332794138414022882 shut until flag #920429ac"
+why = "walk, 1 edges"
 
 [[arrival]]
 hash = 0x7d07bfc3

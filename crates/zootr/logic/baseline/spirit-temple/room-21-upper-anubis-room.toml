@@ -24,5 +24,5 @@ why = "walk, 1 edges"
 hash = 0xe0103d5e
 name = "Spirit Temple Room22 Unlocked 01"
 needs = "always"
-why = "an event Enemy Anubis 3934085018433798238, Enemy Anubis 6926961655943428000, Enemy Anubis 12676063368091859931, Enemy Beamos 15096857207894283138 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Anubis 3934085018433798238, Enemy Anubis 6926961655943428000, Enemy Anubis 12676063368091859931, Enemy Beamos 15096857207894283138): what that takes isn't traced yet"
 guess = true

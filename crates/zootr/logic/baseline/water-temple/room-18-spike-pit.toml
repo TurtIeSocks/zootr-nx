@@ -11,13 +11,20 @@ why = "walk, 2 edges; Water Temple Switch Shutter A 01 4624951682117061604 shut 
 [[check]]
 hash = 18099019250896853049
 name = "Water Temple Small Key Chest"
+needs = "flag:#8b3d9f3c"
+why = "no floor of its room within a small chest's reach (1.25 m); its graph waits on flag #8b3d9f3c"
+guess = true
+
+[[flag]]
+hash = 0x8b3d9f3c
+name = "Water Temple Room18 Tresure"
 needs = "always"
-why = "no floor of its room within a small chest's reach (1.25 m)"
+why = "clearing its room sets it (Enemy Spike 3380364521432480688, Enemy Spike 7679994500059346547, Enemy Spike 11145754053779882880): what that takes isn't traced yet"
 guess = true
 
 [[flag]]
 hash = 0xa1194afb
 name = "Water Temple Room18 Cleared"
 needs = "always"
-why = "an event Enemy Spike 3380364521432480688, Enemy Spike 7679994500059346547, Enemy Spike 11145754053779882880 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Spike 3380364521432480688, Enemy Spike 7679994500059346547, Enemy Spike 11145754053779882880): what that takes isn't traced yet"
 guess = true

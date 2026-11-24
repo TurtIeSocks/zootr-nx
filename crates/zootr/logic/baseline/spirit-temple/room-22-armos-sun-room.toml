@@ -4,9 +4,9 @@ name = "Armos Sun Room"
 
 [[link]]
 to = 21
-needs = "flag:#e0103d5e"
+needs = "always"
 via = "walk"
-why = "walk, 1 edges; Switch Shutter A 06 15410948085878511211 shut until flag #e0103d5e"
+why = "walk, 1 edges"
 
 [[link]]
 to = 21

@@ -17,19 +17,19 @@ why = "level gap 1.5 m: within a running jump (2.7 m); Switch Shutter A 02 51897
 [[check]]
 hash = 13528903653876646082
 name = "Shadow Temple Map Chest"
-needs = "always"
-why = "0.0 m from its room's floor, within a big chest's reach (1.35 m)"
+needs = "flag:#022fae3d"
+why = "0.0 m from its room's floor, within a big chest's reach (1.35 m); its graph waits on flag #022fae3d"
 
 [[flag]]
 hash = 0x022fae3d
 name = "Shadow Temple Room B1 FC Cleared"
 needs = "always"
-why = "an event Enemy Keese 2212206219252305525, Enemy Re Dead 8263563686320747770, Enemy Keese 18308261718715805486 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Keese 2212206219252305525, Enemy Re Dead 8263563686320747770, Enemy Keese 18308261718715805486): what that takes isn't traced yet"
 guess = true
 
 [[flag]]
 hash = 0xeec3e80d
 name = "Shadow Temple Room B1 FC Shutter Open"
 needs = "always"
-why = "an event Enemy Keese 2212206219252305525, Enemy Re Dead 8263563686320747770, Enemy Keese 18308261718715805486 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Keese 2212206219252305525, Enemy Re Dead 8263563686320747770, Enemy Keese 18308261718715805486): what that takes isn't traced yet"
 guess = true

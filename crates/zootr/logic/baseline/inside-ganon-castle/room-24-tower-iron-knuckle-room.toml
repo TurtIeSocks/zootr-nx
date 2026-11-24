@@ -17,20 +17,20 @@ why = "walk, 4 edges; Inside Ganon Castle Switch Shutter A 02 558650475590182709
 [[check]]
 hash = 17092385671602176550
 name = "Ganon's Castle Upper Boss Key Chest"
-needs = "always"
-why = "no floor of its room within a small chest's reach (1.25 m)"
+needs = "flag:#a03ca29b"
+why = "no floor of its room within a small chest's reach (1.25 m); its graph waits on flag #a03ca29b"
 guess = true
 
 [[flag]]
 hash = 0x77964795
 name = "Inside Ganon Castle Dungeon Room24 Unlocked"
 needs = "always"
-why = "an event Enemy Iron Knuckle White 5229286725123048971, Enemy Iron Knuckle Black 7746535626190745576 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Iron Knuckle White 5229286725123048971, Enemy Iron Knuckle Black 7746535626190745576): what that takes isn't traced yet"
 guess = true
 
 [[flag]]
 hash = 0xa03ca29b
 name = "Inside Ganon Castle Dungeon Room24 Cleared"
 needs = "always"
-why = "an event Enemy Iron Knuckle White 5229286725123048971, Enemy Iron Knuckle Black 7746535626190745576 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Iron Knuckle White 5229286725123048971, Enemy Iron Knuckle Black 7746535626190745576): what that takes isn't traced yet"
 guess = true

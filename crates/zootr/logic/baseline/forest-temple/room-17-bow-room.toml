@@ -18,8 +18,8 @@ guess = true
 [[check]]
 hash = 11082303891540711688
 name = "Forest Temple Upper Fairy Bow Chest"
-needs = "always"
-why = "0.0 m from its room's floor, within a big chest's reach (1.35 m)"
+needs = "flag:#de9e2dc2"
+why = "0.0 m from its room's floor, within a big chest's reach (1.35 m); its graph waits on flag #de9e2dc2"
 
 [[flag]]
 hash = 0x936fce7b
@@ -31,5 +31,5 @@ why = "Eye Switch A 02 sets it (3): slingshot or bow or boomerang or hookshot"
 hash = 0xde9e2dc2
 name = "Forest Temple After Appearance Treasure Chest"
 needs = "always"
-why = "an event Enemy Stalfos Weak 6133634013688435946, Enemy Stalfos Weak 15631395890589961339 plays sets it: what beats that isn't traced yet"
+why = "clearing its room sets it (Enemy Stalfos Weak 6133634013688435946, Enemy Stalfos Weak 15631395890589961339): what that takes isn't traced yet"
 guess = true
