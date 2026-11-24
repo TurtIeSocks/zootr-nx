@@ -21,14 +21,33 @@ const KEEP: usize = 100;
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct History {
-    pub installed: Option<u32>,
+    /// The machine's own game's installed seed. Read any game's with
+    /// [`History::installed`].
+    installed: Option<u32>,
     /// When `installed` went in, in Unix seconds. A save older than this
     /// was played on another seed. Histories from before it was kept have
     /// none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub installed_at: Option<u32>,
+    installed_at: Option<u32>,
+    /// The slots' installed seeds, by game: a machine with several games
+    /// installs a seed in each.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    slots: BTreeMap<String, Installed>,
+    /// The slot this shell plays ([`crate::turn::slot`]), whose installed
+    /// seed [`History::installed`] and [`History::install`] mean. `None`
+    /// is the machine's own game.
+    #[serde(skip)]
+    game: Option<String>,
     /// Oldest first.
     pub entries: Vec<Entry>,
+}
+
+/// A game's installed seed and when it went in, as [`History`] keeps them.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Installed {
+    pub id: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<u32>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -176,11 +195,15 @@ fn kept<V: Clone>(
 impl History {
     pub fn load() -> Result<Self> {
         let path = path()?;
-        match std::fs::read(&path) {
-            Ok(b) => Self::parse(&b).with_context(|| format!("reading {}", path.display())),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
-            Err(e) => Err(e).with_context(|| format!("reading {}", path.display())),
-        }
+        let history = match std::fs::read(&path) {
+            Ok(b) => Self::parse(&b).with_context(|| format!("reading {}", path.display()))?,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Self::default(),
+            Err(e) => return Err(e).with_context(|| format!("reading {}", path.display())),
+        };
+        Ok(Self {
+            game: crate::turn::slot(&Config::load_all()?.turn),
+            ..history
+        })
     }
 
     /// Saved history, brought up to date: readable chest names, older
@@ -228,14 +251,48 @@ impl History {
         Ok(summary)
     }
 
+    /// The installed seed of the game this shell plays.
+    pub fn installed(&self) -> Installed {
+        match &self.game {
+            None => Installed {
+                id: self.installed,
+                at: self.installed_at,
+            },
+            Some(g) => self.slots.get(g).copied().unwrap_or_default(),
+        }
+    }
+
+    /// Every game's installed seed, which trimming and deleting spare: its
+    /// mod is still in place.
+    fn in_place(&self) -> impl Iterator<Item = u32> + '_ {
+        let slots = self.slots.values().filter_map(|i| i.id);
+        self.installed.into_iter().chain(slots)
+    }
+
+    /// The installed seed's entry, an error when none is installed.
+    pub fn installed_entry(&self) -> Result<&Entry> {
+        self.get(self.installed().id.context("no seed is installed")?)
+    }
+
     /// Makes `id` the installed seed, or none for vanilla. Installing the
     /// seed already in keeps its time, so the saves played on it still
     /// count.
     pub fn install(&mut self, id: Option<u32>) {
-        if id != self.installed {
-            self.installed_at = id.map(|_| now());
+        let was = self.installed();
+        let at = if id == was.id {
+            was.at
+        } else {
+            id.map(|_| now())
+        };
+        match self.game.clone() {
+            None => (self.installed, self.installed_at) = (id, at),
+            Some(g) if id.is_none() => {
+                self.slots.remove(&g);
+            }
+            Some(g) => {
+                self.slots.insert(g, Installed { id, at });
+            }
         }
-        self.installed = id;
     }
 
     /// Record a seed. Installing it is up to the caller.
@@ -257,11 +314,11 @@ impl History {
             marks: BTreeMap::new(),
             picks: BTreeMap::new(),
         });
-        // The oldest go first, but never the installed one: its mod is
-        // still in place.
-        let (mut excess, installed) = (self.entries.len().saturating_sub(KEEP), self.installed);
+        // The oldest go first, but never an installed one.
+        let installed: Vec<u32> = self.in_place().collect();
+        let mut excess = self.entries.len().saturating_sub(KEEP);
         self.entries.retain(|e| {
-            let drop = excess > 0 && Some(e.id) != installed;
+            let drop = excess > 0 && !installed.contains(&e.id);
             excess -= usize::from(drop);
             !drop
         });
@@ -311,10 +368,10 @@ impl History {
         Ok(())
     }
 
-    /// Forget one seed. Not the installed one: its mod is still in place.
+    /// Forget one seed. Not an installed one, any game's.
     pub fn remove(&mut self, id: u32) -> Result<()> {
         ensure!(
-            self.installed != Some(id),
+            !self.in_place().any(|i| i == id),
             "The installed seed can't be deleted"
         );
         let before = self.entries.len();
@@ -323,14 +380,14 @@ impl History {
         Ok(())
     }
 
-    /// Forget every seed but the installed one.
+    /// Forget every seed but the installed ones, every game's.
     pub fn clear(&mut self) {
-        let installed = self.installed;
-        self.entries.retain(|e| Some(e.id) == installed);
+        let installed: Vec<u32> = self.in_place().collect();
+        self.entries.retain(|e| installed.contains(&e.id));
     }
 
     pub fn view(&self) -> View {
-        let installed = self.installed.and_then(|id| self.get(id).ok());
+        let installed = self.installed().id.and_then(|id| self.get(id).ok());
         View {
             installed: installed.map(Summary::from),
             entries: self.entries.iter().rev().map(Summary::from).collect(),
@@ -363,6 +420,57 @@ pub(crate) mod tests {
         std::fs::remove_file(&path).unwrap();
         assert_eq!(kept(&slot, &path, load).unwrap(), 3);
         assert_eq!(kept(&slot, &path, load).unwrap(), 3);
+    }
+
+    #[test]
+    fn each_game_keeps_its_own_installed_seed() {
+        let reload = |h: &History, game: Option<&str>| History {
+            game: game.map(Into::into),
+            ..History::parse(&serde_json::to_vec(h).unwrap()).unwrap()
+        };
+        let mut own = History::default();
+        for seed in 1..=3 {
+            own.add(
+                Settings::new(),
+                Extras::default(),
+                Label::default(),
+                report(seed),
+            );
+        }
+        own.install(Some(1));
+        let mut two = reload(&own, Some("FakeHost-2"));
+        assert_eq!(two.installed(), Installed::default());
+        two.install(Some(2));
+        assert_eq!(reload(&two, None).installed().id, Some(1));
+        assert_eq!(reload(&two, Some("FakeHost-2")).installed().id, Some(2));
+        assert_eq!(reload(&two, Some("FakeHost-3")).installed().id, None);
+        // Every game's installed seed is spared, whichever game asks.
+        let mut own = reload(&two, None);
+        assert!(own.remove(2).is_err());
+        own.clear();
+        assert_eq!(own.entries.iter().map(|e| e.id).collect::<Vec<_>>(), [1, 2]);
+        // Taking a slot's seed off leaves the machine's own.
+        two.install(None);
+        assert_eq!(
+            reload(&two, Some("FakeHost-2")).installed(),
+            Installed::default()
+        );
+        assert_eq!(reload(&two, None).installed().id, Some(1));
+        // A history from before slots: its one seed is the machine's own.
+        let old = br#"{"installed": 3, "installed_at": 5, "entries": []}"#;
+        let old = History::parse(old).unwrap();
+        assert_eq!(
+            old.installed(),
+            Installed {
+                id: Some(3),
+                at: Some(5)
+            }
+        );
+        let slot = History {
+            game: Some("FakeHost-2".into()),
+            ..old
+        };
+        assert_eq!(slot.installed(), Installed::default());
     }
 
     #[test]

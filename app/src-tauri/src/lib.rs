@@ -502,7 +502,7 @@ struct Items(Mutex<Option<(Option<u32>, Inventory)>>);
 impl Items {
     fn state(&self, app: &AppHandle) -> anyhow::Result<ItemsState> {
         let config = Config::load()?;
-        let since = History::load()?.installed_at;
+        let since = History::load()?.installed().at;
         let mut items = self.0.lock().unwrap();
         if items.as_ref().is_none_or(|(at, _)| *at != since) {
             let gd = app.state::<Live>().gamedata(&config)?;

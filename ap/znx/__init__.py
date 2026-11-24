@@ -92,6 +92,29 @@ def lined(counts: Counter) -> Counter:
     return out
 
 
+def spelled(counts: dict, holds, progressive: bool) -> dict:
+    """The items of a start inventory with each name of the other progressive
+    mode spelled as this one's, so logic counts them. On, a level's name is
+    its line's copies up to it (Longshot is two Progressive Hookshots);
+    off, a line's copies are its first levels. Only levels the options keep
+    are spelled: the rest are never dealt."""
+    out = {}
+    for name, count in counts.items():
+        spelling = {name: count}
+        if progressive and name in LINES:
+            held = [level["names"][0] for level in LEVELS[LINES[name]] if holds(level)]
+            if name in held:
+                spelling = {LINES[name]: held.index(name) + 1}
+        elif not progressive and name in LEVELS:
+            held = [level["names"][0] for level in LEVELS[name] if holds(level)]
+            spelling = {level: 1 for level in held[:count]}
+        for item, n in spelling.items():
+            # Two spellings of one item name it once; a higher level holds
+            # the ones below.
+            out[item] = max(out.get(item, 0), n)
+    return out
+
+
 def kept(holds) -> dict:
     """Each line's levels the options `holds` keeps, each its names, as
     `rules.lined` reads them. A level they drop is never dealt: its names
@@ -182,6 +205,11 @@ class ZnxWorld(World):
         self.dealt = trapped(*dealt(filter(self.holds, POOL)), share, self.random)
         if self.setting_values[PROGRESSIVE]:
             self.dealt = lined(self.dealt)
+        # Both inventories take either mode's names: logic reads this one's.
+        for option in (self.options.start_inventory, self.options.start_inventory_from_pool):
+            spelled_items = spelled(option.value, self.holds, bool(self.setting_values[PROGRESSIVE]))
+            option.value.clear()
+            option.value.update(spelled_items)
 
     def holds(self, row: dict) -> bool:
         """Whether these options hold `row`: a check, event, pool row or

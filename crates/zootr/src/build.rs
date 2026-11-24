@@ -152,15 +152,17 @@ impl Drop for Held {
 /// build's status reads current afterwards, whatever the command's exit.
 /// Refuses while the game runs or another rebuild of it does.
 pub fn rebuild(target: &Target, game: Option<&Path>, run: &Run) -> Result<Status> {
-    rebuild_among(target, Config::load_all(), game, run)
+    let proc = Path::new(crate::platform::PROC);
+    rebuild_among(target, Config::load_all(), proc, game, run)
 }
 
 /// [`rebuild`], checking the targets in `saved`, the saved config, for a
-/// running slot that shares the build. Refuses when the config didn't
-/// load, since then it can't tell.
+/// running slot that shares the build, by the process list `proc`. Refuses
+/// when the config didn't load, since then it can't tell.
 fn rebuild_among(
     target: &Target,
     saved: Result<Config>,
+    proc: &Path,
     game: Option<&Path>,
     run: &Run,
 ) -> Result<Status> {
@@ -169,10 +171,10 @@ fn rebuild_among(
         (target.rebuild_args(game)?).with_context(|| format!("{name} has no rebuild command"))?;
     // Slots share one build: a rebuild under any running one breaks it.
     let saved = saved.context("reading the config to check for slots sharing the build")?;
-    let sharing = (saved.targets.into_iter()).filter(|t| t.shares_build(target));
-    if let Some(busy) = std::iter::once(target.clone())
+    let sharing = (saved.targets.iter()).filter(|t| t.shares_build(target));
+    if let Some(busy) = std::iter::once(target)
         .chain(sharing)
-        .find(Target::running)
+        .find(|t| t.running_among(&saved.targets, proc))
     {
         bail!("Close the game first: {} is running", busy.name);
     }
@@ -509,10 +511,14 @@ mod tests {
         }
     }
 
+    /// A process list that isn't there, never the machine's own.
+    #[cfg(unix)]
+    const NO_PROC: &str = "/nowhere/proc";
+
     /// `t` rebuilt with no other slot saved, never the real config.
     #[cfg(unix)]
     fn rebuilt(t: &Target, run: &Run) -> Result<Status> {
-        rebuild_among(t, Ok(Config::default()), None, run)
+        rebuild_among(t, Ok(Config::default()), Path::new(NO_PROC), None, run)
     }
 
     #[cfg(unix)]
@@ -522,8 +528,14 @@ mod tests {
         let marker = dir.join("ran");
         let t = rebuilt_by(&target(&dir), format!("touch '{}'", marker.display()));
         let (heard, run) = recorded();
-        let err =
-            rebuild_among(&t, Err(anyhow!("fake unreadable config")), None, &run).unwrap_err();
+        let err = rebuild_among(
+            &t,
+            Err(anyhow!("fake unreadable config")),
+            Path::new(NO_PROC),
+            None,
+            &run,
+        )
+        .unwrap_err();
         assert!(
             format!("{err:#}").contains("fake unreadable config"),
             "{err:#}"
@@ -531,6 +543,52 @@ mod tests {
         assert!(!marker.exists(), "the rebuild ran without the config");
         assert!(heard.lock().unwrap().is_empty());
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_game_of_another_build_on_the_socket_doesnt_block_this_rebuild() {
+        let (one, two) = (game("shared-one"), game("shared-two"));
+        let (socket, proc) = (one.join("control.sock"), one.join("proc"));
+        std::fs::create_dir_all(proc.join("7")).unwrap();
+        let on_socket = |t: Target| Target {
+            bridge: Some(socket.clone()),
+            ..t
+        };
+        let marker = two.join("ran");
+        let other = on_socket(target(&one));
+        let mine = on_socket(rebuilt_by(
+            &target(&two),
+            format!("touch '{}'", marker.display()),
+        ));
+        let both = || {
+            Ok(Config {
+                targets: vec![other.clone(), mine.clone()],
+                ..Config::default()
+            })
+        };
+        let _game = std::os::unix::net::UnixListener::bind(&socket).unwrap();
+        let in_build = |dir: &Path| {
+            let args = format!(
+                "/opt/fake-game\0--crash-watch\0{}/\0",
+                dir.canonicalize().unwrap().display()
+            );
+            std::fs::write(proc.join("7/cmdline"), args).unwrap();
+        };
+        in_build(&one);
+        let _ = rebuild_among(&mine, both(), &proc, None, &Run::silent());
+        assert!(
+            marker.exists(),
+            "the other build's game blocked the rebuild"
+        );
+        in_build(&two);
+        let err = rebuild_among(&mine, both(), &proc, None, &Run::silent()).unwrap_err();
+        assert!(
+            format!("{err:#}").contains("Close the game first"),
+            "{err:#}"
+        );
+        std::fs::remove_dir_all(one).unwrap();
+        std::fs::remove_dir_all(two).unwrap();
     }
 
     #[cfg(unix)]
