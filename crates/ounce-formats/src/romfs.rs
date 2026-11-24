@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -35,8 +36,16 @@ impl Romfs {
         Ok(rel.to_string_lossy().replace('\\', "/"))
     }
 
-    /// A file's contents, decompressed when it is zstd.
+    /// `rel` as this romfs names it: see [`stamped`].
+    pub fn resolve<'a>(&self, rel: &'a str) -> Cow<'a, str> {
+        stamped(&self.root, rel)
+    }
+
+    /// A file's contents, decompressed when it is zstd. A stamped name
+    /// reads this romfs's file under its own stamp ([`stamped`]).
     pub fn read(&self, rel: &str) -> Result<Vec<u8>> {
+        let rel = self.resolve(rel);
+        let rel = rel.as_ref();
         let path = self.root.join(rel);
         let raw = std::fs::read(&path).with_context(|| format!("reading {}", path.display()))?;
         self.dicts.decompress(rel, &raw)
@@ -54,6 +63,40 @@ impl Romfs {
             ));
         };
         self.rel(only)
+    }
+}
+
+/// `name` split around its version stamp, `.Product.` and digits: what
+/// comes before and after it. `None` for a name without one.
+fn split_stamp(name: &str) -> Option<(&str, &str)> {
+    const STAMP: &str = ".Product.";
+    let at = name.find(STAMP)?;
+    let rest = &name[at + STAMP.len()..];
+    let digits = rest.find(|c: char| !c.is_ascii_digit())?;
+    (digits > 0).then(|| (&name[..at], &rest[digits..]))
+}
+
+/// Whether `name` is `want` but for its version stamp, which may be any.
+pub fn same_but_stamp(name: &str, want: &str) -> bool {
+    split_stamp(name).is_some_and(|parts| split_stamp(want) == Some(parts))
+}
+
+/// `rel` as the romfs at `root` names it. Each build stamps some files
+/// with its version, and not all alike: 1.0.0's `Product.100` is
+/// `Product.110` or `Product.111` in 1.1.1. A stamped name `root` lacks is
+/// looked up in its folder under any stamp, the highest if there are more.
+/// Anything else, or a name no stamp finds, is `rel` as it is.
+pub fn stamped<'a>(root: &Path, rel: &'a str) -> Cow<'a, str> {
+    if split_stamp(rel).is_none() || root.join(rel).exists() {
+        return Cow::Borrowed(rel);
+    }
+    let (dir, file) = rel.rsplit_once('/').unwrap_or(("", rel));
+    let entries = std::fs::read_dir(root.join(dir)).into_iter().flatten();
+    let names = entries.filter_map(|e| e.ok()?.file_name().into_string().ok());
+    match names.filter(|n| same_but_stamp(n, file)).max() {
+        Some(found) if dir.is_empty() => Cow::Owned(found),
+        Some(found) => Cow::Owned(format!("{dir}/{found}")),
+        None => Cow::Borrowed(rel),
     }
 }
 
@@ -138,6 +181,8 @@ impl<'a> ModBuilder<'a> {
     /// packs, the pause menu's table) build on each other this way, in
     /// whichever order they run.
     pub fn read(&self, rel: &str) -> Result<Vec<u8>> {
+        let rel = self.romfs.resolve(rel);
+        let rel = rel.as_ref();
         if let Some((_, contents)) = self.pending.iter().rev().find(|(r, _)| r == rel) {
             return Ok(contents.clone());
         }
@@ -155,8 +200,11 @@ impl<'a> ModBuilder<'a> {
     }
 
     /// Write a changed file, given its decompressed contents. Its RESTBL
-    /// entry grows from what [`Self::read`] had.
+    /// entry grows from what [`Self::read`] had. A stamped name is written
+    /// under the game's own stamp ([`stamped`]).
     pub fn write(&mut self, rel: &str, contents: &[u8]) -> Result<()> {
+        let rel = self.romfs.resolve(rel);
+        let rel = rel.as_ref();
         let old_size = self.read(rel)?.len();
         self.restbl.resize(rel, old_size, contents.len())?;
         self.put(rel, contents)?;
@@ -342,6 +390,44 @@ fn copy_dir(from: &Path, to: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_stamped_name_finds_the_file_under_its_own_stamp() {
+        let root = std::env::temp_dir().join(format!("ounce-stamp-{}", std::process::id()));
+        std::fs::create_dir_all(root.join("Mals")).unwrap();
+        for f in [
+            "USen.Product.100.sarc.zs",
+            "USen.Product.90.sarc.zs",
+            "USes.Product.100.sarc.zs",
+        ] {
+            std::fs::write(root.join("Mals").join(f), b"").unwrap();
+        }
+        std::fs::write(root.join("Top.Product.111.byml"), b"").unwrap();
+        let s = |rel| stamped(&root, rel).into_owned();
+        assert_eq!(
+            s("Mals/USen.Product.110.sarc.zs"),
+            "Mals/USen.Product.100.sarc.zs"
+        );
+        assert_eq!(
+            s("Mals/USen.Product.100.sarc.zs"),
+            "Mals/USen.Product.100.sarc.zs"
+        );
+        assert_eq!(s("Top.Product.100.byml"), "Top.Product.111.byml");
+        // Nothing to find, or no stamp to look by: as it is.
+        assert_eq!(
+            s("Mals/JPja.Product.110.sarc.zs"),
+            "Mals/JPja.Product.110.sarc.zs"
+        );
+        assert_eq!(
+            s("Gone/USen.Product.110.sarc.zs"),
+            "Gone/USen.Product.110.sarc.zs"
+        );
+        assert_eq!(s("Mals/USen.sarc.zs"), "Mals/USen.sarc.zs");
+        assert!(same_but_stamp("a.Product.1.b", "a.Product.22.b"));
+        assert!(!same_but_stamp("a.Product.1.b", "a.Product.1.c"));
+        assert!(!same_but_stamp("a.Product..b", "a.Product..b"));
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn clear_only_deletes_our_folders() {
