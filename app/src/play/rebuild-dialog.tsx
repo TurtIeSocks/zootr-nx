@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { WhyButton } from "@/components/why-button";
 import { errorParts } from "@/lib/api";
+import { alreadyRunning } from "@/lib/config";
 import { useKept } from "@/play/use-kept";
 import { useTargetRunning } from "@/stores/seeds";
 
@@ -57,7 +58,7 @@ export function RebuildDialog({
           </Button>
           <WhyButton
             variant="secondary"
-            why={running && `${name} is already running`}
+            why={running && name !== undefined && alreadyRunning(name)}
             onClick={then(onPlay)}
           >
             Play Anyway

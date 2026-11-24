@@ -8,7 +8,7 @@ export interface AppLog {
   /** The newest {@link CAP} lines, oldest first, each with its `seq` as
    * its id for the selection. */
   lines: (Line & { id: number })[];
-  /** The next line's number. Anything below it is already here. */
+  /** One past the newest line's number. */
   next: number;
   /** This run's file. */
   file: string | null;
@@ -21,15 +21,19 @@ export interface AppLog {
 /** The store before the backend says anything. */
 export const EMPTY: AppLog = { lines: [], next: 0, file: null, unsaved: null };
 
-/** `log` with `lines` added, skipping any it already holds. */
+/** `log` with `lines` added in `seq` order, skipping any it already holds.
+ * Threads in the backend can send lines out of order, so a late one slots
+ * in where it belongs rather than being dropped. */
 export function add(log: AppLog, lines: Line[]): AppLog {
-  const fresh = lines.filter((l) => l.seq >= log.next);
+  const held = new Set(log.lines.map((l) => l.id));
+  const fresh = lines.filter((l) => !held.has(l.seq));
   if (fresh.length === 0) return log;
   const all = [...log.lines, ...fresh.map((l) => ({ ...l, id: l.seq }))];
+  all.sort((a, b) => a.id - b.id);
   return {
     ...log,
     lines: all.slice(-CAP),
-    next: Math.max(...fresh.map((l) => l.seq)) + 1,
+    next: Math.max(log.next, ...fresh.map((l) => l.seq + 1)),
   };
 }
 

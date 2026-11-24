@@ -7,10 +7,16 @@ export interface QuestStep {
   step: string;
 }
 
+/** The steps of the quest named `name`, if the game has it. Own keys only,
+ * so a name like `constructor` isn't read off the prototype. */
+export function stepsOf(quests: Quests, name: string): string[] | undefined {
+  return Object.hasOwn(quests, name) ? quests[name] : undefined;
+}
+
 /** The step to use for `pick`: the picked one if its quest has it, else
  * the quest's first. Empty for a quest the game doesn't have. */
 export function stepOf(quests: Quests, pick: QuestStep): string {
-  const steps = quests[pick.challenge.trim()] ?? [];
+  const steps = stepsOf(quests, pick.challenge.trim()) ?? [];
   return steps.includes(pick.step) ? pick.step : (steps[0] ?? "");
 }
 

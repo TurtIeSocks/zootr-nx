@@ -20,23 +20,11 @@ import {
   unmet,
   withForced,
 } from "@/lib/settings";
+import { toggleDef } from "@/test/fixtures";
 
 /** A toggle `id`, off unless `over` says otherwise, labelled in capitals. */
-const def = (id: string, over: Partial<SettingDef> = {}): SettingDef => ({
-  id,
-  group: "g",
-  label: id.toUpperCase(),
-  description: "",
-  kind: { type: "toggle", default: false },
-  parent: null,
-  requires: null,
-  section: "Fake section",
-  section_about: "Fake about",
-  list: false,
-  gives: [],
-  archipelago: { ap: "offered" },
-  ...over,
-});
+const def = (id: string, over: Partial<SettingDef> = {}) =>
+  toggleDef(id, { label: id.toUpperCase(), ...over });
 
 /** A choice's option, forcing and starting nothing unless `over` says. */
 const opt = (

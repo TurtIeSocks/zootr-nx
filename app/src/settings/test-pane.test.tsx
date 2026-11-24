@@ -55,7 +55,14 @@ vi.mock("@/bindings", () => ({
         live: null,
       },
     }),
-    devActors: async () => ({ status: "ok", data: { Npc_A: 1 } }),
+    // Two placements of one actor, as the backend lists them.
+    devActors: async () => ({
+      status: "ok",
+      data: [
+        { actor: "Npc_A", hash: "1", label: null },
+        { actor: "Npc_A", hash: "2", label: "Npc_A_2" },
+      ],
+    }),
     shuffleCommand: () =>
       Promise.resolve({ status: "ok", data: "zootr shuffle --give Item_B" }),
     setConfig: (c: FullConfig) => setConfig(c),
