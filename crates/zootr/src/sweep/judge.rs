@@ -193,6 +193,8 @@ mod tests {
         let unreadable = answer(none).unwrap();
         assert!(matches!(&unreadable, Answer::Unreadable(t) if t.contains("max_tokens")));
         assert!(answer(Err(anyhow::anyhow!("no game is listening"))).is_err());
+        let broken = serde_json::json!({"detail": "Not Found"});
+        assert!(answer(vision::parse_anthropic(&broken, "m")).is_err());
     }
 
     #[test]

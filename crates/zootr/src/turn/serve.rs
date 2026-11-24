@@ -170,6 +170,7 @@ fn serve_on(listener: TcpListener, turn: &TurnConfig) -> Result<()> {
         Err(e) => return Err(e).with_context(|| format!("reading {}", serve.state.display())),
     };
     queue.configure(&turn.games);
+    queue.loaded(now());
     let shared = Arc::new(Shared {
         queue: Mutex::new(queue),
         changed: Condvar::new(),

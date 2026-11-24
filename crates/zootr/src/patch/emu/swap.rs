@@ -58,6 +58,8 @@ pub(super) struct Game {
     calls: Vec<Call>,
     /// What create answers, call by call (1 once it runs out).
     creates: Vec<u64>,
+    /// The name hash of what Link's drawn bow shoots, or no bow drawn.
+    pub(super) projectile: Option<u32>,
 }
 
 pub(super) fn u64s(words: &[u64]) -> Vec<u8> {
@@ -84,6 +86,7 @@ impl Game {
             bools: BTreeMap::from([(CHILD, true)]),
             calls: vec![],
             creates: vec![],
+            projectile: None,
         };
         let o = &OFFSETS;
         // Each list: one entry, its link holding its actor while the ids
@@ -247,6 +250,16 @@ impl Game {
                     .push(Call::Pause(what, String::from_utf8(text).unwrap()));
                 0
             }
+            // A drawn bow is any word but 0, and its projectile's name one
+            // letter, whose hash is `projectile`.
+            _ if offset == o.drawn_bow => self.projectile.is_some() as u64,
+            _ if offset == o.shootable => 1,
+            _ if offset == o.name_copy => {
+                let text = self.u64(x0);
+                self.write(text, b"x\0");
+                0
+            }
+            _ if offset == o.hash => self.projectile.map_or(0, u64::from),
             _ => panic!("the hook ran the game's code at {offset:#x}"),
         }
     }

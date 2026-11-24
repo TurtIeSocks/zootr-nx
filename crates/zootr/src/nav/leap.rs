@@ -248,9 +248,11 @@ mod tests {
     use crate::nav::sim;
 
     #[test]
-    fn a_settle_that_never_runs_out_is_refused_before_the_warp() {
+    fn a_settle_that_never_runs_out_or_is_negative_is_refused_before_the_warp() {
         let (_, mut hands) = sim::start([0.0; 3], 0.0);
         let dev = sim::dev();
+        // A negative settle only ends the read early, but `trace` refuses
+        // it too, so `leap` takes the same times.
         for bad in [f32::INFINITY, f32::NAN, -1.0] {
             let line = ([0.0; 3], [1.0, 0.0, 0.0]);
             let err = leap(&dev, &mut hands, line, 2.0, 0.0, bad, None).unwrap_err();

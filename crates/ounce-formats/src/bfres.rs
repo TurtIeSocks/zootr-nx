@@ -872,8 +872,8 @@ pub fn shape_names(data: &[u8]) -> Vec<String> {
 
 /// Every shape header's offset.
 fn shapes(data: &[u8]) -> impl Iterator<Item = usize> + '_ {
-    // Its last field read is the vertex buffer pointer.
-    find_magic(data, b"FSHP", SHAPE_VERTICES + 8, 8)
+    // The furthest field any reader takes is the mesh count byte.
+    find_magic(data, b"FSHP", SHAPE_MESH_COUNT + 1, 8)
 }
 
 fn shape_name(data: &[u8], shape: usize) -> Option<&[u8]> {
