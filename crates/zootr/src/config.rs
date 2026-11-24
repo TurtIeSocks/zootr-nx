@@ -397,7 +397,7 @@ impl Target {
     /// `name`, or `name 2`, `name 3` and so on until none of `taken` has it.
     pub fn unique_name<'a>(&self, taken: impl IntoIterator<Item = &'a Target>) -> String {
         let taken: Vec<&str> = taken.into_iter().map(|t| t.name.as_str()).collect();
-        let free = |n: &str| !taken.iter().any(|&t| t == n);
+        let free = |n: &str| !taken.contains(&n);
         let name = self.name.trim();
         if free(name) {
             return name.to_owned();
