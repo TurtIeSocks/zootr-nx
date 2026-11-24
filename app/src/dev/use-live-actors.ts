@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { commands, type DevNear } from "@/bindings";
-import { tag } from "@/dev/tag";
+import { matches, tag } from "@/dev/tag";
 import { call, message } from "@/lib/api";
 import { count } from "@/lib/format";
 import { type HiddenActor, type LiveRead, useDev } from "@/stores/dev";
@@ -12,7 +12,8 @@ export const FOLLOW_MS = 2000;
 export const RETRIES = 4;
 export const RETRY_MS = 1000;
 
-/** Reads so far, so a read a later one overtook is dropped. */
+/** Reads so far, so a read a later one overtook is dropped. A hide or show
+ * counts as one too, so a read it overtook can't undo its marks. */
 let reads = 0;
 
 /** Reads the live actors again, nearest Link first, or why they can't be,
@@ -50,10 +51,20 @@ async function hideAgain(map: string, list: DevNear[]): Promise<void> {
     .filter((n) => n.hidden === "shown" && listed.has(n.hash))
     .map((n) => n.hash);
   if (shown.length === 0) return;
-  const found = await call(commands.devHide(shown, true)).catch(
-    () => [] as string[],
+  mark(await hideQuietly(shown), "ours");
+}
+
+/** Hides these placements, those it found, or none on a refusal. */
+const hideQuietly = (hashes: string[]) =>
+  call(commands.devHide(hashes, true)).catch(() => [] as string[]);
+
+/** The placements `read` found hidden by us. */
+function oursOf(read: LiveRead): Set<string> {
+  return new Set(
+    read.status === "ok"
+      ? read.list.filter((n) => n.hidden === "ours").map((n) => n.hash)
+      : [],
   );
-  mark(found, "ours");
 }
 
 /** Marks these placements' rows as `hidden`, leaving the order alone. */
@@ -73,7 +84,7 @@ function without(hashes: string[]): HiddenActor[] {
 }
 
 /** An actor and what tells it from others of its name. */
-const named = (actor: string, tag: string | null) =>
+export const named = (actor: string, tag: string | null) =>
   tag ? `${actor} ${tag}` : actor;
 
 /** Hides `near`'s model, or shows it again, keeping the hidden list.
@@ -85,6 +96,7 @@ export async function toggle(
 ): Promise<string> {
   const on = near.hidden === "shown";
   const found = await call(commands.devHide([near.hash], on));
+  reads++;
   if (!found.includes(near.hash)) {
     throw new Error(`${near.actor} isn't live anymore. Refresh the list`);
   }
@@ -103,7 +115,11 @@ export async function toggle(
 async function show(gone: HiddenActor[]): Promise<void> {
   const map = useDev.getPath("game.state.map");
   const here = gone.filter((h) => h.map === map).map((h) => h.hash);
-  if (here.length > 0) mark(await call(commands.devHide(here, false)), "shown");
+  if (here.length > 0) {
+    const found = await call(commands.devHide(here, false));
+    reads++;
+    mark(found, "shown");
+  }
   useDev.setPath("live.hidden", without(gone.map((h) => h.hash)));
 }
 
@@ -135,18 +151,11 @@ async function rehide(map: string): Promise<void> {
     // One shown from the strip meanwhile is no longer wanted, and one a
     // read hid again needs nothing more.
     const listed = new Set(useDev.getPath("live.hidden").map((h) => h.hash));
-    const read = useDev.getPath("live.read");
-    const ours = new Set(
-      read.status === "ok"
-        ? read.list.filter((n) => n.hidden === "ours").map((n) => n.hash)
-        : [],
-    );
+    const ours = oursOf(useDev.getPath("live.read"));
     pending = pending.filter((h) => listed.has(h.hash) && !ours.has(h.hash));
     const hashes = pending.map((h) => h.hash);
     if (hashes.length === 0) return;
-    const found = await call(commands.devHide(hashes, true)).catch(
-      () => [] as string[],
-    );
+    const found = await hideQuietly(hashes);
     mark(found, "ours");
     pending = pending.filter((h) => !found.includes(h.hash));
   }
@@ -189,12 +198,9 @@ export function useLiveRows():
 
   return useMemo(() => {
     if (read.status !== "ok") return read;
-    const q = query.toLowerCase().trim();
     const rows = read.list
       .map((near) => ({ near, tag: tag(read.list, near) }))
-      .filter(({ near }) =>
-        [near.actor, near.label ?? ""].some((t) => t.toLowerCase().includes(q)),
-      );
+      .filter(({ near }) => matches(near, query));
     return { status: "ok", map: read.map, rows, at: read.at };
   }, [read, query]);
 }
@@ -213,11 +219,7 @@ export function useHiddenChips(): HiddenChip[] {
   const [read] = useDev.usePath("live.read");
 
   return useMemo(() => {
-    const ours = new Set(
-      read.status === "ok"
-        ? read.list.filter((n) => n.hidden === "ours").map((n) => n.hash)
-        : [],
-    );
+    const ours = oursOf(read);
     const map = read.status === "ok" ? read.map : null;
     return hidden.map((h) => ({
       hidden: h,

@@ -6,11 +6,13 @@ import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
 import { Ago } from "@/dev/activity";
 import { DevCard, GroupHead } from "@/dev/dev-card";
+import { MapActors, MapGate, SearchField } from "@/dev/map-actors";
 import { warpBeside } from "@/dev/requests";
 import { HOVER_ACTION, LIST, ROW, ROW_BUTTON } from "@/dev/styles";
 import {
   type HiddenChip,
   type LiveRow,
+  named,
   readLive,
   showAll,
   showOne,
@@ -19,7 +21,6 @@ import {
   useLiveReads,
   useLiveRows,
 } from "@/dev/use-live-actors";
-import { MapActors, MapGate, SearchField } from "@/dev/warp-tab";
 import { cn } from "@/lib/utils";
 import { send, useCanSend, useDev } from "@/stores/dev";
 import { useUi } from "@/stores/ui";
@@ -97,7 +98,7 @@ function HiddenCard() {
 /** One hidden actor, dimmed while it isn't hidden in the game now. */
 function Chip({ chip: { hidden, tag, live } }: { chip: HiddenChip }) {
   const can = useCanSend();
-  const name = `${hidden.actor}${tag ? ` ${tag}` : ""}`;
+  const name = named(hidden.actor, tag);
 
   return (
     <span
@@ -239,7 +240,7 @@ function LiveActor({ row, map }: { row: LiveRow; map: string }) {
   const can = useCanSend();
   const hidden = row.near.hidden === "ours";
   const { actor, hash } = row.near;
-  const name = `${actor}${row.tag ? ` ${row.tag}` : ""}`;
+  const name = named(actor, row.tag);
 
   return (
     <div className={cn(ROW, "group")}>
