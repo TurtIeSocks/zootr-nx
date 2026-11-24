@@ -166,6 +166,11 @@ pub(crate) fn swap_strings(map: &mut BymlMap, from: &str, to: &str) -> usize {
     map.values_mut().map(|v| walk(v, from, to)).sum()
 }
 
+/// A point as `x,y,z`, to a tenth.
+pub fn xyz(p: [f32; 3]) -> String {
+    format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2])
+}
+
 /// The dungeon room `actor` names, if it names one.
 pub fn room_of(actor: &Byml) -> Option<u32> {
     let dynamic = actor.as_map().ok()?.get(DYNAMIC)?;

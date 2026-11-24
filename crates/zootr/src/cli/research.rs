@@ -410,9 +410,8 @@ fn derive(
     for w in &d.warnings {
         println!("warning: {w}");
     }
-    let at = |p: [f32; 3]| format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2]);
     for j in &d.jumps {
-        let (from, to) = (at(j.at.0), at(j.at.1));
+        let (from, to) = (checks::xyz(j.at.0), checks::xyz(j.at.1));
         println!(
             "jump {} to {}: {:.1} m, {from} to {to}",
             j.from, j.to, j.width

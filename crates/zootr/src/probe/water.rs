@@ -6,7 +6,8 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use ounce_formats::Romfs;
 
-use super::{root, xyz};
+use super::root;
+use crate::checks::xyz;
 use crate::nav::Level;
 use crate::nav::graph::{Graph, step_up};
 use crate::nav::water::{NoSwim, bodies};

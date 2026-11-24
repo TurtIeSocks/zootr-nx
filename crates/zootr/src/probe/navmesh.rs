@@ -6,7 +6,7 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use ounce_formats::{NavMesh, Romfs, Tagfile};
 
-use super::xyz;
+use crate::checks::xyz;
 use crate::nav::navmesh_file;
 
 /// Every type a tagfile declares, with its fields.
