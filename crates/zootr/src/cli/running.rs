@@ -419,7 +419,7 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
         DevCommand::Checked { hash } => {
             let gd = installed_gamedata(romfs)?;
             let history = crate::history::History::load()?;
-            let spots = match history.installed.map(|id| history.get(id)) {
+            let spots = match history.installed().id.map(|id| history.get(id)) {
                 Some(entry) => entry?.report.spots.clone(),
                 None => Vec::new(),
             };
