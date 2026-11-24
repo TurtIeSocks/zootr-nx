@@ -153,7 +153,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let settings = Settings::new();
+        let settings = crate::settings::favorites::randomizer();
         let got = options(&romfs, &settings, &Fixed::new()).unwrap();
         assert_eq!(got.error, None);
         let hashes: BTreeSet<u64> = got.checks.iter().map(|c| c.hash).collect();

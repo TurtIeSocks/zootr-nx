@@ -339,9 +339,9 @@ impl StartingAge {
 #[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
 pub enum Bombchus {
     /// The bomb bag's cap, as in the game
+    #[default]
     BombBag,
     /// Their own cap, the Biggest Bomb Bag's
-    #[default]
     Free,
     /// Three Bombchu Bags in the pool, each a size up
     Bag,
@@ -403,9 +403,9 @@ impl Trials {
 #[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
 pub enum DoorOfTime {
     /// Opened as in the game, with the stones, the Ocarina of Time and its song
+    #[default]
     Closed,
     /// Open from the start
-    #[default]
     Open,
 }
 

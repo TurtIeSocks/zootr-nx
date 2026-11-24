@@ -49,9 +49,6 @@ impl Preset {
     }
 }
 
-/// Presets a new game takes unless turned off.
-pub const DEFAULT_ON: [&str; 4] = ["menus", "clock", "no-tutorials", "no-pickup-texts"];
-
 /// Met Zelda's edits: Zelda met, with the Door of Time quest at its second
 /// step. The lullaby comes from Impa's check, which the opening gives. Her quest at its end puts Talon and
 /// Malon at the ranch, and the played flag of the scene where Link wakes
@@ -574,7 +571,6 @@ mod tests {
         assert_eq!(edits.len(), PICKUPS.len());
         assert!(edits.contains(&format!("IsGet.{}=true", actor::OBJ_HEART)));
         assert!(edits.iter().all(|e| !e.contains("Item_")));
-        assert!(DEFAULT_ON.contains(&"no-pickup-texts"));
     }
 
     #[test]
@@ -593,7 +589,6 @@ mod tests {
             edits,
             [format!("{}=true", flag::HYRULE_FIELD_ARRIVE_ENTRANCE)]
         );
-        assert!(DEFAULT_ON.contains(&"clock"));
     }
 
     #[test]
@@ -645,7 +640,6 @@ mod tests {
             "{}=true",
             field::UI_IS_FINISH_CHALLENGE_MENU_OPEN_EVENT
         )));
-        assert!(DEFAULT_ON.contains(&"no-tutorials"));
     }
 
     #[test]

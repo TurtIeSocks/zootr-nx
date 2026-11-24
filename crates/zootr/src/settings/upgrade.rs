@@ -1,5 +1,6 @@
 //! Settings saved by older versions, read as the current ones.
 
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::{
@@ -140,9 +141,37 @@ const STARTING: [(&str, &[&str]); 9] = [
     ("magic", &["magic-meter"]),
 ];
 
-/// Brings saved `settings` (the config, a history entry, a share code) up
-/// to date, so an old seed builds as it did.
-pub(crate) fn upgrade(settings: &mut Settings) {
+/// Which defaults a file's settings were saved under, kept in the file
+/// beside them. A file without one is from before the defaults went
+/// vanilla.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct SettingsVersion(u32);
+
+impl SettingsVersion {
+    /// The randomizer's defaults: the Randomizer favorite's values.
+    pub const RANDOMIZER: Self = Self(1);
+    /// Every setting at the game's own behavior.
+    pub const VANILLA: Self = Self(2);
+    pub const CURRENT: Self = Self::VANILLA;
+
+    /// What a file that names no version was saved under.
+    pub fn unwritten() -> Self {
+        Self::RANDOMIZER
+    }
+}
+
+/// A new file's settings are current.
+impl Default for SettingsVersion {
+    fn default() -> Self {
+        Self::CURRENT
+    }
+}
+
+/// Brings saved `settings` (the config, a history entry, a share code),
+/// saved under `from`'s defaults, up to date, so an old seed builds as it
+/// did.
+pub(crate) fn upgrade(settings: &mut Settings, from: SettingsVersion) {
     if let Some(vanilla) = settings.remove(VANILLA_CHESTS) {
         let shuffled = vanilla != true;
         settings
@@ -183,6 +212,12 @@ pub(crate) fn upgrade(settings: &mut Settings) {
         let value = serde_json::to_value(start).expect("a map");
         settings.insert(starting::SETTING.into(), value);
     }
+    // A setting left at the randomizer's default keeps it.
+    if from < SettingsVersion::VANILLA {
+        for (id, value) in super::favorites::randomizer() {
+            settings.entry(id).or_insert(value);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -194,7 +229,7 @@ mod tests {
         let mut s: Settings = (old.iter())
             .map(|&(id, on)| (id.to_owned(), on.into()))
             .collect();
-        upgrade(&mut s);
+        upgrade(&mut s, SettingsVersion::CURRENT);
         s
     }
 
@@ -234,7 +269,7 @@ mod tests {
         ];
         assert_eq!(up(&off), Settings::new());
         let mut current = is(&[open, done]);
-        upgrade(&mut current);
+        upgrade(&mut current, SettingsVersion::CURRENT);
         assert_eq!(current, is(&[open, done]));
         assert_eq!(
             renamed(BRIDGE_MEDALLIONS).unwrap(),
@@ -259,7 +294,7 @@ mod tests {
         assert_eq!(up(&[(DOOR_UP, false), (OPEN_DOOR, false)]), door("closed"));
         assert_eq!(up(&[(DOOR_UP, false)]), Settings::new());
         let mut current = door("closed");
-        upgrade(&mut current);
+        upgrade(&mut current, SettingsVersion::CURRENT);
         assert_eq!(current, door("closed"));
         assert_eq!(
             renamed_as(OPEN_DOOR, false).unwrap(),
@@ -287,10 +322,10 @@ mod tests {
     #[test]
     fn the_zelda_preset_becomes_met_zelda() {
         let mut s = Settings::from([(ZELDA_DONE.into(), true.into())]);
-        upgrade(&mut s);
+        upgrade(&mut s, SettingsVersion::CURRENT);
         assert_eq!(s, Settings::from([(MET_ZELDA.into(), true.into())]));
         let mut off = Settings::from([(ZELDA_DONE.into(), false.into())]);
-        upgrade(&mut off);
+        upgrade(&mut off, SettingsVersion::CURRENT);
         assert_eq!(off, Settings::new());
         assert_eq!(renamed(ZELDA_DONE).unwrap(), "--setting met-zelda=true");
     }
@@ -299,7 +334,7 @@ mod tests {
     fn the_claim_check_preset_goes_with_a_note() {
         for on in [true, false] {
             let mut s = Settings::from([(CLAIM_CHECK.into(), on.into())]);
-            upgrade(&mut s);
+            upgrade(&mut s, SettingsVersion::CURRENT);
             assert_eq!(s, Settings::new());
         }
         assert_eq!(renamed(CLAIM_CHECK), None);
@@ -311,7 +346,7 @@ mod tests {
     fn free_bombchus_becomes_the_bombchus_choice() {
         let up = |free: bool| {
             let mut s = Settings::from([(FREE_BOMBCHUS.into(), free.into())]);
-            upgrade(&mut s);
+            upgrade(&mut s, SettingsVersion::CURRENT);
             s
         };
         let chosen = |v: &str| Settings::from([(BOMBCHUS.into(), v.into())]);
@@ -323,7 +358,7 @@ mod tests {
     fn vanilla_chests_become_shuffle_items_the_other_way_round() {
         let up = |vanilla: bool| {
             let mut s = Settings::from([(VANILLA_CHESTS.into(), vanilla.into())]);
-            upgrade(&mut s);
+            upgrade(&mut s, SettingsVersion::CURRENT);
             s
         };
         assert_eq!(
@@ -335,7 +370,7 @@ mod tests {
             Settings::from([(SHUFFLE_ITEMS.into(), true.into())])
         );
         let mut current = Settings::from([(SHUFFLE_ITEMS.into(), true.into())]);
-        upgrade(&mut current);
+        upgrade(&mut current, SettingsVersion::CURRENT);
         assert_eq!(
             current,
             Settings::from([(SHUFFLE_ITEMS.into(), true.into())])
@@ -352,7 +387,7 @@ mod tests {
             ("magic".into(), true.into()),
             (starting::SETTING.into(), serde_json::json!({ "bombs": 20 })),
         ]);
-        upgrade(&mut s);
+        upgrade(&mut s, SettingsVersion::CURRENT);
         let start = Start::from_settings(&s).unwrap();
         let words: Vec<_> = start.0.keys().map(String::as_str).collect();
         assert_eq!(words.len(), 11, "{words:?}");

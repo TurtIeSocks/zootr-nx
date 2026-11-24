@@ -4,6 +4,7 @@ import { ago, count, seedOrCode, splitLines } from "@/lib/format";
 test("a seed is its digits, a share code is kept whole", () => {
   expect(seedOrCode(" 48-29 13 ")).toBe("482913");
   expect(seedOrCode(" ZR1-abc ")).toBe("ZR1-abc");
+  expect(seedOrCode(" ZR2-abc ")).toBe("ZR2-abc");
 });
 
 test("lines are trimmed and blank ones dropped", () => {

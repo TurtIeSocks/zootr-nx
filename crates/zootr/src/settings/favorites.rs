@@ -36,10 +36,11 @@ pub struct BuiltIn {
     pub settings: Settings,
 }
 
-/// The randomizer's usual setup: every setting the defaults once had on,
-/// at that value.
+/// The randomizer's usual setup: every setting the defaults had on before
+/// they went vanilla, at that value. A settings map saved before then
+/// takes these where it says nothing.
 pub fn randomizer() -> Settings {
-    let start = starting::Start::of(&starting::DEFAULT);
+    let start = starting::Start::of(&["master-sword"]);
     let mut settings = on(&[
         SHUFFLE_ITEMS,
         CHESTS,
@@ -61,6 +62,15 @@ pub fn randomizer() -> Settings {
             serde_json::to_value(start).expect("a map"),
         ),
     ]);
+    settings
+}
+
+/// The Randomizer favorite with `over` laid over it, for a test that needs
+/// a shuffle.
+#[cfg(test)]
+pub fn randomizer_and(over: Settings) -> Settings {
+    let mut settings = randomizer();
+    settings.extend(over);
     settings
 }
 
@@ -158,7 +168,7 @@ mod tests {
     }
 
     #[test]
-    fn the_randomizer_favorite_is_the_defaults() {
+    fn every_default_is_vanilla_and_the_randomizer_favorite_differs_from_each() {
         let schema = schema();
         for (id, value) in randomizer() {
             let def = schema.iter().find(|d| d.id == id);
@@ -168,7 +178,12 @@ mod tests {
                 Kind::Choice { default, .. } => default.as_str().into(),
                 Kind::Inventory { default } => serde_json::to_value(default).unwrap(),
             };
-            assert_eq!(value, default, "{id}");
+            assert_ne!(value, default, "{id}");
+        }
+        for def in &schema {
+            if let Kind::Toggle { default } = def.kind {
+                assert!(!default, "{} is on by default", def.id);
+            }
         }
     }
 

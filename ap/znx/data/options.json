@@ -22,7 +22,7 @@
     "label": "Met Zelda"
   },
   {
-    "default": "open",
+    "default": "closed",
     "description": "With Open, the Door of Time stands open from the start, so Link can grow up without the stones or the Song of Time. Zelda and Impa stay until he's met them. He skips Rauru, whose gift comes at the start, and can put the sword back any time. With Closed, it opens as in the game: once Link has met Zelda, brought the three stones to her scene at the moat, and plays the Song of Time on the Ocarina of Time",
     "id": "door-of-time",
     "kind": "choice",
@@ -272,7 +272,7 @@
     ]
   },
   {
-    "default": "free",
+    "default": "bomb-bag",
     "description": "What caps the Bombchus Link holds. The bomb bag's, as in the game. Their own cap of 40, so they open the same checks bombs do without waiting on the bag. Or three Bombchu Bags in the pool, holding 20, 30 and 40, and none until the first",
     "id": "bombchus",
     "kind": "choice",
@@ -322,7 +322,7 @@
     ]
   },
   {
-    "default": true,
+    "default": false,
     "description": "Navi never stops Link to talk on her own: the Lost Woods warning, dungeon and quest tips, and reminders. Hints you ask her for still work",
     "id": "quiet-navi",
     "kind": "toggle",
@@ -343,7 +343,7 @@
     "label": "One-Handed Swords and Shields for Both Ages"
   },
   {
-    "default": true,
+    "default": false,
     "description": "Every Business Scrub outside the Dream World sells a check once. Scrubs that sold ammo on repeat sell their one item and leave",
     "id": "scrubs",
     "kind": "toggle",
@@ -428,7 +428,7 @@
     ]
   },
   {
-    "default": true,
+    "default": false,
     "description": "Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size",
     "id": "progressive-items",
     "joint": 1,
@@ -631,28 +631,28 @@
     "label": "Quiet Enemies"
   },
   {
-    "default": true,
+    "default": false,
     "description": "Menu pages skip their guide pop-up the first time they fill, and the challenge tapestry is open from the start, without the reveal it plays the first time it opens",
     "id": "menus",
     "kind": "toggle",
     "label": "Menus Open"
   },
   {
-    "default": true,
+    "default": false,
     "description": "Time passes from the start, as it does once Link first walks into Hyrule Field. Off, the clock waits for the field, even in a seed that starts past it",
     "id": "clock",
     "kind": "toggle",
     "label": "Clock Runs"
   },
   {
-    "default": true,
+    "default": false,
     "description": "Every guide screen counts as already shown, so none pops up the first time, such as the Echo Gem's in the House of Skulltula. The Great Fairy's guide still shows",
     "id": "no-tutorials",
     "kind": "toggle",
     "label": "No Tutorials"
   },
   {
-    "default": true,
+    "default": false,
     "description": "Recovery hearts, fairies, rupees, magic jars, arrows and Deku seeds count as picked up before, so the first one doesn't stop Link with its get text",
     "id": "no-pickup-texts",
     "kind": "toggle",
@@ -666,10 +666,7 @@
     "label": "Gossip Stone Hints"
   },
   {
-    "default": [
-      "skip-intro",
-      "skip-arrivals"
-    ],
+    "default": [],
     "description": "Each cutscene skipped, with Skip Cutscenes off. On, it skips them all",
     "id": "skipped-cutscenes",
     "kind": "set",

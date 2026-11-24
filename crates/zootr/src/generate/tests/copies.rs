@@ -149,7 +149,10 @@ fn fortress_keysanity_writes_its_copy_and_deals_one_for_every_thief() {
         return;
     };
     let dir = Scratch::new("fortress-singles");
-    let settings = Settings::from([(crate::settings::FORTRESS_KEYS.into(), "singles".into())]);
+    let settings = crate::settings::favorites::randomizer_and(Settings::from([(
+        crate::settings::FORTRESS_KEYS.into(),
+        "singles".into(),
+    )]));
     let new_game = NewGame::from_settings(&settings, &[]).unwrap();
     let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
     let copy = crate::key_tints::fortress();
@@ -170,10 +173,10 @@ fn freed_carpenters_keep_the_thieves_and_their_keys_with_fortress_keysanity() {
         return;
     };
     let dir = Scratch::new("fortress-freed");
-    let settings = Settings::from([
+    let settings = crate::settings::favorites::randomizer_and(Settings::from([
         (crate::settings::FORTRESS_KEYS.into(), "singles".into()),
         (crate::settings::GERUDO_FORTRESS.into(), "freed".into()),
-    ]);
+    ]));
     let new_game = NewGame::from_settings(&settings, &[]).unwrap();
     let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
     let thieves = report.spots.iter().filter(|s| s.holder == pickups::THIEF);
@@ -190,7 +193,10 @@ fn maps_and_compasses_deal_their_dungeon_s_copies_anywhere_and_name_it() {
         return;
     };
     let dir = Scratch::new("map-copies");
-    let settings = Settings::from([(crate::settings::MAPS_COMPASSES.into(), true.into())]);
+    let settings = crate::settings::favorites::randomizer_and(Settings::from([(
+        crate::settings::MAPS_COMPASSES.into(),
+        true.into(),
+    )]));
     let new_game = NewGame::from_settings(&settings, &[]).unwrap();
     let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
     let copies: Vec<_> = (report.spots.iter())
@@ -231,10 +237,10 @@ fn a_pot_dealt_a_compass_drops_the_compass_copy_s_stand_in() {
     // A Kokiri Forest pot, its vanilla drop a Blue Rupee.
     const POT: u64 = 5133775918408786238;
     let dir = Scratch::new("pot-compass");
-    let settings = Settings::from([
+    let settings = crate::settings::favorites::randomizer_and(Settings::from([
         (crate::settings::MAPS_COMPASSES.into(), true.into()),
         (crate::settings::POTS.into(), true.into()),
-    ]);
+    ]));
     let new_game = NewGame::from_settings(&settings, &[]).unwrap();
     let copies = crate::map_copies::sets().into_iter().map(|(c, _)| c);
     let compass = copies.into_iter().find(|c| c.contains("Compass")).unwrap();

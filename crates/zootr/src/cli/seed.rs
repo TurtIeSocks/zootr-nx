@@ -72,7 +72,7 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
         let text = value.as_str().map_or(value.to_string(), str::to_owned);
         match id.as_str() {
             id if on && preset(id) => flag("preset", Some(id.into())),
-            settings::SKIP_INTRO => flag("keep-intro", None),
+            settings::SKIP_INTRO if !on => flag("keep-intro", None),
             settings::SKIP_ALL => flag("skip", Some("all".into())),
             id if on && id.starts_with("skip-") => flag("skip", Some(id["skip-".len()..].into())),
             settings::CHEST_SIZE => flag("chest-size", Some(text)),
@@ -216,11 +216,11 @@ mod tests {
         let settings = Settings::from([
             ("kakariko-gate".into(), true.into()),
             ("open-forest".into(), false.into()),
-            (settings::SKIP_INTRO.into(), false.into()),
+            (settings::SKIP_INTRO.into(), true.into()),
             ("skip-owl".into(), true.into()),
             (settings::CHEST_SIZE.into(), "small".into()),
-            (settings::SHUFFLE_ITEMS.into(), false.into()),
-            ("progressive-items".into(), false.into()),
+            (settings::SHUFFLE_ITEMS.into(), true.into()),
+            ("progressive-items".into(), true.into()),
             (
                 starting::SETTING.into(),
                 serde_json::json!({ "bomb-bag": 1, "bombs": 20 }),
@@ -248,7 +248,7 @@ mod tests {
             line.starts_with("zootr shuffle --chest-size small"),
             "{line}"
         );
-        assert!(line.contains("--setting progressive-items=false"), "{line}");
+        assert!(line.contains("--setting progressive-items=true"), "{line}");
         let Command::Shuffle(s) = Cli::try_parse_from(line.split(' ')).unwrap().command else {
             panic!()
         };

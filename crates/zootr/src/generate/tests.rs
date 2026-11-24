@@ -76,7 +76,10 @@ fn same_seed_and_settings_give_the_same_mod() {
         return;
     };
     let dir = Scratch::new("gen");
-    let settings = Settings::from([("open-forest".into(), true.into())]);
+    let settings = crate::settings::favorites::randomizer_and(Settings::from([(
+        "open-forest".into(),
+        true.into(),
+    )]));
     let extras = Extras::default();
     let [a, b] = ["a", "b"]
         .map(|to| generate(&romfs, &dir.join(to), 7, &settings, &extras, &Run::silent()).unwrap());
@@ -109,7 +112,8 @@ fn a_run_reports_every_step_in_order() {
     });
     let romfs = crate::game::prepare(path, None, &run).unwrap();
     let dir = Scratch::new("steps-run");
-    generate(&romfs, &dir, 7, &Settings::new(), &Extras::default(), &run).unwrap();
+    let settings = crate::settings::favorites::randomizer();
+    generate(&romfs, &dir, 7, &settings, &Extras::default(), &run).unwrap();
     use Step::*;
     let steps = [Dump, Checks, Logic, Placing, Writing, Spoiler];
     assert_eq!(*began.lock().unwrap(), steps);

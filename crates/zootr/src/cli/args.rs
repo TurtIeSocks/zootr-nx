@@ -561,7 +561,8 @@ pub(super) struct Shuffle {
     /// number: `HASH.Translate.1+=0.2` lifts it 0.2. Repeatable.
     #[arg(long, value_name = "HASH.PATH=VALUE", value_parser = field)]
     field: Vec<String>,
-    /// Shuffle nothing: only `--place` changes chests.
+    /// Shuffle nothing: only `--place` changes chests. The default, unless
+    /// a favorite shuffles.
     #[arg(long)]
     vanilla: bool,
     /// Pin a dungeon door, as `DOOR=DUNGEON` by each one's dungeon, e.g.

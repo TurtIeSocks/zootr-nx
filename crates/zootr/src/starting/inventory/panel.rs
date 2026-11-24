@@ -508,7 +508,13 @@ mod tests {
         let cell = |view: &ItemsView, label: &str| {
             view.cells.iter().position(|c| c.label == label).unwrap()
         };
-        let free = seeded(&pouch, NewGame::default());
+        let free = seeded(
+            &pouch,
+            NewGame {
+                bombchus: Bombchus::Free,
+                ..Default::default()
+            },
+        );
         let view = items(&gd, &inv, &free, &Start::default(), &[]).unwrap();
         let (bag, chus) = (cell(&view, "Bombchu Bag"), cell(&view, "Bombchus"));
         assert!(view.cells[bag].hidden);

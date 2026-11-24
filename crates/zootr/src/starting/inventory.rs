@@ -20,8 +20,9 @@ use crate::settings::Settings;
 /// Its setting's id.
 pub const SETTING: &str = "start-inventory";
 
-/// What a new game starts with while the setting is unset.
-pub const DEFAULT: [&str; 1] = ["master-sword"];
+/// What a new game starts with while the setting is unset: nothing, as in
+/// the game.
+pub const DEFAULT: [&str; 0] = [];
 
 /// The `--start` word for starting with nothing, not [`DEFAULT`].
 pub const NONE: &str = "none";
@@ -827,16 +828,20 @@ mod tests {
             let notes = s.settle(&table.clone().seeded(&new_game));
             (s.0, notes)
         };
-        let bags = || NewGame {
-            bombchus: Bombchus::Bag,
+        let chus = |bombchus| NewGame {
+            bombchus,
             ..Default::default()
         };
+        let bags = || chus(Bombchus::Bag);
         // Unshuffled bags come with every new game.
         let (held, notes) = settle(NewGame::default(), &[]);
         assert_eq!(held, start(&[("nut-bag", 1), ("stick-bag", 1)]).0);
         assert!(notes.is_empty());
         // Free bombchus hold 40 with no bag, and no Bombchu Bag is dealt.
-        let (held, notes) = settle(NewGame::default(), &[("bombchus", 50), ("bombchu-bag", 1)]);
+        let (held, notes) = settle(
+            chus(Bombchus::Free),
+            &[("bombchus", 50), ("bombchu-bag", 1)],
+        );
         assert_eq!(held.get("bombchus"), Some(&40));
         assert!(!held.contains_key("bombchu-bag"));
         assert_eq!(notes, ["bombchu-bag: 1 -> 0", "bombchus: 50 -> 40"]);

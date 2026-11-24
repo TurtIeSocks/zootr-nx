@@ -191,9 +191,11 @@ async fn set_config(app: AppHandle, config: Config) -> Res<Vec<String>> {
         // A new dump is extracted now, so a bad file fails at Save and the
         // first Generate doesn't wait on it. A dump already cached is reused.
         let old = Config::load()?;
-        // The UI's config never carries the tracker's options.
+        // The UI's config never carries the tracker's options, and its
+        // settings are current.
         let mut config = Config {
             tracker: old.tracker.clone(),
+            settings_version: zootr::settings::SettingsVersion::CURRENT,
             ..config
         };
         favorites::check(&config.favorites)?;

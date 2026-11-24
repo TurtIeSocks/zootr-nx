@@ -5,10 +5,13 @@ use anyhow::{Context, Result, bail, ensure};
 use serde::{Deserialize, Serialize};
 
 use crate::generate::Extras;
-use crate::settings::Settings;
+use crate::settings::{Settings, SettingsVersion};
 
-/// Starts every code, and names the format so a later one can differ.
-const PREFIX: &str = "ZR1-";
+/// Starts every code, and names the format so a later one can differ:
+/// `ZR2-` codes are read with vanilla defaults.
+const PREFIX: &str = "ZR2-";
+/// Started codes from before the defaults went vanilla.
+const OLD_PREFIX: &str = "ZR1-";
 const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 /// Far above any real settings, so a bad code can't ask for a huge buffer.
 const MAX_JSON: usize = 1 << 20;
@@ -23,7 +26,8 @@ pub struct Shared {
 
 /// Whether `text` looks like a share code rather than a seed number.
 pub fn is_code(text: &str) -> bool {
-    text.trim().starts_with(PREFIX)
+    let text = text.trim();
+    text.starts_with(PREFIX) || text.starts_with(OLD_PREFIX)
 }
 
 pub fn encode(seed: u64, settings: &Settings, extras: &Extras) -> String {
@@ -38,15 +42,19 @@ pub fn encode(seed: u64, settings: &Settings, extras: &Extras) -> String {
 }
 
 pub fn decode(code: &str) -> Result<Shared> {
-    let body = code
-        .trim()
-        .strip_prefix(PREFIX)
-        .context("not a share code")?;
+    let code = code.trim();
+    let (body, from) = match code.strip_prefix(PREFIX) {
+        Some(body) => (body, SettingsVersion::CURRENT),
+        None => (
+            code.strip_prefix(OLD_PREFIX).context("not a share code")?,
+            SettingsVersion::RANDOMIZER,
+        ),
+    };
     let packed = from_base64(body).context("a share code got cut or changed")?;
     let json = zstd::bulk::decompress(&packed, MAX_JSON).context("a share code got cut")?;
     let mut shared: Shared =
         serde_json::from_slice(&json).context("a share code from another version")?;
-    crate::settings::upgrade(&mut shared.settings);
+    crate::settings::upgrade(&mut shared.settings, from);
     Ok(shared)
 }
 
@@ -116,6 +124,19 @@ mod tests {
             (back.seed, back.settings, back.extras),
             (u64::MAX, settings, extras)
         );
+    }
+
+    #[test]
+    fn an_old_code_keeps_the_randomizers_defaults() {
+        let settings = Settings::from([("chests".into(), false.into())]);
+        let code = encode(7, &settings, &Extras::default());
+        assert!(code.starts_with("ZR2-"));
+        assert_eq!(decode(&code).unwrap().settings, settings);
+        let old = code.replacen("ZR2-", "ZR1-", 1);
+        assert!(is_code(&old));
+        let mut want = crate::settings::favorites::randomizer();
+        want.insert("chests".into(), false.into());
+        assert_eq!(decode(&old).unwrap().settings, want);
     }
 
     #[test]

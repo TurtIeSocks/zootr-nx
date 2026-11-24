@@ -633,7 +633,8 @@ pub(super) mod tests {
         let book = crate::rules::Book::load().unwrap();
         let reached = |pick: (&str, serde_json::Value)| {
             let pick = (pick.0.to_string(), pick.1);
-            let settings = crate::settings::Settings::from([pick]);
+            let settings =
+                crate::settings::favorites::randomizer_and(crate::settings::Settings::from([pick]));
             let new_game = crate::settings::NewGame::from_settings(&settings, &[]).unwrap();
             let checks = checks::dealt(&romfs, &new_game).unwrap();
             let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();

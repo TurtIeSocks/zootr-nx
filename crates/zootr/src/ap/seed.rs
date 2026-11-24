@@ -18,7 +18,7 @@ use crate::progressive::Lines;
 use crate::rules::{Book, Ctx, Have};
 use crate::settings::{
     BOMBCHUS, CHESTS, IceTraps, Kind, MAGIC_WITH_FIRST_ITEM, NewGame, RUNNING_RACE, SCRUBS,
-    SHUFFLE_NUT_BAG, SHUFFLE_STICK_BAG, Settings, schema, value_word,
+    SHUFFLE_ITEMS, SHUFFLE_NUT_BAG, SHUFFLE_STICK_BAG, Settings, schema, value_word,
 };
 use crate::shuffle::{self, Fixed};
 use crate::starting;
@@ -278,11 +278,13 @@ impl Seed {
 }
 
 /// Settings the base holds at their own value, whatever the app's default,
-/// so a seed from an older world still opens: chests, Business Scrubs and
-/// the running man's race are locations those worlds always held, and Link
-/// starts with nothing.
+/// so a seed from an older world still opens: items shuffled, as there'd be
+/// nothing to share otherwise; chests, Business Scrubs and the running
+/// man's race are locations those worlds always held, and Link starts with
+/// nothing.
 pub(super) fn pinned() -> Settings {
     Settings::from([
+        (SHUFFLE_ITEMS.into(), Value::Bool(true)),
         (CHESTS.into(), Value::Bool(true)),
         (SCRUBS.into(), Value::Bool(true)),
         (RUNNING_RACE.into(), Value::Bool(true)),

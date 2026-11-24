@@ -510,7 +510,7 @@ mod tests {
 
     use super::*;
     use crate::generate::{Extras, generate};
-    use crate::settings::{self, Settings};
+    use crate::settings;
 
     /// A seed with every shuffle setting on: its spots, and each planned
     /// once for all the tests.
@@ -538,7 +538,9 @@ mod tests {
                 "open-forest",
                 "kakariko-gate",
             ];
-            let settings: Settings = ids.map(|id| (id.into(), true.into())).into();
+            let settings = crate::settings::favorites::randomizer_and(
+                ids.map(|id| (id.into(), true.into())).into(),
+            );
             let dir = std::env::temp_dir().join(format!("zootr-sweep-plan-{}", std::process::id()));
             let report = generate(
                 &romfs,
