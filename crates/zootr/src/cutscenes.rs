@@ -194,6 +194,11 @@ pub(crate) fn played_flag(name: &str) -> String {
     format!("{PLAYED}.{name}")
 }
 
+/// The name a played flag is for, the inverse of [`played_flag`].
+pub(crate) fn played_name(flag: &str) -> Option<&str> {
+    flag.strip_prefix(&**PLAYED)?.strip_prefix('.')
+}
+
 /// `name`'s played flag, set, as a new-game flag.
 pub(crate) fn played_set(name: &str) -> String {
     format!("{}=true", played_flag(name))
@@ -328,10 +333,9 @@ fn boots(all: &Flows) -> BTreeSet<String> {
 
 /// `HavePlayedEvent.<name>` minus its prefix, for every string that is one.
 fn played<'a>(strings: impl IntoIterator<Item = &'a str>) -> Vec<String> {
-    let prefix = format!("{PLAYED}.");
     strings
         .into_iter()
-        .filter_map(|s| s.strip_prefix(&prefix).map(String::from))
+        .filter_map(|s| played_name(s).map(String::from))
         .collect()
 }
 

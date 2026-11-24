@@ -39,7 +39,7 @@ use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::{EventKind, Flowchart, Link, Params, Romfs, Value};
 
 use crate::checks::{Drop, ItemCheck};
-use crate::cutscenes::{PLAYED, transition};
+use crate::cutscenes::{played_flag, transition};
 use crate::events::Flows;
 use crate::flows::{
     self, ACTOR, FITS_POUCH, GAME_DATA, GRANT, IN_POUCH, IS_BOOL, Rewrites, SET_BOOL, is_local,
@@ -730,8 +730,9 @@ mod tests {
 
     pub(super) fn sets(scene: &str) -> String {
         format!(
-            r#"{}="{PLAYED}.{scene}" Index=-1 Value=true"#,
-            field::GAME_DATA_NAME
+            r#"{}="{}" Index=-1 Value=true"#,
+            field::GAME_DATA_NAME,
+            played_flag(scene)
         )
     }
 

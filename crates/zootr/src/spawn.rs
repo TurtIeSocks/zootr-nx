@@ -8,6 +8,7 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::ainb::Patch;
 use ounce_formats::{Actor, EventKind, Flowchart, Params, Romfs, Value};
 
+use crate::cutscenes::played_flag;
 use crate::flows::{self, Rewrites};
 use crate::known::{Name, actor, field, flag, flow, map, scene};
 use crate::starting::{self, OPENING};
@@ -230,7 +231,7 @@ pub fn boot(
     adult_gear(romfs, rewrites, owned)?;
     // Child Link first stands in the Temple after a swap, never through its
     // door, so the scene of his first entry would fire on his way out.
-    let entered = format!("{}.{}", flag::HAVE_PLAYED_EVENT, scene::TIME_TEMPLE_0000);
+    let entered = played_flag(scene::TIME_TEMPLE_0000);
     Ok(vec![
         format!("{}=false", flag::SEQUENCE_IS_CHILDHOOD),
         format!("{entered}=true"),
@@ -315,7 +316,7 @@ mod tests {
                 .map(|&n| starting::chest_item(n).get())
                 .collect();
             let (rewrites, flags) = booted(&romfs, &adult_start(), &owned);
-            let entered = format!("{}.{}", flag::HAVE_PLAYED_EVENT, scene::TIME_TEMPLE_0000);
+            let entered = played_flag(scene::TIME_TEMPLE_0000);
             let edits = [
                 format!("{}=false", flag::SEQUENCE_IS_CHILDHOOD),
                 format!("{entered}=true"),

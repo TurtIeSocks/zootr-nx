@@ -52,7 +52,7 @@ pub(super) fn silence_calls(flow: &mut Flowchart, call: &[Call], item: &str) -> 
 /// The events in `flow` where the cutscene `scene` plays: its transitions,
 /// and the sets of its played flag a cutscene skip swapped them for.
 pub(crate) fn scene_marks(flow: &Flowchart, scene: &str) -> (Vec<u16>, Vec<u16>) {
-    let flag = format!("{PLAYED}.{scene}");
+    let flag = played_flag(scene);
     let plays = (0u16..)
         .zip(&flow.events)
         .filter(|(_, e)| transition(flow, &e.kind) == Some(scene))
@@ -115,6 +115,7 @@ pub(super) fn models(flows: &Flows) -> Result<grant::Models<'_>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cutscenes::played_set;
     use crate::gifts::tests::*;
     use crate::known::{actor, field, flag, flow, item, scene};
 
@@ -230,10 +231,7 @@ mod tests {
                 !ran.iter()
                     .any(|l| l.contains(&format!(r#"{}="{z}""#, flow::EVENT_NAME)))
             );
-            assert!(
-                !flags.contains(&format!("{PLAYED}.{z}=true")),
-                "{z} at new game"
-            );
+            assert!(!flags.contains(&played_set(z)), "{z} at new game");
         }
         // The five flags, in the order the scenes played, with the fade-in and
         // then the grant right after the fourth, and nothing else granting.
@@ -366,10 +364,7 @@ mod tests {
             "granted once"
         );
         for scene in crate::cutscenes::IMPA {
-            assert!(
-                !flags.contains(&format!("{PLAYED}.{scene}=true")),
-                "{scene}"
-            );
+            assert!(!flags.contains(&played_set(scene)), "{scene}");
         }
         // The escort's transition is its flag, and the steps after it run.
         let escort = run(&flow, SEND_OFF);
