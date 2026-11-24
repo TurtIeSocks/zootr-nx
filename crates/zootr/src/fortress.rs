@@ -37,8 +37,6 @@ pub const CARRYING: [u64; 3] = [
 const KEY: &Name = flow::OBJ_SMALL_KEY;
 /// The call's argument naming the spot on the floor beside her.
 const SPOT: &Name = flow::KEY_POSITION;
-/// The query reading a BoolExp. Case 0 is true.
-const IS_EXP: &Name = flow::EVENT_QUERY_IS_GAME_DATA_BOOL_EXP;
 
 /// Whether `check` is a thief's own drop, which a seed with Fortress keys
 /// clears and checks the placed key for instead.
@@ -148,7 +146,7 @@ pub fn give(
                 rename(flow, copy, &m.actor, k)?;
                 let mut params = is_bool.params.clone();
                 flows::set(&mut params, GAME_DATA, string(&steps::gate(m.hash)))?;
-                let (actor, query) = flow.query(&is_bool.actor, IS_EXP);
+                let (actor, query) = flow.query(&is_bool.actor, flows::IS_EXP.1);
                 head = flow.push(EventKind::Switch {
                     actor,
                     query,

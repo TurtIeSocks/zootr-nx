@@ -12,7 +12,7 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::ainb::Patch;
 use ounce_formats::{Actor, EventKind, Flowchart, Params, Romfs, Value};
 
-use crate::flows::{self, Rewrites};
+use crate::flows::{self, IS_EXP, Rewrites};
 use crate::graphs::{logic, node, relink};
 use crate::known::{Name, field, flag, flow, map};
 use crate::starting;
@@ -49,10 +49,6 @@ const SAGE_OF_FOREST: &Name = flow::SAGE_OF_FOREST;
 const CHILD_TO_ADULT: &Name = flow::MARKET_CHILD_FIELD_CHILD_TO_ADULT;
 /// True once the forest sage's quest has reached Step01.
 const FOREST_STARTED: &Name = flag::SAGE_OF_FOREST_IS_AFTER_STEP01_EXP;
-const IS_EXP: (&Name, &Name) = (
-    field::GAME_DATA_ACTOR,
-    flow::EVENT_QUERY_IS_GAME_DATA_BOOL_EXP,
-);
 /// The swap's one Bool: Link is no longer a child.
 const SETS_ADULT: (&Name, &Name) = (field::GAME_DATA_ACTOR, SET_BOOL);
 /// Runs once Link has met Rauru and woken in the temple.

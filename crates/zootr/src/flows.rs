@@ -158,6 +158,14 @@ pub(crate) const GAME_DATA: &Name = field::GAME_DATA_NAME;
 /// The query whether a GameData Bool is set. Case 0 is set.
 pub(crate) const IS_BOOL: (&Name, &Name) =
     (field::GAME_DATA_ACTOR, flow::EVENT_QUERY_IS_GAME_DATA_BOOL);
+/// The query reading a GameData BoolExp. Case 0 is true.
+pub(crate) const IS_EXP: (&Name, &Name) = (
+    field::GAME_DATA_ACTOR,
+    flow::EVENT_QUERY_IS_GAME_DATA_BOOL_EXP,
+);
+/// The query comparing a GameData Int with its `Value`. Case 1 is equal.
+pub(crate) const IS_INT: (&Name, &Name) =
+    (field::GAME_DATA_ACTOR, flow::EVENT_QUERY_IS_GAME_DATA_INT);
 pub(crate) const SET_BOOL: (&Name, &Name) = (
     field::GAME_DATA_ACTOR,
     flow::EVENT_TRIGGER_SET_GAME_DATA_BOOL,
