@@ -21,6 +21,13 @@ use crate::shuffle::Fixed;
 /// AP's class for a trap.
 const TRAP: &str = "trap";
 
+/// Another slot's check as a stone names it: `<location> (<player>)`,
+/// without control characters. A long one runs onto the stone's next page.
+fn their_place(location: &str, player: &str) -> String {
+    let (location, player) = (foreign::printable(location), foreign::printable(player));
+    format!("{location} ({player})")
+}
+
 /// The item another game's item is a copy of, showing its class's model:
 /// one Link gets once, so it reads as a get of its own.
 const STAND_IN: &Name = item::TOKEN_GERUDO;
@@ -250,7 +257,7 @@ impl ApSeed {
                     item,
                     player,
                     location,
-                } => (item, Place::Words(format!("{location} ({player})"))),
+                } => (item, Place::Words(their_place(location, player))),
             };
             Ok(Hint {
                 place,
@@ -360,6 +367,14 @@ mod tests {
         });
         let resolved = seed.resolve(&romfs).unwrap();
         assert!(resolved.foreign.iter().any(|f| f.shows == medal));
+    }
+
+    #[test]
+    fn another_slot_s_place_drops_control_characters() {
+        assert_eq!(
+            their_place(" Fake Pot\u{e} 3", "Zel\u{e}da"),
+            "Fake Pot 3 (Zelda)"
+        );
     }
 
     #[test]
