@@ -229,10 +229,11 @@ pub(super) unsafe fn idle(main: usize, o: &Offsets) -> Result<usize, Outcome> {
 
 /// Ask the event manager for `event`, NUL ended, with `args` and
 /// Link as its starter, refusing while an event plays or a map
-/// loads. The game reads the block and its strings after the
+/// loads. Every dev event starts here, not only the teleport's map
+/// change. The game reads the block and its strings after the
 /// request returns, so both go in one allocation that's never
 /// freed.
-unsafe fn request_map_change(
+unsafe fn request_event(
     main: usize,
     o: &Offsets,
     actor: usize,
@@ -313,7 +314,7 @@ unsafe fn teleport(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Ou
         Arg::Bool(ARG_GIVE, false),
         Arg::Bool(ARG_STEP, false),
     ];
-    let outcome = unsafe { request_map_change(main, o, actor, EVENT, &texts, &args) };
+    let outcome = unsafe { request_event(main, o, actor, EVENT, &texts, &args) };
     if matches!(outcome, Outcome::Done | Outcome::Unanswered) {
         mail.last.store(now, Ordering::Relaxed);
         if let Some(gd) = unsafe { single(main, o.gamedata) } {
@@ -337,7 +338,7 @@ unsafe fn step(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcom
         Arg::Text(ARG_CHALLENGE, 0),
         Arg::Text(ARG_STEP_NAME, 1),
     ];
-    unsafe { request_map_change(main, o, actor, EVENT, &texts, &args) }
+    unsafe { request_event(main, o, actor, EVENT, &texts, &args) }
 }
 
 /// An item: the same event with `ZootrGive` set, which a dev seed's
@@ -361,7 +362,7 @@ unsafe fn give(main: usize, o: &Offsets, mail: &Mailbox, actor: usize, level: bo
     ];
     // Copied first: `item` may be `arrive` itself.
     let given = *item;
-    let outcome = unsafe { request_map_change(main, o, actor, EVENT, &texts, &args) };
+    let outcome = unsafe { request_event(main, o, actor, EVENT, &texts, &args) };
     if level {
         unsafe { *mail.arrive.get() = given };
     }
@@ -387,7 +388,7 @@ unsafe fn notice(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outc
         Arg::Bool(ARG_SUMMARY, kind != Notice::Item),
         Arg::Bool(ARG_MIXED, kind == Notice::Mixed),
     ];
-    unsafe { request_map_change(main, o, actor, EVENT, &texts, &args) }
+    unsafe { request_event(main, o, actor, EVENT, &texts, &args) }
 }
 
 /// What a [`Ask::GiveLevel`] gives: `arrive` when `spot` names what fires
@@ -469,7 +470,7 @@ unsafe fn play(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcom
 
 /// Start `event`, NUL ended, with no arguments, as a trigger would.
 pub(super) unsafe fn start(main: usize, o: &Offsets, actor: usize, event: &[u8]) -> Outcome {
-    unsafe { request_map_change(main, o, actor, event, &[], &[]) }
+    unsafe { request_event(main, o, actor, event, &[], &[]) }
 }
 
 /// Flip the age and teleport. The flag goes back if the teleport
