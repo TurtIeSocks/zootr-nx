@@ -321,15 +321,15 @@ fn live(
         crate::ap::bench_live::live(romfs, &room, attach()?, attach()?, input()?.as_mut())
     })();
     let quit = input().and_then(|mut i| i.quit());
-    own(&["ap", "room", "down"])?;
+    let down = own(&["ap", "room", "down"]);
     let samples = measured?;
     quit?;
+    down?;
     Ok(samples)
 }
 
 fn input() -> Result<Box<dyn crate::play::Input>> {
-    let config = crate::config::Config::load()?;
-    crate::play::input(&config.target()?, config.game.as_deref())
+    Ok(super::running::target_input()?.1)
 }
 
 /// Runs this same binary with `args`, its output shown only on failure.

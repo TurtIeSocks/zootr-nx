@@ -24,6 +24,7 @@ pub mod rooms;
 mod set;
 pub mod vocab;
 
+pub(crate) use set::quote;
 pub use set::{Edit, Way, set, set_way};
 
 pub use files::{ExitRule, PlaceRule, SourceRule, settings_read};

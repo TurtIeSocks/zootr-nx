@@ -3,24 +3,25 @@
 
 use anyhow::{Result, bail, ensure};
 
+use super::args::TurnArgs;
 use crate::config::Config;
 use crate::turn::{self, Ask, Turn, TurnConfig};
 
 /// Prints whose turn it is, after handing it to `to` when given, by Claude
 /// session `session`. With a queue configured, `to` is a step in line.
-pub(super) fn turn(
-    to: Option<String>,
-    note: String,
-    session: String,
-    force: bool,
-    urgent: bool,
-    both: bool,
-    on: String,
-) -> Result<()> {
+pub(super) fn turn(args: TurnArgs) -> Result<()> {
     let config = Config::load()?.turn;
     if config.remote() {
-        return queued(&config, to.as_deref(), note, session, urgent, both, on);
+        return queued(&config, args);
     }
+    let TurnArgs {
+        to,
+        note,
+        session,
+        force,
+        both,
+        ..
+    } = args;
     ensure!(
         !both,
         "`--both` needs a queue: set `turn.url` in the config"
@@ -41,21 +42,22 @@ pub(super) fn turn(
 }
 
 /// One step in the queue's line, then the queue as it stands.
-fn queued(
-    config: &TurnConfig,
-    to: Option<&str>,
-    note: String,
-    session: String,
-    urgent: bool,
-    both: bool,
-    on: String,
-) -> Result<()> {
+fn queued(config: &TurnConfig, args: TurnArgs) -> Result<()> {
+    let TurnArgs {
+        to,
+        note,
+        session,
+        urgent,
+        both,
+        on,
+        ..
+    } = args;
     let claude = turn::from_claude();
     let theirs = |what: &str| -> Result<()> {
         ensure!(!claude, "only the maintainer {what}");
         Ok(())
     };
-    match to {
+    match to.as_deref() {
         None => {}
         Some("serve") => return turn::serve::serve(config),
         Some("join") => {

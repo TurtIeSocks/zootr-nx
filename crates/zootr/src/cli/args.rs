@@ -32,7 +32,6 @@ pub(super) struct Cli {
     pub(super) command: Command,
 }
 
-/// The vision model that judges a spot, and the save each start loads.
 /// The vision model a command asks about frames.
 #[derive(Args)]
 pub(super) struct VisionArgs {
@@ -131,6 +130,35 @@ pub(super) enum DrillReport {
     },
 }
 
+/// `zootr turn`'s step and who takes it.
+#[derive(Args)]
+pub(super) struct TurnArgs {
+    pub to: Option<String>,
+    /// Why, or what's being tested.
+    #[arg(long, default_value = "")]
+    pub note: String,
+    /// The Claude session taking or handing over the turn, by a short
+    /// name of its own. Needed to take a turn from Claude's shell.
+    #[arg(long, default_value = "", env = crate::turn::SESSION)]
+    pub session: String,
+    /// Hand over the maintainer's or another session's turn from
+    /// Claude's shell anyway.
+    #[arg(long)]
+    pub force: bool,
+    /// `join` ahead of the waiters who aren't: for a merge blocker or a
+    /// bug the maintainer reported.
+    #[arg(long)]
+    pub urgent: bool,
+    /// `join` for a game of every machine at once: granted together
+    /// once one of each is free, never one alone.
+    #[arg(long)]
+    pub both: bool,
+    /// The game `reserve` keeps, or the one game `join` waits for. A
+    /// machine's name (`other`) takes any of its slots (`other-2`).
+    #[arg(long, default_value = "")]
+    pub on: String,
+}
+
 #[derive(Subcommand)]
 pub(super) enum Command {
     /// Whose turn it is on the game. Naming `claude`, `maintainer` or
@@ -138,32 +166,7 @@ pub(super) enum Command {
     /// the line, `wait` for a game, `free` it, `reserve` one, `maintainer`
     /// to play this machine's, or `serve` the queue itself.
     #[command(hide = true)]
-    Turn {
-        to: Option<String>,
-        /// Why, or what's being tested.
-        #[arg(long, default_value = "")]
-        note: String,
-        /// The Claude session taking or handing over the turn, by a short
-        /// name of its own. Needed to take a turn from Claude's shell.
-        #[arg(long, default_value = "", env = crate::turn::SESSION)]
-        session: String,
-        /// Hand over the maintainer's or another session's turn from
-        /// Claude's shell anyway.
-        #[arg(long)]
-        force: bool,
-        /// `join` ahead of the waiters who aren't: for a merge blocker or a
-        /// bug the maintainer reported.
-        #[arg(long)]
-        urgent: bool,
-        /// `join` for a game of every machine at once: granted together
-        /// once one of each is free, never one alone.
-        #[arg(long)]
-        both: bool,
-        /// The game `reserve` keeps, or the one game `join` waits for. A
-        /// machine's name (`other`) takes any of its slots (`other-2`).
-        #[arg(long, default_value = "")]
-        on: String,
-    },
+    Turn(TurnArgs),
     /// Start the game on a kept save or a new file and press A through the
     /// menus, returning once Link is in play. On Claude's turn only, when
     /// run from Claude's shell. Muted, 30 fps and off the cloud saves when

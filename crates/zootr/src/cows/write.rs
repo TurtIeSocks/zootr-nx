@@ -2,7 +2,7 @@
 //! rows per plain cow, its event's rows, the placements swapped to it, and
 //! the cows' Bools.
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, ModBuilder, Romfs, pack_path};
 
 use super::{Cow, EVENT_NAME, PLAIN, REPLACE, event_of};
@@ -98,11 +98,7 @@ fn clone(
         .and_then(|n| n.as_string().ok())
         .context("the plain song event names no event")?
         .to_string();
-    let event = old.replacen(
-        &format!("/{template_event}."),
-        &format!("/{}.", cow.event),
-        1,
-    );
+    let event = renamed_event(&old, template_event, &cow.event)?;
     replace.insert((&**EVENT_NAME).into(), Byml::String(event.into()));
 
     let files = [
@@ -111,4 +107,31 @@ fn clone(
         (new_replace, doc(replace, &replace_doc), template_replace),
     ];
     write_clone(builder, template, &name, files)
+}
+
+/// The plain song event's name `old` with its event `from` swapped for `to`.
+/// An error if `old` doesn't name `from`: the clone would run the plain cow's
+/// event.
+fn renamed_event(old: &str, from: &str, to: &str) -> Result<String> {
+    let from = format!("/{from}.");
+    ensure!(
+        old.contains(&from),
+        "the plain song event {old} has no {from}"
+    );
+    Ok(old.replacen(&from, &format!("/{to}."), 1))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_clone_runs_its_own_song_event() {
+        let old = "Fake/Path/FakeGiveMilk.game__FakeEvent.bgyml";
+        assert_eq!(
+            renamed_event(old, "FakeGiveMilk", "FakeCowSong").unwrap(),
+            "Fake/Path/FakeCowSong.game__FakeEvent.bgyml"
+        );
+        assert!(renamed_event("FakeGiveMilk.bgyml", "FakeGiveMilk", "FakeCowSong").is_err());
+    }
 }

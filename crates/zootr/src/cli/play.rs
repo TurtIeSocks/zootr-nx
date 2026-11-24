@@ -1,6 +1,7 @@
-//! `zootr play`: a script run on the game, on the target's game.
-//! `zootr sweep`: a night of rounds on a target with a bridge.
-//! `zootr drill`: the harness ladder, and both scoreboards.
+//! The commands that drive the target's game: `zootr boot` starts it,
+//! `play` runs a script on it, `look` asks a vision model about its
+//! frame, `photo` shoots each check, `sweep` runs a night of rounds and
+//! `drill` the harness ladder, and the sweep and drill reports.
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -9,7 +10,7 @@ use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::Romfs;
 
 use super::args::{JudgeArgs, StartArgs};
-use super::running::saved_test;
+use super::running::{saved_test, target_input};
 use crate::config::Config;
 use crate::dev::Dev;
 use crate::gifts;
@@ -19,6 +20,7 @@ use crate::play::{self, Launch, Report, Run, Script, Start, boot};
 use crate::sweep::drills::{self, Skill};
 use crate::sweep::judge::ModelJudge;
 use crate::sweep::night::{self, Night};
+use crate::sweep::photo::{Mode, Swing};
 use crate::sweep::report;
 use crate::sweep::resume::Yielding;
 use crate::turn;
@@ -32,9 +34,7 @@ const LAUNCH: Duration = Duration::from_secs(180);
 pub(super) fn boot_command(start: StartArgs, limit: u64) -> Result<()> {
     let launch = Launch::named(start.save.clone(), start.new)?
         .context("name a start: --save NAME or --new")?;
-    let config = Config::load()?;
-    let target = config.target()?;
-    let mut input = play::input(&target, config.game.as_deref())?;
+    let (target, mut input) = target_input()?;
     let begun = Instant::now();
     let save = boot_on(
         &mut input,
@@ -78,21 +78,18 @@ fn boot_on(
 
 pub(super) fn play(
     romfs: &Romfs,
-    script: &Path,
+    script_path: &Path,
     attach: bool,
     stall: u64,
     start: StartArgs,
 ) -> Result<()> {
-    let path = script;
-    let script = Script::load(path)?;
+    let script = Script::load(script_path)?;
     let setup = match &script.test {
         Some(name) => Some(saved_test(name)?),
         None => script.setup.clone(),
     };
     let gd = recorder::gamedata(romfs)?;
-    let config = Config::load()?;
-    let target = config.target()?;
-    let mut input = play::input(&target, config.game.as_deref())?;
+    let (target, mut input) = target_input()?;
     let launch = match attach {
         true => None,
         false => Launch::named(start.save.clone(), start.new)?.or(script.launch.clone()),
@@ -110,7 +107,7 @@ pub(super) fn play(
     let dir = play::folder("play", &script.name)?;
     let report = Report {
         name: script.name.clone(),
-        script: path.to_path_buf(),
+        script: script_path.to_path_buf(),
         seed: seed(),
         started: jiff::Zoned::now().strftime("%Y-%m-%d %H:%M:%S").to_string(),
         ..Default::default()
@@ -147,8 +144,7 @@ pub(super) fn look(
     let looked = match frame {
         Some(frame) => crate::look::look_at(vision, frame, questions)?,
         None => {
-            let config = Config::load()?;
-            let mut game = play::input(&config.target()?, config.game.as_deref())?;
+            let (_, mut game) = target_input()?;
             crate::look::look(vision, &mut *game, questions, keep)?
         }
     };
@@ -156,18 +152,36 @@ pub(super) fn look(
     Ok(())
 }
 
-/// `zootr photo`: each check `area` or `hashes` pick, photographed on
-/// the running game into `out` (or listed when a pass has no `out`), or
-/// the one check gone to or shot by hand, as `mode` says.
+/// What `zootr photo` shoots and how.
+pub(super) struct Shoot<'a> {
+    /// The checks of this area.
+    pub area: Option<&'a str>,
+    /// The checks with these hashes.
+    pub hashes: &'a [u64],
+    /// The folder the photos go in. A pass without one lists its checks.
+    pub out: Option<&'a Path>,
+    pub mode: Mode,
+    pub swing: Swing,
+    pub day_skulltulas: bool,
+}
+
+/// `zootr photo`: each check `shoot` picks, photographed on the running
+/// game into its `out` (or listed when a pass has no `out`), or the one
+/// check gone to or shot by hand, as its `mode` says.
 pub(super) fn photo(
     romfs: &Romfs,
     game: &Path,
-    (area, hashes): (Option<&str>, &[u64]),
-    (out, mode): (Option<&Path>, crate::sweep::photo::Mode),
-    (swing, day_skulltulas): (crate::sweep::photo::Swing, bool),
+    shoot: Shoot,
     vision: impl FnOnce() -> Result<Vision>,
 ) -> Result<()> {
-    use crate::sweep::photo::Mode;
+    let Shoot {
+        area,
+        hashes,
+        out,
+        mode,
+        swing,
+        day_skulltulas,
+    } = shoot;
     let subjects = crate::sweep::photo::subjects(romfs, area, hashes)?;
     ensure!(!subjects.is_empty(), "no check fits");
     if mode != Mode::Pass {
@@ -194,9 +208,7 @@ pub(super) fn photo(
     }
     turn::hold(&turn::session())?;
     std::fs::create_dir_all(out)?;
-    let config = Config::load()?;
-    let target = config.target()?;
-    let mut input = play::input(&target, config.game.as_deref())?;
+    let (target, mut input) = target_input()?;
     let dev = Dev::new(Game::attach(&target)?)?;
     let places = crate::dev::places(romfs)?;
     let stop = turn::kept(turn::session(), super::running::RENEW);
@@ -277,9 +289,7 @@ fn with_night(
     go: impl FnOnce(&mut Night<Box<dyn play::Input>, ModelJudge>) -> Result<()>,
 ) -> Result<()> {
     let (judge, pristine) = judge.judge()?;
-    let config = Config::load()?;
-    let target = config.target()?;
-    let input = play::input(&target, config.game.as_deref())?;
+    let (target, input) = target_input()?;
     let gd = recorder::gamedata(romfs)?;
     let mut night = Night {
         romfs,
@@ -300,24 +310,41 @@ fn with_night(
     go(&mut night)
 }
 
-/// `zootr sweep`: `rounds` rounds, `limit` spots each at most, in mix
-/// `mix` only, of the spots `only` picks, on `seed` alone if it's given,
-/// stepping aside for anyone waiting for game `yield_to`.
+/// How `zootr sweep` runs its night.
+pub(super) struct Sweep {
+    /// Rounds to run, 0 for no end.
+    pub rounds: usize,
+    /// Spots a round at most.
+    pub limit: Option<usize>,
+    /// The one settings mix every round is in.
+    pub mix: Option<String>,
+    /// What picks the spots.
+    pub only: Option<String>,
+    /// The one seed every round is on.
+    pub seed: Option<u64>,
+    /// The game to step aside from for anyone waiting for it.
+    pub yield_to: Option<String>,
+    /// A photo pass's lines, for each holder's side.
+    pub sides: Option<PathBuf>,
+}
+
+/// `zootr sweep`: the night `sweep` names.
 pub(super) fn sweep(
     romfs: &Romfs,
     game: &Path,
     judge: JudgeArgs,
     dir: PathBuf,
-    (rounds, limit, mix, only, seed): (
-        usize,
-        Option<usize>,
-        Option<String>,
-        Option<String>,
-        Option<u64>,
-    ),
-    yield_to: Option<String>,
-    sides: Option<PathBuf>,
+    sweep: Sweep,
 ) -> Result<()> {
+    let Sweep {
+        rounds,
+        limit,
+        mix,
+        only,
+        seed,
+        yield_to,
+        sides,
+    } = sweep;
     let mix = mix.map(|name| night::pinned(&name)).transpose()?;
     let yielding = match yield_to {
         Some(game) => {
@@ -350,9 +377,11 @@ pub(super) fn drill(
     game: &Path,
     judge: JudgeArgs,
     dir: PathBuf,
-    (skill, name, repeat): (Option<Skill>, Option<String>, usize),
+    skill: Option<Skill>,
+    name: Option<&str>,
+    repeat: usize,
 ) -> Result<()> {
-    let drills = drills::chosen(skill, name.as_deref());
+    let drills = drills::chosen(skill, name);
     if drills.is_empty() {
         bail!("no drill fits");
     }

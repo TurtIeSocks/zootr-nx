@@ -8,8 +8,10 @@ use crate::nav::limits::limits;
 use crate::rules::kinds::Kind;
 use crate::rules::rooms;
 
+use super::Segment;
 use super::all_of;
 use super::locks::Lock;
+use crate::derive::ALWAYS;
 
 /// What a crossing from one room to another was seen as.
 #[derive(Default)]
@@ -23,7 +25,7 @@ pub(super) struct Seen<'k> {
     /// The obstacle kinds standing on it, by placement.
     pub on: BTreeMap<u64, &'k Kind>,
     /// Where it was seen with the least metric: the place to test it.
-    pub at: ([f32; 3], [f32; 3]),
+    pub at: Segment,
     /// The furthest a jump on it falls, in m: 0 for a level gap.
     pub fall: f32,
     /// The confirmed link that stands in for every derived arc here.
@@ -31,7 +33,7 @@ pub(super) struct Seen<'k> {
 }
 
 impl Seen<'_> {
-    pub fn add(&mut self, metric: f32, by: Option<u64>, at: ([f32; 3], [f32; 3])) {
+    pub fn add(&mut self, metric: f32, by: Option<u64>, at: Segment) {
         if self.count == 0 || metric < self.least {
             self.at = at;
         }
@@ -94,7 +96,7 @@ pub(super) fn link(
         needs.push("child".to_owned());
     }
     for (h, k) in &s.on {
-        if k.uses != "always" {
+        if k.uses != ALWAYS {
             write!(why, "; {} {h}: {}", k.name, k.uses).unwrap();
             guess |= k.guess;
             needs.push(k.uses.clone());
