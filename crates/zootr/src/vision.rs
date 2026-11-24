@@ -193,12 +193,13 @@ pub(crate) fn parse_anthropic(reply: &Value, model: &str) -> Result<String> {
         .iter()
         .find(|block| block["type"] == "text")
         .and_then(|block| block["text"].as_str());
-    match text {
-        Some(text) => Ok(text.to_owned()),
-        None => {
-            let stop = reply["stop_reason"].as_str().unwrap_or("none");
+    match (text, reply["stop_reason"].as_str()) {
+        (Some(text), _) => Ok(text.to_owned()),
+        // Only a reply that stopped and held blocks answered at all.
+        (None, Some(stop)) if blocks.is_some() => {
             Err(NoText(format!("{model} gave no text: stop_reason {stop}")).into())
         }
+        (None, _) => bail!("{model} gave no reply: {reply}"),
     }
 }
 
@@ -207,9 +208,15 @@ fn parse_openai(reply: &Value, model: &str) -> Result<String> {
     if let Some(error) = reply.get("error") {
         bail!("{model} refused: {error}");
     }
-    match reply["choices"][0]["message"]["content"].as_str() {
+    let choice = &reply["choices"][0];
+    match choice["message"]["content"].as_str() {
         Some(text) => Ok(text.to_owned()),
-        None => Err(NoText(format!("{model} gave no choices or content")).into()),
+        // Only a choice with a message answered at all.
+        None if choice["message"].is_object() => {
+            let finish = choice["finish_reason"].as_str().unwrap_or("none");
+            Err(NoText(format!("{model} gave no content: finish_reason {finish}")).into())
+        }
+        None => bail!("{model} gave no choices: {reply}"),
     }
 }
 
@@ -489,9 +496,31 @@ mod tests {
         let err = parse_anthropic(&thought, "m").unwrap_err();
         assert!(err.to_string().contains("max_tokens"), "{err}");
         assert!(err.is::<NoText>());
-        let err = parse_openai(&json!({"choices": []}), "m").unwrap_err();
-        assert!(err.to_string().contains("no choices"), "{err}");
+        let empty = json!({"choices": [{"message": {"content": null}, "finish_reason": "length"}]});
+        let err = parse_openai(&empty, "m").unwrap_err();
+        assert!(err.to_string().contains("length"), "{err}");
         assert!(err.is::<NoText>());
+    }
+
+    #[test]
+    fn a_body_that_is_no_reply_is_no_text_to_judge() {
+        // A wrong URL or a server error answers with a JSON body too.
+        for body in [
+            json!({"object": "error", "message": "x"}),
+            json!({"detail": "Not Found"}),
+            json!({"choices": []}),
+        ] {
+            let err = parse_openai(&body, "m").unwrap_err();
+            assert!(!err.is::<NoText>(), "{body} is no reply");
+        }
+        for body in [
+            json!({"detail": "Not Found"}),
+            json!({"stop_reason": "end_turn"}),
+            json!({"content": []}),
+        ] {
+            let err = parse_anthropic(&body, "m").unwrap_err();
+            assert!(!err.is::<NoText>(), "{body} is no reply");
+        }
     }
 
     #[test]
