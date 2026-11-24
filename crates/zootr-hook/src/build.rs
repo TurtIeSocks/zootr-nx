@@ -1,5 +1,6 @@
 //! Every offset into `main` our code depends on, for one build of the game.
-//! A [`Build`] holds them grouped by kind, and [`V131072`] is game 1.1.1's.
+//! A [`Build`] holds them grouped by kind: [`V131072`] is game 1.1.1's,
+//! and [`V65536`] game 1.0.0's, generated from it.
 //! Nothing else in the repo spells one out: the hook, the patch, the build
 //! script and the live reads all read them from here. See
 //! `docs/research/binary.md`.
@@ -357,6 +358,9 @@ offsets! {
     request_pause = funcs.request_pause,
     release_pause = funcs.release_pause,
 }
+
+mod v65536;
+pub use v65536::V65536;
 
 /// Game 1.1.1's (package v131072).
 pub const V131072: Build = Build {

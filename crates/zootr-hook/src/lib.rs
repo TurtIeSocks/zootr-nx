@@ -45,7 +45,8 @@ pub mod traps;
 pub mod ui;
 
 pub use build::{
-    Branches, Bss, Build, Calls, Entries, Funcs, Got, Imports, Offsets, Regions, V131072, Vtables,
+    Branches, Bss, Build, Calls, Entries, Funcs, Got, Imports, Offsets, Regions, V65536, V131072,
+    Vtables,
 };
 pub use mailbox::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,

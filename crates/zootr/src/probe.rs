@@ -352,6 +352,19 @@ pub enum Probe {
         #[arg(long, value_parser = point, allow_hyphen_values = true, requires = "from")]
         to: Option<[f32; 3]>,
     },
+    /// Maps every offset of 1.1.1's table into another build's `main` and,
+    /// once each is matched (or confirmed by hand in `port::CONFIRMED`),
+    /// writes that build's table as Rust to `--out`. The report (each
+    /// offset's method, window, candidates and confidence, the rooms and
+    /// the field offsets left unconfirmed) goes to stdout or `--report`.
+    Port {
+        #[arg(long)]
+        to: crate::game::Release,
+        #[arg(long)]
+        report: Option<PathBuf>,
+        #[arg(long, default_value = crate::port::TABLE_FILE)]
+        out: PathBuf,
+    },
     /// One build's code, `main`, decoded from the dump and written flat to
     /// `--out` as it lies in memory (text, rodata and data at their
     /// offsets, bss zeroed), with its build ID, segments and MOD0.
@@ -509,6 +522,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             within,
         } => nav(romfs, game, &map, types, at, within),
         Probe::Main { build, out } => exefs::print_main(game, build, &out),
+        Probe::Port { to, report, out } => exefs::port(game, to, report.as_deref(), &out),
         Probe::Plan { mix, seed, only } => plan::plan(romfs, mix.as_deref(), seed, only.as_deref()),
         Probe::Unpack { pattern, out } => unpack(romfs, game, &pattern, &out),
         Probe::Grep { needle, path } => grep(romfs, game, &needle, &path),
