@@ -14,6 +14,7 @@ use crate::bombchu_bags;
 use crate::checks::{self, Drop, ItemCheck};
 use crate::events::Flows;
 use crate::flows::Rewrites;
+use crate::game::Release;
 use crate::gamedata::{GameData, Op};
 use crate::hints::Hint;
 use crate::narrowing::maps_move;
@@ -268,20 +269,22 @@ pub fn write_mod(
     let keyed: Vec<_> = (parts.rupees.iter())
         .filter_map(|r| ammo::line(ammo::copied(r)?))
         .collect();
-    patch::install(
-        mod_dir,
-        Lines::of(new_game),
-        &keyed,
-        hook_flags(new_game),
-        &credits(new_game),
-        &spots,
-        look.as_ref(),
-    )?;
+    let release = Release::of(romfs.root());
+    let table = patch::SeedTable {
+        progressive: Lines::of(new_game),
+        keyed: &keyed,
+        flags: hook_flags(new_game),
+        credits: &credits(new_game),
+        spots: &spots,
+        look: look.as_ref(),
+    };
+    patch::install(mod_dir, release, &table)?;
     Ok(Written {
         defaults,
         actors,
         files,
         stand_ins: parts.stand_ins,
+        release,
     })
 }
 

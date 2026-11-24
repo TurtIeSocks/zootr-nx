@@ -61,14 +61,17 @@ pub use par::{par_batches, par_map, threads};
 pub use rename::rename;
 pub use restbl::Restbl;
 pub use roead::byml::{Byml, Map as BymlMap};
-pub use romfs::{ModBuilder, Romfs, copy_mod};
+pub use romfs::{ModBuilder, Romfs, copy_mod, stamped, stamped_among};
 pub use sarc::replace_file;
 pub use save::{BOOL, Entry as SaveEntry, KEYED, Save, width as save_width};
 pub use shape_mesh::{Material, ShapeMesh};
 pub use tagfile::{Field, Item, Obj, Tagfile, Type};
 pub use walk::files_with_suffix;
 pub use xlink::{
-    add_case as xlink_add_case, call_names as xlink_calls, child_names as xlink_children,
-    copy_call as xlink_copy_call, tree_names as xlink_tree, trigger_names as xlink_triggers,
+    Call as XlinkCall, add_case as xlink_add_case, asset_params as xlink_asset_params,
+    call_children as xlink_call_children, call_names as xlink_calls, calls as xlink_call_table,
+    child_names as xlink_children, copy_call as xlink_copy_call,
+    direct_values as xlink_direct_values, tree_names as xlink_tree,
+    trigger_names as xlink_triggers,
 };
 pub use zs::{Dicts, frame_dict_id};

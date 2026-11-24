@@ -194,7 +194,7 @@ async fn set_config(app: AppHandle, config: Config) -> Res<Vec<String>> {
             .as_ref()
             .filter(|&g| old.game.as_ref() != Some(g))
         {
-            zootr::game::prepare(game, &Run::silent())?;
+            zootr::game::prepare(game, None, &Run::silent())?;
         }
         check_steps(&old, &config)?;
         config.save()?;
@@ -210,7 +210,7 @@ async fn set_config(app: AppHandle, config: Config) -> Res<Vec<String>> {
 /// The game files from the config's dump.
 fn romfs(config: &Config) -> anyhow::Result<Romfs> {
     let game = config.game.as_ref().context("Set the game dump first")?;
-    zootr::game::prepare(game, &Run::silent())
+    zootr::game::prepare(game, None, &Run::silent())
 }
 
 /// What `slot` holds, loaded into it by `load` the first time. Kept until

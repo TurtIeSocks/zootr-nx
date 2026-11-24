@@ -6,6 +6,7 @@ use std::sync::Mutex;
 use std::time::SystemTime;
 
 use crate::config::Config;
+use crate::game::Release;
 use crate::generate::{Extras, Report, Spot};
 use crate::icons::icons;
 use crate::settings::{self, SHUFFLE_ITEMS, Settings};
@@ -111,6 +112,8 @@ pub struct Summary {
     ap_slot: Option<String>,
     /// The slot plays DeathLink.
     death_link: bool,
+    /// The build of the game the seed was made for.
+    release: Release,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -142,6 +145,7 @@ impl From<&Entry> for Summary {
             plando: !e.extras.place.is_empty(),
             ap_slot: e.extras.ap.as_ref().map(|a| a.slot.clone()),
             death_link: e.extras.ap.as_ref().is_some_and(|a| a.death_link),
+            release: e.report.written.release,
         }
     }
 }
@@ -515,6 +519,7 @@ pub(crate) mod tests {
                 actors: 1,
                 files: 2,
                 stand_ins: vec![],
+                release: Default::default(),
             },
         }
     }

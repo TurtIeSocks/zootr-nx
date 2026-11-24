@@ -197,6 +197,8 @@ pub(crate) fn starting(romfs: &Romfs, rel: &str) -> Result<Vec<PathBuf>> {
 fn read(romfs: &Romfs, sources: &[&str]) -> Result<String> {
     let (mut seen, mut names) = (HashSet::new(), String::new());
     for source in sources {
+        // A stamped file under this build's stamp.
+        let source = &*romfs.resolve(source);
         let at = romfs.root().join(source);
         // An older extract lacks some folders: read what it has.
         let files = if at.is_file() {

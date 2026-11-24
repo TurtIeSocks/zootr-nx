@@ -21,6 +21,13 @@ const NUM_USER: usize = 0x48;
 const CONDITIONS: usize = 0x50;
 const NAMES: usize = 0x58;
 const USER_HASHES: usize = 0x60;
+/// The local property name refs (u64 each): first the names, then the
+/// enum names, then the direct values.
+const LOCAL_REFS: usize = 0x20;
+const NUM_LOCAL_NAMES: usize = 0x28;
+const NUM_LOCAL_ENUMS: usize = 0x2c;
+const NUM_DIRECT: usize = 0x30;
+const LOCAL_REF: usize = 0x08;
 
 // A user's header.
 const LOCALS: usize = 0x04;
@@ -377,6 +384,57 @@ fn patch_header(
     let size = out.len() as u32;
     w(out, DATA_SIZE, size);
     Ok(())
+}
+
+/// A user's call, as [`calls`] reads it.
+pub struct Call {
+    /// Where it is in the file.
+    pub at: usize,
+    /// Where its params are: an asset's record from [`asset_params`] on, a
+    /// container's from its user's container params on.
+    pub param: u32,
+    /// Whether it's a container, whose children [`call_children`] gives.
+    pub container: bool,
+}
+
+/// `user`'s calls, in their order.
+pub fn calls(file: &[u8], user_name: &str) -> Result<Vec<Call>> {
+    let (r, u) = (Reader(file), user(file, user_name)?);
+    (0..u.count)
+        .map(|i| {
+            let at = u.calls + i * CALL;
+            Ok(Call {
+                at,
+                param: r.u32(at + PARAM)?,
+                container: r.u16(at + CALL_FLAGS)? & IS_CONTAINER != 0,
+            })
+        })
+        .collect()
+}
+
+/// The calls right under `user`'s call `i`, by index.
+pub fn call_children(file: &[u8], user_name: &str, i: usize) -> Result<std::ops::Range<usize>> {
+    children(file, &user(file, user_name)?, i)
+}
+
+/// Where the asset param records start, in the file: after the param
+/// definitions, which give their own size.
+pub fn asset_params(file: &[u8]) -> Result<usize> {
+    let r = Reader(file);
+    let defines = offsets_at(file)? + 8 * r.u32(NUM_USER)? as usize;
+    Ok(defines + r.offset(defines)?)
+}
+
+/// The direct values, as raw words: what an asset param's field indexes,
+/// a float for a size. They follow the local property names and enum
+/// names.
+pub fn direct_values(file: &[u8]) -> Result<Vec<u32>> {
+    let r = Reader(file);
+    let refs = r.offset(NUM_LOCAL_NAMES)? + r.offset(NUM_LOCAL_ENUMS)?;
+    let at = r.ptr(LOCAL_REFS)? + LOCAL_REF * refs;
+    (0..r.offset(NUM_DIRECT)?)
+        .map(|i| r.u32(at + 4 * i))
+        .collect()
 }
 
 /// The names of `user`'s calls, in their order.

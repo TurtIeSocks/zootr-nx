@@ -797,6 +797,13 @@ export type Rebuild = {
 	manifest?: string | null,
 };
 
+/**
+ *  A build of the game: the base package (1.0.0) or the update (1.1.1),
+ *  each with its own `main` and romfs. Seeds from before a seed kept its
+ *  build were all made for 1.1.1.
+ */
+export type Release = "1.0.0" | "1.1.1";
+
 /**  An item Link gets outside the shuffle, in the round that collects it. */
 export type RoundEvent = {
 	round: number,
@@ -1105,6 +1112,8 @@ export type Summary = {
 	ap_slot: string | null,
 	/**  The slot plays DeathLink. */
 	death_link: boolean,
+	/**  The build of the game the seed was made for. */
+	release: Release,
 };
 
 /**  Where a seed installs and the game runs. Nothing here knows which one it is. */

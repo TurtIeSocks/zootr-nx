@@ -66,8 +66,13 @@ pub use table::{
 
 /// The build everything here is made for: the hook is compiled against it,
 /// the same in every seed, so the hook calls through its offsets with no
-/// table yet, and the patch is written for it.
+/// table yet, and the patch is written for it. `build.rs` compiles the
+/// hook once per build, 1.0.0's with `zootr_build="v65536"`. The host's
+/// tools, which run against 1.1.1, see 1.1.1's.
+#[cfg(not(zootr_build = "v65536"))]
 pub const OFFSETS: Build = V131072;
+#[cfg(zootr_build = "v65536")]
+pub const OFFSETS: Build = V65536;
 /// The part of [`OFFSETS`] the running hook calls through.
 const RUNTIME: Offsets = OFFSETS.offsets();
 
@@ -79,8 +84,18 @@ const BSS_END: u32 = OFFSETS.regions.bss_end;
 pub const PANIC: u32 = OFFSETS.regions.panic;
 /// The list sits at the page tail's top end, under [`PANIC`], and moves
 /// down as [`Shared`] grows.
-pub const LIST: u32 = (PANIC - size_of::<Shared>() as u32) & !15;
+pub const LIST: u32 = list(&OFFSETS);
 const _: () = assert!(LIST >= BSS_END + 16, "the list reaches sloperinaGZ's slots");
+const _: () = assert!(list(&V65536) >= V65536.regions.bss_end + 16, "1.0.0's list");
+const _: () = assert!(
+    list(&V131072) >= V131072.regions.bss_end + 16,
+    "1.1.1's list"
+);
+
+/// Where build `b`'s list sits: [`LIST`] for the build the hook is made for.
+pub const fn list(b: &Build) -> u32 {
+    (b.regions.panic - size_of::<Shared>() as u32) & !15
+}
 /// Where the hook's branch slots sit, one word each right after the
 /// entries: each function hook's resume, in the order the hooks are
 /// listed, then the full key, handheld and joy dual controller reads. The

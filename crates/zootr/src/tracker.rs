@@ -427,6 +427,7 @@ mod tests {
                 actors: 0,
                 files: 0,
                 stand_ins: vec![],
+                release: Default::default(),
             },
         };
         history.add(

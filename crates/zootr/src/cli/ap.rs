@@ -219,7 +219,7 @@ pub(super) fn bench_command(game: &Path, args: Bench) -> Result<()> {
 /// The bench on this machine: the offline rows, then the live ones on a
 /// room here or (`--room-on`) on another machine.
 fn bench_here(game: &Path, world: &Path, presets: &[String], args: &Bench) -> Result<Vec<Row>> {
-    let romfs = game::prepare(game, &Run::silent())?;
+    let romfs = game::prepare(game, None, &Run::silent())?;
     let home = home()?;
     let ap = Archipelago::find(args.at.archipelago.clone(), &home)?;
     ap.prepare(world)?;

@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::game::Release;
 use crate::names::{Names, pretty};
 use crate::shuffle::Placement;
 use crate::{checks, gifts, shops};
@@ -148,6 +149,10 @@ pub struct Written {
     #[serde(skip)]
     #[cfg_attr(feature = "specta", specta(skip))]
     pub stand_ins: Vec<(u64, String)>,
+    /// The build of the game the mod was made for. Seeds from before it
+    /// was kept were all made for 1.1.1, the default.
+    #[serde(default)]
+    pub release: Release,
 }
 
 /// An item Link gets outside the shuffle, in the round that collects it.
@@ -256,6 +261,11 @@ impl Report {
         let width = self.spots.iter().map(|s| s.name().chars().count());
         let width = width.max().unwrap_or(0);
         let mut out = format!("seed {}\nicons {}\n", self.seed, icons.join(" · "));
+        let release = self.written.release;
+        out += &format!("game {}\n", release.name());
+        if let Some(notice) = release.notice() {
+            out += &format!("{notice}\n");
+        }
         if !self.entrances.is_empty() {
             let width = self.entrances.iter().map(|d| d.name().chars().count());
             let width = width.max().unwrap_or(0);
@@ -379,6 +389,7 @@ mod tests {
                 actors: 2,
                 files: 3,
                 stand_ins: vec![],
+                release: Release::V111,
             },
         }
     }
@@ -389,6 +400,45 @@ mod tests {
         assert_eq!(json["seed"], u64::MAX.to_string());
         assert_eq!(json["files"], 3);
         assert_eq!(serde_json::from_value::<Report>(json).unwrap(), report());
+    }
+
+    #[test]
+    fn a_seed_says_its_build_and_only_the_base_game_warns() {
+        let update = Report {
+            spots: vec![],
+            ..report()
+        };
+        let json = serde_json::to_value(&update).unwrap();
+        assert_eq!(json["release"], "1.1.1");
+        assert_eq!(
+            serde_json::from_value::<Report>(json.clone()).unwrap(),
+            update
+        );
+        let mut old = json;
+        old.as_object_mut().unwrap().remove("release");
+        let old: Report = serde_json::from_value(old).unwrap();
+        assert_eq!(
+            old.written.release,
+            Release::V111,
+            "an older seed was 1.1.1's"
+        );
+        assert_eq!(
+            update.spoiler(&[]),
+            format!("seed {}\nicons \ngame 1.1.1\n", u64::MAX)
+        );
+        let mut base = update.clone();
+        base.written.release = Release::V100;
+        let json = serde_json::to_value(&base).unwrap();
+        assert_eq!(json["release"], "1.0.0");
+        assert_eq!(serde_json::from_value::<Report>(json).unwrap(), base);
+        assert_eq!(
+            base.spoiler(&[]),
+            format!(
+                "seed {}\nicons \ngame 1.0.0\n\
+                 Base game (1.0.0) support is experimental and not verified in game\n",
+                u64::MAX
+            )
+        );
     }
 
     #[test]
@@ -411,7 +461,7 @@ mod tests {
         };
         assert_eq!(
             report.spoiler(&[]),
-            "seed 7\nicons \n\nEntrances\n  Kokiri Forest, Deku Tree door            -> Fire Temple\n  Death Mountain Crater, Fire Temple door  -> Deku Tree\n"
+            "seed 7\nicons \ngame 1.1.1\n\nEntrances\n  Kokiri Forest, Deku Tree door            -> Fire Temple\n  Death Mountain Crater, Fire Temple door  -> Deku Tree\n"
         );
     }
 
@@ -469,7 +519,7 @@ mod tests {
         };
         assert_eq!(
             report.spoiler(&["Sun".into(), "Moon".into()]),
-            "seed 7\nicons Sun · Moon\n\nField\n  Sword            -> Bow\n  North Bow (big)  -> Sword\n\nLake\n  Map              -> Map (given at start)\n"
+            "seed 7\nicons Sun · Moon\ngame 1.1.1\n\nField\n  Sword            -> Bow\n  North Bow (big)  -> Sword\n\nLake\n  Map              -> Map (given at start)\n"
         );
     }
 
@@ -539,7 +589,7 @@ mod tests {
         assert!(report.events.is_empty());
         assert_eq!(
             report.spoiler(&[]),
-            "seed 7\nicons \n\nWay of the Hero\n  Field: Sword -> Bow\n\nPlaythrough\n  Round 1\n    Field: Sword -> Bow\n"
+            "seed 7\nicons \ngame 1.1.1\n\nWay of the Hero\n  Field: Sword -> Bow\n\nPlaythrough\n  Round 1\n    Field: Sword -> Bow\n"
         );
     }
 

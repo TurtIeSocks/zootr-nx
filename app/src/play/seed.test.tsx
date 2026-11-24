@@ -10,11 +10,16 @@ const entry = summary({
   share: "ZR1-fake",
   test: true,
   plando: true,
+  release: "1.0.0",
 });
 
 test.each([
   ["Plando", "Built with a plando: items pinned to checks"],
   ["Test", "Built with a test setup: a spawn, items or new-game flags"],
+  [
+    "1.0.0",
+    "Base game (1.0.0) support is experimental and not verified in game",
+  ],
 ])("the %s badge takes focus and opens its tip", async (label, tip) => {
   render(<ExtrasBadges entry={entry} />);
   const badge = screen.getByText(label);

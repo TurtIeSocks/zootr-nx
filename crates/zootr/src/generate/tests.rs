@@ -107,7 +107,7 @@ fn a_run_reports_every_step_in_order() {
             heard.lock().unwrap().push(*step);
         }
     });
-    let romfs = crate::game::prepare(path, &run).unwrap();
+    let romfs = crate::game::prepare(path, None, &run).unwrap();
     let dir = Scratch::new("steps-run");
     generate(&romfs, &dir, 7, &Settings::new(), &Extras::default(), &run).unwrap();
     use Step::*;

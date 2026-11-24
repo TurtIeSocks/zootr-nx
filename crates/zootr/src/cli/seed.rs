@@ -87,6 +87,7 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
         give,
         progress,
         fields,
+        release,
         ..
     } = extras;
     spawn.iter().for_each(|s| flag("spawn", Some(s.clone())));
@@ -101,6 +102,9 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
         .iter()
         .for_each(|(h, i)| flag("place", Some(format!("{h}={i}"))));
     fields.iter().for_each(|f| flag("field", Some(f.clone())));
+    release
+        .iter()
+        .for_each(|r| flag("release", Some(r.name().into())));
     args.iter().map(|a| quote(a)).collect::<Vec<_>>().join(" ")
 }
 
@@ -143,7 +147,7 @@ fn install(
     };
     let run = Run::silent().with(progress::print).logged(&about);
     let built = (|| {
-        let romfs = game::prepare(game, &run)?;
+        let romfs = game::prepare(game, extras.release, &run)?;
         let generate = |d: &Path| generate::generate(&romfs, d, seed, &settings, &extras, &run);
         match unplaced {
             true => Ok((generate::throwaway(generate)?, false)),
@@ -166,6 +170,9 @@ fn install(
             ", spoiler.txt beside each mod"
         },
     );
+    if let Some(notice) = report.written.release.notice() {
+        println!("{notice}");
+    }
     if installed || unplaced || args.history {
         let label = Label {
             name: args.name,
@@ -233,6 +240,7 @@ mod tests {
                 format!("{}=Step02", flow::SAGE_OF_SPIRIT),
                 format!("{}=Step02", flow::GOTO_HYRULE_CASTLE),
             ],
+            release: Some(game::Release::V100),
             ..Default::default()
         };
         let line = shuffle_command(&settings, &extras);
