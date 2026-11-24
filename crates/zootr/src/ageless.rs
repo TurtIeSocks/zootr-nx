@@ -19,6 +19,7 @@ use crate::standins::{POUCH_ACTOR_INFO, row_id};
 
 pub mod files;
 pub mod gear;
+pub mod tunics;
 
 /// The flags, each age's.
 const AGES: [&Name; 2] = [field::IS_USABLE_CHILD, field::IS_USABLE_ADULT];

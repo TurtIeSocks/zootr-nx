@@ -318,6 +318,17 @@ fn rgb888(c: u16) -> [u32; 3] {
     [r * 255 / 31, g * 255 / 63, b * 255 / 31]
 }
 
+/// A BC3 block of 16 texels: their alpha as a BC4 block, then their
+/// colour as a BC1 block in its four-colour mode, the only one BC3 reads.
+pub fn bc3(texels: &[Rgba]) -> [u8; 16] {
+    let alpha: [u8; 16] = std::array::from_fn(|t| texels[t][3]);
+    let opaque: Vec<Rgba> = texels.iter().map(|c| [c[0], c[1], c[2], 255]).collect();
+    let mut block = [0; 16];
+    block[..8].copy_from_slice(&bc4(&alpha));
+    block[8..].copy_from_slice(&bc1(&opaque));
+    block
+}
+
 /// A BC4 block of 16 values: the darkest and brightest, and each value's
 /// nearest of the eight between them.
 pub fn bc4(values: &[u8; 16]) -> [u8; 8] {
@@ -391,6 +402,16 @@ mod tests {
     fn a_bc1_block_of_one_colour_decodes_to_it() {
         let texels = [[128, 64, 32, 255]; 16];
         assert!(worst(&decode_bc1(&bc1(&texels)), &texels) <= 4);
+    }
+
+    #[test]
+    fn a_bc3_block_keeps_its_colour_and_its_alpha() {
+        let (dark, light) = ([40, 20, 200, 30], [220, 180, 30, 250]);
+        let texels: Vec<Rgba> = (0..16).map(|i| [dark, light][i % 2]).collect();
+        let mut px = vec![0u32; 16];
+        tex::decode_bc3(&bc3(&texels), 4, 4, &mut px).unwrap();
+        let back: Vec<Rgba> = px.into_iter().map(from_packed).collect();
+        assert!(worst(&back, &texels) <= 8, "{back:?}");
     }
 
     /// One ASTC block decoded to RGBA8.

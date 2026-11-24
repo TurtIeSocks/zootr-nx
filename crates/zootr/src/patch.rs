@@ -42,16 +42,14 @@ const SKIPS: [(u32, u32); 3] = [GATE, CATCH, gear::BOOTS];
 /// chest sets its `ContentName`, go to `content_name`. The drop reader's
 /// calls, where a loading room reads a chest's placement, go to
 /// `drop_actor`. The bow draw's child test, which picks its guide, goes
-/// to `seed_guide`, so a child Bow says "Shoot Arrow". The equipment
-/// slots' child tests go to `gear_child` ([`gear::CALLS`]).
-const CALLS: [(u32, u32); 7] = [
+/// to `seed_guide`, so a child Bow says "Shoot Arrow". The gear sites
+/// are [`gear::SITES`].
+const CALLS: [(u32, u32); 5] = [
     (0x2ae_0828, entry::CONTENT_NAME),
     (0x2ae_08cc, entry::CONTENT_NAME),
     (0x2ef_6560, entry::DROP_ACTOR),
     (0x2ef_4888, entry::DROP_ACTOR),
     (0x4b_01a4, entry::SEED_GUIDE),
-    gear::CALLS[0],
-    gear::CALLS[1],
 ];
 /// The run node's call to the speed setter and the hook entry it goes to,
 /// `run_speed`, which scales the speed in the Bunny Hood in a seed with
@@ -120,14 +118,12 @@ fn branch(from: u32, to: u32, link: bool) -> [u8; 4] {
 
 /// The calls and hooked functions, each branching to its hook entry.
 fn sites() -> impl Iterator<Item = Patch> {
-    let calls = CALLS.into_iter().chain(NPAD_CALLS);
+    let calls = CALLS.into_iter().chain(NPAD_CALLS).chain(gear::SITES);
     let calls = calls.map(|(at, entry)| (at, entry, true));
     let hooks = HOOKS.iter().map(|&(at, entry)| (at, entry, false));
-    let run = (RUN_CALL.0, RUN_CALL.1, true);
-    let hud = (gear::HUD.0, gear::HUD.1, true);
     calls
         .chain(hooks)
-        .chain([hud, run])
+        .chain([(RUN_CALL.0, RUN_CALL.1, true)])
         .map(|(at, entry, link)| Patch {
             at,
             bytes: branch(at, CAVE + entry, link).to_vec(),
@@ -683,7 +679,7 @@ mod tests {
         let at = |i: usize| u32::from_le_bytes(p[SITES_AT + i].bytes[..].try_into().unwrap());
         assert_eq!(at(0) >> 26, 0b100101, "a call stays a bl");
         assert_eq!(
-            at(CALLS.len() + NPAD_CALLS.len()) >> 26,
+            at(CALLS.len() + NPAD_CALLS.len() + gear::SITES.len()) >> 26,
             0b000101,
             "a hook is a b"
         );
@@ -897,8 +893,8 @@ mod tests {
         );
         // Each patch starts at a place checked above.
         let sites = SKIPS.iter().chain(&CALLS).chain(&NPAD_CALLS).chain(HOOKS);
-        let checked: Vec<u32> = (sites.map(|&(at, _)| at))
-            .chain([RUN_CALL.0, gear::HUD.0, CAVE, FAR, TABLE, TABLE + 4])
+        let checked: Vec<u32> = (sites.chain(&gear::SITES).map(|&(at, _)| at))
+            .chain([RUN_CALL.0, CAVE, FAR, TABLE, TABLE + 4])
             .collect();
         for p in patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap() {
             assert!(

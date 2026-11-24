@@ -644,6 +644,24 @@ fn put(out: &mut [u8], at: usize, value: usize) -> Result<()> {
     Ok(())
 }
 
+/// `data` with the shape named `shape` drawing nothing: every mesh and
+/// submesh of it zero indices long. Its vertices and bones stay.
+pub fn hide_shape(data: &[u8], shape: &str) -> Result<Vec<u8>> {
+    let r = Reader(data);
+    let at = shape_at(data, shape)?;
+    let mut out = data.to_vec();
+    let meshes = r.ptr(at + SHAPE_MESHES)?;
+    for i in 0..r.u8(at + SHAPE_MESH_COUNT)? as usize {
+        let m = meshes + MESH_SIZE * i;
+        put(&mut out, m + MESH_COUNT, 0)?;
+        let sub = r.ptr(m + MESH_SUBMESHES)?;
+        for j in 0..r.u16(m + MESH_SUBMESH_COUNT)? as usize {
+            put(&mut out, sub + 8 * j + 4, 0)?;
+        }
+    }
+    Ok(out)
+}
+
 /// The offset of the shape named `shape`.
 fn shape_at(data: &[u8], shape: &str) -> Result<usize> {
     shapes(data)

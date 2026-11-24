@@ -33,6 +33,7 @@
 pub mod entry;
 #[cfg(target_os = "none")]
 mod game;
+mod gear;
 pub mod keys;
 pub mod look;
 mod mailbox;
@@ -43,6 +44,9 @@ mod table;
 pub mod traps;
 pub mod ui;
 
+pub use gear::{
+    ARMOR_SLOT, BOOTS_SLOT, CHILD_ARMOR, CHILD_GEAR, child_armor, gear_through, hud_child,
+};
 pub use mailbox::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
     ARG_SUMMARY, Ask, GUARD, MAILBOX, Mailbox, NAME, Notice, Outcome, play_event,
@@ -55,9 +59,8 @@ pub use table::SlotSpec;
 #[cfg(not(target_os = "none"))]
 pub use table::encode;
 pub use table::{
-    BOMBCHU_BAG, BOOTS_SLOT, BUNNY_HOOD, CHILD_GEAR, Credit, DEV, FREE_BOMBCHUS, Found, HEADER,
-    Header, ICE_TRAPS, Level, Levels, MAGIC, MENU_CYCLE, Offsets, Slot, Table, after_grant, fnv,
-    gear_through, hud_child, pick, pick_with,
+    BOMBCHU_BAG, BUNNY_HOOD, Credit, DEV, FREE_BOMBCHUS, Found, HEADER, Header, ICE_TRAPS, Level,
+    Levels, MAGIC, MENU_CYCLE, Offsets, Slot, Table, after_grant, fnv, pick, pick_with,
 };
 
 /// Where our pieces go in `main`, for game 1.1.1. The code goes over
@@ -85,7 +88,7 @@ pub const PANIC: u32 = 0x4e9_aff0;
 /// listed, then the full key, handheld and joy dual controller reads. The
 /// patch writes a `b` into each: past the hooked function's pacibsp, or to
 /// the game's `GetNpadStates` stub for that style.
-pub const SLOTS: u32 = 92;
+pub const SLOTS: u32 = 100;
 
 /// The Deku Seed's name hash, the projectile an empty bow says "no Deku
 /// seeds" for and the draw says "Shoot Seed" for. Every other one says
@@ -125,6 +128,9 @@ pub const OFFSETS: Offsets = Offsets {
     // Link's child test, which the bow draw's guide asks to pick the
     // Slingshot's ("Shoot Seed") or the Bow's ("Shoot Arrow").
     childhood: 0x4b_6db0,
+    // GameData's string getter, which the equip refresh reads a slot's
+    // name with.
+    get_string: 0xa7_a860,
     malloc: 0x14c_6c90,
     make_arg: 0xd7_9f10,
     request: 0xd7_a820,

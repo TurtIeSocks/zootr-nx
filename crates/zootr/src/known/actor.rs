@@ -109,6 +109,7 @@ pub const NPC_SKULL_KID_CHILD: &Name = &n!(0xd72865c525381513);
 pub const NPC_SKULL_KID_CHILD_02: &Name = &n!(0x17a0018de8fd210a);
 pub const NPC_ZORA_011_SHOP_ADULT: &Name = &n!(0xa9b5c159eac46998);
 pub const NPC_ZORA_KING_ZORA_ADULT: &Name = &n!(0x1a0ec450871d9742);
+pub const OBJ_ARMOR_CHILD_NORMAL: &Name = &n!(0xbd1f036a9431ff37);
 pub const OBJ_ARMOR_GORON: &Name = &n!(0xb4b0a90e69041944);
 pub const OBJ_ARMOR_ZORA: &Name = &n!(0x9efd008752cbce99);
 pub const OBJ_ARROW_BUNDLE_LARGE: &Name = &n!(0x4aad1e33262a22f8);

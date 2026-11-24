@@ -133,6 +133,8 @@ global_asm!(
     "b resident_made_entry",
     "b gear_child_entry",
     "b gear_hud_entry",
+    "b gear_armor_entry",
+    "b gear_menu_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -184,6 +186,43 @@ global_asm!(
     "mov w8, w0",
     "ldp x29, x30, [sp], #0x10",
     "ret",
+    // Far, as the rest of the gear stubs: they run only on an equip. In
+    // place of the equip refresh's call to GameData's string getter, with
+    // the equipment in x19 and its slot in w20.
+    ".pushsection .far, \"ax\"",
+    "gear_armor_entry:",
+    "mov x4, x19",
+    "mov w5, w20",
+    "b gear_armor",
+    // In place of the pause menu's `ldrb w25, [x9, #0x5c0]`, its read of
+    // whether Link is a child, which greys a child's tunics out. Every
+    // register but w25 is the menu's, so all it may hold are kept.
+    "gear_menu_entry:",
+    "stp x29, x30, [sp, #-0xa0]!",
+    "stp x0, x1, [sp, #0x10]",
+    "stp x2, x3, [sp, #0x20]",
+    "stp x4, x5, [sp, #0x30]",
+    "stp x6, x7, [sp, #0x40]",
+    "stp x8, x9, [sp, #0x50]",
+    "stp x10, x11, [sp, #0x60]",
+    "stp x12, x13, [sp, #0x70]",
+    "stp x14, x15, [sp, #0x80]",
+    "stp x16, x17, [sp, #0x90]",
+    "ldrb w0, [x9, #0x5c0]",
+    "bl gear_hud",
+    "mov w25, w0",
+    "ldp x0, x1, [sp, #0x10]",
+    "ldp x2, x3, [sp, #0x20]",
+    "ldp x4, x5, [sp, #0x30]",
+    "ldp x6, x7, [sp, #0x40]",
+    "ldp x8, x9, [sp, #0x50]",
+    "ldp x10, x11, [sp, #0x60]",
+    "ldp x12, x13, [sp, #0x70]",
+    "ldp x14, x15, [sp, #0x80]",
+    "ldp x16, x17, [sp, #0x90]",
+    "ldp x29, x30, [sp], #0xa0",
+    "ret",
+    ".popsection",
     "map_loaded_entry:",
     "function_hook map_loaded, map_loaded_resume",
     "chest_made_entry:",
@@ -408,6 +447,7 @@ pub unsafe extern "C" fn seed_guide(link: usize) -> bool {
 /// # Safety
 /// Only the game calls this, from the rewritten call sites.
 #[unsafe(no_mangle)]
+#[unsafe(link_section = ".far")]
 pub unsafe extern "C" fn gear_child(link: usize, slot: u32) -> bool {
     if table().is_some_and(|(_, table)| crate::gear_through(slot, table.flags)) {
         return false;
@@ -417,6 +457,48 @@ pub unsafe extern "C" fn gear_child(link: usize, slot: u32) -> bool {
         child(link)
     }
 }
+
+/// GameData's string getter: (gamedata, out, entry, name hash) -> found.
+type GetString = unsafe extern "C" fn(usize, *mut *const u8, usize, u32) -> bool;
+
+/// The equip refresh reads the name `slot`'s GameData entry holds into
+/// `worn`, then makes that actor on Link (`equipment`'s). For a child's
+/// tunic in a seed with [`crate::CHILD_GEAR`], the name read is the
+/// seed's armor for him ([`crate::child_armor`]) in its place.
+///
+/// # Safety
+/// Only the game calls this, from the rewritten call site.
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".far")]
+pub unsafe extern "C" fn gear_armor(
+    gamedata: usize,
+    worn: *mut *const u8,
+    entry: usize,
+    hash: u32,
+    equipment: usize,
+    slot: u32,
+) -> bool {
+    unsafe {
+        let main = main();
+        let get: GetString = func(main, OFFSETS.get_string);
+        let found = get(gamedata, worn, entry, hash);
+        let Some((_, table)) = table().filter(|_| found && slot == crate::ARMOR_SLOT) else {
+            return found;
+        };
+        let child: Childhood = func(main, OFFSETS.childhood);
+        let link = *((equipment + EQUIPMENT_LINK) as *const usize);
+        let name = core::ffi::CStr::from_ptr((*worn).cast());
+        if let Some(armor) = crate::child_armor(name.to_bytes(), table.flags)
+            && child(link)
+        {
+            *worn = armor.as_ptr().cast();
+        }
+        found
+    }
+}
+
+/// Where Link's equipment keeps Link.
+const EQUIPMENT_LINK: usize = 0x18;
 
 /// The D-pad's boots icon reads whether Link is a child from the HUD
 /// status (`child`), and hides itself for one. Not in a seed with
