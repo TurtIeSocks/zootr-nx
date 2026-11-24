@@ -123,7 +123,7 @@ pub fn copy_name(item: &str, area: impl Fn(&str) -> String) -> Option<String> {
 
 /// The label naming `item`, if it's a copy.
 pub fn name_label(item: &str) -> Option<String> {
-    is_copy(item).then(|| format!("{item}{}", TEXT_PARTS[0]))
+    is_copy(item).then(|| key_tints::label(item))
 }
 
 /// The lines each copy's get shows, the game's map or compass lines

@@ -17,7 +17,7 @@ use zootr_hook::{ARG_ACTOR, ARG_MIXED, ARG_SUMMARY, Notice};
 
 use crate::flows::{self, Model, running, set};
 use crate::foreign::clean;
-use crate::key_tints::{MADE, POUCH_TEXT, TEXT_PARTS};
+use crate::key_tints::{MADE, POUCH_TEXT, label};
 use crate::keys::SMALL;
 use crate::known::{Name, field, flag, flow, scene};
 use crate::text::{Copies, CopyLine, Piece, Says, Tagged};
@@ -168,8 +168,8 @@ pub(crate) fn senders(players: &BTreeMap<u32, String>) -> Copies<'static> {
         .into_iter()
         .chain(players.iter().map(|(s, n)| (s, n.as_str())));
     let new = all.map(|(&slot, name)| CopyLine {
-        label: format!("{}{}", sender(slot), TEXT_PARTS[0]),
-        sources: vec![format!("{}{}", SMALL.get(), TEXT_PARTS[0])],
+        label: label(&sender(slot)),
+        sources: vec![label(SMALL)],
         says: Says::Text(clean(name)),
     });
     Copies {
@@ -282,8 +282,8 @@ mod tests {
                 _ => panic!("a name is plain text"),
             })
             .collect();
-        let label = |slot| format!("{}{}", sender(slot), TEXT_PARTS[0]);
-        let want = [(0, "Archipelago"), (1, "Link"), (2, "Saria")].map(|(s, n)| (label(s), n));
+        let named = |slot| label(&sender(slot));
+        let want = [(0, "Archipelago"), (1, "Link"), (2, "Saria")].map(|(s, n)| (named(s), n));
         let said: Vec<_> = said.into_iter().map(|(l, n)| (l.to_owned(), n)).collect();
         assert_eq!(said, want);
         assert!(senders(&BTreeMap::new()).new.is_empty());
