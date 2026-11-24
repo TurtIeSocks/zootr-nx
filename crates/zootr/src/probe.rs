@@ -1,23 +1,20 @@
 //! `zootr probe`: quick questions about the game's data, one line per hit
 //! so the output greps well.
 
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
 use clap::Subcommand;
-use ounce_formats::{
-    ActorPack, Byml, NavMesh, Romfs, Tagfile, files_with_suffix, messages, murmur3, pack_file,
-};
+use ounce_formats::{ActorPack, Romfs, files_with_suffix, messages, murmur3, pack_file};
 use roead::sarc::Sarc;
 
-use crate::checks::{GYAML, actors, banc_files, flat, hash_of, load_banc, str_field, vec3};
 use crate::gamedata::GameData;
 use crate::items::{scalar, show};
 use crate::known::flag;
 use crate::names::TEXT;
-use crate::nav::navmesh_file;
 
+mod actors;
 mod arsenal;
 mod climbs;
 mod collision;
@@ -25,6 +22,7 @@ mod formats;
 mod hurts;
 mod logic;
 mod map;
+mod navmesh;
 mod plan;
 mod poses;
 mod rooms;
@@ -32,8 +30,10 @@ mod shapes;
 mod uvs;
 mod water;
 
+use actors::{hits, print_actors};
 use formats::{ainb, ainbs, byml, files, grep, pool, restbl, strings, unpack, unpacked};
 use logic::{checks, doors, exits, gates, groups, pouch, settings, shops, tools};
+use navmesh::{nav, print_types};
 
 #[derive(Subcommand)]
 pub enum Probe {
@@ -568,65 +568,6 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
     }
 }
 
-struct Hit {
-    /// Without `Banc/` and the extension.
-    file: String,
-    gyaml: String,
-    hash: u64,
-    pos: [f32; 3],
-    actor: Byml,
-}
-
-fn hits(romfs: &Romfs, f: &Filter) -> Result<Vec<Hit>> {
-    let has = |want: &Option<String>, s: &str| want.as_ref().is_none_or(|w| s.contains(w.as_str()));
-    let mut seen = HashSet::new();
-    let mut out = Vec::new();
-    for rel in banc_files(romfs)? {
-        if !has(&f.file, &rel) {
-            continue;
-        }
-        for a in actors(&load_banc(romfs, &rel)?.root)? {
-            let gyaml = str_field(a, GYAML).unwrap_or_default();
-            let hash = hash_of(a).unwrap_or_default();
-            let pos = vec3(a, "Translate").unwrap_or_default();
-            let near = f.near.is_none_or(|p| flat(p, pos) <= f.within);
-            if has(&f.gyaml, gyaml)
-                && f.hash.is_none_or(|h| h == hash)
-                && near
-                && (!f.dedupe || seen.insert(hash))
-            {
-                out.push(Hit {
-                    file: short(&rel).to_owned(),
-                    gyaml: gyaml.to_owned(),
-                    hash,
-                    pos,
-                    actor: a.clone(),
-                });
-            }
-        }
-    }
-    Ok(out)
-}
-
-fn print_actors(romfs: &Romfs, f: &Filter) -> Result<()> {
-    let hits = hits(romfs, f)?;
-    if f.count {
-        let mut by: BTreeMap<&str, (usize, HashSet<u64>)> = BTreeMap::new();
-        for h in &hits {
-            let e = by.entry(&h.gyaml).or_default();
-            e.0 += 1;
-            e.1.insert(h.hash);
-        }
-        for (gyaml, (n, unique)) in by {
-            println!("{n:>5} {:>5} {gyaml}", unique.len());
-        }
-    } else {
-        print_hits(&hits, f)?;
-    }
-    eprintln!("{} placements", hits.len());
-    Ok(())
-}
-
 /// A point as `x,y,z`, to a tenth.
 fn xyz(p: [f32; 3]) -> String {
     format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2])
@@ -655,32 +596,6 @@ fn root(of: &mut [usize], mut i: usize) -> usize {
         i = of[i];
     }
     i
-}
-
-/// One line per placement, for `print_actors` when it isn't counting.
-fn print_hits(hits: &[Hit], f: &Filter) -> Result<()> {
-    for h in hits {
-        let mut line = format!("{} {} {} {}", h.file, h.gyaml, h.hash, xyz(h.pos));
-        if let Some(p) = f.near {
-            line += &format!(" d={:.1}", flat(p, h.pos));
-        }
-        if f.fields {
-            let skip = [GYAML, "Hash", "Translate"];
-            let map = h.actor.as_map()?;
-            let mut rest: Vec<_> = map
-                .iter()
-                .filter(|(k, _)| !skip.contains(&k.as_str()))
-                .collect();
-            rest.sort_by_key(|(k, _)| k.as_str());
-            for (k, v) in rest {
-                line += &format!(" {k}={}", show(v));
-            }
-        } else if let Some(name) = str_field(&h.actor, "Name") {
-            line += &format!(" Name={name}");
-        }
-        println!("{line}");
-    }
-    Ok(())
 }
 
 fn key(romfs: &Romfs, hash: u64) -> Result<()> {
@@ -805,64 +720,6 @@ fn text(romfs: &Romfs, pattern: &str) -> Result<()> {
     Ok(())
 }
 
-/// Every type a tagfile declares, with its fields.
-fn print_types(bytes: &[u8]) -> Result<()> {
-    let file = Tagfile::parse(bytes)?;
-    for (i, t) in file.types.iter().enumerate().skip(1) {
-        println!("{i} {} parent {} size {}", t.name, t.parent, file.size(i));
-        for f in &t.fields {
-            println!("    {} @{} {}", f.name, f.offset, file.types[f.ty].name);
-        }
-    }
-    Ok(())
-}
-
-fn nav(
-    romfs: &Romfs,
-    game: &Path,
-    map: &str,
-    types: bool,
-    at: Option<[f32; 3]>,
-    within: f32,
-) -> Result<()> {
-    let bytes = navmesh_file(romfs, game, map)?
-        .with_context(|| format!("{map} has no navmesh of its own (Hyrule Field's is in tiles)"))?;
-    if types {
-        return print_types(&bytes);
-    }
-    let mesh = NavMesh::parse(&bytes)?;
-    println!(
-        "{} faces, {} edges ({} on the border), {} vertices, from {} to {}, kept {:.2} from walls",
-        mesh.faces.len(),
-        mesh.edges.len(),
-        mesh.edges.iter().filter(|e| e.across.is_none()).count(),
-        mesh.vertices.len(),
-        xyz(mesh.min),
-        xyz(mesh.max),
-        mesh.erosion,
-    );
-    let Some(p) = at else { return Ok(()) };
-    match mesh.footing(p, 3.0) {
-        Some(f) => println!(
-            "{} stands on face {}, floor {:+.1}",
-            xyz(p),
-            f.face,
-            f.height - p[1]
-        ),
-        None => println!("{} has no face within 3 of its height", xyz(p)),
-    }
-    println!("distance  x,z toward  past it  edge");
-    for b in mesh.borders(p, within, 3.0, 0.5) {
-        let past = b.beyond.map_or("no mesh".into(), |h| format!("{h:+.1}"));
-        let [x, z] = b.toward;
-        println!(
-            "{:>8.1}  {x:+.2},{z:+.2}  {past:>7}  {}",
-            b.distance, b.edge
-        );
-    }
-    Ok(())
-}
-
 fn names(romfs: &Romfs, game: &Path, path: &str) -> Result<()> {
     unpacked(romfs, game, path, |path, data, _| {
         println!("{path}");
@@ -942,11 +799,6 @@ fn actor_names(romfs: &Romfs) -> Result<HashMap<u32, String>> {
         .collect())
 }
 
-fn short(rel: &str) -> &str {
-    let rel = rel.strip_prefix("Banc/").unwrap_or(rel);
-    rel.strip_suffix(".bcett.byml.zs").unwrap_or(rel)
-}
-
 fn point(arg: &str) -> Result<[f32; 3]> {
     let v: Vec<f32> = arg
         .split(',')
@@ -958,7 +810,6 @@ fn point(arg: &str) -> Result<[f32; 3]> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::{actor, map};
 
     /// Arguments `run` can't use are refused when parsed: an empty grep
     /// needle (no window of 0 bytes), `--to` without `--from`, and 0 rolls
@@ -991,47 +842,5 @@ mod tests {
     fn points_parse_with_negatives() {
         assert_eq!(point("1,-2.5, 3").unwrap(), [1.0, -2.5, 3.0]);
         assert!(point("1,2").is_err());
-    }
-
-    /// The runs D start in Kokiri Forest stands on the mesh. Where walk-to
-    /// stopped against a tree trunk, Link stood off it, inside the gap the
-    /// mesh keeps from walls, with the trunk's border under a metre away.
-    #[test]
-    fn kokiri_navmesh_matches_where_link_stood() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let game = Path::new(crate::game::DEV_DUMP);
-        let mesh = NavMesh::parse(
-            &navmesh_file(&romfs, game, map::KOKIRI_FOREST_CHILD)
-                .unwrap()
-                .unwrap(),
-        )
-        .unwrap();
-        let start = mesh.footing([-32.0, 121.2, -65.2], 3.0).unwrap();
-        assert!((start.height - 121.2).abs() < 0.1, "{start:?}");
-        let trunk = [-45.2, 113.0, -42.4];
-        assert_eq!(mesh.footing(trunk, 3.0), None);
-        let wall = mesh.borders(trunk, 2.0, 3.0, 0.5)[0];
-        assert!(wall.distance < 1.0 && wall.beyond.is_none(), "{wall:?}");
-    }
-
-    #[test]
-    fn hundred_gold_skulltulas_once_deduped() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let gold = |dedupe| Filter {
-            gyaml: Some(actor::ENEMY_SKULLTULA_GOLD.to_string()),
-            dedupe,
-            ..Filter::default()
-        };
-        let exact = |hits: Vec<Hit>| {
-            hits.iter()
-                .filter(|h| h.gyaml == actor::ENEMY_SKULLTULA_GOLD)
-                .count()
-        };
-        assert_eq!(exact(hits(&romfs, &gold(false)).unwrap()), 114);
-        assert_eq!(exact(hits(&romfs, &gold(true)).unwrap()), 100);
     }
 }
