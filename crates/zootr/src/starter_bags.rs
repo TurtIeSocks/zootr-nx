@@ -7,7 +7,7 @@ use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_f
 
 use crate::bombchu_bags;
 use crate::checks::swap_strings;
-use crate::key_tints::{POUCH_TEXT, TEXT_PARTS};
+use crate::copies::{POUCH_TEXT, TEXT_PARTS};
 use crate::known::{Name, actor, field, item};
 use crate::settings::{Bombchus, NewGame};
 use crate::standins::{Tables, actor_path, component, doc, path_of, raw, renamed, with_ref};

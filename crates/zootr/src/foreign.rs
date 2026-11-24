@@ -13,9 +13,9 @@
 use anyhow::{Result, ensure};
 use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs, pack_file, set_param};
 
+use crate::copies::{MADE, POUCH_TEXT, TEXT_PARTS, pointed};
 use crate::ice_traps;
 use crate::key_tints::paint::{Host, Look};
-use crate::key_tints::{MADE, POUCH_TEXT, TEXT_PARTS, pointed};
 use crate::keys::SMALL;
 use crate::known::{actor, field};
 use crate::medallions::Colour;

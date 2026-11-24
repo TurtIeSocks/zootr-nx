@@ -28,6 +28,7 @@ mod carpenters;
 mod checks;
 mod chest_levels;
 pub mod config;
+mod copies;
 mod cows;
 mod cut;
 pub mod cutscenes;

@@ -603,7 +603,7 @@ fn levels(
 
 /// What each copy `new_game` deals sets as it's found: its key copies',
 /// and with maps and compasses moving theirs.
-fn sets(new_game: &NewGame) -> Vec<(String, key_tints::Sets)> {
+fn sets(new_game: &NewGame) -> Vec<(String, crate::copies::Sets)> {
     let fortress = new_game.fortress_keys.copies();
     let mut sets = key_tints::sets(BOSS_COPIES, new_game.keys, fortress);
     if maps_move(new_game) {
@@ -615,7 +615,7 @@ fn sets(new_game: &NewGame) -> Vec<(String, key_tints::Sets)> {
 /// [`sets`] as the hook's table names it. Traps need none: the hook
 /// freezes Link for any of them by name.
 fn credits(new_game: &NewGame) -> Vec<(String, zootr_hook::Credit)> {
-    key_tints::as_credits(sets(new_game))
+    crate::copies::as_credits(sets(new_game))
 }
 
 /// The settings the hook acts on, as the table's flag bits. Every seed

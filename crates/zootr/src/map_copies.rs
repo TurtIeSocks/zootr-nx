@@ -11,7 +11,7 @@ use anyhow::{Result, ensure};
 use ounce_formats::{ActorPack, ModBuilder, Romfs};
 
 use crate::checks::ItemCheck;
-use crate::key_tints::{self, MADE, Sets, TEXT_PARTS};
+use crate::copies::{self, MADE, Sets, TEXT_PARTS};
 use crate::known::{Name, flag, flow, item};
 use crate::standins::Tables;
 use crate::text::{CopyLine, Named, Says};
@@ -154,7 +154,7 @@ pub fn copy_pack(romfs: &Romfs, item: &str) -> Result<Option<ActorPack>> {
         return Ok(None);
     };
     let template = ActorPack::load(romfs, template)?;
-    key_tints::own_pack(&template, item, &template.name).map(Some)
+    copies::own_pack(&template, item, &template.name).map(Some)
 }
 
 /// Writes every copy, each showing its template's model, its pouch row a
@@ -163,7 +163,7 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Re
     for kind in KINDS {
         let template = ActorPack::load(romfs, kind.template)?;
         for n in 1..=DUNGEONS.len() {
-            key_tints::copy(
+            copies::copy(
                 builder,
                 tables,
                 &template,
