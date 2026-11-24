@@ -173,7 +173,7 @@ pub fn fields(
     drops: &HashMap<u64, Drop>,
     progressive: crate::progressive::Lines,
 ) -> Result<Vec<String>> {
-    let flow = flows::load(romfs, FLOW)?.with_context(|| format!("{FLOW} isn't a flow"))?;
+    let flow = flows::timeline(romfs, FLOW)?;
     let mut fields = Vec::new();
     for m in pickups::moved(pieces, drops, progressive) {
         if !m.vanilla.starts_with(keys::FORTRESS_KEY) {

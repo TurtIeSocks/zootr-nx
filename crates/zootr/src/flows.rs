@@ -54,6 +54,20 @@ pub fn load(romfs: &Romfs, name: &str) -> Result<Option<Flowchart>> {
     Flowchart::parse(&romfs.read(&rel)?).with_context(|| format!("parsing {rel}"))
 }
 
+/// `name`, which must be a flowchart rather than a cutscene timeline.
+pub fn timeline(romfs: &Romfs, name: &str) -> Result<Flowchart> {
+    load(romfs, name)?.with_context(|| timeline_error(name))
+}
+
+/// `data`, the bytes of flow `name`, parsed as [`timeline`] loads it.
+pub fn parse(name: &str, data: &[u8]) -> Result<Flowchart> {
+    Flowchart::parse(data)?.with_context(|| timeline_error(name))
+}
+
+fn timeline_error(name: &str) -> String {
+    format!("{name} is a timeline")
+}
+
 /// `name` as `rewrites` has it, or the game's own when no other setting
 /// rewrote it.
 pub fn current(romfs: &Romfs, rewrites: &Rewrites, name: &str) -> Result<Flowchart> {
@@ -62,7 +76,7 @@ pub fn current(romfs: &Romfs, rewrites: &Rewrites, name: &str) -> Result<Flowcha
         Some(data) => data.clone(),
         None => romfs.read(&rel)?,
     };
-    Flowchart::parse(&data)?.with_context(|| format!("{name} is a timeline"))
+    parse(name, &data)
 }
 
 /// Load `name` as [`current`] does, run `f` on it and store the result.

@@ -324,7 +324,7 @@ impl Gift {
         let Some(data) = rewrites.get(&flows::rel(caller)) else {
             return Ok(false);
         };
-        let flow = Flowchart::parse(data)?.with_context(|| format!("{caller} is a timeline"))?;
+        let flow = flows::parse(caller, data)?;
         Ok(scene_marks(&flow, self.flow).0.is_empty())
     }
 

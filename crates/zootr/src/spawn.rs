@@ -119,7 +119,7 @@ fn away(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
 /// child's Kokiri Sword and shield, adult's Master Sword only when held,
 /// and no adult shield.
 fn adult_gear(romfs: &Romfs, rewrites: &mut Rewrites, owned: &[&str]) -> Result<()> {
-    let gear = flows::load(romfs, GEAR)?.with_context(|| format!("{GEAR} is a timeline"))?;
+    let gear = flows::timeline(romfs, GEAR)?;
     // Adult Link never equips child gear, so a grant can't fill the slots.
     // The start inventory names each item as it drops, the slots as held.
     let first = |names: &[&'static Name]| {

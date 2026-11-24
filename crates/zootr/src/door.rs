@@ -178,7 +178,7 @@ pub fn open(romfs: &Romfs, rewrites: &mut Rewrites, adult: bool) -> Result<Vec<S
         rewrites.insert(rel, patched);
     }
     let (name, _) = FIRST_ADULT;
-    let sages = flows::load(romfs, name)?.with_context(|| format!("{name} is a timeline"))?;
+    let sages = flows::timeline(romfs, name)?;
     let (forest, rest): (Vec<_>, Vec<_>) = first_adult(&sages)?.into_iter().partition(|e| {
         e.1 == PROGRESS.get()
             && flows::param(&e.2, field::CHALLENGE_NAME) == Some(SAGE_OF_FOREST.get())

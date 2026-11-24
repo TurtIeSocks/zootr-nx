@@ -43,7 +43,7 @@ pub const SAVED: &str = "Step_";
 
 /// The quest flow, which holds the shape of each event the steps copy.
 pub(crate) fn template(romfs: &Romfs) -> Result<Flowchart> {
-    flows::load(romfs, TEMPLATE)?.context("the quest flow is a timeline")
+    flows::timeline(romfs, TEMPLATE)
 }
 
 /// The quest flow's own progress event.

@@ -170,7 +170,7 @@ fn posed(flow: &mut Flowchart, held: &Model) -> Result<()> {
 
 /// The equipment swap's own pouch question, as a model.
 fn held(romfs: &Romfs) -> Result<Model> {
-    let f = flows::load(romfs, GEAR)?.with_context(|| format!("{GEAR} is a timeline"))?;
+    let f = flows::timeline(romfs, GEAR)?;
     let at = flows::switch(&f, IN_POUCH).with_context(|| format!("{GEAR} asks no pouch"))?;
     flows::model(&f, IN_POUCH, at)
 }

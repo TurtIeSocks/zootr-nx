@@ -197,8 +197,7 @@ pub(crate) struct Shows {
 impl Shows {
     pub(crate) fn load(romfs: &Romfs) -> Result<Self> {
         let first = |name: &Name, call: (&Name, &Name)| -> Result<Model> {
-            let flow =
-                flows::load(romfs, name)?.with_context(|| format!("{name} is a timeline"))?;
+            let flow = flows::timeline(romfs, name)?;
             let at = *running(&flow, call)
                 .first()
                 .with_context(|| format!("{name} never runs {call:?}"))?;
