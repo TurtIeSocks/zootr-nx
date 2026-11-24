@@ -137,7 +137,9 @@ pub(super) fn print(romfs: &Romfs, actors: &[String], map: Option<String>) -> Re
             file: Some(file),
             ..Default::default()
         };
-        let hits = super::hits(romfs, &filter)?.into_iter().map(|h| h.gyaml);
+        let hits = super::actors::hits(romfs, &filter)?
+            .into_iter()
+            .map(|h| h.gyaml);
         all.extend(hits.filter(|g| g.starts_with(ENEMY)));
     }
     all.iter().try_for_each(|a| hurts(romfs, a))

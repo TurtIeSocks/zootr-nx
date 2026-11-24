@@ -30,10 +30,12 @@ mod shapes;
 mod uvs;
 mod water;
 
-use actors::{hits, print_actors};
-use formats::{ainb, ainbs, byml, files, grep, pool, restbl, strings, unpack, unpacked};
+use actors::print_actors;
+use formats::{
+    ainb, ainbs, byml, files, grep, pool, print_types, restbl, strings, unpack, unpacked,
+};
 use logic::{checks, doors, exits, gates, groups, pouch, settings, shops, tools};
-use navmesh::{nav, print_types};
+use navmesh::nav;
 
 #[derive(Subcommand)]
 pub enum Probe {
@@ -127,7 +129,7 @@ pub enum Probe {
     /// gives each bone at its first frame.
     Poses { path: String },
     /// How far below its origin each pool item's model reaches on a
-    /// shelf, in the pose it plays there: the source of `shops/floors.rs`.
+    /// shelf, in the pose it plays there: the source of `shops/floors/table.rs`.
     Floors,
     /// Each shape in the models whose path contains this: the lowest and
     /// highest corner of its vertices as stored, before any pose, and each
