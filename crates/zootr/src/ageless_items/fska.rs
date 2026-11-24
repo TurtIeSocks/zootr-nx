@@ -15,26 +15,17 @@
 use std::collections::{HashMap, HashSet};
 
 use anyhow::{Context, Result, ensure};
+use ounce_formats::fska::{
+    self, BONE_BASE as BASE, BONE_COUNT as TRACK_COUNT, BONE_FLAGS as FLAGS, BONE_SIZE as TRACK,
+    BONES as TRACKS, NAME,
+};
 
 use crate::known::field;
 
-const MAGIC: &[u8; 4] = b"FSKA";
-/// An animation header's fields: its name, its bone tracks and how many.
-const NAME: usize = 0x08;
-const TRACKS: usize = 0x28;
-const TRACK_COUNT: usize = 0x4c;
-/// A bone track's size and fields: its name, curves, base values, flags
-/// and curve count.
-const TRACK: usize = 0x38;
+/// A bone track's curves and curve count. The rest of the layout is
+/// [`fska`]'s, which calls a track a bone animation.
 const CURVES: usize = 0x08;
-const BASE: usize = 0x10;
-const FLAGS: usize = 0x28;
 const CURVE_COUNT: usize = 0x2e;
-/// The base values a track's flags carry, in order: scale (3 floats),
-/// rotation (4), translation (3).
-const HAS_SCALE: u32 = 1 << 3;
-const HAS_ROTATION: u32 = 1 << 4;
-const HAS_TRANSLATION: u32 = 1 << 5;
 /// The flag bits saying which translation axes have curves, X first.
 const TRANSLATION_CURVES: u32 = 13;
 /// A curve's size and fields: what it animates, its scale and offset.
@@ -124,14 +115,9 @@ struct Track<'a> {
 fn track(d: &[u8], at: usize) -> Option<Track<'_>> {
     let flags = u32_at(d, at + FLAGS)?;
     let base = offset_at(d, at + BASE)?;
-    let translation = match flags & HAS_TRANSLATION != 0 && base != 0 {
-        true => {
-            let scale = if flags & HAS_SCALE != 0 { 12 } else { 0 };
-            let rotation = if flags & HAS_ROTATION != 0 { 16 } else { 0 };
-            let at = base + scale + rotation;
-            Some((at, floats_at::<3>(d, at)?))
-        }
-        false => None,
+    let translation = match fska::translation_at(flags as usize, base) {
+        Some(at) => Some((at, floats_at::<3>(d, at)?)),
+        None => None,
     };
     Some(Track {
         name: string_at(d, offset_at(d, at)?)?,
@@ -143,13 +129,11 @@ fn track(d: &[u8], at: usize) -> Option<Track<'_>> {
 }
 
 /// Each animation in the archive: where its header is, and where its bone
-/// tracks are and how many. Found by magic, 8-aligned, as the archive's
-/// own tables would give them; a match whose name or tracks don't read is
-/// not one.
+/// tracks are and how many. Found as [`fska::animations`] finds them, as
+/// the archive's own tables would give them; a match whose name or tracks
+/// don't read is not one.
 fn animations(d: &[u8]) -> Vec<(usize, usize, usize)> {
-    (0..d.len().saturating_sub(0x50))
-        .step_by(8)
-        .filter(|&at| &d[at..at + 4] == MAGIC)
+    fska::animations(d)
         .filter_map(|at| {
             string_at(d, offset_at(d, at + NAME)?)?;
             let tracks = offset_at(d, at + TRACKS)?;
