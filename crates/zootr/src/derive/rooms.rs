@@ -876,7 +876,6 @@ mod tests {
 
     /// The committed Deku Tree room files match a fresh derive.
     #[test]
-    #[ignore = "derives a whole dungeon from the dump: run with `--ignored` when changing derive, and take this off once its dungeon is LIVE"]
     fn the_committed_deku_tree_rooms_match_a_fresh_derive() {
         needs_names!();
         let Some(fresh) = fresh("deku-tree") else {

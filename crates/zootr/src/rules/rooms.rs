@@ -289,7 +289,7 @@ impl Entry for Knowledge {
 /// freshness tests are ignored until then (each derives a whole dungeon,
 /// minutes of CI for files no seed reads): a dungeon that joins takes the
 /// ignore off its own.
-pub const LIVE: &[&str] = &[];
+pub const LIVE: &[&str] = &["inside-the-deku-tree"];
 
 /// One room, its confirmed entries laid over its baseline.
 #[derive(Debug)]
@@ -782,10 +782,10 @@ mod tests {
     #[test]
     fn a_room_check_waits_for_its_dungeon_to_go_live() {
         needs_names!();
+        let forest = format!("baseline/{}/room-04.toml", folder(map::FOREST_TEMPLE.get()));
         let book =
-            super::super::Book::from_parts(super::super::files::FILES, &[(&at("baseline"), BASE)])
-                .unwrap();
-        assert!(!book.rooms[0].live, "no dungeon is live yet");
+            super::super::Book::from_parts(super::super::files::FILES, &[(&forest, BASE)]).unwrap();
+        assert!(!book.rooms[0].live, "the Forest Temple isn't live yet");
         let hand = super::super::Book::from_files(super::super::files::FILES).unwrap();
         assert_eq!(
             book.checks().map(|(h, _)| h).collect::<Vec<_>>(),
