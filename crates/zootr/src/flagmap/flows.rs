@@ -30,17 +30,21 @@ pub(super) fn add(g: &mut Graph, flows: &Flows, gd: &GameData) {
         let ev = g.node(Kind::Event, row, || None);
         let played = g.state(gd, &played_flag(row));
         g.edge(ev, played, Link::Writes, "played".into(), &setting, None);
-        let eps = flows.0.get(flow).into_iter().flat_map(|c| &c.entry_points);
+        let eps = flows
+            .charts
+            .get(flow)
+            .into_iter()
+            .flat_map(|c| &c.entry_points);
         for ep in eps.filter(|e| entry.as_ref().is_none_or(|n| *n == e.name)) {
             let to = g.event(flow, &ep.name);
             g.edge(ev, to, Link::Runs, "plays".into(), &setting, None);
         }
     }
-    let mut names: Vec<&String> = flows.0.keys().collect();
+    let mut names: Vec<&String> = flows.charts.keys().collect();
     names.sort();
     let calls = calls(flows);
     for name in names {
-        let chart = &flows.0[name];
+        let chart = &flows.charts[name];
         for ep in &chart.entry_points {
             let ev = g.event(name, &ep.name);
             let args = calls.get(&(name.clone(), ep.name.clone()));
@@ -64,7 +68,7 @@ pub(super) fn add(g: &mut Graph, flows: &Flows, gd: &GameData) {
 /// Every call's params, by the entry point it calls.
 fn calls(flows: &Flows) -> Calls {
     let mut calls = Calls::new();
-    for (name, chart) in &flows.0 {
+    for (name, chart) in &flows.charts {
         for e in &chart.events {
             if let EventKind::SubFlow {
                 params,
@@ -192,7 +196,7 @@ fn step(
 fn entries(flows: &Flows, flow: &str, entry: Option<&str>) -> Vec<String> {
     match entry {
         Some(e) => vec![e.to_owned()],
-        None => (flows.0.get(flow).into_iter())
+        None => (flows.charts.get(flow).into_iter())
             .flat_map(|c| c.entry_points.iter().map(|e| e.name.clone()))
             .collect(),
     }

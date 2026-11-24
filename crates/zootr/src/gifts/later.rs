@@ -105,7 +105,12 @@ pub(super) fn grant_after(
 
 /// The inline grant's models, from `flows`.
 pub(super) fn models(flows: &Flows) -> Result<grant::Models<'_>> {
-    let chart = |name: &str| flows.0.get(name).with_context(|| format!("no {name} flow"));
+    let chart = |name: &str| {
+        flows
+            .charts
+            .get(name)
+            .with_context(|| format!("no {name} flow"))
+    };
     Ok(grant::Models::of(
         chart(starting::TEMPLATE)?,
         chart(grant::POUCH)?,

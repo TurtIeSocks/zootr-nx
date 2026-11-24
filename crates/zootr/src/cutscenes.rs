@@ -317,7 +317,7 @@ pub(crate) fn transition<'a>(flow: &'a Flowchart, e: &'a EventKind) -> Option<&'
 /// Every event a scene change boots into.
 fn boots(all: &Flows) -> BTreeSet<String> {
     let mut out = BTreeSet::new();
-    for flow in all.0.values() {
+    for flow in all.charts.values() {
         for e in &flow.events {
             if let EventKind::Action { params, .. } = &e.kind
                 && let Some((_, v)) = params.iter().find(|(k, _)| k == field::BOOT_EVENT_NAME)
@@ -737,7 +737,7 @@ mod tests {
                 c.name
             );
             for flow in &c.flows {
-                let vanilla = &all.0[flow];
+                let vanilla = &all.charts[flow];
                 let after = Flowchart::parse(&out[&flows::rel(flow)]).unwrap().unwrap();
                 let was = gifts::scene_marks(vanilla, &c.name).0.len();
                 let (plays, sets) = gifts::scene_marks(&after, &c.name);

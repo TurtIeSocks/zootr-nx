@@ -57,7 +57,12 @@ impl fmt::Display for Effect {
 }
 
 /// Every flowchart, loaded once, and what each event name runs.
-pub struct Flows(pub HashMap<String, Flowchart>, BTreeMap<String, rsdb::Runs>);
+pub struct Flows {
+    /// Every flowchart by name, timelines left out.
+    pub charts: HashMap<String, Flowchart>,
+    /// What each event the game starts by name runs.
+    rows: BTreeMap<String, rsdb::Runs>,
+}
 
 type Bindings = BTreeMap<String, String>;
 
@@ -65,22 +70,23 @@ impl Flows {
     pub fn load(romfs: &Romfs) -> Result<Self> {
         let names = flows::names(romfs)?;
         let loaded = par_map(&names, |name| flows::load(romfs, name));
-        let mut map = HashMap::new();
+        let mut charts = HashMap::new();
         for (name, flow) in names.into_iter().zip(loaded) {
             if let Some(flow) = flow? {
-                map.insert(name, flow);
+                charts.insert(name, flow);
             }
         }
-        Ok(Self(map, rsdb::events(romfs)?))
+        let rows = rsdb::events(romfs)?;
+        Ok(Self { charts, rows })
     }
 
     /// Every event the game starts by name, and what it runs.
     pub fn rows(&self) -> &BTreeMap<String, rsdb::Runs> {
-        &self.1
+        &self.rows
     }
 
     fn has_entry(&self, flow: &str, entry: &str) -> bool {
-        self.0
+        self.charts
             .get(flow)
             .is_some_and(|f| f.entry_points.iter().any(|e| e.name == entry))
     }
@@ -97,17 +103,17 @@ impl Flows {
     /// The rest cover names without a row, like a cutscene a flow calls
     /// by entry.
     pub fn resolve<'a>(&'a self, event: &'a str) -> Vec<(&'a str, Option<&'a str>)> {
-        if let Some((flow, entry)) = self.1.get(event) {
+        if let Some((flow, entry)) = self.rows.get(event) {
             let entry = entry.as_deref();
-            if self.0.contains_key(flow) && entry.is_none_or(|e| self.has_entry(flow, e)) {
+            if self.charts.contains_key(flow) && entry.is_none_or(|e| self.has_entry(flow, e)) {
                 return vec![(flow, entry)];
             }
         }
-        if let Some((flow, _)) = self.0.get_key_value(event) {
+        if let Some((flow, _)) = self.charts.get_key_value(event) {
             return vec![(flow, None)];
         }
         let named: Vec<_> = self
-            .0
+            .charts
             .keys()
             .filter(|f| self.has_entry(f, event))
             .map(|f| (f.as_str(), Some(event)))
@@ -213,7 +219,7 @@ fn bind(params: &Params, args: &Bindings) -> Bindings {
 
 impl Walk<'_> {
     fn entry(&mut self, flow: &str, entry: Option<&str>, args: &Bindings) {
-        let Some(chart) = self.flows.0.get(flow) else {
+        let Some(chart) = self.flows.charts.get(flow) else {
             return;
         };
         for ep in &chart.entry_points {
@@ -234,7 +240,7 @@ impl Walk<'_> {
         if !self.seen.insert((flow.to_owned(), index, args.clone())) {
             return;
         }
-        let chart = &self.flows.0[flow];
+        let chart = &self.flows.charts[flow];
         for n in self.step(flow, chart, index, args) {
             self.event(flow, n, args);
         }

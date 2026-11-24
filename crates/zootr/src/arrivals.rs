@@ -35,7 +35,7 @@ const BANNER: &Name = flow::EVENT_TRIGGER_OPEN_LOCATION_UI;
 pub(crate) fn visits<'a>(flows: &Flows, scenes: impl IntoIterator<Item = &'a str>) -> Vec<String> {
     scenes
         .into_iter()
-        .filter_map(|s| flows.0.get(s))
+        .filter_map(|s| flows.charts.get(s))
         .flat_map(|f| f.events.iter().filter_map(|e| banner(f, &e.kind)))
         .map(|area| format!("{}.{area}=true", field::IS_VISIT_LOCATION))
         .collect()
@@ -140,7 +140,7 @@ fn skip_for(flows: &Flows, gd: &GameData, event: &str, flag: &str) -> Result<Ski
     };
     if let Some(cutscene) = cutscene {
         for (flow, entry) in flows.resolve(event) {
-            let chart = &flows.0[flow];
+            let chart = &flows.charts[flow];
             if flow == cutscene {
                 continue;
             }

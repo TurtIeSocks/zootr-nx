@@ -112,7 +112,7 @@ impl Survey {
             .rows()
             .keys()
             .for_each(|row| learn(&mut gamedata, row));
-        for (name, chart) in &flows.0 {
+        for (name, chart) in &flows.charts {
             learn(&mut gamedata, name);
             flows::strings(chart)
                 .into_iter()

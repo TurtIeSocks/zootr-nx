@@ -78,7 +78,7 @@ impl Planner<'_> {
         let flows = lazy(&mut self.flows, || Flows::load(self.romfs))?;
         let mut out: Ready = vec![];
         for flag in ready {
-            let setters = (flows.0.iter()).filter(|(name, chart)| {
+            let setters = (flows.charts.iter()).filter(|(name, chart)| {
                 name.starts_with(NPC) && flags::set_in(chart).any(|f| f == flag)
             });
             for (setter, _) in setters {
