@@ -260,6 +260,9 @@ test("an .apznx dropped while an install is blocked says why, and installs nothi
   // It goes once nothing blocks.
   act(() => useSeeds.setState({ blocked: "" }));
   expect(screen.queryByRole("alert")).toBeNull();
+  // A new block, with nothing dropped, doesn't bring it back.
+  act(() => useSeeds.setState({ blocked: "Close the game first" }));
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 test("a build without the apworld opens the release's, and a player is told what to ask for", async () => {

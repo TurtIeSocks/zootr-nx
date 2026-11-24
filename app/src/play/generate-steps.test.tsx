@@ -7,6 +7,10 @@ import { type Steps, stepped, useSeeds } from "@/stores/seeds";
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  useSeeds.setPath("rebuilt", null);
+  useSeeds.setPath("error", undefined);
+  useSeeds.setPath("steps", null);
+  useSeeds.setPath("generating", false);
 });
 
 /** A run that read the dump and is reading checks. */
@@ -52,6 +56,7 @@ test("a failed run marks the step it failed in", () => {
   show({ ...running, end: error }, false);
   expect(label("Failed")).toBeTruthy();
   expect(label("Running")).toBeNull();
+  expect(screen.getAllByRole("listitem")[1]?.textContent).not.toMatch(/ s$/);
   expect(screen.getByText("Copy Log")).toBeTruthy();
 });
 
@@ -63,6 +68,15 @@ test("a stopped run says what the targets hold", () => {
   expect(screen.getByText("Copy Log")).toBeTruthy();
 });
 
+test("the step a run stopped in is marked stopped, with no time", () => {
+  const end = { kind: "stopped", took_off: false } as const;
+  show({ ...running, end }, false);
+  const last = screen.getAllByRole("listitem")[1];
+  expect(last?.querySelector('[aria-label="Stopped"]')).toBeTruthy();
+  expect(label("Done")).toBeTruthy();
+  expect(last?.textContent).not.toMatch(/ s$/);
+});
+
 test("a finished rebuild says so and has no log to copy", () => {
   useSeeds.setPath("rebuilt", "FakeBuild");
   const rows = [{ kind: "began", step: "rebuilding" }] as StepEvent[];
@@ -70,7 +84,6 @@ test("a finished rebuild says so and has no log to copy", () => {
   show({ ...rebuilt, end: { kind: "done" }, secs: 840 }, false);
   expect(screen.getByText(/Rebuilt in 840.0 s/)).toBeTruthy();
   expect(screen.queryByText("Copy Log")).toBeNull();
-  useSeeds.setPath("rebuilt", null);
 });
 
 test("why a run failed shows under its steps", () => {
@@ -83,7 +96,6 @@ test("why a run failed shows under its steps", () => {
   expect(
     steps.compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
-  useSeeds.setPath("error", undefined);
 });
 
 test("a job that failed before any step still says why", () => {
@@ -93,5 +105,4 @@ test("a job that failed before any step still says why", () => {
   expect(screen.getByRole("alert").textContent).toContain(
     "Already writing a seed",
   );
-  useSeeds.setPath("error", undefined);
 });

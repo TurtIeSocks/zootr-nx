@@ -297,3 +297,9 @@ test("Entrances lists each shuffled door, and shows only when doors move", async
     list.getByText("Death Mountain Crater, Fire Temple door"),
   ).toBeTruthy();
 });
+
+test("a kept Entrances tab on a seed without doors presses All Checks", async () => {
+  useUi.setPath("spoiler.tab", "entrances");
+  await open();
+  expect(tab("All Checks").getAttribute("aria-pressed")).toBe("true");
+});
